@@ -55,7 +55,7 @@ export interface CreateDataTypeRequest {
    * @type {string}
    * @memberof CreateDataTypeRequest
    */
-  createdById: string;
+  actorId: string;
   /**
    *
    * @type {string}
@@ -80,7 +80,7 @@ export interface CreateEntityRequest {
    * @type {string}
    * @memberof CreateEntityRequest
    */
-  createdById: string;
+  actorId: string;
   /**
    *
    * @type {object}
@@ -117,7 +117,7 @@ export interface CreateEntityTypeRequest {
    * @type {string}
    * @memberof CreateEntityTypeRequest
    */
-  createdById: string;
+  actorId: string;
   /**
    *
    * @type {string}
@@ -142,7 +142,7 @@ export interface CreateLinkRequest {
    * @type {string}
    * @memberof CreateLinkRequest
    */
-  createdById: string;
+  actorId: string;
   /**
    *
    * @type {number}
@@ -179,7 +179,7 @@ export interface CreateLinkTypeRequest {
    * @type {string}
    * @memberof CreateLinkTypeRequest
    */
-  createdById: string;
+  actorId: string;
   /**
    *
    * @type {string}
@@ -204,7 +204,7 @@ export interface CreatePropertyTypeRequest {
    * @type {string}
    * @memberof CreatePropertyTypeRequest
    */
-  createdById: string;
+  actorId: string;
   /**
    *
    * @type {string}
@@ -1166,13 +1166,13 @@ export interface RemoveLinkRequest {
    * @type {string}
    * @memberof RemoveLinkRequest
    */
-  linkTypeId: string;
+  actorId: string;
   /**
    *
    * @type {string}
    * @memberof RemoveLinkRequest
    */
-  removedById: string;
+  linkTypeId: string;
   /**
    *
    * @type {string}
@@ -1279,6 +1279,12 @@ export type UpdateDataTypeKindEnum =
 export interface UpdateDataTypeRequest {
   /**
    *
+   * @type {string}
+   * @memberof UpdateDataTypeRequest
+   */
+  actorId: string;
+  /**
+   *
    * @type {UpdateDataType}
    * @memberof UpdateDataTypeRequest
    */
@@ -1289,12 +1295,6 @@ export interface UpdateDataTypeRequest {
    * @memberof UpdateDataTypeRequest
    */
   typeToUpdate: string;
-  /**
-   *
-   * @type {string}
-   * @memberof UpdateDataTypeRequest
-   */
-  updatedById: string;
 }
 /**
  *
@@ -1302,6 +1302,12 @@ export interface UpdateDataTypeRequest {
  * @interface UpdateEntityRequest
  */
 export interface UpdateEntityRequest {
+  /**
+   *
+   * @type {string}
+   * @memberof UpdateEntityRequest
+   */
+  actorId: string;
   /**
    *
    * @type {object}
@@ -1320,12 +1326,6 @@ export interface UpdateEntityRequest {
    * @memberof UpdateEntityRequest
    */
   entityTypeId: string;
-  /**
-   *
-   * @type {string}
-   * @memberof UpdateEntityRequest
-   */
-  updatedById: string;
 }
 /**
  * The contents of an Entity Type update request
@@ -1422,6 +1422,12 @@ export type UpdateEntityTypeTypeEnum =
 export interface UpdateEntityTypeRequest {
   /**
    *
+   * @type {string}
+   * @memberof UpdateEntityTypeRequest
+   */
+  actorId: string;
+  /**
+   *
    * @type {UpdateEntityType}
    * @memberof UpdateEntityTypeRequest
    */
@@ -1432,12 +1438,6 @@ export interface UpdateEntityTypeRequest {
    * @memberof UpdateEntityTypeRequest
    */
   typeToUpdate: string;
-  /**
-   *
-   * @type {string}
-   * @memberof UpdateEntityTypeRequest
-   */
-  updatedById: string;
 }
 /**
  * The contents of a Link Type update request
@@ -1492,6 +1492,12 @@ export type UpdateLinkTypeKindEnum =
 export interface UpdateLinkTypeRequest {
   /**
    *
+   * @type {string}
+   * @memberof UpdateLinkTypeRequest
+   */
+  actorId: string;
+  /**
+   *
    * @type {UpdateLinkType}
    * @memberof UpdateLinkTypeRequest
    */
@@ -1502,12 +1508,6 @@ export interface UpdateLinkTypeRequest {
    * @memberof UpdateLinkTypeRequest
    */
   typeToUpdate: string;
-  /**
-   *
-   * @type {string}
-   * @memberof UpdateLinkTypeRequest
-   */
-  updatedById: string;
 }
 /**
  * The contents of a Property Type update request
@@ -1562,6 +1562,12 @@ export type UpdatePropertyTypeKindEnum =
 export interface UpdatePropertyTypeRequest {
   /**
    *
+   * @type {string}
+   * @memberof UpdatePropertyTypeRequest
+   */
+  actorId: string;
+  /**
+   *
    * @type {UpdatePropertyType}
    * @memberof UpdatePropertyTypeRequest
    */
@@ -1572,12 +1578,6 @@ export interface UpdatePropertyTypeRequest {
    * @memberof UpdatePropertyTypeRequest
    */
   typeToUpdate: string;
-  /**
-   *
-   * @type {string}
-   * @memberof UpdatePropertyTypeRequest
-   */
-  updatedById: string;
 }
 /**
  * @type Vertex
