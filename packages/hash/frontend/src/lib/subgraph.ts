@@ -14,7 +14,6 @@ import {
 import { BaseUri } from "@blockprotocol/type-system-web";
 
 import { Subgraph } from "../graphql/apiTypes.gen";
-import { EntityResponse } from "../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
 
 // ------------------- Type Guards to use inside .filters -------------------
 
