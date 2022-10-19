@@ -89,10 +89,7 @@ impl<'de> Visitor<'de> for DataTypeQueryTokenVisitor {
     type Value = DataTypeQueryToken<'de>;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str(
-            "one of `ownedById`, `baseUri`, `versionedUri`, `version`, `title, `description`, \
-             `type`, or a custom identifier",
-        )
+        DataTypeQueryPathVisitor::new(0).expecting(formatter)
     }
 
     fn visit_str<E: de::Error>(self, v: &str) -> Result<Self::Value, E> {
@@ -151,13 +148,20 @@ pub struct DataTypeQueryPathVisitor {
     position: usize,
 }
 
+impl DataTypeQueryPathVisitor {
+    #[must_use]
+    pub const fn new(position: usize) -> Self {
+        Self { position }
+    }
+}
+
 impl<'de> Visitor<'de> for DataTypeQueryPathVisitor {
     type Value = DataTypeQueryPath<'de>;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         formatter.write_str(
-            "a sequence containing one element of `ownedById`, `baseUri`, `versionedUri`, \
-             `version`, `title, `description`, `type`, or a custom identifier",
+            "one of `ownedById`, `baseUri`, `versionedUri`, `version`, `title, `description`, \
+             `type`, or a custom identifier",
         )
     }
 
@@ -187,25 +191,14 @@ impl<'de: 'k, 'k> Deserialize<'de> for DataTypeQueryPath<'k> {
     where
         D: Deserializer<'de>,
     {
-        deserializer.deserialize_seq(DataTypeQueryPathVisitor { position: 0 })
+        deserializer.deserialize_seq(DataTypeQueryPathVisitor::new(0))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::store::query::PathSegment;
-
-    fn create_path(segments: impl IntoIterator<Item = &'static str>) -> Path {
-        Path {
-            segments: segments
-                .into_iter()
-                .map(|segment| PathSegment {
-                    identifier: segment.to_owned(),
-                })
-                .collect(),
-        }
-    }
+    use crate::ontology::test_utils::create_path;
 
     fn convert_path(
         segments: impl IntoIterator<Item = &'static str>,
