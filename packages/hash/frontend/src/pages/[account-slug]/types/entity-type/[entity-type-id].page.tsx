@@ -2,7 +2,6 @@ import {
   EntityType,
   extractBaseUri,
   extractVersion,
-  VersionedUri,
 } from "@blockprotocol/type-system-web";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
@@ -11,8 +10,6 @@ import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
 import { FormProvider, useForm } from "react-hook-form";
-import { useBlockProtocolCreateEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreateEntityType";
-import { useUser } from "../../../../components/hooks/useUser";
 import { FRONTEND_URL } from "../../../../lib/config";
 import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
 import { TopContextBar } from "../../../shared/top-context-bar";
@@ -31,18 +28,12 @@ import { mustBeVersionedUri } from "./util";
 // @todo loading state
 // @todo handle displaying entity type not yet created
 const Page: NextPageWithLayout = () => {
-  const { user } = useUser();
   const router = useRouter();
   // @todo how to handle remote types
   const isDraft = !!router.query.draft;
   const baseEntityTypeUri = isDraft
     ? null
     : `${FRONTEND_URL}/${router.query["account-slug"]}/types/entity-type/${router.query["entity-type-id"]}/`;
-
-  const { createEntityType } = useBlockProtocolCreateEntityType(
-    // @todo should use routing URL?
-    user?.accountId ?? "",
-  );
 
   const draftEntityType = useMemo(() => {
     if (router.query.draft) {
@@ -63,7 +54,7 @@ const Page: NextPageWithLayout = () => {
   });
   const { handleSubmit: wrapHandleSubmit, reset } = formMethods;
 
-  const [remoteEntityType, updateEntityType] = useEntityType(
+  const [remoteEntityType, updateEntityType, publishDraft] = useEntityType(
     baseEntityTypeUri,
     (fetchedEntityType) => {
       reset({
@@ -99,28 +90,12 @@ const Page: NextPageWithLayout = () => {
       if (!draftEntityType) {
         throw new Error("Cannot publish without draft");
       }
-      const { $id: _, ...remainingProperties } = draftEntityType;
-      const res = await createEntityType({
-        data: {
-          entityType: {
-            ...remainingProperties,
-            properties,
-          },
-        },
+
+      await publishDraft({
+        ...draftEntityType,
+        properties,
       });
-
-      if (res.errors?.length || !res.data) {
-        throw new Error("Could not publish changes");
-      }
-
-      // @todo remove casting
-      const newUrl = extractBaseUri(res.data.entityTypeId as VersionedUri);
-
-      // @todo we have the entity type here, lets set it…
-      if (newUrl) {
-        reset(data);
-        await router.replace(newUrl);
-      }
+      reset(data);
     } else {
       const res = await updateEntityType({
         properties,
@@ -134,7 +109,7 @@ const Page: NextPageWithLayout = () => {
     }
   });
 
-  if (!entityType || !propertyTypes || !user) {
+  if (!entityType || !propertyTypes) {
     return null;
   }
 
