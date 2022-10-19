@@ -36,7 +36,7 @@ impl<C: AsClient> PostgresStore<C> {
         async move {
             let unresolved_property_type = dependency_context
                 .referenced_property_types
-                .insert(
+                .insert_with(
                     property_type_id,
                     dependency_context
                         .graph_resolve_depths
@@ -175,15 +175,24 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                 .then(|property_type| async move {
                     let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 
+                    let property_type_id = property_type.metadata().identifier().uri().clone();
+                    dependency_context.referenced_property_types.insert(
+                        &property_type_id,
+                        dependency_context
+                            .graph_resolve_depths
+                            .property_type_resolve_depth,
+                        property_type,
+                    );
+
                     self.get_property_type_as_dependency(
-                        property_type.metadata().identifier().uri(),
+                        &property_type_id,
                         dependency_context.as_ref_object(),
                     )
                     .await?;
 
                     let property_type = dependency_context
                         .referenced_property_types
-                        .remove(property_type.metadata().identifier().uri())
+                        .remove(&property_type_id)
                         .expect("root was not added to the subgraph");
 
                     let identifier = GraphElementIdentifier::OntologyElementId(

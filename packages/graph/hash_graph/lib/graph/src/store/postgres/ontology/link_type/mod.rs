@@ -30,7 +30,7 @@ impl<C: AsClient> PostgresStore<C> {
     ) -> Result<(), QueryError> {
         let _unresolved_link_type = context
             .referenced_link_types
-            .insert(
+            .insert_with(
                 link_type_id,
                 context.graph_resolve_depths.link_type_resolve_depth,
                 || async {
@@ -85,15 +85,21 @@ impl<C: AsClient> LinkTypeStore for PostgresStore<C> {
             .then(|link_type| async move {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 
-                self.get_link_type_as_dependency(
-                    link_type.metadata().identifier().uri(),
-                    dependency_context.as_ref_object(),
-                )
-                .await?;
+                let link_type_id = link_type.metadata().identifier().uri().clone();
+                dependency_context.referenced_link_types.insert(
+                    &link_type_id,
+                    dependency_context
+                        .graph_resolve_depths
+                        .link_type_resolve_depth,
+                    link_type,
+                );
+
+                self.get_link_type_as_dependency(&link_type_id, dependency_context.as_ref_object())
+                    .await?;
 
                 let root = dependency_context
                     .referenced_link_types
-                    .remove(link_type.metadata().identifier().uri())
+                    .remove(&link_type_id)
                     .expect("root was not added to the subgraph");
 
                 Ok(LinkTypeRootedSubgraph { link_type: root })

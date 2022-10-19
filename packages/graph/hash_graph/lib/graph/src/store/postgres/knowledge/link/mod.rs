@@ -154,6 +154,11 @@ impl<C: AsClient> LinkStore for PostgresStore<C> {
             .then(|link| async move {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 
+                dependency_context.links.insert(
+                    &link,
+                    dependency_context.graph_resolve_depths.link_resolve_depth,
+                );
+
                 self.get_link_as_dependency(&link, dependency_context.as_ref_object())
                     .await?;
 

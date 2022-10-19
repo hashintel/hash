@@ -80,7 +80,30 @@ where
     /// - If the new depth is higher, the depth will be updated and a reference to the dependency
     ///   will be returned in order to keep resolving it
     /// - Otherwise, `None` will be returned as no further resolution is needed
-    pub async fn insert<F, R>(
+    pub fn insert(&mut self, identifier: &V, depth: D, value: T) -> Option<&T> {
+        match self.resolved.raw_entry_mut().from_key(identifier) {
+            RawEntryMut::Vacant(entry) => {
+                let (_id, (value, _depth)) = entry.insert(identifier.clone(), (value, depth));
+                Some(value)
+            }
+            RawEntryMut::Occupied(entry) => {
+                let (value, used_depth) = entry.into_mut();
+                if *used_depth < depth {
+                    *used_depth = depth;
+                    Some(value)
+                } else {
+                    None
+                }
+            }
+        }
+    }
+
+    /// Lazily inserts a dependency into the map.
+    ///
+    /// This behaves like [`insert`], but uses `resolver` to read the value to be inserted.
+    ///
+    /// [`insert`]: Self::insert
+    pub async fn insert_with<F, R>(
         &mut self,
         identifier: &V,
         depth: D,

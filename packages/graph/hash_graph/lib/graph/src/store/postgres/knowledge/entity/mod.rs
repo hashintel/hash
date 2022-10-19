@@ -39,7 +39,7 @@ impl<C: AsClient> PostgresStore<C> {
         async move {
             let unresolved_entity = dependency_context
                 .linked_entities
-                .insert(
+                .insert_with(
                     &entity_id,
                     dependency_context
                         .graph_resolve_depths
@@ -229,15 +229,21 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .then(|entity| async move {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 
-                self.get_entity_as_dependency(
-                    entity.metadata().identifier().entity_id(),
-                    dependency_context.as_ref_object(),
-                )
-                .await?;
+                let entity_id = entity.metadata().identifier().entity_id();
+                dependency_context.linked_entities.insert(
+                    &entity_id,
+                    dependency_context
+                        .graph_resolve_depths
+                        .link_target_entity_resolve_depth,
+                    entity,
+                );
+
+                self.get_entity_as_dependency(entity_id, dependency_context.as_ref_object())
+                    .await?;
 
                 let root = dependency_context
                     .linked_entities
-                    .remove(&entity.metadata().identifier().entity_id())
+                    .remove(&entity_id)
                     .expect("root was not added to the subgraph");
 
                 Ok(EntityRootedSubgraph {
