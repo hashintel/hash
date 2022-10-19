@@ -3,7 +3,7 @@ import { AxiosError } from "axios";
 
 import { GraphApi } from "../graph";
 import { UserModel } from "../model";
-import { createKratosIdentity } from "./ory-kratos";
+import { createKratosIdentity } from "../auth/ory-kratos";
 
 type DevelopmentUser = {
   email: string;

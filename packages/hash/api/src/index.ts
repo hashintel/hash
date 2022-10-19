@@ -44,7 +44,7 @@ import { getAwsRegion } from "./lib/aws-config";
 import { setupTelemetry } from "./telemetry/snowplow-setup";
 import { connectToTaskExecutor } from "./task-execution";
 import { createGraphClient } from "./graph";
-import { ensureDevUsersAreSeeded } from "./auth/seed-dev-users";
+import { ensureDevUsersAreSeeded } from "./seed-data/dev-users";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
