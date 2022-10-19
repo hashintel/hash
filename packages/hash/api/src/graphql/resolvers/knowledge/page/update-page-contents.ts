@@ -140,6 +140,7 @@ export const updatePersistedPageContents: ResolverFn<
         await pageModel.insertBlock(graphApi, {
           block: insertedBlocks[insertCount]!,
           position: action.insertBlock.position,
+          updateSiblings: false,
           insertedById: userModel.entityId,
         });
         insertCount += 1;
@@ -150,17 +151,21 @@ export const updatePersistedPageContents: ResolverFn<
         });
       } else if (action.removeBlock) {
         await pageModel.removeBlock(graphApi, {
-          ...action.removeBlock,
+          position: action.removeBlock.position,
           removedById: userModel.entityId,
           allowRemovingFinal: actions
             .slice(i + 1)
             .some((actionToFollow) => actionToFollow.insertBlock),
+          updateSiblings: false,
         });
       }
     } catch (error) {
       if (error instanceof UserInputError) {
         throw new UserInputError(`action ${i}: ${error}`);
+      } else if (error instanceof Error) {
+        throw new Error(`Could not apply update: ${error.message}`);
       }
+
       throw new Error(`Could not apply update: ${JSON.stringify(error)}`);
     }
   }
