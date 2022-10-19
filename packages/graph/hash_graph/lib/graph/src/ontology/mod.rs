@@ -59,8 +59,8 @@ impl PersistedOntologyIdentifier {
     }
 
     #[must_use]
-    pub const fn owned_by_id(&self) -> &AccountId {
-        &self.owned_by_id
+    pub const fn owned_by_id(&self) -> AccountId {
+        self.owned_by_id
     }
 }
 

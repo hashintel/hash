@@ -82,13 +82,13 @@ impl PersistedLinkMetadata {
     }
 
     #[must_use]
-    pub const fn owned_by_id(&self) -> &AccountId {
-        &self.owned_by_id
+    pub const fn owned_by_id(&self) -> AccountId {
+        self.owned_by_id
     }
 
     #[must_use]
-    pub const fn created_by_id(&self) -> &AccountId {
-        &self.created_by_id
+    pub const fn created_by_id(&self) -> AccountId {
+        self.created_by_id
     }
 }
 
