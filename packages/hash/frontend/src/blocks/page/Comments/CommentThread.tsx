@@ -39,7 +39,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
     threadRef.current?.focus();
   };
 
-  const submitComment = async () => {
+  const handleReplySubmit = async () => {
     if (!loading && inputValue?.length) {
       await createComment(comment.entityId, inputValue).then(() => {
         setInputValue([]);
@@ -157,7 +157,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
               value={inputValue}
               placeholder={`Reply to ${preferredName}`}
               onClose={cancelSubmit}
-              onSubmit={submitComment}
+              onSubmit={handleReplySubmit}
               editable={!loading}
               onFocusChange={setInputFocused}
               onChange={setInputValue}
@@ -185,7 +185,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
             size="xs"
             variant="secondary"
             disabled={!inputValue.length}
-            onClick={submitComment}
+            onClick={handleReplySubmit}
             loading={loading}
           >
             Reply
