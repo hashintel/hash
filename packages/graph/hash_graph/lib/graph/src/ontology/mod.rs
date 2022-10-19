@@ -292,13 +292,3 @@ impl PersistedEntityType {
         &self.metadata
     }
 }
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct EntityTypeRootedSubgraph {
-    pub entity_type: PersistedEntityType,
-    pub referenced_data_types: Vec<PersistedDataType>,
-    pub referenced_property_types: Vec<PersistedPropertyType>,
-    pub referenced_link_types: Vec<PersistedLinkType>,
-    pub referenced_entity_types: Vec<PersistedEntityType>,
-}

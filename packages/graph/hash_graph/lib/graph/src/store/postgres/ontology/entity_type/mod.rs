@@ -3,15 +3,13 @@ mod resolve;
 use std::{future::Future, pin::Pin};
 
 use async_trait::async_trait;
-use error_stack::{IntoReport, Result, ResultExt};
+use error_stack::{IntoReport, Report, Result, ResultExt};
 use futures::{stream, FutureExt, StreamExt, TryStreamExt};
 use tokio_postgres::GenericClient;
 use type_system::{uri::VersionedUri, EntityType};
 
 use crate::{
-    ontology::{
-        AccountId, EntityTypeRootedSubgraph, PersistedEntityType, PersistedOntologyMetadata,
-    },
+    ontology::{AccountId, PersistedEntityType, PersistedOntologyMetadata},
     store::{
         crud::Read,
         postgres::{
@@ -22,6 +20,7 @@ use crate::{
     },
     subgraph::{
         EdgeKind, GraphElementIdentifier, GraphResolveDepths, OutwardEdge, StructuralQuery,
+        Subgraph,
     },
 };
 
@@ -200,16 +199,13 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         Ok(metadata)
     }
 
-    async fn get_entity_type(
-        &self,
-        query: &StructuralQuery,
-    ) -> Result<Vec<EntityTypeRootedSubgraph>, QueryError> {
+    async fn get_entity_type(&self, query: &StructuralQuery) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
             ref expression,
             graph_resolve_depths,
         } = *query;
 
-        stream::iter(Read::<PersistedEntityType>::read(self, expression).await?)
+        let subgraphs = stream::iter(Read::<PersistedEntityType>::read(self, expression).await?)
             .then(|entity_type| async move {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 
@@ -226,23 +222,17 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                 )
                 .await?;
 
-                let root = dependency_context
-                    .referenced_entity_types
-                    .remove(&entity_type_id)
-                    .expect("root was not added to the subgraph");
+                let root = GraphElementIdentifier::OntologyElementId(entity_type_id);
 
-                Ok(EntityTypeRootedSubgraph {
-                    entity_type: root,
-                    referenced_data_types: dependency_context.referenced_data_types.into_vec(),
-                    referenced_property_types: dependency_context
-                        .referenced_property_types
-                        .into_vec(),
-                    referenced_link_types: dependency_context.referenced_link_types.into_vec(),
-                    referenced_entity_types: dependency_context.referenced_entity_types.into_vec(),
-                })
+                Ok::<_, Report<QueryError>>(dependency_context.into_subgraph(vec![root]))
             })
-            .try_collect()
-            .await
+            .try_collect::<Vec<_>>()
+            .await?;
+
+        let mut subgraph = Subgraph::new(graph_resolve_depths);
+        subgraph.extend(subgraphs);
+
+        Ok(subgraph)
     }
 
     async fn update_entity_type(
