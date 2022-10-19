@@ -9,13 +9,13 @@ export const useGetCellContent = (rowData: LinkRow[]) => {
       const link = rowData[row];
 
       if (!link) {
-        throw new Error();
+        throw new Error("link not found");
       }
 
       const linkKey = linkGridIndexes[col];
 
       if (!linkKey) {
-        throw new Error();
+        throw new Error("linkKey not found");
       }
 
       const value = link[linkKey];

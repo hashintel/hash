@@ -9,13 +9,13 @@ export const useGetCellContent = (rowData: PropertyRow[]) => {
       const property = rowData[row];
 
       if (!property) {
-        throw new Error();
+        throw new Error("property not found");
       }
 
       const propertyKey = propertyGridIndexes[col];
 
       if (!propertyKey) {
-        throw new Error();
+        throw new Error("propertyKey not found");
       }
 
       const value = property[propertyKey];

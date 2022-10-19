@@ -21,7 +21,7 @@ export const useOnCellEdited = (rowData: PropertyRow[]) => {
       const property = rowData[row];
 
       if (!key || !property) {
-        throw new Error();
+        throw new Error(`${key ? "property" : "key"} not found`);
       }
 
       const updatedProperties = {

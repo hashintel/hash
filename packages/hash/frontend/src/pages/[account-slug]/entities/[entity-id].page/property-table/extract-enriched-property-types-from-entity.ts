@@ -31,7 +31,7 @@ export const extractEnrichedPropertyTypesFromEntity = (
       ) ?? {};
 
     if (!propertyType) {
-      throw new Error();
+      throw new Error("propertyType not found");
     }
 
     const dataTypes = getDataTypesOfPropertyType(propertyType, entity);
