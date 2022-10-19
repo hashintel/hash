@@ -25,7 +25,6 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
   createComment,
   loading,
 }) => {
-  const loadingTypeSystem = useInitTypeSystem();
   const inputRef = useRef<CommentTextFieldRef>(null);
   const threadRef = useRef<HTMLDivElement>(null);
   const [threadFocused, setThreadFocused] = useState(false);
@@ -61,15 +60,13 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
 
   const preferredName = useMemo(
     () =>
-      loadingTypeSystem
-        ? ""
-        : comment.author.properties[
-            extractBaseUri(types.propertyType.preferredName.propertyTypeId)
-          ],
-    [loadingTypeSystem, comment.author.properties],
+      comment.author.properties[
+        extractBaseUri(types.propertyType.preferredName.propertyTypeId)
+      ],
+    [comment.author.properties],
   );
 
-  return loadingTypeSystem ? null : (
+  return (
     <Box
       ref={threadRef}
       tabIndex={0}

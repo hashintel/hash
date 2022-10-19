@@ -23,6 +23,7 @@ import {
   PAGE_CONTENT_WIDTH,
   PAGE_MIN_PADDING,
 } from "../../pages/[account-slug]/[page-slug].page";
+import { useInitTypeSystem } from "../../lib/use-init-type-system";
 
 type PageBlockProps = {
   blocks: BlocksMap;
@@ -45,6 +46,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
   entityId,
   containerPadding,
 }) => {
+  const loadingTypeSystem = useInitTypeSystem();
   const root = useRef<HTMLDivElement>(null);
   const [portals, renderPortal, clearPortals] = usePortals();
   const [debugging] = useLocalstorageState<
@@ -114,7 +116,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
     pageTitleRef,
   ]);
 
-  return (
+  return loadingTypeSystem ? null : (
     <UserBlocksProvider value={blocks}>
       <BlockLoadedProvider routeHash={routeHash}>
         <GlobalStyles
