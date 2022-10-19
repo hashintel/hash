@@ -108,7 +108,7 @@ export default class {
 
     const { data: metadata } = await graphApi
       .createEntityType({
-        createdById: actorId,
+        actorId,
         ownedById,
         schema: fullEntityType,
       })
@@ -307,7 +307,7 @@ export default class {
   ): Promise<EntityTypeModel> {
     const { schema, actorId } = params;
     const updateArguments: UpdateEntityTypeRequest = {
-      updatedById: actorId,
+      actorId,
       typeToUpdate: this.schema.$id,
       schema,
     };

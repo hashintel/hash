@@ -180,7 +180,7 @@ export default class {
         index,
         linkTypeId: linkTypeModel.schema.$id,
         targetEntityId: targetEntityModel.entityId,
-        createdById: actorId,
+        actorId,
       },
     );
 
@@ -401,7 +401,7 @@ export default class {
     await graphApi.removeLink(this.sourceEntityModel.entityId, {
       linkTypeId: this.linkTypeModel.schema.$id,
       targetEntityId: this.targetEntityModel.entityId,
-      removedById: actorId,
+      actorId,
     });
   }
 
@@ -415,7 +415,7 @@ export default class {
     await graphApi.removeLink(this.sourceEntityModel.entityId, {
       linkTypeId: this.linkTypeModel.schema.$id,
       targetEntityId: this.targetEntityModel.entityId,
-      removedById: actorId,
+      actorId,
     });
 
     /**

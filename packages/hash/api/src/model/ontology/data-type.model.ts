@@ -110,7 +110,7 @@ export default class {
       .createDataType({
         schema: fullDataType,
         ownedById,
-        createdById: actorId,
+        actorId,
       })
       .catch((err: AxiosError) => {
         throw new Error(
@@ -169,7 +169,7 @@ export default class {
     const { schema, actorId } = params;
 
     const updateArguments: UpdateDataTypeRequest = {
-      updatedById: actorId,
+      actorId,
       typeToUpdate: this.schema.$id,
       schema,
     };

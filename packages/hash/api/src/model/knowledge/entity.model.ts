@@ -134,7 +134,7 @@ export default class {
       entityTypeId: entityTypeModel.schema.$id,
       entity: properties,
       entityId: overrideEntityId,
-      createdById: actorId,
+      actorId,
     });
 
     const persistedEntity: PersistedEntity = {
@@ -383,7 +383,7 @@ export default class {
     const { entityId, entityTypeModel } = this;
 
     const { data: metadata } = await graphApi.updateEntity({
-      updatedById: actorId,
+      actorId,
       entityId,
       /** @todo: make this argument optional */
       entityTypeId: entityTypeModel.schema.$id,

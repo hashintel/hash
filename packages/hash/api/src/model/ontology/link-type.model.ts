@@ -99,7 +99,7 @@ export default class {
       .createLinkType({
         schema: fullLinkType,
         ownedById,
-        createdById: actorId,
+        actorId,
       })
       .catch((err: AxiosError) => {
         throw new Error(
@@ -164,7 +164,7 @@ export default class {
     const updateArguments: UpdateLinkTypeRequest = {
       typeToUpdate: this.schema.$id,
       schema,
-      updatedById: actorId,
+      actorId,
     };
 
     const { data: metadata } = await graphApi.updateLinkType(updateArguments);

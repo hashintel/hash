@@ -102,7 +102,7 @@ export default class {
       .createPropertyType({
         ownedById,
         schema: fullPropertyType,
-        createdById: actorId,
+        actorId,
       })
       .catch((err: AxiosError) => {
         throw new Error(
@@ -154,7 +154,7 @@ export default class {
     const updateArguments: UpdatePropertyTypeRequest = {
       typeToUpdate: this.schema.$id,
       schema,
-      updatedById: actorId,
+      actorId,
     };
 
     const { data: metadata } = await graphApi.updatePropertyType(
