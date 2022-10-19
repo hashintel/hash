@@ -35,7 +35,11 @@ export const useBlockProtocolGetPropertyType = (): {
       const { propertyTypeId } = data;
 
       const response = await getFn({
-        variables: { propertyTypeId },
+        variables: {
+          propertyTypeId,
+          dataTypeResolveDepth: 0,
+          propertyTypeResolveDepth: 0,
+        },
       });
 
       if (!response.data) {

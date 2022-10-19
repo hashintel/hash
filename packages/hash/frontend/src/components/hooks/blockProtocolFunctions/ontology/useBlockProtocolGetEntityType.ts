@@ -36,7 +36,13 @@ export const useBlockProtocolGetEntityType = (): {
 
       const response = await getFn({
         query: getEntityTypeQuery,
-        variables: { entityTypeId },
+        variables: {
+          entityTypeId,
+          dataTypeResolveDepth: 0,
+          propertyTypeResolveDepth: 0,
+          linkTypeResolveDepth: 0,
+          entityTypeResolveDepth: 0,
+        },
       });
 
       if (!response.data) {

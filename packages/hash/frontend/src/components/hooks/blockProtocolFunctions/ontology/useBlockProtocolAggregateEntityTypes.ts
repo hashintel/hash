@@ -39,7 +39,12 @@ export const useBlockProtocolAggregateEntityTypes = (): {
        *   https://app.asana.com/0/1202805690238892/1202890614880643/f
        */
       const response = await aggregateFn({
-        query: getAllLatestEntityTypesQuery,
+        variables: {
+          dataTypeResolveDepth: 0,
+          propertyTypeResolveDepth: 0,
+          linkTypeResolveDepth: 0,
+          entityTypeResolveDepth: 0,
+        },
       });
 
       if (!response.data) {
@@ -54,9 +59,7 @@ export const useBlockProtocolAggregateEntityTypes = (): {
       }
 
       return {
-        data: {
-          results: response.data.getAllLatestEntityTypes,
-        },
+        data: response.data.getAllLatestEntityTypes,
       };
     },
     [aggregateFn],
