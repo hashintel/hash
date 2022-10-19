@@ -109,7 +109,7 @@ const Page: NextPageWithLayout = () => {
     }
   });
 
-  if (!entityType || !propertyTypes) {
+  if (!entityType) {
     return null;
   }
 

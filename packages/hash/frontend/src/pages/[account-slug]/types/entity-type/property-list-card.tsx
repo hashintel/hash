@@ -187,7 +187,7 @@ export const PropertyTypeRow = ({
   const propertyId = mustBeVersionedUri(
     watch(`properties.${propertyIndex}.$id`),
   );
-  const property = propertyTypes[propertyId];
+  const property = propertyTypes ? propertyTypes[propertyId] : null;
 
   if (!property) {
     throw new Error("Missing property type");

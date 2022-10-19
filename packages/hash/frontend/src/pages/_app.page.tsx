@@ -15,6 +15,7 @@ import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
 import { theme, createEmotionCache } from "@hashintel/hash-design-system";
 import { SnackbarProvider } from "notistack";
+import { TypeSystemContextProvider } from "../lib/use-init-type-system";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 
 import twindConfig from "../../twind.config";
@@ -83,7 +84,9 @@ const App: FunctionComponent<AppProps> = ({
               <RoutePageInfoProvider>
                 <ReadonlyModeProvider>
                   <SnackbarProvider maxSnack={3}>
-                    {getLayout(<Component {...pageProps} />)}
+                    <TypeSystemContextProvider>
+                      {getLayout(<Component {...pageProps} />)}
+                    </TypeSystemContextProvider>
                   </SnackbarProvider>
                 </ReadonlyModeProvider>
               </RoutePageInfoProvider>

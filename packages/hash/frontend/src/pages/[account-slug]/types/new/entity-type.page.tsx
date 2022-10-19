@@ -14,6 +14,7 @@ import { useForm } from "react-hook-form";
 import slugify from "slugify";
 import { useLoggedInUser } from "../../../../components/hooks/useUser";
 import { FRONTEND_URL } from "../../../../lib/config";
+import { useInitTypeSystem } from "../../../../lib/use-init-type-system";
 import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
 import { TopContextBar } from "../../../shared/top-context-bar";
 import { HashOntologyIcon } from "../entity-type/hash-ontology-icon";
@@ -38,6 +39,8 @@ type CreateEntityTypeFormData = {
 const HELPER_TEXT_WIDTH = 290;
 
 const Page: NextPageWithLayout = () => {
+  const typeSystemLoading = useInitTypeSystem();
+
   const {
     handleSubmit,
     register,
@@ -57,7 +60,7 @@ const Page: NextPageWithLayout = () => {
     throw new Error("Workspaces not yet supported");
   }
 
-  if (loading || !user) {
+  if (typeSystemLoading || loading || !user) {
     return null;
   }
 
@@ -78,11 +81,10 @@ const Page: NextPageWithLayout = () => {
 
     // @todo ensure this matches the slug algorithm used by backend
     // @todo ensure this is unique
-    await router.push(
-      `${url}?draft=${encodeURIComponent(
-        Buffer.from(JSON.stringify(entityType)).toString("base64"),
-      )}`,
-    );
+    const nextUrl = `${url}?draft=${encodeURIComponent(
+      Buffer.from(JSON.stringify(entityType)).toString("base64"),
+    )}`;
+    await router.push(nextUrl, nextUrl, { shallow: true });
   });
 
   return (
