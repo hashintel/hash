@@ -99,6 +99,10 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         notNull: true,
         references: "accounts",
       },
+      /**
+       * @todo: remove this column if we introduce a delete table similar to links
+       * @see https://app.asana.com/0/1201095311341924/1202697596928142/f
+       */
       removed_by_id: {
         type: "UUID",
         references: "accounts",
@@ -136,7 +140,10 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         notNull: true,
         references: "accounts",
       },
-      removed_by_id: {
+      /**
+       * @todo: remove this column if we introduce a delete table similar to links
+       * @see https://app.asana.com/0/1201095311341924/1202697596928142/f
+       */ removed_by_id: {
         type: "UUID",
         references: "accounts",
       },
@@ -173,6 +180,10 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         notNull: true,
         references: "accounts",
       },
+      /**
+       * @todo: remove this column if we introduce a delete table similar to links
+       * @see https://app.asana.com/0/1201095311341924/1202697596928142/f
+       */
       removed_by_id: {
         type: "UUID",
         references: "accounts",
@@ -210,6 +221,10 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         notNull: true,
         references: "accounts",
       },
+      /**
+       * @todo: remove this column if we introduce a delete table similar to links
+       * @see https://app.asana.com/0/1201095311341924/1202697596928142/f
+       */
       removed_by_id: {
         type: "UUID",
         references: "accounts",
@@ -365,6 +380,10 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         notNull: true,
         references: "accounts",
       },
+      /**
+       * @todo: remove this column if we introduce a delete table similar to links
+       * @see https://app.asana.com/0/1201095311341924/1202697596928142/f
+       */
       removed_by_id: {
         type: "UUID",
         references: "accounts",
