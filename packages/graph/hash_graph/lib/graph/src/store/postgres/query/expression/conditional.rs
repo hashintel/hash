@@ -1,4 +1,4 @@
-use std::{fmt, fmt::Write};
+use std::fmt::{self, Write};
 
 use postgres_types::ToSql;
 
@@ -35,6 +35,7 @@ impl Transpile for Function<'_> {
 /// A compiled expression in Postgres.
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Expression<'q> {
+    Asterix,
     Column(Column<'q>),
     Parameter(usize),
     Function(Box<Function<'q>>),
@@ -71,6 +72,7 @@ impl<'q> Expression<'q> {
 impl Transpile for Expression<'_> {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            Self::Asterix => fmt.write_char('*'),
             Self::Column(column) => column.transpile(fmt),
             Self::Parameter(index) => write!(fmt, "${index}"),
             Self::Function(function) => function.transpile(fmt),
@@ -96,29 +98,15 @@ impl Transpile for Option<Expression<'_>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::store::postgres::query::{test_helper::transpile, DataTypeQueryField, Field};
+    use crate::store::postgres::query::{
+        test_helper::{max_version_expression, transpile},
+        DataTypeQueryField, Field,
+    };
 
     #[test]
     fn render_window_expression() {
         assert_eq!(
-            transpile(&Expression::Window(
-                Box::new(Expression::Function(Box::new(Function::Max(
-                    Expression::Column(Column {
-                        table: Table {
-                            name: DataTypeQueryField::Version.table_name(),
-                            alias: None,
-                        },
-                        access: DataTypeQueryField::Version.column_access(),
-                    })
-                )))),
-                WindowStatement::partition_by(Column {
-                    table: Table {
-                        name: DataTypeQueryField::BaseUri.table_name(),
-                        alias: None,
-                    },
-                    access: DataTypeQueryField::BaseUri.column_access(),
-                })
-            )),
+            transpile(&max_version_expression()),
             r#"MAX("type_ids"."version") OVER (PARTITION BY "type_ids"."base_uri")"#
         );
     }
