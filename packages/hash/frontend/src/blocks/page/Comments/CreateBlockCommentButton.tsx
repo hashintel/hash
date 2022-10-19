@@ -19,7 +19,6 @@ export const CreateBlockCommentButton: FunctionComponent<
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const closeInput = useCallback(() => {
-    inputRef.current?.resetDocument();
     setAnchorEl(null);
   }, []);
 
@@ -28,9 +27,6 @@ export const CreateBlockCommentButton: FunctionComponent<
       <IconButton
         onClick={(event) => {
           setAnchorEl(anchorEl ? null : event.currentTarget);
-          setImmediate(() => {
-            inputRef.current?.focus();
-          });
         }}
         sx={{
           padding: 0.5,
@@ -69,7 +65,6 @@ export const CreateBlockCommentButton: FunctionComponent<
         ]}
         anchorEl={anchorEl}
         style={{ zIndex: 1 }}
-        keepMounted
       >
         <CreateBlockComment
           blockId={blockId}
