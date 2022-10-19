@@ -154,9 +154,9 @@ export default class {
    * @todo: deprecate this method when the Graph API handles updating the sibling indexes
    * @see https://app.asana.com/0/1200211978612931/1203031430417465/f
    *
-   * @param params.ownedById - the id of the owner of the new link
+   * @param params.ownedById - the id of the account who owns the new link
    * @param params.sourceEntityModel - the source entity of the link
-   * @param params.linkTypeModel - the Link Type of the link
+   * @param params.linkTypeModel - the link type of the link
    * @param params.targetEntityModel - the target entity of the link
    * @param params.createdById - the id of the account that is creating the link
    */
@@ -200,9 +200,9 @@ export default class {
    * Create a link between a source and a target entity using a specific link
    * type.
    *
-   * @param params.ownedById - the id of the owner of the new link
+   * @param params.ownedById - the id of the account who owns the new link
    * @param params.sourceEntityModel - the source entity of the link
-   * @param params.linkTypeModel - the Link Type of the link
+   * @param params.linkTypeModel - the link type of the link
    * @param params.targetEntityModel - the target entity of the link
    * @param params.createdById - the id of the account that is creating the link
    */
@@ -270,7 +270,7 @@ export default class {
    * @see https://app.asana.com/0/1200211978612931/1203031430417465/f
    *
    * @param params.updatedIndex - the updated index of the link
-   * @param params.updatedById - the id of the user that is updating the link
+   * @param params.updatedById - the id of the account that is updating the link
    */
   private async updateWithoutUpdatingSiblings(
     graphApi: GraphApi,
@@ -394,7 +394,7 @@ export default class {
    * @todo: deprecate this method when the Graph API handles updating the sibling indexes
    * @see https://app.asana.com/0/1200211978612931/1203031430417465/f
    *
-   * @param removedById - the id of the user removing the link
+   * @param removedById - the id of the account that is removing the link
    */
   async removeWithoutUpdatingSiblings(
     graphApi: GraphApi,
@@ -410,7 +410,7 @@ export default class {
   /**
    * Remove the link.
    *
-   * @param params.removedById - the id of the user removing the link
+   * @param params.removedById - the id of the account that is removing the link
    */
   async remove(
     graphApi: GraphApi,

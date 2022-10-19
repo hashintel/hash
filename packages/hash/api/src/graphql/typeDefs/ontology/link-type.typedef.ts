@@ -42,7 +42,7 @@ export const linkTypeTypedef = gql`
     """
     createLinkType(
       """
-      The id of the owner of the link type. Defaults to the user calling the mutation.
+      The id of the account who owns the link type. Defaults to the user calling the mutation.
       """
       ownedById: ID
       linkType: LinkTypeWithoutId!

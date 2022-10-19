@@ -78,7 +78,7 @@ export default class {
    *   Depends on the RFC captured by:
    *   https://app.asana.com/0/1200211978612931/1202464168422955/f
    *
-   * @param params.ownedById - the id of the owner of the data type
+   * @param params.ownedById - the id of the account who owns the data type
    * @param params.schema - the `DataType`
    * @param params.createdById - the id of the account that is creating the data type
    */

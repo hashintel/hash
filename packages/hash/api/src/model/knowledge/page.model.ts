@@ -431,7 +431,7 @@ export default class extends EntityModel {
    *
    * @param params.currentPosition - the current position of the block being moved
    * @param params.newPosition - the new position of the block being moved
-   * @param params.movedById - the id of the user that is moving the block
+   * @param params.movedById - the id of the account that is moving the block
    */
   async moveBlock(
     graphApi: GraphApi,
@@ -476,7 +476,7 @@ export default class extends EntityModel {
    * Remove a block from the page.
    *
    * @param params.position - the position of the block being removed
-   * @param params.removedById - the id of the user that is removing the block
+   * @param params.removedById - the id of the account that is removing the block
    * @param params.allowRemovingFinal (optional) - whether or not removing the final block in the page should be permitted (defaults to `true`)
    */
   async removeBlock(

@@ -86,7 +86,7 @@ export default class {
   /**
    * Create an entity type.
    *
-   * @param params.ownedById - the id of the owner of the entity type
+   * @param params.ownedById - the id of the account who owns the entity type
    * @param params.schema - the `EntityType`
    * @param params.createdById - the id of the account that is creating the entity type
    */

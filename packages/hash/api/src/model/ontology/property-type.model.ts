@@ -72,7 +72,7 @@ export default class {
   /**
    * Create a property type.
    *
-   * @param params.ownedById - the id of the owner of the property type
+   * @param params.ownedById - the id of the account who owns the property type
    * @param params.schema - the `PropertyType`
    * @param params.createdById - the id of the account that is creating the property type
    */

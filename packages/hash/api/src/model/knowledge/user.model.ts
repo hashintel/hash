@@ -362,7 +362,7 @@ export default class extends EntityModel {
    * Make the user a member of an organization.
    *
    * @param params.org - the organization the user is joining
-   * @param params.responsibility - the responsibility fo the user at the organization
+   * @param params.responsibility - the responsibility of the user at the organization
    * @param params.joinedById - the id of the account that is making the user a member of the organization
    */
   async joinOrg(
