@@ -7,14 +7,15 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
+import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
 import { useForm } from "react-hook-form";
-import { useBlockProtocolCreateEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreateEntityType";
+import slugify from "slugify";
 import { useLoggedInUser } from "../../../../components/hooks/useUser";
 import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
 import { TopContextBar } from "../../../shared/top-context-bar";
-import { OntologyChip } from "../entity-type/ontology-chip";
 import { HashOntologyIcon } from "../entity-type/hash-ontology-icon";
+import { OntologyChip } from "../entity-type/ontology-chip";
 
 const RequiredText = () => (
   <Box
@@ -54,34 +55,30 @@ const Page: NextPageWithLayout = () => {
     throw new Error("Workspaces not yet supported");
   }
 
-  const { createEntityType } = useBlockProtocolCreateEntityType(
-    // @todo should use routing URL?
-    user?.accountId ?? "",
-  );
-
   if (loading || !user) {
     return null;
   }
 
   const handleFormSubmit = handleSubmit(async ({ name, description }) => {
-    const res = await createEntityType({
-      data: {
-        entityType: {
-          title: name,
-          // @todo make this not necessary
-          pluralTitle: name,
-          description,
-          kind: "entityType",
-          type: "object",
-          properties: {},
-        },
-      },
-    });
-    const newUrl = res.data?.entityTypeId.replace(/v\/\d+/, "");
+    const entityType = {
+      title: name,
+      // @todo make this not necessary
+      pluralTitle: name,
+      description,
+      kind: "entityType",
+      type: "object",
+      properties: {},
+    };
 
-    if (newUrl) {
-      await router.push(newUrl);
-    }
+    // @todo ensure this matches the slug algorithm used by backend
+    // @todo ensure this is unique
+    await router.push(
+      `/@${user.shortname}/types/entity-type/${slugify(
+        name,
+      )}?draft=${encodeURIComponent(
+        Buffer.from(JSON.stringify(entityType)).toString("base64"),
+      )}`,
+    );
   });
 
   return (
