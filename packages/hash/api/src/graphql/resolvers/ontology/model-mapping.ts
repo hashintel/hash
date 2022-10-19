@@ -72,7 +72,10 @@ export const mapSubgraphToGql = (subgraph: Subgraph): SubgraphGql => {
       Object.entries(subgraph.vertices).map(([identifier, vertex]) => {
         switch (vertex.kind) {
           // These types are compatible with the Type System package's types
-          case "dataType" || "linkType" || "entity" || "link": {
+          case "dataType":
+          case "linkType":
+          case "entity":
+          case "link": {
             return [identifier, vertex];
           }
           // The OpenAPI spec currently incorrectly expresses these
@@ -96,14 +99,9 @@ export const mapSubgraphToGql = (subgraph: Subgraph): SubgraphGql => {
             };
             return [identifier, entityTypeVertex];
           }
-          // TypeScript is failing to recognize this is unreachable (due to the combined initial case) and therefore
-          // thinks the function can return undefined without it
-          default: {
-            throw new Error(
-              `this should be unreachable, unknown vertex kind: ${vertex.kind}`,
-            );
-          }
         }
+
+        throw new Error(`unknown vertex kind: ${JSON.stringify(vertex)}`);
       }),
     ),
   };
