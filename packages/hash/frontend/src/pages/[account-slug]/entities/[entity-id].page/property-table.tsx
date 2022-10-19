@@ -17,6 +17,7 @@ import { pick, capitalize } from "lodash";
 import { EntityResponse } from "../../../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
 import { useBlockProtocolUpdateEntity } from "../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolUpdateEntity";
 import { useEntityEditor } from "./entity-editor-context";
+import { getPropertyTypesByBaseUri } from "../../../../lib/subgraph";
 
 type Row = {
   title: string;
@@ -61,6 +62,7 @@ interface PropertyTableProps {
 
 type EnrichedPropertyType = PropertyType & {
   value: any;
+  /** @todo - Correct this, it is a property type BaseUri not an ID (it's unversioned) */
   propertyTypeId: string;
   dataTypes: string[];
 };
@@ -69,15 +71,22 @@ const getDataTypesOfPropertyType = (
   propertyType: PropertyType,
   entity: EntityResponse,
 ) => {
-  /** @todo check why propertyValue does not have with a proper type  */
-  return propertyType.oneOf.map((propertyValue: any) => {
-    if (propertyValue?.$ref) {
+  return propertyType.oneOf.map((propertyValue) => {
+    if ("$ref" in propertyValue) {
       const dataTypeId = propertyValue?.$ref;
-      return (
-        entity.entityTypeRootedSubgraph.referencedDataTypes.find(
-          (val) => val.dataTypeId === dataTypeId,
-        )?.dataType.title ?? "undefined"
-      );
+      const dataTypeVertex =
+        entity.entityTypeRootedSubgraph.vertices[dataTypeId];
+
+      if (!dataTypeVertex) {
+        return "undefined";
+      }
+      if (dataTypeVertex?.kind !== "dataType") {
+        throw new Error(
+          `Expected "dataType" vertex but got ${dataTypeVertex.kind}`,
+        );
+      }
+
+      return dataTypeVertex.inner.inner.title;
     }
 
     return capitalize(propertyValue.type);
@@ -87,22 +96,24 @@ const getDataTypesOfPropertyType = (
 const extractEnrichedPropertyTypesFromEntity = (
   entity: EntityResponse,
 ): EnrichedPropertyType[] => {
-  return Object.keys(entity.properties).map((propertyTypeId) => {
-    const { propertyType } =
-      entity.entityTypeRootedSubgraph.referencedPropertyTypes.find((val) =>
-        val.propertyTypeId.startsWith(propertyTypeId),
-      ) ?? {};
+  return Object.keys(entity.properties).map((propertyTypeBaseUri) => {
+    const propertyTypeVersions = getPropertyTypesByBaseUri(
+      entity.entityTypeRootedSubgraph,
+      propertyTypeBaseUri,
+    );
 
-    if (!propertyType) {
+    if (!propertyTypeVersions) {
       throw new Error();
     }
+
+    const propertyType = propertyTypeVersions[0]!.inner;
 
     const dataTypes = getDataTypesOfPropertyType(propertyType, entity);
 
     return {
       ...propertyType,
-      value: entity.properties[propertyTypeId],
-      propertyTypeId,
+      value: entity.properties[propertyTypeBaseUri],
+      propertyTypeId: propertyTypeBaseUri,
       dataTypes,
     };
   });
