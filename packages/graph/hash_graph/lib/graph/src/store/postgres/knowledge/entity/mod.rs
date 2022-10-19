@@ -279,6 +279,9 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .change_context(UpdateError)?,
         );
 
+        // TODO - address potential race condition
+        //  https://app.asana.com/0/1202805690238892/1203201674100967/f
+
         let previous_entity = transaction
             .read_latest_entity_by_id(entity_id)
             .await
