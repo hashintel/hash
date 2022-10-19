@@ -390,13 +390,14 @@ export default class extends EntityModel {
     params: {
       block: BlockModel;
       position?: number;
+      updateSiblings?: boolean;
     },
   ) {
-    const { position: specifiedPosition } = params;
+    const { position: specifiedPosition, updateSiblings } = params;
 
     const { block } = params;
 
-    await this.createOutgoingLink(graphApi, {
+    const linkParams = {
       targetEntityModel: block,
       linkTypeModel: WORKSPACE_TYPES.linkType.contains,
       index:
@@ -405,7 +406,11 @@ export default class extends EntityModel {
         ((await this.getBlocks(graphApi)).length === 0 ? 0 : undefined),
       // assume that link to block is owned by the same account as the page
       ownedById: this.ownedById,
-    });
+    };
+
+    await (updateSiblings
+      ? this.createOutgoingLink(graphApi, linkParams)
+      : this.createOutgoingLinkWithoutUpdatingSiblings(graphApi, linkParams));
   }
 
   /**
@@ -467,17 +472,21 @@ export default class extends EntityModel {
       position: number;
       removedById: string;
       allowRemovingFinal?: boolean;
+      updateSiblings?: boolean;
     },
   ) {
-    const { allowRemovingFinal = false, position } = params;
+    const { allowRemovingFinal = false, position, updateSiblings } = params;
 
     const contentLinks = await this.getOutgoingLinks(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.contains,
     });
 
-    if (position < 0 || position >= contentLinks.length) {
-      throw new UserInputError(`invalid position: ${position}`);
-    }
+    /**
+     * @todo currently the count of outgoing links are not the best indicator of a valid position
+     *   as page saving could assume index positions higher than the number of blocks.
+     *   Ideally we'd be able to atomically rearrange all blocks as we're removing/adding blocks.
+     *   see: https://app.asana.com/0/1200211978612931/1203031430417465/f
+     */
 
     const link = contentLinks.find(({ index }) => index === position);
 
@@ -493,6 +502,13 @@ export default class extends EntityModel {
 
     const { removedById } = params;
 
-    await link.remove(graphApi, { removedById });
+    const removeParams = {
+      removedById,
+    };
+
+    // Don't always reorder siblings as it could break the expected indices on the frontend.
+    await (updateSiblings
+      ? link.remove(graphApi, removeParams)
+      : link.removeWithoutUpdatingSiblings(graphApi, removeParams));
   }
 }
