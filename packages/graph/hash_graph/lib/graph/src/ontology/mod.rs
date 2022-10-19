@@ -196,12 +196,6 @@ impl PersistedDataType {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct DataTypeRootedSubgraph {
-    pub data_type: PersistedDataType,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 pub struct PersistedPropertyType {
     #[schema(value_type = VAR_PROPERTY_TYPE)]
     #[serde(serialize_with = "serialize_ontology_type")]
