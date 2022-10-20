@@ -148,7 +148,7 @@ pub struct PathSegment {
     pub identifier: Identifier,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct Path {
     pub segments: Vec<PathSegment>,
@@ -170,7 +170,7 @@ impl fmt::Display for Path {
 
 // TODO: DOC: Write documentation for the AST
 //   see https://app.asana.com/0/0/1202884883200976/f
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Expression {
     Eq(Vec<Expression>),

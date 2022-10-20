@@ -1,23 +1,31 @@
 import { useQuery } from "@apollo/client";
 import {
-  HashBlock,
   defaultBlockComponentIds,
   fetchBlock,
+  HashBlock,
 } from "@hashintel/hash-shared/blocks";
-import { getPageInfoQuery } from "@hashintel/hash-shared/queries/page.queries";
+import {
+  GetPersistedPageQuery,
+  GetPersistedPageQueryVariables,
+} from "@hashintel/hash-shared/graphql/apiTypes.gen";
+import {
+  getPageInfoQuery,
+  getPersistedPageQuery,
+} from "@hashintel/hash-shared/queries/page.queries";
 import { isSafariBrowser } from "@hashintel/hash-shared/util";
-import { Box, Collapse, alpha, styled } from "@mui/material";
+import { alpha, Box, Collapse } from "@mui/material";
 import { keyBy } from "lodash";
 import { GetStaticPaths, GetStaticProps } from "next";
 import Head from "next/head";
 import { Router, useRouter } from "next/router";
 
-import { useEffect, useMemo, useState, FunctionComponent, useRef } from "react";
-import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
-import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
-import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
+import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
+// import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
+// import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
+// import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
 import { PageBlock } from "../../blocks/page/PageBlock";
 import { PageContextProvider } from "../../blocks/page/PageContext";
+import { PageSectionContainer } from "../../blocks/page/PageSectionContainer";
 import { PageTitle } from "../../blocks/page/PageTitle/PageTitle";
 import {
   AccountPagesInfo,
@@ -39,13 +47,9 @@ import { useReadonlyMode } from "../../shared/readonly-mode";
 import { useRouteAccountInfo, useRoutePageInfo } from "../../shared/routing";
 import { Button } from "../../shared/ui/button";
 import {
-  TopContextBar,
   TOP_CONTEXT_BAR_HEIGHT,
+  TopContextBar,
 } from "../shared/top-context-bar";
-
-export const PAGE_CONTENT_WIDTH = 696;
-export const PAGE_MIN_PADDING = 48;
-export const COMMENTS_WIDTH = 320;
 
 // Apparently defining this is necessary in order to get server rendered props?
 export const getStaticPaths: GetStaticPaths<{ slug: string }> = () => ({
@@ -200,9 +204,9 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
   );
 
   const { data, error, loading } = useQuery<
-    GetPageInfoQuery,
-    GetPageInfoQueryVariables
-  >(getPageInfoQuery, {
+    GetPersistedPageQuery,
+    GetPersistedPageQueryVariables
+  >(getPersistedPageQuery, {
     variables: {
       ownedById: accountId,
       entityId: pageEntityId,
@@ -211,9 +215,11 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
   });
   const pageHeaderRef = useRef<HTMLElement>();
   const { readonlyMode } = useReadonlyMode();
-  const collabPositions = useCollabPositions(accountId, pageEntityId);
-  const reportPosition = useCollabPositionReporter(accountId, pageEntityId);
-  useCollabPositionTracking(reportPosition);
+
+  // Collab position tracking is disabled.
+  // const collabPositions = useCollabPositions(accountId, pageEntityId);
+  // const reportPosition = useCollabPositionReporter(accountId, pageEntityId);
+  // useCollabPositionTracking(reportPosition);
 
   useEffect(() => {
     const handleRouteChange = () => {
@@ -238,56 +244,39 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
 
   const { data: pageComments } = usePageComments(pageEntityId);
 
-  const [Container, paddingLeftFormula, paddingRightFormula] = useMemo(() => {
-    const commentsContainerWidth = pageComments?.length ? COMMENTS_WIDTH : 0;
-
-    const paddingLeft = `max(calc((100% - ${
-      PAGE_CONTENT_WIDTH + commentsContainerWidth + PAGE_MIN_PADDING
-    }px) / 2), ${PAGE_MIN_PADDING}px)`;
-    const paddingRight = `calc((100% - ${PAGE_CONTENT_WIDTH}px - ${paddingLeft}))`;
-
-    return [
-      styled("div")({
-        padding: `${PAGE_MIN_PADDING}px ${paddingRight} 0 ${paddingLeft} `,
-      }),
-      paddingLeft,
-      paddingRight,
-    ];
-  }, [pageComments]);
-
   if (pageState === "transferring") {
     return (
-      <Container>
+      <PageSectionContainer pageComments={pageComments}>
         <h1>Transferring you to the new page...</h1>
-      </Container>
+      </PageSectionContainer>
     );
   }
 
   if (loading) {
     return (
-      <Container>
+      <PageSectionContainer pageComments={pageComments}>
         <PageLoadingState />
-      </Container>
+      </PageSectionContainer>
     );
   }
 
   if (error) {
     return (
-      <Container>
+      <PageSectionContainer pageComments={pageComments}>
         <h1>Error: {error.message}</h1>
-      </Container>
+      </PageSectionContainer>
     );
   }
 
   if (!data) {
     return (
-      <Container>
+      <PageSectionContainer pageComments={pageComments}>
         <h1>No data loaded.</h1>
-      </Container>
+      </PageSectionContainer>
     );
   }
 
-  const { title, icon } = data.persistedPage;
+  const { title, icon, contents } = data.persistedPage;
 
   const isSafari = isSafariBrowser();
   const pageTitle = isSafari && icon ? `${icon} ${title}` : title;
@@ -332,7 +321,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
           <PageNotificationBanner />
         </Box>
 
-        <Container>
+        <PageSectionContainer pageComments={pageComments}>
           <Box position="relative">
             <PageIconButton
               ownedById={accountId}
@@ -394,15 +383,15 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
           </div> */}
             </Box>
           </Box>
-        </Container>
+        </PageSectionContainer>
 
-        <CollabPositionProvider value={collabPositions}>
+        <CollabPositionProvider value={[]}>
           <PageBlock
+            accountId={accountId}
+            contents={contents}
             blocks={blocksMap}
             pageComments={pageComments}
-            accountId={accountId}
             entityId={pageEntityId}
-            containerPadding={[paddingLeftFormula, paddingRightFormula]}
           />
         </CollabPositionProvider>
       </PageContextProvider>

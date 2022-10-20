@@ -120,12 +120,12 @@ import {
 } from "./knowledge/link/link";
 import { setParentPersistedPage } from "./knowledge/page/set-parent-page";
 import { updatePersistedPage } from "./knowledge/page/update-page";
-import { dataEntity } from "./knowledge/block/data-entity";
 import { persistedCommentHasText } from "./knowledge/comment/has-text";
 import { persistedCommentTextUpdatedAt } from "./knowledge/comment/text-updated-at";
 import { persistedCommentReplies } from "./knowledge/comment/replies";
 import { persistedCommentParent } from "./knowledge/comment/parent";
 import { persistedCommentAuthor } from "./knowledge/comment/author";
+import { blockChildEntity } from "./knowledge/block/data-entity";
 
 /**
  * @todo: derive these from the statically declared workspace type names
@@ -365,7 +365,7 @@ export const resolvers = {
   },
 
   PersistedBlock: {
-    dataEntity,
+    blockChildEntity,
   },
 
   /**

@@ -8,7 +8,7 @@ export const deleteLink: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationDeleteLinkArgs
-> = (_, { sourceAccountId, linkId }, { dataSources, user }) =>
+> = (_, { sourceAccountId, linkId }, { dataSources, userModel }) =>
   dataSources.db.transaction(async (client) => {
     const link = await Link.get(client, { sourceAccountId, linkId });
 
@@ -20,7 +20,7 @@ export const deleteLink: ResolverFn<
     }
 
     await link.delete(client, {
-      deletedByAccountId: user.entityId,
+      deletedByAccountId: userModel.entityId,
     });
 
     return true;

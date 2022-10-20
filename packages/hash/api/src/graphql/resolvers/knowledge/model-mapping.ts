@@ -80,7 +80,7 @@ export const mapCommentModelToGQL = (
 
 export type ExternalPersistedBlockResolversGQL =
   | ExternalPersistedEntityResolversGQL
-  | "dataEntity";
+  | "blockChildEntity";
 export type UnresolvedPersistedBlockGQL = Omit<
   PersistedBlock,
   ExternalPersistedBlockResolversGQL

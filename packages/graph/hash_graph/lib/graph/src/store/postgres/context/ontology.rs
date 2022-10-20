@@ -1,7 +1,7 @@
 use error_stack::{Context, IntoReport, Result, ResultExt};
 use futures::{Stream, StreamExt};
 use tokio_postgres::{GenericClient, RowStream};
-use type_system::uri::VersionedUri;
+use type_system::uri::{BaseUri, VersionedUri};
 
 use crate::{
     ontology::AccountId,
@@ -23,7 +23,10 @@ where
 #[derive(Debug)]
 pub struct OntologyRecord<T> {
     pub record: T,
-    pub account_id: AccountId, // TODO - rename to owned_by_id
+    pub owned_by_id: AccountId,
+    pub created_by_id: AccountId,
+    pub updated_by_id: AccountId,
+    pub removed_by_id: Option<AccountId>,
     pub is_latest: bool,
 }
 
@@ -41,8 +44,11 @@ where
 
         Ok(OntologyRecord {
             record,
-            account_id: row.get(1),
+            owned_by_id: row.get(1),
             is_latest: row.get(2),
+            created_by_id: row.get(3),
+            updated_by_id: row.get(4),
+            removed_by_id: row.get(5),
         })
     })
 }
@@ -59,7 +65,7 @@ where
         .query_raw(
             &format!(
                 r#"
-                SELECT schema, owned_by_id, MAX(version) OVER (PARTITION by base_uri) = version as latest
+                SELECT schema, owned_by_id, MAX(version) OVER (PARTITION by base_uri) = version as latest, created_by_id, updated_by_id, removed_by_id
                 FROM {table} type_table
                 INNER JOIN type_ids
                 ON type_table.version_id = type_ids.version_id
@@ -71,6 +77,54 @@ where
         .await
         .into_report().change_context(QueryError)?;
     Ok(row_stream_to_record_stream(row_stream))
+}
+
+pub async fn read_latest_type<T>(
+    client: &impl AsClient,
+    base_uri: &BaseUri,
+) -> Result<OntologyRecord<T>, QueryError>
+where
+    T: OntologyDatabaseType + TryFrom<serde_json::Value, Error: Context>,
+{
+    let row = client
+        .as_client()
+        .query_one(
+            &format!(
+                r#"
+                SELECT schema, owned_by_id, created_by_id, updated_by_id, removed_by_id
+                FROM {} type_table
+                INNER JOIN type_ids
+                ON type_table.version_id = type_ids.version_id
+                WHERE base_uri = $1 AND version = (
+                    SELECT MAX(version)
+                    FROM type_ids
+                    WHERE base_uri = $1
+                );
+                "#,
+                T::table()
+            ),
+            &[&base_uri.as_str()],
+        )
+        .await
+        .into_report()
+        .change_context(QueryError)?;
+
+    let record = T::try_from(row.get(0))
+        .into_report()
+        .change_context(QueryError)?;
+    let owned_by_id = row.get(1);
+    let created_by_id = row.get(2);
+    let updated_by_id = row.get(3);
+    let removed_by_id = row.get(4);
+
+    Ok(OntologyRecord {
+        record,
+        owned_by_id,
+        is_latest: true,
+        created_by_id,
+        updated_by_id,
+        removed_by_id,
+    })
 }
 
 pub async fn read_versioned_type<T>(
@@ -89,7 +143,7 @@ where
                     SELECT MAX(version) as latest
                     FROM type_ids
                     WHERE base_uri = $1
-                )
+                ), created_by_id, updated_by_id, removed_by_id
                 FROM {} type_table
                 INNER JOIN type_ids
                 ON type_table.version_id = type_ids.version_id
@@ -106,12 +160,18 @@ where
     let record = T::try_from(row.get(0))
         .into_report()
         .change_context(QueryError)?;
-    let account_id = row.get(1);
+    let owned_by_id = row.get(1);
     let latest: i64 = row.get(2);
+    let created_by_id = row.get(3);
+    let updated_by_id = row.get(4);
+    let removed_by_id = row.get(5);
 
     Ok(OntologyRecord {
         record,
-        account_id,
+        owned_by_id,
         is_latest: latest as u32 == uri.version(),
+        created_by_id,
+        updated_by_id,
+        removed_by_id,
     })
 }

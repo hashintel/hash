@@ -1,4 +1,4 @@
-import { FunctionComponent, useMemo, useState, useRef, useEffect } from "react";
+import { FunctionComponent, ReactNode, useMemo, useState } from "react";
 import { Box, Collapse, Typography } from "@mui/material";
 import {
   Avatar,
@@ -22,20 +22,18 @@ import { types } from "@hashintel/hash-shared/types";
 import { extractBaseUri } from "@blockprotocol/type-system-web";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
 import { PageComment } from "../../../components/hooks/usePageComments";
-import { CommentTextField, CommentTextFieldRef } from "./CommentTextField";
+import { CommentTextField } from "./CommentTextField";
 import { CommentBlockMenu } from "./CommentBlockMenu";
 import styles from "./style.module.css";
 
-const LINE_HEIGHT = 21;
-
-type ShowMoreTextLinkProps = {
-  label: string;
+type ToggleTextExpandedButtonProps = {
+  label: ReactNode;
   icon: IconDefinition;
   onClick: () => void;
 };
 
 export const ToggleTextExpandedButton: FunctionComponent<
-  ShowMoreTextLinkProps
+  ToggleTextExpandedButtonProps
 > = ({ label, icon, onClick }) => (
   <Button
     size="xs"
@@ -63,7 +61,6 @@ type CommentProps = {
 export const CommentBlock: FunctionComponent<CommentProps> = ({ comment }) => {
   const { hasText, author, textUpdatedAt } = comment;
 
-  const contentRef = useRef<CommentTextFieldRef>(null);
   const [collapsed, setCollapsed] = useState(true);
   const [shouldCollapse, setShouldCollapse] = useState(false);
   const [editable, setEditable] = useState(false);
@@ -81,15 +78,6 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({ comment }) => {
     variant: "popover",
     popupId: "comment-block-menu",
   });
-
-  useEffect(() => {
-    if (contentRef.current) {
-      const dom = contentRef.current.getDom();
-      if (dom) {
-        setShouldCollapse(dom.scrollHeight > LINE_HEIGHT * 2);
-      }
-    }
-  }, []);
 
   const preferredName = useMemo(
     () =>
@@ -130,12 +118,18 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({ comment }) => {
   );
 
   const cancelEdit = () => {
-    contentRef.current?.resetDocument();
     setEditable(false);
   };
 
   return (
-    <Box display="flex" flexDirection="column" p={2}>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        p: 2,
+        borderTop: ({ palette }) => `1px solid ${palette.gray[20]}`,
+      }}
+    >
       <Box display="flex" justifyContent="space-between">
         <Avatar size={36} title={preferredName ?? "U"} />
         <Box
@@ -188,9 +182,9 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({ comment }) => {
           })}
         >
           <CommentTextField
-            ref={contentRef}
-            initialText={hasText}
-            classNames={`${styles.Comment__TextField} ${
+            onLineCountChange={(lines) => setShouldCollapse(lines > 2)}
+            value={hasText}
+            className={`${styles.Comment__TextField} ${
               editable
                 ? styles.Comment__TextField_editable
                 : collapsed

@@ -1,35 +1,36 @@
+import { useApolloClient } from "@apollo/client";
 import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
+import { BlockEntity } from "@hashintel/hash-shared/entity";
+import { Button } from "@hashintel/hash-design-system";
+import Box from "@mui/material/Box";
 import { useRouter } from "next/router";
 import { Schema } from "prosemirror-model";
 import { EditorView } from "prosemirror-view";
 import "prosemirror-view/style/prosemirror.css";
-import { useLayoutEffect, useRef, FunctionComponent } from "react";
+import { FunctionComponent, useLayoutEffect, useRef } from "react";
 import { useLocalstorageState } from "rooks";
-
-import { Button } from "@hashintel/hash-design-system";
-import Box from "@mui/material/Box";
-import { GlobalStyles } from "@mui/material";
+import { useCreateComment } from "../../components/hooks/useCreateComment";
+import { PageThread } from "../../components/hooks/usePageComments";
+import { useInitTypeSystem } from "../../lib/use-init-type-system";
+import { useReadonlyMode } from "../../shared/readonly-mode";
 import { BlockLoadedProvider } from "../onBlockLoaded";
 import { UserBlocksProvider } from "../userBlocks";
 import { EditorConnection } from "./collab/EditorConnection";
-import { BlocksMap, createEditorView } from "./createEditorView";
-import { usePortals } from "./usePortals";
-import { useReadonlyMode } from "../../shared/readonly-mode";
-import { usePageContext } from "./PageContext";
 import { CommentThread } from "./Comments/CommentThread";
-import { PageThread } from "../../components/hooks/usePageComments";
-import { useCreateComment } from "../../components/hooks/useCreateComment";
+import { BlocksMap, createEditorView } from "./createEditorView";
+import { usePageContext } from "./PageContext";
 import {
-  PAGE_CONTENT_WIDTH,
-  PAGE_MIN_PADDING,
-} from "../../pages/[account-slug]/[page-slug].page";
+  getPageSectionContainerStyles,
+  PageSectionContainer,
+} from "./PageSectionContainer";
+import { usePortals } from "./usePortals";
 
 type PageBlockProps = {
+  contents: BlockEntity[];
   blocks: BlocksMap;
   pageComments: PageThread[];
   accountId: string;
   entityId: string;
-  containerPadding: [string, string];
 };
 
 /**
@@ -39,13 +40,16 @@ type PageBlockProps = {
  * do that
  */
 export const PageBlock: FunctionComponent<PageBlockProps> = ({
+  contents,
   blocks,
   pageComments,
   accountId,
   entityId,
-  containerPadding,
 }) => {
+  const loadingTypeSystem = useInitTypeSystem();
   const root = useRef<HTMLDivElement>(null);
+  const client = useApolloClient();
+
   const [portals, renderPortal, clearPortals] = usePortals();
   const [debugging] = useLocalstorageState<
     { restartCollabButton?: boolean } | boolean
@@ -56,6 +60,11 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
     connection: EditorConnection | null;
     manager: ProsemirrorManager;
   }>(null);
+
+  const currentContents = useRef(contents);
+  useLayoutEffect(() => {
+    currentContents.current = contents;
+  }, [contents]);
 
   const router = useRouter();
   const routeHash = router.asPath.split("#")[1] ?? "";
@@ -87,6 +96,8 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
       blocks,
       readonlyMode,
       pageTitleRef,
+      () => currentContents.current,
+      client,
     );
 
     setEditorView(view);
@@ -100,7 +111,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
     return () => {
       clearPortals();
       view.destroy();
-      connection.close();
+      connection?.close();
       prosemirrorSetup.current = null;
     };
   }, [
@@ -112,44 +123,60 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
     clearPortals,
     setEditorView,
     pageTitleRef,
+    client,
   ]);
 
   return (
     <UserBlocksProvider value={blocks}>
       <BlockLoadedProvider routeHash={routeHash}>
-        <GlobalStyles
-          styles={{
+        {loadingTypeSystem ? null : (
+          <PageSectionContainer
+            pageComments={pageComments}
+            sx={{
+              position: "absolute",
+              top: 0,
+              right: 0,
+              left: 0,
+              width: "100%",
+            }}
+          >
+            <Box width="100%" position="relative">
+              <Box
+                sx={{
+                  position: "absolute",
+                  top: 16,
+                  left: "calc(100% + 48px)",
+                  zIndex: 1,
+                }}
+              >
+                {pageComments?.map((comment) => (
+                  <CommentThread
+                    key={comment.entityId}
+                    comment={comment}
+                    createComment={createComment}
+                    loading={createCommentLoading}
+                  />
+                ))}
+              </Box>
+            </Box>
+          </PageSectionContainer>
+        )}
+        <Box
+          id="root"
+          ref={root}
+          sx={{
             /**
              * to handle margin-clicking, prosemirror should take full width, and give padding to it's content
              * so it automatically handles focusing on closest node on margin-clicking
              */
-            ".ProseMirror": {
-              padding: `0 ${containerPadding[1]} 320px ${containerPadding[0]}`,
-              minWidth: `calc(${PAGE_CONTENT_WIDTH}px + (${PAGE_MIN_PADDING}px * 2))`,
-            },
+            ".ProseMirror": [
+              getPageSectionContainerStyles(pageComments),
+              { paddingTop: 0, paddingBottom: "320px" },
+            ],
             // prevents blue outline on selected nodes
             ".ProseMirror-selectednode": { outline: "none" },
           }}
         />
-        <Box id="root" ref={root} position="relative">
-          <Box
-            sx={{
-              position: "absolute",
-              right: containerPadding[1],
-              transform: "translateX(calc(100% + 48px))",
-              zIndex: 1,
-            }}
-          >
-            {pageComments?.map((comment) => (
-              <CommentThread
-                key={comment.entityId}
-                comment={comment}
-                createComment={createComment}
-                loading={createCommentLoading}
-              />
-            ))}
-          </Box>
-        </Box>
         {portals}
         {/**
          * @todo position this better

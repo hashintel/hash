@@ -60,7 +60,7 @@ export default class extends EntityModel {
     graphApi: GraphApi,
     params: CommentModelCreateParams,
   ): Promise<CommentModel> {
-    const { ownedById, tokens, parent, author } = params;
+    const { ownedById, actorId, tokens, parent, author } = params;
 
     const entityTypeModel = WORKSPACE_TYPES.entityType.comment;
 
@@ -68,6 +68,7 @@ export default class extends EntityModel {
       ownedById,
       properties: {},
       entityTypeModel,
+      actorId,
     });
 
     const textEntity = await EntityModel.create(graphApi, {
@@ -76,24 +77,28 @@ export default class extends EntityModel {
         [WORKSPACE_TYPES.propertyType.tokens.baseUri]: tokens,
       },
       entityTypeModel: WORKSPACE_TYPES.entityType.text,
+      actorId,
     });
 
     await entity.createOutgoingLink(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.hasText,
       targetEntityModel: textEntity,
       ownedById,
+      actorId,
     });
 
     await entity.createOutgoingLink(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.parent,
       targetEntityModel: parent,
       ownedById,
+      actorId,
     });
 
     await entity.createOutgoingLink(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.author,
       targetEntityModel: author,
       ownedById,
+      actorId,
     });
 
     return CommentModel.fromEntityModel(entity);

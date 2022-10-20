@@ -7,4 +7,4 @@ export const me: ResolverFn<
   {},
   LoggedInGraphQLContext,
   {}
-> = async (_, __, { user }) => mapUserModelToGQL(user);
+> = async (_, __, { userModel }) => mapUserModelToGQL(userModel);

@@ -24,6 +24,8 @@ export type PageCommentsInfo = {
   loading: boolean;
 };
 
+const emptyComments: PageThread[] = [];
+
 export const usePageComments = (pageId: string): PageCommentsInfo => {
   const { data, loading } = useQuery<
     GetPersistedPageCommentsQuery,
@@ -32,5 +34,5 @@ export const usePageComments = (pageId: string): PageCommentsInfo => {
     variables: { entityId: pageId },
   });
 
-  return { data: data?.persistedPageComments ?? [], loading };
+  return { data: data?.persistedPageComments ?? emptyComments, loading };
 };

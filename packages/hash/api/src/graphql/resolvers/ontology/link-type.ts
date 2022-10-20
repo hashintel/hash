@@ -17,13 +17,14 @@ export const createLinkType: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationCreateLinkTypeArgs
-> = async (_, params, { dataSources, user }) => {
+> = async (_, params, { dataSources, userModel }) => {
   const { graphApi } = dataSources;
   const { ownedById, linkType } = params;
 
   const createdLinkTypeModel = await LinkTypeModel.create(graphApi, {
-    ownedById: ownedById ?? user.entityId,
+    ownedById: ownedById ?? userModel.entityId,
     schema: linkType,
+    actorId: userModel.entityId,
   }).catch((err) => {
     throw new ApolloError(err, "CREATION_ERROR");
   });
@@ -78,7 +79,7 @@ export const updateLinkType: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationUpdateLinkTypeArgs
-> = async (_, params, { dataSources }) => {
+> = async (_, params, { dataSources, userModel }) => {
   const { graphApi } = dataSources;
   const { linkTypeId, updatedLinkType } = params;
 
@@ -94,6 +95,7 @@ export const updateLinkType: ResolverFn<
   const updatedLinkTypeModel = await linkTypeModel
     .update(graphApi, {
       schema: updatedLinkType,
+      actorId: userModel.entityId,
     })
     .catch((err: AxiosError) => {
       const msg =

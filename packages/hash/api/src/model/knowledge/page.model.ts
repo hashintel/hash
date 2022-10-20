@@ -74,7 +74,7 @@ export default class extends EntityModel {
     graphApi: GraphApi,
     params: PageModelCreateParams,
   ): Promise<PageModel> {
-    const { title, summary, prevIndex, ownedById } = params;
+    const { title, summary, prevIndex, ownedById, actorId } = params;
 
     const index = generateKeyBetween(prevIndex ?? null, null);
 
@@ -90,6 +90,7 @@ export default class extends EntityModel {
       ownedById,
       properties,
       entityTypeModel,
+      actorId,
     });
 
     const page = PageModel.fromEntityModel(entity);
@@ -107,12 +108,14 @@ export default class extends EntityModel {
                   [WORKSPACE_TYPES.propertyType.tokens.baseUri]: [],
                 },
                 entityTypeModel: WORKSPACE_TYPES.entityType.text,
+                actorId,
               }),
+              actorId,
             }),
           ];
 
     for (const block of initialBlocks) {
-      await page.insertBlock(graphApi, { block });
+      await page.insertBlock(graphApi, { block, actorId });
     }
 
     return page;
@@ -121,7 +124,7 @@ export default class extends EntityModel {
   /**
    * Get all the pages in an account.
    *
-   * @param params.account - the user or org whose pages will be returned
+   * @param params.accountModel - the user or org whose pages will be returned
    */
   static async getAllPagesInAccount(
     graphApi: GraphApi,
@@ -272,7 +275,7 @@ export default class extends EntityModel {
   async removeParentPage(
     graphApi: GraphApi,
     params: {
-      removedById: string;
+      actorId: string;
     },
   ): Promise<void> {
     const parentPageLinks = await this.getOutgoingLinks(graphApi, {
@@ -293,16 +296,16 @@ export default class extends EntityModel {
       );
     }
 
-    const { removedById } = params;
+    const { actorId } = params;
 
-    await parentPageLink.remove(graphApi, { removedById });
+    await parentPageLink.remove(graphApi, { actorId });
   }
 
   /**
    * Set (or unset) the parent page of this page.
    *
    * @param params.parentPage - the new parent page (or `null`)
-   * @param params.setById - the account that is setting the parent page
+   * @param params.actorId - the account that is setting the parent page
    * @param params.prevIndex - the index of the previous page
    * @param params.nextIndex- the index of the next page
    */
@@ -310,21 +313,19 @@ export default class extends EntityModel {
     graphApi: GraphApi,
     params: {
       parentPageModel: PageModel | null;
-      setById: string;
+      actorId: string;
       prevIndex: string | null;
       nextIndex: string | null;
     },
   ): Promise<PageModel> {
-    const { setById, parentPageModel, prevIndex, nextIndex } = params;
+    const { actorId, parentPageModel, prevIndex, nextIndex } = params;
 
     const newIndex = generateKeyBetween(prevIndex, nextIndex);
 
     const existingParentPageModel = await this.getParentPage(graphApi);
 
     if (existingParentPageModel) {
-      await this.removeParentPage(graphApi, {
-        removedById: setById,
-      });
+      await this.removeParentPage(graphApi, { actorId });
     }
 
     if (parentPageModel) {
@@ -339,7 +340,8 @@ export default class extends EntityModel {
       await this.createOutgoingLink(graphApi, {
         linkTypeModel: WORKSPACE_TYPES.linkType.parent,
         targetEntityModel: parentPageModel,
-        ownedById: setById,
+        ownedById: actorId,
+        actorId,
       });
     }
 
@@ -347,6 +349,7 @@ export default class extends EntityModel {
       const updatedPageEntityModel = await this.updateProperty(graphApi, {
         propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.index.baseUri,
         value: newIndex,
+        actorId,
       });
 
       return PageModel.fromEntityModel(updatedPageEntityModel);
@@ -398,19 +401,27 @@ export default class extends EntityModel {
    *
    * @param params.block - the block to insert in the page
    * @param params.position (optional) - the position of the block in the page
+   * @param params.insertedById - the id of the account that is inserting the block into the page
+   * @param params.updateSiblings (optional) - whether or not to update the sibling link indexes when inserting the block, defaults to `true`
    */
   async insertBlock(
     graphApi: GraphApi,
     params: {
       block: BlockModel;
       position?: number;
+      actorId: string;
+      updateSiblings?: boolean;
     },
   ) {
-    const { position: specifiedPosition } = params;
+    const {
+      position: specifiedPosition,
+      updateSiblings = true,
+      actorId,
+    } = params;
 
     const { block } = params;
 
-    await this.createOutgoingLink(graphApi, {
+    const linkParams = {
       targetEntityModel: block,
       linkTypeModel: WORKSPACE_TYPES.linkType.contains,
       index:
@@ -419,7 +430,12 @@ export default class extends EntityModel {
         ((await this.getBlocks(graphApi)).length === 0 ? 0 : undefined),
       // assume that link to block is owned by the same account as the page
       ownedById: this.ownedById,
-    });
+      actorId,
+    };
+
+    await (updateSiblings
+      ? this.createOutgoingLink(graphApi, linkParams)
+      : this.createOutgoingLinkWithoutUpdatingSiblings(graphApi, linkParams));
   }
 
   /**
@@ -427,17 +443,17 @@ export default class extends EntityModel {
    *
    * @param params.currentPosition - the current position of the block being moved
    * @param params.newPosition - the new position of the block being moved
-   * @param params.movedById - the id of the user that is moving the block
+   * @param params.movedById - the id of the account that is moving the block
    */
   async moveBlock(
     graphApi: GraphApi,
     params: {
       currentPosition: number;
       newPosition: number;
-      movedById: string;
+      actorId: string;
     },
   ) {
-    const { currentPosition, newPosition } = params;
+    const { currentPosition, newPosition, actorId } = params;
 
     const contentLinks = await this.getOutgoingLinks(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.contains,
@@ -460,11 +476,9 @@ export default class extends EntityModel {
       );
     }
 
-    const { movedById } = params;
-
     await link.update(graphApi, {
       updatedIndex: newPosition,
-      updatedById: movedById,
+      actorId,
     });
   }
 
@@ -472,26 +486,35 @@ export default class extends EntityModel {
    * Remove a block from the page.
    *
    * @param params.position - the position of the block being removed
-   * @param params.removedById - the id of the user that is removing the block
+   * @param params.actorId - the id of the account that is removing the block
    * @param params.allowRemovingFinal (optional) - whether or not removing the final block in the page should be permitted (defaults to `true`)
    */
   async removeBlock(
     graphApi: GraphApi,
     params: {
       position: number;
-      removedById: string;
+      actorId: string;
       allowRemovingFinal?: boolean;
+      updateSiblings?: boolean;
     },
   ) {
-    const { allowRemovingFinal = false, position } = params;
+    const {
+      allowRemovingFinal = false,
+      position,
+      updateSiblings,
+      actorId,
+    } = params;
 
     const contentLinks = await this.getOutgoingLinks(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.contains,
     });
 
-    if (position < 0 || position >= contentLinks.length) {
-      throw new UserInputError(`invalid position: ${position}`);
-    }
+    /**
+     * @todo currently the count of outgoing links are not the best indicator of a valid position
+     *   as page saving could assume index positions higher than the number of blocks.
+     *   Ideally we'd be able to atomically rearrange all blocks as we're removing/adding blocks.
+     *   see: https://app.asana.com/0/1200211978612931/1203031430417465/f
+     */
 
     const link = contentLinks.find(({ index }) => index === position);
 
@@ -505,8 +528,11 @@ export default class extends EntityModel {
       throw new Error("Cannot remove final block from page");
     }
 
-    const { removedById } = params;
+    const removeParams = { actorId };
 
-    await link.remove(graphApi, { removedById });
+    // Don't always reorder siblings as it could break the expected indices on the frontend.
+    await (updateSiblings
+      ? link.remove(graphApi, removeParams)
+      : link.removeWithoutUpdatingSiblings(graphApi, removeParams));
   }
 }

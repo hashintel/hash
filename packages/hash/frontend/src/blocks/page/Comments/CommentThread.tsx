@@ -7,10 +7,9 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { extractBaseUri } from "@blockprotocol/type-system-web";
 import { types } from "@hashintel/hash-shared/types";
 import { PageThread } from "../../../components/hooks/usePageComments";
-import { CommentTextField, CommentTextFieldRef } from "./CommentTextField";
+import { CommentTextField } from "./CommentTextField";
 import { CommentBlock } from "./CommentBlock";
 import styles from "./style.module.css";
-import { useInitTypeSystem } from "../../../lib/use-init-type-system";
 
 const UNCOLLAPSIBLE_REPLIES_NUMBER = 2;
 
@@ -25,8 +24,6 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
   createComment,
   loading,
 }) => {
-  const loadingTypeSystem = useInitTypeSystem();
-  const inputRef = useRef<CommentTextFieldRef>(null);
   const threadRef = useRef<HTMLDivElement>(null);
   const [threadFocused, setThreadFocused] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
@@ -38,14 +35,14 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
     (threadFocused && inputFocused) || !!inputValue.length;
 
   const cancelSubmit = () => {
-    inputRef.current?.resetDocument();
+    setInputValue([]);
     threadRef.current?.focus();
   };
 
-  const submitComment = async () => {
+  const handleReplySubmit = async () => {
     if (!loading && inputValue?.length) {
       await createComment(comment.entityId, inputValue).then(() => {
-        inputRef.current?.resetDocument();
+        setInputValue([]);
       });
     }
   };
@@ -61,15 +58,13 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
 
   const preferredName = useMemo(
     () =>
-      loadingTypeSystem
-        ? ""
-        : comment.author.properties[
-            extractBaseUri(types.propertyType.preferredName.propertyTypeId)
-          ],
-    [loadingTypeSystem, comment.author.properties],
+      comment.author.properties[
+        extractBaseUri(types.propertyType.preferredName.propertyTypeId)
+      ],
+    [comment.author.properties],
   );
 
-  return loadingTypeSystem ? null : (
+  return (
     <Box
       ref={threadRef}
       tabIndex={0}
@@ -82,6 +77,10 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
         boxShadow: boxShadows.md,
         marginBottom: 4,
         outline: "none",
+
+        ">*:first-child": {
+          borderTopWidth: 0,
+        },
       })}
     >
       <CommentBlock key={comment.entityId} comment={comment} />
@@ -111,30 +110,17 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
               ? "Show fewer responses"
               : `Show all ${comment.replies.length} responses`}
           </Button>
+
           <Collapse in={expanded}>
             {collapsedReplies.map((reply) => (
-              <Box
-                key={reply.entityId}
-                sx={{
-                  borderTop: ({ palette }) => `1px solid ${palette.gray[20]}`,
-                }}
-              >
-                <CommentBlock comment={reply} />
-              </Box>
+              <CommentBlock key={reply.entityId} comment={reply} />
             ))}
           </Collapse>
         </>
       ) : null}
 
       {uncollapsibleReplies.map((reply) => (
-        <Box
-          key={reply.entityId}
-          sx={{
-            borderTop: ({ palette }) => `1px solid ${palette.gray[20]}`,
-          }}
-        >
-          <CommentBlock comment={reply} />
-        </Box>
+        <CommentBlock key={reply.entityId} comment={reply} />
       ))}
 
       <Collapse in={showInput}>
@@ -159,14 +145,14 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
             })}
           >
             <CommentTextField
-              ref={inputRef}
+              value={inputValue}
               placeholder={`Reply to ${preferredName}`}
               onClose={cancelSubmit}
-              onSubmit={submitComment}
+              onSubmit={handleReplySubmit}
               editable={!loading}
               onFocusChange={setInputFocused}
               onChange={setInputValue}
-              classNames={styles.Comment__TextField_editable}
+              className={styles.Comment__TextField_editable}
             />
           </Box>
         </Box>
@@ -190,7 +176,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
             size="xs"
             variant="secondary"
             disabled={!inputValue.length}
-            onClick={submitComment}
+            onClick={handleReplySubmit}
             loading={loading}
           >
             Reply

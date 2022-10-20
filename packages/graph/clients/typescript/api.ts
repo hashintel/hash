@@ -55,7 +55,13 @@ export interface CreateDataTypeRequest {
    * @type {string}
    * @memberof CreateDataTypeRequest
    */
-  accountId: string;
+  actorId: string;
+  /**
+   *
+   * @type {string}
+   * @memberof CreateDataTypeRequest
+   */
+  ownedById: string;
   /**
    *
    * @type {DataType}
@@ -74,7 +80,7 @@ export interface CreateEntityRequest {
    * @type {string}
    * @memberof CreateEntityRequest
    */
-  accountId: string;
+  actorId: string;
   /**
    *
    * @type {object}
@@ -93,6 +99,12 @@ export interface CreateEntityRequest {
    * @memberof CreateEntityRequest
    */
   entityTypeId: string;
+  /**
+   *
+   * @type {string}
+   * @memberof CreateEntityRequest
+   */
+  ownedById: string;
 }
 /**
  *
@@ -105,7 +117,13 @@ export interface CreateEntityTypeRequest {
    * @type {string}
    * @memberof CreateEntityTypeRequest
    */
-  accountId: string;
+  actorId: string;
+  /**
+   *
+   * @type {string}
+   * @memberof CreateEntityTypeRequest
+   */
+  ownedById: string;
   /**
    *
    * @type {EntityType}
@@ -119,6 +137,12 @@ export interface CreateEntityTypeRequest {
  * @interface CreateLinkRequest
  */
 export interface CreateLinkRequest {
+  /**
+   *
+   * @type {string}
+   * @memberof CreateLinkRequest
+   */
+  actorId: string;
   /**
    *
    * @type {number}
@@ -155,7 +179,13 @@ export interface CreateLinkTypeRequest {
    * @type {string}
    * @memberof CreateLinkTypeRequest
    */
-  accountId: string;
+  actorId: string;
+  /**
+   *
+   * @type {string}
+   * @memberof CreateLinkTypeRequest
+   */
+  ownedById: string;
   /**
    *
    * @type {LinkType}
@@ -174,7 +204,13 @@ export interface CreatePropertyTypeRequest {
    * @type {string}
    * @memberof CreatePropertyTypeRequest
    */
-  accountId: string;
+  actorId: string;
+  /**
+   *
+   * @type {string}
+   * @memberof CreatePropertyTypeRequest
+   */
+  ownedById: string;
   /**
    *
    * @type {PropertyType}
@@ -258,19 +294,6 @@ export interface DataTypeReferenceUpdate {
 /**
  *
  * @export
- * @interface DataTypeRootedSubgraph
- */
-export interface DataTypeRootedSubgraph {
-  /**
-   *
-   * @type {PersistedDataType}
-   * @memberof DataTypeRootedSubgraph
-   */
-  dataType: PersistedDataType;
-}
-/**
- *
- * @export
  * @enum {string}
  */
 
@@ -283,6 +306,25 @@ export const EdgeKind = {
 
 export type EdgeKind = typeof EdgeKind[keyof typeof EdgeKind];
 
+/**
+ *
+ * @export
+ * @interface EdgesValueInner
+ */
+export interface EdgesValueInner {
+  /**
+   *
+   * @type {GraphElementIdentifier}
+   * @memberof EdgesValueInner
+   */
+  destination: GraphElementIdentifier;
+  /**
+   *
+   * @type {EdgeKind}
+   * @memberof EdgesValueInner
+   */
+  edgeKind: EdgeKind;
+}
 /**
  *
  * @export
@@ -748,6 +790,12 @@ export interface PersistedEntityMetadata {
    * @type {string}
    * @memberof PersistedEntityMetadata
    */
+  createdById: string;
+  /**
+   *
+   * @type {string}
+   * @memberof PersistedEntityMetadata
+   */
   entityTypeId: string;
   /**
    *
@@ -755,6 +803,18 @@ export interface PersistedEntityMetadata {
    * @memberof PersistedEntityMetadata
    */
   identifier: PersistedEntityIdentifier;
+  /**
+   *
+   * @type {string}
+   * @memberof PersistedEntityMetadata
+   */
+  removedById?: string;
+  /**
+   *
+   * @type {string}
+   * @memberof PersistedEntityMetadata
+   */
+  updatedById: string;
 }
 /**
  *
@@ -800,6 +860,12 @@ export interface PersistedLink {
  * @interface PersistedLinkMetadata
  */
 export interface PersistedLinkMetadata {
+  /**
+   *
+   * @type {string}
+   * @memberof PersistedLinkMetadata
+   */
+  createdById: string;
   /**
    *
    * @type {string}
@@ -853,10 +919,28 @@ export interface PersistedOntologyIdentifier {
 export interface PersistedOntologyMetadata {
   /**
    *
+   * @type {string}
+   * @memberof PersistedOntologyMetadata
+   */
+  createdById: string;
+  /**
+   *
    * @type {PersistedOntologyIdentifier}
    * @memberof PersistedOntologyMetadata
    */
   identifier: PersistedOntologyIdentifier;
+  /**
+   *
+   * @type {string}
+   * @memberof PersistedOntologyMetadata
+   */
+  removedById?: string;
+  /**
+   *
+   * @type {string}
+   * @memberof PersistedOntologyMetadata
+   */
+  updatedById: string;
 }
 /**
  *
@@ -1088,13 +1172,13 @@ export interface RemoveLinkRequest {
    * @type {string}
    * @memberof RemoveLinkRequest
    */
-  linkTypeId: string;
+  actorId: string;
   /**
    *
    * @type {string}
    * @memberof RemoveLinkRequest
    */
-  removedById: string;
+  linkTypeId: string;
   /**
    *
    * @type {string}
@@ -1135,10 +1219,10 @@ export interface Subgraph {
   depths: GraphResolveDepths;
   /**
    *
-   * @type {{ [key: string]: Array<OutwardEdge>; }}
+   * @type {{ [key: string]: Array<EdgesValueInner>; }}
    * @memberof Subgraph
    */
-  edges: { [key: string]: Array<OutwardEdge> };
+  edges: { [key: string]: Array<EdgesValueInner> };
   /**
    *
    * @type {Array<GraphElementIdentifier>}
@@ -1204,7 +1288,7 @@ export interface UpdateDataTypeRequest {
    * @type {string}
    * @memberof UpdateDataTypeRequest
    */
-  accountId: string;
+  actorId: string;
   /**
    *
    * @type {UpdateDataType}
@@ -1229,7 +1313,7 @@ export interface UpdateEntityRequest {
    * @type {string}
    * @memberof UpdateEntityRequest
    */
-  accountId: string;
+  actorId: string;
   /**
    *
    * @type {object}
@@ -1347,7 +1431,7 @@ export interface UpdateEntityTypeRequest {
    * @type {string}
    * @memberof UpdateEntityTypeRequest
    */
-  accountId: string;
+  actorId: string;
   /**
    *
    * @type {UpdateEntityType}
@@ -1417,7 +1501,7 @@ export interface UpdateLinkTypeRequest {
    * @type {string}
    * @memberof UpdateLinkTypeRequest
    */
-  accountId: string;
+  actorId: string;
   /**
    *
    * @type {UpdateLinkType}
@@ -1487,7 +1571,7 @@ export interface UpdatePropertyTypeRequest {
    * @type {string}
    * @memberof UpdatePropertyTypeRequest
    */
-  accountId: string;
+  actorId: string;
   /**
    *
    * @type {UpdatePropertyType}
