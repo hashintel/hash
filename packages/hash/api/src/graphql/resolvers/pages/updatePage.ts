@@ -9,7 +9,11 @@ export const updatePage: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationUpdatePageArgs
-> = async (_, { accountId, entityId, properties }, { dataSources, user }) => {
+> = async (
+  _,
+  { accountId, entityId, properties },
+  { dataSources, userModel },
+) => {
   return await dataSources.db.transaction(async (client) => {
     // @todo: always get the latest version for now. This is a temporary measure.
     // return here when strict vs. optimistic entity mutation question is resolved.
@@ -29,7 +33,7 @@ export const updatePage: ResolverFn<
         ...(entity.properties ?? {}),
         ...properties,
       },
-      updatedByAccountId: user.entityId,
+      updatedByAccountId: userModel.entityId,
     });
 
     // @todo: for now, all entities are non-versioned, so the array only has a single

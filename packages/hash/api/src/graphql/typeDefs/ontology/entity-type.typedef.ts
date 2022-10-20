@@ -112,7 +112,7 @@ export const entityTypeTypedef = gql`
     """
     createEntityType(
       """
-      The id of the owner of the entity type. Defaults to the user calling the mutation.
+      The id of the account who owns the entity type. Defaults to the user calling the mutation.
       """
       ownedById: ID
       entityType: EntityTypeWithoutId!

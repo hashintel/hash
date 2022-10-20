@@ -252,14 +252,28 @@ pub struct LinkTypeRootedSubgraph {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct PersistedOntologyMetadata {
     identifier: PersistedOntologyIdentifier,
+    created_by_id: AccountId,
+    updated_by_id: AccountId,
+    removed_by_id: Option<AccountId>,
 }
 
 impl PersistedOntologyMetadata {
     #[must_use]
-    pub const fn new(identifier: PersistedOntologyIdentifier) -> Self {
-        Self { identifier }
+    pub const fn new(
+        identifier: PersistedOntologyIdentifier,
+        created_by_id: AccountId,
+        updated_by_id: AccountId,
+        removed_by_id: Option<AccountId>,
+    ) -> Self {
+        Self {
+            identifier,
+            created_by_id,
+            updated_by_id,
+            removed_by_id,
+        }
     }
 
     #[must_use]

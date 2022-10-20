@@ -13,8 +13,9 @@ pub struct LinkRecord {
     pub link_type_id: VersionedUri,
     pub source_entity_id: EntityId,
     pub target_entity_id: EntityId,
-    pub account_id: AccountId, // TODO - rename to owned_by_id
+    pub owned_by_id: AccountId,
     pub index: Option<i32>,
+    pub created_by_id: AccountId,
 }
 
 impl From<LinkRecord> for PersistedLink {
@@ -26,7 +27,8 @@ impl From<LinkRecord> for PersistedLink {
                 record.link_type_id,
                 record.index,
             ),
-            record.account_id,
+            record.owned_by_id,
+            record.created_by_id,
         )
     }
 }
@@ -46,8 +48,9 @@ fn row_stream_to_record_stream(
             ),
             source_entity_id: row.get(2),
             target_entity_id: row.get(3),
-            account_id: row.get(4),
-            index: row.get(5),
+            owned_by_id: row.get(4),
+            created_by_id: row.get(5),
+            index: row.get(6),
         })
     })
 }
@@ -57,7 +60,7 @@ pub async fn read_all_links(client: &impl AsClient) -> Result<RecordStream, Quer
         .as_client()
         .query_raw(
             r#"
-            SELECT base_uri, version, source_entity_id, target_entity_id, owned_by_id, link_index
+            SELECT base_uri, version, source_entity_id, target_entity_id, owned_by_id, created_by_id, link_index
             FROM links
             JOIN type_ids ON version_id = link_type_version_id
             -- Nulls will be last with default ascending order (default is ASC NULLS LAST)
@@ -79,7 +82,7 @@ pub async fn read_links_by_source(
         .as_client()
         .query_raw(
             r#"
-            SELECT base_uri, version, source_entity_id, target_entity_id, owned_by_id, link_index
+            SELECT base_uri, version, source_entity_id, target_entity_id, owned_by_id, created_by_id, link_index
             FROM links
             JOIN type_ids ON version_id = link_type_version_id
             WHERE source_entity_id = $1
@@ -102,7 +105,7 @@ pub async fn read_links_by_target(
         .as_client()
         .query_raw(
             r#"
-            SELECT base_uri, version, source_entity_id, target_entity_id, owned_by_id
+            SELECT base_uri, version, source_entity_id, target_entity_id, owned_by_id, created_by_id
             FROM links
             JOIN type_ids ON version_id = link_type_version_id
             WHERE target_entity_id = $1

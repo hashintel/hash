@@ -27,13 +27,14 @@ export const createEntityType: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationCreateEntityTypeArgs
-> = async (_, params, { dataSources, user }) => {
+> = async (_, params, { dataSources, userModel }) => {
   const { graphApi } = dataSources;
   const { ownedById, entityType } = params;
 
   const createdEntityTypeModel = await EntityTypeModel.create(graphApi, {
-    ownedById: ownedById ?? user.entityId,
+    ownedById: ownedById ?? userModel.entityId,
     schema: entityType,
+    actorId: userModel.entityId,
   }).catch((err) => {
     throw new ApolloError(err, "CREATION_ERROR");
   });
@@ -96,7 +97,7 @@ export const updateEntityType: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationUpdateEntityTypeArgs
-> = async (_, params, { dataSources }) => {
+> = async (_, params, { dataSources, userModel }) => {
   const { graphApi } = dataSources;
   const { entityTypeId, updatedEntityType } = params;
 
@@ -112,6 +113,7 @@ export const updateEntityType: ResolverFn<
   const updatedEntityTypeModel = await entityTypeModel
     .update(graphApi, {
       schema: updatedEntityType,
+      actorId: userModel.entityId,
     })
     .catch((err: AxiosError) => {
       const msg =

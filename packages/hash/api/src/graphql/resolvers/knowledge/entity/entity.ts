@@ -19,7 +19,7 @@ export const createPersistedEntity: ResolverFn<
 > = async (
   _,
   { ownedById, properties, entityTypeId, linkedEntities },
-  { dataSources: { graphApi }, user },
+  { dataSources: { graphApi }, userModel },
 ) => {
   /**
    * @todo: prevent callers of this mutation from being able to create restricted
@@ -29,10 +29,11 @@ export const createPersistedEntity: ResolverFn<
    */
 
   const entity = await EntityModel.createEntityWithLinks(graphApi, {
-    ownedById: ownedById ?? user.entityId,
+    ownedById: ownedById ?? userModel.entityId,
     entityTypeId,
     properties,
     linkedEntities: linkedEntities ?? undefined,
+    actorId: userModel.entityId,
   });
 
   return mapEntityModelToGQL(entity);
@@ -46,7 +47,7 @@ export const updatePersistedEntity: ResolverFn<
 > = async (
   _,
   { entityId, updatedProperties },
-  { dataSources: { graphApi } },
+  { dataSources: { graphApi }, userModel },
 ) => {
   const entityModel = await EntityModel.getLatest(graphApi, {
     entityId,
@@ -54,6 +55,7 @@ export const updatePersistedEntity: ResolverFn<
 
   const updatedEntityModel = await entityModel.update(graphApi, {
     properties: updatedProperties,
+    actorId: userModel.entityId,
   });
 
   return mapEntityModelToGQL(updatedEntityModel);

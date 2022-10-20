@@ -68,6 +68,7 @@ struct CreateLinkRequest {
     #[schema(value_type = String)]
     link_type_id: VersionedUri,
     owned_by_id: AccountId,
+    actor_id: AccountId,
     // TODO: Consider if ordering should be exposed on links as they are here. The API consumer
     //   manages indexes currently.
     //   https://app.asana.com/0/1202805690238892/1202937382769278/f
@@ -100,6 +101,7 @@ async fn create_link<P: StorePool + Send>(
         target_entity_id,
         link_type_id,
         owned_by_id,
+        actor_id,
         index,
     }) = body;
 
@@ -111,7 +113,7 @@ async fn create_link<P: StorePool + Send>(
     let link = Link::new(source_entity_id, target_entity_id, link_type_id, index);
 
     store
-        .create_link(&link, owned_by_id)
+        .create_link(&link, owned_by_id, actor_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create link");
@@ -192,7 +194,7 @@ struct RemoveLinkRequest {
     target_entity_id: EntityId,
     #[schema(value_type = String)]
     link_type_id: VersionedUri,
-    removed_by_id: AccountId,
+    actor_id: AccountId,
 }
 
 #[utoipa::path(
@@ -220,7 +222,7 @@ async fn remove_link<P: StorePool + Send>(
     let Json(RemoveLinkRequest {
         target_entity_id,
         link_type_id,
-        removed_by_id,
+        actor_id,
     }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -231,7 +233,7 @@ async fn remove_link<P: StorePool + Send>(
     store
         .remove_link(
             &Link::new(source_entity_id, target_entity_id, link_type_id, None),
-            removed_by_id,
+            actor_id,
         )
         .await
         .map_err(|report| {

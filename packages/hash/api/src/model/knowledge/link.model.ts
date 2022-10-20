@@ -12,6 +12,7 @@ export type LinkModelConstructorParams = {
   sourceEntityModel: EntityModel;
   linkTypeModel: LinkTypeModel;
   targetEntityModel: EntityModel;
+  createdById: string;
 };
 
 export type LinkModelCreateParams = {
@@ -20,6 +21,7 @@ export type LinkModelCreateParams = {
   sourceEntityModel: EntityModel;
   linkTypeModel: LinkTypeModel;
   targetEntityModel: EntityModel;
+  actorId: string;
 };
 
 /**
@@ -34,12 +36,15 @@ export default class {
   linkTypeModel: LinkTypeModel;
   targetEntityModel: EntityModel;
 
+  createdById: string;
+
   constructor({
     ownedById,
     index,
     sourceEntityModel,
     linkTypeModel,
     targetEntityModel,
+    createdById,
   }: LinkModelConstructorParams) {
     this.ownedById = ownedById;
     this.index = index;
@@ -47,12 +52,14 @@ export default class {
     this.sourceEntityModel = sourceEntityModel;
     this.linkTypeModel = linkTypeModel;
     this.targetEntityModel = targetEntityModel;
+
+    this.createdById = createdById;
   }
 
   static async fromPersistedLink(
     graphApi: GraphApi,
     {
-      metadata: { ownedById },
+      metadata: { ownedById, createdById },
       inner: { sourceEntityId, targetEntityId, linkTypeId, index },
     }: PersistedLink,
   ): Promise<LinkModel> {
@@ -69,6 +76,7 @@ export default class {
       sourceEntityModel,
       linkTypeModel,
       targetEntityModel,
+      createdById,
     });
   }
 
@@ -130,7 +138,7 @@ export default class {
 
     if (!linkModel) {
       throw new Error(
-        `Link with source enitty ID = '${sourceEntityId}', target entity ID = '${targetEntityId}' and link type ID = '${linkTypeId}' not found.`,
+        `Link with source entity ID = '${sourceEntityId}', target entity ID = '${targetEntityId}' and link type ID = '${linkTypeId}' not found.`,
       );
     } else if (linkModels.length > 1) {
       throw new Error(`Could not identify one single link with query.`);
@@ -146,10 +154,11 @@ export default class {
    * @todo: deprecate this method when the Graph API handles updating the sibling indexes
    * @see https://app.asana.com/0/1200211978612931/1203031430417465/f
    *
-   * @param params.ownedById the id of the owner of the new link
-   * @param params.sourceEntityModel the source entity of the link
-   * @param params.linkTypeModel the Link Type of the link
-   * @param params.targetEntityModel the target entity of the link
+   * @param params.ownedById - the id of the account who owns the new link
+   * @param params.sourceEntityModel - the source entity of the link
+   * @param params.linkTypeModel - the link type of the link
+   * @param params.targetEntityModel - the target entity of the link
+   * @param params.actorId - the id of the account that is creating the link
    */
   static async createLinkWithoutUpdatingSiblings(
     graphApi: GraphApi,
@@ -161,6 +170,7 @@ export default class {
       linkTypeModel,
       targetEntityModel,
       index,
+      actorId,
     } = params;
 
     const { data: link } = await graphApi.createLink(
@@ -170,6 +180,7 @@ export default class {
         index,
         linkTypeId: linkTypeModel.schema.$id,
         targetEntityId: targetEntityModel.entityId,
+        actorId,
       },
     );
 
@@ -177,9 +188,9 @@ export default class {
      * @todo: this should be returned directly from the `createLink` method
      * @see https://app.asana.com/0/1202805690238892/1203045933021776/f
      */
-    const persistedLink = {
+    const persistedLink: PersistedLink = {
       inner: link,
-      metadata: { ownedById },
+      metadata: { ownedById, createdById: actorId },
     };
 
     return LinkModel.fromPersistedLink(graphApi, persistedLink);
@@ -189,16 +200,17 @@ export default class {
    * Create a link between a source and a target entity using a specific link
    * type.
    *
-   * @param params.ownedById the id of the owner of the link
-   * @param params.sourceEntityModel the source entity of the link
-   * @param params.linkTypeModel the Link Type of the link
-   * @param params.targetEntityModel the target entity of the link
+   * @param params.ownedById - the id of the account who owns the new link
+   * @param params.sourceEntityModel - the source entity of the link
+   * @param params.linkTypeModel - the link type of the link
+   * @param params.targetEntityModel - the target entity of the link
+   * @param params.createdById - the id of the account that is creating the link
    */
   static async create(
     graphApi: GraphApi,
     params: LinkModelCreateParams,
   ): Promise<LinkModel> {
-    const { sourceEntityModel, linkTypeModel, ownedById } = params;
+    const { sourceEntityModel, linkTypeModel, actorId } = params;
     const siblingLinks = await sourceEntityModel.getOutgoingLinks(graphApi, {
       linkTypeModel,
     });
@@ -239,11 +251,7 @@ export default class {
           .map((sibling) =>
             sibling.updateWithoutUpdatingSiblings(graphApi, {
               updatedIndex: sibling.index! + 1,
-              /**
-               * @todo: don't assume the owner of the new link is the user that's responsible for creating it.
-               * Related to https://app.asana.com/0/1200211978612931/1202848989198291/f
-               */
-              updatedById: ownedById,
+              actorId,
             }),
           ),
       );
@@ -262,13 +270,13 @@ export default class {
    * @see https://app.asana.com/0/1200211978612931/1203031430417465/f
    *
    * @param params.updatedIndex - the updated index of the link
-   * @param params.updatedbyId - the id of the user that is updating the link
+   * @param params.actorId - the id of the account that is updating the link
    */
   private async updateWithoutUpdatingSiblings(
     graphApi: GraphApi,
-    params: { updatedIndex: number; updatedById: string },
+    params: { updatedIndex: number; actorId: string },
   ) {
-    const { updatedIndex, updatedById } = params;
+    const { updatedIndex, actorId } = params;
 
     const { index: previousIndex } = this;
 
@@ -284,9 +292,7 @@ export default class {
      * @todo: call dedicated Graph API method to update the index of a link instead of re-creating the link manually
      * @see https://app.asana.com/0/1202805690238892/1203031430417465/f
      */
-    await this.removeWithoutUpdatingSiblings(graphApi, {
-      removedById: updatedById,
-    });
+    await this.removeWithoutUpdatingSiblings(graphApi, { actorId });
 
     const { ownedById, sourceEntityModel, linkTypeModel, targetEntityModel } =
       this;
@@ -299,6 +305,7 @@ export default class {
         linkTypeModel,
         targetEntityModel,
         index: updatedIndex,
+        actorId,
       },
     );
 
@@ -309,13 +316,13 @@ export default class {
    * Update the link
    *
    * @param params.updatedIndex - the updated index of the link
-   * @param params.updatedbyId - the account updating the link
+   * @param params.actorId - the id of the account updating the link
    */
   async update(
     graphApi: GraphApi,
-    params: { updatedIndex: number; updatedById: string },
+    params: { updatedIndex: number; actorId: string },
   ) {
-    const { updatedIndex, updatedById } = params;
+    const { updatedIndex, actorId } = params;
 
     const { index: previousIndex, linkTypeModel } = this;
 
@@ -368,14 +375,14 @@ export default class {
       affectedSiblings.map((sibling) =>
         sibling.updateWithoutUpdatingSiblings(graphApi, {
           updatedIndex: sibling.index! + (isIncreasingIndex ? -1 : 1),
-          updatedById,
+          actorId,
         }),
       ),
     );
 
     return await this.updateWithoutUpdatingSiblings(graphApi, {
       updatedIndex,
-      updatedById,
+      actorId,
     });
   }
 
@@ -385,32 +392,30 @@ export default class {
    * @todo: deprecate this method when the Graph API handles updating the sibling indexes
    * @see https://app.asana.com/0/1200211978612931/1203031430417465/f
    *
-   * @param removedById - the id of the user removing the link
+   * @param actorId - the id of the account that is removing the link
    */
   async removeWithoutUpdatingSiblings(
     graphApi: GraphApi,
-    { removedById }: { removedById: string },
+    { actorId }: { actorId: string },
   ): Promise<void> {
     await graphApi.removeLink(this.sourceEntityModel.entityId, {
       linkTypeId: this.linkTypeModel.schema.$id,
       targetEntityId: this.targetEntityModel.entityId,
-      removedById,
+      actorId,
     });
   }
 
   /**
    * Remove the link.
    *
-   * @param removedbyId - the id of the user removing the link
+   * @param params.removedById - the id of the account that is removing the link
    */
-  async remove(
-    graphApi: GraphApi,
-    { removedById }: { removedById: string },
-  ): Promise<void> {
+  async remove(graphApi: GraphApi, params: { actorId: string }): Promise<void> {
+    const { actorId } = params;
     await graphApi.removeLink(this.sourceEntityModel.entityId, {
       linkTypeId: this.linkTypeModel.schema.$id,
       targetEntityId: this.targetEntityModel.entityId,
-      removedById,
+      actorId,
     });
 
     /**
@@ -448,7 +453,7 @@ export default class {
         affectedSiblings.map((sibling) =>
           sibling.updateWithoutUpdatingSiblings(graphApi, {
             updatedIndex: sibling.index! - 1,
-            updatedById: removedById,
+            actorId,
           }),
         ),
       );
