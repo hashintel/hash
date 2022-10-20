@@ -9,6 +9,7 @@ import { EditorView } from "prosemirror-view";
 import "prosemirror-view/style/prosemirror.css";
 import { FunctionComponent, useLayoutEffect, useRef } from "react";
 import { useLocalstorageState } from "rooks";
+import { SxProps } from "@mui/system";
 import { useCreateComment } from "../../components/hooks/useCreateComment";
 import { PageThread } from "../../components/hooks/usePageComments";
 import { useInitTypeSystem } from "../../lib/use-init-type-system";
@@ -164,18 +165,20 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
         <Box
           id="root"
           ref={root}
-          sx={{
-            /**
-             * to handle margin-clicking, prosemirror should take full width, and give padding to it's content
-             * so it automatically handles focusing on closest node on margin-clicking
-             */
-            ".ProseMirror": [
-              getPageSectionContainerStyles(pageComments),
-              { paddingTop: 0, paddingBottom: "320px" },
-            ],
-            // prevents blue outline on selected nodes
-            ".ProseMirror-selectednode": { outline: "none" },
-          }}
+          sx={
+            {
+              /**
+               * to handle margin-clicking, prosemirror should take full width, and give padding to it's content
+               * so it automatically handles focusing on closest node on margin-clicking
+               */
+              ".ProseMirror": [
+                getPageSectionContainerStyles(pageComments),
+                { paddingTop: 0, paddingBottom: "320px" },
+              ],
+              // prevents blue outline on selected nodes
+              ".ProseMirror-selectednode": { outline: "none" },
+            } as SxProps
+          }
         />
         {portals}
         {/**
