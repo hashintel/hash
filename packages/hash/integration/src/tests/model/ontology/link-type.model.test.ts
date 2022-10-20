@@ -3,7 +3,7 @@ import { createGraphClient } from "@hashintel/hash-api/src/graph";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
 import { LinkType } from "@hashintel/hash-graph-client/";
-import { LinkTypeModel } from "@hashintel/hash-api/src/model";
+import { LinkTypeModel, UserModel } from "@hashintel/hash-api/src/model";
 import { createTestUser } from "../../util";
 
 jest.setTimeout(60000);
@@ -22,7 +22,9 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-let ownedById: string;
+let testUser: UserModel;
+let testUser2: UserModel;
+
 const linkTypeSchema: Omit<LinkType, "$id"> = {
   kind: "linkType",
   title: "A link",
@@ -31,9 +33,8 @@ const linkTypeSchema: Omit<LinkType, "$id"> = {
 };
 
 beforeAll(async () => {
-  const testUser = await createTestUser(graphApi, "link-type-test", logger);
-
-  ownedById = testUser.entityId;
+  testUser = await createTestUser(graphApi, "link-type-test-1", logger);
+  testUser2 = await createTestUser(graphApi, "link-type-test-2", logger);
 });
 
 describe("Link type CRU", () => {
@@ -42,8 +43,9 @@ describe("Link type CRU", () => {
 
   it("can create a link type", async () => {
     createdLinkTypeModel = await LinkTypeModel.create(graphApi, {
-      ownedById,
+      ownedById: testUser.entityId,
       schema: linkTypeSchema,
+      actorId: testUser.entityId,
     });
   });
 
@@ -58,14 +60,21 @@ describe("Link type CRU", () => {
   const updatedTitle = "A new link!";
 
   it("can update a link type", async () => {
+    expect(createdLinkTypeModel.createdById).toBe(testUser.entityId);
+    expect(createdLinkTypeModel.updatedById).toBe(testUser.entityId);
+
     updatedLinkTypeModel = await createdLinkTypeModel
       .update(graphApi, {
         schema: {
           ...linkTypeSchema,
           title: updatedTitle,
         },
+        actorId: testUser2.entityId,
       })
       .catch((err) => Promise.reject(err.data));
+
+    expect(updatedLinkTypeModel.createdById).toBe(testUser.entityId);
+    expect(updatedLinkTypeModel.updatedById).toBe(testUser2.entityId);
   });
 
   it("can read all latest link types", async () => {

@@ -5,7 +5,7 @@ use tokio_postgres::{GenericClient, RowStream};
 use type_system::uri::{BaseUri, VersionedUri};
 
 use crate::{
-    knowledge::{Entity, EntityId, PersistedEntity},
+    knowledge::{Entity, EntityId, PersistedEntity, PersistedEntityIdentifier},
     ontology::AccountId,
     store::{postgres::parameter_list, AsClient, QueryError},
 };
@@ -15,7 +15,10 @@ pub struct EntityRecord {
     pub id: EntityId,
     pub version: DateTime<Utc>,
     pub entity_type_id: VersionedUri,
-    pub account_id: AccountId, // TODO - rename to owned_by_id
+    pub owned_by_id: AccountId,
+    pub created_by_id: AccountId,
+    pub updated_by_id: AccountId,
+    pub removed_by_id: Option<AccountId>,
     pub is_latest: bool,
 }
 
@@ -23,10 +26,11 @@ impl From<EntityRecord> for PersistedEntity {
     fn from(record: EntityRecord) -> Self {
         Self::new(
             record.entity,
-            record.id,
-            record.version,
+            PersistedEntityIdentifier::new(record.id, record.version, record.owned_by_id),
             record.entity_type_id,
-            record.account_id,
+            record.created_by_id,
+            record.updated_by_id,
+            record.removed_by_id,
         )
     }
 }
@@ -47,8 +51,11 @@ fn row_stream_to_record_stream(
                 BaseUri::new(row.get(3)).expect("invalid BaseUri"),
                 row.get::<_, i64>(4) as u32,
             ),
-            account_id: row.get(5),
-            is_latest: row.get(6),
+            owned_by_id: row.get(5),
+            created_by_id: row.get(6),
+            updated_by_id: row.get(7),
+            removed_by_id: row.get(8),
+            is_latest: row.get(9),
         })
     })
 }
@@ -58,7 +65,7 @@ pub async fn read_all_entities(client: &impl AsClient) -> Result<RecordStream, Q
         .as_client()
         .query_raw(
             r#"
-            SELECT properties, entity_id, entities.version, type_ids.base_uri, type_ids.version, owned_by_id, MAX(entities.version) OVER (PARTITION by entity_id) = entities.version as latest
+            SELECT properties, entity_id, entities.version, type_ids.base_uri, type_ids.version, owned_by_id, created_by_id, updated_by_id, removed_by_id, MAX(entities.version) OVER (PARTITION by entity_id) = entities.version as latest
             FROM entities
             INNER JOIN type_ids
             ON type_ids.version_id = entities.entity_type_version_id
@@ -80,7 +87,7 @@ pub async fn read_latest_entity_by_id(
         .as_client()
         .query_one(
             r#"
-            SELECT properties, entity_id, entities.version, type_ids.base_uri, type_ids.version, owned_by_id
+            SELECT properties, entity_id, entities.version, type_ids.base_uri, type_ids.version, owned_by_id, created_by_id, updated_by_id, removed_by_id
             FROM entities
             INNER JOIN type_ids ON type_ids.version_id = entities.entity_type_version_id
             WHERE entity_id = $1 AND entities.version = (
@@ -103,7 +110,10 @@ pub async fn read_latest_entity_by_id(
             BaseUri::new(row.get(3)).expect("invalid BaseUri"),
             row.get::<_, i64>(4) as u32,
         ),
-        account_id: row.get(5),
+        owned_by_id: row.get(5),
+        created_by_id: row.get(6),
+        updated_by_id: row.get(7),
+        removed_by_id: row.get(8),
         is_latest: true,
     })
 }

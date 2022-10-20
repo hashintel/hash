@@ -13,7 +13,7 @@ use std::{
 };
 
 use async_trait::async_trait;
-use error_stack::{IntoReport, Report, Result, ResultExt};
+use error_stack::{Context, IntoReport, Report, Result, ResultExt};
 use postgres_types::ToSql;
 #[cfg(feature = "__internal_bench")]
 use tokio_postgres::{binary_copy::BinaryCopyInWriter, types::Type};
@@ -24,6 +24,7 @@ use type_system::{
 };
 use uuid::Uuid;
 
+use self::context::{OntologyRecord, PostgresContext};
 pub use self::{
     ontology::PersistedOntologyType,
     pool::{AsClient, PostgresStorePool},
@@ -600,6 +601,7 @@ where
         &self,
         database_type: T,
         owned_by_id: AccountId,
+        created_by_id: AccountId,
     ) -> Result<(VersionId, PersistedOntologyMetadata), InsertionError>
     where
         T: OntologyDatabaseType + Send + Sync + Into<serde_json::Value>,
@@ -632,12 +634,23 @@ where
         self.insert_version_id(version_id).await?;
         self.insert_uri(&uri, version_id).await?;
 
-        self.insert_with_id(version_id, database_type, owned_by_id)
-            .await?;
+        self.insert_with_id(
+            version_id,
+            database_type,
+            owned_by_id,
+            created_by_id,
+            created_by_id,
+        )
+        .await?;
 
         Ok((
             version_id,
-            PersistedOntologyMetadata::new(PersistedOntologyIdentifier::new(uri, owned_by_id)),
+            PersistedOntologyMetadata::new(
+                PersistedOntologyIdentifier::new(uri, owned_by_id),
+                created_by_id,
+                created_by_id,
+                None,
+            ),
         ))
     }
 
@@ -654,10 +667,14 @@ where
     async fn update<T>(
         &self,
         database_type: T,
-        updated_by: AccountId,
+        updated_by_id: AccountId,
     ) -> Result<(VersionId, PersistedOntologyMetadata), UpdateError>
     where
-        T: OntologyDatabaseType + Send + Sync + Into<serde_json::Value>,
+        T: OntologyDatabaseType
+            + Send
+            + Sync
+            + Into<serde_json::Value>
+            + TryFrom<serde_json::Value, Error: Context>,
     {
         let uri = database_type.versioned_uri().clone();
 
@@ -671,6 +688,19 @@ where
                 .change_context(UpdateError));
         }
 
+        let base_uri = uri.base_uri();
+
+        let previous_ontology_type = self
+            .read_latest_ontology_type::<T>(base_uri)
+            .await
+            .change_context(UpdateError)?;
+
+        let OntologyRecord {
+            owned_by_id,
+            created_by_id,
+            ..
+        } = previous_ontology_type;
+
         let version_id = VersionId::new(Uuid::new_v4());
         self.insert_version_id(version_id)
             .await
@@ -678,13 +708,24 @@ where
         self.insert_uri(&uri, version_id)
             .await
             .change_context(UpdateError)?;
-        self.insert_with_id(version_id, database_type, updated_by)
-            .await
-            .change_context(UpdateError)?;
+        self.insert_with_id(
+            version_id,
+            database_type,
+            owned_by_id,
+            created_by_id,
+            updated_by_id,
+        )
+        .await
+        .change_context(UpdateError)?;
 
         Ok((
             version_id,
-            PersistedOntologyMetadata::new(PersistedOntologyIdentifier::new(uri, updated_by)),
+            PersistedOntologyMetadata::new(
+                PersistedOntologyIdentifier::new(uri, owned_by_id),
+                created_by_id,
+                updated_by_id,
+                None,
+            ),
         ))
     }
 
@@ -699,6 +740,8 @@ where
         version_id: VersionId,
         database_type: T,
         owned_by_id: AccountId,
+        created_by_id: AccountId,
+        updated_by_id: AccountId,
     ) -> Result<(), InsertionError>
     where
         T: OntologyDatabaseType + Send + Sync + Into<serde_json::Value>,
@@ -711,13 +754,13 @@ where
             .query_one(
                 &format!(
                     r#"
-                        INSERT INTO {} (version_id, schema, owned_by_id)
-                        VALUES ($1, $2, $3)
+                        INSERT INTO {} (version_id, schema, owned_by_id, created_by_id, updated_by_id)
+                        VALUES ($1, $2, $3, $4, $5)
                         RETURNING version_id;
                     "#,
                     T::table()
                 ),
-                &[&version_id, &value, &owned_by_id],
+                &[&version_id, &value, &owned_by_id, &created_by_id, &updated_by_id],
             )
             .await
             .into_report()
@@ -917,7 +960,9 @@ where
         entity_id: EntityId,
         entity: Entity,
         entity_type_id: VersionedUri,
-        account_id: AccountId,
+        owned_by_id: AccountId,
+        created_by_id: AccountId,
+        updated_by_id: AccountId,
     ) -> Result<PersistedEntityMetadata, InsertionError> {
         let entity_type_version_id = self
             .version_id_by_uri(&entity_type_id)
@@ -932,19 +977,22 @@ where
             .change_context(InsertionError)?;
         let version = self.as_client().query_one(
                 r#"
-                    INSERT INTO entities (entity_id, version, entity_type_version_id, properties, owned_by_id)
-                    VALUES ($1, clock_timestamp(), $2, $3, $4)
+                    INSERT INTO entities (entity_id, version, entity_type_version_id, properties, owned_by_id, created_by_id, updated_by_id)
+                    VALUES ($1, clock_timestamp(), $2, $3, $4, $5, $6)
                     RETURNING version;
                 "#,
-                &[&entity_id, &entity_type_version_id, &value, &account_id]
+                &[&entity_id, &entity_type_version_id, &value, &owned_by_id, &created_by_id, &updated_by_id]
             )
             .await
             .into_report()
             .change_context(InsertionError)?.get(0);
 
         Ok(PersistedEntityMetadata::new(
-            PersistedEntityIdentifier::new(entity_id, version, account_id),
+            PersistedEntityIdentifier::new(entity_id, version, owned_by_id),
             entity_type_id,
+            created_by_id,
+            updated_by_id,
+            None,
         ))
     }
 
@@ -980,7 +1028,12 @@ where
     /// - if the [`Link`] exists already
     /// - if the [`Link`]s link type doesn't exist
     /// - if inserting the link failed.
-    async fn insert_link(&self, link: &Link, owned_by_id: AccountId) -> Result<(), InsertionError> {
+    async fn insert_link(
+        &self,
+        link: &Link,
+        owned_by_id: AccountId,
+        created_by_id: AccountId,
+    ) -> Result<(), InsertionError> {
         let link_type_version_id = self
             .version_id_by_uri(link.link_type_id())
             .await
@@ -993,11 +1046,11 @@ where
             //   consumer of the API.
             //   https://app.asana.com/0/1202805690238892/1202937382769278/f
             r#"
-            INSERT INTO links (source_entity_id, target_entity_id, link_type_version_id, owned_by_id, link_index, created_at)
-            VALUES ($1, $2, $3, $4, $5, clock_timestamp())
+            INSERT INTO links (source_entity_id, target_entity_id, link_type_version_id, owned_by_id, link_index, created_by_id, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, clock_timestamp())
             RETURNING source_entity_id, target_entity_id, link_type_version_id;
             "#,
-            &[&link.source_entity(), &link.target_entity(), &link_type_version_id, &owned_by_id, &link.index()],
+            &[&link.source_entity(), &link.target_entity(), &link_type_version_id, &owned_by_id, &link.index(), &created_by_id],
         )
         .await
         .into_report()
@@ -1039,10 +1092,10 @@ where
                         AND target_entity_id = $2
                         AND link_type_version_id = $3
                     RETURNING source_entity_id, target_entity_id, link_type_version_id,
-                    link_index, owned_by_id, created_at
+                    link_index, owned_by_id, created_by_id, created_at
                 )
                 INSERT INTO link_histories(source_entity_id, target_entity_id, link_type_version_id,
-                    link_index, owned_by_id, created_at, removed_by_id, removed_at)
+                    link_index, owned_by_id, created_by_id, created_at, removed_by_id, removed_at)
                 -- When inserting into `link_histories`, `removed_by_id` and `removed_at` are provided
                 SELECT *, $4, clock_timestamp() FROM removed
                 RETURNING source_entity_id, target_entity_id, link_type_version_id;

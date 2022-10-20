@@ -8,6 +8,7 @@ import {
   adminKratosSdk,
   createKratosIdentity,
 } from "@hashintel/hash-api/src/auth/ory-kratos";
+import { workspaceAccountId } from "@hashintel/hash-api/src/model/util";
 import { generateRandomShortname } from "../../util";
 
 jest.setTimeout(60000);
@@ -49,6 +50,7 @@ describe("User model class", () => {
     createdUser = await UserModel.createUser(graphApi, {
       emails: ["alice@example.com"],
       kratosIdentityId,
+      actorId: workspaceAccountId,
     });
   });
 
@@ -57,6 +59,7 @@ describe("User model class", () => {
       UserModel.createUser(graphApi, {
         emails: ["bob@example.com"],
         kratosIdentityId,
+        actorId: workspaceAccountId,
       }),
     ).rejects.toThrowError(`"${kratosIdentityId}" already exists.`);
   });
@@ -68,12 +71,14 @@ describe("User model class", () => {
   it("can update the shortname of a user", async () => {
     createdUser = await createdUser.updateShortname(graphApi, {
       updatedShortname: shortname,
+      actorId: createdUser.entityId,
     });
   });
 
   it("can update the preferred name of a user", async () => {
     createdUser = await createdUser.updatePreferredName(graphApi, {
       updatedPreferredName: "Alice",
+      actorId: createdUser.entityId,
     });
   });
 
@@ -104,6 +109,7 @@ describe("User model class", () => {
       providedInfo: {
         orgSize: OrgSize.ElevenToFifty,
       },
+      actorId: workspaceAccountId,
     });
 
     const { entityId: orgEntityId } = testOrg;
@@ -115,6 +121,7 @@ describe("User model class", () => {
     await createdUser.joinOrg(graphApi, {
       org: testOrg,
       responsibility: "developer",
+      actorId: workspaceAccountId,
     });
 
     expect(await createdUser.isMemberOfOrg(graphApi, { orgEntityId })).toBe(

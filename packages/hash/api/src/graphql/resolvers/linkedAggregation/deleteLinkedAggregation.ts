@@ -11,7 +11,7 @@ export const deleteLinkedAggregation: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationDeleteLinkedAggregationArgs
-> = async (_, { sourceAccountId, aggregationId }, { dataSources, user }) =>
+> = async (_, { sourceAccountId, aggregationId }, { dataSources, userModel }) =>
   dataSources.db.transaction(async (client) => {
     const aggregation = await Aggregation.getAggregationById(client, {
       sourceAccountId,
@@ -23,7 +23,9 @@ export const deleteLinkedAggregation: ResolverFn<
       throw new ApolloError(msg, "NOT_FOUND");
     }
 
-    await aggregation.delete(client, { deletedByAccountId: user.entityId });
+    await aggregation.delete(client, {
+      deletedByAccountId: userModel.entityId,
+    });
 
     return true;
   });

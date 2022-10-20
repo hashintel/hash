@@ -42,7 +42,7 @@ export const propertyTypeTypedef = gql`
     """
     createPropertyType(
       """
-      The id of the owner of the property type. Defaults to the user calling the mutation.
+      The id of the account who owns the property type. Defaults to the user calling the mutation.
       """
       ownedById: ID
       propertyType: PropertyTypeWithoutId!
