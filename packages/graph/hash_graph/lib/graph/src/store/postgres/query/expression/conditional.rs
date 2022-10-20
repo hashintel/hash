@@ -35,7 +35,7 @@ impl Transpile for Function<'_> {
 /// A compiled expression in Postgres.
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Expression<'q> {
-    Asterix,
+    Asterisk,
     Column(Column<'q>),
     Parameter(usize),
     Function(Box<Function<'q>>),
