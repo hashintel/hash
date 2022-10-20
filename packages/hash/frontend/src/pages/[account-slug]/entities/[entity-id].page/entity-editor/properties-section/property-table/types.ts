@@ -14,11 +14,6 @@ export type EnrichedPropertyType = PropertyType & {
   dataTypes: string[];
 };
 
-export interface PropertyTableProps {
-  showSearch?: boolean;
-  onSearchClose?: () => void;
-}
-
 export interface PropertyColumn extends SizedGridColumn {
   id: keyof PropertyRow;
 }

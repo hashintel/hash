@@ -1,5 +1,4 @@
 import "@glideapps/glide-data-grid/dist/index.css";
-import { PropertyTableProps } from "./property-table/types";
 import { useRowData } from "./property-table/use-row-data";
 import { useGetCellContent } from "./property-table/use-get-cell-content";
 import { propertyGridColumns } from "./property-table/constants";
@@ -11,6 +10,11 @@ import {
   useDrawCell,
   useDrawHeader,
 } from "../../../../../../components/GlideGlid/utils";
+
+interface PropertyTableProps {
+  showSearch: boolean;
+  onSearchClose: () => void;
+}
 
 export const PropertyTable = ({
   showSearch,

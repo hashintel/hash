@@ -1,5 +1,8 @@
+import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon, IconButton } from "@hashintel/hash-design-system";
 import { Chip } from "@hashintel/hash-design-system/chip";
 import { Paper, Stack } from "@mui/material";
+import { useState } from "react";
 import { LinksIcon } from "../../../../../shared/icons";
 import { useEntityEditor } from "./entity-editor-context";
 import { LinkTable } from "./links-section/link-table";
@@ -17,6 +20,7 @@ different entities"
 
 export const LinksSection = () => {
   const { entity } = useEntityEditor();
+  const [showSearch, setShowSearch] = useState(false);
 
   if (!entity) {
     return null;
@@ -33,6 +37,15 @@ export const LinksSection = () => {
         ) : (
           <Stack direction="row" spacing={1.5}>
             <Chip size="xs" label={`${entity.links.length} links`} />
+            <Stack direction="row" spacing={0.5}>
+              <IconButton
+                rounded
+                onClick={() => setShowSearch(true)}
+                sx={{ color: ({ palette }) => palette.gray[60] }}
+              >
+                <FontAwesomeIcon icon={faMagnifyingGlass} />
+              </IconButton>
+            </Stack>
           </Stack>
         )
       }
@@ -41,7 +54,10 @@ export const LinksSection = () => {
         <EmptyState />
       ) : (
         <Paper sx={{ overflow: "hidden" }}>
-          <LinkTable />
+          <LinkTable
+            onSearchClose={() => setShowSearch(false)}
+            showSearch={showSearch}
+          />
         </Paper>
       )}
     </EntitySection>
