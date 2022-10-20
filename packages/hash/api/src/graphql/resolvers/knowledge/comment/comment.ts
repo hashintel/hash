@@ -18,7 +18,7 @@ export const createPersistedComment: ResolverFn<
 > = async (
   _,
   { parentEntityId, tokens },
-  { dataSources: { graphApi }, user },
+  { dataSources: { graphApi }, userModel },
 ) => {
   const parentModel = await EntityModel.getLatest(graphApi, {
     entityId: parentEntityId,
@@ -28,7 +28,8 @@ export const createPersistedComment: ResolverFn<
     tokens,
     ownedById: parentModel.ownedById,
     parent: parentModel,
-    author: user,
+    author: userModel,
+    actorId: userModel.entityId,
   });
 
   return mapCommentModelToGQL(commentModel);

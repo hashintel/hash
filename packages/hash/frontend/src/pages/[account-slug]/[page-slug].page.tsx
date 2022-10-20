@@ -23,11 +23,7 @@ import { useEffect, useMemo, useState, FunctionComponent, useRef } from "react";
 // import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
 // import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
 // import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
-import {
-  PageBlock,
-  PAGE_HORIZONTAL_PADDING_FORMULA,
-  PAGE_MIN_PADDING,
-} from "../../blocks/page/PageBlock";
+import { PageBlock } from "../../blocks/page/PageBlock";
 import { PageContextProvider } from "../../blocks/page/PageContext";
 import { PageTitle } from "../../blocks/page/PageTitle/PageTitle";
 import {

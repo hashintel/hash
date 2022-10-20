@@ -479,14 +479,17 @@ const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
 const resolvedAtPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.resolvedAt,
   possibleValues: [{ primitiveDataType: "text" }],
+  actorId: workspaceAccountId,
 });
 
 const hasTextLinkTypeInitializer = linkTypeInitializer({
   ...types.linkType.hasText,
+  actorId: workspaceAccountId,
 });
 
 const authorLinkTypeInitializer = linkTypeInitializer({
   ...types.linkType.author,
+  actorId: workspaceAccountId,
 });
 
 const commentEntityTypeInitializer = async (graphApi: GraphApi) => {
@@ -539,6 +542,7 @@ const commentEntityTypeInitializer = async (graphApi: GraphApi) => {
         required: true,
       },
     ],
+    actorId: workspaceAccountId,
   })(graphApi);
 };
 
