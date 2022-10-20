@@ -139,7 +139,7 @@ mod tests {
                 WHERE "type_ids_0_0"."version" = "type_ids_0_0"."latest_version"
                   AND ("type_ids_0_0"."base_uri" = $1) AND ("type_ids_0_0"."version" = $2)
                   AND "data_types"."schema"->>'description' IS NOT NULL
-                  AND (("data_types"."schema"->>'value' = $3) OR ("data_types"."schema"->>'value' = $4))"#
+                  AND (("data_types"."schema"->>$3 = $4) OR ("data_types"."schema"->>$5 = $6))"#
             )
         );
 
@@ -152,7 +152,9 @@ mod tests {
         assert_eq!(parameters, &[
             "\"https://blockprotocol.org/@blockprotocol/types/data-type/text/\"",
             "1.0",
+            "\"value\"",
             "\"something\"",
+            "\"value\"",
             "\"something_else\""
         ]);
     }

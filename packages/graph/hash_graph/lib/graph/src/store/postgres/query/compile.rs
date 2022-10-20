@@ -244,10 +244,21 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
         expression: &'f FilterExpression<'q, T>,
     ) -> Expression<'q> {
         match expression {
-            FilterExpression::Path(path) => Expression::Column(Column {
-                table: self.add_join_statements(path.tables()),
-                access: path.column_access(),
-            }),
+            FilterExpression::Path(path) => {
+                let access = if let Some(field) = path.user_provided_field() {
+                    self.artifacts.parameters.push(field);
+                    ColumnAccess::JsonParameter {
+                        column: path.column_access().column(),
+                        index: self.artifacts.parameters.len(),
+                    }
+                } else {
+                    path.column_access()
+                };
+                Expression::Column(Column {
+                    table: self.add_join_statements(path.tables()),
+                    access,
+                })
+            }
             FilterExpression::Parameter(parameter) => {
                 match parameter {
                     Parameter::Number(number) => self.artifacts.parameters.push(number),

@@ -261,8 +261,8 @@ mod tests {
                     Cow::Borrowed("right"),
                 ))),
             )]),
-            r#"("data_types"."schema"->>'left' = "data_types"."schema"->>'right')"#,
-            &[],
+            r#"("data_types"."schema"->>$1 = "data_types"."schema"->>$2)"#,
+            &[&"left", &"right"],
         );
     }
 }
