@@ -49,6 +49,10 @@ module.exports = withSentryConfig(
       eslint: { ignoreDuringBuilds: true },
       typescript: { ignoreBuildErrors: true },
 
+      sentry: {
+        autoInstrumentServerFunctions: false,
+      },
+
       webpack: (webpackConfig) => {
         webpackConfig.module.rules.push({
           test: /\.svg$/,
