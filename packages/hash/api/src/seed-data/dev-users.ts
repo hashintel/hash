@@ -33,7 +33,7 @@ export const ensureDevUsersAreSeeded = async ({
   graphApi: GraphApi;
   logger: Logger;
 }): Promise<UserModel[]> => {
-  const users = [];
+  const createdUsers = [];
 
   for (const { email, shortname, preferredName } of devUsers) {
     const maybeNewIdentity = await createKratosIdentity({
@@ -74,13 +74,13 @@ export const ensureDevUsersAreSeeded = async ({
         updatedPreferredName: preferredName,
       });
 
-      users.push(user);
+      createdUsers.push(user);
     }
 
     logger.info(
-      `Development user available, email = "${email}" password = "${devPassword}".`,
+      `Development User available, email = "${email}" password = "${devPassword}".`,
     );
   }
 
-  return users;
+  return createdUsers;
 };
