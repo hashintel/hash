@@ -17,7 +17,7 @@ const getDataTypesOfPropertyType = (
       const dataTypeId = propertyValue?.$ref;
       const persistedDataType = getPersistedDataType(
         entity.entityTypeRootedSubgraph,
-        mustBeVersionedUri(dataTypeId),
+        dataTypeId,
       );
 
       return persistedDataType ? persistedDataType.inner.title : "undefined";
