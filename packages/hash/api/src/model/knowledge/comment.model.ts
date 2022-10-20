@@ -49,7 +49,7 @@ export default class extends EntityModel {
   }
 
   /**
-   * Create a workspace block entity.
+   * Create a workspace comment entity.
    *
    * @param params.author - the user that created the comment
    * @param params.parent - the linked parent entity
@@ -102,6 +102,32 @@ export default class extends EntityModel {
     });
 
     return CommentModel.fromEntityModel(entity);
+  }
+
+  /**
+   * Edit the text content of a comment.
+   *
+   * @param params.actorId - id of the user that edited the comment
+   * @param params.tokens - the new text tokens that describe the comment's text
+   */
+  async updateText(
+    graphApi: GraphApi,
+    params: {
+      actorId: string;
+      tokens: TextToken[];
+    },
+  ): Promise<CommentModel> {
+    const { actorId, tokens } = params;
+
+    const textEntityModel = await this.getHasText(graphApi);
+
+    await textEntityModel.updateProperty(graphApi, {
+      propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.tokens.baseUri,
+      value: tokens,
+      actorId,
+    });
+
+    return CommentModel.fromEntityModel(this);
   }
 
   /**

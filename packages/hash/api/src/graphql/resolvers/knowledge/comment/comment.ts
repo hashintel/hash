@@ -2,7 +2,6 @@ import { CommentModel, EntityModel } from "../../../../model";
 
 import {
   MutationCreatePersistedCommentArgs,
-  MutationEditPersistedCommentArgs,
   ResolverFn,
 } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
@@ -31,20 +30,6 @@ export const createPersistedComment: ResolverFn<
     parent: parentModel,
     author: userModel,
     actorId: userModel.entityId,
-  });
-
-  return mapCommentModelToGQL(commentModel);
-};
-
-export const editPersistedComment: ResolverFn<
-  Promise<UnresolvedPersistedCommentGQL>,
-  {},
-  LoggedInGraphQLContext,
-  MutationEditPersistedCommentArgs
-> = async (_, { entityId, tokens }, { dataSources: { graphApi }, user }) => {
-  const commentModel = await CommentModel.editComment(graphApi, {
-    entityId,
-    tokens,
   });
 
   return mapCommentModelToGQL(commentModel);

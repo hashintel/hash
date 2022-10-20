@@ -87,7 +87,7 @@ export const persistedCommentTypedef = gql`
     """
     Edit an existing comment
     """
-    editPersistedComment(
+    updatePersistedCommentText(
       """
       Id of the comment being edited
       """
