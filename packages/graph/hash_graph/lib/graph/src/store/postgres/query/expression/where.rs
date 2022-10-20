@@ -112,6 +112,35 @@ mod tests {
             )
         );
 
+        let filter_d = Filter::<DataType>::Any(vec![
+            Filter::Equal(
+                Some(FilterExpression::Path(DataTypeQueryPath::Custom(
+                    Cow::Borrowed("value"),
+                ))),
+                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                    "something",
+                )))),
+            ),
+            Filter::Equal(
+                Some(FilterExpression::Path(DataTypeQueryPath::Custom(
+                    Cow::Borrowed("value"),
+                ))),
+                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                    "something_else",
+                )))),
+            ),
+        ]);
+        where_clause.add_condition(Condition::from_filter(&filter_d, &mut parameters, None));
+        assert_eq!(
+            trim_whitespace(transpile(&where_clause)),
+            trim_whitespace(
+                r#"
+                WHERE "type_ids"."version" = $1
+                  AND ("type_ids"."base_uri" = $2) AND ("type_ids"."version" = $3)
+                  AND "data_types"."schema"->>'description' IS NOT NULL
+                  AND (("data_types"."schema"->>'value' = $4) OR ("data_types"."schema"->>'value' = $5))"#
+            )
+        );
         let parameters = parameters
             .iter()
             .map(|parameter| format!("{parameter:?}"))
@@ -119,7 +148,9 @@ mod tests {
         assert_eq!(parameters, &[
             "\"latest\"",
             "\"https://blockprotocol.org/@blockprotocol/types/data-type/text/\"",
-            "1.0"
+            "1.0",
+            "\"something\"",
+            "\"something_else\""
         ]);
     }
 }
