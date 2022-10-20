@@ -171,7 +171,7 @@ export type AggregateLinkTypesRequest = {};
 export type AggregateLinkTypesMessageCallback = MessageCallback<
   AggregateLinkTypesRequest,
   null,
-  AggregateResult<LinkTypeResponse>,
+  Subgraph,
   ReadOrModifyResourceError
 >;
 
@@ -179,7 +179,7 @@ export type GetLinkTypeRequest = Pick<LinkTypeResponse, "linkTypeId">;
 export type GetLinkTypeMessageCallback = MessageCallback<
   GetLinkTypeRequest,
   null,
-  LinkTypeResponse,
+  Subgraph,
   ReadOrModifyResourceError
 >;
 
