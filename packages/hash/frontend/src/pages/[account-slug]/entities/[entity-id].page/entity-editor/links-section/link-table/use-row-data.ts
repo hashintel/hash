@@ -35,7 +35,9 @@ export const useRowData = () => {
     );
   }, [entity]);
 
-  const sortedRowData = sortRowData(rowData, linkSort);
+  const sortedRowData = useMemo(() => {
+    return sortRowData(rowData, linkSort);
+  }, [rowData, linkSort]);
 
   return sortedRowData;
 };

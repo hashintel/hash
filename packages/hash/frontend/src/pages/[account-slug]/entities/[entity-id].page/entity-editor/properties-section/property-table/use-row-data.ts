@@ -21,7 +21,9 @@ export const useRowData = () => {
     );
   }, [entity]);
 
-  const sortedRowData = sortRowData(rowData, propertySort);
+  const sortedRowData = useMemo(() => {
+    return sortRowData(rowData, propertySort);
+  }, [rowData, propertySort]);
 
   return sortedRowData;
 };
