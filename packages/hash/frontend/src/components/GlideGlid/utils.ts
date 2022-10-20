@@ -70,7 +70,7 @@ export const useDrawHeader = <T extends TableRow>(
 
       // draw sort indicator
       if (isSorted) {
-        const titleWidth = column.title.length * 7.5;
+        const titleWidth = ctx.measureText(column.title).width;
         const indicatorX = x + paddingLeft + titleWidth + 6;
         const indicatorY = centerY;
 
