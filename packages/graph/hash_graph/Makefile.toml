@@ -18,6 +18,7 @@ run_task = [
     { name = ["test-task"] }
 ]
 
+
 [tasks.miri]
 clear = true
 command = "echo"
