@@ -144,6 +144,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
               <Box
                 sx={{
                   position: "absolute",
+                  top: 16,
                   left: "calc(100% + 48px)",
                   zIndex: 1,
                 }}
