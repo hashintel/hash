@@ -18,15 +18,15 @@ use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, AccountId, EntityTypeRootedSubgraph, PersistedEntityType,
-        PersistedOntologyIdentifier, PersistedOntologyMetadata,
+        patch_id_and_parse, AccountId, PersistedEntityType, PersistedOntologyIdentifier,
+        PersistedOntologyMetadata,
     },
     store::{
         error::{BaseUriAlreadyExists, BaseUriDoesNotExist},
         query::Expression,
         EntityTypeStore, StorePool,
     },
-    subgraph::StructuralQuery,
+    subgraph::{StructuralQuery, Subgraph},
 };
 
 #[derive(OpenApi)]
@@ -47,7 +47,7 @@ use crate::{
             PersistedOntologyMetadata,
             PersistedEntityType,
             StructuralQuery,
-            EntityTypeRootedSubgraph,
+            Subgraph,
         )
     ),
     tags(
@@ -80,7 +80,8 @@ impl RoutedResource for EntityTypeResource {
 struct CreateEntityTypeRequest {
     #[schema(value_type = VAR_ENTITY_TYPE)]
     schema: serde_json::Value,
-    account_id: AccountId,
+    owned_by_id: AccountId,
+    actor_id: AccountId,
 }
 
 #[utoipa::path(
@@ -102,7 +103,11 @@ async fn create_entity_type<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
 ) -> Result<Json<PersistedOntologyMetadata>, StatusCode> {
-    let Json(CreateEntityTypeRequest { schema, account_id }) = body;
+    let Json(CreateEntityTypeRequest {
+        schema,
+        owned_by_id,
+        actor_id,
+    }) = body;
 
     let entity_type: EntityType = schema.try_into().into_report().map_err(|report| {
         tracing::error!(error=?report, "Couldn't convert schema to Entity Type");
@@ -123,7 +128,7 @@ async fn create_entity_type<P: StorePool + Send>(
     })?;
 
     store
-        .create_entity_type(entity_type, account_id)
+        .create_entity_type(entity_type, owned_by_id, actor_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create entity type");
@@ -144,7 +149,7 @@ async fn create_entity_type<P: StorePool + Send>(
     request_body = StructuralQuery,
     tag = "EntityType",
     responses(
-        (status = 200, content_type = "application/json", body = [EntityTypeRootedSubgraph], description = "A list of subgraphs rooted at entity types that satisfy the given query, each resolved to the requested depth."),
+        (status = 200, content_type = "application/json", body = Subgraph, description = "A subgraph rooted at entity types that satisfy the given query, each resolved to the requested depth."),
 
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
@@ -153,7 +158,7 @@ async fn create_entity_type<P: StorePool + Send>(
 async fn get_entity_types_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     Json(query): Json<StructuralQuery>,
-) -> Result<Json<Vec<EntityTypeRootedSubgraph>>, StatusCode> {
+) -> Result<Json<Subgraph>, StatusCode> {
     pool.acquire()
         .map_err(|error| {
             tracing::error!(?error, "Could not acquire access to the store");
@@ -222,7 +227,7 @@ struct UpdateEntityTypeRequest {
     schema: serde_json::Value,
     #[schema(value_type = String)]
     type_to_update: VersionedUri,
-    account_id: AccountId,
+    actor_id: AccountId,
 }
 
 #[utoipa::path(
@@ -245,7 +250,7 @@ async fn update_entity_type<P: StorePool + Send>(
     let Json(UpdateEntityTypeRequest {
         schema,
         type_to_update,
-        account_id,
+        actor_id,
     }) = body;
 
     let new_type_id = VersionedUri::new(
@@ -267,7 +272,7 @@ async fn update_entity_type<P: StorePool + Send>(
     })?;
 
     store
-        .update_entity_type(entity_type, account_id)
+        .update_entity_type(entity_type, actor_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update entity type");

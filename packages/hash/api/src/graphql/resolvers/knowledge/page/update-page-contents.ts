@@ -41,7 +41,7 @@ export const updatePersistedPageContents: ResolverFn<
 > = async (
   _,
   { ownedById, entityId: pageEntityId, actions },
-  { dataSources, user: userModel },
+  { dataSources, userModel },
 ) => {
   for (const [i, action] of actions.entries()) {
     if (
@@ -141,17 +141,18 @@ export const updatePersistedPageContents: ResolverFn<
           block: insertedBlocks[insertCount]!,
           position: action.insertBlock.position,
           updateSiblings: false,
+          actorId: userModel.entityId,
         });
         insertCount += 1;
       } else if (action.moveBlock) {
         await pageModel.moveBlock(graphApi, {
           ...action.moveBlock,
-          movedById: userModel.entityId,
+          actorId: userModel.entityId,
         });
       } else if (action.removeBlock) {
         await pageModel.removeBlock(graphApi, {
           position: action.removeBlock.position,
-          removedById: userModel.entityId,
+          actorId: userModel.entityId,
           allowRemovingFinal: actions
             .slice(i + 1)
             .some((actionToFollow) => actionToFollow.insertBlock),

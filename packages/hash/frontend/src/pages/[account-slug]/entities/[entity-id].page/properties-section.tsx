@@ -38,7 +38,6 @@ export const PropertiesSection = () => {
     >
       <Paper sx={{ overflow: "hidden" }}>
         <PropertyTable
-          entity={entity}
           onSearchClose={() => setShowSearch(false)}
           showSearch={showSearch}
         />

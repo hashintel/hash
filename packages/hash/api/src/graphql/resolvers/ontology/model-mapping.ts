@@ -5,28 +5,16 @@ import {
 } from "@hashintel/hash-shared/graphql/types";
 import { EntityType, PropertyType } from "@blockprotocol/type-system-web";
 import {
-  DataTypeModel,
   EntityTypeModel,
   LinkTypeModel,
   PropertyTypeModel,
 } from "../../../model";
 import {
-  PersistedDataType as PersistedDataTypeGql,
   PersistedEntityType as PersistedEntityTypeGql,
   PersistedLinkType as PersistedLinkTypeGql,
   PersistedPropertyType as PersistedPropertyTypeGql,
-  EntityTypeRootedSubgraph as EntityTypeRootedSubgraphGql,
   Subgraph as SubgraphGql,
 } from "../../apiTypes.gen";
-
-export const mapDataTypeModelToGQL = (
-  dataType: DataTypeModel,
-): PersistedDataTypeGql => ({
-  ownedById: dataType.ownedById,
-  accountId: dataType.ownedById,
-  dataTypeId: dataType.schema.$id,
-  dataType: dataType.schema,
-});
 
 export const mapPropertyTypeModelToGQL = (
   propertyType: PropertyTypeModel,
@@ -55,27 +43,6 @@ export const mapEntityTypeModelToGQL = (
   entityType: entityType.schema,
 });
 
-export const mapEntityTypeRootedSubgraphToGQL = (params: {
-  entityType: EntityTypeModel;
-  referencedDataTypes: DataTypeModel[];
-  referencedPropertyTypes: PropertyTypeModel[];
-  referencedLinkTypes: LinkTypeModel[];
-  referencedEntityTypes: EntityTypeModel[];
-}): EntityTypeRootedSubgraphGql => ({
-  ownedById: params.entityType.ownedById,
-  accountId: params.entityType.ownedById,
-  entityTypeId: params.entityType.schema.$id,
-  entityType: params.entityType.schema,
-  referencedDataTypes: params.referencedDataTypes.map(mapDataTypeModelToGQL),
-  referencedPropertyTypes: params.referencedPropertyTypes.map(
-    mapPropertyTypeModelToGQL,
-  ),
-  referencedLinkTypes: params.referencedLinkTypes.map(mapLinkTypeModelToGQL),
-  referencedEntityTypes: params.referencedEntityTypes.map(
-    mapEntityTypeModelToGQL,
-  ),
-});
-
 /**
  * @todo and a warning, this mapping function is here to compensate for
  *   the differences between the Graph API package and the
@@ -94,7 +61,10 @@ export const mapSubgraphToGql = (subgraph: Subgraph): SubgraphGql => {
       Object.entries(subgraph.vertices).map(([identifier, vertex]) => {
         switch (vertex.kind) {
           // These types are compatible with the Type System package's types
-          case "dataType" || "linkType" || "entity" || "link": {
+          case "dataType":
+          case "linkType":
+          case "entity":
+          case "link": {
             return [identifier, vertex];
           }
           // The OpenAPI spec currently incorrectly expresses these
@@ -118,14 +88,9 @@ export const mapSubgraphToGql = (subgraph: Subgraph): SubgraphGql => {
             };
             return [identifier, entityTypeVertex];
           }
-          // TypeScript is failing to recognize this is unreachable (due to the combined initial case) and therefore
-          // thinks the function can return undefined without it
-          default: {
-            throw new Error(
-              `this should be unreachable, unknown vertex kind: ${vertex.kind}`,
-            );
-          }
         }
+
+        throw new Error(`unknown vertex kind: ${JSON.stringify(vertex)}`);
       }),
     ),
   };

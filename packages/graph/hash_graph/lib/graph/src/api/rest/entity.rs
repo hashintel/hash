@@ -81,8 +81,9 @@ struct CreateEntityRequest {
     entity: Entity,
     #[schema(value_type = String)]
     entity_type_id: VersionedUri,
-    account_id: AccountId,
+    owned_by_id: AccountId,
     entity_id: Option<EntityId>,
+    actor_id: AccountId,
 }
 
 #[utoipa::path(
@@ -106,8 +107,9 @@ async fn create_entity<P: StorePool + Send>(
     let Json(CreateEntityRequest {
         entity,
         entity_type_id,
-        account_id,
+        owned_by_id,
         entity_id,
+        actor_id,
     }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -116,7 +118,7 @@ async fn create_entity<P: StorePool + Send>(
     })?;
 
     store
-        .create_entity(entity, entity_type_id, account_id, entity_id)
+        .create_entity(entity, entity_type_id, owned_by_id, entity_id, actor_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create entity");
@@ -208,7 +210,7 @@ struct UpdateEntityRequest {
     entity_id: EntityId,
     #[schema(value_type = String)]
     entity_type_id: VersionedUri,
-    account_id: AccountId,
+    actor_id: AccountId,
 }
 
 #[utoipa::path(
@@ -232,7 +234,7 @@ async fn update_entity<P: StorePool + Send>(
         entity,
         entity_id,
         entity_type_id,
-        account_id,
+        actor_id,
     }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -241,7 +243,7 @@ async fn update_entity<P: StorePool + Send>(
     })?;
 
     store
-        .update_entity(entity_id, entity, entity_type_id, account_id)
+        .update_entity(entity_id, entity, entity_type_id, actor_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update entity");

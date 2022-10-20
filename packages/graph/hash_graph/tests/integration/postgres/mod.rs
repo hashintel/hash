@@ -101,6 +101,7 @@ impl DatabaseTestWrapper {
                 .create_data_type(
                     DataType::from_str(data_type).expect("could not parse data type"),
                     account_id,
+                    account_id,
                 )
                 .await?;
         }
@@ -109,6 +110,7 @@ impl DatabaseTestWrapper {
             store
                 .create_property_type(
                     PropertyType::from_str(property_type).expect("could not parse property type"),
+                    account_id,
                     account_id,
                 )
                 .await?;
@@ -120,6 +122,7 @@ impl DatabaseTestWrapper {
                 .create_link_type(
                     LinkType::from_str(link_type).expect("could not parse link type"),
                     account_id,
+                    account_id,
                 )
                 .await?;
         }
@@ -128,6 +131,7 @@ impl DatabaseTestWrapper {
             store
                 .create_entity_type(
                     EntityType::from_str(entity_type).expect("could not parse entity type"),
+                    account_id,
                     account_id,
                 )
                 .await?;
@@ -144,7 +148,7 @@ impl DatabaseApi<'_> {
         data_type: DataType,
     ) -> Result<PersistedOntologyMetadata, InsertionError> {
         self.store
-            .create_data_type(data_type, self.account_id)
+            .create_data_type(data_type, self.account_id, self.account_id)
             .await
     }
 
@@ -183,7 +187,7 @@ impl DatabaseApi<'_> {
         property_type: PropertyType,
     ) -> Result<PersistedOntologyMetadata, InsertionError> {
         self.store
-            .create_property_type(property_type, self.account_id)
+            .create_property_type(property_type, self.account_id, self.account_id)
             .await
     }
 
@@ -203,7 +207,7 @@ impl DatabaseApi<'_> {
             .expect("no property type found");
 
         match vertex {
-            Vertex::PropertyType(persisted_data_type) => Ok(persisted_data_type),
+            Vertex::PropertyType(persisted_property_type) => Ok(persisted_property_type),
             _ => unreachable!(),
         }
     }
@@ -222,7 +226,7 @@ impl DatabaseApi<'_> {
         entity_type: EntityType,
     ) -> Result<PersistedOntologyMetadata, InsertionError> {
         self.store
-            .create_entity_type(entity_type, self.account_id)
+            .create_entity_type(entity_type, self.account_id, self.account_id)
             .await
     }
 
@@ -230,16 +234,21 @@ impl DatabaseApi<'_> {
         &mut self,
         uri: &VersionedUri,
     ) -> Result<PersistedEntityType, QueryError> {
-        Ok(self
+        let vertex = self
             .store
             .get_entity_type(&StructuralQuery {
                 expression: Expression::for_versioned_uri(uri),
                 graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
             .await?
-            .pop()
-            .expect("no entity type found")
-            .entity_type)
+            .vertices
+            .remove(&GraphElementIdentifier::OntologyElementId(uri.clone()))
+            .expect("no entity type found");
+
+        match vertex {
+            Vertex::EntityType(persisted_entity_type) => Ok(persisted_entity_type),
+            _ => unreachable!(),
+        }
     }
 
     pub async fn update_entity_type(
@@ -256,7 +265,7 @@ impl DatabaseApi<'_> {
         link_type: LinkType,
     ) -> Result<PersistedOntologyMetadata, InsertionError> {
         self.store
-            .create_link_type(link_type, self.account_id)
+            .create_link_type(link_type, self.account_id, self.account_id)
             .await
     }
 
@@ -292,7 +301,13 @@ impl DatabaseApi<'_> {
         entity_id: Option<EntityId>,
     ) -> Result<PersistedEntityMetadata, InsertionError> {
         self.store
-            .create_entity(entity, entity_type_id, self.account_id, entity_id)
+            .create_entity(
+                entity,
+                entity_type_id,
+                self.account_id,
+                entity_id,
+                self.account_id,
+            )
             .await
     }
 
@@ -327,7 +342,9 @@ impl DatabaseApi<'_> {
         link_type_id: VersionedUri,
     ) -> Result<(), InsertionError> {
         let link = Link::new(source_entity_id, target_entity_id, link_type_id, None);
-        self.store.create_link(&link, self.account_id).await
+        self.store
+            .create_link(&link, self.account_id, self.account_id)
+            .await
     }
 
     async fn create_ordered_link(
@@ -343,7 +360,9 @@ impl DatabaseApi<'_> {
             link_type_id,
             Some(index),
         );
-        self.store.create_link(&link, self.account_id).await
+        self.store
+            .create_link(&link, self.account_id, self.account_id)
+            .await
     }
 
     pub async fn get_link_target(

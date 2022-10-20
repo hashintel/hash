@@ -26,7 +26,8 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "accountId": "{{account_id}}",
+  "ownedById": "{{account_id}}",
+  "actorId": "{{account_id}}",
   "schema": {
     "kind": "dataType",
     "$id": "http://localhost:3000/@alice/types/data-type/text/v/1",
@@ -57,7 +58,7 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "accountId": "{{account_id}}",
+  "actorId": "{{account_id}}",
   "typeToUpdate": "http://localhost:3000/@alice/types/data-type/text/v/1",
   "schema": {
     "kind": "dataType",
@@ -79,7 +80,8 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "accountId": "{{account_id}}",
+  "ownedById": "{{account_id}}",
+  "actorId": "{{account_id}}",
   "schema": {
     "kind": "propertyType",
     "$id": "http://localhost:3000/@alice/types/property-type/name/v/1",
@@ -115,7 +117,7 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "accountId": "{{account_id}}",
+  "actorId": "{{account_id}}",
   "typeToUpdate": "http://localhost:3000/@alice/types/property-type/name/v/1",
   "schema": {
     "kind": "propertyType",
@@ -151,7 +153,8 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "accountId": "{{account_id}}",
+  "ownedById": "{{account_id}}",
+  "actorId": "{{account_id}}",
   "schema": {
     "kind": "linkType",
     "$id": "http://localhost:3000/@alice/types/link-type/friend-of/v/1",
@@ -185,7 +188,7 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "accountId": "{{account_id}}",
+  "actorId": "{{account_id}}",
   "typeToUpdate": "http://localhost:3000/@alice/types/link-type/friend-of/v/1",
   "schema": {
     "kind": "linkType",
@@ -220,7 +223,8 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "accountId": "{{account_id}}",
+  "ownedById": "{{account_id}}",
+  "actorId": "{{account_id}}",
   "schema": {
     "kind": "entityType",
     "$id": "http://localhost:3000/@alice/types/entity-type/person/v/1",
@@ -257,7 +261,7 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "accountId": "{{account_id}}",
+  "actorId": "{{account_id}}",
   "typeToUpdate": "http://localhost:3000/@alice/types/entity-type/person/v/1",
   "schema": {
     "kind": "entityType",
@@ -308,7 +312,8 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "accountId": "{{account_id}}",
+  "ownedById": "{{account_id}}",
+  "actorId": "{{account_id}}",
   "entity": {
     "http://localhost:3000/@alice/types/property-type/name/": "Alice"
   },
@@ -337,7 +342,7 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "accountId": "{{account_id}}",
+  "actorId": "{{account_id}}",
   "entityId": "{{person_a_entity_id}}",
   "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2",
   "entity": {
@@ -357,7 +362,8 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "accountId": "{{account_id}}",
+  "ownedById": "{{account_id}}",
+  "actorId": "{{account_id}}",
   "entity": {
     "http://localhost:3000/@alice/types/property-type/name/": "Bob"
   },
@@ -421,6 +427,7 @@ Content-Type: application/json
 Accept: application/json
 
 {
+  "actorId": "{{account_id}}",
   "ownedById": "{{account_id}}",
   "targetEntityId": "{{person_b_entity_id}}",
   "linkTypeId": "{{friend_of_link_type_id_raw}}"
@@ -454,7 +461,7 @@ Accept: application/json
 {
   "targetEntityId": "{{person_b_entity_id}}",
   "linkTypeId": "{{friend_of_link_type_id_raw}}",
-  "removedById": "{{account_id}}"
+  "actorId": "{{account_id}}"
 }
 
 > {%
@@ -469,7 +476,8 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "accountId": "{{account_id}}",
+  "ownedById": "{{account_id}}",
+  "actorId": "{{account_id}}",
   "entity": {
     "http://localhost:3000/@alice/types/property-type/name/": "Charles"
   },
@@ -501,6 +509,7 @@ Content-Type: application/json
 Accept: application/json
 
 {
+  "actorId": "{{account_id}}",
   "ownedById": "{{account_id}}",
   "targetEntityId": "{{person_b_entity_id}}",
   "linkTypeId": "{{friend_of_link_type_id_raw}}",
@@ -519,6 +528,7 @@ Content-Type: application/json
 Accept: application/json
 
 {
+  "actorId": "{{account_id}}",
   "ownedById": "{{account_id}}",
   "targetEntityId": "{{person_c_entity_id}}",
   "linkTypeId": "{{friend_of_link_type_id_raw}}",

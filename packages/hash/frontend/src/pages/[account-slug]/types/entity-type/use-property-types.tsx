@@ -2,44 +2,46 @@ import { PropertyType, VersionedUri } from "@blockprotocol/type-system-web";
 import { createContext, useContext, useEffect, useState } from "react";
 import { useBlockProtocolAggregatePropertyTypes } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregatePropertyTypes";
 import { mustBeVersionedUri } from "./util";
+import { getPersistedPropertyType } from "../../../../lib/subgraph";
+import { useAdvancedInitTypeSystem } from "../../../../lib/use-init-type-system";
 
 type PropertyTypesContextValues = Record<VersionedUri, PropertyType>;
 
 export const useRemotePropertyTypes = () => {
+  const [typeSystemLoading, _] = useAdvancedInitTypeSystem();
+
   const [propertyTypes, setPropertyTypes] =
     useState<PropertyTypesContextValues | null>(null);
   const { aggregatePropertyTypes } = useBlockProtocolAggregatePropertyTypes();
 
   useEffect(() => {
-    void aggregatePropertyTypes({ data: {} }).then(({ data }) => {
+    if (typeSystemLoading) {
+      return;
+    }
+    void aggregatePropertyTypes({ data: {} }).then(({ data: subgraph }) => {
       // @todo error handling
-      if (data) {
+      if (subgraph) {
         setPropertyTypes(
           Object.fromEntries(
-            data.roots.map((propertyTypeId) => {
-              const propertyTypeVertex = data.vertices[propertyTypeId];
+            subgraph.roots.map((propertyTypeId) => {
+              const propertyType = getPersistedPropertyType(
+                subgraph,
+                propertyTypeId,
+              );
 
-              if (!propertyTypeVertex) {
+              if (!propertyType) {
                 throw new Error(
                   "property type was missing from the subgraph vertices list",
                 );
               }
-              if (propertyTypeVertex.kind !== "propertyType") {
-                throw new Error(
-                  `expected property type but got ${propertyTypeVertex.kind}`,
-                );
-              }
 
-              return [
-                mustBeVersionedUri(propertyTypeId),
-                propertyTypeVertex.inner.inner,
-              ] as const;
+              return [mustBeVersionedUri(propertyTypeId), propertyType.inner];
             }),
           ),
         );
       }
     });
-  }, [aggregatePropertyTypes]);
+  }, [aggregatePropertyTypes, typeSystemLoading]);
 
   return propertyTypes;
 };
