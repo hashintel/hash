@@ -140,6 +140,15 @@ export default class extends EntityModel {
   }
 
   /**
+   * Get the value of the "Deleted At" property of the comment.
+   */
+  getDeletedAt(): string {
+    return (this.properties as any)[
+      WORKSPACE_TYPES.propertyType.deletedAt.baseUri
+    ];
+  }
+
+  /**
    * Get the text entity linked to the comment.
    */
   async getHasText(graphApi: GraphApi): Promise<EntityModel> {
