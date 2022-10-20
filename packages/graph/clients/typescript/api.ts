@@ -650,19 +650,6 @@ export type LinkTypeKindEnum =
 /**
  *
  * @export
- * @interface LinkTypeRootedSubgraph
- */
-export interface LinkTypeRootedSubgraph {
-  /**
-   *
-   * @type {PersistedLinkType}
-   * @memberof LinkTypeRootedSubgraph
-   */
-  linkType: PersistedLinkType;
-}
-/**
- *
- * @export
  * @interface OutwardEdge
  */
 export interface OutwardEdge {
@@ -5791,10 +5778,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
       structuralQuery: StructuralQuery,
       options?: AxiosRequestConfig,
     ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<Array<LinkTypeRootedSubgraph>>
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Subgraph>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getLinkTypesByQuery(
@@ -6318,7 +6302,7 @@ export const GraphApiFactory = function (
     getLinkTypesByQuery(
       structuralQuery: StructuralQuery,
       options?: any,
-    ): AxiosPromise<Array<LinkTypeRootedSubgraph>> {
+    ): AxiosPromise<Subgraph> {
       return localVarFp
         .getLinkTypesByQuery(structuralQuery, options)
         .then((request) => request(axios, basePath));
@@ -6698,7 +6682,7 @@ export interface GraphApiInterface {
   getLinkTypesByQuery(
     structuralQuery: StructuralQuery,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<LinkTypeRootedSubgraph>>;
+  ): AxiosPromise<Subgraph>;
 
   /**
    *
@@ -8142,10 +8126,7 @@ export const LinkTypeApiFp = function (configuration?: Configuration) {
       structuralQuery: StructuralQuery,
       options?: AxiosRequestConfig,
     ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<Array<LinkTypeRootedSubgraph>>
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Subgraph>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getLinkTypesByQuery(
@@ -8243,7 +8224,7 @@ export const LinkTypeApiFactory = function (
     getLinkTypesByQuery(
       structuralQuery: StructuralQuery,
       options?: any,
-    ): AxiosPromise<Array<LinkTypeRootedSubgraph>> {
+    ): AxiosPromise<Subgraph> {
       return localVarFp
         .getLinkTypesByQuery(structuralQuery, options)
         .then((request) => request(axios, basePath));
@@ -8315,7 +8296,7 @@ export interface LinkTypeApiInterface {
   getLinkTypesByQuery(
     structuralQuery: StructuralQuery,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<LinkTypeRootedSubgraph>>;
+  ): AxiosPromise<Subgraph>;
 
   /**
    *
