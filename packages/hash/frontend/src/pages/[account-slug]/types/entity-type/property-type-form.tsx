@@ -1,9 +1,16 @@
 import { PropertyType } from "@blockprotocol/type-system-web";
 import { Button, ButtonProps } from "@hashintel/hash-design-system/button";
+import { Chip } from "@hashintel/hash-design-system/chip";
 import { TextField } from "@hashintel/hash-design-system/text-field";
-import { types } from "@hashintel/hash-shared/types";
-import { Box, Divider, inputLabelClasses, Stack } from "@mui/material";
-import { useForm } from "react-hook-form";
+import { PrimitiveDataTypeKey, types } from "@hashintel/hash-shared/types";
+import {
+  Autocomplete,
+  Box,
+  Divider,
+  inputLabelClasses,
+  Stack,
+} from "@mui/material";
+import { Controller, useForm } from "react-hook-form";
 import { useBlockProtocolCreatePropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreatePropertyType";
 import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
 import { QuestionIcon } from "./question-icon";
@@ -13,6 +20,7 @@ import { useRefetchPropertyTypes } from "./use-property-types";
 type PropertyTypeFormValues = {
   name: string;
   description: string;
+  expectedValues: typeof types["dataType"][PrimitiveDataTypeKey][];
 };
 
 export const PropertyTypeForm = ({
@@ -32,8 +40,9 @@ export const PropertyTypeForm = ({
     register,
     handleSubmit: wrapHandleSubmit,
     formState: { isSubmitting },
+    control,
   } = useForm<PropertyTypeFormValues>({
-    defaultValues: { name: initialTitle },
+    defaultValues: { name: initialTitle, description: "", expectedValues: [] },
   });
 
   const { authenticatedUser } = useAuthenticatedUser();
@@ -46,11 +55,9 @@ export const PropertyTypeForm = ({
     const res = await createPropertyType({
       data: {
         propertyType: {
-          oneOf: [
-            {
-              $ref: types.dataType.text.dataTypeId,
-            },
-          ],
+          oneOf: data.expectedValues.map((value) => ({
+            $ref: value.dataTypeId,
+          })),
           description: data.description,
           title: data.name,
           kind: "propertyType",
@@ -107,11 +114,43 @@ export const PropertyTypeForm = ({
           disabled={isSubmitting}
           {...register("description", { required: true })}
         />
-        <TextField
-          label="Expected values"
-          sx={{ alignSelf: "flex-start", width: "70%" }}
-          required
-          placeholder="Select acceptable values"
+        <Controller
+          render={({ field: { onChange, ...props } }) => (
+            <Autocomplete
+              multiple
+              popupIcon={null}
+              clearIcon={null}
+              forcePopupIcon={false}
+              selectOnFocus={false}
+              openOnFocus
+              clearOnBlur={false}
+              onChange={(_evt, data) => onChange(data)}
+              {...props}
+              renderTags={(value, getTagProps) =>
+                value.map((option, index) => (
+                  <Chip
+                    {...getTagProps({ index })}
+                    key={option.dataTypeId}
+                    label={option.title}
+                  />
+                ))
+              }
+              renderInput={(inputProps) => (
+                <TextField
+                  {...inputProps}
+                  label="Expected values"
+                  sx={{ alignSelf: "flex-start", width: "70%" }}
+                  placeholder="Select acceptable values"
+                />
+              )}
+              options={Object.values(types.dataType)}
+              getOptionLabel={(obj) => obj.title}
+            />
+          )}
+          control={control}
+          rules={{ required: true }}
+          name="expectedValues"
+          onChange={([, data]) => data}
         />
       </Stack>
       <Divider sx={{ mt: 2, mb: 3 }} />
