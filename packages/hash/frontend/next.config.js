@@ -55,6 +55,7 @@ module.exports = withSentryConfig(
 
       sentry: {
         autoInstrumentServerFunctions: false,
+        hideSourceMaps: false,
       },
 
       webpack: (webpackConfig) => {
