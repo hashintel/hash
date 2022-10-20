@@ -10,6 +10,7 @@ export type PropertyRow = {
 
 export type EnrichedPropertyType = PropertyType & {
   value: any;
+  /** @todo - Correct this, it is a property type BaseUri not an ID (it's unversioned) */
   propertyTypeId: string;
   dataTypes: string[];
 };

@@ -1,6 +1,10 @@
 import { PropertyType } from "@blockprotocol/type-system-web";
 import { capitalize } from "@mui/material";
 import { EntityResponse } from "../../../../../../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
+import {
+  getPersistedDataType,
+  getPropertyTypesByBaseUri,
+} from "../../../../../../../lib/subgraph";
 import { EnrichedPropertyType } from "./types";
 
 const getDataTypesOfPropertyType = (
@@ -9,12 +13,13 @@ const getDataTypesOfPropertyType = (
 ) => {
   return propertyType.oneOf.map((propertyValue) => {
     if ("$ref" in propertyValue) {
-      const dataTypeId = propertyValue.$ref;
-      return (
-        entity.entityTypeRootedSubgraph.referencedDataTypes.find(
-          (val) => val.dataTypeId === dataTypeId,
-        )?.dataType.title ?? "undefined"
+      const dataTypeId = propertyValue?.$ref;
+      const persistedDataType = getPersistedDataType(
+        entity.entityTypeRootedSubgraph,
+        dataTypeId,
       );
+
+      return persistedDataType ? persistedDataType.inner.title : "undefined";
     }
 
     return capitalize(propertyValue.type);
@@ -24,22 +29,26 @@ const getDataTypesOfPropertyType = (
 export const extractEnrichedPropertyTypesFromEntity = (
   entity: EntityResponse,
 ): EnrichedPropertyType[] => {
-  return Object.keys(entity.properties).map((propertyTypeId) => {
-    const { propertyType } =
-      entity.entityTypeRootedSubgraph.referencedPropertyTypes.find((val) =>
-        val.propertyTypeId.startsWith(propertyTypeId),
-      ) ?? {};
+  return Object.keys(entity.properties).map((propertyTypeBaseUri) => {
+    const propertyTypeVersions = getPropertyTypesByBaseUri(
+      entity.entityTypeRootedSubgraph,
+      propertyTypeBaseUri,
+    );
 
-    if (!propertyType) {
-      throw new Error("propertyType not found");
+    if (!propertyTypeVersions) {
+      throw new Error(
+        `propertyType not found for base URI: ${propertyTypeBaseUri}`,
+      );
     }
+
+    const propertyType = propertyTypeVersions[0]!.inner;
 
     const dataTypes = getDataTypesOfPropertyType(propertyType, entity);
 
     return {
       ...propertyType,
-      value: entity.properties[propertyTypeId],
-      propertyTypeId,
+      value: entity.properties[propertyTypeBaseUri],
+      propertyTypeId: propertyTypeBaseUri,
       dataTypes,
     };
   });

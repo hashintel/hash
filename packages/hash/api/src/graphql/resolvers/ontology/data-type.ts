@@ -1,7 +1,12 @@
 import { ApolloError } from "apollo-server-express";
 import { AxiosError } from "axios";
 
-import { Subgraph, QueryGetDataTypeArgs, ResolverFn } from "../../apiTypes.gen";
+import {
+  Subgraph,
+  QueryGetDataTypeArgs,
+  ResolverFn,
+  QueryGetAllLatestDataTypesArgs,
+} from "../../apiTypes.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
 import { mapSubgraphToGql } from "./model-mapping";
 
@@ -9,16 +14,15 @@ export const getAllLatestDataTypes: ResolverFn<
   Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
-  {}
-> = async (_, __, { dataSources }) => {
+  QueryGetAllLatestDataTypesArgs
+> = async (_, { dataTypeResolveDepth }, { dataSources }) => {
   const { graphApi } = dataSources;
 
   const { data: dataTypeSubgraph } = await graphApi
     .getDataTypesByQuery({
       query: { eq: [{ path: ["version"] }, { literal: "latest" }] },
-      /** @todo - make these configurable once non-primitive data types are a thing https://app.asana.com/0/1200211978612931/1202464168422955/f */
       graphResolveDepths: {
-        dataTypeResolveDepth: 0,
+        dataTypeResolveDepth,
         propertyTypeResolveDepth: 0,
         linkTypeResolveDepth: 0,
         entityTypeResolveDepth: 0,
@@ -41,7 +45,7 @@ export const getDataType: ResolverFn<
   {},
   GraphQLContext,
   QueryGetDataTypeArgs
-> = async (_, { dataTypeId }, { dataSources }) => {
+> = async (_, { dataTypeId, dataTypeResolveDepth }, { dataSources }) => {
   const { graphApi } = dataSources;
 
   const { data: dataTypeSubgraph } = await graphApi
@@ -51,7 +55,7 @@ export const getDataType: ResolverFn<
       },
       /** @todo - make these configurable once non-primitive data types are a thing https://app.asana.com/0/1200211978612931/1202464168422955/f */
       graphResolveDepths: {
-        dataTypeResolveDepth: 0,
+        dataTypeResolveDepth,
         propertyTypeResolveDepth: 0,
         linkTypeResolveDepth: 0,
         entityTypeResolveDepth: 0,

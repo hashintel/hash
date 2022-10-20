@@ -1,6 +1,10 @@
 import { useMemo } from "react";
 import { sortRowData } from "../../../../../../../components/GlideGlid/utils";
 import { generateEntityLabel } from "../../../../../../../lib/entities";
+import {
+  getPersistedEntityType,
+  getPersistedLinkType,
+} from "../../../../../../../lib/subgraph";
 import { useEntityEditor } from "../../entity-editor-context";
 import { LinkRow } from "./types";
 
@@ -14,18 +18,18 @@ export const useRowData = () => {
 
     return (
       entity?.links.map((link) => {
-        const linkType =
-          entity.entityTypeRootedSubgraph.referencedLinkTypes.find(
-            (val) => val.linkTypeId === link.linkTypeId,
-          )?.linkType;
+        const linkType = getPersistedLinkType(
+          entity.entityTypeRootedSubgraph,
+          link.linkTypeId,
+        )?.inner;
 
-        const referencedEntityType =
-          entity.entityTypeRootedSubgraph.referencedEntityTypes.find(
-            (val) => val.entityTypeId === link.targetEntity.entityTypeId,
-          )?.entityType.title;
+        const referencedEntityType = getPersistedEntityType(
+          entity.entityTypeRootedSubgraph,
+          link.targetEntity.entityTypeId,
+        )?.inner;
 
         return {
-          expectedEntityType: referencedEntityType ?? "",
+          expectedEntityType: referencedEntityType?.title ?? "",
           linkedWith: generateEntityLabel(link.targetEntity),
           linkId: link.linkTypeId,
           relationShip: "Outbound",
