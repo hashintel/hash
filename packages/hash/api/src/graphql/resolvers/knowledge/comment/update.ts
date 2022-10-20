@@ -1,5 +1,5 @@
 import { WORKSPACE_TYPES } from "../../../../graph/workspace-types";
-import { CommentModel, PageModel } from "../../../../model";
+import { CommentModel } from "../../../../model";
 import {
   MutationUpdatePersistedCommentArgs,
   ResolverFn,
@@ -7,7 +7,7 @@ import {
 import { LoggedInGraphQLContext } from "../../../context";
 import {
   UnresolvedPersistedCommentGQL,
-  mapPageModelToGQL,
+  mapCommentModelToGQL,
 } from "../model-mapping";
 
 export const updatePersistedComment: ResolverFn<
@@ -40,9 +40,9 @@ export const updatePersistedComment: ResolverFn<
     },
   );
 
-  const updatedCommentModel = PageModel.fromEntityModel(
+  const updatedCommentModel = CommentModel.fromEntityModel(
     updatedCommentEntityModel,
   );
 
-  return mapPageModelToGQL(updatedCommentModel);
+  return mapCommentModelToGQL(updatedCommentModel);
 };

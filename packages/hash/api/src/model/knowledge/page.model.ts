@@ -393,7 +393,7 @@ export default class extends EntityModel {
       blocks.map((block) => block.getBlockComments(graphApi)),
     );
 
-    return comments.flat();
+    return comments.flat().filter((comment) => !comment.getDeletedAt());
   }
 
   /**

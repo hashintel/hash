@@ -35,6 +35,7 @@ import styles from "./style.module.css";
 import { useUpdateCommentText } from "../../../components/hooks/useUpdateCommentText";
 import { CommentBlockMenuItem } from "./CommentBlockMenuItem";
 import { PencilSlashIcon } from "../../../shared/icons/pencil-slash-icon";
+import { useDeleteComment } from "../../../components/hooks/useDeleteComment";
 
 type ToggleTextExpandedButtonProps = {
   label: ReactNode;
@@ -81,6 +82,8 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
   const [inputValue, setInputValue] = useState<TextToken[]>(hasText);
 
   const [updateCommentText, { loading }] = useUpdateCommentText(pageId);
+  const [deleteComment, { loading: deleteCommentLoading }] =
+    useDeleteComment(pageId);
 
   useEffect(() => {
     setInputValue(hasText);
@@ -294,7 +297,8 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
           title="Delete Comment"
           icon={<FontAwesomeIcon icon={faTrash} />}
           // @todo Commented implement functionality
-          onClick={() => {
+          onClick={async () => {
+            await deleteComment(entityId);
             commentMenuPopupState.close();
           }}
         />

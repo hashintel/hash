@@ -28,6 +28,21 @@ export const createPersistedComment = gql`
   }
 `;
 
+export const updatePersistedComment = gql`
+  mutation updatePersistedComment(
+    $entityId: ID!
+    $updatedProperties: PersistedCommentUpdateData!
+  ) {
+    updatePersistedComment(
+      entityId: $entityId
+      updatedProperties: $updatedProperties
+    ) {
+      ...CommentFields
+    }
+  }
+  ${commentFieldsFragment}
+`;
+
 export const updatePersistedCommentText = gql`
   mutation updatePersistedCommentText($entityId: ID!, $tokens: [TextToken!]!) {
     updatePersistedCommentText(entityId: $entityId, tokens: $tokens) {
