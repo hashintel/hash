@@ -40,9 +40,9 @@ export const useBlockProtocolAggregateEntityTypes = (): {
        */
       const response = await aggregateFn({
         variables: {
-          dataTypeResolveDepth: 0,
-          propertyTypeResolveDepth: 0,
-          linkTypeResolveDepth: 0,
+          dataTypeResolveDepth: 255,
+          propertyTypeResolveDepth: 255,
+          linkTypeResolveDepth: 255,
           entityTypeResolveDepth: 0,
         },
       });

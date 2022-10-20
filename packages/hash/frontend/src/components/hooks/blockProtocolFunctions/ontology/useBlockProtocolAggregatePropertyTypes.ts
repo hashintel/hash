@@ -41,8 +41,8 @@ export const useBlockProtocolAggregatePropertyTypes = (): {
          */
         const response = await aggregateFn({
           variables: {
-            dataTypeResolveDepth: 0,
-            propertyTypeResolveDepth: 0,
+            dataTypeResolveDepth: 255,
+            propertyTypeResolveDepth: 255,
           },
         });
 
