@@ -3,6 +3,7 @@ import {
   ReactNode,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { Box, Collapse, Typography } from "@mui/material";
@@ -36,6 +37,7 @@ import { useUpdateCommentText } from "../../../components/hooks/useUpdateComment
 import { CommentBlockMenuItem } from "./CommentBlockMenuItem";
 import { PencilSlashIcon } from "../../../shared/icons/pencil-slash-icon";
 import { useDeleteComment } from "../../../components/hooks/useDeleteComment";
+import { CommentBlockDeleteConfirmationDialog } from "./CommentBlockDeleteConfirmationDialog";
 
 type ToggleTextExpandedButtonProps = {
   label: ReactNode;
@@ -76,12 +78,16 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
 }) => {
   const { entityId, hasText, author, textUpdatedAt } = comment;
 
+  const ref = useRef<HTMLDivElement>(null);
   const [collapsed, setCollapsed] = useState(true);
   const [shouldCollapse, setShouldCollapse] = useState(false);
   const [editable, setEditable] = useState(false);
   const [inputValue, setInputValue] = useState<TextToken[]>(hasText);
+  const [deleteConfirmationDialogOpen, setDeleteConfirmationDialogOpen] =
+    useState(false);
 
-  const [updateCommentText, { loading }] = useUpdateCommentText(pageId);
+  const [updateCommentText, { loading: updateCommentTextLoading }] =
+    useUpdateCommentText(pageId);
   const [deleteComment, { loading: deleteCommentLoading }] =
     useDeleteComment(pageId);
 
@@ -130,11 +136,15 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
 
   return (
     <Box
+      ref={ref}
       sx={{
         display: "flex",
         flexDirection: "column",
+        position: "relative",
         p: 2,
         borderTop: ({ palette }) => `1px solid ${palette.gray[20]}`,
+        minHeight: deleteConfirmationDialogOpen ? 140 : 0,
+        transition: ({ transitions }) => transitions.create("min-height"),
       }}
     >
       <Box display="flex" justifyContent="space-between">
@@ -224,7 +234,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
               variant="secondary"
               onClick={handleEditComment}
               disabled={submitUpdateDisabled}
-              loading={loading}
+              loading={updateCommentTextLoading}
             >
               Submit
             </Button>
@@ -298,11 +308,20 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
           icon={<FontAwesomeIcon icon={faTrash} />}
           // @todo Commented implement functionality
           onClick={async () => {
-            await deleteComment(entityId);
+            // await deleteComment(entityId);
+            setDeleteConfirmationDialogOpen(true);
             commentMenuPopupState.close();
           }}
         />
       </CommentBlockMenu>
+
+      <CommentBlockDeleteConfirmationDialog
+        container={ref.current}
+        open={deleteConfirmationDialogOpen}
+        loading={deleteCommentLoading}
+        onDelete={async () => await deleteComment(entityId)}
+        onCancel={() => setDeleteConfirmationDialogOpen(false)}
+      />
     </Box>
   );
 };
