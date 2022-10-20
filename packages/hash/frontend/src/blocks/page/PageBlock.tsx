@@ -1,36 +1,33 @@
+import { Button } from "@hashintel/hash-design-system";
 import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
+import Box from "@mui/material/Box";
 import { useRouter } from "next/router";
 import { Schema } from "prosemirror-model";
 import { EditorView } from "prosemirror-view";
 import "prosemirror-view/style/prosemirror.css";
-import { useLayoutEffect, useRef, FunctionComponent } from "react";
+import { FunctionComponent, useLayoutEffect, useRef } from "react";
 import { useLocalstorageState } from "rooks";
-
-import { Button } from "@hashintel/hash-design-system";
-import Box from "@mui/material/Box";
-import { GlobalStyles } from "@mui/material";
+import { useCreateComment } from "../../components/hooks/useCreateComment";
+import { PageThread } from "../../components/hooks/usePageComments";
+import { useInitTypeSystem } from "../../lib/use-init-type-system";
+import { useReadonlyMode } from "../../shared/readonly-mode";
 import { BlockLoadedProvider } from "../onBlockLoaded";
 import { UserBlocksProvider } from "../userBlocks";
 import { EditorConnection } from "./collab/EditorConnection";
-import { BlocksMap, createEditorView } from "./createEditorView";
-import { usePortals } from "./usePortals";
-import { useReadonlyMode } from "../../shared/readonly-mode";
-import { usePageContext } from "./PageContext";
 import { CommentThread } from "./Comments/CommentThread";
-import { PageThread } from "../../components/hooks/usePageComments";
-import { useCreateComment } from "../../components/hooks/useCreateComment";
+import { BlocksMap, createEditorView } from "./createEditorView";
+import { usePageContext } from "./PageContext";
 import {
-  PAGE_CONTENT_WIDTH,
-  PAGE_MIN_PADDING,
-} from "../../pages/[account-slug]/[page-slug].page";
-import { useInitTypeSystem } from "../../lib/use-init-type-system";
+  getPageSectionContainerStyles,
+  PageSectionContainer,
+} from "./PageSectionContainer";
+import { usePortals } from "./usePortals";
 
 type PageBlockProps = {
   blocks: BlocksMap;
   pageComments: PageThread[];
   accountId: string;
   entityId: string;
-  containerPadding: [string, string];
 };
 
 /**
@@ -44,7 +41,6 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
   pageComments,
   accountId,
   entityId,
-  containerPadding,
 }) => {
   const loadingTypeSystem = useInitTypeSystem();
   const root = useRef<HTMLDivElement>(null);
@@ -119,42 +115,53 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
   return (
     <UserBlocksProvider value={blocks}>
       <BlockLoadedProvider routeHash={routeHash}>
-        <GlobalStyles
-          styles={{
+        {loadingTypeSystem ? null : (
+          <PageSectionContainer
+            pageComments={pageComments}
+            sx={{
+              position: "absolute",
+              top: 0,
+              right: 0,
+              left: 0,
+              width: "100%",
+            }}
+          >
+            <Box width="100%" position="relative">
+              <Box
+                sx={{
+                  position: "absolute",
+                  left: "calc(100% + 48px)",
+                  zIndex: 1,
+                }}
+              >
+                {pageComments?.map((comment) => (
+                  <CommentThread
+                    key={comment.entityId}
+                    comment={comment}
+                    createComment={createComment}
+                    loading={createCommentLoading}
+                  />
+                ))}
+              </Box>
+            </Box>
+          </PageSectionContainer>
+        )}
+        <Box
+          id="root"
+          ref={root}
+          sx={{
             /**
              * to handle margin-clicking, prosemirror should take full width, and give padding to it's content
              * so it automatically handles focusing on closest node on margin-clicking
              */
-            ".ProseMirror": {
-              padding: `0 ${containerPadding[1]} 320px ${containerPadding[0]}`,
-              minWidth: `calc(${PAGE_CONTENT_WIDTH}px + (${PAGE_MIN_PADDING}px * 2))`,
-            },
+            ".ProseMirror": [
+              getPageSectionContainerStyles(pageComments),
+              { paddingTop: 0, paddingBottom: "320px" },
+            ],
             // prevents blue outline on selected nodes
             ".ProseMirror-selectednode": { outline: "none" },
           }}
         />
-        <Box id="root" ref={root} position="relative">
-          {loadingTypeSystem ? null : (
-            <Box
-              sx={{
-                position: "absolute",
-                top: 0,
-                right: containerPadding[1],
-                transform: "translateX(calc(100% + 48px))",
-                zIndex: 1,
-              }}
-            >
-              {pageComments?.map((comment) => (
-                <CommentThread
-                  key={comment.entityId}
-                  comment={comment}
-                  createComment={createComment}
-                  loading={createCommentLoading}
-                />
-              ))}
-            </Box>
-          )}
-        </Box>
         {portals}
         {/**
          * @todo position this better
