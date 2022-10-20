@@ -1,4 +1,10 @@
-import { FunctionComponent, ReactNode, useMemo, useState } from "react";
+import {
+  FunctionComponent,
+  ReactNode,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { Box, Collapse, Typography } from "@mui/material";
 import {
   Avatar,
@@ -21,10 +27,12 @@ import { bindTrigger } from "material-ui-popup-state";
 import { types } from "@hashintel/hash-shared/types";
 import { extractBaseUri } from "@blockprotocol/type-system-web";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
+import { isEqual } from "lodash";
 import { PageComment } from "../../../components/hooks/usePageComments";
 import { CommentTextField } from "./CommentTextField";
 import { CommentBlockMenu } from "./CommentBlockMenu";
 import styles from "./style.module.css";
+import { useUpdateCommentText } from "../../../components/hooks/useUpdateCommentText";
 
 type ToggleTextExpandedButtonProps = {
   label: ReactNode;
@@ -55,16 +63,26 @@ export const ToggleTextExpandedButton: FunctionComponent<
 );
 
 type CommentProps = {
+  pageId: string;
   comment: PageComment;
 };
 
-export const CommentBlock: FunctionComponent<CommentProps> = ({ comment }) => {
-  const { hasText, author, textUpdatedAt } = comment;
+export const CommentBlock: FunctionComponent<CommentProps> = ({
+  pageId,
+  comment,
+}) => {
+  const { entityId, hasText, author, textUpdatedAt } = comment;
 
   const [collapsed, setCollapsed] = useState(true);
   const [shouldCollapse, setShouldCollapse] = useState(false);
   const [editable, setEditable] = useState(false);
-  const [inputValue, setInputValue] = useState<TextToken[]>([]);
+  const [inputValue, setInputValue] = useState<TextToken[]>(hasText);
+
+  const [updateCommentText, { loading }] = useUpdateCommentText(pageId);
+
+  useEffect(() => {
+    setInputValue(hasText);
+  }, [hasText]);
 
   const commentCreatedAt = useMemo(() => {
     const updatedAt = new Date(textUpdatedAt);
@@ -117,8 +135,21 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({ comment }) => {
     [editable, setEditable, commentMenuPopupState],
   );
 
-  const cancelEdit = () => {
+  const submitUpdateDisabled = useMemo(
+    () => isEqual(hasText, inputValue),
+    [hasText, inputValue],
+  );
+
+  const reset = () => {
+    setInputValue(hasText);
     setEditable(false);
+  };
+
+  const handleEditComment = async () => {
+    if (!submitUpdateDisabled) {
+      await updateCommentText(entityId, inputValue);
+      reset();
+    }
   };
 
   return (
@@ -183,7 +214,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({ comment }) => {
         >
           <CommentTextField
             onLineCountChange={(lines) => setShouldCollapse(lines > 2)}
-            value={hasText}
+            value={inputValue}
             className={`${styles.Comment__TextField} ${
               editable
                 ? styles.Comment__TextField_editable
@@ -194,9 +225,8 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({ comment }) => {
             editable={editable}
             readOnly={!editable}
             placeholder="Edit comment"
-            // onClose={cancelSubmit}
-            // onSubmit={submitComment}
-            // editable={!loading}
+            onClose={reset}
+            onSubmit={handleEditComment}
             onChange={setInputValue}
           />
         </Box>
@@ -210,15 +240,15 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({ comment }) => {
               pt: 0.75,
             }}
           >
-            <Button size="xs" variant="tertiary" onClick={cancelEdit}>
+            <Button size="xs" variant="tertiary" onClick={reset}>
               Cancel
             </Button>
             <Button
               size="xs"
               variant="secondary"
-              // disabled={!inputValue.length}
-              // onClick={submitComment}
-              // loading={loading}
+              onClick={handleEditComment}
+              disabled={submitUpdateDisabled}
+              loading={loading}
             >
               Reply
             </Button>

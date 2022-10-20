@@ -71,9 +71,6 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
   const routeHash = router.asPath.split("#")[1] ?? "";
   const { readonlyMode } = useReadonlyMode();
 
-  const [createComment, { loading: createCommentLoading }] =
-    useCreateComment(entityId);
-
   const { setEditorView, pageTitleRef } = usePageContext();
 
   /**
@@ -153,9 +150,8 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
                 {pageComments?.map((comment) => (
                   <CommentThread
                     key={comment.entityId}
+                    pageId={entityId}
                     comment={comment}
-                    createComment={createComment}
-                    loading={createCommentLoading}
                   />
                 ))}
               </Box>

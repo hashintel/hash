@@ -10,25 +10,26 @@ import { PageThread } from "../../../components/hooks/usePageComments";
 import { CommentTextField } from "./CommentTextField";
 import { CommentBlock } from "./CommentBlock";
 import styles from "./style.module.css";
+import { useCreateComment } from "../../../components/hooks/useCreateComment";
 
 const UNCOLLAPSIBLE_REPLIES_NUMBER = 2;
 
 type CommentThreadProps = {
+  pageId: string;
   comment: PageThread;
-  createComment: (parentId: string, content: TextToken[]) => Promise<void>;
-  loading: boolean;
 };
 
 export const CommentThread: FunctionComponent<CommentThreadProps> = ({
+  pageId,
   comment,
-  createComment,
-  loading,
 }) => {
   const threadRef = useRef<HTMLDivElement>(null);
   const [threadFocused, setThreadFocused] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [inputValue, setInputValue] = useState<TextToken[]>([]);
+
+  const [createReply, { loading }] = useCreateComment(pageId);
 
   const showInput = threadFocused || !!inputValue.length;
   const showInputButtons =
@@ -41,7 +42,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
 
   const handleReplySubmit = async () => {
     if (!loading && inputValue?.length) {
-      await createComment(comment.entityId, inputValue).then(() => {
+      await createReply(comment.entityId, inputValue).then(() => {
         setInputValue([]);
       });
     }
@@ -83,7 +84,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
         },
       })}
     >
-      <CommentBlock key={comment.entityId} comment={comment} />
+      <CommentBlock key={comment.entityId} pageId={pageId} comment={comment} />
 
       {collapsedReplies.length ? (
         <>
@@ -113,14 +114,18 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
 
           <Collapse in={expanded}>
             {collapsedReplies.map((reply) => (
-              <CommentBlock key={reply.entityId} comment={reply} />
+              <CommentBlock
+                key={reply.entityId}
+                pageId={pageId}
+                comment={reply}
+              />
             ))}
           </Collapse>
         </>
       ) : null}
 
       {uncollapsibleReplies.map((reply) => (
-        <CommentBlock key={reply.entityId} comment={reply} />
+        <CommentBlock key={reply.entityId} pageId={pageId} comment={reply} />
       ))}
 
       <Collapse in={showInput}>

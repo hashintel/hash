@@ -27,3 +27,12 @@ export const createPersistedComment = gql`
     }
   }
 `;
+
+export const updatePersistedCommentText = gql`
+  mutation updatePersistedCommentText($entityId: ID!, $tokens: [TextToken!]!) {
+    updatePersistedCommentText(entityId: $entityId, tokens: $tokens) {
+      ...CommentFields
+    }
+  }
+  ${commentFieldsFragment}
+`;
