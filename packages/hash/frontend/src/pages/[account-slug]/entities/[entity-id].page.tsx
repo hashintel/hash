@@ -4,6 +4,7 @@ import { EntityResponse } from "../../../components/hooks/blockProtocolFunctions
 import { useBlockProtocolGetEntity } from "../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolGetEntity";
 import { getPlainLayout, NextPageWithLayout } from "../../../shared/layout";
 import { EntityEditor } from "./[entity-id].page/entity-editor";
+import { EntityPageLoadingState } from "./[entity-id].page/entity-page-loading-state";
 import { EntityPageWrapper } from "./[entity-id].page/entity-page-wrapper";
 
 const Page: NextPageWithLayout = () => {
@@ -30,7 +31,7 @@ const Page: NextPageWithLayout = () => {
   }, [router.query, getEntity]);
 
   if (loading) {
-    return <h1>Loading...</h1>;
+    return <EntityPageLoadingState />;
   }
 
   if (!entity) {
