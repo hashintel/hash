@@ -11,7 +11,7 @@ import {
   PersistedLinkType,
   PersistedEntityType,
 } from "@hashintel/hash-shared/graphql/types";
-import { BaseUri } from "@blockprotocol/type-system-web";
+import { BaseUri, VersionedUri } from "@blockprotocol/type-system-web";
 
 import { Subgraph } from "../graphql/apiTypes.gen";
 
@@ -44,6 +44,110 @@ export const isEntityVertex = (vertex: Vertex): vertex is EntityVertex => {
 export const isLinkVertex = (vertex: Vertex): vertex is LinkVertex => {
   return vertex.kind === "link";
 };
+
+// ------------------- Get methods to encapsulate lookups and error checking -------------------
+
+/**
+ * Gets a `PersistedDataType` by its `VersionedUri` from within the vertices of the subgraph. Returns `undefined` if
+ * the data type couldn't be found.
+ *
+ * @param subgraph
+ * @param dataTypeId
+ * @throws if the vertex isn't a `DataTypeVertex`
+ */
+export const getPersistedDataType = (
+  subgraph: Subgraph,
+  dataTypeId: VersionedUri,
+): PersistedDataType | undefined => {
+  const vertex = subgraph.vertices[dataTypeId];
+
+  if (!vertex) {
+    return undefined;
+  }
+
+  if (!isDataTypeVertex(vertex)) {
+    throw new Error(`expected data type vertex but got: ${vertex.kind}`);
+  }
+
+  return vertex.inner;
+};
+
+/**
+ * Gets a `PersistedPropertyType` by its `VersionedUri` from within the vertices of the subgraph. Returns `undefined` if
+ * the property type couldn't be found.
+ *
+ * @param subgraph
+ * @param propertyTypeId
+ * @throws if the vertex isn't a `PropertyTypeVertex`
+ */
+export const getPersistedPropertyType = (
+  subgraph: Subgraph,
+  propertyTypeId: VersionedUri,
+): PersistedPropertyType | undefined => {
+  const vertex = subgraph.vertices[propertyTypeId];
+
+  if (!vertex) {
+    return undefined;
+  }
+
+  if (!isPropertyTypeVertex(vertex)) {
+    throw new Error(`expected property type vertex but got: ${vertex.kind}`);
+  }
+
+  return vertex.inner;
+};
+
+/**
+ * Gets a `PersistedLinkType` by its `VersionedUri` from within the vertices of the subgraph. Returns `undefined` if
+ * the data type couldn't be found.
+ *
+ * @param subgraph
+ * @param linkTypeId
+ * @throws if the vertex isn't a `LinkTypeVertex`
+ */
+export const getPersistedLinkType = (
+  subgraph: Subgraph,
+  linkTypeId: VersionedUri,
+): PersistedLinkType | undefined => {
+  const vertex = subgraph.vertices[linkTypeId];
+
+  if (!vertex) {
+    return undefined;
+  }
+
+  if (!isLinkTypeVertex(vertex)) {
+    throw new Error(`expected link type vertex but got: ${vertex.kind}`);
+  }
+
+  return vertex.inner;
+};
+
+/**
+ * Gets a `PersistedEntityType` by its `VersionedUri` from within the vertices of the subgraph. Returns `undefined` if
+ * the entity type couldn't be found.
+ *
+ * @param subgraph
+ * @param entityTypeId
+ * @throws if the vertex isn't a `EntityTypeVertex`
+ */
+export const getPersistedEntityType = (
+  subgraph: Subgraph,
+  entityTypeId: VersionedUri,
+): PersistedEntityType | undefined => {
+  const vertex = subgraph.vertices[entityTypeId];
+
+  if (!vertex) {
+    return undefined;
+  }
+
+  if (!isEntityTypeVertex(vertex)) {
+    throw new Error(`expected entity type vertex but got: ${vertex.kind}`);
+  }
+
+  return vertex.inner;
+};
+
+/** @todo - getPersistedEntity and getPersistedLink - https://app.asana.com/0/0/1203157172269853/f */
 
 /**
  * Returns all `PersistedDataType`s within the vertices of the subgraph
