@@ -1,13 +1,13 @@
 mod conditional;
-mod join;
-mod select;
-mod r#where;
-mod with;
+mod join_clause;
+mod select_clause;
+mod where_clause;
+mod with_clause;
 
 pub use self::{
     conditional::{Expression, Function},
-    join::JoinExpression,
-    select::SelectExpression,
-    r#where::WhereExpression,
-    with::{CommonTableExpression, WithExpression},
+    join_clause::JoinExpression,
+    select_clause::SelectExpression,
+    where_clause::WhereExpression,
+    with_clause::{CommonTableExpression, WithExpression},
 };
