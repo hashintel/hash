@@ -11,7 +11,7 @@ import {
   PersistedLinkType,
   PersistedEntityType,
 } from "@hashintel/hash-shared/graphql/types";
-import { BaseUri, VersionedUri } from "@blockprotocol/type-system-web";
+import { BaseUri } from "@blockprotocol/type-system-web";
 
 import { Subgraph } from "../graphql/apiTypes.gen";
 

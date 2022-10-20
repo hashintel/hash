@@ -12,7 +12,6 @@ import {
   getPersistedEntityType,
   getPersistedPropertyType,
 } from "../lib/subgraph";
-import { mustBeVersionedUri } from "./[account-slug]/types/entity-type/util";
 
 /**
  * Helper type-guard for determining if a `ValueOrArray` definition is an array or a value.
