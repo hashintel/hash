@@ -55,10 +55,12 @@ mod tests {
     use std::borrow::Cow;
 
     use postgres_types::ToSql;
-    use type_system::{DataType, PropertyType};
+    use type_system::{DataType, EntityType, PropertyType};
 
     use crate::{
-        ontology::{DataTypeQueryPath, PropertyTypeQueryPath},
+        ontology::{
+            DataTypeQueryPath, EntityTypeQueryPath, LinkTypeQueryPath, PropertyTypeQueryPath,
+        },
         store::{
             postgres::query::{test_helper::trim_whitespace, PostgresQueryRecord, SelectCompiler},
             query::{Filter, FilterExpression, Parameter},
@@ -306,6 +308,62 @@ mod tests {
             WHERE "property_types_0_1"."schema"->>'title' = $1
             "#,
             &[&"Text"],
+        );
+    }
+
+    #[test]
+    fn entity_type_by_referenced_property_types() {
+        let mut compiler = SelectCompiler::<EntityType>::with_asterisk();
+
+        let filter = Filter::Equal(
+            Some(FilterExpression::Path(EntityTypeQueryPath::Properties(
+                PropertyTypeQueryPath::Title,
+            ))),
+            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                "Name",
+            )))),
+        );
+        compiler.add_filter(&filter);
+
+        test_compilation(
+            &compiler,
+            r#"
+            SELECT *
+            FROM "entity_types"
+            JOIN "entity_type_property_type_references" AS "entity_type_property_type_references_0_0"
+              ON "entity_type_property_type_references_0_0"."source_entity_type_version_id" = "entity_types"."version_id"
+            JOIN "property_types" AS "property_types_0_1" ON "property_types_0_1"."version_id" = "entity_type_property_type_references_0_0"."target_property_type_version_id"
+            WHERE "property_types_0_1"."schema"->>'title' = $1
+            "#,
+            &[&"Name"],
+        );
+    }
+
+    #[test]
+    fn entity_type_by_referenced_link_types() {
+        let mut compiler = SelectCompiler::<EntityType>::with_asterisk();
+
+        let filter = Filter::Equal(
+            Some(FilterExpression::Path(EntityTypeQueryPath::Links(
+                LinkTypeQueryPath::Title,
+            ))),
+            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                "Friend Of",
+            )))),
+        );
+        compiler.add_filter(&filter);
+
+        test_compilation(
+            &compiler,
+            r#"
+            SELECT *
+            FROM "entity_types"
+            JOIN "entity_type_link_type_references" AS "entity_type_link_type_references_0_0"
+              ON "entity_type_link_type_references_0_0"."source_entity_type_version_id" = "entity_types"."version_id"
+            JOIN "link_types" AS "link_types_0_1" ON "link_types_0_1"."version_id" = "entity_type_link_type_references_0_0"."target_link_type_version_id"
+            WHERE "link_types_0_1"."schema"->>'title' = $1
+            "#,
+            &[&"Friend Of"],
         );
     }
 }
