@@ -26,7 +26,7 @@ export const propertyTypeTypedef = gql`
 
   extend type Query {
     """
-    Get all property types at their latest version.
+    Get a subgraph rooted at all property types at their latest version.
     """
     getAllLatestPropertyTypes(
       dataTypeResolveDepth: Int!
@@ -34,7 +34,7 @@ export const propertyTypeTypedef = gql`
     ): Subgraph!
 
     """
-    Get a property type by its versioned URI.
+    Get a subgraph rooted at an property type resolved by its versioned URI.
     """
     getPropertyType(
       propertyTypeId: String!

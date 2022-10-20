@@ -26,7 +26,7 @@ export const entityTypeTypedef = gql`
 
   extend type Query {
     """
-    Get all entity types at their latest version.
+    Get a subgraph rooted at all entity types at their latest version.
     """
     getAllLatestEntityTypes(
       dataTypeResolveDepth: Int!
@@ -36,7 +36,7 @@ export const entityTypeTypedef = gql`
     ): Subgraph!
 
     """
-    Get a entity type by its versioned URI.
+    Get a subgraph rooted at an entity type resolved by its versioned URI.
     """
     getEntityType(
       entityTypeId: String!

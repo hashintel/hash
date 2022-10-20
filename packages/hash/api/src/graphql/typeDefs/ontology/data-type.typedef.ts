@@ -27,12 +27,12 @@ export const dataTypeTypedef = gql`
 
   extend type Query {
     """
-    Get all data types at their latest version.
+    Get a subgraph rooted at all data types at their latest version.
     """
     getAllLatestDataTypes(dataTypeResolveDepth: Int!): Subgraph!
 
     """
-    Get a data type by its versioned URI.
+    Get a subgraph rooted at an data type resolved by its versioned URI.
     """
     getDataType(dataTypeId: String!, dataTypeResolveDepth: Int!): Subgraph!
   }
