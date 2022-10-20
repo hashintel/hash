@@ -1,36 +1,50 @@
 import { gql } from "@apollo/client";
 
 export const getPropertyTypeQuery = gql`
-  query getPropertyType($propertyTypeId: String!) {
-    getPropertyType(propertyTypeId: $propertyTypeId) {
+  query getPropertyType(
+    $propertyTypeId: String!
+    $dataTypeResolveDepth: Int!
+    $propertyTypeResolveDepth: Int!
+  ) {
+    getPropertyType(
+      propertyTypeId: $propertyTypeId
+      dataTypeResolveDepth: $dataTypeResolveDepth
+      propertyTypeResolveDepth: $propertyTypeResolveDepth
+    ) {
       roots
       vertices
       edges
       depths {
-        dataTypeResolveDepth(depth: 0)
-        propertyTypeResolveDepth(depth: 0)
-        linkTypeResolveDepth(depth: 0)
-        entityTypeResolveDepth(depth: 0)
-        linkTargetEntityResolveDepth(depth: 0)
-        linkResolveDepth(depth: 0)
+        dataTypeResolveDepth
+        propertyTypeResolveDepth
+        linkTypeResolveDepth
+        entityTypeResolveDepth
+        linkTargetEntityResolveDepth
+        linkResolveDepth
       }
     }
   }
 `;
 
 export const getAllLatestPropertyTypesQuery = gql`
-  query getAllLatestPropertyTypes {
-    getAllLatestPropertyTypes {
+  query getAllLatestPropertyTypes(
+    $dataTypeResolveDepth: Int!
+    $propertyTypeResolveDepth: Int!
+  ) {
+    getAllLatestPropertyTypes(
+      dataTypeResolveDepth: $dataTypeResolveDepth
+      propertyTypeResolveDepth: $propertyTypeResolveDepth
+    ) {
       roots
       vertices
       edges
       depths {
-        dataTypeResolveDepth(depth: 0)
-        propertyTypeResolveDepth(depth: 0)
-        linkTypeResolveDepth(depth: 0)
-        entityTypeResolveDepth(depth: 0)
-        linkTargetEntityResolveDepth(depth: 0)
-        linkResolveDepth(depth: 0)
+        dataTypeResolveDepth
+        propertyTypeResolveDepth
+        linkTypeResolveDepth
+        entityTypeResolveDepth
+        linkTargetEntityResolveDepth
+        linkResolveDepth
       }
     }
   }
