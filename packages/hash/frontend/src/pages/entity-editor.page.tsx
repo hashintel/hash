@@ -2,17 +2,17 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { Container, Typography } from "@mui/material";
 import init, { ValueOrArray } from "@blockprotocol/type-system-web";
-import {
-  PersistedEntityType,
-  PropertyTypeVertex,
-} from "@hashintel/hash-shared/graphql/types";
 import { Button } from "@hashintel/hash-design-system/button";
 import { types } from "@hashintel/hash-shared/types";
 import { useUser } from "../components/hooks/useUser";
 import { NextPageWithLayout } from "../shared/layout";
 import { useBlockProtocolFunctionsWithOntology } from "./type-editor/blockprotocol-ontology-functions-hook";
 import { EntityResponse } from "../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
-import { roots } from "../lib/subgraph";
+import {
+  getPersistedEntityType,
+  getPersistedPropertyType,
+} from "../lib/subgraph";
+import { mustBeVersionedUri } from "./[account-slug]/types/entity-type/util";
 
 /**
  * Helper type-guard for determining if a `ValueOrArray` definition is an array or a value.
@@ -46,7 +46,10 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
   const { entityTypeRootedSubgraph, ...entityWithoutEntityType } = entity ?? {};
 
   const entityType = entityTypeRootedSubgraph
-    ? (roots(entityTypeRootedSubgraph)[0]?.inner as PersistedEntityType).inner
+    ? getPersistedEntityType(
+        entityTypeRootedSubgraph,
+        mustBeVersionedUri(entityTypeRootedSubgraph.roots[0]!),
+      )?.inner
     : undefined;
 
   // The (top-level) property type IDs defined in the entity type
@@ -64,16 +67,13 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
   const propertyTypeDefinitions = useMemo(
     () =>
       entityTypeRootedSubgraph && propertyTypeIds
-        ? propertyTypeIds.map((propertyTypeId) => {
-            const vertex = entityTypeRootedSubgraph.vertices[propertyTypeId];
-
-            /** @todo - what to do here if the property type isn't in the subgraph, make another call? */
-            if (!vertex) {
-              return undefined;
-            }
-
-            return (vertex as PropertyTypeVertex).inner;
-          })
+        ? propertyTypeIds.map(
+            (propertyTypeId) =>
+              getPersistedPropertyType(
+                entityTypeRootedSubgraph,
+                mustBeVersionedUri(propertyTypeId),
+              )?.inner,
+          )
         : undefined,
     [entityTypeRootedSubgraph, propertyTypeIds],
   );

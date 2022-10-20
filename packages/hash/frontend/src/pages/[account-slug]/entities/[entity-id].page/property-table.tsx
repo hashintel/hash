@@ -17,7 +17,11 @@ import { pick, capitalize } from "lodash";
 import { EntityResponse } from "../../../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
 import { useBlockProtocolUpdateEntity } from "../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolUpdateEntity";
 import { useEntityEditor } from "./entity-editor-context";
-import { getPropertyTypesByBaseUri } from "../../../../lib/subgraph";
+import {
+  getPersistedDataType,
+  getPropertyTypesByBaseUri,
+} from "../../../../lib/subgraph";
+import { mustBeVersionedUri } from "../../types/entity-type/util";
 
 type Row = {
   title: string;
@@ -74,19 +78,12 @@ const getDataTypesOfPropertyType = (
   return propertyType.oneOf.map((propertyValue) => {
     if ("$ref" in propertyValue) {
       const dataTypeId = propertyValue?.$ref;
-      const dataTypeVertex =
-        entity.entityTypeRootedSubgraph.vertices[dataTypeId];
+      const persistedDataType = getPersistedDataType(
+        entity.entityTypeRootedSubgraph,
+        mustBeVersionedUri(dataTypeId),
+      );
 
-      if (!dataTypeVertex) {
-        return "undefined";
-      }
-      if (dataTypeVertex?.kind !== "dataType") {
-        throw new Error(
-          `Expected "dataType" vertex but got ${dataTypeVertex.kind}`,
-        );
-      }
-
-      return dataTypeVertex.inner.inner.title;
+      return persistedDataType ? persistedDataType.inner.title : "undefined";
     }
 
     return capitalize(propertyValue.type);
