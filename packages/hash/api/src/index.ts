@@ -44,7 +44,7 @@ import { getAwsRegion } from "./lib/aws-config";
 import { setupTelemetry } from "./telemetry/snowplow-setup";
 import { connectToTaskExecutor } from "./task-execution";
 import { createGraphClient } from "./graph";
-import { seedData } from "./seed-data";
+import { seedOrgsAndUsers } from "./seed-data";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
@@ -144,8 +144,8 @@ const main = async () => {
   setupAuth({ app, graphApi, logger });
 
   if (isDevEnv) {
-    // This will seed users and any other workspace related data for devleopment.
-    await seedData({ graphApi, logger });
+    // This will seed users, an org and pages.
+    await seedOrgsAndUsers({ graphApi, logger });
   }
 
   // Create an email transporter
