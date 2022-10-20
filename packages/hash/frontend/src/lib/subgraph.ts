@@ -150,7 +150,7 @@ export const getPersistedEntityType = (
 /** @todo - getPersistedEntity and getPersistedLink - https://app.asana.com/0/0/1203157172269853/f */
 
 /**
- * Returns all `PersistedDataType`s within the vertices of the subgraph
+ * Returns all root vertices of the subgraph
  *
  * @param subgraph
  */
