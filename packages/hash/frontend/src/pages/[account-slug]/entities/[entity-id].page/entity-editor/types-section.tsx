@@ -40,11 +40,12 @@ export const TypesSection = () => {
   }
 
   const entityTypeTitle = entity.entityTypeRootedSubgraph.entityType.title;
+  const entityTypeUrl = entity.entityTypeId.replace(/v\/\d+/, "");
 
   return (
     <EntitySection title="Type">
       <Box display="flex" gap={2}>
-        <TypeCard url={entity.entityTypeId} title={entityTypeTitle} />
+        <TypeCard url={entityTypeUrl} title={entityTypeTitle} />
       </Box>
     </EntitySection>
   );
