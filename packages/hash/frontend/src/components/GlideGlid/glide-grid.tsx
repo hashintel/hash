@@ -1,8 +1,16 @@
-import { DataEditor, DataEditorProps, Theme } from "@glideapps/glide-data-grid";
+import {
+  DataEditor,
+  DataEditorProps,
+  Theme,
+  DataEditorRef,
+} from "@glideapps/glide-data-grid";
 import { useTheme } from "@mui/material";
-import { useMemo } from "react";
+import { forwardRef, ForwardRefRenderFunction, useMemo } from "react";
 
-export const GlideGrid = (props: DataEditorProps) => {
+const _GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
+  props,
+  ref,
+) => {
   const { palette } = useTheme();
 
   const gridTheme: Partial<Theme> = useMemo(
@@ -28,6 +36,7 @@ export const GlideGrid = (props: DataEditorProps) => {
 
   return (
     <DataEditor
+      ref={ref}
       theme={gridTheme}
       width="100%"
       headerHeight={42}
@@ -42,3 +51,5 @@ export const GlideGrid = (props: DataEditorProps) => {
     />
   );
 };
+
+export const GlideGrid = forwardRef(_GlideGrid);

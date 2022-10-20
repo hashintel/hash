@@ -4,6 +4,7 @@ import { EntityEditorContextProvider } from "./entity-editor/entity-editor-conte
 import { LinksSection } from "./entity-editor/links-section";
 import { PeersSection } from "./entity-editor/peers-section";
 import { PropertiesSection } from "./entity-editor/properties-section";
+import { TestSection } from "./entity-editor/test-section";
 import { TypesSection } from "./entity-editor/types-section";
 
 export interface EntityEditorProps {
@@ -14,6 +15,8 @@ export interface EntityEditorProps {
 export const EntityEditor = ({ entity, setEntity }: EntityEditorProps) => {
   return (
     <EntityEditorContextProvider entity={entity} setEntity={setEntity}>
+      <TestSection />
+
       <TypesSection />
 
       <PropertiesSection />
