@@ -1,47 +1,29 @@
-import { FunctionComponent } from "react";
-import { ListItemIcon, ListItemText } from "@mui/material";
+import { FunctionComponent, ReactNode } from "react";
 import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
-import { IconDefinition } from "@fortawesome/free-solid-svg-icons";
-import { Menu, FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { MenuItem } from "../../../shared/ui";
-
-interface MenuItem {
-  title: string;
-  icon: IconDefinition;
-  onClick: () => void;
-}
+import { Menu } from "@hashintel/hash-design-system";
 
 type CommentBlockMenuProps = {
-  menuItems: MenuItem[];
   popupState: PopupState;
-  onEditableChange: () => void;
+  children: ReactNode;
 };
 
 export const CommentBlockMenu: FunctionComponent<CommentBlockMenuProps> = ({
-  menuItems,
   popupState,
+  children,
 }) => {
   const bindMenuProps = bindMenu(popupState);
 
   return (
     <Menu
       {...bindMenuProps}
+      open={true}
       anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       transformOrigin={{
         vertical: "top",
         horizontal: "right",
       }}
     >
-      {menuItems.map(({ title, icon, onClick }) => {
-        return (
-          <MenuItem key={title} onClick={onClick ?? popupState.close}>
-            <ListItemIcon>
-              <FontAwesomeIcon icon={icon} />
-            </ListItemIcon>
-            <ListItemText primary={title} />
-          </MenuItem>
-        );
-      })}
+      {children}
     </Menu>
   );
 };
