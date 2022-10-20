@@ -3,18 +3,21 @@
 
 import * as Sentry from "@sentry/nextjs";
 import { Replay } from "@sentry/replay";
-
-const dsn = process.env.SENTRY_DSN;
+import {
+  SENTRY_DSN,
+  SENTRY_REPLAYS_SAMPLING_RATE,
+  VERCEL_ENV,
+} from "./src/lib/public-env";
 
 const replaysSamplingRate = Number.parseInt(
-  process.env.SENTRY_REPLAYS_SAMPLING_RATE ?? "0",
+  SENTRY_REPLAYS_SAMPLING_RATE ?? "0",
   10,
 );
 
 Sentry.init({
-  dsn,
-  enabled: !!dsn,
-  environment: process.env.NEXT_PUBLIC_VERCEL_ENV ?? "unset",
+  dsn: SENTRY_DSN,
+  enabled: !!SENTRY_DSN,
+  environment: VERCEL_ENV,
   integrations:
     replaysSamplingRate > 0 &&
     replaysSamplingRate <= 1 &&
