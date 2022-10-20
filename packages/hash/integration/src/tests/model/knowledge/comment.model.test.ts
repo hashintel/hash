@@ -46,12 +46,14 @@ describe("Comment model class", () => {
         [WORKSPACE_TYPES.propertyType.tokens.baseUri]: [],
       },
       entityTypeModel: WORKSPACE_TYPES.entityType.text,
+      actorId: testUser.ownedById,
     });
 
     testBlock = await BlockModel.createBlock(graphApi, {
       ownedById: testUser.ownedById,
       componentId: testBlockComponentId,
       blockData: textEntity,
+      actorId: testUser.ownedById,
     });
   });
 
@@ -61,6 +63,7 @@ describe("Comment model class", () => {
       parent: testBlock,
       tokens: [],
       author: testUser,
+      actorId: testUser.ownedById,
     });
 
     const hasText = await comment.getHasText(graphApi);
