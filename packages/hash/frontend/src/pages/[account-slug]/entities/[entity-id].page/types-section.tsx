@@ -5,7 +5,6 @@ import { WhiteCard } from "../../types/entity-type/white-card";
 import { useEntityEditor } from "./entity-editor-context";
 import { EntitySection } from "./shared/entity-section";
 import { getPersistedEntityType } from "../../../../lib/subgraph";
-import { mustBeVersionedUri } from "../../types/entity-type/util";
 
 interface TypeCardProps {
   url: string;

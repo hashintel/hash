@@ -7,7 +7,6 @@ import {
   getPersistedEntityType,
   getPersistedLinkType,
 } from "../../../../../lib/subgraph";
-import { mustBeVersionedUri } from "../../../types/entity-type/util";
 
 export const useRowData = () => {
   const { entity, linkSort } = useEntityEditor();

@@ -6,7 +6,6 @@ import {
   getPersistedDataType,
   getPropertyTypesByBaseUri,
 } from "../../../../../lib/subgraph";
-import { mustBeVersionedUri } from "../../../types/entity-type/util";
 
 const getDataTypesOfPropertyType = (
   propertyType: PropertyType,
