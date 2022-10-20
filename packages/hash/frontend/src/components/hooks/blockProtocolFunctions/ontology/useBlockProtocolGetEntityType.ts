@@ -38,10 +38,10 @@ export const useBlockProtocolGetEntityType = (): {
         query: getEntityTypeQuery,
         variables: {
           entityTypeId,
-          dataTypeResolveDepth: 0,
-          propertyTypeResolveDepth: 0,
-          linkTypeResolveDepth: 0,
-          entityTypeResolveDepth: 0,
+          dataTypeResolveDepth: 255,
+          propertyTypeResolveDepth: 255,
+          linkTypeResolveDepth: 255,
+          entityTypeResolveDepth: 1,
         },
       });
 
