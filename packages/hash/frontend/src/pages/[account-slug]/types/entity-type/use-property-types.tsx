@@ -2,20 +2,22 @@ import { PropertyType, VersionedUri } from "@blockprotocol/type-system-web";
 import { createContext, useContext, useEffect, useState } from "react";
 import { useBlockProtocolAggregatePropertyTypes } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregatePropertyTypes";
 import { mustBeVersionedUri } from "./util";
-import {
-  getPersistedPropertyType,
-  isPropertyTypeVertex,
-  roots,
-} from "../../../../lib/subgraph";
+import { getPersistedPropertyType } from "../../../../lib/subgraph";
+import { useAdvancedInitTypeSystem } from "../../../../lib/use-init-type-system";
 
 type PropertyTypesContextValues = Record<VersionedUri, PropertyType>;
 
 export const useRemotePropertyTypes = () => {
+  const [typeSystemLoading, _] = useAdvancedInitTypeSystem();
+
   const [propertyTypes, setPropertyTypes] =
     useState<PropertyTypesContextValues | null>(null);
   const { aggregatePropertyTypes } = useBlockProtocolAggregatePropertyTypes();
 
   useEffect(() => {
+    if (typeSystemLoading) {
+      return;
+    }
     void aggregatePropertyTypes({ data: {} }).then(({ data: subgraph }) => {
       // @todo error handling
       if (subgraph) {
@@ -39,7 +41,7 @@ export const useRemotePropertyTypes = () => {
         );
       }
     });
-  }, [aggregatePropertyTypes]);
+  }, [aggregatePropertyTypes, typeSystemLoading]);
 
   return propertyTypes;
 };
