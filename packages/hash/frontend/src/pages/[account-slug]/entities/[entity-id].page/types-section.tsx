@@ -1,4 +1,3 @@
-import { EntityTypeVertex } from "@hashintel/hash-shared/graphql/types";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
 import { Box, Typography } from "@mui/material";
