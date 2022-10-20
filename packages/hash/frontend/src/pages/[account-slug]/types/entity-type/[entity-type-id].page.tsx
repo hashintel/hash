@@ -26,7 +26,7 @@ import { PropertyListCard } from "./property-list-card";
 import { useEntityType } from "./use-entity-type";
 import {
   PropertyTypesContext,
-  useRemotePropertyTypes,
+  usePropertyTypesContextValue,
 } from "./use-property-types";
 import { useRouteNamespace } from "./use-route-namespace";
 import { mustBeVersionedUri } from "./util";
@@ -122,7 +122,7 @@ const Page: NextPageWithLayout = () => {
 
   const entityType = remoteEntityType ?? draftEntityType;
 
-  const propertyTypes = useRemotePropertyTypes();
+  const propertyTypes = usePropertyTypesContextValue();
 
   const handleSubmit = wrapHandleSubmit(async (data) => {
     if (!entityType) {

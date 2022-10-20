@@ -1,24 +1,34 @@
 import { PropertyType, VersionedUri } from "@blockprotocol/type-system-web";
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useBlockProtocolAggregatePropertyTypes } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregatePropertyTypes";
-import { mustBeVersionedUri } from "./util";
 import { getPersistedPropertyType } from "../../../../lib/subgraph";
 import { useAdvancedInitTypeSystem } from "../../../../lib/use-init-type-system";
+import { mustBeVersionedUri } from "./util";
 
-type PropertyTypesContextValues = Record<VersionedUri, PropertyType>;
+type PropertyTypesContextValues = {
+  types: Record<VersionedUri, PropertyType>;
+  refetch: () => Promise<void>;
+};
 
-export const useRemotePropertyTypes = () => {
-  const [typeSystemLoading, _] = useAdvancedInitTypeSystem();
-
-  const [propertyTypes, setPropertyTypes] =
-    useState<PropertyTypesContextValues | null>(null);
+export const usePropertyTypesContextValue = () => {
+  const [typeSystemLoading] = useAdvancedInitTypeSystem();
+  const [propertyTypes, setPropertyTypes] = useState<
+    PropertyTypesContextValues["types"] | null
+  >(null);
   const { aggregatePropertyTypes } = useBlockProtocolAggregatePropertyTypes();
 
-  useEffect(() => {
+  const fetch = useCallback(async () => {
     if (typeSystemLoading) {
       return;
     }
-    void aggregatePropertyTypes({ data: {} }).then(({ data: subgraph }) => {
+    await aggregatePropertyTypes({ data: {} }).then(({ data: subgraph }) => {
       // @todo error handling
       if (subgraph) {
         setPropertyTypes(
@@ -43,12 +53,25 @@ export const useRemotePropertyTypes = () => {
     });
   }, [aggregatePropertyTypes, typeSystemLoading]);
 
-  return propertyTypes;
+  useEffect(() => {
+    void fetch();
+  }, [fetch]);
+
+  const result = useMemo(
+    () => ({ refetch: fetch, types: propertyTypes }),
+    [fetch, propertyTypes],
+  );
+
+  return result;
 };
 
 export const PropertyTypesContext =
   createContext<null | PropertyTypesContextValues>(null);
 
 export const usePropertyTypes = () => {
-  return useContext(PropertyTypesContext);
+  return useContext(PropertyTypesContext)?.types;
+};
+
+export const useRefetchPropertyTypes = () => {
+  return useContext(PropertyTypesContext)?.refetch;
 };
