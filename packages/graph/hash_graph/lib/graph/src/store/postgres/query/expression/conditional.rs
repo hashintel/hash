@@ -72,7 +72,7 @@ impl<'q> Expression<'q> {
 impl Transpile for Expression<'_> {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Asterix => fmt.write_char('*'),
+            Self::Asterisk => fmt.write_char('*'),
             Self::Column(column) => column.transpile(fmt),
             Self::Parameter(index) => write!(fmt, "${index}"),
             Self::Function(function) => function.transpile(fmt),

@@ -74,7 +74,7 @@ mod tests {
             with: WithExpression::default(),
             distinct: false,
             selects: vec![
-                SelectExpression::new(Expression::Asterix, None),
+                SelectExpression::new(Expression::Asterisk, None),
                 SelectExpression::new(
                     max_version_expression(),
                     Some(Cow::Borrowed("latest_version")),
@@ -99,7 +99,7 @@ mod tests {
         with_clause.add_statement(TableName::DataTypes, SelectStatement {
             with: WithExpression::default(),
             distinct: false,
-            selects: vec![SelectExpression::new(Expression::Asterix, None)],
+            selects: vec![SelectExpression::new(Expression::Asterisk, None)],
             from: Table {
                 name: TableName::DataTypes,
                 alias: None,
