@@ -77,6 +77,10 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
         boxShadow: boxShadows.md,
         marginBottom: 4,
         outline: "none",
+
+        ">*:first-child": {
+          borderTopWidth: 0,
+        },
       })}
     >
       <CommentBlock key={comment.entityId} comment={comment} />
@@ -106,30 +110,17 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
               ? "Show fewer responses"
               : `Show all ${comment.replies.length} responses`}
           </Button>
+
           <Collapse in={expanded}>
             {collapsedReplies.map((reply) => (
-              <Box
-                key={reply.entityId}
-                sx={{
-                  borderTop: ({ palette }) => `1px solid ${palette.gray[20]}`,
-                }}
-              >
-                <CommentBlock comment={reply} />
-              </Box>
+              <CommentBlock key={reply.entityId} comment={reply} />
             ))}
           </Collapse>
         </>
       ) : null}
 
       {uncollapsibleReplies.map((reply) => (
-        <Box
-          key={reply.entityId}
-          sx={{
-            borderTop: ({ palette }) => `1px solid ${palette.gray[20]}`,
-          }}
-        >
-          <CommentBlock comment={reply} />
-        </Box>
+        <CommentBlock key={reply.entityId} comment={reply} />
       ))}
 
       <Collapse in={showInput}>

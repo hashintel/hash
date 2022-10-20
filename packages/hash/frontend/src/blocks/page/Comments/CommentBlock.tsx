@@ -82,7 +82,14 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({ comment }) => {
   );
 
   return (
-    <Box display="flex" flexDirection="column" p={2}>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        p: 2,
+        borderTop: ({ palette }) => `1px solid ${palette.gray[20]}`,
+      }}
+    >
       <Box display="flex" justifyContent="space-between">
         <Avatar size={36} title={preferredName ?? "U"} />
         <Box
