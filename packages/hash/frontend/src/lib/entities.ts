@@ -470,15 +470,15 @@ export const generateEntityLabel = (
 
   const propertyTypes: { title?: string; propertyTypeBaseUri: string }[] =
     Object.keys(entity.properties).map((propertyTypeBaseUri) => {
-      const propertyTypeVersions = getPropertyTypesByBaseUri(
+      /** @todo - pick the latest version rather than first element? */
+      const [propertyType] = getPropertyTypesByBaseUri(
         (entity as EntityResponse).entityTypeRootedSubgraph,
         propertyTypeBaseUri,
       );
 
-      /** @todo - pick the latest version? */
-      return propertyTypeVersions
+      return propertyType
         ? {
-            title: propertyTypeVersions[0]!.inner.title.toLowerCase(),
+            title: propertyType.inner.title.toLowerCase(),
             propertyTypeBaseUri,
           }
         : {
