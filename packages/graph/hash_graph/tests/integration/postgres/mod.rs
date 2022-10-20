@@ -273,16 +273,21 @@ impl DatabaseApi<'_> {
         &mut self,
         uri: &VersionedUri,
     ) -> Result<PersistedLinkType, QueryError> {
-        Ok(self
+        let vertex = self
             .store
             .get_link_type(&StructuralQuery {
                 expression: Expression::for_versioned_uri(uri),
                 graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
             .await?
-            .pop()
-            .expect("no link type found")
-            .link_type)
+            .vertices
+            .remove(&GraphElementIdentifier::OntologyElementId(uri.clone()))
+            .expect("no link type found");
+
+        match vertex {
+            Vertex::LinkType(persisted_link_type) => Ok(persisted_link_type),
+            _ => unreachable!(),
+        }
     }
 
     pub async fn update_link_type(

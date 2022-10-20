@@ -247,12 +247,6 @@ impl PersistedLinkType {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct LinkTypeRootedSubgraph {
-    pub link_type: PersistedLinkType,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
 pub struct PersistedOntologyMetadata {
     identifier: PersistedOntologyIdentifier,
     created_by_id: AccountId,
