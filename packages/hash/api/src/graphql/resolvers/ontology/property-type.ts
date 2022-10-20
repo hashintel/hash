@@ -19,13 +19,14 @@ export const createPropertyType: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationCreatePropertyTypeArgs
-> = async (_, params, { dataSources, user }) => {
+> = async (_, params, { dataSources, userModel }) => {
   const { graphApi } = dataSources;
   const { ownedById, propertyType } = params;
 
   const createdPropertyTypeModel = await PropertyTypeModel.create(graphApi, {
-    ownedById: ownedById ?? user.entityId,
+    ownedById: ownedById ?? userModel.entityId,
     schema: propertyType,
+    actorId: userModel.entityId,
   }).catch((err) => {
     throw new ApolloError(err, "CREATION_ERROR");
   });
@@ -116,7 +117,7 @@ export const updatePropertyType: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationUpdatePropertyTypeArgs
-> = async (_, params, { dataSources }) => {
+> = async (_, params, { dataSources, userModel }) => {
   const { graphApi } = dataSources;
   const { propertyTypeId, updatedPropertyType } = params;
 
@@ -132,6 +133,7 @@ export const updatePropertyType: ResolverFn<
   const updatedPropertyTypeModel = await propertyTypeModel
     .update(graphApi, {
       schema: updatedPropertyType,
+      actorId: userModel.entityId,
     })
     .catch((err: AxiosError) => {
       const msg =

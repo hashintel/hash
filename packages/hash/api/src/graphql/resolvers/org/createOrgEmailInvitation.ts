@@ -14,7 +14,7 @@ export const createOrgEmailInvitation: ResolverFn<
 > = async (
   _,
   { orgEntityId, inviteeEmailAddress },
-  { emailTransporter, dataSources, user },
+  { emailTransporter, dataSources, userModel },
 ) =>
   dataSources.db.transaction(async (client) => {
     const { graphApi } = dataSources;
@@ -25,9 +25,11 @@ export const createOrgEmailInvitation: ResolverFn<
       throw new ApolloError(msg, "NOT_FOUND");
     }
 
-    if (!(await user.isMemberOfOrg(graphApi, { orgEntityId: org.entityId }))) {
+    if (
+      !(await userModel.isMemberOfOrg(graphApi, { orgEntityId: org.entityId }))
+    ) {
       throw new ForbiddenError(
-        `User with entityId ${user.entityId} is not a member of the org with entityId ${org.entityId}`,
+        `User with entityId ${userModel.entityId} is not a member of the org with entityId ${org.entityId}`,
       );
     }
 
@@ -52,7 +54,8 @@ export const createOrgEmailInvitation: ResolverFn<
       emailTransporter,
       {
         org,
-        inviter: user as any /** @todo: replace with updated model class */,
+        inviter:
+          userModel as any /** @todo: replace with updated model class */,
         inviteeEmailAddress,
       },
     );

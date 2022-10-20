@@ -113,7 +113,7 @@ export const executeGithubDiscoverTask: ResolverFn<
 > = async (
   _,
   { config },
-  { dataSources: { db, taskExecutor }, user, logger },
+  { dataSources: { db, taskExecutor }, userModel, logger },
 ) => {
   if (!taskExecutor) {
     throw new ApolloError(
@@ -126,7 +126,7 @@ export const executeGithubDiscoverTask: ResolverFn<
         config,
       );
 
-      const existingEntityChecker = await CachedEntityTypes(db, user);
+      const existingEntityChecker = await CachedEntityTypes(db, userModel);
 
       for (const message of catalog) {
         if (!message.name || !message.json_schema) {
@@ -159,7 +159,7 @@ export const executeGithubReadTask: ResolverFn<
 > = async (
   _,
   { config },
-  { dataSources: { db, taskExecutor }, user, logger },
+  { dataSources: { db, taskExecutor }, userModel, logger },
 ) => {
   if (!taskExecutor) {
     throw new ApolloError(
@@ -174,7 +174,7 @@ export const executeGithubReadTask: ResolverFn<
       );
       logger.debug(`Received ${airbyteRecords.length} records from Github`);
 
-      const existingEntityChecker = await CachedEntityTypes(db, user);
+      const existingEntityChecker = await CachedEntityTypes(db, userModel);
       for (const record of airbyteRecords) {
         const entityTypeName = streamNameToEntityTypeName(record.stream);
         /** @todo - Check if entity already exists */
@@ -188,8 +188,8 @@ export const executeGithubReadTask: ResolverFn<
         /** @todo - check primary key to see if entity already exists */
         // Insert the entity
         const entity = await Entity.create(db, {
-          accountId: user.entityId,
-          createdByAccountId: user.entityId,
+          accountId: userModel.entityId,
+          createdByAccountId: userModel.entityId,
           versioned: true,
           entityTypeId,
           properties: record.data,

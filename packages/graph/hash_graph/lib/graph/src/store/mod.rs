@@ -214,6 +214,7 @@ pub trait DataTypeStore: for<'q> crud::Read<PersistedDataType, Query<'q> = Expre
         &mut self,
         data_type: DataType,
         owned_by_id: AccountId,
+        actor_id: AccountId,
     ) -> Result<PersistedOntologyMetadata, InsertionError>;
 
     /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
@@ -231,7 +232,7 @@ pub trait DataTypeStore: for<'q> crud::Read<PersistedDataType, Query<'q> = Expre
     async fn update_data_type(
         &mut self,
         data_type: DataType,
-        updated_by: AccountId,
+        actor_id: AccountId,
     ) -> Result<PersistedOntologyMetadata, UpdateError>;
 }
 
@@ -252,6 +253,7 @@ pub trait PropertyTypeStore:
         &mut self,
         property_type: PropertyType,
         owned_by_id: AccountId,
+        actor_id: AccountId,
     ) -> Result<PersistedOntologyMetadata, InsertionError>;
 
     /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
@@ -269,7 +271,7 @@ pub trait PropertyTypeStore:
     async fn update_property_type(
         &mut self,
         property_type: PropertyType,
-        updated_by: AccountId,
+        actor_id: AccountId,
     ) -> Result<PersistedOntologyMetadata, UpdateError>;
 }
 
@@ -288,6 +290,7 @@ pub trait EntityTypeStore: for<'q> crud::Read<PersistedEntityType, Query<'q> = E
         &mut self,
         entity_type: EntityType,
         owned_by_id: AccountId,
+        actor_id: AccountId,
     ) -> Result<PersistedOntologyMetadata, InsertionError>;
 
     /// Get the [`Subgraph`]s specified by the [`StructuralQuery`].
@@ -305,7 +308,7 @@ pub trait EntityTypeStore: for<'q> crud::Read<PersistedEntityType, Query<'q> = E
     async fn update_entity_type(
         &mut self,
         entity_type: EntityType,
-        updated_by: AccountId,
+        actor_id: AccountId,
     ) -> Result<PersistedOntologyMetadata, UpdateError>;
 }
 
@@ -324,6 +327,7 @@ pub trait LinkTypeStore: for<'q> crud::Read<PersistedLinkType, Query<'q> = Expre
         &mut self,
         link_type: LinkType,
         owned_by_id: AccountId,
+        actor_id: AccountId,
     ) -> Result<PersistedOntologyMetadata, InsertionError>;
 
     /// Get the [`LinkTypeRootedSubgraph`]s specified by the [`StructuralQuery`].
@@ -344,7 +348,7 @@ pub trait LinkTypeStore: for<'q> crud::Read<PersistedLinkType, Query<'q> = Expre
     async fn update_link_type(
         &mut self,
         property_type: LinkType,
-        updated_by: AccountId,
+        actor_id: AccountId,
     ) -> Result<PersistedOntologyMetadata, UpdateError>;
 }
 
@@ -367,6 +371,7 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Expressio
         entity_type_id: VersionedUri,
         owned_by_id: AccountId,
         entity_id: Option<EntityId>,
+        actor_id: AccountId,
     ) -> Result<PersistedEntityMetadata, InsertionError>;
 
     /// Inserts the entities with the specified [`EntityType`] into the `Store`.
@@ -418,7 +423,7 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Expressio
         entity_id: EntityId,
         entity: Entity,
         entity_type_id: VersionedUri,
-        updated_by: AccountId,
+        actor_id: AccountId,
     ) -> Result<PersistedEntityMetadata, UpdateError>;
 }
 
@@ -436,6 +441,7 @@ pub trait LinkStore: for<'q> crud::Read<PersistedLink, Query<'q> = Expression> {
         &mut self,
         link: &Link,
         owned_by_id: AccountId,
+        actor_id: AccountId,
     ) -> Result<(), InsertionError>;
 
     /// Get the [`LinkRootedSubgraph`]s specified by the [`StructuralQuery`].
@@ -458,6 +464,6 @@ pub trait LinkStore: for<'q> crud::Read<PersistedLink, Query<'q> = Expression> {
     async fn remove_link(
         &mut self,
         link: &Link,
-        removed_by_id: AccountId,
+        actor_id: AccountId,
     ) -> Result<(), LinkRemovalError>;
 }

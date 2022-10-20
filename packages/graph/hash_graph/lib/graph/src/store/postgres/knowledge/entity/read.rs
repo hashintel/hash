@@ -3,7 +3,7 @@ use error_stack::{bail, Report, Result, ResultExt};
 use futures::{stream, StreamExt, TryStreamExt};
 
 use crate::{
-    knowledge::PersistedEntity,
+    knowledge::{PersistedEntity, PersistedEntityIdentifier},
     store::{
         crud,
         postgres::context::PostgresContext,
@@ -32,10 +32,15 @@ impl<C: AsClient> crud::Read<PersistedEntity> for PostgresStore<C> {
                     Ok(result.then(|| {
                         PersistedEntity::new(
                             record.entity,
-                            record.id,
-                            record.version,
+                            PersistedEntityIdentifier::new(
+                                record.id,
+                                record.version,
+                                record.owned_by_id,
+                            ),
                             record.entity_type_id,
-                            record.account_id,
+                            record.created_by_id,
+                            record.updated_by_id,
+                            record.removed_by_id,
                         )
                     }))
                 } else {

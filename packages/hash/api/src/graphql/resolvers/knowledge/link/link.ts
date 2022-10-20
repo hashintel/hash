@@ -16,7 +16,7 @@ export const createPersistedLink: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationCreatePersistedLinkArgs
-> = async (_, { link }, { dataSources: { graphApi } }) => {
+> = async (_, { link }, { dataSources: { graphApi }, userModel }) => {
   const { linkTypeId, ownedById, index, sourceEntityId, targetEntityId } = link;
 
   const [linkTypeModel, sourceEntityModel, targetEntityModel] =
@@ -38,6 +38,7 @@ export const createPersistedLink: ResolverFn<
     index: index ?? undefined,
     sourceEntityModel,
     targetEntityModel,
+    actorId: userModel.entityId,
   });
 
   return mapLinkModelToGQL(linkModel);
@@ -77,10 +78,10 @@ export const deletePersistedLink: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationDeletePersistedLinkArgs
-> = async (_, { link }, { dataSources: { graphApi }, user }) => {
+> = async (_, { link }, { dataSources: { graphApi }, userModel }) => {
   const linkModel = await LinkModel.get(graphApi, link);
 
-  await linkModel.remove(graphApi, { removedById: user.entityId });
+  await linkModel.remove(graphApi, { actorId: userModel.entityId });
 
   return true;
 };

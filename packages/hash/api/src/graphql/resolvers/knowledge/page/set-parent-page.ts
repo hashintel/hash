@@ -19,7 +19,7 @@ export const setParentPersistedPage: ResolverFn<
 > = async (
   _,
   { pageEntityId, parentPageEntityId, prevIndex = null, nextIndex = null },
-  { dataSources: { graphApi }, user },
+  { dataSources: { graphApi }, userModel },
 ) => {
   if (pageEntityId === parentPageEntityId) {
     throw new ApolloError("A page cannot be the parent of itself");
@@ -37,7 +37,7 @@ export const setParentPersistedPage: ResolverFn<
 
   const updatedPageModel = await pageModel.setParentPage(graphApi, {
     parentPageModel: newParentPageModel,
-    setById: user.entityId,
+    actorId: userModel.entityId,
     prevIndex,
     nextIndex,
   });

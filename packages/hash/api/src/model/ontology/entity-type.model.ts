@@ -14,11 +14,15 @@ import { WORKSPACE_TYPES } from "../../graph/workspace-types";
 export type EntityTypeModelConstructorParams = {
   ownedById: string;
   schema: EntityType;
+  createdById: string;
+  updatedById: string;
+  removedById?: string;
 };
 
 export type EntityTypeModelCreateParams = {
   ownedById: string;
   schema: Omit<EntityType, "$id">;
+  actorId: string;
 };
 
 /**
@@ -29,14 +33,28 @@ export default class {
 
   schema: EntityType;
 
-  constructor({ schema, ownedById }: EntityTypeModelConstructorParams) {
+  createdById: string;
+  updatedById: string;
+  removedById?: string;
+
+  constructor({
+    schema,
+    ownedById,
+    createdById,
+    updatedById,
+    removedById,
+  }: EntityTypeModelConstructorParams) {
     this.ownedById = ownedById;
     this.schema = schema;
+
+    this.createdById = createdById;
+    this.updatedById = updatedById;
+    this.removedById = removedById;
   }
 
   static fromPersistedEntityType({
     inner,
-    metadata: { identifier },
+    metadata: { identifier, createdById, updatedById, removedById },
   }: PersistedEntityType): EntityTypeModel {
     /**
      * @todo and a warning, these type casts are here to compensate for
@@ -52,19 +70,24 @@ export default class {
     return new EntityTypeModel({
       schema: inner as EntityType,
       ownedById: identifier.ownedById,
+      createdById,
+      updatedById,
+      removedById,
     });
   }
 
   /**
    * Create an entity type.
    *
-   * @param params.ownedById - the id of the owner of the entity type
+   * @param params.ownedById - the id of the account who owns the entity type
    * @param params.schema - the `EntityType`
+   * @param params.actorId - the id of the account that is creating the entity type
    */
   static async create(
     graphApi: GraphApi,
     params: EntityTypeModelCreateParams,
   ): Promise<EntityTypeModel> {
+    const { ownedById, actorId } = params;
     const namespace = await getNamespaceOfAccountOwner(graphApi, {
       ownerId: params.ownedById,
     });
@@ -78,11 +101,8 @@ export default class {
 
     const { data: metadata } = await graphApi
       .createEntityType({
-        /**
-         * @todo: replace uses of `accountId` with `ownedById` in the Graph API
-         * @see https://app.asana.com/0/1202805690238892/1203063463721791/f
-         */
-        accountId: params.ownedById,
+        actorId,
+        ownedById,
         schema: fullEntityType,
       })
       .catch((err: AxiosError) => {
@@ -93,11 +113,9 @@ export default class {
         );
       });
 
-    const { identifier } = metadata;
-
-    return new EntityTypeModel({
-      schema: fullEntityType,
-      ownedById: identifier.ownedById,
+    return EntityTypeModel.fromPersistedEntityType({
+      inner: fullEntityType,
+      metadata,
     });
   }
 
@@ -139,24 +157,19 @@ export default class {
   /**
    * Update an entity type.
    *
-   * @param params.schema an `EntityType`
+   * @param params.schema - the updated `EntityType`
+   * @param params.actorId - the id of the account that is updating the entity type
    */
   async update(
     graphApi: GraphApi,
     params: {
       schema: Omit<EntityType, "$id">;
+      actorId: string;
     },
   ): Promise<EntityTypeModel> {
-    const { schema } = params;
+    const { schema, actorId } = params;
     const updateArguments: UpdateEntityTypeRequest = {
-      /**
-       * @todo: let caller update who owns the type, or create new method dedicated to changing the owner of the type
-       * @see https://app.asana.com/0/1202805690238892/1203063463721793/f
-       *
-       * @todo: replace uses of `accountId` with `ownedById` in the Graph API
-       * @see https://app.asana.com/0/1202805690238892/1203063463721791/f
-       */
-      accountId: this.ownedById,
+      actorId,
       typeToUpdate: this.schema.$id,
       schema,
     };
@@ -165,9 +178,9 @@ export default class {
 
     const { identifier } = metadata;
 
-    return new EntityTypeModel({
-      schema: { ...schema, $id: identifier.uri },
-      ownedById: identifier.ownedById,
+    return EntityTypeModel.fromPersistedEntityType({
+      inner: { ...schema, $id: identifier.uri },
+      metadata,
     });
   }
 
