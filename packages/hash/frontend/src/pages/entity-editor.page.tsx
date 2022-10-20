@@ -48,7 +48,7 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
   const entityType = entityTypeRootedSubgraph
     ? getPersistedEntityType(
         entityTypeRootedSubgraph,
-        mustBeVersionedUri(entityTypeRootedSubgraph.roots[0]!),
+        entityTypeRootedSubgraph.roots[0]!,
       )?.inner
     : undefined;
 
@@ -69,10 +69,8 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
       entityTypeRootedSubgraph && propertyTypeIds
         ? propertyTypeIds.map(
             (propertyTypeId) =>
-              getPersistedPropertyType(
-                entityTypeRootedSubgraph,
-                mustBeVersionedUri(propertyTypeId),
-              )?.inner,
+              getPersistedPropertyType(entityTypeRootedSubgraph, propertyTypeId)
+                ?.inner,
           )
         : undefined,
     [entityTypeRootedSubgraph, propertyTypeIds],

@@ -43,7 +43,7 @@ export const TypesSection = () => {
 
   const entityTypeTitle = getPersistedEntityType(
     entity.entityTypeRootedSubgraph,
-    mustBeVersionedUri(entity.entityTypeId),
+    entity.entityTypeId,
   )!.inner.title;
 
   return (

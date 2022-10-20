@@ -45,6 +45,12 @@ export const isLinkVertex = (vertex: Vertex): vertex is LinkVertex => {
   return vertex.kind === "link";
 };
 
+/**
+ * @todo - use `VersionedUri` for the params in here once the type-system package is unified and we no-longer need to
+ *   gate on init:
+ *   https://app.asana.com/0/1201095311341924/1202923896339225/f
+ */
+
 // ------------------- Get methods to encapsulate lookups and error checking -------------------
 
 /**
@@ -57,7 +63,7 @@ export const isLinkVertex = (vertex: Vertex): vertex is LinkVertex => {
  */
 export const getPersistedDataType = (
   subgraph: Subgraph,
-  dataTypeId: VersionedUri,
+  dataTypeId: string,
 ): PersistedDataType | undefined => {
   const vertex = subgraph.vertices[dataTypeId];
 
@@ -82,7 +88,7 @@ export const getPersistedDataType = (
  */
 export const getPersistedPropertyType = (
   subgraph: Subgraph,
-  propertyTypeId: VersionedUri,
+  propertyTypeId: string,
 ): PersistedPropertyType | undefined => {
   const vertex = subgraph.vertices[propertyTypeId];
 
@@ -107,7 +113,7 @@ export const getPersistedPropertyType = (
  */
 export const getPersistedLinkType = (
   subgraph: Subgraph,
-  linkTypeId: VersionedUri,
+  linkTypeId: string,
 ): PersistedLinkType | undefined => {
   const vertex = subgraph.vertices[linkTypeId];
 
@@ -132,7 +138,7 @@ export const getPersistedLinkType = (
  */
 export const getPersistedEntityType = (
   subgraph: Subgraph,
-  entityTypeId: VersionedUri,
+  entityTypeId: string,
 ): PersistedEntityType | undefined => {
   const vertex = subgraph.vertices[entityTypeId];
 

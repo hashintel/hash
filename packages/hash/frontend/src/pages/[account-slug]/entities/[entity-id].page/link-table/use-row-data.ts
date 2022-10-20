@@ -21,12 +21,12 @@ export const useRowData = () => {
       entity?.links.map((link) => {
         const linkType = getPersistedLinkType(
           entity.entityTypeRootedSubgraph,
-          mustBeVersionedUri(link.linkTypeId),
+          link.linkTypeId,
         )?.inner;
 
         const referencedEntityType = getPersistedEntityType(
           entity.entityTypeRootedSubgraph,
-          mustBeVersionedUri(link.targetEntity.entityTypeId),
+          link.targetEntity.entityTypeId,
         )?.inner;
 
         return {
