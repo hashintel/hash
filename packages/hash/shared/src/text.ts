@@ -1,42 +1,42 @@
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { ComponentNode } from "./prosemirror";
-import { Text, TextProperties } from "./graphql/apiTypes.gen";
 import { TextToken } from "./graphql/types";
+import { TextEntityType, TextProperties } from "./entity";
+import { TEXT_TOKEN_PROPERTY_TYPE_BASE_URI } from "./entityStore";
 
 export const childrenForTextEntity = (
-  entity: Pick<Text, "properties">,
+  entity: Pick<TextEntityType, "properties">,
   schema: Schema,
 ): ProsemirrorNode<Schema>[] =>
-  entity.properties.tokens
-    // eslint-disable-next-line array-callback-return -- TODO: disable the rule because it’s not aware of TS
-    .map((token) => {
-      switch (token.tokenType) {
-        case "hardBreak":
-          return schema.node("hardBreak");
-        case "mention":
-          return schema.node("mention", {
-            mentionType: token.mentionType,
-            entityId: token.entityId,
-          });
-        case "text": {
-          return schema.text(
-            token.text,
+  // eslint-disable-next-line array-callback-return -- TODO: disable the rule because it’s not aware of TS
+  entity.properties[TEXT_TOKEN_PROPERTY_TYPE_BASE_URI]?.map((token) => {
+    switch (token.tokenType) {
+      case "hardBreak":
+        return schema.node("hardBreak");
+      case "mention":
+        return schema.node("mention", {
+          mentionType: token.mentionType,
+          entityId: token.entityId,
+        });
+      case "text": {
+        return schema.text(
+          token.text,
+          [
+            ["strong", token.bold] as const,
+            ["underlined", token.underline] as const,
+            ["em", token.italics] as const,
             [
-              ["strong", token.bold] as const,
-              ["underlined", token.underline] as const,
-              ["em", token.italics] as const,
-              [
-                "link",
-                Boolean(token.link),
-                token.link ? { href: token.link } : undefined,
-              ] as const,
-            ]
-              .filter(([, include]) => include)
-              .map(([mark, _, attrs]) => schema.mark(mark, attrs)),
-          );
-        }
+              "link",
+              Boolean(token.link),
+              token.link ? { href: token.link } : undefined,
+            ] as const,
+          ]
+            .filter(([, include]) => include)
+            .map(([mark, _, attrs]) => schema.mark(mark, attrs)),
+        );
       }
-    });
+    }
+  }) ?? [];
 
 export const textBlockNodeToEntityProperties = (
   node: ComponentNode,
@@ -84,5 +84,5 @@ export const textBlockNodeToEntityProperties = (
     }
   });
 
-  return { tokens };
+  return { [TEXT_TOKEN_PROPERTY_TYPE_BASE_URI]: tokens };
 };

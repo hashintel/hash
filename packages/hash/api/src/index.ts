@@ -23,7 +23,7 @@ import {
 import setupAuth from "./auth";
 import { RedisCache } from "./cache";
 import { ensureWorkspaceTypesExist } from "./graph/workspace-types";
-import { createCollabApp } from "./collab/collabApp";
+// import { createCollabApp } from "./collab/collabApp";
 import {
   AwsSesEmailTransporter,
   DummyEmailTransporter,
@@ -265,10 +265,11 @@ const main = async () => {
     collabRedisQueue.release(),
   );
 
+  // Collab is currently disabled.
   // Register the collab backend
-  const collabApp = await createCollabApp(collabRedisQueue);
-  shutdown.addCleanup("collabApp", async () => collabApp.stop());
-  app.use("/collab-backend", collabApp.router);
+  // const collabApp = await createCollabApp(collabRedisQueue);
+  // shutdown.addCleanup("collabApp", async () => collabApp.stop());
+  // app.use("/collab-backend", collabApp.router);
 };
 
 void main().catch(async (err) => {

@@ -25,6 +25,9 @@ export type EntityModelConstructorParams = {
   version: string;
   entityTypeModel: EntityTypeModel;
   properties: object;
+  createdById: string;
+  updatedById: string;
+  removedById: string | undefined;
 };
 
 export type EntityModelCreateParams = {
@@ -32,6 +35,7 @@ export type EntityModelCreateParams = {
   properties: object;
   entityTypeModel: EntityTypeModel;
   entityId?: string;
+  actorId: string;
 };
 
 /**
@@ -45,12 +49,19 @@ export default class {
   entityTypeModel: EntityTypeModel;
   properties: object;
 
+  createdById: string;
+  updatedById: string;
+  removedById: string | undefined;
+
   constructor({
     ownedById,
     entityId,
     version,
     entityTypeModel,
     properties,
+    createdById,
+    updatedById,
+    removedById,
   }: EntityModelConstructorParams) {
     this.ownedById = ownedById;
 
@@ -58,6 +69,10 @@ export default class {
     this.version = version;
     this.entityTypeModel = entityTypeModel;
     this.properties = properties;
+
+    this.createdById = createdById;
+    this.updatedById = updatedById;
+    this.removedById = removedById;
   }
 
   private static async fromPersistedEntity(
@@ -65,7 +80,8 @@ export default class {
     { metadata, inner }: PersistedEntity,
     cachedEntityTypeModels?: Map<string, EntityTypeModel>,
   ): Promise<EntityModel> {
-    const { identifier, entityTypeId } = metadata;
+    const { identifier, entityTypeId, createdById, updatedById, removedById } =
+      metadata;
     const { ownedById, entityId, version } = identifier;
     const cachedEntityTypeModel = cachedEntityTypeModels?.get(entityTypeId);
 
@@ -86,42 +102,47 @@ export default class {
       version,
       entityTypeModel,
       properties: inner,
+      createdById,
+      updatedById,
+      removedById,
     });
   }
 
   /**
    * Create an entity.
    *
-   * @param params.ownedById the id of the owner of the entity
-   * @param params.schema an `Entity`
+   * @param params.ownedById - the id of the account who owns the entity
+   * @param params.entityTypeModel - the type of the entity
+   * @param params.properties - the properties object of the entity
+   * @param params.actorId - the id of the account that is creating the entity
+   * @param params.entityId (optional) - the id of the entity, is generated if left undefined
    */
   static async create(
     graphApi: GraphApi,
-    {
+    params: EntityModelCreateParams,
+  ): Promise<EntityModel> {
+    const {
       ownedById,
       entityTypeModel,
       properties,
+      actorId,
       entityId: overrideEntityId,
-    }: EntityModelCreateParams,
-  ): Promise<EntityModel> {
+    } = params;
+
     const { data: metadata } = await graphApi.createEntity({
-      accountId: ownedById,
+      ownedById,
       entityTypeId: entityTypeModel.schema.$id,
       entity: properties,
       entityId: overrideEntityId,
+      actorId,
     });
 
-    const {
-      identifier: { entityId, version },
-    } = metadata;
+    const persistedEntity: PersistedEntity = {
+      inner: properties,
+      metadata,
+    };
 
-    return new EntityModel({
-      ownedById,
-      entityId,
-      version,
-      entityTypeModel,
-      properties,
-    });
+    return EntityModel.fromPersistedEntity(graphApi, persistedEntity);
   }
 
   /**
@@ -131,6 +152,7 @@ export default class {
    * @param params.entityTypeId - the id of the entity's type
    * @param params.entityProperties - the properties of the entity
    * @param params.linkedEntities (optional) - the linked entity definitions of the entity
+   * @param params.actorId - the id of the account that is creating the entity
    */
   static async createEntityWithLinks(
     graphApi: GraphApi,
@@ -139,9 +161,11 @@ export default class {
       entityTypeId: string;
       properties: any;
       linkedEntities?: PersistedLinkedEntityDefinition[];
+      actorId: string;
     },
   ): Promise<EntityModel> {
-    const { ownedById, entityTypeId, properties, linkedEntities } = params;
+    const { ownedById, entityTypeId, properties, linkedEntities, actorId } =
+      params;
 
     const entitiesInTree = linkedTreeFlatten<
       PersistedEntityDefinition,
@@ -175,6 +199,7 @@ export default class {
         entity: await EntityModel.getOrCreate(graphApi, {
           ownedById,
           entityDefinition: definition,
+          actorId,
         }),
       })),
     );
@@ -207,6 +232,7 @@ export default class {
             targetEntityModel: entity,
             index: link.meta.index ?? undefined,
             ownedById,
+            actorId,
           });
         }
       }),
@@ -221,15 +247,17 @@ export default class {
    *
    * @param params.ownedById the id of owner of the entity
    * @param params.entityDefinition the definition of how to get or create the entity (excluding any linked entities)
+   * @param params.createdById - the id of the account that is creating the entity
    */
   static async getOrCreate(
     graphApi: GraphApi,
     params: {
       ownedById: string;
       entityDefinition: Omit<PersistedEntityDefinition, "linkedEntities">;
+      actorId: string;
     },
   ): Promise<EntityModel> {
-    const { entityDefinition, ownedById } = params;
+    const { entityDefinition, ownedById, actorId } = params;
     const { entityProperties, existingEntity } = entityDefinition;
 
     let entity;
@@ -263,6 +291,7 @@ export default class {
         ownedById,
         entityTypeModel,
         properties: entityProperties,
+        actorId,
       });
     } else {
       throw new Error(
@@ -340,42 +369,30 @@ export default class {
   /**
    * Update an entity.
    *
-   * @param params.schema an `Entity`
+   * @param params.properties - the properties object of the entity
+   * @param params.actorId - the id of the account that is updating the entity
    */
   async update(
     graphApi: GraphApi,
     params: {
       properties: object;
+      actorId: string;
     },
   ): Promise<EntityModel> {
-    const { properties } = params;
-    const { ownedById, entityId, entityTypeModel } = this;
+    const { properties, actorId } = params;
+    const { entityId, entityTypeModel } = this;
 
     const { data: metadata } = await graphApi.updateEntity({
-      /**
-       * @todo: let caller update who owns the entity, or create new method dedicated to changing the owner of the entity
-       * @see https://app.asana.com/0/1202805690238892/1203063463721793/f
-       *
-       * @todo: replace uses of `accountId` with `ownedById` in the Graph API
-       * @see https://app.asana.com/0/1202805690238892/1203063463721791/f
-       */
-      accountId: ownedById,
+      actorId,
       entityId,
       /** @todo: make this argument optional */
       entityTypeId: entityTypeModel.schema.$id,
       entity: properties,
     });
 
-    const {
-      identifier: { version },
-    } = metadata;
-
-    return new EntityModel({
-      ownedById,
-      entityId,
-      version,
-      entityTypeModel,
-      properties,
+    return EntityModel.fromPersistedEntity(graphApi, {
+      metadata,
+      inner: properties,
     });
   }
 
@@ -383,15 +400,16 @@ export default class {
    * Update multiple top-level properties on an entity.
    *
    * @param params.updatedProperties - an array of the properties being updated
-   * @returns
+   * @param params.actorId - the id of the account that is updating the entity
    */
   async updateProperties(
     graphApi: GraphApi,
     params: {
       updatedProperties: { propertyTypeBaseUri: string; value: any }[];
+      actorId: string;
     },
   ): Promise<EntityModel> {
-    const { updatedProperties } = params;
+    const { updatedProperties, actorId } = params;
 
     return await this.update(graphApi, {
       properties: updatedProperties.reduce(
@@ -401,6 +419,7 @@ export default class {
         }),
         this.properties,
       ),
+      actorId,
     });
   }
 
@@ -409,18 +428,21 @@ export default class {
    *
    * @param params.propertyTypeBaseUri - the property type base URI of the property being updated
    * @param params.value - the updated value of the property
+   * @param params.actorId - the id of the account that is updating the entity
    */
   async updateProperty(
     graphApi: GraphApi,
     params: {
       propertyTypeBaseUri: string;
       value: any;
+      actorId: string;
     },
   ): Promise<EntityModel> {
-    const { propertyTypeBaseUri, value } = params;
+    const { propertyTypeBaseUri, value, actorId } = params;
 
     return await this.updateProperties(graphApi, {
       updatedProperties: [{ propertyTypeBaseUri, value }],
+      actorId,
     });
   }
 
@@ -439,6 +461,17 @@ export default class {
     params: Omit<LinkModelCreateParams, "sourceEntityModel">,
   ): Promise<LinkModel> {
     return await LinkModel.create(graphApi, {
+      sourceEntityModel: this,
+      ...params,
+    });
+  }
+
+  /** @see {@link LinkModel.createLinkWithoutUpdatingSiblings} */
+  async createOutgoingLinkWithoutUpdatingSiblings(
+    graphApi: GraphApi,
+    params: Omit<LinkModelCreateParams, "sourceEntityModel">,
+  ): Promise<LinkModel> {
+    return await LinkModel.createLinkWithoutUpdatingSiblings(graphApi, {
       sourceEntityModel: this,
       ...params,
     });

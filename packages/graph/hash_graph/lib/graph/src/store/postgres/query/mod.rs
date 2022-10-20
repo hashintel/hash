@@ -1,46 +1,75 @@
-#![expect(dead_code, reason = "Work in progress")]
+#![allow(dead_code, reason = "Work in progress")]
 
 //! Postgres implementation to compile queries.
 
-pub mod database;
+mod condition;
+mod data_type;
+mod expression;
+mod statement;
+mod table;
 
 use std::fmt::{self, Formatter};
 
-use crate::store::{
-    postgres::query::database::{Column, Table},
-    query::QueryRecord,
+pub use self::{
+    condition::Condition,
+    data_type::DataTypeQueryField,
+    expression::{Expression, Function},
+    statement::WindowStatement,
+    table::{Column, ColumnAccess, Table, TableAlias, TableName},
 };
+use crate::store::query::QueryRecord;
 
-/// A structural query, which can be compiled into a statement in Postgres.
-// TODO: Implement for `ReadQuery<DataType>`, `ReadQuery<PropertyType>`, etc. when associated types
-//       are implemented
-pub trait Query {
+pub trait PostgresQueryRecord<'q>: QueryRecord<Path<'q>: Path> {
     type Field: Field;
-    type Record: QueryRecord;
 
-    /// The [`Table`] used for this `Query`.
-    fn base_table() -> Table;
+    /// The [`TableName`] used for this `Query`.
+    fn base_table() -> TableName;
 }
 
-/// An attribute of an ontology type or a knowledge element.
-// TODO: Implement for `DataTypeField`, `PropertyTypeQueryField`, etc. (not added yet)
+/// A queryable attribute of an element in the graph.
 pub trait Field {
-    /// The [`Column`] which contains this `Field`.
-    fn column(&self) -> Column;
+    /// The [`TableName`] of the [`Table`] where this field is located.
+    fn table_name(&self) -> TableName;
+
+    /// The way to access the column inside of [`table_name()`] where this field is located.
+    ///
+    /// [`table_name()`]: Self::table_name
+    fn column_access(&self) -> ColumnAccess;
 }
 
-/// An absolute path to a [`Field`].
-// TODO: Implement for `DataTypeQueryPath`, `PropertyTypeQueryPath`, etc. (not added yet)
+/// An absolute path inside of a query pointing to a [`Field`]
 pub trait Path {
-    /// Returns a list of [`Table`]s required to traverse this path.
-    fn tables(&self) -> Vec<Table>;
+    /// Returns a list of [`TableName`]s required to traverse this path.
+    fn tables(&self) -> Vec<TableName>;
 
-    /// Returns the [`Column`] where the path ends at.
-    fn column(&self) -> Column;
+    /// The [`TableName`] that marks the end of the path.
+    fn terminating_table_name(&self) -> TableName;
+
+    /// How to access the column inside of [`terminating_table_name()`] where this path ends.
+    ///
+    /// [`terminating_table_name()`]: Self::terminating_table_name
+    fn column_access(&self) -> ColumnAccess;
 }
 
 /// Renders the object into a Postgres compatible format.
 pub trait Transpile {
     /// Renders the value using the given [`Formatter`].
     fn transpile(&self, fmt: &mut Formatter) -> fmt::Result;
+}
+
+#[cfg(test)]
+mod test_helper {
+    use std::fmt;
+
+    use crate::store::postgres::query::Transpile;
+
+    pub fn transpile<R: Transpile>(value: &R) -> String {
+        struct Transpiler<'r, R>(&'r R);
+        impl<R: Transpile> fmt::Display for Transpiler<'_, R> {
+            fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+                self.0.transpile(fmt)
+            }
+        }
+        Transpiler(value).to_string()
+    }
 }

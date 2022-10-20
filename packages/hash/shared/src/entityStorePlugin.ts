@@ -4,12 +4,7 @@ import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState, Plugin, PluginKey, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { v4 as uuid } from "uuid";
-import {
-  BlockEntity,
-  getEntityChildEntity,
-  isDraftTextContainingEntityProperties,
-  isTextEntity,
-} from "./entity";
+import { BlockEntity, getEntityChildEntity, isTextEntity } from "./entity";
 import {
   createEntityStore,
   DraftEntity,
@@ -64,9 +59,16 @@ export type EntityStorePluginAction = { received?: boolean } & (
       type: "updateEntityProperties";
       payload: {
         draftId: string;
-        properties: { [key: string]: unknown };
         merge: boolean;
-      };
+      } & (
+        | {
+            blockEntityMetadata: {
+              componentId: string;
+              blockChildEntity?: { [key: string]: unknown };
+            };
+          }
+        | { properties: { [key: string]: unknown } }
+      );
     }
   | {
       type: "newDraftEntity";
@@ -154,18 +156,9 @@ const updateEntitiesByDraftId = (
 
   for (const entity of Object.values(draftEntityStore)) {
     if (isDraftBlockEntity(entity)) {
-      /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
-      const dataEntity = entity.dataEntity as any;
-
-      if (dataEntity.draftId === draftId) {
-        entities.push(dataEntity);
-      }
-
-      if (
-        isDraftTextContainingEntityProperties(dataEntity.properties) &&
-        dataEntity.properties.text.data.draftId === draftId
-      ) {
-        entities.push(dataEntity.properties.text.data);
+      const blockChildEntity = entity.blockChildEntity!;
+      if (blockChildEntity.draftId && blockChildEntity.draftId === draftId) {
+        entities.push(blockChildEntity as DraftEntity);
       }
     }
   }
@@ -268,16 +261,25 @@ const entityStoreReducer = (
         updateEntitiesByDraftId(
           draftState.store.draft,
           action.payload.draftId,
-          action.payload.merge
-            ? (draftEntity) => {
+          (draftEntity) => {
+            if ("blockEntityMetadata" in action.payload) {
+              draftEntity.componentId =
+                action.payload.blockEntityMetadata?.componentId;
+              draftEntity.blockChildEntity = action.payload.blockEntityMetadata
+                ?.blockChildEntity as any;
+            }
+
+            if ("properties" in action.payload) {
+              if (action.payload.merge) {
                 Object.assign(
                   draftEntity.properties,
                   action.payload.properties,
                 );
-              }
-            : (draftEntity) => {
+              } else {
                 draftEntity.properties = action.payload.properties;
-              },
+              }
+            }
+          },
         );
       });
     }
@@ -321,11 +323,6 @@ const entityStoreReducer = (
           entityId: action.payload.entityId,
           draftId: action.payload.draftId,
           properties: {},
-          dataEntity: {
-            /** @todo this value is incorrect and needs to be changed https://app.asana.com/0/0/1203099452204542/f */
-            entityId: "",
-            /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
-          } as any,
         };
       });
   }
@@ -487,7 +484,7 @@ class ProsemirrorStateChangeHandler {
 
       const componentId = componentNodeToId(node);
 
-      if (entity.properties.componentId !== componentId) {
+      if (entity.componentId !== componentId) {
         addEntityStoreAction(this.state, this.tr, {
           type: "updateEntityProperties",
           payload: {
@@ -524,25 +521,19 @@ class ProsemirrorStateChangeHandler {
       // @todo in what circumstances does this occur
       if (!isDraftBlockEntity(parentEntity)) {
         const componentNodeChild = findComponentNodes(node)[0];
+        const componentId = componentNodeChild
+          ? componentNodeToId(componentNodeChild)
+          : "";
 
         addEntityStoreAction(this.state, this.tr, {
           type: "updateEntityProperties",
           payload: {
             merge: false,
             draftId: parentEntity.draftId,
-            properties: {
-              entity: draftEntityStore[getRequiredDraftIdFromEntityNode(node)],
-              /**
-               * We don't currently rely on componentId of the draft
-               * right
-               * now, but this will be a problem in the future (i.e, if
-               * save starts using the draft entity store)
-               *
-               * @todo set this properly
-               */
-              componentId: componentNodeChild
-                ? componentNodeToId(componentNodeChild)
-                : "",
+            blockEntityMetadata: {
+              blockChildEntity:
+                draftEntityStore[getRequiredDraftIdFromEntityNode(node)],
+              componentId,
             },
           },
         });
@@ -557,21 +548,31 @@ class ProsemirrorStateChangeHandler {
       draftEntityStore,
     );
 
+    if (!childEntity) {
+      return;
+    }
+    // We should currently be
+    //          here V
+    // Block -> Entity -> Entity -> Component node
+    //  firstChild refers to ^
+    //  firstchild.firstChild refers to  ^
+    // and we'd like to update the child entity's text contents approrpiately.
+
     if (
       isTextEntity(childEntity) &&
       node.firstChild &&
-      isComponentNode(node.firstChild)
+      node.firstChild.firstChild &&
+      // Check if the next next entity node's child is a component node
+      isComponentNode(node.firstChild.firstChild)
     ) {
       const nextProps = textBlockNodeToEntityProperties(node.firstChild);
 
-      /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
-      if (!isEqual((childEntity as any).properties, nextProps)) {
+      if (!isEqual(childEntity.properties, nextProps)) {
         addEntityStoreAction(this.state, this.tr, {
           type: "updateEntityProperties",
           payload: {
             merge: false,
-            /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
-            draftId: (childEntity as any).draftId,
+            draftId: childEntity.draftId,
             properties: nextProps,
           },
         });

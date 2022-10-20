@@ -13,6 +13,9 @@ import { getNamespaceOfAccountOwner } from "./util";
 type DataTypeModelConstructorArgs = {
   ownedById: string;
   schema: DataType;
+  createdById: string;
+  updatedById: string;
+  removedById?: string;
 };
 
 /**
@@ -23,14 +26,28 @@ export default class {
 
   schema: DataType;
 
-  constructor({ schema, ownedById }: DataTypeModelConstructorArgs) {
+  createdById: string;
+  updatedById: string;
+  removedById?: string;
+
+  constructor({
+    schema,
+    ownedById,
+    createdById,
+    updatedById,
+    removedById,
+  }: DataTypeModelConstructorArgs) {
     this.ownedById = ownedById;
     this.schema = schema;
+
+    this.createdById = createdById;
+    this.updatedById = updatedById;
+    this.removedById = removedById;
   }
 
   static fromPersistedDataType({
     inner,
-    metadata: { identifier },
+    metadata: { identifier, createdById, updatedById, removedById },
   }: PersistedDataType): DataTypeModel {
     /**
      * @todo and a warning, these type casts are here to compensate for
@@ -46,6 +63,9 @@ export default class {
     return new DataTypeModel({
       schema: inner as DataType,
       ownedById: identifier.ownedById,
+      createdById,
+      updatedById,
+      removedById,
     });
   }
 
@@ -58,8 +78,9 @@ export default class {
    *   Depends on the RFC captured by:
    *   https://app.asana.com/0/1200211978612931/1202464168422955/f
    *
-   * @param params.ownedById - the id of the owner of the entity type
+   * @param params.ownedById - the id of the account who owns the data type
    * @param params.schema - the `DataType`
+   * @param params.actorId - the id of the account that is creating the data type
    */
   static async create(
     graphApi: GraphApi,
@@ -70,8 +91,10 @@ export default class {
       //  this is needed for as long as DataType extends Record
       schema: Pick<DataType, "kind" | "title" | "description" | "type"> &
         Record<string, any>;
+      actorId: string;
     },
   ): Promise<DataTypeModel> {
+    const { ownedById, actorId } = params;
     const namespace = await getNamespaceOfAccountOwner(graphApi, {
       ownerId: params.ownedById,
     });
@@ -85,12 +108,9 @@ export default class {
 
     const { data: metadata } = await graphApi
       .createDataType({
-        /**
-         * @todo: replace uses of `accountId` with `ownedById` in the Graph API
-         * @see https://app.asana.com/0/1202805690238892/1203063463721791/f
-         */
-        accountId: params.ownedById,
         schema: fullDataType,
+        ownedById,
+        actorId,
       })
       .catch((err: AxiosError) => {
         throw new Error(
@@ -100,11 +120,9 @@ export default class {
         );
       });
 
-    const { identifier } = metadata;
-
-    return new DataTypeModel({
-      schema: fullDataType,
-      ownedById: identifier.ownedById,
+    return DataTypeModel.fromPersistedDataType({
+      inner: fullDataType,
+      metadata,
     });
   }
 
@@ -134,7 +152,8 @@ export default class {
    *   Depends on the RFC captured by:
    *   https://app.asana.com/0/1200211978612931/1202464168422955/f
    *
-   * @param params.schema a `DataType`
+   * @param params.schema - the updated `DataType`
+   * @param params.actorId - the id of the account that is updating the data type
    */
   async update(
     graphApi: GraphApi,
@@ -144,19 +163,13 @@ export default class {
       //  this is needed for as long as DataType extends Record
       schema: Pick<DataType, "kind" | "title" | "description" | "type"> &
         Record<string, any>;
+      actorId: string;
     },
   ): Promise<DataTypeModel> {
-    const { schema } = params;
+    const { schema, actorId } = params;
 
     const updateArguments: UpdateDataTypeRequest = {
-      /**
-       * @todo: let caller update who owns the type, or create new method dedicated to changing the owner of the type
-       * @see https://app.asana.com/0/1202805690238892/1203063463721793/f
-       *
-       * @todo: replace uses of `accountId` with `ownedById` in the Graph API
-       * @see https://app.asana.com/0/1202805690238892/1203063463721791/f
-       */
-      accountId: this.ownedById,
+      actorId,
       typeToUpdate: this.schema.$id,
       schema,
     };
@@ -165,9 +178,9 @@ export default class {
 
     const { identifier } = metadata;
 
-    return new DataTypeModel({
-      schema: { ...schema, $id: identifier.uri },
-      ownedById: identifier.ownedById,
+    return DataTypeModel.fromPersistedDataType({
+      inner: { ...schema, $id: identifier.uri },
+      metadata,
     });
   }
 }

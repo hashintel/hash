@@ -11,7 +11,7 @@ export const createComment: ResolverFn<
 > = async (
   _,
   { accountId, parentId, tokens },
-  { dataSources: { db }, user },
+  { dataSources: { db }, userModel },
 ) => {
   return await db.transaction(async (client) => {
     const parent = await Block.getBlockById(client, {
@@ -29,7 +29,8 @@ export const createComment: ResolverFn<
     const comment = await Comment.createComment(db, {
       accountId,
       parent,
-      createdBy: user as any /** @todo: replace with updated model class */,
+      createdBy:
+        userModel as any /** @todo: replace with updated model class */,
       tokens,
     });
 

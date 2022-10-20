@@ -42,13 +42,13 @@ const BLANK_PROPERTIES = {};
 
 const getChildEntity = (
   entity: DraftEntity | null | undefined,
-): DraftEntity<BlockEntity["properties"]["entity"]> | null => {
-  if (entity) {
+): DraftEntity<BlockEntity["blockChildEntity"]> | null => {
+  if (entity && entity.blockChildEntity) {
     if (!isDraftBlockEntity(entity)) {
       throw new Error("Cannot prepare non-block entity for prosemirrior");
     }
 
-    return entity.properties.entity;
+    return entity.blockChildEntity as DraftEntity;
   }
 
   return null;
@@ -308,15 +308,8 @@ export class ComponentView implements NodeView<Schema> {
           type: "updateEntityProperties",
           payload: {
             draftId: childEntity.draftId,
-            properties: {
-              text: this.manager.createNewLegacyTextLink(
-                state,
-                tr,
-                childEntity.accountId,
-                textBlockNodeToEntityProperties(this.node),
-              ),
-            },
             merge: true,
+            properties: textBlockNodeToEntityProperties(this.node),
           },
         });
       }

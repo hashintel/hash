@@ -1,114 +1,37 @@
-import { ApolloClient, ApolloError } from "@apollo/client";
-import { fetchBlock } from "@hashintel/hash-shared/blocks";
-import {
-  BlockEntity,
-  isDraftTextContainingEntityProperties,
-  isDraftTextEntity,
-  LegacyLink,
-} from "@hashintel/hash-shared/entity";
+import { ApolloClient } from "@apollo/client";
+import { isEqual } from "lodash";
+import { ProsemirrorNode, Schema } from "prosemirror-model";
+import { v4 as uuid } from "uuid";
+
+import { BlockEntity, isDraftTextEntity } from "./entity";
 import {
   DraftEntity,
   EntityStore,
   getDraftEntityByEntityId,
   isDraftBlockEntity,
-} from "@hashintel/hash-shared/entityStore";
-import { isEntityNode } from "@hashintel/hash-shared/prosemirror";
-import { isEqual, pick } from "lodash";
-import { ProsemirrorNode, Schema } from "prosemirror-model";
-import { v4 as uuid } from "uuid";
+  TEXT_ENTITY_TYPE_ID,
+} from "./entityStore";
 import {
-  EntityTypeChoice,
-  DeprecatedGetComponentEntityTypeQuery,
-  DeprecatedGetComponentEntityTypeQueryVariables,
-  GetPageQuery,
-  GetPageQueryVariables,
-  DeprecatedGetTextEntityTypeQuery,
-  DeprecatedGetTextEntityTypeQueryVariables,
-  SystemTypeName,
-  Text,
-  UpdatePageAction,
-  UpdatePageContentsMutation,
-  UpdatePageContentsMutationVariables,
-  UpdatePageContentsResultPlaceholder,
-} from "../graphql/apiTypes.gen";
-import { capitalizeComponentName } from "../util";
+  GetPersistedPageQuery,
+  GetPersistedPageQueryVariables,
+  UpdatePersistedPageContentsMutation,
+  UpdatePersistedPageContentsMutationVariables,
+  UpdatePersistedPageAction,
+  UpdatePersistedPageContentsResultPlaceholder,
+  PersistedEntityTypeChoice,
+} from "./graphql/apiTypes.gen";
+import { isEntityNode } from "./prosemirror";
 import {
-  deprecatedGetComponentEntityType,
-  deprecatedGetTextEntityType,
-} from "./graphql/queries/entityType.queries";
-import {
-  getPageQuery,
-  updatePageContents,
-} from "./graphql/queries/page.queries";
+  getPersistedPageQuery,
+  updatePersistedPageContents,
+} from "./queries/page.queries";
 
 const generatePlaceholderId = () => `placeholder-${uuid()}`;
 
 const flipMap = <K, V>(map: Map<K, V>): Map<V, K> =>
   new Map(Array.from(map, ([key, value]) => [value, key] as const));
 
-type EntityTypeForComponentResult = [string, UpdatePageAction[]];
-
-const ensureEntityTypeForComponent = async (
-  apolloClient: ApolloClient<unknown>,
-  componentId: string,
-  newTypeAccountId: string,
-  cache: Map<string, string>,
-): Promise<EntityTypeForComponentResult> => {
-  const actions: UpdatePageAction[] = [];
-
-  let desiredEntityTypeId: string | undefined = cache.get(componentId);
-
-  if (!desiredEntityTypeId) {
-    desiredEntityTypeId = await apolloClient
-      .query<
-        DeprecatedGetComponentEntityTypeQuery,
-        DeprecatedGetComponentEntityTypeQueryVariables
-      >({
-        query: deprecatedGetComponentEntityType,
-        variables: { componentId },
-      })
-      .then((res) => res.data.deprecatedGetEntityType.entityId)
-      .catch((err) => {
-        if (
-          err instanceof ApolloError &&
-          err.graphQLErrors.length === 1 &&
-          err.graphQLErrors[0] &&
-          err.graphQLErrors[0].extensions?.code === "NOT_FOUND"
-        ) {
-          return undefined;
-        }
-
-        throw err;
-      });
-  }
-
-  if (!desiredEntityTypeId) {
-    const block = await fetchBlock(componentId);
-    const jsonSchema = JSON.parse(JSON.stringify(block.schema));
-
-    jsonSchema.componentId = componentId;
-
-    desiredEntityTypeId = generatePlaceholderId();
-
-    actions.push({
-      createEntityType: {
-        accountId: newTypeAccountId,
-        // @todo need to handle links better
-        schema: jsonSchema,
-        name: capitalizeComponentName(componentId),
-        placeholderId: desiredEntityTypeId,
-      },
-    });
-  }
-
-  if (!desiredEntityTypeId) {
-    throw new Error("Cannot find entity type for entity");
-  }
-
-  cache.set(componentId, desiredEntityTypeId);
-
-  return [desiredEntityTypeId, actions];
-};
+type EntityTypeForComponentResult = [string, UpdatePersistedPageAction[]];
 
 /**
  * Given the entity 'store', the 'blocks' persisted to the database, and the PromiseMirror 'doc',
@@ -116,7 +39,7 @@ const ensureEntityTypeForComponent = async (
  */
 const calculateSaveActions = async (
   store: EntityStore,
-  accountId: string,
+  ownedById: string,
   textEntityTypeId: string,
   blocks: BlockEntity[],
   doc: ProsemirrorNode<Schema>,
@@ -124,47 +47,11 @@ const calculateSaveActions = async (
     componentId: string,
   ) => Promise<EntityTypeForComponentResult>,
 ) => {
-  const actions: UpdatePageAction[] = [];
+  const actions: UpdatePersistedPageAction[] = [];
 
   const draftIdToPlaceholderId = new Map<string, string>();
   const draftIdToBlockEntities = new Map<string, DraftEntity<BlockEntity>>();
 
-  /**
-   * In some cases, in order to update an entity, we need to create a legacy link
-   * within the properties to link it to the relevant text entity. This sometimes
-   * involves creating a new text entity, which will be done later, but we need
-   * to decide its placeholder entity id now in order to generate the correct link
-   */
-  const ensureNecessaryLegacyTextLink = <
-    T extends { text: LegacyLink<DraftEntity<Text>> },
-  >(
-    properties: T,
-  ): Pick<LegacyLink<DraftEntity<Text>>, "__linkedData"> => {
-    if (
-      properties.text.__linkedData.entityId &&
-      properties.text.__linkedData.entityTypeId
-    ) {
-      return pick(properties.text, "__linkedData");
-    }
-
-    const textEntity = properties.text.data;
-    let textEntityId =
-      draftIdToPlaceholderId.get(textEntity.draftId) ?? textEntity.entityId;
-
-    if (!textEntityId) {
-      textEntityId = generatePlaceholderId();
-      draftIdToPlaceholderId.set(textEntity.draftId, textEntityId);
-    }
-
-    return {
-      __linkedData: {
-        entityTypeId: textEntityTypeId,
-        entityId: textEntityId,
-      },
-    };
-  };
-
-  // Check the entities in the draft entity store against their representation (if any) in the database
   for (const draftEntity of Object.values(store.draft)) {
     if (isDraftBlockEntity(draftEntity)) {
       // Draft blocks are checked for updates separately, after this loop
@@ -192,23 +79,9 @@ const calculateSaveActions = async (
         continue;
       }
 
-      const previousProperties = isDraftTextContainingEntityProperties(
-        savedEntity.properties,
-      )
-        ? {
-            ...savedEntity.properties,
-            text: pick(savedEntity.properties.text, "__linkedData"),
-          }
-        : savedEntity.properties;
+      const previousProperties = savedEntity.properties;
 
-      const nextProperties = isDraftTextContainingEntityProperties(
-        draftEntity.properties,
-      )
-        ? {
-            ...draftEntity.properties,
-            text: ensureNecessaryLegacyTextLink(draftEntity.properties),
-          }
-        : draftEntity.properties;
+      const nextProperties = draftEntity.properties;
 
       // The only thing that has changed is the text entity within the legacy link,
       // so there is no update to this entity itself
@@ -219,7 +92,7 @@ const calculateSaveActions = async (
       actions.push({
         updateEntity: {
           entityId: draftEntity.entityId,
-          accountId: draftEntity.accountId,
+          ownedById: draftEntity.accountId,
           properties: nextProperties,
         },
       });
@@ -245,27 +118,25 @@ const calculateSaveActions = async (
         draftIdToPlaceholderId.set(draftEntity.draftId, placeholderId);
       }
 
-      let entityType: EntityTypeChoice | null = null;
-      let properties = draftEntity.properties;
+      let entityType: PersistedEntityTypeChoice | null = null;
 
       if (isDraftTextEntity(draftEntity)) {
         /**
          * Text types are built in, so we know in this case we don't need to
-         * create an entity type, and we know we don't need to deal with any
-         * legacy links
+         * create an entity type.
          */
         entityType = {
-          systemTypeName: SystemTypeName.Text,
+          entityTypeId: textEntityTypeId,
         };
       } else {
         /**
          * At this point, we may need to create an entity type for the entity
-         * we want to insert, which can also require dealing with legacy links
+         * we want to insert.
          */
         const blockEntity = Object.values(store.draft).find(
           (entity): entity is DraftEntity<BlockEntity> =>
             isDraftBlockEntity(entity) &&
-            entity.properties.entity.draftId === draftEntity.draftId,
+            entity.blockChildEntity?.draftId === draftEntity.draftId,
         );
 
         if (!blockEntity) {
@@ -273,30 +144,21 @@ const calculateSaveActions = async (
         }
 
         const [entityTypeId, newTypeActions] = await getEntityTypeForComponent(
-          /** @todo this string type coercion may be incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
-          blockEntity.componentId as string,
+          blockEntity.componentId ?? "",
         );
 
         entityType = { entityTypeId };
         // Placing at front to ensure latter actions can make use of this type
         actions.unshift(...newTypeActions);
-
-        properties = isDraftTextContainingEntityProperties(properties)
-          ? {
-              ...properties,
-              text: ensureNecessaryLegacyTextLink(properties),
-            }
-          : properties;
       }
 
-      const action: UpdatePageAction = {
+      const action: UpdatePersistedPageAction = {
         createEntity: {
-          accountId,
+          ownedById,
           entityPlaceholderId: placeholderId,
           entity: {
-            versioned: true,
             entityType,
-            entityProperties: properties,
+            entityProperties: draftEntity.properties,
           },
         },
       };
@@ -324,7 +186,6 @@ const calculateSaveActions = async (
   // First, gather the ids of the blocks as they appear in the db-persisted page
   const beforeBlockDraftIds = blocks.map((block) => {
     const draftEntity = getDraftEntityByEntityId(store.draft, block.entityId);
-
     if (!draftEntity) {
       throw new Error("Draft entity missing");
     }
@@ -359,6 +220,9 @@ const calculateSaveActions = async (
   // Check the blocks from the db-persisted page against the latest version of the page
   let position = 0;
   let itCount = 0;
+  // Move actions are order-sensitive, so we're going to sort them separately.
+  const moveActions: UpdatePersistedPageAction[] = [];
+
   while (
     position < Math.max(beforeBlockDraftIds.length, afterBlockDraftIds.length)
   ) {
@@ -397,15 +261,17 @@ const calculateSaveActions = async (
       }
 
       // extract the children for comparison
-      const newChildEntityForBlock = draftEntity.properties.entity;
-      if (!("entity" in savedEntity.properties)) {
+      const newChildEntityForBlock = draftEntity.blockChildEntity;
+      if (!("blockChildEntity" in savedEntity)) {
         throw new Error("Missing child entity in saved block entity");
       }
 
-      const oldChildEntityForBlock = savedEntity.properties.entity;
+      const oldChildEntityForBlock = savedEntity.blockChildEntity;
 
-      if (oldChildEntityForBlock.entityId !== newChildEntityForBlock.entityId) {
-        if (!newChildEntityForBlock.entityId) {
+      if (
+        oldChildEntityForBlock?.entityId !== newChildEntityForBlock?.entityId
+      ) {
+        if (!newChildEntityForBlock?.entityId) {
           // this should never happen because users select new child entities from API-provided entities.
           // if this errors in future, it's because users are choosing locally-created but not yet db-persisted entities
           throw new Error("New child entity for block has not yet been saved");
@@ -413,10 +279,10 @@ const calculateSaveActions = async (
 
         actions.push({
           swapBlockData: {
-            accountId: draftEntity.accountId,
+            ownedById: draftEntity.accountId,
             entityId: savedEntity.entityId,
             newEntityEntityId: newChildEntityForBlock.entityId,
-            newEntityAccountId: newChildEntityForBlock.accountId,
+            newEntityOwnedById: newChildEntityForBlock.accountId,
           },
         });
       }
@@ -427,7 +293,7 @@ const calculateSaveActions = async (
 
     // the before draft id isn't the same as the after draft id, so this block shouldn't be in this position any more
     if (beforeDraftId) {
-      actions.push({ removeBlock: { position } });
+      moveActions.push({ removeBlock: { position } });
 
       // delete this block from the 'before' series so that we're comparing subsequent blocks in the correct position
       beforeBlockDraftIds.splice(position, 1);
@@ -441,11 +307,11 @@ const calculateSaveActions = async (
         throw new Error("missing draft entity");
       }
 
-      const blockData = draftEntity.properties.entity;
-      const dataEntityId =
-        blockData.entityId ?? draftIdToPlaceholderId.get(blockData.draftId);
+      const blockData = draftEntity.blockChildEntity;
+      const blockChildEntityId =
+        blockData?.entityId ?? draftIdToPlaceholderId.get(blockData!.draftId!);
 
-      if (!dataEntityId) {
+      if (!blockChildEntityId) {
         throw new Error("Block data entity id missing");
       }
 
@@ -455,26 +321,26 @@ const calculateSaveActions = async (
         draftIdToPlaceholderId.set(draftEntity.draftId, blockPlaceholderId);
       }
 
-      actions.push({
+      moveActions.push({
         insertBlock: {
-          accountId: draftEntity.accountId,
+          ownedById: draftEntity.accountId,
           position,
           entity: {
             existingEntity: {
-              accountId: blockData.accountId,
-              entityId: dataEntityId,
+              ownedById: blockData!.accountId,
+              entityId: blockChildEntityId,
             },
           },
           ...(draftEntity.entityId
             ? {
                 existingBlockEntity: {
-                  accountId: draftEntity.accountId,
+                  ownedById: draftEntity.accountId,
                   entityId: draftEntity.entityId,
                 },
               }
             : {
                 blockPlaceholderId,
-                componentId: draftEntity.properties.componentId,
+                componentId: draftEntity.componentId,
               }),
         },
       });
@@ -483,13 +349,19 @@ const calculateSaveActions = async (
       beforeBlockDraftIds.splice(position, 0, afterDraftId);
     }
   }
+
+  actions.push(
+    ...moveActions.filter((action) => action.removeBlock),
+    ...moveActions.filter((action) => action.insertBlock),
+  );
+
   const placeholderToDraft = flipMap(draftIdToPlaceholderId);
 
   return [actions, placeholderToDraft] as const;
 };
 
 const getDraftEntityIds = (
-  placeholders: UpdatePageContentsResultPlaceholder[],
+  placeholders: UpdatePersistedPageContentsResultPlaceholder[],
   placeholderToDraft: Map<string, string>,
 ) => {
   const result: Record<string, string> = {};
@@ -506,71 +378,57 @@ const getDraftEntityIds = (
 
 export const save = async (
   apolloClient: ApolloClient<unknown>,
-  accountId: string,
+  ownedById: string,
   pageEntityId: string,
   doc: ProsemirrorNode<Schema>,
   store: EntityStore,
 ) => {
-  const [blocks, textEntityTypeId] = await Promise.all([
-    apolloClient
-      .query<GetPageQuery, GetPageQueryVariables>({
-        query: getPageQuery,
-        variables: { accountId, entityId: pageEntityId },
-        fetchPolicy: "network-only",
-      })
-      .then((res) => res.data.page.contents),
-    apolloClient
-      .query<
-        DeprecatedGetTextEntityTypeQuery,
-        DeprecatedGetTextEntityTypeQueryVariables
-      >({
-        query: deprecatedGetTextEntityType,
-      })
-      .then((res) => res.data.deprecatedGetEntityType.entityId)
-      .catch(() => {
-        throw new Error("Cannot find text entity type id");
-      }),
-  ]);
+  const blocks = await apolloClient
+    .query<GetPersistedPageQuery, GetPersistedPageQueryVariables>({
+      query: getPersistedPageQuery,
+      variables: { ownedById, entityId: pageEntityId },
+      fetchPolicy: "network-only",
+    })
+    .then((res) => res.data.persistedPage.contents);
 
-  const entityTypeForComponentId = new Map<string, string>();
+  // const entityTypeForComponentId = new Map<string, string>();
 
   const [actions, placeholderToDraft] = await calculateSaveActions(
     store,
-    accountId,
-    textEntityTypeId,
-    /**
-     * @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f
-     * Note that this code path isn't run in the current state of collab. (frontend never triggers changes)
-     */
-    blocks as any,
+    ownedById,
+    /** @todo This type ID should *not* be hardcoded as is here. */
+    TEXT_ENTITY_TYPE_ID,
+    blocks,
     doc,
-    async (componentId: string) =>
-      await ensureEntityTypeForComponent(
-        apolloClient,
-        componentId,
-        accountId,
-        entityTypeForComponentId,
-      ),
+    /**
+     * @todo currently we use the text entity type for *every block* we don't know about.
+     */
+    async (_componentId: string) => {
+      return [TEXT_ENTITY_TYPE_ID, []];
+    },
   );
 
+  // Even if the actions list is empty, we hit the endpoint to get an updated
+  // page result.
   const res = await apolloClient.mutate<
-    UpdatePageContentsMutation,
-    UpdatePageContentsMutationVariables
+    UpdatePersistedPageContentsMutation,
+    UpdatePersistedPageContentsMutationVariables
   >({
-    variables: { actions, accountId, entityId: pageEntityId },
-    mutation: updatePageContents,
+    variables: { ownedById, entityId: pageEntityId, actions },
+    mutation: updatePersistedPageContents,
   });
 
   if (!res.data) {
     throw new Error("Failed");
   }
 
-  await apolloClient.reFetchObservableQueries();
-
   const draftToEntityId = getDraftEntityIds(
-    res.data.updatePageContents.placeholders,
+    res.data.updatePersistedPageContents.placeholders,
     placeholderToDraft,
   );
 
-  return [res.data.updatePageContents.page.contents, draftToEntityId] as const;
+  return [
+    res.data.updatePersistedPageContents.page.contents,
+    draftToEntityId,
+  ] as const;
 };

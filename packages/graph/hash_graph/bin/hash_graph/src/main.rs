@@ -151,7 +151,7 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     for data_type in data_types {
         let title = data_type.title().to_owned();
         if connection
-            .create_data_type(data_type, root_account_id)
+            .create_data_type(data_type, root_account_id, root_account_id)
             .await
             .change_context(GraphError)
             .is_err()
