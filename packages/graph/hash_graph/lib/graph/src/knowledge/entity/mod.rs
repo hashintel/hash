@@ -87,14 +87,26 @@ pub struct PersistedEntityMetadata {
     identifier: PersistedEntityIdentifier,
     #[schema(value_type = String)]
     entity_type_id: VersionedUri,
+    created_by_id: AccountId,
+    updated_by_id: AccountId,
+    removed_by_id: Option<AccountId>,
 }
 
 impl PersistedEntityMetadata {
     #[must_use]
-    pub const fn new(identifier: PersistedEntityIdentifier, entity_type_id: VersionedUri) -> Self {
+    pub const fn new(
+        identifier: PersistedEntityIdentifier,
+        entity_type_id: VersionedUri,
+        created_by_id: AccountId,
+        updated_by_id: AccountId,
+        removed_by_id: Option<AccountId>,
+    ) -> Self {
         Self {
             identifier,
             entity_type_id,
+            created_by_id,
+            updated_by_id,
+            removed_by_id,
         }
     }
 
@@ -122,16 +134,20 @@ impl PersistedEntity {
     #[must_use]
     pub const fn new(
         inner: Entity,
-        entity_id: EntityId,
-        version: DateTime<Utc>,
+        identifier: PersistedEntityIdentifier,
         entity_type_id: VersionedUri,
-        owned_by_id: AccountId,
+        created_by_id: AccountId,
+        updated_by_id: AccountId,
+        removed_by_id: Option<AccountId>,
     ) -> Self {
         Self {
             inner,
             metadata: PersistedEntityMetadata::new(
-                PersistedEntityIdentifier::new(entity_id, version, owned_by_id),
+                identifier,
                 entity_type_id,
+                created_by_id,
+                updated_by_id,
+                removed_by_id,
             ),
         }
     }

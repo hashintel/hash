@@ -37,12 +37,13 @@ export const createPersistedPage: ResolverFn<
 > = async (
   _,
   { ownedById, properties: { title, prevIndex } },
-  { dataSources: { graphApi } },
+  { dataSources: { graphApi }, userModel },
 ) => {
   const pageModel = await PageModel.createPage(graphApi, {
     ownedById,
     title,
     prevIndex: prevIndex ?? undefined,
+    actorId: userModel.entityId,
   });
 
   return mapPageModelToGQL(pageModel);
@@ -67,10 +68,10 @@ export const persistedPages: ResolverFn<
   {},
   LoggedInGraphQLContext,
   QueryPersistedPagesArgs
-> = async (_, { ownedById }, { dataSources: { graphApi }, user }) => {
+> = async (_, { ownedById }, { dataSources: { graphApi }, userModel }) => {
   const accountModel = ownedById
     ? await UserModel.getUserById(graphApi, { entityId: ownedById })
-    : user;
+    : userModel;
 
   const pageModels = await PageModel.getAllPagesInAccount(graphApi, {
     accountModel,

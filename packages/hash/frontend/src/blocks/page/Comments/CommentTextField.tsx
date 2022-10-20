@@ -18,7 +18,7 @@ import {
 } from "@hashintel/hash-design-system";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
 import {
-  textBlockNodeToEntityProperties,
+  textBlockNodeToTextTokens,
   textBlockNodesFromTokens,
 } from "@hashintel/hash-shared/text";
 import { isEqual } from "lodash";
@@ -146,7 +146,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
             const newState = view.state.apply(tr);
 
             if (onChange) {
-              const { tokens } = textBlockNodeToEntityProperties(newState.doc);
+              const tokens = textBlockNodeToTextTokens(newState.doc);
 
               onChange(tokens);
             }
@@ -186,9 +186,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
 
   useEffect(() => {
     if (value && viewRef.current) {
-      const { tokens } = textBlockNodeToEntityProperties(
-        viewRef.current.state.doc,
-      );
+      const tokens = textBlockNodeToTextTokens(viewRef.current.state.doc);
 
       if (!isEqual(value, tokens)) {
         setDocument(value);

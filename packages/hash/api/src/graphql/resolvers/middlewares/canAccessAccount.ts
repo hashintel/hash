@@ -17,14 +17,14 @@ export const canAccessAccount: ResolverMiddleware<
 > = (next) =>
   loggedInAndSignedUp(async (_, args, ctx, info) => {
     const {
-      user,
+      userModel,
       dataSources: { graphApi },
     } = ctx;
     let isAllowed = false;
-    if (user.entityId === args.ownedById) {
+    if (userModel.entityId === args.ownedById) {
       isAllowed = true;
     } else {
-      isAllowed = await user.isMemberOfOrg(graphApi, {
+      isAllowed = await userModel.isMemberOfOrg(graphApi, {
         orgEntityId: args.ownedById,
       });
     }

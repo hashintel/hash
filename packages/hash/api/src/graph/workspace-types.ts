@@ -8,6 +8,7 @@ import {
   propertyTypeInitializer,
   entityTypeInitializer,
   linkTypeInitializer,
+  workspaceAccountId,
 } from "../model/util";
 
 // eslint-disable-next-line import/no-mutable-exports
@@ -101,6 +102,7 @@ export const orgProvidedInfoPropertyTypeInitializer = async (
         },
       },
     ],
+    actorId: workspaceAccountId,
   })(graphApi);
 };
 
@@ -134,6 +136,7 @@ export const orgEntityTypeInitializer = async (graphApi: GraphApi) => {
       },
     ],
     outgoingLinks: [],
+    actorId: workspaceAccountId,
   })(graphApi);
 };
 
@@ -166,50 +169,60 @@ const orgMembershipEntityTypeInitializer = async (graphApi: GraphApi) => {
         required: true,
       },
     ],
+    actorId: workspaceAccountId,
   })(graphApi);
 };
 
 const shortnamePropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.shortName,
   possibleValues: [{ primitiveDataType: "text" }],
+  actorId: workspaceAccountId,
 });
 
 const orgNamePropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.orgName,
   possibleValues: [{ primitiveDataType: "text" }],
+  actorId: workspaceAccountId,
 });
 
 const orgSizePropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.orgSize,
   possibleValues: [{ primitiveDataType: "text" }],
+  actorId: workspaceAccountId,
 });
 
 const emailPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.email,
   possibleValues: [{ primitiveDataType: "text" }],
+  actorId: workspaceAccountId,
 });
 
 const kratosIdentityIdPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.kratosIdentityId,
   possibleValues: [{ primitiveDataType: "text" }],
+  actorId: workspaceAccountId,
 });
 
 const preferredNamePropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.preferredName,
   possibleValues: [{ primitiveDataType: "text" }],
+  actorId: workspaceAccountId,
 });
 
 const responsibilityPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.responsibility,
   possibleValues: [{ primitiveDataType: "text" }],
+  actorId: workspaceAccountId,
 });
 
 const ofOrgLinkTypeInitializer = linkTypeInitializer({
   ...types.linkType.ofOrg,
+  actorId: workspaceAccountId,
 });
 
 const hasMembershipLinkTypeInitializer = linkTypeInitializer({
   ...types.linkType.hasMembership,
+  actorId: workspaceAccountId,
 });
 
 const userEntityTypeInitializer = async (graphApi: GraphApi) => {
@@ -260,17 +273,20 @@ const userEntityTypeInitializer = async (graphApi: GraphApi) => {
         destinationEntityTypeModels: [orgMembershipEntityTypeModel],
       },
     ],
+    actorId: workspaceAccountId,
   })(graphApi);
 };
 
 const componentIdPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.componentId,
   possibleValues: [{ primitiveDataType: "text" }],
+  actorId: workspaceAccountId,
 });
 
-const blockDataLinkTypeInitializer = linkTypeInitializer(
-  types.linkType.blockData,
-);
+const blockDataLinkTypeInitializer = linkTypeInitializer({
+  ...types.linkType.blockData,
+  actorId: workspaceAccountId,
+});
 
 const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
@@ -305,6 +321,7 @@ const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
         required: true,
       },
     ],
+    actorId: workspaceAccountId,
   })(graphApi);
 };
 
@@ -315,6 +332,7 @@ const tokensPropertyTypeInitializer = propertyTypeInitializer({
    * @see https://app.asana.com/0/1202805690238892/1203045933021778/f
    */
   possibleValues: [{ primitiveDataType: "object" }],
+  actorId: workspaceAccountId,
 });
 
 const textEntityTypeInitializer = async (graphApi: GraphApi) => {
@@ -334,6 +352,7 @@ const textEntityTypeInitializer = async (graphApi: GraphApi) => {
       },
     ],
     outgoingLinks: [],
+    actorId: workspaceAccountId,
   })(graphApi);
 };
 
@@ -346,39 +365,49 @@ const dummyEntityTypeInitializer = async (graphApi: GraphApi) => {
     ...types.entityType.dummy,
     properties: [],
     outgoingLinks: [],
+    actorId: workspaceAccountId,
   })(graphApi);
 };
 
 const archivedPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.archived,
   possibleValues: [{ primitiveDataType: "boolean" }],
+  actorId: workspaceAccountId,
 });
 
 const summaryPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.summary,
   possibleValues: [{ primitiveDataType: "text" }],
+  actorId: workspaceAccountId,
 });
 
 const titlePropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.title,
   possibleValues: [{ primitiveDataType: "text" }],
+  actorId: workspaceAccountId,
 });
 
 const indexPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.index,
   possibleValues: [{ primitiveDataType: "text" }],
+  actorId: workspaceAccountId,
 });
 
 const iconPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.icon,
   possibleValues: [{ primitiveDataType: "text" }],
+  actorId: workspaceAccountId,
 });
 
-const containsLinkTypeInitializer = linkTypeInitializer(
-  types.linkType.contains,
-);
+const containsLinkTypeInitializer = linkTypeInitializer({
+  ...types.linkType.contains,
+  actorId: workspaceAccountId,
+});
 
-const parentLinkTypeInitializer = linkTypeInitializer(types.linkType.parent);
+const parentLinkTypeInitializer = linkTypeInitializer({
+  ...types.linkType.parent,
+  actorId: workspaceAccountId,
+});
 
 const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
@@ -443,6 +472,7 @@ const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
         destinationEntityTypeModels: ["SELF_REFERENCE"],
       },
     ],
+    actorId: workspaceAccountId,
   })(graphApi);
 };
 

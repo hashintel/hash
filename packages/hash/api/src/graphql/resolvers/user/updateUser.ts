@@ -46,35 +46,36 @@ export const updateUser: ResolverFn<
 > = async (
   _,
   { userEntityId, properties },
-  { dataSources: { graphApi }, user },
+  { dataSources: { graphApi }, userModel },
 ) => {
   /** @todo: run this mutation in a transaction */
 
   /** @todo: allow HASH admins to bypass this */
-  if (userEntityId !== user.entityId) {
+  if (userEntityId !== userModel.entityId) {
     throw new ForbiddenError("You can only update your own user properties");
   }
 
-  let updatedUser = user;
+  let updatedUser = userModel;
 
   const { shortname, preferredName } = properties;
 
   if (
     shortname !== undefined &&
     shortname !== null &&
-    user.getShortname() !== shortname
+    userModel.getShortname() !== shortname
   ) {
     await validateShortname(graphApi, shortname);
 
     updatedUser = await updatedUser.updateShortname(graphApi, {
       updatedShortname: shortname,
+      actorId: userModel.entityId,
     });
   }
 
   if (
     preferredName !== undefined &&
     preferredName !== null &&
-    user.getPreferredName() !== preferredName
+    userModel.getPreferredName() !== preferredName
   ) {
     if (UserModel.preferredNameIsInvalid(preferredName)) {
       throw new ApolloError(
@@ -85,6 +86,7 @@ export const updateUser: ResolverFn<
 
     updatedUser = await updatedUser.updatePreferredName(graphApi, {
       updatedPreferredName: preferredName,
+      actorId: userModel.entityId,
     });
   }
 

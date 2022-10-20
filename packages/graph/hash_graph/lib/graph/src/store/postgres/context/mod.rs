@@ -4,7 +4,7 @@ mod ontology;
 
 use async_trait::async_trait;
 use error_stack::{Context, Result, ResultExt};
-use type_system::uri::VersionedUri;
+use type_system::uri::{BaseUri, VersionedUri};
 
 pub use self::{entity::EntityRecord, links::LinkRecord, ontology::OntologyRecord};
 use crate::{
@@ -23,6 +23,13 @@ use crate::{
 #[async_trait]
 pub trait PostgresContext {
     async fn read_all_ontology_types<T>(&self) -> Result<ontology::RecordStream<T>, QueryError>
+    where
+        T: OntologyDatabaseType + TryFrom<serde_json::Value, Error: Context>;
+
+    async fn read_latest_ontology_type<T>(
+        &self,
+        base_uri: &BaseUri,
+    ) -> Result<OntologyRecord<T>, QueryError>
     where
         T: OntologyDatabaseType + TryFrom<serde_json::Value, Error: Context>;
 
@@ -75,6 +82,19 @@ impl<C: AsClient> PostgresContext for PostgresStore<C> {
             .await
             .attach_printable("could not read ontology type")
             .attach_printable_lazy(|| uri.clone())
+    }
+
+    async fn read_latest_ontology_type<T>(
+        &self,
+        base_uri: &BaseUri,
+    ) -> Result<OntologyRecord<T>, QueryError>
+    where
+        T: OntologyDatabaseType + TryFrom<serde_json::Value, Error: Context>,
+    {
+        ontology::read_latest_type(&self.client, base_uri)
+            .await
+            .attach_printable("could not read ontology type")
+            .attach_printable_lazy(|| base_uri.clone())
     }
 
     async fn read_all_entities(&self) -> Result<entity::RecordStream, QueryError> {
