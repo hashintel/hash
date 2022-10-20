@@ -16,7 +16,6 @@ export const CommentBlockMenu: FunctionComponent<CommentBlockMenuProps> = ({
   return (
     <Menu
       {...bindMenuProps}
-      open={true}
       anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       transformOrigin={{
         vertical: "top",

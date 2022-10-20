@@ -222,7 +222,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
               disabled={submitUpdateDisabled}
               loading={loading}
             >
-              Reply
+              Submit
             </Button>
           </Box>
         </Collapse>
