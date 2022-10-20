@@ -111,6 +111,10 @@ export const useBlockProtocolUpdateEntity = (
           query: getEntityTypeRootedSubgraphQuery,
           variables: {
             entityTypeId: updatedEntity.entityTypeId,
+            dataTypeResolveDepth: 255,
+            propertyTypeResolveDepth: 255,
+            linkTypeResolveDepth: 255,
+            entityTypeResolveDepth: 1,
           },
         });
 

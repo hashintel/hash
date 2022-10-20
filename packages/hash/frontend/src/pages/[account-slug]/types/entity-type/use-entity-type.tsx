@@ -1,4 +1,4 @@
-import { EntityType, extractBaseUri } from "@blockprotocol/type-system-web";
+import { EntityType } from "@blockprotocol/type-system-web";
 import {
   useCallback,
   useEffect,
@@ -9,7 +9,7 @@ import {
 import { useBlockProtocolAggregateEntityTypes } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregateEntityTypes";
 import { useBlockProtocolUpdateEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdateEntityType";
 import { useAdvancedInitTypeSystem } from "../../../../lib/use-init-type-system";
-import { mustBeVersionedUri } from "./util";
+import { getEntityTypesByBaseUri } from "../../../../lib/subgraph";
 
 export const useEntityType = (
   entityTypeBaseUri: string,
@@ -35,19 +35,23 @@ export const useEntityType = (
     entityTypeRef.current = null;
 
     void aggregateEntityTypes({ data: {} }).then(async (res) => {
-      const relevantEntity =
-        res.data?.results.find((item) => {
-          const baseUri = extractBaseUri(mustBeVersionedUri(item.entityTypeId));
-          return baseUri === entityTypeBaseUri;
-        })?.entityType ?? null;
+      const subgraph = res.data;
+      const relevantEntityTypes = subgraph
+        ? getEntityTypesByBaseUri(subgraph, entityTypeBaseUri)
+        : [];
+
+      /** @todo - pick the latest version? */
+      const relevantEntityType = relevantEntityTypes
+        ? relevantEntityTypes[0]!.inner
+        : null;
 
       await loadTypeSystem();
 
       if (!cancelled) {
-        setEntityType(relevantEntity);
-        entityTypeRef.current = relevantEntity;
-        if (relevantEntity) {
-          onCompletedRef.current?.(relevantEntity);
+        setEntityType(relevantEntityType);
+        entityTypeRef.current = relevantEntityType;
+        if (relevantEntityType) {
+          onCompletedRef.current?.(relevantEntityType);
         }
       }
     });
