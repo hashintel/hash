@@ -78,7 +78,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
         marginBottom: 4,
         outline: "none",
 
-        ">*:first-child": {
+        ">*:first-of-type": {
           borderTopWidth: 0,
         },
       })}
