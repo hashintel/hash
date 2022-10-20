@@ -16,8 +16,7 @@ use utoipa::{OpenApi, ToSchema};
 use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
     knowledge::{
-        Entity, EntityId, EntityRootedSubgraph, PersistedEntity, PersistedEntityIdentifier,
-        PersistedEntityMetadata,
+        Entity, EntityId, PersistedEntity, PersistedEntityIdentifier, PersistedEntityMetadata,
     },
     ontology::AccountId,
     store::{
@@ -25,7 +24,10 @@ use crate::{
         query::Expression,
         EntityStore, StorePool,
     },
-    subgraph::StructuralQuery,
+    subgraph::{
+        EdgeKind, Edges, GraphElementIdentifier, GraphResolveDepths, OutwardEdge, StructuralQuery,
+        Subgraph, Vertex,
+    },
 };
 
 #[derive(OpenApi)]
@@ -47,7 +49,13 @@ use crate::{
             PersistedEntity,
             Entity,
             StructuralQuery,
-            EntityRootedSubgraph,
+            GraphElementIdentifier,
+            Vertex,
+            EdgeKind,
+            OutwardEdge,
+            GraphResolveDepths,
+            Edges,
+            Subgraph,
         )
     ),
     tags(
@@ -135,8 +143,7 @@ async fn create_entity<P: StorePool + Send>(
     request_body = StructuralQuery,
     tag = "Entity",
     responses(
-        (status = 200, content_type = "application/json", body = [EntityRootedSubgraph], description = "A list of subgraphs rooted at entities that satisfy the given query, each resolved to the requested depth."),
-
+        (status = 200, content_type = "application/json", body = Subgraph, description = "A subgraph rooted at entities that satisfy the given query, each resolved to the requested depth."),
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
     )
@@ -144,7 +151,7 @@ async fn create_entity<P: StorePool + Send>(
 async fn get_entities_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     Json(query): Json<StructuralQuery>,
-) -> Result<Json<Vec<EntityRootedSubgraph>>, StatusCode> {
+) -> Result<Json<Subgraph>, StatusCode> {
     pool.acquire()
         .map_err(|error| {
             tracing::error!(?error, "Could not acquire access to the store");

@@ -147,10 +147,6 @@ where
     pub fn into_vec(self) -> Vec<T> {
         self.into_values().collect()
     }
-
-    pub fn remove(&mut self, identifier: &V) -> Option<T> {
-        self.resolved.remove(identifier).map(|(value, _)| value)
-    }
 }
 
 pub struct DependencySet<T, D> {

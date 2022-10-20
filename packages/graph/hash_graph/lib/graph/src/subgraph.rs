@@ -5,7 +5,7 @@ use std::collections::{
 
 use serde::{Deserialize, Serialize};
 use type_system::uri::VersionedUri;
-use utoipa::{openapi, openapi::Schema, ToSchema};
+use utoipa::{openapi, ToSchema};
 
 use crate::{
     knowledge::{EntityId, KnowledgeGraphQueryDepth, PersistedEntity, PersistedLink},
@@ -214,7 +214,7 @@ impl Edges {
 
 // Necessary because utoipa can't handle HashSet
 impl ToSchema for Edges {
-    fn schema() -> Schema {
+    fn schema() -> openapi::Schema {
         openapi::ObjectBuilder::new()
             .additional_properties(Some(openapi::schema::Array::new(OutwardEdge::schema())))
             .into()
