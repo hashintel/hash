@@ -1,31 +1,26 @@
 import { Draft, produce } from "immer";
+
 import { generateDraftIdForEntity } from "./entityStorePlugin";
-import { BlockEntity, isTextContainingEntityProperties } from "./entity";
-import { DistributiveOmit } from "./util";
+import { BlockEntity } from "./entity";
+import { types } from "./types";
 import { MinimalEntityTypeFieldsFragment } from "./graphql/apiTypes.gen";
 
-export type EntityStoreType = BlockEntity | BlockEntity["dataEntity"];
+export type EntityStoreType = BlockEntity | BlockEntity["blockChildEntity"];
 
-type PropertiesType<Properties extends {}> = Properties extends {
-  entity: EntityStoreType;
-}
-  ? DistributiveOmit<Properties, "entity"> & {
-      /**
-       * @deprecated
-       * @todo Don't use this, use links
-       */
-      entity: DraftEntity<Properties["entity"]>;
-    }
-  : Properties;
+export const TEXT_ENTITY_TYPE_ID = types.entityType.text.entityTypeId;
+// `extractBaseUri` does not work within this context, so this is a hacky way to get the base URI.
+export const TEXT_TOKEN_PROPERTY_TYPE_BASE_URI =
+  types.propertyType.tokens.propertyTypeId.slice(0, -3);
 
 export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   accountId: string;
   entityId: string | null;
   entityTypeId?: string | null;
-  entityVersion?: string | null;
+  entityVersion?: string;
   entityType?: MinimalEntityTypeFieldsFragment;
   /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */
-  dataEntity?: Type;
+  blockChildEntity?: Type & { draftId?: string };
+  properties: Record<string, unknown>;
 
   componentId?: string;
 
@@ -50,9 +45,7 @@ export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   // Type extends { linkedAggregations: any }
   //   ? Type["linkedAggregations"]
   //   : undefined;
-} & (Type extends { properties: any }
-  ? { properties: PropertiesType<Type["properties"]> }
-  : {});
+};
 
 export type EntityStore = {
   saved: Record<string, EntityStoreType>;
@@ -67,7 +60,9 @@ export const isEntity = (value: unknown): value is EntityStoreType =>
 
 // @todo does this need to be more robust?
 export const isBlockEntity = (entity: unknown): entity is BlockEntity =>
-  isEntity(entity) && "dataEntity" in entity && isEntity(entity.dataEntity);
+  isEntity(entity) &&
+  "blockChildEntity" in entity &&
+  isEntity(entity.blockChildEntity);
 
 // @todo does this need to be more robust?
 export const isDraftEntity = <T extends EntityStoreType>(
@@ -94,10 +89,9 @@ const findEntities = (contents: BlockEntity[]): EntityStoreType[] => {
   const entities: EntityStoreType[] = [];
 
   for (const entity of contents) {
-    entities.push(entity, entity.dataEntity);
-
-    if (isTextContainingEntityProperties(entity.dataEntity.properties)) {
-      entities.push(entity.dataEntity.properties.text.data);
+    entities.push(entity);
+    if (entity.blockChildEntity) {
+      entities.push(entity.blockChildEntity);
     }
   }
 
@@ -118,7 +112,7 @@ const restoreDraftId = (
   }
 
   // eslint-disable-next-line no-param-reassign
-  (entity as unknown as DraftEntity).draftId = entityToDraft[textEntityId]!;
+  entity.draftId = entityToDraft[textEntityId]!;
 };
 
 /**
@@ -172,12 +166,9 @@ export const createEntityStore = (
       { ...entity, draftId },
       (draftEntity: Draft<DraftEntity>) => {
         if (draftData[draftId]) {
-          /** @todo when updated at is re-introduced, make this check valid https://app.asana.com/0/0/1203099452204542/f */
           if (
-            // new Date(draftData[draftId]!.updatedAt).getTime() >
-            // new Date(draftEntity.updatedAt).getTime()
-            // eslint-disable-next-line no-constant-condition
-            false
+            new Date(draftData[draftId]!.entityVersion ?? 0).getTime() >
+            new Date(draftEntity.entityVersion ?? 0).getTime()
           ) {
             Object.assign(draftEntity, draftData[draftId]);
           }
@@ -188,25 +179,15 @@ export const createEntityStore = (
     draft[draftId] = produce<DraftEntity>(
       draft[draftId]!,
       (draftEntity: Draft<DraftEntity>) => {
-        if (isTextContainingEntityProperties(draftEntity.properties)) {
-          restoreDraftId(draftEntity.properties.text.data, entityToDraft);
-        }
-
         if (isDraftBlockEntity(draftEntity)) {
           restoreDraftId(draftEntity, entityToDraft);
 
+          // Set the blockChildEntity's draft ID on a block draft.
           if (
-            /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
-
-            isTextContainingEntityProperties(
-              (draftEntity.dataEntity as any).properties,
-            )
+            !draftEntity.blockChildEntity?.draftId &&
+            draftEntity.blockChildEntity?.entityId
           ) {
-            restoreDraftId(
-              /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
-              (draftEntity.dataEntity as any).properties.text.data,
-              entityToDraft,
-            );
+            restoreDraftId(draftEntity.blockChildEntity, entityToDraft);
           }
         }
       },

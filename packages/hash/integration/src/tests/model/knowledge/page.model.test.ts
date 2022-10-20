@@ -40,12 +40,14 @@ describe("Page model class", () => {
   const createBlock = async () =>
     await BlockModel.createBlock(graphApi, {
       ownedById: testUser.entityId,
-      componentId: "dummy-component-id",
+      componentId: "text",
       blockData: await EntityModel.create(graphApi, {
         ownedById: testUser.entityId,
         entityTypeModel: WORKSPACE_TYPES.entityType.dummy,
         properties: {},
+        actorId: testUser.entityId,
       }),
+      actorId: testUser.entityId,
     });
 
   let testPage: PageModel;
@@ -54,6 +56,7 @@ describe("Page model class", () => {
     testPage = await PageModel.createPage(graphApi, {
       ownedById: testUser.entityId,
       title: "Test Page",
+      actorId: testUser.entityId,
     });
 
     const initialBlocks = await testPage.getBlocks(graphApi);
@@ -74,6 +77,7 @@ describe("Page model class", () => {
       title: "Test Page 2",
       summary: "Test page 2 summary",
       initialBlocks: [initialBlock1, initialBlock2],
+      actorId: testUser.entityId,
     });
 
     const initialBlocks = await testPage2.getBlocks(graphApi);
@@ -110,13 +114,14 @@ describe("Page model class", () => {
       ownedById: testUser.entityId,
       title: "Test Parent Page",
       summary: "Test page summary",
+      actorId: testUser.entityId,
     });
 
     expect(await testPage.getParentPage(graphApi)).toBeNull();
 
     await testPage.setParentPage(graphApi, {
       parentPageModel,
-      setById: testUser.entityId,
+      actorId: testUser.entityId,
       prevIndex: null,
       nextIndex: null,
     });
@@ -145,12 +150,16 @@ describe("Page model class", () => {
     // insert block at un-specified position
     await testPage.insertBlock(graphApi, {
       block: testBlock3,
+      actorId: testUser.entityId,
+      updateSiblings: true,
     });
 
     // insert block at specified position
     await testPage.insertBlock(graphApi, {
       block: testBlock2,
+      updateSiblings: true,
       position: 1,
+      actorId: testUser.entityId,
     });
 
     expect(await testPage.getBlocks(graphApi)).toEqual([
@@ -164,7 +173,7 @@ describe("Page model class", () => {
     await testPage.moveBlock(graphApi, {
       currentPosition: 0,
       newPosition: 2,
-      movedById: testUser.entityId,
+      actorId: testUser.entityId,
     });
 
     expect(await testPage.getBlocks(graphApi)).toEqual([
@@ -176,7 +185,7 @@ describe("Page model class", () => {
     await testPage.moveBlock(graphApi, {
       currentPosition: 2,
       newPosition: 0,
-      movedById: testUser.entityId,
+      actorId: testUser.entityId,
     });
 
     expect(await testPage.getBlocks(graphApi)).toEqual([
@@ -189,7 +198,8 @@ describe("Page model class", () => {
   it("can remove blocks", async () => {
     await testPage.removeBlock(graphApi, {
       position: 0,
-      removedById: testUser.entityId,
+      actorId: testUser.entityId,
+      updateSiblings: true,
     });
 
     expect(await testPage.getBlocks(graphApi)).toEqual([

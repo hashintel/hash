@@ -1,7 +1,7 @@
 mod read;
 mod resolve;
 
-use std::{collections::HashMap, future::Future, pin::Pin};
+use std::{future::Future, pin::Pin};
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
@@ -19,39 +19,33 @@ use crate::{
     store::{
         crud::Read,
         error::EntityDoesNotExist,
-        postgres::{context::PostgresContext, DependencyContext, DependencyMap, DependencySet},
+        postgres::{context::PostgresContext, DependencyContext, DependencyContextRef},
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
-    subgraph::{GraphResolveDepths, StructuralQuery},
+    subgraph::{
+        EdgeKind, GraphElementIdentifier, GraphResolveDepths, LinkId, OutwardEdge, StructuralQuery,
+    },
 };
 
 impl<C: AsClient> PostgresStore<C> {
-    /// Internal method to read an [`Entity`] into a [`DependencyMap`].
+    /// Internal method to read an [`Entity`] into a [`DependencyContext`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    pub(crate) fn get_entity_as_dependency<'a>(
+    pub(crate) fn get_entity_as_dependency<'a: 'b, 'b>(
         &'a self,
         entity_id: EntityId,
-        context: DependencyContext<'a>,
-    ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'a>> {
-        let DependencyContext {
-            edges,
-            referenced_data_types,
-            referenced_property_types,
-            referenced_link_types,
-            referenced_entity_types,
-            linked_entities,
-            links,
-            graph_resolve_depths,
-        } = context;
-
+        mut dependency_context: DependencyContextRef<'b>,
+    ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'b>> {
         async move {
-            let unresolved_entity = linked_entities
-                .insert(
+            let unresolved_entity = dependency_context
+                .linked_entities
+                .insert_with(
                     &entity_id,
-                    context
-                        .graph_resolve_depths
-                        .link_target_entity_resolve_depth,
+                    Some(
+                        dependency_context
+                            .graph_resolve_depths
+                            .link_target_entity_resolve_depth,
+                    ),
                     || async {
                         Ok(PersistedEntity::from(
                             self.read_latest_entity_by_id(entity_id).await?,
@@ -61,49 +55,69 @@ impl<C: AsClient> PostgresStore<C> {
                 .await?;
 
             if let Some(entity) = unresolved_entity {
+                // Cloning the entity type ID avoids multiple borrow errors which would otherwise
+                // require us to clone the entity
                 let entity_type_id = entity.metadata().entity_type_id().clone();
-                if graph_resolve_depths.entity_type_resolve_depth > 0 {
-                    self.get_entity_type_as_dependency(&entity_type_id, DependencyContext {
-                        graph_resolve_depths: GraphResolveDepths {
-                            entity_type_resolve_depth: context
+
+                dependency_context.edges.insert(
+                    GraphElementIdentifier::KnowledgeGraphElementId(entity_id),
+                    OutwardEdge {
+                        edge_kind: EdgeKind::HasType,
+                        destination: GraphElementIdentifier::OntologyElementId(
+                            entity_type_id.clone(),
+                        ),
+                    },
+                );
+
+                if dependency_context
+                    .graph_resolve_depths
+                    .entity_type_resolve_depth
+                    > 0
+                {
+                    self.get_entity_type_as_dependency(
+                        &entity_type_id,
+                        dependency_context.change_depth(GraphResolveDepths {
+                            entity_type_resolve_depth: dependency_context
                                 .graph_resolve_depths
                                 .entity_type_resolve_depth
                                 - 1,
-                            ..graph_resolve_depths
-                        },
-                        edges,
-                        referenced_data_types,
-                        referenced_property_types,
-                        referenced_link_types,
-                        referenced_entity_types,
-                        linked_entities,
-                        links,
-                    })
+                            ..dependency_context.graph_resolve_depths
+                        }),
+                    )
                     .await?;
                 }
 
-                if graph_resolve_depths.link_resolve_depth > 0 {
-                    for link_record in self
-                        .read_links_by_source(entity_id)
-                        .await?
-                        .try_collect::<Vec<_>>()
-                        .await?
-                    {
+                for link_record in self
+                    .read_links_by_source(entity_id)
+                    .await?
+                    .try_collect::<Vec<_>>()
+                    .await?
+                {
+                    dependency_context.edges.insert(
+                        GraphElementIdentifier::KnowledgeGraphElementId(entity_id),
+                        OutwardEdge {
+                            edge_kind: EdgeKind::HasLink,
+                            destination: GraphElementIdentifier::Temporary(LinkId {
+                                source_entity_id: link_record.source_entity_id,
+                                target_entity_id: link_record.target_entity_id,
+                                link_type_id: link_record.link_type_id.clone(),
+                            }),
+                        },
+                    );
+
+                    if dependency_context.graph_resolve_depths.link_resolve_depth > 0 {
                         let link = PersistedLink::from(link_record);
 
-                        self.get_link_as_dependency(&link, DependencyContext {
-                            graph_resolve_depths: GraphResolveDepths {
-                                link_resolve_depth: graph_resolve_depths.link_resolve_depth - 1,
-                                ..graph_resolve_depths
-                            },
-                            edges,
-                            referenced_data_types,
-                            referenced_property_types,
-                            referenced_link_types,
-                            referenced_entity_types,
-                            linked_entities,
-                            links,
-                        })
+                        self.get_link_as_dependency(
+                            &link,
+                            dependency_context.change_depth(GraphResolveDepths {
+                                link_resolve_depth: dependency_context
+                                    .graph_resolve_depths
+                                    .link_resolve_depth
+                                    - 1,
+                                ..dependency_context.graph_resolve_depths
+                            }),
+                        )
                         .await?;
                     }
                 }
@@ -123,6 +137,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         entity_type_id: VersionedUri,
         owned_by_id: AccountId,
         entity_id: Option<EntityId>,
+        created_by_id: AccountId,
     ) -> Result<PersistedEntityMetadata, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
@@ -138,7 +153,14 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         //   https://app.asana.com/0/1200211978612931/1202574350052904/f
         transaction.insert_entity_id(entity_id).await?;
         let metadata = transaction
-            .insert_entity(entity_id, entity, entity_type_id, owned_by_id)
+            .insert_entity(
+                entity_id,
+                entity,
+                entity_type_id,
+                owned_by_id,
+                created_by_id,
+                created_by_id,
+            )
             .await?;
 
         transaction
@@ -215,41 +237,31 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         stream::iter(Read::<PersistedEntity>::read(self, expression).await?)
             .then(|entity| async move {
-                let mut edges = HashMap::new();
-                let mut referenced_data_types = DependencyMap::new();
-                let mut referenced_property_types = DependencyMap::new();
-                let mut referenced_link_types = DependencyMap::new();
-                let mut referenced_entity_types = DependencyMap::new();
-                let mut linked_entities = DependencyMap::new();
-                let mut links = DependencySet::new();
+                let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 
-                self.get_entity_as_dependency(
-                    entity.metadata().identifier().entity_id(),
-                    DependencyContext {
-                        edges: &mut edges,
-                        referenced_data_types: &mut referenced_data_types,
-                        referenced_property_types: &mut referenced_property_types,
-                        referenced_link_types: &mut referenced_link_types,
-                        referenced_entity_types: &mut referenced_entity_types,
-                        linked_entities: &mut linked_entities,
-                        links: &mut links,
-                        graph_resolve_depths,
-                    },
-                )
-                .await?;
+                let entity_id = entity.metadata().identifier().entity_id();
+                dependency_context
+                    .linked_entities
+                    .insert(&entity_id, None, entity);
 
-                let root = linked_entities
-                    .remove(&entity.metadata().identifier().entity_id())
+                self.get_entity_as_dependency(entity_id, dependency_context.as_ref_object())
+                    .await?;
+
+                let root = dependency_context
+                    .linked_entities
+                    .remove(&entity_id)
                     .expect("root was not added to the subgraph");
 
                 Ok(EntityRootedSubgraph {
                     entity: root,
-                    referenced_data_types: referenced_data_types.into_vec(),
-                    referenced_property_types: referenced_property_types.into_vec(),
-                    referenced_link_types: referenced_link_types.into_vec(),
-                    referenced_entity_types: referenced_entity_types.into_vec(),
-                    linked_entities: linked_entities.into_vec(),
-                    links: links.into_vec(),
+                    referenced_data_types: dependency_context.referenced_data_types.into_vec(),
+                    referenced_property_types: dependency_context
+                        .referenced_property_types
+                        .into_vec(),
+                    referenced_link_types: dependency_context.referenced_link_types.into_vec(),
+                    referenced_entity_types: dependency_context.referenced_entity_types.into_vec(),
+                    linked_entities: dependency_context.linked_entities.into_vec(),
+                    links: dependency_context.links.into_vec(),
                 })
             })
             .try_collect()
@@ -261,7 +273,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         entity_id: EntityId,
         entity: Entity,
         entity_type_id: VersionedUri,
-        updated_by: AccountId,
+        updated_by_id: AccountId,
     ) -> Result<PersistedEntityMetadata, UpdateError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
@@ -270,6 +282,14 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .into_report()
                 .change_context(UpdateError)?,
         );
+
+        // TODO - address potential race condition
+        //  https://app.asana.com/0/1202805690238892/1203201674100967/f
+
+        let previous_entity = transaction
+            .read_latest_entity_by_id(entity_id)
+            .await
+            .change_context(UpdateError)?;
 
         if !transaction
             .contains_entity(entity_id)
@@ -282,7 +302,14 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         }
 
         let metadata = transaction
-            .insert_entity(entity_id, entity, entity_type_id, updated_by)
+            .insert_entity(
+                entity_id,
+                entity,
+                entity_type_id,
+                previous_entity.owned_by_id,
+                previous_entity.created_by_id,
+                updated_by_id,
+            )
             .await
             .change_context(UpdateError)?;
 

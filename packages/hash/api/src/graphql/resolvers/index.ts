@@ -123,7 +123,7 @@ import {
 } from "./knowledge/link/link";
 import { setParentPersistedPage } from "./knowledge/page/set-parent-page";
 import { updatePersistedPage } from "./knowledge/page/update-page";
-import { dataEntity } from "./knowledge/block/data-entity";
+import { blockChildEntity } from "./knowledge/block/data-entity";
 
 /**
  * @todo: derive these from the statically declared workspace type names
@@ -362,7 +362,7 @@ export const resolvers = {
   },
 
   PersistedBlock: {
-    dataEntity,
+    blockChildEntity,
   },
 
   /**

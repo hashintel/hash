@@ -4,7 +4,14 @@ import {
   defaultBlockComponentIds,
   fetchBlock,
 } from "@hashintel/hash-shared/blocks";
-import { getPageInfoQuery } from "@hashintel/hash-shared/queries/page.queries";
+import {
+  GetPersistedPageQuery,
+  GetPersistedPageQueryVariables,
+} from "@hashintel/hash-shared/graphql/apiTypes.gen";
+import {
+  getPageInfoQuery,
+  getPersistedPageQuery,
+} from "@hashintel/hash-shared/queries/page.queries";
 import { isSafariBrowser } from "@hashintel/hash-shared/util";
 import { Box, Collapse, alpha, styled } from "@mui/material";
 import { keyBy } from "lodash";
@@ -13,9 +20,9 @@ import Head from "next/head";
 import { Router, useRouter } from "next/router";
 
 import { useEffect, useMemo, useState, FunctionComponent, useRef } from "react";
-import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
-import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
-import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
+// import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
+// import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
+// import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
 import {
   PageBlock,
   PAGE_HORIZONTAL_PADDING_FORMULA,
@@ -203,9 +210,9 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
   );
 
   const { data, error, loading } = useQuery<
-    GetPageInfoQuery,
-    GetPageInfoQueryVariables
-  >(getPageInfoQuery, {
+    GetPersistedPageQuery,
+    GetPersistedPageQueryVariables
+  >(getPersistedPageQuery, {
     variables: {
       ownedById: accountId,
       entityId: pageEntityId,
@@ -214,9 +221,11 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
   });
   const pageHeaderRef = useRef<HTMLElement>();
   const { readonlyMode } = useReadonlyMode();
-  const collabPositions = useCollabPositions(accountId, pageEntityId);
-  const reportPosition = useCollabPositionReporter(accountId, pageEntityId);
-  useCollabPositionTracking(reportPosition);
+
+  // Collab position tracking is disabled.
+  // const collabPositions = useCollabPositions(accountId, pageEntityId);
+  // const reportPosition = useCollabPositionReporter(accountId, pageEntityId);
+  // useCollabPositionTracking(reportPosition);
 
   useEffect(() => {
     const handleRouteChange = () => {
@@ -271,7 +280,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
     );
   }
 
-  const { title, icon } = data.persistedPage;
+  const { title, icon, contents } = data.persistedPage;
 
   const isSafari = isSafariBrowser();
   const pageTitle = isSafari && icon ? `${icon} ${title}` : title;
@@ -380,9 +389,10 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
           </Box>
         </Container>
 
-        <CollabPositionProvider value={collabPositions}>
+        <CollabPositionProvider value={[]}>
           <PageBlock
             accountId={accountId}
+            contents={contents}
             blocks={blocksMap}
             entityId={pageEntityId}
           />

@@ -13,12 +13,12 @@ export const deprecatedCreateEntityType: ResolverFn<
 > = async (
   _,
   { accountId, description, name, schema },
-  { dataSources, user },
+  { dataSources, userModel },
 ) =>
   dataSources.db.transaction(async (client) => {
     const entityType = await EntityType.create(client, {
       accountId,
-      createdByAccountId: user.entityId,
+      createdByAccountId: userModel.entityId,
       description: description ?? undefined,
       name,
       schema,

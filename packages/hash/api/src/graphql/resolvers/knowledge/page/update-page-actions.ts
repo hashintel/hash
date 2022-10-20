@@ -16,7 +16,7 @@ export const createEntityWithPlaceholdersFn =
   (graphApi: GraphApi, placeholderResults: PlaceholderResultsMap) =>
   async (
     originalDefinition: PersistedEntityDefinition,
-    entityOwnedById: string,
+    entityActorId: string,
   ) => {
     const entityDefinition = produce(originalDefinition, (draft) => {
       if (draft.existingEntity) {
@@ -29,26 +29,23 @@ export const createEntityWithPlaceholdersFn =
           draft.entityType.entityTypeId,
         );
       }
-
-      /**
-       * @todo Figure out what would be the equivalent to linked data in the new graph api.
-       *   Related to https://app.asana.com/0/1200211978612931/1201850801682936/f
-       *   Asana ticket: https://app.asana.com/0/1202805690238892/1203045933021781/f
-       */
-      // if (draft.entityProperties?.text?.__linkedData?.entityId) {
-      //   draft.entityProperties.text.__linkedData.entityId =
-      //     placeholderResults.get(
-      //       draft.entityProperties.text.__linkedData.entityId,
-      //     );
-      // }
     });
 
-    return await EntityModel.createEntityWithLinks(graphApi, {
-      ownedById: entityOwnedById,
-      entityTypeId: entityDefinition.entityType?.entityTypeId!,
-      properties: entityDefinition.entityProperties,
-      linkedEntities: entityDefinition.linkedEntities ?? undefined,
-    });
+    if (entityDefinition.existingEntity) {
+      return await EntityModel.getOrCreate(graphApi, {
+        ownedById: entityActorId,
+        entityDefinition,
+        actorId: entityActorId,
+      });
+    } else {
+      return await EntityModel.createEntityWithLinks(graphApi, {
+        ownedById: entityActorId,
+        entityTypeId: entityDefinition.entityType?.entityTypeId!,
+        properties: entityDefinition.entityProperties,
+        linkedEntities: entityDefinition.linkedEntities ?? undefined,
+        actorId: entityActorId,
+      });
+    }
   };
 
 type UpdatePageActionKey = keyof UpdatePersistedPageAction;
@@ -118,7 +115,7 @@ export const handleCreateNewEntity = async (params: {
   placeholderResults: PlaceholderResultsMap;
   createEntityWithPlaceholders: (
     originalDefinition: PersistedEntityDefinition,
-    entityCreatedById: string,
+    entityActorId: string,
   ) => Promise<EntityModel>;
 }): Promise<void> => {
   try {
@@ -157,7 +154,7 @@ export const handleInsertNewBlock = async (
     index: number;
     createEntityWithPlaceholders: (
       originalDefinition: PersistedEntityDefinition,
-      entityCreatedById: string,
+      entityActorId: string,
     ) => Promise<EntityModel>;
     placeholderResults: PlaceholderResultsMap;
   },
@@ -208,6 +205,7 @@ export const handleInsertNewBlock = async (
         blockData,
         ownedById: userModel.entityId,
         componentId: blockComponentId,
+        actorId: userModel.entityId,
       });
     } else {
       throw new Error(
@@ -243,6 +241,7 @@ export const handleSwapBlockData = async (
 ): Promise<void> => {
   const {
     swapBlockDataAction: { entityId },
+    userModel,
   } = params;
 
   const block = await BlockModel.getBlockById(graphApi, {
@@ -261,6 +260,7 @@ export const handleSwapBlockData = async (
 
   await block.updateBlockDataEntity(graphApi, {
     newBlockDataEntity,
+    actorId: userModel.entityId,
   });
 };
 
@@ -276,7 +276,7 @@ export const handleUpdateEntity = async (
     placeholderResults: PlaceholderResultsMap;
   },
 ): Promise<void> => {
-  const { action, placeholderResults } = params;
+  const { action, placeholderResults, userModel } = params;
 
   // If this entity ID is a placeholder, use that instead.
   let entityId = action.entityId;
@@ -292,5 +292,6 @@ export const handleUpdateEntity = async (
     updatedProperties: Object.entries(action.properties).map(
       ([key, value]) => ({ propertyTypeBaseUri: key, value }),
     ),
+    actorId: userModel.entityId,
   });
 };

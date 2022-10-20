@@ -3,21 +3,13 @@ import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState, Transaction } from "prosemirror-state";
 import { EditorProps, EditorView } from "prosemirror-view";
 
-import { Text, TextProperties } from "./graphql/apiTypes.gen";
 import {
   areComponentsCompatible,
   fetchBlock,
   HashBlock,
   prepareBlockCache,
 } from "./blocks";
-import {
-  BlockEntity,
-  getBlockChildEntity,
-  isDraftTextContainingEntityProperties,
-  isTextEntity,
-  isTextProperties,
-  LegacyLink,
-} from "./entity";
+import { BlockEntity, getBlockChildEntity, isTextEntity } from "./entity";
 import {
   createEntityStore,
   DraftEntity,
@@ -154,7 +146,7 @@ export class ProsemirrorManager {
         console.error("Block entity missing from store");
       }
 
-      if (entityInStore?.properties.componentId !== targetComponentId) {
+      if (entityInStore?.componentId !== targetComponentId) {
         // eslint-disable-next-line no-console
         console.error("Cannot render this block entity with this component");
       }
@@ -323,49 +315,20 @@ export class ProsemirrorManager {
 
     if (
       blockEntity &&
-      areComponentsCompatible(
-        /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
-        (blockEntity as any).componentId,
-        targetComponentId,
-      )
+      areComponentsCompatible(blockEntity.componentId, targetComponentId)
     ) {
-      if (targetComponentId === blockEntity?.properties.componentId) {
+      if (targetComponentId === blockEntity.componentId) {
         addEntityStoreAction(this.view.state, tr, {
           type: "updateEntityProperties",
           payload: {
-            draftId: blockEntity.properties.entity.draftId,
+            draftId: blockEntity.blockChildEntity?.draftId!,
             properties: entityProperties,
             merge: true,
           },
         });
         targetBlockId = blockEntity.draftId;
       } else {
-        let newBlockProperties = entityProperties;
-
-        /**
-         * This is supporting swapping between text blocks and persisting the
-         * existing text
-         */
-        if (
-          isDraftTextContainingEntityProperties(
-            blockEntity.dataEntity?.properties,
-          )
-        ) {
-          newBlockProperties = {
-            ...entityProperties,
-            text: blockEntity.dataEntity?.properties.text as any,
-          };
-        } else if (isTextProperties(blockEntity.dataEntity?.properties)) {
-          newBlockProperties = {
-            ...entityProperties,
-            text: this.createNewLegacyTextLink(
-              this.view.state,
-              tr,
-              blockEntity.accountId,
-              blockEntity.dataEntity?.properties ?? { tokens: [] },
-            ),
-          };
-        }
+        const newBlockProperties = entityProperties;
 
         targetBlockId = await this.createBlockEntity(
           tr,
@@ -389,43 +352,6 @@ export class ProsemirrorManager {
     );
 
     return [tr, newNode] as const;
-  }
-
-  createNewLegacyTextLink(
-    state: EditorState<Schema>,
-    tr: Transaction<Schema>,
-    accountId: string,
-    textProperties: TextProperties,
-  ): LegacyLink<Text> {
-    const newTextEntity = generateDraftIdForEntity(null);
-    addEntityStoreAction(state, tr, {
-      type: "newDraftEntity",
-      payload: {
-        accountId,
-        draftId: newTextEntity,
-        entityId: null,
-      },
-    });
-    addEntityStoreAction(state, tr, {
-      type: "updateEntityProperties",
-      payload: {
-        properties: textProperties,
-        draftId: newTextEntity,
-        merge: false,
-      },
-    });
-
-    const textEntity = entityStorePluginStateFromTransaction(tr, state).store
-      .draft[newTextEntity];
-
-    if (!textEntity || !isTextEntity(textEntity)) {
-      throw new Error("Failed to create text entity");
-    }
-
-    return {
-      __linkedData: {},
-      data: textEntity,
-    };
   }
 
   async insertBlock(
@@ -499,7 +425,7 @@ export class ProsemirrorManager {
       throw new Error("Can only update child of a BlockEntity");
     }
 
-    const childEntity = blockEntity.dataEntity;
+    const childEntity = blockEntity.blockChildEntity;
 
     // If the target entity is the same as the block's child entity
     // we don't need to do anything
@@ -577,12 +503,12 @@ export class ProsemirrorManager {
       },
     });
 
-    const blockDraftDraftId = generateDraftIdForEntity(null);
+    const blockDataDraftId = generateDraftIdForEntity(null);
     addEntityStoreAction(this.view.state, tr, {
       type: "newDraftEntity",
       payload: {
         accountId: this.accountId,
-        draftId: blockDraftDraftId,
+        draftId: blockDataDraftId,
         entityId: null,
       },
     });
@@ -590,7 +516,7 @@ export class ProsemirrorManager {
     addEntityStoreAction(this.view.state, tr, {
       type: "updateEntityProperties",
       payload: {
-        draftId: blockDraftDraftId,
+        draftId: blockDataDraftId,
         properties: blockDataProperties,
         // @todo maybe need to remove this?
         merge: true,
@@ -602,10 +528,12 @@ export class ProsemirrorManager {
       payload: {
         draftId: newBlockId,
         merge: false,
-        properties: {
+        blockEntityMetadata: {
           componentId: targetComponentId,
-          entity: entityStorePluginStateFromTransaction(tr, this.view.state)
-            .store.draft[blockDraftDraftId],
+          blockChildEntity: entityStorePluginStateFromTransaction(
+            tr,
+            this.view.state,
+          ).store.draft[blockDataDraftId],
         },
       },
     });
