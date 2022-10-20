@@ -25,7 +25,10 @@ use crate::{
     store::{
         query::Expression, BaseUriAlreadyExists, BaseUriDoesNotExist, LinkTypeStore, StorePool,
     },
-    subgraph::{StructuralQuery, Subgraph},
+    subgraph::{
+        EdgeKind, Edges, GraphElementIdentifier, GraphResolveDepths, OutwardEdge, StructuralQuery,
+        Subgraph, Vertex,
+    },
 };
 
 #[derive(OpenApi)]
@@ -46,6 +49,12 @@ use crate::{
             PersistedOntologyMetadata,
             PersistedLinkType,
             StructuralQuery,
+            GraphElementIdentifier,
+            Vertex,
+            EdgeKind,
+            OutwardEdge,
+            GraphResolveDepths,
+            Edges,
             Subgraph,
         )
     ),

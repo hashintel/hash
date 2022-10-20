@@ -54,8 +54,8 @@ use crate::{
             EdgeKind,
             OutwardEdge,
             GraphResolveDepths,
+            Edges,
             Subgraph,
-            Edges
         )
     ),
     tags(
