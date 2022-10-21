@@ -112,7 +112,8 @@ import { persistedBlocks } from "./knowledge/block/block";
 import { getBlockProtocolBlocks } from "./blockprotocol/getBlock";
 import {
   createPersistedEntity,
-  persistedEntity,
+  getPersistedEntity,
+  getAllLatestPersistedEntities,
   updatePersistedEntity,
 } from "./knowledge/entity/entity";
 import { UnresolvedPersistedEntityGQL } from "./knowledge/model-mapping";
@@ -184,7 +185,11 @@ export const resolvers = {
     persistedPage: loggedInAndSignedUp(persistedPage),
     persistedPages: loggedInAndSignedUp(persistedPages),
     persistedBlocks: loggedInAndSignedUp(persistedBlocks),
-    persistedEntity: loggedInAndSignedUp(persistedEntity),
+    getPersistedEntity: loggedInAndSignedUp(getPersistedEntity),
+    getAllLatestPersistedEntities: loggedInAndSignedUp(
+      getAllLatestPersistedEntities,
+    ),
+    /** @todo - delete this - https://app.asana.com/0/0/1203157172269854/f */
     outgoingPersistedLinks: loggedInAndSignedUp(outgoingPersistedLinks),
   },
 
