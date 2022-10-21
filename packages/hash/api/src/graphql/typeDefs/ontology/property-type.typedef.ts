@@ -26,14 +26,21 @@ export const propertyTypeTypedef = gql`
 
   extend type Query {
     """
-    Get all property types at their latest version.
+    Get a subgraph rooted at all property types at their latest version.
     """
-    getAllLatestPropertyTypes: Subgraph!
+    getAllLatestPropertyTypes(
+      dataTypeResolveDepth: Int!
+      propertyTypeResolveDepth: Int!
+    ): Subgraph!
 
     """
-    Get a property type by its versioned URI.
+    Get a subgraph rooted at an property type resolved by its versioned URI.
     """
-    getPropertyType(propertyTypeId: String!): Subgraph!
+    getPropertyType(
+      propertyTypeId: String!
+      dataTypeResolveDepth: Int!
+      propertyTypeResolveDepth: Int!
+    ): Subgraph!
   }
 
   extend type Mutation {
@@ -42,7 +49,7 @@ export const propertyTypeTypedef = gql`
     """
     createPropertyType(
       """
-      The id of the owner of the property type. Defaults to the user calling the mutation.
+      The id of the account who owns the property type. Defaults to the user calling the mutation.
       """
       ownedById: ID
       propertyType: PropertyTypeWithoutId!

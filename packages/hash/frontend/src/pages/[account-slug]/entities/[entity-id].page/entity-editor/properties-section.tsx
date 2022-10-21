@@ -5,8 +5,10 @@ import { IconButton } from "@hashintel/hash-design-system/icon-button";
 import { Paper, Stack } from "@mui/material";
 import { useState } from "react";
 import { useEntityEditor } from "./entity-editor-context";
-import { PropertyTable } from "./property-table";
+import { getEmptyPropertyCount } from "./properties-section/get-empty-property-count";
+import { PropertyTable } from "./properties-section/property-table";
 import { EntitySection } from "./shared/entity-section";
+import { WhiteChip } from "./shared/white-chip";
 
 export const PropertiesSection = () => {
   const { entity } = useEntityEditor();
@@ -17,6 +19,7 @@ export const PropertiesSection = () => {
   }
 
   const propertyCount = Object.keys(entity.properties).length;
+  const emptyPropertyCount = getEmptyPropertyCount(entity.properties);
 
   return (
     <EntitySection
@@ -24,6 +27,9 @@ export const PropertiesSection = () => {
       titleStartContent={
         <Stack direction="row" spacing={1.5}>
           <Chip size="xs" label={`${propertyCount} Values`} />
+          {emptyPropertyCount > 0 && (
+            <WhiteChip size="xs" label={`${emptyPropertyCount} empty`} />
+          )}
           <Stack direction="row" spacing={0.5}>
             <IconButton
               rounded
@@ -38,7 +44,6 @@ export const PropertiesSection = () => {
     >
       <Paper sx={{ overflow: "hidden" }}>
         <PropertyTable
-          entity={entity}
           onSearchClose={() => setShowSearch(false)}
           showSearch={showSearch}
         />

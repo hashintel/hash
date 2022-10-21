@@ -196,12 +196,6 @@ impl PersistedDataType {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct DataTypeRootedSubgraph {
-    pub data_type: PersistedDataType,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 pub struct PersistedPropertyType {
     #[schema(value_type = VAR_PROPERTY_TYPE)]
     #[serde(serialize_with = "serialize_ontology_type")]
@@ -253,19 +247,27 @@ impl PersistedLinkType {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct LinkTypeRootedSubgraph {
-    pub link_type: PersistedLinkType,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 pub struct PersistedOntologyMetadata {
     identifier: PersistedOntologyIdentifier,
+    created_by_id: AccountId,
+    updated_by_id: AccountId,
+    removed_by_id: Option<AccountId>,
 }
 
 impl PersistedOntologyMetadata {
     #[must_use]
-    pub const fn new(identifier: PersistedOntologyIdentifier) -> Self {
-        Self { identifier }
+    pub const fn new(
+        identifier: PersistedOntologyIdentifier,
+        created_by_id: AccountId,
+        updated_by_id: AccountId,
+        removed_by_id: Option<AccountId>,
+    ) -> Self {
+        Self {
+            identifier,
+            created_by_id,
+            updated_by_id,
+            removed_by_id,
+        }
     }
 
     #[must_use]
@@ -297,14 +299,4 @@ impl PersistedEntityType {
     pub const fn metadata(&self) -> &PersistedOntologyMetadata {
         &self.metadata
     }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct EntityTypeRootedSubgraph {
-    pub entity_type: PersistedEntityType,
-    pub referenced_data_types: Vec<PersistedDataType>,
-    pub referenced_property_types: Vec<PersistedPropertyType>,
-    pub referenced_link_types: Vec<PersistedLinkType>,
-    pub referenced_entity_types: Vec<PersistedEntityType>,
 }

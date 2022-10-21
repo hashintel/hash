@@ -26,14 +26,14 @@ export const linkTypeTypedef = gql`
 
   extend type Query {
     """
-    Get all link types at their latest version.
+    Get a subgraph rooted at all link types at their latest version.
     """
-    getAllLatestLinkTypes: [PersistedLinkType!]!
+    getAllLatestLinkTypes: Subgraph!
 
     """
-    Get an link type by its versioned URI.
+    Get a subgraph rooted at an link type resolved by its versioned URI.
     """
-    getLinkType(linkTypeId: String!): PersistedLinkType!
+    getLinkType(linkTypeId: String!): Subgraph!
   }
 
   extend type Mutation {
@@ -42,7 +42,7 @@ export const linkTypeTypedef = gql`
     """
     createLinkType(
       """
-      The id of the owner of the link type. Defaults to the user calling the mutation.
+      The id of the account who owns the link type. Defaults to the user calling the mutation.
       """
       ownedById: ID
       linkType: LinkTypeWithoutId!

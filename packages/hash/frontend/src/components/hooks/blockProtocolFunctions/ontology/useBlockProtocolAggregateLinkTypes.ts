@@ -38,9 +38,7 @@ export const useBlockProtocolAggregateLinkTypes = (): {
        *   or doing it from here.
        *   https://app.asana.com/0/1202805690238892/1202890614880643/f
        */
-      const response = await aggregateFn({
-        query: getAllLatestLinkTypesQuery,
-      });
+      const response = await aggregateFn({});
 
       if (!response.data) {
         return {
@@ -54,9 +52,7 @@ export const useBlockProtocolAggregateLinkTypes = (): {
       }
 
       return {
-        data: {
-          results: response.data.getAllLatestLinkTypes,
-        },
+        data: response.data.getAllLatestLinkTypes,
       };
     },
     [aggregateFn],

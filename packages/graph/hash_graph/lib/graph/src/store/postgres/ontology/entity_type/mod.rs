@@ -1,26 +1,27 @@
 mod resolve;
 
-use std::{collections::HashMap, future::Future, pin::Pin};
+use std::{future::Future, pin::Pin};
 
 use async_trait::async_trait;
-use error_stack::{IntoReport, Result, ResultExt};
+use error_stack::{IntoReport, Report, Result, ResultExt};
 use futures::{stream, FutureExt, StreamExt, TryStreamExt};
 use tokio_postgres::GenericClient;
 use type_system::{uri::VersionedUri, EntityType};
 
 use crate::{
-    ontology::{
-        AccountId, EntityTypeRootedSubgraph, PersistedEntityType, PersistedOntologyMetadata,
-    },
+    ontology::{AccountId, PersistedEntityType, PersistedOntologyMetadata},
     store::{
         crud::Read,
         postgres::{
-            context::PostgresContext, DependencyContext, DependencyMap, DependencySet,
+            context::PostgresContext, DependencyContext, DependencyContextRef,
             PersistedOntologyType,
         },
         AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
-    subgraph::{GraphResolveDepths, StructuralQuery},
+    subgraph::{
+        EdgeKind, GraphElementIdentifier, GraphResolveDepths, OutwardEdge, StructuralQuery,
+        Subgraph,
+    },
 };
 
 impl<C: AsClient> PostgresStore<C> {
@@ -29,30 +30,24 @@ impl<C: AsClient> PostgresStore<C> {
         reason = "difficult to shrink the number of lines with destructuring and so many \
                   variables needing to be passed independently"
     )]
-    /// Internal method to read a [`PersistedEntityType`] into four [`DependencyMap`]s.
+    /// Internal method to read a [`PersistedEntityType`] into four [`DependencyContext`]s.
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    pub(crate) fn get_entity_type_as_dependency<'a>(
+    pub(crate) fn get_entity_type_as_dependency<'a: 'b, 'b>(
         &'a self,
         entity_type_id: &'a VersionedUri,
-        context: DependencyContext<'a>,
-    ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'a>> {
-        let DependencyContext {
-            edges,
-            referenced_data_types,
-            referenced_property_types,
-            referenced_link_types,
-            referenced_entity_types,
-            linked_entities,
-            links,
-            graph_resolve_depths,
-        } = context;
-
+        mut dependency_context: DependencyContextRef<'b>,
+    ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'b>> {
         async move {
-            let unresolved_entity_type = referenced_entity_types
-                .insert(
+            let unresolved_entity_type = dependency_context
+                .referenced_entity_types
+                .insert_with(
                     entity_type_id,
-                    graph_resolve_depths.entity_type_resolve_depth,
+                    Some(
+                        dependency_context
+                            .graph_resolve_depths
+                            .entity_type_resolve_depth,
+                    ),
                     || async {
                         Ok(PersistedEntityType::from_record(
                             self.read_versioned_ontology_type(entity_type_id).await?,
@@ -62,93 +57,95 @@ impl<C: AsClient> PostgresStore<C> {
                 .await?;
 
             if let Some(entity_type) = unresolved_entity_type.cloned() {
-                if graph_resolve_depths.property_type_resolve_depth > 0 {
-                    // TODO: Use relation tables
-                    //   see https://app.asana.com/0/0/1202884883200942/f
-                    for property_type_ref in entity_type.inner().property_type_references() {
+                for property_type_ref in entity_type.inner().property_type_references() {
+                    dependency_context.edges.insert(
+                        GraphElementIdentifier::OntologyElementId(entity_type_id.clone()),
+                        OutwardEdge {
+                            edge_kind: EdgeKind::References,
+                            destination: GraphElementIdentifier::OntologyElementId(
+                                property_type_ref.uri().clone(),
+                            ),
+                        },
+                    );
+
+                    if dependency_context
+                        .graph_resolve_depths
+                        .property_type_resolve_depth
+                        > 0
+                    {
+                        // TODO: Use relation tables
+                        //   see https://app.asana.com/0/0/1202884883200942/f
                         self.get_property_type_as_dependency(
                             property_type_ref.uri(),
-                            DependencyContext {
-                                edges,
-                                referenced_data_types,
-                                referenced_property_types,
-                                referenced_link_types,
-                                referenced_entity_types,
-                                linked_entities,
-                                links,
-                                graph_resolve_depths: GraphResolveDepths {
-                                    property_type_resolve_depth: graph_resolve_depths
-                                        .property_type_resolve_depth
-                                        - 1,
-                                    ..graph_resolve_depths
-                                },
-                            },
+                            dependency_context.change_depth(GraphResolveDepths {
+                                property_type_resolve_depth: dependency_context
+                                    .graph_resolve_depths
+                                    .property_type_resolve_depth
+                                    - 1,
+                                ..dependency_context.graph_resolve_depths
+                            }),
                         )
                         .await?;
                     }
                 }
 
-                if context.graph_resolve_depths.link_type_resolve_depth > 0
-                    || context.graph_resolve_depths.entity_type_resolve_depth > 0
-                {
-                    let linked_uris = entity_type
-                        .inner()
-                        .link_type_references()
-                        .into_iter()
-                        .map(|(link_type_id, entity_type_ids)| {
-                            (
+                // TODO: Use relation tables
+                //   see https://app.asana.com/0/0/1202884883200942/f
+                for (link_type_id, entity_type_ids) in entity_type.inner().link_type_references() {
+                    dependency_context.edges.insert(
+                        GraphElementIdentifier::OntologyElementId(entity_type_id.clone()),
+                        OutwardEdge {
+                            edge_kind: EdgeKind::References,
+                            destination: GraphElementIdentifier::OntologyElementId(
                                 link_type_id.clone(),
-                                entity_type_ids
-                                    .iter()
-                                    .map(|reference| reference.uri().clone())
-                                    .collect::<Vec<_>>(),
-                            )
-                        })
-                        .collect::<Vec<_>>();
+                            ),
+                        },
+                    );
 
-                    // TODO: Use relation tables
-                    //   see https://app.asana.com/0/0/1202884883200942/f
-                    for (link_type_id, entity_type_ids) in linked_uris {
-                        if graph_resolve_depths.link_type_resolve_depth > 0 {
-                            self.get_link_type_as_dependency(&link_type_id, DependencyContext {
-                                graph_resolve_depths: GraphResolveDepths {
-                                    link_type_resolve_depth: graph_resolve_depths
-                                        .link_type_resolve_depth
+                    if dependency_context
+                        .graph_resolve_depths
+                        .link_type_resolve_depth
+                        > 0
+                    {
+                        self.get_link_type_as_dependency(
+                            link_type_id,
+                            dependency_context.change_depth(GraphResolveDepths {
+                                link_type_resolve_depth: dependency_context
+                                    .graph_resolve_depths
+                                    .link_type_resolve_depth
+                                    - 1,
+                                ..dependency_context.graph_resolve_depths
+                            }),
+                        )
+                        .await?;
+                    }
+                    for referenced_entity_type_id in entity_type_ids {
+                        dependency_context.edges.insert(
+                            GraphElementIdentifier::OntologyElementId(entity_type_id.clone()),
+                            OutwardEdge {
+                                edge_kind: EdgeKind::References,
+                                destination: GraphElementIdentifier::OntologyElementId(
+                                    referenced_entity_type_id.uri().clone(),
+                                ),
+                            },
+                        );
+
+                        if dependency_context
+                            .graph_resolve_depths
+                            .entity_type_resolve_depth
+                            > 0
+                        {
+                            self.get_entity_type_as_dependency(
+                                referenced_entity_type_id.uri(),
+                                dependency_context.change_depth(GraphResolveDepths {
+                                    entity_type_resolve_depth: dependency_context
+                                        .graph_resolve_depths
+                                        .entity_type_resolve_depth
                                         - 1,
-                                    ..graph_resolve_depths
-                                },
-                                edges,
-                                referenced_data_types,
-                                referenced_property_types,
-                                referenced_link_types,
-                                referenced_entity_types,
-                                linked_entities,
-                                links,
-                            })
+                                    ..dependency_context.graph_resolve_depths
+                                }),
+                            )
                             .await?;
-                        }
-                        if context.graph_resolve_depths.entity_type_resolve_depth > 0 {
-                            for entity_type_id in entity_type_ids {
-                                self.get_entity_type_as_dependency(
-                                    &entity_type_id,
-                                    DependencyContext {
-                                        graph_resolve_depths: GraphResolveDepths {
-                                            entity_type_resolve_depth: graph_resolve_depths
-                                                .entity_type_resolve_depth
-                                                - 1,
-                                            ..graph_resolve_depths
-                                        },
-                                        edges,
-                                        referenced_data_types,
-                                        referenced_property_types,
-                                        referenced_link_types,
-                                        referenced_entity_types,
-                                        linked_entities,
-                                        links,
-                                    },
-                                )
-                                .await?;
-                            }
                         }
                     }
                 }
@@ -166,6 +163,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         &mut self,
         entity_type: EntityType,
         owned_by_id: AccountId,
+        created_by_id: AccountId,
     ) -> Result<PersistedOntologyMetadata, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
@@ -178,7 +176,9 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         // This clone is currently necessary because we extract the references as we insert them.
         // We can only insert them after the type has been created, and so we currently extract them
         // after as well. See `insert_entity_type_references` taking `&entity_type`
-        let (version_id, metadata) = transaction.create(entity_type.clone(), owned_by_id).await?;
+        let (version_id, metadata) = transaction
+            .create(entity_type.clone(), owned_by_id, created_by_id)
+            .await?;
 
         transaction
             .insert_entity_type_references(&entity_type, version_id)
@@ -202,54 +202,40 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         Ok(metadata)
     }
 
-    async fn get_entity_type(
-        &self,
-        query: &StructuralQuery,
-    ) -> Result<Vec<EntityTypeRootedSubgraph>, QueryError> {
+    async fn get_entity_type(&self, query: &StructuralQuery) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
             ref expression,
             graph_resolve_depths,
         } = *query;
 
-        stream::iter(Read::<PersistedEntityType>::read(self, expression).await?)
+        let subgraphs = stream::iter(Read::<PersistedEntityType>::read(self, expression).await?)
             .then(|entity_type| async move {
-                let mut edges = HashMap::new();
-                let mut referenced_data_types = DependencyMap::new();
-                let mut referenced_property_types = DependencyMap::new();
-                let mut referenced_link_types = DependencyMap::new();
-                let mut referenced_entity_types = DependencyMap::new();
-                let mut linked_entities = DependencyMap::new();
-                let mut links = DependencySet::new();
+                let mut dependency_context = DependencyContext::new(graph_resolve_depths);
+
+                let entity_type_id = entity_type.metadata().identifier().uri().clone();
+                dependency_context.referenced_entity_types.insert(
+                    &entity_type_id,
+                    None,
+                    entity_type,
+                );
 
                 self.get_entity_type_as_dependency(
-                    entity_type.metadata().identifier().uri(),
-                    DependencyContext {
-                        edges: &mut edges,
-                        referenced_data_types: &mut referenced_data_types,
-                        referenced_property_types: &mut referenced_property_types,
-                        referenced_link_types: &mut referenced_link_types,
-                        referenced_entity_types: &mut referenced_entity_types,
-                        linked_entities: &mut linked_entities,
-                        links: &mut links,
-                        graph_resolve_depths,
-                    },
+                    &entity_type_id,
+                    dependency_context.as_ref_object(),
                 )
                 .await?;
 
-                let root = referenced_entity_types
-                    .remove(entity_type.metadata().identifier().uri())
-                    .expect("root was not added to the subgraph");
+                let root = GraphElementIdentifier::OntologyElementId(entity_type_id);
 
-                Ok(EntityTypeRootedSubgraph {
-                    entity_type: root,
-                    referenced_data_types: referenced_data_types.into_vec(),
-                    referenced_property_types: referenced_property_types.into_vec(),
-                    referenced_link_types: referenced_link_types.into_vec(),
-                    referenced_entity_types: referenced_entity_types.into_vec(),
-                })
+                Ok::<_, Report<QueryError>>(dependency_context.into_subgraph(vec![root]))
             })
-            .try_collect()
-            .await
+            .try_collect::<Vec<_>>()
+            .await?;
+
+        let mut subgraph = Subgraph::new(graph_resolve_depths);
+        subgraph.extend(subgraphs);
+
+        Ok(subgraph)
     }
 
     async fn update_entity_type(

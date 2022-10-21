@@ -7,25 +7,22 @@ import {
   UpdateEntityTypeRequest,
 } from "@hashintel/hash-graph-client";
 import { generateTypeId, types } from "@hashintel/hash-shared/types";
-import {
-  EntityTypeModel,
-  PropertyTypeModel,
-  LinkTypeModel,
-  DataTypeModel,
-} from "../index";
-import dataTypeModel from "./data-type.model";
-import linkTypeModel from "./link-type.model";
+import { EntityTypeModel, PropertyTypeModel, LinkTypeModel } from "../index";
 import { getNamespaceOfAccountOwner } from "./util";
 import { WORKSPACE_TYPES } from "../../graph/workspace-types";
 
 export type EntityTypeModelConstructorParams = {
   ownedById: string;
   schema: EntityType;
+  createdById: string;
+  updatedById: string;
+  removedById?: string;
 };
 
 export type EntityTypeModelCreateParams = {
   ownedById: string;
   schema: Omit<EntityType, "$id">;
+  actorId: string;
 };
 
 /**
@@ -36,14 +33,28 @@ export default class {
 
   schema: EntityType;
 
-  constructor({ schema, ownedById }: EntityTypeModelConstructorParams) {
+  createdById: string;
+  updatedById: string;
+  removedById?: string;
+
+  constructor({
+    schema,
+    ownedById,
+    createdById,
+    updatedById,
+    removedById,
+  }: EntityTypeModelConstructorParams) {
     this.ownedById = ownedById;
     this.schema = schema;
+
+    this.createdById = createdById;
+    this.updatedById = updatedById;
+    this.removedById = removedById;
   }
 
   static fromPersistedEntityType({
     inner,
-    metadata: { identifier },
+    metadata: { identifier, createdById, updatedById, removedById },
   }: PersistedEntityType): EntityTypeModel {
     /**
      * @todo and a warning, these type casts are here to compensate for
@@ -59,19 +70,24 @@ export default class {
     return new EntityTypeModel({
       schema: inner as EntityType,
       ownedById: identifier.ownedById,
+      createdById,
+      updatedById,
+      removedById,
     });
   }
 
   /**
    * Create an entity type.
    *
-   * @param params.ownedById - the id of the owner of the entity type
+   * @param params.ownedById - the id of the account who owns the entity type
    * @param params.schema - the `EntityType`
+   * @param params.actorId - the id of the account that is creating the entity type
    */
   static async create(
     graphApi: GraphApi,
     params: EntityTypeModelCreateParams,
   ): Promise<EntityTypeModel> {
+    const { ownedById, actorId } = params;
     const namespace = await getNamespaceOfAccountOwner(graphApi, {
       ownerId: params.ownedById,
     });
@@ -85,11 +101,8 @@ export default class {
 
     const { data: metadata } = await graphApi
       .createEntityType({
-        /**
-         * @todo: replace uses of `accountId` with `ownedById` in the Graph API
-         * @see https://app.asana.com/0/1202805690238892/1203063463721791/f
-         */
-        accountId: params.ownedById,
+        actorId,
+        ownedById,
         schema: fullEntityType,
       })
       .catch((err: AxiosError) => {
@@ -100,11 +113,9 @@ export default class {
         );
       });
 
-    const { identifier } = metadata;
-
-    return new EntityTypeModel({
-      schema: fullEntityType,
-      ownedById: identifier.ownedById,
+    return EntityTypeModel.fromPersistedEntityType({
+      inner: fullEntityType,
+      metadata,
     });
   }
 
@@ -122,72 +133,6 @@ export default class {
       await graphApi.getLatestEntityTypes();
 
     return persistedEntityTypes.map(EntityTypeModel.fromPersistedEntityType);
-  }
-
-  /**
-   * Get all entity types at their latest version with their references resolved as a list.
-   *
-   * @param params.dataTypeQueryDepth recursion depth to use to resolve data types
-   * @param params.propertyTypeQueryDepth recursion depth to use to resolve property types
-   * @param params.linkTypeQueryDepth recursion depth to use to resolve link types
-   * @param params.entityTypeQueryDepth recursion depth to use to resolve entity types
-   */
-  static async getAllLatestResolved(
-    graphApi: GraphApi,
-    params: {
-      dataTypeQueryDepth: number;
-      propertyTypeQueryDepth: number;
-      linkTypeQueryDepth: number;
-      entityTypeQueryDepth: number;
-    },
-  ): Promise<
-    {
-      entityType: EntityTypeModel;
-      referencedDataTypes: dataTypeModel[];
-      referencedPropertyTypes: PropertyTypeModel[];
-      referencedLinkTypes: LinkTypeModel[];
-      referencedEntityTypes: EntityTypeModel[];
-    }[]
-  > {
-    /**
-     * @todo: get all latest entity types in specified account.
-     *   This may mean implicitly filtering results by what an account is
-     *   authorized to see.
-     *   https://app.asana.com/0/1202805690238892/1202890446280569/f
-     */
-    const { data: entityTypeRootedSubgraphs } =
-      await graphApi.getEntityTypesByQuery({
-        query: {
-          eq: [{ path: ["version"] }, { literal: "latest" }],
-        },
-        graphResolveDepths: {
-          dataTypeResolveDepth: params.dataTypeQueryDepth,
-          propertyTypeResolveDepth: params.propertyTypeQueryDepth,
-          linkTypeResolveDepth: params.linkTypeQueryDepth,
-          entityTypeResolveDepth: params.entityTypeQueryDepth,
-          linkResolveDepth: 0,
-          linkTargetEntityResolveDepth: 0,
-        },
-      });
-
-    return entityTypeRootedSubgraphs.map((entityTypeRootedSubgraph) => ({
-      entityType: EntityTypeModel.fromPersistedEntityType(
-        entityTypeRootedSubgraph.entityType,
-      ),
-      referencedDataTypes: entityTypeRootedSubgraph.referencedDataTypes.map(
-        DataTypeModel.fromPersistedDataType,
-      ),
-      referencedPropertyTypes:
-        entityTypeRootedSubgraph.referencedPropertyTypes.map(
-          PropertyTypeModel.fromPersistedPropertyType,
-        ),
-      referencedLinkTypes: entityTypeRootedSubgraph.referencedLinkTypes.map(
-        linkTypeModel.fromPersistedLinkType,
-      ),
-      referencedEntityTypes: entityTypeRootedSubgraph.referencedEntityTypes.map(
-        EntityTypeModel.fromPersistedEntityType,
-      ),
-    }));
   }
 
   /**
@@ -210,91 +155,21 @@ export default class {
   }
 
   /**
-   * Get an entity type by its versioned URI.
-   *
-   * @param params.dataTypeQueryDepth recursion depth to use to resolve data types
-   * @param params.propertyTypeQueryDepth recursion depth to use to resolve property types
-   * @param params.linkTypeQueryDepth recursion depth to use to resolve link types
-   * @param params.entityTypeQueryDepth recursion depth to use to resolve entity types
-   */
-  static async getResolved(
-    graphApi: GraphApi,
-    params: {
-      entityTypeId: string;
-      dataTypeQueryDepth: number;
-      propertyTypeQueryDepth: number;
-      linkTypeQueryDepth: number;
-      entityTypeQueryDepth: number;
-    },
-  ): Promise<{
-    entityType: EntityTypeModel;
-    referencedDataTypes: dataTypeModel[];
-    referencedPropertyTypes: PropertyTypeModel[];
-    referencedLinkTypes: LinkTypeModel[];
-    referencedEntityTypes: EntityTypeModel[];
-  }> {
-    const { data: propertyTypeRootedSubgraphs } =
-      await graphApi.getEntityTypesByQuery({
-        query: {
-          eq: [{ path: ["versionedUri"] }, { literal: params.entityTypeId }],
-        },
-        graphResolveDepths: {
-          dataTypeResolveDepth: params.dataTypeQueryDepth,
-          propertyTypeResolveDepth: params.propertyTypeQueryDepth,
-          linkTypeResolveDepth: params.linkTypeQueryDepth,
-          entityTypeResolveDepth: params.entityTypeQueryDepth,
-          linkResolveDepth: 0,
-          linkTargetEntityResolveDepth: 0,
-        },
-      });
-    const entityTypeRootedSubgraph = propertyTypeRootedSubgraphs.pop();
-    if (entityTypeRootedSubgraph === undefined) {
-      throw new Error(
-        `Unable to retrieve property type for URI: ${params.entityTypeId}`,
-      );
-    }
-
-    return {
-      entityType: EntityTypeModel.fromPersistedEntityType(
-        entityTypeRootedSubgraph.entityType,
-      ),
-      referencedDataTypes: entityTypeRootedSubgraph.referencedDataTypes.map(
-        DataTypeModel.fromPersistedDataType,
-      ),
-      referencedPropertyTypes:
-        entityTypeRootedSubgraph.referencedPropertyTypes.map(
-          PropertyTypeModel.fromPersistedPropertyType,
-        ),
-      referencedLinkTypes: entityTypeRootedSubgraph.referencedLinkTypes.map(
-        LinkTypeModel.fromPersistedLinkType,
-      ),
-      referencedEntityTypes: entityTypeRootedSubgraph.referencedEntityTypes.map(
-        EntityTypeModel.fromPersistedEntityType,
-      ),
-    };
-  }
-
-  /**
    * Update an entity type.
    *
-   * @param params.schema an `EntityType`
+   * @param params.schema - the updated `EntityType`
+   * @param params.actorId - the id of the account that is updating the entity type
    */
   async update(
     graphApi: GraphApi,
     params: {
       schema: Omit<EntityType, "$id">;
+      actorId: string;
     },
   ): Promise<EntityTypeModel> {
-    const { schema } = params;
+    const { schema, actorId } = params;
     const updateArguments: UpdateEntityTypeRequest = {
-      /**
-       * @todo: let caller update who owns the type, or create new method dedicated to changing the owner of the type
-       * @see https://app.asana.com/0/1202805690238892/1203063463721793/f
-       *
-       * @todo: replace uses of `accountId` with `ownedById` in the Graph API
-       * @see https://app.asana.com/0/1202805690238892/1203063463721791/f
-       */
-      accountId: this.ownedById,
+      actorId,
       typeToUpdate: this.schema.$id,
       schema,
     };
@@ -303,9 +178,9 @@ export default class {
 
     const { identifier } = metadata;
 
-    return new EntityTypeModel({
-      schema: { ...schema, $id: identifier.uri },
-      ownedById: identifier.ownedById,
+    return EntityTypeModel.fromPersistedEntityType({
+      inner: { ...schema, $id: identifier.uri },
+      metadata,
     });
   }
 

@@ -1,36 +1,39 @@
 import { gql } from "@apollo/client";
 
 export const getDataTypeQuery = gql`
-  query getDataType($dataTypeId: String!) {
-    getDataType(dataTypeId: $dataTypeId) {
+  query getDataType($dataTypeId: String!, $dataTypeResolveDepth: Int!) {
+    getDataType(
+      dataTypeId: $dataTypeId
+      dataTypeResolveDepth: $dataTypeResolveDepth
+    ) {
       roots
       vertices
       edges
       depths {
-        dataTypeResolveDepth(depth: 0)
-        propertyTypeResolveDepth(depth: 0)
-        linkTypeResolveDepth(depth: 0)
-        entityTypeResolveDepth(depth: 0)
-        linkTargetEntityResolveDepth(depth: 0)
-        linkResolveDepth(depth: 0)
+        dataTypeResolveDepth
+        propertyTypeResolveDepth
+        linkTypeResolveDepth
+        entityTypeResolveDepth
+        linkTargetEntityResolveDepth
+        linkResolveDepth
       }
     }
   }
 `;
 
 export const getAllLatestDataTypesQuery = gql`
-  query getAllLatestDataTypes {
-    getAllLatestDataTypes {
+  query getAllLatestDataTypes($dataTypeResolveDepth: Int!) {
+    getAllLatestDataTypes(dataTypeResolveDepth: $dataTypeResolveDepth) {
       roots
       vertices
       edges
       depths {
-        dataTypeResolveDepth(depth: 0)
-        propertyTypeResolveDepth(depth: 0)
-        linkTypeResolveDepth(depth: 0)
-        entityTypeResolveDepth(depth: 0)
-        linkTargetEntityResolveDepth(depth: 0)
-        linkResolveDepth(depth: 0)
+        dataTypeResolveDepth
+        propertyTypeResolveDepth
+        linkTypeResolveDepth
+        entityTypeResolveDepth
+        linkTargetEntityResolveDepth
+        linkResolveDepth
       }
     }
   }

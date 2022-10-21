@@ -45,6 +45,7 @@ describe("OrgMembership model class", () => {
       providedInfo: {
         orgSize: OrgSize.ElevenToFifty,
       },
+      actorId: testUser.entityId,
     });
   });
 
@@ -54,12 +55,14 @@ describe("OrgMembership model class", () => {
     testOrgMembership = await OrgMembershipModel.createOrgMembership(graphApi, {
       responsibility: "test",
       org: testOrg,
+      actorId: testUser.entityId,
     });
 
     await testUser.createOutgoingLink(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.hasMembership,
       targetEntityModel: testOrgMembership,
       ownedById: workspaceAccountId,
+      actorId: testUser.entityId,
     });
   });
 

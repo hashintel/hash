@@ -1,7 +1,8 @@
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
 import { Box, Typography } from "@mui/material";
-import { WhiteCard } from "../../types/entity-type/white-card";
+import { getPersistedEntityType } from "../../../../../lib/subgraph";
+import { WhiteCard } from "../../../types/entity-type/white-card";
 import { useEntityEditor } from "./entity-editor-context";
 import { EntitySection } from "./shared/entity-section";
 
@@ -39,12 +40,16 @@ export const TypesSection = () => {
     return null;
   }
 
-  const entityTypeTitle = entity.entityTypeRootedSubgraph.entityType.title;
+  const entityTypeTitle = getPersistedEntityType(
+    entity.entityTypeRootedSubgraph,
+    entity.entityTypeId,
+  )!.inner.title;
+  const entityTypeUrl = entity.entityTypeId.replace(/v\/\d+/, "");
 
   return (
     <EntitySection title="Type">
       <Box display="flex" gap={2}>
-        <TypeCard url={entity.entityTypeId} title={entityTypeTitle} />
+        <TypeCard url={entityTypeUrl} title={entityTypeTitle} />
       </Box>
     </EntitySection>
   );

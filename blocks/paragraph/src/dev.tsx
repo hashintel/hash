@@ -20,6 +20,7 @@ const App = () => (
       entityId: "test-para-1",
       properties: paragraphProperties,
     }}
+    debug
   />
 );
 

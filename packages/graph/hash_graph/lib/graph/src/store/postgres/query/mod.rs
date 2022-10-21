@@ -2,31 +2,36 @@
 
 //! Postgres implementation to compile queries.
 
+mod condition;
 mod data_type;
-pub mod database;
+mod expression;
+mod statement;
+mod table;
 
 use std::fmt::{self, Formatter};
 
-pub use self::data_type::DataTypeQueryField;
-use crate::store::{
-    postgres::query::database::{ColumnAccess, TableName},
-    query::QueryRecord,
+pub use self::{
+    condition::Condition,
+    data_type::DataTypeQueryField,
+    expression::{
+        CommonTableExpression, Expression, Function, JoinExpression, SelectExpression,
+        WhereExpression, WithExpression,
+    },
+    statement::{SelectStatement, Statement, WindowStatement},
+    table::{Column, ColumnAccess, Table, TableAlias, TableName},
 };
+use crate::store::query::QueryRecord;
 
-/// A structural query, which can be compiled into a statement in Postgres.
-pub trait Query {
+pub trait PostgresQueryRecord<'q>: QueryRecord<Path<'q>: Path> {
     type Field: Field;
-    type Record: QueryRecord;
 
     /// The [`TableName`] used for this `Query`.
     fn base_table() -> TableName;
 }
 
-/// An attribute of an ontology type or a knowledge element.
+/// A queryable attribute of an element in the graph.
 pub trait Field {
     /// The [`TableName`] of the [`Table`] where this field is located.
-    ///
-    /// [`Table`]: database::Table
     fn table_name(&self) -> TableName;
 
     /// The way to access the column inside of [`table_name()`] where this field is located.
@@ -35,7 +40,7 @@ pub trait Field {
     fn column_access(&self) -> ColumnAccess;
 }
 
-/// An absolute path to a [`Field`].
+/// An absolute path inside of a query pointing to a [`Field`]
 pub trait Path {
     /// Returns a list of [`TableName`]s required to traverse this path.
     fn tables(&self) -> Vec<TableName>;
@@ -59,7 +64,9 @@ pub trait Transpile {
 mod test_helper {
     use std::fmt;
 
-    use crate::store::postgres::query::Transpile;
+    use crate::store::postgres::query::{
+        Column, DataTypeQueryField, Expression, Field, Function, Table, Transpile, WindowStatement,
+    };
 
     pub fn transpile<R: Transpile>(value: &R) -> String {
         struct Transpiler<'r, R>(&'r R);
@@ -69,5 +76,34 @@ mod test_helper {
             }
         }
         Transpiler(value).to_string()
+    }
+
+    pub fn trim_whitespace(string: impl Into<String>) -> String {
+        string
+            .into()
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ")
+    }
+
+    pub fn max_version_expression() -> Expression<'static> {
+        Expression::Window(
+            Box::new(Expression::Function(Box::new(Function::Max(
+                Expression::Column(Column {
+                    table: Table {
+                        name: DataTypeQueryField::Version.table_name(),
+                        alias: None,
+                    },
+                    access: DataTypeQueryField::Version.column_access(),
+                }),
+            )))),
+            WindowStatement::partition_by(Column {
+                table: Table {
+                    name: DataTypeQueryField::BaseUri.table_name(),
+                    alias: None,
+                },
+                access: DataTypeQueryField::BaseUri.column_access(),
+            }),
+        )
     }
 }

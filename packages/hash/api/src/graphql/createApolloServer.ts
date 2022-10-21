@@ -69,7 +69,7 @@ export const createApolloServer = ({
     dataSources: getDataSources,
     context: (ctx): Omit<GraphQLContext, "dataSources"> => ({
       ...ctx,
-      user: ctx.req.user,
+      userModel: ctx.req.userModel,
       emailTransporter,
       uploadProvider,
       logger: logger.child({

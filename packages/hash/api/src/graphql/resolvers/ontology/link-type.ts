@@ -7,23 +7,25 @@ import {
   MutationUpdateLinkTypeArgs,
   QueryGetLinkTypeArgs,
   ResolverFn,
+  Subgraph,
 } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import { LinkTypeModel } from "../../../model";
-import { mapLinkTypeModelToGQL } from "./model-mapping";
+import { mapLinkTypeModelToGQL, mapSubgraphToGql } from "./model-mapping";
 
 export const createLinkType: ResolverFn<
   Promise<PersistedLinkType>,
   {},
   LoggedInGraphQLContext,
   MutationCreateLinkTypeArgs
-> = async (_, params, { dataSources, user }) => {
+> = async (_, params, { dataSources, userModel }) => {
   const { graphApi } = dataSources;
   const { ownedById, linkType } = params;
 
   const createdLinkTypeModel = await LinkTypeModel.create(graphApi, {
-    ownedById: ownedById ?? user.entityId,
+    ownedById: ownedById ?? userModel.entityId,
     schema: linkType,
+    actorId: userModel.entityId,
   }).catch((err) => {
     throw new ApolloError(err, "CREATION_ERROR");
   });
@@ -32,45 +34,65 @@ export const createLinkType: ResolverFn<
 };
 
 export const getAllLatestLinkTypes: ResolverFn<
-  Promise<PersistedLinkType[]>,
+  Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
   {}
 > = async (_, __, { dataSources }) => {
   const { graphApi } = dataSources;
 
-  const allLatestLinkTypeModels = await LinkTypeModel.getAllLatest(
-    graphApi,
-  ).catch((err: AxiosError) => {
-    throw new ApolloError(
-      `Unable to retrieve all latest link types. ${err.response?.data}`,
-      "GET_ALL_ERROR",
-    );
-  });
+  const { data: linkTypeSubgraph } = await graphApi
+    .getLinkTypesByQuery({
+      query: { eq: [{ path: ["version"] }, { literal: "latest" }] },
+      graphResolveDepths: {
+        dataTypeResolveDepth: 0,
+        propertyTypeResolveDepth: 0,
+        linkTypeResolveDepth: 0,
+        entityTypeResolveDepth: 0,
+        linkTargetEntityResolveDepth: 0,
+        linkResolveDepth: 0,
+      },
+    })
+    .catch((err: AxiosError) => {
+      throw new ApolloError(
+        `Unable to retrieve all latest link types. ${err.response?.data}`,
+        "GET_ALL_ERROR",
+      );
+    });
 
-  return allLatestLinkTypeModels.map((linkTypeModel) =>
-    mapLinkTypeModelToGQL(linkTypeModel),
-  );
+  return mapSubgraphToGql(linkTypeSubgraph);
 };
 
 export const getLinkType: ResolverFn<
-  Promise<PersistedLinkType>,
+  Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
   QueryGetLinkTypeArgs
 > = async (_, { linkTypeId }, { dataSources }) => {
   const { graphApi } = dataSources;
 
-  const linkTypeModel = await LinkTypeModel.get(graphApi, {
-    linkTypeId,
-  }).catch((err: AxiosError) => {
-    throw new ApolloError(
-      `Unable to retrieve link type. ${err.response?.data} [URI=${linkTypeId}]`,
-      "GET_ERROR",
-    );
-  });
+  const { data: linkTypeSubgraph } = await graphApi
+    .getLinkTypesByQuery({
+      query: {
+        eq: [{ path: ["versionedUri"] }, { literal: linkTypeId }],
+      },
+      graphResolveDepths: {
+        dataTypeResolveDepth: 0,
+        propertyTypeResolveDepth: 0,
+        linkTypeResolveDepth: 0,
+        entityTypeResolveDepth: 0,
+        linkTargetEntityResolveDepth: 0,
+        linkResolveDepth: 0,
+      },
+    })
+    .catch((err: AxiosError) => {
+      throw new ApolloError(
+        `Unable to retrieve link type. ${err.response?.data}`,
+        "GET_ALL_ERROR",
+      );
+    });
 
-  return mapLinkTypeModelToGQL(linkTypeModel);
+  return mapSubgraphToGql(linkTypeSubgraph);
 };
 
 export const updateLinkType: ResolverFn<
@@ -78,7 +100,7 @@ export const updateLinkType: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationUpdateLinkTypeArgs
-> = async (_, params, { dataSources }) => {
+> = async (_, params, { dataSources, userModel }) => {
   const { graphApi } = dataSources;
   const { linkTypeId, updatedLinkType } = params;
 
@@ -94,6 +116,7 @@ export const updateLinkType: ResolverFn<
   const updatedLinkTypeModel = await linkTypeModel
     .update(graphApi, {
       schema: updatedLinkType,
+      actorId: userModel.entityId,
     })
     .catch((err: AxiosError) => {
       const msg =

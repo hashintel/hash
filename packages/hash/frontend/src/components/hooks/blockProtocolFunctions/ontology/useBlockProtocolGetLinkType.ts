@@ -35,7 +35,6 @@ export const useBlockProtocolGetLinkType = (): {
       const { linkTypeId } = data;
 
       const response = await getFn({
-        query: getLinkTypeQuery,
         variables: { linkTypeId },
       });
 

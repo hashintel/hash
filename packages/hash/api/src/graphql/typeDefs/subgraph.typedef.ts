@@ -8,12 +8,12 @@ export const subgraphTypedef = gql`
 
   # TODO: Maybe we want an exploration strategy instead of this? So you have parameters for a depth first search vs parameters for a breadth first, etc.
   type ResolveDepths {
-    dataTypeResolveDepth(depth: Int): Int!
-    propertyTypeResolveDepth(depth: Int): Int!
-    entityTypeResolveDepth(depth: Int): Int!
-    linkTypeResolveDepth(depth: Int): Int!
-    linkTargetEntityResolveDepth(depth: Int): Int!
-    linkResolveDepth(depth: Int): Int!
+    dataTypeResolveDepth: Int!
+    propertyTypeResolveDepth: Int!
+    entityTypeResolveDepth: Int!
+    linkTypeResolveDepth: Int!
+    linkTargetEntityResolveDepth: Int!
+    linkResolveDepth: Int!
   }
 
   type Subgraph {

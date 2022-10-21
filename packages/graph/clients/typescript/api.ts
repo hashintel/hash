@@ -55,7 +55,13 @@ export interface CreateDataTypeRequest {
    * @type {string}
    * @memberof CreateDataTypeRequest
    */
-  accountId: string;
+  actorId: string;
+  /**
+   *
+   * @type {string}
+   * @memberof CreateDataTypeRequest
+   */
+  ownedById: string;
   /**
    *
    * @type {DataType}
@@ -74,7 +80,7 @@ export interface CreateEntityRequest {
    * @type {string}
    * @memberof CreateEntityRequest
    */
-  accountId: string;
+  actorId: string;
   /**
    *
    * @type {object}
@@ -93,6 +99,12 @@ export interface CreateEntityRequest {
    * @memberof CreateEntityRequest
    */
   entityTypeId: string;
+  /**
+   *
+   * @type {string}
+   * @memberof CreateEntityRequest
+   */
+  ownedById: string;
 }
 /**
  *
@@ -105,7 +117,13 @@ export interface CreateEntityTypeRequest {
    * @type {string}
    * @memberof CreateEntityTypeRequest
    */
-  accountId: string;
+  actorId: string;
+  /**
+   *
+   * @type {string}
+   * @memberof CreateEntityTypeRequest
+   */
+  ownedById: string;
   /**
    *
    * @type {EntityType}
@@ -119,6 +137,12 @@ export interface CreateEntityTypeRequest {
  * @interface CreateLinkRequest
  */
 export interface CreateLinkRequest {
+  /**
+   *
+   * @type {string}
+   * @memberof CreateLinkRequest
+   */
+  actorId: string;
   /**
    *
    * @type {number}
@@ -155,7 +179,13 @@ export interface CreateLinkTypeRequest {
    * @type {string}
    * @memberof CreateLinkTypeRequest
    */
-  accountId: string;
+  actorId: string;
+  /**
+   *
+   * @type {string}
+   * @memberof CreateLinkTypeRequest
+   */
+  ownedById: string;
   /**
    *
    * @type {LinkType}
@@ -174,7 +204,13 @@ export interface CreatePropertyTypeRequest {
    * @type {string}
    * @memberof CreatePropertyTypeRequest
    */
-  accountId: string;
+  actorId: string;
+  /**
+   *
+   * @type {string}
+   * @memberof CreatePropertyTypeRequest
+   */
+  ownedById: string;
   /**
    *
    * @type {PropertyType}
@@ -258,19 +294,6 @@ export interface DataTypeReferenceUpdate {
 /**
  *
  * @export
- * @interface DataTypeRootedSubgraph
- */
-export interface DataTypeRootedSubgraph {
-  /**
-   *
-   * @type {PersistedDataType}
-   * @memberof DataTypeRootedSubgraph
-   */
-  dataType: PersistedDataType;
-}
-/**
- *
- * @export
  * @enum {string}
  */
 
@@ -283,6 +306,25 @@ export const EdgeKind = {
 
 export type EdgeKind = typeof EdgeKind[keyof typeof EdgeKind];
 
+/**
+ *
+ * @export
+ * @interface EdgesValueInner
+ */
+export interface EdgesValueInner {
+  /**
+   *
+   * @type {GraphElementIdentifier}
+   * @memberof EdgesValueInner
+   */
+  destination: GraphElementIdentifier;
+  /**
+   *
+   * @type {EdgeKind}
+   * @memberof EdgesValueInner
+   */
+  edgeKind: EdgeKind;
+}
 /**
  *
  * @export
@@ -425,43 +467,6 @@ export const EntityTypeTypeEnum = {
 export type EntityTypeTypeEnum =
   typeof EntityTypeTypeEnum[keyof typeof EntityTypeTypeEnum];
 
-/**
- *
- * @export
- * @interface EntityTypeRootedSubgraph
- */
-export interface EntityTypeRootedSubgraph {
-  /**
-   *
-   * @type {PersistedEntityType}
-   * @memberof EntityTypeRootedSubgraph
-   */
-  entityType: PersistedEntityType;
-  /**
-   *
-   * @type {Array<PersistedDataType>}
-   * @memberof EntityTypeRootedSubgraph
-   */
-  referencedDataTypes: Array<PersistedDataType>;
-  /**
-   *
-   * @type {Array<PersistedEntityType>}
-   * @memberof EntityTypeRootedSubgraph
-   */
-  referencedEntityTypes: Array<PersistedEntityType>;
-  /**
-   *
-   * @type {Array<PersistedLinkType>}
-   * @memberof EntityTypeRootedSubgraph
-   */
-  referencedLinkTypes: Array<PersistedLinkType>;
-  /**
-   *
-   * @type {Array<PersistedPropertyType>}
-   * @memberof EntityTypeRootedSubgraph
-   */
-  referencedPropertyTypes: Array<PersistedPropertyType>;
-}
 /**
  * @type GraphElementIdentifier
  * @export
@@ -645,19 +650,6 @@ export type LinkTypeKindEnum =
 /**
  *
  * @export
- * @interface LinkTypeRootedSubgraph
- */
-export interface LinkTypeRootedSubgraph {
-  /**
-   *
-   * @type {PersistedLinkType}
-   * @memberof LinkTypeRootedSubgraph
-   */
-  linkType: PersistedLinkType;
-}
-/**
- *
- * @export
  * @interface OutwardEdge
  */
 export interface OutwardEdge {
@@ -748,6 +740,12 @@ export interface PersistedEntityMetadata {
    * @type {string}
    * @memberof PersistedEntityMetadata
    */
+  createdById: string;
+  /**
+   *
+   * @type {string}
+   * @memberof PersistedEntityMetadata
+   */
   entityTypeId: string;
   /**
    *
@@ -755,6 +753,18 @@ export interface PersistedEntityMetadata {
    * @memberof PersistedEntityMetadata
    */
   identifier: PersistedEntityIdentifier;
+  /**
+   *
+   * @type {string}
+   * @memberof PersistedEntityMetadata
+   */
+  removedById?: string;
+  /**
+   *
+   * @type {string}
+   * @memberof PersistedEntityMetadata
+   */
+  updatedById: string;
 }
 /**
  *
@@ -800,6 +810,12 @@ export interface PersistedLink {
  * @interface PersistedLinkMetadata
  */
 export interface PersistedLinkMetadata {
+  /**
+   *
+   * @type {string}
+   * @memberof PersistedLinkMetadata
+   */
+  createdById: string;
   /**
    *
    * @type {string}
@@ -853,10 +869,28 @@ export interface PersistedOntologyIdentifier {
 export interface PersistedOntologyMetadata {
   /**
    *
+   * @type {string}
+   * @memberof PersistedOntologyMetadata
+   */
+  createdById: string;
+  /**
+   *
    * @type {PersistedOntologyIdentifier}
    * @memberof PersistedOntologyMetadata
    */
   identifier: PersistedOntologyIdentifier;
+  /**
+   *
+   * @type {string}
+   * @memberof PersistedOntologyMetadata
+   */
+  removedById?: string;
+  /**
+   *
+   * @type {string}
+   * @memberof PersistedOntologyMetadata
+   */
+  updatedById: string;
 }
 /**
  *
@@ -1088,13 +1122,13 @@ export interface RemoveLinkRequest {
    * @type {string}
    * @memberof RemoveLinkRequest
    */
-  linkTypeId: string;
+  actorId: string;
   /**
    *
    * @type {string}
    * @memberof RemoveLinkRequest
    */
-  removedById: string;
+  linkTypeId: string;
   /**
    *
    * @type {string}
@@ -1135,10 +1169,10 @@ export interface Subgraph {
   depths: GraphResolveDepths;
   /**
    *
-   * @type {{ [key: string]: Array<OutwardEdge>; }}
+   * @type {{ [key: string]: Array<EdgesValueInner>; }}
    * @memberof Subgraph
    */
-  edges: { [key: string]: Array<OutwardEdge> };
+  edges: { [key: string]: Array<EdgesValueInner> };
   /**
    *
    * @type {Array<GraphElementIdentifier>}
@@ -1204,7 +1238,7 @@ export interface UpdateDataTypeRequest {
    * @type {string}
    * @memberof UpdateDataTypeRequest
    */
-  accountId: string;
+  actorId: string;
   /**
    *
    * @type {UpdateDataType}
@@ -1229,7 +1263,7 @@ export interface UpdateEntityRequest {
    * @type {string}
    * @memberof UpdateEntityRequest
    */
-  accountId: string;
+  actorId: string;
   /**
    *
    * @type {object}
@@ -1347,7 +1381,7 @@ export interface UpdateEntityTypeRequest {
    * @type {string}
    * @memberof UpdateEntityTypeRequest
    */
-  accountId: string;
+  actorId: string;
   /**
    *
    * @type {UpdateEntityType}
@@ -1417,7 +1451,7 @@ export interface UpdateLinkTypeRequest {
    * @type {string}
    * @memberof UpdateLinkTypeRequest
    */
-  accountId: string;
+  actorId: string;
   /**
    *
    * @type {UpdateLinkType}
@@ -1487,7 +1521,7 @@ export interface UpdatePropertyTypeRequest {
    * @type {string}
    * @memberof UpdatePropertyTypeRequest
    */
-  accountId: string;
+  actorId: string;
   /**
    *
    * @type {UpdatePropertyType}
@@ -3475,10 +3509,7 @@ export const EntityTypeApiFp = function (configuration?: Configuration) {
       structuralQuery: StructuralQuery,
       options?: AxiosRequestConfig,
     ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<Array<EntityTypeRootedSubgraph>>
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Subgraph>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getEntityTypesByQuery(
@@ -3592,7 +3623,7 @@ export const EntityTypeApiFactory = function (
     getEntityTypesByQuery(
       structuralQuery: StructuralQuery,
       options?: any,
-    ): AxiosPromise<Array<EntityTypeRootedSubgraph>> {
+    ): AxiosPromise<Subgraph> {
       return localVarFp
         .getEntityTypesByQuery(structuralQuery, options)
         .then((request) => request(axios, basePath));
@@ -3666,7 +3697,7 @@ export interface EntityTypeApiInterface {
   getEntityTypesByQuery(
     structuralQuery: StructuralQuery,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<EntityTypeRootedSubgraph>>;
+  ): AxiosPromise<Subgraph>;
 
   /**
    *
@@ -5587,10 +5618,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
       structuralQuery: StructuralQuery,
       options?: AxiosRequestConfig,
     ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<Array<EntityTypeRootedSubgraph>>
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Subgraph>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getEntityTypesByQuery(
@@ -5750,10 +5778,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
       structuralQuery: StructuralQuery,
       options?: AxiosRequestConfig,
     ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<Array<LinkTypeRootedSubgraph>>
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Subgraph>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getLinkTypesByQuery(
@@ -6198,7 +6223,7 @@ export const GraphApiFactory = function (
     getEntityTypesByQuery(
       structuralQuery: StructuralQuery,
       options?: any,
-    ): AxiosPromise<Array<EntityTypeRootedSubgraph>> {
+    ): AxiosPromise<Subgraph> {
       return localVarFp
         .getEntityTypesByQuery(structuralQuery, options)
         .then((request) => request(axios, basePath));
@@ -6277,7 +6302,7 @@ export const GraphApiFactory = function (
     getLinkTypesByQuery(
       structuralQuery: StructuralQuery,
       options?: any,
-    ): AxiosPromise<Array<LinkTypeRootedSubgraph>> {
+    ): AxiosPromise<Subgraph> {
       return localVarFp
         .getLinkTypesByQuery(structuralQuery, options)
         .then((request) => request(axios, basePath));
@@ -6583,7 +6608,7 @@ export interface GraphApiInterface {
   getEntityTypesByQuery(
     structuralQuery: StructuralQuery,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<EntityTypeRootedSubgraph>>;
+  ): AxiosPromise<Subgraph>;
 
   /**
    *
@@ -6657,7 +6682,7 @@ export interface GraphApiInterface {
   getLinkTypesByQuery(
     structuralQuery: StructuralQuery,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<LinkTypeRootedSubgraph>>;
+  ): AxiosPromise<Subgraph>;
 
   /**
    *
@@ -8101,10 +8126,7 @@ export const LinkTypeApiFp = function (configuration?: Configuration) {
       structuralQuery: StructuralQuery,
       options?: AxiosRequestConfig,
     ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<Array<LinkTypeRootedSubgraph>>
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Subgraph>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getLinkTypesByQuery(
@@ -8202,7 +8224,7 @@ export const LinkTypeApiFactory = function (
     getLinkTypesByQuery(
       structuralQuery: StructuralQuery,
       options?: any,
-    ): AxiosPromise<Array<LinkTypeRootedSubgraph>> {
+    ): AxiosPromise<Subgraph> {
       return localVarFp
         .getLinkTypesByQuery(structuralQuery, options)
         .then((request) => request(axios, basePath));
@@ -8274,7 +8296,7 @@ export interface LinkTypeApiInterface {
   getLinkTypesByQuery(
     structuralQuery: StructuralQuery,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<LinkTypeRootedSubgraph>>;
+  ): AxiosPromise<Subgraph>;
 
   /**
    *
