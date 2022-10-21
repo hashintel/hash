@@ -63,6 +63,7 @@ impl<'f> FrameKind<'f> {
 /// The difference between [`AttachmentKind`] and [`AttachmentType`] is that [`AttachmentType`] does
 /// not hold any data, while [`AttachmentKind`] does.
 // TODO: naming
+// TODO: we might want to pub these otherwise matching is not possible
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 #[non_exhaustive]
 #[must_use]

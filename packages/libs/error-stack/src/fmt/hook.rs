@@ -477,7 +477,15 @@ impl<T> HookContext<T> {
         self.inner.storage_mut()
     }
 
-    const fn frame_type(&self) -> FrameType {
+    /// The type of frame the value was "extracted" from.
+    ///
+    /// Depending on the toolchain this can differ, on nightly hooks use [`Frame::request_ref`]
+    /// instead of [`Frame::downcast_ref`].
+    ///
+    /// This means that on nightly the returned variant might be [`FrameType::Context`] or
+    /// [`FrameType::Attachment`] for *any* value, while on stable it can be guaranteed that for
+    /// types that do not implement [`Context`] this will always be [`FrameType::Attachment`].
+    pub const fn frame_type(&self) -> FrameType {
         self.inner.frame_type
     }
 
