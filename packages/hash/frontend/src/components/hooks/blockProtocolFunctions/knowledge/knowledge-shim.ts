@@ -11,7 +11,6 @@ import {
   CreateResourceError,
   ReadOrModifyResourceError,
 } from "@blockprotocol/graph";
-import { EntityVertex } from "@hashintel/hash-shared/graphql/types";
 import {
   PersistedLink,
   UnknownPersistedEntity,
@@ -55,7 +54,7 @@ export type GetEntityRequest = Pick<EntityResponse, "entityId">;
 export type GetEntityMessageCallback = MessageCallback<
   GetEntityRequest,
   null,
-  EntityResponse,
+  Subgraph,
   ReadOrModifyResourceError
 >;
 
