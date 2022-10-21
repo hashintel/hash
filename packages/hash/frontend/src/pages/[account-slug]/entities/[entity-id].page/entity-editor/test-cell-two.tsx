@@ -3,7 +3,7 @@ import {
   CustomRenderer,
   GridCellKind,
 } from "@glideapps/glide-data-grid";
-import { TooltipCellProps } from "./use-grid-tooltip";
+import { TooltipCellProps } from "../../../../../components/GlideGlid/use-grid-tooltip/types";
 
 export interface TestCellTwoProps extends TooltipCellProps {
   readonly kind: "custom-cell";

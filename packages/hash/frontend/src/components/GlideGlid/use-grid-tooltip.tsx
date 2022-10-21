@@ -1,85 +1,15 @@
-import {
-  CustomCell,
-  DataEditorRef,
-  CustomRenderer,
-} from "@glideapps/glide-data-grid";
-import type { DrawArgs } from "@glideapps/glide-data-grid/dist/ts/data-grid/cells/cell-types";
+import { DataEditorRef, CustomRenderer } from "@glideapps/glide-data-grid";
 import { Popover } from "@hashintel/hash-design-system";
 import { PopoverPosition, Typography } from "@mui/material";
 import _ from "lodash";
 import { bindPopover, usePopupState } from "material-ui-popup-state/hooks";
 import { RefObject, useCallback, useState } from "react";
-
-export interface TooltipCellProps {
-  tooltips: string[];
-  showTooltip: (tooltip: GridTooltip) => void;
-  hideTooltip: (col: number, row: number) => void;
-}
-
-export type GridTooltip = {
-  col: number;
-  row: number;
-  text: string;
-  iconX: number;
-};
-
-type TooltipCell = CustomCell<TooltipCellProps>;
-
-export class GridTooltipManager {
-  // tooltip size
-  private size = 20;
-  // gap between tooltips
-  private gap = 10;
-
-  constructor(private args: DrawArgs<TooltipCell>) {}
-
-  draw() {
-    const { size, gap, args } = this;
-    const { ctx, cell, rect, col, row, hoverX = -100 } = args;
-    const {
-      data: { hideTooltip, showTooltip, tooltips },
-    } = cell;
-
-    if (!tooltips?.length) {
-      return;
-    }
-
-    if (!hideTooltip || !showTooltip) {
-      throw new Error(
-        `Please pass 'hideTooltip' and 'showTooltip' to cell data, provided by 'useGridTooltip'`,
-      );
-    }
-
-    let tooltipCount = 0;
-
-    for (let i = 0; i < tooltips?.length; i++) {
-      const tooltip = tooltips[i] ?? "";
-      const tooltipX = rect.x + rect.width - size - i * (gap + size);
-      const yCenter = rect.y + rect.height / 2;
-
-      ctx.strokeRect(tooltipX, yCenter - size / 2, size, size);
-
-      const actualTooltipX = tooltipX - rect.x;
-
-      if (hoverX > actualTooltipX && hoverX < actualTooltipX + size) {
-        ctx.fillRect(tooltipX, yCenter - size / 2, size, size);
-
-        tooltipCount++;
-
-        showTooltip({
-          text: tooltip,
-          iconX: actualTooltipX + size / 2,
-          col,
-          row,
-        });
-      }
-    }
-
-    if (tooltipCount === 0) {
-      hideTooltip(col, row);
-    }
-  }
-}
+import { GridTooltipManager } from "./use-grid-tooltip/grid-tooltip-manager";
+import {
+  GridTooltip,
+  TooltipCell,
+  TooltipCellProps,
+} from "./use-grid-tooltip/types";
 
 export const useGridTooltip = (gridRef: RefObject<DataEditorRef>) => {
   const popupState = usePopupState({
