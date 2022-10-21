@@ -1,8 +1,8 @@
 import { EditableGridCell, Item } from "@glideapps/glide-data-grid";
 import { useCallback } from "react";
-import { useBlockProtocolUpdateEntity } from "../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolUpdateEntity";
-import { useSnackbar } from "../../../../../components/hooks/useSnackbar";
-import { useEntityEditor } from "../entity-editor-context";
+import { useSnackbar } from "../../../../../../../components/hooks/useSnackbar";
+import { useEntityEditor } from "../../entity-editor-context";
+import { useBlockProtocolUpdateEntity } from "../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolUpdateEntity";
 import { propertyGridIndexes } from "./constants";
 import { PropertyRow } from "./types";
 
