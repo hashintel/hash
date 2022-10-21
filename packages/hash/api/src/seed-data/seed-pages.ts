@@ -5,7 +5,7 @@ import { PageModel } from "../model";
 const createNestedPages = async (
   ownedById: string,
   [top, nested]: [string, string],
-  previousPageModel: PageModel | null,
+  prevIndex: string | undefined,
   sharedParams: {
     graphApi: GraphApi;
     logger: Logger;
@@ -16,7 +16,7 @@ const createNestedPages = async (
   const topPageModel = await PageModel.createPage(graphApi, {
     ownedById,
     title: top,
-    prevIndex: previousPageModel?.getIndex() ?? undefined,
+    prevIndex,
   });
 
   const nestedPageModel = await PageModel.createPage(graphApi, {
@@ -46,20 +46,20 @@ export const seedPages = async (
 ) => {
   const { graphApi } = sharedParams;
 
-  let previous = null;
+  let prevIndex: string | undefined = undefined;
   for (const pageTitle of pageTitles) {
     if (typeof pageTitle === "string") {
-      previous = await PageModel.createPage(graphApi, {
-        ownedById,
-        title: pageTitle,
-      });
+      prevIndex = (
+        await PageModel.createPage(graphApi, {
+          ownedById,
+          title: pageTitle,
+          prevIndex,
+        })
+      ).getIndex();
     } else {
-      previous = await createNestedPages(
-        ownedById,
-        pageTitle,
-        previous,
-        sharedParams,
-      );
+      prevIndex = (
+        await createNestedPages(ownedById, pageTitle, prevIndex, sharedParams)
+      ).getIndex();
     }
   }
 };
