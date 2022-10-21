@@ -130,7 +130,7 @@ export type AggregateEntityTypesRequest = {};
 export type AggregateEntityTypesMessageCallback = MessageCallback<
   AggregateEntityTypesRequest,
   null,
-  AggregateResult<EntityTypeResponse>,
+  Subgraph,
   ReadOrModifyResourceError
 >;
 
@@ -138,7 +138,7 @@ export type GetEntityTypeRequest = Pick<EntityTypeResponse, "entityTypeId">;
 export type GetEntityTypeMessageCallback = MessageCallback<
   GetEntityTypeRequest,
   null,
-  EntityTypeResponse,
+  Subgraph,
   ReadOrModifyResourceError
 >;
 
@@ -171,7 +171,7 @@ export type AggregateLinkTypesRequest = {};
 export type AggregateLinkTypesMessageCallback = MessageCallback<
   AggregateLinkTypesRequest,
   null,
-  AggregateResult<LinkTypeResponse>,
+  Subgraph,
   ReadOrModifyResourceError
 >;
 
@@ -179,7 +179,7 @@ export type GetLinkTypeRequest = Pick<LinkTypeResponse, "linkTypeId">;
 export type GetLinkTypeMessageCallback = MessageCallback<
   GetLinkTypeRequest,
   null,
-  LinkTypeResponse,
+  Subgraph,
   ReadOrModifyResourceError
 >;
 

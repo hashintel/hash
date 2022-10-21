@@ -36,6 +36,7 @@ import styles from "./style.module.css";
 import { useUpdateCommentText } from "../../../components/hooks/useUpdateCommentText";
 import { CommentBlockMenuItem } from "./CommentBlockMenuItem";
 import { PencilSlashIcon } from "../../../shared/icons/pencil-slash-icon";
+import { useUser } from "../../../components/hooks/useUser";
 import { useDeleteComment } from "../../../components/hooks/useDeleteComment";
 import { CommentBlockDeleteConfirmationDialog } from "./CommentBlockDeleteConfirmationDialog";
 
@@ -86,6 +87,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
   const [deleteConfirmationDialogOpen, setDeleteConfirmationDialogOpen] =
     useState(false);
 
+  const { user } = useUser();
   const [updateCommentText, { loading: updateCommentTextLoading }] =
     useUpdateCommentText(pageId);
   const [deleteComment, { loading: deleteCommentLoading }] =
@@ -122,7 +124,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
     [hasText, inputValue],
   );
 
-  const reset = () => {
+  const resetCommentText = () => {
     setInputValue(hasText);
     setEditable(false);
   };
@@ -130,7 +132,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
   const handleEditComment = async () => {
     if (!submitUpdateDisabled) {
       await updateCommentText(entityId, inputValue);
-      reset();
+      resetCommentText();
     }
   };
 
@@ -211,7 +213,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
             editable={editable}
             readOnly={!editable}
             placeholder="Edit comment"
-            onClose={reset}
+            onClose={resetCommentText}
             onSubmit={handleEditComment}
             onChange={setInputValue}
           />
@@ -226,7 +228,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
               pt: 0.75,
             }}
           >
-            <Button size="xs" variant="tertiary" onClick={reset}>
+            <Button size="xs" variant="tertiary" onClick={resetCommentText}>
               Cancel
             </Button>
             <Button
@@ -281,20 +283,22 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
       ) : null}
 
       <CommentBlockMenu popupState={commentMenuPopupState}>
-        <CommentBlockMenuItem
-          title={editable ? "Cancel Edit" : "Edit"}
-          icon={
-            editable ? (
-              <PencilSlashIcon sx={{ fontSize: 16 }} />
-            ) : (
-              <FontAwesomeIcon icon={faPencil} />
-            )
-          }
-          onClick={() => {
-            setEditable(!editable);
-            commentMenuPopupState.close();
-          }}
-        />
+        {user?.entityId === author.entityId ? (
+          <CommentBlockMenuItem
+            title={editable ? "Cancel Edit" : "Edit"}
+            icon={
+              editable ? (
+                <PencilSlashIcon sx={{ fontSize: 16 }} />
+              ) : (
+                <FontAwesomeIcon icon={faPencil} />
+              )
+            }
+            onClick={() => {
+              setEditable(!editable);
+              commentMenuPopupState.close();
+            }}
+          />
+        ) : null}
         <CommentBlockMenuItem
           title="Copy Link"
           icon={<FontAwesomeIcon icon={faLink} />}
@@ -303,16 +307,16 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
             commentMenuPopupState.close();
           }}
         />
-        <CommentBlockMenuItem
-          title="Delete Comment"
-          icon={<FontAwesomeIcon icon={faTrash} />}
-          // @todo Commented implement functionality
-          onClick={async () => {
-            // await deleteComment(entityId);
-            setDeleteConfirmationDialogOpen(true);
-            commentMenuPopupState.close();
-          }}
-        />
+        {user?.entityId === author.entityId ? (
+          <CommentBlockMenuItem
+            title="Delete Comment"
+            icon={<FontAwesomeIcon icon={faTrash} />}
+            onClick={() => {
+              setDeleteConfirmationDialogOpen(true);
+              commentMenuPopupState.close();
+            }}
+          />
+        ) : null}
       </CommentBlockMenu>
 
       <CommentBlockDeleteConfirmationDialog

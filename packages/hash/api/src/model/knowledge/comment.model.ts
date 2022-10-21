@@ -119,6 +119,12 @@ export default class extends EntityModel {
   ): Promise<CommentModel> {
     const { actorId, tokens } = params;
 
+    if (actorId !== (await this.getAuthor(graphApi)).entityId) {
+      throw new Error(
+        `Critical: Comment with entityId ${this.entityId} in account ${this.ownedById} is not owned by account with entityId ${actorId}`,
+      );
+    }
+
     const textEntityModel = await this.getHasText(graphApi);
 
     await textEntityModel.updateProperty(graphApi, {

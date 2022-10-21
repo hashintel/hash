@@ -13,8 +13,8 @@ import {
 } from "@blockprotocol/graph";
 import {
   PersistedLink,
+  Subgraph,
   UnknownPersistedEntity,
-  EntityTypeRootedSubgraph,
 } from "../../../../graphql/apiTypes.gen";
 
 export type KnowledgeCallbacks = {
@@ -41,7 +41,7 @@ type BaseEntity = Omit<
 
 type Entity = BaseEntity & {
   links: Link[];
-  entityTypeRootedSubgraph: EntityTypeRootedSubgraph;
+  entityTypeRootedSubgraph: Subgraph;
 };
 
 type Link = Omit<PersistedLink, "sourceEntity" | "targetEntity"> & {

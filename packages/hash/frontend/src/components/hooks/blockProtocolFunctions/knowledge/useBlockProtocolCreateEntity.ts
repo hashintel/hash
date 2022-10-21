@@ -96,6 +96,10 @@ export const useBlockProtocolCreateEntity = (
           getEntityTypeRootedSubgraphFn({
             variables: {
               entityTypeId: createdEntity.entityTypeId,
+              dataTypeResolveDepth: 255,
+              propertyTypeResolveDepth: 255,
+              linkTypeResolveDepth: 255,
+              entityTypeResolveDepth: 1,
             },
           }),
           getOutgoingLinksFn({
