@@ -56,7 +56,7 @@ It does this by standardizing how blocks and applications communicate, and what 
 
 Because rich text editing is a core part of many modern web applications, we knew the Block Protocol had to support it.
 
-We had to decide how blocks made by different people could provide a consistent text editing experience _within_ an application, while allowing for variations in the experience **\***across**\*** applications – without the block knowing anything about the application it’s being used in.
+We had to decide how blocks made by different people could provide a consistent text editing experience _within_ an application, while allowing for variations in the experience _across_ applications – without the block knowing anything about the application it’s being used in.
 
 ## Complexities underlined
 
@@ -66,7 +66,7 @@ To display some formatted text on a web page, _one_ of these parties has to take
 
 ### Representing text
 
-We can’t expect blocks to take any old text and understand it. The same words with the same formatting in different applications can look identical on the screen, but vary wildly in how they look behind the scenes. Text might be stored as Markdown, HTML, or any of a [number](https://developers.notion.com/reference/rich-text) [of](https://prosemirror.net/docs/ref/#model.Node) [other](https://www.contentful.com/developers/docs/concepts/rich-text/#rich-text-on-the-api-response) [approaches](https://en.wikipedia.org/wiki/OpenDocument) to storing a series of characters with formatting.
+We can’t expect blocks to take any old text and understand it. The same words with the same formatting in different applications can look identical on the screen, but vary wildly in how they look behind the scenes. Text might be stored as Markdown, HTML, or any of a [number](https://quilljs.com/docs/delta/) [of](https://prosemirror.net/docs/ref/#model.Node) [other](https://docs.slatejs.org/concepts/02-nodes) [approaches](https://en.wikipedia.org/wiki/OpenDocument) to storing a series of characters with formatting.
 
 If we wanted the block to handle rendering, the Block Protocol would need to specify a standard representation of formatted text, that blocks could predictably parse.
 
