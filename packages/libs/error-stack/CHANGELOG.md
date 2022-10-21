@@ -7,6 +7,11 @@ All notable changes to `error-stack` will be documented in this file.
 - Support for [`serde`](https://serde.rs) (`Serialize` only)
 - Support for [`defmt`](https://defmt.ferrous-systems.com)
 
+## Unreleased
+
+- Frames now provide [`Location`](https://doc.rust-lang.org/stable/std/panic/struct.Location.html) on nightly via the [`Provider`](https://doc.rust-lang.org/stable/std/any/trait.Provider.html) API
+- [`Location`](https://doc.rust-lang.org/stable/std/panic/struct.Location.html) on format is no longer special-cased and formatting can be modified via hooks.
+
 ## [0.2.3](https://github.com/hashintel/hash/tree/error-stack%400.2.3/packages/libs/error-stack) - 2022-10-12
 
 - Add Apache 2.0 as an additional license option ([#1172](https://github.com/hashintel/hash/pull/1172))
