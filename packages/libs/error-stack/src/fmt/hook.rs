@@ -808,14 +808,13 @@ mod default {
 
     fn location(location: &Location<'static>, context: &mut HookContext<Location<'static>>) {
         #[cfg(feature = "pretty-print")]
-        context.push_body(
-            location
-                .to_string()
-                .if_supports_color(Stream::Stdout, |apply| apply.bright_black()),
-        );
+        context.push_body(format!(
+            "{}",
+            location.if_supports_color(Stream::Stdout, OwoColorize::bright_black)
+        ));
 
         #[cfg(not(feature = "pretty-print"))]
-        context.push_body(format!("@ {location:?}"))
+        context.push_body(format!("at {location}"));
     }
 
     #[cfg(rust_1_65)]
