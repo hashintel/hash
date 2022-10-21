@@ -8,6 +8,8 @@ use crate::Context;
 ///
 /// The difference between [`FrameKind`] and [`FrameType`] is that [`FrameType`] does not hold any
 /// data, while [`FrameKind`] does.
+///
+/// [`Frame`]: crate::Frame
 // TODO: naming
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 #[must_use]
