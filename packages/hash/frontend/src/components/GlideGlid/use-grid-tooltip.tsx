@@ -4,6 +4,7 @@ import { PopoverPosition, Typography } from "@mui/material";
 import _ from "lodash";
 import { bindPopover, usePopupState } from "material-ui-popup-state/hooks";
 import { RefObject, useCallback, useState } from "react";
+import { useWindowEventListener } from "rooks";
 import { GridTooltipManager } from "./use-grid-tooltip/grid-tooltip-manager";
 import {
   GridTooltip,
@@ -15,6 +16,11 @@ export const useGridTooltip = (gridRef: RefObject<DataEditorRef>) => {
   const popupState = usePopupState({
     variant: "popover",
     popupId: "grid-tooltip",
+  });
+
+  // prevents tooltip to stay at cursor position while user scrolls vertically
+  useWindowEventListener("scroll", () => {
+    popupState.close();
   });
 
   const [tooltip, setTooltip] = useState<GridTooltip | null>(null);
@@ -32,7 +38,7 @@ export const useGridTooltip = (gridRef: RefObject<DataEditorRef>) => {
         return;
       }
 
-      popupState.setOpen(true);
+      popupState.open();
 
       const left = bounds.x + newTooltip.iconX;
       const top = bounds.y;
@@ -51,7 +57,7 @@ export const useGridTooltip = (gridRef: RefObject<DataEditorRef>) => {
   const hideTooltip = useCallback<TooltipCellProps["hideTooltip"]>(
     (_col, _row) => {
       if (tooltip?.col === _col && tooltip?.row === _row) {
-        popupState.setOpen(false);
+        popupState.close();
       }
     },
     [popupState, tooltip],
@@ -63,6 +69,14 @@ export const useGridTooltip = (gridRef: RefObject<DataEditorRef>) => {
     tooltipElement: (
       <Popover
         {...bindPopover(popupState)}
+        /**
+         * disabling scroll lock is intended here, even without the "popovers resetting the scroll position" issue
+         * because we don't want user to disable scroll lock when they hover on grid tooltips while scrolling
+         * @todo but in the long run, we should fix our buggy custom `useScrollLock` implementation
+         * it causes the page scroll to reset
+         * @see https://github.com/blockprotocol/blockprotocol/pull/588 the PR solved the same issue on BP repo
+         */
+        disableScrollLock
         anchorReference="anchorPosition"
         anchorPosition={tooltipPos}
         transformOrigin={{ horizontal: "center", vertical: "bottom" }}
