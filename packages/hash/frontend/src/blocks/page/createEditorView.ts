@@ -102,6 +102,9 @@ const createSavePlugin = (
           }
         },
         destroy: () => {
+          if (interval) {
+            interval = clearInterval(interval);
+          }
           writeDebounce.cancel();
         },
       };
