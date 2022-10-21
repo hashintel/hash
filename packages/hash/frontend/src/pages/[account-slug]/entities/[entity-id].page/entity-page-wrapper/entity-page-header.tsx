@@ -24,7 +24,7 @@ export const EntityPageHeader = ({ entity }: { entity: EntityResponse }) => {
         crumbs={[
           {
             title: "Entities",
-            href: `${accountSlug}/entities`,
+            href: `/${accountSlug}/entities`,
             id: "entities",
           },
           {
