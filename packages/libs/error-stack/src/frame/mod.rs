@@ -8,6 +8,8 @@ use core::{any::TypeId, fmt, panic::Location};
 
 use self::frame_impl::FrameImpl;
 pub use self::kind::{AttachmentKind, FrameKind};
+#[cfg(feature = "std")]
+pub(crate) use self::kind::{AttachmentType, FrameType};
 
 /// A single context or attachment inside of a [`Report`].
 ///
@@ -130,15 +132,7 @@ impl Frame {
 #[cfg(nightly)]
 impl Provider for Frame {
     fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-        // only provide the location if we're a `Context`, we can assume that, while we capture the
-        // location for every attached frame, most of the time one wants to request the
-        // location of a `Context` not attachment.
-        // The location for every frame can still be accessed via `.location()`
-        // This also has the benefit that for formatting we no longer need to special case location
-        if matches!(self.kind(), FrameKind::Context(_)) {
-            demand.provide_ref(self.location);
-        }
-
+        demand.provide_ref(self.location);
         self.frame.provide(demand);
     }
 }

@@ -17,7 +17,7 @@ use std::mem;
 #[cfg(feature = "std")]
 pub(crate) use default::install_builtin_hooks;
 
-use crate::fmt::Frame;
+use crate::{fmt::Frame, frame::FrameType, FrameKind};
 
 type Storage = BTreeMap<TypeId, BTreeMap<TypeId, Box<dyn Any>>>;
 
@@ -47,6 +47,7 @@ impl Counter {
 #[derive(Debug)]
 pub(crate) struct HookContextInner {
     storage: Storage,
+    frame_type: FrameType,
 
     alternate: bool,
 
@@ -78,6 +79,7 @@ impl HookContextInner {
             storage: Storage::default(),
             body: Vec::new(),
             appendix: Vec::new(),
+            frame_type: FrameType::Context,
             alternate,
         }
     }
@@ -475,8 +477,16 @@ impl<T> HookContext<T> {
         self.inner.storage_mut()
     }
 
+    fn frame_type(&self) -> FrameType {
+        self.inner.frame_type
+    }
+
     pub(crate) fn take_body(&mut self) -> Vec<String> {
         self.inner.take_body()
+    }
+
+    pub(crate) fn set_frame(&mut self, frame: &Frame) {
+        self.inner.frame_type = frame.kind().as_type()
     }
 }
 
@@ -741,9 +751,45 @@ impl Hooks {
         self.inner.push((type_id, into_boxed_hook(hook)));
     }
 
+    /// This compatability function is needed, as otherwise built-in hooks that depend on the
+    /// [`Provider`] api cannot be invoked on stable.
+    ///
+    /// This currently includes:
+    /// * [`Location`] hook
+    ///
+    /// This can be removed once [`Provider`] is stabilized.
+    ///
+    /// [`Location`]: std::panic::Location
+    /// [`Provider`]: std::any::Provider
+    #[cfg(not(nightly))]
+    fn compat(&self, frame: &Frame, context: &mut HookContext<Frame>) {
+        // Location compatability shim
+        if context.frame_type().is_context() {
+            let location = frame.location();
+
+            // note: this will issue recursion, but this won't every cause infinite recursion, as
+            // this code is conditional on it being a context.
+            let fake = Frame::from_attachment(*location, location, Box::new([]));
+
+            // this only works when we set the type also to attachment.
+            context.set_frame(&fake);
+
+            self.call(&fake, context);
+
+            // once we're done set the context to the correct frame again to not break any
+            // guarantees
+            context.set_frame(frame);
+        }
+    }
+
     pub(crate) fn call(&self, frame: &Frame, context: &mut HookContext<Frame>) {
         for (_, hook) in &self.inner {
             hook(frame, context);
+        }
+
+        #[cfg(not(nightly))]
+        {
+            self.compat(frame, context)
         }
     }
 }
@@ -807,6 +853,12 @@ mod default {
     }
 
     fn location(location: &Location<'static>, context: &mut HookContext<Location<'static>>) {
+        if context.frame_type().is_attachment() {
+            // We only want to print the location whenever we "come" from a Context, otherwise the
+            // output would be too noise.
+            return;
+        }
+
         #[cfg(feature = "pretty-print")]
         context.push_body(format!(
             "{}",
