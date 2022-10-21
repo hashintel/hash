@@ -258,7 +258,7 @@ export class EditorConnection {
       })
       .catch((err) => {
         this.closeRequest();
-
+        // eslint-disable-next-line no-console -- TODO: consider using logger
         console.error(err);
         this.dispatch({ type: "error", error: err });
       });
@@ -378,7 +378,7 @@ export class EditorConnection {
         if (err.status === 410 || badVersion(err)) {
           // Too far behind. Revert to server state
           // @todo use logger
-
+          // eslint-disable-next-line no-console
           console.warn(err);
           this.dispatch({ type: "restart" });
         } else if (err) {
