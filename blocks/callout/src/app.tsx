@@ -24,7 +24,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   const { graphService } = useGraphBlockService(blockRef);
   const { hookService } = useHookBlockService(blockRef);
 
-  useHook(hookService, editableRef, "text", "$.text", (node) => {
+  useHook(hookService, editableRef, "text", entityId, "$.text", (node) => {
     // eslint-disable-next-line no-param-reassign
     node.innerText = text ?? "";
 
