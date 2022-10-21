@@ -9,24 +9,20 @@ import {
   VERCEL_ENV,
 } from "./src/lib/public-env";
 
-const replaysSamplingRate = Number.parseInt(
-  SENTRY_REPLAYS_SAMPLING_RATE ?? "0",
-  10,
-);
-
 Sentry.init({
   dsn: SENTRY_DSN,
   enabled: !!SENTRY_DSN,
   environment: VERCEL_ENV,
   integrations:
-    replaysSamplingRate > 0 &&
-    replaysSamplingRate <= 1 &&
+    SENTRY_REPLAYS_SAMPLING_RATE &&
     // @todo Remove when https://github.com/getsentry/sentry-replay/issues/246#issuecomment-1284472286 is resolved
     typeof window !== "undefined"
       ? [
           new Replay({
             captureOnlyOnError: true,
-            replaysSamplingRate,
+            replaysSamplingRate: Number.parseFloat(
+              SENTRY_REPLAYS_SAMPLING_RATE ?? "",
+            ),
             stickySession: true,
           }),
         ]
