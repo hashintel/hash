@@ -14,7 +14,9 @@ Sentry.init({
   enabled: !!SENTRY_DSN,
   environment: VERCEL_ENV,
   integrations:
-    SENTRY_REPLAYS_SAMPLING_RATE && typeof window !== "undefined"
+    SENTRY_REPLAYS_SAMPLING_RATE &&
+    // @todo Remove when https://github.com/getsentry/sentry-replay/issues/246#issuecomment-1287181345 is resolved
+    typeof window !== "undefined"
       ? [
           new Replay({
             captureOnlyOnError: true,
