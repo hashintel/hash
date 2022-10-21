@@ -22,13 +22,74 @@ export const createPersistedEntityMutation = gql`
   ${persistedEntityFieldsFragment}
 `;
 
+/** @todo - rename these and remove "persisted" - https://app.asana.com/0/0/1203157172269854/f */
+
 export const getPersistedEntityQuery = gql`
-  query getPersistedEntity($entityId: ID!, $entityVersion: String) {
-    persistedEntity(entityId: $entityId, entityVersion: $entityVersion) {
-      ...PersistedEntityFields
+  query getPersistedEntity(
+    $entityId: ID!
+    $entityVersion: String
+    $dataTypeResolveDepth: Int!
+    $propertyTypeResolveDepth: Int!
+    $linkTypeResolveDepth: Int!
+    $entityTypeResolveDepth: Int!
+    $linkResolveDepth: Int!
+    $linkTargetEntityResolveDepth: Int!
+  ) {
+    getPersistedEntity(
+      entityId: $entityId
+      entityVersion: $entityVersion
+      dataTypeResolveDepth: $dataTypeResolveDepth
+      propertyTypeResolveDepth: $propertyTypeResolveDepth
+      linkTypeResolveDepth: $linkTypeResolveDepth
+      entityTypeResolveDepth: $entityTypeResolveDepth
+      linkResolveDepth: $linkResolveDepth
+      linkTargetEntityResolveDepth: $linkTargetEntityResolveDepth
+    ) {
+      roots
+      vertices
+      edges
+      depths {
+        dataTypeResolveDepth
+        propertyTypeResolveDepth
+        linkTypeResolveDepth
+        entityTypeResolveDepth
+        linkTargetEntityResolveDepth
+        linkResolveDepth
+      }
     }
   }
-  ${persistedEntityFieldsFragment}
+`;
+
+export const getAllLatestEntitiesQuery = gql`
+  query getAllLatestPersistedEntities(
+    $dataTypeResolveDepth: Int!
+    $propertyTypeResolveDepth: Int!
+    $linkTypeResolveDepth: Int!
+    $entityTypeResolveDepth: Int!
+    $linkResolveDepth: Int!
+    $linkTargetEntityResolveDepth: Int!
+  ) {
+    getAllLatestPersistedEntities(
+      dataTypeResolveDepth: $dataTypeResolveDepth
+      propertyTypeResolveDepth: $propertyTypeResolveDepth
+      linkTypeResolveDepth: $linkTypeResolveDepth
+      entityTypeResolveDepth: $entityTypeResolveDepth
+      linkTargetEntityResolveDepth: $linkTargetEntityResolveDepth
+      linkResolveDepth: $linkResolveDepth
+    ) {
+      roots
+      vertices
+      edges
+      depths {
+        dataTypeResolveDepth
+        propertyTypeResolveDepth
+        linkTypeResolveDepth
+        entityTypeResolveDepth
+        linkTargetEntityResolveDepth
+        linkResolveDepth
+      }
+    }
+  }
 `;
 
 export const getOutgoingPersistedLinksQuery = gql`
