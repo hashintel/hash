@@ -127,8 +127,10 @@ const BigPost: FunctionComponent<{ page: BlogIndividualPage }> = ({ page }) => (
       <PostImage page={page} fill={false} />
     </Box>
     <PostCopyContainer>
-      {page.data.author ? (
-        <BlogPostAuthor>{page.data.author}</BlogPostAuthor>
+      {page.data.authors ? (
+        <BlogPostAuthor>
+          {page.data.authors.map((author) => author.name).join(" & ")}
+        </BlogPostAuthor>
       ) : null}
       {page.data.title ? (
         <Typography variant="hashHeading2">
@@ -160,8 +162,10 @@ const Post: FunctionComponent<{
       alignItems={{ xs: "center", md: "flex-start" }}
       textAlign={{ xs: "center", md: "left" }}
     >
-      {post.data.author ? (
-        <BlogPostAuthor small>{post.data.author}</BlogPostAuthor>
+      {post.data.authors ? (
+        <BlogPostAuthor small>
+          {post.data.authors.map((author) => author.name).join(", ")}
+        </BlogPostAuthor>
       ) : null}
       {post.data.title ? (
         <Typography variant="hashHeading4" color="gray.90">
