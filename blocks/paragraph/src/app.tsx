@@ -9,6 +9,7 @@ type BlockEntityProperties = {
 export const App: BlockComponent<BlockEntityProperties> = ({
   graph: {
     blockEntity: {
+      entityId,
       properties: { text },
     },
   },
@@ -16,7 +17,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   const ref = useRef<HTMLHeadingElement>(null);
   const { hookService } = useHookBlockService(ref);
 
-  useHook(hookService, ref, "text", "$.text", (node) => {
+  useHook(hookService, ref, "text", entityId, "$.text", (node) => {
     // eslint-disable-next-line no-param-reassign
     node.innerText = text ?? "";
 
@@ -26,5 +27,5 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     };
   });
 
-  return <p ref={ref} />;
+  return <div ref={ref} />;
 };

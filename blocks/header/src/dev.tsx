@@ -22,6 +22,7 @@ const App = () => (
       entityId: "test-header-1",
       properties: headerProperties,
     }}
+    debug
   />
 );
 
