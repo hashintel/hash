@@ -130,6 +130,10 @@ impl Frame {
 #[cfg(nightly)]
 impl Provider for Frame {
     fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
+        if matches!(self.kind(), FrameKind::Context(_)) {
+            demand.provide_ref(self.location);
+        }
+
         self.frame.provide(demand);
     }
 }
