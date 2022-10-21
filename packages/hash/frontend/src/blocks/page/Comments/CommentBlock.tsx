@@ -35,6 +35,7 @@ import styles from "./style.module.css";
 import { useUpdateCommentText } from "../../../components/hooks/useUpdateCommentText";
 import { CommentBlockMenuItem } from "./CommentBlockMenuItem";
 import { PencilSlashIcon } from "../../../shared/icons/pencil-slash-icon";
+import { useUser } from "../../../components/hooks/useUser";
 
 type ToggleTextExpandedButtonProps = {
   label: ReactNode;
@@ -80,6 +81,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
   const [editable, setEditable] = useState(false);
   const [inputValue, setInputValue] = useState<TextToken[]>(hasText);
 
+  const { user } = useUser();
   const [updateCommentText, { loading }] = useUpdateCommentText(pageId);
 
   useEffect(() => {
@@ -268,20 +270,22 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
       ) : null}
 
       <CommentBlockMenu popupState={commentMenuPopupState}>
-        <CommentBlockMenuItem
-          title={editable ? "Cancel Edit" : "Edit"}
-          icon={
-            editable ? (
-              <PencilSlashIcon sx={{ fontSize: 16 }} />
-            ) : (
-              <FontAwesomeIcon icon={faPencil} />
-            )
-          }
-          onClick={() => {
-            setEditable(!editable);
-            commentMenuPopupState.close();
-          }}
-        />
+        {user?.entityId === author.entityId ? (
+          <CommentBlockMenuItem
+            title={editable ? "Cancel Edit" : "Edit"}
+            icon={
+              editable ? (
+                <PencilSlashIcon sx={{ fontSize: 16 }} />
+              ) : (
+                <FontAwesomeIcon icon={faPencil} />
+              )
+            }
+            onClick={() => {
+              setEditable(!editable);
+              commentMenuPopupState.close();
+            }}
+          />
+        ) : null}
         <CommentBlockMenuItem
           title="Copy Link"
           icon={<FontAwesomeIcon icon={faLink} />}
@@ -290,14 +294,16 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
             commentMenuPopupState.close();
           }}
         />
-        <CommentBlockMenuItem
-          title="Delete Comment"
-          icon={<FontAwesomeIcon icon={faTrash} />}
-          // @todo Commented implement functionality
-          onClick={() => {
-            commentMenuPopupState.close();
-          }}
-        />
+        {user?.entityId === author.entityId ? (
+          <CommentBlockMenuItem
+            title="Delete Comment"
+            icon={<FontAwesomeIcon icon={faTrash} />}
+            // @todo Commented implement functionality
+            onClick={() => {
+              commentMenuPopupState.close();
+            }}
+          />
+        ) : null}
       </CommentBlockMenu>
     </Box>
   );
