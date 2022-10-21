@@ -41,7 +41,8 @@ const indexes = ["name", "testing"];
 
 export const TestSection = () => {
   const gridRef = useRef<DataEditorRef>(null);
-  const { tooltip, showTooltip, hideTooltip } = useGridTooltip(gridRef);
+  const { tooltipElement, showTooltip, hideTooltip, withTooltips } =
+    useGridTooltip(gridRef);
 
   const getCellContent = useCallback(
     ([col, row]: Item): GridCell => {
@@ -104,9 +105,12 @@ export const TestSection = () => {
         columns={columns}
         rows={rowData.length}
         getCellContent={getCellContent}
-        customRenderers={[renderTestCell, renderTestCellTwo]}
+        customRenderers={[
+          withTooltips(renderTestCell),
+          withTooltips(renderTestCellTwo),
+        ]}
       />
-      {tooltip}
+      {tooltipElement}
     </EntitySection>
   );
 };
