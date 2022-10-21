@@ -11,11 +11,12 @@ import {
   CreateResourceError,
   ReadOrModifyResourceError,
 } from "@blockprotocol/graph";
+import { EntityVertex } from "@hashintel/hash-shared/graphql/types";
 import {
   PersistedLink,
-  Subgraph,
   UnknownPersistedEntity,
 } from "../../../../graphql/apiTypes.gen";
+import { Subgraph } from "../../../../lib/subgraph";
 
 export type KnowledgeCallbacks = {
   getEntity: GetEntityMessageCallback;
@@ -39,9 +40,9 @@ type BaseEntity = Omit<
   | "entityType"
 >;
 
-type Entity = BaseEntity & {
+/** @todo: remove this when we start returning links in the subgraph - https://app.asana.com/0/0/1203214689883095/f */
+export type Entity = BaseEntity & {
   links: Link[];
-  entityTypeRootedSubgraph: Subgraph;
 };
 
 type Link = Omit<PersistedLink, "sourceEntity" | "targetEntity"> & {
