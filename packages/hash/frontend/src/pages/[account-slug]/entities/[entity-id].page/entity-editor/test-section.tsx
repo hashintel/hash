@@ -12,6 +12,7 @@ import { EntitySection } from "./shared/entity-section";
 import { renderTestCellTwo, TestCellTwoProps } from "./test-cell-two";
 import { renderTestCell, TestCellProps } from "./test-cell";
 import { useGridTooltip } from "../../../../../components/GlideGlid/use-grid-tooltip";
+import { CustomGridIcon } from "../../../../../components/GlideGlid/custom-grid-icons";
 
 const columns: GridColumn[] = [
   {
@@ -28,11 +29,11 @@ const columns: GridColumn[] = [
 
 const rowData = [
   {
-    name: "Test 1",
+    name: "this is test 1 cell",
     testing: "Testing this",
   },
   {
-    name: "Test 2",
+    name: "this is test 2 cell",
     testing: "Testing this again",
   },
 ];
@@ -66,10 +67,18 @@ export const TestSection = () => {
           data: {
             kind: "custom-cell",
             tooltips: [
-              "This property requires a value",
-              "this field is required",
-              "this is the default value",
-              "this is kinda funny",
+              {
+                icon: CustomGridIcon.LABEL,
+                text: "This property represents label of the entity",
+              },
+              {
+                icon: CustomGridIcon.ASTERIKS,
+                text: "This property requires a value",
+              },
+              {
+                icon: CustomGridIcon.ERROR,
+                text: "This property has an error",
+              },
             ],
             showTooltip,
             hideTooltip,
@@ -84,12 +93,7 @@ export const TestSection = () => {
         data: {
           kind: "test-cell",
           value: value || "",
-          tooltips: [
-            "This property requires a value",
-            "this field is required",
-            "this is the default value",
-            "this is kinda funny",
-          ],
+          tooltips: [{ icon: CustomGridIcon.LABEL, text: "Test" }],
           showTooltip,
           hideTooltip,
         } as TestCellProps,

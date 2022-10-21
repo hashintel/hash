@@ -1,4 +1,5 @@
 import { CustomCell } from "@glideapps/glide-data-grid";
+import { CustomGridIcon } from "../custom-grid-icons";
 
 export type GridTooltip = {
   col: number;
@@ -7,8 +8,14 @@ export type GridTooltip = {
   iconX: number;
 };
 
+/** @todo find a better name for this type */
+export type GridTooltipObj = {
+  text: string;
+  icon: CustomGridIcon;
+};
+
 export interface TooltipCellProps {
-  tooltips: string[];
+  tooltips: GridTooltipObj[];
   showTooltip: (tooltip: GridTooltip) => void;
   hideTooltip: (col: number, row: number) => void;
 }

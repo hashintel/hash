@@ -1,17 +1,22 @@
 import type { DrawArgs } from "@glideapps/glide-data-grid/dist/ts/data-grid/cells/cell-types";
+import { CustomGridIcon } from "../custom-grid-icons";
 import { TooltipCell } from "./types";
 
 export class GridTooltipManager {
   // tooltip size
   private size = 20;
+
   // gap between tooltips
   private gap = 10;
+
+  // margin between last icon & cell border
+  private cellMargin = 24;
 
   constructor(private args: DrawArgs<TooltipCell>) {}
 
   draw() {
-    const { size, gap, args } = this;
-    const { ctx, cell, rect, col, row, hoverX = -100 } = args;
+    const { size, gap, args, cellMargin } = this;
+    const { ctx, cell, rect, col, row, hoverX = -100, theme } = args;
     const {
       data: { hideTooltip, showTooltip, tooltips },
     } = cell;
@@ -28,22 +33,41 @@ export class GridTooltipManager {
 
     let tooltipCount = 0;
 
-    for (let i = 0; i < tooltips?.length; i++) {
-      const tooltip = tooltips[i] ?? "";
-      const tooltipX = rect.x + rect.width - size - i * (gap + size);
+    for (let i = 0; i < tooltips.length; i++) {
+      const tooltip = tooltips[i] ?? {
+        text: "",
+        icon: CustomGridIcon.ASTERIKS,
+      };
+
+      /**
+       * using reversedIndex while calculating tooltipX, because we'll draw
+       * tooltips icons left to right (in reversed order)
+       */
+      const reversedIndex = tooltips.length - i - 1;
+
+      const tooltipX =
+        rect.x + rect.width - size - cellMargin - reversedIndex * (gap + size);
+
       const yCenter = rect.y + rect.height / 2;
 
-      ctx.strokeRect(tooltipX, yCenter - size / 2, size, size);
+      args.spriteManager.drawSprite(
+        tooltip.icon,
+        "normal",
+        ctx,
+        tooltipX,
+        yCenter - size / 2,
+        size,
+        theme,
+        1,
+      );
 
       const actualTooltipX = tooltipX - rect.x;
 
       if (hoverX > actualTooltipX && hoverX < actualTooltipX + size) {
-        ctx.fillRect(tooltipX, yCenter - size / 2, size, size);
-
         tooltipCount++;
 
         showTooltip({
-          text: tooltip,
+          text: tooltip.text,
           iconX: actualTooltipX + size / 2,
           col,
           row,

@@ -6,6 +6,7 @@ import {
 } from "@glideapps/glide-data-grid";
 import { useTheme } from "@mui/material";
 import { forwardRef, ForwardRefRenderFunction, useMemo } from "react";
+import { customGridIcons } from "./custom-grid-icons";
 
 const _GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
   props,
@@ -48,6 +49,8 @@ const _GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
       smoothScrollY
       getCellsForSelection
       {...props}
+      /** @todo explain why we need to pass header icons here */
+      headerIcons={customGridIcons}
     />
   );
 };
