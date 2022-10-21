@@ -39,13 +39,14 @@ use crate::{
         AccountId, OntologyQueryDepth, PersistedDataType, PersistedEntityType, PersistedLinkType,
         PersistedOntologyIdentifier, PersistedOntologyMetadata, PersistedPropertyType,
     },
+    shared::identifier::{GraphElementIdentifier, LinkId},
     store::{
         error::VersionedUriAlreadyExists,
         postgres::{ontology::OntologyDatabaseType, version_id::VersionId},
         AccountStore, BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError,
         UpdateError,
     },
-    subgraph::{Edges, GraphElementIdentifier, GraphResolveDepths, LinkId, Subgraph, Vertex},
+    subgraph::{Edges, GraphResolveDepths, Subgraph, Vertex},
 };
 
 pub struct DependencyMap<V, T, D> {

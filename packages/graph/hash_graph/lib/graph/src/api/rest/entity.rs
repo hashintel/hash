@@ -19,14 +19,14 @@ use crate::{
         Entity, EntityId, PersistedEntity, PersistedEntityIdentifier, PersistedEntityMetadata,
     },
     ontology::AccountId,
+    shared::identifier::GraphElementIdentifier,
     store::{
         error::{EntityDoesNotExist, QueryError},
         query::Expression,
         EntityStore, StorePool,
     },
     subgraph::{
-        EdgeKind, Edges, GraphElementIdentifier, GraphResolveDepths, OutwardEdge, StructuralQuery,
-        Subgraph, Vertex,
+        EdgeKind, Edges, GraphResolveDepths, OutwardEdge, StructuralQuery, Subgraph, Vertex,
     },
 };
 

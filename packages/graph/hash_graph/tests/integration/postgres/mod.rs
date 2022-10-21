@@ -14,6 +14,7 @@ use graph::{
         AccountId, PersistedDataType, PersistedEntityType, PersistedLinkType,
         PersistedOntologyMetadata, PersistedPropertyType,
     },
+    shared::identifier::GraphElementIdentifier,
     store::{
         error::LinkRemovalError,
         query::{Expression, Literal, Path, PathSegment},
@@ -21,7 +22,7 @@ use graph::{
         EntityTypeStore, InsertionError, LinkStore, LinkTypeStore, PostgresStore,
         PostgresStorePool, PropertyTypeStore, QueryError, StorePool, UpdateError,
     },
-    subgraph::{GraphElementIdentifier, GraphResolveDepths, StructuralQuery, Vertex},
+    subgraph::{GraphResolveDepths, StructuralQuery, Vertex},
 };
 use tokio_postgres::{NoTls, Transaction};
 use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};

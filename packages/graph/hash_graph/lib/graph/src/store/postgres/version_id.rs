@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
+// TODO: rename this to TypeInternalVersionId or something to distinguish it from versioned
+//  URIs and from entity ids
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema, FromSql, ToSql)]
 #[repr(transparent)]
 #[postgres(transparent)]

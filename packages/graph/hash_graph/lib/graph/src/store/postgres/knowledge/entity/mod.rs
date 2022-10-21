@@ -11,6 +11,7 @@ use type_system::uri::VersionedUri;
 use uuid::Uuid;
 
 use crate::{
+    identifier::{GraphElementIdentifier, LinkId},
     knowledge::{Entity, EntityId, PersistedEntity, PersistedEntityMetadata, PersistedLink},
     ontology::AccountId,
     store::{
@@ -19,10 +20,7 @@ use crate::{
         postgres::{context::PostgresContext, DependencyContext, DependencyContextRef},
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
-    subgraph::{
-        EdgeKind, GraphElementIdentifier, GraphResolveDepths, LinkId, OutwardEdge, StructuralQuery,
-        Subgraph,
-    },
+    subgraph::{EdgeKind, GraphResolveDepths, OutwardEdge, StructuralQuery, Subgraph},
 };
 
 impl<C: AsClient> PostgresStore<C> {

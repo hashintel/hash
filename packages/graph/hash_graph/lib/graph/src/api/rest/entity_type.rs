@@ -21,14 +21,14 @@ use crate::{
         patch_id_and_parse, AccountId, PersistedEntityType, PersistedOntologyIdentifier,
         PersistedOntologyMetadata,
     },
+    shared::identifier::GraphElementIdentifier,
     store::{
         error::{BaseUriAlreadyExists, BaseUriDoesNotExist},
         query::Expression,
         EntityTypeStore, StorePool,
     },
     subgraph::{
-        EdgeKind, Edges, GraphElementIdentifier, GraphResolveDepths, OutwardEdge, StructuralQuery,
-        Subgraph, Vertex,
+        EdgeKind, Edges, GraphResolveDepths, OutwardEdge, StructuralQuery, Subgraph, Vertex,
     },
 };
 
