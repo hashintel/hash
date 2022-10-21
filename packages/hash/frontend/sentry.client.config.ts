@@ -21,7 +21,7 @@ Sentry.init({
           new Replay({
             captureOnlyOnError: true,
             replaysSamplingRate: Number.parseFloat(
-              SENTRY_REPLAYS_SAMPLING_RATE ?? "",
+              SENTRY_REPLAYS_SAMPLING_RATE,
             ),
             stickySession: true,
           }),
