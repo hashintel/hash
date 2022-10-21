@@ -10,7 +10,6 @@ import "prosemirror-view/style/prosemirror.css";
 import { FunctionComponent, useLayoutEffect, useRef } from "react";
 import { useLocalstorageState } from "rooks";
 import { SxProps } from "@mui/system";
-import { useCreateComment } from "../../components/hooks/useCreateComment";
 import { PageThread } from "../../components/hooks/usePageComments";
 import { useInitTypeSystem } from "../../lib/use-init-type-system";
 import { useReadonlyMode } from "../../shared/readonly-mode";
