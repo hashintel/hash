@@ -1,6 +1,7 @@
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { GraphApi } from "@hashintel/hash-graph-client";
 import { OrgModel, OrgSize, UserModel } from "../model";
+import { workspaceAccountId } from "../model/util";
 import { ensureDevUsersAreSeeded } from "./dev-users";
 import { PageList, seedPages } from "./seed-pages";
 
@@ -17,7 +18,9 @@ const seedUserContent = async (
   await user.joinOrg(graphApi, {
     org: sharedOrg,
     responsibility: "Member",
+    actorId: workspaceAccountId,
   });
+
   logger.info(
     `User with shortname = "${user.getShortname()}" joined org with shortname = '${sharedOrg.getShortname()}'`,
   );
@@ -45,6 +48,7 @@ const seedOrg = async (params: {
     providedInfo: {
       orgSize: OrgSize.ElevenToFifty,
     },
+    actorId: workspaceAccountId,
   });
 
   logger.info(

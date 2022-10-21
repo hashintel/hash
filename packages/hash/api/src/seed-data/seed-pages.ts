@@ -3,7 +3,7 @@ import { GraphApi } from "@hashintel/hash-graph-client";
 import { PageModel } from "../model";
 
 const createNestedPages = async (
-  ownedById: string,
+  owningActorId: string,
   [top, nested]: [string, string],
   prevIndex: string | undefined,
   sharedParams: {
@@ -14,19 +14,21 @@ const createNestedPages = async (
   const { graphApi } = sharedParams;
 
   const topPageModel = await PageModel.createPage(graphApi, {
-    ownedById,
+    actorId: owningActorId,
+    ownedById: owningActorId,
     title: top,
     prevIndex,
   });
 
   const nestedPageModel = await PageModel.createPage(graphApi, {
-    ownedById,
+    actorId: owningActorId,
+    ownedById: owningActorId,
     title: nested,
   });
 
   await nestedPageModel.setParentPage(graphApi, {
+    actorId: owningActorId,
     parentPageModel: topPageModel,
-    setById: ownedById,
     prevIndex: topPageModel.getIndex() ?? null,
     nextIndex: null,
   });
@@ -38,7 +40,7 @@ export type PageList = (string | [string, string])[];
 
 export const seedPages = async (
   pageTitles: PageList,
-  ownedById: string,
+  owningActorId: string,
   sharedParams: {
     graphApi: GraphApi;
     logger: Logger;
@@ -51,14 +53,20 @@ export const seedPages = async (
     if (typeof pageTitle === "string") {
       prevIndex = (
         await PageModel.createPage(graphApi, {
-          ownedById,
+          actorId: owningActorId,
+          ownedById: owningActorId,
           title: pageTitle,
           prevIndex,
         })
       ).getIndex();
     } else {
       prevIndex = (
-        await createNestedPages(ownedById, pageTitle, prevIndex, sharedParams)
+        await createNestedPages(
+          owningActorId,
+          pageTitle,
+          prevIndex,
+          sharedParams,
+        )
       ).getIndex();
     }
   }
