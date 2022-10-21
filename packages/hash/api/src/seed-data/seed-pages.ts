@@ -10,7 +10,7 @@ const createNestedPages = async (
     graphApi: GraphApi;
     logger: Logger;
   },
-) => {
+): Promise<PageModel> => {
   const { graphApi } = sharedParams;
 
   const topPageModel = await PageModel.createPage(graphApi, {
@@ -30,6 +30,8 @@ const createNestedPages = async (
     prevIndex: topPageModel.getIndex() ?? null,
     nextIndex: null,
   });
+
+  return topPageModel;
 };
 
 export type PageList = (string | [string, string])[];
@@ -52,7 +54,12 @@ export const seedPages = async (
         title: pageTitle,
       });
     } else {
-      await createNestedPages(ownedById, pageTitle, previous, sharedParams);
+      previous = await createNestedPages(
+        ownedById,
+        pageTitle,
+        previous,
+        sharedParams,
+      );
     }
   }
 };
