@@ -10,8 +10,8 @@ import { useCallback, useRef } from "react";
 import { GlideGrid } from "../../../../../components/GlideGlid/glide-grid";
 import { EntitySection } from "./shared/entity-section";
 import { renderTestCellTwo, TestCellTwoProps } from "./test-cell-two";
-import { useGridTooltip } from "../../../../../components/GlideGlid/grid-tooltip/use-grid-tooltip";
 import { renderTestCell, TestCellProps } from "./test-cell";
+import { useGridTooltip } from "../../../../../components/GlideGlid/use-grid-tooltip";
 
 const columns: GridColumn[] = [
   {
