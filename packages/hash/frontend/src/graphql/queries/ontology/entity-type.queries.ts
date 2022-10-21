@@ -1,21 +1,59 @@
 import { gql } from "@apollo/client";
 
 export const getEntityTypeQuery = gql`
-  query getEntityType($entityTypeId: String!) {
-    getEntityType(entityTypeId: $entityTypeId) {
-      entityTypeId
-      ownedById
-      entityType
+  query getEntityType(
+    $entityTypeId: String!
+    $dataTypeResolveDepth: Int!
+    $propertyTypeResolveDepth: Int!
+    $linkTypeResolveDepth: Int!
+    $entityTypeResolveDepth: Int!
+  ) {
+    getEntityType(
+      entityTypeId: $entityTypeId
+      dataTypeResolveDepth: $dataTypeResolveDepth
+      propertyTypeResolveDepth: $propertyTypeResolveDepth
+      linkTypeResolveDepth: $linkTypeResolveDepth
+      entityTypeResolveDepth: $entityTypeResolveDepth
+    ) {
+      roots
+      vertices
+      edges
+      depths {
+        dataTypeResolveDepth
+        propertyTypeResolveDepth
+        linkTypeResolveDepth
+        entityTypeResolveDepth
+        linkTargetEntityResolveDepth
+        linkResolveDepth
+      }
     }
   }
 `;
 
 export const getAllLatestEntityTypesQuery = gql`
-  query getAllLatestEntityTypes {
-    getAllLatestEntityTypes {
-      entityTypeId
-      ownedById
-      entityType
+  query getAllLatestEntityTypes(
+    $dataTypeResolveDepth: Int!
+    $propertyTypeResolveDepth: Int!
+    $linkTypeResolveDepth: Int!
+    $entityTypeResolveDepth: Int!
+  ) {
+    getAllLatestEntityTypes(
+      dataTypeResolveDepth: $dataTypeResolveDepth
+      propertyTypeResolveDepth: $propertyTypeResolveDepth
+      linkTypeResolveDepth: $linkTypeResolveDepth
+      entityTypeResolveDepth: $entityTypeResolveDepth
+    ) {
+      roots
+      vertices
+      edges
+      depths {
+        dataTypeResolveDepth
+        propertyTypeResolveDepth
+        linkTypeResolveDepth
+        entityTypeResolveDepth
+        linkTargetEntityResolveDepth
+        linkResolveDepth
+      }
     }
   }
 `;
@@ -23,39 +61,28 @@ export const getAllLatestEntityTypesQuery = gql`
 export const getEntityTypeRootedSubgraphQuery = gql`
   query getEntityTypeRootedSubgraph(
     $entityTypeId: String!
-    $referencedDataTypesDepth: Int
-    $referencedPropertyTypesDepth: Int
-    $referencedLinkTypesDepth: Int
-    $referencedEntityTypesDepth: Int
+    $dataTypeResolveDepth: Int!
+    $propertyTypeResolveDepth: Int!
+    $linkTypeResolveDepth: Int!
+    $entityTypeResolveDepth: Int!
   ) {
-    getEntityType(entityTypeId: $entityTypeId) {
-      entityTypeId
-      ownedById
-      accountId
-      entityType
-      referencedDataTypes(depth: $referencedDataTypesDepth) {
-        dataTypeId
-        ownedById
-        accountId
-        dataType
-      }
-      referencedPropertyTypes(depth: $referencedPropertyTypesDepth) {
-        propertyTypeId
-        ownedById
-        accountId
-        propertyType
-      }
-      referencedLinkTypes(depth: $referencedLinkTypesDepth) {
-        linkTypeId
-        ownedById
-        accountId
-        linkType
-      }
-      referencedEntityTypes(depth: $referencedEntityTypesDepth) {
-        entityTypeId
-        ownedById
-        accountId
-        entityType
+    getEntityType(
+      entityTypeId: $entityTypeId
+      dataTypeResolveDepth: $dataTypeResolveDepth
+      propertyTypeResolveDepth: $propertyTypeResolveDepth
+      linkTypeResolveDepth: $linkTypeResolveDepth
+      entityTypeResolveDepth: $entityTypeResolveDepth
+    ) {
+      roots
+      vertices
+      edges
+      depths {
+        dataTypeResolveDepth
+        propertyTypeResolveDepth
+        linkTypeResolveDepth
+        entityTypeResolveDepth
+        linkTargetEntityResolveDepth
+        linkResolveDepth
       }
     }
   }

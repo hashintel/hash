@@ -39,7 +39,12 @@ export const useBlockProtocolAggregatePropertyTypes = (): {
          *   or doing it from here.
          *   https://app.asana.com/0/1202805690238892/1202890614880643/f
          */
-        const response = await aggregateFn({});
+        const response = await aggregateFn({
+          variables: {
+            dataTypeResolveDepth: 255,
+            propertyTypeResolveDepth: 255,
+          },
+        });
 
         if (!response.data) {
           return {

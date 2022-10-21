@@ -4,6 +4,7 @@ import { Box, Typography } from "@mui/material";
 import { WhiteCard } from "../../types/entity-type/white-card";
 import { useEntityEditor } from "./entity-editor-context";
 import { EntitySection } from "./shared/entity-section";
+import { getPersistedEntityType } from "../../../../lib/subgraph";
 
 interface TypeCardProps {
   url: string;
@@ -39,7 +40,10 @@ export const TypesSection = () => {
     return null;
   }
 
-  const entityTypeTitle = entity.entityTypeRootedSubgraph.entityType.title;
+  const entityTypeTitle = getPersistedEntityType(
+    entity.entityTypeRootedSubgraph,
+    entity.entityTypeId,
+  )!.inner.title;
 
   return (
     <EntitySection title="Type">
