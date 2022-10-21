@@ -4,7 +4,7 @@ module.exports = {
   collectCoverageFrom: [
     "**/*.{c,m,}{j,t}s{x,}",
     "!**/node_modules/**",
-    "!**/vendor/**",
+    "!**/dist/**",
   ],
   coverageReporters: ["lcov", "text"],
   preset: "ts-jest",

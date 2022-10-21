@@ -10,7 +10,7 @@ const customJestConfig = {
   collectCoverageFrom: [
     "**/*.{c,m,}{j,t}s{x,}",
     "!**/node_modules/**",
-    "!**/vendor/**",
+    "!**/dist/**",
   ],
   coverageReporters: ["lcov", "text"],
   moduleDirectories: ["node_modules", "<rootDir>/"],
