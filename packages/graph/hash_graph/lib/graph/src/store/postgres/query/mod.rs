@@ -13,8 +13,11 @@ use std::fmt::{self, Formatter};
 pub use self::{
     condition::Condition,
     data_type::DataTypeQueryField,
-    expression::{Expression, Function},
-    statement::WindowStatement,
+    expression::{
+        CommonTableExpression, Expression, Function, JoinExpression, SelectExpression,
+        WhereExpression, WithExpression,
+    },
+    statement::{SelectStatement, Statement, WindowStatement},
     table::{Column, ColumnAccess, Table, TableAlias, TableName},
 };
 use crate::store::query::QueryRecord;
@@ -61,7 +64,9 @@ pub trait Transpile {
 mod test_helper {
     use std::fmt;
 
-    use crate::store::postgres::query::Transpile;
+    use crate::store::postgres::query::{
+        Column, DataTypeQueryField, Expression, Field, Function, Table, Transpile, WindowStatement,
+    };
 
     pub fn transpile<R: Transpile>(value: &R) -> String {
         struct Transpiler<'r, R>(&'r R);
@@ -71,5 +76,34 @@ mod test_helper {
             }
         }
         Transpiler(value).to_string()
+    }
+
+    pub fn trim_whitespace(string: impl Into<String>) -> String {
+        string
+            .into()
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ")
+    }
+
+    pub fn max_version_expression() -> Expression<'static> {
+        Expression::Window(
+            Box::new(Expression::Function(Box::new(Function::Max(
+                Expression::Column(Column {
+                    table: Table {
+                        name: DataTypeQueryField::Version.table_name(),
+                        alias: None,
+                    },
+                    access: DataTypeQueryField::Version.column_access(),
+                }),
+            )))),
+            WindowStatement::partition_by(Column {
+                table: Table {
+                    name: DataTypeQueryField::BaseUri.table_name(),
+                    alias: None,
+                },
+                access: DataTypeQueryField::BaseUri.column_access(),
+            }),
+        )
     }
 }
