@@ -140,7 +140,7 @@ jobs:
       - run: yarn test:backend-integration
         if: ${{ success() || failure() }}
         env:
-          COVERAGE: true
+          TEST_COVERAGE: true
 
       - uses: codecov/codecov-action@v3
         if: ${{ success() || failure() }}
@@ -259,7 +259,7 @@ jobs:
       - run: yarn test:unit
         if: ${{ success() || failure() }}
         env:
-          COVERAGE: true
+          TEST_COVERAGE: true
 
       - uses: codecov/codecov-action@v3
         if: ${{ success() || failure() }}

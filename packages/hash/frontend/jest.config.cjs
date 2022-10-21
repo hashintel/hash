@@ -6,7 +6,7 @@ const createJestConfig = nextJest({ dir: __dirname });
 
 /** @type {import("jest").Config} */
 const customJestConfig = {
-  collectCoverage: process.env.COVERAGE === "true",
+  collectCoverage: process.env.TEST_COVERAGE === "true",
   collectCoverageFrom: [
     "**/*.{c,m,}{j,t}s{x,}",
     "!**/node_modules/**",

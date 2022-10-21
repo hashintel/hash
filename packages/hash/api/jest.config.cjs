@@ -1,6 +1,6 @@
 /** @type {import('jest').Config} */
 module.exports = {
-  collectCoverage: process.env.COVERAGE === "true",
+  collectCoverage: process.env.TEST_COVERAGE === "true",
   collectCoverageFrom: [
     "**/*.{c,m,}{j,t}s{x,}",
     "!**/node_modules/**",
