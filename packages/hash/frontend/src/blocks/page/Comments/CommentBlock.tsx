@@ -115,7 +115,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
     [hasText, inputValue],
   );
 
-  const reset = () => {
+  const resetCommentText = () => {
     setInputValue(hasText);
     setEditable(false);
   };
@@ -123,7 +123,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
   const handleEditComment = async () => {
     if (!submitUpdateDisabled) {
       await updateCommentText(entityId, inputValue);
-      reset();
+      resetCommentText();
     }
   };
 
@@ -200,7 +200,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
             editable={editable}
             readOnly={!editable}
             placeholder="Edit comment"
-            onClose={reset}
+            onClose={resetCommentText}
             onSubmit={handleEditComment}
             onChange={setInputValue}
           />
@@ -215,7 +215,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
               pt: 0.75,
             }}
           >
-            <Button size="xs" variant="tertiary" onClick={reset}>
+            <Button size="xs" variant="tertiary" onClick={resetCommentText}>
               Cancel
             </Button>
             <Button
