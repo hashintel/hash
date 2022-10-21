@@ -1,4 +1,5 @@
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
+use serde_json;
 use type_system::uri::VersionedUri;
 use utoipa::{openapi, ToSchema};
 
@@ -15,12 +16,29 @@ pub struct LinkId {
     pub link_type_id: VersionedUri,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
-#[serde(rename_all = "camelCase", untagged)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum GraphElementIdentifier {
     OntologyElementId(VersionedUri),
     KnowledgeGraphElementId(EntityId),
     Temporary(LinkId),
+}
+
+impl Serialize for GraphElementIdentifier {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self {
+            Self::KnowledgeGraphElementId(identifier) => identifier.serialize(serializer),
+            Self::OntologyElementId(identifier) => identifier.serialize(serializer),
+            Self::Temporary(identifier) => serializer.serialize_str(&format!(
+                "<SOURCE>{}<TARGET>{}<TYPE>{}",
+                &identifier.source_entity_id,
+                &identifier.target_entity_id,
+                &identifier.link_type_id
+            )),
+        }
+    }
 }
 
 // TODO: We have to do this because utoipa doesn't understand serde untagged
