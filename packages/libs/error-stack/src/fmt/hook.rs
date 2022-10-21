@@ -861,6 +861,12 @@ mod default {
     }
 
     fn location(location: &Location<'static>, context: &mut HookContext<Location<'static>>) {
+        // This is only active for nightly, as on stable we use a hack where location is served as
+        // an attachment instead and the `Provider` API cannot be utilized.
+        // Location does not implement `Context`, and therefore can never be from a `Context` on
+        // stable!
+        // TODO: remove cfg once `Provider` API is stabilized
+        #[cfg(nightly)]
         if context.frame_type().is_attachment() {
             // We only want to print the location whenever we "come" from a Context, otherwise the
             // output would be too noise.
