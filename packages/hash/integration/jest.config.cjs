@@ -1,6 +1,11 @@
 /** @type {import('jest').Config} */
 module.exports = {
   collectCoverage: process.env.COVERAGE === "true",
+  collectCoverageFrom: [
+    "**/*.{c,m,}{j,t}s{x,}",
+    "!**/node_modules/**",
+    "!**/vendor/**",
+  ],
   coverageReporters: ["lcov", "text"],
   preset: "ts-jest",
   testEnvironment: "node",

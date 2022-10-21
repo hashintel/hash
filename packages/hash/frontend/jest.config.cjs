@@ -7,6 +7,11 @@ const createJestConfig = nextJest({ dir: __dirname });
 /** @type {import("jest").Config} */
 const customJestConfig = {
   collectCoverage: process.env.COVERAGE === "true",
+  collectCoverageFrom: [
+    "**/*.{c,m,}{j,t}s{x,}",
+    "!**/node_modules/**",
+    "!**/vendor/**",
+  ],
   coverageReporters: ["lcov", "text"],
   moduleDirectories: ["node_modules", "<rootDir>/"],
   moduleNameMapper: {
