@@ -19,6 +19,8 @@ pub struct LinkId {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum GraphElementIdentifier {
     OntologyElementId(VersionedUri),
+    // TODO: owned_by_id and version are required to identify a specific instance of an entity
+    //  https://app.asana.com/0/1202805690238892/1203214689883091/f
     KnowledgeGraphElementId(EntityId),
     Temporary(LinkId),
 }
