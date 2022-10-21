@@ -20,6 +20,7 @@ const App = () => (
       entityId: "test-block-1",
       properties: calloutProperties,
     }}
+    debug
   />
 );
 
