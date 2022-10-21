@@ -163,7 +163,7 @@ pub use hook::HookContext;
 #[cfg(feature = "std")]
 pub(crate) use hook::{install_builtin_hooks, Hooks};
 #[cfg(feature = "pretty-print")]
-use owo_colors::{OwoColorize, Stream::Stdout, Style as OwOStyle};
+use owo_colors::{OwoColorize, Stream, Style as OwOStyle};
 
 use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 
@@ -497,11 +497,14 @@ impl Display for Instruction {
             }
             PreparedInstruction::Symbols(symbols) => {
                 for symbol in symbols {
-                    Display::fmt(&symbol.if_supports_color(Stdout, OwoColorize::red), fmt)?;
+                    Display::fmt(
+                        &symbol.if_supports_color(Stream::Stdout, OwoColorize::red),
+                        fmt,
+                    )?;
                 }
             }
             PreparedInstruction::Content(value, &style) => Display::fmt(
-                &value.if_supports_color(Stdout, |value| value.style(style.into())),
+                &value.if_supports_color(Stream::Stdout, |value| value.style(style.into())),
                 fmt,
             )?,
         }
@@ -643,9 +646,8 @@ fn partition<'a>(stack: &'a [&'a Frame]) -> (Vec<(&'a Frame, Vec<&'a Frame>)>, V
     (result, queue)
 }
 
-fn debug_context(frame: &Frame, context: &dyn Context) -> (Lines, Line) {
-    let loc = frame.location();
-    let context = context
+fn debug_context(context: &dyn Context) -> Lines {
+    context
         .to_string()
         .lines()
         .map(ToOwned::to_owned)
@@ -663,16 +665,7 @@ fn debug_context(frame: &Frame, context: &dyn Context) -> (Lines, Line) {
                 })
             }
         })
-        .collect();
-
-    let loc = Line::new()
-        .push(Instruction::Value {
-            value: loc.to_string(),
-            style: Style::new().gray(),
-        })
-        .push(Instruction::Symbol(Symbol::Location));
-
-    (context, loc)
+        .collect()
 }
 
 struct Opaque(usize);
@@ -715,8 +708,21 @@ fn debug_attachments_invoke(
                 Report::invoke_debug_format_hook(|hooks| hooks.call(frame, context));
                 context.take_body()
             }
+            #[cfg(all(not(feature = "std")), feature = "pretty-print")]
+            FrameKind::Context(_) => vec![
+                frame
+                    .location()
+                    .to_string()
+                    .if_supports_color(Stream::Stdout, |apply| apply.bright_black()),
+            ],
+            #[cfg(all(not(feature = "std")), not(feature = "pretty-print"))]
+            FrameKind::Context(context) => {
+                let location = frame.location();
+
+                vec![format!(@ "{location:?}")]
+            }
             #[cfg(not(feature = "std"))]
-            FrameKind::Attachment(AttachmentKind::Opaque(_)) | FrameKind::Context(_) => {
+            FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
                 vec![]
             }
             #[cfg(feature = "std")]
@@ -902,7 +908,7 @@ fn debug_frame(
             // each "paket" on the stack is made up of a head (guaranteed to be a `Context`) and
             // `n` attachments.
             // The attachments are rendered as direct descendants of the parent context
-            let (head_context, loc) = debug_context(head, match head.kind() {
+            let (head_context, loc) = debug_context(match head.kind() {
                 FrameKind::Context(c) => c,
                 FrameKind::Attachment(_) => unreachable!(),
             });

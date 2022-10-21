@@ -757,11 +757,16 @@ mod default {
     use core::any::TypeId;
     #[cfg(rust_1_65)]
     use std::backtrace::Backtrace;
-    use std::sync::{
-        atomic::{AtomicBool, Ordering},
-        Once,
+    use std::{
+        panic::Location,
+        sync::{
+            atomic::{AtomicBool, Ordering},
+            Once,
+        },
     };
 
+    #[cfg(feature = "pretty-print")]
+    use owo_colors::{OwoColorize, Stream};
     #[cfg(feature = "spantrace")]
     use tracing_error::SpanTrace;
 
@@ -791,12 +796,26 @@ mod default {
         INSTALL_BUILTIN.call_once(|| {
             INSTALL_BUILTIN_RUNNING.store(true, Ordering::Release);
 
+            Report::install_debug_hook(location);
+
             #[cfg(rust_1_65)]
             Report::install_debug_hook(backtrace);
 
             #[cfg(feature = "spantrace")]
             Report::install_debug_hook(span_trace);
         });
+    }
+
+    fn location(location: &Location<'static>, context: &mut HookContext<Location<'static>>) {
+        #[cfg(feature = "pretty-print")]
+        context.push_body(
+            location
+                .to_string()
+                .if_supports_color(Stream::Stdout, |apply| apply.bright_black()),
+        );
+
+        #[cfg(not(feature = "pretty-print"))]
+        context.push_body(format!("@ {location:?}"))
     }
 
     #[cfg(rust_1_65)]
