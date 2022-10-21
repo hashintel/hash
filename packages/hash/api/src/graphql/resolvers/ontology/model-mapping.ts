@@ -1,6 +1,7 @@
 import { Subgraph } from "@hashintel/hash-graph-client";
 import {
   EntityTypeVertex,
+  EntityVertex,
   PropertyTypeVertex,
 } from "@hashintel/hash-shared/graphql/types";
 import { EntityType, PropertyType } from "@blockprotocol/type-system-web";
@@ -43,6 +44,7 @@ export const mapEntityTypeModelToGQL = (
   entityType: entityType.schema,
 });
 
+/** @todo - move this outside of ontology */
 /**
  * @todo and a warning, this mapping function is here to compensate for
  *   the differences between the Graph API package and the
@@ -63,9 +65,26 @@ export const mapSubgraphToGql = (subgraph: Subgraph): SubgraphGql => {
           // These types are compatible with the Type System package's types
           case "dataType":
           case "linkType":
-          case "entity":
           case "link": {
             return [identifier, vertex];
+          }
+          case "entity": {
+            const persistedEntity = vertex.inner;
+            const entityVertex: EntityVertex = {
+              kind: vertex.kind,
+              inner: {
+                accountId: persistedEntity.metadata.identifier.ownedById,
+                entityId: persistedEntity.metadata.identifier.entityId,
+                /** @todo - How bad an idea is this right now */
+                entityType: null as any,
+                entityTypeId: persistedEntity.metadata.entityTypeId,
+                entityVersion: persistedEntity.metadata.identifier.version,
+                linkedEntities: [],
+                ownedById: persistedEntity.metadata.identifier.ownedById,
+                properties: persistedEntity.inner,
+              },
+            };
+            return [identifier, entityVertex];
           }
           // The OpenAPI spec currently incorrectly expresses these
           case "propertyType": {
