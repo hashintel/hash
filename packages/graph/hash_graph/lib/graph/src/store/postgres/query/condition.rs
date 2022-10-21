@@ -67,18 +67,31 @@ impl Transpile for Condition<'_> {
         match self {
             Condition::All(conditions) if conditions.is_empty() => fmt.write_str("TRUE"),
             Condition::Any(conditions) if conditions.is_empty() => fmt.write_str("FALSE"),
-            Condition::All(conditions) | Condition::Any(conditions) => {
+            Condition::All(conditions) => {
                 for (idx, condition) in conditions.iter().enumerate() {
                     fmt.write_char('(')?;
                     condition.transpile(fmt)?;
                     fmt.write_char(')')?;
                     if idx + 1 < conditions.len() {
-                        if matches!(self, Condition::All(_)) {
-                            fmt.write_str(" AND ")?;
-                        } else {
-                            fmt.write_str(" OR ")?;
-                        }
+                        fmt.write_str(" AND ")?;
                     }
+                }
+                Ok(())
+            }
+            Condition::Any(conditions) => {
+                if conditions.len() > 1 {
+                    fmt.write_char('(')?;
+                }
+                for (idx, condition) in conditions.iter().enumerate() {
+                    fmt.write_char('(')?;
+                    condition.transpile(fmt)?;
+                    fmt.write_char(')')?;
+                    if idx + 1 < conditions.len() {
+                        fmt.write_str(" OR ")?;
+                    }
+                }
+                if conditions.len() > 1 {
+                    fmt.write_char(')')?;
                 }
                 Ok(())
             }
@@ -254,7 +267,7 @@ mod tests {
                     Some(FilterExpression::Parameter(Parameter::Number(1.0))),
                 ),
             ]),
-            r#"("type_ids"."base_uri" = $1) OR ("type_ids"."version" = $2)"#,
+            r#"(("type_ids"."base_uri" = $1) OR ("type_ids"."version" = $2))"#,
             &[
                 &"https://blockprotocol.org/@blockprotocol/types/data-type/text/",
                 &1.0,

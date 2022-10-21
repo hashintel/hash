@@ -7,10 +7,11 @@ import {
   MutationUpdateLinkTypeArgs,
   QueryGetLinkTypeArgs,
   ResolverFn,
+  Subgraph,
 } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import { LinkTypeModel } from "../../../model";
-import { mapLinkTypeModelToGQL } from "./model-mapping";
+import { mapLinkTypeModelToGQL, mapSubgraphToGql } from "./model-mapping";
 
 export const createLinkType: ResolverFn<
   Promise<PersistedLinkType>,
@@ -33,45 +34,65 @@ export const createLinkType: ResolverFn<
 };
 
 export const getAllLatestLinkTypes: ResolverFn<
-  Promise<PersistedLinkType[]>,
+  Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
   {}
 > = async (_, __, { dataSources }) => {
   const { graphApi } = dataSources;
 
-  const allLatestLinkTypeModels = await LinkTypeModel.getAllLatest(
-    graphApi,
-  ).catch((err: AxiosError) => {
-    throw new ApolloError(
-      `Unable to retrieve all latest link types. ${err.response?.data}`,
-      "GET_ALL_ERROR",
-    );
-  });
+  const { data: linkTypeSubgraph } = await graphApi
+    .getLinkTypesByQuery({
+      query: { eq: [{ path: ["version"] }, { literal: "latest" }] },
+      graphResolveDepths: {
+        dataTypeResolveDepth: 0,
+        propertyTypeResolveDepth: 0,
+        linkTypeResolveDepth: 0,
+        entityTypeResolveDepth: 0,
+        linkTargetEntityResolveDepth: 0,
+        linkResolveDepth: 0,
+      },
+    })
+    .catch((err: AxiosError) => {
+      throw new ApolloError(
+        `Unable to retrieve all latest link types. ${err.response?.data}`,
+        "GET_ALL_ERROR",
+      );
+    });
 
-  return allLatestLinkTypeModels.map((linkTypeModel) =>
-    mapLinkTypeModelToGQL(linkTypeModel),
-  );
+  return mapSubgraphToGql(linkTypeSubgraph);
 };
 
 export const getLinkType: ResolverFn<
-  Promise<PersistedLinkType>,
+  Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
   QueryGetLinkTypeArgs
 > = async (_, { linkTypeId }, { dataSources }) => {
   const { graphApi } = dataSources;
 
-  const linkTypeModel = await LinkTypeModel.get(graphApi, {
-    linkTypeId,
-  }).catch((err: AxiosError) => {
-    throw new ApolloError(
-      `Unable to retrieve link type. ${err.response?.data} [URI=${linkTypeId}]`,
-      "GET_ERROR",
-    );
-  });
+  const { data: linkTypeSubgraph } = await graphApi
+    .getLinkTypesByQuery({
+      query: {
+        eq: [{ path: ["versionedUri"] }, { literal: linkTypeId }],
+      },
+      graphResolveDepths: {
+        dataTypeResolveDepth: 0,
+        propertyTypeResolveDepth: 0,
+        linkTypeResolveDepth: 0,
+        entityTypeResolveDepth: 0,
+        linkTargetEntityResolveDepth: 0,
+        linkResolveDepth: 0,
+      },
+    })
+    .catch((err: AxiosError) => {
+      throw new ApolloError(
+        `Unable to retrieve link type. ${err.response?.data}`,
+        "GET_ALL_ERROR",
+      );
+    });
 
-  return mapLinkTypeModelToGQL(linkTypeModel);
+  return mapSubgraphToGql(linkTypeSubgraph);
 };
 
 export const updateLinkType: ResolverFn<

@@ -207,7 +207,7 @@ impl DatabaseApi<'_> {
             .expect("no property type found");
 
         match vertex {
-            Vertex::PropertyType(persisted_data_type) => Ok(persisted_data_type),
+            Vertex::PropertyType(persisted_property_type) => Ok(persisted_property_type),
             _ => unreachable!(),
         }
     }
@@ -234,16 +234,21 @@ impl DatabaseApi<'_> {
         &mut self,
         uri: &VersionedUri,
     ) -> Result<PersistedEntityType, QueryError> {
-        Ok(self
+        let vertex = self
             .store
             .get_entity_type(&StructuralQuery {
                 expression: Expression::for_versioned_uri(uri),
                 graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
             .await?
-            .pop()
-            .expect("no entity type found")
-            .entity_type)
+            .vertices
+            .remove(&GraphElementIdentifier::OntologyElementId(uri.clone()))
+            .expect("no entity type found");
+
+        match vertex {
+            Vertex::EntityType(persisted_entity_type) => Ok(persisted_entity_type),
+            _ => unreachable!(),
+        }
     }
 
     pub async fn update_entity_type(
@@ -268,16 +273,21 @@ impl DatabaseApi<'_> {
         &mut self,
         uri: &VersionedUri,
     ) -> Result<PersistedLinkType, QueryError> {
-        Ok(self
+        let vertex = self
             .store
             .get_link_type(&StructuralQuery {
                 expression: Expression::for_versioned_uri(uri),
                 graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
             .await?
-            .pop()
-            .expect("no link type found")
-            .link_type)
+            .vertices
+            .remove(&GraphElementIdentifier::OntologyElementId(uri.clone()))
+            .expect("no link type found");
+
+        match vertex {
+            Vertex::LinkType(persisted_link_type) => Ok(persisted_link_type),
+            _ => unreachable!(),
+        }
     }
 
     pub async fn update_link_type(

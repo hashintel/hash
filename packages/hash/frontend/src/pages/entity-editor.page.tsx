@@ -8,6 +8,10 @@ import { useUser } from "../components/hooks/useUser";
 import { NextPageWithLayout } from "../shared/layout";
 import { useBlockProtocolFunctionsWithOntology } from "./type-editor/blockprotocol-ontology-functions-hook";
 import { EntityResponse } from "../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
+import {
+  getPersistedEntityType,
+  getPersistedPropertyType,
+} from "../lib/subgraph";
 
 /**
  * Helper type-guard for determining if a `ValueOrArray` definition is an array or a value.
@@ -40,7 +44,12 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
 
   const { entityTypeRootedSubgraph, ...entityWithoutEntityType } = entity ?? {};
 
-  const { entityType } = entityTypeRootedSubgraph ?? {};
+  const entityType = entityTypeRootedSubgraph
+    ? getPersistedEntityType(
+        entityTypeRootedSubgraph,
+        entityTypeRootedSubgraph.roots[0]!,
+      )?.inner
+    : undefined;
 
   // The (top-level) property type IDs defined in the entity type
   const propertyTypeIds = useMemo(
@@ -57,8 +66,10 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
   const propertyTypeDefinitions = useMemo(
     () =>
       entityTypeRootedSubgraph && propertyTypeIds
-        ? entityTypeRootedSubgraph.referencedPropertyTypes.filter(
-            ({ propertyTypeId }) => propertyTypeIds.includes(propertyTypeId),
+        ? propertyTypeIds.map(
+            (propertyTypeId) =>
+              getPersistedPropertyType(entityTypeRootedSubgraph, propertyTypeId)
+                ?.inner,
           )
         : undefined,
     [entityTypeRootedSubgraph, propertyTypeIds],
