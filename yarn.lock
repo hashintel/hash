@@ -5211,10 +5211,10 @@
     hoist-non-react-statics "^3.3.2"
     tslib "^1.9.3"
 
-"@sentry/replay@0.6.5":
-  version "0.6.5"
-  resolved "https://registry.yarnpkg.com/@sentry/replay/-/replay-0.6.5.tgz#3695be67ce359c4987f34484a9f629f0fdee1445"
-  integrity sha512-3B4q7dDbh1KFZina1ExlgYC1Z+85kI1DtuT2tkk/pDM9CzXrx5Txb1j03wJeAIaY8PMlVjfNFC4sw3o1KTe68A==
+"@sentry/replay@0.6.6":
+  version "0.6.6"
+  resolved "https://registry.yarnpkg.com/@sentry/replay/-/replay-0.6.6.tgz#e2d14a79e7074ca7ea4577195f2e42dcbfce1517"
+  integrity sha512-lSLnkpEicvzfg5gVAxbQ8KE80w6sZAMMILTkub3TXkb5lElqWVnVgcSVcuNB7H2J0TT06eUSAhM+48S8ky/1zg==
   dependencies:
     "@sentry/core" "^7.7.0"
     "@sentry/types" "^7.7.0"
@@ -17734,11 +17734,6 @@ styled-components@5.3.5:
     hoist-non-react-statics "^3.0.0"
     shallowequal "^1.1.0"
     supports-color "^5.5.0"
-
-styled-jsx@5.0.7:
-  version "5.0.7"
-  resolved "https://registry.yarnpkg.com/styled-jsx/-/styled-jsx-5.0.7.tgz#be44afc53771b983769ac654d355ca8d019dff48"
-  integrity sha512-b3sUzamS086YLRuvnaDigdAewz1/EFYlHpYBP5mZovKEdQQOIIYq8lApylub3HHZ6xFjV051kkGU7cudJmrXEA==
 
 styled-jsx@5.0.7:
   version "5.0.7"

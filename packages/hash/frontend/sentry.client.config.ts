@@ -13,20 +13,15 @@ Sentry.init({
   dsn: SENTRY_DSN,
   enabled: !!SENTRY_DSN,
   environment: VERCEL_ENV,
-  integrations:
-    SENTRY_REPLAYS_SAMPLING_RATE &&
-    // @todo Remove when https://github.com/getsentry/sentry-replay/issues/246#issuecomment-1284472286 is resolved
-    typeof window !== "undefined"
-      ? [
-          new Replay({
-            captureOnlyOnError: true,
-            replaysSamplingRate: Number.parseFloat(
-              SENTRY_REPLAYS_SAMPLING_RATE,
-            ),
-            stickySession: true,
-          }),
-        ]
-      : [],
+  integrations: SENTRY_REPLAYS_SAMPLING_RATE
+    ? [
+        new Replay({
+          captureOnlyOnError: true,
+          replaysSamplingRate: Number.parseFloat(SENTRY_REPLAYS_SAMPLING_RATE),
+          stickySession: true,
+        }),
+      ]
+    : [],
   // release is set in next.config.js in the Sentry webpack plugin
   /** @todo reduce perf sample rate from 100% when we have more traffic */
   tracesSampleRate: 1.0,
