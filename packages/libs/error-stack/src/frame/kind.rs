@@ -10,18 +10,19 @@ use crate::Context;
 /// data, while [`FrameKind`] does.
 // TODO: naming
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[must_use]
 pub enum FrameType {
     Context,
     Attachment(AttachmentType),
 }
 
 impl FrameType {
-    pub fn is_context(&self) -> bool {
-        matches!(self, FrameType::Context)
+    pub const fn is_context(self) -> bool {
+        matches!(self, Self::Context)
     }
 
-    pub fn is_attachment(&self) -> bool {
-        matches!(self, FrameType::Attachment(_))
+    pub const fn is_attachment(self) -> bool {
+        matches!(self, Self::Attachment(_))
     }
 }
 
@@ -42,12 +43,12 @@ pub enum FrameKind<'f> {
 }
 
 impl<'f> FrameKind<'f> {
-    /// Convert [`FrameKind`] into the corresponding [`FrameType`], which is the same as a
+    /// Convert [`FrameKind`] into the corresponding `FrameType`, which is the same as a
     /// [`FrameKind`], but does not hold any data and purely serves as a marker.
-    pub fn as_type(&self) -> FrameType {
+    pub const fn as_type(&self) -> FrameType {
         match self {
-            FrameKind::Context(_) => FrameType::Context,
-            FrameKind::Attachment(attachment) => FrameType::Attachment(attachment.as_type()),
+            Self::Context(_) => FrameType::Context,
+            Self::Attachment(attachment) => FrameType::Attachment(attachment.as_type()),
         }
     }
 }
@@ -62,6 +63,7 @@ impl<'f> FrameKind<'f> {
 // TODO: naming
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 #[non_exhaustive]
+#[must_use]
 pub enum AttachmentType {
     Opaque,
     Printable,
@@ -81,10 +83,10 @@ pub enum AttachmentKind<'f> {
 }
 
 impl<'f> AttachmentKind<'f> {
-    fn as_type(&self) -> AttachmentType {
+    const fn as_type(&self) -> AttachmentType {
         match self {
-            AttachmentKind::Opaque(_) => AttachmentType::Opaque,
-            AttachmentKind::Printable(_) => AttachmentType::Printable,
+            Self::Opaque(_) => AttachmentType::Opaque,
+            Self::Printable(_) => AttachmentType::Printable,
         }
     }
 }

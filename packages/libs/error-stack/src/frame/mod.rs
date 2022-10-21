@@ -7,9 +7,9 @@ use core::any::{self, Demand, Provider};
 use core::{any::TypeId, fmt, panic::Location};
 
 use self::frame_impl::FrameImpl;
-pub use self::kind::{AttachmentKind, FrameKind};
 #[cfg(feature = "std")]
-pub(crate) use self::kind::{AttachmentType, FrameType};
+pub(crate) use self::kind::FrameType;
+pub use self::kind::{AttachmentKind, FrameKind};
 
 /// A single context or attachment inside of a [`Report`].
 ///

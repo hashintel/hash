@@ -17,7 +17,7 @@ use std::mem;
 #[cfg(feature = "std")]
 pub(crate) use default::install_builtin_hooks;
 
-use crate::{fmt::Frame, frame::FrameType, FrameKind};
+use crate::{fmt::Frame, frame::FrameType};
 
 type Storage = BTreeMap<TypeId, BTreeMap<TypeId, Box<dyn Any>>>;
 
@@ -477,7 +477,7 @@ impl<T> HookContext<T> {
         self.inner.storage_mut()
     }
 
-    fn frame_type(&self) -> FrameType {
+    const fn frame_type(&self) -> FrameType {
         self.inner.frame_type
     }
 
@@ -486,7 +486,7 @@ impl<T> HookContext<T> {
     }
 
     pub(crate) fn set_frame(&mut self, frame: &Frame) {
-        self.inner.frame_type = frame.kind().as_type()
+        self.inner.frame_type = frame.kind().as_type();
     }
 }
 
