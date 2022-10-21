@@ -48,16 +48,18 @@ const createSavePlugin = (
         entityStorePluginState(view.state).store,
       );
 
-      const { tr } = view.state;
-      addEntityStoreAction(view.state, tr, {
-        type: "mergeNewPageContents",
-        payload: {
-          blocks: newContents,
-          presetDraftIds: newDraftToEntityId,
-        },
-      });
+      if (!view.isDestroyed) {
+        const { tr } = view.state;
+        addEntityStoreAction(view.state, tr, {
+          type: "mergeNewPageContents",
+          payload: {
+            blocks: newContents,
+            presetDraftIds: newDraftToEntityId,
+          },
+        });
 
-      view.dispatch(tr);
+        view.dispatch(tr);
+      }
     });
   };
 
@@ -100,6 +102,9 @@ const createSavePlugin = (
           }
         },
         destroy: () => {
+          if (interval) {
+            interval = clearInterval(interval);
+          }
           writeDebounce.cancel();
         },
       };
