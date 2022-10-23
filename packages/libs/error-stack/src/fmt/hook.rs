@@ -17,7 +17,7 @@ use std::mem;
 #[cfg(feature = "std")]
 pub(crate) use default::install_builtin_hooks;
 
-use crate::{fmt::Frame, frame::FrameType};
+use crate::{fmt::Frame, FrameKind};
 
 type Storage = BTreeMap<TypeId, BTreeMap<TypeId, Box<dyn Any>>>;
 
@@ -47,7 +47,6 @@ impl Counter {
 #[derive(Debug)]
 pub(crate) struct HookContextInner {
     storage: Storage,
-    frame_type: FrameType,
 
     alternate: bool,
 
@@ -79,7 +78,6 @@ impl HookContextInner {
             storage: Storage::default(),
             body: Vec::new(),
             appendix: Vec::new(),
-            frame_type: FrameType::Context,
             alternate,
         }
     }
@@ -477,26 +475,8 @@ impl<T> HookContext<T> {
         self.inner.storage_mut()
     }
 
-    /// The type of frame the value was "extracted" from.
-    ///
-    /// Depending on the toolchain this can differ, on nightly hooks use [`Frame::request_ref`]
-    /// instead of [`Frame::downcast_ref`].
-    ///
-    /// This means that on nightly the returned variant might be [`FrameType::Context`] or
-    /// [`FrameType::Attachment`] for *any* value, while on stable it can be guaranteed that for
-    /// types that do not implement [`Context`] this will always be [`FrameType::Attachment`].
-    ///
-    /// [`Context`]: crate::Context
-    pub const fn frame_type(&self) -> FrameType {
-        self.inner.frame_type
-    }
-
     pub(crate) fn take_body(&mut self) -> Vec<String> {
         self.inner.take_body()
-    }
-
-    pub(crate) fn set_frame(&mut self, frame: &Frame) {
-        self.inner.frame_type = frame.kind().as_type();
     }
 }
 
@@ -761,35 +741,23 @@ impl Hooks {
         self.inner.push((type_id, into_boxed_hook(hook)));
     }
 
-    /// This compatability function is needed, as otherwise built-in hooks that depend on the
-    /// [`Provider`] api cannot be invoked on stable.
+    /// This compatability function is needed, as we need to special-case location a bit.
     ///
-    /// This currently includes:
-    /// * [`Location`] hook
+    /// [`Location`] is special, as it is present on every single frame, but is not present in the
+    /// chain of sources.
     ///
-    /// This can be removed once [`Provider`] is stabilized.
-    ///
-    /// [`Location`]: std::panic::Location
-    /// [`Provider`]: std::any::Provider
-    #[cfg(not(nightly))]
-    fn compat(&self, frame: &Frame, context: &mut HookContext<Frame>) {
-        // Location compatability shim
-        if context.frame_type().is_context() {
-            let location = frame.location();
-
-            // note: this will issue recursion, but this won't every cause infinite recursion, as
-            // this code is conditional on it being a context.
-            let fake = Frame::from_attachment(*location, location, Box::new([]));
-
-            // this only works when we set the type also to attachment.
-            context.set_frame(&fake);
-
-            self.call(&fake, context);
-
-            // once we're done set the context to the correct frame again to not break any
-            // guarantees
-            context.set_frame(frame);
+    /// This invokes all hooks on the [`Location`] object by creating a fake frame, which is used to
+    /// invoke any hooks related to location.
+    fn call_location(&self, frame: &Frame, context: &mut HookContext<Frame>) {
+        if !matches!(frame.kind(), FrameKind::Context(_)) {
+            return;
         }
+
+        // note: this will issue recursion, but this won't ever cause infinite recursion, as
+        // this code is conditional on it being a context.
+        let fake = Frame::from_attachment(*frame.location(), frame.location(), Box::new([]));
+
+        self.call(&fake, context);
     }
 
     pub(crate) fn call(&self, frame: &Frame, context: &mut HookContext<Frame>) {
@@ -797,10 +765,7 @@ impl Hooks {
             hook(frame, context);
         }
 
-        #[cfg(not(nightly))]
-        {
-            self.compat(frame, context)
-        }
+        self.call_location(frame, context)
     }
 }
 
@@ -863,18 +828,6 @@ mod default {
     }
 
     fn location(location: &Location<'static>, context: &mut HookContext<Location<'static>>) {
-        // This is only active for nightly, as on stable we use a hack where location is served as
-        // an attachment instead and the `Provider` API cannot be utilized.
-        // Location does not implement `Context`, and therefore can never be from a `Context` on
-        // stable!
-        // TODO: remove cfg once `Provider` API is stabilized
-        #[cfg(nightly)]
-        if context.frame_type().is_attachment() {
-            // We only want to print the location whenever we "come" from a Context, otherwise the
-            // output would be too noise.
-            return;
-        }
-
         #[cfg(feature = "pretty-print")]
         context.push_body(format!(
             "{}",

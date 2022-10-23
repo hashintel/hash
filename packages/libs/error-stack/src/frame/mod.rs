@@ -7,7 +7,7 @@ use core::any::{self, Demand, Provider};
 use core::{any::TypeId, fmt, panic::Location};
 
 use self::frame_impl::FrameImpl;
-pub use self::kind::{AttachmentKind, AttachmentType, FrameKind, FrameType};
+pub use self::kind::{AttachmentKind, FrameKind};
 
 /// A single context or attachment inside of a [`Report`].
 ///
@@ -130,7 +130,6 @@ impl Frame {
 #[cfg(nightly)]
 impl Provider for Frame {
     fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-        demand.provide_ref(self.location);
         self.frame.provide(demand);
     }
 }
