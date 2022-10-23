@@ -675,51 +675,44 @@ fn debug_attachments_invoke(
 
     let body = frames
         .into_iter()
-        .map(|frame| {
+        .map(|frame| match frame.kind() {
             #[cfg(feature = "std")]
-            {
-                context.set_frame(frame);
+            FrameKind::Attachment(AttachmentKind::Opaque(_)) | FrameKind::Context(_) => {
+                Report::invoke_debug_format_hook(|hooks| hooks.call(frame, context));
+                context.take_body()
             }
+            #[cfg(all(not(feature = "std"), feature = "pretty-print"))]
+            FrameKind::Context(_) => {
+                let location = frame
+                    .location()
+                    .if_supports_color(Stream::Stdout, OwoColorize::bright_black);
 
-            match frame.kind() {
-                #[cfg(feature = "std")]
-                FrameKind::Attachment(AttachmentKind::Opaque(_)) | FrameKind::Context(_) => {
-                    Report::invoke_debug_format_hook(|hooks| hooks.call(frame, context));
-                    context.take_body()
-                }
-                #[cfg(all(not(feature = "std"), feature = "pretty-print"))]
-                FrameKind::Context(_) => {
-                    let location = frame
-                        .location()
-                        .if_supports_color(Stream::Stdout, OwoColorize::bright_black);
+                vec![format!("{location}")]
+            }
+            #[cfg(all(not(feature = "std"), not(feature = "pretty-print")))]
+            FrameKind::Context(_) => {
+                let location = frame.location();
 
-                    vec![format!("{location}")]
-                }
-                #[cfg(all(not(feature = "std"), not(feature = "pretty-print")))]
-                FrameKind::Context(_) => {
-                    let location = frame.location();
+                vec![format!("at {location}")]
+            }
+            #[cfg(not(feature = "std"))]
+            FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
+                vec![]
+            }
+            #[cfg(feature = "std")]
+            FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
+                Report::invoke_debug_format_hook(|hooks| hooks.call(frame, context));
+                let mut body = context.take_body();
 
-                    vec![format!("at {location}")]
+                if body.is_empty() {
+                    body.push(attachment.to_string());
                 }
-                #[cfg(not(feature = "std"))]
-                FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
-                    vec![]
-                }
-                #[cfg(feature = "std")]
-                FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
-                    Report::invoke_debug_format_hook(|hooks| hooks.call(frame, context));
-                    let mut body = context.take_body();
 
-                    if body.is_empty() {
-                        body.push(attachment.to_string());
-                    }
-
-                    body
-                }
-                #[cfg(not(feature = "std"))]
-                FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
-                    vec![attachment.to_string()]
-                }
+                body
+            }
+            #[cfg(not(feature = "std"))]
+            FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
+                vec![attachment.to_string()]
             }
         })
         .enumerate()
