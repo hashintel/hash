@@ -485,6 +485,8 @@ impl<T> HookContext<T> {
     /// This means that on nightly the returned variant might be [`FrameType::Context`] or
     /// [`FrameType::Attachment`] for *any* value, while on stable it can be guaranteed that for
     /// types that do not implement [`Context`] this will always be [`FrameType::Attachment`].
+    ///
+    /// [`Context`]: crate::Context
     pub const fn frame_type(&self) -> FrameType {
         self.inner.frame_type
     }
