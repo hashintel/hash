@@ -1,7 +1,4 @@
-use std::{
-    borrow::Cow,
-    fmt::{self, Write},
-};
+use std::fmt::{self, Write};
 
 use serde::Serialize;
 
@@ -105,15 +102,27 @@ impl Transpile for Table {
 }
 
 /// Specifier on how to access a column of a table.
-#[derive(Debug, PartialEq, Eq, Hash)]
-pub enum ColumnAccess<'a> {
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum ColumnAccess<'q> {
     /// Accesses a column of a table directly: `"column"`
     Table { column: &'static str },
     /// Accesses a field of a JSON blob: `"column"->>'field'`
     Json {
         column: &'static str,
-        field: Cow<'a, str>,
+        field: &'q str,
     },
+    /// Accesses the field of a JSON blob by a numbered parameter: e.g. `"column"->>$1`
+    JsonParameter { column: &'static str, index: usize },
+}
+
+impl ColumnAccess<'_> {
+    pub const fn column(&self) -> &'static str {
+        match self {
+            Self::Table { column }
+            | Self::Json { column, .. }
+            | Self::JsonParameter { column, .. } => column,
+        }
+    }
 }
 
 impl Transpile for ColumnAccess<'_> {
@@ -121,12 +130,13 @@ impl Transpile for ColumnAccess<'_> {
         match self {
             Self::Table { column } => write!(fmt, r#""{column}""#),
             Self::Json { column, field } => write!(fmt, r#""{column}"->>'{field}'"#),
+            Self::JsonParameter { column, index } => write!(fmt, r#""{column}"->>${index}"#),
         }
     }
 }
 
 /// A column available in the database.
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Column<'a> {
     pub table: Table,
     pub access: ColumnAccess<'a>,
@@ -143,7 +153,7 @@ impl Transpile for Column<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::store::postgres::query::{test_helper::transpile, DataTypeQueryField, Field};
+    use crate::store::postgres::query::{DataTypeQueryField, Field};
 
     #[test]
     fn source_join_columns() {
@@ -180,17 +190,19 @@ mod tests {
     #[test]
     fn render_table() {
         assert_eq!(
-            transpile(&Table {
+            Table {
                 name: TableName::TypeIds,
                 alias: None
-            }),
+            }
+            .transpile_to_string(),
             r#""type_ids""#
         );
         assert_eq!(
-            transpile(&Table {
+            Table {
                 name: TableName::DataTypes,
                 alias: None
-            }),
+            }
+            .transpile_to_string(),
             r#""data_types""#
         );
     }
@@ -198,13 +210,14 @@ mod tests {
     #[test]
     fn render_table_alias() {
         assert_eq!(
-            transpile(&Table {
+            Table {
                 name: TableName::TypeIds,
                 alias: Some(TableAlias {
                     condition_index: 1,
                     chain_depth: 2
                 })
-            }),
+            }
+            .transpile_to_string(),
             r#""type_ids_1_2""#
         );
     }
@@ -212,11 +225,15 @@ mod tests {
     #[test]
     fn render_column_access() {
         assert_eq!(
-            transpile(&DataTypeQueryField::VersionId.column_access()),
+            DataTypeQueryField::VersionId
+                .column_access()
+                .transpile_to_string(),
             r#""version_id""#
         );
         assert_eq!(
-            transpile(&DataTypeQueryField::Title.column_access()),
+            DataTypeQueryField::Title
+                .column_access()
+                .transpile_to_string(),
             r#""schema"->>'title'"#
         );
     }
@@ -224,23 +241,25 @@ mod tests {
     #[test]
     fn render_column() {
         assert_eq!(
-            transpile(&Column {
+            Column {
                 table: Table {
                     name: DataTypeQueryField::VersionId.table_name(),
                     alias: None
                 },
                 access: DataTypeQueryField::VersionId.column_access()
-            }),
+            }
+            .transpile_to_string(),
             r#""data_types"."version_id""#
         );
         assert_eq!(
-            transpile(&Column {
+            Column {
                 table: Table {
                     name: DataTypeQueryField::Title.table_name(),
                     alias: None
                 },
                 access: DataTypeQueryField::Title.column_access()
-            }),
+            }
+            .transpile_to_string(),
             r#""data_types"."schema"->>'title'"#
         );
     }
