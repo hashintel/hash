@@ -29,6 +29,7 @@ import { types } from "@hashintel/hash-shared/types";
 import { extractBaseUri } from "@blockprotocol/type-system-web";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
 import { isEqual } from "lodash";
+import { faCheckCircle } from "@fortawesome/free-regular-svg-icons";
 import { PageComment } from "../../../components/hooks/usePageComments";
 import { CommentTextField } from "./CommentTextField";
 import { CommentBlockMenu } from "./CommentBlockMenu";
@@ -179,8 +180,30 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
         </Box>
 
         <IconButton
+          size="medium"
+          sx={({ palette, transitions }) => ({
+            width: 24,
+            height: 24,
+            color: palette.gray[40],
+            transition: transitions.create("color"),
+            mr: 0.5,
+            "&:hover": {
+              color: palette.primary.main,
+              background: "none",
+            },
+          })}
+        >
+          <FontAwesomeIcon
+            icon={faCheckCircle}
+            sx={{ fontSize: "18px !important" }}
+          />
+        </IconButton>
+
+        <IconButton
           {...bindTrigger(commentMenuPopupState)}
           sx={{
+            width: 24,
+            height: 24,
             color: ({ palette }) => palette.gray[40],
           }}
         >
