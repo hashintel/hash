@@ -7,7 +7,7 @@ use serde::{
 };
 use type_system::DataType;
 
-use crate::store::query::{Path, QueryRecord};
+use crate::store::query::{ParameterField, ParameterType, Path, QueryRecord, RecordPath};
 
 /// A path to a [`DataType`] field.
 ///
@@ -33,6 +33,63 @@ pub enum DataTypeQueryPath {
 
 impl QueryRecord for DataType {
     type Path<'q> = DataTypeQueryPath;
+}
+
+impl RecordPath for DataTypeQueryPath<'_> {
+    fn expected_type(&self) -> ParameterField {
+        match self {
+            Self::OwnedById | Self::CreatedById | Self::UpdatedById => ParameterField {
+                parameter_type: ParameterType::Uuid,
+                optional: false,
+            },
+            Self::RemovedById => ParameterField {
+                parameter_type: ParameterType::Uuid,
+                optional: true,
+            },
+            Self::BaseUri => ParameterField {
+                parameter_type: ParameterType::BaseUri,
+                optional: false,
+            },
+            Self::VersionedUri => ParameterField {
+                parameter_type: ParameterType::VersionedUri,
+                optional: false,
+            },
+            Self::Version => ParameterField {
+                parameter_type: ParameterType::UnsignedInteger,
+                optional: false,
+            },
+            Self::Description => ParameterField {
+                parameter_type: ParameterType::Text,
+                optional: true,
+            },
+            Self::Title | Self::Type => ParameterField {
+                parameter_type: ParameterType::Text,
+                optional: false,
+            },
+            Self::Custom(_) => ParameterField {
+                parameter_type: ParameterType::Any,
+                optional: true,
+            },
+        }
+    }
+}
+
+impl fmt::Display for DataTypeQueryPath<'_> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::OwnedById => fmt.write_str("ownedById"),
+            Self::CreatedById => fmt.write_str("createdById"),
+            Self::UpdatedById => fmt.write_str("updatedById"),
+            Self::RemovedById => fmt.write_str("removedById"),
+            Self::BaseUri => fmt.write_str("baseUri"),
+            Self::VersionedUri => fmt.write_str("versionedUri"),
+            Self::Version => fmt.write_str("version"),
+            Self::Title => fmt.write_str("title"),
+            Self::Description => fmt.write_str("description"),
+            Self::Type => fmt.write_str("type"),
+            Self::Custom(field) => fmt::Display::fmt(field, fmt),
+        }
+    }
 }
 
 impl TryFrom<Path> for DataTypeQueryPath {
