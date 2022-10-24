@@ -1166,14 +1166,20 @@ impl PostgresStore<Transaction<'_>> {
         let sink = self
             .client
             .copy_in(
-                "COPY entities (entity_id, entity_type_version_id, properties, owned_by_id) FROM \
-                 STDIN BINARY",
+                "COPY entities (entity_id, entity_type_version_id, properties, owned_by_id, \
+                 updated_by_id, created_by_id) FROM STDIN BINARY",
             )
             .await
             .into_report()
             .change_context(InsertionError)?;
-        let writer =
-            BinaryCopyInWriter::new(sink, &[Type::UUID, Type::UUID, Type::JSONB, Type::UUID]);
+        let writer = BinaryCopyInWriter::new(sink, &[
+            Type::UUID,
+            Type::UUID,
+            Type::JSONB,
+            Type::UUID,
+            Type::UUID,
+            Type::UUID,
+        ]);
         futures::pin_mut!(writer);
         for (entity_id, entity) in entity_ids.into_iter().zip(entities) {
             let value = serde_json::to_value(entity)
@@ -1181,7 +1187,14 @@ impl PostgresStore<Transaction<'_>> {
                 .change_context(InsertionError)?;
             writer
                 .as_mut()
-                .write(&[&entity_id, &entity_type_version_id, &value, &account_id])
+                .write(&[
+                    &entity_id,
+                    &entity_type_version_id,
+                    &value,
+                    &account_id,
+                    &account_id,
+                    &account_id,
+                ])
                 .await
                 .into_report()
                 .change_context(InsertionError)
