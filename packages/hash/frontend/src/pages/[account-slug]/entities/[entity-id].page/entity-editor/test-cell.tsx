@@ -27,7 +27,5 @@ export const renderTestCell: CustomRenderer<TestCell> = {
 
     ctx.fillStyle = "black";
     ctx.fillText(value, rect.x + 20, yCenter);
-    ctx.fillStyle = "#f005";
-    ctx.strokeStyle = "#f005";
   },
 };
