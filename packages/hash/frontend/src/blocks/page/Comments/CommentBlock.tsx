@@ -81,6 +81,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
   const [shouldCollapse, setShouldCollapse] = useState(false);
   const [editable, setEditable] = useState(false);
   const [inputValue, setInputValue] = useState<TextToken[]>(hasText);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   const { user } = useUser();
   const [updateCommentText, { loading }] = useUpdateCommentText(pageId);
@@ -119,6 +120,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
   const resetCommentText = () => {
     setInputValue(hasText);
     setEditable(false);
+    setIsAnimating(true);
   };
 
   const handleEditComment = async () => {
@@ -187,9 +189,12 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
               borderColor: palette.blue[60],
             },
           })}
+          onTransitionEnd={() => setIsAnimating(false)}
         >
           <CommentTextField
-            onLineCountChange={(lines) => setShouldCollapse(lines > 2)}
+            onLineCountChange={(lines) =>
+              !editable && !isAnimating && setShouldCollapse(lines > 2)
+            }
             value={inputValue}
             className={`${styles.Comment__TextField} ${
               editable
@@ -270,6 +275,9 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
             }
             onClick={() => {
               setEditable(!editable);
+              setCollapsed(false);
+              setShouldCollapse(false);
+              setIsAnimating(true);
               commentMenuPopupState.close();
             }}
           />
