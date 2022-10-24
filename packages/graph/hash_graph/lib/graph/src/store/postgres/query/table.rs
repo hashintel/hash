@@ -196,7 +196,7 @@ mod tests {
     }
 
     #[test]
-    fn render_table() {
+    fn transpile_table() {
         assert_eq!(
             Table {
                 name: TableName::TypeIds,
@@ -216,7 +216,7 @@ mod tests {
     }
 
     #[test]
-    fn render_table_alias() {
+    fn transpile_table_alias() {
         assert_eq!(
             Table {
                 name: TableName::TypeIds,
@@ -231,7 +231,7 @@ mod tests {
     }
 
     #[test]
-    fn render_column_access() {
+    fn transpile_column_access() {
         assert_eq!(
             DataTypeQueryField::VersionId
                 .column_access()
@@ -247,7 +247,7 @@ mod tests {
     }
 
     #[test]
-    fn render_column() {
+    fn transpile_column() {
         assert_eq!(
             Column {
                 table: Table {

@@ -55,7 +55,7 @@ mod tests {
     };
 
     #[test]
-    fn render_where_expression() {
+    fn transpile_where_expression() {
         let mut compiler = SelectCompiler::<DataType>::new();
         let mut where_clause = WhereExpression::default();
         assert_eq!(where_clause.transpile_to_string(), "");
