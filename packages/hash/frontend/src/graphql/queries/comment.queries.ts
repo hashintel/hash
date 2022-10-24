@@ -28,15 +28,9 @@ export const createPersistedComment = gql`
   }
 `;
 
-export const updatePersistedComment = gql`
-  mutation updatePersistedComment(
-    $entityId: ID!
-    $updatedProperties: PersistedCommentUpdateData!
-  ) {
-    updatePersistedComment(
-      entityId: $entityId
-      updatedProperties: $updatedProperties
-    ) {
+export const deletePersistedComment = gql`
+  mutation deletePersistedComment($entityId: ID!) {
+    deletePersistedComment(entityId: $entityId) {
       ...CommentFields
     }
   }
