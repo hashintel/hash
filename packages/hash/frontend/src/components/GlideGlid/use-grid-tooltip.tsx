@@ -1,4 +1,4 @@
-import { DataEditorRef, CustomRenderer } from "@glideapps/glide-data-grid";
+import { DataEditorRef } from "@glideapps/glide-data-grid";
 import { Popover } from "@hashintel/hash-design-system";
 import { PopoverPosition, Typography } from "@mui/material";
 import _ from "lodash";
@@ -8,11 +8,13 @@ import { useWindowEventListener } from "rooks";
 import { GridTooltipManager } from "./use-grid-tooltip/grid-tooltip-manager";
 import {
   GridTooltip,
-  TooltipCell,
   TooltipCellProps,
+  UseGridTooltipResponse,
 } from "./use-grid-tooltip/types";
 
-export const useGridTooltip = (gridRef: RefObject<DataEditorRef>) => {
+export const useGridTooltip = (
+  gridRef: RefObject<DataEditorRef>,
+): UseGridTooltipResponse => {
   const popupState = usePopupState({
     variant: "popover",
     popupId: "grid-tooltip",
@@ -93,9 +95,7 @@ export const useGridTooltip = (gridRef: RefObject<DataEditorRef>) => {
         </Typography>
       </Popover>
     ),
-    withTooltips: <T extends TooltipCell>(
-      customRenderer: CustomRenderer<T>,
-    ): CustomRenderer<T> => {
+    withTooltips: (customRenderer) => {
       return {
         ...customRenderer,
         draw: (...params) => {

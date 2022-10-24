@@ -1,12 +1,7 @@
 import { PropertyType } from "@blockprotocol/type-system-web";
 import { SizedGridColumn } from "@glideapps/glide-data-grid";
 
-export type PropertyRow = {
-  title: string;
-  value: any;
-  dataTypes: string[];
-  propertyTypeId: string;
-};
+export type PropertyRow = EnrichedPropertyType;
 
 export type EnrichedPropertyType = PropertyType & {
   value: any;
@@ -15,6 +10,11 @@ export type EnrichedPropertyType = PropertyType & {
   dataTypes: string[];
 };
 
+export type PropertyColumnKey = Extract<
+  keyof EnrichedPropertyType,
+  "title" | "value" | "dataTypes"
+>;
+
 export interface PropertyColumn extends SizedGridColumn {
-  id: keyof PropertyRow;
+  id: PropertyColumnKey;
 }

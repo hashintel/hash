@@ -1,4 +1,3 @@
-import { pick } from "lodash";
 import { useMemo } from "react";
 import { PropertyRow } from "./types";
 import { extractEnrichedPropertyTypesFromEntity } from "./extract-enriched-property-types-from-entity";
@@ -16,9 +15,7 @@ export const useRowData = () => {
     const enrichedPropertyTypes =
       extractEnrichedPropertyTypesFromEntity(entity);
 
-    return enrichedPropertyTypes.map((type) =>
-      pick(type, ["propertyTypeId", "value", "title", "dataTypes"]),
-    );
+    return enrichedPropertyTypes;
   }, [entity]);
 
   const sortedRowData = useMemo(() => {

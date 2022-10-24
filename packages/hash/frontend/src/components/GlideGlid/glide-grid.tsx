@@ -7,6 +7,7 @@ import {
 import { useTheme } from "@mui/material";
 import { forwardRef, ForwardRefRenderFunction, useMemo } from "react";
 import { customGridIcons } from "./custom-grid-icons";
+import { columnPadding } from "./utils";
 
 const _GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
   props,
@@ -16,7 +17,7 @@ const _GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
 
   const gridTheme: Partial<Theme> = useMemo(
     () => ({
-      bgHeader: "white",
+      bgHeader: palette.white,
       borderColor: palette.gray[20],
       headerBottomBorderColor: palette.gray[20],
       horizontalBorderColor: "transparent",
@@ -26,8 +27,8 @@ const _GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
       textBubble: palette.gray[70],
       bgBubble: palette.gray[20],
       accentLight: palette.gray[20],
-      bgHeaderHovered: "white",
-      cellHorizontalPadding: 22,
+      bgHeaderHovered: palette.white,
+      cellHorizontalPadding: columnPadding,
       baseFontStyle: "500 14px",
       headerFontStyle: "600 14px",
       editorFontSize: "14px",

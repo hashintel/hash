@@ -1,4 +1,6 @@
 import "@glideapps/glide-data-grid/dist/index.css";
+import { useRef } from "react";
+import { DataEditorRef } from "@glideapps/glide-data-grid";
 import { useRowData } from "./property-table/use-row-data";
 import { useGetCellContent } from "./property-table/use-get-cell-content";
 import { propertyGridColumns } from "./property-table/constants";
@@ -10,6 +12,8 @@ import {
   useDrawCell,
   useDrawHeader,
 } from "../../../../../../components/GlideGlid/utils";
+import { useGridTooltip } from "../../../../../../components/GlideGlid/use-grid-tooltip";
+import { renderValueCell } from "./property-table/cells/value-cell";
 
 interface PropertyTableProps {
   showSearch: boolean;
@@ -20,9 +24,12 @@ export const PropertyTable = ({
   showSearch,
   onSearchClose,
 }: PropertyTableProps) => {
+  const gridRef = useRef<DataEditorRef>(null);
   const { propertySort, setPropertySort } = useEntityEditor();
   const rowData = useRowData();
-  const getCellContent = useGetCellContent(rowData);
+  const { tooltipElement, showTooltip, hideTooltip, withTooltips } =
+    useGridTooltip(gridRef);
+  const getCellContent = useGetCellContent(rowData, showTooltip, hideTooltip);
   const onCellEdited = useOnCellEdited(rowData);
   const drawCell = useDrawCell();
   const drawHeader = useDrawHeader(propertySort, propertyGridColumns);
@@ -34,18 +41,23 @@ export const PropertyTable = ({
   );
 
   return (
-    <GlideGrid
-      columns={propertyGridColumns}
-      rows={rowData.length}
-      getCellContent={getCellContent}
-      onCellEdited={onCellEdited}
-      drawCell={drawCell}
-      drawHeader={drawHeader}
-      onHeaderClicked={handleHeaderClicked}
-      showSearch={showSearch}
-      onSearchClose={onSearchClose}
-      // define max height if there are lots of rows
-      height={rowData.length > 10 ? 500 : undefined}
-    />
+    <>
+      <GlideGrid
+        ref={gridRef}
+        columns={propertyGridColumns}
+        rows={rowData.length}
+        getCellContent={getCellContent}
+        onCellEdited={onCellEdited}
+        drawCell={drawCell}
+        drawHeader={drawHeader}
+        onHeaderClicked={handleHeaderClicked}
+        showSearch={showSearch}
+        onSearchClose={onSearchClose}
+        customRenderers={[withTooltips(renderValueCell)]}
+        // define max height if there are lots of rows
+        height={rowData.length > 10 ? 500 : undefined}
+      />
+      {tooltipElement}
+    </>
   );
 };
