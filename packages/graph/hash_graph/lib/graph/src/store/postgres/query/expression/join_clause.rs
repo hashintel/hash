@@ -45,7 +45,7 @@ mod tests {
     use crate::store::postgres::query::{TableAlias, TableName};
 
     #[test]
-    fn render_join() {
+    fn transpile_join_expression() {
         assert_eq!(
             JoinExpression::from_tables(
                 Table {

@@ -103,7 +103,7 @@ mod tests {
     };
 
     #[test]
-    fn render_window_expression() {
+    fn transpile_window_expression() {
         assert_eq!(
             max_version_expression().transpile_to_string(),
             r#"MAX("type_ids"."version") OVER (PARTITION BY "type_ids"."base_uri")"#
@@ -111,7 +111,7 @@ mod tests {
     }
 
     #[test]
-    fn render_function_expression() {
+    fn transpile_function_expression() {
         assert_eq!(
             Expression::Function(Box::new(Function::Min(Expression::Column(Column {
                 table: Table {
