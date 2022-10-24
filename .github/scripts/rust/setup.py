@@ -206,7 +206,7 @@ def output_matrix(name, github_output_file, crates, **kwargs):
     if len(matrix["directory"]) == 0:
         matrix = {}
 
-    github_output_file.write(f"{name}={json.dumps(matrix)}")
+    github_output_file.write(f"{name}={json.dumps(matrix)}\n")
     print(f"Job matrix for {name}: {json.dumps(matrix, indent=4)}")
 
 
