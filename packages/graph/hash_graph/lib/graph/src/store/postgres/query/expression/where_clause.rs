@@ -49,10 +49,7 @@ mod tests {
     use crate::{
         ontology::DataTypeQueryPath,
         store::{
-            postgres::query::{
-                test_helper::{transpile, trim_whitespace},
-                SelectCompiler,
-            },
+            postgres::query::{test_helper::trim_whitespace, SelectCompiler},
             query::{Filter, FilterExpression, Parameter},
         },
     };
@@ -61,7 +58,7 @@ mod tests {
     fn render_where_expression() {
         let mut compiler = SelectCompiler::<DataType>::new();
         let mut where_clause = WhereExpression::default();
-        assert_eq!(transpile(&where_clause), "");
+        assert_eq!(where_clause.transpile_to_string(), "");
 
         let filter_a = Filter::<DataType>::Equal(
             Some(FilterExpression::Path(DataTypeQueryPath::Version)),
@@ -72,7 +69,7 @@ mod tests {
         where_clause.add_condition(compiler.compile_filter(&filter_a));
 
         assert_eq!(
-            transpile(&where_clause),
+            where_clause.transpile_to_string(),
             r#"WHERE "type_ids_0_0"."version" = "type_ids_0_0"."latest_version""#
         );
 
@@ -91,7 +88,7 @@ mod tests {
         where_clause.add_condition(compiler.compile_filter(&filter_b));
 
         assert_eq!(
-            trim_whitespace(transpile(&where_clause)),
+            trim_whitespace(where_clause.transpile_to_string()),
             trim_whitespace(
                 r#"
                 WHERE "type_ids_0_0"."version" = "type_ids_0_0"."latest_version"
@@ -106,7 +103,7 @@ mod tests {
         where_clause.add_condition(compiler.compile_filter(&filter_c));
 
         assert_eq!(
-            trim_whitespace(transpile(&where_clause)),
+            trim_whitespace(where_clause.transpile_to_string()),
             trim_whitespace(
                 r#"
                 WHERE "type_ids_0_0"."version" = "type_ids_0_0"."latest_version"
@@ -136,7 +133,7 @@ mod tests {
         where_clause.add_condition(compiler.compile_filter(&filter_d));
 
         assert_eq!(
-            trim_whitespace(transpile(&where_clause)),
+            trim_whitespace(where_clause.transpile_to_string()),
             trim_whitespace(
                 r#"
                 WHERE "type_ids_0_0"."version" = "type_ids_0_0"."latest_version"

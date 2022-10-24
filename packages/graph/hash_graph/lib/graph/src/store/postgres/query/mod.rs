@@ -9,7 +9,7 @@ mod expression;
 mod statement;
 mod table;
 
-use std::fmt::{self, Formatter};
+use std::fmt::{self, Display, Formatter};
 
 pub use self::{
     compile::SelectCompiler,
@@ -63,25 +63,24 @@ pub trait Path {
 pub trait Transpile {
     /// Renders the value using the given [`Formatter`].
     fn transpile(&self, fmt: &mut Formatter) -> fmt::Result;
+
+    fn transpile_to_string(&self) -> String {
+        struct Transpiler<'a, T: ?Sized>(&'a T);
+        impl<T: Transpile + ?Sized> Display for Transpiler<'_, T> {
+            fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+                self.0.transpile(fmt)
+            }
+        }
+
+        Transpiler(self).to_string()
+    }
 }
 
 #[cfg(test)]
 mod test_helper {
-    use std::fmt;
-
     use crate::store::postgres::query::{
-        Column, DataTypeQueryField, Expression, Field, Function, Table, Transpile, WindowStatement,
+        Column, DataTypeQueryField, Expression, Field, Function, Table, WindowStatement,
     };
-
-    pub fn transpile<R: Transpile>(value: &R) -> String {
-        struct Transpiler<'r, R>(&'r R);
-        impl<R: Transpile> fmt::Display for Transpiler<'_, R> {
-            fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-                self.0.transpile(fmt)
-            }
-        }
-        Transpiler(value).to_string()
-    }
 
     pub fn trim_whitespace(string: impl Into<String>) -> String {
         string

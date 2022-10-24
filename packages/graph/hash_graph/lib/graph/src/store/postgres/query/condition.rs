@@ -90,7 +90,7 @@ mod tests {
     use crate::{
         ontology::DataTypeQueryPath,
         store::{
-            postgres::query::{test_helper::transpile, SelectCompiler},
+            postgres::query::{SelectCompiler, Transpile},
             query::{Filter, FilterExpression, Parameter},
         },
     };
@@ -103,7 +103,7 @@ mod tests {
         let mut compiler = SelectCompiler::new();
         let condition = compiler.compile_filter(filter);
 
-        assert_eq!(transpile(&condition), rendered);
+        assert_eq!(condition.transpile_to_string(), rendered);
 
         let parameter_list = parameters
             .iter()

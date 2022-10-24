@@ -91,15 +91,8 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
 
     /// Transpiles the statement into SQL and the parameter to be passed to a prepared statement.
     pub fn compile(&self) -> (String, &[&'f (dyn ToSql + Sync)]) {
-        struct Transpiler<'a, T>(&'a T);
-        impl<T: Transpile> Display for Transpiler<'_, T> {
-            fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
-                self.0.transpile(fmt)
-            }
-        }
-
         (
-            Transpiler(&self.statement).to_string(),
+            self.statement.transpile_to_string(),
             &self.artifacts.parameters,
         )
     }
