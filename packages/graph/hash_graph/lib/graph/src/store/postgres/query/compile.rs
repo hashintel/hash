@@ -129,6 +129,9 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
     }
 
     /// Compiles the `path` to a condition, which is searching for the latest version.
+    // Warning: This adds a CTE to the statement, which is overwriting the `type_ids` table. When
+    //          more CTEs are needed, a test should be added to cover both CTEs in one statement to
+    //          ensure compatibility
     fn compile_latest_version_filter(
         &mut self,
         path: &'q T::Path<'q>,
