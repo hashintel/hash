@@ -7,7 +7,7 @@ const workspaceNamespaceName = "example";
 type SchemaKind = "data-type" | "property-type" | "entity-type" | "link-type";
 
 /** Slugify the title of a type */
-const slugifyTypeTitle = (title: string): string =>
+export const slugifyTypeTitle = (title: string): string =>
   slugify(title, { lower: true });
 
 /**

@@ -1,5 +1,6 @@
 import { EntityType } from "@blockprotocol/type-system-web";
 import { Button, TextField } from "@hashintel/hash-design-system/ui";
+import { generateTypeId, slugifyTypeTitle } from "@hashintel/hash-shared/types";
 import {
   Box,
   Container,
@@ -11,7 +12,7 @@ import {
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
 import { useForm } from "react-hook-form";
-import slugify from "slugify";
+import { useBlockProtocolGetEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
 import { useLoggedInUser } from "../../../../components/hooks/useUser";
 import { FRONTEND_URL } from "../../../../lib/config";
 import { useInitTypeSystem } from "../../../../lib/use-init-type-system";
@@ -55,6 +56,7 @@ const Page: NextPageWithLayout = () => {
       }
     },
   });
+  const { getEntityType } = useBlockProtocolGetEntityType();
 
   if (user && router.query["account-slug"] !== `@${user.shortname}`) {
     throw new Error("Workspaces not yet supported");
@@ -65,9 +67,28 @@ const Page: NextPageWithLayout = () => {
   }
 
   const handleFormSubmit = handleSubmit(async ({ name, description }) => {
-    const url = `${FRONTEND_URL}/@${user.shortname}/types/entity-type/${slugify(
-      name,
-    )}`;
+    if (!user.shortname) {
+      throw new Error("Namespace for entity type creation missing");
+    }
+
+    const url = `${FRONTEND_URL}/@${
+      user.shortname
+    }/types/entity-type/${slugifyTypeTitle(name)}`;
+
+    const entityTypeId = generateTypeId({
+      domain: FRONTEND_URL,
+      kind: "entity-type",
+      title: name,
+      namespace: user.shortname,
+    });
+
+    const res = await getEntityType({ data: { entityTypeId } });
+
+    if (res.data?.roots.length) {
+      // @todo handle this
+      throw new Error("Type already exists");
+    }
+
     const entityType: EntityType = {
       title: name,
       // @todo make this not necessary
