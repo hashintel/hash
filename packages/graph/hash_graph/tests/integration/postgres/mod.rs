@@ -14,6 +14,7 @@ use graph::{
         AccountId, PersistedDataType, PersistedEntityType, PersistedLinkType,
         PersistedOntologyMetadata, PersistedPropertyType,
     },
+    shared::identifier::GraphElementIdentifier,
     store::{
         error::LinkRemovalError,
         query::{Expression, Literal, Path, PathSegment},
@@ -21,7 +22,7 @@ use graph::{
         EntityTypeStore, InsertionError, LinkStore, LinkTypeStore, PostgresStore,
         PostgresStorePool, PropertyTypeStore, QueryError, StorePool, UpdateError,
     },
-    subgraph::{GraphElementIdentifier, GraphResolveDepths, StructuralQuery, Vertex},
+    subgraph::{GraphResolveDepths, StructuralQuery, Vertex},
 };
 use tokio_postgres::{NoTls, Transaction};
 use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};
@@ -317,16 +318,21 @@ impl DatabaseApi<'_> {
     }
 
     pub async fn get_entity(&mut self, entity_id: EntityId) -> Result<PersistedEntity, QueryError> {
-        Ok(self
+        let vertex = self
             .store
             .get_entity(&StructuralQuery {
                 expression: Expression::for_latest_entity_id(entity_id),
                 graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
             .await?
-            .pop()
-            .expect("no entity found")
-            .entity)
+            .vertices
+            .remove(&GraphElementIdentifier::KnowledgeGraphElementId(entity_id))
+            .expect("no entity found");
+
+        match vertex {
+            Vertex::Entity(persisted_entity) => Ok(persisted_entity),
+            _ => unreachable!(),
+        }
     }
 
     pub async fn update_entity(
