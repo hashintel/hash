@@ -111,7 +111,7 @@ pub enum ColumnAccess<'q> {
         column: &'static str,
         field: &'q str,
     },
-    /// Accesses a field of a JSON blob: `"column"->>'field'`
+    /// Accesses the field of a JSON blob by a numbered parameter: e.g. `"column"->>$1`
     JsonParameter { column: &'static str, index: usize },
 }
 
