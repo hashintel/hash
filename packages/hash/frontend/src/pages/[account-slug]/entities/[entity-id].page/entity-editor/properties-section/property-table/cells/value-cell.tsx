@@ -3,9 +3,9 @@ import {
   CustomRenderer,
   GridCellKind,
 } from "@glideapps/glide-data-grid";
-import { TextField } from "@hashintel/hash-design-system";
 import { TooltipCellProps } from "../../../../../../../../components/GlideGlid/use-grid-tooltip/types";
 import { EnrichedPropertyType } from "../types";
+import { ValueCellEditor } from "./value-cell/value-cell-editor";
 
 export interface ValueCellProps extends TooltipCellProps {
   readonly kind: "value-cell";
@@ -39,22 +39,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
     return {
       styleOverride: { boxShadow: "none" },
       disablePadding: true,
-      editor: (props) => {
-        const { onChange, value } = props;
-
-        return (
-          <TextField
-            sx={{ my: "1px" }}
-            autoFocus
-            value={value.data.property.value}
-            onChange={(event) => {
-              const newValue = { ...props.value };
-              newValue.data.property.value = event.target.value;
-              onChange(newValue);
-            }}
-          />
-        );
-      },
+      editor: ValueCellEditor,
     };
   },
 };
