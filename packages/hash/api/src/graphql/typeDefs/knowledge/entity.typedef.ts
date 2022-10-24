@@ -32,10 +32,6 @@ export const persistedEntityTypedef = gql`
     """
     entityTypeId: String!
     """
-    The full entity type definition.
-    """
-    entityType: PersistedEntityType!
-    """
     The linked entities of the entity.
     """
     linkedEntities: [PersistedEntity!]!
@@ -68,10 +64,6 @@ export const persistedEntityTypedef = gql`
     The versioned URI of this entity's type.
     """
     entityTypeId: String!
-    """
-    The full entity type definition.
-    """
-    entityType: PersistedEntityType!
     """
     The linked entities of the entity.
     """

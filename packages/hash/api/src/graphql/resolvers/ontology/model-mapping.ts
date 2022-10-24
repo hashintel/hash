@@ -75,8 +75,6 @@ export const mapSubgraphToGql = (subgraph: Subgraph): SubgraphGql => {
               inner: {
                 accountId: persistedEntity.metadata.identifier.ownedById,
                 entityId: persistedEntity.metadata.identifier.entityId,
-                /** @todo - How bad an idea is this right now */
-                entityType: null as any,
                 entityTypeId: persistedEntity.metadata.entityTypeId,
                 entityVersion: persistedEntity.metadata.identifier.version,
                 linkedEntities: [],
