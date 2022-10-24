@@ -90,9 +90,9 @@ mod tests {
     }
 
     #[test]
-    fn asterix() {
+    fn asterisk() {
         test_compilation(
-            &SelectCompiler::<DataType>::with_asterix(),
+            &SelectCompiler::<DataType>::with_asterisk(),
             r#"SELECT * FROM "data_types""#,
             &[],
         );
@@ -112,7 +112,7 @@ mod tests {
 
     #[test]
     fn simple_expression() {
-        let mut compiler = SelectCompiler::<DataType>::with_asterix();
+        let mut compiler = SelectCompiler::<DataType>::with_asterisk();
         compiler.add_filter(&Filter::Equal(
             Some(FilterExpression::Path(DataTypeQueryPath::VersionedUri)),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
@@ -132,7 +132,7 @@ mod tests {
 
     #[test]
     fn specific_version() {
-        let mut compiler = SelectCompiler::<DataType>::with_asterix();
+        let mut compiler = SelectCompiler::<DataType>::with_asterisk();
 
         let filter = Filter::All(vec![
             Filter::Equal(
@@ -166,7 +166,7 @@ mod tests {
 
     #[test]
     fn latest_version() {
-        let mut compiler = SelectCompiler::<DataType>::with_asterix();
+        let mut compiler = SelectCompiler::<DataType>::with_asterisk();
 
         compiler.add_filter(&Filter::Equal(
             Some(FilterExpression::Path(DataTypeQueryPath::Version)),
@@ -191,7 +191,7 @@ mod tests {
 
     #[test]
     fn not_latest_version() {
-        let mut compiler = SelectCompiler::<DataType>::with_asterix();
+        let mut compiler = SelectCompiler::<DataType>::with_asterisk();
 
         compiler.add_filter(&Filter::NotEqual(
             Some(FilterExpression::Path(DataTypeQueryPath::Version)),

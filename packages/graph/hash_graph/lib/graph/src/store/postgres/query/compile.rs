@@ -1,9 +1,4 @@
-use std::{
-    borrow::Cow,
-    fmt::{Display, Formatter},
-    iter::once,
-    marker::PhantomData,
-};
+use std::{borrow::Cow, iter::once, marker::PhantomData};
 
 use postgres_types::ToSql;
 
@@ -60,8 +55,8 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
         default
     }
 
-    /// Creates a new compiler, which will select everything using the asterix (`*`).
-    pub fn with_asterix() -> Self {
+    /// Creates a new compiler, which will select everything using the asterisk (`*`).
+    pub fn with_asterisk() -> Self {
         let mut default = Self::new();
         default
             .statement
