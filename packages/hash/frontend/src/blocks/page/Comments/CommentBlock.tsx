@@ -36,6 +36,7 @@ import { useUpdateCommentText } from "../../../components/hooks/useUpdateComment
 import { CommentBlockMenuItem } from "./CommentBlockMenuItem";
 import { PencilSlashIcon } from "../../../shared/icons/pencil-slash-icon";
 import { useUser } from "../../../components/hooks/useUser";
+import { CommentActionButtons } from "./CommentActionButtons";
 
 type ToggleTextExpandedButtonProps = {
   label: ReactNode;
@@ -207,28 +208,14 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
         </Box>
 
         <Collapse in={editable}>
-          <Box
-            sx={{
-              display: "flex",
-              gap: 0.75,
-              justifyContent: "flex-end",
-              pt: 0.75,
-            }}
-          >
-            <Button size="xs" variant="tertiary" onClick={resetCommentText}>
-              Cancel
-            </Button>
-            <Button
-              size="xs"
-              variant="secondary"
-              onClick={handleEditComment}
-              disabled={submitUpdateDisabled}
-              loading={loading}
-              loadingText="Saving..."
-            >
-              Submit
-            </Button>
-          </Box>
+          <CommentActionButtons
+            submitDisabled={submitUpdateDisabled}
+            loading={loading}
+            loadingText="Saving..."
+            onSubmit={handleEditComment}
+            onCancel={resetCommentText}
+            sx={{ pt: 0.75 }}
+          />
         </Collapse>
 
         {!editable && shouldCollapse && collapsed ? (

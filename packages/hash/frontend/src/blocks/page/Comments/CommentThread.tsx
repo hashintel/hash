@@ -11,6 +11,7 @@ import { CommentTextField } from "./CommentTextField";
 import { CommentBlock } from "./CommentBlock";
 import styles from "./style.module.css";
 import { useCreateComment } from "../../../components/hooks/useCreateComment";
+import { CommentActionButtons } from "./CommentActionButtons";
 
 const UNCOLLAPSIBLE_REPLIES_NUMBER = 2;
 
@@ -164,29 +165,14 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
       </Collapse>
 
       <Collapse in={showInputButtons}>
-        <Box
-          sx={{
-            display: "flex",
-            gap: 0.75,
-            justifyContent: "flex-end",
-            px: 1,
-            pt: 0,
-            pb: 0.75,
-          }}
-        >
-          <Button size="xs" variant="tertiary" onClick={cancelSubmit}>
-            Cancel
-          </Button>
-          <Button
-            size="xs"
-            variant="secondary"
-            disabled={!inputValue.length}
-            onClick={handleReplySubmit}
-            loading={loading}
-          >
-            Reply
-          </Button>
-        </Box>
+        <CommentActionButtons
+          submitDisabled={!inputValue.length}
+          loading={loading}
+          loadingText="Saving..."
+          onSubmit={handleReplySubmit}
+          onCancel={cancelSubmit}
+          sx={{ px: 1, pt: 0, pb: 0.75 }}
+        />
       </Collapse>
 
       <Collapse in={showInput}>
