@@ -1,5 +1,5 @@
 import { ApolloError } from "apollo-server-errors";
-
+import { EntityVertex } from "@hashintel/hash-shared/graphql/types";
 import {
   PersistedEntity,
   GraphApi,
@@ -307,7 +307,7 @@ export default class {
     query: object,
     options?: Omit<Partial<StructuralQuery>, "query">,
   ): Promise<EntityModel[]> {
-    const { data: entityRootedSubgraphs } = await graphApi.getEntitiesByQuery({
+    const { data: subgraph } = await graphApi.getEntitiesByQuery({
       query,
       graphResolveDepths: {
         dataTypeResolveDepth:
@@ -325,9 +325,10 @@ export default class {
     });
 
     return await Promise.all(
-      entityRootedSubgraphs.map(({ entity }) =>
-        EntityModel.fromPersistedEntity(graphApi, entity),
-      ),
+      subgraph.roots.map((entityId) => {
+        const entityVertex = subgraph.vertices[entityId] as EntityVertex;
+        return EntityModel.fromPersistedEntity(graphApi, entityVertex.inner);
+      }),
     );
   }
 

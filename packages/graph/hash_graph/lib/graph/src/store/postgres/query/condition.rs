@@ -1,13 +1,10 @@
 use std::{fmt, fmt::Write};
 
-use postgres_types::ToSql;
-
-use crate::store::{
-    postgres::query::{Expression, PostgresQueryRecord, TableAlias, Transpile},
-    query::Filter,
-};
+use crate::store::postgres::query::{Expression, Transpile};
 
 /// A [`Filter`], which can be transpiled.
+///
+/// [`Filter`]: crate::store::query::Filter
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Condition<'q> {
     All(Vec<Self>),
@@ -17,49 +14,10 @@ pub enum Condition<'q> {
     NotEqual(Option<Expression<'q>>, Option<Expression<'q>>),
 }
 
-impl<'q> Condition<'q> {
-    /// Compiles a [`Filter`] to a `Condition`.
-    ///
-    /// In addition to the provided [`Filter`], a list of parameters needs to be passed, which will
-    /// be populated from [`FilterExpression::Parameter`]. Also, [`TableAlias`] is used to populate
-    /// `alias` inside of [`Expression::Column`].
-    ///
-    /// [`FilterExpression::Parameter`]: crate::store::query::FilterExpression
-    pub fn from_filter<'f: 'q, T: PostgresQueryRecord<'q>>(
-        filter: &'f Filter<'q, T>,
-        parameters: &mut Vec<&'f dyn ToSql>,
-        alias: Option<TableAlias>,
-    ) -> Self {
-        match filter {
-            Filter::All(filters) => Self::All(
-                filters
-                    .iter()
-                    .map(|filter| Self::from_filter(filter, parameters, alias))
-                    .collect(),
-            ),
-            Filter::Any(filters) => Self::Any(
-                filters
-                    .iter()
-                    .map(|filter| Self::from_filter(filter, parameters, alias))
-                    .collect(),
-            ),
-            Filter::Not(filter) => {
-                Self::Not(Box::new(Self::from_filter(filter, parameters, alias)))
-            }
-            Filter::Equal(lhs, rhs) => Self::Equal(
-                lhs.as_ref()
-                    .map(|value| Expression::from_filter_value(value, parameters, alias)),
-                rhs.as_ref()
-                    .map(|value| Expression::from_filter_value(value, parameters, alias)),
-            ),
-            Filter::NotEqual(lhs, rhs) => Self::NotEqual(
-                lhs.as_ref()
-                    .map(|value| Expression::from_filter_value(value, parameters, alias)),
-                rhs.as_ref()
-                    .map(|value| Expression::from_filter_value(value, parameters, alias)),
-            ),
-        }
-    }
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum EqualityOperator {
+    Equal,
+    NotEqual,
 }
 
 impl Transpile for Condition<'_> {
@@ -126,14 +84,14 @@ impl Transpile for Condition<'_> {
 mod tests {
     use std::borrow::Cow;
 
+    use postgres_types::ToSql;
     use type_system::DataType;
 
-    use super::*;
     use crate::{
         ontology::DataTypeQueryPath,
         store::{
-            postgres::query::test_helper::transpile,
-            query::{FilterExpression, Parameter},
+            postgres::query::{SelectCompiler, Transpile},
+            query::{Filter, FilterExpression, Parameter},
         },
     };
 
@@ -142,19 +100,22 @@ mod tests {
         rendered: &'static str,
         parameters: &[&'q dyn ToSql],
     ) {
-        let mut parameter_list = Vec::new();
-        let condition = Condition::from_filter(filter, &mut parameter_list, None);
+        let mut compiler = SelectCompiler::new();
+        let condition = compiler.compile_filter(filter);
 
-        assert_eq!(transpile(&condition), rendered);
+        assert_eq!(condition.transpile_to_string(), rendered);
 
-        let parameter_list = parameter_list
-            .into_iter()
-            .map(|parameter| format!("{parameter:?}"))
-            .collect::<Vec<_>>();
-        let expected_parameters = parameters
+        let parameter_list = parameters
             .iter()
             .map(|parameter| format!("{parameter:?}"))
             .collect::<Vec<_>>();
+        let expected_parameters = compiler
+            .compile()
+            .1
+            .iter()
+            .map(|parameter| format!("{parameter:?}"))
+            .collect::<Vec<_>>();
+
         assert_eq!(parameter_list, expected_parameters);
     }
 
@@ -233,7 +194,7 @@ mod tests {
                     Some(FilterExpression::Parameter(Parameter::Number(1.0))),
                 ),
             ]),
-            r#"("type_ids"."base_uri" = $1) AND ("type_ids"."version" = $2)"#,
+            r#"("type_ids_0_0"."base_uri" = $1) AND ("type_ids_0_0"."version" = $2)"#,
             &[
                 &"https://blockprotocol.org/@blockprotocol/types/data-type/text/",
                 &1.0,
@@ -267,7 +228,7 @@ mod tests {
                     Some(FilterExpression::Parameter(Parameter::Number(1.0))),
                 ),
             ]),
-            r#"(("type_ids"."base_uri" = $1) OR ("type_ids"."version" = $2))"#,
+            r#"(("type_ids_0_0"."base_uri" = $1) OR ("type_ids_0_0"."version" = $2))"#,
             &[
                 &"https://blockprotocol.org/@blockprotocol/types/data-type/text/",
                 &1.0,
@@ -290,7 +251,7 @@ mod tests {
     }
 
     #[test]
-    fn render_without_parameters() {
+    fn render_json_access() {
         test_condition(
             &Filter::Any(vec![Filter::Equal(
                 Some(FilterExpression::Path(DataTypeQueryPath::Custom(
@@ -300,8 +261,8 @@ mod tests {
                     Cow::Borrowed("right"),
                 ))),
             )]),
-            r#"("data_types"."schema"->>'left' = "data_types"."schema"->>'right')"#,
-            &[],
+            r#"("data_types"."schema"->>$1 = "data_types"."schema"->>$2)"#,
+            &[&"left", &"right"],
         );
     }
 }

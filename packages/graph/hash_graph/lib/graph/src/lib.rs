@@ -74,8 +74,10 @@ pub mod api;
 
 pub mod knowledge;
 pub mod ontology;
+pub mod shared;
 
 pub mod store;
 
 pub mod logging;
-pub mod subgraph;
+
+pub use shared::*;
