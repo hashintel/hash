@@ -11,17 +11,28 @@ pub enum TableName {
     TypeIds,
     DataTypes,
     PropertyTypes,
+    EntityTypes,
+    LinkTypes,
     PropertyTypeDataTypeReferences,
     PropertyTypePropertyTypeReferences,
+    EntityTypePropertyTypeReferences,
+    EntityTypeLinkTypeReferences,
 }
 
 impl TableName {
     const fn source_join_column_access(self) -> ColumnAccess<'static> {
         ColumnAccess::Table {
             column: match self {
-                Self::TypeIds | Self::DataTypes | Self::PropertyTypes => "version_id",
+                Self::TypeIds
+                | Self::DataTypes
+                | Self::PropertyTypes
+                | Self::EntityTypes
+                | Self::LinkTypes => "version_id",
                 Self::PropertyTypeDataTypeReferences | Self::PropertyTypePropertyTypeReferences => {
                     "source_property_type_version_id"
+                }
+                Self::EntityTypePropertyTypeReferences | Self::EntityTypeLinkTypeReferences => {
+                    "source_entity_type_version_id"
                 }
             },
         }
@@ -31,9 +42,15 @@ impl TableName {
     const fn target_join_column_access(self) -> ColumnAccess<'static> {
         ColumnAccess::Table {
             column: match self {
-                Self::TypeIds | Self::DataTypes | Self::PropertyTypes => "version_id",
+                Self::TypeIds
+                | Self::DataTypes
+                | Self::PropertyTypes
+                | Self::EntityTypes
+                | Self::LinkTypes => "version_id",
                 Self::PropertyTypeDataTypeReferences => "target_data_type_version_id",
-                Self::PropertyTypePropertyTypeReferences => "target_property_type_version_id",
+                Self::PropertyTypePropertyTypeReferences
+                | Self::EntityTypePropertyTypeReferences => "target_property_type_version_id",
+                Self::EntityTypeLinkTypeReferences => "target_link_type_version_id",
             },
         }
     }
