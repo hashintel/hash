@@ -35,14 +35,13 @@ impl Transpile for SelectExpression<'_> {
 mod tests {
     use super::*;
     use crate::store::postgres::query::{
-        test_helper::transpile, DataTypeQueryField, Field, Function, Table, TableAlias,
-        WindowStatement,
+        DataTypeQueryField, Field, Function, Table, TableAlias, WindowStatement,
     };
 
     #[test]
-    fn render_select_expression() {
+    fn transpile_select_expression() {
         assert_eq!(
-            transpile(&SelectExpression::from_column(
+            SelectExpression::from_column(
                 Column {
                     table: Table {
                         name: DataTypeQueryField::BaseUri.table_name(),
@@ -51,12 +50,13 @@ mod tests {
                     access: DataTypeQueryField::BaseUri.column_access(),
                 },
                 None
-            )),
+            )
+            .transpile_to_string(),
             r#""type_ids"."base_uri""#
         );
 
         assert_eq!(
-            transpile(&SelectExpression::from_column(
+            SelectExpression::from_column(
                 Column {
                     table: Table {
                         name: DataTypeQueryField::VersionedUri.table_name(),
@@ -65,12 +65,13 @@ mod tests {
                     access: DataTypeQueryField::VersionedUri.column_access(),
                 },
                 Some(Cow::Borrowed("versionedUri"))
-            )),
+            )
+            .transpile_to_string(),
             r#""data_types"."schema"->>'$id' AS "versionedUri""#
         );
 
         assert_eq!(
-            transpile(&SelectExpression::new(
+            SelectExpression::new(
                 Expression::Window(
                     Box::new(Expression::Function(Box::new(Function::Max(
                         Expression::Column(Column {
@@ -96,7 +97,8 @@ mod tests {
                     })
                 ),
                 Some(Cow::Borrowed("latest_version"))
-            )),
+            )
+            .transpile_to_string(),
             r#"MAX("type_ids_0_0"."version") OVER (PARTITION BY "type_ids_0_0"."base_uri") AS "latest_version""#
         );
     }

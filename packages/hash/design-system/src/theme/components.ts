@@ -23,6 +23,7 @@ import {
 } from "./components/inputs";
 import { MuiCssBaselineThemeOptions } from "./components/utils";
 import { MuiSelectThemeOptions } from "./components/inputs/mui-select-theme-options";
+import { MuiSkeletonThemeOptions } from "./components/feedback/mui-skeleton-theme-options";
 
 export const components: Components<Theme> = {
   /** ===== INPUTS ===== */
@@ -43,6 +44,8 @@ export const components: Components<Theme> = {
   MuiListItemSecondaryAction: MuiListItemSecondaryActionThemeOptions,
 
   /** ===== FEEDBACK ===== */
+  MuiSkeleton: MuiSkeletonThemeOptions,
+
   /** ===== SURFACES ===== */
   /** ===== NAVIGATION ===== */
   MuiDrawer: MuiDrawerThemeOptions,

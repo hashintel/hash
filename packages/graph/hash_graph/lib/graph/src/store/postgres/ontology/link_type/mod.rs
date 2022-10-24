@@ -8,6 +8,7 @@ use type_system::{uri::VersionedUri, LinkType};
 
 use crate::{
     ontology::{AccountId, PersistedLinkType, PersistedOntologyMetadata},
+    shared::identifier::GraphElementIdentifier,
     store::{
         crud::Read,
         postgres::{
@@ -16,7 +17,7 @@ use crate::{
         },
         AsClient, InsertionError, LinkTypeStore, PostgresStore, QueryError, UpdateError,
     },
-    subgraph::{GraphElementIdentifier, StructuralQuery, Subgraph},
+    subgraph::{StructuralQuery, Subgraph},
 };
 
 impl<C: AsClient> PostgresStore<C> {

@@ -2,16 +2,23 @@
 
 //! Postgres implementation to compile queries.
 
+mod compile;
 mod condition;
 mod data_type;
+mod entity_type;
 mod expression;
+mod link_type;
+mod property_type;
 mod statement;
 mod table;
 
-use std::fmt::{self, Formatter};
+use std::fmt::{self, Display, Formatter};
+
+use postgres_types::ToSql;
 
 pub use self::{
-    condition::Condition,
+    compile::SelectCompiler,
+    condition::{Condition, EqualityOperator},
     data_type::DataTypeQueryField,
     expression::{
         CommonTableExpression, Expression, Function, JoinExpression, SelectExpression,
@@ -25,8 +32,11 @@ use crate::store::query::QueryRecord;
 pub trait PostgresQueryRecord<'q>: QueryRecord<Path<'q>: Path> {
     type Field: Field;
 
-    /// The [`TableName`] used for this `Query`.
-    fn base_table() -> TableName;
+    /// The [`Table`] used for this `Query`.
+    fn base_table() -> Table;
+
+    /// Default [`Field`]s returned when querying this record.
+    fn default_fields() -> &'q [Self::Field];
 }
 
 /// A queryable attribute of an element in the graph.
@@ -52,31 +62,37 @@ pub trait Path {
     ///
     /// [`terminating_table_name()`]: Self::terminating_table_name
     fn column_access(&self) -> ColumnAccess;
+
+    /// Returns the field if the path is provided by a user.
+    ///
+    /// One example of a user provided path is [`DataTypeQueryPath::Custom("custom string")`]
+    ///
+    /// [`DataTypeQueryPath::Custom("custom string")`]: crate::ontology::DataTypeQueryPath::Custom
+    fn user_provided_field(&self) -> Option<&(dyn ToSql + Sync)>;
 }
 
 /// Renders the object into a Postgres compatible format.
 pub trait Transpile {
     /// Renders the value using the given [`Formatter`].
     fn transpile(&self, fmt: &mut Formatter) -> fmt::Result;
+
+    fn transpile_to_string(&self) -> String {
+        struct Transpiler<'a, T: ?Sized>(&'a T);
+        impl<T: Transpile + ?Sized> Display for Transpiler<'_, T> {
+            fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+                self.0.transpile(fmt)
+            }
+        }
+
+        Transpiler(self).to_string()
+    }
 }
 
 #[cfg(test)]
 mod test_helper {
-    use std::fmt;
-
     use crate::store::postgres::query::{
-        Column, DataTypeQueryField, Expression, Field, Function, Table, Transpile, WindowStatement,
+        Column, DataTypeQueryField, Expression, Field, Function, Table, WindowStatement,
     };
-
-    pub fn transpile<R: Transpile>(value: &R) -> String {
-        struct Transpiler<'r, R>(&'r R);
-        impl<R: Transpile> fmt::Display for Transpiler<'_, R> {
-            fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-                self.0.transpile(fmt)
-            }
-        }
-        Transpiler(value).to_string()
-    }
 
     pub fn trim_whitespace(string: impl Into<String>) -> String {
         string
