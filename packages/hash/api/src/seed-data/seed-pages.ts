@@ -13,18 +13,19 @@ const createNestedPages = async (
 ): Promise<PageModel> => {
   const { graphApi } = sharedParams;
 
-  const topPageModel = await PageModel.createPage(graphApi, {
-    actorId: owningActorId,
-    ownedById: owningActorId,
-    title: top,
-    prevIndex,
-  });
-
-  const nestedPageModel = await PageModel.createPage(graphApi, {
-    actorId: owningActorId,
-    ownedById: owningActorId,
-    title: nested,
-  });
+  const [topPageModel, nestedPageModel] = await Promise.all([
+    PageModel.createPage(graphApi, {
+      actorId: owningActorId,
+      ownedById: owningActorId,
+      title: top,
+      prevIndex,
+    }),
+    PageModel.createPage(graphApi, {
+      actorId: owningActorId,
+      ownedById: owningActorId,
+      title: nested,
+    }),
+  ]);
 
   await nestedPageModel.setParentPage(graphApi, {
     actorId: owningActorId,
