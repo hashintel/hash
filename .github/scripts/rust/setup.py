@@ -217,7 +217,7 @@ def main():
     changed_parent_crates = filter_parent_crates(changed_crates)
     changed_docker_crates = filter_for_docker_crates(changed_parent_crates)
 
-    github_output_file = open("/tmp/github_output.txt", "w")
+    github_output_file = open(os.environ["GITHUB_OUTPUT_FILE_PATH"], "w")
 
     output_matrix("lint", github_output_file, changed_parent_crates)
     output_matrix("test", github_output_file, changed_parent_crates, profile=["development", "production"])
