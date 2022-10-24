@@ -748,6 +748,8 @@ impl Hooks {
     ///
     /// This invokes all hooks on the [`Location`] object by creating a fake frame, which is used to
     /// invoke any hooks related to location.
+    ///
+    /// [`Location`]: std::panic::Location
     fn call_location(&self, frame: &Frame, context: &mut HookContext<Frame>) {
         if !matches!(frame.kind(), FrameKind::Context(_)) {
             return;
