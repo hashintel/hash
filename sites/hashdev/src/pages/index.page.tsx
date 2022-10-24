@@ -155,6 +155,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
             buttons={
               <Button
                 href="https://blockprotocol.org"
+                openInNew
                 endIcon={
                   <FaIcon name="arrow-up-right-from-square" type="solid" />
                 }
@@ -194,6 +195,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
             buttons={
               <Button
                 href="https://github.com/hashintel/hash/tree/main/packages/hash"
+                openInNew
                 endIcon={
                   <FaIcon name="arrow-up-right-from-square" type="solid" />
                 }
@@ -240,6 +242,7 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
             buttons={
               <Button
                 href="https://github.com/hashintel/hash/tree/main/packages/engine"
+                openInNew
                 endIcon={
                   <FaIcon name="arrow-up-right-from-square" type="solid" />
                 }
