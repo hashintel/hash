@@ -206,7 +206,7 @@ def output_matrix(name, crates, **kwargs):
     if len(matrix["directory"]) == 0:
         matrix = {}
 
-    print(f"{name}={json.dumps(matrix)}", file=sys.stderr)
+    print(f"{name}={json.dumps(matrix)}", file=github_output.txt)
     print(f"Job matrix for {name}: {json.dumps(matrix, indent=4)}")
 
 
