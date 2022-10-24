@@ -149,6 +149,10 @@ pub struct DataTypeQueryPathVisitor {
 }
 
 impl DataTypeQueryPathVisitor {
+    pub const EXPECTING: &'static str = "one of `ownedById`, `baseUri`, `versionedUri`, \
+                                         `version`, `title, `description`, `type`, or a custom \
+                                         identifier";
+
     #[must_use]
     pub const fn new(position: usize) -> Self {
         Self { position }
@@ -159,10 +163,7 @@ impl<'de> Visitor<'de> for DataTypeQueryPathVisitor {
     type Value = DataTypeQueryPath<'de>;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str(
-            "one of `ownedById`, `baseUri`, `versionedUri`, `version`, `title, `description`, \
-             `type`, or a custom identifier",
-        )
+        formatter.write_str(Self::EXPECTING)
     }
 
     fn visit_seq<A>(mut self, mut seq: A) -> Result<Self::Value, A::Error>

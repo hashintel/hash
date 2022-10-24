@@ -60,6 +60,10 @@ pub struct PropertyTypeQueryPathVisitor {
 }
 
 impl PropertyTypeQueryPathVisitor {
+    pub const EXPECTING: &'static str = "one of `ownedById`, `baseUri`, `versionedUri`, \
+                                         `version`, `title, `description`, `dataTypes`, or \
+                                         `propertyTypes`";
+
     #[must_use]
     pub const fn new(position: usize) -> Self {
         Self { position }
@@ -70,10 +74,7 @@ impl<'de> Visitor<'de> for PropertyTypeQueryPathVisitor {
     type Value = PropertyTypeQueryPath<'de>;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str(
-            "one of `ownedById`, `baseUri`, `versionedUri`, `version`, `title, `description`, \
-             `dataTypes`, or `propertyTypes`",
-        )
+        formatter.write_str(Self::EXPECTING)
     }
 
     fn visit_seq<A>(mut self, mut seq: A) -> Result<Self::Value, A::Error>
@@ -219,8 +220,10 @@ mod tests {
             )
             .expect_err("could convert property type query path with multiple tokens")
             .to_string(),
-            "invalid length 2, expected one of `ownedById`, `baseUri`, `versionedUri`, `version`, \
-             `title, `description`, `type`, or a custom identifier"
+            format!(
+                "invalid length 2, expected {}",
+                DataTypeQueryPathVisitor::EXPECTING
+            )
         );
 
         assert_eq!(
@@ -229,7 +232,10 @@ mod tests {
                     ["dataTypes", "*", "versionedUri", "invalid"].into_iter()
                 )
             )
-            .expect_err("could convert property type query path with multiple tokens")
+            .expect_err(
+                "managed to convert property type query path with multiple tokens when it should \
+                 have errored"
+            )
             .to_string(),
             "invalid length 4, expected 3 elements in sequence"
         );
