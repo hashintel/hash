@@ -18,8 +18,8 @@ pub use self::{
 };
 use crate::{
     knowledge::{
-        Entity, EntityId, EntityRootedSubgraph, Link, LinkRootedSubgraph, PersistedEntity,
-        PersistedEntityMetadata, PersistedLink,
+        Entity, EntityId, Link, LinkRootedSubgraph, PersistedEntity, PersistedEntityMetadata,
+        PersistedLink,
     },
     ontology::{
         AccountId, PersistedDataType, PersistedEntityType, PersistedLinkType,
@@ -397,15 +397,12 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Expressio
         owned_by_id: AccountId,
     ) -> Result<Vec<EntityId>, InsertionError>;
 
-    /// Get the [`EntityRootedSubgraph`]s specified by the [`StructuralQuery`].
+    /// Get the [`Subgraph`]s specified by the [`StructuralQuery`].
     ///
     /// # Errors
     ///
     /// - if the requested [`Entity`] doesn't exist
-    async fn get_entity(
-        &self,
-        query: &StructuralQuery,
-    ) -> Result<Vec<EntityRootedSubgraph>, QueryError>;
+    async fn get_entity(&self, query: &StructuralQuery) -> Result<Subgraph, QueryError>;
 
     /// Update an existing [`Entity`].
     ///
