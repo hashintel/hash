@@ -30,10 +30,10 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
     ctx.fillStyle = theme.textHeader;
     ctx.fillText(property.value, x + theme.cellHorizontalPadding, yCenter);
   },
-  provideEditor: (cell) => {
-    if (typeof cell.data.property.value !== "string") {
-      return undefined;
-    }
+  provideEditor: () => {
+    // if (typeof cell.data.property.value !== "string") {
+    // return undefined;
+    // }
 
     // string editor
     return {
