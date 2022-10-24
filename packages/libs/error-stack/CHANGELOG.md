@@ -9,7 +9,6 @@ All notable changes to `error-stack` will be documented in this file.
 
 ## Unreleased
 
-- Frames now provide [`Location`](https://doc.rust-lang.org/stable/std/panic/struct.Location.html) on nightly via the [`Provider`](https://doc.rust-lang.org/stable/std/any/trait.Provider.html) API ([#1237](https://github.com/hashintel/hash/pull/1237))
 - [`Location`](https://doc.rust-lang.org/stable/std/panic/struct.Location.html) on format is no longer special-cased and formatting can be modified via hooks. ([#1237](https://github.com/hashintel/hash/pull/1237))
 
 ## [0.2.3](https://github.com/hashintel/hash/tree/error-stack%400.2.3/packages/libs/error-stack) - 2022-10-12
