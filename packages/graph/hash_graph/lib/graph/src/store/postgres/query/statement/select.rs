@@ -332,7 +332,7 @@ mod tests {
             FROM "entity_types"
             JOIN "entity_type_property_type_references" AS "entity_type_property_type_references_0_0"
               ON "entity_type_property_type_references_0_0"."source_entity_type_version_id" = "entity_types"."version_id"
-            JOIN "property_types" AS "property_types_0_1" 
+            JOIN "property_types" AS "property_types_0_1"
               ON "property_types_0_1"."version_id" = "entity_type_property_type_references_0_0"."target_property_type_version_id"
             WHERE "property_types_0_1"."schema"->>'title' = $1
             "#,
@@ -361,7 +361,7 @@ mod tests {
             FROM "entity_types"
             JOIN "entity_type_link_type_references" AS "entity_type_link_type_references_0_0"
               ON "entity_type_link_type_references_0_0"."source_entity_type_version_id" = "entity_types"."version_id"
-            JOIN "link_types" AS "link_types_0_1" 
+            JOIN "link_types" AS "link_types_0_1"
               ON "link_types_0_1"."version_id" = "entity_type_link_type_references_0_0"."target_link_type_version_id"
             WHERE "link_types_0_1"."schema"->>'title' = $1
             "#,
