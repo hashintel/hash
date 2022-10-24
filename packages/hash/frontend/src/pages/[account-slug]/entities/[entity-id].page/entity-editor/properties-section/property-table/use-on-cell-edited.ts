@@ -11,7 +11,9 @@ import { propertyGridIndexes } from "./constants";
 import { PropertyRow } from "./types";
 import { ValueCell } from "./cells/value-cell";
 
-// only used for 'Values' column
+/**
+ * This onCellEditor is used to handle editing the data only at `Values` column
+ */
 export const useOnCellEdited = (rowData: PropertyRow[]) => {
   const snackbar = useSnackbar();
   const { entity, setEntity } = useEntityEditor();

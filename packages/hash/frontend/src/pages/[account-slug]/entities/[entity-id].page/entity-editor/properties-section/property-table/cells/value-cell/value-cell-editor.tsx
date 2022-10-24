@@ -2,6 +2,10 @@ import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
 import { TextField } from "@hashintel/hash-design-system";
 import { ValueCell } from "../value-cell";
 
+/**
+ * @todo this should be used only for strings
+ * make sure to handle editors for other types as well
+ * */
 export const ValueCellEditor: ProvideEditorComponent<ValueCell> = ({
   value,
   onChange,

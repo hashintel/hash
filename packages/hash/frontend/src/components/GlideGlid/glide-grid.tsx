@@ -50,7 +50,11 @@ const _GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
       smoothScrollY
       getCellsForSelection
       {...props}
-      /** @todo explain why we need to pass header icons here */
+      /**
+       * icons defined via `headerIcons` are avaiable to be drawn using
+       * glide-grid's `spriteManager.drawSprite`,
+       * which will be used to draw svg icons inside custom cells
+       */
       headerIcons={customGridIcons}
     />
   );

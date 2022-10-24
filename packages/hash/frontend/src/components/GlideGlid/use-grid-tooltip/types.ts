@@ -9,14 +9,13 @@ export type GridTooltip = {
   iconX: number;
 };
 
-/** @todo find a better name for this type */
-export type GridTooltipObj = {
+export type CellTooltipData = {
   text: string;
   icon: CustomGridIcon;
 };
 
 export interface TooltipCellProps {
-  tooltips: GridTooltipObj[];
+  tooltips: CellTooltipData[];
   showTooltip: (tooltip: GridTooltip) => void;
   hideTooltip: (col: number, row: number) => void;
 }

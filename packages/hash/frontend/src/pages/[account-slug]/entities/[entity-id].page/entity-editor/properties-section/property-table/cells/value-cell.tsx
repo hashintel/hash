@@ -31,11 +31,6 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
     ctx.fillText(property.value, x + theme.cellHorizontalPadding, yCenter);
   },
   provideEditor: () => {
-    // if (typeof cell.data.property.value !== "string") {
-    // return undefined;
-    // }
-
-    // string editor
     return {
       styleOverride: { boxShadow: "none" },
       disablePadding: true,

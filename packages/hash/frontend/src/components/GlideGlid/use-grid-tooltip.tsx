@@ -25,13 +25,13 @@ export const useGridTooltip = (
     popupState.close();
   });
 
-  const [tooltip, setTooltip] = useState<GridTooltip | null>(null);
+  const [gridTooltip, setGridTooltip] = useState<GridTooltip | null>(null);
   const [tooltipPos, setTooltipPos] = useState<PopoverPosition>();
 
   const showTooltip = useCallback<TooltipCellProps["showTooltip"]>(
     (newTooltip) => {
-      if (!_.isEqual(tooltip, newTooltip)) {
-        setTooltip(newTooltip);
+      if (!_.isEqual(gridTooltip, newTooltip)) {
+        setGridTooltip(newTooltip);
       }
 
       const bounds = gridRef.current?.getBounds(newTooltip.col, newTooltip.row);
@@ -53,16 +53,16 @@ export const useGridTooltip = (
         return { left, top };
       });
     },
-    [popupState, tooltip, gridRef],
+    [popupState, gridTooltip, gridRef],
   );
 
   const hideTooltip = useCallback<TooltipCellProps["hideTooltip"]>(
     (_col, _row) => {
-      if (tooltip?.col === _col && tooltip?.row === _row) {
+      if (gridTooltip?.col === _col && gridTooltip?.row === _row) {
         popupState.close();
       }
     },
-    [popupState, tooltip],
+    [popupState, gridTooltip],
   );
 
   return {
@@ -91,7 +91,7 @@ export const useGridTooltip = (
         }}
       >
         <Typography textAlign="center" color="white">
-          {tooltip?.text}
+          {gridTooltip?.text}
         </Typography>
       </Popover>
     ),
