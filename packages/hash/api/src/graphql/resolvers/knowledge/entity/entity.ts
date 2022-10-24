@@ -112,7 +112,6 @@ export const getPersistedEntity: ResolverFn<
 
   const query = {
     all: [
-      /** @todo - is this version correct */
       { eq: [{ path: ["version"] }, { literal: entityVersion ?? "latest" }] },
       { eq: [{ path: ["id"] }, { literal: entityId }] },
     ],
