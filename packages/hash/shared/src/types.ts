@@ -1,4 +1,4 @@
-import { VersionedUri } from "@blockprotocol/type-system-web";
+import { BaseUri, VersionedUri } from "@blockprotocol/type-system-web";
 import slugify from "slugify";
 import { frontendUrl } from "./config";
 
@@ -9,6 +9,34 @@ type SchemaKind = "data-type" | "property-type" | "entity-type" | "link-type";
 /** Slugify the title of a type */
 export const slugifyTypeTitle = (title: string): string =>
   slugify(title, { lower: true });
+
+/**
+ * Generate the base identifier of a type (its unversioned URI).
+ *
+ * @param domain (optional) - the domain of the type, defaults the frontend url.
+ * @param namespace - the namespace of the type.
+ * @param kind - the "kind" of the type ("entity-type", "property-type", "link-type" or "data-type").
+ * @param title - the title of the type.
+ */
+export const generateBaseTypeId = ({
+  domain,
+  namespace,
+  kind,
+  title,
+}: {
+  domain?: string;
+  namespace: string;
+  kind: SchemaKind;
+  title: string;
+}): BaseUri =>
+  `${domain ?? frontendUrl}/@${namespace}/types/${kind}/${slugifyTypeTitle(
+    title,
+  )}` as const;
+
+export const addVersionToBaseUri = (
+  uri: BaseUri,
+  version: number,
+): VersionedUri => `${uri}/v/${version}`;
 
 /**
  * Generate the identifier of a type (its versioned URI).
@@ -29,9 +57,10 @@ export const generateTypeId = ({
   kind: SchemaKind;
   title: string;
 }): VersionedUri =>
-  `${domain ?? frontendUrl}/@${namespace}/types/${kind}/${slugifyTypeTitle(
-    title,
-  )}/v/1` as const;
+  addVersionToBaseUri(
+    generateBaseTypeId({ domain, namespace, kind, title }),
+    1,
+  );
 
 /**
  * Generate the identifier of a workspace type (its versioned URI).
