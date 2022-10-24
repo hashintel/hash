@@ -4,27 +4,38 @@ import {
   BlogPagePhotos,
   BlogPostContent,
   BlogPostHead,
+  BlogPostPagePhoto,
   BlogPostPhotosContext,
 } from "../../components/BlogPost";
 import { MdxPageContent } from "../../components/MdxPageContent";
 import { getAllPageHrefs, getSerializedPage } from "../../util/mdxUtil";
 import { getPhoto } from "./shared/get-photo";
 
+type BlogPostAuthorWithPhotoSrc = {
+  name: string;
+  jobTitle: string;
+  photo: string;
+};
+
 export type BlogPostProps = {
   title: string;
   subtitle: string;
-  author: string;
-  jobTitle: string;
+  authors: BlogPostAuthorWithPhotoSrc[];
   date: string;
-  authorPhoto: string;
   postPhoto: string;
   postPhotoSquare?: string;
+};
+
+export type BlogPostAuthor = {
+  name: string;
+  jobTitle: string;
+  photo: BlogPostPagePhoto | null;
 };
 
 type BlogPostPageProps = {
   serializedPage: MDXRemoteSerializeResult<Record<string, unknown>>;
   photos: BlogPagePhotos;
-  data: Partial<BlogPostProps>;
+  data: Partial<Omit<BlogPostProps, "authors"> & { authors: BlogPostAuthor[] }>;
 };
 
 type BlogPostPageQueryParams = {
@@ -70,11 +81,9 @@ export const getStaticProps: GetStaticProps<
       fileNameWithoutIndex,
     });
 
-    const authorPhotoSrc: string | null = data?.authorPhoto ?? null;
-    const postPhotoSrc: string | null = data?.postPhoto ?? null;
+    const postPhotoSrc: string | null = data?.postPhoto.split(",") ?? null;
 
-    const [authorPhoto, postPhoto, bodyImages] = await Promise.all([
-      getPhoto(authorPhotoSrc),
+    const [postPhoto, bodyImages] = await Promise.all([
       getPhoto(postPhotoSrc),
 
       Promise.all(
@@ -85,16 +94,25 @@ export const getStaticProps: GetStaticProps<
     ]);
 
     const photos: BlogPagePhotos = {
-      author: authorPhoto,
       post: postPhoto,
       body: bodyImages,
     };
+
+    const authors: BlogPostAuthor[] = await Promise.all(
+      (data.authors as BlogPostProps["authors"]).map(async (author) => ({
+        ...author,
+        photo: await getPhoto(author.photo),
+      })),
+    );
 
     return {
       props: {
         serializedPage,
         photos,
-        data,
+        data: {
+          ...data,
+          authors,
+        },
       },
     };
   } catch (err) {
@@ -115,8 +133,7 @@ const BlogPostPage: NextPage<BlogPostPageProps> = ({
       <BlogPostHead
         title={data.title}
         subtitle={data.subtitle}
-        author={data.author}
-        jobTitle={data.jobTitle}
+        authors={data.authors}
         date={data.date}
       />
       <BlogPostContent>
