@@ -1,7 +1,4 @@
-use std::{
-    borrow::Cow,
-    fmt::{self, Write},
-};
+use std::fmt::{self, Write};
 
 use serde::Serialize;
 
@@ -112,14 +109,18 @@ pub enum ColumnAccess<'q> {
     /// Accesses a field of a JSON blob: `"column"->>'field'`
     Json {
         column: &'static str,
-        field: Cow<'q, str>,
+        field: &'q str,
     },
+    /// Accesses the field of a JSON blob by a numbered parameter: e.g. `"column"->>$1`
+    JsonParameter { column: &'static str, index: usize },
 }
 
 impl ColumnAccess<'_> {
     pub const fn column(&self) -> &'static str {
         match self {
-            Self::Table { column } | Self::Json { column, .. } => column,
+            Self::Table { column }
+            | Self::Json { column, .. }
+            | Self::JsonParameter { column, .. } => column,
         }
     }
 }
@@ -129,6 +130,7 @@ impl Transpile for ColumnAccess<'_> {
         match self {
             Self::Table { column } => write!(fmt, r#""{column}""#),
             Self::Json { column, field } => write!(fmt, r#""{column}"->>'{field}'"#),
+            Self::JsonParameter { column, index } => write!(fmt, r#""{column}"->>${index}"#),
         }
     }
 }

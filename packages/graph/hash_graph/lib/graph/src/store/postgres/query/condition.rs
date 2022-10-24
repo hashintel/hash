@@ -251,7 +251,7 @@ mod tests {
     }
 
     #[test]
-    fn render_without_parameters() {
+    fn render_json_access() {
         test_condition(
             &Filter::Any(vec![Filter::Equal(
                 Some(FilterExpression::Path(DataTypeQueryPath::Custom(
@@ -261,8 +261,8 @@ mod tests {
                     Cow::Borrowed("right"),
                 ))),
             )]),
-            r#"("data_types"."schema"->>'left' = "data_types"."schema"->>'right')"#,
-            &[],
+            r#"("data_types"."schema"->>$1 = "data_types"."schema"->>$2)"#,
+            &[&"left", &"right"],
         );
     }
 }

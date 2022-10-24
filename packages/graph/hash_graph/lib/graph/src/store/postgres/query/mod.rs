@@ -11,6 +11,8 @@ mod table;
 
 use std::fmt::{self, Display, Formatter};
 
+use postgres_types::ToSql;
+
 pub use self::{
     compile::SelectCompiler,
     condition::{Condition, EqualityOperator},
@@ -57,6 +59,13 @@ pub trait Path {
     ///
     /// [`terminating_table_name()`]: Self::terminating_table_name
     fn column_access(&self) -> ColumnAccess;
+
+    /// Returns the field if the path is provided by a user.
+    ///
+    /// One example of a user provided path is [`DataTypeQueryPath::Custom("custom string")`]
+    ///
+    /// [`DataTypeQueryPath::Custom("custom string")`]: crate::ontology::DataTypeQueryPath::Custom
+    fn user_provided_field(&self) -> Option<&(dyn ToSql + Sync)>;
 }
 
 /// Renders the object into a Postgres compatible format.
