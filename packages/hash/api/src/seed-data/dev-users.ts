@@ -4,7 +4,7 @@ import { AxiosError } from "axios";
 import { GraphApi } from "../graph";
 import { UserModel } from "../model";
 import { workspaceAccountId } from "../model/util";
-import { createKratosIdentity } from "./ory-kratos";
+import { createKratosIdentity } from "../auth/ory-kratos";
 
 type DevelopmentUser = {
   email: string;
@@ -33,7 +33,9 @@ export const ensureDevUsersAreSeeded = async ({
 }: {
   graphApi: GraphApi;
   logger: Logger;
-}) => {
+}): Promise<UserModel[]> => {
+  const createdUsers = [];
+
   for (const { email, shortname, preferredName } of devUsers) {
     const maybeNewIdentity = await createKratosIdentity({
       traits: { emails: [email] },
@@ -75,10 +77,14 @@ export const ensureDevUsersAreSeeded = async ({
         updatedPreferredName: preferredName,
         actorId: workspaceAccountId,
       });
+
+      createdUsers.push(user);
     }
 
     logger.info(
-      `Development user available, email = "${email}" password = "${devPassword}".`,
+      `Development User available, email = "${email}" password = "${devPassword}".`,
     );
   }
+
+  return createdUsers;
 };
