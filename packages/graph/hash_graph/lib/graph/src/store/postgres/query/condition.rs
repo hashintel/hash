@@ -251,7 +251,7 @@ mod tests {
     }
 
     #[test]
-    fn render_without_parameters() {
+    fn render_json_access() {
         test_condition(
             &Filter::Any(vec![Filter::Equal(
                 Some(FilterExpression::Path(DataTypeQueryPath::Custom(
