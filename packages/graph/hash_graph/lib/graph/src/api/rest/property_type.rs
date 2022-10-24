@@ -22,12 +22,12 @@ use crate::{
         patch_id_and_parse, AccountId, PersistedOntologyIdentifier, PersistedOntologyMetadata,
         PersistedPropertyType,
     },
+    shared::identifier::GraphElementIdentifier,
     store::{
         query::Expression, BaseUriAlreadyExists, BaseUriDoesNotExist, PropertyTypeStore, StorePool,
     },
     subgraph::{
-        EdgeKind, Edges, GraphElementIdentifier, GraphResolveDepths, OutwardEdge, StructuralQuery,
-        Subgraph, Vertex,
+        EdgeKind, Edges, GraphResolveDepths, OutwardEdge, StructuralQuery, Subgraph, Vertex,
     },
 };
 
@@ -54,8 +54,8 @@ use crate::{
             EdgeKind,
             OutwardEdge,
             GraphResolveDepths,
+            Edges,
             Subgraph,
-            Edges
         )
     ),
     tags(

@@ -39,13 +39,14 @@ use crate::{
         AccountId, OntologyQueryDepth, PersistedDataType, PersistedEntityType, PersistedLinkType,
         PersistedOntologyIdentifier, PersistedOntologyMetadata, PersistedPropertyType,
     },
+    shared::identifier::{GraphElementIdentifier, LinkId},
     store::{
         error::VersionedUriAlreadyExists,
         postgres::{ontology::OntologyDatabaseType, version_id::VersionId},
         AccountStore, BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError,
         UpdateError,
     },
-    subgraph::{Edges, GraphElementIdentifier, GraphResolveDepths, LinkId, Subgraph, Vertex},
+    subgraph::{Edges, GraphResolveDepths, Subgraph, Vertex},
 };
 
 pub struct DependencyMap<V, T, D> {
@@ -146,10 +147,6 @@ where
 
     pub fn into_vec(self) -> Vec<T> {
         self.into_values().collect()
-    }
-
-    pub fn remove(&mut self, identifier: &V) -> Option<T> {
-        self.resolved.remove(identifier).map(|(value, _)| value)
     }
 }
 

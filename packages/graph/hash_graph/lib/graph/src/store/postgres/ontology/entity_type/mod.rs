@@ -10,6 +10,7 @@ use type_system::{uri::VersionedUri, EntityType};
 
 use crate::{
     ontology::{AccountId, PersistedEntityType, PersistedOntologyMetadata},
+    shared::identifier::GraphElementIdentifier,
     store::{
         crud::Read,
         postgres::{
@@ -18,10 +19,7 @@ use crate::{
         },
         AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
-    subgraph::{
-        EdgeKind, GraphElementIdentifier, GraphResolveDepths, OutwardEdge, StructuralQuery,
-        Subgraph,
-    },
+    subgraph::{EdgeKind, GraphResolveDepths, OutwardEdge, StructuralQuery, Subgraph},
 };
 
 impl<C: AsClient> PostgresStore<C> {
