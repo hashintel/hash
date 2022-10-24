@@ -123,7 +123,7 @@ impl<'de: 'k, 'k> Deserialize<'de> for PropertyTypeQueryPath<'k> {
 }
 
 pub enum Selector {
-    Wildcard,
+    Asterisk,
 }
 
 impl<'de> Deserialize<'de> for Selector {
@@ -142,7 +142,7 @@ impl<'de> Deserialize<'de> for Selector {
 
             fn visit_str<E: de::Error>(self, v: &str) -> Result<Self::Value, E> {
                 match v {
-                    "*" => Ok(Selector::Wildcard),
+                    "*" => Ok(Selector::Asterisk),
                     _ => Err(de::Error::invalid_value(Unexpected::Str(v), &self)),
                 }
             }
