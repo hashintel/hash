@@ -44,7 +44,7 @@ impl fmt::Display for AccountId {
 pub struct PersistedOntologyIdentifier {
     #[schema(value_type = String)]
     uri: VersionedUri,
-    // TODO: owned_by_id is not required to identify an ontology element 
+    // TODO: owned_by_id is not required to identify an ontology element
     //  https://app.asana.com/0/1202805690238892/1203214689883091/f
     owned_by_id: AccountId,
 }
