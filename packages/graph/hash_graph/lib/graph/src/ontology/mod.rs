@@ -2,6 +2,8 @@
 
 mod data_type;
 pub mod domain_validator;
+mod entity_type;
+mod link_type;
 mod property_type;
 
 use core::fmt;
@@ -14,7 +16,10 @@ use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyTyp
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-pub use self::{data_type::DataTypeQueryPath, property_type::PropertyTypeQueryPath};
+pub use self::{
+    data_type::DataTypeQueryPath, entity_type::EntityTypeQueryPath, link_type::LinkTypeQueryPath,
+    property_type::PropertyTypeQueryPath,
+};
 
 // TODO - find a good place for AccountId, perhaps it will become redundant in a future design
 
@@ -301,5 +306,21 @@ impl PersistedEntityType {
     #[must_use]
     pub const fn metadata(&self) -> &PersistedOntologyMetadata {
         &self.metadata
+    }
+}
+
+#[cfg(test)]
+mod test_utils {
+    use crate::store::query::{Path, PathSegment};
+
+    pub fn create_path(segments: impl IntoIterator<Item = &'static str>) -> Path {
+        Path {
+            segments: segments
+                .into_iter()
+                .map(|segment| PathSegment {
+                    identifier: segment.to_owned(),
+                })
+                .collect(),
+        }
     }
 }
