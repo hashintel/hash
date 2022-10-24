@@ -60,6 +60,7 @@ const DesktopNav: FunctionComponent = () => {
         size="medium"
         variant="tertiary"
         href="https://hash.ai"
+        openInNew
         endIcon={<FaIcon name="arrow-up-right-from-square" type="solid" />}
       >
         Visit our main site
@@ -217,6 +218,7 @@ const MobileNav: FunctionComponent<{
                 size="large"
                 variant="primary"
                 href="https://hash.ai"
+                openInNew
                 startIcon={
                   <FaIcon name="arrow-up-right-from-square" type="solid" />
                 }

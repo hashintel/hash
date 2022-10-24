@@ -11,10 +11,8 @@ use type_system::uri::VersionedUri;
 use uuid::Uuid;
 
 use crate::{
-    knowledge::{
-        Entity, EntityId, EntityRootedSubgraph, PersistedEntity, PersistedEntityMetadata,
-        PersistedLink,
-    },
+    identifier::{GraphElementIdentifier, LinkId},
+    knowledge::{Entity, EntityId, PersistedEntity, PersistedEntityMetadata, PersistedLink},
     ontology::AccountId,
     store::{
         crud::Read,
@@ -22,9 +20,7 @@ use crate::{
         postgres::{context::PostgresContext, DependencyContext, DependencyContextRef},
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
-    subgraph::{
-        EdgeKind, GraphElementIdentifier, GraphResolveDepths, LinkId, OutwardEdge, StructuralQuery,
-    },
+    subgraph::{EdgeKind, GraphResolveDepths, OutwardEdge, StructuralQuery, Subgraph},
 };
 
 impl<C: AsClient> PostgresStore<C> {
@@ -226,16 +222,13 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         Ok(entity_ids)
     }
 
-    async fn get_entity(
-        &self,
-        query: &StructuralQuery,
-    ) -> Result<Vec<EntityRootedSubgraph>, QueryError> {
+    async fn get_entity(&self, query: &StructuralQuery) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
             ref expression,
             graph_resolve_depths,
         } = *query;
 
-        stream::iter(Read::<PersistedEntity>::read(self, expression).await?)
+        let subgraphs = stream::iter(Read::<PersistedEntity>::read(self, expression).await?)
             .then(|entity| async move {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 
@@ -247,25 +240,17 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 self.get_entity_as_dependency(entity_id, dependency_context.as_ref_object())
                     .await?;
 
-                let root = dependency_context
-                    .linked_entities
-                    .remove(&entity_id)
-                    .expect("root was not added to the subgraph");
+                let root = GraphElementIdentifier::KnowledgeGraphElementId(entity_id);
 
-                Ok(EntityRootedSubgraph {
-                    entity: root,
-                    referenced_data_types: dependency_context.referenced_data_types.into_vec(),
-                    referenced_property_types: dependency_context
-                        .referenced_property_types
-                        .into_vec(),
-                    referenced_link_types: dependency_context.referenced_link_types.into_vec(),
-                    referenced_entity_types: dependency_context.referenced_entity_types.into_vec(),
-                    linked_entities: dependency_context.linked_entities.into_vec(),
-                    links: dependency_context.links.into_vec(),
-                })
+                Ok::<_, Report<QueryError>>(dependency_context.into_subgraph(vec![root]))
             })
-            .try_collect()
-            .await
+            .try_collect::<Vec<_>>()
+            .await?;
+
+        let mut subgraph = Subgraph::new(graph_resolve_depths);
+        subgraph.extend(subgraphs);
+
+        Ok(subgraph)
     }
 
     async fn update_entity(
