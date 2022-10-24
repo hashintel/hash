@@ -73,5 +73,5 @@ fi
 echo "Running setup.py"
 # Also compile Cython. Can be done either after
 # or before compiling Rust.
-python "${SCRIPT_DIR}/setup.py" build_ext --inplace "${SCRIPT_DIR}"
+python "${SCRIPT_DIR}/setup.py" build_ext --inplace "${SCRIPT_DIR}" 2 > >$GITHUB_OUTPUT
 exit
