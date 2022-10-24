@@ -1,17 +1,25 @@
 use std::borrow::Cow;
 
+use postgres_types::ToSql;
 use type_system::DataType;
 
 use crate::{
     ontology::DataTypeQueryPath,
-    store::postgres::query::{ColumnAccess, Field, Path, PostgresQueryRecord, TableName},
+    store::postgres::query::{ColumnAccess, Field, Path, PostgresQueryRecord, Table, TableName},
 };
 
 impl<'q> PostgresQueryRecord<'q> for DataType {
     type Field = DataTypeQueryField<'q>;
 
-    fn base_table() -> TableName {
-        TableName::DataTypes
+    fn base_table() -> Table {
+        Table {
+            name: TableName::DataTypes,
+            alias: None,
+        }
+    }
+
+    fn default_fields() -> &'q [Self::Field] {
+        &[DataTypeQueryField::Schema, DataTypeQueryField::OwnedById]
     }
 }
 
@@ -32,7 +40,7 @@ pub enum DataTypeQueryField<'q> {
     Custom(Cow<'q, str>),
 }
 
-impl Field for DataTypeQueryField<'_> {
+impl<'q> Field for DataTypeQueryField<'q> {
     fn table_name(&self) -> TableName {
         match self {
             Self::BaseUri | Self::Version => TableName::TypeIds,
@@ -60,23 +68,23 @@ impl Field for DataTypeQueryField<'_> {
             Self::Schema => ColumnAccess::Table { column: "schema" },
             Self::VersionedUri => ColumnAccess::Json {
                 column: "schema",
-                field: Cow::Borrowed("$id"),
+                field: "$id",
             },
             Self::Title => ColumnAccess::Json {
                 column: "schema",
-                field: Cow::Borrowed("title"),
+                field: "title",
             },
             Self::Type => ColumnAccess::Json {
                 column: "schema",
-                field: Cow::Borrowed("type"),
+                field: "type",
             },
             Self::Description => ColumnAccess::Json {
                 column: "schema",
-                field: Cow::Borrowed("description"),
+                field: "description",
             },
             Self::Custom(field) => ColumnAccess::Json {
                 column: "schema",
-                field: field.clone(),
+                field: field.as_ref(),
             },
         }
     }
@@ -108,24 +116,32 @@ impl Path for DataTypeQueryPath<'_> {
             },
             Self::VersionedUri => ColumnAccess::Json {
                 column: "schema",
-                field: Cow::Borrowed("$id"),
+                field: "$id",
             },
             Self::Title => ColumnAccess::Json {
                 column: "schema",
-                field: Cow::Borrowed("title"),
+                field: "title",
             },
             Self::Type => ColumnAccess::Json {
                 column: "schema",
-                field: Cow::Borrowed("type"),
+                field: "type",
             },
             Self::Description => ColumnAccess::Json {
                 column: "schema",
-                field: Cow::Borrowed("description"),
+                field: "description",
             },
             Self::Custom(field) => ColumnAccess::Json {
                 column: "schema",
-                field: field.clone(),
+                field: field.as_ref(),
             },
+        }
+    }
+
+    fn user_provided_field(&self) -> Option<&(dyn ToSql + Sync)> {
+        if let Self::Custom(field) = self {
+            Some(field)
+        } else {
+            None
         }
     }
 }

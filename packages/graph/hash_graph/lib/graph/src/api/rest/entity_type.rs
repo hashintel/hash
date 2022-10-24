@@ -21,12 +21,15 @@ use crate::{
         patch_id_and_parse, AccountId, PersistedEntityType, PersistedOntologyIdentifier,
         PersistedOntologyMetadata,
     },
+    shared::identifier::GraphElementIdentifier,
     store::{
         error::{BaseUriAlreadyExists, BaseUriDoesNotExist},
         query::Expression,
         EntityTypeStore, StorePool,
     },
-    subgraph::{StructuralQuery, Subgraph},
+    subgraph::{
+        EdgeKind, Edges, GraphResolveDepths, OutwardEdge, StructuralQuery, Subgraph, Vertex,
+    },
 };
 
 #[derive(OpenApi)]
@@ -47,6 +50,12 @@ use crate::{
             PersistedOntologyMetadata,
             PersistedEntityType,
             StructuralQuery,
+            GraphElementIdentifier,
+            Vertex,
+            EdgeKind,
+            OutwardEdge,
+            GraphResolveDepths,
+            Edges,
             Subgraph,
         )
     ),

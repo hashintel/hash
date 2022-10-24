@@ -89,10 +89,7 @@ impl<'de> Visitor<'de> for DataTypeQueryTokenVisitor {
     type Value = DataTypeQueryToken<'de>;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str(
-            "one of `ownedById`, `baseUri`, `versionedUri`, `version`, `title, `description`, \
-             `type`, or a custom identifier",
-        )
+        DataTypeQueryPathVisitor::new(0).expecting(formatter)
     }
 
     fn visit_str<E: de::Error>(self, v: &str) -> Result<Self::Value, E> {
@@ -151,14 +148,22 @@ pub struct DataTypeQueryPathVisitor {
     position: usize,
 }
 
+impl DataTypeQueryPathVisitor {
+    pub const EXPECTING: &'static str = "one of `ownedById`, `baseUri`, `versionedUri`, \
+                                         `version`, `title, `description`, `type`, or a custom \
+                                         identifier";
+
+    #[must_use]
+    pub const fn new(position: usize) -> Self {
+        Self { position }
+    }
+}
+
 impl<'de> Visitor<'de> for DataTypeQueryPathVisitor {
     type Value = DataTypeQueryPath<'de>;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str(
-            "a sequence containing one element of `ownedById`, `baseUri`, `versionedUri`, \
-             `version`, `title, `description`, `type`, or a custom identifier",
-        )
+        formatter.write_str(Self::EXPECTING)
     }
 
     fn visit_seq<A>(mut self, mut seq: A) -> Result<Self::Value, A::Error>
@@ -187,37 +192,26 @@ impl<'de: 'k, 'k> Deserialize<'de> for DataTypeQueryPath<'k> {
     where
         D: Deserializer<'de>,
     {
-        deserializer.deserialize_seq(DataTypeQueryPathVisitor { position: 0 })
+        deserializer.deserialize_seq(DataTypeQueryPathVisitor::new(0))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::store::query::PathSegment;
-
-    fn create_path(segments: impl IntoIterator<Item = &'static str>) -> Path {
-        Path {
-            segments: segments
-                .into_iter()
-                .map(|segment| PathSegment {
-                    identifier: segment.to_owned(),
-                })
-                .collect(),
-        }
-    }
+    use crate::ontology::test_utils::create_path;
 
     fn convert_path(
         segments: impl IntoIterator<Item = &'static str>,
     ) -> DataTypeQueryPath<'static> {
-        DataTypeQueryPath::try_from(create_path(segments)).expect("Could not convert path")
+        DataTypeQueryPath::try_from(create_path(segments)).expect("could not convert path")
     }
 
     fn deserialize<'q>(segments: impl IntoIterator<Item = &'q str>) -> DataTypeQueryPath<'q> {
         DataTypeQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
             segments.into_iter(),
         ))
-        .expect("Could not deserialize path")
+        .expect("could not deserialize path")
     }
 
     #[test]
@@ -241,7 +235,7 @@ mod tests {
             DataTypeQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
                 ["baseUri", "test"].into_iter()
             ))
-            .expect_err("Could convert data type query path with multiple tokens")
+            .expect_err("could convert data type query path with multiple tokens")
             .to_string(),
             "invalid length 2, expected 1 element in sequence"
         );
@@ -269,7 +263,7 @@ mod tests {
 
         assert_eq!(
             DataTypeQueryPath::try_from(create_path(["baseUri", "invalid"]))
-                .expect_err("Could convert data type query path with multiple tokens")
+                .expect_err("could convert data type query path with multiple tokens")
                 .downcast_ref::<de::value::Error>()
                 .expect("deserialization error not found in report")
                 .to_string(),
