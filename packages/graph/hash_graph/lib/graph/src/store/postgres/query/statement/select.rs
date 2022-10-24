@@ -215,7 +215,7 @@ mod tests {
     }
 
     #[test]
-    fn property_type_to_data_type() {
+    fn property_type_by_referenced_data_types() {
         let mut compiler = SelectCompiler::<PropertyType>::with_asterisk();
 
         compiler.add_filter(&Filter::Equal(
@@ -282,7 +282,7 @@ mod tests {
     }
 
     #[test]
-    fn property_type_to_property_type() {
+    fn property_type_by_referenced_property_types() {
         let mut compiler = SelectCompiler::<PropertyType>::with_asterisk();
 
         let filter = Filter::Equal(
