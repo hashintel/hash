@@ -66,7 +66,7 @@ mod tests {
     };
 
     #[test]
-    fn render_with_clause() {
+    fn transpile_with_expression() {
         let mut with_clause = WithExpression::default();
         assert_eq!(with_clause.transpile_to_string(), "");
 

@@ -150,7 +150,7 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
                 table: version_column.table,
                 access: ColumnAccess::Table { column: "base_uri" },
             },
-            TableName::DataTypes => unreachable!(),
+            _ => unreachable!(),
         };
 
         // Add a WITH expression selecting the partitioned version
