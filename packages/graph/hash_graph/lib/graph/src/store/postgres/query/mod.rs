@@ -6,6 +6,7 @@ mod compile;
 mod condition;
 mod data_type;
 mod expression;
+mod property_type;
 mod statement;
 mod table;
 

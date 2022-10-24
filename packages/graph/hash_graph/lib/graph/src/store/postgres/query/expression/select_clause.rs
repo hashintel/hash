@@ -39,7 +39,7 @@ mod tests {
     };
 
     #[test]
-    fn render_select_expression() {
+    fn transpile_select_expression() {
         assert_eq!(
             SelectExpression::from_column(
                 Column {
