@@ -311,7 +311,7 @@ impl Modify for AnyObjectAddon {
                     ObjectBuilder::new()
                         .example(Some(
                             serde_json::to_value(Expression::for_latest_version())
-                                .expect("Could not serialize expression"),
+                                .expect("could not serialize expression"),
                         ))
                         .build(),
                 )

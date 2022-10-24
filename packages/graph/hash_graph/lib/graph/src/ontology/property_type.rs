@@ -167,14 +167,14 @@ mod tests {
     fn convert_path(
         segments: impl IntoIterator<Item = &'static str>,
     ) -> PropertyTypeQueryPath<'static> {
-        PropertyTypeQueryPath::try_from(create_path(segments)).expect("Could not convert path")
+        PropertyTypeQueryPath::try_from(create_path(segments)).expect("could not convert path")
     }
 
     fn deserialize<'q>(segments: impl IntoIterator<Item = &'q str>) -> PropertyTypeQueryPath<'q> {
         PropertyTypeQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
             segments.into_iter(),
         ))
-        .expect("Could not deserialize path")
+        .expect("could not deserialize path")
     }
 
     #[test]
@@ -206,7 +206,7 @@ mod tests {
                     ["baseUri", "test"].into_iter()
                 )
             )
-            .expect_err("Could convert property type query path with multiple tokens")
+            .expect_err("could convert property type query path with multiple tokens")
             .to_string(),
             "invalid length 2, expected 1 element in sequence"
         );
@@ -217,7 +217,7 @@ mod tests {
                     ["dataTypes", "*"].into_iter()
                 )
             )
-            .expect_err("Could convert property type query path with multiple tokens")
+            .expect_err("could convert property type query path with multiple tokens")
             .to_string(),
             "invalid length 2, expected one of `ownedById`, `baseUri`, `versionedUri`, `version`, \
              `title, `description`, `type`, or a custom identifier"
@@ -229,7 +229,7 @@ mod tests {
                     ["dataTypes", "*", "versionedUri", "invalid"].into_iter()
                 )
             )
-            .expect_err("Could convert property type query path with multiple tokens")
+            .expect_err("could convert property type query path with multiple tokens")
             .to_string(),
             "invalid length 4, expected 3 elements in sequence"
         );
@@ -263,7 +263,7 @@ mod tests {
 
         assert_eq!(
             PropertyTypeQueryPath::try_from(create_path(["baseUri", "invalid"]))
-                .expect_err("Could convert property type query path with multiple tokens")
+                .expect_err("could convert property type query path with multiple tokens")
                 .downcast_ref::<de::value::Error>()
                 .expect("deserialization error not found in report")
                 .to_string(),
