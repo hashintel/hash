@@ -1,6 +1,6 @@
-import { EntityType } from "@blockprotocol/type-system-web";
+import { EntityType, extractBaseUri } from "@blockprotocol/type-system-web";
 import { Button, TextField } from "@hashintel/hash-design-system/ui";
-import { generateTypeId, slugifyTypeTitle } from "@hashintel/hash-shared/types";
+import { generateTypeId } from "@hashintel/hash-shared/types";
 import {
   Box,
   Container,
@@ -84,9 +84,12 @@ const Page: NextPageWithLayout = () => {
       throw new Error("Namespace for entity type creation missing");
     }
 
-    const url = `${FRONTEND_URL}/@${
-      user.shortname
-    }/types/entity-type/${slugifyTypeTitle(name)}`;
+    const entityTypeId = generateTypeId({
+      domain: FRONTEND_URL,
+      kind: "entity-type",
+      title: name,
+      namespace: user.shortname,
+    });
 
     const entityType: EntityType = {
       title: name,
@@ -96,10 +99,10 @@ const Page: NextPageWithLayout = () => {
       kind: "entityType",
       type: "object",
       properties: {},
-      $id: `${url}/v/1`,
+      $id: entityTypeId,
     };
 
-    const nextUrl = `${url}?draft=${encodeURIComponent(
+    const nextUrl = `${extractBaseUri(entityTypeId)}?draft=${encodeURIComponent(
       Buffer.from(JSON.stringify(entityType)).toString("base64"),
     )}`;
     await router.push(nextUrl, nextUrl, { shallow: true });
