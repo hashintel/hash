@@ -2,6 +2,7 @@ import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { GraphApi } from "@hashintel/hash-graph-client";
 import { OrgModel, OrgSize } from "../model";
 import { workspaceAccountId } from "../model/util";
+import { getRequiredEnv } from "../util";
 import { ensureDevUsersAreSeeded } from "./dev-users";
 import { PageDefinition, seedPages } from "./seed-pages";
 
@@ -13,8 +14,8 @@ const seedOrg = async (params: {
   const { graphApi, logger } = params;
 
   const sharedOrgModel = await OrgModel.createOrg(graphApi, {
-    name: "HASH",
-    shortname: "hash",
+    name: getRequiredEnv("WORKSPACE_ACCOUNT_NAME"),
+    shortname: getRequiredEnv("WORKSPACE_ACCOUNT_SHORTNAME"),
     providedInfo: {
       orgSize: OrgSize.ElevenToFifty,
     },
@@ -28,15 +29,12 @@ const seedOrg = async (params: {
   const pageTitles: PageDefinition[] = [
     {
       title: "First",
-      nestedPages: [],
     },
     {
       title: "Second",
-      nestedPages: [],
     },
     {
       title: "Third",
-      nestedPages: [],
     },
   ];
 
@@ -79,7 +77,6 @@ export const seedOrgsAndUsers = async (params: {
               nestedPages: [
                 {
                   title: "Leaf",
-                  nestedPages: [],
                 },
               ],
             },
@@ -87,11 +84,9 @@ export const seedOrgsAndUsers = async (params: {
         },
         {
           title: "Second",
-          nestedPages: [],
         },
         {
           title: "Third",
-          nestedPages: [],
         },
       ];
 

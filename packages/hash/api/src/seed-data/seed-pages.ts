@@ -4,7 +4,7 @@ import { PageModel } from "../model";
 
 export type PageDefinition = {
   title: string;
-  nestedPages: PageDefinition[];
+  nestedPages?: PageDefinition[];
 };
 
 export const seedPages = async (
@@ -14,11 +14,11 @@ export const seedPages = async (
     graphApi: GraphApi;
     logger: Logger;
   },
-  parentPageModel: PageModel | null = null,
+  parentPageModel?: PageModel,
 ) => {
   const { graphApi } = sharedParams;
 
-  let prevIndex: string | undefined = undefined;
+  let prevIndex: string | undefined;
 
   for (const pageDefinition of pageDefinitions) {
     const newPageModel: PageModel = await PageModel.createPage(graphApi, {
@@ -39,11 +39,13 @@ export const seedPages = async (
 
     prevIndex = newPageModel.getIndex();
 
-    await seedPages(
-      pageDefinition.nestedPages,
-      owningActorId,
-      sharedParams,
-      newPageModel,
-    );
+    if (pageDefinition.nestedPages) {
+      await seedPages(
+        pageDefinition.nestedPages,
+        owningActorId,
+        sharedParams,
+        newPageModel,
+      );
+    }
   }
 };
