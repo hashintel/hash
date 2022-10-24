@@ -40,7 +40,7 @@ jobs:
       - name: Find changed crates
         id: crates
         run: |
-          GITHUB_OUTPUT_FILE_PATH=$(mktemp)
+          export GITHUB_OUTPUT_FILE_PATH=$(mktemp)
           python .github/scripts/rust/setup.py
           cat $GITHUB_OUTPUT_FILE_PATH >> $GITHUB_OUTPUT
 
