@@ -60,15 +60,15 @@ mod tests {
 
     use super::*;
     use crate::store::postgres::query::{
-        test_helper::{max_version_expression, transpile, trim_whitespace},
+        test_helper::{max_version_expression, trim_whitespace},
         DataTypeQueryField, Expression, Field, SelectExpression, SelectStatement, Table, TableName,
         WhereExpression,
     };
 
     #[test]
-    fn render_with_clause() {
+    fn transpile_with_expression() {
         let mut with_clause = WithExpression::default();
-        assert_eq!(transpile(&with_clause), "");
+        assert_eq!(with_clause.transpile_to_string(), "");
 
         with_clause.add_statement(TableName::TypeIds, SelectStatement {
             with: WithExpression::default(),
@@ -89,7 +89,7 @@ mod tests {
         });
 
         assert_eq!(
-            trim_whitespace(transpile(&with_clause)),
+            trim_whitespace(with_clause.transpile_to_string()),
             trim_whitespace(
                 r#"
                 WITH "type_ids" AS (SELECT *, MAX("type_ids"."version") OVER (PARTITION BY "type_ids"."base_uri") AS "latest_version" FROM "type_ids")"#
@@ -109,7 +109,7 @@ mod tests {
         });
 
         assert_eq!(
-            trim_whitespace(transpile(&with_clause)),
+            trim_whitespace(with_clause.transpile_to_string()),
             trim_whitespace(
                 r#"
                 WITH "type_ids" AS (SELECT *, MAX("type_ids"."version") OVER (PARTITION BY "type_ids"."base_uri") AS "latest_version" FROM "type_ids"),

@@ -8,6 +8,7 @@ import { FRONTEND_URL } from "../config";
 import { Link } from "./Link";
 import { mdxImageClasses } from "./MdxImage";
 import { FaIcon } from "./icons/FaIcon";
+import { BlogPostAuthor as BlogPostAuthorType } from "../pages/blog/[...blogSlug].page";
 
 export type BlogPostPagePhoto = {
   src: string;
@@ -16,7 +17,6 @@ export type BlogPostPagePhoto = {
 };
 
 export type BlogPagePhotos = {
-  author: BlogPostPagePhoto | null;
   post: BlogPostPagePhoto | null;
   body: Record<string, BlogPostPagePhoto | null>;
 };
@@ -55,16 +55,14 @@ export const BlogPostAuthor: FunctionComponent<BlogPostAuthorProps> = ({
 export const BlogPostHead: FunctionComponent<{
   title?: string;
   subtitle?: string;
-  author?: string;
-  jobTitle?: string;
+  authors?: BlogPostAuthorType[];
   date?: string;
   pageTitle?: string;
   pageDescription?: string;
 }> = ({
   title,
   subtitle,
-  author,
-  jobTitle,
+  authors = [],
   date: dateInput,
   pageTitle = title,
   pageDescription = subtitle,
@@ -101,8 +99,12 @@ export const BlogPostHead: FunctionComponent<{
         <meta name="og:description" content={pageDescription} />
         <meta property="og:site_name" content="HASH for Developers" />
         <meta property="og:type" content="article" />
-        <meta property="og:article:author" content={author} />
-        <meta property="article:author" content={author} />
+        {authors.map((author) => (
+          <>
+            <meta property="og:article:author" content={author.name} />
+            <meta property="article:author" content={author.name} />
+          </>
+        ))}
         {dateIso ? (
           <>
             <meta property="og:article:published_time" content={dateIso} />
@@ -197,26 +199,28 @@ export const BlogPostHead: FunctionComponent<{
                     {format(date, "MMMM do, y")}
                   </Typography>
                 ) : null}
-                <Stack direction="row">
-                  {photos.author ? (
-                    <Box
-                      width={48}
-                      height={48}
-                      borderRadius={48}
-                      overflow="hidden"
-                      position="relative"
-                    >
-                      <Image src={photos.author.src} layout="fill" />
-                    </Box>
-                  ) : null}
-                  <Stack ml={2} direction="column" spacing={0.5}>
-                    {author ? <BlogPostAuthor>{author}</BlogPostAuthor> : null}
-                    {jobTitle ? (
-                      <Typography variant="hashMediumCaps">
-                        {jobTitle}
-                      </Typography>
-                    ) : null}
-                  </Stack>
+                <Stack spacing={4}>
+                  {authors.map((author) => (
+                    <Stack direction="row" key={author.name}>
+                      {author.photo ? (
+                        <Box
+                          width={48}
+                          height={48}
+                          borderRadius={48}
+                          overflow="hidden"
+                          position="relative"
+                        >
+                          <Image src={author.photo.src} layout="fill" />
+                        </Box>
+                      ) : null}
+                      <Stack ml={2} direction="column" spacing={0.5}>
+                        <BlogPostAuthor>{author.name}</BlogPostAuthor>
+                        <Typography variant="hashMediumCaps">
+                          {author.jobTitle}
+                        </Typography>
+                      </Stack>
+                    </Stack>
+                  ))}
                 </Stack>
               </Stack>
             </Box>
