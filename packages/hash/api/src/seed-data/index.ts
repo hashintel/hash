@@ -3,7 +3,7 @@ import { GraphApi } from "@hashintel/hash-graph-client";
 import { OrgModel, OrgSize, UserModel } from "../model";
 import { workspaceAccountId } from "../model/util";
 import { ensureDevUsersAreSeeded } from "./dev-users";
-import { PageList, seedPages } from "./seed-pages";
+import { PageDefinition, seedPages } from "./seed-pages";
 
 const seedUserContent = async (
   user: UserModel,
@@ -25,13 +25,34 @@ const seedUserContent = async (
     `User with shortname = "${user.getShortname()}" joined org with shortname = '${sharedOrg.getShortname()}'`,
   );
 
-  const pageTitles: PageList = [["First", "Leaf"], "Second", "Third"];
+  const pageTitles: PageDefinition[] = [
+    {
+      title: "First",
+      nestedPages: [
+        {
+          title: "Middle",
+          nestedPages: [
+            {
+              title: "Leaf",
+              nestedPages: [],
+            },
+          ],
+        },
+      ],
+    },
+    {
+      title: "Second",
+      nestedPages: [],
+    },
+    {
+      title: "Third",
+      nestedPages: [],
+    },
+  ];
 
   await seedPages(pageTitles, user.entityId, params);
   logger.info(
-    `Development User with shortname = "${user.getShortname()}" created ${
-      pageTitles.flat().length
-    } new pages.`,
+    `Development User with shortname = "${user.getShortname()}" now has seeded pages.`,
   );
 };
 
@@ -55,18 +76,25 @@ const seedOrg = async (params: {
     `Development Org available with shortname = "${sharedOrgModel.getShortname()}"`,
   );
 
-  const pageTitles: PageList = [
-    "Org page one",
-    "Org page two",
-    "Org page three",
+  const pageTitles: PageDefinition[] = [
+    {
+      title: "First",
+      nestedPages: [],
+    },
+    {
+      title: "Second",
+      nestedPages: [],
+    },
+    {
+      title: "Third",
+      nestedPages: [],
+    },
   ];
 
   await seedPages(pageTitles, sharedOrgModel.entityId, params);
 
   logger.info(
-    `Development Org with shortname = "${sharedOrgModel.getShortname()}" created ${
-      pageTitles.flat().length
-    } new pages.`,
+    `Development Org with shortname = "${sharedOrgModel.getShortname()}" now has seeded pages.`,
   );
 
   return sharedOrgModel;
