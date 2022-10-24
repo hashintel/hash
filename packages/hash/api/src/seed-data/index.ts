@@ -1,8 +1,11 @@
 import { Logger } from "@hashintel/hash-backend-utils/logger";
+import {
+  WORKSPACE_ACCOUNT_NAME,
+  WORKSPACE_ACCOUNT_SHORTNAME,
+} from "@hashintel/hash-backend-utils/system";
 import { GraphApi } from "@hashintel/hash-graph-client";
 import { OrgModel, OrgSize } from "../model";
 import { workspaceAccountId } from "../model/util";
-import { getRequiredEnv } from "../util";
 import { ensureDevUsersAreSeeded } from "./dev-users";
 import { PageDefinition, seedPages } from "./seed-pages";
 
@@ -14,8 +17,8 @@ const seedOrg = async (params: {
   const { graphApi, logger } = params;
 
   const sharedOrgModel = await OrgModel.createOrg(graphApi, {
-    name: getRequiredEnv("WORKSPACE_ACCOUNT_NAME"),
-    shortname: getRequiredEnv("WORKSPACE_ACCOUNT_SHORTNAME"),
+    name: WORKSPACE_ACCOUNT_NAME,
+    shortname: WORKSPACE_ACCOUNT_SHORTNAME,
     providedInfo: {
       orgSize: OrgSize.ElevenToFifty,
     },
