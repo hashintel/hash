@@ -2,7 +2,7 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "postUpdateOptions": ["yarnDedupeFewer"],
   "prConcurrentLimit": 5,
-  "enabledManagers": ["github-actions", "npm"],
+  "enabledManagers": ["github-actions"],
   "rebaseWhen": "conflicted",
   "schedule": ["every weekday before 5am"]
 }
