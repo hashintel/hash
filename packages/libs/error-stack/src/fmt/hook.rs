@@ -761,11 +761,11 @@ impl Hooks {
     }
 
     pub(crate) fn call(&self, frame: &Frame, context: &mut HookContext<Frame>) {
+        self.call_location(frame, context);
+
         for (_, hook) in &self.inner {
             hook(frame, context);
         }
-
-        self.call_location(frame, context)
     }
 }
 
