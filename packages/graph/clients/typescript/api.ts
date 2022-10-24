@@ -326,55 +326,6 @@ export interface EdgesValueInner {
   edgeKind: EdgeKind;
 }
 /**
- *
- * @export
- * @interface EntityRootedSubgraph
- */
-export interface EntityRootedSubgraph {
-  /**
-   *
-   * @type {PersistedEntity}
-   * @memberof EntityRootedSubgraph
-   */
-  entity: PersistedEntity;
-  /**
-   *
-   * @type {Array<PersistedEntity>}
-   * @memberof EntityRootedSubgraph
-   */
-  linkedEntities: Array<PersistedEntity>;
-  /**
-   *
-   * @type {Array<PersistedLink>}
-   * @memberof EntityRootedSubgraph
-   */
-  links: Array<PersistedLink>;
-  /**
-   *
-   * @type {Array<PersistedDataType>}
-   * @memberof EntityRootedSubgraph
-   */
-  referencedDataTypes: Array<PersistedDataType>;
-  /**
-   *
-   * @type {Array<PersistedEntityType>}
-   * @memberof EntityRootedSubgraph
-   */
-  referencedEntityTypes: Array<PersistedEntityType>;
-  /**
-   *
-   * @type {Array<PersistedLinkType>}
-   * @memberof EntityRootedSubgraph
-   */
-  referencedLinkTypes: Array<PersistedLinkType>;
-  /**
-   *
-   * @type {Array<PersistedPropertyType>}
-   * @memberof EntityRootedSubgraph
-   */
-  referencedPropertyTypes: Array<PersistedPropertyType>;
-}
-/**
  * Specifies the structure of an Entity Type
  * @export
  * @interface EntityType
@@ -2868,10 +2819,7 @@ export const EntityApiFp = function (configuration?: Configuration) {
       structuralQuery: StructuralQuery,
       options?: AxiosRequestConfig,
     ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<Array<EntityRootedSubgraph>>
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Subgraph>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getEntitiesByQuery(
@@ -2996,7 +2944,7 @@ export const EntityApiFactory = function (
     getEntitiesByQuery(
       structuralQuery: StructuralQuery,
       options?: any,
-    ): AxiosPromise<Array<EntityRootedSubgraph>> {
+    ): AxiosPromise<Subgraph> {
       return localVarFp
         .getEntitiesByQuery(structuralQuery, options)
         .then((request) => request(axios, basePath));
@@ -3067,7 +3015,7 @@ export interface EntityApiInterface {
   getEntitiesByQuery(
     structuralQuery: StructuralQuery,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<EntityRootedSubgraph>>;
+  ): AxiosPromise<Subgraph>;
 
   /**
    *
@@ -5513,10 +5461,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
       structuralQuery: StructuralQuery,
       options?: AxiosRequestConfig,
     ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<Array<EntityRootedSubgraph>>
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Subgraph>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getEntitiesByQuery(
@@ -6170,7 +6115,7 @@ export const GraphApiFactory = function (
     getEntitiesByQuery(
       structuralQuery: StructuralQuery,
       options?: any,
-    ): AxiosPromise<Array<EntityRootedSubgraph>> {
+    ): AxiosPromise<Subgraph> {
       return localVarFp
         .getEntitiesByQuery(structuralQuery, options)
         .then((request) => request(axios, basePath));
@@ -6560,7 +6505,7 @@ export interface GraphApiInterface {
   getEntitiesByQuery(
     structuralQuery: StructuralQuery,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<EntityRootedSubgraph>>;
+  ): AxiosPromise<Subgraph>;
 
   /**
    *

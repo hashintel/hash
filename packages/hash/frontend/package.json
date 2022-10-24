@@ -48,8 +48,9 @@
     "@ory/integrations": "0.2.6",
     "@rjsf/core": "4.1.1",
     "@rjsf/material-ui": "4.1.1",
-    "@sentry/nextjs": "7.10.0",
-    "@sentry/react": "7.10.0",
+    "@sentry/nextjs": "7.16.0",
+    "@sentry/react": "7.16.0",
+    "@sentry/replay": "0.6.6",
     "@svgr/webpack": "6.2.1",
     "@twind/next": "1.0.9",
     "ajv": "8.11.0",
@@ -112,7 +113,7 @@
     "@types/dotenv-flow": "3.2.0",
     "@types/emoji-mart": "3.0.9",
     "@types/iframe-resizer": "3.5.9",
-    "@types/jest": "28.1.4",
+    "@types/jest": "29.2.0",
     "@types/jsonpath": "0.2.0",
     "@types/lodash": "4.14.175",
     "@types/pluralize": "0.0.29",
@@ -146,11 +147,11 @@
     "eslint-plugin-react-hooks": "4.6.0",
     "html-webpack-plugin": "5.5.0",
     "identity-obj-proxy": "3.0.0",
-    "jest": "28.1.2",
-    "jest-environment-jsdom": "28.1.2",
+    "jest": "29.2.1",
+    "jest-environment-jsdom": "29.2.1",
     "rimraf": "^3.0.2",
     "sass": "1.52.3",
-    "typescript": "4.7.4"
+    "typescript": "4.8.4"
   },
   "engines": {
     "node": ">=16.15.0"

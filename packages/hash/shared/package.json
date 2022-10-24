@@ -19,7 +19,7 @@
     "@apollo/client": "3.6.9",
     "@blockprotocol/core": "0.0.12",
     "@hashintel/hash-graph-client": "0.0.0",
-    "@sentry/browser": "7.10.0",
+    "@sentry/browser": "7.16.0",
     "graphql-tag": "2.12.5",
     "immer": "9.0.6",
     "jsonschema": "1.4.0",
@@ -71,6 +71,6 @@
     "eslint-plugin-react-hooks": "4.6.0",
     "react": "^18.2.0",
     "rimraf": "^3.0.2",
-    "typescript": "4.7.4"
+    "typescript": "4.8.4"
   }
 }
