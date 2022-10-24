@@ -268,6 +268,7 @@ mod full {
     use std::{
         error::Error,
         fmt::{Display, Formatter},
+        panic::Location,
     };
 
     use super::*;
@@ -553,6 +554,17 @@ mod full {
         assert_snapshot!("norm", format!("{report:?}"));
 
         assert_snapshot!("alt", format!("{report:#?}"));
+    }
+
+    #[test]
+    fn hook_location() {
+        let _guard = prepare(false);
+
+        let report = create_report();
+
+        Report::install_debug_hook::<Location<'static>>(|_, _| {});
+
+        assert_snapshot!(format!("{report:?}"))
     }
 
     #[cfg(nightly)]
