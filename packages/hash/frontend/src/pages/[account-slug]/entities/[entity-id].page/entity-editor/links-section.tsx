@@ -8,6 +8,7 @@ import { useEntityEditor } from "./entity-editor-context";
 import { LinkTable } from "./links-section/link-table";
 import { EntitySection } from "./shared/entity-section";
 import { EntitySectionEmptyState } from "./shared/entity-section-empty-state";
+import { rootsAsEntities } from "../../../../../lib/subgraph";
 
 const EmptyState = () => (
   <EntitySectionEmptyState
@@ -19,12 +20,14 @@ different entities"
 );
 
 export const LinksSection = () => {
-  const { entity } = useEntityEditor();
+  const { entityRootedSubgraph } = useEntityEditor();
   const [showSearch, setShowSearch] = useState(false);
 
-  if (!entity) {
+  if (!entityRootedSubgraph) {
     return null;
   }
+
+  const entity = rootsAsEntities(entityRootedSubgraph)[0]!;
 
   const isEmpty = !entity.links.length;
 

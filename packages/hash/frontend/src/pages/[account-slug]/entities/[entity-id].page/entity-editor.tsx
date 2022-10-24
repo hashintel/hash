@@ -1,19 +1,26 @@
 import { GlideGridOverlayPortal } from "../../../../components/GlideGlid/glide-grid-overlay-portal";
-import { EntityResponse } from "../../../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
 import { EntityEditorContextProvider } from "./entity-editor/entity-editor-context";
 import { LinksSection } from "./entity-editor/links-section";
 import { PeersSection } from "./entity-editor/peers-section";
 import { PropertiesSection } from "./entity-editor/properties-section";
 import { TypesSection } from "./entity-editor/types-section";
+import { Subgraph } from "../../../../lib/subgraph";
+import { Entity } from "../../../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
 
 export interface EntityEditorProps {
-  entity: EntityResponse | undefined;
-  setEntity: (entity: EntityResponse | undefined) => void;
+  entityRootedSubgraph: Subgraph | undefined;
+  setEntity: (entity: Entity | undefined) => void;
 }
 
-export const EntityEditor = ({ entity, setEntity }: EntityEditorProps) => {
+export const EntityEditor = ({
+  entityRootedSubgraph,
+  setEntity,
+}: EntityEditorProps) => {
   return (
-    <EntityEditorContextProvider entity={entity} setEntity={setEntity}>
+    <EntityEditorContextProvider
+      entityRootedSubgraph={entityRootedSubgraph}
+      setEntity={setEntity}
+    >
       <TypesSection />
 
       <PropertiesSection />

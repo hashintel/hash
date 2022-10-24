@@ -5,17 +5,20 @@ import { useEntityEditor } from "../../entity-editor-context";
 import { useBlockProtocolUpdateEntity } from "../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolUpdateEntity";
 import { propertyGridIndexes } from "./constants";
 import { PropertyRow } from "./types";
+import { rootsAsEntities } from "../../../../../../../lib/subgraph";
 
 export const useOnCellEdited = (rowData: PropertyRow[]) => {
   const snackbar = useSnackbar();
-  const { entity, setEntity } = useEntityEditor();
+  const { entityRootedSubgraph, setEntity } = useEntityEditor();
   const { updateEntity } = useBlockProtocolUpdateEntity();
 
   const onCellEdited = useCallback(
     async ([col, row]: Item, newValue: EditableGridCell) => {
-      if (!entity) {
+      if (!entityRootedSubgraph) {
         return;
       }
+
+      const entity = rootsAsEntities(entityRootedSubgraph)[0]!;
 
       const key = propertyGridIndexes[col];
       const property = rowData[row];
@@ -52,7 +55,7 @@ export const useOnCellEdited = (rowData: PropertyRow[]) => {
         snackbar.error(`Failed to update "${property.title}"`);
       }
     },
-    [rowData, entity, setEntity, updateEntity, snackbar],
+    [rowData, entityRootedSubgraph, setEntity, updateEntity, snackbar],
   );
 
   return onCellEdited;

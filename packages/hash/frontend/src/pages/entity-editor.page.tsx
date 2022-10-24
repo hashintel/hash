@@ -7,10 +7,11 @@ import { types } from "@hashintel/hash-shared/types";
 import { useUser } from "../components/hooks/useUser";
 import { NextPageWithLayout } from "../shared/layout";
 import { useBlockProtocolFunctionsWithOntology } from "./type-editor/blockprotocol-ontology-functions-hook";
-import { EntityResponse } from "../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
 import {
   getPersistedEntityType,
   getPersistedPropertyType,
+  rootsAsEntities,
+  Subgraph,
 } from "../lib/subgraph";
 
 /**
@@ -26,7 +27,7 @@ const isArrayDefinition = <T,>(
  */
 const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
   const { user } = useUser();
-  const [entity, setEntity] = useState<EntityResponse>();
+  const [entityRootedSubgraph, setEntityRootedSubgraph] = useState<Subgraph>();
 
   const { getEntity, createEntity } =
     useBlockProtocolFunctionsWithOntology(ownedById);
@@ -37,19 +38,19 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
       const entityId = user.entityId;
 
       void getEntity({ data: { entityId } }).then(({ data }) => {
-        setEntity(data);
+        setEntityRootedSubgraph(data);
       });
     }
   }, [user, getEntity]);
 
-  const { entityTypeRootedSubgraph, ...entityWithoutEntityType } = entity ?? {};
-
-  const entityType = entityTypeRootedSubgraph
-    ? getPersistedEntityType(
-        entityTypeRootedSubgraph,
-        entityTypeRootedSubgraph.roots[0]!,
-      )?.inner
+  const entity = entityRootedSubgraph
+    ? rootsAsEntities(entityRootedSubgraph)[0]!
     : undefined;
+
+  const entityType =
+    entityRootedSubgraph && entity
+      ? getPersistedEntityType(entityRootedSubgraph, entity.entityTypeId)?.inner
+      : undefined;
 
   // The (top-level) property type IDs defined in the entity type
   const propertyTypeIds = useMemo(
@@ -65,14 +66,14 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
   // The (top-level) property type definitions, referenced in the entity type
   const propertyTypeDefinitions = useMemo(
     () =>
-      entityTypeRootedSubgraph && propertyTypeIds
+      entityRootedSubgraph && propertyTypeIds
         ? propertyTypeIds.map(
             (propertyTypeId) =>
-              getPersistedPropertyType(entityTypeRootedSubgraph, propertyTypeId)
+              getPersistedPropertyType(entityRootedSubgraph, propertyTypeId)
                 ?.inner,
           )
         : undefined,
-    [entityTypeRootedSubgraph, propertyTypeIds],
+    [entityRootedSubgraph, propertyTypeIds],
   );
 
   const handleCreateEntity = async () => {
@@ -92,7 +93,7 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
       <Typography>Entity</Typography>
       <Button onClick={handleCreateEntity}>Create Entity</Button>
       <pre style={{ overflowX: "scroll" }}>
-        {JSON.stringify(entityWithoutEntityType ?? {}, null, 2)}
+        {JSON.stringify(entity ?? {}, null, 2)}
       </pre>
       <Typography>Entity type</Typography>
       <pre style={{ overflowX: "scroll" }}>

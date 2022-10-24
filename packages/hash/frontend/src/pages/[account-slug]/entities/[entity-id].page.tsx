@@ -1,19 +1,19 @@
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import { EntityResponse } from "../../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
 import { useBlockProtocolGetEntity } from "../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolGetEntity";
 import { useLoggedInUser } from "../../../components/hooks/useUser";
 import { getPlainLayout, NextPageWithLayout } from "../../../shared/layout";
 import { EntityEditor } from "./[entity-id].page/entity-editor";
 import { EntityPageLoadingState } from "./[entity-id].page/entity-page-loading-state";
 import { EntityPageWrapper } from "./[entity-id].page/entity-page-wrapper";
+import { Subgraph } from "../../../lib/subgraph";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
   const { user } = useLoggedInUser();
   const { getEntity } = useBlockProtocolGetEntity();
 
-  const [entity, setEntity] = useState<EntityResponse>();
+  const [entityRootedSubgraph, setEntityRootedSubgraph] = useState<Subgraph>();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,9 +21,9 @@ const Page: NextPageWithLayout = () => {
       try {
         const entityId = router.query["entity-id"] as string;
 
-        const res = await getEntity({ data: { entityId } });
+        const subgraph = (await getEntity({ data: { entityId } })).data;
 
-        setEntity(res.data);
+        setEntityRootedSubgraph(subgraph);
       } finally {
         setLoading(false);
       }
@@ -40,13 +40,31 @@ const Page: NextPageWithLayout = () => {
     return <EntityPageLoadingState />;
   }
 
-  if (!entity) {
+  if (!entityRootedSubgraph) {
     return <h1>Entity not found</h1>;
   }
 
   return (
-    <EntityPageWrapper entity={entity}>
-      <EntityEditor entity={entity} setEntity={setEntity} />
+    <EntityPageWrapper entityRootedSubgraph={entityRootedSubgraph}>
+      <EntityEditor
+        entityRootedSubgraph={entityRootedSubgraph}
+        setEntity={(entity) =>
+          setEntityRootedSubgraph((subgraph) => {
+            return subgraph && entity
+              ? {
+                  ...subgraph,
+                  vertices: {
+                    ...subgraph.vertices,
+                    [entity.entityId]: {
+                      kind: "entity",
+                      inner: entity,
+                    },
+                  },
+                }
+              : undefined;
+          })
+        }
+      />
     </EntityPageWrapper>
   );
 };

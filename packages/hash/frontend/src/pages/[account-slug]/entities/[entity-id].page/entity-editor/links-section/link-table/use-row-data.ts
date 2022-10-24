@@ -4,40 +4,43 @@ import { generateEntityLabel } from "../../../../../../../lib/entities";
 import {
   getPersistedEntityType,
   getPersistedLinkType,
+  rootsAsEntities,
 } from "../../../../../../../lib/subgraph";
 import { useEntityEditor } from "../../entity-editor-context";
 import { LinkRow } from "./types";
 
 export const useRowData = () => {
-  const { entity, linkSort } = useEntityEditor();
+  const { entityRootedSubgraph, linkSort } = useEntityEditor();
 
   const rowData = useMemo<LinkRow[]>(() => {
-    if (!entity) {
+    if (!entityRootedSubgraph) {
       return [];
     }
+
+    const entity = rootsAsEntities(entityRootedSubgraph)[0]!;
 
     return (
       entity?.links.map((link) => {
         const linkType = getPersistedLinkType(
-          entity.entityTypeRootedSubgraph,
+          entityRootedSubgraph,
           link.linkTypeId,
         )?.inner;
 
         const referencedEntityType = getPersistedEntityType(
-          entity.entityTypeRootedSubgraph,
+          entityRootedSubgraph,
           link.targetEntity.entityTypeId,
         )?.inner;
 
         return {
           expectedEntityType: referencedEntityType?.title ?? "",
-          linkedWith: generateEntityLabel(link.targetEntity),
+          linkedWith: generateEntityLabel(entityRootedSubgraph),
           linkId: link.linkTypeId,
           relationShip: "Outbound",
           type: linkType?.title ?? "",
         };
       }) ?? []
     );
-  }, [entity]);
+  }, [entityRootedSubgraph]);
 
   const sortedRowData = useMemo(() => {
     return sortRowData(rowData, linkSort);

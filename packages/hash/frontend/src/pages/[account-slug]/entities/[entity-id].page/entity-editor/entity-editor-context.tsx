@@ -23,7 +23,7 @@ interface Props extends EntityEditorProps {
 const EntityEditorContext = createContext<Props | null>(null);
 
 export const EntityEditorContextProvider = ({
-  entity,
+  entityRootedSubgraph,
   setEntity,
   children,
 }: PropsWithChildren<EntityEditorProps>) => {
@@ -39,14 +39,21 @@ export const EntityEditorContextProvider = ({
 
   const state = useMemo(
     () => ({
-      entity,
+      entityRootedSubgraph,
       setEntity,
       propertySort,
       setPropertySort,
       linkSort,
       setLinkSort,
     }),
-    [entity, setEntity, propertySort, setPropertySort, linkSort, setLinkSort],
+    [
+      entityRootedSubgraph,
+      setEntity,
+      propertySort,
+      setPropertySort,
+      linkSort,
+      setLinkSort,
+    ],
   );
 
   return (
