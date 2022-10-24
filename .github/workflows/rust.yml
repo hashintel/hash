@@ -40,8 +40,8 @@ jobs:
       - name: Find changed crates
         id: crates
         run: |
-          python  .github/scripts/rust/setup.py
-          cat github_output.txt >> $GITHUB_OUTPUT
+          python .github/scripts/rust/setup.py
+          cat /tmp/github_output.txt >> $GITHUB_OUTPUT
 
       - name: Determine samples
         id: samples
