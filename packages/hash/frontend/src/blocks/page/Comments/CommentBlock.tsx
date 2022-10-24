@@ -224,6 +224,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
               onClick={handleEditComment}
               disabled={submitUpdateDisabled}
               loading={loading}
+              loadingText="Saving..."
             >
               Submit
             </Button>
