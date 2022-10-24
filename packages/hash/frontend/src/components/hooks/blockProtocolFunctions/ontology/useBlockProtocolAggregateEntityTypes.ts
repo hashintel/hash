@@ -15,7 +15,7 @@ export const useBlockProtocolAggregateEntityTypes = (): {
     GetAllLatestEntityTypesQuery,
     GetAllLatestEntityTypesQueryVariables
   >(getAllLatestEntityTypesQuery, {
-    /** @todo reconsider caching. This is done for testing/demo purposes. */
+    /** @todo reconsider caching. This is done for testing/demo purposes. This is also necessary for the create entity type page */
     fetchPolicy: "no-cache",
   });
 

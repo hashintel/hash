@@ -1,6 +1,10 @@
-import { EntityType, extractBaseUri } from "@blockprotocol/type-system-web";
+import {
+  EntityType,
+  extractBaseUri,
+  VersionedUri,
+} from "@blockprotocol/type-system-web";
 import { Button, TextField } from "@hashintel/hash-design-system/ui";
-import { generateTypeId } from "@hashintel/hash-shared/types";
+import { generateTypeId, slugifyTypeTitle } from "@hashintel/hash-shared/types";
 import {
   Box,
   Container,
@@ -15,9 +19,10 @@ import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
 import { ReactNode } from "react";
 import { useForm } from "react-hook-form";
-import { useBlockProtocolGetEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
+import { useBlockProtocolAggregateEntityTypes } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregateEntityTypes";
 import { useLoggedInUser } from "../../../../components/hooks/useUser";
 import { FRONTEND_URL } from "../../../../lib/config";
+import { getPersistedEntityType } from "../../../../lib/subgraph";
 import { useInitTypeSystem } from "../../../../lib/use-init-type-system";
 import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
 import { TopContextBar } from "../../../shared/top-context-bar";
@@ -69,7 +74,8 @@ const Page: NextPageWithLayout = () => {
       }
     },
   });
-  const { getEntityType } = useBlockProtocolGetEntityType();
+
+  const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes();
 
   if (user && router.query["account-slug"] !== `@${user.shortname}`) {
     throw new Error("Workspaces not yet supported");
@@ -84,12 +90,27 @@ const Page: NextPageWithLayout = () => {
       throw new Error("Namespace for entity type creation missing");
     }
 
-    const entityTypeId = generateTypeId({
-      domain: FRONTEND_URL,
-      kind: "entity-type",
-      title: name,
-      namespace: user.shortname,
-    });
+    const types = await aggregateEntityTypes({ data: {} });
+
+    if (!types.data) {
+      throw new Error("Cannot aggregate entity types for slug generation");
+    }
+
+    let entityTypeId: VersionedUri;
+
+    for (let suffix = 0; ; suffix++) {
+      entityTypeId = generateTypeId({
+        domain: FRONTEND_URL,
+        kind: "entity-type",
+        title: name,
+        namespace: user.shortname,
+        slug: `${slugifyTypeTitle(name)}${suffix === 0 ? "" : suffix}`,
+      });
+
+      if (!getPersistedEntityType(types.data, entityTypeId)) {
+        break;
+      }
+    }
 
     const entityType: EntityType = {
       title: name,
@@ -189,24 +210,6 @@ const Page: NextPageWithLayout = () => {
                 {...register("name", {
                   required: true,
                   disabled: isSubmitting,
-                  validate: async (value) => {
-                    if (!user.shortname) {
-                      throw new Error("User shortname must exist");
-                    }
-
-                    const entityTypeId = generateTypeId({
-                      domain: FRONTEND_URL,
-                      kind: "entity-type",
-                      title: value,
-                      namespace: user.shortname,
-                    });
-
-                    const res = await getEntityType({ data: { entityTypeId } });
-
-                    return res.data?.roots.length
-                      ? "Entity type name must be unique"
-                      : true;
-                  },
                 })}
                 required
                 disabled={isSubmitting}

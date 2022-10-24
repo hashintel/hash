@@ -17,21 +17,24 @@ export const slugifyTypeTitle = (title: string): string =>
  * @param namespace - the namespace of the type.
  * @param kind - the "kind" of the type ("entity-type", "property-type", "link-type" or "data-type").
  * @param title - the title of the type.
+ * @param slug - the optional slug, will be generated
  */
 export const generateTypeId = ({
   domain,
   namespace,
   kind,
   title,
+  slug,
 }: {
   domain?: string;
   namespace: string;
   kind: SchemaKind;
   title: string;
+  slug?: string;
 }): VersionedUri =>
-  `${domain ?? frontendUrl}/@${namespace}/types/${kind}/${slugifyTypeTitle(
-    title,
-  )}/v/1` as const;
+  `${domain ?? frontendUrl}/@${namespace}/types/${kind}/${
+    slug ?? slugifyTypeTitle(title)
+  }/v/1` as const;
 
 /**
  * Generate the identifier of a workspace type (its versioned URI).
