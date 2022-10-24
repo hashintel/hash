@@ -8,6 +8,7 @@ export type EnrichedPropertyType = PropertyType & {
   /** @todo - Correct this, it is a property type BaseUri not an ID (it's unversioned) */
   propertyTypeId: string;
   dataTypes: string[];
+  required: boolean;
 };
 
 export type PropertyColumnKey = Extract<

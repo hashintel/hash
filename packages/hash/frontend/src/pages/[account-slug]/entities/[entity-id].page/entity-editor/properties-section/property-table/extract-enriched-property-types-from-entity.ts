@@ -4,6 +4,7 @@ import { EntityResponse } from "../../../../../../../components/hooks/blockProto
 import {
   getPersistedDataType,
   getPropertyTypesByBaseUri,
+  getPersistedEntityType,
 } from "../../../../../../../lib/subgraph";
 import { EnrichedPropertyType } from "./types";
 
@@ -29,6 +30,13 @@ const getDataTypesOfPropertyType = (
 export const extractEnrichedPropertyTypesFromEntity = (
   entity: EntityResponse,
 ): EnrichedPropertyType[] => {
+  const entityType = getPersistedEntityType(
+    entity.entityTypeRootedSubgraph,
+    entity.entityTypeId,
+  );
+
+  const requiredPropertyTypes = entityType?.inner.required;
+
   return Object.keys(entity.properties).map((propertyTypeBaseUri) => {
     const propertyTypeVersions = getPropertyTypesByBaseUri(
       entity.entityTypeRootedSubgraph,
@@ -44,12 +52,14 @@ export const extractEnrichedPropertyTypesFromEntity = (
     const propertyType = propertyTypeVersions[0]!.inner;
 
     const dataTypes = getDataTypesOfPropertyType(propertyType, entity);
+    const required = !!requiredPropertyTypes?.includes(propertyTypeBaseUri);
 
     return {
       ...propertyType,
       value: entity.properties[propertyTypeBaseUri],
       propertyTypeId: propertyTypeBaseUri,
       dataTypes,
+      required,
     };
   });
 };

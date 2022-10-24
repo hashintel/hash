@@ -6,10 +6,14 @@ import { EnrichedPropertyType } from "./types";
 export const getTooltipsOfProperty = (
   data: EnrichedPropertyType,
 ): GridTooltipObj[] => {
+  if (!data.required) {
+    return [];
+  }
+
   return [
     {
-      icon: CustomGridIcon.LABEL,
-      text: data.title,
+      icon: CustomGridIcon.ASTERIKS,
+      text: "This property is required",
     },
   ];
 };
