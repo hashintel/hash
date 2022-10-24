@@ -2,8 +2,8 @@ import { pick } from "lodash";
 import { useMemo } from "react";
 import { PropertyRow } from "./types";
 import { extractEnrichedPropertyTypesFromEntity } from "./extract-enriched-property-types-from-entity";
-import { useEntityEditor } from "../entity-editor-context";
-import { sortRowData } from "../../../../../components/GlideGlid/utils";
+import { sortRowData } from "../../../../../../../components/GlideGlid/utils";
+import { useEntityEditor } from "../../entity-editor-context";
 
 export const useRowData = () => {
   const { entity, propertySort } = useEntityEditor();

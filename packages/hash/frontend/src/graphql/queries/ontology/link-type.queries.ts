@@ -3,9 +3,17 @@ import { gql } from "@apollo/client";
 export const getLinkTypeQuery = gql`
   query getLinkType($linkTypeId: String!) {
     getLinkType(linkTypeId: $linkTypeId) {
-      linkTypeId
-      ownedById
-      linkType
+      roots
+      vertices
+      edges
+      depths {
+        dataTypeResolveDepth
+        propertyTypeResolveDepth
+        linkTypeResolveDepth
+        entityTypeResolveDepth
+        linkTargetEntityResolveDepth
+        linkResolveDepth
+      }
     }
   }
 `;
@@ -13,9 +21,17 @@ export const getLinkTypeQuery = gql`
 export const getAllLatestLinkTypesQuery = gql`
   query getAllLatestLinkTypes {
     getAllLatestLinkTypes {
-      linkTypeId
-      ownedById
-      linkType
+      roots
+      vertices
+      edges
+      depths {
+        dataTypeResolveDepth
+        propertyTypeResolveDepth
+        linkTypeResolveDepth
+        entityTypeResolveDepth
+        linkTargetEntityResolveDepth
+        linkResolveDepth
+      }
     }
   }
 `;

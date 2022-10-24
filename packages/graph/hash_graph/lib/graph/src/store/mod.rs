@@ -22,8 +22,8 @@ use crate::{
         PersistedEntityMetadata, PersistedLink,
     },
     ontology::{
-        AccountId, LinkTypeRootedSubgraph, PersistedDataType, PersistedEntityType,
-        PersistedLinkType, PersistedOntologyMetadata, PersistedPropertyType,
+        AccountId, PersistedDataType, PersistedEntityType, PersistedLinkType,
+        PersistedOntologyMetadata, PersistedPropertyType,
     },
     store::{error::LinkRemovalError, query::Expression},
     subgraph::{StructuralQuery, Subgraph},
@@ -330,15 +330,12 @@ pub trait LinkTypeStore: for<'q> crud::Read<PersistedLinkType, Query<'q> = Expre
         actor_id: AccountId,
     ) -> Result<PersistedOntologyMetadata, InsertionError>;
 
-    /// Get the [`LinkTypeRootedSubgraph`]s specified by the [`StructuralQuery`].
+    /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
     ///
     /// # Errors
     ///
     /// - if the requested [`LinkType`] doesn't exist.
-    async fn get_link_type(
-        &self,
-        query: &StructuralQuery,
-    ) -> Result<Vec<LinkTypeRootedSubgraph>, QueryError>;
+    async fn get_link_type(&self, query: &StructuralQuery) -> Result<Subgraph, QueryError>;
 
     /// Update the definition of an existing [`LinkType`].
     ///

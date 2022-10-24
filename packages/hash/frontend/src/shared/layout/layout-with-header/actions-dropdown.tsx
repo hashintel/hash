@@ -2,13 +2,10 @@ import { useState, useCallback, FunctionComponent, useMemo } from "react";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
-  ListItemSecondaryAction,
   listItemSecondaryActionClasses,
   ListItemText,
   useTheme,
 } from "@mui/material";
-import { useKeys } from "rooks";
-import { useRouter } from "next/router";
 
 import {
   usePopupState,
@@ -25,7 +22,6 @@ import { useRouteAccountInfo } from "../../routing";
 export const ActionsDropdownInner: FunctionComponent<{
   accountId: string;
 }> = ({ accountId }) => {
-  const router = useRouter();
   const theme = useTheme();
   const [loading, setLoading] = useState(false);
   const { data } = useAccountPages(accountId);
@@ -64,9 +60,6 @@ export const ActionsDropdownInner: FunctionComponent<{
 
   const newEntityTypeRoute = `/${accountId}/types/new`;
 
-  useKeys(["AltLeft", "KeyP"], addPage);
-  useKeys(["AltLeft", "KeyT"], () => router.push(newEntityTypeRoute));
-
   return (
     <Box>
       <HeaderIconButton
@@ -97,7 +90,6 @@ export const ActionsDropdownInner: FunctionComponent<{
         PaperProps={{
           elevation: 4,
           sx: {
-            width: 225,
             borderRadius: "6px",
             marginTop: 1,
             border: `1px solid ${theme.palette.gray["20"]}`,
@@ -115,7 +107,6 @@ export const ActionsDropdownInner: FunctionComponent<{
           }}
         >
           <ListItemText primary="Create page" />
-          <ListItemSecondaryAction>Opt + P</ListItemSecondaryAction>
         </MenuItem>
         {/*  
           Commented out menu items whose functionality have not been implemented yet
@@ -123,11 +114,9 @@ export const ActionsDropdownInner: FunctionComponent<{
         */}
         {/* <MenuItem onClick={popupState.close}>
           <ListItemText primary="Create entity" />
-          <ListItemSecondaryAction>Opt + E</ListItemSecondaryAction>
         </MenuItem> */}
         <MenuItem href={newEntityTypeRoute} onClick={popupState.close}>
           <ListItemText primary="Create Type" />
-          <ListItemSecondaryAction>Opt + T</ListItemSecondaryAction>
         </MenuItem>
       </Menu>
     </Box>

@@ -1,16 +1,21 @@
 import "@glideapps/glide-data-grid/dist/index.css";
-import { GlideGrid } from "../../../../components/GlideGlid/glide-grid";
+import { GlideGrid } from "../../../../../../components/GlideGlid/glide-grid";
 import {
   createHandleHeaderClicked,
   useDrawCell,
   useDrawHeader,
-} from "../../../../components/GlideGlid/utils";
-import { useEntityEditor } from "./entity-editor-context";
+} from "../../../../../../components/GlideGlid/utils";
+import { useEntityEditor } from "../entity-editor-context";
 import { linkGridColumns } from "./link-table/constants";
 import { useGetCellContent } from "./link-table/use-get-cell-content";
 import { useRowData } from "./link-table/use-row-data";
 
-export const LinkTable = () => {
+interface LinkTableProps {
+  showSearch: boolean;
+  onSearchClose: () => void;
+}
+
+export const LinkTable = ({ showSearch, onSearchClose }: LinkTableProps) => {
   const { linkSort, setLinkSort } = useEntityEditor();
   const rowData = useRowData();
   const drawHeader = useDrawHeader(linkSort, linkGridColumns);
@@ -31,6 +36,9 @@ export const LinkTable = () => {
       onHeaderClicked={handleHeaderClicked}
       drawHeader={drawHeader}
       drawCell={drawCell}
+      showSearch={showSearch}
+      onSearchClose={onSearchClose}
+      // define max height if there are lots of rows
       height={rowData.length > 10 ? 500 : undefined}
     />
   );
