@@ -9,6 +9,7 @@ see: https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs
 import re
 import json
 import itertools
+import os
 import toml
 
 from fnmatch import fnmatch
@@ -153,7 +154,7 @@ def filter_for_docker_crates(crates):
     ]
 
 
-def output_matrix(name, crates, **kwargs):
+def output_matrix(name, github_output_file, crates, **kwargs):
     """
     Outputs the job matrix for the given crates
     :param name: The name where the list of crates will be stored to be read by GitHub Actions
@@ -206,7 +207,7 @@ def output_matrix(name, crates, **kwargs):
     if len(matrix["directory"]) == 0:
         matrix = {}
 
-    print(f"::set-output name={name}::{json.dumps(matrix)}")
+    github_output_file.write(f"{name}={json.dumps(matrix)}\n")
     print(f"Job matrix for {name}: {json.dumps(matrix, indent=4)}")
 
 
@@ -217,16 +218,21 @@ def main():
     changed_parent_crates = filter_parent_crates(changed_crates)
     changed_docker_crates = filter_for_docker_crates(changed_parent_crates)
 
-    output_matrix("lint", changed_parent_crates)
-    output_matrix("test", changed_parent_crates, profile=["development", "production"])
-    output_matrix("docker", changed_docker_crates, profile=["production"])
+    github_output_file = open(os.environ["GITHUB_OUTPUT_FILE_PATH"], "w")
+
+    output_matrix("lint", github_output_file, changed_parent_crates)
+    output_matrix("test", github_output_file, changed_parent_crates, profile=["development", "production"])
+    output_matrix("docker", github_output_file, changed_docker_crates, profile=["production"])
     output_matrix(
         "publish",
+        github_output_file,
         filter_crates_by_changed_version(
             diffs, filter_for_publishable_crates(changed_crates)
         ),
         profile=["release"],
     )
+
+    github_output_file.close()
 
 
 if __name__ == "__main__":
