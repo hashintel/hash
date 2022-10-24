@@ -153,7 +153,7 @@ def filter_for_docker_crates(crates):
     ]
 
 
-def output_matrix(name, crates, **kwargs):
+def output_matrix(name, github_output_file, crates, **kwargs):
     """
     Outputs the job matrix for the given crates
     :param name: The name where the list of crates will be stored to be read by GitHub Actions
