@@ -11,10 +11,12 @@ use crate::store::query::{Path, QueryRecord};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum LinkTypeQueryPath {
+    VersionId,
     OwnedById,
     CreatedById,
     UpdatedById,
     RemovedById,
+    Schema,
     BaseUri,
     VersionedUri,
     Version,

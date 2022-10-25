@@ -17,10 +17,12 @@ use crate::{
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum EntityTypeQueryPath {
+    VersionId,
     OwnedById,
     CreatedById,
     UpdatedById,
     RemovedById,
+    Schema,
     BaseUri,
     VersionedUri,
     Version,

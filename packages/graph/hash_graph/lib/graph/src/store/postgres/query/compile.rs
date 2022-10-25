@@ -4,9 +4,9 @@ use postgres_types::ToSql;
 
 use crate::store::{
     postgres::query::{
-        Column, ColumnAccess, Condition, EqualityOperator, Expression, Field, Function,
-        JoinExpression, Path, PostgresQueryRecord, SelectExpression, SelectStatement, Table,
-        TableAlias, TableName, Transpile, WhereExpression, WindowStatement, WithExpression,
+        Column, ColumnAccess, Condition, EqualityOperator, Expression, Function, JoinExpression,
+        Path, PostgresQueryRecord, SelectExpression, SelectStatement, Table, TableAlias, TableName,
+        Transpile, WhereExpression, WindowStatement, WithExpression,
     },
     query::{Filter, FilterExpression, Parameter},
 };
@@ -46,11 +46,11 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
     }
 
     /// Creates a new compiler, which will default to select the fields returned from
-    /// [`PostgresQueryRecord::default_fields()`].
-    pub fn with_default_fields() -> Self {
+    /// [`PostgresQueryRecord::default_selection_paths()`].
+    pub fn with_default_selection() -> Self {
         let mut default = Self::new();
-        for field in T::default_fields() {
-            default.add_field(field);
+        for field in T::default_selection_paths() {
+            default.add_selection_path(field);
         }
         default
     }
@@ -66,8 +66,8 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
     }
 
     /// Adds a new field to the selection.
-    pub fn add_field(&mut self, field: &'q T::Field) {
-        let table = self.add_join_statements(once(field.table_name()));
+    pub fn add_selection_path(&mut self, field: &'q T::Path<'q>) {
+        let table = self.add_join_statements(once(field.terminating_table_name()));
         self.statement.selects.push(SelectExpression::from_column(
             Column {
                 table,

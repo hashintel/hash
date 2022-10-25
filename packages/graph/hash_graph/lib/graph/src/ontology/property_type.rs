@@ -14,10 +14,12 @@ use crate::{
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum PropertyTypeQueryPath {
+    VersionId,
     OwnedById,
     CreatedById,
     UpdatedById,
     RemovedById,
+    Schema,
     BaseUri,
     VersionedUri,
     Version,

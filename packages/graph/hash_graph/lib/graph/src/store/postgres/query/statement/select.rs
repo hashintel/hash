@@ -103,7 +103,7 @@ mod tests {
     #[test]
     fn default_fields() {
         test_compilation(
-            &SelectCompiler::<DataType>::with_default_fields(),
+            &SelectCompiler::<DataType>::with_default_selection(),
             r#"
             SELECT
                 "data_types"."schema"->>'$id',
