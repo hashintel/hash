@@ -25,15 +25,18 @@ import {
 } from "./use-property-types";
 import { mustBeVersionedUri } from "./util";
 
+const getBaseUri = (path: string) => {
+  const url = new URL(path, FRONTEND_URL);
+
+  return `${FRONTEND_URL}${url.pathname}/`;
+};
+
 // @todo loading state
-// @todo handle displaying entity type not yet created
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
   // @todo how to handle remote types
   const isDraft = !!router.query.draft;
-  const baseEntityTypeUri = isDraft
-    ? null
-    : `${FRONTEND_URL}/${router.query["account-slug"]}/types/entity-type/${router.query["entity-type-id"]}/`;
+  const baseEntityTypeUri = isDraft ? null : getBaseUri(router.asPath);
 
   const draftEntityType = useMemo(() => {
     if (router.query.draft) {

@@ -63,7 +63,12 @@ const Page: NextPageWithLayout = () => {
       isSubmitting,
       errors: { name: nameError },
     },
-  } = useForm<CreateEntityTypeFormData>();
+    clearErrors,
+  } = useForm<CreateEntityTypeFormData>({
+    shouldFocusError: true,
+    mode: "onSubmit",
+    reValidateMode: "onSubmit",
+  });
 
   const router = useRouter();
   const { user, loading } = useLoggedInUser({
@@ -195,8 +200,10 @@ const Page: NextPageWithLayout = () => {
               <TextField
                 {...register("name", {
                   required: true,
-                  disabled: isSubmitting,
-                  validate: async (value) => {
+                  onChange() {
+                    clearErrors("name");
+                  },
+                  async validate(value) {
                     if (!user.shortname) {
                       throw new Error("User shortname must exist");
                     }
@@ -216,7 +223,6 @@ const Page: NextPageWithLayout = () => {
                   },
                 })}
                 required
-                disabled={isSubmitting}
                 label="Singular Name"
                 type="text"
                 placeholder="e.g. Stock Price"
@@ -246,10 +252,8 @@ const Page: NextPageWithLayout = () => {
               <TextField
                 {...register("description", {
                   required: true,
-                  disabled: isSubmitting,
                 })}
                 required
-                disabled={isSubmitting}
                 multiline
                 onKeyDown={async (evt) => {
                   if (!isSubmitting && evt.key === "Enter" && evt.metaKey) {
