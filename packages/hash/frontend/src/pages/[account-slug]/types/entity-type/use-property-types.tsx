@@ -50,11 +50,5 @@ export const PropertyTypesContext =
   createContext<null | PropertyTypesContextValues>(null);
 
 export const usePropertyTypes = () => {
-  const types = useContext(PropertyTypesContext);
-
-  if (!types) {
-    throw new Error("Property types not loaded yet");
-  }
-
-  return types;
+  return useContext(PropertyTypesContext);
 };
