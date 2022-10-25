@@ -81,6 +81,8 @@ where
 ///
 /// A depth of `0` means that no references are explored for that specific kind of type.
 ///
+/// [`DataType`]: type_system::DataType
+/// [`PropertyType`]: type_system::PropertyType
 ///
 /// # Example
 ///
