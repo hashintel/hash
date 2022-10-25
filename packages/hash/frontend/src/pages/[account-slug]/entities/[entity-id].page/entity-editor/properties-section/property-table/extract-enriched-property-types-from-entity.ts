@@ -3,7 +3,7 @@ import { capitalize } from "@mui/material";
 import {
   getPersistedDataType,
   getPropertyTypesByBaseUri,
-  rootsAsEntities,
+  SingleEntityRootedSubgraph,
   Subgraph,
 } from "../../../../../../../lib/subgraph";
 import { EnrichedPropertyType } from "./types";
@@ -25,9 +25,9 @@ const getDataTypesOfPropertyType = (
 };
 
 export const extractEnrichedPropertyTypesFromEntity = (
-  entityRootedSubgraph: Subgraph,
+  entityRootedSubgraph: SingleEntityRootedSubgraph,
 ): EnrichedPropertyType[] => {
-  const entity = rootsAsEntities(entityRootedSubgraph)[0]!;
+  const entity = entityRootedSubgraph.root;
 
   return Object.keys(entity.properties).map((propertyTypeBaseUri) => {
     const propertyTypeVersions = getPropertyTypesByBaseUri(

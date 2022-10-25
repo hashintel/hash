@@ -8,12 +8,12 @@ import { generateEntityLabel } from "../../../../../lib/entities";
 import { TopContextBar } from "../../../../shared/top-context-bar";
 import { HashOntologyIcon } from "../../../types/entity-type/hash-ontology-icon";
 import { OntologyChip } from "../../../types/entity-type/ontology-chip";
-import { Subgraph } from "../../../../../lib/subgraph";
+import { SingleEntityRootedSubgraph } from "../../../../../lib/subgraph";
 
 export const EntityPageHeader = ({
   entityRootedSubgraph,
 }: {
-  entityRootedSubgraph: Subgraph;
+  entityRootedSubgraph: SingleEntityRootedSubgraph;
 }) => {
   const router = useRouter();
 

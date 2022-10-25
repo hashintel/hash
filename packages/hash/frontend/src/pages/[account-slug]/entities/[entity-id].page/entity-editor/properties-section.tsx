@@ -9,7 +9,6 @@ import { getEmptyPropertyCount } from "./properties-section/get-empty-property-c
 import { PropertyTable } from "./properties-section/property-table";
 import { EntitySection } from "./shared/entity-section";
 import { WhiteChip } from "./shared/white-chip";
-import { rootsAsEntities } from "../../../../../lib/subgraph";
 
 export const PropertiesSection = () => {
   const { entityRootedSubgraph } = useEntityEditor();
@@ -19,7 +18,7 @@ export const PropertiesSection = () => {
     return null;
   }
 
-  const entity = rootsAsEntities(entityRootedSubgraph)[0]!;
+  const entity = entityRootedSubgraph.root;
 
   const propertyCount = Object.keys(entity.properties).length;
   const emptyPropertyCount = getEmptyPropertyCount(entity.properties);

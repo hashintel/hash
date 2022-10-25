@@ -44,7 +44,7 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
   }, [user, getEntity]);
 
   const entity = entityRootedSubgraph
-    ? rootsAsEntities(entityRootedSubgraph)[0]!
+    ? rootsAsEntities(entityRootedSubgraph)[0]
     : undefined;
 
   const entityType =

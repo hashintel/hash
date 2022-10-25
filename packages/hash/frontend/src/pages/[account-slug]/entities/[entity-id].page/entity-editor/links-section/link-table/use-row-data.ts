@@ -17,7 +17,7 @@ export const useRowData = () => {
       return [];
     }
 
-    const entity = rootsAsEntities(entityRootedSubgraph)[0]!;
+    const entity = entityRootedSubgraph.root;
 
     return (
       entity?.links.map((link) => {

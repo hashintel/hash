@@ -16,7 +16,7 @@ import {
 } from "../graphql/apiTypes.gen";
 import {
   getPropertyTypesByBaseUri,
-  rootsAsEntities,
+  SingleEntityRootedSubgraph,
   Subgraph,
 } from "./subgraph";
 
@@ -459,7 +459,7 @@ const isSubgraph = (
  */
 export const generateEntityLabel = (
   entityRootedSubgraph:
-    | Subgraph
+    | SingleEntityRootedSubgraph
     | Partial<{ entityId: string; properties: any }>,
   schema?: { labelProperty?: unknown; title?: unknown },
 ): string => {
@@ -471,7 +471,7 @@ export const generateEntityLabel = (
     throw new Error("expected Subgraph but got a deprecated response type");
   }
 
-  const entity = rootsAsEntities(entityRootedSubgraph)[0]!;
+  const entity = entityRootedSubgraph.root;
 
   // if the schema has a labelProperty set, prefer that
   const labelProperty = schema?.labelProperty;

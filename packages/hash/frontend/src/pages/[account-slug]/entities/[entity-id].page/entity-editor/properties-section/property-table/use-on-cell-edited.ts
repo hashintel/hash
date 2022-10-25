@@ -5,7 +5,6 @@ import { useEntityEditor } from "../../entity-editor-context";
 import { useBlockProtocolUpdateEntity } from "../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolUpdateEntity";
 import { propertyGridIndexes } from "./constants";
 import { PropertyRow } from "./types";
-import { rootsAsEntities } from "../../../../../../../lib/subgraph";
 
 export const useOnCellEdited = (rowData: PropertyRow[]) => {
   const snackbar = useSnackbar();
@@ -18,7 +17,7 @@ export const useOnCellEdited = (rowData: PropertyRow[]) => {
         return;
       }
 
-      const entity = rootsAsEntities(entityRootedSubgraph)[0]!;
+      const entity = entityRootedSubgraph.root;
 
       const key = propertyGridIndexes[col];
       const property = rowData[row];

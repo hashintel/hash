@@ -2,7 +2,7 @@ import { Box, Stack } from "@mui/material";
 import { Container } from "@mui/system";
 import { PropsWithChildren } from "react";
 import { EntityPageHeader } from "./entity-page-wrapper/entity-page-header";
-import { Subgraph } from "../../../../lib/subgraph";
+import { SingleEntityRootedSubgraph } from "../../../../lib/subgraph";
 
 /**
  * We'll change `[entity-id].page.tsx` to a tabbed page,
@@ -11,7 +11,7 @@ import { Subgraph } from "../../../../lib/subgraph";
 export const EntityPageWrapper = ({
   children,
   entityRootedSubgraph,
-}: PropsWithChildren<{ entityRootedSubgraph: Subgraph }>) => {
+}: PropsWithChildren<{ entityRootedSubgraph: SingleEntityRootedSubgraph }>) => {
   return (
     <Stack height="100vh">
       <EntityPageHeader entityRootedSubgraph={entityRootedSubgraph} />

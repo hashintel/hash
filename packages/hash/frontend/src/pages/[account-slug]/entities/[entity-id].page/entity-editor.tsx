@@ -4,11 +4,11 @@ import { LinksSection } from "./entity-editor/links-section";
 import { PeersSection } from "./entity-editor/peers-section";
 import { PropertiesSection } from "./entity-editor/properties-section";
 import { TypesSection } from "./entity-editor/types-section";
-import { Subgraph } from "../../../../lib/subgraph";
+import { SingleEntityRootedSubgraph } from "../../../../lib/subgraph";
 import { Entity } from "../../../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
 
 export interface EntityEditorProps {
-  entityRootedSubgraph: Subgraph | undefined;
+  entityRootedSubgraph: SingleEntityRootedSubgraph | undefined;
   setEntity: (entity: Entity | undefined) => void;
 }
 

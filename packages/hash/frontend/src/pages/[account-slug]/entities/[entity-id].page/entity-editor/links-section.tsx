@@ -8,7 +8,6 @@ import { useEntityEditor } from "./entity-editor-context";
 import { LinkTable } from "./links-section/link-table";
 import { EntitySection } from "./shared/entity-section";
 import { EntitySectionEmptyState } from "./shared/entity-section-empty-state";
-import { rootsAsEntities } from "../../../../../lib/subgraph";
 
 const EmptyState = () => (
   <EntitySectionEmptyState
@@ -27,7 +26,7 @@ export const LinksSection = () => {
     return null;
   }
 
-  const entity = rootsAsEntities(entityRootedSubgraph)[0]!;
+  const entity = entityRootedSubgraph.root;
 
   const isEmpty = !entity.links.length;
 
