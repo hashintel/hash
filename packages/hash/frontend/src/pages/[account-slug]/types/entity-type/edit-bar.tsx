@@ -91,10 +91,10 @@ const EditBarContents = ({
 
 export const EditBar = ({
   currentVersion,
-  onDiscardChanges,
+  discardButtonProps,
 }: {
   currentVersion: number;
-  onDiscardChanges: () => void;
+  discardButtonProps: Partial<ButtonProps>;
 }) => {
   const {
     formState: { isDirty },
@@ -103,7 +103,7 @@ export const EditBar = ({
   const frozenVersion = useFrozenValue(currentVersion);
 
   return (
-    <Collapse in={isDirty}>
+    <Collapse in={currentVersion === 0 || isDirty}>
       <Box
         sx={(theme) => ({
           height: 66,
@@ -113,15 +113,14 @@ export const EditBar = ({
           alignItems: "center",
         })}
       >
-        {currentVersion === 0 ? (
+        {frozenVersion === 0 ? (
           <EditBarContents
             icon={<FontAwesomeIcon icon={faSmile} sx={{ fontSize: 14 }} />}
             title="Currently editing"
             label="- this type has not yet been created"
             discardButtonProps={{
-              // @todo implement this
-              href: "#",
               children: "Discard this type",
+              ...discardButtonProps,
             }}
             confirmButtonProps={{
               children: "Create",
@@ -133,8 +132,8 @@ export const EditBar = ({
             title="Currently editing"
             label={`Version ${frozenVersion} -> ${frozenVersion + 1}`}
             discardButtonProps={{
-              onClick: onDiscardChanges,
               children: "Discard changes",
+              ...discardButtonProps,
             }}
             confirmButtonProps={{
               children: "Publish update",
