@@ -112,7 +112,8 @@ import { persistedBlocks } from "./knowledge/block/block";
 import { getBlockProtocolBlocks } from "./blockprotocol/getBlock";
 import {
   createPersistedEntity,
-  persistedEntity,
+  getPersistedEntity,
+  getAllLatestPersistedEntities,
   updatePersistedEntity,
 } from "./knowledge/entity/entity";
 import { UnresolvedPersistedEntityGQL } from "./knowledge/model-mapping";
@@ -141,6 +142,7 @@ const isWorkspaceEntityGQLTypeName = (
 ): name is WorkspaceEntityGQLTypeName =>
   workpsaceEntityGQLTypeNames.includes(name as WorkspaceEntityGQLTypeName);
 
+/** @todo - Refactor the names of these https://app.asana.com/0/1200211978612931/1203234667392169/f */
 export const resolvers = {
   Query: {
     // Logged in and signed up users only
@@ -184,7 +186,11 @@ export const resolvers = {
     persistedPage: loggedInAndSignedUp(persistedPage),
     persistedPages: loggedInAndSignedUp(persistedPages),
     persistedBlocks: loggedInAndSignedUp(persistedBlocks),
-    persistedEntity: loggedInAndSignedUp(persistedEntity),
+    getPersistedEntity: loggedInAndSignedUp(getPersistedEntity),
+    getAllLatestPersistedEntities: loggedInAndSignedUp(
+      getAllLatestPersistedEntities,
+    ),
+    /** @todo - delete this - https://app.asana.com/0/0/1203157172269854/f */
     outgoingPersistedLinks: loggedInAndSignedUp(outgoingPersistedLinks),
   },
 

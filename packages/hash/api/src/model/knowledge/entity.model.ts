@@ -1,9 +1,9 @@
 import { ApolloError } from "apollo-server-errors";
-import { EntityVertex } from "@hashintel/hash-shared/graphql/types";
 import {
   PersistedEntity,
   GraphApi,
   StructuralQuery,
+  Vertex,
 } from "@hashintel/hash-graph-client";
 
 import {
@@ -326,7 +326,10 @@ export default class {
 
     return await Promise.all(
       subgraph.roots.map((entityId) => {
-        const entityVertex = subgraph.vertices[entityId] as EntityVertex;
+        const entityVertex = subgraph.vertices[entityId] as Extract<
+          Vertex,
+          { kind: "entity" }
+        >;
         return EntityModel.fromPersistedEntity(graphApi, entityVertex.inner);
       }),
     );

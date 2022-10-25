@@ -9,35 +9,37 @@ import { useEntityEditor } from "../../entity-editor-context";
 import { LinkRow } from "./types";
 
 export const useRowData = () => {
-  const { entity, linkSort } = useEntityEditor();
+  const { rootEntityAndSubgraph, linkSort } = useEntityEditor();
 
   const rowData = useMemo<LinkRow[]>(() => {
-    if (!entity) {
+    if (!rootEntityAndSubgraph) {
       return [];
     }
+
+    const entity = rootEntityAndSubgraph.root;
 
     return (
       entity?.links.map((link) => {
         const linkType = getPersistedLinkType(
-          entity.entityTypeRootedSubgraph,
+          rootEntityAndSubgraph.subgraph,
           link.linkTypeId,
         )?.inner;
 
         const referencedEntityType = getPersistedEntityType(
-          entity.entityTypeRootedSubgraph,
+          rootEntityAndSubgraph.subgraph,
           link.targetEntity.entityTypeId,
         )?.inner;
 
         return {
           expectedEntityType: referencedEntityType?.title ?? "",
-          linkedWith: generateEntityLabel(link.targetEntity),
+          linkedWith: generateEntityLabel(rootEntityAndSubgraph),
           linkId: link.linkTypeId,
           relationShip: "Outbound",
           type: linkType?.title ?? "",
         };
       }) ?? []
     );
-  }, [entity]);
+  }, [rootEntityAndSubgraph]);
 
   const sortedRowData = useMemo(() => {
     return sortRowData(rowData, linkSort);
