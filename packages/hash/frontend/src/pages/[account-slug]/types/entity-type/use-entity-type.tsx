@@ -15,9 +15,9 @@ import { useBlockProtocolAggregateEntityTypes } from "../../../../components/hoo
 import { useBlockProtocolCreateEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreateEntityType";
 import { useBlockProtocolUpdateEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdateEntityType";
 import { useUser } from "../../../../components/hooks/useUser";
-import { useAdvancedInitTypeSystem } from "../../../../lib/use-init-type-system";
-import { mustBeVersionedUri, useStateCallback } from "./util";
 import { getEntityTypesByBaseUri } from "../../../../lib/subgraph";
+import { useAdvancedInitTypeSystem } from "../../../../lib/use-init-type-system";
+import { mustBeVersionedUri } from "./util";
 
 export const useEntityType = (
   entityTypeBaseUri: string | null,
