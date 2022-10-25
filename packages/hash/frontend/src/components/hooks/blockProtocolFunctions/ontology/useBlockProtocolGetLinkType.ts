@@ -7,6 +7,7 @@ import {
 } from "../../../../graphql/apiTypes.gen";
 import { getLinkTypeQuery } from "../../../../graphql/queries/ontology/link-type.queries";
 import { GetLinkTypeMessageCallback } from "./ontology-types-shim";
+import { Subgraph } from "../../../../lib/subgraph";
 
 export const useBlockProtocolGetLinkType = (): {
   getLinkType: GetLinkTypeMessageCallback;
@@ -50,7 +51,11 @@ export const useBlockProtocolGetLinkType = (): {
       }
 
       return {
-        data: response.data.getLinkType,
+        /**
+         * @todo: remove this when we start returning links in the subgraph
+         *   https://app.asana.com/0/0/1203214689883095/f
+         */
+        data: response.data.getLinkType as Subgraph,
       };
     },
     [getFn],

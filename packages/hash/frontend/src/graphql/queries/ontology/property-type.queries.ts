@@ -1,4 +1,5 @@
 import { gql } from "@apollo/client";
+import { subgraphFieldsFragment } from "../subgraph";
 
 export const getPropertyTypeQuery = gql`
   query getPropertyType(
@@ -11,19 +12,10 @@ export const getPropertyTypeQuery = gql`
       dataTypeResolveDepth: $dataTypeResolveDepth
       propertyTypeResolveDepth: $propertyTypeResolveDepth
     ) {
-      roots
-      vertices
-      edges
-      depths {
-        dataTypeResolveDepth
-        propertyTypeResolveDepth
-        linkTypeResolveDepth
-        entityTypeResolveDepth
-        linkTargetEntityResolveDepth
-        linkResolveDepth
-      }
+      ...SubgraphFields
     }
   }
+  ${subgraphFieldsFragment}
 `;
 
 export const getAllLatestPropertyTypesQuery = gql`
@@ -35,19 +27,10 @@ export const getAllLatestPropertyTypesQuery = gql`
       dataTypeResolveDepth: $dataTypeResolveDepth
       propertyTypeResolveDepth: $propertyTypeResolveDepth
     ) {
-      roots
-      vertices
-      edges
-      depths {
-        dataTypeResolveDepth
-        propertyTypeResolveDepth
-        linkTypeResolveDepth
-        entityTypeResolveDepth
-        linkTargetEntityResolveDepth
-        linkResolveDepth
-      }
+      ...SubgraphFields
     }
   }
+  ${subgraphFieldsFragment}
 `;
 
 export const createPropertyTypeMutation = gql`

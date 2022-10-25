@@ -11,6 +11,7 @@ import {
   PersistedEntityType as GraphApiPersistedEntityType,
   Vertex as GraphApiVertex,
 } from "@hashintel/hash-graph-client";
+import { PersistedEntity } from "@hashintel/hash-shared/graphql/apiTypes.gen";
 
 export type TextToken =
   | {
@@ -76,7 +77,12 @@ export type EntityTypeVertex = Omit<
   inner: PersistedEntityType;
 };
 
-export type EntityVertex = Extract<GraphApiVertex, { kind: "entity" }>;
+export type EntityVertex = Omit<
+  Extract<GraphApiVertex, { kind: "entity" }>,
+  "inner"
+> & {
+  inner: PersistedEntity;
+};
 
 export type LinkVertex = Extract<GraphApiVertex, { kind: "link" }>;
 
