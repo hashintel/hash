@@ -15,13 +15,13 @@ const UNCOLLAPSIBLE_REPLIES_NUMBER = 2;
 
 type CommentThreadProps = {
   comment: PageThread;
-  createComment: (parentId: string, content: TextToken[]) => Promise<void>;
+  onReplySubmit: (parentId: string, content: TextToken[]) => Promise<void>;
   loading: boolean;
 };
 
 export const CommentThread: FunctionComponent<CommentThreadProps> = ({
   comment,
-  createComment,
+  onReplySubmit,
   loading,
 }) => {
   const threadRef = useRef<HTMLDivElement>(null);
@@ -41,7 +41,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
 
   const handleReplySubmit = async () => {
     if (!loading && inputValue?.length) {
-      await createComment(comment.entityId, inputValue).then(() => {
+      await onReplySubmit(comment.entityId, inputValue).then(() => {
         setInputValue([]);
       });
     }

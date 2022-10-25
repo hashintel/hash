@@ -154,7 +154,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
                   <CommentThread
                     key={comment.entityId}
                     comment={comment}
-                    createComment={createComment}
+                    onReplySubmit={createComment}
                     loading={createCommentLoading}
                   />
                 ))}
