@@ -8,13 +8,12 @@ use serde::Serialize;
 use utoipa::ToSchema;
 
 pub use self::{
-    entity::{
-        Entity, EntityId, PersistedEntity, PersistedEntityIdentifier, PersistedEntityMetadata,
-    },
-    link::{Link, PersistedLink, PersistedLinkMetadata},
+    entity::{Entity, EntityId},
+    link::Link,
 };
 use crate::provenance::{
-    PersistedDataType, PersistedEntityType, PersistedLinkType, PersistedPropertyType,
+    PersistedDataType, PersistedEntity, PersistedEntityType, PersistedLink, PersistedLinkType,
+    PersistedPropertyType,
 };
 
 /// Distance to explore when querying a rooted subgraph on entities and links.

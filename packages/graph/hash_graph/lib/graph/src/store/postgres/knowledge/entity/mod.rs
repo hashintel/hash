@@ -12,8 +12,11 @@ use uuid::Uuid;
 
 use crate::{
     identifier::{GraphElementIdentifier, LinkId},
-    knowledge::{Entity, EntityId, PersistedEntity, PersistedEntityMetadata, PersistedLink},
-    provenance::{CreatedById, OwnedById, UpdatedById},
+    knowledge::{Entity, EntityId},
+    provenance::{
+        CreatedById, OwnedById, PersistedEntity, PersistedEntityMetadata, PersistedLink,
+        UpdatedById,
+    },
     store::{
         crud::Read,
         error::EntityDoesNotExist,

@@ -3,7 +3,7 @@ use error_stack::{bail, Report, Result, ResultExt};
 use futures::{stream, StreamExt, TryStreamExt};
 
 use crate::{
-    knowledge::PersistedLink,
+    provenance::PersistedLink,
     store::{
         crud,
         postgres::context::PostgresContext,

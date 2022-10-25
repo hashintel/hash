@@ -9,8 +9,8 @@ use futures::{future::FutureExt, stream, StreamExt, TryStreamExt};
 use tokio_postgres::GenericClient;
 
 use crate::{
-    knowledge::{Link, LinkRootedSubgraph, PersistedLink},
-    provenance::{CreatedById, OwnedById, RemovedById},
+    knowledge::{Link, LinkRootedSubgraph},
+    provenance::{CreatedById, OwnedById, PersistedLink, RemovedById},
     shared::identifier::{GraphElementIdentifier, LinkId},
     store::{
         crud::Read,

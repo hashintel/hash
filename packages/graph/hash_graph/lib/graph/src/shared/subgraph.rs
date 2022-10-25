@@ -7,10 +7,11 @@ use serde::{Deserialize, Serialize};
 use utoipa::{openapi, ToSchema};
 
 use crate::{
-    knowledge::{KnowledgeGraphQueryDepth, PersistedEntity, PersistedLink},
+    knowledge::KnowledgeGraphQueryDepth,
     ontology::OntologyQueryDepth,
     provenance::{
-        PersistedDataType, PersistedEntityType, PersistedLinkType, PersistedPropertyType,
+        PersistedDataType, PersistedEntity, PersistedEntityType, PersistedLink, PersistedLinkType,
+        PersistedPropertyType,
     },
     shared::identifier::GraphElementIdentifier,
     store::query::Expression,

@@ -31,13 +31,11 @@ pub use self::{
 };
 use super::error::LinkRemovalError;
 use crate::{
-    knowledge::{
-        Entity, EntityId, KnowledgeGraphQueryDepth, Link, PersistedEntity,
-        PersistedEntityIdentifier, PersistedEntityMetadata, PersistedLink,
-    },
+    knowledge::{Entity, EntityId, KnowledgeGraphQueryDepth, Link},
     ontology::OntologyQueryDepth,
     provenance::{
-        AccountId, CreatedById, OwnedById, PersistedDataType, PersistedEntityType,
+        AccountId, CreatedById, OwnedById, PersistedDataType, PersistedEntity,
+        PersistedEntityIdentifier, PersistedEntityMetadata, PersistedEntityType, PersistedLink,
         PersistedLinkType, PersistedOntologyIdentifier, PersistedOntologyMetadata,
         PersistedPropertyType, RemovedById, UpdatedById,
     },

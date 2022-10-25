@@ -15,10 +15,11 @@ use utoipa::{OpenApi, ToSchema};
 
 use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
-    knowledge::{
-        Entity, EntityId, PersistedEntity, PersistedEntityIdentifier, PersistedEntityMetadata,
+    knowledge::{Entity, EntityId},
+    provenance::{
+        CreatedById, OwnedById, PersistedEntity, PersistedEntityIdentifier,
+        PersistedEntityMetadata, UpdatedById,
     },
-    provenance::{CreatedById, OwnedById, UpdatedById},
     shared::identifier::GraphElementIdentifier,
     store::{
         error::{EntityDoesNotExist, QueryError},

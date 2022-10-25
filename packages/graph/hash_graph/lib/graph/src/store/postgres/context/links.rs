@@ -4,8 +4,8 @@ use tokio_postgres::{GenericClient, RowStream};
 use type_system::uri::{BaseUri, VersionedUri};
 
 use crate::{
-    knowledge::{EntityId, Link, PersistedLink},
-    provenance::{CreatedById, OwnedById},
+    knowledge::{EntityId, Link},
+    provenance::{CreatedById, OwnedById, PersistedLink},
     store::{postgres::parameter_list, AsClient, QueryError},
 };
 

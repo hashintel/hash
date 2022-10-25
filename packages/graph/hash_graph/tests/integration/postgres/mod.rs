@@ -9,11 +9,11 @@ use std::str::FromStr;
 
 use error_stack::{Report, Result};
 use graph::{
-    knowledge::{Entity, EntityId, Link, PersistedEntity, PersistedEntityMetadata, PersistedLink},
+    knowledge::{Entity, EntityId, Link},
     provenance::{
-        AccountId, CreatedById, OwnedById, PersistedDataType, PersistedEntityType,
-        PersistedLinkType, PersistedOntologyMetadata, PersistedPropertyType, RemovedById,
-        UpdatedById,
+        AccountId, CreatedById, OwnedById, PersistedDataType, PersistedEntity,
+        PersistedEntityMetadata, PersistedEntityType, PersistedLink, PersistedLinkType,
+        PersistedOntologyMetadata, PersistedPropertyType, RemovedById, UpdatedById,
     },
     shared::identifier::GraphElementIdentifier,
     store::{
