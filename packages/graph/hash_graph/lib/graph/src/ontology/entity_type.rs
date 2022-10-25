@@ -64,7 +64,7 @@ pub enum EntityTypeQueryToken {
     RequiredLinks,
 }
 
-/// Deserializes a [`EntityTypeQueryPath`] from a string sequence.
+/// Deserializes an [`EntityTypeQueryPath`] from a string sequence.
 pub struct EntityTypeQueryPathVisitor {
     /// The current position in the sequence when deserializing.
     position: usize,
