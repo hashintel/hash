@@ -48,8 +48,8 @@ export const getPersistedEntityQuery = gql`
     ) {
       ...SubgraphFields
     }
-    ${subgraphFieldsFragment}
   }
+  ${subgraphFieldsFragment}
 `;
 
 export const getAllLatestEntitiesQuery = gql`

@@ -18,8 +18,8 @@ export const getEntityTypeQuery = gql`
     ) {
       ...SubgraphFields
     }
-    ${subgraphFieldsFragment}
   }
+  ${subgraphFieldsFragment}
 `;
 
 export const getAllLatestEntityTypesQuery = gql`
@@ -37,8 +37,8 @@ export const getAllLatestEntityTypesQuery = gql`
     ) {
       ...SubgraphFields
     }
-    ${subgraphFieldsFragment}
   }
+  ${subgraphFieldsFragment}
 `;
 
 export const getEntityTypeRootedSubgraphQuery = gql`
@@ -58,8 +58,8 @@ export const getEntityTypeRootedSubgraphQuery = gql`
     ) {
       ...SubgraphFields
     }
-    ${subgraphFieldsFragment}
   }
+  ${subgraphFieldsFragment}
 `;
 
 export const createEntityTypeMutation = gql`
