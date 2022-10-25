@@ -125,7 +125,6 @@ export const useEntityType = (
       // @todo remove casting
       const newUrl = extractBaseUri(res.data.entityTypeId as VersionedUri);
 
-      // @todo we have the entity type here, lets set it…
       if (newUrl) {
         setEntityType(res.data.entityType, async () => {
           await router.replace(newUrl, newUrl, { shallow: true });
