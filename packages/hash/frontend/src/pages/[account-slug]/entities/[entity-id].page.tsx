@@ -21,7 +21,7 @@ const Page: NextPageWithLayout = () => {
       try {
         const entityId = router.query["entity-id"] as string;
 
-        const subgraph = (await getEntity({ data: { entityId } })).data;
+        const { data: subgraph } = await getEntity({ data: { entityId } });
 
         setEntityRootedSubgraph(subgraph);
       } finally {
