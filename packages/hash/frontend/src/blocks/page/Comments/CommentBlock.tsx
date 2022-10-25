@@ -12,6 +12,7 @@ import {
   Button,
   FontAwesomeIcon,
   IconButton,
+  LoadingSpinner,
 } from "@hashintel/hash-design-system/ui";
 import { formatDistanceToNowStrict } from "date-fns";
 import {
@@ -74,11 +75,13 @@ export const ToggleTextExpandedButton: FunctionComponent<
 type CommentProps = {
   pageId: string;
   comment: PageComment;
+  resolvable?: boolean;
 };
 
 export const CommentBlock: FunctionComponent<CommentProps> = ({
   pageId,
   comment,
+  resolvable,
 }) => {
   const { entityId, hasText, author, textUpdatedAt } = comment;
 
@@ -185,26 +188,40 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
           </Typography>
         </Box>
 
-        <IconButton
-          onClick={() => resolveComment(entityId)}
-          size="medium"
-          sx={({ palette, transitions }) => ({
-            width: 24,
-            height: 24,
-            color: palette.gray[40],
-            transition: transitions.create("color"),
-            mr: 0.5,
-            "&:hover": {
-              color: palette.primary.main,
-              background: "none",
-            },
-          })}
-        >
-          <FontAwesomeIcon
-            icon={faCheckCircle}
-            sx={{ fontSize: "18px !important" }}
-          />
-        </IconButton>
+        {resolvable ? (
+          <Box
+            sx={({ palette }) => ({
+              mr: 0.5,
+              p: 0.25,
+              color: resolveCommentLoading
+                ? palette.primary.main
+                : palette.gray[40],
+            })}
+          >
+            {resolveCommentLoading ? (
+              <LoadingSpinner size={18} />
+            ) : (
+              <IconButton
+                onClick={() => resolveComment(entityId)}
+                size="medium"
+                sx={({ palette, transitions }) => ({
+                  p: 0,
+                  transition: transitions.create("color"),
+                  "&:hover": {
+                    color: palette.primary.main,
+                    background: "none",
+                  },
+                })}
+                disabled={resolveCommentLoading}
+              >
+                <FontAwesomeIcon
+                  icon={faCheckCircle}
+                  sx={{ fontSize: "18px !important" }}
+                />
+              </IconButton>
+            )}
+          </Box>
+        ) : null}
 
         <IconButton
           {...bindTrigger(commentMenuPopupState)}
