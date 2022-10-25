@@ -4,8 +4,12 @@ use std::{
 };
 
 use serde::Deserialize;
+use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};
 
-use crate::store::query::{Expression, Literal, Path, QueryRecord};
+use crate::{
+    ontology::{DataTypeQueryPath, EntityTypeQueryPath, LinkTypeQueryPath, PropertyTypeQueryPath},
+    store::query::{Expression, Literal, Path, QueryRecord},
+};
 
 /// A set of conditions used for queries.
 #[derive(Deserialize)]
@@ -26,6 +30,47 @@ pub enum Filter<'q, T: QueryRecord> {
         Option<FilterExpression<'q, T>>,
     ),
 }
+
+macro_rules! define_ontology_filters {
+    ($record:ty, $path:ty) => {
+        impl<'q> Filter<'q, $record> {
+            #[must_use]
+            pub const fn for_latest_version() -> Self {
+                Self::Equal(
+                    Some(FilterExpression::Path(<$path>::Version)),
+                    Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                        "latest",
+                    )))),
+                )
+            }
+
+            #[must_use]
+            pub fn for_versioned_uri(versioned_uri: &'q VersionedUri) -> Self {
+                Self::All(vec![
+                    Self::Equal(
+                        Some(FilterExpression::Path(<$path>::BaseUri)),
+                        Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                            versioned_uri.base_uri().as_str(),
+                        )))),
+                    ),
+                    Self::Equal(
+                        Some(FilterExpression::Path(<$path>::Version)),
+                        // TODO: Change to `SignedInteger` when #1255 merged
+                        //   see https://app.asana.com/0/1200211978612931/1203205825668105/f
+                        Some(FilterExpression::Parameter(Parameter::Number(
+                            versioned_uri.version() as f64,
+                        ))),
+                    ),
+                ])
+            }
+        }
+    };
+}
+
+define_ontology_filters!(DataType, DataTypeQueryPath);
+define_ontology_filters!(PropertyType, PropertyTypeQueryPath);
+define_ontology_filters!(EntityType, EntityTypeQueryPath);
+define_ontology_filters!(LinkType, LinkTypeQueryPath);
 
 // TODO: Derive traits when bounds are generated correctly
 //   see https://github.com/rust-lang/rust/issues/26925
