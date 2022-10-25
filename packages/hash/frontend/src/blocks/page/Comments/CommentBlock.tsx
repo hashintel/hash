@@ -38,6 +38,7 @@ import { useUpdateCommentText } from "../../../components/hooks/useUpdateComment
 import { CommentBlockMenuItem } from "./CommentBlockMenuItem";
 import { PencilSlashIcon } from "../../../shared/icons/pencil-slash-icon";
 import { useUser } from "../../../components/hooks/useUser";
+import { useResolveComment } from "../../../components/hooks/useResolveComment";
 import { useDeleteComment } from "../../../components/hooks/useDeleteComment";
 import { CommentBlockDeleteConfirmationDialog } from "./CommentBlockDeleteConfirmationDialog";
 import { CommentActionButtons } from "./CommentActionButtons";
@@ -93,6 +94,8 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
   const { user } = useUser();
   const [updateCommentText, { loading: updateCommentTextLoading }] =
     useUpdateCommentText(pageId);
+  const [resolveComment, { loading: resolveCommentLoading }] =
+    useResolveComment(pageId);
   const [deleteComment, { loading: deleteCommentLoading }] =
     useDeleteComment(pageId);
 
@@ -183,6 +186,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
         </Box>
 
         <IconButton
+          onClick={() => resolveComment(entityId)}
           size="medium"
           sx={({ palette, transitions }) => ({
             width: 24,

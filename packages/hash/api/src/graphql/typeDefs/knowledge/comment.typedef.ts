@@ -90,6 +90,16 @@ export const persistedCommentTypedef = gql`
     ): PersistedComment!
 
     """
+    Resolve an existing comment
+    """
+    resolvePersistedComment(
+      """
+      Id of the comment to resolve
+      """
+      entityId: ID!
+    ): PersistedComment!
+
+    """
     Delete an existing comment
     """
     deletePersistedComment(
