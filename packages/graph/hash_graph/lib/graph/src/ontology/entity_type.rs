@@ -82,7 +82,7 @@ impl EntityTypeQueryPathVisitor {
 }
 
 impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
-    type Value = EntityTypeQueryPath<'de>;
+    type Value = EntityTypeQueryPath;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         formatter.write_str(Self::EXPECTING)
@@ -130,7 +130,7 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
         })
     }
 }
-impl<'de: 'k, 'k> Deserialize<'de> for EntityTypeQueryPath<'k> {
+impl<'de> Deserialize<'de> for EntityTypeQueryPath {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -144,13 +144,11 @@ mod tests {
     use super::*;
     use crate::ontology::test_utils::create_path;
 
-    fn convert_path(
-        segments: impl IntoIterator<Item = &'static str>,
-    ) -> EntityTypeQueryPath<'static> {
+    fn convert_path(segments: impl IntoIterator<Item = &'static str>) -> EntityTypeQueryPath {
         EntityTypeQueryPath::try_from(create_path(segments)).expect("could not convert path")
     }
 
-    fn deserialize<'q>(segments: impl IntoIterator<Item = &'q str>) -> EntityTypeQueryPath<'q> {
+    fn deserialize<'q>(segments: impl IntoIterator<Item = &'q str>) -> EntityTypeQueryPath {
         EntityTypeQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
             segments.into_iter(),
         ))
