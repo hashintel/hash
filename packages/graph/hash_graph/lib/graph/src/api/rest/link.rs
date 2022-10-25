@@ -10,8 +10,8 @@ use utoipa::{OpenApi, ToSchema};
 
 use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
-    knowledge::{EntityId, Link, LinkRootedSubgraph},
-    provenance::{CreatedById, OwnedById, PersistedLink, PersistedLinkMetadata, RemovedById},
+    knowledge::{EntityId, Link, LinkRootedSubgraph, PersistedLink, PersistedLinkMetadata},
+    provenance::{CreatedById, OwnedById, RemovedById},
     store::{error::QueryError, query::Expression, LinkStore, StorePool},
     subgraph::StructuralQuery,
 };
