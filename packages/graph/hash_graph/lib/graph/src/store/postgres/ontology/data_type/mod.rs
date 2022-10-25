@@ -11,10 +11,7 @@ use crate::{
     shared::identifier::GraphElementIdentifier,
     store::{
         crud::Read,
-        postgres::{
-            context::PostgresContext, DependencyContext, DependencyContextRef,
-            PersistedOntologyType,
-        },
+        postgres::{context::PostgresContext, DependencyContext, DependencyContextRef},
         AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
     subgraph::{StructuralQuery, Subgraph},
@@ -40,7 +37,7 @@ impl<C: AsClient> PostgresStore<C> {
                 data_type_id,
                 Some(graph_resolve_depths.data_type_resolve_depth),
                 || async {
-                    Ok(PersistedDataType::from_record(
+                    Ok(PersistedDataType::from(
                         self.read_versioned_ontology_type(data_type_id).await?,
                     ))
                 },

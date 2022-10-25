@@ -25,10 +25,7 @@ use type_system::{
 use uuid::Uuid;
 
 use self::context::{OntologyRecord, PostgresContext};
-pub use self::{
-    ontology::PersistedOntologyType,
-    pool::{AsClient, PostgresStorePool},
-};
+pub use self::pool::{AsClient, PostgresStorePool};
 use super::error::LinkRemovalError;
 use crate::{
     knowledge::{

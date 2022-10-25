@@ -188,11 +188,6 @@ pub struct PersistedDataType {
 
 impl PersistedDataType {
     #[must_use]
-    pub const fn new(inner: DataType, metadata: PersistedOntologyMetadata) -> Self {
-        Self { inner, metadata }
-    }
-
-    #[must_use]
     pub const fn inner(&self) -> &DataType {
         &self.inner
     }
@@ -213,11 +208,6 @@ pub struct PersistedPropertyType {
 
 impl PersistedPropertyType {
     #[must_use]
-    pub const fn new(inner: PropertyType, metadata: PersistedOntologyMetadata) -> Self {
-        Self { inner, metadata }
-    }
-
-    #[must_use]
     pub const fn inner(&self) -> &PropertyType {
         &self.inner
     }
@@ -237,11 +227,6 @@ pub struct PersistedLinkType {
 }
 
 impl PersistedLinkType {
-    #[must_use]
-    pub const fn new(inner: LinkType, metadata: PersistedOntologyMetadata) -> Self {
-        Self { inner, metadata }
-    }
-
     #[must_use]
     pub const fn inner(&self) -> &LinkType {
         &self.inner
@@ -294,11 +279,6 @@ pub struct PersistedEntityType {
 
 impl PersistedEntityType {
     #[must_use]
-    pub const fn new(inner: EntityType, metadata: PersistedOntologyMetadata) -> Self {
-        Self { inner, metadata }
-    }
-
-    #[must_use]
     pub const fn inner(&self) -> &EntityType {
         &self.inner
     }
@@ -306,6 +286,56 @@ impl PersistedEntityType {
     #[must_use]
     pub const fn metadata(&self) -> &PersistedOntologyMetadata {
         &self.metadata
+    }
+}
+
+pub trait PersistedOntologyType {
+    type Inner;
+
+    fn new(record: Self::Inner, metadata: PersistedOntologyMetadata) -> Self;
+}
+
+impl PersistedOntologyType for PersistedDataType {
+    type Inner = DataType;
+
+    fn new(record: Self::Inner, metadata: PersistedOntologyMetadata) -> Self {
+        Self {
+            inner: record,
+            metadata,
+        }
+    }
+}
+
+impl PersistedOntologyType for PersistedPropertyType {
+    type Inner = PropertyType;
+
+    fn new(record: Self::Inner, metadata: PersistedOntologyMetadata) -> Self {
+        Self {
+            inner: record,
+            metadata,
+        }
+    }
+}
+
+impl PersistedOntologyType for PersistedLinkType {
+    type Inner = LinkType;
+
+    fn new(record: Self::Inner, metadata: PersistedOntologyMetadata) -> Self {
+        Self {
+            inner: record,
+            metadata,
+        }
+    }
+}
+
+impl PersistedOntologyType for PersistedEntityType {
+    type Inner = EntityType;
+
+    fn new(record: Self::Inner, metadata: PersistedOntologyMetadata) -> Self {
+        Self {
+            inner: record,
+            metadata,
+        }
     }
 }
 
