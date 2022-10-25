@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { Box, Collapse, Typography } from "@mui/material";
+import { Box, Collapse, Tooltip, Typography } from "@mui/material";
 import {
   Avatar,
   Button,
@@ -191,6 +191,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
         {resolvable ? (
           <Box
             sx={({ palette }) => ({
+              height: 1,
               mr: 0.5,
               p: 0.25,
               color: resolveCommentLoading
@@ -201,38 +202,42 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
             {resolveCommentLoading ? (
               <LoadingSpinner size={18} />
             ) : (
-              <IconButton
-                onClick={() => resolveComment(entityId)}
-                size="medium"
-                sx={({ palette, transitions }) => ({
-                  p: 0,
-                  transition: transitions.create("color"),
-                  "&:hover": {
-                    color: palette.primary.main,
-                    background: "none",
-                  },
-                })}
-                disabled={resolveCommentLoading}
-              >
-                <FontAwesomeIcon
-                  icon={faCheckCircle}
-                  sx={{ fontSize: "18px !important" }}
-                />
-              </IconButton>
+              <Tooltip title="Resolve Comment Thread" placement="bottom">
+                <IconButton
+                  onClick={() => resolveComment(entityId)}
+                  size="medium"
+                  sx={({ palette, transitions }) => ({
+                    p: 0,
+                    transition: transitions.create("color"),
+                    "&:hover": {
+                      color: palette.primary.main,
+                      background: "none",
+                    },
+                  })}
+                  disabled={resolveCommentLoading}
+                >
+                  <FontAwesomeIcon
+                    icon={faCheckCircle}
+                    sx={{ fontSize: "18px !important" }}
+                  />
+                </IconButton>
+              </Tooltip>
             )}
           </Box>
         ) : null}
 
-        <IconButton
-          {...bindTrigger(commentMenuPopupState)}
-          sx={{
-            width: 24,
-            height: 24,
-            color: ({ palette }) => palette.gray[40],
-          }}
-        >
-          <FontAwesomeIcon icon={faEllipsisVertical} />
-        </IconButton>
+        <Tooltip title="Edit, delete and more" placement="bottom">
+          <IconButton
+            {...bindTrigger(commentMenuPopupState)}
+            sx={{
+              width: 24,
+              height: 24,
+              color: ({ palette }) => palette.gray[40],
+            }}
+          >
+            <FontAwesomeIcon icon={faEllipsisVertical} />
+          </IconButton>
+        </Tooltip>
       </Box>
 
       <Box p={0.5} pt={2} position="relative">
