@@ -1,4 +1,9 @@
-import { EntityType } from "@blockprotocol/type-system-web";
+import {
+  EntityType,
+  extractBaseUri,
+  VersionedUri,
+} from "@blockprotocol/type-system-web";
+import { useRouter } from "next/router";
 import {
   useCallback,
   useEffect,
@@ -7,14 +12,23 @@ import {
   useState,
 } from "react";
 import { useBlockProtocolAggregateEntityTypes } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregateEntityTypes";
+import { useBlockProtocolCreateEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreateEntityType";
 import { useBlockProtocolUpdateEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdateEntityType";
-import { useAdvancedInitTypeSystem } from "../../../../lib/use-init-type-system";
+import { useUser } from "../../../../components/hooks/useUser";
 import { getEntityTypesByBaseUri } from "../../../../lib/subgraph";
+import { useAdvancedInitTypeSystem } from "../../../../lib/use-init-type-system";
+import { mustBeVersionedUri } from "./util";
 
 export const useEntityType = (
-  entityTypeBaseUri: string,
+  entityTypeBaseUri: string | null,
   onCompleted?: (entityType: EntityType) => void,
 ) => {
+  const router = useRouter();
+  const { user } = useUser();
+  const { createEntityType } = useBlockProtocolCreateEntityType(
+    // @todo should use routing URL?
+    user?.accountId ?? "",
+  );
   const [typeSystemLoading, loadTypeSystem] = useAdvancedInitTypeSystem();
 
   const [entityType, setEntityType] = useState<EntityType | null>(null);
@@ -31,35 +45,46 @@ export const useEntityType = (
   useEffect(() => {
     let cancelled = false;
 
-    setEntityType(null);
-    entityTypeRef.current = null;
+    if (
+      entityTypeBaseUri &&
+      (!entityType ||
+        extractBaseUri(mustBeVersionedUri(entityType.$id)) !==
+          entityTypeBaseUri)
+    ) {
+      setEntityType(null);
+      entityTypeRef.current = null;
+      void aggregateEntityTypes({ data: {} }).then(async (res) => {
+        const subgraph = res.data;
+        const relevantEntityTypes = subgraph
+          ? getEntityTypesByBaseUri(subgraph, entityTypeBaseUri)
+          : [];
 
-    void aggregateEntityTypes({ data: {} }).then(async (res) => {
-      const subgraph = res.data;
-      const relevantEntityTypes = subgraph
-        ? getEntityTypesByBaseUri(subgraph, entityTypeBaseUri)
-        : [];
+        /** @todo - pick the latest version? */
+        const relevantEntityType = relevantEntityTypes
+          ? relevantEntityTypes[0]!.inner
+          : null;
 
-      /** @todo - pick the latest version? */
-      const relevantEntityType = relevantEntityTypes
-        ? relevantEntityTypes[0]!.inner
-        : null;
+        await loadTypeSystem();
 
-      await loadTypeSystem();
-
-      if (!cancelled) {
-        setEntityType(relevantEntityType);
-        entityTypeRef.current = relevantEntityType;
-        if (relevantEntityType) {
-          onCompletedRef.current?.(relevantEntityType);
+        if (!cancelled) {
+          setEntityType(relevantEntityType);
+          entityTypeRef.current = relevantEntityType;
+          if (relevantEntityType) {
+            onCompletedRef.current?.(relevantEntityType);
+          }
         }
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [aggregateEntityTypes, entityTypeBaseUri, loadTypeSystem]);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+  }, [
+    aggregateEntityTypes,
+    entityType,
+    entityTypeBaseUri,
+    loadTypeSystem,
+    setEntityType,
+  ]);
 
   const updateCallback = useCallback(
     async (partialEntityType: Partial<Omit<EntityType, "$id">>) => {
@@ -87,8 +112,37 @@ export const useEntityType = (
 
       return res;
     },
-    [updateEntityType],
+    [setEntityType, updateEntityType],
   );
 
-  return [typeSystemLoading ? null : entityType, updateCallback] as const;
+  const publishDraft = useCallback(
+    async (draftEntityType: EntityType) => {
+      const { $id: _, ...remainingProperties } = draftEntityType;
+      const res = await createEntityType({
+        data: {
+          entityType: remainingProperties,
+        },
+      });
+
+      if (res.errors?.length || !res.data) {
+        throw new Error("Could not publish changes");
+      }
+
+      // @todo remove casting
+      const newUrl = extractBaseUri(res.data.entityTypeId as VersionedUri);
+
+      if (newUrl) {
+        setEntityType(res.data.entityType);
+        entityTypeRef.current = res.data.entityType;
+        await router.replace(newUrl, newUrl, { shallow: true });
+      }
+    },
+    [createEntityType, router, setEntityType],
+  );
+
+  return [
+    typeSystemLoading || !user ? null : entityType,
+    updateCallback,
+    publishDraft,
+  ] as const;
 };
