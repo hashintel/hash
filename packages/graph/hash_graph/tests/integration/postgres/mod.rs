@@ -9,12 +9,13 @@ use std::str::FromStr;
 
 use error_stack::{Report, Result};
 use graph::{
+    identifier::AccountId,
     knowledge::{Entity, EntityId, Link, PersistedEntity, PersistedEntityMetadata, PersistedLink},
     ontology::{
         PersistedDataType, PersistedEntityType, PersistedLinkType, PersistedOntologyMetadata,
         PersistedPropertyType,
     },
-    provenance::{AccountId, CreatedById, OwnedById, RemovedById, UpdatedById},
+    provenance::{CreatedById, OwnedById, RemovedById, UpdatedById},
     shared::identifier::GraphElementIdentifier,
     store::{
         error::LinkRemovalError,

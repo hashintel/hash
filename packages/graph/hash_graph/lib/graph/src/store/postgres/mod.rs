@@ -31,6 +31,7 @@ pub use self::{
 };
 use super::error::LinkRemovalError;
 use crate::{
+    identifier::AccountId,
     knowledge::{
         Entity, EntityId, KnowledgeGraphQueryDepth, Link, PersistedEntity,
         PersistedEntityIdentifier, PersistedEntityMetadata, PersistedLink,
@@ -39,7 +40,7 @@ use crate::{
         OntologyQueryDepth, PersistedDataType, PersistedEntityType, PersistedLinkType,
         PersistedOntologyIdentifier, PersistedOntologyMetadata, PersistedPropertyType,
     },
-    provenance::{AccountId, CreatedById, OwnedById, RemovedById, UpdatedById},
+    provenance::{CreatedById, OwnedById, RemovedById, UpdatedById},
     shared::identifier::{GraphElementIdentifier, LinkId},
     store::{
         error::VersionedUriAlreadyExists,

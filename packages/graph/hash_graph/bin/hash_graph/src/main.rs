@@ -7,9 +7,10 @@ use std::{collections::HashMap, fmt, net::SocketAddr, sync::Arc};
 use error_stack::{Context, IntoReport, Result, ResultExt};
 use graph::{
     api::rest::rest_api_router,
+    identifier::AccountId,
     logging::init_logger,
     ontology::domain_validator::DomainValidator,
-    provenance::{AccountId, CreatedById, OwnedById},
+    provenance::{CreatedById, OwnedById},
     store::{AccountStore, DataTypeStore, PostgresStorePool, StorePool},
 };
 use serde_json::json;

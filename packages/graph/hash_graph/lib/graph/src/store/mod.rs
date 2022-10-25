@@ -17,6 +17,7 @@ pub use self::{
     postgres::{AsClient, PostgresStore, PostgresStorePool},
 };
 use crate::{
+    identifier::AccountId,
     knowledge::{
         Entity, EntityId, Link, LinkRootedSubgraph, PersistedEntity, PersistedEntityMetadata,
         PersistedLink,
@@ -25,7 +26,7 @@ use crate::{
         PersistedDataType, PersistedEntityType, PersistedLinkType, PersistedOntologyMetadata,
         PersistedPropertyType,
     },
-    provenance::{AccountId, CreatedById, OwnedById, RemovedById, UpdatedById},
+    provenance::{CreatedById, OwnedById, RemovedById, UpdatedById},
     store::{error::LinkRemovalError, query::Expression},
     subgraph::{StructuralQuery, Subgraph},
 };

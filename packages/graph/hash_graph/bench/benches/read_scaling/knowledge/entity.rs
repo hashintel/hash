@@ -3,8 +3,9 @@ use std::{iter::repeat, str::FromStr};
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion};
 use criterion_macro::criterion;
 use graph::{
+    identifier::AccountId,
     knowledge::{Entity, EntityId},
-    provenance::{AccountId, CreatedById, OwnedById},
+    provenance::{CreatedById, OwnedById},
     store::{query::Expression, AccountStore, AsClient, EntityStore, PostgresStore},
     subgraph::{GraphResolveDepths, StructuralQuery},
 };

@@ -1,7 +1,8 @@
 use std::{mem::ManuallyDrop, str::FromStr};
 
 use graph::{
-    provenance::{AccountId, CreatedById, OwnedById, UpdatedById},
+    identifier::AccountId,
+    provenance::{CreatedById, OwnedById, UpdatedById},
     store::{
         AsClient, BaseUriAlreadyExists, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
         EntityTypeStore, LinkTypeStore, PostgresStore, PostgresStorePool, PropertyTypeStore,
