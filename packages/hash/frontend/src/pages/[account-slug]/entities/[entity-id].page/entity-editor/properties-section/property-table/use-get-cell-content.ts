@@ -1,6 +1,7 @@
 import { GridCell, GridCellKind, Item } from "@glideapps/glide-data-grid";
 import { useCallback } from "react";
 import { UseGridTooltipResponse } from "../../../../../../../components/GlideGlid/use-grid-tooltip/types";
+import { DataTypeCellProps } from "./cells/data-type-cell";
 import { ValueCellProps } from "./cells/value-cell";
 import { propertyGridIndexes } from "./constants";
 import { getTooltipsOfProperty } from "./get-tooltips-of-property";
@@ -40,6 +41,7 @@ export const useGetCellContent = (
             kind: GridCellKind.Custom,
             allowOverlay: true,
             copyData: property.value,
+            cursor: "pointer",
             data: {
               kind: "value-cell",
               tooltips: getTooltipsOfProperty(property),
@@ -51,9 +53,13 @@ export const useGetCellContent = (
 
         case "dataTypes":
           return {
-            kind: GridCellKind.Bubble,
-            data: property.dataTypes,
+            kind: GridCellKind.Custom,
             allowOverlay: true,
+            copyData: "",
+            data: {
+              kind: "data-type-cell",
+              property,
+            } as DataTypeCellProps,
           };
       }
     },
