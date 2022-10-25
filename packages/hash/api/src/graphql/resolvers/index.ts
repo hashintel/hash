@@ -125,7 +125,7 @@ import { persistedCommentTextUpdatedAt } from "./knowledge/comment/text-updated-
 import { persistedCommentReplies } from "./knowledge/comment/replies";
 import { persistedCommentParent } from "./knowledge/comment/parent";
 import { persistedCommentAuthor } from "./knowledge/comment/author";
-import { updatePersistedComment } from "./knowledge/comment/update";
+import { deletePersistedComment } from "./knowledge/comment/delete";
 import { updatePersistedCommentText } from "./knowledge/comment/update-text";
 import { blockChildEntity } from "./knowledge/block/data-entity";
 
@@ -245,7 +245,7 @@ export const resolvers = {
     setParentPersistedPage: loggedInAndSignedUp(setParentPersistedPage),
     updatePersistedPage: loggedInAndSignedUp(updatePersistedPage),
     createPersistedComment: loggedInAndSignedUp(createPersistedComment),
-    updatePersistedComment: loggedInAndSignedUp(updatePersistedComment),
+    deletePersistedComment: loggedInAndSignedUp(deletePersistedComment),
     updatePersistedCommentText: loggedInAndSignedUp(updatePersistedCommentText),
   },
 

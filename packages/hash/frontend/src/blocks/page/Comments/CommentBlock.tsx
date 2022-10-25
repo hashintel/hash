@@ -40,6 +40,7 @@ import { PencilSlashIcon } from "../../../shared/icons/pencil-slash-icon";
 import { useUser } from "../../../components/hooks/useUser";
 import { useDeleteComment } from "../../../components/hooks/useDeleteComment";
 import { CommentBlockDeleteConfirmationDialog } from "./CommentBlockDeleteConfirmationDialog";
+import { CommentActionButtons } from "./CommentActionButtons";
 
 type ToggleTextExpandedButtonProps = {
   label: ReactNode;
@@ -87,6 +88,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
   const [inputValue, setInputValue] = useState<TextToken[]>(hasText);
   const [deleteConfirmationDialogOpen, setDeleteConfirmationDialogOpen] =
     useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   const { user } = useUser();
   const [updateCommentText, { loading: updateCommentTextLoading }] =
@@ -128,6 +130,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
   const resetCommentText = () => {
     setInputValue(hasText);
     setEditable(false);
+    setIsAnimating(true);
   };
 
   const handleEditComment = async () => {
@@ -222,9 +225,12 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
               borderColor: palette.blue[60],
             },
           })}
+          onTransitionEnd={() => setIsAnimating(false)}
         >
           <CommentTextField
-            onLineCountChange={(lines) => setShouldCollapse(lines > 2)}
+            onLineCountChange={(lines) =>
+              !editable && !isAnimating && setShouldCollapse(lines > 2)
+            }
             value={inputValue}
             className={`${styles.Comment__TextField} ${
               editable
@@ -243,27 +249,14 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
         </Box>
 
         <Collapse in={editable}>
-          <Box
-            sx={{
-              display: "flex",
-              gap: 0.75,
-              justifyContent: "flex-end",
-              pt: 0.75,
-            }}
-          >
-            <Button size="xs" variant="tertiary" onClick={resetCommentText}>
-              Cancel
-            </Button>
-            <Button
-              size="xs"
-              variant="secondary"
-              onClick={handleEditComment}
-              disabled={submitUpdateDisabled}
-              loading={updateCommentTextLoading}
-            >
-              Submit
-            </Button>
-          </Box>
+          <CommentActionButtons
+            submitDisabled={submitUpdateDisabled}
+            loading={updateCommentTextLoading}
+            loadingText="Saving..."
+            onSubmit={handleEditComment}
+            onCancel={resetCommentText}
+            sx={{ pt: 0.75 }}
+          />
         </Collapse>
 
         {!editable && shouldCollapse && collapsed ? (
@@ -318,6 +311,9 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
             }
             onClick={() => {
               setEditable(!editable);
+              setCollapsed(false);
+              setShouldCollapse(false);
+              setIsAnimating(true);
               commentMenuPopupState.close();
             }}
           />

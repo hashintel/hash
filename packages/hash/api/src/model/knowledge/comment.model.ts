@@ -137,6 +137,38 @@ export default class extends EntityModel {
   }
 
   /**
+   * Delete the comment.
+   *
+   * @param params.actorId - id of the user that deleted the comment
+   */
+  async delete(
+    graphApi: GraphApi,
+    params: {
+      actorId: string;
+    },
+  ): Promise<CommentModel> {
+    const { actorId } = params;
+
+    if (actorId !== (await this.getAuthor(graphApi)).entityId) {
+      throw new Error(
+        `Critical: Comment with entityId ${this.entityId} in account ${this.ownedById} is not owned by account with entityId ${actorId}`,
+      );
+    }
+
+    await this.updateProperties(graphApi, {
+      updatedProperties: [
+        {
+          propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.deletedAt.baseUri,
+          value: new Date().getTime().toString(),
+        },
+      ],
+      actorId,
+    });
+
+    return CommentModel.fromEntityModel(this);
+  }
+
+  /**
    * Get the value of the "Resolved At" property of the comment.
    */
   getResolvedAt(): string {

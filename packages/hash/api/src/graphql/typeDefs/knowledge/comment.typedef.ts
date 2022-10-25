@@ -8,7 +8,7 @@ export const persistedCommentTypedef = gql`
     resolvedAt: String
 
     """
-    Stringified timestamp of when the entity was resolved.
+    Stringified timestamp of when the entity was deleted.
     """
     deletedAt: String
 
@@ -74,10 +74,6 @@ export const persistedCommentTypedef = gql`
     # ENTITY INTERFACE FIELDS END #
   }
 
-  input PersistedCommentUpdateData {
-    deletedAt: String
-  }
-
   extend type Mutation {
     """
     Create a new comment
@@ -94,17 +90,13 @@ export const persistedCommentTypedef = gql`
     ): PersistedComment!
 
     """
-    Update an existing comment
+    Delete an existing comment
     """
-    updatePersistedComment(
+    deletePersistedComment(
       """
-      Id of the comment being deleted
+      Id of the comment to delete
       """
       entityId: ID!
-      """
-      Id of the comment being deleted
-      """
-      updatedProperties: PersistedCommentUpdateData!
     ): PersistedComment!
 
     """
