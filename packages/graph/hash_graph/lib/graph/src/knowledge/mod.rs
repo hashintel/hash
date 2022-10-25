@@ -13,7 +13,7 @@ pub use self::{
     },
     link::{Link, PersistedLink, PersistedLinkMetadata},
 };
-use crate::provenance::{
+use crate::ontology::{
     PersistedDataType, PersistedEntityType, PersistedLinkType, PersistedPropertyType,
 };
 

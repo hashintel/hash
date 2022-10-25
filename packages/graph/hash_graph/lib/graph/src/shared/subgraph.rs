@@ -8,9 +8,9 @@ use utoipa::{openapi, ToSchema};
 
 use crate::{
     knowledge::{KnowledgeGraphQueryDepth, PersistedEntity, PersistedLink},
-    ontology::OntologyQueryDepth,
-    provenance::{
-        PersistedDataType, PersistedEntityType, PersistedLinkType, PersistedPropertyType,
+    ontology::{
+        OntologyQueryDepth, PersistedDataType, PersistedEntityType, PersistedLinkType,
+        PersistedPropertyType,
     },
     shared::identifier::GraphElementIdentifier,
     store::query::Expression,

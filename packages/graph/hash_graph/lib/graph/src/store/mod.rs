@@ -21,11 +21,11 @@ use crate::{
         Entity, EntityId, Link, LinkRootedSubgraph, PersistedEntity, PersistedEntityMetadata,
         PersistedLink,
     },
-    provenance::{
-        AccountId, CreatedById, OwnedById, PersistedDataType, PersistedEntityType,
-        PersistedLinkType, PersistedOntologyMetadata, PersistedPropertyType, RemovedById,
-        UpdatedById,
+    ontology::{
+        PersistedDataType, PersistedEntityType, PersistedLinkType, PersistedOntologyMetadata,
+        PersistedPropertyType,
     },
+    provenance::{AccountId, CreatedById, OwnedById, RemovedById, UpdatedById},
     store::{error::LinkRemovalError, query::Expression},
     subgraph::{StructuralQuery, Subgraph},
 };

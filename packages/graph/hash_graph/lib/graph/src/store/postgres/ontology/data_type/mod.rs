@@ -7,9 +7,8 @@ use tokio_postgres::GenericClient;
 use type_system::{uri::VersionedUri, DataType};
 
 use crate::{
-    provenance::{
-        CreatedById, OwnedById, PersistedDataType, PersistedOntologyMetadata, UpdatedById,
-    },
+    ontology::{PersistedDataType, PersistedOntologyMetadata},
+    provenance::{CreatedById, OwnedById, UpdatedById},
     shared::identifier::GraphElementIdentifier,
     store::{
         crud::Read,
