@@ -41,9 +41,8 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
 
   const handleReplySubmit = async () => {
     if (!loading && inputValue?.length) {
-      await onReplySubmit(comment.entityId, inputValue).then(() => {
-        setInputValue([]);
-      });
+      await onReplySubmit(comment.entityId, inputValue);
+      setInputValue([]);
     }
   };
 

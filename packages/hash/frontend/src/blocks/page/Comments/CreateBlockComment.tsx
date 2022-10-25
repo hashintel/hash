@@ -23,9 +23,8 @@ export const CreateBlockComment: FunctionComponent<CreateBlockCommentProps> = ({
 
   const handleCommentSubmit = async () => {
     if (!loading && blockId && inputValue?.length) {
-      await createComment(blockId, inputValue).then(() => {
-        onClose?.();
-      });
+      await createComment(blockId, inputValue);
+      onClose?.();
     }
   };
 
