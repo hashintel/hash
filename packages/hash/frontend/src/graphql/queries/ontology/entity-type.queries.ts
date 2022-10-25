@@ -1,4 +1,5 @@
 import { gql } from "@apollo/client";
+import { subgraphFieldsFragment } from "../subgraph";
 
 export const getEntityTypeQuery = gql`
   query getEntityType(
@@ -15,18 +16,9 @@ export const getEntityTypeQuery = gql`
       linkTypeResolveDepth: $linkTypeResolveDepth
       entityTypeResolveDepth: $entityTypeResolveDepth
     ) {
-      roots
-      vertices
-      edges
-      depths {
-        dataTypeResolveDepth
-        propertyTypeResolveDepth
-        linkTypeResolveDepth
-        entityTypeResolveDepth
-        linkTargetEntityResolveDepth
-        linkResolveDepth
-      }
+      ...SubgraphFields
     }
+    ${subgraphFieldsFragment}
   }
 `;
 
@@ -43,18 +35,9 @@ export const getAllLatestEntityTypesQuery = gql`
       linkTypeResolveDepth: $linkTypeResolveDepth
       entityTypeResolveDepth: $entityTypeResolveDepth
     ) {
-      roots
-      vertices
-      edges
-      depths {
-        dataTypeResolveDepth
-        propertyTypeResolveDepth
-        linkTypeResolveDepth
-        entityTypeResolveDepth
-        linkTargetEntityResolveDepth
-        linkResolveDepth
-      }
+      ...SubgraphFields
     }
+    ${subgraphFieldsFragment}
   }
 `;
 
@@ -73,18 +56,9 @@ export const getEntityTypeRootedSubgraphQuery = gql`
       linkTypeResolveDepth: $linkTypeResolveDepth
       entityTypeResolveDepth: $entityTypeResolveDepth
     ) {
-      roots
-      vertices
-      edges
-      depths {
-        dataTypeResolveDepth
-        propertyTypeResolveDepth
-        linkTypeResolveDepth
-        entityTypeResolveDepth
-        linkTargetEntityResolveDepth
-        linkResolveDepth
-      }
+      ...SubgraphFields
     }
+    ${subgraphFieldsFragment}
   }
 `;
 

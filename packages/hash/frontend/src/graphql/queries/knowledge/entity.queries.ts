@@ -1,4 +1,5 @@
 import { gql } from "@apollo/client";
+import { subgraphFieldsFragment } from "../subgraph";
 
 export const persistedEntityFieldsFragment = gql`
   fragment PersistedEntityFields on UnknownPersistedEntity {
@@ -45,18 +46,9 @@ export const getPersistedEntityQuery = gql`
       linkResolveDepth: $linkResolveDepth
       linkTargetEntityResolveDepth: $linkTargetEntityResolveDepth
     ) {
-      roots
-      vertices
-      edges
-      depths {
-        dataTypeResolveDepth
-        propertyTypeResolveDepth
-        linkTypeResolveDepth
-        entityTypeResolveDepth
-        linkTargetEntityResolveDepth
-        linkResolveDepth
-      }
+      ...SubgraphFields
     }
+    ${subgraphFieldsFragment}
   }
 `;
 
@@ -77,19 +69,10 @@ export const getAllLatestEntitiesQuery = gql`
       linkTargetEntityResolveDepth: $linkTargetEntityResolveDepth
       linkResolveDepth: $linkResolveDepth
     ) {
-      roots
-      vertices
-      edges
-      depths {
-        dataTypeResolveDepth
-        propertyTypeResolveDepth
-        linkTypeResolveDepth
-        entityTypeResolveDepth
-        linkTargetEntityResolveDepth
-        linkResolveDepth
-      }
+      ...SubgraphFields
     }
   }
+  ${subgraphFieldsFragment}
 `;
 
 export const getOutgoingPersistedLinksQuery = gql`
