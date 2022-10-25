@@ -32,10 +32,6 @@ export const persistedEntityTypedef = gql`
     """
     entityTypeId: String!
     """
-    The linked entities of the entity.
-    """
-    linkedEntities: [PersistedEntity!]!
-    """
     The JSON object containing the entity's properties.
     """
     properties: JSONObject!
@@ -64,10 +60,6 @@ export const persistedEntityTypedef = gql`
     The versioned URI of this entity's type.
     """
     entityTypeId: String!
-    """
-    The linked entities of the entity.
-    """
-    linkedEntities: [PersistedEntity!]!
     """
     The JSON object containing the entity's properties.
     """
