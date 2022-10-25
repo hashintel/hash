@@ -19,6 +19,7 @@ import { Subgraph } from "../../../../lib/subgraph";
 
 export type KnowledgeCallbacks = {
   getEntity: GetEntityMessageCallback;
+  aggregateEntities: AggregateEntitiesMessageCallback;
   updateEntity: UpdateEntityMessageCallback;
 };
 
