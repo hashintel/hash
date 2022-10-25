@@ -6,7 +6,7 @@ use std::{
 
 use graph::{
     knowledge::{Entity, EntityId},
-    ontology::AccountId,
+    provenance::{AccountId, CreatedById, OwnedById},
     store::{AccountStore, AsClient, EntityStore, PostgresStore},
 };
 use graph_test_data::{data_type, entity, entity_type, link_type, property_type};
@@ -140,7 +140,8 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
             .insert_entities_batched_by_type(
                 repeat((None, entity)).take(quantity),
                 entity_type_id,
-                account_id,
+                OwnedById::new(account_id),
+                CreatedById::new(account_id),
             )
             .await
             .expect("failed to create entities");

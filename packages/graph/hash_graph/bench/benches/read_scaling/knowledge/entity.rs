@@ -4,7 +4,7 @@ use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion};
 use criterion_macro::criterion;
 use graph::{
     knowledge::{Entity, EntityId},
-    ontology::AccountId,
+    provenance::{AccountId, CreatedById, OwnedById},
     store::{query::Expression, AccountStore, AsClient, EntityStore, PostgresStore},
     subgraph::{GraphResolveDepths, StructuralQuery},
 };
@@ -64,7 +64,8 @@ async fn seed_db(
         .insert_entities_batched_by_type(
             repeat((None, entity)).take(total),
             entity_type_id,
-            account_id,
+            OwnedById::new(account_id),
+            CreatedById::new(account_id),
         )
         .await
         .expect("failed to create entities");

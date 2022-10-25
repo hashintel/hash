@@ -36,9 +36,10 @@ use crate::{
         PersistedEntityIdentifier, PersistedEntityMetadata, PersistedLink,
     },
     ontology::{
-        AccountId, OntologyQueryDepth, PersistedDataType, PersistedEntityType, PersistedLinkType,
+        OntologyQueryDepth, PersistedDataType, PersistedEntityType, PersistedLinkType,
         PersistedOntologyIdentifier, PersistedOntologyMetadata, PersistedPropertyType,
     },
+    provenance::{AccountId, CreatedById, OwnedById, RemovedById, UpdatedById},
     shared::identifier::{GraphElementIdentifier, LinkId},
     store::{
         error::VersionedUriAlreadyExists,
@@ -597,8 +598,8 @@ where
     async fn create<T>(
         &self,
         database_type: T,
-        owned_by_id: AccountId,
-        created_by_id: AccountId,
+        owned_by_id: OwnedById,
+        created_by_id: CreatedById,
     ) -> Result<(VersionId, PersistedOntologyMetadata), InsertionError>
     where
         T: OntologyDatabaseType + Send + Sync + Into<serde_json::Value>,
@@ -636,7 +637,7 @@ where
             database_type,
             owned_by_id,
             created_by_id,
-            created_by_id,
+            UpdatedById::new(created_by_id.as_account_id()),
         )
         .await?;
 
@@ -645,7 +646,7 @@ where
             PersistedOntologyMetadata::new(
                 PersistedOntologyIdentifier::new(uri, owned_by_id),
                 created_by_id,
-                created_by_id,
+                UpdatedById::new(created_by_id.as_account_id()),
                 None,
             ),
         ))
@@ -664,7 +665,7 @@ where
     async fn update<T>(
         &self,
         database_type: T,
-        updated_by_id: AccountId,
+        updated_by_id: UpdatedById,
     ) -> Result<(VersionId, PersistedOntologyMetadata), UpdateError>
     where
         T: OntologyDatabaseType
@@ -727,7 +728,7 @@ where
     }
 
     /// Inserts an [`OntologyDatabaseType`] identified by [`VersionId`], and associated with an
-    /// [`AccountId`], into the database.
+    /// [`OwnedById`], [`CreatedById`], and [`UpdatedById`], into the database.
     ///
     /// # Errors
     ///
@@ -736,9 +737,9 @@ where
         &self,
         version_id: VersionId,
         database_type: T,
-        owned_by_id: AccountId,
-        created_by_id: AccountId,
-        updated_by_id: AccountId,
+        owned_by_id: OwnedById,
+        created_by_id: CreatedById,
+        updated_by_id: UpdatedById,
     ) -> Result<(), InsertionError>
     where
         T: OntologyDatabaseType + Send + Sync + Into<serde_json::Value>,
@@ -779,13 +780,13 @@ where
 
         for target_id in property_type_ids {
             self.as_client().query_one(
-                    r#"
+                r#"
                         INSERT INTO property_type_property_type_references (source_property_type_version_id, target_property_type_version_id)
                         VALUES ($1, $2)
                         RETURNING source_property_type_version_id;
                     "#,
-                    &[&version_id, &target_id],
-                )
+                &[&version_id, &target_id],
+            )
                 .await
                 .into_report()
                 .change_context(InsertionError)?;
@@ -799,13 +800,13 @@ where
 
         for target_id in data_type_ids {
             self.as_client().query_one(
-                    r#"
+                r#"
                         INSERT INTO property_type_data_type_references (source_property_type_version_id, target_data_type_version_id)
                         VALUES ($1, $2)
                         RETURNING source_property_type_version_id;
                     "#,
-                    &[&version_id, &target_id],
-                )
+                &[&version_id, &target_id],
+            )
                 .await
                 .into_report()
                 .change_context(InsertionError)?;
@@ -827,13 +828,13 @@ where
 
         for target_id in property_type_ids {
             self.as_client().query_one(
-                    r#"
+                r#"
                         INSERT INTO entity_type_property_type_references (source_entity_type_version_id, target_property_type_version_id)
                         VALUES ($1, $2)
                         RETURNING source_entity_type_version_id;
                     "#,
-                    &[&version_id, &target_id],
-                )
+                &[&version_id, &target_id],
+            )
                 .await
                 .into_report()
                 .change_context(InsertionError)?;
@@ -852,13 +853,13 @@ where
 
         for target_id in link_type_ids {
             self.as_client().query_one(
-                    r#"
+                r#"
                         INSERT INTO entity_type_link_type_references (source_entity_type_version_id, target_link_type_version_id)
                         VALUES ($1, $2)
                         RETURNING source_entity_type_version_id;
                     "#,
-                    &[&version_id, &target_id],
-                )
+                &[&version_id, &target_id],
+            )
                 .await
                 .into_report()
                 .change_context(InsertionError)?;
@@ -872,13 +873,13 @@ where
 
         for target_id in entity_type_reference_ids {
             self.as_client().query_one(
-                    r#"
+                r#"
                         INSERT INTO entity_type_entity_type_links (source_entity_type_version_id, target_entity_type_version_id)
                         VALUES ($1, $2)
                         RETURNING source_entity_type_version_id;
                     "#,
-                    &[&version_id, &target_id],
-                )
+                &[&version_id, &target_id],
+            )
                 .await
                 .into_report()
                 .change_context(InsertionError)?;
@@ -957,9 +958,9 @@ where
         entity_id: EntityId,
         entity: Entity,
         entity_type_id: VersionedUri,
-        owned_by_id: AccountId,
-        created_by_id: AccountId,
-        updated_by_id: AccountId,
+        owned_by_id: OwnedById,
+        created_by_id: CreatedById,
+        updated_by_id: UpdatedById,
     ) -> Result<PersistedEntityMetadata, InsertionError> {
         let entity_type_version_id = self
             .version_id_by_uri(&entity_type_id)
@@ -973,13 +974,13 @@ where
             .into_report()
             .change_context(InsertionError)?;
         let version = self.as_client().query_one(
-                r#"
+            r#"
                     INSERT INTO entities (entity_id, version, entity_type_version_id, properties, owned_by_id, created_by_id, updated_by_id)
                     VALUES ($1, clock_timestamp(), $2, $3, $4, $5, $6)
                     RETURNING version;
                 "#,
-                &[&entity_id, &entity_type_version_id, &value, &owned_by_id, &created_by_id, &updated_by_id]
-            )
+            &[&entity_id, &entity_type_version_id, &value, &owned_by_id, &created_by_id, &updated_by_id],
+        )
             .await
             .into_report()
             .change_context(InsertionError)?.get(0);
@@ -1018,7 +1019,7 @@ where
             .get(0))
     }
 
-    /// Inserts a [`Link`] associated with an [`AccountId`] into the database.
+    /// Inserts a [`Link`] associated with an [`OwnedById`] and [`CreatedById`] into the database.
     ///
     /// # Errors
     ///
@@ -1028,8 +1029,8 @@ where
     async fn insert_link(
         &self,
         link: &Link,
-        owned_by_id: AccountId,
-        created_by_id: AccountId,
+        owned_by_id: OwnedById,
+        created_by_id: CreatedById,
     ) -> Result<(), InsertionError> {
         let link_type_version_id = self
             .version_id_by_uri(link.link_type_id())
@@ -1058,7 +1059,7 @@ where
         Ok(())
     }
 
-    /// Moves a [`Link`] associated with an [`AccountId`] from the `links` table into the
+    /// Moves a [`Link`] associated with an [`RemovedById`] from the `links` table into the
     /// `link_histories` table.
     ///
     /// # Errors
@@ -1069,7 +1070,7 @@ where
     async fn move_link_to_history(
         &self,
         link: &Link,
-        removed_by_id: AccountId,
+        removed_by_id: RemovedById,
     ) -> Result<(), LinkRemovalError> {
         let link_type_version_id = self
             .version_id_by_uri(link.link_type_id())
@@ -1158,7 +1159,9 @@ impl PostgresStore<Transaction<'_>> {
         entity_ids: impl IntoIterator<Item = EntityId, IntoIter: Send> + Send,
         entities: impl IntoIterator<Item = Entity, IntoIter: Send> + Send,
         entity_type_version_id: VersionId,
-        account_id: AccountId,
+        owned_by_id: OwnedById,
+        created_by: CreatedById,
+        updated_by_id: UpdatedById,
     ) -> Result<u64, InsertionError> {
         let sink = self
             .client
@@ -1188,9 +1191,9 @@ impl PostgresStore<Transaction<'_>> {
                     &entity_id,
                     &entity_type_version_id,
                     &value,
-                    &account_id,
-                    &account_id,
-                    &account_id,
+                    &owned_by_id,
+                    &created_by,
+                    &updated_by_id,
                 ])
                 .await
                 .into_report()

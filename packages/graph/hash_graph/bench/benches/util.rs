@@ -1,7 +1,7 @@
 use std::{mem::ManuallyDrop, str::FromStr};
 
 use graph::{
-    ontology::AccountId,
+    provenance::{AccountId, CreatedById, OwnedById, UpdatedById},
     store::{
         AsClient, BaseUriAlreadyExists, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
         EntityTypeStore, LinkTypeStore, PostgresStore, PostgresStorePool, PropertyTypeStore,
@@ -166,7 +166,7 @@ impl Drop for StoreWrapper {
 
 pub async fn seed<D, P, L, E, C>(
     store: &mut PostgresStore<C>,
-    owned_by_id: AccountId,
+    account_id: AccountId,
     data_types: D,
     property_types: P,
     link_types: L,
@@ -182,14 +182,18 @@ pub async fn seed<D, P, L, E, C>(
         let data_type = DataType::from_str(data_type_str).expect("could not parse data type");
 
         match store
-            .create_data_type(data_type.clone(), owned_by_id, owned_by_id)
+            .create_data_type(
+                data_type.clone(),
+                OwnedById::new(account_id),
+                CreatedById::new(account_id),
+            )
             .await
         {
             Ok(_) => {}
             Err(report) => {
                 if report.contains::<BaseUriAlreadyExists>() {
                     store
-                        .update_data_type(data_type, owned_by_id)
+                        .update_data_type(data_type, UpdatedById::new(account_id))
                         .await
                         .expect("failed to update data type");
                 } else {
@@ -204,14 +208,18 @@ pub async fn seed<D, P, L, E, C>(
             PropertyType::from_str(property_type_str).expect("could not parse property type");
 
         match store
-            .create_property_type(property_type.clone(), owned_by_id, owned_by_id)
+            .create_property_type(
+                property_type.clone(),
+                OwnedById::new(account_id),
+                CreatedById::new(account_id),
+            )
             .await
         {
             Ok(_) => {}
             Err(report) => {
                 if report.contains::<BaseUriAlreadyExists>() {
                     store
-                        .update_property_type(property_type, owned_by_id)
+                        .update_property_type(property_type, UpdatedById::new(account_id))
                         .await
                         .expect("failed to update property type");
                 } else {
@@ -226,14 +234,18 @@ pub async fn seed<D, P, L, E, C>(
         let link_type = LinkType::from_str(link_type_str).expect("could not parse link type");
 
         match store
-            .create_link_type(link_type.clone(), owned_by_id, owned_by_id)
+            .create_link_type(
+                link_type.clone(),
+                OwnedById::new(account_id),
+                CreatedById::new(account_id),
+            )
             .await
         {
             Ok(_) => {}
             Err(report) => {
                 if report.contains::<BaseUriAlreadyExists>() {
                     store
-                        .update_link_type(link_type, owned_by_id)
+                        .update_link_type(link_type, UpdatedById::new(account_id))
                         .await
                         .expect("failed to update link type");
                 } else {
@@ -248,14 +260,18 @@ pub async fn seed<D, P, L, E, C>(
             EntityType::from_str(entity_type_str).expect("could not parse entity type");
 
         match store
-            .create_entity_type(entity_type.clone(), owned_by_id, owned_by_id)
+            .create_entity_type(
+                entity_type.clone(),
+                OwnedById::new(account_id),
+                CreatedById::new(account_id),
+            )
             .await
         {
             Ok(_) => {}
             Err(report) => {
                 if report.contains::<BaseUriAlreadyExists>() {
                     store
-                        .update_entity_type(entity_type, owned_by_id)
+                        .update_entity_type(entity_type, UpdatedById::new(account_id))
                         .await
                         .expect("failed to update entity type");
                 } else {

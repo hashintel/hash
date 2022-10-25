@@ -74,6 +74,7 @@ pub mod api;
 
 pub mod knowledge;
 pub mod ontology;
+pub mod provenance;
 pub mod shared;
 
 pub mod store;
