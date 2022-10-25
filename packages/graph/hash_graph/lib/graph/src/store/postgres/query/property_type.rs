@@ -78,7 +78,7 @@ impl Field for PropertyTypeField {
     }
 }
 
-impl Path for PropertyTypeQueryPath<'_> {
+impl Path for PropertyTypeQueryPath {
     fn tables(&self) -> Vec<TableName> {
         match self {
             Self::DataTypes(path) => once(TableName::PropertyTypeDataTypeReferences)

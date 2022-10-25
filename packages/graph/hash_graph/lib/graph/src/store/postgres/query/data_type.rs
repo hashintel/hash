@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use postgres_types::ToSql;
 use type_system::DataType;
 
@@ -9,7 +7,7 @@ use crate::{
 };
 
 impl<'q> PostgresQueryRecord<'q> for DataType {
-    type Field = DataTypeQueryField<'q>;
+    type Field = DataTypeQueryField;
 
     fn base_table() -> Table {
         Table {
@@ -27,7 +25,7 @@ impl<'q> PostgresQueryRecord<'q> for DataType {
 ///
 /// [`DataType`]: type_system::DataType
 #[derive(Debug, PartialEq, Eq)]
-pub enum DataTypeQueryField<'q> {
+pub enum DataTypeQueryField {
     BaseUri,
     Version,
     VersionId,
@@ -37,10 +35,9 @@ pub enum DataTypeQueryField<'q> {
     Title,
     Description,
     Type,
-    Custom(Cow<'q, str>),
 }
 
-impl<'q> Field for DataTypeQueryField<'q> {
+impl Field for DataTypeQueryField {
     fn table_name(&self) -> TableName {
         match self {
             Self::BaseUri | Self::Version => TableName::TypeIds,
@@ -50,8 +47,7 @@ impl<'q> Field for DataTypeQueryField<'q> {
             | Self::VersionedUri
             | Self::Title
             | Self::Type
-            | Self::Description
-            | Self::Custom(_) => TableName::DataTypes,
+            | Self::Description => TableName::DataTypes,
         }
     }
 
@@ -82,15 +78,11 @@ impl<'q> Field for DataTypeQueryField<'q> {
                 column: "schema",
                 field: "description",
             },
-            Self::Custom(field) => ColumnAccess::Json {
-                column: "schema",
-                field: field.as_ref(),
-            },
         }
     }
 }
 
-impl Path for DataTypeQueryPath<'_> {
+impl Path for DataTypeQueryPath {
     fn tables(&self) -> Vec<TableName> {
         vec![self.terminating_table_name()]
     }
@@ -98,12 +90,9 @@ impl Path for DataTypeQueryPath<'_> {
     fn terminating_table_name(&self) -> TableName {
         match self {
             Self::BaseUri | Self::Version => TableName::TypeIds,
-            Self::OwnedById
-            | Self::VersionedUri
-            | Self::Title
-            | Self::Type
-            | Self::Description
-            | Self::Custom(_) => TableName::DataTypes,
+            Self::OwnedById | Self::VersionedUri | Self::Title | Self::Type | Self::Description => {
+                TableName::DataTypes
+            }
         }
     }
 
@@ -130,18 +119,10 @@ impl Path for DataTypeQueryPath<'_> {
                 column: "schema",
                 field: "description",
             },
-            Self::Custom(field) => ColumnAccess::Json {
-                column: "schema",
-                field: field.as_ref(),
-            },
         }
     }
 
     fn user_provided_field(&self) -> Option<&(dyn ToSql + Sync)> {
-        if let Self::Custom(field) = self {
-            Some(field)
-        } else {
-            None
-        }
+        None
     }
 }
