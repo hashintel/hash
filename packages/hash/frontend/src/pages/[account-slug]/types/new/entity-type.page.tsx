@@ -3,7 +3,6 @@ import { Button, TextField } from "@hashintel/hash-design-system/ui";
 import {
   addVersionToBaseUri,
   generateBaseTypeId,
-  generateTypeId,
 } from "@hashintel/hash-shared/types";
 import {
   Box,
@@ -53,6 +52,9 @@ type CreateEntityTypeFormData = {
 
 const HELPER_TEXT_WIDTH = 290;
 
+const generateInitialEntityTypeId = (baseUri: string) =>
+  addVersionToBaseUri(baseUri, 1);
+
 const Page: NextPageWithLayout = () => {
   const typeSystemLoading = useInitTypeSystem();
 
@@ -88,20 +90,25 @@ const Page: NextPageWithLayout = () => {
     return null;
   }
 
+  const generateEntityTypeBaseUriForUser = (value: string) => {
+    if (!user?.shortname) {
+      throw new Error("User shortname must exist");
+    }
+
+    return generateBaseTypeId({
+      domain: FRONTEND_URL,
+      namespace: user.shortname,
+      kind: "entity-type",
+      title: value,
+    });
+  };
+
   const handleFormSubmit = handleSubmit(async ({ name, description }) => {
     if (!user.shortname) {
       throw new Error("Namespace for entity type creation missing");
     }
 
-    const baseUri = generateBaseTypeId({
-      domain: FRONTEND_URL,
-      kind: "entity-type",
-      title: name,
-      namespace: user.shortname,
-    });
-
-    const entityTypeId = addVersionToBaseUri(baseUri, 1);
-
+    const baseUri = generateEntityTypeBaseUriForUser(name);
     const entityType: EntityType = {
       title: name,
       // @todo make this not necessary
@@ -110,7 +117,7 @@ const Page: NextPageWithLayout = () => {
       kind: "entityType",
       type: "object",
       properties: {},
-      $id: entityTypeId,
+      $id: generateInitialEntityTypeId(baseUri),
     };
 
     const nextUrl = `${baseUri}?draft=${encodeURIComponent(
@@ -204,18 +211,13 @@ const Page: NextPageWithLayout = () => {
                     clearErrors("name");
                   },
                   async validate(value) {
-                    if (!user.shortname) {
-                      throw new Error("User shortname must exist");
-                    }
-
-                    const entityTypeId = generateTypeId({
-                      domain: FRONTEND_URL,
-                      kind: "entity-type",
-                      title: value,
-                      namespace: user.shortname,
+                    const res = await getEntityType({
+                      data: {
+                        entityTypeId: generateInitialEntityTypeId(
+                          generateEntityTypeBaseUriForUser(value),
+                        ),
+                      },
                     });
-
-                    const res = await getEntityType({ data: { entityTypeId } });
 
                     return res.data?.roots.length
                       ? "Entity type name must be unique"
