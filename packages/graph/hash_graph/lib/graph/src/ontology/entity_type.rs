@@ -2,7 +2,7 @@ use std::fmt;
 
 use error_stack::{IntoReport, Report};
 use serde::{
-    de::{self, Deserializer, SeqAccess, Unexpected, Visitor},
+    de::{self, Deserializer, SeqAccess, Visitor},
     Deserialize,
 };
 use type_system::EntityType;
@@ -10,7 +10,7 @@ use type_system::EntityType;
 use crate::{
     ontology::{
         link_type::LinkTypeQueryPathVisitor, property_type::PropertyTypeQueryPathVisitor,
-        LinkTypeQueryPath, PropertyTypeQueryPath,
+        LinkTypeQueryPath, PropertyTypeQueryPath, Selector,
     },
     store::query::{Path, QueryRecord},
 };
@@ -136,43 +136,6 @@ impl<'de: 'k, 'k> Deserialize<'de> for EntityTypeQueryPath<'k> {
         D: Deserializer<'de>,
     {
         deserializer.deserialize_seq(EntityTypeQueryPathVisitor::new(0))
-    }
-}
-
-pub enum Selector {
-    Wildcard,
-}
-
-impl<'de> Deserialize<'de> for Selector {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct SelectorVisitor;
-
-        impl<'de> Visitor<'de> for SelectorVisitor {
-            type Value = Selector;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("a wildcard (*)")
-            }
-
-            fn visit_str<E: de::Error>(self, v: &str) -> Result<Self::Value, E> {
-                match v {
-                    "*" => Ok(Selector::Wildcard),
-                    _ => Err(de::Error::invalid_value(Unexpected::Str(v), &self)),
-                }
-            }
-
-            fn visit_bytes<E: de::Error>(self, v: &[u8]) -> Result<Self::Value, E> {
-                match core::str::from_utf8(v) {
-                    Ok(s) => self.visit_str(s),
-                    Err(_) => Err(E::invalid_value(de::Unexpected::Bytes(v), &self)),
-                }
-            }
-        }
-
-        deserializer.deserialize_str(SelectorVisitor)
     }
 }
 
