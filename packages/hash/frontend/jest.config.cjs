@@ -4,7 +4,15 @@ const nextJest = require("next/jest");
 
 const createJestConfig = nextJest({ dir: __dirname });
 
+/** @type {import("jest").Config} */
 const customJestConfig = {
+  collectCoverage: process.env.TEST_COVERAGE === "true",
+  collectCoverageFrom: [
+    "**/*.{c,m,}{j,t}s{x,}",
+    "!**/node_modules/**",
+    "!**/dist/**",
+  ],
+  coverageReporters: ["lcov", "text"],
   moduleDirectories: ["node_modules", "<rootDir>/"],
   moduleNameMapper: {
     "@hashintel/hash-shared(.*)": "<rootDir>/../shared/src$1",
