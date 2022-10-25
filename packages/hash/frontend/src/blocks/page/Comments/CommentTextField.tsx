@@ -71,17 +71,11 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
   const { accountId } = useRouteAccountInfo();
   const editorContainerRef = useRef<HTMLDivElement>();
   const editableRef = useRef(false);
-  const eventsRef = useRef({ onClose, onSubmit });
+  const eventsRef = useRef({ onClose, onSubmit, onLineCountChange });
 
   useLayoutEffect(() => {
-    eventsRef.current = { onClose, onSubmit };
+    eventsRef.current = { onClose, onSubmit, onLineCountChange };
     editableRef.current = editable;
-
-    if (viewRef.current && onLineCountChange) {
-      onLineCountChange(
-        Math.floor(viewRef.current.dom.scrollHeight / LINE_HEIGHT),
-      );
-    }
   });
 
   const setDocument = (tokens: TextToken[]) => {
@@ -163,7 +157,18 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
       view.focus();
       viewRef.current = view;
 
+      const resizeObserver = new ResizeObserver(() => {
+        if (viewRef.current) {
+          eventsRef.current.onLineCountChange?.(
+            Math.floor(viewRef.current.dom.scrollHeight / LINE_HEIGHT),
+          );
+        }
+      });
+
+      resizeObserver.observe(view.dom);
+
       return () => {
+        resizeObserver.unobserve(view.dom);
         view.destroy();
         viewRef.current = undefined;
       };

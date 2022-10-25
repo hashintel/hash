@@ -1,4 +1,10 @@
-import { FunctionComponent, ReactNode, useMemo, useState } from "react";
+import {
+  FunctionComponent,
+  ReactNode,
+  useCallback,
+  useMemo,
+  useState,
+} from "react";
 import { Box, Typography } from "@mui/material";
 import {
   Avatar,
@@ -81,6 +87,11 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({ comment }) => {
     [author.properties],
   );
 
+  const onLineCountChange = useCallback(
+    (lines: number) => setShouldCollapse(lines > 2),
+    [setShouldCollapse],
+  );
+
   return (
     <Box
       sx={{
@@ -131,7 +142,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({ comment }) => {
 
       <Box p={0.5} pt={2} position="relative">
         <CommentTextField
-          onLineCountChange={(lines) => setShouldCollapse(lines > 2)}
+          onLineCountChange={onLineCountChange}
           value={hasText}
           className={collapsed ? styles.Comment__TextField_collapsed! : ""}
           readOnly
