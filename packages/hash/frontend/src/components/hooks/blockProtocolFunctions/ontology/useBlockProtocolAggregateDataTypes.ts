@@ -7,6 +7,7 @@ import {
 } from "../../../../graphql/apiTypes.gen";
 import { getAllLatestDataTypesQuery } from "../../../../graphql/queries/ontology/data-type.queries";
 import { AggregateDataTypesMessageCallback } from "./ontology-types-shim";
+import { Subgraph } from "../../../../lib/subgraph";
 
 export const useBlockProtocolAggregateDataTypes = (): {
   aggregateDataTypes: AggregateDataTypesMessageCallback;
@@ -55,7 +56,11 @@ export const useBlockProtocolAggregateDataTypes = (): {
       }
 
       return {
-        data: response.data.getAllLatestDataTypes,
+        /**
+         * @todo: remove this when we start returning links in the subgraph
+         *   https://app.asana.com/0/0/1203214689883095/f
+         */
+        data: response.data.getAllLatestDataTypes as Subgraph,
       };
     },
     [aggregateFn],

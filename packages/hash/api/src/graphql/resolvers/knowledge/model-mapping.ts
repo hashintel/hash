@@ -24,7 +24,6 @@ export const mapEntityModelToGQL = (
   entityModel: EntityModel,
 ): UnresolvedPersistedEntityGQL => ({
   entityId: entityModel.entityId,
-  entityType: mapEntityTypeModelToGQL(entityModel.entityTypeModel),
   entityTypeId: entityModel.entityTypeModel.schema.$id,
   entityVersion: entityModel.version,
   ownedById: entityModel.ownedById,
@@ -50,6 +49,7 @@ export const mapPageModelToGQL = (
   pageModel: PageModel,
 ): UnresolvedPersistedPageGQL => ({
   ...mapEntityModelToGQL(pageModel),
+  entityType: mapEntityTypeModelToGQL(pageModel.entityTypeModel),
   title: pageModel.getTitle(),
   properties: pageModel.properties,
   archived: pageModel.getArchived(),
@@ -89,6 +89,7 @@ export const mapBlockModelToGQL = (
   blockModel: BlockModel,
 ): UnresolvedPersistedBlockGQL => ({
   ...mapEntityModelToGQL(blockModel),
+  entityType: mapEntityTypeModelToGQL(blockModel.entityTypeModel),
   componentId: blockModel.getComponentId(),
 });
 
