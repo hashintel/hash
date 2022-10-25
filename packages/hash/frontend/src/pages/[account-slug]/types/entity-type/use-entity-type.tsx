@@ -4,7 +4,13 @@ import {
   VersionedUri,
 } from "@blockprotocol/type-system-web";
 import { useRouter } from "next/router";
-import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { useBlockProtocolAggregateEntityTypes } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregateEntityTypes";
 import { useBlockProtocolCreateEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreateEntityType";
 import { useBlockProtocolUpdateEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdateEntityType";
@@ -25,7 +31,7 @@ export const useEntityType = (
   );
   const [typeSystemLoading, loadTypeSystem] = useAdvancedInitTypeSystem();
 
-  const [entityType, setEntityType] = useStateCallback<EntityType | null>(null);
+  const [entityType, setEntityType] = useState<EntityType | null>(null);
   const entityTypeRef = useRef(entityType);
 
   const onCompletedRef = useRef(onCompleted);
@@ -126,10 +132,9 @@ export const useEntityType = (
       const newUrl = extractBaseUri(res.data.entityTypeId as VersionedUri);
 
       if (newUrl) {
-        setEntityType(res.data.entityType, async () => {
-          await router.replace(newUrl, newUrl, { shallow: true });
-        });
+        setEntityType(res.data.entityType);
         entityTypeRef.current = res.data.entityType;
+        await router.replace(newUrl, newUrl, { shallow: true });
       }
     },
     [createEntityType, router, setEntityType],
