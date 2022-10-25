@@ -1,10 +1,10 @@
 import {
-  Vertex,
+  Vertex as VertexGql,
   DataTypeVertex,
   PropertyTypeVertex,
   LinkTypeVertex,
   EntityTypeVertex,
-  EntityVertex,
+  EntityVertex as EntityVertexGql,
   LinkVertex,
   PersistedDataType,
   PersistedPropertyType,
@@ -13,7 +13,20 @@ import {
 } from "@hashintel/hash-shared/graphql/types";
 import { BaseUri } from "@blockprotocol/type-system-web";
 
-import { Subgraph } from "../graphql/apiTypes.gen";
+import { Subgraph as SubgraphGql } from "../graphql/apiTypes.gen";
+import { Entity } from "../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
+
+// ------------------- Temporary patches while links are fixed -------------------
+/** @todo - remove this when links are fixed inside subgraphs - https://app.asana.com/0/0/1203214689883095/f */
+export type EntityVertex = Omit<EntityVertexGql, "inner"> & {
+  inner: Entity;
+};
+
+export type Vertex = Exclude<VertexGql, { kind: "entity" }> | EntityVertex;
+
+export type Subgraph = Omit<SubgraphGql, "vertices"> & {
+  vertices: Record<string, Vertex>;
+};
 
 // ------------------- Type Guards to use inside .filters -------------------
 
@@ -134,7 +147,7 @@ export const getPersistedLinkType = (
  *
  * @param subgraph
  * @param entityTypeId
- * @throws if the vertex isn't a `EntityTypeVertex`
+ * @throws if the vertex isn't an `EntityTypeVertex`
  */
 export const getPersistedEntityType = (
   subgraph: Subgraph,
@@ -153,21 +166,56 @@ export const getPersistedEntityType = (
   return vertex.inner;
 };
 
+/**
+ * Gets an `Entity` by its `entityId` from within the vertices of the subgraph. Returns `undefined` if
+ * the entity couldn't be found.
+ *
+ * @param subgraph
+ * @param entityId
+ * @throws if the vertex isn't an `EntityVertex`
+ *
+ * @todo - version is required to identify a specific instance of an entity
+ *   https://app.asana.com/0/1202805690238892/1203214689883091/f
+ */
+export const getEntity = (
+  subgraph: Subgraph,
+  entityId: string,
+): Entity | undefined => {
+  const vertex = subgraph.vertices[entityId];
+
+  if (!vertex) {
+    return undefined;
+  }
+
+  if (!isEntityVertex(vertex)) {
+    throw new Error(`expected entity vertex but got: ${vertex.kind}`);
+  }
+
+  return vertex.inner;
+};
+
 /** @todo - getPersistedEntity and getPersistedLink - https://app.asana.com/0/0/1203157172269853/f */
 
 /**
- * Returns all root vertices of the subgraph
+ * Returns all root `Entity` vertices of the subgraph
  *
  * @param subgraph
+ * @throws if the roots aren't all `Entity`
  */
-export const roots = (subgraph: Subgraph): Vertex[] => {
+export const getRootsAsEntities = (subgraph: Subgraph): Entity[] => {
   return subgraph.roots.map((root) => {
     const rootVertex = subgraph.vertices[root];
     if (!rootVertex) {
       throw new Error(`looked in vertex set but failed to find root: ${root}`);
     }
 
-    return rootVertex;
+    if (!isEntityVertex(rootVertex)) {
+      throw new Error(
+        `expected vertex to be of kind entity but was: ${rootVertex.kind}`,
+      );
+    }
+
+    return rootVertex.inner;
   });
 };
 
@@ -176,7 +224,9 @@ export const roots = (subgraph: Subgraph): Vertex[] => {
  *
  * @param subgraph
  */
-export const persistedDataTypes = (subgraph: Subgraph): PersistedDataType[] => {
+export const getPersistedDataTypes = (
+  subgraph: Subgraph,
+): PersistedDataType[] => {
   return Object.values(subgraph.vertices)
     .filter(isDataTypeVertex)
     .map((vertex) => vertex.inner);
@@ -187,7 +237,7 @@ export const persistedDataTypes = (subgraph: Subgraph): PersistedDataType[] => {
  *
  * @param subgraph
  */
-export const persistedPropertyTypes = (
+export const getPersistedPropertyTypes = (
   subgraph: Subgraph,
 ): PersistedPropertyType[] => {
   return Object.values(subgraph.vertices)
@@ -200,7 +250,9 @@ export const persistedPropertyTypes = (
  *
  * @param subgraph
  */
-export const persistedLinkTypes = (subgraph: Subgraph): PersistedLinkType[] => {
+export const getPersistedLinkTypes = (
+  subgraph: Subgraph,
+): PersistedLinkType[] => {
   return Object.values(subgraph.vertices)
     .filter(isLinkTypeVertex)
     .map((vertex) => vertex.inner);
@@ -211,7 +263,7 @@ export const persistedLinkTypes = (subgraph: Subgraph): PersistedLinkType[] => {
  *
  * @param subgraph
  */
-export const persistedEntityTypes = (
+export const getPersistedEntityTypes = (
   subgraph: Subgraph,
 ): PersistedEntityType[] => {
   return Object.values(subgraph.vertices)
@@ -226,7 +278,7 @@ export const persistedEntityTypes = (
  *
  * @param subgraph
  */
-export const persistedLinks = (subgraph: Subgraph) => {
+export const getPersistedLinks = (subgraph: Subgraph) => {
   return Object.values(subgraph.vertices)
     .filter(isLinkVertex)
     .map((vertex) => vertex.inner);
@@ -237,7 +289,7 @@ export const persistedLinks = (subgraph: Subgraph) => {
  *
  * @param subgraph
  */
-export const persistedEntities = (subgraph: Subgraph) => {
+export const getPersistedEntities = (subgraph: Subgraph) => {
   return Object.values(subgraph.vertices)
     .filter(isEntityVertex)
     .map((vertex) => vertex.inner);
@@ -337,4 +389,29 @@ export const getEntityTypesByBaseUri = (
 
     return vertex.inner;
   });
+};
+
+// ------------------- Checked Subgraph Objects -------------------
+
+export type RootEntityAndSubgraph = { root: Entity; subgraph: Subgraph };
+
+/**
+ * Checks if the `subgraph` is rooted at a single `Entity` and returns a `RootEntityAndSubgraph`
+ * @param subgraph
+ * @throws if there were more or less than one root
+ * @throws if the root wasn't an `EntityVertex`
+ */
+export const extractEntityRoot = (
+  subgraph: Subgraph,
+): RootEntityAndSubgraph => {
+  if (subgraph.roots.length !== 1) {
+    throw new Error(
+      `expected subgraph to have a single root but had ${subgraph.roots.length}`,
+    );
+  }
+
+  return {
+    root: getRootsAsEntities(subgraph)[0]!,
+    subgraph,
+  };
 };
