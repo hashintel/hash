@@ -27,7 +27,7 @@ const isArrayDefinition = <T,>(
  */
 const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
   const { user } = useUser();
-  const [entityRootedSubgraph, setEntityRootedSubgraph] = useState<Subgraph>();
+  const [subgraph, setSubgraph] = useState<Subgraph>();
 
   const { getEntity, createEntity } =
     useBlockProtocolFunctionsWithOntology(ownedById);
@@ -38,18 +38,16 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
       const entityId = user.entityId;
 
       void getEntity({ data: { entityId } }).then(({ data }) => {
-        setEntityRootedSubgraph(data);
+        setSubgraph(data);
       });
     }
   }, [user, getEntity]);
 
-  const entity = entityRootedSubgraph
-    ? rootsAsEntities(entityRootedSubgraph)[0]
-    : undefined;
+  const entity = subgraph ? rootsAsEntities(subgraph)[0] : undefined;
 
   const entityType =
-    entityRootedSubgraph && entity
-      ? getPersistedEntityType(entityRootedSubgraph, entity.entityTypeId)?.inner
+    subgraph && entity
+      ? getPersistedEntityType(subgraph, entity.entityTypeId)?.inner
       : undefined;
 
   // The (top-level) property type IDs defined in the entity type
@@ -66,14 +64,13 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
   // The (top-level) property type definitions, referenced in the entity type
   const propertyTypeDefinitions = useMemo(
     () =>
-      entityRootedSubgraph && propertyTypeIds
+      subgraph && propertyTypeIds
         ? propertyTypeIds.map(
             (propertyTypeId) =>
-              getPersistedPropertyType(entityRootedSubgraph, propertyTypeId)
-                ?.inner,
+              getPersistedPropertyType(subgraph, propertyTypeId)?.inner,
           )
         : undefined,
-    [entityRootedSubgraph, propertyTypeIds],
+    [subgraph, propertyTypeIds],
   );
 
   const handleCreateEntity = async () => {

@@ -389,26 +389,25 @@ export const getEntityTypesByBaseUri = (
 
 // ------------------- Checked Subgraph Objects -------------------
 
-export type SingleEntityRootedSubgraph = Subgraph & { root: Entity };
+export type RootEntityAndSubgraph = { root: Entity; subgraph: Subgraph };
 
 /**
- * Checks if the `subgraph` is rooted at a single `Entity` and modifies the object to store a reference to it as
- * a `root` property
+ * Checks if the `subgraph` is rooted at a single `Entity` and returns a `RootEntityAndSubgraph`
  * @param subgraph
  * @throws if there were more or less than one root
  * @throws if the root wasn't an `EntityVertex`
  */
-export const isSingleEntityRootedSubgraph = (
+export const extractEntityRoot = (
   subgraph: Subgraph,
-): subgraph is SingleEntityRootedSubgraph => {
+): RootEntityAndSubgraph => {
   if (subgraph.roots.length !== 1) {
     throw new Error(
       `expected subgraph to have a single root but had ${subgraph.roots.length}`,
     );
   }
 
-  // eslint-disable-next-line no-param-reassign
-  (subgraph as SingleEntityRootedSubgraph).root = rootsAsEntities(subgraph)[0]!;
-
-  return true;
+  return {
+    root: rootsAsEntities(subgraph)[0]!,
+    subgraph,
+  };
 };

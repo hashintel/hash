@@ -8,16 +8,16 @@ import { PropertyRow } from "./types";
 
 export const useOnCellEdited = (rowData: PropertyRow[]) => {
   const snackbar = useSnackbar();
-  const { entityRootedSubgraph, setEntity } = useEntityEditor();
+  const { rootEntityAndSubgraph, setEntity } = useEntityEditor();
   const { updateEntity } = useBlockProtocolUpdateEntity();
 
   const onCellEdited = useCallback(
     async ([col, row]: Item, newValue: EditableGridCell) => {
-      if (!entityRootedSubgraph) {
+      if (!rootEntityAndSubgraph) {
         return;
       }
 
-      const entity = entityRootedSubgraph.root;
+      const entity = rootEntityAndSubgraph.root;
 
       const key = propertyGridIndexes[col];
       const property = rowData[row];
@@ -54,7 +54,7 @@ export const useOnCellEdited = (rowData: PropertyRow[]) => {
         snackbar.error(`Failed to update "${property.title}"`);
       }
     },
-    [rowData, entityRootedSubgraph, setEntity, updateEntity, snackbar],
+    [rowData, rootEntityAndSubgraph, setEntity, updateEntity, snackbar],
   );
 
   return onCellEdited;

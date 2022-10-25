@@ -34,16 +34,16 @@ const TypeCard = ({ url, title }: TypeCardProps) => {
 };
 
 export const TypesSection = () => {
-  const { entityRootedSubgraph } = useEntityEditor();
+  const { rootEntityAndSubgraph } = useEntityEditor();
 
-  if (!entityRootedSubgraph) {
+  if (!rootEntityAndSubgraph) {
     return null;
   }
 
-  const entity = entityRootedSubgraph.root;
+  const entity = rootEntityAndSubgraph.root;
 
   const entityTypeTitle = getPersistedEntityType(
-    entityRootedSubgraph,
+    rootEntityAndSubgraph.subgraph,
     entity.entityTypeId,
   )!.inner.title;
   const entityTypeUrl = entity.entityTypeId.replace(/v\/\d+/, "");

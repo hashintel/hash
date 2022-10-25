@@ -11,14 +11,14 @@ import { EntitySection } from "./shared/entity-section";
 import { WhiteChip } from "./shared/white-chip";
 
 export const PropertiesSection = () => {
-  const { entityRootedSubgraph } = useEntityEditor();
+  const { rootEntityAndSubgraph } = useEntityEditor();
   const [showSearch, setShowSearch] = useState(false);
 
-  if (!entityRootedSubgraph) {
+  if (!rootEntityAndSubgraph) {
     return null;
   }
 
-  const entity = entityRootedSubgraph.root;
+  const entity = rootEntityAndSubgraph.root;
 
   const propertyCount = Object.keys(entity.properties).length;
   const emptyPropertyCount = getEmptyPropertyCount(entity.properties);

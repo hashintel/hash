@@ -4,43 +4,42 @@ import { generateEntityLabel } from "../../../../../../../lib/entities";
 import {
   getPersistedEntityType,
   getPersistedLinkType,
-  rootsAsEntities,
 } from "../../../../../../../lib/subgraph";
 import { useEntityEditor } from "../../entity-editor-context";
 import { LinkRow } from "./types";
 
 export const useRowData = () => {
-  const { entityRootedSubgraph, linkSort } = useEntityEditor();
+  const { rootEntityAndSubgraph, linkSort } = useEntityEditor();
 
   const rowData = useMemo<LinkRow[]>(() => {
-    if (!entityRootedSubgraph) {
+    if (!rootEntityAndSubgraph) {
       return [];
     }
 
-    const entity = entityRootedSubgraph.root;
+    const entity = rootEntityAndSubgraph.root;
 
     return (
       entity?.links.map((link) => {
         const linkType = getPersistedLinkType(
-          entityRootedSubgraph,
+          rootEntityAndSubgraph.subgraph,
           link.linkTypeId,
         )?.inner;
 
         const referencedEntityType = getPersistedEntityType(
-          entityRootedSubgraph,
+          rootEntityAndSubgraph.subgraph,
           link.targetEntity.entityTypeId,
         )?.inner;
 
         return {
           expectedEntityType: referencedEntityType?.title ?? "",
-          linkedWith: generateEntityLabel(entityRootedSubgraph),
+          linkedWith: generateEntityLabel(rootEntityAndSubgraph),
           linkId: link.linkTypeId,
           relationShip: "Outbound",
           type: linkType?.title ?? "",
         };
       }) ?? []
     );
-  }, [entityRootedSubgraph]);
+  }, [rootEntityAndSubgraph]);
 
   const sortedRowData = useMemo(() => {
     return sortRowData(rowData, linkSort);

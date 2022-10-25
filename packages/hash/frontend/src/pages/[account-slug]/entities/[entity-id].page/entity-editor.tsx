@@ -4,21 +4,21 @@ import { LinksSection } from "./entity-editor/links-section";
 import { PeersSection } from "./entity-editor/peers-section";
 import { PropertiesSection } from "./entity-editor/properties-section";
 import { TypesSection } from "./entity-editor/types-section";
-import { SingleEntityRootedSubgraph } from "../../../../lib/subgraph";
+import { RootEntityAndSubgraph } from "../../../../lib/subgraph";
 import { Entity } from "../../../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
 
 export interface EntityEditorProps {
-  entityRootedSubgraph: SingleEntityRootedSubgraph | undefined;
+  rootEntityAndSubgraph: RootEntityAndSubgraph | undefined;
   setEntity: (entity: Entity | undefined) => void;
 }
 
 export const EntityEditor = ({
-  entityRootedSubgraph,
+  rootEntityAndSubgraph,
   setEntity,
 }: EntityEditorProps) => {
   return (
     <EntityEditorContextProvider
-      entityRootedSubgraph={entityRootedSubgraph}
+      rootEntityAndSubgraph={rootEntityAndSubgraph}
       setEntity={setEntity}
     >
       <TypesSection />
