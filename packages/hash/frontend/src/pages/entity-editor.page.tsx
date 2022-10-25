@@ -10,7 +10,7 @@ import { useBlockProtocolFunctionsWithOntology } from "./type-editor/blockprotoc
 import {
   getPersistedEntityType,
   getPersistedPropertyType,
-  rootsAsEntities,
+  getRootsAsEntities,
   Subgraph,
 } from "../lib/subgraph";
 
@@ -43,7 +43,7 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
     }
   }, [user, getEntity]);
 
-  const entity = subgraph ? rootsAsEntities(subgraph)[0] : undefined;
+  const entity = subgraph ? getRootsAsEntities(subgraph)[0] : undefined;
 
   const entityType =
     subgraph && entity

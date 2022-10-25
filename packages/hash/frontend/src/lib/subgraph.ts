@@ -202,7 +202,7 @@ export const getEntity = (
  * @param subgraph
  * @throws if the roots aren't all `Entity`
  */
-export const rootsAsEntities = (subgraph: Subgraph): Entity[] => {
+export const getRootsAsEntities = (subgraph: Subgraph): Entity[] => {
   return subgraph.roots.map((root) => {
     const rootVertex = subgraph.vertices[root];
     if (!rootVertex) {
@@ -224,7 +224,9 @@ export const rootsAsEntities = (subgraph: Subgraph): Entity[] => {
  *
  * @param subgraph
  */
-export const persistedDataTypes = (subgraph: Subgraph): PersistedDataType[] => {
+export const getPersistedDataTypes = (
+  subgraph: Subgraph,
+): PersistedDataType[] => {
   return Object.values(subgraph.vertices)
     .filter(isDataTypeVertex)
     .map((vertex) => vertex.inner);
@@ -235,7 +237,7 @@ export const persistedDataTypes = (subgraph: Subgraph): PersistedDataType[] => {
  *
  * @param subgraph
  */
-export const persistedPropertyTypes = (
+export const getPersistedPropertyTypes = (
   subgraph: Subgraph,
 ): PersistedPropertyType[] => {
   return Object.values(subgraph.vertices)
@@ -248,7 +250,9 @@ export const persistedPropertyTypes = (
  *
  * @param subgraph
  */
-export const persistedLinkTypes = (subgraph: Subgraph): PersistedLinkType[] => {
+export const getPersistedLinkTypes = (
+  subgraph: Subgraph,
+): PersistedLinkType[] => {
   return Object.values(subgraph.vertices)
     .filter(isLinkTypeVertex)
     .map((vertex) => vertex.inner);
@@ -259,7 +263,7 @@ export const persistedLinkTypes = (subgraph: Subgraph): PersistedLinkType[] => {
  *
  * @param subgraph
  */
-export const persistedEntityTypes = (
+export const getPersistedEntityTypes = (
   subgraph: Subgraph,
 ): PersistedEntityType[] => {
   return Object.values(subgraph.vertices)
@@ -274,7 +278,7 @@ export const persistedEntityTypes = (
  *
  * @param subgraph
  */
-export const persistedLinks = (subgraph: Subgraph) => {
+export const getPersistedLinks = (subgraph: Subgraph) => {
   return Object.values(subgraph.vertices)
     .filter(isLinkVertex)
     .map((vertex) => vertex.inner);
@@ -285,7 +289,7 @@ export const persistedLinks = (subgraph: Subgraph) => {
  *
  * @param subgraph
  */
-export const persistedEntities = (subgraph: Subgraph) => {
+export const getPersistedEntities = (subgraph: Subgraph) => {
   return Object.values(subgraph.vertices)
     .filter(isEntityVertex)
     .map((vertex) => vertex.inner);
@@ -407,7 +411,7 @@ export const extractEntityRoot = (
   }
 
   return {
-    root: rootsAsEntities(subgraph)[0]!,
+    root: getRootsAsEntities(subgraph)[0]!,
     subgraph,
   };
 };
