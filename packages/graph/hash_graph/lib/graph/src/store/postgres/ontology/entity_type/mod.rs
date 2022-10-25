@@ -9,8 +9,9 @@ use tokio_postgres::GenericClient;
 use type_system::{uri::VersionedUri, EntityType};
 
 use crate::{
-    ontology::{PersistedEntityType, PersistedOntologyMetadata},
-    provenance::{CreatedById, OwnedById, UpdatedById},
+    provenance::{
+        CreatedById, OwnedById, PersistedEntityType, PersistedOntologyMetadata, UpdatedById,
+    },
     shared::identifier::GraphElementIdentifier,
     store::{
         crud::Read,

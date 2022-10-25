@@ -35,11 +35,12 @@ use crate::{
         Entity, EntityId, KnowledgeGraphQueryDepth, Link, PersistedEntity,
         PersistedEntityIdentifier, PersistedEntityMetadata, PersistedLink,
     },
-    ontology::{
-        OntologyQueryDepth, PersistedDataType, PersistedEntityType, PersistedLinkType,
-        PersistedOntologyIdentifier, PersistedOntologyMetadata, PersistedPropertyType,
+    ontology::OntologyQueryDepth,
+    provenance::{
+        AccountId, CreatedById, OwnedById, PersistedDataType, PersistedEntityType,
+        PersistedLinkType, PersistedOntologyIdentifier, PersistedOntologyMetadata,
+        PersistedPropertyType, RemovedById, UpdatedById,
     },
-    provenance::{AccountId, CreatedById, OwnedById, RemovedById, UpdatedById},
     shared::identifier::{GraphElementIdentifier, LinkId},
     store::{
         error::VersionedUriAlreadyExists,

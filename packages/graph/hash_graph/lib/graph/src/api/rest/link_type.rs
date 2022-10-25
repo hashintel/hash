@@ -19,10 +19,12 @@ use crate::{
     api::rest::{read_from_store, report_to_status_code},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, PersistedLinkType, PersistedOntologyIdentifier,
-        PersistedOntologyMetadata,
+        patch_id_and_parse,
     },
-    provenance::{CreatedById, OwnedById, UpdatedById},
+    provenance::{
+        CreatedById, OwnedById, PersistedLinkType, PersistedOntologyIdentifier,
+        PersistedOntologyMetadata, UpdatedById,
+    },
     shared::identifier::GraphElementIdentifier,
     store::{
         query::Expression, BaseUriAlreadyExists, BaseUriDoesNotExist, LinkTypeStore, StorePool,

@@ -4,7 +4,7 @@ use futures::{stream, StreamExt, TryStreamExt};
 use type_system::{DataType, EntityType, LinkType, PropertyType};
 
 use crate::{
-    ontology::{
+    provenance::{
         PersistedDataType, PersistedEntityType, PersistedLinkType, PersistedOntologyIdentifier,
         PersistedOntologyMetadata, PersistedPropertyType,
     },
