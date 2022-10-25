@@ -7,6 +7,7 @@ import {
 } from "../../../../graphql/apiTypes.gen";
 import { getEntityTypeQuery } from "../../../../graphql/queries/ontology/entity-type.queries";
 import { GetEntityTypeMessageCallback } from "./ontology-types-shim";
+import { Subgraph } from "../../../../lib/subgraph";
 
 export const useBlockProtocolGetEntityType = (): {
   getEntityType: GetEntityTypeMessageCallback;
@@ -63,7 +64,11 @@ export const useBlockProtocolGetEntityType = (): {
       }
 
       return {
-        data: response.data.getEntityType,
+        /**
+         * @todo: remove this when we start returning links in the subgraph
+         *   https://app.asana.com/0/0/1203214689883095/f
+         */
+        data: response.data.getEntityType as Subgraph,
       };
     },
     [getFn],

@@ -1,15 +1,22 @@
+import { AxiosError } from "axios";
+import { ApolloError } from "apollo-server-express";
 import { EntityModel } from "../../../../model";
 import {
-  QueryPersistedEntityArgs,
+  QueryGetPersistedEntityArgs,
   MutationCreatePersistedEntityArgs,
   MutationUpdatePersistedEntityArgs,
   ResolverFn,
+  Subgraph,
+  QueryGetAllLatestPersistedEntitiesArgs,
 } from "../../../apiTypes.gen";
 import {
   mapEntityModelToGQL,
   UnresolvedPersistedEntityGQL,
 } from "../model-mapping";
 import { LoggedInGraphQLContext } from "../../../context";
+import { mapSubgraphToGql } from "../../ontology/model-mapping";
+
+/** @todo - rename these and remove "persisted" - https://app.asana.com/0/0/1203157172269854/f */
 
 export const createPersistedEntity: ResolverFn<
   Promise<UnresolvedPersistedEntityGQL>,
@@ -39,6 +46,99 @@ export const createPersistedEntity: ResolverFn<
   return mapEntityModelToGQL(entity);
 };
 
+export const getAllLatestPersistedEntities: ResolverFn<
+  Promise<Subgraph>,
+  {},
+  LoggedInGraphQLContext,
+  QueryGetAllLatestPersistedEntitiesArgs
+> = async (
+  _,
+  {
+    dataTypeResolveDepth,
+    propertyTypeResolveDepth,
+    linkTypeResolveDepth,
+    entityTypeResolveDepth,
+    linkResolveDepth,
+    linkTargetEntityResolveDepth,
+  },
+  { dataSources },
+  __,
+) => {
+  const { graphApi } = dataSources;
+
+  const { data: entitySubgraph } = await graphApi
+    .getEntitiesByQuery({
+      query: { eq: [{ path: ["version"] }, { literal: "latest" }] },
+      graphResolveDepths: {
+        dataTypeResolveDepth,
+        propertyTypeResolveDepth,
+        linkTypeResolveDepth,
+        entityTypeResolveDepth,
+        linkResolveDepth,
+        linkTargetEntityResolveDepth,
+      },
+    })
+    .catch((err: AxiosError) => {
+      throw new ApolloError(
+        `Unable to retrieve all latest entities. ${err.response?.data}`,
+        "GET_ALL_ERROR",
+      );
+    });
+
+  return mapSubgraphToGql(entitySubgraph);
+};
+
+export const getPersistedEntity: ResolverFn<
+  Promise<Subgraph>,
+  {},
+  LoggedInGraphQLContext,
+  QueryGetPersistedEntityArgs
+> = async (
+  _,
+  {
+    entityId,
+    entityVersion,
+    dataTypeResolveDepth,
+    propertyTypeResolveDepth,
+    linkTypeResolveDepth,
+    entityTypeResolveDepth,
+    linkResolveDepth,
+    linkTargetEntityResolveDepth,
+  },
+  { dataSources },
+  __,
+) => {
+  const { graphApi } = dataSources;
+
+  const query = {
+    all: [
+      { eq: [{ path: ["version"] }, { literal: entityVersion ?? "latest" }] },
+      { eq: [{ path: ["id"] }, { literal: entityId }] },
+    ],
+  };
+
+  const { data: entitySubgraph } = await graphApi
+    .getEntitiesByQuery({
+      query,
+      graphResolveDepths: {
+        dataTypeResolveDepth,
+        propertyTypeResolveDepth,
+        linkTypeResolveDepth,
+        entityTypeResolveDepth,
+        linkResolveDepth,
+        linkTargetEntityResolveDepth,
+      },
+    })
+    .catch((err: AxiosError) => {
+      throw new ApolloError(
+        `Unable to retrieve entity. ${err.response?.data}`,
+        "GET_ERROR",
+      );
+    });
+
+  return mapSubgraphToGql(entitySubgraph);
+};
+
 export const updatePersistedEntity: ResolverFn<
   Promise<UnresolvedPersistedEntityGQL>,
   {},
@@ -59,17 +159,4 @@ export const updatePersistedEntity: ResolverFn<
   });
 
   return mapEntityModelToGQL(updatedEntityModel);
-};
-
-export const persistedEntity: ResolverFn<
-  Promise<UnresolvedPersistedEntityGQL>,
-  {},
-  LoggedInGraphQLContext,
-  QueryPersistedEntityArgs
-> = async (_, { entityId, entityVersion }, { dataSources: { graphApi } }) => {
-  const entity = entityVersion
-    ? await EntityModel.getVersion(graphApi, { entityId, entityVersion })
-    : await EntityModel.getLatest(graphApi, { entityId });
-
-  return mapEntityModelToGQL(entity);
 };

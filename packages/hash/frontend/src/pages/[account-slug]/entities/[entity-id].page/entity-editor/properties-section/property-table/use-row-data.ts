@@ -6,20 +6,21 @@ import { sortRowData } from "../../../../../../../components/GlideGlid/utils";
 import { useEntityEditor } from "../../entity-editor-context";
 
 export const useRowData = () => {
-  const { entity, propertySort } = useEntityEditor();
+  const { rootEntityAndSubgraph, propertySort } = useEntityEditor();
 
   const rowData = useMemo<PropertyRow[]>(() => {
-    if (!entity) {
+    if (!rootEntityAndSubgraph) {
       return [];
     }
 
-    const enrichedPropertyTypes =
-      extractEnrichedPropertyTypesFromEntity(entity);
+    const enrichedPropertyTypes = extractEnrichedPropertyTypesFromEntity(
+      rootEntityAndSubgraph,
+    );
 
     return enrichedPropertyTypes.map((type) =>
       pick(type, ["propertyTypeId", "value", "title", "dataTypes"]),
     );
-  }, [entity]);
+  }, [rootEntityAndSubgraph]);
 
   const sortedRowData = useMemo(() => {
     return sortRowData(rowData, propertySort);
