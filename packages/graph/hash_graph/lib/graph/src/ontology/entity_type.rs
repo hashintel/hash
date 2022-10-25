@@ -16,7 +16,7 @@ use crate::{
 };
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum EntityTypeQueryPath<'q> {
+pub enum EntityTypeQueryPath {
     OwnedById,
     BaseUri,
     VersionedUri,
@@ -25,17 +25,17 @@ pub enum EntityTypeQueryPath<'q> {
     Description,
     Default,
     Examples,
-    Properties(PropertyTypeQueryPath<'q>),
+    Properties(PropertyTypeQueryPath),
     Required,
     Links(LinkTypeQueryPath),
     RequiredLinks,
 }
 
 impl QueryRecord for EntityType {
-    type Path<'q> = EntityTypeQueryPath<'q>;
+    type Path<'q> = EntityTypeQueryPath;
 }
 
-impl<'q> TryFrom<Path> for EntityTypeQueryPath<'q> {
+impl TryFrom<Path> for EntityTypeQueryPath {
     type Error = Report<de::value::Error>;
 
     fn try_from(path: Path) -> Result<Self, Self::Error> {

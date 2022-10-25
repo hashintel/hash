@@ -18,7 +18,7 @@ import {
   LinkType,
   VersionedUri,
 } from "@blockprotocol/type-system-web";
-import { Subgraph } from "@hashintel/hash-shared/graphql/apiTypes.gen";
+import { Subgraph } from "../../../../lib/subgraph";
 
 export type OntologyCallbacks = {
   aggregateDataTypes: AggregateDataTypesMessageCallback;
