@@ -120,13 +120,13 @@ mod tests {
     }
 
     #[test]
-    fn render_empty_condition() {
+    fn transpile_empty_condition() {
         test_condition(&Filter::All(vec![]), "TRUE", &[]);
         test_condition(&Filter::Any(vec![]), "FALSE", &[]);
     }
 
     #[test]
-    fn render_null_condition() {
+    fn transpile_null_condition() {
         test_condition(
             &Filter::Equal(
                 Some(FilterExpression::Path(DataTypeQueryPath::Description)),
@@ -169,7 +169,7 @@ mod tests {
     }
 
     #[test]
-    fn render_all_condition() {
+    fn transpile_all_condition() {
         test_condition(
             &Filter::All(vec![Filter::Equal(
                 Some(FilterExpression::Path(DataTypeQueryPath::VersionedUri)),
@@ -203,7 +203,7 @@ mod tests {
     }
 
     #[test]
-    fn render_any_condition() {
+    fn transpile_any_condition() {
         test_condition(
             &Filter::Any(vec![Filter::Equal(
                 Some(FilterExpression::Path(DataTypeQueryPath::VersionedUri)),
@@ -237,7 +237,7 @@ mod tests {
     }
 
     #[test]
-    fn render_not_condition() {
+    fn transpile_not_condition() {
         test_condition(
             &Filter::Not(Box::new(Filter::Equal(
                 Some(FilterExpression::Path(DataTypeQueryPath::VersionedUri)),
@@ -251,7 +251,7 @@ mod tests {
     }
 
     #[test]
-    fn render_json_access() {
+    fn transpile_json_access() {
         test_condition(
             &Filter::Any(vec![Filter::Equal(
                 Some(FilterExpression::Path(DataTypeQueryPath::Custom(

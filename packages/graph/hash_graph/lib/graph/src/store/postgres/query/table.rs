@@ -10,13 +10,30 @@ use crate::store::postgres::query::Transpile;
 pub enum TableName {
     TypeIds,
     DataTypes,
+    PropertyTypes,
+    EntityTypes,
+    LinkTypes,
+    PropertyTypeDataTypeReferences,
+    PropertyTypePropertyTypeReferences,
+    EntityTypePropertyTypeReferences,
+    EntityTypeLinkTypeReferences,
 }
 
 impl TableName {
     const fn source_join_column_access(self) -> ColumnAccess<'static> {
         ColumnAccess::Table {
             column: match self {
-                Self::TypeIds | Self::DataTypes => "version_id",
+                Self::TypeIds
+                | Self::DataTypes
+                | Self::PropertyTypes
+                | Self::EntityTypes
+                | Self::LinkTypes => "version_id",
+                Self::PropertyTypeDataTypeReferences | Self::PropertyTypePropertyTypeReferences => {
+                    "source_property_type_version_id"
+                }
+                Self::EntityTypePropertyTypeReferences | Self::EntityTypeLinkTypeReferences => {
+                    "source_entity_type_version_id"
+                }
             },
         }
     }
@@ -25,7 +42,15 @@ impl TableName {
     const fn target_join_column_access(self) -> ColumnAccess<'static> {
         ColumnAccess::Table {
             column: match self {
-                Self::TypeIds | Self::DataTypes => "version_id",
+                Self::TypeIds
+                | Self::DataTypes
+                | Self::PropertyTypes
+                | Self::EntityTypes
+                | Self::LinkTypes => "version_id",
+                Self::PropertyTypeDataTypeReferences => "target_data_type_version_id",
+                Self::PropertyTypePropertyTypeReferences
+                | Self::EntityTypePropertyTypeReferences => "target_property_type_version_id",
+                Self::EntityTypeLinkTypeReferences => "target_link_type_version_id",
             },
         }
     }
@@ -188,7 +213,7 @@ mod tests {
     }
 
     #[test]
-    fn render_table() {
+    fn transpile_table() {
         assert_eq!(
             Table {
                 name: TableName::TypeIds,
@@ -208,7 +233,7 @@ mod tests {
     }
 
     #[test]
-    fn render_table_alias() {
+    fn transpile_table_alias() {
         assert_eq!(
             Table {
                 name: TableName::TypeIds,
@@ -223,7 +248,7 @@ mod tests {
     }
 
     #[test]
-    fn render_column_access() {
+    fn transpile_column_access() {
         assert_eq!(
             DataTypeQueryField::VersionId
                 .column_access()
@@ -239,7 +264,7 @@ mod tests {
     }
 
     #[test]
-    fn render_column() {
+    fn transpile_column() {
         assert_eq!(
             Column {
                 table: Table {
