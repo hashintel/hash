@@ -15,8 +15,14 @@ export const useBlockProtocolGetEntityType = (): {
   const [getFn] = useLazyQuery<GetEntityTypeQuery, GetEntityTypeQueryVariables>(
     getEntityTypeQuery,
     {
-      // Entity types are immutable, any request for an entityTypeId should always return the same value.
-      fetchPolicy: "cache-first",
+      /**
+       * Entity types are immutable, any request for an entityTypeId should always return the same value.
+       * However, currently requests for non-existent entity types currently return an empty subgraph, so
+       * we can't rely on this.
+       *
+       * @todo revert this back to cache-first once that's fixed
+       */
+      fetchPolicy: "network-only",
     },
   );
 
