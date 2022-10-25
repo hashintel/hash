@@ -58,6 +58,14 @@ export type GetEntityMessageCallback = MessageCallback<
   ReadOrModifyResourceError
 >;
 
+export type AggregateEntitiesRequest = {};
+export type AggregateEntitiesMessageCallback = MessageCallback<
+  AggregateEntitiesRequest,
+  null,
+  Subgraph,
+  ReadOrModifyResourceError
+>;
+
 export type CreateEntityRequest = {
   entityTypeId: string;
   properties: Entity["properties"];
