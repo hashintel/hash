@@ -203,7 +203,7 @@ jobs:
         if: ${{ success() || failure() }}
         run: |
           yarn dev:backend 2>&1 | tee var/logs/backend.log & ## ampersand enables background mode
-          yarn wait-on --timeout 30000 http://0.0.0.0:5001
+          yarn wait-on --timeout 60000 http://0.0.0.0:5001
 
       - name: Build and launch frontend
         if: ${{ success() || failure() }}
