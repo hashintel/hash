@@ -24,6 +24,7 @@ export const PropertiesSection = () => {
   return (
     <EntitySection
       title="Properties"
+      titleTooltip="The properties on an entity are determined by its type. To add a new property to this entity, specify an additional type or edit an existing one."
       titleStartContent={
         <Stack direction="row" spacing={1.5}>
           <Chip size="xs" label={`${propertyCount} Values`} />
