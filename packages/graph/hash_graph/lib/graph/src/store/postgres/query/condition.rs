@@ -251,18 +251,14 @@ mod tests {
     }
 
     #[test]
-    fn transpile_json_access() {
+    fn render_without_parameters() {
         test_condition(
             &Filter::Any(vec![Filter::Equal(
-                Some(FilterExpression::Path(DataTypeQueryPath::Custom(
-                    Cow::Borrowed("left"),
-                ))),
-                Some(FilterExpression::Path(DataTypeQueryPath::Custom(
-                    Cow::Borrowed("right"),
-                ))),
+                Some(FilterExpression::Path(DataTypeQueryPath::Description)),
+                Some(FilterExpression::Path(DataTypeQueryPath::Title)),
             )]),
-            r#"("data_types"."schema"->>$1 = "data_types"."schema"->>$2)"#,
-            &[&"left", &"right"],
+            r#"("data_types"."schema"->>'description' = "data_types"."schema"->>'title')"#,
+            &[],
         );
     }
 }
