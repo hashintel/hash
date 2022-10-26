@@ -114,19 +114,15 @@ mod tests {
 
         let filter_d = Filter::<DataType>::Any(vec![
             Filter::Equal(
-                Some(FilterExpression::Path(DataTypeQueryPath::Custom(
-                    Cow::Borrowed("value"),
-                ))),
+                Some(FilterExpression::Path(DataTypeQueryPath::Title)),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                    "something",
+                    "some title",
                 )))),
             ),
             Filter::Equal(
-                Some(FilterExpression::Path(DataTypeQueryPath::Custom(
-                    Cow::Borrowed("value"),
-                ))),
+                Some(FilterExpression::Path(DataTypeQueryPath::Description)),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                    "something_else",
+                    "some description",
                 )))),
             ),
         ]);
@@ -139,7 +135,7 @@ mod tests {
                 WHERE "type_ids_0_0"."version" = "type_ids_0_0"."latest_version"
                   AND ("type_ids_0_0"."base_uri" = $1) AND ("type_ids_0_0"."version" = $2)
                   AND "data_types"."schema"->>'description' IS NOT NULL
-                  AND (("data_types"."schema"->>$3 = $4) OR ("data_types"."schema"->>$5 = $6))"#
+                  AND (("data_types"."schema"->>'title' = $3) OR ("data_types"."schema"->>'description' = $4))"#
             )
         );
 
@@ -152,10 +148,8 @@ mod tests {
         assert_eq!(parameters, &[
             "\"https://blockprotocol.org/@blockprotocol/types/data-type/text/\"",
             "1.0",
-            "\"value\"",
-            "\"something\"",
-            "\"value\"",
-            "\"something_else\""
+            "\"some title\"",
+            "\"some description\""
         ]);
     }
 }

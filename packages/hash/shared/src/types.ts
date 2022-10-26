@@ -124,6 +124,10 @@ const workspaceEntityTypes = {
     title: "Org Membership",
     description: undefined,
   },
+  comment: {
+    title: "Comment",
+    description: undefined,
+  },
 } as const;
 
 type WorkspaceEntityTypeKey = keyof typeof workspaceEntityTypes;
@@ -199,6 +203,10 @@ const workspacePropertyTypes = {
     title: "Tokens",
     description: undefined,
   },
+  resolvedAt: {
+    title: "Resolved At",
+    description: "Stringified timestamp of when something was resolved.",
+  },
 } as const;
 
 type WorkspacePropertyTypeKey = keyof typeof workspacePropertyTypes;
@@ -229,6 +237,14 @@ const workspaceLinkTypes = {
   parent: {
     title: "Parent",
     description: "The parent of something.",
+  },
+  hasText: {
+    title: "Has Text",
+    description: "Something that has text.",
+  },
+  author: {
+    title: "Author",
+    description: "The author of something.",
   },
 } as const;
 
