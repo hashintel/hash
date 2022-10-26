@@ -178,7 +178,7 @@ impl Transpile for Column<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::store::postgres::query::{DataTypeQueryField, Field};
+    use crate::{ontology::DataTypeQueryPath, store::postgres::query::Path};
 
     #[test]
     fn source_join_columns() {
@@ -250,13 +250,13 @@ mod tests {
     #[test]
     fn transpile_column_access() {
         assert_eq!(
-            DataTypeQueryField::VersionId
+            DataTypeQueryPath::VersionId
                 .column_access()
                 .transpile_to_string(),
             r#""version_id""#
         );
         assert_eq!(
-            DataTypeQueryField::Title
+            DataTypeQueryPath::Title
                 .column_access()
                 .transpile_to_string(),
             r#""schema"->>'title'"#
@@ -268,10 +268,10 @@ mod tests {
         assert_eq!(
             Column {
                 table: Table {
-                    name: DataTypeQueryField::VersionId.table_name(),
+                    name: DataTypeQueryPath::VersionId.terminating_table_name(),
                     alias: None
                 },
-                access: DataTypeQueryField::VersionId.column_access()
+                access: DataTypeQueryPath::VersionId.column_access()
             }
             .transpile_to_string(),
             r#""data_types"."version_id""#
@@ -279,10 +279,10 @@ mod tests {
         assert_eq!(
             Column {
                 table: Table {
-                    name: DataTypeQueryField::Title.table_name(),
+                    name: DataTypeQueryPath::Title.terminating_table_name(),
                     alias: None
                 },
-                access: DataTypeQueryField::Title.column_access()
+                access: DataTypeQueryPath::Title.column_access()
             }
             .transpile_to_string(),
             r#""data_types"."schema"->>'title'"#

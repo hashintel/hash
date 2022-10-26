@@ -14,10 +14,12 @@ use crate::{
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum PropertyTypeQueryPath {
+    VersionId,
     OwnedById,
     CreatedById,
     UpdatedById,
     RemovedById,
+    Schema,
     BaseUri,
     VersionedUri,
     Version,
@@ -90,7 +92,7 @@ pub struct PropertyTypeQueryPathVisitor {
 impl PropertyTypeQueryPathVisitor {
     pub const EXPECTING: &'static str = "one of `ownedById`, `createdById`, `updatedById`, \
                                          `removedById`, `baseUri`, `versionedUri`, `version`, \
-                                         `title, `description`, `dataTypes`, or `propertyTypes`";
+                                         `title`, `description`, `dataTypes`, `propertyTypes`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -156,6 +158,8 @@ impl<'de> Deserialize<'de> for PropertyTypeQueryPath {
 
 #[cfg(test)]
 mod tests {
+    use std::iter::once;
+
     use super::*;
     use crate::ontology::test_utils::create_path;
 
@@ -195,11 +199,44 @@ mod tests {
 
         assert_eq!(
             PropertyTypeQueryPath::deserialize(
+                de::value::SeqDeserializer::<_, de::value::Error>::new(once("version_id"))
+            )
+            .expect_err(
+                "managed to convert property type query path with hidden token when it should \
+                 have errored"
+            )
+            .to_string(),
+            format!(
+                "unknown variant `version_id`, expected {}",
+                PropertyTypeQueryPathVisitor::EXPECTING
+            )
+        );
+
+        assert_eq!(
+            PropertyTypeQueryPath::deserialize(
+                de::value::SeqDeserializer::<_, de::value::Error>::new(once("schema"))
+            )
+            .expect_err(
+                "managed to convert property type query path with hidden token when it should \
+                 have errored"
+            )
+            .to_string(),
+            format!(
+                "unknown variant `schema`, expected {}",
+                PropertyTypeQueryPathVisitor::EXPECTING
+            )
+        );
+
+        assert_eq!(
+            PropertyTypeQueryPath::deserialize(
                 de::value::SeqDeserializer::<_, de::value::Error>::new(
                     ["baseUri", "test"].into_iter()
                 )
             )
-            .expect_err("could convert property type query path with multiple tokens")
+            .expect_err(
+                "managed to convert property type query path with multiple tokens when it should \
+                 have errored"
+            )
             .to_string(),
             "invalid length 2, expected 1 element in sequence"
         );
@@ -210,7 +247,10 @@ mod tests {
                     ["dataTypes", "*"].into_iter()
                 )
             )
-            .expect_err("could convert property type query path with multiple tokens")
+            .expect_err(
+                "managed to convert property type query path with multiple tokens when it should \
+                 have errored"
+            )
             .to_string(),
             format!(
                 "invalid length 2, expected {}",
