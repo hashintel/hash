@@ -4,7 +4,7 @@ use tokio_postgres::{GenericClient, RowStream};
 use type_system::uri::{BaseUri, VersionedUri};
 
 use crate::{
-    ontology::AccountId,
+    provenance::{CreatedById, OwnedById, RemovedById, UpdatedById},
     store::{
         postgres::{ontology::OntologyDatabaseType, parameter_list},
         AsClient, QueryError,
@@ -23,10 +23,10 @@ where
 #[derive(Debug)]
 pub struct OntologyRecord<T> {
     pub record: T,
-    pub owned_by_id: AccountId,
-    pub created_by_id: AccountId,
-    pub updated_by_id: AccountId,
-    pub removed_by_id: Option<AccountId>,
+    pub owned_by_id: OwnedById,
+    pub created_by_id: CreatedById,
+    pub updated_by_id: UpdatedById,
+    pub removed_by_id: Option<RemovedById>,
     pub is_latest: bool,
 }
 

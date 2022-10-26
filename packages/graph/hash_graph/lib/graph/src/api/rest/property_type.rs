@@ -19,15 +19,16 @@ use crate::{
     api::rest::{read_from_store, report_to_status_code},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, AccountId, PersistedOntologyIdentifier, PersistedOntologyMetadata,
+        patch_id_and_parse, PersistedOntologyIdentifier, PersistedOntologyMetadata,
         PersistedPropertyType,
     },
+    provenance::{CreatedById, OwnedById, UpdatedById},
+    shared::identifier::GraphElementIdentifier,
     store::{
         query::Expression, BaseUriAlreadyExists, BaseUriDoesNotExist, PropertyTypeStore, StorePool,
     },
     subgraph::{
-        EdgeKind, Edges, GraphElementIdentifier, GraphResolveDepths, OutwardEdge, StructuralQuery,
-        Subgraph, Vertex,
+        EdgeKind, Edges, GraphResolveDepths, OutwardEdge, StructuralQuery, Subgraph, Vertex,
     },
 };
 
@@ -44,7 +45,9 @@ use crate::{
         schemas(
             CreatePropertyTypeRequest,
             UpdatePropertyTypeRequest,
-            AccountId,
+            OwnedById,
+            CreatedById,
+            UpdatedById,
             PersistedOntologyIdentifier,
             PersistedOntologyMetadata,
             PersistedPropertyType,
@@ -54,8 +57,8 @@ use crate::{
             EdgeKind,
             OutwardEdge,
             GraphResolveDepths,
+            Edges,
             Subgraph,
-            Edges
         )
     ),
     tags(
@@ -88,8 +91,8 @@ impl RoutedResource for PropertyTypeResource {
 struct CreatePropertyTypeRequest {
     #[schema(value_type = VAR_PROPERTY_TYPE)]
     schema: serde_json::Value,
-    owned_by_id: AccountId,
-    actor_id: AccountId,
+    owned_by_id: OwnedById,
+    actor_id: CreatedById,
 }
 
 #[utoipa::path(
@@ -239,7 +242,7 @@ struct UpdatePropertyTypeRequest {
     schema: serde_json::Value,
     #[schema(value_type = String)]
     type_to_update: VersionedUri,
-    actor_id: AccountId,
+    actor_id: UpdatedById,
 }
 
 #[utoipa::path(

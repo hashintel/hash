@@ -4,6 +4,7 @@ import {
   useEffect,
   useMemo,
   useState,
+  useCallback,
 } from "react";
 import { Box, Collapse, Typography } from "@mui/material";
 import {
@@ -130,6 +131,12 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
     }
   };
 
+  const onLineCountChange = useCallback(
+    (lines: number) =>
+      !editable && !isAnimating && setShouldCollapse(lines > 2),
+    [editable, isAnimating, setShouldCollapse],
+  );
+
   return (
     <Box
       sx={{
@@ -192,9 +199,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
           onTransitionEnd={() => setIsAnimating(false)}
         >
           <CommentTextField
-            onLineCountChange={(lines) =>
-              !editable && !isAnimating && setShouldCollapse(lines > 2)
-            }
+            onLineCountChange={onLineCountChange}
             value={inputValue}
             className={`${styles.Comment__TextField} ${
               editable

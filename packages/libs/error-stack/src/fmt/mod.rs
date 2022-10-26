@@ -163,15 +163,12 @@ pub use hook::HookContext;
 #[cfg(feature = "std")]
 pub(crate) use hook::{install_builtin_hooks, Hooks};
 #[cfg(feature = "pretty-print")]
-use owo_colors::{OwoColorize, Stream::Stdout, Style as OwOStyle};
+use owo_colors::{OwoColorize, Stream, Style as OwOStyle};
 
 use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 enum Symbol {
-    // special, used to indicate location
-    Location,
-
     Vertical,
     VerticalRight,
     Horizontal,
@@ -243,7 +240,6 @@ macro_rules! sym {
 impl Display for Symbol {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Location => f.write_str(""),
             Self::Vertical => f.write_str("│"),
             Self::VerticalRight => f.write_str("├"),
             Self::Horizontal => f.write_str("─"),
@@ -260,7 +256,6 @@ impl Display for Symbol {
 impl Display for Symbol {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Location => f.write_str("at "),
             Self::Vertical | Self::VerticalRight | Self::CurveRight => f.write_str("|"),
             Self::Horizontal | Self::HorizontalDown | Self::HorizontalLeft => f.write_str("-"),
             Self::ArrowRight => f.write_str(">"),
@@ -273,24 +268,15 @@ impl Display for Symbol {
 #[derive(Debug, Copy, Clone)]
 struct Style {
     bold: bool,
-    fg_gray: bool,
 }
 
 impl Style {
     const fn new() -> Self {
-        Self {
-            bold: false,
-            fg_gray: false,
-        }
+        Self { bold: false }
     }
 
     const fn bold(mut self) -> Self {
         self.bold = true;
-        self
-    }
-
-    const fn gray(mut self) -> Self {
-        self.fg_gray = true;
         self
     }
 }
@@ -302,10 +288,6 @@ impl From<Style> for OwOStyle {
 
         if value.bold {
             this = this.bold();
-        }
-
-        if value.fg_gray {
-            this = this.bright_black();
         }
 
         this
@@ -429,7 +411,6 @@ enum Instruction {
         value: String,
         style: Style,
     },
-    Symbol(Symbol),
 
     Group {
         position: Position,
@@ -450,7 +431,6 @@ enum Instruction {
 /// Minimized instruction, which looses information about what it represents and converts it to
 /// only symbols, this then is output instead.
 enum PreparedInstruction<'a> {
-    Symbol(&'a Symbol),
     Symbols(&'a [Symbol]),
     Content(&'a str, &'a Style),
 }
@@ -462,7 +442,6 @@ impl Instruction {
     fn prepare(&self) -> PreparedInstruction {
         match self {
             Self::Value { value, style } => PreparedInstruction::Content(value, style),
-            Self::Symbol(symbol) => PreparedInstruction::Symbol(symbol),
 
             Self::Group { position } => match position {
                 Position::First => PreparedInstruction::Symbols(sym!('╰', '┬', '▶', ' ')),
@@ -492,16 +471,16 @@ impl Instruction {
 impl Display for Instruction {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         match self.prepare() {
-            PreparedInstruction::Symbol(symbol) => {
-                Display::fmt(symbol, fmt)?;
-            }
             PreparedInstruction::Symbols(symbols) => {
                 for symbol in symbols {
-                    Display::fmt(&symbol.if_supports_color(Stdout, OwoColorize::red), fmt)?;
+                    Display::fmt(
+                        &symbol.if_supports_color(Stream::Stdout, OwoColorize::red),
+                        fmt,
+                    )?;
                 }
             }
             PreparedInstruction::Content(value, &style) => Display::fmt(
-                &value.if_supports_color(Stdout, |value| value.style(style.into())),
+                &value.if_supports_color(Stream::Stdout, |value| value.style(style.into())),
                 fmt,
             )?,
         }
@@ -514,9 +493,6 @@ impl Display for Instruction {
 impl Display for Instruction {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         match self.prepare() {
-            PreparedInstruction::Symbol(symbol) => {
-                Display::fmt(symbol, fmt)?;
-            }
             PreparedInstruction::Symbols(symbols) => {
                 for symbol in symbols {
                     Display::fmt(symbol, fmt)?;
@@ -643,9 +619,8 @@ fn partition<'a>(stack: &'a [&'a Frame]) -> (Vec<(&'a Frame, Vec<&'a Frame>)>, V
     (result, queue)
 }
 
-fn debug_context(frame: &Frame, context: &dyn Context) -> (Lines, Line) {
-    let loc = frame.location();
-    let context = context
+fn debug_context(context: &dyn Context) -> Lines {
+    context
         .to_string()
         .lines()
         .map(ToOwned::to_owned)
@@ -663,16 +638,7 @@ fn debug_context(frame: &Frame, context: &dyn Context) -> (Lines, Line) {
                 })
             }
         })
-        .collect();
-
-    let loc = Line::new()
-        .push(Instruction::Value {
-            value: loc.to_string(),
-            style: Style::new().gray(),
-        })
-        .push(Instruction::Symbol(Symbol::Location));
-
-    (context, loc)
+        .collect()
 }
 
 struct Opaque(usize);
@@ -715,8 +681,22 @@ fn debug_attachments_invoke(
                 Report::invoke_debug_format_hook(|hooks| hooks.call(frame, context));
                 context.take_body()
             }
+            #[cfg(all(not(feature = "std"), feature = "pretty-print"))]
+            FrameKind::Context(_) => {
+                let location = frame
+                    .location()
+                    .if_supports_color(Stream::Stdout, OwoColorize::bright_black);
+
+                vec![format!("{location}")]
+            }
+            #[cfg(all(not(feature = "std"), not(feature = "pretty-print")))]
+            FrameKind::Context(_) => {
+                let location = frame.location();
+
+                vec![format!("at {location}")]
+            }
             #[cfg(not(feature = "std"))]
-            FrameKind::Attachment(AttachmentKind::Opaque(_)) | FrameKind::Context(_) => {
+            FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
                 vec![]
             }
             #[cfg(feature = "std")]
@@ -751,7 +731,6 @@ fn debug_attachments_invoke(
 }
 
 fn debug_attachments(
-    loc: Option<Line>,
     position: Position,
     frames: Vec<&Frame>,
     #[cfg(feature = "std")] context: &mut HookContext<Frame>,
@@ -767,7 +746,7 @@ fn debug_attachments(
 
     // Calculate the expected end length, by adding all values that have would contribute to the
     // line count later.
-    let len = entries.len() + loc.as_ref().map_or(0, |_| 1) + opaque.as_ref().map_or(0, |_| 1);
+    let len = entries.len() + opaque.as_ref().map_or(0, |_| 1);
     let lines = entries.into_iter().map(|value| {
         value
             .lines()
@@ -783,9 +762,7 @@ fn debug_attachments(
 
     // indentation for every first line, use `Instruction::Attachment`, otherwise use minimal
     // indent omit that indent when we're the last value
-    loc.into_iter()
-        .map(|line| line.into_lines().into_vec())
-        .chain(lines)
+    lines
         .chain(opaque.into_iter().map(|line| line.into_lines().into_vec()))
         .enumerate()
         .flat_map(|(idx, lines)| {
@@ -902,7 +879,7 @@ fn debug_frame(
             // each "paket" on the stack is made up of a head (guaranteed to be a `Context`) and
             // `n` attachments.
             // The attachments are rendered as direct descendants of the parent context
-            let (head_context, loc) = debug_context(head, match head.kind() {
+            let head_context = debug_context(match head.kind() {
                 FrameKind::Context(c) => c,
                 FrameKind::Attachment(_) => unreachable!(),
             });
@@ -910,7 +887,6 @@ fn debug_frame(
             // reverse all attachments, to make it more logical relative to the attachment order
             body.reverse();
             let body = debug_attachments(
-                Some(loc),
                 // This makes sure that we use `╰─` instead of `├─`,
                 // this is true whenever we only have a single context and no sources,
                 // **or** if our idx is larger than `0`, this might sound false,

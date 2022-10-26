@@ -1,0 +1,7 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "enabledManagers": ["github-actions"],
+  "prConcurrentLimit": 5,
+  "rebaseWhen": "conflicted",
+  "schedule": ["every weekday before 5am"]
+}

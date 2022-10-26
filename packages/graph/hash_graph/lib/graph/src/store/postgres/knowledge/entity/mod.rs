@@ -11,20 +11,16 @@ use type_system::uri::VersionedUri;
 use uuid::Uuid;
 
 use crate::{
-    knowledge::{
-        Entity, EntityId, EntityRootedSubgraph, PersistedEntity, PersistedEntityMetadata,
-        PersistedLink,
-    },
-    ontology::AccountId,
+    identifier::{GraphElementIdentifier, LinkId},
+    knowledge::{Entity, EntityId, PersistedEntity, PersistedEntityMetadata, PersistedLink},
+    provenance::{CreatedById, OwnedById, UpdatedById},
     store::{
         crud::Read,
         error::EntityDoesNotExist,
         postgres::{context::PostgresContext, DependencyContext, DependencyContextRef},
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
-    subgraph::{
-        EdgeKind, GraphElementIdentifier, GraphResolveDepths, LinkId, OutwardEdge, StructuralQuery,
-    },
+    subgraph::{EdgeKind, GraphResolveDepths, OutwardEdge, StructuralQuery, Subgraph},
 };
 
 impl<C: AsClient> PostgresStore<C> {
@@ -135,9 +131,9 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         &mut self,
         entity: Entity,
         entity_type_id: VersionedUri,
-        owned_by_id: AccountId,
+        owned_by_id: OwnedById,
         entity_id: Option<EntityId>,
-        created_by_id: AccountId,
+        created_by_id: CreatedById,
     ) -> Result<PersistedEntityMetadata, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
@@ -159,7 +155,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 entity_type_id,
                 owned_by_id,
                 created_by_id,
-                created_by_id,
+                UpdatedById::new(created_by_id.as_account_id()),
             )
             .await?;
 
@@ -179,7 +175,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         &mut self,
         entities: impl IntoIterator<Item = (Option<EntityId>, Entity), IntoIter: Send> + Send,
         entity_type_id: VersionedUri,
-        owned_by_id: AccountId,
+        owned_by_id: OwnedById,
+        actor_id: CreatedById,
     ) -> Result<Vec<EntityId>, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
@@ -213,6 +210,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 entities,
                 entity_type_version_id,
                 owned_by_id,
+                actor_id,
+                UpdatedById::new(actor_id.as_account_id()),
             )
             .await?;
 
@@ -226,16 +225,13 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         Ok(entity_ids)
     }
 
-    async fn get_entity(
-        &self,
-        query: &StructuralQuery,
-    ) -> Result<Vec<EntityRootedSubgraph>, QueryError> {
+    async fn get_entity(&self, query: &StructuralQuery) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
             ref expression,
             graph_resolve_depths,
         } = *query;
 
-        stream::iter(Read::<PersistedEntity>::read(self, expression).await?)
+        let subgraphs = stream::iter(Read::<PersistedEntity>::read(self, expression).await?)
             .then(|entity| async move {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 
@@ -247,25 +243,17 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 self.get_entity_as_dependency(entity_id, dependency_context.as_ref_object())
                     .await?;
 
-                let root = dependency_context
-                    .linked_entities
-                    .remove(&entity_id)
-                    .expect("root was not added to the subgraph");
+                let root = GraphElementIdentifier::KnowledgeGraphElementId(entity_id);
 
-                Ok(EntityRootedSubgraph {
-                    entity: root,
-                    referenced_data_types: dependency_context.referenced_data_types.into_vec(),
-                    referenced_property_types: dependency_context
-                        .referenced_property_types
-                        .into_vec(),
-                    referenced_link_types: dependency_context.referenced_link_types.into_vec(),
-                    referenced_entity_types: dependency_context.referenced_entity_types.into_vec(),
-                    linked_entities: dependency_context.linked_entities.into_vec(),
-                    links: dependency_context.links.into_vec(),
-                })
+                Ok::<_, Report<QueryError>>(dependency_context.into_subgraph(vec![root]))
             })
-            .try_collect()
-            .await
+            .try_collect::<Vec<_>>()
+            .await?;
+
+        let mut subgraph = Subgraph::new(graph_resolve_depths);
+        subgraph.extend(subgraphs);
+
+        Ok(subgraph)
     }
 
     async fn update_entity(
@@ -273,7 +261,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         entity_id: EntityId,
         entity: Entity,
         entity_type_id: VersionedUri,
-        updated_by_id: AccountId,
+        updated_by_id: UpdatedById,
     ) -> Result<PersistedEntityMetadata, UpdateError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()

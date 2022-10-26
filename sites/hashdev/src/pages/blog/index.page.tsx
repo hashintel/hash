@@ -20,6 +20,7 @@ import { getAllPages, Page } from "../../util/mdxUtil";
 import { NextPageWithLayout } from "../../util/nextTypes";
 import { getPhoto } from "./shared/get-photo";
 import { BlogPostProps } from "./[...blogSlug].page";
+import { FaIcon } from "../../components/icons/FaIcon";
 
 type BlogIndividualPage = Page<BlogPostProps> & {
   photos: {
@@ -127,8 +128,10 @@ const BigPost: FunctionComponent<{ page: BlogIndividualPage }> = ({ page }) => (
       <PostImage page={page} fill={false} />
     </Box>
     <PostCopyContainer>
-      {page.data.author ? (
-        <BlogPostAuthor>{page.data.author}</BlogPostAuthor>
+      {page.data.authors ? (
+        <BlogPostAuthor>
+          {page.data.authors.map((author) => author.name).join(" & ")}
+        </BlogPostAuthor>
       ) : null}
       {page.data.title ? (
         <Typography variant="hashHeading2">
@@ -160,8 +163,10 @@ const Post: FunctionComponent<{
       alignItems={{ xs: "center", md: "flex-start" }}
       textAlign={{ xs: "center", md: "left" }}
     >
-      {post.data.author ? (
-        <BlogPostAuthor small>{post.data.author}</BlogPostAuthor>
+      {post.data.authors ? (
+        <BlogPostAuthor small>
+          {post.data.authors.map((author) => author.name).join(" & ")}
+        </BlogPostAuthor>
       ) : null}
       {post.data.title ? (
         <Typography variant="hashHeading4" color="gray.90">
@@ -260,15 +265,70 @@ const BlogPage: NextPageWithLayout<BlogPageListProps> = ({ pages }) => {
       </Head>
       <GradientContainer py={{ xs: 9, md: 13 }}>
         <Container>
-          <Typography
-            mb={2}
-            variant="hashHeading3"
-            color="gray.90"
-            fontWeight={600}
-            component="h1"
-          >
-            HASH Developer Blog
-          </Typography>
+          <Stack direction="row" justifyContent="space-between">
+            <Typography
+              mb={2}
+              variant="hashHeading3"
+              color="gray.90"
+              fontWeight={600}
+              component="h1"
+            >
+              HASH Developer Blog
+            </Typography>
+            <Stack
+              direction="column"
+              sx={{
+                position: "relative",
+                top: 5,
+                display: { xs: "none", md: "block" },
+              }}
+            >
+              <Typography
+                variant="hashBodyCopy"
+                fontWeight={700}
+                color="blue.100"
+              >
+                Looking for our main blog?
+              </Typography>
+              <Link href="https://hash.ai/blog" openInNew>
+                <Typography
+                  variant="hashSmallText"
+                  color="blue.100"
+                  component="span"
+                  sx={{
+                    opacity: 0.5,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "flex-end",
+                    "&:hover": {
+                      opacity: 0.8,
+                      transition: "opacity 0.2s",
+                    },
+                  }}
+                >
+                  Visit
+                  <Typography
+                    component="span"
+                    fontWeight={700}
+                    color="blue.100"
+                    variant="hashSmallText"
+                    ml={0.5}
+                    mr={0.8}
+                  >
+                    hash.ai/blog
+                  </Typography>
+                  <FaIcon
+                    name="arrow-up-right-from-square"
+                    type="regular"
+                    sx={{
+                      height: "0.8rem",
+                      width: "0.8rem",
+                    }}
+                  />
+                </Typography>
+              </Link>
+            </Stack>
+          </Stack>
           <Stack
             direction="row"
             alignItems="center"

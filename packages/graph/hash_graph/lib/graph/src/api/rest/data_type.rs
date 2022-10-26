@@ -19,15 +19,16 @@ use crate::{
     api::rest::{read_from_store, report_to_status_code},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, AccountId, PersistedDataType, PersistedOntologyIdentifier,
+        patch_id_and_parse, PersistedDataType, PersistedOntologyIdentifier,
         PersistedOntologyMetadata,
     },
+    provenance::{CreatedById, OwnedById, UpdatedById},
+    shared::identifier::GraphElementIdentifier,
     store::{
         query::Expression, BaseUriAlreadyExists, BaseUriDoesNotExist, DataTypeStore, StorePool,
     },
     subgraph::{
-        EdgeKind, Edges, GraphElementIdentifier, GraphResolveDepths, OutwardEdge, StructuralQuery,
-        Subgraph, Vertex,
+        EdgeKind, Edges, GraphResolveDepths, OutwardEdge, StructuralQuery, Subgraph, Vertex,
     },
 };
 
@@ -44,7 +45,9 @@ use crate::{
         schemas(
             CreateDataTypeRequest,
             UpdateDataTypeRequest,
-            AccountId,
+            OwnedById,
+            CreatedById,
+            UpdatedById,
             PersistedOntologyIdentifier,
             PersistedOntologyMetadata,
             PersistedDataType,
@@ -88,8 +91,8 @@ impl RoutedResource for DataTypeResource {
 struct CreateDataTypeRequest {
     #[schema(value_type = VAR_DATA_TYPE)]
     schema: serde_json::Value,
-    owned_by_id: AccountId,
-    actor_id: AccountId,
+    owned_by_id: OwnedById,
+    actor_id: CreatedById,
 }
 
 #[utoipa::path(
@@ -232,7 +235,7 @@ struct UpdateDataTypeRequest {
     schema: serde_json::Value,
     #[schema(value_type = String)]
     type_to_update: VersionedUri,
-    actor_id: AccountId,
+    actor_id: UpdatedById,
 }
 
 #[utoipa::path(
