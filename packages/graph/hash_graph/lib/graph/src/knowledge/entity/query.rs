@@ -143,12 +143,22 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
                     .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
                 EntityQueryPath::Properties(Some(property))
             }
-            EntityQueryToken::OutgoingLinks | EntityQueryToken::IncomingLinks => {
-                todo!("https://app.asana.com/0/0/1203167266370359/f")
+            EntityQueryToken::OutgoingLinks => {
+                let link_query_path = seq
+                    .next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
+                EntityQueryPath::OutgoingLinks(link_query_path)
+            }
+            EntityQueryToken::IncomingLinks => {
+                let link_query_path = seq
+                    .next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
+                EntityQueryPath::IncomingLinks(link_query_path)
             }
         })
     }
 }
+
 impl<'de: 'q, 'q> Deserialize<'de> for EntityQueryPath<'q> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
