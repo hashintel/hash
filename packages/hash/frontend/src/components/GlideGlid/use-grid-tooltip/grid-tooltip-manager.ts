@@ -1,5 +1,6 @@
 import type { DrawArgs } from "@glideapps/glide-data-grid/dist/ts/data-grid/cells/cell-types";
 import { CustomGridIcon } from "../custom-grid-icons";
+import { drawCellFadeOutGradient } from "../draw-cell-fade-out-gradient";
 import { TooltipCell } from "./types";
 
 export class GridTooltipManager {
@@ -12,13 +13,9 @@ export class GridTooltipManager {
   // margin between last icon & cell border
   private cellMargin = 24;
 
-  // background to prevent content being visible under tooltip icons
-  private bgColor = "white";
-
   constructor(private args: DrawArgs<TooltipCell>) {}
 
   draw() {
-    this.drawBackground();
     this.drawTooltips();
   }
 
@@ -29,7 +26,7 @@ export class GridTooltipManager {
    * even if a cell has tooltips, or not
    */
   private drawBackground() {
-    const { size, gap, args, cellMargin, bgColor } = this;
+    const { size, gap, args, cellMargin } = this;
     const { ctx, cell, rect } = args;
     const { tooltips } = cell.data;
 
@@ -39,18 +36,10 @@ export class GridTooltipManager {
     const rectRight = rect.x + rect.width;
     const rectLeft = rectRight - totalWidth;
 
-    ctx.fillStyle = bgColor;
+    ctx.fillStyle = "white";
     ctx.fillRect(rectLeft, rect.y, totalWidth, rect.height);
 
-    // paint gradient from padding to rect left
-    const grdWidth = 50;
-    const grdLeft = rectLeft - grdWidth;
-    const grd = ctx.createLinearGradient(rectLeft - grdWidth, 0, rectLeft, 0);
-    grd.addColorStop(0, "#ffffff00");
-    grd.addColorStop(1, bgColor);
-    ctx.fillStyle = grd;
-
-    ctx.fillRect(grdLeft, rect.y, grdWidth, rect.height);
+    drawCellFadeOutGradient(args, totalWidth);
   }
 
   private drawTooltips() {
@@ -59,8 +48,11 @@ export class GridTooltipManager {
     const { hideTooltip, showTooltip, tooltips } = cell.data;
 
     if (!tooltips?.length) {
+      drawCellFadeOutGradient(args);
       return;
     }
+
+    this.drawBackground();
 
     if (!hideTooltip || !showTooltip) {
       throw new Error(
@@ -73,7 +65,7 @@ export class GridTooltipManager {
     for (let i = 0; i < tooltips.length; i++) {
       const tooltip = tooltips[i] ?? {
         text: "",
-        icon: CustomGridIcon.ASTERISK,
+        icon: CustomGridIcon.ASTERISK_CIRCLE,
       };
 
       /**
