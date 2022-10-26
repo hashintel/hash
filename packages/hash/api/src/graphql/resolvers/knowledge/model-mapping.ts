@@ -75,6 +75,7 @@ export const mapCommentModelToGQL = (
   commentModel: CommentModel,
 ): UnresolvedPersistedCommentGQL => ({
   ...mapEntityModelToGQL(commentModel),
+  entityType: mapEntityTypeModelToGQL(commentModel.entityTypeModel),
   resolvedAt: commentModel.getResolvedAt(),
 });
 
