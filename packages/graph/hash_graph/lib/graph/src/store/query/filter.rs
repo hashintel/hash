@@ -4,8 +4,9 @@ use std::{
 };
 
 use serde::Deserialize;
+use type_system::uri::VersionedUri;
 
-use crate::store::query::{Expression, Literal, Path, QueryRecord};
+use crate::store::query::{Expression, Literal, OntologyPath, Path, QueryRecord};
 
 /// A set of conditions used for queries.
 #[derive(Deserialize)]
@@ -25,6 +26,45 @@ pub enum Filter<'q, T: QueryRecord> {
         Option<FilterExpression<'q, T>>,
         Option<FilterExpression<'q, T>>,
     ),
+}
+
+impl<'q, T> Filter<'q, T>
+where
+    T: QueryRecord,
+    T::Path<'q>: OntologyPath,
+{
+    /// Creates a `Filter` to search for all ontology types of kind `T` at their latest version.
+    #[must_use]
+    pub fn for_latest_version() -> Self {
+        Self::Equal(
+            Some(FilterExpression::Path(<T::Path<'q>>::version())),
+            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                "latest",
+            )))),
+        )
+    }
+
+    /// Creates a `Filter` to search for a specific ontology type of kind `T`, identified by its
+    /// [`VersionedUri`].
+    #[must_use]
+    pub fn for_versioned_uri(versioned_uri: &'q VersionedUri) -> Self {
+        Self::All(vec![
+            Self::Equal(
+                Some(FilterExpression::Path(<T::Path<'q>>::base_uri())),
+                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                    versioned_uri.base_uri().as_str(),
+                )))),
+            ),
+            Self::Equal(
+                Some(FilterExpression::Path(<T::Path<'q>>::version())),
+                // TODO: Change to `SignedInteger` when #1255 merged
+                //   see https://app.asana.com/0/1200211978612931/1203205825668105/f
+                Some(FilterExpression::Parameter(Parameter::Number(
+                    versioned_uri.version().into(),
+                ))),
+            ),
+        ])
+    }
 }
 
 // TODO: Derive traits when bounds are generated correctly
