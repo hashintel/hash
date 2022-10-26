@@ -58,7 +58,7 @@ mod tests {
     use type_system::{DataType, EntityType, PropertyType};
 
     use crate::{
-        knowledge::{Entity, EntityQueryPath},
+        knowledge::{Entity, EntityQueryPath, Link, LinkQueryPath},
         ontology::{
             DataTypeQueryPath, EntityTypeQueryPath, LinkTypeQueryPath, PropertyTypeQueryPath,
         },
@@ -485,6 +485,113 @@ mod tests {
             WHERE "entities"."properties"->>$1 IS NULL
             "#,
             &[&"https://blockprotocol.org/@alice/types/property-type/name/"],
+        );
+    }
+
+    #[test]
+    fn entity_link_query() {
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk();
+
+        let filter = Filter::Equal(
+            Some(FilterExpression::Path(EntityQueryPath::OutgoingLinks(
+                Box::new(LinkQueryPath::Target(Some(EntityQueryPath::Version))),
+            ))),
+            None,
+        );
+        compiler.add_filter(&filter);
+
+        test_compilation(
+            &compiler,
+            r#"
+            SELECT *
+            FROM "entities"
+            JOIN "links" AS "links_0_0"
+              ON "links_0_0"."source_entity_id" = "entities"."entity_id"
+            JOIN "entities" AS "entities_0_1"
+              ON "entities_0_1"."entity_id" = "links_0_0"."target_entity_id"
+            WHERE "entities_0_1"."version" IS NULL
+            "#,
+            &[],
+        );
+    }
+
+    #[test]
+    fn entity_link_loop_query() {
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk();
+
+        let filter = Filter::Equal(
+            Some(FilterExpression::Path(EntityQueryPath::OutgoingLinks(
+                Box::new(LinkQueryPath::Source(Some(EntityQueryPath::Id))),
+            ))),
+            Some(FilterExpression::Path(EntityQueryPath::Id)),
+        );
+        compiler.add_filter(&filter);
+
+        test_compilation(
+            &compiler,
+            r#"
+            SELECT *
+            FROM "entities"
+            JOIN "links" AS "links_0_0"
+              ON "links_0_0"."source_entity_id" = "entities"."entity_id"
+            JOIN "entities" AS "entities_0_1"
+              ON "entities_0_1"."entity_id" = "links_0_0"."source_entity_id"
+            WHERE "entities_0_1"."entity_id" = "entities"."entity_id"
+            "#,
+            &[],
+        );
+
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk();
+
+        let filter = Filter::Equal(
+            Some(FilterExpression::Path(EntityQueryPath::IncomingLinks(
+                Box::new(LinkQueryPath::Target(Some(EntityQueryPath::Id))),
+            ))),
+            Some(FilterExpression::Path(EntityQueryPath::Id)),
+        );
+        compiler.add_filter(&filter);
+
+        test_compilation(
+            &compiler,
+            r#"
+            SELECT *
+            FROM "entities"
+            JOIN "links" AS "links_0_0"
+              ON "links_0_0"."target_entity_id" = "entities"."entity_id"
+            JOIN "entities" AS "entities_0_1"
+              ON "entities_0_1"."entity_id" = "links_0_0"."target_entity_id"
+            WHERE "entities_0_1"."entity_id" = "entities"."entity_id"
+            "#,
+            &[],
+        );
+    }
+
+    #[test]
+    fn link_simple_query() {
+        let mut compiler = SelectCompiler::<Link>::with_default_selection();
+
+        let filter = Filter::Equal(
+            Some(FilterExpression::Path(LinkQueryPath::Index)),
+            Some(FilterExpression::Parameter(Parameter::Number(1.0))),
+        );
+        compiler.add_filter(&filter);
+
+        test_compilation(
+            &compiler,
+            r#"
+            SELECT
+                "link_types_0_0"."schema"->>'$id',
+                "links"."source_entity_id",
+                "links"."target_entity_id",
+                "links"."link_index",
+                "links"."owned_by_id",
+                "links"."created_by_id"
+            FROM "links"
+            JOIN "link_types" AS "link_types_0_0"
+              ON "link_types_0_0"."version_id" = "links"."link_type_version_id"
+            WHERE "links"."link_index" = $1
+            "#,
+            &[&1.0],
         );
     }
 }

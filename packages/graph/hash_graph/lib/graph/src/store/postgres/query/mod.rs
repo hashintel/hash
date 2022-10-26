@@ -8,6 +8,7 @@ mod data_type;
 mod entity;
 mod entity_type;
 mod expression;
+mod link;
 mod link_type;
 mod property_type;
 mod statement;

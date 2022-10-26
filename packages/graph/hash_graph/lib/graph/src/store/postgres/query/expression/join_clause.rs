@@ -53,6 +53,34 @@ impl<'q> JoinExpression<'q> {
                     ),
                 };
             }
+            (TableName::Links, TableName::LinkTypes | TableName::TypeIds) => {
+                return Self {
+                    join,
+                    on: Condition::Equal(
+                        Some(Expression::Column(Column {
+                            table: join,
+                            access: ColumnAccess::Table {
+                                column: "link_type_version_id",
+                            },
+                        })),
+                        Some(Expression::Column(on.target_join_column())),
+                    ),
+                };
+            }
+            (TableName::LinkTypes | TableName::TypeIds, TableName::Links) => {
+                return Self {
+                    join,
+                    on: Condition::Equal(
+                        Some(Expression::Column(join.source_join_column())),
+                        Some(Expression::Column(Column {
+                            table: on,
+                            access: ColumnAccess::Table {
+                                column: "link_type_version_id",
+                            },
+                        })),
+                    ),
+                };
+            }
             _ => {}
         }
 
