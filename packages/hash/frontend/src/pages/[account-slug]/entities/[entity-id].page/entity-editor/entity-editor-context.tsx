@@ -10,14 +10,14 @@ import {
   TableSort,
 } from "../../../../../components/GlideGlid/utils";
 import { EntityEditorProps } from "../entity-editor";
-import { LinkRow } from "./links-section/link-table/types";
-import { PropertyRow } from "./properties-section/property-table/types";
+import { LinkColumnKey } from "./links-section/link-table/types";
+import { PropertyColumnKey } from "./properties-section/property-table/types";
 
 interface Props extends EntityEditorProps {
-  propertySort: TableSort<PropertyRow>;
-  setPropertySort: SetTableSort<PropertyRow>;
-  linkSort: TableSort<LinkRow>;
-  setLinkSort: SetTableSort<LinkRow>;
+  propertySort: TableSort<PropertyColumnKey>;
+  setPropertySort: SetTableSort<PropertyColumnKey>;
+  linkSort: TableSort<LinkColumnKey>;
+  setLinkSort: SetTableSort<LinkColumnKey>;
 }
 
 const EntityEditorContext = createContext<Props | null>(null);

@@ -1,13 +1,23 @@
-import { DataEditor, DataEditorProps, Theme } from "@glideapps/glide-data-grid";
+import {
+  DataEditor,
+  DataEditorProps,
+  Theme,
+  DataEditorRef,
+} from "@glideapps/glide-data-grid";
 import { useTheme } from "@mui/material";
-import { useMemo } from "react";
+import { forwardRef, ForwardRefRenderFunction, useMemo } from "react";
+import { customGridIcons } from "./custom-grid-icons";
+import { columnPadding } from "./utils";
 
-export const GlideGrid = (props: DataEditorProps) => {
+const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
+  props,
+  ref,
+) => {
   const { palette } = useTheme();
 
   const gridTheme: Partial<Theme> = useMemo(
     () => ({
-      bgHeader: "white",
+      bgHeader: palette.white,
       borderColor: palette.gray[20],
       headerBottomBorderColor: palette.gray[20],
       horizontalBorderColor: "transparent",
@@ -17,8 +27,8 @@ export const GlideGrid = (props: DataEditorProps) => {
       textBubble: palette.gray[70],
       bgBubble: palette.gray[20],
       accentLight: palette.gray[20],
-      bgHeaderHovered: "white",
-      cellHorizontalPadding: 22,
+      bgHeaderHovered: palette.white,
+      cellHorizontalPadding: columnPadding,
       baseFontStyle: "500 14px",
       headerFontStyle: "600 14px",
       editorFontSize: "14px",
@@ -28,6 +38,7 @@ export const GlideGrid = (props: DataEditorProps) => {
 
   return (
     <DataEditor
+      ref={ref}
       theme={gridTheme}
       width="100%"
       headerHeight={42}
@@ -39,6 +50,16 @@ export const GlideGrid = (props: DataEditorProps) => {
       smoothScrollY
       getCellsForSelection
       {...props}
+      /**
+       * icons defined via `headerIcons` are avaiable to be drawn using
+       * glide-grid's `spriteManager.drawSprite`,
+       * which will be used to draw svg icons inside custom cells
+       */
+      headerIcons={customGridIcons}
     />
   );
 };
+
+const GlideGridForwardRef = forwardRef(GlideGrid);
+
+export { GlideGridForwardRef as GlideGrid };

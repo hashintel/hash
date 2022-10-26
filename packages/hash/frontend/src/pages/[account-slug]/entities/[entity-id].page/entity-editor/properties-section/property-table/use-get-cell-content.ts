@@ -1,9 +1,16 @@
 import { GridCell, GridCellKind, Item } from "@glideapps/glide-data-grid";
 import { useCallback } from "react";
+import { UseGridTooltipResponse } from "../../../../../../../components/GlideGlid/use-grid-tooltip/types";
+import { ValueCellProps } from "./cells/value-cell";
 import { propertyGridIndexes } from "./constants";
+import { getTooltipsOfProperty } from "./get-tooltips-of-property";
 import { PropertyRow } from "./types";
 
-export const useGetCellContent = (rowData: PropertyRow[]) => {
+export const useGetCellContent = (
+  rowData: PropertyRow[],
+  showTooltip: UseGridTooltipResponse["showTooltip"],
+  hideTooltip: UseGridTooltipResponse["hideTooltip"],
+) => {
   const getCellContent = useCallback(
     ([col, row]: Item): GridCell => {
       const property = rowData[row];
@@ -12,61 +19,45 @@ export const useGetCellContent = (rowData: PropertyRow[]) => {
         throw new Error("property not found");
       }
 
-      const propertyKey = propertyGridIndexes[col];
+      const columnKey = propertyGridIndexes[col];
 
-      if (!propertyKey) {
-        throw new Error("propertyKey not found");
+      if (!columnKey) {
+        throw new Error("columnKey not found");
       }
 
-      const value = property[propertyKey];
-
-      switch (propertyKey) {
+      switch (columnKey) {
         case "title":
           return {
             kind: GridCellKind.Text,
-            data: value,
-            displayData: value,
+            data: property.title,
+            displayData: property.title,
             readonly: true,
             allowOverlay: false,
+          };
+
+        case "value":
+          return {
+            kind: GridCellKind.Custom,
+            allowOverlay: true,
+            copyData: property.value,
+            data: {
+              kind: "value-cell",
+              tooltips: getTooltipsOfProperty(property),
+              showTooltip,
+              hideTooltip,
+              property,
+            } as ValueCellProps,
           };
 
         case "dataTypes":
           return {
             kind: GridCellKind.Bubble,
-            data: value,
+            data: property.dataTypes,
             allowOverlay: true,
-          };
-
-        case "value":
-          if (typeof value === "number") {
-            return {
-              kind: GridCellKind.Number,
-              data: value,
-              displayData: String(value),
-              allowOverlay: true,
-              cursor: "pointer",
-            };
-          }
-
-          if (typeof value === "boolean") {
-            return {
-              kind: GridCellKind.Boolean,
-              data: value,
-              allowOverlay: false,
-            };
-          }
-
-          // everything else renders like Text for now
-          return {
-            kind: GridCellKind.Text,
-            data: value,
-            displayData: value,
-            allowOverlay: true,
-            cursor: "pointer",
           };
       }
     },
-    [rowData],
+    [rowData, showTooltip, hideTooltip],
   );
 
   return getCellContent;
