@@ -5,12 +5,10 @@ use type_system::PropertyType;
 
 use crate::{
     ontology::PropertyTypeQueryPath,
-    store::postgres::query::{ColumnAccess, Field, Path, PostgresQueryRecord, Table, TableName},
+    store::postgres::query::{ColumnAccess, Path, PostgresQueryRecord, Table, TableName},
 };
 
 impl<'q> PostgresQueryRecord<'q> for PropertyType {
-    type Field = PropertyTypeField;
-
     fn base_table() -> Table {
         Table {
             name: TableName::PropertyTypes,
@@ -18,38 +16,32 @@ impl<'q> PostgresQueryRecord<'q> for PropertyType {
         }
     }
 
-    fn default_fields() -> &'q [Self::Field] {
+    fn default_selection_paths() -> &'q [Self::Path<'q>] {
         &[
-            PropertyTypeField::VersionedUri,
-            PropertyTypeField::Schema,
-            PropertyTypeField::OwnedById,
-            PropertyTypeField::CreatedById,
-            PropertyTypeField::UpdatedById,
-            PropertyTypeField::RemovedById,
+            PropertyTypeQueryPath::VersionedUri,
+            PropertyTypeQueryPath::Schema,
+            PropertyTypeQueryPath::OwnedById,
+            PropertyTypeQueryPath::CreatedById,
+            PropertyTypeQueryPath::UpdatedById,
+            PropertyTypeQueryPath::RemovedById,
         ]
     }
 }
 
-/// A [`Field`] available in [`PropertyType`]s.
-///
-/// [`PropertyType`]: type_system::PropertyType
-#[derive(Debug, PartialEq, Eq)]
-pub enum PropertyTypeField {
-    BaseUri,
-    Version,
-    VersionId,
-    OwnedById,
-    CreatedById,
-    UpdatedById,
-    RemovedById,
-    Schema,
-    VersionedUri,
-    Title,
-    Description,
-}
+impl Path for PropertyTypeQueryPath {
+    fn tables(&self) -> Vec<TableName> {
+        match self {
+            Self::DataTypes(path) => once(TableName::PropertyTypeDataTypeReferences)
+                .chain(path.tables())
+                .collect(),
+            Self::PropertyTypes(path) => once(TableName::PropertyTypePropertyTypeReferences)
+                .chain(path.tables())
+                .collect(),
+            _ => vec![self.terminating_table_name()],
+        }
+    }
 
-impl Field for PropertyTypeField {
-    fn table_name(&self) -> TableName {
+    fn terminating_table_name(&self) -> TableName {
         match self {
             Self::BaseUri | Self::Version => TableName::TypeIds,
             Self::VersionId
@@ -61,6 +53,8 @@ impl Field for PropertyTypeField {
             | Self::VersionedUri
             | Self::Title
             | Self::Description => TableName::PropertyTypes,
+            Self::DataTypes(path) => path.terminating_table_name(),
+            Self::PropertyTypes(path) => path.terminating_table_name(),
         }
     }
 
@@ -96,72 +90,12 @@ impl Field for PropertyTypeField {
                 column: "schema",
                 field: "description",
             },
-        }
-    }
-}
-
-impl Path for PropertyTypeQueryPath {
-    fn tables(&self) -> Vec<TableName> {
-        match self {
-            Self::DataTypes(path) => once(TableName::PropertyTypeDataTypeReferences)
-                .chain(path.tables())
-                .collect(),
-            Self::PropertyTypes(path) => once(TableName::PropertyTypePropertyTypeReferences)
-                .chain(path.tables())
-                .collect(),
-            _ => vec![self.terminating_table_name()],
-        }
-    }
-
-    fn terminating_table_name(&self) -> TableName {
-        match self {
-            Self::BaseUri | Self::Version => TableName::TypeIds,
-            Self::OwnedById
-            | Self::CreatedById
-            | Self::UpdatedById
-            | Self::RemovedById
-            | Self::VersionedUri
-            | Self::Title
-            | Self::Description => TableName::PropertyTypes,
-            Self::DataTypes(path) => path.terminating_table_name(),
-            Self::PropertyTypes(path) => path.terminating_table_name(),
-        }
-    }
-
-    fn column_access(&self) -> ColumnAccess {
-        match self {
-            Self::BaseUri => ColumnAccess::Table { column: "base_uri" },
-            Self::Version => ColumnAccess::Table { column: "version" },
-            Self::OwnedById => ColumnAccess::Table {
-                column: "owned_by_id",
-            },
-            Self::CreatedById => ColumnAccess::Table {
-                column: "created_by_id",
-            },
-            Self::UpdatedById => ColumnAccess::Table {
-                column: "updated_by_id",
-            },
-            Self::RemovedById => ColumnAccess::Table {
-                column: "removed_by_id",
-            },
-            Self::VersionedUri => ColumnAccess::Json {
-                column: "schema",
-                field: "$id",
-            },
-            Self::Title => ColumnAccess::Json {
-                column: "schema",
-                field: "title",
-            },
-            Self::Description => ColumnAccess::Json {
-                column: "schema",
-                field: "description",
-            },
             Self::DataTypes(path) => path.column_access(),
             Self::PropertyTypes(path) => path.column_access(),
         }
     }
 
-    fn user_provided_field(&self) -> Option<&(dyn ToSql + Sync)> {
+    fn user_provided_path(&self) -> Option<&(dyn ToSql + Sync)> {
         None
     }
 }

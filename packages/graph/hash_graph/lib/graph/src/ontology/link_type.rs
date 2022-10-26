@@ -11,10 +11,12 @@ use crate::store::query::{OntologyPath, Path, QueryRecord};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum LinkTypeQueryPath {
+    VersionId,
     OwnedById,
     CreatedById,
     UpdatedById,
     RemovedById,
+    Schema,
     BaseUri,
     VersionedUri,
     Version,
@@ -85,7 +87,7 @@ pub struct LinkTypeQueryPathVisitor {
 impl LinkTypeQueryPathVisitor {
     pub const EXPECTING: &'static str = "one of `ownedById`, `createdById`, `updatedById`, \
                                          `removedById`, `baseUri`, `versionedUri`, `version`, \
-                                         `title, `description`, or `relatedKeywords`";
+                                         `title`, `description`, `relatedKeywords`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -122,6 +124,7 @@ impl<'de> Visitor<'de> for LinkTypeQueryPathVisitor {
         })
     }
 }
+
 impl<'de> Deserialize<'de> for LinkTypeQueryPath {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -133,6 +136,8 @@ impl<'de> Deserialize<'de> for LinkTypeQueryPath {
 
 #[cfg(test)]
 mod tests {
+    use std::iter::once;
+
     use super::*;
     use crate::ontology::test_utils::create_path;
 
@@ -161,6 +166,36 @@ mod tests {
         assert_eq!(
             deserialize(["relatedKeywords"]),
             LinkTypeQueryPath::RelatedKeywords
+        );
+
+        assert_eq!(
+            LinkTypeQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
+                once("version_id")
+            ))
+            .expect_err(
+                "managed to convert link type query path with hidden token when it should have \
+                 errored"
+            )
+            .to_string(),
+            format!(
+                "unknown variant `version_id`, expected {}",
+                LinkTypeQueryPathVisitor::EXPECTING
+            )
+        );
+
+        assert_eq!(
+            LinkTypeQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
+                once("schema")
+            ))
+            .expect_err(
+                "managed to convert link type query path with hidden token when it should have \
+                 errored"
+            )
+            .to_string(),
+            format!(
+                "unknown variant `schema`, expected {}",
+                LinkTypeQueryPathVisitor::EXPECTING
+            )
         );
 
         assert_eq!(

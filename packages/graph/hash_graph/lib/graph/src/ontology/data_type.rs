@@ -19,10 +19,12 @@ use crate::store::query::{OntologyPath, Path, QueryRecord};
 //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
 #[derive(Debug, PartialEq, Eq)]
 pub enum DataTypeQueryPath {
+    VersionId,
     OwnedById,
     CreatedById,
     UpdatedById,
     RemovedById,
+    Schema,
     BaseUri,
     VersionedUri,
     Version,
@@ -91,9 +93,9 @@ pub struct DataTypeQueryPathVisitor {
 }
 
 impl DataTypeQueryPathVisitor {
-    pub const EXPECTING: &'static str = "one of `ownedById`, `baseUri`, `versionedUri`, \
-                                         `version`, `title, `description`, `type`, or a custom \
-                                         identifier";
+    pub const EXPECTING: &'static str = "one of `ownedById`, `createdById`, `updatedById`, \
+                                         `removedById`, `baseUri`, `versionedUri`, `version`, \
+                                         `title`, `description`, `type`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -142,6 +144,8 @@ impl<'de> Deserialize<'de> for DataTypeQueryPath {
 
 #[cfg(test)]
 mod tests {
+    use std::iter::once;
+
     use super::*;
     use crate::ontology::test_utils::create_path;
 
@@ -171,9 +175,42 @@ mod tests {
 
         assert_eq!(
             DataTypeQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
+                once("version_id")
+            ))
+            .expect_err(
+                "managed to convert data type query path with hidden token when it should have \
+                 errored"
+            )
+            .to_string(),
+            format!(
+                "unknown variant `version_id`, expected {}",
+                DataTypeQueryPathVisitor::EXPECTING
+            )
+        );
+
+        assert_eq!(
+            DataTypeQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
+                once("schema")
+            ))
+            .expect_err(
+                "managed to convert data type query path with hidden token when it should have \
+                 errored"
+            )
+            .to_string(),
+            format!(
+                "unknown variant `schema`, expected {}",
+                DataTypeQueryPathVisitor::EXPECTING
+            )
+        );
+
+        assert_eq!(
+            DataTypeQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
                 ["baseUri", "test"].into_iter()
             ))
-            .expect_err("could convert data type query path with multiple tokens")
+            .expect_err(
+                "managed to convert data type query path with multiple tokens when it should have \
+                 errored"
+            )
             .to_string(),
             "invalid length 2, expected 1 element in sequence"
         );
