@@ -3,7 +3,6 @@ import {
   ReactNode,
   useEffect,
   useMemo,
-  useRef,
   useState,
   useCallback,
 } from "react";
@@ -81,7 +80,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
 }) => {
   const { entityId, hasText, author, textUpdatedAt } = comment;
 
-  const ref = useRef<HTMLDivElement>(null);
+  const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const [collapsed, setCollapsed] = useState(true);
   const [shouldCollapse, setShouldCollapse] = useState(false);
   const [editable, setEditable] = useState(false);
@@ -145,7 +144,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
 
   return (
     <Box
-      ref={ref}
+      ref={(ref: HTMLDivElement) => setContainer(ref)}
       sx={{
         display: "flex",
         flexDirection: "column",
@@ -320,7 +319,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
       </CommentBlockMenu>
 
       <CommentBlockDeleteConfirmationDialog
-        container={ref.current}
+        container={container}
         open={deleteConfirmationDialogOpen}
         loading={deleteCommentLoading}
         onDelete={async () => await deleteComment(entityId)}
