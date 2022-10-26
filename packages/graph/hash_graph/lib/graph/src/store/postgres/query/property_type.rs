@@ -95,7 +95,7 @@ impl Path for PropertyTypeQueryPath {
         }
     }
 
-    fn user_provided_field(&self) -> Option<&(dyn ToSql + Sync)> {
+    fn user_provided_path(&self) -> Option<&(dyn ToSql + Sync)> {
         None
     }
 }

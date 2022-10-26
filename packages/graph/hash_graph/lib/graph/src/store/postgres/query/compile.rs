@@ -45,12 +45,12 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
         }
     }
 
-    /// Creates a new compiler, which will default to select the fields returned from
+    /// Creates a new compiler, which will default to select the paths returned from
     /// [`PostgresQueryRecord::default_selection_paths()`].
     pub fn with_default_selection() -> Self {
         let mut default = Self::new();
-        for field in T::default_selection_paths() {
-            default.add_selection_path(field);
+        for path in T::default_selection_paths() {
+            default.add_selection_path(path);
         }
         default
     }
@@ -245,7 +245,7 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
     ) -> Expression<'q> {
         match expression {
             FilterExpression::Path(path) => {
-                let access = if let Some(field) = path.user_provided_field() {
+                let access = if let Some(field) = path.user_provided_path() {
                     self.artifacts.parameters.push(field);
                     ColumnAccess::JsonParameter {
                         column: path.column_access().column(),

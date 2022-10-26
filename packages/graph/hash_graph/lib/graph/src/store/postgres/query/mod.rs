@@ -49,12 +49,12 @@ pub trait Path {
     /// [`terminating_table_name()`]: Self::terminating_table_name
     fn column_access(&self) -> ColumnAccess;
 
-    /// Returns the field if the path is provided by a user.
+    /// Returns the paths if the path is provided by a user.
     ///
     /// One example of a user provided path are properties of an [`Entity`]
     ///
     /// [`Entity`]: crate::knowledge::Entity
-    fn user_provided_field(&self) -> Option<&(dyn ToSql + Sync)>;
+    fn user_provided_path(&self) -> Option<&(dyn ToSql + Sync)>;
 }
 
 /// Renders the object into a Postgres compatible format.
