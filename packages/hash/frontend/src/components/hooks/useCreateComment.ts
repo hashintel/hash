@@ -2,25 +2,36 @@ import { useMutation } from "@apollo/client";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
 import { useCallback } from "react";
 import {
-  CreateCommentMutation,
-  CreateCommentMutationVariables,
+  CreatePersistedCommentMutation,
+  CreatePersistedCommentMutationVariables,
 } from "../../graphql/apiTypes.gen";
-import { createComment } from "../../graphql/queries/comment.queries";
+import { createPersistedComment } from "../../graphql/queries/comment.queries";
+import { getPersistedPageComments } from "../../graphql/queries/page.queries";
 
-export const useCreateComment = (accountId: string) => {
+export const useCreateComment = (pageId: string) => {
   const [createCommentFn, { loading }] = useMutation<
-    CreateCommentMutation,
-    CreateCommentMutationVariables
-  >(createComment);
+    CreatePersistedCommentMutation,
+    CreatePersistedCommentMutationVariables
+  >(createPersistedComment, {
+    awaitRefetchQueries: true,
+    refetchQueries: () => [
+      {
+        query: getPersistedPageComments,
+        variables: {
+          entityId: pageId,
+        },
+      },
+    ],
+  });
 
-  const createBlockComment = useCallback(
-    async (parentId: string, tokens: TextToken[]) => {
+  const createComment = useCallback(
+    async (parentEntityId: string, tokens: TextToken[]) => {
       await createCommentFn({
-        variables: { accountId, parentId, tokens },
+        variables: { parentEntityId, tokens },
       });
     },
-    [createCommentFn, accountId],
+    [createCommentFn],
   );
 
-  return [createBlockComment, { loading }] as const;
+  return [createComment, { loading }] as const;
 };
