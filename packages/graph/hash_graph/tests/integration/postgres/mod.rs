@@ -9,11 +9,13 @@ use std::str::FromStr;
 
 use error_stack::{Report, Result};
 use graph::{
+    identifier::AccountId,
     knowledge::{Entity, EntityId, Link, PersistedEntity, PersistedEntityMetadata, PersistedLink},
     ontology::{
-        AccountId, PersistedDataType, PersistedEntityType, PersistedLinkType,
-        PersistedOntologyMetadata, PersistedPropertyType,
+        PersistedDataType, PersistedEntityType, PersistedLinkType, PersistedOntologyMetadata,
+        PersistedPropertyType,
     },
+    provenance::{CreatedById, OwnedById, RemovedById, UpdatedById},
     shared::identifier::GraphElementIdentifier,
     store::{
         error::LinkRemovalError,
@@ -24,7 +26,10 @@ use graph::{
     },
     subgraph::{GraphResolveDepths, StructuralQuery, Vertex},
 };
-use tokio_postgres::{NoTls, Transaction};
+use tokio_postgres::{
+    types::{FromSql, ToSql},
+    NoTls, Transaction,
+};
 use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};
 use uuid::Uuid;
 
@@ -101,8 +106,8 @@ impl DatabaseTestWrapper {
             store
                 .create_data_type(
                     DataType::from_str(data_type).expect("could not parse data type"),
-                    account_id,
-                    account_id,
+                    OwnedById::new(account_id),
+                    CreatedById::new(account_id),
                 )
                 .await?;
         }
@@ -111,8 +116,8 @@ impl DatabaseTestWrapper {
             store
                 .create_property_type(
                     PropertyType::from_str(property_type).expect("could not parse property type"),
-                    account_id,
-                    account_id,
+                    OwnedById::new(account_id),
+                    CreatedById::new(account_id),
                 )
                 .await?;
         }
@@ -122,8 +127,8 @@ impl DatabaseTestWrapper {
             store
                 .create_link_type(
                     LinkType::from_str(link_type).expect("could not parse link type"),
-                    account_id,
-                    account_id,
+                    OwnedById::new(account_id),
+                    CreatedById::new(account_id),
                 )
                 .await?;
         }
@@ -132,8 +137,8 @@ impl DatabaseTestWrapper {
             store
                 .create_entity_type(
                     EntityType::from_str(entity_type).expect("could not parse entity type"),
-                    account_id,
-                    account_id,
+                    OwnedById::new(account_id),
+                    CreatedById::new(account_id),
                 )
                 .await?;
         }
@@ -149,7 +154,11 @@ impl DatabaseApi<'_> {
         data_type: DataType,
     ) -> Result<PersistedOntologyMetadata, InsertionError> {
         self.store
-            .create_data_type(data_type, self.account_id, self.account_id)
+            .create_data_type(
+                data_type,
+                OwnedById::new(self.account_id),
+                CreatedById::new(self.account_id),
+            )
             .await
     }
 
@@ -179,7 +188,7 @@ impl DatabaseApi<'_> {
         data_type: DataType,
     ) -> Result<PersistedOntologyMetadata, UpdateError> {
         self.store
-            .update_data_type(data_type, self.account_id)
+            .update_data_type(data_type, UpdatedById::new(self.account_id))
             .await
     }
 
@@ -188,7 +197,11 @@ impl DatabaseApi<'_> {
         property_type: PropertyType,
     ) -> Result<PersistedOntologyMetadata, InsertionError> {
         self.store
-            .create_property_type(property_type, self.account_id, self.account_id)
+            .create_property_type(
+                property_type,
+                OwnedById::new(self.account_id),
+                CreatedById::new(self.account_id),
+            )
             .await
     }
 
@@ -218,7 +231,7 @@ impl DatabaseApi<'_> {
         property_type: PropertyType,
     ) -> Result<PersistedOntologyMetadata, UpdateError> {
         self.store
-            .update_property_type(property_type, self.account_id)
+            .update_property_type(property_type, UpdatedById::new(self.account_id))
             .await
     }
 
@@ -227,7 +240,11 @@ impl DatabaseApi<'_> {
         entity_type: EntityType,
     ) -> Result<PersistedOntologyMetadata, InsertionError> {
         self.store
-            .create_entity_type(entity_type, self.account_id, self.account_id)
+            .create_entity_type(
+                entity_type,
+                OwnedById::new(self.account_id),
+                CreatedById::new(self.account_id),
+            )
             .await
     }
 
@@ -257,7 +274,7 @@ impl DatabaseApi<'_> {
         entity_type: EntityType,
     ) -> Result<PersistedOntologyMetadata, UpdateError> {
         self.store
-            .update_entity_type(entity_type, self.account_id)
+            .update_entity_type(entity_type, UpdatedById::new(self.account_id))
             .await
     }
 
@@ -266,7 +283,11 @@ impl DatabaseApi<'_> {
         link_type: LinkType,
     ) -> Result<PersistedOntologyMetadata, InsertionError> {
         self.store
-            .create_link_type(link_type, self.account_id, self.account_id)
+            .create_link_type(
+                link_type,
+                OwnedById::new(self.account_id),
+                CreatedById::new(self.account_id),
+            )
             .await
     }
 
@@ -296,7 +317,7 @@ impl DatabaseApi<'_> {
         link_type: LinkType,
     ) -> Result<PersistedOntologyMetadata, UpdateError> {
         self.store
-            .update_link_type(link_type, self.account_id)
+            .update_link_type(link_type, UpdatedById::new(self.account_id))
             .await
     }
 
@@ -310,9 +331,9 @@ impl DatabaseApi<'_> {
             .create_entity(
                 entity,
                 entity_type_id,
-                self.account_id,
+                OwnedById::new(self.account_id),
                 entity_id,
-                self.account_id,
+                CreatedById::new(self.account_id),
             )
             .await
     }
@@ -342,7 +363,12 @@ impl DatabaseApi<'_> {
         entity_type_id: VersionedUri,
     ) -> Result<PersistedEntityMetadata, UpdateError> {
         self.store
-            .update_entity(entity_id, entity, entity_type_id, self.account_id)
+            .update_entity(
+                entity_id,
+                entity,
+                entity_type_id,
+                UpdatedById::new(self.account_id),
+            )
             .await
     }
 
@@ -354,7 +380,11 @@ impl DatabaseApi<'_> {
     ) -> Result<(), InsertionError> {
         let link = Link::new(source_entity_id, target_entity_id, link_type_id, None);
         self.store
-            .create_link(&link, self.account_id, self.account_id)
+            .create_link(
+                &link,
+                OwnedById::new(self.account_id),
+                CreatedById::new(self.account_id),
+            )
             .await
     }
 
@@ -372,7 +402,11 @@ impl DatabaseApi<'_> {
             Some(index),
         );
         self.store
-            .create_link(&link, self.account_id, self.account_id)
+            .create_link(
+                &link,
+                OwnedById::new(self.account_id),
+                CreatedById::new(self.account_id),
+            )
             .await
     }
 
@@ -445,7 +479,9 @@ impl DatabaseApi<'_> {
         link_type_id: VersionedUri,
     ) -> Result<(), LinkRemovalError> {
         let link = Link::new(source_entity_id, target_entity_id, link_type_id, None);
-        self.store.remove_link(&link, self.account_id).await
+        self.store
+            .remove_link(&link, RemovedById::new(self.account_id))
+            .await
     }
 }
 
