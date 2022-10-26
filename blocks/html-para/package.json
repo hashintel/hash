@@ -11,9 +11,6 @@
   "scripts": {
     "build": "echo \"@hashintel/block-html-para contains no resources to build\"",
     "build:dev": "echo \"@hashintel/block-html-para contains no resources to build\"",
-    "fix:eslint": "echo \"@hashintel/block-html-para contains no files to fix\"",
-    "lint:eslint": "echo \"@hashintel/block-html-para contains no files to lint\"",
-    "lint:tsc": "echo \"@hashintel/block-html-para contains no ts files\"",
     "serve": "serve -C -l 5005"
   },
   "devDependencies": {
