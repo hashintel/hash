@@ -80,4 +80,4 @@ pub mod store;
 
 pub mod logging;
 
-pub use shared::*;
+pub use self::shared::*;

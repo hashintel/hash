@@ -9,7 +9,8 @@ use tokio_postgres::GenericClient;
 use type_system::{uri::VersionedUri, PropertyType};
 
 use crate::{
-    ontology::{AccountId, PersistedOntologyMetadata, PersistedPropertyType},
+    ontology::{PersistedOntologyMetadata, PersistedPropertyType},
+    provenance::{CreatedById, OwnedById, UpdatedById},
     shared::identifier::GraphElementIdentifier,
     store::{
         crud::Read,
@@ -122,8 +123,8 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
     async fn create_property_type(
         &mut self,
         property_type: PropertyType,
-        owned_by_id: AccountId,
-        created_by_id: AccountId,
+        owned_by_id: OwnedById,
+        created_by_id: CreatedById,
     ) -> Result<PersistedOntologyMetadata, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
@@ -201,7 +202,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
     async fn update_property_type(
         &mut self,
         property_type: PropertyType,
-        updated_by: AccountId,
+        updated_by: UpdatedById,
     ) -> Result<PersistedOntologyMetadata, UpdateError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()

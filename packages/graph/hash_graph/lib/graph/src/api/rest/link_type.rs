@@ -19,9 +19,10 @@ use crate::{
     api::rest::{read_from_store, report_to_status_code},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, AccountId, PersistedLinkType, PersistedOntologyIdentifier,
+        patch_id_and_parse, PersistedLinkType, PersistedOntologyIdentifier,
         PersistedOntologyMetadata,
     },
+    provenance::{CreatedById, OwnedById, UpdatedById},
     shared::identifier::GraphElementIdentifier,
     store::{
         query::Expression, BaseUriAlreadyExists, BaseUriDoesNotExist, LinkTypeStore, StorePool,
@@ -44,7 +45,9 @@ use crate::{
         schemas(
             CreateLinkTypeRequest,
             UpdateLinkTypeRequest,
-            AccountId,
+            OwnedById,
+            CreatedById,
+            UpdatedById,
             PersistedOntologyIdentifier,
             PersistedOntologyMetadata,
             PersistedLinkType,
@@ -88,8 +91,8 @@ impl RoutedResource for LinkTypeResource {
 struct CreateLinkTypeRequest {
     #[schema(value_type = VAR_LINK_TYPE)]
     schema: serde_json::Value,
-    owned_by_id: AccountId,
-    actor_id: AccountId,
+    owned_by_id: OwnedById,
+    actor_id: CreatedById,
 }
 
 #[utoipa::path(
@@ -230,7 +233,7 @@ struct UpdateLinkTypeRequest {
     schema: serde_json::Value,
     #[schema(value_type = String)]
     type_to_update: VersionedUri,
-    actor_id: AccountId,
+    actor_id: UpdatedById,
 }
 
 #[utoipa::path(

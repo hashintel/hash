@@ -17,7 +17,14 @@ impl<'q> PostgresQueryRecord<'q> for LinkType {
     }
 
     fn default_fields() -> &'q [Self::Field] {
-        &[LinkTypeQueryField::Schema, LinkTypeQueryField::OwnedById]
+        &[
+            LinkTypeQueryField::VersionedUri,
+            LinkTypeQueryField::Schema,
+            LinkTypeQueryField::OwnedById,
+            LinkTypeQueryField::CreatedById,
+            LinkTypeQueryField::UpdatedById,
+            LinkTypeQueryField::RemovedById,
+        ]
     }
 }
 
@@ -30,6 +37,9 @@ pub enum LinkTypeQueryField {
     Version,
     VersionId,
     OwnedById,
+    CreatedById,
+    UpdatedById,
+    RemovedById,
     Schema,
     VersionedUri,
     Title,
@@ -43,6 +53,9 @@ impl Field for LinkTypeQueryField {
             Self::BaseUri | Self::Version => TableName::TypeIds,
             Self::VersionId
             | Self::OwnedById
+            | Self::CreatedById
+            | Self::UpdatedById
+            | Self::RemovedById
             | Self::Schema
             | Self::VersionedUri
             | Self::Title
@@ -60,6 +73,15 @@ impl Field for LinkTypeQueryField {
             },
             Self::OwnedById => ColumnAccess::Table {
                 column: "owned_by_id",
+            },
+            Self::CreatedById => ColumnAccess::Table {
+                column: "created_by_id",
+            },
+            Self::UpdatedById => ColumnAccess::Table {
+                column: "updated_by_id",
+            },
+            Self::RemovedById => ColumnAccess::Table {
+                column: "removed_by_id",
             },
             Self::Schema => ColumnAccess::Table { column: "schema" },
             Self::VersionedUri => ColumnAccess::Json {
@@ -91,6 +113,9 @@ impl Path for LinkTypeQueryPath {
         match self {
             Self::BaseUri | Self::Version => TableName::TypeIds,
             Self::OwnedById
+            | Self::CreatedById
+            | Self::UpdatedById
+            | Self::RemovedById
             | Self::VersionedUri
             | Self::Title
             | Self::Description
@@ -104,6 +129,15 @@ impl Path for LinkTypeQueryPath {
             Self::Version => ColumnAccess::Table { column: "version" },
             Self::OwnedById => ColumnAccess::Table {
                 column: "owned_by_id",
+            },
+            Self::CreatedById => ColumnAccess::Table {
+                column: "created_by_id",
+            },
+            Self::UpdatedById => ColumnAccess::Table {
+                column: "updated_by_id",
+            },
+            Self::RemovedById => ColumnAccess::Table {
+                column: "removed_by_id",
             },
             Self::VersionedUri => ColumnAccess::Json {
                 column: "schema",

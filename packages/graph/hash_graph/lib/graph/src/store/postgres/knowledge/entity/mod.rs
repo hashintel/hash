@@ -13,7 +13,7 @@ use uuid::Uuid;
 use crate::{
     identifier::{GraphElementIdentifier, LinkId},
     knowledge::{Entity, EntityId, PersistedEntity, PersistedEntityMetadata, PersistedLink},
-    ontology::AccountId,
+    provenance::{CreatedById, OwnedById, UpdatedById},
     store::{
         crud::Read,
         error::EntityDoesNotExist,
@@ -131,9 +131,9 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         &mut self,
         entity: Entity,
         entity_type_id: VersionedUri,
-        owned_by_id: AccountId,
+        owned_by_id: OwnedById,
         entity_id: Option<EntityId>,
-        created_by_id: AccountId,
+        created_by_id: CreatedById,
     ) -> Result<PersistedEntityMetadata, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
@@ -155,7 +155,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 entity_type_id,
                 owned_by_id,
                 created_by_id,
-                created_by_id,
+                UpdatedById::new(created_by_id.as_account_id()),
             )
             .await?;
 
@@ -175,7 +175,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         &mut self,
         entities: impl IntoIterator<Item = (Option<EntityId>, Entity), IntoIter: Send> + Send,
         entity_type_id: VersionedUri,
-        owned_by_id: AccountId,
+        owned_by_id: OwnedById,
+        actor_id: CreatedById,
     ) -> Result<Vec<EntityId>, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
@@ -209,6 +210,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 entities,
                 entity_type_version_id,
                 owned_by_id,
+                actor_id,
+                UpdatedById::new(actor_id.as_account_id()),
             )
             .await?;
 
@@ -258,7 +261,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         entity_id: EntityId,
         entity: Entity,
         entity_type_id: VersionedUri,
-        updated_by_id: AccountId,
+        updated_by_id: UpdatedById,
     ) -> Result<PersistedEntityMetadata, UpdateError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
