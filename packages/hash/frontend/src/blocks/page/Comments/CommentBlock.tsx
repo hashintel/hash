@@ -144,6 +144,10 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
         flexDirection: "column",
         p: 2,
         borderTop: ({ palette }) => `1px solid ${palette.gray[20]}`,
+
+        ":first-of-type": {
+          borderTopWidth: 0,
+        },
       }}
     >
       <Box display="flex" justifyContent="space-between">

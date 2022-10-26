@@ -78,10 +78,6 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
         boxShadow: boxShadows.md,
         marginBottom: 4,
         outline: "none",
-
-        ">*:first-of-type": {
-          borderTopWidth: 0,
-        },
       })}
     >
       <CommentBlock key={comment.entityId} pageId={pageId} comment={comment} />
