@@ -38,7 +38,7 @@ export const useOnCellEdited = (rowData: PropertyRow[]) => {
 
       const updatedProperties = {
         ...entity.properties,
-        [property.propertyTypeId]: valueCell.data.property.value,
+        [property.propertyTypeBaseUri]: valueCell.data.property.value,
       };
 
       /**

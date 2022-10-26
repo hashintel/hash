@@ -4,12 +4,12 @@ import {
   GridCellKind,
 } from "@glideapps/glide-data-grid";
 import { TooltipCellProps } from "../../../../../../../../components/GlideGlid/use-grid-tooltip/types";
-import { EnrichedPropertyType } from "../types";
+import { PropertyRow } from "../types";
 import { ValueCellEditor } from "./value-cell/value-cell-editor";
 
 export interface ValueCellProps extends TooltipCellProps {
   readonly kind: "value-cell";
-  property: EnrichedPropertyType;
+  property: PropertyRow;
 }
 
 export type ValueCell = CustomCell<ValueCellProps>;

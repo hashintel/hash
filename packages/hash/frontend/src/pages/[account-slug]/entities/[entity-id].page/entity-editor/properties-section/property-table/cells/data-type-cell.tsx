@@ -10,11 +10,11 @@ import { Box } from "@mui/material";
 import { CustomGridIcon } from "../../../../../../../../components/GlideGlid/custom-grid-icons";
 import { drawCellFadeOutGradient } from "../../../../../../../../components/GlideGlid/draw-cell-fade-out-gradient";
 import { roundRect } from "../../../../../../../../components/GlideGlid/utils";
-import { EnrichedPropertyType } from "../types";
+import { PropertyRow } from "../types";
 
 export interface DataTypeCellProps {
   readonly kind: "data-type-cell";
-  property: EnrichedPropertyType;
+  property: PropertyRow;
 }
 
 export type DataTypeCell = CustomCell<DataTypeCellProps>;
@@ -30,7 +30,7 @@ const drawChip = (
   const height = 26;
   const chipTop = yCenter - height / 2;
   const paddingX = 12;
-  const iconSize = 14;
+  const iconSize = 10;
   const gap = 6;
 
   const iconLeft = left + paddingX;

@@ -7,7 +7,7 @@ import {
   RootEntityAndSubgraph,
   Subgraph,
 } from "../../../../../../../lib/subgraph";
-import { EnrichedPropertyType } from "./types";
+import { PropertyRow } from "./types";
 
 const getDataTypesOfPropertyType = (
   propertyType: PropertyType,
@@ -25,9 +25,9 @@ const getDataTypesOfPropertyType = (
   });
 };
 
-export const extractEnrichedPropertyTypesFromEntity = (
+export const generatePropertyRowsFromEntity = (
   rootEntityAndSubgraph: RootEntityAndSubgraph,
-): EnrichedPropertyType[] => {
+): PropertyRow[] => {
   const entity = rootEntityAndSubgraph.root;
 
   const entityType = getPersistedEntityType(

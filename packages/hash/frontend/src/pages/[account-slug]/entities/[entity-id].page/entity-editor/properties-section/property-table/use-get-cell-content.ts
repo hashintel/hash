@@ -4,7 +4,7 @@ import { UseGridTooltipResponse } from "../../../../../../../components/GlideGli
 import { DataTypeCellProps } from "./cells/data-type-cell";
 import { ValueCellProps } from "./cells/value-cell";
 import { propertyGridIndexes } from "./constants";
-import { getTooltipsOfProperty } from "./get-tooltips-of-property";
+import { getTooltipsOfPropertyRow } from "./get-tooltips-of-property-row";
 import { PropertyRow } from "./types";
 
 export const useGetCellContent = (
@@ -40,11 +40,11 @@ export const useGetCellContent = (
           return {
             kind: GridCellKind.Custom,
             allowOverlay: true,
-            copyData: property.value,
+            copyData: String(property.value),
             cursor: "pointer",
             data: {
               kind: "value-cell",
-              tooltips: getTooltipsOfProperty(property),
+              tooltips: getTooltipsOfPropertyRow(property),
               showTooltip,
               hideTooltip,
               property,

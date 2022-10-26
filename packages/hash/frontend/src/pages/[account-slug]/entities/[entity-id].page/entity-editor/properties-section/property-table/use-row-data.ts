@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { PropertyRow } from "./types";
-import { extractEnrichedPropertyTypesFromEntity } from "./extract-enriched-property-types-from-entity";
+import { generatePropertyRowsFromEntity } from "./generate-property-rows-from-entity";
 import { sortRowData } from "../../../../../../../components/GlideGlid/utils";
 import { useEntityEditor } from "../../entity-editor-context";
 
@@ -12,7 +12,7 @@ export const useRowData = () => {
       return [];
     }
 
-    const enrichedPropertyTypes = extractEnrichedPropertyTypesFromEntity(
+    const enrichedPropertyTypes = generatePropertyRowsFromEntity(
       rootEntityAndSubgraph,
     );
 
