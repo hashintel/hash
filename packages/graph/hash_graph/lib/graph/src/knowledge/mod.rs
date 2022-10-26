@@ -9,7 +9,8 @@ use utoipa::ToSchema;
 
 pub use self::{
     entity::{
-        Entity, EntityId, PersistedEntity, PersistedEntityIdentifier, PersistedEntityMetadata,
+        Entity, EntityId, EntityQueryPath, PersistedEntity, PersistedEntityIdentifier,
+        PersistedEntityMetadata,
     },
     link::{Link, PersistedLink, PersistedLinkMetadata},
 };

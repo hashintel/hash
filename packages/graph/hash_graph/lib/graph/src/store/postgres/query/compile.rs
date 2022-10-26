@@ -151,6 +151,12 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
                 table: version_column.table,
                 access: ColumnAccess::Table { column: "base_uri" },
             },
+            TableName::Entities => Column {
+                table: version_column.table,
+                access: ColumnAccess::Table {
+                    column: "entity_id",
+                },
+            },
             _ => unreachable!(),
         };
 
@@ -173,7 +179,7 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
                     ),
                 ],
                 from: Table {
-                    name: TableName::TypeIds,
+                    name: version_column.table.name,
                     alias: None,
                 },
                 joins: vec![],
@@ -225,10 +231,20 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
                         filter,
                         parameter.as_ref(),
                     ) {
-                        (TableName::TypeIds, "version", Filter::Equal(..), "latest") => {
+                        (
+                            TableName::TypeIds | TableName::Entities,
+                            "version",
+                            Filter::Equal(..),
+                            "latest",
+                        ) => {
                             Some(self.compile_latest_version_filter(path, EqualityOperator::Equal))
                         }
-                        (TableName::TypeIds, "version", Filter::NotEqual(..), "latest") => Some(
+                        (
+                            TableName::TypeIds | TableName::Entities,
+                            "version",
+                            Filter::NotEqual(..),
+                            "latest",
+                        ) => Some(
                             self.compile_latest_version_filter(path, EqualityOperator::NotEqual),
                         ),
                         _ => None,
