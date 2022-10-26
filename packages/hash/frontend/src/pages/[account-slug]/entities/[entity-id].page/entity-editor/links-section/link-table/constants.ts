@@ -1,4 +1,4 @@
-import { LinkColumn, LinkRow } from "./types";
+import { LinkColumn, LinkColumnKey } from "./types";
 
 export const linkGridColumns: LinkColumn[] = [
   {
@@ -24,7 +24,7 @@ export const linkGridColumns: LinkColumn[] = [
   },
 ];
 
-export const linkGridIndexes: Exclude<keyof LinkRow, "linkId">[] = [
+export const linkGridIndexes: LinkColumnKey[] = [
   "type",
   "linkedWith",
   "relationShip",

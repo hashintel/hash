@@ -1,4 +1,4 @@
-import { PropertyColumn, PropertyRow } from "./types";
+import { PropertyColumn, PropertyColumnKey } from "./types";
 
 export const propertyGridColumns: PropertyColumn[] = [
   {
@@ -19,7 +19,8 @@ export const propertyGridColumns: PropertyColumn[] = [
   },
 ];
 
-export const propertyGridIndexes: Exclude<
-  keyof PropertyRow,
-  "propertyTypeId"
->[] = ["title", "value", "dataTypes"];
+export const propertyGridIndexes: PropertyColumnKey[] = [
+  "title",
+  "value",
+  "dataTypes",
+];

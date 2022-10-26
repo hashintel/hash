@@ -7,8 +7,10 @@ use std::{collections::HashMap, fmt, net::SocketAddr, sync::Arc};
 use error_stack::{Context, IntoReport, Result, ResultExt};
 use graph::{
     api::rest::rest_api_router,
+    identifier::AccountId,
     logging::init_logger,
-    ontology::{domain_validator::DomainValidator, AccountId},
+    ontology::domain_validator::DomainValidator,
+    provenance::{CreatedById, OwnedById},
     store::{AccountStore, DataTypeStore, PostgresStorePool, StorePool},
 };
 use serde_json::json;
@@ -151,7 +153,11 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     for data_type in data_types {
         let title = data_type.title().to_owned();
         if connection
-            .create_data_type(data_type, root_account_id, root_account_id)
+            .create_data_type(
+                data_type,
+                OwnedById::new(root_account_id),
+                CreatedById::new(root_account_id),
+            )
             .await
             .change_context(GraphError)
             .is_err()

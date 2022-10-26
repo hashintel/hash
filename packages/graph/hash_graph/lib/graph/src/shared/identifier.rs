@@ -1,9 +1,33 @@
+use core::fmt;
+
+use postgres_types::{FromSql, ToSql};
 use serde::{Deserialize, Serialize, Serializer};
 use serde_json;
 use type_system::uri::VersionedUri;
 use utoipa::{openapi, ToSchema};
+use uuid::Uuid;
 
 use crate::knowledge::EntityId;
+
+#[derive(
+    Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema, FromSql, ToSql,
+)]
+#[repr(transparent)]
+#[postgres(transparent)]
+pub struct AccountId(Uuid);
+
+impl AccountId {
+    #[must_use]
+    pub const fn new(uuid: Uuid) -> Self {
+        Self(uuid)
+    }
+}
+
+impl fmt::Display for AccountId {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(fmt, "{}", &self.0)
+    }
+}
 
 // TODO - This is temporary and introduced for consistency, we need to introduce actual IDs for
 //  links, should be revisited as part of https://app.asana.com/0/0/1203157172269853/f

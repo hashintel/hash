@@ -7,17 +7,42 @@ use serde::{
 };
 use type_system::LinkType;
 
-use crate::store::query::{Path, QueryRecord};
+use crate::store::query::{OntologyPath, Path, QueryRecord};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum LinkTypeQueryPath {
     OwnedById,
+    CreatedById,
+    UpdatedById,
+    RemovedById,
     BaseUri,
     VersionedUri,
     Version,
     Title,
     Description,
     RelatedKeywords,
+}
+
+impl OntologyPath for LinkTypeQueryPath {
+    fn base_uri() -> Self {
+        Self::BaseUri
+    }
+
+    fn versioned_uri() -> Self {
+        Self::VersionedUri
+    }
+
+    fn version() -> Self {
+        Self::Version
+    }
+
+    fn title() -> Self {
+        Self::Title
+    }
+
+    fn description() -> Self {
+        Self::Description
+    }
 }
 
 impl QueryRecord for LinkType {
@@ -40,6 +65,9 @@ impl TryFrom<Path> for LinkTypeQueryPath {
 #[serde(rename_all = "camelCase")]
 pub enum LinkTypeQueryToken {
     OwnedById,
+    CreatedById,
+    UpdatedById,
+    RemovedById,
     BaseUri,
     VersionedUri,
     Version,
@@ -55,8 +83,9 @@ pub struct LinkTypeQueryPathVisitor {
 }
 
 impl LinkTypeQueryPathVisitor {
-    pub const EXPECTING: &'static str = "one of `ownedById`, `baseUri`, `versionedUri`, \
-                                         `version`, `title, `description`, or `relatedKeywords`";
+    pub const EXPECTING: &'static str = "one of `ownedById`, `createdById`, `updatedById`, \
+                                         `removedById`, `baseUri`, `versionedUri`, `version`, \
+                                         `title, `description`, or `relatedKeywords`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -81,6 +110,9 @@ impl<'de> Visitor<'de> for LinkTypeQueryPathVisitor {
         self.position += 1;
         Ok(match token {
             LinkTypeQueryToken::OwnedById => LinkTypeQueryPath::OwnedById,
+            LinkTypeQueryToken::CreatedById => LinkTypeQueryPath::CreatedById,
+            LinkTypeQueryToken::UpdatedById => LinkTypeQueryPath::UpdatedById,
+            LinkTypeQueryToken::RemovedById => LinkTypeQueryPath::RemovedById,
             LinkTypeQueryToken::BaseUri => LinkTypeQueryPath::BaseUri,
             LinkTypeQueryToken::VersionedUri => LinkTypeQueryPath::VersionedUri,
             LinkTypeQueryToken::Version => LinkTypeQueryPath::Version,

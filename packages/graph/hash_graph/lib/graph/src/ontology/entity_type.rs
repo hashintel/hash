@@ -12,12 +12,15 @@ use crate::{
         link_type::LinkTypeQueryPathVisitor, property_type::PropertyTypeQueryPathVisitor,
         LinkTypeQueryPath, PropertyTypeQueryPath, Selector,
     },
-    store::query::{Path, QueryRecord},
+    store::query::{OntologyPath, Path, QueryRecord},
 };
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum EntityTypeQueryPath {
     OwnedById,
+    CreatedById,
+    UpdatedById,
+    RemovedById,
     BaseUri,
     VersionedUri,
     Version,
@@ -33,6 +36,28 @@ pub enum EntityTypeQueryPath {
 
 impl QueryRecord for EntityType {
     type Path<'q> = EntityTypeQueryPath;
+}
+
+impl OntologyPath for EntityTypeQueryPath {
+    fn base_uri() -> Self {
+        Self::BaseUri
+    }
+
+    fn versioned_uri() -> Self {
+        Self::VersionedUri
+    }
+
+    fn version() -> Self {
+        Self::Version
+    }
+
+    fn title() -> Self {
+        Self::Title
+    }
+
+    fn description() -> Self {
+        Self::Description
+    }
 }
 
 impl TryFrom<Path> for EntityTypeQueryPath {
@@ -51,6 +76,9 @@ impl TryFrom<Path> for EntityTypeQueryPath {
 #[serde(rename_all = "camelCase")]
 pub enum EntityTypeQueryToken {
     OwnedById,
+    CreatedById,
+    UpdatedById,
+    RemovedById,
     BaseUri,
     VersionedUri,
     Version,
@@ -71,8 +99,9 @@ pub struct EntityTypeQueryPathVisitor {
 }
 
 impl EntityTypeQueryPathVisitor {
-    pub const EXPECTING: &'static str = "one of `ownedById`, `baseUri`, `versionedUri`, \
-                                         `version`, `title, `description`, `default`, `examples`, \
+    pub const EXPECTING: &'static str = "one of `ownedById`, `createdById`, `updatedById`, \
+                                         `removedById`, `baseUri`, `versionedUri`, `version`, \
+                                         `title, `description`, `default`, `examples`, \
                                          `properties`, `required`, `links`, or `requiredLinks`";
 
     #[must_use]
@@ -98,6 +127,9 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
         self.position += 1;
         Ok(match token {
             EntityTypeQueryToken::OwnedById => EntityTypeQueryPath::OwnedById,
+            EntityTypeQueryToken::CreatedById => EntityTypeQueryPath::CreatedById,
+            EntityTypeQueryToken::UpdatedById => EntityTypeQueryPath::UpdatedById,
+            EntityTypeQueryToken::RemovedById => EntityTypeQueryPath::RemovedById,
             EntityTypeQueryToken::BaseUri => EntityTypeQueryPath::BaseUri,
             EntityTypeQueryToken::VersionedUri => EntityTypeQueryPath::VersionedUri,
             EntityTypeQueryToken::Version => EntityTypeQueryPath::Version,
@@ -207,8 +239,10 @@ mod tests {
             )
             .expect_err("managed to convert entity type query path with missing tokens")
             .to_string(),
-            "invalid length 2, expected one of `ownedById`, `baseUri`, `versionedUri`, `version`, \
-             `title, `description`, `dataTypes`, or `propertyTypes`"
+            format!(
+                "invalid length 2, expected {}",
+                PropertyTypeQueryPathVisitor::EXPECTING
+            )
         );
 
         assert_eq!(
