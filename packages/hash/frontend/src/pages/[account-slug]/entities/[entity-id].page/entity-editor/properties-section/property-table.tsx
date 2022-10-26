@@ -14,6 +14,7 @@ import {
 } from "../../../../../../components/GlideGlid/utils";
 import { useGridTooltip } from "../../../../../../components/GlideGlid/use-grid-tooltip";
 import { renderValueCell } from "./property-table/cells/value-cell";
+import { renderDataTypeCell } from "./property-table/cells/data-type-cell";
 
 interface PropertyTableProps {
   showSearch: boolean;
@@ -53,7 +54,7 @@ export const PropertyTable = ({
         onHeaderClicked={handleHeaderClicked}
         showSearch={showSearch}
         onSearchClose={onSearchClose}
-        customRenderers={[withTooltips(renderValueCell)]}
+        customRenderers={[withTooltips(renderValueCell), renderDataTypeCell]}
         // define max height if there are lots of rows
         height={rowData.length > 10 ? 500 : undefined}
       />
