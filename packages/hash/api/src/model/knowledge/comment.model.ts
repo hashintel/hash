@@ -119,9 +119,9 @@ export default class extends EntityModel {
   ): Promise<CommentModel> {
     const { actorId, tokens } = params;
 
-    if (actorId !== (await this.getAuthor(graphApi)).entityId) {
+    if (actorId !== this.createdById) {
       throw new Error(
-        `Critical: Comment with entityId ${this.entityId} in account ${this.ownedById} is not owned by account with entityId ${actorId}`,
+        `Critical: account ${actorId} does not have permission to edit the comment with entityId ${this.entityId}`,
       );
     }
 
