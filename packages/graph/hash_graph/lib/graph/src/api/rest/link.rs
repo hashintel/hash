@@ -12,7 +12,7 @@ use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
     knowledge::{EntityId, Link, LinkRootedSubgraph, PersistedLink, PersistedLinkMetadata},
     provenance::{CreatedById, OwnedById, RemovedById},
-    store::{error::QueryError, query::Expression, LinkStore, StorePool},
+    store::{error::QueryError, query::Filter, LinkStore, StorePool},
     subgraph::StructuralQuery,
 };
 
@@ -184,7 +184,7 @@ async fn get_entity_links<P: StorePool + Send>(
 ) -> Result<Json<Vec<PersistedLink>>, StatusCode> {
     read_from_store(
         pool.as_ref(),
-        &Expression::for_link_by_source_entity_id(source_entity_id),
+        &Filter::for_link_by_latest_source_entity(source_entity_id),
     )
     .await
     .map(Json)
