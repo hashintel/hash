@@ -18,9 +18,18 @@ pub trait QueryRecord {
 }
 
 pub trait OntologyPath {
+    /// Returns the path identifying the base URI.
     fn base_uri() -> Self;
+
+    /// Returns the path identifying the versioned URI.
     fn versioned_uri() -> Self;
+
+    /// Returns the path identifying the version
     fn version() -> Self;
+
+    /// Returns the path identifying the title.
     fn title() -> Self;
+
+    /// Returns the path identifying the description.
     fn description() -> Self;
 }
