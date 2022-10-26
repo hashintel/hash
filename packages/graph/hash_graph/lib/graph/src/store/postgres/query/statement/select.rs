@@ -101,7 +101,7 @@ mod tests {
     }
 
     #[test]
-    fn default_paths() {
+    fn default_selection() {
         test_compilation(
             &SelectCompiler::<DataType>::with_default_selection(),
             r#"
