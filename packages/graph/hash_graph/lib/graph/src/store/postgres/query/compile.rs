@@ -4,10 +4,10 @@ use postgres_types::ToSql;
 
 use crate::store::{
     postgres::query::{
-        expression::EdgeJoinDirection, Column, ColumnAccess, Condition, EqualityOperator,
-        Expression, Function, JoinExpression, OrderByExpression, Ordering, Path,
-        PostgresQueryRecord, SelectExpression, SelectStatement, Table, TableAlias, TableName,
-        Transpile, WhereExpression, WindowStatement, WithExpression,
+        Column, ColumnAccess, Condition, EdgeJoinDirection, EqualityOperator, Expression, Function,
+        JoinExpression, OrderByExpression, Ordering, Path, PostgresQueryRecord, SelectExpression,
+        SelectStatement, Table, TableAlias, TableName, Transpile, WhereExpression, WindowStatement,
+        WithExpression,
     },
     query::{Filter, FilterExpression, Parameter},
 };
@@ -29,7 +29,7 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
         Self {
             statement: SelectStatement {
                 with: WithExpression::default(),
-                distinct: false,
+                distinct: Vec::new(),
                 selects: Vec::new(),
                 from: T::base_table(),
                 joins: Vec::new(),
@@ -52,7 +52,7 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
     pub fn with_default_selection() -> Self {
         let mut default = Self::new();
         for path in T::default_selection_paths() {
-            default.add_selection_path(path, None);
+            default.add_selection_path(path, false, None);
         }
         default
     }
@@ -69,13 +69,22 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
 
     /// Adds a new path to the selection.
     ///
-    /// Optionally, a path can be ordered by passing an [`Ordering`] alongside the path.
-    pub fn add_selection_path(&mut self, path: &'q T::Path<'q>, ordering: Option<Ordering>) {
+    /// Optionally, a path can be ordered by passing an [`Ordering`] alongside the path. Also, when
+    /// `distinct` is `true`, this path will be selected distinctly.
+    pub fn add_selection_path(
+        &mut self,
+        path: &'q T::Path<'q>,
+        distinct: bool,
+        ordering: Option<Ordering>,
+    ) {
         let table = self.add_join_statements(path.tables());
         let column = Column {
             table,
             access: path.column_access(),
         };
+        if distinct {
+            self.statement.distinct.push(column.clone());
+        }
         if let Some(ordering) = ordering {
             self.statement
                 .order_by_expression
@@ -173,7 +182,7 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
             .with
             .add_statement(version_column.table.name, SelectStatement {
                 with: WithExpression::default(),
-                distinct: false,
+                distinct: Vec::new(),
                 selects: vec![
                     SelectExpression::new(Expression::Asterisk, None),
                     SelectExpression::new(
@@ -205,9 +214,6 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
         }));
         let version_expression = Some(Expression::Column(version_column));
 
-        // The with statement is likely to result in duplicated lines, so make the selection
-        // distinct
-        self.statement.distinct = true;
         match operator {
             EqualityOperator::Equal => {
                 Condition::Equal(version_expression, latest_version_expression)

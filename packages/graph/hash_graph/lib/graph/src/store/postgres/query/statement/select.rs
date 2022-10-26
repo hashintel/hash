@@ -1,14 +1,14 @@
 use std::fmt::{self, Write};
 
 use crate::store::postgres::query::{
-    expression::OrderByExpression, JoinExpression, SelectExpression, Table, Transpile,
+    expression::OrderByExpression, Column, JoinExpression, SelectExpression, Table, Transpile,
     WhereExpression, WithExpression,
 };
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct SelectStatement<'q> {
     pub with: WithExpression<'q>,
-    pub distinct: bool,
+    pub distinct: Vec<Column<'q>>,
     pub selects: Vec<SelectExpression<'q>>,
     pub from: Table,
     pub joins: Vec<JoinExpression<'q>>,
@@ -25,8 +25,16 @@ impl Transpile for SelectStatement<'_> {
 
         fmt.write_str("SELECT ")?;
 
-        if self.distinct {
-            fmt.write_str("DISTINCT ")?;
+        if !self.distinct.is_empty() {
+            fmt.write_str("DISTINCT ON(")?;
+
+            for (idx, column) in self.distinct.iter().enumerate() {
+                column.transpile(fmt)?;
+                if idx + 1 < self.distinct.len() {
+                    fmt.write_str(", ")?;
+                }
+            }
+            fmt.write_str(") ")?;
         }
 
         for (idx, condition) in self.selects.iter().enumerate() {
@@ -195,7 +203,7 @@ mod tests {
             &compiler,
             r#"
             WITH "type_ids" AS (SELECT *, MAX("type_ids"."version") OVER (PARTITION BY "type_ids"."base_uri") AS "latest_version" FROM "type_ids")
-            SELECT DISTINCT *
+            SELECT *
             FROM "data_types"
             JOIN "type_ids" AS "type_ids_0_0"
               ON "type_ids_0_0"."version_id" = "data_types"."version_id"
@@ -220,7 +228,7 @@ mod tests {
             &compiler,
             r#"
             WITH "type_ids" AS (SELECT *, MAX("type_ids"."version") OVER (PARTITION BY "type_ids"."base_uri") AS "latest_version" FROM "type_ids")
-            SELECT DISTINCT *
+            SELECT *
             FROM "data_types"
             JOIN "type_ids" AS "type_ids_0_0"
               ON "type_ids_0_0"."version_id" = "data_types"."version_id"
@@ -281,7 +289,8 @@ mod tests {
             FROM "property_types"
             JOIN "property_type_data_type_references" AS "property_type_data_type_references_0_0"
               ON "property_type_data_type_references_0_0"."source_property_type_version_id" = "property_types"."version_id"
-            JOIN "data_types" AS "data_types_0_1" ON "data_types_0_1"."version_id" = "property_type_data_type_references_0_0"."target_data_type_version_id"
+            JOIN "data_types" AS "data_types_0_1"
+              ON "data_types_0_1"."version_id" = "property_type_data_type_references_0_0"."target_data_type_version_id"
             JOIN "property_type_data_type_references" AS "property_type_data_type_references_1_0"
               ON "property_type_data_type_references_1_0"."source_property_type_version_id" = "property_types"."version_id"
             JOIN "type_ids" AS "type_ids_1_1"
@@ -431,7 +440,7 @@ mod tests {
             &compiler,
             r#"
             WITH "entities" AS (SELECT *, MAX("entities"."version") OVER (PARTITION BY "entities"."entity_id") AS "latest_version" FROM "entities")
-            SELECT DISTINCT
+            SELECT
                 "entities"."properties",
                 "entities"."entity_id",
                 "entities"."version",
