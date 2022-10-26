@@ -1,39 +1,22 @@
 import { gql } from "@apollo/client";
+import { subgraphFieldsFragment } from "../subgraph";
 
 export const getLinkTypeQuery = gql`
   query getLinkType($linkTypeId: String!) {
     getLinkType(linkTypeId: $linkTypeId) {
-      roots
-      vertices
-      edges
-      depths {
-        dataTypeResolveDepth
-        propertyTypeResolveDepth
-        linkTypeResolveDepth
-        entityTypeResolveDepth
-        linkTargetEntityResolveDepth
-        linkResolveDepth
-      }
+      ...SubgraphFields
     }
   }
+  ${subgraphFieldsFragment}
 `;
 
 export const getAllLatestLinkTypesQuery = gql`
   query getAllLatestLinkTypes {
     getAllLatestLinkTypes {
-      roots
-      vertices
-      edges
-      depths {
-        dataTypeResolveDepth
-        propertyTypeResolveDepth
-        linkTypeResolveDepth
-        entityTypeResolveDepth
-        linkTargetEntityResolveDepth
-        linkResolveDepth
-      }
+      ...SubgraphFields
     }
   }
+  ${subgraphFieldsFragment}
 `;
 
 export const createLinkTypeMutation = gql`

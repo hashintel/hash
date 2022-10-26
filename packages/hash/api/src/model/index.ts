@@ -17,7 +17,6 @@ import Page from "./page.model";
 import Block from "./block.model";
 import Link from "./link.model";
 import Aggregation from "./aggregation.model";
-import Comment from "./comment.model";
 
 export * from "./ontology/data-type.model";
 export { default as DataTypeModel } from "./ontology/data-type.model";
@@ -53,6 +52,9 @@ export { default as BlockModel } from "./knowledge/block.model";
 
 export * from "./knowledge/page.model";
 export { default as PageModel } from "./knowledge/page.model";
+
+export * from "./knowledge/comment.model";
+export { default as CommentModel } from "./knowledge/comment.model";
 
 /** @todo: deprecate legacy model classes */
 
@@ -100,6 +102,3 @@ export { Page };
 
 export * from "./block.model";
 export { Block };
-
-export * from "./comment.model";
-export { Comment };

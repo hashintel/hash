@@ -1,8 +1,14 @@
-import { extractBaseUri, extractVersion } from "@blockprotocol/type-system-web";
+import {
+  EntityType,
+  extractBaseUri,
+  extractVersion,
+} from "@blockprotocol/type-system-web";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
 import { Box, Container, Typography } from "@mui/material";
+import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
+import { useMemo } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { FRONTEND_URL } from "../../../../lib/config";
 import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
@@ -19,19 +25,39 @@ import {
 } from "./use-property-types";
 import { mustBeVersionedUri } from "./util";
 
+const getBaseUri = (path: string) => {
+  const url = new URL(path, FRONTEND_URL);
+
+  return `${FRONTEND_URL}${url.pathname}/`;
+};
+
 // @todo loading state
-// @todo handle displaying entity type not yet created
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
   // @todo how to handle remote types
-  const baseEntityTypeUri = `${FRONTEND_URL}/${router.query["account-slug"]}/types/entity-type/${router.query["entity-type-id"]}/`;
+  const isDraft = !!router.query.draft;
+  const baseEntityTypeUri = isDraft ? null : getBaseUri(router.asPath);
+
+  const draftEntityType = useMemo(() => {
+    if (router.query.draft) {
+      // @todo use validation when validateEntityType doesn't return undefined
+      return JSON.parse(
+        Buffer.from(
+          decodeURIComponent(router.query.draft.toString()),
+          "base64",
+        ).toString("ascii"),
+      ) as EntityType;
+    } else {
+      return null;
+    }
+  }, [router.query.draft]);
 
   const formMethods = useForm<EntityTypeEditorForm>({
     defaultValues: { properties: [] },
   });
   const { handleSubmit: wrapHandleSubmit, reset } = formMethods;
 
-  const [entityType, updateEntityType] = useEntityType(
+  const [remoteEntityType, updateEntityType, publishDraft] = useEntityType(
     baseEntityTypeUri,
     (fetchedEntityType) => {
       reset({
@@ -45,6 +71,8 @@ const Page: NextPageWithLayout = () => {
       });
     },
   );
+
+  const entityType = remoteEntityType ?? draftEntityType;
 
   const propertyTypes = useRemotePropertyTypes();
 
@@ -61,22 +89,36 @@ const Page: NextPageWithLayout = () => {
       }),
     );
 
-    const res = await updateEntityType({
-      properties,
-    });
+    if (isDraft) {
+      if (!draftEntityType) {
+        throw new Error("Cannot publish without draft");
+      }
 
-    if (!res.errors?.length) {
+      await publishDraft({
+        ...draftEntityType,
+        properties,
+      });
       reset(data);
     } else {
-      throw new Error("Could not publish changes");
+      const res = await updateEntityType({
+        properties,
+      });
+
+      if (!res.errors?.length) {
+        reset(data);
+      } else {
+        throw new Error("Could not publish changes");
+      }
     }
   });
 
-  if (!entityType || !propertyTypes) {
+  if (!entityType) {
     return null;
   }
 
-  const currentVersion = extractVersion(mustBeVersionedUri(entityType.$id));
+  const currentVersion = draftEntityType
+    ? 0
+    : extractVersion(mustBeVersionedUri(entityType.$id));
 
   return (
     <PropertyTypesContext.Provider value={propertyTypes}>
@@ -116,9 +158,18 @@ const Page: NextPageWithLayout = () => {
             />
             <EditBar
               currentVersion={currentVersion}
-              onDiscardChanges={() => {
-                reset();
-              }}
+              discardButtonProps={
+                // @todo confirmation of discard when draft
+                isDraft
+                  ? {
+                      href: `/${router.query["account-slug"]}/types/new/entity-type`,
+                    }
+                  : {
+                      onClick() {
+                        reset();
+                      },
+                    }
+              }
             />
 
             <Box pt={3.75}>

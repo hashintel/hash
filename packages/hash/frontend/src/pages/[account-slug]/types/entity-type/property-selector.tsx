@@ -47,7 +47,7 @@ const PropertySelector: ForwardRefRenderFunction<
   ref,
 ) => {
   const propertyTypesObj = usePropertyTypes();
-  const propertyTypes = Object.values(propertyTypesObj);
+  const propertyTypes = Object.values(propertyTypesObj ?? {});
 
   const modifiers = useMemo(
     (): PopperProps["modifiers"] => [

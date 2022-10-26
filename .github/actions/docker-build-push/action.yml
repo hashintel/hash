@@ -50,7 +50,7 @@ runs:
 
     # Build images and push to ECR
     - name: Build and push ${{inputs.SHORTNAME}} image
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@v3
       env:
         GH_RUN_ID: ${{ github.run_id }}
       with:

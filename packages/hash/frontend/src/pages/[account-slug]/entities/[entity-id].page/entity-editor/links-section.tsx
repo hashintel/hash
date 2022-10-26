@@ -19,12 +19,14 @@ different entities"
 );
 
 export const LinksSection = () => {
-  const { entity } = useEntityEditor();
+  const { rootEntityAndSubgraph } = useEntityEditor();
   const [showSearch, setShowSearch] = useState(false);
 
-  if (!entity) {
+  if (!rootEntityAndSubgraph) {
     return null;
   }
+
+  const entity = rootEntityAndSubgraph.root;
 
   const isEmpty = !entity.links.length;
 
