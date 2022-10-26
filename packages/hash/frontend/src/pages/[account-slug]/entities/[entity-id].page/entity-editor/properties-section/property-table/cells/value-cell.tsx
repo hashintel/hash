@@ -21,9 +21,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
   draw: (args, cell) => {
     const { ctx, rect, theme } = args;
     const { x, y, height } = rect;
-    const {
-      data: { property },
-    } = cell;
+    const { property } = cell.data;
 
     const yCenter = y + height / 2 + 2;
 

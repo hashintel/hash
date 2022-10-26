@@ -12,7 +12,7 @@ export const getTooltipsOfProperty = (
 
   return [
     {
-      icon: CustomGridIcon.ASTERIKS,
+      icon: CustomGridIcon.ASTERISK,
       text: "This property is required",
     },
   ];
