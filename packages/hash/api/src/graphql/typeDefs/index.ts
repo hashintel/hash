@@ -9,7 +9,6 @@ import { orgEmailInvitationTypedef } from "./orgEmailInvitation.typedef";
 import { orgInvitationLinkTypedef } from "./orgInvitationLink.typedef";
 import { orgTypedef } from "./org.typedef";
 import { pageTypedef } from "./page.typedef";
-import { commentTypedef } from "./comment.typedef";
 import { textTypedef } from "./text.typedef";
 import { userTypedef } from "./user.typedef";
 import { embedTypeDef } from "./embed.typedef";
@@ -25,6 +24,7 @@ import { linkTypeTypedef } from "./ontology/link-type.typedef";
 import { entityTypeTypedef } from "./ontology/entity-type.typedef";
 import { persistedEntityTypedef } from "./knowledge/entity.typedef";
 import { persistedPageTypedef } from "./knowledge/page.typedef";
+import { persistedCommentTypedef } from "./knowledge/comment.typedef";
 import { persistedBlockTypedef } from "./knowledge/block.typedef";
 import { persistedLinkTypedef } from "./knowledge/link.typedef";
 import { subgraphTypedef } from "./subgraph.typedef";
@@ -61,6 +61,7 @@ const knowledge = [
   persistedEntityTypedef,
   persistedBlockTypedef,
   persistedPageTypedef,
+  persistedCommentTypedef,
   persistedLinkTypedef,
 ];
 
@@ -82,7 +83,6 @@ export const schema = [
   orgTypedef,
   orgMembershipTypedef,
   pageTypedef,
-  commentTypedef,
   pagePaginationTypedef,
   textTypedef,
   userTypedef,

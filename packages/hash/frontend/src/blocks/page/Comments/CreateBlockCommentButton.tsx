@@ -2,41 +2,30 @@ import { FunctionComponent, useCallback, useState } from "react";
 import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { faComment } from "@fortawesome/free-regular-svg-icons";
 import Box from "@mui/material/Box";
-import { TextToken } from "@hashintel/hash-shared/graphql/types";
 import Popper from "@mui/material/Popper";
-import { useCreateComment } from "../../../components/hooks/useCreateComment";
-import { useRouteAccountInfo } from "../../../shared/routing";
-import { CommentTextField } from "./CommentTextField";
 import styles from "../style.module.css";
+import { CreateBlockComment } from "./CreateBlockComment";
 
-type CommentButtonProps = {
+type CreateBlockCommentButtonProps = {
   blockId: string | null;
   rootNode: HTMLElement;
 };
 
-export const CommentButton: FunctionComponent<CommentButtonProps> = ({
-  blockId,
-  rootNode,
-}) => {
-  const { accountId } = useRouteAccountInfo();
+export const CreateBlockCommentButton: FunctionComponent<
+  CreateBlockCommentButtonProps
+> = ({ blockId, rootNode }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [createComment] = useCreateComment(accountId);
 
-  const submitComment = useCallback(
-    async (content: TextToken[]) => {
-      if (blockId) {
-        await createComment(blockId, content);
-      }
-    },
-    [createComment, blockId],
-  );
-
-  const closeInput = useCallback(() => setAnchorEl(null), []);
+  const closeInput = useCallback(() => {
+    setAnchorEl(null);
+  }, []);
 
   return (
     <Box className={styles.Block__Comments_Button}>
       <IconButton
-        onClick={(event) => setAnchorEl(anchorEl ? null : event.currentTarget)}
+        onClick={(event) => {
+          setAnchorEl(anchorEl ? null : event.currentTarget);
+        }}
         sx={{
           padding: 0.5,
           borderRadius: 1,
@@ -59,8 +48,8 @@ export const CommentButton: FunctionComponent<CommentButtonProps> = ({
             name: "offset",
             options: {
               offset: () => [
-                -13,
-                -(anchorEl?.getBoundingClientRect().height ?? 0) - 13,
+                -9,
+                -(anchorEl?.getBoundingClientRect().height ?? 0) - 12,
               ],
             },
           },
@@ -73,8 +62,9 @@ export const CommentButton: FunctionComponent<CommentButtonProps> = ({
           },
         ]}
         anchorEl={anchorEl}
+        style={{ zIndex: 1 }}
       >
-        <CommentTextField onClose={closeInput} onSubmit={submitComment} />
+        <CreateBlockComment blockId={blockId} onClose={closeInput} />
       </Popper>
     </Box>
   );
