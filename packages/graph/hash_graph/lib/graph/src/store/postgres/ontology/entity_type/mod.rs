@@ -9,7 +9,8 @@ use tokio_postgres::GenericClient;
 use type_system::{uri::VersionedUri, EntityType};
 
 use crate::{
-    ontology::{AccountId, PersistedEntityType, PersistedOntologyMetadata},
+    ontology::{PersistedEntityType, PersistedOntologyMetadata},
+    provenance::{CreatedById, OwnedById, UpdatedById},
     shared::identifier::GraphElementIdentifier,
     store::{
         crud::Read,
@@ -160,8 +161,8 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
     async fn create_entity_type(
         &mut self,
         entity_type: EntityType,
-        owned_by_id: AccountId,
-        created_by_id: AccountId,
+        owned_by_id: OwnedById,
+        created_by_id: CreatedById,
     ) -> Result<PersistedOntologyMetadata, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
@@ -239,7 +240,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
     async fn update_entity_type(
         &mut self,
         entity_type: EntityType,
-        updated_by: AccountId,
+        updated_by: UpdatedById,
     ) -> Result<PersistedOntologyMetadata, UpdateError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()

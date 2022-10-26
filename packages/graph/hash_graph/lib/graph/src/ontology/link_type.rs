@@ -12,6 +12,9 @@ use crate::store::query::{Path, QueryRecord};
 #[derive(Debug, PartialEq, Eq)]
 pub enum LinkTypeQueryPath {
     OwnedById,
+    CreatedById,
+    UpdatedById,
+    RemovedById,
     BaseUri,
     VersionedUri,
     Version,
@@ -40,6 +43,9 @@ impl TryFrom<Path> for LinkTypeQueryPath {
 #[serde(rename_all = "camelCase")]
 pub enum LinkTypeQueryToken {
     OwnedById,
+    CreatedById,
+    UpdatedById,
+    RemovedById,
     BaseUri,
     VersionedUri,
     Version,
@@ -55,8 +61,9 @@ pub struct LinkTypeQueryPathVisitor {
 }
 
 impl LinkTypeQueryPathVisitor {
-    pub const EXPECTING: &'static str = "one of `ownedById`, `baseUri`, `versionedUri`, \
-                                         `version`, `title, `description`, or `relatedKeywords`";
+    pub const EXPECTING: &'static str = "one of `ownedById`, `createdById`, `updatedById`, \
+                                         `removedById`, `baseUri`, `versionedUri`, `version`, \
+                                         `title, `description`, or `relatedKeywords`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -81,6 +88,9 @@ impl<'de> Visitor<'de> for LinkTypeQueryPathVisitor {
         self.position += 1;
         Ok(match token {
             LinkTypeQueryToken::OwnedById => LinkTypeQueryPath::OwnedById,
+            LinkTypeQueryToken::CreatedById => LinkTypeQueryPath::CreatedById,
+            LinkTypeQueryToken::UpdatedById => LinkTypeQueryPath::UpdatedById,
+            LinkTypeQueryToken::RemovedById => LinkTypeQueryPath::RemovedById,
             LinkTypeQueryToken::BaseUri => LinkTypeQueryPath::BaseUri,
             LinkTypeQueryToken::VersionedUri => LinkTypeQueryPath::VersionedUri,
             LinkTypeQueryToken::Version => LinkTypeQueryPath::Version,

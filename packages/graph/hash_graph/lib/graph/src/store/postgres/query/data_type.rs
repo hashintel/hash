@@ -17,7 +17,14 @@ impl<'q> PostgresQueryRecord<'q> for DataType {
     }
 
     fn default_fields() -> &'q [Self::Field] {
-        &[DataTypeQueryField::Schema, DataTypeQueryField::OwnedById]
+        &[
+            DataTypeQueryField::VersionedUri,
+            DataTypeQueryField::Schema,
+            DataTypeQueryField::OwnedById,
+            DataTypeQueryField::CreatedById,
+            DataTypeQueryField::UpdatedById,
+            DataTypeQueryField::RemovedById,
+        ]
     }
 }
 
@@ -30,6 +37,9 @@ pub enum DataTypeQueryField {
     Version,
     VersionId,
     OwnedById,
+    CreatedById,
+    UpdatedById,
+    RemovedById,
     Schema,
     VersionedUri,
     Title,
@@ -43,6 +53,9 @@ impl Field for DataTypeQueryField {
             Self::BaseUri | Self::Version => TableName::TypeIds,
             Self::VersionId
             | Self::OwnedById
+            | Self::CreatedById
+            | Self::UpdatedById
+            | Self::RemovedById
             | Self::Schema
             | Self::VersionedUri
             | Self::Title
@@ -60,6 +73,15 @@ impl Field for DataTypeQueryField {
             },
             Self::OwnedById => ColumnAccess::Table {
                 column: "owned_by_id",
+            },
+            Self::CreatedById => ColumnAccess::Table {
+                column: "created_by_id",
+            },
+            Self::UpdatedById => ColumnAccess::Table {
+                column: "updated_by_id",
+            },
+            Self::RemovedById => ColumnAccess::Table {
+                column: "removed_by_id",
             },
             Self::Schema => ColumnAccess::Table { column: "schema" },
             Self::VersionedUri => ColumnAccess::Json {
@@ -90,9 +112,14 @@ impl Path for DataTypeQueryPath {
     fn terminating_table_name(&self) -> TableName {
         match self {
             Self::BaseUri | Self::Version => TableName::TypeIds,
-            Self::OwnedById | Self::VersionedUri | Self::Title | Self::Type | Self::Description => {
-                TableName::DataTypes
-            }
+            Self::OwnedById
+            | Self::CreatedById
+            | Self::UpdatedById
+            | Self::RemovedById
+            | Self::VersionedUri
+            | Self::Title
+            | Self::Type
+            | Self::Description => TableName::DataTypes,
         }
     }
 
@@ -102,6 +129,15 @@ impl Path for DataTypeQueryPath {
             Self::Version => ColumnAccess::Table { column: "version" },
             Self::OwnedById => ColumnAccess::Table {
                 column: "owned_by_id",
+            },
+            Self::CreatedById => ColumnAccess::Table {
+                column: "created_by_id",
+            },
+            Self::UpdatedById => ColumnAccess::Table {
+                column: "updated_by_id",
+            },
+            Self::RemovedById => ColumnAccess::Table {
+                column: "removed_by_id",
             },
             Self::VersionedUri => ColumnAccess::Json {
                 column: "schema",

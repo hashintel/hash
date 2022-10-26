@@ -19,7 +19,14 @@ impl<'q> PostgresQueryRecord<'q> for EntityType {
     }
 
     fn default_fields() -> &'q [Self::Field] {
-        &[EntityTypeField::Schema, EntityTypeField::OwnedById]
+        &[
+            EntityTypeField::VersionedUri,
+            EntityTypeField::Schema,
+            EntityTypeField::OwnedById,
+            EntityTypeField::CreatedById,
+            EntityTypeField::UpdatedById,
+            EntityTypeField::RemovedById,
+        ]
     }
 }
 
@@ -32,6 +39,9 @@ pub enum EntityTypeField {
     Version,
     VersionId,
     OwnedById,
+    CreatedById,
+    UpdatedById,
+    RemovedById,
     Schema,
     VersionedUri,
     Title,
@@ -50,6 +60,9 @@ impl Field for EntityTypeField {
             Self::BaseUri | Self::Version => TableName::TypeIds,
             Self::VersionId
             | Self::OwnedById
+            | Self::CreatedById
+            | Self::UpdatedById
+            | Self::RemovedById
             | Self::Schema
             | Self::VersionedUri
             | Self::Title
@@ -72,6 +85,15 @@ impl Field for EntityTypeField {
             },
             Self::OwnedById => ColumnAccess::Table {
                 column: "owned_by_id",
+            },
+            Self::CreatedById => ColumnAccess::Table {
+                column: "created_by_id",
+            },
+            Self::UpdatedById => ColumnAccess::Table {
+                column: "updated_by_id",
+            },
+            Self::RemovedById => ColumnAccess::Table {
+                column: "removed_by_id",
             },
             Self::Schema => ColumnAccess::Table { column: "schema" },
             Self::VersionedUri => ColumnAccess::Json {
@@ -131,6 +153,9 @@ impl Path for EntityTypeQueryPath {
         match self {
             Self::BaseUri | Self::Version => TableName::TypeIds,
             Self::OwnedById
+            | Self::CreatedById
+            | Self::UpdatedById
+            | Self::RemovedById
             | Self::VersionedUri
             | Self::Title
             | Self::Description
@@ -149,6 +174,15 @@ impl Path for EntityTypeQueryPath {
             Self::Version => ColumnAccess::Table { column: "version" },
             Self::OwnedById => ColumnAccess::Table {
                 column: "owned_by_id",
+            },
+            Self::CreatedById => ColumnAccess::Table {
+                column: "created_by_id",
+            },
+            Self::UpdatedById => ColumnAccess::Table {
+                column: "updated_by_id",
+            },
+            Self::RemovedById => ColumnAccess::Table {
+                column: "removed_by_id",
             },
             Self::VersionedUri => ColumnAccess::Json {
                 column: "schema",
