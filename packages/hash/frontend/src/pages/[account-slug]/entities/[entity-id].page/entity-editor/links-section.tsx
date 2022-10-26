@@ -19,18 +19,21 @@ different entities"
 );
 
 export const LinksSection = () => {
-  const { entity } = useEntityEditor();
+  const { rootEntityAndSubgraph } = useEntityEditor();
   const [showSearch, setShowSearch] = useState(false);
 
-  if (!entity) {
+  if (!rootEntityAndSubgraph) {
     return null;
   }
+
+  const entity = rootEntityAndSubgraph.root;
 
   const isEmpty = !entity.links.length;
 
   return (
     <EntitySection
       title="Links"
+      titleTooltip="The links on an entity are determined by its type. To add a new link to this entity, specify an additional type or edit an existing one."
       titleStartContent={
         isEmpty ? (
           <Chip label="No links" />

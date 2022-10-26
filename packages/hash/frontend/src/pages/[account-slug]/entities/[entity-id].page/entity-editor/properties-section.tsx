@@ -11,12 +11,14 @@ import { EntitySection } from "./shared/entity-section";
 import { WhiteChip } from "./shared/white-chip";
 
 export const PropertiesSection = () => {
-  const { entity } = useEntityEditor();
+  const { rootEntityAndSubgraph } = useEntityEditor();
   const [showSearch, setShowSearch] = useState(false);
 
-  if (!entity) {
+  if (!rootEntityAndSubgraph) {
     return null;
   }
+
+  const entity = rootEntityAndSubgraph.root;
 
   const propertyCount = Object.keys(entity.properties).length;
   const emptyPropertyCount = getEmptyPropertyCount(entity.properties);
@@ -24,6 +26,7 @@ export const PropertiesSection = () => {
   return (
     <EntitySection
       title="Properties"
+      titleTooltip="The properties on an entity are determined by its type. To add a new property to this entity, specify an additional type or edit an existing one."
       titleStartContent={
         <Stack direction="row" spacing={1.5}>
           <Chip size="xs" label={`${propertyCount} Values`} />

@@ -1,9 +1,9 @@
 import { ApolloError } from "apollo-server-errors";
-import { EntityVertex } from "@hashintel/hash-shared/graphql/types";
 import {
   PersistedEntity,
   GraphApi,
   StructuralQuery,
+  Vertex,
 } from "@hashintel/hash-graph-client";
 
 import {
@@ -326,7 +326,10 @@ export default class {
 
     return await Promise.all(
       subgraph.roots.map((entityId) => {
-        const entityVertex = subgraph.vertices[entityId] as EntityVertex;
+        const entityVertex = subgraph.vertices[entityId] as Extract<
+          Vertex,
+          { kind: "entity" }
+        >;
         return EntityModel.fromPersistedEntity(graphApi, entityVertex.inner);
       }),
     );
@@ -476,6 +479,36 @@ export default class {
       sourceEntityModel: this,
       ...params,
     });
+  }
+
+  /**
+   * Get the incoming links of an entity.
+   *
+   * @param params.linkTypeModel (optional) - the specific link type of the incoming links
+   */
+  async getIncomingLinks(
+    graphApi: GraphApi,
+    params?: { linkTypeModel?: LinkTypeModel },
+  ): Promise<LinkModel[]> {
+    const incomingLinks = await LinkModel.getByQuery(graphApi, {
+      all: [
+        {
+          eq: [{ path: ["target", "id"] }, { literal: this.entityId }],
+        },
+        params?.linkTypeModel
+          ? {
+              eq: [
+                { path: ["type", "versionedUri"] },
+                {
+                  literal: params.linkTypeModel.schema.$id,
+                },
+              ],
+            }
+          : [],
+      ].flat(),
+    });
+
+    return incomingLinks;
   }
 
   /**

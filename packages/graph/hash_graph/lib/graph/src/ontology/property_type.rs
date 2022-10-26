@@ -2,33 +2,33 @@ use std::fmt;
 
 use error_stack::{IntoReport, Report};
 use serde::{
-    de::{self, Deserializer, SeqAccess, Unexpected, Visitor},
+    de::{self, Deserializer, SeqAccess, Visitor},
     Deserialize,
 };
 use type_system::PropertyType;
 
 use crate::{
-    ontology::{data_type::DataTypeQueryPathVisitor, DataTypeQueryPath},
+    ontology::{data_type::DataTypeQueryPathVisitor, DataTypeQueryPath, Selector},
     store::query::{Path, QueryRecord},
 };
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum PropertyTypeQueryPath<'q> {
+pub enum PropertyTypeQueryPath {
     OwnedById,
     BaseUri,
     VersionedUri,
     Version,
     Title,
     Description,
-    DataTypes(DataTypeQueryPath<'q>),
+    DataTypes(DataTypeQueryPath),
     PropertyTypes(Box<Self>),
 }
 
 impl QueryRecord for PropertyType {
-    type Path<'q> = PropertyTypeQueryPath<'q>;
+    type Path<'q> = PropertyTypeQueryPath;
 }
 
-impl<'q> TryFrom<Path> for PropertyTypeQueryPath<'q> {
+impl TryFrom<Path> for PropertyTypeQueryPath {
     type Error = Report<de::value::Error>;
 
     fn try_from(path: Path) -> Result<Self, Self::Error> {
@@ -71,7 +71,7 @@ impl PropertyTypeQueryPathVisitor {
 }
 
 impl<'de> Visitor<'de> for PropertyTypeQueryPathVisitor {
-    type Value = PropertyTypeQueryPath<'de>;
+    type Value = PropertyTypeQueryPath;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         formatter.write_str(Self::EXPECTING)
@@ -114,7 +114,7 @@ impl<'de> Visitor<'de> for PropertyTypeQueryPathVisitor {
         })
     }
 }
-impl<'de: 'k, 'k> Deserialize<'de> for PropertyTypeQueryPath<'k> {
+impl<'de> Deserialize<'de> for PropertyTypeQueryPath {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -123,55 +123,16 @@ impl<'de: 'k, 'k> Deserialize<'de> for PropertyTypeQueryPath<'k> {
     }
 }
 
-pub enum Selector {
-    Asterisk,
-}
-
-impl<'de> Deserialize<'de> for Selector {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct SelectorVisitor;
-
-        impl<'de> Visitor<'de> for SelectorVisitor {
-            type Value = Selector;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("a wildcard (*)")
-            }
-
-            fn visit_str<E: de::Error>(self, v: &str) -> Result<Self::Value, E> {
-                match v {
-                    "*" => Ok(Selector::Asterisk),
-                    _ => Err(de::Error::invalid_value(Unexpected::Str(v), &self)),
-                }
-            }
-
-            fn visit_bytes<E: de::Error>(self, v: &[u8]) -> Result<Self::Value, E> {
-                match core::str::from_utf8(v) {
-                    Ok(s) => self.visit_str(s),
-                    Err(_) => Err(E::invalid_value(de::Unexpected::Bytes(v), &self)),
-                }
-            }
-        }
-
-        deserializer.deserialize_str(SelectorVisitor)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::ontology::test_utils::create_path;
 
-    fn convert_path(
-        segments: impl IntoIterator<Item = &'static str>,
-    ) -> PropertyTypeQueryPath<'static> {
+    fn convert_path(segments: impl IntoIterator<Item = &'static str>) -> PropertyTypeQueryPath {
         PropertyTypeQueryPath::try_from(create_path(segments)).expect("could not convert path")
     }
 
-    fn deserialize<'q>(segments: impl IntoIterator<Item = &'q str>) -> PropertyTypeQueryPath<'q> {
+    fn deserialize<'q>(segments: impl IntoIterator<Item = &'q str>) -> PropertyTypeQueryPath {
         PropertyTypeQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
             segments.into_iter(),
         ))
