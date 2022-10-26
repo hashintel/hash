@@ -50,13 +50,9 @@ impl RecordPath for LinkTypeQueryPath {
                 parameter_type: ParameterType::UnsignedInteger,
                 optional: false,
             },
-            Self::Title => ParameterField {
-                parameter_type: ParameterType::Timestamp,
+            Self::Title | Self::Description => ParameterField {
+                parameter_type: ParameterType::Text,
                 optional: false,
-            },
-            Self::Description => ParameterField {
-                parameter_type: ParameterType::Timestamp,
-                optional: true,
             },
             Self::RelatedKeywords => ParameterField {
                 parameter_type: ParameterType::Any,
