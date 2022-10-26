@@ -19,6 +19,7 @@ import { Subgraph } from "../../../../lib/subgraph";
 
 export type KnowledgeCallbacks = {
   getEntity: GetEntityMessageCallback;
+  aggregateEntities: AggregateEntitiesMessageCallback;
   updateEntity: UpdateEntityMessageCallback;
 };
 
@@ -53,6 +54,14 @@ export type EntityResponse = Entity;
 export type GetEntityRequest = Pick<EntityResponse, "entityId">;
 export type GetEntityMessageCallback = MessageCallback<
   GetEntityRequest,
+  null,
+  Subgraph,
+  ReadOrModifyResourceError
+>;
+
+export type AggregateEntitiesRequest = {};
+export type AggregateEntitiesMessageCallback = MessageCallback<
+  AggregateEntitiesRequest,
   null,
   Subgraph,
   ReadOrModifyResourceError
