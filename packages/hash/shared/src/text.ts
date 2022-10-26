@@ -4,12 +4,12 @@ import { TextToken } from "./graphql/types";
 import { TextEntityType, TextProperties } from "./entity";
 import { TEXT_TOKEN_PROPERTY_TYPE_BASE_URI } from "./entityStore";
 
-export const childrenForTextEntity = (
-  entity: Pick<TextEntityType, "properties">,
+export const textBlockNodesFromTokens = (
+  tokens: TextToken[],
   schema: Schema,
 ): ProsemirrorNode<Schema>[] =>
   // eslint-disable-next-line array-callback-return -- TODO: disable the rule because it’s not aware of TS
-  entity.properties[TEXT_TOKEN_PROPERTY_TYPE_BASE_URI]?.map((token) => {
+  tokens.map((token) => {
     switch (token.tokenType) {
       case "hardBreak":
         return schema.node("hardBreak");
@@ -36,11 +36,18 @@ export const childrenForTextEntity = (
         );
       }
     }
-  }) ?? [];
+  });
 
-export const textBlockNodeToEntityProperties = (
-  node: ComponentNode,
-): TextProperties => {
+export const childrenForTextEntity = (
+  entity: Pick<TextEntityType, "properties">,
+  schema: Schema,
+): ProsemirrorNode<Schema>[] =>
+  textBlockNodesFromTokens(
+    entity.properties[TEXT_TOKEN_PROPERTY_TYPE_BASE_URI] ?? [],
+    schema,
+  );
+
+export const textBlockNodeToTextTokens = (node: ComponentNode): TextToken[] => {
   const tokens: TextToken[] = [];
 
   node.content.descendants((child) => {
@@ -84,5 +91,11 @@ export const textBlockNodeToEntityProperties = (
     }
   });
 
-  return { [TEXT_TOKEN_PROPERTY_TYPE_BASE_URI]: tokens };
+  return tokens;
 };
+
+export const textBlockNodeToEntityProperties = (
+  node: ComponentNode,
+): TextProperties => ({
+  [TEXT_TOKEN_PROPERTY_TYPE_BASE_URI]: textBlockNodeToTextTokens(node),
+});
