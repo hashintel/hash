@@ -45,7 +45,7 @@ const drawChip = (
   ctx.fill();
 
   args.spriteManager.drawSprite(
-    CustomGridIcon.ASTERIKS,
+    CustomGridIcon.ASTERISK,
     "normal",
     ctx,
     iconLeft,

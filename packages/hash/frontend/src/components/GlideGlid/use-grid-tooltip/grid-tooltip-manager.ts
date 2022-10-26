@@ -65,7 +65,7 @@ export class GridTooltipManager {
     for (let i = 0; i < tooltips.length; i++) {
       const tooltip = tooltips[i] ?? {
         text: "",
-        icon: CustomGridIcon.ASTERIKS_CIRCLE,
+        icon: CustomGridIcon.ASTERISK_CIRCLE,
       };
 
       /**
