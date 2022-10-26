@@ -16,14 +16,16 @@ import { ValueCell } from "./cells/value-cell";
  */
 export const useOnCellEdited = (rowData: PropertyRow[]) => {
   const snackbar = useSnackbar();
-  const { entity, setEntity } = useEntityEditor();
+  const { rootEntityAndSubgraph, setEntity } = useEntityEditor();
   const { updateEntity } = useBlockProtocolUpdateEntity();
 
   const onCellEdited = useCallback(
     async ([col, row]: Item, newValue: EditableGridCell) => {
-      if (!entity || newValue.kind !== GridCellKind.Custom) {
+      if (!rootEntityAndSubgraph || newValue.kind !== GridCellKind.Custom) {
         return;
       }
+
+      const entity = rootEntityAndSubgraph.root;
 
       const valueCell = newValue as ValueCell;
 
@@ -62,7 +64,7 @@ export const useOnCellEdited = (rowData: PropertyRow[]) => {
         snackbar.error(`Failed to update "${property.title}"`);
       }
     },
-    [rowData, entity, setEntity, updateEntity, snackbar],
+    [rowData, rootEntityAndSubgraph, setEntity, updateEntity, snackbar],
   );
 
   return onCellEdited;

@@ -32,14 +32,6 @@ export const persistedEntityTypedef = gql`
     """
     entityTypeId: String!
     """
-    The full entity type definition.
-    """
-    entityType: PersistedEntityType!
-    """
-    The linked entities of the entity.
-    """
-    linkedEntities: [PersistedEntity!]!
-    """
     The JSON object containing the entity's properties.
     """
     properties: JSONObject!
@@ -68,14 +60,6 @@ export const persistedEntityTypedef = gql`
     The versioned URI of this entity's type.
     """
     entityTypeId: String!
-    """
-    The full entity type definition.
-    """
-    entityType: PersistedEntityType!
-    """
-    The linked entities of the entity.
-    """
-    linkedEntities: [PersistedEntity!]!
     """
     The JSON object containing the entity's properties.
     """
@@ -137,11 +121,24 @@ export const persistedEntityTypedef = gql`
     linkedEntities: [PersistedLinkedEntityDefinition!]
   }
 
+  # TODO: rename these and remove "persisted" - https://app.asana.com/0/0/1203157172269854/f
   extend type Query {
     """
-    Get an entity.
+    Get a subgraph rooted at all entities at their latest version.
     """
-    persistedEntity(
+    getAllLatestPersistedEntities(
+      dataTypeResolveDepth: Int!
+      propertyTypeResolveDepth: Int!
+      linkTypeResolveDepth: Int!
+      entityTypeResolveDepth: Int!
+      linkTargetEntityResolveDepth: Int!
+      linkResolveDepth: Int!
+    ): Subgraph!
+
+    """
+    Get a subgraph rooted at an entity resolved by its id.
+    """
+    getPersistedEntity(
       """
       The id of the entity.
       """
@@ -150,7 +147,13 @@ export const persistedEntityTypedef = gql`
       The version of the entity. Defaults to the latest version.
       """
       entityVersion: String
-    ): PersistedEntity!
+      dataTypeResolveDepth: Int!
+      propertyTypeResolveDepth: Int!
+      linkTypeResolveDepth: Int!
+      entityTypeResolveDepth: Int!
+      linkTargetEntityResolveDepth: Int!
+      linkResolveDepth: Int!
+    ): Subgraph!
   }
 
   extend type Mutation {

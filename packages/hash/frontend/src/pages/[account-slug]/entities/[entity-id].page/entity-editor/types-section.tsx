@@ -34,20 +34,25 @@ const TypeCard = ({ url, title }: TypeCardProps) => {
 };
 
 export const TypesSection = () => {
-  const { entity } = useEntityEditor();
+  const { rootEntityAndSubgraph } = useEntityEditor();
 
-  if (!entity) {
+  if (!rootEntityAndSubgraph) {
     return null;
   }
 
+  const entity = rootEntityAndSubgraph.root;
+
   const entityTypeTitle = getPersistedEntityType(
-    entity.entityTypeRootedSubgraph,
+    rootEntityAndSubgraph.subgraph,
     entity.entityTypeId,
   )!.inner.title;
   const entityTypeUrl = entity.entityTypeId.replace(/v\/\d+/, "");
 
   return (
-    <EntitySection title="Type">
+    <EntitySection
+      title="Type"
+      titleTooltip="Types describe what an entity is, allowing information to be associated with it. Entities can have an unlimited number of types."
+    >
       <Box display="flex" gap={2}>
         <TypeCard url={entityTypeUrl} title={entityTypeTitle} />
       </Box>

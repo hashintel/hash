@@ -1,5 +1,6 @@
 import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
 import { TextField } from "@hashintel/hash-design-system";
+import { cloneDeep } from "lodash";
 import { ValueCell } from "../value-cell";
 
 /**
@@ -16,7 +17,7 @@ export const ValueCellEditor: ProvideEditorComponent<ValueCell> = ({
       autoFocus
       value={value.data.property.value}
       onChange={(event) => {
-        const newValue = { ...value };
+        const newValue = cloneDeep(value);
         newValue.data.property.value = event.target.value;
         onChange(newValue);
       }}

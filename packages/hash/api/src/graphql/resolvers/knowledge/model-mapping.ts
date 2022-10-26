@@ -1,9 +1,16 @@
-import { BlockModel, EntityModel, LinkModel, PageModel } from "../../../model";
+import {
+  BlockModel,
+  CommentModel,
+  EntityModel,
+  LinkModel,
+  PageModel,
+} from "../../../model";
 import {
   PersistedBlock,
   PersistedEntity,
   PersistedLink,
   PersistedPage,
+  PersistedComment,
 } from "../../apiTypes.gen";
 import { mapEntityTypeModelToGQL } from "../ontology/model-mapping";
 
@@ -17,7 +24,6 @@ export const mapEntityModelToGQL = (
   entityModel: EntityModel,
 ): UnresolvedPersistedEntityGQL => ({
   entityId: entityModel.entityId,
-  entityType: mapEntityTypeModelToGQL(entityModel.entityTypeModel),
   entityTypeId: entityModel.entityTypeModel.schema.$id,
   entityVersion: entityModel.version,
   ownedById: entityModel.ownedById,
@@ -43,12 +49,34 @@ export const mapPageModelToGQL = (
   pageModel: PageModel,
 ): UnresolvedPersistedPageGQL => ({
   ...mapEntityModelToGQL(pageModel),
+  entityType: mapEntityTypeModelToGQL(pageModel.entityTypeModel),
   title: pageModel.getTitle(),
   properties: pageModel.properties,
   archived: pageModel.getArchived(),
   summary: pageModel.getSummary(),
   index: pageModel.getIndex(),
   icon: pageModel.getIcon(),
+});
+
+export type ExternalPersistedCommentResolversGQL =
+  | ExternalPersistedEntityResolversGQL
+  | "hasText"
+  | "textUpdatedAt"
+  | "parent"
+  | "author"
+  | "replies";
+
+export type UnresolvedPersistedCommentGQL = Omit<
+  PersistedComment,
+  ExternalPersistedCommentResolversGQL
+>;
+
+export const mapCommentModelToGQL = (
+  commentModel: CommentModel,
+): UnresolvedPersistedCommentGQL => ({
+  ...mapEntityModelToGQL(commentModel),
+  entityType: mapEntityTypeModelToGQL(commentModel.entityTypeModel),
+  resolvedAt: commentModel.getResolvedAt(),
 });
 
 export type ExternalPersistedBlockResolversGQL =
@@ -62,6 +90,7 @@ export const mapBlockModelToGQL = (
   blockModel: BlockModel,
 ): UnresolvedPersistedBlockGQL => ({
   ...mapEntityModelToGQL(blockModel),
+  entityType: mapEntityTypeModelToGQL(blockModel.entityTypeModel),
   componentId: blockModel.getComponentId(),
 });
 

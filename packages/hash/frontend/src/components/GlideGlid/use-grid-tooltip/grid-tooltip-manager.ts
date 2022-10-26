@@ -28,9 +28,7 @@ export class GridTooltipManager {
   private drawBackground() {
     const { size, gap, args, cellMargin } = this;
     const { ctx, cell, rect } = args;
-    const {
-      data: { tooltips },
-    } = cell;
+    const { tooltips } = cell.data;
 
     // paint the whole bg first
     const iconsWidth = (size + gap) * tooltips.length;
@@ -47,9 +45,7 @@ export class GridTooltipManager {
   private drawTooltips() {
     const { size, gap, args, cellMargin } = this;
     const { ctx, cell, rect, col, row, hoverX = -100, theme } = args;
-    const {
-      data: { hideTooltip, showTooltip, tooltips },
-    } = cell;
+    const { hideTooltip, showTooltip, tooltips } = cell.data;
 
     if (!tooltips?.length) {
       drawCellFadeOutGradient(args);

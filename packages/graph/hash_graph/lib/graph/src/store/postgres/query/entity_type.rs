@@ -114,7 +114,7 @@ impl Field for EntityTypeField {
     }
 }
 
-impl Path for EntityTypeQueryPath<'_> {
+impl Path for EntityTypeQueryPath {
     fn tables(&self) -> Vec<TableName> {
         match self {
             Self::Properties(path) => once(TableName::EntityTypePropertyTypeReferences)

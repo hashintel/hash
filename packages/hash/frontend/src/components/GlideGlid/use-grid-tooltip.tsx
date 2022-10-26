@@ -1,7 +1,7 @@
 import { DataEditorRef } from "@glideapps/glide-data-grid";
 import { Popover } from "@hashintel/hash-design-system";
 import { PopoverPosition, Typography } from "@mui/material";
-import _ from "lodash";
+import { isEqual } from "lodash";
 import { bindPopover, usePopupState } from "material-ui-popup-state/hooks";
 import { RefObject, useCallback, useState } from "react";
 import { useWindowEventListener } from "rooks";
@@ -20,7 +20,7 @@ export const useGridTooltip = (
     popupId: "grid-tooltip",
   });
 
-  // prevents tooltip to stay at cursor position while user scrolls vertically
+  // prevent tooltip from staying at the same position when user scrolls vertically
   useWindowEventListener("scroll", () => {
     popupState.close();
   });
@@ -30,7 +30,7 @@ export const useGridTooltip = (
 
   const showTooltip = useCallback<TooltipCellProps["showTooltip"]>(
     (newTooltip) => {
-      if (!_.isEqual(gridTooltip, newTooltip)) {
+      if (!isEqual(gridTooltip, newTooltip)) {
         setGridTooltip(newTooltip);
       }
 
@@ -57,8 +57,8 @@ export const useGridTooltip = (
   );
 
   const hideTooltip = useCallback<TooltipCellProps["hideTooltip"]>(
-    (_col, _row) => {
-      if (gridTooltip?.col === _col && gridTooltip?.row === _row) {
+    (col, row) => {
+      if (gridTooltip?.col === col && gridTooltip?.row === row) {
         popupState.close();
       }
     },
