@@ -34,6 +34,7 @@ pub enum Filter<'q, T: QueryRecord> {
 macro_rules! define_ontology_filters {
     ($record:ty, $path:ty) => {
         impl<'q> Filter<'q, $record> {
+            #[doc = concat!("Returns a `Filter` to search for all latest [`", stringify!($record), "`]s.")]
             #[must_use]
             pub const fn for_latest_version() -> Self {
                 Self::Equal(
@@ -44,6 +45,7 @@ macro_rules! define_ontology_filters {
                 )
             }
 
+            #[doc = concat!("Returns a `Filter` to search for a specific [`", stringify!($record), "`] based on it's [`VersionedUri`].")]
             #[must_use]
             pub fn for_versioned_uri(versioned_uri: &'q VersionedUri) -> Self {
                 Self::All(vec![
