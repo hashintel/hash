@@ -5,7 +5,9 @@ use type_system::EntityType;
 
 use crate::{
     ontology::EntityTypeQueryPath,
-    store::postgres::query::{ColumnAccess, Path, PostgresQueryRecord, Table, TableName},
+    store::postgres::query::{
+        expression::EdgeJoinDirection, ColumnAccess, Path, PostgresQueryRecord, Table, TableName,
+    },
 };
 
 impl<'q> PostgresQueryRecord<'q> for EntityType {
@@ -29,15 +31,24 @@ impl<'q> PostgresQueryRecord<'q> for EntityType {
 }
 
 impl Path for EntityTypeQueryPath {
-    fn tables(&self) -> Vec<TableName> {
+    fn tables(&self) -> Vec<(TableName, EdgeJoinDirection)> {
         match self {
-            Self::Properties(path) => once(TableName::EntityTypePropertyTypeReferences)
-                .chain(path.tables())
-                .collect(),
-            Self::Links(path) => once(TableName::EntityTypeLinkTypeReferences)
-                .chain(path.tables())
-                .collect(),
-            _ => vec![self.terminating_table_name()],
+            Self::Properties(path) => once((
+                TableName::EntityTypePropertyTypeReferences,
+                EdgeJoinDirection::SourceOnTarget,
+            ))
+            .chain(path.tables())
+            .collect(),
+            Self::Links(path) => once((
+                TableName::EntityTypeLinkTypeReferences,
+                EdgeJoinDirection::SourceOnTarget,
+            ))
+            .chain(path.tables())
+            .collect(),
+            _ => vec![(
+                self.terminating_table_name(),
+                EdgeJoinDirection::SourceOnTarget,
+            )],
         }
     }
 

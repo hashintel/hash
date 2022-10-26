@@ -1,12 +1,13 @@
-use std::{borrow::Cow, iter::once, marker::PhantomData};
+use std::{borrow::Cow, marker::PhantomData};
 
 use postgres_types::ToSql;
 
 use crate::store::{
     postgres::query::{
-        Column, ColumnAccess, Condition, EqualityOperator, Expression, Function, JoinExpression,
-        Path, PostgresQueryRecord, SelectExpression, SelectStatement, Table, TableAlias, TableName,
-        Transpile, WhereExpression, WindowStatement, WithExpression,
+        expression::EdgeJoinDirection, Column, ColumnAccess, Condition, EqualityOperator,
+        Expression, Function, JoinExpression, Path, PostgresQueryRecord, SelectExpression,
+        SelectStatement, Table, TableAlias, TableName, Transpile, WhereExpression, WindowStatement,
+        WithExpression,
     },
     query::{Filter, FilterExpression, Parameter},
 };
@@ -66,12 +67,12 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
     }
 
     /// Adds a new path to the selection.
-    pub fn add_selection_path(&mut self, field: &'q T::Path<'q>) {
-        let table = self.add_join_statements(once(field.terminating_table_name()));
+    pub fn add_selection_path(&mut self, path: &'q T::Path<'q>) {
+        let table = self.add_join_statements(path.tables());
         self.statement.selects.push(SelectExpression::from_column(
             Column {
                 table,
-                access: field.column_access(),
+                access: path.column_access(),
             },
             None,
         ));
@@ -276,11 +277,16 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
     ///
     /// Joining the tables attempts to deduplicate [`JoinExpression`]s. As soon as a new filter was
     /// compiled, each subsequent call will result in a new join-chain.
-    fn add_join_statements(&mut self, tables: impl IntoIterator<Item = TableName>) -> Table {
+    fn add_join_statements(
+        &mut self,
+        tables: impl IntoIterator<Item = (TableName, EdgeJoinDirection)>,
+    ) -> Table {
         let mut current_table = T::base_table();
-        for table_name in tables {
+        let mut current_edge_direction = EdgeJoinDirection::SourceOnTarget;
+        for (table_name, edge_direction) in tables {
             if table_name == T::base_table().name && self.artifacts.current_alias.chain_depth == 0 {
                 // Avoid joining the same initial table
+                current_edge_direction = edge_direction;
                 continue;
             }
 
@@ -289,7 +295,7 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
                 alias: Some(self.artifacts.current_alias),
             };
 
-            let join = JoinExpression::from_tables(table, current_table);
+            let join = JoinExpression::from_tables(table, current_table, current_edge_direction);
 
             if let Some(join_statement) = self
                 .statement
@@ -297,12 +303,12 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
                 .iter()
                 .find(|existing| **existing == join)
             {
-                current_table = join_statement.table;
+                current_table = join_statement.join;
             } else {
                 self.statement.joins.push(join);
                 current_table = table;
             }
-
+            current_edge_direction = edge_direction;
             self.artifacts.current_alias.chain_depth += 1;
         }
         self.artifacts.current_alias.chain_depth = 0;
