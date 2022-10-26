@@ -1,11 +1,19 @@
-import { EditableGridCell, Item } from "@glideapps/glide-data-grid";
+import {
+  EditableGridCell,
+  GridCellKind,
+  Item,
+} from "@glideapps/glide-data-grid";
 import { useCallback } from "react";
 import { useSnackbar } from "../../../../../../../components/hooks/useSnackbar";
 import { useEntityEditor } from "../../entity-editor-context";
 import { useBlockProtocolUpdateEntity } from "../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolUpdateEntity";
 import { propertyGridIndexes } from "./constants";
 import { PropertyRow } from "./types";
+import { ValueCell } from "./cells/value-cell";
 
+/**
+ * This onCellEditor is used to handle editing the data only at `Values` column
+ */
 export const useOnCellEdited = (rowData: PropertyRow[]) => {
   const snackbar = useSnackbar();
   const { rootEntityAndSubgraph, setEntity } = useEntityEditor();
@@ -13,11 +21,13 @@ export const useOnCellEdited = (rowData: PropertyRow[]) => {
 
   const onCellEdited = useCallback(
     async ([col, row]: Item, newValue: EditableGridCell) => {
-      if (!rootEntityAndSubgraph) {
+      if (!rootEntityAndSubgraph || newValue.kind !== GridCellKind.Custom) {
         return;
       }
 
       const entity = rootEntityAndSubgraph.root;
+
+      const valueCell = newValue as ValueCell;
 
       const key = propertyGridIndexes[col];
       const property = rowData[row];
@@ -28,7 +38,7 @@ export const useOnCellEdited = (rowData: PropertyRow[]) => {
 
       const updatedProperties = {
         ...entity.properties,
-        [property.propertyTypeId]: newValue.data,
+        [property.propertyTypeId]: valueCell.data.property.value,
       };
 
       /**

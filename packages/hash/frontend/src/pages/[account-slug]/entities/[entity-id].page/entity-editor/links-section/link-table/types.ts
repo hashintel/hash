@@ -8,6 +8,11 @@ export type LinkRow = {
   linkId: string;
 };
 
+export type LinkColumnKey = Extract<
+  keyof LinkRow,
+  "type" | "linkedWith" | "expectedEntityType" | "relationShip"
+>;
+
 export interface LinkColumn extends SizedGridColumn {
-  id: keyof LinkRow;
+  id: LinkColumnKey;
 }
