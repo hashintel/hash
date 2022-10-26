@@ -65,7 +65,7 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
         default
     }
 
-    /// Adds a new field to the selection.
+    /// Adds a new path to the selection.
     pub fn add_selection_path(&mut self, field: &'q T::Path<'q>) {
         let table = self.add_join_statements(once(field.terminating_table_name()));
         self.statement.selects.push(SelectExpression::from_column(
