@@ -1,9 +1,9 @@
-## Source: https://github.com/actions-rs/toolchain/issues/216#issuecomment-1291613319
+## Inspired by: https://github.com/actions-rs/toolchain/issues/216#issuecomment-1291613319
 name: Install Rust toolchain
 description: "Install Rust toolchain, with caching"
 
 inputs:
-  rust:
+  toolchain:
     required: false
     description: "Rust toolchain, e.g. 'stable' or 'nightly'"
     default: stable
@@ -17,8 +17,8 @@ runs:
   steps:
     - name: "Install Rust"
       run: |
-        rustup toolchain install ${{ inputs.rust }} --profile minimal --no-self-update
-        rustup default ${{ inputs.rust }}
+        rustup toolchain install ${{ inputs.toolchain }} --profile minimal --no-self-update
+        rustup default ${{ inputs.toolchain }}
       shell: bash
 
     - uses: Swatinem/rust-cache@v2
