@@ -204,7 +204,7 @@ class __Page extends Entity {
       entity.entityType.entityId !== (await Page.getEntityType(client)).entityId
     ) {
       throw new Error(
-        `Entity with entityId ${entity.entityId} does not have the Pag system type as its entity type`,
+        `Entity with entityId ${entity.entityId} does not have the Page system type as its entity type`,
       );
     }
     return new Page({

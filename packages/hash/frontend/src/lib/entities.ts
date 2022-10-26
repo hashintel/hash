@@ -5,9 +5,7 @@ import {
   LinkGroup as BpLinkGroup,
   LinkedAggregation as BpLinkedAggregation,
   LinkedAggregationDefinition as BpLinkedAggregationDefinition,
-  Entity,
 } from "@blockprotocol/graph";
-import { EntityResponse } from "../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
 
 import {
   UnknownEntity as ApiEntity,
@@ -16,7 +14,7 @@ import {
   LinkGroup as ApiLinkGroup,
   LinkedAggregation as ApiLinkedAggregation,
 } from "../graphql/apiTypes.gen";
-import { getPropertyTypesByBaseUri } from "./subgraph";
+import { getPropertyTypesByBaseUri, RootEntityAndSubgraph } from "./subgraph";
 
 const isObject = (thing: unknown): thing is {} =>
   typeof thing === "object" && thing !== null;
@@ -446,9 +444,21 @@ export const convertApiEntityTypesToBpEntityTypes = (
  * @see https://blockprotocol.org/docs/spec/graph-service-specification#json-schema-extensions
  */
 export const generateEntityLabel = (
-  entity: Entity | EntityResponse,
+  rootEntityAndSubgraph:
+    | RootEntityAndSubgraph
+    | Partial<{ entityId: string; properties: any }>,
   schema?: { labelProperty?: unknown; title?: unknown },
 ): string => {
+  /**
+   * @todo - this return type is only added to allow for incremental migration. It should be removed
+   *   https://app.asana.com/0/0/1203157172269854/f
+   */
+  if (!("subgraph" in rootEntityAndSubgraph)) {
+    throw new Error("expected Subgraph but got a deprecated response type");
+  }
+
+  const entity = rootEntityAndSubgraph.root;
+
   // if the schema has a labelProperty set, prefer that
   const labelProperty = schema?.labelProperty;
   if (
@@ -472,7 +482,7 @@ export const generateEntityLabel = (
     Object.keys(entity.properties).map((propertyTypeBaseUri) => {
       /** @todo - pick the latest version rather than first element? */
       const [propertyType] = getPropertyTypesByBaseUri(
-        (entity as EntityResponse).entityTypeRootedSubgraph,
+        rootEntityAndSubgraph.subgraph,
         propertyTypeBaseUri,
       );
 

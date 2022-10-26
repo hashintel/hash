@@ -65,9 +65,9 @@ pub trait Path {
 
     /// Returns the field if the path is provided by a user.
     ///
-    /// One example of a user provided path is [`DataTypeQueryPath::Custom("custom string")`]
+    /// One example of a user provided path are properties of an [`Entity`]
     ///
-    /// [`DataTypeQueryPath::Custom("custom string")`]: crate::ontology::DataTypeQueryPath::Custom
+    /// [`Entity`]: crate::knowledge::Entity
     fn user_provided_field(&self) -> Option<&(dyn ToSql + Sync)>;
 }
 

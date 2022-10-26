@@ -1,8 +1,8 @@
 import { useQuery } from "@apollo/client";
 import {
-  HashBlock,
   defaultBlockComponentIds,
   fetchBlock,
+  HashBlock,
 } from "@hashintel/hash-shared/blocks";
 import {
   GetPersistedPageQuery,
@@ -13,28 +13,26 @@ import {
   getPersistedPageQuery,
 } from "@hashintel/hash-shared/queries/page.queries";
 import { isSafariBrowser } from "@hashintel/hash-shared/util";
-import { Box, Collapse, alpha, styled } from "@mui/material";
+import { alpha, Box, Collapse } from "@mui/material";
 import { keyBy } from "lodash";
 import { GetStaticPaths, GetStaticProps } from "next";
 import Head from "next/head";
 import { Router, useRouter } from "next/router";
 
-import { useEffect, useMemo, useState, FunctionComponent, useRef } from "react";
+import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
 // import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
 // import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
 // import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
-import {
-  PageBlock,
-  PAGE_HORIZONTAL_PADDING_FORMULA,
-  PAGE_MIN_PADDING,
-} from "../../blocks/page/PageBlock";
+import { PageBlock } from "../../blocks/page/PageBlock";
 import { PageContextProvider } from "../../blocks/page/PageContext";
+import { PageSectionContainer } from "../../blocks/page/PageSectionContainer";
 import { PageTitle } from "../../blocks/page/PageTitle/PageTitle";
 import {
   AccountPagesInfo,
   useAccountPages,
 } from "../../components/hooks/useAccountPages";
 import { useArchivePage } from "../../components/hooks/useArchivePage";
+import { usePageComments } from "../../components/hooks/usePageComments";
 import { PageIcon, pageIconVariantSizes } from "../../components/PageIcon";
 import { PageIconButton } from "../../components/PageIconButton";
 import { PageLoadingState } from "../../components/PageLoadingState";
@@ -49,8 +47,8 @@ import { useReadonlyMode } from "../../shared/readonly-mode";
 import { useRouteAccountInfo, useRoutePageInfo } from "../../shared/routing";
 import { Button } from "../../shared/ui/button";
 import {
-  TopContextBar,
   TOP_CONTEXT_BAR_HEIGHT,
+  TopContextBar,
 } from "../shared/top-context-bar";
 
 // Apparently defining this is necessary in order to get server rendered props?
@@ -186,10 +184,6 @@ const generateCrumbsFromPages = ({
   return arr;
 };
 
-const Container = styled("div")({
-  padding: `${PAGE_MIN_PADDING}px ${PAGE_HORIZONTAL_PADDING_FORMULA} 0`,
-});
-
 const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
   const router = useRouter();
 
@@ -248,35 +242,37 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
     pageHeaderRef.current.scrollIntoView({ behavior: "smooth" });
   };
 
+  const { data: pageComments } = usePageComments(pageEntityId);
+
   if (pageState === "transferring") {
     return (
-      <Container>
+      <PageSectionContainer pageComments={pageComments}>
         <h1>Transferring you to the new page...</h1>
-      </Container>
+      </PageSectionContainer>
     );
   }
 
   if (loading) {
     return (
-      <Container>
+      <PageSectionContainer pageComments={pageComments}>
         <PageLoadingState />
-      </Container>
+      </PageSectionContainer>
     );
   }
 
   if (error) {
     return (
-      <Container>
+      <PageSectionContainer pageComments={pageComments}>
         <h1>Error: {error.message}</h1>
-      </Container>
+      </PageSectionContainer>
     );
   }
 
   if (!data) {
     return (
-      <Container>
+      <PageSectionContainer pageComments={pageComments}>
         <h1>No data loaded.</h1>
-      </Container>
+      </PageSectionContainer>
     );
   }
 
@@ -325,7 +321,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
           <PageNotificationBanner />
         </Box>
 
-        <Container>
+        <PageSectionContainer pageComments={pageComments}>
           <Box position="relative">
             <PageIconButton
               ownedById={accountId}
@@ -334,7 +330,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
               readonly={readonlyMode}
               sx={({ breakpoints }) => ({
                 mb: 2,
-                [breakpoints.up("lg")]: {
+                [breakpoints.up(pageComments?.length ? "xl" : "lg")]: {
                   position: "absolute",
                   top: 0,
                   right: "calc(100% + 24px)",
@@ -387,13 +383,14 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
           </div> */}
             </Box>
           </Box>
-        </Container>
+        </PageSectionContainer>
 
         <CollabPositionProvider value={[]}>
           <PageBlock
             accountId={accountId}
             contents={contents}
             blocks={blocksMap}
+            pageComments={pageComments}
             entityId={pageEntityId}
           />
         </CollabPositionProvider>

@@ -1,9 +1,11 @@
-import { Box, Typography } from "@mui/material";
+import { Box, Tooltip, Typography } from "@mui/material";
 import { ReactNode } from "react";
+import { CircleInfoIcon } from "../../../../../../shared/icons";
 
 interface EntitySectionProps {
   children: ReactNode;
   title: string;
+  titleTooltip?: string;
   titleStartContent?: ReactNode;
   titleEndContent?: ReactNode;
 }
@@ -11,13 +13,30 @@ interface EntitySectionProps {
 export const EntitySection = ({
   children,
   title,
+  titleTooltip,
   titleStartContent,
   titleEndContent,
 }: EntitySectionProps) => {
   return (
     <Box>
       <Box mb={2} display="flex" alignItems="center" gap={1.5} flexWrap="wrap">
-        <Typography variant="h5">{title}</Typography>
+        <Typography variant="h5">
+          {title}
+          {titleTooltip && (
+            <Tooltip title={titleTooltip} placement="top">
+              <Box display="inline">
+                <Box
+                  component={CircleInfoIcon}
+                  sx={{
+                    ml: 1,
+                    color: ({ palette }) => palette.gray[50],
+                  }}
+                />
+              </Box>
+            </Tooltip>
+          )}
+        </Typography>
+
         <Box>{titleStartContent}</Box>
         <Box sx={{ ml: "auto" }}>{titleEndContent}</Box>
       </Box>
