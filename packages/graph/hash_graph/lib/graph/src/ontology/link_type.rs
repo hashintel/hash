@@ -7,7 +7,9 @@ use serde::{
 };
 use type_system::LinkType;
 
-use crate::store::query::{ParameterField, ParameterType, Path, QueryRecord, RecordPath};
+use crate::store::query::{
+    OntologyPath, ParameterField, ParameterType, Path, QueryRecord, RecordPath,
+};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum LinkTypeQueryPath {
@@ -25,6 +27,28 @@ pub enum LinkTypeQueryPath {
 
 impl QueryRecord for LinkType {
     type Path<'q> = LinkTypeQueryPath;
+}
+
+impl OntologyPath for LinkTypeQueryPath {
+    fn base_uri() -> Self {
+        Self::BaseUri
+    }
+
+    fn versioned_uri() -> Self {
+        Self::VersionedUri
+    }
+
+    fn version() -> Self {
+        Self::Version
+    }
+
+    fn title() -> Self {
+        Self::Title
+    }
+
+    fn description() -> Self {
+        Self::Description
+    }
 }
 
 impl RecordPath for LinkTypeQueryPath {

@@ -7,9 +7,12 @@ use std::{
 
 use error_stack::{bail, ensure, Context, IntoReport, Report, ResultExt};
 use serde::Deserialize;
+use type_system::uri::VersionedUri;
 use uuid::Uuid;
 
-use crate::store::query::{Expression, Literal, ParameterType, Path, QueryRecord, RecordPath};
+use crate::store::query::{
+    Expression, Literal, OntologyPath, ParameterType, Path, QueryRecord, RecordPath,
+};
 
 /// A set of conditions used for queries.
 #[derive(Deserialize)]
@@ -29,6 +32,43 @@ pub enum Filter<'q, T: QueryRecord> {
         Option<FilterExpression<'q, T>>,
         Option<FilterExpression<'q, T>>,
     ),
+}
+
+impl<'q, T> Filter<'q, T>
+where
+    T: QueryRecord,
+    T::Path<'q>: OntologyPath,
+{
+    /// Creates a `Filter` to search for all ontology types of kind `T` at their latest version.
+    #[must_use]
+    pub fn for_latest_version() -> Self {
+        Self::Equal(
+            Some(FilterExpression::Path(<T::Path<'q>>::version())),
+            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                "latest",
+            )))),
+        )
+    }
+
+    /// Creates a `Filter` to search for a specific ontology type of kind `T`, identified by its
+    /// [`VersionedUri`].
+    #[must_use]
+    pub fn for_versioned_uri(versioned_uri: &'q VersionedUri) -> Self {
+        Self::All(vec![
+            Self::Equal(
+                Some(FilterExpression::Path(<T::Path<'q>>::base_uri())),
+                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                    versioned_uri.base_uri().as_str(),
+                )))),
+            ),
+            Self::Equal(
+                Some(FilterExpression::Path(<T::Path<'q>>::version())),
+                Some(FilterExpression::Parameter(Parameter::SignedInteger(
+                    versioned_uri.version().into(),
+                ))),
+            ),
+        ])
+    }
 }
 
 impl<'q, T: QueryRecord> Filter<'q, T>

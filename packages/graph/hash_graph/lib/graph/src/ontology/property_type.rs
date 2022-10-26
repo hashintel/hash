@@ -9,7 +9,7 @@ use type_system::PropertyType;
 
 use crate::{
     ontology::{data_type::DataTypeQueryPathVisitor, DataTypeQueryPath, Selector},
-    store::query::{ParameterField, ParameterType, Path, QueryRecord, RecordPath},
+    store::query::{OntologyPath, ParameterField, ParameterType, Path, QueryRecord, RecordPath},
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -29,6 +29,28 @@ pub enum PropertyTypeQueryPath {
 
 impl QueryRecord for PropertyType {
     type Path<'q> = PropertyTypeQueryPath;
+}
+
+impl OntologyPath for PropertyTypeQueryPath {
+    fn base_uri() -> Self {
+        Self::BaseUri
+    }
+
+    fn versioned_uri() -> Self {
+        Self::VersionedUri
+    }
+
+    fn version() -> Self {
+        Self::Version
+    }
+
+    fn title() -> Self {
+        Self::Title
+    }
+
+    fn description() -> Self {
+        Self::Description
+    }
 }
 
 impl RecordPath for PropertyTypeQueryPath {

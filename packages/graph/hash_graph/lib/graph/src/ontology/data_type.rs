@@ -7,7 +7,9 @@ use serde::{
 };
 use type_system::DataType;
 
-use crate::store::query::{ParameterField, ParameterType, Path, QueryRecord, RecordPath};
+use crate::store::query::{
+    OntologyPath, ParameterField, ParameterType, Path, QueryRecord, RecordPath,
+};
 
 /// A path to a [`DataType`] field.
 ///
@@ -33,6 +35,28 @@ pub enum DataTypeQueryPath {
 
 impl QueryRecord for DataType {
     type Path<'q> = DataTypeQueryPath;
+}
+
+impl OntologyPath for DataTypeQueryPath {
+    fn base_uri() -> Self {
+        Self::BaseUri
+    }
+
+    fn versioned_uri() -> Self {
+        Self::VersionedUri
+    }
+
+    fn version() -> Self {
+        Self::Version
+    }
+
+    fn title() -> Self {
+        Self::Title
+    }
+
+    fn description() -> Self {
+        Self::Description
+    }
 }
 
 impl RecordPath for DataTypeQueryPath {
