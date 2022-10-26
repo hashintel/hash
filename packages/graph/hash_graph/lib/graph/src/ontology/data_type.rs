@@ -35,7 +35,7 @@ impl QueryRecord for DataType {
     type Path<'q> = DataTypeQueryPath;
 }
 
-impl RecordPath for DataTypeQueryPath<'_> {
+impl RecordPath for DataTypeQueryPath {
     fn expected_type(&self) -> ParameterField {
         match self {
             Self::OwnedById | Self::CreatedById | Self::UpdatedById => ParameterField {
@@ -66,15 +66,11 @@ impl RecordPath for DataTypeQueryPath<'_> {
                 parameter_type: ParameterType::Text,
                 optional: false,
             },
-            Self::Custom(_) => ParameterField {
-                parameter_type: ParameterType::Any,
-                optional: true,
-            },
         }
     }
 }
 
-impl fmt::Display for DataTypeQueryPath<'_> {
+impl fmt::Display for DataTypeQueryPath {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::OwnedById => fmt.write_str("ownedById"),
@@ -87,7 +83,6 @@ impl fmt::Display for DataTypeQueryPath<'_> {
             Self::Title => fmt.write_str("title"),
             Self::Description => fmt.write_str("description"),
             Self::Type => fmt.write_str("type"),
-            Self::Custom(field) => fmt::Display::fmt(field, fmt),
         }
     }
 }

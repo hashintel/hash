@@ -38,7 +38,7 @@ impl QueryRecord for EntityType {
     type Path<'q> = EntityTypeQueryPath;
 }
 
-impl RecordPath for EntityTypeQueryPath<'_> {
+impl RecordPath for EntityTypeQueryPath {
     fn expected_type(&self) -> ParameterField {
         match self {
             Self::OwnedById | Self::CreatedById | Self::UpdatedById => ParameterField {
@@ -81,7 +81,7 @@ impl RecordPath for EntityTypeQueryPath<'_> {
     }
 }
 
-impl fmt::Display for EntityTypeQueryPath<'_> {
+impl fmt::Display for EntityTypeQueryPath {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::OwnedById => fmt.write_str("ownedById"),
