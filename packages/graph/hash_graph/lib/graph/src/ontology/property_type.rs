@@ -15,6 +15,9 @@ use crate::{
 #[derive(Debug, PartialEq, Eq)]
 pub enum PropertyTypeQueryPath {
     OwnedById,
+    CreatedById,
+    UpdatedById,
+    RemovedById,
     BaseUri,
     VersionedUri,
     Version,
@@ -44,6 +47,9 @@ impl TryFrom<Path> for PropertyTypeQueryPath {
 #[serde(rename_all = "camelCase")]
 pub enum PropertyTypeQueryToken {
     OwnedById,
+    CreatedById,
+    UpdatedById,
+    RemovedById,
     BaseUri,
     VersionedUri,
     Version,
@@ -60,9 +66,9 @@ pub struct PropertyTypeQueryPathVisitor {
 }
 
 impl PropertyTypeQueryPathVisitor {
-    pub const EXPECTING: &'static str = "one of `ownedById`, `baseUri`, `versionedUri`, \
-                                         `version`, `title, `description`, `dataTypes`, or \
-                                         `propertyTypes`";
+    pub const EXPECTING: &'static str = "one of `ownedById`, `createdById`, `updatedById`, \
+                                         `removedById`, `baseUri`, `versionedUri`, `version`, \
+                                         `title, `description`, `dataTypes`, or `propertyTypes`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -87,6 +93,9 @@ impl<'de> Visitor<'de> for PropertyTypeQueryPathVisitor {
         self.position += 1;
         Ok(match token {
             PropertyTypeQueryToken::OwnedById => PropertyTypeQueryPath::OwnedById,
+            PropertyTypeQueryToken::CreatedById => PropertyTypeQueryPath::CreatedById,
+            PropertyTypeQueryToken::UpdatedById => PropertyTypeQueryPath::UpdatedById,
+            PropertyTypeQueryToken::RemovedById => PropertyTypeQueryPath::RemovedById,
             PropertyTypeQueryToken::BaseUri => PropertyTypeQueryPath::BaseUri,
             PropertyTypeQueryToken::VersionedUri => PropertyTypeQueryPath::VersionedUri,
             PropertyTypeQueryToken::Version => PropertyTypeQueryPath::Version,

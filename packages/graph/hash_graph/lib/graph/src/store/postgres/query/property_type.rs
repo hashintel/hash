@@ -19,7 +19,14 @@ impl<'q> PostgresQueryRecord<'q> for PropertyType {
     }
 
     fn default_fields() -> &'q [Self::Field] {
-        &[PropertyTypeField::Schema, PropertyTypeField::OwnedById]
+        &[
+            PropertyTypeField::VersionedUri,
+            PropertyTypeField::Schema,
+            PropertyTypeField::OwnedById,
+            PropertyTypeField::CreatedById,
+            PropertyTypeField::UpdatedById,
+            PropertyTypeField::RemovedById,
+        ]
     }
 }
 
@@ -32,6 +39,9 @@ pub enum PropertyTypeField {
     Version,
     VersionId,
     OwnedById,
+    CreatedById,
+    UpdatedById,
+    RemovedById,
     Schema,
     VersionedUri,
     Title,
@@ -44,6 +54,9 @@ impl Field for PropertyTypeField {
             Self::BaseUri | Self::Version => TableName::TypeIds,
             Self::VersionId
             | Self::OwnedById
+            | Self::CreatedById
+            | Self::UpdatedById
+            | Self::RemovedById
             | Self::Schema
             | Self::VersionedUri
             | Self::Title
@@ -60,6 +73,15 @@ impl Field for PropertyTypeField {
             },
             Self::OwnedById => ColumnAccess::Table {
                 column: "owned_by_id",
+            },
+            Self::CreatedById => ColumnAccess::Table {
+                column: "created_by_id",
+            },
+            Self::UpdatedById => ColumnAccess::Table {
+                column: "updated_by_id",
+            },
+            Self::RemovedById => ColumnAccess::Table {
+                column: "removed_by_id",
             },
             Self::Schema => ColumnAccess::Table { column: "schema" },
             Self::VersionedUri => ColumnAccess::Json {
@@ -94,9 +116,13 @@ impl Path for PropertyTypeQueryPath {
     fn terminating_table_name(&self) -> TableName {
         match self {
             Self::BaseUri | Self::Version => TableName::TypeIds,
-            Self::OwnedById | Self::VersionedUri | Self::Title | Self::Description => {
-                TableName::PropertyTypes
-            }
+            Self::OwnedById
+            | Self::CreatedById
+            | Self::UpdatedById
+            | Self::RemovedById
+            | Self::VersionedUri
+            | Self::Title
+            | Self::Description => TableName::PropertyTypes,
             Self::DataTypes(path) => path.terminating_table_name(),
             Self::PropertyTypes(path) => path.terminating_table_name(),
         }
@@ -108,6 +134,15 @@ impl Path for PropertyTypeQueryPath {
             Self::Version => ColumnAccess::Table { column: "version" },
             Self::OwnedById => ColumnAccess::Table {
                 column: "owned_by_id",
+            },
+            Self::CreatedById => ColumnAccess::Table {
+                column: "created_by_id",
+            },
+            Self::UpdatedById => ColumnAccess::Table {
+                column: "updated_by_id",
+            },
+            Self::RemovedById => ColumnAccess::Table {
+                column: "removed_by_id",
             },
             Self::VersionedUri => ColumnAccess::Json {
                 column: "schema",
