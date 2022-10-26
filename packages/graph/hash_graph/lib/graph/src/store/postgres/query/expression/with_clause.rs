@@ -62,6 +62,7 @@ mod tests {
     use crate::{
         ontology::DataTypeQueryPath,
         store::postgres::query::{
+            expression::OrderByExpression,
             test_helper::{max_version_expression, trim_whitespace},
             Expression, Path, SelectExpression, SelectStatement, Table, TableName, WhereExpression,
         },
@@ -88,6 +89,7 @@ mod tests {
             },
             joins: vec![],
             where_expression: WhereExpression::default(),
+            order_by_expression: OrderByExpression::default(),
         });
 
         assert_eq!(
@@ -108,6 +110,7 @@ mod tests {
             },
             joins: vec![],
             where_expression: WhereExpression::default(),
+            order_by_expression: OrderByExpression::default(),
         });
 
         assert_eq!(

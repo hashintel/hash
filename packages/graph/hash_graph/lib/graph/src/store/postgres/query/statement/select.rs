@@ -1,7 +1,8 @@
 use std::fmt::{self, Write};
 
 use crate::store::postgres::query::{
-    JoinExpression, SelectExpression, Table, Transpile, WhereExpression, WithExpression,
+    expression::OrderByExpression, JoinExpression, SelectExpression, Table, Transpile,
+    WhereExpression, WithExpression,
 };
 
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -12,6 +13,7 @@ pub struct SelectStatement<'q> {
     pub from: Table,
     pub joins: Vec<JoinExpression<'q>>,
     pub where_expression: WhereExpression<'q>,
+    pub order_by_expression: OrderByExpression<'q>,
 }
 
 impl Transpile for SelectStatement<'_> {
@@ -44,6 +46,11 @@ impl Transpile for SelectStatement<'_> {
         if !self.where_expression.is_empty() {
             fmt.write_char('\n')?;
             self.where_expression.transpile(fmt)?;
+        }
+
+        if !self.order_by_expression.is_empty() {
+            fmt.write_char('\n')?;
+            self.order_by_expression.transpile(fmt)?;
         }
 
         Ok(())

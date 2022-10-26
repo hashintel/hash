@@ -5,9 +5,9 @@ use postgres_types::ToSql;
 use crate::store::{
     postgres::query::{
         expression::EdgeJoinDirection, Column, ColumnAccess, Condition, EqualityOperator,
-        Expression, Function, JoinExpression, Path, PostgresQueryRecord, SelectExpression,
-        SelectStatement, Table, TableAlias, TableName, Transpile, WhereExpression, WindowStatement,
-        WithExpression,
+        Expression, Function, JoinExpression, OrderByExpression, Ordering, Path,
+        PostgresQueryRecord, SelectExpression, SelectStatement, Table, TableAlias, TableName,
+        Transpile, WhereExpression, WindowStatement, WithExpression,
     },
     query::{Filter, FilterExpression, Parameter},
 };
@@ -34,6 +34,7 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
                 from: T::base_table(),
                 joins: Vec::new(),
                 where_expression: WhereExpression::default(),
+                order_by_expression: OrderByExpression::default(),
             },
             artifacts: CompilerArtifacts {
                 parameters: Vec::new(),
@@ -51,7 +52,7 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
     pub fn with_default_selection() -> Self {
         let mut default = Self::new();
         for path in T::default_selection_paths() {
-            default.add_selection_path(path);
+            default.add_selection_path(path, None);
         }
         default
     }
@@ -67,15 +68,22 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
     }
 
     /// Adds a new path to the selection.
-    pub fn add_selection_path(&mut self, path: &'q T::Path<'q>) {
+    ///
+    /// Optionally, a path can be ordered by passing an [`Ordering`] alongside the path.
+    pub fn add_selection_path(&mut self, path: &'q T::Path<'q>, ordering: Option<Ordering>) {
         let table = self.add_join_statements(path.tables());
-        self.statement.selects.push(SelectExpression::from_column(
-            Column {
-                table,
-                access: path.column_access(),
-            },
-            None,
-        ));
+        let column = Column {
+            table,
+            access: path.column_access(),
+        };
+        if let Some(ordering) = ordering {
+            self.statement
+                .order_by_expression
+                .push(column.clone(), ordering);
+        }
+        self.statement
+            .selects
+            .push(SelectExpression::from_column(column, None));
     }
 
     /// Adds a new filter to the selection.
@@ -184,6 +192,7 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
                 },
                 joins: vec![],
                 where_expression: WhereExpression::default(),
+                order_by_expression: OrderByExpression::default(),
             });
 
         // Join the table of `path` and compare the version to the latest version
