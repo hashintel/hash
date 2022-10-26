@@ -59,10 +59,12 @@ mod tests {
     use std::borrow::Cow;
 
     use super::*;
-    use crate::store::postgres::query::{
-        test_helper::{max_version_expression, trim_whitespace},
-        DataTypeQueryField, Expression, Field, SelectExpression, SelectStatement, Table, TableName,
-        WhereExpression,
+    use crate::{
+        ontology::DataTypeQueryPath,
+        store::postgres::query::{
+            test_helper::{max_version_expression, trim_whitespace},
+            Expression, Path, SelectExpression, SelectStatement, Table, TableName, WhereExpression,
+        },
     };
 
     #[test]
@@ -81,7 +83,7 @@ mod tests {
                 ),
             ],
             from: Table {
-                name: DataTypeQueryField::Version.table_name(),
+                name: DataTypeQueryPath::Version.terminating_table_name(),
                 alias: None,
             },
             joins: vec![],
