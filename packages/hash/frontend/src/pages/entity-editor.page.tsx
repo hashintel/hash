@@ -7,10 +7,11 @@ import { types } from "@hashintel/hash-shared/types";
 import { useUser } from "../components/hooks/useUser";
 import { NextPageWithLayout } from "../shared/layout";
 import { useBlockProtocolFunctionsWithOntology } from "./type-editor/blockprotocol-ontology-functions-hook";
-import { EntityResponse } from "../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
 import {
   getPersistedEntityType,
   getPersistedPropertyType,
+  getRootsAsEntities,
+  Subgraph,
 } from "../lib/subgraph";
 
 /**
@@ -26,9 +27,11 @@ const isArrayDefinition = <T,>(
  */
 const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
   const { user } = useUser();
-  const [entity, setEntity] = useState<EntityResponse>();
+  const [userSubgraph, setUserSubgraph] = useState<Subgraph>();
+  const [aggregateEntitiesSubgraph, setAggregateEntitiesSubgraph] =
+    useState<Subgraph>();
 
-  const { getEntity, createEntity } =
+  const { getEntity, createEntity, aggregateEntities } =
     useBlockProtocolFunctionsWithOntology(ownedById);
 
   useEffect(() => {
@@ -37,19 +40,29 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
       const entityId = user.entityId;
 
       void getEntity({ data: { entityId } }).then(({ data }) => {
-        setEntity(data);
+        setUserSubgraph(data);
       });
     }
   }, [user, getEntity]);
 
-  const { entityTypeRootedSubgraph, ...entityWithoutEntityType } = entity ?? {};
+  useEffect(() => {
+    if (!aggregateEntitiesSubgraph) {
+      void aggregateEntities({ data: {} }).then(({ data }) => {
+        setAggregateEntitiesSubgraph(data);
+      });
+    }
+  }, [
+    aggregateEntities,
+    aggregateEntitiesSubgraph,
+    setAggregateEntitiesSubgraph,
+  ]);
 
-  const entityType = entityTypeRootedSubgraph
-    ? getPersistedEntityType(
-        entityTypeRootedSubgraph,
-        entityTypeRootedSubgraph.roots[0]!,
-      )?.inner
-    : undefined;
+  const entity = userSubgraph ? getRootsAsEntities(userSubgraph)[0] : undefined;
+
+  const entityType =
+    userSubgraph && entity
+      ? getPersistedEntityType(userSubgraph, entity.entityTypeId)?.inner
+      : undefined;
 
   // The (top-level) property type IDs defined in the entity type
   const propertyTypeIds = useMemo(
@@ -65,14 +78,21 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
   // The (top-level) property type definitions, referenced in the entity type
   const propertyTypeDefinitions = useMemo(
     () =>
-      entityTypeRootedSubgraph && propertyTypeIds
+      userSubgraph && propertyTypeIds
         ? propertyTypeIds.map(
             (propertyTypeId) =>
-              getPersistedPropertyType(entityTypeRootedSubgraph, propertyTypeId)
-                ?.inner,
+              getPersistedPropertyType(userSubgraph, propertyTypeId)?.inner,
           )
         : undefined,
-    [entityTypeRootedSubgraph, propertyTypeIds],
+    [userSubgraph, propertyTypeIds],
+  );
+
+  const allEntities = useMemo(
+    () =>
+      aggregateEntitiesSubgraph
+        ? getRootsAsEntities(aggregateEntitiesSubgraph)
+        : undefined,
+    [aggregateEntitiesSubgraph],
   );
 
   const handleCreateEntity = async () => {
@@ -92,7 +112,7 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
       <Typography>Entity</Typography>
       <Button onClick={handleCreateEntity}>Create Entity</Button>
       <pre style={{ overflowX: "scroll" }}>
-        {JSON.stringify(entityWithoutEntityType ?? {}, null, 2)}
+        {JSON.stringify(entity ?? {}, null, 2)}
       </pre>
       <Typography>Entity type</Typography>
       <pre style={{ overflowX: "scroll" }}>
@@ -101,6 +121,10 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
       <Typography>Top-level property type definitions</Typography>
       <pre style={{ overflowX: "scroll" }}>
         {JSON.stringify(propertyTypeDefinitions ?? {}, null, 2)}
+      </pre>
+      <Typography>Aggregate Entities</Typography>
+      <pre style={{ overflowX: "scroll" }}>
+        {JSON.stringify(allEntities ?? {}, null, 2)}
       </pre>
     </Container>
   );

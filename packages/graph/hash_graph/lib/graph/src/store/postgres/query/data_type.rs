@@ -1,49 +1,49 @@
-use std::borrow::Cow;
-
+use postgres_types::ToSql;
 use type_system::DataType;
 
 use crate::{
     ontology::DataTypeQueryPath,
-    store::postgres::query::{ColumnAccess, Field, Path, PostgresQueryRecord, TableName},
+    store::postgres::query::{ColumnAccess, Path, PostgresQueryRecord, Table, TableName},
 };
 
 impl<'q> PostgresQueryRecord<'q> for DataType {
-    type Field = DataTypeQueryField<'q>;
+    fn base_table() -> Table {
+        Table {
+            name: TableName::DataTypes,
+            alias: None,
+        }
+    }
 
-    fn base_table() -> TableName {
-        TableName::DataTypes
+    fn default_selection_paths() -> &'q [Self::Path<'q>] {
+        &[
+            DataTypeQueryPath::VersionedUri,
+            DataTypeQueryPath::Schema,
+            DataTypeQueryPath::OwnedById,
+            DataTypeQueryPath::CreatedById,
+            DataTypeQueryPath::UpdatedById,
+            DataTypeQueryPath::RemovedById,
+        ]
     }
 }
 
-/// A [`Field`] available in [`DataType`]s.
-///
-/// [`DataType`]: type_system::DataType
-#[derive(Debug, PartialEq, Eq)]
-pub enum DataTypeQueryField<'q> {
-    BaseUri,
-    Version,
-    VersionId,
-    OwnedById,
-    Schema,
-    VersionedUri,
-    Title,
-    Description,
-    Type,
-    Custom(Cow<'q, str>),
-}
+impl Path for DataTypeQueryPath {
+    fn tables(&self) -> Vec<TableName> {
+        vec![self.terminating_table_name()]
+    }
 
-impl Field for DataTypeQueryField<'_> {
-    fn table_name(&self) -> TableName {
+    fn terminating_table_name(&self) -> TableName {
         match self {
             Self::BaseUri | Self::Version => TableName::TypeIds,
             Self::VersionId
             | Self::OwnedById
+            | Self::CreatedById
+            | Self::UpdatedById
+            | Self::RemovedById
             | Self::Schema
             | Self::VersionedUri
             | Self::Title
             | Self::Type
-            | Self::Description
-            | Self::Custom(_) => TableName::DataTypes,
+            | Self::Description => TableName::DataTypes,
         }
     }
 
@@ -57,75 +57,36 @@ impl Field for DataTypeQueryField<'_> {
             Self::OwnedById => ColumnAccess::Table {
                 column: "owned_by_id",
             },
+            Self::CreatedById => ColumnAccess::Table {
+                column: "created_by_id",
+            },
+            Self::UpdatedById => ColumnAccess::Table {
+                column: "updated_by_id",
+            },
+            Self::RemovedById => ColumnAccess::Table {
+                column: "removed_by_id",
+            },
             Self::Schema => ColumnAccess::Table { column: "schema" },
             Self::VersionedUri => ColumnAccess::Json {
                 column: "schema",
-                field: Cow::Borrowed("$id"),
+                field: "$id",
             },
             Self::Title => ColumnAccess::Json {
                 column: "schema",
-                field: Cow::Borrowed("title"),
+                field: "title",
             },
             Self::Type => ColumnAccess::Json {
                 column: "schema",
-                field: Cow::Borrowed("type"),
+                field: "type",
             },
             Self::Description => ColumnAccess::Json {
                 column: "schema",
-                field: Cow::Borrowed("description"),
-            },
-            Self::Custom(field) => ColumnAccess::Json {
-                column: "schema",
-                field: field.clone(),
+                field: "description",
             },
         }
     }
-}
 
-impl Path for DataTypeQueryPath<'_> {
-    fn tables(&self) -> Vec<TableName> {
-        vec![self.terminating_table_name()]
-    }
-
-    fn terminating_table_name(&self) -> TableName {
-        match self {
-            Self::BaseUri | Self::Version => TableName::TypeIds,
-            Self::OwnedById
-            | Self::VersionedUri
-            | Self::Title
-            | Self::Type
-            | Self::Description
-            | Self::Custom(_) => TableName::DataTypes,
-        }
-    }
-
-    fn column_access(&self) -> ColumnAccess {
-        match self {
-            Self::BaseUri => ColumnAccess::Table { column: "base_uri" },
-            Self::Version => ColumnAccess::Table { column: "version" },
-            Self::OwnedById => ColumnAccess::Table {
-                column: "owned_by_id",
-            },
-            Self::VersionedUri => ColumnAccess::Json {
-                column: "schema",
-                field: Cow::Borrowed("$id"),
-            },
-            Self::Title => ColumnAccess::Json {
-                column: "schema",
-                field: Cow::Borrowed("title"),
-            },
-            Self::Type => ColumnAccess::Json {
-                column: "schema",
-                field: Cow::Borrowed("type"),
-            },
-            Self::Description => ColumnAccess::Json {
-                column: "schema",
-                field: Cow::Borrowed("description"),
-            },
-            Self::Custom(field) => ColumnAccess::Json {
-                column: "schema",
-                field: field.clone(),
-            },
-        }
+    fn user_provided_path(&self) -> Option<&(dyn ToSql + Sync)> {
+        None
     }
 }

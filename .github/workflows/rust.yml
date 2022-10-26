@@ -39,15 +39,18 @@ jobs:
 
       - name: Find changed crates
         id: crates
-        run: python .github/scripts/rust/setup.py
+        run: |
+          export GITHUB_OUTPUT_FILE_PATH=$(mktemp)
+          python .github/scripts/rust/setup.py
+          cat $GITHUB_OUTPUT_FILE_PATH >> $GITHUB_OUTPUT
 
       - name: Determine samples
         id: samples
         run: |
           if [[ ${{ github.event_name }} = pull_request ]]; then
-            echo "::set-output name=samples::1"
+            echo "samples=1" >> $GITHUB_OUTPUT
           else
-            echo "::set-output name=samples::10"
+            echo "samples=10" >> $GITHUB_OUTPUT
           fi
 
   lint:
@@ -145,7 +148,7 @@ jobs:
 
       - name: Install Python
         if: matrix.directory == 'packages/engine'
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: "3.10"
 

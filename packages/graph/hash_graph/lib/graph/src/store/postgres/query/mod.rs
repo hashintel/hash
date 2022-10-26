@@ -2,17 +2,23 @@
 
 //! Postgres implementation to compile queries.
 
+mod compile;
 mod condition;
 mod data_type;
+mod entity_type;
 mod expression;
+mod link_type;
+mod property_type;
 mod statement;
 mod table;
 
-use std::fmt::{self, Formatter};
+use std::fmt::{self, Display, Formatter};
+
+use postgres_types::ToSql;
 
 pub use self::{
-    condition::Condition,
-    data_type::DataTypeQueryField,
+    compile::SelectCompiler,
+    condition::{Condition, EqualityOperator},
     expression::{
         CommonTableExpression, Expression, Function, JoinExpression, SelectExpression,
         WhereExpression, WithExpression,
@@ -23,24 +29,14 @@ pub use self::{
 use crate::store::query::QueryRecord;
 
 pub trait PostgresQueryRecord<'q>: QueryRecord<Path<'q>: Path> {
-    type Field: Field;
+    /// The [`Table`] used for this `Query`.
+    fn base_table() -> Table;
 
-    /// The [`TableName`] used for this `Query`.
-    fn base_table() -> TableName;
+    /// Default [`Path`]s returned when querying this record.
+    fn default_selection_paths() -> &'q [Self::Path<'q>];
 }
 
-/// A queryable attribute of an element in the graph.
-pub trait Field {
-    /// The [`TableName`] of the [`Table`] where this field is located.
-    fn table_name(&self) -> TableName;
-
-    /// The way to access the column inside of [`table_name()`] where this field is located.
-    ///
-    /// [`table_name()`]: Self::table_name
-    fn column_access(&self) -> ColumnAccess;
-}
-
-/// An absolute path inside of a query pointing to a [`Field`]
+/// An absolute path inside of a query pointing to an attribute.
 pub trait Path {
     /// Returns a list of [`TableName`]s required to traverse this path.
     fn tables(&self) -> Vec<TableName>;
@@ -52,31 +48,38 @@ pub trait Path {
     ///
     /// [`terminating_table_name()`]: Self::terminating_table_name
     fn column_access(&self) -> ColumnAccess;
+
+    /// Returns the paths if the path is provided by a user.
+    ///
+    /// One example of a user provided path are properties of an [`Entity`]
+    ///
+    /// [`Entity`]: crate::knowledge::Entity
+    fn user_provided_path(&self) -> Option<&(dyn ToSql + Sync)>;
 }
 
 /// Renders the object into a Postgres compatible format.
 pub trait Transpile {
     /// Renders the value using the given [`Formatter`].
     fn transpile(&self, fmt: &mut Formatter) -> fmt::Result;
+
+    fn transpile_to_string(&self) -> String {
+        struct Transpiler<'a, T: ?Sized>(&'a T);
+        impl<T: Transpile + ?Sized> Display for Transpiler<'_, T> {
+            fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+                self.0.transpile(fmt)
+            }
+        }
+
+        Transpiler(self).to_string()
+    }
 }
 
 #[cfg(test)]
 mod test_helper {
-    use std::fmt;
-
-    use crate::store::postgres::query::{
-        Column, DataTypeQueryField, Expression, Field, Function, Table, Transpile, WindowStatement,
+    use crate::{
+        ontology::DataTypeQueryPath,
+        store::postgres::query::{Column, Expression, Function, Path, Table, WindowStatement},
     };
-
-    pub fn transpile<R: Transpile>(value: &R) -> String {
-        struct Transpiler<'r, R>(&'r R);
-        impl<R: Transpile> fmt::Display for Transpiler<'_, R> {
-            fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-                self.0.transpile(fmt)
-            }
-        }
-        Transpiler(value).to_string()
-    }
 
     pub fn trim_whitespace(string: impl Into<String>) -> String {
         string
@@ -91,18 +94,18 @@ mod test_helper {
             Box::new(Expression::Function(Box::new(Function::Max(
                 Expression::Column(Column {
                     table: Table {
-                        name: DataTypeQueryField::Version.table_name(),
+                        name: DataTypeQueryPath::Version.terminating_table_name(),
                         alias: None,
                     },
-                    access: DataTypeQueryField::Version.column_access(),
+                    access: DataTypeQueryPath::Version.column_access(),
                 }),
             )))),
             WindowStatement::partition_by(Column {
                 table: Table {
-                    name: DataTypeQueryField::BaseUri.table_name(),
+                    name: DataTypeQueryPath::BaseUri.terminating_table_name(),
                     alias: None,
                 },
-                access: DataTypeQueryField::BaseUri.column_access(),
+                access: DataTypeQueryPath::BaseUri.column_access(),
             }),
         )
     }

@@ -42,12 +42,12 @@ impl Transpile for JoinExpression<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::store::postgres::query::{test_helper::transpile, TableAlias, TableName};
+    use crate::store::postgres::query::{TableAlias, TableName};
 
     #[test]
-    fn render_join() {
+    fn transpile_join_expression() {
         assert_eq!(
-            transpile(&JoinExpression::from_tables(
+            JoinExpression::from_tables(
                 Table {
                     name: TableName::TypeIds,
                     alias: None
@@ -56,12 +56,13 @@ mod tests {
                     name: TableName::DataTypes,
                     alias: None
                 },
-            )),
+            )
+            .transpile_to_string(),
             r#"JOIN "type_ids" ON "type_ids"."version_id" = "data_types"."version_id""#
         );
 
         assert_eq!(
-            transpile(&JoinExpression::from_tables(
+            JoinExpression::from_tables(
                 Table {
                     name: TableName::TypeIds,
                     alias: Some(TableAlias {
@@ -73,12 +74,13 @@ mod tests {
                     name: TableName::DataTypes,
                     alias: None
                 },
-            )),
+            )
+            .transpile_to_string(),
             r#"JOIN "type_ids" AS "type_ids_0_1" ON "type_ids_0_1"."version_id" = "data_types"."version_id""#
         );
 
         assert_eq!(
-            transpile(&JoinExpression::from_tables(
+            JoinExpression::from_tables(
                 Table {
                     name: TableName::TypeIds,
                     alias: None
@@ -90,12 +92,13 @@ mod tests {
                         chain_depth: 0
                     })
                 },
-            )),
+            )
+            .transpile_to_string(),
             r#"JOIN "type_ids" ON "type_ids"."version_id" = "data_types_0_0"."version_id""#
         );
 
         assert_eq!(
-            transpile(&JoinExpression::from_tables(
+            JoinExpression::from_tables(
                 Table {
                     name: TableName::TypeIds,
                     alias: Some(TableAlias {
@@ -110,7 +113,8 @@ mod tests {
                         chain_depth: 0
                     })
                 },
-            )),
+            )
+            .transpile_to_string(),
             r#"JOIN "type_ids" AS "type_ids_0_1" ON "type_ids_0_1"."version_id" = "data_types_0_0"."version_id""#
         );
     }

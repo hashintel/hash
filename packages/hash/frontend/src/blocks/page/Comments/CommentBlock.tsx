@@ -5,6 +5,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useCallback,
 } from "react";
 import { Box, Collapse, Typography } from "@mui/material";
 import {
@@ -87,7 +88,6 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
   const [inputValue, setInputValue] = useState<TextToken[]>(hasText);
   const [deleteConfirmationDialogOpen, setDeleteConfirmationDialogOpen] =
     useState(false);
-  const [isAnimating, setIsAnimating] = useState(false);
 
   const { user } = useUser();
   const [updateCommentText, { loading: updateCommentTextLoading }] =
@@ -129,7 +129,6 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
   const resetCommentText = () => {
     setInputValue(hasText);
     setEditable(false);
-    setIsAnimating(true);
   };
 
   const handleEditComment = async () => {
@@ -138,6 +137,11 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
       resetCommentText();
     }
   };
+
+  const onLineCountChange = useCallback(
+    (lines: number) => !editable && setShouldCollapse(lines > 2),
+    [editable, setShouldCollapse],
+  );
 
   return (
     <Box
@@ -150,6 +154,10 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
         borderTop: ({ palette }) => `1px solid ${palette.gray[20]}`,
         minHeight: deleteConfirmationDialogOpen ? 140 : 0,
         transition: ({ transitions }) => transitions.create("min-height"),
+
+        ":first-of-type": {
+          borderTopWidth: 0,
+        },
       }}
     >
       <Box display="flex" justifyContent="space-between">
@@ -202,12 +210,9 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
               borderColor: palette.blue[60],
             },
           })}
-          onTransitionEnd={() => setIsAnimating(false)}
         >
           <CommentTextField
-            onLineCountChange={(lines) =>
-              !editable && !isAnimating && setShouldCollapse(lines > 2)
-            }
+            onLineCountChange={onLineCountChange}
             value={inputValue}
             className={`${styles.Comment__TextField} ${
               editable
@@ -290,7 +295,6 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
               setEditable(!editable);
               setCollapsed(false);
               setShouldCollapse(false);
-              setIsAnimating(true);
               commentMenuPopupState.close();
             }}
           />

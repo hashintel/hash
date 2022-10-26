@@ -3,7 +3,7 @@ source: tests/test_debug.rs
 expression: "format!(\"{report:?}\")"
 ---
 context A
-├╴ tests/test_debug.rs:441:14
+├╴ tests/test_debug.rs:442:14
 ├╴ printable A
 │
 ╰┬▶ root error

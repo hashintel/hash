@@ -1,30 +1,23 @@
 import { useLazyQuery } from "@apollo/client";
 import { useCallback } from "react";
-import { getEntityTypeRootedSubgraphQuery } from "../../../../graphql/queries/ontology/entity-type.queries";
 
 import {
-  GetEntityTypeRootedSubgraphQuery,
-  GetEntityTypeRootedSubgraphQueryVariables,
   GetOutgoingPersistedLinksQuery,
   Query,
+  QueryGetPersistedEntityArgs,
   QueryOutgoingPersistedLinksArgs,
-  QueryPersistedEntityArgs,
 } from "../../../../graphql/apiTypes.gen";
 import {
   getOutgoingPersistedLinksQuery,
   getPersistedEntityQuery,
 } from "../../../../graphql/queries/knowledge/entity.queries";
-import { GetEntityMessageCallback } from "./knowledge-shim";
+import { Entity, GetEntityMessageCallback } from "./knowledge-shim";
+import { Subgraph } from "../../../../lib/subgraph";
 
 export const useBlockProtocolGetEntity = (): {
   getEntity: GetEntityMessageCallback;
 } => {
-  const [getEntityTypeRootedSubgraphFn] = useLazyQuery<
-    GetEntityTypeRootedSubgraphQuery,
-    GetEntityTypeRootedSubgraphQueryVariables
-  >(getEntityTypeRootedSubgraphQuery);
-
-  const [getEntityFn] = useLazyQuery<Query, QueryPersistedEntityArgs>(
+  const [getEntityFn] = useLazyQuery<Query, QueryGetPersistedEntityArgs>(
     getPersistedEntityQuery,
     {
       /** @todo reconsider caching. This is done for testing/demo purposes. */
@@ -57,7 +50,20 @@ export const useBlockProtocolGetEntity = (): {
 
       const [{ data: entityResponseData }, { data: outgoingLinksData }] =
         await Promise.all([
-          getEntityFn({ variables: { entityId } }),
+          getEntityFn({
+            variables: {
+              entityId,
+              // Get the full entity type _tree_
+              dataTypeResolveDepth: 255,
+              propertyTypeResolveDepth: 255,
+              linkTypeResolveDepth: 255,
+              // Don't explore entityType references beyond the absolute neighbors
+              entityTypeResolveDepth: 2,
+              // Only get absolute neighbor entities
+              linkResolveDepth: 1,
+              linkTargetEntityResolveDepth: 1,
+            },
+          }),
           getOutgoingLinksFn({ variables: { sourceEntityId: entityId } }),
         ]);
 
@@ -71,6 +77,7 @@ export const useBlockProtocolGetEntity = (): {
           ],
         };
       }
+
       if (!outgoingLinksData) {
         return {
           errors: [
@@ -82,47 +89,27 @@ export const useBlockProtocolGetEntity = (): {
         };
       }
 
-      const { persistedEntity } = entityResponseData;
-      const { outgoingPersistedLinks } = outgoingLinksData;
-
+      // Manually patch the subgraph to add links to the inner entity
       /**
-       * @todo: obtain this sub-graph as part of the prior `getEntity` query.
-       * May be addressed as part of https://app.asana.com/0/1200211978612931/1203089535761796/f or related work.
+       * @todo: remove this when we start returning links in the subgraph
+       *   https://app.asana.com/0/0/1203214689883095/f
        */
+      const subgraph = entityResponseData.getPersistedEntity;
 
-      const { data: entityTypeResponseData } =
-        await getEntityTypeRootedSubgraphFn({
-          query: getEntityTypeRootedSubgraphQuery,
-          variables: {
-            entityTypeId: persistedEntity.entityTypeId,
-            dataTypeResolveDepth: 255,
-            propertyTypeResolveDepth: 255,
-            linkTypeResolveDepth: 255,
-            entityTypeResolveDepth: 1,
-          },
-        });
-
-      if (!entityTypeResponseData) {
-        return {
-          errors: [
-            {
-              code: "INVALID_INPUT",
-              message:
-                "Error getting the subgraph rooted at entity's entity type",
-            },
-          ],
-        };
+      for (const [vertexId, vertex] of Object.entries(subgraph.vertices)) {
+        if (vertex.kind === "entity") {
+          (vertex.inner as unknown as Entity).links =
+            vertexId === entityId
+              ? outgoingLinksData.outgoingPersistedLinks
+              : [];
+        }
       }
 
       return {
-        data: {
-          ...persistedEntity,
-          entityTypeRootedSubgraph: entityTypeResponseData.getEntityType,
-          links: outgoingPersistedLinks,
-        },
+        data: subgraph as unknown as Subgraph,
       };
     },
-    [getEntityFn, getEntityTypeRootedSubgraphFn, getOutgoingLinksFn],
+    [getEntityFn, getOutgoingLinksFn],
   );
 
   return { getEntity };

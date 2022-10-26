@@ -98,31 +98,29 @@ impl Transpile for Option<Expression<'_>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::store::postgres::query::{
-        test_helper::{max_version_expression, transpile},
-        DataTypeQueryField, Field,
+    use crate::{
+        ontology::DataTypeQueryPath, store::postgres::query::test_helper::max_version_expression,
     };
 
     #[test]
-    fn render_window_expression() {
+    fn transpile_window_expression() {
         assert_eq!(
-            transpile(&max_version_expression()),
+            max_version_expression().transpile_to_string(),
             r#"MAX("type_ids"."version") OVER (PARTITION BY "type_ids"."base_uri")"#
         );
     }
 
     #[test]
-    fn render_function_expression() {
+    fn transpile_function_expression() {
         assert_eq!(
-            transpile(&Expression::Function(Box::new(Function::Min(
-                Expression::Column(Column {
-                    table: Table {
-                        name: DataTypeQueryField::Version.table_name(),
-                        alias: None,
-                    },
-                    access: DataTypeQueryField::Version.column_access(),
-                })
-            )))),
+            Expression::Function(Box::new(Function::Min(Expression::Column(Column {
+                table: Table {
+                    name: DataTypeQueryPath::Version.terminating_table_name(),
+                    alias: None,
+                },
+                access: DataTypeQueryPath::Version.column_access(),
+            }))))
+            .transpile_to_string(),
             r#"MIN("type_ids"."version")"#
         );
     }
