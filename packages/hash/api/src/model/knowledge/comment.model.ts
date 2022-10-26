@@ -119,9 +119,9 @@ export default class extends EntityModel {
   ): Promise<CommentModel> {
     const { actorId, tokens } = params;
 
-    if (actorId !== (await this.getAuthor(graphApi)).entityId) {
+    if (actorId !== this.createdById) {
       throw new Error(
-        `Critical: Comment with entityId ${this.entityId} in account ${this.ownedById} is not owned by account with entityId ${actorId}`,
+        `Critical: account ${actorId} does not have permission to edit the comment with entityId ${this.entityId}`,
       );
     }
 
@@ -190,9 +190,10 @@ export default class extends EntityModel {
   ): Promise<CommentModel> {
     const { actorId } = params;
 
-    if (actorId !== (await this.getAuthor(graphApi)).entityId) {
+    // Throw error if the user trying to delete the comment is not the comment's author
+    if (actorId !== this.createdById) {
       throw new Error(
-        `Critical: Comment with entityId ${this.entityId} in account ${this.ownedById} is not owned by account with entityId ${actorId}`,
+        `Critical: account ${actorId} does not have permission to delete the comment with entityId ${this.entityId}`,
       );
     }
 

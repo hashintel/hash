@@ -28,6 +28,7 @@ export const customColors = {
     600: "#7A4FF5",
   },
   blue: {
+    100: "#03366C",
     700: "#0775E3",
   },
   red: {

@@ -46,9 +46,8 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
 
   const handleReplySubmit = async () => {
     if (!loading && inputValue?.length) {
-      await createReply(comment.entityId, inputValue).then(() => {
-        setInputValue([]);
-      });
+      await createReply(comment.entityId, inputValue);
+      setInputValue([]);
     }
   };
 
@@ -82,10 +81,6 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
         boxShadow: boxShadows.md,
         marginBottom: 4,
         outline: "none",
-
-        ">*:first-of-type": {
-          borderTopWidth: 0,
-        },
       })}
     >
       <CommentBlock
@@ -182,6 +177,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
           onSubmit={handleReplySubmit}
           onCancel={cancelSubmit}
           sx={{ px: 1, pt: 0, pb: 0.75 }}
+          submitLabel="Reply"
         />
       </Collapse>
 

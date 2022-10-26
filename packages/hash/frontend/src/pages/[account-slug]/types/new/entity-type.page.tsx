@@ -1,29 +1,47 @@
+import { EntityType } from "@blockprotocol/type-system-web";
 import { Button, TextField } from "@hashintel/hash-design-system/ui";
+import {
+  addVersionToBaseUri,
+  generateBaseTypeId,
+} from "@hashintel/hash-shared/types";
 import {
   Box,
   Container,
   formHelperTextClasses,
   outlinedInputClasses,
   Stack,
+  SxProps,
+  Theme,
   Typography,
 } from "@mui/material";
+import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
+import { ReactNode } from "react";
 import { useForm } from "react-hook-form";
-import { useBlockProtocolCreateEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreateEntityType";
+import { useBlockProtocolGetEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
 import { useLoggedInUser } from "../../../../components/hooks/useUser";
+import { FRONTEND_URL } from "../../../../lib/config";
+import { useInitTypeSystem } from "../../../../lib/use-init-type-system";
 import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
 import { TopContextBar } from "../../../shared/top-context-bar";
-import { OntologyChip } from "../entity-type/ontology-chip";
 import { HashOntologyIcon } from "../entity-type/hash-ontology-icon";
+import { OntologyChip } from "../entity-type/ontology-chip";
 
-const RequiredText = () => (
+const FormHelperLabel = ({
+  children,
+  sx,
+}: {
+  children: ReactNode;
+  sx?: SxProps<Theme>;
+}) => (
   <Box
     component="span"
     color={(theme) => theme.palette.blue[70]}
     display="inline"
     fontWeight="bold"
+    sx={sx}
   >
-    Required
+    {children}
   </Box>
 );
 
@@ -34,12 +52,25 @@ type CreateEntityTypeFormData = {
 
 const HELPER_TEXT_WIDTH = 290;
 
+const generateInitialEntityTypeId = (baseUri: string) =>
+  addVersionToBaseUri(baseUri, 1);
+
 const Page: NextPageWithLayout = () => {
+  const typeSystemLoading = useInitTypeSystem();
+
   const {
     handleSubmit,
     register,
-    formState: { isSubmitting },
-  } = useForm<CreateEntityTypeFormData>();
+    formState: {
+      isSubmitting,
+      errors: { name: nameError },
+    },
+    clearErrors,
+  } = useForm<CreateEntityTypeFormData>({
+    shouldFocusError: true,
+    mode: "onSubmit",
+    reValidateMode: "onSubmit",
+  });
 
   const router = useRouter();
   const { user, loading } = useLoggedInUser({
@@ -49,39 +80,51 @@ const Page: NextPageWithLayout = () => {
       }
     },
   });
+  const { getEntityType } = useBlockProtocolGetEntityType();
 
   if (user && router.query["account-slug"] !== `@${user.shortname}`) {
     throw new Error("Workspaces not yet supported");
   }
 
-  const { createEntityType } = useBlockProtocolCreateEntityType(
-    // @todo should use routing URL?
-    user?.accountId ?? "",
-  );
-
-  if (loading || !user) {
+  if (typeSystemLoading || loading || !user) {
     return null;
   }
 
-  const handleFormSubmit = handleSubmit(async ({ name, description }) => {
-    const res = await createEntityType({
-      data: {
-        entityType: {
-          title: name,
-          // @todo make this not necessary
-          pluralTitle: name,
-          description,
-          kind: "entityType",
-          type: "object",
-          properties: {},
-        },
-      },
-    });
-    const newUrl = res.data?.entityTypeId.replace(/v\/\d+/, "");
-
-    if (newUrl) {
-      await router.push(newUrl);
+  const generateEntityTypeBaseUriForUser = (value: string) => {
+    if (!user?.shortname) {
+      throw new Error("User shortname must exist");
     }
+
+    return generateBaseTypeId({
+      domain: FRONTEND_URL,
+      namespace: user.shortname,
+      kind: "entity-type",
+      title: value,
+    });
+  };
+
+  const handleFormSubmit = handleSubmit(async ({ name, description }) => {
+    if (!user.shortname) {
+      throw new Error("Namespace for entity type creation missing");
+    }
+
+    const baseUri = generateEntityTypeBaseUriForUser(name);
+    const entityType: EntityType = {
+      title: name,
+      // @todo make this not necessary
+      pluralTitle: name,
+      description,
+      kind: "entityType",
+      type: "object",
+      properties: {},
+      $id: generateInitialEntityTypeId(baseUri),
+    };
+
+    const nextUrl = `${baseUri}?draft=${encodeURIComponent(
+      Buffer.from(JSON.stringify(entityType)).toString("base64"),
+    )}`;
+
+    await router.push(nextUrl, nextUrl, { shallow: true });
   });
 
   return (
@@ -149,9 +192,10 @@ const Page: NextPageWithLayout = () => {
                   m: 0,
                   color: theme.palette.gray[80],
 
-                  [`&:not(.${formHelperTextClasses.focused})`]: {
-                    display: "none",
-                  },
+                  [`&:not(.${formHelperTextClasses.focused}):not(.${formHelperTextClasses.error})`]:
+                    {
+                      display: "none",
+                    },
 
                   [theme.breakpoints.down("md")]: {
                     display: "none",
@@ -163,28 +207,55 @@ const Page: NextPageWithLayout = () => {
               <TextField
                 {...register("name", {
                   required: true,
-                  disabled: isSubmitting,
+                  onChange() {
+                    clearErrors("name");
+                  },
+                  async validate(value) {
+                    const res = await getEntityType({
+                      data: {
+                        entityTypeId: generateInitialEntityTypeId(
+                          generateEntityTypeBaseUriForUser(value),
+                        ),
+                      },
+                    });
+
+                    return res.data?.roots.length
+                      ? "Entity type name must be unique"
+                      : true;
+                  },
                 })}
                 required
-                disabled={isSubmitting}
                 label="Singular Name"
                 type="text"
                 placeholder="e.g. Stock Price"
                 helperText={
                   <Box pr={1.25}>
-                    <RequiredText /> - provide the singular form of your entity
-                    type’s name so it can be referred to correctly (e.g. “Stock
-                    Price” not “Stock Prices”)
+                    {nameError?.message ? (
+                      <>
+                        <FormHelperLabel
+                          sx={(theme) => ({ color: theme.palette.red[70] })}
+                        >
+                          Error
+                        </FormHelperLabel>{" "}
+                        - {nameError.message}
+                      </>
+                    ) : (
+                      <>
+                        <FormHelperLabel>Required</FormHelperLabel> - provide
+                        the singular form of your entity type’s name so it can
+                        be referred to correctly (e.g. “Stock Price” not “Stock
+                        Prices”)
+                      </>
+                    )}
                   </Box>
                 }
+                error={!!nameError}
               />
               <TextField
                 {...register("description", {
                   required: true,
-                  disabled: isSubmitting,
                 })}
                 required
-                disabled={isSubmitting}
                 multiline
                 onKeyDown={async (evt) => {
                   if (!isSubmitting && evt.key === "Enter" && evt.metaKey) {
@@ -197,8 +268,9 @@ const Page: NextPageWithLayout = () => {
                 placeholder="Describe this entity in one or two sentences"
                 helperText={
                   <Box pr={3.75}>
-                    <RequiredText /> - descriptions should explain what an
-                    entity type is, and when they should be used
+                    <FormHelperLabel>Required</FormHelperLabel> - descriptions
+                    should explain what an entity type is, and when they should
+                    be used
                   </Box>
                 }
               />
@@ -207,7 +279,7 @@ const Page: NextPageWithLayout = () => {
                   type="submit"
                   size="small"
                   loading={isSubmitting}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || !!nameError}
                   loadingWithoutText
                 >
                   Create new entity type

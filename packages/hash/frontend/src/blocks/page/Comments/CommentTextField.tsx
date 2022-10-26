@@ -21,7 +21,7 @@ import {
   textBlockNodeToTextTokens,
   textBlockNodesFromTokens,
 } from "@hashintel/hash-shared/text";
-import { isEqual } from "lodash";
+import { debounce, isEqual } from "lodash";
 import { usePortals } from "../usePortals";
 import { createFormatPlugins } from "../createFormatPlugins";
 import {
@@ -71,17 +71,11 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
   const { accountId } = useRouteAccountInfo();
   const editorContainerRef = useRef<HTMLDivElement>();
   const editableRef = useRef(false);
-  const eventsRef = useRef({ onClose, onSubmit });
+  const eventsRef = useRef({ onClose, onSubmit, onLineCountChange });
 
   useLayoutEffect(() => {
-    eventsRef.current = { onClose, onSubmit };
+    eventsRef.current = { onClose, onSubmit, onLineCountChange };
     editableRef.current = editable;
-
-    if (viewRef.current && onLineCountChange) {
-      onLineCountChange(
-        Math.floor(viewRef.current.dom.scrollHeight / LINE_HEIGHT),
-      );
-    }
   });
 
   const setDocument = (tokens: TextToken[]) => {
@@ -163,7 +157,22 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
       view.focus();
       viewRef.current = view;
 
+      const debouncedResizeCallback = debounce(
+        () =>
+          eventsRef.current.onLineCountChange?.(
+            Math.floor((viewRef.current?.dom.scrollHeight ?? 0) / LINE_HEIGHT),
+          ),
+        10,
+      );
+
+      const resizeObserver = new ResizeObserver(() => {
+        debouncedResizeCallback();
+      });
+
+      resizeObserver.observe(view.dom);
+
       return () => {
+        resizeObserver.unobserve(view.dom);
         view.destroy();
         viewRef.current = undefined;
       };

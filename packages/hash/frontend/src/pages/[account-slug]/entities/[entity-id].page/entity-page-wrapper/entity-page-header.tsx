@@ -8,18 +8,18 @@ import { generateEntityLabel } from "../../../../../lib/entities";
 import { TopContextBar } from "../../../../shared/top-context-bar";
 import { HashOntologyIcon } from "../../../types/entity-type/hash-ontology-icon";
 import { OntologyChip } from "../../../types/entity-type/ontology-chip";
-import { useEntityEditor } from "../entity-editor-context";
+import { RootEntityAndSubgraph } from "../../../../../lib/subgraph";
 
-export const EntityPageHeader = () => {
-  const { entity } = useEntityEditor();
+export const EntityPageHeader = ({
+  rootEntityAndSubgraph,
+}: {
+  rootEntityAndSubgraph: RootEntityAndSubgraph;
+}) => {
   const router = useRouter();
 
-  if (!entity) {
-    return null;
-  }
   const accountSlug = router.query["account-slug"];
 
-  const entityLabel = generateEntityLabel(entity);
+  const entityLabel = generateEntityLabel(rootEntityAndSubgraph);
 
   return (
     <Box bgcolor="white">
@@ -27,13 +27,8 @@ export const EntityPageHeader = () => {
         defaultCrumbIcon={null}
         crumbs={[
           {
-            title: "Types",
-            href: "#",
-            id: "types",
-          },
-          {
             title: "Entities",
-            href: "#",
+            href: `/${accountSlug}/entities`,
             id: "entities",
           },
           {

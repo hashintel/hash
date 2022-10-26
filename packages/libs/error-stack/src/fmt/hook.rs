@@ -17,7 +17,7 @@ use std::mem;
 #[cfg(feature = "std")]
 pub(crate) use default::install_builtin_hooks;
 
-use crate::fmt::Frame;
+use crate::{fmt::Frame, FrameKind};
 
 type Storage = BTreeMap<TypeId, BTreeMap<TypeId, Box<dyn Any>>>;
 
@@ -741,7 +741,30 @@ impl Hooks {
         self.inner.push((type_id, into_boxed_hook(hook)));
     }
 
+    /// This compatability function is needed, as we need to special-case location a bit.
+    ///
+    /// [`Location`] is special, as it is present on every single frame, but is not present in the
+    /// chain of sources.
+    ///
+    /// This invokes all hooks on the [`Location`] object by creating a fake frame, which is used to
+    /// invoke any hooks related to location.
+    ///
+    /// [`Location`]: core::panic::Location
+    fn call_location(&self, frame: &Frame, context: &mut HookContext<Frame>) {
+        if !matches!(frame.kind(), FrameKind::Context(_)) {
+            return;
+        }
+
+        // note: this will issue recursion, but this won't ever cause infinite recursion, as
+        // this code is conditional on it being a context.
+        let fake = Frame::from_attachment(*frame.location(), frame.location(), Box::new([]));
+
+        self.call(&fake, context);
+    }
+
     pub(crate) fn call(&self, frame: &Frame, context: &mut HookContext<Frame>) {
+        self.call_location(frame, context);
+
         for (_, hook) in &self.inner {
             hook(frame, context);
         }
@@ -757,11 +780,16 @@ mod default {
     use core::any::TypeId;
     #[cfg(rust_1_65)]
     use std::backtrace::Backtrace;
-    use std::sync::{
-        atomic::{AtomicBool, Ordering},
-        Once,
+    use std::{
+        panic::Location,
+        sync::{
+            atomic::{AtomicBool, Ordering},
+            Once,
+        },
     };
 
+    #[cfg(feature = "pretty-print")]
+    use owo_colors::{OwoColorize, Stream};
     #[cfg(feature = "spantrace")]
     use tracing_error::SpanTrace;
 
@@ -791,12 +819,25 @@ mod default {
         INSTALL_BUILTIN.call_once(|| {
             INSTALL_BUILTIN_RUNNING.store(true, Ordering::Release);
 
+            Report::install_debug_hook(location);
+
             #[cfg(rust_1_65)]
             Report::install_debug_hook(backtrace);
 
             #[cfg(feature = "spantrace")]
             Report::install_debug_hook(span_trace);
         });
+    }
+
+    fn location(location: &Location<'static>, context: &mut HookContext<Location<'static>>) {
+        #[cfg(feature = "pretty-print")]
+        context.push_body(format!(
+            "{}",
+            location.if_supports_color(Stream::Stdout, OwoColorize::bright_black)
+        ));
+
+        #[cfg(not(feature = "pretty-print"))]
+        context.push_body(format!("at {location}"));
     }
 
     #[cfg(rust_1_65)]

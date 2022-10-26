@@ -6,7 +6,7 @@ use type_system::uri::{BaseUri, VersionedUri};
 
 use crate::{
     knowledge::{Entity, EntityId, PersistedEntity, PersistedEntityIdentifier},
-    ontology::AccountId,
+    provenance::{CreatedById, OwnedById, RemovedById, UpdatedById},
     store::{postgres::parameter_list, AsClient, QueryError},
 };
 
@@ -15,10 +15,10 @@ pub struct EntityRecord {
     pub id: EntityId,
     pub version: DateTime<Utc>,
     pub entity_type_id: VersionedUri,
-    pub owned_by_id: AccountId,
-    pub created_by_id: AccountId,
-    pub updated_by_id: AccountId,
-    pub removed_by_id: Option<AccountId>,
+    pub owned_by_id: OwnedById,
+    pub created_by_id: CreatedById,
+    pub updated_by_id: UpdatedById,
+    pub removed_by_id: Option<RemovedById>,
     pub is_latest: bool,
 }
 

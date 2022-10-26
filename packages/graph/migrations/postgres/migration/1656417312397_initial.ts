@@ -30,6 +30,10 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
     },
   );
 
+  /**
+   * @todo - rename this to type_internal_version_ids or something to distinguish it from versioned URIs and from
+   *   entity ids - https://app.asana.com/0/1202805690238892/1203214689883089/f
+   */
   pgm.createTable(
     "version_ids",
     {

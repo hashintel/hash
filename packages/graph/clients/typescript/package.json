@@ -6,9 +6,7 @@
   "license": "AGPL-3.0",
   "main": "./index.ts",
   "scripts": {
-    "fix:eslint": "eslint ./*.ts --fix --no-inline-config",
-    "lint:eslint": "echo noop",
-    "lint:tsc": "echo noop"
+    "fix:eslint": "eslint ./*.ts --fix --no-inline-config"
   },
   "dependencies": {
     "axios": "0.27.2"
@@ -17,6 +15,6 @@
     "@types/node": "16.7.6",
     "@typescript-eslint/parser": "5.30.7",
     "eslint-plugin-typescript-sort-keys": "2.1.0",
-    "typescript": "4.7.4"
+    "typescript": "4.8.4"
   }
 }

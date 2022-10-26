@@ -1,4 +1,3 @@
-import { JsonObject } from "@blockprotocol/core";
 import {
   EmbedderGraphMessageCallbacks,
   EntityType,
@@ -121,7 +120,7 @@ export const SchemaEditor: FunctionComponent<JsonSchemaEditorProps> = ({
     debouncedUpdate({
       data: {
         entityTypeId,
-        schema: workingSchemaDraft as JsonObject,
+        schema: workingSchemaDraft as any, // this editor being removed when new type editor introduced
       },
     })?.catch((err) => {
       // eslint-disable-next-line no-console -- TODO: consider using logger

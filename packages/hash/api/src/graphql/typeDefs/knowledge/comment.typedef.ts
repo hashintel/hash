@@ -110,7 +110,7 @@ export const persistedCommentTypedef = gql`
     ): PersistedComment!
 
     """
-    Edit an existing comment
+    Edit an existing comment's text contents
     """
     updatePersistedCommentText(
       """

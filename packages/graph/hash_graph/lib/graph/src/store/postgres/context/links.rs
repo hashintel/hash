@@ -5,7 +5,7 @@ use type_system::uri::{BaseUri, VersionedUri};
 
 use crate::{
     knowledge::{EntityId, Link, PersistedLink},
-    ontology::AccountId,
+    provenance::{CreatedById, OwnedById},
     store::{postgres::parameter_list, AsClient, QueryError},
 };
 
@@ -13,9 +13,9 @@ pub struct LinkRecord {
     pub link_type_id: VersionedUri,
     pub source_entity_id: EntityId,
     pub target_entity_id: EntityId,
-    pub owned_by_id: AccountId,
+    pub owned_by_id: OwnedById,
     pub index: Option<i32>,
-    pub created_by_id: AccountId,
+    pub created_by_id: CreatedById,
 }
 
 impl From<LinkRecord> for PersistedLink {

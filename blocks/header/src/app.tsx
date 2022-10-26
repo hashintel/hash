@@ -11,6 +11,7 @@ type BlockEntityProperties = {
 export const App: BlockComponent<BlockEntityProperties> = ({
   graph: {
     blockEntity: {
+      entityId,
       properties: { color, level = 1, text },
     },
   },
@@ -19,7 +20,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   const headerRef = useRef<HTMLHeadingElement>(null);
   const { hookService } = useHookBlockService(containerRef);
 
-  useHook(hookService, headerRef, "text", "$.text", (node) => {
+  useHook(hookService, headerRef, "text", entityId, "$.text", (node) => {
     // eslint-disable-next-line no-param-reassign
     node.innerText = text ?? "";
 

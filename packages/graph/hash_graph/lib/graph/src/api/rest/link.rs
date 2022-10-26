@@ -11,7 +11,7 @@ use utoipa::{OpenApi, ToSchema};
 use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
     knowledge::{EntityId, Link, LinkRootedSubgraph, PersistedLink, PersistedLinkMetadata},
-    ontology::AccountId,
+    provenance::{CreatedById, OwnedById, RemovedById},
     store::{error::QueryError, query::Expression, LinkStore, StorePool},
     subgraph::StructuralQuery,
 };
@@ -26,7 +26,9 @@ use crate::{
     ),
     components(
         schemas(
-            AccountId,
+            OwnedById,
+            CreatedById,
+            RemovedById,
             PersistedLink,
             Link,
             CreateLinkRequest,
@@ -67,8 +69,8 @@ struct CreateLinkRequest {
     target_entity_id: EntityId,
     #[schema(value_type = String)]
     link_type_id: VersionedUri,
-    owned_by_id: AccountId,
-    actor_id: AccountId,
+    owned_by_id: OwnedById,
+    actor_id: CreatedById,
     // TODO: Consider if ordering should be exposed on links as they are here. The API consumer
     //   manages indexes currently.
     //   https://app.asana.com/0/1202805690238892/1202937382769278/f
@@ -194,7 +196,7 @@ struct RemoveLinkRequest {
     target_entity_id: EntityId,
     #[schema(value_type = String)]
     link_type_id: VersionedUri,
-    actor_id: AccountId,
+    actor_id: RemovedById,
 }
 
 #[utoipa::path(
