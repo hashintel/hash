@@ -81,8 +81,8 @@ pub struct EntityTypeQueryPathVisitor {
 impl EntityTypeQueryPathVisitor {
     pub const EXPECTING: &'static str = "one of `ownedById`, `createdById`, `updatedById`, \
                                          `removedById`, `baseUri`, `versionedUri`, `version`, \
-                                         `title, `description`, `default`, `examples`, \
-                                         `properties`, `required`, `links`, or `requiredLinks`";
+                                         `title`, `description`, `default`, `examples`, \
+                                         `properties`, `required`, `links`, `requiredLinks`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -142,6 +142,7 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
         })
     }
 }
+
 impl<'de> Deserialize<'de> for EntityTypeQueryPath {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -153,6 +154,8 @@ impl<'de> Deserialize<'de> for EntityTypeQueryPath {
 
 #[cfg(test)]
 mod tests {
+    use std::iter::once;
+
     use super::*;
     use crate::ontology::test_utils::create_path;
 
@@ -199,12 +202,42 @@ mod tests {
 
         assert_eq!(
             EntityTypeQueryPath::deserialize(
+                de::value::SeqDeserializer::<_, de::value::Error>::new(once("version_id"))
+            )
+            .expect_err(
+                "managed to convert entity type query path with hidden token when it should have \
+                 errored"
+            )
+            .to_string(),
+            format!(
+                "unknown variant `version_id`, expected {}",
+                EntityTypeQueryPathVisitor::EXPECTING
+            )
+        );
+
+        assert_eq!(
+            EntityTypeQueryPath::deserialize(
+                de::value::SeqDeserializer::<_, de::value::Error>::new(once("schema"))
+            )
+            .expect_err(
+                "managed to convert entity type query path with hidden token when it should have \
+                 errored"
+            )
+            .to_string(),
+            format!(
+                "unknown variant `schema`, expected {}",
+                EntityTypeQueryPathVisitor::EXPECTING
+            )
+        );
+
+        assert_eq!(
+            EntityTypeQueryPath::deserialize(
                 de::value::SeqDeserializer::<_, de::value::Error>::new(
                     ["baseUri", "test"].into_iter()
                 )
             )
             .expect_err(
-                "managed to convert property type query path with multiple tokens when it should \
+                "managed to convert entity type query path with multiple tokens when it should \
                  have errored"
             )
             .to_string(),
