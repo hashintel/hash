@@ -64,8 +64,9 @@ impl Transpile for Option<Expression<'_>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::store::postgres::query::{
-        test_helper::max_version_expression, DataTypeQueryField, Field, Table,
+    use crate::{
+        ontology::DataTypeQueryPath,
+        store::postgres::query::{test_helper::max_version_expression, Path, Table},
     };
 
     #[test]
@@ -81,10 +82,10 @@ mod tests {
         assert_eq!(
             Expression::Function(Box::new(Function::Min(Expression::Column(Column {
                 table: Table {
-                    name: DataTypeQueryField::Version.table_name(),
+                    name: DataTypeQueryPath::Version.terminating_table_name(),
                     alias: None,
                 },
-                access: DataTypeQueryField::Version.column_access(),
+                access: DataTypeQueryPath::Version.column_access(),
             }))))
             .transpile_to_string(),
             r#"MIN("type_ids"."version")"#
