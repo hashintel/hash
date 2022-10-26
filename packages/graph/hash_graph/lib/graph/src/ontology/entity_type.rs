@@ -12,7 +12,7 @@ use crate::{
         link_type::LinkTypeQueryPathVisitor, property_type::PropertyTypeQueryPathVisitor,
         LinkTypeQueryPath, PropertyTypeQueryPath, Selector,
     },
-    store::query::{Path, QueryRecord},
+    store::query::{OntologyPath, Path, QueryRecord},
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -36,6 +36,33 @@ pub enum EntityTypeQueryPath {
 
 impl QueryRecord for EntityType {
     type Path<'q> = EntityTypeQueryPath;
+}
+
+impl OntologyPath for EntityTypeQueryPath {
+    /// Returns the path identifying the base URI.
+    fn base_uri() -> Self {
+        Self::BaseUri
+    }
+
+    /// Returns the path identifying the versioned URI.
+    fn versioned_uri() -> Self {
+        Self::VersionedUri
+    }
+
+    /// Returns the path identifying the version
+    fn version() -> Self {
+        Self::Version
+    }
+
+    /// Returns the path identifying the title.
+    fn title() -> Self {
+        Self::Title
+    }
+
+    /// Returns the path identifying the description.
+    fn description() -> Self {
+        Self::Description
+    }
 }
 
 impl TryFrom<Path> for EntityTypeQueryPath {

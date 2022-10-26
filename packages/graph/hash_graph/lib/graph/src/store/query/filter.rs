@@ -4,12 +4,9 @@ use std::{
 };
 
 use serde::Deserialize;
-use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};
+use type_system::uri::VersionedUri;
 
-use crate::{
-    ontology::{DataTypeQueryPath, EntityTypeQueryPath, LinkTypeQueryPath, PropertyTypeQueryPath},
-    store::query::{Expression, Literal, Path, QueryRecord},
-};
+use crate::store::query::{Expression, Literal, OntologyPath, Path, QueryRecord};
 
 /// A set of conditions used for queries.
 #[derive(Deserialize)]
@@ -31,48 +28,44 @@ pub enum Filter<'q, T: QueryRecord> {
     ),
 }
 
-macro_rules! define_ontology_filters {
-    ($record:ty, $path:ty) => {
-        impl<'q> Filter<'q, $record> {
-            #[doc = concat!("Returns a `Filter` to search for all latest [`", stringify!($record), "`]s.")]
-            #[must_use]
-            pub const fn for_latest_version() -> Self {
-                Self::Equal(
-                    Some(FilterExpression::Path(<$path>::Version)),
-                    Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                        "latest",
-                    )))),
-                )
-            }
+impl<'q, T> Filter<'q, T>
+where
+    T: QueryRecord,
+    T::Path<'q>: OntologyPath,
+{
+    /// Creates a `Filter` to search for all ontology types of kind `T` at their latest version.
+    #[must_use]
+    pub fn for_latest_version() -> Self {
+        Self::Equal(
+            Some(FilterExpression::Path(<T::Path<'q>>::version())),
+            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                "latest",
+            )))),
+        )
+    }
 
-            #[doc = concat!("Returns a `Filter` to search for a specific [`", stringify!($record), "`] based on it's [`VersionedUri`].")]
-            #[must_use]
-            pub fn for_versioned_uri(versioned_uri: &'q VersionedUri) -> Self {
-                Self::All(vec![
-                    Self::Equal(
-                        Some(FilterExpression::Path(<$path>::BaseUri)),
-                        Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                            versioned_uri.base_uri().as_str(),
-                        )))),
-                    ),
-                    Self::Equal(
-                        Some(FilterExpression::Path(<$path>::Version)),
-                        // TODO: Change to `SignedInteger` when #1255 merged
-                        //   see https://app.asana.com/0/1200211978612931/1203205825668105/f
-                        Some(FilterExpression::Parameter(Parameter::Number(
-                            versioned_uri.version() as f64,
-                        ))),
-                    ),
-                ])
-            }
-        }
-    };
+    /// Creates a `Filter` to search for a specific ontology type of kind `T`, identified by its
+    /// [`VersionedUri`].
+    #[must_use]
+    pub fn for_versioned_uri(versioned_uri: &'q VersionedUri) -> Self {
+        Self::All(vec![
+            Self::Equal(
+                Some(FilterExpression::Path(<T::Path<'q>>::base_uri())),
+                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                    versioned_uri.base_uri().as_str(),
+                )))),
+            ),
+            Self::Equal(
+                Some(FilterExpression::Path(<T::Path<'q>>::version())),
+                // TODO: Change to `SignedInteger` when #1255 merged
+                //   see https://app.asana.com/0/1200211978612931/1203205825668105/f
+                Some(FilterExpression::Parameter(Parameter::Number(
+                    versioned_uri.version().into(),
+                ))),
+            ),
+        ])
+    }
 }
-
-define_ontology_filters!(DataType, DataTypeQueryPath);
-define_ontology_filters!(PropertyType, PropertyTypeQueryPath);
-define_ontology_filters!(EntityType, EntityTypeQueryPath);
-define_ontology_filters!(LinkType, LinkTypeQueryPath);
 
 // TODO: Derive traits when bounds are generated correctly
 //   see https://github.com/rust-lang/rust/issues/26925

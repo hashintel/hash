@@ -16,3 +16,11 @@ pub use self::{
 pub trait QueryRecord {
     type Path<'q>: TryFrom<Path>;
 }
+
+pub trait OntologyPath {
+    fn base_uri() -> Self;
+    fn versioned_uri() -> Self;
+    fn version() -> Self;
+    fn title() -> Self;
+    fn description() -> Self;
+}
