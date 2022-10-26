@@ -9,7 +9,7 @@ import { forwardRef, ForwardRefRenderFunction, useMemo } from "react";
 import { customGridIcons } from "./custom-grid-icons";
 import { columnPadding } from "./utils";
 
-const _GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
+const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
   props,
   ref,
 ) => {
@@ -60,4 +60,6 @@ const _GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
   );
 };
 
-export const GlideGrid = forwardRef(_GlideGrid);
+const GlideGridForwardRef = forwardRef(GlideGrid);
+
+export { GlideGridForwardRef as GlideGrid };

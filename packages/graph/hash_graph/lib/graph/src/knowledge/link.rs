@@ -5,7 +5,7 @@ use type_system::uri::VersionedUri;
 use utoipa::ToSchema;
 
 use super::EntityId;
-use crate::ontology::AccountId;
+use crate::provenance::{CreatedById, OwnedById};
 
 /// A Link between a source and a target entity identified by [`EntityId`]s.
 ///
@@ -66,15 +66,15 @@ impl Link {
 pub struct PersistedLinkMetadata {
     // Note: this is inconsistent with `PersistedEntity` as the analog of
     // `PersistedEntityIdentifier` is encapsulated within the `Link` struct..
-    owned_by_id: AccountId,
+    owned_by_id: OwnedById,
     // TODO: add versioning information -
     //   https://app.asana.com/0/1200211978612931/1203006164248577/f
-    created_by_id: AccountId,
+    created_by_id: CreatedById,
 }
 
 impl PersistedLinkMetadata {
     #[must_use]
-    pub const fn new(owned_by_id: AccountId, created_by_id: AccountId) -> Self {
+    pub const fn new(owned_by_id: OwnedById, created_by_id: CreatedById) -> Self {
         Self {
             owned_by_id,
             created_by_id,
@@ -82,12 +82,12 @@ impl PersistedLinkMetadata {
     }
 
     #[must_use]
-    pub const fn owned_by_id(&self) -> AccountId {
+    pub const fn owned_by_id(&self) -> OwnedById {
         self.owned_by_id
     }
 
     #[must_use]
-    pub const fn created_by_id(&self) -> AccountId {
+    pub const fn created_by_id(&self) -> CreatedById {
         self.created_by_id
     }
 }
@@ -103,7 +103,7 @@ pub struct PersistedLink {
 
 impl PersistedLink {
     #[must_use]
-    pub const fn new(inner: Link, owned_by_id: AccountId, created_by_id: AccountId) -> Self {
+    pub const fn new(inner: Link, owned_by_id: OwnedById, created_by_id: CreatedById) -> Self {
         Self {
             inner,
             metadata: PersistedLinkMetadata::new(owned_by_id, created_by_id),

@@ -2,19 +2,22 @@ use std::fmt;
 
 use error_stack::{IntoReport, Report};
 use serde::{
-    de::{self, Deserializer, SeqAccess, Unexpected, Visitor},
+    de::{self, Deserializer, SeqAccess, Visitor},
     Deserialize,
 };
 use type_system::PropertyType;
 
 use crate::{
-    ontology::{data_type::DataTypeQueryPathVisitor, DataTypeQueryPath},
+    ontology::{data_type::DataTypeQueryPathVisitor, DataTypeQueryPath, Selector},
     store::query::{Path, QueryRecord},
 };
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum PropertyTypeQueryPath {
     OwnedById,
+    CreatedById,
+    UpdatedById,
+    RemovedById,
     BaseUri,
     VersionedUri,
     Version,
@@ -44,6 +47,9 @@ impl TryFrom<Path> for PropertyTypeQueryPath {
 #[serde(rename_all = "camelCase")]
 pub enum PropertyTypeQueryToken {
     OwnedById,
+    CreatedById,
+    UpdatedById,
+    RemovedById,
     BaseUri,
     VersionedUri,
     Version,
@@ -60,9 +66,9 @@ pub struct PropertyTypeQueryPathVisitor {
 }
 
 impl PropertyTypeQueryPathVisitor {
-    pub const EXPECTING: &'static str = "one of `ownedById`, `baseUri`, `versionedUri`, \
-                                         `version`, `title, `description`, `dataTypes`, or \
-                                         `propertyTypes`";
+    pub const EXPECTING: &'static str = "one of `ownedById`, `createdById`, `updatedById`, \
+                                         `removedById`, `baseUri`, `versionedUri`, `version`, \
+                                         `title, `description`, `dataTypes`, or `propertyTypes`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -87,6 +93,9 @@ impl<'de> Visitor<'de> for PropertyTypeQueryPathVisitor {
         self.position += 1;
         Ok(match token {
             PropertyTypeQueryToken::OwnedById => PropertyTypeQueryPath::OwnedById,
+            PropertyTypeQueryToken::CreatedById => PropertyTypeQueryPath::CreatedById,
+            PropertyTypeQueryToken::UpdatedById => PropertyTypeQueryPath::UpdatedById,
+            PropertyTypeQueryToken::RemovedById => PropertyTypeQueryPath::RemovedById,
             PropertyTypeQueryToken::BaseUri => PropertyTypeQueryPath::BaseUri,
             PropertyTypeQueryToken::VersionedUri => PropertyTypeQueryPath::VersionedUri,
             PropertyTypeQueryToken::Version => PropertyTypeQueryPath::Version,
@@ -120,43 +129,6 @@ impl<'de> Deserialize<'de> for PropertyTypeQueryPath {
         D: Deserializer<'de>,
     {
         deserializer.deserialize_seq(PropertyTypeQueryPathVisitor::new(0))
-    }
-}
-
-pub enum Selector {
-    Asterisk,
-}
-
-impl<'de> Deserialize<'de> for Selector {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct SelectorVisitor;
-
-        impl<'de> Visitor<'de> for SelectorVisitor {
-            type Value = Selector;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("a wildcard (*)")
-            }
-
-            fn visit_str<E: de::Error>(self, v: &str) -> Result<Self::Value, E> {
-                match v {
-                    "*" => Ok(Selector::Asterisk),
-                    _ => Err(de::Error::invalid_value(Unexpected::Str(v), &self)),
-                }
-            }
-
-            fn visit_bytes<E: de::Error>(self, v: &[u8]) -> Result<Self::Value, E> {
-                match core::str::from_utf8(v) {
-                    Ok(s) => self.visit_str(s),
-                    Err(_) => Err(E::invalid_value(de::Unexpected::Bytes(v), &self)),
-                }
-            }
-        }
-
-        deserializer.deserialize_str(SelectorVisitor)
     }
 }
 

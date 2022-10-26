@@ -7,39 +7,58 @@ mod link_type;
 mod property_type;
 
 use core::fmt;
+use std::result::Result as StdResult;
 
 use error_stack::{Context, IntoReport, Result, ResultExt};
-use serde::{Deserialize, Serialize, Serializer};
+use serde::{
+    de,
+    de::{Unexpected, Visitor},
+    Deserialize, Deserializer, Serialize, Serializer,
+};
 use serde_json;
-use tokio_postgres::types::{FromSql, ToSql};
 use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};
 use utoipa::ToSchema;
-use uuid::Uuid;
 
 pub use self::{
     data_type::DataTypeQueryPath, entity_type::EntityTypeQueryPath, link_type::LinkTypeQueryPath,
     property_type::PropertyTypeQueryPath,
 };
+use crate::provenance::{CreatedById, OwnedById, RemovedById, UpdatedById};
 
-// TODO - find a good place for AccountId, perhaps it will become redundant in a future design
-
-#[derive(
-    Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema, FromSql, ToSql,
-)]
-#[repr(transparent)]
-#[postgres(transparent)]
-pub struct AccountId(Uuid);
-
-impl AccountId {
-    #[must_use]
-    pub const fn new(uuid: Uuid) -> Self {
-        Self(uuid)
-    }
+pub enum Selector {
+    Asterisk,
 }
 
-impl fmt::Display for AccountId {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(fmt, "{}", &self.0)
+impl<'de> Deserialize<'de> for Selector {
+    fn deserialize<D>(deserializer: D) -> StdResult<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct SelectorVisitor;
+
+        impl<'de> Visitor<'de> for SelectorVisitor {
+            type Value = Selector;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a wildcard (*)")
+            }
+
+            fn visit_str<E: de::Error>(self, v: &str) -> StdResult<Self::Value, E> {
+                match v {
+                    "*" => Ok(Selector::Asterisk),
+                    _ => Err(de::Error::invalid_value(Unexpected::Str(v), &self)),
+                }
+            }
+
+            fn visit_bytes<E: de::Error>(self, v: &[u8]) -> StdResult<Self::Value, E> {
+                match core::str::from_utf8(v) {
+                    Ok(s) => self.visit_str(s),
+                    Err(_) => Err(E::invalid_value(de::Unexpected::Bytes(v), &self)),
+                }
+            }
+        }
+
+        deserializer.deserialize_str(SelectorVisitor)
     }
 }
 
@@ -52,12 +71,12 @@ pub struct PersistedOntologyIdentifier {
     uri: VersionedUri,
     // TODO: owned_by_id is not required to identify an ontology element
     //  https://app.asana.com/0/1202805690238892/1203214689883091/f
-    owned_by_id: AccountId,
+    owned_by_id: OwnedById,
 }
 
 impl PersistedOntologyIdentifier {
     #[must_use]
-    pub const fn new(uri: VersionedUri, owned_by_id: AccountId) -> Self {
+    pub const fn new(uri: VersionedUri, owned_by_id: OwnedById) -> Self {
         Self { uri, owned_by_id }
     }
 
@@ -67,7 +86,7 @@ impl PersistedOntologyIdentifier {
     }
 
     #[must_use]
-    pub const fn owned_by_id(&self) -> AccountId {
+    pub const fn owned_by_id(&self) -> OwnedById {
         self.owned_by_id
     }
 }
@@ -150,6 +169,8 @@ where
 ///
 /// A depth of `0` means that no references are explored for that specific kind of type.
 ///
+/// [`DataType`]: type_system::DataType
+/// [`PropertyType`]: type_system::PropertyType
 ///
 /// # Example
 ///
@@ -188,11 +209,6 @@ pub struct PersistedDataType {
 
 impl PersistedDataType {
     #[must_use]
-    pub const fn new(inner: DataType, metadata: PersistedOntologyMetadata) -> Self {
-        Self { inner, metadata }
-    }
-
-    #[must_use]
     pub const fn inner(&self) -> &DataType {
         &self.inner
     }
@@ -212,11 +228,6 @@ pub struct PersistedPropertyType {
 }
 
 impl PersistedPropertyType {
-    #[must_use]
-    pub const fn new(inner: PropertyType, metadata: PersistedOntologyMetadata) -> Self {
-        Self { inner, metadata }
-    }
-
     #[must_use]
     pub const fn inner(&self) -> &PropertyType {
         &self.inner
@@ -238,11 +249,6 @@ pub struct PersistedLinkType {
 
 impl PersistedLinkType {
     #[must_use]
-    pub const fn new(inner: LinkType, metadata: PersistedOntologyMetadata) -> Self {
-        Self { inner, metadata }
-    }
-
-    #[must_use]
     pub const fn inner(&self) -> &LinkType {
         &self.inner
     }
@@ -257,18 +263,18 @@ impl PersistedLinkType {
 #[serde(rename_all = "camelCase")]
 pub struct PersistedOntologyMetadata {
     identifier: PersistedOntologyIdentifier,
-    created_by_id: AccountId,
-    updated_by_id: AccountId,
-    removed_by_id: Option<AccountId>,
+    created_by_id: CreatedById,
+    updated_by_id: UpdatedById,
+    removed_by_id: Option<RemovedById>,
 }
 
 impl PersistedOntologyMetadata {
     #[must_use]
     pub const fn new(
         identifier: PersistedOntologyIdentifier,
-        created_by_id: AccountId,
-        updated_by_id: AccountId,
-        removed_by_id: Option<AccountId>,
+        created_by_id: CreatedById,
+        updated_by_id: UpdatedById,
+        removed_by_id: Option<RemovedById>,
     ) -> Self {
         Self {
             identifier,
@@ -294,11 +300,6 @@ pub struct PersistedEntityType {
 
 impl PersistedEntityType {
     #[must_use]
-    pub const fn new(inner: EntityType, metadata: PersistedOntologyMetadata) -> Self {
-        Self { inner, metadata }
-    }
-
-    #[must_use]
     pub const fn inner(&self) -> &EntityType {
         &self.inner
     }
@@ -306,6 +307,56 @@ impl PersistedEntityType {
     #[must_use]
     pub const fn metadata(&self) -> &PersistedOntologyMetadata {
         &self.metadata
+    }
+}
+
+pub trait PersistedOntologyType {
+    type Inner;
+
+    fn new(record: Self::Inner, metadata: PersistedOntologyMetadata) -> Self;
+}
+
+impl PersistedOntologyType for PersistedDataType {
+    type Inner = DataType;
+
+    fn new(record: Self::Inner, metadata: PersistedOntologyMetadata) -> Self {
+        Self {
+            inner: record,
+            metadata,
+        }
+    }
+}
+
+impl PersistedOntologyType for PersistedPropertyType {
+    type Inner = PropertyType;
+
+    fn new(record: Self::Inner, metadata: PersistedOntologyMetadata) -> Self {
+        Self {
+            inner: record,
+            metadata,
+        }
+    }
+}
+
+impl PersistedOntologyType for PersistedLinkType {
+    type Inner = LinkType;
+
+    fn new(record: Self::Inner, metadata: PersistedOntologyMetadata) -> Self {
+        Self {
+            inner: record,
+            metadata,
+        }
+    }
+}
+
+impl PersistedOntologyType for PersistedEntityType {
+    type Inner = EntityType;
+
+    fn new(record: Self::Inner, metadata: PersistedOntologyMetadata) -> Self {
+        Self {
+            inner: record,
+            metadata,
+        }
     }
 }
 

@@ -7,7 +7,7 @@ use type_system::uri::{BaseUri, VersionedUri};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::ontology::AccountId;
+use crate::provenance::{CreatedById, OwnedById, RemovedById, UpdatedById};
 
 #[derive(
     Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema, FromSql, ToSql,
@@ -51,12 +51,12 @@ pub struct PersistedEntityIdentifier {
     entity_id: EntityId,
     #[schema(value_type = String)]
     version: DateTime<Utc>,
-    owned_by_id: AccountId,
+    owned_by_id: OwnedById,
 }
 
 impl PersistedEntityIdentifier {
     #[must_use]
-    pub const fn new(entity_id: EntityId, version: DateTime<Utc>, owned_by_id: AccountId) -> Self {
+    pub const fn new(entity_id: EntityId, version: DateTime<Utc>, owned_by_id: OwnedById) -> Self {
         Self {
             entity_id,
             version,
@@ -75,7 +75,7 @@ impl PersistedEntityIdentifier {
     }
 
     #[must_use]
-    pub const fn owned_by_id(&self) -> AccountId {
+    pub const fn owned_by_id(&self) -> OwnedById {
         self.owned_by_id
     }
 }
@@ -87,9 +87,9 @@ pub struct PersistedEntityMetadata {
     identifier: PersistedEntityIdentifier,
     #[schema(value_type = String)]
     entity_type_id: VersionedUri,
-    created_by_id: AccountId,
-    updated_by_id: AccountId,
-    removed_by_id: Option<AccountId>,
+    created_by_id: CreatedById,
+    updated_by_id: UpdatedById,
+    removed_by_id: Option<RemovedById>,
 }
 
 impl PersistedEntityMetadata {
@@ -97,9 +97,9 @@ impl PersistedEntityMetadata {
     pub const fn new(
         identifier: PersistedEntityIdentifier,
         entity_type_id: VersionedUri,
-        created_by_id: AccountId,
-        updated_by_id: AccountId,
-        removed_by_id: Option<AccountId>,
+        created_by_id: CreatedById,
+        updated_by_id: UpdatedById,
+        removed_by_id: Option<RemovedById>,
     ) -> Self {
         Self {
             identifier,
@@ -136,9 +136,9 @@ impl PersistedEntity {
         inner: Entity,
         identifier: PersistedEntityIdentifier,
         entity_type_id: VersionedUri,
-        created_by_id: AccountId,
-        updated_by_id: AccountId,
-        removed_by_id: Option<AccountId>,
+        created_by_id: CreatedById,
+        updated_by_id: UpdatedById,
+        removed_by_id: Option<RemovedById>,
     ) -> Self {
         Self {
             inner,

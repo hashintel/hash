@@ -1,6 +1,11 @@
 name: CI
 on: pull_request
 
+env:
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: hashintel
+  TURBO_REMOTE_ONLY: true
+
 jobs:
   linting:
     name: Linting

@@ -105,7 +105,13 @@ mod tests {
         test_compilation(
             &SelectCompiler::<DataType>::with_default_fields(),
             r#"
-            SELECT "data_types"."schema", "data_types"."owned_by_id"
+            SELECT
+                "data_types"."schema"->>'$id',
+                "data_types"."schema",
+                "data_types"."owned_by_id",
+                "data_types"."created_by_id",
+                "data_types"."updated_by_id",
+                "data_types"."removed_by_id"
             FROM "data_types"
             "#,
             &[],
