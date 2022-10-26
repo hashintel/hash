@@ -21,7 +21,7 @@ import {
   textBlockNodeToTextTokens,
   textBlockNodesFromTokens,
 } from "@hashintel/hash-shared/text";
-import { isEqual } from "lodash";
+import { debounce, isEqual } from "lodash";
 import { usePortals } from "../usePortals";
 import { createFormatPlugins } from "../createFormatPlugins";
 import {
@@ -157,12 +157,16 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
       view.focus();
       viewRef.current = view;
 
-      const resizeObserver = new ResizeObserver(() => {
-        if (viewRef.current) {
+      const debouncedResizeCallback = debounce(
+        () =>
           eventsRef.current.onLineCountChange?.(
-            Math.floor(viewRef.current.dom.scrollHeight / LINE_HEIGHT),
-          );
-        }
+            Math.floor((viewRef.current?.dom.scrollHeight ?? 0) / LINE_HEIGHT),
+          ),
+        10,
+      );
+
+      const resizeObserver = new ResizeObserver(() => {
+        debouncedResizeCallback();
       });
 
       resizeObserver.observe(view.dom);
