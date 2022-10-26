@@ -18,9 +18,10 @@ use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, AccountId, PersistedEntityType, PersistedOntologyIdentifier,
+        patch_id_and_parse, PersistedEntityType, PersistedOntologyIdentifier,
         PersistedOntologyMetadata,
     },
+    provenance::{CreatedById, OwnedById, UpdatedById},
     shared::identifier::GraphElementIdentifier,
     store::{
         error::{BaseUriAlreadyExists, BaseUriDoesNotExist},
@@ -45,7 +46,9 @@ use crate::{
         schemas(
             CreateEntityTypeRequest,
             UpdateEntityTypeRequest,
-            AccountId,
+            OwnedById,
+            CreatedById,
+            UpdatedById,
             PersistedOntologyIdentifier,
             PersistedOntologyMetadata,
             PersistedEntityType,
@@ -89,8 +92,8 @@ impl RoutedResource for EntityTypeResource {
 struct CreateEntityTypeRequest {
     #[schema(value_type = VAR_ENTITY_TYPE)]
     schema: serde_json::Value,
-    owned_by_id: AccountId,
-    actor_id: AccountId,
+    owned_by_id: OwnedById,
+    actor_id: CreatedById,
 }
 
 #[utoipa::path(
@@ -236,7 +239,7 @@ struct UpdateEntityTypeRequest {
     schema: serde_json::Value,
     #[schema(value_type = String)]
     type_to_update: VersionedUri,
-    actor_id: AccountId,
+    actor_id: UpdatedById,
 }
 
 #[utoipa::path(

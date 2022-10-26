@@ -20,6 +20,9 @@ use crate::store::query::{Path, QueryRecord};
 #[derive(Debug, PartialEq, Eq)]
 pub enum DataTypeQueryPath {
     OwnedById,
+    CreatedById,
+    UpdatedById,
+    RemovedById,
     BaseUri,
     VersionedUri,
     Version,
@@ -48,6 +51,9 @@ impl TryFrom<Path> for DataTypeQueryPath {
 #[serde(rename_all = "camelCase")]
 enum DataTypeQueryToken {
     OwnedById,
+    CreatedById,
+    UpdatedById,
+    RemovedById,
     BaseUri,
     VersionedUri,
     Version,
@@ -90,6 +96,9 @@ impl<'de> Visitor<'de> for DataTypeQueryPathVisitor {
         self.position += 1;
         Ok(match token {
             DataTypeQueryToken::OwnedById => DataTypeQueryPath::OwnedById,
+            DataTypeQueryToken::CreatedById => DataTypeQueryPath::CreatedById,
+            DataTypeQueryToken::UpdatedById => DataTypeQueryPath::UpdatedById,
+            DataTypeQueryToken::RemovedById => DataTypeQueryPath::RemovedById,
             DataTypeQueryToken::BaseUri => DataTypeQueryPath::BaseUri,
             DataTypeQueryToken::VersionedUri => DataTypeQueryPath::VersionedUri,
             DataTypeQueryToken::Version => DataTypeQueryPath::Version,

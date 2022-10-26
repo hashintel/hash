@@ -16,15 +16,14 @@ use serde::{
     Deserialize, Deserializer, Serialize, Serializer,
 };
 use serde_json;
-use tokio_postgres::types::{FromSql, ToSql};
 use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};
 use utoipa::ToSchema;
-use uuid::Uuid;
 
 pub use self::{
     data_type::DataTypeQueryPath, entity_type::EntityTypeQueryPath, link_type::LinkTypeQueryPath,
     property_type::PropertyTypeQueryPath,
 };
+use crate::provenance::{CreatedById, OwnedById, RemovedById, UpdatedById};
 
 pub enum Selector {
     Asterisk,
@@ -63,28 +62,6 @@ impl<'de> Deserialize<'de> for Selector {
     }
 }
 
-// TODO - find a good place for AccountId, perhaps it will become redundant in a future design
-
-#[derive(
-    Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema, FromSql, ToSql,
-)]
-#[repr(transparent)]
-#[postgres(transparent)]
-pub struct AccountId(Uuid);
-
-impl AccountId {
-    #[must_use]
-    pub const fn new(uuid: Uuid) -> Self {
-        Self(uuid)
-    }
-}
-
-impl fmt::Display for AccountId {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(fmt, "{}", &self.0)
-    }
-}
-
 /// The metadata required to uniquely identify an ontology element that has been persisted in the
 /// datastore.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
@@ -94,12 +71,12 @@ pub struct PersistedOntologyIdentifier {
     uri: VersionedUri,
     // TODO: owned_by_id is not required to identify an ontology element
     //  https://app.asana.com/0/1202805690238892/1203214689883091/f
-    owned_by_id: AccountId,
+    owned_by_id: OwnedById,
 }
 
 impl PersistedOntologyIdentifier {
     #[must_use]
-    pub const fn new(uri: VersionedUri, owned_by_id: AccountId) -> Self {
+    pub const fn new(uri: VersionedUri, owned_by_id: OwnedById) -> Self {
         Self { uri, owned_by_id }
     }
 
@@ -109,7 +86,7 @@ impl PersistedOntologyIdentifier {
     }
 
     #[must_use]
-    pub const fn owned_by_id(&self) -> AccountId {
+    pub const fn owned_by_id(&self) -> OwnedById {
         self.owned_by_id
     }
 }
@@ -192,6 +169,8 @@ where
 ///
 /// A depth of `0` means that no references are explored for that specific kind of type.
 ///
+/// [`DataType`]: type_system::DataType
+/// [`PropertyType`]: type_system::PropertyType
 ///
 /// # Example
 ///
@@ -299,18 +278,18 @@ impl PersistedLinkType {
 #[serde(rename_all = "camelCase")]
 pub struct PersistedOntologyMetadata {
     identifier: PersistedOntologyIdentifier,
-    created_by_id: AccountId,
-    updated_by_id: AccountId,
-    removed_by_id: Option<AccountId>,
+    created_by_id: CreatedById,
+    updated_by_id: UpdatedById,
+    removed_by_id: Option<RemovedById>,
 }
 
 impl PersistedOntologyMetadata {
     #[must_use]
     pub const fn new(
         identifier: PersistedOntologyIdentifier,
-        created_by_id: AccountId,
-        updated_by_id: AccountId,
-        removed_by_id: Option<AccountId>,
+        created_by_id: CreatedById,
+        updated_by_id: UpdatedById,
+        removed_by_id: Option<RemovedById>,
     ) -> Self {
         Self {
             identifier,
