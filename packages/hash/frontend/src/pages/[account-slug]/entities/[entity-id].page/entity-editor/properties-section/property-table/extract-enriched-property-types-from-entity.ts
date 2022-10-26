@@ -3,6 +3,7 @@ import { capitalize } from "@mui/material";
 import {
   getPersistedDataType,
   getPropertyTypesByBaseUri,
+  getPersistedEntityType,
   RootEntityAndSubgraph,
   Subgraph,
 } from "../../../../../../../lib/subgraph";
@@ -29,6 +30,13 @@ export const extractEnrichedPropertyTypesFromEntity = (
 ): EnrichedPropertyType[] => {
   const entity = rootEntityAndSubgraph.root;
 
+  const entityType = getPersistedEntityType(
+    rootEntityAndSubgraph.subgraph,
+    entity.entityTypeId,
+  );
+
+  const requiredPropertyTypes = entityType?.inner.required;
+
   return Object.keys(entity.properties).map((propertyTypeBaseUri) => {
     const propertyTypeVersions = getPropertyTypesByBaseUri(
       rootEntityAndSubgraph.subgraph,
@@ -48,11 +56,14 @@ export const extractEnrichedPropertyTypesFromEntity = (
       rootEntityAndSubgraph.subgraph,
     );
 
+    const required = !!requiredPropertyTypes?.includes(propertyTypeBaseUri);
+
     return {
       ...propertyType,
       value: entity.properties[propertyTypeBaseUri],
       propertyTypeId: propertyTypeBaseUri,
       dataTypes,
+      required,
     };
   });
 };

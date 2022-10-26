@@ -12,13 +12,13 @@ export const useGetCellContent = (rowData: LinkRow[]) => {
         throw new Error("link not found");
       }
 
-      const linkKey = linkGridIndexes[col];
+      const columnKey = linkGridIndexes[col];
 
-      if (!linkKey) {
-        throw new Error("linkKey not found");
+      if (!columnKey) {
+        throw new Error("columnKey not found");
       }
 
-      const value = link[linkKey];
+      const value = link[columnKey];
 
       return {
         kind: GridCellKind.Text,
