@@ -364,7 +364,7 @@ pub trait LinkTypeStore:
 ///
 /// [Entities]: crate::knowledge::Entity
 #[async_trait]
-pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Expression> {
+pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Filter<'q, Entity>> {
     /// Creates a new [`Entity`].
     ///
     /// # Errors:

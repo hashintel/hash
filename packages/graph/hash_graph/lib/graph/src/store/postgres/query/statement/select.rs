@@ -396,7 +396,9 @@ mod tests {
                 "entities"."entity_id",
                 "entities"."version",
                 "entity_types_0_0"."schema"->>'$id',
-                "entities"."owned_by_id"
+                "entities"."owned_by_id",
+                "entities"."created_by_id",
+                "entities"."updated_by_id"
             FROM "entities"
             JOIN "entity_types" AS "entity_types_0_0"
               ON "entity_types_0_0"."version_id" = "entities"."entity_type_version_id"
@@ -427,7 +429,9 @@ mod tests {
                 "entities"."entity_id",
                 "entities"."version",
                 "entity_types_0_0"."schema"->>'$id',
-                "entities"."owned_by_id"
+                "entities"."owned_by_id",
+                "entities"."created_by_id",
+                "entities"."updated_by_id"
             FROM "entities"
             JOIN "entity_types" AS "entity_types_0_0"
               ON "entity_types_0_0"."version_id" = "entities"."entity_type_version_id"
