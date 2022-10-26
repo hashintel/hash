@@ -26,7 +26,10 @@ use graph::{
     },
     subgraph::{GraphResolveDepths, StructuralQuery, Vertex},
 };
-use tokio_postgres::{NoTls, Transaction};
+use tokio_postgres::{
+    types::{FromSql, ToSql},
+    NoTls, Transaction,
+};
 use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};
 use uuid::Uuid;
 

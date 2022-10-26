@@ -7,9 +7,14 @@ mod link_type;
 mod property_type;
 
 use core::fmt;
+use std::result::Result as StdResult;
 
 use error_stack::{Context, IntoReport, Result, ResultExt};
-use serde::{Deserialize, Serialize, Serializer};
+use serde::{
+    de,
+    de::{Unexpected, Visitor},
+    Deserialize, Deserializer, Serialize, Serializer,
+};
 use serde_json;
 use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};
 use utoipa::ToSchema;
@@ -19,6 +24,43 @@ pub use self::{
     property_type::PropertyTypeQueryPath,
 };
 use crate::provenance::{CreatedById, OwnedById, RemovedById, UpdatedById};
+
+pub enum Selector {
+    Asterisk,
+}
+
+impl<'de> Deserialize<'de> for Selector {
+    fn deserialize<D>(deserializer: D) -> StdResult<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct SelectorVisitor;
+
+        impl<'de> Visitor<'de> for SelectorVisitor {
+            type Value = Selector;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a wildcard (*)")
+            }
+
+            fn visit_str<E: de::Error>(self, v: &str) -> StdResult<Self::Value, E> {
+                match v {
+                    "*" => Ok(Selector::Asterisk),
+                    _ => Err(de::Error::invalid_value(Unexpected::Str(v), &self)),
+                }
+            }
+
+            fn visit_bytes<E: de::Error>(self, v: &[u8]) -> StdResult<Self::Value, E> {
+                match core::str::from_utf8(v) {
+                    Ok(s) => self.visit_str(s),
+                    Err(_) => Err(E::invalid_value(de::Unexpected::Bytes(v), &self)),
+                }
+            }
+        }
+
+        deserializer.deserialize_str(SelectorVisitor)
+    }
+}
 
 /// The metadata required to uniquely identify an ontology element that has been persisted in the
 /// datastore.
