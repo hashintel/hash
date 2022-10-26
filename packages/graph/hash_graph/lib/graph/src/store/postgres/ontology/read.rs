@@ -6,7 +6,7 @@ use type_system::{DataType, EntityType, LinkType, PropertyType};
 use crate::{
     ontology::{
         PersistedDataType, PersistedEntityType, PersistedLinkType, PersistedOntologyIdentifier,
-        PersistedOntologyMetadata, PersistedPropertyType,
+        PersistedOntologyMetadata, PersistedOntologyType, PersistedPropertyType,
     },
     store::{
         crud::Read,
@@ -19,16 +19,8 @@ use crate::{
     },
 };
 
-pub trait PersistedOntologyType {
-    type Inner;
-
-    fn from_record(record: OntologyRecord<Self::Inner>) -> Self;
-}
-
-impl PersistedOntologyType for PersistedDataType {
-    type Inner = DataType;
-
-    fn from_record(data_type: OntologyRecord<Self::Inner>) -> Self {
+impl From<OntologyRecord<DataType>> for PersistedDataType {
+    fn from(data_type: OntologyRecord<DataType>) -> Self {
         let identifier =
             PersistedOntologyIdentifier::new(data_type.record.id().clone(), data_type.owned_by_id);
 
@@ -44,10 +36,8 @@ impl PersistedOntologyType for PersistedDataType {
     }
 }
 
-impl PersistedOntologyType for PersistedPropertyType {
-    type Inner = PropertyType;
-
-    fn from_record(property_type: OntologyRecord<Self::Inner>) -> Self {
+impl From<OntologyRecord<PropertyType>> for PersistedPropertyType {
+    fn from(property_type: OntologyRecord<PropertyType>) -> Self {
         let identifier = PersistedOntologyIdentifier::new(
             property_type.record.id().clone(),
             property_type.owned_by_id,
@@ -65,10 +55,8 @@ impl PersistedOntologyType for PersistedPropertyType {
     }
 }
 
-impl PersistedOntologyType for PersistedLinkType {
-    type Inner = LinkType;
-
-    fn from_record(link_type: OntologyRecord<Self::Inner>) -> Self {
+impl From<OntologyRecord<LinkType>> for PersistedLinkType {
+    fn from(link_type: OntologyRecord<LinkType>) -> Self {
         let identifier =
             PersistedOntologyIdentifier::new(link_type.record.id().clone(), link_type.owned_by_id);
 
@@ -84,10 +72,8 @@ impl PersistedOntologyType for PersistedLinkType {
     }
 }
 
-impl PersistedOntologyType for PersistedEntityType {
-    type Inner = EntityType;
-
-    fn from_record(entity_type: OntologyRecord<Self::Inner>) -> Self {
+impl From<OntologyRecord<EntityType>> for PersistedEntityType {
+    fn from(entity_type: OntologyRecord<EntityType>) -> Self {
         let identifier = PersistedOntologyIdentifier::new(
             entity_type.record.id().clone(),
             entity_type.owned_by_id,
@@ -107,7 +93,7 @@ impl PersistedOntologyType for PersistedEntityType {
 #[async_trait]
 impl<C: AsClient, T> Read<T> for PostgresStore<C>
 where
-    T: PersistedOntologyType + Send,
+    T: PersistedOntologyType + From<OntologyRecord<T::Inner>> + Send,
     T::Inner: OntologyDatabaseType + TryFrom<serde_json::Value, Error: Context> + Send,
     OntologyRecord<T::Inner>: Resolve<Self> + Sync,
 {
@@ -128,7 +114,7 @@ where
                 .await
                 .change_context(QueryError)?
             {
-                Ok(result.then(|| T::from_record(ontology_type)))
+                Ok(result.then(|| T::from(ontology_type)))
             } else {
                 bail!(
                     Report::new(ExpressionError)

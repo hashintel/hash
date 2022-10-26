@@ -18,7 +18,7 @@ use crate::{
     knowledge::{
         Entity, EntityId, PersistedEntity, PersistedEntityIdentifier, PersistedEntityMetadata,
     },
-    ontology::AccountId,
+    provenance::{CreatedById, OwnedById, UpdatedById},
     shared::identifier::GraphElementIdentifier,
     store::{
         error::{EntityDoesNotExist, QueryError},
@@ -41,6 +41,9 @@ use crate::{
     ),
     components(
         schemas(
+            OwnedById,
+            CreatedById,
+            UpdatedById,
             CreateEntityRequest,
             UpdateEntityRequest,
             EntityId,
@@ -89,9 +92,9 @@ struct CreateEntityRequest {
     entity: Entity,
     #[schema(value_type = String)]
     entity_type_id: VersionedUri,
-    owned_by_id: AccountId,
+    owned_by_id: OwnedById,
     entity_id: Option<EntityId>,
-    actor_id: AccountId,
+    actor_id: CreatedById,
 }
 
 #[utoipa::path(
@@ -217,7 +220,7 @@ struct UpdateEntityRequest {
     entity_id: EntityId,
     #[schema(value_type = String)]
     entity_type_id: VersionedUri,
-    actor_id: AccountId,
+    actor_id: UpdatedById,
 }
 
 #[utoipa::path(

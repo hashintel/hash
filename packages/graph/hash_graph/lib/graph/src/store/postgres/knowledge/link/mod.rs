@@ -10,7 +10,7 @@ use tokio_postgres::GenericClient;
 
 use crate::{
     knowledge::{Link, LinkRootedSubgraph, PersistedLink},
-    ontology::AccountId,
+    provenance::{CreatedById, OwnedById, RemovedById},
     shared::identifier::{GraphElementIdentifier, LinkId},
     store::{
         crud::Read,
@@ -118,8 +118,8 @@ impl<C: AsClient> LinkStore for PostgresStore<C> {
     async fn create_link(
         &mut self,
         link: &Link,
-        owned_by_id: AccountId,
-        created_by_id: AccountId,
+        owned_by_id: OwnedById,
+        created_by_id: CreatedById,
     ) -> Result<(), InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
@@ -185,7 +185,7 @@ impl<C: AsClient> LinkStore for PostgresStore<C> {
     async fn remove_link(
         &mut self,
         link: &Link,
-        removed_by_id: AccountId,
+        removed_by_id: RemovedById,
     ) -> Result<(), LinkRemovalError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()

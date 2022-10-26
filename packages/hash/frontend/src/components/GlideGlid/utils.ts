@@ -8,14 +8,13 @@ import { useTheme } from "@mui/material";
 import { useCallback } from "react";
 
 type TableSortType = "asc" | "desc";
-type TableRow = Record<string, any>;
 
-export interface TableSort<T extends TableRow> {
-  key: keyof T;
+export interface TableSort<T extends string> {
+  key: T;
   dir: TableSortType;
 }
 
-export type SetTableSort<T extends TableRow> = (sort: TableSort<T>) => void;
+export type SetTableSort<T extends string> = (sort: TableSort<T>) => void;
 
 export const firstColumnPadding = 36;
 export const columnPadding = 22;
@@ -44,7 +43,7 @@ const drawHeaderSortIndicator = (
   ctx.fill();
 };
 
-export const useDrawHeader = <T extends TableRow>(
+export const useDrawHeader = <T extends string>(
   sort: TableSort<T>,
   columns: GridColumn[],
 ) => {
@@ -111,13 +110,13 @@ export const useDrawCell = () => {
   return drawCell;
 };
 
-export const createHandleHeaderClicked = <T extends TableRow>(
+export const createHandleHeaderClicked = <T extends string>(
   columns: GridColumn[],
   sort: TableSort<T>,
   setTableSort: SetTableSort<T>,
 ) => {
   return (col: number) => {
-    const key = columns[col]?.id as keyof T;
+    const key = columns[col]?.id as T;
 
     if (!key) {
       return;
@@ -132,8 +131,8 @@ export const createHandleHeaderClicked = <T extends TableRow>(
   };
 };
 
-export const sortRowData = <T extends TableRow>(
-  rowData: T[],
+export const sortRowData = <T extends string, RowData extends Record<T, any>[]>(
+  rowData: RowData,
   sort: TableSort<T>,
 ) => {
   /**
