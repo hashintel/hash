@@ -7,7 +7,8 @@ use tokio_postgres::GenericClient;
 use type_system::{uri::VersionedUri, LinkType};
 
 use crate::{
-    ontology::{AccountId, PersistedLinkType, PersistedOntologyMetadata},
+    ontology::{PersistedLinkType, PersistedOntologyMetadata},
+    provenance::{CreatedById, OwnedById, UpdatedById},
     shared::identifier::GraphElementIdentifier,
     store::{
         crud::Read,
@@ -51,8 +52,8 @@ impl<C: AsClient> LinkTypeStore for PostgresStore<C> {
     async fn create_link_type(
         &mut self,
         link_type: LinkType,
-        owned_by_id: AccountId,
-        created_by_id: AccountId,
+        owned_by_id: OwnedById,
+        created_by_id: CreatedById,
     ) -> Result<PersistedOntologyMetadata, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
@@ -110,7 +111,7 @@ impl<C: AsClient> LinkTypeStore for PostgresStore<C> {
     async fn update_link_type(
         &mut self,
         link_type: LinkType,
-        updated_by: AccountId,
+        updated_by: UpdatedById,
     ) -> Result<PersistedOntologyMetadata, UpdateError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
