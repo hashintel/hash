@@ -12,7 +12,7 @@ use crate::{
         link_type::LinkTypeQueryPathVisitor, property_type::PropertyTypeQueryPathVisitor,
         LinkTypeQueryPath, PropertyTypeQueryPath, Selector,
     },
-    store::query::{OntologyPath, ParameterField, ParameterType, Path, QueryRecord, RecordPath},
+    store::query::{OntologyPath, ParameterType, Path, QueryRecord, RecordPath},
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -63,47 +63,19 @@ impl OntologyPath for EntityTypeQueryPath {
 }
 
 impl RecordPath for EntityTypeQueryPath {
-    fn expected_type(&self) -> ParameterField {
+    fn expected_type(&self) -> ParameterType {
         match self {
             Self::VersionId | Self::OwnedById | Self::CreatedById | Self::UpdatedById => {
-                ParameterField {
-                    parameter_type: ParameterType::Uuid,
-                    optional: false,
-                }
+                ParameterType::Uuid
             }
-            Self::RemovedById => ParameterField {
-                parameter_type: ParameterType::Uuid,
-                optional: true,
-            },
-            Self::Schema => ParameterField {
-                parameter_type: ParameterType::Any,
-                optional: false,
-            },
-            Self::BaseUri => ParameterField {
-                parameter_type: ParameterType::BaseUri,
-                optional: false,
-            },
-            Self::VersionedUri => ParameterField {
-                parameter_type: ParameterType::VersionedUri,
-                optional: false,
-            },
-            Self::Version => ParameterField {
-                parameter_type: ParameterType::UnsignedInteger,
-                optional: false,
-            },
-            Self::Title => ParameterField {
-                parameter_type: ParameterType::Text,
-                optional: false,
-            },
-            Self::Description => ParameterField {
-                parameter_type: ParameterType::Text,
-                optional: true,
-            },
+            Self::RemovedById => ParameterType::Uuid,
+            Self::Schema => ParameterType::Any,
+            Self::BaseUri => ParameterType::BaseUri,
+            Self::VersionedUri => ParameterType::VersionedUri,
+            Self::Version => ParameterType::UnsignedInteger,
+            Self::Title | Self::Description => ParameterType::Text,
             Self::Default | Self::Examples | Self::Required | Self::RequiredLinks => {
-                ParameterField {
-                    parameter_type: ParameterType::Any,
-                    optional: true,
-                }
+                ParameterType::Any
             }
             Self::Properties(path) => path.expected_type(),
             Self::Links(path) => path.expected_type(),

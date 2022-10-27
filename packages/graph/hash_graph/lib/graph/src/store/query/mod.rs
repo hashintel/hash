@@ -21,13 +21,7 @@ pub trait QueryRecord {
 
 pub trait RecordPath {
     /// Returns what type this resolved `Path` has.
-    fn expected_type(&self) -> ParameterField;
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct ParameterField {
-    pub parameter_type: ParameterType,
-    pub optional: bool,
+    fn expected_type(&self) -> ParameterType;
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

@@ -94,7 +94,7 @@ where
                 | (
                     Some(FilterExpression::Path(path)),
                     Some(FilterExpression::Parameter(parameter)),
-                ) => parameter.convert_to_parameter_type(path.expected_type().parameter_type)?,
+                ) => parameter.convert_to_parameter_type(path.expected_type())?,
                 (..) => {}
             },
         }

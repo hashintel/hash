@@ -7,9 +7,7 @@ use serde::{
 };
 use type_system::DataType;
 
-use crate::store::query::{
-    OntologyPath, ParameterField, ParameterType, Path, QueryRecord, RecordPath,
-};
+use crate::store::query::{OntologyPath, ParameterType, Path, QueryRecord, RecordPath};
 
 /// A path to a [`DataType`] field.
 ///
@@ -62,42 +60,17 @@ impl OntologyPath for DataTypeQueryPath {
 }
 
 impl RecordPath for DataTypeQueryPath {
-    fn expected_type(&self) -> ParameterField {
+    fn expected_type(&self) -> ParameterType {
         match self {
             Self::VersionId | Self::OwnedById | Self::CreatedById | Self::UpdatedById => {
-                ParameterField {
-                    parameter_type: ParameterType::Uuid,
-                    optional: false,
-                }
+                ParameterType::Uuid
             }
-            Self::RemovedById => ParameterField {
-                parameter_type: ParameterType::Uuid,
-                optional: true,
-            },
-            Self::Schema => ParameterField {
-                parameter_type: ParameterType::Any,
-                optional: false,
-            },
-            Self::BaseUri => ParameterField {
-                parameter_type: ParameterType::BaseUri,
-                optional: false,
-            },
-            Self::VersionedUri => ParameterField {
-                parameter_type: ParameterType::VersionedUri,
-                optional: false,
-            },
-            Self::Version => ParameterField {
-                parameter_type: ParameterType::UnsignedInteger,
-                optional: false,
-            },
-            Self::Description => ParameterField {
-                parameter_type: ParameterType::Text,
-                optional: true,
-            },
-            Self::Title | Self::Type => ParameterField {
-                parameter_type: ParameterType::Text,
-                optional: false,
-            },
+            Self::RemovedById => ParameterType::Uuid,
+            Self::Schema => ParameterType::Any,
+            Self::BaseUri => ParameterType::BaseUri,
+            Self::VersionedUri => ParameterType::VersionedUri,
+            Self::Version => ParameterType::UnsignedInteger,
+            Self::Description | Self::Title | Self::Type => ParameterType::Text,
         }
     }
 }
