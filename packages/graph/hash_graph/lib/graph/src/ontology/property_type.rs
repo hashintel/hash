@@ -1,6 +1,5 @@
 use std::fmt;
 
-use error_stack::{IntoReport, Report};
 use serde::{
     de::{self, Deserializer, SeqAccess, Visitor},
     Deserialize,
@@ -9,7 +8,7 @@ use type_system::PropertyType;
 
 use crate::{
     ontology::{data_type::DataTypeQueryPathVisitor, DataTypeQueryPath, Selector},
-    store::query::{OntologyPath, ParameterType, Path, QueryRecord, RecordPath},
+    store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath},
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -90,17 +89,6 @@ impl fmt::Display for PropertyTypeQueryPath {
             Self::DataTypes(path) => write!(fmt, "dataTypes.{path}"),
             Self::PropertyTypes(path) => write!(fmt, "propertyTypes.{path}"),
         }
-    }
-}
-
-impl TryFrom<Path> for PropertyTypeQueryPath {
-    type Error = Report<de::value::Error>;
-
-    fn try_from(path: Path) -> Result<Self, Self::Error> {
-        Self::deserialize(de::value::SeqDeserializer::new(
-            path.segments.into_iter().map(|segment| segment.identifier),
-        ))
-        .into_report()
     }
 }
 
@@ -200,11 +188,6 @@ mod tests {
     use std::iter::once;
 
     use super::*;
-    use crate::query::test_utils::create_path;
-
-    fn convert_path(segments: impl IntoIterator<Item = &'static str>) -> PropertyTypeQueryPath {
-        PropertyTypeQueryPath::try_from(create_path(segments)).expect("could not convert path")
-    }
 
     fn deserialize<'q>(segments: impl IntoIterator<Item = &'q str>) -> PropertyTypeQueryPath {
         PropertyTypeQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
@@ -309,42 +292,6 @@ mod tests {
             )
             .to_string(),
             "invalid length 4, expected 3 elements in sequence"
-        );
-    }
-
-    #[test]
-    fn path_conversion() {
-        assert_eq!(convert_path(["baseUri"]), PropertyTypeQueryPath::BaseUri);
-        assert_eq!(convert_path(["version"]), PropertyTypeQueryPath::Version);
-        assert_eq!(
-            convert_path(["versionedUri"]),
-            PropertyTypeQueryPath::VersionedUri
-        );
-        assert_eq!(
-            convert_path(["ownedById"]),
-            PropertyTypeQueryPath::OwnedById
-        );
-        assert_eq!(convert_path(["title"]), PropertyTypeQueryPath::Title);
-        assert_eq!(
-            convert_path(["description"]),
-            PropertyTypeQueryPath::Description
-        );
-        assert_eq!(
-            convert_path(["dataTypes", "*", "version"]),
-            PropertyTypeQueryPath::DataTypes(DataTypeQueryPath::Version)
-        );
-        assert_eq!(
-            convert_path(["propertyTypes", "*", "baseUri"]),
-            PropertyTypeQueryPath::PropertyTypes(Box::new(PropertyTypeQueryPath::BaseUri))
-        );
-
-        assert_eq!(
-            PropertyTypeQueryPath::try_from(create_path(["baseUri", "invalid"]))
-                .expect_err("could convert property type query path with multiple tokens")
-                .downcast_ref::<de::value::Error>()
-                .expect("deserialization error not found in report")
-                .to_string(),
-            "invalid length 2, expected 1 element in sequence"
         );
     }
 }

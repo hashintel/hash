@@ -1,13 +1,12 @@
 use std::fmt;
 
-use error_stack::{IntoReport, Report};
 use serde::{
     de::{self, Deserializer, SeqAccess, Visitor},
     Deserialize,
 };
 use type_system::DataType;
 
-use crate::store::query::{OntologyPath, ParameterType, Path, QueryRecord, RecordPath};
+use crate::store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath};
 
 /// A path to a [`DataType`] field.
 ///
@@ -94,17 +93,6 @@ impl fmt::Display for DataTypeQueryPath {
     }
 }
 
-impl TryFrom<Path> for DataTypeQueryPath {
-    type Error = Report<de::value::Error>;
-
-    fn try_from(path: Path) -> Result<Self, Self::Error> {
-        Self::deserialize(de::value::SeqDeserializer::new(
-            path.segments.into_iter().map(|segment| segment.identifier),
-        ))
-        .into_report()
-    }
-}
-
 /// A single token in a [`DataTypeQueryPath`].
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -183,11 +171,6 @@ mod tests {
     use std::iter::once;
 
     use super::*;
-    use crate::query::test_utils::create_path;
-
-    fn convert_path(segments: impl IntoIterator<Item = &'static str>) -> DataTypeQueryPath {
-        DataTypeQueryPath::try_from(create_path(segments)).expect("could not convert path")
-    }
 
     fn deserialize<'q>(segments: impl IntoIterator<Item = &'q str>) -> DataTypeQueryPath {
         DataTypeQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
@@ -248,32 +231,6 @@ mod tests {
                  errored"
             )
             .to_string(),
-            "invalid length 2, expected 1 element in sequence"
-        );
-    }
-
-    #[test]
-    fn path_conversion() {
-        assert_eq!(convert_path(["baseUri"]), DataTypeQueryPath::BaseUri);
-        assert_eq!(convert_path(["version"]), DataTypeQueryPath::Version);
-        assert_eq!(
-            convert_path(["versionedUri"]),
-            DataTypeQueryPath::VersionedUri
-        );
-        assert_eq!(convert_path(["ownedById"]), DataTypeQueryPath::OwnedById);
-        assert_eq!(convert_path(["type"]), DataTypeQueryPath::Type);
-        assert_eq!(convert_path(["title"]), DataTypeQueryPath::Title);
-        assert_eq!(
-            convert_path(["description"]),
-            DataTypeQueryPath::Description
-        );
-
-        assert_eq!(
-            DataTypeQueryPath::try_from(create_path(["baseUri", "invalid"]))
-                .expect_err("could convert data type query path with multiple tokens")
-                .downcast_ref::<de::value::Error>()
-                .expect("deserialization error not found in report")
-                .to_string(),
             "invalid length 2, expected 1 element in sequence"
         );
     }

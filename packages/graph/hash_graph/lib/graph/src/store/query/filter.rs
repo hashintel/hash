@@ -12,9 +12,7 @@ use uuid::Uuid;
 
 use crate::{
     knowledge::{Entity, EntityId, EntityQueryPath, Link, LinkQueryPath},
-    store::query::{
-        Expression, Literal, OntologyPath, ParameterType, Path, QueryRecord, RecordPath,
-    },
+    store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath},
 };
 
 /// A set of conditions used for queries.
@@ -185,58 +183,6 @@ where
     }
 }
 
-impl<'q, T: QueryRecord> TryFrom<Expression> for Filter<'q, T> {
-    type Error = <T::Path<'q> as TryFrom<Path>>::Error;
-
-    fn try_from(expression: Expression) -> Result<Self, Self::Error> {
-        Ok(match expression {
-            Expression::Eq(expressions) => match expressions.as_slice() {
-                [] | [_] => unimplemented!(),
-                [lhs, rhs] => Self::Equal(lhs.clone().try_into()?, rhs.clone().try_into()?),
-                _ => Self::All(
-                    expressions
-                        .windows(2)
-                        .map(|expressions| {
-                            Ok(Self::Equal(
-                                expressions[0].clone().try_into()?,
-                                expressions[1].clone().try_into()?,
-                            ))
-                        })
-                        .collect::<Result<_, _>>()?,
-                ),
-            },
-            Expression::Ne(expressions) => match expressions.as_slice() {
-                [] | [_] => unimplemented!(),
-                [lhs, rhs] => Self::NotEqual(lhs.clone().try_into()?, rhs.clone().try_into()?),
-                _ => Self::All(
-                    expressions
-                        .windows(2)
-                        .map(|expressions| {
-                            Ok(Self::NotEqual(
-                                expressions[0].clone().try_into()?,
-                                expressions[1].clone().try_into()?,
-                            ))
-                        })
-                        .collect::<Result<_, _>>()?,
-                ),
-            },
-            Expression::All(expressions) => Self::All(
-                expressions
-                    .into_iter()
-                    .map(Self::try_from)
-                    .collect::<Result<_, _>>()?,
-            ),
-            Expression::Any(expressions) => Self::Any(
-                expressions
-                    .into_iter()
-                    .map(Self::try_from)
-                    .collect::<Result<_, _>>()?,
-            ),
-            Expression::Literal(_) | Expression::Path(_) | Expression::Field(_) => unimplemented!(),
-        })
-    }
-}
-
 /// A leaf value in a [`Filter`].
 // TODO: Derive traits when bounds are generated correctly
 //   see https://github.com/rust-lang/rust/issues/26925
@@ -276,35 +222,6 @@ where
             (Self::Parameter(lhs), Self::Parameter(rhs)) => lhs == rhs,
             _ => false,
         }
-    }
-}
-
-impl<'q, T: QueryRecord> TryFrom<Expression> for FilterExpression<'q, T> {
-    type Error = <T::Path<'q> as TryFrom<Path>>::Error;
-
-    fn try_from(expression: Expression) -> Result<Self, Self::Error> {
-        Ok(match expression {
-            Expression::Eq(_)
-            | Expression::Ne(_)
-            | Expression::All(_)
-            | Expression::Any(_)
-            | Expression::Field(_)
-            | Expression::Literal(Literal::Null) => unimplemented!(),
-            Expression::Literal(literal) => FilterExpression::Parameter(Parameter::from(literal)),
-            Expression::Path(path) => FilterExpression::Path(path.try_into()?),
-        })
-    }
-}
-
-impl<'q, T: QueryRecord> TryFrom<Expression> for Option<FilterExpression<'q, T>> {
-    type Error = <T::Path<'q> as TryFrom<Path>>::Error;
-
-    fn try_from(expression: Expression) -> Result<Self, Self::Error> {
-        Ok(if let Expression::Literal(Literal::Null) = expression {
-            None
-        } else {
-            Some(FilterExpression::try_from(expression)?)
-        })
     }
 }
 
@@ -420,73 +337,13 @@ impl fmt::Display for Parameter<'_> {
     }
 }
 
-impl From<Literal> for Parameter<'_> {
-    fn from(literal: Literal) -> Self {
-        match literal {
-            Literal::Bool(bool) => Parameter::Boolean(bool),
-            Literal::String(string) => Parameter::Text(Cow::Owned(string)),
-            Literal::Float(float) => Parameter::Number(float),
-            Literal::Null | Literal::List(_) | Literal::Version(..) => unimplemented!(),
-        }
-    }
-}
-
-impl From<Literal> for Option<Parameter<'_>> {
-    fn from(literal: Literal) -> Self {
-        if let Literal::Null = literal {
-            None
-        } else {
-            Some(Parameter::from(literal))
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use serde_json::json;
-    use type_system::{
-        uri::{BaseUri, VersionedUri},
-        DataType,
-    };
+    use type_system::DataType;
 
     use super::*;
     use crate::ontology::DataTypeQueryPath;
-
-    #[test]
-    fn convert_expression() {
-        assert_eq!(
-            Filter::try_from(Expression::for_latest_version())
-                .expect("could not convert expression"),
-            Filter::Equal(
-                Some(FilterExpression::<DataType>::Path(
-                    DataTypeQueryPath::Version
-                )),
-                Some(FilterExpression::<DataType>::Parameter(Parameter::Text(
-                    Cow::Borrowed("latest")
-                ))),
-            )
-        );
-
-        let versioned_id = VersionedUri::new(
-            BaseUri::new(
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
-            )
-            .expect("invalid base uri"),
-            1,
-        );
-        assert_eq!(
-            Filter::try_from(Expression::for_versioned_uri(&versioned_id))
-                .expect("could not convert expression"),
-            Filter::Equal(
-                Some(FilterExpression::<DataType>::Path(
-                    DataTypeQueryPath::VersionedUri
-                )),
-                Some(FilterExpression::<DataType>::Parameter(Parameter::Text(
-                    Cow::Owned(versioned_id.to_string())
-                ))),
-            )
-        );
-    }
 
     #[test]
     fn deserialize() {
