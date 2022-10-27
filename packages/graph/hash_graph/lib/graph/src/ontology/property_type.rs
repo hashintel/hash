@@ -9,7 +9,7 @@ use type_system::PropertyType;
 
 use crate::{
     ontology::{data_type::DataTypeQueryPathVisitor, DataTypeQueryPath, Selector},
-    store::query::{OntologyPath, Path, QueryRecord},
+    store::query::{OntologyPath, ParameterType, Path, QueryRecord, RecordPath},
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -27,6 +27,10 @@ pub enum PropertyTypeQueryPath {
     Description,
     DataTypes(DataTypeQueryPath),
     PropertyTypes(Box<Self>),
+}
+
+impl QueryRecord for PropertyType {
+    type Path<'q> = PropertyTypeQueryPath;
 }
 
 impl OntologyPath for PropertyTypeQueryPath {
@@ -51,8 +55,42 @@ impl OntologyPath for PropertyTypeQueryPath {
     }
 }
 
-impl QueryRecord for PropertyType {
-    type Path<'q> = PropertyTypeQueryPath;
+impl RecordPath for PropertyTypeQueryPath {
+    fn expected_type(&self) -> ParameterType {
+        match self {
+            Self::VersionId | Self::OwnedById | Self::CreatedById | Self::UpdatedById => {
+                ParameterType::Uuid
+            }
+            Self::RemovedById => ParameterType::Uuid,
+            Self::Schema => ParameterType::Any,
+            Self::BaseUri => ParameterType::BaseUri,
+            Self::VersionedUri => ParameterType::VersionedUri,
+            Self::Version => ParameterType::UnsignedInteger,
+            Self::Title | Self::Description => ParameterType::Text,
+            Self::DataTypes(path) => path.expected_type(),
+            Self::PropertyTypes(path) => path.expected_type(),
+        }
+    }
+}
+
+impl fmt::Display for PropertyTypeQueryPath {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::VersionId => fmt.write_str("versionId"),
+            Self::OwnedById => fmt.write_str("ownedById"),
+            Self::CreatedById => fmt.write_str("createdById"),
+            Self::UpdatedById => fmt.write_str("updatedById"),
+            Self::RemovedById => fmt.write_str("removedById"),
+            Self::Schema => fmt.write_str("schema"),
+            Self::BaseUri => fmt.write_str("baseUri"),
+            Self::VersionedUri => fmt.write_str("versionedUri"),
+            Self::Version => fmt.write_str("version"),
+            Self::Title => fmt.write_str("title"),
+            Self::Description => fmt.write_str("description"),
+            Self::DataTypes(path) => write!(fmt, "dataTypes.{path}"),
+            Self::PropertyTypes(path) => write!(fmt, "propertyTypes.{path}"),
+        }
+    }
 }
 
 impl TryFrom<Path> for PropertyTypeQueryPath {

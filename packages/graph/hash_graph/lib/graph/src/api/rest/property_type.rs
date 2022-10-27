@@ -25,7 +25,7 @@ use crate::{
     provenance::{CreatedById, OwnedById, UpdatedById},
     shared::identifier::GraphElementIdentifier,
     store::{
-        query::Expression, BaseUriAlreadyExists, BaseUriDoesNotExist, PropertyTypeStore, StorePool,
+        query::Filter, BaseUriAlreadyExists, BaseUriDoesNotExist, PropertyTypeStore, StorePool,
     },
     subgraph::{
         EdgeKind, Edges, GraphResolveDepths, OutwardEdge, StructuralQuery, Subgraph, Vertex,
@@ -205,7 +205,7 @@ where
 async fn get_latest_property_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<PersistedPropertyType>>, StatusCode> {
-    read_from_store(pool.as_ref(), &Expression::for_latest_version())
+    read_from_store(pool.as_ref(), &Filter::<PropertyType>::for_latest_version())
         .await
         .map(Json)
 }
@@ -229,10 +229,13 @@ async fn get_property_type<P: StorePool + Send>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<PersistedPropertyType>, StatusCode> {
-    read_from_store(pool.as_ref(), &Expression::for_versioned_uri(&uri.0))
-        .await
-        .and_then(|mut property_types| property_types.pop().ok_or(StatusCode::NOT_FOUND))
-        .map(Json)
+    read_from_store(
+        pool.as_ref(),
+        &Filter::<PropertyType>::for_versioned_uri(&uri.0),
+    )
+    .await
+    .and_then(|mut property_types| property_types.pop().ok_or(StatusCode::NOT_FOUND))
+    .map(Json)
 }
 
 #[derive(ToSchema, Serialize, Deserialize)]

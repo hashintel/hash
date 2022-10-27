@@ -27,7 +27,10 @@ use crate::{
         PersistedPropertyType,
     },
     provenance::{CreatedById, OwnedById, RemovedById, UpdatedById},
-    store::{error::LinkRemovalError, query::Expression},
+    store::{
+        error::LinkRemovalError,
+        query::{Expression, Filter},
+    },
     subgraph::{StructuralQuery, Subgraph},
 };
 
@@ -203,7 +206,9 @@ pub trait AccountStore {
 
 /// Describes the API of a store implementation for [`DataType`]s.
 #[async_trait]
-pub trait DataTypeStore: for<'q> crud::Read<PersistedDataType, Query<'q> = Expression> {
+pub trait DataTypeStore:
+    for<'q> crud::Read<PersistedDataType, Query<'q> = Filter<'q, DataType>>
+{
     /// Creates a new [`DataType`].
     ///
     /// # Errors:
@@ -241,7 +246,7 @@ pub trait DataTypeStore: for<'q> crud::Read<PersistedDataType, Query<'q> = Expre
 /// Describes the API of a store implementation for [`PropertyType`]s.
 #[async_trait]
 pub trait PropertyTypeStore:
-    for<'q> crud::Read<PersistedPropertyType, Query<'q> = Expression>
+    for<'q> crud::Read<PersistedPropertyType, Query<'q> = Filter<'q, PropertyType>>
 {
     /// Creates a new [`PropertyType`].
     ///
@@ -279,7 +284,9 @@ pub trait PropertyTypeStore:
 
 /// Describes the API of a store implementation for [`EntityType`]s.
 #[async_trait]
-pub trait EntityTypeStore: for<'q> crud::Read<PersistedEntityType, Query<'q> = Expression> {
+pub trait EntityTypeStore:
+    for<'q> crud::Read<PersistedEntityType, Query<'q> = Filter<'q, EntityType>>
+{
     /// Creates a new [`EntityType`].
     ///
     /// # Errors:
@@ -316,7 +323,9 @@ pub trait EntityTypeStore: for<'q> crud::Read<PersistedEntityType, Query<'q> = E
 
 /// Describes the API of a store implementation for [`LinkType`]s.
 #[async_trait]
-pub trait LinkTypeStore: for<'q> crud::Read<PersistedLinkType, Query<'q> = Expression> {
+pub trait LinkTypeStore:
+    for<'q> crud::Read<PersistedLinkType, Query<'q> = Filter<'q, LinkType>>
+{
     /// Creates a new [`LinkType`].
     ///
     /// # Errors:

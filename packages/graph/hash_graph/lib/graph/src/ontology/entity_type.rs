@@ -12,7 +12,7 @@ use crate::{
         link_type::LinkTypeQueryPathVisitor, property_type::PropertyTypeQueryPathVisitor,
         LinkTypeQueryPath, PropertyTypeQueryPath, Selector,
     },
-    store::query::{OntologyPath, Path, QueryRecord},
+    store::query::{OntologyPath, ParameterType, Path, QueryRecord, RecordPath},
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -59,6 +59,51 @@ impl OntologyPath for EntityTypeQueryPath {
 
     fn description() -> Self {
         Self::Description
+    }
+}
+
+impl RecordPath for EntityTypeQueryPath {
+    fn expected_type(&self) -> ParameterType {
+        match self {
+            Self::VersionId | Self::OwnedById | Self::CreatedById | Self::UpdatedById => {
+                ParameterType::Uuid
+            }
+            Self::RemovedById => ParameterType::Uuid,
+            Self::Schema => ParameterType::Any,
+            Self::BaseUri => ParameterType::BaseUri,
+            Self::VersionedUri => ParameterType::VersionedUri,
+            Self::Version => ParameterType::UnsignedInteger,
+            Self::Title | Self::Description => ParameterType::Text,
+            Self::Default | Self::Examples | Self::Required | Self::RequiredLinks => {
+                ParameterType::Any
+            }
+            Self::Properties(path) => path.expected_type(),
+            Self::Links(path) => path.expected_type(),
+        }
+    }
+}
+
+impl fmt::Display for EntityTypeQueryPath {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::VersionId => fmt.write_str("versionId"),
+            Self::OwnedById => fmt.write_str("ownedById"),
+            Self::CreatedById => fmt.write_str("createdById"),
+            Self::UpdatedById => fmt.write_str("updatedById"),
+            Self::RemovedById => fmt.write_str("removedById"),
+            Self::Schema => fmt.write_str("schema"),
+            Self::BaseUri => fmt.write_str("baseUri"),
+            Self::VersionedUri => fmt.write_str("versionedUri"),
+            Self::Version => fmt.write_str("version"),
+            Self::Title => fmt.write_str("title"),
+            Self::Description => fmt.write_str("description"),
+            Self::Default => fmt.write_str("default"),
+            Self::Examples => fmt.write_str("examples"),
+            Self::Properties(path) => write!(fmt, "properties.{path}"),
+            Self::Required => fmt.write_str("required"),
+            Self::Links(path) => write!(fmt, "links.{path}"),
+            Self::RequiredLinks => fmt.write_str("requiredLinks"),
+        }
     }
 }
 
