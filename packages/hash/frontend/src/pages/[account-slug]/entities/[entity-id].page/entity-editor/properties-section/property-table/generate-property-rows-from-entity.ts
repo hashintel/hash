@@ -1,5 +1,6 @@
 import { PropertyType } from "@blockprotocol/type-system-web";
 import { capitalize } from "@mui/material";
+import { isPlainObject } from "lodash";
 import { TableExpandStatus } from "../../../../../../../components/GlideGlid/utils";
 import {
   getPersistedDataType,
@@ -67,7 +68,7 @@ const generateRowDataFromPropertyTypeBaseUri = ({
 
   const children: PropertyRow[] = [];
 
-  if (typeof value === "object" && !Array.isArray(value)) {
+  if (isPlainObject(value)) {
     for (const subPropertyTypeBaseUri of Object.keys(value)) {
       children.push(
         generateRowDataFromPropertyTypeBaseUri({

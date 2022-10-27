@@ -1,11 +1,14 @@
 import {
+  CustomCell,
   DrawCustomCellCallback,
   DrawHeaderCallback,
   GridCellKind,
   GridColumn,
 } from "@glideapps/glide-data-grid";
+import type { DrawArgs } from "@glideapps/glide-data-grid/dist/ts/data-grid/cells/cell-types";
 import { useTheme } from "@mui/material";
 import { useCallback } from "react";
+import { CustomGridIcon } from "./custom-grid-icons";
 
 type TableSortType = "asc" | "desc";
 
@@ -190,4 +193,47 @@ export const roundRect = (
   if (stroke) {
     ctx.stroke();
   }
+};
+
+export const drawChipWithIcon = (
+  args: DrawArgs<CustomCell>,
+  text: string,
+  left: number,
+  textColor?: string,
+  bgColor?: string,
+) => {
+  const { ctx, rect, theme } = args;
+  const yCenter = rect.y + rect.height / 2 + 2;
+
+  const height = 26;
+  const chipTop = yCenter - height / 2;
+  const paddingX = 12;
+  const iconSize = 10;
+  const gap = 6;
+
+  const iconLeft = left + paddingX;
+  const textLeft = iconSize + gap + iconLeft;
+
+  const textWidth = ctx.measureText(text).width;
+  const chipWidth = iconSize + gap + textWidth + 2 * paddingX;
+
+  ctx.fillStyle = bgColor ?? theme.bgBubble;
+  ctx.beginPath();
+  roundRect(ctx, left, chipTop, chipWidth, height, height / 2, true, false);
+  ctx.fill();
+
+  args.spriteManager.drawSprite(
+    CustomGridIcon.ASTERISK,
+    "normal",
+    ctx,
+    iconLeft,
+    yCenter - iconSize / 2,
+    iconSize,
+    { ...theme, fgIconHeader: textColor ?? theme.textBubble },
+  );
+
+  ctx.fillStyle = textColor ?? theme.textBubble;
+  ctx.fillText(text, textLeft, yCenter);
+
+  return chipWidth;
 };
