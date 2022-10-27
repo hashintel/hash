@@ -4,7 +4,7 @@ use error_stack::Report;
 use serde::de;
 
 use crate::{
-    knowledge::Entity,
+    knowledge::{Entity, LinkQueryPath},
     ontology::EntityTypeQueryPath,
     store::query::{ParameterType, Path, QueryRecord, RecordPath},
 };
@@ -19,6 +19,8 @@ pub enum EntityQueryPath<'q> {
     Version,
     Type(EntityTypeQueryPath),
     Properties(Option<Cow<'q, str>>),
+    IncomingLinks(Box<LinkQueryPath<'q>>),
+    OutgoingLinks(Box<LinkQueryPath<'q>>),
 }
 
 impl QueryRecord for Entity {
@@ -37,6 +39,8 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::Type(path) => write!(fmt, "type.{path}"),
             Self::Properties(Some(property)) => write!(fmt, "properties.{property}"),
             Self::Properties(None) => fmt.write_str("properties"),
+            Self::IncomingLinks(link) => write!(fmt, "incomingLinks.{link}"),
+            Self::OutgoingLinks(link) => write!(fmt, "outgoingLinks.{link}"),
         }
     }
 }
@@ -51,6 +55,7 @@ impl RecordPath for EntityQueryPath<'_> {
             Self::Version => ParameterType::Timestamp,
             Self::Type(path) => path.expected_type(),
             Self::Properties(_) => ParameterType::Any,
+            Self::IncomingLinks(path) | Self::OutgoingLinks(path) => path.expected_type(),
         }
     }
 }

@@ -35,6 +35,16 @@ impl Path for EntityQueryPath<'_> {
             Self::Type(path) => once((TableName::Entities, EdgeJoinDirection::SourceOnTarget))
                 .chain(path.tables())
                 .collect(),
+            Self::OutgoingLinks(path) => {
+                once((TableName::Entities, EdgeJoinDirection::SourceOnTarget))
+                    .chain(path.tables())
+                    .collect()
+            }
+            Self::IncomingLinks(path) => {
+                once((TableName::Entities, EdgeJoinDirection::TargetOnSource))
+                    .chain(path.tables())
+                    .collect()
+            }
             _ => vec![(
                 self.terminating_table_name(),
                 EdgeJoinDirection::SourceOnTarget,
@@ -52,6 +62,7 @@ impl Path for EntityQueryPath<'_> {
             | Self::Version
             | Self::Properties(_) => TableName::Entities,
             Self::Type(path) => path.terminating_table_name(),
+            Self::IncomingLinks(path) | Self::OutgoingLinks(path) => path.terminating_table_name(),
         }
     }
 
@@ -83,6 +94,7 @@ impl Path for EntityQueryPath<'_> {
                     field: path.as_ref(),
                 },
             ),
+            Self::IncomingLinks(path) | Self::OutgoingLinks(path) => path.column_access(),
         }
     }
 
