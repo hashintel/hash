@@ -7,7 +7,7 @@ use serde::{
 };
 use type_system::LinkType;
 
-use crate::store::query::{OntologyPath, Path, QueryRecord};
+use crate::store::query::{OntologyPath, ParameterType, Path, QueryRecord, RecordPath};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum LinkTypeQueryPath {
@@ -23,6 +23,10 @@ pub enum LinkTypeQueryPath {
     Title,
     Description,
     RelatedKeywords,
+}
+
+impl QueryRecord for LinkType {
+    type Path<'q> = LinkTypeQueryPath;
 }
 
 impl OntologyPath for LinkTypeQueryPath {
@@ -47,8 +51,39 @@ impl OntologyPath for LinkTypeQueryPath {
     }
 }
 
-impl QueryRecord for LinkType {
-    type Path<'q> = LinkTypeQueryPath;
+impl RecordPath for LinkTypeQueryPath {
+    fn expected_type(&self) -> ParameterType {
+        match self {
+            Self::VersionId | Self::OwnedById | Self::CreatedById | Self::UpdatedById => {
+                ParameterType::Uuid
+            }
+            Self::RemovedById => ParameterType::Uuid,
+            Self::BaseUri => ParameterType::BaseUri,
+            Self::VersionedUri => ParameterType::VersionedUri,
+            Self::Version => ParameterType::UnsignedInteger,
+            Self::Title | Self::Description => ParameterType::Text,
+            Self::Schema | Self::RelatedKeywords => ParameterType::Any,
+        }
+    }
+}
+
+impl fmt::Display for LinkTypeQueryPath {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::VersionId => fmt.write_str("versionId"),
+            Self::OwnedById => fmt.write_str("ownedById"),
+            Self::CreatedById => fmt.write_str("createdById"),
+            Self::UpdatedById => fmt.write_str("updatedById"),
+            Self::RemovedById => fmt.write_str("removedById"),
+            Self::Schema => fmt.write_str("schema"),
+            Self::BaseUri => fmt.write_str("baseUri"),
+            Self::VersionedUri => fmt.write_str("versionedUri"),
+            Self::Version => fmt.write_str("version"),
+            Self::Title => fmt.write_str("title"),
+            Self::Description => fmt.write_str("description"),
+            Self::RelatedKeywords => fmt.write_str("relatedKeywords"),
+        }
+    }
 }
 
 impl TryFrom<Path> for LinkTypeQueryPath {

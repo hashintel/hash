@@ -264,6 +264,8 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
                     Parameter::Number(number) => self.artifacts.parameters.push(number),
                     Parameter::Text(text) => self.artifacts.parameters.push(text),
                     Parameter::Boolean(bool) => self.artifacts.parameters.push(bool),
+                    Parameter::Uuid(uuid) => self.artifacts.parameters.push(uuid),
+                    Parameter::SignedInteger(integer) => self.artifacts.parameters.push(integer),
                 }
                 Expression::Parameter(self.artifacts.parameters.len())
             }
