@@ -119,7 +119,7 @@ const Page: NextPageWithLayout = () => {
   ) : (
     <Container sx={{ pt: 10 }}>
       Hello!
-      <ExampleUsage accountId={user.accountId} />
+      <ExampleUsage accountId={user.entityId} />
     </Container>
   );
 };

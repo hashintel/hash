@@ -120,7 +120,7 @@ export const LoginModal: FunctionComponent<LoginModalProps> = ({
 
   if (currentUser) {
     // Redirect logged in user to their account page
-    void router.push(`/${currentUser.accountId}`);
+    void router.push(`/${currentUser.entityId}`);
   }
 
   const [sendLoginCodeFn, { loading: sendLoginCodeLoading }] = useMutation<

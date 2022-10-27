@@ -7,14 +7,14 @@ import {
   bindTrigger,
 } from "material-ui-popup-state/hooks";
 import { Avatar, Menu } from "@hashintel/hash-design-system";
-import { UserFieldsFragment } from "../../../graphql/apiTypes.gen";
 import { MenuItem } from "../../ui";
 import { HeaderIconButton } from "./shared/header-icon-button";
+import { User } from "../../../components/shared/user.util";
 
 type AccountDropdownProps = {
   avatar?: string;
   logout: () => void;
-  user: UserFieldsFragment;
+  user: User;
 };
 
 export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({

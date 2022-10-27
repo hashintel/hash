@@ -4,6 +4,7 @@ import {
   GraphApi,
   StructuralQuery,
   Vertex,
+  Subgraph,
 } from "@hashintel/hash-graph-client";
 
 import {
@@ -539,5 +540,36 @@ export default class {
     });
 
     return outgoingLinks;
+  }
+
+  /**
+   * Get subgraph rooted at the entity.
+   */
+  async getRootedSubgraph(
+    graphApi: GraphApi,
+    params: {
+      linkResolveDepth: number;
+      linkTargetEntityResolveDepth: number;
+    },
+  ): Promise<Subgraph> {
+    const query = {
+      all: [
+        { eq: [{ path: ["version"] }, { literal: "latest" }] },
+        { eq: [{ path: ["id"] }, { literal: this.entityId }] },
+      ],
+    };
+
+    const { data: entitySubgraph } = await graphApi.getEntitiesByQuery({
+      query,
+      graphResolveDepths: {
+        dataTypeResolveDepth: 0,
+        propertyTypeResolveDepth: 0,
+        linkTypeResolveDepth: 0,
+        entityTypeResolveDepth: 0,
+        ...params,
+      },
+    });
+
+    return entitySubgraph;
   }
 }

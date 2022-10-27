@@ -36,13 +36,13 @@ export const WorkspaceSwitcher: FunctionComponent<
   const activeWorkspace = useMemo(() => {
     let accountName = "";
 
-    if (user && accountId === user.accountId) {
+    if (user && accountId === user.entityId) {
       // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- @todo how to handle empty preferredName
       accountName = user.preferredName || user.shortname!;
     } else {
       const activeOrg = user?.memberOf.find(
-        ({ org }) => org.accountId === accountId,
-      )?.org;
+        ({ entityId }) => entityId === accountId,
+      );
 
       if (activeOrg) {
         accountName = activeOrg.name;
@@ -59,18 +59,18 @@ export const WorkspaceSwitcher: FunctionComponent<
 
     return [
       {
-        key: user.accountId,
-        url: `/${user.accountId}`,
+        key: user.entityId,
+        url: `/${user.entityId}`,
         title: "My personal workspace",
         subText: `@${user.shortname ?? "user"}`,
         avatarTitle: user.preferredName ?? "U",
       },
-      ...user.memberOf.map(({ org }) => ({
-        key: org.accountId,
-        url: `/${org.accountId}`,
-        title: org.name,
-        subText: `${org.memberships.length} members`,
-        avatarTitle: org.name,
+      ...user.memberOf.map(({ entityId, name, numberOfMembers }) => ({
+        key: entityId,
+        url: `/${entityId}`,
+        title: name,
+        subText: `${numberOfMembers} members`,
+        avatarTitle: name,
       })),
     ];
   }, [user]);

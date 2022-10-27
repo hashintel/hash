@@ -84,9 +84,7 @@ const App: FunctionComponent<AppProps> = ({
               <RoutePageInfoProvider>
                 <ReadonlyModeProvider>
                   <SnackbarProvider maxSnack={3}>
-                    <TypeSystemContextProvider>
-                      {getLayout(<Component {...pageProps} />)}
-                    </TypeSystemContextProvider>
+                    {getLayout(<Component {...pageProps} />)}
                   </SnackbarProvider>
                 </ReadonlyModeProvider>
               </RoutePageInfoProvider>
@@ -98,4 +96,12 @@ const App: FunctionComponent<AppProps> = ({
   );
 };
 
-export default withTwindApp(twindConfig, App);
+const AppWithTypeSystemContextProvider: FunctionComponent<AppProps> = (
+  props,
+) => (
+  <TypeSystemContextProvider>
+    <App {...props} />
+  </TypeSystemContextProvider>
+);
+
+export default withTwindApp(twindConfig, AppWithTypeSystemContextProvider);

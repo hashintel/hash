@@ -36,7 +36,7 @@ const Page: NextPageWithLayout = () => {
     );
   }
 
-  const ownWorkspace = accountId === user.accountId;
+  const ownWorkspace = accountId === user.entityId;
 
   const thisOrg = ownWorkspace
     ? undefined

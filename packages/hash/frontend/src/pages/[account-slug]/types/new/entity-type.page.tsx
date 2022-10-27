@@ -19,7 +19,7 @@ import { useRouter } from "next/router";
 import { ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { useBlockProtocolGetEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
-import { useLoggedInUser } from "../../../../components/hooks/useUser";
+import { useUser } from "../../../../components/hooks/useUser";
 import { FRONTEND_URL } from "../../../../lib/config";
 import { useInitTypeSystem } from "../../../../lib/use-init-type-system";
 import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
@@ -73,17 +73,12 @@ const Page: NextPageWithLayout = () => {
   });
 
   const router = useRouter();
-  const { user, loading } = useLoggedInUser({
-    onCompleted(data) {
-      if (typeof window !== "undefined") {
-        void router.replace(`/@${data.me.shortname}/types/new/entity-type`);
-      }
-    },
-  });
+  const { user, loading } = useUser();
+
   const { getEntityType } = useBlockProtocolGetEntityType();
 
   if (user && router.query["account-slug"] !== `@${user.shortname}`) {
-    throw new Error("Workspaces not yet supported");
+    void router.replace(`/@${user.shortname}/types/new/entity-type`);
   }
 
   if (typeSystemLoading || loading || !user) {

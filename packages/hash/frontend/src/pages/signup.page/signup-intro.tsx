@@ -39,7 +39,7 @@ export const SignupIntro: FunctionComponent<SignupIntroProps> = ({
 
   useEffect(() => {
     if (user?.accountSignupComplete) {
-      void router.push(`/${user.accountId}`);
+      void router.push(`/${user.entityId}`);
     }
   }, [user, router]);
 

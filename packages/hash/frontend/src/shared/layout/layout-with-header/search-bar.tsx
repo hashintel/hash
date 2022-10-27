@@ -165,8 +165,8 @@ const SearchBarWhenSearchIsEnabled: FunctionComponent = () => {
     SearchPagesQuery,
     SearchPagesQueryVariables
   >(searchPages, {
-    variables: { accountId: user?.accountId!, query: submittedQuery },
-    skip: !user?.accountId || !submittedQuery,
+    variables: { accountId: user!.entityId, query: submittedQuery },
+    skip: !user?.entityId || !submittedQuery,
     fetchPolicy: "network-only",
   });
 

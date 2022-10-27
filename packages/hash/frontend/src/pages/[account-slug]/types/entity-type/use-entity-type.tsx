@@ -27,7 +27,7 @@ export const useEntityType = (
   const { user } = useUser();
   const { createEntityType } = useBlockProtocolCreateEntityType(
     // @todo should use routing URL?
-    user?.accountId ?? "",
+    user?.entityId ?? "",
   );
   const [typeSystemLoading, loadTypeSystem] = useAdvancedInitTypeSystem();
 

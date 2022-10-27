@@ -157,7 +157,7 @@ const ExampleEntityEditorPage: NextPageWithLayout = () => {
     <Container sx={{ pt: 10 }}>Loading...</Container>
   ) : (
     <Container sx={{ pt: 10 }}>
-      <ExampleUsage ownedById={user.accountId} />
+      <ExampleUsage ownedById={user.entityId} />
     </Container>
   );
 };
