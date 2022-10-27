@@ -26,7 +26,7 @@ pub use self::{
     statement::{SelectStatement, Statement, WindowStatement},
     table::{Column, ColumnAccess, Table, TableAlias, TableName},
 };
-use crate::store::query::QueryRecord;
+use crate::store::{postgres::query::expression::EdgeJoinDirection, query::QueryRecord};
 
 pub trait PostgresQueryRecord<'q>: QueryRecord<Path<'q>: Path> {
     /// The [`Table`] used for this `Query`.
@@ -39,7 +39,7 @@ pub trait PostgresQueryRecord<'q>: QueryRecord<Path<'q>: Path> {
 /// An absolute path inside of a query pointing to an attribute.
 pub trait Path {
     /// Returns a list of [`TableName`]s required to traverse this path.
-    fn tables(&self) -> Vec<TableName>;
+    fn tables(&self) -> Vec<(TableName, EdgeJoinDirection)>;
 
     /// The [`TableName`] that marks the end of the path.
     fn terminating_table_name(&self) -> TableName;
