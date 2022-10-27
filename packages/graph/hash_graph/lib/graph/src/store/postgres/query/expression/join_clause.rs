@@ -1,6 +1,8 @@
 use std::fmt;
 
-use crate::store::postgres::query::{Condition, Expression, Table, Transpile};
+use crate::store::postgres::query::{
+    Column, ColumnAccess, Condition, Expression, Table, TableName, Transpile,
+};
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct JoinExpression<'q> {
@@ -21,6 +23,39 @@ pub enum EdgeJoinDirection {
 impl<'q> JoinExpression<'q> {
     #[must_use]
     pub const fn from_tables(join: Table, on: Table, direction: EdgeJoinDirection) -> Self {
+        // Crossing the boundaries of ontology <-> Knowledge requires special casing
+        match (join.name, on.name) {
+            (TableName::Entities, TableName::EntityTypes | TableName::TypeIds) => {
+                return Self {
+                    join,
+                    on: Condition::Equal(
+                        Some(Expression::Column(Column {
+                            table: join,
+                            access: ColumnAccess::Table {
+                                column: "entity_type_version_id",
+                            },
+                        })),
+                        Some(Expression::Column(on.target_join_column())),
+                    ),
+                };
+            }
+            (TableName::EntityTypes | TableName::TypeIds, TableName::Entities) => {
+                return Self {
+                    join,
+                    on: Condition::Equal(
+                        Some(Expression::Column(join.source_join_column())),
+                        Some(Expression::Column(Column {
+                            table: on,
+                            access: ColumnAccess::Table {
+                                column: "entity_type_version_id",
+                            },
+                        })),
+                    ),
+                };
+            }
+            _ => {}
+        }
+
         let condition = match direction {
             EdgeJoinDirection::SourceOnTarget => Condition::Equal(
                 Some(Expression::Column(join.source_join_column())),

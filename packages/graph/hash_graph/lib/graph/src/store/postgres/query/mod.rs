@@ -5,6 +5,7 @@
 mod compile;
 mod condition;
 mod data_type;
+mod entity;
 mod entity_type;
 mod expression;
 mod link_type;
