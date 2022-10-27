@@ -320,12 +320,15 @@ impl Parameter<'_> {
             }
             (Parameter::Text(_base_uri), ParameterType::BaseUri) => {
                 // TODO: validate base uri
+                //   see https://app.asana.com/0/1202805690238892/1203225514907875/f
             }
             (Parameter::Text(_versioned_uri), ParameterType::VersionedUri) => {
                 // TODO: validate versioned uri
+                //   see https://app.asana.com/0/1202805690238892/1203225514907875/f
             }
             (_, ParameterType::Timestamp) => {
                 // TODO: validate timestamps
+                //   see https://app.asana.com/0/1202805690238892/1203225514907875/f
             }
             (Parameter::Text(text), ParameterType::Uuid) => {
                 *self = Parameter::Uuid(Uuid::from_str(&*text).into_report().change_context_lazy(
