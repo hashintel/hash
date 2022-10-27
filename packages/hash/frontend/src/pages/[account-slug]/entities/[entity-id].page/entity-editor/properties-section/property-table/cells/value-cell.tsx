@@ -26,6 +26,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
     const yCenter = y + height / 2 + 2;
 
     ctx.fillStyle = theme.textHeader;
+    ctx.font = theme.baseFontStyle;
     ctx.fillText(property.value, x + theme.cellHorizontalPadding, yCenter);
   },
   provideEditor: () => {

@@ -51,7 +51,7 @@ export const useDrawHeader = <T extends string>(
 
   const drawHeader: DrawHeaderCallback = useCallback(
     (args) => {
-      const { ctx, rect, column, columnIndex } = args;
+      const { ctx, rect, column, columnIndex, theme } = args;
       const { x, y, height } = rect;
 
       const paddingLeft =
@@ -62,6 +62,7 @@ export const useDrawHeader = <T extends string>(
 
       // draw text
       ctx.fillStyle = palette.gray[80];
+      ctx.font = theme.headerFontStyle;
       ctx.fillText(column.title, x + paddingLeft, centerY);
 
       const columnKey = columns[columnIndex]?.id;

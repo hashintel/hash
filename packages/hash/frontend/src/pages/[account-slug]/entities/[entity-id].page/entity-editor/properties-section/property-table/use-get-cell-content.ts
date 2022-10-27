@@ -55,7 +55,8 @@ export const useGetCellContent = (
           return {
             kind: GridCellKind.Custom,
             allowOverlay: true,
-            copyData: "",
+            readonly: true,
+            copyData: String(property.dataTypes),
             data: {
               kind: "data-type-cell",
               property,

@@ -29,8 +29,8 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
       accentLight: "transparent", // cell highlight color
       bgHeaderHovered: palette.white,
       cellHorizontalPadding: columnPadding,
-      baseFontStyle: "500 14px",
-      headerFontStyle: "600 14px",
+      baseFontStyle: "500 14px inter",
+      headerFontStyle: "600 14px inter",
       editorFontSize: "14px",
     }),
     [palette],
