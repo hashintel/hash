@@ -2,6 +2,7 @@ import {
   LinkStructuralQuery,
   GraphApi,
   PersistedLink,
+  Filter,
 } from "@hashintel/hash-graph-client";
 
 import { EntityModel, LinkModel, LinkTypeModel } from "../index";
@@ -82,7 +83,7 @@ export default class {
 
   static async getByQuery(
     graphApi: GraphApi,
-    filter: object,
+    filter: Filter,
     options?: Omit<Partial<LinkStructuralQuery>, "query">,
   ): Promise<LinkModel[]> {
     const { data: linkRootedSubgraphs } = await graphApi.getLinksByQuery({

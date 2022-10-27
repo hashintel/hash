@@ -4,6 +4,7 @@ import {
   GraphApi,
   Vertex,
   EntityStructuralQuery,
+  Filter,
 } from "@hashintel/hash-graph-client";
 
 import {
@@ -304,7 +305,7 @@ export default class {
 
   static async getByQuery(
     graphApi: GraphApi,
-    filter: object,
+    filter: Filter,
     options?: Omit<Partial<EntityStructuralQuery>, "query">,
   ): Promise<EntityModel[]> {
     const { data: subgraph } = await graphApi.getEntitiesByQuery({
