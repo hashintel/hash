@@ -13,6 +13,8 @@ pub enum TableName {
     PropertyTypes,
     EntityTypes,
     LinkTypes,
+    Entities,
+    Links,
     PropertyTypeDataTypeReferences,
     PropertyTypePropertyTypeReferences,
     EntityTypePropertyTypeReferences,
@@ -28,6 +30,8 @@ impl TableName {
                 | Self::PropertyTypes
                 | Self::EntityTypes
                 | Self::LinkTypes => "version_id",
+                Self::Entities => "entity_id",
+                Self::Links => "source_entity_id",
                 Self::PropertyTypeDataTypeReferences | Self::PropertyTypePropertyTypeReferences => {
                     "source_property_type_version_id"
                 }
@@ -47,6 +51,8 @@ impl TableName {
                 | Self::PropertyTypes
                 | Self::EntityTypes
                 | Self::LinkTypes => "version_id",
+                Self::Entities => "entity_id",
+                Self::Links => "target_entity_id",
                 Self::PropertyTypeDataTypeReferences => "target_data_type_version_id",
                 Self::PropertyTypePropertyTypeReferences
                 | Self::EntityTypePropertyTypeReferences => "target_property_type_version_id",

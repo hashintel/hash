@@ -1,9 +1,12 @@
+mod query;
+
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
 use type_system::uri::VersionedUri;
 use utoipa::ToSchema;
 
+pub use self::query::LinkQueryPath;
 use super::EntityId;
 use crate::provenance::{CreatedById, OwnedById};
 
