@@ -181,7 +181,7 @@ describe("Entity CRU", () => {
   it("can read all latest entities", async () => {
     const allEntityModels = (
       await EntityModel.getByQuery(graphApi, {
-        all: [{ eq: [{ path: ["version"] }, { literal: "latest" }] }],
+        all: [{ equal: [{ path: ["version"] }, { parameter: "latest" }] }],
       })
     ).filter((entity) => entity.ownedById === testUser.entityId);
 

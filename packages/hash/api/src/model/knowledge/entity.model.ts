@@ -2,8 +2,8 @@ import { ApolloError } from "apollo-server-errors";
 import {
   PersistedEntity,
   GraphApi,
-  StructuralQuery,
   Vertex,
+  EntityStructuralQuery,
 } from "@hashintel/hash-graph-client";
 
 import {
@@ -304,11 +304,11 @@ export default class {
 
   static async getByQuery(
     graphApi: GraphApi,
-    query: object,
-    options?: Omit<Partial<StructuralQuery>, "query">,
+    filter: object,
+    options?: Omit<Partial<EntityStructuralQuery>, "query">,
   ): Promise<EntityModel[]> {
     const { data: subgraph } = await graphApi.getEntitiesByQuery({
-      query,
+      filter,
       graphResolveDepths: {
         dataTypeResolveDepth:
           options?.graphResolveDepths?.dataTypeResolveDepth ?? 0,
@@ -493,14 +493,14 @@ export default class {
     const incomingLinks = await LinkModel.getByQuery(graphApi, {
       all: [
         {
-          eq: [{ path: ["target", "id"] }, { literal: this.entityId }],
+          equal: [{ path: ["target", "id"] }, { parameter: this.entityId }],
         },
         params?.linkTypeModel
           ? {
-              eq: [
+              equal: [
                 { path: ["type", "versionedUri"] },
                 {
-                  literal: params.linkTypeModel.schema.$id,
+                  parameter: params.linkTypeModel.schema.$id,
                 },
               ],
             }
@@ -523,14 +523,14 @@ export default class {
     const outgoingLinks = await LinkModel.getByQuery(graphApi, {
       all: [
         {
-          eq: [{ path: ["source", "id"] }, { literal: this.entityId }],
+          equal: [{ path: ["source", "id"] }, { parameter: this.entityId }],
         },
         params?.linkTypeModel
           ? {
-              eq: [
+              equal: [
                 { path: ["type", "versionedUri"] },
                 {
-                  literal: params.linkTypeModel.schema.$id,
+                  parameter: params.linkTypeModel.schema.$id,
                 },
               ],
             }

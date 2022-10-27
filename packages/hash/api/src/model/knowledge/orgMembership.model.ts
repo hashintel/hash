@@ -93,13 +93,13 @@ export default class extends EntityModel {
     const outgoingOrgLinks = await LinkModel.getByQuery(graphApi, {
       all: [
         {
-          eq: [{ path: ["source", "id"] }, { literal: this.entityId }],
+          equal: [{ path: ["source", "id"] }, { parameter: this.entityId }],
         },
         {
-          eq: [
+          equal: [
             { path: ["type", "versionedUri"] },
             {
-              literal: WORKSPACE_TYPES.linkType.ofOrg.schema.$id,
+              parameter: WORKSPACE_TYPES.linkType.ofOrg.schema.$id,
             },
           ],
         },
@@ -130,16 +130,16 @@ export default class extends EntityModel {
   async getUser(graphApi: GraphApi) {
     const { data: incomingOrgMembershipLinks } = await graphApi.getLinksByQuery(
       {
-        query: {
+        filter: {
           all: [
             {
-              eq: [{ path: ["target", "id"] }, { literal: this.entityId }],
+              equal: [{ path: ["target", "id"] }, { parameter: this.entityId }],
             },
             {
-              eq: [
+              equal: [
                 { path: ["type", "versionedUri"] },
                 {
-                  literal: WORKSPACE_TYPES.linkType.hasMembership.schema.$id,
+                  parameter: WORKSPACE_TYPES.linkType.hasMembership.schema.$id,
                 },
               ],
             },
