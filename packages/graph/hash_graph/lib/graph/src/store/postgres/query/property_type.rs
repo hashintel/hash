@@ -5,7 +5,9 @@ use type_system::PropertyType;
 
 use crate::{
     ontology::PropertyTypeQueryPath,
-    store::postgres::query::{ColumnAccess, Path, PostgresQueryRecord, Table, TableName},
+    store::postgres::query::{
+        expression::EdgeJoinDirection, ColumnAccess, Path, PostgresQueryRecord, Table, TableName,
+    },
 };
 
 impl<'q> PostgresQueryRecord<'q> for PropertyType {
@@ -29,15 +31,24 @@ impl<'q> PostgresQueryRecord<'q> for PropertyType {
 }
 
 impl Path for PropertyTypeQueryPath {
-    fn tables(&self) -> Vec<TableName> {
+    fn tables(&self) -> Vec<(TableName, EdgeJoinDirection)> {
         match self {
-            Self::DataTypes(path) => once(TableName::PropertyTypeDataTypeReferences)
-                .chain(path.tables())
-                .collect(),
-            Self::PropertyTypes(path) => once(TableName::PropertyTypePropertyTypeReferences)
-                .chain(path.tables())
-                .collect(),
-            _ => vec![self.terminating_table_name()],
+            Self::DataTypes(path) => once((
+                TableName::PropertyTypeDataTypeReferences,
+                EdgeJoinDirection::SourceOnTarget,
+            ))
+            .chain(path.tables())
+            .collect(),
+            Self::PropertyTypes(path) => once((
+                TableName::PropertyTypePropertyTypeReferences,
+                EdgeJoinDirection::SourceOnTarget,
+            ))
+            .chain(path.tables())
+            .collect(),
+            _ => vec![(
+                self.terminating_table_name(),
+                EdgeJoinDirection::SourceOnTarget,
+            )],
         }
     }
 
