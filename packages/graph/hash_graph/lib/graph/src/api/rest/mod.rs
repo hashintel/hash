@@ -79,9 +79,9 @@ fn report_to_status_code<C>(report: &Report<C>) -> StatusCode {
     status_code
 }
 
-async fn read_from_store<'pool, P, T>(
+async fn read_from_store<'pool, 'q, P, T>(
     pool: &'pool P,
-    query: &<P::Store<'pool> as Read<T>>::Query<'_>,
+    query: &'q <P::Store<'pool> as Read<T>>::Query<'q>,
 ) -> Result<Vec<T>, StatusCode>
 where
     P: StorePool<Store<'pool>: Read<T>>,

@@ -13,6 +13,7 @@ use crate::{
     store::{
         crud::Read,
         postgres::{context::PostgresContext, DependencyContext, DependencyContextRef},
+        query::Filter,
         AsClient, InsertionError, LinkTypeStore, PostgresStore, QueryError, UpdateError,
     },
     subgraph::{StructuralQuery, Subgraph},
@@ -80,7 +81,9 @@ impl<C: AsClient> LinkTypeStore for PostgresStore<C> {
             graph_resolve_depths,
         } = *query;
 
-        let subgraphs = stream::iter(Read::<PersistedLinkType>::read(self, expression).await?)
+        let mut filter = Filter::try_from(expression.clone()).change_context(QueryError)?;
+        filter.convert_parameters().change_context(QueryError)?;
+        let subgraphs = stream::iter(Read::<PersistedLinkType>::read(self, &filter).await?)
             .then(|link_type| async move {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 
