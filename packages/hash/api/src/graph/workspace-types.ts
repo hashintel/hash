@@ -46,6 +46,7 @@ export let WORKSPACE_TYPES: {
 
     // Comment-related
     resolvedAt: PropertyTypeModel;
+    deletedAt: PropertyTypeModel;
   };
   entityType: {
     user: EntityTypeModel;
@@ -482,6 +483,12 @@ const resolvedAtPropertyTypeInitializer = propertyTypeInitializer({
   actorId: workspaceAccountId,
 });
 
+const deletedAtPropertyTypeInitializer = propertyTypeInitializer({
+  ...types.propertyType.deletedAt,
+  possibleValues: [{ primitiveDataType: "text" }],
+  actorId: workspaceAccountId,
+});
+
 const hasTextLinkTypeInitializer = linkTypeInitializer({
   ...types.linkType.hasText,
   actorId: workspaceAccountId,
@@ -497,6 +504,9 @@ const commentEntityTypeInitializer = async (graphApi: GraphApi) => {
 
   const resolvedAtPropertyTypeModel =
     await WORKSPACE_TYPES_INITIALIZERS.propertyType.resolvedAt(graphApi);
+
+  const deletedAtPropertyTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.deletedAt(graphApi);
 
   const hasTextLinkTypeModel =
     await WORKSPACE_TYPES_INITIALIZERS.linkType.hasText(graphApi);
@@ -523,6 +533,9 @@ const commentEntityTypeInitializer = async (graphApi: GraphApi) => {
     properties: [
       {
         propertyTypeModel: resolvedAtPropertyTypeModel,
+      },
+      {
+        propertyTypeModel: deletedAtPropertyTypeModel,
       },
     ],
     outgoingLinks: [
@@ -582,6 +595,7 @@ export const WORKSPACE_TYPES_INITIALIZERS: FlattenAndPromisify<
     tokens: tokensPropertyTypeInitializer,
 
     resolvedAt: resolvedAtPropertyTypeInitializer,
+    deletedAt: deletedAtPropertyTypeInitializer,
   },
   entityType: {
     user: userEntityTypeInitializer,

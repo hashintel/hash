@@ -77,6 +77,7 @@ export const mapCommentModelToGQL = (
   ...mapEntityModelToGQL(commentModel),
   entityType: mapEntityTypeModelToGQL(commentModel.entityTypeModel),
   resolvedAt: commentModel.getResolvedAt(),
+  deletedAt: commentModel.getDeletedAt(),
 });
 
 export type ExternalPersistedBlockResolversGQL =
