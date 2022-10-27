@@ -1,16 +1,10 @@
-## Inspired by: https://github.com/actions-rs/toolchain/issues/216#issuecomment-1291613319
 name: Install Rust toolchain
-description: "Install Rust toolchain, with caching"
+description: "Install Rust toolchain"
 
 inputs:
   toolchain:
-    required: false
+    required: true
     description: "Rust toolchain, e.g. 'stable' or 'nightly'"
-    default: stable
-  cache-key:
-    required: false
-    description: "Extra key to resolve cache"
-    default: ""
 
 runs:
   using: "composite"
@@ -19,17 +13,4 @@ runs:
       run: |
         rustup toolchain install ${{ inputs.toolchain }} --profile minimal --no-self-update
         rustup default ${{ inputs.toolchain }}
-      shell: bash
-
-    - uses: Swatinem/rust-cache@v2
-      with:
-        shared-key: ${{ inputs.cache-key }}
-
-    - name: "Set environment variables used by toolchain"
-      run: |
-        echo CARGO_TERM_COLOR=always >> $GITHUB_ENV
-        echo CARGO_INCREMENTAL=0 >> $GITHUB_ENV
-        echo RUST_BACKTRACE=1 >> $GITHUB_ENV
-
-        rustc --version --verbose
       shell: bash
