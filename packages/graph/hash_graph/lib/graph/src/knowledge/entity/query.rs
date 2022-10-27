@@ -74,7 +74,7 @@ impl<'q> TryFrom<Path> for EntityQueryPath<'q> {
     }
 }
 
-/// A single token in a [`DataTypeQueryPath`].
+/// A single token in a [`EntityQueryPath`].
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum EntityQueryToken {
