@@ -1,7 +1,10 @@
+use std::{fmt::Debug, str::FromStr};
+
 use async_trait::async_trait;
-use error_stack::{bail, Context, Report, Result, ResultExt};
-use futures::{stream, StreamExt, TryStreamExt};
-use type_system::{DataType, EntityType, LinkType, PropertyType};
+use error_stack::{Context, IntoReport, Result, ResultExt};
+use futures::{StreamExt, TryStreamExt};
+use tokio_postgres::GenericClient;
+use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};
 
 use crate::{
     ontology::{
@@ -11,10 +14,11 @@ use crate::{
     store::{
         crud::Read,
         postgres::{
-            context::{OntologyRecord, PostgresContext},
+            context::OntologyRecord,
             ontology::OntologyDatabaseType,
+            query::{PostgresQueryRecord, SelectCompiler},
         },
-        query::{Expression, ExpressionError, Literal, Resolve},
+        query::Filter,
         AsClient, PostgresStore, QueryError,
     },
 };
@@ -93,37 +97,50 @@ impl From<OntologyRecord<EntityType>> for PersistedEntityType {
 #[async_trait]
 impl<C: AsClient, T> Read<T> for PostgresStore<C>
 where
-    T: PersistedOntologyType + From<OntologyRecord<T::Inner>> + Send,
-    T::Inner: OntologyDatabaseType + TryFrom<serde_json::Value, Error: Context> + Send,
-    OntologyRecord<T::Inner>: Resolve<Self> + Sync,
+    T: for<'q> PersistedOntologyType<
+            Inner: PostgresQueryRecord<'q, Path<'q>: Debug + Sync>
+                       + OntologyDatabaseType
+                       + TryFrom<serde_json::Value, Error: Context>
+                       + Send,
+        > + Send,
 {
-    type Query<'q> = Expression;
+    type Query<'q> = Filter<'q, T::Inner>;
 
-    async fn read<'query>(&self, query: &Self::Query<'query>) -> Result<Vec<T>, QueryError> {
-        // TODO: We need to work around collecting all records before filtering
-        //   related: https://app.asana.com/0/1202805690238892/1202923536131158/f
-        stream::iter(
-            self.read_all_ontology_types::<T::Inner>()
-                .await?
-                .collect::<Vec<_>>()
-                .await,
-        )
-        .try_filter_map(|ontology_type| async move {
-            if let Literal::Bool(result) = query
-                .evaluate(&ontology_type, self)
-                .await
-                .change_context(QueryError)?
-            {
-                Ok(result.then(|| T::from(ontology_type)))
-            } else {
-                bail!(
-                    Report::new(ExpressionError)
-                        .attach_printable("does not result in a boolean value")
-                        .change_context(QueryError)
-                );
-            }
-        })
-        .try_collect()
-        .await
+    async fn read<'f: 'q, 'q>(&self, filter: &'f Self::Query<'q>) -> Result<Vec<T>, QueryError> {
+        let mut compiler = SelectCompiler::with_default_selection();
+        compiler.add_filter(filter);
+        let (statement, parameters) = compiler.compile();
+
+        self.as_client()
+            .query_raw(&statement, parameters.iter().copied())
+            .await
+            .into_report()
+            .change_context(QueryError)?
+            .map(|row| row.into_report().change_context(QueryError))
+            .and_then(|row| async move {
+                let versioned_uri = VersionedUri::from_str(row.get(0))
+                    .into_report()
+                    .change_context(QueryError)?;
+                let record = <T::Inner>::try_from(row.get::<_, serde_json::Value>(1))
+                    .into_report()
+                    .change_context(QueryError)?;
+                let owned_by_id = row.get(2);
+                let created_by_id = row.get(3);
+                let updated_by_id = row.get(4);
+                let removed_by_id = row.get(5);
+
+                let identifier = PersistedOntologyIdentifier::new(versioned_uri, owned_by_id);
+                Ok(T::new(
+                    record,
+                    PersistedOntologyMetadata::new(
+                        identifier,
+                        created_by_id,
+                        updated_by_id,
+                        removed_by_id,
+                    ),
+                ))
+            })
+            .try_collect()
+            .await
     }
 }

@@ -16,9 +16,9 @@ use crate::{
 impl<C: AsClient> crud::Read<PersistedLink> for PostgresStore<C> {
     type Query<'q> = Expression;
 
-    async fn read<'query>(
+    async fn read<'f: 'q, 'q>(
         &self,
-        query: &Self::Query<'query>,
+        query: &'f Self::Query<'q>,
     ) -> Result<Vec<PersistedLink>, QueryError> {
         // TODO: We need to work around collecting all records before filtering
         //   related: https://app.asana.com/0/1202805690238892/1202923536131158/f

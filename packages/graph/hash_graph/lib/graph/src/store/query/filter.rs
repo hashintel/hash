@@ -1,12 +1,18 @@
 use std::{
     borrow::Cow,
-    fmt::{Debug, Formatter},
+    fmt,
+    fmt::{Debug, Display, Formatter},
+    str::FromStr,
 };
 
+use error_stack::{bail, ensure, Context, IntoReport, Report, ResultExt};
 use serde::Deserialize;
 use type_system::uri::VersionedUri;
+use uuid::Uuid;
 
-use crate::store::query::{Expression, Literal, OntologyPath, Path, QueryRecord};
+use crate::store::query::{
+    Expression, Literal, OntologyPath, ParameterType, Path, QueryRecord, RecordPath,
+};
 
 /// A set of conditions used for queries.
 #[derive(Deserialize)]
@@ -57,13 +63,43 @@ where
             ),
             Self::Equal(
                 Some(FilterExpression::Path(<T::Path<'q>>::version())),
-                // TODO: Change to `SignedInteger` when #1255 merged
-                //   see https://app.asana.com/0/1200211978612931/1203205825668105/f
-                Some(FilterExpression::Parameter(Parameter::Number(
+                Some(FilterExpression::Parameter(Parameter::SignedInteger(
                     versioned_uri.version().into(),
                 ))),
             ),
         ])
+    }
+}
+
+impl<'q, T: QueryRecord> Filter<'q, T>
+where
+    T::Path<'q>: Display,
+{
+    /// Converts the contained [`Parameter`]s to match the type of a [`Path`].
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ParameterConversionError`] if conversion fails.
+    pub fn convert_parameters(&mut self) -> Result<(), Report<ParameterConversionError>> {
+        match self {
+            Self::All(filters) | Self::Any(filters) => {
+                filters.iter_mut().try_for_each(Self::convert_parameters)?;
+            }
+            Self::Not(filter) => filter.convert_parameters()?,
+            Self::Equal(lhs, rhs) | Self::NotEqual(lhs, rhs) => match (lhs, rhs) {
+                (
+                    Some(FilterExpression::Parameter(parameter)),
+                    Some(FilterExpression::Path(path)),
+                )
+                | (
+                    Some(FilterExpression::Path(path)),
+                    Some(FilterExpression::Parameter(parameter)),
+                ) => parameter.convert_to_parameter_type(path.expected_type())?,
+                (..) => {}
+            },
+        }
+
+        Ok(())
     }
 }
 
@@ -229,17 +265,118 @@ impl<'q, T: QueryRecord> TryFrom<Expression> for Option<FilterExpression<'q, T>>
 #[derive(Debug, PartialEq, Deserialize)]
 #[serde(untagged)]
 pub enum Parameter<'q> {
+    Boolean(bool),
     Number(f64),
     Text(Cow<'q, str>),
-    Boolean(bool),
+    #[serde(skip)]
+    Uuid(Uuid),
+    #[serde(skip)]
+    SignedInteger(i64),
+}
+
+impl Parameter<'_> {
+    fn to_owned(&self) -> Parameter<'static> {
+        match self {
+            Parameter::Boolean(bool) => Parameter::Boolean(*bool),
+            Parameter::Number(number) => Parameter::Number(*number),
+            Parameter::Text(text) => Parameter::Text(Cow::Owned(text.to_string())),
+            Parameter::Uuid(uuid) => Parameter::Uuid(*uuid),
+            Parameter::SignedInteger(integer) => Parameter::SignedInteger(*integer),
+        }
+    }
+}
+
+#[derive(Debug)]
+#[must_use]
+pub struct ParameterConversionError {
+    actual: Parameter<'static>,
+    expected: ParameterType,
+}
+
+impl fmt::Display for ParameterConversionError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            fmt,
+            "could not convert `{}` to {}",
+            self.actual, self.expected
+        )
+    }
+}
+
+impl Context for ParameterConversionError {}
+
+impl Parameter<'_> {
+    #[expect(clippy::match_same_arms, reason = "multiple empty bodies due to TODOs")]
+    fn convert_to_parameter_type(
+        &mut self,
+        expected: ParameterType,
+    ) -> Result<(), Report<ParameterConversionError>> {
+        match (&mut *self, expected) {
+            (_, ParameterType::Any)
+            | (Parameter::Boolean(_), ParameterType::Boolean)
+            | (Parameter::Number(_), ParameterType::Number)
+            | (Parameter::Text(_), ParameterType::Text) => {
+                // no action needed, exact match
+            }
+            (Parameter::Text(_base_uri), ParameterType::BaseUri) => {
+                // TODO: validate base uri
+                //   see https://app.asana.com/0/1202805690238892/1203225514907875/f
+            }
+            (Parameter::Text(_versioned_uri), ParameterType::VersionedUri) => {
+                // TODO: validate versioned uri
+                //   see https://app.asana.com/0/1202805690238892/1203225514907875/f
+            }
+            (_, ParameterType::Timestamp) => {
+                // TODO: validate timestamps
+                //   see https://app.asana.com/0/1202805690238892/1203225514907875/f
+            }
+            (Parameter::Text(text), ParameterType::Uuid) => {
+                *self = Parameter::Uuid(Uuid::from_str(&*text).into_report().change_context_lazy(
+                    || ParameterConversionError {
+                        actual: self.to_owned(),
+                        expected: ParameterType::Uuid,
+                    },
+                )?);
+            }
+            (Parameter::Number(number), ParameterType::UnsignedInteger) => {
+                // Postgres cannot represent unsigned integer, so we use i64 instead
+                let number = number.round() as i64;
+                ensure!(!number.is_negative(), ParameterConversionError {
+                    actual: self.to_owned(),
+                    expected: ParameterType::UnsignedInteger
+                });
+                *self = Parameter::SignedInteger(number);
+            }
+            (actual, expected) => {
+                bail!(ParameterConversionError {
+                    actual: actual.to_owned(),
+                    expected
+                });
+            }
+        }
+
+        Ok(())
+    }
+}
+
+impl fmt::Display for Parameter<'_> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Parameter::Boolean(boolean) => fmt::Display::fmt(boolean, fmt),
+            Parameter::Number(number) => fmt::Display::fmt(number, fmt),
+            Parameter::Text(text) => fmt::Display::fmt(text, fmt),
+            Parameter::Uuid(uuid) => fmt::Display::fmt(uuid, fmt),
+            Parameter::SignedInteger(integer) => fmt::Display::fmt(integer, fmt),
+        }
+    }
 }
 
 impl From<Literal> for Parameter<'_> {
     fn from(literal: Literal) -> Self {
         match literal {
+            Literal::Bool(bool) => Parameter::Boolean(bool),
             Literal::String(string) => Parameter::Text(Cow::Owned(string)),
             Literal::Float(float) => Parameter::Number(float),
-            Literal::Bool(bool) => Parameter::Boolean(bool),
             Literal::Null | Literal::List(_) | Literal::Version(..) => unimplemented!(),
         }
     }
