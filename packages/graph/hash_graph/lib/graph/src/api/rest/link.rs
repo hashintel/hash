@@ -8,13 +8,12 @@ use serde::{Deserialize, Serialize};
 use type_system::uri::VersionedUri;
 use utoipa::{OpenApi, ToSchema};
 
-use super::StructuralQuery;
 use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
     knowledge::{EntityId, Link, LinkRootedSubgraph, PersistedLink, PersistedLinkMetadata},
     provenance::{CreatedById, OwnedById, RemovedById},
     store::{error::QueryError, query::Filter, LinkStore, StorePool},
-    subgraph::NewStructuralQuery,
+    subgraph::{LinkStructuralQuery, StructuralQuery},
 };
 
 #[derive(OpenApi)]
@@ -34,7 +33,7 @@ use crate::{
             Link,
             CreateLinkRequest,
             RemoveLinkRequest,
-            StructuralQuery,
+            LinkStructuralQuery,
             LinkRootedSubgraph,
             PersistedLinkMetadata
         )
@@ -136,7 +135,7 @@ async fn create_link<P: StorePool + Send>(
 #[utoipa::path(
     post,
     path = "/links/query",
-    request_body = StructuralQuery,
+    request_body = LinkStructuralQuery,
     tag = "Link",
     responses(
         (status = 200, content_type = "application/json", body = [LinkRootedSubgraph], description = "A list of subgraphs rooted at links that satisfy the given query, each resolved to the requested depth."),
@@ -147,7 +146,7 @@ async fn create_link<P: StorePool + Send>(
 )]
 async fn get_links_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-    Json(query): Json<StructuralQuery>,
+    Json(query): Json<serde_json::Value>,
 ) -> Result<Json<Vec<LinkRootedSubgraph>>, StatusCode> {
     pool.acquire()
         .map_err(|error| {
@@ -155,7 +154,7 @@ async fn get_links_by_query<P: StorePool + Send>(
             StatusCode::INTERNAL_SERVER_ERROR
         })
         .and_then(|store| async move {
-            let mut query = NewStructuralQuery::try_from(query).map_err(|error| {
+            let mut query = StructuralQuery::deserialize(&query).map_err(|error| {
                 tracing::error!(?error, "Could not deserialize query");
                 StatusCode::INTERNAL_SERVER_ERROR
             })?;

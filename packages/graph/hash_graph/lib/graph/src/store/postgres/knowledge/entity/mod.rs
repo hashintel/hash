@@ -20,7 +20,7 @@ use crate::{
         postgres::{context::PostgresContext, DependencyContext, DependencyContextRef},
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
-    subgraph::{EdgeKind, GraphResolveDepths, NewStructuralQuery, OutwardEdge, Subgraph},
+    subgraph::{EdgeKind, GraphResolveDepths, OutwardEdge, StructuralQuery, Subgraph},
 };
 
 impl<C: AsClient> PostgresStore<C> {
@@ -227,9 +227,9 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
     async fn get_entity<'f: 'q, 'q>(
         &self,
-        query: &'q NewStructuralQuery<'q, Entity>,
+        query: &'q StructuralQuery<'q, Entity>,
     ) -> Result<Subgraph, QueryError> {
-        let NewStructuralQuery {
+        let StructuralQuery {
             ref filter,
             graph_resolve_depths,
         } = *query;

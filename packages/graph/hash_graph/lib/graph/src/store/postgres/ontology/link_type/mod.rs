@@ -15,7 +15,7 @@ use crate::{
         postgres::{context::PostgresContext, DependencyContext, DependencyContextRef},
         AsClient, InsertionError, LinkTypeStore, PostgresStore, QueryError, UpdateError,
     },
-    subgraph::{NewStructuralQuery, Subgraph},
+    subgraph::{StructuralQuery, Subgraph},
 };
 
 impl<C: AsClient> PostgresStore<C> {
@@ -76,9 +76,9 @@ impl<C: AsClient> LinkTypeStore for PostgresStore<C> {
 
     async fn get_link_type<'f: 'q, 'q>(
         &self,
-        query: &'f NewStructuralQuery<'q, LinkType>,
+        query: &'f StructuralQuery<'q, LinkType>,
     ) -> Result<Subgraph, QueryError> {
-        let NewStructuralQuery {
+        let StructuralQuery {
             ref filter,
             graph_resolve_depths,
         } = *query;

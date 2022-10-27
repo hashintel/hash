@@ -156,14 +156,14 @@ impl Extend<Self> for Subgraph {
 #[derive(Deserialize, ToSchema)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 #[aliases(
-    DataTypeStructuralQuery = NewStructuralQuery<'static, DataType>,
-    PropertyTypeStructuralQuery = NewStructuralQuery<'static, PropertyType>,
-    EntityTypeStructuralQuery = NewStructuralQuery<'static, EntityType>,
-    LinkTypeStructuralQuery = NewStructuralQuery<'static, LinkType>,
-    EntityStructuralQuery = NewStructuralQuery<'static, Entity>,
-    LinkStructuralQuery = NewStructuralQuery<'static, Link>,
+    DataTypeStructuralQuery = StructuralQuery<'static, DataType>,
+    PropertyTypeStructuralQuery = StructuralQuery<'static, PropertyType>,
+    EntityTypeStructuralQuery = StructuralQuery<'static, EntityType>,
+    LinkTypeStructuralQuery = StructuralQuery<'static, LinkType>,
+    EntityStructuralQuery = StructuralQuery<'static, Entity>,
+    LinkStructuralQuery = StructuralQuery<'static, Link>,
 )]
-pub struct NewStructuralQuery<'q, T: QueryRecord> {
+pub struct StructuralQuery<'q, T: QueryRecord> {
     #[serde(bound = "'de: 'q, T::Path<'q>: Deserialize<'de>")]
     pub filter: Filter<'q, T>,
     pub graph_resolve_depths: GraphResolveDepths,
@@ -171,7 +171,7 @@ pub struct NewStructuralQuery<'q, T: QueryRecord> {
 
 // TODO: Derive traits when bounds are generated correctly
 //   see https://github.com/rust-lang/rust/issues/26925
-impl<'q, T> Debug for NewStructuralQuery<'q, T>
+impl<'q, T> Debug for StructuralQuery<'q, T>
 where
     T: QueryRecord<Path<'q>: Debug>,
 {

@@ -18,7 +18,7 @@ use crate::{
         postgres::{DependencyContext, DependencyContextRef},
         AsClient, InsertionError, LinkStore, PostgresStore, QueryError,
     },
-    subgraph::{EdgeKind, GraphResolveDepths, NewStructuralQuery, OutwardEdge},
+    subgraph::{EdgeKind, GraphResolveDepths, OutwardEdge, StructuralQuery},
 };
 
 impl<C: AsClient> PostgresStore<C> {
@@ -145,9 +145,9 @@ impl<C: AsClient> LinkStore for PostgresStore<C> {
 
     async fn get_links<'f: 'q, 'q>(
         &self,
-        query: &'f NewStructuralQuery<'q, Link>,
+        query: &'f StructuralQuery<'q, Link>,
     ) -> Result<Vec<LinkRootedSubgraph>, QueryError> {
-        let NewStructuralQuery {
+        let StructuralQuery {
             ref filter,
             graph_resolve_depths,
         } = *query;

@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 use type_system::{uri::VersionedUri, DataType};
 use utoipa::{OpenApi, ToSchema};
 
-use super::{api_resource::RoutedResource, StructuralQuery};
+use super::api_resource::RoutedResource;
 use crate::{
     api::rest::{read_from_store, report_to_status_code},
     ontology::{
@@ -26,7 +26,8 @@ use crate::{
     shared::identifier::GraphElementIdentifier,
     store::{query::Filter, BaseUriAlreadyExists, BaseUriDoesNotExist, DataTypeStore, StorePool},
     subgraph::{
-        EdgeKind, Edges, GraphResolveDepths, NewStructuralQuery, OutwardEdge, Subgraph, Vertex,
+        DataTypeStructuralQuery, EdgeKind, Edges, GraphResolveDepths, OutwardEdge, StructuralQuery,
+        Subgraph, Vertex,
     },
 };
 
@@ -49,7 +50,7 @@ use crate::{
             PersistedOntologyIdentifier,
             PersistedOntologyMetadata,
             PersistedDataType,
-            StructuralQuery,
+            DataTypeStructuralQuery,
             GraphElementIdentifier,
             Vertex,
             EdgeKind,
@@ -155,7 +156,7 @@ async fn create_data_type<P: StorePool + Send>(
 #[utoipa::path(
     post,
     path = "/data-types/query",
-    request_body = StructuralQuery,
+    request_body = DataTypeStructuralQuery,
     tag = "DataType",
     responses(
         (status = 200, content_type = "application/json", body = Subgraph, description = "Gets a subgraph rooted at all data types that satisfy the given query, each resolved to the requested depth."),
@@ -166,7 +167,7 @@ async fn create_data_type<P: StorePool + Send>(
 )]
 async fn get_data_types_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-    Json(query): Json<StructuralQuery>,
+    Json(query): Json<serde_json::Value>,
 ) -> Result<Json<Subgraph>, StatusCode> {
     pool.acquire()
         .map_err(|error| {
@@ -174,7 +175,7 @@ async fn get_data_types_by_query<P: StorePool + Send>(
             StatusCode::INTERNAL_SERVER_ERROR
         })
         .and_then(|store| async move {
-            let mut query = NewStructuralQuery::try_from(query).map_err(|error| {
+            let mut query = StructuralQuery::deserialize(&query).map_err(|error| {
                 tracing::error!(?error, "Could not deserialize query");
                 StatusCode::INTERNAL_SERVER_ERROR
             })?;
