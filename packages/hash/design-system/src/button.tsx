@@ -16,6 +16,7 @@ import { LoadingSpinner } from "./loading-spinner";
 export type ButtonProps = {
   children: ReactNode;
   loading?: boolean;
+  loadingText?: string;
   loadingWithoutText?: boolean;
   disabledTooltipText?: string;
 } & MuiButtonProps & { rel?: string; target?: string }; // MUI button renders <a /> when href is provided, but typings miss rel and target
@@ -24,7 +25,8 @@ const LoadingContent: FunctionComponent<{
   withText: boolean;
   variant: ButtonProps["variant"];
   size: ButtonProps["size"];
-}> = ({ withText, size, variant = "primary" }) => {
+  loadingText?: string;
+}> = ({ withText, size, variant = "primary", loadingText }) => {
   const theme = useTheme();
 
   const spinnerSize = useMemo(() => {
@@ -67,7 +69,7 @@ const LoadingContent: FunctionComponent<{
             ...(size === "xs" && { ml: "8px" }),
           }}
         >
-          Loading...
+          {loadingText ?? "Loading..."}
         </Box>
       )}
     </Box>
@@ -75,7 +77,7 @@ const LoadingContent: FunctionComponent<{
 };
 
 const Button: ForwardRefRenderFunction<HTMLButtonElement, ButtonProps> = (
-  { children, loading, loadingWithoutText, sx = [], ...props },
+  { children, loading, loadingText, loadingWithoutText, sx = [], ...props },
   ref,
 ) => (
   <MuiButton
@@ -91,6 +93,7 @@ const Button: ForwardRefRenderFunction<HTMLButtonElement, ButtonProps> = (
   >
     {loading ? (
       <LoadingContent
+        loadingText={loadingText}
         withText={!loadingWithoutText}
         size={props.size}
         variant={props.variant}

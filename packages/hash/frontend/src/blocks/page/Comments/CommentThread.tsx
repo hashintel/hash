@@ -10,25 +10,27 @@ import { PageThread } from "../../../components/hooks/usePageComments";
 import { CommentTextField } from "./CommentTextField";
 import { CommentBlock } from "./CommentBlock";
 import styles from "./style.module.css";
+import { useCreateComment } from "../../../components/hooks/useCreateComment";
+import { CommentActionButtons } from "./CommentActionButtons";
 
 const UNCOLLAPSIBLE_REPLIES_NUMBER = 2;
 
 type CommentThreadProps = {
+  pageId: string;
   comment: PageThread;
-  onReplySubmit: (parentId: string, content: TextToken[]) => Promise<void>;
-  loading: boolean;
 };
 
 export const CommentThread: FunctionComponent<CommentThreadProps> = ({
+  pageId,
   comment,
-  onReplySubmit,
-  loading,
 }) => {
   const threadRef = useRef<HTMLDivElement>(null);
   const [threadFocused, setThreadFocused] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [inputValue, setInputValue] = useState<TextToken[]>([]);
+
+  const [createReply, { loading }] = useCreateComment(pageId);
 
   const showInput = threadFocused || !!inputValue.length;
   const showInputButtons =
@@ -41,7 +43,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
 
   const handleReplySubmit = async () => {
     if (!loading && inputValue?.length) {
-      await onReplySubmit(comment.entityId, inputValue);
+      await createReply(comment.entityId, inputValue);
       setInputValue([]);
     }
   };
@@ -76,13 +78,9 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
         boxShadow: boxShadows.md,
         marginBottom: 4,
         outline: "none",
-
-        ">*:first-of-type": {
-          borderTopWidth: 0,
-        },
       })}
     >
-      <CommentBlock key={comment.entityId} comment={comment} />
+      <CommentBlock key={comment.entityId} pageId={pageId} comment={comment} />
 
       {collapsedReplies.length ? (
         <>
@@ -112,14 +110,18 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
 
           <Collapse in={expanded}>
             {collapsedReplies.map((reply) => (
-              <CommentBlock key={reply.entityId} comment={reply} />
+              <CommentBlock
+                key={reply.entityId}
+                pageId={pageId}
+                comment={reply}
+              />
             ))}
           </Collapse>
         </>
       ) : null}
 
       {uncollapsibleReplies.map((reply) => (
-        <CommentBlock key={reply.entityId} comment={reply} />
+        <CommentBlock key={reply.entityId} pageId={pageId} comment={reply} />
       ))}
 
       <Collapse in={showInput}>
@@ -158,29 +160,15 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
       </Collapse>
 
       <Collapse in={showInputButtons}>
-        <Box
-          sx={{
-            display: "flex",
-            gap: 0.75,
-            justifyContent: "flex-end",
-            px: 1,
-            pt: 0,
-            pb: 0.75,
-          }}
-        >
-          <Button size="xs" variant="tertiary" onClick={cancelSubmit}>
-            Cancel
-          </Button>
-          <Button
-            size="xs"
-            variant="secondary"
-            disabled={!inputValue.length}
-            onClick={handleReplySubmit}
-            loading={loading}
-          >
-            Reply
-          </Button>
-        </Box>
+        <CommentActionButtons
+          submitDisabled={!inputValue.length}
+          loading={loading}
+          loadingText="Saving..."
+          onSubmit={handleReplySubmit}
+          onCancel={cancelSubmit}
+          sx={{ px: 1, pt: 0, pb: 0.75 }}
+          submitLabel="Reply"
+        />
       </Collapse>
 
       <Collapse in={showInput}>

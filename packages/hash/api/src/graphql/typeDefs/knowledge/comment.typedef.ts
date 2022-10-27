@@ -83,5 +83,19 @@ export const persistedCommentTypedef = gql`
       """
       tokens: [TextToken!]!
     ): PersistedComment!
+
+    """
+    Edit an existing comment's text contents
+    """
+    updatePersistedCommentText(
+      """
+      Id of the comment being edited
+      """
+      entityId: ID!
+      """
+      New Text contents of the comment
+      """
+      tokens: [TextToken!]!
+    ): PersistedComment!
   }
 `;
