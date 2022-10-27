@@ -1,0 +1,16 @@
+name: Install Rust toolchain
+description: "Install Rust toolchain"
+
+inputs:
+  toolchain:
+    required: true
+    description: "Rust toolchain, e.g. 'stable' or 'nightly'"
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Install Rust"
+      run: |
+        rustup toolchain install ${{ inputs.toolchain }} --profile minimal --no-self-update
+        rustup default ${{ inputs.toolchain }}
+      shell: bash
