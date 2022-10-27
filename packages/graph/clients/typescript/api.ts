@@ -47,6 +47,32 @@ import {
 /**
  *
  * @export
+ * @interface AllFilter
+ */
+export interface AllFilter {
+  /**
+   *
+   * @type {Array<Filter>}
+   * @memberof AllFilter
+   */
+  all: Array<Filter>;
+}
+/**
+ *
+ * @export
+ * @interface AnyFilter
+ */
+export interface AnyFilter {
+  /**
+   *
+   * @type {Array<Filter>}
+   * @memberof AnyFilter
+   */
+  any: Array<Filter>;
+}
+/**
+ *
+ * @export
  * @interface CreateDataTypeRequest
  */
 export interface CreateDataTypeRequest {
@@ -299,10 +325,10 @@ export interface DataTypeReferenceUpdate {
 export interface DataTypeStructuralQuery {
   /**
    *
-   * @type {object}
+   * @type {Filter}
    * @memberof DataTypeStructuralQuery
    */
-  filter: object;
+  filter: Filter;
   /**
    *
    * @type {GraphResolveDepths}
@@ -352,10 +378,10 @@ export interface EdgesValueInner {
 export interface EntityStructuralQuery {
   /**
    *
-   * @type {object}
+   * @type {Filter}
    * @memberof EntityStructuralQuery
    */
-  filter: object;
+  filter: Filter;
   /**
    *
    * @type {GraphResolveDepths}
@@ -464,10 +490,10 @@ export type EntityTypeTypeEnum =
 export interface EntityTypeStructuralQuery {
   /**
    *
-   * @type {object}
+   * @type {Filter}
    * @memberof EntityTypeStructuralQuery
    */
-  filter: object;
+  filter: Filter;
   /**
    *
    * @type {GraphResolveDepths}
@@ -475,6 +501,36 @@ export interface EntityTypeStructuralQuery {
    */
   graphResolveDepths: GraphResolveDepths;
 }
+/**
+ *
+ * @export
+ * @interface EqualFilter
+ */
+export interface EqualFilter {
+  /**
+   *
+   * @type {Array<FilterExpression>}
+   * @memberof EqualFilter
+   */
+  equal: Array<FilterExpression>;
+}
+/**
+ * @type Filter
+ * @export
+ */
+export type Filter =
+  | AllFilter
+  | AnyFilter
+  | EqualFilter
+  | NotEqualFilter
+  | NotFilter;
+
+/**
+ * @type FilterExpression
+ * @export
+ */
+export type FilterExpression = ParameterExpression | PathExpression;
+
 /**
  * @type GraphElementIdentifier
  * @export
@@ -612,10 +668,10 @@ export interface LinkRootedSubgraph {
 export interface LinkStructuralQuery {
   /**
    *
-   * @type {object}
+   * @type {Filter}
    * @memberof LinkStructuralQuery
    */
-  filter: object;
+  filter: Filter;
   /**
    *
    * @type {GraphResolveDepths}
@@ -682,16 +738,42 @@ export type LinkTypeKindEnum =
 export interface LinkTypeStructuralQuery {
   /**
    *
-   * @type {object}
+   * @type {Filter}
    * @memberof LinkTypeStructuralQuery
    */
-  filter: object;
+  filter: Filter;
   /**
    *
    * @type {GraphResolveDepths}
    * @memberof LinkTypeStructuralQuery
    */
   graphResolveDepths: GraphResolveDepths;
+}
+/**
+ *
+ * @export
+ * @interface NotEqualFilter
+ */
+export interface NotEqualFilter {
+  /**
+   *
+   * @type {Array<FilterExpression>}
+   * @memberof NotEqualFilter
+   */
+  notEqual: Array<FilterExpression>;
+}
+/**
+ *
+ * @export
+ * @interface NotFilter
+ */
+export interface NotFilter {
+  /**
+   *
+   * @type {Filter}
+   * @memberof NotFilter
+   */
+  not: Filter;
 }
 /**
  *
@@ -711,6 +793,32 @@ export interface OutwardEdge {
    * @memberof OutwardEdge
    */
   edgeKind: EdgeKind;
+}
+/**
+ *
+ * @export
+ * @interface ParameterExpression
+ */
+export interface ParameterExpression {
+  /**
+   *
+   * @type {boolean | number | string}
+   * @memberof ParameterExpression
+   */
+  parameter: boolean | number | string;
+}
+/**
+ *
+ * @export
+ * @interface PathExpression
+ */
+export interface PathExpression {
+  /**
+   *
+   * @type {Array<string>}
+   * @memberof PathExpression
+   */
+  path: Array<string>;
 }
 /**
  *
@@ -1147,10 +1255,10 @@ export type PropertyTypeKindEnum =
 export interface PropertyTypeStructuralQuery {
   /**
    *
-   * @type {object}
+   * @type {Filter}
    * @memberof PropertyTypeStructuralQuery
    */
-  filter: object;
+  filter: Filter;
   /**
    *
    * @type {GraphResolveDepths}

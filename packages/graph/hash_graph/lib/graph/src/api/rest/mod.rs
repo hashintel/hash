@@ -24,7 +24,10 @@ use error_stack::Report;
 use futures::TryFutureExt;
 use include_dir::{include_dir, Dir};
 use utoipa::{
-    openapi::{self, schema, schema::RefOr, ObjectBuilder},
+    openapi::{
+        self, schema, schema::RefOr, ArrayBuilder, ObjectBuilder, OneOfBuilder, Ref, SchemaFormat,
+        SchemaType,
+    },
     Modify, OpenApi,
 };
 
@@ -33,7 +36,7 @@ use crate::{
     ontology::domain_validator::DomainValidator,
     store::{
         crud::Read,
-        query::{Expression, ExpressionError, ResolveError},
+        query::{ExpressionError, ResolveError},
         StorePool,
     },
 };
@@ -165,7 +168,7 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
         tags(
             (name = "Graph", description = "HASH Graph API")
         ),
-        modifiers(&MergeAddon, &ExternalRefAddon, &OperationGraphTagAddon, &FilterObjectAddon)
+        modifiers(&MergeAddon, &ExternalRefAddon, &OperationGraphTagAddon, &FilterSchemaAddon)
     )]
 struct OpenApiDocumentation;
 
@@ -300,23 +303,102 @@ impl Modify for OperationGraphTagAddon {
     }
 }
 
-struct FilterObjectAddon;
+struct FilterSchemaAddon;
 
-impl Modify for FilterObjectAddon {
+impl Modify for FilterSchemaAddon {
     fn modify(&self, openapi: &mut openapi::OpenApi) {
-        openapi.components.as_mut().map(|components| {
+        if let Some(ref mut components) = openapi.components {
             components.schemas.insert(
                 "Filter".to_owned(),
-                schema::Schema::Object(
-                    ObjectBuilder::new()
-                        .example(Some(
-                            serde_json::to_value(Expression::for_latest_version())
-                                .expect("could not serialize expression"),
-                        ))
+                schema::Schema::OneOf(
+                    OneOfBuilder::new()
+                        .item(
+                            ObjectBuilder::new()
+                                .title(Some("AllFilter"))
+                                .property(
+                                    "all",
+                                    ArrayBuilder::new().items(Ref::from_schema_name("Filter")),
+                                )
+                                .required("all"),
+                        )
+                        .item(
+                            ObjectBuilder::new()
+                                .title(Some("AnyFilter"))
+                                .property(
+                                    "any",
+                                    ArrayBuilder::new().items(Ref::from_schema_name("Filter")),
+                                )
+                                .required("any"),
+                        )
+                        .item(
+                            ObjectBuilder::new()
+                                .title(Some("NotFilter"))
+                                .property("not", Ref::from_schema_name("Filter"))
+                                .required("not"),
+                        )
+                        .item(
+                            ObjectBuilder::new()
+                                .title(Some("EqualFilter"))
+                                .property(
+                                    "equal",
+                                    ArrayBuilder::new()
+                                        .items(Ref::from_schema_name("FilterExpression"))
+                                        .min_items(Some(2))
+                                        .max_items(Some(2)),
+                                )
+                                .required("equal"),
+                        )
+                        .item(
+                            ObjectBuilder::new()
+                                .title(Some("NotEqualFilter"))
+                                .property(
+                                    "notEqual",
+                                    ArrayBuilder::new()
+                                        .items(Ref::from_schema_name("FilterExpression"))
+                                        .min_items(Some(2))
+                                        .max_items(Some(2)),
+                                )
+                                .required("notEqual"),
+                        )
                         .build(),
                 )
                 .into(),
-            )
-        });
+            );
+            components.schemas.insert(
+                "FilterExpression".to_owned(),
+                schema::Schema::OneOf(
+                    OneOfBuilder::new()
+                        .item(
+                            ObjectBuilder::new()
+                                .title(Some("PathExpression"))
+                                .property(
+                                    "path",
+                                    ArrayBuilder::new().items(
+                                        ObjectBuilder::new().schema_type(SchemaType::String),
+                                    ),
+                                )
+                                .required("path"),
+                        )
+                        .item(
+                            ObjectBuilder::new()
+                                .title(Some("ParameterExpression"))
+                                .property(
+                                    "parameter",
+                                    OneOfBuilder::new()
+                                        .item(ObjectBuilder::new().schema_type(SchemaType::Boolean))
+                                        .item(
+                                            ObjectBuilder::new()
+                                                .schema_type(SchemaType::Number)
+                                                .format(Some(SchemaFormat::Float)),
+                                        )
+                                        .item(ObjectBuilder::new().schema_type(SchemaType::String)),
+                                )
+                                .required("parameter"),
+                        )
+                        .build(),
+                )
+                .into(),
+            );
+        }
     }
 }
