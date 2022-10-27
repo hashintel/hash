@@ -7,12 +7,11 @@ pub struct JoinExpression<'q> {
     pub join: Table,
     pub on: Condition<'q>,
 }
-
-/// The direction of how joining happens.
+/// The order in which to join the tables.
 ///
-/// When joining a table, typically, this happens from mapping the source field to the target field.
-/// In some circumstances, for example when resolving a link by it's incoming links, this direction
-/// is reversed.
+/// Typically, when dealing with paths we join from left to right as we encounter elements. In some
+/// circumstances, the direction we join upon is actually reversed, for example with incoming links,
+/// where we want to use the subject (left element) _as_ the target.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum EdgeJoinDirection {
     SourceOnTarget,
