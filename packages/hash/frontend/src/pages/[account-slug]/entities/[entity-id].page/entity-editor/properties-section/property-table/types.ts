@@ -6,6 +6,9 @@ export type PropertyRow = PropertyType & {
   propertyTypeBaseUri: string;
   dataTypes: string[];
   required: boolean;
+  children: PropertyRow[];
+  expanded: boolean;
+  depth: number;
 };
 
 export type PropertyColumnKey = Extract<

@@ -1,5 +1,6 @@
 import { PropertyType } from "@blockprotocol/type-system-web";
 import { capitalize } from "@mui/material";
+import { TableExpandStatus } from "../../../../../../../components/GlideGlid/utils";
 import {
   getPersistedDataType,
   getPropertyTypesByBaseUri,
@@ -18,15 +19,84 @@ const getDataTypesOfPropertyType = (
       const dataTypeId = propertyValue?.$ref;
       const persistedDataType = getPersistedDataType(subgraph, dataTypeId);
 
-      return persistedDataType ? persistedDataType.inner.title : "undefined";
+      return persistedDataType ? persistedDataType?.inner.title : "undefined";
     }
 
     return capitalize(propertyValue.type);
   });
 };
 
+interface GenerateRowDataParams {
+  propertyTypeBaseUri: string;
+  properties: any;
+  rootEntityAndSubgraph: RootEntityAndSubgraph;
+  requiredPropertyTypes: string[];
+  depth?: number;
+  propertyExpandStatus: TableExpandStatus;
+}
+
+const generateRowDataFromPropertyTypeBaseUri = ({
+  properties,
+  propertyTypeBaseUri,
+  requiredPropertyTypes,
+  rootEntityAndSubgraph,
+  depth = 0,
+  propertyExpandStatus,
+}: GenerateRowDataParams): PropertyRow => {
+  const propertyTypeVersions = getPropertyTypesByBaseUri(
+    rootEntityAndSubgraph.subgraph,
+    propertyTypeBaseUri,
+  );
+
+  if (!propertyTypeVersions) {
+    throw new Error(
+      `propertyType not found for base URI: ${propertyTypeBaseUri}`,
+    );
+  }
+
+  const propertyType = propertyTypeVersions[0]!.inner;
+
+  const dataTypes = getDataTypesOfPropertyType(
+    propertyType,
+    rootEntityAndSubgraph.subgraph,
+  );
+
+  const required = !!requiredPropertyTypes?.includes(propertyTypeBaseUri);
+
+  const value = properties[propertyTypeBaseUri];
+
+  const children: PropertyRow[] = [];
+
+  if (typeof value === "object" && !Array.isArray(value)) {
+    for (const subPropertyTypeBaseUri of Object.keys(value)) {
+      children.push(
+        generateRowDataFromPropertyTypeBaseUri({
+          rootEntityAndSubgraph,
+          propertyTypeBaseUri: subPropertyTypeBaseUri,
+          properties: properties[propertyTypeBaseUri],
+          requiredPropertyTypes,
+          depth: depth + 1,
+          propertyExpandStatus,
+        }),
+      );
+    }
+  }
+
+  return {
+    ...propertyType,
+    value,
+    propertyTypeBaseUri,
+    dataTypes,
+    required,
+    depth,
+    expanded: !!propertyExpandStatus[propertyTypeBaseUri],
+    children,
+  };
+};
+
 export const generatePropertyRowsFromEntity = (
   rootEntityAndSubgraph: RootEntityAndSubgraph,
+  propertyExpandStatus: TableExpandStatus,
 ): PropertyRow[] => {
   const entity = rootEntityAndSubgraph.root;
 
@@ -35,35 +105,15 @@ export const generatePropertyRowsFromEntity = (
     entity.entityTypeId,
   );
 
-  const requiredPropertyTypes = entityType?.inner.required;
+  const requiredPropertyTypes = entityType?.inner.required ?? [];
 
-  return Object.keys(entity.properties).map((propertyTypeBaseUri) => {
-    const propertyTypeVersions = getPropertyTypesByBaseUri(
-      rootEntityAndSubgraph.subgraph,
+  return Object.keys(entity.properties).map((propertyTypeBaseUri) =>
+    generateRowDataFromPropertyTypeBaseUri({
       propertyTypeBaseUri,
-    );
-
-    if (!propertyTypeVersions) {
-      throw new Error(
-        `propertyType not found for base URI: ${propertyTypeBaseUri}`,
-      );
-    }
-
-    const propertyType = propertyTypeVersions[0]!.inner;
-
-    const dataTypes = getDataTypesOfPropertyType(
-      propertyType,
-      rootEntityAndSubgraph.subgraph,
-    );
-
-    const required = !!requiredPropertyTypes?.includes(propertyTypeBaseUri);
-
-    return {
-      ...propertyType,
-      value: entity.properties[propertyTypeBaseUri],
-      propertyTypeId: propertyTypeBaseUri,
-      dataTypes,
-      required,
-    };
-  });
+      rootEntityAndSubgraph,
+      requiredPropertyTypes,
+      properties: entity.properties,
+      propertyExpandStatus,
+    }),
+  );
 };

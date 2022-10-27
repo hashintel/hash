@@ -1,12 +1,14 @@
 import {
   createContext,
   PropsWithChildren,
+  useCallback,
   useContext,
   useMemo,
   useState,
 } from "react";
 import {
   SetTableSort,
+  TableExpandStatus,
   TableSort,
 } from "../../../../../components/GlideGlid/utils";
 import { EntityEditorProps } from "../entity-editor";
@@ -18,6 +20,8 @@ interface Props extends EntityEditorProps {
   setPropertySort: SetTableSort<PropertyColumnKey>;
   linkSort: TableSort<LinkColumnKey>;
   setLinkSort: SetTableSort<LinkColumnKey>;
+  propertyExpandStatus: TableExpandStatus;
+  togglePropertyExpand: (id: string) => void;
 }
 
 const EntityEditorContext = createContext<Props | null>(null);
@@ -31,11 +35,19 @@ export const EntityEditorContextProvider = ({
     key: "title",
     dir: "asc",
   });
+  const [propertyExpandStatus, setPropertyExpandStatus] =
+    useState<TableExpandStatus>({});
 
   const [linkSort, setLinkSort] = useState<Props["linkSort"]>({
     key: "type",
     dir: "asc",
   });
+
+  const togglePropertyExpand = useCallback((id: string) => {
+    setPropertyExpandStatus((status) => {
+      return { ...status, [id]: !status[id] };
+    });
+  }, []);
 
   const state = useMemo(
     () => ({
@@ -45,6 +57,8 @@ export const EntityEditorContextProvider = ({
       setPropertySort,
       linkSort,
       setLinkSort,
+      propertyExpandStatus,
+      togglePropertyExpand,
     }),
     [
       rootEntityAndSubgraph,
@@ -53,6 +67,8 @@ export const EntityEditorContextProvider = ({
       setPropertySort,
       linkSort,
       setLinkSort,
+      propertyExpandStatus,
+      togglePropertyExpand,
     ],
   );
 

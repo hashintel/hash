@@ -2,6 +2,7 @@ import { GridCell, GridCellKind, Item } from "@glideapps/glide-data-grid";
 import { useCallback } from "react";
 import { UseGridTooltipResponse } from "../../../../../../../components/GlideGlid/use-grid-tooltip/types";
 import { DataTypeCellProps } from "./cells/data-type-cell";
+import { PropertyNameCellProps } from "./cells/property-name-cell";
 import { ValueCellProps } from "./cells/value-cell";
 import { propertyGridIndexes } from "./constants";
 import { getTooltipsOfPropertyRow } from "./get-tooltips-of-property-row";
@@ -29,11 +30,14 @@ export const useGetCellContent = (
       switch (columnKey) {
         case "title":
           return {
-            kind: GridCellKind.Text,
-            data: property.title,
-            displayData: property.title,
-            readonly: true,
+            kind: GridCellKind.Custom,
             allowOverlay: false,
+            readonly: true,
+            copyData: property.title,
+            data: {
+              kind: "property-name-cell",
+              property,
+            } as PropertyNameCellProps,
           };
 
         case "value":

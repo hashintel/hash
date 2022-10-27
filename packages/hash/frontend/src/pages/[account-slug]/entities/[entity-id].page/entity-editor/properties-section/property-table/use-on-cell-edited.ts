@@ -32,6 +32,11 @@ export const useOnCellEdited = (rowData: PropertyRow[]) => {
       const key = propertyGridIndexes[col];
       const property = rowData[row];
 
+      if (key !== "value") {
+        // only "value" cell can be edited
+        return;
+      }
+
       if (!key || !property) {
         throw new Error(`${key ? "property" : "key"} not found`);
       }

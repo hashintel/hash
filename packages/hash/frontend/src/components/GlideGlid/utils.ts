@@ -16,6 +16,10 @@ export interface TableSort<T extends string> {
 
 export type SetTableSort<T extends string> = (sort: TableSort<T>) => void;
 
+export type TableExpandStatus = Record<string, boolean>;
+
+export type SetTableExpandStatus = (status: TableExpandStatus) => void;
+
 export const firstColumnPadding = 36;
 export const columnPadding = 22;
 
