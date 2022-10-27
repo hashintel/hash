@@ -21,6 +21,7 @@ use crate::store::QueryError;
 #[async_trait]
 pub trait Read<T: Send>: Sync {
     // TODO: Implement `Valuable` for queries and use them directly
+    //   see https://docs.rs/valuable/latest/valuable/trait.Valuable.html
     type Query<'q>: Debug + Sync;
 
     // TODO: Return a stream of `T` instead
@@ -28,7 +29,7 @@ pub trait Read<T: Send>: Sync {
     /// Returns a value from the [`Store`] specified by the passed `query`.
     ///
     /// [`Store`]: crate::store::Store
-    async fn read<'query>(&self, query: &Self::Query<'query>) -> Result<Vec<T>, QueryError>;
+    async fn read<'f: 'q, 'q>(&self, query: &'f Self::Query<'q>) -> Result<Vec<T>, QueryError>;
 
     // TODO: Consider adding additional methods, which defaults to `read` e.g. reading exactly one
 }
