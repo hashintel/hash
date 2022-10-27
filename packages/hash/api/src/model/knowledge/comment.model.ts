@@ -137,6 +137,47 @@ export default class extends EntityModel {
   }
 
   /**
+   * Resolve the comment.
+   *
+   * @param params.actorId - id of the user that resolved the comment
+   */
+  async resolve(
+    graphApi: GraphApi,
+    params: {
+      actorId: string;
+    },
+  ): Promise<CommentModel> {
+    const { actorId } = params;
+
+    const parentModel = await this.getParent(graphApi);
+
+    // Throw error if the user trying to resolve the comment is not the comment's author
+    // or the author of the block the comment is attached to
+    if (
+      actorId !== this.createdById &&
+      parentModel.entityTypeModel.schema.$id ===
+        WORKSPACE_TYPES.entityType.block.schema.$id &&
+      actorId !== parentModel.createdById
+    ) {
+      throw new Error(
+        `Critical: account ${actorId} does not have permission to resolve the comment with entityId ${this.entityId}`,
+      );
+    }
+
+    await this.updateProperties(graphApi, {
+      updatedProperties: [
+        {
+          propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.resolvedAt.baseUri,
+          value: new Date().toISOString(),
+        },
+      ],
+      actorId,
+    });
+
+    return CommentModel.fromEntityModel(this);
+  }
+
+  /**
    * Delete the comment.
    *
    * @param params.actorId - id of the user that deleted the comment
@@ -160,7 +201,7 @@ export default class extends EntityModel {
       updatedProperties: [
         {
           propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.deletedAt.baseUri,
-          value: new Date().getTime().toString(),
+          value: new Date().toISOString(),
         },
       ],
       actorId,
