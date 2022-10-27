@@ -168,7 +168,7 @@ export default class extends EntityModel {
       updatedProperties: [
         {
           propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.resolvedAt.baseUri,
-          value: new Date().getTime().toString(),
+          value: new Date().toISOString(),
         },
       ],
       actorId,
@@ -201,7 +201,7 @@ export default class extends EntityModel {
       updatedProperties: [
         {
           propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.deletedAt.baseUri,
-          value: new Date().getTime().toString(),
+          value: new Date().toISOString(),
         },
       ],
       actorId,
