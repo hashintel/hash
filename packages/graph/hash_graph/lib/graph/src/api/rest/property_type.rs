@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 use type_system::{uri::VersionedUri, PropertyType};
 use utoipa::{OpenApi, ToSchema};
 
-use super::api_resource::RoutedResource;
+use super::{api_resource::RoutedResource, StructuralQuery};
 use crate::{
     api::rest::{read_from_store, report_to_status_code},
     ontology::{
@@ -28,7 +28,7 @@ use crate::{
         query::Filter, BaseUriAlreadyExists, BaseUriDoesNotExist, PropertyTypeStore, StorePool,
     },
     subgraph::{
-        EdgeKind, Edges, GraphResolveDepths, OutwardEdge, StructuralQuery, Subgraph, Vertex,
+        EdgeKind, Edges, GraphResolveDepths, NewStructuralQuery, OutwardEdge, Subgraph, Vertex,
     },
 };
 
@@ -180,6 +180,14 @@ where
             StatusCode::INTERNAL_SERVER_ERROR
         })
         .and_then(|store| async move {
+            let mut query = NewStructuralQuery::try_from(query).map_err(|error| {
+                tracing::error!(?error, "Could not deserialize query");
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
+            query.filter.convert_parameters().map_err(|error| {
+                tracing::error!(?error, "Could not validate query");
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
             store
                 .get_property_type(&query)
                 .await

@@ -16,10 +16,9 @@ use crate::{
         crud::Read,
         error::LinkRemovalError,
         postgres::{DependencyContext, DependencyContextRef},
-        query::Filter,
         AsClient, InsertionError, LinkStore, PostgresStore, QueryError,
     },
-    subgraph::{EdgeKind, GraphResolveDepths, OutwardEdge, StructuralQuery},
+    subgraph::{EdgeKind, GraphResolveDepths, NewStructuralQuery, OutwardEdge},
 };
 
 impl<C: AsClient> PostgresStore<C> {
@@ -144,18 +143,16 @@ impl<C: AsClient> LinkStore for PostgresStore<C> {
         Ok(())
     }
 
-    async fn get_links(
+    async fn get_links<'f: 'q, 'q>(
         &self,
-        query: &StructuralQuery,
+        query: &'f NewStructuralQuery<'q, Link>,
     ) -> Result<Vec<LinkRootedSubgraph>, QueryError> {
-        let StructuralQuery {
-            ref expression,
+        let NewStructuralQuery {
+            ref filter,
             graph_resolve_depths,
         } = *query;
 
-        let mut filter = Filter::try_from(expression.clone()).change_context(QueryError)?;
-        filter.convert_parameters().change_context(QueryError)?;
-        stream::iter(Read::<PersistedLink>::read(self, &filter).await?)
+        stream::iter(Read::<PersistedLink>::read(self, filter).await?)
             .then(|link| async move {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 

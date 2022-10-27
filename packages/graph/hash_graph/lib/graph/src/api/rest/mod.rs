@@ -23,9 +23,10 @@ use axum::{
 use error_stack::Report;
 use futures::TryFutureExt;
 use include_dir::{include_dir, Dir};
+use serde::Deserialize;
 use utoipa::{
     openapi::{self, schema, schema::RefOr, ObjectBuilder},
-    Modify, OpenApi,
+    Modify, OpenApi, ToSchema,
 };
 
 use self::api_resource::RoutedResource;
@@ -33,10 +34,33 @@ use crate::{
     ontology::domain_validator::DomainValidator,
     store::{
         crud::Read,
-        query::{Expression, ExpressionError, ResolveError},
+        query::{Expression, ExpressionError, Filter, QueryRecord, ResolveError},
         StorePool,
     },
+    subgraph::{GraphResolveDepths, NewStructuralQuery},
 };
+
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(
+    deny_unknown_fields,
+    rename_all = "camelCase",
+    rename = "StructuralQuery"
+)]
+pub struct StructuralQuery {
+    pub query: Expression,
+    pub graph_resolve_depths: GraphResolveDepths,
+}
+
+impl<'q, T: QueryRecord> TryFrom<StructuralQuery> for NewStructuralQuery<'q, T> {
+    type Error = <T::Path<'q> as TryFrom<crate::store::query::Path>>::Error;
+
+    fn try_from(query: StructuralQuery) -> Result<Self, Self::Error> {
+        Ok(Self {
+            filter: Filter::try_from(query.query)?,
+            graph_resolve_depths: query.graph_resolve_depths,
+        })
+    }
+}
 
 static STATIC_SCHEMAS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/src/api/rest/json_schemas");
 

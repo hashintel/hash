@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 use type_system::{uri::VersionedUri, LinkType};
 use utoipa::{OpenApi, ToSchema};
 
-use super::api_resource::RoutedResource;
+use super::{api_resource::RoutedResource, StructuralQuery};
 use crate::{
     api::rest::{read_from_store, report_to_status_code},
     ontology::{
@@ -26,7 +26,7 @@ use crate::{
     shared::identifier::GraphElementIdentifier,
     store::{query::Filter, BaseUriAlreadyExists, BaseUriDoesNotExist, LinkTypeStore, StorePool},
     subgraph::{
-        EdgeKind, Edges, GraphResolveDepths, OutwardEdge, StructuralQuery, Subgraph, Vertex,
+        EdgeKind, Edges, GraphResolveDepths, NewStructuralQuery, OutwardEdge, Subgraph, Vertex,
     },
 };
 
@@ -172,6 +172,14 @@ async fn get_link_types_by_query<P: StorePool + Send>(
             StatusCode::INTERNAL_SERVER_ERROR
         })
         .and_then(|store| async move {
+            let mut query = NewStructuralQuery::try_from(query).map_err(|error| {
+                tracing::error!(?error, "Could not deserialize query");
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
+            query.filter.convert_parameters().map_err(|error| {
+                tracing::error!(?error, "Could not validate query");
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
             store.get_link_type(&query).await.map_err(|report| {
                 tracing::error!(error=?report, ?query, "Could not read link types from the store");
                 report_to_status_code(&report)
