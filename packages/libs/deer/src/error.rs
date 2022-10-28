@@ -56,12 +56,13 @@
 use alloc::collections::BTreeMap;
 use core::fmt::{self, Debug, Display, Formatter};
 
-use error_stack::{Context, Frame, IntoReport, Report, Result};
+use error_stack::{Context, Frame, IntoReport, Result};
 use serde_value::{SerializerError, Value};
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Hash, Copy, Clone, serde::Serialize)]
 pub struct Namespace(&'static str);
 
+#[allow(dead_code)]
 const NAMESPACE: Namespace = Namespace::new("deer");
 
 impl Namespace {
@@ -151,4 +152,5 @@ pub trait Error: Context {
     /// [`Report::attach`]: error_stack::Report::attach
     fn message(contents: &str) -> Self;
     fn new() -> Self;
+    fn empty() -> Self;
 }
