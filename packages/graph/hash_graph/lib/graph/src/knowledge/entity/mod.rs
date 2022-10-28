@@ -88,6 +88,53 @@ impl PersistedEntityIdentifier {
     }
 }
 
+/// The associated information for 'Link' entities
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct LinkEntityMetadata {
+    left_entity_id: EntityId,
+    right_entity_id: EntityId,
+    left_order: Option<i32>,
+    right_order: Option<i32>,
+}
+
+impl LinkEntityMetadata {
+    #[must_use]
+    pub fn new(
+        left_entity_id: EntityId,
+        right_entity_id: EntityId,
+        left_order: Option<i32>,
+        right_order: Option<i32>,
+    ) -> Self {
+        Self {
+            left_entity_id,
+            right_entity_id,
+            left_order,
+            right_order,
+        }
+    }
+
+    #[must_use]
+    pub const fn left_entity_id(&self) -> EntityId {
+        self.left_entity_id
+    }
+
+    #[must_use]
+    pub const fn right_entity_id(&self) -> EntityId {
+        self.right_entity_id
+    }
+
+    #[must_use]
+    pub const fn left_order(&self) -> Option<i32> {
+        self.left_order
+    }
+
+    #[must_use]
+    pub const fn right_order(&self) -> Option<i32> {
+        self.right_order
+    }
+}
+
 /// The metadata of an [`Entity`] record.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
@@ -95,9 +142,13 @@ pub struct PersistedEntityMetadata {
     identifier: PersistedEntityIdentifier,
     #[schema(value_type = String)]
     entity_type_id: VersionedUri,
+    // TODO: encapsulate these in a `ProvenanceMetadata` struct?
+    //  https://app.asana.com/0/1201095311341924/1203227079758117/f
     created_by_id: CreatedById,
     updated_by_id: UpdatedById,
     removed_by_id: Option<RemovedById>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    link_metadata: Option<LinkEntityMetadata>,
 }
 
 impl PersistedEntityMetadata {
@@ -108,6 +159,7 @@ impl PersistedEntityMetadata {
         created_by_id: CreatedById,
         updated_by_id: UpdatedById,
         removed_by_id: Option<RemovedById>,
+        link_metadata: Option<LinkEntityMetadata>,
     ) -> Self {
         Self {
             identifier,
@@ -115,6 +167,7 @@ impl PersistedEntityMetadata {
             created_by_id,
             updated_by_id,
             removed_by_id,
+            link_metadata,
         }
     }
 
@@ -142,6 +195,11 @@ impl PersistedEntityMetadata {
     pub const fn removed_by_id(&self) -> Option<RemovedById> {
         self.removed_by_id
     }
+
+    #[must_use]
+    pub const fn link_metadata(&self) -> &Option<LinkEntityMetadata> {
+        &self.link_metadata
+    }
 }
 
 /// A record of an [`Entity`] that has been persisted in the datastore, with its associated
@@ -162,6 +220,7 @@ impl PersistedEntity {
         created_by_id: CreatedById,
         updated_by_id: UpdatedById,
         removed_by_id: Option<RemovedById>,
+        link_metadata: Option<LinkEntityMetadata>,
     ) -> Self {
         Self {
             inner,
@@ -171,6 +230,7 @@ impl PersistedEntity {
                 created_by_id,
                 updated_by_id,
                 removed_by_id,
+                link_metadata,
             ),
         }
     }
