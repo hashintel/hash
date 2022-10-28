@@ -370,6 +370,18 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         type: "JSONB",
         notNull: true,
       },
+      left_order: {
+        // TODO: this is where we could do fractional indexing
+        //  https://app.asana.com/0/1200211978612931/1202085856561975/f
+        type: "integer",
+        notNull: false,
+      },
+      right_order: {
+        // TODO: this is where we could do fractional indexing
+        //  https://app.asana.com/0/1200211978612931/1202085856561975/f
+        type: "integer",
+        notNull: false,
+      },
       owned_by_id: {
         type: "UUID",
         notNull: true,
