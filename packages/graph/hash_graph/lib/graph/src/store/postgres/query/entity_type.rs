@@ -39,16 +39,20 @@ impl Path for EntityTypeQueryPath {
             ))
             .chain(path.tables())
             .collect(),
-            Self::Links(path) => once((
-                TableName::EntityTypeLinkTypeReferences,
-                EdgeJoinDirection::SourceOnTarget,
-            ))
-            .chain(path.tables())
-            .collect(),
-            _ => vec![(
-                self.terminating_table_name(),
-                EdgeJoinDirection::SourceOnTarget,
-            )],
+
+            // Self::Links(path) => once((
+            //     TableName::EntityTypeLinkTypeReferences,
+            //     EdgeJoinDirection::SourceOnTarget,
+            // ))
+            // .chain(path.tables())
+            // .collect(),
+            // _ => vec![(
+            //     self.terminating_table_name(),
+            //     EdgeJoinDirection::SourceOnTarget,
+            // )],
+            _ => {
+                todo!("https://app.asana.com/0/1200211978612931/1203250001255262/f")
+            }
         }
     }
 
@@ -69,7 +73,8 @@ impl Path for EntityTypeQueryPath {
             | Self::Required
             | Self::RequiredLinks => TableName::EntityTypes,
             Self::Properties(path) => path.terminating_table_name(),
-            Self::Links(path) => path.terminating_table_name(),
+            // TODO: https://app.asana.com/0/1200211978612931/1203250001255262/f
+            // Self::Links(path) => path.terminating_table_name(),
         }
     }
 
@@ -118,7 +123,8 @@ impl Path for EntityTypeQueryPath {
                 column: "schema",
                 field: "required",
             },
-            Self::Links(path) => path.column_access(),
+            // TODO: https://app.asana.com/0/1200211978612931/1203250001255262/f
+            // Self::Links(path) => path.column_access(),
             Self::RequiredLinks => ColumnAccess::Json {
                 column: "schema",
                 field: "requiredLinks",

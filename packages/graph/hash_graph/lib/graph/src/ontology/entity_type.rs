@@ -7,10 +7,7 @@ use serde::{
 use type_system::EntityType;
 
 use crate::{
-    ontology::{
-        link_type::LinkTypeQueryPathVisitor, property_type::PropertyTypeQueryPathVisitor,
-        LinkTypeQueryPath, PropertyTypeQueryPath, Selector,
-    },
+    ontology::{property_type::PropertyTypeQueryPathVisitor, PropertyTypeQueryPath, Selector},
     store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath},
 };
 
@@ -31,8 +28,8 @@ pub enum EntityTypeQueryPath {
     Examples,
     Properties(PropertyTypeQueryPath),
     Required,
-    // TODO: Link types are to be removed. See https://app.asana.com/0/1200211978612931/1203250001255277/f
-    Links(LinkTypeQueryPath),
+    // TODO: https://app.asana.com/0/1200211978612931/1203250001255262/f
+    // Links(LinkTypeQueryPath),
     RequiredLinks,
 }
 
@@ -78,7 +75,8 @@ impl RecordPath for EntityTypeQueryPath {
                 ParameterType::Any
             }
             Self::Properties(path) => path.expected_type(),
-            Self::Links(path) => path.expected_type(),
+            // TODO: https://app.asana.com/0/1200211978612931/1203250001255262/f
+            // Self::Links(path) => path.expected_type(),
         }
     }
 }
@@ -101,7 +99,8 @@ impl fmt::Display for EntityTypeQueryPath {
             Self::Examples => fmt.write_str("examples"),
             Self::Properties(path) => write!(fmt, "properties.{path}"),
             Self::Required => fmt.write_str("required"),
-            Self::Links(path) => write!(fmt, "links.{path}"),
+            // TODO: https://app.asana.com/0/1200211978612931/1203250001255262/f
+            // Self::Links(path) => write!(fmt, "links.{path}"),
             Self::RequiredLinks => fmt.write_str("requiredLinks"),
         }
     }
@@ -190,10 +189,12 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
                     .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
                 self.position += 1;
 
-                let link_type_query_path =
-                    LinkTypeQueryPathVisitor::new(self.position).visit_seq(seq)?;
+                todo!("https://app.asana.com/0/1200211978612931/1203250001255262/f");
 
-                EntityTypeQueryPath::Links(link_type_query_path)
+                // let link_type_query_path =
+                //     LinkTypeQueryPathVisitor::new(self.position).visit_seq(seq)?;
+                //
+                // EntityTypeQueryPath::Links(link_type_query_path)
             }
             EntityTypeQueryToken::RequiredLinks => EntityTypeQueryPath::RequiredLinks,
         })

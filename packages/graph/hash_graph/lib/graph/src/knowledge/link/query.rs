@@ -8,7 +8,6 @@ use serde::{
 
 use crate::{
     knowledge::{entity::EntityQueryPath, EntityQueryPathVisitor, Link},
-    ontology::{LinkTypeQueryPath, LinkTypeQueryPathVisitor},
     store::query::{ParameterType, QueryRecord, RecordPath},
 };
 
@@ -17,7 +16,8 @@ use crate::{
 pub enum LinkQueryPath<'q> {
     OwnedById,
     CreatedById,
-    Type(LinkTypeQueryPath),
+    // TODO: "https://app.asana.com/0/1200211978612931/1203250001255262/f"
+    // Type(LinkTypeQueryPath),
     Source(Option<EntityQueryPath<'q>>),
     Target(Option<EntityQueryPath<'q>>),
     Index,
@@ -32,7 +32,8 @@ impl fmt::Display for LinkQueryPath<'_> {
         match self {
             Self::OwnedById => fmt.write_str("ownedById"),
             Self::CreatedById => fmt.write_str("createdById"),
-            Self::Type(path) => write!(fmt, "type.{path}"),
+            // TODO: https://app.asana.com/0/1200211978612931/1203250001255262/f
+            // Self::Type(path) => write!(fmt, "type.{path}"),
             Self::Source(None) => fmt.write_str("source"),
             Self::Source(Some(path)) => write!(fmt, "source.{path}"),
             Self::Target(None) => fmt.write_str("target"),
@@ -48,7 +49,8 @@ impl RecordPath for LinkQueryPath<'_> {
             Self::OwnedById | Self::CreatedById | Self::Source(None) | Self::Target(None) => {
                 ParameterType::Uuid
             }
-            Self::Type(path) => path.expected_type(),
+            // TODO: https://app.asana.com/0/1200211978612931/1203250001255262/f
+            // Self::Type(path) => path.expected_type(),
             Self::Source(Some(path)) | Self::Target(Some(path)) => path.expected_type(),
             Self::Index => ParameterType::Number,
         }
@@ -103,10 +105,7 @@ impl<'de> Visitor<'de> for LinkQueryPathVisitor {
             LinkQueryToken::OwnedById => LinkQueryPath::OwnedById,
             LinkQueryToken::CreatedById => LinkQueryPath::CreatedById,
             LinkQueryToken::Type => {
-                let link_type_query_path =
-                    LinkTypeQueryPathVisitor::new(self.position).visit_seq(seq)?;
-
-                LinkQueryPath::Type(link_type_query_path)
+                todo!("https://app.asana.com/0/1200211978612931/1203250001255262/f")
             }
             LinkQueryToken::Source => {
                 let entity_type_query_path =

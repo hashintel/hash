@@ -9,7 +9,7 @@ use std::fmt;
 
 use async_trait::async_trait;
 use error_stack::{Context, Result};
-use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};
+use type_system::{uri::VersionedUri, DataType, EntityType, PropertyType};
 
 pub use self::{
     error::{BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError, UpdateError},
@@ -23,8 +23,7 @@ use crate::{
         PersistedLink,
     },
     ontology::{
-        PersistedDataType, PersistedEntityType, PersistedLinkType, PersistedOntologyMetadata,
-        PersistedPropertyType,
+        PersistedDataType, PersistedEntityType, PersistedOntologyMetadata, PersistedPropertyType,
     },
     provenance::{CreatedById, OwnedById, RemovedById, UpdatedById},
     store::{error::LinkRemovalError, query::Filter},
@@ -182,13 +181,8 @@ impl fmt::Display for DatabaseConnectionInfo {
 ///
 /// In addition to the errors described in the methods of this trait, further errors might also be
 /// raised depending on the implementation, e.g. connection issues.
-pub trait Store = AccountStore
-    + DataTypeStore
-    + PropertyTypeStore
-    + LinkTypeStore
-    + EntityTypeStore
-    + EntityStore
-    + LinkStore;
+pub trait Store =
+    AccountStore + DataTypeStore + PropertyTypeStore + EntityTypeStore + EntityStore + LinkStore;
 
 /// Describes the API of a store implementation for accounts.
 #[async_trait]

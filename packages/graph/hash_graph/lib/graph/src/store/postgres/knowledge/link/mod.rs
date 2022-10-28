@@ -54,24 +54,25 @@ impl<C: AsClient> PostgresStore<C> {
                     },
                 );
 
-                if dependency_context
-                    .graph_resolve_depths
-                    .link_type_resolve_depth
-                    > 0
-                {
-                    let link_type_id = link.inner().link_type_id().clone();
-                    self.get_link_type_as_dependency(
-                        &link_type_id,
-                        dependency_context.change_depth(GraphResolveDepths {
-                            link_type_resolve_depth: dependency_context
-                                .graph_resolve_depths
-                                .link_type_resolve_depth
-                                - 1,
-                            ..dependency_context.graph_resolve_depths
-                        }),
-                    )
-                    .await?;
-                }
+                // TODO: https://app.asana.com/0/1200211978612931/1203250001255262/f
+                // if dependency_context
+                //     .graph_resolve_depths
+                //     .link_type_resolve_depth
+                //     > 0
+                // {
+                //     let link_type_id = link.inner().link_type_id().clone();
+                //     self.get_link_type_as_dependency(
+                //         &link_type_id,
+                //         dependency_context.change_depth(GraphResolveDepths {
+                //             link_type_resolve_depth: dependency_context
+                //                 .graph_resolve_depths
+                //                 .link_type_resolve_depth
+                //                 - 1,
+                //             ..dependency_context.graph_resolve_depths
+                //         }),
+                //     )
+                //     .await?;
+                // }
 
                 dependency_context.edges.insert(
                     GraphElementIdentifier::Temporary(LinkId {
@@ -171,7 +172,6 @@ impl<C: AsClient> LinkStore for PostgresStore<C> {
                     referenced_property_types: dependency_context
                         .referenced_property_types
                         .into_vec(),
-                    referenced_link_types: dependency_context.referenced_link_types.into_vec(),
                     referenced_entity_types: dependency_context.referenced_entity_types.into_vec(),
                     linked_entities: dependency_context.linked_entities.into_vec(),
                     links: dependency_context.links.into_vec(),

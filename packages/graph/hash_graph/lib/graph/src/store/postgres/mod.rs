@@ -34,8 +34,8 @@ use crate::{
         PersistedEntityIdentifier, PersistedEntityMetadata, PersistedLink,
     },
     ontology::{
-        OntologyQueryDepth, PersistedDataType, PersistedEntityType, PersistedLinkType,
-        PersistedOntologyIdentifier, PersistedOntologyMetadata, PersistedPropertyType,
+        OntologyQueryDepth, PersistedDataType, PersistedEntityType, PersistedOntologyIdentifier,
+        PersistedOntologyMetadata, PersistedPropertyType,
     },
     provenance::{CreatedById, OwnedById, RemovedById, UpdatedById},
     shared::identifier::{GraphElementIdentifier, LinkId},
@@ -234,7 +234,6 @@ pub struct DependencyContext {
     pub referenced_data_types: DependencyMap<VersionedUri, PersistedDataType, OntologyQueryDepth>,
     pub referenced_property_types:
         DependencyMap<VersionedUri, PersistedPropertyType, OntologyQueryDepth>,
-    pub referenced_link_types: DependencyMap<VersionedUri, PersistedLinkType, OntologyQueryDepth>,
     pub referenced_entity_types:
         DependencyMap<VersionedUri, PersistedEntityType, OntologyQueryDepth>,
     pub linked_entities: DependencyMap<EntityId, PersistedEntity, KnowledgeGraphQueryDepth>,
@@ -249,7 +248,6 @@ impl DependencyContext {
             edges: Edges::new(),
             referenced_data_types: DependencyMap::new(),
             referenced_property_types: DependencyMap::new(),
-            referenced_link_types: DependencyMap::new(),
             referenced_entity_types: DependencyMap::new(),
             linked_entities: DependencyMap::new(),
             links: DependencySet::new(),
@@ -263,7 +261,6 @@ impl DependencyContext {
             edges: &mut self.edges,
             referenced_data_types: &mut self.referenced_data_types,
             referenced_property_types: &mut self.referenced_property_types,
-            referenced_link_types: &mut self.referenced_link_types,
             referenced_entity_types: &mut self.referenced_entity_types,
             linked_entities: &mut self.linked_entities,
             links: &mut self.links,
@@ -296,14 +293,6 @@ impl DependencyContext {
                         )
                     }),
             )
-            .chain(self.referenced_link_types.into_values().map(|link_type| {
-                (
-                    GraphElementIdentifier::OntologyElementId(
-                        link_type.metadata().identifier().uri().clone(),
-                    ),
-                    Vertex::LinkType(link_type),
-                )
-            }))
             .chain(
                 self.referenced_entity_types
                     .into_values()
@@ -351,8 +340,6 @@ pub struct DependencyContextRef<'a> {
         &'a mut DependencyMap<VersionedUri, PersistedDataType, OntologyQueryDepth>,
     pub referenced_property_types:
         &'a mut DependencyMap<VersionedUri, PersistedPropertyType, OntologyQueryDepth>,
-    pub referenced_link_types:
-        &'a mut DependencyMap<VersionedUri, PersistedLinkType, OntologyQueryDepth>,
     pub referenced_entity_types:
         &'a mut DependencyMap<VersionedUri, PersistedEntityType, OntologyQueryDepth>,
     pub linked_entities: &'a mut DependencyMap<EntityId, PersistedEntity, KnowledgeGraphQueryDepth>,
@@ -370,7 +357,6 @@ where {
             edges: self.edges,
             referenced_data_types: self.referenced_data_types,
             referenced_property_types: self.referenced_property_types,
-            referenced_link_types: self.referenced_link_types,
             referenced_entity_types: self.referenced_entity_types,
             linked_entities: self.linked_entities,
             links: self.links,
@@ -838,8 +824,51 @@ where
                 .change_context(InsertionError)?;
         }
 
-        // TODO: Add entity_type_entity_type references through link entity types
-        //   see https://app.asana.com/0/1200211978612931/1203250001255277/f
+        todo!("https://app.asana.com/0/1200211978612931/1203250001255262/f");
+        // let (link_type_ids, entity_type_references): (
+        //     Vec<&VersionedUri>,
+        //     Vec<&[EntityTypeReference]>,
+        // ) = entity_type.link_type_references().into_iter().unzip();
+        //
+        // let link_type_ids = self
+        //     .link_type_ids_to_version_ids(link_type_ids)
+        //     .await
+        //     .change_context(InsertionError)
+        //     .attach_printable("Could not find referenced link types")?;
+        //
+        // for target_id in link_type_ids {
+        //     self.as_client().query_one(
+        //         r#"
+        //                 INSERT INTO entity_type_link_type_references (source_entity_type_version_id, target_link_type_version_id)
+        //                 VALUES ($1, $2)
+        //                 RETURNING source_entity_type_version_id;
+        //             "#,
+        //         &[&version_id, &target_id],
+        //     )
+        //         .await
+        //         .into_report()
+        //         .change_context(InsertionError)?;
+        // }
+        //
+        // let entity_type_reference_ids = self
+        //     .entity_type_reference_ids(entity_type_references.into_iter().flatten())
+        //     .await
+        //     .change_context(InsertionError)
+        //     .attach_printable("Could not find referenced entity types")?;
+        //
+        // for target_id in entity_type_reference_ids {
+        //     self.as_client().query_one(
+        //         r#"
+        //                 INSERT INTO entity_type_entity_type_links (source_entity_type_version_id, target_entity_type_version_id)
+        //                 VALUES ($1, $2)
+        //                 RETURNING source_entity_type_version_id;
+        //             "#,
+        //         &[&version_id, &target_id],
+        //     )
+        //         .await
+        //         .into_report()
+        //         .change_context(InsertionError)?;
+        // }
 
         Ok(())
     }

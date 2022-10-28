@@ -12,10 +12,7 @@ use utoipa::{openapi, ToSchema};
 
 use crate::{
     knowledge::{Entity, KnowledgeGraphQueryDepth, Link, PersistedEntity, PersistedLink},
-    ontology::{
-        OntologyQueryDepth, PersistedDataType, PersistedEntityType, PersistedLinkType,
-        PersistedPropertyType,
-    },
+    ontology::{OntologyQueryDepth, PersistedDataType, PersistedEntityType, PersistedPropertyType},
     shared::identifier::GraphElementIdentifier,
     store::query::{Filter, QueryRecord},
 };
@@ -26,7 +23,6 @@ use crate::{
 pub enum Vertex {
     DataType(PersistedDataType),
     PropertyType(PersistedPropertyType),
-    LinkType(PersistedLinkType),
     EntityType(PersistedEntityType),
     Entity(PersistedEntity),
     Link(PersistedLink),
@@ -43,7 +39,6 @@ impl ToSchema for Vertex {
         for (kind, schema) in [
             ("dataType", PersistedDataType::schema()),
             ("propertyType", PersistedPropertyType::schema()),
-            ("linkType", PersistedLinkType::schema()),
             ("entityType", PersistedEntityType::schema()),
             ("entity", PersistedEntity::schema()),
             ("link", PersistedLink::schema()),

@@ -110,7 +110,12 @@ async fn create_link<P: StorePool + Send>(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    let link = Link::new(source_entity_id, target_entity_id, link_type_id, index);
+    let link = Link::new(
+        source_entity_id,
+        target_entity_id,
+        todo!("https://app.asana.com/0/1200211978612931/1203250001255262/f"),
+        index,
+    );
 
     store
         .create_link(&link, owned_by_id, actor_id)

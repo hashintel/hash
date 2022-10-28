@@ -4,7 +4,6 @@ use postgres_types::ToSql;
 
 use crate::{
     knowledge::{Link, LinkQueryPath},
-    ontology::LinkTypeQueryPath,
     store::postgres::query::{
         expression::EdgeJoinDirection, ColumnAccess, Path, PostgresQueryRecord, Table, TableName,
     },
@@ -20,7 +19,8 @@ impl<'q> PostgresQueryRecord<'q> for Link {
 
     fn default_selection_paths() -> &'q [Self::Path<'q>] {
         &[
-            LinkQueryPath::Type(LinkTypeQueryPath::VersionedUri),
+            todo!("https://app.asana.com/0/1200211978612931/1203250001255262/f"),
+            // LinkQueryPath::Type(LinkTypeQueryPath::VersionedUri),
             LinkQueryPath::Source(None),
             LinkQueryPath::Target(None),
             LinkQueryPath::Index,
@@ -36,9 +36,10 @@ impl Path for LinkQueryPath<'_> {
             Self::OwnedById | Self::CreatedById | Self::Index | Self::Target(None) => {
                 vec![(TableName::Links, EdgeJoinDirection::SourceOnTarget)]
             }
-            Self::Type(path) => once((TableName::Links, EdgeJoinDirection::SourceOnTarget))
-                .chain(path.tables())
-                .collect(),
+            // TODO: https://app.asana.com/0/1200211978612931/1203250001255262/f
+            // Self::Type(path) => once((TableName::Links, EdgeJoinDirection::SourceOnTarget))
+            //     .chain(path.tables())
+            //     .collect(),
             Self::Source(Some(path)) => once((TableName::Links, EdgeJoinDirection::TargetOnSource))
                 .chain(path.tables())
                 .collect(),
@@ -58,7 +59,8 @@ impl Path for LinkQueryPath<'_> {
             | Self::Index
             | Self::Source(None)
             | Self::Target(None) => TableName::Links,
-            Self::Type(path) => path.terminating_table_name(),
+            // TODO: https://app.asana.com/0/1200211978612931/1203250001255262/f
+            // Self::Type(path) => path.terminating_table_name(),
             Self::Source(Some(path)) | Self::Target(Some(path)) => path.terminating_table_name(),
         }
     }
@@ -71,7 +73,8 @@ impl Path for LinkQueryPath<'_> {
             Self::CreatedById => ColumnAccess::Table {
                 column: "created_by_id",
             },
-            Self::Type(path) => path.column_access(),
+            // TODO: https://app.asana.com/0/1200211978612931/1203250001255262/f
+            // Self::Type(path) => path.column_access(),
             Self::Source(Some(path)) | Self::Target(Some(path)) => path.column_access(),
             Self::Index => ColumnAccess::Table {
                 column: "link_index",

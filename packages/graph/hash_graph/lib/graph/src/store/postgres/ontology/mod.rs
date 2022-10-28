@@ -44,13 +44,3 @@ impl OntologyDatabaseType for EntityType {
         self.id()
     }
 }
-
-impl OntologyDatabaseType for LinkType {
-    fn table() -> &'static str {
-        "link_types"
-    }
-
-    fn versioned_uri(&self) -> &VersionedUri {
-        self.id()
-    }
-}
