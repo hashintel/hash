@@ -75,7 +75,7 @@ mod tests {
 
         with_clause.add_statement(TableName::TypeIds, SelectStatement {
             with: WithExpression::default(),
-            distinct: false,
+            distinct: Vec::new(),
             selects: vec![
                 SelectExpression::new(Expression::Asterisk, None),
                 SelectExpression::new(
@@ -102,7 +102,7 @@ mod tests {
 
         with_clause.add_statement(TableName::DataTypes, SelectStatement {
             with: WithExpression::default(),
-            distinct: false,
+            distinct: Vec::new(),
             selects: vec![SelectExpression::new(Expression::Asterisk, None)],
             from: Table {
                 name: TableName::DataTypes,
