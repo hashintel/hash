@@ -272,7 +272,7 @@ export const getIncomingLinksOfEntity = (params: {
           edgeKind === "HAS_DESTINATION" && destination === entityId,
       ),
     )
-    .map(([source]) => subgraph.vertices[source] as LinkVertex);
+    .map(([source, _]) => subgraph.vertices[source] as LinkVertex);
 
   return linkTypeId
     ? incomingLinks.filter(({ inner }) => inner.inner.linkTypeId === linkTypeId)
