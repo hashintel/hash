@@ -364,9 +364,6 @@ impl Parameter<'_> {
             | (Parameter::Text(_), ParameterType::Text) => {
                 // no action needed, exact match
             }
-            (Parameter::Text(text), ParameterType::UnsignedInteger) if text == "latest" => {
-                // Special case for checking `version == "latest"
-            }
             (Parameter::Text(_base_uri), ParameterType::BaseUri) => {
                 // TODO: validate base uri
                 //   see https://app.asana.com/0/1202805690238892/1203225514907875/f
@@ -395,6 +392,9 @@ impl Parameter<'_> {
                     expected: ParameterType::UnsignedInteger
                 });
                 *self = Parameter::SignedInteger(number);
+            }
+            (Parameter::Text(text), ParameterType::UnsignedInteger) if text == "latest" => {
+                // Special case for checking `version == "latest"
             }
             (actual, expected) => {
                 bail!(ParameterConversionError {
