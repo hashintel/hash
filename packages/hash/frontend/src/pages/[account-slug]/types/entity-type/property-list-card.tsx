@@ -8,7 +8,9 @@ import {
   ButtonBase,
   Checkbox,
   checkboxClasses,
+  ClickAwayListener,
   outlinedInputClasses,
+  Popper,
   svgIconClasses,
   Table,
   TableBody,
@@ -29,7 +31,7 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import { Ref, useId, useRef, useState } from "react";
+import { Ref, useId, useMemo, useRef, useState } from "react";
 import { useFieldArray, useFormContext } from "react-hook-form";
 import { Modal } from "../../../../components/Modals/Modal";
 import { EmptyPropertyListCard } from "./empty-property-list-card";
@@ -184,55 +186,120 @@ export const PropertyTypeRow = ({
 }) => {
   const { watch } = useFormContext<EntityTypeEditorForm>();
   const propertyTypes = usePropertyTypes();
+  const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
+  const [multipleValues, setMultipleValues] = useState(false);
+  const [multipleValuesMenuOpen, setMultipleValuesMenuOpen] = useState(false);
+  const [minimumValue, setMinimumValue] = useState("0");
+  const [maximumValue, setMaximumValue] = useState("0");
+
   const propertyId = mustBeVersionedUri(
     watch(`properties.${propertyIndex}.$id`),
   );
   const property = propertyTypes ? propertyTypes[propertyId] : null;
 
-  if (!property) {
-    throw new Error("Missing property type");
-  }
-
-  return (
-    <TableRow>
-      <TableCell>
-        <Typography variant="smallTextLabels" fontWeight={500}>
-          {property.title}
-        </Typography>
-      </TableCell>
-      <TableCell>
-        <PropertyExpectedValues property={property} />
-      </TableCell>
-      <TableCell sx={{ textAlign: "center" }}>
-        <Checkbox />
-      </TableCell>
-      <TableCell sx={{ textAlign: "center" }}>
-        <Checkbox />
-      </TableCell>
-      <TableCell sx={{ px: "0px !important" }}>
-        <TextField
-          placeholder="Add default value"
-          sx={{
-            width: "100%",
-            [`.${tableRowClasses.root}:not(:hover) & .${outlinedInputClasses.root}:not(:focus-within)`]:
-              {
-                boxShadow: "none",
-                [`.${outlinedInputClasses.notchedOutline}`]: {
-                  borderColor: "transparent",
-                },
-                [`.${outlinedInputClasses.input}::placeholder`]: {
-                  color: "transparent",
-                },
-              },
-          }}
-          inputProps={{ sx: { textOverflow: "ellipsis" } }}
-        />
-      </TableCell>
-      <TableCell>
-        <PropertyMenu onRemove={onRemove} property={property} />
-      </TableCell>
-    </TableRow>
+  const anchorElWidth = useMemo(
+    () => anchorEl?.getBoundingClientRect().width,
+    [anchorEl],
   );
+
+  // if (!property) {
+  //   throw new Error("Missing property type");
+  // }
+
+  return property ? (
+    <>
+      <TableRow>
+        <TableCell>
+          <Typography variant="smallTextLabels" fontWeight={500}>
+            {property.title}
+          </Typography>
+        </TableCell>
+        <TableCell>
+          <PropertyExpectedValues property={property} />
+        </TableCell>
+        <TableCell
+          ref={(ref: HTMLDivElement) => setAnchorEl(ref)}
+          sx={({ palette, transitions }) => ({
+            px: "0px !important",
+            position: "relative",
+            cursor: "pointer",
+            textAlign: "center",
+            transition: transitions.create("border-color"),
+            border: `1px solid ${
+              multipleValuesMenuOpen ? palette.gray[40] : "transparent"
+            } !important`,
+            "&:hover": {
+              borderColor: `${palette.gray[40]} !important`,
+            },
+          })}
+          onClick={() => setMultipleValuesMenuOpen(true)}
+        >
+          <Checkbox
+            value={multipleValues}
+            onChange={(event) => setMultipleValues(event.target.checked)}
+          />
+        </TableCell>
+        <CenteredTableCell sx={{ textAlign: "center" }}>
+          <Checkbox />
+        </CenteredTableCell>
+        <CenteredTableCell sx={{ px: "0px !important" }}>
+          <TextField
+            placeholder="Add default value"
+            sx={{
+              width: "100%",
+              [`.${tableRowClasses.root}:not(:hover) & .${outlinedInputClasses.root}:not(:focus-within)`]:
+                {
+                  boxShadow: "none",
+                  [`.${outlinedInputClasses.notchedOutline}`]: {
+                    borderColor: "transparent",
+                  },
+                  [`.${outlinedInputClasses.input}::placeholder`]: {
+                    color: "transparent",
+                  },
+                },
+            }}
+            inputProps={{ sx: { textOverflow: "ellipsis" } }}
+          />
+        </CenteredTableCell>
+        <TableCell>
+          <PropertyMenu onRemove={onRemove} property={property} />
+        </TableCell>
+      </TableRow>
+      <Popper
+        open={multipleValuesMenuOpen}
+        anchorEl={anchorEl}
+        placement="bottom"
+        sx={{ width: anchorElWidth, zIndex: 1 }}
+      >
+        <ClickAwayListener onClickAway={() => setMultipleValuesMenuOpen(false)}>
+          <Box
+            sx={({ palette }) => ({
+              border: 1,
+              p: 1.5,
+              background: palette.white,
+              borderColor: palette.gray[30],
+            })}
+          >
+            <TextField
+              type="number"
+              size="small"
+              label="Minimum"
+              value={minimumValue}
+              onChange={(event) => setMinimumValue(event.target.value)}
+              sx={{ mb: 2 }}
+            />
+            <TextField
+              type="number"
+              label="Maximum"
+              value={maximumValue}
+              onChange={(event) => setMaximumValue(event.target.value)}
+              size="small"
+            />
+          </Box>
+        </ClickAwayListener>
+      </Popper>
+    </>
+  ) : null;
 };
 
 export const PropertyListCard = () => {
