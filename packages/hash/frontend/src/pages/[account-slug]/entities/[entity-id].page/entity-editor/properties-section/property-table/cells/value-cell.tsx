@@ -6,7 +6,10 @@ import {
 import type { DrawArgs } from "@glideapps/glide-data-grid/dist/ts/data-grid/cells/cell-types";
 import { isPlainObject } from "lodash";
 import { TooltipCellProps } from "../../../../../../../../components/GlideGlid/use-grid-tooltip/types";
-import { roundRect } from "../../../../../../../../components/GlideGlid/utils";
+import {
+  getYCenter,
+  roundRect,
+} from "../../../../../../../../components/GlideGlid/utils";
 import { getNestedPropertySummary } from "../../get-empty-property-count";
 import { PropertyRow } from "../types";
 import { ValueCellEditor } from "./value-cell/value-cell-editor";
@@ -20,7 +23,7 @@ export type ValueCell = CustomCell<ValueCellProps>;
 
 const drawNestedPropertySummary = (args: DrawArgs<ValueCell>) => {
   const { ctx, rect, cell } = args;
-  const yCenter = rect.y + rect.height / 2 + 2;
+  const yCenter = getYCenter(args);
 
   const { empty, notEmpty } = getNestedPropertySummary(
     cell.data.property.value,
@@ -68,10 +71,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
     (cell.data as any).kind === "value-cell",
   draw: (args, cell) => {
     const { ctx, rect, theme } = args;
-    const { x, y, height } = rect;
     const { value } = cell.data.property;
-
-    const yCenter = y + height / 2 + 2;
 
     ctx.fillStyle = theme.textHeader;
     ctx.font = theme.baseFontStyle;
@@ -80,7 +80,9 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
       return drawNestedPropertySummary(args);
     }
 
-    ctx.fillText(value, x + theme.cellHorizontalPadding, yCenter);
+    const yCenter = getYCenter(args);
+
+    ctx.fillText(value, rect.x + theme.cellHorizontalPadding, yCenter);
   },
   provideEditor: (cell) => {
     const { value } = cell.data.property;

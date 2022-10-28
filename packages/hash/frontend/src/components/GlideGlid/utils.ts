@@ -195,6 +195,11 @@ export const roundRect = (
   }
 };
 
+export const getYCenter = (args: DrawArgs<CustomCell>) => {
+  const { y, height } = args.rect;
+  return y + height / 2 + 1;
+};
+
 export const drawChipWithIcon = (
   args: DrawArgs<CustomCell>,
   text: string,
@@ -202,8 +207,8 @@ export const drawChipWithIcon = (
   textColor?: string,
   bgColor?: string,
 ) => {
-  const { ctx, rect, theme } = args;
-  const yCenter = rect.y + rect.height / 2 + 2;
+  const { ctx, theme } = args;
+  const yCenter = getYCenter(args);
 
   const height = 26;
   const chipTop = yCenter - height / 2;

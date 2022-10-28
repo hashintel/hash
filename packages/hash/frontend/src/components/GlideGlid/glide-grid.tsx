@@ -32,6 +32,7 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
       baseFontStyle: "500 14px inter",
       headerFontStyle: "600 14px inter",
       editorFontSize: "14px",
+      fgIconHeader: palette.gray[80],
     }),
     [palette],
   );

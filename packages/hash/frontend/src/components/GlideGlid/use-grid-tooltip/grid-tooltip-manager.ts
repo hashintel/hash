@@ -1,6 +1,7 @@
 import type { DrawArgs } from "@glideapps/glide-data-grid/dist/ts/data-grid/cells/cell-types";
 import { CustomGridIcon } from "../custom-grid-icons";
 import { drawCellFadeOutGradient } from "../draw-cell-fade-out-gradient";
+import { getYCenter } from "../utils";
 import { TooltipCell } from "./types";
 
 export class GridTooltipManager {
@@ -79,7 +80,7 @@ export class GridTooltipManager {
         cellMargin -
         reversedIndex * (iconGap + iconSize);
 
-      const yCenter = rect.y + rect.height / 2;
+      const yCenter = getYCenter(args);
 
       args.spriteManager.drawSprite(
         tooltip.icon,
