@@ -6,12 +6,13 @@ import {
   useState,
   useCallback,
 } from "react";
-import { Box, Collapse, Typography } from "@mui/material";
+import { Box, Collapse, Tooltip, Typography } from "@mui/material";
 import {
   Avatar,
   Button,
   FontAwesomeIcon,
   IconButton,
+  LoadingSpinner,
 } from "@hashintel/hash-design-system/ui";
 import { formatDistanceToNowStrict } from "date-fns";
 import {
@@ -29,6 +30,7 @@ import { types } from "@hashintel/hash-shared/types";
 import { extractBaseUri } from "@blockprotocol/type-system-web";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
 import { isEqual } from "lodash";
+import { faCheckCircle } from "@fortawesome/free-regular-svg-icons";
 import { PageComment } from "../../../components/hooks/usePageComments";
 import { CommentTextField } from "./CommentTextField";
 import { CommentBlockMenu } from "./CommentBlockMenu";
@@ -37,6 +39,7 @@ import { useUpdateCommentText } from "../../../components/hooks/useUpdateComment
 import { CommentBlockMenuItem } from "./CommentBlockMenuItem";
 import { PencilSlashIcon } from "../../../shared/icons/pencil-slash-icon";
 import { useUser } from "../../../components/hooks/useUser";
+import { useResolveComment } from "../../../components/hooks/useResolveComment";
 import { useDeleteComment } from "../../../components/hooks/useDeleteComment";
 import { CommentBlockDeleteConfirmationDialog } from "./CommentBlockDeleteConfirmationDialog";
 import { CommentActionButtons } from "./CommentActionButtons";
@@ -72,11 +75,13 @@ export const ToggleTextExpandedButton: FunctionComponent<
 type CommentProps = {
   pageId: string;
   comment: PageComment;
+  resolvable?: boolean;
 };
 
 export const CommentBlock: FunctionComponent<CommentProps> = ({
   pageId,
   comment,
+  resolvable,
 }) => {
   const { entityId, hasText, author, textUpdatedAt } = comment;
 
@@ -91,6 +96,8 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
   const { user } = useUser();
   const [updateCommentText, { loading: updateCommentTextLoading }] =
     useUpdateCommentText(pageId);
+  const [resolveComment, { loading: resolveCommentLoading }] =
+    useResolveComment(pageId);
   const [deleteComment, { loading: deleteCommentLoading }] =
     useDeleteComment(pageId);
 
@@ -188,14 +195,56 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
           </Typography>
         </Box>
 
-        <IconButton
-          {...bindTrigger(commentMenuPopupState)}
-          sx={{
-            color: ({ palette }) => palette.gray[40],
-          }}
-        >
-          <FontAwesomeIcon icon={faEllipsisVertical} />
-        </IconButton>
+        {resolvable ? (
+          <Box
+            sx={({ palette }) => ({
+              height: 1,
+              mr: 0.5,
+              p: 0.25,
+              color: resolveCommentLoading
+                ? palette.primary.main
+                : palette.gray[40],
+            })}
+          >
+            {resolveCommentLoading ? (
+              <LoadingSpinner size={18} />
+            ) : (
+              <Tooltip title="Resolve Comment Thread" placement="bottom">
+                <IconButton
+                  onClick={() => resolveComment(entityId)}
+                  size="medium"
+                  sx={({ palette, transitions }) => ({
+                    p: 0,
+                    transition: transitions.create("color"),
+                    "&:hover": {
+                      color: palette.primary.main,
+                      background: "none",
+                    },
+                  })}
+                  disabled={resolveCommentLoading}
+                >
+                  <FontAwesomeIcon
+                    icon={faCheckCircle}
+                    sx={{ fontSize: "18px !important" }}
+                  />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Box>
+        ) : null}
+
+        <Tooltip title="Edit, delete and more" placement="bottom">
+          <IconButton
+            {...bindTrigger(commentMenuPopupState)}
+            sx={{
+              width: 24,
+              height: 24,
+              color: ({ palette }) => palette.gray[40],
+            }}
+          >
+            <FontAwesomeIcon icon={faEllipsisVertical} />
+          </IconButton>
+        </Tooltip>
       </Box>
 
       <Box p={0.5} pt={2} position="relative">
