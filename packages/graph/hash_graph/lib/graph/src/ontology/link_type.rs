@@ -145,6 +145,7 @@ impl<'de> Visitor<'de> for LinkTypeQueryPathVisitor {
             .next_element()?
             .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
         self.position += 1;
+
         Ok(match token {
             LinkTypeQueryToken::OwnedById => LinkTypeQueryPath::OwnedById,
             LinkTypeQueryToken::CreatedById => LinkTypeQueryPath::CreatedById,
@@ -174,7 +175,7 @@ mod tests {
     use std::iter::once;
 
     use super::*;
-    use crate::ontology::test_utils::create_path;
+    use crate::query::test_utils::create_path;
 
     fn convert_path(segments: impl IntoIterator<Item = &'static str>) -> LinkTypeQueryPath {
         LinkTypeQueryPath::try_from(create_path(segments)).expect("could not convert path")
