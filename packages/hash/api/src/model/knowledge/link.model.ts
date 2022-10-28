@@ -84,7 +84,7 @@ export default class {
   static async getByQuery(
     graphApi: GraphApi,
     filter: Filter,
-    options?: Omit<Partial<LinkStructuralQuery>, "query">,
+    options?: Omit<Partial<LinkStructuralQuery>, "filter">,
   ): Promise<LinkModel[]> {
     const { data: linkRootedSubgraphs } = await graphApi.getLinksByQuery({
       filter,

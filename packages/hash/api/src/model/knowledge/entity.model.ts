@@ -306,7 +306,7 @@ export default class {
   static async getByQuery(
     graphApi: GraphApi,
     filter: Filter,
-    options?: Omit<Partial<EntityStructuralQuery>, "query">,
+    options?: Omit<Partial<EntityStructuralQuery>, "filter">,
   ): Promise<EntityModel[]> {
     const { data: subgraph } = await graphApi.getEntitiesByQuery({
       filter,
