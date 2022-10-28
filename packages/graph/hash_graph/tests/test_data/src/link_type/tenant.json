@@ -1,8 +1,0 @@
-{
-  "kind": "linkType",
-  "$id": "https://blockprotocol.org/@alice/types/link-type/tenant/v/1",
-  "title": "Tenant",
-  "pluralTitle": "Tenant",
-  "description": "Someone who occupies land or property rented from a landlord",
-  "relatedKeywords": []
-}

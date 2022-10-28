@@ -68,7 +68,6 @@ impl RoutedResource for LinkResource {
 struct CreateLinkRequest {
     target_entity_id: EntityId,
     #[schema(value_type = String)]
-    link_type_id: VersionedUri,
     owned_by_id: OwnedById,
     actor_id: CreatedById,
     // TODO: Consider if ordering should be exposed on links as they are here. The API consumer
@@ -101,7 +100,6 @@ async fn create_link<P: StorePool + Send>(
     let Path(source_entity_id) = source_entity_id;
     let Json(CreateLinkRequest {
         target_entity_id,
-        link_type_id,
         owned_by_id,
         actor_id,
         index,

@@ -10,7 +10,7 @@ use graph::{
     provenance::{CreatedById, OwnedById},
     store::{AccountStore, AsClient, EntityStore, PostgresStore},
 };
-use graph_test_data::{data_type, entity, entity_type, link_type, property_type};
+use graph_test_data::{data_type, entity, entity_type, property_type};
 use type_system::{uri::VersionedUri, EntityType};
 use uuid::Uuid;
 
@@ -51,18 +51,6 @@ const SEED_PROPERTY_TYPES: [&str; 20] = [
     property_type::USER_ID_V2,
     property_type::CONTACT_INFORMATION_V1,
     property_type::CONTRIVED_PROPERTY_V1,
-];
-
-const SEED_LINK_TYPES: [&str; 9] = [
-    link_type::ACQUAINTANCE_OF_V1,
-    link_type::CONTAINS_V1,
-    link_type::FRIEND_OF_V1,
-    link_type::LOCATED_AT_V1,
-    link_type::OWNS_V1,
-    link_type::OWNS_V2,
-    link_type::SUBMITTED_BY_V1,
-    link_type::TENANT_V1,
-    link_type::WRITTEN_BY_V1,
 ];
 
 const SEED_ENTITY_TYPES: [&str; 10] = [

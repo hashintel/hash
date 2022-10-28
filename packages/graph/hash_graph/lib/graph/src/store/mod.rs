@@ -327,48 +327,6 @@ pub trait EntityTypeStore:
     ) -> Result<PersistedOntologyMetadata, UpdateError>;
 }
 
-/// Describes the API of a store implementation for [`LinkType`]s.
-#[async_trait]
-pub trait LinkTypeStore:
-    for<'q> crud::Read<PersistedLinkType, Query<'q> = Filter<'q, LinkType>>
-{
-    /// Creates a new [`LinkType`].
-    ///
-    /// # Errors:
-    ///
-    /// - if the account referred to by `owned_by_id` does not exist.
-    /// - if the [`BaseUri`] of the `property_type` already exists.
-    ///
-    /// [`BaseUri`]: type_system::uri::BaseUri
-    async fn create_link_type(
-        &mut self,
-        link_type: LinkType,
-        owned_by_id: OwnedById,
-        actor_id: CreatedById,
-    ) -> Result<PersistedOntologyMetadata, InsertionError>;
-
-    /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
-    ///
-    /// # Errors
-    ///
-    /// - if the requested [`LinkType`] doesn't exist.
-    async fn get_link_type<'f: 'q, 'q>(
-        &self,
-        query: &'f StructuralQuery<'q, LinkType>,
-    ) -> Result<Subgraph, QueryError>;
-
-    /// Update the definition of an existing [`LinkType`].
-    ///
-    /// # Errors
-    ///
-    /// - if the [`LinkType`] doesn't exist.
-    async fn update_link_type(
-        &mut self,
-        property_type: LinkType,
-        actor_id: UpdatedById,
-    ) -> Result<PersistedOntologyMetadata, UpdateError>;
-}
-
 /// Describes the API of a store implementation for [Entities].
 ///
 /// [Entities]: crate::knowledge::Entity

@@ -1,4 +1,4 @@
-use graph_test_data::{data_type, entity, entity_type, link_type, property_type};
+use graph_test_data::{data_type, entity, entity_type, property_type};
 use type_system::uri::{BaseUri, VersionedUri};
 
 use crate::postgres::DatabaseTestWrapper;
@@ -10,23 +10,14 @@ async fn insert() {
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
-        .seed(
-            [data_type::TEXT_V1],
-            [property_type::NAME_V1],
-            [link_type::FRIEND_OF_V1],
-            [entity_type::PERSON_V1],
-        )
+        .seed([data_type::TEXT_V1], [property_type::NAME_V1], [
+            entity_type::PERSON_V1,
+        ])
         .await
         .expect("could not seed database");
 
     let person_type_id = VersionedUri::new(
         BaseUri::new("https://blockprotocol.org/@alice/types/entity-type/person/".to_owned())
-            .expect("couldn't construct Base URI"),
-        1,
-    );
-
-    let link_type_id = VersionedUri::new(
-        BaseUri::new("https://blockprotocol.org/@alice/types/link-type/friend-of/".to_owned())
             .expect("couldn't construct Base URI"),
         1,
     );
@@ -71,12 +62,9 @@ async fn get_entity_links() {
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
-        .seed(
-            [data_type::TEXT_V1],
-            [property_type::NAME_V1],
-            [link_type::FRIEND_OF_V1, link_type::ACQUAINTANCE_OF_V1],
-            [entity_type::PERSON_V1],
-        )
+        .seed([data_type::TEXT_V1], [property_type::NAME_V1], [
+            entity_type::PERSON_V1,
+        ])
         .await
         .expect("could not seed database");
 
@@ -159,12 +147,9 @@ async fn remove_link() {
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
-        .seed(
-            [data_type::TEXT_V1],
-            [property_type::NAME_V1],
-            [link_type::FRIEND_OF_V1],
-            [entity_type::PERSON_V1],
-        )
+        .seed([data_type::TEXT_V1], [property_type::NAME_V1], [
+            entity_type::PERSON_V1,
+        ])
         .await
         .expect("could not seed database");
 
@@ -221,12 +206,9 @@ async fn ordered_links() {
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
-        .seed(
-            [data_type::TEXT_V1],
-            [property_type::NAME_V1],
-            [link_type::FRIEND_OF_V1],
-            [entity_type::PERSON_V1],
-        )
+        .seed([data_type::TEXT_V1], [property_type::NAME_V1], [
+            entity_type::PERSON_V1,
+        ])
         .await
         .expect("could not seed database");
 

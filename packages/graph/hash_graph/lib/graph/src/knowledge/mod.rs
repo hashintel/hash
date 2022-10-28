@@ -14,9 +14,7 @@ pub use self::{
     },
     link::{Link, LinkQueryPath, LinkQueryPathVisitor, PersistedLink, PersistedLinkMetadata},
 };
-use crate::ontology::{
-    PersistedDataType, PersistedEntityType, PersistedLinkType, PersistedPropertyType,
-};
+use crate::ontology::{PersistedDataType, PersistedEntityType, PersistedPropertyType};
 
 /// Distance to explore when querying a rooted subgraph on entities and links.
 ///
@@ -54,7 +52,6 @@ pub struct LinkRootedSubgraph {
     pub link: PersistedLink,
     pub referenced_data_types: Vec<PersistedDataType>,
     pub referenced_property_types: Vec<PersistedPropertyType>,
-    pub referenced_link_types: Vec<PersistedLinkType>,
     pub referenced_entity_types: Vec<PersistedEntityType>,
     pub linked_entities: Vec<PersistedEntity>,
     pub links: Vec<PersistedLink>,

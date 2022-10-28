@@ -1,7 +1,6 @@
 mod data_type;
 mod entity;
 mod entity_type;
-mod link_type;
 mod links;
 mod property_type;
 
@@ -15,8 +14,7 @@ use graph::{
         PersistedLink,
     },
     ontology::{
-        LinkTypeQueryPath, PersistedDataType, PersistedEntityType, PersistedLinkType,
-        PersistedOntologyMetadata, PersistedPropertyType,
+        LinkTypeQueryPath, PersistedDataType, PersistedEntityType, PersistedOntologyMetadata, PersistedPropertyType,
     },
     provenance::{CreatedById, OwnedById, RemovedById, UpdatedById},
     shared::identifier::GraphElementIdentifier,
@@ -24,13 +22,13 @@ use graph::{
         error::LinkRemovalError,
         query::{Filter, FilterExpression, Parameter},
         AccountStore, AsClient, DataTypeStore, DatabaseConnectionInfo, DatabaseType, EntityStore,
-        EntityTypeStore, InsertionError, LinkStore, LinkTypeStore, PostgresStore,
-        PostgresStorePool, PropertyTypeStore, QueryError, StorePool, UpdateError,
+        EntityTypeStore, InsertionError, LinkStore, PostgresStore, PostgresStorePool,
+        PropertyTypeStore, QueryError, StorePool, UpdateError,
     },
     subgraph::{GraphResolveDepths, StructuralQuery, Vertex},
 };
 use tokio_postgres::{NoTls, Transaction};
-use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};
+use type_system::{uri::VersionedUri, DataType, EntityType, PropertyType};
 use uuid::Uuid;
 
 pub struct DatabaseTestWrapper {
@@ -75,17 +73,15 @@ impl DatabaseTestWrapper {
         }
     }
 
-    pub async fn seed<D, P, L, E>(
+    pub async fn seed<D, P, E>(
         &mut self,
         data_types: D,
         property_types: P,
-        link_types: L,
         entity_types: E,
     ) -> Result<DatabaseApi<'_>, InsertionError>
     where
         D: IntoIterator<Item = &'static str>,
         P: IntoIterator<Item = &'static str>,
-        L: IntoIterator<Item = &'static str>,
         E: IntoIterator<Item = &'static str>,
     {
         let mut store = PostgresStore::new(
@@ -116,17 +112,6 @@ impl DatabaseTestWrapper {
             store
                 .create_property_type(
                     PropertyType::from_str(property_type).expect("could not parse property type"),
-                    OwnedById::new(account_id),
-                    CreatedById::new(account_id),
-                )
-                .await?;
-        }
-
-        // Insert link types before entity types so entity types can refer to them
-        for link_type in link_types {
-            store
-                .create_link_type(
-                    LinkType::from_str(link_type).expect("could not parse link type"),
                     OwnedById::new(account_id),
                     CreatedById::new(account_id),
                 )
@@ -275,49 +260,6 @@ impl DatabaseApi<'_> {
     ) -> Result<PersistedOntologyMetadata, UpdateError> {
         self.store
             .update_entity_type(entity_type, UpdatedById::new(self.account_id))
-            .await
-    }
-
-    pub async fn create_link_type(
-        &mut self,
-        link_type: LinkType,
-    ) -> Result<PersistedOntologyMetadata, InsertionError> {
-        self.store
-            .create_link_type(
-                link_type,
-                OwnedById::new(self.account_id),
-                CreatedById::new(self.account_id),
-            )
-            .await
-    }
-
-    pub async fn get_link_type(
-        &mut self,
-        uri: &VersionedUri,
-    ) -> Result<PersistedLinkType, QueryError> {
-        let vertex = self
-            .store
-            .get_link_type(&StructuralQuery {
-                filter: Filter::for_versioned_uri(uri),
-                graph_resolve_depths: GraphResolveDepths::zeroed(),
-            })
-            .await?
-            .vertices
-            .remove(&GraphElementIdentifier::OntologyElementId(uri.clone()))
-            .expect("no link type found");
-
-        match vertex {
-            Vertex::LinkType(persisted_link_type) => Ok(persisted_link_type),
-            _ => unreachable!(),
-        }
-    }
-
-    pub async fn update_link_type(
-        &mut self,
-        link_type: LinkType,
-    ) -> Result<PersistedOntologyMetadata, UpdateError> {
-        self.store
-            .update_link_type(link_type, UpdatedById::new(self.account_id))
             .await
     }
 

@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use graph_test_data::{data_type, entity_type, link_type, property_type};
+use graph_test_data::{data_type, entity_type, property_type};
 use type_system::EntityType;
 
 use crate::postgres::DatabaseTestWrapper;

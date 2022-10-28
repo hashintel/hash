@@ -50,7 +50,6 @@ async fn seed_db(
             property_type::BLURB_V1,
             property_type::PUBLISHED_ON_V1,
         ],
-        [link_type::WRITTEN_BY_V1, link_type::FRIEND_OF_V1],
         [entity_type::PERSON_V1, entity_type::BOOK_V1],
     )
     .await;
