@@ -10,8 +10,11 @@ use serde::Deserialize;
 use type_system::uri::VersionedUri;
 use uuid::Uuid;
 
-use crate::store::query::{
-    Expression, Literal, OntologyPath, ParameterType, Path, QueryRecord, RecordPath,
+use crate::{
+    knowledge::{Entity, EntityId, EntityQueryPath, Link, LinkQueryPath},
+    store::query::{
+        Expression, Literal, OntologyPath, ParameterType, Path, QueryRecord, RecordPath,
+    },
 };
 
 /// A set of conditions used for queries.
@@ -68,6 +71,49 @@ where
                 ))),
             ),
         ])
+    }
+}
+
+impl<'q> Filter<'q, Entity> {
+    /// Creates a `Filter` to search for all entities at their latest version.
+    #[must_use]
+    pub const fn for_all_latest_entities() -> Self {
+        Self::Equal(
+            Some(FilterExpression::Path(EntityQueryPath::Version)),
+            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                "latest",
+            )))),
+        )
+    }
+
+    /// Creates a `Filter` to search for a specific entities at their latest version, identified by
+    /// its [`EntityId`].
+    #[must_use]
+    pub fn for_latest_entity_by_entity_id(entity_id: EntityId) -> Self {
+        Self::All(vec![
+            Self::for_all_latest_entities(),
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::Id)),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    entity_id.as_uuid(),
+                ))),
+            ),
+        ])
+    }
+}
+
+impl<'q> Filter<'q, Link> {
+    /// Creates a `Filter` to search for links based on their source entity.
+    #[must_use]
+    pub const fn for_link_by_latest_source_entity(entity_id: EntityId) -> Self {
+        Self::Equal(
+            Some(FilterExpression::Path(LinkQueryPath::Source(Some(
+                EntityQueryPath::Id,
+            )))),
+            Some(FilterExpression::Parameter(Parameter::Uuid(
+                entity_id.as_uuid(),
+            ))),
+        )
     }
 }
 
