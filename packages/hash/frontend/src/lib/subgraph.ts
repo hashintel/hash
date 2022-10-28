@@ -235,15 +235,17 @@ export const getOutgoingLinksOfEntity = (params: {
   entityId: string;
   subgraph: Subgraph;
   linkTypeId?: string;
-}): LinkVertex[] => {
+}): LinkVertex["inner"][] => {
   const { entityId, subgraph, linkTypeId } = params;
 
   const outgoingLinks = subgraph.edges[entityId]!.filter(
     ({ edgeKind }) => edgeKind === "HAS_LINK",
-  ).map(({ destination }) => subgraph.vertices[destination] as LinkVertex);
+  ).map(
+    ({ destination }) => (subgraph.vertices[destination] as LinkVertex).inner,
+  );
 
   return linkTypeId
-    ? outgoingLinks.filter(({ inner }) => inner.inner.linkTypeId === linkTypeId)
+    ? outgoingLinks.filter(({ inner }) => inner.linkTypeId === linkTypeId)
     : outgoingLinks;
 };
 
@@ -261,7 +263,7 @@ export const getIncomingLinksOfEntity = (params: {
   entityId: string;
   subgraph: Subgraph;
   linkTypeId?: string;
-}): LinkVertex[] => {
+}): LinkVertex["inner"][] => {
   const { entityId, subgraph, linkTypeId } = params;
 
   /** @todo: return the incoming links of an entity in a more efficient representation */
@@ -272,10 +274,10 @@ export const getIncomingLinksOfEntity = (params: {
           edgeKind === "HAS_DESTINATION" && destination === entityId,
       ),
     )
-    .map(([source, _]) => subgraph.vertices[source] as LinkVertex);
+    .map(([source, _]) => (subgraph.vertices[source] as LinkVertex).inner);
 
   return linkTypeId
-    ? incomingLinks.filter(({ inner }) => inner.inner.linkTypeId === linkTypeId)
+    ? incomingLinks.filter(({ inner }) => inner.linkTypeId === linkTypeId)
     : incomingLinks;
 };
 

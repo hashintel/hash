@@ -61,7 +61,7 @@ export const constructUser = (params: {
 
   const orgMemberships = outgoingHasMembershipLinks.map(
     ({ inner }) =>
-      subgraph.vertices[inner.inner.targetEntityId] as unknown as EntityVertex,
+      subgraph.vertices[inner.targetEntityId] as unknown as EntityVertex,
   );
 
   return {
@@ -81,7 +81,7 @@ export const constructUser = (params: {
         linkTypeId: types.linkType.ofOrg.linkTypeId,
       });
 
-      const orgEntityId = outgoingOfOrgLinks[0]!.inner.inner.targetEntityId;
+      const orgEntityId = outgoingOfOrgLinks[0]!.inner.targetEntityId;
 
       return {
         ...constructMinimalOrg({ subgraph, orgEntityId }),
