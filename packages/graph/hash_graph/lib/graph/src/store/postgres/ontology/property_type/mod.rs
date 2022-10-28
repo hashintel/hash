@@ -15,7 +15,6 @@ use crate::{
     store::{
         crud::Read,
         postgres::{context::PostgresContext, DependencyContext, DependencyContextRef},
-        query::Filter,
         AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, UpdateError,
     },
     subgraph::{EdgeKind, GraphResolveDepths, OutwardEdge, StructuralQuery, Subgraph},
@@ -164,15 +163,16 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         Ok(metadata)
     }
 
-    async fn get_property_type(&self, query: &StructuralQuery) -> Result<Subgraph, QueryError> {
+    async fn get_property_type<'f: 'q, 'q>(
+        &self,
+        query: &'f StructuralQuery<'q, PropertyType>,
+    ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
-            ref expression,
+            ref filter,
             graph_resolve_depths,
         } = *query;
 
-        let mut filter = Filter::try_from(expression.clone()).change_context(QueryError)?;
-        filter.convert_parameters().change_context(QueryError)?;
-        let subgraphs = stream::iter(Read::<PersistedPropertyType>::read(self, &filter).await?)
+        let subgraphs = stream::iter(Read::<PersistedPropertyType>::read(self, filter).await?)
             .then(|property_type| async move {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 

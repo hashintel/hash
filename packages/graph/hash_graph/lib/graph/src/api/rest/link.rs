@@ -12,8 +12,8 @@ use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
     knowledge::{EntityId, Link, LinkRootedSubgraph, PersistedLink, PersistedLinkMetadata},
     provenance::{CreatedById, OwnedById, RemovedById},
-    store::{error::QueryError, query::Expression, LinkStore, StorePool},
-    subgraph::StructuralQuery,
+    store::{error::QueryError, query::Filter, LinkStore, StorePool},
+    subgraph::{LinkStructuralQuery, StructuralQuery},
 };
 
 #[derive(OpenApi)]
@@ -33,7 +33,7 @@ use crate::{
             Link,
             CreateLinkRequest,
             RemoveLinkRequest,
-            StructuralQuery,
+            LinkStructuralQuery,
             LinkRootedSubgraph,
             PersistedLinkMetadata
         )
@@ -135,7 +135,7 @@ async fn create_link<P: StorePool + Send>(
 #[utoipa::path(
     post,
     path = "/links/query",
-    request_body = StructuralQuery,
+    request_body = LinkStructuralQuery,
     tag = "Link",
     responses(
         (status = 200, content_type = "application/json", body = [LinkRootedSubgraph], description = "A list of subgraphs rooted at links that satisfy the given query, each resolved to the requested depth."),
@@ -146,7 +146,7 @@ async fn create_link<P: StorePool + Send>(
 )]
 async fn get_links_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-    Json(query): Json<StructuralQuery>,
+    Json(query): Json<serde_json::Value>,
 ) -> Result<Json<Vec<LinkRootedSubgraph>>, StatusCode> {
     pool.acquire()
         .map_err(|error| {
@@ -154,6 +154,14 @@ async fn get_links_by_query<P: StorePool + Send>(
             StatusCode::INTERNAL_SERVER_ERROR
         })
         .and_then(|store| async move {
+            let mut query = StructuralQuery::deserialize(&query).map_err(|error| {
+                tracing::error!(?error, "Could not deserialize query");
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
+            query.filter.convert_parameters().map_err(|error| {
+                tracing::error!(?error, "Could not validate query");
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
             store.get_links(&query).await.map_err(|report| {
                 tracing::error!(error=?report, ?query, "Could not read links from the store");
                 report_to_status_code(&report)
@@ -184,7 +192,7 @@ async fn get_entity_links<P: StorePool + Send>(
 ) -> Result<Json<Vec<PersistedLink>>, StatusCode> {
     read_from_store(
         pool.as_ref(),
-        &Expression::for_link_by_source_entity_id(source_entity_id),
+        &Filter::for_link_by_latest_source_entity(source_entity_id),
     )
     .await
     .map(Json)

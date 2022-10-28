@@ -43,7 +43,9 @@ export const getAllLatestLinkTypes: ResolverFn<
 
   const { data: linkTypeSubgraph } = await graphApi
     .getLinkTypesByQuery({
-      query: { eq: [{ path: ["version"] }, { literal: "latest" }] },
+      filter: {
+        equal: [{ path: ["version"] }, { parameter: "latest" }],
+      },
       graphResolveDepths: {
         dataTypeResolveDepth: 0,
         propertyTypeResolveDepth: 0,
@@ -73,8 +75,8 @@ export const getLinkType: ResolverFn<
 
   const { data: linkTypeSubgraph } = await graphApi
     .getLinkTypesByQuery({
-      query: {
-        eq: [{ path: ["versionedUri"] }, { literal: linkTypeId }],
+      filter: {
+        equal: [{ path: ["versionedUri"] }, { parameter: linkTypeId }],
       },
       graphResolveDepths: {
         dataTypeResolveDepth: 0,

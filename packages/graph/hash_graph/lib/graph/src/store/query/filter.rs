@@ -393,6 +393,9 @@ impl Parameter<'_> {
                 });
                 *self = Parameter::SignedInteger(number);
             }
+            (Parameter::Text(text), ParameterType::UnsignedInteger) if text == "latest" => {
+                // Special case for checking `version == "latest"
+            }
             (actual, expected) => {
                 bail!(ParameterConversionError {
                     actual: actual.to_owned(),

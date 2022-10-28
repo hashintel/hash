@@ -54,7 +54,9 @@ export const getAllLatestEntityTypes: ResolverFn<
 
   const { data: entityTypeSubgraph } = await graphApi
     .getEntityTypesByQuery({
-      query: { eq: [{ path: ["version"] }, { literal: "latest" }] },
+      filter: {
+        equal: [{ path: ["version"] }, { parameter: "latest" }],
+      },
       graphResolveDepths: {
         dataTypeResolveDepth,
         propertyTypeResolveDepth,
@@ -95,8 +97,8 @@ export const getEntityType: ResolverFn<
 
   const { data: entityTypeSubgraph } = await graphApi
     .getEntityTypesByQuery({
-      query: {
-        eq: [{ path: ["versionedUri"] }, { literal: entityTypeId }],
+      filter: {
+        equal: [{ path: ["versionedUri"] }, { parameter: entityTypeId }],
       },
       graphResolveDepths: {
         dataTypeResolveDepth,

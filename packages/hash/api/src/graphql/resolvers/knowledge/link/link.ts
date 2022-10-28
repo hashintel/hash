@@ -56,13 +56,15 @@ export const outgoingPersistedLinks: ResolverFn<
 ) => {
   const linkModels = await LinkModel.getByQuery(graphApi, {
     all: [
-      { eq: [{ path: ["source", "id"] }, { literal: sourceEntityId }] },
+      {
+        equal: [{ path: ["source", "id"] }, { parameter: sourceEntityId }],
+      },
       linkTypeId
         ? {
-            eq: [
+            equal: [
               { path: ["type", "versionedUri"] },
               {
-                literal: linkTypeId,
+                parameter: linkTypeId,
               },
             ],
           }
