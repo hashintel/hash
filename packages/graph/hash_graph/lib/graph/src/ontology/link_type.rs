@@ -145,6 +145,7 @@ impl<'de> Visitor<'de> for LinkTypeQueryPathVisitor {
             .next_element()?
             .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
         self.position += 1;
+
         Ok(match token {
             LinkTypeQueryToken::OwnedById => LinkTypeQueryPath::OwnedById,
             LinkTypeQueryToken::CreatedById => LinkTypeQueryPath::CreatedById,

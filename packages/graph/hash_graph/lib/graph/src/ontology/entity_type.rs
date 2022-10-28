@@ -172,6 +172,7 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
             .next_element()?
             .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
         self.position += 1;
+
         Ok(match token {
             EntityTypeQueryToken::OwnedById => EntityTypeQueryPath::OwnedById,
             EntityTypeQueryToken::CreatedById => EntityTypeQueryPath::CreatedById,

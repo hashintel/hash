@@ -74,7 +74,7 @@ impl<'q> TryFrom<Path> for EntityQueryPath<'q> {
     }
 }
 
-/// A single token in a [`EntityQueryPath`].
+/// A single token in an [`EntityQueryPath`].
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum EntityQueryToken {
@@ -90,13 +90,18 @@ pub enum EntityQueryToken {
     OutgoingLinks,
 }
 
-/// Deserializes a [`EntityQueryPath`] from a string sequence.
+/// Deserializes an [`EntityQueryPath`] from a string sequence.
 pub struct EntityQueryPathVisitor {
     /// The current position in the sequence when deserializing.
     position: usize,
 }
 
 impl EntityQueryPathVisitor {
+    pub const EXPECTING: &'static str = "one of `ownedById`, `createdById`, `updatedById`, \
+                                         `removedById`, `baseUri`, `versionedUri`, `version`, \
+                                         `title`, `description`, `default`, `examples`, \
+                                         `properties`, `required`, `links`, `requiredLinks`";
+
     #[must_use]
     pub const fn new(position: usize) -> Self {
         Self { position }
@@ -107,10 +112,7 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
     type Value = EntityQueryPath<'de>;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str(
-            "a sequence consisting of `ownedById`, `version`, `type`, `properties`, \
-             `incomingLinks, or `outgoingLinks`",
-        )
+        formatter.write_str(Self::EXPECTING)
     }
 
     fn visit_seq<A>(mut self, mut seq: A) -> Result<Self::Value, A::Error>
@@ -121,6 +123,7 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
             .next_element()?
             .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
         self.position += 1;
+
         Ok(match token {
             EntityQueryToken::Id => EntityQueryPath::Id,
             EntityQueryToken::OwnedById => EntityQueryPath::OwnedById,
@@ -146,7 +149,7 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
         })
     }
 }
-impl<'de: 'k, 'k> Deserialize<'de> for EntityQueryPath<'k> {
+impl<'de: 'q, 'q> Deserialize<'de> for EntityQueryPath<'q> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -157,18 +160,20 @@ impl<'de: 'k, 'k> Deserialize<'de> for EntityQueryPath<'k> {
 
 #[cfg(test)]
 mod tests {
+    use std::iter::once;
+
     use super::*;
     use crate::query::test_utils::create_path;
 
     fn convert_path(segments: impl IntoIterator<Item = &'static str>) -> EntityQueryPath<'static> {
-        EntityQueryPath::try_from(create_path(segments)).expect("Could not convert path")
+        EntityQueryPath::try_from(create_path(segments)).expect("could not convert path")
     }
 
     fn deserialize<'q>(segments: impl IntoIterator<Item = &'q str>) -> EntityQueryPath<'q> {
         EntityQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
             segments.into_iter(),
         ))
-        .expect("Could not deserialize path")
+        .expect("could not deserialize path")
     }
 
     #[test]
@@ -190,10 +195,45 @@ mod tests {
         );
 
         assert_eq!(
-            EntityQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
-                ["version", "test"].into_iter()
-            ))
-            .expect_err("Could convert entity query path with multiple tokens")
+            EntityTypeQueryPath::deserialize(
+                de::value::SeqDeserializer::<_, de::value::Error>::new(once("version_id"))
+            )
+            .expect_err(
+                "managed to convert entity query path with hidden token when it should have \
+                 errored"
+            )
+            .to_string(),
+            format!(
+                "unknown variant `version_id`, expected {}",
+                EntityQueryPathVisitor::EXPECTING
+            )
+        );
+
+        assert_eq!(
+            EntityTypeQueryPath::deserialize(
+                de::value::SeqDeserializer::<_, de::value::Error>::new(once("schema"))
+            )
+            .expect_err(
+                "managed to convert entity query path with hidden token when it should have \
+                 errored"
+            )
+            .to_string(),
+            format!(
+                "unknown variant `schema`, expected {}",
+                EntityQueryPathVisitor::EXPECTING
+            )
+        );
+
+        assert_eq!(
+            EntityTypeQueryPath::deserialize(
+                de::value::SeqDeserializer::<_, de::value::Error>::new(
+                    ["version", "test"].into_iter()
+                )
+            )
+            .expect_err(
+                "managed to convert entity query path with multiple tokens when it should have \
+                 errored"
+            )
             .to_string(),
             "invalid length 2, expected 1 element in sequence"
         );

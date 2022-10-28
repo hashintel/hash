@@ -153,6 +153,7 @@ impl<'de> Visitor<'de> for PropertyTypeQueryPathVisitor {
             .next_element()?
             .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
         self.position += 1;
+
         Ok(match token {
             PropertyTypeQueryToken::OwnedById => PropertyTypeQueryPath::OwnedById,
             PropertyTypeQueryToken::CreatedById => PropertyTypeQueryPath::CreatedById,

@@ -153,6 +153,7 @@ impl<'de> Visitor<'de> for DataTypeQueryPathVisitor {
             .next_element()?
             .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
         self.position += 1;
+
         Ok(match token {
             DataTypeQueryToken::OwnedById => DataTypeQueryPath::OwnedById,
             DataTypeQueryToken::CreatedById => DataTypeQueryPath::CreatedById,
