@@ -189,8 +189,8 @@ export const PropertyTypeRow = ({
   const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
   const [multipleValues, setMultipleValues] = useState(false);
   const [multipleValuesMenuOpen, setMultipleValuesMenuOpen] = useState(false);
-  const [minimumValue, setMinimumValue] = useState("0");
-  const [maximumValue, setMaximumValue] = useState("0");
+  const [minimumValue, setMinimumValue] = useState(0);
+  const [maximumValue, setMaximumValue] = useState(0);
 
   const propertyId = mustBeVersionedUri(
     watch(`properties.${propertyIndex}.$id`),
@@ -285,14 +285,30 @@ export const PropertyTypeRow = ({
               size="small"
               label="Minimum"
               value={minimumValue}
-              onChange={(event) => setMinimumValue(event.target.value)}
+              onChange={(event) => {
+                const value = parseInt(event.target.value, 10);
+                if (value >= 0) {
+                  setMinimumValue(value);
+                  if (value > maximumValue) {
+                    setMaximumValue(value);
+                  }
+                }
+              }}
               sx={{ mb: 2 }}
             />
             <TextField
               type="number"
               label="Maximum"
               value={maximumValue}
-              onChange={(event) => setMaximumValue(event.target.value)}
+              onChange={(event) => {
+                const value = parseInt(event.target.value, 10);
+                if (value >= 0) {
+                  setMaximumValue(value);
+                  if (minimumValue > value) {
+                    setMinimumValue(value);
+                  }
+                }
+              }}
               size="small"
             />
           </Box>
