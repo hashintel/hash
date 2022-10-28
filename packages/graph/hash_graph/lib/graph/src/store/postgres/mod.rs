@@ -20,7 +20,7 @@ use tokio_postgres::{binary_copy::BinaryCopyInWriter, types::Type};
 use tokio_postgres::{GenericClient, Transaction};
 use type_system::{
     uri::{BaseUri, VersionedUri},
-    DataTypeReference, EntityType, EntityTypeReference, PropertyType, PropertyTypeReference,
+    DataTypeReference, EntityType, PropertyType, PropertyTypeReference,
 };
 use uuid::Uuid;
 
@@ -838,28 +838,8 @@ where
                 .change_context(InsertionError)?;
         }
 
-        let (_, entity_type_references): (Vec<&VersionedUri>, Vec<&[EntityTypeReference]>) =
-            entity_type.link_type_references().into_iter().unzip();
-
-        let entity_type_reference_ids = self
-            .entity_type_reference_ids(entity_type_references.into_iter().flatten())
-            .await
-            .change_context(InsertionError)
-            .attach_printable("Could not find referenced entity types")?;
-
-        for target_id in entity_type_reference_ids {
-            self.as_client().query_one(
-                r#"
-                        INSERT INTO entity_type_entity_type_links (source_entity_type_version_id, target_entity_type_version_id)
-                        VALUES ($1, $2)
-                        RETURNING source_entity_type_version_id;
-                    "#,
-                &[&version_id, &target_id],
-            )
-                .await
-                .into_report()
-                .change_context(InsertionError)?;
-        }
+        // TODO: Add entity_type_entity_type references through relationship entity types
+        //   see https://app.asana.com/0/1200211978612931/1203250001255277/f
 
         Ok(())
     }
@@ -892,22 +872,6 @@ where
         let referenced_data_types = referenced_data_types.into_iter();
         let mut ids = Vec::with_capacity(referenced_data_types.size_hint().0);
         for reference in referenced_data_types {
-            ids.push(self.version_id_by_uri(reference.uri()).await?);
-        }
-        Ok(ids)
-    }
-
-    async fn entity_type_reference_ids<'p, I>(
-        &self,
-        referenced_entity_types: I,
-    ) -> Result<Vec<VersionId>, QueryError>
-    where
-        I: IntoIterator<Item = &'p EntityTypeReference> + Send,
-        I::IntoIter: Send,
-    {
-        let referenced_entity_types = referenced_entity_types.into_iter();
-        let mut ids = Vec::with_capacity(referenced_entity_types.size_hint().0);
-        for reference in referenced_entity_types {
             ids.push(self.version_id_by_uri(reference.uri()).await?);
         }
         Ok(ids)
