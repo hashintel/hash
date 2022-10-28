@@ -16,6 +16,12 @@ pub struct SelectStatement<'q> {
     pub order_by_expression: OrderByExpression<'q>,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum Distinctness {
+    Indestinct,
+    Destinct,
+}
+
 impl Transpile for SelectStatement<'_> {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         if !self.with.is_empty() {
@@ -80,7 +86,8 @@ mod tests {
         },
         store::{
             postgres::query::{
-                test_helper::trim_whitespace, Ordering, PostgresQueryRecord, SelectCompiler,
+                test_helper::trim_whitespace, Distinctness, Ordering, PostgresQueryRecord,
+                SelectCompiler,
             },
             query::{Filter, FilterExpression, Parameter},
         },
@@ -463,9 +470,21 @@ mod tests {
     #[test]
     fn entity_with_manual_selection() {
         let mut compiler = SelectCompiler::<Entity>::new();
-        compiler.add_selection_path(&EntityQueryPath::Id, true, Some(Ordering::Ascending));
-        compiler.add_selection_path(&EntityQueryPath::Version, true, Some(Ordering::Descending));
-        compiler.add_selection_path(&EntityQueryPath::Properties(None), false, None);
+        compiler.add_selection_path(
+            &EntityQueryPath::Id,
+            Distinctness::Destinct,
+            Some(Ordering::Ascending),
+        );
+        compiler.add_selection_path(
+            &EntityQueryPath::Version,
+            Distinctness::Destinct,
+            Some(Ordering::Descending),
+        );
+        compiler.add_selection_path(
+            &EntityQueryPath::Properties(None),
+            Distinctness::Indestinct,
+            None,
+        );
 
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::CreatedById)),
