@@ -71,9 +71,11 @@ impl<'q> TryFrom<Path> for LinkQueryPath<'q> {
 #[serde(rename_all = "camelCase")]
 pub enum LinkQueryToken {
     OwnedById,
+    CreatedById,
     Type,
     Source,
     Target,
+    Index,
 }
 
 /// Deserializes a [`LinkQueryPath`] from a string sequence.
@@ -83,6 +85,9 @@ pub struct LinkQueryPathVisitor {
 }
 
 impl LinkQueryPathVisitor {
+    pub const EXPECTING: &'static str =
+        "one of `ownedById`, `createdById`, `type`, `source`, `target`, `index`";
+
     #[must_use]
     pub const fn new(position: usize) -> Self {
         Self { position }
@@ -93,7 +98,7 @@ impl<'de> Visitor<'de> for LinkQueryPathVisitor {
     type Value = LinkQueryPath<'de>;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("a sequence consisting of `ownedById`, `type`, `source`, or `target`")
+        formatter.write_str(Self::EXPECTING)
     }
 
     fn visit_seq<A>(mut self, mut seq: A) -> Result<Self::Value, A::Error>
@@ -104,8 +109,10 @@ impl<'de> Visitor<'de> for LinkQueryPathVisitor {
             .next_element()?
             .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
         self.position += 1;
+
         Ok(match token {
             LinkQueryToken::OwnedById => LinkQueryPath::OwnedById,
+            LinkQueryToken::CreatedById => LinkQueryPath::CreatedById,
             LinkQueryToken::Type => {
                 let link_type_query_path =
                     LinkTypeQueryPathVisitor::new(self.position).visit_seq(seq)?;
@@ -124,6 +131,7 @@ impl<'de> Visitor<'de> for LinkQueryPathVisitor {
 
                 LinkQueryPath::Target(Some(entity_type_query_path))
             }
+            LinkQueryToken::Index => LinkQueryPath::Index,
         })
     }
 }
@@ -139,23 +147,26 @@ impl<'de: 'k, 'k> Deserialize<'de> for LinkQueryPath<'k> {
 
 #[cfg(test)]
 mod tests {
+    use std::iter::once;
+
     use super::*;
     use crate::query::test_utils::create_path;
 
     fn convert_path(segments: impl IntoIterator<Item = &'static str>) -> LinkQueryPath<'static> {
-        LinkQueryPath::try_from(create_path(segments)).expect("Could not convert path")
+        LinkQueryPath::try_from(create_path(segments)).expect("could not convert path")
     }
 
     fn deserialize<'q>(segments: impl IntoIterator<Item = &'q str>) -> LinkQueryPath<'q> {
         LinkQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
             segments.into_iter(),
         ))
-        .expect("Could not deserialize path")
+        .expect("could not deserialize path")
     }
 
     #[test]
     fn deserialization() {
         assert_eq!(deserialize(["ownedById"]), LinkQueryPath::OwnedById);
+        assert_eq!(deserialize(["createdById"]), LinkQueryPath::CreatedById);
         assert_eq!(
             deserialize(["type", "version"]),
             LinkQueryPath::Type(LinkTypeQueryPath::Version)
@@ -168,12 +179,30 @@ mod tests {
             deserialize(["target", "version"]),
             LinkQueryPath::Target(Some(EntityQueryPath::Version))
         );
+        assert_eq!(deserialize(["index"]), LinkQueryPath::Index);
+
+        assert_eq!(
+            LinkQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
+                once("invalid")
+            ))
+            .expect_err(
+                "managed to convert link query path with hidden token when it should have errored"
+            )
+            .to_string(),
+            format!(
+                "unknown variant `invalid`, expected {}",
+                LinkQueryPathVisitor::EXPECTING
+            )
+        );
 
         assert_eq!(
             LinkQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
                 ["ownedById", "test"].into_iter()
             ))
-            .expect_err("Could convert link query path with multiple tokens")
+            .expect_err(
+                "managed to convert link query path with multiple tokens when it should have \
+                 errored"
+            )
             .to_string(),
             "invalid length 2, expected 1 element in sequence"
         );
