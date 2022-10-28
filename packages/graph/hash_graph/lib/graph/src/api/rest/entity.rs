@@ -22,7 +22,7 @@ use crate::{
     shared::identifier::GraphElementIdentifier,
     store::{
         error::{EntityDoesNotExist, QueryError},
-        query::Expression,
+        query::Filter,
         EntityStore, StorePool,
     },
     subgraph::{
@@ -183,7 +183,7 @@ async fn get_entities_by_query<P: StorePool + Send>(
 async fn get_latest_entities<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<PersistedEntity>>, StatusCode> {
-    read_from_store(pool.as_ref(), &Expression::for_latest_version())
+    read_from_store(pool.as_ref(), &Filter::<Entity>::for_all_latest_entities())
         .await
         .map(Json)
 }
@@ -207,10 +207,13 @@ async fn get_entity<P: StorePool + Send>(
     Path(entity_id): Path<EntityId>,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<PersistedEntity>, StatusCode> {
-    read_from_store(pool.as_ref(), &Expression::for_latest_entity_id(entity_id))
-        .await
-        .and_then(|mut entities| entities.pop().ok_or(StatusCode::NOT_FOUND))
-        .map(Json)
+    read_from_store(
+        pool.as_ref(),
+        &Filter::<Entity>::for_latest_entity_by_entity_id(entity_id),
+    )
+    .await
+    .and_then(|mut entities| entities.pop().ok_or(StatusCode::NOT_FOUND))
+    .map(Json)
 }
 
 #[derive(ToSchema, Serialize, Deserialize)]
