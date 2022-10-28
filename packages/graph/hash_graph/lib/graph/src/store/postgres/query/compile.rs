@@ -74,7 +74,7 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
     pub fn add_selection_path(
         &mut self,
         path: &'q T::Path<'q>,
-        distinctness: Destinctness,
+        destinctness: Destinctness,
         ordering: Option<Ordering>,
     ) {
         let table = self.add_join_statements(path.tables());
@@ -82,7 +82,7 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
             table,
             access: path.column_access(),
         };
-        if distinctness == Destinctness::Destinct {
+        if destinctness == Destinctness::Destinct {
             self.statement.distinct.push(column.clone());
         }
         if let Some(ordering) = ordering {
