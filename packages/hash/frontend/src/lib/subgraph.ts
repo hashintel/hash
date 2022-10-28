@@ -264,6 +264,7 @@ export const getIncomingLinksOfEntity = (params: {
 }): LinkVertex[] => {
   const { entityId, subgraph, linkTypeId } = params;
 
+  /** @todo: return the incoming links of an entity in a more efficient representation */
   const incomingLinks = Object.entries(subgraph.edges)
     .filter(([_, linkOutgoingEdges]) =>
       linkOutgoingEdges.some(
