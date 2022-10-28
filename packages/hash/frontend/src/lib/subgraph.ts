@@ -266,8 +266,8 @@ export const getIncomingLinksOfEntity = (params: {
 
   /** @todo: return the incoming links of an entity in a more efficient representation */
   const incomingLinks = Object.entries(subgraph.edges)
-    .filter(([_, linkOutgoingEdges]) =>
-      linkOutgoingEdges.some(
+    .filter(([_, outwardEdges]) =>
+      outwardEdges.some(
         ({ edgeKind, destination }) =>
           edgeKind === "HAS_DESTINATION" && destination === entityId,
       ),
