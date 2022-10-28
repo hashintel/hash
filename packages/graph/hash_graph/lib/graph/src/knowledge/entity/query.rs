@@ -19,6 +19,7 @@ pub enum EntityQueryPath<'q> {
     Version,
     Type(EntityTypeQueryPath),
     Properties(Option<Cow<'q, str>>),
+    // TODO: Links are to be removed, see https://app.asana.com/0/1200211978612931/1203250001255259/f
     IncomingLinks(Box<LinkQueryPath<'q>>),
     OutgoingLinks(Box<LinkQueryPath<'q>>),
 }

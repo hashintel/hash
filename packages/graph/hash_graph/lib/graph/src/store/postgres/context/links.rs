@@ -55,6 +55,7 @@ fn row_stream_to_record_stream(
     })
 }
 
+// TODO: Remove this, see https://app.asana.com/0/1200211978612931/1203250001255259/f
 pub async fn read_all_links(client: &impl AsClient) -> Result<RecordStream, QueryError> {
     let row_stream = client
         .as_client()
@@ -74,6 +75,7 @@ pub async fn read_all_links(client: &impl AsClient) -> Result<RecordStream, Quer
     Ok(row_stream_to_record_stream(row_stream))
 }
 
+// TODO: Remove this, see https://app.asana.com/0/1200211978612931/1203250001255259/f
 pub async fn read_links_by_source(
     client: &impl AsClient,
     entity_id: EntityId,
@@ -97,6 +99,7 @@ pub async fn read_links_by_source(
     Ok(row_stream_to_record_stream(row_stream))
 }
 
+// TODO: Remove this, see https://app.asana.com/0/1200211978612931/1203250001255259/f
 pub async fn read_links_by_target(
     client: &impl AsClient,
     entity_id: EntityId,
