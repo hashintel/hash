@@ -491,23 +491,26 @@ export default class {
     graphApi: GraphApi,
     params?: { linkTypeModel?: LinkTypeModel },
   ): Promise<LinkModel[]> {
-    const incomingLinks = await LinkModel.getByQuery(graphApi, {
+    const filter: Filter = {
       all: [
         {
           equal: [{ path: ["target", "id"] }, { parameter: this.entityId }],
         },
-        params?.linkTypeModel
-          ? {
-              equal: [
-                { path: ["type", "versionedUri"] },
-                {
-                  parameter: params.linkTypeModel.schema.$id,
-                },
-              ],
-            }
-          : [],
-      ].flat(),
-    });
+      ],
+    };
+
+    if (params?.linkTypeModel) {
+      filter.all.push({
+        equal: [
+          { path: ["type", "versionedUri"] },
+          {
+            parameter: params.linkTypeModel.schema.$id,
+          },
+        ],
+      });
+    }
+
+    const incomingLinks = await LinkModel.getByQuery(graphApi, filter);
 
     return incomingLinks;
   }
@@ -521,23 +524,26 @@ export default class {
     graphApi: GraphApi,
     params?: { linkTypeModel?: LinkTypeModel },
   ): Promise<LinkModel[]> {
-    const outgoingLinks = await LinkModel.getByQuery(graphApi, {
+    const filter: Filter = {
       all: [
         {
           equal: [{ path: ["source", "id"] }, { parameter: this.entityId }],
         },
-        params?.linkTypeModel
-          ? {
-              equal: [
-                { path: ["type", "versionedUri"] },
-                {
-                  parameter: params.linkTypeModel.schema.$id,
-                },
-              ],
-            }
-          : [],
-      ].flat(),
-    });
+      ],
+    };
+
+    if (params?.linkTypeModel) {
+      filter.all.push({
+        equal: [
+          { path: ["type", "versionedUri"] },
+          {
+            parameter: params.linkTypeModel.schema.$id,
+          },
+        ],
+      });
+    }
+
+    const outgoingLinks = await LinkModel.getByQuery(graphApi, filter);
 
     return outgoingLinks;
   }

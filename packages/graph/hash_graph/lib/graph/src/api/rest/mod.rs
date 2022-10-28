@@ -306,6 +306,7 @@ impl Modify for OperationGraphTagAddon {
 struct FilterSchemaAddon;
 
 impl Modify for FilterSchemaAddon {
+    #[expect(clippy::too_many_lines)]
     fn modify(&self, openapi: &mut openapi::OpenApi) {
         if let Some(ref mut components) = openapi.components {
             components.schemas.insert(
@@ -373,9 +374,35 @@ impl Modify for FilterSchemaAddon {
                                 .title(Some("PathExpression"))
                                 .property(
                                     "path",
-                                    ArrayBuilder::new().items(
-                                        ObjectBuilder::new().schema_type(SchemaType::String),
-                                    ),
+                                    ArrayBuilder::new().items(ObjectBuilder::new().enum_values(
+                                        Some([
+                                            "*",
+                                            "ownedById",
+                                            "createdById",
+                                            "updatedById",
+                                            "removedById",
+                                            "baseUri",
+                                            "versionedUri",
+                                            "version",
+                                            "title",
+                                            "description",
+                                            "type",
+                                            "id",
+                                            "properties",
+                                            "incomingLinks",
+                                            "outgoingLinks",
+                                            "default",
+                                            "examples",
+                                            "required",
+                                            "links",
+                                            "requiredLinks",
+                                            "source",
+                                            "target",
+                                            "relatedKeywords",
+                                            "dataTypes",
+                                            "propertyTypes",
+                                        ]),
+                                    )),
                                 )
                                 .required("path"),
                         )

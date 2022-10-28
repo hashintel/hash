@@ -815,11 +815,43 @@ export interface ParameterExpression {
 export interface PathExpression {
   /**
    *
-   * @type {Array<string>}
+   * @type {Array<object>}
    * @memberof PathExpression
    */
-  path: Array<string>;
+  path: Array<PathExpressionPathEnum>;
 }
+
+export const PathExpressionPathEnum = {
+  Star: "*",
+  OwnedById: "ownedById",
+  CreatedById: "createdById",
+  UpdatedById: "updatedById",
+  RemovedById: "removedById",
+  BaseUri: "baseUri",
+  VersionedUri: "versionedUri",
+  Version: "version",
+  Title: "title",
+  Description: "description",
+  Type: "type",
+  Id: "id",
+  Properties: "properties",
+  IncomingLinks: "incomingLinks",
+  OutgoingLinks: "outgoingLinks",
+  Default: "default",
+  Examples: "examples",
+  Required: "required",
+  Links: "links",
+  RequiredLinks: "requiredLinks",
+  Source: "source",
+  Target: "target",
+  RelatedKeywords: "relatedKeywords",
+  DataTypes: "dataTypes",
+  PropertyTypes: "propertyTypes",
+} as const;
+
+export type PathExpressionPathEnum =
+  typeof PathExpressionPathEnum[keyof typeof PathExpressionPathEnum];
+
 /**
  *
  * @export

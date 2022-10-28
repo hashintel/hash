@@ -15,6 +15,7 @@ import {
 } from "../model-mapping";
 import { LoggedInGraphQLContext } from "../../../context";
 import { mapSubgraphToGql } from "../../ontology/model-mapping";
+import { Filter } from "packages/graph/clients/typescript";
 
 /** @todo - rename these and remove "persisted" - https://app.asana.com/0/0/1203157172269854/f */
 
@@ -112,7 +113,7 @@ export const getPersistedEntity: ResolverFn<
 ) => {
   const { graphApi } = dataSources;
 
-  const filter = {
+  const filter: Filter = {
     all: [
       {
         equal: [

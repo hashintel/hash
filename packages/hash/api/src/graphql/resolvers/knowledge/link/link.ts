@@ -1,3 +1,4 @@
+import { Filter } from "packages/graph/clients/typescript";
 import { EntityModel, LinkModel, LinkTypeModel } from "../../../../model";
 import {
   MutationCreatePersistedLinkArgs,
@@ -54,23 +55,26 @@ export const outgoingPersistedLinks: ResolverFn<
   { sourceEntityId, linkTypeId },
   { dataSources: { graphApi } },
 ) => {
-  const linkModels = await LinkModel.getByQuery(graphApi, {
+  const filter: Filter = {
     all: [
       {
         equal: [{ path: ["source", "id"] }, { parameter: sourceEntityId }],
       },
-      linkTypeId
-        ? {
-            equal: [
-              { path: ["type", "versionedUri"] },
-              {
-                parameter: linkTypeId,
-              },
-            ],
-          }
-        : [],
-    ].flat(),
-  });
+    ],
+  };
+
+  if (linkTypeId) {
+    filter.all.push({
+      equal: [
+        { path: ["type", "versionedUri"] },
+        {
+          parameter: linkTypeId,
+        },
+      ],
+    });
+  }
+
+  const linkModels = await LinkModel.getByQuery(graphApi, filter);
 
   return linkModels.map(mapLinkModelToGQL);
 };
