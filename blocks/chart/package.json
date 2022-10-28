@@ -23,6 +23,7 @@
     "lodash.debounce": "4.0.8"
   },
   "devDependencies": {
+    "@local/tsconfig": "0.0.0-private",
     "@types/lodash.debounce": "4.0.7",
     "block-scripts": "0.0.14",
     "mock-block-dock": "0.0.10",

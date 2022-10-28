@@ -22,6 +22,7 @@
     "@blockprotocol/graph": "0.0.18"
   },
   "devDependencies": {
+    "@local/tsconfig": "0.0.0-private",
     "block-scripts": "0.0.14",
     "eslint": "8.20.0",
     "mock-block-dock": "0.0.38",

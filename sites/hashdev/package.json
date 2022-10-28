@@ -42,6 +42,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.12.10",
+    "@local/tsconfig": "0.0.0-private",
     "@types/fs-extra": "9.0.13",
     "@types/node": "16.7.6",
     "@types/react": "18.0.15",

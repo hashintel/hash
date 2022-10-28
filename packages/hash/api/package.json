@@ -8,7 +8,6 @@
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.yml",
     "dev": "node --max-old-space-size=2048 ./node_modules/.bin/ts-node-dev --respawn --transpile-only ./src/index.ts",
     "fix:eslint": "eslint --ext .ts --fix ./src/",
-    "postinstall": "yarn codegen",
     "lint:eslint": "eslint --ext .ts ./src/",
     "lint:tsc": "tsc --noEmit",
     "start": "cross-env NODE_ENV=production node --max-old-space-size=2048 ./node_modules/.bin/ts-node --transpile-only ./src/index.ts",
@@ -90,6 +89,7 @@
     "@graphql-codegen/introspection": "2.1.1",
     "@graphql-codegen/typescript": "2.6.0",
     "@graphql-codegen/typescript-resolvers": "2.6.7",
+    "@local/tsconfig": "0.0.0-private",
     "@types/app-root-path": "1.2.4",
     "@types/connect-pg-simple": "4.2.4",
     "@types/cron": "2.0.0",
@@ -120,6 +120,7 @@
     "jest": "29.2.1",
     "rimraf": "^3.0.2",
     "ts-jest": "29.0.3",
-    "ts-node-dev": "2.0.0-0"
+    "ts-node-dev": "2.0.0-0",
+    "typescript": "4.8.4"
   }
 }
