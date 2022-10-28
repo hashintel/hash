@@ -384,12 +384,12 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         notNull: true,
         references: "entity_ids",
       },
-      relationship_entity_id: {
+      target_entity_id: {
         type: "UUID",
         notNull: true,
         references: "entity_ids",
       },
-      target_entity_id: {
+      link_entity_id: {
         type: "UUID",
         notNull: true,
         references: "entity_ids",
@@ -411,11 +411,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   );
   // Currently entity relations are between unversioned entities.
   pgm.addConstraint("entity_relations", "entity_relations_pkey", {
-    primaryKey: [
-      "source_entity_id",
-      "relationship_entity_id",
-      "target_entity_id",
-    ],
+    primaryKey: ["source_entity_id", "link_entity_id", "target_entity_id"],
   });
 
   pgm.createTable(
@@ -428,12 +424,12 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         notNull: true,
         references: "entity_ids",
       },
-      relationship_entity_id: {
+      target_entity_id: {
         type: "UUID",
         notNull: true,
         references: "entity_ids",
       },
-      target_entity_id: {
+      link_entity_id: {
         type: "UUID",
         notNull: true,
         references: "entity_ids",

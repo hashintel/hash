@@ -838,7 +838,7 @@ where
                 .change_context(InsertionError)?;
         }
 
-        // TODO: Add entity_type_entity_type references through relationship entity types
+        // TODO: Add entity_type_entity_type references through link entity types
         //   see https://app.asana.com/0/1200211978612931/1203250001255277/f
 
         Ok(())
@@ -950,7 +950,7 @@ where
     /// - if the [`Link`] exists already
     /// - if the [`Link`]s link type doesn't exist
     /// - if inserting the link failed.
-    // TODO: rewrite this to handle relationships instead, related to https://app.asana.com/0/1200211978612931/1203250001255259/f
+    // TODO: rewrite this to handle link entities instead, related to https://app.asana.com/0/1200211978612931/1203250001255259/f
     async fn insert_link(
         &self,
         link: &Link,
@@ -992,7 +992,7 @@ where
     /// - if the [`Link`] doesn't exist
     /// - if the [`Link`]s link type doesn't exist
     /// - if inserting the link failed.
-    // TODO: Rewrite link deletion to relation deletion, related to https://app.asana.com/0/1200211978612931/1203250001255259/f
+    // TODO: Rewrite link deletion, related to https://app.asana.com/0/1200211978612931/1203250001255259/f
     async fn move_link_to_history(
         &self,
         link: &Link,
