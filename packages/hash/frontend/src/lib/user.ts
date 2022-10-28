@@ -7,7 +7,7 @@ import {
   getOutgoingLinksOfEntity,
   Subgraph,
 } from "./subgraph";
-import { constructMinimalOrg, MinimalOrg } from "./org";
+import { constructOrg, Org } from "./org";
 
 export type MinimalUser = {
   entityId: string;
@@ -41,7 +41,7 @@ export const constructMinimalUser = (params: {
 };
 
 export type User = MinimalUser & {
-  memberOf: (MinimalOrg & { responsibility: string })[];
+  memberOf: (Org & { responsibility: string })[];
 };
 
 export const constructUser = (params: {
@@ -84,7 +84,7 @@ export const constructUser = (params: {
       const orgEntityId = outgoingOfOrgLinks[0]!.inner.targetEntityId;
 
       return {
-        ...constructMinimalOrg({ subgraph, orgEntityId }),
+        ...constructOrg({ subgraph, orgEntityId }),
         responsibility,
       };
     }),

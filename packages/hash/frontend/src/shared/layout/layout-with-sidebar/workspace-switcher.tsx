@@ -66,15 +66,13 @@ export const WorkspaceSwitcher: FunctionComponent<
         subText: `@${authenticatedUser.shortname ?? "user"}`,
         avatarTitle: authenticatedUser.preferredName ?? "U",
       },
-      ...authenticatedUser.memberOf.map(
-        ({ entityId, name, numberOfMembers }) => ({
-          key: entityId,
-          url: `/${entityId}`,
-          title: name,
-          subText: `${numberOfMembers} members`,
-          avatarTitle: name,
-        }),
-      ),
+      ...authenticatedUser.memberOf.map(({ entityId, name, members }) => ({
+        key: entityId,
+        url: `/${entityId}`,
+        title: name,
+        subText: `${members.length} members`,
+        avatarTitle: name,
+      })),
     ];
   }, [authenticatedUser]);
 

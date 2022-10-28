@@ -12,7 +12,6 @@ export type MinimalOrg = {
   entityId: string;
   shortname: string;
   name: string;
-  numberOfMembers: number;
 };
 
 export const constructMinimalOrg = (params: {
@@ -33,7 +32,6 @@ export const constructMinimalOrg = (params: {
     entityId: orgEntityId,
     shortname,
     name,
-    numberOfMembers: 0,
   };
 };
 
@@ -47,7 +45,7 @@ export const constructOrg = (params: {
 }): Org => {
   const { subgraph, orgEntityId } = params;
 
-  const { entityId, shortname, name, numberOfMembers } = constructMinimalOrg({
+  const { entityId, shortname, name } = constructMinimalOrg({
     orgEntityId,
     subgraph,
   });
@@ -67,7 +65,6 @@ export const constructOrg = (params: {
     entityId,
     shortname,
     name,
-    numberOfMembers,
     members: orgMemberships.map(({ inner: orgMembershipEntity }) => {
       const responsibility: string =
         orgMembershipEntity.properties[
