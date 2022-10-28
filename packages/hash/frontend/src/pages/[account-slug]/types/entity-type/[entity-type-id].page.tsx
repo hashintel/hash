@@ -61,13 +61,20 @@ const Page: NextPageWithLayout = () => {
     baseEntityTypeUri,
     (fetchedEntityType) => {
       reset({
-        properties: Object.values(fetchedEntityType.properties).map((ref) => {
-          if ("type" in ref) {
-            // @todo handle property arrays
-            throw new Error("handle property arrays");
-          }
-          return { $id: mustBeVersionedUri(ref.$ref) };
-        }),
+        properties: Object.keys(fetchedEntityType.properties).map(
+          (propertyId) => {
+            const ref = fetchedEntityType.properties[propertyId]!;
+            if ("type" in ref) {
+              // @todo handle property arrays
+              throw new Error("handle property arrays");
+            }
+
+            return {
+              $id: mustBeVersionedUri(ref.$ref),
+              required: !!fetchedEntityType.required?.includes(propertyId),
+            };
+          },
+        ),
       });
     },
   );
@@ -89,6 +96,10 @@ const Page: NextPageWithLayout = () => {
       }),
     );
 
+    const required = data.properties
+      .filter((property) => property.required)
+      .map((property) => `${property.$id.split("/v/")[0]}/`); // @todo: is there a better way to do this?
+
     if (isDraft) {
       if (!draftEntityType) {
         throw new Error("Cannot publish without draft");
@@ -97,11 +108,13 @@ const Page: NextPageWithLayout = () => {
       await publishDraft({
         ...draftEntityType,
         properties,
+        required,
       });
       reset(data);
     } else {
       const res = await updateEntityType({
         properties,
+        required,
       });
 
       if (!res.errors?.length) {

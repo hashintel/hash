@@ -186,19 +186,25 @@ export const PropertyTypeRow = ({
   propertyIndex: number;
   onRemove: () => void;
 }) => {
-  const { watch } = useFormContext<EntityTypeEditorForm>();
+  const { control, watch } = useFormContext<EntityTypeEditorForm>();
+  const { update } = useFieldArray({
+    control,
+    name: "properties",
+  });
+
   const propertyTypes = usePropertyTypes();
   const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
   const [multipleValues, setMultipleValues] = useState(false);
   const [multipleValuesMenuOpen, setMultipleValuesMenuOpen] = useState(false);
   const [minValue, setMinValue] = useState(0);
   const [maxValue, setMaxValue] = useState(0);
-  const [required, setRequired] = useState(false);
 
-  const propertyId = mustBeVersionedUri(
+  const propertyId: VersionedUri = mustBeVersionedUri(
     watch(`properties.${propertyIndex}.$id`),
   );
   const property = propertyTypes ? propertyTypes[propertyId] : null;
+
+  const required = watch(`properties.${propertyIndex}.required`);
 
   const anchorElWidth = useMemo(
     () => anchorEl?.getBoundingClientRect().width,
@@ -282,8 +288,13 @@ export const PropertyTypeRow = ({
         </TableCell>
         <CenteredTableCell sx={{ textAlign: "center" }}>
           <Checkbox
-            value={required}
-            onChange={(event) => setRequired(event.target.checked)}
+            checked={required}
+            onChange={(event) => {
+              update(propertyIndex, {
+                $id: propertyId,
+                required: event.target.checked,
+              });
+            }}
           />
         </CenteredTableCell>
         <CenteredTableCell sx={{ px: "0px !important" }}>
