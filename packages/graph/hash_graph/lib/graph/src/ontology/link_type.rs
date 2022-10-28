@@ -9,6 +9,7 @@ use type_system::LinkType;
 
 use crate::store::query::{OntologyPath, ParameterType, Path, QueryRecord, RecordPath};
 
+// TODO: Link types have to be removed. See https://app.asana.com/0/1200211978612931/1203250001255277/f
 #[derive(Debug, PartialEq, Eq)]
 pub enum LinkTypeQueryPath {
     VersionId,

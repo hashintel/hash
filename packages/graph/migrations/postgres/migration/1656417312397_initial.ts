@@ -298,25 +298,6 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   );
 
   pgm.createTable(
-    "entity_type_link_type_references",
-    {
-      source_entity_type_version_id: {
-        type: "UUID",
-        notNull: true,
-        references: "entity_types",
-      },
-      target_link_type_version_id: {
-        type: "UUID",
-        notNull: true,
-        references: "link_types",
-      },
-    },
-    {
-      ifNotExists: true,
-    },
-  );
-
-  pgm.createTable(
     "entity_type_entity_type_links",
     {
       source_entity_type_version_id: {

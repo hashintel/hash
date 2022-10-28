@@ -838,30 +838,8 @@ where
                 .change_context(InsertionError)?;
         }
 
-        let (link_type_ids, entity_type_references): (
-            Vec<&VersionedUri>,
-            Vec<&[EntityTypeReference]>,
-        ) = entity_type.link_type_references().into_iter().unzip();
-
-        let link_type_ids = self
-            .link_type_ids_to_version_ids(link_type_ids)
-            .await
-            .change_context(InsertionError)
-            .attach_printable("Could not find referenced link types")?;
-
-        for target_id in link_type_ids {
-            self.as_client().query_one(
-                r#"
-                        INSERT INTO entity_type_link_type_references (source_entity_type_version_id, target_link_type_version_id)
-                        VALUES ($1, $2)
-                        RETURNING source_entity_type_version_id;
-                    "#,
-                &[&version_id, &target_id],
-            )
-                .await
-                .into_report()
-                .change_context(InsertionError)?;
-        }
+        let (_, entity_type_references): (Vec<&VersionedUri>, Vec<&[EntityTypeReference]>) =
+            entity_type.link_type_references().into_iter().unzip();
 
         let entity_type_reference_ids = self
             .entity_type_reference_ids(entity_type_references.into_iter().flatten())
@@ -931,22 +909,6 @@ where
         let mut ids = Vec::with_capacity(referenced_entity_types.size_hint().0);
         for reference in referenced_entity_types {
             ids.push(self.version_id_by_uri(reference.uri()).await?);
-        }
-        Ok(ids)
-    }
-
-    async fn link_type_ids_to_version_ids<'p, I>(
-        &self,
-        link_type_ids: I,
-    ) -> Result<Vec<VersionId>, QueryError>
-    where
-        I: IntoIterator<Item = &'p VersionedUri> + Send,
-        I::IntoIter: Send,
-    {
-        let link_type_ids = link_type_ids.into_iter();
-        let mut ids = Vec::with_capacity(link_type_ids.size_hint().0);
-        for uri in link_type_ids {
-            ids.push(self.version_id_by_uri(uri).await?);
         }
         Ok(ids)
     }

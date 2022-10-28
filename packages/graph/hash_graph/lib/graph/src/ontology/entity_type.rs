@@ -32,6 +32,7 @@ pub enum EntityTypeQueryPath {
     Examples,
     Properties(PropertyTypeQueryPath),
     Required,
+    // TODO: Link types are to be removed. See https://app.asana.com/0/1200211978612931/1203250001255277/f
     Links(LinkTypeQueryPath),
     RequiredLinks,
 }
