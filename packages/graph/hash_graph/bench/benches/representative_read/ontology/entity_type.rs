@@ -1,7 +1,7 @@
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
     store::{query::Filter, EntityTypeStore},
-    subgraph::{GraphResolveDepths, NewStructuralQuery},
+    subgraph::{GraphResolveDepths, StructuralQuery},
 };
 use rand::{prelude::IteratorRandom, thread_rng};
 use tokio::runtime::Runtime;
@@ -26,7 +26,7 @@ pub fn bench_get_entity_type_by_id(
         },
         |entity_type_id| async move {
             store
-                .get_entity_type(&NewStructuralQuery {
+                .get_entity_type(&StructuralQuery {
                     filter: Filter::for_versioned_uri(&entity_type_id),
                     graph_resolve_depths: GraphResolveDepths {
                         data_type_resolve_depth: 0,

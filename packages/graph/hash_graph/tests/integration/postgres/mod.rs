@@ -27,7 +27,7 @@ use graph::{
         EntityTypeStore, InsertionError, LinkStore, LinkTypeStore, PostgresStore,
         PostgresStorePool, PropertyTypeStore, QueryError, StorePool, UpdateError,
     },
-    subgraph::{GraphResolveDepths, NewStructuralQuery, Vertex},
+    subgraph::{GraphResolveDepths, StructuralQuery, Vertex},
 };
 use tokio_postgres::{NoTls, Transaction};
 use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};
@@ -168,7 +168,7 @@ impl DatabaseApi<'_> {
     ) -> Result<PersistedDataType, QueryError> {
         let vertex = self
             .store
-            .get_data_type(&NewStructuralQuery {
+            .get_data_type(&StructuralQuery {
                 filter: Filter::for_versioned_uri(uri),
                 graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
@@ -211,7 +211,7 @@ impl DatabaseApi<'_> {
     ) -> Result<PersistedPropertyType, QueryError> {
         let vertex = self
             .store
-            .get_property_type(&NewStructuralQuery {
+            .get_property_type(&StructuralQuery {
                 filter: Filter::for_versioned_uri(uri),
                 graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
@@ -254,7 +254,7 @@ impl DatabaseApi<'_> {
     ) -> Result<PersistedEntityType, QueryError> {
         let vertex = self
             .store
-            .get_entity_type(&NewStructuralQuery {
+            .get_entity_type(&StructuralQuery {
                 filter: Filter::for_versioned_uri(uri),
                 graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
@@ -297,7 +297,7 @@ impl DatabaseApi<'_> {
     ) -> Result<PersistedLinkType, QueryError> {
         let vertex = self
             .store
-            .get_link_type(&NewStructuralQuery {
+            .get_link_type(&StructuralQuery {
                 filter: Filter::for_versioned_uri(uri),
                 graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
@@ -341,7 +341,7 @@ impl DatabaseApi<'_> {
     pub async fn get_entity(&mut self, entity_id: EntityId) -> Result<PersistedEntity, QueryError> {
         let vertex = self
             .store
-            .get_entity(&NewStructuralQuery {
+            .get_entity(&StructuralQuery {
                 filter: Filter::for_latest_entity_by_entity_id(entity_id),
                 graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
@@ -417,7 +417,7 @@ impl DatabaseApi<'_> {
     ) -> Result<PersistedLink, QueryError> {
         Ok(self
             .store
-            .get_links(&NewStructuralQuery {
+            .get_links(&StructuralQuery {
                 filter: Filter::All(vec![
                     Filter::for_link_by_latest_source_entity(source_entity_id),
                     Filter::Equal(
@@ -452,7 +452,7 @@ impl DatabaseApi<'_> {
     ) -> Result<Vec<PersistedLink>, QueryError> {
         Ok(self
             .store
-            .get_links(&NewStructuralQuery {
+            .get_links(&StructuralQuery {
                 filter: Filter::for_link_by_latest_source_entity(source_entity_id),
                 graph_resolve_depths: GraphResolveDepths::zeroed(),
             })

@@ -392,15 +392,15 @@ POST http://127.0.0.1:4000/entities/query
 Content-Type: application/json
 
 {
-  "query": {
-    "eq": [
+  "filter": {
+    "equal": [
       {
         "path": [
           "version"
         ]
       },
       {
-        "literal": "latest"
+        "parameter": "latest"
       }
     ]
   },

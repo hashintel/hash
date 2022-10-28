@@ -7,7 +7,7 @@ use graph::{
     knowledge::{Entity, EntityId},
     provenance::{CreatedById, OwnedById},
     store::{query::Filter, AccountStore, AsClient, EntityStore, PostgresStore},
-    subgraph::{GraphResolveDepths, NewStructuralQuery},
+    subgraph::{GraphResolveDepths, StructuralQuery},
 };
 use graph_test_data::{data_type, entity, entity_type, link_type, property_type};
 use rand::{prelude::IteratorRandom, thread_rng};
@@ -101,7 +101,7 @@ pub fn bench_get_entity_by_id(
         },
         |entity_id| async move {
             store
-                .get_entity(&NewStructuralQuery {
+                .get_entity(&StructuralQuery {
                     filter: Filter::for_latest_entity_by_entity_id(entity_id),
                     graph_resolve_depths: GraphResolveDepths {
                         data_type_resolve_depth: 0,

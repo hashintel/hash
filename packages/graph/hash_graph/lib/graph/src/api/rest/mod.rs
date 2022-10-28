@@ -23,10 +23,9 @@ use axum::{
 use error_stack::Report;
 use futures::TryFutureExt;
 use include_dir::{include_dir, Dir};
-use serde::Deserialize;
 use utoipa::{
     openapi::{self, schema, schema::RefOr, ObjectBuilder},
-    Modify, OpenApi, ToSchema,
+    Modify, OpenApi,
 };
 
 use self::api_resource::RoutedResource;
@@ -34,33 +33,10 @@ use crate::{
     ontology::domain_validator::DomainValidator,
     store::{
         crud::Read,
-        query::{Expression, ExpressionError, Filter, QueryRecord, ResolveError},
+        query::{Expression, ExpressionError, ResolveError},
         StorePool,
     },
-    subgraph::{GraphResolveDepths, NewStructuralQuery},
 };
-
-#[derive(Debug, Deserialize, ToSchema)]
-#[serde(
-    deny_unknown_fields,
-    rename_all = "camelCase",
-    rename = "StructuralQuery"
-)]
-pub struct StructuralQuery {
-    pub query: Expression,
-    pub graph_resolve_depths: GraphResolveDepths,
-}
-
-impl<'q, T: QueryRecord> TryFrom<StructuralQuery> for NewStructuralQuery<'q, T> {
-    type Error = <T::Path<'q> as TryFrom<crate::store::query::Path>>::Error;
-
-    fn try_from(query: StructuralQuery) -> Result<Self, Self::Error> {
-        Ok(Self {
-            filter: Filter::try_from(query.query)?,
-            graph_resolve_depths: query.graph_resolve_depths,
-        })
-    }
-}
 
 static STATIC_SCHEMAS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/src/api/rest/json_schemas");
 
@@ -189,7 +165,7 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
         tags(
             (name = "Graph", description = "HASH Graph API")
         ),
-        modifiers(&MergeAddon, &ExternalRefAddon, &OperationGraphTagAddon, &AnyObjectAddon)
+        modifiers(&MergeAddon, &ExternalRefAddon, &OperationGraphTagAddon, &FilterObjectAddon)
     )]
 struct OpenApiDocumentation;
 
@@ -324,13 +300,13 @@ impl Modify for OperationGraphTagAddon {
     }
 }
 
-struct AnyObjectAddon;
+struct FilterObjectAddon;
 
-impl Modify for AnyObjectAddon {
+impl Modify for FilterObjectAddon {
     fn modify(&self, openapi: &mut openapi::OpenApi) {
         openapi.components.as_mut().map(|components| {
             components.schemas.insert(
-                "Expression".to_owned(),
+                "Filter".to_owned(),
                 schema::Schema::Object(
                     ObjectBuilder::new()
                         .example(Some(

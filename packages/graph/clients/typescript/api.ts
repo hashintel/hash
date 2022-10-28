@@ -292,6 +292,25 @@ export interface DataTypeReferenceUpdate {
   $ref: string;
 }
 /**
+ * A [`Filter`] to query the datastore, recursively resolving according to the
+ * @export
+ * @interface DataTypeStructuralQuery
+ */
+export interface DataTypeStructuralQuery {
+  /**
+   *
+   * @type {object}
+   * @memberof DataTypeStructuralQuery
+   */
+  filter: object;
+  /**
+   *
+   * @type {GraphResolveDepths}
+   * @memberof DataTypeStructuralQuery
+   */
+  graphResolveDepths: GraphResolveDepths;
+}
+/**
  *
  * @export
  * @enum {string}
@@ -324,6 +343,25 @@ export interface EdgesValueInner {
    * @memberof EdgesValueInner
    */
   edgeKind: EdgeKind;
+}
+/**
+ * A [`Filter`] to query the datastore, recursively resolving according to the
+ * @export
+ * @interface EntityStructuralQuery
+ */
+export interface EntityStructuralQuery {
+  /**
+   *
+   * @type {object}
+   * @memberof EntityStructuralQuery
+   */
+  filter: object;
+  /**
+   *
+   * @type {GraphResolveDepths}
+   * @memberof EntityStructuralQuery
+   */
+  graphResolveDepths: GraphResolveDepths;
 }
 /**
  * Specifies the structure of an Entity Type
@@ -418,6 +456,25 @@ export const EntityTypeTypeEnum = {
 export type EntityTypeTypeEnum =
   typeof EntityTypeTypeEnum[keyof typeof EntityTypeTypeEnum];
 
+/**
+ * A [`Filter`] to query the datastore, recursively resolving according to the
+ * @export
+ * @interface EntityTypeStructuralQuery
+ */
+export interface EntityTypeStructuralQuery {
+  /**
+   *
+   * @type {object}
+   * @memberof EntityTypeStructuralQuery
+   */
+  filter: object;
+  /**
+   *
+   * @type {GraphResolveDepths}
+   * @memberof EntityTypeStructuralQuery
+   */
+  graphResolveDepths: GraphResolveDepths;
+}
 /**
  * @type GraphElementIdentifier
  * @export
@@ -548,6 +605,25 @@ export interface LinkRootedSubgraph {
   referencedPropertyTypes: Array<PersistedPropertyType>;
 }
 /**
+ * A [`Filter`] to query the datastore, recursively resolving according to the
+ * @export
+ * @interface LinkStructuralQuery
+ */
+export interface LinkStructuralQuery {
+  /**
+   *
+   * @type {object}
+   * @memberof LinkStructuralQuery
+   */
+  filter: object;
+  /**
+   *
+   * @type {GraphResolveDepths}
+   * @memberof LinkStructuralQuery
+   */
+  graphResolveDepths: GraphResolveDepths;
+}
+/**
  * Specifies the structure of a Link Type
  * @export
  * @interface LinkType
@@ -598,6 +674,25 @@ export const LinkTypeKindEnum = {
 export type LinkTypeKindEnum =
   typeof LinkTypeKindEnum[keyof typeof LinkTypeKindEnum];
 
+/**
+ * A [`Filter`] to query the datastore, recursively resolving according to the
+ * @export
+ * @interface LinkTypeStructuralQuery
+ */
+export interface LinkTypeStructuralQuery {
+  /**
+   *
+   * @type {object}
+   * @memberof LinkTypeStructuralQuery
+   */
+  filter: object;
+  /**
+   *
+   * @type {GraphResolveDepths}
+   * @memberof LinkTypeStructuralQuery
+   */
+  graphResolveDepths: GraphResolveDepths;
+}
 /**
  *
  * @export
@@ -1045,6 +1140,25 @@ export type PropertyTypeKindEnum =
   typeof PropertyTypeKindEnum[keyof typeof PropertyTypeKindEnum];
 
 /**
+ * A [`Filter`] to query the datastore, recursively resolving according to the
+ * @export
+ * @interface PropertyTypeStructuralQuery
+ */
+export interface PropertyTypeStructuralQuery {
+  /**
+   *
+   * @type {object}
+   * @memberof PropertyTypeStructuralQuery
+   */
+  filter: object;
+  /**
+   *
+   * @type {GraphResolveDepths}
+   * @memberof PropertyTypeStructuralQuery
+   */
+  graphResolveDepths: GraphResolveDepths;
+}
+/**
  * @type PropertyValues
  * @export
  */
@@ -1086,25 +1200,6 @@ export interface RemoveLinkRequest {
    * @memberof RemoveLinkRequest
    */
   targetEntityId: string;
-}
-/**
- *
- * @export
- * @interface StructuralQuery
- */
-export interface StructuralQuery {
-  /**
-   *
-   * @type {GraphResolveDepths}
-   * @memberof StructuralQuery
-   */
-  graphResolveDepths: GraphResolveDepths;
-  /**
-   *
-   * @type {object}
-   * @memberof StructuralQuery
-   */
-  query: object;
 }
 /**
  *
@@ -2021,19 +2116,19 @@ export const DataTypeApiAxiosParamCreator = function (
     },
     /**
      *
-     * @param {StructuralQuery} structuralQuery
+     * @param {DataTypeStructuralQuery} dataTypeStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getDataTypesByQuery: async (
-      structuralQuery: StructuralQuery,
+      dataTypeStructuralQuery: DataTypeStructuralQuery,
       options: AxiosRequestConfig = {},
     ): Promise<RequestArgs> => {
-      // verify required parameter 'structuralQuery' is not null or undefined
+      // verify required parameter 'dataTypeStructuralQuery' is not null or undefined
       assertParamExists(
         "getDataTypesByQuery",
-        "structuralQuery",
-        structuralQuery,
+        "dataTypeStructuralQuery",
+        dataTypeStructuralQuery,
       );
       const localVarPath = `/data-types/query`;
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
@@ -2062,7 +2157,7 @@ export const DataTypeApiAxiosParamCreator = function (
         ...options.headers,
       };
       localVarRequestOptions.data = serializeDataIfNeeded(
-        structuralQuery,
+        dataTypeStructuralQuery,
         localVarRequestOptions,
         configuration,
       );
@@ -2227,19 +2322,19 @@ export const DataTypeApiFp = function (configuration?: Configuration) {
     },
     /**
      *
-     * @param {StructuralQuery} structuralQuery
+     * @param {DataTypeStructuralQuery} dataTypeStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     async getDataTypesByQuery(
-      structuralQuery: StructuralQuery,
+      dataTypeStructuralQuery: DataTypeStructuralQuery,
       options?: AxiosRequestConfig,
     ): Promise<
       (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Subgraph>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getDataTypesByQuery(
-          structuralQuery,
+          dataTypeStructuralQuery,
           options,
         );
       return createRequestFunction(
@@ -2338,16 +2433,16 @@ export const DataTypeApiFactory = function (
     },
     /**
      *
-     * @param {StructuralQuery} structuralQuery
+     * @param {DataTypeStructuralQuery} dataTypeStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getDataTypesByQuery(
-      structuralQuery: StructuralQuery,
+      dataTypeStructuralQuery: DataTypeStructuralQuery,
       options?: any,
     ): AxiosPromise<Subgraph> {
       return localVarFp
-        .getDataTypesByQuery(structuralQuery, options)
+        .getDataTypesByQuery(dataTypeStructuralQuery, options)
         .then((request) => request(axios, basePath));
     },
     /**
@@ -2409,13 +2504,13 @@ export interface DataTypeApiInterface {
 
   /**
    *
-   * @param {StructuralQuery} structuralQuery
+   * @param {DataTypeStructuralQuery} dataTypeStructuralQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof DataTypeApiInterface
    */
   getDataTypesByQuery(
-    structuralQuery: StructuralQuery,
+    dataTypeStructuralQuery: DataTypeStructuralQuery,
     options?: AxiosRequestConfig,
   ): AxiosPromise<Subgraph>;
 
@@ -2480,17 +2575,17 @@ export class DataTypeApi extends BaseAPI implements DataTypeApiInterface {
 
   /**
    *
-   * @param {StructuralQuery} structuralQuery
+   * @param {DataTypeStructuralQuery} dataTypeStructuralQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof DataTypeApi
    */
   public getDataTypesByQuery(
-    structuralQuery: StructuralQuery,
+    dataTypeStructuralQuery: DataTypeStructuralQuery,
     options?: AxiosRequestConfig,
   ) {
     return DataTypeApiFp(this.configuration)
-      .getDataTypesByQuery(structuralQuery, options)
+      .getDataTypesByQuery(dataTypeStructuralQuery, options)
       .then((request) => request(this.axios, this.basePath));
   }
 
@@ -2586,19 +2681,19 @@ export const EntityApiAxiosParamCreator = function (
     },
     /**
      *
-     * @param {StructuralQuery} structuralQuery
+     * @param {EntityStructuralQuery} entityStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getEntitiesByQuery: async (
-      structuralQuery: StructuralQuery,
+      entityStructuralQuery: EntityStructuralQuery,
       options: AxiosRequestConfig = {},
     ): Promise<RequestArgs> => {
-      // verify required parameter 'structuralQuery' is not null or undefined
+      // verify required parameter 'entityStructuralQuery' is not null or undefined
       assertParamExists(
         "getEntitiesByQuery",
-        "structuralQuery",
-        structuralQuery,
+        "entityStructuralQuery",
+        entityStructuralQuery,
       );
       const localVarPath = `/entities/query`;
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
@@ -2627,7 +2722,7 @@ export const EntityApiAxiosParamCreator = function (
         ...options.headers,
       };
       localVarRequestOptions.data = serializeDataIfNeeded(
-        structuralQuery,
+        entityStructuralQuery,
         localVarRequestOptions,
         configuration,
       );
@@ -2811,19 +2906,19 @@ export const EntityApiFp = function (configuration?: Configuration) {
     },
     /**
      *
-     * @param {StructuralQuery} structuralQuery
+     * @param {EntityStructuralQuery} entityStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     async getEntitiesByQuery(
-      structuralQuery: StructuralQuery,
+      entityStructuralQuery: EntityStructuralQuery,
       options?: AxiosRequestConfig,
     ): Promise<
       (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Subgraph>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getEntitiesByQuery(
-          structuralQuery,
+          entityStructuralQuery,
           options,
         );
       return createRequestFunction(
@@ -2937,16 +3032,16 @@ export const EntityApiFactory = function (
     },
     /**
      *
-     * @param {StructuralQuery} structuralQuery
+     * @param {EntityStructuralQuery} entityStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getEntitiesByQuery(
-      structuralQuery: StructuralQuery,
+      entityStructuralQuery: EntityStructuralQuery,
       options?: any,
     ): AxiosPromise<Subgraph> {
       return localVarFp
-        .getEntitiesByQuery(structuralQuery, options)
+        .getEntitiesByQuery(entityStructuralQuery, options)
         .then((request) => request(axios, basePath));
     },
     /**
@@ -3007,13 +3102,13 @@ export interface EntityApiInterface {
 
   /**
    *
-   * @param {StructuralQuery} structuralQuery
+   * @param {EntityStructuralQuery} entityStructuralQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof EntityApiInterface
    */
   getEntitiesByQuery(
-    structuralQuery: StructuralQuery,
+    entityStructuralQuery: EntityStructuralQuery,
     options?: AxiosRequestConfig,
   ): AxiosPromise<Subgraph>;
 
@@ -3077,17 +3172,17 @@ export class EntityApi extends BaseAPI implements EntityApiInterface {
 
   /**
    *
-   * @param {StructuralQuery} structuralQuery
+   * @param {EntityStructuralQuery} entityStructuralQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof EntityApi
    */
   public getEntitiesByQuery(
-    structuralQuery: StructuralQuery,
+    entityStructuralQuery: EntityStructuralQuery,
     options?: AxiosRequestConfig,
   ) {
     return EntityApiFp(this.configuration)
-      .getEntitiesByQuery(structuralQuery, options)
+      .getEntitiesByQuery(entityStructuralQuery, options)
       .then((request) => request(this.axios, this.basePath));
   }
 
@@ -3241,19 +3336,19 @@ export const EntityTypeApiAxiosParamCreator = function (
     },
     /**
      *
-     * @param {StructuralQuery} structuralQuery
+     * @param {EntityTypeStructuralQuery} entityTypeStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getEntityTypesByQuery: async (
-      structuralQuery: StructuralQuery,
+      entityTypeStructuralQuery: EntityTypeStructuralQuery,
       options: AxiosRequestConfig = {},
     ): Promise<RequestArgs> => {
-      // verify required parameter 'structuralQuery' is not null or undefined
+      // verify required parameter 'entityTypeStructuralQuery' is not null or undefined
       assertParamExists(
         "getEntityTypesByQuery",
-        "structuralQuery",
-        structuralQuery,
+        "entityTypeStructuralQuery",
+        entityTypeStructuralQuery,
       );
       const localVarPath = `/entity-types/query`;
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
@@ -3282,7 +3377,7 @@ export const EntityTypeApiAxiosParamCreator = function (
         ...options.headers,
       };
       localVarRequestOptions.data = serializeDataIfNeeded(
-        structuralQuery,
+        entityTypeStructuralQuery,
         localVarRequestOptions,
         configuration,
       );
@@ -3449,19 +3544,19 @@ export const EntityTypeApiFp = function (configuration?: Configuration) {
     },
     /**
      *
-     * @param {StructuralQuery} structuralQuery
+     * @param {EntityTypeStructuralQuery} entityTypeStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     async getEntityTypesByQuery(
-      structuralQuery: StructuralQuery,
+      entityTypeStructuralQuery: EntityTypeStructuralQuery,
       options?: AxiosRequestConfig,
     ): Promise<
       (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Subgraph>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getEntityTypesByQuery(
-          structuralQuery,
+          entityTypeStructuralQuery,
           options,
         );
       return createRequestFunction(
@@ -3564,16 +3659,16 @@ export const EntityTypeApiFactory = function (
     },
     /**
      *
-     * @param {StructuralQuery} structuralQuery
+     * @param {EntityTypeStructuralQuery} entityTypeStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getEntityTypesByQuery(
-      structuralQuery: StructuralQuery,
+      entityTypeStructuralQuery: EntityTypeStructuralQuery,
       options?: any,
     ): AxiosPromise<Subgraph> {
       return localVarFp
-        .getEntityTypesByQuery(structuralQuery, options)
+        .getEntityTypesByQuery(entityTypeStructuralQuery, options)
         .then((request) => request(axios, basePath));
     },
     /**
@@ -3637,13 +3732,13 @@ export interface EntityTypeApiInterface {
 
   /**
    *
-   * @param {StructuralQuery} structuralQuery
+   * @param {EntityTypeStructuralQuery} entityTypeStructuralQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof EntityTypeApiInterface
    */
   getEntityTypesByQuery(
-    structuralQuery: StructuralQuery,
+    entityTypeStructuralQuery: EntityTypeStructuralQuery,
     options?: AxiosRequestConfig,
   ): AxiosPromise<Subgraph>;
 
@@ -3708,17 +3803,17 @@ export class EntityTypeApi extends BaseAPI implements EntityTypeApiInterface {
 
   /**
    *
-   * @param {StructuralQuery} structuralQuery
+   * @param {EntityTypeStructuralQuery} entityTypeStructuralQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof EntityTypeApi
    */
   public getEntityTypesByQuery(
-    structuralQuery: StructuralQuery,
+    entityTypeStructuralQuery: EntityTypeStructuralQuery,
     options?: AxiosRequestConfig,
   ) {
     return EntityTypeApiFp(this.configuration)
-      .getEntityTypesByQuery(structuralQuery, options)
+      .getEntityTypesByQuery(entityTypeStructuralQuery, options)
       .then((request) => request(this.axios, this.basePath));
   }
 
@@ -4165,19 +4260,19 @@ export const GraphApiAxiosParamCreator = function (
     },
     /**
      *
-     * @param {StructuralQuery} structuralQuery
+     * @param {DataTypeStructuralQuery} dataTypeStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getDataTypesByQuery: async (
-      structuralQuery: StructuralQuery,
+      dataTypeStructuralQuery: DataTypeStructuralQuery,
       options: AxiosRequestConfig = {},
     ): Promise<RequestArgs> => {
-      // verify required parameter 'structuralQuery' is not null or undefined
+      // verify required parameter 'dataTypeStructuralQuery' is not null or undefined
       assertParamExists(
         "getDataTypesByQuery",
-        "structuralQuery",
-        structuralQuery,
+        "dataTypeStructuralQuery",
+        dataTypeStructuralQuery,
       );
       const localVarPath = `/data-types/query`;
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
@@ -4206,7 +4301,7 @@ export const GraphApiAxiosParamCreator = function (
         ...options.headers,
       };
       localVarRequestOptions.data = serializeDataIfNeeded(
-        structuralQuery,
+        dataTypeStructuralQuery,
         localVarRequestOptions,
         configuration,
       );
@@ -4218,19 +4313,19 @@ export const GraphApiAxiosParamCreator = function (
     },
     /**
      *
-     * @param {StructuralQuery} structuralQuery
+     * @param {EntityStructuralQuery} entityStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getEntitiesByQuery: async (
-      structuralQuery: StructuralQuery,
+      entityStructuralQuery: EntityStructuralQuery,
       options: AxiosRequestConfig = {},
     ): Promise<RequestArgs> => {
-      // verify required parameter 'structuralQuery' is not null or undefined
+      // verify required parameter 'entityStructuralQuery' is not null or undefined
       assertParamExists(
         "getEntitiesByQuery",
-        "structuralQuery",
-        structuralQuery,
+        "entityStructuralQuery",
+        entityStructuralQuery,
       );
       const localVarPath = `/entities/query`;
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
@@ -4259,7 +4354,7 @@ export const GraphApiAxiosParamCreator = function (
         ...options.headers,
       };
       localVarRequestOptions.data = serializeDataIfNeeded(
-        structuralQuery,
+        entityStructuralQuery,
         localVarRequestOptions,
         configuration,
       );
@@ -4406,19 +4501,19 @@ export const GraphApiAxiosParamCreator = function (
     },
     /**
      *
-     * @param {StructuralQuery} structuralQuery
+     * @param {EntityTypeStructuralQuery} entityTypeStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getEntityTypesByQuery: async (
-      structuralQuery: StructuralQuery,
+      entityTypeStructuralQuery: EntityTypeStructuralQuery,
       options: AxiosRequestConfig = {},
     ): Promise<RequestArgs> => {
-      // verify required parameter 'structuralQuery' is not null or undefined
+      // verify required parameter 'entityTypeStructuralQuery' is not null or undefined
       assertParamExists(
         "getEntityTypesByQuery",
-        "structuralQuery",
-        structuralQuery,
+        "entityTypeStructuralQuery",
+        entityTypeStructuralQuery,
       );
       const localVarPath = `/entity-types/query`;
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
@@ -4447,7 +4542,7 @@ export const GraphApiAxiosParamCreator = function (
         ...options.headers,
       };
       localVarRequestOptions.data = serializeDataIfNeeded(
-        structuralQuery,
+        entityTypeStructuralQuery,
         localVarRequestOptions,
         configuration,
       );
@@ -4694,19 +4789,19 @@ export const GraphApiAxiosParamCreator = function (
     },
     /**
      *
-     * @param {StructuralQuery} structuralQuery
+     * @param {LinkTypeStructuralQuery} linkTypeStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getLinkTypesByQuery: async (
-      structuralQuery: StructuralQuery,
+      linkTypeStructuralQuery: LinkTypeStructuralQuery,
       options: AxiosRequestConfig = {},
     ): Promise<RequestArgs> => {
-      // verify required parameter 'structuralQuery' is not null or undefined
+      // verify required parameter 'linkTypeStructuralQuery' is not null or undefined
       assertParamExists(
         "getLinkTypesByQuery",
-        "structuralQuery",
-        structuralQuery,
+        "linkTypeStructuralQuery",
+        linkTypeStructuralQuery,
       );
       const localVarPath = `/link-types/query`;
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
@@ -4735,7 +4830,7 @@ export const GraphApiAxiosParamCreator = function (
         ...options.headers,
       };
       localVarRequestOptions.data = serializeDataIfNeeded(
-        structuralQuery,
+        linkTypeStructuralQuery,
         localVarRequestOptions,
         configuration,
       );
@@ -4747,16 +4842,20 @@ export const GraphApiAxiosParamCreator = function (
     },
     /**
      *
-     * @param {StructuralQuery} structuralQuery
+     * @param {LinkStructuralQuery} linkStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getLinksByQuery: async (
-      structuralQuery: StructuralQuery,
+      linkStructuralQuery: LinkStructuralQuery,
       options: AxiosRequestConfig = {},
     ): Promise<RequestArgs> => {
-      // verify required parameter 'structuralQuery' is not null or undefined
-      assertParamExists("getLinksByQuery", "structuralQuery", structuralQuery);
+      // verify required parameter 'linkStructuralQuery' is not null or undefined
+      assertParamExists(
+        "getLinksByQuery",
+        "linkStructuralQuery",
+        linkStructuralQuery,
+      );
       const localVarPath = `/links/query`;
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
       const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -4784,7 +4883,7 @@ export const GraphApiAxiosParamCreator = function (
         ...options.headers,
       };
       localVarRequestOptions.data = serializeDataIfNeeded(
-        structuralQuery,
+        linkStructuralQuery,
         localVarRequestOptions,
         configuration,
       );
@@ -4841,19 +4940,19 @@ export const GraphApiAxiosParamCreator = function (
     },
     /**
      *
-     * @param {StructuralQuery} structuralQuery
+     * @param {PropertyTypeStructuralQuery} propertyTypeStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getPropertyTypesByQuery: async (
-      structuralQuery: StructuralQuery,
+      propertyTypeStructuralQuery: PropertyTypeStructuralQuery,
       options: AxiosRequestConfig = {},
     ): Promise<RequestArgs> => {
-      // verify required parameter 'structuralQuery' is not null or undefined
+      // verify required parameter 'propertyTypeStructuralQuery' is not null or undefined
       assertParamExists(
         "getPropertyTypesByQuery",
-        "structuralQuery",
-        structuralQuery,
+        "propertyTypeStructuralQuery",
+        propertyTypeStructuralQuery,
       );
       const localVarPath = `/property-types/query`;
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
@@ -4882,7 +4981,7 @@ export const GraphApiAxiosParamCreator = function (
         ...options.headers,
       };
       localVarRequestOptions.data = serializeDataIfNeeded(
-        structuralQuery,
+        propertyTypeStructuralQuery,
         localVarRequestOptions,
         configuration,
       );
@@ -5429,19 +5528,19 @@ export const GraphApiFp = function (configuration?: Configuration) {
     },
     /**
      *
-     * @param {StructuralQuery} structuralQuery
+     * @param {DataTypeStructuralQuery} dataTypeStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     async getDataTypesByQuery(
-      structuralQuery: StructuralQuery,
+      dataTypeStructuralQuery: DataTypeStructuralQuery,
       options?: AxiosRequestConfig,
     ): Promise<
       (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Subgraph>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getDataTypesByQuery(
-          structuralQuery,
+          dataTypeStructuralQuery,
           options,
         );
       return createRequestFunction(
@@ -5453,19 +5552,19 @@ export const GraphApiFp = function (configuration?: Configuration) {
     },
     /**
      *
-     * @param {StructuralQuery} structuralQuery
+     * @param {EntityStructuralQuery} entityStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     async getEntitiesByQuery(
-      structuralQuery: StructuralQuery,
+      entityStructuralQuery: EntityStructuralQuery,
       options?: AxiosRequestConfig,
     ): Promise<
       (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Subgraph>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getEntitiesByQuery(
-          structuralQuery,
+          entityStructuralQuery,
           options,
         );
       return createRequestFunction(
@@ -5555,19 +5654,19 @@ export const GraphApiFp = function (configuration?: Configuration) {
     },
     /**
      *
-     * @param {StructuralQuery} structuralQuery
+     * @param {EntityTypeStructuralQuery} entityTypeStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     async getEntityTypesByQuery(
-      structuralQuery: StructuralQuery,
+      entityTypeStructuralQuery: EntityTypeStructuralQuery,
       options?: AxiosRequestConfig,
     ): Promise<
       (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Subgraph>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getEntityTypesByQuery(
-          structuralQuery,
+          entityTypeStructuralQuery,
           options,
         );
       return createRequestFunction(
@@ -5715,19 +5814,19 @@ export const GraphApiFp = function (configuration?: Configuration) {
     },
     /**
      *
-     * @param {StructuralQuery} structuralQuery
+     * @param {LinkTypeStructuralQuery} linkTypeStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     async getLinkTypesByQuery(
-      structuralQuery: StructuralQuery,
+      linkTypeStructuralQuery: LinkTypeStructuralQuery,
       options?: AxiosRequestConfig,
     ): Promise<
       (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Subgraph>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getLinkTypesByQuery(
-          structuralQuery,
+          linkTypeStructuralQuery,
           options,
         );
       return createRequestFunction(
@@ -5739,12 +5838,12 @@ export const GraphApiFp = function (configuration?: Configuration) {
     },
     /**
      *
-     * @param {StructuralQuery} structuralQuery
+     * @param {LinkStructuralQuery} linkStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     async getLinksByQuery(
-      structuralQuery: StructuralQuery,
+      linkStructuralQuery: LinkStructuralQuery,
       options?: AxiosRequestConfig,
     ): Promise<
       (
@@ -5753,7 +5852,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
       ) => AxiosPromise<Array<LinkRootedSubgraph>>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.getLinksByQuery(
-        structuralQuery,
+        linkStructuralQuery,
         options,
       );
       return createRequestFunction(
@@ -5791,19 +5890,19 @@ export const GraphApiFp = function (configuration?: Configuration) {
     },
     /**
      *
-     * @param {StructuralQuery} structuralQuery
+     * @param {PropertyTypeStructuralQuery} propertyTypeStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     async getPropertyTypesByQuery(
-      structuralQuery: StructuralQuery,
+      propertyTypeStructuralQuery: PropertyTypeStructuralQuery,
       options?: AxiosRequestConfig,
     ): Promise<
       (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Subgraph>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getPropertyTypesByQuery(
-          structuralQuery,
+          propertyTypeStructuralQuery,
           options,
         );
       return createRequestFunction(
@@ -6094,30 +6193,30 @@ export const GraphApiFactory = function (
     },
     /**
      *
-     * @param {StructuralQuery} structuralQuery
+     * @param {DataTypeStructuralQuery} dataTypeStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getDataTypesByQuery(
-      structuralQuery: StructuralQuery,
+      dataTypeStructuralQuery: DataTypeStructuralQuery,
       options?: any,
     ): AxiosPromise<Subgraph> {
       return localVarFp
-        .getDataTypesByQuery(structuralQuery, options)
+        .getDataTypesByQuery(dataTypeStructuralQuery, options)
         .then((request) => request(axios, basePath));
     },
     /**
      *
-     * @param {StructuralQuery} structuralQuery
+     * @param {EntityStructuralQuery} entityStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getEntitiesByQuery(
-      structuralQuery: StructuralQuery,
+      entityStructuralQuery: EntityStructuralQuery,
       options?: any,
     ): AxiosPromise<Subgraph> {
       return localVarFp
-        .getEntitiesByQuery(structuralQuery, options)
+        .getEntitiesByQuery(entityStructuralQuery, options)
         .then((request) => request(axios, basePath));
     },
     /**
@@ -6161,16 +6260,16 @@ export const GraphApiFactory = function (
     },
     /**
      *
-     * @param {StructuralQuery} structuralQuery
+     * @param {EntityTypeStructuralQuery} entityTypeStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getEntityTypesByQuery(
-      structuralQuery: StructuralQuery,
+      entityTypeStructuralQuery: EntityTypeStructuralQuery,
       options?: any,
     ): AxiosPromise<Subgraph> {
       return localVarFp
-        .getEntityTypesByQuery(structuralQuery, options)
+        .getEntityTypesByQuery(entityTypeStructuralQuery, options)
         .then((request) => request(axios, basePath));
     },
     /**
@@ -6240,30 +6339,30 @@ export const GraphApiFactory = function (
     },
     /**
      *
-     * @param {StructuralQuery} structuralQuery
+     * @param {LinkTypeStructuralQuery} linkTypeStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getLinkTypesByQuery(
-      structuralQuery: StructuralQuery,
+      linkTypeStructuralQuery: LinkTypeStructuralQuery,
       options?: any,
     ): AxiosPromise<Subgraph> {
       return localVarFp
-        .getLinkTypesByQuery(structuralQuery, options)
+        .getLinkTypesByQuery(linkTypeStructuralQuery, options)
         .then((request) => request(axios, basePath));
     },
     /**
      *
-     * @param {StructuralQuery} structuralQuery
+     * @param {LinkStructuralQuery} linkStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getLinksByQuery(
-      structuralQuery: StructuralQuery,
+      linkStructuralQuery: LinkStructuralQuery,
       options?: any,
     ): AxiosPromise<Array<LinkRootedSubgraph>> {
       return localVarFp
-        .getLinksByQuery(structuralQuery, options)
+        .getLinksByQuery(linkStructuralQuery, options)
         .then((request) => request(axios, basePath));
     },
     /**
@@ -6282,16 +6381,16 @@ export const GraphApiFactory = function (
     },
     /**
      *
-     * @param {StructuralQuery} structuralQuery
+     * @param {PropertyTypeStructuralQuery} propertyTypeStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getPropertyTypesByQuery(
-      structuralQuery: StructuralQuery,
+      propertyTypeStructuralQuery: PropertyTypeStructuralQuery,
       options?: any,
     ): AxiosPromise<Subgraph> {
       return localVarFp
-        .getPropertyTypesByQuery(structuralQuery, options)
+        .getPropertyTypesByQuery(propertyTypeStructuralQuery, options)
         .then((request) => request(axios, basePath));
     },
     /**
@@ -6485,25 +6584,25 @@ export interface GraphApiInterface {
 
   /**
    *
-   * @param {StructuralQuery} structuralQuery
+   * @param {DataTypeStructuralQuery} dataTypeStructuralQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof GraphApiInterface
    */
   getDataTypesByQuery(
-    structuralQuery: StructuralQuery,
+    dataTypeStructuralQuery: DataTypeStructuralQuery,
     options?: AxiosRequestConfig,
   ): AxiosPromise<Subgraph>;
 
   /**
    *
-   * @param {StructuralQuery} structuralQuery
+   * @param {EntityStructuralQuery} entityStructuralQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof GraphApiInterface
    */
   getEntitiesByQuery(
-    structuralQuery: StructuralQuery,
+    entityStructuralQuery: EntityStructuralQuery,
     options?: AxiosRequestConfig,
   ): AxiosPromise<Subgraph>;
 
@@ -6545,13 +6644,13 @@ export interface GraphApiInterface {
 
   /**
    *
-   * @param {StructuralQuery} structuralQuery
+   * @param {EntityTypeStructuralQuery} entityTypeStructuralQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof GraphApiInterface
    */
   getEntityTypesByQuery(
-    structuralQuery: StructuralQuery,
+    entityTypeStructuralQuery: EntityTypeStructuralQuery,
     options?: AxiosRequestConfig,
   ): AxiosPromise<Subgraph>;
 
@@ -6619,25 +6718,25 @@ export interface GraphApiInterface {
 
   /**
    *
-   * @param {StructuralQuery} structuralQuery
+   * @param {LinkTypeStructuralQuery} linkTypeStructuralQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof GraphApiInterface
    */
   getLinkTypesByQuery(
-    structuralQuery: StructuralQuery,
+    linkTypeStructuralQuery: LinkTypeStructuralQuery,
     options?: AxiosRequestConfig,
   ): AxiosPromise<Subgraph>;
 
   /**
    *
-   * @param {StructuralQuery} structuralQuery
+   * @param {LinkStructuralQuery} linkStructuralQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof GraphApiInterface
    */
   getLinksByQuery(
-    structuralQuery: StructuralQuery,
+    linkStructuralQuery: LinkStructuralQuery,
     options?: AxiosRequestConfig,
   ): AxiosPromise<Array<LinkRootedSubgraph>>;
 
@@ -6655,13 +6754,13 @@ export interface GraphApiInterface {
 
   /**
    *
-   * @param {StructuralQuery} structuralQuery
+   * @param {PropertyTypeStructuralQuery} propertyTypeStructuralQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof GraphApiInterface
    */
   getPropertyTypesByQuery(
-    structuralQuery: StructuralQuery,
+    propertyTypeStructuralQuery: PropertyTypeStructuralQuery,
     options?: AxiosRequestConfig,
   ): AxiosPromise<Subgraph>;
 
@@ -6872,33 +6971,33 @@ export class GraphApi extends BaseAPI implements GraphApiInterface {
 
   /**
    *
-   * @param {StructuralQuery} structuralQuery
+   * @param {DataTypeStructuralQuery} dataTypeStructuralQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof GraphApi
    */
   public getDataTypesByQuery(
-    structuralQuery: StructuralQuery,
+    dataTypeStructuralQuery: DataTypeStructuralQuery,
     options?: AxiosRequestConfig,
   ) {
     return GraphApiFp(this.configuration)
-      .getDataTypesByQuery(structuralQuery, options)
+      .getDataTypesByQuery(dataTypeStructuralQuery, options)
       .then((request) => request(this.axios, this.basePath));
   }
 
   /**
    *
-   * @param {StructuralQuery} structuralQuery
+   * @param {EntityStructuralQuery} entityStructuralQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof GraphApi
    */
   public getEntitiesByQuery(
-    structuralQuery: StructuralQuery,
+    entityStructuralQuery: EntityStructuralQuery,
     options?: AxiosRequestConfig,
   ) {
     return GraphApiFp(this.configuration)
-      .getEntitiesByQuery(structuralQuery, options)
+      .getEntitiesByQuery(entityStructuralQuery, options)
       .then((request) => request(this.axios, this.basePath));
   }
 
@@ -6943,17 +7042,17 @@ export class GraphApi extends BaseAPI implements GraphApiInterface {
 
   /**
    *
-   * @param {StructuralQuery} structuralQuery
+   * @param {EntityTypeStructuralQuery} entityTypeStructuralQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof GraphApi
    */
   public getEntityTypesByQuery(
-    structuralQuery: StructuralQuery,
+    entityTypeStructuralQuery: EntityTypeStructuralQuery,
     options?: AxiosRequestConfig,
   ) {
     return GraphApiFp(this.configuration)
-      .getEntityTypesByQuery(structuralQuery, options)
+      .getEntityTypesByQuery(entityTypeStructuralQuery, options)
       .then((request) => request(this.axios, this.basePath));
   }
 
@@ -7032,33 +7131,33 @@ export class GraphApi extends BaseAPI implements GraphApiInterface {
 
   /**
    *
-   * @param {StructuralQuery} structuralQuery
+   * @param {LinkTypeStructuralQuery} linkTypeStructuralQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof GraphApi
    */
   public getLinkTypesByQuery(
-    structuralQuery: StructuralQuery,
+    linkTypeStructuralQuery: LinkTypeStructuralQuery,
     options?: AxiosRequestConfig,
   ) {
     return GraphApiFp(this.configuration)
-      .getLinkTypesByQuery(structuralQuery, options)
+      .getLinkTypesByQuery(linkTypeStructuralQuery, options)
       .then((request) => request(this.axios, this.basePath));
   }
 
   /**
    *
-   * @param {StructuralQuery} structuralQuery
+   * @param {LinkStructuralQuery} linkStructuralQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof GraphApi
    */
   public getLinksByQuery(
-    structuralQuery: StructuralQuery,
+    linkStructuralQuery: LinkStructuralQuery,
     options?: AxiosRequestConfig,
   ) {
     return GraphApiFp(this.configuration)
-      .getLinksByQuery(structuralQuery, options)
+      .getLinksByQuery(linkStructuralQuery, options)
       .then((request) => request(this.axios, this.basePath));
   }
 
@@ -7077,17 +7176,17 @@ export class GraphApi extends BaseAPI implements GraphApiInterface {
 
   /**
    *
-   * @param {StructuralQuery} structuralQuery
+   * @param {PropertyTypeStructuralQuery} propertyTypeStructuralQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof GraphApi
    */
   public getPropertyTypesByQuery(
-    structuralQuery: StructuralQuery,
+    propertyTypeStructuralQuery: PropertyTypeStructuralQuery,
     options?: AxiosRequestConfig,
   ) {
     return GraphApiFp(this.configuration)
-      .getPropertyTypesByQuery(structuralQuery, options)
+      .getPropertyTypesByQuery(propertyTypeStructuralQuery, options)
       .then((request) => request(this.axios, this.basePath));
   }
 
@@ -7301,16 +7400,20 @@ export const LinkApiAxiosParamCreator = function (
     },
     /**
      *
-     * @param {StructuralQuery} structuralQuery
+     * @param {LinkStructuralQuery} linkStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getLinksByQuery: async (
-      structuralQuery: StructuralQuery,
+      linkStructuralQuery: LinkStructuralQuery,
       options: AxiosRequestConfig = {},
     ): Promise<RequestArgs> => {
-      // verify required parameter 'structuralQuery' is not null or undefined
-      assertParamExists("getLinksByQuery", "structuralQuery", structuralQuery);
+      // verify required parameter 'linkStructuralQuery' is not null or undefined
+      assertParamExists(
+        "getLinksByQuery",
+        "linkStructuralQuery",
+        linkStructuralQuery,
+      );
       const localVarPath = `/links/query`;
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
       const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -7338,7 +7441,7 @@ export const LinkApiAxiosParamCreator = function (
         ...options.headers,
       };
       localVarRequestOptions.data = serializeDataIfNeeded(
-        structuralQuery,
+        linkStructuralQuery,
         localVarRequestOptions,
         configuration,
       );
@@ -7468,12 +7571,12 @@ export const LinkApiFp = function (configuration?: Configuration) {
     },
     /**
      *
-     * @param {StructuralQuery} structuralQuery
+     * @param {LinkStructuralQuery} linkStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     async getLinksByQuery(
-      structuralQuery: StructuralQuery,
+      linkStructuralQuery: LinkStructuralQuery,
       options?: AxiosRequestConfig,
     ): Promise<
       (
@@ -7482,7 +7585,7 @@ export const LinkApiFp = function (configuration?: Configuration) {
       ) => AxiosPromise<Array<LinkRootedSubgraph>>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.getLinksByQuery(
-        structuralQuery,
+        linkStructuralQuery,
         options,
       );
       return createRequestFunction(
@@ -7564,16 +7667,16 @@ export const LinkApiFactory = function (
     },
     /**
      *
-     * @param {StructuralQuery} structuralQuery
+     * @param {LinkStructuralQuery} linkStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getLinksByQuery(
-      structuralQuery: StructuralQuery,
+      linkStructuralQuery: LinkStructuralQuery,
       options?: any,
     ): AxiosPromise<Array<LinkRootedSubgraph>> {
       return localVarFp
-        .getLinksByQuery(structuralQuery, options)
+        .getLinksByQuery(linkStructuralQuery, options)
         .then((request) => request(axios, basePath));
     },
     /**
@@ -7629,13 +7732,13 @@ export interface LinkApiInterface {
 
   /**
    *
-   * @param {StructuralQuery} structuralQuery
+   * @param {LinkStructuralQuery} linkStructuralQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof LinkApiInterface
    */
   getLinksByQuery(
-    structuralQuery: StructuralQuery,
+    linkStructuralQuery: LinkStructuralQuery,
     options?: AxiosRequestConfig,
   ): AxiosPromise<Array<LinkRootedSubgraph>>;
 
@@ -7694,17 +7797,17 @@ export class LinkApi extends BaseAPI implements LinkApiInterface {
 
   /**
    *
-   * @param {StructuralQuery} structuralQuery
+   * @param {LinkStructuralQuery} linkStructuralQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof LinkApi
    */
   public getLinksByQuery(
-    structuralQuery: StructuralQuery,
+    linkStructuralQuery: LinkStructuralQuery,
     options?: AxiosRequestConfig,
   ) {
     return LinkApiFp(this.configuration)
-      .getLinksByQuery(structuralQuery, options)
+      .getLinksByQuery(linkStructuralQuery, options)
       .then((request) => request(this.axios, this.basePath));
   }
 
@@ -7873,19 +7976,19 @@ export const LinkTypeApiAxiosParamCreator = function (
     },
     /**
      *
-     * @param {StructuralQuery} structuralQuery
+     * @param {LinkTypeStructuralQuery} linkTypeStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getLinkTypesByQuery: async (
-      structuralQuery: StructuralQuery,
+      linkTypeStructuralQuery: LinkTypeStructuralQuery,
       options: AxiosRequestConfig = {},
     ): Promise<RequestArgs> => {
-      // verify required parameter 'structuralQuery' is not null or undefined
+      // verify required parameter 'linkTypeStructuralQuery' is not null or undefined
       assertParamExists(
         "getLinkTypesByQuery",
-        "structuralQuery",
-        structuralQuery,
+        "linkTypeStructuralQuery",
+        linkTypeStructuralQuery,
       );
       const localVarPath = `/link-types/query`;
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
@@ -7914,7 +8017,7 @@ export const LinkTypeApiAxiosParamCreator = function (
         ...options.headers,
       };
       localVarRequestOptions.data = serializeDataIfNeeded(
-        structuralQuery,
+        linkTypeStructuralQuery,
         localVarRequestOptions,
         configuration,
       );
@@ -8063,19 +8166,19 @@ export const LinkTypeApiFp = function (configuration?: Configuration) {
     },
     /**
      *
-     * @param {StructuralQuery} structuralQuery
+     * @param {LinkTypeStructuralQuery} linkTypeStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     async getLinkTypesByQuery(
-      structuralQuery: StructuralQuery,
+      linkTypeStructuralQuery: LinkTypeStructuralQuery,
       options?: AxiosRequestConfig,
     ): Promise<
       (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Subgraph>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getLinkTypesByQuery(
-          structuralQuery,
+          linkTypeStructuralQuery,
           options,
         );
       return createRequestFunction(
@@ -8162,16 +8265,16 @@ export const LinkTypeApiFactory = function (
     },
     /**
      *
-     * @param {StructuralQuery} structuralQuery
+     * @param {LinkTypeStructuralQuery} linkTypeStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getLinkTypesByQuery(
-      structuralQuery: StructuralQuery,
+      linkTypeStructuralQuery: LinkTypeStructuralQuery,
       options?: any,
     ): AxiosPromise<Subgraph> {
       return localVarFp
-        .getLinkTypesByQuery(structuralQuery, options)
+        .getLinkTypesByQuery(linkTypeStructuralQuery, options)
         .then((request) => request(axios, basePath));
     },
     /**
@@ -8233,13 +8336,13 @@ export interface LinkTypeApiInterface {
 
   /**
    *
-   * @param {StructuralQuery} structuralQuery
+   * @param {LinkTypeStructuralQuery} linkTypeStructuralQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof LinkTypeApiInterface
    */
   getLinkTypesByQuery(
-    structuralQuery: StructuralQuery,
+    linkTypeStructuralQuery: LinkTypeStructuralQuery,
     options?: AxiosRequestConfig,
   ): AxiosPromise<Subgraph>;
 
@@ -8306,17 +8409,17 @@ export class LinkTypeApi extends BaseAPI implements LinkTypeApiInterface {
 
   /**
    *
-   * @param {StructuralQuery} structuralQuery
+   * @param {LinkTypeStructuralQuery} linkTypeStructuralQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof LinkTypeApi
    */
   public getLinkTypesByQuery(
-    structuralQuery: StructuralQuery,
+    linkTypeStructuralQuery: LinkTypeStructuralQuery,
     options?: AxiosRequestConfig,
   ) {
     return LinkTypeApiFp(this.configuration)
-      .getLinkTypesByQuery(structuralQuery, options)
+      .getLinkTypesByQuery(linkTypeStructuralQuery, options)
       .then((request) => request(this.axios, this.basePath));
   }
 
@@ -8483,19 +8586,19 @@ export const PropertyTypeApiAxiosParamCreator = function (
     },
     /**
      *
-     * @param {StructuralQuery} structuralQuery
+     * @param {PropertyTypeStructuralQuery} propertyTypeStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getPropertyTypesByQuery: async (
-      structuralQuery: StructuralQuery,
+      propertyTypeStructuralQuery: PropertyTypeStructuralQuery,
       options: AxiosRequestConfig = {},
     ): Promise<RequestArgs> => {
-      // verify required parameter 'structuralQuery' is not null or undefined
+      // verify required parameter 'propertyTypeStructuralQuery' is not null or undefined
       assertParamExists(
         "getPropertyTypesByQuery",
-        "structuralQuery",
-        structuralQuery,
+        "propertyTypeStructuralQuery",
+        propertyTypeStructuralQuery,
       );
       const localVarPath = `/property-types/query`;
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
@@ -8524,7 +8627,7 @@ export const PropertyTypeApiAxiosParamCreator = function (
         ...options.headers,
       };
       localVarRequestOptions.data = serializeDataIfNeeded(
-        structuralQuery,
+        propertyTypeStructuralQuery,
         localVarRequestOptions,
         configuration,
       );
@@ -8675,19 +8778,19 @@ export const PropertyTypeApiFp = function (configuration?: Configuration) {
     },
     /**
      *
-     * @param {StructuralQuery} structuralQuery
+     * @param {PropertyTypeStructuralQuery} propertyTypeStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     async getPropertyTypesByQuery(
-      structuralQuery: StructuralQuery,
+      propertyTypeStructuralQuery: PropertyTypeStructuralQuery,
       options?: AxiosRequestConfig,
     ): Promise<
       (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Subgraph>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getPropertyTypesByQuery(
-          structuralQuery,
+          propertyTypeStructuralQuery,
           options,
         );
       return createRequestFunction(
@@ -8780,16 +8883,16 @@ export const PropertyTypeApiFactory = function (
     },
     /**
      *
-     * @param {StructuralQuery} structuralQuery
+     * @param {PropertyTypeStructuralQuery} propertyTypeStructuralQuery
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getPropertyTypesByQuery(
-      structuralQuery: StructuralQuery,
+      propertyTypeStructuralQuery: PropertyTypeStructuralQuery,
       options?: any,
     ): AxiosPromise<Subgraph> {
       return localVarFp
-        .getPropertyTypesByQuery(structuralQuery, options)
+        .getPropertyTypesByQuery(propertyTypeStructuralQuery, options)
         .then((request) => request(axios, basePath));
     },
     /**
@@ -8851,13 +8954,13 @@ export interface PropertyTypeApiInterface {
 
   /**
    *
-   * @param {StructuralQuery} structuralQuery
+   * @param {PropertyTypeStructuralQuery} propertyTypeStructuralQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof PropertyTypeApiInterface
    */
   getPropertyTypesByQuery(
-    structuralQuery: StructuralQuery,
+    propertyTypeStructuralQuery: PropertyTypeStructuralQuery,
     options?: AxiosRequestConfig,
   ): AxiosPromise<Subgraph>;
 
@@ -8927,17 +9030,17 @@ export class PropertyTypeApi
 
   /**
    *
-   * @param {StructuralQuery} structuralQuery
+   * @param {PropertyTypeStructuralQuery} propertyTypeStructuralQuery
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof PropertyTypeApi
    */
   public getPropertyTypesByQuery(
-    structuralQuery: StructuralQuery,
+    propertyTypeStructuralQuery: PropertyTypeStructuralQuery,
     options?: AxiosRequestConfig,
   ) {
     return PropertyTypeApiFp(this.configuration)
-      .getPropertyTypesByQuery(structuralQuery, options)
+      .getPropertyTypesByQuery(propertyTypeStructuralQuery, options)
       .then((request) => request(this.axios, this.basePath));
   }
 
