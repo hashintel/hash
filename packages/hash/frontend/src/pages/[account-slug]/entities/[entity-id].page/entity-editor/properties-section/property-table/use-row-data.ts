@@ -3,6 +3,7 @@ import { PropertyRow } from "./types";
 import { generatePropertyRowsFromEntity } from "./generate-property-rows-from-entity";
 import { sortRowData } from "../../../../../../../components/GlideGlid/utils";
 import { useEntityEditor } from "../../entity-editor-context";
+import { fillRowDataIndentCalculations } from "./fill-row-data-indent-calculations";
 
 type TreeItem<T> = T & { children: T[]; expanded: boolean };
 
@@ -40,8 +41,9 @@ export const useRowData = () => {
     return sortRowData(rowData, propertySort);
   }, [rowData, propertySort]);
 
-  /** @todo memoize this? */
   const flattenedRowData = flattenExpandedItemsOfTree(sortedRowData);
+
+  fillRowDataIndentCalculations(flattenedRowData);
 
   return flattenedRowData;
 };

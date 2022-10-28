@@ -9,6 +9,7 @@ export type PropertyRow = PropertyType & {
   children: PropertyRow[];
   expanded: boolean;
   depth: number;
+  indent: number;
 };
 
 export type PropertyColumnKey = Extract<

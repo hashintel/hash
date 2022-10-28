@@ -83,6 +83,8 @@ const generateRowDataFromPropertyTypeBaseUri = ({
     }
   }
 
+  const indent = !depth ? 0 : children.length ? depth : depth - 1;
+
   return {
     ...propertyType,
     value,
@@ -92,6 +94,8 @@ const generateRowDataFromPropertyTypeBaseUri = ({
     depth,
     expanded: !!propertyExpandStatus[propertyTypeBaseUri],
     children,
+    indent,
+    verticalLinesForEachIndent: [], // this will be filled by `fillRowDataIndentCalculations`
   };
 };
 
