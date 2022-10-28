@@ -1,3 +1,4 @@
+import { Filter } from "@hashintel/hash-graph-client";
 import { AxiosError } from "axios";
 import { ApolloError } from "apollo-server-express";
 import { EntityModel } from "../../../../model";
@@ -15,7 +16,6 @@ import {
 } from "../model-mapping";
 import { LoggedInGraphQLContext } from "../../../context";
 import { mapSubgraphToGql } from "../../ontology/model-mapping";
-import { Filter } from "packages/graph/clients/typescript";
 
 /** @todo - rename these and remove "persisted" - https://app.asana.com/0/0/1203157172269854/f */
 

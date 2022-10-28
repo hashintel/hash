@@ -1,4 +1,4 @@
-import { Filter } from "packages/graph/clients/typescript";
+import { Filter } from "@hashintel/hash-graph-client";
 import { EntityModel, LinkModel, LinkTypeModel } from "../../../../model";
 import {
   MutationCreatePersistedLinkArgs,
