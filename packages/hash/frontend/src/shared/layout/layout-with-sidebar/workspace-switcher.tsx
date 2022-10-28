@@ -37,8 +37,8 @@ export const WorkspaceSwitcher: FunctionComponent<
     let accountName = "";
 
     if (authenticatedUser && accountId === authenticatedUser.entityId) {
-      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- @todo how to handle empty preferredName
       accountName =
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- @todo how to handle empty preferredName
         authenticatedUser.preferredName || authenticatedUser.shortname!;
     } else {
       const activeOrg = authenticatedUser?.memberOf.find(
