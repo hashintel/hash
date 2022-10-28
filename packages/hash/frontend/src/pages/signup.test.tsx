@@ -1,3 +1,4 @@
+import "../testUtils/mockTypeSystem";
 import { mockUseRouter } from "../testUtils/mockUseRouter";
 import { fireEvent, render } from "../testUtils/testUtils";
 import { SIGNUP_MOCKS } from "./__mocks__/signup.mock";
