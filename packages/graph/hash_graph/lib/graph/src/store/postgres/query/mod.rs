@@ -22,8 +22,8 @@ pub use self::{
     compile::SelectCompiler,
     condition::{Condition, EqualityOperator},
     expression::{
-        CommonTableExpression, Expression, Function, JoinExpression, SelectExpression,
-        WhereExpression, WithExpression,
+        CommonTableExpression, Expression, Function, JoinExpression, OrderByExpression, Ordering,
+        SelectExpression, WhereExpression, WithExpression,
     },
     statement::{SelectStatement, Statement, WindowStatement},
     table::{Column, ColumnAccess, Table, TableAlias, TableName},
