@@ -9,7 +9,7 @@ use type_system::uri::{BaseUri, VersionedUri};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-pub use self::query::EntityQueryPath;
+pub use self::query::{EntityQueryPath, EntityQueryPathVisitor};
 use crate::provenance::{CreatedById, OwnedById, RemovedById, UpdatedById};
 
 #[derive(
