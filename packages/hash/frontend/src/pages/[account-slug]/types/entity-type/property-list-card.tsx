@@ -9,6 +9,7 @@ import {
   Checkbox,
   checkboxClasses,
   ClickAwayListener,
+  Fade,
   outlinedInputClasses,
   Popper,
   svgIconClasses,
@@ -270,49 +271,58 @@ export const PropertyTypeRow = ({
         anchorEl={anchorEl}
         placement="bottom"
         sx={{ width: anchorElWidth, zIndex: 1 }}
+        transition
       >
-        <ClickAwayListener onClickAway={() => setMultipleValuesMenuOpen(false)}>
-          <Box
-            sx={({ palette }) => ({
-              border: 1,
-              p: 1.5,
-              background: palette.white,
-              borderColor: palette.gray[30],
-            })}
-          >
-            <TextField
-              type="number"
-              size="small"
-              label="Minimum"
-              value={minimumValue}
-              onChange={(event) => {
-                const value = parseInt(event.target.value, 10);
-                if (value >= 0) {
-                  setMinimumValue(value);
-                  if (value > maximumValue) {
-                    setMaximumValue(value);
-                  }
-                }
-              }}
-              sx={{ mb: 2 }}
-            />
-            <TextField
-              type="number"
-              label="Maximum"
-              value={maximumValue}
-              onChange={(event) => {
-                const value = parseInt(event.target.value, 10);
-                if (value >= 0) {
-                  setMaximumValue(value);
-                  if (minimumValue > value) {
-                    setMinimumValue(value);
-                  }
-                }
-              }}
-              size="small"
-            />
-          </Box>
-        </ClickAwayListener>
+        {({ TransitionProps }) => {
+          return (
+            <ClickAwayListener
+              onClickAway={() => setMultipleValuesMenuOpen(false)}
+            >
+              <Fade {...TransitionProps} timeout={350}>
+                <Box
+                  sx={({ palette }) => ({
+                    border: 1,
+                    p: 1.5,
+                    background: palette.white,
+                    borderColor: palette.gray[30],
+                  })}
+                >
+                  <TextField
+                    type="number"
+                    size="small"
+                    label="Minimum"
+                    value={minimumValue}
+                    onChange={(event) => {
+                      const value = parseInt(event.target.value, 10);
+                      if (value >= 0) {
+                        setMinimumValue(value);
+                        if (value > maximumValue) {
+                          setMaximumValue(value);
+                        }
+                      }
+                    }}
+                    sx={{ mb: 2 }}
+                  />
+                  <TextField
+                    type="number"
+                    label="Maximum"
+                    value={maximumValue}
+                    onChange={(event) => {
+                      const value = parseInt(event.target.value, 10);
+                      if (value >= 0) {
+                        setMaximumValue(value);
+                        if (minimumValue > value) {
+                          setMinimumValue(value);
+                        }
+                      }
+                    }}
+                    size="small"
+                  />
+                </Box>
+              </Fade>
+            </ClickAwayListener>
+          );
+        }}
       </Popper>
     </>
   ) : null;
