@@ -27,10 +27,7 @@ use crate::{
         PersistedPropertyType,
     },
     provenance::{CreatedById, OwnedById, RemovedById, UpdatedById},
-    store::{
-        error::LinkRemovalError,
-        query::{Expression, Filter},
-    },
+    store::{error::LinkRemovalError, query::Filter},
     subgraph::{StructuralQuery, Subgraph},
 };
 
@@ -435,7 +432,7 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Filter<'q
 
 /// Describes the API of a store implementation for [`Link`]s.
 #[async_trait]
-pub trait LinkStore: for<'q> crud::Read<PersistedLink, Query<'q> = Expression> {
+pub trait LinkStore: for<'q> crud::Read<PersistedLink, Query<'q> = Filter<'q, Link>> {
     /// Creates a new [`Link`].
     ///
     /// # Errors:
