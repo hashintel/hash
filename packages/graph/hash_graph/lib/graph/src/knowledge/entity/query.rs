@@ -196,7 +196,7 @@ mod tests {
 
         assert_eq!(
             EntityTypeQueryPath::deserialize(
-                de::value::SeqDeserializer::<_, de::value::Error>::new(once("version_id"))
+                de::value::SeqDeserializer::<_, de::value::Error>::new(once("invalid"))
             )
             .expect_err(
                 "managed to convert entity query path with hidden token when it should have \
@@ -204,22 +204,7 @@ mod tests {
             )
             .to_string(),
             format!(
-                "unknown variant `version_id`, expected {}",
-                EntityQueryPathVisitor::EXPECTING
-            )
-        );
-
-        assert_eq!(
-            EntityTypeQueryPath::deserialize(
-                de::value::SeqDeserializer::<_, de::value::Error>::new(once("schema"))
-            )
-            .expect_err(
-                "managed to convert entity query path with hidden token when it should have \
-                 errored"
-            )
-            .to_string(),
-            format!(
-                "unknown variant `schema`, expected {}",
+                "unknown variant `invalid`, expected {}",
                 EntityQueryPathVisitor::EXPECTING
             )
         );
