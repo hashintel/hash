@@ -16,7 +16,10 @@ use core::marker::PhantomData;
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use num_traits::ToPrimitive;
 
-pub use crate::{error::Error, number::Number};
+pub use crate::{
+    error::{Error, ErrorProperty, ErrorVariant, Id, Namespace},
+    number::Number,
+};
 
 mod error;
 mod number;
