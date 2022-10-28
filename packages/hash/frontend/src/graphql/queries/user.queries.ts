@@ -120,7 +120,7 @@ export const logout = gql`
 
 export const meQuery = gql`
   query me {
-    me(linkResolveDepth: 3, linkTargetEntityResolveDepth: 3) {
+    me(linkResolveDepth: 2, linkTargetEntityResolveDepth: 2) {
       ...SubgraphFields
     }
   }
