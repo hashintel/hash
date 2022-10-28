@@ -3,7 +3,10 @@ mod window;
 
 use std::fmt;
 
-pub use self::{select::SelectStatement, window::WindowStatement};
+pub use self::{
+    select::{Distinctness, SelectStatement},
+    window::WindowStatement,
+};
 use crate::store::postgres::query::Transpile;
 
 #[derive(Debug, PartialEq, Eq, Hash)]

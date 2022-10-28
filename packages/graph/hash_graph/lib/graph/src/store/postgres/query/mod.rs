@@ -22,13 +22,13 @@ pub use self::{
     compile::SelectCompiler,
     condition::{Condition, EqualityOperator},
     expression::{
-        CommonTableExpression, Expression, Function, JoinExpression, OrderByExpression, Ordering,
-        SelectExpression, WhereExpression, WithExpression,
+        CommonTableExpression, EdgeJoinDirection, Expression, Function, JoinExpression,
+        OrderByExpression, Ordering, SelectExpression, WhereExpression, WithExpression,
     },
-    statement::{SelectStatement, Statement, WindowStatement},
+    statement::{Distinctness, SelectStatement, Statement, WindowStatement},
     table::{Column, ColumnAccess, Table, TableAlias, TableName},
 };
-use crate::store::{postgres::query::expression::EdgeJoinDirection, query::QueryRecord};
+use crate::store::query::QueryRecord;
 
 pub trait PostgresQueryRecord<'q>: QueryRecord<Path<'q>: Path> {
     /// The [`Table`] used for this `Query`.
