@@ -207,6 +207,10 @@ const workspacePropertyTypes = {
     title: "Resolved At",
     description: "Stringified timestamp of when something was resolved.",
   },
+  deletedAt: {
+    title: "Deleted At",
+    description: "Stringified timestamp of when something was deleted.",
+  },
 } as const;
 
 type WorkspacePropertyTypeKey = keyof typeof workspacePropertyTypes;

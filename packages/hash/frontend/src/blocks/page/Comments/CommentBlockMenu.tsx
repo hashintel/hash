@@ -1,41 +1,16 @@
-import { FunctionComponent, useMemo } from "react";
-import { ListItemIcon, ListItemText } from "@mui/material";
+import { FunctionComponent, ReactNode } from "react";
 import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
-import { faLink, faPencil, faTrash } from "@fortawesome/free-solid-svg-icons";
-import { Menu, FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { MenuItem } from "../../../shared/ui";
+import { Menu } from "@hashintel/hash-design-system";
 
 type CommentBlockMenuProps = {
   popupState: PopupState;
+  children: ReactNode;
 };
 
 export const CommentBlockMenu: FunctionComponent<CommentBlockMenuProps> = ({
   popupState,
+  children,
 }) => {
-  const menuItems = useMemo(
-    () => [
-      {
-        title: "Edit",
-        icon: faPencil,
-        // @todo Commented implement functionality
-        onClick: async () => {},
-      },
-      {
-        title: "Copy Link",
-        icon: faLink,
-        // @todo Commented implement functionality
-        onClick: async () => {},
-      },
-      {
-        title: "Delete Comment",
-        icon: faTrash,
-        // @todo Commented implement functionality
-        onClick: async () => {},
-      },
-    ],
-    [],
-  );
-
   const bindMenuProps = bindMenu(popupState);
 
   return (
@@ -47,16 +22,7 @@ export const CommentBlockMenu: FunctionComponent<CommentBlockMenuProps> = ({
         horizontal: "right",
       }}
     >
-      {menuItems.map(({ title, icon, onClick }) => {
-        return (
-          <MenuItem key={title} onClick={onClick ?? popupState.close}>
-            <ListItemIcon>
-              <FontAwesomeIcon icon={icon} />
-            </ListItemIcon>
-            <ListItemText primary={title} />
-          </MenuItem>
-        );
-      })}
+      {children}
     </Menu>
   );
 };

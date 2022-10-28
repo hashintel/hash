@@ -8,6 +8,11 @@ export const persistedCommentTypedef = gql`
     resolvedAt: String
 
     """
+    Stringified timestamp of when the entity was deleted.
+    """
+    deletedAt: String
+
+    """
     Timestamp of when the comment was last edited
     """
     textUpdatedAt: Date!
@@ -80,6 +85,40 @@ export const persistedCommentTypedef = gql`
       parentEntityId: ID!
       """
       Text contents of the comment
+      """
+      tokens: [TextToken!]!
+    ): PersistedComment!
+
+    """
+    Resolve an existing comment
+    """
+    resolvePersistedComment(
+      """
+      Id of the comment to resolve
+      """
+      entityId: ID!
+    ): PersistedComment!
+
+    """
+    Delete an existing comment
+    """
+    deletePersistedComment(
+      """
+      Id of the comment to delete
+      """
+      entityId: ID!
+    ): PersistedComment!
+
+    """
+    Edit an existing comment's text contents
+    """
+    updatePersistedCommentText(
+      """
+      Id of the comment being edited
+      """
+      entityId: ID!
+      """
+      New Text contents of the comment
       """
       tokens: [TextToken!]!
     ): PersistedComment!

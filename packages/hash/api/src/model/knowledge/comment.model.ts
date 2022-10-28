@@ -49,7 +49,7 @@ export default class extends EntityModel {
   }
 
   /**
-   * Create a workspace block entity.
+   * Create a workspace comment entity.
    *
    * @param params.author - the user that created the comment
    * @param params.parent - the linked parent entity
@@ -105,11 +105,126 @@ export default class extends EntityModel {
   }
 
   /**
+   * Edit the text content of a comment.
+   *
+   * @param params.actorId - id of the user that edited the comment
+   * @param params.tokens - the new text tokens that describe the comment's text
+   */
+  async updateText(
+    graphApi: GraphApi,
+    params: {
+      actorId: string;
+      tokens: TextToken[];
+    },
+  ): Promise<CommentModel> {
+    const { actorId, tokens } = params;
+
+    if (actorId !== this.createdById) {
+      throw new Error(
+        `Critical: account ${actorId} does not have permission to edit the comment with entityId ${this.entityId}`,
+      );
+    }
+
+    const textEntityModel = await this.getHasText(graphApi);
+
+    await textEntityModel.updateProperty(graphApi, {
+      propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.tokens.baseUri,
+      value: tokens,
+      actorId,
+    });
+
+    return CommentModel.fromEntityModel(this);
+  }
+
+  /**
+   * Resolve the comment.
+   *
+   * @param params.actorId - id of the user that resolved the comment
+   */
+  async resolve(
+    graphApi: GraphApi,
+    params: {
+      actorId: string;
+    },
+  ): Promise<CommentModel> {
+    const { actorId } = params;
+
+    const parentModel = await this.getParent(graphApi);
+
+    // Throw error if the user trying to resolve the comment is not the comment's author
+    // or the author of the block the comment is attached to
+    if (
+      actorId !== this.createdById &&
+      parentModel.entityTypeModel.schema.$id ===
+        WORKSPACE_TYPES.entityType.block.schema.$id &&
+      actorId !== parentModel.createdById
+    ) {
+      throw new Error(
+        `Critical: account ${actorId} does not have permission to resolve the comment with entityId ${this.entityId}`,
+      );
+    }
+
+    await this.updateProperties(graphApi, {
+      updatedProperties: [
+        {
+          propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.resolvedAt.baseUri,
+          value: new Date().toISOString(),
+        },
+      ],
+      actorId,
+    });
+
+    return CommentModel.fromEntityModel(this);
+  }
+
+  /**
+   * Delete the comment.
+   *
+   * @param params.actorId - id of the user that deleted the comment
+   */
+  async delete(
+    graphApi: GraphApi,
+    params: {
+      actorId: string;
+    },
+  ): Promise<CommentModel> {
+    const { actorId } = params;
+
+    // Throw error if the user trying to delete the comment is not the comment's author
+    if (actorId !== this.createdById) {
+      throw new Error(
+        `Critical: account ${actorId} does not have permission to delete the comment with entityId ${this.entityId}`,
+      );
+    }
+
+    await this.updateProperties(graphApi, {
+      updatedProperties: [
+        {
+          propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.deletedAt.baseUri,
+          value: new Date().toISOString(),
+        },
+      ],
+      actorId,
+    });
+
+    return CommentModel.fromEntityModel(this);
+  }
+
+  /**
    * Get the value of the "Resolved At" property of the comment.
    */
   getResolvedAt(): string {
     return (this.properties as any)[
       WORKSPACE_TYPES.propertyType.resolvedAt.baseUri
+    ];
+  }
+
+  /**
+   * Get the value of the "Deleted At" property of the comment.
+   */
+  getDeletedAt(): string {
+    return (this.properties as any)[
+      WORKSPACE_TYPES.propertyType.deletedAt.baseUri
     ];
   }
 

@@ -1,3 +1,5 @@
+mod query;
+
 use std::{collections::HashMap, fmt};
 
 use chrono::{DateTime, Utc};
@@ -7,6 +9,7 @@ use type_system::uri::{BaseUri, VersionedUri};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
+pub use self::query::EntityQueryPath;
 use crate::provenance::{CreatedById, OwnedById, RemovedById, UpdatedById};
 
 #[derive(
