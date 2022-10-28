@@ -1088,7 +1088,7 @@ export interface RemoveLinkRequest {
   targetEntityId: string;
 }
 /**
- * An [`Expression`] to query the datastore, recursively resolving according to the
+ *
  * @export
  * @interface StructuralQuery
  */

@@ -28,7 +28,7 @@ use crate::{
     },
     provenance::{CreatedById, OwnedById, RemovedById, UpdatedById},
     store::{error::LinkRemovalError, query::Filter},
-    subgraph::{StructuralQuery, Subgraph},
+    subgraph::{NewStructuralQuery, Subgraph},
 };
 
 #[derive(Debug)]
@@ -221,12 +221,15 @@ pub trait DataTypeStore:
         actor_id: CreatedById,
     ) -> Result<PersistedOntologyMetadata, InsertionError>;
 
-    /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
+    /// Get the [`Subgraph`] specified by the [`NewStructuralQuery`].
     ///
     /// # Errors
     ///
     /// - if the requested [`DataType`] doesn't exist.
-    async fn get_data_type(&self, query: &StructuralQuery) -> Result<Subgraph, QueryError>;
+    async fn get_data_type<'f: 'q, 'q>(
+        &self,
+        query: &'f NewStructuralQuery<'q, DataType>,
+    ) -> Result<Subgraph, QueryError>;
 
     /// Update the definition of an existing [`DataType`].
     ///
@@ -260,12 +263,15 @@ pub trait PropertyTypeStore:
         actor_id: CreatedById,
     ) -> Result<PersistedOntologyMetadata, InsertionError>;
 
-    /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
+    /// Get the [`Subgraph`] specified by the [`NewStructuralQuery`].
     ///
     /// # Errors
     ///
     /// - if the requested [`PropertyType`] doesn't exist.
-    async fn get_property_type(&self, query: &StructuralQuery) -> Result<Subgraph, QueryError>;
+    async fn get_property_type<'f: 'q, 'q>(
+        &self,
+        query: &'f NewStructuralQuery<'q, PropertyType>,
+    ) -> Result<Subgraph, QueryError>;
 
     /// Update the definition of an existing [`PropertyType`].
     ///
@@ -299,12 +305,15 @@ pub trait EntityTypeStore:
         actor_id: CreatedById,
     ) -> Result<PersistedOntologyMetadata, InsertionError>;
 
-    /// Get the [`Subgraph`]s specified by the [`StructuralQuery`].
+    /// Get the [`Subgraph`]s specified by the [`NewStructuralQuery`].
     ///
     /// # Errors
     ///
     /// - if the requested [`EntityType`] doesn't exist.
-    async fn get_entity_type(&self, query: &StructuralQuery) -> Result<Subgraph, QueryError>;
+    async fn get_entity_type<'f: 'q, 'q>(
+        &self,
+        query: &'f NewStructuralQuery<'q, EntityType>,
+    ) -> Result<Subgraph, QueryError>;
 
     /// Update the definition of an existing [`EntityType`].
     ///
@@ -338,12 +347,15 @@ pub trait LinkTypeStore:
         actor_id: CreatedById,
     ) -> Result<PersistedOntologyMetadata, InsertionError>;
 
-    /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
+    /// Get the [`Subgraph`] specified by the [`NewStructuralQuery`].
     ///
     /// # Errors
     ///
     /// - if the requested [`LinkType`] doesn't exist.
-    async fn get_link_type(&self, query: &StructuralQuery) -> Result<Subgraph, QueryError>;
+    async fn get_link_type<'f: 'q, 'q>(
+        &self,
+        query: &'f NewStructuralQuery<'q, LinkType>,
+    ) -> Result<Subgraph, QueryError>;
 
     /// Update the definition of an existing [`LinkType`].
     ///
@@ -406,12 +418,15 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Filter<'q
         actor_id: CreatedById,
     ) -> Result<Vec<EntityId>, InsertionError>;
 
-    /// Get the [`Subgraph`]s specified by the [`StructuralQuery`].
+    /// Get the [`Subgraph`]s specified by the [`NewStructuralQuery`].
     ///
     /// # Errors
     ///
     /// - if the requested [`Entity`] doesn't exist
-    async fn get_entity(&self, query: &StructuralQuery) -> Result<Subgraph, QueryError>;
+    async fn get_entity<'f: 'q, 'q>(
+        &self,
+        query: &'f NewStructuralQuery<'q, Entity>,
+    ) -> Result<Subgraph, QueryError>;
 
     /// Update an existing [`Entity`].
     ///
@@ -447,14 +462,14 @@ pub trait LinkStore: for<'q> crud::Read<PersistedLink, Query<'q> = Filter<'q, Li
         actor_id: CreatedById,
     ) -> Result<(), InsertionError>;
 
-    /// Get the [`LinkRootedSubgraph`]s specified by the [`StructuralQuery`].
+    /// Get the [`LinkRootedSubgraph`]s specified by the [`NewStructuralQuery`].
     ///
     /// # Errors
     ///
     /// - if the requested [`Link`]s don't exist.
-    async fn get_links(
+    async fn get_links<'f: 'q, 'q>(
         &self,
-        query: &StructuralQuery,
+        query: &'f NewStructuralQuery<'q, Link>,
     ) -> Result<Vec<LinkRootedSubgraph>, QueryError>;
 
     /// Removes a [`Link`] between a source and target [`Entity`].

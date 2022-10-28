@@ -8,12 +8,13 @@ use serde::{Deserialize, Serialize};
 use type_system::uri::VersionedUri;
 use utoipa::{OpenApi, ToSchema};
 
+use super::StructuralQuery;
 use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
     knowledge::{EntityId, Link, LinkRootedSubgraph, PersistedLink, PersistedLinkMetadata},
     provenance::{CreatedById, OwnedById, RemovedById},
     store::{error::QueryError, query::Filter, LinkStore, StorePool},
-    subgraph::StructuralQuery,
+    subgraph::NewStructuralQuery,
 };
 
 #[derive(OpenApi)]
@@ -154,6 +155,14 @@ async fn get_links_by_query<P: StorePool + Send>(
             StatusCode::INTERNAL_SERVER_ERROR
         })
         .and_then(|store| async move {
+            let mut query = NewStructuralQuery::try_from(query).map_err(|error| {
+                tracing::error!(?error, "Could not deserialize query");
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
+            query.filter.convert_parameters().map_err(|error| {
+                tracing::error!(?error, "Could not validate query");
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
             store.get_links(&query).await.map_err(|report| {
                 tracing::error!(error=?report, ?query, "Could not read links from the store");
                 report_to_status_code(&report)
