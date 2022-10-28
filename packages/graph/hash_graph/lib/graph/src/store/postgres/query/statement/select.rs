@@ -71,6 +71,7 @@ mod tests {
 
     use postgres_types::ToSql;
     use type_system::{DataType, EntityType, PropertyType};
+    use uuid::Uuid;
 
     use crate::{
         knowledge::{Entity, EntityQueryPath, Link, LinkQueryPath},
@@ -78,7 +79,9 @@ mod tests {
             DataTypeQueryPath, EntityTypeQueryPath, LinkTypeQueryPath, PropertyTypeQueryPath,
         },
         store::{
-            postgres::query::{test_helper::trim_whitespace, PostgresQueryRecord, SelectCompiler},
+            postgres::query::{
+                test_helper::trim_whitespace, Ordering, PostgresQueryRecord, SelectCompiler,
+            },
             query::{Filter, FilterExpression, Parameter},
         },
     };
@@ -454,6 +457,36 @@ mod tests {
             WHERE "entities"."version" = "entities"."latest_version"
             "#,
             &[],
+        );
+    }
+
+    #[test]
+    fn entity_with_manual_selection() {
+        let mut compiler = SelectCompiler::<Entity>::new();
+        compiler.add_selection_path(&EntityQueryPath::Id, true, Some(Ordering::Ascending));
+        compiler.add_selection_path(&EntityQueryPath::Version, true, Some(Ordering::Descending));
+        compiler.add_selection_path(&EntityQueryPath::Properties(None), false, None);
+
+        let filter = Filter::Equal(
+            Some(FilterExpression::Path(EntityQueryPath::CreatedById)),
+            Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
+        );
+        compiler.add_filter(&filter);
+
+        test_compilation(
+            &compiler,
+            r#"
+            SELECT
+                DISTINCT ON("entities"."entity_id", "entities"."version")
+                "entities"."entity_id",
+                "entities"."version",
+                "entities"."properties"
+            FROM "entities"
+            WHERE "entities"."created_by_id" = $1
+            ORDER BY "entities"."entity_id" ASC,
+                     "entities"."version" DESC
+            "#,
+            &[&Uuid::nil()],
         );
     }
 
