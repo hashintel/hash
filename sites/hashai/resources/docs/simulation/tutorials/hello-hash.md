@@ -38,17 +38,17 @@ Beneath the workspace's right-hand view-pane, you'll find the simulation control
 
 However, if you toggle back from the raw output view to the 3D viewer, you may notice... nothing at all. Alice and Bob haven't been rendered, because they haven't been given a position in space. Let's go ahead and fix that.
 
-```javascript
+```json
 [
   {
-    agent_name: "Alice",
-    position: [0, 0],
+    "agent_name": "Alice",
+    "position": [0, 0]
   },
   {
-    agent_name: "Bob",
-    position: [2, 0],
-  },
-];
+    "agent_name": "Bob",
+    "position": [2, 0]
+  }
+]
 ```
 
 When you've finished adding positions to your agents, reset the simulation. You should now see two blocks in the 3D viewer representing our agents.
