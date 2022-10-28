@@ -226,6 +226,7 @@ export const mustGetEntity = (params: {
  *
  * @param params.subgraph
  * @param params.entityId - the entity id of the source entity.
+ * @param params.linkTypeId (optional) - the id of the link type
  *
  * @todo - version is required to identify a specific instance of an entity
  *   https://app.asana.com/0/1202805690238892/1203214689883091/f
@@ -244,6 +245,37 @@ export const getOutgoingLinksOfEntity = (params: {
   return linkTypeId
     ? outgoingLinks.filter(({ inner }) => inner.inner.linkTypeId === linkTypeId)
     : outgoingLinks;
+};
+
+/**
+ * Gets the incoming links of an entity.
+ *
+ * @param params.subgraph
+ * @param params.entityId - the entity id of the source entity.
+ * @param params.linkTypeId (optional) - the id of the link type
+ *
+ * @todo - version is required to identify a specific instance of an entity
+ *   https://app.asana.com/0/1202805690238892/1203214689883091/f
+ */
+export const getIncomingLinksOfEntity = (params: {
+  entityId: string;
+  subgraph: Subgraph;
+  linkTypeId?: string;
+}): LinkVertex[] => {
+  const { entityId, subgraph, linkTypeId } = params;
+
+  const incomingLinks = Object.entries(subgraph.edges)
+    .filter(([_, linkOutgoingEdges]) =>
+      linkOutgoingEdges.some(
+        ({ edgeKind, destination }) =>
+          edgeKind === "HAS_DESTINATION" && destination === entityId,
+      ),
+    )
+    .map(([source]) => subgraph.vertices[source] as LinkVertex);
+
+  return linkTypeId
+    ? incomingLinks.filter(({ inner }) => inner.inner.linkTypeId === linkTypeId)
+    : incomingLinks;
 };
 
 /** @todo - getPersistedEntity and getPersistedLink - https://app.asana.com/0/0/1203157172269853/f */
