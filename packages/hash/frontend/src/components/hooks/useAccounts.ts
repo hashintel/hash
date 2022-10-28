@@ -1,6 +1,8 @@
 import { useMemo } from "react";
 import { useQuery } from "@apollo/client";
 import { types } from "@hashintel/hash-shared/types";
+import { constructMinimalOrg, MinimalOrg } from "../../lib/org";
+import { constructMinimalUser, MinimalUser } from "../../lib/user";
 import {
   GetAllLatestPersistedEntitiesQuery,
   GetAllLatestPersistedEntitiesQueryVariables,
@@ -8,11 +10,10 @@ import {
 import { getAllLatestEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { isEntityVertex, Subgraph } from "../../lib/subgraph";
 import { useInitTypeSystem } from "../../lib/use-init-type-system";
-import { constructUser, User } from "../../lib/user";
 
-export const useUsers = (): {
+export const useAccounts = (): {
   loading: boolean;
-  users: User[];
+  accounts: (MinimalOrg | MinimalUser)[];
 } => {
   const { data, loading } = useQuery<
     GetAllLatestPersistedEntitiesQuery,
@@ -24,29 +25,29 @@ export const useUsers = (): {
 
   const loadingTypeSystem = useInitTypeSystem();
 
-  const { getAllLatestPersistedEntities: subgraph } = data ?? {};
-
-  const users = useMemo(() => {
-    if (!subgraph || loadingTypeSystem) {
+  const accounts = useMemo(() => {
+    if (!data || loadingTypeSystem) {
       return [];
     }
 
-    return Object.values((subgraph as unknown as Subgraph).vertices)
+    const subgraph = data.getAllLatestPersistedEntities as unknown as Subgraph;
+
+    return Object.values(subgraph.vertices)
       .filter(isEntityVertex)
       .filter(
         ({ inner }) =>
-          inner.entityTypeId === types.entityType.user.entityTypeId,
+          inner.entityTypeId === types.entityType.user.entityTypeId ||
+          inner.entityTypeId === types.entityType.org.entityTypeId,
       )
-      .map(({ inner: { entityId: userEntityId } }) =>
-        constructUser({
-          subgraph: subgraph as unknown as Subgraph,
-          userEntityId,
-        }),
+      .map(({ inner: { entityId, entityTypeId } }) =>
+        entityTypeId === types.entityType.org.entityTypeId
+          ? constructMinimalOrg({ subgraph, orgEntityId: entityId })
+          : constructMinimalUser({
+              subgraph,
+              userEntityId: entityId,
+            }),
       );
-  }, [subgraph, loadingTypeSystem]);
+  }, [data, loadingTypeSystem]);
 
-  return {
-    loading,
-    users,
-  };
+  return { accounts, loading };
 };

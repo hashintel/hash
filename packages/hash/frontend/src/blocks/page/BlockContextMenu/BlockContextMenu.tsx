@@ -58,7 +58,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
   },
   ref,
 ) => {
-  const { data: users } = useUsers();
+  const { users } = useUsers();
   const setEntityMenuItemRef = useRef<HTMLLIElement>(null);
   const swapBlocksMenuItemRef = useRef<HTMLLIElement>(null);
   const { value: userBlocks } = useUserBlocks();
@@ -263,7 +263,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
               (account) =>
                 account.entityId ===
                 blockEntity?.properties.entity.createdByAccountId,
-            )?.name
+            )?.preferredName
           }
         </Typography>
         {/** 

@@ -16,7 +16,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
   mentionType,
   accountId,
 }) => {
-  const { data: users, loading: usersLoading } = useUsers();
+  const { users, loading: usersLoading } = useUsers();
   const { data: pages, loading: pagesLoading } = useAccountPages(accountId);
 
   const { title, href, icon } = useMemo(() => {
@@ -30,7 +30,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
         } else {
           // Once the query loads, either display the found name, or display "Unknown User" if the user doesn't exist in the users array
           userName =
-            users.find((item) => item.entityId === entityId)?.name ??
+            users.find((item) => item.entityId === entityId)?.preferredName ??
             "Unknown User";
         }
 

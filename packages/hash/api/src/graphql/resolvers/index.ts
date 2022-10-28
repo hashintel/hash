@@ -22,7 +22,6 @@ import {
   searchPages,
   pageLinkedEntities,
 } from "./pages";
-import { accounts } from "./account/accounts";
 import { createUser } from "./user/createUser";
 import { createUserWithOrgEmailInvitation } from "./user/createUserWithOrgEmailInvitation";
 import { updateUser } from "./user/updateUser";
@@ -147,11 +146,7 @@ const isWorkspaceEntityGQLTypeName = (
 /** @todo - Refactor the names of these https://app.asana.com/0/1200211978612931/1203234667392169/f */
 export const resolvers = {
   Query: {
-    // Logged in and signed up users only
-    accounts:
-      loggedInAndSignedUp(
-        accounts,
-      ) /** @todo: make accessible to admins only (or deprecate) */,
+    // Logged in and signed up users only,
     aggregateEntity: loggedInAndSignedUp(aggregateEntity),
     blocks: loggedInAndSignedUp(blocks),
     deprecatedGetAccountEntityTypes: loggedInAndSignedUp(
