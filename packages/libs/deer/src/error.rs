@@ -82,6 +82,15 @@ impl Id {
     }
 }
 
+/// Value which is extracted/retrieved from a stack of [`error_stack::Frame`]s
+///
+/// Every type that is attached as a frame (or can be requested via `request_ref`), must implement
+/// this type, to be able to be used in conjunction with [`ErrorVariant`], it must provide the key
+/// used in the `properties` output, as well as a value. The value does **not** need to be `Self`,
+/// so transformations are possible.
+///
+/// This enables the "squashing" and reinterpretation of stacks of the same type, to build things
+/// like location paths.
 pub trait ErrorProperty: Sized {
     type Value<'a>: serde::Serialize + 'a
     where
@@ -91,6 +100,12 @@ pub trait ErrorProperty: Sized {
     fn value<'a>(stack: impl Iterator<Item = &'a Self>) -> Self::Value<'a>;
 }
 
+/// Wrapper around [`ErrorProperty`].
+///
+/// This is implemented for every [`ErrorProperty`] and all tuples that contain [`ErrorProperties`].
+///
+/// `deer` then iterates through all types present in [`ErrorProperties`] and builds, via a stack of
+/// [`error_stack::Frame`] a key-value map of values.
 pub trait ErrorProperties {
     type Value<'a>: serde::Serialize + 'a
     where
@@ -125,12 +140,29 @@ impl<T: ErrorProperty + 'static> ErrorProperties for T {
     }
 }
 
+/// Possible error that can be output.
+///
+/// `deer` makes full use of `error-stack` and uses attachments and contexts to build up errors.
+/// These errors must implement [`ErrorVariant`] to be able to use `deer` capabilities.
+///
+/// Each variant needs to define `Properties`, which is a tuple of all types it expects to output in
+/// the `properties` output, `deer` will then look through a report, gather and transform those
+/// properties, which are then used in the output and can be used while personalising the message.
+///
+/// The combination of `NAMESPACE` and `ID` needs to be unique.
 pub trait ErrorVariant: Context + Debug + Display {
     type Properties: ErrorProperties;
 
     const ID: Id;
     const NAMESPACE: Namespace;
 
+    /// Context sensitive message
+    ///
+    /// This type can use the properties given as well as a formatter, to enrich and output a custom
+    /// message.
+    ///
+    /// The caller does not guarantee to call the [`Display`] implementation as fallback, the
+    /// implementation should make sure to call it themselves as fallback, if needed.
     fn message<'a>(
         &self,
         fmt: &mut Formatter,
