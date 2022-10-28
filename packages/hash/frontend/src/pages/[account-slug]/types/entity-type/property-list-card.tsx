@@ -9,6 +9,7 @@ import {
   Checkbox,
   checkboxClasses,
   ClickAwayListener,
+  Collapse,
   Fade,
   outlinedInputClasses,
   Popper,
@@ -190,8 +191,8 @@ export const PropertyTypeRow = ({
   const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
   const [multipleValues, setMultipleValues] = useState(false);
   const [multipleValuesMenuOpen, setMultipleValuesMenuOpen] = useState(false);
-  const [minimumValue, setMinimumValue] = useState(0);
-  const [maximumValue, setMaximumValue] = useState(0);
+  const [minValue, setMinValue] = useState(0);
+  const [maxValue, setMaxValue] = useState(0);
 
   const propertyId = mustBeVersionedUri(
     watch(`properties.${propertyIndex}.$id`),
@@ -235,10 +236,49 @@ export const PropertyTypeRow = ({
           })}
           onClick={() => setMultipleValuesMenuOpen(true)}
         >
-          <Checkbox
-            value={multipleValues}
-            onChange={(event) => setMultipleValues(event.target.checked)}
-          />
+          <Box
+            sx={({ palette, transitions }) => ({
+              display: "inline-flex",
+              borderRadius: "4px 30px 30px 4px",
+              backgroundColor: "transparent",
+              transition: transitions.create(["padding", "background-color"]),
+              ...(multipleValues && !multipleValuesMenuOpen
+                ? {
+                    py: 0.5,
+                    px: 0.75,
+                    background: palette.gray[20],
+                  }
+                : {}),
+            })}
+          >
+            <Checkbox
+              sx={({ palette }) => ({
+                background: palette.gray[20],
+                zIndex: 1,
+              })}
+              value={multipleValues}
+              onChange={(event) => setMultipleValues(event.target.checked)}
+            />
+            <Collapse
+              orientation="horizontal"
+              in={multipleValues && !multipleValuesMenuOpen}
+            >
+              <Typography
+                variant="smallTextLabels"
+                sx={{
+                  display: "flex",
+                  ml: 1,
+                  fontWeight: 500,
+                  whiteSpace: "nowrap",
+                  color: ({ palette }) => palette.gray[70],
+                }}
+              >
+                {minValue !== maxValue
+                  ? `${minValue} to ${maxValue}`
+                  : minValue}
+              </Typography>
+            </Collapse>
+          </Box>
         </TableCell>
         <CenteredTableCell sx={{ textAlign: "center" }}>
           <Checkbox />
@@ -278,7 +318,7 @@ export const PropertyTypeRow = ({
             <ClickAwayListener
               onClickAway={() => setMultipleValuesMenuOpen(false)}
             >
-              <Fade {...TransitionProps} timeout={350}>
+              <Fade {...TransitionProps}>
                 <Box
                   sx={({ palette }) => ({
                     border: 1,
@@ -291,13 +331,13 @@ export const PropertyTypeRow = ({
                     type="number"
                     size="small"
                     label="Minimum"
-                    value={minimumValue}
+                    value={minValue}
                     onChange={(event) => {
                       const value = parseInt(event.target.value, 10);
                       if (value >= 0) {
-                        setMinimumValue(value);
-                        if (value > maximumValue) {
-                          setMaximumValue(value);
+                        setMinValue(value);
+                        if (value > maxValue) {
+                          setMaxValue(value);
                         }
                       }
                     }}
@@ -306,13 +346,13 @@ export const PropertyTypeRow = ({
                   <TextField
                     type="number"
                     label="Maximum"
-                    value={maximumValue}
+                    value={maxValue}
                     onChange={(event) => {
                       const value = parseInt(event.target.value, 10);
                       if (value >= 0) {
-                        setMaximumValue(value);
-                        if (minimumValue > value) {
-                          setMinimumValue(value);
+                        setMaxValue(value);
+                        if (minValue > value) {
+                          setMinValue(value);
                         }
                       }
                     }}
