@@ -48,6 +48,12 @@ export const useAuthenticatedUser = (
       !loadingTypeSystem && subgraph && kratosSession
         ? constructAuthenticatedUser({
             userEntityId: subgraph.roots[0]!,
+            /**
+             * @todo: ensure this subgraph contains the incoming links of orgs
+             * at depth 2 to support constructing the `members` of an `Org`.
+             *
+             * @see https://app.asana.com/0/1202805690238892/1203250435416412/f
+             */
             subgraph: subgraph as unknown as Subgraph,
             kratosSession,
           })
