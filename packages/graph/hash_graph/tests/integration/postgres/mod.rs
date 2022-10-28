@@ -418,7 +418,7 @@ impl DatabaseApi<'_> {
         Ok(self
             .store
             .get_links(&NewStructuralQuery {
-                filter: Filter::Any(vec![
+                filter: Filter::All(vec![
                     Filter::for_link_by_latest_source_entity(source_entity_id),
                     Filter::Equal(
                         Some(FilterExpression::Path(LinkQueryPath::Type(
