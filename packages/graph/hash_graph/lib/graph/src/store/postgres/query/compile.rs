@@ -69,8 +69,8 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
 
     /// Adds a new path to the selection.
     ///
-    /// Optionally, a path can be ordered by passing an [`Ordering`] alongside the path. Also, when
-    /// `distinct` is `true`, this path will be selected distinctly.
+    /// Optionally, the added selection can be distinct or ordered by providing [`Distinctness`] and
+    /// [`Ordering`].
     pub fn add_selection_path(
         &mut self,
         path: &'q T::Path<'q>,
