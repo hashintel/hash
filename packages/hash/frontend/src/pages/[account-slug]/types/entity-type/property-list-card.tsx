@@ -193,6 +193,7 @@ export const PropertyTypeRow = ({
   const [multipleValuesMenuOpen, setMultipleValuesMenuOpen] = useState(false);
   const [minValue, setMinValue] = useState(0);
   const [maxValue, setMaxValue] = useState(0);
+  const [required, setRequired] = useState(false);
 
   const propertyId = mustBeVersionedUri(
     watch(`properties.${propertyIndex}.$id`),
@@ -252,10 +253,9 @@ export const PropertyTypeRow = ({
             })}
           >
             <Checkbox
-              sx={({ palette }) => ({
-                background: palette.gray[20],
+              sx={{
                 zIndex: 1,
-              })}
+              }}
               value={multipleValues}
               onChange={(event) => setMultipleValues(event.target.checked)}
             />
@@ -281,7 +281,10 @@ export const PropertyTypeRow = ({
           </Box>
         </TableCell>
         <CenteredTableCell sx={{ textAlign: "center" }}>
-          <Checkbox />
+          <Checkbox
+            value={required}
+            onChange={(event) => setRequired(event.target.checked)}
+          />
         </CenteredTableCell>
         <CenteredTableCell sx={{ px: "0px !important" }}>
           <TextField
