@@ -4,7 +4,7 @@ import { Container, Typography } from "@mui/material";
 import init, { ValueOrArray } from "@blockprotocol/type-system-web";
 import { Button } from "@hashintel/hash-design-system/button";
 import { types } from "@hashintel/hash-shared/types";
-import { useUser } from "../components/hooks/useUser";
+import { useAuthenticatedUser } from "../components/hooks/useAuthenticatedUser";
 import { NextPageWithLayout } from "../shared/layout";
 import { useBlockProtocolFunctionsWithOntology } from "./type-editor/blockprotocol-ontology-functions-hook";
 import {
@@ -26,7 +26,7 @@ const isArrayDefinition = <T,>(
  * This is meant to be removed as soon as it's unneeded.
  */
 const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
-  const { user } = useUser();
+  const { authenticatedUser } = useAuthenticatedUser();
   const [userSubgraph, setUserSubgraph] = useState<Subgraph>();
   const [aggregateEntitiesSubgraph, setAggregateEntitiesSubgraph] =
     useState<Subgraph>();
@@ -35,15 +35,15 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
     useBlockProtocolFunctionsWithOntology(ownedById);
 
   useEffect(() => {
-    if (user) {
+    if (authenticatedUser) {
       // As an example entity, we are going to use the currently logged in user's entity ID
-      const entityId = user.entityId;
+      const entityId = authenticatedUser.entityId;
 
       void getEntity({ data: { entityId } }).then(({ data }) => {
         setUserSubgraph(data);
       });
     }
-  }, [user, getEntity]);
+  }, [authenticatedUser, getEntity]);
 
   useEffect(() => {
     if (!aggregateEntitiesSubgraph) {
@@ -134,7 +134,11 @@ const ExampleEntityEditorPage: NextPageWithLayout = () => {
   const router = useRouter();
   // The user is important to allow using Block Protocol functions
   // such as: `const functions = useBlockProtocolFunctionsWithOntology(user.accountId);`
-  const { user, loading: loadingUser, kratosSession } = useUser();
+  const {
+    authenticatedUser,
+    loading: loadingUser,
+    kratosSession,
+  } = useAuthenticatedUser();
   const [loadingTypeSystem, setLoadingTypeSystem] = useState(true);
 
   useEffect(() => {
@@ -153,11 +157,11 @@ const ExampleEntityEditorPage: NextPageWithLayout = () => {
     }
   }, [loadingUser, router, kratosSession]);
 
-  return loadingUser || !user || loadingTypeSystem ? (
+  return loadingUser || !authenticatedUser || loadingTypeSystem ? (
     <Container sx={{ pt: 10 }}>Loading...</Container>
   ) : (
     <Container sx={{ pt: 10 }}>
-      <ExampleUsage ownedById={user.entityId} />
+      <ExampleUsage ownedById={authenticatedUser.entityId} />
     </Container>
   );
 };

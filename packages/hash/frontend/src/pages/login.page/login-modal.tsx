@@ -30,7 +30,7 @@ import {
   Action,
 } from "../shared/auth-utils";
 import { useGetInvitationInfo } from "../shared/use-get-invitation-info";
-import { useUser } from "../../components/hooks/useUser";
+import { useAuthenticatedUser } from "../../components/hooks/useAuthenticatedUser";
 import {
   AuthModalLayout,
   AuthModalLayoutProps,
@@ -116,11 +116,11 @@ export const LoginModal: FunctionComponent<LoginModalProps> = ({
   const router = useRouter();
   const [requestedLoginCodeForDefault, setRequestedLoginCodeForDefault] =
     useState<boolean>(false);
-  const { user: currentUser } = useUser();
+  const { authenticatedUser } = useAuthenticatedUser();
 
-  if (currentUser) {
+  if (authenticatedUser) {
     // Redirect logged in user to their account page
-    void router.push(`/${currentUser.entityId}`);
+    void router.push(`/${authenticatedUser.entityId}`);
   }
 
   const [sendLoginCodeFn, { loading: sendLoginCodeLoading }] = useMutation<

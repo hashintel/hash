@@ -7,7 +7,7 @@ import {
   AggregateLinkTypesMessageCallback,
   AggregatePropertyTypesMessageCallback,
 } from "../../components/hooks/blockProtocolFunctions/ontology/ontology-types-shim";
-import { useLoggedInUser } from "../../components/hooks/useUser";
+import { useLoggedInUser } from "../../components/hooks/useAuthenticatedUser";
 import { useInitTypeSystem } from "../../lib/use-init-type-system";
 import { NextPageWithLayout } from "../../shared/layout";
 
@@ -111,15 +111,15 @@ const ExampleUsage = ({ accountId }: { accountId: string }) => {
 const Page: NextPageWithLayout = () => {
   // The user is important to allow using Block Protocol functions
   // such as: `const functions = useBlockProtocolFunctionsWithOntology(user.accountId);`
-  const { user, loading: loadingUser } = useLoggedInUser();
+  const { authenticatedUser, loading: loadingUser } = useLoggedInUser();
   const loadingTypeSystem = useInitTypeSystem();
 
-  return loadingUser || !user || loadingTypeSystem ? (
+  return loadingUser || !authenticatedUser || loadingTypeSystem ? (
     <Container sx={{ pt: 10 }}>Loading...</Container>
   ) : (
     <Container sx={{ pt: 10 }}>
       Hello!
-      <ExampleUsage accountId={user.entityId} />
+      <ExampleUsage accountId={authenticatedUser.entityId} />
     </Container>
   );
 };

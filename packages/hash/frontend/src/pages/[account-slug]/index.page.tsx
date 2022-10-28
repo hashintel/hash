@@ -2,17 +2,17 @@ import { Box, Typography } from "@mui/material";
 import { faWarning } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
-import { useUser } from "../../components/hooks/useUser";
+import { useAuthenticatedUser } from "../../components/hooks/useAuthenticatedUser";
 import { useOrgs } from "../../components/hooks/useOrgs";
 import { Link } from "../../shared/ui";
 import { useRouteAccountInfo } from "../../shared/routing";
 
 const Page: NextPageWithLayout = () => {
-  const { user } = useUser();
-  const { data: orgs } = useOrgs();
+  const { authenticatedUser } = useAuthenticatedUser();
+  const { orgs } = useOrgs();
   const { accountId } = useRouteAccountInfo();
 
-  if (!user) {
+  if (!authenticatedUser) {
     return (
       <h2>
         You must be{" "}
@@ -36,7 +36,7 @@ const Page: NextPageWithLayout = () => {
     );
   }
 
-  const ownWorkspace = accountId === user.entityId;
+  const ownWorkspace = accountId === authenticatedUser.entityId;
 
   const thisOrg = ownWorkspace
     ? undefined

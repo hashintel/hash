@@ -194,6 +194,58 @@ export const getEntity = (
   return vertex.inner;
 };
 
+/**
+ * Gets an `Entity` by its `entityId` from within the vertices of the subgraph. Throws an error if
+ * the entity couldn't be found.
+ *
+ * @param params.subgraph
+ * @param params.entityId
+ * @throws if the vertex isn't an `EntityVertex`
+ * @throws if a vertex with `entityId` doesn't exist
+ *
+ * @todo - version is required to identify a specific instance of an entity
+ *   https://app.asana.com/0/1202805690238892/1203214689883091/f
+ */
+export const mustGetEntity = (params: {
+  subgraph: Subgraph;
+  entityId: string;
+}): Entity => {
+  const { entityId, subgraph } = params;
+
+  const entity = getEntity(subgraph, entityId);
+
+  if (!entity) {
+    throw new Error(`Vertex with entityId "${entityId}" does not exist.`);
+  }
+
+  return entity;
+};
+
+/**
+ * Gets the outgoing links of an entity.
+ *
+ * @param params.subgraph
+ * @param params.entityId - the entity id of the source entity.
+ *
+ * @todo - version is required to identify a specific instance of an entity
+ *   https://app.asana.com/0/1202805690238892/1203214689883091/f
+ */
+export const getOutgoingLinksOfEntity = (params: {
+  entityId: string;
+  subgraph: Subgraph;
+  linkTypeId?: string;
+}): LinkVertex[] => {
+  const { entityId, subgraph, linkTypeId } = params;
+
+  const outgoingLinks = subgraph.edges[entityId]!.filter(
+    ({ edgeKind }) => edgeKind === "HAS_LINK",
+  ).map(({ destination }) => subgraph.vertices[destination] as LinkVertex);
+
+  return linkTypeId
+    ? outgoingLinks.filter(({ inner }) => inner.inner.linkTypeId === linkTypeId)
+    : outgoingLinks;
+};
+
 /** @todo - getPersistedEntity and getPersistedLink - https://app.asana.com/0/0/1203157172269853/f */
 
 /**
