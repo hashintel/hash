@@ -11,7 +11,7 @@ use type_system::uri::VersionedUri;
 use uuid::Uuid;
 
 use crate::{
-    knowledge::{Entity, EntityId, EntityQueryPath, Link, LinkQueryPath},
+    knowledge::{Entity, EntityId, EntityQueryPath},
     store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath},
 };
 
@@ -97,21 +97,6 @@ impl<'q> Filter<'q, Entity> {
                 ))),
             ),
         ])
-    }
-}
-
-impl<'q> Filter<'q, Link> {
-    /// Creates a `Filter` to search for links based on their source entity.
-    #[must_use]
-    pub const fn for_link_by_latest_source_entity(entity_id: EntityId) -> Self {
-        Self::Equal(
-            Some(FilterExpression::Path(LinkQueryPath::Source(Some(
-                EntityQueryPath::Id,
-            )))),
-            Some(FilterExpression::Parameter(Parameter::Uuid(
-                entity_id.as_uuid(),
-            ))),
-        )
     }
 }
 

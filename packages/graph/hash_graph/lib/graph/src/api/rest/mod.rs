@@ -7,7 +7,6 @@ mod api_resource;
 mod data_type;
 mod entity;
 mod entity_type;
-mod link;
 mod property_type;
 
 use std::sync::Arc;
@@ -45,7 +44,6 @@ fn api_resources<P: StorePool + Send + 'static>() -> Vec<Router> {
         property_type::PropertyTypeResource::routes::<P>(),
         entity_type::EntityTypeResource::routes::<P>(),
         entity::EntityResource::routes::<P>(),
-        link::LinkResource::routes::<P>(),
     ]
 }
 
@@ -56,7 +54,6 @@ fn api_documentation() -> Vec<openapi::OpenApi> {
         property_type::PropertyTypeResource::documentation(),
         entity_type::EntityTypeResource::documentation(),
         entity::EntityResource::documentation(),
-        link::LinkResource::documentation(),
     ]
 }
 

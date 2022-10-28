@@ -29,24 +29,12 @@ impl fmt::Display for AccountId {
     }
 }
 
-// TODO - This is temporary and introduced for consistency, we need to introduce actual IDs for
-//  links, should be revisited as part of https://app.asana.com/0/0/1203157172269853/f
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct LinkId {
-    pub source_entity_id: EntityId,
-    pub target_entity_id: EntityId,
-    #[schema(value_type = String)]
-    pub link_type_id: VersionedUri,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum GraphElementIdentifier {
     OntologyElementId(VersionedUri),
     // TODO: owned_by_id and version are required to identify a specific instance of an entity
     //  https://app.asana.com/0/1202805690238892/1203214689883091/f
     KnowledgeGraphElementId(EntityId),
-    Temporary(LinkId),
 }
 
 impl Serialize for GraphElementIdentifier {
@@ -57,12 +45,6 @@ impl Serialize for GraphElementIdentifier {
         match self {
             Self::KnowledgeGraphElementId(identifier) => identifier.serialize(serializer),
             Self::OntologyElementId(identifier) => identifier.serialize(serializer),
-            Self::Temporary(identifier) => serializer.serialize_str(&format!(
-                "<SOURCE>{}<TARGET>{}<TYPE>{}",
-                &identifier.source_entity_id,
-                &identifier.target_entity_id,
-                &identifier.link_type_id
-            )),
         }
     }
 }

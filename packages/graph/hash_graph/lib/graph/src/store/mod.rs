@@ -18,10 +18,7 @@ pub use self::{
 };
 use crate::{
     identifier::AccountId,
-    knowledge::{
-        Entity, EntityId, Link, LinkRootedSubgraph, PersistedEntity, PersistedEntityMetadata,
-        PersistedLink,
-    },
+    knowledge::{Entity, EntityId, PersistedEntity, PersistedEntityMetadata},
     ontology::{
         PersistedDataType, PersistedEntityType, PersistedOntologyMetadata, PersistedPropertyType,
     },
@@ -181,8 +178,7 @@ impl fmt::Display for DatabaseConnectionInfo {
 ///
 /// In addition to the errors described in the methods of this trait, further errors might also be
 /// raised depending on the implementation, e.g. connection issues.
-pub trait Store =
-    AccountStore + DataTypeStore + PropertyTypeStore + EntityTypeStore + EntityStore + LinkStore;
+pub trait Store = AccountStore + DataTypeStore + PropertyTypeStore + EntityTypeStore + EntityStore;
 
 /// Describes the API of a store implementation for accounts.
 #[async_trait]
@@ -395,45 +391,4 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Filter<'q
         entity_type_id: VersionedUri,
         actor_id: UpdatedById,
     ) -> Result<PersistedEntityMetadata, UpdateError>;
-}
-
-/// Describes the API of a store implementation for [`Link`]s.
-#[async_trait]
-pub trait LinkStore: for<'q> crud::Read<PersistedLink, Query<'q> = Filter<'q, Link>> {
-    /// Creates a new [`Link`].
-    ///
-    /// # Errors:
-    ///
-    /// - if the [`Link`] exists already
-    /// - if the [`Link`]s [`LinkType`] doesn't exist
-    /// - if the account referred to by `owned_by_id` does not exist
-    async fn create_link(
-        &mut self,
-        link: &Link,
-        owned_by_id: OwnedById,
-        actor_id: CreatedById,
-    ) -> Result<(), InsertionError>;
-
-    /// Get the [`LinkRootedSubgraph`]s specified by the [`StructuralQuery`].
-    ///
-    /// # Errors
-    ///
-    /// - if the requested [`Link`]s don't exist.
-    async fn get_links<'f: 'q, 'q>(
-        &self,
-        query: &'f StructuralQuery<'q, Link>,
-    ) -> Result<Vec<LinkRootedSubgraph>, QueryError>;
-
-    /// Removes a [`Link`] between a source and target [`Entity`].
-    ///
-    /// # Errors:
-    ///
-    /// - if the [`Link`] doesn't exist
-    /// - if the[`Link`]s [`LinkType`] doesn't exist
-    /// - if the account referred to by `owned_by_id` does not exist
-    async fn remove_link(
-        &mut self,
-        link: &Link,
-        actor_id: RemovedById,
-    ) -> Result<(), LinkRemovalError>;
 }

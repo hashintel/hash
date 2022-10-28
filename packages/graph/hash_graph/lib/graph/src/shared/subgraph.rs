@@ -11,7 +11,7 @@ use type_system::{DataType, EntityType, LinkType, PropertyType};
 use utoipa::{openapi, ToSchema};
 
 use crate::{
-    knowledge::{Entity, KnowledgeGraphQueryDepth, Link, PersistedEntity, PersistedLink},
+    knowledge::{Entity, KnowledgeGraphQueryDepth, Link, PersistedEntity},
     ontology::{OntologyQueryDepth, PersistedDataType, PersistedEntityType, PersistedPropertyType},
     shared::identifier::GraphElementIdentifier,
     store::query::{Filter, QueryRecord},
@@ -25,7 +25,6 @@ pub enum Vertex {
     PropertyType(PersistedPropertyType),
     EntityType(PersistedEntityType),
     Entity(PersistedEntity),
-    Link(PersistedLink),
 }
 
 // WARNING: This MUST be kept up to date with the enum names and serde attribute, as utoipa does
@@ -41,7 +40,6 @@ impl ToSchema for Vertex {
             ("propertyType", PersistedPropertyType::schema()),
             ("entityType", PersistedEntityType::schema()),
             ("entity", PersistedEntity::schema()),
-            ("link", PersistedLink::schema()),
         ] {
             builder = builder.item(
                 openapi::ObjectBuilder::new()
