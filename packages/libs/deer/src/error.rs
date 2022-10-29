@@ -93,7 +93,7 @@ impl Id {
 ///
 /// This enables the "squashing" and reinterpretation of stacks of the same type, to build things
 /// like location paths.
-pub trait ErrorProperty: Sized {
+pub trait ErrorProperty: Sized + Send + Sync {
     type Value<'a>: serde::Serialize + 'a
     where
         Self: 'a;
