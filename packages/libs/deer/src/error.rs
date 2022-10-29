@@ -125,7 +125,13 @@ impl<T: ErrorProperty + 'static> ErrorProperties for T {
     type Value<'a> = T::Value<'a>;
 
     fn value<'a>(stack: &[&'a Frame]) -> Self::Value<'a> {
-        let stack = stack.iter().filter_map(|frame| frame.request_ref());
+        let stack = stack.iter().filter_map(|frame| {
+            #[cfg(nightly)]
+            return frame.request_ref();
+
+            #[cfg(not(nightly))]
+            return frame.downcast_ref();
+        });
 
         <T as ErrorProperty>::value(stack)
     }
