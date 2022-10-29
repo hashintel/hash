@@ -25,7 +25,7 @@ ALWAYS_RUN_PATTERNS = [".github/**"]
 # rust-toolchain.toml
 TOOLCHAINS = {
     "packages/libs/error-stack": ["1.63", "beta-2022-09-25"],
-    "packages/libs/deer": []
+    "packages/libs/deer": ["beta-2022-10-29"]
 }
 
 # Try and publish these crates when their version is changed in Cargo.toml
