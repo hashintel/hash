@@ -39,7 +39,7 @@
 //! properties (like [`Location`]), are only fully available at a later stage and not during
 //! creation of the error.
 //! Taking this approach allows us to delay the creation of the final version until
-//! the last step, this is also why [`ErrorProperty::serialize`] takes a stack of values, some
+//! the last step, this is also why [`ErrorProperty::value`] takes a stack of values, some
 //! properties might find the latest or oldest occurrence interesting, while some, like [`Location`]
 //! need to take all recorded values into account.
 //! A nice side-benefit is that properties can be reused *and* it ensures that the `properties`
@@ -52,6 +52,8 @@
 //! the properties, which is not ideal when writing "personalized" error messages during
 //! serialization. This is fixed because [`ErrorVariant`] implementations must provide
 //! [`ErrorVariant::message`], which receives all properties and their value.
+//!
+//! [`Location`]: core::panic::Location
 
 use alloc::collections::BTreeMap;
 use core::fmt::{self, Debug, Display, Formatter};
