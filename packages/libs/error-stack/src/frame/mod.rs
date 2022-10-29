@@ -4,7 +4,7 @@ mod kind;
 use alloc::boxed::Box;
 #[cfg(nightly)]
 use core::any::{self, Demand, Provider};
-use core::{any::TypeId, fmt, panic::Location};
+use core::{fmt, panic::Location};
 
 use self::frame_impl::FrameImpl;
 pub use self::kind::{AttachmentKind, FrameKind};
@@ -96,34 +96,19 @@ impl Frame {
     /// Returns if `T` is the held context or attachment by this frame.
     #[must_use]
     pub fn is<T: Send + Sync + 'static>(&self) -> bool {
-        self.downcast_ref::<T>().is_some()
+        self.frame.as_any().is::<T>()
     }
 
     /// Downcasts this frame if the held context or attachment is the same as `T`.
     #[must_use]
     pub fn downcast_ref<T: Send + Sync + 'static>(&self) -> Option<&T> {
-        (TypeId::of::<T>() == Self::type_id(self)).then(|| {
-            // SAFETY: just checked whether we are pointing to the correct type, and we can rely on
-            // that check for memory safety because we have implemented `FrameImpl` for all types;
-            // no other impls can exist as they would conflict with our impl.
-            unsafe { &*(self.frame.as_ref() as *const dyn FrameImpl).cast::<T>() }
-        })
+        self.frame.as_any().downcast_ref()
     }
 
     /// Downcasts this frame if the held context or attachment is the same as `T`.
     #[must_use]
     pub fn downcast_mut<T: Send + Sync + 'static>(&mut self) -> Option<&mut T> {
-        (TypeId::of::<T>() == Self::type_id(self)).then(|| {
-            // SAFETY: just checked whether we are pointing to the correct type, and we can rely on
-            // that check for memory safety because we have implemented `FrameImpl` for all types;
-            // no other impls can exist as they would conflict with our impl.
-            unsafe { &mut *(self.frame.as_mut() as *mut dyn FrameImpl).cast::<T>() }
-        })
-    }
-
-    /// Return the `TypeId` of the held context or attachment.
-    pub(crate) fn type_id(&self) -> TypeId {
-        FrameImpl::type_id(&*self.frame)
+        self.frame.as_any_mut().downcast_mut()
     }
 }
 
