@@ -85,9 +85,9 @@ def filter_for_changed_crates(diffs, crates):
     """
     # Check if any changed file matches `ALWAYS_RUN_PATTERNS`
     if any(
-        fnmatch(diff.delta.new_file.path, pattern)
-        for diff in diffs
-        for pattern in ALWAYS_RUN_PATTERNS
+            fnmatch(diff.delta.new_file.path, pattern)
+            for diff in diffs
+            for pattern in ALWAYS_RUN_PATTERNS
     ):
         return crates
 
@@ -213,7 +213,10 @@ def output_matrix(name, github_output_file, crates, **kwargs):
     )
 
     matrix = dict(
-        crate=[crate.name.replace("_", "-") for crate in crates],
+        include=[
+            dict(directory=str(crate), name=crate.name.replace("_", "-"))
+            for crate in crates
+        ],
         toolchain=list(available_toolchains),
         directory=[str(crate) for crate in crates],
         **kwargs,
@@ -222,11 +225,6 @@ def output_matrix(name, github_output_file, crates, **kwargs):
             for elem in excluded_toolchain_combinations
         ],
     )
-    
-    available_flag_combinations = itertools.product(crates, matrix["crate"])
-    excluded_flag_combinations = set(available_flag_combinations).difference(zip(crates, matrix["crate"]))
-    for elem in excluded_flag_combinations:
-        matrix["exclude"].append(dict(directory=elem[0].name.replace("_", "-"), flag=elem[1]))
             
     if len(matrix["directory"]) == 0:
         matrix = {}
