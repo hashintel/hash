@@ -33,7 +33,7 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import { Ref, useId, useMemo, useRef, useState } from "react";
+import { Ref, useId, useRef, useState } from "react";
 import { useFieldArray, useFormContext } from "react-hook-form";
 import { Modal } from "../../../../components/Modals/Modal";
 import { EmptyPropertyListCard } from "./empty-property-list-card";
@@ -501,6 +501,10 @@ export const PropertyListCard = () => {
                   ) {
                     append({
                       $id: mustBeVersionedUri(type.$id),
+                      required: false,
+                      array: false,
+                      minValue: 0,
+                      maxValue: 0,
                     });
                   }
                 }}
