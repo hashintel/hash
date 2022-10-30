@@ -116,11 +116,11 @@ export default class extends EntityModel {
     /** @todo: use upcoming Graph API method to filter entities in the datastore */
     const orgEntities = await EntityModel.getByQuery(graphApi, {
       all: [
-        { eq: [{ path: ["version"] }, { literal: "latest" }] },
+        { equal: [{ path: ["version"] }, { parameter: "latest" }] },
         {
-          eq: [
+          equal: [
             { path: ["type", "versionedUri"] },
-            { literal: WORKSPACE_TYPES.entityType.org.schema.$id },
+            { parameter: WORKSPACE_TYPES.entityType.org.schema.$id },
           ],
         },
       ],

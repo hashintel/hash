@@ -1,7 +1,7 @@
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
     knowledge::EntityId,
-    store::{query::Expression, EntityStore},
+    store::{query::Filter, EntityStore},
     subgraph::{GraphResolveDepths, StructuralQuery},
 };
 use rand::{prelude::IteratorRandom, thread_rng};
@@ -23,7 +23,7 @@ pub fn bench_get_entity_by_id(
         |entity_id| async move {
             store
                 .get_entity(&StructuralQuery {
-                    expression: Expression::for_latest_entity_id(entity_id),
+                    filter: Filter::for_latest_entity_by_entity_id(entity_id),
                     graph_resolve_depths: GraphResolveDepths {
                         data_type_resolve_depth: 0,
                         property_type_resolve_depth: 0,

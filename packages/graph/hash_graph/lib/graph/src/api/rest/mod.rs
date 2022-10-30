@@ -165,7 +165,7 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
         tags(
             (name = "Graph", description = "HASH Graph API")
         ),
-        modifiers(&MergeAddon, &ExternalRefAddon, &OperationGraphTagAddon, &AnyObjectAddon)
+        modifiers(&MergeAddon, &ExternalRefAddon, &OperationGraphTagAddon, &FilterObjectAddon)
     )]
 struct OpenApiDocumentation;
 
@@ -300,13 +300,13 @@ impl Modify for OperationGraphTagAddon {
     }
 }
 
-struct AnyObjectAddon;
+struct FilterObjectAddon;
 
-impl Modify for AnyObjectAddon {
+impl Modify for FilterObjectAddon {
     fn modify(&self, openapi: &mut openapi::OpenApi) {
         openapi.components.as_mut().map(|components| {
             components.schemas.insert(
-                "Expression".to_owned(),
+                "Filter".to_owned(),
                 schema::Schema::Object(
                     ObjectBuilder::new()
                         .example(Some(

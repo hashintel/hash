@@ -1,11 +1,14 @@
 use std::{borrow::Cow, fmt};
 
-use error_stack::Report;
-use serde::de;
+use error_stack::{IntoReport, Report};
+use serde::{
+    de::{self, SeqAccess, Visitor},
+    Deserialize, Deserializer,
+};
 
 use crate::{
     knowledge::{Entity, LinkQueryPath},
-    ontology::EntityTypeQueryPath,
+    ontology::{EntityTypeQueryPath, EntityTypeQueryPathVisitor},
     store::query::{ParameterType, Path, QueryRecord, RecordPath},
 };
 
@@ -63,7 +66,190 @@ impl RecordPath for EntityQueryPath<'_> {
 impl<'q> TryFrom<Path> for EntityQueryPath<'q> {
     type Error = Report<de::value::Error>;
 
-    fn try_from(_path: Path) -> Result<Self, Self::Error> {
-        todo!("https://app.asana.com/0/1203007126736607/1203167266370358/f")
+    fn try_from(path: Path) -> Result<Self, Self::Error> {
+        Self::deserialize(de::value::SeqDeserializer::new(
+            path.segments.into_iter().map(|segment| segment.identifier),
+        ))
+        .into_report()
+    }
+}
+
+/// A single token in an [`EntityQueryPath`].
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum EntityQueryToken {
+    Id,
+    OwnedById,
+    CreatedById,
+    UpdatedById,
+    RemovedById,
+    Version,
+    Type,
+    Properties,
+    IncomingLinks,
+    OutgoingLinks,
+}
+
+/// Deserializes an [`EntityQueryPath`] from a string sequence.
+pub struct EntityQueryPathVisitor {
+    /// The current position in the sequence when deserializing.
+    position: usize,
+}
+
+impl EntityQueryPathVisitor {
+    pub const EXPECTING: &'static str = "one of `ownedById`, `createdById`, `updatedById`, \
+                                         `removedById`, `baseUri`, `versionedUri`, `version`, \
+                                         `title`, `description`, `default`, `examples`, \
+                                         `properties`, `required`, `links`, `requiredLinks`";
+
+    #[must_use]
+    pub const fn new(position: usize) -> Self {
+        Self { position }
+    }
+}
+
+impl<'de> Visitor<'de> for EntityQueryPathVisitor {
+    type Value = EntityQueryPath<'de>;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str(Self::EXPECTING)
+    }
+
+    fn visit_seq<A>(mut self, mut seq: A) -> Result<Self::Value, A::Error>
+    where
+        A: SeqAccess<'de>,
+    {
+        let token = seq
+            .next_element()?
+            .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
+        self.position += 1;
+
+        Ok(match token {
+            EntityQueryToken::Id => EntityQueryPath::Id,
+            EntityQueryToken::OwnedById => EntityQueryPath::OwnedById,
+            EntityQueryToken::CreatedById => EntityQueryPath::CreatedById,
+            EntityQueryToken::UpdatedById => EntityQueryPath::UpdatedById,
+            EntityQueryToken::RemovedById => EntityQueryPath::RemovedById,
+            EntityQueryToken::Version => EntityQueryPath::Version,
+            EntityQueryToken::Type => {
+                let entity_type_query_path =
+                    EntityTypeQueryPathVisitor::new(self.position).visit_seq(seq)?;
+
+                EntityQueryPath::Type(entity_type_query_path)
+            }
+            EntityQueryToken::Properties => {
+                let property = seq
+                    .next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
+                EntityQueryPath::Properties(Some(property))
+            }
+            EntityQueryToken::OutgoingLinks => {
+                let link_query_path = seq
+                    .next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
+                EntityQueryPath::OutgoingLinks(link_query_path)
+            }
+            EntityQueryToken::IncomingLinks => {
+                let link_query_path = seq
+                    .next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
+                EntityQueryPath::IncomingLinks(link_query_path)
+            }
+        })
+    }
+}
+
+impl<'de: 'q, 'q> Deserialize<'de> for EntityQueryPath<'q> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_seq(EntityQueryPathVisitor::new(0))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::iter::once;
+
+    use super::*;
+    use crate::query::test_utils::create_path;
+
+    fn convert_path(segments: impl IntoIterator<Item = &'static str>) -> EntityQueryPath<'static> {
+        EntityQueryPath::try_from(create_path(segments)).expect("could not convert path")
+    }
+
+    fn deserialize<'q>(segments: impl IntoIterator<Item = &'q str>) -> EntityQueryPath<'q> {
+        EntityQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
+            segments.into_iter(),
+        ))
+        .expect("could not deserialize path")
+    }
+
+    #[test]
+    fn deserialization() {
+        assert_eq!(deserialize(["version"]), EntityQueryPath::Version);
+        assert_eq!(deserialize(["ownedById"]), EntityQueryPath::OwnedById);
+        assert_eq!(
+            deserialize(["type", "version"]),
+            EntityQueryPath::Type(EntityTypeQueryPath::Version)
+        );
+        assert_eq!(
+            deserialize([
+                "properties",
+                "https://blockprotocol.org/@alice/types/property-type/name/"
+            ]),
+            EntityQueryPath::Properties(Some(Cow::Borrowed(
+                "https://blockprotocol.org/@alice/types/property-type/name/"
+            )))
+        );
+
+        assert_eq!(
+            EntityTypeQueryPath::deserialize(
+                de::value::SeqDeserializer::<_, de::value::Error>::new(once("invalid"))
+            )
+            .expect_err(
+                "managed to convert entity query path with hidden token when it should have \
+                 errored"
+            )
+            .to_string(),
+            format!(
+                "unknown variant `invalid`, expected {}",
+                EntityQueryPathVisitor::EXPECTING
+            )
+        );
+
+        assert_eq!(
+            EntityTypeQueryPath::deserialize(
+                de::value::SeqDeserializer::<_, de::value::Error>::new(
+                    ["version", "test"].into_iter()
+                )
+            )
+            .expect_err(
+                "managed to convert entity query path with multiple tokens when it should have \
+                 errored"
+            )
+            .to_string(),
+            "invalid length 2, expected 1 element in sequence"
+        );
+    }
+
+    #[test]
+    fn path_conversion() {
+        assert_eq!(convert_path(["version"]), EntityQueryPath::Version);
+        assert_eq!(convert_path(["ownedById"]), EntityQueryPath::OwnedById);
+        assert_eq!(
+            convert_path(["type", "version"]),
+            EntityQueryPath::Type(EntityTypeQueryPath::Version)
+        );
+        assert_eq!(
+            convert_path([
+                "properties",
+                "https://blockprotocol.org/@alice/types/property-type/name/"
+            ]),
+            EntityQueryPath::Properties(Some(Cow::Borrowed(
+                "https://blockprotocol.org/@alice/types/property-type/name/"
+            )))
+        );
     }
 }

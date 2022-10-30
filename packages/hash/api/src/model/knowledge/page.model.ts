@@ -134,11 +134,11 @@ export default class extends EntityModel {
   ): Promise<PageModel[]> {
     const pageEntityModels = await EntityModel.getByQuery(graphApi, {
       all: [
-        { eq: [{ path: ["version"] }, { literal: "latest" }] },
+        { equal: [{ path: ["version"] }, { parameter: "latest" }] },
         {
-          eq: [
+          equal: [
             { path: ["type", "versionedUri"] },
-            { literal: WORKSPACE_TYPES.entityType.page.schema.$id },
+            { parameter: WORKSPACE_TYPES.entityType.page.schema.$id },
           ],
         },
       ],
@@ -365,13 +365,13 @@ export default class extends EntityModel {
     const outgoingBlockDataLinks = await LinkModel.getByQuery(graphApi, {
       all: [
         {
-          eq: [{ path: ["source", "id"] }, { literal: this.entityId }],
+          equal: [{ path: ["source", "id"] }, { parameter: this.entityId }],
         },
         {
-          eq: [
+          equal: [
             { path: ["type", "versionedUri"] },
             {
-              literal: WORKSPACE_TYPES.linkType.contains.schema.$id,
+              parameter: WORKSPACE_TYPES.linkType.contains.schema.$id,
             },
           ],
         },
@@ -393,7 +393,9 @@ export default class extends EntityModel {
       blocks.map((block) => block.getBlockComments(graphApi)),
     );
 
-    return comments.flat().filter((comment) => !comment.getDeletedAt());
+    return comments
+      .flat()
+      .filter((comment) => !comment.getResolvedAt() && !comment.getDeletedAt());
   }
 
   /**

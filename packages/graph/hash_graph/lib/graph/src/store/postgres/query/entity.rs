@@ -25,6 +25,8 @@ impl<'q> PostgresQueryRecord<'q> for Entity {
             EntityQueryPath::Version,
             EntityQueryPath::Type(EntityTypeQueryPath::VersionedUri),
             EntityQueryPath::OwnedById,
+            EntityQueryPath::CreatedById,
+            EntityQueryPath::UpdatedById,
         ]
     }
 }

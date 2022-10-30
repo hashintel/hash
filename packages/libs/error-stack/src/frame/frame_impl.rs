@@ -4,7 +4,7 @@ use core::any::Demand;
 #[cfg(any(feature = "anyhow", feature = "eyre"))]
 use core::fmt;
 use core::{
-    any::TypeId,
+    any::Any,
     fmt::{Debug, Display},
     panic::Location,
 };
@@ -12,24 +12,12 @@ use core::{
 use crate::{AttachmentKind, Context, Frame, FrameKind};
 
 /// Internal representation of a [`Frame`].
-///
-/// # Safety
-///
-/// - It must be allowed to cast from `*dyn FrameImpl` to `*T` if `type_id() == TypeId::of::<T>()`.
-///   This is the case if [`type_id`] returns `TypeId::of::<T>()` and
-///     - `T` is `Self`,
-///     - `T` is the inner struct on `#[repr(transparent]`, or
-///     - `T` is the first struct on `#[repr(C)]`.
-///
-/// [`type_id`]: Self::type_id
-pub(super) unsafe trait FrameImpl: Send + Sync + 'static {
+pub(super) trait FrameImpl: Send + Sync + 'static {
     fn kind(&self) -> FrameKind<'_>;
 
-    /// Returns the [`TypeId`] of this `Frame`.
-    ///
-    /// It's guaranteed, that `*dyn FrameImpl` can be cast to a pointer to the type returned by
-    /// `type_id`.
-    fn type_id(&self) -> TypeId;
+    fn as_any(&self) -> &dyn Any;
+
+    fn as_any_mut(&mut self) -> &mut dyn Any;
 
     /// Provide values which can then be requested.
     #[cfg(nightly)]
@@ -41,14 +29,17 @@ struct ContextFrame<C> {
     context: C,
 }
 
-// SAFETY: `type_id` returns `C` and `C` is the first field in `#[repr(C)]`
-unsafe impl<C: Context> FrameImpl for ContextFrame<C> {
+impl<C: Context> FrameImpl for ContextFrame<C> {
     fn kind(&self) -> FrameKind<'_> {
         FrameKind::Context(&self.context)
     }
 
-    fn type_id(&self) -> TypeId {
-        TypeId::of::<C>()
+    fn as_any(&self) -> &dyn Any {
+        &self.context
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        &mut self.context
     }
 
     #[cfg(nightly)]
@@ -62,14 +53,17 @@ struct AttachmentFrame<A> {
     attachment: A,
 }
 
-// SAFETY: `type_id` returns `A` and `A` is the first field in `#[repr(C)]`
-unsafe impl<A: 'static + Send + Sync> FrameImpl for AttachmentFrame<A> {
+impl<A: 'static + Send + Sync> FrameImpl for AttachmentFrame<A> {
     fn kind(&self) -> FrameKind<'_> {
         FrameKind::Attachment(AttachmentKind::Opaque(&self.attachment))
     }
 
-    fn type_id(&self) -> TypeId {
-        TypeId::of::<A>()
+    fn as_any(&self) -> &dyn Any {
+        &self.attachment
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        &mut self.attachment
     }
 
     #[cfg(nightly)]
@@ -83,14 +77,17 @@ struct PrintableAttachmentFrame<A> {
     attachment: A,
 }
 
-// SAFETY: `type_id` returns `A` and `A` is the first field in `#[repr(C)]`
-unsafe impl<A: 'static + Debug + Display + Send + Sync> FrameImpl for PrintableAttachmentFrame<A> {
+impl<A: 'static + Debug + Display + Send + Sync> FrameImpl for PrintableAttachmentFrame<A> {
     fn kind(&self) -> FrameKind<'_> {
         FrameKind::Attachment(AttachmentKind::Printable(&self.attachment))
     }
 
-    fn type_id(&self) -> TypeId {
-        TypeId::of::<A>()
+    fn as_any(&self) -> &dyn Any {
+        &self.attachment
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        &mut self.attachment
     }
 
     #[cfg(nightly)]
@@ -128,14 +125,17 @@ impl Context for AnyhowContext {
 }
 
 #[cfg(feature = "anyhow")]
-// SAFETY: `type_id` returns `anyhow::Error` and `AnyhowContext` is `#[repr(transparent)]`
-unsafe impl FrameImpl for AnyhowContext {
+impl FrameImpl for AnyhowContext {
     fn kind(&self) -> FrameKind<'_> {
         FrameKind::Context(self)
     }
 
-    fn type_id(&self) -> TypeId {
-        TypeId::of::<anyhow::Error>()
+    fn as_any(&self) -> &dyn Any {
+        &self.0
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        &mut self.0
     }
 
     #[cfg(nightly)]
@@ -173,14 +173,17 @@ impl Context for EyreContext {
 }
 
 #[cfg(feature = "eyre")]
-// SAFETY: `type_id` returns `eyre::Report` and `EyreContext` is `#[repr(transparent)]`
-unsafe impl FrameImpl for EyreContext {
+impl FrameImpl for EyreContext {
     fn kind(&self) -> FrameKind<'_> {
         FrameKind::Context(self)
     }
 
-    fn type_id(&self) -> TypeId {
-        TypeId::of::<eyre::Report>()
+    fn as_any(&self) -> &dyn Any {
+        &self.0
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        &mut self.0
     }
 
     #[cfg(nightly)]

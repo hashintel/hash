@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use type_system::uri::VersionedUri;
 use utoipa::ToSchema;
 
-pub use self::query::LinkQueryPath;
+pub use self::query::{LinkQueryPath, LinkQueryPathVisitor};
 use super::EntityId;
 use crate::provenance::{CreatedById, OwnedById};
 

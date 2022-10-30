@@ -1,19 +1,23 @@
-use std::collections::{
-    hash_map::{IntoIter, RawEntryMut},
-    HashMap, HashSet,
+use std::{
+    collections::{
+        hash_map::{IntoIter, RawEntryMut},
+        HashMap, HashSet,
+    },
+    fmt::{Debug, Formatter},
 };
 
 use serde::{Deserialize, Serialize};
+use type_system::{DataType, EntityType, LinkType, PropertyType};
 use utoipa::{openapi, ToSchema};
 
 use crate::{
-    knowledge::{KnowledgeGraphQueryDepth, PersistedEntity, PersistedLink},
+    knowledge::{Entity, KnowledgeGraphQueryDepth, Link, PersistedEntity, PersistedLink},
     ontology::{
         OntologyQueryDepth, PersistedDataType, PersistedEntityType, PersistedLinkType,
         PersistedPropertyType,
     },
     shared::identifier::GraphElementIdentifier,
-    store::query::Expression,
+    store::query::{Filter, QueryRecord},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -147,14 +151,36 @@ impl Extend<Self> for Subgraph {
     }
 }
 
-/// An [`Expression`] to query the datastore, recursively resolving according to the
-/// [`GraphResolveDepths`]
-#[derive(Debug, Deserialize, ToSchema)]
+/// A [`Filter`] to query the datastore, recursively resolving according to the
+/// [`GraphResolveDepths`].
+#[derive(Deserialize, ToSchema)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct StructuralQuery {
-    #[serde(rename = "query")]
-    pub expression: Expression,
+#[aliases(
+    DataTypeStructuralQuery = StructuralQuery<'static, DataType>,
+    PropertyTypeStructuralQuery = StructuralQuery<'static, PropertyType>,
+    EntityTypeStructuralQuery = StructuralQuery<'static, EntityType>,
+    LinkTypeStructuralQuery = StructuralQuery<'static, LinkType>,
+    EntityStructuralQuery = StructuralQuery<'static, Entity>,
+    LinkStructuralQuery = StructuralQuery<'static, Link>,
+)]
+pub struct StructuralQuery<'q, T: QueryRecord> {
+    #[serde(bound = "'de: 'q, T::Path<'q>: Deserialize<'de>")]
+    pub filter: Filter<'q, T>,
     pub graph_resolve_depths: GraphResolveDepths,
+}
+
+// TODO: Derive traits when bounds are generated correctly
+//   see https://github.com/rust-lang/rust/issues/26925
+impl<'q, T> Debug for StructuralQuery<'q, T>
+where
+    T: QueryRecord<Path<'q>: Debug>,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("StructuralQuery")
+            .field("filter", &self.filter)
+            .field("graph_resolve_depths", &self.graph_resolve_depths)
+            .finish()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize)]

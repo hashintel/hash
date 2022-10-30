@@ -68,7 +68,9 @@ export const getAllLatestPersistedEntities: ResolverFn<
 
   const { data: entitySubgraph } = await graphApi
     .getEntitiesByQuery({
-      query: { eq: [{ path: ["version"] }, { literal: "latest" }] },
+      filter: {
+        equal: [{ path: ["version"] }, { parameter: "latest" }],
+      },
       graphResolveDepths: {
         dataTypeResolveDepth,
         propertyTypeResolveDepth,
@@ -110,16 +112,21 @@ export const getPersistedEntity: ResolverFn<
 ) => {
   const { graphApi } = dataSources;
 
-  const query = {
+  const filter = {
     all: [
-      { eq: [{ path: ["version"] }, { literal: entityVersion ?? "latest" }] },
-      { eq: [{ path: ["id"] }, { literal: entityId }] },
+      {
+        equal: [
+          { path: ["version"] },
+          { parameter: entityVersion ?? "latest" },
+        ],
+      },
+      { equal: [{ path: ["id"] }, { parameter: entityId }] },
     ],
   };
 
   const { data: entitySubgraph } = await graphApi
     .getEntitiesByQuery({
-      query,
+      filter,
       graphResolveDepths: {
         dataTypeResolveDepth,
         propertyTypeResolveDepth,
