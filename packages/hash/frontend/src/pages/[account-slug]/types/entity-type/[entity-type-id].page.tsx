@@ -72,8 +72,8 @@ const Page: NextPageWithLayout = () => {
               $id: mustBeVersionedUri(isArray ? ref.items.$ref : ref.$ref),
               required: !!fetchedEntityType.required?.includes(propertyId),
               array: isArray,
-              maxValue: "maxItems" in ref ? ref.maxItems : 0,
-              minValue: "minItems" in ref ? ref.minItems : 0,
+              maxValue: isArray ? ref.maxItems : 0,
+              minValue: isArray ? ref.minItems : 0,
             };
           },
         ),
