@@ -4,7 +4,7 @@ mod kind;
 use alloc::boxed::Box;
 #[cfg(nightly)]
 use core::any::{self, Demand, Provider};
-use core::{fmt, panic::Location};
+use core::{any::TypeId, fmt, panic::Location};
 
 use self::frame_impl::FrameImpl;
 pub use self::kind::{AttachmentKind, FrameKind};
@@ -109,6 +109,12 @@ impl Frame {
     #[must_use]
     pub fn downcast_mut<T: Send + Sync + 'static>(&mut self) -> Option<&mut T> {
         self.frame.as_any_mut().downcast_mut()
+    }
+
+    /// Returns the [`TypeId`] of the held context or attachment by this frame.
+    #[must_use]
+    pub fn type_id(&self) -> TypeId {
+        self.frame.as_any().type_id()
     }
 }
 
