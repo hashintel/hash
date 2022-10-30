@@ -1,0 +1,50 @@
+---
+source: tests/test_serialize.rs
+expression: a
+---
+[
+  {
+    "frames": [
+      {
+        "type": "attachment",
+        "value": "printable C: 4",
+      },
+      {
+        "type": "context",
+        "value": "context A",
+      },
+      {
+        "type": "attachment",
+        "value": "printable C: 3",
+      },
+    ],
+    "sources": [
+      {
+        "frames": [
+          {
+            "type": "attachment",
+            "value": "printable C: 1",
+          },
+          {
+            "type": "context",
+            "value": "root error",
+          },
+        ],
+        "sources": [],
+      },
+      {
+        "frames": [
+          {
+            "type": "attachment",
+            "value": "printable C: 2",
+          },
+          {
+            "type": "context",
+            "value": "root error",
+          },
+        ],
+        "sources": [],
+      },
+    ],
+  },
+]

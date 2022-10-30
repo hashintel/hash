@@ -1,0 +1,32 @@
+---
+source: tests/test_serialize.rs
+expression: a
+---
+[
+  {
+    "frames": [
+      {
+        "type": "attachment",
+        "value": "printable C: 1",
+      },
+      {
+        "type": "context",
+        "value": "root error",
+      },
+    ],
+    "sources": [],
+  },
+  {
+    "frames": [
+      {
+        "type": "attachment",
+        "value": "printable C: 2",
+      },
+      {
+        "type": "context",
+        "value": "root error",
+      },
+    ],
+    "sources": [],
+  },
+]
