@@ -30,7 +30,8 @@
 //! }
 //! ```
 
-use std::cell::Cell;
+use alloc::format;
+use core::cell::Cell;
 
 use serde::{ser::SerializeMap, Serialize, Serializer};
 
