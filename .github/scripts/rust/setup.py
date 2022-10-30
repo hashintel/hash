@@ -213,24 +213,29 @@ def output_matrix(name, github_output_file, crates, **kwargs):
     )
 
     matrix = dict(
+        crate=[crate.name.replace("_", "-") for crate in crates],
         toolchain=list(available_toolchains),
-        directory=[str(crate) for crate in crates],
         **kwargs,
         exclude=[
-            dict(directory=str(elem[0]), toolchain=elem[1])
+            dict(crate=str(elem[0].name.replace("_", "-")), toolchain=elem[1])
             for elem in excluded_toolchain_combinations
-        ],
-        include=[
-            dict(directory=str(crate), name=crate.name.replace("_", "-"))
-            for crate in crates
         ],
     )
             
-    if len(matrix["directory"]) == 0:
+    if len(matrix["crate"]) == 0:
         matrix = {}
 
     github_output_file.write(f"{name}={json.dumps(matrix)}\n")
     print(f"Job matrix for {name}: {json.dumps(matrix, indent=4)}")
+
+
+def output_crates_info(github_output_file, crates):
+    info = {
+        crate.name.replace("_", "-"): {"directory": str(crate) } for crate in crates
+    }
+
+    github_output_file.write(f"{info}={json.dumps(info)}\n")
+    print(f"Crate info: {json.dumps(info, indent=4)}")
 
 
 def main():
@@ -243,6 +248,7 @@ def main():
 
     github_output_file = open(os.environ["GITHUB_OUTPUT_FILE_PATH"], "w")
 
+    output_crates_info(github_output_file, available_crates)
     output_matrix("lint", github_output_file, changed_parent_crates)
     output_matrix("test", github_output_file, changed_parent_crates, profile=["development", "production"])
     output_matrix("coverage", github_output_file, coverage_crates)
