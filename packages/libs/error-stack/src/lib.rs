@@ -474,6 +474,8 @@ pub mod fmt;
 mod fmt;
 #[cfg(feature = "std")]
 mod hook;
+#[cfg(feature = "serde")]
+mod ser;
 
 #[cfg(feature = "std")]
 #[allow(deprecated, unreachable_pub)]

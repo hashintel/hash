@@ -21,6 +21,7 @@ tracing-error = { version = "0.2", optional = true, default_features = false }
 anyhow = { version = "1", default-features = false, optional = true }
 eyre = { version = "0.6", default-features = false, optional = true }
 owo-colors = { version = "3", default-features = false, optional = true, features = ['supports-colors'] }
+serde = { version = "1.0.147", default-features = false, optional = true }
 
 [dev-dependencies]
 serde = { version = "1.0.137", features = ["derive"] }
@@ -45,6 +46,7 @@ pretty-print = ["dep:owo-colors"]
 spantrace = ["dep:tracing-error", "std"]
 std = ["anyhow?/std"]
 eyre = ["dep:eyre", "std"]
+serde = ["dep:serde"]
 
 [package.metadata.docs.rs]
 all-features = true
