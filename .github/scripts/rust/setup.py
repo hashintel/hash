@@ -217,7 +217,7 @@ def output_matrix(name, github_output_file, crates, **kwargs):
         toolchain=list(available_toolchains),
         **kwargs,
         exclude=[
-            dict(directory=elem[0].name.replace("_", "-"), toolchain=elem[1])
+            dict(name=elem[0].name.replace("_", "-"), toolchain=elem[1])
             for elem in excluded_toolchain_combinations
         ],
         include=[
