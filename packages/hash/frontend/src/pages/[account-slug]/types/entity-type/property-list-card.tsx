@@ -1,4 +1,4 @@
-import { PropertyType } from "@blockprotocol/type-system-web";
+import { PropertyType, VersionedUri } from "@blockprotocol/type-system-web";
 import { faClose } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
 import { IconButton } from "@hashintel/hash-design-system/icon-button";
@@ -194,17 +194,14 @@ export const PropertyTypeRow = ({
 
   const propertyTypes = usePropertyTypes();
   const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
-  const [multipleValues, setMultipleValues] = useState(false);
   const [multipleValuesMenuOpen, setMultipleValuesMenuOpen] = useState(false);
-  const [minValue, setMinValue] = useState(0);
-  const [maxValue, setMaxValue] = useState(0);
 
-  const propertyId: VersionedUri = mustBeVersionedUri(
-    watch(`properties.${propertyIndex}.$id`),
-  );
+  const draftProperty = watch(`properties.${propertyIndex}`);
+
+  const { $id, array, minValue, maxValue, required } = draftProperty;
+
+  const propertyId: VersionedUri = mustBeVersionedUri($id);
   const property = propertyTypes ? propertyTypes[propertyId] : null;
-
-  const required = watch(`properties.${propertyIndex}.required`);
 
   const anchorElWidth = useMemo(
     () => anchorEl?.getBoundingClientRect().width,
@@ -249,7 +246,7 @@ export const PropertyTypeRow = ({
               borderRadius: "4px 30px 30px 4px",
               backgroundColor: "transparent",
               transition: transitions.create(["padding", "background-color"]),
-              ...(multipleValues && !multipleValuesMenuOpen
+              ...(array && !multipleValuesMenuOpen
                 ? {
                     py: 0.5,
                     px: 0.75,
@@ -262,12 +259,19 @@ export const PropertyTypeRow = ({
               sx={{
                 zIndex: 1,
               }}
-              value={multipleValues}
-              onChange={(event) => setMultipleValues(event.target.checked)}
+              checked={array}
+              onChange={(event) => {
+                update(propertyIndex, {
+                  ...draftProperty,
+                  array: event.target.checked,
+                  minValue: minValue ?? 0,
+                  maxValue: maxValue ?? 0,
+                });
+              }}
             />
             <Collapse
               orientation="horizontal"
-              in={multipleValues && !multipleValuesMenuOpen}
+              in={array && !multipleValuesMenuOpen}
             >
               <Typography
                 variant="smallTextLabels"
@@ -291,7 +295,7 @@ export const PropertyTypeRow = ({
             checked={required}
             onChange={(event) => {
               update(propertyIndex, {
-                $id: propertyId,
+                ...draftProperty,
                 required: event.target.checked,
               });
             }}
@@ -345,14 +349,16 @@ export const PropertyTypeRow = ({
                     type="number"
                     size="small"
                     label="Minimum"
-                    value={minValue}
+                    value={minValue ?? 0}
                     onChange={(event) => {
                       const value = parseInt(event.target.value, 10);
                       if (value >= 0) {
-                        setMinValue(value);
-                        if (value > maxValue) {
-                          setMaxValue(value);
-                        }
+                        update(propertyIndex, {
+                          ...draftProperty,
+                          minValue: value,
+                          maxValue:
+                            !maxValue || value > maxValue ? value : maxValue,
+                        });
                       }
                     }}
                     sx={{ mb: 2 }}
@@ -360,14 +366,16 @@ export const PropertyTypeRow = ({
                   <TextField
                     type="number"
                     label="Maximum"
-                    value={maxValue}
+                    value={maxValue ?? 0}
                     onChange={(event) => {
                       const value = parseInt(event.target.value, 10);
                       if (value >= 0) {
-                        setMaxValue(value);
-                        if (minValue > value) {
-                          setMinValue(value);
-                        }
+                        update(propertyIndex, {
+                          ...draftProperty,
+                          maxValue: value,
+                          minValue:
+                            !minValue || value < minValue ? value : minValue,
+                        });
                       }
                     }}
                     size="small"

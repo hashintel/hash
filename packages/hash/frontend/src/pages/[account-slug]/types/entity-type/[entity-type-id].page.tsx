@@ -2,6 +2,8 @@ import {
   EntityType,
   extractBaseUri,
   extractVersion,
+  PropertyTypeReference,
+  ValueOrArray,
 } from "@blockprotocol/type-system-web";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
@@ -64,14 +66,14 @@ const Page: NextPageWithLayout = () => {
         properties: Object.keys(fetchedEntityType.properties).map(
           (propertyId) => {
             const ref = fetchedEntityType.properties[propertyId]!;
-            if ("type" in ref) {
-              // @todo handle property arrays
-              throw new Error("handle property arrays");
-            }
+            const isArray = "type" in ref;
 
             return {
-              $id: mustBeVersionedUri(ref.$ref),
+              $id: mustBeVersionedUri(isArray ? ref.items.$ref : ref.$ref),
               required: !!fetchedEntityType.required?.includes(propertyId),
+              array: isArray,
+              maxValue: "maxItems" in ref ? ref.maxItems : 0,
+              minValue: "minItems" in ref ? ref.minItems : 0,
             };
           },
         ),
@@ -92,7 +94,16 @@ const Page: NextPageWithLayout = () => {
       data.properties.map((property) => {
         const propertyKey = extractBaseUri(property.$id);
 
-        return [propertyKey, { $ref: property.$id }];
+        const prop: ValueOrArray<PropertyTypeReference> = property.array
+          ? {
+              type: "array",
+              minItems: property.minValue,
+              maxItems: property.maxValue,
+              items: { $ref: property.$id },
+            }
+          : { $ref: property.$id };
+
+        return [propertyKey, prop];
       }),
     );
 
