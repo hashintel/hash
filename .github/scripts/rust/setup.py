@@ -213,16 +213,16 @@ def output_matrix(name, github_output_file, crates, **kwargs):
     )
 
     matrix = dict(
-        include=[
-            dict(directory=str(crate), name=crate.name.replace("_", "-"))
-            for crate in crates
-        ],
         toolchain=list(available_toolchains),
         directory=[str(crate) for crate in crates],
         **kwargs,
         exclude=[
             dict(directory=str(elem[0]), toolchain=elem[1])
             for elem in excluded_toolchain_combinations
+        ],
+        include=[
+            dict(directory=str(crate), name=crate.name.replace("_", "-"))
+            for crate in crates
         ],
     )
             

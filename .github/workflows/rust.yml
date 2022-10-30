@@ -229,7 +229,7 @@ jobs:
         with:
           fail_ci_if_error: true
           files: ${{ matrix.directory }}/lcov.info
-          flags: ${{ matrix.crate }}
+          flags: ${{ matrix.name }}
           token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
 
   docker:
