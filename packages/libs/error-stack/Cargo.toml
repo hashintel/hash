@@ -30,7 +30,7 @@ futures = { version = "0.3.21", default-features = false, features = ["executor"
 trybuild = "1.0.63"
 tracing = "0.1.35"
 tracing-subscriber = "0.3.14"
-insta = { version = "1.18.0", features = ['filters'] }
+insta = { version = "1.18.0", features = ['filters', 'ron'] }
 regex = "1.6.0"
 expect-test = "1.4.0"
 ansi-to-html = "0.1.0"
