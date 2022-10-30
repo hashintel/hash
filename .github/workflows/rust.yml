@@ -22,7 +22,6 @@ jobs:
     name: setup
     runs-on: ubuntu-latest
     outputs:
-      info: ${{ steps.crates.outputs.info }}
       lint: ${{ steps.crates.outputs.lint }}
       test: ${{ steps.crates.outputs.test }}
       coverage: ${{ steps.crates.outputs.coverage }}
@@ -74,7 +73,7 @@ jobs:
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: ${{ fromJSON(needs.setup.outputs.info)[matrix.crate].directory }}
+          workspaces: ${{ matrix.directory }}
 
       - name: Install tools
         shell: bash
@@ -84,21 +83,21 @@ jobs:
           cargo quickinstall cargo-hack --version 0.5.15
 
       - name: Check formatting
-        working-directory: ${{ fromJSON(needs.setup.outputs.info)[matrix.crate].directory }}
+        working-directory: ${{ matrix.directory }}
         run: cargo +${{ matrix.toolchain }} make format -- --check
 
       - name: Check clippy
-        working-directory: ${{ fromJSON(needs.setup.outputs.info)[matrix.crate].directory }}
+        working-directory: ${{ matrix.directory }}
         if: always()
         run: cargo +${{ matrix.toolchain }} make clippy -- -D warnings
 
       - name: Check public documentation
-        working-directory: ${{ fromJSON(needs.setup.outputs.info)[matrix.crate].directory }}
+        working-directory: ${{ matrix.directory }}
         if: always()
         run: cargo +${{ matrix.toolchain }} make rustdoc --check -D warnings
 
       - name: Check private documentation
-        working-directory: ${{ fromJSON(needs.setup.outputs.info)[matrix.crate].directory }}
+        working-directory: ${{ matrix.directory }}
         if: always()
         run: cargo +${{ matrix.toolchain }} make rustdoc --check -D warnings --document-private-items
 
@@ -132,7 +131,7 @@ jobs:
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: ${{ fromJSON(needs.setup.outputs.info)[matrix.crate].directory }}
+          workspaces: ${{ matrix.directory }}
           key: ${{ matrix.profile }}
 
       - name: Install tools
@@ -150,12 +149,12 @@ jobs:
           python-version: "3.10"
 
       - name: Run tests
-        working-directory: ${{ fromJSON(needs.setup.outputs.info)[matrix.crate].directory }}
+        working-directory: ${{ matrix.directory }}
         run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} test --no-fail-fast
 
       - name: Run miri
         if: ${{ startsWith(matrix.toolchain, 'nightly') }}
-        working-directory: ${{ fromJSON(needs.setup.outputs.info)[matrix.crate].directory }}
+        working-directory: ${{ matrix.directory }}
         run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} miri --no-fail-fast
 
       - name: Ensure empty git diff
@@ -164,10 +163,10 @@ jobs:
       - name: Upload to DataDog
         if: matrix.directory == 'packages/engine' && matrix.profile == 'production'
         run: |
-          message=$(find ${{ fromJSON(needs.setup.outputs.info)[matrix.crate].directory }}/${{ env.OUTPUT_DIRECTORY }} -name timing.json -exec cat {} + \
+          message=$(find ${{ matrix.directory }}/${{ env.OUTPUT_DIRECTORY }} -name timing.json -exec cat {} + \
                     | sed 's|::|-|g' \
                     | jq '{(.test_path): . | del(.test_path)}' | jq -s add)
-          directory="${{ fromJSON(needs.setup.outputs.info)[matrix.crate].directory }}"
+          directory="${{ matrix.directory }}"
           tags="crate:${directory##*/},event:${{ github.event_name }},test:${{ matrix.tests }},stage:dev,toolchain:${{ matrix.toolchain }},user:${{ github.actor }}"
           if [[ ${{ github.ref_type }} = branch ]]; then
             tags="$tags,branch:${{ github.ref_name }}"
@@ -209,7 +208,7 @@ jobs:
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: ${{ fromJSON(needs.setup.outputs.info)[matrix.crate].directory }}
+          workspaces: ${{ matrix.directory }}
           key: ${{ matrix.profile }}
 
       - name: Install tools
@@ -221,7 +220,7 @@ jobs:
           cargo quickinstall cargo-llvm-cov --version 0.5.0
 
       - name: Run tests
-        working-directory: ${{ fromJSON(needs.setup.outputs.info)[matrix.crate].directory }}
+        working-directory: ${{ matrix.directory }}
         run: cargo +${{ matrix.toolchain }} make coverage --lcov --output-path lcov.info
 
       - uses: codecov/codecov-action@v3
@@ -229,7 +228,7 @@ jobs:
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
           fail_ci_if_error: true
-          files: ${{ fromJSON(needs.setup.outputs.info)[matrix.crate].directory }}/lcov.info
+          files: ${{ matrix.directory }}/lcov.info
           flags: ${{ matrix.name }}
           token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
 
@@ -243,7 +242,7 @@ jobs:
       matrix: ${{ fromJSON(needs.setup.outputs.docker) }}
     defaults:
       run:
-        working-directory: ${{ fromJSON(needs.setup.outputs.info)[matrix.crate].directory }}
+        working-directory: ${{ matrix.directory }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
@@ -294,12 +293,12 @@ jobs:
 
       - name: Run lints
         if: github.event_name == 'pull_request'
-        working-directory: ${{ fromJSON(needs.setup.outputs.info)[matrix.crate].directory }}
+        working-directory: ${{ matrix.directory }}
         run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} lint
 
       - name: Run tests
         if: github.event_name == 'pull_request'
-        working-directory: ${{ fromJSON(needs.setup.outputs.info)[matrix.crate].directory }}
+        working-directory: ${{ matrix.directory }}
         run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} test --no-fail-fast
 
       - name: Login
@@ -309,12 +308,12 @@ jobs:
 
       - name: Publish (dry run)
         if: github.event_name == 'pull_request'
-        working-directory: ${{ fromJSON(needs.setup.outputs.info)[matrix.crate].directory }}
+        working-directory: ${{ matrix.directory }}
         run: cargo +${{ matrix.toolchain }} publish --all-features --dry-run
 
       - name: Publish
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-        working-directory: ${{ fromJSON(needs.setup.outputs.info)[matrix.crate].directory }}
+        working-directory: ${{ matrix.directory }}
         run: cargo +${{ matrix.toolchain }} publish --all-features
 
   merging-enabled:
