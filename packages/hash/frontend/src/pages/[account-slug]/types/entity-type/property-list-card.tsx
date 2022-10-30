@@ -203,11 +203,6 @@ export const PropertyTypeRow = ({
   const propertyId: VersionedUri = mustBeVersionedUri($id);
   const property = propertyTypes ? propertyTypes[propertyId] : null;
 
-  const anchorElWidth = useMemo(
-    () => anchorEl?.getBoundingClientRect().width,
-    [anchorEl],
-  );
-
   // if (!property) {
   //   throw new Error("Missing property type");
   // }
@@ -327,8 +322,9 @@ export const PropertyTypeRow = ({
       <Popper
         open={multipleValuesMenuOpen}
         anchorEl={anchorEl}
+        container={anchorEl}
         placement="bottom"
-        sx={{ width: anchorElWidth, zIndex: 1 }}
+        sx={{ width: 1, zIndex: 1 }}
         transition
       >
         {({ TransitionProps }) => {
