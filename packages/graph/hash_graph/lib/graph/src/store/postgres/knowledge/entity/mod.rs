@@ -16,7 +16,8 @@ use crate::{
     store::{
         crud::Read,
         error::EntityDoesNotExist,
-        postgres::{context::PostgresContext, DependencyContext, DependencyContextRef},
+        postgres::{DependencyContext, DependencyContextRef},
+        query::Filter,
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
     subgraph::{EdgeKind, GraphResolveDepths, OutwardEdge, StructuralQuery, Subgraph},
@@ -42,9 +43,8 @@ impl<C: AsClient> PostgresStore<C> {
                             .link_target_entity_resolve_depth,
                     ),
                     || async {
-                        Ok(PersistedEntity::from(
-                            self.read_latest_entity_by_id(entity_id).await?,
-                        ))
+                        self.read_one(&Filter::for_latest_entity_by_entity_id(entity_id))
+                            .await
                     },
                 )
                 .await?;
@@ -277,8 +277,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         // TODO - address potential race condition
         //  https://app.asana.com/0/1202805690238892/1203201674100967/f
 
-        let previous_entity = transaction
-            .read_latest_entity_by_id(entity_id)
+        let previous_entity: PersistedEntity = transaction
+            .read_one(&Filter::for_latest_entity_by_entity_id(entity_id))
             .await
             .change_context(UpdateError)?;
 
@@ -297,8 +297,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 entity_id,
                 entity,
                 entity_type_id,
-                previous_entity.owned_by_id,
-                previous_entity.created_by_id,
+                previous_entity.metadata().identifier().owned_by_id(),
+                previous_entity.metadata().created_by_id(),
                 updated_by_id,
             )
             .await
