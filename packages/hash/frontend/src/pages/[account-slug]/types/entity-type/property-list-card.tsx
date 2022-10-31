@@ -45,7 +45,7 @@ import { PropertySelector } from "./property-selector";
 import { PropertyTypeForm } from "./property-type-form";
 import { QuestionIcon } from "./question-icon";
 import { StyledPlusCircleIcon } from "./styled-plus-circle-icon";
-import { usePropertyTypes } from "./use-property-types";
+import { usePropertyTypes, useRemotePropertyTypes } from "./use-property-types";
 import { mustBeVersionedUri, useStateCallback, withHandler } from "./util";
 import { WhiteCard } from "./white-card";
 
@@ -203,9 +203,9 @@ export const PropertyTypeRow = ({
   const propertyId = mustBeVersionedUri($id);
   const property = propertyTypes ? propertyTypes[propertyId] : null;
 
-  // if (!property) {
-  //   throw new Error("Missing property type");
-  // }
+  if (propertyTypes && !property) {
+    throw new Error("Missing property type");
+  }
 
   return property ? (
     <>
