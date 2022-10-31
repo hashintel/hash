@@ -46,6 +46,11 @@ export const createRenderPropertyNameCell = (
 
       ctx.font = theme.baseFontStyle;
       const textLeft = rect.x + firstColumnPadding + indentWidth;
+
+      const shouldBeLightColor = depth && !children.length;
+      if (shouldBeLightColor) {
+        ctx.fillStyle = "#91A5BA";
+      }
       ctx.fillText(title, textLeft, yCenter);
 
       ctx.strokeStyle = "#DDE7F0";
