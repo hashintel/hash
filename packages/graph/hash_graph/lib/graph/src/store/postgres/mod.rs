@@ -14,7 +14,6 @@ use std::{
 
 use async_trait::async_trait;
 use error_stack::{Context, IntoReport, Report, Result, ResultExt};
-use postgres_types::ToSql;
 #[cfg(feature = "__internal_bench")]
 use tokio_postgres::{binary_copy::BinaryCopyInWriter, types::Type};
 use tokio_postgres::{GenericClient, Transaction};
@@ -377,14 +376,6 @@ where {
             graph_resolve_depths,
         }
     }
-}
-
-/// Utility function used for [`GenericClient::query_raw`] to infer the parameter as
-/// [`dyn ToSql`][ToSql].
-///
-/// [`GenericClient::query_raw`]: tokio_postgres::GenericClient::query_raw
-fn parameter_list<const N: usize>(list: [&(dyn ToSql + Sync); N]) -> [&(dyn ToSql + Sync); N] {
-    list
 }
 
 /// A Postgres-backed store
