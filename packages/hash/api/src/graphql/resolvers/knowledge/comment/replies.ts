@@ -17,5 +17,7 @@ export const persistedCommentReplies: ResolverFn<
   });
   const replyModels = await commentModel.getReplies(graphApi);
 
-  return replyModels.map(mapCommentModelToGQL);
+  return replyModels
+    .filter((replyModel) => !replyModel.getDeletedAt())
+    .map(mapCommentModelToGQL);
 };

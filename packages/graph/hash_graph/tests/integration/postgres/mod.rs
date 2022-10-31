@@ -5,31 +5,31 @@ mod link_type;
 mod links;
 mod property_type;
 
-use std::str::FromStr;
+use std::{borrow::Cow, str::FromStr};
 
 use error_stack::{Report, Result};
 use graph::{
     identifier::AccountId,
-    knowledge::{Entity, EntityId, Link, PersistedEntity, PersistedEntityMetadata, PersistedLink},
+    knowledge::{
+        Entity, EntityId, Link, LinkQueryPath, PersistedEntity, PersistedEntityMetadata,
+        PersistedLink,
+    },
     ontology::{
-        PersistedDataType, PersistedEntityType, PersistedLinkType, PersistedOntologyMetadata,
-        PersistedPropertyType,
+        LinkTypeQueryPath, PersistedDataType, PersistedEntityType, PersistedLinkType,
+        PersistedOntologyMetadata, PersistedPropertyType,
     },
     provenance::{CreatedById, OwnedById, RemovedById, UpdatedById},
     shared::identifier::GraphElementIdentifier,
     store::{
         error::LinkRemovalError,
-        query::{Expression, Literal, Path, PathSegment},
+        query::{Filter, FilterExpression, Parameter},
         AccountStore, AsClient, DataTypeStore, DatabaseConnectionInfo, DatabaseType, EntityStore,
         EntityTypeStore, InsertionError, LinkStore, LinkTypeStore, PostgresStore,
         PostgresStorePool, PropertyTypeStore, QueryError, StorePool, UpdateError,
     },
     subgraph::{GraphResolveDepths, StructuralQuery, Vertex},
 };
-use tokio_postgres::{
-    types::{FromSql, ToSql},
-    NoTls, Transaction,
-};
+use tokio_postgres::{NoTls, Transaction};
 use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};
 use uuid::Uuid;
 
@@ -169,7 +169,7 @@ impl DatabaseApi<'_> {
         let vertex = self
             .store
             .get_data_type(&StructuralQuery {
-                expression: Expression::for_versioned_uri(uri),
+                filter: Filter::for_versioned_uri(uri),
                 graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
             .await?
@@ -212,7 +212,7 @@ impl DatabaseApi<'_> {
         let vertex = self
             .store
             .get_property_type(&StructuralQuery {
-                expression: Expression::for_versioned_uri(uri),
+                filter: Filter::for_versioned_uri(uri),
                 graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
             .await?
@@ -255,7 +255,7 @@ impl DatabaseApi<'_> {
         let vertex = self
             .store
             .get_entity_type(&StructuralQuery {
-                expression: Expression::for_versioned_uri(uri),
+                filter: Filter::for_versioned_uri(uri),
                 graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
             .await?
@@ -298,7 +298,7 @@ impl DatabaseApi<'_> {
         let vertex = self
             .store
             .get_link_type(&StructuralQuery {
-                expression: Expression::for_versioned_uri(uri),
+                filter: Filter::for_versioned_uri(uri),
                 graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
             .await?
@@ -342,7 +342,7 @@ impl DatabaseApi<'_> {
         let vertex = self
             .store
             .get_entity(&StructuralQuery {
-                expression: Expression::for_latest_entity_id(entity_id),
+                filter: Filter::for_latest_entity_by_entity_id(entity_id),
                 graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
             .await?
@@ -418,34 +418,24 @@ impl DatabaseApi<'_> {
         Ok(self
             .store
             .get_links(&StructuralQuery {
-                expression: Expression::All(vec![
-                    Expression::for_link_by_source_entity_id(source_entity_id),
-                    Expression::Eq(vec![
-                        Expression::Path(Path {
-                            segments: vec![
-                                PathSegment {
-                                    identifier: "type".to_owned(),
-                                },
-                                PathSegment {
-                                    identifier: "baseUri".to_owned(),
-                                },
-                            ],
-                        }),
-                        Expression::Literal(Literal::String(link_type_id.base_uri().to_string())),
-                    ]),
-                    Expression::Eq(vec![
-                        Expression::Path(Path {
-                            segments: vec![
-                                PathSegment {
-                                    identifier: "type".to_owned(),
-                                },
-                                PathSegment {
-                                    identifier: "version".to_owned(),
-                                },
-                            ],
-                        }),
-                        Expression::Literal(Literal::Float(link_type_id.version() as f64)),
-                    ]),
+                filter: Filter::All(vec![
+                    Filter::for_link_by_latest_source_entity(source_entity_id),
+                    Filter::Equal(
+                        Some(FilterExpression::Path(LinkQueryPath::Type(
+                            LinkTypeQueryPath::BaseUri,
+                        ))),
+                        Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                            link_type_id.base_uri().as_str(),
+                        )))),
+                    ),
+                    Filter::Equal(
+                        Some(FilterExpression::Path(LinkQueryPath::Type(
+                            LinkTypeQueryPath::Version,
+                        ))),
+                        Some(FilterExpression::Parameter(Parameter::SignedInteger(
+                            link_type_id.version().into(),
+                        ))),
+                    ),
                 ]),
                 graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
@@ -463,7 +453,7 @@ impl DatabaseApi<'_> {
         Ok(self
             .store
             .get_links(&StructuralQuery {
-                expression: Expression::for_link_by_source_entity_id(source_entity_id),
+                filter: Filter::for_link_by_latest_source_entity(source_entity_id),
                 graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
             .await?

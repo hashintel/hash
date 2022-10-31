@@ -20,8 +20,10 @@ use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyTyp
 use utoipa::ToSchema;
 
 pub use self::{
-    data_type::DataTypeQueryPath, entity_type::EntityTypeQueryPath, link_type::LinkTypeQueryPath,
-    property_type::PropertyTypeQueryPath,
+    data_type::{DataTypeQueryPath, DataTypeQueryPathVisitor},
+    entity_type::{EntityTypeQueryPath, EntityTypeQueryPathVisitor},
+    link_type::{LinkTypeQueryPath, LinkTypeQueryPathVisitor},
+    property_type::{PropertyTypeQueryPath, PropertyTypeQueryPathVisitor},
 };
 use crate::provenance::{CreatedById, OwnedById, RemovedById, UpdatedById};
 
@@ -356,22 +358,6 @@ impl PersistedOntologyType for PersistedEntityType {
         Self {
             inner: record,
             metadata,
-        }
-    }
-}
-
-#[cfg(test)]
-mod test_utils {
-    use crate::store::query::{Path, PathSegment};
-
-    pub fn create_path(segments: impl IntoIterator<Item = &'static str>) -> Path {
-        Path {
-            segments: segments
-                .into_iter()
-                .map(|segment| PathSegment {
-                    identifier: segment.to_owned(),
-                })
-                .collect(),
         }
     }
 }

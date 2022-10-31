@@ -198,13 +198,16 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         Ok(metadata)
     }
 
-    async fn get_entity_type(&self, query: &StructuralQuery) -> Result<Subgraph, QueryError> {
+    async fn get_entity_type<'f: 'q, 'q>(
+        &self,
+        query: &'f StructuralQuery<'q, EntityType>,
+    ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
-            ref expression,
+            ref filter,
             graph_resolve_depths,
         } = *query;
 
-        let subgraphs = stream::iter(Read::<PersistedEntityType>::read(self, expression).await?)
+        let subgraphs = stream::iter(Read::<PersistedEntityType>::read(self, filter).await?)
             .then(|entity_type| async move {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 

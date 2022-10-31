@@ -27,9 +27,11 @@ const isArrayDefinition = <T,>(
  */
 const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
   const { user } = useUser();
-  const [subgraph, setSubgraph] = useState<Subgraph>();
+  const [userSubgraph, setUserSubgraph] = useState<Subgraph>();
+  const [aggregateEntitiesSubgraph, setAggregateEntitiesSubgraph] =
+    useState<Subgraph>();
 
-  const { getEntity, createEntity } =
+  const { getEntity, createEntity, aggregateEntities } =
     useBlockProtocolFunctionsWithOntology(ownedById);
 
   useEffect(() => {
@@ -38,16 +40,28 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
       const entityId = user.entityId;
 
       void getEntity({ data: { entityId } }).then(({ data }) => {
-        setSubgraph(data);
+        setUserSubgraph(data);
       });
     }
   }, [user, getEntity]);
 
-  const entity = subgraph ? getRootsAsEntities(subgraph)[0] : undefined;
+  useEffect(() => {
+    if (!aggregateEntitiesSubgraph) {
+      void aggregateEntities({ data: {} }).then(({ data }) => {
+        setAggregateEntitiesSubgraph(data);
+      });
+    }
+  }, [
+    aggregateEntities,
+    aggregateEntitiesSubgraph,
+    setAggregateEntitiesSubgraph,
+  ]);
+
+  const entity = userSubgraph ? getRootsAsEntities(userSubgraph)[0] : undefined;
 
   const entityType =
-    subgraph && entity
-      ? getPersistedEntityType(subgraph, entity.entityTypeId)?.inner
+    userSubgraph && entity
+      ? getPersistedEntityType(userSubgraph, entity.entityTypeId)?.inner
       : undefined;
 
   // The (top-level) property type IDs defined in the entity type
@@ -64,13 +78,21 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
   // The (top-level) property type definitions, referenced in the entity type
   const propertyTypeDefinitions = useMemo(
     () =>
-      subgraph && propertyTypeIds
+      userSubgraph && propertyTypeIds
         ? propertyTypeIds.map(
             (propertyTypeId) =>
-              getPersistedPropertyType(subgraph, propertyTypeId)?.inner,
+              getPersistedPropertyType(userSubgraph, propertyTypeId)?.inner,
           )
         : undefined,
-    [subgraph, propertyTypeIds],
+    [userSubgraph, propertyTypeIds],
+  );
+
+  const allEntities = useMemo(
+    () =>
+      aggregateEntitiesSubgraph
+        ? getRootsAsEntities(aggregateEntitiesSubgraph)
+        : undefined,
+    [aggregateEntitiesSubgraph],
   );
 
   const handleCreateEntity = async () => {
@@ -99,6 +121,10 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
       <Typography>Top-level property type definitions</Typography>
       <pre style={{ overflowX: "scroll" }}>
         {JSON.stringify(propertyTypeDefinitions ?? {}, null, 2)}
+      </pre>
+      <Typography>Aggregate Entities</Typography>
+      <pre style={{ overflowX: "scroll" }}>
+        {JSON.stringify(allEntities ?? {}, null, 2)}
       </pre>
     </Container>
   );

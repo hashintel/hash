@@ -27,7 +27,7 @@ use crate::{
         PersistedPropertyType,
     },
     provenance::{CreatedById, OwnedById, RemovedById, UpdatedById},
-    store::{error::LinkRemovalError, query::Expression},
+    store::{error::LinkRemovalError, query::Filter},
     subgraph::{StructuralQuery, Subgraph},
 };
 
@@ -203,7 +203,9 @@ pub trait AccountStore {
 
 /// Describes the API of a store implementation for [`DataType`]s.
 #[async_trait]
-pub trait DataTypeStore: for<'q> crud::Read<PersistedDataType, Query<'q> = Expression> {
+pub trait DataTypeStore:
+    for<'q> crud::Read<PersistedDataType, Query<'q> = Filter<'q, DataType>>
+{
     /// Creates a new [`DataType`].
     ///
     /// # Errors:
@@ -224,7 +226,10 @@ pub trait DataTypeStore: for<'q> crud::Read<PersistedDataType, Query<'q> = Expre
     /// # Errors
     ///
     /// - if the requested [`DataType`] doesn't exist.
-    async fn get_data_type(&self, query: &StructuralQuery) -> Result<Subgraph, QueryError>;
+    async fn get_data_type<'f: 'q, 'q>(
+        &self,
+        query: &'f StructuralQuery<'q, DataType>,
+    ) -> Result<Subgraph, QueryError>;
 
     /// Update the definition of an existing [`DataType`].
     ///
@@ -241,7 +246,7 @@ pub trait DataTypeStore: for<'q> crud::Read<PersistedDataType, Query<'q> = Expre
 /// Describes the API of a store implementation for [`PropertyType`]s.
 #[async_trait]
 pub trait PropertyTypeStore:
-    for<'q> crud::Read<PersistedPropertyType, Query<'q> = Expression>
+    for<'q> crud::Read<PersistedPropertyType, Query<'q> = Filter<'q, PropertyType>>
 {
     /// Creates a new [`PropertyType`].
     ///
@@ -263,7 +268,10 @@ pub trait PropertyTypeStore:
     /// # Errors
     ///
     /// - if the requested [`PropertyType`] doesn't exist.
-    async fn get_property_type(&self, query: &StructuralQuery) -> Result<Subgraph, QueryError>;
+    async fn get_property_type<'f: 'q, 'q>(
+        &self,
+        query: &'f StructuralQuery<'q, PropertyType>,
+    ) -> Result<Subgraph, QueryError>;
 
     /// Update the definition of an existing [`PropertyType`].
     ///
@@ -279,7 +287,9 @@ pub trait PropertyTypeStore:
 
 /// Describes the API of a store implementation for [`EntityType`]s.
 #[async_trait]
-pub trait EntityTypeStore: for<'q> crud::Read<PersistedEntityType, Query<'q> = Expression> {
+pub trait EntityTypeStore:
+    for<'q> crud::Read<PersistedEntityType, Query<'q> = Filter<'q, EntityType>>
+{
     /// Creates a new [`EntityType`].
     ///
     /// # Errors:
@@ -300,7 +310,10 @@ pub trait EntityTypeStore: for<'q> crud::Read<PersistedEntityType, Query<'q> = E
     /// # Errors
     ///
     /// - if the requested [`EntityType`] doesn't exist.
-    async fn get_entity_type(&self, query: &StructuralQuery) -> Result<Subgraph, QueryError>;
+    async fn get_entity_type<'f: 'q, 'q>(
+        &self,
+        query: &'f StructuralQuery<'q, EntityType>,
+    ) -> Result<Subgraph, QueryError>;
 
     /// Update the definition of an existing [`EntityType`].
     ///
@@ -316,7 +329,9 @@ pub trait EntityTypeStore: for<'q> crud::Read<PersistedEntityType, Query<'q> = E
 
 /// Describes the API of a store implementation for [`LinkType`]s.
 #[async_trait]
-pub trait LinkTypeStore: for<'q> crud::Read<PersistedLinkType, Query<'q> = Expression> {
+pub trait LinkTypeStore:
+    for<'q> crud::Read<PersistedLinkType, Query<'q> = Filter<'q, LinkType>>
+{
     /// Creates a new [`LinkType`].
     ///
     /// # Errors:
@@ -337,7 +352,10 @@ pub trait LinkTypeStore: for<'q> crud::Read<PersistedLinkType, Query<'q> = Expre
     /// # Errors
     ///
     /// - if the requested [`LinkType`] doesn't exist.
-    async fn get_link_type(&self, query: &StructuralQuery) -> Result<Subgraph, QueryError>;
+    async fn get_link_type<'f: 'q, 'q>(
+        &self,
+        query: &'f StructuralQuery<'q, LinkType>,
+    ) -> Result<Subgraph, QueryError>;
 
     /// Update the definition of an existing [`LinkType`].
     ///
@@ -355,7 +373,7 @@ pub trait LinkTypeStore: for<'q> crud::Read<PersistedLinkType, Query<'q> = Expre
 ///
 /// [Entities]: crate::knowledge::Entity
 #[async_trait]
-pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Expression> {
+pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Filter<'q, Entity>> {
     /// Creates a new [`Entity`].
     ///
     /// # Errors:
@@ -405,7 +423,10 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Expressio
     /// # Errors
     ///
     /// - if the requested [`Entity`] doesn't exist
-    async fn get_entity(&self, query: &StructuralQuery) -> Result<Subgraph, QueryError>;
+    async fn get_entity<'f: 'q, 'q>(
+        &self,
+        query: &'f StructuralQuery<'q, Entity>,
+    ) -> Result<Subgraph, QueryError>;
 
     /// Update an existing [`Entity`].
     ///
@@ -426,7 +447,7 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Expressio
 
 /// Describes the API of a store implementation for [`Link`]s.
 #[async_trait]
-pub trait LinkStore: for<'q> crud::Read<PersistedLink, Query<'q> = Expression> {
+pub trait LinkStore: for<'q> crud::Read<PersistedLink, Query<'q> = Filter<'q, Link>> {
     /// Creates a new [`Link`].
     ///
     /// # Errors:
@@ -446,9 +467,9 @@ pub trait LinkStore: for<'q> crud::Read<PersistedLink, Query<'q> = Expression> {
     /// # Errors
     ///
     /// - if the requested [`Link`]s don't exist.
-    async fn get_links(
+    async fn get_links<'f: 'q, 'q>(
         &self,
-        query: &StructuralQuery,
+        query: &'f StructuralQuery<'q, Link>,
     ) -> Result<Vec<LinkRootedSubgraph>, QueryError>;
 
     /// Removes a [`Link`] between a source and target [`Entity`].

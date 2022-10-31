@@ -79,9 +79,9 @@ fn report_to_status_code<C>(report: &Report<C>) -> StatusCode {
     status_code
 }
 
-async fn read_from_store<'pool, P, T>(
+async fn read_from_store<'pool, 'q, P, T>(
     pool: &'pool P,
-    query: &<P::Store<'pool> as Read<T>>::Query<'_>,
+    query: &'q <P::Store<'pool> as Read<T>>::Query<'q>,
 ) -> Result<Vec<T>, StatusCode>
 where
     P: StorePool<Store<'pool>: Read<T>>,
@@ -165,7 +165,7 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
         tags(
             (name = "Graph", description = "HASH Graph API")
         ),
-        modifiers(&MergeAddon, &ExternalRefAddon, &OperationGraphTagAddon, &AnyObjectAddon)
+        modifiers(&MergeAddon, &ExternalRefAddon, &OperationGraphTagAddon, &FilterObjectAddon)
     )]
 struct OpenApiDocumentation;
 
@@ -300,13 +300,13 @@ impl Modify for OperationGraphTagAddon {
     }
 }
 
-struct AnyObjectAddon;
+struct FilterObjectAddon;
 
-impl Modify for AnyObjectAddon {
+impl Modify for FilterObjectAddon {
     fn modify(&self, openapi: &mut openapi::OpenApi) {
         openapi.components.as_mut().map(|components| {
             components.schemas.insert(
-                "Expression".to_owned(),
+                "Filter".to_owned(),
                 schema::Schema::Object(
                     ObjectBuilder::new()
                         .example(Some(

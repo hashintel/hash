@@ -7,14 +7,16 @@ use serde::{
 };
 use type_system::LinkType;
 
-use crate::store::query::{Path, QueryRecord};
+use crate::store::query::{OntologyPath, ParameterType, Path, QueryRecord, RecordPath};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum LinkTypeQueryPath {
+    VersionId,
     OwnedById,
     CreatedById,
     UpdatedById,
     RemovedById,
+    Schema,
     BaseUri,
     VersionedUri,
     Version,
@@ -25,6 +27,63 @@ pub enum LinkTypeQueryPath {
 
 impl QueryRecord for LinkType {
     type Path<'q> = LinkTypeQueryPath;
+}
+
+impl OntologyPath for LinkTypeQueryPath {
+    fn base_uri() -> Self {
+        Self::BaseUri
+    }
+
+    fn versioned_uri() -> Self {
+        Self::VersionedUri
+    }
+
+    fn version() -> Self {
+        Self::Version
+    }
+
+    fn title() -> Self {
+        Self::Title
+    }
+
+    fn description() -> Self {
+        Self::Description
+    }
+}
+
+impl RecordPath for LinkTypeQueryPath {
+    fn expected_type(&self) -> ParameterType {
+        match self {
+            Self::VersionId | Self::OwnedById | Self::CreatedById | Self::UpdatedById => {
+                ParameterType::Uuid
+            }
+            Self::RemovedById => ParameterType::Uuid,
+            Self::BaseUri => ParameterType::BaseUri,
+            Self::VersionedUri => ParameterType::VersionedUri,
+            Self::Version => ParameterType::UnsignedInteger,
+            Self::Title | Self::Description => ParameterType::Text,
+            Self::Schema | Self::RelatedKeywords => ParameterType::Any,
+        }
+    }
+}
+
+impl fmt::Display for LinkTypeQueryPath {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::VersionId => fmt.write_str("versionId"),
+            Self::OwnedById => fmt.write_str("ownedById"),
+            Self::CreatedById => fmt.write_str("createdById"),
+            Self::UpdatedById => fmt.write_str("updatedById"),
+            Self::RemovedById => fmt.write_str("removedById"),
+            Self::Schema => fmt.write_str("schema"),
+            Self::BaseUri => fmt.write_str("baseUri"),
+            Self::VersionedUri => fmt.write_str("versionedUri"),
+            Self::Version => fmt.write_str("version"),
+            Self::Title => fmt.write_str("title"),
+            Self::Description => fmt.write_str("description"),
+            Self::RelatedKeywords => fmt.write_str("relatedKeywords"),
+        }
+    }
 }
 
 impl TryFrom<Path> for LinkTypeQueryPath {
@@ -63,7 +122,7 @@ pub struct LinkTypeQueryPathVisitor {
 impl LinkTypeQueryPathVisitor {
     pub const EXPECTING: &'static str = "one of `ownedById`, `createdById`, `updatedById`, \
                                          `removedById`, `baseUri`, `versionedUri`, `version`, \
-                                         `title, `description`, or `relatedKeywords`";
+                                         `title`, `description`, `relatedKeywords`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -86,6 +145,7 @@ impl<'de> Visitor<'de> for LinkTypeQueryPathVisitor {
             .next_element()?
             .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
         self.position += 1;
+
         Ok(match token {
             LinkTypeQueryToken::OwnedById => LinkTypeQueryPath::OwnedById,
             LinkTypeQueryToken::CreatedById => LinkTypeQueryPath::CreatedById,
@@ -100,6 +160,7 @@ impl<'de> Visitor<'de> for LinkTypeQueryPathVisitor {
         })
     }
 }
+
 impl<'de> Deserialize<'de> for LinkTypeQueryPath {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -111,8 +172,10 @@ impl<'de> Deserialize<'de> for LinkTypeQueryPath {
 
 #[cfg(test)]
 mod tests {
+    use std::iter::once;
+
     use super::*;
-    use crate::ontology::test_utils::create_path;
+    use crate::query::test_utils::create_path;
 
     fn convert_path(segments: impl IntoIterator<Item = &'static str>) -> LinkTypeQueryPath {
         LinkTypeQueryPath::try_from(create_path(segments)).expect("could not convert path")
@@ -139,6 +202,36 @@ mod tests {
         assert_eq!(
             deserialize(["relatedKeywords"]),
             LinkTypeQueryPath::RelatedKeywords
+        );
+
+        assert_eq!(
+            LinkTypeQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
+                once("version_id")
+            ))
+            .expect_err(
+                "managed to convert link type query path with hidden token when it should have \
+                 errored"
+            )
+            .to_string(),
+            format!(
+                "unknown variant `version_id`, expected {}",
+                LinkTypeQueryPathVisitor::EXPECTING
+            )
+        );
+
+        assert_eq!(
+            LinkTypeQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
+                once("schema")
+            ))
+            .expect_err(
+                "managed to convert link type query path with hidden token when it should have \
+                 errored"
+            )
+            .to_string(),
+            format!(
+                "unknown variant `schema`, expected {}",
+                LinkTypeQueryPathVisitor::EXPECTING
+            )
         );
 
         assert_eq!(

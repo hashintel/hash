@@ -24,11 +24,10 @@ use crate::{
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
     shared::identifier::GraphElementIdentifier,
-    store::{
-        query::Expression, BaseUriAlreadyExists, BaseUriDoesNotExist, DataTypeStore, StorePool,
-    },
+    store::{query::Filter, BaseUriAlreadyExists, BaseUriDoesNotExist, DataTypeStore, StorePool},
     subgraph::{
-        EdgeKind, Edges, GraphResolveDepths, OutwardEdge, StructuralQuery, Subgraph, Vertex,
+        DataTypeStructuralQuery, EdgeKind, Edges, GraphResolveDepths, OutwardEdge, StructuralQuery,
+        Subgraph, Vertex,
     },
 };
 
@@ -51,7 +50,7 @@ use crate::{
             PersistedOntologyIdentifier,
             PersistedOntologyMetadata,
             PersistedDataType,
-            StructuralQuery,
+            DataTypeStructuralQuery,
             GraphElementIdentifier,
             Vertex,
             EdgeKind,
@@ -157,7 +156,7 @@ async fn create_data_type<P: StorePool + Send>(
 #[utoipa::path(
     post,
     path = "/data-types/query",
-    request_body = StructuralQuery,
+    request_body = DataTypeStructuralQuery,
     tag = "DataType",
     responses(
         (status = 200, content_type = "application/json", body = Subgraph, description = "Gets a subgraph rooted at all data types that satisfy the given query, each resolved to the requested depth."),
@@ -168,7 +167,7 @@ async fn create_data_type<P: StorePool + Send>(
 )]
 async fn get_data_types_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-    Json(query): Json<StructuralQuery>,
+    Json(query): Json<serde_json::Value>,
 ) -> Result<Json<Subgraph>, StatusCode> {
     pool.acquire()
         .map_err(|error| {
@@ -176,6 +175,14 @@ async fn get_data_types_by_query<P: StorePool + Send>(
             StatusCode::INTERNAL_SERVER_ERROR
         })
         .and_then(|store| async move {
+            let mut query = StructuralQuery::deserialize(&query).map_err(|error| {
+                tracing::error!(?error, "Could not deserialize query");
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
+            query.filter.convert_parameters().map_err(|error| {
+                tracing::error!(?error, "Could not validate query");
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
             store.get_data_type(&query).await.map_err(|report| {
                 tracing::error!(error=?report, ?query, "Could not read data types from the store");
                 report_to_status_code(&report)
@@ -198,7 +205,7 @@ async fn get_data_types_by_query<P: StorePool + Send>(
 async fn get_latest_data_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<PersistedDataType>>, StatusCode> {
-    read_from_store(pool.as_ref(), &Expression::for_latest_version())
+    read_from_store(pool.as_ref(), &Filter::<DataType>::for_latest_version())
         .await
         .map(Json)
 }
@@ -222,10 +229,13 @@ async fn get_data_type<P: StorePool + Send>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<PersistedDataType>, StatusCode> {
-    read_from_store(pool.as_ref(), &Expression::for_versioned_uri(&uri.0))
-        .await
-        .and_then(|mut data_types| data_types.pop().ok_or(StatusCode::NOT_FOUND))
-        .map(Json)
+    read_from_store(
+        pool.as_ref(),
+        &Filter::<DataType>::for_versioned_uri(&uri.0),
+    )
+    .await
+    .and_then(|mut data_types| data_types.pop().ok_or(StatusCode::NOT_FOUND))
+    .map(Json)
 }
 
 #[derive(ToSchema, Serialize, Deserialize)]

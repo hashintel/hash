@@ -1,11 +1,21 @@
 use std::{
     borrow::Cow,
-    fmt::{Debug, Formatter},
+    fmt,
+    fmt::{Debug, Display, Formatter},
+    str::FromStr,
 };
 
+use error_stack::{bail, ensure, Context, IntoReport, Report, ResultExt};
 use serde::Deserialize;
+use type_system::uri::VersionedUri;
+use uuid::Uuid;
 
-use crate::store::query::{Expression, Literal, Path, QueryRecord};
+use crate::{
+    knowledge::{Entity, EntityId, EntityQueryPath, Link, LinkQueryPath},
+    store::query::{
+        Expression, Literal, OntologyPath, ParameterType, Path, QueryRecord, RecordPath,
+    },
+};
 
 /// A set of conditions used for queries.
 #[derive(Deserialize)]
@@ -25,6 +35,118 @@ pub enum Filter<'q, T: QueryRecord> {
         Option<FilterExpression<'q, T>>,
         Option<FilterExpression<'q, T>>,
     ),
+}
+
+impl<'q, T> Filter<'q, T>
+where
+    T: QueryRecord,
+    T::Path<'q>: OntologyPath,
+{
+    /// Creates a `Filter` to search for all ontology types of kind `T` at their latest version.
+    #[must_use]
+    pub fn for_latest_version() -> Self {
+        Self::Equal(
+            Some(FilterExpression::Path(<T::Path<'q>>::version())),
+            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                "latest",
+            )))),
+        )
+    }
+
+    /// Creates a `Filter` to search for a specific ontology type of kind `T`, identified by its
+    /// [`VersionedUri`].
+    #[must_use]
+    pub fn for_versioned_uri(versioned_uri: &'q VersionedUri) -> Self {
+        Self::All(vec![
+            Self::Equal(
+                Some(FilterExpression::Path(<T::Path<'q>>::base_uri())),
+                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                    versioned_uri.base_uri().as_str(),
+                )))),
+            ),
+            Self::Equal(
+                Some(FilterExpression::Path(<T::Path<'q>>::version())),
+                Some(FilterExpression::Parameter(Parameter::SignedInteger(
+                    versioned_uri.version().into(),
+                ))),
+            ),
+        ])
+    }
+}
+
+impl<'q> Filter<'q, Entity> {
+    /// Creates a `Filter` to search for all entities at their latest version.
+    #[must_use]
+    pub const fn for_all_latest_entities() -> Self {
+        Self::Equal(
+            Some(FilterExpression::Path(EntityQueryPath::Version)),
+            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                "latest",
+            )))),
+        )
+    }
+
+    /// Creates a `Filter` to search for a specific entities at their latest version, identified by
+    /// its [`EntityId`].
+    #[must_use]
+    pub fn for_latest_entity_by_entity_id(entity_id: EntityId) -> Self {
+        Self::All(vec![
+            Self::for_all_latest_entities(),
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::Id)),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    entity_id.as_uuid(),
+                ))),
+            ),
+        ])
+    }
+}
+
+impl<'q> Filter<'q, Link> {
+    /// Creates a `Filter` to search for links based on their source entity.
+    #[must_use]
+    pub const fn for_link_by_latest_source_entity(entity_id: EntityId) -> Self {
+        Self::Equal(
+            Some(FilterExpression::Path(LinkQueryPath::Source(Some(
+                EntityQueryPath::Id,
+            )))),
+            Some(FilterExpression::Parameter(Parameter::Uuid(
+                entity_id.as_uuid(),
+            ))),
+        )
+    }
+}
+
+impl<'q, T: QueryRecord> Filter<'q, T>
+where
+    T::Path<'q>: Display,
+{
+    /// Converts the contained [`Parameter`]s to match the type of a [`Path`].
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ParameterConversionError`] if conversion fails.
+    pub fn convert_parameters(&mut self) -> Result<(), Report<ParameterConversionError>> {
+        match self {
+            Self::All(filters) | Self::Any(filters) => {
+                filters.iter_mut().try_for_each(Self::convert_parameters)?;
+            }
+            Self::Not(filter) => filter.convert_parameters()?,
+            Self::Equal(lhs, rhs) | Self::NotEqual(lhs, rhs) => match (lhs, rhs) {
+                (
+                    Some(FilterExpression::Parameter(parameter)),
+                    Some(FilterExpression::Path(path)),
+                )
+                | (
+                    Some(FilterExpression::Path(path)),
+                    Some(FilterExpression::Parameter(parameter)),
+                ) => parameter.convert_to_parameter_type(path.expected_type())?,
+                (..) => {}
+            },
+        }
+
+        Ok(())
+    }
 }
 
 // TODO: Derive traits when bounds are generated correctly
@@ -189,17 +311,121 @@ impl<'q, T: QueryRecord> TryFrom<Expression> for Option<FilterExpression<'q, T>>
 #[derive(Debug, PartialEq, Deserialize)]
 #[serde(untagged)]
 pub enum Parameter<'q> {
+    Boolean(bool),
     Number(f64),
     Text(Cow<'q, str>),
-    Boolean(bool),
+    #[serde(skip)]
+    Uuid(Uuid),
+    #[serde(skip)]
+    SignedInteger(i64),
+}
+
+impl Parameter<'_> {
+    fn to_owned(&self) -> Parameter<'static> {
+        match self {
+            Parameter::Boolean(bool) => Parameter::Boolean(*bool),
+            Parameter::Number(number) => Parameter::Number(*number),
+            Parameter::Text(text) => Parameter::Text(Cow::Owned(text.to_string())),
+            Parameter::Uuid(uuid) => Parameter::Uuid(*uuid),
+            Parameter::SignedInteger(integer) => Parameter::SignedInteger(*integer),
+        }
+    }
+}
+
+#[derive(Debug)]
+#[must_use]
+pub struct ParameterConversionError {
+    actual: Parameter<'static>,
+    expected: ParameterType,
+}
+
+impl fmt::Display for ParameterConversionError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            fmt,
+            "could not convert `{}` to {}",
+            self.actual, self.expected
+        )
+    }
+}
+
+impl Context for ParameterConversionError {}
+
+impl Parameter<'_> {
+    #[expect(clippy::match_same_arms, reason = "multiple empty bodies due to TODOs")]
+    fn convert_to_parameter_type(
+        &mut self,
+        expected: ParameterType,
+    ) -> Result<(), Report<ParameterConversionError>> {
+        match (&mut *self, expected) {
+            (_, ParameterType::Any)
+            | (Parameter::Boolean(_), ParameterType::Boolean)
+            | (Parameter::Number(_), ParameterType::Number)
+            | (Parameter::Text(_), ParameterType::Text) => {
+                // no action needed, exact match
+            }
+            (Parameter::Text(_base_uri), ParameterType::BaseUri) => {
+                // TODO: validate base uri
+                //   see https://app.asana.com/0/1202805690238892/1203225514907875/f
+            }
+            (Parameter::Text(_versioned_uri), ParameterType::VersionedUri) => {
+                // TODO: validate versioned uri
+                //   see https://app.asana.com/0/1202805690238892/1203225514907875/f
+            }
+            (_, ParameterType::Timestamp) => {
+                // TODO: validate timestamps
+                //   see https://app.asana.com/0/1202805690238892/1203225514907875/f
+            }
+            (Parameter::Text(text), ParameterType::Uuid) => {
+                *self = Parameter::Uuid(Uuid::from_str(&*text).into_report().change_context_lazy(
+                    || ParameterConversionError {
+                        actual: self.to_owned(),
+                        expected: ParameterType::Uuid,
+                    },
+                )?);
+            }
+            (Parameter::Number(number), ParameterType::UnsignedInteger) => {
+                // Postgres cannot represent unsigned integer, so we use i64 instead
+                let number = number.round() as i64;
+                ensure!(!number.is_negative(), ParameterConversionError {
+                    actual: self.to_owned(),
+                    expected: ParameterType::UnsignedInteger
+                });
+                *self = Parameter::SignedInteger(number);
+            }
+            (Parameter::Text(text), ParameterType::UnsignedInteger) if text == "latest" => {
+                // Special case for checking `version == "latest"
+            }
+            (actual, expected) => {
+                bail!(ParameterConversionError {
+                    actual: actual.to_owned(),
+                    expected
+                });
+            }
+        }
+
+        Ok(())
+    }
+}
+
+impl fmt::Display for Parameter<'_> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Parameter::Boolean(boolean) => fmt::Display::fmt(boolean, fmt),
+            Parameter::Number(number) => fmt::Display::fmt(number, fmt),
+            Parameter::Text(text) => fmt::Display::fmt(text, fmt),
+            Parameter::Uuid(uuid) => fmt::Display::fmt(uuid, fmt),
+            Parameter::SignedInteger(integer) => fmt::Display::fmt(integer, fmt),
+        }
+    }
 }
 
 impl From<Literal> for Parameter<'_> {
     fn from(literal: Literal) -> Self {
         match literal {
+            Literal::Bool(bool) => Parameter::Boolean(bool),
             Literal::String(string) => Parameter::Text(Cow::Owned(string)),
             Literal::Float(float) => Parameter::Number(float),
-            Literal::Bool(bool) => Parameter::Boolean(bool),
             Literal::Null | Literal::List(_) | Literal::Version(..) => unimplemented!(),
         }
     }

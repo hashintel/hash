@@ -10,7 +10,6 @@ import "prosemirror-view/style/prosemirror.css";
 import { FunctionComponent, useLayoutEffect, useRef } from "react";
 import { useLocalstorageState } from "rooks";
 import { SxProps } from "@mui/system";
-import { useCreateComment } from "../../components/hooks/useCreateComment";
 import { PageThread } from "../../components/hooks/usePageComments";
 import { useInitTypeSystem } from "../../lib/use-init-type-system";
 import { useReadonlyMode } from "../../shared/readonly-mode";
@@ -70,9 +69,6 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
   const router = useRouter();
   const routeHash = router.asPath.split("#")[1] ?? "";
   const { readonlyMode } = useReadonlyMode();
-
-  const [createComment, { loading: createCommentLoading }] =
-    useCreateComment(entityId);
 
   const { setEditorView, pageTitleRef } = usePageContext();
 
@@ -153,9 +149,8 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
                 {pageComments?.map((comment) => (
                   <CommentThread
                     key={comment.entityId}
+                    pageId={entityId}
                     comment={comment}
-                    onReplySubmit={createComment}
-                    loading={createCommentLoading}
                   />
                 ))}
               </Box>

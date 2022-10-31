@@ -73,11 +73,11 @@ export default class extends EntityModel {
      */
     const userEntities = await EntityModel.getByQuery(graphApi, {
       all: [
-        { eq: [{ path: ["version"] }, { literal: "latest" }] },
+        { equal: [{ path: ["version"] }, { parameter: "latest" }] },
         {
-          eq: [
+          equal: [
             { path: ["type", "versionedUri"] },
-            { literal: WORKSPACE_TYPES.entityType.user.schema.$id },
+            { parameter: WORKSPACE_TYPES.entityType.user.schema.$id },
           ],
         },
       ],
@@ -105,11 +105,11 @@ export default class extends EntityModel {
      */
     const userEntities = await EntityModel.getByQuery(graphApi, {
       all: [
-        { eq: [{ path: ["version"] }, { literal: "latest" }] },
+        { equal: [{ path: ["version"] }, { parameter: "latest" }] },
         {
-          eq: [
+          equal: [
             { path: ["type", "versionedUri"] },
-            { literal: WORKSPACE_TYPES.entityType.user.schema.$id },
+            { parameter: WORKSPACE_TYPES.entityType.user.schema.$id },
           ],
         },
       ],
@@ -391,16 +391,16 @@ export default class extends EntityModel {
   async getOrgMemberships(graphApi: GraphApi): Promise<OrgMembershipModel[]> {
     const { data: outgoingOrgMembershipLinkRootedSubgraphs } =
       await graphApi.getLinksByQuery({
-        query: {
+        filter: {
           all: [
             {
-              eq: [{ path: ["source", "id"] }, { literal: this.entityId }],
+              equal: [{ path: ["source", "id"] }, { parameter: this.entityId }],
             },
             {
-              eq: [
+              equal: [
                 { path: ["type", "versionedUri"] },
                 {
-                  literal: WORKSPACE_TYPES.linkType.hasMembership.schema.$id,
+                  parameter: WORKSPACE_TYPES.linkType.hasMembership.schema.$id,
                 },
               ],
             },

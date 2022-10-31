@@ -25,10 +25,11 @@ use crate::{
     provenance::{CreatedById, OwnedById, UpdatedById},
     shared::identifier::GraphElementIdentifier,
     store::{
-        query::Expression, BaseUriAlreadyExists, BaseUriDoesNotExist, PropertyTypeStore, StorePool,
+        query::Filter, BaseUriAlreadyExists, BaseUriDoesNotExist, PropertyTypeStore, StorePool,
     },
     subgraph::{
-        EdgeKind, Edges, GraphResolveDepths, OutwardEdge, StructuralQuery, Subgraph, Vertex,
+        EdgeKind, Edges, GraphResolveDepths, OutwardEdge, PropertyTypeStructuralQuery,
+        StructuralQuery, Subgraph, Vertex,
     },
 };
 
@@ -51,7 +52,7 @@ use crate::{
             PersistedOntologyIdentifier,
             PersistedOntologyMetadata,
             PersistedPropertyType,
-            StructuralQuery,
+            PropertyTypeStructuralQuery,
             GraphElementIdentifier,
             Vertex,
             EdgeKind,
@@ -158,7 +159,7 @@ async fn create_property_type<P: StorePool + Send>(
 #[utoipa::path(
     post,
     path = "/property-types/query",
-    request_body = StructuralQuery,
+    request_body = PropertyTypeStructuralQuery,
     tag = "PropertyType",
     responses(
         (status = 200, content_type = "application/json", body = Subgraph, description = "A subgraph rooted at property types that satisfy the given query, each resolved to the requested depth."),
@@ -167,19 +168,24 @@ async fn create_property_type<P: StorePool + Send>(
         (status = 500, description = "Store error occurred"),
     )
 )]
-async fn get_property_types_by_query<P>(
+async fn get_property_types_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-    Json(query): Json<StructuralQuery>,
-) -> Result<Json<Subgraph>, StatusCode>
-where
-    for<'pool> P: StorePool<Store<'pool>: PropertyTypeStore> + Send,
-{
+    Json(query): Json<serde_json::Value>,
+) -> Result<Json<Subgraph>, StatusCode> {
     pool.acquire()
         .map_err(|error| {
             tracing::error!(?error, "Could not acquire access to the store");
             StatusCode::INTERNAL_SERVER_ERROR
         })
         .and_then(|store| async move {
+            let mut query = StructuralQuery::deserialize(&query).map_err(|error| {
+                tracing::error!(?error, "Could not deserialize query");
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
+            query.filter.convert_parameters().map_err(|error| {
+                tracing::error!(?error, "Could not validate query");
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
             store
                 .get_property_type(&query)
                 .await
@@ -205,7 +211,7 @@ where
 async fn get_latest_property_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<PersistedPropertyType>>, StatusCode> {
-    read_from_store(pool.as_ref(), &Expression::for_latest_version())
+    read_from_store(pool.as_ref(), &Filter::<PropertyType>::for_latest_version())
         .await
         .map(Json)
 }
@@ -229,10 +235,13 @@ async fn get_property_type<P: StorePool + Send>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<PersistedPropertyType>, StatusCode> {
-    read_from_store(pool.as_ref(), &Expression::for_versioned_uri(&uri.0))
-        .await
-        .and_then(|mut property_types| property_types.pop().ok_or(StatusCode::NOT_FOUND))
-        .map(Json)
+    read_from_store(
+        pool.as_ref(),
+        &Filter::<PropertyType>::for_versioned_uri(&uri.0),
+    )
+    .await
+    .and_then(|mut property_types| property_types.pop().ok_or(StatusCode::NOT_FOUND))
+    .map(Json)
 }
 
 #[derive(ToSchema, Serialize, Deserialize)]

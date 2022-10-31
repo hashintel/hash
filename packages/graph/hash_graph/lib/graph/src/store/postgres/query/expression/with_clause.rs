@@ -59,10 +59,13 @@ mod tests {
     use std::borrow::Cow;
 
     use super::*;
-    use crate::store::postgres::query::{
-        test_helper::{max_version_expression, trim_whitespace},
-        DataTypeQueryField, Expression, Field, SelectExpression, SelectStatement, Table, TableName,
-        WhereExpression,
+    use crate::{
+        ontology::DataTypeQueryPath,
+        store::postgres::query::{
+            expression::OrderByExpression,
+            test_helper::{max_version_expression, trim_whitespace},
+            Expression, Path, SelectExpression, SelectStatement, Table, TableName, WhereExpression,
+        },
     };
 
     #[test]
@@ -72,7 +75,7 @@ mod tests {
 
         with_clause.add_statement(TableName::TypeIds, SelectStatement {
             with: WithExpression::default(),
-            distinct: false,
+            distinct: Vec::new(),
             selects: vec![
                 SelectExpression::new(Expression::Asterisk, None),
                 SelectExpression::new(
@@ -81,11 +84,12 @@ mod tests {
                 ),
             ],
             from: Table {
-                name: DataTypeQueryField::Version.table_name(),
+                name: DataTypeQueryPath::Version.terminating_table_name(),
                 alias: None,
             },
             joins: vec![],
             where_expression: WhereExpression::default(),
+            order_by_expression: OrderByExpression::default(),
         });
 
         assert_eq!(
@@ -98,7 +102,7 @@ mod tests {
 
         with_clause.add_statement(TableName::DataTypes, SelectStatement {
             with: WithExpression::default(),
-            distinct: false,
+            distinct: Vec::new(),
             selects: vec![SelectExpression::new(Expression::Asterisk, None)],
             from: Table {
                 name: TableName::DataTypes,
@@ -106,6 +110,7 @@ mod tests {
             },
             joins: vec![],
             where_expression: WhereExpression::default(),
+            order_by_expression: OrderByExpression::default(),
         });
 
         assert_eq!(

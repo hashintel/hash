@@ -20,7 +20,9 @@ export const getAllLatestDataTypes: ResolverFn<
 
   const { data: dataTypeSubgraph } = await graphApi
     .getDataTypesByQuery({
-      query: { eq: [{ path: ["version"] }, { literal: "latest" }] },
+      filter: {
+        equal: [{ path: ["version"] }, { parameter: "latest" }],
+      },
       graphResolveDepths: {
         dataTypeResolveDepth,
         propertyTypeResolveDepth: 0,
@@ -50,8 +52,8 @@ export const getDataType: ResolverFn<
 
   const { data: dataTypeSubgraph } = await graphApi
     .getDataTypesByQuery({
-      query: {
-        eq: [{ path: ["versionedUri"] }, { literal: dataTypeId }],
+      filter: {
+        equal: [{ path: ["versionedUri"] }, { parameter: dataTypeId }],
       },
       /** @todo - make these configurable once non-primitive data types are a thing https://app.asana.com/0/1200211978612931/1202464168422955/f */
       graphResolveDepths: {

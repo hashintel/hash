@@ -9,9 +9,10 @@ use utoipa::ToSchema;
 
 pub use self::{
     entity::{
-        Entity, EntityId, PersistedEntity, PersistedEntityIdentifier, PersistedEntityMetadata,
+        Entity, EntityId, EntityQueryPath, EntityQueryPathVisitor, PersistedEntity,
+        PersistedEntityIdentifier, PersistedEntityMetadata,
     },
-    link::{Link, PersistedLink, PersistedLinkMetadata},
+    link::{Link, LinkQueryPath, LinkQueryPathVisitor, PersistedLink, PersistedLinkMetadata},
 };
 use crate::ontology::{
     PersistedDataType, PersistedEntityType, PersistedLinkType, PersistedPropertyType,

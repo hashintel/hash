@@ -27,3 +27,30 @@ export const createPersistedComment = gql`
     }
   }
 `;
+
+export const resolvePersistedComment = gql`
+  mutation resolvePersistedComment($entityId: ID!) {
+    resolvePersistedComment(entityId: $entityId) {
+      ...CommentFields
+    }
+  }
+  ${commentFieldsFragment}
+`;
+
+export const deletePersistedComment = gql`
+  mutation deletePersistedComment($entityId: ID!) {
+    deletePersistedComment(entityId: $entityId) {
+      ...CommentFields
+    }
+  }
+  ${commentFieldsFragment}
+`;
+
+export const updatePersistedCommentText = gql`
+  mutation updatePersistedCommentText($entityId: ID!, $tokens: [TextToken!]!) {
+    updatePersistedCommentText(entityId: $entityId, tokens: $tokens) {
+      ...CommentFields
+    }
+  }
+  ${commentFieldsFragment}
+`;

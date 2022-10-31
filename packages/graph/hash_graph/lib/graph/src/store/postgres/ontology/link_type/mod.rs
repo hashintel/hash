@@ -74,13 +74,16 @@ impl<C: AsClient> LinkTypeStore for PostgresStore<C> {
         Ok(metadata)
     }
 
-    async fn get_link_type(&self, query: &StructuralQuery) -> Result<Subgraph, QueryError> {
+    async fn get_link_type<'f: 'q, 'q>(
+        &self,
+        query: &'f StructuralQuery<'q, LinkType>,
+    ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
-            ref expression,
+            ref filter,
             graph_resolve_depths,
         } = *query;
 
-        let subgraphs = stream::iter(Read::<PersistedLinkType>::read(self, expression).await?)
+        let subgraphs = stream::iter(Read::<PersistedLinkType>::read(self, filter).await?)
             .then(|link_type| async move {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 

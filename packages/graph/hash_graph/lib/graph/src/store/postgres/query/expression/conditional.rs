@@ -1,13 +1,6 @@
 use std::fmt::{self, Write};
 
-use postgres_types::ToSql;
-
-use crate::store::{
-    postgres::query::{
-        Column, Path, PostgresQueryRecord, Table, TableAlias, Transpile, WindowStatement,
-    },
-    query::{FilterExpression, Parameter},
-};
+use crate::store::postgres::query::{Column, Transpile, WindowStatement};
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Function<'q> {
@@ -42,33 +35,6 @@ pub enum Expression<'q> {
     Window(Box<Self>, WindowStatement<'q>),
 }
 
-impl<'q> Expression<'q> {
-    pub fn from_filter_value<'f: 'q, T: PostgresQueryRecord<'q>>(
-        value: &'f FilterExpression<'q, T>,
-        parameters: &mut Vec<&'f dyn ToSql>,
-        alias: Option<TableAlias>,
-    ) -> Self {
-        match value {
-            FilterExpression::Path(path) => Self::Column(Column {
-                table: Table {
-                    name: path.terminating_table_name(),
-                    alias,
-                },
-                access: path.column_access(),
-            }),
-            FilterExpression::Parameter(parameter) => {
-                match parameter {
-                    Parameter::Number(number) => parameters.push(number),
-                    Parameter::Text(text) => parameters.push(text),
-                    Parameter::Boolean(bool) => parameters.push(bool),
-                }
-                // Indices in Postgres are 1-based
-                Self::Parameter(parameters.len())
-            }
-        }
-    }
-}
-
 impl Transpile for Expression<'_> {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -98,8 +64,9 @@ impl Transpile for Option<Expression<'_>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::store::postgres::query::{
-        test_helper::max_version_expression, DataTypeQueryField, Field,
+    use crate::{
+        ontology::DataTypeQueryPath,
+        store::postgres::query::{test_helper::max_version_expression, Path, Table},
     };
 
     #[test]
@@ -115,10 +82,10 @@ mod tests {
         assert_eq!(
             Expression::Function(Box::new(Function::Min(Expression::Column(Column {
                 table: Table {
-                    name: DataTypeQueryField::Version.table_name(),
+                    name: DataTypeQueryPath::Version.terminating_table_name(),
                     alias: None,
                 },
-                access: DataTypeQueryField::Version.column_access(),
+                access: DataTypeQueryPath::Version.column_access(),
             }))))
             .transpile_to_string(),
             r#"MIN("type_ids"."version")"#

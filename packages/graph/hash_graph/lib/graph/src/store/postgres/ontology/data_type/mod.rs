@@ -79,13 +79,16 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         Ok(metadata)
     }
 
-    async fn get_data_type(&self, query: &StructuralQuery) -> Result<Subgraph, QueryError> {
+    async fn get_data_type<'f: 'q, 'q>(
+        &self,
+        query: &'f StructuralQuery<'q, DataType>,
+    ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
-            ref expression,
+            ref filter,
             graph_resolve_depths,
         } = *query;
 
-        let subgraphs = stream::iter(Read::<PersistedDataType>::read(self, expression).await?)
+        let subgraphs = stream::iter(Read::<PersistedDataType>::read(self, filter).await?)
             .then(|data_type| async move {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 

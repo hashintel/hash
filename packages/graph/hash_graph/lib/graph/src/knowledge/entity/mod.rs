@@ -1,3 +1,5 @@
+mod query;
+
 use std::{collections::HashMap, fmt};
 
 use chrono::{DateTime, Utc};
@@ -7,6 +9,7 @@ use type_system::uri::{BaseUri, VersionedUri};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
+pub use self::query::{EntityQueryPath, EntityQueryPathVisitor};
 use crate::provenance::{CreatedById, OwnedById, RemovedById, UpdatedById};
 
 #[derive(
@@ -20,6 +23,11 @@ impl EntityId {
     #[must_use]
     pub const fn new(uuid: Uuid) -> Self {
         Self(uuid)
+    }
+
+    #[must_use]
+    pub const fn as_uuid(self) -> Uuid {
+        self.0
     }
 }
 
