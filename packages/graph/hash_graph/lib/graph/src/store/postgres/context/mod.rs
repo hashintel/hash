@@ -12,11 +12,10 @@ use crate::{
     store::{postgres::ontology::OntologyDatabaseType, AsClient, PostgresStore, QueryError},
 };
 
-/// Context used for [`Resolve`].
+/// Context used for querying the database directly.
 ///
 /// This is only used as an implementation detail inside of the [`postgres`] module.
 ///
-/// [`Resolve`]: crate::store::query::Resolve
 /// [`postgres`]: super::super
 // TODO: Use the context to hold query data
 //   see https://app.asana.com/0/0/1202884883200946/f

@@ -1,6 +1,5 @@
 use std::{borrow::Cow, fmt};
 
-use error_stack::{IntoReport, Report};
 use serde::{
     de::{self, SeqAccess, Visitor},
     Deserialize, Deserializer,
@@ -9,7 +8,7 @@ use serde::{
 use crate::{
     knowledge::{Entity, LinkQueryPath},
     ontology::{EntityTypeQueryPath, EntityTypeQueryPathVisitor},
-    store::query::{ParameterType, Path, QueryRecord, RecordPath},
+    store::query::{ParameterType, QueryRecord, RecordPath},
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -61,17 +60,6 @@ impl RecordPath for EntityQueryPath<'_> {
             Self::Properties(_) => ParameterType::Any,
             Self::IncomingLinks(path) | Self::OutgoingLinks(path) => path.expected_type(),
         }
-    }
-}
-
-impl<'q> TryFrom<Path> for EntityQueryPath<'q> {
-    type Error = Report<de::value::Error>;
-
-    fn try_from(path: Path) -> Result<Self, Self::Error> {
-        Self::deserialize(de::value::SeqDeserializer::new(
-            path.segments.into_iter().map(|segment| segment.identifier),
-        ))
-        .into_report()
     }
 }
 
@@ -174,11 +162,6 @@ mod tests {
     use std::iter::once;
 
     use super::*;
-    use crate::query::test_utils::create_path;
-
-    fn convert_path(segments: impl IntoIterator<Item = &'static str>) -> EntityQueryPath<'static> {
-        EntityQueryPath::try_from(create_path(segments)).expect("could not convert path")
-    }
 
     fn deserialize<'q>(segments: impl IntoIterator<Item = &'q str>) -> EntityQueryPath<'q> {
         EntityQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
@@ -232,25 +215,6 @@ mod tests {
             )
             .to_string(),
             "invalid length 2, expected 1 element in sequence"
-        );
-    }
-
-    #[test]
-    fn path_conversion() {
-        assert_eq!(convert_path(["version"]), EntityQueryPath::Version);
-        assert_eq!(convert_path(["ownedById"]), EntityQueryPath::OwnedById);
-        assert_eq!(
-            convert_path(["type", "version"]),
-            EntityQueryPath::Type(EntityTypeQueryPath::Version)
-        );
-        assert_eq!(
-            convert_path([
-                "properties",
-                "https://blockprotocol.org/@alice/types/property-type/name/"
-            ]),
-            EntityQueryPath::Properties(Some(Cow::Borrowed(
-                "https://blockprotocol.org/@alice/types/property-type/name/"
-            )))
         );
     }
 }
