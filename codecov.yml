@@ -2,8 +2,11 @@ coverage:
   status:
     project:
       default:
+        informational: true
         target: auto
         threshold: 1%
     patch:
       default:
         informational: true
+github_checks:
+  annotations: false
