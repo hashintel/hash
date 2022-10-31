@@ -119,7 +119,7 @@ impl<'q, T: QueryRecord> Filter<'q, T>
 where
     T::Path<'q>: Display,
 {
-    /// Converts the contained [`Parameter`]s to match the type of a [`Path`].
+    /// Converts the contained [`Parameter`]s to match the type of a `T::Path`.
     ///
     /// # Errors
     ///
