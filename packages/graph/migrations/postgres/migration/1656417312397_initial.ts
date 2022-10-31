@@ -344,6 +344,16 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         type: "integer",
         notNull: false,
       },
+      left_entity_id: {
+        type: "UUID",
+        notNull: false,
+        references: "entity_ids",
+      },
+      right_entity_id: {
+        type: "UUID",
+        notNull: false,
+        references: "entity_ids",
+      },
       owned_by_id: {
         type: "UUID",
         notNull: true,
@@ -359,14 +369,6 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         notNull: true,
         references: "accounts",
       },
-      /**
-       * @todo: remove this column if we introduce a delete table similar to links
-       * @see https://app.asana.com/0/1201095311341924/1202697596928142/f
-       */
-      removed_by_id: {
-        type: "UUID",
-        references: "accounts",
-      },
     },
     {
       ifNotExists: true,
@@ -376,89 +378,93 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
     primaryKey: ["entity_id", "version"],
   });
 
-  pgm.createTable(
-    "entity_relations",
-    {
-      source_entity_id: {
-        type: "UUID",
-        notNull: true,
-        references: "entity_ids",
-      },
-      target_entity_id: {
-        type: "UUID",
-        notNull: true,
-        references: "entity_ids",
-      },
-      link_entity_id: {
-        type: "UUID",
-        notNull: true,
-        references: "entity_ids",
-      },
-      created_by_id: {
-        type: "UUID",
-        notNull: true,
-        references: "accounts",
-      },
-      created_at: {
-        type: "TIMESTAMP WITH TIME ZONE",
-        notNull: true,
-        default: pgm.func("clock_timestamp()"),
-      },
-    },
-    {
-      ifNotExists: true,
-    },
-  );
-  // Currently entity relations are between unversioned entities.
-  pgm.addConstraint("entity_relations", "entity_relations_pkey", {
-    primaryKey: ["source_entity_id", "link_entity_id", "target_entity_id"],
+  pgm.addConstraint("entities", "entities_relation_constraint", {
+    check: `(left_entity_id IS NULL     AND right_entity_id IS NULL) 
+          OR left_entity_id IS NOT NULL AND right_entity_id IS NOT NULL`,
   });
 
   pgm.createTable(
-    "entity_relation_histories",
+    "entity_histories",
     {
-      // We should consider whether these should reference entity_ids or not.
-      // If we allow GDPR removal of entities, this constraint has to fail/cascade depending on desired output.
-      source_entity_id: {
+      entity_id: {
+        type: "UUID",
+        references: "entity_ids",
+        notNull: true,
+      },
+      version: {
+        type: "TIMESTAMP WITH TIME ZONE",
+        notNull: true,
+        default: pgm.func("clock_timestamp()"),
+      },
+      entity_type_version_id: {
         type: "UUID",
         notNull: true,
+        references: "entity_types",
+      },
+      properties: {
+        type: "JSONB",
+        notNull: true,
+      },
+      left_order: {
+        // TODO: this is where we could do fractional indexing
+        //  https://app.asana.com/0/1200211978612931/1202085856561975/f
+        type: "integer",
+        notNull: false,
+      },
+      right_order: {
+        // TODO: this is where we could do fractional indexing
+        //  https://app.asana.com/0/1200211978612931/1202085856561975/f
+        type: "integer",
+        notNull: false,
+      },
+      left_entity_id: {
+        type: "UUID",
+        notNull: false,
         references: "entity_ids",
       },
-      target_entity_id: {
+      right_entity_id: {
         type: "UUID",
-        notNull: true,
+        notNull: false,
         references: "entity_ids",
       },
-      link_entity_id: {
+      archived: {
+        // We can consider allowing null values to reduce used space.
+        type: "boolean",
+        notNull: false,
+        default: "FALSE",
+      },
+      owned_by_id: {
         type: "UUID",
         notNull: true,
-        references: "entity_ids",
+        references: "accounts",
       },
       created_by_id: {
         type: "UUID",
         notNull: true,
         references: "accounts",
       },
-      created_at: {
-        type: "TIMESTAMP WITH TIME ZONE",
-        notNull: true,
-      },
-      removed_by_id: {
+      updated_by_id: {
         type: "UUID",
         notNull: true,
         references: "accounts",
-      },
-      removed_at: {
-        type: "TIMESTAMP WITH TIME ZONE",
-        notNull: true,
-        default: pgm.func("clock_timestamp()"),
       },
     },
     {
       ifNotExists: true,
     },
   );
-  // entity_relation_histories has no unique index!
+  pgm.addConstraint("entity_histories", "entity_histories_primary_key", {
+    primaryKey: ["entity_id", "version"],
+  });
+
+  pgm.addConstraint(
+    "entity_histories",
+    "entity_histories_relation_constraint",
+    {
+      check: `(left_entity_id IS NULL     AND right_entity_id IS NULL) 
+            OR left_entity_id IS NOT NULL AND right_entity_id IS NOT NULL`,
+    },
+  );
 }
 
 // A down migration would cause data loss.
