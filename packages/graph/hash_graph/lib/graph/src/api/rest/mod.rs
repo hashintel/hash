@@ -34,11 +34,7 @@ use utoipa::{
 use self::api_resource::RoutedResource;
 use crate::{
     ontology::domain_validator::DomainValidator,
-    store::{
-        crud::Read,
-        query::{ExpressionError, ResolveError},
-        StorePool,
-    },
+    store::{crud::Read, QueryError, StorePool},
 };
 
 static STATIC_SCHEMAS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/src/api/rest/json_schemas");
@@ -70,13 +66,8 @@ fn api_documentation() -> Vec<openapi::OpenApi> {
 fn report_to_status_code<C>(report: &Report<C>) -> StatusCode {
     let mut status_code = StatusCode::INTERNAL_SERVER_ERROR;
 
-    if let Some(error) = report.downcast_ref::<ExpressionError>() {
-        tracing::error!(%error, "Could not evaluate expression");
-        status_code = StatusCode::UNPROCESSABLE_ENTITY;
-    }
-
-    if let Some(error) = report.downcast_ref::<ResolveError>() {
-        tracing::error!(%error, "Unable to resolve query");
+    if let Some(error) = report.downcast_ref::<QueryError>() {
+        tracing::error!(%error, "Unable to query from data store");
         status_code = StatusCode::UNPROCESSABLE_ENTITY;
     }
     status_code
