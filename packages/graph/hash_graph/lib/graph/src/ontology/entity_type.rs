@@ -1,6 +1,5 @@
 use std::fmt;
 
-use error_stack::{IntoReport, Report};
 use serde::{
     de::{self, Deserializer, SeqAccess, Visitor},
     Deserialize,
@@ -12,7 +11,7 @@ use crate::{
         link_type::LinkTypeQueryPathVisitor, property_type::PropertyTypeQueryPathVisitor,
         LinkTypeQueryPath, PropertyTypeQueryPath, Selector,
     },
-    store::query::{OntologyPath, ParameterType, Path, QueryRecord, RecordPath},
+    store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath},
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -105,17 +104,6 @@ impl fmt::Display for EntityTypeQueryPath {
             Self::Links(path) => write!(fmt, "links.{path}"),
             Self::RequiredLinks => fmt.write_str("requiredLinks"),
         }
-    }
-}
-
-impl TryFrom<Path> for EntityTypeQueryPath {
-    type Error = Report<de::value::Error>;
-
-    fn try_from(path: Path) -> Result<Self, Self::Error> {
-        Self::deserialize(de::value::SeqDeserializer::new(
-            path.segments.into_iter().map(|segment| segment.identifier),
-        ))
-        .into_report()
     }
 }
 
@@ -226,11 +214,6 @@ mod tests {
     use std::iter::once;
 
     use super::*;
-    use crate::query::test_utils::create_path;
-
-    fn convert_path(segments: impl IntoIterator<Item = &'static str>) -> EntityTypeQueryPath {
-        EntityTypeQueryPath::try_from(create_path(segments)).expect("could not convert path")
-    }
 
     fn deserialize<'q>(segments: impl IntoIterator<Item = &'q str>) -> EntityTypeQueryPath {
         EntityTypeQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
@@ -339,37 +322,6 @@ mod tests {
             )
             .to_string(),
             "invalid length 4, expected 3 elements in sequence"
-        );
-    }
-
-    #[test]
-    fn path_conversion() {
-        assert_eq!(convert_path(["baseUri"]), EntityTypeQueryPath::BaseUri);
-        assert_eq!(convert_path(["version"]), EntityTypeQueryPath::Version);
-        assert_eq!(
-            convert_path(["versionedUri"]),
-            EntityTypeQueryPath::VersionedUri
-        );
-        assert_eq!(convert_path(["ownedById"]), EntityTypeQueryPath::OwnedById);
-        assert_eq!(convert_path(["title"]), EntityTypeQueryPath::Title);
-        assert_eq!(
-            convert_path(["description"]),
-            EntityTypeQueryPath::Description
-        );
-        assert_eq!(convert_path(["default"]), EntityTypeQueryPath::Default);
-        assert_eq!(convert_path(["examples"]), EntityTypeQueryPath::Examples);
-        assert_eq!(
-            convert_path(["properties", "*", "version"]),
-            EntityTypeQueryPath::Properties(PropertyTypeQueryPath::Version)
-        );
-        assert_eq!(convert_path(["required"]), EntityTypeQueryPath::Required);
-        assert_eq!(
-            convert_path(["links", "*", "version"]),
-            EntityTypeQueryPath::Links(LinkTypeQueryPath::Version)
-        );
-        assert_eq!(
-            convert_path(["requiredLinks"]),
-            EntityTypeQueryPath::RequiredLinks
         );
     }
 }

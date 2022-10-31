@@ -1,6 +1,5 @@
 use std::fmt;
 
-use error_stack::{IntoReport, Report};
 use serde::{
     de,
     de::{SeqAccess, Visitor},
@@ -10,7 +9,7 @@ use serde::{
 use crate::{
     knowledge::{entity::EntityQueryPath, EntityQueryPathVisitor, Link},
     ontology::{LinkTypeQueryPath, LinkTypeQueryPathVisitor},
-    store::query::{ParameterType, Path, QueryRecord, RecordPath},
+    store::query::{ParameterType, QueryRecord, RecordPath},
 };
 
 // TODO: To be removed, see https://app.asana.com/0/1200211978612931/1203250001255259/f
@@ -53,17 +52,6 @@ impl RecordPath for LinkQueryPath<'_> {
             Self::Source(Some(path)) | Self::Target(Some(path)) => path.expected_type(),
             Self::Index => ParameterType::Number,
         }
-    }
-}
-
-impl<'q> TryFrom<Path> for LinkQueryPath<'q> {
-    type Error = Report<de::value::Error>;
-
-    fn try_from(path: Path) -> Result<Self, Self::Error> {
-        Self::deserialize(de::value::SeqDeserializer::new(
-            path.segments.into_iter().map(|segment| segment.identifier),
-        ))
-        .into_report()
     }
 }
 
@@ -151,11 +139,6 @@ mod tests {
     use std::iter::once;
 
     use super::*;
-    use crate::query::test_utils::create_path;
-
-    fn convert_path(segments: impl IntoIterator<Item = &'static str>) -> LinkQueryPath<'static> {
-        LinkQueryPath::try_from(create_path(segments)).expect("could not convert path")
-    }
 
     fn deserialize<'q>(segments: impl IntoIterator<Item = &'q str>) -> LinkQueryPath<'q> {
         LinkQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
@@ -206,23 +189,6 @@ mod tests {
             )
             .to_string(),
             "invalid length 2, expected 1 element in sequence"
-        );
-    }
-
-    #[test]
-    fn path_conversion() {
-        assert_eq!(convert_path(["ownedById"]), LinkQueryPath::OwnedById);
-        assert_eq!(
-            convert_path(["type", "version"]),
-            LinkQueryPath::Type(LinkTypeQueryPath::Version)
-        );
-        assert_eq!(
-            convert_path(["source", "version"]),
-            LinkQueryPath::Source(Some(EntityQueryPath::Version))
-        );
-        assert_eq!(
-            convert_path(["target", "version"]),
-            LinkQueryPath::Target(Some(EntityQueryPath::Version))
         );
     }
 }
