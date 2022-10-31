@@ -391,5 +391,6 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Filter<'q
         entity: Entity,
         entity_type_id: VersionedUri,
         actor_id: UpdatedById,
+        link_metadata: Option<LinkEntityMetadata>,
     ) -> Result<PersistedEntityMetadata, UpdateError>;
 }

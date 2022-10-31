@@ -246,6 +246,10 @@ struct UpdateEntityRequest {
     #[schema(value_type = String)]
     entity_type_id: VersionedUri,
     actor_id: UpdatedById,
+    // TODO: this could break invariants if we don't move to fractional indexing
+    //  https://app.asana.com/0/1201095311341924/1202085856561975/f
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    link_metadata: Option<LinkEntityMetadata>,
 }
 
 #[utoipa::path(
@@ -270,6 +274,7 @@ async fn update_entity<P: StorePool + Send>(
         entity_id,
         entity_type_id,
         actor_id,
+        link_metadata,
     }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -278,7 +283,7 @@ async fn update_entity<P: StorePool + Send>(
     })?;
 
     store
-        .update_entity(entity_id, entity, entity_type_id, actor_id)
+        .update_entity(entity_id, entity, entity_type_id, actor_id, link_metadata)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update entity");

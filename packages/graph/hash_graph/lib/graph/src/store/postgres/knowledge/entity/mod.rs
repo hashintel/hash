@@ -267,6 +267,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         entity: Entity,
         entity_type_id: VersionedUri,
         updated_by_id: UpdatedById,
+        link_metadata: Option<LinkEntityMetadata>,
     ) -> Result<PersistedEntityMetadata, UpdateError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
@@ -294,9 +295,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .change_context(UpdateError));
         }
 
-        let metadata: LinkEntityMetadata =
-            todo!("https://app.asana.com/0/1200211978612931/1203250001255262/f");
-
         let metadata = transaction
             .insert_entity(
                 entity_id,
@@ -305,7 +303,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 previous_entity.metadata().identifier().owned_by_id(),
                 previous_entity.metadata().created_by_id(),
                 updated_by_id,
-                Some(metadata),
+                link_metadata,
             )
             .await
             .change_context(UpdateError)?;

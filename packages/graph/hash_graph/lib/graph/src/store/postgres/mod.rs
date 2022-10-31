@@ -894,6 +894,8 @@ where
         Ok(ids)
     }
 
+    #[expect(clippy::too_many_arguments, reason = "see TODO immediately below")]
+    // TODO - encapsulate the provenance record fields in a struct
     async fn insert_entity(
         &self,
         entity_id: EntityId,
