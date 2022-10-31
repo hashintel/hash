@@ -1,45 +1,38 @@
-pub mod resolve;
-
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use futures::{stream, StreamExt, TryStreamExt};
 use tokio_postgres::GenericClient;
-use type_system::{uri::VersionedUri, DataType};
+use type_system::{uri::VersionedUri, LinkType};
 
 use crate::{
-    ontology::{PersistedDataType, PersistedOntologyMetadata},
+    ontology::{PersistedLinkType, PersistedOntologyMetadata},
     provenance::{CreatedById, OwnedById, UpdatedById},
     shared::identifier::GraphElementIdentifier,
     store::{
         crud::Read,
         postgres::{context::PostgresContext, DependencyContext, DependencyContextRef},
-        AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
+        AsClient, InsertionError, LinkTypeStore, PostgresStore, QueryError, UpdateError,
     },
     subgraph::{StructuralQuery, Subgraph},
 };
 
 impl<C: AsClient> PostgresStore<C> {
-    /// Internal method to read a [`PersistedDataType`] into a [`DependencyContext`].
+    /// Internal method to read a [`PersistedLinkType`] into a [`DependencyContext`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    pub(crate) async fn get_data_type_as_dependency(
+    pub(crate) async fn get_link_type_as_dependency<'a>(
         &self,
-        data_type_id: &VersionedUri,
-        context: DependencyContextRef<'_>,
+        link_type_id: &VersionedUri,
+        context: DependencyContextRef<'a>,
     ) -> Result<(), QueryError> {
-        let DependencyContextRef {
-            referenced_data_types,
-            graph_resolve_depths,
-            ..
-        } = context;
-
-        let _unresolved_entity_type = referenced_data_types
+        let _unresolved_link_type = context
+            .referenced_link_types
             .insert_with(
-                data_type_id,
-                Some(graph_resolve_depths.data_type_resolve_depth),
+                link_type_id,
+                Some(context.graph_resolve_depths.link_type_resolve_depth),
                 || async {
-                    Ok(PersistedDataType::from(
-                        self.read_versioned_ontology_type(data_type_id).await?,
+                    Ok(PersistedLinkType::from(
+                        self.read_versioned_ontology_type(link_type_id).await?,
                     ))
                 },
             )
@@ -50,10 +43,10 @@ impl<C: AsClient> PostgresStore<C> {
 }
 
 #[async_trait]
-impl<C: AsClient> DataTypeStore for PostgresStore<C> {
-    async fn create_data_type(
+impl<C: AsClient> LinkTypeStore for PostgresStore<C> {
+    async fn create_link_type(
         &mut self,
-        data_type: DataType,
+        link_type: LinkType,
         owned_by_id: OwnedById,
         created_by_id: CreatedById,
     ) -> Result<PersistedOntologyMetadata, InsertionError> {
@@ -66,7 +59,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         );
 
         let (_, metadata) = transaction
-            .create(data_type, owned_by_id, created_by_id)
+            .create(link_type, owned_by_id, created_by_id)
             .await?;
 
         transaction
@@ -79,28 +72,28 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         Ok(metadata)
     }
 
-    async fn get_data_type<'f: 'q, 'q>(
+    async fn get_link_type<'f: 'q, 'q>(
         &self,
-        query: &'f StructuralQuery<'q, DataType>,
+        query: &'f StructuralQuery<'q, LinkType>,
     ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
             ref filter,
             graph_resolve_depths,
         } = *query;
 
-        let subgraphs = stream::iter(Read::<PersistedDataType>::read(self, filter).await?)
-            .then(|data_type| async move {
+        let subgraphs = stream::iter(Read::<PersistedLinkType>::read(self, filter).await?)
+            .then(|link_type| async move {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 
-                let data_type_id = data_type.metadata().identifier().uri().clone();
+                let link_type_id = link_type.metadata().identifier().uri().clone();
                 dependency_context
-                    .referenced_data_types
-                    .insert(&data_type_id, None, data_type);
+                    .referenced_link_types
+                    .insert(&link_type_id, None, link_type);
 
-                self.get_data_type_as_dependency(&data_type_id, dependency_context.as_ref_object())
+                self.get_link_type_as_dependency(&link_type_id, dependency_context.as_ref_object())
                     .await?;
 
-                let root = GraphElementIdentifier::OntologyElementId(data_type_id);
+                let root = GraphElementIdentifier::OntologyElementId(link_type_id);
 
                 Ok::<_, Report<QueryError>>(dependency_context.into_subgraph(vec![root]))
             })
@@ -113,10 +106,10 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         Ok(subgraph)
     }
 
-    async fn update_data_type(
+    async fn update_link_type(
         &mut self,
-        data_type: DataType,
-        updated_by_id: UpdatedById,
+        link_type: LinkType,
+        updated_by: UpdatedById,
     ) -> Result<PersistedOntologyMetadata, UpdateError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
@@ -126,7 +119,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                 .change_context(UpdateError)?,
         );
 
-        let (_, metadata) = transaction.update(data_type, updated_by_id).await?;
+        let (_, metadata) = transaction.update(link_type, updated_by).await?;
 
         transaction
             .client
