@@ -199,7 +199,7 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_entity_type_id", encodeURIComponent(response.body.identifier.uri));
+    client.global.set("person_entity_type_id", response.body.identifier.uri);
 %}
 
 #### Get Person entity type
@@ -218,7 +218,7 @@ Accept: application/json
 
 {
   "actorId": "{{account_id}}",
-  "typeToUpdate": "http://localhost:3000/@alice/types/entity-type/person/v/1",
+  "typeToUpdate": "{{person_entity_type_id}}",
   "schema": {
     "kind": "entityType",
     "type": "object",
@@ -248,6 +248,7 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
+    client.global.set("person_entity_type_id_v2", response.body.identifier.uri);
 %}
 
 #### Get all entity types
@@ -272,7 +273,7 @@ Accept: application/json
   "entity": {
     "http://localhost:3000/@alice/types/property-type/name/": "Alice"
   },
-  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/1"
+  "entityTypeId": "{{person_entity_type_id_v2}}"
 }
 
 > {%
@@ -291,25 +292,25 @@ Accept: application/json
 #    });
 #%}
 
-#### Update Person entity
-#PUT http://127.0.0.1:4000/entities
-#Content-Type: application/json
-#Accept: application/json
-#
-#{
-#  "actorId": "{{account_id}}",
-#  "entityId": "{{person_a_entity_id}}",
-#  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2",
-#  "entity": {
-#    "http://localhost:3000/@alice/types/property-type/name/": "Alice Allison"
-#  }
-#}
-#
-#> {%
-#    client.test("status", function() {
-#        client.assert(response.status === 200, "Response status is not 200");
-#    });
-#%}
+### Update Person entity
+PUT http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+
+{
+  "actorId": "{{account_id}}",
+  "entityId": "{{person_a_entity_id}}",
+  "entityTypeId": "{{person_entity_type_id_v2}}",
+  "entity": {
+    "http://localhost:3000/@alice/types/property-type/name/": "Alice Allison"
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
 
 ### Insert second Person entity
 POST http://127.0.0.1:4000/entities
@@ -322,7 +323,7 @@ Accept: application/json
   "entity": {
     "http://localhost:3000/@alice/types/property-type/name/": "Bob"
   },
-  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/1"
+  "entityTypeId": "{{person_entity_type_id_v2}}"
 }
 
 > {%
