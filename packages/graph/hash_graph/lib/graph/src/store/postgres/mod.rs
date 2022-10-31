@@ -677,6 +677,9 @@ where
 
         let base_uri = uri.base_uri();
 
+        // TODO - address potential race condition
+        //  https://app.asana.com/0/1202805690238892/1203201674100967/f
+
         let previous_ontology_type = self
             .read_latest_ontology_type::<T>(base_uri)
             .await
