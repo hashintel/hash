@@ -18,7 +18,7 @@ pub use self::{
 };
 use crate::{
     identifier::AccountId,
-    knowledge::{Entity, EntityId, PersistedEntity, PersistedEntityMetadata},
+    knowledge::{Entity, EntityId, LinkEntityMetadata, PersistedEntity, PersistedEntityMetadata},
     ontology::{
         PersistedDataType, PersistedEntityType, PersistedOntologyMetadata, PersistedPropertyType,
     },
@@ -337,6 +337,7 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Filter<'q
         owned_by_id: OwnedById,
         entity_id: Option<EntityId>,
         actor_id: CreatedById,
+        link_metadata: Option<LinkEntityMetadata>,
     ) -> Result<PersistedEntityMetadata, InsertionError>;
 
     /// Inserts the entities with the specified [`EntityType`] into the `Store`.

@@ -37,6 +37,13 @@ impl fmt::Display for EntityId {
     }
 }
 
+#[derive(
+    Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema, FromSql, ToSql,
+)]
+#[repr(transparent)]
+#[postgres(transparent)]
+pub struct LinkOrder(i32);
+
 /// An entity.
 ///
 /// When expressed as JSON, this should validate against its respective entity type(s).
@@ -90,21 +97,23 @@ impl PersistedEntityIdentifier {
 
 /// The associated information for 'Link' entities
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct LinkEntityMetadata {
     left_entity_id: EntityId,
     right_entity_id: EntityId,
-    left_order: Option<i32>,
-    right_order: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    left_order: Option<LinkOrder>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    right_order: Option<LinkOrder>,
 }
 
 impl LinkEntityMetadata {
     #[must_use]
-    pub fn new(
+    pub const fn new(
         left_entity_id: EntityId,
         right_entity_id: EntityId,
-        left_order: Option<i32>,
-        right_order: Option<i32>,
+        left_order: Option<LinkOrder>,
+        right_order: Option<LinkOrder>,
     ) -> Self {
         Self {
             left_entity_id,
@@ -125,19 +134,20 @@ impl LinkEntityMetadata {
     }
 
     #[must_use]
-    pub const fn left_order(&self) -> Option<i32> {
+    pub const fn left_order(&self) -> Option<LinkOrder> {
         self.left_order
     }
 
     #[must_use]
-    pub const fn right_order(&self) -> Option<i32> {
+    pub const fn right_order(&self) -> Option<LinkOrder> {
         self.right_order
     }
 }
 
 /// The metadata of an [`Entity`] record.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+// TODO: deny_unknown_fields on other structs
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct PersistedEntityMetadata {
     identifier: PersistedEntityIdentifier,
     #[schema(value_type = String)]
