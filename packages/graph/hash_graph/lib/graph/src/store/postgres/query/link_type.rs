@@ -8,6 +8,7 @@ use crate::{
     },
 };
 
+// TODO: Link types are to be removed. See https://app.asana.com/0/1200211978612931/1203250001255277/f
 impl<'q> PostgresQueryRecord<'q> for LinkType {
     fn base_table() -> Table {
         Table {
@@ -28,6 +29,7 @@ impl<'q> PostgresQueryRecord<'q> for LinkType {
     }
 }
 
+// TODO: Link types are to be removed. See https://app.asana.com/0/1200211978612931/1203250001255277/f
 impl Path for LinkTypeQueryPath {
     fn tables(&self) -> Vec<(TableName, EdgeJoinDirection)> {
         vec![(

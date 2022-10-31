@@ -147,7 +147,8 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       /**
        * @todo: remove this column if we introduce a delete table similar to links
        * @see https://app.asana.com/0/1201095311341924/1202697596928142/f
-       */ removed_by_id: {
+       */
+      removed_by_id: {
         type: "UUID",
         references: "accounts",
       },
@@ -297,44 +298,6 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   );
 
   pgm.createTable(
-    "entity_type_link_type_references",
-    {
-      source_entity_type_version_id: {
-        type: "UUID",
-        notNull: true,
-        references: "entity_types",
-      },
-      target_link_type_version_id: {
-        type: "UUID",
-        notNull: true,
-        references: "link_types",
-      },
-    },
-    {
-      ifNotExists: true,
-    },
-  );
-
-  pgm.createTable(
-    "entity_type_entity_type_links",
-    {
-      source_entity_type_version_id: {
-        type: "UUID",
-        notNull: true,
-        references: "entity_types",
-      },
-      target_entity_type_version_id: {
-        type: "UUID",
-        notNull: true,
-        references: "entity_types",
-      },
-    },
-    {
-      ifNotExists: true,
-    },
-  );
-
-  pgm.createTable(
     "entity_ids",
     {
       entity_id: {
@@ -369,6 +332,18 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         type: "JSONB",
         notNull: true,
       },
+      left_order: {
+        // TODO: this is where we could do fractional indexing
+        //  https://app.asana.com/0/1200211978612931/1202085856561975/f
+        type: "integer",
+        notNull: false,
+      },
+      right_order: {
+        // TODO: this is where we could do fractional indexing
+        //  https://app.asana.com/0/1200211978612931/1202085856561975/f
+        type: "integer",
+        notNull: false,
+      },
       owned_by_id: {
         type: "UUID",
         notNull: true,
@@ -402,7 +377,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   });
 
   pgm.createTable(
-    "links",
+    "entity_relations",
     {
       source_entity_id: {
         type: "UUID",
@@ -414,21 +389,10 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         notNull: true,
         references: "entity_ids",
       },
-      link_type_version_id: {
+      link_entity_id: {
         type: "UUID",
         notNull: true,
-        references: "link_types",
-      },
-      link_index: {
-        // TODO: this is where we could do fractional indexing
-        //  https://app.asana.com/0/1200211978612931/1202085856561975/f
-        type: "integer",
-        notNull: false,
-      },
-      owned_by_id: {
-        type: "UUID",
-        notNull: true,
-        references: "accounts",
+        references: "entity_ids",
       },
       created_by_id: {
         type: "UUID",
@@ -438,24 +402,20 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       created_at: {
         type: "TIMESTAMP WITH TIME ZONE",
         notNull: true,
+        default: pgm.func("clock_timestamp()"),
       },
     },
     {
       ifNotExists: true,
     },
   );
-  // Currently links are between unversioned entities.
-  // Ideally we'd have links between versioned entities -> unversioned entities.
-  pgm.addConstraint("links", "links_pkey", {
-    primaryKey: [
-      "source_entity_id",
-      "target_entity_id",
-      "link_type_version_id",
-    ],
+  // Currently entity relations are between unversioned entities.
+  pgm.addConstraint("entity_relations", "entity_relations_pkey", {
+    primaryKey: ["source_entity_id", "link_entity_id", "target_entity_id"],
   });
 
   pgm.createTable(
-    "link_histories",
+    "entity_relation_histories",
     {
       // We should consider whether these should reference entity_ids or not.
       // If we allow GDPR removal of entities, this constraint has to fail/cascade depending on desired output.
@@ -469,21 +429,10 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         notNull: true,
         references: "entity_ids",
       },
-      link_type_version_id: {
+      link_entity_id: {
         type: "UUID",
         notNull: true,
-        references: "link_types",
-      },
-      link_index: {
-        // TODO: this is where we could do fractional indexing
-        //  https://app.asana.com/0/1200211978612931/1202085856561975/f
-        type: "integer",
-        notNull: false,
-      },
-      owned_by_id: {
-        type: "UUID",
-        notNull: true,
-        references: "accounts",
+        references: "entity_ids",
       },
       created_by_id: {
         type: "UUID",
@@ -502,13 +451,14 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       removed_at: {
         type: "TIMESTAMP WITH TIME ZONE",
         notNull: true,
+        default: pgm.func("clock_timestamp()"),
       },
     },
     {
       ifNotExists: true,
     },
   );
-  // link_histories has no unique index!
+  // entity_relation_histories has no unique index!
 }
 
 // A down migration would cause data loss.
@@ -521,12 +471,11 @@ DROP TABLE IF EXISTS property_type_property_type_references CASCADE;
 DROP TABLE IF EXISTS property_type_data_type_references CASCADE;
 DROP TABLE IF EXISTS entity_types CASCADE;
 DROP TABLE IF EXISTS entity_type_property_type_references CASCADE;
-DROP TABLE IF EXISTS entity_type_link_type_references CASCADE;
-DROP TABLE IF EXISTS entity_type_entity_type_links CASCADE;
 DROP TABLE IF EXISTS link_types CASCADE;
 DROP TABLE IF EXISTS entity_ids CASCADE;
 DROP TABLE IF EXISTS entities CASCADE;
-DROP TABLE IF EXISTS links CASCADE;
+DROP TABLE IF EXISTS entity_relations CASCADE;
+DROP TABLE IF EXISTS entity_relation_histories CASCADE;
 DROP TABLE IF EXISTS accounts CASCADE;
 DROP TABLE IF EXISTS ids CASCADE;
 */

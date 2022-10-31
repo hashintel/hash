@@ -13,6 +13,7 @@ use crate::{
     store::query::{ParameterType, Path, QueryRecord, RecordPath},
 };
 
+// TODO: To be removed, see https://app.asana.com/0/1200211978612931/1203250001255259/f
 #[derive(Debug, PartialEq, Eq)]
 pub enum LinkQueryPath<'q> {
     OwnedById,

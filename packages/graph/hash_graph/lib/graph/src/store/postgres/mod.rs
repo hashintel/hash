@@ -20,7 +20,7 @@ use tokio_postgres::{binary_copy::BinaryCopyInWriter, types::Type};
 use tokio_postgres::{GenericClient, Transaction};
 use type_system::{
     uri::{BaseUri, VersionedUri},
-    DataTypeReference, EntityType, EntityTypeReference, PropertyType, PropertyTypeReference,
+    DataTypeReference, EntityType, PropertyType, PropertyTypeReference,
 };
 use uuid::Uuid;
 
@@ -838,50 +838,8 @@ where
                 .change_context(InsertionError)?;
         }
 
-        let (link_type_ids, entity_type_references): (
-            Vec<&VersionedUri>,
-            Vec<&[EntityTypeReference]>,
-        ) = entity_type.link_type_references().into_iter().unzip();
-
-        let link_type_ids = self
-            .link_type_ids_to_version_ids(link_type_ids)
-            .await
-            .change_context(InsertionError)
-            .attach_printable("Could not find referenced link types")?;
-
-        for target_id in link_type_ids {
-            self.as_client().query_one(
-                r#"
-                        INSERT INTO entity_type_link_type_references (source_entity_type_version_id, target_link_type_version_id)
-                        VALUES ($1, $2)
-                        RETURNING source_entity_type_version_id;
-                    "#,
-                &[&version_id, &target_id],
-            )
-                .await
-                .into_report()
-                .change_context(InsertionError)?;
-        }
-
-        let entity_type_reference_ids = self
-            .entity_type_reference_ids(entity_type_references.into_iter().flatten())
-            .await
-            .change_context(InsertionError)
-            .attach_printable("Could not find referenced entity types")?;
-
-        for target_id in entity_type_reference_ids {
-            self.as_client().query_one(
-                r#"
-                        INSERT INTO entity_type_entity_type_links (source_entity_type_version_id, target_entity_type_version_id)
-                        VALUES ($1, $2)
-                        RETURNING source_entity_type_version_id;
-                    "#,
-                &[&version_id, &target_id],
-            )
-                .await
-                .into_report()
-                .change_context(InsertionError)?;
-        }
+        // TODO: Add entity_type_entity_type references through link entity types
+        //   see https://app.asana.com/0/1200211978612931/1203250001255277/f
 
         Ok(())
     }
@@ -915,38 +873,6 @@ where
         let mut ids = Vec::with_capacity(referenced_data_types.size_hint().0);
         for reference in referenced_data_types {
             ids.push(self.version_id_by_uri(reference.uri()).await?);
-        }
-        Ok(ids)
-    }
-
-    async fn entity_type_reference_ids<'p, I>(
-        &self,
-        referenced_entity_types: I,
-    ) -> Result<Vec<VersionId>, QueryError>
-    where
-        I: IntoIterator<Item = &'p EntityTypeReference> + Send,
-        I::IntoIter: Send,
-    {
-        let referenced_entity_types = referenced_entity_types.into_iter();
-        let mut ids = Vec::with_capacity(referenced_entity_types.size_hint().0);
-        for reference in referenced_entity_types {
-            ids.push(self.version_id_by_uri(reference.uri()).await?);
-        }
-        Ok(ids)
-    }
-
-    async fn link_type_ids_to_version_ids<'p, I>(
-        &self,
-        link_type_ids: I,
-    ) -> Result<Vec<VersionId>, QueryError>
-    where
-        I: IntoIterator<Item = &'p VersionedUri> + Send,
-        I::IntoIter: Send,
-    {
-        let link_type_ids = link_type_ids.into_iter();
-        let mut ids = Vec::with_capacity(link_type_ids.size_hint().0);
-        for uri in link_type_ids {
-            ids.push(self.version_id_by_uri(uri).await?);
         }
         Ok(ids)
     }
@@ -1024,6 +950,7 @@ where
     /// - if the [`Link`] exists already
     /// - if the [`Link`]s link type doesn't exist
     /// - if inserting the link failed.
+    // TODO: rewrite this to handle link entities instead, related to https://app.asana.com/0/1200211978612931/1203250001255259/f
     async fn insert_link(
         &self,
         link: &Link,
@@ -1065,6 +992,7 @@ where
     /// - if the [`Link`] doesn't exist
     /// - if the [`Link`]s link type doesn't exist
     /// - if inserting the link failed.
+    // TODO: Rewrite link deletion, related to https://app.asana.com/0/1200211978612931/1203250001255259/f
     async fn move_link_to_history(
         &self,
         link: &Link,
