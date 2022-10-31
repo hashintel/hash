@@ -1,8 +1,8 @@
-import { PropertyType } from "@blockprotocol/type-system-web";
 import { SizedGridColumn } from "@glideapps/glide-data-grid";
 import { VerticalLineDir } from "../../../../../../../components/GlideGlid/utils";
 
-export type PropertyRow = PropertyType & {
+export type PropertyRow = {
+  title: string;
   rowId: string;
   value: any;
   dataTypes: string[];

@@ -88,7 +88,8 @@ const generateRowDataFromPropertyTypeBaseUri = ({
   const rowId = propertyKeyChain.join("-");
 
   return {
-    ...propertyType,
+    rowId,
+    title: propertyType.title,
     value,
     dataTypes,
     required,
@@ -97,7 +98,6 @@ const generateRowDataFromPropertyTypeBaseUri = ({
     indent,
     verticalLinesForEachIndent: [], // this will be filled by `fillRowDataIndentCalculations`
     propertyKeyChain,
-    rowId,
   };
 };
 
