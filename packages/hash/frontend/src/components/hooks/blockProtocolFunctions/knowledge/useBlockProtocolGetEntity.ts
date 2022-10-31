@@ -3,7 +3,7 @@ import { useCallback } from "react";
 
 import {
   GetOutgoingPersistedLinksQuery,
-  Query,
+  GetPersistedEntityQuery,
   QueryGetPersistedEntityArgs,
   QueryOutgoingPersistedLinksArgs,
 } from "../../../../graphql/apiTypes.gen";
@@ -17,13 +17,13 @@ import { Subgraph } from "../../../../lib/subgraph";
 export const useBlockProtocolGetEntity = (): {
   getEntity: GetEntityMessageCallback;
 } => {
-  const [getEntityFn] = useLazyQuery<Query, QueryGetPersistedEntityArgs>(
-    getPersistedEntityQuery,
-    {
-      /** @todo reconsider caching. This is done for testing/demo purposes. */
-      fetchPolicy: "no-cache",
-    },
-  );
+  const [getEntityFn] = useLazyQuery<
+    GetPersistedEntityQuery,
+    QueryGetPersistedEntityArgs
+  >(getPersistedEntityQuery, {
+    /** @todo reconsider caching. This is done for testing/demo purposes. */
+    fetchPolicy: "no-cache",
+  });
 
   const [getOutgoingLinksFn] = useLazyQuery<
     GetOutgoingPersistedLinksQuery,

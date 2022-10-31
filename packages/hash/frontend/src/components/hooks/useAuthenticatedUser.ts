@@ -94,6 +94,7 @@ export const useAuthenticatedUser = (
     } else {
       setKratosSession(session);
       setLoadingKratosSession(false);
+      return session;
     }
   };
 
