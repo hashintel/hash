@@ -26,8 +26,12 @@ export const PropertyTable = ({
   onSearchClose,
 }: PropertyTableProps) => {
   const gridRef = useRef<DataEditorRef>(null);
-  const { propertySort, setPropertySort, togglePropertyExpand } =
-    useEntityEditor();
+  const {
+    propertySort,
+    setPropertySort,
+    togglePropertyExpand,
+    propertyExpandStatus,
+  } = useEntityEditor();
   const rowData = useRowData();
   const { tooltipElement, showTooltip, hideTooltip, withTooltips } =
     useGridTooltip(gridRef);
@@ -56,7 +60,10 @@ export const PropertyTable = ({
         customRenderers={[
           withTooltips(renderValueCell),
           renderDataTypeCell,
-          createRenderPropertyNameCell(togglePropertyExpand),
+          createRenderPropertyNameCell(
+            togglePropertyExpand,
+            propertyExpandStatus,
+          ),
         ]}
         // define max height if there are lots of rows
         height={rowData.length > 10 ? 500 : undefined}

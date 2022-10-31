@@ -9,6 +9,7 @@ import {
   drawVerticalLine,
   firstColumnPadding,
   getYCenter,
+  TableExpandStatus,
   VerticalLineDir,
 } from "../../../../../../../../components/GlideGlid/utils";
 import { PropertyRow } from "../types";
@@ -22,6 +23,7 @@ export type PropertyNameCell = CustomCell<PropertyNameCellProps>;
 
 export const createRenderPropertyNameCell = (
   togglePropertyExpand: (id: string) => void,
+  propertyExpandStatus: TableExpandStatus,
 ): CustomRenderer<PropertyNameCell> => {
   return {
     kind: GridCellKind.Custom,
@@ -29,8 +31,14 @@ export const createRenderPropertyNameCell = (
       (cell.data as any).kind === "property-name-cell",
     draw: (args, cell) => {
       const { ctx, theme, rect } = args;
-      const { children, depth, title, indent, verticalLinesForEachIndent } =
-        cell.data.property;
+      const {
+        children,
+        depth,
+        title,
+        indent,
+        verticalLinesForEachIndent,
+        rowId,
+      } = cell.data.property;
 
       const yCenter = getYCenter(args);
       ctx.fillStyle = theme.textHeader;
@@ -93,11 +101,7 @@ export const createRenderPropertyNameCell = (
 
         ctx.fillRect(iconLeft, iconTop, iconSize, iconSize);
 
-        /** @todo find a way to check if a row is expanded here
-         * but without having an `expanded` value inside the row data
-         * because of performance reasons
-         */
-        const expanded = true;
+        const expanded = propertyExpandStatus[rowId];
 
         args.spriteManager.drawSprite(
           expanded ? CustomGridIcon.CHEVRON_DOWN : CustomGridIcon.CHEVRON_RIGHT,
