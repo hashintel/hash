@@ -4,7 +4,7 @@ use postgres_types::ToSql;
 
 use crate::store::{
     postgres::query::{
-        Column, ColumnAccess, Condition, Destinctness, EdgeJoinDirection, EqualityOperator,
+        Column, ColumnAccess, Condition, Distinctness, EdgeJoinDirection, EqualityOperator,
         Expression, Function, JoinExpression, OrderByExpression, Ordering, Path,
         PostgresQueryRecord, SelectExpression, SelectStatement, Table, TableAlias, TableName,
         Transpile, WhereExpression, WindowStatement, WithExpression,
@@ -52,7 +52,7 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
     pub fn with_default_selection() -> Self {
         let mut default = Self::new();
         for path in T::default_selection_paths() {
-            default.add_selection_path(path, Destinctness::Indestinct, None);
+            default.add_selection_path(path, Distinctness::Indestinct, None);
         }
         default
     }
@@ -69,12 +69,12 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
 
     /// Adds a new path to the selection.
     ///
-    /// Optionally, the added selection can be distinct or ordered by providing [`Deistinctness`]
+    /// Optionally, the added selection can be distinct or ordered by providing [`Distinctness`]
     /// and [`Ordering`].
     pub fn add_selection_path(
         &mut self,
         path: &'q T::Path<'q>,
-        destinctness: Destinctness,
+        distinctness: Distinctness,
         ordering: Option<Ordering>,
     ) {
         let table = self.add_join_statements(path.tables());
@@ -82,7 +82,7 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
             table,
             access: path.column_access(),
         };
-        if destinctness == Destinctness::Destinct {
+        if distinctness == Distinctness::Distinct {
             self.statement.distinct.push(column.clone());
         }
         if let Some(ordering) = ordering {

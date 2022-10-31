@@ -17,9 +17,9 @@ pub struct SelectStatement<'q> {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum Destinctness {
+pub enum Distinctness {
     Indestinct,
-    Destinct,
+    Distinct,
 }
 
 impl Transpile for SelectStatement<'_> {
@@ -86,7 +86,7 @@ mod tests {
         },
         store::{
             postgres::query::{
-                test_helper::trim_whitespace, Destinctness, Ordering, PostgresQueryRecord,
+                test_helper::trim_whitespace, Distinctness, Ordering, PostgresQueryRecord,
                 SelectCompiler,
             },
             query::{Filter, FilterExpression, Parameter},
@@ -472,17 +472,17 @@ mod tests {
         let mut compiler = SelectCompiler::<Entity>::new();
         compiler.add_selection_path(
             &EntityQueryPath::Id,
-            Destinctness::Destinct,
+            Distinctness::Distinct,
             Some(Ordering::Ascending),
         );
         compiler.add_selection_path(
             &EntityQueryPath::Version,
-            Destinctness::Destinct,
+            Distinctness::Distinct,
             Some(Ordering::Descending),
         );
         compiler.add_selection_path(
             &EntityQueryPath::Properties(None),
-            Destinctness::Indestinct,
+            Distinctness::Indestinct,
             None,
         );
 

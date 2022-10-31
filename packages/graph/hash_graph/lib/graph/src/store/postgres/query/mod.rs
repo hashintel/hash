@@ -25,7 +25,7 @@ pub use self::{
         CommonTableExpression, EdgeJoinDirection, Expression, Function, JoinExpression,
         OrderByExpression, Ordering, SelectExpression, WhereExpression, WithExpression,
     },
-    statement::{Destinctness, SelectStatement, Statement, WindowStatement},
+    statement::{Distinctness, SelectStatement, Statement, WindowStatement},
     table::{Column, ColumnAccess, Table, TableAlias, TableName},
 };
 use crate::store::query::QueryRecord;

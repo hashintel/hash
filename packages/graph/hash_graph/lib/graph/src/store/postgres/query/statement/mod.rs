@@ -4,7 +4,7 @@ mod window;
 use std::fmt;
 
 pub use self::{
-    select::{Destinctness, SelectStatement},
+    select::{Distinctness, SelectStatement},
     window::WindowStatement,
 };
 use crate::store::postgres::query::Transpile;
