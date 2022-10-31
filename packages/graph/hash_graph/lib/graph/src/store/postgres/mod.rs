@@ -26,19 +26,18 @@ use uuid::Uuid;
 
 use self::context::{OntologyRecord, PostgresContext};
 pub use self::pool::{AsClient, PostgresStorePool};
-use super::error::LinkRemovalError;
 use crate::{
     identifier::AccountId,
     knowledge::{
-        Entity, EntityId, KnowledgeGraphQueryDepth, Link, PersistedEntity,
-        PersistedEntityIdentifier, PersistedEntityMetadata, PersistedLink,
+        Entity, EntityId, KnowledgeGraphQueryDepth, PersistedEntity,
+        PersistedEntityIdentifier, PersistedEntityMetadata,
     },
     ontology::{
-        OntologyQueryDepth, PersistedDataType, PersistedEntityType, PersistedLinkType,
-        PersistedOntologyIdentifier, PersistedOntologyMetadata, PersistedPropertyType,
+        OntologyQueryDepth, PersistedDataType, PersistedEntityType, PersistedOntologyIdentifier,
+        PersistedOntologyMetadata, PersistedPropertyType,
     },
     provenance::{CreatedById, OwnedById, RemovedById, UpdatedById},
-    shared::identifier::{GraphElementIdentifier, LinkId},
+    shared::identifier::{GraphElementIdentifier},
     store::{
         error::VersionedUriAlreadyExists,
         postgres::{ontology::OntologyDatabaseType, version_id::VersionId},
@@ -234,11 +233,9 @@ pub struct DependencyContext {
     pub referenced_data_types: DependencyMap<VersionedUri, PersistedDataType, OntologyQueryDepth>,
     pub referenced_property_types:
         DependencyMap<VersionedUri, PersistedPropertyType, OntologyQueryDepth>,
-    pub referenced_link_types: DependencyMap<VersionedUri, PersistedLinkType, OntologyQueryDepth>,
     pub referenced_entity_types:
         DependencyMap<VersionedUri, PersistedEntityType, OntologyQueryDepth>,
     pub linked_entities: DependencyMap<EntityId, PersistedEntity, KnowledgeGraphQueryDepth>,
-    pub links: DependencySet<PersistedLink, KnowledgeGraphQueryDepth>,
     pub graph_resolve_depths: GraphResolveDepths,
 }
 
@@ -249,10 +246,8 @@ impl DependencyContext {
             edges: Edges::new(),
             referenced_data_types: DependencyMap::new(),
             referenced_property_types: DependencyMap::new(),
-            referenced_link_types: DependencyMap::new(),
             referenced_entity_types: DependencyMap::new(),
             linked_entities: DependencyMap::new(),
-            links: DependencySet::new(),
             graph_resolve_depths,
         }
     }
@@ -263,10 +258,8 @@ impl DependencyContext {
             edges: &mut self.edges,
             referenced_data_types: &mut self.referenced_data_types,
             referenced_property_types: &mut self.referenced_property_types,
-            referenced_link_types: &mut self.referenced_link_types,
             referenced_entity_types: &mut self.referenced_entity_types,
             linked_entities: &mut self.linked_entities,
-            links: &mut self.links,
             graph_resolve_depths: self.graph_resolve_depths,
         }
     }
@@ -296,14 +289,6 @@ impl DependencyContext {
                         )
                     }),
             )
-            .chain(self.referenced_link_types.into_values().map(|link_type| {
-                (
-                    GraphElementIdentifier::OntologyElementId(
-                        link_type.metadata().identifier().uri().clone(),
-                    ),
-                    Vertex::LinkType(link_type),
-                )
-            }))
             .chain(
                 self.referenced_entity_types
                     .into_values()
@@ -316,16 +301,6 @@ impl DependencyContext {
                         )
                     }),
             )
-            .chain(self.links.into_iter().map(|link| {
-                (
-                    GraphElementIdentifier::Temporary(LinkId {
-                        source_entity_id: link.inner().source_entity(),
-                        target_entity_id: link.inner().target_entity(),
-                        link_type_id: link.inner().link_type_id().clone(),
-                    }),
-                    Vertex::Link(link),
-                )
-            }))
             .chain(self.linked_entities.into_values().map(|entity| {
                 (
                     GraphElementIdentifier::KnowledgeGraphElementId(
@@ -351,12 +326,9 @@ pub struct DependencyContextRef<'a> {
         &'a mut DependencyMap<VersionedUri, PersistedDataType, OntologyQueryDepth>,
     pub referenced_property_types:
         &'a mut DependencyMap<VersionedUri, PersistedPropertyType, OntologyQueryDepth>,
-    pub referenced_link_types:
-        &'a mut DependencyMap<VersionedUri, PersistedLinkType, OntologyQueryDepth>,
     pub referenced_entity_types:
         &'a mut DependencyMap<VersionedUri, PersistedEntityType, OntologyQueryDepth>,
     pub linked_entities: &'a mut DependencyMap<EntityId, PersistedEntity, KnowledgeGraphQueryDepth>,
-    pub links: &'a mut DependencySet<PersistedLink, KnowledgeGraphQueryDepth>,
     pub graph_resolve_depths: GraphResolveDepths,
 }
 
@@ -370,10 +342,8 @@ where {
             edges: self.edges,
             referenced_data_types: self.referenced_data_types,
             referenced_property_types: self.referenced_property_types,
-            referenced_link_types: self.referenced_link_types,
             referenced_entity_types: self.referenced_entity_types,
             linked_entities: self.linked_entities,
-            links: self.links,
             graph_resolve_depths,
         }
     }
@@ -838,8 +808,51 @@ where
                 .change_context(InsertionError)?;
         }
 
-        // TODO: Add entity_type_entity_type references through link entity types
-        //   see https://app.asana.com/0/1200211978612931/1203250001255277/f
+        todo!("https://app.asana.com/0/1200211978612931/1203250001255262/f");
+        // let (link_type_ids, entity_type_references): (
+        //     Vec<&VersionedUri>,
+        //     Vec<&[EntityTypeReference]>,
+        // ) = entity_type.link_type_references().into_iter().unzip();
+        //
+        // let link_type_ids = self
+        //     .link_type_ids_to_version_ids(link_type_ids)
+        //     .await
+        //     .change_context(InsertionError)
+        //     .attach_printable("Could not find referenced link types")?;
+        //
+        // for target_id in link_type_ids {
+        //     self.as_client().query_one(
+        //         r#"
+        //                 INSERT INTO entity_type_link_type_references (source_entity_type_version_id, target_link_type_version_id)
+        //                 VALUES ($1, $2)
+        //                 RETURNING source_entity_type_version_id;
+        //             "#,
+        //         &[&version_id, &target_id],
+        //     )
+        //         .await
+        //         .into_report()
+        //         .change_context(InsertionError)?;
+        // }
+        //
+        // let entity_type_reference_ids = self
+        //     .entity_type_reference_ids(entity_type_references.into_iter().flatten())
+        //     .await
+        //     .change_context(InsertionError)
+        //     .attach_printable("Could not find referenced entity types")?;
+        //
+        // for target_id in entity_type_reference_ids {
+        //     self.as_client().query_one(
+        //         r#"
+        //                 INSERT INTO entity_type_entity_type_links (source_entity_type_version_id, target_entity_type_version_id)
+        //                 VALUES ($1, $2)
+        //                 RETURNING source_entity_type_version_id;
+        //             "#,
+        //         &[&version_id, &target_id],
+        //     )
+        //         .await
+        //         .into_report()
+        //         .change_context(InsertionError)?;
+        // }
 
         Ok(())
     }
@@ -941,101 +954,6 @@ where
             .change_context(QueryError)
             .attach_printable_lazy(|| uri.clone())?
             .get(0))
-    }
-
-    /// Inserts a [`Link`] associated with an [`OwnedById`] and [`CreatedById`] into the database.
-    ///
-    /// # Errors
-    ///
-    /// - if the [`Link`] exists already
-    /// - if the [`Link`]s link type doesn't exist
-    /// - if inserting the link failed.
-    // TODO: rewrite this to handle link entities instead, related to https://app.asana.com/0/1200211978612931/1203250001255259/f
-    async fn insert_link(
-        &self,
-        link: &Link,
-        owned_by_id: OwnedById,
-        created_by_id: CreatedById,
-    ) -> Result<(), InsertionError> {
-        let link_type_version_id = self
-            .version_id_by_uri(link.link_type_id())
-            .await
-            .change_context(InsertionError)
-            .attach_printable(link.source_entity())?;
-
-        self.as_client()
-        .query_one(
-            // TODO: Revisit insertion strategy, currently the burden of ordering is put on the
-            //   consumer of the API.
-            //   https://app.asana.com/0/1202805690238892/1202937382769278/f
-            r#"
-            INSERT INTO links (source_entity_id, target_entity_id, link_type_version_id, owned_by_id, link_index, created_by_id, created_at)
-            VALUES ($1, $2, $3, $4, $5, $6, clock_timestamp())
-            RETURNING source_entity_id, target_entity_id, link_type_version_id;
-            "#,
-            &[&link.source_entity(), &link.target_entity(), &link_type_version_id, &owned_by_id, &link.index(), &created_by_id],
-        )
-        .await
-        .into_report()
-        .change_context(InsertionError)
-        .attach_printable(owned_by_id)
-        .attach_lazy(|| link.clone())?;
-
-        Ok(())
-    }
-
-    /// Moves a [`Link`] associated with an [`RemovedById`] from the `links` table into the
-    /// `link_histories` table.
-    ///
-    /// # Errors
-    ///
-    /// - if the [`Link`] doesn't exist
-    /// - if the [`Link`]s link type doesn't exist
-    /// - if inserting the link failed.
-    // TODO: Rewrite link deletion, related to https://app.asana.com/0/1200211978612931/1203250001255259/f
-    async fn move_link_to_history(
-        &self,
-        link: &Link,
-        removed_by_id: RemovedById,
-    ) -> Result<(), LinkRemovalError> {
-        let link_type_version_id = self
-            .version_id_by_uri(link.link_type_id())
-            .await
-            .change_context(InsertionError)
-            .attach_printable(link.source_entity())
-            .change_context(LinkRemovalError)?;
-
-        self.as_client()
-            .query_one(
-                // This query removes a link from the `links` table and then immediately inserts
-                // into the link_histories table.
-                r#"
-                WITH removed AS (
-                    DELETE FROM links
-                    WHERE source_entity_id = $1
-                        AND target_entity_id = $2
-                        AND link_type_version_id = $3
-                    RETURNING source_entity_id, target_entity_id, link_type_version_id,
-                    link_index, owned_by_id, created_by_id, created_at
-                )
-                INSERT INTO link_histories(source_entity_id, target_entity_id, link_type_version_id,
-                    link_index, owned_by_id, created_by_id, created_at, removed_by_id, removed_at)
-                -- When inserting into `link_histories`, `removed_by_id` and `removed_at` are provided
-                SELECT *, $4, clock_timestamp() FROM removed
-                RETURNING source_entity_id, target_entity_id, link_type_version_id;
-                "#,
-                &[
-                    &link.source_entity(),
-                    &link.target_entity(),
-                    &link_type_version_id,
-                    &removed_by_id,
-                ],
-            )
-            .await
-            .into_report()
-            .change_context(LinkRemovalError)?;
-
-        Ok(())
     }
 
     /// TODO - DOC

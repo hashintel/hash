@@ -1,5 +1,5 @@
 use graph::knowledge::Entity;
-use graph_test_data::{data_type, entity, entity_type, link_type, property_type};
+use graph_test_data::{data_type, entity, entity_type, property_type};
 use type_system::uri::{BaseUri, VersionedUri};
 
 use crate::postgres::DatabaseTestWrapper;
@@ -10,12 +10,9 @@ async fn insert() {
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
-        .seed(
-            [data_type::TEXT_V1],
-            [property_type::NAME_V1],
-            [link_type::FRIEND_OF_V1],
-            [entity_type::PERSON_V1],
-        )
+        .seed([data_type::TEXT_V1], [property_type::NAME_V1], [
+            entity_type::PERSON_V1,
+        ])
         .await
         .expect("could not seed database");
 

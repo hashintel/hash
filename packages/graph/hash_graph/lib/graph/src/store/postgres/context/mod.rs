@@ -1,12 +1,11 @@
 mod entity;
-mod links;
 mod ontology;
 
 use async_trait::async_trait;
 use error_stack::{Context, Result, ResultExt};
 use type_system::uri::{BaseUri, VersionedUri};
 
-pub use self::{entity::EntityRecord, links::LinkRecord, ontology::OntologyRecord};
+pub use self::{entity::EntityRecord, ontology::OntologyRecord};
 use crate::{
     knowledge::EntityId,
     store::{postgres::ontology::OntologyDatabaseType, AsClient, PostgresStore, QueryError},
@@ -45,18 +44,6 @@ pub trait PostgresContext {
         &self,
         entity_id: EntityId,
     ) -> Result<EntityRecord, QueryError>;
-
-    async fn read_all_links(&self) -> Result<links::RecordStream, QueryError>;
-
-    async fn read_links_by_source(
-        &self,
-        entity_id: EntityId,
-    ) -> Result<links::RecordStream, QueryError>;
-
-    async fn read_links_by_target(
-        &self,
-        entity_id: EntityId,
-    ) -> Result<links::RecordStream, QueryError>;
 }
 
 #[async_trait]
@@ -110,31 +97,5 @@ impl<C: AsClient> PostgresContext for PostgresStore<C> {
             .await
             .attach_printable("could not read entity")
             .attach_printable(entity_id)
-    }
-
-    async fn read_all_links(&self) -> Result<links::RecordStream, QueryError> {
-        links::read_all_links(&self.client)
-            .await
-            .attach_printable("could not read links")
-    }
-
-    async fn read_links_by_source(
-        &self,
-        entity_id: EntityId,
-    ) -> Result<links::RecordStream, QueryError> {
-        links::read_links_by_source(&self.client, entity_id)
-            .await
-            .attach_printable("could not read outgoing links")
-            .attach_printable(entity_id)
-    }
-
-    async fn read_links_by_target(
-        &self,
-        entity_id: EntityId,
-    ) -> Result<links::RecordStream, QueryError> {
-        links::read_links_by_target(&self.client, entity_id)
-            .await
-            .attach_printable("could not read incoming links")
-            .attach_printable_lazy(|| format!("target entity: {entity_id}"))
     }
 }

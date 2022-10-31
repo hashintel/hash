@@ -1,10 +1,9 @@
 mod data_type;
 mod entity_type;
-mod link_type;
 mod property_type;
 mod read;
 
-use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};
+use type_system::{uri::VersionedUri, DataType, EntityType, PropertyType};
 
 /// Provides an abstraction over elements of the Type System stored in the Database.
 ///
@@ -39,16 +38,6 @@ impl OntologyDatabaseType for PropertyType {
 impl OntologyDatabaseType for EntityType {
     fn table() -> &'static str {
         "entity_types"
-    }
-
-    fn versioned_uri(&self) -> &VersionedUri {
-        self.id()
-    }
-}
-
-impl OntologyDatabaseType for LinkType {
-    fn table() -> &'static str {
-        "link_types"
     }
 
     fn versioned_uri(&self) -> &VersionedUri {

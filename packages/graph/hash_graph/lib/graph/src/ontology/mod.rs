@@ -3,7 +3,6 @@
 mod data_type;
 pub mod domain_validator;
 mod entity_type;
-mod link_type;
 mod property_type;
 
 use core::fmt;
@@ -16,13 +15,12 @@ use serde::{
     Deserialize, Deserializer, Serialize, Serializer,
 };
 use serde_json;
-use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};
+use type_system::{uri::VersionedUri, DataType, EntityType, PropertyType};
 use utoipa::ToSchema;
 
 pub use self::{
     data_type::{DataTypeQueryPath, DataTypeQueryPathVisitor},
     entity_type::{EntityTypeQueryPath, EntityTypeQueryPathVisitor},
-    link_type::{LinkTypeQueryPath, LinkTypeQueryPathVisitor},
     property_type::{PropertyTypeQueryPath, PropertyTypeQueryPathVisitor},
 };
 use crate::provenance::{CreatedById, OwnedById, RemovedById, UpdatedById};
@@ -176,7 +174,7 @@ where
 ///
 /// # Example
 ///
-/// - `EntityType1` references \[`EntityType2`, `PropertyType1`, `LinkType1`]
+/// - `EntityType1` references \[`EntityType2`, `PropertyType1`]
 /// - `EntityType2` references \[`PropertyType2`]
 /// - `PropertyType1` references \[`DataType2`]
 /// - `PropertyType2` references \[`PropertyType3`, `DataType1`]
@@ -187,13 +185,11 @@ where
 /// - `entity_type_query_depth: 1`
 /// - `property_type_query_depth: 3`
 /// - `data_type_query_depth: 1`
-/// - `link_type_query_depth: 0`
 ///
 /// Then the returned subgraph will be:
 /// - `referenced_entity_types`: \[`EntityType2`]
 /// - `referenced_property_types`: \[`PropertyType1`, `PropertyType2`, `PropertyType3`]
 /// - `referenced_data_types`: \[`DataType1`, `DataType2`]
-/// - `referenced_link_types`: \[]
 ///
 /// ## The idea of "chains"
 ///
@@ -232,26 +228,6 @@ pub struct PersistedPropertyType {
 impl PersistedPropertyType {
     #[must_use]
     pub const fn inner(&self) -> &PropertyType {
-        &self.inner
-    }
-
-    #[must_use]
-    pub const fn metadata(&self) -> &PersistedOntologyMetadata {
-        &self.metadata
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
-pub struct PersistedLinkType {
-    #[schema(value_type = VAR_LINK_TYPE)]
-    #[serde(serialize_with = "serialize_ontology_type")]
-    inner: LinkType,
-    metadata: PersistedOntologyMetadata,
-}
-
-impl PersistedLinkType {
-    #[must_use]
-    pub const fn inner(&self) -> &LinkType {
         &self.inner
     }
 
@@ -331,17 +307,6 @@ impl PersistedOntologyType for PersistedDataType {
 
 impl PersistedOntologyType for PersistedPropertyType {
     type Inner = PropertyType;
-
-    fn new(record: Self::Inner, metadata: PersistedOntologyMetadata) -> Self {
-        Self {
-            inner: record,
-            metadata,
-        }
-    }
-}
-
-impl PersistedOntologyType for PersistedLinkType {
-    type Inner = LinkType;
 
     fn new(record: Self::Inner, metadata: PersistedOntologyMetadata) -> Self {
         Self {

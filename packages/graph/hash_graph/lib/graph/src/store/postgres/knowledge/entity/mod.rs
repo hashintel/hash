@@ -10,8 +10,8 @@ use type_system::uri::VersionedUri;
 use uuid::Uuid;
 
 use crate::{
-    identifier::{GraphElementIdentifier, LinkId},
-    knowledge::{Entity, EntityId, PersistedEntity, PersistedEntityMetadata, PersistedLink},
+    identifier::GraphElementIdentifier,
+    knowledge::{Entity, EntityId, PersistedEntity, PersistedEntityMetadata},
     provenance::{CreatedById, OwnedById, UpdatedById},
     store::{
         crud::Read,
@@ -82,40 +82,41 @@ impl<C: AsClient> PostgresStore<C> {
                     .await?;
                 }
 
-                for link_record in self
-                    .read_links_by_source(entity_id)
-                    .await?
-                    .try_collect::<Vec<_>>()
-                    .await?
-                {
-                    dependency_context.edges.insert(
-                        GraphElementIdentifier::KnowledgeGraphElementId(entity_id),
-                        OutwardEdge {
-                            edge_kind: EdgeKind::HasLink,
-                            destination: GraphElementIdentifier::Temporary(LinkId {
-                                source_entity_id: link_record.source_entity_id,
-                                target_entity_id: link_record.target_entity_id,
-                                link_type_id: link_record.link_type_id.clone(),
-                            }),
-                        },
-                    );
-
-                    if dependency_context.graph_resolve_depths.link_resolve_depth > 0 {
-                        let link = PersistedLink::from(link_record);
-
-                        self.get_link_as_dependency(
-                            &link,
-                            dependency_context.change_depth(GraphResolveDepths {
-                                link_resolve_depth: dependency_context
-                                    .graph_resolve_depths
-                                    .link_resolve_depth
-                                    - 1,
-                                ..dependency_context.graph_resolve_depths
-                            }),
-                        )
-                        .await?;
-                    }
-                }
+                todo!("https://app.asana.com/0/1200211978612931/1203250001255262/f")
+                // for link_record in self
+                //     .read_links_by_source(entity_id)
+                //     .await?
+                //     .try_collect::<Vec<_>>()
+                //     .await?
+                // {
+                //     dependency_context.edges.insert(
+                //         GraphElementIdentifier::KnowledgeGraphElementId(entity_id),
+                //         OutwardEdge {
+                //             edge_kind: EdgeKind::HasLink,
+                //             destination: GraphElementIdentifier::Temporary(LinkId {
+                //                 source_entity_id: link_record.source_entity_id,
+                //                 target_entity_id: link_record.target_entity_id,
+                //                 link_type_id: link_record.link_type_id.clone(),
+                //             }),
+                //         },
+                //     );
+                //
+                //     if dependency_context.graph_resolve_depths.link_resolve_depth > 0 {
+                //         let link = PersistedLink::from(link_record);
+                //
+                //         self.get_link_as_dependency(
+                //             &link,
+                //             dependency_context.change_depth(GraphResolveDepths {
+                //                 link_resolve_depth: dependency_context
+                //                     .graph_resolve_depths
+                //                     .link_resolve_depth
+                //                     - 1,
+                //                 ..dependency_context.graph_resolve_depths
+                //             }),
+                //         )
+                //         .await?;
+                //     }
+                // }
             }
 
             Ok(())

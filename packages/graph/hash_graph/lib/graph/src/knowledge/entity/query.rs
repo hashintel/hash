@@ -6,7 +6,7 @@ use serde::{
 };
 
 use crate::{
-    knowledge::{Entity, LinkQueryPath},
+    knowledge::Entity,
     ontology::{EntityTypeQueryPath, EntityTypeQueryPathVisitor},
     store::query::{ParameterType, QueryRecord, RecordPath},
 };
@@ -21,9 +21,9 @@ pub enum EntityQueryPath<'q> {
     Version,
     Type(EntityTypeQueryPath),
     Properties(Option<Cow<'q, str>>),
-    // TODO: Links are to be removed, see https://app.asana.com/0/1200211978612931/1203250001255259/f
-    IncomingLinks(Box<LinkQueryPath<'q>>),
-    OutgoingLinks(Box<LinkQueryPath<'q>>),
+    // TODO: https://app.asana.com/0/1200211978612931/1203250001255262/f
+    // IncomingLinks(Box<LinkQueryPath<'q>>),
+    // OutgoingLinks(Box<LinkQueryPath<'q>>),
 }
 
 impl QueryRecord for Entity {
@@ -42,8 +42,9 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::Type(path) => write!(fmt, "type.{path}"),
             Self::Properties(Some(property)) => write!(fmt, "properties.{property}"),
             Self::Properties(None) => fmt.write_str("properties"),
-            Self::IncomingLinks(link) => write!(fmt, "incomingLinks.{link}"),
-            Self::OutgoingLinks(link) => write!(fmt, "outgoingLinks.{link}"),
+            // TODO: https://app.asana.com/0/1200211978612931/1203250001255262/f
+            // Self::IncomingLinks(link) => write!(fmt, "incomingLinks.{link}"),
+            // Self::OutgoingLinks(link) => write!(fmt, "outgoingLinks.{link}"),
         }
     }
 }
@@ -58,7 +59,8 @@ impl RecordPath for EntityQueryPath<'_> {
             Self::Version => ParameterType::Timestamp,
             Self::Type(path) => path.expected_type(),
             Self::Properties(_) => ParameterType::Any,
-            Self::IncomingLinks(path) | Self::OutgoingLinks(path) => path.expected_type(),
+            // TODO: https://app.asana.com/0/1200211978612931/1203250001255262/f
+            // Self::IncomingLinks(path) | Self::OutgoingLinks(path) => path.expected_type(),
         }
     }
 }
@@ -133,16 +135,18 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
                 EntityQueryPath::Properties(Some(property))
             }
             EntityQueryToken::OutgoingLinks => {
-                let link_query_path = seq
-                    .next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
-                EntityQueryPath::OutgoingLinks(link_query_path)
+                todo!("https://app.asana.com/0/1200211978612931/1203250001255262/f");
+                // let link_query_path = seq
+                //     .next_element()?
+                //     .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
+                // EntityQueryPath::OutgoingLinks(link_query_path)
             }
             EntityQueryToken::IncomingLinks => {
-                let link_query_path = seq
-                    .next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
-                EntityQueryPath::IncomingLinks(link_query_path)
+                todo!("https://app.asana.com/0/1200211978612931/1203250001255262/f");
+                // let link_query_path = seq
+                //     .next_element()?
+                //     .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
+                // EntityQueryPath::IncomingLinks(link_query_path)
             }
         })
     }

@@ -4,11 +4,11 @@ use async_trait::async_trait;
 use error_stack::{Context, IntoReport, Result, ResultExt};
 use futures::{StreamExt, TryStreamExt};
 use tokio_postgres::GenericClient;
-use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};
+use type_system::{uri::VersionedUri, DataType, EntityType, PropertyType};
 
 use crate::{
     ontology::{
-        PersistedDataType, PersistedEntityType, PersistedLinkType, PersistedOntologyIdentifier,
+        PersistedDataType, PersistedEntityType, PersistedOntologyIdentifier,
         PersistedOntologyMetadata, PersistedOntologyType, PersistedPropertyType,
     },
     store::{
@@ -54,23 +54,6 @@ impl From<OntologyRecord<PropertyType>> for PersistedPropertyType {
                 property_type.created_by_id,
                 property_type.updated_by_id,
                 property_type.removed_by_id,
-            ),
-        )
-    }
-}
-
-impl From<OntologyRecord<LinkType>> for PersistedLinkType {
-    fn from(link_type: OntologyRecord<LinkType>) -> Self {
-        let identifier =
-            PersistedOntologyIdentifier::new(link_type.record.id().clone(), link_type.owned_by_id);
-
-        Self::new(
-            link_type.record,
-            PersistedOntologyMetadata::new(
-                identifier,
-                link_type.created_by_id,
-                link_type.updated_by_id,
-                link_type.removed_by_id,
             ),
         )
     }

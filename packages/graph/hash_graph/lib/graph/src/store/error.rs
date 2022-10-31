@@ -85,15 +85,3 @@ impl fmt::Display for VersionedUriAlreadyExists {
 }
 
 impl Context for VersionedUriAlreadyExists {}
-
-#[derive(Debug)]
-#[must_use]
-pub struct LinkRemovalError;
-
-impl fmt::Display for LinkRemovalError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Could not remove link")
-    }
-}
-
-impl Context for LinkRemovalError {}

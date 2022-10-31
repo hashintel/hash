@@ -7,15 +7,12 @@ use std::{
 };
 
 use serde::{Deserialize, Serialize};
-use type_system::{DataType, EntityType, LinkType, PropertyType};
+use type_system::{DataType, EntityType, PropertyType};
 use utoipa::{openapi, ToSchema};
 
 use crate::{
-    knowledge::{Entity, KnowledgeGraphQueryDepth, Link, PersistedEntity, PersistedLink},
-    ontology::{
-        OntologyQueryDepth, PersistedDataType, PersistedEntityType, PersistedLinkType,
-        PersistedPropertyType,
-    },
+    knowledge::{Entity, KnowledgeGraphQueryDepth, PersistedEntity},
+    ontology::{OntologyQueryDepth, PersistedDataType, PersistedEntityType, PersistedPropertyType},
     shared::identifier::GraphElementIdentifier,
     store::query::{Filter, QueryRecord},
 };
@@ -26,10 +23,8 @@ use crate::{
 pub enum Vertex {
     DataType(PersistedDataType),
     PropertyType(PersistedPropertyType),
-    LinkType(PersistedLinkType),
     EntityType(PersistedEntityType),
     Entity(PersistedEntity),
-    Link(PersistedLink),
 }
 
 // WARNING: This MUST be kept up to date with the enum names and serde attribute, as utoipa does
@@ -43,10 +38,8 @@ impl ToSchema for Vertex {
         for (kind, schema) in [
             ("dataType", PersistedDataType::schema()),
             ("propertyType", PersistedPropertyType::schema()),
-            ("linkType", PersistedLinkType::schema()),
             ("entityType", PersistedEntityType::schema()),
             ("entity", PersistedEntity::schema()),
-            ("link", PersistedLink::schema()),
         ] {
             builder = builder.item(
                 openapi::ObjectBuilder::new()
@@ -159,9 +152,7 @@ impl Extend<Self> for Subgraph {
     DataTypeStructuralQuery = StructuralQuery<'static, DataType>,
     PropertyTypeStructuralQuery = StructuralQuery<'static, PropertyType>,
     EntityTypeStructuralQuery = StructuralQuery<'static, EntityType>,
-    LinkTypeStructuralQuery = StructuralQuery<'static, LinkType>,
     EntityStructuralQuery = StructuralQuery<'static, Entity>,
-    LinkStructuralQuery = StructuralQuery<'static, Link>,
 )]
 pub struct StructuralQuery<'q, T: QueryRecord> {
     #[serde(bound = "'de: 'q, T::Path<'q>: Deserialize<'de>")]

@@ -2,22 +2,13 @@
 //!  `ontology` module, i.e you have Ontologies and Knowledge-Graphs
 
 mod entity;
-mod link;
 
-use serde::Serialize;
-use utoipa::ToSchema;
-
-pub use self::{
-    entity::{
-        Entity, EntityId, EntityQueryPath, EntityQueryPathVisitor, PersistedEntity,
-        PersistedEntityIdentifier, PersistedEntityMetadata,
-    },
-    link::{Link, LinkQueryPath, LinkQueryPathVisitor, PersistedLink, PersistedLinkMetadata},
-};
-use crate::ontology::{
-    PersistedDataType, PersistedEntityType, PersistedLinkType, PersistedPropertyType,
+pub use self::entity::{
+    Entity, EntityId, EntityQueryPath, EntityQueryPathVisitor, PersistedEntity,
+    PersistedEntityIdentifier, PersistedEntityMetadata,
 };
 
+// TODO: update this doc: https://app.asana.com/0/1200211978612931/1203250001255262/f
 /// Distance to explore when querying a rooted subgraph on entities and links.
 ///
 /// Entities may link to other entities through links. The depths provided alongside a query specify
@@ -47,15 +38,3 @@ use crate::ontology::{
 ///
 /// [`OntologyQueryDepth`]: crate::ontology::OntologyQueryDepth
 pub type KnowledgeGraphQueryDepth = u8;
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct LinkRootedSubgraph {
-    pub link: PersistedLink,
-    pub referenced_data_types: Vec<PersistedDataType>,
-    pub referenced_property_types: Vec<PersistedPropertyType>,
-    pub referenced_link_types: Vec<PersistedLinkType>,
-    pub referenced_entity_types: Vec<PersistedEntityType>,
-    pub linked_entities: Vec<PersistedEntity>,
-    pub links: Vec<PersistedLink>,
-}

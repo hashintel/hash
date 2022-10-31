@@ -2,7 +2,7 @@ use std::fmt;
 
 use error_stack::{Context, IntoReport, ResultExt};
 use regex::{Captures, Regex};
-use type_system::{DataType, EntityType, LinkType, PropertyType};
+use type_system::{DataType, EntityType, PropertyType};
 
 #[derive(Debug)]
 pub struct DomainValidationError;
@@ -184,36 +184,6 @@ impl ValidateOntologyType<EntityType> for DomainValidator {
                 .into_report()
                 .attach_printable_lazy(|| {
                     format!("Entity Type base URI had the incorrect ontology kind slug: {kind}")
-                });
-        };
-
-        // TODO - check that the user has write access to the shortname, this will require us
-        //  making the graph aware of shortnames. We can store them alongside accountIds. We should
-        //  not have to make the graph aware of User entities being a thing however.
-        //  https://app.asana.com/0/1202805690238892/1202931031833224/f
-        Ok(())
-    }
-}
-
-impl ValidateOntologyType<LinkType> for DomainValidator {
-    fn validate(&self, ontology_type: &LinkType) -> error_stack::Result<(), DomainValidationError> {
-        let base_uri = ontology_type.id().base_uri();
-
-        if !self.validate_url(base_uri.as_str()) {
-            return Err(DomainValidationError)
-                .into_report()
-                .attach_printable("Link Type base URI didn't match the given validation regex");
-        };
-
-        let ShortNameAndKind {
-            short_name: _,
-            kind,
-        } = self.extract_shortname_and_kind(base_uri.as_str())?;
-        if kind != "link-type" {
-            return Err(DomainValidationError)
-                .into_report()
-                .attach_printable_lazy(|| {
-                    format!("Link Type base URI had the incorrect ontology kind slug: {kind}")
                 });
         };
 
