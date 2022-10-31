@@ -6,7 +6,7 @@ use graph::{
     identifier::AccountId,
     knowledge::{Entity, EntityId},
     provenance::{CreatedById, OwnedById},
-    store::{query::Expression, AccountStore, AsClient, EntityStore, PostgresStore},
+    store::{query::Filter, AccountStore, AsClient, EntityStore, PostgresStore},
     subgraph::{GraphResolveDepths, StructuralQuery},
 };
 use graph_test_data::{data_type, entity, entity_type, link_type, property_type};
@@ -102,7 +102,7 @@ pub fn bench_get_entity_by_id(
         |entity_id| async move {
             store
                 .get_entity(&StructuralQuery {
-                    expression: Expression::for_latest_entity_id(entity_id),
+                    filter: Filter::for_latest_entity_by_entity_id(entity_id),
                     graph_resolve_depths: GraphResolveDepths {
                         data_type_resolve_depth: 0,
                         property_type_resolve_depth: 0,

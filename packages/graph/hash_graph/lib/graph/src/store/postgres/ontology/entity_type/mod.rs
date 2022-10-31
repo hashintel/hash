@@ -15,7 +15,6 @@ use crate::{
     store::{
         crud::Read,
         postgres::{context::PostgresContext, DependencyContext, DependencyContextRef},
-        query::Filter,
         AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
     subgraph::{EdgeKind, GraphResolveDepths, OutwardEdge, StructuralQuery, Subgraph},
@@ -199,15 +198,16 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         Ok(metadata)
     }
 
-    async fn get_entity_type(&self, query: &StructuralQuery) -> Result<Subgraph, QueryError> {
+    async fn get_entity_type<'f: 'q, 'q>(
+        &self,
+        query: &'f StructuralQuery<'q, EntityType>,
+    ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
-            ref expression,
+            ref filter,
             graph_resolve_depths,
         } = *query;
 
-        let mut filter = Filter::try_from(expression.clone()).change_context(QueryError)?;
-        filter.convert_parameters().change_context(QueryError)?;
-        let subgraphs = stream::iter(Read::<PersistedEntityType>::read(self, &filter).await?)
+        let subgraphs = stream::iter(Read::<PersistedEntityType>::read(self, filter).await?)
             .then(|entity_type| async move {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 

@@ -29,7 +29,8 @@ use crate::{
         EntityTypeStore, StorePool,
     },
     subgraph::{
-        EdgeKind, Edges, GraphResolveDepths, OutwardEdge, StructuralQuery, Subgraph, Vertex,
+        EdgeKind, Edges, EntityTypeStructuralQuery, GraphResolveDepths, OutwardEdge,
+        StructuralQuery, Subgraph, Vertex,
     },
 };
 
@@ -52,7 +53,7 @@ use crate::{
             PersistedOntologyIdentifier,
             PersistedOntologyMetadata,
             PersistedEntityType,
-            StructuralQuery,
+            EntityTypeStructuralQuery,
             GraphElementIdentifier,
             Vertex,
             EdgeKind,
@@ -158,7 +159,7 @@ async fn create_entity_type<P: StorePool + Send>(
 #[utoipa::path(
     post,
     path = "/entity-types/query",
-    request_body = StructuralQuery,
+    request_body = EntityTypeStructuralQuery,
     tag = "EntityType",
     responses(
         (status = 200, content_type = "application/json", body = Subgraph, description = "A subgraph rooted at entity types that satisfy the given query, each resolved to the requested depth."),
@@ -169,7 +170,7 @@ async fn create_entity_type<P: StorePool + Send>(
 )]
 async fn get_entity_types_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-    Json(query): Json<StructuralQuery>,
+    Json(query): Json<serde_json::Value>,
 ) -> Result<Json<Subgraph>, StatusCode> {
     pool.acquire()
         .map_err(|error| {
@@ -177,6 +178,14 @@ async fn get_entity_types_by_query<P: StorePool + Send>(
             StatusCode::INTERNAL_SERVER_ERROR
         })
         .and_then(|store| async move {
+            let mut query = StructuralQuery::deserialize(&query).map_err(|error| {
+                tracing::error!(?error, "Could not deserialize query");
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
+            query.filter.convert_parameters().map_err(|error| {
+                tracing::error!(?error, "Could not validate query");
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
             store
                 .get_entity_type(&query)
                 .await

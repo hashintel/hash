@@ -1,7 +1,8 @@
 import {
-  StructuralQuery,
+  LinkStructuralQuery,
   GraphApi,
   PersistedLink,
+  Filter,
 } from "@hashintel/hash-graph-client";
 
 import { EntityModel, LinkModel, LinkTypeModel } from "../index";
@@ -82,11 +83,11 @@ export default class {
 
   static async getByQuery(
     graphApi: GraphApi,
-    query: object,
-    options?: Omit<Partial<StructuralQuery>, "query">,
+    filter: Filter,
+    options?: Omit<Partial<LinkStructuralQuery>, "filter">,
   ): Promise<LinkModel[]> {
     const { data: linkRootedSubgraphs } = await graphApi.getLinksByQuery({
-      query,
+      filter,
       graphResolveDepths: {
         dataTypeResolveDepth:
           options?.graphResolveDepths?.dataTypeResolveDepth ?? 0,
@@ -121,13 +122,17 @@ export default class {
 
     const linkModels = await LinkModel.getByQuery(graphApi, {
       all: [
-        { eq: [{ path: ["source", "id"] }, { literal: sourceEntityId }] },
-        { eq: [{ path: ["target", "id"] }, { literal: targetEntityId }] },
         {
-          eq: [
+          equal: [{ path: ["source", "id"] }, { parameter: sourceEntityId }],
+        },
+        {
+          equal: [{ path: ["target", "id"] }, { parameter: targetEntityId }],
+        },
+        {
+          equal: [
             { path: ["type", "versionedUri"] },
             {
-              literal: linkTypeId,
+              parameter: linkTypeId,
             },
           ],
         },

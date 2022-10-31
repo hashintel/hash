@@ -26,7 +26,8 @@ use crate::{
         EntityStore, StorePool,
     },
     subgraph::{
-        EdgeKind, Edges, GraphResolveDepths, OutwardEdge, StructuralQuery, Subgraph, Vertex,
+        EdgeKind, Edges, EntityStructuralQuery, GraphResolveDepths, OutwardEdge, StructuralQuery,
+        Subgraph, Vertex,
     },
 };
 
@@ -51,7 +52,7 @@ use crate::{
             PersistedEntityMetadata,
             PersistedEntity,
             Entity,
-            StructuralQuery,
+            EntityStructuralQuery,
             GraphElementIdentifier,
             Vertex,
             EdgeKind,
@@ -143,7 +144,7 @@ async fn create_entity<P: StorePool + Send>(
 #[utoipa::path(
     post,
     path = "/entities/query",
-    request_body = StructuralQuery,
+    request_body = EntityStructuralQuery,
     tag = "Entity",
     responses(
         (status = 200, content_type = "application/json", body = Subgraph, description = "A subgraph rooted at entities that satisfy the given query, each resolved to the requested depth."),
@@ -153,7 +154,7 @@ async fn create_entity<P: StorePool + Send>(
 )]
 async fn get_entities_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-    Json(query): Json<StructuralQuery>,
+    Json(query): Json<serde_json::Value>,
 ) -> Result<Json<Subgraph>, StatusCode> {
     pool.acquire()
         .map_err(|error| {
@@ -161,6 +162,14 @@ async fn get_entities_by_query<P: StorePool + Send>(
             StatusCode::INTERNAL_SERVER_ERROR
         })
         .and_then(|store| async move {
+            let mut query = StructuralQuery::deserialize(&query).map_err(|error| {
+                tracing::error!(?error, "Could not deserialize query");
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
+            query.filter.convert_parameters().map_err(|error| {
+                tracing::error!(?error, "Could not validate query");
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
             store.get_entity(&query).await.map_err(|report| {
                 tracing::error!(error=?report, ?query, "Could not read entities from the store");
                 report_to_status_code(&report)

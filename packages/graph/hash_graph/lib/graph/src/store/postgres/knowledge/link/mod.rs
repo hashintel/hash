@@ -143,16 +143,16 @@ impl<C: AsClient> LinkStore for PostgresStore<C> {
         Ok(())
     }
 
-    async fn get_links(
+    async fn get_links<'f: 'q, 'q>(
         &self,
-        query: &StructuralQuery,
+        query: &'f StructuralQuery<'q, Link>,
     ) -> Result<Vec<LinkRootedSubgraph>, QueryError> {
         let StructuralQuery {
-            ref expression,
+            ref filter,
             graph_resolve_depths,
         } = *query;
 
-        stream::iter(Read::<PersistedLink>::read(self, expression).await?)
+        stream::iter(Read::<PersistedLink>::read(self, filter).await?)
             .then(|link| async move {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 
