@@ -10,8 +10,6 @@ export const orgEmailInvitationTypedef = gql`
 
     org: Org!
 
-    inviter: User!
-
     # ENTITY INTERFACE FIELDS BEGIN #
     """
     The id of the entity - alias of 'entityId'

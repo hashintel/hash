@@ -8,8 +8,6 @@ export const orgMembershipTypedef = gql`
   type OrgMembership implements Entity {
     properties: OrgMembershipProperties!
 
-    user: User!
-
     org: Org!
 
     # ENTITY INTERFACE FIELDS BEGIN #

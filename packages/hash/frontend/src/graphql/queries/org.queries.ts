@@ -24,27 +24,6 @@ export const createOrg = gql`
   }
 `;
 
-export const joinOrg = gql`
-  mutation joinOrg(
-    $orgEntityId: ID!
-    $verification: JoinOrgVerification!
-    $responsibility: String!
-  ) {
-    joinOrg(
-      orgEntityId: $orgEntityId
-      verification: $verification
-      responsibility: $responsibility
-    ) {
-      entityId
-      emails {
-        address
-        verified
-        primary
-      }
-    }
-  }
-`;
-
 export const createOrgEmailInvitation = gql`
   mutation createOrgEmailInvitation(
     $orgEntityId: ID!
@@ -78,10 +57,6 @@ export const getOrgEmailInvitation = gql`
       org {
         entityId
         name
-      }
-      inviter {
-        entityId
-        preferredName
       }
     }
   }
