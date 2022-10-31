@@ -7,11 +7,11 @@ use std::{
 };
 
 use serde::{Deserialize, Serialize};
-use type_system::{DataType, EntityType, LinkType, PropertyType};
+use type_system::{DataType, EntityType, PropertyType};
 use utoipa::{openapi, ToSchema};
 
 use crate::{
-    knowledge::{Entity, KnowledgeGraphQueryDepth, Link, PersistedEntity},
+    knowledge::{Entity, KnowledgeGraphQueryDepth, PersistedEntity},
     ontology::{OntologyQueryDepth, PersistedDataType, PersistedEntityType, PersistedPropertyType},
     shared::identifier::GraphElementIdentifier,
     store::query::{Filter, QueryRecord},
@@ -152,9 +152,7 @@ impl Extend<Self> for Subgraph {
     DataTypeStructuralQuery = StructuralQuery<'static, DataType>,
     PropertyTypeStructuralQuery = StructuralQuery<'static, PropertyType>,
     EntityTypeStructuralQuery = StructuralQuery<'static, EntityType>,
-    LinkTypeStructuralQuery = StructuralQuery<'static, LinkType>,
     EntityStructuralQuery = StructuralQuery<'static, Entity>,
-    LinkStructuralQuery = StructuralQuery<'static, Link>,
 )]
 pub struct StructuralQuery<'q, T: QueryRecord> {
     #[serde(bound = "'de: 'q, T::Path<'q>: Deserialize<'de>")]

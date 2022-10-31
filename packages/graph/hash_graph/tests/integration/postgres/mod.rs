@@ -14,7 +14,8 @@ use graph::{
         PersistedLink,
     },
     ontology::{
-        LinkTypeQueryPath, PersistedDataType, PersistedEntityType, PersistedOntologyMetadata, PersistedPropertyType,
+        LinkTypeQueryPath, PersistedDataType, PersistedEntityType, PersistedOntologyMetadata,
+        PersistedPropertyType,
     },
     provenance::{CreatedById, OwnedById, RemovedById, UpdatedById},
     shared::identifier::GraphElementIdentifier,
