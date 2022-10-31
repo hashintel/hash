@@ -63,9 +63,8 @@ const Page: NextPageWithLayout = () => {
     baseEntityTypeUri,
     (fetchedEntityType) => {
       reset({
-        properties: Object.keys(fetchedEntityType.properties).map(
-          (propertyId) => {
-            const ref = fetchedEntityType.properties[propertyId]!;
+        properties: Object.entries(fetchedEntityType.properties).map(
+          ([propertyId, ref]) => {
             const isArray = "type" in ref;
 
             return {
