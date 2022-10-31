@@ -171,7 +171,7 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("friendship_link_entity_type_id", encodeURIComponent(response.body.identifier.uri));
+    client.global.set("friendship_link_entity_type_id", response.body.identifier.uri);
 %}
 
 ### Insert Person entity type
@@ -202,14 +202,14 @@ Accept: application/json
     client.global.set("person_entity_type_id", encodeURIComponent(response.body.identifier.uri));
 %}
 
-### Get Person entity type
-GET http://127.0.0.1:4000/entity-types/{{person_entity_type_id}}
-
-> {%
-    client.test("status", function() {
-        client.assert(response.status === 200, "Response status is not 200");
-    });
-%}
+#### Get Person entity type
+#GET http://127.0.0.1:4000/entity-types/{{person_entity_type_id}}
+#
+#> {%
+#    client.test("status", function() {
+#        client.assert(response.status === 200, "Response status is not 200");
+#    });
+#%}
 
 ### Update Person entity type
 PUT http://127.0.0.1:4000/entity-types
@@ -250,15 +250,15 @@ Accept: application/json
     });
 %}
 
-### Get all entity types
-GET http://127.0.0.1:4000/entity-types
-
-> {%
-    client.test("status", function() {
-        client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.length === 2, "Unexpected number of entity types");
-    });
-%}
+#### Get all entity types
+#GET http://127.0.0.1:4000/entity-types
+#
+#> {%
+#    client.test("status", function() {
+#        client.assert(response.status === 200, "Response status is not 200");
+#        client.assert(response.body.length === 2, "Unexpected number of entity types");
+#    });
+#%}
 
 
 ### Insert Person entity
@@ -282,34 +282,34 @@ Accept: application/json
     client.global.set("person_a_entity_id", encodeURIComponent(response.body.identifier.entityId));
 %}
 
-### Get Person entity
-GET http://127.0.0.1:4000/entities/{{person_a_entity_id}}
+#### Get Person entity
+#GET http://127.0.0.1:4000/entities/{{person_a_entity_id}}
+#
+#> {%
+#    client.test("status", function() {
+#        client.assert(response.status === 200, "Response status is not 200");
+#    });
+#%}
 
-> {%
-    client.test("status", function() {
-        client.assert(response.status === 200, "Response status is not 200");
-    });
-%}
-
-### Update Person entity
-PUT http://127.0.0.1:4000/entities
-Content-Type: application/json
-Accept: application/json
-
-{
-  "actorId": "{{account_id}}",
-  "entityId": "{{person_a_entity_id}}",
-  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2",
-  "entity": {
-    "http://localhost:3000/@alice/types/property-type/name/": "Alice Allison"
-  }
-}
-
-> {%
-    client.test("status", function() {
-        client.assert(response.status === 200, "Response status is not 200");
-    });
-%}
+#### Update Person entity
+#PUT http://127.0.0.1:4000/entities
+#Content-Type: application/json
+#Accept: application/json
+#
+#{
+#  "actorId": "{{account_id}}",
+#  "entityId": "{{person_a_entity_id}}",
+#  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2",
+#  "entity": {
+#    "http://localhost:3000/@alice/types/property-type/name/": "Alice Allison"
+#  }
+#}
+#
+#> {%
+#    client.test("status", function() {
+#        client.assert(response.status === 200, "Response status is not 200");
+#    });
+#%}
 
 ### Insert second Person entity
 POST http://127.0.0.1:4000/entities
@@ -332,49 +332,49 @@ Accept: application/json
     client.global.set("person_b_entity_id", encodeURIComponent(response.body.identifier.entityId));
 %}
 
-### Get all latest entities
-GET http://127.0.0.1:4000/entities
-
-> {%
-    client.test("status", function() {
-        client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.length === 2, "Unexpected number of entities");
-    });
-%}
-
-### Get all latest entities by using a query
-POST http://127.0.0.1:4000/entities/query
-Content-Type: application/json
-
-{
-  "filter": {
-    "equal": [
-      {
-        "path": [
-          "version"
-        ]
-      },
-      {
-        "parameter": "latest"
-      }
-    ]
-  },
-  "graphResolveDepths": {
-    "dataTypeResolveDepth": 0,
-    "propertyTypeResolveDepth": 0,
-    "linkTypeResolveDepth": 1,
-    "entityTypeResolveDepth": 0,
-    "linkTargetEntityResolveDepth": 10,
-    "linkResolveDepth": 10
-  }
-}
-
-> {%
-    client.test("status", function() {
-        client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.roots.length === 2, "Unexpected number of entities");
-    });
-%}
+#### Get all latest entities
+#GET http://127.0.0.1:4000/entities
+#
+#> {%
+#    client.test("status", function() {
+#        client.assert(response.status === 200, "Response status is not 200");
+#        client.assert(response.body.length === 2, "Unexpected number of entities");
+#    });
+#%}
+#
+#### Get all latest entities by using a query
+#POST http://127.0.0.1:4000/entities/query
+#Content-Type: application/json
+#
+#{
+#  "filter": {
+#    "equal": [
+#      {
+#        "path": [
+#          "version"
+#        ]
+#      },
+#      {
+#        "parameter": "latest"
+#      }
+#    ]
+#  },
+#  "graphResolveDepths": {
+#    "dataTypeResolveDepth": 0,
+#    "propertyTypeResolveDepth": 0,
+#    "linkTypeResolveDepth": 1,
+#    "entityTypeResolveDepth": 0,
+#    "linkTargetEntityResolveDepth": 10,
+#    "linkResolveDepth": 10
+#  }
+#}
+#
+#> {%
+#    client.test("status", function() {
+#        client.assert(response.status === 200, "Response status is not 200");
+#        client.assert(response.body.roots.length === 2, "Unexpected number of entities");
+#    });
+#%}
 
 ### Insert link between entities
 POST http://127.0.0.1:4000/entities
@@ -389,7 +389,7 @@ Accept: application/json
   "ownedById": "{{account_id}}",
   "actorId": "{{account_id}}",
   "entity": {},
-  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/friendship/v/1",
+  "entityTypeId": "{{friendship_link_entity_type_id}}",
   "linkMetadata": {
     "leftEntityId": "{{person_a_entity_id}}",
     "rightEntityId": "{{person_b_entity_id}}"
