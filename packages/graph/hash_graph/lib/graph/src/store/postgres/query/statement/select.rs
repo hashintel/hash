@@ -18,8 +18,8 @@ pub struct SelectStatement<'q> {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Distinctness {
-    Indestinct,
-    Destinct,
+    Indistinct,
+    Distinct,
 }
 
 impl Transpile for SelectStatement<'_> {
@@ -187,7 +187,7 @@ mod tests {
             r#"
             SELECT *
             FROM "data_types"
-            JOIN "type_ids" AS "type_ids_0_0"
+            INNER JOIN "type_ids" AS "type_ids_0_0"
               ON "type_ids_0_0"."version_id" = "data_types"."version_id"
             WHERE ("type_ids_0_0"."base_uri" = $1) AND ("type_ids_0_0"."version" = $2)
             "#,
@@ -215,7 +215,7 @@ mod tests {
             WITH "type_ids" AS (SELECT *, MAX("type_ids"."version") OVER (PARTITION BY "type_ids"."base_uri") AS "latest_version" FROM "type_ids")
             SELECT *
             FROM "data_types"
-            JOIN "type_ids" AS "type_ids_0_0"
+            INNER JOIN "type_ids" AS "type_ids_0_0"
               ON "type_ids_0_0"."version_id" = "data_types"."version_id"
             WHERE "type_ids_0_0"."version" = "type_ids_0_0"."latest_version"
             "#,
@@ -240,7 +240,7 @@ mod tests {
             WITH "type_ids" AS (SELECT *, MAX("type_ids"."version") OVER (PARTITION BY "type_ids"."base_uri") AS "latest_version" FROM "type_ids")
             SELECT *
             FROM "data_types"
-            JOIN "type_ids" AS "type_ids_0_0"
+            INNER JOIN "type_ids" AS "type_ids_0_0"
               ON "type_ids_0_0"."version_id" = "data_types"."version_id"
             WHERE "type_ids_0_0"."version" != "type_ids_0_0"."latest_version"
             "#,
@@ -266,9 +266,9 @@ mod tests {
             r#"
             SELECT *
             FROM "property_types"
-            JOIN "property_type_data_type_references" AS "property_type_data_type_references_0_0"
+            INNER JOIN "property_type_data_type_references" AS "property_type_data_type_references_0_0"
               ON "property_type_data_type_references_0_0"."source_property_type_version_id" = "property_types"."version_id"
-            JOIN "data_types" AS "data_types_0_1" ON "data_types_0_1"."version_id" = "property_type_data_type_references_0_0"."target_data_type_version_id"
+            INNER JOIN "data_types" AS "data_types_0_1" ON "data_types_0_1"."version_id" = "property_type_data_type_references_0_0"."target_data_type_version_id"
             WHERE "data_types_0_1"."schema"->>'title' = $1
             "#,
             &[&"Text"],
@@ -297,13 +297,13 @@ mod tests {
             r#"
             SELECT *
             FROM "property_types"
-            JOIN "property_type_data_type_references" AS "property_type_data_type_references_0_0"
+            INNER JOIN "property_type_data_type_references" AS "property_type_data_type_references_0_0"
               ON "property_type_data_type_references_0_0"."source_property_type_version_id" = "property_types"."version_id"
-            JOIN "data_types" AS "data_types_0_1"
+            INNER JOIN "data_types" AS "data_types_0_1"
               ON "data_types_0_1"."version_id" = "property_type_data_type_references_0_0"."target_data_type_version_id"
-            JOIN "property_type_data_type_references" AS "property_type_data_type_references_1_0"
+            INNER JOIN "property_type_data_type_references" AS "property_type_data_type_references_1_0"
               ON "property_type_data_type_references_1_0"."source_property_type_version_id" = "property_types"."version_id"
-            JOIN "type_ids" AS "type_ids_1_1"
+            INNER JOIN "type_ids" AS "type_ids_1_1"
               ON "type_ids_1_1"."version_id" = "property_type_data_type_references_1_0"."target_data_type_version_id"
             WHERE "data_types_0_1"."schema"->>'title' = $1
               AND ("type_ids_1_1"."base_uri" = $2) AND ("type_ids_1_1"."version" = $3)
@@ -335,9 +335,9 @@ mod tests {
             r#"
             SELECT *
             FROM "property_types"
-            JOIN "property_type_property_type_references" AS "property_type_property_type_references_0_0"
+            INNER JOIN "property_type_property_type_references" AS "property_type_property_type_references_0_0"
               ON "property_type_property_type_references_0_0"."source_property_type_version_id" = "property_types"."version_id"
-            JOIN "property_types" AS "property_types_0_1" ON "property_types_0_1"."version_id" = "property_type_property_type_references_0_0"."target_property_type_version_id"
+            INNER JOIN "property_types" AS "property_types_0_1" ON "property_types_0_1"."version_id" = "property_type_property_type_references_0_0"."target_property_type_version_id"
             WHERE "property_types_0_1"."schema"->>'title' = $1
             "#,
             &[&"Text"],
@@ -363,9 +363,9 @@ mod tests {
             r#"
             SELECT *
             FROM "entity_types"
-            JOIN "entity_type_property_type_references" AS "entity_type_property_type_references_0_0"
+            INNER JOIN "entity_type_property_type_references" AS "entity_type_property_type_references_0_0"
               ON "entity_type_property_type_references_0_0"."source_entity_type_version_id" = "entity_types"."version_id"
-            JOIN "property_types" AS "property_types_0_1"
+            INNER JOIN "property_types" AS "property_types_0_1"
               ON "property_types_0_1"."version_id" = "entity_type_property_type_references_0_0"."target_property_type_version_id"
             WHERE "property_types_0_1"."schema"->>'title' = $1
             "#,
@@ -392,9 +392,9 @@ mod tests {
             r#"
             SELECT *
             FROM "entity_types"
-            JOIN "entity_type_link_type_references" AS "entity_type_link_type_references_0_0"
+            INNER JOIN "entity_type_link_type_references" AS "entity_type_link_type_references_0_0"
               ON "entity_type_link_type_references_0_0"."source_entity_type_version_id" = "entity_types"."version_id"
-            JOIN "link_types" AS "link_types_0_1"
+            INNER JOIN "link_types" AS "link_types_0_1"
               ON "link_types_0_1"."version_id" = "entity_type_link_type_references_0_0"."target_link_type_version_id"
             WHERE "link_types_0_1"."schema"->>'title' = $1
             "#,
@@ -426,7 +426,7 @@ mod tests {
                 "entities"."created_by_id",
                 "entities"."updated_by_id"
             FROM "entities"
-            JOIN "entity_types" AS "entity_types_0_0"
+            INNER JOIN "entity_types" AS "entity_types_0_0"
               ON "entity_types_0_0"."version_id" = "entities"."entity_type_version_id"
             WHERE "entities"."entity_id" = $1
             "#,
@@ -459,7 +459,7 @@ mod tests {
                 "entities"."created_by_id",
                 "entities"."updated_by_id"
             FROM "entities"
-            JOIN "entity_types" AS "entity_types_0_0"
+            INNER JOIN "entity_types" AS "entity_types_0_0"
               ON "entity_types_0_0"."version_id" = "entities"."entity_type_version_id"
             WHERE "entities"."version" = "entities"."latest_version"
             "#,
@@ -472,17 +472,17 @@ mod tests {
         let mut compiler = SelectCompiler::<Entity>::new();
         compiler.add_selection_path(
             &EntityQueryPath::Id,
-            Distinctness::Destinct,
+            Distinctness::Distinct,
             Some(Ordering::Ascending),
         );
         compiler.add_selection_path(
             &EntityQueryPath::Version,
-            Distinctness::Destinct,
+            Distinctness::Distinct,
             Some(Ordering::Descending),
         );
         compiler.add_selection_path(
             &EntityQueryPath::Properties(None),
-            Distinctness::Indestinct,
+            Distinctness::Indistinct,
             None,
         );
 
@@ -577,9 +577,9 @@ mod tests {
             r#"
             SELECT *
             FROM "entities"
-            JOIN "links" AS "links_0_0"
+            INNER JOIN "links" AS "links_0_0"
               ON "links_0_0"."source_entity_id" = "entities"."entity_id"
-            JOIN "entities" AS "entities_0_1"
+            INNER JOIN "entities" AS "entities_0_1"
               ON "entities_0_1"."entity_id" = "links_0_0"."target_entity_id"
             WHERE "entities_0_1"."version" IS NULL
             "#,
@@ -604,9 +604,9 @@ mod tests {
             r#"
             SELECT *
             FROM "entities"
-            JOIN "links" AS "links_0_0"
+            INNER JOIN "links" AS "links_0_0"
               ON "links_0_0"."source_entity_id" = "entities"."entity_id"
-            JOIN "entities" AS "entities_0_1"
+            INNER JOIN "entities" AS "entities_0_1"
               ON "entities_0_1"."entity_id" = "links_0_0"."source_entity_id"
             WHERE "entities_0_1"."entity_id" = "entities"."entity_id"
             "#,
@@ -628,9 +628,9 @@ mod tests {
             r#"
             SELECT *
             FROM "entities"
-            JOIN "links" AS "links_0_0"
+            INNER JOIN "links" AS "links_0_0"
               ON "links_0_0"."target_entity_id" = "entities"."entity_id"
-            JOIN "entities" AS "entities_0_1"
+            INNER JOIN "entities" AS "entities_0_1"
               ON "entities_0_1"."entity_id" = "links_0_0"."target_entity_id"
             WHERE "entities_0_1"."entity_id" = "entities"."entity_id"
             "#,
@@ -659,7 +659,7 @@ mod tests {
                 "links"."owned_by_id",
                 "links"."created_by_id"
             FROM "links"
-            JOIN "link_types" AS "link_types_0_0"
+            INNER JOIN "link_types" AS "link_types_0_0"
               ON "link_types_0_0"."version_id" = "links"."link_type_version_id"
             WHERE "links"."link_index" = $1
             "#,
