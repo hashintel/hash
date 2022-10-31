@@ -52,7 +52,7 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
     pub fn with_default_selection() -> Self {
         let mut default = Self::new();
         for path in T::default_selection_paths() {
-            default.add_selection_path(path, Distinctness::Indestinct, None);
+            default.add_selection_path(path, Distinctness::Indistinct, None);
         }
         default
     }

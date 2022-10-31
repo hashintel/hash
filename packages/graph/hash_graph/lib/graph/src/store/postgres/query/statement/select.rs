@@ -18,7 +18,7 @@ pub struct SelectStatement<'q> {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Distinctness {
-    Indestinct,
+    Indistinct,
     Distinct,
 }
 
@@ -482,7 +482,7 @@ mod tests {
         );
         compiler.add_selection_path(
             &EntityQueryPath::Properties(None),
-            Distinctness::Indestinct,
+            Distinctness::Indistinct,
             None,
         );
 
