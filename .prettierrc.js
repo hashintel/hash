@@ -11,11 +11,19 @@ module.exports = {
   ],
   overrides: [
     {
-      files: [".eslintrc.cjs", "{packages,sites}/**/.eslintrc.cjs"],
+      files: [".eslintrc.cjs"],
       options: {
         quoteProps: "preserve",
         semi: false,
         trailingComma: "none",
+      },
+    },
+    {
+      files: ["blocks/**/.eslintrc.cjs"],
+      options: {
+        quoteProps: "as-needed",
+        semi: true,
+        trailingComma: "all",
       },
     },
   ],
