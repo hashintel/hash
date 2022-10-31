@@ -9,6 +9,7 @@ import {
 import { constructMinimalUser, MinimalUser } from "./user";
 
 export type MinimalOrg = {
+  kind: "org";
   entityId: string;
   shortname: string;
   name: string;
@@ -29,6 +30,7 @@ export const constructMinimalOrg = (params: {
     properties[extractBaseUri(types.propertyType.orgName.propertyTypeId)];
 
   return {
+    kind: "org",
     entityId: orgEntityId,
     shortname,
     name,
@@ -45,11 +47,6 @@ export const constructOrg = (params: {
 }): Org => {
   const { subgraph, orgEntityId } = params;
 
-  const { entityId, shortname, name } = constructMinimalOrg({
-    orgEntityId,
-    subgraph,
-  });
-
   const incomingOfOrgLinks = getIncomingLinksOfEntity({
     entityId: orgEntityId,
     subgraph,
@@ -62,9 +59,7 @@ export const constructOrg = (params: {
   );
 
   return {
-    entityId,
-    shortname,
-    name,
+    ...constructMinimalOrg({ orgEntityId, subgraph }),
     members: orgMemberships.map(({ inner: orgMembershipEntity }) => {
       const responsibility: string =
         orgMembershipEntity.properties[

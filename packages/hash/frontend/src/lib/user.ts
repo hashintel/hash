@@ -10,6 +10,7 @@ import {
 import { constructOrg, Org } from "./org";
 
 export type MinimalUser = {
+  kind: "user";
   entityId: string;
   accountSignupComplete: boolean;
   shortname?: string;
@@ -33,6 +34,7 @@ export const constructMinimalUser = (params: {
   const accountSignupComplete = !!shortname && !!preferredName;
 
   return {
+    kind: "user",
     entityId: userEntityId,
     shortname,
     preferredName,
@@ -50,9 +52,6 @@ export const constructUser = (params: {
 }): User => {
   const { userEntityId, subgraph } = params;
 
-  const { shortname, preferredName, accountSignupComplete } =
-    constructMinimalUser({ userEntityId, subgraph });
-
   const outgoingHasMembershipLinks = getOutgoingLinksOfEntity({
     entityId: userEntityId,
     subgraph,
@@ -65,10 +64,7 @@ export const constructUser = (params: {
   );
 
   return {
-    entityId: userEntityId,
-    shortname,
-    preferredName,
-    accountSignupComplete,
+    ...constructMinimalUser({ userEntityId, subgraph }),
     memberOf: orgMemberships.map(({ inner: orgMembershipEntity }) => {
       const responsibility: string =
         orgMembershipEntity.properties[
