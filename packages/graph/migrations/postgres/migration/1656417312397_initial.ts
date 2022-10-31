@@ -429,9 +429,10 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         references: "entity_ids",
       },
       archived: {
-        type: "bit",
+        // We may be able to reclaim some space here by using nullability.
+        type: "boolean",
         notNull: true,
-        default: "0",
+        default: "FALSE",
       },
       owned_by_id: {
         type: "UUID",
