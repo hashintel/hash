@@ -33,18 +33,18 @@ pub trait Read<T: Send>: Sync {
 
     async fn read_one<'f: 'q, 'q>(&self, query: &'f Self::Query<'q>) -> Result<T, QueryError> {
         let mut records = self.read(query).await?;
+        ensure!(
+            records.len() > 1,
+            Report::new(QueryError).attach_printable(format!(
+                "Expected exactly one record to be returned from the query but {} were returned",
+                records.len(),
+            ))
+        );
         let record = records.pop().ok_or_else(|| {
             Report::new(QueryError).attach_printable(
                 "Expected exactly one record to be returned from the query but none was returned",
             )
         })?;
-        ensure!(
-            records.is_empty(),
-            Report::new(QueryError).attach_printable(format!(
-                "Expected exactly one record to be returned from the query but {} were returned",
-                records.len() + 1
-            ))
-        );
         Ok(record)
     }
 
