@@ -108,7 +108,7 @@ const Page: NextPageWithLayout = () => {
 
     const required = data.properties
       .filter((property) => property.required)
-      .map((property) => `${property.$id.split("/v/")[0]}/`); // @todo: is there a better way to do this?
+      .map((property) => extractBaseUri(property.$id));
 
     if (isDraft) {
       if (!draftEntityType) {
