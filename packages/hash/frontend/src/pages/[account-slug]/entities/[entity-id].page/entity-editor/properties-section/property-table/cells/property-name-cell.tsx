@@ -29,14 +29,8 @@ export const createRenderPropertyNameCell = (
       (cell.data as any).kind === "property-name-cell",
     draw: (args, cell) => {
       const { ctx, theme, rect } = args;
-      const {
-        children,
-        expanded,
-        depth,
-        title,
-        indent,
-        verticalLinesForEachIndent,
-      } = cell.data.property;
+      const { children, depth, title, indent, verticalLinesForEachIndent } =
+        cell.data.property;
 
       const yCenter = getYCenter(args);
       ctx.fillStyle = theme.textHeader;
@@ -98,6 +92,12 @@ export const createRenderPropertyNameCell = (
         const iconTop = yCenter - iconSize / 2;
 
         ctx.fillRect(iconLeft, iconTop, iconSize, iconSize);
+
+        /** @todo find a way to check if a row is expanded here
+         * but without having an `expanded` value inside the row data
+         * because of performance reasons
+         */
+        const expanded = true;
 
         args.spriteManager.drawSprite(
           expanded ? CustomGridIcon.CHEVRON_DOWN : CustomGridIcon.CHEVRON_RIGHT,

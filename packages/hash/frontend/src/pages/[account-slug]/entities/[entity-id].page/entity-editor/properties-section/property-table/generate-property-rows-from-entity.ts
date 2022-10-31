@@ -1,7 +1,6 @@
 import { PropertyType } from "@blockprotocol/type-system-web";
 import { capitalize } from "@mui/material";
 import { isPlainObject } from "lodash";
-import { TableExpandStatus } from "../../../../../../../components/GlideGlid/utils";
 import {
   getPersistedDataType,
   getPropertyTypesByBaseUri,
@@ -33,7 +32,6 @@ interface GenerateRowDataParams {
   rootEntityAndSubgraph: RootEntityAndSubgraph;
   requiredPropertyTypes: string[];
   depth?: number;
-  propertyExpandStatus: TableExpandStatus;
   propertyKeyChain: string[];
 }
 
@@ -43,7 +41,6 @@ const generateRowDataFromPropertyTypeBaseUri = ({
   requiredPropertyTypes,
   rootEntityAndSubgraph,
   depth = 0,
-  propertyExpandStatus,
   propertyKeyChain,
 }: GenerateRowDataParams): PropertyRow => {
   const propertyTypeVersions = getPropertyTypesByBaseUri(
@@ -80,7 +77,6 @@ const generateRowDataFromPropertyTypeBaseUri = ({
           properties: properties[propertyTypeBaseUri],
           requiredPropertyTypes,
           depth: depth + 1,
-          propertyExpandStatus,
           propertyKeyChain: [...propertyKeyChain, subPropertyTypeBaseUri],
         }),
       );
@@ -97,7 +93,6 @@ const generateRowDataFromPropertyTypeBaseUri = ({
     dataTypes,
     required,
     depth,
-    expanded: !!propertyExpandStatus[rowId],
     children,
     indent,
     verticalLinesForEachIndent: [], // this will be filled by `fillRowDataIndentCalculations`
@@ -108,7 +103,6 @@ const generateRowDataFromPropertyTypeBaseUri = ({
 
 export const generatePropertyRowsFromEntity = (
   rootEntityAndSubgraph: RootEntityAndSubgraph,
-  propertyExpandStatus: TableExpandStatus,
 ): PropertyRow[] => {
   const entity = rootEntityAndSubgraph.root;
 
@@ -125,7 +119,6 @@ export const generatePropertyRowsFromEntity = (
       rootEntityAndSubgraph,
       requiredPropertyTypes,
       properties: entity.properties,
-      propertyExpandStatus,
       propertyKeyChain: [propertyTypeBaseUri],
     }),
   );

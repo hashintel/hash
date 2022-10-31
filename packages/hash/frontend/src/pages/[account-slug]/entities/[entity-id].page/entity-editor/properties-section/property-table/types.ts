@@ -8,7 +8,6 @@ export type PropertyRow = PropertyType & {
   dataTypes: string[];
   required: boolean;
   children: PropertyRow[];
-  expanded: boolean;
   depth: number;
   indent: number;
   verticalLinesForEachIndent: VerticalLineDir[];
