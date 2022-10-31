@@ -374,8 +374,9 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       ifNotExists: true,
     },
   );
+  // Only allow a single version of an entity in this table.
   pgm.addConstraint("entities", "entities_primary_key", {
-    primaryKey: ["entity_id", "version"],
+    primaryKey: ["entity_id"],
   });
 
   pgm.addConstraint("entities", "entities_relation_constraint", {
