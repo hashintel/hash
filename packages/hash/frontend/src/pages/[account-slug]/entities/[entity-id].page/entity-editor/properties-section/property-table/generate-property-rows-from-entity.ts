@@ -34,6 +34,7 @@ interface GenerateRowDataParams {
   requiredPropertyTypes: string[];
   depth?: number;
   propertyExpandStatus: TableExpandStatus;
+  propertyKeyChain: string[];
 }
 
 const generateRowDataFromPropertyTypeBaseUri = ({
@@ -43,6 +44,7 @@ const generateRowDataFromPropertyTypeBaseUri = ({
   rootEntityAndSubgraph,
   depth = 0,
   propertyExpandStatus,
+  propertyKeyChain,
 }: GenerateRowDataParams): PropertyRow => {
   const propertyTypeVersions = getPropertyTypesByBaseUri(
     rootEntityAndSubgraph.subgraph,
@@ -68,6 +70,7 @@ const generateRowDataFromPropertyTypeBaseUri = ({
 
   const children: PropertyRow[] = [];
 
+  // generate rows for nested properties and push them to children array
   if (isPlainObject(value)) {
     for (const subPropertyTypeBaseUri of Object.keys(value)) {
       children.push(
@@ -78,6 +81,7 @@ const generateRowDataFromPropertyTypeBaseUri = ({
           requiredPropertyTypes,
           depth: depth + 1,
           propertyExpandStatus,
+          propertyKeyChain: [...propertyKeyChain, subPropertyTypeBaseUri],
         }),
       );
     }
@@ -85,17 +89,20 @@ const generateRowDataFromPropertyTypeBaseUri = ({
 
   const indent = !depth ? 0 : children.length ? depth : depth - 1;
 
+  const rowId = propertyKeyChain.join("-");
+
   return {
     ...propertyType,
     value,
-    propertyTypeBaseUri,
     dataTypes,
     required,
     depth,
-    expanded: !!propertyExpandStatus[propertyTypeBaseUri],
+    expanded: !!propertyExpandStatus[rowId],
     children,
     indent,
     verticalLinesForEachIndent: [], // this will be filled by `fillRowDataIndentCalculations`
+    propertyKeyChain,
+    rowId,
   };
 };
 
@@ -119,6 +126,7 @@ export const generatePropertyRowsFromEntity = (
       requiredPropertyTypes,
       properties: entity.properties,
       propertyExpandStatus,
+      propertyKeyChain: [propertyTypeBaseUri],
     }),
   );
 };

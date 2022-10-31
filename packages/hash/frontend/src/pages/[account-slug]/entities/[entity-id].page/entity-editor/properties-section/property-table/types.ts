@@ -1,15 +1,18 @@
 import { PropertyType } from "@blockprotocol/type-system-web";
 import { SizedGridColumn } from "@glideapps/glide-data-grid";
+import { VerticalLineDir } from "../../../../../../../components/GlideGlid/utils";
 
 export type PropertyRow = PropertyType & {
+  rowId: string;
   value: any;
-  propertyTypeBaseUri: string;
   dataTypes: string[];
   required: boolean;
   children: PropertyRow[];
   expanded: boolean;
   depth: number;
   indent: number;
+  verticalLinesForEachIndent: VerticalLineDir[];
+  propertyKeyChain: string[];
 };
 
 export type PropertyColumnKey = Extract<

@@ -10,7 +10,7 @@ import {
   getYCenter,
   roundRect,
 } from "../../../../../../../../components/GlideGlid/utils";
-import { getNestedPropertySummary } from "../../get-empty-property-count";
+import { getPropertyCountSummary } from "../../get-property-count-summary";
 import { PropertyRow } from "../types";
 import { ValueCellEditor } from "./value-cell/value-cell-editor";
 
@@ -25,19 +25,19 @@ const drawNestedPropertySummary = (args: DrawArgs<ValueCell>) => {
   const { ctx, rect, cell } = args;
   const yCenter = getYCenter(args);
 
-  const { empty, notEmpty } = getNestedPropertySummary(
+  const { emptyCount, notEmptyCount } = getPropertyCountSummary(
     cell.data.property.value,
   );
 
   const secondaryTextComponents = [];
-  if (notEmpty) {
-    secondaryTextComponents.push(`${notEmpty} value`);
+  if (notEmptyCount) {
+    secondaryTextComponents.push(`${notEmptyCount} value`);
   }
-  if (empty) {
-    secondaryTextComponents.push(`${empty} empty`);
+  if (emptyCount) {
+    secondaryTextComponents.push(`${emptyCount} empty`);
   }
 
-  const primaryText = `${empty + notEmpty} total`;
+  const primaryText = `${emptyCount + notEmptyCount} total`;
   const secondaryText = ` (${secondaryTextComponents.join(", ")})`;
 
   const left = rect.x + 20;

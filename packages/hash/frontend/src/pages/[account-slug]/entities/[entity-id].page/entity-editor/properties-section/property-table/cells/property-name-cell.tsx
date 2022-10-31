@@ -113,10 +113,10 @@ export const createRenderPropertyNameCell = (
       drawCellFadeOutGradient(args);
     },
     onClick: (args) => {
-      const { children, propertyTypeBaseUri } = args.cell.data.property;
+      const { children, rowId } = args.cell.data.property;
 
       if (children.length) {
-        togglePropertyExpand(propertyTypeBaseUri);
+        togglePropertyExpand(rowId);
       }
 
       return undefined;
