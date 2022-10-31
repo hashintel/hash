@@ -1,0 +1,95 @@
+import { GraphApi } from "@hashintel/hash-graph-client";
+import { ApolloError, UserInputError } from "apollo-server-express";
+import { types } from "@hashintel/hash-shared/types";
+import { WORKSPACE_TYPES } from "../../../../graph/workspace-types";
+import { AccountFields, EntityModel, UserModel } from "../../../../model";
+
+const validateAccountShortname = async (
+  graphApi: GraphApi,
+  shortname: string,
+) => {
+  if (AccountFields.shortnameContainsInvalidCharacter(shortname)) {
+    throw new UserInputError(
+      "Shortname may only contain letters, numbers, - or _",
+    );
+  }
+  if (shortname[0] === "-") {
+    throw new UserInputError("Shortname cannot start with '-'");
+  }
+
+  if (
+    AccountFields.shortnameIsRestricted(shortname) ||
+    (await AccountFields.shortnameIsTaken(graphApi, { shortname }))
+  ) {
+    throw new ApolloError(`Shortname ${shortname} taken`, "NAME_TAKEN");
+  }
+
+  /** @todo: enable admins to have a shortname under 4 characters */
+  if (shortname.length < AccountFields.shortnameMinimumLength) {
+    throw new UserInputError("Shortname must be at least 4 characters long.");
+  }
+  if (shortname.length > AccountFields.shortnameMaximumLength) {
+    throw new UserInputError("Shortname cannot be longer than 24 characters");
+  }
+};
+
+const validateUserPreferredName = (preferredName: string) => {
+  if (UserModel.preferredNameIsInvalid(preferredName)) {
+    throw new ApolloError(
+      `The preferred name '${preferredName}' is invalid`,
+      "PREFERRED_NAME_INVALID",
+    );
+  }
+};
+
+type BeforeUpdateEntityHookCallback = (params: {
+  graphApi: GraphApi;
+  entityModel: EntityModel;
+  updatedProperties: any;
+}) => Promise<void>;
+
+const userEntityHookCallback: BeforeUpdateEntityHookCallback = async ({
+  entityModel,
+  updatedProperties,
+  graphApi,
+}) => {
+  const userModel = UserModel.fromEntityModel(entityModel);
+
+  const currentShortname = userModel.getShortname();
+
+  const updatedShortname: string | undefined =
+    updatedProperties[WORKSPACE_TYPES.propertyType.shortName.baseUri];
+
+  if (currentShortname !== updatedShortname) {
+    if (!updatedShortname) {
+      throw new ApolloError("Cannot unset shortname");
+    }
+
+    await validateAccountShortname(graphApi, updatedShortname);
+  }
+
+  const currentPreferredName = userModel.getPreferredName();
+
+  const updatedPreferredName: string | undefined =
+    updatedProperties[WORKSPACE_TYPES.propertyType.preferredName.baseUri];
+
+  if (currentPreferredName !== updatedPreferredName) {
+    if (!updatedPreferredName) {
+      throw new ApolloError("Cannot unset preferred name");
+    }
+
+    validateUserPreferredName(updatedPreferredName);
+  }
+};
+
+type BeforeUpdateEntityHook = {
+  entityTypeId: string;
+  callback: BeforeUpdateEntityHookCallback;
+};
+
+export const beforeUpdateEntityHooks: BeforeUpdateEntityHook[] = [
+  {
+    entityTypeId: types.entityType.user.entityTypeId,
+    callback: userEntityHookCallback,
+  },
+];
