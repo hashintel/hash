@@ -28,18 +28,18 @@ impl<C: AsClient> crud::Read<PersistedLink> for PostgresStore<C> {
         let mut compiler = SelectCompiler::new();
         compiler.add_selection_path(
             &LinkQueryPath::Type(LinkTypeQueryPath::VersionedUri),
-            Distinctness::Destinct,
+            Distinctness::Distinct,
             None,
         );
-        compiler.add_selection_path(&LinkQueryPath::Source(None), Distinctness::Destinct, None);
-        compiler.add_selection_path(&LinkQueryPath::Target(None), Distinctness::Destinct, None);
+        compiler.add_selection_path(&LinkQueryPath::Source(None), Distinctness::Distinct, None);
+        compiler.add_selection_path(&LinkQueryPath::Target(None), Distinctness::Distinct, None);
         compiler.add_selection_path(
             &LinkQueryPath::Index,
-            Distinctness::Destinct,
+            Distinctness::Distinct,
             Some(Ordering::Ascending),
         );
-        compiler.add_selection_path(&LinkQueryPath::OwnedById, Distinctness::Indestinct, None);
-        compiler.add_selection_path(&LinkQueryPath::CreatedById, Distinctness::Indestinct, None);
+        compiler.add_selection_path(&LinkQueryPath::OwnedById, Distinctness::Indistinct, None);
+        compiler.add_selection_path(&LinkQueryPath::CreatedById, Distinctness::Indistinct, None);
         compiler.add_filter(filter);
 
         let (statement, parameters) = compiler.compile();

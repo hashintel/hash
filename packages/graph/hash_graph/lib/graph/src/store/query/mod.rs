@@ -1,22 +1,15 @@
 mod filter;
-mod old;
 
 use std::fmt;
 
-pub use self::{
-    filter::{Filter, FilterExpression, Parameter, ParameterConversionError},
-    old::{
-        Expression, ExpressionError, Literal, Path, PathSegment, Resolve, ResolveError, Version,
-        UNIMPLEMENTED_LITERAL_OBJECT, UNIMPLEMENTED_WILDCARDS,
-    },
-};
+pub use self::filter::{Filter, FilterExpression, Parameter, ParameterConversionError};
 
 /// A record stored in the [`store`].
 ///
 /// [`store`]: crate::store
 // TODO: Implement for `DataType`, `PropertyType`, etc. when `Path` is implemented
 pub trait QueryRecord {
-    type Path<'q>: TryFrom<Path> + RecordPath;
+    type Path<'q>: RecordPath;
 }
 
 pub trait RecordPath {
