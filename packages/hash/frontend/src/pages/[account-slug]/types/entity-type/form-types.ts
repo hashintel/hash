@@ -1,6 +1,6 @@
 import { VersionedUri } from "@blockprotocol/type-system-web";
 
-type EntityTypeEditorPropertyData = {
+export type EntityTypeEditorPropertyData = {
   $id: VersionedUri;
   required: boolean;
   array: boolean;
