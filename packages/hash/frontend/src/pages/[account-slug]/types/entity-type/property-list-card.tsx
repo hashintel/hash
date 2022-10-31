@@ -200,7 +200,7 @@ export const PropertyTypeRow = ({
 
   const { $id, array, minValue, maxValue, required } = draftProperty;
 
-  const propertyId: VersionedUri = mustBeVersionedUri($id);
+  const propertyId = mustBeVersionedUri($id);
   const property = propertyTypes ? propertyTypes[propertyId] : null;
 
   // if (!property) {
