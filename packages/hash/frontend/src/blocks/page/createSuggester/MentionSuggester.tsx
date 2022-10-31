@@ -35,15 +35,16 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   const loading = usersLoading && pagesLoading;
 
   const options = useMemo(() => {
-    const iterableAccounts: Array<SearchableItem> = users.map((user) => ({
-      shortname: user.shortname,
-      name: user.preferredName ?? user.shortname ?? "User",
-      entityId: user.entityId,
-      type: "user",
-      isActiveOrgMember: user.memberOf.some(
-        ({ entityId }) => entityId === workspaceAccountId,
-      ),
-    }));
+    const iterableAccounts: Array<SearchableItem> =
+      users?.map((user) => ({
+        shortname: user.shortname,
+        name: user.preferredName ?? user.shortname ?? "User",
+        entityId: user.entityId,
+        type: "user",
+        isActiveOrgMember: user.memberOf.some(
+          ({ entityId }) => entityId === workspaceAccountId,
+        ),
+      })) ?? [];
 
     const iterablePages: Array<SearchableItem> = pages.map((page) => ({
       name: page.title,

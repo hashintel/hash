@@ -259,7 +259,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
         >
           Last edited by {/* @todo use lastedited value when available */}
           {
-            users.find(
+            users?.find(
               (account) =>
                 account.entityId ===
                 blockEntity?.properties.entity.createdByAccountId,

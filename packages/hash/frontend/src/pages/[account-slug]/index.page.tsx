@@ -40,7 +40,7 @@ const Page: NextPageWithLayout = () => {
 
   const thisOrg = ownWorkspace
     ? undefined
-    : orgs.find((org) => org.entityId === accountId);
+    : orgs?.find((org) => org.entityId === accountId);
 
   if (!ownWorkspace && !thisOrg) {
     return (

@@ -16,7 +16,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
   mentionType,
   accountId,
 }) => {
-  const { users, loading: usersLoading } = useUsers();
+  const { users } = useUsers();
   const { data: pages, loading: pagesLoading } = useAccountPages(accountId);
 
   const { title, href, icon } = useMemo(() => {
@@ -25,7 +25,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
         let userName = "";
 
         // Only set username to "User" if the query hasn't already run before
-        if (usersLoading && !users.length) {
+        if (!users) {
           userName = "User";
         } else {
           // Once the query loads, either display the found name, or display "Unknown User" if the user doesn't exist in the users array
@@ -62,15 +62,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
       default:
         return { title: "", href: "", icon: "@" };
     }
-  }, [
-    accountId,
-    entityId,
-    mentionType,
-    users,
-    usersLoading,
-    pages,
-    pagesLoading,
-  ]);
+  }, [accountId, entityId, mentionType, users, pages, pagesLoading]);
 
   return (
     <Link noLinkStyle href={href} sx={{ fontWeight: 500, color: "#9ca3af" }}>

@@ -33,7 +33,7 @@ export const AccountSelect: FunctionComponent<AccountSelectProps> = ({
       }
       value={value}
     >
-      {accounts.map((account) => (
+      {accounts?.map((account) => (
         <option key={account.entityId} value={account.entityId}>
           {account.shortname}
         </option>

@@ -13,12 +13,20 @@ import { useInitTypeSystem } from "../../lib/use-init-type-system";
 
 export const useAccounts = (): {
   loading: boolean;
-  accounts: (MinimalOrg | MinimalUser)[];
+  accounts?: (MinimalOrg | MinimalUser)[];
 } => {
   const { data, loading } = useQuery<
     GetAllLatestPersistedEntitiesQuery,
     GetAllLatestPersistedEntitiesQueryVariables
   >(getAllLatestEntitiesQuery, {
+    variables: {
+      dataTypeResolveDepth: 0,
+      propertyTypeResolveDepth: 0,
+      linkTypeResolveDepth: 0,
+      entityTypeResolveDepth: 1,
+      linkResolveDepth: 1,
+      linkTargetEntityResolveDepth: 1,
+    },
     /** @todo reconsider caching. This is done for testing/demo purposes. */
     fetchPolicy: "no-cache",
   });
@@ -27,7 +35,7 @@ export const useAccounts = (): {
 
   const accounts = useMemo(() => {
     if (!data || loadingTypeSystem) {
-      return [];
+      return undefined;
     }
 
     const subgraph = data.getAllLatestPersistedEntities as unknown as Subgraph;
