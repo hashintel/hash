@@ -428,10 +428,9 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         references: "entity_ids",
       },
       archived: {
-        // We can consider allowing null values to reduce used space.
-        type: "boolean",
-        notNull: false,
-        default: "FALSE",
+        type: "bit",
+        notNull: true,
+        default: "0",
       },
       owned_by_id: {
         type: "UUID",
