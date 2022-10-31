@@ -9,7 +9,7 @@
 use std::fmt::Debug;
 
 use async_trait::async_trait;
-use error_stack::Result;
+use error_stack::{ensure, Report, Result};
 
 use crate::store::QueryError;
 
@@ -30,6 +30,23 @@ pub trait Read<T: Send>: Sync {
     ///
     /// [`Store`]: crate::store::Store
     async fn read<'f: 'q, 'q>(&self, query: &'f Self::Query<'q>) -> Result<Vec<T>, QueryError>;
+
+    async fn read_one<'f: 'q, 'q>(&self, query: &'f Self::Query<'q>) -> Result<T, QueryError> {
+        let mut records = self.read(query).await?;
+        ensure!(
+            records.len() <= 1,
+            Report::new(QueryError).attach_printable(format!(
+                "Expected exactly one record to be returned from the query but {} were returned",
+                records.len(),
+            ))
+        );
+        let record = records.pop().ok_or_else(|| {
+            Report::new(QueryError).attach_printable(
+                "Expected exactly one record to be returned from the query but none was returned",
+            )
+        })?;
+        Ok(record)
+    }
 
     // TODO: Consider adding additional methods, which defaults to `read` e.g. reading exactly one
 }
