@@ -26,7 +26,6 @@ use uuid::Uuid;
 
 use self::context::{OntologyRecord, PostgresContext};
 pub use self::pool::{AsClient, PostgresStorePool};
-use super::error::LinkRemovalError;
 use crate::{
     identifier::AccountId,
     knowledge::{

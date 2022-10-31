@@ -23,7 +23,7 @@ use crate::{
         PersistedDataType, PersistedEntityType, PersistedOntologyMetadata, PersistedPropertyType,
     },
     provenance::{CreatedById, OwnedById, RemovedById, UpdatedById},
-    store::{error::LinkRemovalError, query::Filter},
+    store::query::Filter,
     subgraph::{StructuralQuery, Subgraph},
 };
 
