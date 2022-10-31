@@ -1,4 +1,4 @@
-import { PropertyType, VersionedUri } from "@blockprotocol/type-system-web";
+import { PropertyType } from "@blockprotocol/type-system-web";
 import { faClose } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
 import { IconButton } from "@hashintel/hash-design-system/icon-button";
@@ -8,11 +8,7 @@ import {
   ButtonBase,
   Checkbox,
   checkboxClasses,
-  ClickAwayListener,
-  Collapse,
-  Fade,
   outlinedInputClasses,
-  Popper,
   svgIconClasses,
   Table,
   TableBody,
@@ -34,10 +30,11 @@ import {
   usePopupState,
 } from "material-ui-popup-state/hooks";
 import { Ref, useId, useRef, useState } from "react";
-import { useFieldArray, useFormContext } from "react-hook-form";
+import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { Modal } from "../../../../components/Modals/Modal";
 import { EmptyPropertyListCard } from "./empty-property-list-card";
 import { EntityTypeEditorForm } from "./form-types";
+import { MultipleValuesCell } from "./multiple-values-cell";
 import { PropertyExpectedValues } from "./property-expected-values";
 import { PropertyListSelectorDropdownContext } from "./property-list-selector-dropdown";
 import { PropertyMenu } from "./property-menu";
@@ -45,7 +42,7 @@ import { PropertySelector } from "./property-selector";
 import { PropertyTypeForm } from "./property-type-form";
 import { QuestionIcon } from "./question-icon";
 import { StyledPlusCircleIcon } from "./styled-plus-circle-icon";
-import { usePropertyTypes, useRemotePropertyTypes } from "./use-property-types";
+import { usePropertyTypes } from "./use-property-types";
 import { mustBeVersionedUri, useStateCallback, withHandler } from "./util";
 import { WhiteCard } from "./white-card";
 
@@ -186,19 +183,16 @@ export const PropertyTypeRow = ({
   propertyIndex: number;
   onRemove: () => void;
 }) => {
-  const { control, watch } = useFormContext<EntityTypeEditorForm>();
-  const { update } = useFieldArray({
-    control,
-    name: "properties",
-  });
+  const { register } = useFormContext<EntityTypeEditorForm>();
 
   const propertyTypes = usePropertyTypes();
-  const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
-  const [multipleValuesMenuOpen, setMultipleValuesMenuOpen] = useState(false);
 
-  const draftProperty = watch(`properties.${propertyIndex}`);
-
-  const { $id, array, minValue, maxValue, required } = draftProperty;
+  const [$id, required] = useWatch({
+    name: [
+      `properties.${propertyIndex}.$id`,
+      `properties.${propertyIndex}.required`,
+    ],
+  });
 
   const propertyId = mustBeVersionedUri($id);
   const property = propertyTypes ? propertyTypes[propertyId] : null;
@@ -208,181 +202,49 @@ export const PropertyTypeRow = ({
   }
 
   return property ? (
-    <>
-      <TableRow>
-        <TableCell>
-          <Typography variant="smallTextLabels" fontWeight={500}>
-            {property.title}
-          </Typography>
-        </TableCell>
-        <TableCell>
-          <PropertyExpectedValues property={property} />
-        </TableCell>
-        <TableCell
-          ref={(ref: HTMLDivElement) => setAnchorEl(ref)}
-          sx={({ palette, transitions }) => ({
-            px: "0px !important",
-            position: "relative",
-            cursor: "pointer",
-            textAlign: "center",
-            transition: transitions.create("border-color"),
-            border: `1px solid ${
-              multipleValuesMenuOpen ? palette.gray[40] : "transparent"
-            } !important`,
-            "&:hover": {
-              borderColor: `${palette.gray[40]} !important`,
-            },
-          })}
-          onClick={() => setMultipleValuesMenuOpen(true)}
-        >
-          <Box
-            sx={({ palette, transitions }) => ({
-              display: "inline-flex",
-              borderRadius: "4px 30px 30px 4px",
-              backgroundColor: "transparent",
-              transition: transitions.create(["padding", "background-color"]),
-              ...(array && !multipleValuesMenuOpen
-                ? {
-                    py: 0.5,
-                    px: 0.75,
-                    background: palette.gray[20],
-                  }
-                : {}),
-            })}
-          >
-            <Checkbox
-              sx={{
-                zIndex: 1,
-              }}
-              checked={array}
-              onChange={(event) => {
-                update(propertyIndex, {
-                  ...draftProperty,
-                  array: event.target.checked,
-                  minValue: minValue ?? 0,
-                  maxValue: maxValue ?? 0,
-                });
-              }}
-            />
-            <Collapse
-              orientation="horizontal"
-              in={array && !multipleValuesMenuOpen}
-            >
-              <Typography
-                variant="smallTextLabels"
-                sx={{
-                  display: "flex",
-                  ml: 1,
-                  fontWeight: 500,
-                  whiteSpace: "nowrap",
-                  color: ({ palette }) => palette.gray[70],
-                }}
-              >
-                {minValue !== maxValue
-                  ? `${minValue} to ${maxValue}`
-                  : minValue}
-              </Typography>
-            </Collapse>
-          </Box>
-        </TableCell>
-        <CenteredTableCell sx={{ textAlign: "center" }}>
-          <Checkbox
-            checked={required}
-            onChange={(event) => {
-              update(propertyIndex, {
-                ...draftProperty,
-                required: event.target.checked,
-              });
-            }}
-          />
-        </CenteredTableCell>
-        <CenteredTableCell sx={{ px: "0px !important" }}>
-          <TextField
-            placeholder="Add default value"
-            sx={{
-              width: "100%",
-              [`.${tableRowClasses.root}:not(:hover) & .${outlinedInputClasses.root}:not(:focus-within)`]:
-                {
-                  boxShadow: "none",
-                  [`.${outlinedInputClasses.notchedOutline}`]: {
-                    borderColor: "transparent",
-                  },
-                  [`.${outlinedInputClasses.input}::placeholder`]: {
-                    color: "transparent",
-                  },
+    <TableRow>
+      <TableCell>
+        <Typography variant="smallTextLabels" fontWeight={500}>
+          {property.title}
+        </Typography>
+      </TableCell>
+      <TableCell>
+        <PropertyExpectedValues property={property} />
+      </TableCell>
+
+      <MultipleValuesCell propertyIndex={propertyIndex} />
+
+      <CenteredTableCell sx={{ textAlign: "center" }}>
+        <Checkbox
+          checked={required}
+          {...register(`properties.${propertyIndex}.required`)}
+        />
+      </CenteredTableCell>
+
+      <CenteredTableCell sx={{ px: "0px !important" }}>
+        <TextField
+          placeholder="Add default value"
+          sx={{
+            width: "100%",
+            [`.${tableRowClasses.root}:not(:hover) & .${outlinedInputClasses.root}:not(:focus-within)`]:
+              {
+                boxShadow: "none",
+                [`.${outlinedInputClasses.notchedOutline}`]: {
+                  borderColor: "transparent",
                 },
-            }}
-            inputProps={{ sx: { textOverflow: "ellipsis" } }}
-          />
-        </CenteredTableCell>
-        <TableCell>
-          <PropertyMenu onRemove={onRemove} property={property} />
-        </TableCell>
-      </TableRow>
-      <Popper
-        open={multipleValuesMenuOpen}
-        anchorEl={anchorEl}
-        container={anchorEl}
-        placement="bottom"
-        sx={{ width: 1, zIndex: 1 }}
-        transition
-      >
-        {({ TransitionProps }) => {
-          return (
-            <ClickAwayListener
-              onClickAway={() => setMultipleValuesMenuOpen(false)}
-            >
-              <Fade {...TransitionProps}>
-                <Box
-                  sx={({ palette }) => ({
-                    border: 1,
-                    p: 1.5,
-                    background: palette.white,
-                    borderColor: palette.gray[30],
-                  })}
-                >
-                  <TextField
-                    type="number"
-                    size="small"
-                    label="Minimum"
-                    value={minValue ?? 0}
-                    onChange={(event) => {
-                      const value = parseInt(event.target.value, 10);
-                      if (value >= 0) {
-                        update(propertyIndex, {
-                          ...draftProperty,
-                          minValue: value,
-                          maxValue:
-                            !maxValue || value > maxValue ? value : maxValue,
-                        });
-                      }
-                    }}
-                    sx={{ mb: 2 }}
-                  />
-                  <TextField
-                    type="number"
-                    label="Maximum"
-                    value={maxValue ?? 0}
-                    onChange={(event) => {
-                      const value = parseInt(event.target.value, 10);
-                      if (value >= 0) {
-                        update(propertyIndex, {
-                          ...draftProperty,
-                          maxValue: value,
-                          minValue:
-                            !minValue || value < minValue ? value : minValue,
-                        });
-                      }
-                    }}
-                    size="small"
-                  />
-                </Box>
-              </Fade>
-            </ClickAwayListener>
-          );
-        }}
-      </Popper>
-    </>
+                [`.${outlinedInputClasses.input}::placeholder`]: {
+                  color: "transparent",
+                },
+              },
+          }}
+          inputProps={{ sx: { textOverflow: "ellipsis" } }}
+        />
+      </CenteredTableCell>
+
+      <TableCell>
+        <PropertyMenu onRemove={onRemove} property={property} />
+      </TableCell>
+    </TableRow>
   ) : null;
 };
 
