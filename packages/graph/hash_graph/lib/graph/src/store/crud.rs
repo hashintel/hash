@@ -41,7 +41,7 @@ pub trait Read<T: Send>: Sync {
         ensure!(
             records.is_empty(),
             Report::new(QueryError).attach_printable(format!(
-                "Expected exactly one record to be returned from the query but {} was returned",
+                "Expected exactly one record to be returned from the query but {} were returned",
                 records.len() + 1
             ))
         );
