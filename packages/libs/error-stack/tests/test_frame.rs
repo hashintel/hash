@@ -3,7 +3,7 @@
 
 mod common;
 
-use std::iter::zip;
+use core::{any::TypeId, iter::zip};
 
 use common::*;
 
@@ -130,4 +130,15 @@ fn context() {
         .downcast_ref::<ContextA>()
         .expect("Wrong source frame");
     assert_eq!(context.0, 20);
+}
+
+#[test]
+fn type_id() {
+    let report = create_report().attach(2u32);
+    let current = &report.current_frames()[0];
+
+    assert_eq!(current.type_id(), TypeId::of::<u32>());
+
+    let context = report.frames().last().unwrap();
+    assert_eq!(context.type_id(), TypeId::of::<RootError>())
 }
