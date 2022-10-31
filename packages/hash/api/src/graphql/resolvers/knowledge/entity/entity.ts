@@ -1,3 +1,4 @@
+import { Filter } from "@hashintel/hash-graph-client";
 import { AxiosError } from "axios";
 import { ApolloError } from "apollo-server-express";
 import { EntityModel } from "../../../../model";
@@ -112,7 +113,7 @@ export const getPersistedEntity: ResolverFn<
 ) => {
   const { graphApi } = dataSources;
 
-  const filter = {
+  const filter: Filter = {
     all: [
       {
         equal: [
