@@ -148,10 +148,6 @@ export const MultipleValuesCell = ({
                     inputProps={{ min: 0 }}
                     {...register(`properties.${propertyIndex}.maxValue`, {
                       valueAsNumber: true,
-                      setValueAs: (val) => {
-                        console.log(val);
-                        return val;
-                      },
                     })}
                     size="small"
                   />
