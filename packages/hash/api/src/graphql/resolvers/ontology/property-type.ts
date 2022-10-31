@@ -55,7 +55,9 @@ export const getAllLatestPropertyTypes: ResolverFn<
    */
   const { data: propertyTypeSubgraph } = await graphApi
     .getPropertyTypesByQuery({
-      query: { eq: [{ path: ["version"] }, { literal: "latest" }] },
+      filter: {
+        equal: [{ path: ["version"] }, { parameter: "latest" }],
+      },
       graphResolveDepths: {
         dataTypeResolveDepth,
         propertyTypeResolveDepth,
@@ -90,8 +92,8 @@ export const getPropertyType: ResolverFn<
 
   const { data: propertyTypeSubgraph } = await graphApi
     .getDataTypesByQuery({
-      query: {
-        eq: [{ path: ["versionedUri"] }, { literal: propertyTypeId }],
+      filter: {
+        equal: [{ path: ["versionedUri"] }, { parameter: propertyTypeId }],
       },
       graphResolveDepths: {
         dataTypeResolveDepth,

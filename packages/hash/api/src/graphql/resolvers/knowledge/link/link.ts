@@ -1,3 +1,4 @@
+import { Filter } from "@hashintel/hash-graph-client";
 import { EntityModel, LinkModel, LinkTypeModel } from "../../../../model";
 import {
   MutationCreatePersistedLinkArgs,
@@ -54,21 +55,26 @@ export const outgoingPersistedLinks: ResolverFn<
   { sourceEntityId, linkTypeId },
   { dataSources: { graphApi } },
 ) => {
-  const linkModels = await LinkModel.getByQuery(graphApi, {
+  const filter: Filter = {
     all: [
-      { eq: [{ path: ["source", "id"] }, { literal: sourceEntityId }] },
-      linkTypeId
-        ? {
-            eq: [
-              { path: ["type", "versionedUri"] },
-              {
-                literal: linkTypeId,
-              },
-            ],
-          }
-        : [],
-    ].flat(),
-  });
+      {
+        equal: [{ path: ["source", "id"] }, { parameter: sourceEntityId }],
+      },
+    ],
+  };
+
+  if (linkTypeId) {
+    filter.all.push({
+      equal: [
+        { path: ["type", "versionedUri"] },
+        {
+          parameter: linkTypeId,
+        },
+      ],
+    });
+  }
+
+  const linkModels = await LinkModel.getByQuery(graphApi, filter);
 
   return linkModels.map(mapLinkModelToGQL);
 };

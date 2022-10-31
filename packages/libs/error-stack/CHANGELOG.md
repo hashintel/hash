@@ -10,6 +10,7 @@ All notable changes to `error-stack` will be documented in this file.
 ## Unreleased
 
 - The output of [`Location`](https://doc.rust-lang.org/std/panic/struct.Location.html) is no longer hard-coded and can now be adjusted through hooks. ([#1237](https://github.com/hashintel/hash/pull/1237))
+- The `TypeId` of a value contained in a `Frame` can now be accessed via `Frame::type_id` ([#1289](https://github.com/hashintel/hash/pull/1289))
 
 ## [0.2.3](https://github.com/hashintel/hash/tree/error-stack%400.2.3/packages/libs/error-stack) - 2022-10-12
 
@@ -42,8 +43,8 @@ All notable changes to `error-stack` will be documented in this file.
 ### Deprecations
 
 - `IntoReport::report`: Use `IntoReport::into_report` instead ([#698](https://github.com/hashintel/hash/pull/698))
-- `Report::backtrace`: Use `Report::downcast_ref::<Backtrace>` (non-nightly), `Report::requested_ref::<Backtrace>` (nightly) instead ([#747](https://github.com/hashintel/hash/pull/747))
-- `Report::span_trace`: Use `Report::downcast_ref::<SpanTrace>` (non-nightly), `Report::requested_ref::<SpanTrace>` (nightly) instead ([#747](https://github.com/hashintel/hash/pull/747))
+- `Report::backtrace`: Use `Report::downcast_ref::<Backtrace>` (non-nightly), `Report::request_ref::<Backtrace>` (nightly) instead ([#747](https://github.com/hashintel/hash/pull/747))
+- `Report::span_trace`: Use `Report::downcast_ref::<SpanTrace>` (non-nightly), `Report::request_ref::<SpanTrace>` (nightly) instead ([#747](https://github.com/hashintel/hash/pull/747))
 - `Frame::source`: Use `Frame::sources` instead ([#747](https://github.com/hashintel/hash/pull/747))
 - `Frame::source_mut`: Use `Frame::sources_mut` instead ([#747](https://github.com/hashintel/hash/pull/747))
 - `Report::set_debug_hook`: Use `Report::install_debug_hook` instead ([#794](https://github.com/hashintel/hash/pull/794))

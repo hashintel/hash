@@ -4,10 +4,10 @@ use postgres_types::ToSql;
 
 use crate::store::{
     postgres::query::{
-        expression::EdgeJoinDirection, Column, ColumnAccess, Condition, EqualityOperator,
-        Expression, Function, JoinExpression, Path, PostgresQueryRecord, SelectExpression,
-        SelectStatement, Table, TableAlias, TableName, Transpile, WhereExpression, WindowStatement,
-        WithExpression,
+        Column, ColumnAccess, Condition, Distinctness, EdgeJoinDirection, EqualityOperator,
+        Expression, Function, JoinExpression, OrderByExpression, Ordering, Path,
+        PostgresQueryRecord, SelectExpression, SelectStatement, Table, TableAlias, TableName,
+        Transpile, WhereExpression, WindowStatement, WithExpression,
     },
     query::{Filter, FilterExpression, Parameter},
 };
@@ -29,11 +29,12 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
         Self {
             statement: SelectStatement {
                 with: WithExpression::default(),
-                distinct: false,
+                distinct: Vec::new(),
                 selects: Vec::new(),
                 from: T::base_table(),
                 joins: Vec::new(),
                 where_expression: WhereExpression::default(),
+                order_by_expression: OrderByExpression::default(),
             },
             artifacts: CompilerArtifacts {
                 parameters: Vec::new(),
@@ -51,7 +52,7 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
     pub fn with_default_selection() -> Self {
         let mut default = Self::new();
         for path in T::default_selection_paths() {
-            default.add_selection_path(path);
+            default.add_selection_path(path, Distinctness::Indistinct, None);
         }
         default
     }
@@ -67,15 +68,31 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
     }
 
     /// Adds a new path to the selection.
-    pub fn add_selection_path(&mut self, path: &'q T::Path<'q>) {
+    ///
+    /// Optionally, the added selection can be distinct or ordered by providing [`Distinctness`]
+    /// and [`Ordering`].
+    pub fn add_selection_path(
+        &mut self,
+        path: &'q T::Path<'q>,
+        distinctness: Distinctness,
+        ordering: Option<Ordering>,
+    ) {
         let table = self.add_join_statements(path.tables());
-        self.statement.selects.push(SelectExpression::from_column(
-            Column {
-                table,
-                access: path.column_access(),
-            },
-            None,
-        ));
+        let column = Column {
+            table,
+            access: path.column_access(),
+        };
+        if distinctness == Distinctness::Distinct {
+            self.statement.distinct.push(column.clone());
+        }
+        if let Some(ordering) = ordering {
+            self.statement
+                .order_by_expression
+                .push(column.clone(), ordering);
+        }
+        self.statement
+            .selects
+            .push(SelectExpression::from_column(column, None));
     }
 
     /// Adds a new filter to the selection.
@@ -165,7 +182,7 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
             .with
             .add_statement(version_column.table.name, SelectStatement {
                 with: WithExpression::default(),
-                distinct: false,
+                distinct: Vec::new(),
                 selects: vec![
                     SelectExpression::new(Expression::Asterisk, None),
                     SelectExpression::new(
@@ -184,6 +201,7 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
                 },
                 joins: vec![],
                 where_expression: WhereExpression::default(),
+                order_by_expression: OrderByExpression::default(),
             });
 
         // Join the table of `path` and compare the version to the latest version
@@ -196,9 +214,6 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
         }));
         let version_expression = Some(Expression::Column(version_column));
 
-        // The with statement is likely to result in duplicated lines, so make the selection
-        // distinct
-        self.statement.distinct = true;
         match operator {
             EqualityOperator::Equal => {
                 Condition::Equal(version_expression, latest_version_expression)

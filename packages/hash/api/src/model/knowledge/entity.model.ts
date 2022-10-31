@@ -2,9 +2,10 @@ import { ApolloError } from "apollo-server-errors";
 import {
   PersistedEntity,
   GraphApi,
-  StructuralQuery,
   Vertex,
   Subgraph,
+  EntityStructuralQuery,
+  Filter,
 } from "@hashintel/hash-graph-client";
 
 import {
@@ -305,11 +306,11 @@ export default class {
 
   static async getByQuery(
     graphApi: GraphApi,
-    query: object,
-    options?: Omit<Partial<StructuralQuery>, "query">,
+    filter: Filter,
+    options?: Omit<Partial<EntityStructuralQuery>, "filter">,
   ): Promise<EntityModel[]> {
     const { data: subgraph } = await graphApi.getEntitiesByQuery({
-      query,
+      filter,
       graphResolveDepths: {
         dataTypeResolveDepth:
           options?.graphResolveDepths?.dataTypeResolveDepth ?? 0,
@@ -491,23 +492,26 @@ export default class {
     graphApi: GraphApi,
     params?: { linkTypeModel?: LinkTypeModel },
   ): Promise<LinkModel[]> {
-    const incomingLinks = await LinkModel.getByQuery(graphApi, {
+    const filter: Filter = {
       all: [
         {
-          eq: [{ path: ["target", "id"] }, { literal: this.entityId }],
+          equal: [{ path: ["target", "id"] }, { parameter: this.entityId }],
         },
-        params?.linkTypeModel
-          ? {
-              eq: [
-                { path: ["type", "versionedUri"] },
-                {
-                  literal: params.linkTypeModel.schema.$id,
-                },
-              ],
-            }
-          : [],
-      ].flat(),
-    });
+      ],
+    };
+
+    if (params?.linkTypeModel) {
+      filter.all.push({
+        equal: [
+          { path: ["type", "versionedUri"] },
+          {
+            parameter: params.linkTypeModel.schema.$id,
+          },
+        ],
+      });
+    }
+
+    const incomingLinks = await LinkModel.getByQuery(graphApi, filter);
 
     return incomingLinks;
   }
@@ -521,23 +525,26 @@ export default class {
     graphApi: GraphApi,
     params?: { linkTypeModel?: LinkTypeModel },
   ): Promise<LinkModel[]> {
-    const outgoingLinks = await LinkModel.getByQuery(graphApi, {
+    const filter: Filter = {
       all: [
         {
-          eq: [{ path: ["source", "id"] }, { literal: this.entityId }],
+          equal: [{ path: ["source", "id"] }, { parameter: this.entityId }],
         },
-        params?.linkTypeModel
-          ? {
-              eq: [
-                { path: ["type", "versionedUri"] },
-                {
-                  literal: params.linkTypeModel.schema.$id,
-                },
-              ],
-            }
-          : [],
-      ].flat(),
-    });
+      ],
+    };
+
+    if (params?.linkTypeModel) {
+      filter.all.push({
+        equal: [
+          { path: ["type", "versionedUri"] },
+          {
+            parameter: params.linkTypeModel.schema.$id,
+          },
+        ],
+      });
+    }
+
+    const outgoingLinks = await LinkModel.getByQuery(graphApi, filter);
 
     return outgoingLinks;
   }
@@ -552,15 +559,13 @@ export default class {
       linkTargetEntityResolveDepth: number;
     },
   ): Promise<Subgraph> {
-    const query = {
-      all: [
-        { eq: [{ path: ["version"] }, { literal: "latest" }] },
-        { eq: [{ path: ["id"] }, { literal: this.entityId }] },
-      ],
-    };
-
     const { data: entitySubgraph } = await graphApi.getEntitiesByQuery({
-      query,
+      filter: {
+        all: [
+          { equal: [{ path: ["version"] }, { parameter: "latest" }] },
+          { equal: [{ path: ["id"] }, { parameter: this.entityId }] },
+        ],
+      },
       graphResolveDepths: {
         dataTypeResolveDepth: 0,
         propertyTypeResolveDepth: 0,

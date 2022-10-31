@@ -1,3 +1,4 @@
+import { Filter } from "@hashintel/hash-graph-client";
 import { AxiosError } from "axios";
 import { ApolloError } from "apollo-server-express";
 import { EntityModel } from "../../../../model";
@@ -68,7 +69,9 @@ export const getAllLatestPersistedEntities: ResolverFn<
 
   const { data: entitySubgraph } = await graphApi
     .getEntitiesByQuery({
-      query: { eq: [{ path: ["version"] }, { literal: "latest" }] },
+      filter: {
+        equal: [{ path: ["version"] }, { parameter: "latest" }],
+      },
       graphResolveDepths: {
         dataTypeResolveDepth,
         propertyTypeResolveDepth,
@@ -110,16 +113,21 @@ export const getPersistedEntity: ResolverFn<
 ) => {
   const { graphApi } = dataSources;
 
-  const query = {
+  const filter: Filter = {
     all: [
-      { eq: [{ path: ["version"] }, { literal: entityVersion ?? "latest" }] },
-      { eq: [{ path: ["id"] }, { literal: entityId }] },
+      {
+        equal: [
+          { path: ["version"] },
+          { parameter: entityVersion ?? "latest" },
+        ],
+      },
+      { equal: [{ path: ["id"] }, { parameter: entityId }] },
     ],
   };
 
   const { data: entitySubgraph } = await graphApi
     .getEntitiesByQuery({
-      query,
+      filter,
       graphResolveDepths: {
         dataTypeResolveDepth,
         propertyTypeResolveDepth,

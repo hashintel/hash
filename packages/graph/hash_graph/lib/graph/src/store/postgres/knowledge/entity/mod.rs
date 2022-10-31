@@ -1,5 +1,4 @@
 mod read;
-mod resolve;
 
 use std::{future::Future, pin::Pin};
 
@@ -225,13 +224,16 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         Ok(entity_ids)
     }
 
-    async fn get_entity(&self, query: &StructuralQuery) -> Result<Subgraph, QueryError> {
+    async fn get_entity<'f: 'q, 'q>(
+        &self,
+        query: &'q StructuralQuery<'q, Entity>,
+    ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
-            ref expression,
+            ref filter,
             graph_resolve_depths,
         } = *query;
 
-        let subgraphs = stream::iter(Read::<PersistedEntity>::read(self, expression).await?)
+        let subgraphs = stream::iter(Read::<PersistedEntity>::read(self, filter).await?)
             .then(|entity| async move {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 

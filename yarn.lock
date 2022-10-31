@@ -3092,10 +3092,10 @@
     "@blockprotocol/core" "0.0.12"
     lit "^2.2.5"
 
-"@blockprotocol/hook@0.0.7":
-  version "0.0.7"
-  resolved "https://registry.yarnpkg.com/@blockprotocol/hook/-/hook-0.0.7.tgz#56ea49f4c25fa756fab7acefff171cc2f1d3df86"
-  integrity sha512-d5GK5yusWqzQlM9NsRonIMsWDIc7Hq9y8W121mt5MYhsHlPl54ivhQTk9jJNV+bZVcGPM652zejlkFQgMXLdLQ==
+"@blockprotocol/hook@0.0.8":
+  version "0.0.8"
+  resolved "https://registry.yarnpkg.com/@blockprotocol/hook/-/hook-0.0.8.tgz#4e14843e0e589e8fd2c850605f0f93625afcfed5"
+  integrity sha512-JJK3YhH9zHEGKgKU4mML5tJE1EU+2nW1zbL0rovrWj7cTpp14jo6KvWqxBLJYp/4vdBGQkgp8dWyt1ZJ0qSfkQ==
   dependencies:
     "@blockprotocol/core" "0.0.12"
 
@@ -14160,14 +14160,14 @@ mock-block-dock@0.0.21:
     react-json-view "^1.21.3"
     uuid "^8.3.2"
 
-mock-block-dock@0.0.35:
-  version "0.0.35"
-  resolved "https://registry.yarnpkg.com/mock-block-dock/-/mock-block-dock-0.0.35.tgz#a6603551b618c96a11a73c61ce0aef6cb389fe47"
-  integrity sha512-hZaIkeg3PAvFgssS39/a0Nz8lcTh2OvVrna9+IgaqdiDEgGqT0l5C9omEydKTKtkzF1IqMimD0SDc23oXoUceg==
+mock-block-dock@0.0.38:
+  version "0.0.38"
+  resolved "https://registry.yarnpkg.com/mock-block-dock/-/mock-block-dock-0.0.38.tgz#4098499f02808011a77a98a5577be73007d2d1f4"
+  integrity sha512-uLgUctVAz4lZpDwZA4iceSUTOh7GiQg+BePbDFbHSdEYyvx4az/gcqf1doo2vlybdgvSZ/6WgP7ClwgvdHLIyA==
   dependencies:
     "@blockprotocol/core" "0.0.12"
     "@blockprotocol/graph" "0.0.18"
-    "@blockprotocol/hook" "0.0.7"
+    "@blockprotocol/hook" "0.0.8"
     "@emotion/react" "^11.10.0"
     "@emotion/styled" "^11.10.0"
     "@lit-labs/react" "^1.0.4"

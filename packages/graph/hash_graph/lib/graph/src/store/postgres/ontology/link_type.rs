@@ -1,5 +1,3 @@
-mod resolve;
-
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use futures::{stream, StreamExt, TryStreamExt};
@@ -13,7 +11,6 @@ use crate::{
     store::{
         crud::Read,
         postgres::{context::PostgresContext, DependencyContext, DependencyContextRef},
-        query::Filter,
         AsClient, InsertionError, LinkTypeStore, PostgresStore, QueryError, UpdateError,
     },
     subgraph::{StructuralQuery, Subgraph},
@@ -75,15 +72,16 @@ impl<C: AsClient> LinkTypeStore for PostgresStore<C> {
         Ok(metadata)
     }
 
-    async fn get_link_type(&self, query: &StructuralQuery) -> Result<Subgraph, QueryError> {
+    async fn get_link_type<'f: 'q, 'q>(
+        &self,
+        query: &'f StructuralQuery<'q, LinkType>,
+    ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
-            ref expression,
+            ref filter,
             graph_resolve_depths,
         } = *query;
 
-        let mut filter = Filter::try_from(expression.clone()).change_context(QueryError)?;
-        filter.convert_parameters().change_context(QueryError)?;
-        let subgraphs = stream::iter(Read::<PersistedLinkType>::read(self, &filter).await?)
+        let subgraphs = stream::iter(Read::<PersistedLinkType>::read(self, filter).await?)
             .then(|link_type| async move {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 

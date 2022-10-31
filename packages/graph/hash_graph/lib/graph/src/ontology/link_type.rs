@@ -1,13 +1,12 @@
 use std::fmt;
 
-use error_stack::{IntoReport, Report};
 use serde::{
     de::{self, Deserializer, SeqAccess, Visitor},
     Deserialize,
 };
 use type_system::LinkType;
 
-use crate::store::query::{OntologyPath, ParameterType, Path, QueryRecord, RecordPath};
+use crate::store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum LinkTypeQueryPath {
@@ -86,17 +85,6 @@ impl fmt::Display for LinkTypeQueryPath {
     }
 }
 
-impl TryFrom<Path> for LinkTypeQueryPath {
-    type Error = Report<de::value::Error>;
-
-    fn try_from(path: Path) -> Result<Self, Self::Error> {
-        Self::deserialize(de::value::SeqDeserializer::new(
-            path.segments.into_iter().map(|segment| segment.identifier),
-        ))
-        .into_report()
-    }
-}
-
 /// A single token in a [`LinkTypeQueryPath`].
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -145,6 +133,7 @@ impl<'de> Visitor<'de> for LinkTypeQueryPathVisitor {
             .next_element()?
             .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
         self.position += 1;
+
         Ok(match token {
             LinkTypeQueryToken::OwnedById => LinkTypeQueryPath::OwnedById,
             LinkTypeQueryToken::CreatedById => LinkTypeQueryPath::CreatedById,
@@ -174,11 +163,6 @@ mod tests {
     use std::iter::once;
 
     use super::*;
-    use crate::ontology::test_utils::create_path;
-
-    fn convert_path(segments: impl IntoIterator<Item = &'static str>) -> LinkTypeQueryPath {
-        LinkTypeQueryPath::try_from(create_path(segments)).expect("could not convert path")
-    }
 
     fn deserialize(segments: impl IntoIterator<Item = &'static str>) -> LinkTypeQueryPath {
         LinkTypeQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
@@ -242,38 +226,6 @@ mod tests {
                  errored"
             )
             .to_string(),
-            "invalid length 2, expected 1 element in sequence"
-        );
-    }
-
-    #[test]
-    fn path_conversion() {
-        assert_eq!(convert_path(["baseUri"]), LinkTypeQueryPath::BaseUri);
-        assert_eq!(convert_path(["version"]), LinkTypeQueryPath::Version);
-        assert_eq!(
-            convert_path(["versionedUri"]),
-            LinkTypeQueryPath::VersionedUri
-        );
-        assert_eq!(convert_path(["ownedById"]), LinkTypeQueryPath::OwnedById);
-        assert_eq!(convert_path(["title"]), LinkTypeQueryPath::Title);
-        assert_eq!(
-            convert_path(["description"]),
-            LinkTypeQueryPath::Description
-        );
-        assert_eq!(
-            convert_path(["relatedKeywords"]),
-            LinkTypeQueryPath::RelatedKeywords
-        );
-
-        assert_eq!(
-            LinkTypeQueryPath::try_from(create_path(["baseUri", "invalid"]))
-                .expect_err(
-                    "managed to convert link type query path with multiple tokens when it should \
-                     have errored"
-                )
-                .downcast_ref::<de::value::Error>()
-                .expect("deserialization error not found in report")
-                .to_string(),
             "invalid length 2, expected 1 element in sequence"
         );
     }

@@ -1,42 +1,70 @@
+use std::str::FromStr;
+
 use async_trait::async_trait;
-use error_stack::{bail, Report, Result, ResultExt};
-use futures::{stream, StreamExt, TryStreamExt};
+use error_stack::{IntoReport, Result, ResultExt};
+use futures::{StreamExt, TryStreamExt};
+use tokio_postgres::GenericClient;
+use type_system::uri::VersionedUri;
 
 use crate::{
-    knowledge::PersistedLink,
+    knowledge::{Link, LinkQueryPath, PersistedLink},
+    ontology::LinkTypeQueryPath,
     store::{
         crud,
-        postgres::context::PostgresContext,
-        query::{Expression, ExpressionError, Literal},
+        postgres::query::{Distinctness, Ordering, SelectCompiler},
+        query::Filter,
         AsClient, PostgresStore, QueryError,
     },
 };
 
 #[async_trait]
 impl<C: AsClient> crud::Read<PersistedLink> for PostgresStore<C> {
-    type Query<'q> = Expression;
+    type Query<'q> = Filter<'q, Link>;
 
     async fn read<'f: 'q, 'q>(
         &self,
-        query: &'f Self::Query<'q>,
+        filter: &'f Self::Query<'q>,
     ) -> Result<Vec<PersistedLink>, QueryError> {
-        // TODO: We need to work around collecting all records before filtering
-        //   related: https://app.asana.com/0/1202805690238892/1202923536131158/f
-        stream::iter(self.read_all_links().await?.collect::<Vec<_>>().await)
-            .try_filter_map(|record| async move {
-                if let Literal::Bool(result) = query
-                    .evaluate(&record, self)
-                    .await
-                    .change_context(QueryError)?
-                {
-                    Ok(result.then(|| PersistedLink::from(record)))
-                } else {
-                    bail!(
-                        Report::new(ExpressionError)
-                            .attach_printable("does not result in a boolean value")
-                            .change_context(QueryError)
-                    );
-                }
+        let mut compiler = SelectCompiler::new();
+        compiler.add_selection_path(
+            &LinkQueryPath::Type(LinkTypeQueryPath::VersionedUri),
+            Distinctness::Distinct,
+            None,
+        );
+        compiler.add_selection_path(&LinkQueryPath::Source(None), Distinctness::Distinct, None);
+        compiler.add_selection_path(&LinkQueryPath::Target(None), Distinctness::Distinct, None);
+        compiler.add_selection_path(
+            &LinkQueryPath::Index,
+            Distinctness::Distinct,
+            Some(Ordering::Ascending),
+        );
+        compiler.add_selection_path(&LinkQueryPath::OwnedById, Distinctness::Indistinct, None);
+        compiler.add_selection_path(&LinkQueryPath::CreatedById, Distinctness::Indistinct, None);
+        compiler.add_filter(filter);
+
+        let (statement, parameters) = compiler.compile();
+
+        self.as_client()
+            .query_raw(&statement, parameters.iter().copied())
+            .await
+            .into_report()
+            .change_context(QueryError)?
+            .map(|row| row.into_report().change_context(QueryError))
+            .and_then(|row| async move {
+                let link_type_id = VersionedUri::from_str(row.get(0))
+                    .into_report()
+                    .change_context(QueryError)?;
+                let source_entity_id = row.get(1);
+                let target_entity_id = row.get(2);
+                let index = row.get(3);
+                let owned_by_id = row.get(4);
+                let created_by_id = row.get(5);
+
+                Ok(PersistedLink::new(
+                    Link::new(source_entity_id, target_entity_id, link_type_id, index),
+                    owned_by_id,
+                    created_by_id,
+                ))
             })
             .try_collect()
             .await
