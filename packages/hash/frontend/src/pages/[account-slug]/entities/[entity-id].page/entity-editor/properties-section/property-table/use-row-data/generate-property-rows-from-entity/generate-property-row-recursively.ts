@@ -1,30 +1,10 @@
-import { PropertyType } from "@blockprotocol/type-system-web";
-import { capitalize } from "@mui/material";
 import { isPlainObject } from "lodash";
 import {
-  getPersistedDataType,
   getPropertyTypesByBaseUri,
-  getPersistedEntityType,
   RootEntityAndSubgraph,
-  Subgraph,
-} from "../../../../../../../lib/subgraph";
-import { PropertyRow } from "./types";
-
-const getDataTypesOfPropertyType = (
-  propertyType: PropertyType,
-  subgraph: Subgraph,
-) => {
-  return propertyType.oneOf.map((propertyValue) => {
-    if ("$ref" in propertyValue) {
-      const dataTypeId = propertyValue?.$ref;
-      const persistedDataType = getPersistedDataType(subgraph, dataTypeId);
-
-      return persistedDataType ? persistedDataType?.inner.title : "undefined";
-    }
-
-    return capitalize(propertyValue.type);
-  });
-};
+} from "../../../../../../../../../lib/subgraph";
+import { PropertyRow } from "../../types";
+import { getDataTypesOfPropertyType } from "./get-data-types-of-property-type";
 
 interface GenerateRowDataParams {
   propertyTypeBaseUri: string;
@@ -35,7 +15,7 @@ interface GenerateRowDataParams {
   propertyKeyChain: string[];
 }
 
-const generateRowDataFromPropertyTypeBaseUri = ({
+export const generatePropertyRowRecursively = ({
   properties,
   propertyTypeBaseUri,
   requiredPropertyTypes,
@@ -71,7 +51,7 @@ const generateRowDataFromPropertyTypeBaseUri = ({
   if (isPlainObject(value)) {
     for (const subPropertyTypeBaseUri of Object.keys(value)) {
       children.push(
-        generateRowDataFromPropertyTypeBaseUri({
+        generatePropertyRowRecursively({
           rootEntityAndSubgraph,
           propertyTypeBaseUri: subPropertyTypeBaseUri,
           properties: properties[propertyTypeBaseUri],
@@ -99,27 +79,4 @@ const generateRowDataFromPropertyTypeBaseUri = ({
     verticalLinesForEachIndent: [], // this will be filled by `fillRowDataIndentCalculations`
     propertyKeyChain,
   };
-};
-
-export const generatePropertyRowsFromEntity = (
-  rootEntityAndSubgraph: RootEntityAndSubgraph,
-): PropertyRow[] => {
-  const entity = rootEntityAndSubgraph.root;
-
-  const entityType = getPersistedEntityType(
-    rootEntityAndSubgraph.subgraph,
-    entity.entityTypeId,
-  );
-
-  const requiredPropertyTypes = entityType?.inner.required ?? [];
-
-  return Object.keys(entity.properties).map((propertyTypeBaseUri) =>
-    generateRowDataFromPropertyTypeBaseUri({
-      propertyTypeBaseUri,
-      rootEntityAndSubgraph,
-      requiredPropertyTypes,
-      properties: entity.properties,
-      propertyKeyChain: [propertyTypeBaseUri],
-    }),
-  );
 };

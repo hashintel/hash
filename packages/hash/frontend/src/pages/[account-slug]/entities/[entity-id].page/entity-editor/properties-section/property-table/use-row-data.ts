@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { PropertyRow } from "./types";
-import { generatePropertyRowsFromEntity } from "./generate-property-rows-from-entity";
+import { generatePropertyRowsFromEntity } from "./use-row-data/generate-property-rows-from-entity";
 import { useEntityEditor } from "../../entity-editor-context";
 import { fillRowDataIndentCalculations } from "./fill-row-data-indent-calculations";
 import { sortRowData } from "../../../../../../../components/GlideGlid/utils/sorting";
