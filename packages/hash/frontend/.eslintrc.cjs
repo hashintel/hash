@@ -1,33 +1,33 @@
 module.exports = {
-  "parserOptions": {
-    "project": ["./tsconfig.json"]
+  parserOptions: {
+    project: ["./tsconfig.json"],
   },
-  "plugins": ["@typescript-eslint", "canonical", "unicorn"],
-  "rules": {
+  plugins: ["@typescript-eslint", "canonical", "unicorn"],
+  rules: {
     "jsx-a11y/label-has-associated-control": "off",
     "import/no-default-export": "error",
     "no-restricted-imports": [
       "error",
       {
-        "paths": [
+        paths: [
           {
-            "name": "next",
-            "importNames": ["Link"],
-            "message":
-              "Please use the custom wrapper component in src/shared/ui component instead to ensure Next.js and MUI compatibility."
+            name: "next",
+            importNames: ["Link"],
+            message:
+              "Please use the custom wrapper component in src/shared/ui component instead to ensure Next.js and MUI compatibility.",
           },
           {
-            "name": "next/link",
-            "message":
-              "Please use the custom wrapper component in src/shared/ui component instead to ensure Next.js and MUI compatibility."
+            name: "next/link",
+            message:
+              "Please use the custom wrapper component in src/shared/ui component instead to ensure Next.js and MUI compatibility.",
           },
           {
-            "name": "@mui/material/*",
-            "message": "Please import from @mui/material instead"
+            name: "@mui/material/*",
+            message: "Please import from @mui/material instead",
           },
           {
-            "name": "@mui/material",
-            "importNames": [
+            name: "@mui/material",
+            importNames: [
               "Avatar",
               "IconButton",
               "Chip",
@@ -38,39 +38,39 @@ module.exports = {
               "Menu",
               "Link",
               "Button",
-              "MenuItem"
+              "MenuItem",
             ],
-            "message":
-              "Please use the custom wrapper component from src/shared/ui for Link, Button and MenuItem and from '@hashintel/hash-design-system' for every other component."
+            message:
+              "Please use the custom wrapper component from src/shared/ui for Link, Button and MenuItem and from '@hashintel/hash-design-system' for every other component.",
           },
           {
-            "name": "notistack",
-            "importNames": ["useSnackbar"],
-            "message":
-              "Please use the custom src/components/hooks/useSnackbar hook instead."
-          }
-        ]
-      }
-    ]
+            name: "notistack",
+            importNames: ["useSnackbar"],
+            message:
+              "Please use the custom src/components/hooks/useSnackbar hook instead.",
+          },
+        ],
+      },
+    ],
   },
-  "overrides": [
+  overrides: [
     {
-      "files": [
+      files: [
         "./src/pages/**/*.api.ts",
         "./src/pages/**/*.page.ts",
         "./src/pages/**/*.page.tsx",
-        "**/__mocks__/**"
+        "**/__mocks__/**",
       ],
-      "rules": {
-        "import/no-default-export": "off"
-      }
+      rules: {
+        "import/no-default-export": "off",
+      },
     },
     {
-      "files": ["**/shared/**/*", "./src/pages/**/*"],
-      "rules": {
+      files: ["**/shared/**/*", "./src/pages/**/*"],
+      rules: {
         "canonical/filename-no-index": "error",
-        "unicorn/filename-case": "error"
-      }
-    }
-  ]
-}
+        "unicorn/filename-case": "error",
+      },
+    },
+  ],
+};
