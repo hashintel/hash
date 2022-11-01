@@ -742,8 +742,36 @@ impl Hooks {
         self.inner.push((type_id, into_boxed_hook(hook)));
     }
 
+<<<<<<< HEAD
     pub(crate) fn call(&self, frame: &Frame, context: &mut HookContext<Frame>) -> bool {
         let mut hit = false;
+=======
+    /// This compatability function is needed, as we need to special-case location a bit.
+    ///
+    /// [`Location`] is special, as it is present on every single frame, but is not present in the
+    /// chain of sources.
+    ///
+    /// This invokes all hooks on the [`Location`] object by creating a fake frame, which is used to
+    /// invoke any hooks related to location.
+    ///
+    /// [`Location`]: core::panic::Location
+    fn call_location(&self, frame: &Frame, context: &mut HookContext<Frame>) {
+        if !matches!(frame.kind(), FrameKind::Context(_)) {
+            return;
+        }
+
+        // note: this will issue recursion, but this won't ever cause infinite recursion, as
+        // this code is conditional on it being a context.
+        #[allow(deprecated)]
+        let fake = Frame::from_attachment(*frame.location(), frame.location(), Box::new([]));
+
+        self.call(&fake, context);
+    }
+
+    pub(crate) fn call(&self, frame: &Frame, context: &mut HookContext<Frame>) {
+        self.call_location(frame, context);
+
+>>>>>>> 762ee4978 (fix: allow deprecated in internal code)
         for (_, hook) in &self.inner {
             hit = hook(frame, context) || hit;
         }

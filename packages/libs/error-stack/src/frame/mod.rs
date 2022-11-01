@@ -139,6 +139,11 @@ impl Provider for Frame {
 impl fmt::Debug for Frame {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut debug = fmt.debug_struct("Frame");
+<<<<<<< HEAD
+=======
+        #[allow(deprecated)]
+        debug.field("location", self.location());
+>>>>>>> 762ee4978 (fix: allow deprecated in internal code)
         match self.kind() {
             FrameKind::Context(context) => {
                 debug.field("context", &context);

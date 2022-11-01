@@ -699,6 +699,7 @@ fn debug_attachments_invoke<'a>(
                 Some(vec![attachment.to_string()])
             }
             #[cfg(all(not(feature = "std"), feature = "pretty-print"))]
+<<<<<<< HEAD
             FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
                 if let Some(location) = frame.downcast_ref::<core::panic::Location>() {
                     Some(vec![
@@ -711,6 +712,24 @@ fn debug_attachments_invoke<'a>(
                 }
             }
             #[cfg(all(not(feature = "std"), not(feature = "pretty-print")))]
+=======
+            FrameKind::Context(_) => {
+                #[allow(deprecated)]
+                let location = frame
+                    .location()
+                    .if_supports_color(Stream::Stdout, OwoColorize::bright_black);
+
+                vec![format!("{location}")]
+            }
+            #[cfg(all(not(feature = "std"), not(feature = "pretty-print")))]
+            FrameKind::Context(_) => {
+                #[allow(deprecated)]
+                let location = frame.location();
+
+                vec![format!("at {location}")]
+            }
+            #[cfg(not(feature = "std"))]
+>>>>>>> 762ee4978 (fix: allow deprecated in internal code)
             FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
                 if let Some(location) = frame.downcast_ref::<core::panic::Location>() {
                     Some(vec![format!("at {location}")])
