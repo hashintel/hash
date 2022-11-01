@@ -91,8 +91,6 @@ pub struct GraphResolveDepths {
     #[schema(value_type = number)]
     pub entity_type_resolve_depth: OntologyQueryDepth,
     #[schema(value_type = number)]
-    pub link_type_resolve_depth: OntologyQueryDepth,
-    #[schema(value_type = number)]
     pub link_resolve_depth: KnowledgeGraphQueryDepth,
     // TODO: what is this?
     #[schema(value_type = number)]
@@ -106,7 +104,6 @@ impl GraphResolveDepths {
             data_type_resolve_depth: 0,
             property_type_resolve_depth: 0,
             entity_type_resolve_depth: 0,
-            link_type_resolve_depth: 0,
             link_resolve_depth: 0,
             link_target_entity_resolve_depth: 0,
         }

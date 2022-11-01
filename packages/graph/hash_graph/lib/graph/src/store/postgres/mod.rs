@@ -803,22 +803,26 @@ where
                 .change_context(InsertionError)?;
         }
 
+        // TODO: should we check that the `link_entity_type_ref` is a link entity type?
+        // TODO: Use an inheritance table for `inherits_from`
+        //   see https://app.asana.com/0/1202805690238892/1203277018227719/f
+        // TODO: `collect` is not needed but due to a higher-ranked lifetime error, this would fail
+        //       otherwise. This is expected to be solved in future Rust versions.
         let entity_type_references = entity_type
             .link_mappings()
-            .keys()
-            .map(|&link_entity_type_ref| link_entity_type_ref.clone())
+            .into_keys()
             .chain(
                 entity_type
                     .link_mappings()
-                    .values()
-                    .filter_map(|&destination_entity_types| destination_entity_types)
+                    .into_values()
                     .flatten()
-                    .cloned(),
+                    .flatten(),
             )
+            .chain(entity_type.inherits_from().all_of())
             .collect::<Vec<_>>();
 
         let entity_type_reference_ids = self
-            .entity_type_reference_ids(&entity_type_references)
+            .entity_type_reference_ids(entity_type_references)
             .await
             .change_context(InsertionError)
             .attach_printable("Could not find referenced entity types")?;

@@ -63,6 +63,10 @@ impl Path for EntityQueryPath<'_> {
             | Self::UpdatedById
             | Self::RemovedById
             | Self::Version
+            | Self::LeftEntityId
+            | Self::RightEntityId
+            | Self::LeftOrder
+            | Self::RightOrder
             | Self::Properties(_) => TableName::Entities,
             Self::Type(path) => path.terminating_table_name(),
             // TODO: https://app.asana.com/0/1200211978612931/1203250001255262/f
@@ -89,6 +93,18 @@ impl Path for EntityQueryPath<'_> {
             },
             Self::RemovedById => ColumnAccess::Table {
                 column: "removed_by_id",
+            },
+            Self::LeftEntityId => ColumnAccess::Table {
+                column: "left_entity_id",
+            },
+            Self::RightEntityId => ColumnAccess::Table {
+                column: "right_entity_id",
+            },
+            Self::LeftOrder => ColumnAccess::Table {
+                column: "left_order",
+            },
+            Self::RightOrder => ColumnAccess::Table {
+                column: "right_order",
             },
             Self::Properties(path) => path.as_ref().map_or(
                 ColumnAccess::Table {

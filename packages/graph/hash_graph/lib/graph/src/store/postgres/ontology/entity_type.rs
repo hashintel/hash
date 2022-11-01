@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use futures::{stream, FutureExt, StreamExt, TryStreamExt};
 use tokio_postgres::GenericClient;
-use type_system::{uri::VersionedUri, EntityType};
+use type_system::{uri::VersionedUri, EntityType, EntityTypeReference};
 
 use crate::{
     ontology::{PersistedEntityType, PersistedOntologyMetadata},
@@ -83,67 +83,52 @@ impl<C: AsClient> PostgresStore<C> {
                     }
                 }
 
-                todo!("https://app.asana.com/0/1200211978612931/1203250001255262/f");
+                let entity_type_ids = entity_type
+                    .inner()
+                    .link_mappings()
+                    .into_keys()
+                    .chain(
+                        entity_type
+                            .inner()
+                            .link_mappings()
+                            .into_values()
+                            .flatten()
+                            .flatten(),
+                    )
+                    .chain(entity_type.inner().inherits_from().all_of())
+                    .map(EntityTypeReference::uri);
+
                 // TODO: Use relation tables
                 //   see https://app.asana.com/0/0/1202884883200942/f
-                // for (link_type_id, entity_type_ids) in entity_type.inner().link_type_references()
-                // {     dependency_context.edges.insert(
-                //         GraphElementIdentifier::OntologyElementId(entity_type_id.clone()),
-                //         OutwardEdge {
-                //             edge_kind: EdgeKind::References,
-                //             destination: GraphElementIdentifier::OntologyElementId(
-                //                 link_type_id.clone(),
-                //             ),
-                //         },
-                //     );
-                //
-                //     if dependency_context
-                //         .graph_resolve_depths
-                //         .link_type_resolve_depth
-                //         > 0
-                //     {
-                //         self.get_link_type_as_dependency(
-                //             link_type_id,
-                //             dependency_context.change_depth(GraphResolveDepths {
-                //                 link_type_resolve_depth: dependency_context
-                //                     .graph_resolve_depths
-                //                     .link_type_resolve_depth
-                //                     - 1,
-                //                 ..dependency_context.graph_resolve_depths
-                //             }),
-                //         )
-                //         .await?;
-                //     }
-                //     for referenced_entity_type_id in entity_type_ids {
-                //         dependency_context.edges.insert(
-                //             GraphElementIdentifier::OntologyElementId(entity_type_id.clone()),
-                //             OutwardEdge {
-                //                 edge_kind: EdgeKind::References,
-                //                 destination: GraphElementIdentifier::OntologyElementId(
-                //                     referenced_entity_type_id.uri().clone(),
-                //                 ),
-                //             },
-                //         );
-                //
-                //         if dependency_context
-                //             .graph_resolve_depths
-                //             .entity_type_resolve_depth
-                //             > 0
-                //         {
-                //             self.get_entity_type_as_dependency(
-                //                 referenced_entity_type_id.uri(),
-                //                 dependency_context.change_depth(GraphResolveDepths {
-                //                     entity_type_resolve_depth: dependency_context
-                //                         .graph_resolve_depths
-                //                         .entity_type_resolve_depth
-                //                         - 1,
-                //                     ..dependency_context.graph_resolve_depths
-                //                 }),
-                //             )
-                //             .await?;
-                //         }
-                //     }
-                // }
+                for entity_type_id in entity_type_ids {
+                    dependency_context.edges.insert(
+                        GraphElementIdentifier::OntologyElementId(entity_type_id.clone()),
+                        OutwardEdge {
+                            edge_kind: EdgeKind::References,
+                            destination: GraphElementIdentifier::OntologyElementId(
+                                entity_type_id.clone(),
+                            ),
+                        },
+                    );
+
+                    if dependency_context
+                        .graph_resolve_depths
+                        .entity_type_resolve_depth
+                        > 0
+                    {
+                        self.get_entity_type_as_dependency(
+                            entity_type_id,
+                            dependency_context.change_depth(GraphResolveDepths {
+                                entity_type_resolve_depth: dependency_context
+                                    .graph_resolve_depths
+                                    .entity_type_resolve_depth
+                                    - 1,
+                                ..dependency_context.graph_resolve_depths
+                            }),
+                        )
+                        .await?;
+                    }
+                }
             }
 
             Ok(())
