@@ -1,6 +1,5 @@
 import { GraphQLError } from "graphql";
 import { ParsedUrlQueryInput } from "querystring";
-import { OrgSize } from "../../graphql/apiTypes.gen";
 
 export const SYNTHETIC_LOADING_TIME_MS = 700;
 
@@ -80,10 +79,10 @@ export const ORG_ROLES = [
 ];
 
 export const ORG_SIZES = [
-  { label: "1-10 people", value: OrgSize.OneToTen },
-  { label: "11-50 people", value: OrgSize.ElevenToFifty },
-  { label: "51-250 people", value: OrgSize.FiftyOneToTwoHundredAndFifty },
-  { label: "250+ people", value: OrgSize.TwoHundredAndFiftyPlus },
+  { label: "1-10 people", value: "ONE_TO_TEN" },
+  { label: "11-50 people", value: "ELEVEN_TO_FIFTY" },
+  { label: "51-250 people", value: "FIFTY_ONE_TO_TWO_HUNDRED_AND_FIFTY" },
+  { label: "250+ people", value: "TWO_HUNDRED_AND_FIFTY_PLUS" },
 ];
 
 // https://emailregex.com/

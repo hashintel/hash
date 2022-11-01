@@ -13,8 +13,6 @@ import {
 import {
   CreateEntityMutation,
   CreateEntityMutationVariables,
-  CreateOrgMutation,
-  CreateOrgMutationVariables,
   CreatePageMutation,
   CreatePageMutationVariables,
   GetEntityQueryVariables,
@@ -29,12 +27,6 @@ import {
   DeprecatedCreateEntityTypeMutationVariables,
   DeprecatedUpdateEntityTypeMutation,
   DeprecatedUpdateEntityTypeMutationVariables,
-  CreateOrgEmailInvitationMutationVariables,
-  CreateOrgEmailInvitationMutation,
-  GetOrgEmailInvitationQueryVariables,
-  GetOrgEmailInvitationQuery,
-  GetOrgInvitationLinkQueryVariables,
-  GetOrgInvitationLinkQuery,
   CreateLinkedAggregationMutationVariables,
   CreateLinkedAggregationMutation,
   UpdateLinkedAggregationOperationMutation,
@@ -63,12 +55,6 @@ import {
   deprecatedUpdateEntityType,
   getEntityAndLinks,
 } from "../graphql/queries/entity.queries";
-import {
-  createOrg,
-  createOrgEmailInvitation,
-  orgEmailInvitation,
-  orgInvitationLink,
-} from "../graphql/queries/org.queries";
 import {
   createPage,
   getAccountPagesTree,
@@ -187,44 +173,6 @@ export class ApiClient {
         CreateEntityMutationVariables
       >(createEntity, vars)
     ).createEntity;
-  }
-
-  async createOrg(vars: CreateOrgMutationVariables) {
-    return (
-      await this.client.request<CreateOrgMutation, CreateOrgMutationVariables>(
-        createOrg,
-        vars,
-      )
-    ).createOrg;
-  }
-
-  async createOrgEmailInvitation(
-    vars: CreateOrgEmailInvitationMutationVariables,
-  ) {
-    return (
-      await this.client.request<
-        CreateOrgEmailInvitationMutation,
-        CreateOrgEmailInvitationMutationVariables
-      >(createOrgEmailInvitation, vars)
-    ).createOrgEmailInvitation;
-  }
-
-  async getOrgEmailInvitation(vars: GetOrgEmailInvitationQueryVariables) {
-    return (
-      await this.client.request<
-        GetOrgEmailInvitationQuery,
-        GetOrgEmailInvitationQueryVariables
-      >(orgEmailInvitation, vars)
-    ).getOrgEmailInvitation;
-  }
-
-  async getOrgInvitationLink(vars: GetOrgInvitationLinkQueryVariables) {
-    return (
-      await this.client.request<
-        GetOrgInvitationLinkQuery,
-        GetOrgInvitationLinkQueryVariables
-      >(orgInvitationLink, vars)
-    ).getOrgInvitationLink;
   }
 
   async createPage(vars: CreatePageMutationVariables) {
