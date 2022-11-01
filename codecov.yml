@@ -8,7 +8,7 @@ coverage:
     patch:
       default:
         informational: true
-comment:  # Only post a comment if the coverage changes
+comment: # Only post a comment if the coverage changes
   require_changes: true
 github_checks:
   annotations: false
