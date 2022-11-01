@@ -280,6 +280,7 @@ export const PropertyListCard = () => {
       <Box sx={{ p: 0.5 }}>
         <Table
           sx={(theme) => ({
+            height: "100%",
             [`.${tableCellClasses.root}`]: {
               pl: 3.5,
               pr: 1,

@@ -36,61 +36,70 @@ export const MultipleValuesCell = ({
     <>
       <TableCell
         ref={(ref: HTMLDivElement) => setAnchorEl(ref)}
-        sx={({ palette, transitions }) => ({
-          px: "0px !important",
+        sx={{
+          p: "0 !important",
           position: "relative",
-          cursor: "pointer",
-          textAlign: "center",
-          transition: transitions.create("border-color"),
-          border: `1px solid ${
-            multipleValuesMenuOpen ? palette.gray[40] : "transparent"
-          } !important`,
-          "&:hover": {
-            borderColor: `${palette.gray[40]} !important`,
-          },
-        })}
+        }}
         onClick={() => setMultipleValuesMenuOpen(true)}
       >
         <Box
           sx={({ palette, transitions }) => ({
-            display: "inline-flex",
-            borderRadius: "4px 30px 30px 4px",
-            backgroundColor: "transparent",
-            transition: transitions.create(["padding", "background-color"]),
-            ...(array && !multipleValuesMenuOpen
-              ? {
-                  py: 0.5,
-                  px: 0.75,
-                  background: palette.gray[20],
-                }
-              : {}),
+            display: "flex",
+            justifyContent: "center",
+            cursor: "pointer",
+            height: 1,
+            transition: transitions.create("border-color"),
+            border: `1px solid ${
+              multipleValuesMenuOpen ? palette.gray[40] : "transparent"
+            } !important`,
+            "&:hover": {
+              borderColor: `${palette.gray[40]} !important`,
+            },
           })}
         >
-          <Controller
-            render={({ field: { value, ...field } }) => (
-              <Checkbox {...field} checked={value} />
-            )}
-            control={control}
-            name={`properties.${propertyIndex}.array`}
-          />
-
-          <Collapse
-            orientation="horizontal"
-            in={array && !multipleValuesMenuOpen}
+          <Box
+            sx={({ palette, transitions }) => ({
+              display: "inline-flex",
+              borderRadius: "4px 30px 30px 4px",
+              backgroundColor: "transparent",
+              transition: transitions.create(["padding", "background-color"]),
+              ...(array && !multipleValuesMenuOpen
+                ? {
+                    py: 0.5,
+                    px: 0.75,
+                    background: palette.gray[20],
+                  }
+                : {}),
+            })}
           >
-            <Typography
-              variant="smallTextLabels"
-              sx={{
-                display: "flex",
-                ml: 1,
-                fontWeight: 500,
-                whiteSpace: "nowrap",
-                color: ({ palette }) => palette.gray[70],
-              }}
+            <Controller
+              render={({ field: { value, ...field } }) => (
+                <Checkbox {...field} checked={value} />
+              )}
+              control={control}
+              name={`properties.${propertyIndex}.array`}
+            />
+
+            <Collapse
+              orientation="horizontal"
+              in={array && !multipleValuesMenuOpen}
             >
-              {minValue !== maxValue ? `${minValue} to ${maxValue}` : minValue}
-            </Typography>
-          </Collapse>
+              <Typography
+                variant="smallTextLabels"
+                sx={{
+                  display: "flex",
+                  ml: 1,
+                  fontWeight: 500,
+                  whiteSpace: "nowrap",
+                  color: ({ palette }) => palette.gray[70],
+                }}
+              >
+                {minValue !== maxValue
+                  ? `${minValue} to ${maxValue}`
+                  : minValue}
+              </Typography>
+            </Collapse>
+          </Box>
         </Box>
       </TableCell>
 
@@ -99,7 +108,7 @@ export const MultipleValuesCell = ({
         anchorEl={anchorEl}
         container={anchorEl}
         placement="bottom"
-        sx={{ width: 1, zIndex: 1 }}
+        sx={{ width: 1, zIndex: 1, top: "-1px !important" }}
         transition
       >
         {({ TransitionProps }) => {
