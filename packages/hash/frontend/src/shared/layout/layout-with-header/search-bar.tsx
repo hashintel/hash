@@ -18,7 +18,7 @@ import {
   SearchPagesQueryVariables,
 } from "../../../graphql/apiTypes.gen";
 import { searchPages } from "../../../graphql/queries/search.queries";
-import { useUser } from "../../../components/hooks/useUser";
+import { useAuthenticatedUser } from "../../../components/hooks/useAuthenticatedUser";
 import { HASH_OPENSEARCH_ENABLED } from "../../../lib/public-env";
 import { SearchInput } from "./search-bar/search-input";
 import { Button, Link } from "../../ui";
@@ -159,14 +159,17 @@ const SearchBarWhenSearchIsEnabled: FunctionComponent = () => {
     }
   }, [displayedQuery, displaySearchInput]);
 
-  const { user } = useUser();
+  const { authenticatedUser } = useAuthenticatedUser();
 
   const { data, loading } = useQuery<
     SearchPagesQuery,
     SearchPagesQueryVariables
   >(searchPages, {
-    variables: { accountId: user?.accountId!, query: submittedQuery },
-    skip: !user?.accountId || !submittedQuery,
+    variables: {
+      accountId: authenticatedUser!.entityId,
+      query: submittedQuery,
+    },
+    skip: !authenticatedUser?.entityId || !submittedQuery,
     fetchPolicy: "network-only",
   });
 

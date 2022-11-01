@@ -7,20 +7,20 @@ import {
   bindTrigger,
 } from "material-ui-popup-state/hooks";
 import { Avatar, Menu } from "@hashintel/hash-design-system";
-import { UserFieldsFragment } from "../../../graphql/apiTypes.gen";
 import { MenuItem } from "../../ui";
 import { HeaderIconButton } from "./shared/header-icon-button";
+import { AuthenticatedUser } from "../../../lib/user";
 
 type AccountDropdownProps = {
   avatar?: string;
   logout: () => void;
-  user: UserFieldsFragment;
+  authenticatedUser: AuthenticatedUser;
 };
 
 export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
   avatar,
   logout,
-  user,
+  authenticatedUser,
 }) => {
   const popupState = usePopupState({
     variant: "popover",
@@ -28,10 +28,12 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
   });
 
   const userPrimaryEmail = useMemo(() => {
-    const primaryEmail = user.emails.find((email) => email.primary);
+    const primaryEmail = authenticatedUser.emails.find(
+      (email) => email.primary,
+    );
 
     return primaryEmail?.address;
-  }, [user]);
+  }, [authenticatedUser]);
 
   return (
     <Box>
@@ -46,7 +48,7 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
               }}
               mb={0.5}
             >
-              <strong>{user.preferredName}</strong>
+              <strong>{authenticatedUser.preferredName}</strong>
             </Typography>
             {userPrimaryEmail && (
               <Typography
@@ -79,7 +81,7 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
               sx={{ height: "32px", width: "32px", borderRadius: "100%" }}
             />
           ) : (
-            <Avatar size={32} title={user?.preferredName ?? "U"} />
+            <Avatar size={32} title={authenticatedUser?.preferredName ?? "U"} />
           )}
         </HeaderIconButton>
       </Tooltip>
@@ -113,7 +115,7 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
               fontWeight: 500,
             })}
           >
-            {user.preferredName}
+            {authenticatedUser.preferredName}
           </Typography>
           {userPrimaryEmail && (
             <Typography

@@ -10,7 +10,7 @@ import { useRouter } from "next/router";
 
 import { LogoIcon, SpinnerIcon } from "../../shared/icons";
 import { TextInput } from "../../components/forms/TextInput";
-import { useUser } from "../../components/hooks/useUser";
+import { useAuthenticatedUser } from "../../components/hooks/useAuthenticatedUser";
 import { InviteHeader } from "../shared/invite-header";
 import { InvitationInfo } from "../shared/auth-utils";
 import { Link } from "../../shared/ui";
@@ -30,7 +30,7 @@ export const SignupIntro: FunctionComponent<SignupIntroProps> = ({
 }) => {
   const [email, setEmail] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
-  const { user } = useUser();
+  const { authenticatedUser } = useAuthenticatedUser();
   const router = useRouter();
 
   useEffect(() => {
@@ -38,10 +38,10 @@ export const SignupIntro: FunctionComponent<SignupIntroProps> = ({
   }, []);
 
   useEffect(() => {
-    if (user?.accountSignupComplete) {
-      void router.push(`/${user.accountId}`);
+    if (authenticatedUser?.accountSignupComplete) {
+      void router.push(`/${authenticatedUser.entityId}`);
     }
-  }, [user, router]);
+  }, [authenticatedUser, router]);
 
   const onSubmit = (evt: FormEvent) => {
     evt.preventDefault();
