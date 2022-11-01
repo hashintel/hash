@@ -6,7 +6,7 @@
 
 use insta::assert_ron_snapshot;
 
-use crate::common::{create_report, ContextA, PrintableA, PrintableB, PrintableC};
+use crate::common::{create_report, ContextA, PrintableA, PrintableC};
 
 mod common;
 
