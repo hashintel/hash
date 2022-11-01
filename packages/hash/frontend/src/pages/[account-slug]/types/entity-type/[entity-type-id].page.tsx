@@ -36,6 +36,33 @@ const getBaseUri = (path: string) => {
   return `${FRONTEND_URL}${url.pathname}/`;
 };
 
+const getSchemaFromEditorForm = (
+  properties: EntityTypeEditorPropertyData[],
+): Partial<EntityType> =>
+  properties.reduce((schema: Partial<EntityType>, property) => {
+    const propertyKey = extractBaseUri(property.$id);
+
+    const prop: ValueOrArray<PropertyTypeReference> = property.array
+      ? {
+          type: "array",
+          minItems: property.minValue,
+          maxItems: property.maxValue,
+          items: { $ref: property.$id },
+        }
+      : { $ref: property.$id };
+
+    return {
+      properties: {
+        ...schema.properties,
+        [propertyKey]: prop,
+      },
+      required: [
+        ...(schema.required ?? []),
+        ...(property.required ? [extractBaseUri(property.$id)] : []),
+      ],
+    };
+  }, {});
+
 // @todo loading state
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
@@ -86,33 +113,6 @@ const Page: NextPageWithLayout = () => {
   const entityType = remoteEntityType ?? draftEntityType;
 
   const propertyTypes = useRemotePropertyTypes();
-
-  const getSchemaFromEditorForm = (
-    properties: EntityTypeEditorPropertyData[],
-  ): Partial<EntityType> =>
-    properties.reduce((schema: Partial<EntityType>, property) => {
-      const propertyKey = extractBaseUri(property.$id);
-
-      const prop: ValueOrArray<PropertyTypeReference> = property.array
-        ? {
-            type: "array",
-            minItems: property.minValue,
-            maxItems: property.maxValue,
-            items: { $ref: property.$id },
-          }
-        : { $ref: property.$id };
-
-      return {
-        properties: {
-          ...schema.properties,
-          [propertyKey]: prop,
-        },
-        required: [
-          ...(schema.required ?? []),
-          ...(property.required ? [extractBaseUri(property.$id)] : []),
-        ],
-      };
-    }, {});
 
   const handleSubmit = wrapHandleSubmit(async (data) => {
     if (!entityType) {
