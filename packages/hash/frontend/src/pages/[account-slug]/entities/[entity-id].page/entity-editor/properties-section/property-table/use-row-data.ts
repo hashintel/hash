@@ -1,39 +1,10 @@
 import { useMemo } from "react";
 import { PropertyRow } from "./types";
 import { generatePropertyRowsFromEntity } from "./generate-property-rows-from-entity";
-import {
-  TableExpandStatus,
-  useEntityEditor,
-} from "../../entity-editor-context";
+import { useEntityEditor } from "../../entity-editor-context";
 import { fillRowDataIndentCalculations } from "./fill-row-data-indent-calculations";
 import { sortRowData } from "../../../../../../../components/GlideGlid/utils/sorting";
-
-const flattenExpandedItemsOfTree = <T extends { children: T[] }>(
-  tree: T[],
-  expandStatus: TableExpandStatus,
-  propertyUsedForExpandStatus: keyof T,
-): T[] => {
-  const flattened: T[] = [];
-
-  for (const item of tree) {
-    flattened.push(item);
-
-    const id = item[propertyUsedForExpandStatus] as string;
-    const expanded = expandStatus[id];
-
-    if (expanded) {
-      flattened.push(
-        ...flattenExpandedItemsOfTree(
-          item.children,
-          expandStatus,
-          propertyUsedForExpandStatus,
-        ),
-      );
-    }
-  }
-
-  return flattened;
-};
+import { flattenExpandedItemsOfTree } from "./flatten-expanded-items-of-tree";
 
 export const useRowData = () => {
   const { rootEntityAndSubgraph, propertySort, propertyExpandStatus } =
