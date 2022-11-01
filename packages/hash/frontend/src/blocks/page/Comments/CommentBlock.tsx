@@ -38,7 +38,7 @@ import styles from "./style.module.css";
 import { useUpdateCommentText } from "../../../components/hooks/useUpdateCommentText";
 import { CommentBlockMenuItem } from "./CommentBlockMenuItem";
 import { PencilSlashIcon } from "../../../shared/icons/pencil-slash-icon";
-import { useUser } from "../../../components/hooks/useUser";
+import { useAuthenticatedUser } from "../../../components/hooks/useAuthenticatedUser";
 import { useResolveComment } from "../../../components/hooks/useResolveComment";
 import { useDeleteComment } from "../../../components/hooks/useDeleteComment";
 import { CommentBlockDeleteConfirmationDialog } from "./CommentBlockDeleteConfirmationDialog";
@@ -93,7 +93,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
   const [deleteConfirmationDialogOpen, setDeleteConfirmationDialogOpen] =
     useState(false);
 
-  const { user } = useUser();
+  const { authenticatedUser } = useAuthenticatedUser();
   const [updateCommentText, { loading: updateCommentTextLoading }] =
     useUpdateCommentText(pageId);
   const [resolveComment, { loading: resolveCommentLoading }] =
@@ -329,7 +329,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
       ) : null}
 
       <CommentBlockMenu popupState={commentMenuPopupState}>
-        {user?.entityId === author.entityId ? (
+        {authenticatedUser?.entityId === author.entityId ? (
           <CommentBlockMenuItem
             title={editable ? "Cancel Edit" : "Edit"}
             icon={
@@ -355,7 +355,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
             commentMenuPopupState.close();
           }}
         />
-        {user?.entityId === author.entityId ? (
+        {authenticatedUser?.entityId === author.entityId ? (
           <CommentBlockMenuItem
             title="Delete Comment"
             icon={<FontAwesomeIcon icon={faTrash} />}

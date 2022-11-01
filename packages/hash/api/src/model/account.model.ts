@@ -36,16 +36,6 @@ abstract class __Account extends Entity {
     return super.updateProperties(client, params);
   }
 
-  static async getAll(client: DbClient): Promise<(User | Org)[]> {
-    const accountDbEntities = await client.getAllAccounts();
-
-    return accountDbEntities.map((dbEntity) =>
-      dbEntity.entityTypeName === "User"
-        ? new User(dbEntity)
-        : new Org(dbEntity),
-    );
-  }
-
   static async accountExists(
     client: DbClient,
     accountId: string,

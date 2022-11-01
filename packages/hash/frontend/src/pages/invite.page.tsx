@@ -2,7 +2,7 @@ import { tw } from "twind";
 import { useRouter } from "next/router";
 import { useMutation } from "@apollo/client";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { useUser } from "../components/hooks/useUser";
+import { useAuthenticatedUser } from "../components/hooks/useAuthenticatedUser";
 
 import { AuthLayout } from "./shared/auth-layout";
 
@@ -24,7 +24,7 @@ import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 
 // @todo add error component for invalid links
 const Page: NextPageWithLayout = () => {
-  const { user, loading: fetchingUser } = useUser();
+  const { authenticatedUser, loading: fetchingUser } = useAuthenticatedUser();
   const router = useRouter();
 
   /** Ensures the loader shows up initially until all requests are complete */
@@ -54,7 +54,7 @@ const Page: NextPageWithLayout = () => {
       !isParsedInvitationEmailQuery(router.query)
     ) {
       navigateToHome();
-    } else if (!user && !fetchingUser) {
+    } else if (!authenticatedUser && !fetchingUser) {
       /**
        * handle redirects when user isn't authenticated
        */
@@ -71,7 +71,7 @@ const Page: NextPageWithLayout = () => {
         });
       }
     }
-  }, [router, user, fetchingUser, navigateToHome]);
+  }, [router, authenticatedUser, fetchingUser, navigateToHome]);
 
   const [joinOrg, { loading: joinOrgLoading }] = useMutation<
     JoinOrgMutation,

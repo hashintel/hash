@@ -133,14 +133,3 @@ export const joinOrg = gql`
     }
   }
 `;
-
-export const getAccounts = gql`
-  query getAccounts {
-    accounts {
-      ... on Org {
-        shortname
-        accountId
-      }
-    }
-  }
-`;

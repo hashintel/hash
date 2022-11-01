@@ -1,37 +1,5 @@
 import { gql } from "@apollo/client";
 
-export const getAccounts = gql`
-  query getAccounts {
-    accounts {
-      __typename
-      ... on Entity {
-        entityId
-        accountId
-      }
-      ... on User {
-        memberOf {
-          entityId
-          org {
-            entityId
-            accountId
-          }
-        }
-        shortname
-        preferredName
-        emails {
-          address
-          primary
-          verified
-        }
-      }
-      ... on Org {
-        shortname
-        name
-      }
-    }
-  }
-`;
-
 export const getAccountPagesTree = gql`
   query getAccountPagesTree($ownedById: ID) {
     persistedPages(ownedById: $ownedById) {

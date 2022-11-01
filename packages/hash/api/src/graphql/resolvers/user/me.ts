@@ -1,10 +1,21 @@
-import { ResolverFn } from "../../apiTypes.gen";
+import { ResolverFn, Subgraph, QueryMeArgs } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
-import { mapUserModelToGQL, UnresolvedGQLUser } from "./util";
+import { mapSubgraphToGql } from "../ontology/model-mapping";
 
 export const me: ResolverFn<
-  UnresolvedGQLUser,
+  Subgraph,
   {},
   LoggedInGraphQLContext,
-  {}
-> = async (_, __, { userModel }) => mapUserModelToGQL(userModel);
+  QueryMeArgs
+> = async (
+  _,
+  { linkResolveDepth, linkTargetEntityResolveDepth },
+  { userModel, dataSources: { graphApi } },
+) => {
+  const subgraph = await userModel.getRootedSubgraph(graphApi, {
+    linkResolveDepth,
+    linkTargetEntityResolveDepth,
+  });
+
+  return mapSubgraphToGql(subgraph);
+};
