@@ -1,4 +1,3 @@
-import { print } from "graphql/language/printer";
 import { GraphQLClient, ClientError } from "graphql-request";
 import { createKratosIdentity } from "@hashintel/hash-api/src/auth/ory-kratos";
 import { GraphApi } from "@hashintel/hash-api/src/graph";
@@ -12,18 +11,12 @@ import {
   updateLinkedAggregationOperation,
 } from "../graphql/queries/aggregation.queries";
 import {
-  SendLoginCodeMutation,
-  SendLoginCodeMutationVariables,
   CreateEntityMutation,
   CreateEntityMutationVariables,
   CreateOrgMutation,
   CreateOrgMutationVariables,
   CreatePageMutation,
   CreatePageMutationVariables,
-  CreateUserMutation,
-  CreateUserMutationVariables,
-  LoginWithLoginCodeMutationVariables,
-  LoginWithLoginCodeMutation,
   GetEntityQueryVariables,
   GetEntityQuery,
   UpdateEntityMutationVariables,
@@ -38,14 +31,10 @@ import {
   DeprecatedUpdateEntityTypeMutationVariables,
   CreateOrgEmailInvitationMutationVariables,
   CreateOrgEmailInvitationMutation,
-  CreateUserWithOrgEmailInvitationMutationVariables,
-  CreateUserWithOrgEmailInvitationMutation,
   GetOrgEmailInvitationQueryVariables,
   GetOrgEmailInvitationQuery,
   GetOrgInvitationLinkQueryVariables,
   GetOrgInvitationLinkQuery,
-  JoinOrgMutationVariables,
-  JoinOrgMutation,
   CreateLinkedAggregationMutationVariables,
   CreateLinkedAggregationMutation,
   UpdateLinkedAggregationOperationMutation,
@@ -77,16 +66,9 @@ import {
 import {
   createOrg,
   createOrgEmailInvitation,
-  joinOrg,
   orgEmailInvitation,
   orgInvitationLink,
 } from "../graphql/queries/org.queries";
-import {
-  createUser,
-  createUserWithOrgEmailInvitation,
-  loginWithLoginCode,
-  sendLoginCode,
-} from "../graphql/queries/user.queries";
 import {
   createPage,
   getAccountPagesTree,
@@ -169,50 +151,6 @@ export class ApiClient {
 
   removeCookie = () => this.client.setHeader("Cookie", "");
 
-  /** Sign-up related requests */
-
-  createUser = async (vars: CreateUserMutationVariables) =>
-    this.client
-      .request<CreateUserMutation, CreateUserMutationVariables>(
-        createUser,
-        vars,
-      )
-      .then((res) => res.createUser);
-
-  createUserWithOrgEmailInvitation = async (
-    vars: CreateUserWithOrgEmailInvitationMutationVariables,
-  ) =>
-    this.client
-      .request<
-        CreateUserWithOrgEmailInvitationMutation,
-        CreateUserWithOrgEmailInvitationMutationVariables
-      >(createUserWithOrgEmailInvitation, vars)
-      .then((res) => res.createUserWithOrgEmailInvitation);
-
-  /** Log-in related requests */
-
-  async sendLoginCode(vars: SendLoginCodeMutationVariables) {
-    return (
-      await this.client.request<
-        SendLoginCodeMutation,
-        SendLoginCodeMutationVariables
-      >(sendLoginCode, vars)
-    ).sendLoginCode;
-  }
-
-  async loginWithLoginCode(vars: LoginWithLoginCodeMutationVariables) {
-    const { data, headers } = await this.client.rawRequest<
-      LoginWithLoginCodeMutation,
-      LoginWithLoginCodeMutationVariables
-    >(print(loginWithLoginCode), vars);
-
-    if (!data) {
-      throw new Error("loginWithLoginCode mutation did not return data");
-    }
-
-    return { user: data.loginWithLoginCode, responseHeaders: headers };
-  }
-
   /** Other requests */
 
   getUnknownEntity = async (vars: GetEntityQueryVariables) =>
@@ -287,15 +225,6 @@ export class ApiClient {
         GetOrgInvitationLinkQueryVariables
       >(orgInvitationLink, vars)
     ).getOrgInvitationLink;
-  }
-
-  async joinOrg(vars: JoinOrgMutationVariables) {
-    return (
-      await this.client.request<JoinOrgMutation, JoinOrgMutationVariables>(
-        joinOrg,
-        vars,
-      )
-    ).joinOrg;
   }
 
   async createPage(vars: CreatePageMutationVariables) {

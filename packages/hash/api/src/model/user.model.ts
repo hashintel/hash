@@ -30,6 +30,8 @@ export const getEmailRateLimitQueryTime = () => {
   return new Date(Date.now() - EMAIL_RATE_LIMITING_PERIOD_MS);
 };
 
+type Email = any;
+
 type UserConstructorArgs = {
   properties: DbUserProperties;
 } & Omit<AccountConstructorArgs, "type">;
