@@ -29,17 +29,13 @@ pub struct Frame {
 impl Frame {
     /// Returns the location where this `Frame` was created.
     #[must_use]
-<<<<<<< HEAD
-    #[deprecated(since = "0.3.0", note = "`Location` now is an attachment`")]
-=======
     #[deprecated(
         since = "0.2.4",
-        note = "Starting with 0.3, `location()` will be removed in favor of a new `Frame` \
-                containing a `Location<'static>` attachment for each `Context`, similar to how \
-                `Backtrace` and `SpanTrace` are handled. Note: You won't be able to get the \
-                location of attachments anymore."
+        note = "`location()` has been replaced with an additional attachment containing \
+                `Location<'static>` for each `Context`, similar to how `Backtrace` and \
+                `SpanTrace` are handled. Note: This means that once `location()` is removed you \
+                won't be able to get location of attachments anymore."
     )]
->>>>>>> 3fd2d38aa (feat: introduce deprecation notice)
     pub const fn location(&self) -> &'static Location<'static> {
         self.location
     }
@@ -139,11 +135,7 @@ impl Provider for Frame {
 impl fmt::Debug for Frame {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut debug = fmt.debug_struct("Frame");
-<<<<<<< HEAD
-=======
-        #[allow(deprecated)]
-        debug.field("location", self.location());
->>>>>>> 762ee4978 (fix: allow deprecated in internal code)
+
         match self.kind() {
             FrameKind::Context(context) => {
                 debug.field("context", &context);
