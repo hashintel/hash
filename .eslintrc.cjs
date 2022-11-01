@@ -1,4 +1,4 @@
-{
+module.exports = {
   "root": true,
   // this is the highest config lower ones will automatically extend
   "parser": "@typescript-eslint/parser",
@@ -28,35 +28,43 @@
     "no-restricted-syntax": [
       "error",
       {
-        "selector": "TSTypeReference[typeName.name=/^(DirectEditorProps|EditorProps|EditorView|EditorState|NodeView|ProsemirrorNode|Command|Transaction|Plugin|PluginKey)$/]:not([typeParameters])",
+        "selector":
+          "TSTypeReference[typeName.name=/^(DirectEditorProps|EditorProps|EditorView|EditorState|NodeView|ProsemirrorNode|Command|Transaction|Plugin|PluginKey)$/]:not([typeParameters])",
         "message": "Please provide a generic to avoid implicit `any`"
       },
       {
-        "selector": "TSTypeReference[typeName.name=/^(DirectEditorProps|EditorProps|EditorView|EditorState|NodeView|ProsemirrorNode|Command|Transaction)$/][typeParameters.params.0.type=TSAnyKeyword]",
+        "selector":
+          "TSTypeReference[typeName.name=/^(DirectEditorProps|EditorProps|EditorView|EditorState|NodeView|ProsemirrorNode|Command|Transaction)$/][typeParameters.params.0.type=TSAnyKeyword]",
         "message": "Please replace `any` with a specific type"
       },
       {
-        "selector": "TSTypeReference[typeName.name=/^(Plugin|PluginKey)$/][typeParameters.params.length=1]",
+        "selector":
+          "TSTypeReference[typeName.name=/^(Plugin|PluginKey)$/][typeParameters.params.length=1]",
         "message": "Please provide a generic to avoid implicit `any`"
       },
       {
-        "selector": "TSTypeReference[typeName.name=/^(Plugin|PluginKey)$/][typeParameters.params.1.type=TSAnyKeyword]",
+        "selector":
+          "TSTypeReference[typeName.name=/^(Plugin|PluginKey)$/][typeParameters.params.1.type=TSAnyKeyword]",
         "message": "Please replace `any` with a specific type"
       },
       {
-        "selector": "TSClassImplements[expression.name=NodeView]:not([typeParameters])",
+        "selector":
+          "TSClassImplements[expression.name=NodeView]:not([typeParameters])",
         "message": "Please provide a generic to avoid implicit `any`"
       },
       {
-        "selector": "TSClassImplements[expression.name=NodeView][typeParameters.params.0.type=TSAnyKeyword]",
+        "selector":
+          "TSClassImplements[expression.name=NodeView][typeParameters.params.0.type=TSAnyKeyword]",
         "message": "Please replace `any` with a specific type"
       },
       {
-        "selector": "CallExpression[callee.object.name=/^(EditorState|NodeSelection|TextSelection|ProsemirrorNode|MarkType)$/][callee.property.name=create]:not([typeParameters])",
+        "selector":
+          "CallExpression[callee.object.name=/^(EditorState|NodeSelection|TextSelection|ProsemirrorNode|MarkType)$/][callee.property.name=create]:not([typeParameters])",
         "message": "Please provide a generic to avoid implicit `any`"
       },
       {
-        "selector": "CallExpression[callee.object.name=/^(EditorState|NodeSelection|TextSelection|ProsemirrorNode|MarkType)$/][callee.property.name=create][typeParameters.params.0.type=TSAnyKeyword]",
+        "selector":
+          "CallExpression[callee.object.name=/^(EditorState|NodeSelection|TextSelection|ProsemirrorNode|MarkType)$/][callee.property.name=create][typeParameters.params.0.type=TSAnyKeyword]",
         "message": "Please replace `any` with a specific type"
       },
       {
@@ -64,23 +72,28 @@
         "message": "Please provide a generic to avoid implicit `any`"
       },
       {
-        "selector": "CallExpression[callee.name=keymap][typeParameters.params.0.type=TSAnyKeyword]",
+        "selector":
+          "CallExpression[callee.name=keymap][typeParameters.params.0.type=TSAnyKeyword]",
         "message": "Please replace `any` with a specific type"
       },
       {
-        "selector": "NewExpression[callee.name=/^(Plugin|PluginKey|EditorView|Selection|TextSelection|NodeSelection|AllSelection|SelectionRange|Slice|NodeRange|ReplaceStep|ReplaceAroundStep|AddMarkStep|RemoveMarkStep|Transform|InputRule|GapCursor)$/]:not([typeParameters])",
+        "selector":
+          "NewExpression[callee.name=/^(Plugin|PluginKey|EditorView|Selection|TextSelection|NodeSelection|AllSelection|SelectionRange|Slice|NodeRange|ReplaceStep|ReplaceAroundStep|AddMarkStep|RemoveMarkStep|Transform|InputRule|GapCursor)$/]:not([typeParameters])",
         "message": "Please provide a generic to avoid implicit `any`"
       },
       {
-        "selector": "NewExpression[callee.name=/^(EditorView|Selection|TextSelection|NodeSelection|AllSelection|SelectionRange|Slice|NodeRange|ReplaceStep|ReplaceAroundStep|AddMarkStep|RemoveMarkStep|Transform|InputRule|GapCursor)$/][typeParameters.params.0.type=TSAnyKeyword]",
+        "selector":
+          "NewExpression[callee.name=/^(EditorView|Selection|TextSelection|NodeSelection|AllSelection|SelectionRange|Slice|NodeRange|ReplaceStep|ReplaceAroundStep|AddMarkStep|RemoveMarkStep|Transform|InputRule|GapCursor)$/][typeParameters.params.0.type=TSAnyKeyword]",
         "message": "Please replace `any` with a specific type"
       },
       {
-        "selector": "NewExpression[callee.name=/^(Plugin|PluginKey)$/][typeParameters.params.length=1]",
+        "selector":
+          "NewExpression[callee.name=/^(Plugin|PluginKey)$/][typeParameters.params.length=1]",
         "message": "Please provide a generic to avoid implicit `any`"
       },
       {
-        "selector": "NewExpression[callee.name=/^(Plugin|PluginKey)$/][typeParameters.params.1.type=TSAnyKeyword]",
+        "selector":
+          "NewExpression[callee.name=/^(Plugin|PluginKey)$/][typeParameters.params.1.type=TSAnyKeyword]",
         "message": "Please replace `any` with a specific type"
       }
     ],
@@ -180,30 +193,36 @@
           {
             "name": "@mui/material",
             "importNames": ["Link"],
-            "message": "Please use the custom src/components/Link component instead to ensure Next.js and MUI compatibility."
+            "message":
+              "Please use the custom src/components/Link component instead to ensure Next.js and MUI compatibility."
           },
           {
             "name": "@mui/material/Link",
-            "message": "Please use the custom src/components/Link component instead to ensure Next.js and MUI compatibility."
+            "message":
+              "Please use the custom src/components/Link component instead to ensure Next.js and MUI compatibility."
           },
           {
             "name": "next",
             "importNames": ["Link"],
-            "message": "Please use the custom src/components/Link component instead to ensure Next.js and MUI compatibility."
+            "message":
+              "Please use the custom src/components/Link component instead to ensure Next.js and MUI compatibility."
           },
           {
             "name": "next/link",
-            "message": "Please use the custom src/components/Link component instead to ensure Next.js and MUI compatibility."
+            "message":
+              "Please use the custom src/components/Link component instead to ensure Next.js and MUI compatibility."
           },
           {
             "name": "@mui/material",
             "importNames": ["Button"],
-            "message": "Please use the custom wrapper component in src/component instead."
+            "message":
+              "Please use the custom wrapper component in src/component instead."
           },
           {
             "name": "@mui/material/Button",
             "importNames": ["default"],
-            "message": "Please use the custom src/components/Button component instead."
+            "message":
+              "Please use the custom src/components/Button component instead."
           }
         ]
       }

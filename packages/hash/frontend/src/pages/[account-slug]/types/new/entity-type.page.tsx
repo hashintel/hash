@@ -19,7 +19,7 @@ import { useRouter } from "next/router";
 import { ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { useBlockProtocolGetEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
-import { useLoggedInUser } from "../../../../components/hooks/useUser";
+import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
 import { FRONTEND_URL } from "../../../../lib/config";
 import { useInitTypeSystem } from "../../../../lib/use-init-type-system";
 import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
@@ -73,38 +73,38 @@ const Page: NextPageWithLayout = () => {
   });
 
   const router = useRouter();
-  const { user, loading } = useLoggedInUser({
-    onCompleted(data) {
-      if (typeof window !== "undefined") {
-        void router.replace(`/@${data.me.shortname}/types/new/entity-type`);
-      }
-    },
-  });
+  const { authenticatedUser, loading } = useAuthenticatedUser();
+
   const { getEntityType } = useBlockProtocolGetEntityType();
 
-  if (user && router.query["account-slug"] !== `@${user.shortname}`) {
-    throw new Error("Workspaces not yet supported");
+  if (
+    authenticatedUser &&
+    router.query["account-slug"] !== `@${authenticatedUser.shortname}`
+  ) {
+    void router.replace(
+      `/@${authenticatedUser.shortname}/types/new/entity-type`,
+    );
   }
 
-  if (typeSystemLoading || loading || !user) {
+  if (typeSystemLoading || loading || !authenticatedUser) {
     return null;
   }
 
   const generateEntityTypeBaseUriForUser = (value: string) => {
-    if (!user?.shortname) {
+    if (!authenticatedUser?.shortname) {
       throw new Error("User shortname must exist");
     }
 
     return generateBaseTypeId({
       domain: FRONTEND_URL,
-      namespace: user.shortname,
+      namespace: authenticatedUser.shortname,
       kind: "entity-type",
       title: value,
     });
   };
 
   const handleFormSubmit = handleSubmit(async ({ name, description }) => {
-    if (!user.shortname) {
+    if (!authenticatedUser.shortname) {
       throw new Error("Namespace for entity type creation missing");
     }
 

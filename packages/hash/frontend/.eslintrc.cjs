@@ -3,13 +3,12 @@ module.exports = {
   extends: ["../../../.eslintrc.json"],
   parserOptions: {
     tsconfigRootDir: __dirname,
-    project: ["tsconfig.json"],
+    project: ["tsconfig.json"]
   },
   plugins: ["@typescript-eslint", "canonical", "unicorn"],
   rules: {
     // @todo Re-enable this rule once ESLint config is refactored
     "@typescript-eslint/restrict-plus-operands": "off",
-
     "jsx-a11y/label-has-associated-control": "off",
     "import/no-default-export": "error",
     "no-restricted-imports": [
@@ -20,16 +19,16 @@ module.exports = {
             name: "next",
             importNames: ["Link"],
             message:
-              "Please use the custom wrapper component in src/shared/ui component instead to ensure Next.js and MUI compatibility.",
+              "Please use the custom wrapper component in src/shared/ui component instead to ensure Next.js and MUI compatibility."
           },
           {
             name: "next/link",
             message:
-              "Please use the custom wrapper component in src/shared/ui component instead to ensure Next.js and MUI compatibility.",
+              "Please use the custom wrapper component in src/shared/ui component instead to ensure Next.js and MUI compatibility."
           },
           {
             name: "@mui/material/*",
-            message: "Please import from @mui/material instead",
+            message: "Please import from @mui/material instead"
           },
           {
             name: "@mui/material",
@@ -44,20 +43,20 @@ module.exports = {
               "Menu",
               "Link",
               "Button",
-              "MenuItem",
+              "MenuItem"
             ],
             message:
-              "Please use the custom wrapper component from src/shared/ui for Link, Button and MenuItem and from '@hashintel/hash-design-system' for every other component.",
+              "Please use the custom wrapper component from src/shared/ui for Link, Button and MenuItem and from '@hashintel/hash-design-system' for every other component."
           },
           {
             name: "notistack",
             importNames: ["useSnackbar"],
             message:
-              "Please use the custom src/components/hooks/useSnackbar hook instead.",
-          },
-        ],
-      },
-    ],
+              "Please use the custom src/components/hooks/useSnackbar hook instead."
+          }
+        ]
+      }
+    ]
   },
   overrides: [
     {
@@ -65,18 +64,18 @@ module.exports = {
         "./src/pages/**/*.api.ts",
         "./src/pages/**/*.page.ts",
         "./src/pages/**/*.page.tsx",
-        "**/__mocks__/**",
+        "**/__mocks__/**"
       ],
       rules: {
-        "import/no-default-export": "off",
-      },
+        "import/no-default-export": "off"
+      }
     },
     {
       files: ["**/shared/**/*", "./src/pages/**/*"],
       rules: {
         "canonical/filename-no-index": "error",
-        "unicorn/filename-case": "error",
-      },
-    },
-  ],
-};
+        "unicorn/filename-case": "error"
+      }
+    }
+  ]
+}
