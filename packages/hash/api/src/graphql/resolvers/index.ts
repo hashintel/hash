@@ -31,8 +31,8 @@ import {
   getImpliedEntityVersion,
 } from "./entity/impliedHistory";
 
-import { me } from "./user/me";
-import { isShortnameTaken } from "./user/isShortnameTaken";
+import { me } from "./knowledge/user/me";
+import { isShortnameTaken } from "./knowledge/user/isShortnameTaken";
 import { deprecatedCreateEntityType } from "./entityType/createEntityType";
 import { SYSTEM_TYPES, SystemType } from "../../types/entityTypes";
 import { entityTypeTypeFields } from "./entityType/entityTypeTypeFields";
