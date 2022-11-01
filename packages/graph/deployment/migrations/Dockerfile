@@ -4,7 +4,7 @@ COPY migrations/ /migrations/
 
 WORKDIR /migrations
 
-## Install dependencies without resolvin devDependencies
+## Install dependencies without resolving devDependencies
 ## Context: https://github.com/yarnpkg/yarn/issues/3630#issuecomment-641959126
 RUN apk add --no-cache jq && \
   jq 'del(.devDependencies)' package.json > package.json.tmp && \
