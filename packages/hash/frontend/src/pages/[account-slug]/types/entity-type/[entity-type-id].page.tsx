@@ -38,8 +38,14 @@ const getBaseUri = (path: string) => {
 
 const getSchemaFromEditorForm = (
   properties: EntityTypeEditorPropertyData[],
-): Partial<EntityType> =>
-  properties.reduce((schema: Partial<EntityType>, property) => {
+): Partial<EntityType> => {
+  const schemaProperties: Record<
+    string,
+    ValueOrArray<PropertyTypeReference>
+  > = {};
+  const required = [];
+
+  for (const property of properties) {
     const propertyKey = extractBaseUri(property.$id);
 
     const prop: ValueOrArray<PropertyTypeReference> = property.array
@@ -51,17 +57,18 @@ const getSchemaFromEditorForm = (
         }
       : { $ref: property.$id };
 
-    return {
-      properties: {
-        ...schema.properties,
-        [propertyKey]: prop,
-      },
-      required: [
-        ...(schema.required ?? []),
-        ...(property.required ? [extractBaseUri(property.$id)] : []),
-      ],
-    };
-  }, {});
+    schemaProperties[propertyKey] = prop;
+
+    if (property.required) {
+      required.push(extractBaseUri(property.$id));
+    }
+  }
+
+  return {
+    properties: schemaProperties,
+    required,
+  };
+};
 
 // @todo loading state
 const Page: NextPageWithLayout = () => {
