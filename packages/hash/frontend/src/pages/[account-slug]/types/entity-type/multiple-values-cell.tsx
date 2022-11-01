@@ -9,7 +9,7 @@ import {
   TableCell,
   Typography,
 } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { EntityTypeEditorForm } from "./form-types";
 
@@ -18,7 +18,8 @@ export const MultipleValuesCell = ({
 }: {
   propertyIndex: number;
 }) => {
-  const { register, setValue } = useFormContext<EntityTypeEditorForm>();
+  const { register, setValue, getValues } =
+    useFormContext<EntityTypeEditorForm>();
 
   const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
   const [multipleValuesMenuOpen, setMultipleValuesMenuOpen] = useState(false);
@@ -30,22 +31,6 @@ export const MultipleValuesCell = ({
       `properties.${propertyIndex}.maxValue`,
     ],
   });
-
-  useEffect(() => {
-    if (minValue > maxValue) {
-      setValue(`properties.${propertyIndex}.maxValue`, minValue);
-    }
-    // Should only be triggered when minValue updates
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [propertyIndex, setValue, minValue]);
-
-  useEffect(() => {
-    if (maxValue < minValue) {
-      setValue(`properties.${propertyIndex}.minValue`, maxValue);
-    }
-    // Should only be triggered when maxValue updates
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [propertyIndex, setValue, maxValue]);
 
   return (
     <>
@@ -137,6 +122,15 @@ export const MultipleValuesCell = ({
                     inputProps={{ min: 0 }}
                     {...register(`properties.${propertyIndex}.minValue`, {
                       valueAsNumber: true,
+                      onChange(evt) {
+                        const max = getValues(
+                          `properties.${propertyIndex}.maxValue`,
+                        );
+                        const min = evt.target.value;
+                        if (min > max) {
+                          setValue(`properties.${propertyIndex}.maxValue`, min);
+                        }
+                      },
                     })}
                     sx={{ mb: 2 }}
                   />
@@ -146,6 +140,15 @@ export const MultipleValuesCell = ({
                     inputProps={{ min: 0 }}
                     {...register(`properties.${propertyIndex}.maxValue`, {
                       valueAsNumber: true,
+                      onChange(evt) {
+                        const min = getValues(
+                          `properties.${propertyIndex}.minValue`,
+                        );
+                        const max = evt.target.value;
+                        if (max < min) {
+                          setValue(`properties.${propertyIndex}.minValue`, max);
+                        }
+                      },
                     })}
                     size="small"
                   />
