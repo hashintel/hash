@@ -1,4 +1,4 @@
-{
+module.exports = {
   "parserOptions": {
     "project": ["./tsconfig.json"]
   },
@@ -13,11 +13,13 @@
           {
             "name": "next",
             "importNames": ["Link"],
-            "message": "Please use the custom wrapper component in src/shared/ui component instead to ensure Next.js and MUI compatibility."
+            "message":
+              "Please use the custom wrapper component in src/shared/ui component instead to ensure Next.js and MUI compatibility."
           },
           {
             "name": "next/link",
-            "message": "Please use the custom wrapper component in src/shared/ui component instead to ensure Next.js and MUI compatibility."
+            "message":
+              "Please use the custom wrapper component in src/shared/ui component instead to ensure Next.js and MUI compatibility."
           },
           {
             "name": "@mui/material/*",
@@ -38,12 +40,14 @@
               "Button",
               "MenuItem"
             ],
-            "message": "Please use the custom wrapper component from src/shared/ui for Link, Button and MenuItem and from '@hashintel/hash-design-system' for every other component."
+            "message":
+              "Please use the custom wrapper component from src/shared/ui for Link, Button and MenuItem and from '@hashintel/hash-design-system' for every other component."
           },
           {
             "name": "notistack",
             "importNames": ["useSnackbar"],
-            "message": "Please use the custom src/components/hooks/useSnackbar hook instead."
+            "message":
+              "Please use the custom src/components/hooks/useSnackbar hook instead."
           }
         ]
       }
