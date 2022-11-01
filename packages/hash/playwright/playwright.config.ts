@@ -8,7 +8,6 @@ const config: PlaywrightTestConfig = {
   timeout: 60000,
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
-    { name: "firefox", use: { ...devices["Desktop Firefox"] } },
 
     // TODO: investigate issue with cookie persistence in CI (Ubuntu).
     // GraphQL queries remain unauthenticated after login.
