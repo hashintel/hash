@@ -30,7 +30,12 @@ import {
   usePopupState,
 } from "material-ui-popup-state/hooks";
 import { Ref, useId, useRef, useState } from "react";
-import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
+import {
+  Controller,
+  useFieldArray,
+  useFormContext,
+  useWatch,
+} from "react-hook-form";
 import { Modal } from "../../../../components/Modals/Modal";
 import { EmptyPropertyListCard } from "./empty-property-list-card";
 import { EntityTypeEditorForm } from "./form-types";
@@ -183,15 +188,12 @@ export const PropertyTypeRow = ({
   propertyIndex: number;
   onRemove: () => void;
 }) => {
-  const { register } = useFormContext<EntityTypeEditorForm>();
+  const { control } = useFormContext<EntityTypeEditorForm>();
 
   const propertyTypes = usePropertyTypes();
 
-  const [$id, required] = useWatch({
-    name: [
-      `properties.${propertyIndex}.$id`,
-      `properties.${propertyIndex}.required`,
-    ],
+  const [$id] = useWatch({
+    name: [`properties.${propertyIndex}.$id`],
   });
 
   const propertyId = mustBeVersionedUri($id);
@@ -215,9 +217,12 @@ export const PropertyTypeRow = ({
       <MultipleValuesCell propertyIndex={propertyIndex} />
 
       <CenteredTableCell sx={{ textAlign: "center" }}>
-        <Checkbox
-          checked={required}
-          {...register(`properties.${propertyIndex}.required`)}
+        <Controller
+          render={({ field: { value, ...field } }) => (
+            <Checkbox {...field} checked={value} />
+          )}
+          control={control}
+          name={`properties.${propertyIndex}.required`}
         />
       </CenteredTableCell>
 

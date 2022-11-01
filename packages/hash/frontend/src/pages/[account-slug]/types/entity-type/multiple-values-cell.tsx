@@ -10,7 +10,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useState } from "react";
-import { useFormContext, useWatch } from "react-hook-form";
+import { useFormContext, useWatch, Controller } from "react-hook-form";
 import { EntityTypeEditorForm } from "./form-types";
 
 export const MultipleValuesCell = ({
@@ -18,7 +18,7 @@ export const MultipleValuesCell = ({
 }: {
   propertyIndex: number;
 }) => {
-  const { register, setValue, getValues } =
+  const { register, control, setValue, getValues } =
     useFormContext<EntityTypeEditorForm>();
 
   const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
@@ -66,13 +66,14 @@ export const MultipleValuesCell = ({
               : {}),
           })}
         >
-          <Checkbox
-            sx={{
-              zIndex: 1,
-            }}
-            checked={array}
-            {...register(`properties.${propertyIndex}.array`)}
+          <Controller
+            render={({ field: { value, ...field } }) => (
+              <Checkbox {...field} checked={value} />
+            )}
+            control={control}
+            name={`properties.${propertyIndex}.array`}
           />
+
           <Collapse
             orientation="horizontal"
             in={array && !multipleValuesMenuOpen}
