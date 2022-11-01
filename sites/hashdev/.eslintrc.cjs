@@ -1,12 +1,12 @@
 module.exports = {
   parserOptions: {
     tsconfigRootDir: __dirname,
-    project: ["tsconfig.json"]
+    project: ["tsconfig.json"],
   },
   plugins: ["@typescript-eslint"],
   rules: {
     "jsx-a11y/label-has-associated-control": "off",
-    "import/no-default-export": "error"
+    "import/no-default-export": "error",
   },
   overrides: [
     {
@@ -15,11 +15,11 @@ module.exports = {
         "./src/pages/**/*.page.tsx",
         "**/__mocks__/**",
         "*.stories.ts",
-        "*.stories.tsx"
+        "*.stories.tsx",
       ],
       rules: {
-        "import/no-default-export": "off"
-      }
-    }
-  ]
-}
+        "import/no-default-export": "off",
+      },
+    },
+  ],
+};

@@ -1,7 +1,7 @@
 module.exports = {
   parserOptions: {
     tsconfigRootDir: __dirname,
-    project: ["tsconfig.json"]
+    project: ["tsconfig.json"],
   },
   plugins: ["@typescript-eslint", "canonical", "unicorn"],
   rules: {
@@ -13,19 +13,19 @@ module.exports = {
         paths: [
           {
             name: "@mui/material/*",
-            message: "Please import from @mui/material instead"
-          }
-        ]
-      }
-    ]
+            message: "Please import from @mui/material instead",
+          },
+        ],
+      },
+    ],
   },
   overrides: [
     {
       files: ["./src/**/*"],
       rules: {
         "canonical/filename-no-index": "error",
-        "unicorn/filename-case": "error"
-      }
-    }
-  ]
-}
+        "unicorn/filename-case": "error",
+      },
+    },
+  ],
+};
