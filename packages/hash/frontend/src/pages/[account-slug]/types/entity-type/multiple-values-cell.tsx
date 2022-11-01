@@ -134,7 +134,6 @@ export const MultipleValuesCell = ({
                     type="number"
                     size="small"
                     label="Minimum"
-                    value={minValue}
                     inputProps={{ min: 0 }}
                     {...register(`properties.${propertyIndex}.minValue`, {
                       valueAsNumber: true,
@@ -144,7 +143,6 @@ export const MultipleValuesCell = ({
                   <TextField
                     type="number"
                     label="Maximum"
-                    value={maxValue}
                     inputProps={{ min: 0 }}
                     {...register(`properties.${propertyIndex}.maxValue`, {
                       valueAsNumber: true,
