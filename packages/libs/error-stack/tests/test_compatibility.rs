@@ -44,7 +44,7 @@ fn anyhow_nostd() {
         .context(PrintableB(0)));
 
     let report = anyhow.into_report().unwrap_err();
-    let expected_output = ["printable B"];
+    let expected_output = ["Location", "printable B"];
     for (anyhow, expected) in messages(&report).into_iter().zip(expected_output) {
         assert_eq!(anyhow, expected);
     }
