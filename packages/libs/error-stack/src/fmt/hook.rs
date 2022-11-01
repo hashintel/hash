@@ -743,13 +743,13 @@ impl Hooks {
     }
 
     pub(crate) fn call(&self, frame: &Frame, context: &mut HookContext<Frame>) -> bool {
-        let mut hit = false;
-
         for (_, hook) in &self.inner {
-            hit = hook(frame, context) || hit;
+            if hook(frame, context) {
+                return true;
+            }
         }
 
-        hit
+        false
     }
 }
 
