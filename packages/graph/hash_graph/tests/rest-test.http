@@ -145,6 +145,26 @@ GET http://127.0.0.1:4000/property-types
     });
 %}
 
+### Insert Relationship entity type
+POST http://127.0.0.1:4000/property-types
+Content-Type: application/json
+Accept: application/json
+
+{
+  "ownedById": "{{account_id}}",
+  "actorId": "{{account_id}}",
+  "schema": {
+    "kind": "propertyType",
+    "$id": "http://localhost:3000/@alice/types/property-type/name/v/1",
+    "title": "Name",
+    "oneOf": [
+      {
+        "$ref": "http://localhost:3000/@alice/types/data-type/text/v/1"
+      }
+    ]
+  }
+}
+
 ### Insert Friendship entity link type
 POST http://127.0.0.1:4000/entity-types
 Content-Type: application/json
@@ -174,6 +194,39 @@ Accept: application/json
     client.global.set("friendship_link_entity_type_id", response.body.identifier.uri);
 %}
 
+### Get Friendship entity type
+POST http://127.0.0.1:4000/entity-types/query
+Content-Type: application/json
+
+{
+  "filter": {
+    "equal": [
+      {
+        "path": [
+          "versionedUri"
+        ]
+      },
+      {
+        "parameter": "{{friendship_link_entity_type_id}}"
+      }
+    ]
+  },
+  "graphResolveDepths": {
+    "dataTypeResolveDepth": 0,
+    "propertyTypeResolveDepth": 0,
+    "entityTypeResolveDepth": 0,
+    "linkTargetEntityResolveDepth": 10,
+    "linkResolveDepth": 10
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.roots.length === 1, "Unexpected number of entities");
+    });
+%}
+
 ### Insert Person entity type
 POST http://127.0.0.1:4000/entity-types
 Content-Type: application/json
@@ -200,16 +253,17 @@ Accept: application/json
         client.assert(response.status === 200, "Response status is not 200");
     });
     client.global.set("person_entity_type_id", encodeURIComponent(response.body.identifier.uri));
+    client.global.set("encoded_person_entity_type_id", encodeURIComponent(response.body.identifier.uri));
 %}
 
-#### Get Person entity type
-#GET http://127.0.0.1:4000/entity-types/{{person_entity_type_id}}
-#
-#> {%
-#    client.test("status", function() {
-#        client.assert(response.status === 200, "Response status is not 200");
-#    });
-#%}
+### Get Person entity type
+GET http://127.0.0.1:4000/entity-types/{{encoded_person_entity_type_id}}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
 
 ### Update Person entity type
 PUT http://127.0.0.1:4000/entity-types
@@ -250,15 +304,48 @@ Accept: application/json
     });
 %}
 
-#### Get all entity types
-#GET http://127.0.0.1:4000/entity-types
-#
-#> {%
-#    client.test("status", function() {
-#        client.assert(response.status === 200, "Response status is not 200");
-#        client.assert(response.body.length === 2, "Unexpected number of entity types");
-#    });
-#%}
+### Get all entity types
+GET http://127.0.0.1:4000/entity-types
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.length === 3, "Unexpected number of entity types");
+    });
+%}
+
+### Get all link entity type
+POST http://127.0.0.1:4000/entity-types/query
+Content-Type: application/json
+
+{
+  "filter": {
+    "equal": [
+      {
+        "path": [
+          "inheritsFrom", "*", "versionedUri"
+        ]
+      },
+      {
+        "parameter": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1"
+      }
+    ]
+  },
+  "graphResolveDepths": {
+    "dataTypeResolveDepth": 0,
+    "propertyTypeResolveDepth": 0,
+    "entityTypeResolveDepth": 0,
+    "linkTargetEntityResolveDepth": 10,
+    "linkResolveDepth": 10
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.roots.length === 1, "Unexpected number of entities");
+    });
+%}
 
 
 ### Insert Person entity
@@ -282,14 +369,14 @@ Accept: application/json
     client.global.set("person_a_entity_id", encodeURIComponent(response.body.identifier.entityId));
 %}
 
-#### Get Person entity
-#GET http://127.0.0.1:4000/entities/{{person_a_entity_id}}
-#
-#> {%
-#    client.test("status", function() {
-#        client.assert(response.status === 200, "Response status is not 200");
-#    });
-#%}
+### Get Person entity
+GET http://127.0.0.1:4000/entities/{{person_a_entity_id}}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
 
 #### Update Person entity
 #PUT http://127.0.0.1:4000/entities
@@ -332,16 +419,16 @@ Accept: application/json
     client.global.set("person_b_entity_id", encodeURIComponent(response.body.identifier.entityId));
 %}
 
-#### Get all latest entities
-#GET http://127.0.0.1:4000/entities
-#
-#> {%
-#    client.test("status", function() {
-#        client.assert(response.status === 200, "Response status is not 200");
-#        client.assert(response.body.length === 2, "Unexpected number of entities");
-#    });
-#%}
-#
+### Get all latest entities
+GET http://127.0.0.1:4000/entities
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.length === 2, "Unexpected number of entities");
+    });
+%}
+
 #### Get all latest entities by using a query
 #POST http://127.0.0.1:4000/entities/query
 #Content-Type: application/json
@@ -362,7 +449,6 @@ Accept: application/json
 #  "graphResolveDepths": {
 #    "dataTypeResolveDepth": 0,
 #    "propertyTypeResolveDepth": 0,
-#    "linkTypeResolveDepth": 1,
 #    "entityTypeResolveDepth": 0,
 #    "linkTargetEntityResolveDepth": 10,
 #    "linkResolveDepth": 10
