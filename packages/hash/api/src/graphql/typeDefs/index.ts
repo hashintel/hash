@@ -1,6 +1,5 @@
 import { gql } from "apollo-server-express";
 
-import { accountTypedef } from "./account.typedef";
 import { blockTypedef } from "./block.typedef";
 import { entityTypedef } from "./entity.typedef";
 import { linkTypedef } from "./link.typedef";
@@ -68,7 +67,6 @@ const knowledge = [
 // This needs to be called 'schema' to be picked up by codegen -
 // It could alternatively be a default export.
 export const schema = [
-  accountTypedef,
   baseSchema,
   blockTypedef,
   blockprotocolTypedef,
