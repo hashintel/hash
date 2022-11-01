@@ -46,6 +46,7 @@ export const MultipleValuesCell = ({
           sx={({ palette, transitions }) => ({
             display: "flex",
             justifyContent: "center",
+            alignItems: "center",
             cursor: "pointer",
             height: 1,
             transition: transitions.create("border-color"),
