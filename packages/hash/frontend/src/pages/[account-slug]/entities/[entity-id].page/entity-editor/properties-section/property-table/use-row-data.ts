@@ -2,11 +2,11 @@ import { useMemo } from "react";
 import { PropertyRow } from "./types";
 import { generatePropertyRowsFromEntity } from "./generate-property-rows-from-entity";
 import {
-  sortRowData,
   TableExpandStatus,
-} from "../../../../../../../components/GlideGlid/utils";
-import { useEntityEditor } from "../../entity-editor-context";
+  useEntityEditor,
+} from "../../entity-editor-context";
 import { fillRowDataIndentCalculations } from "./fill-row-data-indent-calculations";
+import { sortRowData } from "../../../../../../../components/GlideGlid/utils/sorting";
 
 const flattenExpandedItemsOfTree = <T extends { children: T[] }>(
   tree: T[],

@@ -5,11 +5,9 @@ import {
 } from "@glideapps/glide-data-grid";
 import type { DrawArgs } from "@glideapps/glide-data-grid/dist/ts/data-grid/cells/cell-types";
 import { isPlainObject } from "lodash";
-import { TooltipCellProps } from "../../../../../../../../components/GlideGlid/use-grid-tooltip/types";
-import {
-  getYCenter,
-  roundRect,
-} from "../../../../../../../../components/GlideGlid/utils";
+import { getYCenter } from "../../../../../../../../components/GlideGlid/utils";
+import { drawRoundRect } from "../../../../../../../../components/GlideGlid/utils/draw-round-rect";
+import { TooltipCellProps } from "../../../../../../../../components/GlideGlid/utils/use-grid-tooltip/types";
 import { getPropertyCountSummary } from "../../get-property-count-summary";
 import { PropertyRow } from "../types";
 import { ValueCellEditor } from "./value-cell/value-cell-editor";
@@ -55,7 +53,7 @@ const drawNestedPropertySummary = (args: DrawArgs<ValueCell>) => {
 
   ctx.strokeStyle = "#C1CFDE";
   ctx.beginPath();
-  roundRect(ctx, left, chipTop, chipWidth, height, height / 2, false, true);
+  drawRoundRect(ctx, left, chipTop, chipWidth, height, height / 2, false, true);
   ctx.stroke();
 
   ctx.fillStyle = "#37434F";

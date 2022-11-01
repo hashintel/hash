@@ -8,12 +8,13 @@ import {
 } from "react";
 import {
   SetTableSort,
-  TableExpandStatus,
   TableSort,
-} from "../../../../../components/GlideGlid/utils";
+} from "../../../../../components/GlideGlid/utils/sorting";
 import { EntityEditorProps } from "../entity-editor";
 import { LinkColumnKey } from "./links-section/link-table/types";
 import { PropertyColumnKey } from "./properties-section/property-table/types";
+
+export type TableExpandStatus = Record<string, boolean>;
 
 interface Props extends EntityEditorProps {
   propertySort: TableSort<PropertyColumnKey>;

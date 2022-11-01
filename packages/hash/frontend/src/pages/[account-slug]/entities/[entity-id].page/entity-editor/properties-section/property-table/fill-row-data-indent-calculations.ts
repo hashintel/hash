@@ -1,4 +1,4 @@
-import { VerticalLineDir } from "../../../../../../../components/GlideGlid/utils";
+import { VerticalLineDir } from "../../../../../../../components/GlideGlid/utils/draw-vertical-line";
 import { PropertyRow } from "./types";
 
 export const fillRowDataIndentCalculations = (

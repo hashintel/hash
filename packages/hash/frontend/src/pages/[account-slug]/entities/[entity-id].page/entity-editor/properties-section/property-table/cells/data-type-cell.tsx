@@ -7,8 +7,8 @@ import {
 import { Chip, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { Box } from "@mui/material";
 import { isPlainObject } from "lodash";
-import { drawCellFadeOutGradient } from "../../../../../../../../components/GlideGlid/draw-cell-fade-out-gradient";
-import { drawChipWithIcon } from "../../../../../../../../components/GlideGlid/utils";
+import { drawCellFadeOutGradient } from "../../../../../../../../components/GlideGlid/utils/draw-cell-fade-out-gradient";
+import { drawChipWithIcon } from "../../../../../../../../components/GlideGlid/utils/draw-chip-with-icon";
 import { PropertyRow } from "../types";
 
 export interface DataTypeCellProps {

@@ -1,5 +1,5 @@
 import { SizedGridColumn } from "@glideapps/glide-data-grid";
-import { VerticalLineDir } from "../../../../../../../components/GlideGlid/utils";
+import { VerticalLineDir } from "../../../../../../../components/GlideGlid/utils/draw-vertical-line";
 
 export type PropertyRow = {
   title: string;

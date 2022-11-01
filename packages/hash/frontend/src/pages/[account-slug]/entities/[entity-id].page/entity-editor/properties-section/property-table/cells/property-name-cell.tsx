@@ -3,15 +3,17 @@ import {
   CustomRenderer,
   GridCellKind,
 } from "@glideapps/glide-data-grid";
-import { CustomGridIcon } from "../../../../../../../../components/GlideGlid/custom-grid-icons";
-import { drawCellFadeOutGradient } from "../../../../../../../../components/GlideGlid/draw-cell-fade-out-gradient";
+import {
+  getColumnPadding,
+  getYCenter,
+} from "../../../../../../../../components/GlideGlid/utils";
+import { CustomGridIcon } from "../../../../../../../../components/GlideGlid/utils/custom-grid-icons";
+import { drawCellFadeOutGradient } from "../../../../../../../../components/GlideGlid/utils/draw-cell-fade-out-gradient";
 import {
   drawVerticalLine,
-  firstColumnPadding,
-  getYCenter,
-  TableExpandStatus,
   VerticalLineDir,
-} from "../../../../../../../../components/GlideGlid/utils";
+} from "../../../../../../../../components/GlideGlid/utils/draw-vertical-line";
+import { TableExpandStatus } from "../../../entity-editor-context";
 import { PropertyRow } from "../types";
 
 export interface PropertyNameCellProps {
@@ -45,9 +47,10 @@ export const createRenderPropertyNameCell = (
 
       const indentMultiplier = 16;
       const indentWidth = indent * indentMultiplier;
+      const columnPadding = getColumnPadding(true);
 
       ctx.font = theme.baseFontStyle;
-      const textLeft = rect.x + firstColumnPadding + indentWidth;
+      const textLeft = rect.x + columnPadding + indentWidth;
 
       const shouldBeLightColor = depth && !children.length;
       if (shouldBeLightColor) {
@@ -81,7 +84,7 @@ export const createRenderPropertyNameCell = (
           dir: VerticalLineDir,
         ) => {
           const lineLeft =
-            rect.x + firstColumnPadding + indentMultiplier * (level - 1);
+            rect.x + columnPadding + indentMultiplier * (level - 1);
 
           drawVerticalLine(args, lineLeft, dir);
         };

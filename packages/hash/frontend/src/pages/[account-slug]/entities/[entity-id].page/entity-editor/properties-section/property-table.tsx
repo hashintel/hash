@@ -7,14 +7,12 @@ import { propertyGridColumns } from "./property-table/constants";
 import { useOnCellEdited } from "./property-table/use-on-cell-edited";
 import { useEntityEditor } from "../entity-editor-context";
 import { GlideGrid } from "../../../../../../components/GlideGlid/glide-grid";
-import {
-  createHandleHeaderClicked,
-  useDrawHeader,
-} from "../../../../../../components/GlideGlid/utils";
-import { useGridTooltip } from "../../../../../../components/GlideGlid/use-grid-tooltip";
+import { useGridTooltip } from "../../../../../../components/GlideGlid/utils/use-grid-tooltip";
 import { renderValueCell } from "./property-table/cells/value-cell";
 import { renderDataTypeCell } from "./property-table/cells/data-type-cell";
 import { createRenderPropertyNameCell } from "./property-table/cells/property-name-cell";
+import { useDrawHeader } from "../../../../../../components/GlideGlid/utils/use-draw-header";
+import { createHandleHeaderClicked } from "../../../../../../components/GlideGlid/utils/sorting";
 
 interface PropertyTableProps {
   showSearch: boolean;

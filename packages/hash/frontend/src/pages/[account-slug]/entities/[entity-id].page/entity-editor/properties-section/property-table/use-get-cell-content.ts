@@ -1,6 +1,6 @@
 import { GridCell, GridCellKind, Item } from "@glideapps/glide-data-grid";
 import { useCallback } from "react";
-import { UseGridTooltipResponse } from "../../../../../../../components/GlideGlid/use-grid-tooltip/types";
+import { UseGridTooltipResponse } from "../../../../../../../components/GlideGlid/utils/use-grid-tooltip/types";
 import { DataTypeCellProps } from "./cells/data-type-cell";
 import { PropertyNameCellProps } from "./cells/property-name-cell";
 import { ValueCellProps } from "./cells/value-cell";

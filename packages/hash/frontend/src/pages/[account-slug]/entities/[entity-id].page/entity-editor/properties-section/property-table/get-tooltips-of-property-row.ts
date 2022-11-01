@@ -1,5 +1,5 @@
-import { CustomGridIcon } from "../../../../../../../components/GlideGlid/custom-grid-icons";
-import { CellTooltipData } from "../../../../../../../components/GlideGlid/use-grid-tooltip/types";
+import { CustomGridIcon } from "../../../../../../../components/GlideGlid/utils/custom-grid-icons";
+import { CellTooltipData } from "../../../../../../../components/GlideGlid/utils/use-grid-tooltip/types";
 import { PropertyRow } from "./types";
 
 /** @todo return the list of tooltips for property properly */
