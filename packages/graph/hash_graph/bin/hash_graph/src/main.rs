@@ -11,7 +11,10 @@ use graph::{
     logging::init_logger,
     ontology::domain_validator::DomainValidator,
     provenance::{CreatedById, OwnedById},
-    store::{AccountStore, DataTypeStore, EntityTypeStore, PostgresStorePool, StorePool},
+    store::{
+        AccountStore, BaseUriAlreadyExists, DataTypeStore, EntityTypeStore, PostgresStorePool,
+        StorePool,
+    },
 };
 use serde_json::json;
 use tokio_postgres::NoTls;
@@ -168,7 +171,7 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     // Seed the primitive data types if they don't already exist
     for data_type in [text, number, boolean, empty_list, object, null] {
         let title = data_type.title().to_owned();
-        if connection
+        if let Err(error) = connection
             .create_data_type(
                 data_type,
                 OwnedById::new(root_account_id),
@@ -176,9 +179,12 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
             )
             .await
             .change_context(GraphError)
-            .is_err()
         {
-            tracing::info!(%root_account_id, "tried to insert primitive {} data type, but it already exists", title);
+            if error.contains::<BaseUriAlreadyExists>() {
+                tracing::info!(%root_account_id, "tried to insert primitive {} data type, but it already exists", title);
+            } else {
+                return Err(error.change_context(GraphError));
+            }
         } else {
             tracing::info!(%root_account_id, "inserted the primitive {} data type", title);
         }
@@ -186,17 +192,19 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
 
     // Seed the entity types if they don't already exist
     let title = link_entity_type.title().to_owned();
-    if connection
+    if let Err(error) = connection
         .create_entity_type(
             link_entity_type,
             OwnedById::new(root_account_id),
             CreatedById::new(root_account_id),
         )
         .await
-        .change_context(GraphError)
-        .is_err()
     {
-        tracing::info!(%root_account_id, "tried to insert {} entity type, but it already exists", title);
+        if error.contains::<BaseUriAlreadyExists>() {
+            tracing::info!(%root_account_id, "tried to insert {} entity type, but it already exists", title);
+        } else {
+            return Err(error.change_context(GraphError));
+        }
     } else {
         tracing::info!(%root_account_id, "inserted the {} entity type", title);
     }
