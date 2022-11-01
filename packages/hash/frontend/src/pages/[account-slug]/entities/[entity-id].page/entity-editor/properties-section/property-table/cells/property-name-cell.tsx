@@ -9,10 +9,7 @@ import {
 } from "../../../../../../../../components/GlideGlid/utils";
 import { CustomGridIcon } from "../../../../../../../../components/GlideGlid/utils/custom-grid-icons";
 import { drawCellFadeOutGradient } from "../../../../../../../../components/GlideGlid/utils/draw-cell-fade-out-gradient";
-import {
-  drawVerticalLine,
-  VerticalLineDir,
-} from "../../../../../../../../components/GlideGlid/utils/draw-vertical-line";
+import { drawVerticalLine } from "../../../../../../../../components/GlideGlid/utils/draw-vertical-line";
 import { TableExpandStatus } from "../../../entity-editor-context";
 import { PropertyRow } from "../types";
 
@@ -43,58 +40,53 @@ export const createRenderPropertyNameCell = (
       } = cell.data.property;
 
       const yCenter = getYCenter(args);
-      ctx.fillStyle = theme.textHeader;
+      const columnPadding = getColumnPadding(true);
 
       const indentMultiplier = 16;
       const indentWidth = indent * indentMultiplier;
-      const columnPadding = getColumnPadding(true);
 
-      ctx.font = theme.baseFontStyle;
       const textLeft = rect.x + columnPadding + indentWidth;
 
+      // prepare to fill text
       const shouldBeLightColor = depth && !children.length;
-      if (shouldBeLightColor) {
-        ctx.fillStyle = "#91A5BA";
-      }
+      ctx.fillStyle = shouldBeLightColor ? "#91A5BA" : theme.textHeader;
+      ctx.font = theme.baseFontStyle;
+
+      // fill text
       ctx.fillText(title, textLeft, yCenter);
 
+      // prepare to draw indentation lines
       ctx.strokeStyle = "#DDE7F0";
+
+      // draw horizontal indentation line
       if (depth) {
-        const drawHorizontalLine = () => {
-          let hLineLeft = textLeft - indentMultiplier;
+        let hLineLeft = textLeft - indentMultiplier;
 
-          if (children.length) {
-            hLineLeft -= indentMultiplier;
-          }
+        if (children.length) {
+          hLineLeft -= indentMultiplier;
+        }
 
-          const hLineRight = hLineLeft + indentMultiplier / 2;
+        const hLineRight = hLineLeft + indentMultiplier / 2;
 
-          ctx.beginPath();
-          ctx.moveTo(hLineLeft, yCenter);
-          ctx.lineTo(hLineRight, yCenter);
-          ctx.stroke();
-        };
-
-        drawHorizontalLine();
+        ctx.beginPath();
+        ctx.moveTo(hLineLeft, yCenter);
+        ctx.lineTo(hLineRight, yCenter);
+        ctx.stroke();
       }
 
+      // draw vertical indentation lines for each indentation level
       if (depth || children.length) {
-        const drawVerticalLineOnIndent = (
-          level: number,
-          dir: VerticalLineDir,
-        ) => {
-          const lineLeft =
-            rect.x + columnPadding + indentMultiplier * (level - 1);
-
-          drawVerticalLine(args, lineLeft, dir);
-        };
-
         // eslint-disable-next-line unicorn/no-array-for-each
         verticalLinesForEachIndent.forEach((dir, index) => {
-          drawVerticalLineOnIndent(index, dir);
+          const indentationLevel = index;
+          const lineLeft =
+            rect.x + columnPadding + indentMultiplier * (indentationLevel - 1);
+
+          drawVerticalLine(args, lineLeft, dir);
         });
       }
 
+      // draw chevron icon
       if (children.length) {
         ctx.fillStyle = "white";
         const iconSize = 10;
