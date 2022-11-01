@@ -11,6 +11,7 @@ use std::{
     future::Future,
     hash::Hash,
     iter,
+    str::FromStr,
 };
 
 use async_trait::async_trait;
@@ -36,7 +37,7 @@ use crate::{
         OntologyQueryDepth, PersistedDataType, PersistedEntityType, PersistedOntologyIdentifier,
         PersistedOntologyMetadata, PersistedPropertyType,
     },
-    provenance::{CreatedById, OwnedById, RemovedById, UpdatedById},
+    provenance::{ArchivedById, CreatedById, OwnedById, RemovedById, UpdatedById},
     shared::identifier::GraphElementIdentifier,
     store::{
         error::VersionedUriAlreadyExists,
@@ -959,6 +960,100 @@ where
             entity_type_id,
             created_by_id,
             updated_by_id,
+            None,
+            link_metadata,
+        ))
+    }
+
+    async fn move_entity_to_histories(
+        &self,
+        entity_id: EntityId,
+        archived_by_id: Option<ArchivedById>,
+    ) -> Result<PersistedEntityMetadata, InsertionError> {
+        let _latest_entity_lock = self
+            .as_client()
+            .query_one(
+                r#"
+            SELECT * FROM entities
+            WHERE entity_id = $1
+            FOR UPDATE;"#,
+                &[&entity_id],
+            )
+            .await
+            .into_report()
+            .change_context(QueryError);
+
+        let historic_entity = self
+            .as_client()
+            .query_one(
+                r#"
+                WITH to_archive AS (
+                    DELETE FROM entities
+                    WHERE entity_id = $1
+                    RETURNING
+                        entity_id, version,
+                        entity_type_version_id,
+                        properties,
+                        left_order, right_order,
+                        left_entity_id, right_entity_id,
+                        owned_by_id, created_by_id, updated_by_id
+                )
+                INSERT INTO entity_histories(entity_id, version, entity_type_version_id, properties,
+                left_order, right_order, left_entity_id, right_entity_id,
+                owned_by_id, created_by_id, updated_by_id, archived)
+                SELECT 
+                    entity_id, version,
+                    entity_type_version_id,
+                    properties,
+                    left_order, right_order,
+                    left_entity_id, right_entity_id,
+                    owned_by_id, created_by_id, 
+                    -- The updated_by_id is conditionally set when not null
+                    CASE 
+                        WHEN $2 is NOT NULL THEN $2
+                        ELSE updated_by_id
+                    END as updated_by_id,
+                    $3 
+                FROM to_archive
+                RETURNING
+                    entity_id, version,
+                    entity_type_version_id,
+                    properties,
+                    left_order, right_order,
+                    left_entity_id, right_entity_id,
+                    owned_by_id, created_by_id, updated_by_id;
+                "#,
+                &[&entity_id, &archived_by_id, &archived_by_id.is_some()],
+            )
+            .await
+            .into_report()
+            .change_context(InsertionError)?;
+
+        let link_metadata = match (
+            historic_entity.get(4),
+            historic_entity.get(5),
+            historic_entity.get(6),
+            historic_entity.get(7),
+        ) {
+            (left_order, right_order, Some(left_entity_id), Some(right_entity_id)) => Some(
+                LinkEntityMetadata::new(left_entity_id, right_entity_id, left_order, right_order),
+            ),
+            _ => None,
+        };
+
+        let entity_type_id = VersionedUri::from_str(historic_entity.get(2))
+            .into_report()
+            .change_context(InsertionError)?;
+
+        Ok(PersistedEntityMetadata::new(
+            PersistedEntityIdentifier::new(
+                historic_entity.get(0),
+                historic_entity.get(1),
+                historic_entity.get(8),
+            ),
+            entity_type_id,
+            historic_entity.get(9),
+            historic_entity.get(10),
             None,
             link_metadata,
         ))

@@ -12,10 +12,10 @@ use uuid::Uuid;
 use crate::{
     identifier::GraphElementIdentifier,
     knowledge::{Entity, EntityId, LinkEntityMetadata, PersistedEntity, PersistedEntityMetadata},
-    provenance::{CreatedById, OwnedById, UpdatedById},
+    provenance::{ArchivedById, CreatedById, OwnedById, UpdatedById},
     store::{
         crud::Read,
-        error::EntityDoesNotExist,
+        error::{ArchivalError, EntityDoesNotExist},
         postgres::{DependencyContext, DependencyContextRef},
         query::Filter,
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, UpdateError,
@@ -318,5 +318,33 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .change_context(UpdateError)?;
 
         Ok(metadata)
+    }
+
+    async fn archive_entity(
+        &mut self,
+        entity_id: EntityId,
+        actor_id: ArchivedById,
+    ) -> Result<(), ArchivalError> {
+        let transaction = PostgresStore::new(
+            self.as_mut_client()
+                .transaction()
+                .await
+                .into_report()
+                .change_context(ArchivalError)?,
+        );
+
+        let _historic_entity = transaction
+            .move_entity_to_histories(entity_id, Some(actor_id))
+            .await
+            .change_context(ArchivalError)?;
+
+        transaction
+            .client
+            .commit()
+            .await
+            .into_report()
+            .change_context(ArchivalError)?;
+
+        Ok(())
     }
 }

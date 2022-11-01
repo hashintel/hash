@@ -45,3 +45,4 @@ define_provenance_id!(OwnedById);
 define_provenance_id!(CreatedById);
 define_provenance_id!(UpdatedById);
 define_provenance_id!(RemovedById);
+define_provenance_id!(ArchivedById);
