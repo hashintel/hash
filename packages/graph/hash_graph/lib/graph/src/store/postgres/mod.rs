@@ -28,7 +28,7 @@ pub use self::pool::{AsClient, PostgresStorePool};
 use crate::{
     identifier::AccountId,
     knowledge::{
-        Entity, EntityId, KnowledgeGraphQueryDepth, PersistedEntity,
+        Entity, EntityId, KnowledgeGraphQueryDepth, LinkEntityMetadata, PersistedEntity,
         PersistedEntityIdentifier, PersistedEntityMetadata,
     },
     ontology::{
@@ -36,7 +36,7 @@ use crate::{
         PersistedOntologyMetadata, PersistedPropertyType,
     },
     provenance::{CreatedById, OwnedById, RemovedById, UpdatedById},
-    shared::identifier::{GraphElementIdentifier},
+    shared::identifier::GraphElementIdentifier,
     store::{
         error::VersionedUriAlreadyExists,
         postgres::{ontology::OntologyDatabaseType, version_id::VersionId},
@@ -802,7 +802,7 @@ where
                 .change_context(InsertionError)?;
         }
 
-        todo!("https://app.asana.com/0/1200211978612931/1203250001255262/f");
+        // todo!("https://app.asana.com/0/1200211978612931/1203250001255262/f");
         // let (link_type_ids, entity_type_references): (
         //     Vec<&VersionedUri>,
         //     Vec<&[EntityTypeReference]>,
@@ -817,9 +817,9 @@ where
         // for target_id in link_type_ids {
         //     self.as_client().query_one(
         //         r#"
-        //                 INSERT INTO entity_type_link_type_references (source_entity_type_version_id, target_link_type_version_id)
-        //                 VALUES ($1, $2)
-        //                 RETURNING source_entity_type_version_id;
+        //                 INSERT INTO entity_type_link_type_references
+        // (source_entity_type_version_id, target_link_type_version_id)
+        // VALUES ($1, $2)                 RETURNING source_entity_type_version_id;
         //             "#,
         //         &[&version_id, &target_id],
         //     )
@@ -837,8 +837,8 @@ where
         // for target_id in entity_type_reference_ids {
         //     self.as_client().query_one(
         //         r#"
-        //                 INSERT INTO entity_type_entity_type_links (source_entity_type_version_id, target_entity_type_version_id)
-        //                 VALUES ($1, $2)
+        //                 INSERT INTO entity_type_entity_type_links (source_entity_type_version_id,
+        // target_entity_type_version_id)                 VALUES ($1, $2)
         //                 RETURNING source_entity_type_version_id;
         //             "#,
         //         &[&version_id, &target_id],
@@ -892,6 +892,7 @@ where
         owned_by_id: OwnedById,
         created_by_id: CreatedById,
         updated_by_id: UpdatedById,
+        link_metadata: Option<LinkEntityMetadata>,
     ) -> Result<PersistedEntityMetadata, InsertionError> {
         let entity_type_version_id = self
             .version_id_by_uri(&entity_type_id)
@@ -904,17 +905,42 @@ where
         let value = serde_json::to_value(entity)
             .into_report()
             .change_context(InsertionError)?;
-        let version = self.as_client().query_one(
-            r#"
-                    INSERT INTO entities (entity_id, version, entity_type_version_id, properties, owned_by_id, created_by_id, updated_by_id)
-                    VALUES ($1, clock_timestamp(), $2, $3, $4, $5, $6)
-                    RETURNING version;
+        let version = self
+            .as_client()
+            .query_one(
+                r#"
+                INSERT INTO entities (
+                    entity_id, version,
+                    entity_type_version_id,
+                    properties,
+                    left_order, right_order,
+                    left_entity_id, right_entity_id,
+                    owned_by_id, created_by_id, updated_by_id
+                )
+                VALUES ($1, clock_timestamp(), $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                RETURNING version;
                 "#,
-            &[&entity_id, &entity_type_version_id, &value, &owned_by_id, &created_by_id, &updated_by_id],
-        )
+                &[
+                    &entity_id,
+                    &entity_type_version_id,
+                    &value,
+                    &link_metadata.as_ref().map(LinkEntityMetadata::left_order),
+                    &link_metadata.as_ref().map(LinkEntityMetadata::right_order),
+                    &link_metadata
+                        .as_ref()
+                        .map(LinkEntityMetadata::left_entity_id),
+                    &link_metadata
+                        .as_ref()
+                        .map(LinkEntityMetadata::right_entity_id),
+                    &owned_by_id,
+                    &created_by_id,
+                    &updated_by_id,
+                ],
+            )
             .await
             .into_report()
-            .change_context(InsertionError)?.get(0);
+            .change_context(InsertionError)?
+            .get(0);
 
         Ok(PersistedEntityMetadata::new(
             PersistedEntityIdentifier::new(entity_id, version, owned_by_id),
@@ -922,6 +948,7 @@ where
             created_by_id,
             updated_by_id,
             None,
+            link_metadata,
         ))
     }
 

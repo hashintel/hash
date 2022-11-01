@@ -16,7 +16,8 @@ use utoipa::{OpenApi, ToSchema};
 use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
     knowledge::{
-        Entity, EntityId, PersistedEntity, PersistedEntityIdentifier, PersistedEntityMetadata,
+        Entity, EntityId, LinkEntityMetadata, PersistedEntity, PersistedEntityIdentifier,
+        PersistedEntityMetadata,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
     shared::identifier::GraphElementIdentifier,
@@ -96,6 +97,10 @@ struct CreateEntityRequest {
     owned_by_id: OwnedById,
     entity_id: Option<EntityId>,
     actor_id: CreatedById,
+    // TODO: this could break invariants if we don't move to fractional indexing
+    //  https://app.asana.com/0/1201095311341924/1202085856561975/f
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    link_metadata: Option<LinkEntityMetadata>,
 }
 
 #[utoipa::path(
@@ -122,6 +127,7 @@ async fn create_entity<P: StorePool + Send>(
         owned_by_id,
         entity_id,
         actor_id,
+        link_metadata,
     }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -130,7 +136,14 @@ async fn create_entity<P: StorePool + Send>(
     })?;
 
     store
-        .create_entity(entity, entity_type_id, owned_by_id, entity_id, actor_id)
+        .create_entity(
+            entity,
+            entity_type_id,
+            owned_by_id,
+            entity_id,
+            actor_id,
+            link_metadata,
+        )
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not create entity");

@@ -11,7 +11,7 @@ use uuid::Uuid;
 
 use crate::{
     identifier::GraphElementIdentifier,
-    knowledge::{Entity, EntityId, PersistedEntity, PersistedEntityMetadata},
+    knowledge::{Entity, EntityId, LinkEntityMetadata, PersistedEntity, PersistedEntityMetadata},
     provenance::{CreatedById, OwnedById, UpdatedById},
     store::{
         crud::Read,
@@ -134,6 +134,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         owned_by_id: OwnedById,
         entity_id: Option<EntityId>,
         created_by_id: CreatedById,
+        link_metadata: Option<LinkEntityMetadata>,
     ) -> Result<PersistedEntityMetadata, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
@@ -156,6 +157,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 owned_by_id,
                 created_by_id,
                 UpdatedById::new(created_by_id.as_account_id()),
+                link_metadata,
             )
             .await?;
 
@@ -292,6 +294,9 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .change_context(UpdateError));
         }
 
+        let metadata: LinkEntityMetadata =
+            todo!("https://app.asana.com/0/1200211978612931/1203250001255262/f");
+
         let metadata = transaction
             .insert_entity(
                 entity_id,
@@ -300,6 +305,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 previous_entity.metadata().identifier().owned_by_id(),
                 previous_entity.metadata().created_by_id(),
                 updated_by_id,
+                Some(metadata),
             )
             .await
             .change_context(UpdateError)?;
