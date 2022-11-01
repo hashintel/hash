@@ -102,7 +102,13 @@ export const Breadcrumbs = ({
     >
       {items.map((item, index) => {
         if (item && "submenu" in item) {
-          return <SubMenu items={item.submenu} defaultIcon={defaultIcon} />;
+          return (
+            <SubMenu
+              key={item.submenu.map((submenuItem) => submenuItem.id).join("-")}
+              items={item.submenu}
+              defaultIcon={defaultIcon}
+            />
+          );
         }
 
         let maxLength = 18;
