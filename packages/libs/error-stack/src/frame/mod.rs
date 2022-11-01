@@ -33,9 +33,9 @@ impl Frame {
     #[deprecated(since = "0.3.0", note = "`Location` now is an attachment`")]
 =======
     #[deprecated(
-        since = "0.2.3",
+        since = "0.2.4",
         note = "Starting with 0.3, `location()` will be removed in favor of a new `Frame` \
-                containing a `Location<'static>` attachment for each context, similar to how \
+                containing a `Location<'static>` attachment for each `Context`, similar to how \
                 `Backtrace` and `SpanTrace` are handled. Note: You won't be able to get the \
                 location of attachments anymore."
     )]
