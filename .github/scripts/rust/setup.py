@@ -238,7 +238,7 @@ def main():
     available_crates = find_local_crates()
     changed_crates = filter_for_changed_crates(diffs, available_crates)
     changed_parent_crates = filter_parent_crates(changed_crates)
-    coverage_crates = filter_for_coverage_crates(available_crates)
+    coverage_crates = filter_for_coverage_crates(changed_parent_crates)
     changed_docker_crates = filter_for_docker_crates(changed_parent_crates)
 
     github_output_file = open(os.environ["GITHUB_OUTPUT_FILE_PATH"], "w")
