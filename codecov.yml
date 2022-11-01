@@ -10,5 +10,8 @@ coverage:
         informational: true
 comment: # Only post a comment if the coverage changes
   require_changes: true
+flag_management:
+  default_rules:
+    carryforward: true
 github_checks:
   annotations: false
