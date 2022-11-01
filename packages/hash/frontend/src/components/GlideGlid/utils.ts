@@ -195,11 +195,22 @@ export const roundRect = (
   }
 };
 
+/**
+ * @returns the vertical center of a glide-grid cell
+ */
 export const getYCenter = (args: DrawArgs<CustomCell>) => {
   const { y, height } = args.rect;
   return y + height / 2 + 1;
 };
 
+/**
+ * @param args draw args of cell
+ * @param text text content of chip
+ * @param left left position of chip
+ * @param textColor text color
+ * @param bgColor background color
+ * @returns width of the drawn chip
+ */
 export const drawChipWithIcon = (
   args: DrawArgs<CustomCell>,
   text: string,
@@ -245,6 +256,9 @@ export const drawChipWithIcon = (
 
 export type VerticalLineDir = "up" | "down" | "full" | "none";
 
+/**
+ * A helper function that draws vertical indentation lines
+ */
 export const drawVerticalLine = (
   args: DrawArgs<CustomCell>,
   left: number,
