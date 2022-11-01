@@ -803,7 +803,6 @@ where
                 .change_context(InsertionError)?;
         }
 
-        // TODO: should we check that the `link_entity_type_ref` is a link entity type?
         let entity_type_references = entity_type
             .link_mappings()
             .keys()
