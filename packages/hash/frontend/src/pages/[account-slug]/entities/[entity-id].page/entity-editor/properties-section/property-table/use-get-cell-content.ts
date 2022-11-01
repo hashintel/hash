@@ -3,7 +3,7 @@ import { useCallback } from "react";
 import { UseGridTooltipResponse } from "../../../../../../../components/GlideGlid/utils/use-grid-tooltip/types";
 import { DataTypeCellProps } from "./cells/data-type-cell";
 import { PropertyNameCellProps } from "./cells/property-name-cell";
-import { ValueCellProps } from "./cells/value-cell";
+import { ValueCellProps } from "./cells/value-cell/types";
 import { propertyGridIndexes } from "./constants";
 import { getTooltipsOfPropertyRow } from "./get-tooltips-of-property-row";
 import { PropertyRow } from "./types";

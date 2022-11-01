@@ -10,7 +10,7 @@ import { useEntityEditor } from "../../entity-editor-context";
 import { useBlockProtocolUpdateEntity } from "../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolUpdateEntity";
 import { propertyGridIndexes } from "./constants";
 import { PropertyRow } from "./types";
-import { ValueCell } from "./cells/value-cell";
+import { ValueCell } from "./cells/value-cell/types";
 
 /**
  * This onCellEditor is used to handle editing the data only at `Values` column

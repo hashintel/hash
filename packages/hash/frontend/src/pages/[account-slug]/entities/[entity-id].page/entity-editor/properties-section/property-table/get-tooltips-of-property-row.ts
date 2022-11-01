@@ -2,7 +2,6 @@ import { CustomGridIcon } from "../../../../../../../components/GlideGlid/utils/
 import { CellTooltipData } from "../../../../../../../components/GlideGlid/utils/use-grid-tooltip/types";
 import { PropertyRow } from "./types";
 
-/** @todo return the list of tooltips for property properly */
 export const getTooltipsOfPropertyRow = (
   data: PropertyRow,
 ): CellTooltipData[] => {
