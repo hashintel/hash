@@ -20,7 +20,7 @@ import {
   oryKratosClient,
 } from "./shared/ory-kratos";
 import { Button } from "../shared/ui";
-import { useUser } from "../components/hooks/useUser";
+import { useAuthenticatedUser } from "../components/hooks/useAuthenticatedUser";
 import { AccountSetupForm } from "./signup.page/account-setup-form";
 
 import {
@@ -204,7 +204,11 @@ const KratosVerificationFlowForm: FunctionComponent = () => {
 const SignupPage: NextPageWithLayout = () => {
   const router = useRouter();
 
-  const { user, kratosSession: _kratosSession, refetch } = useUser();
+  const {
+    authenticatedUser,
+    kratosSession: _kratosSession,
+    refetch,
+  } = useAuthenticatedUser();
 
   const [invitationInfo] = useState<null>(null);
   const [errorMessage, setErrorMessage] = useState<string>();
@@ -257,13 +261,13 @@ const SignupPage: NextPageWithLayout = () => {
 
   return (
     <Container sx={{ pt: 10 }}>
-      {user ? (
+      {authenticatedUser ? (
         userHasVerifiedEmail ? (
           <AccountSetupForm
-            onSubmit={handleAccountSetupSubmit(user.entityId)}
+            onSubmit={handleAccountSetupSubmit(authenticatedUser.entityId)}
             loading={updateUserLoading}
             errorMessage={errorMessage}
-            email={user.emails[0]!.address}
+            email={authenticatedUser.emails[0]!.address}
             invitationInfo={invitationInfo}
           />
         ) : (
