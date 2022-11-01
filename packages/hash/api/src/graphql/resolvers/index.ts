@@ -22,9 +22,6 @@ import {
   searchPages,
   pageLinkedEntities,
 } from "./pages";
-import { createOrg } from "./org/createOrg";
-import { orgLinkedEntities } from "./org/linkedEntities";
-import { orgMembershipLinkedEntities } from "./orgMembership/linkedEntities";
 import { embedCode } from "./embed";
 import {
   getImpliedEntityHistory,
@@ -39,9 +36,6 @@ import { entityTypeTypeFields } from "./entityType/entityTypeTypeFields";
 import { entityTypeInheritance } from "./entityType/entityTypeInheritance";
 import { deprecatedGetAccountEntityTypes } from "./entityType/getAccountEntityTypes";
 import { deprecatedGetEntityType } from "./entityType/getEntityType";
-import { createOrgEmailInvitation } from "./org/createOrgEmailInvitation";
-import { getOrgEmailInvitation } from "./org/getOrgEmailInvitation";
-import { getOrgInvitationLink } from "./org/getOrgInvitationLink";
 import { fileFields } from "./file";
 import { requestFileUpload } from "./file/requestFileUpload";
 import { createFileFromLink } from "./file/createFileFromLink";
@@ -53,8 +47,6 @@ import { deleteLinkedAggregation } from "./linkedAggregation/deleteLinkedAggrega
 import { updateLinkedAggregationOperation } from "./linkedAggregation/updateLinkedAggregationOperation";
 import { createLinkedAggregation } from "./linkedAggregation/createLinkedAggregation";
 import { linkedAggregationResults } from "./linkedAggregation/linkedAggregationResults";
-import { orgEmailInvitationLinkedEntities } from "./orgEmailInvitation/linkedEntities";
-import { orgInvitationLinkLinkedEntities } from "./orgInvitationLink/linkedEntities";
 import { pageSearchResultConnection } from "./paginationConnection/pageSearchResultConnection";
 import {
   executeDemoTask,
@@ -161,8 +153,6 @@ export const resolvers = {
     // Logged in users only
     me: loggedIn(me),
     // Any user
-    getOrgEmailInvitation,
-    getOrgInvitationLink,
     isShortnameTaken,
     embedCode,
     pageSearchResultConnection,
@@ -200,8 +190,6 @@ export const resolvers = {
     deleteLinkedAggregation: loggedInAndSignedUp(deleteLinkedAggregation),
     deprecatedCreateEntityType: loggedInAndSignedUp(deprecatedCreateEntityType),
     createFileFromLink: loggedInAndSignedUp(createFileFromLink),
-    createOrg: loggedInAndSignedUp(createOrg),
-    createOrgEmailInvitation: loggedInAndSignedUp(createOrgEmailInvitation),
     transferEntity: loggedInAndSignedUp(transferEntity),
     updateEntity: loggedInAndSignedUp(updateEntity),
     deprecatedUpdateEntityType: loggedInAndSignedUp(deprecatedUpdateEntityType),
@@ -252,27 +240,8 @@ export const resolvers = {
     ...pageLinkedEntities,
   },
 
-  Org: {
-    ...orgLinkedEntities,
-  },
-
-  OrgMembership: {
-    properties: entityFields.properties,
-    ...orgMembershipLinkedEntities,
-  },
-
   FileProperties: {
     url: fileFields.url,
-  },
-
-  OrgEmailInvitation: {
-    properties: entityFields.properties,
-    ...orgEmailInvitationLinkedEntities,
-  },
-
-  OrgInvitationLink: {
-    properties: entityFields.properties,
-    ...orgInvitationLinkLinkedEntities,
   },
 
   UnknownEntity: {
