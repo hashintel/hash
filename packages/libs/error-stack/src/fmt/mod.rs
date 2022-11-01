@@ -699,25 +699,19 @@ fn debug_attachments_invoke<'a>(
                 Some(vec![attachment.to_string()])
             }
             #[cfg(all(not(feature = "std"), feature = "pretty-print"))]
-            FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
-                if let Some(location) = frame.downcast_ref::<core::panic::Location>() {
-                    Some(vec![
+            FrameKind::Attachment(AttachmentKind::Opaque(_)) => frame
+                .downcast_ref::<core::panic::Location<'static>>()
+                .map(|location| {
+                    vec![
                         location
                             .if_supports_color(Stream::Stdout, OwoColorize::bright_black)
                             .to_string(),
-                    ])
-                } else {
-                    None
-                }
-            }
+                    ]
+                }),
             #[cfg(all(not(feature = "std"), not(feature = "pretty-print")))]
-            FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
-                if let Some(location) = frame.downcast_ref::<core::panic::Location>() {
-                    Some(vec![format!("at {location}")])
-                } else {
-                    None
-                }
-            }
+            FrameKind::Attachment(AttachmentKind::Opaque(_)) => frame
+                .downcast_ref::<core::panic::Location>()
+                .map(|location| vec![format!("at {location}")]),
         })
         .flat_map(|body| {
             body.unwrap_or_else(|| {
