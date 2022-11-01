@@ -1,6 +1,9 @@
 //! Note: span_trace, backtrace and such are not special cased, therefore all tests run with all
 //! tests enabled.
 #![cfg(all(feature = "std", feature = "spantrace", feature = "serde"))]
+// can be considered safe, because we only check the output, which in itself does not use **any**
+// unsafe code.
+#![cfg(not(miri))]
 #![cfg_attr(all(nightly, feature = "std"), feature(error_generic_member_access))]
 #![cfg_attr(nightly, feature(provide_any))]
 
