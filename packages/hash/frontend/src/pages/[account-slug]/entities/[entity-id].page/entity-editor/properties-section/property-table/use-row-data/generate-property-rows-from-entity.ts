@@ -8,22 +8,23 @@ import { generatePropertyRowRecursively } from "./generate-property-rows-from-en
 export const generatePropertyRowsFromEntity = (
   rootEntityAndSubgraph: RootEntityAndSubgraph,
 ): PropertyRow[] => {
-  const entity = rootEntityAndSubgraph.root;
+  const { entityTypeId, properties } = rootEntityAndSubgraph.root;
 
   const entityType = getPersistedEntityType(
     rootEntityAndSubgraph.subgraph,
-    entity.entityTypeId,
+    entityTypeId,
   );
 
   const requiredPropertyTypes = entityType?.inner.required ?? [];
 
-  return Object.keys(entity.properties).map((propertyTypeBaseUri) =>
-    generatePropertyRowRecursively({
+  return Object.keys(properties).map((propertyTypeBaseUri) =>
+    generatePropertyRowRecursively(
+      properties,
       propertyTypeBaseUri,
+      [propertyTypeBaseUri],
       rootEntityAndSubgraph,
       requiredPropertyTypes,
-      properties: entity.properties,
-      propertyKeyChain: [propertyTypeBaseUri],
-    }),
+      0,
+    ),
   );
 };
