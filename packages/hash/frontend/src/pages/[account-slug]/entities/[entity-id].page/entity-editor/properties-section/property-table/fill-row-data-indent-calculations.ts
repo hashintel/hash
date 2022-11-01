@@ -1,23 +1,18 @@
 import { VerticalLineDir } from "../../../../../../../components/GlideGlid/utils/draw-vertical-line";
 import { PropertyRow } from "./types";
 
-export const fillRowDataIndentCalculations = (
-  rowData: PropertyRow[],
-): PropertyRow[] => {
-  // calculate all of the "up" pars
+const markUpperHalvesOfIndentationLines = (rowData: PropertyRow[]) => {
+  // for each row, starting from the first row
   for (let row = 0; row < rowData.length; row++) {
-    const property = rowData[row];
+    const property = rowData[row] as PropertyRow;
     const arr: VerticalLineDir[] = [];
-
-    if (!property) {
-      throw new Error("for loop broken?");
-    }
 
     const { children, indent } = property;
 
-    const prev = rowData[row - 1];
+    const prevRow = rowData[row - 1];
     const iHaveChild = children.length > 0;
 
+    // for each indentation level
     for (let i = 0; i <= indent; i++) {
       let hasUp = false;
 
@@ -36,8 +31,8 @@ export const fillRowDataIndentCalculations = (
          * previous row's indent is not smaller then mine,
          * then draw "up" line
          */
-        if (prev) {
-          const isPrevIndentNotSmallerThanMe = prev.indent >= indent;
+        if (prevRow) {
+          const isPrevIndentNotSmallerThanMe = prevRow.indent >= indent;
 
           hasUp = Boolean(!iHaveChild && isPrevIndentNotSmallerThanMe);
         }
@@ -49,37 +44,54 @@ export const fillRowDataIndentCalculations = (
 
     property.verticalLinesForEachIndent = arr;
   }
+};
 
-  // calculate "down" parts, based on the "up" parts
+/**
+ * this **SHOULD** be runned after `markUpperHalvesOfIndentationLines`
+ * because it uses the previously calculated/marked "up" halves of indentation lines
+ * to calculate the down halves
+ */
+const markBottomHalvesOfIndentationLines = (rowData: PropertyRow[]) => {
+  /**
+   * For each row, starting from the last row and going backwards.
+   * Previous function called `markUpperHalvesOfIndentationLines` already calculated & marked all "up" parts of the lines.
+   * So instead of a complex logic to calculate "down" parts,
+   * for each row, we look at the row below to see if there are lines that needs to continue upwards.
+   * Reason for going backwars is, each row needs to check if the row below has a line which should continue upwards.
+   * So we start from bottom, and keep drawing each line until they end
+   */
   for (let row = rowData.length - 1; row >= 0; row--) {
-    const property = rowData[row];
-
-    if (!property) {
-      throw new Error("for loop broken?");
-    }
+    const property = rowData[row] as PropertyRow;
 
     const { verticalLinesForEachIndent } = property;
 
     const { indent } = property;
 
-    const next = rowData[row + 1];
-    const prev = rowData[row - 1];
+    const nextRow = rowData[row + 1];
+    const prevRow = rowData[row - 1];
 
-    if (next && next.depth > 0) {
+    /**
+     * If there is no nextRow (means this is the last row),
+     * or newRow has no depth, no need to check if we should have "down" half of the line for this row.
+     * Because it's impossible in this case
+     */
+    if (nextRow && nextRow.depth > 0) {
+      // for each indentation level
       for (let i = 0; i <= indent; i++) {
         let hasDown = false;
 
-        const isDrawingCurrentIndent = i === indent;
-
+        // if there are lines that needs to continue upwards at the row below
         if (
-          next.verticalLinesForEachIndent[i] === "up" ||
-          next.verticalLinesForEachIndent[i] === "full"
+          nextRow.verticalLinesForEachIndent[i] === "up" ||
+          nextRow.verticalLinesForEachIndent[i] === "full"
         ) {
           hasDown = true;
         }
 
         let shouldThisBeAFullLine = false;
-        if (!isDrawingCurrentIndent && prev?.depth) {
+        const isDrawingCurrentIndent = i === indent;
+
+        if (!isDrawingCurrentIndent && prevRow?.depth) {
           shouldThisBeAFullLine = true;
         }
 
@@ -91,6 +103,13 @@ export const fillRowDataIndentCalculations = (
       }
     }
   }
+};
 
-  return rowData;
+/**
+ * Calculates & fills `verticalLinesForEachIndent` for each property row
+ * It uses `indent` and `children` of each property row for these calculations
+ */
+export const fillRowDataIndentCalculations = (rowData: PropertyRow[]) => {
+  markUpperHalvesOfIndentationLines(rowData);
+  markBottomHalvesOfIndentationLines(rowData);
 };
