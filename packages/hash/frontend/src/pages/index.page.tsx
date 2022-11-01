@@ -3,26 +3,30 @@ import { useRouter } from "next/router";
 
 import { Box, Container, Typography } from "@mui/material";
 import { useLogoutFlow } from "../components/hooks/useLogoutFlow";
-import { useLoggedInUser } from "../components/hooks/useUser";
+import { useLoggedInUser } from "../components/hooks/useAuthenticatedUser";
 import { NextPageWithLayout } from "../shared/layout";
 import { Button } from "../shared/ui";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
-  const { user, kratosSession } = useLoggedInUser();
+  const { authenticatedUser, kratosSession } = useLoggedInUser();
 
   const { logout } = useLogoutFlow();
 
   useEffect(() => {
-    if (user) {
-      void router.push(`/${user.entityId}`);
+    if (authenticatedUser) {
+      void router.push(`/${authenticatedUser.entityId}`);
     }
-  }, [router, user]);
+  }, [router, authenticatedUser]);
 
   /** @todo: remove session developer information */
   return (
     <Container sx={{ pt: 10 }}>
-      {user && <Typography variant="h1">Hi {user.preferredName}!</Typography>}
+      {authenticatedUser && (
+        <Typography variant="h1">
+          Hi {authenticatedUser.preferredName}!
+        </Typography>
+      )}
       <Typography variant="h2" gutterBottom>
         {kratosSession
           ? "You have a kratos session"
