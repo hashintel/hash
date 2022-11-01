@@ -1,53 +1,60 @@
 import { useMemo } from "react";
 import { useQuery } from "@apollo/client";
-import { GetAccountsQuery } from "../../graphql/apiTypes.gen";
-import { getAccounts } from "../../graphql/queries/account.queries";
-import { useRouteAccountInfo } from "../../shared/routing";
+import { types } from "@hashintel/hash-shared/types";
+import {
+  GetAllLatestPersistedEntitiesQuery,
+  GetAllLatestPersistedEntitiesQueryVariables,
+} from "../../graphql/apiTypes.gen";
+import { getAllLatestEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { isEntityVertex, Subgraph } from "../../lib/subgraph";
+import { useInitTypeSystem } from "../../lib/use-init-type-system";
+import { constructUser, User } from "../../lib/user";
 
 export const useUsers = (): {
   loading: boolean;
-  data: {
-    entityId: string;
-    shortname: string;
-    name: string;
-    isActiveOrgMember: boolean;
-  }[];
+  users?: User[];
 } => {
-  const { data, loading } = useQuery<GetAccountsQuery>(getAccounts);
-  const { accountId: workspaceAccountId } = useRouteAccountInfo();
+  const { data, loading } = useQuery<
+    GetAllLatestPersistedEntitiesQuery,
+    GetAllLatestPersistedEntitiesQueryVariables
+  >(getAllLatestEntitiesQuery, {
+    variables: {
+      dataTypeResolveDepth: 0,
+      propertyTypeResolveDepth: 0,
+      linkTypeResolveDepth: 0,
+      entityTypeResolveDepth: 1,
+      linkResolveDepth: 1,
+      linkTargetEntityResolveDepth: 1,
+    },
+    /** @todo reconsider caching. This is done for testing/demo purposes. */
+    fetchPolicy: "no-cache",
+  });
 
-  const accounts = useMemo(() => {
-    if (!data) {
-      return [];
+  const loadingTypeSystem = useInitTypeSystem();
+
+  const { getAllLatestPersistedEntities: subgraph } = data ?? {};
+
+  const users = useMemo(() => {
+    if (!subgraph || loadingTypeSystem) {
+      return undefined;
     }
 
-    /**
-     * Filter out org accounts
-     * org accounts do not have "preferredName" in their properties object
-     */
-    const userAccounts = data.accounts.filter(
-      (account) => "preferredName" in account,
-    );
-
-    return userAccounts.map((account) => {
-      return {
-        entityId: account.entityId,
-        shortname: account.shortname!,
-        name:
-          "preferredName" in account
-            ? account.preferredName!
-            : account.shortname!,
-        isActiveOrgMember:
-          "memberOf" in account &&
-          account.memberOf?.some(
-            ({ org }) => org.accountId === workspaceAccountId,
-          ),
-      };
-    });
-  }, [data, workspaceAccountId]);
+    return Object.values((subgraph as unknown as Subgraph).vertices)
+      .filter(isEntityVertex)
+      .filter(
+        ({ inner }) =>
+          inner.entityTypeId === types.entityType.user.entityTypeId,
+      )
+      .map(({ inner: { entityId: userEntityId } }) =>
+        constructUser({
+          subgraph: subgraph as unknown as Subgraph,
+          userEntityId,
+        }),
+      );
+  }, [subgraph, loadingTypeSystem]);
 
   return {
     loading,
-    data: accounts,
+    users,
   };
 };

@@ -58,7 +58,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
   },
   ref,
 ) => {
-  const { data: users } = useUsers();
+  const { users: _users } = useUsers();
   const setEntityMenuItemRef = useRef<HTMLLIElement>(null);
   const swapBlocksMenuItemRef = useRef<HTMLLIElement>(null);
   const { value: userBlocks } = useUserBlocks();
@@ -257,14 +257,18 @@ const BlockContextMenu: ForwardRefRenderFunction<
             display: "block",
           })}
         >
-          Last edited by {/* @todo use lastedited value when available */}
-          {
-            users.find(
+          Last edited by
+          {/**
+           * @todo: re-implement when provenance fields are made available to the frontend
+           * @see https://app.asana.com/0/1201095311341924/1203170881776185/f
+           */}
+          {/* {
+            users?.find(
               (account) =>
                 account.entityId ===
                 blockEntity?.properties.entity.createdByAccountId,
-            )?.name
-          }
+            )?.preferredName
+          } */}
         </Typography>
         {/** 
          * @todo re-implement after collab works https://app.asana.com/0/0/1203099452204542/f
