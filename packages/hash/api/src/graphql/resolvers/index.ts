@@ -22,13 +22,8 @@ import {
   searchPages,
   pageLinkedEntities,
 } from "./pages";
-import { createUser } from "./user/createUser";
-import { createUserWithOrgEmailInvitation } from "./user/createUserWithOrgEmailInvitation";
 import { createOrg } from "./org/createOrg";
 import { orgLinkedEntities } from "./org/linkedEntities";
-import { accountSignupComplete } from "./user/accountSignupComplete";
-import { sendLoginCode } from "./user/sendLoginCode";
-import { userLinkedEntities } from "./user/linkedEntities";
 import { orgMembershipLinkedEntities } from "./orgMembership/linkedEntities";
 import { embedCode } from "./embed";
 import {
@@ -47,7 +42,6 @@ import { deprecatedGetEntityType } from "./entityType/getEntityType";
 import { createOrgEmailInvitation } from "./org/createOrgEmailInvitation";
 import { getOrgEmailInvitation } from "./org/getOrgEmailInvitation";
 import { getOrgInvitationLink } from "./org/getOrgInvitationLink";
-import { joinOrg } from "./user/joinOrg";
 import { fileFields } from "./file";
 import { requestFileUpload } from "./file/requestFileUpload";
 import { createFileFromLink } from "./file/createFileFromLink";
@@ -216,12 +210,7 @@ export const resolvers = {
     updatePersistedPageContents: loggedInAndSignedUp(
       updatePersistedPageContents,
     ),
-    joinOrg: loggedInAndSignedUp(joinOrg),
     requestFileUpload: loggedInAndSignedUp(requestFileUpload),
-    // Any user
-    createUser,
-    createUserWithOrgEmailInvitation,
-    sendLoginCode,
     // Task execution
     executeDemoTask,
     executeGithubSpecTask,
@@ -261,11 +250,6 @@ export const resolvers = {
     properties:
       pageProperties /** @todo: remove this resolver as it is deprecated */,
     ...pageLinkedEntities,
-  },
-
-  User: {
-    accountSignupComplete,
-    ...userLinkedEntities,
   },
 
   Org: {
