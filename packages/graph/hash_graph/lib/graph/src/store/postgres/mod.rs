@@ -355,6 +355,12 @@ pub struct PostgresStore<C> {
     client: C,
 }
 
+/// Describes what context the historic move is done in.
+pub enum HistoricMove {
+    ForNewVersion,
+    ForArchival,
+}
+
 impl<C> PostgresStore<C>
 where
     C: AsClient,
@@ -962,7 +968,7 @@ where
     async fn move_entity_to_histories(
         &self,
         entity_id: EntityId,
-        archived: bool,
+        historic_move: HistoricMove,
     ) -> Result<PersistedEntityMetadata, InsertionError> {
         let historic_entity = self
             .as_client()
@@ -1021,7 +1027,7 @@ where
                 "#,
                 &[
                     &entity_id,
-                    &archived,
+                    &matches!(historic_move, HistoricMove::ForArchival),
                 ],
             )
             .await

@@ -16,7 +16,7 @@ use crate::{
     store::{
         crud::Read,
         error::{ArchivalError, EntityDoesNotExist},
-        postgres::{DependencyContext, DependencyContextRef},
+        postgres::{DependencyContext, DependencyContextRef, HistoricMove},
         query::Filter,
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
@@ -288,7 +288,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         //  https://app.asana.com/0/1202805690238892/1203201674100967/f
 
         let old_entity_metadata = transaction
-            .move_entity_to_histories(entity_id, false)
+            .move_entity_to_histories(entity_id, HistoricMove::ForNewVersion)
             .await
             .change_context(UpdateError)?;
 
@@ -349,7 +349,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .change_context(ArchivalError)?;
 
         transaction
-            .move_entity_to_histories(entity_id, true)
+            .move_entity_to_histories(entity_id, HistoricMove::ForArchival)
             .await
             .change_context(ArchivalError)?;
 
