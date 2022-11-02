@@ -82,7 +82,9 @@ impl<C: AsClient> PostgresStore<C> {
                     .await?;
                 }
 
-                todo!("https://app.asana.com/0/1200211978612931/1203250001255262/f")
+                // TODO: Subgraphs don't support link entities yet
+                //   https://app.asana.com/0/1200211978612931/1203250001255262/f
+
                 // for link_record in self
                 //     .read_links_by_source(entity_id)
                 //     .await?

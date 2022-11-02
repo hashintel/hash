@@ -483,3 +483,37 @@ Accept: application/json
         client.assert(response.status === 200, "Response status is not 200");
     });
 %}
+
+#### Get all latest entities by using a query
+// Only person_a and the link remains as entities
+POST http://127.0.0.1:4000/entities/query
+Content-Type: application/json
+
+{
+ "filter": {
+   "equal": [
+    {
+      "path": [
+        "version"
+      ]
+    },
+    {
+      "parameter": "latest"
+    }
+  ]
+ },
+ "graphResolveDepths": {
+   "dataTypeResolveDepth": 0,
+   "propertyTypeResolveDepth": 0,
+   "entityTypeResolveDepth": 0,
+   "linkTargetEntityResolveDepth": 0,
+   "linkResolveDepth": 0
+ }
+}
+
+> {%
+   client.test("status", function() {
+       client.assert(response.status === 200, "Response status is not 200");
+       client.assert(response.body.roots.length === 2, "Unexpected number of entities");
+   });
+%}
