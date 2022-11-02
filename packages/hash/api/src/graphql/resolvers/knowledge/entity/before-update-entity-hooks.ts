@@ -21,7 +21,7 @@ const validateAccountShortname = async (
     AccountFields.shortnameIsRestricted(shortname) ||
     (await AccountFields.shortnameIsTaken(graphApi, { shortname }))
   ) {
-    throw new ApolloError(`Shortname ${shortname} taken`, "NAME_TAKEN");
+    throw new ApolloError(`Shortname "${shortname}" taken`, "NAME_TAKEN");
   }
 
   /** @todo: enable admins to have a shortname under 4 characters */
