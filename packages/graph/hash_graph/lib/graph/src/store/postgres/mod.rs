@@ -973,10 +973,14 @@ where
         let _latest_entity_lock = self
             .as_client()
             .query_one(
+                // TODO: consider if this row locking is problematic with Citus.
+                //   `FOR UPDATE` is only allowed in single-shard queries.
+                //   https://docs.citusdata.com/en/stable/develop/reference_workarounds.html#sql-support-and-workarounds
+                //   see: https://app.asana.com/0/0/1203284257408542/f
                 r#"
-            SELECT * FROM entities
-            WHERE entity_id = $1
-            FOR UPDATE;"#,
+                SELECT * FROM entities
+                WHERE entity_id = $1
+                FOR UPDATE;"#,
                 &[&entity_id],
             )
             .await
@@ -987,6 +991,7 @@ where
             .as_client()
             .query_one(
                 r#"
+                -- First we delete the _latest_ entity from the entities table.
                 WITH to_archive AS (
                     DELETE FROM entities
                     WHERE entity_id = $1
@@ -998,6 +1003,9 @@ where
                         left_entity_id, right_entity_id,
                         owned_by_id, created_by_id, updated_by_id
                 )
+                -- We immediately put this deleted entity into the historic table.
+                -- As this should be done in a transaction, we should be safe that this move doesn't
+                -- produce invalid state.
                 INSERT INTO entity_histories(entity_id, version, entity_type_version_id, properties,
                 left_order, right_order, left_entity_id, right_entity_id,
                 owned_by_id, created_by_id, updated_by_id, archived)
@@ -1015,10 +1023,11 @@ where
                     END as updated_by_id,
                     $3 
                 FROM to_archive
+                -- For metadata purposes, we return the entire entity
                 RETURNING
                     entity_id, version,
                     entity_type_version_id,
-                    properties,
+                    properties, -- Unused
                     left_order, right_order,
                     left_entity_id, right_entity_id,
                     owned_by_id, created_by_id, updated_by_id;

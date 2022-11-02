@@ -19,7 +19,7 @@ use crate::{
         Entity, EntityId, LinkEntityMetadata, PersistedEntity, PersistedEntityIdentifier,
         PersistedEntityMetadata,
     },
-    provenance::{CreatedById, OwnedById, UpdatedById},
+    provenance::{ArchivedById, CreatedById, OwnedById, UpdatedById},
     shared::identifier::GraphElementIdentifier,
     store::{
         error::{EntityDoesNotExist, QueryError},
@@ -82,6 +82,7 @@ impl RoutedResource for EntityResource {
                         .get(get_latest_entities::<P>)
                         .put(update_entity::<P>),
                 )
+                .route("/archive", post(archive_entity::<P>))
                 .route("/query", post(get_entities_by_query::<P>))
                 .route("/:entity_id", get(get_entity::<P>)),
         )
@@ -115,7 +116,6 @@ struct CreateEntityRequest {
         (status = 404, description = "Entity Type URI was not found"),
         (status = 500, description = "Store error occurred"),
     ),
-    request_body = CreateEntityRequest,
 )]
 async fn create_entity<P: StorePool + Send>(
     body: Json<CreateEntityRequest>,
@@ -152,6 +152,50 @@ async fn create_entity<P: StorePool + Send>(
             StatusCode::INTERNAL_SERVER_ERROR
         })
         .map(Json)
+}
+
+#[derive(Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+struct ArchiveEntityRequest {
+    entity_id: EntityId,
+    actor_id: ArchivedById,
+}
+
+#[utoipa::path(
+    post,
+    path = "/entities/archive",
+    request_body = ArchiveEntityRequest,
+    tag = "Entity",
+    responses(
+        (status = 201, content_type = "application/json", description = "No response"),
+        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+
+        (status = 500, description = "Store error occurred"),
+    ),
+)]
+async fn archive_entity<P: StorePool + Send>(
+    body: Json<ArchiveEntityRequest>,
+    pool: Extension<Arc<P>>,
+) -> Result<(), StatusCode> {
+    let Json(ArchiveEntityRequest {
+        entity_id,
+        actor_id,
+    }) = body;
+
+    let mut store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    store
+        .archive_entity(entity_id, actor_id)
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not create entity");
+
+            // Insertion/update errors are considered internal server errors.
+            StatusCode::INTERNAL_SERVER_ERROR
+        })
 }
 
 #[utoipa::path(
