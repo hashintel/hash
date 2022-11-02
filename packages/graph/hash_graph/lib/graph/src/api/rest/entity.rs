@@ -167,7 +167,7 @@ struct ArchiveEntityRequest {
     request_body = ArchiveEntityRequest,
     tag = "Entity",
     responses(
-        (status = 201, content_type = "application/json", description = "No response"),
+        (status = 200, content_type = "application/json", description = "No response"),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Entity could not be found"),
