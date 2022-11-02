@@ -51,7 +51,8 @@ impl<C: AsClient> PostgresStore<C> {
                         GraphElementIdentifier::OntologyElementId(entity_type_id.clone()),
                         OutwardEdge {
                             edge_kind: EdgeKind::References,
-                            destination: GraphElementIdentifier::OntologyElementId(
+                            reversed_direction: false,
+                            right_element: GraphElementIdentifier::OntologyElementId(
                                 property_type_ref.uri().clone(),
                             ),
                         },
@@ -100,7 +101,8 @@ impl<C: AsClient> PostgresStore<C> {
                         GraphElementIdentifier::OntologyElementId(entity_type_id.clone()),
                         OutwardEdge {
                             edge_kind: EdgeKind::References,
-                            destination: GraphElementIdentifier::OntologyElementId(
+                            reversed_direction: false,
+                            right_element: GraphElementIdentifier::OntologyElementId(
                                 entity_type_id.clone(),
                             ),
                         },

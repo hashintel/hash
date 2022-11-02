@@ -37,11 +37,7 @@ impl<C: AsClient> PostgresStore<C> {
                 .linked_entities
                 .insert_with(
                     &entity_id,
-                    Some(
-                        dependency_context
-                            .graph_resolve_depths
-                            .link_target_entity_resolve_depth,
-                    ),
+                    Some(dependency_context.graph_resolve_depths.entity_resolve_depth),
                     || async {
                         self.read_one(&Filter::for_latest_entity_by_entity_id(entity_id))
                             .await
@@ -57,8 +53,9 @@ impl<C: AsClient> PostgresStore<C> {
                 dependency_context.edges.insert(
                     GraphElementIdentifier::KnowledgeGraphElementId(entity_id),
                     OutwardEdge {
-                        edge_kind: EdgeKind::HasType,
-                        destination: GraphElementIdentifier::OntologyElementId(
+                        edge_kind: EdgeKind::IsType,
+                        reversed_direction: false,
+                        right_element: GraphElementIdentifier::OntologyElementId(
                             entity_type_id.clone(),
                         ),
                     },
