@@ -2,6 +2,8 @@ import {
   EntityType,
   extractBaseUri,
   extractVersion,
+  PropertyTypeReference,
+  ValueOrArray,
 } from "@blockprotocol/type-system-web";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
@@ -14,7 +16,10 @@ import { FRONTEND_URL } from "../../../../lib/config";
 import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
 import { TopContextBar } from "../../../shared/top-context-bar";
 import { EditBar } from "./edit-bar";
-import { EntityTypeEditorForm } from "./form-types";
+import {
+  EntityTypeEditorForm,
+  EntityTypeEditorPropertyData,
+} from "./form-types";
 import { HashOntologyIcon } from "./hash-ontology-icon";
 import { OntologyChip } from "./ontology-chip";
 import { PropertyListCard } from "./property-list-card";
@@ -29,6 +34,40 @@ const getBaseUri = (path: string) => {
   const url = new URL(path, FRONTEND_URL);
 
   return `${FRONTEND_URL}${url.pathname}/`;
+};
+
+const getSchemaFromEditorForm = (
+  properties: EntityTypeEditorPropertyData[],
+): Partial<EntityType> => {
+  const schemaProperties: Record<
+    string,
+    ValueOrArray<PropertyTypeReference>
+  > = {};
+  const required = [];
+
+  for (const property of properties) {
+    const propertyKey = extractBaseUri(property.$id);
+
+    const prop: ValueOrArray<PropertyTypeReference> = property.array
+      ? {
+          type: "array",
+          minItems: property.minValue,
+          maxItems: property.maxValue,
+          items: { $ref: property.$id },
+        }
+      : { $ref: property.$id };
+
+    schemaProperties[propertyKey] = prop;
+
+    if (property.required) {
+      required.push(extractBaseUri(property.$id));
+    }
+  }
+
+  return {
+    properties: schemaProperties,
+    required,
+  };
 };
 
 // @todo loading state
@@ -61,13 +100,19 @@ const Page: NextPageWithLayout = () => {
     baseEntityTypeUri,
     (fetchedEntityType) => {
       reset({
-        properties: Object.values(fetchedEntityType.properties).map((ref) => {
-          if ("type" in ref) {
-            // @todo handle property arrays
-            throw new Error("handle property arrays");
-          }
-          return { $id: mustBeVersionedUri(ref.$ref) };
-        }),
+        properties: Object.entries(fetchedEntityType.properties).map(
+          ([propertyId, ref]) => {
+            const isArray = "type" in ref;
+
+            return {
+              $id: mustBeVersionedUri(isArray ? ref.items.$ref : ref.$ref),
+              required: !!fetchedEntityType.required?.includes(propertyId),
+              array: isArray,
+              maxValue: isArray ? ref.maxItems : 0,
+              minValue: isArray ? ref.minItems : 0,
+            };
+          },
+        ),
       });
     },
   );
@@ -81,13 +126,7 @@ const Page: NextPageWithLayout = () => {
       return;
     }
 
-    const properties = Object.fromEntries(
-      data.properties.map((property) => {
-        const propertyKey = extractBaseUri(property.$id);
-
-        return [propertyKey, { $ref: property.$id }];
-      }),
-    );
+    const entityTypeSchema = getSchemaFromEditorForm(data.properties);
 
     if (isDraft) {
       if (!draftEntityType) {
@@ -96,12 +135,12 @@ const Page: NextPageWithLayout = () => {
 
       await publishDraft({
         ...draftEntityType,
-        properties,
+        ...entityTypeSchema,
       });
       reset(data);
     } else {
       const res = await updateEntityType({
-        properties,
+        ...entityTypeSchema,
       });
 
       if (!res.errors?.length) {
