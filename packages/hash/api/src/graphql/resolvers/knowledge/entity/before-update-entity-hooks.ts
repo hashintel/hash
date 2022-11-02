@@ -37,15 +37,6 @@ const validateAccountShortname = async (
   }
 };
 
-const validateUserPreferredName = (preferredName: string) => {
-  if (UserModel.preferredNameIsInvalid(preferredName)) {
-    throw new ApolloError(
-      `The preferred name '${preferredName}' is invalid`,
-      "PREFERRED_NAME_INVALID",
-    );
-  }
-};
-
 type BeforeUpdateEntityHookCallback = (params: {
   graphApi: GraphApi;
   entityModel: EntityModel;
@@ -85,8 +76,6 @@ const userEntityHookCallback: BeforeUpdateEntityHookCallback = async ({
     if (!updatedPreferredName) {
       throw new ApolloError("Cannot unset preferred name");
     }
-
-    validateUserPreferredName(updatedPreferredName);
   }
 };
 
