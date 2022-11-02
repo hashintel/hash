@@ -9,22 +9,4 @@ module.exports = {
     require("prettier-plugin-packagejson"),
     require("prettier-plugin-sh"),
   ],
-  overrides: [
-    {
-      files: [".eslintrc.cjs"],
-      options: {
-        quoteProps: "preserve",
-        semi: false,
-        trailingComma: "none",
-      },
-    },
-    {
-      files: ["blocks/**/.eslintrc.cjs"],
-      options: {
-        quoteProps: "as-needed",
-        semi: true,
-        trailingComma: "all",
-      },
-    },
-  ],
 };

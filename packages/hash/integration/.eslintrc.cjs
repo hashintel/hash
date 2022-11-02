@@ -1,8 +1,9 @@
 module.exports = {
-  "env": {
-    "node": true
+  env: {
+    node: true,
   },
-  "parserOptions": {
-    "project": ["./tsconfig.json"]
-  }
-}
+  parserOptions: {
+    tsconfigRootDir: __dirname,
+    project: ["tsconfig.json"],
+  },
+};
