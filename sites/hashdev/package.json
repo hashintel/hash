@@ -5,8 +5,8 @@
   "scripts": {
     "build": "next build",
     "dev": "next dev",
-    "fix:eslint": "eslint --ext .js,.ts,.tsx --fix ./src/",
-    "lint:eslint": "eslint --ext .js,.ts,.tsx ./src/",
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint .",
     "lint:tsc": "tsc --noEmit",
     "start": "next start"
   },
