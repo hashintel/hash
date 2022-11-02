@@ -1037,7 +1037,10 @@ where
             (left_order, right_order, Some(left_entity_id), Some(right_entity_id)) => Some(
                 LinkEntityMetadata::new(left_entity_id, right_entity_id, left_order, right_order),
             ),
-            _ => None,
+            (None, None, None, None) => None,
+            _ => {
+                unreachable!("incomplete link information was found in the DB table, this is fatal")
+            }
         };
 
         let base_uri = BaseUri::new(historic_entity.get(2))

@@ -403,6 +403,16 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
           OR left_entity_id IS NOT NULL AND right_entity_id IS NOT NULL`,
   });
 
+  pgm.addConstraint("entities", "entities_relation_order_constraint", {
+    // left_order if (left_entity_id and right_entity_id) OR
+    // right_order if (left_entity_id and right_entity_id)
+    //
+    // which is the same as
+    // (left_entity_id and right_entity_id) or left_order or right_order
+    check: `(left_entity_id IS NOT NULL AND right_entity_id IS NOT NULL)
+            OR left_order IS NOT NULL OR right_order IS NOT NULL`,
+  });
+
   pgm.createTable(
     "entity_histories",
     {
