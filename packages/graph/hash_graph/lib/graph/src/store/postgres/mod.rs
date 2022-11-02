@@ -1041,8 +1041,6 @@ where
             .change_context(InsertionError)?;
         let entity_type_id = VersionedUri::new(base_uri, historic_entity.get::<_, i64>(3) as u32);
 
-        // TODO: Consider using `ProvenanceMetadata` instead?
-        //  https://app.asana.com/0/1201095311341924/1203227079758117/f
         Ok(PersistedEntityMetadata::new(
             PersistedEntityIdentifier::new(
                 historic_entity.get(0),

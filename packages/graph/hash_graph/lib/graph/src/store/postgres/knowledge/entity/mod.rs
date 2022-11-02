@@ -285,20 +285,20 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         //  Note that the race condition may have been sorted out with the links rewrite.
         //  https://app.asana.com/0/1202805690238892/1203201674100967/f
 
-        let archived_entity_version = transaction
+        let old_entity_metadata = transaction
             .move_entity_to_histories(entity_id, false)
             .await
             .change_context(UpdateError)?;
 
-        let metadata = transaction
+        let entity_metadata = transaction
             .insert_entity(
                 entity_id,
                 entity,
                 entity_type_id,
-                archived_entity_version.identifier().owned_by_id(),
-                archived_entity_version.created_by_id(),
+                old_entity_metadata.identifier().owned_by_id(),
+                old_entity_metadata.created_by_id(),
                 updated_by_id,
-                archived_entity_version.link_metadata().clone(),
+                old_entity_metadata.link_metadata().clone(),
             )
             .await
             .change_context(UpdateError)?;
@@ -310,7 +310,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .into_report()
             .change_context(UpdateError)?;
 
-        Ok(metadata)
+        Ok(entity_metadata)
     }
 
     async fn archive_entity(
