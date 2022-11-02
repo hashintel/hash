@@ -10,7 +10,6 @@
   "scripts": {
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.yml",
     "fix:eslint": "eslint --ext .js,.ts,.tsx --fix ./src/",
-    "postinstall": "yarn codegen",
     "lint:eslint": "eslint --ext .js,.ts,.tsx ./src/",
     "lint:tsc": "tsc --noEmit",
     "test": "jest"
@@ -45,6 +44,7 @@
     "@graphql-codegen/fragment-matcher": "3.2.1",
     "@graphql-codegen/typescript": "2.6.0",
     "@graphql-codegen/typescript-operations": "2.4.3",
+    "@local/tsconfig": "0.0.0-private",
     "@types/lodash": "4.14.175",
     "@types/node": "16.7.6",
     "@types/node-fetch": "^2.5.10",

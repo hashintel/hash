@@ -31,6 +31,7 @@
     "winston": "3.3.3"
   },
   "devDependencies": {
+    "@local/tsconfig": "0.0.0-private",
     "@types/dotenv-flow": "3.2.0",
     "@types/node": "16.7.6",
     "@types/redis": "2.8.32",
