@@ -26,7 +26,6 @@ export const useRowData = () => {
   const flattenedRowData = flattenExpandedItemsOfTree(
     sortedRowData,
     propertyExpandStatus,
-    "rowId",
   );
 
   fillRowDataIndentCalculations(flattenedRowData);

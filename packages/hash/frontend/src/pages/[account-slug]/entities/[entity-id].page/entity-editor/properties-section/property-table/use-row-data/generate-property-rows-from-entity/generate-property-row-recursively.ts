@@ -42,7 +42,7 @@ export const generatePropertyRowRecursively = (
   propertyKeyChain: string[],
   rootEntityAndSubgraph: RootEntityAndSubgraph,
   requiredPropertyTypes: string[],
-  depth: number,
+  depth = 0,
 ): PropertyRow => {
   const propertyTypeVersions = getPropertyTypesByBaseUri(
     rootEntityAndSubgraph.subgraph,
@@ -78,7 +78,6 @@ export const generatePropertyRowRecursively = (
           [...propertyKeyChain, subPropertyTypeBaseUri],
           rootEntityAndSubgraph,
           requiredPropertyTypes,
-          depth + 1,
         ),
       );
     }
@@ -86,7 +85,7 @@ export const generatePropertyRowRecursively = (
 
   const indent = !depth ? 0 : children.length ? depth : depth - 1;
 
-  const rowId = propertyKeyChain.join("-");
+  const rowId = propertyKeyChain.join(".");
 
   return {
     rowId,
@@ -97,7 +96,12 @@ export const generatePropertyRowRecursively = (
     depth,
     children,
     indent,
-    verticalLinesForEachIndent: [], // this will be filled by `fillRowDataIndentCalculations`
+    /**
+     * this will be filled by `fillRowDataIndentCalculations`
+     * this is not filled here, because we'll use the whole flattened tree,
+     * and check some values of prev-next items on the flattened tree while calculating this
+     */
+    verticalLinesForEachIndent: [],
     propertyKeyChain,
   };
 };

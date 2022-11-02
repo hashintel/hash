@@ -34,7 +34,7 @@ const markUpperHalvesOfIndentationLines = (rowData: PropertyRow[]) => {
         if (prevRow) {
           const isPrevIndentNotSmallerThanMe = prevRow.indent >= indent;
 
-          hasUp = Boolean(!iHaveChild && isPrevIndentNotSmallerThanMe);
+          hasUp = !iHaveChild && isPrevIndentNotSmallerThanMe;
         }
       }
       if (hasUp) {
@@ -113,3 +113,16 @@ export const fillRowDataIndentCalculations = (rowData: PropertyRow[]) => {
   markUpperHalvesOfIndentationLines(rowData);
   markBottomHalvesOfIndentationLines(rowData);
 };
+
+/**
+ * @todo instead of calculating & storing indentation line statuses for each indivicual cell
+ * as an alternative, we can calculate & store the actual lines in n array,
+ * and while rendering cells, we can check that array
+ * to see if there are lines should be drawn on that cell.
+ * The stored line objects should look something line this
+ * line = {
+ * startsAt:2, // column index of where the line starts
+ * endsAt: 5,  // column index of where the line ends
+ * indent: 2 // line indentation level
+ * }
+ */

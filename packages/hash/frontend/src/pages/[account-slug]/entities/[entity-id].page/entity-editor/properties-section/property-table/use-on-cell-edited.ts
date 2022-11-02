@@ -4,7 +4,7 @@ import {
   Item,
 } from "@glideapps/glide-data-grid";
 import { useCallback } from "react";
-import { cloneDeep } from "lodash";
+import { cloneDeep, set } from "lodash";
 import { useSnackbar } from "../../../../../../../components/hooks/useSnackbar";
 import { useEntityEditor } from "../../entity-editor-context";
 import { useBlockProtocolUpdateEntity } from "../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolUpdateEntity";
@@ -51,13 +51,7 @@ export const useOnCellEdited = (rowData: PropertyRow[]) => {
        * so we can update the deeply nested properties,
        * by using keys pathing to specific property called `propertyKeyChain`
        */
-      propertyKeyChain.reduce((prev, curr, i) => {
-        if (i === propertyKeyChain.length - 1) {
-          // eslint-disable-next-line no-param-reassign
-          prev[curr] = valueCell.data.property.value;
-        }
-        return prev[curr];
-      }, updatedProperties);
+      set(updatedProperties, propertyKeyChain, valueCell.data.property.value);
 
       /**
        * setting state for optimistic update

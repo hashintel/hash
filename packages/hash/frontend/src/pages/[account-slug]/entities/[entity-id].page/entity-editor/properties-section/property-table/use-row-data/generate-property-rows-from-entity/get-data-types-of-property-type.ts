@@ -14,7 +14,7 @@ export const getDataTypesOfPropertyType = (
       const dataTypeId = propertyValue?.$ref;
       const persistedDataType = getPersistedDataType(subgraph, dataTypeId);
 
-      return persistedDataType ? persistedDataType?.inner.title : "undefined";
+      return persistedDataType?.inner.title ?? "undefined";
     }
 
     return capitalize(propertyValue.type);
