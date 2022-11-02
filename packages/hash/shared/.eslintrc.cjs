@@ -1,9 +1,10 @@
 module.exports = {
-  "parserOptions": {
-    "project": ["./tsconfig.json"]
+  parserOptions: {
+    tsconfigRootDir: __dirname,
+    project: ["tsconfig.json"],
   },
-  "plugins": ["@typescript-eslint"],
-  "rules": {
-    "import/no-extraneous-dependencies": ["error", { "devDependencies": true }]
-  }
-}
+  plugins: ["@typescript-eslint"],
+  rules: {
+    "import/no-extraneous-dependencies": ["error", { devDependencies: true }],
+  },
+};
