@@ -229,7 +229,7 @@ First-time contributors need to wait for a maintainer to manually launch the che
 
 ## Monorepo
 
-We use [Yarn Workspaces](https://classic.yarnpkg.com/en/docs/workspaces) work with multiple packages in a single repository.
+We use [Yarn Workspaces](https://classic.yarnpkg.com/en/docs/workspaces) to work with multiple packages in a single repository.
 [Turborepo](https://turborepo.com) is used to cache script results and thus speed up their execution.
 
 ## Troubleshooting
