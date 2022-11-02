@@ -108,6 +108,7 @@ const markBottomHalvesOfIndentationLines = (rowData: PropertyRow[]) => {
 /**
  * Calculates & fills `verticalLinesForEachIndent` for each property row
  * It uses `indent` and `children` of each property row for these calculations
+ * @param rowData is the flattened tree of property rows
  */
 export const fillRowDataIndentCalculations = (rowData: PropertyRow[]) => {
   markUpperHalvesOfIndentationLines(rowData);
