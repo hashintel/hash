@@ -322,7 +322,7 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
         }
     }
 
-    /// Joins the list of [`Table`]s as [`JoinExpression`]s.
+    /// Joins a chain of [`Relation`]s and returns the table name of the last joined table.
     ///
     /// Joining the tables attempts to deduplicate [`JoinExpression`]s. As soon as a new filter was
     /// compiled, each subsequent call will result in a new join-chain.
@@ -347,6 +347,11 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
                 access: join_column_access,
             };
 
+            // If we join on the same column as the previous join, we can reuse the that join. For
+            // example, if we join on `entities.entity_type_version_id = entity_type.version_id` and
+            // then on `entity_type.version_id = type_ids.version_id`, we can merge the two joins
+            // into `entities.entity_type_version_id = type_ids.version_id`. We, however, need to
+            // make to make sure, that we only alter a join we added in this iteration.
             if self.artifacts.current_alias.chain_depth != 0 {
                 // Check if we are joining on the same column as the previous join
                 if let Some(last_join) = self.statement.joins.last_mut() {
@@ -354,28 +359,36 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
                         last_join.join.table.name = join_column.table.name;
                         last_join.join.access = join_column.access;
                         current_table = last_join.join.table;
+
+                        if let [.., previous_join, this_join] = self.statement.joins.as_slice() {
+                            // It's possible that we just duplicated the last two join statements,
+                            // so remove the last one.
+                            if previous_join == this_join {
+                                self.statement.joins.pop();
+                            }
+                        }
+
                         continue;
                     }
                 }
             }
-            let join = JoinExpression::new(join_column, current_column);
 
+            let join_expression = JoinExpression::new(join_column, current_column);
             if let Some(join_statement) = self
                 .statement
                 .joins
                 .iter()
-                .find(|existing| **existing == join)
+                .find(|existing| **existing == join_expression)
             {
                 current_table = join_statement.join.table;
             } else {
-                self.statement.joins.push(join);
+                self.statement.joins.push(join_expression);
                 current_table = join_table;
             }
 
             self.artifacts.current_alias.chain_depth += 1;
         }
         self.artifacts.current_alias.chain_depth = 0;
-        self.statement.joins.dedup();
         current_table
     }
 }
