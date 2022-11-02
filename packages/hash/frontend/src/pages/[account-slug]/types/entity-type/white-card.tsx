@@ -32,6 +32,7 @@ export const WhiteCard = ({
       sx={[
         (theme) => ({
           boxShadow: theme.boxShadows.xs,
+          overflow: "visible",
         }),
         onClick
           ? (theme) => ({
