@@ -6,15 +6,17 @@ pub type SubgraphQueryDepth = u8;
 /// The distance in the [`Subgraph`] to explore when searching from a root in a breadth-first search
 /// manner.
 ///
-/// Elements in the [`Subgraph`] are connected via [`Edges`]. For example ontology elements may have
-/// references to other records, a [`PropertyType`] may reference other [`PropertyType`]s or
+/// Elements in the [`Subgraph`] are connected via [`Edges`]. For example, ontology elements may
+/// have references to other records, a [`PropertyType`] may reference other [`PropertyType`]s or
 /// [`DataType`]s. The depths provided alongside a query specify how many steps to explore along a
-/// chain of references _of a certain [`EdgeKind`]. Meaning, any chain of property type references
+/// chain of references _of a certain [`EdgeKind`]_.
+// TODO: update this to refer to specific `EdgeKind`s
+/// Meaning, any chain of property type references
 /// will be resolved up to the depth given for property types, and *each* data type referenced in
 /// those property types will in turn start a 'new chain' whose exploration depth is limited by the
 /// depth given for data types.
 ///
-/// A depth of `0` means that no references are explored for that specific kind of type.
+/// A depth of `0` means that no edges are explored for that [`EdgeKind`].
 ///
 /// [`DataType`]: type_system::DataType
 /// [`PropertyType`]: type_system::PropertyType
@@ -51,8 +53,6 @@ pub struct GraphResolveDepths {
     pub property_type_resolve_depth: SubgraphQueryDepth,
     #[schema(value_type = number)]
     pub entity_type_resolve_depth: SubgraphQueryDepth,
-    // TODO: is this name accurate/satisfactory with the changes we've made?
-    /// The number of entity elements to resolve along
     #[schema(value_type = number)]
     pub entity_resolve_depth: SubgraphQueryDepth,
 }
