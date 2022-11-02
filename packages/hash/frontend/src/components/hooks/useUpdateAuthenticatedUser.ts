@@ -81,7 +81,7 @@ export const useUpdateAuthenticatedUser = () => {
           },
         });
 
-        if (errors) {
+        if (errors && errors.length > 0) {
           return { errors };
         }
 
