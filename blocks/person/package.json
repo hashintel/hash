@@ -23,6 +23,7 @@
     "dompurify": "2.3.6"
   },
   "devDependencies": {
+    "@local/tsconfig": "0.0.0-private",
     "@types/dompurify": "2.3.3",
     "block-scripts": "0.0.14",
     "eslint": "8.26.0",

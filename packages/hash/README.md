@@ -229,42 +229,8 @@ First-time contributors need to wait for a maintainer to manually launch the che
 
 ## Monorepo
 
-In order to work w/ multiple packages in a single repository, they must adhere to some conventions.
-The below `package.json` file outlines the minimum requirements a package has to fulfill:
-
-```json5
-{
-  name: "@hashintel/hash-<name>",
-  version: "major.minor.patch",
-  description: "lorem ipsum",
-  author: "<package-author>",
-  license: "<package-licence>",
-  scripts: {
-    // omit type-checking if not applicable
-    "fix:eslint": "eslint --ext .ts,.tsx --fix ./src/",
-    "lint:eslint": "eslint --ext .ts,.tsx ./src/",
-    "lint:tsc": "tsc --noEmit",
-    build: "echo produce artifacts",
-    clean: "echo remove artifacts",
-    // required only if this is a shared package
-    postinstall: "yarn build",
-  },
-  devDependencies: {
-    "@typescript-eslint/eslint-plugin": "5.30.7",
-    "@typescript-eslint/parser": "5.30.7",
-    eslint: "8.20.0",
-    "eslint-config-airbnb": "19.0.4",
-    "eslint-config-prettier": "8.5.0",
-    "eslint-plugin-import": "2.26.0",
-    "eslint-plugin-jest": "26.6.0",
-    "eslint-plugin-jsx-a11y": "6.6.1",
-    "eslint-plugin-react": "7.30.1",
-    "eslint-plugin-react-hooks": "4.6.0",
-    rimraf: "3.2.0",
-    typescript: "4.7.4",
-  },
-}
-```
+We use [Yarn Workspaces](https://classic.yarnpkg.com/en/docs/workspaces) to work with multiple packages in a single repository.
+[Turborepo](https://turborepo.com) is used to cache script results and thus speed up their execution.
 
 ## Troubleshooting
 
