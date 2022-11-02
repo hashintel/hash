@@ -113,6 +113,7 @@ export class OpenSearch extends DataSource implements SearchAdapter {
   ): Promise<OpenSearch> {
     const protocol = cfg.httpsEnabled ? "https" : "http";
     const node = `${protocol}://${cfg.host}:${cfg.port}/`;
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we want to override 0
     const attempts = cfg.maxConnectionAttempts || 10;
     if (attempts < 1) {
       throw new Error("config maxConnectionAttempts must be at least 1");
