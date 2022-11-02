@@ -966,8 +966,7 @@ where
     }
 
     async fn lock_entity_for_update(&self, entity_id: EntityId) -> Result<(), QueryError> {
-        let _latest_entity_lock = self
-            .as_client()
+        self.as_client()
             .query_one(
                 // TODO: consider if this row locking is problematic with Citus.
                 //   `FOR UPDATE` is only allowed in single-shard queries.
@@ -982,7 +981,7 @@ where
             )
             .await
             .into_report()
-            .change_context(QueryError);
+            .change_context(QueryError)?;
 
         Ok(())
     }

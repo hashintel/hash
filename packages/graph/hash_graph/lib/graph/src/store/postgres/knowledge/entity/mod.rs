@@ -333,7 +333,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .change_context(ArchivalError)?,
         );
 
-        let _historic_entity = transaction
+        transaction
             .move_entity_to_histories(entity_id, Some(actor_id))
             .await
             .change_context(ArchivalError)?;

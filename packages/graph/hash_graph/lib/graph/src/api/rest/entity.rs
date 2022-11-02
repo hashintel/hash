@@ -170,6 +170,7 @@ struct ArchiveEntityRequest {
         (status = 201, content_type = "application/json", description = "No response"),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
+        (status = 404, description = "Entity could not be found"),
         (status = 500, description = "Store error occurred"),
     ),
 )]
@@ -191,7 +192,11 @@ async fn archive_entity<P: StorePool + Send>(
         .archive_entity(entity_id, actor_id)
         .await
         .map_err(|report| {
-            tracing::error!(error=?report, "Could not create entity");
+            if report.contains::<QueryError>() {
+                return StatusCode::NOT_FOUND;
+            }
+
+            tracing::error!(error=?report, "Could not archive entity");
 
             // Insertion/update errors are considered internal server errors.
             StatusCode::INTERNAL_SERVER_ERROR
