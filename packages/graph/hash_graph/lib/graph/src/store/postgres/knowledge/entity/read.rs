@@ -30,41 +30,18 @@ impl<C: AsClient> crud::Read<PersistedEntity> for PostgresStore<C> {
     ) -> Result<Vec<PersistedEntity>, QueryError> {
         let mut compiler = SelectCompiler::new();
 
-        compiler.add_selection_path(
-            &EntityQueryPath::Properties(None),
-            Distinctness::Indistinct,
-            None,
-        );
-        compiler.add_selection_path(&EntityQueryPath::Id, Distinctness::Distinct, None);
-        compiler.add_selection_path(&EntityQueryPath::Version, Distinctness::Distinct, None);
-        compiler.add_selection_path(
-            &EntityQueryPath::Type(EntityTypeQueryPath::VersionedUri),
-            Distinctness::Indistinct,
-            None,
-        );
-        compiler.add_selection_path(&EntityQueryPath::OwnedById, Distinctness::Indistinct, None);
-        compiler.add_selection_path(
-            &EntityQueryPath::CreatedById,
-            Distinctness::Indistinct,
-            None,
-        );
-        compiler.add_selection_path(
-            &EntityQueryPath::UpdatedById,
-            Distinctness::Indistinct,
-            None,
-        );
-        compiler.add_selection_path(
-            &EntityQueryPath::LeftEntityId,
-            Distinctness::Indistinct,
-            None,
-        );
-        compiler.add_selection_path(
-            &EntityQueryPath::RightEntityId,
-            Distinctness::Indistinct,
-            None,
-        );
-        compiler.add_selection_path(&EntityQueryPath::LeftOrder, Distinctness::Indistinct, None);
-        compiler.add_selection_path(&EntityQueryPath::RightOrder, Distinctness::Indistinct, None);
+        let properties_index = compiler.add_selection_path(&EntityQueryPath::Properties(None));
+        let entity_id_index = compiler.add_selection_path(&EntityQueryPath::Id);
+        let version_index = compiler.add_selection_path(&EntityQueryPath::Version);
+        let type_id_index =
+            compiler.add_selection_path(&EntityQueryPath::Type(EntityTypeQueryPath::VersionedUri));
+        let owned_by_id_index = compiler.add_selection_path(&EntityQueryPath::OwnedById);
+        let created_by_id_index = compiler.add_selection_path(&EntityQueryPath::CreatedById);
+        let updated_by_id_index = compiler.add_selection_path(&EntityQueryPath::UpdatedById);
+        let left_entity_id_index = compiler.add_selection_path(&EntityQueryPath::LeftEntityId);
+        let right_entity_id_index = compiler.add_selection_path(&EntityQueryPath::RightEntityId);
+        let left_order_index = compiler.add_selection_path(&EntityQueryPath::LeftOrder);
+        let right_order_index = compiler.add_selection_path(&EntityQueryPath::RightOrder);
 
         compiler.add_filter(filter);
         let (statement, parameters) = compiler.compile();
@@ -76,28 +53,23 @@ impl<C: AsClient> crud::Read<PersistedEntity> for PostgresStore<C> {
             .change_context(QueryError)?
             .map(|row| row.into_report().change_context(QueryError))
             .and_then(|row| async move {
-                let entity = serde_json::from_value(row.get(0))
+                let entity: Entity = serde_json::from_value(row.get(properties_index))
                     .into_report()
                     .change_context(QueryError)?;
-                let id = row.get(1);
-                let version = row.get(2);
-                let entity_type_uri = VersionedUri::from_str(row.get(3))
+                let entity_type_uri = VersionedUri::from_str(row.get(type_id_index))
                     .into_report()
                     .change_context(QueryError)?;
-                let owned_by_id = row.get(4);
-                let created_by_id = row.get(5);
-                let updated_by_id = row.get(6);
 
                 let link_metadata = {
-                    let left_entity_id: Option<EntityId> = row.get(7);
-                    let right_entity_id: Option<EntityId> = row.get(8);
+                    let left_entity_id: Option<EntityId> = row.get(left_entity_id_index);
+                    let right_entity_id: Option<EntityId> = row.get(right_entity_id_index);
                     match (left_entity_id, right_entity_id) {
                         (Some(left_entity_id), Some(right_entity_id)) => {
                             Some(LinkEntityMetadata::new(
                                 left_entity_id,
                                 right_entity_id,
-                                row.get(9),
-                                row.get(10),
+                                row.get(left_order_index),
+                                row.get(right_order_index),
                             ))
                         }
                         (None, None) => None,
@@ -114,10 +86,14 @@ impl<C: AsClient> crud::Read<PersistedEntity> for PostgresStore<C> {
 
                 Ok(PersistedEntity::new(
                     entity,
-                    PersistedEntityIdentifier::new(id, version, owned_by_id),
+                    PersistedEntityIdentifier::new(
+                        row.get(entity_id_index),
+                        row.get(version_index),
+                        row.get(owned_by_id_index),
+                    ),
                     entity_type_uri,
-                    created_by_id,
-                    updated_by_id,
+                    row.get(created_by_id_index),
+                    row.get(updated_by_id_index),
                     None,
                     link_metadata,
                 ))
