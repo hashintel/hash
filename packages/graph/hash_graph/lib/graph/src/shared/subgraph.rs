@@ -91,6 +91,7 @@ pub struct GraphResolveDepths {
     #[schema(value_type = number)]
     pub entity_type_resolve_depth: OntologyQueryDepth,
     #[schema(value_type = number)]
+    // TODO: is this name accurate/satisfactory with the changes we've made?
     pub link_resolve_depth: KnowledgeGraphQueryDepth,
     // TODO: what is this?
     #[schema(value_type = number)]
