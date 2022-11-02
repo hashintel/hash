@@ -49,6 +49,10 @@ const validateUserPreferredName = (preferredName: string) => {
 type BeforeUpdateEntityHookCallback = (params: {
   graphApi: GraphApi;
   entityModel: EntityModel;
+  /**
+   * @todo: use improved typing of the properties object
+   * @see https://app.asana.com/0/1202805690238892/1203285029221334/f
+   */
   updatedProperties: any;
 }) => Promise<void>;
 
