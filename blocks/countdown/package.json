@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@blockprotocol/graph": "0.0.18",
+    "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "date-fns": "2.28.0",
     "react-datepicker": "4.7.0"

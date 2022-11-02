@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@blockprotocol/graph": "0.0.18",
+    "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "prismjs": "1.28.0",
     "styled-components": "5.3.5"
