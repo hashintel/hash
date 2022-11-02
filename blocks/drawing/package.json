@@ -28,7 +28,10 @@
     "react-resizable": "^3.0.4"
   },
   "devDependencies": {
+    "@local/eslint-config": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
     "block-scripts": "0.0.14",
+    "eslint": "8.26.0",
     "mobx": "6.5.0",
     "mock-block-dock": "0.0.38",
     "react": "^18.2.0",
