@@ -11,11 +11,16 @@ use type_system::{DataType, EntityType, PropertyType};
 use utoipa::{openapi, ToSchema};
 
 use crate::{
-    knowledge::{Entity, KnowledgeGraphQueryDepth, PersistedEntity},
-    ontology::{OntologyQueryDepth, PersistedDataType, PersistedEntityType, PersistedPropertyType},
+    knowledge::{Entity, PersistedEntity},
+    ontology::{PersistedDataType, PersistedEntityType, PersistedPropertyType},
     shared::identifier::GraphElementIdentifier,
     store::query::{Filter, QueryRecord},
 };
+
+mod depths;
+
+pub use depths::*;
+use depths::{KnowledgeGraphQueryDepth, OntologyQueryDepth};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -81,33 +86,53 @@ pub struct OutwardEdge {
     pub destination: GraphElementIdentifier,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct GraphResolveDepths {
-    #[schema(value_type = number)]
-    pub data_type_resolve_depth: OntologyQueryDepth,
-    #[schema(value_type = number)]
-    pub property_type_resolve_depth: OntologyQueryDepth,
-    #[schema(value_type = number)]
-    pub entity_type_resolve_depth: OntologyQueryDepth,
-    #[schema(value_type = number)]
-    // TODO: is this name accurate/satisfactory with the changes we've made?
-    pub link_resolve_depth: KnowledgeGraphQueryDepth,
-    // TODO: what is this?
-    #[schema(value_type = number)]
-    pub link_target_entity_resolve_depth: KnowledgeGraphQueryDepth,
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize)]
+pub struct Edges(HashMap<GraphElementIdentifier, HashSet<OutwardEdge>>);
+
+impl Edges {
+    #[must_use]
+    pub fn new() -> Self {
+        Self(HashMap::new())
+    }
+
+    pub fn insert(&mut self, identifier: GraphElementIdentifier, edge: OutwardEdge) -> bool {
+        match self.0.raw_entry_mut().from_key(&identifier) {
+            RawEntryMut::Vacant(entry) => {
+                entry.insert(identifier, HashSet::from([edge]));
+                true
+            }
+            RawEntryMut::Occupied(entry) => {
+                let set = entry.into_mut();
+                set.insert(edge)
+            }
+        }
+    }
 }
 
-impl GraphResolveDepths {
-    #[must_use]
-    pub const fn zeroed() -> Self {
-        Self {
-            data_type_resolve_depth: 0,
-            property_type_resolve_depth: 0,
-            entity_type_resolve_depth: 0,
-            link_resolve_depth: 0,
-            link_target_entity_resolve_depth: 0,
-        }
+// Necessary because utoipa can't handle HashSet
+impl ToSchema for Edges {
+    fn schema() -> openapi::Schema {
+        openapi::ObjectBuilder::new()
+            .additional_properties(Some(openapi::schema::Array::new(OutwardEdge::schema())))
+            .into()
+    }
+}
+
+impl IntoIterator for Edges {
+    type IntoIter = IntoIter<GraphElementIdentifier, HashSet<OutwardEdge>>;
+    type Item = (GraphElementIdentifier, HashSet<OutwardEdge>);
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+impl Extend<(GraphElementIdentifier, HashSet<OutwardEdge>)> for Edges {
+    fn extend<T: IntoIterator<Item = (GraphElementIdentifier, HashSet<OutwardEdge>)>>(
+        &mut self,
+        other: T,
+    ) {
+        self.0.extend(other);
     }
 }
 
@@ -169,55 +194,5 @@ where
             .field("filter", &self.filter)
             .field("graph_resolve_depths", &self.graph_resolve_depths)
             .finish()
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize)]
-pub struct Edges(HashMap<GraphElementIdentifier, HashSet<OutwardEdge>>);
-
-impl Edges {
-    #[must_use]
-    pub fn new() -> Self {
-        Self(HashMap::new())
-    }
-
-    pub fn insert(&mut self, identifier: GraphElementIdentifier, edge: OutwardEdge) -> bool {
-        match self.0.raw_entry_mut().from_key(&identifier) {
-            RawEntryMut::Vacant(entry) => {
-                entry.insert(identifier, HashSet::from([edge]));
-                true
-            }
-            RawEntryMut::Occupied(entry) => {
-                let set = entry.into_mut();
-                set.insert(edge)
-            }
-        }
-    }
-}
-
-// Necessary because utoipa can't handle HashSet
-impl ToSchema for Edges {
-    fn schema() -> openapi::Schema {
-        openapi::ObjectBuilder::new()
-            .additional_properties(Some(openapi::schema::Array::new(OutwardEdge::schema())))
-            .into()
-    }
-}
-
-impl IntoIterator for Edges {
-    type IntoIter = IntoIter<GraphElementIdentifier, HashSet<OutwardEdge>>;
-    type Item = (GraphElementIdentifier, HashSet<OutwardEdge>);
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
-    }
-}
-
-impl Extend<(GraphElementIdentifier, HashSet<OutwardEdge>)> for Edges {
-    fn extend<T: IntoIterator<Item = (GraphElementIdentifier, HashSet<OutwardEdge>)>>(
-        &mut self,
-        other: T,
-    ) {
-        self.0.extend(other);
     }
 }

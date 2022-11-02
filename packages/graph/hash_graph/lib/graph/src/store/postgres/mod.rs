@@ -28,11 +28,11 @@ pub use self::pool::{AsClient, PostgresStorePool};
 use crate::{
     identifier::AccountId,
     knowledge::{
-        Entity, EntityId, KnowledgeGraphQueryDepth, LinkEntityMetadata, PersistedEntity,
-        PersistedEntityIdentifier, PersistedEntityMetadata,
+        Entity, EntityId, LinkEntityMetadata, PersistedEntity, PersistedEntityIdentifier,
+        PersistedEntityMetadata,
     },
     ontology::{
-        OntologyQueryDepth, PersistedDataType, PersistedEntityType, PersistedOntologyIdentifier,
+        PersistedDataType, PersistedEntityType, PersistedOntologyIdentifier,
         PersistedOntologyMetadata, PersistedPropertyType,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
@@ -43,7 +43,9 @@ use crate::{
         AccountStore, BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError,
         UpdateError,
     },
-    subgraph::{Edges, GraphResolveDepths, Subgraph, Vertex},
+    subgraph::{
+        Edges, GraphResolveDepths, KnowledgeGraphQueryDepth, OntologyQueryDepth, Subgraph, Vertex,
+    },
 };
 
 pub struct DependencyMap<V, T, D> {
