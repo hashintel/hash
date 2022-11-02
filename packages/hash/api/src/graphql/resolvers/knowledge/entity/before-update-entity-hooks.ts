@@ -1,6 +1,7 @@
 import { GraphApi } from "@hashintel/hash-graph-client";
 import { ApolloError, UserInputError } from "apollo-server-express";
 import { types } from "@hashintel/hash-shared/types";
+import { VersionedUri } from "@blockprotocol/type-system-web";
 import { WORKSPACE_TYPES } from "../../../../graph/workspace-types";
 import { AccountFields, EntityModel, UserModel } from "../../../../model";
 
@@ -83,7 +84,7 @@ const userEntityHookCallback: BeforeUpdateEntityHookCallback = async ({
 };
 
 type BeforeUpdateEntityHook = {
-  entityTypeId: string;
+  entityTypeId: VersionedUri;
   callback: BeforeUpdateEntityHookCallback;
 };
 
