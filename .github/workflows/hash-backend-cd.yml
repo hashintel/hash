@@ -105,7 +105,7 @@ jobs:
       # Node is used for migrating the DB
       - uses: actions/setup-node@v3
         with:
-          node-version: 16
+          node-version: 16 ## aligned with Node version on Vercel
           cache: yarn
 
       - name: Prepare dev tools for DB migration
