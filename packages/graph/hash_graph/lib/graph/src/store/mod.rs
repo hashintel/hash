@@ -398,8 +398,9 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Filter<'q
     ///
     /// # Errors:
     ///
-    /// - if the [`Entity`] doesn't exist
-    /// - if the [`Entity`] has already been archived
+    /// - if there isn't an [`Entity`] associated with the [`EntityId`] in the latest entities table
+    ///   - this could be because the [`Entity`] doesn't exist, or
+    ///   - the [`Entity`] has already been archived
     /// - if the account referred to by `actor_id` does not exist
     async fn archive_entity(
         &mut self,
