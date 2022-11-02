@@ -4,12 +4,15 @@ import {
   GridCellKind,
 } from "@glideapps/glide-data-grid";
 import {
-  getColumnPadding,
+  getCellHorizontalPadding,
   getYCenter,
 } from "../../../../../../../../components/GlideGlid/utils";
 import { CustomGridIcon } from "../../../../../../../../components/GlideGlid/utils/custom-grid-icons";
 import { drawCellFadeOutGradient } from "../../../../../../../../components/GlideGlid/utils/draw-cell-fade-out-gradient";
-import { drawVerticalLine } from "../../../../../../../../components/GlideGlid/utils/draw-vertical-line";
+import {
+  drawVerticalIndentationLine,
+  VerticalIndentationLineDir,
+} from "../../../../../../../../components/GlideGlid/utils/draw-vertical-indentation-line";
 import { TableExpandStatus } from "../../../entity-editor-context";
 import { PropertyRow } from "../types";
 
@@ -40,7 +43,7 @@ export const createRenderPropertyNameCell = (
       } = cell.data.property;
 
       const yCenter = getYCenter(args);
-      const columnPadding = getColumnPadding(true);
+      const columnPadding = getCellHorizontalPadding(true);
 
       const indentMultiplier = 16;
       const indentWidth = indent * indentMultiplier;
@@ -76,14 +79,17 @@ export const createRenderPropertyNameCell = (
 
       // draw vertical indentation lines for each indentation level
       if (depth || children.length) {
-        // eslint-disable-next-line unicorn/no-array-for-each
-        verticalLinesForEachIndent.forEach((dir, index) => {
-          const indentationLevel = index;
+        for (let i = 0; i < verticalLinesForEachIndent.length; i++) {
+          const dir = verticalLinesForEachIndent[
+            i
+          ] as VerticalIndentationLineDir;
+
+          const indentationLevel = i;
           const lineLeft =
             rect.x + columnPadding + indentMultiplier * (indentationLevel - 1);
 
-          drawVerticalLine(args, lineLeft, dir);
-        });
+          drawVerticalIndentationLine(args, lineLeft, dir);
+        }
       }
 
       // draw chevron icon

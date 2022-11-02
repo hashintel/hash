@@ -6,7 +6,7 @@ import {
 } from "@glideapps/glide-data-grid";
 import { useTheme } from "@mui/material";
 import { forwardRef, ForwardRefRenderFunction, useMemo } from "react";
-import { getColumnPadding } from "./utils";
+import { getCellHorizontalPadding } from "./utils";
 import { customGridIcons } from "./utils/custom-grid-icons";
 
 const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
@@ -28,9 +28,9 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
       bgBubble: palette.gray[20],
       accentLight: "transparent", // cell highlight color
       bgHeaderHovered: palette.white,
-      cellHorizontalPadding: getColumnPadding(),
-      baseFontStyle: "500 14px inter",
-      headerFontStyle: "600 14px inter",
+      cellHorizontalPadding: getCellHorizontalPadding(),
+      baseFontStyle: "500 14px Inter",
+      headerFontStyle: "600 14px Inter",
       editorFontSize: "14px",
       fgIconHeader: palette.gray[80],
     }),

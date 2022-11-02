@@ -12,9 +12,10 @@ export const drawNestedPropertySummary = (args: DrawArgs<ValueCell>) => {
     cell.data.property.value,
   );
 
-  const secondaryTextComponents = [];
+  const secondaryTextComponents: string[] = [];
   if (notEmptyCount) {
-    secondaryTextComponents.push(`${notEmptyCount} value`);
+    const valueWord = notEmptyCount === 1 ? "value" : "values";
+    secondaryTextComponents.push(`${notEmptyCount} ${valueWord}`);
   }
   if (emptyCount) {
     secondaryTextComponents.push(`${emptyCount} empty`);

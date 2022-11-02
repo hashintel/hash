@@ -31,7 +31,7 @@ export const PropertiesSection = () => {
       titleStartContent={
         <Stack direction="row" spacing={1.5}>
           {notEmptyCount > 0 && (
-            <Chip size="xs" label={`${notEmptyCount} Values`} />
+            <Chip size="xs" label={`${notEmptyCount} values`} />
           )}
           {emptyCount > 0 && (
             <WhiteChip size="xs" label={`${emptyCount} empty`} />

@@ -1,16 +1,16 @@
 import { SizedGridColumn } from "@glideapps/glide-data-grid";
-import { VerticalLineDir } from "../../../../../../../components/GlideGlid/utils/draw-vertical-line";
+import { VerticalIndentationLineDir } from "../../../../../../../components/GlideGlid/utils/draw-vertical-indentation-line";
 
 export type PropertyRow = {
   title: string;
   rowId: string;
-  value: any;
+  value: unknown;
   dataTypes: string[];
   required: boolean;
   children: PropertyRow[];
   depth: number;
   indent: number;
-  verticalLinesForEachIndent: VerticalLineDir[];
+  verticalLinesForEachIndent: VerticalIndentationLineDir[];
   propertyKeyChain: string[];
 };
 

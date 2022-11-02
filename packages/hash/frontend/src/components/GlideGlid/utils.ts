@@ -10,8 +10,8 @@ export const getYCenter = (args: DrawArgs<CustomCell>) => {
 };
 
 /**
- * @param extraPadding does cell have extra padding (e.g. for chevron icon on left for expanding)
- * @returns column horizontal padding
+ * @param atFirstColumn first columns has extra padding for the chevron icon on the left side
+ * @returns cell horizontal padding
  */
-export const getColumnPadding = (extraPadding?: boolean) =>
-  extraPadding ? 36 : 22;
+export const getCellHorizontalPadding = (atFirstColumn?: boolean) =>
+  atFirstColumn ? 36 : 22;

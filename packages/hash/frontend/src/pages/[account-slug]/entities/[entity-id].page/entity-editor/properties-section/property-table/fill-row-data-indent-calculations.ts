@@ -1,11 +1,11 @@
-import { VerticalLineDir } from "../../../../../../../components/GlideGlid/utils/draw-vertical-line";
+import { VerticalIndentationLineDir } from "../../../../../../../components/GlideGlid/utils/draw-vertical-indentation-line";
 import { PropertyRow } from "./types";
 
 const markUpperHalvesOfIndentationLines = (rowData: PropertyRow[]) => {
   // for each row, starting from the first row
   for (let row = 0; row < rowData.length; row++) {
     const property = rowData[row] as PropertyRow;
-    const arr: VerticalLineDir[] = [];
+    const arr: VerticalIndentationLineDir[] = [];
 
     const { children, indent } = property;
 
