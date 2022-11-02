@@ -1,46 +1,18 @@
 use serde::{Deserialize, Serialize};
-use type_system::{DataType, EntityType, PropertyType};
-use utoipa::{openapi, ToSchema};
+use utoipa::ToSchema;
 
-// TODO: update this doc: https://app.asana.com/0/1200211978612931/1203250001255262/f
-/// Distance to explore when querying a rooted subgraph on entities and links.
-///
-/// Entities may link to other entities through links. The depths provided alongside a query specify
-/// how many steps to explore along a chain of entities/links. Meaning, any chain of entities and
-/// links will be resolved up to the given depth. These can be composed with [`OntologyQueryDepth`]
-/// to explore ontology types.
-///
-/// A `link_target_entity_query_depth`/`link_query_depth` of `0` means that no entities/links are
-/// explored respectively.
-///
-/// **Note**: The concept is the same as the [`OntologyQueryDepth`] but it feels a little different
-/// as entities and links are chained in an alternate way, between every entity there is a
-/// link and vice versa.
-///
-/// # Example
-///
-/// - `Entity1` links to `Entity2` by `Link1`
-/// - `Entity2` links to `Entity3` by `Link2`
-///
-/// If a query on `Entity1` is made with the following depths:
-/// - `link_query_depth: 2`
-/// - `link_target_entity_query_depth: 1`
-///
-/// the query will resolve up to two links, but only a single entity:
-/// - `linkedEntities`: \[`Entity2`]
-/// - `links`: \[`Link1`, `Link2`]
-///
-/// [`OntologyQueryDepth`]: crate::ontology::OntologyQueryDepth
-pub type KnowledgeGraphQueryDepth = u8;
+pub type SubgraphQueryDepth = u8;
 
-/// Distance to explore when querying a rooted subgraph in the ontology.
+/// The distance in the [`Subgraph`] to explore when searching from a root in a breadth-first search
+/// manner.
 ///
-/// Ontology records may have references to other records, e.g. a [`PropertyType`] may reference
-/// other [`PropertyType`]s or [`DataType`]s. The depths provided alongside a query specify how many
-/// steps to explore along a chain of references _of a certain kind of type_. Meaning, any chain of
-/// property type references will be resolved up to the depth given for property types, and *each*
-/// data type referenced in those property types will in turn start a 'new chain' whose exploration
-/// depth is limited by the depth given for data types.
+/// Elements in the [`Subgraph`] are connected via [`Edges`]. For example ontology elements may have
+/// references to other records, a [`PropertyType`] may reference other [`PropertyType`]s or
+/// [`DataType`]s. The depths provided alongside a query specify how many steps to explore along a
+/// chain of references _of a certain [`EdgeKind`]. Meaning, any chain of property type references
+/// will be resolved up to the depth given for property types, and *each* data type referenced in
+/// those property types will in turn start a 'new chain' whose exploration depth is limited by the
+/// depth given for data types.
 ///
 /// A depth of `0` means that no references are explored for that specific kind of type.
 ///
@@ -70,21 +42,19 @@ pub type KnowledgeGraphQueryDepth = u8;
 ///
 /// When `EntityType2` is explored its referenced property types get explored. The chain of
 /// _property type_ references is then resolved to a depth of `property_type_query_depth`.
-pub type OntologyQueryDepth = u8;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct GraphResolveDepths {
     #[schema(value_type = number)]
-    pub data_type_resolve_depth: OntologyQueryDepth,
+    pub data_type_resolve_depth: SubgraphQueryDepth,
     #[schema(value_type = number)]
-    pub property_type_resolve_depth: OntologyQueryDepth,
+    pub property_type_resolve_depth: SubgraphQueryDepth,
     #[schema(value_type = number)]
-    pub entity_type_resolve_depth: OntologyQueryDepth,
+    pub entity_type_resolve_depth: SubgraphQueryDepth,
     // TODO: is this name accurate/satisfactory with the changes we've made?
     /// The number of entity elements to resolve along
     #[schema(value_type = number)]
-    pub entity_resolve_depth: KnowledgeGraphQueryDepth,
+    pub entity_resolve_depth: SubgraphQueryDepth,
 }
 
 impl GraphResolveDepths {

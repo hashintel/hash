@@ -20,7 +20,6 @@ use crate::{
 mod depths;
 
 pub use depths::*;
-use depths::{KnowledgeGraphQueryDepth, OntologyQueryDepth};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -86,7 +85,7 @@ pub enum EdgeKind {
 pub struct OutwardEdge {
     pub edge_kind: EdgeKind,
     /// TODO: DOC - intended to capture reverse links too
-    pub edge_direction_reversed: bool,
+    pub reversed_direction: bool,
     pub right_element: GraphElementIdentifier,
 }
 

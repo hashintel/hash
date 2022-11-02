@@ -43,9 +43,7 @@ use crate::{
         AccountStore, BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError,
         UpdateError,
     },
-    subgraph::{
-        Edges, GraphResolveDepths, KnowledgeGraphQueryDepth, OntologyQueryDepth, Subgraph, Vertex,
-    },
+    subgraph::{Edges, GraphResolveDepths, Subgraph, SubgraphQueryDepth, Vertex},
 };
 
 pub struct DependencyMap<V, T, D> {
@@ -231,12 +229,12 @@ where
 
 pub struct DependencyContext {
     pub edges: Edges,
-    pub referenced_data_types: DependencyMap<VersionedUri, PersistedDataType, OntologyQueryDepth>,
+    pub referenced_data_types: DependencyMap<VersionedUri, PersistedDataType, SubgraphQueryDepth>,
     pub referenced_property_types:
-        DependencyMap<VersionedUri, PersistedPropertyType, OntologyQueryDepth>,
+        DependencyMap<VersionedUri, PersistedPropertyType, SubgraphQueryDepth>,
     pub referenced_entity_types:
-        DependencyMap<VersionedUri, PersistedEntityType, OntologyQueryDepth>,
-    pub linked_entities: DependencyMap<EntityId, PersistedEntity, KnowledgeGraphQueryDepth>,
+        DependencyMap<VersionedUri, PersistedEntityType, SubgraphQueryDepth>,
+    pub linked_entities: DependencyMap<EntityId, PersistedEntity, SubgraphQueryDepth>,
     pub graph_resolve_depths: GraphResolveDepths,
 }
 
@@ -324,12 +322,12 @@ impl DependencyContext {
 pub struct DependencyContextRef<'a> {
     pub edges: &'a mut Edges,
     pub referenced_data_types:
-        &'a mut DependencyMap<VersionedUri, PersistedDataType, OntologyQueryDepth>,
+        &'a mut DependencyMap<VersionedUri, PersistedDataType, SubgraphQueryDepth>,
     pub referenced_property_types:
-        &'a mut DependencyMap<VersionedUri, PersistedPropertyType, OntologyQueryDepth>,
+        &'a mut DependencyMap<VersionedUri, PersistedPropertyType, SubgraphQueryDepth>,
     pub referenced_entity_types:
-        &'a mut DependencyMap<VersionedUri, PersistedEntityType, OntologyQueryDepth>,
-    pub linked_entities: &'a mut DependencyMap<EntityId, PersistedEntity, KnowledgeGraphQueryDepth>,
+        &'a mut DependencyMap<VersionedUri, PersistedEntityType, SubgraphQueryDepth>,
+    pub linked_entities: &'a mut DependencyMap<EntityId, PersistedEntity, SubgraphQueryDepth>,
     pub graph_resolve_depths: GraphResolveDepths,
 }
 
