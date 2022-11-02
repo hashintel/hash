@@ -35,16 +35,8 @@ impl<C: AsClient> crud::Read<PersistedEntity> for PostgresStore<C> {
             Distinctness::Indistinct,
             None,
         );
-        compiler.add_selection_path(
-            &EntityQueryPath::Id,
-            Distinctness::Distinct,
-            Some(Ordering::Ascending),
-        );
-        compiler.add_selection_path(
-            &EntityQueryPath::Version,
-            Distinctness::Distinct,
-            Some(Ordering::Descending),
-        );
+        compiler.add_selection_path(&EntityQueryPath::Id, Distinctness::Distinct, None);
+        compiler.add_selection_path(&EntityQueryPath::Version, Distinctness::Distinct, None);
         compiler.add_selection_path(
             &EntityQueryPath::Type(EntityTypeQueryPath::VersionedUri),
             Distinctness::Indistinct,
