@@ -69,12 +69,14 @@ impl ToSchema for Vertex {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, ToSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum EdgeKind {
-    /// An entity has a link
+    /// A type can inherit from another type
+    InheritsFrom,
+    /// There is a link entity from this entity
     HasLink,
-    /// A link has an entity as its destination
+    /// There is an entity from this link entity
     HasDestination,
-    /// A link or entity has a link type or entity type as its type, respectively
-    HasType,
+    /// An entity is of an entity type
+    IsType,
     /// A type can reference another type
     References,
 }
@@ -83,7 +85,9 @@ pub enum EdgeKind {
 #[serde(rename_all = "camelCase")]
 pub struct OutwardEdge {
     pub edge_kind: EdgeKind,
-    pub destination: GraphElementIdentifier,
+    /// TODO: DOC - intended to capture reverse links too
+    pub edge_direction_reversed: bool,
+    pub right_element: GraphElementIdentifier,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize)]
