@@ -1,6 +1,7 @@
-use std::{borrow::Cow, marker::PhantomData};
+use std::{borrow::Cow, fmt::Display, marker::PhantomData};
 
 use postgres_types::ToSql;
+use tokio_postgres::row::RowIndex;
 
 use crate::store::{
     postgres::query::{
@@ -52,7 +53,7 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
     pub fn with_default_selection() -> Self {
         let mut default = Self::new();
         for path in T::default_selection_paths() {
-            default.add_selection_path(path, Distinctness::Indistinct, None);
+            default.add_selection_path(path);
         }
         default
     }
@@ -71,12 +72,28 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
     ///
     /// Optionally, the added selection can be distinct or ordered by providing [`Distinctness`]
     /// and [`Ordering`].
-    pub fn add_selection_path(
+    pub fn add_selection_path(&mut self, path: &'q T::Path<'q>) -> impl RowIndex + Display + Copy {
+        let table = self.add_join_statements(path.tables());
+        self.statement.selects.push(SelectExpression::from_column(
+            Column {
+                table,
+                access: path.column_access(),
+            },
+            None,
+        ));
+        self.statement.selects.len() - 1
+    }
+
+    /// Adds a new path to the selection.
+    ///
+    /// Optionally, the added selection can be distinct or ordered by providing [`Distinctness`]
+    /// and [`Ordering`].
+    pub fn add_distinct_selection_with_ordering(
         &mut self,
         path: &'q T::Path<'q>,
         distinctness: Distinctness,
         ordering: Option<Ordering>,
-    ) {
+    ) -> impl RowIndex + Display + Copy {
         let table = self.add_join_statements(path.tables());
         let column = Column {
             table,
@@ -93,6 +110,7 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
         self.statement
             .selects
             .push(SelectExpression::from_column(column, None));
+        self.statement.selects.len() - 1
     }
 
     /// Adds a new filter to the selection.

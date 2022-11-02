@@ -11,13 +11,16 @@ use graph::{
     logging::init_logger,
     ontology::domain_validator::DomainValidator,
     provenance::{CreatedById, OwnedById},
-    store::{AccountStore, DataTypeStore, PostgresStorePool, StorePool},
+    store::{
+        AccountStore, BaseUriAlreadyExists, DataTypeStore, EntityTypeStore, PostgresStorePool,
+        StorePool,
+    },
 };
 use serde_json::json;
 use tokio_postgres::NoTls;
 use type_system::{
     uri::{BaseUri, VersionedUri},
-    DataType,
+    AllOf, DataType, EntityType, Links, Object,
 };
 use uuid::Uuid;
 
@@ -123,6 +126,23 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
         [("const".to_owned(), json!([]))].into_iter().collect(),
     );
 
+    let link_entity_type = EntityType::new(
+        VersionedUri::new(
+            BaseUri::new(
+                "https://blockprotocol.org/@blockprotocol/types/entity-type/link/".to_owned(),
+            )
+            .expect("failed to construct base URI"),
+            1,
+        ),
+        "Link".to_owned(),
+        Some("A link".to_owned()),
+        Object::new(HashMap::default(), Vec::default()).expect("invalid property object"),
+        AllOf::new([]),
+        Links::new(HashMap::default(), Vec::new()).expect("invalid links"),
+        HashMap::default(),
+        Vec::default(),
+    );
+
     // TODO: Revisit once an authentication and authorization setup is in place
     let root_account_id = AccountId::new(Uuid::nil());
 
@@ -149,10 +169,9 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
     }
 
     // Seed the primitive data types if they don't already exist
-    let data_types = [text, number, boolean, empty_list, object, null];
-    for data_type in data_types {
+    for data_type in [text, number, boolean, empty_list, object, null] {
         let title = data_type.title().to_owned();
-        if connection
+        if let Err(error) = connection
             .create_data_type(
                 data_type,
                 OwnedById::new(root_account_id),
@@ -160,12 +179,34 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
             )
             .await
             .change_context(GraphError)
-            .is_err()
         {
-            tracing::info!(%root_account_id, "tried to insert primitive {} data type, but it already exists", title);
+            if error.contains::<BaseUriAlreadyExists>() {
+                tracing::info!(%root_account_id, "tried to insert primitive {} data type, but it already exists", title);
+            } else {
+                return Err(error.change_context(GraphError));
+            }
         } else {
             tracing::info!(%root_account_id, "inserted the primitive {} data type", title);
         }
+    }
+
+    // Seed the entity types if they don't already exist
+    let title = link_entity_type.title().to_owned();
+    if let Err(error) = connection
+        .create_entity_type(
+            link_entity_type,
+            OwnedById::new(root_account_id),
+            CreatedById::new(root_account_id),
+        )
+        .await
+    {
+        if error.contains::<BaseUriAlreadyExists>() {
+            tracing::info!(%root_account_id, "tried to insert {} entity type, but it already exists", title);
+        } else {
+            return Err(error.change_context(GraphError));
+        }
+    } else {
+        tracing::info!(%root_account_id, "inserted the {} entity type", title);
     }
 
     Ok(())

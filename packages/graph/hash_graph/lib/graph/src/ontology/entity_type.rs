@@ -31,6 +31,7 @@ pub enum EntityTypeQueryPath {
     // TODO: https://app.asana.com/0/1200211978612931/1203250001255262/f
     // Links(LinkTypeQueryPath),
     RequiredLinks,
+    InheritsFrom(Box<Self>),
 }
 
 impl QueryRecord for EntityType {
@@ -77,6 +78,7 @@ impl RecordPath for EntityTypeQueryPath {
             Self::Properties(path) => path.expected_type(),
             // TODO: https://app.asana.com/0/1200211978612931/1203250001255262/f
             // Self::Links(path) => path.expected_type(),
+            Self::InheritsFrom(path) => path.expected_type(),
         }
     }
 }
@@ -102,6 +104,7 @@ impl fmt::Display for EntityTypeQueryPath {
             // TODO: https://app.asana.com/0/1200211978612931/1203250001255262/f
             // Self::Links(path) => write!(fmt, "links.{path}"),
             Self::RequiredLinks => fmt.write_str("requiredLinks"),
+            Self::InheritsFrom(path) => write!(fmt, "inheritsFrom.{path}"),
         }
     }
 }
@@ -125,6 +128,7 @@ pub enum EntityTypeQueryToken {
     Required,
     Links,
     RequiredLinks,
+    InheritsFrom,
 }
 
 /// Deserializes an [`EntityTypeQueryPath`] from a string sequence.
@@ -134,10 +138,10 @@ pub struct EntityTypeQueryPathVisitor {
 }
 
 impl EntityTypeQueryPathVisitor {
-    pub const EXPECTING: &'static str = "one of `ownedById`, `createdById`, `updatedById`, \
-                                         `removedById`, `baseUri`, `versionedUri`, `version`, \
-                                         `title`, `description`, `default`, `examples`, \
-                                         `properties`, `required`, `links`, `requiredLinks`";
+    pub const EXPECTING: &'static str =
+        "one of `ownedById`, `createdById`, `updatedById`, `removedById`, `baseUri`, \
+         `versionedUri`, `version`, `title`, `description`, `default`, `examples`, `properties`, \
+         `required`, `links`, `requiredLinks`, `inheritsFrom`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -197,6 +201,16 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
                 // EntityTypeQueryPath::Links(link_type_query_path)
             }
             EntityTypeQueryToken::RequiredLinks => EntityTypeQueryPath::RequiredLinks,
+            EntityTypeQueryToken::InheritsFrom => {
+                seq.next_element::<Selector>()?
+                    .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
+                self.position += 1;
+
+                let entity_type_query_path =
+                    EntityTypeQueryPathVisitor::new(self.position).visit_seq(seq)?;
+
+                EntityTypeQueryPath::InheritsFrom(Box::new(entity_type_query_path))
+            }
         })
     }
 }
