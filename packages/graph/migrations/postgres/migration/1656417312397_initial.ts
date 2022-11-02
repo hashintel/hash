@@ -410,7 +410,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
     // which is the same as
     // (left_entity_id and right_entity_id) or left_order or right_order
     check: `(left_entity_id IS NOT NULL AND right_entity_id IS NOT NULL)
-            OR left_order IS NOT NULL OR right_order IS NOT NULL`,
+            OR left_order IS NULL OR right_order IS NULL`,
   });
 
   pgm.createTable(
