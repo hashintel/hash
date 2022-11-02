@@ -98,6 +98,12 @@ export const useUpdateAuthenticatedUser = () => {
           kratosSession,
         ] = await refetch();
 
+        if (!kratosSession) {
+          throw new Error(
+            "The kratos session could not be re-fetched whilst updating the authenticated user",
+          );
+        }
+
         const updatedAuthenticatedUser = constructAuthenticatedUser({
           userEntityId,
           /**
@@ -111,7 +117,7 @@ export const useUpdateAuthenticatedUser = () => {
            *   https://app.asana.com/0/0/1203214689883095/f
            */
           subgraph: updatedSubgraph as unknown as Subgraph,
-          kratosSession: kratosSession!,
+          kratosSession,
         });
 
         return { updatedAuthenticatedUser };
