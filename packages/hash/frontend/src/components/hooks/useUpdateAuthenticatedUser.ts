@@ -54,6 +54,10 @@ export const useUpdateAuthenticatedUser = () => {
          * @see https://app.asana.com/0/1202805690238892/1203285029221330/f
          */
         const { properties: currentProperties } = mustGetEntity({
+          /**
+           * @todo: remove casting when we start returning links in the subgraph
+           *   https://app.asana.com/0/0/1203214689883095/f
+           */
           subgraph: latestSubgraph as unknown as Subgraph,
           entityId,
         });
@@ -99,6 +103,10 @@ export const useUpdateAuthenticatedUser = () => {
            * at depth 2 to support constructing the `members` of an `Org`.
            *
            * @see https://app.asana.com/0/1202805690238892/1203250435416412/f
+           */
+          /**
+           * @todo: remove casting when we start returning links in the subgraph
+           *   https://app.asana.com/0/0/1203214689883095/f
            */
           subgraph: updatedSubgraph as unknown as Subgraph,
           kratosSession: kratosSession!,

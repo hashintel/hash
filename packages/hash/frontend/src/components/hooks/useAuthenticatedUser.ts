@@ -54,6 +54,10 @@ export const useAuthenticatedUser = (
              *
              * @see https://app.asana.com/0/1202805690238892/1203250435416412/f
              */
+            /**
+             * @todo: remove casting when we start returning links in the subgraph
+             *   https://app.asana.com/0/0/1203214689883095/f
+             */
             subgraph: subgraph as unknown as Subgraph,
             kratosSession,
           })
