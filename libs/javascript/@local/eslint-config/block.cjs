@@ -1,4 +1,6 @@
+/** @type {import("eslint").Linter.Config} */
 module.exports = {
+  extends: ["./legacy-base-to-refactor.cjs"],
   parserOptions: {
     // specifics
     jsx: true,
