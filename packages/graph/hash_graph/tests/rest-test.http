@@ -467,3 +467,19 @@ Accept: application/json
         client.assert(response.status === 200, "Response status is not 200");
     });
 %}
+
+### Archive an entity
+POST http://127.0.0.1:4000/entities/archive
+Content-Type: application/json
+Accept: application/json
+
+{
+  "entityId": "{{person_b_entity_id}}",
+  "actorId": "{{account_id}}"
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
