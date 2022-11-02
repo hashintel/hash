@@ -1,7 +1,6 @@
 import { CustomCell } from "@glideapps/glide-data-grid";
 import type { DrawArgs } from "@glideapps/glide-data-grid/dist/ts/data-grid/cells/cell-types";
 import { getYCenter } from "../utils";
-import { CustomGridIcon } from "./custom-grid-icons";
 import { drawRoundRect } from "./draw-round-rect";
 
 /**
@@ -40,7 +39,7 @@ export const drawChipWithIcon = (
   ctx.fill();
 
   args.spriteManager.drawSprite(
-    CustomGridIcon.ASTERISK,
+    "bpAsterisk",
     "normal",
     ctx,
     iconLeft,

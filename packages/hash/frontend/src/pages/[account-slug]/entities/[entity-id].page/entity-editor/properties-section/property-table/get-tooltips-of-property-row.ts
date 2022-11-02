@@ -1,4 +1,3 @@
-import { CustomGridIcon } from "../../../../../../../components/GlideGlid/utils/custom-grid-icons";
 import { CellTooltipData } from "../../../../../../../components/GlideGlid/utils/use-grid-tooltip/types";
 import { PropertyRow } from "./types";
 
@@ -11,7 +10,7 @@ export const getTooltipsOfPropertyRow = (
 
   return [
     {
-      icon: CustomGridIcon.ASTERISK_CIRCLE,
+      icon: "bpAsteriskCircle",
       text: "This property is required",
     },
   ];

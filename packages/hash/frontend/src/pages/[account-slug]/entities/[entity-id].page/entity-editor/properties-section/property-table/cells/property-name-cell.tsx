@@ -7,7 +7,6 @@ import {
   getCellHorizontalPadding,
   getYCenter,
 } from "../../../../../../../../components/GlideGlid/utils";
-import { CustomGridIcon } from "../../../../../../../../components/GlideGlid/utils/custom-grid-icons";
 import { drawCellFadeOutGradient } from "../../../../../../../../components/GlideGlid/utils/draw-cell-fade-out-gradient";
 import {
   drawVerticalIndentationLine,
@@ -105,7 +104,7 @@ export const createRenderPropertyNameCell = (
         const expanded = propertyExpandStatus[rowId];
 
         args.spriteManager.drawSprite(
-          expanded ? CustomGridIcon.CHEVRON_DOWN : CustomGridIcon.CHEVRON_RIGHT,
+          expanded ? "bpChevronDown" : "bpChevronRight",
           "normal",
           ctx,
           iconLeft,

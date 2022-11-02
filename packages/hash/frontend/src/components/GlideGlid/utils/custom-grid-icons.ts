@@ -1,16 +1,8 @@
 import type { SpriteProps } from "@glideapps/glide-data-grid/dist/ts/common/utils";
-
-export enum CustomGridIcon {
-  LABEL = "bpLabel",
-  ERROR = "bpError",
-  ASTERISK_CIRCLE = "bpAsteriskCircle",
-  ASTERISK = "bpAsterisk",
-  CHEVRON_RIGHT = "bpChevronRight",
-  CHEVRON_DOWN = "bpChevronDown",
-}
+import type { CustomIcon } from "@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites";
 
 export const customGridIcons: Record<
-  CustomGridIcon,
+  CustomIcon,
   (props: SpriteProps) => string
 > = {
   bpAsteriskCircle: ({ fgColor }) =>

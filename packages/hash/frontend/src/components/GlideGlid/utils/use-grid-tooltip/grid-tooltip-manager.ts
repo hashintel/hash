@@ -1,6 +1,5 @@
 import type { DrawArgs } from "@glideapps/glide-data-grid/dist/ts/data-grid/cells/cell-types";
 import { getYCenter } from "../../utils";
-import { CustomGridIcon } from "../custom-grid-icons";
 import { drawCellFadeOutGradient } from "../draw-cell-fade-out-gradient";
 import { TooltipCell } from "./types";
 
@@ -64,7 +63,7 @@ export class GridTooltipManager {
     for (let i = 0; i < tooltips.length; i++) {
       const tooltip = tooltips[i] ?? {
         text: "",
-        icon: CustomGridIcon.ASTERISK_CIRCLE,
+        icon: "bpAsteriskCircle",
       };
 
       /**
