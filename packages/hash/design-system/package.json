@@ -28,6 +28,7 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@local/tsconfig": "0.0.0-private",
     "@types/react": "18.0.15",
     "@types/react-dom": "18.0.6",
     "@typescript-eslint/eslint-plugin": "5.42.0",
