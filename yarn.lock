@@ -10705,7 +10705,7 @@ get-package-type@^0.1.0:
 get-set-props@^0.1.0:
   version "0.1.0"
   resolved "https://registry.yarnpkg.com/get-set-props/-/get-set-props-0.1.0.tgz#998475c178445686d0b32246da5df8dbcfbe8ea3"
-  integrity sha512-7oKuKzAGKj0ag+eWZwcGw2fjiZ78tXnXQoBgY0aU7ZOxTu4bB7hSuQSDgtKy978EDH062P5FmD2EWiDpQS9K9Q==
+  integrity sha1-mYR1wXhEVobQsyJG2l3428++jqM=
 
 get-stack-trace@^2.1.1:
   version "2.1.1"
@@ -11866,7 +11866,7 @@ is-generator-fn@^2.0.0:
 is-get-set-prop@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/is-get-set-prop/-/is-get-set-prop-1.0.0.tgz#2731877e4d78a6a69edcce6bb9d68b0779e76312"
-  integrity sha512-DvAYZ1ZgGUz4lzxKMPYlt08qAUqyG9ckSg2pIjfvcQ7+pkVNUHk8yVLXOnCLe5WKXhLop8oorWFBJHpwWQpszQ==
+  integrity sha1-JzGHfk14pqae3M5rudaLB3nnYxI=
   dependencies:
     get-set-props "^0.1.0"
     lowercase-keys "^1.0.0"
@@ -11904,7 +11904,7 @@ is-interactive@^1.0.0:
 is-js-type@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/is-js-type/-/is-js-type-2.0.0.tgz#73617006d659b4eb4729bba747d28782df0f7e22"
-  integrity sha512-Aj13l47+uyTjlQNHtXBV8Cji3jb037vxwMWCgopRR8h6xocgBGW3qG8qGlIOEmbXQtkKShKuBM9e8AA1OeQ+xw==
+  integrity sha1-c2FwBtZZtOtHKbunR9KHgt8PfiI=
   dependencies:
     js-types "^1.0.0"
 
@@ -11945,7 +11945,7 @@ is-number@^7.0.0:
 is-obj-prop@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/is-obj-prop/-/is-obj-prop-1.0.0.tgz#b34de79c450b8d7c73ab2cdf67dc875adb85f80e"
-  integrity sha512-5Idb61slRlJlsAzi0Wsfwbp+zZY+9LXKUAZpvT/1ySw+NxKLRWfa0Bzj+wXI3fX5O9hiddm5c3DAaRSNP/yl2w==
+  integrity sha1-s03nnEULjXxzqyzfZ9yHWtuF+A4=
   dependencies:
     lowercase-keys "^1.0.0"
     obj-props "^1.0.0"
@@ -12637,7 +12637,7 @@ js-sdsl@4.1.4, js-sdsl@^4.1.4:
 js-types@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/js-types/-/js-types-1.0.0.tgz#d242e6494ed572ad3c92809fc8bed7f7687cbf03"
-  integrity sha512-bfwqBW9cC/Lp7xcRpug7YrXm0IVw+T9e3g4mCYnv0Pjr3zIzU9PCQElYU9oSGAWzXlbdl9X5SAMPejO9sxkeUw==
+  integrity sha1-0kLmSU7Vcq08koCfyL7X92h8vwM=
 
 js-yaml@4.1.0, js-yaml@^4.0.0, js-yaml@^4.1.0:
   version "4.1.0"
