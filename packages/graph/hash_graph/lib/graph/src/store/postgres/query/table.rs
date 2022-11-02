@@ -11,52 +11,10 @@ pub enum TableName {
     EntityTypes,
     LinkTypes,
     Entities,
-    Links,
     PropertyTypeDataTypeReferences,
     PropertyTypePropertyTypeReferences,
     EntityTypePropertyTypeReferences,
     EntityTypeEntityTypeReferences,
-}
-
-impl TableName {
-    const fn source_join_column_access(self) -> ColumnAccess<'static> {
-        ColumnAccess::Table {
-            column: match self {
-                Self::TypeIds
-                | Self::DataTypes
-                | Self::PropertyTypes
-                | Self::EntityTypes
-                | Self::LinkTypes => "version_id",
-                Self::Entities => "entity_id",
-                Self::Links => "source_entity_id",
-                Self::PropertyTypeDataTypeReferences | Self::PropertyTypePropertyTypeReferences => {
-                    "source_property_type_version_id"
-                }
-                Self::EntityTypePropertyTypeReferences | Self::EntityTypeEntityTypeReferences => {
-                    "source_entity_type_version_id"
-                }
-            },
-        }
-    }
-
-    /// Returns the [`Column`] used for joining this `Table` on another `Table`.
-    const fn target_join_column_access(self) -> ColumnAccess<'static> {
-        ColumnAccess::Table {
-            column: match self {
-                Self::TypeIds
-                | Self::DataTypes
-                | Self::PropertyTypes
-                | Self::EntityTypes
-                | Self::LinkTypes => "version_id",
-                Self::Entities => "entity_id",
-                Self::Links => "target_entity_id",
-                Self::PropertyTypeDataTypeReferences => "target_data_type_version_id",
-                Self::PropertyTypePropertyTypeReferences
-                | Self::EntityTypePropertyTypeReferences => "target_property_type_version_id",
-                Self::EntityTypeEntityTypeReferences => "target_entity_type_version_id",
-            },
-        }
-    }
 }
 
 impl TableName {
@@ -72,7 +30,6 @@ impl TableName {
             Self::PropertyTypePropertyTypeReferences => "property_type_property_type_references",
             Self::EntityTypePropertyTypeReferences => "entity_type_property_type_references",
             Self::EntityTypeEntityTypeReferences => "entity_type_entity_type_references",
-            Self::Links => "links",
         }
     }
 }
@@ -116,24 +73,6 @@ pub struct TableAlias {
 pub struct Table {
     pub name: TableName,
     pub alias: Option<TableAlias>,
-}
-
-impl Table {
-    /// Returns the [`Column`] used for joining another `Table` on this `Table`.
-    pub const fn source_join_column(self) -> Column<'static> {
-        Column {
-            table: self,
-            access: self.name.source_join_column_access(),
-        }
-    }
-
-    /// Returns the [`Column`] used for joining this `Table` on another `Table`.
-    pub const fn target_join_column(self) -> Column<'static> {
-        Column {
-            table: self,
-            access: self.name.target_join_column_access(),
-        }
-    }
 }
 
 impl Transpile for Table {
@@ -199,38 +138,6 @@ impl Transpile for Column<'_> {
 mod tests {
     use super::*;
     use crate::{ontology::DataTypeQueryPath, store::postgres::query::Path};
-
-    #[test]
-    fn source_join_columns() {
-        assert_eq!(
-            TableName::TypeIds.source_join_column_access(),
-            ColumnAccess::Table {
-                column: "version_id"
-            }
-        );
-        assert_eq!(
-            TableName::DataTypes.source_join_column_access(),
-            ColumnAccess::Table {
-                column: "version_id"
-            }
-        );
-    }
-
-    #[test]
-    fn target_join_columns() {
-        assert_eq!(
-            TableName::TypeIds.target_join_column_access(),
-            ColumnAccess::Table {
-                column: "version_id"
-            }
-        );
-        assert_eq!(
-            TableName::DataTypes.target_join_column_access(),
-            ColumnAccess::Table {
-                column: "version_id"
-            }
-        );
-    }
 
     #[test]
     fn transpile_table() {

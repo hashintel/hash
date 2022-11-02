@@ -21,8 +21,10 @@ pub enum EntityQueryPath<'q> {
     Version,
     Type(EntityTypeQueryPath),
     Properties(Option<Cow<'q, str>>),
-    LeftEntityId,
-    RightEntityId,
+    IncomingLinks(Box<Self>),
+    OutgoingLinks(Box<Self>),
+    LeftEntity(Option<Box<Self>>),
+    RightEntity(Option<Box<Self>>),
     LeftOrder,
     RightOrder,
 }
@@ -43,8 +45,12 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::Type(path) => write!(fmt, "type.{path}"),
             Self::Properties(Some(property)) => write!(fmt, "properties.{property}"),
             Self::Properties(None) => fmt.write_str("properties"),
-            Self::LeftEntityId => fmt.write_str("leftEntityId"),
-            Self::RightEntityId => fmt.write_str("rightEntityId"),
+            Self::IncomingLinks(link) => write!(fmt, "incomingLinks.{link}"),
+            Self::OutgoingLinks(link) => write!(fmt, "outgoingLinks.{link}"),
+            Self::LeftEntity(Some(path)) => write!(fmt, "leftEntityId.{path}"),
+            Self::LeftEntity(None) => fmt.write_str("leftEntityId"),
+            Self::RightEntity(Some(path)) => write!(fmt, "rightEntityId.{path}"),
+            Self::RightEntity(None) => fmt.write_str("rightEntityId"),
             Self::LeftOrder => fmt.write_str("leftOrder"),
             Self::RightOrder => fmt.write_str("rightOrder"),
         }
@@ -59,8 +65,12 @@ impl RecordPath for EntityQueryPath<'_> {
             | Self::CreatedById
             | Self::UpdatedById
             | Self::RemovedById
-            | Self::LeftEntityId
-            | Self::RightEntityId => ParameterType::Uuid,
+            | Self::LeftEntity(None)
+            | Self::RightEntity(None) => ParameterType::Uuid,
+            Self::LeftEntity(Some(path))
+            | Self::RightEntity(Some(path))
+            | Self::IncomingLinks(path)
+            | Self::OutgoingLinks(path) => path.expected_type(),
             Self::Version => ParameterType::Timestamp,
             Self::Type(path) => path.expected_type(),
             Self::Properties(_) => ParameterType::Any,
@@ -92,10 +102,10 @@ pub struct EntityQueryPathVisitor {
 }
 
 impl EntityQueryPathVisitor {
-    pub const EXPECTING: &'static str = "one of `ownedById`, `createdById`, `updatedById`, \
-                                         `removedById`, `baseUri`, `versionedUri`, `version`, \
-                                         `title`, `description`, `default`, `examples`, \
-                                         `properties`, `required`, `links`, `requiredLinks`";
+    pub const EXPECTING: &'static str =
+        "one of `ownedById`, `createdById`, `updatedById`, `removedById`, `baseUri`, \
+         `versionedUri`, `version`, `title`, `description`, `default`, `examples`, `properties`, \
+         `required`, `links`, `requiredLinks`, `inheritsFrom`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -139,18 +149,16 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
                 EntityQueryPath::Properties(Some(property))
             }
             EntityQueryToken::OutgoingLinks => {
-                todo!("https://app.asana.com/0/1200211978612931/1203250001255262/f");
-                // let link_query_path = seq
-                //     .next_element()?
-                //     .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
-                // EntityQueryPath::OutgoingLinks(link_query_path)
+                let entity_query_path = seq
+                    .next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
+                EntityQueryPath::OutgoingLinks(entity_query_path)
             }
             EntityQueryToken::IncomingLinks => {
-                todo!("https://app.asana.com/0/1200211978612931/1203250001255262/f");
-                // let link_query_path = seq
-                //     .next_element()?
-                //     .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
-                // EntityQueryPath::IncomingLinks(link_query_path)
+                let entity_query_path = seq
+                    .next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
+                EntityQueryPath::IncomingLinks(entity_query_path)
             }
         })
     }

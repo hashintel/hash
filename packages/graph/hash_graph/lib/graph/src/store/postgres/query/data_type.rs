@@ -3,9 +3,7 @@ use type_system::DataType;
 
 use crate::{
     ontology::DataTypeQueryPath,
-    store::postgres::query::{
-        expression::EdgeJoinDirection, ColumnAccess, Path, PostgresQueryRecord, Table, TableName,
-    },
+    store::postgres::query::{ColumnAccess, Path, PostgresQueryRecord, Relation, Table, TableName},
 };
 
 impl<'q> PostgresQueryRecord<'q> for DataType {
@@ -29,11 +27,17 @@ impl<'q> PostgresQueryRecord<'q> for DataType {
 }
 
 impl Path for DataTypeQueryPath {
-    fn tables(&self) -> Vec<(TableName, EdgeJoinDirection)> {
-        vec![(
-            self.terminating_table_name(),
-            EdgeJoinDirection::SourceOnTarget,
-        )]
+    fn relations(&self) -> Vec<Relation> {
+        match self {
+            Self::BaseUri | Self::Version => {
+                vec![Relation {
+                    current_column_access: Self::VersionId.column_access(),
+                    join_table_name: TableName::TypeIds,
+                    join_column_access: Self::VersionId.column_access(),
+                }]
+            }
+            _ => vec![],
+        }
     }
 
     fn terminating_table_name(&self) -> TableName {

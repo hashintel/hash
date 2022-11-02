@@ -5,9 +5,7 @@ use postgres_types::ToSql;
 use crate::{
     knowledge::{Entity, EntityQueryPath},
     ontology::EntityTypeQueryPath,
-    store::postgres::query::{
-        expression::EdgeJoinDirection, ColumnAccess, Path, PostgresQueryRecord, Table, TableName,
-    },
+    store::postgres::query::{ColumnAccess, Path, PostgresQueryRecord, Relation, Table, TableName},
 };
 
 impl<'q> PostgresQueryRecord<'q> for Entity {
@@ -32,26 +30,54 @@ impl<'q> PostgresQueryRecord<'q> for Entity {
 }
 
 impl Path for EntityQueryPath<'_> {
-    fn tables(&self) -> Vec<(TableName, EdgeJoinDirection)> {
+    fn relations(&self) -> Vec<Relation> {
         match self {
-            Self::Type(path) => once((TableName::Entities, EdgeJoinDirection::SourceOnTarget))
-                .chain(path.tables())
-                .collect(),
-            // TODO: https://app.asana.com/0/1200211978612931/1203250001255262/f
-            // Self::OutgoingLinks(path) => {
-            //     once((TableName::Entities, EdgeJoinDirection::SourceOnTarget))
-            //         .chain(path.tables())
-            //         .collect()
-            // }
-            // Self::IncomingLinks(path) => {
-            //     once((TableName::Entities, EdgeJoinDirection::TargetOnSource))
-            //         .chain(path.tables())
-            //         .collect()
-            // }
-            _ => vec![(
-                self.terminating_table_name(),
-                EdgeJoinDirection::SourceOnTarget,
-            )],
+            Self::Type(path) => once(Relation {
+                current_column_access: ColumnAccess::Table {
+                    column: "entity_type_version_id",
+                },
+                join_table_name: TableName::EntityTypes,
+                join_column_access: EntityTypeQueryPath::VersionId.column_access(),
+            })
+            .chain(path.relations())
+            .collect(),
+            Self::LeftEntity(Some(path)) => once(Relation {
+                current_column_access: ColumnAccess::Table {
+                    column: "left_entity_id",
+                },
+                join_table_name: TableName::Entities,
+                join_column_access: Self::Id.column_access(),
+            })
+            .chain(path.relations())
+            .collect(),
+            Self::RightEntity(Some(path)) => once(Relation {
+                current_column_access: ColumnAccess::Table {
+                    column: "right_entity_id",
+                },
+                join_table_name: TableName::Entities,
+                join_column_access: Self::Id.column_access(),
+            })
+            .chain(path.relations())
+            .collect(),
+            Self::OutgoingLinks(path) => once(Relation {
+                current_column_access: Self::Id.column_access(),
+                join_table_name: TableName::Entities,
+                join_column_access: ColumnAccess::Table {
+                    column: "left_entity_id",
+                },
+            })
+            .chain(path.relations())
+            .collect(),
+            Self::IncomingLinks(path) => once(Relation {
+                current_column_access: Self::Id.column_access(),
+                join_table_name: TableName::Entities,
+                join_column_access: ColumnAccess::Table {
+                    column: "right_entity_id",
+                },
+            })
+            .chain(path.relations())
+            .collect(),
+            _ => vec![],
         }
     }
 
@@ -63,15 +89,16 @@ impl Path for EntityQueryPath<'_> {
             | Self::UpdatedById
             | Self::RemovedById
             | Self::Version
-            | Self::LeftEntityId
-            | Self::RightEntityId
+            | Self::LeftEntity(None)
+            | Self::RightEntity(None)
             | Self::LeftOrder
             | Self::RightOrder
             | Self::Properties(_) => TableName::Entities,
+            Self::LeftEntity(Some(path)) | Self::RightEntity(Some(path)) => {
+                path.terminating_table_name()
+            }
             Self::Type(path) => path.terminating_table_name(),
-            // TODO: https://app.asana.com/0/1200211978612931/1203250001255262/f
-            // Self::IncomingLinks(path) | Self::OutgoingLinks(path) =>
-            // path.terminating_table_name(),
+            Self::IncomingLinks(path) | Self::OutgoingLinks(path) => path.terminating_table_name(),
         }
     }
 
@@ -80,8 +107,8 @@ impl Path for EntityQueryPath<'_> {
             Self::Id => ColumnAccess::Table {
                 column: "entity_id",
             },
-            Self::Version => ColumnAccess::Table { column: "version" },
             Self::Type(path) => path.column_access(),
+            Self::Version => ColumnAccess::Table { column: "version" },
             Self::OwnedById => ColumnAccess::Table {
                 column: "owned_by_id",
             },
@@ -94,12 +121,16 @@ impl Path for EntityQueryPath<'_> {
             Self::RemovedById => ColumnAccess::Table {
                 column: "removed_by_id",
             },
-            Self::LeftEntityId => ColumnAccess::Table {
+            Self::LeftEntity(None) => ColumnAccess::Table {
                 column: "left_entity_id",
             },
-            Self::RightEntityId => ColumnAccess::Table {
+            Self::RightEntity(None) => ColumnAccess::Table {
                 column: "right_entity_id",
             },
+            Self::LeftEntity(Some(path))
+            | Self::RightEntity(Some(path))
+            | Self::IncomingLinks(path)
+            | Self::OutgoingLinks(path) => path.column_access(),
             Self::LeftOrder => ColumnAccess::Table {
                 column: "left_order",
             },
@@ -115,8 +146,6 @@ impl Path for EntityQueryPath<'_> {
                     field: path.as_ref(),
                 },
             ),
-            // TODO: https://app.asana.com/0/1200211978612931/1203250001255262/f
-            // Self::IncomingLinks(path) | Self::OutgoingLinks(path) => path.column_access(),
         }
     }
 

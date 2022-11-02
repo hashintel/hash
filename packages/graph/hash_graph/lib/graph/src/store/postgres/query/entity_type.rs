@@ -1,13 +1,9 @@
-use std::iter::once;
-
 use postgres_types::ToSql;
 use type_system::EntityType;
 
 use crate::{
-    ontology::EntityTypeQueryPath,
-    store::postgres::query::{
-        expression::EdgeJoinDirection, ColumnAccess, Path, PostgresQueryRecord, Table, TableName,
-    },
+    ontology::{DataTypeQueryPath, EntityTypeQueryPath},
+    store::postgres::query::{ColumnAccess, Path, PostgresQueryRecord, Relation, Table, TableName},
 };
 
 impl<'q> PostgresQueryRecord<'q> for EntityType {
@@ -31,30 +27,59 @@ impl<'q> PostgresQueryRecord<'q> for EntityType {
 }
 
 impl Path for EntityTypeQueryPath {
-    fn tables(&self) -> Vec<(TableName, EdgeJoinDirection)> {
+    /// Returns the relations that are required to access the path.
+    ///
+    /// The first element of the tuple is the column access of the source table, the second element
+    /// is the name of the target table, and the third element is the column access of the target.
+    fn relations(&self) -> Vec<Relation> {
         match self {
-            Self::Properties(path) => once((
-                TableName::EntityTypePropertyTypeReferences,
-                EdgeJoinDirection::SourceOnTarget,
-            ))
-            .chain(path.tables())
+            Self::BaseUri | Self::Version => vec![Relation {
+                current_column_access: Self::VersionId.column_access(),
+                join_table_name: TableName::TypeIds,
+                join_column_access: Self::VersionId.column_access(),
+            }],
+            Self::Properties(path) => [
+                Relation {
+                    current_column_access: Self::VersionId.column_access(),
+                    join_table_name: TableName::EntityTypePropertyTypeReferences,
+                    join_column_access: ColumnAccess::Table {
+                        column: "source_entity_type_version_id",
+                    },
+                },
+                Relation {
+                    current_column_access: ColumnAccess::Table {
+                        column: "target_property_type_version_id",
+                    },
+                    join_table_name: TableName::PropertyTypes,
+                    join_column_access: DataTypeQueryPath::VersionId.column_access(),
+                },
+            ]
+            .into_iter()
+            .chain(path.relations())
             .collect(),
-            Self::InheritsFrom(path) => once((
-                TableName::EntityTypeEntityTypeReferences,
-                EdgeJoinDirection::SourceOnTarget,
-            ))
-            .chain(path.tables())
+            Self::InheritsFrom(path) => [
+                Relation {
+                    current_column_access: Self::VersionId.column_access(),
+                    join_table_name: TableName::EntityTypeEntityTypeReferences,
+                    join_column_access: ColumnAccess::Table {
+                        column: "source_entity_type_version_id",
+                    },
+                },
+                Relation {
+                    current_column_access: ColumnAccess::Table {
+                        column: "target_entity_type_version_id",
+                    },
+                    join_table_name: TableName::EntityTypePropertyTypeReferences,
+                    join_column_access: Self::VersionId.column_access(),
+                },
+            ]
+            .into_iter()
+            .chain(path.relations())
             .collect(),
-            // Self::Links(path) => once((
-            //     TableName::EntityTypeLinkTypeReferences,
-            //     EdgeJoinDirection::SourceOnTarget,
-            // ))
-            // .chain(path.tables())
-            // .collect(),
-            _ => vec![(
-                self.terminating_table_name(),
-                EdgeJoinDirection::SourceOnTarget,
-            )],
+            // TODO: https://app.asana.com/0/1200211978612931/1203250001255262/f
+            // Links(LinkTypeQueryPath),
+            // Self::Links(path) => ...
+            _ => vec![],
         }
     }
 
