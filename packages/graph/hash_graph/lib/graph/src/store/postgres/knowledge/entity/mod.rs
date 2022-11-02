@@ -12,7 +12,7 @@ use uuid::Uuid;
 use crate::{
     identifier::GraphElementIdentifier,
     knowledge::{Entity, EntityId, LinkEntityMetadata, PersistedEntity, PersistedEntityMetadata},
-    provenance::{ArchivedById, CreatedById, OwnedById, UpdatedById},
+    provenance::{CreatedById, OwnedById, UpdatedById},
     store::{
         crud::Read,
         error::{ArchivalError, EntityDoesNotExist},
@@ -276,36 +276,29 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .change_context(UpdateError)?,
         );
 
-        // TODO - address potential race condition
-        //  https://app.asana.com/0/1202805690238892/1203201674100967/f
-
-        let previous_entity: PersistedEntity = transaction
-            .read_one(&Filter::for_latest_entity_by_entity_id(entity_id))
+        transaction
+            .lock_entity_for_update(entity_id)
             .await
             .change_context(UpdateError)?;
 
-        if !transaction
-            .contains_entity(entity_id)
-            .await
-            .change_context(UpdateError)?
-        {
-            return Err(Report::new(EntityDoesNotExist)
-                .attach_printable(entity_id)
-                .change_context(UpdateError));
-        }
+        // TODO - address potential race condition.
+        //  Note that the race condition may have been sorted out with the links rewrite.
+        //  https://app.asana.com/0/1202805690238892/1203201674100967/f
 
-        let metadata: LinkEntityMetadata =
-            todo!("https://app.asana.com/0/1200211978612931/1203250001255262/f");
+        let archived_entity_version = transaction
+            .move_entity_to_histories(entity_id, false)
+            .await
+            .change_context(UpdateError)?;
 
         let metadata = transaction
             .insert_entity(
                 entity_id,
                 entity,
                 entity_type_id,
-                previous_entity.metadata().identifier().owned_by_id(),
-                previous_entity.metadata().created_by_id(),
+                archived_entity_version.identifier().owned_by_id(),
+                archived_entity_version.created_by_id(),
                 updated_by_id,
-                Some(metadata),
+                archived_entity_version.link_metadata().clone(),
             )
             .await
             .change_context(UpdateError)?;
@@ -323,9 +316,9 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     async fn archive_entity(
         &mut self,
         entity_id: EntityId,
-        actor_id: ArchivedById,
+        actor_id: UpdatedById,
     ) -> Result<(), ArchivalError> {
-        let transaction = PostgresStore::new(
+        let mut transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()
                 .await
@@ -334,7 +327,27 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         );
 
         transaction
-            .move_entity_to_histories(entity_id, Some(actor_id))
+            .lock_entity_for_update(entity_id)
+            .await
+            .change_context(ArchivalError)?;
+
+        let previous_entity: PersistedEntity = transaction
+            .read_one(&Filter::for_latest_entity_by_entity_id(entity_id))
+            .await
+            .change_context(ArchivalError)?;
+
+        transaction
+            .update_entity(
+                entity_id,
+                previous_entity.inner().clone(),
+                previous_entity.metadata().entity_type_id().clone(),
+                actor_id,
+            )
+            .await
+            .change_context(ArchivalError)?;
+
+        transaction
+            .move_entity_to_histories(entity_id, true)
             .await
             .change_context(ArchivalError)?;
 

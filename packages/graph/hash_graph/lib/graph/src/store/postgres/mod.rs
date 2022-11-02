@@ -37,7 +37,7 @@ use crate::{
         OntologyQueryDepth, PersistedDataType, PersistedEntityType, PersistedOntologyIdentifier,
         PersistedOntologyMetadata, PersistedPropertyType,
     },
-    provenance::{ArchivedById, CreatedById, OwnedById, RemovedById, UpdatedById},
+    provenance::{CreatedById, OwnedById, RemovedById, UpdatedById},
     shared::identifier::GraphElementIdentifier,
     store::{
         error::VersionedUriAlreadyExists,
@@ -443,31 +443,31 @@ where
         Ok(())
     }
 
-    /// Checks if the specified [`Entity`] exists in the database.
-    ///
-    /// # Errors
-    ///
-    /// - if checking for the [`VersionedUri`] failed.
-    async fn contains_entity(&self, entity_id: EntityId) -> Result<bool, QueryError> {
-        Ok(self
-            .client
-            .as_client()
-            .query_one(
-                r#"
-                    SELECT EXISTS(
-                        SELECT 1
-                        FROM entity_ids
-                        WHERE entity_id = $1
-                    );
-                "#,
-                &[&entity_id],
-            )
-            .await
-            .into_report()
-            .change_context(QueryError)
-            .attach_printable(entity_id)?
-            .get(0))
-    }
+    // /// Checks if the specified [`Entity`] exists in the database.
+    // ///
+    // /// # Errors
+    // ///
+    // /// - if checking for the [`VersionedUri`] failed.
+    // async fn contains_entity(&self, entity_id: EntityId) -> Result<bool, QueryError> {
+    //     Ok(self
+    //         .client
+    //         .as_client()
+    //         .query_one(
+    //             r#"
+    //                 SELECT EXISTS(
+    //                     SELECT 1
+    //                     FROM entity_ids
+    //                     WHERE entity_id = $1
+    //                 );
+    //             "#,
+    //             &[&entity_id],
+    //         )
+    //         .await
+    //         .into_report()
+    //         .change_context(QueryError)
+    //         .attach_printable(entity_id)?
+    //         .get(0))
+    // }
 
     /// Inserts the specified [`VersionedUri`] into the database.
     ///
@@ -960,7 +960,6 @@ where
             entity_type_id,
             created_by_id,
             updated_by_id,
-            None,
             link_metadata,
         ))
     }
@@ -989,18 +988,14 @@ where
     async fn move_entity_to_histories(
         &self,
         entity_id: EntityId,
-        archived_by_id: Option<ArchivedById>,
+        archived: bool,
     ) -> Result<PersistedEntityMetadata, InsertionError> {
-        self.lock_entity_for_update(entity_id)
-            .await
-            .change_context(InsertionError)?;
-
         let historic_entity = self
             .as_client()
             .query_one(
                 r#"
                 -- First we delete the _latest_ entity from the entities table.
-                WITH to_archive AS (
+                WITH to_move_to_historic AS (
                     DELETE FROM entities
                     WHERE entity_id = $1
                     RETURNING
@@ -1011,7 +1006,7 @@ where
                         left_entity_id, right_entity_id,
                         owned_by_id, created_by_id, updated_by_id
                 ),
-                inserted_in_archive AS (
+                inserted_in_historic AS (
                     -- We immediately put this deleted entity into the historic table.
                     -- As this should be done in a transaction, we should be safe that this move
                     -- doesn't produce invalid state.
@@ -1021,7 +1016,8 @@ where
                         properties,
                         left_order, right_order,
                         left_entity_id, right_entity_id,
-                        owned_by_id, created_by_id, updated_by_id, archived
+                        owned_by_id, created_by_id, updated_by_id, 
+                        archived
                     )
                     SELECT
                         entity_id, version,
@@ -1029,31 +1025,25 @@ where
                         properties,
                         left_order, right_order,
                         left_entity_id, right_entity_id,
-                        owned_by_id, created_by_id,
-                        -- The updated_by_id is conditionally set when not null.
-                        CASE
-                            WHEN $2::uuid is NOT NULL THEN $2
-                            ELSE updated_by_id
-                        END as updated_by_id,
-                        $3
-                    FROM to_archive
+                        owned_by_id, created_by_id, updated_by_id,
+                        $2::boolean
+                    FROM to_move_to_historic
                     -- For metadata purposes, we return the entire entity
                     RETURNING *
                 )
                 SELECT
-                    entity_id, inserted_in_archive.version,
+                    entity_id, inserted_in_historic.version,
                     base_uri, type_ids.version,
                     properties, -- Unused
                     left_order, right_order,
                     left_entity_id, right_entity_id,
                     owned_by_id, created_by_id, updated_by_id
-                FROM inserted_in_archive
-                INNER JOIN type_ids ON inserted_in_archive.entity_type_version_id = type_ids.version_id;
+                FROM inserted_in_historic
+                INNER JOIN type_ids ON inserted_in_historic.entity_type_version_id = type_ids.version_id;
                 "#,
                 &[
                     &entity_id,
-                    &archived_by_id.map(ArchivedById::as_account_id),
-                    &archived_by_id.is_some(),
+                    &archived,
                 ],
             )
             .await
@@ -1088,7 +1078,6 @@ where
             entity_type_id,
             historic_entity.get(10),
             historic_entity.get(11),
-            None,
             link_metadata,
         ))
     }

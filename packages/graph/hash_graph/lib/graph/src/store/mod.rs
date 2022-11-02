@@ -23,7 +23,7 @@ use crate::{
     ontology::{
         PersistedDataType, PersistedEntityType, PersistedOntologyMetadata, PersistedPropertyType,
     },
-    provenance::{ArchivedById, CreatedById, OwnedById, UpdatedById},
+    provenance::{CreatedById, OwnedById, UpdatedById},
     store::query::Filter,
     subgraph::{StructuralQuery, Subgraph},
 };
@@ -404,6 +404,6 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Filter<'q
     async fn archive_entity(
         &mut self,
         entity_id: EntityId,
-        actor_id: ArchivedById,
+        actor_id: UpdatedById,
     ) -> Result<(), ArchivalError>;
 }

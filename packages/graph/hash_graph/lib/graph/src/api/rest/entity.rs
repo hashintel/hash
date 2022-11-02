@@ -19,7 +19,7 @@ use crate::{
         Entity, EntityId, LinkEntityMetadata, PersistedEntity, PersistedEntityIdentifier,
         PersistedEntityMetadata,
     },
-    provenance::{ArchivedById, CreatedById, OwnedById, UpdatedById},
+    provenance::{CreatedById, OwnedById, UpdatedById},
     shared::identifier::GraphElementIdentifier,
     store::{
         error::{EntityDoesNotExist, QueryError},
@@ -158,7 +158,7 @@ async fn create_entity<P: StorePool + Send>(
 #[serde(rename_all = "camelCase")]
 struct ArchiveEntityRequest {
     entity_id: EntityId,
-    actor_id: ArchivedById,
+    actor_id: UpdatedById,
 }
 
 #[utoipa::path(

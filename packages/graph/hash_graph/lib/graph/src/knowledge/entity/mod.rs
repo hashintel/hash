@@ -156,7 +156,6 @@ pub struct PersistedEntityMetadata {
     //  https://app.asana.com/0/1201095311341924/1203227079758117/f
     created_by_id: CreatedById,
     updated_by_id: UpdatedById,
-    removed_by_id: Option<RemovedById>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     link_metadata: Option<LinkEntityMetadata>,
 }
@@ -168,7 +167,6 @@ impl PersistedEntityMetadata {
         entity_type_id: VersionedUri,
         created_by_id: CreatedById,
         updated_by_id: UpdatedById,
-        removed_by_id: Option<RemovedById>,
         link_metadata: Option<LinkEntityMetadata>,
     ) -> Self {
         Self {
@@ -176,7 +174,6 @@ impl PersistedEntityMetadata {
             entity_type_id,
             created_by_id,
             updated_by_id,
-            removed_by_id,
             link_metadata,
         }
     }
@@ -202,11 +199,6 @@ impl PersistedEntityMetadata {
     }
 
     #[must_use]
-    pub const fn removed_by_id(&self) -> Option<RemovedById> {
-        self.removed_by_id
-    }
-
-    #[must_use]
     pub const fn link_metadata(&self) -> &Option<LinkEntityMetadata> {
         &self.link_metadata
     }
@@ -229,7 +221,6 @@ impl PersistedEntity {
         entity_type_id: VersionedUri,
         created_by_id: CreatedById,
         updated_by_id: UpdatedById,
-        removed_by_id: Option<RemovedById>,
         link_metadata: Option<LinkEntityMetadata>,
     ) -> Self {
         Self {
@@ -239,7 +230,6 @@ impl PersistedEntity {
                 entity_type_id,
                 created_by_id,
                 updated_by_id,
-                removed_by_id,
                 link_metadata,
             ),
         }
