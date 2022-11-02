@@ -9,24 +9,13 @@ export const drawRoundRect = (
   width: number,
   height: number,
   radius = 5,
-  fill = false,
-  stroke = true,
 ) => {
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.lineTo(x + width - radius, y);
-  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-  ctx.lineTo(x + width, y + height - radius);
-  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-  ctx.lineTo(x + radius, y + height);
-  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-  ctx.lineTo(x, y + radius);
-  ctx.quadraticCurveTo(x, y, x + radius, y);
-  ctx.closePath();
-  if (fill) {
-    ctx.fill();
-  }
-  if (stroke) {
-    ctx.stroke();
-  }
+  // restrict radius to a reasonable max
+  const _radius = Math.min(radius, height / 2, width / 2);
+
+  ctx.moveTo(x + _radius, y);
+  ctx.arcTo(x + width, y, x + width, y + _radius, _radius);
+  ctx.arcTo(x + width, y + height, x + width - _radius, y + height, _radius);
+  ctx.arcTo(x, y + height, x, y + height - _radius, _radius);
+  ctx.arcTo(x, y, x + _radius, y, _radius);
 };
