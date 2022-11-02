@@ -990,7 +990,7 @@ where
                         properties,
                         left_order, right_order,
                         left_entity_id, right_entity_id,
-                        owned_by_id, created_by_id, updated_by_id, 
+                        owned_by_id, created_by_id, updated_by_id,
                         archived
                     )
                     SELECT
@@ -1003,7 +1003,7 @@ where
                         $2::boolean
                     FROM to_move_to_historic
                     -- We only return metadata
-                    RETURNING 
+                    RETURNING
                         entity_id, version,
                         entity_type_version_id,
                         left_order, right_order,
