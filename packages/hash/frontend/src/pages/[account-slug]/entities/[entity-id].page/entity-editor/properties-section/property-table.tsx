@@ -1,5 +1,5 @@
 import "@glideapps/glide-data-grid/dist/index.css";
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import { DataEditorRef } from "@glideapps/glide-data-grid";
 import { useRowData } from "./property-table/use-row-data";
 import { useGetCellContent } from "./property-table/use-get-cell-content";
@@ -43,6 +43,15 @@ export const PropertyTable = ({
     setPropertySort,
   );
 
+  const customRenderers = useMemo(
+    () => [
+      withTooltips(renderValueCell),
+      renderDataTypeCell,
+      createRenderPropertyNameCell(togglePropertyExpand, propertyExpandStatus),
+    ],
+    [togglePropertyExpand, propertyExpandStatus, withTooltips],
+  );
+
   return (
     <>
       <GlideGrid
@@ -55,14 +64,7 @@ export const PropertyTable = ({
         onHeaderClicked={handleHeaderClicked}
         showSearch={showSearch}
         onSearchClose={onSearchClose}
-        customRenderers={[
-          withTooltips(renderValueCell),
-          renderDataTypeCell,
-          createRenderPropertyNameCell(
-            togglePropertyExpand,
-            propertyExpandStatus,
-          ),
-        ]}
+        customRenderers={customRenderers}
         // define max height if there are lots of rows
         height={rowData.length > 10 ? 500 : undefined}
       />
