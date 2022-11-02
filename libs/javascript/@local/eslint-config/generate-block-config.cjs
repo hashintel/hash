@@ -4,11 +4,6 @@
  */
 module.exports = (workspaceDirPath) => ({
   ...require("./generate-workspace-config.cjs")(workspaceDirPath),
-  parserOptions: {
-    // specifics
-    jsx: true,
-    useJSXTextNode: true,
-  },
   plugins: ["@typescript-eslint", "react-hooks", "react", "unicorn"],
   rules: {
     curly: ["error", "multi-line"],

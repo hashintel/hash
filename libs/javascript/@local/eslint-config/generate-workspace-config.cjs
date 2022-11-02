@@ -7,7 +7,7 @@ module.exports = (workspaceDirPath) => ({
   extends: ["@local/eslint-config/legacy-base-to-refactor.cjs"],
   ignorePatterns: require("./generate-ignore-patterns.cjs")(workspaceDirPath),
   parserOptions: {
-    tsconfigRootDir: ".",
+    tsconfigRootDir: workspaceDirPath,
     project: `${workspaceDirPath}/tsconfig.json`,
   },
 });

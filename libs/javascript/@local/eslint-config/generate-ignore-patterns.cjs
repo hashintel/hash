@@ -63,6 +63,6 @@ module.exports = (workspaceDirPath) => {
     "!*.tsx",
 
     // Add patterns extracted from .prettierignore
-    ...sharedPatternsFromprettierignore,
+    ...sharedPatternsFromPrettierignore,
   ];
 };

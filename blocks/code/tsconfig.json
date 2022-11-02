@@ -1,5 +1,4 @@
 {
   "extends": "@local/tsconfig/block.json",
-  "include": ["src"],
-  "exclude": ["node_modules"]
+  "exclude": ["dist", "node_modules"]
 }
