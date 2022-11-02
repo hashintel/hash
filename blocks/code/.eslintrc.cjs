@@ -1,6 +1,6 @@
 /** @type {import("eslint").Linter.Config} */
 module.exports = {
-  root: true,
+  ...require("@local/eslint-config/generate-base-config.cjs")(__dirname),
   extends: ["@local/eslint-config/block.cjs"],
   parserOptions: {
     tsconfigRootDir: __dirname,

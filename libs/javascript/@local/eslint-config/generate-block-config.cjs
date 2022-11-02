@@ -1,6 +1,9 @@
-/** @type {import("eslint").Linter.Config} */
-module.exports = {
-  extends: ["./legacy-base-to-refactor.cjs"],
+/**
+ * @param {string} workspaceDirPath
+ * @returns {import("eslint").Linter.Config}
+ */
+module.exports = (workspaceDirPath) => ({
+  ...require("./generate-workspace-config.cjs")(workspaceDirPath),
   parserOptions: {
     // specifics
     jsx: true,
@@ -19,4 +22,4 @@ module.exports = {
     "react/self-closing-comp": "error",
     "unicorn/filename-case": "error",
   },
-};
+});
