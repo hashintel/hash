@@ -356,6 +356,7 @@ pub struct PostgresStore<C> {
 }
 
 /// Describes what context the historic move is done in.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum HistoricMove {
     ForNewVersion,
     ForArchival,
@@ -1027,7 +1028,7 @@ where
                 "#,
                 &[
                     &entity_id,
-                    &matches!(historic_move, HistoricMove::ForArchival),
+                    &(historic_move == HistoricMove::ForArchival),
                 ],
             )
             .await
