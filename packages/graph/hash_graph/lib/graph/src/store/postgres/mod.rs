@@ -443,32 +443,6 @@ where
         Ok(())
     }
 
-    // /// Checks if the specified [`Entity`] exists in the database.
-    // ///
-    // /// # Errors
-    // ///
-    // /// - if checking for the [`VersionedUri`] failed.
-    // async fn contains_entity(&self, entity_id: EntityId) -> Result<bool, QueryError> {
-    //     Ok(self
-    //         .client
-    //         .as_client()
-    //         .query_one(
-    //             r#"
-    //                 SELECT EXISTS(
-    //                     SELECT 1
-    //                     FROM entity_ids
-    //                     WHERE entity_id = $1
-    //                 );
-    //             "#,
-    //             &[&entity_id],
-    //         )
-    //         .await
-    //         .into_report()
-    //         .change_context(QueryError)
-    //         .attach_printable(entity_id)?
-    //         .get(0))
-    // }
-
     /// Inserts the specified [`VersionedUri`] into the database.
     ///
     /// # Errors
