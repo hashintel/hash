@@ -16,8 +16,9 @@ import {
 } from "@mui/material";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
-import { ReactNode } from "react";
+import { ReactNode, useMemo } from "react";
 import { useForm } from "react-hook-form";
+import { useOrgs } from "../../../../components/hooks/useOrgs";
 import { useBlockProtocolGetEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
 import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
 import { FRONTEND_URL } from "../../../../lib/config";
@@ -74,37 +75,49 @@ const Page: NextPageWithLayout = () => {
 
   const router = useRouter();
   const { authenticatedUser, loading } = useAuthenticatedUser();
+  const { orgs } = useOrgs();
 
   const { getEntityType } = useBlockProtocolGetEntityType();
 
-  if (
-    authenticatedUser &&
-    router.query["account-slug"] !== `@${authenticatedUser.shortname}`
-  ) {
-    void router.replace(
-      `/@${authenticatedUser.shortname}/types/new/entity-type`,
-    );
-  }
+  const shortname = router.query["account-slug"];
 
-  if (typeSystemLoading || loading || !authenticatedUser) {
+  const namespace = useMemo(() => {
+    if (authenticatedUser && orgs) {
+      if (shortname === `@${authenticatedUser.shortname}`) {
+        return authenticatedUser.shortname;
+      }
+
+      const thisOrg = orgs?.find((org) => `@${org.shortname}` === shortname);
+
+      if (thisOrg) {
+        return thisOrg.shortname;
+      }
+
+      void router.replace(
+        `/@${authenticatedUser.shortname}/types/new/entity-type`,
+      );
+    }
+  }, [authenticatedUser, orgs, shortname, router]);
+
+  if (typeSystemLoading || loading || !authenticatedUser || !namespace) {
     return null;
   }
 
   const generateEntityTypeBaseUriForUser = (value: string) => {
-    if (!authenticatedUser?.shortname) {
-      throw new Error("User shortname must exist");
+    if (!namespace) {
+      throw new Error("User or Org shortname must exist");
     }
 
     return generateBaseTypeId({
       domain: FRONTEND_URL,
-      namespace: authenticatedUser.shortname,
+      namespace,
       kind: "entity-type",
       title: value,
     });
   };
 
   const handleFormSubmit = handleSubmit(async ({ name, description }) => {
-    if (!authenticatedUser.shortname) {
+    if (!namespace) {
       throw new Error("Namespace for entity type creation missing");
     }
 

@@ -117,10 +117,9 @@ export const useEntityType = (
 
   const publishDraft = useCallback(
     async (draftEntityType: EntityType) => {
-      const { $id: _, ...remainingProperties } = draftEntityType;
       const res = await createEntityType({
         data: {
-          entityType: remainingProperties,
+          entityType: draftEntityType,
         },
       });
 
