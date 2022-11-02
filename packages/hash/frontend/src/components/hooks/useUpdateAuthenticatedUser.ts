@@ -49,7 +49,10 @@ export const useUpdateAuthenticatedUser = () => {
 
         const entityId = latestSubgraph.roots[0]!;
 
-        /** @todo: use a partial update mutation instead */
+        /**
+         * @todo: use a partial update mutation instead
+         * @see https://app.asana.com/0/1202805690238892/1203285029221330/f
+         */
         const { properties: currentProperties } = mustGetEntity({
           subgraph: latestSubgraph as unknown as Subgraph,
           entityId,
