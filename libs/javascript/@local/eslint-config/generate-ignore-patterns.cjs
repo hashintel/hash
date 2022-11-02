@@ -37,7 +37,11 @@ module.exports = (workspaceDirPath) => {
         return [];
       }
       // Ignore patterns specific to other workspaces
-      if (line.includes("/") && !line.startsWith(workspaceDirPrefix)) {
+      if (
+        line.includes("/") &&
+        !line.match(/^[^/]+\/$/) &&
+        !line.startsWith(workspaceDirPrefix)
+      ) {
         return [];
       }
       // Remove workspace-specific prefix (path/to/workspace/foo/**/bar => foo/**/bar)

@@ -236,17 +236,6 @@ module.exports = {
     "no-redeclare": "off",
     "@typescript-eslint/no-redeclare": ["error"],
 
-    // Part of @typescript-eslint/recommended-requiring-type-checking
-    // TODO: re-enable
-    "@typescript-eslint/no-unsafe-argument": "off",
-    "@typescript-eslint/no-unsafe-assignment": "off",
-    "@typescript-eslint/no-unsafe-call": "off",
-    "@typescript-eslint/no-unsafe-member-access": "off",
-    "@typescript-eslint/no-unsafe-return": "off",
-    "@typescript-eslint/require-await": "off",
-    "@typescript-eslint/restrict-template-expressions": "off",
-    "@typescript-eslint/unbound-method": "off",
-
     eqeqeq: [
       "error",
       "always",
@@ -335,7 +324,12 @@ module.exports = {
       },
     },
     {
-      files: ["**/__mocks__/**", "**/testUtils/**", "*.test.{j,t}s{x,}"],
+      files: [
+        "**/__mocks__/**",
+        "**/testUtils/**",
+        "*.test.{j,t}s{x,}",
+        "jest.setup.ts",
+      ],
       env: {
         "jest/globals": true,
         node: true,
@@ -379,6 +373,17 @@ module.exports = {
             varsIgnorePattern: "^_+",
           },
         ],
+
+        // Part of @typescript-eslint/recommended-requiring-type-checking
+        // TODO: re-enable
+        "@typescript-eslint/no-unsafe-argument": "off",
+        "@typescript-eslint/no-unsafe-assignment": "off",
+        "@typescript-eslint/no-unsafe-call": "off",
+        "@typescript-eslint/no-unsafe-member-access": "off",
+        "@typescript-eslint/no-unsafe-return": "off",
+        "@typescript-eslint/require-await": "off",
+        "@typescript-eslint/restrict-template-expressions": "off",
+        "@typescript-eslint/unbound-method": "off",
       },
     },
     {
