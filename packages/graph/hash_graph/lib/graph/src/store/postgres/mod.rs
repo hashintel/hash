@@ -1002,13 +1002,17 @@ where
                         owned_by_id, created_by_id, updated_by_id,
                         $2::boolean
                     FROM to_move_to_historic
-                    -- For metadata purposes, we return the entire entity
-                    RETURNING *
+                    -- We only return metadata
+                    RETURNING 
+                        entity_id, version,
+                        entity_type_version_id,
+                        left_order, right_order,
+                        left_entity_id, right_entity_id,
+                        owned_by_id, created_by_id, updated_by_id
                 )
                 SELECT
                     entity_id, inserted_in_historic.version,
                     base_uri, type_ids.version,
-                    properties, -- Unused
                     left_order, right_order,
                     left_entity_id, right_entity_id,
                     owned_by_id, created_by_id, updated_by_id
@@ -1025,10 +1029,10 @@ where
             .change_context(InsertionError)?;
 
         let link_metadata = match (
+            historic_entity.get(4),
             historic_entity.get(5),
             historic_entity.get(6),
             historic_entity.get(7),
-            historic_entity.get(8),
         ) {
             (left_order, right_order, Some(left_entity_id), Some(right_entity_id)) => Some(
                 LinkEntityMetadata::new(left_entity_id, right_entity_id, left_order, right_order),
@@ -1045,11 +1049,11 @@ where
             PersistedEntityIdentifier::new(
                 historic_entity.get(0),
                 historic_entity.get(1),
-                historic_entity.get(9),
+                historic_entity.get(8),
             ),
             entity_type_id,
+            historic_entity.get(9),
             historic_entity.get(10),
-            historic_entity.get(11),
             link_metadata,
         ))
     }
