@@ -28,6 +28,7 @@
     "react-resizable": "^3.0.4"
   },
   "devDependencies": {
+    "@local/tsconfig": "0.0.0-private",
     "block-scripts": "0.0.14",
     "mobx": "6.5.0",
     "mock-block-dock": "0.0.38",

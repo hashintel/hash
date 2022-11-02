@@ -11,6 +11,7 @@
   "dependencies": {
     "@hashintel/hash-backend-utils": "0.0.0",
     "@hashintel/hash-shared": "0.0.0",
+    "@local/tsconfig": "0.0.0-private",
     "@playwright/test": "1.27.1",
     "execa": "5.1.1",
     "js-yaml": "4.1.0",

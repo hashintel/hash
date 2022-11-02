@@ -22,6 +22,7 @@
     "blockprotocol": "0.0.12"
   },
   "devDependencies": {
+    "@local/tsconfig": "0.0.0-private",
     "block-scripts": "0.0.14",
     "eslint": "8.26.0",
     "mock-block-dock": "0.0.10",

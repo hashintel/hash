@@ -227,21 +227,21 @@ export class DummyEmailTransporter implements EmailTransporter {
 
     const maxAllowedRowWidth = process.stdout.columns ?? 40;
     let maxRowWidth = 10;
-    rowsToDisplay.forEach((rowToDisplay) => {
+    for (const rowToDisplay of rowsToDisplay) {
       const rowWidth = rowToDisplay.length;
       if (rowWidth > maxRowWidth && rowWidth <= maxAllowedRowWidth) {
         maxRowWidth = rowWidth;
       }
-    });
+    }
 
     rowsToDisplay.unshift("=".repeat(maxRowWidth));
     rowsToDisplay.unshift("");
     rowsToDisplay.push("=".repeat(maxRowWidth));
     rowsToDisplay.push("");
 
-    rowsToDisplay.forEach((rowToDisplay) => {
+    for (const rowToDisplay of rowsToDisplay) {
       process.stdout.write(`${rowToDisplay}\n`);
-    });
+    }
   }
 
   private async writeEmailsToFile(): Promise<void> {
