@@ -5,4 +5,5 @@ module.exports = {
   rules: {
     "typescript-sort-keys/interface": "error",
   },
+  reportUnusedDisableDirectives: false,
 };
