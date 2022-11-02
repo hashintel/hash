@@ -62,9 +62,7 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
      * so we can get the `labelProperty` for the linked items, and show entityTypes in modal
      * */
     const getEntityTypes = async () => {
-      if (!graphService) {
-        return;
-      }
+      if (!graphService) return;
 
       const { data, errors } = await graphService.aggregateEntityTypes({
         data: {
@@ -72,9 +70,7 @@ export const Shuffle: BlockComponent<BlockEntityProperties> = ({
         },
       });
 
-      if (errors || !data) {
-        return;
-      }
+      if (errors || !data) return;
 
       setEntityTypes(data.results);
     };
