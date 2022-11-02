@@ -965,11 +965,7 @@ where
         ))
     }
 
-    async fn move_entity_to_histories(
-        &self,
-        entity_id: EntityId,
-        archived_by_id: Option<ArchivedById>,
-    ) -> Result<PersistedEntityMetadata, InsertionError> {
+    async fn lock_entity_for_update(&self, entity_id: EntityId) -> Result<(), QueryError> {
         let _latest_entity_lock = self
             .as_client()
             .query_one(
@@ -980,12 +976,25 @@ where
                 r#"
                 SELECT * FROM entities
                 WHERE entity_id = $1
-                FOR UPDATE;"#,
+                FOR UPDATE;
+                "#,
                 &[&entity_id],
             )
             .await
             .into_report()
             .change_context(QueryError);
+
+        Ok(())
+    }
+
+    async fn move_entity_to_histories(
+        &self,
+        entity_id: EntityId,
+        archived_by_id: Option<ArchivedById>,
+    ) -> Result<PersistedEntityMetadata, InsertionError> {
+        self.lock_entity_for_update(entity_id)
+            .await
+            .change_context(InsertionError)?;
 
         let historic_entity = self
             .as_client()
@@ -1002,47 +1011,61 @@ where
                         left_order, right_order,
                         left_entity_id, right_entity_id,
                         owned_by_id, created_by_id, updated_by_id
+                ),
+                inserted_in_archive AS (
+                    -- We immediately put this deleted entity into the historic table.
+                    -- As this should be done in a transaction, we should be safe that this move
+                    -- doesn't produce invalid state.
+                    INSERT INTO entity_histories(
+                        entity_id, version,
+                        entity_type_version_id,
+                        properties,
+                        left_order, right_order,
+                        left_entity_id, right_entity_id,
+                        owned_by_id, created_by_id, updated_by_id, archived
+                    )
+                    SELECT
+                        entity_id, version,
+                        entity_type_version_id,
+                        properties,
+                        left_order, right_order,
+                        left_entity_id, right_entity_id,
+                        owned_by_id, created_by_id,
+                        -- The updated_by_id is conditionally set when not null.
+                        CASE
+                            WHEN $2::uuid is NOT NULL THEN $2
+                            ELSE updated_by_id
+                        END as updated_by_id,
+                        $3
+                    FROM to_archive
+                    -- For metadata purposes, we return the entire entity
+                    RETURNING *
                 )
-                -- We immediately put this deleted entity into the historic table.
-                -- As this should be done in a transaction, we should be safe that this move doesn't
-                -- produce invalid state.
-                INSERT INTO entity_histories(entity_id, version, entity_type_version_id, properties,
-                left_order, right_order, left_entity_id, right_entity_id,
-                owned_by_id, created_by_id, updated_by_id, archived)
-                SELECT 
-                    entity_id, version,
-                    entity_type_version_id,
-                    properties,
-                    left_order, right_order,
-                    left_entity_id, right_entity_id,
-                    owned_by_id, created_by_id, 
-                    -- The updated_by_id is conditionally set when not null
-                    CASE 
-                        WHEN $2 is NOT NULL THEN $2
-                        ELSE updated_by_id
-                    END as updated_by_id,
-                    $3 
-                FROM to_archive
-                -- For metadata purposes, we return the entire entity
-                RETURNING
-                    entity_id, version,
-                    entity_type_version_id,
+                SELECT
+                    entity_id, inserted_in_archive.version,
+                    base_uri, type_ids.version,
                     properties, -- Unused
                     left_order, right_order,
                     left_entity_id, right_entity_id,
-                    owned_by_id, created_by_id, updated_by_id;
+                    owned_by_id, created_by_id, updated_by_id
+                FROM inserted_in_archive
+                INNER JOIN type_ids ON inserted_in_archive.entity_type_version_id = type_ids.version_id;
                 "#,
-                &[&entity_id, &archived_by_id, &archived_by_id.is_some()],
+                &[
+                    &entity_id,
+                    &archived_by_id.map(ArchivedById::as_account_id),
+                    &archived_by_id.is_some(),
+                ],
             )
             .await
             .into_report()
             .change_context(InsertionError)?;
 
         let link_metadata = match (
-            historic_entity.get(4),
             historic_entity.get(5),
             historic_entity.get(6),
             historic_entity.get(7),
+            historic_entity.get(8),
         ) {
             (left_order, right_order, Some(left_entity_id), Some(right_entity_id)) => Some(
                 LinkEntityMetadata::new(left_entity_id, right_entity_id, left_order, right_order),
@@ -1050,19 +1073,20 @@ where
             _ => None,
         };
 
-        let entity_type_id = VersionedUri::from_str(historic_entity.get(2))
+        let base_uri = BaseUri::new(historic_entity.get(2))
             .into_report()
             .change_context(InsertionError)?;
+        let entity_type_id = VersionedUri::new(base_uri, historic_entity.get::<_, i64>(3) as u32);
 
         Ok(PersistedEntityMetadata::new(
             PersistedEntityIdentifier::new(
                 historic_entity.get(0),
                 historic_entity.get(1),
-                historic_entity.get(8),
+                historic_entity.get(9),
             ),
             entity_type_id,
-            historic_entity.get(9),
             historic_entity.get(10),
+            historic_entity.get(11),
             None,
             link_metadata,
         ))
