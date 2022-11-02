@@ -392,24 +392,5 @@ module.exports = {
         "no-console": "off",
       },
     },
-    {
-      files: [
-        "packages/hash/api/**",
-        "packages/hash/backend-utils/**",
-        "packages/hash/realtime/**",
-        "packages/hash/datastore/**",
-        "packages/hash/docker/**",
-        "packages/hash/eslint-config/**",
-        "packages/hash/external-services/**",
-        "packages/hash/integration/**",
-        "packages/hash/search-loader/**",
-        "packages/hash/task-executor/**",
-        "packages/hash/playwright/**",
-      ],
-      rules: {
-        "@typescript-eslint/prefer-nullish-coalescing": ["off"],
-        "unicorn/no-array-for-each": ["off"],
-      },
-    },
   ],
 };

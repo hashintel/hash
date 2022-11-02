@@ -62,9 +62,7 @@ export const AddEntitiesDialog = ({
   }
 
   const handleEntityTypeClick = async (entityType: EntityType) => {
-    if (!graphService) {
-      return;
-    }
+    if (!graphService) return;
 
     const { entityTypeId } = entityType;
 
@@ -73,9 +71,7 @@ export const AddEntitiesDialog = ({
       data: { operation: { entityTypeId, itemsPerPage: 100 } },
     });
 
-    if (!data) {
-      return onClose();
-    }
+    if (!data) return onClose();
 
     const { results: entities } = data;
 
@@ -94,21 +90,15 @@ export const AddEntitiesDialog = ({
   };
 
   const handleAddClick = async () => {
-    if (!graphService) {
-      return;
-    }
+    if (!graphService) return;
 
     // create links for selected entities
     const selectedEntityIds: string[] = [];
     for (const [index, value] of Array.from(selections.entries())) {
-      if (!value) {
-        continue;
-      }
+      if (!value) continue;
 
       const entity = entityList[index];
-      if (entity) {
-        selectedEntityIds.push(entity.entityId);
-      }
+      if (entity) selectedEntityIds.push(entity.entityId);
     }
 
     const createLinkPromises = selectedEntityIds.map((entityId) =>

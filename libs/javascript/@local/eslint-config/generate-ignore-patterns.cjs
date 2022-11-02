@@ -61,6 +61,7 @@ module.exports = (workspaceDirPath) => {
     // Allow certain file types
     "!*.cjs",
     "!*.js",
+    "!*.json",
     "!*.jsx",
     "!*.mjs",
     "!*.ts",

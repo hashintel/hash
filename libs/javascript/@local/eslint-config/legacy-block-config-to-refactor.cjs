@@ -1,6 +1,4 @@
-/**
- * @type {import("eslint").Linter.Config}
- */
+/** @type {import("eslint").Linter.Config} */
 module.exports = {
   plugins: ["@typescript-eslint", "react-hooks", "react", "unicorn"],
   rules: {
