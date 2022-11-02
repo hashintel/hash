@@ -39,7 +39,7 @@ export const drawNestedPropertySummary = (args: DrawArgs<ValueCell>) => {
 
   ctx.strokeStyle = "#C1CFDE";
   ctx.beginPath();
-  drawRoundRect(ctx, left, chipTop, chipWidth, height, height / 2, false, true);
+  drawRoundRect(ctx, left, chipTop, chipWidth, height, height / 2);
   ctx.stroke();
 
   ctx.fillStyle = "#37434F";

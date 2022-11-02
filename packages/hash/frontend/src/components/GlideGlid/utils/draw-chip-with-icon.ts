@@ -35,7 +35,7 @@ export const drawChipWithIcon = (
 
   ctx.fillStyle = bgColor ?? theme.bgBubble;
   ctx.beginPath();
-  drawRoundRect(ctx, left, chipTop, chipWidth, height, height / 2, true, false);
+  drawRoundRect(ctx, left, chipTop, chipWidth, height, height / 2);
   ctx.fill();
 
   args.spriteManager.drawSprite(
