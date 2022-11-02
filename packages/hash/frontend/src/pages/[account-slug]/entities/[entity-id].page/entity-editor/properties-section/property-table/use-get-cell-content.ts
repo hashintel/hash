@@ -17,6 +17,8 @@ export const useGetCellContent = (
     ([col, row]: Item): GridCell => {
       const property = rowData[row];
 
+      const hasChild = !!property?.children.length;
+
       if (!property) {
         throw new Error("property not found");
       }
@@ -43,7 +45,7 @@ export const useGetCellContent = (
         case "value":
           return {
             kind: GridCellKind.Custom,
-            allowOverlay: true,
+            allowOverlay: !hasChild,
             copyData: String(property.value),
             cursor: "pointer",
             data: {
@@ -58,7 +60,7 @@ export const useGetCellContent = (
         case "dataTypes":
           return {
             kind: GridCellKind.Custom,
-            allowOverlay: true,
+            allowOverlay: !hasChild,
             readonly: true,
             copyData: String(property.dataTypes),
             data: {

@@ -6,7 +6,6 @@ import {
 } from "@glideapps/glide-data-grid";
 import { Chip, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { Box } from "@mui/material";
-import { isPlainObject } from "lodash";
 import { drawCellFadeOutGradient } from "../../../../../../../../components/GlideGlid/utils/draw-cell-fade-out-gradient";
 import { drawChipWithIcon } from "../../../../../../../../components/GlideGlid/utils/draw-chip-with-icon";
 import { PropertyRow } from "../types";
@@ -24,9 +23,9 @@ export const renderDataTypeCell: CustomRenderer<DataTypeCell> = {
     (cell.data as any).kind === "data-type-cell",
   draw: (args, cell) => {
     const { theme, rect } = args;
-    const { dataTypes, value } = cell.data.property;
+    const { dataTypes, children } = cell.data.property;
 
-    if (isPlainObject(value)) {
+    if (children.length) {
       return;
     }
 
@@ -45,14 +44,7 @@ export const renderDataTypeCell: CustomRenderer<DataTypeCell> = {
   },
 
   provideEditor: (cell) => {
-    const { dataTypes, value } = cell.data.property;
-
-    /**
-     * @todo instead of doing this, set `allowOverlay=false` in the cell data if type is object
-     */
-    if (isPlainObject(value)) {
-      return;
-    }
+    const { dataTypes } = cell.data.property;
 
     return {
       disablePadding: true,
