@@ -18,7 +18,6 @@ import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
 import { ReactNode, useMemo } from "react";
 import { useForm } from "react-hook-form";
-import { useOrgs } from "../../../../components/hooks/useOrgs";
 import { useBlockProtocolGetEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
 import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
 import { FRONTEND_URL } from "../../../../lib/config";
@@ -75,19 +74,20 @@ const Page: NextPageWithLayout = () => {
 
   const router = useRouter();
   const { authenticatedUser, loading } = useAuthenticatedUser();
-  const { orgs } = useOrgs();
 
   const { getEntityType } = useBlockProtocolGetEntityType();
 
   const shortname = router.query["account-slug"];
 
   const namespace = useMemo(() => {
-    if (authenticatedUser && orgs) {
+    if (authenticatedUser) {
       if (shortname === `@${authenticatedUser.shortname}`) {
         return authenticatedUser.shortname;
       }
 
-      const thisOrg = orgs?.find((org) => `@${org.shortname}` === shortname);
+      const thisOrg = authenticatedUser.memberOf?.find(
+        (org) => `@${org.shortname}` === shortname,
+      );
 
       if (thisOrg) {
         return thisOrg.shortname;
@@ -97,7 +97,7 @@ const Page: NextPageWithLayout = () => {
         `/@${authenticatedUser.shortname}/types/new/entity-type`,
       );
     }
-  }, [authenticatedUser, orgs, shortname, router]);
+  }, [authenticatedUser, shortname, router]);
 
   if (typeSystemLoading || loading || !authenticatedUser || !namespace) {
     return null;
