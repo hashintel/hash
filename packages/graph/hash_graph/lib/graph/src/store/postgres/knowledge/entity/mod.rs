@@ -298,7 +298,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 old_entity_metadata.identifier().owned_by_id(),
                 old_entity_metadata.created_by_id(),
                 updated_by_id,
-                old_entity_metadata.link_metadata().clone(),
+                old_entity_metadata.link_metadata(),
             )
             .await
             .change_context(UpdateError)?;

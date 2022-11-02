@@ -96,7 +96,7 @@ impl PersistedEntityIdentifier {
 }
 
 /// The associated information for 'Link' entities
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct LinkEntityMetadata {
     left_entity_id: EntityId,
@@ -199,8 +199,8 @@ impl PersistedEntityMetadata {
     }
 
     #[must_use]
-    pub const fn link_metadata(&self) -> &Option<LinkEntityMetadata> {
-        &self.link_metadata
+    pub const fn link_metadata(&self) -> Option<LinkEntityMetadata> {
+        self.link_metadata
     }
 }
 
