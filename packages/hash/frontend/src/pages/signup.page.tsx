@@ -201,7 +201,7 @@ const SignupPage: NextPageWithLayout = () => {
 
   const { authenticatedUser } = useAuthenticatedUser();
 
-  const { updateAuthenticatedUser, loading: updateUserLoading } =
+  const [updateAuthenticatedUser, { loading: updateUserLoading }] =
     useUpdateAuthenticatedUser();
 
   const [invitationInfo] = useState<null>(null);
