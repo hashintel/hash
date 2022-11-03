@@ -1,5 +1,5 @@
 import { isPlainObject } from "lodash";
-import { isUnknownObject } from "../../../../../../../../../../../shared/src/util";
+import { isUnknownObject } from "@hashintel/hash-shared/src/util";
 import {
   getPropertyTypesByBaseUri,
   RootEntityAndSubgraph,

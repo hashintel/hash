@@ -8,10 +8,7 @@ import {
   getYCenter,
 } from "../../../../../../../../components/GlideGlid/utils";
 import { drawCellFadeOutGradient } from "../../../../../../../../components/GlideGlid/utils/draw-cell-fade-out-gradient";
-import {
-  drawVerticalIndentationLine,
-  VerticalIndentationLineDir,
-} from "../../../../../../../../components/GlideGlid/utils/draw-vertical-indentation-line";
+import { drawVerticalIndentationLine } from "../../../../../../../../components/GlideGlid/utils/draw-vertical-indentation-line";
 import { TableExpandStatus } from "../../../entity-editor-context";
 import { PropertyRow } from "../types";
 
