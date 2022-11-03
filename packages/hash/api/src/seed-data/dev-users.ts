@@ -10,27 +10,18 @@ type DevelopmentUser = {
   email: string;
   shortname: string;
   preferredName: string;
-  isInstanceAdmin: boolean;
 };
 
 const devUsers: readonly DevelopmentUser[] = [
   {
-    email: "admin@exmple.com",
-    shortname: "instance-admin",
-    preferredName: "Instance Admin",
-    isInstanceAdmin: true,
-  },
-  {
     email: "alice@example.com",
     shortname: "alice",
     preferredName: "Alice",
-    isInstanceAdmin: false,
   },
   {
     email: "bob@example.com",
     shortname: "bob01",
     preferredName: "Bob",
-    isInstanceAdmin: false,
   },
 ] as const;
 
@@ -45,10 +36,16 @@ export const ensureDevUsersAreSeeded = async ({
 }): Promise<UserModel[]> => {
   const createdUsers = [];
 
-  for (const { email, shortname, preferredName, isInstanceAdmin } of devUsers) {
+  for (const { email, shortname, preferredName } of devUsers) {
     const maybeNewIdentity = await createKratosIdentity({
       traits: { emails: [email] },
-      credentials: { password: { config: { password: devPassword } } },
+      credentials: {
+        password: {
+          config: {
+            password: devPassword,
+          },
+        },
+      },
     }).catch((error: AxiosError) => {
       if (error.response?.status === 409) {
         // The user already exists on 409 CONFLICT, which is fine
@@ -69,7 +66,6 @@ export const ensureDevUsersAreSeeded = async ({
         emails,
         kratosIdentityId,
         actorId: workspaceAccountId,
-        isInstanceAdmin,
       });
 
       user = await user.updateShortname(graphApi, {

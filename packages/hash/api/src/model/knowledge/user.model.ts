@@ -24,7 +24,6 @@ type UserModelCreateParams = Omit<
 > & {
   emails: string[];
   kratosIdentityId: string;
-  isInstanceAdmin?: boolean;
 };
 
 /**
@@ -133,18 +132,12 @@ export default class extends EntityModel {
    *
    * @param params.emails - the emails of the user
    * @param params.kratosIdentityId - the kratos identity id of the user
-   * @param params.isInstanceAdmin (optional) - whether or not the user is an instance admin of the workspace (defaults to `false`)
    */
   static async createUser(
     graphApi: GraphApi,
     params: UserModelCreateParams,
   ): Promise<UserModel> {
-    const {
-      emails,
-      kratosIdentityId,
-      actorId,
-      isInstanceAdmin = false,
-    } = params;
+    const { emails, kratosIdentityId, actorId } = params;
 
     const existingUserWithKratosIdentityId =
       await UserModel.getUserByKratosIdentityId(graphApi, {
@@ -162,7 +155,6 @@ export default class extends EntityModel {
     const properties: object = {
       [WORKSPACE_TYPES.propertyType.email.baseUri]: emails,
       [WORKSPACE_TYPES.propertyType.kratosIdentityId.baseUri]: kratosIdentityId,
-      [WORKSPACE_TYPES.propertyType.isInstanceAdmin.baseUri]: isInstanceAdmin,
       [WORKSPACE_TYPES.propertyType.shortName.baseUri]: undefined,
       [WORKSPACE_TYPES.propertyType.preferredName.baseUri]: undefined,
     };
@@ -458,11 +450,5 @@ export default class extends EntityModel {
   isAccountSignupComplete(): boolean {
     /** @todo: check they have a verified email address */
     return !!this.getShortname() && !!this.getPreferredName();
-  }
-
-  get isInstanceAdmin(): boolean {
-    return (this.properties as any)[
-      WORKSPACE_TYPES.propertyType.isInstanceAdmin.baseUri
-    ];
   }
 }
