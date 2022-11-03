@@ -68,16 +68,25 @@ impl ToSchema for Vertex {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, ToSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum EdgeKind {
-    /// A type can inherit from another type
+    /// An [`OntologyType`] can inherit from another [`OntologyType`]
     InheritsFrom,
-    /// There is a link entity from this entity
+    /// This [`Entity`] has an outgoing [`Link`] [`Entity`]
     HasLink,
-    /// There is an entity from this link entity
-    HasDestination,
-    /// An entity is of an entity type
+    /// This [`Link`] [`Entity`] has another [`Entity`] at its end
+    HasEndpoint,
+    /// An [`Entity`] is of an [`EntityType`]
     IsType,
-    /// A type can reference another type
-    References,
+    /// A [`PropertyType`] or [`DataType`] can reference a [`DataType`] to constrain values
+    ConstrainsValuesOn,
+    /// An [`EntityType`] or [`PropertyType`] can reference a [`PropertyType`] to constrain
+    /// properties
+    ConstrainsPropertiesOn,
+    /// An [`EntityType`] can reference a [`Link`] [`EntityType`] to constrain the existence of
+    /// certain kinds of [`Link`]s
+    ConstrainsLinksOn,
+    /// An [`EntityType`] can reference an [`EntityType`] to constrain the target entities of
+    /// certain kinds of [`Link`]s
+    ConstrainsLinkDestinationsOn,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, ToSchema)]
