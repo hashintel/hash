@@ -1,5 +1,7 @@
+/** @type {import("eslint").Linter.Config} */
 module.exports = {
-  extends: ["@hashintel/eslint-config/block"],
+  root: true,
+  extends: ["@local/eslint-config/block.cjs"],
   parserOptions: {
     tsconfigRootDir: __dirname,
     project: ["tsconfig.json"],
