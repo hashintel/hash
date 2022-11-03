@@ -9,7 +9,7 @@ import {
 } from "react";
 import { useBlockProtocolAggregatePropertyTypes } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregatePropertyTypes";
 import { getPersistedPropertyType } from "../../../../lib/subgraph";
-import { useAdvancedInitTypeSystem } from "../../../../lib/use-init-type-system";
+import { useInitTypeSystem } from "../../../../lib/use-init-type-system";
 import { mustBeVersionedUri } from "./util";
 
 type PropertyTypesContextValues = {
@@ -18,7 +18,7 @@ type PropertyTypesContextValues = {
 };
 
 export const usePropertyTypesContextValue = () => {
-  const [typeSystemLoading] = useAdvancedInitTypeSystem();
+  const typeSystemLoading = useInitTypeSystem();
   const [propertyTypes, setPropertyTypes] = useState<
     PropertyTypesContextValues["types"] | null
   >(null);

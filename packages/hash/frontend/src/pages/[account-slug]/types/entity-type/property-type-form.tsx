@@ -5,7 +5,7 @@ import { types } from "@hashintel/hash-shared/types";
 import { Box, Divider, inputLabelClasses, Stack } from "@mui/material";
 import { useForm } from "react-hook-form";
 import { useBlockProtocolCreatePropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreatePropertyType";
-import { useUser } from "../../../../components/hooks/useUser";
+import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
 import { QuestionIcon } from "./question-icon";
 import { useRefetchPropertyTypes } from "./use-property-types";
 
@@ -36,10 +36,10 @@ export const PropertyTypeForm = ({
     defaultValues: { name: initialTitle },
   });
 
-  const { user } = useUser();
+  const { authenticatedUser } = useAuthenticatedUser();
   // @todo namespace accounts?
   const { createPropertyType } = useBlockProtocolCreatePropertyType(
-    user?.accountId ?? "",
+    authenticatedUser?.entityId ?? "",
   );
 
   const handleSubmit = wrapHandleSubmit(async (data) => {
