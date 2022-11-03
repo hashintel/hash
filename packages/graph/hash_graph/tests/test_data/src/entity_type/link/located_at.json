@@ -1,0 +1,13 @@
+{
+  "kind": "entityType",
+  "$id": "https://blockprotocol.org/@alice/types/entity-type/located-at/v/1",
+  "type": "object",
+  "title": "Located At",
+  "description": "Residing at a specific position",
+  "allOf": [
+    {
+      "$ref": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1"
+    }
+  ],
+  "properties": {}
+}

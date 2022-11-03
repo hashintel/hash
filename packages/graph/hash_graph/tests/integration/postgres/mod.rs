@@ -6,25 +6,24 @@ mod property_type;
 
 use std::{borrow::Cow, str::FromStr};
 
-use error_stack::{Report, Result};
+use error_stack::Result;
 use graph::{
     identifier::AccountId,
     knowledge::{
-        Entity, EntityId, Link, LinkQueryPath, PersistedEntity, PersistedEntityMetadata,
-        PersistedLink,
+        Entity, EntityId, EntityQueryPath, LinkEntityMetadata, LinkOrder, PersistedEntity,
+        PersistedEntityMetadata,
     },
     ontology::{
-        LinkTypeQueryPath, PersistedDataType, PersistedEntityType, PersistedOntologyMetadata,
+        EntityTypeQueryPath, PersistedDataType, PersistedEntityType, PersistedOntologyMetadata,
         PersistedPropertyType,
     },
-    provenance::{CreatedById, OwnedById, RemovedById, UpdatedById},
+    provenance::{CreatedById, OwnedById, UpdatedById},
     shared::identifier::GraphElementIdentifier,
     store::{
-        error::LinkRemovalError,
         query::{Filter, FilterExpression, Parameter},
         AccountStore, AsClient, DataTypeStore, DatabaseConnectionInfo, DatabaseType, EntityStore,
-        EntityTypeStore, InsertionError, LinkStore, PostgresStore, PostgresStorePool,
-        PropertyTypeStore, QueryError, StorePool, UpdateError,
+        EntityTypeStore, InsertionError, PostgresStore, PostgresStorePool, PropertyTypeStore,
+        QueryError, StorePool, UpdateError,
     },
     subgraph::{GraphResolveDepths, StructuralQuery, Vertex},
 };
@@ -277,11 +276,12 @@ impl DatabaseApi<'_> {
                 OwnedById::new(self.account_id),
                 entity_id,
                 CreatedById::new(self.account_id),
+                None,
             )
             .await
     }
 
-    pub async fn get_entity(&mut self, entity_id: EntityId) -> Result<PersistedEntity, QueryError> {
+    pub async fn get_entity(&self, entity_id: EntityId) -> Result<PersistedEntity, QueryError> {
         let vertex = self
             .store
             .get_entity(&StructuralQuery {
@@ -315,107 +315,117 @@ impl DatabaseApi<'_> {
             .await
     }
 
-    async fn create_link(
+    async fn create_link_entity(
         &mut self,
-        source_entity_id: EntityId,
-        target_entity_id: EntityId,
-        link_type_id: VersionedUri,
-    ) -> Result<(), InsertionError> {
-        let link = Link::new(source_entity_id, target_entity_id, link_type_id, None);
+        entity: Entity,
+        entity_type_id: VersionedUri,
+        entity_id: Option<EntityId>,
+        left_entity_id: EntityId,
+        right_entity_id: EntityId,
+    ) -> Result<PersistedEntityMetadata, InsertionError> {
         self.store
-            .create_link(
-                &link,
+            .create_entity(
+                entity,
+                entity_type_id,
                 OwnedById::new(self.account_id),
+                entity_id,
                 CreatedById::new(self.account_id),
+                Some(LinkEntityMetadata::new(
+                    left_entity_id,
+                    right_entity_id,
+                    None,
+                    None,
+                )),
             )
             .await
     }
 
-    async fn create_ordered_link(
-        &mut self,
-        source_entity_id: EntityId,
-        target_entity_id: EntityId,
-        link_type_id: VersionedUri,
-        index: i32,
-    ) -> Result<(), InsertionError> {
-        let link = Link::new(
-            source_entity_id,
-            target_entity_id,
-            link_type_id,
-            Some(index),
-        );
-        self.store
-            .create_link(
-                &link,
-                OwnedById::new(self.account_id),
-                CreatedById::new(self.account_id),
-            )
-            .await
-    }
-
-    pub async fn get_link_target(
+    pub async fn get_link_entity_target(
         &self,
         source_entity_id: EntityId,
         link_type_id: VersionedUri,
-    ) -> Result<PersistedLink, QueryError> {
-        Ok(self
-            .store
-            .get_links(&StructuralQuery {
-                filter: Filter::All(vec![
-                    Filter::for_link_by_latest_source_entity(source_entity_id),
-                    Filter::Equal(
-                        Some(FilterExpression::Path(LinkQueryPath::Type(
-                            LinkTypeQueryPath::BaseUri,
-                        ))),
-                        Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                            link_type_id.base_uri().as_str(),
-                        )))),
-                    ),
-                    Filter::Equal(
-                        Some(FilterExpression::Path(LinkQueryPath::Type(
-                            LinkTypeQueryPath::Version,
-                        ))),
-                        Some(FilterExpression::Parameter(Parameter::SignedInteger(
-                            link_type_id.version().into(),
-                        ))),
-                    ),
-                ]),
+    ) -> Result<PersistedEntity, QueryError> {
+        let filter = Filter::All(vec![
+            Filter::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(Some(
+                    Box::new(EntityQueryPath::Id),
+                )))),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    source_entity_id.as_uuid(),
+                ))),
+            ),
+            Filter::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::Type(
+                    EntityTypeQueryPath::BaseUri,
+                ))),
+                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                    link_type_id.base_uri().as_str(),
+                )))),
+            ),
+            Filter::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::Type(
+                    EntityTypeQueryPath::Version,
+                ))),
+                Some(FilterExpression::Parameter(Parameter::SignedInteger(
+                    link_type_id.version().into(),
+                ))),
+            ),
+        ]);
+
+        self.store
+            .get_entity(&StructuralQuery {
+                filter,
                 graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
             .await?
-            .pop()
-            .ok_or_else(|| Report::new(QueryError).attach_printable("no link found"))?
-            .link
-            .clone())
+            .vertices
+            .into_iter()
+            .map(|(_, vertex)| match vertex {
+                Vertex::Entity(persisted_entity) => Ok(persisted_entity),
+                _ => unreachable!(),
+            })
+            .next()
+            .expect("no entity found")
     }
 
     pub async fn get_entity_links(
         &self,
         source_entity_id: EntityId,
-    ) -> Result<Vec<PersistedLink>, QueryError> {
+    ) -> Result<Vec<PersistedEntity>, QueryError> {
+        let filter = Filter::Equal(
+            Some(FilterExpression::Path(EntityQueryPath::LeftEntity(None))),
+            Some(FilterExpression::Parameter(Parameter::Uuid(
+                source_entity_id.as_uuid(),
+            ))),
+        );
+
         Ok(self
             .store
-            .get_links(&StructuralQuery {
-                filter: Filter::for_link_by_latest_source_entity(source_entity_id),
+            .get_entity(&StructuralQuery {
+                filter,
                 graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
             .await?
+            .vertices
             .into_iter()
-            .map(|link_rooted_subgraph| link_rooted_subgraph.link)
+            .map(|(_, vertex)| match vertex {
+                Vertex::Entity(persisted_entity) => persisted_entity,
+                _ => unreachable!(),
+            })
             .collect())
     }
 
-    async fn remove_link(
-        &mut self,
-        source_entity_id: EntityId,
-        target_entity_id: EntityId,
-        link_type_id: VersionedUri,
-    ) -> Result<(), LinkRemovalError> {
-        let link = Link::new(source_entity_id, target_entity_id, link_type_id, None);
-        self.store
-            .remove_link(&link, RemovedById::new(self.account_id))
-            .await
-    }
+    // async fn remove_link_entity(
+    //     &mut self,
+    //     source_entity_id: EntityId,
+    //     target_entity_id: EntityId,
+    //     link_type_id: VersionedUri,
+    // ) -> Result<(), LinkRemovalError> {
+    //     let link = Link::new(source_entity_id, target_entity_id, link_type_id, None);
+    //     self.store
+    //         .remove_link(&link, RemovedById::new(self.account_id))
+    //         .await
+    // }
 }
 
 #[tokio::test]

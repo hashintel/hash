@@ -44,12 +44,26 @@ impl fmt::Display for EntityId {
 #[postgres(transparent)]
 pub struct LinkOrder(i32);
 
+impl LinkOrder {
+    #[must_use]
+    pub const fn new(order: i32) -> Self {
+        Self(order)
+    }
+}
+
 /// An entity.
 ///
 /// When expressed as JSON, this should validate against its respective entity type(s).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[schema(value_type = Object)]
 pub struct Entity(HashMap<BaseUri, serde_json::Value>);
+
+impl Entity {
+    #[must_use]
+    pub fn empty() -> Self {
+        Self(HashMap::new())
+    }
+}
 
 impl Entity {
     #[must_use]
