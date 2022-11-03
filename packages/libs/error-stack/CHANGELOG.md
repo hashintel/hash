@@ -7,7 +7,7 @@ All notable changes to `error-stack` will be documented in this file.
 - Support for [`serde`](https://serde.rs) (`Serialize` only)
 - Support for [`defmt`](https://defmt.ferrous-systems.com)
 
-## [0.2.4](https://github.com/hashintel/hash/tree/error-stack%400.2.3/packages/libs/error-stack) - 2022-11-03
+## [0.2.4](https://github.com/hashintel/hash/tree/error-stack%400.2.4/packages/libs/error-stack) - 2022-11-03
 
 - The output of [`Location`](https://doc.rust-lang.org/std/panic/struct.Location.html) is no longer hard-coded and can now be adjusted through hooks. ([#1237](https://github.com/hashintel/hash/pull/1237))
 - The `TypeId` of a value contained in a `Frame` can now be accessed via `Frame::type_id` ([#1289](https://github.com/hashintel/hash/pull/1289))
