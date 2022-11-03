@@ -24,7 +24,6 @@ export const generatePropertyRowsFromEntity = (
       [propertyTypeBaseUri],
       rootEntityAndSubgraph,
       requiredPropertyTypes,
-      0,
     ),
   );
 };

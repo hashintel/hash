@@ -2,7 +2,7 @@ import { CustomCell } from "@glideapps/glide-data-grid";
 import type { DrawArgs } from "@glideapps/glide-data-grid/dist/ts/data-grid/cells/cell-types";
 import { getYCenter } from "../utils";
 
-export type VerticalIndentationLineDir = "up" | "down" | "full" | "none";
+export type VerticalIndentationLineDir = "up" | "down" | "full";
 
 /**
  * A helper function that draws vertical indentation lines
@@ -12,10 +12,6 @@ export const drawVerticalIndentationLine = (
   left: number,
   dir: VerticalIndentationLineDir,
 ) => {
-  if (dir === "none") {
-    return;
-  }
-
   const { rect, ctx } = args;
 
   const yTop = rect.y;

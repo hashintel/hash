@@ -79,15 +79,17 @@ export const createRenderPropertyNameCell = (
       // draw vertical indentation lines for each indentation level
       if (depth || children.length) {
         for (let i = 0; i < verticalLinesForEachIndent.length; i++) {
-          const dir = verticalLinesForEachIndent[
-            i
-          ] as VerticalIndentationLineDir;
+          const dir = verticalLinesForEachIndent[i];
 
-          const indentationLevel = i;
-          const lineLeft =
-            rect.x + columnPadding + indentMultiplier * (indentationLevel - 1);
+          if (dir) {
+            const indentationLevel = i;
+            const lineLeft =
+              rect.x +
+              columnPadding +
+              indentMultiplier * (indentationLevel - 1);
 
-          drawVerticalIndentationLine(args, lineLeft, dir);
+            drawVerticalIndentationLine(args, lineLeft, dir);
+          }
         }
       }
 

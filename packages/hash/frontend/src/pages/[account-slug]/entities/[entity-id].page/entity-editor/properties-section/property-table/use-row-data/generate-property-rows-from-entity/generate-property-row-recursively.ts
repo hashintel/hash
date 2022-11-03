@@ -78,6 +78,7 @@ export const generatePropertyRowRecursively = (
           [...propertyKeyChain, subPropertyTypeBaseUri],
           rootEntityAndSubgraph,
           requiredPropertyTypes,
+          depth + 1,
         ),
       );
     }
