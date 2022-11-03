@@ -1,6 +1,6 @@
 import { AxiosError } from "axios";
 
-import { EntityType } from "@blockprotocol/type-system-web";
+import { EntityType, VersionedUri } from "@blockprotocol/type-system-web";
 import {
   GraphApi,
   PersistedEntityType,
@@ -31,7 +31,7 @@ export type EntityTypeModelCreateParams = {
 export default class {
   ownedById: string;
 
-  schema: EntityType;
+  schema: EntityType & { $id: VersionedUri };
 
   createdById: string;
   updatedById: string;
@@ -45,7 +45,11 @@ export default class {
     removedById,
   }: EntityTypeModelConstructorParams) {
     this.ownedById = ownedById;
-    this.schema = schema;
+    /**
+     * @todo: remove this casting when we update the type system package
+     * @see https://app.asana.com/0/1201095311341924/1203259817761581/f
+     */
+    this.schema = schema as EntityType & { $id: VersionedUri };
 
     this.createdById = createdById;
     this.updatedById = updatedById;

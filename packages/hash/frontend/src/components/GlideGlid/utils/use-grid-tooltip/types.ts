@@ -1,6 +1,6 @@
 import { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
+import type { CustomIcon } from "@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites";
 import { ReactElement } from "react";
-import { CustomGridIcon } from "../custom-grid-icons";
 
 export type GridTooltip = {
   col: number;
@@ -11,7 +11,7 @@ export type GridTooltip = {
 
 export type CellTooltipData = {
   text: string;
-  icon: CustomGridIcon;
+  icon: CustomIcon;
 };
 
 export interface TooltipCellProps {

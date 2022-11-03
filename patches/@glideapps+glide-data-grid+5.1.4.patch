@@ -1,0 +1,28 @@
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites.d.ts b/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites.d.ts
+index f13ff02..034dfeb 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites.d.ts
++++ b/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites.d.ts
+@@ -1,6 +1,13 @@
+ import type { Theme } from "../common/styles";
+ import { HeaderIconMap } from "./sprites";
+ declare type HeaderIcon = keyof HeaderIconMap;
++export declare type CustomIcon =
++  | "bpLabel"
++  | "bpError"
++  | "bpAsteriskCircle"
++  | "bpAsterisk"
++  | "bpChevronRight"
++  | "bpChevronDown";
+ declare type Sprite = HeaderIconMap["headerArray"];
+ /** @category Columns */
+ export declare type SpriteMap = Record<string | HeaderIcon, Sprite>;
+@@ -13,7 +20,7 @@ export declare class SpriteManager {
+     private headerIcons;
+     private inFlight;
+     constructor(headerIcons: SpriteMap | undefined, onSettled: () => void);
+-    drawSprite(sprite: HeaderIcon | string, variant: SpriteVariant, ctx: CanvasRenderingContext2D, x: number, y: number, size: number, theme: Theme, alpha?: number): void;
++    drawSprite(sprite: HeaderIcon | CustomIcon, variant: SpriteVariant, ctx: CanvasRenderingContext2D, x: number, y: number, size: number, theme: Theme, alpha?: number): void;
+ }
+ export {};
+ //# sourceMappingURL=data-grid-sprites.d.ts.map
+\ No newline at end of file
