@@ -24,7 +24,6 @@ import {
 } from "./pages";
 import { createUser } from "./user/createUser";
 import { createUserWithOrgEmailInvitation } from "./user/createUserWithOrgEmailInvitation";
-import { updateUser } from "./user/updateUser";
 import { createOrg } from "./org/createOrg";
 import { orgLinkedEntities } from "./org/linkedEntities";
 import { accountSignupComplete } from "./user/accountSignupComplete";
@@ -219,8 +218,6 @@ export const resolvers = {
     ),
     joinOrg: loggedInAndSignedUp(joinOrg),
     requestFileUpload: loggedInAndSignedUp(requestFileUpload),
-    // Logged in users only
-    updateUser: loggedIn(updateUser),
     // Any user
     createUser,
     createUserWithOrgEmailInvitation,
@@ -240,7 +237,7 @@ export const resolvers = {
     updateEntityType: loggedInAndSignedUp(updateEntityType),
     // Knowledge
     createPersistedEntity: loggedInAndSignedUp(createPersistedEntity),
-    updatePersistedEntity: loggedInAndSignedUp(updatePersistedEntity),
+    updatePersistedEntity: loggedIn(updatePersistedEntity),
     createPersistedLink: loggedInAndSignedUp(createPersistedLink),
     deletePersistedLink: loggedInAndSignedUp(deletePersistedLink),
     createPersistedPage: loggedInAndSignedUp(createPersistedPage),

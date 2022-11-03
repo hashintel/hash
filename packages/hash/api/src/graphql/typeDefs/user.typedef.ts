@@ -110,12 +110,6 @@ export const userTypedef = gql`
     isShortnameTaken(shortname: String!): Boolean!
   }
 
-  input UpdateUserProperties {
-    shortname: String
-    preferredName: String
-    usingHow: WayToUseHASH
-  }
-
   enum LogoutResponse {
     SUCCESS
   }
@@ -141,11 +135,6 @@ export const userTypedef = gql`
       orgEntityId: ID!
       invitationEmailToken: String!
     ): User!
-
-    """
-    Update a user
-    """
-    updateUser(userEntityId: ID!, properties: UpdateUserProperties!): User!
 
     """
     Verifies a user's email address using a previously generated verification code
