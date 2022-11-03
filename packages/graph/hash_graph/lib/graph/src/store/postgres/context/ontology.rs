@@ -58,7 +58,7 @@ where
     let owned_by_id = OwnedById::new(row.get(1));
     let created_by_id = CreatedById::new(row.get(2));
     let updated_by_id = UpdatedById::new(row.get(3));
-    let removed_by_id = row.get::<_, Option<AccountId>>(5).map(RemovedById::new);
+    let removed_by_id = row.get::<_, Option<AccountId>>(4).map(RemovedById::new);
 
     Ok(OntologyRecord {
         record,
