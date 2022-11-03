@@ -1,3 +1,4 @@
+import { TypeMismatchError } from "../../../../lib/error";
 import { OrgModel, PageModel, UserModel } from "../../../../model";
 
 import {
@@ -72,7 +73,7 @@ export const persistedPages: ResolverFn<
   const accountModel = ownedById
     ? await UserModel.getUserById(graphApi, { entityId: ownedById }).catch(
         (error: Error) => {
-          if (error.message.includes("not a workspace user")) {
+          if (error instanceof TypeMismatchError) {
             return OrgModel.getOrgById(graphApi, { entityId: ownedById });
           }
           throw error;

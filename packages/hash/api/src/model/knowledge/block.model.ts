@@ -6,6 +6,7 @@ import {
   CommentModel,
 } from "..";
 import { WORKSPACE_TYPES } from "../../graph/workspace-types";
+import { TypeMismatchError } from "../../lib/error";
 
 type BlockModelCreateParams = Omit<
   EntityModelCreateParams,
@@ -24,7 +25,7 @@ export default class extends EntityModel {
       entity.entityTypeModel.schema.$id !==
       WORKSPACE_TYPES.entityType.block.schema.$id
     ) {
-      throw new Error(
+      throw new TypeMismatchError(
         `Entity with id ${entity.entityId} is not a workspace block`,
       );
     }
