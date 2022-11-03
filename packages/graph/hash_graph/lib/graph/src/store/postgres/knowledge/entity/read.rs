@@ -95,6 +95,9 @@ impl<C: AsClient> crud::Read<PersistedEntity> for PostgresStore<C> {
                     row.get(created_by_id_index),
                     row.get(updated_by_id_index),
                     link_metadata,
+                    // TODO: only the historic table would have an `archived` field.
+                    //   Consider what we should do about that.
+                    false,
                 ))
             })
             .try_collect()

@@ -942,6 +942,9 @@ where
             created_by_id,
             updated_by_id,
             link_metadata,
+            // TODO: only the historic table would have an `archived` field.
+            //   Consider what we should do about that.
+            false,
         ))
     }
 
@@ -1079,6 +1082,9 @@ where
             historic_entity.get(9),
             historic_entity.get(10),
             link_metadata,
+            // TODO: only the historic table would have an `archived` field.
+            //   Consider what we should do about that.
+            false,
         ))
     }
 

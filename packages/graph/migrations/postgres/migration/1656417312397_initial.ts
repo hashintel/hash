@@ -505,8 +505,7 @@ DROP TABLE IF EXISTS entity_type_property_type_references CASCADE;
 DROP TABLE IF EXISTS entity_type_entity_type_references CASCADE;
 DROP TABLE IF EXISTS entity_ids CASCADE;
 DROP TABLE IF EXISTS entities CASCADE;
-DROP TABLE IF EXISTS entity_relations CASCADE;
-DROP TABLE IF EXISTS entity_relation_histories CASCADE;
+DROP TABLE IF EXISTS entity_histories CASCADE;
 DROP TABLE IF EXISTS accounts CASCADE;
 DROP TABLE IF EXISTS ids CASCADE;
 */

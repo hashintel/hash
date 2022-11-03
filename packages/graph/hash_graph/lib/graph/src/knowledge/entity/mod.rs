@@ -158,6 +158,7 @@ pub struct PersistedEntityMetadata {
     updated_by_id: UpdatedById,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     link_metadata: Option<LinkEntityMetadata>,
+    archived: bool,
 }
 
 impl PersistedEntityMetadata {
@@ -168,6 +169,7 @@ impl PersistedEntityMetadata {
         created_by_id: CreatedById,
         updated_by_id: UpdatedById,
         link_metadata: Option<LinkEntityMetadata>,
+        archived: bool,
     ) -> Self {
         Self {
             identifier,
@@ -175,6 +177,7 @@ impl PersistedEntityMetadata {
             created_by_id,
             updated_by_id,
             link_metadata,
+            archived,
         }
     }
 
@@ -202,6 +205,11 @@ impl PersistedEntityMetadata {
     pub const fn link_metadata(&self) -> Option<LinkEntityMetadata> {
         self.link_metadata
     }
+
+    #[must_use]
+    pub const fn archived(&self) -> bool {
+        self.archived
+    }
 }
 
 /// A record of an [`Entity`] that has been persisted in the datastore, with its associated
@@ -222,6 +230,7 @@ impl PersistedEntity {
         created_by_id: CreatedById,
         updated_by_id: UpdatedById,
         link_metadata: Option<LinkEntityMetadata>,
+        archived: bool,
     ) -> Self {
         Self {
             inner,
@@ -231,6 +240,7 @@ impl PersistedEntity {
                 created_by_id,
                 updated_by_id,
                 link_metadata,
+                archived,
             ),
         }
     }
