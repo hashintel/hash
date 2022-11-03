@@ -950,6 +950,12 @@ where
     //   need that.
     //   see: https://app.asana.com/0/1201095311341924/1203214689883091/f
     async fn lock_entity_for_update(&self, entity_id: EntityId) -> Result<(), QueryError> {
+        // TODO - address potential serializability issue.
+        //   We don't have a data race per se, but the transaction isolation level of postgres would
+        //   make new entries of the `entities` table inaccessible to peer lock-waiters.
+        //   https://www.postgresql.org/docs/9.2/transaction-iso.html#XACT-READ-COMMITTED
+        //   https://app.asana.com/0/1202805690238892/1203201674100967/f
+
         self.as_client()
             .query_one(
                 // TODO: consider if this row locking is problematic with Citus.

@@ -283,10 +283,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .await
             .change_context(UpdateError)?;
 
-        // TODO - address potential race condition.
-        //  Note that the race condition may have been sorted out with the links rewrite.
-        //  https://app.asana.com/0/1202805690238892/1203201674100967/f
-
         let old_entity_metadata = transaction
             .move_entity_to_histories(entity_id, HistoricMove::ForNewVersion)
             .await
@@ -321,7 +317,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         _owned_by_id: OwnedById,
         actor_id: UpdatedById,
     ) -> Result<(), ArchivalError> {
-        let mut transaction = PostgresStore::new(
+        let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()
                 .await
@@ -334,21 +330,33 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .await
             .change_context(ArchivalError)?;
 
-        let previous_entity: PersistedEntity = transaction
+        // Prepare to create a new history entry to mark archival
+        let old_entity: PersistedEntity = transaction
             .read_one(&Filter::for_latest_entity_by_entity_id(entity_id))
             .await
             .change_context(ArchivalError)?;
 
+        // Move current latest edition to the historic table
         transaction
-            .update_entity(
+            .move_entity_to_histories(entity_id, HistoricMove::ForNewVersion)
+            .await
+            .change_context(ArchivalError)?;
+
+        // Insert latest edition to be the historic archival marker
+        transaction
+            .insert_entity(
                 entity_id,
-                previous_entity.inner().clone(),
-                previous_entity.metadata().entity_type_id().clone(),
+                old_entity.inner().clone(),
+                old_entity.metadata().entity_type_id().clone(),
+                old_entity.metadata().identifier().owned_by_id(),
+                old_entity.metadata().created_by_id(),
                 actor_id,
+                old_entity.metadata().link_metadata(),
             )
             .await
             .change_context(ArchivalError)?;
 
+        // Archive latest edition, leaving nothing from the entity behind.
         transaction
             .move_entity_to_histories(entity_id, HistoricMove::ForArchival)
             .await
