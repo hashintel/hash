@@ -23,12 +23,16 @@ export const useRowData = () => {
     [rowData, propertySort],
   );
 
-  const flattenedRowData = flattenExpandedItemsOfTree(
-    sortedRowData,
-    propertyExpandStatus,
-  );
+  const flattenedAndFilledRowData = useMemo(() => {
+    const flattenedRowData = flattenExpandedItemsOfTree(
+      sortedRowData,
+      propertyExpandStatus,
+    );
 
-  fillRowDataIndentCalculations(flattenedRowData);
+    fillRowDataIndentCalculations(flattenedRowData);
 
-  return flattenedRowData;
+    return flattenedRowData;
+  }, [sortedRowData, propertyExpandStatus]);
+
+  return flattenedAndFilledRowData;
 };
