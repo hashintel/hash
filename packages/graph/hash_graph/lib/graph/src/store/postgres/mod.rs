@@ -945,6 +945,10 @@ where
         ))
     }
 
+    // TODO: We should be querying with an `owned_by_id` as part of the entity identifier.
+    //   This is especially important for making these queries single-shard Citus queries when we
+    //   need that.
+    //   see: https://app.asana.com/0/1201095311341924/1203214689883091/f
     async fn lock_entity_for_update(&self, entity_id: EntityId) -> Result<(), QueryError> {
         self.as_client()
             .query_one(
@@ -966,6 +970,10 @@ where
         Ok(())
     }
 
+    // TODO: We should be querying with an `owned_by_id` as part of the entity identifier.
+    //   This is especially important for making these queries single-shard Citus queries when we
+    //   need that.
+    //   see: https://app.asana.com/0/1201095311341924/1203214689883091/f
     async fn move_entity_to_histories(
         &self,
         entity_id: EntityId,

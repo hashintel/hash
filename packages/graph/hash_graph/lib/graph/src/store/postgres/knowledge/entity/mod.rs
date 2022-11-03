@@ -318,6 +318,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     async fn archive_entity(
         &mut self,
         entity_id: EntityId,
+        _owned_by_id: OwnedById,
         actor_id: UpdatedById,
     ) -> Result<(), ArchivalError> {
         let mut transaction = PostgresStore::new(

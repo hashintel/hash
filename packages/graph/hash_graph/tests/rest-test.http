@@ -475,6 +475,7 @@ Accept: application/json
 
 {
   "entityId": "{{person_b_entity_id}}",
+  "ownedById": "{{account_id}}",
   "actorId": "{{account_id}}"
 }
 

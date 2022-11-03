@@ -48,6 +48,7 @@ use crate::{
             UpdatedById,
             CreateEntityRequest,
             UpdateEntityRequest,
+            ArchiveEntityRequest,
             EntityId,
             PersistedEntityIdentifier,
             PersistedEntityMetadata,
@@ -158,6 +159,7 @@ async fn create_entity<P: StorePool + Send>(
 #[serde(rename_all = "camelCase")]
 struct ArchiveEntityRequest {
     entity_id: EntityId,
+    owned_by_id: OwnedById,
     actor_id: UpdatedById,
 }
 
@@ -180,6 +182,7 @@ async fn archive_entity<P: StorePool + Send>(
 ) -> Result<(), StatusCode> {
     let Json(ArchiveEntityRequest {
         entity_id,
+        owned_by_id,
         actor_id,
     }) = body;
 
@@ -189,7 +192,7 @@ async fn archive_entity<P: StorePool + Send>(
     })?;
 
     store
-        .archive_entity(entity_id, actor_id)
+        .archive_entity(entity_id, owned_by_id, actor_id)
         .await
         .map_err(|report| {
             if report.contains::<QueryError>() {
