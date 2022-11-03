@@ -73,6 +73,31 @@ export interface AnyFilter {
 /**
  *
  * @export
+ * @interface ArchiveEntityRequest
+ */
+export interface ArchiveEntityRequest {
+  /**
+   *
+   * @type {string}
+   * @memberof ArchiveEntityRequest
+   */
+  actorId: string;
+  /**
+   *
+   * @type {string}
+   * @memberof ArchiveEntityRequest
+   */
+  entityId: string;
+  /**
+   *
+   * @type {string}
+   * @memberof ArchiveEntityRequest
+   */
+  ownedById: string;
+}
+/**
+ *
+ * @export
  * @interface CreateDataTypeRequest
  */
 export interface CreateDataTypeRequest {
@@ -127,6 +152,12 @@ export interface CreateEntityRequest {
   entityTypeId: string;
   /**
    *
+   * @type {LinkEntityMetadata}
+   * @memberof CreateEntityRequest
+   */
+  linkMetadata?: LinkEntityMetadata;
+  /**
+   *
    * @type {string}
    * @memberof CreateEntityRequest
    */
@@ -156,68 +187,6 @@ export interface CreateEntityTypeRequest {
    * @memberof CreateEntityTypeRequest
    */
   schema: EntityType;
-}
-/**
- *
- * @export
- * @interface CreateLinkRequest
- */
-export interface CreateLinkRequest {
-  /**
-   *
-   * @type {string}
-   * @memberof CreateLinkRequest
-   */
-  actorId: string;
-  /**
-   *
-   * @type {number}
-   * @memberof CreateLinkRequest
-   */
-  index?: number;
-  /**
-   *
-   * @type {string}
-   * @memberof CreateLinkRequest
-   */
-  linkTypeId: string;
-  /**
-   *
-   * @type {string}
-   * @memberof CreateLinkRequest
-   */
-  ownedById: string;
-  /**
-   *
-   * @type {string}
-   * @memberof CreateLinkRequest
-   */
-  targetEntityId: string;
-}
-/**
- *
- * @export
- * @interface CreateLinkTypeRequest
- */
-export interface CreateLinkTypeRequest {
-  /**
-   *
-   * @type {string}
-   * @memberof CreateLinkTypeRequest
-   */
-  actorId: string;
-  /**
-   *
-   * @type {string}
-   * @memberof CreateLinkTypeRequest
-   */
-  ownedById: string;
-  /**
-   *
-   * @type {LinkType}
-   * @memberof CreateLinkTypeRequest
-   */
-  schema: LinkType;
 }
 /**
  *
@@ -572,182 +541,7 @@ export interface GraphResolveDepths {
    * @type {number}
    * @memberof GraphResolveDepths
    */
-  linkTypeResolveDepth: number;
-  /**
-   *
-   * @type {number}
-   * @memberof GraphResolveDepths
-   */
   propertyTypeResolveDepth: number;
-}
-/**
- * A Link between a source and a target entity identified by [`EntityId`]s.
- * @export
- * @interface Link
- */
-export interface Link {
-  /**
-   *
-   * @type {number}
-   * @memberof Link
-   */
-  index?: number;
-  /**
-   *
-   * @type {string}
-   * @memberof Link
-   */
-  linkTypeId: string;
-  /**
-   *
-   * @type {string}
-   * @memberof Link
-   */
-  sourceEntityId: string;
-  /**
-   *
-   * @type {string}
-   * @memberof Link
-   */
-  targetEntityId: string;
-}
-/**
- *
- * @export
- * @interface LinkRootedSubgraph
- */
-export interface LinkRootedSubgraph {
-  /**
-   *
-   * @type {PersistedLink}
-   * @memberof LinkRootedSubgraph
-   */
-  link: PersistedLink;
-  /**
-   *
-   * @type {Array<PersistedEntity>}
-   * @memberof LinkRootedSubgraph
-   */
-  linkedEntities: Array<PersistedEntity>;
-  /**
-   *
-   * @type {Array<PersistedLink>}
-   * @memberof LinkRootedSubgraph
-   */
-  links: Array<PersistedLink>;
-  /**
-   *
-   * @type {Array<PersistedDataType>}
-   * @memberof LinkRootedSubgraph
-   */
-  referencedDataTypes: Array<PersistedDataType>;
-  /**
-   *
-   * @type {Array<PersistedEntityType>}
-   * @memberof LinkRootedSubgraph
-   */
-  referencedEntityTypes: Array<PersistedEntityType>;
-  /**
-   *
-   * @type {Array<PersistedLinkType>}
-   * @memberof LinkRootedSubgraph
-   */
-  referencedLinkTypes: Array<PersistedLinkType>;
-  /**
-   *
-   * @type {Array<PersistedPropertyType>}
-   * @memberof LinkRootedSubgraph
-   */
-  referencedPropertyTypes: Array<PersistedPropertyType>;
-}
-/**
- * A [`Filter`] to query the datastore, recursively resolving according to the
- * @export
- * @interface LinkStructuralQuery
- */
-export interface LinkStructuralQuery {
-  /**
-   *
-   * @type {Filter}
-   * @memberof LinkStructuralQuery
-   */
-  filter: Filter;
-  /**
-   *
-   * @type {GraphResolveDepths}
-   * @memberof LinkStructuralQuery
-   */
-  graphResolveDepths: GraphResolveDepths;
-}
-/**
- * Specifies the structure of a Link Type
- * @export
- * @interface LinkType
- */
-export interface LinkType {
-  /**
-   *
-   * @type {string}
-   * @memberof LinkType
-   */
-  $id: string;
-  /**
-   *
-   * @type {string}
-   * @memberof LinkType
-   */
-  description: string;
-  /**
-   *
-   * @type {object}
-   * @memberof LinkType
-   */
-  kind: LinkTypeKindEnum;
-  /**
-   *
-   * @type {string}
-   * @memberof LinkType
-   */
-  pluralTitle: string;
-  /**
-   *
-   * @type {Array<string>}
-   * @memberof LinkType
-   */
-  relatedKeywords?: Array<string>;
-  /**
-   *
-   * @type {string}
-   * @memberof LinkType
-   */
-  title: string;
-}
-
-export const LinkTypeKindEnum = {
-  LinkType: "linkType",
-} as const;
-
-export type LinkTypeKindEnum =
-  typeof LinkTypeKindEnum[keyof typeof LinkTypeKindEnum];
-
-/**
- * A [`Filter`] to query the datastore, recursively resolving according to the
- * @export
- * @interface LinkTypeStructuralQuery
- */
-export interface LinkTypeStructuralQuery {
-  /**
-   *
-   * @type {Filter}
-   * @memberof LinkTypeStructuralQuery
-   */
-  filter: Filter;
-  /**
-   *
-   * @type {GraphResolveDepths}
-   * @memberof LinkTypeStructuralQuery
-   */
-  graphResolveDepths: GraphResolveDepths;
 }
 /**
  *
@@ -941,10 +735,10 @@ export interface PersistedEntityMetadata {
   identifier: PersistedEntityIdentifier;
   /**
    *
-   * @type {string}
+   * @type {LinkEntityMetadata}
    * @memberof PersistedEntityMetadata
    */
-  removedById?: string;
+  linkMetadata?: LinkEntityMetadata;
   /**
    *
    * @type {string}
@@ -968,63 +762,6 @@ export interface PersistedEntityType {
    *
    * @type {PersistedOntologyMetadata}
    * @memberof PersistedEntityType
-   */
-  metadata: PersistedOntologyMetadata;
-}
-/**
- * A record of a [`Link`] that has been persisted in the datastore, with its associated
- * @export
- * @interface PersistedLink
- */
-export interface PersistedLink {
-  /**
-   *
-   * @type {Link}
-   * @memberof PersistedLink
-   */
-  inner: Link;
-  /**
-   *
-   * @type {PersistedLinkMetadata}
-   * @memberof PersistedLink
-   */
-  metadata: PersistedLinkMetadata;
-}
-/**
- * The metadata of a [`Link`] record.
- * @export
- * @interface PersistedLinkMetadata
- */
-export interface PersistedLinkMetadata {
-  /**
-   *
-   * @type {string}
-   * @memberof PersistedLinkMetadata
-   */
-  createdById: string;
-  /**
-   *
-   * @type {string}
-   * @memberof PersistedLinkMetadata
-   */
-  ownedById: string;
-}
-/**
- *
- * @export
- * @interface PersistedLinkType
- */
-export interface PersistedLinkType {
-  /**
-   *
-   * @type {LinkType}
-   * @memberof PersistedLinkType
-   */
-  inner: LinkType;
-  /**
-   *
-   * @type {PersistedOntologyMetadata}
-   * @memberof PersistedLinkType
    */
   metadata: PersistedOntologyMetadata;
 }
@@ -1067,10 +804,10 @@ export interface PersistedOntologyMetadata {
   identifier: PersistedOntologyIdentifier;
   /**
    *
-   * @type {string}
+   * @type {RemovedById}
    * @memberof PersistedOntologyMetadata
    */
-  removedById?: string;
+  removedById?: RemovedById;
   /**
    *
    * @type {string}
@@ -1319,31 +1056,6 @@ export type PropertyValuesUpdate =
 /**
  *
  * @export
- * @interface RemoveLinkRequest
- */
-export interface RemoveLinkRequest {
-  /**
-   *
-   * @type {string}
-   * @memberof RemoveLinkRequest
-   */
-  actorId: string;
-  /**
-   *
-   * @type {string}
-   * @memberof RemoveLinkRequest
-   */
-  linkTypeId: string;
-  /**
-   *
-   * @type {string}
-   * @memberof RemoveLinkRequest
-   */
-  targetEntityId: string;
-}
-/**
- *
- * @export
  * @interface Subgraph
  */
 export interface Subgraph {
@@ -1582,76 +1294,6 @@ export interface UpdateEntityTypeRequest {
   typeToUpdate: string;
 }
 /**
- * The contents of a Link Type update request
- * @export
- * @interface UpdateLinkType
- */
-export interface UpdateLinkType {
-  /**
-   *
-   * @type {string}
-   * @memberof UpdateLinkType
-   */
-  description: string;
-  /**
-   *
-   * @type {object}
-   * @memberof UpdateLinkType
-   */
-  kind: UpdateLinkTypeKindEnum;
-  /**
-   *
-   * @type {string}
-   * @memberof UpdateLinkType
-   */
-  pluralTitle: string;
-  /**
-   *
-   * @type {Array<string>}
-   * @memberof UpdateLinkType
-   */
-  relatedKeywords?: Array<string>;
-  /**
-   *
-   * @type {string}
-   * @memberof UpdateLinkType
-   */
-  title: string;
-}
-
-export const UpdateLinkTypeKindEnum = {
-  LinkType: "linkType",
-} as const;
-
-export type UpdateLinkTypeKindEnum =
-  typeof UpdateLinkTypeKindEnum[keyof typeof UpdateLinkTypeKindEnum];
-
-/**
- *
- * @export
- * @interface UpdateLinkTypeRequest
- */
-export interface UpdateLinkTypeRequest {
-  /**
-   *
-   * @type {string}
-   * @memberof UpdateLinkTypeRequest
-   */
-  actorId: string;
-  /**
-   *
-   * @type {UpdateLinkType}
-   * @memberof UpdateLinkTypeRequest
-   */
-  schema: UpdateLinkType;
-  /**
-   *
-   * @type {string}
-   * @memberof UpdateLinkTypeRequest
-   */
-  typeToUpdate: string;
-}
-/**
  * The contents of a Property Type update request
  * @export
  * @interface UpdatePropertyType
@@ -1725,13 +1367,7 @@ export interface UpdatePropertyTypeRequest {
  * @type Vertex
  * @export
  */
-export type Vertex =
-  | VertexOneOf
-  | VertexOneOf1
-  | VertexOneOf2
-  | VertexOneOf3
-  | VertexOneOf4
-  | VertexOneOf5;
+export type Vertex = VertexOneOf | VertexOneOf1 | VertexOneOf2 | VertexOneOf3;
 
 /**
  *
@@ -1827,7 +1463,7 @@ export interface VertexOneOf2 {
 }
 
 export const VertexOneOf2KindEnum = {
-  LinkType: "linkType",
+  EntityType: "entityType",
 } as const;
 
 export type VertexOneOf2KindEnum =
@@ -1841,10 +1477,10 @@ export type VertexOneOf2KindEnum =
 export interface VertexOneOf2Inner {
   /**
    *
-   * @type {LinkType}
+   * @type {EntityType}
    * @memberof VertexOneOf2Inner
    */
-  inner: LinkType;
+  inner: EntityType;
   /**
    *
    * @type {PersistedOntologyMetadata}
@@ -1873,122 +1509,30 @@ export interface VertexOneOf3 {
 }
 
 export const VertexOneOf3KindEnum = {
-  EntityType: "entityType",
+  Entity: "entity",
 } as const;
 
 export type VertexOneOf3KindEnum =
   typeof VertexOneOf3KindEnum[keyof typeof VertexOneOf3KindEnum];
 
 /**
- *
+ * A record of an [`Entity`] that has been persisted in the datastore, with its associated
  * @export
  * @interface VertexOneOf3Inner
  */
 export interface VertexOneOf3Inner {
   /**
    *
-   * @type {EntityType}
-   * @memberof VertexOneOf3Inner
-   */
-  inner: EntityType;
-  /**
-   *
-   * @type {PersistedOntologyMetadata}
-   * @memberof VertexOneOf3Inner
-   */
-  metadata: PersistedOntologyMetadata;
-}
-/**
- *
- * @export
- * @interface VertexOneOf4
- */
-export interface VertexOneOf4 {
-  /**
-   *
-   * @type {VertexOneOf4Inner}
-   * @memberof VertexOneOf4
-   */
-  inner: VertexOneOf4Inner;
-  /**
-   *
    * @type {object}
-   * @memberof VertexOneOf4
-   */
-  kind: VertexOneOf4KindEnum;
-}
-
-export const VertexOneOf4KindEnum = {
-  Entity: "entity",
-} as const;
-
-export type VertexOneOf4KindEnum =
-  typeof VertexOneOf4KindEnum[keyof typeof VertexOneOf4KindEnum];
-
-/**
- * A record of an [`Entity`] that has been persisted in the datastore, with its associated
- * @export
- * @interface VertexOneOf4Inner
- */
-export interface VertexOneOf4Inner {
-  /**
-   *
-   * @type {object}
-   * @memberof VertexOneOf4Inner
+   * @memberof VertexOneOf3Inner
    */
   inner: object;
   /**
    *
    * @type {PersistedEntityMetadata}
-   * @memberof VertexOneOf4Inner
+   * @memberof VertexOneOf3Inner
    */
   metadata: PersistedEntityMetadata;
-}
-/**
- *
- * @export
- * @interface VertexOneOf5
- */
-export interface VertexOneOf5 {
-  /**
-   *
-   * @type {VertexOneOf5Inner}
-   * @memberof VertexOneOf5
-   */
-  inner: VertexOneOf5Inner;
-  /**
-   *
-   * @type {object}
-   * @memberof VertexOneOf5
-   */
-  kind: VertexOneOf5KindEnum;
-}
-
-export const VertexOneOf5KindEnum = {
-  Link: "link",
-} as const;
-
-export type VertexOneOf5KindEnum =
-  typeof VertexOneOf5KindEnum[keyof typeof VertexOneOf5KindEnum];
-
-/**
- * A record of a [`Link`] that has been persisted in the datastore, with its associated
- * @export
- * @interface VertexOneOf5Inner
- */
-export interface VertexOneOf5Inner {
-  /**
-   *
-   * @type {Link}
-   * @memberof VertexOneOf5Inner
-   */
-  inner: Link;
-  /**
-   *
-   * @type {PersistedLinkMetadata}
-   * @memberof VertexOneOf5Inner
-   */
-  metadata: PersistedLinkMetadata;
 }
 /**
  *
@@ -4193,115 +3737,6 @@ export const GraphApiAxiosParamCreator = function (
     },
     /**
      *
-     * @param {string} entityId The ID of the source entity
-     * @param {CreateLinkRequest} createLinkRequest
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    createLink: async (
-      entityId: string,
-      createLinkRequest: CreateLinkRequest,
-      options: AxiosRequestConfig = {},
-    ): Promise<RequestArgs> => {
-      // verify required parameter 'entityId' is not null or undefined
-      assertParamExists("createLink", "entityId", entityId);
-      // verify required parameter 'createLinkRequest' is not null or undefined
-      assertParamExists("createLink", "createLinkRequest", createLinkRequest);
-      const localVarPath = `/entities/{entityId}/links`.replace(
-        `{${"entityId"}}`,
-        encodeURIComponent(String(entityId)),
-      );
-      // use dummy base URL string because the URL constructor only accepts absolute URLs.
-      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-      let baseOptions;
-      if (configuration) {
-        baseOptions = configuration.baseOptions;
-      }
-
-      const localVarRequestOptions = {
-        method: "POST",
-        ...baseOptions,
-        ...options,
-      };
-      const localVarHeaderParameter = {} as any;
-      const localVarQueryParameter = {} as any;
-
-      localVarHeaderParameter["Content-Type"] = "application/json";
-
-      setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
-      localVarRequestOptions.headers = {
-        ...localVarHeaderParameter,
-        ...headersFromBaseOptions,
-        ...options.headers,
-      };
-      localVarRequestOptions.data = serializeDataIfNeeded(
-        createLinkRequest,
-        localVarRequestOptions,
-        configuration,
-      );
-
-      return {
-        url: toPathString(localVarUrlObj),
-        options: localVarRequestOptions,
-      };
-    },
-    /**
-     *
-     * @param {CreateLinkTypeRequest} createLinkTypeRequest
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    createLinkType: async (
-      createLinkTypeRequest: CreateLinkTypeRequest,
-      options: AxiosRequestConfig = {},
-    ): Promise<RequestArgs> => {
-      // verify required parameter 'createLinkTypeRequest' is not null or undefined
-      assertParamExists(
-        "createLinkType",
-        "createLinkTypeRequest",
-        createLinkTypeRequest,
-      );
-      const localVarPath = `/link-types`;
-      // use dummy base URL string because the URL constructor only accepts absolute URLs.
-      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-      let baseOptions;
-      if (configuration) {
-        baseOptions = configuration.baseOptions;
-      }
-
-      const localVarRequestOptions = {
-        method: "POST",
-        ...baseOptions,
-        ...options,
-      };
-      const localVarHeaderParameter = {} as any;
-      const localVarQueryParameter = {} as any;
-
-      localVarHeaderParameter["Content-Type"] = "application/json";
-
-      setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
-      localVarRequestOptions.headers = {
-        ...localVarHeaderParameter,
-        ...headersFromBaseOptions,
-        ...options.headers,
-      };
-      localVarRequestOptions.data = serializeDataIfNeeded(
-        createLinkTypeRequest,
-        localVarRequestOptions,
-        configuration,
-      );
-
-      return {
-        url: toPathString(localVarUrlObj),
-        options: localVarRequestOptions,
-      };
-    },
-    /**
-     *
      * @param {CreatePropertyTypeRequest} createPropertyTypeRequest
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -4551,51 +3986,6 @@ export const GraphApiAxiosParamCreator = function (
     },
     /**
      *
-     * @param {string} entityId The ID of the source entity
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    getEntityLinks: async (
-      entityId: string,
-      options: AxiosRequestConfig = {},
-    ): Promise<RequestArgs> => {
-      // verify required parameter 'entityId' is not null or undefined
-      assertParamExists("getEntityLinks", "entityId", entityId);
-      const localVarPath = `/entities/{entityId}/links`.replace(
-        `{${"entityId"}}`,
-        encodeURIComponent(String(entityId)),
-      );
-      // use dummy base URL string because the URL constructor only accepts absolute URLs.
-      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-      let baseOptions;
-      if (configuration) {
-        baseOptions = configuration.baseOptions;
-      }
-
-      const localVarRequestOptions = {
-        method: "GET",
-        ...baseOptions,
-        ...options,
-      };
-      const localVarHeaderParameter = {} as any;
-      const localVarQueryParameter = {} as any;
-
-      setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
-      localVarRequestOptions.headers = {
-        ...localVarHeaderParameter,
-        ...headersFromBaseOptions,
-        ...options.headers,
-      };
-
-      return {
-        url: toPathString(localVarUrlObj),
-        options: localVarRequestOptions,
-      };
-    },
-    /**
-     *
      * @param {string} uri The URI of the entity type
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -4811,44 +4201,6 @@ export const GraphApiAxiosParamCreator = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getLatestLinkTypes: async (
-      options: AxiosRequestConfig = {},
-    ): Promise<RequestArgs> => {
-      const localVarPath = `/link-types`;
-      // use dummy base URL string because the URL constructor only accepts absolute URLs.
-      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-      let baseOptions;
-      if (configuration) {
-        baseOptions = configuration.baseOptions;
-      }
-
-      const localVarRequestOptions = {
-        method: "GET",
-        ...baseOptions,
-        ...options,
-      };
-      const localVarHeaderParameter = {} as any;
-      const localVarQueryParameter = {} as any;
-
-      setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
-      localVarRequestOptions.headers = {
-        ...localVarHeaderParameter,
-        ...headersFromBaseOptions,
-        ...options.headers,
-      };
-
-      return {
-        url: toPathString(localVarUrlObj),
-        options: localVarRequestOptions,
-      };
-    },
-    /**
-     *
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
     getLatestPropertyTypes: async (
       options: AxiosRequestConfig = {},
     ): Promise<RequestArgs> => {
@@ -4876,157 +4228,6 @@ export const GraphApiAxiosParamCreator = function (
         ...headersFromBaseOptions,
         ...options.headers,
       };
-
-      return {
-        url: toPathString(localVarUrlObj),
-        options: localVarRequestOptions,
-      };
-    },
-    /**
-     *
-     * @param {string} uri The URI of the link type
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    getLinkType: async (
-      uri: string,
-      options: AxiosRequestConfig = {},
-    ): Promise<RequestArgs> => {
-      // verify required parameter 'uri' is not null or undefined
-      assertParamExists("getLinkType", "uri", uri);
-      const localVarPath = `/link-types/{uri}`.replace(
-        `{${"uri"}}`,
-        encodeURIComponent(String(uri)),
-      );
-      // use dummy base URL string because the URL constructor only accepts absolute URLs.
-      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-      let baseOptions;
-      if (configuration) {
-        baseOptions = configuration.baseOptions;
-      }
-
-      const localVarRequestOptions = {
-        method: "GET",
-        ...baseOptions,
-        ...options,
-      };
-      const localVarHeaderParameter = {} as any;
-      const localVarQueryParameter = {} as any;
-
-      setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
-      localVarRequestOptions.headers = {
-        ...localVarHeaderParameter,
-        ...headersFromBaseOptions,
-        ...options.headers,
-      };
-
-      return {
-        url: toPathString(localVarUrlObj),
-        options: localVarRequestOptions,
-      };
-    },
-    /**
-     *
-     * @param {LinkTypeStructuralQuery} linkTypeStructuralQuery
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    getLinkTypesByQuery: async (
-      linkTypeStructuralQuery: LinkTypeStructuralQuery,
-      options: AxiosRequestConfig = {},
-    ): Promise<RequestArgs> => {
-      // verify required parameter 'linkTypeStructuralQuery' is not null or undefined
-      assertParamExists(
-        "getLinkTypesByQuery",
-        "linkTypeStructuralQuery",
-        linkTypeStructuralQuery,
-      );
-      const localVarPath = `/link-types/query`;
-      // use dummy base URL string because the URL constructor only accepts absolute URLs.
-      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-      let baseOptions;
-      if (configuration) {
-        baseOptions = configuration.baseOptions;
-      }
-
-      const localVarRequestOptions = {
-        method: "POST",
-        ...baseOptions,
-        ...options,
-      };
-      const localVarHeaderParameter = {} as any;
-      const localVarQueryParameter = {} as any;
-
-      localVarHeaderParameter["Content-Type"] = "application/json";
-
-      setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
-      localVarRequestOptions.headers = {
-        ...localVarHeaderParameter,
-        ...headersFromBaseOptions,
-        ...options.headers,
-      };
-      localVarRequestOptions.data = serializeDataIfNeeded(
-        linkTypeStructuralQuery,
-        localVarRequestOptions,
-        configuration,
-      );
-
-      return {
-        url: toPathString(localVarUrlObj),
-        options: localVarRequestOptions,
-      };
-    },
-    /**
-     *
-     * @param {LinkStructuralQuery} linkStructuralQuery
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    getLinksByQuery: async (
-      linkStructuralQuery: LinkStructuralQuery,
-      options: AxiosRequestConfig = {},
-    ): Promise<RequestArgs> => {
-      // verify required parameter 'linkStructuralQuery' is not null or undefined
-      assertParamExists(
-        "getLinksByQuery",
-        "linkStructuralQuery",
-        linkStructuralQuery,
-      );
-      const localVarPath = `/links/query`;
-      // use dummy base URL string because the URL constructor only accepts absolute URLs.
-      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-      let baseOptions;
-      if (configuration) {
-        baseOptions = configuration.baseOptions;
-      }
-
-      const localVarRequestOptions = {
-        method: "POST",
-        ...baseOptions,
-        ...options,
-      };
-      const localVarHeaderParameter = {} as any;
-      const localVarQueryParameter = {} as any;
-
-      localVarHeaderParameter["Content-Type"] = "application/json";
-
-      setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
-      localVarRequestOptions.headers = {
-        ...localVarHeaderParameter,
-        ...headersFromBaseOptions,
-        ...options.headers,
-      };
-      localVarRequestOptions.data = serializeDataIfNeeded(
-        linkStructuralQuery,
-        localVarRequestOptions,
-        configuration,
-      );
 
       return {
         url: toPathString(localVarUrlObj),
@@ -5122,62 +4323,6 @@ export const GraphApiAxiosParamCreator = function (
       };
       localVarRequestOptions.data = serializeDataIfNeeded(
         propertyTypeStructuralQuery,
-        localVarRequestOptions,
-        configuration,
-      );
-
-      return {
-        url: toPathString(localVarUrlObj),
-        options: localVarRequestOptions,
-      };
-    },
-    /**
-     *
-     * @param {string} entityId The ID of the source entity
-     * @param {RemoveLinkRequest} removeLinkRequest
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    removeLink: async (
-      entityId: string,
-      removeLinkRequest: RemoveLinkRequest,
-      options: AxiosRequestConfig = {},
-    ): Promise<RequestArgs> => {
-      // verify required parameter 'entityId' is not null or undefined
-      assertParamExists("removeLink", "entityId", entityId);
-      // verify required parameter 'removeLinkRequest' is not null or undefined
-      assertParamExists("removeLink", "removeLinkRequest", removeLinkRequest);
-      const localVarPath = `/entities/{entityId}/links`.replace(
-        `{${"entityId"}}`,
-        encodeURIComponent(String(entityId)),
-      );
-      // use dummy base URL string because the URL constructor only accepts absolute URLs.
-      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-      let baseOptions;
-      if (configuration) {
-        baseOptions = configuration.baseOptions;
-      }
-
-      const localVarRequestOptions = {
-        method: "DELETE",
-        ...baseOptions,
-        ...options,
-      };
-      const localVarHeaderParameter = {} as any;
-      const localVarQueryParameter = {} as any;
-
-      localVarHeaderParameter["Content-Type"] = "application/json";
-
-      setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
-      localVarRequestOptions.headers = {
-        ...localVarHeaderParameter,
-        ...headersFromBaseOptions,
-        ...options.headers,
-      };
-      localVarRequestOptions.data = serializeDataIfNeeded(
-        removeLinkRequest,
         localVarRequestOptions,
         configuration,
       );
@@ -5337,59 +4482,6 @@ export const GraphApiAxiosParamCreator = function (
       };
       localVarRequestOptions.data = serializeDataIfNeeded(
         updateEntityTypeRequest,
-        localVarRequestOptions,
-        configuration,
-      );
-
-      return {
-        url: toPathString(localVarUrlObj),
-        options: localVarRequestOptions,
-      };
-    },
-    /**
-     *
-     * @param {UpdateLinkTypeRequest} updateLinkTypeRequest
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    updateLinkType: async (
-      updateLinkTypeRequest: UpdateLinkTypeRequest,
-      options: AxiosRequestConfig = {},
-    ): Promise<RequestArgs> => {
-      // verify required parameter 'updateLinkTypeRequest' is not null or undefined
-      assertParamExists(
-        "updateLinkType",
-        "updateLinkTypeRequest",
-        updateLinkTypeRequest,
-      );
-      const localVarPath = `/link-types`;
-      // use dummy base URL string because the URL constructor only accepts absolute URLs.
-      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-      let baseOptions;
-      if (configuration) {
-        baseOptions = configuration.baseOptions;
-      }
-
-      const localVarRequestOptions = {
-        method: "PUT",
-        ...baseOptions,
-        ...options,
-      };
-      const localVarHeaderParameter = {} as any;
-      const localVarQueryParameter = {} as any;
-
-      localVarHeaderParameter["Content-Type"] = "application/json";
-
-      setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
-      localVarRequestOptions.headers = {
-        ...localVarHeaderParameter,
-        ...headersFromBaseOptions,
-        ...options.headers,
-      };
-      localVarRequestOptions.data = serializeDataIfNeeded(
-        updateLinkTypeRequest,
         localVarRequestOptions,
         configuration,
       );
@@ -5563,58 +4655,6 @@ export const GraphApiFp = function (configuration?: Configuration) {
     },
     /**
      *
-     * @param {string} entityId The ID of the source entity
-     * @param {CreateLinkRequest} createLinkRequest
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    async createLink(
-      entityId: string,
-      createLinkRequest: CreateLinkRequest,
-      options?: AxiosRequestConfig,
-    ): Promise<
-      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Link>
-    > {
-      const localVarAxiosArgs = await localVarAxiosParamCreator.createLink(
-        entityId,
-        createLinkRequest,
-        options,
-      );
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
-      );
-    },
-    /**
-     *
-     * @param {CreateLinkTypeRequest} createLinkTypeRequest
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    async createLinkType(
-      createLinkTypeRequest: CreateLinkTypeRequest,
-      options?: AxiosRequestConfig,
-    ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<PersistedOntologyMetadata>
-    > {
-      const localVarAxiosArgs = await localVarAxiosParamCreator.createLinkType(
-        createLinkTypeRequest,
-        options,
-      );
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
-      );
-    },
-    /**
-     *
      * @param {CreatePropertyTypeRequest} createPropertyTypeRequest
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -5730,32 +4770,6 @@ export const GraphApiFp = function (configuration?: Configuration) {
       ) => AxiosPromise<PersistedEntity>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.getEntity(
-        entityId,
-        options,
-      );
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
-      );
-    },
-    /**
-     *
-     * @param {string} entityId The ID of the source entity
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    async getEntityLinks(
-      entityId: string,
-      options?: AxiosRequestConfig,
-    ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<Array<PersistedLink>>
-    > {
-      const localVarAxiosArgs = await localVarAxiosParamCreator.getEntityLinks(
         entityId,
         options,
       );
@@ -5887,28 +4901,6 @@ export const GraphApiFp = function (configuration?: Configuration) {
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    async getLatestLinkTypes(
-      options?: AxiosRequestConfig,
-    ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<Array<PersistedLinkType>>
-    > {
-      const localVarAxiosArgs =
-        await localVarAxiosParamCreator.getLatestLinkTypes(options);
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
-      );
-    },
-    /**
-     *
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
     async getLatestPropertyTypes(
       options?: AxiosRequestConfig,
     ): Promise<
@@ -5919,82 +4911,6 @@ export const GraphApiFp = function (configuration?: Configuration) {
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getLatestPropertyTypes(options);
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
-      );
-    },
-    /**
-     *
-     * @param {string} uri The URI of the link type
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    async getLinkType(
-      uri: string,
-      options?: AxiosRequestConfig,
-    ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<PersistedLinkType>
-    > {
-      const localVarAxiosArgs = await localVarAxiosParamCreator.getLinkType(
-        uri,
-        options,
-      );
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
-      );
-    },
-    /**
-     *
-     * @param {LinkTypeStructuralQuery} linkTypeStructuralQuery
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    async getLinkTypesByQuery(
-      linkTypeStructuralQuery: LinkTypeStructuralQuery,
-      options?: AxiosRequestConfig,
-    ): Promise<
-      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Subgraph>
-    > {
-      const localVarAxiosArgs =
-        await localVarAxiosParamCreator.getLinkTypesByQuery(
-          linkTypeStructuralQuery,
-          options,
-        );
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
-      );
-    },
-    /**
-     *
-     * @param {LinkStructuralQuery} linkStructuralQuery
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    async getLinksByQuery(
-      linkStructuralQuery: LinkStructuralQuery,
-      options?: AxiosRequestConfig,
-    ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<Array<LinkRootedSubgraph>>
-    > {
-      const localVarAxiosArgs = await localVarAxiosParamCreator.getLinksByQuery(
-        linkStructuralQuery,
-        options,
-      );
       return createRequestFunction(
         localVarAxiosArgs,
         globalAxios,
@@ -6045,32 +4961,6 @@ export const GraphApiFp = function (configuration?: Configuration) {
           propertyTypeStructuralQuery,
           options,
         );
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
-      );
-    },
-    /**
-     *
-     * @param {string} entityId The ID of the source entity
-     * @param {RemoveLinkRequest} removeLinkRequest
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    async removeLink(
-      entityId: string,
-      removeLinkRequest: RemoveLinkRequest,
-      options?: AxiosRequestConfig,
-    ): Promise<
-      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>
-    > {
-      const localVarAxiosArgs = await localVarAxiosParamCreator.removeLink(
-        entityId,
-        removeLinkRequest,
-        options,
-      );
       return createRequestFunction(
         localVarAxiosArgs,
         globalAxios,
@@ -6150,32 +5040,6 @@ export const GraphApiFp = function (configuration?: Configuration) {
           updateEntityTypeRequest,
           options,
         );
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
-      );
-    },
-    /**
-     *
-     * @param {UpdateLinkTypeRequest} updateLinkTypeRequest
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    async updateLinkType(
-      updateLinkTypeRequest: UpdateLinkTypeRequest,
-      options?: AxiosRequestConfig,
-    ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<PersistedOntologyMetadata>
-    > {
-      const localVarAxiosArgs = await localVarAxiosParamCreator.updateLinkType(
-        updateLinkTypeRequest,
-        options,
-      );
       return createRequestFunction(
         localVarAxiosArgs,
         globalAxios,
@@ -6278,36 +5142,6 @@ export const GraphApiFactory = function (
     },
     /**
      *
-     * @param {string} entityId The ID of the source entity
-     * @param {CreateLinkRequest} createLinkRequest
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    createLink(
-      entityId: string,
-      createLinkRequest: CreateLinkRequest,
-      options?: any,
-    ): AxiosPromise<Link> {
-      return localVarFp
-        .createLink(entityId, createLinkRequest, options)
-        .then((request) => request(axios, basePath));
-    },
-    /**
-     *
-     * @param {CreateLinkTypeRequest} createLinkTypeRequest
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    createLinkType(
-      createLinkTypeRequest: CreateLinkTypeRequest,
-      options?: any,
-    ): AxiosPromise<PersistedOntologyMetadata> {
-      return localVarFp
-        .createLinkType(createLinkTypeRequest, options)
-        .then((request) => request(axios, basePath));
-    },
-    /**
-     *
      * @param {CreatePropertyTypeRequest} createPropertyTypeRequest
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -6368,20 +5202,6 @@ export const GraphApiFactory = function (
     getEntity(entityId: string, options?: any): AxiosPromise<PersistedEntity> {
       return localVarFp
         .getEntity(entityId, options)
-        .then((request) => request(axios, basePath));
-    },
-    /**
-     *
-     * @param {string} entityId The ID of the source entity
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    getEntityLinks(
-      entityId: string,
-      options?: any,
-    ): AxiosPromise<Array<PersistedLink>> {
-      return localVarFp
-        .getEntityLinks(entityId, options)
         .then((request) => request(axios, basePath));
     },
     /**
@@ -6449,60 +5269,11 @@ export const GraphApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getLatestLinkTypes(options?: any): AxiosPromise<Array<PersistedLinkType>> {
-      return localVarFp
-        .getLatestLinkTypes(options)
-        .then((request) => request(axios, basePath));
-    },
-    /**
-     *
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
     getLatestPropertyTypes(
       options?: any,
     ): AxiosPromise<Array<PersistedPropertyType>> {
       return localVarFp
         .getLatestPropertyTypes(options)
-        .then((request) => request(axios, basePath));
-    },
-    /**
-     *
-     * @param {string} uri The URI of the link type
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    getLinkType(uri: string, options?: any): AxiosPromise<PersistedLinkType> {
-      return localVarFp
-        .getLinkType(uri, options)
-        .then((request) => request(axios, basePath));
-    },
-    /**
-     *
-     * @param {LinkTypeStructuralQuery} linkTypeStructuralQuery
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    getLinkTypesByQuery(
-      linkTypeStructuralQuery: LinkTypeStructuralQuery,
-      options?: any,
-    ): AxiosPromise<Subgraph> {
-      return localVarFp
-        .getLinkTypesByQuery(linkTypeStructuralQuery, options)
-        .then((request) => request(axios, basePath));
-    },
-    /**
-     *
-     * @param {LinkStructuralQuery} linkStructuralQuery
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    getLinksByQuery(
-      linkStructuralQuery: LinkStructuralQuery,
-      options?: any,
-    ): AxiosPromise<Array<LinkRootedSubgraph>> {
-      return localVarFp
-        .getLinksByQuery(linkStructuralQuery, options)
         .then((request) => request(axios, basePath));
     },
     /**
@@ -6531,22 +5302,6 @@ export const GraphApiFactory = function (
     ): AxiosPromise<Subgraph> {
       return localVarFp
         .getPropertyTypesByQuery(propertyTypeStructuralQuery, options)
-        .then((request) => request(axios, basePath));
-    },
-    /**
-     *
-     * @param {string} entityId The ID of the source entity
-     * @param {RemoveLinkRequest} removeLinkRequest
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    removeLink(
-      entityId: string,
-      removeLinkRequest: RemoveLinkRequest,
-      options?: any,
-    ): AxiosPromise<void> {
-      return localVarFp
-        .removeLink(entityId, removeLinkRequest, options)
         .then((request) => request(axios, basePath));
     },
     /**
@@ -6589,20 +5344,6 @@ export const GraphApiFactory = function (
     ): AxiosPromise<PersistedOntologyMetadata> {
       return localVarFp
         .updateEntityType(updateEntityTypeRequest, options)
-        .then((request) => request(axios, basePath));
-    },
-    /**
-     *
-     * @param {UpdateLinkTypeRequest} updateLinkTypeRequest
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    updateLinkType(
-      updateLinkTypeRequest: UpdateLinkTypeRequest,
-      options?: any,
-    ): AxiosPromise<PersistedOntologyMetadata> {
-      return localVarFp
-        .updateLinkType(updateLinkTypeRequest, options)
         .then((request) => request(axios, basePath));
     },
     /**
@@ -6674,32 +5415,6 @@ export interface GraphApiInterface {
 
   /**
    *
-   * @param {string} entityId The ID of the source entity
-   * @param {CreateLinkRequest} createLinkRequest
-   * @param {*} [options] Override http request option.
-   * @throws {RequiredError}
-   * @memberof GraphApiInterface
-   */
-  createLink(
-    entityId: string,
-    createLinkRequest: CreateLinkRequest,
-    options?: AxiosRequestConfig,
-  ): AxiosPromise<Link>;
-
-  /**
-   *
-   * @param {CreateLinkTypeRequest} createLinkTypeRequest
-   * @param {*} [options] Override http request option.
-   * @throws {RequiredError}
-   * @memberof GraphApiInterface
-   */
-  createLinkType(
-    createLinkTypeRequest: CreateLinkTypeRequest,
-    options?: AxiosRequestConfig,
-  ): AxiosPromise<PersistedOntologyMetadata>;
-
-  /**
-   *
    * @param {CreatePropertyTypeRequest} createPropertyTypeRequest
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
@@ -6757,18 +5472,6 @@ export interface GraphApiInterface {
     entityId: string,
     options?: AxiosRequestConfig,
   ): AxiosPromise<PersistedEntity>;
-
-  /**
-   *
-   * @param {string} entityId The ID of the source entity
-   * @param {*} [options] Override http request option.
-   * @throws {RequiredError}
-   * @memberof GraphApiInterface
-   */
-  getEntityLinks(
-    entityId: string,
-    options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<PersistedLink>>;
 
   /**
    *
@@ -6830,55 +5533,9 @@ export interface GraphApiInterface {
    * @throws {RequiredError}
    * @memberof GraphApiInterface
    */
-  getLatestLinkTypes(
-    options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<PersistedLinkType>>;
-
-  /**
-   *
-   * @param {*} [options] Override http request option.
-   * @throws {RequiredError}
-   * @memberof GraphApiInterface
-   */
   getLatestPropertyTypes(
     options?: AxiosRequestConfig,
   ): AxiosPromise<Array<PersistedPropertyType>>;
-
-  /**
-   *
-   * @param {string} uri The URI of the link type
-   * @param {*} [options] Override http request option.
-   * @throws {RequiredError}
-   * @memberof GraphApiInterface
-   */
-  getLinkType(
-    uri: string,
-    options?: AxiosRequestConfig,
-  ): AxiosPromise<PersistedLinkType>;
-
-  /**
-   *
-   * @param {LinkTypeStructuralQuery} linkTypeStructuralQuery
-   * @param {*} [options] Override http request option.
-   * @throws {RequiredError}
-   * @memberof GraphApiInterface
-   */
-  getLinkTypesByQuery(
-    linkTypeStructuralQuery: LinkTypeStructuralQuery,
-    options?: AxiosRequestConfig,
-  ): AxiosPromise<Subgraph>;
-
-  /**
-   *
-   * @param {LinkStructuralQuery} linkStructuralQuery
-   * @param {*} [options] Override http request option.
-   * @throws {RequiredError}
-   * @memberof GraphApiInterface
-   */
-  getLinksByQuery(
-    linkStructuralQuery: LinkStructuralQuery,
-    options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<LinkRootedSubgraph>>;
 
   /**
    *
@@ -6903,20 +5560,6 @@ export interface GraphApiInterface {
     propertyTypeStructuralQuery: PropertyTypeStructuralQuery,
     options?: AxiosRequestConfig,
   ): AxiosPromise<Subgraph>;
-
-  /**
-   *
-   * @param {string} entityId The ID of the source entity
-   * @param {RemoveLinkRequest} removeLinkRequest
-   * @param {*} [options] Override http request option.
-   * @throws {RequiredError}
-   * @memberof GraphApiInterface
-   */
-  removeLink(
-    entityId: string,
-    removeLinkRequest: RemoveLinkRequest,
-    options?: AxiosRequestConfig,
-  ): AxiosPromise<void>;
 
   /**
    *
@@ -6951,18 +5594,6 @@ export interface GraphApiInterface {
    */
   updateEntityType(
     updateEntityTypeRequest: UpdateEntityTypeRequest,
-    options?: AxiosRequestConfig,
-  ): AxiosPromise<PersistedOntologyMetadata>;
-
-  /**
-   *
-   * @param {UpdateLinkTypeRequest} updateLinkTypeRequest
-   * @param {*} [options] Override http request option.
-   * @throws {RequiredError}
-   * @memberof GraphApiInterface
-   */
-  updateLinkType(
-    updateLinkTypeRequest: UpdateLinkTypeRequest,
     options?: AxiosRequestConfig,
   ): AxiosPromise<PersistedOntologyMetadata>;
 
@@ -7048,40 +5679,6 @@ export class GraphApi extends BaseAPI implements GraphApiInterface {
 
   /**
    *
-   * @param {string} entityId The ID of the source entity
-   * @param {CreateLinkRequest} createLinkRequest
-   * @param {*} [options] Override http request option.
-   * @throws {RequiredError}
-   * @memberof GraphApi
-   */
-  public createLink(
-    entityId: string,
-    createLinkRequest: CreateLinkRequest,
-    options?: AxiosRequestConfig,
-  ) {
-    return GraphApiFp(this.configuration)
-      .createLink(entityId, createLinkRequest, options)
-      .then((request) => request(this.axios, this.basePath));
-  }
-
-  /**
-   *
-   * @param {CreateLinkTypeRequest} createLinkTypeRequest
-   * @param {*} [options] Override http request option.
-   * @throws {RequiredError}
-   * @memberof GraphApi
-   */
-  public createLinkType(
-    createLinkTypeRequest: CreateLinkTypeRequest,
-    options?: AxiosRequestConfig,
-  ) {
-    return GraphApiFp(this.configuration)
-      .createLinkType(createLinkTypeRequest, options)
-      .then((request) => request(this.axios, this.basePath));
-  }
-
-  /**
-   *
    * @param {CreatePropertyTypeRequest} createPropertyTypeRequest
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
@@ -7156,19 +5753,6 @@ export class GraphApi extends BaseAPI implements GraphApiInterface {
 
   /**
    *
-   * @param {string} entityId The ID of the source entity
-   * @param {*} [options] Override http request option.
-   * @throws {RequiredError}
-   * @memberof GraphApi
-   */
-  public getEntityLinks(entityId: string, options?: AxiosRequestConfig) {
-    return GraphApiFp(this.configuration)
-      .getEntityLinks(entityId, options)
-      .then((request) => request(this.axios, this.basePath));
-  }
-
-  /**
-   *
    * @param {string} uri The URI of the entity type
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
@@ -7238,66 +5822,9 @@ export class GraphApi extends BaseAPI implements GraphApiInterface {
    * @throws {RequiredError}
    * @memberof GraphApi
    */
-  public getLatestLinkTypes(options?: AxiosRequestConfig) {
-    return GraphApiFp(this.configuration)
-      .getLatestLinkTypes(options)
-      .then((request) => request(this.axios, this.basePath));
-  }
-
-  /**
-   *
-   * @param {*} [options] Override http request option.
-   * @throws {RequiredError}
-   * @memberof GraphApi
-   */
   public getLatestPropertyTypes(options?: AxiosRequestConfig) {
     return GraphApiFp(this.configuration)
       .getLatestPropertyTypes(options)
-      .then((request) => request(this.axios, this.basePath));
-  }
-
-  /**
-   *
-   * @param {string} uri The URI of the link type
-   * @param {*} [options] Override http request option.
-   * @throws {RequiredError}
-   * @memberof GraphApi
-   */
-  public getLinkType(uri: string, options?: AxiosRequestConfig) {
-    return GraphApiFp(this.configuration)
-      .getLinkType(uri, options)
-      .then((request) => request(this.axios, this.basePath));
-  }
-
-  /**
-   *
-   * @param {LinkTypeStructuralQuery} linkTypeStructuralQuery
-   * @param {*} [options] Override http request option.
-   * @throws {RequiredError}
-   * @memberof GraphApi
-   */
-  public getLinkTypesByQuery(
-    linkTypeStructuralQuery: LinkTypeStructuralQuery,
-    options?: AxiosRequestConfig,
-  ) {
-    return GraphApiFp(this.configuration)
-      .getLinkTypesByQuery(linkTypeStructuralQuery, options)
-      .then((request) => request(this.axios, this.basePath));
-  }
-
-  /**
-   *
-   * @param {LinkStructuralQuery} linkStructuralQuery
-   * @param {*} [options] Override http request option.
-   * @throws {RequiredError}
-   * @memberof GraphApi
-   */
-  public getLinksByQuery(
-    linkStructuralQuery: LinkStructuralQuery,
-    options?: AxiosRequestConfig,
-  ) {
-    return GraphApiFp(this.configuration)
-      .getLinksByQuery(linkStructuralQuery, options)
       .then((request) => request(this.axios, this.basePath));
   }
 
@@ -7327,24 +5854,6 @@ export class GraphApi extends BaseAPI implements GraphApiInterface {
   ) {
     return GraphApiFp(this.configuration)
       .getPropertyTypesByQuery(propertyTypeStructuralQuery, options)
-      .then((request) => request(this.axios, this.basePath));
-  }
-
-  /**
-   *
-   * @param {string} entityId The ID of the source entity
-   * @param {RemoveLinkRequest} removeLinkRequest
-   * @param {*} [options] Override http request option.
-   * @throws {RequiredError}
-   * @memberof GraphApi
-   */
-  public removeLink(
-    entityId: string,
-    removeLinkRequest: RemoveLinkRequest,
-    options?: AxiosRequestConfig,
-  ) {
-    return GraphApiFp(this.configuration)
-      .removeLink(entityId, removeLinkRequest, options)
       .then((request) => request(this.axios, this.basePath));
   }
 
@@ -7398,22 +5907,6 @@ export class GraphApi extends BaseAPI implements GraphApiInterface {
 
   /**
    *
-   * @param {UpdateLinkTypeRequest} updateLinkTypeRequest
-   * @param {*} [options] Override http request option.
-   * @throws {RequiredError}
-   * @memberof GraphApi
-   */
-  public updateLinkType(
-    updateLinkTypeRequest: UpdateLinkTypeRequest,
-    options?: AxiosRequestConfig,
-  ) {
-    return GraphApiFp(this.configuration)
-      .updateLinkType(updateLinkTypeRequest, options)
-      .then((request) => request(this.axios, this.basePath));
-  }
-
-  /**
-   *
    * @param {UpdatePropertyTypeRequest} updatePropertyTypeRequest
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
@@ -7425,1157 +5918,6 @@ export class GraphApi extends BaseAPI implements GraphApiInterface {
   ) {
     return GraphApiFp(this.configuration)
       .updatePropertyType(updatePropertyTypeRequest, options)
-      .then((request) => request(this.axios, this.basePath));
-  }
-}
-
-/**
- * LinkApi - axios parameter creator
- * @export
- */
-export const LinkApiAxiosParamCreator = function (
-  configuration?: Configuration,
-) {
-  return {
-    /**
-     *
-     * @param {string} entityId The ID of the source entity
-     * @param {CreateLinkRequest} createLinkRequest
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    createLink: async (
-      entityId: string,
-      createLinkRequest: CreateLinkRequest,
-      options: AxiosRequestConfig = {},
-    ): Promise<RequestArgs> => {
-      // verify required parameter 'entityId' is not null or undefined
-      assertParamExists("createLink", "entityId", entityId);
-      // verify required parameter 'createLinkRequest' is not null or undefined
-      assertParamExists("createLink", "createLinkRequest", createLinkRequest);
-      const localVarPath = `/entities/{entityId}/links`.replace(
-        `{${"entityId"}}`,
-        encodeURIComponent(String(entityId)),
-      );
-      // use dummy base URL string because the URL constructor only accepts absolute URLs.
-      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-      let baseOptions;
-      if (configuration) {
-        baseOptions = configuration.baseOptions;
-      }
-
-      const localVarRequestOptions = {
-        method: "POST",
-        ...baseOptions,
-        ...options,
-      };
-      const localVarHeaderParameter = {} as any;
-      const localVarQueryParameter = {} as any;
-
-      localVarHeaderParameter["Content-Type"] = "application/json";
-
-      setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
-      localVarRequestOptions.headers = {
-        ...localVarHeaderParameter,
-        ...headersFromBaseOptions,
-        ...options.headers,
-      };
-      localVarRequestOptions.data = serializeDataIfNeeded(
-        createLinkRequest,
-        localVarRequestOptions,
-        configuration,
-      );
-
-      return {
-        url: toPathString(localVarUrlObj),
-        options: localVarRequestOptions,
-      };
-    },
-    /**
-     *
-     * @param {string} entityId The ID of the source entity
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    getEntityLinks: async (
-      entityId: string,
-      options: AxiosRequestConfig = {},
-    ): Promise<RequestArgs> => {
-      // verify required parameter 'entityId' is not null or undefined
-      assertParamExists("getEntityLinks", "entityId", entityId);
-      const localVarPath = `/entities/{entityId}/links`.replace(
-        `{${"entityId"}}`,
-        encodeURIComponent(String(entityId)),
-      );
-      // use dummy base URL string because the URL constructor only accepts absolute URLs.
-      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-      let baseOptions;
-      if (configuration) {
-        baseOptions = configuration.baseOptions;
-      }
-
-      const localVarRequestOptions = {
-        method: "GET",
-        ...baseOptions,
-        ...options,
-      };
-      const localVarHeaderParameter = {} as any;
-      const localVarQueryParameter = {} as any;
-
-      setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
-      localVarRequestOptions.headers = {
-        ...localVarHeaderParameter,
-        ...headersFromBaseOptions,
-        ...options.headers,
-      };
-
-      return {
-        url: toPathString(localVarUrlObj),
-        options: localVarRequestOptions,
-      };
-    },
-    /**
-     *
-     * @param {LinkStructuralQuery} linkStructuralQuery
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    getLinksByQuery: async (
-      linkStructuralQuery: LinkStructuralQuery,
-      options: AxiosRequestConfig = {},
-    ): Promise<RequestArgs> => {
-      // verify required parameter 'linkStructuralQuery' is not null or undefined
-      assertParamExists(
-        "getLinksByQuery",
-        "linkStructuralQuery",
-        linkStructuralQuery,
-      );
-      const localVarPath = `/links/query`;
-      // use dummy base URL string because the URL constructor only accepts absolute URLs.
-      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-      let baseOptions;
-      if (configuration) {
-        baseOptions = configuration.baseOptions;
-      }
-
-      const localVarRequestOptions = {
-        method: "POST",
-        ...baseOptions,
-        ...options,
-      };
-      const localVarHeaderParameter = {} as any;
-      const localVarQueryParameter = {} as any;
-
-      localVarHeaderParameter["Content-Type"] = "application/json";
-
-      setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
-      localVarRequestOptions.headers = {
-        ...localVarHeaderParameter,
-        ...headersFromBaseOptions,
-        ...options.headers,
-      };
-      localVarRequestOptions.data = serializeDataIfNeeded(
-        linkStructuralQuery,
-        localVarRequestOptions,
-        configuration,
-      );
-
-      return {
-        url: toPathString(localVarUrlObj),
-        options: localVarRequestOptions,
-      };
-    },
-    /**
-     *
-     * @param {string} entityId The ID of the source entity
-     * @param {RemoveLinkRequest} removeLinkRequest
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    removeLink: async (
-      entityId: string,
-      removeLinkRequest: RemoveLinkRequest,
-      options: AxiosRequestConfig = {},
-    ): Promise<RequestArgs> => {
-      // verify required parameter 'entityId' is not null or undefined
-      assertParamExists("removeLink", "entityId", entityId);
-      // verify required parameter 'removeLinkRequest' is not null or undefined
-      assertParamExists("removeLink", "removeLinkRequest", removeLinkRequest);
-      const localVarPath = `/entities/{entityId}/links`.replace(
-        `{${"entityId"}}`,
-        encodeURIComponent(String(entityId)),
-      );
-      // use dummy base URL string because the URL constructor only accepts absolute URLs.
-      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-      let baseOptions;
-      if (configuration) {
-        baseOptions = configuration.baseOptions;
-      }
-
-      const localVarRequestOptions = {
-        method: "DELETE",
-        ...baseOptions,
-        ...options,
-      };
-      const localVarHeaderParameter = {} as any;
-      const localVarQueryParameter = {} as any;
-
-      localVarHeaderParameter["Content-Type"] = "application/json";
-
-      setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
-      localVarRequestOptions.headers = {
-        ...localVarHeaderParameter,
-        ...headersFromBaseOptions,
-        ...options.headers,
-      };
-      localVarRequestOptions.data = serializeDataIfNeeded(
-        removeLinkRequest,
-        localVarRequestOptions,
-        configuration,
-      );
-
-      return {
-        url: toPathString(localVarUrlObj),
-        options: localVarRequestOptions,
-      };
-    },
-  };
-};
-
-/**
- * LinkApi - functional programming interface
- * @export
- */
-export const LinkApiFp = function (configuration?: Configuration) {
-  const localVarAxiosParamCreator = LinkApiAxiosParamCreator(configuration);
-  return {
-    /**
-     *
-     * @param {string} entityId The ID of the source entity
-     * @param {CreateLinkRequest} createLinkRequest
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    async createLink(
-      entityId: string,
-      createLinkRequest: CreateLinkRequest,
-      options?: AxiosRequestConfig,
-    ): Promise<
-      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Link>
-    > {
-      const localVarAxiosArgs = await localVarAxiosParamCreator.createLink(
-        entityId,
-        createLinkRequest,
-        options,
-      );
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
-      );
-    },
-    /**
-     *
-     * @param {string} entityId The ID of the source entity
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    async getEntityLinks(
-      entityId: string,
-      options?: AxiosRequestConfig,
-    ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<Array<PersistedLink>>
-    > {
-      const localVarAxiosArgs = await localVarAxiosParamCreator.getEntityLinks(
-        entityId,
-        options,
-      );
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
-      );
-    },
-    /**
-     *
-     * @param {LinkStructuralQuery} linkStructuralQuery
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    async getLinksByQuery(
-      linkStructuralQuery: LinkStructuralQuery,
-      options?: AxiosRequestConfig,
-    ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<Array<LinkRootedSubgraph>>
-    > {
-      const localVarAxiosArgs = await localVarAxiosParamCreator.getLinksByQuery(
-        linkStructuralQuery,
-        options,
-      );
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
-      );
-    },
-    /**
-     *
-     * @param {string} entityId The ID of the source entity
-     * @param {RemoveLinkRequest} removeLinkRequest
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    async removeLink(
-      entityId: string,
-      removeLinkRequest: RemoveLinkRequest,
-      options?: AxiosRequestConfig,
-    ): Promise<
-      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>
-    > {
-      const localVarAxiosArgs = await localVarAxiosParamCreator.removeLink(
-        entityId,
-        removeLinkRequest,
-        options,
-      );
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
-      );
-    },
-  };
-};
-
-/**
- * LinkApi - factory interface
- * @export
- */
-export const LinkApiFactory = function (
-  configuration?: Configuration,
-  basePath?: string,
-  axios?: AxiosInstance,
-) {
-  const localVarFp = LinkApiFp(configuration);
-  return {
-    /**
-     *
-     * @param {string} entityId The ID of the source entity
-     * @param {CreateLinkRequest} createLinkRequest
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    createLink(
-      entityId: string,
-      createLinkRequest: CreateLinkRequest,
-      options?: any,
-    ): AxiosPromise<Link> {
-      return localVarFp
-        .createLink(entityId, createLinkRequest, options)
-        .then((request) => request(axios, basePath));
-    },
-    /**
-     *
-     * @param {string} entityId The ID of the source entity
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    getEntityLinks(
-      entityId: string,
-      options?: any,
-    ): AxiosPromise<Array<PersistedLink>> {
-      return localVarFp
-        .getEntityLinks(entityId, options)
-        .then((request) => request(axios, basePath));
-    },
-    /**
-     *
-     * @param {LinkStructuralQuery} linkStructuralQuery
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    getLinksByQuery(
-      linkStructuralQuery: LinkStructuralQuery,
-      options?: any,
-    ): AxiosPromise<Array<LinkRootedSubgraph>> {
-      return localVarFp
-        .getLinksByQuery(linkStructuralQuery, options)
-        .then((request) => request(axios, basePath));
-    },
-    /**
-     *
-     * @param {string} entityId The ID of the source entity
-     * @param {RemoveLinkRequest} removeLinkRequest
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    removeLink(
-      entityId: string,
-      removeLinkRequest: RemoveLinkRequest,
-      options?: any,
-    ): AxiosPromise<void> {
-      return localVarFp
-        .removeLink(entityId, removeLinkRequest, options)
-        .then((request) => request(axios, basePath));
-    },
-  };
-};
-
-/**
- * LinkApi - interface
- * @export
- * @interface LinkApi
- */
-export interface LinkApiInterface {
-  /**
-   *
-   * @param {string} entityId The ID of the source entity
-   * @param {CreateLinkRequest} createLinkRequest
-   * @param {*} [options] Override http request option.
-   * @throws {RequiredError}
-   * @memberof LinkApiInterface
-   */
-  createLink(
-    entityId: string,
-    createLinkRequest: CreateLinkRequest,
-    options?: AxiosRequestConfig,
-  ): AxiosPromise<Link>;
-
-  /**
-   *
-   * @param {string} entityId The ID of the source entity
-   * @param {*} [options] Override http request option.
-   * @throws {RequiredError}
-   * @memberof LinkApiInterface
-   */
-  getEntityLinks(
-    entityId: string,
-    options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<PersistedLink>>;
-
-  /**
-   *
-   * @param {LinkStructuralQuery} linkStructuralQuery
-   * @param {*} [options] Override http request option.
-   * @throws {RequiredError}
-   * @memberof LinkApiInterface
-   */
-  getLinksByQuery(
-    linkStructuralQuery: LinkStructuralQuery,
-    options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<LinkRootedSubgraph>>;
-
-  /**
-   *
-   * @param {string} entityId The ID of the source entity
-   * @param {RemoveLinkRequest} removeLinkRequest
-   * @param {*} [options] Override http request option.
-   * @throws {RequiredError}
-   * @memberof LinkApiInterface
-   */
-  removeLink(
-    entityId: string,
-    removeLinkRequest: RemoveLinkRequest,
-    options?: AxiosRequestConfig,
-  ): AxiosPromise<void>;
-}
-
-/**
- * LinkApi - object-oriented interface
- * @export
- * @class LinkApi
- * @extends {BaseAPI}
- */
-export class LinkApi extends BaseAPI implements LinkApiInterface {
-  /**
-   *
-   * @param {string} entityId The ID of the source entity
-   * @param {CreateLinkRequest} createLinkRequest
-   * @param {*} [options] Override http request option.
-   * @throws {RequiredError}
-   * @memberof LinkApi
-   */
-  public createLink(
-    entityId: string,
-    createLinkRequest: CreateLinkRequest,
-    options?: AxiosRequestConfig,
-  ) {
-    return LinkApiFp(this.configuration)
-      .createLink(entityId, createLinkRequest, options)
-      .then((request) => request(this.axios, this.basePath));
-  }
-
-  /**
-   *
-   * @param {string} entityId The ID of the source entity
-   * @param {*} [options] Override http request option.
-   * @throws {RequiredError}
-   * @memberof LinkApi
-   */
-  public getEntityLinks(entityId: string, options?: AxiosRequestConfig) {
-    return LinkApiFp(this.configuration)
-      .getEntityLinks(entityId, options)
-      .then((request) => request(this.axios, this.basePath));
-  }
-
-  /**
-   *
-   * @param {LinkStructuralQuery} linkStructuralQuery
-   * @param {*} [options] Override http request option.
-   * @throws {RequiredError}
-   * @memberof LinkApi
-   */
-  public getLinksByQuery(
-    linkStructuralQuery: LinkStructuralQuery,
-    options?: AxiosRequestConfig,
-  ) {
-    return LinkApiFp(this.configuration)
-      .getLinksByQuery(linkStructuralQuery, options)
-      .then((request) => request(this.axios, this.basePath));
-  }
-
-  /**
-   *
-   * @param {string} entityId The ID of the source entity
-   * @param {RemoveLinkRequest} removeLinkRequest
-   * @param {*} [options] Override http request option.
-   * @throws {RequiredError}
-   * @memberof LinkApi
-   */
-  public removeLink(
-    entityId: string,
-    removeLinkRequest: RemoveLinkRequest,
-    options?: AxiosRequestConfig,
-  ) {
-    return LinkApiFp(this.configuration)
-      .removeLink(entityId, removeLinkRequest, options)
-      .then((request) => request(this.axios, this.basePath));
-  }
-}
-
-/**
- * LinkTypeApi - axios parameter creator
- * @export
- */
-export const LinkTypeApiAxiosParamCreator = function (
-  configuration?: Configuration,
-) {
-  return {
-    /**
-     *
-     * @param {CreateLinkTypeRequest} createLinkTypeRequest
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    createLinkType: async (
-      createLinkTypeRequest: CreateLinkTypeRequest,
-      options: AxiosRequestConfig = {},
-    ): Promise<RequestArgs> => {
-      // verify required parameter 'createLinkTypeRequest' is not null or undefined
-      assertParamExists(
-        "createLinkType",
-        "createLinkTypeRequest",
-        createLinkTypeRequest,
-      );
-      const localVarPath = `/link-types`;
-      // use dummy base URL string because the URL constructor only accepts absolute URLs.
-      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-      let baseOptions;
-      if (configuration) {
-        baseOptions = configuration.baseOptions;
-      }
-
-      const localVarRequestOptions = {
-        method: "POST",
-        ...baseOptions,
-        ...options,
-      };
-      const localVarHeaderParameter = {} as any;
-      const localVarQueryParameter = {} as any;
-
-      localVarHeaderParameter["Content-Type"] = "application/json";
-
-      setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
-      localVarRequestOptions.headers = {
-        ...localVarHeaderParameter,
-        ...headersFromBaseOptions,
-        ...options.headers,
-      };
-      localVarRequestOptions.data = serializeDataIfNeeded(
-        createLinkTypeRequest,
-        localVarRequestOptions,
-        configuration,
-      );
-
-      return {
-        url: toPathString(localVarUrlObj),
-        options: localVarRequestOptions,
-      };
-    },
-    /**
-     *
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    getLatestLinkTypes: async (
-      options: AxiosRequestConfig = {},
-    ): Promise<RequestArgs> => {
-      const localVarPath = `/link-types`;
-      // use dummy base URL string because the URL constructor only accepts absolute URLs.
-      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-      let baseOptions;
-      if (configuration) {
-        baseOptions = configuration.baseOptions;
-      }
-
-      const localVarRequestOptions = {
-        method: "GET",
-        ...baseOptions,
-        ...options,
-      };
-      const localVarHeaderParameter = {} as any;
-      const localVarQueryParameter = {} as any;
-
-      setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
-      localVarRequestOptions.headers = {
-        ...localVarHeaderParameter,
-        ...headersFromBaseOptions,
-        ...options.headers,
-      };
-
-      return {
-        url: toPathString(localVarUrlObj),
-        options: localVarRequestOptions,
-      };
-    },
-    /**
-     *
-     * @param {string} uri The URI of the link type
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    getLinkType: async (
-      uri: string,
-      options: AxiosRequestConfig = {},
-    ): Promise<RequestArgs> => {
-      // verify required parameter 'uri' is not null or undefined
-      assertParamExists("getLinkType", "uri", uri);
-      const localVarPath = `/link-types/{uri}`.replace(
-        `{${"uri"}}`,
-        encodeURIComponent(String(uri)),
-      );
-      // use dummy base URL string because the URL constructor only accepts absolute URLs.
-      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-      let baseOptions;
-      if (configuration) {
-        baseOptions = configuration.baseOptions;
-      }
-
-      const localVarRequestOptions = {
-        method: "GET",
-        ...baseOptions,
-        ...options,
-      };
-      const localVarHeaderParameter = {} as any;
-      const localVarQueryParameter = {} as any;
-
-      setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
-      localVarRequestOptions.headers = {
-        ...localVarHeaderParameter,
-        ...headersFromBaseOptions,
-        ...options.headers,
-      };
-
-      return {
-        url: toPathString(localVarUrlObj),
-        options: localVarRequestOptions,
-      };
-    },
-    /**
-     *
-     * @param {LinkTypeStructuralQuery} linkTypeStructuralQuery
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    getLinkTypesByQuery: async (
-      linkTypeStructuralQuery: LinkTypeStructuralQuery,
-      options: AxiosRequestConfig = {},
-    ): Promise<RequestArgs> => {
-      // verify required parameter 'linkTypeStructuralQuery' is not null or undefined
-      assertParamExists(
-        "getLinkTypesByQuery",
-        "linkTypeStructuralQuery",
-        linkTypeStructuralQuery,
-      );
-      const localVarPath = `/link-types/query`;
-      // use dummy base URL string because the URL constructor only accepts absolute URLs.
-      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-      let baseOptions;
-      if (configuration) {
-        baseOptions = configuration.baseOptions;
-      }
-
-      const localVarRequestOptions = {
-        method: "POST",
-        ...baseOptions,
-        ...options,
-      };
-      const localVarHeaderParameter = {} as any;
-      const localVarQueryParameter = {} as any;
-
-      localVarHeaderParameter["Content-Type"] = "application/json";
-
-      setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
-      localVarRequestOptions.headers = {
-        ...localVarHeaderParameter,
-        ...headersFromBaseOptions,
-        ...options.headers,
-      };
-      localVarRequestOptions.data = serializeDataIfNeeded(
-        linkTypeStructuralQuery,
-        localVarRequestOptions,
-        configuration,
-      );
-
-      return {
-        url: toPathString(localVarUrlObj),
-        options: localVarRequestOptions,
-      };
-    },
-    /**
-     *
-     * @param {UpdateLinkTypeRequest} updateLinkTypeRequest
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    updateLinkType: async (
-      updateLinkTypeRequest: UpdateLinkTypeRequest,
-      options: AxiosRequestConfig = {},
-    ): Promise<RequestArgs> => {
-      // verify required parameter 'updateLinkTypeRequest' is not null or undefined
-      assertParamExists(
-        "updateLinkType",
-        "updateLinkTypeRequest",
-        updateLinkTypeRequest,
-      );
-      const localVarPath = `/link-types`;
-      // use dummy base URL string because the URL constructor only accepts absolute URLs.
-      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-      let baseOptions;
-      if (configuration) {
-        baseOptions = configuration.baseOptions;
-      }
-
-      const localVarRequestOptions = {
-        method: "PUT",
-        ...baseOptions,
-        ...options,
-      };
-      const localVarHeaderParameter = {} as any;
-      const localVarQueryParameter = {} as any;
-
-      localVarHeaderParameter["Content-Type"] = "application/json";
-
-      setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
-      localVarRequestOptions.headers = {
-        ...localVarHeaderParameter,
-        ...headersFromBaseOptions,
-        ...options.headers,
-      };
-      localVarRequestOptions.data = serializeDataIfNeeded(
-        updateLinkTypeRequest,
-        localVarRequestOptions,
-        configuration,
-      );
-
-      return {
-        url: toPathString(localVarUrlObj),
-        options: localVarRequestOptions,
-      };
-    },
-  };
-};
-
-/**
- * LinkTypeApi - functional programming interface
- * @export
- */
-export const LinkTypeApiFp = function (configuration?: Configuration) {
-  const localVarAxiosParamCreator = LinkTypeApiAxiosParamCreator(configuration);
-  return {
-    /**
-     *
-     * @param {CreateLinkTypeRequest} createLinkTypeRequest
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    async createLinkType(
-      createLinkTypeRequest: CreateLinkTypeRequest,
-      options?: AxiosRequestConfig,
-    ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<PersistedOntologyMetadata>
-    > {
-      const localVarAxiosArgs = await localVarAxiosParamCreator.createLinkType(
-        createLinkTypeRequest,
-        options,
-      );
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
-      );
-    },
-    /**
-     *
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    async getLatestLinkTypes(
-      options?: AxiosRequestConfig,
-    ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<Array<PersistedLinkType>>
-    > {
-      const localVarAxiosArgs =
-        await localVarAxiosParamCreator.getLatestLinkTypes(options);
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
-      );
-    },
-    /**
-     *
-     * @param {string} uri The URI of the link type
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    async getLinkType(
-      uri: string,
-      options?: AxiosRequestConfig,
-    ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<PersistedLinkType>
-    > {
-      const localVarAxiosArgs = await localVarAxiosParamCreator.getLinkType(
-        uri,
-        options,
-      );
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
-      );
-    },
-    /**
-     *
-     * @param {LinkTypeStructuralQuery} linkTypeStructuralQuery
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    async getLinkTypesByQuery(
-      linkTypeStructuralQuery: LinkTypeStructuralQuery,
-      options?: AxiosRequestConfig,
-    ): Promise<
-      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Subgraph>
-    > {
-      const localVarAxiosArgs =
-        await localVarAxiosParamCreator.getLinkTypesByQuery(
-          linkTypeStructuralQuery,
-          options,
-        );
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
-      );
-    },
-    /**
-     *
-     * @param {UpdateLinkTypeRequest} updateLinkTypeRequest
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    async updateLinkType(
-      updateLinkTypeRequest: UpdateLinkTypeRequest,
-      options?: AxiosRequestConfig,
-    ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<PersistedOntologyMetadata>
-    > {
-      const localVarAxiosArgs = await localVarAxiosParamCreator.updateLinkType(
-        updateLinkTypeRequest,
-        options,
-      );
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
-      );
-    },
-  };
-};
-
-/**
- * LinkTypeApi - factory interface
- * @export
- */
-export const LinkTypeApiFactory = function (
-  configuration?: Configuration,
-  basePath?: string,
-  axios?: AxiosInstance,
-) {
-  const localVarFp = LinkTypeApiFp(configuration);
-  return {
-    /**
-     *
-     * @param {CreateLinkTypeRequest} createLinkTypeRequest
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    createLinkType(
-      createLinkTypeRequest: CreateLinkTypeRequest,
-      options?: any,
-    ): AxiosPromise<PersistedOntologyMetadata> {
-      return localVarFp
-        .createLinkType(createLinkTypeRequest, options)
-        .then((request) => request(axios, basePath));
-    },
-    /**
-     *
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    getLatestLinkTypes(options?: any): AxiosPromise<Array<PersistedLinkType>> {
-      return localVarFp
-        .getLatestLinkTypes(options)
-        .then((request) => request(axios, basePath));
-    },
-    /**
-     *
-     * @param {string} uri The URI of the link type
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    getLinkType(uri: string, options?: any): AxiosPromise<PersistedLinkType> {
-      return localVarFp
-        .getLinkType(uri, options)
-        .then((request) => request(axios, basePath));
-    },
-    /**
-     *
-     * @param {LinkTypeStructuralQuery} linkTypeStructuralQuery
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    getLinkTypesByQuery(
-      linkTypeStructuralQuery: LinkTypeStructuralQuery,
-      options?: any,
-    ): AxiosPromise<Subgraph> {
-      return localVarFp
-        .getLinkTypesByQuery(linkTypeStructuralQuery, options)
-        .then((request) => request(axios, basePath));
-    },
-    /**
-     *
-     * @param {UpdateLinkTypeRequest} updateLinkTypeRequest
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    updateLinkType(
-      updateLinkTypeRequest: UpdateLinkTypeRequest,
-      options?: any,
-    ): AxiosPromise<PersistedOntologyMetadata> {
-      return localVarFp
-        .updateLinkType(updateLinkTypeRequest, options)
-        .then((request) => request(axios, basePath));
-    },
-  };
-};
-
-/**
- * LinkTypeApi - interface
- * @export
- * @interface LinkTypeApi
- */
-export interface LinkTypeApiInterface {
-  /**
-   *
-   * @param {CreateLinkTypeRequest} createLinkTypeRequest
-   * @param {*} [options] Override http request option.
-   * @throws {RequiredError}
-   * @memberof LinkTypeApiInterface
-   */
-  createLinkType(
-    createLinkTypeRequest: CreateLinkTypeRequest,
-    options?: AxiosRequestConfig,
-  ): AxiosPromise<PersistedOntologyMetadata>;
-
-  /**
-   *
-   * @param {*} [options] Override http request option.
-   * @throws {RequiredError}
-   * @memberof LinkTypeApiInterface
-   */
-  getLatestLinkTypes(
-    options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<PersistedLinkType>>;
-
-  /**
-   *
-   * @param {string} uri The URI of the link type
-   * @param {*} [options] Override http request option.
-   * @throws {RequiredError}
-   * @memberof LinkTypeApiInterface
-   */
-  getLinkType(
-    uri: string,
-    options?: AxiosRequestConfig,
-  ): AxiosPromise<PersistedLinkType>;
-
-  /**
-   *
-   * @param {LinkTypeStructuralQuery} linkTypeStructuralQuery
-   * @param {*} [options] Override http request option.
-   * @throws {RequiredError}
-   * @memberof LinkTypeApiInterface
-   */
-  getLinkTypesByQuery(
-    linkTypeStructuralQuery: LinkTypeStructuralQuery,
-    options?: AxiosRequestConfig,
-  ): AxiosPromise<Subgraph>;
-
-  /**
-   *
-   * @param {UpdateLinkTypeRequest} updateLinkTypeRequest
-   * @param {*} [options] Override http request option.
-   * @throws {RequiredError}
-   * @memberof LinkTypeApiInterface
-   */
-  updateLinkType(
-    updateLinkTypeRequest: UpdateLinkTypeRequest,
-    options?: AxiosRequestConfig,
-  ): AxiosPromise<PersistedOntologyMetadata>;
-}
-
-/**
- * LinkTypeApi - object-oriented interface
- * @export
- * @class LinkTypeApi
- * @extends {BaseAPI}
- */
-export class LinkTypeApi extends BaseAPI implements LinkTypeApiInterface {
-  /**
-   *
-   * @param {CreateLinkTypeRequest} createLinkTypeRequest
-   * @param {*} [options] Override http request option.
-   * @throws {RequiredError}
-   * @memberof LinkTypeApi
-   */
-  public createLinkType(
-    createLinkTypeRequest: CreateLinkTypeRequest,
-    options?: AxiosRequestConfig,
-  ) {
-    return LinkTypeApiFp(this.configuration)
-      .createLinkType(createLinkTypeRequest, options)
-      .then((request) => request(this.axios, this.basePath));
-  }
-
-  /**
-   *
-   * @param {*} [options] Override http request option.
-   * @throws {RequiredError}
-   * @memberof LinkTypeApi
-   */
-  public getLatestLinkTypes(options?: AxiosRequestConfig) {
-    return LinkTypeApiFp(this.configuration)
-      .getLatestLinkTypes(options)
-      .then((request) => request(this.axios, this.basePath));
-  }
-
-  /**
-   *
-   * @param {string} uri The URI of the link type
-   * @param {*} [options] Override http request option.
-   * @throws {RequiredError}
-   * @memberof LinkTypeApi
-   */
-  public getLinkType(uri: string, options?: AxiosRequestConfig) {
-    return LinkTypeApiFp(this.configuration)
-      .getLinkType(uri, options)
-      .then((request) => request(this.axios, this.basePath));
-  }
-
-  /**
-   *
-   * @param {LinkTypeStructuralQuery} linkTypeStructuralQuery
-   * @param {*} [options] Override http request option.
-   * @throws {RequiredError}
-   * @memberof LinkTypeApi
-   */
-  public getLinkTypesByQuery(
-    linkTypeStructuralQuery: LinkTypeStructuralQuery,
-    options?: AxiosRequestConfig,
-  ) {
-    return LinkTypeApiFp(this.configuration)
-      .getLinkTypesByQuery(linkTypeStructuralQuery, options)
-      .then((request) => request(this.axios, this.basePath));
-  }
-
-  /**
-   *
-   * @param {UpdateLinkTypeRequest} updateLinkTypeRequest
-   * @param {*} [options] Override http request option.
-   * @throws {RequiredError}
-   * @memberof LinkTypeApi
-   */
-  public updateLinkType(
-    updateLinkTypeRequest: UpdateLinkTypeRequest,
-    options?: AxiosRequestConfig,
-  ) {
-    return LinkTypeApiFp(this.configuration)
-      .updateLinkType(updateLinkTypeRequest, options)
       .then((request) => request(this.axios, this.basePath));
   }
 }
