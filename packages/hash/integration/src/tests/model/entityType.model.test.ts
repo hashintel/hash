@@ -1,7 +1,6 @@
 import "../loadTestEnv";
 import { PostgresAdapter } from "@hashintel/hash-api/src/db";
 import { EntityType, User } from "@hashintel/hash-api/src/model";
-import { WayToUseHash } from "@hashintel/hash-api/src/graphql/apiTypes.gen";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
 import { recreateDbAndRunSchemaMigrations } from "../setup";
@@ -40,7 +39,7 @@ describe("EntityType model class", () => {
       shortname: "test-user",
       preferredName: "Alice",
       emails: [{ address: "alice@hash.test", primary: true, verified: true }],
-      infoProvidedAtSignup: { usingHow: WayToUseHash.ByThemselves },
+      infoProvidedAtSignup: { usingHow: "BY_THEMSELVES" },
     });
   });
 
@@ -159,7 +158,7 @@ describe("compatibility validation", () => {
       shortname: "test-user2",
       preferredName: "Alice2",
       emails: [{ address: "alice2@hash.test", primary: true, verified: true }],
-      infoProvidedAtSignup: { usingHow: WayToUseHash.ByThemselves },
+      infoProvidedAtSignup: { usingHow: "BY_THEMSELVES" },
     });
   });
 

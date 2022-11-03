@@ -1,6 +1,6 @@
-import { ResolverFn, Subgraph, QueryMeArgs } from "../../apiTypes.gen";
-import { LoggedInGraphQLContext } from "../../context";
-import { mapSubgraphToGql } from "../ontology/model-mapping";
+import { ResolverFn, Subgraph, QueryMeArgs } from "../../../apiTypes.gen";
+import { LoggedInGraphQLContext } from "../../../context";
+import { mapSubgraphToGql } from "../../ontology/model-mapping";
 
 export const me: ResolverFn<
   Subgraph,
