@@ -13,7 +13,7 @@ import {
   KratosUserIdentityTraits,
 } from "../../auth/ory-kratos";
 import { WORKSPACE_TYPES } from "../../graph/workspace-types";
-import { TypeMismatchError } from "../../lib/error";
+import { EntityTypeMismatchError } from "../../lib/error";
 import { workspaceAccountId } from "../util";
 
 type QualifiedEmail = { address: string; verified: boolean; primary: boolean };
@@ -35,8 +35,10 @@ export default class extends EntityModel {
       entity.entityTypeModel.schema.$id !==
       WORKSPACE_TYPES.entityType.user.schema.$id
     ) {
-      throw new TypeMismatchError(
-        `Entity with id ${entity.entityId} is not a workspace user`,
+      throw new EntityTypeMismatchError(
+        entity.entityId,
+        WORKSPACE_TYPES.entityType.user.schema.$id,
+        entity.entityTypeModel.schema.$id,
       );
     }
 

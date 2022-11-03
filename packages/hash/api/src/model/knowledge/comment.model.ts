@@ -7,7 +7,7 @@ import {
   UserModel,
 } from "..";
 import { WORKSPACE_TYPES } from "../../graph/workspace-types";
-import { TypeMismatchError } from "../../lib/error";
+import { EntityTypeMismatchError } from "../../lib/error";
 
 type CommentModelCreateParams = Omit<
   EntityModelCreateParams,
@@ -27,8 +27,10 @@ export default class extends EntityModel {
       entity.entityTypeModel.schema.$id !==
       WORKSPACE_TYPES.entityType.comment.schema.$id
     ) {
-      throw new TypeMismatchError(
-        `Entity with id ${entity.entityId} is not a workspace comment`,
+      throw new EntityTypeMismatchError(
+        entity.entityId,
+        WORKSPACE_TYPES.entityType.comment.schema.$id,
+        entity.entityTypeModel.schema.$id,
       );
     }
 

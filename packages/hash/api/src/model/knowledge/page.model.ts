@@ -12,7 +12,7 @@ import {
   CommentModel,
 } from "..";
 import { WORKSPACE_TYPES } from "../../graph/workspace-types";
-import { TypeMismatchError } from "../../lib/error";
+import { EntityTypeMismatchError } from "../../lib/error";
 
 type PageModelCreateParams = Omit<
   EntityModelCreateParams,
@@ -33,8 +33,10 @@ export default class extends EntityModel {
       entity.entityTypeModel.schema.$id !==
       WORKSPACE_TYPES.entityType.page.schema.$id
     ) {
-      throw new TypeMismatchError(
-        `Entity with id ${entity.entityId} is not a workspace page`,
+      throw new EntityTypeMismatchError(
+        entity.entityId,
+        WORKSPACE_TYPES.entityType.page.schema.$id,
+        entity.entityTypeModel.schema.$id,
       );
     }
 

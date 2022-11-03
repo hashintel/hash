@@ -9,7 +9,7 @@ import {
 } from "..";
 import { workspaceAccountId } from "../util";
 import { WORKSPACE_TYPES } from "../../graph/workspace-types";
-import { TypeMismatchError } from "../../lib/error";
+import { EntityTypeMismatchError } from "../../lib/error";
 
 export type OrgMembershipModelCreateParams = Omit<
   EntityModelCreateParams,
@@ -28,8 +28,10 @@ export default class extends EntityModel {
       entity.entityTypeModel.schema.$id !==
       WORKSPACE_TYPES.entityType.orgMembership.schema.$id
     ) {
-      throw new TypeMismatchError(
-        `Entity with id ${entity.entityId} is not a workspace org membership`,
+      throw new EntityTypeMismatchError(
+        entity.entityId,
+        WORKSPACE_TYPES.entityType.orgMembership.schema.$id,
+        entity.entityTypeModel.schema.$id,
       );
     }
 

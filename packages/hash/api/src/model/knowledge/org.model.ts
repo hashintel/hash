@@ -7,7 +7,7 @@ import {
 } from "..";
 import { workspaceAccountId } from "../util";
 import { WORKSPACE_TYPES } from "../../graph/workspace-types";
-import { TypeMismatchError } from "../../lib/error";
+import { EntityTypeMismatchError } from "../../lib/error";
 
 /**
  * @todo revisit organization size provided info. These constant strings could
@@ -81,8 +81,10 @@ export default class extends EntityModel {
       entity.entityTypeModel.schema.$id !==
       WORKSPACE_TYPES.entityType.org.schema.$id
     ) {
-      throw new TypeMismatchError(
-        `Entity with id ${entity.entityId} is not a workspace org`,
+      throw new EntityTypeMismatchError(
+        entity.entityId,
+        WORKSPACE_TYPES.entityType.org.schema.$id,
+        entity.entityTypeModel.schema.$id,
       );
     }
 
