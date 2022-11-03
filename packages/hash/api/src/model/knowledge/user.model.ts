@@ -459,4 +459,11 @@ export default class extends EntityModel {
     /** @todo: check they have a verified email address */
     return !!this.getShortname() && !!this.getPreferredName();
   }
+
+  get isInstanceAdmin(): boolean {
+    /** @todo: check they have a verified email address */
+    return (this.properties as any)[
+      WORKSPACE_TYPES.propertyType.isInstanceAdmin.baseUri
+    ];
+  }
 }
