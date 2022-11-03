@@ -150,7 +150,6 @@ export const PropertyTypeForm = ({
           control={control}
           rules={{ required: true }}
           name="expectedValues"
-          onChange={([, data]) => data}
         />
       </Stack>
       <Divider sx={{ mt: 2, mb: 3 }} />
