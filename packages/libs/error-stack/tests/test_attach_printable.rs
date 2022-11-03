@@ -9,8 +9,8 @@ use error_stack::{AttachmentKind, FrameKind, FutureExt, Report, ResultExt};
 
 fn test_messages<E>(report: &Report<E>) {
     assert_eq!(
-        messages(report),
-        expect_messages(&[
+        remove_builtin_messages(messages(report)),
+        remove_builtin_messages([
             "context B",
             "context A",
             "printable B",
@@ -25,8 +25,7 @@ fn test_kinds<E>(report: &Report<E>) {
         FrameKind::Attachment(AttachmentKind::Printable(_)),
         FrameKind::Attachment(AttachmentKind::Printable(_)),
         FrameKind::Attachment(AttachmentKind::Printable(_)),
-        FrameKind::Attachment(AttachmentKind::Printable(_))
-        => (trace)
+        FrameKind::Attachment(AttachmentKind::Printable(_)),
         FrameKind::Context(_)
     ]);
 }

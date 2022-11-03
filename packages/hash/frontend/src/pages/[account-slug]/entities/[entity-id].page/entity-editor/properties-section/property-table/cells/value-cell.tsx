@@ -3,16 +3,10 @@ import {
   CustomRenderer,
   GridCellKind,
 } from "@glideapps/glide-data-grid";
-import { TooltipCellProps } from "../../../../../../../../components/GlideGlid/use-grid-tooltip/types";
-import { EnrichedPropertyType } from "../types";
+import { getYCenter } from "../../../../../../../../components/GlideGlid/utils";
+import { drawNestedPropertySummary } from "./value-cell/draw-nested-property-summary";
+import { ValueCell } from "./value-cell/types";
 import { ValueCellEditor } from "./value-cell/value-cell-editor";
-
-export interface ValueCellProps extends TooltipCellProps {
-  readonly kind: "value-cell";
-  property: EnrichedPropertyType;
-}
-
-export type ValueCell = CustomCell<ValueCellProps>;
 
 export const renderValueCell: CustomRenderer<ValueCell> = {
   kind: GridCellKind.Custom,
@@ -20,13 +14,18 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
     (cell.data as any).kind === "value-cell",
   draw: (args, cell) => {
     const { ctx, rect, theme } = args;
-    const { x, y, height } = rect;
-    const { property } = cell.data;
-
-    const yCenter = y + height / 2 + 2;
+    const { value, children } = cell.data.property;
 
     ctx.fillStyle = theme.textHeader;
-    ctx.fillText(property.value, x + theme.cellHorizontalPadding, yCenter);
+    ctx.font = theme.baseFontStyle;
+
+    if (children.length) {
+      return drawNestedPropertySummary(args);
+    }
+
+    const yCenter = getYCenter(args);
+
+    ctx.fillText(String(value), rect.x + theme.cellHorizontalPadding, yCenter);
   },
   provideEditor: () => {
     return {

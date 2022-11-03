@@ -1,5 +1,5 @@
 {
-  "extends": "./legacy-base-to-refactor.json",
+  "extends": "./legacy-base-tsconfig-to-refactor.json",
   "compilerOptions": {
     "allowJs": true,
     "isolatedModules": true,

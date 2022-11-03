@@ -6,7 +6,7 @@ import {
   GetAllLatestPersistedEntitiesQueryVariables,
 } from "../../graphql/apiTypes.gen";
 import { getAllLatestEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
-import { isEntityVertex, Subgraph } from "../../lib/subgraph";
+import { getPersistedEntities, Subgraph } from "../../lib/subgraph";
 import { useInitTypeSystem } from "../../lib/use-init-type-system";
 import { constructOrg, Org } from "../../lib/org";
 /**
@@ -43,13 +43,21 @@ export const useOrgs = (): {
       return undefined;
     }
 
-    return Object.values((subgraph as unknown as Subgraph).vertices)
-      .filter(isEntityVertex)
+    /**
+     * @todo: remove casting when we start returning links in the subgraph
+     *   https://app.asana.com/0/0/1203214689883095/f
+     */
+    return getPersistedEntities(subgraph as unknown as Subgraph)
       .filter(
-        ({ inner }) => inner.entityTypeId === types.entityType.org.entityTypeId,
+        ({ entityTypeId }) =>
+          entityTypeId === types.entityType.org.entityTypeId,
       )
-      .map(({ inner: { entityId: orgEntityId } }) =>
+      .map(({ entityId: orgEntityId }) =>
         constructOrg({
+          /**
+           * @todo: remove this when we start returning links in the subgraph
+           *   https://app.asana.com/0/0/1203214689883095/f
+           */
           subgraph: subgraph as unknown as Subgraph,
           orgEntityId,
         }),

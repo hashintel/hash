@@ -7,8 +7,8 @@
   "scripts": {
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.yml",
     "dev": "node --max-old-space-size=2048 ./node_modules/.bin/ts-node-dev --respawn --transpile-only ./src/index.ts",
-    "fix:eslint": "eslint --ext .ts --fix ./src/",
-    "lint:eslint": "eslint --ext .ts ./src/",
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint .",
     "lint:tsc": "tsc --noEmit",
     "start": "cross-env NODE_ENV=production node --max-old-space-size=2048 ./node_modules/.bin/ts-node --transpile-only ./src/index.ts",
     "test": "jest"

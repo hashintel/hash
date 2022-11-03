@@ -8,7 +8,7 @@ import {
   GetAllLatestPersistedEntitiesQueryVariables,
 } from "../../graphql/apiTypes.gen";
 import { getAllLatestEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
-import { isEntityVertex, Subgraph } from "../../lib/subgraph";
+import { getPersistedEntities, Subgraph } from "../../lib/subgraph";
 import { useInitTypeSystem } from "../../lib/use-init-type-system";
 
 export const useAccounts = (): {
@@ -40,14 +40,13 @@ export const useAccounts = (): {
 
     const subgraph = data.getAllLatestPersistedEntities as unknown as Subgraph;
 
-    return Object.values(subgraph.vertices)
-      .filter(isEntityVertex)
+    return getPersistedEntities(subgraph)
       .filter(
-        ({ inner }) =>
-          inner.entityTypeId === types.entityType.user.entityTypeId ||
-          inner.entityTypeId === types.entityType.org.entityTypeId,
+        ({ entityTypeId }) =>
+          entityTypeId === types.entityType.user.entityTypeId ||
+          entityTypeId === types.entityType.org.entityTypeId,
       )
-      .map(({ inner: { entityId, entityTypeId } }) =>
+      .map(({ entityId, entityTypeId }) =>
         entityTypeId === types.entityType.org.entityTypeId
           ? constructMinimalOrg({ subgraph, orgEntityId: entityId })
           : constructMinimalUser({

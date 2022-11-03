@@ -6,7 +6,7 @@ import {
   GetAllLatestPersistedEntitiesQueryVariables,
 } from "../../graphql/apiTypes.gen";
 import { getAllLatestEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
-import { isEntityVertex, Subgraph } from "../../lib/subgraph";
+import { getPersistedEntities, Subgraph } from "../../lib/subgraph";
 import { useInitTypeSystem } from "../../lib/use-init-type-system";
 import { constructUser, User } from "../../lib/user";
 
@@ -39,14 +39,21 @@ export const useUsers = (): {
       return undefined;
     }
 
-    return Object.values((subgraph as unknown as Subgraph).vertices)
-      .filter(isEntityVertex)
+    /**
+     * @todo: remove casting when we start returning links in the subgraph
+     *   https://app.asana.com/0/0/1203214689883095/f
+     */
+    return getPersistedEntities(subgraph as unknown as Subgraph)
       .filter(
-        ({ inner }) =>
-          inner.entityTypeId === types.entityType.user.entityTypeId,
+        ({ entityTypeId }) =>
+          entityTypeId === types.entityType.user.entityTypeId,
       )
-      .map(({ inner: { entityId: userEntityId } }) =>
+      .map(({ entityId: userEntityId }) =>
         constructUser({
+          /**
+           * @todo: remove casting when we start returning links in the subgraph
+           *   https://app.asana.com/0/0/1203214689883095/f
+           */
           subgraph: subgraph as unknown as Subgraph,
           userEntityId,
         }),

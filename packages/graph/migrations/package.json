@@ -5,10 +5,10 @@
   "description": "The data store for HASH",
   "license": "AGPL-3.0",
   "scripts": {
-    "fix:eslint": "eslint --ext .ts --fix .",
+    "fix:eslint": "eslint --fix .",
     "graph:migrate": "ts-node node_modules/.bin/node-pg-migrate -d HASH_GRAPH_PG_MIGRATION_URL -f ./postgres/migration-config.json",
     "graph:recreate-db": "ts-node postgres/scripts/recreate-graph-db.ts",
-    "lint:eslint": "eslint --ext .ts .",
+    "lint:eslint": "eslint .",
     "lint:tsc": "tsc --noEmit"
   },
   "dependencies": {

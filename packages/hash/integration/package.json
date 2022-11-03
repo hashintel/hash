@@ -6,8 +6,8 @@
   "license": "AGPL-3.0",
   "scripts": {
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.yml",
-    "fix:eslint": "eslint --ext .ts --fix ./src/",
-    "lint:eslint": "eslint --ext .ts ./src/",
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint .",
     "lint:tsc": "tsc --noEmit",
     "test": "jest --runInBand"
   },
