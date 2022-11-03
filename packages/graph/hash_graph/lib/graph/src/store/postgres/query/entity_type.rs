@@ -28,9 +28,6 @@ impl<'q> PostgresQueryRecord<'q> for EntityType {
 
 impl Path for EntityTypeQueryPath {
     /// Returns the relations that are required to access the path.
-    ///
-    /// The first element of the tuple is the column access of the source table, the second element
-    /// is the name of the target table, and the third element is the column access of the target.
     fn relations(&self) -> Vec<Relation> {
         match self {
             Self::BaseUri | Self::Version => vec![Relation {
