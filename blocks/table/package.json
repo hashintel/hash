@@ -27,6 +27,8 @@
     "uuid": "8.3.2"
   },
   "devDependencies": {
+    "@local/eslint-config": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
     "@types/react-table": "7.7.1",
     "block-scripts": "0.0.14",
     "eslint": "8.26.0",
