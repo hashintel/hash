@@ -7,7 +7,10 @@ use std::{
 };
 
 use serde::{Deserialize, Serialize};
-use type_system::{DataType, EntityType, PropertyType};
+use type_system::{
+    uri::{BaseUri, VersionedUri},
+    DataType, EntityType, PropertyType,
+};
 use utoipa::{openapi, ToSchema};
 
 use crate::{
@@ -20,6 +23,10 @@ use crate::{
 mod depths;
 
 pub use depths::*;
+
+use crate::identifier::{
+    EntityIdentifier, EntityVersion, GraphElementEditionIdentifier, OntologyTypeVersion, Timestamp,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -75,7 +82,7 @@ pub enum EdgeKind {
     /// This [`Link`] [`Entity`] has another [`Entity`] at its end
     HasEndpoint,
     /// An [`Entity`] is of an [`EntityType`]
-    IsType,
+    IsOfType,
     /// A [`PropertyType`] or [`DataType`] can reference a [`DataType`] to constrain values
     ConstrainsValuesOn,
     /// An [`EntityType`] or [`PropertyType`] can reference a [`PropertyType`] to constrain
@@ -146,6 +153,110 @@ impl Extend<(GraphElementIdentifier, HashSet<OutwardEdge>)> for Edges {
     ) {
         self.0.extend(other);
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+#[serde(tag = "kind", content = "inner")]
+pub enum OntologyVertex {
+    DataType(PersistedDataType),
+    PropertyType(PersistedPropertyType),
+    EntityType(PersistedEntityType),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+#[serde(tag = "kind", content = "inner")]
+pub enum KnowledgeGraphVertex {
+    Entity(PersistedEntity),
+}
+
+pub struct OntologyVertices(HashMap<BaseUri, HashMap<OntologyTypeVersion, OntologyVertex>>);
+pub struct KnowledgeGraphVertices(
+    HashMap<EntityIdentifier, HashMap<EntityVersion, KnowledgeGraphVertex>>,
+);
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, ToSchema)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum OntologyEdgeKind {
+    /// An [`OntologyType`] can inherit from another [`OntologyType`]
+    InheritsFrom,
+    /// A [`PropertyType`] or [`DataType`] can reference a [`DataType`] to constrain values
+    ConstrainsValuesOn,
+    /// An [`EntityType`] or [`PropertyType`] can reference a [`PropertyType`] to constrain
+    /// properties
+    ConstrainsPropertiesOn,
+    /// An [`EntityType`] can reference a [`Link`] [`EntityType`] to constrain the existence of
+    /// certain kinds of [`Link`]s
+    ConstrainsLinksOn,
+    /// An [`EntityType`] can reference an [`EntityType`] to constrain the target entities of
+    /// certain kinds of [`Link`]s
+    ConstrainsLinkDestinationsOn,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, ToSchema)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum KnowledgeGraphEdgeKind {
+    /// This [`Entity`] has an outgoing [`Link`] [`Entity`]
+    HasLink,
+    /// This [`Link`] [`Entity`] has another [`Entity`] at its end
+    HasEndpoint,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, ToSchema)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum SharedEdgeKind {
+    /// An [`Entity`] is of an [`EntityType`]
+    IsOfType,
+}
+
+pub enum NewEdgeKind {
+    Ontology(OntologyEdgeKind),
+    KnowledgeGraph(KnowledgeGraphEdgeKind),
+    Shared(SharedEdgeKind),
+}
+
+pub struct NewOutwardEdge<E, V> {
+    kind: E,
+    /// If true, interpret this as a reversed mapping and the endpoint as the source, that is,
+    /// instead of Source-Edge-Target, interpret it as Target-Edge-Source
+    reversed: bool,
+    endpoint: V,
+}
+
+pub enum OntologyOutwardEdges {
+    ToOntology(NewOutwardEdge<OntologyEdgeKind, VersionedUri>),
+    ToKnowledgeGraph(NewOutwardEdge<SharedEdgeKind, EntityIdentifier>),
+}
+
+pub struct OntologyRootedEdges(
+    HashMap<BaseUri, HashMap<OntologyTypeVersion, Vec<OntologyOutwardEdges>>>,
+);
+
+pub struct EntityAndTimestamp {
+    entity_id: EntityIdentifier,
+    timestamp: Timestamp,
+}
+
+pub enum KnowledgeGraphOutwardEdges {
+    ToKnowledgeGraph(NewOutwardEdge<KnowledgeGraphEdgeKind, EntityAndTimestamp>),
+    ToOntology(NewOutwardEdge<SharedEdgeKind, VersionedUri>),
+}
+
+pub struct KnowledgeGraphRootedEdges(
+    HashMap<EntityIdentifier, HashMap<Timestamp, Vec<KnowledgeGraphOutwardEdges>>>,
+);
+
+pub enum NewEdges {
+    OntologyEdges(OntologyRootedEdges),
+    KnowledgeGraphEdges(KnowledgeGraphRootedEdges),
+}
+
+pub struct NewSubgraph {
+    pub roots: Vec<GraphElementEditionIdentifier>,
+    pub vertices: HashMap<GraphElementEditionIdentifier, Vertex>,
+    pub edges: NewEdges,
+    pub depths: GraphResolveDepths,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
