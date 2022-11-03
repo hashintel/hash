@@ -22,6 +22,7 @@ export let WORKSPACE_TYPES: {
     email: PropertyTypeModel;
     kratosIdentityId: PropertyTypeModel;
     preferredName: PropertyTypeModel;
+    isInstanceAdmin: PropertyTypeModel;
 
     // Org-related
     orgName: PropertyTypeModel;
@@ -210,6 +211,12 @@ const preferredNamePropertyTypeInitializer = propertyTypeInitializer({
   actorId: workspaceAccountId,
 });
 
+const isInstanceAdminPropertyTypeInitializer = propertyTypeInitializer({
+  ...types.propertyType.isInstanceAdmin,
+  possibleValues: [{ primitiveDataType: "boolean" }],
+  actorId: workspaceAccountId,
+});
+
 const responsibilityPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.responsibility,
   possibleValues: [{ primitiveDataType: "text" }],
@@ -240,6 +247,9 @@ const userEntityTypeInitializer = async (graphApi: GraphApi) => {
   const preferredNamePropertyTypeModel =
     await WORKSPACE_TYPES_INITIALIZERS.propertyType.preferredName(graphApi);
 
+  const isInstanceAdminPropertyTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.propertyType.isInstanceAdmin(graphApi);
+
   const hasMembershipLinkTypeModel =
     await WORKSPACE_TYPES_INITIALIZERS.linkType.hasMembership(graphApi);
 
@@ -265,6 +275,10 @@ const userEntityTypeInitializer = async (graphApi: GraphApi) => {
       },
       {
         propertyTypeModel: preferredNamePropertyTypeModel,
+        required: true,
+      },
+      {
+        propertyTypeModel: isInstanceAdminPropertyTypeModel,
         required: true,
       },
     ],
@@ -577,6 +591,7 @@ export const WORKSPACE_TYPES_INITIALIZERS: FlattenAndPromisify<
     email: emailPropertyTypeInitializer,
     kratosIdentityId: kratosIdentityIdPropertyTypeInitializer,
     preferredName: preferredNamePropertyTypeInitializer,
+    isInstanceAdmin: isInstanceAdminPropertyTypeInitializer,
 
     orgName: orgNamePropertyTypeInitializer,
     orgSize: orgSizePropertyTypeInitializer,
