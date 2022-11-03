@@ -301,6 +301,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .await
             .change_context(UpdateError)?;
 
+        tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+
         transaction
             .client
             .commit()

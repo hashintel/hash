@@ -27,9 +27,9 @@ type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "9
 uuid = { version = "1.2.1", features = ["v4", "serde"] }
 utoipa = { version = " 2.2.0", features = ["uuid"] }
 include_dir = "0.7.2"
+tokio = { version = "1.21.2", features = ["rt-multi-thread", "macros"] }
 
 [dev-dependencies]
-tokio = { version = "1.21.2", features = ["rt-multi-thread", "macros"] }
 graph-test-data = { path = "../../tests/test_data" }
 criterion = "0.4.0"
 
