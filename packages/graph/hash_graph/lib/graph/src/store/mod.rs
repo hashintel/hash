@@ -11,6 +11,7 @@ use async_trait::async_trait;
 use error_stack::{Context, Result};
 use type_system::{uri::VersionedUri, DataType, EntityType, PropertyType};
 
+use self::error::ArchivalError;
 pub use self::{
     error::{BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError, UpdateError},
     pool::StorePool,
@@ -22,7 +23,7 @@ use crate::{
     ontology::{
         PersistedDataType, PersistedEntityType, PersistedOntologyMetadata, PersistedPropertyType,
     },
-    provenance::{CreatedById, OwnedById, RemovedById, UpdatedById},
+    provenance::{CreatedById, OwnedById, UpdatedById},
     store::query::Filter,
     subgraph::{StructuralQuery, Subgraph},
 };
@@ -384,7 +385,7 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Filter<'q
     /// - if the [`Entity`] doesn't exist
     /// - if the [`EntityType`] doesn't exist
     /// - if the [`Entity`] is not valid with respect to its [`EntityType`]
-    /// - if the account referred to by `updated_by` does not exist
+    /// - if the account referred to by `actor_id` does not exist
     async fn update_entity(
         &mut self,
         entity_id: EntityId,
@@ -392,4 +393,19 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Filter<'q
         entity_type_id: VersionedUri,
         actor_id: UpdatedById,
     ) -> Result<PersistedEntityMetadata, UpdateError>;
+
+    /// Archives an [`Entity`].
+    ///
+    /// # Errors:
+    ///
+    /// - if there isn't an [`Entity`] associated with the [`EntityId`] in the latest entities table
+    ///   - this could be because the [`Entity`] doesn't exist, or
+    ///   - the [`Entity`] has already been archived
+    /// - if the account referred to by `actor_id` does not exist
+    async fn archive_entity(
+        &mut self,
+        entity_id: EntityId,
+        owned_by_id: OwnedById,
+        actor_id: UpdatedById,
+    ) -> Result<(), ArchivalError>;
 }

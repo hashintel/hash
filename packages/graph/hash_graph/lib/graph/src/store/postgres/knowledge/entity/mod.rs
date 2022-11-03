@@ -15,8 +15,8 @@ use crate::{
     provenance::{CreatedById, OwnedById, UpdatedById},
     store::{
         crud::Read,
-        error::EntityDoesNotExist,
-        postgres::{DependencyContext, DependencyContextRef},
+        error::{ArchivalError, EntityDoesNotExist},
+        postgres::{DependencyContext, DependencyContextRef, HistoricMove},
         query::Filter,
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
@@ -82,7 +82,9 @@ impl<C: AsClient> PostgresStore<C> {
                     .await?;
                 }
 
-                todo!("https://app.asana.com/0/1200211978612931/1203250001255262/f")
+                // TODO: Subgraphs don't support link entities yet
+                //   https://app.asana.com/0/1200211978612931/1203250001255262/f
+
                 // for link_record in self
                 //     .read_links_by_source(entity_id)
                 //     .await?
@@ -276,36 +278,25 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .change_context(UpdateError)?,
         );
 
-        // TODO - address potential race condition
-        //  https://app.asana.com/0/1202805690238892/1203201674100967/f
-
-        let previous_entity: PersistedEntity = transaction
-            .read_one(&Filter::for_latest_entity_by_entity_id(entity_id))
+        transaction
+            .lock_entity_for_update(entity_id)
             .await
             .change_context(UpdateError)?;
 
-        if !transaction
-            .contains_entity(entity_id)
+        let old_entity_metadata = transaction
+            .move_entity_to_histories(entity_id, HistoricMove::ForNewVersion)
             .await
-            .change_context(UpdateError)?
-        {
-            return Err(Report::new(EntityDoesNotExist)
-                .attach_printable(entity_id)
-                .change_context(UpdateError));
-        }
+            .change_context(UpdateError)?;
 
-        let metadata: LinkEntityMetadata =
-            todo!("https://app.asana.com/0/1200211978612931/1203250001255262/f");
-
-        let metadata = transaction
+        let entity_metadata = transaction
             .insert_entity(
                 entity_id,
                 entity,
                 entity_type_id,
-                previous_entity.metadata().identifier().owned_by_id(),
-                previous_entity.metadata().created_by_id(),
+                old_entity_metadata.identifier().owned_by_id(),
+                old_entity_metadata.created_by_id(),
                 updated_by_id,
-                Some(metadata),
+                old_entity_metadata.link_metadata(),
             )
             .await
             .change_context(UpdateError)?;
@@ -317,6 +308,67 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .into_report()
             .change_context(UpdateError)?;
 
-        Ok(metadata)
+        Ok(entity_metadata)
+    }
+
+    async fn archive_entity(
+        &mut self,
+        entity_id: EntityId,
+        _owned_by_id: OwnedById,
+        actor_id: UpdatedById,
+    ) -> Result<(), ArchivalError> {
+        let transaction = PostgresStore::new(
+            self.as_mut_client()
+                .transaction()
+                .await
+                .into_report()
+                .change_context(ArchivalError)?,
+        );
+
+        transaction
+            .lock_entity_for_update(entity_id)
+            .await
+            .change_context(ArchivalError)?;
+
+        // Prepare to create a new history entry to mark archival
+        let old_entity: PersistedEntity = transaction
+            .read_one(&Filter::for_latest_entity_by_entity_id(entity_id))
+            .await
+            .change_context(ArchivalError)?;
+
+        // Move current latest edition to the historic table
+        transaction
+            .move_entity_to_histories(entity_id, HistoricMove::ForNewVersion)
+            .await
+            .change_context(ArchivalError)?;
+
+        // Insert latest edition to be the historic archival marker
+        transaction
+            .insert_entity(
+                entity_id,
+                old_entity.inner().clone(),
+                old_entity.metadata().entity_type_id().clone(),
+                old_entity.metadata().identifier().owned_by_id(),
+                old_entity.metadata().created_by_id(),
+                actor_id,
+                old_entity.metadata().link_metadata(),
+            )
+            .await
+            .change_context(ArchivalError)?;
+
+        // Archive latest edition, leaving nothing from the entity behind.
+        transaction
+            .move_entity_to_histories(entity_id, HistoricMove::ForArchival)
+            .await
+            .change_context(ArchivalError)?;
+
+        transaction
+            .client
+            .commit()
+            .await
+            .into_report()
+            .change_context(ArchivalError)?;
+
+        Ok(())
     }
 }

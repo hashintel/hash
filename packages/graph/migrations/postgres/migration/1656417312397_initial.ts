@@ -403,6 +403,11 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
           OR left_entity_id IS NOT NULL AND right_entity_id IS NOT NULL`,
   });
 
+  pgm.addConstraint("entities", "entities_relation_order_constraint", {
+    check: `(left_entity_id IS NOT NULL AND right_entity_id IS NOT NULL)
+            OR (left_order IS NULL AND right_order IS NULL)`,
+  });
+
   pgm.createTable(
     "entity_histories",
     {
@@ -500,8 +505,7 @@ DROP TABLE IF EXISTS entity_type_property_type_references CASCADE;
 DROP TABLE IF EXISTS entity_type_entity_type_references CASCADE;
 DROP TABLE IF EXISTS entity_ids CASCADE;
 DROP TABLE IF EXISTS entities CASCADE;
-DROP TABLE IF EXISTS entity_relations CASCADE;
-DROP TABLE IF EXISTS entity_relation_histories CASCADE;
+DROP TABLE IF EXISTS entity_histories CASCADE;
 DROP TABLE IF EXISTS accounts CASCADE;
 DROP TABLE IF EXISTS ids CASCADE;
 */

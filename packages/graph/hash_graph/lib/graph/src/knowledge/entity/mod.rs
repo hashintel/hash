@@ -96,7 +96,7 @@ impl PersistedEntityIdentifier {
 }
 
 /// The associated information for 'Link' entities
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct LinkEntityMetadata {
     left_entity_id: EntityId,
@@ -156,9 +156,9 @@ pub struct PersistedEntityMetadata {
     //  https://app.asana.com/0/1201095311341924/1203227079758117/f
     created_by_id: CreatedById,
     updated_by_id: UpdatedById,
-    removed_by_id: Option<RemovedById>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     link_metadata: Option<LinkEntityMetadata>,
+    archived: bool,
 }
 
 impl PersistedEntityMetadata {
@@ -168,16 +168,16 @@ impl PersistedEntityMetadata {
         entity_type_id: VersionedUri,
         created_by_id: CreatedById,
         updated_by_id: UpdatedById,
-        removed_by_id: Option<RemovedById>,
         link_metadata: Option<LinkEntityMetadata>,
+        archived: bool,
     ) -> Self {
         Self {
             identifier,
             entity_type_id,
             created_by_id,
             updated_by_id,
-            removed_by_id,
             link_metadata,
+            archived,
         }
     }
 
@@ -202,13 +202,13 @@ impl PersistedEntityMetadata {
     }
 
     #[must_use]
-    pub const fn removed_by_id(&self) -> Option<RemovedById> {
-        self.removed_by_id
+    pub const fn link_metadata(&self) -> Option<LinkEntityMetadata> {
+        self.link_metadata
     }
 
     #[must_use]
-    pub const fn link_metadata(&self) -> &Option<LinkEntityMetadata> {
-        &self.link_metadata
+    pub const fn archived(&self) -> bool {
+        self.archived
     }
 }
 
@@ -229,8 +229,8 @@ impl PersistedEntity {
         entity_type_id: VersionedUri,
         created_by_id: CreatedById,
         updated_by_id: UpdatedById,
-        removed_by_id: Option<RemovedById>,
         link_metadata: Option<LinkEntityMetadata>,
+        archived: bool,
     ) -> Self {
         Self {
             inner,
@@ -239,8 +239,8 @@ impl PersistedEntity {
                 entity_type_id,
                 created_by_id,
                 updated_by_id,
-                removed_by_id,
                 link_metadata,
+                archived,
             ),
         }
     }

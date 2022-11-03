@@ -11,6 +11,7 @@ use std::{
     future::Future,
     hash::Hash,
     iter,
+    str::FromStr,
 };
 
 use async_trait::async_trait;
@@ -354,6 +355,13 @@ pub struct PostgresStore<C> {
     client: C,
 }
 
+/// Describes what context the historic move is done in.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum HistoricMove {
+    ForNewVersion,
+    ForArchival,
+}
+
 impl<C> PostgresStore<C>
 where
     C: AsClient,
@@ -440,32 +448,6 @@ where
             .attach_printable(entity_id)?;
 
         Ok(())
-    }
-
-    /// Checks if the specified [`Entity`] exists in the database.
-    ///
-    /// # Errors
-    ///
-    /// - if checking for the [`VersionedUri`] failed.
-    async fn contains_entity(&self, entity_id: EntityId) -> Result<bool, QueryError> {
-        Ok(self
-            .client
-            .as_client()
-            .query_one(
-                r#"
-                    SELECT EXISTS(
-                        SELECT 1
-                        FROM entity_ids
-                        WHERE entity_id = $1
-                    );
-                "#,
-                &[&entity_id],
-            )
-            .await
-            .into_report()
-            .change_context(QueryError)
-            .attach_printable(entity_id)?
-            .get(0))
     }
 
     /// Inserts the specified [`VersionedUri`] into the database.
@@ -959,8 +941,150 @@ where
             entity_type_id,
             created_by_id,
             updated_by_id,
-            None,
             link_metadata,
+            // TODO: only the historic table would have an `archived` field.
+            //   Consider what we should do about that.
+            false,
+        ))
+    }
+
+    // TODO: We should be querying with an `owned_by_id` as part of the entity identifier.
+    //   This is especially important for making these queries single-shard Citus queries when we
+    //   need that.
+    //   see: https://app.asana.com/0/1201095311341924/1203214689883091/f
+    async fn lock_entity_for_update(&self, entity_id: EntityId) -> Result<(), QueryError> {
+        // TODO - address potential serializability issue.
+        //   We don't have a data race per se, but the transaction isolation level of postgres would
+        //   make new entries of the `entities` table inaccessible to peer lock-waiters.
+        //   https://www.postgresql.org/docs/9.2/transaction-iso.html#XACT-READ-COMMITTED
+        //   https://app.asana.com/0/1202805690238892/1203201674100967/f
+
+        self.as_client()
+            .query_one(
+                // TODO: consider if this row locking is problematic with Citus.
+                //   `FOR UPDATE` is only allowed in single-shard queries.
+                //   https://docs.citusdata.com/en/stable/develop/reference_workarounds.html#sql-support-and-workarounds
+                //   see: https://app.asana.com/0/0/1203284257408542/f
+                r#"
+                SELECT * FROM entities
+                WHERE entity_id = $1
+                FOR UPDATE;
+                "#,
+                &[&entity_id],
+            )
+            .await
+            .into_report()
+            .change_context(QueryError)?;
+
+        Ok(())
+    }
+
+    // TODO: We should be querying with an `owned_by_id` as part of the entity identifier.
+    //   This is especially important for making these queries single-shard Citus queries when we
+    //   need that.
+    //   see: https://app.asana.com/0/1201095311341924/1203214689883091/f
+    async fn move_entity_to_histories(
+        &self,
+        entity_id: EntityId,
+        historic_move: HistoricMove,
+    ) -> Result<PersistedEntityMetadata, InsertionError> {
+        let historic_entity = self
+            .as_client()
+            .query_one(
+                r#"
+                -- First we delete the _latest_ entity from the entities table.
+                WITH to_move_to_historic AS (
+                    DELETE FROM entities
+                    WHERE entity_id = $1
+                    RETURNING
+                        entity_id, version,
+                        entity_type_version_id,
+                        properties,
+                        left_order, right_order,
+                        left_entity_id, right_entity_id,
+                        owned_by_id, created_by_id, updated_by_id
+                ),
+                inserted_in_historic AS (
+                    -- We immediately put this deleted entity into the historic table.
+                    -- As this should be done in a transaction, we should be safe that this move
+                    -- doesn't produce invalid state.
+                    INSERT INTO entity_histories(
+                        entity_id, version,
+                        entity_type_version_id,
+                        properties,
+                        left_order, right_order,
+                        left_entity_id, right_entity_id,
+                        owned_by_id, created_by_id, updated_by_id,
+                        archived
+                    )
+                    SELECT
+                        entity_id, version,
+                        entity_type_version_id,
+                        properties,
+                        left_order, right_order,
+                        left_entity_id, right_entity_id,
+                        owned_by_id, created_by_id, updated_by_id,
+                        $2::boolean
+                    FROM to_move_to_historic
+                    -- We only return metadata
+                    RETURNING
+                        entity_id, version,
+                        entity_type_version_id,
+                        left_order, right_order,
+                        left_entity_id, right_entity_id,
+                        owned_by_id, created_by_id, updated_by_id
+                )
+                SELECT
+                    entity_id, inserted_in_historic.version,
+                    base_uri, type_ids.version,
+                    left_order, right_order,
+                    left_entity_id, right_entity_id,
+                    owned_by_id, created_by_id, updated_by_id
+                FROM inserted_in_historic
+                INNER JOIN type_ids ON inserted_in_historic.entity_type_version_id = type_ids.version_id;
+                "#,
+                &[
+                    &entity_id,
+                    &(historic_move == HistoricMove::ForArchival),
+                ],
+            )
+            .await
+            .into_report()
+            .change_context(InsertionError)?;
+
+        let link_metadata = match (
+            historic_entity.get(4),
+            historic_entity.get(5),
+            historic_entity.get(6),
+            historic_entity.get(7),
+        ) {
+            (left_order, right_order, Some(left_entity_id), Some(right_entity_id)) => Some(
+                LinkEntityMetadata::new(left_entity_id, right_entity_id, left_order, right_order),
+            ),
+            (None, None, None, None) => None,
+            _ => {
+                unreachable!("incomplete link information was found in the DB table, this is fatal")
+            }
+        };
+
+        let base_uri = BaseUri::new(historic_entity.get(2))
+            .into_report()
+            .change_context(InsertionError)?;
+        let entity_type_id = VersionedUri::new(base_uri, historic_entity.get::<_, i64>(3) as u32);
+
+        Ok(PersistedEntityMetadata::new(
+            PersistedEntityIdentifier::new(
+                historic_entity.get(0),
+                historic_entity.get(1),
+                historic_entity.get(8),
+            ),
+            entity_type_id,
+            historic_entity.get(9),
+            historic_entity.get(10),
+            link_metadata,
+            // TODO: only the historic table would have an `archived` field.
+            //   Consider what we should do about that.
+            false,
         ))
     }
 
