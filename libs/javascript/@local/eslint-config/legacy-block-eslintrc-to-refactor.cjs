@@ -1,11 +1,5 @@
 /** @type {import("eslint").Linter.Config} */
 module.exports = {
-  extends: ["./legacy-base-to-refactor.cjs"],
-  parserOptions: {
-    // specifics
-    jsx: true,
-    useJSXTextNode: true,
-  },
   plugins: ["@typescript-eslint", "react-hooks", "react", "unicorn"],
   rules: {
     curly: ["error", "multi-line"],

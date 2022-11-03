@@ -9,8 +9,8 @@
   },
   "scripts": {
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.yml",
-    "fix:eslint": "eslint --ext .js,.ts,.tsx --fix ./src/",
-    "lint:eslint": "eslint --ext .js,.ts,.tsx ./src/",
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint .",
     "lint:tsc": "tsc --noEmit",
     "test": "jest"
   },
