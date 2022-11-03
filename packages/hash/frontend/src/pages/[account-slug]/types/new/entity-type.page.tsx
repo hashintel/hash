@@ -16,7 +16,7 @@ import {
 } from "@mui/material";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
-import { ReactNode, useMemo } from "react";
+import { ReactNode, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { useBlockProtocolGetEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
 import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
@@ -92,12 +92,16 @@ const Page: NextPageWithLayout = () => {
       if (thisOrg) {
         return thisOrg.shortname;
       }
+    }
+  }, [authenticatedUser, shortname, router]);
 
+  useEffect(() => {
+    if (authenticatedUser && !namespace) {
       void router.replace(
         `/@${authenticatedUser.shortname}/types/new/entity-type`,
       );
     }
-  }, [authenticatedUser, shortname, router]);
+  }, [authenticatedUser, namespace, shortname, router]);
 
   if (typeSystemLoading || loading || !authenticatedUser || !namespace) {
     return null;
