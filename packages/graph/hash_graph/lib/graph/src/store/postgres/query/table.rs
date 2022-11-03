@@ -18,7 +18,7 @@ pub enum TableName {
 }
 
 impl TableName {
-    pub const fn as_str(&self) -> &'static str {
+    pub const fn as_str(self) -> &'static str {
         match self {
             Self::TypeIds => "type_ids",
             Self::DataTypes => "data_types",

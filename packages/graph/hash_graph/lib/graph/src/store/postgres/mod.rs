@@ -10,8 +10,6 @@ use std::{
     collections::{hash_map::RawEntryMut, HashMap},
     future::Future,
     hash::Hash,
-    iter,
-    str::FromStr,
 };
 
 use async_trait::async_trait;
@@ -703,7 +701,7 @@ where
                     "#,
                     T::table()
                 ),
-                &[&version_id, &value, &owned_by_id, &created_by_id, &updated_by_id],
+                &[&version_id, &value, &owned_by_id.as_account_id(), &created_by_id.as_account_id(), &updated_by_id.as_account_id()],
             )
             .await
             .into_report()
@@ -926,9 +924,9 @@ where
                     &link_metadata
                         .as_ref()
                         .map(LinkEntityMetadata::right_entity_id),
-                    &owned_by_id,
-                    &created_by_id,
-                    &updated_by_id,
+                    &owned_by_id.as_account_id(),
+                    &created_by_id.as_account_id(),
+                    &updated_by_id.as_account_id(),
                 ],
             )
             .await
@@ -1076,11 +1074,11 @@ where
             PersistedEntityIdentifier::new(
                 historic_entity.get(0),
                 historic_entity.get(1),
-                historic_entity.get(8),
+                OwnedById::new(historic_entity.get(8)),
             ),
             entity_type_id,
-            historic_entity.get(9),
-            historic_entity.get(10),
+            CreatedById::new(historic_entity.get(9)),
+            UpdatedById::new(historic_entity.get(10)),
             link_metadata,
             // TODO: only the historic table would have an `archived` field.
             //   Consider what we should do about that.
@@ -1192,9 +1190,9 @@ impl PostgresStore<Transaction<'_>> {
                     &entity_id,
                     &entity_type_version_id,
                     &value,
-                    &owned_by_id,
-                    &created_by,
-                    &updated_by_id,
+                    &owned_by_id.as_account_id(),
+                    &created_by.as_account_id(),
+                    &updated_by_id.as_account_id(),
                 ])
                 .await
                 .into_report()

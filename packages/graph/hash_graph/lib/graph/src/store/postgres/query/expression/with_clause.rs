@@ -1,7 +1,5 @@
 use std::fmt::{self, Write};
 
-use serde::Serialize;
-
 use crate::store::postgres::query::{Statement, TableName, Transpile};
 
 #[derive(Debug, PartialEq, Eq, Hash)]

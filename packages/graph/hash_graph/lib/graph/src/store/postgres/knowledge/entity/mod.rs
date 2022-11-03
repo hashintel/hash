@@ -15,7 +15,7 @@ use crate::{
     provenance::{CreatedById, OwnedById, UpdatedById},
     store::{
         crud::Read,
-        error::{ArchivalError, EntityDoesNotExist},
+        error::ArchivalError,
         postgres::{DependencyContext, DependencyContextRef, HistoricMove},
         query::Filter,
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, UpdateError,

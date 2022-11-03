@@ -12,6 +12,7 @@ use crate::{
         PersistedEntityIdentifier,
     },
     ontology::EntityTypeQueryPath,
+    provenance::{CreatedById, OwnedById, UpdatedById},
     store::{
         crud, postgres::query::SelectCompiler, query::Filter, AsClient, PostgresStore, QueryError,
     },
@@ -82,16 +83,20 @@ impl<C: AsClient> crud::Read<PersistedEntity> for PostgresStore<C> {
                     }
                 };
 
+                let owned_by_id = OwnedById::new(row.get(owned_by_id_index));
+                let created_by_id = CreatedById::new(row.get(created_by_id_index));
+                let updated_by_id = UpdatedById::new(row.get(updated_by_id_index));
+
                 Ok(PersistedEntity::new(
                     entity,
                     PersistedEntityIdentifier::new(
                         row.get(entity_id_index),
                         row.get(version_index),
-                        row.get(owned_by_id_index),
+                        owned_by_id,
                     ),
                     entity_type_uri,
-                    row.get(created_by_id_index),
-                    row.get(updated_by_id_index),
+                    created_by_id,
+                    updated_by_id,
                     link_metadata,
                     // TODO: only the historic table would have an `archived` field.
                     //   Consider what we should do about that.

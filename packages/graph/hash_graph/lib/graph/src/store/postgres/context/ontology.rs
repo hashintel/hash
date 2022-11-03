@@ -3,6 +3,7 @@ use tokio_postgres::GenericClient;
 use type_system::uri::{BaseUri, VersionedUri};
 
 use crate::{
+    identifier::AccountId,
     provenance::{CreatedById, OwnedById, RemovedById, UpdatedById},
     store::{postgres::ontology::OntologyDatabaseType, AsClient, QueryError},
 };
@@ -54,10 +55,10 @@ where
     let record = T::try_from(row.get(0))
         .into_report()
         .change_context(QueryError)?;
-    let owned_by_id = row.get(1);
-    let created_by_id = row.get(2);
-    let updated_by_id = row.get(3);
-    let removed_by_id = row.get(4);
+    let owned_by_id = OwnedById::new(row.get(1));
+    let created_by_id = CreatedById::new(row.get(2));
+    let updated_by_id = UpdatedById::new(row.get(3));
+    let removed_by_id = row.get::<_, Option<AccountId>>(5).map(RemovedById::new);
 
     Ok(OntologyRecord {
         record,
@@ -102,11 +103,11 @@ where
     let record = T::try_from(row.get(0))
         .into_report()
         .change_context(QueryError)?;
-    let owned_by_id = row.get(1);
+    let owned_by_id = OwnedById::new(row.get(1));
     let latest: i64 = row.get(2);
-    let created_by_id = row.get(3);
-    let updated_by_id = row.get(4);
-    let removed_by_id = row.get(5);
+    let created_by_id = CreatedById::new(row.get(3));
+    let updated_by_id = UpdatedById::new(row.get(4));
+    let removed_by_id = row.get::<_, Option<AccountId>>(5).map(RemovedById::new);
 
     Ok(OntologyRecord {
         record,

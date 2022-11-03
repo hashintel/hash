@@ -10,7 +10,7 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 pub use self::query::{EntityQueryPath, EntityQueryPathVisitor};
-use crate::provenance::{CreatedById, OwnedById, RemovedById, UpdatedById};
+use crate::provenance::{CreatedById, OwnedById, UpdatedById};
 
 #[derive(
     Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema, FromSql, ToSql,
