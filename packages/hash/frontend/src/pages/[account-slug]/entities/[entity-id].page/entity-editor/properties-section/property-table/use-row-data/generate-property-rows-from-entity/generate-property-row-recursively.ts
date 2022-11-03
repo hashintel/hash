@@ -1,4 +1,5 @@
 import { isPlainObject } from "lodash";
+import { isUnknownObject } from "../../../../../../../../../../../shared/src/util";
 import {
   getPropertyTypesByBaseUri,
   RootEntityAndSubgraph,
@@ -37,7 +38,7 @@ import { getDataTypesOfPropertyType } from "./get-data-types-of-property-type";
  * @returns property row (and nested rows as `children` if it's a nested property)
  */
 export const generatePropertyRowRecursively = (
-  properties: any,
+  properties: unknown,
   propertyTypeBaseUri: string,
   propertyKeyChain: string[],
   rootEntityAndSubgraph: RootEntityAndSubgraph,
@@ -64,23 +65,26 @@ export const generatePropertyRowRecursively = (
 
   const required = !!requiredPropertyTypes?.includes(propertyTypeBaseUri);
 
-  const value = properties[propertyTypeBaseUri];
-
+  let value;
   const children: PropertyRow[] = [];
 
-  // generate rows for nested properties and push them to children array
-  if (isPlainObject(value)) {
-    for (const subPropertyTypeBaseUri of Object.keys(value)) {
-      children.push(
-        generatePropertyRowRecursively(
-          properties[propertyTypeBaseUri],
-          subPropertyTypeBaseUri,
-          [...propertyKeyChain, subPropertyTypeBaseUri],
-          rootEntityAndSubgraph,
-          requiredPropertyTypes,
-          depth + 1,
-        ),
-      );
+  if (isUnknownObject(properties)) {
+    value = properties[propertyTypeBaseUri];
+
+    // generate rows for nested properties and push them to children array
+    if (isPlainObject(value) && isUnknownObject(value)) {
+      for (const subPropertyTypeBaseUri of Object.keys(value)) {
+        children.push(
+          generatePropertyRowRecursively(
+            properties[propertyTypeBaseUri],
+            subPropertyTypeBaseUri,
+            [...propertyKeyChain, subPropertyTypeBaseUri],
+            rootEntityAndSubgraph,
+            requiredPropertyTypes,
+            depth + 1,
+          ),
+        );
+      }
     }
   }
 
