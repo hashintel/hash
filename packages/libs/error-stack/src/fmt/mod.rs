@@ -1,6 +1,8 @@
 //! Implementation of formatting, to enable colors and the use of box-drawing characters use the
 //! `pretty-print` feature.
 //!
+//! > **Note:** `error-stack` does not provide any stability guarantees for the [`Debug`] output.
+//!
 //! # Hooks
 //!
 //! The [`Debug`] implementation can be easily extended using hooks. Hooks are functions of the
