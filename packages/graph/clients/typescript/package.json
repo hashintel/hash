@@ -6,7 +6,8 @@
   "license": "AGPL-3.0",
   "main": "./index.ts",
   "scripts": {
-    "fix:eslint": "eslint ./*.ts --fix --no-inline-config"
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint ."
   },
   "dependencies": {
     "axios": "0.27.2"

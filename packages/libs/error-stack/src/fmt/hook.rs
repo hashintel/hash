@@ -11,13 +11,12 @@ use alloc::{boxed::Box, collections::BTreeMap, string::String, vec::Vec};
 use core::{
     any::{Any, TypeId},
     marker::PhantomData,
+    mem,
 };
-use std::mem;
 
-#[cfg(feature = "std")]
 pub(crate) use default::install_builtin_hooks;
 
-use crate::{fmt::Frame, FrameKind};
+use crate::fmt::Frame;
 
 type Storage = BTreeMap<TypeId, BTreeMap<TypeId, Box<dyn Any>>>;
 
@@ -671,7 +670,7 @@ impl<T: 'static> HookContext<T> {
     }
 }
 
-type BoxedHook = Box<dyn Fn(&Frame, &mut HookContext<Frame>) -> Option<()> + Send + Sync>;
+type BoxedHook = Box<dyn Fn(&Frame, &mut HookContext<Frame>) -> bool + Send + Sync>;
 
 fn into_boxed_hook<T: Send + Sync + 'static>(
     hook: impl Fn(&T, &mut HookContext<T>) + Send + Sync + 'static,
@@ -687,6 +686,7 @@ fn into_boxed_hook<T: Send + Sync + 'static>(
                         .request_value::<T>()
                         .map(|ref value| hook(value, context.cast()))
                 })
+                .is_some()
         }
 
         // emulate the behavior from nightly by searching for
@@ -697,6 +697,7 @@ fn into_boxed_hook<T: Send + Sync + 'static>(
             .then_some(frame)
             .and_then(Frame::downcast_ref::<T>)
             .map(|value| hook(value, context.cast()))
+            .is_some()
     })
 }
 
@@ -741,33 +742,14 @@ impl Hooks {
         self.inner.push((type_id, into_boxed_hook(hook)));
     }
 
-    /// This compatability function is needed, as we need to special-case location a bit.
-    ///
-    /// [`Location`] is special, as it is present on every single frame, but is not present in the
-    /// chain of sources.
-    ///
-    /// This invokes all hooks on the [`Location`] object by creating a fake frame, which is used to
-    /// invoke any hooks related to location.
-    ///
-    /// [`Location`]: core::panic::Location
-    fn call_location(&self, frame: &Frame, context: &mut HookContext<Frame>) {
-        if !matches!(frame.kind(), FrameKind::Context(_)) {
-            return;
-        }
-
-        // note: this will issue recursion, but this won't ever cause infinite recursion, as
-        // this code is conditional on it being a context.
-        let fake = Frame::from_attachment(*frame.location(), frame.location(), Box::new([]));
-
-        self.call(&fake, context);
-    }
-
-    pub(crate) fn call(&self, frame: &Frame, context: &mut HookContext<Frame>) {
-        self.call_location(frame, context);
+    pub(crate) fn call(&self, frame: &Frame, context: &mut HookContext<Frame>) -> bool {
+        let mut hit = false;
 
         for (_, hook) in &self.inner {
-            hook(frame, context);
+            hit = hook(frame, context) || hit;
         }
+
+        hit
     }
 }
 
@@ -819,17 +801,18 @@ mod default {
         INSTALL_BUILTIN.call_once(|| {
             INSTALL_BUILTIN_RUNNING.store(true, Ordering::Release);
 
-            Report::install_debug_hook(location);
+            Report::install_debug_hook::<Location>(location);
 
             #[cfg(rust_1_65)]
-            Report::install_debug_hook(backtrace);
+            Report::install_debug_hook::<Backtrace>(backtrace);
 
             #[cfg(feature = "spantrace")]
-            Report::install_debug_hook(span_trace);
+            Report::install_debug_hook::<SpanTrace>(span_trace);
         });
     }
 
     fn location(location: &Location<'static>, context: &mut HookContext<Location<'static>>) {
+        println!("location");
         #[cfg(feature = "pretty-print")]
         context.push_body(format!(
             "{}",

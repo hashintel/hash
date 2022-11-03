@@ -1,13 +1,8 @@
 /** @type {import("eslint").Linter.Config} */
 module.exports = {
-  root: true,
-  extends: ["@local/eslint-config/legacy-base-to-refactor.cjs"],
+  ...require("@local/eslint-config/generate-workspace-config.cjs")(__dirname),
   env: {
     node: true,
-  },
-  parserOptions: {
-    tsconfigRootDir: __dirname,
-    project: ["./tsconfig.json"],
   },
   rules: {
     "no-console": "off",

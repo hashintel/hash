@@ -3,8 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "fix:eslint": "eslint --ext .ts --fix .",
-    "lint:eslint": "eslint --ext .ts .",
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint .",
     "lint:tsc": "tsc --noEmit",
     "test": "playwright test page-readonly-mode --project chromium"
   },

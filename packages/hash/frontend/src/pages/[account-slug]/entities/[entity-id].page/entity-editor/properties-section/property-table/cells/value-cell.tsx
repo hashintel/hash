@@ -4,16 +4,8 @@ import {
   GridCellKind,
 } from "@glideapps/glide-data-grid";
 import { getYCenter } from "../../../../../../../../components/GlideGlid/utils";
-import { TooltipCellProps } from "../../../../../../../../components/GlideGlid/utils/use-grid-tooltip/types";
-import { PropertyRow } from "../types";
+import { ValueCell } from "./value-cell/types";
 import { ValueCellEditor } from "./value-cell/value-cell-editor";
-
-export interface ValueCellProps extends TooltipCellProps {
-  readonly kind: "value-cell";
-  property: PropertyRow;
-}
-
-export type ValueCell = CustomCell<ValueCellProps>;
 
 export const renderValueCell: CustomRenderer<ValueCell> = {
   kind: GridCellKind.Custom,

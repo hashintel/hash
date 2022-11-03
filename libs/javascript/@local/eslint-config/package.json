@@ -2,9 +2,15 @@
   "name": "@local/eslint-config",
   "version": "0.0.0-private",
   "private": true,
+  "scripts": {
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint ."
+  },
   "dependencies": {
+    "@babel/eslint-parser": "7.19.1",
     "@typescript-eslint/eslint-plugin": "5.42.0",
     "@typescript-eslint/parser": "5.42.0",
+    "eslint": "8.26.0",
     "eslint-config-airbnb": "19.0.4",
     "eslint-config-prettier": "8.5.0",
     "eslint-plugin-canonical": "3.1.0",
