@@ -1,12 +1,9 @@
 use std::fmt::{self, Write};
 
-use serde::Serialize;
-
 use crate::store::postgres::query::Transpile;
 
 /// The name of a [`Table`] in the Postgres database.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum TableName {
     TypeIds,
     DataTypes,
@@ -58,6 +55,24 @@ impl TableName {
                 | Self::EntityTypePropertyTypeReferences => "target_property_type_version_id",
                 Self::EntityTypeEntityTypeReferences => "target_entity_type_version_id",
             },
+        }
+    }
+}
+
+impl TableName {
+    pub const fn as_str(&self) -> &'static str {
+        match self {
+            Self::TypeIds => "type_ids",
+            Self::DataTypes => "data_types",
+            Self::PropertyTypes => "property_types",
+            Self::EntityTypes => "entity_types",
+            Self::LinkTypes => "link_types",
+            Self::Entities => "entities",
+            Self::PropertyTypeDataTypeReferences => "property_type_data_type_references",
+            Self::PropertyTypePropertyTypeReferences => "property_type_property_type_references",
+            Self::EntityTypePropertyTypeReferences => "entity_type_property_type_references",
+            Self::EntityTypeEntityTypeReferences => "entity_type_entity_type_references",
+            Self::Links => "links",
         }
     }
 }
@@ -123,8 +138,7 @@ impl Table {
 
 impl Transpile for Table {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.write_char('"')?;
-        self.name.serialize(&mut *fmt)?;
+        write!(fmt, "\"{}", self.name.as_str())?;
         if let Some(alias) = self.alias {
             write!(fmt, "_{}_{}", alias.condition_index, alias.chain_depth)?;
         }

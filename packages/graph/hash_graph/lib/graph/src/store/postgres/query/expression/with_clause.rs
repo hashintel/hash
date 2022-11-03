@@ -40,9 +40,7 @@ impl Transpile for WithExpression<'_> {
 
         fmt.write_str("WITH ")?;
         for (idx, expression) in self.common_table_expressions.iter().enumerate() {
-            fmt.write_char('"')?;
-            expression.table_name.serialize(&mut *fmt)?;
-            fmt.write_str("\" AS (")?;
+            write!(fmt, "\"{}\" AS (", expression.table_name.as_str())?;
             expression.statement.transpile(fmt)?;
             fmt.write_char(')')?;
             if idx + 1 < self.common_table_expressions.len() {
