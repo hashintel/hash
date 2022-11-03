@@ -1,4 +1,4 @@
-import { TypeMismatchError } from "../../../../lib/error";
+import { EntityTypeMismatchError } from "../../../../lib/error";
 import { OrgModel, PageModel, UserModel } from "../../../../model";
 
 import {
@@ -73,7 +73,7 @@ export const persistedPages: ResolverFn<
   const accountModel = ownedById
     ? await UserModel.getUserById(graphApi, { entityId: ownedById }).catch(
         (error: Error) => {
-          if (error instanceof TypeMismatchError) {
+          if (error instanceof EntityTypeMismatchError) {
             return OrgModel.getOrgById(graphApi, { entityId: ownedById });
           }
           throw error;
