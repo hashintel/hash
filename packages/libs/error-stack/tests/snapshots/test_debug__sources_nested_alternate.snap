@@ -13,7 +13,7 @@ context A
  |  |- 3
  |  |
  |  |-> root error
- |      |- at tests/common.rs:147:5
+ |      |- at tests/common.rs:4:5
  |      |- 6
  |
  |> context A
@@ -31,7 +31,7 @@ context A
      |  |- 8
      |  |
      |  |-> root error
-     |      |- at tests/common.rs:147:5
+     |      |- at tests/common.rs:4:5
      |
      |> context A
      |  |- at tests/test_debug.rs:186:10
@@ -42,7 +42,7 @@ context A
      |  |- 8
      |  |
      |  |-> root error
-     |      |- at tests/common.rs:147:5
+     |      |- at tests/common.rs:4:5
      |
      |> context A
      |  |- at tests/test_debug.rs:172:10
@@ -54,7 +54,7 @@ context A
      |  |- 8
      |  |
      |  |-> root error
-     |      |- at tests/common.rs:147:5
+     |      |- at tests/common.rs:4:5
      |
      |> context A
      |  |- at tests/test_debug.rs:182:10
@@ -63,7 +63,7 @@ context A
      |  |- 8
      |  |
      |  |-> root error
-     |      |- at tests/common.rs:147:5
+     |      |- at tests/common.rs:4:5
      |
      |> context A
         |- at tests/test_debug.rs:178:10
@@ -75,4 +75,4 @@ context A
         |   |- at tests/test_debug.rs:177:10
         |
         |-> root error
-            |- at tests/common.rs:147:5
+            |- at tests/common.rs:4:5

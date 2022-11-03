@@ -4,6 +4,7 @@
 mod common;
 
 use core::{any::TypeId, iter::zip};
+use std::panic::Location;
 
 use common::*;
 
@@ -109,26 +110,29 @@ fn printable_attachment() {
 
 #[test]
 fn context() {
-    let mut report = create_report()
-        .change_context(ContextA(10))
-        .change_context(ContextB(20));
+    let mut report = create_report().change_context(ContextA(10));
 
-    assert_eq!(report.current_frames().len(), 1);
-    let frame = report.frames_mut().next().expect("No frame found");
+    let mut frames = report.frames_mut();
+
+    let frame = frames.next().expect("No location frame found");
+    assert_eq!(frame.sources().len(), 1);
+    assert!(frame.is::<Location>(), "not a location frame");
+
     let source = frame
         .sources_mut()
         .first_mut()
-        .expect("No source frame found");
+        .expect("no source frame found");
+
     let context = source
         .downcast_mut::<ContextA>()
-        .expect("Wrong source frame");
+        .expect("not a context frame");
     context.0 += 10;
 
     assert_eq!(frame.sources().len(), 1);
-    let source = frame.sources().first().expect("No source frame found");
+    let source = frame.sources().first().expect("no source frame found");
     let context = source
         .downcast_ref::<ContextA>()
-        .expect("Wrong source frame");
+        .expect("not a context frame");
     assert_eq!(context.0, 20);
 }
 

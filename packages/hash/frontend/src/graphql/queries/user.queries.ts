@@ -64,15 +64,6 @@ export const isShortnameTaken = gql`
   }
 `;
 
-export const updateUser = gql`
-  mutation updateUser($userEntityId: ID!, $properties: UpdateUserProperties!) {
-    updateUser(userEntityId: $userEntityId, properties: $properties) {
-      ...UserFields
-    }
-  }
-  ${userFieldsFragment}
-`;
-
 export const verifyEmail = gql`
   mutation verifyEmail($verificationId: ID!, $verificationCode: String!) {
     verifyEmail(

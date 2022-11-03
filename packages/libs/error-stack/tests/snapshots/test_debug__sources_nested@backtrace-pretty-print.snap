@@ -13,7 +13,7 @@ context A
  │  ├╴ 3
  │  │
  │  ╰─▶ root error
- │      ├╴ tests/common.rs:147:5
+ │      ├╴ tests/common.rs:4:5
  │      ├╴ backtrace (1)
  │      ╰╴ 6
  │
@@ -32,7 +32,7 @@ context A
      │  ├╴ 8
      │  │
      │  ╰─▶ root error
-     │      ├╴ tests/common.rs:147:5
+     │      ├╴ tests/common.rs:4:5
      │      ╰╴ backtrace (2)
      │
      ├▶ context A
@@ -44,7 +44,7 @@ context A
      │  ├╴ 8
      │  │
      │  ╰─▶ root error
-     │      ├╴ tests/common.rs:147:5
+     │      ├╴ tests/common.rs:4:5
      │      ╰╴ backtrace (3)
      │
      ├▶ context A
@@ -57,7 +57,7 @@ context A
      │  ├╴ 8
      │  │
      │  ╰─▶ root error
-     │      ├╴ tests/common.rs:147:5
+     │      ├╴ tests/common.rs:4:5
      │      ╰╴ backtrace (4)
      │
      ├▶ context A
@@ -67,7 +67,7 @@ context A
      │  ├╴ 8
      │  │
      │  ╰─▶ root error
-     │      ├╴ tests/common.rs:147:5
+     │      ├╴ tests/common.rs:4:5
      │      ╰╴ backtrace (5)
      │
      ╰▶ context A
@@ -80,7 +80,7 @@ context A
         │   ╰╴ tests/test_debug.rs:177:10
         │
         ╰─▶ root error
-            ├╴ tests/common.rs:147:5
+            ├╴ tests/common.rs:4:5
             ╰╴ backtrace (6)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
