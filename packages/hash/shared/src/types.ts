@@ -158,6 +158,11 @@ const workspacePropertyTypes = {
     title: "Preferred Name",
     description: undefined,
   },
+  isInstanceAdmin: {
+    title: "Is Instance Admin",
+    description:
+      "Whether or not something is an instance admin of an instance of the workspace.",
+  },
   orgName: {
     title: "Organization Name",
     description: undefined,

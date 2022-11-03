@@ -13,6 +13,7 @@ export type MinimalUser = {
   kind: "user";
   entityId: string;
   accountSignupComplete: boolean;
+  isInstanceAdmin: boolean;
   shortname?: string;
   preferredName?: string;
 };
@@ -31,6 +32,11 @@ export const constructMinimalUser = (params: {
   const preferredName: string =
     properties[extractBaseUri(types.propertyType.preferredName.propertyTypeId)];
 
+  const isInstanceAdmin: boolean =
+    properties[
+      extractBaseUri(types.propertyType.isInstanceAdmin.propertyTypeId)
+    ];
+
   const accountSignupComplete = !!shortname && !!preferredName;
 
   return {
@@ -39,6 +45,7 @@ export const constructMinimalUser = (params: {
     shortname,
     preferredName,
     accountSignupComplete,
+    isInstanceAdmin,
   };
 };
 
