@@ -16,7 +16,7 @@ import {
 } from "@mui/material";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
-import { ReactNode, useEffect, useMemo } from "react";
+import { ReactNode, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useBlockProtocolGetEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
 import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
@@ -26,6 +26,7 @@ import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
 import { TopContextBar } from "../../../shared/top-context-bar";
 import { HashOntologyIcon } from "../entity-type/hash-ontology-icon";
 import { OntologyChip } from "../entity-type/ontology-chip";
+import { useRouteNamespace } from "../entity-type/use-route-namespace";
 
 const FormHelperLabel = ({
   children,
@@ -74,26 +75,8 @@ const Page: NextPageWithLayout = () => {
 
   const router = useRouter();
   const { authenticatedUser, loading } = useAuthenticatedUser();
-
   const { getEntityType } = useBlockProtocolGetEntityType();
-
-  const shortname = router.query["account-slug"];
-
-  const namespace = useMemo(() => {
-    if (authenticatedUser) {
-      if (shortname === `@${authenticatedUser.shortname}`) {
-        return authenticatedUser.shortname;
-      }
-
-      const thisOrg = authenticatedUser.memberOf?.find(
-        (org) => `@${org.shortname}` === shortname,
-      );
-
-      if (thisOrg) {
-        return thisOrg.shortname;
-      }
-    }
-  }, [authenticatedUser, shortname, router]);
+  const namespace = useRouteNamespace();
 
   useEffect(() => {
     if (authenticatedUser && !namespace) {
@@ -101,7 +84,7 @@ const Page: NextPageWithLayout = () => {
         `/@${authenticatedUser.shortname}/types/new/entity-type`,
       );
     }
-  }, [authenticatedUser, namespace, shortname, router]);
+  }, [authenticatedUser, namespace, router]);
 
   if (typeSystemLoading || loading || !authenticatedUser || !namespace) {
     return null;
@@ -114,7 +97,7 @@ const Page: NextPageWithLayout = () => {
 
     return generateBaseTypeId({
       domain: FRONTEND_URL,
-      namespace,
+      namespace: namespace.shortname ?? "",
       kind: "entity-type",
       title: value,
     });
@@ -175,7 +158,7 @@ const Page: NextPageWithLayout = () => {
                     fontWeight="bold"
                     color="inherit"
                   >
-                    {router.query["account-slug"]}
+                    {`@${namespace.shortname}`}
                   </Typography>
                   /types/new/entity-type
                 </Typography>

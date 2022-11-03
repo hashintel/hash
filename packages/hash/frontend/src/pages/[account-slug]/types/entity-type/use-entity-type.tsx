@@ -21,13 +21,14 @@ import { mustBeVersionedUri } from "./util";
 
 export const useEntityType = (
   entityTypeBaseUri: string | null,
+  namespace?: string,
   onCompleted?: (entityType: EntityType) => void,
 ) => {
   const router = useRouter();
   const { authenticatedUser } = useAuthenticatedUser();
+
   const { createEntityType } = useBlockProtocolCreateEntityType(
-    // @todo should use routing URL?
-    authenticatedUser?.entityId ?? "",
+    namespace ?? authenticatedUser?.entityId ?? "",
   );
   const [typeSystemLoading, loadTypeSystem] = useAdvancedInitTypeSystem();
 
