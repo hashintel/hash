@@ -1,6 +1,12 @@
 import { test, expect } from "@playwright/test";
+import { sleep } from "@hashintel/hash-shared/sleep";
 import { failOnConsoleOutput } from "./utils/console-checks";
 import { loginUsingUi } from "./utils/login-using-ui";
+import { resetDb } from "./utils/reset-db";
+
+test.beforeEach(async () => {
+  await resetDb();
+});
 
 /**
  * @todo: Re-enable this playwright test when required workspace functionality is fixed
