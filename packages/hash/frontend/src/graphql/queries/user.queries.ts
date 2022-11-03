@@ -1,4 +1,5 @@
 import { gql } from "@apollo/client";
+import { subgraphFieldsFragment } from "./subgraph";
 
 const userFieldsFragment = gql`
   fragment UserFields on User {
@@ -119,9 +120,9 @@ export const logout = gql`
 
 export const meQuery = gql`
   query me {
-    me {
-      ...UserFields
+    me(linkResolveDepth: 2, linkTargetEntityResolveDepth: 2) {
+      ...SubgraphFields
     }
   }
-  ${userFieldsFragment}
+  ${subgraphFieldsFragment}
 `;

@@ -88,6 +88,7 @@ const setupAuth = (params: {
     kratosAfterRegistrationHookHandler({ graphApi }),
   );
 
+  // eslint-disable-next-line @typescript-eslint/no-misused-promises -- https://github.com/DefinitelyTyped/DefinitelyTyped/issues/50871
   app.use(async (req, _res, next) => {
     const kratosSession = await publicKratosSdk
       .toSession(undefined, req.header("cookie"))

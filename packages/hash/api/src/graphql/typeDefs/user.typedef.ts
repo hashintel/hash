@@ -103,7 +103,7 @@ export const userTypedef = gql`
   }
 
   extend type Query {
-    me: User!
+    me(linkResolveDepth: Int!, linkTargetEntityResolveDepth: Int!): Subgraph!
     """
     Determines whether a provided shortname is already taken
     """
