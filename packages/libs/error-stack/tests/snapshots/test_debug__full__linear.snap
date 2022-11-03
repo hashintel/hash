@@ -12,7 +12,7 @@ context B
 │   ╰╴ 1 additional opaque attachment
 │
 ╰─▶ root error
-    ├╴ tests/common.rs:147:5
+    ├╴ tests/common.rs:4:5
     ├╴ backtrace (1)
     ├╴ span trace with 2 frames (1)
     ├╴ printable A

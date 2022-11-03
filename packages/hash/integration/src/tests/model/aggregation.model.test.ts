@@ -6,7 +6,6 @@ import {
   EntityType,
   User,
 } from "@hashintel/hash-api/src/model";
-import { WayToUseHash } from "@hashintel/hash-api/src/graphql/apiTypes.gen";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
 import { recreateDbAndRunSchemaMigrations } from "../setup";
@@ -62,7 +61,7 @@ beforeAll(async () => {
     shortname: "test-user",
     preferredName: "Alice",
     emails: [{ address: "alice@hash.test", primary: true, verified: true }],
-    infoProvidedAtSignup: { usingHow: WayToUseHash.ByThemselves },
+    infoProvidedAtSignup: { usingHow: "BY_THEMSELVES" },
   });
 
   dummyEntityType = await createEntityType();

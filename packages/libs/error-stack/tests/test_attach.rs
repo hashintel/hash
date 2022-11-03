@@ -9,8 +9,8 @@ use error_stack::{AttachmentKind, FrameKind, FutureExt, Report, ResultExt};
 
 fn test_messages<E>(report: &Report<E>) {
     assert_eq!(
-        messages(report),
-        expect_messages(&["opaque", "opaque", "opaque", "opaque", "root error"])
+        remove_builtin_messages(messages(report)),
+        remove_builtin_messages(["opaque", "opaque", "opaque", "opaque", "root error"])
     );
 }
 
@@ -19,8 +19,7 @@ fn test_kinds<E>(report: &Report<E>) {
         FrameKind::Attachment(AttachmentKind::Opaque(_)),
         FrameKind::Attachment(AttachmentKind::Opaque(_)),
         FrameKind::Attachment(AttachmentKind::Opaque(_)),
-        FrameKind::Attachment(AttachmentKind::Opaque(_))
-        => (trace)
+        FrameKind::Attachment(AttachmentKind::Opaque(_)),
         FrameKind::Context(_)
     ]);
 }

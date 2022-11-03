@@ -309,10 +309,6 @@ export default class extends EntityModel {
     ];
   }
 
-  static preferredNameIsInvalid(preferredName: string) {
-    return preferredName === "";
-  }
-
   /**
    * Update the preferred name of a User.
    *
@@ -325,10 +321,11 @@ export default class extends EntityModel {
   ) {
     const { updatedPreferredName, actorId } = params;
 
-    if (UserModel.preferredNameIsInvalid(updatedPreferredName)) {
-      throw new Error(`Preferred name "${updatedPreferredName}" is invalid.`);
+    if (updatedPreferredName === "") {
+      throw new Error(
+        `Preferred name "${updatedPreferredName}" cannot be removed.`,
+      );
     }
-
     const updatedEntity = await this.updateProperty(graphApi, {
       propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.preferredName.baseUri,
       value: updatedPreferredName,

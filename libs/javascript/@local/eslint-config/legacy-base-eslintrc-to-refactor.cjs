@@ -5,12 +5,10 @@ module.exports = {
   parser: "@typescript-eslint/parser",
   plugins: ["@typescript-eslint", "react-hooks", "jest", "unicorn"],
   extends: [
-    "plugin:@typescript-eslint/recommended-requiring-type-checking",
     "airbnb",
     "prettier",
     // mutes eslint rules conflicting w/ prettier (requires eslint-config-prettier)
   ],
-  ignorePatterns: ["**/*.gen.*"],
   globals: {
     NodeJS: true,
     FixMeLater: "readonly",
@@ -233,26 +231,10 @@ module.exports = {
     "@typescript-eslint/default-param-last": "error",
     // see https://github.com/typescript-eslint/typescript-eslint/issues/2483
     "@typescript-eslint/no-shadow": "error",
-    "@typescript-eslint/no-meaningless-void-operator": "error",
     "no-use-before-define": "off",
-    "@typescript-eslint/no-misused-promises": [
-      "error", // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/docs/rules/no-misused-promises.md#checksvoidreturn
-      { checksVoidReturn: { attributes: false, properties: false } },
-    ],
     "@typescript-eslint/no-use-before-define": ["error"],
     "no-redeclare": "off",
     "@typescript-eslint/no-redeclare": ["error"],
-
-    // Part of @typescript-eslint/recommended-requiring-type-checking
-    // TODO: re-enable
-    "@typescript-eslint/no-unsafe-argument": "off",
-    "@typescript-eslint/no-unsafe-assignment": "off",
-    "@typescript-eslint/no-unsafe-call": "off",
-    "@typescript-eslint/no-unsafe-member-access": "off",
-    "@typescript-eslint/no-unsafe-return": "off",
-    "@typescript-eslint/require-await": "off",
-    "@typescript-eslint/restrict-template-expressions": "off",
-    "@typescript-eslint/unbound-method": "off",
 
     eqeqeq: [
       "error",
@@ -320,7 +302,6 @@ module.exports = {
         },
       },
     ],
-    "@typescript-eslint/prefer-nullish-coalescing": ["error"],
     "unicorn/no-array-for-each": ["error"],
   },
   settings: {
@@ -332,23 +313,57 @@ module.exports = {
   },
   overrides: [
     {
-      files: ["**/__mocks__/*", "**/testUtils/*", "*.test.ts", "*.test.tsx"],
+      files: ["**/*.{c,m,}js"],
+      parser: "@babel/eslint-parser", // disables typescript rules
+      parserOptions: {
+        requireConfigFile: false,
+        extraFileExtensions: [".cjs"],
+        babelOptions: {
+          presets: ["@babel/preset-react"], // allows jsx
+        },
+      },
+    },
+    {
+      files: [
+        "**/__mocks__/**",
+        "**/testUtils/**",
+        "*.test.{j,t}s{x,}",
+        "jest.setup.ts",
+      ],
       env: {
         "jest/globals": true,
+        node: true,
       },
       rules: {
         "import/no-extraneous-dependencies": [
           "error",
-          {
-            devDependencies: true,
-          },
+          { devDependencies: true },
+        ],
+      },
+    },
+    {
+      files: ["*.config.{c,m,}{j,t}s", "*.d.ts", "*rc.{c,m,}js"],
+      rules: {
+        "global-require": "off",
+        "import/no-extraneous-dependencies": [
+          "error",
+          { devDependencies: true },
         ],
       },
     },
     {
       files: ["*.ts", "*.tsx"],
+      extends: [
+        "plugin:@typescript-eslint/recommended-requiring-type-checking",
+      ],
       rules: {
         "no-unused-vars": "off",
+        "@typescript-eslint/prefer-nullish-coalescing": ["error"],
+        "@typescript-eslint/no-meaningless-void-operator": "error",
+        "@typescript-eslint/no-misused-promises": [
+          "error", // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/docs/rules/no-misused-promises.md#checksvoidreturn
+          { checksVoidReturn: { attributes: false, properties: false } },
+        ],
         // replaced by @typescript-eslint/no-unused-vars
         "@typescript-eslint/no-unused-vars": [
           "error",
@@ -358,31 +373,23 @@ module.exports = {
             varsIgnorePattern: "^_+",
           },
         ],
+
+        // Part of @typescript-eslint/recommended-requiring-type-checking
+        // TODO: re-enable
+        "@typescript-eslint/no-unsafe-argument": "off",
+        "@typescript-eslint/no-unsafe-assignment": "off",
+        "@typescript-eslint/no-unsafe-call": "off",
+        "@typescript-eslint/no-unsafe-member-access": "off",
+        "@typescript-eslint/no-unsafe-return": "off",
+        "@typescript-eslint/require-await": "off",
+        "@typescript-eslint/restrict-template-expressions": "off",
+        "@typescript-eslint/unbound-method": "off",
       },
     },
     {
       files: ["**/scripts/**"],
       rules: {
         "no-console": "off",
-      },
-    },
-    {
-      files: [
-        "packages/hash/api/**",
-        "packages/hash/backend-utils/**",
-        "packages/hash/realtime/**",
-        "packages/hash/datastore/**",
-        "packages/hash/docker/**",
-        "packages/hash/eslint-config/**",
-        "packages/hash/external-services/**",
-        "packages/hash/integration/**",
-        "packages/hash/search-loader/**",
-        "packages/hash/task-executor/**",
-        "packages/hash/playwright/**",
-      ],
-      rules: {
-        "@typescript-eslint/prefer-nullish-coalescing": ["off"],
-        "unicorn/no-array-for-each": ["off"],
       },
     },
   ],
