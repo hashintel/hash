@@ -1,6 +1,8 @@
 //! Implementation of formatting, to enable colors and the use of box-drawing characters use the
 //! `pretty-print` feature.
 //!
+//! > **Note:** `error-stack` does not provide any stability guarantees for the [`Debug`] output.
+//!
 //! # Hooks
 //!
 //! The [`Debug`] implementation can be easily extended using hooks. Hooks are functions of the
@@ -152,8 +154,7 @@ use alloc::{
     vec::Vec,
 };
 use core::{
-    fmt,
-    fmt::{Debug, Display, Formatter},
+    fmt::{self, Debug, Display, Formatter},
     iter::once,
     mem,
 };
@@ -667,8 +668,8 @@ impl Opaque {
     }
 }
 
-fn debug_attachments_invoke(
-    frames: Vec<&Frame>,
+fn debug_attachments_invoke<'a>(
+    frames: impl IntoIterator<Item = &'a Frame>,
     #[cfg(feature = "std")] context: &mut HookContext<Frame>,
 ) -> (Opaque, Vec<String>) {
     let mut opaque = Opaque::new();
@@ -677,62 +678,59 @@ fn debug_attachments_invoke(
         .into_iter()
         .map(|frame| match frame.kind() {
             #[cfg(feature = "std")]
-            FrameKind::Attachment(AttachmentKind::Opaque(_)) | FrameKind::Context(_) => {
-                Report::invoke_debug_format_hook(|hooks| hooks.call(frame, context));
-                context.take_body()
+            FrameKind::Context(_) => Some(
+                Report::invoke_debug_format_hook(|hooks| hooks.call(frame, context))
+                    .then(|| context.take_body())
+                    .unwrap_or_default(),
+            ),
+            #[cfg(feature = "std")]
+            FrameKind::Attachment(AttachmentKind::Printable(attachment)) => Some(
+                Report::invoke_debug_format_hook(|hooks| hooks.call(frame, context))
+                    .then(|| context.take_body())
+                    .unwrap_or_else(|| vec![attachment.to_string()]),
+            ),
+            #[cfg(feature = "std")]
+            FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
+                Report::invoke_debug_format_hook(|hooks| hooks.call(frame, context))
+                    .then(|| context.take_body())
+            }
+            #[cfg(not(feature = "std"))]
+            FrameKind::Context(_) => Some(vec![]),
+            #[cfg(not(feature = "std"))]
+            FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
+                Some(vec![attachment.to_string()])
             }
             #[cfg(all(not(feature = "std"), feature = "pretty-print"))]
-            FrameKind::Context(_) => {
-                let location = frame
-                    .location()
-                    .if_supports_color(Stream::Stdout, OwoColorize::bright_black);
-
-                vec![format!("{location}")]
-            }
+            FrameKind::Attachment(AttachmentKind::Opaque(_)) => frame
+                .downcast_ref::<core::panic::Location<'static>>()
+                .map(|location| {
+                    vec![
+                        location
+                            .if_supports_color(Stream::Stdout, OwoColorize::bright_black)
+                            .to_string(),
+                    ]
+                }),
             #[cfg(all(not(feature = "std"), not(feature = "pretty-print")))]
-            FrameKind::Context(_) => {
-                let location = frame.location();
-
-                vec![format!("at {location}")]
-            }
-            #[cfg(not(feature = "std"))]
-            FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
-                vec![]
-            }
-            #[cfg(feature = "std")]
-            FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
-                Report::invoke_debug_format_hook(|hooks| hooks.call(frame, context));
-                let mut body = context.take_body();
-
-                if body.is_empty() {
-                    body.push(attachment.to_string());
-                }
-
-                body
-            }
-            #[cfg(not(feature = "std"))]
-            FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
-                vec![attachment.to_string()]
-            }
+            FrameKind::Attachment(AttachmentKind::Opaque(_)) => frame
+                .downcast_ref::<core::panic::Location>()
+                .map(|location| vec![format!("at {location}")]),
         })
-        .enumerate()
-        .flat_map(|(idx, body)| {
-            // increase the opaque counter, if we're unable to determine the actual value of the
-            // frame
-            if idx > 0 && body.is_empty() {
+        .flat_map(|body| {
+            body.unwrap_or_else(|| {
+                // increase the opaque counter, if we're unable to determine the actual value of
+                // the frame
                 opaque.increase();
-            }
-
-            body
+                Vec::new()
+            })
         })
         .collect();
 
     (opaque, body)
 }
 
-fn debug_attachments(
+fn debug_attachments<'a>(
     position: Position,
-    frames: Vec<&Frame>,
+    frames: impl IntoIterator<Item = &'a Frame>,
     #[cfg(feature = "std")] context: &mut HookContext<Frame>,
 ) -> Lines {
     let last = matches!(position, Position::Final);
@@ -905,7 +903,7 @@ fn debug_frame(
                 } else {
                     Position::Inner
                 },
-                once(head).chain(body).collect(),
+                once(head).chain(body),
                 #[cfg(feature = "std")]
                 context,
             );

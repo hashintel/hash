@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "exe": "ts-node --transpile-only",
-    "fix:eslint": "eslint --ext .js,.ts,.tsx --fix ./",
-    "lint:eslint": "eslint --ext .js,.ts,.tsx ./",
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint .",
     "lint:tsc": "tsc --noEmit"
   },
   "dependencies": {
@@ -16,6 +16,8 @@
     "typescript": "4.8.4"
   },
   "devDependencies": {
-    "@local/tsconfig": "0.0.0-private"
+    "@local/eslint-config": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
+    "eslint": "8.26.0"
   }
 }

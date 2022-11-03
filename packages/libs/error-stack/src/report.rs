@@ -226,6 +226,14 @@ impl<C> Report<C> {
 
     #[track_caller]
     pub(crate) fn from_frame(frame: Frame) -> Self {
+        #[cfg(nightly)]
+        let location = core::any::request_ref::<Location>(&frame)
+            .is_none()
+            .then_some(Location::caller());
+
+        #[cfg(not(nightly))]
+        let location = Some(Location::caller());
+
         #[cfg(all(nightly, feature = "std"))]
         let backtrace = core::any::request_ref::<Backtrace>(&frame)
             .filter(|backtrace| backtrace.status() == BacktraceStatus::Captured)
@@ -249,6 +257,10 @@ impl<C> Report<C> {
             frames: Box::new(vec![frame]),
             _context: PhantomData,
         };
+
+        if let Some(location) = location {
+            report = report.attach(*location);
+        }
 
         #[cfg(all(rust_1_65, feature = "std"))]
         if let Some(backtrace) =
@@ -453,10 +465,15 @@ impl<C> Report<C> {
         T: Context,
     {
         let old_frames = mem::replace(self.frames.as_mut(), Vec::with_capacity(1));
-        self.frames.push(Frame::from_context(
+        let context_frame = vec![Frame::from_context(
             context,
             Location::caller(),
             old_frames.into_boxed_slice(),
+        )];
+        self.frames.push(Frame::from_attachment(
+            *Location::caller(),
+            Location::caller(),
+            context_frame.into_boxed_slice(),
         ));
         Report {
             frames: self.frames,

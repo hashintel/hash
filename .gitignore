@@ -73,21 +73,21 @@ dist
 build
 
 # vscode config
-**/.vscode/settings.json
+.vscode/settings.json
 
 # intellij IDEs config
 /.idea/
 
 # Python virtual environment
-**/venv
+venv
 
 # Python compiled files and package metadata
-**/__pycache__
-**/*.egg-info
+__pycache__
+*.egg-info
 
 # generated files
-**/*.gen.*
-**/*.tsbuildinfo
+*.gen.*
+*.tsbuildinfo
 
 # Sentry
 .sentryclirc
