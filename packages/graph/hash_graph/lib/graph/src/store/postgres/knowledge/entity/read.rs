@@ -13,10 +13,7 @@ use crate::{
     },
     ontology::EntityTypeQueryPath,
     store::{
-        crud,
-        postgres::query::{Distinctness, Ordering, SelectCompiler},
-        query::Filter,
-        AsClient, PostgresStore, QueryError,
+        crud, postgres::query::SelectCompiler, query::Filter, AsClient, PostgresStore, QueryError,
     },
 };
 
@@ -38,8 +35,9 @@ impl<C: AsClient> crud::Read<PersistedEntity> for PostgresStore<C> {
         let owned_by_id_index = compiler.add_selection_path(&EntityQueryPath::OwnedById);
         let created_by_id_index = compiler.add_selection_path(&EntityQueryPath::CreatedById);
         let updated_by_id_index = compiler.add_selection_path(&EntityQueryPath::UpdatedById);
-        let left_entity_id_index = compiler.add_selection_path(&EntityQueryPath::LeftEntityId);
-        let right_entity_id_index = compiler.add_selection_path(&EntityQueryPath::RightEntityId);
+        let left_entity_id_index = compiler.add_selection_path(&EntityQueryPath::LeftEntity(None));
+        let right_entity_id_index =
+            compiler.add_selection_path(&EntityQueryPath::RightEntity(None));
         let left_order_index = compiler.add_selection_path(&EntityQueryPath::LeftOrder);
         let right_order_index = compiler.add_selection_path(&EntityQueryPath::RightOrder);
 

@@ -5,10 +5,10 @@ use tokio_postgres::row::RowIndex;
 
 use crate::store::{
     postgres::query::{
-        Column, ColumnAccess, Condition, Distinctness, EdgeJoinDirection, EqualityOperator,
-        Expression, Function, JoinExpression, OrderByExpression, Ordering, Path,
-        PostgresQueryRecord, SelectExpression, SelectStatement, Table, TableAlias, TableName,
-        Transpile, WhereExpression, WindowStatement, WithExpression,
+        Column, ColumnAccess, Condition, Distinctness, EqualityOperator, Expression, Function,
+        JoinExpression, OrderByExpression, Ordering, Path, PostgresQueryRecord, Relation,
+        SelectExpression, SelectStatement, Table, TableAlias, TableName, Transpile,
+        WhereExpression, WindowStatement, WithExpression,
     },
     query::{Filter, FilterExpression, Parameter},
 };
@@ -73,7 +73,7 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
     /// Optionally, the added selection can be distinct or ordered by providing [`Distinctness`]
     /// and [`Ordering`].
     pub fn add_selection_path(&mut self, path: &'q T::Path<'q>) -> impl RowIndex + Display + Copy {
-        let table = self.add_join_statements(path.tables());
+        let table = self.add_join_statements(path.relations());
         self.statement.selects.push(SelectExpression::from_column(
             Column {
                 table,
@@ -94,7 +94,7 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
         distinctness: Distinctness,
         ordering: Option<Ordering>,
     ) -> impl RowIndex + Display + Copy {
-        let table = self.add_join_statements(path.tables());
+        let table = self.add_join_statements(path.relations());
         let column = Column {
             table,
             access: path.column_access(),
@@ -223,7 +223,7 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
             });
 
         // Join the table of `path` and compare the version to the latest version
-        version_column.table = self.add_join_statements(path.tables());
+        version_column.table = self.add_join_statements(path.relations());
         let latest_version_expression = Some(Expression::Column(Column {
             table: version_column.table,
             access: ColumnAccess::Table {
@@ -305,7 +305,7 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
                     path.column_access()
                 };
                 Expression::Column(Column {
-                    table: self.add_join_statements(path.tables()),
+                    table: self.add_join_statements(path.relations()),
                     access,
                 })
             }
@@ -322,42 +322,70 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
         }
     }
 
-    /// Joins the list of [`Table`]s as [`JoinExpression`]s.
+    /// Joins a chain of [`Relation`]s and returns the table name of the last joined table.
     ///
     /// Joining the tables attempts to deduplicate [`JoinExpression`]s. As soon as a new filter was
     /// compiled, each subsequent call will result in a new join-chain.
-    fn add_join_statements(
-        &mut self,
-        tables: impl IntoIterator<Item = (TableName, EdgeJoinDirection)>,
-    ) -> Table {
+    fn add_join_statements(&mut self, tables: impl IntoIterator<Item = Relation<'q>>) -> Table {
         let mut current_table = T::base_table();
-        let mut current_edge_direction = EdgeJoinDirection::SourceOnTarget;
-        for (table_name, edge_direction) in tables {
-            if table_name == T::base_table().name && self.artifacts.current_alias.chain_depth == 0 {
-                // Avoid joining the same initial table
-                current_edge_direction = edge_direction;
-                continue;
-            }
-
-            let table = Table {
-                name: table_name,
+        for Relation {
+            current_column_access,
+            join_table_name,
+            join_column_access,
+        } in tables
+        {
+            let current_column = Column {
+                table: current_table,
+                access: current_column_access,
+            };
+            let join_table = Table {
+                name: join_table_name,
                 alias: Some(self.artifacts.current_alias),
             };
+            let join_column = Column {
+                table: join_table,
+                access: join_column_access,
+            };
 
-            let join = JoinExpression::from_tables(table, current_table, current_edge_direction);
+            // If we join on the same column as the previous join, we can reuse the that join. For
+            // example, if we join on `entities.entity_type_version_id = entity_type.version_id` and
+            // then on `entity_type.version_id = type_ids.version_id`, we can merge the two joins
+            // into `entities.entity_type_version_id = type_ids.version_id`. We, however, need to
+            // make to make sure, that we only alter a join we added in this iteration.
+            if self.artifacts.current_alias.chain_depth != 0 {
+                // Check if we are joining on the same column as the previous join
+                if let Some(last_join) = self.statement.joins.last_mut() {
+                    if last_join.join == current_column {
+                        last_join.join.table.name = join_column.table.name;
+                        last_join.join.access = join_column.access;
+                        current_table = last_join.join.table;
 
+                        if let [.., previous_join, this_join] = self.statement.joins.as_slice() {
+                            // It's possible that we just duplicated the last two join statements,
+                            // so remove the last one.
+                            if previous_join == this_join {
+                                self.statement.joins.pop();
+                            }
+                        }
+
+                        continue;
+                    }
+                }
+            }
+
+            let join_expression = JoinExpression::new(join_column, current_column);
             if let Some(join_statement) = self
                 .statement
                 .joins
                 .iter()
-                .find(|existing| **existing == join)
+                .find(|existing| **existing == join_expression)
             {
-                current_table = join_statement.join;
+                current_table = join_statement.join.table;
             } else {
-                self.statement.joins.push(join);
-                current_table = table;
+                self.statement.joins.push(join_expression);
+                current_table = join_table;
             }
-            current_edge_direction = edge_direction;
+
             self.artifacts.current_alias.chain_depth += 1;
         }
         self.artifacts.current_alias.chain_depth = 0;

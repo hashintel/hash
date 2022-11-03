@@ -20,8 +20,8 @@ pub use self::{
     compile::SelectCompiler,
     condition::{Condition, EqualityOperator},
     expression::{
-        CommonTableExpression, EdgeJoinDirection, Expression, Function, JoinExpression,
-        OrderByExpression, Ordering, SelectExpression, WhereExpression, WithExpression,
+        CommonTableExpression, Expression, Function, JoinExpression, OrderByExpression, Ordering,
+        Relation, SelectExpression, WhereExpression, WithExpression,
     },
     statement::{Distinctness, SelectStatement, Statement, WindowStatement},
     table::{Column, ColumnAccess, Table, TableAlias, TableName},
@@ -39,7 +39,7 @@ pub trait PostgresQueryRecord<'q>: QueryRecord<Path<'q>: Path> {
 /// An absolute path inside of a query pointing to an attribute.
 pub trait Path {
     /// Returns a list of [`TableName`]s required to traverse this path.
-    fn tables(&self) -> Vec<(TableName, EdgeJoinDirection)>;
+    fn relations(&self) -> Vec<Relation>;
 
     /// The [`TableName`] that marks the end of the path.
     fn terminating_table_name(&self) -> TableName;

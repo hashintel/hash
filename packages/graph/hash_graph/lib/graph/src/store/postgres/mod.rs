@@ -37,7 +37,7 @@ use crate::{
         OntologyQueryDepth, PersistedDataType, PersistedEntityType, PersistedOntologyIdentifier,
         PersistedOntologyMetadata, PersistedPropertyType,
     },
-    provenance::{CreatedById, OwnedById, RemovedById, UpdatedById},
+    provenance::{CreatedById, OwnedById, UpdatedById},
     shared::identifier::GraphElementIdentifier,
     store::{
         error::VersionedUriAlreadyExists,

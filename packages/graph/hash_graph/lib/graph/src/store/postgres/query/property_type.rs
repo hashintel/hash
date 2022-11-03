@@ -1,13 +1,9 @@
-use std::iter::once;
-
 use postgres_types::ToSql;
 use type_system::PropertyType;
 
 use crate::{
-    ontology::PropertyTypeQueryPath,
-    store::postgres::query::{
-        expression::EdgeJoinDirection, ColumnAccess, Path, PostgresQueryRecord, Table, TableName,
-    },
+    ontology::{DataTypeQueryPath, PropertyTypeQueryPath},
+    store::postgres::query::{ColumnAccess, Path, PostgresQueryRecord, Relation, Table, TableName},
 };
 
 impl<'q> PostgresQueryRecord<'q> for PropertyType {
@@ -31,24 +27,52 @@ impl<'q> PostgresQueryRecord<'q> for PropertyType {
 }
 
 impl Path for PropertyTypeQueryPath {
-    fn tables(&self) -> Vec<(TableName, EdgeJoinDirection)> {
+    fn relations(&self) -> Vec<Relation> {
         match self {
-            Self::DataTypes(path) => once((
-                TableName::PropertyTypeDataTypeReferences,
-                EdgeJoinDirection::SourceOnTarget,
-            ))
-            .chain(path.tables())
+            Self::BaseUri | Self::Version => vec![Relation {
+                current_column_access: Self::VersionId.column_access(),
+                join_table_name: TableName::TypeIds,
+                join_column_access: Self::VersionId.column_access(),
+            }],
+            Self::DataTypes(path) => [
+                Relation {
+                    current_column_access: Self::VersionId.column_access(),
+                    join_table_name: TableName::PropertyTypeDataTypeReferences,
+                    join_column_access: ColumnAccess::Table {
+                        column: "source_property_type_version_id",
+                    },
+                },
+                Relation {
+                    current_column_access: ColumnAccess::Table {
+                        column: "target_data_type_version_id",
+                    },
+                    join_table_name: TableName::DataTypes,
+                    join_column_access: DataTypeQueryPath::VersionId.column_access(),
+                },
+            ]
+            .into_iter()
+            .chain(path.relations())
             .collect(),
-            Self::PropertyTypes(path) => once((
-                TableName::PropertyTypePropertyTypeReferences,
-                EdgeJoinDirection::SourceOnTarget,
-            ))
-            .chain(path.tables())
+            Self::PropertyTypes(path) => [
+                Relation {
+                    current_column_access: Self::VersionId.column_access(),
+                    join_table_name: TableName::PropertyTypePropertyTypeReferences,
+                    join_column_access: ColumnAccess::Table {
+                        column: "source_property_type_version_id",
+                    },
+                },
+                Relation {
+                    current_column_access: ColumnAccess::Table {
+                        column: "target_property_type_version_id",
+                    },
+                    join_table_name: TableName::PropertyTypes,
+                    join_column_access: Self::VersionId.column_access(),
+                },
+            ]
+            .into_iter()
+            .chain(path.relations())
             .collect(),
-            _ => vec![(
-                self.terminating_table_name(),
-                EdgeJoinDirection::SourceOnTarget,
-            )],
+            _ => vec![],
         }
     }
 

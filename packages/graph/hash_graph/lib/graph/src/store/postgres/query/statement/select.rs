@@ -80,10 +80,8 @@ mod tests {
     use uuid::Uuid;
 
     use crate::{
-        knowledge::{Entity, EntityQueryPath, Link, LinkQueryPath},
-        ontology::{
-            DataTypeQueryPath, EntityTypeQueryPath, LinkTypeQueryPath, PropertyTypeQueryPath,
-        },
+        knowledge::{Entity, EntityQueryPath},
+        ontology::{DataTypeQueryPath, EntityTypeQueryPath, PropertyTypeQueryPath},
         store::{
             postgres::query::{
                 test_helper::trim_whitespace, Distinctness, Ordering, PostgresQueryRecord,
@@ -268,7 +266,8 @@ mod tests {
             FROM "property_types"
             INNER JOIN "property_type_data_type_references" AS "property_type_data_type_references_0_0"
               ON "property_type_data_type_references_0_0"."source_property_type_version_id" = "property_types"."version_id"
-            INNER JOIN "data_types" AS "data_types_0_1" ON "data_types_0_1"."version_id" = "property_type_data_type_references_0_0"."target_data_type_version_id"
+            INNER JOIN "data_types" AS "data_types_0_1"
+              ON "data_types_0_1"."version_id" = "property_type_data_type_references_0_0"."target_data_type_version_id"
             WHERE "data_types_0_1"."schema"->>'title' = $1
             "#,
             &[&"Text"],
@@ -337,7 +336,8 @@ mod tests {
             FROM "property_types"
             INNER JOIN "property_type_property_type_references" AS "property_type_property_type_references_0_0"
               ON "property_type_property_type_references_0_0"."source_property_type_version_id" = "property_types"."version_id"
-            INNER JOIN "property_types" AS "property_types_0_1" ON "property_types_0_1"."version_id" = "property_type_property_type_references_0_0"."target_property_type_version_id"
+            INNER JOIN "property_types" AS "property_types_0_1"
+              ON "property_types_0_1"."version_id" = "property_type_property_type_references_0_0"."target_property_type_version_id"
             WHERE "property_types_0_1"."schema"->>'title' = $1
             "#,
             &[&"Text"],
@@ -373,34 +373,36 @@ mod tests {
         );
     }
 
-    #[test]
-    fn entity_type_by_referenced_link_types() {
-        let mut compiler = SelectCompiler::<EntityType>::with_asterisk();
-
-        let filter = Filter::Equal(
-            Some(FilterExpression::Path(EntityTypeQueryPath::Links(
-                LinkTypeQueryPath::Title,
-            ))),
-            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                "Friend Of",
-            )))),
-        );
-        compiler.add_filter(&filter);
-
-        test_compilation(
-            &compiler,
-            r#"
-            SELECT *
-            FROM "entity_types"
-            INNER JOIN "entity_type_link_type_references" AS "entity_type_link_type_references_0_0"
-              ON "entity_type_link_type_references_0_0"."source_entity_type_version_id" = "entity_types"."version_id"
-            INNER JOIN "link_types" AS "link_types_0_1"
-              ON "link_types_0_1"."version_id" = "entity_type_link_type_references_0_0"."target_link_type_version_id"
-            WHERE "link_types_0_1"."schema"->>'title' = $1
-            "#,
-            &[&"Friend Of"],
-        );
-    }
+    // TODO: https://app.asana.com/0/1200211978612931/1203250001255262/f
+    // #[test]
+    // fn entity_type_by_referenced_link_types() {
+    //     let mut compiler = SelectCompiler::<EntityType>::with_asterisk();
+    //
+    //     let filter = Filter::Equal(
+    //         Some(FilterExpression::Path(EntityTypeQueryPath::Links(
+    //             LinkTypeQueryPath::Title,
+    //         ))),
+    //         Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+    //             "Friend Of",
+    //         )))),
+    //     );
+    //     compiler.add_filter(&filter);
+    //
+    //     test_compilation(
+    //         &compiler,
+    //         r#"
+    //         SELECT *
+    //         FROM "entity_types"
+    //         INNER JOIN "entity_type_link_type_references" AS
+    // "entity_type_link_type_references_0_0"           ON
+    // "entity_type_link_type_references_0_0"."source_entity_type_version_id" =
+    // "entity_types"."version_id"         INNER JOIN "link_types" AS "link_types_0_1"
+    //           ON "link_types_0_1"."version_id" =
+    // "entity_type_link_type_references_0_0"."target_link_type_version_id"         WHERE
+    // "link_types_0_1"."schema"->>'title' = $1         "#,
+    //         &[&"Friend Of"],
+    //     );
+    // }
 
     #[test]
     fn entity_simple_query() {
@@ -470,21 +472,17 @@ mod tests {
     #[test]
     fn entity_with_manual_selection() {
         let mut compiler = SelectCompiler::<Entity>::new();
-        compiler.add_selection_path(
+        compiler.add_distinct_selection_with_ordering(
             &EntityQueryPath::Id,
             Distinctness::Distinct,
             Some(Ordering::Ascending),
         );
-        compiler.add_selection_path(
+        compiler.add_distinct_selection_with_ordering(
             &EntityQueryPath::Version,
             Distinctness::Distinct,
             Some(Ordering::Descending),
         );
-        compiler.add_selection_path(
-            &EntityQueryPath::Properties(None),
-            Distinctness::Indistinct,
-            None,
-        );
+        compiler.add_selection_path(&EntityQueryPath::Properties(None));
 
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::CreatedById)),
@@ -561,12 +559,14 @@ mod tests {
     }
 
     #[test]
-    fn entity_link_query() {
+    fn entity_outgoing_link_query() {
         let mut compiler = SelectCompiler::<Entity>::with_asterisk();
 
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::OutgoingLinks(
-                Box::new(LinkQueryPath::Target(Some(EntityQueryPath::Version))),
+                Box::new(EntityQueryPath::RightEntity(Some(Box::new(
+                    EntityQueryPath::Version,
+                )))),
             ))),
             None,
         );
@@ -577,10 +577,10 @@ mod tests {
             r#"
             SELECT *
             FROM "entities"
-            INNER JOIN "links" AS "links_0_0"
-              ON "links_0_0"."source_entity_id" = "entities"."entity_id"
+            INNER JOIN "entities" AS "entities_0_0"
+              ON "entities_0_0"."left_entity_id" = "entities"."entity_id"
             INNER JOIN "entities" AS "entities_0_1"
-              ON "entities_0_1"."entity_id" = "links_0_0"."target_entity_id"
+              ON "entities_0_1"."entity_id" = "entities_0_0"."right_entity_id"
             WHERE "entities_0_1"."version" IS NULL
             "#,
             &[],
@@ -588,38 +588,16 @@ mod tests {
     }
 
     #[test]
-    fn entity_link_loop_query() {
-        let mut compiler = SelectCompiler::<Entity>::with_asterisk();
-
-        let filter = Filter::Equal(
-            Some(FilterExpression::Path(EntityQueryPath::OutgoingLinks(
-                Box::new(LinkQueryPath::Source(Some(EntityQueryPath::Id))),
-            ))),
-            Some(FilterExpression::Path(EntityQueryPath::Id)),
-        );
-        compiler.add_filter(&filter);
-
-        test_compilation(
-            &compiler,
-            r#"
-            SELECT *
-            FROM "entities"
-            INNER JOIN "links" AS "links_0_0"
-              ON "links_0_0"."source_entity_id" = "entities"."entity_id"
-            INNER JOIN "entities" AS "entities_0_1"
-              ON "entities_0_1"."entity_id" = "links_0_0"."source_entity_id"
-            WHERE "entities_0_1"."entity_id" = "entities"."entity_id"
-            "#,
-            &[],
-        );
-
+    fn entity_incoming_link_query() {
         let mut compiler = SelectCompiler::<Entity>::with_asterisk();
 
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::IncomingLinks(
-                Box::new(LinkQueryPath::Target(Some(EntityQueryPath::Id))),
+                Box::new(EntityQueryPath::LeftEntity(Some(Box::new(
+                    EntityQueryPath::Version,
+                )))),
             ))),
-            Some(FilterExpression::Path(EntityQueryPath::Id)),
+            None,
         );
         compiler.add_filter(&filter);
 
@@ -628,42 +606,13 @@ mod tests {
             r#"
             SELECT *
             FROM "entities"
-            INNER JOIN "links" AS "links_0_0"
-              ON "links_0_0"."target_entity_id" = "entities"."entity_id"
+            INNER JOIN "entities" AS "entities_0_0"
+              ON "entities_0_0"."right_entity_id" = "entities"."entity_id"
             INNER JOIN "entities" AS "entities_0_1"
-              ON "entities_0_1"."entity_id" = "links_0_0"."target_entity_id"
-            WHERE "entities_0_1"."entity_id" = "entities"."entity_id"
+              ON "entities_0_1"."entity_id" = "entities_0_0"."left_entity_id"
+            WHERE "entities_0_1"."version" IS NULL
             "#,
             &[],
-        );
-    }
-
-    #[test]
-    fn link_simple_query() {
-        let mut compiler = SelectCompiler::<Link>::with_default_selection();
-
-        let filter = Filter::Equal(
-            Some(FilterExpression::Path(LinkQueryPath::Index)),
-            Some(FilterExpression::Parameter(Parameter::Number(1.0))),
-        );
-        compiler.add_filter(&filter);
-
-        test_compilation(
-            &compiler,
-            r#"
-            SELECT
-                "link_types_0_0"."schema"->>'$id',
-                "links"."source_entity_id",
-                "links"."target_entity_id",
-                "links"."link_index",
-                "links"."owned_by_id",
-                "links"."created_by_id"
-            FROM "links"
-            INNER JOIN "link_types" AS "link_types_0_0"
-              ON "link_types_0_0"."version_id" = "links"."link_type_version_id"
-            WHERE "links"."link_index" = $1
-            "#,
-            &[&1.0],
         );
     }
 }
