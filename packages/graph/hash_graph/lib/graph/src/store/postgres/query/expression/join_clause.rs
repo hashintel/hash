@@ -2,6 +2,12 @@ use std::fmt;
 
 use crate::store::postgres::query::{Column, ColumnAccess, Table, TableName, Transpile};
 
+pub struct Relation<'q> {
+    pub current_column_access: ColumnAccess<'q>,
+    pub join_table_name: TableName,
+    pub join_column_access: ColumnAccess<'q>,
+}
+
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct JoinExpression<'q> {
     pub join: Column<'q>,
@@ -13,12 +19,6 @@ impl<'q> JoinExpression<'q> {
     pub const fn new(join: Column<'q>, on: Column<'q>) -> Self {
         Self { join, on }
     }
-}
-
-pub struct Relation<'q> {
-    pub current_column_access: ColumnAccess<'q>,
-    pub join_table_name: TableName,
-    pub join_column_access: ColumnAccess<'q>,
 }
 
 impl Transpile for JoinExpression<'_> {

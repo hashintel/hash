@@ -94,11 +94,11 @@ impl Path for EntityQueryPath<'_> {
             | Self::LeftOrder
             | Self::RightOrder
             | Self::Properties(_) => TableName::Entities,
-            Self::LeftEntity(Some(path)) | Self::RightEntity(Some(path)) => {
-                path.terminating_table_name()
-            }
             Self::Type(path) => path.terminating_table_name(),
-            Self::IncomingLinks(path) | Self::OutgoingLinks(path) => path.terminating_table_name(),
+            Self::IncomingLinks(path)
+            | Self::OutgoingLinks(path)
+            | Self::LeftEntity(Some(path))
+            | Self::RightEntity(Some(path)) => path.terminating_table_name(),
         }
     }
 
@@ -107,8 +107,8 @@ impl Path for EntityQueryPath<'_> {
             Self::Id => ColumnAccess::Table {
                 column: "entity_id",
             },
-            Self::Type(path) => path.column_access(),
             Self::Version => ColumnAccess::Table { column: "version" },
+            Self::Type(path) => path.column_access(),
             Self::OwnedById => ColumnAccess::Table {
                 column: "owned_by_id",
             },
