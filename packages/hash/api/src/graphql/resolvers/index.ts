@@ -182,7 +182,7 @@ export const resolvers = {
     getAllLatestEntityTypes: loggedInAndSignedUp(getAllLatestEntityTypes),
     getEntityType: loggedInAndSignedUp(getEntityType),
     // Knowledge
-    persistedPage: loggedInAndSignedUp(persistedPage),
+    persistedPage,
     persistedPages: loggedInAndSignedUp(persistedPages),
     persistedPageComments: loggedInAndSignedUp(persistedPageComments),
     persistedBlocks: loggedInAndSignedUp(persistedBlocks),

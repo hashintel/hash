@@ -146,13 +146,14 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
                   zIndex: 1,
                 }}
               >
-                {pageComments?.map((comment) => (
-                  <CommentThread
-                    key={comment.entityId}
-                    pageId={entityId}
-                    comment={comment}
-                  />
-                ))}
+                {!readonlyMode &&
+                  pageComments?.map((comment) => (
+                    <CommentThread
+                      key={comment.entityId}
+                      pageId={entityId}
+                      comment={comment}
+                    />
+                  ))}
               </Box>
             </Box>
           </PageSectionContainer>
