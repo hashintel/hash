@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { sortRowData } from "../../../../../../../components/GlideGlid/utils";
+import { sortRowData } from "../../../../../../../components/GlideGlid/utils/sorting";
 import { generateEntityLabel } from "../../../../../../../lib/entities";
 import {
   getPersistedEntityType,

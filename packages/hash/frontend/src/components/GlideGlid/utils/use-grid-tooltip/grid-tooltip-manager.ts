@@ -1,14 +1,12 @@
 import type { DrawArgs } from "@glideapps/glide-data-grid/dist/ts/data-grid/cells/cell-types";
-import { CustomGridIcon } from "../custom-grid-icons";
+import { getYCenter } from "../../utils";
 import { drawCellFadeOutGradient } from "../draw-cell-fade-out-gradient";
 import { TooltipCell } from "./types";
 
 export class GridTooltipManager {
-  // tooltip size
-  private size = 20;
+  private iconSize = 20;
 
-  // gap between tooltips
-  private gap = 10;
+  private iconGap = 10;
 
   // margin between last icon & cell border
   private cellMargin = 24;
@@ -16,7 +14,7 @@ export class GridTooltipManager {
   constructor(private args: DrawArgs<TooltipCell>) {}
 
   draw() {
-    this.drawTooltips();
+    this.drawTooltipIcons();
   }
 
   /**
@@ -26,12 +24,12 @@ export class GridTooltipManager {
    * even if a cell has tooltips, or not
    */
   private drawBackground() {
-    const { size, gap, args, cellMargin } = this;
+    const { iconSize, iconGap, args, cellMargin } = this;
     const { ctx, cell, rect } = args;
     const { tooltips } = cell.data;
 
     // paint the whole bg first
-    const iconsWidth = (size + gap) * tooltips.length;
+    const iconsWidth = (iconSize + iconGap) * tooltips.length;
     const totalWidth = iconsWidth + cellMargin;
     const rectRight = rect.x + rect.width;
     const rectLeft = rectRight - totalWidth;
@@ -42,8 +40,8 @@ export class GridTooltipManager {
     drawCellFadeOutGradient(args, totalWidth);
   }
 
-  private drawTooltips() {
-    const { size, gap, args, cellMargin } = this;
+  private drawTooltipIcons() {
+    const { iconSize, iconGap, args, cellMargin } = this;
     const { ctx, cell, rect, col, row, hoverX = -100, theme } = args;
     const { hideTooltip, showTooltip, tooltips } = cell.data;
 
@@ -65,7 +63,7 @@ export class GridTooltipManager {
     for (let i = 0; i < tooltips.length; i++) {
       const tooltip = tooltips[i] ?? {
         text: "",
-        icon: CustomGridIcon.ASTERISK_CIRCLE,
+        icon: "bpAsteriskCircle",
       };
 
       /**
@@ -75,29 +73,33 @@ export class GridTooltipManager {
       const reversedIndex = tooltips.length - i - 1;
 
       const tooltipX =
-        rect.x + rect.width - size - cellMargin - reversedIndex * (gap + size);
+        rect.x +
+        rect.width -
+        iconSize -
+        cellMargin -
+        reversedIndex * (iconGap + iconSize);
 
-      const yCenter = rect.y + rect.height / 2;
+      const yCenter = getYCenter(args);
 
       args.spriteManager.drawSprite(
         tooltip.icon,
         "normal",
         ctx,
         tooltipX,
-        yCenter - size / 2,
-        size,
+        yCenter - iconSize / 2,
+        iconSize,
         theme,
         1,
       );
 
       const actualTooltipX = tooltipX - rect.x;
 
-      if (hoverX > actualTooltipX && hoverX < actualTooltipX + size) {
+      if (hoverX > actualTooltipX && hoverX < actualTooltipX + iconSize) {
         tooltipCount++;
 
         showTooltip({
           text: tooltip.text,
-          iconX: actualTooltipX + size / 2,
+          iconX: actualTooltipX + iconSize / 2,
           col,
           row,
         });

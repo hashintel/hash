@@ -65,9 +65,26 @@ export const useGridTooltip = (
     [popupState, gridTooltip],
   );
 
+  const withTooltips = useCallback<UseGridTooltipResponse["withTooltips"]>(
+    (customRenderer) => {
+      return {
+        ...customRenderer,
+        draw: (...params) => {
+          customRenderer.draw(...params);
+
+          const drawArgs = params[0];
+          const tooltipManager = new GridTooltipManager(drawArgs);
+          tooltipManager.draw();
+        },
+      };
+    },
+    [],
+  );
+
   return {
     showTooltip,
     hideTooltip,
+    withTooltips,
     tooltipElement: (
       <Popover
         {...bindPopover(popupState)}
@@ -95,17 +112,5 @@ export const useGridTooltip = (
         </Typography>
       </Popover>
     ),
-    withTooltips: (customRenderer) => {
-      return {
-        ...customRenderer,
-        draw: (...params) => {
-          customRenderer.draw(...params);
-
-          const drawArgs = params[0];
-          const tooltipManager = new GridTooltipManager(drawArgs);
-          tooltipManager.draw();
-        },
-      };
-    },
   };
 };
