@@ -1,7 +1,9 @@
-import * as React from "react";
+import { FunctionComponent, ReactNode } from "react";
 import { Box, buttonClasses, outlinedInputClasses } from "@mui/material";
 
-type FormInlineProps = {};
+type FormInlineProps = {
+  children?: ReactNode;
+};
 
 /**
  * This is useful for rendering a TextField and Button component inline
@@ -11,7 +13,9 @@ type FormInlineProps = {};
  * </FormInline>
  * @see https://www.figma.com/file/gydVGka9FjNEg9E2STwhi2/HASH-Editor?node-id=823%3A67158
  */
-export const FormInline: React.FC<FormInlineProps> = ({ children }) => {
+export const FormInline: FunctionComponent<FormInlineProps> = ({
+  children,
+}) => {
   return (
     <Box
       sx={{

@@ -1,14 +1,10 @@
-import {
-  EntityVersion,
-  AggregationVersion,
-  LinkVersion,
-} from "@hashintel/hash-backend-utils/pgTables";
+import { Entity, Link } from "@hashintel/hash-backend-utils/pgTables";
 
-export const supportedRealtimeTables = [
-  "entity_versions",
-  "aggregation_versions",
-  "link_versions",
-] as const;
+/**
+ * @todo Consider adding realtime handling for types
+ *   https://app.asana.com/0/0/1202922776289399/f
+ */
+export const supportedRealtimeTables = ["entities", "links"] as const;
 
 export type SupportedRealtimeTable = typeof supportedRealtimeTables[number];
 
@@ -19,8 +15,8 @@ export const isSupportedRealtimeTable = (
 
 export type RealtimeMessage =
   | {
-      table: "entity_versions";
-      record: EntityVersion;
+      table: "entities";
+      record: Entity;
     }
-  | { table: "aggregation_versions"; record: AggregationVersion }
-  | { table: "link_versions"; record: LinkVersion };
+  | { table: "links"; record: Link };
+// | { table: "aggregation_versions"; record: AggregationVersion }

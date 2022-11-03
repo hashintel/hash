@@ -1,6 +1,6 @@
 import { NotFoundError, sql } from "slonik";
 
-import { SYSTEM_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
+import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 import { Connection } from "./types";
 
 import { DbEntityNotFoundError } from "../errors";
@@ -127,7 +127,7 @@ export const getEntityAccountIdMany = async (
 export const selectSystemAccountIds = sql`
   select account_id from entity_versions
   where account_id = entity_id
-    and properties->>'shortname' = ${SYSTEM_ACCOUNT_SHORTNAME}
+    and properties->>'shortname' = ${WORKSPACE_ACCOUNT_SHORTNAME}
 `;
 
 // The system account ID never changes, so we can cache it here.

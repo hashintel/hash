@@ -1,15 +1,15 @@
-import React from "react";
+import { FunctionComponent, ReactNode } from "react";
 import { Box, useTheme, useMediaQuery } from "@mui/material";
 
-import { useLogout } from "../../../components/hooks/useLogout";
-import { useUser } from "../../../components/hooks/useUser";
+import { useLogoutFlow } from "../../../components/hooks/useLogoutFlow";
+import { useAuthenticatedUser } from "../../../components/hooks/useAuthenticatedUser";
 import { AccountDropdown } from "./account-dropdown";
 import { SearchBar } from "./search-bar";
 import { ActionsDropdown } from "./actions-dropdown";
 import { Button, Link } from "../../ui";
 import { HashAlphaNavIcon } from "../../icons";
 
-const Nav: React.FC = ({ children }) => (
+const Nav: FunctionComponent<{ children?: ReactNode }> = ({ children }) => (
   <Box
     component="nav"
     sx={{
@@ -25,12 +25,12 @@ const Nav: React.FC = ({ children }) => (
 
 export const HEADER_HEIGHT = 54;
 
-export const PageHeader: React.VFC = () => {
+export const PageHeader: FunctionComponent = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
-  const { user } = useUser();
-  const { logout } = useLogout();
+  const { authenticatedUser } = useAuthenticatedUser();
+  const { logout } = useLogoutFlow();
 
   return (
     <Box
@@ -52,7 +52,7 @@ export const PageHeader: React.VFC = () => {
               xs: "space-between",
               md: "unset",
             },
-            width: isMobile && user ? "100%" : undefined,
+            width: isMobile && authenticatedUser ? "100%" : undefined,
           }}
         >
           <Box
@@ -62,7 +62,10 @@ export const PageHeader: React.VFC = () => {
               justifyContent: "center",
             }}
           >
-            <Link noLinkStyle href={`/${user ? user.accountId : ""}`}>
+            <Link
+              noLinkStyle
+              href={`/${authenticatedUser ? authenticatedUser.entityId : ""}`}
+            >
               <HashAlphaNavIcon
                 sx={({ palette }) => ({
                   height: "1.1rem",
@@ -73,9 +76,9 @@ export const PageHeader: React.VFC = () => {
               />
             </Link>
           </Box>
-          {user ? <SearchBar /> : null}
+          {authenticatedUser ? <SearchBar /> : null}
         </Box>
-        {user ? (
+        {authenticatedUser ? (
           <Box sx={{ display: "flex", alignItems: "center" }}>
             <ActionsDropdown />
             {/*  
@@ -83,7 +86,10 @@ export const PageHeader: React.VFC = () => {
               @todo uncomment when functionality has been implemented 
             */}
             {/* <NotificationsDropdown /> */}
-            <AccountDropdown logout={logout} user={user} />
+            <AccountDropdown
+              logout={logout}
+              authenticatedUser={authenticatedUser}
+            />
           </Box>
         ) : (
           <Box>

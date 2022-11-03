@@ -102,7 +102,7 @@ impl process::Process for LocalProcess {
             .child
             .wait()
             .await
-            .report()
+            .into_report()
             .change_context(OrchestratorError::from(
                 "Could not wait for the process to exit",
             ))?)
@@ -209,7 +209,7 @@ impl process::Command for LocalCommand {
         }
         debug!("Running `{cmd:?}`");
 
-        let child = cmd.spawn().report().change_context_lazy(|| {
+        let child = cmd.spawn().into_report().change_context_lazy(|| {
             OrchestratorError::from(format!("Could not run command: {process_path:?}"))
         })?;
         debug!("Spawned local engine process for experiment");

@@ -1,7 +1,7 @@
-import { FC } from "react";
+import { FunctionComponent } from "react";
 import { SvgIcon, SvgIconProps } from "@mui/material";
 
-export const HashNavIcon: FC<SvgIconProps> = (props) => {
+export const HashNavIcon: FunctionComponent<SvgIconProps> = (props) => {
   return (
     <SvgIcon
       {...props}
@@ -52,7 +52,7 @@ export const HashNavIcon: FC<SvgIconProps> = (props) => {
   );
 };
 
-export const HashAlphaNavIcon: FC<SvgIconProps> = (props) => {
+export const HashAlphaNavIcon: FunctionComponent<SvgIconProps> = (props) => {
   return (
     <SvgIcon
       {...props}

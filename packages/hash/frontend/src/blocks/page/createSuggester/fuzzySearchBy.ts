@@ -16,7 +16,9 @@ export const fuzzySearchBy = <T>(
     let offset = 0;
     for (let searchIndex = 0; searchIndex < searchLength; searchIndex++) {
       const matchIndex = match.indexOf(lowerSearch.charAt(searchIndex), offset);
-      if (matchIndex < 0) return false;
+      if (matchIndex < 0) {
+        return false;
+      }
       offset = matchIndex + 1;
     }
 

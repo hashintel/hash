@@ -1,5 +1,5 @@
 import { Box, SxProps, Theme, Typography } from "@mui/material";
-import React, { ReactElement, useEffect, useRef, useState } from "react";
+import { ReactElement, useEffect, useRef, useState } from "react";
 import { useKey } from "rooks";
 import { tw } from "twind";
 import { SpinnerIcon } from "../../../shared/icons";
@@ -25,13 +25,20 @@ export const Suggester = <T,>({
   renderItem,
   error,
   sx = [],
-}: SuggesterProps<T>): ReactElement => {
+}: SuggesterProps<T>) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   // reset selected index if it exceeds the options available
   if (selectedIndex >= options.length) {
     setSelectedIndex(options.length - 1);
   }
+
+  // scroll the selected option into view
+  const selectedRef = useRef<HTMLLIElement>(null);
+  useEffect(
+    () => selectedRef.current?.scrollIntoView({ block: "nearest" }),
+    [selectedIndex],
+  );
 
   // enable cyclic arrow-key navigation
   useKey(["ArrowUp", "ArrowDown"], (event) => {
@@ -41,13 +48,6 @@ export const Suggester = <T,>({
     index %= options.length;
     setSelectedIndex(index);
   });
-
-  // scroll the selected option into view
-  const selectedRef = useRef<HTMLLIElement>(null);
-  useEffect(
-    () => selectedRef.current?.scrollIntoView({ block: "nearest" }),
-    [selectedIndex],
-  );
 
   useKey(["Enter"], (event) => {
     event.preventDefault();
@@ -62,7 +62,6 @@ export const Suggester = <T,>({
     <Box
       sx={[
         ({ palette }) => ({
-          position: "absolute",
           width: "340px",
           maxHeight: 400,
           borderRadius: "6px",
@@ -95,7 +94,6 @@ export const Suggester = <T,>({
           </Box>
         )}
         {options.map((option, index) => (
-          /* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */
           <Box
             component="li"
             ref={index === selectedIndex ? selectedRef : undefined}

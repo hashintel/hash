@@ -59,15 +59,11 @@ export const blockTypedef = gql`
     """
     The full entityType definition
     """
-    entityType: EntityType!
+    entityType: DeprecatedEntityType!
     """
     The version timeline of the entity.
     """
     history: [EntityVersion!]
-    """
-    The metadata ID of the entity. This is shared across all versions of the same entity.
-    """
-    metadataId: ID!
     """
     The outgoing links of the entity.
     """

@@ -1,14 +1,16 @@
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import pluralize from "pluralize";
 import { useQuery } from "@apollo/client";
 import { useRouter } from "next/router";
 
-import { tw } from "twind";
+import { Box, styled } from "@mui/material";
+import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import {
-  GetEntityTypeQuery,
-  GetEntityTypeQueryVariables,
+  DeprecatedGetEntityTypeQuery,
+  DeprecatedGetEntityTypeQueryVariables,
 } from "../../../graphql/apiTypes.gen";
-import { getEntityTypeQuery } from "../../../graphql/queries/entityType.queries";
+import { deprecatedGetEntityTypeQuery } from "../../../graphql/queries/entityType.queries";
 import {
   SchemaEditor,
   SchemaSelectElementType,
@@ -22,6 +24,21 @@ import {
 } from "../../../shared/layout";
 import { Button, Link } from "../../../shared/ui";
 import { useRouteAccountInfo } from "../../../shared/routing";
+import {
+  TopContextBar,
+  TOP_CONTEXT_BAR_HEIGHT,
+} from "../../shared/top-context-bar";
+import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
+
+const Container = styled("div")(({ theme }) => ({
+  display: "grid",
+  gridTemplateColumns: "1fr minmax(65ch, 1200px) 1fr",
+  padding: theme.spacing(7, 10),
+
+  "& > *": {
+    gridColumn: "2",
+  },
+}));
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
@@ -30,8 +47,10 @@ const Page: NextPageWithLayout = () => {
   const typeId = query["type-id"] as string;
   const { accountId } = useRouteAccountInfo();
 
-  const { updateEntityTypes } = useBlockProtocolUpdateEntityType();
-  const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes();
+  const { updateEntityType } = useBlockProtocolUpdateEntityType();
+  const { aggregateEntityTypes } =
+    useBlockProtocolAggregateEntityTypes(accountId);
+  const pageHeaderRef = useRef<HTMLElement>();
 
   /** @see https://json-schema.org/understanding-json-schema/structuring.html#json-pointer */
   const subSchemaReference =
@@ -39,15 +58,15 @@ const Page: NextPageWithLayout = () => {
       ? decodeURIComponent(window.location.hash)
       : undefined;
 
-  const { data } = useQuery<GetEntityTypeQuery, GetEntityTypeQueryVariables>(
-    getEntityTypeQuery,
-    {
-      variables: { entityTypeId: typeId },
-      pollInterval: 5000,
-    },
-  );
+  const { data } = useQuery<
+    DeprecatedGetEntityTypeQuery,
+    DeprecatedGetEntityTypeQueryVariables
+  >(deprecatedGetEntityTypeQuery, {
+    variables: { entityTypeId: typeId },
+    pollInterval: 5000,
+  });
 
-  const schema = data?.getEntityType.properties;
+  const schema = data?.deprecatedGetEntityType.properties;
 
   const schema$id: string = schema?.$id;
 
@@ -92,6 +111,7 @@ const Page: NextPageWithLayout = () => {
          * Really these should instead be defined under $defs and referenced as such, but they might exist.
          */
         schemaLinkPath = `${
+          // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- @todo handle subSchemaReference
           schema$id + (subSchemaReference || "#")
         }/properties/${schemaRef}`;
       }
@@ -107,40 +127,91 @@ const Page: NextPageWithLayout = () => {
     [schema$id, subSchemaReference],
   );
 
+  const scrollToTop = () => {
+    if (!pageHeaderRef.current) {
+      return;
+    }
+    pageHeaderRef.current.scrollIntoView({
+      behavior: "smooth",
+    });
+  };
+
+  const crumbs = !schema
+    ? []
+    : [
+        {
+          title: schema.title,
+          href: `/${accountId}/types/${typeId}`,
+          id: typeId,
+        },
+      ];
+
   if (!data) {
-    return <h1>Loading...</h1>;
+    return (
+      <Container>
+        <h1>Loading...</h1>
+      </Container>
+    );
   }
 
   return (
     <>
-      <div className={tw`mb-12`}>
-        <div className={tw`mb-8`}>
-          <h1>
-            <strong>{pluralize(schema.title)} in account</strong>
-          </h1>
-          <AccountEntityOfTypeList
-            accountId={accountId}
-            entityTypeId={typeId}
-          />
-        </div>
+      <Box
+        sx={({ zIndex, palette }) => ({
+          position: "sticky",
+          top: 0,
+          zIndex: zIndex.appBar,
+          backgroundColor: palette.white,
+        })}
+      >
+        <TopContextBar
+          crumbs={crumbs}
+          defaultCrumbIcon={<FontAwesomeIcon icon={faAsterisk} />}
+          scrollToTop={scrollToTop}
+        />
+      </Box>
+      <Container>
+        <Box
+          ref={pageHeaderRef}
+          sx={{
+            mb: 6,
+            scrollMarginTop: HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT,
+          }}
+        >
+          <Box
+            sx={{
+              mb: 4,
+            }}
+          >
+            <h1>
+              <strong>{pluralize(schema.title)} in account</strong>
+            </h1>
+            <AccountEntityOfTypeList
+              accountId={accountId}
+              entityTypeId={typeId}
+            />
+          </Box>
 
-        <Button href={`/${accountId}/entities/new?entityTypeId=${typeId}`}>
-          New {schema.title}
-        </Button>
-      </div>
-      <SchemaEditor
-        accountId={accountId}
-        aggregateEntityTypes={aggregateEntityTypes}
-        entityTypeId={data.getEntityType.entityId}
-        schema={schema}
-        GoToSchemaElement={schemaSelectElement}
-        subSchemaReference={subSchemaReference}
-        updateEntityTypes={updateEntityTypes}
-      />
+          <Button href={`/${accountId}/entities/new?entityTypeId=${typeId}`}>
+            New {schema.title}
+          </Button>
+        </Box>
+        <SchemaEditor
+          aggregateEntityTypes={aggregateEntityTypes}
+          entityTypeId={data.deprecatedGetEntityType.entityId}
+          schema={schema}
+          GoToSchemaElement={schemaSelectElement}
+          subSchemaReference={subSchemaReference}
+          updateEntityType={updateEntityType}
+        />
+      </Container>
     </>
   );
 };
 
-Page.getLayout = getLayoutWithSidebar;
+Page.getLayout = (page) =>
+  getLayoutWithSidebar(page, {
+    fullWidth: true,
+  });
 
 export default Page;

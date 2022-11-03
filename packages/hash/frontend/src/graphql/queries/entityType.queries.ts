@@ -1,7 +1,7 @@
 import { gql } from "@apollo/client";
 
 const entityTypeFieldsFragment = gql`
-  fragment EntityTypeFields on EntityType {
+  fragment EntityTypeFields on DeprecatedEntityType {
     accountId
     createdByAccountId
     createdAt
@@ -16,22 +16,22 @@ const entityTypeFieldsFragment = gql`
   }
 `;
 
-export const getEntityTypeQuery = gql`
-  query getEntityType($entityTypeId: ID!) {
-    getEntityType(entityTypeId: $entityTypeId) {
+export const deprecatedGetEntityTypeQuery = gql`
+  query deprecatedGetEntityType($entityTypeId: ID!) {
+    deprecatedGetEntityType(entityTypeId: $entityTypeId) {
       entityId
       properties
     }
   }
 `;
-export const createEntityTypeMutation = gql`
-  mutation createEntityType(
+export const deprecatedCreateEntityTypeMutation = gql`
+  mutation deprecatedCreateEntityType(
     $accountId: ID!
     $description: String
     $name: String!
     $schema: JSONObject
   ) {
-    createEntityType(
+    deprecatedCreateEntityType(
       accountId: $accountId
       description: $description
       name: $name
@@ -39,23 +39,16 @@ export const createEntityTypeMutation = gql`
     ) {
       accountId
       entityId
+      entityTypeId
       entityTypeName
       properties
     }
   }
 `;
 
-export const updateEntityTypeMutation = gql`
-  mutation updateEntityType(
-    $accountId: ID!
-    $entityId: ID!
-    $schema: JSONObject!
-  ) {
-    updateEntityType(
-      accountId: $accountId
-      entityId: $entityId
-      schema: $schema
-    ) {
+export const deprecatedUpdateEntityTypeMutation = gql`
+  mutation deprecatedUpdateEntityType($entityId: ID!, $schema: JSONObject!) {
+    deprecatedUpdateEntityType(entityId: $entityId, schema: $schema) {
       ...EntityTypeFields
     }
   }

@@ -28,17 +28,15 @@ export const createEntity = gql`
       createdAt
       updatedAt
       accountId
-      ... on UnknownEntity {
-        properties
-      }
+      properties
       visibility
     }
   }
 `;
 
-export const getEntityType = gql`
-  query getEntityType($entityTypeId: ID!) {
-    getEntityType(entityTypeId: $entityTypeId) {
+export const deprecatedGetEntityType = gql`
+  query deprecatedGetEntityType($entityTypeId: ID!) {
+    deprecatedGetEntityType(entityTypeId: $entityTypeId) {
       entityId
       entityVersionId
       properties
@@ -56,9 +54,9 @@ export const getEntityType = gql`
   }
 `;
 
-export const getEntityTypeAllParents = gql`
-  query getEntityTypeAllParents($entityTypeId: ID!) {
-    getEntityType(entityTypeId: $entityTypeId) {
+export const deprecatedGetEntityTypeAllParents = gql`
+  query deprecatedGetEntityTypeAllParents($entityTypeId: ID!) {
+    deprecatedGetEntityType(entityTypeId: $entityTypeId) {
       entityId
       entityVersionId
       properties
@@ -71,14 +69,14 @@ export const getEntityTypeAllParents = gql`
   }
 `;
 
-export const createEntityType = gql`
-  mutation createEntityType(
+export const deprecatedCreateEntityType = gql`
+  mutation deprecatedCreateEntityType(
     $accountId: ID!
     $description: String
     $name: String!
     $schema: JSONObject!
   ) {
-    createEntityType(
+    deprecatedCreateEntityType(
       accountId: $accountId
       description: $description
       name: $name
@@ -91,17 +89,9 @@ export const createEntityType = gql`
   }
 `;
 
-export const updateEntityType = gql`
-  mutation updateEntityType(
-    $accountId: ID!
-    $entityId: ID!
-    $schema: JSONObject!
-  ) {
-    updateEntityType(
-      accountId: $accountId
-      entityId: $entityId
-      schema: $schema
-    ) {
+export const deprecatedUpdateEntityType = gql`
+  mutation deprecatedUpdateEntityType($entityId: ID!, $schema: JSONObject!) {
+    deprecatedUpdateEntityType(entityId: $entityId, schema: $schema) {
       entityId
       entityTypeName
       properties

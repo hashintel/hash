@@ -1,23 +1,26 @@
-import { useState, FC } from "react";
+import { useState, FunctionComponent, ReactNode } from "react";
 import { faAdd, faChevronRight } from "@fortawesome/free-solid-svg-icons";
 import { Box, Typography, Collapse, Tooltip } from "@mui/material";
 import {
   IconButton,
   IconButtonProps,
   FontAwesomeIcon,
+  LoadingSpinner,
 } from "@hashintel/hash-design-system";
 import { Link } from "../../ui";
 
 type NavLinkProps = {
+  children?: ReactNode;
   title: string;
   endAdornmentProps: {
     tooltipTitle: string;
     "data-testid"?: string;
     href?: string;
+    loading?: boolean;
   } & IconButtonProps;
 };
 
-export const NavLink: FC<NavLinkProps> = ({
+export const NavLink: FunctionComponent<NavLinkProps> = ({
   title,
   children,
   endAdornmentProps,
@@ -27,6 +30,7 @@ export const NavLink: FC<NavLinkProps> = ({
     tooltipTitle: endAdornmentTooltipTitle,
     sx: endAdormentSx = [],
     href: endAdornmentHref,
+    loading = false,
     ...otherEndAdornmentProps
   } = endAdornmentProps;
 
@@ -93,6 +97,7 @@ export const NavLink: FC<NavLinkProps> = ({
           >
             {title}
           </Typography>
+
           <IconButton
             size="xs"
             unpadded
@@ -112,6 +117,17 @@ export const NavLink: FC<NavLinkProps> = ({
             />
           </IconButton>
         </Box>
+
+        <Box
+          sx={({ transitions }) => ({
+            transition: transitions.create("opacity"),
+            opacity: loading ? 1 : 0,
+            marginRight: 1,
+          })}
+        >
+          <LoadingSpinner size={12} thickness={2} />
+        </Box>
+
         <Tooltip title={endAdornmentTooltipTitle}>
           {endAdornmentHref ? (
             <Link tabIndex={-1} href={endAdornmentHref} noLinkStyle>

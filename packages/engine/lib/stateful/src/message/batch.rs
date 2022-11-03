@@ -1,25 +1,20 @@
 #![allow(clippy::cast_ptr_alignment, clippy::cast_sign_loss)]
 
-use std::sync::Arc;
+use std::{fmt, sync::Arc};
 
-use arrow::{
-    datatypes::Schema,
-    ipc::{
-        self,
-        reader::read_record_batch,
-        writer::{DictionaryTracker, IpcDataGenerator, IpcWriteOptions},
-    },
-    record_batch::RecordBatch,
-};
+use arrow2::{array::Array, chunk::Chunk, datatypes::Schema};
+use arrow_format::ipc::{planus::ReadAsRoot, MessageHeaderRef, MessageRef};
 use memory::{
     arrow::{
-        column_with_name,
-        ipc::{record_batch_data_to_bytes_owned_unchecked, simulate_record_batch_to_bytes},
-        meta::conversion::HashDynamicMeta,
+        column_with_name_from_record_batch,
+        ipc::{self, calculate_ipc_header_data, write_record_batch_message_header},
+        meta::DynamicMetadata,
+        record_batch::RecordBatch,
         ArrowBatch,
     },
     shared_memory::{MemoryId, Metaversion, Segment},
 };
+use tracing::trace;
 
 use crate::{
     agent::{arrow::array::IntoRecordBatch, AgentBatch, AgentStateField},
@@ -49,6 +44,16 @@ pub struct MessageBatch {
     arrow_schema: Arc<Schema>,
 }
 
+impl fmt::Debug for MessageBatch {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("MessageBatch")
+            // todo: improve debug representation
+            .field("batch", &"_")
+            .field("arrow_schema", &self.arrow_schema)
+            .finish()
+    }
+}
+
 impl MessageBatch {
     /// Clears the message batch and resizes it as necessary.
     ///
@@ -61,7 +66,10 @@ impl MessageBatch {
     /// The persisted metaversion is updated after clearing the column and the loaded metaversion is
     /// set equal to the persisted one after loading the cleared column.
     pub fn reset(&mut self, agent_batch: &AgentBatch) -> Result<()> {
-        tracing::trace!("Resetting batch");
+        tracing::trace!(
+            "started resetting message batch with id {}",
+            self.batch.segment().id()
+        );
 
         let batch = &mut self.batch;
         let mut metaversion_to_persist = batch.segment().read_persisted_metaversion();
@@ -82,14 +90,14 @@ impl MessageBatch {
         let agent_count = agent_batch.num_agents();
         let agent_record_batch = agent_batch.batch.record_batch()?; // Agent batch must be up to date
         let column_name = AgentStateField::AgentId.name();
-        let id_column = column_with_name(agent_record_batch, column_name)?;
-        let empty_message_column = MessageArray::new(agent_count).map(Arc::new)?;
+        let id_column = column_with_name_from_record_batch(agent_record_batch, column_name)?;
+        let empty_message_column = Box::new(MessageArray::new(agent_count));
 
-        let record_batch = RecordBatch::try_new(self.arrow_schema.clone(), vec![
-            Arc::clone(id_column),
-            empty_message_column,
-        ])?;
-        let (meta_buffer, data_len) = simulate_record_batch_to_bytes(&record_batch);
+        let record_batch = RecordBatch::new(
+            self.arrow_schema.clone(),
+            Chunk::new(vec![id_column.clone(), empty_message_column]),
+        );
+        let write_metadata = ipc::calculate_ipc_header_data(&record_batch);
 
         // Perform some light bound checks
         // we can't release memory on mac because we can't resize the segment
@@ -98,53 +106,85 @@ impl MessageBatch {
             if batch.segment().size > upper_bound
                 && batch
                     .segment()
-                    .target_total_size_accommodates_data_size(upper_bound, data_len)
+                    .target_total_size_accommodates_data_size(upper_bound, write_metadata.body_len)
             {
                 batch.segment_mut().resize(upper_bound)?;
-                let change = batch.segment_mut().set_data_length(data_len)?;
+                let change = batch
+                    .segment_mut()
+                    .set_data_length(write_metadata.body_len)?;
                 debug_assert!(!change.resized() && !change.shifted());
                 // Always increment when resizing
                 metaversion_to_persist.increment();
             }
         }
 
-        let old_metadata_size = batch.segment().get_metadata()?.len();
+        // check how many nodes + buffers we had on the old metadata
+        #[cfg(debug_assertions)]
+        let old_metadata = ipc::read_record_batch_message(batch.segment()).unwrap();
+        #[cfg(debug_assertions)]
+        let old_buffer_count = old_metadata.buffers().unwrap().unwrap().len();
+        #[cfg(debug_assertions)]
+        let old_node_count = old_metadata.nodes().unwrap().unwrap().len();
+
         // Write new metadata
-        let change = batch.segment_mut().set_metadata(&meta_buffer)?;
+        let mut metadata = vec![];
+        ipc::write_record_batch_message_header(&mut metadata, &write_metadata)?;
+        let change = batch.segment_mut().set_metadata(&metadata)?;
         debug_assert!(!change.resized() && !change.shifted());
-        debug_assert_eq!(
-            old_metadata_size,
-            batch
-                .segment()
-                .get_metadata()
-                .expect("Memory should have metadata, because we just set it")
-                .len(),
-            "Metadata size should not change"
-        );
+
+        // check that nodes + buffer counts haven't changed
+        #[cfg(debug_assertions)]
+        {
+            let new_metadata = ipc::read_record_batch_message(batch.segment()).unwrap();
+            let new_buffer_count = new_metadata.buffers().unwrap().unwrap().len();
+            let new_node_count = new_metadata.nodes().unwrap().unwrap().len();
+            assert_eq!(old_buffer_count, new_buffer_count);
+            assert_eq!(old_node_count, new_node_count);
+        }
+
+        // debug_assert_eq!(
+        //     old_metadata_size,
+        //     batch
+        //         .segment()
+        //         .get_metadata()
+        //         .expect("Memory should have metadata, because we just set it")
+        //         .len(),
+        //     "Metadata size should not change, but for the batch with id {} it did",
+        //     batch.segment().id()
+        // );
 
         let cur_len = batch.segment().get_data_buffer_len()?;
-        if cur_len < data_len && batch.segment_mut().set_data_length(data_len)?.resized() {
+        if cur_len < write_metadata.body_len
+            && batch
+                .segment_mut()
+                .set_data_length(write_metadata.body_len)?
+                .resized()
+        {
             // This shouldn't happen very often unless the bounds above are very inaccurate.
             metaversion_to_persist.increment();
             tracing::info!(
                 "Unexpected message batch memory resize. Was {}, should have been at least {}",
                 cur_len,
-                data_len
+                write_metadata.body_len
             );
         }
 
         let data_buffer = batch.segment_mut().get_mut_data_buffer()?;
         // Write new data
-        record_batch_data_to_bytes_owned_unchecked(&record_batch, data_buffer);
+        ipc::write_record_batch_body(&record_batch, data_buffer, &write_metadata)?;
 
-        // TODO: reloading batch could be faster if we persisted
-        //       fbb and WIPOffset<Message> from `simulate_record_batch_to_bytes`
         metaversion_to_persist.increment_batch();
         batch
             .segment_mut()
             .persist_metaversion(metaversion_to_persist);
         batch.reload_record_batch_and_dynamic_meta()?;
         *batch.loaded_metaversion_mut() = metaversion_to_persist;
+
+        trace!(
+            "finished resetting batch with id {}",
+            self.batch.segment().id()
+        );
+
         Ok(())
     }
 
@@ -153,32 +193,47 @@ impl MessageBatch {
         schema: &MessageSchema,
         memory_id: MemoryId,
     ) -> Result<Self> {
+        trace!(
+            "writing an empty record batch with schema {:?} to shared memory segment {}",
+            schema.arrow,
+            memory_id
+        );
+
         let agent_count = agent_batch.num_agents();
         let agent_record_batch = agent_batch.batch.record_batch()?;
         let column_name = AgentStateField::AgentId.name();
-        let id_column = column_with_name(agent_record_batch, column_name)?;
-        let empty_message_column = MessageArray::new(agent_count).map(Arc::new)?;
+        let id_column = column_with_name_from_record_batch(agent_record_batch, column_name)?;
+        let empty_message_column: Box<dyn Array> = Box::new(MessageArray::new(agent_count));
 
-        let record_batch = RecordBatch::try_new(Arc::clone(&schema.arrow), vec![
-            id_column.clone(),
-            empty_message_column,
-        ])?;
+        debug_assert_eq!(id_column.len(), agent_count);
+        debug_assert_eq!(empty_message_column.len(), agent_count);
+
+        let record_batch = RecordBatch::new(
+            Arc::clone(&schema.arrow),
+            Chunk::new(vec![id_column.clone(), empty_message_column]),
+        );
 
         let header = Metaversion::default().to_le_bytes();
-        let (meta_buffer, data_len) = simulate_record_batch_to_bytes(&record_batch);
+
+        let header_data = ipc::calculate_ipc_header_data(&record_batch);
+
+        let mut metadata = vec![];
+        ipc::write_record_batch_message_header(&mut metadata, &header_data)?;
+
         let mut segment = Segment::from_sizes(
             memory_id,
             0,
             header.len(),
-            meta_buffer.len(),
-            data_len,
+            metadata.len(),
+            header_data.body_len,
             true,
         )?;
-        let change = segment.set_metadata(&meta_buffer)?;
+        let change = segment.set_metadata(&metadata)?;
         debug_assert!(!change.resized() && !change.shifted());
 
         let data_buffer = segment.get_mut_data_buffer()?;
-        record_batch_data_to_bytes_owned_unchecked(&record_batch, data_buffer);
+        ipc::write_record_batch_body(&record_batch, data_buffer, &header_data)?;
+
         let change = segment.set_header(&header)?;
         debug_assert!(!change.resized() && !change.shifted());
         Self::from_segment(segment, schema)
@@ -195,42 +250,47 @@ impl MessageBatch {
 
     pub fn from_record_batch(
         record_batch: &RecordBatch,
-        schema: &MessageSchema,
+        msg_schema: &MessageSchema,
         memory_id: MemoryId,
     ) -> Result<Self> {
-        let ipc_data_generator = IpcDataGenerator::default();
-        let mut dictionary_tracker = DictionaryTracker::new(true);
-        let header = Metaversion::default().to_le_bytes();
-        let (_, encoded_data) = ipc_data_generator.encoded_batch(
-            record_batch,
-            &mut dictionary_tracker,
-            &IpcWriteOptions::default(),
-        )?;
+        trace!(
+            "writing record batch with schema {:?} to shared memory segment {}",
+            msg_schema.arrow,
+            memory_id
+        );
+
+        let header_data = calculate_ipc_header_data(record_batch);
+
+        let mut metadata = vec![];
+        write_record_batch_message_header(&mut metadata, &header_data)?;
+
+        let mut body = vec![0; header_data.body_len];
+
+        ipc::write_record_batch_body(record_batch, &mut body, &header_data)?;
 
         let segment = Segment::from_batch_buffers(
             memory_id,
             &[],
-            &header,
-            &encoded_data.ipc_message,
-            &encoded_data.arrow_data,
+            &Metaversion::default().to_le_bytes(),
+            &metadata,
+            &body,
             true,
         )?;
-        Self::from_segment(segment, schema)
+        Self::from_segment(segment, msg_schema)
     }
 
     pub fn from_segment(segment: Segment, schema: &MessageSchema) -> Result<Self> {
         let buffers = segment.get_batch_buffers()?;
 
-        let batch_message = ipc::root_as_message(buffers.meta())?
-            .header_as_record_batch()
-            .expect("Unable to read IPC message as record batch");
+        let batch_message = match MessageRef::read_as_root(buffers.meta())?.header()? {
+            Some(MessageHeaderRef::RecordBatch(r)) => r,
+            _ => panic!("Unable to read IPC message as record batch"),
+        };
 
         let data_length = buffers.data().len();
-        let dynamic_meta = batch_message.into_meta(data_length)?;
+        let dynamic_meta = DynamicMetadata::from_record_batch(&batch_message, data_length)?;
 
-        let record_batch =
-            read_record_batch(buffers.data(), batch_message, Arc::clone(&schema.arrow), &[
-            ])?;
+        let record_batch = ipc::read_record_batch(&segment, Arc::clone(&schema.arrow))?;
 
         let persisted = segment.try_read_persisted_metaversion()?;
         Ok(Self {

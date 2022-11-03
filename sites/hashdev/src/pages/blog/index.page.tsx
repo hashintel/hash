@@ -9,7 +9,7 @@ import { Box } from "@mui/system";
 import { GetStaticProps } from "next";
 import Head from "next/head";
 import Image from "next/image";
-import { ComponentProps, FC, Fragment, VFC } from "react";
+import { ComponentProps, FunctionComponent, Fragment } from "react";
 import { BlogPostAuthor, BlogPostPagePhoto } from "../../components/BlogPost";
 import { GradientContainer } from "../../components/GradientContainer";
 import { Link } from "../../components/Link";
@@ -20,6 +20,7 @@ import { getAllPages, Page } from "../../util/mdxUtil";
 import { NextPageWithLayout } from "../../util/nextTypes";
 import { getPhoto } from "./shared/get-photo";
 import { BlogPostProps } from "./[...blogSlug].page";
+import { FaIcon } from "../../components/icons/FaIcon";
 
 type BlogIndividualPage = Page<BlogPostProps> & {
   photos: {
@@ -79,7 +80,7 @@ export const getStaticProps: GetStaticProps<BlogPageListProps> = async () => {
   }
 };
 
-const BlogPostLink: FC<
+const BlogPostLink: FunctionComponent<
   { page: BlogIndividualPage } & Omit<ComponentProps<typeof Link>, "href">
 > = ({ page, children, ...props }) => (
   <Link
@@ -93,13 +94,16 @@ const BlogPostLink: FC<
   </Link>
 );
 
-const PostCopyContainer: FC<StackProps> = ({ children, ...props }) => (
+const PostCopyContainer: FunctionComponent<StackProps> = ({
+  children,
+  ...props
+}) => (
   <Stack {...props} direction="column" spacing={{ xs: 1, md: 2 }}>
     {children}
   </Stack>
 );
 
-const PostImage: VFC<{
+const PostImage: FunctionComponent<{
   page: BlogIndividualPage;
   fill?: boolean;
   square?: boolean;
@@ -118,14 +122,16 @@ const PostImage: VFC<{
     </BlogPostLink>
   ) : null;
 
-const BigPost: VFC<{ page: BlogIndividualPage }> = ({ page }) => (
+const BigPost: FunctionComponent<{ page: BlogIndividualPage }> = ({ page }) => (
   <Stack direction="column" spacing={{ xs: 3, md: 4 }}>
     <Box position="relative">
       <PostImage page={page} fill={false} />
     </Box>
     <PostCopyContainer>
-      {page.data.author ? (
-        <BlogPostAuthor>{page.data.author}</BlogPostAuthor>
+      {page.data.authors ? (
+        <BlogPostAuthor>
+          {page.data.authors.map((author) => author.name).join(" & ")}
+        </BlogPostAuthor>
       ) : null}
       {page.data.title ? (
         <Typography variant="hashHeading2">
@@ -141,7 +147,7 @@ const BigPost: VFC<{ page: BlogIndividualPage }> = ({ page }) => (
   </Stack>
 );
 
-const Post: VFC<{
+const Post: FunctionComponent<{
   post: BlogIndividualPage;
   collapsed?: boolean;
   displayPhoto?: boolean;
@@ -157,8 +163,10 @@ const Post: VFC<{
       alignItems={{ xs: "center", md: "flex-start" }}
       textAlign={{ xs: "center", md: "left" }}
     >
-      {post.data.author ? (
-        <BlogPostAuthor small>{post.data.author}</BlogPostAuthor>
+      {post.data.authors ? (
+        <BlogPostAuthor small>
+          {post.data.authors.map((author) => author.name).join(" & ")}
+        </BlogPostAuthor>
       ) : null}
       {post.data.title ? (
         <Typography variant="hashHeading4" color="gray.90">
@@ -189,7 +197,7 @@ const Post: VFC<{
   </Stack>
 );
 
-const FourPostsRow: VFC<{
+const FourPostsRow: FunctionComponent<{
   reverse?: boolean;
   posts: BlogIndividualPage[];
   displayPhotos: boolean;
@@ -223,7 +231,9 @@ const FourPostsRow: VFC<{
   </Stack>
 );
 
-const ThreePostsRow: VFC<{ posts: BlogIndividualPage[] }> = ({ posts }) => (
+const ThreePostsRow: FunctionComponent<{ posts: BlogIndividualPage[] }> = ({
+  posts,
+}) => (
   <Stack direction={{ xs: "column", md: "row" }} spacing={5}>
     {posts.map((post) => (
       <Post post={post} collapsed key={post.fileName} />
@@ -255,15 +265,70 @@ const BlogPage: NextPageWithLayout<BlogPageListProps> = ({ pages }) => {
       </Head>
       <GradientContainer py={{ xs: 9, md: 13 }}>
         <Container>
-          <Typography
-            mb={2}
-            variant="hashHeading3"
-            color="gray.90"
-            fontWeight={600}
-            component="h1"
-          >
-            HASH Developer Blog
-          </Typography>
+          <Stack direction="row" justifyContent="space-between">
+            <Typography
+              mb={2}
+              variant="hashHeading3"
+              color="gray.90"
+              fontWeight={600}
+              component="h1"
+            >
+              HASH Developer Blog
+            </Typography>
+            <Stack
+              direction="column"
+              sx={{
+                position: "relative",
+                top: 5,
+                display: { xs: "none", md: "block" },
+              }}
+            >
+              <Typography
+                variant="hashBodyCopy"
+                fontWeight={700}
+                color="blue.100"
+              >
+                Looking for our main blog?
+              </Typography>
+              <Link href="https://hash.ai/blog" openInNew>
+                <Typography
+                  variant="hashSmallText"
+                  color="blue.100"
+                  component="span"
+                  sx={{
+                    opacity: 0.5,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "flex-end",
+                    "&:hover": {
+                      opacity: 0.8,
+                      transition: "opacity 0.2s",
+                    },
+                  }}
+                >
+                  Visit
+                  <Typography
+                    component="span"
+                    fontWeight={700}
+                    color="blue.100"
+                    variant="hashSmallText"
+                    ml={0.5}
+                    mr={0.8}
+                  >
+                    hash.ai/blog
+                  </Typography>
+                  <FaIcon
+                    name="arrow-up-right-from-square"
+                    type="regular"
+                    sx={{
+                      height: "0.8rem",
+                      width: "0.8rem",
+                    }}
+                  />
+                </Typography>
+              </Link>
+            </Stack>
+          </Stack>
           <Stack
             direction="row"
             alignItems="center"

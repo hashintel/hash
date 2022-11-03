@@ -1,4 +1,4 @@
-import { VFC, forwardRef, ReactNode } from "react";
+import { FunctionComponent, forwardRef, ReactNode } from "react";
 import {
   MenuItem as BaseMenuItem,
   MenuItemProps as BaseMenuItemProps,
@@ -10,7 +10,7 @@ export type MenuItemProps = {
   href?: string;
 } & BaseMenuItemProps;
 
-export const MenuItem: VFC<MenuItemProps> = forwardRef(
+export const MenuItem: FunctionComponent<MenuItemProps> = forwardRef(
   ({ children, href, ...props }, ref) => {
     const Component = (
       <BaseMenuItem ref={ref} {...props}>

@@ -1,0 +1,12 @@
+diff --git a/node_modules/@types/emoji-mart/dist-es/utils/shared-props.d.ts b/node_modules/@types/emoji-mart/dist-es/utils/shared-props.d.ts
+index ba8f035..f1062df 100755
+--- a/node_modules/@types/emoji-mart/dist-es/utils/shared-props.d.ts
++++ b/node_modules/@types/emoji-mart/dist-es/utils/shared-props.d.ts
+@@ -63,6 +63,7 @@ export interface PickerProps {
+     /** NOTE: default is not preventable */
+     onClick?(emoji: EmojiData, e: React.MouseEvent<HTMLElement>): void;
+     onSelect?(emoji: EmojiData): void;
++    onEmojiSelect?(emoji: EmojiData): void;
+     onSkinChange?(skin: EmojiSkin): void;
+     perLine?: number | undefined;
+     emojiSize?: number | undefined;

@@ -1,4 +1,4 @@
-import React, { FormEvent, useState, VoidFunctionComponent } from "react";
+import { FormEvent, useState, FunctionComponent } from "react";
 import { tw } from "twind";
 import { JsonSchema } from "@hashintel/hash-shared/json-utils";
 import { SchemaSelectElementType } from "./SchemaEditor";
@@ -20,7 +20,7 @@ const thClasses = tw`sticky first:rounded-tl-2xl last:rounded-tr-2xl ${cellPaddi
 export const trClasses = tw`border border-gray-100 rounded-2xl odd:bg-gray-50 even:bg-gray-100`;
 export const tdClasses = tw`${cellPadding}`;
 
-export const SchemaPropertiesTable: VoidFunctionComponent<
+export const SchemaPropertiesTable: FunctionComponent<
   SchemaPropertiesTableProps
 > = ({ GoToSchemaElement, readonly, selectedSchema, dispatchSchemaUpdate }) => {
   const { properties, required } = selectedSchema;
@@ -66,7 +66,7 @@ export const SchemaPropertiesTable: VoidFunctionComponent<
           ?.sort((a, b) => a[0].localeCompare(b[0]))
           .map(([name, propertySchema]) => {
             const isRequired =
-              requiredArray?.includes(name) || !!propertySchema.required;
+              !!requiredArray?.includes(name) || !!propertySchema.required;
             return (
               <SchemaPropertyRow
                 dispatchSchemaUpdate={dispatchSchemaUpdate}

@@ -1,8 +1,8 @@
-import { BlockVariant } from "blockprotocol";
-import { VFC } from "react";
+import { BlockVariant } from "@blockprotocol/core";
+import { FunctionComponent, useMemo } from "react";
 import { tw } from "twind";
 import { Box, SxProps, Theme, Typography } from "@mui/material";
-import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
+import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
 
 import { Suggester } from "./Suggester";
 import { useUserBlocks } from "../../userBlocks";
@@ -11,7 +11,7 @@ import { WarnIcon } from "../../../shared/icons";
 
 export interface BlockSuggesterProps {
   search?: string;
-  onChange(variant: BlockVariant, block: BlockMeta["componentMetadata"]): void;
+  onChange(variant: BlockVariant, blockMeta: HashBlockMeta): void;
   sx?: SxProps<Theme>;
 }
 
@@ -20,14 +20,18 @@ export interface BlockSuggesterProps {
  *
  * @todo highlight variant of the prosemirror-node this suggester is attached to.
  */
-export const BlockSuggester: VFC<BlockSuggesterProps> = ({
+export const BlockSuggester: FunctionComponent<BlockSuggesterProps> = ({
   search = "",
   onChange,
   sx,
 }) => {
-  const { value: userBlocks, blockFetchFailed } = useUserBlocks();
+  const { value: blocksMap, blockFetchFailed } = useUserBlocks();
 
-  const filteredBlocks = useFilteredBlocks(search, userBlocks);
+  const blocksArray = useMemo(
+    () => Array.from(Object.values(blocksMap)),
+    [blocksMap],
+  );
+  const filteredBlocks = useFilteredBlocks(search, blocksArray);
 
   return (
     <Suggester

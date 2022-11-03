@@ -1,0 +1,45 @@
+[package]
+name = "graph"
+version = "0.0.0"
+edition = "2021"
+publish = false
+description = "HASH Graph API"
+
+
+[dependencies]
+async-trait = "0.1.57"
+axum = "0.5.16"
+bb8-postgres = "0.8.1"
+clap = { version = "4.0.13", features = ["derive", "env"], optional = true }
+chrono = { version = "0.4.22", features = ["serde"] }
+error-stack = { version = "0.2.3", features = ["spantrace"] }
+futures = "0.3.24"
+postgres-types = { version = "0.2.4", default-features = false, features = ["derive", "with-uuid-1", "with-serde_json-1", "with-chrono-0_4"] }
+regex = "1.6.0"
+serde = { version = "1.0.145", features = ["derive"] }
+serde_json = "1.0.86"
+tokio-postgres = { version = "0.7.7", default-features = false }
+tracing = "0.1.37"
+tracing-appender = "0.2.2"
+tracing-error = "0.2.0"
+tracing-subscriber = { version = "0.3.16", features = ["env-filter", "json"] }
+type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "6526c0e" }
+uuid = { version = "1.2.1", features = ["v4", "serde"] }
+utoipa = { version = " 2.2.0", features = ["uuid"] }
+include_dir = "0.7.2"
+
+[dev-dependencies]
+tokio = { version = "1.21.2", features = ["rt-multi-thread", "macros"] }
+graph-test-data = { path = "../../tests/test_data" }
+criterion = "0.4.0"
+
+[features]
+# WARNING: this is an internal feature which should not be used outside of HASH. It's introduced to conditionally
+#          compile code for externally written benchmarks to avoid exposing internals of the data store
+__internal_bench = []
+clap = ["dep:clap"]
+
+[[test]]
+test = false
+name = "integration"
+path = "../../tests/integration/lib.rs"

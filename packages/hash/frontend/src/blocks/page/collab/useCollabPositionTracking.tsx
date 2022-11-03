@@ -28,7 +28,9 @@ export const useCollabPositionTracking = (report: CollabPositionReporter) => {
 
       if (activeElement?.nodeName === "IFRAME") {
         const target = activeElement.closest(componentViewTargetSelector);
-        if (target) return report(target.getAttribute("data-entity-id"));
+        if (target) {
+          return report(target.getAttribute("data-entity-id"));
+        }
       }
 
       report(null);

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use arrow::{
+use arrow2::{
     array::{self, Array},
     buffer::MutableBuffer,
     datatypes::DataType,

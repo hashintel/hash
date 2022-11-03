@@ -1,5 +1,5 @@
 #![cfg_attr(nightly, feature(provide_any))]
-#![cfg_attr(all(nightly, feature = "std"), feature(backtrace))]
+#![cfg_attr(all(nightly, feature = "std"), feature(error_generic_member_access))]
 
 mod common;
 
@@ -13,20 +13,22 @@ fn report() {
     assert!(report.contains::<PrintableA>());
     assert!(!report.contains::<PrintableB>());
     assert_eq!(report.current_context(), &RootError);
-    assert_eq!(report.frames().count(), 2);
-    assert_eq!(messages(&report), ["Printable A", "Root error"]);
+    assert_eq!(report.frames().count(), expect_count(2));
+    assert_eq!(
+        remove_builtin_messages(messages(&report)),
+        remove_builtin_messages(["printable A", "root error"])
+    );
 
     let report = capture_error(|| Err(report!(report))).attach_printable(PrintableB(0));
     assert!(report.contains::<RootError>());
     assert!(report.contains::<PrintableA>());
     assert!(report.contains::<PrintableB>());
     assert_eq!(report.current_context(), &RootError);
-    assert_eq!(report.frames().count(), 3);
-    assert_eq!(messages(&report), [
-        "Printable B",
-        "Printable A",
-        "Root error"
-    ]);
+    assert_eq!(report.frames().count(), expect_count(3));
+    assert_eq!(
+        remove_builtin_messages(messages(&report)),
+        remove_builtin_messages(["printable B", "printable A", "root error"])
+    );
 }
 
 #[test]
@@ -36,20 +38,22 @@ fn bail() {
     assert!(report.contains::<PrintableA>());
     assert!(!report.contains::<PrintableB>());
     assert_eq!(report.current_context(), &RootError);
-    assert_eq!(report.frames().count(), 2);
-    assert_eq!(messages(&report), ["Printable A", "Root error"]);
+    assert_eq!(report.frames().count(), expect_count(2));
+    assert_eq!(
+        remove_builtin_messages(messages(&report)),
+        remove_builtin_messages(["printable A", "root error"])
+    );
 
     let report = capture_error(|| bail!(report)).attach_printable(PrintableB(0));
     assert!(report.contains::<RootError>());
     assert!(report.contains::<PrintableA>());
     assert!(report.contains::<PrintableB>());
     assert_eq!(report.current_context(), &RootError);
-    assert_eq!(report.frames().count(), 3);
-    assert_eq!(messages(&report), [
-        "Printable B",
-        "Printable A",
-        "Root error"
-    ]);
+    assert_eq!(report.frames().count(), expect_count(3));
+    assert_eq!(
+        remove_builtin_messages(messages(&report)),
+        remove_builtin_messages(["printable B", "printable A", "root error"])
+    );
 }
 
 #[test]
@@ -67,8 +71,11 @@ fn ensure() {
     assert!(report.contains::<PrintableA>());
     assert!(!report.contains::<PrintableB>());
     assert_eq!(report.current_context(), &RootError);
-    assert_eq!(report.frames().count(), 2);
-    assert_eq!(messages(&report), ["Printable A", "Root error"]);
+    assert_eq!(report.frames().count(), expect_count(2));
+    assert_eq!(
+        remove_builtin_messages(messages(&report)),
+        remove_builtin_messages(["printable A", "root error"])
+    );
 
     let report = capture_error(|| {
         ensure!(false, report);
@@ -79,10 +86,9 @@ fn ensure() {
     assert!(report.contains::<PrintableA>());
     assert!(report.contains::<PrintableB>());
     assert_eq!(report.current_context(), &RootError);
-    assert_eq!(report.frames().count(), 3);
-    assert_eq!(messages(&report), [
-        "Printable B",
-        "Printable A",
-        "Root error"
-    ]);
+    assert_eq!(report.frames().count(), expect_count(3));
+    assert_eq!(
+        remove_builtin_messages(messages(&report)),
+        remove_builtin_messages(["printable B", "printable A", "root error"])
+    );
 }

@@ -7,12 +7,7 @@ import { SystemType } from "../types/entityTypes";
  * @todo should probably store this enum in a non-generated file somewhere
  *    to revisit in light of fuller auth spec
  */
-import {
-  StorageType,
-  OrgSize,
-  Visibility,
-  WayToUseHash,
-} from "../graphql/apiTypes.gen";
+import { StorageType, Visibility } from "../graphql/apiTypes.gen";
 
 /**
  * Fields we handle via a field resolver to avoid recursion problems when getting them from the db.
@@ -173,7 +168,7 @@ export type DbUserEmail = {
 };
 
 export type UserInfoProvidedAtSignup = {
-  usingHow?: WayToUseHash;
+  usingHow?: "BY_THEMSELVES" | "WITH_A_TEAM";
 };
 
 export type DbUserProperties = {
@@ -197,7 +192,7 @@ export type DbFileProperties = {
 };
 
 export type OrgInfoProvidedAtCreation = {
-  orgSize: OrgSize;
+  orgSize: any;
 };
 
 export type DbOrgProperties = {
@@ -228,10 +223,15 @@ export type DbPageProperties = {
   archived?: boolean | null;
   summary?: string | null;
   title: string;
+  index: string;
 };
 
 export type DbPageEntity = Omit<DbEntity, "properties"> & {
   properties: DbPageProperties;
+};
+
+export type DbCommentProperties = {
+  resolvedAt?: string;
 };
 
 export type DbUnknownEntity = DbEntity;
@@ -363,7 +363,6 @@ export interface DbClient {
    *    The unique name should be under "title"
    */
   updateEntityType(params: {
-    accountId: string; // @todo: can we remove this?
     entityId: string;
     updatedByAccountId: string;
     entityVersionId?: string;
@@ -693,10 +692,12 @@ export interface DbClient {
 
   /**
    * Get entity types associated with a given accountId.
-   * Optionally include other types the account uses.
+   * Optionally include other types the account uses, OR all other types
+   * @todo replace this with aggregateEntityTypes
    * */
   getAccountEntityTypes(params: {
     accountId: string;
+    includeAllTypes?: boolean | null;
     includeOtherTypesInUse?: boolean | null;
   }): Promise<EntityType[]>;
 

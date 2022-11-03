@@ -1,9 +1,8 @@
 import Ajv2019 from "ajv/dist/2019";
 import addFormats from "ajv-formats";
+import { frontendUrl } from "@hashintel/hash-shared/config";
 import { JSONSchema } from "./entityType.model";
-
 import { EntityType } from ".";
-import { FRONTEND_URL } from "../lib/config";
 
 export const JSON_SCHEMA_VERSION =
   "https://json-schema.org/draft/2019-09/schema";
@@ -22,7 +21,7 @@ export const generateSchema$id = (
   entityTypeId: string,
   relative: boolean = false,
 ) => {
-  return `${relative ? "" : FRONTEND_URL}/${accountId}/types/${entityTypeId}`;
+  return `${relative ? "" : frontendUrl}/${accountId}/types/${entityTypeId}`;
 };
 
 /**

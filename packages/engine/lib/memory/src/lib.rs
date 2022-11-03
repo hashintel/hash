@@ -15,6 +15,8 @@
 //! [`Segment`]: crate::shared_memory::Segment
 //! [`ArrowBatch`]: crate::arrow::ArrowBatch
 
+#![feature(once_cell)]
+
 mod error;
 
 pub mod arrow;

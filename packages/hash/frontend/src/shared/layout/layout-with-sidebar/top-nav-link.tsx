@@ -1,4 +1,4 @@
-import { FC } from "react";
+import { FunctionComponent } from "react";
 import { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import { Typography, Tooltip, typographyClasses } from "@mui/material";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
@@ -12,7 +12,7 @@ type NavLinkProps = {
   tooltipTitle: string;
 };
 
-export const TopNavLink: FC<NavLinkProps> = ({
+export const TopNavLink: FunctionComponent<NavLinkProps> = ({
   icon,
   title,
   href,

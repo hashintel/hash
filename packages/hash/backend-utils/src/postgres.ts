@@ -21,6 +21,7 @@ export const createPostgresConnPool = (
 
   return createPool(connStr, {
     captureStackTrace: true,
+    connectionTimeout: 10_000,
     maximumPoolSize: params.maxPoolSize,
     interceptors: [
       {

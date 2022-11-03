@@ -1,3 +1,9 @@
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-nocheck
+/**
+ * @todo remove above ts-nocheck as we start re-enabling collab
+ *   https://app.asana.com/0/1202805690238892/1202924026802709/f
+ */
 import { ApolloClient } from "@apollo/client";
 import {
   AggregationVersion,
@@ -21,11 +27,14 @@ import {
   GetLinkedAggregationQueryVariables,
   GetLinkQuery,
   GetLinkQueryVariables,
-  GetPageQuery,
-  GetPageQueryVariables,
+  GetPersistedPageQuery,
+  GetPersistedPageQueryVariables,
   LatestEntityRef,
 } from "@hashintel/hash-shared/graphql/apiTypes.gen";
-import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
+import { getPersistedPageQuery } from "@hashintel/hash-shared/queries/page.queries";
+import { save } from "@hashintel/hash-shared/save";
+
+import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
 import {
   getLinkedAggregationIdentifierFieldsQuery,
   getLinkQuery,
@@ -36,8 +45,6 @@ import { Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
 import { Step } from "prosemirror-transform";
 import { getBlocksQuery } from "./graphql/queries/blocks.queries";
-import { getPageQuery } from "./graphql/queries/page.queries";
-import { save } from "./save";
 import { logger } from "../logger";
 import { EntityWatcher } from "./EntityWatcher";
 import { InvalidVersionError } from "./errors";
@@ -62,7 +69,7 @@ type StepUpdate = {
 
 type StoreUpdate = {
   type: "store";
-  payload: EntityStore;
+  payload: { store: EntityStore; version: number };
 };
 
 type ActionUpdate = {
@@ -99,7 +106,7 @@ export class Instance {
     public accountId: string,
     public pageEntityId: string,
     public state: EditorState<Schema>,
-    public manager: ProsemirrorSchemaManager,
+    public manager: ProsemirrorManager,
     public savedContents: BlockEntity[],
     private entityWatcher: EntityWatcher,
 
@@ -372,7 +379,6 @@ export class Instance {
 
   private updateSavedContents(
     blocks: BlockEntity[],
-    additionalActions: EntityStorePluginAction[] = [],
     draftToEntity: Record<string, string> = {},
   ) {
     if (this.errored) {
@@ -381,11 +387,6 @@ export class Instance {
 
     this.sendUpdates();
     const { tr } = this.state;
-
-    for (const action of additionalActions) {
-      addEntityStoreAction(this.state, tr, action);
-    }
-
     addEntityStoreAction(this.state, tr, {
       type: "mergeNewPageContents",
       payload: {
@@ -402,7 +403,10 @@ export class Instance {
     this.addUpdates([
       {
         type: "store",
-        payload: entityStorePluginState(this.state).store,
+        payload: {
+          store: entityStorePluginState(this.state).store,
+          version: this.version + 1,
+        },
       },
     ]);
     this.sendUpdates();
@@ -423,7 +427,9 @@ export class Instance {
 
       try {
         this.checkVersion(version);
-        if (this.version !== version) return false;
+        if (this.version !== version) {
+          return false;
+        }
 
         const tr = this.state.tr;
 
@@ -483,7 +489,7 @@ export class Instance {
           entityStorePluginState(this.state).store,
         );
 
-        this.updateSavedContents(nextBlocks, [], draftToEntity);
+        this.updateSavedContents(nextBlocks, draftToEntity);
       })
       .catch((err) => {
         this.error(err);
@@ -514,12 +520,10 @@ export class Instance {
         await this.saveChain;
 
         /**
-         * This is a potential security risk as the frontend can instruct us
-         * to make a web request
+         * @todo implement block caching layer
+         * @see https://app.asana.com/0/1201095311341924/1202707274604481/f
          */
-        await Promise.all(
-          blockIds.map((id) => this.manager.defineRemoteBlock(id)),
-        );
+        await this.manager.ensureBlocksDefined(blockIds);
 
         const steps = jsonSteps.map((step) =>
           Step.fromJSON(this.state.doc.type.schema, step),
@@ -553,7 +557,9 @@ export class Instance {
     };
 
   private sendUpdates() {
-    while (this.waiting.length) this.waiting.pop()?.finish();
+    while (this.waiting.length) {
+      this.waiting.pop()?.finish();
+    }
   }
 
   // : (Number)
@@ -577,18 +583,42 @@ export class Instance {
 
       this.checkVersion(version);
       const startIndex = this.updates.length - (this.version - version);
-      if (startIndex < 0) return false;
+      if (startIndex < 0) {
+        return false;
+      }
 
-      const updates = this.updates.slice(startIndex);
+      let updates = this.updates.slice(startIndex);
+
+      const storeUpdateIndex = updates.findIndex(
+        (update) => update.type === "store",
+      );
+
+      let storeUpdate: StoreUpdate | null = null;
+
+      /**
+       * As store actions are separated from others right now, the client doesn't
+       * know the order. If collab wasn't being rebuilt, I'd restructure this
+       * to create a single stream of updates. But because it is, it's easier
+       * to just separate store messages from all others by not sending a
+       * store update alongside other updates
+       */
+      if (storeUpdateIndex > -1) {
+        if (storeUpdateIndex === 0) {
+          if (updates.every((update) => update.type === "store")) {
+            storeUpdate = updates[updates.length - 1] as StoreUpdate;
+          } else {
+            storeUpdate = updates[0] as StoreUpdate;
+          }
+
+          updates = [];
+        } else {
+          updates = updates.slice(0, storeUpdateIndex);
+        }
+      }
+
       const steps = updates
         .filter((update): update is StepUpdate => update.type === "step")
         .map((update) => update.payload);
-
-      const store =
-        [...updates]
-          .reverse()
-          .find((update): update is StoreUpdate => update.type === "store")
-          ?.payload ?? null;
 
       const actions = updates
         .filter((update): update is ActionUpdate => update.type === "action")
@@ -597,9 +627,10 @@ export class Instance {
       return {
         steps,
         clientIDs: steps.map((step) => this.clientIds.get(step)),
-        store,
+        store: storeUpdate?.payload.store,
         actions,
-        shouldRespondImmediately: updates.length > 0,
+        shouldRespondImmediately: updates.length > 0 || storeUpdate,
+        nextVersion: storeUpdate?.payload.version,
       };
     } catch (err) {
       this.error(err);
@@ -731,7 +762,9 @@ const newInstance =
       let oldest = null;
       for (const instanceId of Object.keys(instances)) {
         const inst = instances[instanceId]!;
-        if (!oldest || inst.lastActive < oldest.lastActive) oldest = inst;
+        if (!oldest || inst.lastActive < oldest.lastActive) {
+          oldest = inst;
+        }
       }
       if (oldest) {
         instances[oldest.pageEntityId]!.stop();
@@ -741,22 +774,22 @@ const newInstance =
     }
 
     const { data } = await apolloClient.query<
-      GetPageQuery,
-      GetPageQueryVariables
+      GetPersistedPageQuery,
+      GetPersistedPageQueryVariables
     >({
-      query: getPageQuery,
-      variables: { entityId: pageEntityId, accountId },
+      query: getPersistedPageQuery,
+      variables: { ownedById: accountId, entityId: pageEntityId },
     });
 
     const state = createProseMirrorState({ accountId });
 
-    const manager = new ProsemirrorSchemaManager(state.schema, accountId);
+    const manager = new ProsemirrorManager(state.schema, accountId);
 
     /**
      * @todo check plugins
      */
     const newState = state.apply(
-      await manager.createEntityUpdateTransaction(data.page.contents, state),
+      await manager.loadPage(state, data.persistedPage.contents),
     );
 
     // The instance may have been created whilst another user we were doing the above work
@@ -769,7 +802,7 @@ const newInstance =
       pageEntityId,
       newState,
       manager,
-      data.page.contents,
+      data.persistedPage.contents,
       entityWatcher,
       apolloClient,
     );
@@ -786,7 +819,7 @@ export const getInstance =
       instanceCount--;
     }
     const inst =
-      instances[pageEntityId] ||
+      instances[pageEntityId] ??
       (await newInstance(apolloClient, entityWatcher)(accountId, pageEntityId));
     inst.lastActive = Date.now();
     return inst;

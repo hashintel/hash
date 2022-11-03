@@ -211,7 +211,7 @@ impl PackageConfigBuilder {
         {
             let deps = dependency
                 .get_all_dependencies()
-                .report()
+                .into_report()
                 .attach_printable_lazy(|| format!("Could not get dependencies for {dependency}"))
                 .change_context(ConfigError)?;
             for dep in deps.into_iter_deps() {

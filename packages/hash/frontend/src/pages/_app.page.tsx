@@ -3,7 +3,7 @@
 require("setimmediate");
 
 import { ApolloProvider } from "@apollo/client/react";
-import { useEffect, useState } from "react";
+import { FunctionComponent, useEffect, useState } from "react";
 import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloClient";
 import withTwindApp from "@twind/next/app";
 import { ModalProvider } from "react-modal-hook";
@@ -14,15 +14,18 @@ import { CacheProvider, EmotionCache } from "@emotion/react";
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
 import { theme, createEmotionCache } from "@hashintel/hash-design-system";
+import { SnackbarProvider } from "notistack";
+import { TypeSystemContextProvider } from "../lib/use-init-type-system";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 
 import twindConfig from "../../twind.config";
 import "./globals.scss";
-import { useUser } from "../components/hooks/useUser";
+import { useAuthenticatedUser } from "../components/hooks/useAuthenticatedUser";
 import {
   RouteAccountInfoProvider,
   RoutePageInfoProvider,
 } from "../shared/routing";
+import { ReadonlyModeProvider } from "../shared/readonly-mode";
 
 export const apolloClient = createApolloClient();
 
@@ -33,7 +36,7 @@ type AppProps = {
   Component: NextPageWithLayout;
 } & NextAppProps;
 
-const App: React.VoidFunctionComponent<AppProps> = ({
+const App: FunctionComponent<AppProps> = ({
   Component,
   pageProps,
   emotionCache = clientSideEmotionCache,
@@ -42,7 +45,7 @@ const App: React.VoidFunctionComponent<AppProps> = ({
   const [ssr, setSsr] = useState(true);
   const router = useRouter();
 
-  const { user } = useUser({ client: apolloClient });
+  const { authenticatedUser } = useAuthenticatedUser({ client: apolloClient });
 
   useEffect(() => {
     configureScope((scope) =>
@@ -54,13 +57,13 @@ const App: React.VoidFunctionComponent<AppProps> = ({
 
   useEffect(() => {
     if (
-      user &&
-      !user.accountSignupComplete &&
+      authenticatedUser &&
+      !authenticatedUser.accountSignupComplete &&
       !router.pathname.startsWith("/signup")
     ) {
       void router.push("/signup");
     }
-  }, [user, router]);
+  }, [authenticatedUser, router]);
 
   // App UI often depends on [account-slug] and other query params. However,
   // router.query is empty during server-side rendering for pages that don’t use
@@ -70,7 +73,7 @@ const App: React.VoidFunctionComponent<AppProps> = ({
     return null; // Replace with app skeleton
   }
 
-  const getLayout = Component.getLayout || getPlainLayout;
+  const getLayout = Component.getLayout ?? getPlainLayout;
   return (
     <ApolloProvider client={apolloClient}>
       <CacheProvider value={emotionCache}>
@@ -79,7 +82,11 @@ const App: React.VoidFunctionComponent<AppProps> = ({
           <ModalProvider>
             <RouteAccountInfoProvider>
               <RoutePageInfoProvider>
-                {getLayout(<Component {...pageProps} />)}
+                <ReadonlyModeProvider>
+                  <SnackbarProvider maxSnack={3}>
+                    {getLayout(<Component {...pageProps} />)}
+                  </SnackbarProvider>
+                </ReadonlyModeProvider>
               </RoutePageInfoProvider>
             </RouteAccountInfoProvider>
           </ModalProvider>
@@ -89,4 +96,12 @@ const App: React.VoidFunctionComponent<AppProps> = ({
   );
 };
 
-export default withTwindApp(twindConfig, App);
+const AppWithTypeSystemContextProvider: FunctionComponent<AppProps> = (
+  props,
+) => (
+  <TypeSystemContextProvider>
+    <App {...props} />
+  </TypeSystemContextProvider>
+);
+
+export default withTwindApp(twindConfig, AppWithTypeSystemContextProvider);

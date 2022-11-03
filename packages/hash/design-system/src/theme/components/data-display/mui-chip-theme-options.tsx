@@ -1,4 +1,3 @@
-import React from "react";
 import { faClose } from "@fortawesome/free-solid-svg-icons";
 import { Box, ChipProps, Components, PaletteValue, Theme } from "@mui/material";
 import { FontAwesomeIcon } from "../../../fontawesome-icon";
@@ -106,6 +105,8 @@ export const MuiChipThemeOptions: Components<Theme>["MuiChip"] = {
         color: textColor,
         backgroundColor: bgColor,
         height: "unset",
+
+        border: "1px solid white",
 
         ...(outlineColor && {
           border: `1px solid ${outlineColor}`,

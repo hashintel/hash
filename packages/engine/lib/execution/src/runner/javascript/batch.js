@@ -253,7 +253,7 @@ Batch.prototype.flush_changes = function (schema, skip) {
   for (var i_field = 0; i_field < schema.fields.length; ++i_field) {
     const field = schema.fields[i_field];
     const col = this.cols[field.name];
-    if (!col) continue; // A package might not require all columns,
+    if (!col || skip[field.name] || col.length === 0) continue; // A package might not require all columns,
     // in which case some columns that are in the schema
     // might be missing from `cols`. (But columns that
     // are in `cols` should always be in schema too.)

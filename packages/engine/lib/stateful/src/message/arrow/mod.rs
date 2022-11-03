@@ -2,7 +2,7 @@ pub mod array;
 pub mod column;
 pub mod record_batch;
 
-use arrow::datatypes::{DataType, Field, Schema};
+use arrow2::datatypes::{DataType, Field, Schema};
 use lazy_static::lazy_static;
 
 use crate::field::PresetFieldType;
@@ -33,7 +33,7 @@ lazy_static! {
     );
     // It is important to keep this order unchanged. If changed
     // then the consts above must be updated
-    pub(in crate::message) static ref MESSAGE_BATCH_SCHEMA: Schema = Schema::new(vec![
+    pub(in crate::message) static ref MESSAGE_BATCH_SCHEMA: Schema = Schema::from(vec![
         SENDER_ARROW_FIELD.clone(),
         MESSAGE_LIST_ARROW_FIELD.clone()
     ]);

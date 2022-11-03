@@ -59,15 +59,11 @@ export const pageTypedef = gql`
     """
     The full entityType definition
     """
-    entityType: EntityType!
+    entityType: DeprecatedEntityType!
     """
     The version timeline of the entity.
     """
     history: [EntityVersion!]
-    """
-    The metadata ID of the entity. This is shared across all versions of the same entity.
-    """
-    metadataId: ID!
     """
     The outgoing links of the entity.
     """
@@ -108,6 +104,8 @@ export const pageTypedef = gql`
     pageEntityId: String!
     summary: String
     title: String!
+    index: String!
+    icon: String
   }
 
   type EntityRef {
@@ -146,12 +144,6 @@ export const pageTypedef = gql`
     Return a page by its id
     """
     page(accountId: ID!, entityVersionId: ID, entityId: ID): Page!
-
-    """
-    Return a list of pages belonging to an account
-    """
-    accountPages(accountId: ID!): [Page!]!
-
     """
     Search for pages matching a query string.
     Returns a BAD_USER_INPUT error if the query string is empty.
@@ -172,8 +164,10 @@ export const pageTypedef = gql`
     # just make it JSON for now for testing purposes
     contents: [JSONObject!]
     title: String
+    icon: String
     summary: String
     archived: Boolean
+    index: String
   }
 
   """
@@ -341,23 +335,10 @@ export const pageTypedef = gql`
   }
 
   extend type Mutation {
-    createPage(accountId: ID!, properties: PageCreationData!): Page!
-
     updatePage(
       accountId: ID!
       entityId: ID!
       properties: PageUpdateData!
-    ): Page!
-
-    """
-    Set the parent of a page
-
-    If the parentPageEntityId is not set, any existing page link is removed.
-    """
-    setParentPage(
-      accountId: ID!
-      pageEntityId: ID!
-      parentPageEntityId: ID
     ): Page!
 
     """

@@ -1,11 +1,11 @@
-import React, { useContext } from "react";
+import { createContext, useContext } from "react";
 import type { BlockView } from "./BlockView";
 
 /** used to detect whether or not a context value was provided */
 const nullBlockView = {};
 
 /** used to hold the blockView instance */
-export const BlockViewContext = React.createContext<BlockView>(
+export const BlockViewContext = createContext<BlockView>(
   nullBlockView as BlockView,
 );
 

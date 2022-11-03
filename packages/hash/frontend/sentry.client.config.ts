@@ -2,19 +2,32 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import * as Sentry from "@sentry/nextjs";
+import { Replay } from "@sentry/replay";
+import {
+  SENTRY_DSN,
+  SENTRY_REPLAYS_SAMPLING_RATE,
+  VERCEL_ENV,
+} from "./src/lib/public-env";
 
-const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
-
-export const SENTRY_CONFIG = {
-  dsn,
-  enabled: !!dsn,
-  environment:
-    process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_REF === "main"
-      ? "production"
-      : "development",
+Sentry.init({
+  dsn: SENTRY_DSN,
+  enabled: !!SENTRY_DSN,
+  environment: VERCEL_ENV,
+  integrations:
+    SENTRY_REPLAYS_SAMPLING_RATE &&
+    // @todo Remove when https://github.com/getsentry/sentry-replay/issues/246#issuecomment-1287181345 is resolved
+    typeof window !== "undefined"
+      ? [
+          new Replay({
+            captureOnlyOnError: true,
+            replaysSamplingRate: Number.parseFloat(
+              SENTRY_REPLAYS_SAMPLING_RATE,
+            ),
+            stickySession: true,
+          }),
+        ]
+      : [],
   // release is set in next.config.js in the Sentry webpack plugin
   /** @todo reduce perf sample rate from 100% when we have more traffic */
   tracesSampleRate: 1.0,
-};
-
-Sentry.init(SENTRY_CONFIG);
+});

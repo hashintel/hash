@@ -1,106 +1,94 @@
-import { useQuery } from "@apollo/client";
 import { useRouter } from "next/router";
-
-import { BlockProtocolUpdateEntitiesFunction } from "blockprotocol";
-import { getEntity } from "@hashintel/hash-shared/queries/entity.queries";
-import { SimpleEntityEditor } from "./shared/simple-entity-editor";
-
+import { useEffect, useState } from "react";
+import { useBlockProtocolGetEntity } from "../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolGetEntity";
+import { useLoggedInUser } from "../../../components/hooks/useAuthenticatedUser";
+import { getPlainLayout, NextPageWithLayout } from "../../../shared/layout";
+import { EntityEditor } from "./[entity-id].page/entity-editor";
+import { EntityPageLoadingState } from "./[entity-id].page/entity-page-loading-state";
+import { EntityPageWrapper } from "./[entity-id].page/entity-page-wrapper";
 import {
-  GetEntityQuery,
-  GetEntityQueryVariables,
-  UnknownEntity,
-} from "../../../graphql/apiTypes.gen";
-import { useBlockProtocolUpdateEntities } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateEntities";
-import { guessEntityName } from "../../../lib/entities";
-import { useBlockProtocolAggregateEntities } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolAggregateEntities";
-import { useBlockProtocolDeleteLinks } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolDeleteLinks";
-import { useBlockProtocolCreateLinks } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolCreateLinks";
-import {
-  getLayoutWithSidebar,
-  NextPageWithLayout,
-} from "../../../shared/layout";
-import { BlockBasedEntityEditor } from "./[entity-id].page/block-based-entity-editor";
-import { useRouteAccountInfo } from "../../../shared/routing";
+  extractEntityRoot,
+  RootEntityAndSubgraph,
+} from "../../../lib/subgraph";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
-  const { query } = router;
-  const { accountId } = useRouteAccountInfo();
-  const entityId = query["entity-id"] as string;
+  const { authenticatedUser } = useLoggedInUser();
+  const { getEntity } = useBlockProtocolGetEntity();
 
-  const { data, refetch: refetchEntity } = useQuery<
-    GetEntityQuery,
-    GetEntityQueryVariables
-  >(getEntity, {
-    variables: {
-      accountId,
-      entityId,
-    },
-  });
-  const { createLinks } = useBlockProtocolCreateLinks();
-  const { deleteLinks } = useBlockProtocolDeleteLinks();
-  const { updateEntities } = useBlockProtocolUpdateEntities();
-  const { aggregateEntities } = useBlockProtocolAggregateEntities();
+  const [rootEntityAndSubgraph, setRootEntityAndSubgraph] =
+    useState<RootEntityAndSubgraph>();
+  const [loading, setLoading] = useState(true);
 
-  const updateAndNavigateToFirstEntity: BlockProtocolUpdateEntitiesFunction = (
-    args,
-  ) => {
-    return updateEntities(args)
-      .then((res) => {
-        void router.push(
-          `/${accountId}/entities/${(res[0] as UnknownEntity).entityId}`,
-        );
-        return res;
-      })
-      .catch((err) => {
-        // eslint-disable-next-line no-console -- TODO: consider using logger
-        console.error(`Error updating entity: ${err.message}`);
-        throw err;
-      });
-  };
+  useEffect(() => {
+    const init = async () => {
+      try {
+        const entityId = router.query["entity-id"] as string;
 
-  const entity = data?.entity;
+        const { data: subgraph } = await getEntity({ data: { entityId } });
+
+        if (subgraph) {
+          try {
+            /** @todo - error handling, this will throw if entity doesn't exist, but we may want to handle or report
+             *    other errors */
+            setRootEntityAndSubgraph(extractEntityRoot(subgraph));
+          } catch {
+            setRootEntityAndSubgraph(undefined);
+          }
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void init();
+  }, [router.query, getEntity]);
+
+  if (!authenticatedUser) {
+    return null;
+  }
+
+  if (loading) {
+    return <EntityPageLoadingState />;
+  }
+
+  if (!rootEntityAndSubgraph) {
+    return <h1>Entity not found</h1>;
+  }
 
   return (
-    <>
-      <header>
-        <h1>
-          <strong>
-            {entity ? `Editing '${guessEntityName(entity)}'` : "Loading..."}
-          </strong>
-        </h1>
-      </header>
-      <div>
-        {entity && (
-          <SimpleEntityEditor
-            aggregateEntities={aggregateEntities}
-            createLinks={createLinks}
-            deleteLinks={deleteLinks}
-            updateEntities={updateAndNavigateToFirstEntity}
-            entityProperties={entity.properties}
-            schema={entity.entityType.properties}
-            refetchEntity={refetchEntity}
-            {...entity}
-          />
-        )}
-      </div>
-    </>
+    <EntityPageWrapper rootEntityAndSubgraph={rootEntityAndSubgraph}>
+      <EntityEditor
+        rootEntityAndSubgraph={rootEntityAndSubgraph}
+        setEntity={(entity) =>
+          setRootEntityAndSubgraph((entityAndSubgraph) => {
+            return entityAndSubgraph && entity
+              ? {
+                  root: entity,
+                  subgraph: {
+                    ...entityAndSubgraph.subgraph,
+                    vertices: {
+                      ...entityAndSubgraph.subgraph.vertices,
+                      /**
+                       * @todo - This is a problem, entity records should be immutable, there will be a new identifier
+                       *   for the updated entity. For places where we mutate elements, we should probably store them
+                       *   separately from the subgraph to allow for optimistic updates without being incorrect.
+                       */
+                      [entity.entityId]: {
+                        kind: "entity",
+                        inner: entity,
+                      },
+                    },
+                  },
+                }
+              : undefined;
+          })
+        }
+      />
+    </EntityPageWrapper>
   );
 };
 
-Page.getLayout = getLayoutWithSidebar;
+Page.getLayout = getPlainLayout;
 
-const BlockBasedEntityPage: NextPageWithLayout = () => {
-  const router = useRouter();
-  const { query } = router;
-  const { accountId } = useRouteAccountInfo();
-  const entityId = query["entity-id"] as string;
-
-  return <BlockBasedEntityEditor accountId={accountId} entityId={entityId} />;
-};
-
-BlockBasedEntityPage.getLayout = getLayoutWithSidebar;
-
-export default process.env.NEXT_PUBLIC_BLOCK_BASED_ENTITY_EDITOR === "true"
-  ? BlockBasedEntityPage
-  : Page;
+export default Page;

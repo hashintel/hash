@@ -62,15 +62,11 @@ export const entityTypedef = gql`
     """
     The full entityType definition.
     """
-    entityType: EntityType
+    entityType: DeprecatedEntityType
     """
     The version timeline of the entity.
     """
     history: [EntityVersion!]
-    """
-    The metadata ID of the entity. This is shared across all versions of the same entity.
-    """
-    metadataId: ID!
     """
     The outgoing links of the entity.
     """
@@ -92,6 +88,10 @@ export const entityTypedef = gql`
     - path
   """
   type LinkGroup {
+    """
+    The accountId of the source entity for the link group.
+    """
+    sourceAccountId: ID!
     """
     The entityId of the source entity for the link group.
     """
@@ -168,15 +168,11 @@ export const entityTypedef = gql`
     """
     The full entityType definition
     """
-    entityType: EntityType!
+    entityType: DeprecatedEntityType!
     """
     The version timeline of the entity.
     """
     history: [EntityVersion!]
-    """
-    The metadata ID of the entity. This is shared across all versions of the same entity.
-    """
-    metadataId: ID!
     """
     The outgoing links of the entity.
     """
@@ -217,7 +213,7 @@ export const entityTypedef = gql`
     """
     componentId: ID
     """
-    A fixed entity type ID. This may be a reference to a placeholder set using a previous CreateEntityTypeAction
+    A fixed entity type ID. This may be a reference to a placeholder set using a previous createEntityTypeAction
     """
     entityTypeId: ID
     """
@@ -292,7 +288,7 @@ export const entityTypedef = gql`
     """
     Create an entity
     """
-    createEntity(accountId: ID!, entity: EntityDefinition!): Entity!
+    createEntity(accountId: ID!, entity: EntityDefinition!): UnknownEntity!
 
     """
     Update an entity
@@ -301,7 +297,7 @@ export const entityTypedef = gql`
       accountId: ID!
       entityId: ID!
       properties: JSONObject!
-    ): Entity!
+    ): UnknownEntity!
 
     """
     Transfers an entity from an account to another
@@ -319,6 +315,6 @@ export const entityTypedef = gql`
       id of the new account to transfer the entity to
       """
       newAccountId: ID!
-    ): Entity!
+    ): UnknownEntity!
   }
 `;

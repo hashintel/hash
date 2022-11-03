@@ -221,22 +221,22 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
         let (packages, sim_start_msgs) =
             Packages::from_package_creators(&self.package_creators, &sim_config, &task_comms)?;
 
-        let datastore_payload = DatastoreSimulationPayload {
-            agent_batch_schema: sim_config.simulation_config().schema.agent_schema.clone(),
-            message_batch_schema: sim_config
+        let datastore_payload = DatastoreSimulationPayload::new(
+            sim_config.simulation_config().schema.agent_schema.clone(),
+            sim_config
                 .simulation_config()
                 .schema
                 .message_schema
                 .arrow
                 .clone(),
-            context_batch_schema: sim_config
+            sim_config
                 .simulation_config()
                 .schema
                 .context_schema
                 .arrow
                 .clone(),
-            shared_store: self.shared_store.clone(),
-        };
+            Arc::downgrade(&self.shared_store),
+        );
         // Register the new simulation with the worker pool
         self.worker_pool_send
             .send(ExperimentToWorkerPoolMsg::NewSimulationRun(
@@ -305,7 +305,7 @@ impl<P: OutputPersistenceCreator> ExperimentController<P> {
         let pkg_start_msgs = self.package_creators.init_message()?;
         Ok(ExperimentInitRunnerMsgBase {
             experiment_id: self.exp_config.experiment_run.id(),
-            shared_context: self.shared_store.clone(),
+            shared_context: Arc::downgrade(&self.shared_store),
             package_config: Arc::new(pkg_start_msgs),
             runner_config: self
                 .exp_config

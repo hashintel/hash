@@ -7,12 +7,24 @@ import {
 } from "../../graphql/apiTypes.gen";
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 
-export const useAccountPages = (accountId: string) => {
+export type AccountPage = {
+  title: string;
+  entityId: string;
+  parentPageEntityId?: string | null;
+  index: string;
+};
+
+export type AccountPagesInfo = {
+  data: AccountPage[];
+  loading: boolean;
+};
+
+export const useAccountPages = (ownedById: string): AccountPagesInfo => {
   const { data, loading } = useQuery<
     GetAccountPagesTreeQuery,
     GetAccountPagesTreeQueryVariables
   >(getAccountPagesTree, {
-    variables: { accountId },
+    variables: { ownedById },
   });
 
   const accountPages = useMemo(() => {
@@ -20,11 +32,18 @@ export const useAccountPages = (accountId: string) => {
       return [];
     }
 
-    return data?.accountPages.map((page) => ({
-      title: page.properties.title,
-      entityId: page.entityId,
-      parentPageEntityId: page.parentPageEntityId,
-    }));
+    return data?.persistedPages.map(
+      ({ entityId, parentPage, title, index }) => {
+        const parentPageEntityId = parentPage?.entityId ?? null;
+
+        return {
+          entityId,
+          parentPageEntityId,
+          title,
+          index: index ?? "",
+        };
+      },
+    );
   }, [data]);
 
   return { data: accountPages, loading };

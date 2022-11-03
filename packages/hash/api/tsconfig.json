@@ -1,4 +1,5 @@
 {
-  "extends": "../../../tsconfig.base.json",
-  "include": ["./src/"]
+  "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+  "include": ["./src/"],
+  "exclude": ["./src/collab/**/*"]
 }

@@ -2,12 +2,12 @@
 title: Built-in message handlers
 slug: simulation/creating-simulations/agent-messages/built-in-message-handlers
 objectId: c38f31e7-519c-4e5a-ba60-267c33c859ba
-description: Add and remove agents by interacting with hCore
+description: Add and remove agents by interacting with HASH Core
 ---
 
 # Built-in message handlers
 
-In addition to the custom messages you can send between individual agents in the simulation, hCore has a set of built-in messages that enable more advanced functionality.
+In addition to the custom messages you can send between individual agents in the simulation, HASH Core has a set of built-in messages that enable more advanced functionality.
 
 Currently, the most powerful built-in message handlers allow agents to add or remove other agents from the simulation. These messages must be sent to `hash` to be processed by the simulation engine. If not, they will be directed to an agent with a matching ID/name, and you will be very confused. If the agent with a matching name doesn't exist, the message goes unsent and nothing will happen. Again, you will be very confused.
 
@@ -77,7 +77,7 @@ def behavior(state, context):
 
 ## Navigation with Mapbox
 
-Message handlers can also be used to access 3rd party APIs during the runtime of a HASH simulation. Within hCore you can interface with _Mapbox_, our first externally-supported API. Additional APIs will be added in the future and you can [contact us](https://hash.ai/contact) to request we whitelist additional services for you. Utilizing hEngine you are free to call out to whatever external services you like.
+Message handlers can also be used to access 3rd party APIs during the runtime of a HASH simulation. Within hCore you can interface with _Mapbox_, our first externally-supported API. Additional APIs will be added in the future and you can [contact us](https://hash.ai/contact) to request we whitelist additional services for you. Utilizing HASH Engine you are free to call out to whatever external services you like.
 
 Using the existing Mapbox API message handler, any agent can request navigation directions between two points. But first, you'll need to activate the Mapbox message handler in your `globals.json` file:
 

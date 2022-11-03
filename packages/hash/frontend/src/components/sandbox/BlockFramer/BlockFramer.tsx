@@ -3,7 +3,7 @@ import {
   useEffect,
   useMemo,
   useRef,
-  VoidFunctionComponent,
+  FunctionComponent,
 } from "react";
 import {
   BlockProtocolFunction,
@@ -28,7 +28,7 @@ const fetchSource = memoizeFetchFunction((url) =>
   fetch(url).then((resp) => resp.text()),
 );
 
-export const BlockFramer: VoidFunctionComponent<CrossFrameProxyProps> = ({
+export const BlockFramer: FunctionComponent<CrossFrameProxyProps> = ({
   sourceUrl,
   aggregateEntities,
   aggregateEntityTypes,

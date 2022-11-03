@@ -1,4 +1,4 @@
-use arrow::datatypes::DataType;
+use arrow2::datatypes::DataType;
 use stateful::field::{
     FieldScope, FieldType, FieldTypeVariant, PresetFieldType, RootFieldSpec, RootFieldSpecCreator,
 };

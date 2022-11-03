@@ -5,3 +5,8 @@ export const isTopWindow = () => {
     return false;
   }
 };
+
+export type CustomElementDefinition = {
+  elementClass: typeof HTMLElement;
+  tagName: string;
+};

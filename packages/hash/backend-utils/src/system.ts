@@ -1,7 +1,8 @@
 import { getRequiredEnv } from "./environment";
 
-export const SYSTEM_ACCOUNT_SHORTNAME = getRequiredEnv(
-  "SYSTEM_ACCOUNT_SHORTNAME",
+/** @todo - This shouldn't be set via an env-var. We should be resolving this as necessary through the model classes */
+export const WORKSPACE_ACCOUNT_SHORTNAME = getRequiredEnv(
+  "WORKSPACE_ACCOUNT_SHORTNAME",
 );
 
-export const SYSTEM_ACCOUNT_NAME = getRequiredEnv("SYSTEM_ACCOUNT_NAME");
+export const WORKSPACE_ACCOUNT_NAME = getRequiredEnv("WORKSPACE_ACCOUNT_NAME");

@@ -5,8 +5,8 @@
   "license": "AGPL-3.0",
   "main": "index.js",
   "scripts": {
-    "fix:eslint": "eslint --ext .ts --fix ./src/",
-    "lint:eslint": "eslint --ext .ts ./src/",
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint .",
     "lint:tsc": "tsc --noEmit",
     "start": "nodemon ./src/index.ts --transpile-only"
   },
@@ -16,9 +16,12 @@
     "execa": "5.1.1",
     "express": "4.17.1",
     "ts-node": "10.4.0",
-    "typescript": "4.7.4"
+    "typescript": "4.8.4"
   },
   "devDependencies": {
+    "@local/eslint-config": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
+    "eslint": "8.26.0",
     "nodemon": "2.0.15"
   }
 }

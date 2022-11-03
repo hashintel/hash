@@ -1,9 +1,9 @@
 import { FunctionComponent, ReactNode } from "react";
-import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
+import { Dialog } from "@hashintel/hash-design-system";
 import { Button } from "../shared/ui";
 
 type ConfirmationAlertProps = {

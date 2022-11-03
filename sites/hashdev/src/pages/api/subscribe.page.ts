@@ -26,7 +26,6 @@ const getIpAddress = (req: NextApiRequest): string | undefined => {
   }
 };
 
-// eslint-disable-next-line import/no-default-export
 export default (req: NextApiRequest, res: NextApiResponse) => {
   const email: string = req.body.email;
 

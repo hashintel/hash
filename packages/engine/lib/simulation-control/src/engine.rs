@@ -272,8 +272,15 @@ impl Engine {
     /// through agent inboxes. Also creates and removes agents that have been requested by State
     /// packages.
     fn handle_messages(&mut self, state: &mut State, message_map: &MessageMap) -> Result<()> {
-        let message_proxies = state.message_pool().read_proxies()?;
-        let mut commands = Commands::from_hash_messages(message_map, &message_proxies)?;
+        let mut commands = {
+            // it is necessary to drop `message_proxies` after reading the commands because it
+            // contains a strong reference to the `MessageBatch`; if this strong
+            // reference exists, then it is not possible to call `state.read()` later
+            // (because `state.read()` will fail it there are multiple references to the
+            // batch).
+            let message_proxies = state.message_pool().read_proxies()?;
+            Commands::from_hash_messages(message_map, &message_proxies)?
+        };
         commands.merge(self.comms.take_commands()?);
         commands.verify(&self.config.simulation_config().schema.agent_schema)?;
         self.stop_messages = commands.stop;

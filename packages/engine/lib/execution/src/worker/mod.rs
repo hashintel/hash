@@ -156,7 +156,7 @@ impl Worker {
                             let duration = Duration::from_millis(500);
                             let mut runner_futs = FuturesOrdered::new();
                             // runner_futs.push(timeout(duration, py_handle));
-                            runner_futs.push(timeout(duration, js_handle));
+                            runner_futs.push_back(timeout(duration, js_handle));
                             let timeout_results: Vec<_> = runner_futs.collect().await;
                             #[allow(clippy::manual_flatten)]
                             for timeout_result in timeout_results {

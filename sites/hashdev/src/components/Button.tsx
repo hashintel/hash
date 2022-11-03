@@ -7,7 +7,7 @@ import {
 } from "@mui/material";
 // eslint-disable-next-line no-restricted-imports
 import Link from "next/link";
-import { FC, forwardRef, useMemo, VFC } from "react";
+import { FunctionComponent, forwardRef, useMemo } from "react";
 import { isHrefExternal } from "./Link";
 import { LoadingSpinner } from "./LoadingSpinner";
 
@@ -17,7 +17,7 @@ export type ButtonProps = {
   disabledTooltipText?: string;
 } & MuiButtonProps & { rel?: string; target?: string }; // MUI button renders <a /> when href is provided, but typings miss rel and target
 
-const LoadingContent: VFC<{
+const LoadingContent: FunctionComponent<{
   withText: boolean;
   variant: ButtonProps["variant"];
   size: ButtonProps["size"];
@@ -65,50 +65,54 @@ const LoadingContent: VFC<{
   );
 };
 
-export const Button: FC<ButtonProps> = forwardRef(
-  ({ children, loading, loadingWithoutText, href, ...props }, ref) => {
-    const linkProps = useMemo(() => {
-      if (href && isHrefExternal(href)) {
-        return {
-          rel: "noopener",
-          target: "_blank",
-          href,
-        };
+export const Button: FunctionComponent<ButtonProps & { openInNew?: boolean }> =
+  forwardRef(
+    (
+      { children, loading, loadingWithoutText, href, openInNew, ...props },
+      ref,
+    ) => {
+      const linkProps = useMemo(() => {
+        if (href && (openInNew || isHrefExternal(href))) {
+          return {
+            rel: "noopener",
+            target: "_blank",
+            href,
+          };
+        }
+
+        return {};
+      }, [href, openInNew]);
+
+      const Component = (
+        <MuiButton
+          sx={{
+            ...(loading && { pointerEvents: "none" }),
+            ...props.sx,
+          }}
+          {...props}
+          {...linkProps}
+          ref={ref}
+        >
+          {loading ? (
+            <LoadingContent
+              withText={!loadingWithoutText}
+              size={props.size}
+              variant={props.variant}
+            />
+          ) : (
+            children
+          )}
+        </MuiButton>
+      );
+
+      if (href && !isHrefExternal(href)) {
+        return (
+          <Link href={href} passHref>
+            {Component}
+          </Link>
+        );
       }
 
-      return {};
-    }, [href]);
-
-    const Component = (
-      <MuiButton
-        sx={{
-          ...(loading && { pointerEvents: "none" }),
-          ...props.sx,
-        }}
-        {...props}
-        {...linkProps}
-        ref={ref}
-      >
-        {loading ? (
-          <LoadingContent
-            withText={!loadingWithoutText}
-            size={props.size}
-            variant={props.variant}
-          />
-        ) : (
-          children
-        )}
-      </MuiButton>
-    );
-
-    if (href && !isHrefExternal(href)) {
-      return (
-        <Link href={href} passHref>
-          {Component}
-        </Link>
-      );
-    }
-
-    return Component;
-  },
-);
+      return Component;
+    },
+  );

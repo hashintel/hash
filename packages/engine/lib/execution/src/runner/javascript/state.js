@@ -73,7 +73,12 @@ const gen_state_accessors = (AgentState, agent_schema, custom_getters) => {
 
   const msgs_getter = function () {
     const idx = this.__idx_in_group;
-    return this.__msgs[idx];
+    let value = this.__msgs[idx];
+    if (value) {
+      return value;
+    } else {
+      return [];
+    }
   };
   const msgs_setter = function (value) {
     this.__msgs[this.__idx_in_group] = value;
@@ -110,7 +115,12 @@ const gen_agent_state = (agent_schema, getters) => {
   };
 
   AgentState.prototype.get = function (field_name) {
-    return hash_util.json_deepcopy(this[field_name]);
+    let value = hash_util.json_deepcopy(this[field_name]);
+    if (field_name === "messages" && !value) {
+      return [];
+    } else {
+      return value;
+    }
   };
 
   AgentState.prototype.set = function (field_name, value) {
@@ -132,11 +142,18 @@ const gen_agent_state = (agent_schema, getters) => {
   /// `data` is an optional argument. `data` must be JSON-serializable.
   AgentState.prototype.addMessage = function (to, msg_type, data) {
     // Keeps native messages native and JSON messages as JSON.
-    this.__msgs[this.__idx_in_group].push({
+    let new_message = {
       to: typeof to === "string" ? [to] : to.slice(),
       type: msg_type, // `msg_type` is a string, so don't need to deepcopy it.
       data: hash_util.json_deepcopy(data),
-    }); // json_stringify(null) === 'null'.
+    };
+    // because arrow2 serializes empty arrays as `null`, if there are no messages, then we
+    // need to set the field (because we can't push to null)
+    if (!this.__msgs[this.__idx_in_group]) {
+      this.__msgs[this.__idx_in_group] = [new_message];
+    } else {
+      this.__msgs[this.__idx_in_group].push(new_message); // json_stringify(null) === 'null'.
+    }
   };
 
   /// Returns the index of the currently executing behavior in the agent's behavior chain.
@@ -197,6 +214,9 @@ export const gen_group_state = (agent_schema, getters) => {
 
     const skip = Object.create(null);
     skip.agent_id = true;
+    // TODO: improve the handling of this
+    // (see https://app.asana.com/0/1199548034582004/1202815168504002/f for details)
+    skip["_PRIVATE_7_behavior_ids"] = true;
     const agent_changes = this.__agent_batch.flush_changes(schema.agent, skip);
 
     // Convert message objects to JSON before flushing message batch.
@@ -208,8 +228,11 @@ export const gen_group_state = (agent_schema, getters) => {
     const group_msgs = this.__msg_batch.cols.messages;
     for (var i_agent = 0; i_agent < group_msgs.length; ++i_agent) {
       const agent_msgs = group_msgs[i_agent];
-      for (var i = 0; i < agent_msgs.length; ++i) {
-        agent_msgs[i].data = JSON.stringify(agent_msgs[i].data);
+      // note: arrow2 serializes empty fields as null objects
+      if (agent_msgs) {
+        for (var i = 0; i < agent_msgs.length; ++i) {
+          agent_msgs[i].data = JSON.stringify(agent_msgs[i].data);
+        }
       }
     }
     const msg_changes = this.__msg_batch.flush_changes(schema.msg, {});

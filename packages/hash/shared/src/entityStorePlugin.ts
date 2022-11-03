@@ -4,13 +4,13 @@ import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState, Plugin, PluginKey, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { v4 as uuid } from "uuid";
-import { BlockEntity, isDraftTextContainingEntityProperties } from "./entity";
+import { BlockEntity, getEntityChildEntity, isTextEntity } from "./entity";
 import {
   createEntityStore,
   DraftEntity,
-  getDraftEntityFromEntityId,
   EntityStore,
   EntityStoreType,
+  getDraftEntityByEntityId,
   isBlockEntity,
   isDraftBlockEntity,
 } from "./entityStore";
@@ -21,8 +21,8 @@ import {
   findComponentNodes,
   isComponentNode,
   isEntityNode,
-  textBlockNodeToEntityProperties,
 } from "./prosemirror";
+import { textBlockNodeToEntityProperties } from "./text";
 import { collect } from "./util";
 
 type EntityStorePluginStateListener = (store: EntityStore) => void;
@@ -30,7 +30,6 @@ type EntityStorePluginStateListener = (store: EntityStore) => void;
 export type TrackedAction = { action: EntityStorePluginAction; id: string };
 type EntityStorePluginState = {
   store: EntityStore;
-  listeners: EntityStorePluginStateListener[];
   trackedActions: TrackedAction[];
 };
 
@@ -56,11 +55,20 @@ export type EntityStorePluginAction = { received?: boolean } & (
       };
     }
   | { type: "store"; payload: EntityStore }
-  | { type: "subscribe"; payload: EntityStorePluginStateListener }
-  | { type: "unsubscribe"; payload: EntityStorePluginStateListener }
   | {
       type: "updateEntityProperties";
-      payload: { draftId: string; properties: {}; merge: boolean };
+      payload: {
+        draftId: string;
+        merge: boolean;
+      } & (
+        | {
+            blockEntityMetadata: {
+              componentId: string;
+              blockChildEntity?: { [key: string]: unknown };
+            };
+          }
+        | { properties: { [key: string]: unknown } }
+      );
     }
   | {
       type: "newDraftEntity";
@@ -71,10 +79,15 @@ export type EntityStorePluginAction = { received?: boolean } & (
       };
     }
   | {
-      type: "updateBlockEntityProperties";
+      type: "setBlockChildEntity";
       payload: { blockEntityDraftId: string; targetEntity: EntityStoreType };
     }
 );
+
+const EntityStoreListeners = new WeakMap<
+  Plugin<EntityStorePluginState, Schema>,
+  Set<EntityStorePluginStateListener>
+>();
 
 const entityStorePluginKey = new PluginKey<EntityStorePluginState, Schema>(
   "entityStore",
@@ -122,8 +135,8 @@ export const entityStorePluginStateFromTransaction = (
  * Do NOT change the entity's draftId mid-session - leave it as fake.
  * If you need to recall the entity's draftId, use mustGetDraftEntityForEntityId
  */
-export const createDraftIdForEntity = (entityId: string | null) =>
-  entityId ? `draft-${entityId}` : `fake-${uuid()}`;
+export const generateDraftIdForEntity = (entityId: string | null) =>
+  entityId ? `draft-${entityId}-${uuid()}` : `fake-${uuid()}`;
 
 /**
  * As we're not yet working with a totally flat entity store, the same
@@ -143,17 +156,9 @@ const updateEntitiesByDraftId = (
 
   for (const entity of Object.values(draftEntityStore)) {
     if (isDraftBlockEntity(entity)) {
-      if (entity.properties.entity.draftId === draftId) {
-        entities.push(entity.properties.entity);
-      }
-
-      if (
-        isDraftTextContainingEntityProperties(
-          entity.properties.entity.properties,
-        ) &&
-        entity.properties.entity.properties.text.data.draftId === draftId
-      ) {
-        entities.push(entity.properties.entity.properties.text.data);
+      const blockChildEntity = entity.blockChildEntity!;
+      if (blockChildEntity.draftId && blockChildEntity.draftId === draftId) {
+        entities.push(blockChildEntity as DraftEntity);
       }
     }
   }
@@ -171,12 +176,12 @@ const updateEntitiesByDraftId = (
  * @param blockEntityDraftId draft id of the Block Entity whose child entity should be changed
  * @param targetEntity entity to be changed to
  */
-const swapBlockData = (
+const setBlockChildEntity = (
   draftEntityStore: Draft<EntityStore["draft"]>,
   blockEntityDraftId: string,
   targetEntity: EntityStoreType,
 ) => {
-  let targetDraftEntity = getDraftEntityFromEntityId(
+  let targetDraftEntity = getDraftEntityByEntityId(
     draftEntityStore,
     targetEntity.entityId,
   );
@@ -185,13 +190,14 @@ const swapBlockData = (
   // present there
   // @todo consider moving this to ProseMirrorSchemaManager.updateBlockData
   if (!targetDraftEntity) {
-    const targetEntityDraftId = createDraftIdForEntity(targetEntity.entityId);
+    const targetEntityDraftId = generateDraftIdForEntity(targetEntity.entityId);
     targetDraftEntity = {
       accountId: targetEntity.accountId,
       draftId: targetEntityDraftId,
       entityId: targetEntity.entityId,
       properties: targetEntity.properties,
-      updatedAt: targetEntity.updatedAt,
+      /** @todo use the actual updated date here https://app.asana.com/0/0/1203099452204542/f */
+      // updatedAt: targetEntity.updatedAt,
     };
 
     draftEntityStore[targetEntityDraftId] = targetDraftEntity;
@@ -242,20 +248,6 @@ const entityStoreReducer = (
       };
     }
 
-    case "subscribe":
-      return {
-        ...state,
-        listeners: Array.from(new Set([...state.listeners, action.payload])),
-      };
-
-    case "unsubscribe":
-      return {
-        ...state,
-        listeners: state.listeners.filter(
-          (listener) => listener !== action.payload,
-        ),
-      };
-
     case "updateEntityProperties": {
       if (!state.store.draft[action.payload.draftId]) {
         throw new Error("Entity missing to merge entity properties");
@@ -269,21 +261,30 @@ const entityStoreReducer = (
         updateEntitiesByDraftId(
           draftState.store.draft,
           action.payload.draftId,
-          action.payload.merge
-            ? (draftEntity) => {
+          (draftEntity) => {
+            if ("blockEntityMetadata" in action.payload) {
+              draftEntity.componentId =
+                action.payload.blockEntityMetadata?.componentId;
+              draftEntity.blockChildEntity = action.payload.blockEntityMetadata
+                ?.blockChildEntity as any;
+            }
+
+            if ("properties" in action.payload) {
+              if (action.payload.merge) {
                 Object.assign(
                   draftEntity.properties,
                   action.payload.properties,
                 );
-              }
-            : (draftEntity) => {
+              } else {
                 draftEntity.properties = action.payload.properties;
-              },
+              }
+            }
+          },
         );
       });
     }
 
-    case "updateBlockEntityProperties": {
+    case "setBlockChildEntity": {
       if (!state.store.draft[action.payload.blockEntityDraftId]) {
         throw new Error(
           `Block missing to merge entity properties -> ${action.payload.blockEntityDraftId}`,
@@ -299,7 +300,7 @@ const entityStoreReducer = (
           draftState.trackedActions.push({ action, id: uuid() });
         }
 
-        swapBlockData(
+        setBlockChildEntity(
           draftState.store.draft,
           action.payload.blockEntityDraftId,
           action.payload.targetEntity,
@@ -321,7 +322,6 @@ const entityStoreReducer = (
           accountId: action.payload.accountId,
           entityId: action.payload.entityId,
           draftId: action.payload.draftId,
-          updatedAt: new Date().toISOString(),
           properties: {},
         };
       });
@@ -364,25 +364,28 @@ const updateEntityStoreListeners = collect<
     unsubscribe: boolean | undefined | void,
   ]
 >((updates) => {
-  const transactions = new Map<EditorView<Schema>, Transaction<Schema>>();
-
   for (const [view, listener, unsubscribe] of updates) {
-    if (!transactions.has(view)) {
-      const { tr } = view.state;
-      tr.setMeta("addToHistory", false);
-      transactions.set(view, tr);
+    const plugin = entityStorePluginKey.get(view.state);
+
+    if (!plugin) {
+      throw new Error("Can only trigger on views with the plugin installed");
     }
 
-    const tr = transactions.get(view)!;
+    let listeners = EntityStoreListeners.get(plugin);
 
-    addEntityStoreAction(view.state, tr, {
-      type: unsubscribe ? "unsubscribe" : "subscribe",
-      payload: listener,
-    });
-  }
+    if (unsubscribe) {
+      if (listeners) {
+        listeners.delete(listener);
+      }
+    } else {
+      listeners ??= new Set();
 
-  for (const [view, transaction] of Array.from(transactions.entries())) {
-    view.dispatch(transaction);
+      listeners.add(listener);
+    }
+
+    if (listeners) {
+      EntityStoreListeners.set(plugin, listeners);
+    }
   }
 });
 
@@ -401,11 +404,11 @@ export const subscribeToEntityStore = (
  * Retrieves the draft entity for an entity, given its entityId and the draft store.
  * @throws {Error} if entity not found - use getDraftEntityForEntityId if you don't want an error on missing entities.
  */
-export const mustGetDraftEntityFromEntityId = (
+export const mustGetDraftEntityByEntityId = (
   draftStore: EntityStore["draft"],
   entityId: string,
 ) => {
-  const existingEntity = getDraftEntityFromEntityId(draftStore, entityId);
+  const existingEntity = getDraftEntityByEntityId(draftStore, entityId);
 
   if (!existingEntity) {
     throw new Error("invariant: entity missing from entity store");
@@ -481,7 +484,7 @@ class ProsemirrorStateChangeHandler {
 
       const componentId = componentNodeToId(node);
 
-      if (entity.properties.componentId !== componentId) {
+      if (entity.componentId !== componentId) {
         addEntityStoreAction(this.state, this.tr, {
           type: "updateEntityProperties",
           payload: {
@@ -518,25 +521,19 @@ class ProsemirrorStateChangeHandler {
       // @todo in what circumstances does this occur
       if (!isDraftBlockEntity(parentEntity)) {
         const componentNodeChild = findComponentNodes(node)[0];
+        const componentId = componentNodeChild
+          ? componentNodeToId(componentNodeChild)
+          : "";
 
         addEntityStoreAction(this.state, this.tr, {
           type: "updateEntityProperties",
           payload: {
             merge: false,
             draftId: parentEntity.draftId,
-            properties: {
-              entity: draftEntityStore[getRequiredDraftIdFromEntityNode(node)],
-              /**
-               * We don't currently rely on componentId of the draft
-               * right
-               * now, but this will be a problem in the future (i.e, if
-               * save starts using the draft entity store)
-               *
-               * @todo set this properly
-               */
-              componentId: componentNodeChild
-                ? componentNodeToId(componentNodeChild)
-                : "",
+            blockEntityMetadata: {
+              blockChildEntity:
+                draftEntityStore[getRequiredDraftIdFromEntityNode(node)],
+              componentId,
             },
           },
         });
@@ -546,30 +543,36 @@ class ProsemirrorStateChangeHandler {
 
   private handlePotentialTextContentChangesInEntityNode(node: EntityNode) {
     const draftEntityStore = this.getDraftEntityStoreFromTransaction();
-    const draftEntity =
-      draftEntityStore[getRequiredDraftIdFromEntityNode(node)];
+    const childEntity = getEntityChildEntity(
+      getRequiredDraftIdFromEntityNode(node),
+      draftEntityStore,
+    );
 
-    if (!draftEntity) {
-      throw new Error("invariant: draft entity missing from store");
+    if (!childEntity) {
+      return;
     }
+    // We should currently be
+    //          here V
+    // Block -> Entity -> Entity -> Component node
+    //  firstChild refers to ^
+    //  firstchild.firstChild refers to  ^
+    // and we'd like to update the child entity's text contents approrpiately.
 
     if (
-      "properties" in draftEntity &&
+      isTextEntity(childEntity) &&
       node.firstChild &&
-      node.firstChild.isTextblock
+      node.firstChild.firstChild &&
+      // Check if the next next entity node's child is a component node
+      isComponentNode(node.firstChild.firstChild)
     ) {
       const nextProps = textBlockNodeToEntityProperties(node.firstChild);
 
-      if (!isEqual(draftEntity.properties, nextProps)) {
-        /**
-         * @todo this is communicated by the contents of the
-         * prosemirror tree – do we really need to send this too?
-         */
+      if (!isEqual(childEntity.properties, nextProps)) {
         addEntityStoreAction(this.state, this.tr, {
           type: "updateEntityProperties",
           payload: {
             merge: false,
-            draftId: draftEntity.draftId,
+            draftId: childEntity.draftId,
             properties: nextProps,
           },
         });
@@ -585,13 +588,13 @@ class ProsemirrorStateChangeHandler {
       : null;
 
     const draftId = entityId
-      ? mustGetDraftEntityFromEntityId(draftEntityStore, entityId).draftId
+      ? mustGetDraftEntityByEntityId(draftEntityStore, entityId).draftId
       : /**
          * @todo this will lead to the frontend setting draft id uuids for
          *   new blocks – this is potentially insecure and needs
          *   considering
          */
-        node.attrs.draftId ?? createDraftIdForEntity(null);
+        node.attrs.draftId ?? generateDraftIdForEntity(null);
 
     if (!draftEntityStore[draftId]) {
       addEntityStoreAction(this.state, this.tr, {
@@ -666,8 +669,12 @@ const scheduleNotifyEntityStoreSubscribers = collect<
 
     // If the plugin state has changed, notify listeners
     if (nextPluginState !== prevPluginState) {
-      for (const listener of nextPluginState.listeners) {
-        listener(nextPluginState.store);
+      const listeners = EntityStoreListeners.get(entityStorePlugin);
+
+      if (listeners) {
+        for (const listener of Array.from(listeners)) {
+          listener(nextPluginState.store);
+        }
       }
     }
   }
@@ -684,7 +691,6 @@ export const createEntityStorePlugin = ({
       init(_): EntityStorePluginState {
         return {
           store: createEntityStore([], {}),
-          listeners: [],
           trackedActions: [],
         };
       },

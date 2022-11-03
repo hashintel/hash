@@ -1,31 +1,23 @@
-import {
-  ChangeEvent,
-  useEffect,
-  useState,
-  VFC,
-  VoidFunctionComponent,
-} from "react";
+import { ChangeEvent, useEffect, useState, FunctionComponent } from "react";
 import { useRouter } from "next/router";
-import { useMutation, useQuery } from "@apollo/client";
+import { useMutation } from "@apollo/client";
 
 import { Box } from "@mui/material";
-import {
-  GetAccountsQuery,
-  MutationTransferEntityArgs,
-} from "../../../graphql/apiTypes.gen";
+import { MutationTransferEntityArgs } from "../../../graphql/apiTypes.gen";
 import { transferEntityMutation } from "../../../graphql/queries/entityType.queries";
-import {
-  getAccountPages,
-  getAccounts,
-} from "../../../graphql/queries/account.queries";
+import { getAccountPagesTree } from "../../../graphql/queries/account.queries";
+import { useAccounts } from "../../../components/hooks/useAccounts";
 
 type AccountSelectProps = {
   onChange: (account: string) => void;
   value: string;
 };
 
-export const AccountSelect: VFC<AccountSelectProps> = ({ onChange, value }) => {
-  const { data } = useQuery<GetAccountsQuery>(getAccounts);
+export const AccountSelect: FunctionComponent<AccountSelectProps> = ({
+  onChange,
+  value,
+}) => {
+  const { accounts } = useAccounts();
 
   return (
     <Box
@@ -41,9 +33,9 @@ export const AccountSelect: VFC<AccountSelectProps> = ({ onChange, value }) => {
       }
       value={value}
     >
-      {data?.accounts.map((account) => (
+      {accounts?.map((account) => (
         <option key={account.entityId} value={account.entityId}>
-          {account.properties.shortname}
+          {account.shortname}
         </option>
       ))}
     </Box>
@@ -56,7 +48,7 @@ type PageTransferDropdownType = {
   setPageState: (state: "normal" | "transferring") => void;
 };
 
-export const PageTransferDropdown: VoidFunctionComponent<
+export const PageTransferDropdown: FunctionComponent<
   PageTransferDropdownType
 > = ({ pageEntityId, accountId, setPageState }) => {
   const router = useRouter();
@@ -81,8 +73,8 @@ export const PageTransferDropdown: VoidFunctionComponent<
         newAccountId,
       },
       refetchQueries: [
-        { query: getAccountPages, variables: { accountId } },
-        { query: getAccountPages, variables: { accountId: newAccountId } },
+        { query: getAccountPagesTree, variables: { accountId } },
+        { query: getAccountPagesTree, variables: { accountId: newAccountId } },
       ],
     })
       .then(() => {

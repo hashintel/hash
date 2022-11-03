@@ -1,5 +1,5 @@
 import { Dialog } from "@headlessui/react";
-import { ReactNode, VFC } from "react";
+import { ReactNode, FunctionComponent } from "react";
 import { tw } from "twind";
 import { AuthLayout } from "./auth-layout";
 
@@ -10,7 +10,7 @@ export type AuthModalLayoutProps = {
   children: ReactNode;
 };
 
-export const AuthModalLayout: VFC<AuthModalLayoutProps> = ({
+export const AuthModalLayout: FunctionComponent<AuthModalLayoutProps> = ({
   onClose,
   show,
   children,

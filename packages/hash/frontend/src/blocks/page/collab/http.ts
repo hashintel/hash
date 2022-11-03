@@ -37,7 +37,9 @@ export const req = (
       request.open(conf.method, conf.url, true);
       request.withCredentials = true;
       request.addEventListener("load", () => {
-        if (aborted) return;
+        if (aborted) {
+          return;
+        }
         if (request.status < 400) {
           finished = true;
           resolve(request.responseText);

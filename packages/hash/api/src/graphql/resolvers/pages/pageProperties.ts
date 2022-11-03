@@ -54,6 +54,7 @@ export const pageProperties: ResolverFn<
 
   return {
     ...page.properties,
+    index: page.properties.index || "",
     // Legacy field of `block.properties`
     contents: shouldFetchContents
       ? (await page.getBlocks(dataSources.db)).map((block) =>

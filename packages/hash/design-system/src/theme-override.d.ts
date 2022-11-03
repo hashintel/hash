@@ -1,4 +1,5 @@
 import { Components } from "@mui/material";
+import { CSSProperties } from "react";
 
 declare module "@mui/material/styles" {
   interface ShadowSizes {
@@ -65,39 +66,39 @@ declare module "@mui/material/styles" {
   }
 
   interface TypographyVariants {
-    title: React.CSSProperties;
-    h1: React.CSSProperties;
-    h2: React.CSSProperties;
-    h3: React.CSSProperties;
-    h4: React.CSSProperties;
-    h5: React.CSSProperties;
-    mediumCaps: React.CSSProperties;
-    smallCaps: React.CSSProperties;
-    largeTextLabels: React.CSSProperties;
-    regularTextPages: React.CSSProperties;
-    regularTextParagraphs: React.CSSProperties;
-    regularTextLabels: React.CSSProperties;
-    smallTextParagraphs: React.CSSProperties;
-    smallTextLabels: React.CSSProperties;
-    microText: React.CSSProperties;
+    title: CSSProperties;
+    h1: CSSProperties;
+    h2: CSSProperties;
+    h3: CSSProperties;
+    h4: CSSProperties;
+    h5: CSSProperties;
+    mediumCaps: CSSProperties;
+    smallCaps: CSSProperties;
+    largeTextLabels: CSSProperties;
+    regularTextPages: CSSProperties;
+    regularTextParagraphs: CSSProperties;
+    regularTextLabels: CSSProperties;
+    smallTextParagraphs: CSSProperties;
+    smallTextLabels: CSSProperties;
+    microText: CSSProperties;
   }
 
   interface TypographyVariantsOptions {
-    title?: React.CSSProperties;
-    h1?: React.CSSProperties;
-    h2?: React.CSSProperties;
-    h3?: React.CSSProperties;
-    h4?: React.CSSProperties;
-    h5?: React.CSSProperties;
-    mediumCaps?: React.CSSProperties;
-    smallCaps?: React.CSSProperties;
-    largeTextLabels?: React.CSSProperties;
-    regularTextPages?: React.CSSProperties;
-    regularTextParagraphs?: React.CSSProperties;
-    regularTextLabels?: React.CSSProperties;
-    smallTextParagraphs?: React.CSSProperties;
-    smallTextLabels?: React.CSSProperties;
-    microText?: React.CSSProperties;
+    title?: CSSProperties;
+    h1?: CSSProperties;
+    h2?: CSSProperties;
+    h3?: CSSProperties;
+    h4?: CSSProperties;
+    h5?: CSSProperties;
+    mediumCaps?: CSSProperties;
+    smallCaps?: CSSProperties;
+    largeTextLabels?: CSSProperties;
+    regularTextPages?: CSSProperties;
+    regularTextParagraphs?: CSSProperties;
+    regularTextLabels?: CSSProperties;
+    smallTextParagraphs?: CSSProperties;
+    smallTextLabels?: CSSProperties;
+    microText?: CSSProperties;
   }
 }
 

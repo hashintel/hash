@@ -19,13 +19,14 @@ These apply across all projects:
   - Always include a link to the issue or discussion proposing the change.
   - Write tests to accompany your PR, or ask for help/guidance if this is a blocker.
   - Make sure that your PR doesn’t break existing tests.
+  - Sign our _Contributor License Agreement_ at the CLA Assistant's prompting. (To learn more, read [why we have a CLA](https://hash.ai/legal/cla))
 - Once you have receive a pull request review, please bear the following in mind:
   - reviewers may make suggestions for _optional_ changes which are not required to get your code merged. It should be obvious which suggestions are optional, and which are required changes. If it is not obvious, ask for clarification.
   - please do not resolve comment threads unless you opened them - leave it to the person who raised a comment to decide if any further discussion is required (GitHub will also automatically resolve any code suggestions you click 'commit' on). Comment threads may also be left open so that they can be linked to later.
 
 ## How can I find interesting PRs to work on?
 
-Issue tags can provide a good source of inspiration for would-be contributors. See: “help wanted” and “good for first-time contributors”. You should also feel free to join our [HASH Discord](https://hash.ai/discord) and reach out directly to us for more inspiration. If you're willing to contribute, we'd love to have you!
+Existing issues can provide a good source of inspiration for potential contributions. The issue tags `E-help-wanted` and `E-good-first-issue` flag some of the lower-hanging fruit that are available for people (including first-time contributors) to work on, without necessarily requiring prior discussion. You should also feel free to join our [HASH Discord](https://hash.ai/discord) and reach out directly to us for more inspiration. If you're willing to contribute, we'd love to have you!
 
 ## Why might contributions be rejected?
 

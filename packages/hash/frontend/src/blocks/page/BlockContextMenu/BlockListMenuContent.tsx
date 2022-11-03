@@ -1,4 +1,5 @@
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
+import { HashBlock } from "@hashintel/hash-shared/blocks";
 import {
   Box,
   InputAdornment,
@@ -8,40 +9,35 @@ import {
   Typography,
 } from "@mui/material";
 import { PopupState } from "material-ui-popup-state/core";
-import { useRef, useState, VFC } from "react";
+import { useRef, useState, FunctionComponent, useEffect } from "react";
 import { TextField, FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { BlockSuggesterProps } from "../createSuggester/BlockSuggester";
 import { useFilteredBlocks } from "../createSuggester/useFilteredBlocks";
-import { useUserBlocks } from "../../userBlocks";
 import { MenuItem } from "../../../shared/ui";
+import { useBlockView } from "../BlockViewContext";
 
 type BlockListMenuContentProps = {
   popupState?: PopupState;
-  blockSuggesterProps: BlockSuggesterProps;
+  compatibleBlocks: HashBlock[];
 };
 
-export const BlockListMenuContent: VFC<BlockListMenuContentProps> = ({
-  blockSuggesterProps,
-  popupState,
-}) => {
+export const BlockListMenuContent: FunctionComponent<
+  BlockListMenuContentProps
+> = ({ compatibleBlocks, popupState }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const { value: userBlocks } = useUserBlocks();
-  const blocks = useFilteredBlocks(searchQuery, userBlocks);
+  const blocks = useFilteredBlocks(searchQuery, compatibleBlocks);
+  const blockView = useBlockView();
 
-  // The essence of this is to autoFocus the input when
-  // the blocklist menu comes up. We have a listener for
-  // character "/". Once that is clicked the MenuItem that has this submenu
-  // is focused and as a result the submenu becomes visible.
-  // Currently this flow introduces a bug where it is difficult to switch to certain blocks
-  // e.g Embed;
-  // @see https://github.com/hashintel/hash/pull/480#discussion_r849594184
-  // Commenting this out till a fix is made
-  // useEffect(() => {
-  // if (popupState?.isOpen) {
-  //   searchInputRef.current?.focus();
-  // }
-  // }, [popupState]);
+  const popupWasOpen = useRef<boolean>(false);
+
+  useEffect(() => {
+    if (popupState?.isOpen && !popupWasOpen.current) {
+      searchInputRef.current?.focus();
+      popupWasOpen.current = true;
+    } else if (!popupState?.isOpen) {
+      popupWasOpen.current = false;
+    }
+  }, [popupState]);
 
   return (
     <MenuList>
@@ -82,10 +78,7 @@ export const BlockListMenuContent: VFC<BlockListMenuContentProps> = ({
       )}
       {blocks.map((option) => (
         <MenuItem
-          onClick={() => {
-            blockSuggesterProps.onChange(option.variant, option.meta);
-            popupState?.close();
-          }}
+          onClick={() => blockView.onBlockChange(option.variant, option.meta)}
           key={`${option.meta.componentId}/${option.variant.name}`}
         >
           <ListItemIcon>

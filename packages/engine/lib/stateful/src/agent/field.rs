@@ -936,13 +936,11 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_from_invalid_json() {
-        let agent: Agent = json!({
+        let _: Agent = json!({
             "agent_id": "puppa",
             "position": "invalid",
         })
         .into();
-
-        println!("{:?}", agent);
     }
 
     #[test]

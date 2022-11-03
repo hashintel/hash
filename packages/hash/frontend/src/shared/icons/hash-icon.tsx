@@ -1,7 +1,7 @@
 import { SvgIcon, SvgIconProps } from "@mui/material";
-import { FC } from "react";
+import { FunctionComponent } from "react";
 
-export const HashIcon: FC<SvgIconProps> = (props) => {
+export const HashIcon: FunctionComponent<SvgIconProps> = (props) => {
   return (
     <SvgIcon {...props} viewBox="0 0 31 30">
       <g opacity="0.9">

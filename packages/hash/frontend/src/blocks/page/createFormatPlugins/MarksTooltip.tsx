@@ -1,4 +1,4 @@
-import React from "react";
+import { FunctionComponent } from "react";
 import { tw } from "twind";
 import { DropdownIcon } from "../../../shared/icons";
 
@@ -28,7 +28,7 @@ const marks = [
   },
 ];
 
-export const MarksTooltip: React.VFC<MarksTooltipProps> = ({
+export const MarksTooltip: FunctionComponent<MarksTooltipProps> = ({
   activeMarks,
   toggleMark,
   focusEditorView,

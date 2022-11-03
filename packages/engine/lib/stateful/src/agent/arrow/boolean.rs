@@ -1,6 +1,5 @@
-use std::sync::Arc;
-
-use arrow::{array::Array, util::bit_util};
+use arrow2::array::BooleanArray;
+use memory::arrow::util::bit_util;
 
 pub struct BooleanColumn {
     data: *mut u8,
@@ -8,11 +7,11 @@ pub struct BooleanColumn {
 
 impl BooleanColumn {
     // Assumes underlying array is a non-nullable boolean array
-    pub(crate) fn new_non_nullable(array: &Arc<dyn Array>) -> Self {
-        let data = array.data_ref();
-        let bool_buffer = &data.buffers()[0];
+    pub(crate) fn new_non_nullable(array: &BooleanArray) -> Self {
+        let slice = array.values().as_slice().0;
+
         Self {
-            data: bool_buffer.as_ptr() as *mut _,
+            data: slice.as_ptr() as *mut _,
         }
     }
 
@@ -45,54 +44,62 @@ impl BooleanColumn {
 
 #[cfg(test)]
 mod tests {
-    use arrow::array::BooleanArray;
+    use arrow2::array::BooleanArray;
     use rand::{prelude::SliceRandom, Rng};
 
     use super::*;
 
     #[test]
+    #[cfg_attr(miri, ignore)]
     fn unset() {
         let mut rng = rand::thread_rng();
         let unset = 40;
         let size = 200;
-        let mut bools = (0..size).map(|_| rng.gen_bool(0.5)).collect::<Vec<_>>();
-        let boolean_array: Arc<BooleanArray> = Arc::new(bools.clone().into());
-        let any_array = boolean_array as Arc<dyn Array>;
-        let mut col = BooleanColumn::new_non_nullable(&any_array);
+        let mut bools = (0..size)
+            .map(|_| Some(rng.gen_bool(0.5)))
+            .collect::<Vec<Option<bool>>>();
+        let boolean_array = BooleanArray::from(bools.clone());
+        let any_array = boolean_array.arced();
+        let boolean_array = any_array.as_any().downcast_ref::<BooleanArray>().unwrap();
+        let mut col = BooleanColumn::new_non_nullable(boolean_array);
 
         let mut indices = (0..size).collect::<Vec<_>>();
         indices.shuffle(&mut rng);
         indices[0..unset].iter().for_each(|i| {
             unsafe { col.set(*i, false) };
-            bools[*i] = false;
+            bools[*i] = Some(false);
         });
 
         bools
             .into_iter()
             .enumerate()
-            .for_each(|(i, v)| assert_eq!(v, unsafe { col.get(i) }));
+            .for_each(|(i, v)| assert_eq!(v.unwrap(), unsafe { col.get(i) }));
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)]
     fn set() {
         let mut rng = rand::thread_rng();
         let size = 200;
-        let mut bools = (0..size).map(|_| rng.gen_bool(0.5)).collect::<Vec<_>>();
-        let boolean_array: Arc<BooleanArray> = Arc::new(bools.clone().into());
-        let any_array = boolean_array as Arc<dyn Array>;
-        let mut col = BooleanColumn::new_non_nullable(&any_array);
+        let mut bools = (0..size)
+            .map(|_| Some(rng.gen_bool(0.5)))
+            .collect::<Vec<Option<bool>>>();
+        let boolean_array: BooleanArray = BooleanArray::from(bools.clone());
+        let any_array = boolean_array.arced();
+        let boolean_array = any_array.as_any().downcast_ref::<BooleanArray>().unwrap();
+        let mut col = BooleanColumn::new_non_nullable(boolean_array);
 
         let mut indices = (0..size).collect::<Vec<_>>();
         indices.shuffle(&mut rng);
         indices.iter().for_each(|i| {
             let val = rng.gen_bool(0.5);
             unsafe { col.set(*i, val) };
-            bools[*i] = val;
+            bools[*i] = Some(val);
         });
 
         bools
             .into_iter()
             .enumerate()
-            .for_each(|(i, v)| assert_eq!(v, unsafe { col.get(i) }));
+            .for_each(|(i, v)| assert_eq!(v.unwrap(), unsafe { col.get(i) }));
     }
 }

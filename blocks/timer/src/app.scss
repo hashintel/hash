@@ -1,0 +1,294 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@600&display=swap");
+
+$dialRadius: 150px;
+$dialRingWidth: 16px;
+
+$durationOffsetY: 75px;
+$durationFontSize: 50px;
+
+$bigButtonOffsetY: 100px;
+$bigButtonDiameter: 100px;
+
+$smallButtonOffsetY: 18px;
+$smallButtonDiameter: 45px;
+$smallButtonGap: 6px;
+
+$hoverBackgroundColor: #ebf8ff;
+
+$fontFamily: Inter, Helvetica, Arial, sans-serif;
+
+.timer-block {
+  margin: 0 auto;
+  padding: 0;
+  width: $dialRadius * 2;
+  font-family: $fontFamily;
+  text-align: center;
+
+  &,
+  * {
+    box-sizing: border-box;
+  }
+
+  button {
+    background: #fff;
+    cursor: pointer;
+    color: rgb(36, 117, 238);
+    background-repeat: no-repeat;
+    background-position: center center;
+    border: 1.5px solid rgba(36, 117, 238, 0.3);
+
+    &:focus-visible,
+    &:focus {
+      outline: none;
+    }
+
+    &:hover:enabled,
+    &:focus-visible:enabled {
+      background-color: $hoverBackgroundColor;
+      border: 1.5px solid rgb(36, 117, 238);
+      outline: none;
+    }
+    &:active:enabled {
+      transform: translateY(1px);
+    }
+  }
+
+  .dial {
+    display: block;
+    margin: 0 auto;
+    width: $dialRadius * 2;
+    height: $dialRadius * 2;
+    position: relative;
+  }
+
+  .dial-ring {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    border-radius: 50%;
+    border-image-slice: 1;
+    background: conic-gradient(
+      from 0deg at 50% 50%,
+      #116df6 0deg,
+      rgba(17, 109, 246, 0.12) 360deg
+    );
+
+    -webkit-mask-image: radial-gradient(
+      transparent 0 calc($dialRadius - $dialRingWidth),
+      #000 calc($dialRadius - $dialRingWidth + 0.5px)
+    );
+    mask-image: radial-gradient(
+      transparent 0 calc($dialRadius - $dialRingWidth),
+      #000 calc($dialRadius - $dialRingWidth + 0.5px)
+    );
+  }
+
+  .dial-ring-completion {
+    background: #ebf2f7;
+    transform: rotate(-45deg);
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    animation-name: timer-block-loading;
+    animation-duration: 100s;
+    animation-play-state: paused;
+    animation-iteration-count: infinite;
+    animation-timing-function: cubic-bezier(0, 0.1, 0.9, 0.81);
+    animation-play-state: paused;
+    animation-direction: reverse;
+    animation-delay: 100s;
+  }
+
+  .duration-container {
+    display: block;
+  }
+
+  .duration {
+    font-size: $durationFontSize;
+    position: relative;
+    display: inline-flex;
+    top: $durationOffsetY;
+    border: none;
+    color: #37434f;
+    background: transparent;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    text-align: center;
+    line-height: 1em;
+    height: $durationFontSize + 8px;
+    margin: 0 auto;
+    padding: 4px;
+    align-items: center;
+    width: auto;
+    border-radius: 4px;
+
+    input {
+      background: transparent;
+      border: none;
+      color: inherit;
+      font-family: inherit;
+      font-weight: inherit;
+      font-size: inherit;
+      font-variant-numeric: inherit;
+      width: 1.35em;
+      text-align: right;
+      height: 1em;
+      padding: 0;
+      margin: 0;
+
+      &:focus {
+        outline: none;
+      }
+    }
+
+    span {
+      display: block;
+      margin-top: -4px;
+      user-select: none;
+    }
+  }
+
+  .duration_status_enabled {
+    &:hover {
+      outline: 1px solid $hoverBackgroundColor;
+    }
+
+    &:focus-within {
+      outline: rgb(36, 117, 238) solid 2px;
+    }
+  }
+
+  .big-button {
+    height: $bigButtonDiameter;
+    width: $bigButtonDiameter;
+    border-radius: 50%;
+    border: 1.5px solid rgb(36, 117, 238, 0.3);
+    position: relative;
+    top: $bigButtonOffsetY;
+
+    &:hover,
+    &:focus-visible {
+      background-color: #ebf8ff;
+      border: 1.5px solid rgb(36, 117, 238);
+    }
+
+    &:disabled {
+      opacity: 0.3;
+      cursor: default;
+    }
+  }
+
+  .big-button_type_play {
+    background-image: linear-gradient(180deg, #2d7ff9 0%, #1a6de8 100%);
+    border: 1.5px solid rgb(36, 117, 238);
+
+    &:hover,
+    &:focus-visible {
+      background-image: linear-gradient(180deg, #479cff 0%, #2075f2 100%);
+    }
+  }
+
+  .big-button__icon {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-repeat: no-repeat;
+    background-position: center center;
+  }
+
+  .big-button_type_play .big-button__icon {
+    background-image: url('data:image/svg+xml;utf8,<svg width="33" height="40" viewBox="0 0 33 40" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0.857422 36.3503V3.11358C0.857422 0.848292 3.36763 -0.516082 5.26855 0.715996L30.9083 17.3343C32.6458 18.4605 32.6458 21.0033 30.9083 22.1295L5.26855 38.7478C3.36763 39.9799 0.857422 38.6156 0.857422 36.3503Z" fill="white"/></svg>');
+    background-position-x: 55%;
+  }
+
+  .big-button_type_pause .big-button__icon {
+    background-image: url('data:image/svg+xml;utf8,<svg width="36" height="41" viewBox="0 0 36 41" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="0.0712891" y="0.14209" width="14.2857" height="40" rx="2.85714" fill="rgb(41, 124, 247)"/><rect x="21.501" y="0.14209" width="14.2857" height="40" rx="2.85714" fill="rgb(41, 124, 247)"/></svg>');
+  }
+
+  .button-row {
+    margin-top: $smallButtonOffsetY;
+  }
+
+  .less-time-button,
+  .reset-button,
+  .more-time-button {
+    border-radius: 50%;
+    margin: $smallButtonGap;
+    width: $smallButtonDiameter;
+    height: $smallButtonDiameter;
+
+    &:disabled {
+      opacity: 0.3;
+      border-color: rgb(36, 117, 238);
+      cursor: default;
+    }
+  }
+
+  .less-time-button {
+    background-image: url('data:image/svg+xml;utf8,<svg width="16" height="3" viewBox="0 0 16 3" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15.5704 1.57011C15.5704 2.07011 15.1776 2.42725 14.7133 2.42725H1.57045C1.07045 2.42725 0.713308 2.07011 0.713308 1.60582C0.713308 1.10582 1.07045 0.712964 1.57045 0.712964H14.7133C15.1776 0.712964 15.5704 1.10582 15.5704 1.57011Z" fill="rgb(36, 117, 238)"/></svg>');
+  }
+  .reset-button {
+    background-image: url('data:image/svg+xml;utf8,<svg width="18" height="19" viewBox="0 0 18 19" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16.2123 10.7487C15.748 10.6058 15.2838 10.8558 15.1409 11.3201C14.3909 13.9987 11.8909 15.8558 9.10519 15.8558C6.71233 15.8558 4.56947 14.4987 3.49805 12.4272H7.10519C7.56947 12.4272 7.96233 12.0701 7.96233 11.5701C7.96233 11.1058 7.60519 10.713 7.10519 10.713H1.3909C0.926618 10.713 0.533761 11.1058 0.533761 11.5701V17.2844C0.533761 17.7844 0.926618 18.1415 1.3909 18.1415C1.8909 18.1415 2.24805 17.7844 2.24805 17.2844V13.6415C3.67662 16.0344 6.28376 17.5701 9.10519 17.5701C12.6409 17.5701 15.7838 15.213 16.7838 11.8201C16.9266 11.3558 16.6766 10.8915 16.2123 10.7487ZM16.8552 0.998682C16.3552 0.998682 15.998 1.39154 15.998 1.85582V5.53439C14.5695 3.14154 11.9623 1.57011 9.1409 1.57011C5.60519 1.57011 2.42662 3.96297 1.42662 7.35582C1.31947 7.78439 1.56947 8.28439 2.03376 8.39154C2.49805 8.53439 2.96233 8.28439 3.06947 7.82011C3.85519 5.17725 6.35519 3.2844 9.1409 3.2844C11.498 3.2844 13.6409 4.67725 14.7123 6.71297H11.1409C10.6409 6.71297 10.2838 7.10582 10.2838 7.57011C10.2838 8.07011 10.6409 8.42725 11.1409 8.42725H16.8552C17.3195 8.42725 17.7123 8.07011 17.7123 7.57011V1.85582C17.7123 1.39154 17.3195 0.998682 16.8552 0.998682Z" fill="rgb(36, 117, 238)"/></svg>');
+  }
+  .more-time-button {
+    background-image: url('data:image/svg+xml;utf8,<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15.4308 7.57011C15.4308 8.07011 15.0379 8.42725 14.5737 8.42725H8.85937V14.1415C8.85937 14.6415 8.46651 15.0344 8.00223 15.0344C7.50223 15.0344 7.14509 14.6415 7.14509 14.1415V8.42725H1.4308C0.930803 8.42725 0.57366 8.07011 0.57366 7.60582C0.57366 7.10582 0.930803 6.71296 1.4308 6.71296H7.14509V0.998681C7.14509 0.534396 7.50223 0.177253 8.00223 0.177253C8.46651 0.177253 8.85937 0.534396 8.85937 0.998681V6.71296H14.5737C15.0379 6.71296 15.4308 7.10582 15.4308 7.57011Z" fill="rgb(36, 117, 238)"/></svg>');
+  }
+}
+
+// Inspired by https://codepen.io/pfndesign/details/eYpONdx
+@keyframes timer-block-loading {
+  0% {
+    -webkit-clip-path: polygon(
+      0% 100%,
+      0% 0%,
+      100% 0%,
+      50% 50%,
+      100% 0%,
+      100% 100%
+    );
+    clip-path: polygon(0% 100%, 0% 0%, 100% 0%, 50% 50%, 100% 0%, 100% 100%);
+  }
+  25% {
+    -webkit-clip-path: polygon(
+      0% 100%,
+      0% 0%,
+      100% 0%,
+      50% 50%,
+      100% 100%,
+      100% 100%
+    );
+    clip-path: polygon(0% 100%, 0% 0%, 100% 0%, 50% 50%, 100% 100%, 100% 100%);
+  }
+  50% {
+    -webkit-clip-path: polygon(
+      0% 100%,
+      0% 0%,
+      100% 0%,
+      50% 50%,
+      0% 100%,
+      0% 100%
+    );
+    clip-path: polygon(0% 100%, 0% 0%, 100% 0%, 50% 50%, 0% 100%, 0% 100%);
+  }
+  75% {
+    -webkit-clip-path: polygon(0% 100%, 0% 0%, 100% 0%, 50% 50%, 0% 0%, 0% 0%);
+    clip-path: polygon(0% 100%, 0% 0%, 100% 0%, 50% 50%, 0% 0%, 0% 0%);
+  }
+  100% {
+    -webkit-clip-path: polygon(
+      0% 100%,
+      0% 0%,
+      100% 0%,
+      50% 50%,
+      100% 0%,
+      0% 0%
+    );
+    clip-path: polygon(0% 100%, 0% 0%, 100% 0%, 50% 50%, 100% 0%, 0% 0%);
+  }
+}

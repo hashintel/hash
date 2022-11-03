@@ -2,11 +2,11 @@ use std::{
     cmp::Ordering,
     collections::{
         hash_map::{Iter, Values},
-        HashMap,
+        BTreeMap, HashMap,
     },
 };
 
-use arrow::datatypes::{Field, Schema};
+use arrow2::datatypes::{Field, Schema};
 
 use crate::{
     field::{FieldScope, FieldTypeVariant, IsFixedSize, RootFieldKey, RootFieldSpec},
@@ -165,17 +165,17 @@ impl FieldSpecMap {
             .map(|spec| (spec.0.inner.field_type.nullable as usize).to_string())
             .collect::<Vec<_>>();
 
-        let mut metadata = HashMap::with_capacity(1);
+        let mut metadata = BTreeMap::new();
         // TODO: this can be simplified when we update arrow-rs (beyond 1.0.1), we can set this on
         //   Field's custom metadata instead of the schema
         metadata.insert("any_type_fields".into(), any_types.join(","));
         metadata.insert("nullable".into(), nullabilities.join(","));
-        Ok(Schema::new_with_metadata(
-            partitioned_fields
+        Ok(Schema {
+            fields: partitioned_fields
                 .into_iter()
                 .map(|(field_spec, _)| Field::try_from(field_spec.clone()))
                 .collect::<Result<_>>()?,
             metadata,
-        ))
+        })
     }
 }

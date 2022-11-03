@@ -1,6 +1,6 @@
-//! The hEngine
+//! HASH Engine
 //!
-//! This crate defines the executable Engine binary itself. The crate is very light-weight as the
+//! This crate defines the executable Engine binary itself. The crate is very lightweight as the
 //! engine implementation is separated across a set of libraries. The entry point libraries are:
 //! - [`execution`]
 //! - [`experiment_control`]
@@ -51,13 +51,13 @@ async fn main() -> Result<(), EngineError> {
         &format!("experiment-{}", args.experiment_id),
         &format!("experiment-{}-texray", args.experiment_id),
     )
-    .report()
+    .into_report()
     .attach_printable("Failed to initialize the logger")
     .change_context(EngineError)?;
 
     let mut env = Environment::new(&args)
         .await
-        .report()
+        .into_report()
         .attach_printable("Could not create environment for experiment")
         .change_context(EngineError)?;
     // Fetch all dependencies of the experiment run such as datasets
@@ -77,7 +77,7 @@ async fn main() -> Result<(), EngineError> {
 
     let experiment_result = run_experiment(config, env)
         .await
-        .report()
+        .into_report()
         .attach_printable("Could not run experiment")
         .change_context(EngineError);
 

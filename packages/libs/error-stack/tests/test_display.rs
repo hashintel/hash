@@ -1,5 +1,5 @@
 #![cfg_attr(nightly, feature(provide_any))]
-#![cfg_attr(all(nightly, feature = "std"), feature(backtrace))]
+#![cfg_attr(all(nightly, feature = "std"), feature(error_generic_member_access))]
 
 mod common;
 
@@ -15,7 +15,7 @@ fn normal() {
         .attach(AttachmentB)
         .change_context(ContextB(0));
 
-    assert_eq!(report.to_string(), "Context B");
+    assert_eq!(report.to_string(), "context B");
 }
 
 #[test]
@@ -28,5 +28,5 @@ fn extended() {
         .attach(AttachmentB)
         .change_context(ContextB(0));
 
-    assert_eq!(format!("{report:#}"), "Context B: Context A: Root error");
+    assert_eq!(format!("{report:#}"), "context B: context A: root error");
 }

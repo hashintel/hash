@@ -1,23 +1,29 @@
 import { gql } from "apollo-server-express";
 
-import { accountTypedef } from "./account.typedef";
 import { blockTypedef } from "./block.typedef";
 import { entityTypedef } from "./entity.typedef";
 import { linkTypedef } from "./link.typedef";
-import { entityTypeTypedef } from "./entityType.typedef";
-import { orgEmailInvitationTypedef } from "./orgEmailInvitation.typedef";
-import { orgInvitationLinkTypedef } from "./orgInvitationLink.typedef";
-import { orgTypedef } from "./org.typedef";
+import { deprecatedEntityTypeTypedef } from "./entityType.typedef";
 import { pageTypedef } from "./page.typedef";
 import { textTypedef } from "./text.typedef";
 import { userTypedef } from "./user.typedef";
 import { embedTypeDef } from "./embed.typedef";
 import { fileTypedef } from "./file.typedef";
 import { impliedHistoryTypedef } from "./impliedHistory.typedef";
-import { orgMembershipTypedef } from "./orgMembership.typedef";
 import { aggregationTypedef } from "./aggregation.typedef";
 import { pagePaginationTypedef } from "./paginationConnections.typedef";
 import { executeTaskTypedef } from "./taskExecution.typedef";
+import { dataTypeTypedef } from "./ontology/data-type.typedef";
+import { propertyTypeTypedef } from "./ontology/property-type.typedef";
+import { linkTypeTypedef } from "./ontology/link-type.typedef";
+import { entityTypeTypedef } from "./ontology/entity-type.typedef";
+import { persistedEntityTypedef } from "./knowledge/entity.typedef";
+import { persistedPageTypedef } from "./knowledge/page.typedef";
+import { persistedCommentTypedef } from "./knowledge/comment.typedef";
+import { persistedBlockTypedef } from "./knowledge/block.typedef";
+import { persistedLinkTypedef } from "./knowledge/link.typedef";
+import { subgraphTypedef } from "./subgraph.typedef";
+import { blockprotocolTypedef } from "./blockprotocol.typedef";
 
 const baseSchema = gql`
   scalar Date
@@ -39,26 +45,40 @@ const baseSchema = gql`
   }
 `;
 
+const ontology = [
+  dataTypeTypedef,
+  propertyTypeTypedef,
+  linkTypeTypedef,
+  entityTypeTypedef,
+];
+
+const knowledge = [
+  persistedEntityTypedef,
+  persistedBlockTypedef,
+  persistedPageTypedef,
+  persistedCommentTypedef,
+  persistedLinkTypedef,
+];
+
 // This needs to be called 'schema' to be picked up by codegen -
 // It could alternatively be a default export.
 export const schema = [
-  accountTypedef,
   baseSchema,
   blockTypedef,
+  blockprotocolTypedef,
   embedTypeDef,
   entityTypedef,
   linkTypedef,
   aggregationTypedef,
-  entityTypeTypedef,
+  deprecatedEntityTypeTypedef,
   impliedHistoryTypedef,
-  orgEmailInvitationTypedef,
-  orgInvitationLinkTypedef,
-  orgTypedef,
-  orgMembershipTypedef,
   pageTypedef,
   pagePaginationTypedef,
   textTypedef,
   userTypedef,
   fileTypedef,
   executeTaskTypedef,
+  ...ontology,
+  ...knowledge,
+  subgraphTypedef,
 ];

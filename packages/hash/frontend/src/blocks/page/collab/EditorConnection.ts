@@ -1,12 +1,19 @@
+/* eslint-disable */
+// @ts-nocheck
+/**
+ * Collab is currently disabled, which means this file does not represent the current way to edit pages.
+ */
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
-import { EntityStore } from "@hashintel/hash-shared/entityStore";
+import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
 import {
   addEntityStoreAction,
   disableEntityStoreTransactionInterpretation,
   entityStorePluginState,
   TrackedAction,
+  EntityStorePluginAction,
 } from "@hashintel/hash-shared/entityStorePlugin";
-import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
+import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
+import { isString } from "lodash";
 import { collab, receiveTransaction, sendableSteps } from "prosemirror-collab";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState, Plugin, Transaction } from "prosemirror-state";
@@ -23,7 +30,9 @@ const badVersion = (err: Error | StatusError) =>
 
 const repeat = <T>(val: T, count: number): T[] => {
   const result = [];
-  for (let i = 0; i < count; i++) result.push(val);
+  for (let i = 0; i < count; i++) {
+    result.push(val);
+  }
   return result;
 };
 
@@ -71,7 +80,7 @@ export class EditorConnection {
     public url: string,
     public schema: Schema,
     public view: EditorView<Schema>,
-    public manager: ProsemirrorSchemaManager,
+    public manager: ProsemirrorManager,
     public additionalPlugins: Plugin<unknown, Schema>[],
     public accountId: string,
     private onError: () => void,
@@ -131,17 +140,35 @@ export class EditorConnection {
         this.state = new State(null, null, 0);
         this.close();
         break;
-      case "update":
+      case "update": {
+        let currentState: EditorState<Schema>;
+
         if (!this.state.edit) {
-          throw new Error("Cannot apply transaction without state to apply to");
-        }
-        if (action.transaction) {
-          newEditState = this.state.edit.apply(action.transaction);
+          if (
+            !action.transaction?.docChanged &&
+            this.state.version === 0 &&
+            this.state.comm === "start"
+          ) {
+            currentState = this.view.state;
+            nextVersion = 0;
+          } else {
+            throw new Error(
+              "Cannot apply transaction without state to apply to",
+            );
+          }
         } else {
-          newEditState = this.state.edit;
+          currentState = this.state.edit;
+          nextVersion = action.version;
+        }
+
+        if (action.transaction) {
+          newEditState = currentState.apply(action.transaction);
+        } else {
+          newEditState = currentState;
         }
         nextVersion = action.version;
         break;
+      }
     }
 
     if (newEditState) {
@@ -184,8 +211,8 @@ export class EditorConnection {
     this.poll();
   }
 
-  dispatchTransaction = (transaction: Transaction<Schema>, version: number) => {
-    this.dispatch({ type: "update", transaction, version });
+  dispatchTransaction = (transaction: Transaction<Schema>) => {
+    this.dispatch({ type: "update", transaction, version: this.state.version });
   };
 
   // Load the document from the server and start up
@@ -201,17 +228,26 @@ export class EditorConnection {
 
     this.run(GET(url))
       .then((responseText) => {
-        // @todo type this
-        const data = JSON.parse(responseText);
+        const data = JSON.parse(responseText) as {
+          doc: { [key: string]: any };
+          store: EntityStore;
+          version: number;
+        };
 
-        return this.manager.ensureBlocksDefined(data).then(() => data);
+        const componentIds = Object.values(data.store.saved)
+          .filter(isBlockEntity)
+          .map(
+            (entity) =>
+              "componentId" in entity.properties &&
+              entity.properties?.componentId,
+          )
+          .filter(isString);
+
+        return this.manager.ensureBlocksDefined(componentIds).then(() => data);
       })
       .then((data) => {
         const doc = this.schema.nodeFromJSON(data.doc);
 
-        return this.manager.ensureDocDefined(doc).then(() => ({ doc, data }));
-      })
-      .then(({ data, doc }) => {
         this.closeRequest();
         this.dispatch({
           type: "loaded",
@@ -222,7 +258,7 @@ export class EditorConnection {
       })
       .catch((err) => {
         this.closeRequest();
-        // eslint-disable-next-line no-console -- TODO: consider using logger
+
         console.error(err);
         this.dispatch({ type: "error", error: err });
       });
@@ -238,12 +274,32 @@ export class EditorConnection {
     }
     const query = `version=${this.state.version}`;
     this.run(GET(`${this.url}/events?${query}`)).then(
-      (stringifiedData) => {
-        // @todo type this
-        const data = JSON.parse(stringifiedData);
+      async (stringifiedData) => {
+        const data = JSON.parse(stringifiedData) as {
+          actions: EntityStorePluginAction[];
+          clientIDs: number[];
+          steps: { [key: string]: any }[];
+          store: EntityStore | null;
+          version: number;
+        };
+
+        // pull out all componentIds and ensure they are defined
+        const componentIds = data.actions?.reduce((acc, curr) => {
+          if (
+            curr.type === "updateEntityProperties" &&
+            isString(curr.payload.properties.componentId) &&
+            !acc.includes(curr.payload.properties.componentId)
+          ) {
+            return acc.concat(curr.payload.properties.componentId);
+          }
+          return acc;
+        }, [] as string[]);
+
+        await this.manager.ensureBlocksDefined(componentIds);
 
         if (this.state.edit) {
           const tr = this.state.edit.tr;
+
           // This also allows an empty object response to act
           // like a polling checkpoint
           let shouldDispatch = false;
@@ -322,7 +378,7 @@ export class EditorConnection {
         if (err.status === 410 || badVersion(err)) {
           // Too far behind. Revert to server state
           // @todo use logger
-          // eslint-disable-next-line no-console
+
           console.warn(err);
           this.dispatch({ type: "restart" });
         } else if (err) {

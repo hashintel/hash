@@ -1,8 +1,12 @@
 import { test, expect } from "@playwright/test";
 import { failOnConsoleOutput } from "./utils/console-checks";
-import { loginUsingUi } from "./utils/loginUsingUi";
+import { loginUsingUi } from "./utils/login-using-ui";
 
-test("user can create and update entity", async ({ page }) => {
+/**
+ * @todo: Re-enable this playwright test when required workspace functionality is fixed
+ * @see https://app.asana.com/0/1202805690238892/1203106234191599/f
+ */
+test.skip("user can create and update entity", async ({ page }) => {
   failOnConsoleOutput(page);
 
   await loginUsingUi({ page, accountShortName: "bob" });
@@ -40,6 +44,9 @@ test("user can create and update entity", async ({ page }) => {
   await page.fill('[placeholder="newProperty"]', "Property1");
   await page.click("text=Create Property");
 
+  // Wait until property gets created
+  await sleep(1000);
+
   // Click on New Entity button to create new instance of entity
   await page.click(`text=New ${entityName}`);
   await page.waitForURL(
@@ -57,6 +64,9 @@ test("user can create and update entity", async ({ page }) => {
   await page.click('[placeholder="newProperty"]');
   await page.fill('[placeholder="newProperty"]', "Property2");
   await page.click("text=Create Property");
+
+  // Wait until property gets created
+  await sleep(1000);
 
   // Click on New Entity button to create new instance of entity
   await page.click(`text=New ${entityName}`);

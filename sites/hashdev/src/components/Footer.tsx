@@ -1,5 +1,5 @@
 import { Box, Container, Divider, Stack, Typography } from "@mui/material";
-import { ComponentProps, FC, ReactNode } from "react";
+import { ComponentProps, FunctionComponent, ReactNode } from "react";
 import { SITE_DESCRIPTION } from "../config";
 import { DiscordIcon } from "./icons/DiscordIcon";
 import { GithubIcon } from "./icons/GithubIcon";
@@ -8,7 +8,7 @@ import { Link } from "./Link";
 import { Logo } from "./Logo";
 import { Spacer } from "./Spacer";
 
-const FooterLink: FC<
+const FooterLink: FunctionComponent<
   { href: string } & Omit<ComponentProps<typeof Typography>, "variant">
 > = ({ href, sx = [], children, ...props }) => (
   <Link href={href}>
@@ -25,7 +25,7 @@ const FooterLink: FC<
   </Link>
 );
 
-const FooterLinkWithLabel: FC<
+const FooterLinkWithLabel: FunctionComponent<
   ComponentProps<typeof FooterLink> & {
     type: "open" | "fair";
   }
@@ -61,10 +61,10 @@ const FooterLinkWithLabel: FC<
   );
 };
 
-export const FooterSection: FC<{ label: ReactNode }> = ({
-  label,
-  children,
-}) => (
+export const FooterSection: FunctionComponent<{
+  children?: ReactNode;
+  label: ReactNode;
+}> = ({ label, children }) => (
   <Stack spacing={2}>
     <Stack spacing={1}>
       <Typography variant="hashFooterHeading">{label}</Typography>
@@ -74,7 +74,7 @@ export const FooterSection: FC<{ label: ReactNode }> = ({
   </Stack>
 );
 
-export const Footer: FC = () => (
+export const Footer: FunctionComponent = () => (
   <Box
     component="footer"
     sx={{
@@ -140,11 +140,10 @@ export const Footer: FC = () => (
               type="fair"
               href="https://hash.ai/platform/engine"
             >
-              hEngine
+              HASH Engine
             </FooterLinkWithLabel>
-            <FooterLink href="https://hash.ai/platform/core">hCore</FooterLink>
-            <FooterLink href="https://hash.ai/platform/cloud">
-              hCloud
+            <FooterLink href="https://hash.ai/platform/core">
+              HASH Core
             </FooterLink>
           </FooterSection>
         </Stack>

@@ -1,4 +1,11 @@
-import { useState, useMemo, useRef, VFC, useEffect, Ref } from "react";
+import {
+  useState,
+  useMemo,
+  useRef,
+  FunctionComponent,
+  useEffect,
+  Ref,
+} from "react";
 import {
   Box,
   Tooltip,
@@ -16,7 +23,6 @@ import {
   TextField,
   FontAwesomeIcon,
 } from "@hashintel/hash-design-system";
-import { useAccountEntityTypes } from "../../../components/hooks/useAccountEntityTypes";
 import { NavLink } from "./nav-link";
 
 import { EntityTypeItem } from "./account-entity-type-list/entity-type-item";
@@ -29,11 +35,12 @@ type SearchInputProps = {
   searchVisible: boolean;
   searchInputRef: Ref<HTMLInputElement>;
   showSearchInput: () => void;
+  // eslint-disable-next-line react/no-unused-prop-types -- @todo remove prop or use it in the component body
   hideSearchInput: () => void;
   onChangeText: (text: string) => void;
 };
 
-const SearchInput: VFC<SearchInputProps> = ({
+const SearchInput: FunctionComponent<SearchInputProps> = ({
   searchVisible,
   searchInputRef,
   showSearchInput,
@@ -116,10 +123,11 @@ type AccountEntityTypeListProps = {
   accountId: string;
 };
 
-export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
-  accountId,
-}) => {
-  const { data } = useAccountEntityTypes(accountId);
+export const AccountEntityTypeList: FunctionComponent<
+  AccountEntityTypeListProps
+> = ({ accountId }) => {
+  // const { data } = useGetAllEntityTypes(accountId);
+  const data = null as any;
   const router = useRouter();
 
   const [sortType, setSortType] = useState<SortType>("asc");
@@ -139,7 +147,8 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
 
   // todo: handle search server side
   const filteredData = useMemo(() => {
-    let entityTypes = data?.getAccountEntityTypes ?? [];
+    // let entityTypes = data?.deprecatedGetAccountEntityTypes ?? [];
+    let entityTypes = [] as any[];
 
     if (searchQuery) {
       entityTypes = entityTypes.filter(({ properties }) =>
@@ -154,6 +163,7 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
       ["properties.title"],
       [sortType === "asc" || sortType === "desc" ? sortType : "asc"],
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- data is currently commented out
   }, [sortType, data, searchQuery]);
 
   return (

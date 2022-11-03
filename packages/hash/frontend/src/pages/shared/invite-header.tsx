@@ -1,4 +1,4 @@
-import React from "react";
+import { FunctionComponent, memo } from "react";
 import { tw } from "twind";
 
 type InviteHeaderProps = {
@@ -9,7 +9,7 @@ type InviteHeaderProps = {
   };
 };
 
-export const InviteHeader: React.VFC<InviteHeaderProps> = React.memo(
+export const InviteHeader: FunctionComponent<InviteHeaderProps> = memo(
   ({ invitationInfo }) => {
     return (
       <p className={tw`font-bold text-2xl text-blue-500 mb-12`}>

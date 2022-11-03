@@ -19,7 +19,7 @@ mod task;
 
 use std::sync::Arc;
 
-use arrow::array::Array;
+use arrow2::array::Array;
 use async_trait::async_trait;
 use stateful::{
     context::{ContextColumn, ContextSchema},
@@ -52,7 +52,7 @@ pub trait ContextPackage: Package + MaybeCpuBound {
         &self,
         num_agents: usize,
         context_schema: &ContextSchema,
-    ) -> Result<Vec<(RootFieldKey, Arc<dyn Array>)>>;
+    ) -> Result<Vec<(RootFieldKey, Box<dyn Array>)>>;
 
     fn span(&self) -> Span;
 }

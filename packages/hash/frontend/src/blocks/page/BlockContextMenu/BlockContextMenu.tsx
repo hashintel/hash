@@ -1,21 +1,21 @@
-import React, {
-  useRef,
-  forwardRef,
-  useMemo,
-  ForwardRefRenderFunction,
-} from "react";
+import {
+  areComponentsCompatible,
+  isHashTextBlock,
+} from "@hashintel/hash-shared/blocks";
+import { useRef, forwardRef, useMemo, ForwardRefRenderFunction } from "react";
 
 import { useKey } from "rooks";
 
-import { Box, Divider, Menu, Typography } from "@mui/material";
+import { Box, Divider, Typography } from "@mui/material";
 import { bindMenu } from "material-ui-popup-state";
 import { PopupState } from "material-ui-popup-state/hooks";
-import { format } from "date-fns";
+// import { format } from "date-fns";
 import {
   faAdd,
   faArrowRight,
   faGear,
   faLink,
+  faMap,
   faRefresh,
 } from "@fortawesome/free-solid-svg-icons";
 import {
@@ -25,9 +25,9 @@ import {
 } from "@fortawesome/free-regular-svg-icons";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 
-import { FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { Menu, FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { useUserBlocks } from "../../userBlocks";
 import { getBlockDomId } from "../BlockView";
-import { BlockSuggesterProps } from "../createSuggester/BlockSuggester";
 
 import { BlockLoaderInput } from "./BlockLoaderInput";
 import { useUsers } from "../../../components/hooks/useUsers";
@@ -37,14 +37,12 @@ import { BlockListMenuContent } from "./BlockListMenuContent";
 
 type BlockContextMenuProps = {
   blockEntity: BlockEntity | null;
-  blockSuggesterProps: BlockSuggesterProps;
   deleteBlock: () => void;
-  entityId: string | null;
   openConfigMenu: () => void;
   popupState: PopupState;
+  canSwap: boolean;
+  toggleShowDataMappingUi: () => void;
 };
-
-const LOAD_BLOCK_ENTITY_UI = "hash-load-entity-ui";
 
 const BlockContextMenu: ForwardRefRenderFunction<
   HTMLDivElement,
@@ -52,47 +50,69 @@ const BlockContextMenu: ForwardRefRenderFunction<
 > = (
   {
     blockEntity,
-    blockSuggesterProps,
     deleteBlock,
-    entityId,
     openConfigMenu,
     popupState,
+    canSwap,
+    toggleShowDataMappingUi,
   },
   ref,
 ) => {
-  const { data: users } = useUsers();
+  const { users: _users } = useUsers();
   const setEntityMenuItemRef = useRef<HTMLLIElement>(null);
   const swapBlocksMenuItemRef = useRef<HTMLLIElement>(null);
+  const { value: userBlocks } = useUserBlocks();
+  const currentComponentId = blockEntity?.properties.componentId;
+  const compatibleBlocks = useMemo(() => {
+    return Object.values(userBlocks).filter((block) =>
+      areComponentsCompatible(currentComponentId, block.meta.componentId),
+    );
+  }, [currentComponentId, userBlocks]);
+
+  const entityId = blockEntity?.entityId ?? null;
 
   const menuItems = useMemo(() => {
     const hasChildEntity =
       Object.keys(blockEntity?.properties.entity?.properties ?? {}).length > 0;
     const items = [
-      {
-        key: "set-entity",
-        title: hasChildEntity ? "Swap Entity" : "Add an entity",
-        icon: <FontAwesomeIcon icon={faAdd} />,
-        subMenu: <LoadEntityMenuContent entityId={entityId} />,
-        subMenuWidth: 280,
-      },
+      ...(currentComponentId && !isHashTextBlock(currentComponentId)
+        ? [
+            {
+              key: "set-entity",
+              title: hasChildEntity ? "Swap Entity" : "Add an entity",
+              icon: <FontAwesomeIcon icon={faAdd} />,
+              subMenu: (
+                <LoadEntityMenuContent
+                  blockEntityId={entityId}
+                  closeParentContextMenu={() => popupState.close()}
+                />
+              ),
+              subMenuWidth: 280,
+            },
+          ]
+        : []),
       {
         key: "copy-link",
         title: "Copy Link",
         icon: <FontAwesomeIcon icon={faLink} />,
         onClick: () => {
           const url = new URL(document.location.href);
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- false-positive, exception should be removed after refactoring ESLint config
           url.hash = getBlockDomId(entityId!);
           void navigator.clipboard.writeText(url.toString());
         },
       },
       {
+        key: "map-data",
+        title: "Map data",
+        icon: <FontAwesomeIcon icon={faMap} />,
+        onClick: () => toggleShowDataMappingUi(),
+      },
+      {
         key: "configure",
         title: "Configure",
         icon: <FontAwesomeIcon icon={faGear} />,
-        onClick: () => {
-          popupState.close();
-          openConfigMenu();
-        },
+        onClick: () => openConfigMenu(),
       },
       {
         key: "duplicate",
@@ -106,15 +126,19 @@ const BlockContextMenu: ForwardRefRenderFunction<
         icon: <FontAwesomeIcon icon={faTrashCan} />,
         onClick: deleteBlock,
       },
-      {
-        key: "swap-block",
-        title: "Swap block type",
-        icon: <FontAwesomeIcon icon={faRefresh} />,
-        subMenu: (
-          <BlockListMenuContent blockSuggesterProps={blockSuggesterProps} />
-        ),
-        subMenuWidth: 228,
-      },
+      ...(canSwap && compatibleBlocks.length > 1
+        ? [
+            {
+              key: "swap-block",
+              title: "Swap block type",
+              icon: <FontAwesomeIcon icon={faRefresh} />,
+              subMenu: (
+                <BlockListMenuContent compatibleBlocks={compatibleBlocks} />
+              ),
+              subMenuWidth: 228,
+            },
+          ]
+        : []),
       {
         key: "move-to-page",
         title: "Move to page",
@@ -129,20 +153,17 @@ const BlockContextMenu: ForwardRefRenderFunction<
       },
     ];
 
-    // @todo this flag wouldn't be need once
-    // https://app.asana.com/0/1201959586244685/1202106892392942 has been addressed
-    if (!localStorage.getItem(LOAD_BLOCK_ENTITY_UI)) {
-      items.shift();
-    }
-
     return items;
   }, [
     blockEntity,
-    blockSuggesterProps,
+    currentComponentId,
     entityId,
     deleteBlock,
     openConfigMenu,
     popupState,
+    canSwap,
+    compatibleBlocks,
+    toggleShowDataMappingUi,
   ]);
 
   useKey(["Escape"], () => {
@@ -150,7 +171,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
   });
 
   useKey(["@"], () => {
-    if (popupState.isOpen && localStorage.getItem(LOAD_BLOCK_ENTITY_UI)) {
+    if (popupState.isOpen) {
       setEntityMenuItemRef.current?.focus();
     }
   });
@@ -181,7 +202,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
       data-testid="block-context-menu"
     >
       <Box component="li" px={2} pt={1.5} mb={1}>
-        <BlockLoaderInput />
+        <BlockLoaderInput onLoad={() => popupState.close()} />
       </Box>
 
       {menuItems.map(
@@ -216,7 +237,10 @@ const BlockContextMenu: ForwardRefRenderFunction<
               title={title}
               itemKey={key}
               icon={icon}
-              onClick={onClick}
+              onClick={() => {
+                onClick?.();
+                popupState.close();
+              }}
               subMenu={subMenu}
               subMenuWidth={subMenuWidth}
               {...(menuItemRef && { ref: menuItemRef })}
@@ -234,34 +258,41 @@ const BlockContextMenu: ForwardRefRenderFunction<
             display: "block",
           })}
         >
-          Last edited by {/* @todo use lastedited value when available */}
-          {
-            users.find(
+          Last edited by
+          {/**
+           * @todo: re-implement when provenance fields are made available to the frontend
+           * @see https://app.asana.com/0/1201095311341924/1203170881776185/f
+           */}
+          {/* {
+            users?.find(
               (account) =>
                 account.entityId ===
                 blockEntity?.properties.entity.createdByAccountId,
-            )?.name
-          }
+            )?.preferredName
+          } */}
         </Typography>
-
-        {typeof blockEntity?.properties.entity.updatedAt === "string" && (
-          <Typography
-            variant="microText"
-            sx={({ palette }) => ({
-              color: palette.gray[60],
-            })}
-          >
-            {format(
-              new Date(blockEntity.properties.entity.updatedAt),
-              "hh.mm a",
-            )}
-            {", "}
-            {format(
-              new Date(blockEntity.properties.entity.updatedAt),
-              "dd/MM/yyyy",
-            )}
-          </Typography>
-        )}
+        {/** 
+         * @todo re-implement after collab works https://app.asana.com/0/0/1203099452204542/f
+         {typeof blockEntity?.properties.entity.updatedAt ===
+            "string" && (
+            <Typography
+              variant="microText"
+              sx={({ palette }) => ({
+                color: palette.gray[60],
+              })}
+            >
+              {format(
+                new Date(blockEntity.properties.entity.updatedAt),
+                "hh.mm a",
+              )}
+              {", "}
+              {format(
+                new Date(blockEntity.properties.entity.updatedAt),
+                "dd/MM/yyyy",
+              )}
+            </Typography>
+          )
+        } */}
       </Box>
     </Menu>
   );

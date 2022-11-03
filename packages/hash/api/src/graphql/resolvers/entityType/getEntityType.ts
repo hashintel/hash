@@ -2,15 +2,18 @@ import { UserInputError } from "apollo-server-errors";
 import { ApolloError } from "apollo-server-express";
 import { exactlyOne, validateEntityTypeChoice } from "../../../util";
 
-import { QueryGetEntityTypeArgs, ResolverFn } from "../../apiTypes.gen";
+import {
+  QueryDeprecatedGetEntityTypeArgs,
+  ResolverFn,
+} from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { UnresolvedGQLEntityType, EntityType } from "../../../model";
 
-export const getEntityType: ResolverFn<
+export const deprecatedGetEntityType: ResolverFn<
   Promise<UnresolvedGQLEntityType>,
   {},
   GraphQLContext,
-  QueryGetEntityTypeArgs
+  QueryDeprecatedGetEntityTypeArgs
 > = async (_, { entityTypeId, choice }, { dataSources }) => {
   let filter;
 

@@ -1,6 +1,6 @@
 import { Box, Breakpoint, Theme } from "@mui/material";
 import { SystemStyleObject } from "@mui/system";
-import { VFC } from "react";
+import { FunctionComponent } from "react";
 
 type FlexProps = { flex: true };
 type InnerNotFlexProps = {
@@ -27,7 +27,7 @@ const spacerStyles = ({
   flexBasis: (theme) => (basis ? theme.spacing(basis) : undefined),
 });
 
-export const Spacer: VFC<SpacerProps> = ({
+export const Spacer: FunctionComponent<SpacerProps> = ({
   x,
   y,
   flex,

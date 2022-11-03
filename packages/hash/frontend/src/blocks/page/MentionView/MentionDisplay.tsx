@@ -1,5 +1,4 @@
-import { useMemo, VFC } from "react";
-import { tw } from "twind";
+import { useMemo, FunctionComponent } from "react";
 import ArticleIcon from "@mui/icons-material/Article";
 
 import { useUsers } from "../../../components/hooks/useUsers";
@@ -12,12 +11,12 @@ interface MentionDisplayProps {
   accountId: string;
 }
 
-export const MentionDisplay: VFC<MentionDisplayProps> = ({
+export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
   entityId,
   mentionType,
   accountId,
 }) => {
-  const { data: users, loading: usersLoading } = useUsers();
+  const { users } = useUsers();
   const { data: pages, loading: pagesLoading } = useAccountPages(accountId);
 
   const { title, href, icon } = useMemo(() => {
@@ -26,12 +25,12 @@ export const MentionDisplay: VFC<MentionDisplayProps> = ({
         let userName = "";
 
         // Only set username to "User" if the query hasn't already run before
-        if (usersLoading && !users.length) {
+        if (!users) {
           userName = "User";
         } else {
           // Once the query loads, either display the found name, or display "Unknown User" if the user doesn't exist in the users array
           userName =
-            users.find((item) => item.entityId === entityId)?.name ??
+            users.find((item) => item.entityId === entityId)?.preferredName ??
             "Unknown User";
         }
 
@@ -63,24 +62,12 @@ export const MentionDisplay: VFC<MentionDisplayProps> = ({
       default:
         return { title: "", href: "", icon: "@" };
     }
-  }, [
-    accountId,
-    entityId,
-    mentionType,
-    users,
-    usersLoading,
-    pages,
-    pagesLoading,
-  ]);
+  }, [accountId, entityId, mentionType, users, pages, pagesLoading]);
 
   return (
-    <Link noLinkStyle href={href}>
-      <a>
-        <span className={tw`text-gray-400 font-medium cursor-pointer`}>
-          {icon}
-          {title}
-        </span>
-      </a>
+    <Link noLinkStyle href={href} sx={{ fontWeight: 500, color: "#9ca3af" }}>
+      {icon}
+      {title}
     </Link>
   );
 };

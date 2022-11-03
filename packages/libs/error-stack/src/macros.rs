@@ -60,6 +60,8 @@ pub mod __private {
         }
     }
 
+    // false-positive lint
+    #[allow(unreachable_pub)]
     // Import anonymously to allow calling `__kind` but forbid implementing the tag-traits.
     pub use self::specialization::{ContextTag as _, ReportTag as _};
 }
@@ -71,7 +73,7 @@ pub mod __private {
 ///
 /// [`Report`]: crate::Report
 /// [`Context`]: crate::Context
-/// [`Error`]: std::error::Error
+/// [`Error`]: core::error::Error
 ///
 /// # Examples
 ///
@@ -85,7 +87,7 @@ pub mod __private {
 ///
 /// # fn wrapper() -> error_stack::Result<(), impl core::fmt::Debug> {
 /// match fs::read_to_string("/path/to/file") {
-///     Ok(content) => println!("File contents: {content}"),
+///     Ok(content) => println!("file contents: {content}"),
 ///     Err(err) => return Err(report!(err)),
 /// }
 /// # Ok(()) }
@@ -142,7 +144,7 @@ macro_rules! report {
 ///
 /// Create a [`Report`] from [`Error`]:
 ///
-/// [`Error`]: std::error::Error
+/// [`Error`]: core::error::Error
 ///
 /// ```
 /// # #[cfg(all(not(miri), feature = "std"))] {
@@ -151,7 +153,7 @@ macro_rules! report {
 /// use error_stack::bail;
 /// # fn wrapper() -> error_stack::Result<(), impl core::fmt::Debug> {
 /// match fs::read_to_string("/path/to/file") {
-///     Ok(content) => println!("File contents: {content}"),
+///     Ok(content) => println!("file contents: {content}"),
 ///     Err(err) => bail!(err),
 /// }
 /// # Ok(()) }
@@ -192,7 +194,9 @@ macro_rules! report {
 /// ```
 #[macro_export]
 macro_rules! bail {
-    ($err:expr $(,)?) => {{ return $crate::Result::Err($crate::report!($err)) }};
+    ($err:expr $(,)?) => {{
+        return $crate::Result::Err($crate::report!($err));
+    }};
 }
 
 /// Ensures `$cond` is met, otherwise return an error.

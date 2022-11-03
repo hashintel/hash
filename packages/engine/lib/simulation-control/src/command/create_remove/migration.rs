@@ -2,15 +2,22 @@
 
 use std::{borrow::Cow, mem, sync::Arc};
 
-use arrow::{self, array::Array, record_batch::RecordBatch, util::bit_util};
+use arrow2::array::Array;
+use bytemuck::cast_slice;
 use memory::{
-    arrow::meta::{self, Buffer, Node, NodeMapping},
+    arrow::{
+        flush::GrowableArrayData,
+        meta::{self, Buffer, Node, NodeMapping},
+        record_batch::RecordBatch,
+        util::bit_util,
+    },
     shared_memory::{padding, MemoryId, Segment},
 };
 use stateful::{
     agent::{AgentBatch, AgentSchema},
     message::{MessageBatch, MessageSchema},
 };
+use tracing::trace;
 
 use crate::command::{Error, Result};
 
@@ -53,6 +60,7 @@ pub struct InnerMoveAction {
 }
 
 #[derive(Debug, Clone)]
+/// TODO: doc
 pub enum InnerCreateAction<'a> {
     Data {
         byte_offset: usize,
@@ -61,9 +69,8 @@ pub enum InnerCreateAction<'a> {
     Offset {
         // offset values
         data: &'a [i32],
-        // amount by which to increment the data to be copied
         offset_shift: i32,
-        // new index of the base offset, relative to the start of the buffer
+        /// new index of the base offset, relative to the start of the buffer
         base_offset_index: usize,
     },
 }
@@ -132,7 +139,7 @@ pub struct BufferAction<'a> {
 #[derive(Debug, Clone)]
 pub struct BufferActions<'a> {
     pub actions: Vec<BufferAction<'a>>,
-    pub new_dynamic_meta: meta::Dynamic,
+    pub new_dynamic_meta: meta::DynamicMetadata,
 }
 
 #[derive(Debug, Clone)]
@@ -452,20 +459,31 @@ impl<'a> BufferActions<'a> {
     }
 
     #[allow(clippy::too_many_lines, clippy::too_many_arguments)]
+    // this is necessary, because GrowableArrayData is implemented for Box<dyn Array> but not
+    // &dyn Array
+    #[allow(clippy::borrowed_box)]
     fn traverse_nodes<'b>(
         mut next_state: NextState,
         children_meta: &NodeMapping,
         column_meta: &meta::Column,
-        static_meta: &meta::Static,
-        dynamic_meta: Option<&meta::Dynamic>,
+        static_meta: &meta::StaticMetadata,
+        dynamic_meta: Option<&meta::DynamicMetadata>,
         parent_range_actions: &RangeActions,
         agent_batch: Option<&AgentBatch>,
         agent_batches: &[&AgentBatch],
-        new_agents: Option<&'b arrow::array::ArrayData>,
+        new_agents: Option<&'b Box<dyn Array>>,
         actions: &mut Vec<BufferAction<'b>>,
         buffer_metas: &mut Vec<Buffer>,
         node_metas: &mut Vec<Node>,
     ) -> Result<NextState> {
+        trace!(
+            "started traversing nodes (corresponding batch id: {})",
+            if let Some(b) = agent_batch {
+                b.batch.segment().id()
+            } else {
+                "none"
+            }
+        );
         // Iterate over all buffers
         let node_static_meta = &static_meta.get_node_meta()[next_state.node_index];
         let unit_multiplier = node_static_meta.get_unit_multiplier();
@@ -526,51 +544,65 @@ impl<'a> BufferActions<'a> {
                     let mut cur_length = if let Some(agent_batch) = agent_batch {
                         let start_index = buffer_meta.offset;
                         let end_index = start_index + buffer_meta.length;
-                        let data =
-                            &agent_batch.batch.segment().get_data_buffer()?[start_index..end_index];
-                        debug_assert_eq!(data, agent_batch.get_buffer(buffer_index).unwrap());
-                        debug_assert!(range_actions.is_well_ordered_remove());
-                        let mut removed_count = 0;
-                        range_actions.remove().iter().for_each(|range| {
-                            debug_assert!(range.next_index() <= data.len() * 8);
-                            debug_assert!(
-                                range.index >= next_bit_index,
-                                "range.index {} >!= next_bit_index {}",
-                                range.index,
-                                next_bit_index
-                            );
+
+                        if start_index == end_index {
+                            0
+                        } else {
+                            let data = &agent_batch.batch.segment().get_data_buffer()?
+                                [start_index..end_index];
+
+                            debug_assert_eq!(data, agent_batch.get_buffer(buffer_index).unwrap());
+                            debug_assert!(range_actions.is_well_ordered_remove());
+                            let mut removed_count = 0;
+                            range_actions.remove().iter().for_each(|range| {
+                                debug_assert!(
+                                    range.next_index() <= data.len() * 8,
+                                    "assertion failed: range.next_index() <= data.len() * 8
+                                    note: range.next_index() = {} and data.len() * 8 = {}",
+                                    range.next_index(),
+                                    data.len() * 8
+                                );
+                                debug_assert!(
+                                    range.index >= next_bit_index,
+                                    "range.index {} >!= next_bit_index {}",
+                                    range.index,
+                                    next_bit_index
+                                );
+                                unset_bit_count += copy_bits_unchecked(
+                                    data,
+                                    &mut bytes,
+                                    next_bit_index,
+                                    range.index - next_bit_index,
+                                    next_bit_index - removed_count,
+                                );
+                                next_bit_index = range.next_index();
+                                removed_count += range.len;
+                            });
+                            // Also translate final slice
                             unset_bit_count += copy_bits_unchecked(
                                 data,
                                 &mut bytes,
                                 next_bit_index,
-                                range.index - next_bit_index,
+                                original_length - next_bit_index,
                                 next_bit_index - removed_count,
                             );
-                            next_bit_index = range.next_index();
-                            removed_count += range.len;
-                        });
-                        // Also translate final slice
-                        unset_bit_count += copy_bits_unchecked(
-                            data,
-                            &mut bytes,
-                            next_bit_index,
-                            original_length - next_bit_index,
-                            next_bit_index - removed_count,
-                        );
-                        node_dynamic_meta.length - removed_count
+                            node_dynamic_meta.length - removed_count
+                        }
                     } else {
                         0
                     };
                     // next_bit_index <= bit_capacity as we've only removed bits
 
                     // MOVE ACTIONS
-                    range_actions
-                        .copy()
-                        .iter()
-                        .try_for_each::<_, Result<()>>(|(j, v)| {
-                            let src_buffer = agent_batches[*j].get_buffer(buffer_index)?;
+                    range_actions.copy().iter().try_for_each::<_, Result<()>>(
+                        |(current_agent_batch_index, v)| {
+                            let src_buffer = agent_batches[*current_agent_batch_index]
+                                .get_buffer(buffer_index)?;
 
                             v.iter().for_each(|range| {
+                                if src_buffer.is_empty() {
+                                    return;
+                                }
                                 unset_bit_count += copy_bits_unchecked(
                                     src_buffer,
                                     &mut bytes,
@@ -581,18 +613,19 @@ impl<'a> BufferActions<'a> {
                                 cur_length += range.len;
                             });
                             Ok(())
-                        })?;
+                        },
+                    )?;
 
                     // CREATE ACTIONS
-                    if let Some(ad) = &new_agents {
+                    if let Some(agent_data) = &new_agents {
                         let maybe_buffer = if i == 0 {
-                            ad.null_buffer()
+                            agent_data.null_buffer()
                         } else {
-                            Some(&ad.buffers()[i - 1])
+                            Some(agent_data.buffer(i - 1))
                         };
 
-                        if let Some(buffer) = maybe_buffer {
-                            let src_buffer = buffer.as_slice();
+                        if let Some(buffer) = maybe_buffer.as_ref() {
+                            let src_buffer = buffer;
                             range_actions.create().iter().for_each(|range| {
                                 unset_bit_count += copy_bits_unchecked(
                                     src_buffer,
@@ -632,7 +665,6 @@ impl<'a> BufferActions<'a> {
                         null_count = unset_bit_count;
                     }
 
-                    debug_assert_eq!(cur_length, target_unit_count);
                     let variant = BufferActionVariant::Replace { data: bytes };
                     let action = BufferAction {
                         variant,
@@ -738,42 +770,44 @@ impl<'a> BufferActions<'a> {
                         range_actions
                             .copy_mut()
                             .iter_mut()
-                            .try_for_each::<_, Result<()>>(|(j, ranges)| {
-                                // TODO: SAFETY
-                                let src_buffer = unsafe {
-                                    agent_batches[*j]
-                                        .get_buffer(buffer_index)?
-                                        .align_to::<i32>()
-                                        .1
-                                };
-                                ranges.iter_mut().for_each(|range| {
-                                    let first_offset = src_buffer[range.index];
-                                    let last_offset = src_buffer[range.next_index()];
-                                    let offset_diff = last_offset_value - first_offset;
-                                    (range.index + 1..=range.index + range.len).for_each(|k| {
-                                        let new_offset = src_buffer[k] + offset_diff;
-                                        // Assumes little endian
-                                        // TODO: SAFETY
-                                        let slice = unsafe {
-                                            std::slice::from_raw_parts(
-                                                &new_offset as *const i32 as *const _,
-                                                mem::size_of::<Offset>(),
-                                            )
-                                        };
-                                        move_bytes.extend_from_slice(slice);
-                                    });
-                                    let added_unit_count = last_offset - first_offset;
-                                    last_offset_value += added_unit_count;
-                                    next_offset_index += range.len;
+                            .try_for_each::<_, Result<()>>(
+                                |(current_agent_batch_index, ranges)| {
+                                    // TODO: SAFETY
+                                    let src_buffer = unsafe {
+                                        agent_batches[*current_agent_batch_index]
+                                            .get_buffer(buffer_index)?
+                                            .align_to::<i32>()
+                                            .1
+                                    };
+                                    ranges.iter_mut().for_each(|range| {
+                                        let first_offset = src_buffer[range.index];
+                                        let last_offset = src_buffer[range.next_index()];
+                                        let offset_diff = last_offset_value - first_offset;
+                                        (range.index + 1..=range.index + range.len).for_each(|k| {
+                                            let new_offset = src_buffer[k] + offset_diff;
+                                            // Assumes little endian
+                                            // TODO: SAFETY
+                                            let slice = unsafe {
+                                                std::slice::from_raw_parts(
+                                                    &new_offset as *const i32 as *const _,
+                                                    mem::size_of::<Offset>(),
+                                                )
+                                            };
+                                            move_bytes.extend_from_slice(slice);
+                                        });
+                                        let added_unit_count = last_offset - first_offset;
+                                        last_offset_value += added_unit_count;
+                                        next_offset_index += range.len;
 
-                                    // Update the range value here, so next access is in the right
-                                    // place
-                                    range.index = first_offset as usize;
-                                    range.len = (added_unit_count) as usize;
-                                    total_move_len += range.len;
-                                });
-                                Ok(())
-                            })?;
+                                        // Update the range value here, so next access is in the
+                                        // right place
+                                        range.index = first_offset as usize;
+                                        range.len = (added_unit_count) as usize;
+                                        total_move_len += range.len;
+                                    });
+                                    Ok(())
+                                },
+                            )?;
 
                         range_actions.copy.0 = total_move_len;
 
@@ -786,11 +820,11 @@ impl<'a> BufferActions<'a> {
                     };
 
                     // CREATE ACTIONS
-                    let create_actions = new_agents.map(|ad| {
-                        let buffer = &ad.buffers()[i - 1];
+                    let create_actions = new_agents.as_ref().map(|agent_data| {
+                        let buffer = &agent_data.buffer(i - 1);
 
-                        // TODO: SAFETY
-                        let src_buffer = unsafe { buffer.typed_data::<Offset>() };
+                        let src_buffer: &[i32] = cast_slice(buffer);
+
                         let mut total_create_len = 0;
                         let ret = range_actions
                             .create_mut()
@@ -895,11 +929,10 @@ impl<'a> BufferActions<'a> {
                         let mut move_bytes: Vec<u8> =
                             Vec::with_capacity(range_actions.copy.0 * unit_byte_size);
 
-                        range_actions
-                            .copy()
-                            .iter()
-                            .try_for_each::<_, Result<()>>(|(j, v)| {
-                                let src_buffer = agent_batches[*j].get_buffer(buffer_index)?;
+                        range_actions.copy().iter().try_for_each::<_, Result<()>>(
+                            |(current_agent_batch_index, v)| {
+                                let src_buffer = agent_batches[*current_agent_batch_index]
+                                    .get_buffer(buffer_index)?;
                                 v.iter().for_each(|range| {
                                     let from = range.index * unit_byte_size;
                                     let to = range.next_index() * unit_byte_size;
@@ -907,7 +940,8 @@ impl<'a> BufferActions<'a> {
                                     move_bytes.extend_from_slice(slice);
                                 });
                                 Ok(())
-                            })?;
+                            },
+                        )?;
 
                         let move_bytes_len = move_bytes.len();
                         debug_assert_eq!(move_bytes_len, range_actions.copy.0 * unit_byte_size);
@@ -923,10 +957,10 @@ impl<'a> BufferActions<'a> {
                     };
 
                     // CREATE ACTIONS
-                    let create_actions = new_agents.map(|ad| {
-                        let buffer = &ad.buffers()[i - 1];
+                    let create_actions = new_agents.map(|agent_data| {
+                        let buffer = &agent_data.buffer(i - 1);
 
-                        let src_buffer = buffer.as_slice();
+                        let src_buffer = cast_slice(buffer);
                         range_actions
                             .create()
                             .iter()
@@ -1023,7 +1057,7 @@ impl<'a> BufferActions<'a> {
         agent_batches: &[&AgentBatch],
         batch_index: Option<usize>,
         base_range_actions: RangeActions,
-        static_meta: &meta::Static,
+        static_meta: &meta::StaticMetadata,
         new_agents: Option<&'a RecordBatch>,
     ) -> Result<BufferActions<'a>> {
         let agent_batch = batch_index.map(|index| agent_batches[index]);
@@ -1040,7 +1074,7 @@ impl<'a> BufferActions<'a> {
         let mut node_metas = Vec::with_capacity(static_meta.get_node_count());
         for (column_index, column) in static_meta.get_column_meta().iter().enumerate() {
             let new_agents_data_ref =
-                new_agents.map(|record_batch| record_batch.column(column_index).data_ref());
+                new_agents.map(|record_batch| record_batch.column(column_index));
             let range_actions = Cow::Borrowed(&base_range_actions);
             next_indices = Self::traverse_nodes(
                 next_indices,
@@ -1078,7 +1112,7 @@ impl<'a> BufferActions<'a> {
             })
         });
         let new_dynamic_meta =
-            meta::Dynamic::new(num_agents, data_length, node_metas, buffer_metas);
+            meta::DynamicMetadata::new(num_agents, data_length, node_metas, buffer_metas);
 
         let bufferactions = BufferActions {
             actions,
@@ -1300,8 +1334,8 @@ impl From<&RowActions> for RangeActions {
 /// `memory` doesn't have a data buffer, so it can't contain an Arrow record batch.
 fn offsets_start_at_zero(
     segment: &Segment,
-    static_meta: &meta::Static,
-    dynamic_meta: &meta::Dynamic,
+    static_meta: &meta::StaticMetadata,
+    dynamic_meta: &meta::DynamicMetadata,
 ) -> Result<bool> {
     let data = segment.get_data_buffer()?;
 
@@ -1439,7 +1473,6 @@ pub(super) mod test {
             copy: vec![],
             create: vec![],
         };
-        let now = std::time::Instant::now();
 
         // Remove indices should be less than the length
         debug_assert!(batch_index.map_or(true, |index| {
@@ -1458,7 +1491,6 @@ pub(super) mod test {
             None,
         )?;
         buffer_actions.flush(&mut pool[0])?;
-        println!("Migration took: {} us", now.elapsed().as_micros());
 
         let empty_message_batch = MessageBatch::empty_from_agent_batch(
             &pool[0],
@@ -1473,7 +1505,7 @@ pub(super) mod test {
             &msg_schema,
             MemoryId::new(experiment_id.as_uuid()),
         )?;
-        let now = std::time::Instant::now();
+
         // Do on JSON
         let mut json_agents = (&agents_clone, &new_empty_message_batch).to_agent_states(None)?;
         remove_indices.iter().rev().for_each(|i| {
@@ -1484,7 +1516,7 @@ pub(super) mod test {
             &agent_schema,
             MemoryId::new(experiment_id.as_uuid()),
         )?;
-        println!("Thru JSON took: {} us", now.elapsed().as_micros());
+
         assert!(agents.num_agents() > 1);
         assert_eq!(new_json_agents, json_agents);
         Ok(())
@@ -1525,7 +1557,6 @@ pub(super) mod test {
                 .map(|i| CreateAction { val: i })
                 .collect(),
         };
-        let now = std::time::Instant::now();
         // Remove indices should be less than the length
         debug_assert!(batch_index.map_or(true, |index| {
             row_actions
@@ -1543,7 +1574,6 @@ pub(super) mod test {
             Some(create_agents.batch.record_batch()?),
         )?;
         buffer_actions.flush(&mut pool[0])?;
-        println!("Migration took: {} us", now.elapsed().as_micros());
 
         let empty_message_batch = MessageBatch::empty_from_agent_batch(
             &pool[0],
@@ -1558,7 +1588,6 @@ pub(super) mod test {
             &msg_schema,
             MemoryId::new(experiment_id.as_uuid()),
         )?;
-        let now = std::time::Instant::now();
         // Do on JSON
         let mut json_agents = (&agents_clone, &new_empty_message_batch).to_agent_states(None)?;
         json_agents.append(&mut json_create_agents);
@@ -1567,7 +1596,7 @@ pub(super) mod test {
             &schema,
             MemoryId::new(experiment_id.as_uuid()),
         )?;
-        println!("Thru JSON took: {} us", now.elapsed().as_micros());
+
         assert!(agents.num_agents() > 1);
         json_agents.iter_mut().for_each(|v| {
             v.delete_custom(PREVIOUS_INDEX_FIELD_KEY);
@@ -1651,7 +1680,6 @@ pub(super) mod test {
             &msg_schema,
             MemoryId::new(experiment_id.as_uuid()),
         )?;
-        let now = std::time::Instant::now();
         // Do on JSON
         let mut json_agents = (&agents_clone, &new_empty_message_batch).to_agent_states(None)?;
         select_indices
@@ -1662,7 +1690,7 @@ pub(super) mod test {
             &schema,
             MemoryId::new(experiment_id.as_uuid()),
         )?;
-        println!("Thru JSON took: {} us", now.elapsed().as_micros());
+
         assert!(agents.num_agents() > 1);
 
         json_agents.iter_mut().for_each(|v| {
@@ -1729,7 +1757,6 @@ pub(super) mod test {
                 .map(|i| CreateAction { val: i })
                 .collect(),
         };
-        let now = std::time::Instant::now();
         // Remove indices should be less than the length
         debug_assert!(batch_index.map_or(true, |index| {
             row_actions
@@ -1747,7 +1774,6 @@ pub(super) mod test {
             Some(create_agents.batch.record_batch()?),
         )?;
         buffer_actions.flush(&mut pool[0])?;
-        println!("Migration took: {} us", now.elapsed().as_micros());
 
         let empty_message_batch = MessageBatch::empty_from_agent_batch(
             &pool[0],
@@ -1762,7 +1788,6 @@ pub(super) mod test {
             &msg_schema,
             MemoryId::new(experiment_id.as_uuid()),
         )?;
-        let now = std::time::Instant::now();
         // Do on JSON
         let mut json_agents = (&agents_clone, &new_empty_message_batch).to_agent_states(None)?;
         remove_indices.iter().rev().for_each(|i| {
@@ -1777,7 +1802,7 @@ pub(super) mod test {
             &schema,
             MemoryId::new(experiment_id.as_uuid()),
         )?;
-        println!("Thru JSON took: {} us", now.elapsed().as_micros());
+
         assert!(agents.num_agents() > 1);
 
         new_json_agents.iter_mut().for_each(|v| {

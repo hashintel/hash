@@ -1,7 +1,7 @@
-import { FC } from "react";
+import { FunctionComponent } from "react";
 import { SvgIcon, SvgIconProps } from "@mui/material";
 
-export const WarnIcon: FC<SvgIconProps> = (props) => {
+export const WarnIcon: FunctionComponent<SvgIconProps> = (props) => {
   return (
     <SvgIcon width="20" height="20" viewBox="0 0 20 20" fill="none" {...props}>
       <path

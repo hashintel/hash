@@ -7,20 +7,20 @@ import {
   BlockProtocolUpdateEntitiesFunction,
 } from "blockprotocol";
 import "iframe-resizer/js/iframeResizer.contentWindow";
-import { useCallback, useEffect, useState, VoidFunctionComponent } from "react";
+import { useCallback, useEffect, useState, FunctionComponent } from "react";
 
 import { FetchEmbedCodeFn } from "../../BlockLoader/fetchEmbedCode";
-import { ErrorBlock } from "../../ErrorBlock/ErrorBlock";
+// import { ErrorBlock } from "../../ErrorBlock/ErrorBlock";
 import {
   BlockLoadingIndicator,
-  RemoteBlock,
+  // RemoteBlock,
 } from "../../RemoteBlock/RemoteBlock";
 import { MessageFromBlockFramer } from "../types";
 import { sendMessage, settlePromiseFromResponse } from "./util";
 
 const params = new URL(window.location.href).searchParams;
 
-export const FramedBlock: VoidFunctionComponent = () => {
+export const FramedBlock: FunctionComponent = () => {
   const sourceUrl = params.get("sourceUrl");
   const properties = params.get("properties");
 
@@ -30,9 +30,9 @@ export const FramedBlock: VoidFunctionComponent = () => {
     BlockProtocolEntity | undefined
   >(initialData);
 
-  const beforeCapture = useCallback(
+  const _beforeCapture = useCallback(
     (scope: Sentry.Scope) => {
-      scope.setTag("block", blockProperties?.id as string);
+      scope.setTag("block", blockProperties?.entityId as string);
     },
     [blockProperties],
   );
@@ -101,7 +101,7 @@ export const FramedBlock: VoidFunctionComponent = () => {
     throw new Error("No entityId present in block properties.");
   }
 
-  const blockFunctions = {
+  const _blockFunctions = {
     aggregateEntities,
     aggregateEntityTypes,
     createEntities,
@@ -109,20 +109,23 @@ export const FramedBlock: VoidFunctionComponent = () => {
     updateEntities,
   };
 
-  return (
-    <Sentry.ErrorBoundary
-      beforeCapture={beforeCapture}
-      // eslint-disable-next-line react/no-unstable-nested-components -- @todo consider refactoring
-      fallback={(errorData) => (
-        <ErrorBlock {...errorData} onRetry={() => window.location.reload()} />
-      )}
-    >
-      <RemoteBlock
-        blockFunctions={blockFunctions}
-        blockProperties={blockProperties}
-        crossFrame
-        sourceUrl={sourceUrl}
-      />
-    </Sentry.ErrorBoundary>
-  );
+  // @todo fix sandbox for 0.2
+  return null;
+
+  // return (
+  //   <Sentry.ErrorBoundary
+  //     beforeCapture={beforeCapture}
+  //     // eslint-disable-next-line react/no-unstable-nested-components -- @todo consider refactoring
+  //     fallback={(errorData) => (
+  //       <ErrorBlock {...errorData} onRetry={() => window.location.reload()} />
+  //     )}
+  //   >
+  //     <RemoteBlock
+  //       blockFunctions={blockFunctions as any}
+  //       blockProperties={blockProperties}
+  //       crossFrame
+  //       sourceUrl={sourceUrl}
+  //     />
+  //   </Sentry.ErrorBoundary>
+  // );
 };

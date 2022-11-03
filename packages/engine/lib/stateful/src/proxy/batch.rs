@@ -43,6 +43,10 @@ impl<K> Deref for BatchReadProxy<K> {
 
 impl<K> Clone for BatchReadProxy<K> {
     fn clone(&self) -> Self {
+        tracing::trace!(
+            "cloning batch read proxy (arc memory address {})",
+            Arc::as_ptr(&self.arc) as usize
+        );
         // Acquire another shared lock for the new proxy
         // SAFETY: `BatchReadProxy` is guaranteed to contain a shared lock acquired in `new()`, thus
         //   it's safe (and required) to acquire another shared lock. Note, that this does not hold

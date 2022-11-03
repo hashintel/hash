@@ -17,5 +17,6 @@ export const MuiInputLabelThemeOptions: Components<Theme>["MuiInputLabel"] = {
       fontWeight: 500,
       marginBottom: theme.spacing(0.75),
     }),
+    asterisk: ({ theme }) => ({ color: theme.palette.blue[70] }),
   },
 };

@@ -24,11 +24,10 @@ jobs:
     outputs:
       lint: ${{ steps.crates.outputs.lint }}
       test: ${{ steps.crates.outputs.test }}
-      bench: ${{ steps.crates.outputs.bench }}
+      coverage: ${{ steps.crates.outputs.coverage }}
+      docker: ${{ steps.crates.outputs.docker }}
       publish: ${{ steps.crates.outputs.publish }}
-      exclude: ${{ steps.crates.outputs.exclude }}
       samples: ${{ steps.samples.outputs.samples }}
-      nightly: ${{ steps.toolchains.outputs.nightly }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
@@ -40,106 +39,76 @@ jobs:
 
       - name: Find changed crates
         id: crates
-        run: python .github/scripts/rust/setup.py
-
-      - name: Find toolchain
-        id: toolchains
         run: |
-          nightly=$(cat $(find . -name rust-toolchain.toml) | grep channel | cut -d\" -f2)
-          echo "::set-output name=nightly::$nightly"
-          echo "use toolchains: $(echo $nightly | jq -r)"
+          export GITHUB_OUTPUT_FILE_PATH=$(mktemp)
+          python .github/scripts/rust/setup.py
+          cat $GITHUB_OUTPUT_FILE_PATH >> $GITHUB_OUTPUT
 
       - name: Determine samples
         id: samples
         run: |
           if [[ ${{ github.event_name }} = pull_request ]]; then
-            echo "::set-output name=samples::1"
+            echo "samples=1" >> $GITHUB_OUTPUT
           else
-            echo "::set-output name=samples::10"
+            echo "samples=10" >> $GITHUB_OUTPUT
           fi
 
   lint:
     name: lint
     needs: setup
-    if: needs.setup.outputs.lint != '[]'
+    if: needs.setup.outputs.lint != '{}'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix:
-        directory: ${{ fromJSON(needs.setup.outputs.lint) }}
-        toolchain:
-          - ${{ needs.setup.outputs.nightly }}
-        profile:
-          - development
-        exclude: ${{ fromJSON(needs.setup.outputs.exclude) }}
+      matrix: ${{ fromJSON(needs.setup.outputs.lint) }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
 
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
+      - name: Install Rust toolchain
+        uses: ./.github/actions/install-rust-toolchain
         with:
-          profile: minimal
           toolchain: ${{ matrix.toolchain }}
-          override: true
 
       - name: Cache Rust dependencies
-        id: rust-cache
-        uses: actions/cache@v3
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/.crates.toml
-            ~/.cargo/.crates2.json
-            ~/.cargo/bin
-            ~/.cargo/registry/index
-            ~/.cargo/registry/cache
-            ~/.cargo/git/checkouts
-            **/target/
-          key: lint-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: lint-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-
+          workspaces: ${{ matrix.directory }}
 
-      - name: Install cargo-make
+      - name: Install tools
         shell: bash
-        run: cargo install cargo-make
+        run: |
+          cargo install cargo-quickinstall
+          cargo quickinstall cargo-make --version 0.35.15
+          cargo quickinstall cargo-hack --version 0.5.15
 
       - name: Check formatting
         working-directory: ${{ matrix.directory }}
-        run: cargo make format -- --check
+        run: cargo +${{ matrix.toolchain }} make format -- --check
 
       - name: Check clippy
         working-directory: ${{ matrix.directory }}
-        run: cargo make clippy -- -D warnings
+        if: always()
+        run: cargo +${{ matrix.toolchain }} make clippy -- -D warnings
 
       - name: Check public documentation
         working-directory: ${{ matrix.directory }}
-        run: cargo make rustdoc --check -D warnings --show-coverage
+        if: always()
+        run: cargo +${{ matrix.toolchain }} make rustdoc --check -D warnings
 
       - name: Check private documentation
         working-directory: ${{ matrix.directory }}
-        run: cargo make rustdoc --check -D warnings --show-coverage --document-private-items
-
-      - name: Clear cargo cache
-        if: steps.rust-cache.outputs.cache-hit != 'true'
-        run: |
-          cargo install cargo-cache
-          cargo cache --autoclean-expensive
+        if: always()
+        run: cargo +${{ matrix.toolchain }} make rustdoc --check -D warnings --document-private-items
 
   test:
     name: test
     needs: setup
-    if: needs.setup.outputs.test != '[]'
+    if: needs.setup.outputs.test != '{}'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix:
-        directory: ${{ fromJSON(needs.setup.outputs.test) }}
-        toolchain:
-          - stable
-          - ${{ needs.setup.outputs.nightly }}
-        profile:
-          - development
-          - production
-        exclude: ${{ fromJSON(needs.setup.outputs.exclude) }}
+      matrix: ${{ fromJSON(needs.setup.outputs.test) }}
     env:
       OUTPUT_DIRECTORY: test-results
       RUST_BACKTRACE: 1
@@ -147,12 +116,10 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v3
 
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
+      - name: Install Rust toolchain
+        uses: ./.github/actions/install-rust-toolchain
         with:
-          profile: minimal
           toolchain: ${{ matrix.toolchain }}
-          override: true
 
       - name: Cache Node dependencies
         uses: actions/cache@v3
@@ -162,38 +129,33 @@ jobs:
           key: ${{ hashFiles('**/yarn.lock') }}
 
       - name: Cache Rust dependencies
-        id: rust-cache
-        uses: actions/cache@v3
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/.crates.toml
-            ~/.cargo/.crates2.json
-            ~/.cargo/bin
-            ~/.cargo/registry/index
-            ~/.cargo/registry/cache
-            ~/.cargo/git/checkouts
-            **/target/
-          key: test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.profile }}-
+          workspaces: ${{ matrix.directory }}
+          key: ${{ matrix.profile }}
 
-      - name: Install cargo-make
+      - name: Install tools
         shell: bash
-        run: cargo install cargo-make
+        run: |
+          cargo install cargo-quickinstall
+          cargo quickinstall cargo-make --version 0.35.15
+          cargo quickinstall cargo-hack --version 0.5.15
+          cargo quickinstall cargo-nextest --version 0.9.28
 
       - name: Install Python
         if: matrix.directory == 'packages/engine'
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
-          python-version: "3.7"
+          python-version: "3.10"
 
       - name: Run tests
         working-directory: ${{ matrix.directory }}
-        run: cargo make --profile ${{ matrix.profile }} test --no-fail-fast
+        run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} test --no-fail-fast
 
       - name: Run miri
-        if: matrix.toolchain != 'stable'
+        if: ${{ startsWith(matrix.toolchain, 'nightly') }}
         working-directory: ${{ matrix.directory }}
-        run: cargo make --profile ${{ matrix.profile }} miri --no-fail-fast
+        run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} miri --no-fail-fast
 
       - name: Ensure empty git diff
         run: git --no-pager diff --exit-code --color
@@ -217,34 +179,127 @@ jobs:
                     --arg ddtags "$tags" \
                     '{ message: $message, ddsource: "hash-gh-actions", hostname: "github", service: "actions", ddtags: $ddtags }')
 
-      - name: Clear cargo cache
-        if: steps.rust-cache.outputs.cache-hit != 'true'
-        run: |
-          cargo install cargo-cache
-          cargo cache --autoclean-expensive
-
-  publish:
-    name: publish
+  coverage:
+    name: coverage
     needs: setup
-    if: needs.setup.outputs.publish != '[]'
+    if: needs.setup.outputs.coverage != '{}'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix:
-        directory: ${{ fromJSON(needs.setup.outputs.publish) }}
-        toolchain:
-          - ${{ needs.setup.outputs.nightly }}
+      matrix: ${{ fromJSON(needs.setup.outputs.coverage) }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
 
       - name: Install Rust
-        id: toolchain
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: ${{ matrix.toolchain }}
           override: true
+
+      - name: Cache Node dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            **/node_modules
+          key: ${{ hashFiles('**/yarn.lock') }}
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ${{ matrix.directory }}
+          key: ${{ matrix.profile }}
+
+      - name: Install tools
+        shell: bash
+        run: |
+          cargo install cargo-quickinstall
+          cargo quickinstall cargo-make --version 0.35.15
+          cargo quickinstall cargo-nextest --version 0.9.28
+          cargo quickinstall cargo-llvm-cov --version 0.5.0
+
+      - name: Run tests
+        working-directory: ${{ matrix.directory }}
+        run: cargo +${{ matrix.toolchain }} make coverage --lcov --output-path lcov.info
+
+      - uses: codecov/codecov-action@v3
+        if: ${{ success() || failure() }}
+        name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
+        with:
+          fail_ci_if_error: true
+          files: ${{ matrix.directory }}/lcov.info
+          flags: ${{ matrix.name }}
+          token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
+
+  docker:
+    name: docker
+    needs: setup
+    if: needs.setup.outputs.docker != '{}'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.setup.outputs.docker) }}
+    defaults:
+      run:
+        working-directory: ${{ matrix.directory }}
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Cache Node dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            **/node_modules
+          key: ${{ hashFiles('**/yarn.lock') }}
+
+      - name: Install tools
+        run: |
+          cargo install cargo-quickinstall
+          cargo quickinstall cargo-make --version 0.35.15
+
+      - name: Build Docker container
+        run: cargo make --profile ${{ matrix.profile }} build-docker
+
+      - name: Test Docker container
+        run: cargo make --profile ${{ matrix.profile }} test-docker
+
+  publish:
+    name: publish
+    needs: setup
+    if: needs.setup.outputs.publish != '{}'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.setup.outputs.publish) }}
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Install Rust toolchain
+        uses: ./.github/actions/install-rust-toolchain
+        with:
+          toolchain: ${{ matrix.toolchain }}
+
+      - name: Install tools
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          cargo install cargo-quickinstall
+          cargo quickinstall cargo-make --version 0.35.15
+          cargo quickinstall cargo-hack --version 0.5.15
+          cargo quickinstall cargo-nextest --version 0.9.28
+
+      - name: Run lints
+        if: github.event_name == 'pull_request'
+        working-directory: ${{ matrix.directory }}
+        run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} lint
+
+      - name: Run tests
+        if: github.event_name == 'pull_request'
+        working-directory: ${{ matrix.directory }}
+        run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} test --no-fail-fast
 
       - name: Login
         run: |
@@ -254,16 +309,16 @@ jobs:
       - name: Publish (dry run)
         if: github.event_name == 'pull_request'
         working-directory: ${{ matrix.directory }}
-        run: cargo publish --all-features --dry-run
+        run: cargo +${{ matrix.toolchain }} publish --all-features --dry-run
 
       - name: Publish
-        if: github.event_name == 'push' && github.ref == 'ref/head/main'
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         working-directory: ${{ matrix.directory }}
-        run: cargo publish --all-features
+        run: cargo +${{ matrix.toolchain }} publish --all-features
 
   merging-enabled:
     name: merging enabled
-    needs: [lint, test, publish]
+    needs: [lint, test, coverage, docker, publish]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -273,6 +328,12 @@ jobs:
       - name: check test
         run: |
           [[ ${{ needs.test.result }} =~ success|skipped ]]
+      - name: check coverage
+        run: |
+          [[ ${{ needs.coverage.result }} =~ success|skipped ]]
+      - name: check docker
+        run: |
+          [[ ${{ needs.docker.result }} =~ success|skipped ]]
       - name: check publish
         run: |
           [[ ${{ needs.publish.result }} =~ success|skipped ]]

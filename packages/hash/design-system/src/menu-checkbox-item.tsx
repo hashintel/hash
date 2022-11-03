@@ -1,12 +1,12 @@
 import { Checkbox, ListItemIcon } from "@mui/material";
-import * as React from "react";
+import { forwardRef, ForwardRefRenderFunction, ReactNode } from "react";
 import { MenuItem, MenuItemProps } from "./menu-item";
 
 export type MenuCheckboxItemProps = {
-  children?: React.ReactNode;
+  children?: ReactNode;
 } & Omit<MenuItemProps, "noSelectBackground">;
 
-const MenuCheckboxItem: React.ForwardRefRenderFunction<
+const MenuCheckboxItem: ForwardRefRenderFunction<
   HTMLLIElement,
   MenuCheckboxItemProps
 > = ({ selected, children, ...props }, ref) => {
@@ -20,6 +20,6 @@ const MenuCheckboxItem: React.ForwardRefRenderFunction<
   );
 };
 
-const MenuCheckboxItemForwardRef = React.forwardRef(MenuCheckboxItem);
+const MenuCheckboxItemForwardRef = forwardRef(MenuCheckboxItem);
 
 export { MenuCheckboxItemForwardRef as MenuCheckboxItem };

@@ -4,10 +4,10 @@ import {
   AggregateEntityQuery,
   AggregateEntityQueryVariables,
 } from "@hashintel/hash-shared/graphql/apiTypes.gen";
-import { VoidFunctionComponent } from "react";
+import { FunctionComponent } from "react";
 import { tw } from "twind";
 import { Typography } from "@mui/material";
-import { guessEntityName } from "../../lib/entities";
+import { generateEntityLabel } from "../../lib/entities";
 import { Link } from "../../shared/ui";
 
 type AccountEntityOfTypeListProps = {
@@ -15,7 +15,7 @@ type AccountEntityOfTypeListProps = {
   entityTypeId: string;
 };
 
-export const AccountEntityOfTypeList: VoidFunctionComponent<
+export const AccountEntityOfTypeList: FunctionComponent<
   AccountEntityOfTypeListProps
 > = ({ accountId, entityTypeId }) => {
   const { data, loading } = useQuery<
@@ -50,7 +50,7 @@ export const AccountEntityOfTypeList: VoidFunctionComponent<
       {results.map((entity) => (
         <li className={tw`mb-2`} key={entity.entityId}>
           <Link noLinkStyle href={`/${accountId}/entities/${entity.entityId}`}>
-            <a>{guessEntityName(entity)}</a>
+            <a>{generateEntityLabel(entity, entity.entityType.properties)}</a>
           </Link>
         </li>
       ))}

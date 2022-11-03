@@ -1,0 +1,21 @@
+{
+  "$schema": "https://turborepo.org/schema.json",
+  "pipeline": {
+    "build": {
+      "outputs": ["./dist", "./.next"],
+      "dependsOn": ["codegen"]
+    },
+    "codegen": {
+      "outputs": ["./src/**/*.gen.*"]
+    },
+    "fix:eslint": {
+      "cache": false
+    },
+    "lint:eslint": {
+      "outputs": []
+    },
+    "lint:tsc": {
+      "outputs": []
+    }
+  }
+}

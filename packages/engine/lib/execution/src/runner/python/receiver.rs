@@ -18,7 +18,10 @@ fn experiment_init_to_nng(init: &ExperimentInitRunnerMsg) -> PythonResult<nng::M
         flatbuffers_gen::init_generated::ExperimentId(*(init.experiment_id.as_bytes()));
 
     // Build the SharedContext Flatbuffer Batch objects and collect their offsets in a vec
-    let shared_context = shared_ctx_to_fbs(&mut fbb, &init.shared_context);
+    let shared_context = {
+        let upgraded = init.shared_context.upgrade();
+        shared_ctx_to_fbs(&mut fbb, upgraded.unwrap().as_ref())
+    };
 
     // Build the Flatbuffer Package objects and collect their offsets in a vec
     let package_config = pkgs_to_fbs(&mut fbb, &init.package_config)?;

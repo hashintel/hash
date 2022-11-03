@@ -13,6 +13,12 @@ mod neighbors;
 mod state;
 mod topology;
 
+mod comments {
+    use crate::run_test;
+
+    run_test!(comments);
+}
+
 // TODO: figure out where it makes the most sense to put this, in the same folder? How do we
 //  better convey the ideas of the group above, compared to other unit-like integration tests we may
 //  wish to make

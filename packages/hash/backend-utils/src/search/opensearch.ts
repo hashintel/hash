@@ -1,4 +1,4 @@
-import { JSONObject } from "blockprotocol";
+import { JsonObject } from "@blockprotocol/core";
 import { Client, ClientOptions, errors } from "@opensearch-project/opensearch";
 import { DataSource } from "apollo-datasource";
 
@@ -113,6 +113,7 @@ export class OpenSearch extends DataSource implements SearchAdapter {
   ): Promise<OpenSearch> {
     const protocol = cfg.httpsEnabled ? "https" : "http";
     const node = `${protocol}://${cfg.host}:${cfg.port}/`;
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we want to override 0
     const attempts = cfg.maxConnectionAttempts || 10;
     if (attempts < 1) {
       throw new Error("config maxConnectionAttempts must be at least 1");
@@ -217,7 +218,7 @@ export class OpenSearch extends DataSource implements SearchAdapter {
         index: hit._index as string,
         id: hit._id as string,
         score: hit._score as number,
-        document: hit._source as JSONObject,
+        document: hit._source as JsonObject,
       }),
     );
 
@@ -325,7 +326,7 @@ export class OpenSearch extends DataSource implements SearchAdapter {
         index: hit._index as string,
         id: hit._id as string,
         score: hit._score as number,
-        document: hit._source as JSONObject,
+        document: hit._source as JsonObject,
       }),
     );
 
@@ -388,7 +389,7 @@ export class OpenSearch extends DataSource implements SearchAdapter {
         index: hit._index as string,
         id: hit._id as string,
         score: hit._score as number,
-        document: hit._source as JSONObject,
+        document: hit._source as JsonObject,
       }),
     );
 

@@ -1,10 +1,16 @@
-import React, { useEffect, useState, useRef, VFC } from "react";
+import {
+  useEffect,
+  useState,
+  useRef,
+  FunctionComponent,
+  FormEvent,
+} from "react";
 import { tw } from "twind";
 import { useRouter } from "next/router";
 
 import { LogoIcon, SpinnerIcon } from "../../shared/icons";
 import { TextInput } from "../../components/forms/TextInput";
-import { useUser } from "../../components/hooks/useUser";
+import { useAuthenticatedUser } from "../../components/hooks/useAuthenticatedUser";
 import { InviteHeader } from "../shared/invite-header";
 import { InvitationInfo } from "../shared/auth-utils";
 import { Link } from "../../shared/ui";
@@ -16,7 +22,7 @@ type SignupIntroProps = {
   invitationInfo: InvitationInfo | null;
 };
 
-export const SignupIntro: VFC<SignupIntroProps> = ({
+export const SignupIntro: FunctionComponent<SignupIntroProps> = ({
   handleSubmit,
   loading,
   errorMessage,
@@ -24,7 +30,7 @@ export const SignupIntro: VFC<SignupIntroProps> = ({
 }) => {
   const [email, setEmail] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
-  const { user } = useUser();
+  const { authenticatedUser } = useAuthenticatedUser();
   const router = useRouter();
 
   useEffect(() => {
@@ -32,12 +38,12 @@ export const SignupIntro: VFC<SignupIntroProps> = ({
   }, []);
 
   useEffect(() => {
-    if (user?.accountSignupComplete) {
-      void router.push(`/${user.accountId}`);
+    if (authenticatedUser?.accountSignupComplete) {
+      void router.push(`/${authenticatedUser.entityId}`);
     }
-  }, [user, router]);
+  }, [authenticatedUser, router]);
 
-  const onSubmit = (evt: React.FormEvent) => {
+  const onSubmit = (evt: FormEvent) => {
     evt.preventDefault();
     handleSubmit(email);
   };

@@ -2,7 +2,13 @@ import { Box, Container, Stack, Typography } from "@mui/material";
 import { BoxProps } from "@mui/system";
 import axios from "axios";
 import { useRouter } from "next/router";
-import { useCallback, useEffect, useRef, useState, VFC } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  FunctionComponent,
+} from "react";
 import { unstable_batchedUpdates } from "react-dom";
 import { FRONTEND_URL } from "../config";
 import { Button } from "./Button";
@@ -16,7 +22,7 @@ const EMAIL_REGEX =
 
 const subscribeElmId = "subscribe";
 
-export const Subscribe: VFC<BoxProps> = (props) => {
+export const Subscribe: FunctionComponent<BoxProps> = (props) => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [userJoined, setUserJoined] = useState<boolean>(false);
@@ -201,7 +207,7 @@ export const Subscribe: VFC<BoxProps> = (props) => {
   );
 };
 
-const Community: VFC = () => {
+const Community: FunctionComponent = () => {
   return (
     <Box
       sx={{
@@ -279,7 +285,7 @@ const Community: VFC = () => {
   );
 };
 
-export const PreFooter: VFC<{ subscribe?: boolean }> = ({
+export const PreFooter: FunctionComponent<{ subscribe?: boolean }> = ({
   subscribe = true,
 }) => (
   <>

@@ -1,5 +1,5 @@
 import { useRouter } from "next/router";
-import { useState, VoidFunctionComponent } from "react";
+import { useState, FunctionComponent } from "react";
 import { tw } from "twind";
 
 import { JsonSchema } from "@hashintel/hash-shared/json-utils";
@@ -19,7 +19,7 @@ type SubSchemaItemProps = {
   workingSchemaDraft: JsonSchema;
 };
 
-export const SubSchemaItem: VoidFunctionComponent<SubSchemaItemProps> = ({
+export const SubSchemaItem: FunctionComponent<SubSchemaItemProps> = ({
   dispatchSchemaUpdate,
   GoToSchemaElement,
   subSchema,

@@ -1,8 +1,7 @@
-import { VFC, useRef, useMemo } from "react";
+import { FunctionComponent, useRef, useMemo } from "react";
 import {
   Box,
   Typography,
-  Menu,
   Divider,
   ListItemText,
   ListItemAvatar,
@@ -14,64 +13,68 @@ import {
   bindTrigger,
   bindMenu,
 } from "material-ui-popup-state/hooks";
-import { Avatar, FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { useUser } from "../../../components/hooks/useUser";
-import { useLogout } from "../../../components/hooks/useLogout";
+import { Avatar, Menu, FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { useAuthenticatedUser } from "../../../components/hooks/useAuthenticatedUser";
 import { Button, MenuItem } from "../../ui";
 import { useRouteAccountInfo } from "../../routing";
+import { useLogoutFlow } from "../../../components/hooks/useLogoutFlow";
 
 type WorkspaceSwitcherProps = {};
 
-export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
+export const WorkspaceSwitcher: FunctionComponent<
+  WorkspaceSwitcherProps
+> = () => {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const popupState = usePopupState({
     variant: "popover",
     popupId: "workspace-switcher-menu",
   });
-  const { user } = useUser();
-  const { logout } = useLogout();
+  const { authenticatedUser } = useAuthenticatedUser();
+  const { logout } = useLogoutFlow();
   const { accountId } = useRouteAccountInfo();
 
   const activeWorkspace = useMemo(() => {
     let accountName = "";
 
-    if (user && accountId === user.accountId) {
-      accountName = user.properties.preferredName || user.properties.shortname!;
+    if (authenticatedUser && accountId === authenticatedUser.entityId) {
+      accountName =
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- @todo how to handle empty preferredName
+        authenticatedUser.preferredName || authenticatedUser.shortname!;
     } else {
-      const activeOrg = user?.memberOf.find(
-        ({ org }) => org.accountId === accountId,
-      )?.org;
+      const activeOrg = authenticatedUser?.memberOf.find(
+        ({ entityId }) => entityId === accountId,
+      );
 
       if (activeOrg) {
-        accountName = activeOrg.properties.name;
+        accountName = activeOrg.name;
       }
     }
 
     return { name: accountName || "User", accountId };
-  }, [accountId, user]);
+  }, [accountId, authenticatedUser]);
 
   const workspaceList = useMemo(() => {
-    if (!user) {
+    if (!authenticatedUser) {
       return [];
     }
 
     return [
       {
-        key: user.accountId,
-        url: `/${user.accountId}`,
+        key: authenticatedUser.entityId,
+        url: `/${authenticatedUser.entityId}`,
         title: "My personal workspace",
-        subText: `@${user.properties.shortname ?? "user"}`,
-        avatarTitle: user.properties.preferredName ?? "U",
+        subText: `@${authenticatedUser.shortname ?? "user"}`,
+        avatarTitle: authenticatedUser.preferredName ?? "U",
       },
-      ...user.memberOf.map(({ org }) => ({
-        key: org.accountId,
-        url: `/${org.accountId}`,
-        title: org.properties.name,
-        subText: `${org.memberships.length} members`,
-        avatarTitle: org.properties.name,
+      ...authenticatedUser.memberOf.map(({ entityId, name, members }) => ({
+        key: entityId,
+        url: `/${entityId}`,
+        title: name,
+        subText: `${members.length} members`,
+        avatarTitle: name,
       })),
     ];
-  }, [user]);
+  }, [authenticatedUser]);
 
   return (
     <Box>
@@ -129,7 +132,10 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
             href={url}
           >
             <ListItemAvatar>
-              <Avatar size={34} title={user?.properties.preferredName ?? "U"} />
+              <Avatar
+                size={34}
+                title={authenticatedUser?.preferredName ?? "U"}
+              />
             </ListItemAvatar>
             <ListItemText
               primary={title}

@@ -1,10 +1,10 @@
-import { VoidFunctionComponent } from "react";
+import { FunctionComponent } from "react";
 
 import { useRouter } from "next/router";
 import { Box, Drawer, Tooltip } from "@mui/material";
 import { faHome } from "@fortawesome/free-solid-svg-icons";
 import { IconButton } from "@hashintel/hash-design-system";
-import { AccountPageList } from "./account-page-list";
+import { AccountPageList } from "./account-page-list/account-page-list";
 
 import { AccountEntityTypeList } from "./account-entity-type-list";
 import { SidebarToggleIcon } from "../../icons";
@@ -16,7 +16,7 @@ import { useRouteAccountInfo, useRoutePageInfo } from "../../routing";
 
 export const SIDEBAR_WIDTH = 260;
 
-export const PageSidebar: VoidFunctionComponent = () => {
+export const PageSidebar: FunctionComponent = () => {
   const router = useRouter();
   const { sidebarOpen, closeSidebar } = useSidebarContext();
   const { accountId } = useRouteAccountInfo();
@@ -36,6 +36,7 @@ export const PageSidebar: VoidFunctionComponent = () => {
           width: SIDEBAR_WIDTH,
         },
       }}
+      data-testid="page-sidebar"
     >
       <Box
         sx={{

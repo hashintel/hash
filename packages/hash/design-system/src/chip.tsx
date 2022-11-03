@@ -1,10 +1,10 @@
-import * as React from "react";
 import {
   Chip as MuiChip,
   chipClasses,
   ChipProps as MuiChipProps,
 } from "@mui/material";
 import { faCircle } from "@fortawesome/free-solid-svg-icons";
+import { forwardRef, FunctionComponent } from "react";
 import { FontAwesomeIcon } from "./fontawesome-icon";
 
 export type ChipProps = {
@@ -18,7 +18,7 @@ export type ChipProps = {
 // is passed in
 // @see https://github.com/mui/material-ui/blob/master/packages/mui-material/src/Chip/Chip.js#L444-L448
 
-export const Chip: React.FC<ChipProps> = React.forwardRef(
+export const Chip: FunctionComponent<ChipProps> = forwardRef(
   (
     {
       sx = [],

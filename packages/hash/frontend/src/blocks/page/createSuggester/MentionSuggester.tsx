@@ -1,4 +1,4 @@
-import { useMemo, VFC } from "react";
+import { useMemo, FunctionComponent } from "react";
 import { tw } from "twind";
 import ArticleIcon from "@mui/icons-material/Article";
 
@@ -6,6 +6,7 @@ import { useUsers } from "../../../components/hooks/useUsers";
 import { useAccountPages } from "../../../components/hooks/useAccountPages";
 import { fuzzySearchBy } from "./fuzzySearchBy";
 import { Suggester } from "./Suggester";
+import { useRouteAccountInfo } from "../../../shared/routing";
 
 export interface MentionSuggesterProps {
   search?: string;
@@ -21,24 +22,29 @@ type SearchableItem = {
   isActiveOrgMember?: boolean;
 };
 
-export const MentionSuggester: VFC<MentionSuggesterProps> = ({
+export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   search = "",
   onChange,
   accountId,
 }) => {
-  const { data: users, loading: usersLoading } = useUsers();
+  const { users, loading: usersLoading } = useUsers();
   const { data: pages, loading: pagesLoading } = useAccountPages(accountId);
+
+  const { accountId: workspaceAccountId } = useRouteAccountInfo();
 
   const loading = usersLoading && pagesLoading;
 
   const options = useMemo(() => {
-    const iterableAccounts: Array<SearchableItem> = users.map((account) => ({
-      shortname: account.shortname,
-      name: account.name,
-      entityId: account.entityId,
-      type: "user",
-      isActiveOrgMember: account.isActiveOrgMember,
-    }));
+    const iterableAccounts: Array<SearchableItem> =
+      users?.map((user) => ({
+        shortname: user.shortname,
+        name: user.preferredName ?? user.shortname ?? "User",
+        entityId: user.entityId,
+        type: "user",
+        isActiveOrgMember: user.memberOf.some(
+          ({ entityId }) => entityId === workspaceAccountId,
+        ),
+      })) ?? [];
 
     const iterablePages: Array<SearchableItem> = pages.map((page) => ({
       name: page.title,
@@ -65,7 +71,7 @@ export const MentionSuggester: VFC<MentionSuggesterProps> = ({
     );
 
     return [...peopleSearch, ...pagesSearch];
-  }, [search, users, pages]);
+  }, [search, users, workspaceAccountId, pages]);
 
   return (
     <Suggester

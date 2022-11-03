@@ -1,5 +1,6 @@
 use std::{collections::HashMap, convert::TryFrom, sync::Arc};
 
+use json_comments::StripComments;
 use serde::{Deserialize, Serialize};
 use stateful::{
     agent::{AgentBatch, AgentSchema},
@@ -110,7 +111,8 @@ impl<'a> TryFrom<&'a str> for AnalysisSourceRepr {
         if source.trim().is_empty() {
             Ok(Self::default())
         } else {
-            let repr = match serde_json::from_str(source) {
+            let stripped = StripComments::new(source.as_bytes());
+            let repr = match serde_json::from_reader(stripped) {
                 Ok(repr) => repr,
                 Err(err) => {
                     return Err(Error::from(format!(

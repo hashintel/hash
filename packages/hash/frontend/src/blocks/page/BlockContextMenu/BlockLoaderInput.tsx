@@ -1,16 +1,21 @@
-import { Box, Collapse } from "@mui/material";
-import React, { useState, useRef, FormEvent } from "react";
-import { unstable_batchedUpdates } from "react-dom";
-
 import { TextField } from "@hashintel/hash-design-system";
-import { useBlockView } from "../BlockViewContext";
-import { useUserBlocks } from "../../userBlocks";
+import { Box, Collapse } from "@mui/material";
+import { FormEvent, FunctionComponent, useRef, useState } from "react";
+import { unstable_batchedUpdates } from "react-dom";
 import { Button } from "../../../shared/ui";
+import { useUserBlocks } from "../../userBlocks";
+import { useBlockView } from "../BlockViewContext";
 
 /** trim whitespace and remove trailing slash */
 const createNormalizedBlockUrl = (url: string) => url.trim().replace(/\/$/, "");
 
-export const BlockLoaderInput: React.VFC = () => {
+type BlockLoaderInputProps = {
+  onLoad: () => void;
+};
+
+export const BlockLoaderInput: FunctionComponent<BlockLoaderInputProps> = ({
+  onLoad,
+}) => {
   const blockView = useBlockView();
   const { value: userBlocks, setValue: setUserBlocks } = useUserBlocks();
 
@@ -32,24 +37,23 @@ export const BlockLoaderInput: React.VFC = () => {
 
     // take point before any state/pm-doc changes occur
     const pos = blockView.getPos();
-
     const normalizedUrl = createNormalizedBlockUrl(blockUrl);
 
     blockView.manager
-      .fetchAndDefineBlock(normalizedUrl, { bustCache: true })
-      .then((blockMeta) => {
+      .defineBlockByComponentId(normalizedUrl, { bustCache: true })
+      .then((block) => {
         unstable_batchedUpdates(() => {
           setError(null);
           setUserBlocks((prevUserBlocks) => ({
             ...prevUserBlocks,
-            [normalizedUrl]: blockMeta,
+            [normalizedUrl]: block,
           }));
         });
-        return blockView.manager.createRemoteBlock(normalizedUrl);
-      })
-      .then((block) => {
-        const { editorView } = blockView;
-        editorView.dispatch(editorView.state.tr.insert(pos, block));
+        const renderedBlock = blockView.manager.renderBlock(normalizedUrl);
+        blockView.editorView.dispatch(
+          blockView.editorView.state.tr.insert(pos, renderedBlock),
+        );
+        onLoad();
       })
       .catch((err) => {
         // eslint-disable-next-line no-console -- requires individual debugging
@@ -76,7 +80,7 @@ export const BlockLoaderInput: React.VFC = () => {
       <TextField
         size="xs"
         type="url"
-        placeholder="Load Block from URL..."
+        placeholder="Load block from URL..."
         required
         value={blockUrl}
         sx={{ flex: 1 }}

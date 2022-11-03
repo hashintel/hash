@@ -1,11 +1,12 @@
 import { useQuery } from "@apollo/client";
 import { PageSearchResult } from "@hashintel/hash-shared/graphql/apiTypes.gen";
 import { escapeRegExp } from "lodash";
-import React, {
+import {
+  ReactNode,
   useCallback,
   useEffect,
   useState,
-  VoidFunctionComponent,
+  FunctionComponent,
 } from "react";
 import { useDebounce, useKey, useOutsideClickRef } from "rooks";
 import { Box, Theme, useTheme, useMediaQuery, SxProps } from "@mui/material";
@@ -17,7 +18,7 @@ import {
   SearchPagesQueryVariables,
 } from "../../../graphql/apiTypes.gen";
 import { searchPages } from "../../../graphql/queries/search.queries";
-import { useUser } from "../../../components/hooks/useUser";
+import { useAuthenticatedUser } from "../../../components/hooks/useAuthenticatedUser";
 import { HASH_OPENSEARCH_ENABLED } from "../../../lib/public-env";
 import { SearchInput } from "./search-bar/search-input";
 import { Button, Link } from "../../ui";
@@ -50,8 +51,9 @@ const toBlockUrl = (searchPage: PageSearchResult): string => {
   return segments.join("");
 };
 
-const ResultList: React.FC<{
+const ResultList: FunctionComponent<{
   isMobile: boolean;
+  children?: ReactNode;
 }> = ({ isMobile, ...props }) => (
   <Box
     component="ul"
@@ -71,8 +73,9 @@ const ResultList: React.FC<{
   </Box>
 );
 
-const ResultItem: React.FC<{
+const ResultItem: FunctionComponent<{
   sx?: SxProps<Theme>;
+  children?: ReactNode;
 }> = ({ sx = [], ...props }) => {
   const theme = useTheme();
 
@@ -140,7 +143,7 @@ const getSearchBarResponsiveStyles = (
   return {};
 };
 
-const SearchBarWhenSearchIsEnabled: React.VFC = () => {
+const SearchBarWhenSearchIsEnabled: FunctionComponent = () => {
   const theme = useTheme();
 
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -156,14 +159,17 @@ const SearchBarWhenSearchIsEnabled: React.VFC = () => {
     }
   }, [displayedQuery, displaySearchInput]);
 
-  const { user } = useUser();
+  const { authenticatedUser } = useAuthenticatedUser();
 
   const { data, loading } = useQuery<
     SearchPagesQuery,
     SearchPagesQueryVariables
   >(searchPages, {
-    variables: { accountId: user?.accountId!, query: submittedQuery },
-    skip: !user?.accountId || !submittedQuery,
+    variables: {
+      accountId: authenticatedUser!.entityId,
+      query: submittedQuery,
+    },
+    skip: !authenticatedUser?.entityId || !submittedQuery,
     fetchPolicy: "network-only",
   });
 
@@ -256,7 +262,7 @@ const SearchBarWhenSearchIsEnabled: React.VFC = () => {
   );
 };
 
-const SearchBarWhenSearchIsDisabled: VoidFunctionComponent = () => {
+const SearchBarWhenSearchIsDisabled: FunctionComponent = () => {
   return <div />;
 };
 

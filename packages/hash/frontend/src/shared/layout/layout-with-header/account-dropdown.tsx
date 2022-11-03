@@ -1,33 +1,26 @@
-import { useMemo, VoidFunctionComponent } from "react";
-import {
-  Box,
-  Typography,
-  Divider,
-  Tooltip,
-  Menu,
-  ListItemText,
-} from "@mui/material";
+import { useMemo, FunctionComponent } from "react";
+import { Box, Typography, Divider, Tooltip, ListItemText } from "@mui/material";
 
 import {
   usePopupState,
   bindMenu,
   bindTrigger,
 } from "material-ui-popup-state/hooks";
-import { Avatar } from "@hashintel/hash-design-system";
-import { UserFieldsFragment } from "../../../graphql/apiTypes.gen";
+import { Avatar, Menu } from "@hashintel/hash-design-system";
 import { MenuItem } from "../../ui";
 import { HeaderIconButton } from "./shared/header-icon-button";
+import { AuthenticatedUser } from "../../../lib/user";
 
 type AccountDropdownProps = {
   avatar?: string;
   logout: () => void;
-  user: UserFieldsFragment;
+  authenticatedUser: AuthenticatedUser;
 };
 
-export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
+export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
   avatar,
   logout,
-  user,
+  authenticatedUser,
 }) => {
   const popupState = usePopupState({
     variant: "popover",
@@ -35,10 +28,12 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
   });
 
   const userPrimaryEmail = useMemo(() => {
-    const primaryEmail = user.properties.emails.find((email) => email.primary);
+    const primaryEmail = authenticatedUser.emails.find(
+      (email) => email.primary,
+    );
 
     return primaryEmail?.address;
-  }, [user]);
+  }, [authenticatedUser]);
 
   return (
     <Box>
@@ -53,7 +48,7 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
               }}
               mb={0.5}
             >
-              <strong>{user.properties.preferredName}</strong>
+              <strong>{authenticatedUser.preferredName}</strong>
             </Typography>
             {userPrimaryEmail && (
               <Typography
@@ -86,7 +81,7 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
               sx={{ height: "32px", width: "32px", borderRadius: "100%" }}
             />
           ) : (
-            <Avatar size={32} title={user?.properties.preferredName ?? "U"} />
+            <Avatar size={32} title={authenticatedUser?.preferredName ?? "U"} />
           )}
         </HeaderIconButton>
       </Tooltip>
@@ -120,7 +115,7 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
               fontWeight: 500,
             })}
           >
-            {user.properties.preferredName}
+            {authenticatedUser.preferredName}
           </Typography>
           {userPrimaryEmail && (
             <Typography

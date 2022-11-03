@@ -1,8 +1,9 @@
 import { Box, Typography } from "@mui/material";
 import Image from "next/image";
-import { FunctionComponent } from "react";
+import { FunctionComponent, ReactNode } from "react";
 
 export const MdxTalkSlide: FunctionComponent<{
+  children?: ReactNode;
   src: string;
   width: string;
   height: string;

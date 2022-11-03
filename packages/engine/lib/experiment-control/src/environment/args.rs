@@ -9,7 +9,7 @@ use execution::package::experiment::ExperimentId;
 
 use crate::environment::{LogFormat, LogLevel, OutputLocation};
 
-/// Arguments passed to hEngine
+/// Arguments passed to HASH Engine
 #[derive(Debug)]
 #[cfg_attr(feature = "clap", derive(Parser))]
 #[cfg_attr(feature = "clap", clap(about, version, author))]

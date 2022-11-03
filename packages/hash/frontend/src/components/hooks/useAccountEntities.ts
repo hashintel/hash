@@ -13,7 +13,7 @@ export const useAccountEntities = ({
   skip,
 }: {
   accountId: string;
-  entityTypeFilter: EntityTypeChoice;
+  entityTypeFilter?: EntityTypeChoice;
   skip: boolean;
 }) => {
   const { data, loading } = useQuery<

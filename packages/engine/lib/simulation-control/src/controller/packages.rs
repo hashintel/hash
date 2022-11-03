@@ -1,5 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
+use arrow2::chunk::Chunk;
 use execution::{
     package::simulation::{
         context::ContextPackage,
@@ -193,7 +194,7 @@ impl Packages {
 
         pkgs.into_iter().for_each(|mut package| {
             let cpu_bound = package.cpu_bound();
-            futs.push(if cpu_bound {
+            futs.push_back(if cpu_bound {
                 tokio::task::spawn_blocking(move || {
                     let res = block_on(package.run());
                     (package, res)
@@ -226,10 +227,10 @@ impl Packages {
         sim_run_config: &SimulationRunConfig,
         num_agents: usize,
     ) -> Result<Context> {
-        let keys_and_columns = self
+        let mut keys_and_columns = self
             .context
             .iter()
-            // TODO: remove the need for this by creating a method to generate empty arrow columns 
+            // TODO: remove the need for this by creating a method to generate empty arrow columns
             //       from the schema
             .map(|package| {
                 package
@@ -239,7 +240,7 @@ impl Packages {
             .into_iter()
             .flatten()
             .map(|(field_key, col)| (field_key.value().to_string(), col))
-            .collect::<HashMap<String, Arc<dyn arrow::array::Array>>>();
+            .collect::<HashMap<String, Box<dyn arrow2::array::Array>>>();
 
         // because we aren't generating the columns from the schema, we need to reorder the cols
         // from the packages to match this is another reason to move column creation to be
@@ -247,23 +248,39 @@ impl Packages {
         let schema = &sim_run_config.simulation_config().schema.context_schema;
         let columns = schema
             .arrow
-            .fields()
+            .fields
             .iter()
             .map(|arrow_field| {
-                keys_and_columns
-                    .get(arrow_field.name())
+                let col = keys_and_columns
+                    .remove(&arrow_field.name)
                     .ok_or_else(|| {
                         Error::from(format!(
                             "Expected to find an arrow column for key: {}",
-                            arrow_field.name()
+                            arrow_field.name
                         ))
-                    })
-                    .map(Arc::clone)
+                    });
+                if let Ok(col) = &col {
+                    debug_assert_eq!(
+                        arrow_field.data_type(),
+                        col.data_type(),
+                        "the datatype for {} does not match the schema",
+                        arrow_field.name
+                    );
+                    assert_eq!(
+                        col.len(),
+                        num_agents,
+                        r#"the length ({}) of the column "{}" does not equal the number of agents ({num_agents}). {:#?}"#,
+                        col.len(),
+                        arrow_field.name,
+                        col
+                    );
+                }
+                col
             })
             .collect::<Result<Vec<_>>>()?;
 
         let context = Context::from_columns(
-            columns,
+            Chunk::new(columns),
             &sim_run_config.simulation_config().schema.context_schema,
             MemoryId::new(
                 sim_run_config
@@ -301,7 +318,7 @@ impl Packages {
             let snapshot_clone = snapshot_arc.clone();
 
             let cpu_bound = package.cpu_bound();
-            futs.push(if cpu_bound {
+            futs.push_back(if cpu_bound {
                 let current_span = Span::current();
                 tokio::task::spawn_blocking(move || {
                     let package_span = {
@@ -357,15 +374,15 @@ impl Packages {
         let schema = &sim_config.simulation_config().schema.context_schema;
         let column_writers = schema
             .arrow
-            .fields()
+            .fields
             .iter()
             .map(|arrow_field| {
                 keys_and_column_writers
-                    .get(arrow_field.name())
+                    .get(&arrow_field.name)
                     .ok_or_else(|| {
                         Error::from(format!(
                             "Expected to find a context column writer for key: {}",
-                            arrow_field.name()
+                            arrow_field.name
                         ))
                     })
             })
@@ -408,7 +425,7 @@ impl Packages {
             let context = context.clone();
 
             let cpu_bound = pkg.cpu_bound();
-            futs.push(if cpu_bound {
+            futs.push_back(if cpu_bound {
                 let current_span = Span::current();
                 tokio::task::spawn_blocking(move || {
                     let package_span = {

@@ -5,13 +5,14 @@ import {
 import {
   Box,
   Collapse,
+  formHelperTextClasses,
   InputAdornment,
   outlinedInputClasses,
   TextField as MuiTextField,
   TextFieldProps as MuiTextFieldProps,
   Typography,
 } from "@mui/material";
-import { forwardRef, VFC } from "react";
+import { forwardRef, FunctionComponent } from "react";
 import { FontAwesomeIcon } from "./fontawesome-icon";
 
 type TextFieldProps = {
@@ -20,7 +21,7 @@ type TextFieldProps = {
   autoResize?: boolean;
 } & MuiTextFieldProps;
 
-export const TextField: VFC<TextFieldProps> = forwardRef(
+export const TextField: FunctionComponent<TextFieldProps> = forwardRef(
   (
     {
       helperText,
@@ -56,7 +57,16 @@ export const TextField: VFC<TextFieldProps> = forwardRef(
     return (
       <MuiTextField
         ref={ref}
-        sx={sx}
+        sx={[
+          {
+            ...(!helperText && {
+              [`.${formHelperTextClasses.root}`]: {
+                marginTop: 0,
+              },
+            }),
+          },
+          ...(Array.isArray(sx) ? sx : [sx]),
+        ]}
         {...textFieldProps}
         error={error}
         label={

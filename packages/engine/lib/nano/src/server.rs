@@ -56,7 +56,7 @@ impl Worker {
     /// [`Sleep`]: nng::AioResult::Sleep
     fn new(socket: &nng::Socket, sender: MsgSender, url: &str) -> Result<Self, nng::Error> {
         let ctx_orig = nng::Context::new(socket)
-            .report()
+            .into_report()
             .attach_printable("Could not create context")?;
         let ctx = ctx_orig.clone();
 
@@ -89,7 +89,7 @@ impl Worker {
         // Initialize the Aio in the Recv state
         ctx_orig
             .recv(&aio)
-            .report()
+            .into_report()
             .attach_printable("Could not receive message from context")?;
 
         Ok(Self { _aio: aio })
@@ -107,12 +107,12 @@ impl Server {
     /// - the worker could not be created from the provided `url`.
     pub fn new(url: &str) -> Result<Self> {
         let socket = nng::Socket::new(nng::Protocol::Rep0)
-            .report()
+            .into_report()
             .attach_printable("Could not create socket")
             .change_context(ErrorKind::ServerCreation)?;
         socket
             .listen(url)
-            .report()
+            .into_report()
             .attach_printable("Could not listen on socket")
             .change_context(ErrorKind::ServerCreation)?;
 
@@ -152,7 +152,7 @@ impl Server {
     {
         let msg = self.receiver.recv().await.expect(RECV_EXPECT_MESSAGE);
         serde_json::from_slice::<T>(msg.as_slice())
-            .report()
+            .into_report()
             .attach_printable("Could not convert message from JSON")
             .change_context(ErrorKind::Receive)
     }

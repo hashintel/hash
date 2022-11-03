@@ -1,5 +1,5 @@
 use core::fmt;
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use memory::shared_memory::{MemoryId, Metaversion, Segment};
 use serde::{Deserialize, Serialize};
@@ -52,6 +52,7 @@ impl fmt::Debug for Dataset {
 /// [`Globals`]: crate::global::Globals
 /// [`Segment`]: memory::shared_memory::Segment
 /// [`data()`]: Self::data
+#[derive(Debug)]
 pub struct SharedDataset {
     segment: Segment,
 }
@@ -105,9 +106,8 @@ impl SharedDataset {
 /// Holds static data across simulation runs within an experiment.
 ///
 /// It's used to manage sharing access to data, such as datasets.
-#[derive(Clone)]
 pub struct SharedStore {
-    pub datasets: HashMap<String, Arc<SharedDataset>>,
+    pub datasets: HashMap<String, SharedDataset>,
 }
 
 impl SharedStore {
@@ -116,7 +116,7 @@ impl SharedStore {
         for dataset in datasets {
             let dataset_name = dataset.shortname.clone();
             let dataset_batch = SharedDataset::from_shared(dataset, MemoryId::new(memory_base_id))?;
-            dataset_batches.insert(dataset_name, Arc::new(dataset_batch));
+            dataset_batches.insert(dataset_name, dataset_batch);
         }
 
         Ok(SharedStore {

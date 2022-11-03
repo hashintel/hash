@@ -1,8 +1,9 @@
-import React, { useState, VFC } from "react";
+import { useState, FunctionComponent } from "react";
 import { tw } from "twind";
 
-import { WayToUseHash } from "../../graphql/apiTypes.gen";
 import { HumanGreetingIcon, PeopleIcon, SpinnerIcon } from "../../shared/icons";
+
+type WayToUseHash = "BY_THEMSELVES" | "WITH_A_TEAM";
 
 type AccountUsageProps = {
   updateWayToUseHash: (usingHow: WayToUseHash) => void;
@@ -15,17 +16,17 @@ const USAGE_OPTIONS = [
     icon: <HumanGreetingIcon className={tw`mb-6 w-20 h-20`} />,
     title: "By myself",
     description: "Create a personal knowledge graph",
-    value: WayToUseHash.ByThemselves,
+    value: "BY_THEMSELVES",
   },
   {
     icon: <PeopleIcon className={tw`mb-6 w-20 h-20`} />,
     title: "With a team",
     description: "Share your graph in whole or part",
-    value: WayToUseHash.WithATeam,
+    value: "BY_THEMSELVES",
   },
 ] as const;
 
-export const AccountUsage: VFC<AccountUsageProps> = ({
+export const AccountUsage: FunctionComponent<AccountUsageProps> = ({
   updateWayToUseHash,
   loading,
   errorMessage,

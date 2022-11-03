@@ -43,35 +43,35 @@ impl fmt::Debug for WorkerHandle {
 impl Worker {
     fn new(url: &str, request_rx: spmc::Receiver<Request>) -> Result<Self, nng::Error> {
         let socket = nng::Socket::new(nng::Protocol::Req0)
-            .report()
+            .into_report()
             .attach_printable("Could not create nng socket")?;
 
         let builder = nng::DialerBuilder::new(&socket, url)
-            .report()
+            .into_report()
             .attach_printable("Could not create nng dialer")?;
         builder
             .set_opt::<ReconnectMaxTime>(Some(RECONNECT_MAX_TIME))
-            .report()
+            .into_report()
             .attach_printable_lazy(|| {
                 format!("Could not set maximum reconnection time to {RECONNECT_MAX_TIME:?}")
             })?;
         builder
             .set_opt::<ReconnectMinTime>(Some(RECONNECT_MIN_TIME))
-            .report()
+            .into_report()
             .attach_printable_lazy(|| {
                 format!("Could not set minimum reconnection time to {RECONNECT_MIN_TIME:?}")
             })?;
         let dialer = builder
             .start(false)
             .map_err(|(_, error)| error)
-            .report()
+            .into_report()
             .attach_printable("Could not start nng dialer")?;
 
         let ctx = nng::Context::new(&socket)
-            .report()
+            .into_report()
             .attach_printable("Could not create nng context")?;
         ctx.set_opt::<ResendTime>(Some(RESEND_TIME))
-            .report()
+            .into_report()
             .attach_printable_lazy(|| format!("Could not set resend time to {RESEND_TIME:?}"))?;
 
         // There will only ever be one message in the channel. But, it needs to be
@@ -92,7 +92,7 @@ impl Worker {
                     .send(
                         message
                             .map(|_| ())
-                            .report()
+                            .into_report()
                             .change_context(ErrorKind::Receive),
                     )
                     .expect(SEND_EXPECT_MESSAGE);
@@ -101,7 +101,7 @@ impl Worker {
                 unreachable!("unexpected sleep");
             }
         })
-        .report()
+        .into_report()
         .attach_printable("Could not create asynchronous I/O context")?;
 
         Ok(Self {
@@ -192,7 +192,7 @@ impl Client {
     pub async fn send<T: serde::Serialize + Sync>(&mut self, msg: &T) -> Result<()> {
         let mut nng_msg = nng::Message::new();
         serde_json::to_writer(&mut nng_msg, msg)
-            .report()
+            .into_report()
             .attach_printable("Could not serialize message")
             .change_context(ErrorKind::Send)?;
 

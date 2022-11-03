@@ -9,10 +9,5 @@ fn main() {
             .to_string();
         println!("cargo:rustc-link-search={nng_lib_path}");
         println!("cargo:rustc-link-lib=dylib=nng");
-    } else if let Ok(host) = std::env::var("HOST") {
-        assert_ne!(
-            host, "aarch64-apple-darwin",
-            "`NNG_PATH` environment variable wasn't set, refer to README"
-        );
     }
 }

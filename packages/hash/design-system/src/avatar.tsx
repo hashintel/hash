@@ -1,4 +1,4 @@
-import * as React from "react";
+import { FunctionComponent } from "react";
 import { Box, BoxProps } from "@mui/material";
 
 interface AvatarProps extends BoxProps {
@@ -7,7 +7,7 @@ interface AvatarProps extends BoxProps {
   src?: string;
 }
 
-export const Avatar: React.VFC<AvatarProps> = ({
+export const Avatar: FunctionComponent<AvatarProps> = ({
   title,
   size = 20,
   src,
@@ -53,6 +53,7 @@ export const Avatar: React.VFC<AvatarProps> = ({
             lineHeight: 1,
           }}
         >
+          {/* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- @todo what to do about empty title */}
           {(title || "User").charAt(0).toUpperCase()}
         </Box>
       )}

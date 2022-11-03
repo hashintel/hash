@@ -1,22 +1,137 @@
-import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
+import { HashBlock } from "@hashintel/hash-shared/blocks";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
-import { apiOrigin } from "@hashintel/hash-shared/environment";
-import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
-// import applyDevTools from "prosemirror-dev-tools";
-import { ProsemirrorNode, Schema } from "prosemirror-model";
-import { Plugin } from "prosemirror-state";
+import { debounce } from "lodash";
+// import { apiOrigin } from "@hashintel/hash-shared/environment";
+import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
 import { EditorView } from "prosemirror-view";
+import { BlockEntity } from "@hashintel/hash-shared/entity";
+import { save } from "@hashintel/hash-shared/save";
+import { ApolloClient } from "@apollo/client";
+import {
+  addEntityStoreAction,
+  entityStorePluginState,
+} from "@hashintel/hash-shared/entityStorePlugin";
+
+// import applyDevTools from "prosemirror-dev-tools";
+import { Schema } from "prosemirror-model";
+import { Plugin } from "prosemirror-state";
+import { RefObject } from "react";
+import { LoadingView } from "./LoadingView";
 import { BlockView } from "./BlockView";
 import { EditorConnection } from "./collab/EditorConnection";
 import { ComponentView } from "./ComponentView";
 import { createErrorPlugin } from "./createErrorPlugin";
 import { createFormatPlugins } from "./createFormatPlugins";
+import { createPlaceholderPlugin } from "./createPlaceholderPlugin/createPlaceholderPlugin";
 import { createSuggester } from "./createSuggester/createSuggester";
-import { MentionView } from "./MentionView/MentionView";
+import { createFocusPageTitlePlugin } from "./focusPageTitlePlugin";
 import styles from "./style.module.css";
 import { RenderPortal } from "./usePortals";
+import { createTextEditorView } from "./createTextEditorView";
 
-export type BlocksMetaMap = Record<string, BlockMeta>;
+export type BlocksMap = Record<string, HashBlock>;
+
+const createSavePlugin = (
+  ownedById: string,
+  pageEntityId: string,
+  client: ApolloClient<unknown>,
+) => {
+  let saveQueue = Promise.resolve<unknown>(null);
+
+  const triggerSave = (view: EditorView<Schema>) => {
+    saveQueue = saveQueue.catch().then(async () => {
+      const [newContents, newDraftToEntityId] = await save(
+        client,
+        ownedById,
+        pageEntityId,
+        view.state.doc,
+        entityStorePluginState(view.state).store,
+      );
+
+      if (!view.isDestroyed) {
+        const { tr } = view.state;
+        addEntityStoreAction(view.state, tr, {
+          type: "mergeNewPageContents",
+          payload: {
+            blocks: newContents,
+            presetDraftIds: newDraftToEntityId,
+          },
+        });
+
+        view.dispatch(tr);
+      }
+    });
+  };
+
+  let latestView: EditorView<Schema> | null = null;
+
+  let interval: ReturnType<typeof setInterval> | void;
+
+  const minWaitTime = 400;
+  const maxWaitTime = 2000;
+
+  const idleSave = () => {
+    if (!interval) {
+      interval = setInterval(() => {
+        if (latestView) {
+          triggerSave(latestView);
+        }
+      }, maxWaitTime);
+    }
+  };
+
+  // Saving happens through a debounced write operation
+  const writeDebounce = debounce(() => {
+    if (latestView) {
+      triggerSave(latestView);
+    }
+  }, minWaitTime);
+
+  return new Plugin<unknown, Schema>({
+    view: (_viewOnCreation: EditorView<Schema>) => {
+      return {
+        update: (view, prevState) => {
+          latestView = view;
+          if (view.state.doc !== prevState.doc) {
+            if (interval) {
+              interval = clearInterval(interval);
+            }
+            writeDebounce();
+          } else {
+            idleSave();
+          }
+        },
+        destroy: () => {
+          if (interval) {
+            interval = clearInterval(interval);
+          }
+          writeDebounce.cancel();
+        },
+      };
+    },
+    props: {
+      handleDOMEvents: {
+        keydown(view, evt) {
+          // Manual save for cmd+s or ctrl+s
+          if (evt.key === "s" && (evt.metaKey || evt.ctrlKey)) {
+            evt.preventDefault();
+            writeDebounce.cancel();
+            triggerSave(view);
+
+            return true;
+          }
+          return false;
+        },
+        blur(view) {
+          writeDebounce.cancel();
+          latestView = view;
+          idleSave();
+          return false;
+        },
+      },
+    },
+  });
+};
 
 /**
  * An editor view manages the DOM structure that represents an editable document.
@@ -27,99 +142,91 @@ export const createEditorView = (
   renderPortal: RenderPortal,
   accountId: string,
   pageEntityId: string,
-  blocksMeta: BlocksMetaMap,
+  blocks: BlocksMap,
+  readonly: boolean,
+  pageTitleRef: RefObject<HTMLTextAreaElement>,
+  getLastSavedValue: () => BlockEntity[],
+  client: ApolloClient<unknown>,
 ) => {
-  let manager: ProsemirrorSchemaManager;
+  let manager: ProsemirrorManager;
 
-  const [errorPlugin, onError] = createErrorPlugin(renderPortal);
+  const [errorPlugin, _onError] = createErrorPlugin(renderPortal);
 
   const plugins: Plugin<unknown, Schema>[] = [
+    createSavePlugin(accountId, pageEntityId, client),
     ...createFormatPlugins(renderPortal),
-    createSuggester(renderPortal, () => manager, accountId),
+    createSuggester(renderPortal, accountId, renderNode, () => manager),
+    createPlaceholderPlugin(renderPortal),
     errorPlugin,
+    createFocusPageTitlePlugin(pageTitleRef),
   ];
 
   const state = createProseMirrorState({ accountId, plugins });
 
-  let connection: EditorConnection;
+  let connection: EditorConnection | undefined;
 
-  const view = new EditorView<Schema>(renderNode, {
+  const view = createTextEditorView(
     state,
-
-    /**
-     * Prosemirror doesn't know to convert hard breaks into new line characters
-     * in the plain text version of the clipboard when we copy out of the
-     * editor. In the HTML version, they get converted as their `toDOM`
-     * method instructs, but we have to use this for the plain text version.
-     *
-     * @todo find a way of not having to do this centrally
-     * @todo look into whether this is needed for mentions and for links
-     */
-    clipboardTextSerializer: (slice) => {
-      return slice.content.textBetween(
-        0,
-        slice.content.size,
-        "\n\n",
-        (node: ProsemirrorNode<Schema>) => {
-          if (node.type === view.state.schema.nodes.hardBreak) {
-            return "\n";
+    renderNode,
+    renderPortal,
+    accountId,
+    {
+      nodeViews: {
+        // Reason for adding `_decorations`:
+        // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/57384#issuecomment-1018936089
+        block(currentNode, currentView, getPos, _decorations) {
+          if (typeof getPos === "boolean") {
+            throw new Error("Invalid config for nodeview");
           }
-
-          return "";
+          return new BlockView(
+            currentNode,
+            currentView,
+            getPos,
+            renderPortal,
+            manager,
+            renderNode,
+          );
         },
-      );
-    },
-    nodeViews: {
-      // Reason for adding `_decorations`:
-      // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/57384#issuecomment-1018936089
-      block(currentNode, currentView, getPos, _decorations) {
-        if (typeof getPos === "boolean") {
-          throw new Error("Invalid config for nodeview");
-        }
-        return new BlockView(
-          currentNode,
-          currentView,
-          getPos,
-          renderPortal,
-          manager,
-        );
+        // Reason for adding unused params e.g. `_decorations`:
+        // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/57384#issuecomment-1018936089
+        loading(currentNode, _currentView, _getPos, _decorations) {
+          return new LoadingView(currentNode, renderPortal);
+        },
       },
-      // Reason for adding `_decorations`:
-      // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/57384#issuecomment-1018936089
-      mention(currentNode, currentView, getPos, _decorations) {
-        if (typeof getPos === "boolean") {
-          throw new Error("Invalid config for nodeview");
-        }
-
-        return new MentionView(
-          currentNode,
-          currentView,
-          getPos,
-          renderPortal,
-          manager,
-          accountId,
-        );
-      },
+      editable: () => !readonly,
     },
-    dispatchTransaction: (tr) =>
-      connection?.dispatchTransaction(tr, connection?.state.version ?? 0),
-  });
+  );
 
-  manager = new ProsemirrorSchemaManager(
+  manager = new ProsemirrorManager(
     state.schema,
     accountId,
     view,
     // Reason for adding `_decorations`:
     // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/57384#issuecomment-1018936089
-    (meta) => (node, editorView, getPos, _decorations) => {
+    (block) => (node, editorView, getPos, _decorations) => {
       if (typeof getPos === "boolean") {
         throw new Error("Invalid config for nodeview");
       }
 
-      return new ComponentView(node, editorView, getPos, renderPortal, meta);
+      return new ComponentView(
+        node,
+        editorView,
+        getPos,
+        renderPortal,
+        block,
+        manager,
+      );
     },
   );
 
+  void manager.loadPage(state, getLastSavedValue()).then((tr) => {
+    view.dispatch(tr);
+  });
+
+  /**
+   * @todo the collab editor connection is disabled currently.
+   *   see https://app.asana.com/0/0/1203099452204542/f
+   
   connection = new EditorConnection(
     `${apiOrigin}/collab-backend/${accountId}/${pageEntityId}`,
     view.state.schema,
@@ -131,6 +238,7 @@ export const createEditorView = (
       view.dispatch(onError(view.state.tr));
     },
   );
+  */
 
   view.dom.classList.add(styles.ProseMirror!);
   // Prevent keyboard navigation on the editor
@@ -138,20 +246,23 @@ export const createEditorView = (
 
   // prosemirror will use the first node type (per group) for auto-creation.
   // we want this to be the paragraph node type.
-  const blocksMetaArray = Object.values(blocksMeta);
+  const blocksArray = Object.values(blocks);
 
-  const paragraphBlockMeta = blocksMetaArray.find(
-    (blockMeta) =>
-      blockMeta.componentMetadata.name === "@hashintel/block-paragraph",
+  const paragraphBlock = blocksArray.find(
+    (block) =>
+      block.meta.componentId ===
+      "https://blockprotocol.org/blocks/@hash/paragraph",
   );
 
-  if (!paragraphBlockMeta) {
+  if (!paragraphBlock) {
     throw new Error("missing required block-type paragraph");
   }
 
-  /** note that {@link ProsemirrorSchemaManager#defineNewBlock} is idempotent */
-  manager.defineNewBlock(paragraphBlockMeta);
-  blocksMetaArray.forEach((blockMeta) => manager.defineNewBlock(blockMeta));
+  /** note that {@link ProsemirrorManager#defineBlock} is idempotent */
+  manager.defineBlock(paragraphBlock);
+  for (const block of blocksArray) {
+    manager.defineBlock(block);
+  }
 
   // @todo figure out how to use dev tools without it breaking fast refresh
   // applyDevTools(view);

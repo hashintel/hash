@@ -1,8 +1,8 @@
 [comment]: <> (This CONTRIBUTING guide was heavily inspired by the great one provided by the lovely folks at Atom [https://github.com/atom/atom/blob/master/CONTRIBUTING.md])
 
-# Contributing to hEngine
+# Contributing to the HASH Engine
 
-Thank you for your interest in adding to the hEngine!
+_Thank you for your interest in contributing to the HASH Engine (aka. hEngine)_
 
 We've provided the following guidelines to help you with contributions, in addition to the ones described below, we've
 also established a set of [community guidelines](https://hash.ai/legal/community) to enable as many people as possible

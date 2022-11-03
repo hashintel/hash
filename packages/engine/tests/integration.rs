@@ -1,5 +1,5 @@
-//! The hEngine integration test suite runs a variety of specially-designed simulations and
-//! experiments of specific functionalities to verify outputs.
+//! The HASH Engine integration test suite runs a variety of specially-designed simulations
+//! and experiments of specific functionalities to verify outputs.
 
 /// Helper for parsing an experiment and run it.
 mod experiment;

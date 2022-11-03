@@ -9,6 +9,7 @@ import corsMiddleware from "cors";
 import { NextFunction, Request, Response, Router } from "express";
 import LRU from "lru-cache";
 import nocache from "nocache";
+import { BasicWhoAmIQuery } from "../graphql/apiTypes.gen";
 import { CORS_CONFIG } from "../lib/config";
 import { logger } from "../logger";
 import { EntityWatcher } from "./EntityWatcher";
@@ -23,7 +24,9 @@ import { Waiting } from "./Waiting";
 
 const parseVersion = (rawValue: Request["query"][string]) => {
   const num = Number(rawValue);
-  if (!Number.isNaN(num) && Math.floor(num) === num && num >= 0) return num;
+  if (!Number.isNaN(num) && Math.floor(num) === num && num >= 0) {
+    return num;
+  }
 
   throw new InvalidVersionError(rawValue);
 };
@@ -32,7 +35,10 @@ const formatGetEventsResponse = (
   instance: Instance,
   data: Exclude<ReturnType<Instance["getEvents"]>, boolean>,
 ) => ({
-  version: instance.version,
+  version:
+    "nextVersion" in data && typeof data.nextVersion === "number"
+      ? data.nextVersion
+      : instance.version,
   steps: data.steps.map((step) => step.toJSON()),
   clientIDs: data.clientIDs,
   store: data.store,
@@ -51,15 +57,20 @@ const requestUserInfo = async (
   try {
     const {
       data: { me },
-    } = await apolloClient.query({
+    } = await apolloClient.query<BasicWhoAmIQuery>({
       query: getBasicWhoAmI,
       errorPolicy: "none",
     });
 
+    const { entityId, shortname, preferredName } = me;
+    if (!shortname || !preferredName) {
+      throw new Error(`User with ID = '${entityId}' hasn't registered yet`);
+    }
+
     return {
-      entityId: me.entityId,
-      shortname: me.properties.shortname,
-      preferredName: me.properties.preferredName,
+      entityId,
+      shortname,
+      preferredName,
     };
   } catch (error) {
     if (error instanceof ApolloError && error.extensions.code === "FORBIDDEN") {
@@ -286,6 +297,14 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
           baselinePositions: instance.extractPositions(userInfo.entityId),
           userIdToExclude: userInfo.entityId,
           response,
+        });
+
+        // This connection times out after 5 seconds.
+        // No content is returned, such that the consumer doesn't receive
+        // misguiding data.
+        response.setTimeout(5000, () => {
+          response.status(204);
+          response.end();
         });
       } catch (error) {
         next(error);

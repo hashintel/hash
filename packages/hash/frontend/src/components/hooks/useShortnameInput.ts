@@ -15,9 +15,9 @@ type ShortnameErrorCode =
 const getShortnameError = (error: string | undefined, isTouched: boolean) => {
   switch (error) {
     case "IS_EMPTY":
-      return isTouched && "You must choose a username";
+      return isTouched ? "You must choose a username" : null;
     case "IS_TOO_SHORT":
-      return isTouched && "Must be at least 4 characters";
+      return isTouched ? "Must be at least 4 characters" : null;
     case "IS_TOO_LONG":
       return "Must be shorter than 24 characters";
     case "IS_TAKEN":

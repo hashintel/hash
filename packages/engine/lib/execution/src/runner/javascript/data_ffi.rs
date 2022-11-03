@@ -1,7 +1,7 @@
 use std::{self, ptr::NonNull};
 
-use super::new_js_string;
-use crate::runner::{javascript::JavaScriptResult, JavaScriptError};
+use super::utils::new_js_string;
+use crate::runner::{javascript::error::JavaScriptResult, JavaScriptError};
 
 /// C representation of Arrow array data nodes
 #[repr(C)]

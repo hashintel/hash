@@ -1,3 +1,4 @@
+import { JsonObject } from "@blockprotocol/core";
 import { ApolloError, UserInputError } from "apollo-server-errors";
 import { produce } from "immer";
 import {
@@ -84,7 +85,7 @@ export const updatePageContents: ResolverFn<
 > = async (
   _,
   { accountId, entityId: pageEntityId, actions },
-  { dataSources, user },
+  { dataSources, userModel },
 ) => {
   validateActionsInput(actions);
 
@@ -120,7 +121,7 @@ export const updatePageContents: ResolverFn<
 
       return await Entity.createEntityWithLinks(client, {
         accountId: entityAccountId,
-        user,
+        user: userModel as any /** @todo: replace with updated model class */,
         entityDefinition,
       });
     };
@@ -144,7 +145,7 @@ export const updatePageContents: ResolverFn<
               placeholderId,
               await EntityType.create(client, {
                 accountId: entityTypeAccountId,
-                createdByAccountId: user.accountId,
+                createdByAccountId: userModel.entityId,
                 description: description ?? undefined,
                 name,
                 schema,
@@ -233,8 +234,9 @@ export const updatePageContents: ResolverFn<
             } else if (blockComponentId) {
               block = await Block.createBlock(client, {
                 blockData,
-                createdBy: user,
-                accountId: user.accountId,
+                createdBy:
+                  userModel as any /** @todo: replace with updated model class */,
+                accountId: userModel.entityId,
                 properties: {
                   componentId: blockComponentId,
                 },
@@ -279,7 +281,7 @@ export const updatePageContents: ResolverFn<
           return await block.swapBlockData(client, {
             targetDataAccountId: swapBlockData.newEntityAccountId,
             targetDataEntityId: swapBlockData.newEntityEntityId,
-            updatedByAccountId: user.accountId,
+            updatedByAccountId: userModel.entityId,
           });
         }),
     );
@@ -292,7 +294,19 @@ export const updatePageContents: ResolverFn<
         .map(async (updateEntity) => {
           return Entity.updateProperties(client, {
             ...updateEntity,
-            updatedByAccountId: user.accountId,
+            // @todo remove this when legacy links are removed
+            properties: produce(
+              updateEntity.properties as JsonObject,
+              (draftProperties: any) => {
+                if (draftProperties?.text?.__linkedData?.entityId) {
+                  draftProperties.text.__linkedData.entityId =
+                    placeholderResults.get(
+                      draftProperties.text.__linkedData.entityId,
+                    );
+                }
+              },
+            ),
+            updatedByAccountId: userModel.entityId,
           });
         }),
     );
@@ -316,18 +330,18 @@ export const updatePageContents: ResolverFn<
           await page.insertBlock(client, {
             block: insertedBlocks[insertCount]!,
             position: action.insertBlock.position,
-            insertedByAccountId: user.accountId,
+            insertedByAccountId: userModel.entityId,
           });
           insertCount += 1;
         } else if (action.moveBlock) {
           await page.moveBlock(client, {
             ...action.moveBlock,
-            movedByAccountId: user.accountId,
+            movedByAccountId: userModel.entityId,
           });
         } else if (action.removeBlock) {
           await page.removeBlock(client, {
             ...action.removeBlock,
-            removedByAccountId: user.accountId,
+            removedByAccountId: userModel.entityId,
             allowRemovingFinal: actions
               .slice(i + 1)
               .some((actionToFollow) => actionToFollow.insertBlock),

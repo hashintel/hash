@@ -205,19 +205,21 @@ export const schemaEditorReducer: Reducer<
           subSchemaNameToDelete,
         );
 
-        dependentProperties.forEach((dependentProperty) => {
+        for (const dependentProperty of dependentProperties) {
           // Update the subschema property
           if (Array.isArray(dependentProperty)) {
-            return updatePropertyType(
+            updatePropertyType(
+              // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- false-positive, exception should be removed after refactoring ESLint config
               $defs![dependentProperty[0]!]!,
               dependentProperty[1]!,
               "string",
             );
+            continue;
           }
 
           // Update the schema property
           updatePropertyType(draftRootSchema, dependentProperty, "string");
-        });
+        }
 
         draftRootSchema.$defs ??= {};
         delete draftRootSchema.$defs[subSchemaNameToDelete];

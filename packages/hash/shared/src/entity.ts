@@ -2,173 +2,92 @@ import {
   DraftEntity,
   EntityStore,
   EntityStoreType,
-  isBlockEntity,
   isDraftBlockEntity,
   isDraftEntity,
   isEntity,
+  TEXT_TOKEN_PROPERTY_TYPE_BASE_URI,
 } from "./entityStore";
-import { PageFieldsFragment, Text } from "./graphql/apiTypes.gen";
-import {
-  DistributiveOmit,
-  DistributivePick,
-  flatMapTree,
-  isUnknownObject,
-} from "./util";
+import { PersistedPageFieldsFragment, Text } from "./graphql/apiTypes.gen";
+import { TextToken } from "./graphql/types";
+import { DistributiveOmit, DistributivePick, flatMapTree } from "./util";
 
 type ContentsEntity = DistributiveOmit<
-  PageFieldsFragment["contents"][number],
+  PersistedPageFieldsFragment["contents"][number],
   "__typename"
 >;
 
-export type BlockEntity = DistributiveOmit<ContentsEntity, "properties"> & {
-  properties: DistributiveOmit<ContentsEntity["properties"], "entity"> & {
-    entity: DistributivePick<
-      ContentsEntity["properties"]["entity"] | Text,
-      keyof ContentsEntity["properties"]["entity"] &
-        keyof (ContentsEntity["properties"]["entity"] | Text)
-    >;
-  };
+export type BlockEntity = ContentsEntity & {
+  blockChildEntity: DistributivePick<
+    ContentsEntity["blockChildEntity"] | Text,
+    keyof ContentsEntity["blockChildEntity"] &
+      keyof (ContentsEntity["blockChildEntity"] | Text)
+  >;
 };
 
-// @todo make this more robust, checking system type name of entity type
+export type TextProperties = {
+  // As TEXT_TOKEN_PROPERTY_TYPE_BASE_URI (and TEXT_TOKEN_PROPERTY_TYPE_ID) are
+  // not const the type is just `string`. Not ideal.
+  [_ in typeof TEXT_TOKEN_PROPERTY_TYPE_BASE_URI]: TextToken[];
+};
+
+export type TextEntityType = Omit<EntityStoreType, "properties"> & {
+  properties: TextProperties;
+};
+
+// @todo make this more robust
+export const isTextProperties =
+  (properties: {}): properties is TextEntityType["properties"] =>
+    TEXT_TOKEN_PROPERTY_TYPE_BASE_URI in properties;
+
 export const isTextEntity = (
   entity: EntityStoreType | DraftEntity,
-): entity is Text => "properties" in entity && "tokens" in entity.properties;
+): entity is TextEntityType =>
+  "properties" in entity &&
+  // Draft text entities would not have an entity type ID assigned yet.
+  // To have this check, we have to make a seperate check for draft text entities.
+  // (entity.entityTypeId ?? "") === TEXT_ENTITY_TYPE_ID &&
+  isTextProperties(entity.properties);
 
 export const isDraftTextEntity = (
   entity: DraftEntity,
-): entity is DraftEntity<Text> => isTextEntity(entity) && isDraftEntity(entity);
+): entity is DraftEntity<TextEntityType> =>
+  isTextEntity(entity) && isDraftEntity(entity);
 
-/**
- * @deprecated
- */
-type LegacyLink<Type extends EntityStoreType | DraftEntity = EntityStoreType> =
-  {
-    /**
-     * @deprecated
-     */
-    data: Type;
+export const getEntityChildEntity = (
+  draftId: string,
+  draftEntityStore: EntityStore["draft"],
+) => {
+  const entity = draftEntityStore[draftId];
+  if (!entity) {
+    throw new Error("invariant: missing entity");
+  }
 
-    /**
-     * @deprecated
-     */
-    __linkedData: {};
-  };
+  const childEntity = entity.blockChildEntity?.draftId
+    ? draftEntityStore[entity.blockChildEntity.draftId]
+    : null;
 
-/**
- * @deprecated
- */
-const isLegacyLink = (data: unknown): data is LegacyLink => {
-  return (
-    isUnknownObject(data) &&
-    "__linkedData" in data &&
-    "data" in data &&
-    typeof data.data === "object" &&
-    isEntity(data.data)
-  );
+  return childEntity;
 };
 
-export const isTextContainingEntityProperties = (
-  entityProperties: unknown,
-): entityProperties is { text: LegacyLink<Text> } => {
-  return (
-    isUnknownObject(entityProperties) &&
-    "text" in entityProperties &&
-    isLegacyLink(entityProperties.text) &&
-    isTextEntity(entityProperties.text.data)
-  );
-};
-
-// @todo use in more places
-export const isDraftTextContainingEntityProperties = (
-  entityProperties: unknown,
-): entityProperties is { text: LegacyLink<DraftEntity<Text>> } => {
-  return (
-    isTextContainingEntityProperties(entityProperties) &&
-    isDraftEntity(entityProperties.text.data)
-  );
-};
-
-/**
- * @todo reduce duplication
- */
-export const getTextEntityFromDraftBlock = (
+export const getBlockChildEntity = (
   draftBlockId: string,
   entityStore: EntityStore,
-): DraftEntity<Text> | null => {
+): DraftEntity | null => {
   const blockEntity = entityStore.draft[draftBlockId];
 
   if (!isDraftBlockEntity(blockEntity)) {
     throw new Error("Can only get text entity from block entity");
   }
+  const childEntity = getEntityChildEntity(
+    blockEntity.draftId,
+    entityStore.draft,
+  );
 
-  const blockPropertiesEntityDraftId = blockEntity.properties.entity.draftId;
-  const blockPropertiesEntity = entityStore.draft[blockPropertiesEntityDraftId];
-
-  if (!blockPropertiesEntity) {
-    throw new Error("invariant: missing block entity");
+  if (!childEntity) {
+    throw new Error("Missing entity from draft store");
   }
 
-  if (isTextEntity(blockPropertiesEntity)) {
-    return blockPropertiesEntity;
-  }
-
-  if (isTextContainingEntityProperties(blockPropertiesEntity.properties)) {
-    // @todo look into why this was using entityId
-    const linkEntity = blockPropertiesEntity.properties.text.data;
-
-    if (!isDraftEntity(linkEntity)) {
-      throw new Error("Expected linked entity to be draft");
-    }
-
-    const textEntity = entityStore.draft[linkEntity.draftId];
-
-    if (!textEntity || !isTextEntity(textEntity)) {
-      throw new Error("Missing text entity from draft store");
-    }
-
-    return textEntity;
-  }
-
-  return null;
-};
-
-/**
- * @todo reduce duplication
- */
-export const getTextEntityFromSavedBlock = (
-  blockId: string,
-  entityStore: EntityStore,
-): Text | null => {
-  const blockEntity = entityStore.saved[blockId];
-
-  if (!isBlockEntity(blockEntity)) {
-    throw new Error("Can only get text entity from block entity");
-  }
-
-  const blockPropertiesEntityDraftId = blockEntity.properties.entity.entityId;
-  const blockPropertiesEntity = entityStore.saved[blockPropertiesEntityDraftId];
-
-  if (!blockPropertiesEntity) {
-    throw new Error("invariant: missing block entity");
-  }
-
-  if (isTextEntity(blockPropertiesEntity)) {
-    return blockPropertiesEntity;
-  }
-
-  if (isTextContainingEntityProperties(blockPropertiesEntity.properties)) {
-    return blockPropertiesEntity.properties.text.data;
-  }
-
-  return null;
-};
-
-export const blockEntityIdExists = (entities: BlockEntity[]) => {
-  const ids = new Set(entities.map((block) => block.entityId));
-
-  return (blockEntityId: string | null): blockEntityId is string =>
-    !!blockEntityId && ids.has(blockEntityId);
+  return childEntity;
 };
 
 /**

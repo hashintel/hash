@@ -7,7 +7,7 @@ pub struct RootError;
 
 impl fmt::Display for RootError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Root error")
+        fmt.write_str("root error")
     }
 }
 

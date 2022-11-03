@@ -1,10 +1,10 @@
-import { JSONObject } from "blockprotocol";
+import { JsonObject } from "@blockprotocol/core";
 import { apiGraphQLEndpoint } from "@hashintel/hash-shared/environment";
 
 export type FetchEmbedCodeFn = (
   url: string,
   type?: string,
-) => Promise<JSONObject>;
+) => Promise<JsonObject>;
 
 export const fetchEmbedCode: FetchEmbedCodeFn = (url, type?) => {
   return fetch(apiGraphQLEndpoint, {

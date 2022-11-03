@@ -1,5 +1,5 @@
 import { Box, Typography, TypographyProps } from "@mui/material";
-import { ReactNode } from "react";
+import { ComponentType } from "react";
 import dynamic from "next/dynamic";
 
 import { ImageWithText } from "../components/ImageWithText";
@@ -9,19 +9,19 @@ import { MdxPre } from "../components/MdxPre";
 import { MdxTalkSlide } from "../components/MdxTalkSlide";
 import { MdxVideo } from "../components/MdxVideo";
 
-const CalculationBlock = dynamic(
-  () => import("../components/CalculationBlock"),
+const CalculationBlock = dynamic<{}>(
+  () =>
+    import("../components/CalculationBlock").then(
+      (module) => module.CalculationBlock,
+    ),
   { ssr: false },
 );
 
-export const mdxComponents: Record<string, ReactNode> = {
+export const mdxComponents: Record<string, ComponentType<any>> = {
   Box,
   Typography,
 
   p: (props: TypographyProps<"p">) => {
-    if (!Array.isArray(props.children) && typeof props.children !== "string") {
-      return props.children;
-    }
     return <Typography {...props} variant="hashBodyCopy" />;
   },
 
