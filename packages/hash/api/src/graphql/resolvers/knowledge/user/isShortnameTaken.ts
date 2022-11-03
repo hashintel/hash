@@ -1,6 +1,6 @@
-import { QueryIsShortnameTakenArgs, ResolverFn } from "../../apiTypes.gen";
-import { GraphQLContext } from "../../context";
-import { AccountFields } from "../../../model";
+import { QueryIsShortnameTakenArgs, ResolverFn } from "../../../apiTypes.gen";
+import { GraphQLContext } from "../../../context";
+import { AccountFields } from "../../../../model";
 
 export const isShortnameTaken: ResolverFn<
   Promise<boolean>,
