@@ -1,9 +1,15 @@
+/** @type {import("eslint").Linter.Config} */
 module.exports = {
+  root: true,
+  extends: ["@local/eslint-config/legacy-base-to-refactor.cjs"],
   parserOptions: {
-    project: ["./tsconfig.json"],
+    tsconfigRootDir: __dirname,
+    project: ["tsconfig.json"],
   },
   plugins: ["@typescript-eslint", "canonical", "unicorn"],
   rules: {
+    // @todo Re-enable this rule once ESLint config is refactored
+    "@typescript-eslint/restrict-plus-operands": "off",
     "jsx-a11y/label-has-associated-control": "off",
     "import/no-default-export": "error",
     "no-restricted-imports": [
