@@ -7,12 +7,7 @@ import { SystemType } from "../types/entityTypes";
  * @todo should probably store this enum in a non-generated file somewhere
  *    to revisit in light of fuller auth spec
  */
-import {
-  StorageType,
-  OrgSize,
-  Visibility,
-  WayToUseHash,
-} from "../graphql/apiTypes.gen";
+import { StorageType, Visibility } from "../graphql/apiTypes.gen";
 
 /**
  * Fields we handle via a field resolver to avoid recursion problems when getting them from the db.
@@ -173,7 +168,7 @@ export type DbUserEmail = {
 };
 
 export type UserInfoProvidedAtSignup = {
-  usingHow?: WayToUseHash;
+  usingHow?: "BY_THEMSELVES" | "WITH_A_TEAM";
 };
 
 export type DbUserProperties = {
@@ -197,7 +192,7 @@ export type DbFileProperties = {
 };
 
 export type OrgInfoProvidedAtCreation = {
-  orgSize: OrgSize;
+  orgSize: any;
 };
 
 export type DbOrgProperties = {

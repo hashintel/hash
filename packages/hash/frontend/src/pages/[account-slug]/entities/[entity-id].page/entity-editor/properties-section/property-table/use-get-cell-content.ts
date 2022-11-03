@@ -1,10 +1,11 @@
 import { GridCell, GridCellKind, Item } from "@glideapps/glide-data-grid";
 import { useCallback } from "react";
-import { UseGridTooltipResponse } from "../../../../../../../components/GlideGlid/use-grid-tooltip/types";
+import { UseGridTooltipResponse } from "../../../../../../../components/GlideGlid/utils/use-grid-tooltip/types";
 import { DataTypeCellProps } from "./cells/data-type-cell";
-import { ValueCellProps } from "./cells/value-cell";
+import { PropertyNameCellProps } from "./cells/property-name-cell";
+import { ValueCellProps } from "./cells/value-cell/types";
 import { propertyGridIndexes } from "./constants";
-import { getTooltipsOfProperty } from "./get-tooltips-of-property";
+import { getTooltipsOfPropertyRow } from "./get-tooltips-of-property-row";
 import { PropertyRow } from "./types";
 
 export const useGetCellContent = (
@@ -15,6 +16,8 @@ export const useGetCellContent = (
   const getCellContent = useCallback(
     ([col, row]: Item): GridCell => {
       const property = rowData[row];
+
+      const hasChild = !!property?.children.length;
 
       if (!property) {
         throw new Error("property not found");
@@ -29,22 +32,25 @@ export const useGetCellContent = (
       switch (columnKey) {
         case "title":
           return {
-            kind: GridCellKind.Text,
-            data: property.title,
-            displayData: property.title,
-            readonly: true,
+            kind: GridCellKind.Custom,
             allowOverlay: false,
+            readonly: true,
+            copyData: property.title,
+            data: {
+              kind: "property-name-cell",
+              property,
+            } as PropertyNameCellProps,
           };
 
         case "value":
           return {
             kind: GridCellKind.Custom,
-            allowOverlay: true,
-            copyData: property.value,
+            allowOverlay: !hasChild,
+            copyData: String(property.value),
             cursor: "pointer",
             data: {
               kind: "value-cell",
-              tooltips: getTooltipsOfProperty(property),
+              tooltips: getTooltipsOfPropertyRow(property),
               showTooltip,
               hideTooltip,
               property,
@@ -54,8 +60,9 @@ export const useGetCellContent = (
         case "dataTypes":
           return {
             kind: GridCellKind.Custom,
-            allowOverlay: true,
-            copyData: "",
+            allowOverlay: !hasChild,
+            readonly: true,
+            copyData: String(property.dataTypes),
             data: {
               kind: "data-type-cell",
               property,

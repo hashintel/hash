@@ -22,32 +22,20 @@ import {
   searchPages,
   pageLinkedEntities,
 } from "./pages";
-import { createUser } from "./user/createUser";
-import { createUserWithOrgEmailInvitation } from "./user/createUserWithOrgEmailInvitation";
-import { createOrg } from "./org/createOrg";
-import { orgLinkedEntities } from "./org/linkedEntities";
-import { accountSignupComplete } from "./user/accountSignupComplete";
-import { sendLoginCode } from "./user/sendLoginCode";
-import { userLinkedEntities } from "./user/linkedEntities";
-import { orgMembershipLinkedEntities } from "./orgMembership/linkedEntities";
 import { embedCode } from "./embed";
 import {
   getImpliedEntityHistory,
   getImpliedEntityVersion,
 } from "./entity/impliedHistory";
 
-import { me } from "./user/me";
-import { isShortnameTaken } from "./user/isShortnameTaken";
+import { me } from "./knowledge/user/me";
+import { isShortnameTaken } from "./knowledge/user/isShortnameTaken";
 import { deprecatedCreateEntityType } from "./entityType/createEntityType";
 import { SYSTEM_TYPES, SystemType } from "../../types/entityTypes";
 import { entityTypeTypeFields } from "./entityType/entityTypeTypeFields";
 import { entityTypeInheritance } from "./entityType/entityTypeInheritance";
 import { deprecatedGetAccountEntityTypes } from "./entityType/getAccountEntityTypes";
 import { deprecatedGetEntityType } from "./entityType/getEntityType";
-import { createOrgEmailInvitation } from "./org/createOrgEmailInvitation";
-import { getOrgEmailInvitation } from "./org/getOrgEmailInvitation";
-import { getOrgInvitationLink } from "./org/getOrgInvitationLink";
-import { joinOrg } from "./user/joinOrg";
 import { fileFields } from "./file";
 import { requestFileUpload } from "./file/requestFileUpload";
 import { createFileFromLink } from "./file/createFileFromLink";
@@ -59,8 +47,6 @@ import { deleteLinkedAggregation } from "./linkedAggregation/deleteLinkedAggrega
 import { updateLinkedAggregationOperation } from "./linkedAggregation/updateLinkedAggregationOperation";
 import { createLinkedAggregation } from "./linkedAggregation/createLinkedAggregation";
 import { linkedAggregationResults } from "./linkedAggregation/linkedAggregationResults";
-import { orgEmailInvitationLinkedEntities } from "./orgEmailInvitation/linkedEntities";
-import { orgInvitationLinkLinkedEntities } from "./orgInvitationLink/linkedEntities";
 import { pageSearchResultConnection } from "./paginationConnection/pageSearchResultConnection";
 import {
   executeDemoTask,
@@ -167,8 +153,6 @@ export const resolvers = {
     // Logged in users only
     me: loggedIn(me),
     // Any user
-    getOrgEmailInvitation,
-    getOrgInvitationLink,
     isShortnameTaken,
     embedCode,
     pageSearchResultConnection,
@@ -206,8 +190,6 @@ export const resolvers = {
     deleteLinkedAggregation: loggedInAndSignedUp(deleteLinkedAggregation),
     deprecatedCreateEntityType: loggedInAndSignedUp(deprecatedCreateEntityType),
     createFileFromLink: loggedInAndSignedUp(createFileFromLink),
-    createOrg: loggedInAndSignedUp(createOrg),
-    createOrgEmailInvitation: loggedInAndSignedUp(createOrgEmailInvitation),
     transferEntity: loggedInAndSignedUp(transferEntity),
     updateEntity: loggedInAndSignedUp(updateEntity),
     deprecatedUpdateEntityType: loggedInAndSignedUp(deprecatedUpdateEntityType),
@@ -216,12 +198,7 @@ export const resolvers = {
     updatePersistedPageContents: loggedInAndSignedUp(
       updatePersistedPageContents,
     ),
-    joinOrg: loggedInAndSignedUp(joinOrg),
     requestFileUpload: loggedInAndSignedUp(requestFileUpload),
-    // Any user
-    createUser,
-    createUserWithOrgEmailInvitation,
-    sendLoginCode,
     // Task execution
     executeDemoTask,
     executeGithubSpecTask,
@@ -263,32 +240,8 @@ export const resolvers = {
     ...pageLinkedEntities,
   },
 
-  User: {
-    accountSignupComplete,
-    ...userLinkedEntities,
-  },
-
-  Org: {
-    ...orgLinkedEntities,
-  },
-
-  OrgMembership: {
-    properties: entityFields.properties,
-    ...orgMembershipLinkedEntities,
-  },
-
   FileProperties: {
     url: fileFields.url,
-  },
-
-  OrgEmailInvitation: {
-    properties: entityFields.properties,
-    ...orgEmailInvitationLinkedEntities,
-  },
-
-  OrgInvitationLink: {
-    properties: entityFields.properties,
-    ...orgInvitationLinkLinkedEntities,
   },
 
   UnknownEntity: {

@@ -5,8 +5,8 @@
   "license": "AGPL-3.0",
   "main": "index.js",
   "scripts": {
-    "fix:eslint": "eslint --ext .ts --fix ./src/",
-    "lint:eslint": "eslint --ext .ts ./src/",
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint .",
     "lint:tsc": "tsc --noEmit",
     "start": "nodemon ./src/index.ts --transpile-only"
   },
