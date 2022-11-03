@@ -15,6 +15,12 @@ type DevelopmentUser = {
 
 const devUsers: readonly DevelopmentUser[] = [
   {
+    email: "admin@exmple.com",
+    shortname: "instance-admin",
+    preferredName: "Instance Admin",
+    isInstanceAdmin: true,
+  },
+  {
     email: "alice@example.com",
     shortname: "alice",
     preferredName: "Alice",
