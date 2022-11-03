@@ -1,4 +1,4 @@
-import { PageModel, UserModel } from "../../../../model";
+import { OrgModel, PageModel, UserModel } from "../../../../model";
 
 import {
   MutationCreatePersistedPageArgs,
@@ -70,7 +70,14 @@ export const persistedPages: ResolverFn<
   QueryPersistedPagesArgs
 > = async (_, { ownedById }, { dataSources: { graphApi }, userModel }) => {
   const accountModel = ownedById
-    ? await UserModel.getUserById(graphApi, { entityId: ownedById })
+    ? await UserModel.getUserById(graphApi, { entityId: ownedById }).catch(
+        (error: Error) => {
+          if (error.message.includes("not a workspace user")) {
+            return OrgModel.getOrgById(graphApi, { entityId: ownedById });
+          }
+          throw error;
+        },
+      )
     : userModel;
 
   const pageModels = await PageModel.getAllPagesInAccount(graphApi, {
