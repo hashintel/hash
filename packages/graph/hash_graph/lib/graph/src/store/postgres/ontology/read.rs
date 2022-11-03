@@ -7,10 +7,12 @@ use tokio_postgres::GenericClient;
 use type_system::{uri::VersionedUri, DataType, EntityType, PropertyType};
 
 use crate::{
+    identifier::AccountId,
     ontology::{
         PersistedDataType, PersistedEntityType, PersistedOntologyIdentifier,
         PersistedOntologyMetadata, PersistedOntologyType, PersistedPropertyType,
     },
+    provenance::{CreatedById, OwnedById, RemovedById, UpdatedById},
     store::{
         crud::Read,
         postgres::{
@@ -107,10 +109,10 @@ where
                 let record = <T::Inner>::try_from(row.get::<_, serde_json::Value>(1))
                     .into_report()
                     .change_context(QueryError)?;
-                let owned_by_id = row.get(2);
-                let created_by_id = row.get(3);
-                let updated_by_id = row.get(4);
-                let removed_by_id = row.get(5);
+                let owned_by_id = OwnedById::new(row.get(2));
+                let created_by_id = CreatedById::new(row.get(3));
+                let updated_by_id = UpdatedById::new(row.get(4));
+                let removed_by_id = row.get::<_, Option<AccountId>>(5).map(RemovedById::new);
 
                 let identifier = PersistedOntologyIdentifier::new(versioned_uri, owned_by_id);
                 Ok(T::new(
