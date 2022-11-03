@@ -2,7 +2,12 @@ import { PropertyType } from "@blockprotocol/type-system-web";
 import { Button, ButtonProps } from "@hashintel/hash-design-system/button";
 import { Chip } from "@hashintel/hash-design-system/chip";
 import { TextField } from "@hashintel/hash-design-system/text-field";
-import { PrimitiveDataTypeKey, types } from "@hashintel/hash-shared/types";
+import {
+  addVersionToBaseUri,
+  generateBaseTypeId,
+  PrimitiveDataTypeKey,
+  types,
+} from "@hashintel/hash-shared/types";
 import {
   Autocomplete,
   Box,
@@ -12,17 +17,23 @@ import {
 } from "@mui/material";
 import { Controller, useForm } from "react-hook-form";
 import { useBlockProtocolCreatePropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreatePropertyType";
+import { useBlockProtocolGetPropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetPropertyType";
 import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
+import { FRONTEND_URL } from "../../../../lib/config";
+import { getPersistedPropertyType } from "../../../../lib/subgraph";
 import { QuestionIcon } from "./question-icon";
 import { useRefetchPropertyTypes } from "./use-property-types";
 
-// @todo add expected values
 type PropertyTypeFormValues = {
   name: string;
   description: string;
   expectedValues: typeof types["dataType"][PrimitiveDataTypeKey][];
 };
 
+const generateInitialPropertyTypeId = (baseUri: string) =>
+  addVersionToBaseUri(baseUri, 1);
+
+// @todo namespace accounts?
 export const PropertyTypeForm = ({
   createButtonProps,
   discardButtonProps,
@@ -39,17 +50,37 @@ export const PropertyTypeForm = ({
   const {
     register,
     handleSubmit: wrapHandleSubmit,
-    formState: { isSubmitting },
+    formState: {
+      isSubmitting,
+      errors: { name: nameError },
+    },
     control,
+    clearErrors,
   } = useForm<PropertyTypeFormValues>({
     defaultValues: { name: initialTitle, description: "", expectedValues: [] },
+    shouldFocusError: true,
+    mode: "onSubmit",
+    reValidateMode: "onSubmit",
   });
 
   const { authenticatedUser } = useAuthenticatedUser();
-  // @todo namespace accounts?
   const { createPropertyType } = useBlockProtocolCreatePropertyType(
     authenticatedUser?.entityId ?? "",
   );
+  const { getPropertyType } = useBlockProtocolGetPropertyType();
+
+  const generatePropertyTypeBaseUriForUser = (value: string) => {
+    if (!authenticatedUser?.shortname) {
+      throw new Error("User shortname must exist");
+    }
+
+    return generateBaseTypeId({
+      domain: FRONTEND_URL,
+      namespace: authenticatedUser.shortname,
+      kind: "property-type",
+      title: value,
+    });
+  };
 
   const handleSubmit = wrapHandleSubmit(async (data) => {
     const res = await createPropertyType({
@@ -99,7 +130,27 @@ export const PropertyTypeForm = ({
           required
           placeholder="e.g. Stock Price"
           disabled={isSubmitting}
-          {...register("name", { required: true })}
+          error={!!nameError}
+          helperText={nameError?.message}
+          {...register("name", {
+            required: true,
+            onChange() {
+              clearErrors("name");
+            },
+            async validate(value) {
+              const propertyTypeId = generateInitialPropertyTypeId(
+                generatePropertyTypeBaseUriForUser(value),
+              );
+
+              const res = await getPropertyType({ data: { propertyTypeId } });
+
+              const exists =
+                !res.data ||
+                !!getPersistedPropertyType(res.data, propertyTypeId);
+
+              return exists ? "Property type name must be unique" : true;
+            },
+          })}
         />
         <TextField
           multiline
@@ -157,6 +208,7 @@ export const PropertyTypeForm = ({
         <Button
           {...createButtonProps}
           loading={isSubmitting}
+          disabled={isSubmitting || !!nameError}
           type="submit"
           size="small"
         >
