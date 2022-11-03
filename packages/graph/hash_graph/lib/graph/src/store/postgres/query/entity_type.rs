@@ -2,7 +2,7 @@ use postgres_types::ToSql;
 use type_system::EntityType;
 
 use crate::{
-    ontology::{DataTypeQueryPath, EntityTypeQueryPath},
+    ontology::{DataTypeQueryPath, EntityTypeQueryPath, PropertyTypeQueryPath},
     store::postgres::query::{ColumnAccess, Path, PostgresQueryRecord, Relation, Table, TableName},
 };
 
@@ -48,7 +48,7 @@ impl Path for EntityTypeQueryPath {
                         column: "target_property_type_version_id",
                     },
                     join_table_name: TableName::PropertyTypes,
-                    join_column_access: DataTypeQueryPath::VersionId.column_access(),
+                    join_column_access: PropertyTypeQueryPath::VersionId.column_access(),
                 },
             ]
             .into_iter()
@@ -66,7 +66,7 @@ impl Path for EntityTypeQueryPath {
                     current_column_access: ColumnAccess::Table {
                         column: "target_entity_type_version_id",
                     },
-                    join_table_name: TableName::EntityTypePropertyTypeReferences,
+                    join_table_name: TableName::EntityTypes,
                     join_column_access: Self::VersionId.column_access(),
                 },
             ]

@@ -62,7 +62,6 @@ async fn insert() {
     let link_metadata = link_entity
         .metadata()
         .link_metadata()
-        .as_ref()
         .expect("entity is not a link");
 
     assert_eq!(
@@ -172,7 +171,6 @@ async fn get_entity_links() {
             entity
                 .metadata()
                 .link_metadata()
-                .as_ref()
                 .expect("entity is not a link")
         })
         .collect::<Vec<_>>();
