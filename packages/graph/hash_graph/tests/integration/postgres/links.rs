@@ -197,63 +197,69 @@ async fn get_entity_links() {
     );
 }
 
-// #[tokio::test]
-// async fn remove_link() {
-//     let person_a = serde_json::from_str(entity::PERSON_A_V1).expect("could not parse entity");
-//     let person_b = serde_json::from_str(entity::PERSON_B_V1).expect("could not parse entity");
-//
-//     let mut database = DatabaseTestWrapper::new().await;
-//     let mut api = database
-//         .seed(
-//             [data_type::TEXT_V1],
-//             [property_type::NAME_V1],
-//             [entity_type::PERSON_V1],
-//             [],
-//         )
-//         .await
-//         .expect("could not seed database");
-//
-//     let person_type_id = VersionedUri::new(
-//         BaseUri::new("https://blockprotocol.org/@alice/types/entity-type/person/".to_owned())
-//             .expect("couldn't construct Base URI"),
-//         1,
-//     );
-//
-//     let link_type_id = VersionedUri::new(
-//         BaseUri::new("https://blockprotocol.org/@alice/types/link-type/friend-of/".to_owned())
-//             .expect("couldn't construct Base URI"),
-//         1,
-//     );
-//
-//     let person_a_metadata = api
-//         .create_entity(person_a, person_type_id.clone(), None)
-//         .await
-//         .expect("could not create entity");
-//
-//     let person_b_metadata = api
-//         .create_entity(person_b, person_type_id.clone(), None)
-//         .await
-//         .expect("could not create entity");
-//
-//     let _a_b_link = api
-//         .create_link(
-//             person_a_metadata.identifier().entity_id(),
-//             person_b_metadata.identifier().entity_id(),
-//             link_type_id.clone(),
-//         )
-//         .await
-//         .expect("could not create link");
-//
-//     api.remove_link(
-//         person_a_metadata.identifier().entity_id(),
-//         person_b_metadata.identifier().entity_id(),
-//         link_type_id.clone(),
-//     )
-//     .await
-//     .expect("could not remove link");
-//
-//     let _ = api
-//         .get_link_target(person_a_metadata.identifier().entity_id(), link_type_id)
-//         .await
-//         .expect_err("found link that should have been deleted");
-// }
+#[tokio::test]
+async fn remove_link() {
+    let person_a = serde_json::from_str(entity::PERSON_A_V1).expect("could not parse entity");
+    let person_b = serde_json::from_str(entity::PERSON_B_V1).expect("could not parse entity");
+
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = database
+        .seed([data_type::TEXT_V1], [property_type::NAME_V1], [
+            entity_type::LINK_V1,
+            entity_type::link::FRIEND_OF_V1,
+            entity_type::PERSON_V1,
+        ])
+        .await
+        .expect("could not seed database");
+
+    let person_type_id = VersionedUri::new(
+        BaseUri::new("https://blockprotocol.org/@alice/types/entity-type/person/".to_owned())
+            .expect("couldn't construct Base URI"),
+        1,
+    );
+
+    let friend_link_type_id = VersionedUri::new(
+        BaseUri::new("https://blockprotocol.org/@alice/types/entity-type/friend-of/".to_owned())
+            .expect("couldn't construct Base URI"),
+        1,
+    );
+
+    let person_a_metadata = api
+        .create_entity(person_a, person_type_id.clone(), None)
+        .await
+        .expect("could not create entity");
+
+    let person_b_metadata = api
+        .create_entity(person_b, person_type_id.clone(), None)
+        .await
+        .expect("could not create entity");
+
+    let link_entity_metadata = api
+        .create_link_entity(
+            Entity::empty(),
+            friend_link_type_id,
+            None,
+            person_a_metadata.identifier().entity_id(),
+            person_b_metadata.identifier().entity_id(),
+        )
+        .await
+        .expect("could not create link");
+
+    assert!(
+        !api.get_entity_links(person_a_metadata.identifier().entity_id())
+            .await
+            .expect("could not fetch link")
+            .is_empty()
+    );
+
+    api.archive_entity(link_entity_metadata.identifier().entity_id())
+        .await
+        .expect("could not remove link");
+
+    assert!(
+        api.get_entity_links(person_a_metadata.identifier().entity_id())
+            .await
+            .expect("could not fetch link")
+            .is_empty()
+    );
+}

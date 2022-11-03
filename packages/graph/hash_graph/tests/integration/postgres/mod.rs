@@ -10,7 +10,7 @@ use error_stack::Result;
 use graph::{
     identifier::AccountId,
     knowledge::{
-        Entity, EntityId, EntityQueryPath, LinkEntityMetadata, LinkOrder, PersistedEntity,
+        Entity, EntityId, EntityQueryPath, LinkEntityMetadata, PersistedEntity,
         PersistedEntityMetadata,
     },
     ontology::{
@@ -20,6 +20,7 @@ use graph::{
     provenance::{CreatedById, OwnedById, UpdatedById},
     shared::identifier::GraphElementIdentifier,
     store::{
+        error::ArchivalError,
         query::{Filter, FilterExpression, Parameter},
         AccountStore, AsClient, DataTypeStore, DatabaseConnectionInfo, DatabaseType, EntityStore,
         EntityTypeStore, InsertionError, PostgresStore, PostgresStorePool, PropertyTypeStore,
@@ -415,17 +416,15 @@ impl DatabaseApi<'_> {
             .collect())
     }
 
-    // async fn remove_link_entity(
-    //     &mut self,
-    //     source_entity_id: EntityId,
-    //     target_entity_id: EntityId,
-    //     link_type_id: VersionedUri,
-    // ) -> Result<(), LinkRemovalError> {
-    //     let link = Link::new(source_entity_id, target_entity_id, link_type_id, None);
-    //     self.store
-    //         .remove_link(&link, RemovedById::new(self.account_id))
-    //         .await
-    // }
+    async fn archive_entity(&mut self, link_entity_id: EntityId) -> Result<(), ArchivalError> {
+        self.store
+            .archive_entity(
+                link_entity_id,
+                OwnedById::new(self.account_id),
+                UpdatedById::new(self.account_id),
+            )
+            .await
+    }
 }
 
 #[tokio::test]

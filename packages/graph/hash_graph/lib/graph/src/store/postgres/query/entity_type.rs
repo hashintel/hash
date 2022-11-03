@@ -2,7 +2,7 @@ use postgres_types::ToSql;
 use type_system::EntityType;
 
 use crate::{
-    ontology::{DataTypeQueryPath, EntityTypeQueryPath, PropertyTypeQueryPath},
+    ontology::{EntityTypeQueryPath, PropertyTypeQueryPath},
     store::postgres::query::{ColumnAccess, Path, PostgresQueryRecord, Relation, Table, TableName},
 };
 
