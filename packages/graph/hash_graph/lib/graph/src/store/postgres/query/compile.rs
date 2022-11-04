@@ -1,4 +1,4 @@
-use std::{borrow::Cow, fmt::Display, marker::PhantomData};
+use std::{borrow::Cow, collections::HashSet, fmt::Display, marker::PhantomData};
 
 use postgres_types::ToSql;
 use tokio_postgres::row::RowIndex;
@@ -15,7 +15,8 @@ use crate::store::{
 
 pub struct CompilerArtifacts<'f> {
     parameters: Vec<&'f (dyn ToSql + Sync)>,
-    current_alias: TableAlias,
+    condition_index: usize,
+    required_tables: HashSet<Table>,
 }
 
 pub struct SelectCompiler<'f, 'q, T> {
@@ -39,10 +40,8 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
             },
             artifacts: CompilerArtifacts {
                 parameters: Vec::new(),
-                current_alias: TableAlias {
-                    condition_index: 0,
-                    chain_depth: 0,
-                },
+                condition_index: 0,
+                required_tables: HashSet::new(),
             },
             _marker: PhantomData,
         }
@@ -116,7 +115,7 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
     /// Adds a new filter to the selection.
     pub fn add_filter(&mut self, filter: &'f Filter<'q, T>) {
         let condition = self.compile_filter(filter);
-        self.artifacts.current_alias.condition_index += 1;
+        self.artifacts.condition_index += 1;
         self.statement.where_expression.add_condition(condition);
     }
 
@@ -170,7 +169,7 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
     //          ensure compatibility
     fn compile_latest_version_filter(
         &mut self,
-        path: &'q T::Path<'q>,
+        path: &'f T::Path<'q>,
         operator: EqualityOperator,
     ) -> Condition<'q> {
         let mut version_column = Column {
@@ -328,6 +327,7 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
     /// compiled, each subsequent call will result in a new join-chain.
     fn add_join_statements(&mut self, tables: impl IntoIterator<Item = Relation<'q>>) -> Table {
         let mut current_table = T::base_table();
+        let mut chain_depth = 0;
         for Relation {
             current_column_access,
             join_table_name,
@@ -340,7 +340,10 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
             };
             let join_table = Table {
                 name: join_table_name,
-                alias: Some(self.artifacts.current_alias),
+                alias: Some(TableAlias {
+                    condition_index: self.artifacts.condition_index,
+                    chain_depth,
+                }),
             };
             let join_column = Column {
                 table: join_table,
@@ -351,29 +354,33 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
             // example, if we join on `entities.entity_type_version_id = entity_type.version_id` and
             // then on `entity_type.version_id = type_ids.version_id`, we can merge the two joins
             // into `entities.entity_type_version_id = type_ids.version_id`. We, however, need to
-            // make to make sure, that we only alter a join we added in this iteration.
-            if self.artifacts.current_alias.chain_depth != 0 {
+            // make sure, that we only alter a join statement with a table we don't require anymore.
+            if let Some(last_join) = self.statement.joins.last_mut() {
                 // Check if we are joining on the same column as the previous join
-                if let Some(last_join) = self.statement.joins.last_mut() {
-                    if last_join.join == current_column {
-                        last_join.join.table.name = join_column.table.name;
-                        last_join.join.access = join_column.access;
-                        current_table = last_join.join.table;
+                if last_join.join == current_column
+                    && !self
+                        .artifacts
+                        .required_tables
+                        .contains(&last_join.join.table)
+                {
+                    last_join.join.table.name = join_column.table.name;
+                    last_join.join.access = join_column.access;
+                    current_table = last_join.join.table;
 
-                        if let [.., previous_join, this_join] = self.statement.joins.as_slice() {
-                            // It's possible that we just duplicated the last two join statements,
-                            // so remove the last one.
-                            if previous_join == this_join {
-                                self.statement.joins.pop();
-                            }
+                    if let [.., previous_join, this_join] = self.statement.joins.as_slice() {
+                        // It's possible that we just duplicated the last two join statements, so
+                        // remove the last one.
+                        if previous_join == this_join {
+                            self.statement.joins.pop();
                         }
-
-                        continue;
                     }
+
+                    continue;
                 }
             }
 
             let join_expression = JoinExpression::new(join_column, current_column);
+
             if let Some(join_statement) = self
                 .statement
                 .joins
@@ -385,10 +392,9 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
                 self.statement.joins.push(join_expression);
                 current_table = join_table;
             }
-
-            self.artifacts.current_alias.chain_depth += 1;
+            chain_depth += 1;
         }
-        self.artifacts.current_alias.chain_depth = 0;
+        self.artifacts.required_tables.insert(current_table);
         current_table
     }
 }
