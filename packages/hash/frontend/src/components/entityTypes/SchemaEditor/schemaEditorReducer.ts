@@ -209,6 +209,7 @@ export const schemaEditorReducer: Reducer<
           // Update the subschema property
           if (Array.isArray(dependentProperty)) {
             updatePropertyType(
+              // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- false-positive, exception should be removed after refactoring ESLint config
               $defs![dependentProperty[0]!]!,
               dependentProperty[1]!,
               "string",

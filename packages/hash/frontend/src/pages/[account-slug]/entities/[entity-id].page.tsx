@@ -1,7 +1,7 @@
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { useBlockProtocolGetEntity } from "../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolGetEntity";
-import { useLoggedInUser } from "../../../components/hooks/useUser";
+import { useLoggedInUser } from "../../../components/hooks/useAuthenticatedUser";
 import { getPlainLayout, NextPageWithLayout } from "../../../shared/layout";
 import { EntityEditor } from "./[entity-id].page/entity-editor";
 import { EntityPageLoadingState } from "./[entity-id].page/entity-page-loading-state";
@@ -13,7 +13,7 @@ import {
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
-  const { user } = useLoggedInUser();
+  const { authenticatedUser } = useLoggedInUser();
   const { getEntity } = useBlockProtocolGetEntity();
 
   const [rootEntityAndSubgraph, setRootEntityAndSubgraph] =
@@ -44,7 +44,7 @@ const Page: NextPageWithLayout = () => {
     void init();
   }, [router.query, getEntity]);
 
-  if (!user) {
+  if (!authenticatedUser) {
     return null;
   }
 

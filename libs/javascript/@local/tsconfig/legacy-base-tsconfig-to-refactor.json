@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "lib": ["dom", "es2020"],
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noUncheckedIndexedAccess": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "es2020",
+    "baseUrl": ".",
+    "paths": {
+      "@hashintel/hash-shared/*": ["../../../../packages/hash/shared/src/*"],
+      "@hashintel/hash-backend-utils/*": [
+        "../../../../packages/hash/backend-utils/src/*"
+      ],
+      "@hashintel/hash-design-system/*": [
+        "../../../../packages/hash/design-system/src/*"
+      ]
+    }
+  },
+  "ts-node": {
+    "transpileOnly": true
+  }
+}

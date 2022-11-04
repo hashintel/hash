@@ -4,8 +4,10 @@ A-infra:
   - ".github/**/*"
   - ".github/**/.*"
   - "*.md"
+  - "*.yml"
+  - "*.json"
   - ".markdownlint*"
-  - ".gitignore"
+  - ".*ignore"
 
 A-blocks:
   - "blocks/*"

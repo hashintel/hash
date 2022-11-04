@@ -4,15 +4,14 @@ const ci = process.env.CI === "true";
 
 const config: PlaywrightTestConfig = {
   forbidOnly: ci,
-  // TODO: Investigate test perfomance issues
+  // TODO: Investigate test performance issues
   timeout: 60000,
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
-    { name: "firefox", use: { ...devices["Desktop Firefox"] } },
-
-    // TODO: investigate issue with cookie persistence in CI (Ubuntu).
-    // GraphQL queries remain unauthenticated after login.
-    // { name: "webkit", use: { ...devices["Desktop Safari"] } },
+    // We plan to add more browsers and also split Playwright tests into
+    // system (integration) tests and end-to-end tests.
+    // Re-enabling multiple browsers is tracked in:
+    // https://app.asana.com/0/1201095311341924/1203280843875283/f (internal)
   ],
   reporter: [
     [ci ? "github" : "list"],
