@@ -37,8 +37,26 @@ pub struct KnowledgeGraphVertices(
 );
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
-#[serde(untagged)]
-pub enum Vertices {
-    Ontology(OntologyVertices),
-    KnowledgeGraph(KnowledgeGraphVertices),
+pub struct Vertices {
+    #[serde(flatten)]
+    ontology: OntologyVertices,
+    #[serde(flatten)]
+    knowledge_graph: KnowledgeGraphVertices,
+}
+
+impl Vertices {
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            ontology: OntologyVertices(HashMap::new()),
+            knowledge_graph: KnowledgeGraphVertices(HashMap::new()),
+        }
+    }
+
+    pub fn extend(&mut self, other: Self) {
+        self.ontology.0.extend(other.ontology.0.into_iter());
+        self.knowledge_graph
+            .0
+            .extend(other.knowledge_graph.0.into_iter());
+    }
 }

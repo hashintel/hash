@@ -2,7 +2,7 @@ use core::fmt;
 
 use chrono::{DateTime, Utc};
 use postgres_types::{FromSql, ToSql};
-use serde::{Deserialize, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 use serde_json;
 use type_system::uri::{BaseUri, VersionedUri};
 use utoipa::{openapi, ToSchema};
@@ -11,7 +11,19 @@ use uuid::Uuid;
 use crate::{knowledge::EntityId, provenance::OwnedById};
 
 #[derive(
-    Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema, FromSql, ToSql,
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    Serialize,
+    Deserialize,
+    ToSchema,
+    FromSql,
+    ToSql,
 )]
 #[repr(transparent)]
 #[postgres(transparent)]
@@ -30,7 +42,7 @@ impl fmt::Display for AccountId {
     }
 }
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, ToSchema)]
 pub struct EntityIdentifier {
     owned_by_id: OwnedById,
     // TODO: rename this to entity_uuid?
@@ -47,21 +59,21 @@ pub type EntityVersion = Timestamp;
 /// This can be helpful to describe the state of the graph rooted at an [`Entity`] at a specific
 /// [`Timestamp`]. The [`Timestamp`] here is *not* necessarily the same as an [`EntityVersion`] as
 /// the [`Timestamp`] might be in the middle of an entity edition's lifetime.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityAndTimestamp {
     entity_id: EntityIdentifier,
     timestamp: Timestamp,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 #[serde(untagged)]
 pub enum GraphElementIdentifier {
     OntologyElementId(BaseUri),
     KnowledgeGraphElementId(EntityIdentifier),
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 pub enum GraphElementEditionIdentifier {
     OntologyElementEditionId(VersionedUri),
     KnowledgeGraphElementEditionId((EntityIdentifier, EntityVersion)),

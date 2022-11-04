@@ -7,7 +7,9 @@ use crate::identifier::AccountId;
 
 macro_rules! define_provenance_id {
     ($name:tt) => {
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+        #[derive(
+            Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
+        )]
         #[repr(transparent)]
         pub struct $name(AccountId);
 

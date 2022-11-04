@@ -17,3 +17,25 @@ pub struct Subgraph {
     pub edges: Edges,
     pub depths: GraphResolveDepths,
 }
+
+impl Subgraph {
+    #[must_use]
+    pub fn new(depths: GraphResolveDepths) -> Self {
+        Self {
+            roots: Vec::new(),
+            vertices: Vertices::new(),
+            edges: Edges::new(),
+            depths,
+        }
+    }
+}
+
+impl Extend<Self> for Subgraph {
+    fn extend<T: IntoIterator<Item = Self>>(&mut self, iter: T) {
+        for subgraph in iter {
+            self.roots.extend(subgraph.roots.into_iter());
+            self.vertices.extend(subgraph.vertices);
+            self.edges.extend(subgraph.edges);
+        }
+    }
+}

@@ -1,12 +1,15 @@
-use std::collections::HashMap;
+use std::{
+    cmp::Ordering,
+    collections::{btree_map::Entry, BTreeMap, BTreeSet},
+};
 
 use serde::Serialize;
 use type_system::uri::{BaseUri, VersionedUri};
 use utoipa::ToSchema;
 
-use crate::{
-    identifier::{EntityAndTimestamp, EntityIdentifier, OntologyTypeVersion, Timestamp},
-    subgraph::OntologyVertices,
+use crate::identifier::{
+    EntityAndTimestamp, EntityIdentifier, GraphElementEditionIdentifier,
+    OntologyTypeVersion, Timestamp,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, ToSchema)]
@@ -43,9 +46,9 @@ pub enum SharedEdgeKind {
     IsOfType,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(deny_unknown_fields)]
-pub struct OutwardEdge<E, V>
+pub struct GenericOutwardEdge<E, V>
 where
     E: Serialize,
     V: Serialize,
@@ -57,30 +60,57 @@ where
     endpoint: V,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
+impl<E, V> PartialOrd for GenericOutwardEdge<E, V>
+where
+    E: Serialize + PartialEq,
+    V: Serialize + PartialOrd + PartialEq,
+{
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.endpoint.partial_cmp(&other.endpoint)
+    }
+}
+
+impl<E, V> Ord for GenericOutwardEdge<E, V>
+where
+    E: Serialize + Eq,
+    V: Serialize + Ord + Eq,
+{
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.endpoint.cmp(&other.endpoint)
+    }
+}
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, ToSchema)]
 #[serde(untagged)]
 pub enum OntologyOutwardEdges {
-    ToOntology(OutwardEdge<OntologyEdgeKind, VersionedUri>),
-    ToKnowledgeGraph(OutwardEdge<SharedEdgeKind, EntityIdentifier>),
+    ToOntology(GenericOutwardEdge<OntologyEdgeKind, VersionedUri>),
+    ToKnowledgeGraph(GenericOutwardEdge<SharedEdgeKind, EntityIdentifier>),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
-#[serde(transparent)]
-pub struct OntologyRootedEdges(
-    HashMap<BaseUri, HashMap<OntologyTypeVersion, Vec<OntologyOutwardEdges>>>,
-);
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, ToSchema)]
 #[serde(untagged)]
 pub enum KnowledgeGraphOutwardEdges {
-    ToKnowledgeGraph(OutwardEdge<KnowledgeGraphEdgeKind, EntityAndTimestamp>),
-    ToOntology(OutwardEdge<SharedEdgeKind, VersionedUri>),
+    ToKnowledgeGraph(GenericOutwardEdge<KnowledgeGraphEdgeKind, EntityAndTimestamp>),
+    ToOntology(GenericOutwardEdge<SharedEdgeKind, VersionedUri>),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, ToSchema)]
+#[serde(untagged)]
+pub enum OutwardEdge {
+    Ontology(OntologyOutwardEdges),
+    KnowledgeGraph(KnowledgeGraphOutwardEdges),
+}
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, ToSchema)]
+#[serde(transparent)]
+pub struct OntologyRootedEdges(
+    pub BTreeMap<BaseUri, BTreeMap<OntologyTypeVersion, BTreeSet<OntologyOutwardEdges>>>,
+);
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(transparent)]
 pub struct KnowledgeGraphRootedEdges(
-    HashMap<EntityIdentifier, HashMap<Timestamp, Vec<KnowledgeGraphOutwardEdges>>>,
+    pub BTreeMap<EntityIdentifier, BTreeMap<Timestamp, BTreeSet<KnowledgeGraphOutwardEdges>>>,
 );
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
@@ -89,4 +119,76 @@ pub struct Edges {
     ontology: OntologyRootedEdges,
     #[serde(flatten)]
     knowledge_graph: KnowledgeGraphRootedEdges,
+}
+
+impl Edges {
+    pub fn new() -> Self {
+        Self {
+            ontology: OntologyRootedEdges(BTreeMap::new()),
+            knowledge_graph: KnowledgeGraphRootedEdges(BTreeMap::new()),
+        }
+    }
+
+    pub fn insert(
+        &mut self,
+        identifier: GraphElementEditionIdentifier,
+        outward_edge: OutwardEdge,
+    ) -> bool {
+        match identifier {
+            GraphElementEditionIdentifier::OntologyElementEditionId(versioned_uri) => {
+                let OutwardEdge::Ontology(outward_edge) = outward_edge else {
+                    panic!("tried to insert a knowledge-graph edge from an ontology element");
+                };
+
+                let map = self
+                    .ontology
+                    .0
+                    .entry(versioned_uri.base_uri().clone())
+                    .or_insert(BTreeMap::new());
+
+                match map.entry(versioned_uri.version()) {
+                    Entry::Occupied(entry) => {
+                        let set = entry.into_mut();
+                        set.insert(outward_edge)
+                    }
+                    Entry::Vacant(entry) => {
+                        entry.insert(BTreeSet::from([outward_edge]));
+                        true
+                    }
+                }
+            }
+            GraphElementEditionIdentifier::KnowledgeGraphElementEditionId((
+                entity_identifier,
+                entity_version,
+            )) => {
+                let OutwardEdge::KnowledgeGraph(outward_edge) = outward_edge else {
+                    panic!("tried to insert an ontology edge from a knowledge-graph element");
+                };
+
+                let map = self
+                    .knowledge_graph
+                    .0
+                    .entry(entity_identifier)
+                    .or_insert(BTreeMap::new());
+
+                match map.entry(entity_version) {
+                    Entry::Occupied(entry) => {
+                        let set = entry.into_mut();
+                        set.insert(outward_edge)
+                    }
+                    Entry::Vacant(entry) => {
+                        entry.insert(BTreeSet::from([outward_edge]));
+                        true
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn extend(&mut self, other: Self) {
+        self.ontology.0.extend(other.ontology.0.into_iter());
+        self.knowledge_graph
+            .0
+            .extend(other.knowledge_graph.0.into_iter());
+    }
 }
