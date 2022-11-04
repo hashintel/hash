@@ -315,6 +315,7 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
                     Parameter::Boolean(bool) => self.artifacts.parameters.push(bool),
                     Parameter::Uuid(uuid) => self.artifacts.parameters.push(uuid),
                     Parameter::SignedInteger(integer) => self.artifacts.parameters.push(integer),
+                    Parameter::Timestamp(timestamp) => self.artifacts.parameters.push(timestamp),
                 }
                 Expression::Parameter(self.artifacts.parameters.len())
             }

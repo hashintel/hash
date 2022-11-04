@@ -5,7 +5,9 @@ use type_system::uri::BaseUri;
 use utoipa::ToSchema;
 
 use crate::{
-    identifier::{EntityIdentifier, EntityVersion, OntologyTypeVersion},
+    identifier::{
+        EntityIdentifier, EntityVersion, GraphElementEditionIdentifier, OntologyTypeVersion,
+    },
     knowledge::PersistedEntity,
     ontology::{PersistedDataType, PersistedEntityType, PersistedPropertyType},
 };
@@ -24,6 +26,14 @@ pub enum OntologyVertex {
 #[serde(tag = "kind", content = "inner")]
 pub enum KnowledgeGraphVertex {
     Entity(PersistedEntity),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+#[serde(untagged)]
+pub enum Vertex {
+    Ontology(OntologyVertex),
+    KnowledgeGraph(KnowledgeGraphVertex),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
@@ -46,7 +56,7 @@ pub struct Vertices {
 
 impl Vertices {
     #[must_use]
-    pub fn new(
+    pub const fn new(
         ontology_vertices: OntologyVertices,
         knowledge_graph_vertices: KnowledgeGraphVertices,
     ) -> Self {
@@ -61,5 +71,26 @@ impl Vertices {
         self.knowledge_graph
             .0
             .extend(other.knowledge_graph.0.into_iter());
+    }
+
+    pub fn remove(&mut self, identifier: &GraphElementEditionIdentifier) -> Option<Vertex> {
+        match identifier {
+            GraphElementEditionIdentifier::OntologyElementEditionId(versioned_uri) => self
+                .ontology
+                .0
+                .get_mut(versioned_uri.base_uri())
+                .and_then(|inner| inner.remove(&versioned_uri.version()).map(Vertex::Ontology)),
+            GraphElementEditionIdentifier::KnowledgeGraphElementEditionId(
+                entity_edition_identifier,
+            ) => self
+                .knowledge_graph
+                .0
+                .get_mut(&entity_edition_identifier.entity_identifier())
+                .and_then(|inner| {
+                    inner
+                        .remove(&entity_edition_identifier.version())
+                        .map(Vertex::KnowledgeGraph)
+                }),
+        }
     }
 }

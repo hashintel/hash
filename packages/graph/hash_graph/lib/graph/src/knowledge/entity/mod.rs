@@ -90,7 +90,9 @@ impl Entity {
 
 /// The metadata required to uniquely identify an instance of an [`Entity`] that has been persisted
 /// in the datastore.
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, ToSchema)]
+#[derive(
+    Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, ToSchema,
+)]
 #[serde(rename_all = "camelCase")]
 pub struct PersistedEntityIdentifier {
     entity_identifier: EntityIdentifier,
@@ -113,8 +115,8 @@ impl PersistedEntityIdentifier {
     }
 
     #[must_use]
-    pub const fn version(&self) -> &EntityVersion {
-        &self.version
+    pub const fn version(&self) -> EntityVersion {
+        self.version
     }
 }
 
@@ -122,8 +124,8 @@ impl PersistedEntityIdentifier {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct LinkEntityMetadata {
-    left_entity_id: EntityId,
-    right_entity_id: EntityId,
+    left_entity_identifier: EntityIdentifier,
+    right_entity_identifier: EntityIdentifier,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     left_order: Option<LinkOrder>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -133,27 +135,27 @@ pub struct LinkEntityMetadata {
 impl LinkEntityMetadata {
     #[must_use]
     pub const fn new(
-        left_entity_id: EntityId,
-        right_entity_id: EntityId,
+        left_entity_identifier: EntityIdentifier,
+        right_entity_identifier: EntityIdentifier,
         left_order: Option<LinkOrder>,
         right_order: Option<LinkOrder>,
     ) -> Self {
         Self {
-            left_entity_id,
-            right_entity_id,
+            left_entity_identifier,
+            right_entity_identifier,
             left_order,
             right_order,
         }
     }
 
     #[must_use]
-    pub const fn left_entity_id(&self) -> EntityId {
-        self.left_entity_id
+    pub const fn left_entity_identifier(&self) -> EntityIdentifier {
+        self.left_entity_identifier
     }
 
     #[must_use]
-    pub const fn right_entity_id(&self) -> EntityId {
-        self.right_entity_id
+    pub const fn right_entity_identifier(&self) -> EntityIdentifier {
+        self.right_entity_identifier
     }
 
     #[must_use]

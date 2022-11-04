@@ -8,10 +8,10 @@ use std::{borrow::Cow, str::FromStr};
 
 use error_stack::Result;
 use graph::{
-    identifier::AccountId,
+    identifier::{AccountId, EntityIdentifier, GraphElementEditionIdentifier},
     knowledge::{
         Entity, EntityId, EntityQueryPath, LinkEntityMetadata, PersistedEntity,
-        PersistedEntityMetadata,
+        PersistedEntityIdentifier, PersistedEntityMetadata,
     },
     ontology::{
         EntityTypeQueryPath, PersistedDataType, PersistedEntityType, PersistedOntologyMetadata,
@@ -26,7 +26,7 @@ use graph::{
         EntityTypeStore, InsertionError, PostgresStore, PostgresStorePool, PropertyTypeStore,
         QueryError, StorePool, UpdateError,
     },
-    subgraph::{GraphResolveDepths, StructuralQuery, Vertex},
+    subgraph::{GraphResolveDepths, KnowledgeGraphVertex, OntologyVertex, StructuralQuery, Vertex},
 };
 use tokio_postgres::{NoTls, Transaction};
 use type_system::{uri::VersionedUri, DataType, EntityType, PropertyType};
@@ -152,19 +152,23 @@ impl DatabaseApi<'_> {
         &mut self,
         uri: &VersionedUri,
     ) -> Result<PersistedDataType, QueryError> {
-        let vertex = self
+        let mut subgraph = self
             .store
             .get_data_type(&StructuralQuery {
                 filter: Filter::for_versioned_uri(uri),
                 graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
-            .await?
+            .await?;
+
+        let vertex = subgraph
             .vertices
-            .remove(&GraphElementIdentifier::OntologyElementId(uri.clone()))
-            .expect("no data type found");
+            .remove(&subgraph.roots.pop().expect("no data type found"))
+            .unwrap();
 
         match vertex {
-            Vertex::DataType(persisted_data_type) => Ok(persisted_data_type),
+            Vertex::Ontology(OntologyVertex::DataType(persisted_data_type)) => {
+                Ok(persisted_data_type)
+            }
             _ => unreachable!(),
         }
     }
@@ -195,19 +199,23 @@ impl DatabaseApi<'_> {
         &mut self,
         uri: &VersionedUri,
     ) -> Result<PersistedPropertyType, QueryError> {
-        let vertex = self
+        let mut subgraph = self
             .store
             .get_property_type(&StructuralQuery {
                 filter: Filter::for_versioned_uri(uri),
                 graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
-            .await?
+            .await?;
+
+        let vertex = subgraph
             .vertices
-            .remove(&GraphElementIdentifier::OntologyElementId(uri.clone()))
-            .expect("no property type found");
+            .remove(&subgraph.roots.pop().expect("no property type found"))
+            .unwrap();
 
         match vertex {
-            Vertex::PropertyType(persisted_property_type) => Ok(persisted_property_type),
+            Vertex::Ontology(OntologyVertex::PropertyType(persisted_property_type)) => {
+                Ok(persisted_property_type)
+            }
             _ => unreachable!(),
         }
     }
@@ -238,19 +246,23 @@ impl DatabaseApi<'_> {
         &mut self,
         uri: &VersionedUri,
     ) -> Result<PersistedEntityType, QueryError> {
-        let vertex = self
+        let mut subgraph = self
             .store
             .get_entity_type(&StructuralQuery {
                 filter: Filter::for_versioned_uri(uri),
                 graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
-            .await?
+            .await?;
+
+        let vertex = subgraph
             .vertices
-            .remove(&GraphElementIdentifier::OntologyElementId(uri.clone()))
-            .expect("no entity type found");
+            .remove(&subgraph.roots.pop().expect("no entity type found"))
+            .unwrap();
 
         match vertex {
-            Vertex::EntityType(persisted_entity_type) => Ok(persisted_entity_type),
+            Vertex::Ontology(OntologyVertex::EntityType(persisted_entity_type)) => {
+                Ok(persisted_entity_type)
+            }
             _ => unreachable!(),
         }
     }
@@ -282,33 +294,42 @@ impl DatabaseApi<'_> {
             .await
     }
 
-    pub async fn get_entity(&self, entity_id: EntityId) -> Result<PersistedEntity, QueryError> {
-        let vertex = self
+    pub async fn get_entity(
+        &self,
+        entity_edition_identifier: &PersistedEntityIdentifier,
+    ) -> Result<PersistedEntity, QueryError> {
+        let mut subgraph = self
             .store
             .get_entity(&StructuralQuery {
-                filter: Filter::for_latest_entity_by_entity_id(entity_id),
+                filter: Filter::for_entity_by_entity_id_and_entity_version(
+                    entity_edition_identifier,
+                ),
                 graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
-            .await?
+            .await?;
+
+        let vertex = subgraph
             .vertices
-            .remove(&GraphElementIdentifier::KnowledgeGraphElementId(entity_id))
-            .expect("no entity found");
+            .remove(&subgraph.roots.pop().expect("no entity found"))
+            .unwrap();
 
         match vertex {
-            Vertex::Entity(persisted_entity) => Ok(persisted_entity),
+            Vertex::KnowledgeGraph(KnowledgeGraphVertex::Entity(persisted_entity)) => {
+                Ok(persisted_entity)
+            }
             _ => unreachable!(),
         }
     }
 
     pub async fn update_entity(
         &mut self,
-        entity_id: EntityId,
+        entity_identifier: EntityIdentifier,
         entity: Entity,
         entity_type_id: VersionedUri,
     ) -> Result<PersistedEntityMetadata, UpdateError> {
         self.store
             .update_entity(
-                entity_id,
+                entity_identifier,
                 entity,
                 entity_type_id,
                 UpdatedById::new(self.account_id),
@@ -321,8 +342,8 @@ impl DatabaseApi<'_> {
         entity: Entity,
         entity_type_id: VersionedUri,
         entity_id: Option<EntityId>,
-        left_entity_id: EntityId,
-        right_entity_id: EntityId,
+        left_entity_id: EntityIdentifier,
+        right_entity_id: EntityIdentifier,
     ) -> Result<PersistedEntityMetadata, InsertionError> {
         self.store
             .create_entity(
@@ -343,7 +364,7 @@ impl DatabaseApi<'_> {
 
     pub async fn get_link_entity_target(
         &self,
-        source_entity_id: EntityId,
+        source_entity_identifier: EntityIdentifier,
         link_type_id: VersionedUri,
     ) -> Result<PersistedEntity, QueryError> {
         let filter = Filter::All(vec![
@@ -352,7 +373,15 @@ impl DatabaseApi<'_> {
                     Box::new(EntityQueryPath::Id),
                 )))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    source_entity_id.as_uuid(),
+                    source_entity_identifier.entity_id().as_uuid(),
+                ))),
+            ),
+            Filter::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(Some(
+                    Box::new(EntityQueryPath::OwnedById),
+                )))),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    source_entity_identifier.owned_by_id().as_uuid(),
                 ))),
             ),
             Filter::Equal(
@@ -373,56 +402,78 @@ impl DatabaseApi<'_> {
             ),
         ]);
 
-        self.store
-            .get_entity(&StructuralQuery {
-                filter,
-                graph_resolve_depths: GraphResolveDepths::zeroed(),
-            })
-            .await?
-            .vertices
-            .into_iter()
-            .map(|(_, vertex)| match vertex {
-                Vertex::Entity(persisted_entity) => Ok(persisted_entity),
-                _ => unreachable!(),
-            })
-            .next()
-            .expect("no entity found")
-    }
-
-    pub async fn get_entity_links(
-        &self,
-        source_entity_id: EntityId,
-    ) -> Result<Vec<PersistedEntity>, QueryError> {
-        let filter = Filter::Equal(
-            Some(FilterExpression::Path(EntityQueryPath::LeftEntity(None))),
-            Some(FilterExpression::Parameter(Parameter::Uuid(
-                source_entity_id.as_uuid(),
-            ))),
-        );
-
-        Ok(self
+        let mut subgraph = self
             .store
             .get_entity(&StructuralQuery {
                 filter,
                 graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
-            .await?
+            .await?;
+
+        let vertex = subgraph
             .vertices
+            .remove(&subgraph.roots.pop().expect("no entity found"))
+            .unwrap();
+
+        match vertex {
+            Vertex::KnowledgeGraph(KnowledgeGraphVertex::Entity(persisted_entity)) => {
+                Ok(persisted_entity)
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    pub async fn get_entity_links(
+        &self,
+        source_entity_identifier: EntityIdentifier,
+    ) -> Result<Vec<PersistedEntity>, QueryError> {
+        let filter = Filter::All(vec![
+            Filter::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(Some(
+                    Box::new(EntityQueryPath::Id),
+                )))),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    source_entity_identifier.entity_id().as_uuid(),
+                ))),
+            ),
+            Filter::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(Some(
+                    Box::new(EntityQueryPath::OwnedById),
+                )))),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    source_entity_identifier.owned_by_id().as_uuid(),
+                ))),
+            ),
+        ]);
+
+        let mut subgraph = self
+            .store
+            .get_entity(&StructuralQuery {
+                filter,
+                graph_resolve_depths: GraphResolveDepths::zeroed(),
+            })
+            .await?;
+
+        Ok(subgraph
+            .roots
             .into_iter()
-            .map(|(_, vertex)| match vertex {
-                Vertex::Entity(persisted_entity) => persisted_entity,
+            .map(|element_id| subgraph.vertices.remove(&element_id))
+            .flatten() // Filter out Option::None
+            .map(|vertex| match vertex {
+                Vertex::KnowledgeGraph(KnowledgeGraphVertex::Entity(persisted_entity)) => {
+                    persisted_entity
+                }
                 _ => unreachable!(),
             })
             .collect())
     }
 
-    async fn archive_entity(&mut self, link_entity_id: EntityId) -> Result<(), ArchivalError> {
+    async fn archive_entity(
+        &mut self,
+        link_entity_identifier: EntityIdentifier,
+    ) -> Result<(), ArchivalError> {
         self.store
-            .archive_entity(
-                link_entity_id,
-                OwnedById::new(self.account_id),
-                UpdatedById::new(self.account_id),
-            )
+            .archive_entity(link_entity_identifier, UpdatedById::new(self.account_id))
             .await
     }
 }

@@ -66,8 +66,8 @@ impl<C: AsClient> crud::Read<PersistedEntity> for PostgresStore<C> {
                     match (left_entity_id, right_entity_id) {
                         (Some(left_entity_id), Some(right_entity_id)) => {
                             Some(LinkEntityMetadata::new(
-                                left_entity_id,
-                                right_entity_id,
+                                EntityIdentifier::new(todo!(), left_entity_id),
+                                EntityIdentifier::new(todo!(), right_entity_id),
                                 row.get(left_order_index),
                                 row.get(right_order_index),
                             ))

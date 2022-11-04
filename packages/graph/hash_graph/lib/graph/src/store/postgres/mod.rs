@@ -970,10 +970,10 @@ where
                     &link_metadata.as_ref().map(LinkEntityMetadata::right_order),
                     &link_metadata
                         .as_ref()
-                        .map(LinkEntityMetadata::left_entity_id),
+                        .map(|metadata| metadata.left_entity_identifier().entity_id()),
                     &link_metadata
                         .as_ref()
-                        .map(LinkEntityMetadata::right_entity_id),
+                        .map(|metadata| metadata.right_entity_identifier().entity_id()),
                     &entity_identifier.owned_by_id().as_account_id(),
                     &created_by_id.as_account_id(),
                     &updated_by_id.as_account_id(),
@@ -1109,9 +1109,14 @@ where
             historic_entity.get(6),
             historic_entity.get(7),
         ) {
-            (left_order, right_order, Some(left_entity_id), Some(right_entity_id)) => Some(
-                LinkEntityMetadata::new(left_entity_id, right_entity_id, left_order, right_order),
-            ),
+            (left_order, right_order, Some(left_entity_id), Some(right_entity_id)) => {
+                Some(LinkEntityMetadata::new(
+                    EntityIdentifier::new(todo!(), left_entity_id),
+                    EntityIdentifier::new(todo!(), right_entity_id),
+                    left_order,
+                    right_order,
+                ))
+            }
             (None, None, None, None) => None,
             _ => {
                 unreachable!("incomplete link information was found in the DB table, this is fatal")
