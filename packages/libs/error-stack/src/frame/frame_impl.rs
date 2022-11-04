@@ -6,7 +6,6 @@ use core::fmt;
 use core::{
     any::Any,
     fmt::{Debug, Display},
-    panic::Location,
 };
 
 use crate::{AttachmentKind, Context, Frame, FrameKind};
@@ -195,61 +194,41 @@ impl FrameImpl for EyreContext {
 
 impl Frame {
     /// Creates a frame from a [`Context`].
-    pub(crate) fn from_context<C>(
-        context: C,
-        location: &'static Location<'static>,
-        sources: Box<[Self]>,
-    ) -> Self
+    pub(crate) fn from_context<C>(context: C, sources: Box<[Self]>) -> Self
     where
         C: Context,
     {
         Self {
             frame: Box::new(ContextFrame { context }),
-            location,
             sources,
         }
     }
 
     /// Creates a frame from an attachment.
-    pub(crate) fn from_attachment<A>(
-        attachment: A,
-        location: &'static Location<'static>,
-        sources: Box<[Self]>,
-    ) -> Self
+    pub(crate) fn from_attachment<A>(attachment: A, sources: Box<[Self]>) -> Self
     where
         A: Send + Sync + 'static,
     {
         Self {
             frame: Box::new(AttachmentFrame { attachment }),
-            location,
             sources,
         }
     }
 
     /// Creates a frame from an [`anyhow::Error`].
     #[cfg(feature = "anyhow")]
-    pub(crate) fn from_anyhow(
-        error: anyhow::Error,
-        location: &'static Location<'static>,
-        sources: Box<[Self]>,
-    ) -> Self {
+    pub(crate) fn from_anyhow(error: anyhow::Error, sources: Box<[Self]>) -> Self {
         Self {
             frame: Box::new(AnyhowContext(error)),
-            location,
             sources,
         }
     }
 
     /// Creates a frame from an [`eyre::Report`].
     #[cfg(feature = "eyre")]
-    pub(crate) fn from_eyre(
-        report: eyre::Report,
-        location: &'static Location<'static>,
-        sources: Box<[Self]>,
-    ) -> Self {
+    pub(crate) fn from_eyre(report: eyre::Report, sources: Box<[Self]>) -> Self {
         Self {
             frame: Box::new(EyreContext(report)),
-            location,
             sources,
         }
     }
@@ -258,17 +237,12 @@ impl Frame {
     ///
     /// [`Debug`]: core::fmt::Debug
     /// [`Display`]: core::fmt::Display
-    pub(crate) fn from_printable_attachment<A>(
-        attachment: A,
-        location: &'static Location<'static>,
-        sources: Box<[Self]>,
-    ) -> Self
+    pub(crate) fn from_printable_attachment<A>(attachment: A, sources: Box<[Self]>) -> Self
     where
         A: Display + Debug + Send + Sync + 'static,
     {
         Self {
             frame: Box::new(PrintableAttachmentFrame { attachment }),
-            location,
             sources,
         }
     }
