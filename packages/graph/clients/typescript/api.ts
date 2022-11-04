@@ -717,6 +717,12 @@ export interface PersistedEntityIdentifier {
 export interface PersistedEntityMetadata {
   /**
    *
+   * @type {boolean}
+   * @memberof PersistedEntityMetadata
+   */
+  archived: boolean;
+  /**
+   *
    * @type {string}
    * @memberof PersistedEntityMetadata
    */
