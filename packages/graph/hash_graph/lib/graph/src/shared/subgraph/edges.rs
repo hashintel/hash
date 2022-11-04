@@ -8,8 +8,8 @@ use type_system::uri::{BaseUri, VersionedUri};
 use utoipa::ToSchema;
 
 use crate::identifier::{
-    EntityAndTimestamp, EntityIdentifier, GraphElementEditionIdentifier,
-    OntologyTypeVersion, Timestamp,
+    EntityAndTimestamp, EntityIdentifier, GraphElementEditionIdentifier, OntologyTypeVersion,
+    Timestamp,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, ToSchema)]
@@ -157,10 +157,9 @@ impl Edges {
                     }
                 }
             }
-            GraphElementEditionIdentifier::KnowledgeGraphElementEditionId((
-                entity_identifier,
-                entity_version,
-            )) => {
+            GraphElementEditionIdentifier::KnowledgeGraphElementEditionId(
+                entity_edition_identifier,
+            ) => {
                 let OutwardEdge::KnowledgeGraph(outward_edge) = outward_edge else {
                     panic!("tried to insert an ontology edge from a knowledge-graph element");
                 };
@@ -168,10 +167,10 @@ impl Edges {
                 let map = self
                     .knowledge_graph
                     .0
-                    .entry(entity_identifier)
+                    .entry(entity_edition_identifier.entity_identifier())
                     .or_insert(BTreeMap::new());
 
-                match map.entry(entity_version) {
+                match map.entry(entity_edition_identifier.version().clone()) {
                     Entry::Occupied(entry) => {
                         let set = entry.into_mut();
                         set.insert(outward_edge)

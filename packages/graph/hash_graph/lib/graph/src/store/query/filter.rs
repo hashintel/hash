@@ -11,6 +11,7 @@ use type_system::uri::VersionedUri;
 use uuid::Uuid;
 
 use crate::{
+    identifier::{EntityIdentifier, EntityVersion},
     knowledge::{Entity, EntityId, EntityQueryPath},
     store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath},
 };
@@ -87,14 +88,49 @@ impl<'q> Filter<'q, Entity> {
     /// Creates a `Filter` to search for a specific entities at their latest version, identified by
     /// its [`EntityId`].
     #[must_use]
-    pub fn for_latest_entity_by_entity_id(entity_id: EntityId) -> Self {
+    pub fn for_latest_entity_by_entity_id(entity_identifier: EntityIdentifier) -> Self {
         Self::All(vec![
             Self::for_all_latest_entities(),
             Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::OwnedById)),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    entity_identifier.owned_by_id().as_uuid(),
+                ))),
+            ),
+            Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::Id)),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.as_uuid(),
+                    entity_identifier.entity_id().as_uuid(),
                 ))),
+            ),
+        ])
+    }
+
+    /// Creates a `Filter` to search for a specific entity at specific version, identified by
+    /// its [`EntityId`] and its [`EntityVersion`].
+    #[must_use]
+    pub fn for_entity_by_entity_id_and_entity_version(
+        entity_identifier: EntityIdentifier,
+        entity_version: EntityVersion,
+    ) -> Self {
+        Self::All(vec![
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::OwnedById)),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    entity_identifier.owned_by_id().as_uuid(),
+                ))),
+            ),
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::Id)),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    entity_identifier.entity_id().as_uuid(),
+                ))),
+            ),
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::Version)),
+                Some(FilterExpression::Parameter(Parameter::Text(Cow::Owned(
+                    entity_version.to_string(),
+                )))),
             ),
         ])
     }

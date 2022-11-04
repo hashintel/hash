@@ -5,6 +5,7 @@ use tokio_postgres::GenericClient;
 use type_system::{uri::VersionedUri, DataType};
 
 use crate::{
+    identifier::GraphElementEditionIdentifier,
     ontology::{PersistedDataType, PersistedOntologyMetadata},
     provenance::{CreatedById, OwnedById, UpdatedById},
     shared::identifier::GraphElementIdentifier,
@@ -98,7 +99,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                 self.get_data_type_as_dependency(&data_type_id, dependency_context.as_ref_object())
                     .await?;
 
-                let root = GraphElementIdentifier::OntologyElementId(data_type_id);
+                let root = GraphElementEditionIdentifier::OntologyElementEditionId(data_type_id);
 
                 Ok::<_, Report<QueryError>>(dependency_context.into_subgraph(vec![root]))
             })

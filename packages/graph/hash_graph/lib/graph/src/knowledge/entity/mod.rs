@@ -10,7 +10,10 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 pub use self::query::{EntityQueryPath, EntityQueryPathVisitor};
-use crate::provenance::{CreatedById, OwnedById, UpdatedById};
+use crate::{
+    identifier::{EntityIdentifier, EntityVersion, Timestamp},
+    provenance::{CreatedById, OwnedById, UpdatedById},
+};
 
 // TODO: rename this to EntityUuid
 #[derive(
@@ -87,38 +90,31 @@ impl Entity {
 
 /// The metadata required to uniquely identify an instance of an [`Entity`] that has been persisted
 /// in the datastore.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct PersistedEntityIdentifier {
-    entity_id: EntityId,
+    entity_identifier: EntityIdentifier,
     #[schema(value_type = String)]
-    version: DateTime<Utc>,
-    owned_by_id: OwnedById,
+    version: EntityVersion,
 }
 
 impl PersistedEntityIdentifier {
     #[must_use]
-    pub const fn new(entity_id: EntityId, version: DateTime<Utc>, owned_by_id: OwnedById) -> Self {
+    pub const fn new(entity_identifier: EntityIdentifier, version: EntityVersion) -> Self {
         Self {
-            entity_id,
+            entity_identifier,
             version,
-            owned_by_id,
         }
     }
 
     #[must_use]
-    pub const fn entity_id(&self) -> EntityId {
-        self.entity_id
+    pub const fn entity_identifier(&self) -> EntityIdentifier {
+        self.entity_identifier
     }
 
     #[must_use]
-    pub const fn version(&self) -> DateTime<Utc> {
-        self.version
-    }
-
-    #[must_use]
-    pub const fn owned_by_id(&self) -> OwnedById {
-        self.owned_by_id
+    pub const fn version(&self) -> &EntityVersion {
+        &self.version
     }
 }
 

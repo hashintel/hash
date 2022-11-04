@@ -2,6 +2,7 @@ use core::fmt;
 
 use serde::{Deserialize, Serialize};
 use utoipa::{openapi::Schema, ToSchema};
+use uuid::Uuid;
 
 use crate::identifier::AccountId;
 
@@ -22,6 +23,11 @@ macro_rules! define_provenance_id {
             #[must_use]
             pub const fn as_account_id(self) -> AccountId {
                 self.0
+            }
+
+            #[must_use]
+            pub const fn as_uuid(&self) -> Uuid {
+                self.0.as_uuid()
             }
         }
 

@@ -26,7 +26,7 @@ use uuid::Uuid;
 use self::context::{OntologyRecord, PostgresContext};
 pub use self::pool::{AsClient, PostgresStorePool};
 use crate::{
-    identifier::AccountId,
+    identifier::{AccountId, EntityIdentifier, GraphElementEditionIdentifier},
     knowledge::{
         Entity, EntityId, LinkEntityMetadata, PersistedEntity, PersistedEntityIdentifier,
         PersistedEntityMetadata,
@@ -43,7 +43,7 @@ use crate::{
         AccountStore, BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError,
         UpdateError,
     },
-    subgraph::{Edges, GraphResolveDepths, Subgraph, SubgraphQueryDepth, Vertex},
+    subgraph::{Edges, GraphResolveDepths, Subgraph, SubgraphQueryDepth},
 };
 
 pub struct DependencyMap<V, T, D> {
@@ -234,7 +234,7 @@ pub struct DependencyContext {
         DependencyMap<VersionedUri, PersistedPropertyType, SubgraphQueryDepth>,
     pub referenced_entity_types:
         DependencyMap<VersionedUri, PersistedEntityType, SubgraphQueryDepth>,
-    pub linked_entities: DependencyMap<EntityId, PersistedEntity, SubgraphQueryDepth>,
+    pub linked_entities: DependencyMap<EntityIdentifier, PersistedEntity, SubgraphQueryDepth>,
     pub graph_resolve_depths: GraphResolveDepths,
 }
 
@@ -264,58 +264,59 @@ impl DependencyContext {
     }
 
     #[must_use]
-    pub fn into_subgraph(self, roots: Vec<GraphElementIdentifier>) -> Subgraph {
-        let vertices = self
-            .referenced_data_types
-            .into_values()
-            .map(|data_type| {
-                (
-                    GraphElementIdentifier::OntologyElementId(
-                        data_type.metadata().identifier().uri().clone(),
-                    ),
-                    Vertex::DataType(data_type),
-                )
-            })
-            .chain(
-                self.referenced_property_types
-                    .into_values()
-                    .map(|property_type| {
-                        (
-                            GraphElementIdentifier::OntologyElementId(
-                                property_type.metadata().identifier().uri().clone(),
-                            ),
-                            Vertex::PropertyType(property_type),
-                        )
-                    }),
-            )
-            .chain(
-                self.referenced_entity_types
-                    .into_values()
-                    .map(|entity_type| {
-                        (
-                            GraphElementIdentifier::OntologyElementId(
-                                entity_type.metadata().identifier().uri().clone(),
-                            ),
-                            Vertex::EntityType(entity_type),
-                        )
-                    }),
-            )
-            .chain(self.linked_entities.into_values().map(|entity| {
-                (
-                    GraphElementIdentifier::KnowledgeGraphElementId(
-                        entity.metadata().identifier().entity_id(),
-                    ),
-                    Vertex::Entity(entity),
-                )
-            }))
-            .collect();
-
-        Subgraph {
-            roots,
-            vertices,
-            edges: self.edges,
-            depths: self.graph_resolve_depths,
-        }
+    pub fn into_subgraph(self, roots: Vec<GraphElementEditionIdentifier>) -> Subgraph {
+        todo!()
+        // let vertices = self
+        //     .referenced_data_types
+        //     .into_values()
+        //     .map(|data_type| {
+        //         (
+        //             GraphElementIdentifier::OntologyElementId(
+        //                 data_type.metadata().identifier().uri().clone(),
+        //             ),
+        //             Vertex::DataType(data_type),
+        //         )
+        //     })
+        //     .chain(
+        //         self.referenced_property_types
+        //             .into_values()
+        //             .map(|property_type| {
+        //                 (
+        //                     GraphElementIdentifier::OntologyElementId(
+        //                         property_type.metadata().identifier().uri().clone(),
+        //                     ),
+        //                     Vertex::PropertyType(property_type),
+        //                 )
+        //             }),
+        //     )
+        //     .chain(
+        //         self.referenced_entity_types
+        //             .into_values()
+        //             .map(|entity_type| {
+        //                 (
+        //                     GraphElementIdentifier::OntologyElementId(
+        //                         entity_type.metadata().identifier().uri().clone(),
+        //                     ),
+        //                     Vertex::EntityType(entity_type),
+        //                 )
+        //             }),
+        //     )
+        //     .chain(self.linked_entities.into_values().map(|entity| {
+        //         (
+        //             GraphElementIdentifier::KnowledgeGraphElementId(
+        //                 entity.metadata().identifier().entity_id(),
+        //             ),
+        //             Vertex::Entity(entity),
+        //         )
+        //     }))
+        //     .collect();
+        //
+        // Subgraph {
+        //     roots,
+        //     vertices,
+        //     edges: self.edges,
+        //     depths: self.graph_resolve_depths,
+        // }
     }
 }
 
@@ -327,7 +328,8 @@ pub struct DependencyContextRef<'a> {
         &'a mut DependencyMap<VersionedUri, PersistedPropertyType, SubgraphQueryDepth>,
     pub referenced_entity_types:
         &'a mut DependencyMap<VersionedUri, PersistedEntityType, SubgraphQueryDepth>,
-    pub linked_entities: &'a mut DependencyMap<EntityId, PersistedEntity, SubgraphQueryDepth>,
+    pub linked_entities:
+        &'a mut DependencyMap<EntityIdentifier, PersistedEntity, SubgraphQueryDepth>,
     pub graph_resolve_depths: GraphResolveDepths,
 }
 
@@ -878,10 +880,9 @@ where
 
     async fn insert_entity(
         &self,
-        entity_id: EntityId,
+        entity_identifier: EntityIdentifier,
         entity: Entity,
         entity_type_id: VersionedUri,
-        owned_by_id: OwnedById,
         created_by_id: CreatedById,
         updated_by_id: UpdatedById,
         link_metadata: Option<LinkEntityMetadata>,
@@ -913,7 +914,7 @@ where
                 RETURNING version;
                 "#,
                 &[
-                    &entity_id,
+                    &entity_identifier.entity_id(),
                     &entity_type_version_id,
                     &value,
                     &link_metadata.as_ref().map(LinkEntityMetadata::left_order),
@@ -924,7 +925,7 @@ where
                     &link_metadata
                         .as_ref()
                         .map(LinkEntityMetadata::right_entity_id),
-                    &owned_by_id.as_account_id(),
+                    &entity_identifier.owned_by_id().as_account_id(),
                     &created_by_id.as_account_id(),
                     &updated_by_id.as_account_id(),
                 ],
@@ -935,7 +936,7 @@ where
             .get(0);
 
         Ok(PersistedEntityMetadata::new(
-            PersistedEntityIdentifier::new(entity_id, version, owned_by_id),
+            PersistedEntityIdentifier::new(entity_identifier, version),
             entity_type_id,
             created_by_id,
             updated_by_id,
@@ -950,7 +951,10 @@ where
     //   This is especially important for making these queries single-shard Citus queries when we
     //   need that.
     //   see: https://app.asana.com/0/1201095311341924/1203214689883091/f
-    async fn lock_entity_for_update(&self, entity_id: EntityId) -> Result<(), QueryError> {
+    async fn lock_entity_for_update(
+        &self,
+        entity_identifier: EntityIdentifier,
+    ) -> Result<(), QueryError> {
         // TODO - address potential serializability issue.
         //   We don't have a data race per se, but the transaction isolation level of postgres would
         //   make new entries of the `entities` table inaccessible to peer lock-waiters.
@@ -968,7 +972,7 @@ where
                 WHERE entity_id = $1
                 FOR UPDATE;
                 "#,
-                &[&entity_id],
+                &[&entity_identifier.entity_id()],
             )
             .await
             .into_report()
@@ -983,7 +987,7 @@ where
     //   see: https://app.asana.com/0/1201095311341924/1203214689883091/f
     async fn move_entity_to_histories(
         &self,
-        entity_id: EntityId,
+        entity_identifier: EntityIdentifier,
         historic_move: HistoricMove,
     ) -> Result<PersistedEntityMetadata, InsertionError> {
         let historic_entity = self
@@ -1042,7 +1046,7 @@ where
                 INNER JOIN type_ids ON inserted_in_historic.entity_type_version_id = type_ids.version_id;
                 "#,
                 &[
-                    &entity_id,
+                    &entity_identifier.entity_id(),
                     &(historic_move == HistoricMove::ForArchival),
                 ],
             )
@@ -1072,9 +1076,11 @@ where
 
         Ok(PersistedEntityMetadata::new(
             PersistedEntityIdentifier::new(
-                historic_entity.get(0),
+                EntityIdentifier::new(
+                    OwnedById::new(historic_entity.get(8)),
+                    historic_entity.get(0),
+                ),
                 historic_entity.get(1),
-                OwnedById::new(historic_entity.get(8)),
             ),
             entity_type_id,
             CreatedById::new(historic_entity.get(9)),

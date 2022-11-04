@@ -7,6 +7,7 @@ use tokio_postgres::GenericClient;
 use type_system::{uri::VersionedUri, EntityType, EntityTypeReference};
 
 use crate::{
+    identifier::GraphElementEditionIdentifier,
     ontology::{PersistedEntityType, PersistedOntologyMetadata},
     provenance::{CreatedById, OwnedById, UpdatedById},
     shared::identifier::GraphElementIdentifier,
@@ -15,7 +16,7 @@ use crate::{
         postgres::{context::PostgresContext, DependencyContext, DependencyContextRef},
         AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
-    subgraph::{EdgeKind, GraphResolveDepths, OutwardEdge, StructuralQuery, Subgraph},
+    subgraph::{GenericOutwardEdge, GraphResolveDepths, StructuralQuery, Subgraph},
 };
 
 impl<C: AsClient> PostgresStore<C> {
@@ -47,16 +48,17 @@ impl<C: AsClient> PostgresStore<C> {
 
             if let Some(entity_type) = unresolved_entity_type.cloned() {
                 for property_type_ref in entity_type.inner().property_type_references() {
-                    dependency_context.edges.insert(
-                        GraphElementIdentifier::OntologyElementId(entity_type_id.clone()),
-                        OutwardEdge {
-                            edge_kind: EdgeKind::References,
-                            reversed_direction: false,
-                            right_element: GraphElementIdentifier::OntologyElementId(
-                                property_type_ref.uri().clone(),
-                            ),
-                        },
-                    );
+                    todo!();
+                    // dependency_context.edges.insert(
+                    //     GraphElementIdentifier::OntologyElementId(entity_type_id.clone()),
+                    //     GenericOutwardEdge {
+                    //         edge_kind: EdgeKind::References,
+                    //         reversed_direction: false,
+                    //         right_element: GraphElementIdentifier::OntologyElementId(
+                    //             property_type_ref.uri().clone(),
+                    //         ),
+                    //     },
+                    // );
 
                     if dependency_context
                         .graph_resolve_depths
@@ -97,16 +99,17 @@ impl<C: AsClient> PostgresStore<C> {
                 // TODO: Use relation tables
                 //   see https://app.asana.com/0/0/1202884883200942/f
                 for entity_type_id in entity_type_ids {
-                    dependency_context.edges.insert(
-                        GraphElementIdentifier::OntologyElementId(entity_type_id.clone()),
-                        OutwardEdge {
-                            edge_kind: EdgeKind::References,
-                            reversed_direction: false,
-                            right_element: GraphElementIdentifier::OntologyElementId(
-                                entity_type_id.clone(),
-                            ),
-                        },
-                    );
+                    todo!();
+                    // dependency_context.edges.insert(
+                    //     GraphElementIdentifier::OntologyElementId(entity_type_id.clone()),
+                    //     GenericOutwardEdge {
+                    //         edge_kind: EdgeKind::References,
+                    //         reversed_direction: false,
+                    //         right_element: GraphElementIdentifier::OntologyElementId(
+                    //             entity_type_id.clone(),
+                    //         ),
+                    //     },
+                    // );
 
                     if dependency_context
                         .graph_resolve_depths
@@ -205,7 +208,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                 )
                 .await?;
 
-                let root = GraphElementIdentifier::OntologyElementId(entity_type_id);
+                let root = GraphElementEditionIdentifier::OntologyElementEditionId(entity_type_id);
 
                 Ok::<_, Report<QueryError>>(dependency_context.into_subgraph(vec![root]))
             })
