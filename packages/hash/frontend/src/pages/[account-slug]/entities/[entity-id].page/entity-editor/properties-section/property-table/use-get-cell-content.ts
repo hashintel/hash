@@ -1,5 +1,8 @@
 import { GridCell, GridCellKind, Item } from "@glideapps/glide-data-grid";
 import { useCallback } from "react";
+import { blankCell } from "../../../../../../../components/GlideGlid/utils";
+import { getPropertyCountSummary } from "../get-property-count-summary";
+import { SummaryChipCellProps } from "./cells/summary-chip-cell";
 import { UseGridTooltipResponse } from "../../../../../../../components/GlideGlid/utils/use-grid-tooltip/types";
 import { DataTypeCellProps } from "./cells/data-type-cell";
 import { PropertyNameCellProps } from "./cells/property-name-cell";
@@ -43,9 +46,29 @@ export const useGetCellContent = (
           };
 
         case "value":
+          if (hasChild) {
+            const { emptyCount, notEmptyCount } = getPropertyCountSummary(
+              property.value,
+            );
+
+            const valuesCount = notEmptyCount || "none";
+            const valueWord = notEmptyCount === 1 ? "a value" : "values";
+
+            return {
+              kind: GridCellKind.Custom,
+              allowOverlay: false,
+              copyData: "",
+              data: {
+                kind: "summary-chip-cell",
+                primaryText: `${emptyCount + notEmptyCount} properties`,
+                secondaryText: `(${valuesCount} with ${valueWord})`,
+              } as SummaryChipCellProps,
+            };
+          }
+
           return {
             kind: GridCellKind.Custom,
-            allowOverlay: !hasChild,
+            allowOverlay: true,
             copyData: String(property.value),
             cursor: "pointer",
             data: {
@@ -58,9 +81,13 @@ export const useGetCellContent = (
           };
 
         case "dataTypes":
+          if (hasChild) {
+            return blankCell;
+          }
+
           return {
             kind: GridCellKind.Custom,
-            allowOverlay: !hasChild,
+            allowOverlay: true,
             readonly: true,
             copyData: String(property.dataTypes),
             data: {
