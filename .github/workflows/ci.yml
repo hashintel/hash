@@ -195,7 +195,7 @@ jobs:
 
       - uses: ./.github/actions/warm-up-repo
         with:
-          playwright-deps: chrome firefox
+          playwright-deps: chrome
 
       - name: Create temp files and folders
         run: mkdir -p var/logs
