@@ -357,11 +357,11 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
             // make sure, that we only alter a join statement with a table we don't require anymore.
             if let Some(last_join) = self.statement.joins.last_mut() {
                 // Check if we are joining on the same column as the previous join
-                if !self
-                    .artifacts
-                    .required_tables
-                    .contains(&last_join.join.table)
-                    && last_join.join == current_column
+                if last_join.join == current_column
+                    && !self
+                        .artifacts
+                        .required_tables
+                        .contains(&last_join.join.table)
                 {
                     last_join.join.table.name = join_column.table.name;
                     last_join.join.access = join_column.access;
