@@ -159,6 +159,7 @@ const LoginPage: NextPageWithLayout = () => {
         <TextField
           label="Email"
           type="email"
+          autoComplete="email"
           placeholder="Enter your email address"
           value={email}
           onChange={({ target }) => setEmail(target.value)}
@@ -173,6 +174,7 @@ const LoginPage: NextPageWithLayout = () => {
         <TextField
           label="Password"
           type="password"
+          autoComplete="current-password"
           value={password}
           onChange={({ target }) => setPassword(target.value)}
           error={
