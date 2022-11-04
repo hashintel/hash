@@ -1,7 +1,7 @@
 import { sleep } from "@hashintel/hash-shared/sleep";
 import { test, expect } from "@playwright/test";
-import { loginUsingUi } from "./utils/login-using-ui";
-import { resetDb } from "./utils/reset-db";
+import { loginUsingUi } from "./shared/login-using-ui";
+import { resetDb } from "./shared/reset-db";
 
 const placeholderSelector =
   "text=Type / to browse blocks, or @ to browse entities";
