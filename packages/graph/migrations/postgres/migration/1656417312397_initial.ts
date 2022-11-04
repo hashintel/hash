@@ -337,6 +337,11 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         references: "entity_ids",
         notNull: true,
       },
+      owned_by_id: {
+        type: "UUID",
+        notNull: true,
+        references: "accounts",
+      },
       version: {
         type: "TIMESTAMP WITH TIME ZONE",
         notNull: true,
@@ -348,8 +353,28 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         references: "entity_types",
       },
       properties: {
-        type: "JSONB",
         notNull: true,
+        type: "JSONB",
+      },
+      left_entity_id: {
+        type: "UUID",
+        notNull: false,
+        references: "entity_ids",
+      },
+      left_owned_by_id: {
+        type: "UUID",
+        notNull: false,
+        references: "accounts",
+      },
+      right_entity_id: {
+        type: "UUID",
+        notNull: false,
+        references: "entity_ids",
+      },
+      right_owned_by_id: {
+        type: "UUID",
+        notNull: false,
+        references: "accounts",
       },
       left_order: {
         // TODO: this is where we could do fractional indexing
@@ -362,21 +387,6 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         //  https://app.asana.com/0/1200211978612931/1202085856561975/f
         type: "integer",
         notNull: false,
-      },
-      left_entity_id: {
-        type: "UUID",
-        notNull: false,
-        references: "entity_ids",
-      },
-      right_entity_id: {
-        type: "UUID",
-        notNull: false,
-        references: "entity_ids",
-      },
-      owned_by_id: {
-        type: "UUID",
-        notNull: true,
-        references: "accounts",
       },
       created_by_id: {
         type: "UUID",
@@ -399,12 +409,19 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   });
 
   pgm.addConstraint("entities", "entities_relation_constraint", {
-    check: `(left_entity_id IS NULL     AND right_entity_id IS NULL) 
-          OR left_entity_id IS NOT NULL AND right_entity_id IS NOT NULL`,
+    check: `(
+      left_entity_id IS NULL AND left_owned_by_id IS NULL
+        AND right_entity_id IS NULL AND right_owned_by_id IS NULL
+    ) 
+    OR (
+      left_entity_id IS NOT NULL AND left_owned_by_id IS NOT NULL
+       AND right_entity_id IS NOT NULL AND right_owned_by_id IS NOT NULL
+    )`,
   });
 
   pgm.addConstraint("entities", "entities_relation_order_constraint", {
-    check: `(left_entity_id IS NOT NULL AND right_entity_id IS NOT NULL)
+    // Because of the "entities_relation_constraint", we can check any one of the required link columns
+    check: `(left_entity_id IS NOT NULL)
             OR (left_order IS NULL AND right_order IS NULL)`,
   });
 
@@ -415,6 +432,11 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         type: "UUID",
         references: "entity_ids",
         notNull: true,
+      },
+      owned_by_id: {
+        type: "UUID",
+        notNull: true,
+        references: "accounts",
       },
       version: {
         type: "TIMESTAMP WITH TIME ZONE",
@@ -430,6 +452,26 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         type: "JSONB",
         notNull: true,
       },
+      left_entity_id: {
+        type: "UUID",
+        notNull: false,
+        references: "entity_ids",
+      },
+      left_owned_by_id: {
+        type: "UUID",
+        notNull: false,
+        references: "accounts",
+      },
+      right_entity_id: {
+        type: "UUID",
+        notNull: false,
+        references: "entity_ids",
+      },
+      right_owned_by_id: {
+        type: "UUID",
+        notNull: false,
+        references: "accounts",
+      },
       left_order: {
         // TODO: this is where we could do fractional indexing
         //  https://app.asana.com/0/1200211978612931/1202085856561975/f
@@ -442,26 +484,11 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         type: "integer",
         notNull: false,
       },
-      left_entity_id: {
-        type: "UUID",
-        notNull: false,
-        references: "entity_ids",
-      },
-      right_entity_id: {
-        type: "UUID",
-        notNull: false,
-        references: "entity_ids",
-      },
       archived: {
         // We may be able to reclaim some space here by using nullability.
         type: "boolean",
         notNull: true,
         default: "FALSE",
-      },
-      owned_by_id: {
-        type: "UUID",
-        notNull: true,
-        references: "accounts",
       },
       created_by_id: {
         type: "UUID",
@@ -486,8 +513,24 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
     "entity_histories",
     "entity_histories_relation_constraint",
     {
-      check: `(left_entity_id IS NULL     AND right_entity_id IS NULL) 
-            OR left_entity_id IS NOT NULL AND right_entity_id IS NOT NULL`,
+      check: `(
+      left_entity_id IS NULL AND left_owned_by_id IS NULL
+        AND right_entity_id IS NULL AND right_owned_by_id IS NULL
+    ) 
+    OR (
+      left_entity_id IS NOT NULL AND left_owned_by_id IS NOT NULL
+       AND right_entity_id IS NOT NULL AND right_owned_by_id IS NOT NULL
+    )`,
+    },
+  );
+
+  pgm.addConstraint(
+    "entity_histories",
+    "entities_histories_relation_order_constraint",
+    {
+      // Because of the "entities_histories_relation_constraint", we can check any one of the required link columns
+      check: `(left_entity_id IS NOT NULL)
+            OR (left_order IS NULL AND right_order IS NULL)`,
     },
   );
 }

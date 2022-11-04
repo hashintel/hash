@@ -38,6 +38,10 @@ impl<C: AsClient> crud::Read<PersistedEntity> for PostgresStore<C> {
         let created_by_id_index = compiler.add_selection_path(&EntityQueryPath::CreatedById);
         let updated_by_id_index = compiler.add_selection_path(&EntityQueryPath::UpdatedById);
         let left_entity_id_index = compiler.add_selection_path(&EntityQueryPath::LeftEntity(None));
+        let left_entity_owned_by_id_query_path =
+            EntityQueryPath::LeftEntity(Some(Box::new(EntityQueryPath::OwnedById)));
+        // let left_entity_owned_by_id_index =
+        //     compiler.add_selection_path(&left_entity_owned_by_id_query_path);
         let right_entity_id_index =
             compiler.add_selection_path(&EntityQueryPath::RightEntity(None));
         let left_order_index = compiler.add_selection_path(&EntityQueryPath::LeftOrder);

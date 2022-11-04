@@ -273,7 +273,7 @@ impl Parameter<'_> {
             Parameter::Text(text) => Parameter::Text(Cow::Owned(text.to_string())),
             Parameter::Uuid(uuid) => Parameter::Uuid(*uuid),
             Parameter::SignedInteger(integer) => Parameter::SignedInteger(*integer),
-            Parameter::Timestamp(timestamp) => Parameter::Timestamp(timestamp.clone()),
+            Parameter::Timestamp(timestamp) => Parameter::Timestamp(*timestamp),
         }
     }
 }
@@ -326,7 +326,7 @@ impl Parameter<'_> {
                             actual: self.to_owned(),
                             expected: ParameterType::Timestamp,
                         })?,
-                )
+                );
             }
             (Parameter::Text(text), ParameterType::Uuid) => {
                 *self = Parameter::Uuid(Uuid::from_str(&*text).into_report().change_context_lazy(
