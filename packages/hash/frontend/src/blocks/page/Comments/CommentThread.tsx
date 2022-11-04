@@ -12,7 +12,7 @@ import { CommentBlock } from "./CommentBlock";
 import styles from "./style.module.css";
 import { useCreateComment } from "../../../components/hooks/useCreateComment";
 import { CommentActionButtons } from "./CommentActionButtons";
-import { useUser } from "../../../components/hooks/useUser";
+import { useAuthenticatedUser } from "../../../components/hooks/useAuthenticatedUser";
 
 const UNCOLLAPSIBLE_REPLIES_NUMBER = 2;
 
@@ -37,7 +37,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
   const showInputButtons =
     (threadFocused && inputFocused) || !!inputValue.length;
 
-  const { user } = useUser();
+  const { authenticatedUser } = useAuthenticatedUser();
 
   const cancelSubmit = () => {
     setInputValue([]);
@@ -88,8 +88,8 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
         pageId={pageId}
         comment={comment}
         // @todo: replace with createdById when queryable
-        // @todo: add check user?.entityId === comment.parent.createdById
-        resolvable={user?.entityId === comment.author.entityId}
+        // @todo: add check authenticatedUser?.entityId === comment.parent.createdById
+        resolvable={authenticatedUser?.entityId === comment.author.entityId}
       />
 
       {collapsedReplies.length ? (

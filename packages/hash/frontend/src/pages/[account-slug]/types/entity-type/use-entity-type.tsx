@@ -14,7 +14,7 @@ import {
 import { useBlockProtocolAggregateEntityTypes } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregateEntityTypes";
 import { useBlockProtocolCreateEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreateEntityType";
 import { useBlockProtocolUpdateEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdateEntityType";
-import { useUser } from "../../../../components/hooks/useUser";
+import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
 import { getEntityTypesByBaseUri } from "../../../../lib/subgraph";
 import { useAdvancedInitTypeSystem } from "../../../../lib/use-init-type-system";
 import { mustBeVersionedUri } from "./util";
@@ -24,10 +24,10 @@ export const useEntityType = (
   onCompleted?: (entityType: EntityType) => void,
 ) => {
   const router = useRouter();
-  const { user } = useUser();
+  const { authenticatedUser } = useAuthenticatedUser();
   const { createEntityType } = useBlockProtocolCreateEntityType(
     // @todo should use routing URL?
-    user?.accountId ?? "",
+    authenticatedUser?.entityId ?? "",
   );
   const [typeSystemLoading, loadTypeSystem] = useAdvancedInitTypeSystem();
 
@@ -141,7 +141,7 @@ export const useEntityType = (
   );
 
   return [
-    typeSystemLoading || !user ? null : entityType,
+    typeSystemLoading || !authenticatedUser ? null : entityType,
     updateCallback,
     publishDraft,
   ] as const;

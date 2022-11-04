@@ -2,7 +2,7 @@ import { FunctionComponent, ReactNode } from "react";
 import { Box, useTheme, useMediaQuery } from "@mui/material";
 
 import { useLogoutFlow } from "../../../components/hooks/useLogoutFlow";
-import { useUser } from "../../../components/hooks/useUser";
+import { useAuthenticatedUser } from "../../../components/hooks/useAuthenticatedUser";
 import { AccountDropdown } from "./account-dropdown";
 import { SearchBar } from "./search-bar";
 import { ActionsDropdown } from "./actions-dropdown";
@@ -29,7 +29,7 @@ export const PageHeader: FunctionComponent = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
-  const { user } = useUser();
+  const { authenticatedUser } = useAuthenticatedUser();
   const { logout } = useLogoutFlow();
 
   return (
@@ -52,7 +52,7 @@ export const PageHeader: FunctionComponent = () => {
               xs: "space-between",
               md: "unset",
             },
-            width: isMobile && user ? "100%" : undefined,
+            width: isMobile && authenticatedUser ? "100%" : undefined,
           }}
         >
           <Box
@@ -62,7 +62,10 @@ export const PageHeader: FunctionComponent = () => {
               justifyContent: "center",
             }}
           >
-            <Link noLinkStyle href={`/${user ? user.accountId : ""}`}>
+            <Link
+              noLinkStyle
+              href={`/${authenticatedUser ? authenticatedUser.entityId : ""}`}
+            >
               <HashAlphaNavIcon
                 sx={({ palette }) => ({
                   height: "1.1rem",
@@ -73,9 +76,9 @@ export const PageHeader: FunctionComponent = () => {
               />
             </Link>
           </Box>
-          {user ? <SearchBar /> : null}
+          {authenticatedUser ? <SearchBar /> : null}
         </Box>
-        {user ? (
+        {authenticatedUser ? (
           <Box sx={{ display: "flex", alignItems: "center" }}>
             <ActionsDropdown />
             {/*  
@@ -83,7 +86,10 @@ export const PageHeader: FunctionComponent = () => {
               @todo uncomment when functionality has been implemented 
             */}
             {/* <NotificationsDropdown /> */}
-            <AccountDropdown logout={logout} user={user} />
+            <AccountDropdown
+              logout={logout}
+              authenticatedUser={authenticatedUser}
+            />
           </Box>
         ) : (
           <Box>
