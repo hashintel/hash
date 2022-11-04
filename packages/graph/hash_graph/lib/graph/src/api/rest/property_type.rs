@@ -28,8 +28,8 @@ use crate::{
         query::Filter, BaseUriAlreadyExists, BaseUriDoesNotExist, PropertyTypeStore, StorePool,
     },
     subgraph::{
-        EdgeKind, Edges, GraphResolveDepths, OutwardEdge, PropertyTypeStructuralQuery,
-        StructuralQuery, Subgraph, Vertex,
+        Edges, GenericOutwardEdge, GraphResolveDepths, PropertyTypeStructuralQuery,
+        StructuralQuery, Subgraph,
     },
 };
 
@@ -54,9 +54,6 @@ use crate::{
             PersistedPropertyType,
             PropertyTypeStructuralQuery,
             GraphElementIdentifier,
-            Vertex,
-            EdgeKind,
-            OutwardEdge,
             GraphResolveDepths,
             Edges,
             Subgraph,

@@ -27,8 +27,8 @@ use crate::{
         EntityStore, StorePool,
     },
     subgraph::{
-        EdgeKind, Edges, EntityStructuralQuery, GraphResolveDepths, OutwardEdge, StructuralQuery,
-        Subgraph, Vertex,
+        Edges, EntityStructuralQuery, GenericOutwardEdge, GraphResolveDepths, StructuralQuery,
+        Subgraph,
     },
 };
 
@@ -56,9 +56,6 @@ use crate::{
             Entity,
             EntityStructuralQuery,
             GraphElementIdentifier,
-            Vertex,
-            EdgeKind,
-            OutwardEdge,
             GraphResolveDepths,
             Edges,
             Subgraph,
@@ -69,6 +66,8 @@ use crate::{
     )
 )]
 pub struct EntityResource;
+
+// TODO: add subgraph components above and in other resources
 
 impl RoutedResource for EntityResource {
     /// Create routes for interacting with entities.

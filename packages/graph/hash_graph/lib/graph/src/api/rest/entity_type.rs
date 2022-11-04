@@ -29,8 +29,8 @@ use crate::{
         EntityTypeStore, StorePool,
     },
     subgraph::{
-        EdgeKind, Edges, EntityTypeStructuralQuery, GraphResolveDepths, OutwardEdge,
-        StructuralQuery, Subgraph, Vertex,
+        Edges, EntityTypeStructuralQuery, GenericOutwardEdge, GraphResolveDepths, StructuralQuery,
+        Subgraph,
     },
 };
 
@@ -55,9 +55,6 @@ use crate::{
             PersistedEntityType,
             EntityTypeStructuralQuery,
             GraphElementIdentifier,
-            Vertex,
-            EdgeKind,
-            OutwardEdge,
             GraphResolveDepths,
             Edges,
             Subgraph,

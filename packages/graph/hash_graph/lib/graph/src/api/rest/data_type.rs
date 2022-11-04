@@ -25,10 +25,7 @@ use crate::{
     provenance::{CreatedById, OwnedById, UpdatedById},
     shared::identifier::GraphElementIdentifier,
     store::{query::Filter, BaseUriAlreadyExists, BaseUriDoesNotExist, DataTypeStore, StorePool},
-    subgraph::{
-        DataTypeStructuralQuery, EdgeKind, Edges, GraphResolveDepths, OutwardEdge, StructuralQuery,
-        Subgraph, Vertex,
-    },
+    subgraph::{DataTypeStructuralQuery, GraphResolveDepths, StructuralQuery, Subgraph},
 };
 
 #[derive(OpenApi)]
@@ -52,12 +49,8 @@ use crate::{
             PersistedDataType,
             DataTypeStructuralQuery,
             GraphElementIdentifier,
-            Vertex,
-            EdgeKind,
-            OutwardEdge,
             GraphResolveDepths,
             Subgraph,
-            Edges
         )
     ),
     tags(
