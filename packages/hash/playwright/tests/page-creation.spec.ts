@@ -1,5 +1,5 @@
-import { test, expect } from "@playwright/test";
 import { sleep } from "@hashintel/hash-shared/sleep";
+import { test, expect } from "./shared/runtime";
 import { resetDb } from "./shared/reset-db";
 import { loginUsingTempForm } from "./shared/login-using-temp-form";
 
