@@ -30,6 +30,7 @@ impl fmt::Display for AccountId {
     }
 }
 
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, ToSchema)]
 pub struct EntityIdentifier {
     owned_by_id: OwnedById,
     // TODO: rename this to entity_uuid?
@@ -41,26 +42,29 @@ pub type OntologyTypeVersion = u32;
 pub type Timestamp = DateTime<Utc>;
 pub type EntityVersion = Timestamp;
 
+/// Simply a pair-struct which holds an [`EntityIdentifier`] and a [`Timestamp`].
+///
+/// This can be helpful to describe the state of the graph rooted at an [`Entity`] at a specific
+/// [`Timestamp`]. The [`Timestamp`] here is *not* necessarily the same as an [`EntityVersion`] as
+/// the [`Timestamp`] might be in the middle of an entity edition's lifetime.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct EntityAndTimestamp {
+    entity_id: EntityIdentifier,
+    timestamp: Timestamp,
+}
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize)]
+#[serde(untagged)]
 pub enum GraphElementIdentifier {
     OntologyElementId(BaseUri),
     KnowledgeGraphElementId(EntityIdentifier),
 }
 
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize)]
 pub enum GraphElementEditionIdentifier {
     OntologyElementEditionId(VersionedUri),
     KnowledgeGraphElementEditionId((EntityIdentifier, EntityVersion)),
-}
-
-impl Serialize for GraphElementIdentifier {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        match self {
-            Self::KnowledgeGraphElementId(identifier) => identifier.serialize(serializer),
-            Self::OntologyElementId(identifier) => identifier.serialize(serializer),
-        }
-    }
 }
 
 // TODO: We have to do this because utoipa doesn't understand serde untagged
