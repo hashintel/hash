@@ -812,7 +812,6 @@ mod default {
     }
 
     fn location(location: &Location<'static>, context: &mut HookContext<Location<'static>>) {
-        println!("location");
         #[cfg(feature = "pretty-print")]
         context.push_body(format!(
             "{}",
