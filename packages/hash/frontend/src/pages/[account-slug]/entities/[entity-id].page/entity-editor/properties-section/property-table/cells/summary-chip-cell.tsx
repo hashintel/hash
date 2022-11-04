@@ -20,7 +20,9 @@ export const renderSummaryChipCell: CustomRenderer<SummaryChipCell> = {
   isMatch: (cell: CustomCell): cell is SummaryChipCell =>
     (cell.data as any).kind === "summary-chip-cell",
   draw: (args, cell) => {
-    const { ctx, rect } = args;
+    const { ctx, rect, theme } = args;
+    ctx.font = theme.baseFontStyle;
+
     const yCenter = getYCenter(args);
     const { primaryText = "" } = cell.data;
 
