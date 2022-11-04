@@ -50,7 +50,7 @@ export const TypesSection = () => {
 
   return (
     <EntitySection
-      title="Type"
+      title="Types"
       titleTooltip="Types describe what an entity is, allowing information to be associated with it. Entities can have an unlimited number of types."
     >
       <Box display="flex" gap={2}>
