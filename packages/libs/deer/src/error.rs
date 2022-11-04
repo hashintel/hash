@@ -5,19 +5,19 @@
 //!
 //! ```json5
 //! {
-//!     "ns": "deer", // namespace of the error
+//!     "namespace": "deer", // namespace of the error
 //!     "id": ["type"], // unique id across the namespace
 //!     "properties": {} // object of machine readable properties related to id
 //!     "message": "" // human readable message
 //! }
 //! ```
+// TODO: schema types for errors, for now not implemented, but planned for 0.2
+//  in depth explanation can be found here:
+//  https://github.com/hashintel/hash/pull/1286#discussion_r1012733818
 //!
-//! Optionally errors also emit a json-schema type, which can be used to present the user with all
-//! possible errors.
+//! ## Difference between `namespace` and `id`
 //!
-//! ## Difference between `ns` and `id`
-//!
-//! The id is made of a `ns` (namespace) and `id`, a namespace is the name of a library or
+//! The id is made of a `namespace` and `id`, a namespace is the name of a library or
 //! application and their respective error.
 //! This separation of namespace vs id makes it harder for application to accidentally create errors
 //! with the same id, and enables applications that have the same type of error, but in different
@@ -55,11 +55,14 @@
 //!
 //! [`Location`]: core::panic::Location
 
-use alloc::collections::BTreeMap;
-use core::fmt::{self, Debug, Display, Formatter};
+#[cfg(all(nightly, feature = "std"))]
+use core::any::Demand;
+use core::{
+    fmt::{self, Debug, Display, Formatter},
+    marker::PhantomData,
+};
 
-use error_stack::{Context, Frame, IntoReport, Result};
-use serde_value::{SerializerError, Value};
+use error_stack::{Context, Frame, IntoReport, Report, Result};
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Hash, Copy, Clone, serde::Serialize)]
 pub struct Namespace(&'static str);
@@ -81,6 +84,72 @@ impl Id {
     #[must_use]
     pub const fn new(path: &'static [&'static str]) -> Self {
         Self(path)
+    }
+}
+
+// This compatability struct needs to exist, because serde no-std errors do not implement `Context`
+// or `core::error::Error`, it holds a super shallow representation via `Debug` and `Display`.
+// The original error **cannot** be attached, as the trait `serde::ser::Error` does not require
+// `Send + Sync`.
+//
+// On std it caries the error and provides it on nightly
+// TODO: if serde::ser::Error ever supports core::error::Error remove this
+pub struct SerdeSerializeError<S: serde::ser::Error> {
+    #[cfg(feature = "std")]
+    error: S,
+
+    #[cfg(not(feature = "std"))]
+    debug: String,
+    #[cfg(not(feature = "std"))]
+    display: String,
+    #[cfg(not(feature = "std"))]
+    error: PhantomData<fn() -> *const S>,
+}
+
+impl<S: serde::ser::Error> Debug for SerdeSerializeError<S> {
+    #[cfg(feature = "std")]
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        Debug::fmt(&self.error, f)
+    }
+
+    #[cfg(not(feature = "std"))]
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.debug)
+    }
+}
+
+impl<S: serde::ser::Error> Display for SerdeSerializeError<S> {
+    #[cfg(feature = "std")]
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.error, f)
+    }
+
+    #[cfg(not(feature = "std"))]
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.display)
+    }
+}
+
+impl<S: serde::ser::Error> SerdeSerializeError<S> {
+    #[cfg(feature = "std")]
+    fn new(error: S) -> Self {
+        Self { error }
+    }
+
+    #[cfg(not(feature = "std"))]
+    fn new(error: S) -> Self {
+        Self {
+            debug: format!("{error:?}"),
+            display: format!("{error}"),
+            error: PhantomData::default(),
+        }
+    }
+}
+
+impl<S: serde::ser::Error> Context for SerdeSerializeError<S> {
+    #[cfg(all(nightly, feature = "std"))]
+    fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
+        demand.provide_ref(&self.error);
     }
 }
 
@@ -115,10 +184,9 @@ pub trait ErrorProperties {
 
     fn value<'a>(stack: &[&'a Frame]) -> Self::Value<'a>;
 
-    fn output(
-        value: Self::Value<'_>,
-        map: &mut BTreeMap<&'static str, Value>,
-    ) -> Result<(), SerializerError>;
+    fn output<S>(value: Self::Value<'_>, map: &mut S) -> Result<(), SerdeSerializeError<S::Error>>
+    where
+        S: serde::ser::SerializeMap;
 }
 
 impl<T: ErrorProperty + 'static> ErrorProperties for T {
@@ -136,15 +204,15 @@ impl<T: ErrorProperty + 'static> ErrorProperties for T {
         <T as ErrorProperty>::value(stack)
     }
 
-    fn output(
-        value: Self::Value<'_>,
-        map: &mut BTreeMap<&'static str, Value>,
-    ) -> Result<(), SerializerError> {
+    fn output<S>(value: Self::Value<'_>, map: &mut S) -> Result<(), SerdeSerializeError<S::Error>>
+    where
+        S: serde::ser::SerializeMap,
+    {
         let key = <T as ErrorProperty>::key();
-        let value = serde_value::to_value(value).into_report()?;
 
-        map.insert(key, value);
-        Ok(())
+        map.serialize_entry(key, &value)
+            .map_err(SerdeSerializeError::new)
+            .into_report()
     }
 }
 

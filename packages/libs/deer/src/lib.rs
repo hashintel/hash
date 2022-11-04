@@ -1,3 +1,4 @@
+#![cfg_attr(nightly, feature(provide_any))]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(unreachable_pub, clippy::pedantic, clippy::nursery)]
 // TODO: once more stable introduce: warning missing_docs, clippy::missing_errors_doc
