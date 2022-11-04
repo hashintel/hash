@@ -159,10 +159,6 @@ test("user can create page", async ({ page }) => {
   );
 });
 
-/**
- * @todo: Re-enable this playwright test when required workspace functionality is fixed
- * @see https://app.asana.com/0/1202805690238892/1203106234191599/f
- */
 test("user can rename page", async ({ page }) => {
   const pageName1 = `Page ${pageNameSuffix}`;
   const pageName2 = `Page 2 ${pageNameSuffix}`;

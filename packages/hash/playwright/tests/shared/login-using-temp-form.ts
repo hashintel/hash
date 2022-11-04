@@ -1,6 +1,9 @@
 import { Page } from "playwright";
 import { expect } from "@playwright/test";
 
+/**
+ * @todo Remove this function in favor of `loginUsingUi`once we have a proper login flow
+ */
 export const loginUsingTempForm = async ({
   page,
   userEmail = "alice@example.com",
