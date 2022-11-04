@@ -1,13 +1,13 @@
 import { test as base, expect } from "@playwright/test";
 
 const tolerableConsoleMessageMatches: RegExp[] = [
-  /Download the React DevTools for a better development experience/,
   /Download the Apollo DevTools for a better development experience/,
+  /Download the React DevTools for a better development experience/,
   /\[Fast Refresh\]/, // Next.js dev server (for local test runs)
   /^\[LATE_SETUP_CALL\] \{\}/, // Tailwind (to be removed)
   /^Build: commit-.*-local-dev$/, // Sentry build id
 
-  // Messages to remove (you can add temporarily add more RegExps, but please track their removal)
+  // You can add temporarily add more RegExps, but please track their removal
   /Failed to load resource: the server responded with a status of 401 \(Unauthorized\)/,
 ];
 
