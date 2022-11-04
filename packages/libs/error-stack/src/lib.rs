@@ -445,7 +445,10 @@
     unreachable_pub,
     clippy::pedantic,
     clippy::nursery,
-    clippy::undocumented_unsafe_blocks
+    clippy::undocumented_unsafe_blocks,
+    clippy::dbg_macro,
+    clippy::print_stdout,
+    clippy::print_stderr
 )]
 #![allow(clippy::redundant_pub_crate)] // This would otherwise clash with `unreachable_pub`
 #![allow(clippy::missing_errors_doc)] // This is an error handling library producing Results, not Errors
