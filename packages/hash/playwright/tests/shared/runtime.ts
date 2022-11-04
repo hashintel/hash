@@ -7,7 +7,6 @@ const tolerableConsoleMessageMatches: RegExp[] = [
   /^Build: commit-.*-local-dev$/, // Sentry build id
 
   // Messages to remove (you can add temporarily add more RegExps, but please track their removal)
-  /\[DOM\] Input elements should have autocomplete attributes \(suggested: "current-password"\)/, // Temp error
   /Failed to load resource: the server responded with a status of 401 \(Unauthorized\)/, // Temp error
   /Unexpected console output MUI: You have provided a `title` prop to the child of/, // Temp error
 ];
