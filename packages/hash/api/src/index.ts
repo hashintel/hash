@@ -45,6 +45,7 @@ import { setupTelemetry } from "./telemetry/snowplow-setup";
 import { connectToTaskExecutor } from "./task-execution";
 import { createGraphClient } from "./graph";
 import { seedOrgsAndUsers } from "./seed-data";
+import { ensureWorkspaceKnowledgeExists } from "./graph/workspace-knowledge";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
@@ -130,6 +131,8 @@ const main = async () => {
   });
 
   await ensureWorkspaceTypesExist({ graphApi, logger });
+
+  await ensureWorkspaceKnowledgeExists({ graphApi, logger });
 
   // Set sensible default security headers: https://www.npmjs.com/package/helmet
   // Temporarily disable contentSecurityPolicy for the GraphQL playground
