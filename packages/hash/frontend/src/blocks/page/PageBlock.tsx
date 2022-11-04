@@ -126,7 +126,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
   return (
     <UserBlocksProvider value={blocks}>
       <BlockLoadedProvider routeHash={routeHash}>
-        {loadingTypeSystem ? null : (
+        {readonlyMode || loadingTypeSystem ? null : (
           <PageSectionContainer
             pageComments={pageComments}
             sx={{
@@ -146,14 +146,13 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
                   zIndex: 1,
                 }}
               >
-                {!readonlyMode &&
-                  pageComments?.map((comment) => (
-                    <CommentThread
-                      key={comment.entityId}
-                      pageId={entityId}
-                      comment={comment}
-                    />
-                  ))}
+                {pageComments?.map((comment) => (
+                  <CommentThread
+                    key={comment.entityId}
+                    pageId={entityId}
+                    comment={comment}
+                  />
+                ))}
               </Box>
             </Box>
           </PageSectionContainer>
