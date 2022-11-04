@@ -1,0 +1,32 @@
+import { test as base, expect } from "@playwright/test";
+
+const tolerableConsoleMessageMatches: RegExp[] = [
+  /Download the React DevTools for a better development experience/,
+  /Download the Apollo DevTools for a better development experience/,
+  /^\[LATE_SETUP_CALL\] \{\}/, // Tailwind (to be removed)
+  /^Build: commit-.*-local-dev$/, // Sentry build id
+  /\[DOM\] Input elements should have autocomplete attributes \(suggested: "current-password"\)/, // Temp error
+  /Failed to load resource: the server responded with a status of 401 \(Unauthorized\)/, // Temp error
+  /Unexpected console output MUI: You have provided a `title` prop to the child of/, // Temp error
+];
+
+export * from "@playwright/test";
+
+/**
+ * This is a wrapper around the Playwright test function that adds checks for console messages.
+ * @see https://github.com/microsoft/playwright/discussions/11690#discussioncomment-2060397
+ */
+export const test = base.extend({
+  page: async ({ page }, use) => {
+    const messages: string[] = [];
+    page.on("console", (msg) => {
+      const text = msg.text();
+      if (tolerableConsoleMessageMatches.some((match) => match.test(text))) {
+        return;
+      }
+      messages.push(`[${msg.type()}] ${msg.text()}`);
+    });
+    await use(page);
+    expect(messages).toStrictEqual([]);
+  },
+});

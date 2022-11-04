@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./shared/runtime";
 import { resetDb } from "./shared/reset-db";
 
 test.beforeEach(async () => {
