@@ -10,9 +10,16 @@ type DevelopmentUser = {
   email: string;
   shortname: string;
   preferredName: string;
+  isInstanceAdmin?: boolean;
 };
 
 const devUsers: readonly DevelopmentUser[] = [
+  {
+    email: "admin@example.com",
+    shortname: "instance-admin",
+    preferredName: "Instance Admin",
+    isInstanceAdmin: true,
+  },
   {
     email: "alice@example.com",
     shortname: "alice",
@@ -36,7 +43,7 @@ export const ensureDevUsersAreSeeded = async ({
 }): Promise<UserModel[]> => {
   const createdUsers = [];
 
-  for (const { email, shortname, preferredName } of devUsers) {
+  for (const { email, shortname, preferredName, isInstanceAdmin } of devUsers) {
     const maybeNewIdentity = await createKratosIdentity({
       traits: { emails: [email] },
       credentials: {
@@ -66,6 +73,7 @@ export const ensureDevUsersAreSeeded = async ({
         emails,
         kratosIdentityId,
         actorId: workspaceAccountId,
+        isInstanceAdmin,
       });
 
       user = await user.updateShortname(graphApi, {
