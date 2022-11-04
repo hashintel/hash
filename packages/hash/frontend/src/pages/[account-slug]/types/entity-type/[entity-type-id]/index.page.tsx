@@ -12,23 +12,26 @@ import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
 import { FormProvider, useForm } from "react-hook-form";
-import { FRONTEND_URL } from "../../../../lib/config";
-import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
-import { TopContextBar } from "../../../shared/top-context-bar";
-import { EditBar } from "./edit-bar";
+import { FRONTEND_URL } from "../../../../../lib/config";
+import {
+  getPlainLayout,
+  NextPageWithLayout,
+} from "../../../../../shared/layout";
+import { TopContextBar } from "../../../../shared/top-context-bar";
+import { EditBar } from "../edit-bar";
 import {
   EntityTypeEditorForm,
   EntityTypeEditorPropertyData,
-} from "./form-types";
-import { HashOntologyIcon } from "./hash-ontology-icon";
-import { OntologyChip } from "./ontology-chip";
-import { PropertyListCard } from "./property-list-card";
-import { useEntityType } from "./use-entity-type";
+} from "../form-types";
+import { HashOntologyIcon } from "../hash-ontology-icon";
+import { OntologyChip } from "../ontology-chip";
+import { PropertyListCard } from "../property-list-card";
+import { useEntityType } from "../use-entity-type";
 import {
   PropertyTypesContext,
   useRemotePropertyTypes,
-} from "./use-property-types";
-import { mustBeVersionedUri } from "./util";
+} from "../use-property-types";
+import { mustBeVersionedUri } from "../util";
 
 const getBaseUri = (path: string) => {
   const url = new URL(path, FRONTEND_URL);
