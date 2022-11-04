@@ -3,16 +3,18 @@ mod edges;
 mod query;
 mod vertices;
 
+use std::collections::HashMap;
+
 use serde::Serialize;
 use utoipa::ToSchema;
 
 pub use self::{depths::*, edges::*, query::*, vertices::*};
-use crate::identifier::GraphElementIdentifier;
+use crate::identifier::GraphElementEditionIdentifier;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Subgraph {
-    pub roots: Vec<GraphElementIdentifier>,
+    pub roots: Vec<GraphElementEditionIdentifier>,
     pub vertices: Vertices,
     pub edges: Edges,
     pub depths: GraphResolveDepths,
@@ -23,7 +25,10 @@ impl Subgraph {
     pub fn new(depths: GraphResolveDepths) -> Self {
         Self {
             roots: Vec::new(),
-            vertices: Vertices::new(),
+            vertices: Vertices::new(
+                OntologyVertices(HashMap::new()),
+                KnowledgeGraphVertices(HashMap::new()),
+            ),
             edges: Edges::new(),
             depths,
         }

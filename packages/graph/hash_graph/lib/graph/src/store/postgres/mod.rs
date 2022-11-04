@@ -7,7 +7,10 @@ mod query;
 mod version_id;
 
 use std::{
-    collections::{hash_map::RawEntryMut, HashMap},
+    collections::{
+        hash_map::{Entry, RawEntryMut},
+        HashMap,
+    },
     future::Future,
     hash::Hash,
 };
@@ -26,7 +29,7 @@ use uuid::Uuid;
 use self::context::{OntologyRecord, PostgresContext};
 pub use self::pool::{AsClient, PostgresStorePool};
 use crate::{
-    identifier::{AccountId, EntityIdentifier, GraphElementEditionIdentifier},
+    identifier::{AccountId, EntityIdentifier, GraphElementEditionIdentifier, OntologyTypeVersion},
     knowledge::{
         Entity, EntityId, LinkEntityMetadata, PersistedEntity, PersistedEntityIdentifier,
         PersistedEntityMetadata,
@@ -43,7 +46,10 @@ use crate::{
         AccountStore, BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError,
         UpdateError,
     },
-    subgraph::{Edges, GraphResolveDepths, Subgraph, SubgraphQueryDepth},
+    subgraph::{
+        Edges, GraphResolveDepths, KnowledgeGraphVertex, KnowledgeGraphVertices, OntologyVertex,
+        OntologyVertices, Subgraph, SubgraphQueryDepth, Vertices,
+    },
 };
 
 pub struct DependencyMap<V, T, D> {
@@ -266,58 +272,100 @@ impl DependencyContext {
 
     #[must_use]
     pub fn into_subgraph(self, roots: Vec<GraphElementEditionIdentifier>) -> Subgraph {
-        todo!()
-        // let vertices = self
-        //     .referenced_data_types
-        //     .into_values()
-        //     .map(|data_type| {
-        //         (
-        //             GraphElementIdentifier::OntologyElementId(
-        //                 data_type.metadata().identifier().uri().clone(),
-        //             ),
-        //             Vertex::DataType(data_type),
-        //         )
-        //     })
-        //     .chain(
-        //         self.referenced_property_types
-        //             .into_values()
-        //             .map(|property_type| {
-        //                 (
-        //                     GraphElementIdentifier::OntologyElementId(
-        //                         property_type.metadata().identifier().uri().clone(),
-        //                     ),
-        //                     Vertex::PropertyType(property_type),
-        //                 )
-        //             }),
-        //     )
-        //     .chain(
-        //         self.referenced_entity_types
-        //             .into_values()
-        //             .map(|entity_type| {
-        //                 (
-        //                     GraphElementIdentifier::OntologyElementId(
-        //                         entity_type.metadata().identifier().uri().clone(),
-        //                     ),
-        //                     Vertex::EntityType(entity_type),
-        //                 )
-        //             }),
-        //     )
-        //     .chain(self.linked_entities.into_values().map(|entity| {
-        //         (
-        //             GraphElementIdentifier::KnowledgeGraphElementId(
-        //                 entity.metadata().identifier().entity_id(),
-        //             ),
-        //             Vertex::Entity(entity),
-        //         )
-        //     }))
-        //     .collect();
-        //
-        // Subgraph {
-        //     roots,
-        //     vertices,
-        //     edges: self.edges,
-        //     depths: self.graph_resolve_depths,
-        // }
+        // TODO: we could use the subgraph inside the DependencyContext to avoid needing to
+        //   destructure and rebuild it
+        let ontology_vertices = OntologyVertices(
+            self.referenced_data_types
+                .into_values()
+                .map(|data_type| {
+                    (
+                        data_type.metadata().identifier().uri().base_uri().clone(),
+                        (
+                            data_type.metadata().identifier().uri().version(),
+                            OntologyVertex::DataType(data_type),
+                        ),
+                    )
+                })
+                .chain(
+                    self.referenced_property_types
+                        .into_values()
+                        .map(|property_type| {
+                            (
+                                property_type
+                                    .metadata()
+                                    .identifier()
+                                    .uri()
+                                    .base_uri()
+                                    .clone(),
+                                (
+                                    property_type.metadata().identifier().uri().version(),
+                                    OntologyVertex::PropertyType(property_type),
+                                ),
+                            )
+                        }),
+                )
+                .chain(
+                    self.referenced_entity_types
+                        .into_values()
+                        .map(|entity_type| {
+                            (
+                                entity_type.metadata().identifier().uri().base_uri().clone(),
+                                (
+                                    entity_type.metadata().identifier().uri().version(),
+                                    OntologyVertex::EntityType(entity_type),
+                                ),
+                            )
+                        }),
+                )
+                .fold(HashMap::new(), |mut map, (base_uri, (version, vertex))| {
+                    match map.entry(base_uri) {
+                        Entry::Occupied(entry) => {
+                            let inner_map = entry.into_mut();
+                            inner_map.entry(version).or_insert_with(|| vertex);
+                        }
+                        Entry::Vacant(entry) => {
+                            entry.insert(HashMap::from([(version, vertex)]));
+                        }
+                    };
+                    map
+                }),
+        );
+
+        let knowledge_graph_vertices = KnowledgeGraphVertices(
+            self.linked_entities
+                .into_values()
+                .map(|entity| {
+                    (
+                        entity.metadata().identifier().entity_identifier(),
+                        (
+                            entity.metadata().identifier().version().clone(),
+                            KnowledgeGraphVertex::Entity(entity),
+                        ),
+                    )
+                })
+                .fold(
+                    HashMap::new(),
+                    |mut map, (entity_identifier, (version, vertex))| {
+                        match map.entry(entity_identifier) {
+                            Entry::Occupied(entry) => {
+                                let inner_map = entry.into_mut();
+                                inner_map.entry(version).or_insert_with(|| vertex);
+                            }
+                            Entry::Vacant(entry) => {
+                                entry.insert(HashMap::from([(version, vertex)]));
+                            }
+                        };
+                        map
+                    },
+                ),
+        );
+
+        Subgraph {
+            roots,
+            vertices: Vertices::new(ontology_vertices, knowledge_graph_vertices),
+            edges: self.edges,
+            depths: self.graph_resolve_depths,
+        }
     }
 }
 

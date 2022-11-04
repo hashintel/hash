@@ -28,12 +28,12 @@ pub enum KnowledgeGraphVertex {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(transparent)]
-pub struct OntologyVertices(HashMap<BaseUri, HashMap<OntologyTypeVersion, OntologyVertex>>);
+pub struct OntologyVertices(pub HashMap<BaseUri, HashMap<OntologyTypeVersion, OntologyVertex>>);
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(transparent)]
 pub struct KnowledgeGraphVertices(
-    HashMap<EntityIdentifier, HashMap<EntityVersion, KnowledgeGraphVertex>>,
+    pub HashMap<EntityIdentifier, HashMap<EntityVersion, KnowledgeGraphVertex>>,
 );
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
@@ -46,10 +46,13 @@ pub struct Vertices {
 
 impl Vertices {
     #[must_use]
-    pub fn new() -> Self {
+    pub fn new(
+        ontology_vertices: OntologyVertices,
+        knowledge_graph_vertices: KnowledgeGraphVertices,
+    ) -> Self {
         Self {
-            ontology: OntologyVertices(HashMap::new()),
-            knowledge_graph: KnowledgeGraphVertices(HashMap::new()),
+            ontology: ontology_vertices,
+            knowledge_graph: knowledge_graph_vertices,
         }
     }
 
