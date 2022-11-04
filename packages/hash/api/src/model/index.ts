@@ -33,6 +33,9 @@ export { default as EntityTypeModel } from "./ontology/entity-type.model";
 export * from "./knowledge/entity.model";
 export { default as EntityModel } from "./knowledge/entity.model";
 
+export * from "./knowledge/workspaceInstance.model";
+export { default as WorkspaceInstanceModel } from "./knowledge/workspaceInstance.model";
+
 export * from "./knowledge/link.model";
 export { default as LinkModel } from "./knowledge/link.model";
 
