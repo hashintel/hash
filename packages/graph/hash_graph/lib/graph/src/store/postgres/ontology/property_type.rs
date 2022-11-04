@@ -16,7 +16,10 @@ use crate::{
         postgres::{context::PostgresContext, DependencyContext, DependencyContextRef},
         AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, UpdateError,
     },
-    subgraph::{GenericOutwardEdge, GraphResolveDepths, StructuralQuery, Subgraph},
+    subgraph::{
+        GenericOutwardEdge, GraphResolveDepths, OntologyEdgeKind, OntologyOutwardEdges,
+        OutwardEdge, StructuralQuery, Subgraph,
+    },
 };
 
 impl<C: AsClient> PostgresStore<C> {
@@ -50,18 +53,6 @@ impl<C: AsClient> PostgresStore<C> {
                 // TODO: Use relation tables
                 //   see https://app.asana.com/0/0/1202884883200942/f
                 for data_type_ref in property_type.inner().data_type_references() {
-                    todo!();
-                    // dependency_context.edges.insert(
-                    //     GraphElementIdentifier::OntologyElementId(property_type_id.clone()),
-                    //     GenericOutwardEdge {
-                    //         edge_kind: EdgeKind::References,
-                    //         reversed_direction: false,
-                    //         right_element: GraphElementIdentifier::OntologyElementId(
-                    //             data_type_ref.uri().clone(),
-                    //         ),
-                    //     },
-                    // );
-
                     if dependency_context
                         .graph_resolve_depths
                         .data_type_resolve_depth
@@ -79,23 +70,24 @@ impl<C: AsClient> PostgresStore<C> {
                         )
                         .await?;
                     }
+
+                    dependency_context.edges.insert(
+                        GraphElementEditionIdentifier::OntologyElementEditionId(
+                            property_type_id.clone(),
+                        ),
+                        OutwardEdge::Ontology(OntologyOutwardEdges::ToOntology(
+                            GenericOutwardEdge {
+                                kind: OntologyEdgeKind::ConstrainsValuesOn,
+                                reversed: false,
+                                endpoint: data_type_ref.uri().clone(),
+                            },
+                        )),
+                    );
                 }
 
                 // TODO: Use relation tables
                 //   see https://app.asana.com/0/0/1202884883200942/f
                 for property_type_ref in property_type.inner().property_type_references() {
-                    todo!();
-                    // dependency_context.edges.insert(
-                    //     GraphElementIdentifier::OntologyElementId(property_type_id.clone()),
-                    //     GenericOutwardEdge {
-                    //         edge_kind: EdgeKind::References,
-                    //         reversed_direction: false,
-                    //         right_element: GraphElementIdentifier::OntologyElementId(
-                    //             property_type_ref.uri().clone(),
-                    //         ),
-                    //     },
-                    // );
-
                     if dependency_context
                         .graph_resolve_depths
                         .property_type_resolve_depth
@@ -113,6 +105,19 @@ impl<C: AsClient> PostgresStore<C> {
                         )
                         .await?;
                     }
+
+                    dependency_context.edges.insert(
+                        GraphElementEditionIdentifier::OntologyElementEditionId(
+                            property_type_id.clone(),
+                        ),
+                        OutwardEdge::Ontology(OntologyOutwardEdges::ToOntology(
+                            GenericOutwardEdge {
+                                kind: OntologyEdgeKind::ConstrainsPropertiesOn,
+                                reversed: false,
+                                endpoint: property_type_ref.uri().clone(),
+                            },
+                        )),
+                    );
                 }
             }
 

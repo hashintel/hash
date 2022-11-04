@@ -12,7 +12,7 @@ use crate::identifier::{
     Timestamp,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, ToSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, ToSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum OntologyEdgeKind {
     /// An [`OntologyType`] can inherit from another [`OntologyType`]
@@ -30,7 +30,7 @@ pub enum OntologyEdgeKind {
     ConstrainsLinkDestinationsOn,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, ToSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, ToSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum KnowledgeGraphEdgeKind {
     /// This [`Entity`] has an outgoing [`Link`] [`Entity`]
@@ -39,7 +39,7 @@ pub enum KnowledgeGraphEdgeKind {
     HasEndpoint,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, ToSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, ToSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum SharedEdgeKind {
     /// An [`Entity`] is of an [`EntityType`]
@@ -53,11 +53,11 @@ where
     E: Serialize,
     V: Serialize,
 {
-    kind: E,
+    pub kind: E,
     /// If true, interpret this as a reversed mapping and the endpoint as the source, that is,
     /// instead of Source-Edge-Target, interpret it as Target-Edge-Source
-    reversed: bool,
-    endpoint: V,
+    pub reversed: bool,
+    pub endpoint: V,
 }
 
 impl<E, V> PartialOrd for GenericOutwardEdge<E, V>

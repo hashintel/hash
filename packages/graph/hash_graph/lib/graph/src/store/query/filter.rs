@@ -12,7 +12,7 @@ use uuid::Uuid;
 
 use crate::{
     identifier::{EntityIdentifier, EntityVersion},
-    knowledge::{Entity, EntityId, EntityQueryPath},
+    knowledge::{Entity, EntityId, EntityQueryPath, PersistedEntityIdentifier},
     store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath},
 };
 
@@ -110,26 +110,31 @@ impl<'q> Filter<'q, Entity> {
     /// its [`EntityId`] and its [`EntityVersion`].
     #[must_use]
     pub fn for_entity_by_entity_id_and_entity_version(
-        entity_identifier: EntityIdentifier,
-        entity_version: EntityVersion,
+        entity_edition_identifier: &PersistedEntityIdentifier,
     ) -> Self {
         Self::All(vec![
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::OwnedById)),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_identifier.owned_by_id().as_uuid(),
+                    entity_edition_identifier
+                        .entity_identifier()
+                        .owned_by_id()
+                        .as_uuid(),
                 ))),
             ),
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::Id)),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_identifier.entity_id().as_uuid(),
+                    entity_edition_identifier
+                        .entity_identifier()
+                        .entity_id()
+                        .as_uuid(),
                 ))),
             ),
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::Version)),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Owned(
-                    entity_version.to_string(),
+                    entity_edition_identifier.version().to_string(),
                 )))),
             ),
         ])

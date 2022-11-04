@@ -234,7 +234,8 @@ pub struct DependencyContext {
         DependencyMap<VersionedUri, PersistedPropertyType, SubgraphQueryDepth>,
     pub referenced_entity_types:
         DependencyMap<VersionedUri, PersistedEntityType, SubgraphQueryDepth>,
-    pub linked_entities: DependencyMap<EntityIdentifier, PersistedEntity, SubgraphQueryDepth>,
+    pub linked_entities:
+        DependencyMap<PersistedEntityIdentifier, PersistedEntity, SubgraphQueryDepth>,
     pub graph_resolve_depths: GraphResolveDepths,
 }
 
@@ -329,7 +330,7 @@ pub struct DependencyContextRef<'a> {
     pub referenced_entity_types:
         &'a mut DependencyMap<VersionedUri, PersistedEntityType, SubgraphQueryDepth>,
     pub linked_entities:
-        &'a mut DependencyMap<EntityIdentifier, PersistedEntity, SubgraphQueryDepth>,
+        &'a mut DependencyMap<PersistedEntityIdentifier, PersistedEntity, SubgraphQueryDepth>,
     pub graph_resolve_depths: GraphResolveDepths,
 }
 
