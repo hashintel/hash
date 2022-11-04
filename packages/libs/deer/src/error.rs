@@ -55,14 +55,12 @@
 //!
 //! [`Location`]: core::panic::Location
 
-#[cfg(all(nightly, feature = "std"))]
-use core::any::Demand;
-use core::{
-    fmt::{self, Debug, Display, Formatter},
-    marker::PhantomData,
-};
+use alloc::{format, string::String};
+use core::fmt::{self, Debug, Display, Formatter};
+#[cfg(not(feature = "std"))]
+use core::marker::PhantomData;
 
-use error_stack::{Context, Frame, IntoReport, Report, Result};
+use error_stack::{Context, Frame, IntoReport, Result};
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Hash, Copy, Clone, serde::Serialize)]
 pub struct Namespace(&'static str);
@@ -94,64 +92,33 @@ impl Id {
 //
 // On std it caries the error and provides it on nightly
 // TODO: if serde::ser::Error ever supports core::error::Error remove this
-pub struct SerdeSerializeError<S: serde::ser::Error> {
-    #[cfg(feature = "std")]
-    error: S,
-
-    #[cfg(not(feature = "std"))]
+pub struct SerdeSerializeError {
     debug: String,
-    #[cfg(not(feature = "std"))]
     display: String,
-    #[cfg(not(feature = "std"))]
-    error: PhantomData<fn() -> *const S>,
 }
 
-impl<S: serde::ser::Error> Debug for SerdeSerializeError<S> {
-    #[cfg(feature = "std")]
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        Debug::fmt(&self.error, f)
-    }
-
-    #[cfg(not(feature = "std"))]
+impl Debug for SerdeSerializeError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.write_str(&self.debug)
     }
 }
 
-impl<S: serde::ser::Error> Display for SerdeSerializeError<S> {
-    #[cfg(feature = "std")]
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.error, f)
-    }
-
-    #[cfg(not(feature = "std"))]
+impl Display for SerdeSerializeError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.write_str(&self.display)
     }
 }
 
-impl<S: serde::ser::Error> SerdeSerializeError<S> {
-    #[cfg(feature = "std")]
-    fn new(error: S) -> Self {
-        Self { error }
-    }
-
-    #[cfg(not(feature = "std"))]
-    fn new(error: S) -> Self {
+impl SerdeSerializeError {
+    fn new<S: serde::ser::Error>(error: S) -> Self {
         Self {
             debug: format!("{error:?}"),
             display: format!("{error}"),
-            error: PhantomData::default(),
         }
     }
 }
 
-impl<S: serde::ser::Error> Context for SerdeSerializeError<S> {
-    #[cfg(all(nightly, feature = "std"))]
-    fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
-        demand.provide_ref(&self.error);
-    }
-}
+impl Context for SerdeSerializeError {}
 
 /// Value which is extracted/retrieved from a stack of [`error_stack::Frame`]s
 ///
@@ -184,7 +151,7 @@ pub trait ErrorProperties {
 
     fn value<'a>(stack: &[&'a Frame]) -> Self::Value<'a>;
 
-    fn output<S>(value: Self::Value<'_>, map: &mut S) -> Result<(), SerdeSerializeError<S::Error>>
+    fn output<S>(value: Self::Value<'_>, map: &mut S) -> Result<(), SerdeSerializeError>
     where
         S: serde::ser::SerializeMap;
 }
@@ -204,7 +171,7 @@ impl<T: ErrorProperty + 'static> ErrorProperties for T {
         <T as ErrorProperty>::value(stack)
     }
 
-    fn output<S>(value: Self::Value<'_>, map: &mut S) -> Result<(), SerdeSerializeError<S::Error>>
+    fn output<S>(value: Self::Value<'_>, map: &mut S) -> Result<(), SerdeSerializeError>
     where
         S: serde::ser::SerializeMap,
     {
