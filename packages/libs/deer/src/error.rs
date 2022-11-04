@@ -57,8 +57,6 @@
 
 use alloc::{format, string::String};
 use core::fmt::{self, Debug, Display, Formatter};
-#[cfg(not(feature = "std"))]
-use core::marker::PhantomData;
 
 use error_stack::{Context, Frame, IntoReport, Result};
 
@@ -110,7 +108,7 @@ impl Display for SerdeSerializeError {
 }
 
 impl SerdeSerializeError {
-    fn new<S: serde::ser::Error>(error: S) -> Self {
+    fn new<S: serde::ser::Error>(error: &S) -> Self {
         Self {
             debug: format!("{error:?}"),
             display: format!("{error}"),
@@ -178,7 +176,7 @@ impl<T: ErrorProperty + 'static> ErrorProperties for T {
         let key = <T as ErrorProperty>::key();
 
         map.serialize_entry(key, &value)
-            .map_err(SerdeSerializeError::new)
+            .map_err(|err| SerdeSerializeError::new(&err))
             .into_report()
     }
 }
