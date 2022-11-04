@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { sleep } from "@hashintel/hash-shared/sleep";
+import { failOnConsoleOutput } from "./shared/console-checks";
 import { loginUsingUi } from "./shared/login-using-ui";
 import { resetDb } from "./shared/reset-db";
 
@@ -12,6 +13,8 @@ test.beforeEach(async () => {
  * @see https://app.asana.com/0/1202805690238892/1203106234191599/f
  */
 test.skip("user can create and update entity", async ({ page }) => {
+  failOnConsoleOutput(page);
+
   await loginUsingUi({ page, accountShortName: "bob" });
 
   // Check if we are on the user page
