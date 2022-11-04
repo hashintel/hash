@@ -8,8 +8,7 @@ const tolerableConsoleMessageMatches: RegExp[] = [
   /^Build: commit-.*-local-dev$/, // Sentry build id
 
   // Messages to remove (you can add temporarily add more RegExps, but please track their removal)
-  /Failed to load resource: the server responded with a status of 401 \(Unauthorized\)/, // Temp error
-  /Unexpected console output MUI: You have provided a `title` prop to the child of/, // Temp error
+  /Failed to load resource: the server responded with a status of 401 \(Unauthorized\)/,
 ];
 
 export * from "@playwright/test";
