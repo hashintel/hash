@@ -8,7 +8,7 @@ export const PAGE_MIN_PADDING = 48;
 export const COMMENTS_WIDTH = 320;
 
 export const getPageSectionContainerStyles = (pageComments: PageThread[]) => {
-  const commentsContainerWidth = pageComments?.length ? COMMENTS_WIDTH : 0;
+  const commentsContainerWidth = pageComments?.length ? COMMENTS_WIDTH + PAGE_MIN_PADDING : 0;
 
   const paddingLeft = `max(calc((100% - ${
     PAGE_CONTENT_WIDTH + commentsContainerWidth
