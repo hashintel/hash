@@ -9,10 +9,11 @@ inputs:
 
 runs:
   using: composite
+
   steps:
     - uses: actions/setup-node@v3
       with:
-        node-version: 18
+        node-version: 16 ## aligned with Node version on Vercel
         cache: yarn
 
     - run: yarn install

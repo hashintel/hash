@@ -21,6 +21,7 @@ if (!OPENSEARCH_ENABLED) {
 }
 
 // Environment variables
+/* eslint-disable @typescript-eslint/prefer-nullish-coalescing -- @todo refactor this section using envalid */
 const PORT = process.env.HASH_SEARCH_LOADER_PORT || 3838;
 const REDIS_HOST = getRequiredEnv("HASH_REDIS_HOST");
 const REDIS_PORT = parseInt(process.env.HASH_REDIS_PORT || "6379", 10);
@@ -40,6 +41,7 @@ const PG_PORT = parseInt(getRequiredEnv("HASH_PG_PORT"), 10);
 const PG_USER = getRequiredEnv("HASH_PG_USER");
 const PG_PASSWORD = getRequiredEnv("HASH_PG_PASSWORD");
 const PG_DATABASE = getRequiredEnv("HASH_PG_DATABASE");
+/* eslint-enable @typescript-eslint/prefer-nullish-coalescing */
 
 // Configure the StatsD client for reporting metrics
 let statsd: StatsD | undefined;
@@ -125,7 +127,7 @@ const main = async () => {
       ? undefined
       : {
           username: process.env.HASH_OPENSEARCH_USERNAME,
-          password: process.env.HASH_OPENSEARCH_PASSWORD || "",
+          password: process.env.HASH_OPENSEARCH_PASSWORD ?? "",
         };
   const search = await OpenSearch.connect(logger, {
     host: OPENSEARCH_HOST,

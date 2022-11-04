@@ -13,6 +13,7 @@ import {
   KratosUserIdentityTraits,
 } from "../../auth/ory-kratos";
 import { WORKSPACE_TYPES } from "../../graph/workspace-types";
+import { EntityTypeMismatchError } from "../../lib/error";
 import { workspaceAccountId } from "../util";
 
 type QualifiedEmail = { address: string; verified: boolean; primary: boolean };
@@ -34,8 +35,10 @@ export default class extends EntityModel {
       entity.entityTypeModel.schema.$id !==
       WORKSPACE_TYPES.entityType.user.schema.$id
     ) {
-      throw new Error(
-        `Entity with id ${entity.entityId} is not a workspace user`,
+      throw new EntityTypeMismatchError(
+        entity.entityId,
+        WORKSPACE_TYPES.entityType.user.schema.$id,
+        entity.entityTypeModel.schema.$id,
       );
     }
 
@@ -309,10 +312,6 @@ export default class extends EntityModel {
     ];
   }
 
-  static preferredNameIsInvalid(preferredName: string) {
-    return preferredName === "";
-  }
-
   /**
    * Update the preferred name of a User.
    *
@@ -325,10 +324,11 @@ export default class extends EntityModel {
   ) {
     const { updatedPreferredName, actorId } = params;
 
-    if (UserModel.preferredNameIsInvalid(updatedPreferredName)) {
-      throw new Error(`Preferred name "${updatedPreferredName}" is invalid.`);
+    if (updatedPreferredName === "") {
+      throw new Error(
+        `Preferred name "${updatedPreferredName}" cannot be removed.`,
+      );
     }
-
     const updatedEntity = await this.updateProperty(graphApi, {
       propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.preferredName.baseUri,
       value: updatedPreferredName,

@@ -104,7 +104,7 @@ impl<'q> JoinExpression<'q> {
 
 impl Transpile for JoinExpression<'_> {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.write_str("JOIN ")?;
+        fmt.write_str("INNER JOIN ")?;
         if self.join.alias.is_some() {
             let unaliased_table = Table {
                 name: self.join.name,
@@ -140,7 +140,7 @@ mod tests {
                 EdgeJoinDirection::SourceOnTarget,
             )
             .transpile_to_string(),
-            r#"JOIN "type_ids" ON "type_ids"."version_id" = "data_types"."version_id""#
+            r#"INNER JOIN "type_ids" ON "type_ids"."version_id" = "data_types"."version_id""#
         );
 
         assert_eq!(
@@ -159,7 +159,7 @@ mod tests {
                 EdgeJoinDirection::SourceOnTarget,
             )
             .transpile_to_string(),
-            r#"JOIN "type_ids" AS "type_ids_0_1" ON "type_ids_0_1"."version_id" = "data_types"."version_id""#
+            r#"INNER JOIN "type_ids" AS "type_ids_0_1" ON "type_ids_0_1"."version_id" = "data_types"."version_id""#
         );
 
         assert_eq!(
@@ -178,7 +178,7 @@ mod tests {
                 EdgeJoinDirection::SourceOnTarget,
             )
             .transpile_to_string(),
-            r#"JOIN "type_ids" ON "type_ids"."version_id" = "data_types_0_0"."version_id""#
+            r#"INNER JOIN "type_ids" ON "type_ids"."version_id" = "data_types_0_0"."version_id""#
         );
 
         assert_eq!(
@@ -200,7 +200,7 @@ mod tests {
                 EdgeJoinDirection::SourceOnTarget,
             )
             .transpile_to_string(),
-            r#"JOIN "type_ids" AS "type_ids_0_1" ON "type_ids_0_1"."version_id" = "data_types_0_0"."version_id""#
+            r#"INNER JOIN "type_ids" AS "type_ids_0_1" ON "type_ids_0_1"."version_id" = "data_types_0_0"."version_id""#
         );
     }
 }
