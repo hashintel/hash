@@ -259,7 +259,7 @@ async fn remove_link() {
     assert!(
         api.get_entity_links(person_a_metadata.identifier().entity_id())
             .await
-            .expect("could not fetch link")
+            .expect("could not fetch links")
             .is_empty()
     );
 }
