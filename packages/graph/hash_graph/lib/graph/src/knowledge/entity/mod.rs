@@ -12,8 +12,21 @@ use uuid::Uuid;
 pub use self::query::{EntityQueryPath, EntityQueryPathVisitor};
 use crate::provenance::{CreatedById, OwnedById, UpdatedById};
 
+// TODO: rename this to EntityUuid
 #[derive(
-    Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema, FromSql, ToSql,
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    Serialize,
+    Deserialize,
+    ToSchema,
+    FromSql,
+    ToSql,
 )]
 #[repr(transparent)]
 #[postgres(transparent)]
