@@ -57,49 +57,20 @@ When you've finished adding positions to your agents, reset the simulation. You 
 
 Alice and Bob aren't very interesting right now. Let's teach them some manners. We can give the agents [behaviors](/docs/simulation/creating-simulations/behaviors) that enable them to act and respond to each other. In **init.json** let's add some file names into each of the behavior arrays.
 
-<Hint style="info">
-You can build Python behaviors instead of JavaScript behaviors if you prefer. Just make sure to name your files with a ".py" ending.
-</Hint>
-
-<Tabs>
-<Tab title="JavaScript" >
-
-```javascript
-[
-  {
-    agent_name: "Alice",
-    behaviors: ["hello_bob.js"],
-    position: [0, 0],
-  },
-  {
-    agent_name: "Bob",
-    behaviors: ["hello_alice.js"],
-    position: [2, 0],
-  },
-];
-```
-
-</Tab>
-
-<Tab title="Python" >
-
-```python
+```json
 [
   {
     "agent_name": "Alice",
-    "behaviors": ["hello_bob.py"],
-    "position": [0,0]
+    "behaviors": ["hello_bob.js"],
+    "position": [0, 0]
   },
   {
     "agent_name": "Bob",
-    "behaviors": ["hello_alice.py"],
-    "position": [2,0]
+    "behaviors": ["hello_alice.js"],
+    "position": [2, 0]
   }
 ]
 ```
-
-</Tab>
-</Tabs>
 
 We can then create the corresponding behavior files by clicking the **New File** button at the top of the left hand files sidebar. Create two new files, `hello_alice.js` and`hello_bob.js`
 
@@ -455,54 +426,29 @@ Finally, since Alice clearly would like some socially-responsible distance from 
 
 ![](https://cdn-us1.hash.ai/site/docs/movement.gif)
 
-<Tabs>
-<Tab title="JavaScript" >
-
-```javascript
-[
-  {
-    agent_name: "Alice",
-    behaviors: ["hello_bob.js", "@hash/random-movement/random_movement.rs"],
-    position: [0, 0],
-  },
-  {
-    agent_name: "Bob",
-    behaviors: ["hello_alice.js", "@hash/random-movement/random_movement.rs"],
-    position: [2, 0],
-  },
-];
-```
-
-</Tab>
-
-<Tab title="Python" >
-
-```python
+```json
 [
   {
     "agent_name": "Alice",
-    "behaviors": ["hello_bob.py", "@hash/random-movement/random_movement.rs"],
-    "position": [0,0]
+    "behaviors": ["hello_bob.js", "@hash/random-movement/random_movement.rs"],
+    "position": [0, 0]
   },
   {
     "agent_name": "Bob",
-    "behaviors": ["hello_alice.py", "@hash/random-movement/random_movement.rs"],
-    "position": [2,0]
+    "behaviors": ["hello_alice.js", "@hash/random-movement/random_movement.rs"],
+    "position": [2, 0]
   }
 ]
 ```
 
-</Tab>
-</Tabs>
-
 To prevent our agents from straying too far, we can set [bounds](/docs/simulation/configuration/topology/bounds-and-wrapping) on their environment in the `globals.json` file as follows:
 
-```javascript
+```json
 {
-    "topology": {
-        "x_bounds": [0, 20],
-        "y_bounds": [0, 20]
-    }
+  "topology": {
+    "x_bounds": [0, 20],
+    "y_bounds": [0, 20]
+  }
 }
 ```
 
