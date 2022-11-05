@@ -1,4 +1,4 @@
-import { CustomCell } from "@glideapps/glide-data-grid";
+import { CustomCell, GridCell, GridCellKind } from "@glideapps/glide-data-grid";
 import type { DrawArgs } from "@glideapps/glide-data-grid/dist/ts/data-grid/cells/cell-types";
 
 /**
@@ -15,3 +15,10 @@ export const getYCenter = (args: DrawArgs<CustomCell>) => {
  */
 export const getCellHorizontalPadding = (atFirstColumn?: boolean) =>
   atFirstColumn ? 36 : 22;
+
+export const blankCell: GridCell = {
+  kind: GridCellKind.Custom,
+  allowOverlay: false,
+  copyData: "",
+  data: {},
+};

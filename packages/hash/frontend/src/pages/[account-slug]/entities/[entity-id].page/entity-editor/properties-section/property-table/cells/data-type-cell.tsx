@@ -23,11 +23,7 @@ export const renderDataTypeCell: CustomRenderer<DataTypeCell> = {
     (cell.data as any).kind === "data-type-cell",
   draw: (args, cell) => {
     const { theme, rect } = args;
-    const { dataTypes, children } = cell.data.property;
-
-    if (children.length) {
-      return;
-    }
+    const { dataTypes } = cell.data.property;
 
     const chipGap = 8;
     let chipLeft = rect.x + theme.cellHorizontalPadding;
