@@ -13,9 +13,9 @@ We're going to create a basic agent-based model where two agents will exchange p
 
 To start, create a new simulation file from scratch by using the _File_ menu and clicking _New Project_ > _Empty Simulation_.
 
-In your new simulation workspace, open the **init.json** file in the **src** folder of the left-hand side panel. You'll see an empty pair of square brackets.
+In your new simulation workspace, open the `init.json` file in the `src` folder of the left-hand side panel. You'll see an empty pair of square brackets.
 
-The **init.json** file defines the 'initial state' of the simulation as a collection of objects in a JSON array.
+The `init.json` file defines the 'initial state' of the simulation as a collection of objects in a JSON array.
 
 We'll begin by adding two agents into the array, and give them names.
 
@@ -55,7 +55,7 @@ When you've finished adding positions to your agents, reset the simulation. You 
 
 ### Saying Hello
 
-Alice and Bob aren't very interesting right now. Let's teach them some manners. We can give the agents [behaviors](/docs/simulation/creating-simulations/behaviors) that enable them to act and respond to each other. In **init.json** let's add some file names into each of the behavior arrays.
+Alice and Bob aren't very interesting right now. Let's teach them some manners. We can give the agents [behaviors](/docs/simulation/creating-simulations/behaviors) that enable them to act and respond to each other. In `init.json` let's add some file names into each of the behavior arrays.
 
 ```json
 [
