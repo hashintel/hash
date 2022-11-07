@@ -7,6 +7,7 @@ mod api_resource;
 mod data_type;
 mod entity;
 mod entity_type;
+mod middleware;
 mod property_type;
 
 use std::sync::Arc;
@@ -21,6 +22,8 @@ use axum::{
 use error_stack::Report;
 use futures::TryFutureExt;
 use include_dir::{include_dir, Dir};
+use tower::ServiceBuilder;
+use tower_http::trace::TraceLayer;
 use utoipa::{
     openapi::{
         self, schema, schema::RefOr, ArrayBuilder, ObjectBuilder, OneOfBuilder, Ref, SchemaFormat,
@@ -31,6 +34,7 @@ use utoipa::{
 
 use self::api_resource::RoutedResource;
 use crate::{
+    api::rest::middleware::log_request_and_response,
     ontology::domain_validator::DomainValidator,
     store::{crud::Read, QueryError, StorePool},
 };
@@ -113,6 +117,16 @@ pub fn rest_api_router<P: StorePool + Send + 'static>(
     merged_routes
         .layer(Extension(store))
         .layer(Extension(domain_regex))
+        .layer(
+            axum::middleware::from_fn(log_request_and_response)
+        )
+        .layer(
+            ServiceBuilder::new()
+                .layer(
+                    TraceLayer::new_for_http()
+                )
+        )
+        // We don't want any layers or handlers for the api-doc
         .nest(
             "/api-doc",
             Router::new()
