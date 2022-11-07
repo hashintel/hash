@@ -21,7 +21,7 @@ import {
   EntityTypeEditorPropertyData,
 } from "./form-types";
 import { HashOntologyIcon } from "./hash-ontology-icon";
-import { OntologyChip } from "./ontology-chip";
+import { OntologyChip } from "../../shared/ontology-chip";
 import { PropertyListCard } from "./property-list-card";
 import { useEntityType } from "./use-entity-type";
 import {
