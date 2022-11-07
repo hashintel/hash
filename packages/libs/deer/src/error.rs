@@ -246,23 +246,31 @@ error!(
     /// Every [`Deserialize`] implementation must return this error,
     /// this is just a wrapper context which is used to aid error recovery,
     /// the actual error should implement [`Error`] instead,
+    ///
+    /// [`Deserialize`]: crate::Deserialize
     DeserializeError: "deserialize failed"
 );
 
 error!(
-    /// Every [`Deserializer`] implemention must return this error, this is just a wrapper context,
+    /// Every [`Deserializer`] implementation must return this error, this is just a wrapper context,
     /// which is used to aid error recovery. The actual error should implement [`Error`] instead.
+    ///
+    /// [`Deserializer`]: crate::Deserializer
     DeserializerError: "deserializer encountered unrecoverable error"
 );
 
 error!(
     /// Every [`ObjectAccess`] implementation must return this error, this is just a wrapper context,
     /// which is used to aid error recovery. The actual error should implement [`Error`] instead.
+    ///
+    /// [`ObjectAccess`]: crate::ObjectAccess
     ObjectAccessError: "object access encountered one or more errors during access"
 );
 
 error!(
     /// Every [`ArrayAccess`] implementation must return this error, this is just a wrapper context,
     /// which is used to aid error recovery. The actual error should implement [`Error`] instead.
+    ///
+    /// [`ArrayAccess`]: crate::ArrayAccess
     ArrayAccessError: "array access encountered one or more errors during access"
 );
