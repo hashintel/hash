@@ -284,7 +284,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .change_context(UpdateError)?;
 
         let old_entity_metadata = transaction
-            .move_entity_to_histories(entity_id, HistoricMove::ForNewVersion)
+            .move_latest_entity_to_histories(entity_id, HistoricMove::ForNewVersion)
             .await
             .change_context(UpdateError)?;
 
@@ -338,7 +338,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         // Move current latest edition to the historic table
         transaction
-            .move_entity_to_histories(entity_id, HistoricMove::ForNewVersion)
+            .move_latest_entity_to_histories(entity_id, HistoricMove::ForNewVersion)
             .await
             .change_context(ArchivalError)?;
 
@@ -358,7 +358,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         // Archive latest edition, leaving nothing from the entity behind.
         transaction
-            .move_entity_to_histories(entity_id, HistoricMove::ForArchival)
+            .move_latest_entity_to_histories(entity_id, HistoricMove::ForArchival)
             .await
             .change_context(ArchivalError)?;
 

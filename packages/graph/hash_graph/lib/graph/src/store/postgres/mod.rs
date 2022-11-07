@@ -981,7 +981,7 @@ where
     //   This is especially important for making these queries single-shard Citus queries when we
     //   need that.
     //   see: https://app.asana.com/0/1201095311341924/1203214689883091/f
-    async fn move_entity_to_histories(
+    async fn move_latest_entity_to_histories(
         &self,
         entity_id: EntityId,
         historic_move: HistoricMove,
