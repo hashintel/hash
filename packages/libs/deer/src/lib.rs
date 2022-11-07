@@ -17,6 +17,7 @@ use core::marker::PhantomData;
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use num_traits::ToPrimitive;
 
+use crate::error::{DeserializeError, DeserializerError, ObjectAccessError, VisitorError};
 pub use crate::{
     error::{Error, ErrorProperty, Id, Namespace},
     number::Number,
@@ -28,27 +29,23 @@ mod number;
 extern crate alloc;
 
 pub trait ObjectAccess<'de> {
-    type Error: Error;
-
-    fn value<T>(&mut self, key: &str) -> Result<T, Self::Error>
+    fn value<T>(&mut self, key: &str) -> Result<T, ObjectAccessError>
     where
         T: Deserialize<'de>;
 
-    fn next<T>(&mut self) -> Result<Option<(String, T)>, Self::Error>
+    fn next<T>(&mut self) -> Result<Option<(String, T)>, ObjectAccessError>
     where
         T: Deserialize<'de>;
 
-    fn finish(self) -> Result<(), Self::Error>;
+    fn finish(self) -> Result<(), ObjectAccessError>;
 }
 
 pub trait ArrayAccess<'de> {
-    type Error: Error;
-
-    fn next<T>(&mut self) -> Result<Option<T>, Self::Error>
+    fn next<T>(&mut self) -> Result<Option<T>, ObjectAccessError>
     where
         T: Deserialize<'de>;
 
-    fn finish(self) -> Result<(), Self::Error>;
+    fn finish(self) -> Result<(), ObjectAccessError>;
 }
 
 // TODO: Error PR: attach the expected and received type
@@ -56,7 +53,6 @@ pub trait ArrayAccess<'de> {
 //  do not take into account the value provided. This will change with the error PR.
 #[allow(unused_variables)]
 pub trait Visitor<'de>: Sized {
-    type Error: Error;
     type Value;
 
     fn expecting_display(&self) -> String;
@@ -70,194 +66,214 @@ pub trait Visitor<'de>: Sized {
         BTreeMap::new()
     }
 
-    fn visit_none(self) -> Result<Self::Value, Self::Error> {
-        Err(Report::new(Self::Error::message(
-            "unexpected missing value",
-        )))
+    fn visit_none(self) -> Result<Self::Value, VisitorError> {
+        // Err(Report::new(Self::Error::message(
+        //     "unexpected missing value",
+        // )))
+        todo!()
     }
 
-    fn visit_null(self) -> Result<Self::Value, Self::Error> {
-        Err(Report::new(Self::Error::message(
-            "unexpected value of type null",
-        )))
+    fn visit_null(self) -> Result<Self::Value, VisitorError> {
+        // Err(Report::new(Self::Error::message(
+        //     "unexpected value of type null",
+        // )))
+        todo!()
     }
 
-    fn visit_bool(self, v: bool) -> Result<Self::Value, Self::Error> {
-        Err(Report::new(Self::Error::message(
-            "unexpected value of type bool",
-        )))
+    fn visit_bool(self, v: bool) -> Result<Self::Value, VisitorError> {
+        // Err(Report::new(Self::Error::message(
+        //     "unexpected value of type bool",
+        // )))
+        todo!()
     }
 
     // TODO: should this auto-delegate to one of the other visit functions?!
     //  ~> experimentation is needed
-    fn visit_number(self, v: Number) -> Result<Self::Value, Self::Error> {
-        Err(Report::new(Self::Error::message(
-            "unexpected value of type number",
-        )))
+    fn visit_number(self, v: Number) -> Result<Self::Value, VisitorError> {
+        // Err(Report::new(Self::Error::message(
+        //     "unexpected value of type number",
+        // )))
+        todo!()
     }
 
-    fn visit_char(self, v: String) -> Result<Self::Value, Self::Error> {
-        Err(Report::new(Self::Error::message(
-            "unexpected value of type char",
-        )))
+    fn visit_char(self, v: String) -> Result<Self::Value, VisitorError> {
+        // Err(Report::new(Self::Error::message(
+        //     "unexpected value of type char",
+        // )))
+        todo!()
     }
 
-    fn visit_string(self, v: String) -> Result<Self::Value, Self::Error> {
-        Err(Report::new(Self::Error::message(
-            "unexpected value of type string",
-        )))
+    fn visit_string(self, v: String) -> Result<Self::Value, VisitorError> {
+        // Err(Report::new(Self::Error::message(
+        //     "unexpected value of type string",
+        // )))
+        todo!()
     }
-    fn visit_str(self, v: &str) -> Result<Self::Value, Self::Error> {
-        Err(Report::new(Self::Error::message(
-            "unexpected value of type string",
-        )))
+    fn visit_str(self, v: &str) -> Result<Self::Value, VisitorError> {
+        // Err(Report::new(Self::Error::message(
+        //     "unexpected value of type string",
+        // )))
+        todo!()
     }
-    fn visit_borrowed_str(self, v: &'de str) -> Result<Self::Value, Self::Error> {
-        Err(Report::new(Self::Error::message(
-            "unexpected value of type string",
-        )))
-    }
-
-    fn visit_bytes_buffer(self, v: Vec<u8>) -> Result<Self::Value, Self::Error> {
-        Err(Report::new(Self::Error::message(
-            "unexpected value of type string",
-        )))
+    fn visit_borrowed_str(self, v: &'de str) -> Result<Self::Value, VisitorError> {
+        // Err(Report::new(Self::Error::message(
+        //     "unexpected value of type string",
+        // )))
+        todo!()
     }
 
-    fn visit_bytes(self, v: &[u8]) -> Result<Self::Value, Self::Error> {
-        Err(Report::new(Self::Error::message(
-            "unexpected value of type string",
-        )))
+    fn visit_bytes_buffer(self, v: Vec<u8>) -> Result<Self::Value, VisitorError> {
+        // Err(Report::new(Self::Error::message(
+        //     "unexpected value of type string",
+        // )))
+        todo!()
     }
 
-    fn visit_borrowed_bytes(self, v: &'de [u8]) -> Result<Self::Value, Self::Error> {
-        Err(Report::new(Self::Error::message(
-            "unexpected value of type string",
-        )))
+    fn visit_bytes(self, v: &[u8]) -> Result<Self::Value, VisitorError> {
+        // Err(Report::new(Self::Error::message(
+        //     "unexpected value of type string",
+        // )))
+        todo!()
     }
 
-    fn visit_array<T>(self, v: T) -> Result<Self::Value, Self::Error>
+    fn visit_borrowed_bytes(self, v: &'de [u8]) -> Result<Self::Value, VisitorError> {
+        // Err(Report::new(Self::Error::message(
+        //     "unexpected value of type string",
+        // )))
+        todo!()
+    }
+
+    fn visit_array<T>(self, v: T) -> Result<Self::Value, VisitorError>
     where
         T: ArrayAccess<'de>,
     {
-        Err(Report::new(Self::Error::message(
-            "unexpected value of type array",
-        )))
+        // Err(Report::new(Self::Error::message(
+        //     "unexpected value of type array",
+        // )))
+        todo!()
     }
 
-    fn visit_object<T>(self, v: T) -> Result<Self::Value, Self::Error>
+    fn visit_object<T>(self, v: T) -> Result<Self::Value, VisitorError>
     where
         T: ObjectAccess<'de>,
     {
-        Err(Report::new(Self::Error::message(
-            "unexpected value of type object",
-        )))
+        // Err(Report::new(Self::Error::message(
+        //     "unexpected value of type object",
+        // )))
+        todo!()
     }
 
-    fn visit_i8(self, v: i8) -> Result<Self::Value, Self::Error> {
-        Err(Report::new(Self::Error::message(
-            "unexpected value of type i8",
-        )))
+    fn visit_i8(self, v: i8) -> Result<Self::Value, VisitorError> {
+        // Err(Report::new(Self::Error::message(
+        //     "unexpected value of type i8",
+        // )))
+        todo!()
     }
 
-    fn visit_i16(self, v: i16) -> Result<Self::Value, Self::Error> {
-        Err(Report::new(Self::Error::message(
-            "unexpected value of type i16",
-        )))
+    fn visit_i16(self, v: i16) -> Result<Self::Value, VisitorError> {
+        // Err(Report::new(Self::Error::message(
+        //     "unexpected value of type i16",
+        // )))
+        todo!()
     }
 
-    fn visit_i32(self, v: i32) -> Result<Self::Value, Self::Error> {
-        Err(Report::new(Self::Error::message(
-            "unexpected value of type i32",
-        )))
+    fn visit_i32(self, v: i32) -> Result<Self::Value, VisitorError> {
+        // Err(Report::new(Self::Error::message(
+        //     "unexpected value of type i32",
+        // )))
+        todo!()
     }
 
-    fn visit_i64(self, v: i64) -> Result<Self::Value, Self::Error> {
-        Err(Report::new(Self::Error::message(
-            "unexpected value of type i64",
-        )))
+    fn visit_i64(self, v: i64) -> Result<Self::Value, VisitorError> {
+        // Err(Report::new(Self::Error::message(
+        //     "unexpected value of type i64",
+        // )))
+        todo!()
     }
 
-    fn visit_i128(self, v: i128) -> Result<Self::Value, Self::Error> {
-        Err(Report::new(Self::Error::message(
-            "unexpected value of type i128",
-        )))
+    fn visit_i128(self, v: i128) -> Result<Self::Value, VisitorError> {
+        // Err(Report::new(Self::Error::message(
+        //     "unexpected value of type i128",
+        // )))
+        todo!()
     }
 
-    fn visit_isize(self, v: isize) -> Result<Self::Value, Self::Error> {
-        Err(Report::new(Self::Error::message(
-            "unexpected value of type isize",
-        )))
+    fn visit_isize(self, v: isize) -> Result<Self::Value, VisitorError> {
+        // Err(Report::new(Self::Error::message(
+        //     "unexpected value of type isize",
+        // )))
+        todo!()
     }
 
-    fn visit_u8(self, v: u8) -> Result<Self::Value, Self::Error> {
-        Err(Report::new(Self::Error::message(
-            "unexpected value of type u8",
-        )))
+    fn visit_u8(self, v: u8) -> Result<Self::Value, VisitorError> {
+        // Err(Report::new(Self::Error::message(
+        //     "unexpected value of type u8",
+        // )))
+        todo!()
     }
 
-    fn visit_u16(self, v: u16) -> Result<Self::Value, Self::Error> {
-        Err(Report::new(Self::Error::message(
-            "unexpected value of type u16",
-        )))
+    fn visit_u16(self, v: u16) -> Result<Self::Value, VisitorError> {
+        // Err(Report::new(Self::Error::message(
+        //     "unexpected value of type u16",
+        // )))
+        todo!()
     }
 
-    fn visit_u32(self, v: u32) -> Result<Self::Value, Self::Error> {
-        Err(Report::new(Self::Error::message(
-            "unexpected value of type u32",
-        )))
+    fn visit_u32(self, v: u32) -> Result<Self::Value, VisitorError> {
+        // Err(Report::new(Self::Error::message(
+        //     "unexpected value of type u32",
+        // )))
+        todo!()
     }
 
-    fn visit_u64(self, v: u64) -> Result<Self::Value, Self::Error> {
-        Err(Report::new(Self::Error::message(
-            "unexpected value of type u64",
-        )))
+    fn visit_u64(self, v: u64) -> Result<Self::Value, VisitorError> {
+        // Err(Report::new(Self::Error::message(
+        //     "unexpected value of type u64",
+        // )))
+        todo!()
     }
 
-    fn visit_u128(self, v: u128) -> Result<Self::Value, Self::Error> {
-        Err(Report::new(Self::Error::message(
-            "unexpected value of type u128",
-        )))
+    fn visit_u128(self, v: u128) -> Result<Self::Value, VisitorError> {
+        // Err(Report::new(Self::Error::message(
+        //     "unexpected value of type u128",
+        // )))
+        todo!()
     }
 
-    fn visit_usize(self, v: usize) -> Result<Self::Value, Self::Error> {
-        Err(Report::new(Self::Error::message(
-            "unexpected value of type usize",
-        )))
+    fn visit_usize(self, v: usize) -> Result<Self::Value, VisitorError> {
+        // Err(Report::new(Self::Error::message(
+        //     "unexpected value of type usize",
+        // )))
+        todo!()
     }
 
-    fn visit_f32(self, v: f32) -> Result<Self::Value, Self::Error> {
-        Err(Report::new(Self::Error::message(
-            "unexpected value of type f32",
-        )))
+    fn visit_f32(self, v: f32) -> Result<Self::Value, VisitorError> {
+        // Err(Report::new(Self::Error::message(
+        //     "unexpected value of type f32",
+        // )))
+        todo!()
     }
 
-    fn visit_f64(self, v: f64) -> Result<Self::Value, Self::Error> {
-        Err(Report::new(Self::Error::message(
-            "unexpected value of type f64",
-        )))
+    fn visit_f64(self, v: f64) -> Result<Self::Value, VisitorError> {
+        // Err(Report::new(Self::Error::message(
+        //     "unexpected value of type f64",
+        // )))
+        todo!()
     }
 }
 
 // internal visitor, which is used during the default implementation of the `deserialize_i*` and
 // `deserialize_u*` methods.
-struct NumberVisitor<E: Error>(PhantomData<fn() -> E>);
+struct NumberVisitor;
 
-impl<E: Error> NumberVisitor<E> {
-    fn new() -> Self {
-        Self(PhantomData::default())
-    }
-}
-
-impl<E: Error> Visitor<'_> for NumberVisitor<E> {
-    type Error = E;
+impl Visitor<'_> for NumberVisitor {
     type Value = Number;
 
     fn expecting_display(&self) -> String {
         "number".to_string()
     }
 
-    fn visit_number(self, v: Number) -> Result<Self::Value, Self::Error> {
+    fn visit_number(self, v: Number) -> Result<Self::Value, VisitorError> {
         Ok(v)
     }
 }
@@ -274,17 +290,19 @@ macro_rules! derive_from_number {
         /// # Errors
         ///
         /// Current value is either not a number or wasn't able to be casted to the primitive type
-        fn $method<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+        fn $method<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
         where
             V: Visitor<'de>,
         {
-            let n = self.deserialize_number(NumberVisitor::<Self::Error>::new())?;
+            let n = self.deserialize_number(NumberVisitor)?;
             let v = n
                 .$to()
-                .ok_or_else(|| Self::Error::message("provided value too large or too small"))
+                // TODO: change with the actual error type
+                .ok_or_else(|| DeserializerError)
+                // .ok_or_else(|| Self::Error::message("provided value too large or too small"))
                 .into_report()?;
 
-            visitor.$visit(v).change_context(Self::Error::new())
+            visitor.$visit(v).change_context(DeserializerError)
         }
     };
 }
@@ -325,18 +343,15 @@ macro_rules! derive_from_number {
 ///
 /// [`serde`]: https://serde.rs/
 pub trait Deserializer<'de>: Sized {
-    /// The error type that can be returned if some error occurs during deserialization
-    type Error: Error;
-
     /// Require the [`Deserializer`] to figure out **how** to drive the visitor based on input data.
     ///
     /// You should not rely on this when implementing [`Deserialize`], as non self-describing
     /// formats are unable to provide this method.
-    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>;
 
-    fn deserialize_none<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_none<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>;
 
@@ -347,7 +362,7 @@ pub trait Deserializer<'de>: Sized {
     /// # Errors
     ///
     /// Current value is not of type null
-    fn deserialize_null<V>(self, visitor: V) -> Result<V, Self::Error>
+    fn deserialize_null<V>(self, visitor: V) -> Result<V, DeserializerError>
     where
         V: Visitor<'de>;
 
@@ -362,7 +377,7 @@ pub trait Deserializer<'de>: Sized {
     /// # Errors
     ///
     /// Current value is not of type bool
-    fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>;
 
@@ -381,11 +396,11 @@ pub trait Deserializer<'de>: Sized {
     /// # Errors
     ///
     /// Current value is not of type number
-    fn deserialize_number<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_number<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>;
 
-    fn deserialize_char<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_char<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>;
 
@@ -403,19 +418,19 @@ pub trait Deserializer<'de>: Sized {
     /// Current value is not of type string
     ///
     /// [`serde`]: https://serde.rs/
-    fn deserialize_string<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_string<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>;
 
-    fn deserialize_str<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_str<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>;
 
-    fn deserialize_bytes<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_bytes<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>;
 
-    fn deserialize_bytes_buffer<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_bytes_buffer<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>;
 
@@ -427,7 +442,7 @@ pub trait Deserializer<'de>: Sized {
     /// # Errors
     ///
     /// Current value is not of type array
-    fn deserialize_array<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_array<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>;
 
@@ -439,7 +454,7 @@ pub trait Deserializer<'de>: Sized {
     /// # Errors
     ///
     /// Current value is not of type object
-    fn deserialize_object<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_object<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>;
 
@@ -481,5 +496,5 @@ pub trait Deserialize<'de>: Sized {
     /// # Errors
     ///
     /// Deserialization was unsuccessful
-    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, D::Error>;
+    fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError>;
 }
