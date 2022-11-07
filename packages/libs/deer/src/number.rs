@@ -1,5 +1,5 @@
 #[cfg(all(not(feature = "std"), feature = "arbitrary-precision"))]
-use alloc::string::ToString;
+use alloc::string::{String, ToString};
 use core::{
     fmt::{Display, Formatter, Write},
     ops::Neg,
