@@ -227,7 +227,6 @@ export const PropertyTypeForm = ({
                 placement="top"
                 title="Descriptions help people understand what property types can be used for, and help make them more discoverable (allowing for reuse)."
                 PopperProps={{
-                  sx: {},
                   modifiers: [
                     {
                       name: "offset",
