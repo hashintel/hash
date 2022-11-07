@@ -18,7 +18,7 @@ use error_stack::{IntoReport, Report, Result, ResultExt};
 use num_traits::ToPrimitive;
 
 pub use crate::{
-    error::{Error, ErrorProperty, ErrorVariant, Id, Namespace},
+    error::{Error, ErrorProperty, Id, Namespace},
     number::Number,
 };
 
