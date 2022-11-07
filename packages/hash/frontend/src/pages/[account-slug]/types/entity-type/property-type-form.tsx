@@ -6,7 +6,6 @@ import { TextField } from "@hashintel/hash-design-system/text-field";
 import {
   addVersionToBaseUri,
   generateBaseTypeId,
-  PrimitiveDataTypeKey,
   types,
 } from "@hashintel/hash-shared/types";
 import {
@@ -31,12 +30,6 @@ import { QuestionIcon } from "./question-icon";
 import { useRefetchPropertyTypes } from "./use-property-types";
 import { useRouteNamespace } from "./use-route-namespace";
 
-type PropertyTypeFormValues = {
-  name: string;
-  description: string;
-  expectedValues: typeof types["dataType"][PrimitiveDataTypeKey][];
-};
-
 const generateInitialPropertyTypeId = (baseUri: string) =>
   addVersionToBaseUri(baseUri, 1);
 
@@ -57,6 +50,12 @@ const propertyTypeDataTypes = [
     dataTypeId: types.dataType.boolean.dataTypeId,
   },
 ];
+
+type PropertyTypeFormValues = {
+  name: string;
+  description: string;
+  expectedValues: typeof propertyTypeDataTypes;
+};
 
 export const PropertyTypeForm = ({
   discardButtonProps,
