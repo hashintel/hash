@@ -28,6 +28,6 @@
     "@types/node": "16.7.6",
     "eslint": "8.27.0",
     "rimraf": "^3.0.2",
-    "ts-node-dev": "2.0.0-0"
+    "ts-node-dev": "2.0.0"
   }
 }

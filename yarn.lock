@@ -18298,14 +18298,14 @@ ts-log@^2.2.3:
   resolved "https://registry.yarnpkg.com/ts-log/-/ts-log-2.2.3.tgz#4da5640fe25a9fb52642cd32391c886721318efb"
   integrity sha512-XvB+OdKSJ708Dmf9ore4Uf/q62AYDTzFcAdxc8KNML1mmAWywRFVt/dn1KYJH8Agt5UJNujfM3znU5PxgAzA2w==
 
-ts-node-dev@2.0.0-0:
-  version "2.0.0-0"
-  resolved "https://registry.yarnpkg.com/ts-node-dev/-/ts-node-dev-2.0.0-0.tgz#3e04c433ae2ceab74f3b9dcada866bfdad8c516c"
-  integrity sha512-tOUNV9MwaeUqgxDacpI2Wxu3I3kHym/4MrtL8suXBnqeekg6I8C6wwjc38nPUykqfXjfIQJYlDQwAeA0zJR4sw==
+ts-node-dev@2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/ts-node-dev/-/ts-node-dev-2.0.0.tgz#bdd53e17ab3b5d822ef519928dc6b4a7e0f13065"
+  integrity sha512-ywMrhCfH6M75yftYvrvNarLEY+SUXtUvU8/0Z6llrHQVBx12GiFk5sStF8UdfE/yfzk9IAq7O5EEbTQsxlBI8w==
   dependencies:
     chokidar "^3.5.1"
     dynamic-dedupe "^0.3.0"
-    minimist "^1.2.5"
+    minimist "^1.2.6"
     mkdirp "^1.0.4"
     resolve "^1.0.0"
     rimraf "^2.6.1"
