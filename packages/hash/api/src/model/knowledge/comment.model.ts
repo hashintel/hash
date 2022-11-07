@@ -38,7 +38,7 @@ export default class extends EntityModel {
   }
 
   /**
-   * Get a workspace comment entity by its entity id.
+   * Get a system comment entity by its entity id.
    *
    * @param params.entityId - the entity id of the comment
    */
@@ -52,7 +52,7 @@ export default class extends EntityModel {
   }
 
   /**
-   * Create a workspace comment entity.
+   * Create a system comment entity.
    *
    * @param params.author - the user that created the comment
    * @param params.parent - the linked parent entity

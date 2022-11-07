@@ -39,7 +39,7 @@ export type OrgModelCreateParams = Omit<
  */
 export default class extends EntityModel {
   /**
-   * Create a workspace organization entity.
+   * Create a system organization entity.
    *
    * @param params.shortname - the shortname of the organization
    * @param params.name - the name of the organization
@@ -91,7 +91,7 @@ export default class extends EntityModel {
   }
 
   /**
-   * Get a workspace organization entity by its entity id.
+   * Get a system organization entity by its entity id.
    *
    * @param params.entityId - the entity id of the organization
    */
@@ -107,7 +107,7 @@ export default class extends EntityModel {
   }
 
   /**
-   * Get a workspace organization entity by its shortname.
+   * Get a system organization entity by its shortname.
    *
    * @param params.shortname - the shortname of the organization
    */

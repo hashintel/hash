@@ -39,7 +39,7 @@ export default class extends EntityModel {
   }
 
   /**
-   * Create a workspace OrgMembership entity.
+   * Create a system OrgMembership entity.
    *
    * @param params.responsibility - the role of the user at the organization
    * @see {@link EntityModel.create} for remaining params
@@ -74,7 +74,7 @@ export default class extends EntityModel {
   }
 
   /**
-   * Get a workspace organization entity by its entity id.
+   * Get a system organization entity by its entity id.
    *
    * @param params.entityId - the entity id of the organization
    */

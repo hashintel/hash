@@ -44,7 +44,7 @@ export default class extends EntityModel {
   }
 
   /**
-   * Get a workspace page entity by its entity id.
+   * Get a system page entity by its entity id.
    *
    * @param params.entityId - the entity id of the page
    */
@@ -67,7 +67,7 @@ export default class extends EntityModel {
   }
 
   /**
-   * Create a workspace page entity.
+   * Create a system page entity.
    *
    * @param params.title - the title of the page
    *

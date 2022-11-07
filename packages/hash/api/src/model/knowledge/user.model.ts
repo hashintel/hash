@@ -48,7 +48,7 @@ export default class extends EntityModel {
   }
 
   /**
-   * Get a workspace user entity by its entity id.
+   * Get a system user entity by its entity id.
    *
    * @param params.entityId - the entity id of the user
    */
@@ -64,7 +64,7 @@ export default class extends EntityModel {
   }
 
   /**
-   * Get a workspace user entity by their shortname.
+   * Get a system user entity by their shortname.
    *
    * @param params.shortname - the shortname of the user
    */
@@ -96,7 +96,7 @@ export default class extends EntityModel {
   }
 
   /**
-   * Get a workspace user entity by their kratos identity id.
+   * Get a system user entity by their kratos identity id.
    *
    * @param params.kratosIdentityId - the kratos identity id
    */
@@ -130,11 +130,11 @@ export default class extends EntityModel {
   }
 
   /**
-   * Create a workspace user entity.
+   * Create a system user entity.
    *
    * @param params.emails - the emails of the user
    * @param params.kratosIdentityId - the kratos identity id of the user
-   * @param params.isInstanceAdmin (optional) - whether or not the user is an instance admin of the workspace (defaults to `false`)
+   * @param params.isInstanceAdmin (optional) - whether or not the user is an instance admin of the HASH instance (defaults to `false`)
    */
   static async createUser(
     graphApi: GraphApi,

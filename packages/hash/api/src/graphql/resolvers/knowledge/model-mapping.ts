@@ -18,7 +18,7 @@ export type ExternalPersistedEntityResolversGQL = "linkedEntities";
 export type UnresolvedPersistedEntityGQL = Omit<
   PersistedEntity,
   ExternalPersistedEntityResolversGQL
-> & { workspaceTypeName?: string };
+> & { systemTypeName?: string };
 
 export const mapEntityModelToGQL = (
   entityModel: EntityModel,
@@ -34,7 +34,7 @@ export const mapEntityModelToGQL = (
    * the GQL type of this entity. Note that this is not exposed in the GQL type definitions,
    * and is therefore not returned to GraphQL clients.
    */
-  workspaceTypeName: entityModel.entityTypeModel.workspaceTypeName,
+  systemTypeName: entityModel.entityTypeModel.systemTypeName,
 });
 
 export type ExternalPersistedPageResolversGQL =

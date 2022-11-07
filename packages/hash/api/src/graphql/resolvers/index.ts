@@ -116,7 +116,7 @@ import { updatePersistedCommentText } from "./knowledge/comment/update-text";
 import { blockChildEntity } from "./knowledge/block/data-entity";
 
 /**
- * @todo: derive these from the statically declared workspace type names
+ * @todo: derive these from the statically declared system type names
  * @see https://app.asana.com/0/1202805690238892/1203063463721797/f
  */
 const workpsaceEntityGQLTypeNames = [
@@ -289,21 +289,21 @@ export const resolvers = {
   PersistedEntity: {
     /**
      * Determines whether a `PersistedEntity` instance should be treated as a
-     * workspace GQL type definition (for example as a `PersistedPage`), or
+     * system GQL type definition (for example as a `PersistedPage`), or
      * whether to treat it is an `UnknownPersistedEntity`.
      */
     __resolveType: ({
-      workspaceTypeName,
+      systemTypeName,
     }: UnresolvedPersistedEntityGQL):
       | WorkspaceEntityGQLTypeName
       | "UnknownPersistedEntity" => {
-      const workspaceEntityGQLTypeName = workspaceTypeName
-        ? `Persisted${workspaceTypeName.split(" ").join("")}`
+      const systemEntityGQLTypeName = systemTypeName
+        ? `Persisted${systemTypeName.split(" ").join("")}`
         : undefined;
 
-      return workspaceEntityGQLTypeName &&
-        isWorkspaceEntityGQLTypeName(workspaceEntityGQLTypeName)
-        ? workspaceEntityGQLTypeName
+      return systemEntityGQLTypeName &&
+        isWorkspaceEntityGQLTypeName(systemEntityGQLTypeName)
+        ? systemEntityGQLTypeName
         : "UnknownPersistedEntity";
     },
   },

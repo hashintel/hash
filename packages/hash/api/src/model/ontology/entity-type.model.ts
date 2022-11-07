@@ -263,13 +263,13 @@ export default class {
   }
 
   /**
-   * Get the workspace type name of this entity type if it is a workspace type. Otherwise return `undefined`.
+   * Get the system type name of this entity type if it is a system type. Otherwise return `undefined`.
    */
-  get workspaceTypeName(): string | undefined {
-    for (const [key, workspaceEntityType] of Object.entries(
+  get systemTypeName(): string | undefined {
+    for (const [key, systemEntityType] of Object.entries(
       SYSTEM_TYPES.entityType,
     ) as [keyof typeof SYSTEM_TYPES.entityType, EntityTypeModel][]) {
-      if (workspaceEntityType.schema.$id === this.schema.$id) {
+      if (systemEntityType.schema.$id === this.schema.$id) {
         return types.entityType[key].title;
       }
     }

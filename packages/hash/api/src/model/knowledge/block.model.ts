@@ -36,7 +36,7 @@ export default class extends EntityModel {
   }
 
   /**
-   * Get a workspace block entity by its entity id.
+   * Get a system block entity by its entity id.
    *
    * @param params.entityId - the entity id of the block
    */
@@ -50,7 +50,7 @@ export default class extends EntityModel {
   }
 
   /**
-   * Create a workspace block entity.
+   * Create a system block entity.
    *
    * @param params.componentId - the component id of the block
    * @param params.blockData - the linked block data entity
