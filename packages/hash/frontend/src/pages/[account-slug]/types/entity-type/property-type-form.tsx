@@ -64,17 +64,17 @@ const faSquareCheck: IconDefinition["icon"] = [
 
 const propertyTypeDataTypes = [
   {
-    title: "Text",
+    title: types.dataType.text.title,
     icon: faText,
     dataTypeId: types.dataType.text.dataTypeId,
   },
   {
-    title: "Number",
+    title: types.dataType.number.title,
     icon: fa100,
     dataTypeId: types.dataType.number.dataTypeId,
   },
   {
-    title: "Boolean",
+    title: types.dataType.boolean.title,
     icon: faSquareCheck,
     dataTypeId: types.dataType.boolean.dataTypeId,
   },
