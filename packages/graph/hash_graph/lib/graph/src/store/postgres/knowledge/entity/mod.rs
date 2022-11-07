@@ -279,7 +279,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         );
 
         transaction
-            .lock_entity_for_update(entity_id)
+            .lock_latest_entity_for_update(entity_id)
             .await
             .change_context(UpdateError)?;
 
@@ -326,7 +326,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         );
 
         transaction
-            .lock_entity_for_update(entity_id)
+            .lock_latest_entity_for_update(entity_id)
             .await
             .change_context(ArchivalError)?;
 
