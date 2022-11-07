@@ -12,7 +12,7 @@ import {
   TextFieldProps as MuiTextFieldProps,
   Typography,
 } from "@mui/material";
-import { forwardRef, FunctionComponent } from "react";
+import { forwardRef, FunctionComponent, useState } from "react";
 import { FontAwesomeIcon } from "./fontawesome-icon";
 
 type TextFieldProps = {
@@ -20,6 +20,19 @@ type TextFieldProps = {
   showLabelCornerHint?: boolean;
   autoResize?: boolean;
 } & MuiTextFieldProps;
+
+/**
+ * 'Freezes' a value when it's falsy, meaning the value will never update to
+ * be falsy. Useful for keeping a component the same when animating out
+ */
+const useFrozenValue = <T extends any>(value: T): T => {
+  const [frozenValue, setFrozenValue] = useState(value);
+
+  if (value && frozenValue !== value) {
+    setFrozenValue(value);
+  }
+  return frozenValue;
+};
 
 export const TextField: FunctionComponent<TextFieldProps> = forwardRef(
   (
@@ -37,6 +50,7 @@ export const TextField: FunctionComponent<TextFieldProps> = forwardRef(
     ref,
   ) => {
     const { sx: InputPropsSx = [], ...otherInputProps } = InputProps;
+    const frozenHelperText = useFrozenValue(helperText);
 
     const renderEndAdornment = () => {
       if (error || success) {
@@ -121,7 +135,7 @@ export const TextField: FunctionComponent<TextFieldProps> = forwardRef(
         }}
         helperText={
           <Collapse in={!!helperText}>
-            <Box>{helperText}</Box>
+            <Box>{frozenHelperText}</Box>
           </Collapse>
         }
         FormHelperTextProps={{
