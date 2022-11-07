@@ -15,6 +15,7 @@ import {
   inputLabelClasses,
   Stack,
 } from "@mui/material";
+import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useBlockProtocolCreatePropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreatePropertyType";
 import { useBlockProtocolGetPropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetPropertyType";
@@ -56,12 +57,17 @@ export const PropertyTypeForm = ({
     },
     control,
     clearErrors,
+    setFocus,
   } = useForm<PropertyTypeFormValues>({
     defaultValues: { name: initialTitle, description: "", expectedValues: [] },
     shouldFocusError: true,
     mode: "onSubmit",
     reValidateMode: "onSubmit",
   });
+
+  useEffect(() => {
+    setFocus(initialTitle ? "description" : "name");
+  }, [initialTitle, setFocus]);
 
   const routeNamespace = useRouteNamespace();
 
