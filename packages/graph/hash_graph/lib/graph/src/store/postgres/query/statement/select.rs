@@ -91,7 +91,7 @@ mod tests {
         },
     };
 
-    fn test_compilation<'f: 'q, 'q, T: PostgresQueryRecord<'q>>(
+    fn test_compilation<'f, 'q: 'f, T: PostgresQueryRecord + 'static>(
         compiler: &SelectCompiler<'f, 'q, T>,
         expected_statement: &'static str,
         expected_parameters: &[&'f dyn ToSql],
