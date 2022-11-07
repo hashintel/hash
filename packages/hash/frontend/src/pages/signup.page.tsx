@@ -155,6 +155,7 @@ const KratosRegistrationFlowForm: FunctionComponent = () => {
         <TextField
           label="Email"
           type="email"
+          autoComplete="email"
           placeholder="Enter your email address"
           value={email}
           onChange={({ target }) => setEmail(target.value)}
@@ -169,6 +170,7 @@ const KratosRegistrationFlowForm: FunctionComponent = () => {
         <TextField
           label="Password"
           type="password"
+          autoComplete="new-password"
           value={password}
           onChange={({ target }) => setPassword(target.value)}
           error={
