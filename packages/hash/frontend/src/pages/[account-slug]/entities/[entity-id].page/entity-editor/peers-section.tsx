@@ -1,7 +1,7 @@
 import { Chip } from "@hashintel/hash-design-system/chip";
 import { ShapesIcon } from "../../../../../shared/icons";
-import { SectionWrapper } from "./shared/section-wrapper";
-import { SectionEmptyState } from "./shared/section-empty-state";
+import { SectionWrapper } from "../../../shared/section-wrapper";
+import { SectionEmptyState } from "../../../shared/section-empty-state";
 
 export const PeersSection = () => {
   return (

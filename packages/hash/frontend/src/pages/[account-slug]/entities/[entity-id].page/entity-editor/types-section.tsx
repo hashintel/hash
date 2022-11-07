@@ -4,7 +4,7 @@ import { Box, Typography } from "@mui/material";
 import { getPersistedEntityType } from "../../../../../lib/subgraph";
 import { WhiteCard } from "../../../shared/white-card";
 import { useEntityEditor } from "./entity-editor-context";
-import { SectionWrapper } from "./shared/section-wrapper";
+import { SectionWrapper } from "../../../shared/section-wrapper";
 
 interface TypeCardProps {
   url: string;

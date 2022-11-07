@@ -1,6 +1,6 @@
 import { Box, Tooltip, Typography } from "@mui/material";
 import { ReactNode } from "react";
-import { CircleInfoIcon } from "../../../../../../shared/icons";
+import { CircleInfoIcon } from "../../../shared/icons";
 
 interface SectionWrapperProps {
   children: ReactNode;

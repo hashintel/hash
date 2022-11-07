@@ -8,8 +8,8 @@ import { LinksIcon } from "../../../../../shared/icons";
 import { useEntityEditor } from "./entity-editor-context";
 import { getPropertyCountSummary } from "./properties-section/get-property-count-summary";
 import { PropertyTable } from "./properties-section/property-table";
-import { SectionWrapper } from "./shared/section-wrapper";
-import { SectionEmptyState } from "./shared/section-empty-state";
+import { SectionWrapper } from "../../../shared/section-wrapper";
+import { SectionEmptyState } from "../../../shared/section-empty-state";
 import { WhiteChip } from "../../../shared/white-chip";
 
 const EmptyState = () => (

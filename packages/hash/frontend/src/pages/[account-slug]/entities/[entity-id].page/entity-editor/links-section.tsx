@@ -6,8 +6,8 @@ import { useState } from "react";
 import { LinksIcon } from "../../../../../shared/icons";
 import { useEntityEditor } from "./entity-editor-context";
 import { LinkTable } from "./links-section/link-table";
-import { SectionWrapper } from "./shared/section-wrapper";
-import { SectionEmptyState } from "./shared/section-empty-state";
+import { SectionWrapper } from "../../../shared/section-wrapper";
+import { SectionEmptyState } from "../../../shared/section-empty-state";
 
 const EmptyState = () => (
   <SectionEmptyState
