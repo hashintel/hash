@@ -211,6 +211,62 @@ pub trait ErrorVariant: Context + Debug + Display {
     ) -> fmt::Result;
 }
 
+/// This macro makes implementation of error structs easier, by implementing all necessary
+/// traits automatically and removing significant boilerplate.
+macro_rules! error {
+    ($(#[$attr:meta])* $name:ident : $display:literal) => {
+        $(#[$attr])*
+        #[derive(Debug)]
+        pub struct $name;
+
+        impl Display for $name {
+            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+                f.write_str($display)
+            }
+        }
+
+        #[cfg(feature = "std")]
+        impl std::error::Error for $name {}
+
+        #[cfg(all(not(feature = "std"), nightly))]
+        impl core::error::Error for $name {}
+
+        #[cfg(all(not(feature = "std"), not(nightly)))]
+        impl error_stack::Context for $name {}
+    };
+}
+
+error!(
+    /// Every visitor must return this error, this is just a wrapper context,
+    /// the actual error should implement [`Error`] instead.
+    VisitorError: "visitor has encountered one or more unrecoverable errors"
+);
+
+error!(
+    /// Every [`Deserialize`] implementation must return this error,
+    /// this is just a wrapper context which is used to aid error recovery,
+    /// the actual error should implement [`Error`] instead,
+    DeserializeError: "deserialize failed"
+);
+
+error!(
+    /// Every [`Deserializer`] implemention must return this error, this is just a wrapper context,
+    /// which is used to aid error recovery. The actual error should implement [`Error`] instead.
+    DeserializerError: "deserializer encountered unrecoverable error"
+);
+
+error!(
+    /// Every [`ObjectAccess`] implementation must return this error, this is just a wrapper context,
+    /// which is used to aid error recovery. The actual error should implement [`Error`] instead.
+    ObjectAccessError: "object access encountered one or more errors during access"
+);
+
+error!(
+    /// Every [`ArrayAccess`] implementation must return this error, this is just a wrapper context,
+    /// which is used to aid error recovery. The actual error should implement [`Error`] instead.
+    ArrayAccessError: "array access encountered one or more errors during access"
+);
+
 /// The base error type of `deer`
 ///
 /// This type is used as base for all deserialization errors and is based on
