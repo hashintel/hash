@@ -6,16 +6,16 @@ import { HashInstanceModel } from "../model";
 import { workspaceAccountId } from "../model/util";
 
 /**
- * Ensures the required workspace knowledge has been created in the graph.
+ * Ensures the required system knowledge has been created in the graph.
  */
-export const ensureWorkspaceKnowledgeExists = async (params: {
+export const ensureSystemKnowledgeExists = async (params: {
   graphApi: GraphApi;
   logger: Logger;
 }) => {
   const { graphApi } = params;
   logger.debug("Ensuring required Workspace knowledge exists");
 
-  // Create workspace knowledge if they don't already exist
+  // Create system knowledge if they don't already exist
   /**
    * @todo Use transactional primitive/bulk insert to be able to do this in parallel
    *   see the following task:
@@ -24,7 +24,7 @@ export const ensureWorkspaceKnowledgeExists = async (params: {
 
   await HashInstanceModel.getHashInstanceModel(graphApi).catch(
     async (error: Error) => {
-      // Create the workspace instance entity, if it doesn't already exist.
+      // Create the system instance entity, if it doesn't already exist.
       if (error instanceof NotFoundError) {
         return await HashInstanceModel.createHashInstance(graphApi, {
           actorId: workspaceAccountId,
