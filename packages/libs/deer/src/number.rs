@@ -1,7 +1,7 @@
 #[cfg(all(not(feature = "std"), feature = "arbitrary-precision"))]
 use alloc::string::{String, ToString};
 use core::{
-    fmt::{Display, Formatter, Write},
+    fmt::{Display, Formatter},
     ops::Neg,
 };
 
@@ -294,7 +294,7 @@ impl Display for Number {
             OpaqueNumber::PosInt(pos) => Display::fmt(pos, f),
             OpaqueNumber::NegInt(neg) => {
                 // emulate negative number
-                f.write_char('-')?;
+                core::fmt::Write::write_char(f, '-')?;
                 Display::fmt(neg, f)
             }
             OpaqueNumber::Float(float) => Display::fmt(float, f),
