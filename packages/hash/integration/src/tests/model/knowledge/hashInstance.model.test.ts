@@ -4,7 +4,7 @@ import {
   ensureWorkspaceTypesExist,
   WORKSPACE_TYPES,
 } from "@hashintel/hash-api/src/graph/workspace-types";
-import { ensureWorkspaceKnowledgeExists } from "@hashintel/hash-api/src/graph/workspace-knowledge";
+import { ensureSystemKnowledgeExists } from "@hashintel/hash-api/src/graph/system-knowledge";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { UserModel, HashInstanceModel } from "@hashintel/hash-api/src/model";
 import { workspaceAccountId } from "@hashintel/hash-api/src/model/util";
@@ -30,7 +30,7 @@ describe("WorkspaceInstance model class", () => {
   beforeAll(async () => {
     await ensureWorkspaceTypesExist({ graphApi, logger });
 
-    await ensureWorkspaceKnowledgeExists({ graphApi, logger });
+    await ensureSystemKnowledgeExists({ graphApi, logger });
   });
 
   let hashInstanceModel: HashInstanceModel;
