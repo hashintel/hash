@@ -98,7 +98,7 @@ impl RoutedResource for EntityResource {
                 )
                 .route("/archive", post(archive_entity::<P>))
                 .route("/query", post(get_entities_by_query::<P>))
-                .route("/:entity_id", get(get_entity::<P>)),
+                .route("/:owned_by_id/:entity_id", get(get_entity::<P>)),
         )
     }
 }
@@ -275,7 +275,7 @@ async fn get_latest_entities<P: StorePool + Send>(
 
 #[utoipa::path(
     get,
-    path = "/entities/{entityId}",
+    path = "/entities/{ownedById}/{entityId}",
     tag = "Entity",
     responses(
         (status = 200, content_type = "application/json", description = "The requested entity", body = PersistedEntity),
@@ -289,12 +289,15 @@ async fn get_latest_entities<P: StorePool + Send>(
     )
 )]
 async fn get_entity<P: StorePool + Send>(
-    Path(entity_identifier): Path<EntityIdentifier>,
+    Path((owned_by_id, entity_id)): Path<(OwnedById, EntityId)>,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<PersistedEntity>, StatusCode> {
     read_from_store(
         pool.as_ref(),
-        &Filter::<Entity>::for_latest_entity_by_entity_id(entity_identifier),
+        &Filter::<Entity>::for_latest_entity_by_entity_id(EntityIdentifier::new(
+            owned_by_id,
+            entity_id,
+        )),
     )
     .await
     .and_then(|mut entities| entities.pop().ok_or(StatusCode::NOT_FOUND))

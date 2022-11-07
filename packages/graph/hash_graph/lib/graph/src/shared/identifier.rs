@@ -2,7 +2,7 @@ use core::fmt;
 
 use chrono::{DateTime, Utc};
 use postgres_types::{FromSql, ToSql};
-use serde::{Deserialize, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 use serde_json;
 use type_system::uri::{BaseUri, VersionedUri};
 use utoipa::{openapi, ToSchema};
@@ -51,6 +51,7 @@ impl fmt::Display for AccountId {
 }
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EntityIdentifier {
     owned_by_id: OwnedById,
     // TODO: rename this to entity_uuid?
