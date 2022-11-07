@@ -1,15 +1,15 @@
 import { QueryHookOptions, useQuery } from "@apollo/client";
 import * as Sentry from "@sentry/nextjs";
 import { useRouter } from "next/router";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useContext, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 
-import { Session } from "@ory/client";
 import { meQuery } from "../../graphql/queries/user.queries";
 import { MeQuery, MeQueryVariables } from "../../graphql/apiTypes.gen";
 import { oryKratosClient } from "../../pages/shared/ory-kratos";
 import { Subgraph } from "../../lib/subgraph";
 import { AuthenticatedUser, constructAuthenticatedUser } from "../../lib/user";
 import { useInitTypeSystem } from "../../lib/use-init-type-system";
+import { SessionContext } from "../../pages/shared/session-context";
 
 /**
  * Returns an object containing:
@@ -27,11 +27,6 @@ export const useAuthenticatedUser = (
   const loadingTypeSystem = useInitTypeSystem();
   const router = useRouter();
 
-  /** @todo: store this in a react context if we have a use for it long-term */
-  const [kratosSession, setKratosSession] = useState<Session>();
-  const [loadingKratosSession, setLoadingKratosSession] =
-    useState<boolean>(true);
-
   const {
     data: meQueryResponseData,
     refetch: refetchUser,
@@ -42,6 +37,13 @@ export const useAuthenticatedUser = (
   });
 
   const { me: subgraph } = meQueryResponseData ?? {};
+
+  const {
+    kratosSession,
+    loadingKratosSession,
+    setKratosSession,
+    setLoadingKratosSession,
+  } = useContext(SessionContext);
 
   const authenticatedUser = useMemo<AuthenticatedUser | undefined>(
     () =>
