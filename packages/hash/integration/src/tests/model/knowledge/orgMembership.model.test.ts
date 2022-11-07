@@ -1,9 +1,9 @@
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { createGraphClient } from "@hashintel/hash-api/src/graph";
 import {
-  ensureWorkspaceTypesExist,
+  ensureSystemTypesExist,
   SYSTEM_TYPES,
-} from "@hashintel/hash-api/src/graph/workspace-types";
+} from "@hashintel/hash-api/src/graph/system-types";
 import {
   OrgMembershipModel,
   OrgModel,
@@ -36,7 +36,7 @@ describe("OrgMembership model class", () => {
   let testOrg: OrgModel;
 
   beforeAll(async () => {
-    await ensureWorkspaceTypesExist({ graphApi, logger });
+    await ensureSystemTypesExist({ graphApi, logger });
     testUser = await createTestUser(graphApi, "orgMembershipTest", logger);
 
     testOrg = await OrgModel.createOrg(graphApi, {

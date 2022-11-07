@@ -1,9 +1,9 @@
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { createGraphClient } from "@hashintel/hash-api/src/graph";
 import {
-  ensureWorkspaceTypesExist,
+  ensureSystemTypesExist,
   SYSTEM_TYPES,
-} from "@hashintel/hash-api/src/graph/workspace-types";
+} from "@hashintel/hash-api/src/graph/system-types";
 import { ensureSystemEntitiesExists } from "@hashintel/hash-api/src/graph/system-entities";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { UserModel, HashInstanceModel } from "@hashintel/hash-api/src/model";
@@ -26,9 +26,9 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-describe("WorkspaceInstance model class", () => {
+describe("HashInstance model class", () => {
   beforeAll(async () => {
-    await ensureWorkspaceTypesExist({ graphApi, logger });
+    await ensureSystemTypesExist({ graphApi, logger });
 
     await ensureSystemEntitiesExists({ graphApi, logger });
   });
@@ -41,13 +41,17 @@ describe("WorkspaceInstance model class", () => {
     expect(hashInstanceModel).toBeTruthy();
   });
 
-  let testWorkspaceAdmin: UserModel;
+  let testHashInstanceAdmin: UserModel;
 
   it("can add a hash instance admin", async () => {
-    testWorkspaceAdmin = await createTestUser(graphApi, "hashInstTest", logger);
+    testHashInstanceAdmin = await createTestUser(
+      graphApi,
+      "hashInstTest",
+      logger,
+    );
 
     await hashInstanceModel.addAdmin(graphApi, {
-      userModel: testWorkspaceAdmin,
+      userModel: testHashInstanceAdmin,
       actorId: systemAccountId,
     });
 
@@ -63,21 +67,21 @@ describe("WorkspaceInstance model class", () => {
     const [hashOutgoingAdminLink] = hashOutgoingAdminLinks;
 
     expect(hashOutgoingAdminLink?.targetEntityModel).toEqual(
-      testWorkspaceAdmin,
+      testHashInstanceAdmin,
     );
   });
 
   it("can determine if user is hash admin", async () => {
-    const hasWorkspaceAdmin = await hashInstanceModel.hasAdmin(graphApi, {
-      userModel: testWorkspaceAdmin,
+    const hasHashInstanceAdmin = await hashInstanceModel.hasAdmin(graphApi, {
+      userModel: testHashInstanceAdmin,
     });
 
-    expect(hasWorkspaceAdmin).toBeTruthy();
+    expect(hasHashInstanceAdmin).toBeTruthy();
   });
 
   it("can remove a hash instance admin", async () => {
     await hashInstanceModel.removeAdmin(graphApi, {
-      userModel: testWorkspaceAdmin,
+      userModel: testHashInstanceAdmin,
       actorId: systemAccountId,
     });
 

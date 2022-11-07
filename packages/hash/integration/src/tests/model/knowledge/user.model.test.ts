@@ -1,6 +1,6 @@
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { createGraphClient } from "@hashintel/hash-api/src/graph";
-import { ensureWorkspaceTypesExist } from "@hashintel/hash-api/src/graph/workspace-types";
+import { ensureSystemTypesExist } from "@hashintel/hash-api/src/graph/system-types";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
 import { OrgModel, OrgSize, UserModel } from "@hashintel/hash-api/src/model";
@@ -31,7 +31,7 @@ const shortname = generateRandomShortname("userTest");
 
 describe("User model class", () => {
   beforeAll(async () => {
-    await ensureWorkspaceTypesExist({ graphApi, logger });
+    await ensureSystemTypesExist({ graphApi, logger });
   });
 
   let createdUser: UserModel;

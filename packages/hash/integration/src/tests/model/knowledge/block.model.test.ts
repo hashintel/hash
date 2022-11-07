@@ -1,6 +1,6 @@
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { createGraphClient } from "@hashintel/hash-api/src/graph";
-import { ensureWorkspaceTypesExist } from "@hashintel/hash-api/src/graph/workspace-types";
+import { ensureSystemTypesExist } from "@hashintel/hash-api/src/graph/system-types";
 import {
   BlockModel,
   EntityModel,
@@ -40,7 +40,7 @@ describe("Block model class", () => {
   let dummyEntityType: EntityTypeModel;
 
   beforeAll(async () => {
-    await ensureWorkspaceTypesExist({ graphApi, logger });
+    await ensureSystemTypesExist({ graphApi, logger });
 
     testUser = await createTestUser(graphApi, "blockModelTest", logger);
 

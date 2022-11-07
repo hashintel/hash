@@ -1,6 +1,6 @@
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { createGraphClient } from "@hashintel/hash-api/src/graph";
-import { ensureWorkspaceTypesExist } from "@hashintel/hash-api/src/graph/workspace-types";
+import { ensureSystemTypesExist } from "@hashintel/hash-api/src/graph/system-types";
 import { OrgModel, OrgSize } from "@hashintel/hash-api/src/model";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { systemAccountId } from "@hashintel/hash-api/src/model/util";
@@ -24,7 +24,7 @@ const graphApi = createGraphClient(logger, {
 
 describe("Org model class", () => {
   beforeAll(async () => {
-    await ensureWorkspaceTypesExist({ graphApi, logger });
+    await ensureSystemTypesExist({ graphApi, logger });
   });
 
   let createdOrg: OrgModel;
