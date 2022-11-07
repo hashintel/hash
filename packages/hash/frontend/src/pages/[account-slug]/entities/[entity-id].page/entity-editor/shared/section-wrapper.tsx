@@ -2,7 +2,7 @@ import { Box, Tooltip, Typography } from "@mui/material";
 import { ReactNode } from "react";
 import { CircleInfoIcon } from "../../../../../../shared/icons";
 
-interface EntitySectionProps {
+interface SectionWrapperProps {
   children: ReactNode;
   title: string;
   titleTooltip?: string;
@@ -10,13 +10,13 @@ interface EntitySectionProps {
   titleEndContent?: ReactNode;
 }
 
-export const EntitySection = ({
+export const SectionWrapper = ({
   children,
   title,
   titleTooltip,
   titleStartContent,
   titleEndContent,
-}: EntitySectionProps) => {
+}: SectionWrapperProps) => {
   return (
     <Box>
       <Box mb={2} display="flex" alignItems="center" gap={1.5} flexWrap="wrap">

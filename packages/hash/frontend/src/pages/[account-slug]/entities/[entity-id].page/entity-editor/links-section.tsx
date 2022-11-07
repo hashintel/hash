@@ -6,7 +6,7 @@ import { useState } from "react";
 import { LinksIcon } from "../../../../../shared/icons";
 import { useEntityEditor } from "./entity-editor-context";
 import { LinkTable } from "./links-section/link-table";
-import { EntitySection } from "./shared/entity-section";
+import { SectionWrapper } from "./shared/section-wrapper";
 import { EntitySectionEmptyState } from "./shared/entity-section-empty-state";
 
 const EmptyState = () => (
@@ -30,7 +30,7 @@ export const LinksSection = () => {
   const isEmpty = !entity.links.length;
 
   return (
-    <EntitySection
+    <SectionWrapper
       title="Links"
       titleTooltip={
         isEmpty
@@ -66,6 +66,6 @@ export const LinksSection = () => {
           />
         </Paper>
       )}
-    </EntitySection>
+    </SectionWrapper>
   );
 };

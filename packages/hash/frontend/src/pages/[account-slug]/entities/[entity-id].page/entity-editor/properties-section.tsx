@@ -8,7 +8,7 @@ import { LinksIcon } from "../../../../../shared/icons";
 import { useEntityEditor } from "./entity-editor-context";
 import { getPropertyCountSummary } from "./properties-section/get-property-count-summary";
 import { PropertyTable } from "./properties-section/property-table";
-import { EntitySection } from "./shared/entity-section";
+import { SectionWrapper } from "./shared/section-wrapper";
 import { EntitySectionEmptyState } from "./shared/entity-section-empty-state";
 import { WhiteChip } from "../../../shared/white-chip";
 
@@ -37,7 +37,7 @@ export const PropertiesSection = () => {
   const isEmpty = emptyCount + notEmptyCount === 0;
 
   return (
-    <EntitySection
+    <SectionWrapper
       title="Properties"
       titleTooltip={
         isEmpty
@@ -78,6 +78,6 @@ export const PropertiesSection = () => {
           />
         </Paper>
       )}
-    </EntitySection>
+    </SectionWrapper>
   );
 };

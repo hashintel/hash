@@ -1,11 +1,11 @@
 import { Chip } from "@hashintel/hash-design-system/chip";
 import { ShapesIcon } from "../../../../../shared/icons";
-import { EntitySection } from "./shared/entity-section";
+import { SectionWrapper } from "./shared/section-wrapper";
 import { EntitySectionEmptyState } from "./shared/entity-section-empty-state";
 
 export const PeersSection = () => {
   return (
-    <EntitySection title="Peers" titleStartContent={<Chip label="No peers" />}>
+    <SectionWrapper title="Peers" titleStartContent={<Chip label="No peers" />}>
       <EntitySectionEmptyState
         title="This entity currently has no known peers"
         titleIcon={<ShapesIcon />}
@@ -14,6 +14,6 @@ export const PeersSection = () => {
         in varying ways (e.g. attaching additional information, or providing
         alternative values for properties)"
       />
-    </EntitySection>
+    </SectionWrapper>
   );
 };
