@@ -1,7 +1,7 @@
-import { test, expect } from "@playwright/test";
 import { sleep } from "@hashintel/hash-shared/sleep";
-import { loginUsingUi } from "./utils/login-using-ui";
-import { resetDb } from "./utils/reset-db";
+import { test, expect } from "./shared/runtime";
+import { loginUsingUi } from "./shared/login-using-ui";
+import { resetDb } from "./shared/reset-db";
 
 test.beforeEach(async () => {
   await resetDb();
