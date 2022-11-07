@@ -105,7 +105,7 @@ export default class extends EntityModel {
   }
 
   /**
-   * Add an instance admin to the workspace instance.
+   * Check whether or not the user is a workspace instance admin.
    *
    * @param params.userModel - the user that may be a workspace instance admin.
    */
