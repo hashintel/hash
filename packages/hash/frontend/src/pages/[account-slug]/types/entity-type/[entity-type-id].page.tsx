@@ -28,6 +28,7 @@ import {
   PropertyTypesContext,
   useRemotePropertyTypes,
 } from "./use-property-types";
+import { useRouteNamespace } from "./use-route-namespace";
 import { mustBeVersionedUri } from "./util";
 
 const getBaseUri = (path: string) => {
@@ -76,6 +77,7 @@ const Page: NextPageWithLayout = () => {
   // @todo how to handle remote types
   const isDraft = !!router.query.draft;
   const baseEntityTypeUri = isDraft ? null : getBaseUri(router.asPath);
+  const namespace = useRouteNamespace();
 
   const draftEntityType = useMemo(() => {
     if (router.query.draft) {
@@ -98,6 +100,7 @@ const Page: NextPageWithLayout = () => {
 
   const [remoteEntityType, updateEntityType, publishDraft] = useEntityType(
     baseEntityTypeUri,
+    namespace?.id,
     (fetchedEntityType) => {
       reset({
         properties: Object.entries(fetchedEntityType.properties).map(
