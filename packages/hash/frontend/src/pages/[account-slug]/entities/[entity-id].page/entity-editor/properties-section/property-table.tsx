@@ -13,6 +13,7 @@ import { renderDataTypeCell } from "./property-table/cells/data-type-cell";
 import { createRenderPropertyNameCell } from "./property-table/cells/property-name-cell";
 import { useDrawHeader } from "../../../../../../components/GlideGlid/utils/use-draw-header";
 import { createHandleHeaderClicked } from "../../../../../../components/GlideGlid/utils/sorting";
+import { renderSummaryChipCell } from "./property-table/cells/summary-chip-cell";
 
 interface PropertyTableProps {
   showSearch: boolean;
@@ -48,6 +49,7 @@ export const PropertyTable = ({
       withTooltips(renderValueCell),
       renderDataTypeCell,
       createRenderPropertyNameCell(togglePropertyExpand, propertyExpandStatus),
+      renderSummaryChipCell,
     ],
     [togglePropertyExpand, propertyExpandStatus, withTooltips],
   );

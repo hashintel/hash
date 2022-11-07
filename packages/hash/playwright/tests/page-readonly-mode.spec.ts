@@ -1,5 +1,5 @@
 import { sleep } from "@hashintel/hash-shared/sleep";
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./shared/runtime";
 import { loginUsingUi } from "./shared/login-using-ui";
 import { resetDb } from "./shared/reset-db";
 
