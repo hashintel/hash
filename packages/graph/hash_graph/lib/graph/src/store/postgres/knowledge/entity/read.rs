@@ -38,8 +38,9 @@ impl<C: AsClient> crud::Read<PersistedEntity> for PostgresStore<C> {
         let created_by_id_index = compiler.add_selection_path(&EntityQueryPath::CreatedById);
         let updated_by_id_index = compiler.add_selection_path(&EntityQueryPath::UpdatedById);
         let left_entity_id_index = compiler.add_selection_path(&EntityQueryPath::LeftEntity(None));
-        let left_entity_owned_by_id_query_path =
-            EntityQueryPath::LeftEntity(Some(Box::new(EntityQueryPath::OwnedById)));
+        // TODO: we can't do this due to lifetime constraints, but we need this info
+        // let left_entity_owned_by_id_query_path =
+        //     EntityQueryPath::LeftEntity(Some(Box::new(EntityQueryPath::OwnedById)));
         // let left_entity_owned_by_id_index =
         //     compiler.add_selection_path(&left_entity_owned_by_id_query_path);
         let right_entity_id_index =
@@ -70,8 +71,16 @@ impl<C: AsClient> crud::Read<PersistedEntity> for PostgresStore<C> {
                     match (left_entity_id, right_entity_id) {
                         (Some(left_entity_id), Some(right_entity_id)) => {
                             Some(LinkEntityMetadata::new(
-                                EntityIdentifier::new(todo!(), left_entity_id),
-                                EntityIdentifier::new(todo!(), right_entity_id),
+                                // TODO: these owned_by_ids are incorrect, we should get them from
+                                //  the DB
+                                EntityIdentifier::new(
+                                    OwnedById::new(row.get(owned_by_id_index)),
+                                    left_entity_id,
+                                ),
+                                EntityIdentifier::new(
+                                    OwnedById::new(row.get(owned_by_id_index)),
+                                    right_entity_id,
+                                ),
                                 row.get(left_order_index),
                                 row.get(right_order_index),
                             ))
