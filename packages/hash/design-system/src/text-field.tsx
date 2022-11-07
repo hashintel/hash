@@ -25,13 +25,13 @@ type TextFieldProps = {
  * 'Freezes' a value when it's falsy, meaning the value will never update to
  * be falsy. Useful for keeping a component the same when animating out
  */
-const useFrozenValue = <T extends any>(helperText: T): T => {
-  const [frozenHelperText, setFrozenHelperText] = useState(helperText);
+const useFrozenValue = <T extends any>(value: T): T => {
+  const [frozenValue, setFrozenValue] = useState(value);
 
-  if (helperText && frozenHelperText !== helperText) {
-    setFrozenHelperText(helperText);
+  if (value && frozenValue !== value) {
+    setFrozenValue(value);
   }
-  return frozenHelperText;
+  return frozenValue;
 };
 
 export const TextField: FunctionComponent<TextFieldProps> = forwardRef(
