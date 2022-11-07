@@ -1,4 +1,3 @@
-import "@glideapps/glide-data-grid/dist/index.css";
 import { useMemo, useRef } from "react";
 import { DataEditorRef } from "@glideapps/glide-data-grid";
 import { useRowData } from "./property-table/use-row-data";
