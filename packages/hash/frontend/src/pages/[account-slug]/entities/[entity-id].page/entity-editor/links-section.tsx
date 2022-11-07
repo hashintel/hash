@@ -7,10 +7,10 @@ import { LinksIcon } from "../../../../../shared/icons";
 import { useEntityEditor } from "./entity-editor-context";
 import { LinkTable } from "./links-section/link-table";
 import { SectionWrapper } from "./shared/section-wrapper";
-import { EntitySectionEmptyState } from "./shared/entity-section-empty-state";
+import { SectionEmptyState } from "./shared/section-empty-state";
 
 const EmptyState = () => (
-  <EntitySectionEmptyState
+  <SectionEmptyState
     title="This entity currently has no links"
     titleIcon={<LinksIcon />}
     description="Links contain information about connections or relationships between different entities"
