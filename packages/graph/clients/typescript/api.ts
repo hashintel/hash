@@ -84,16 +84,10 @@ export interface ArchiveEntityRequest {
   actorId: string;
   /**
    *
-   * @type {string}
+   * @type {EntityIdentifier}
    * @memberof ArchiveEntityRequest
    */
-  entityId: string;
-  /**
-   *
-   * @type {string}
-   * @memberof ArchiveEntityRequest
-   */
-  ownedById: string;
+  entityIdentifier: EntityIdentifier;
 }
 /**
  *
@@ -308,36 +302,40 @@ export interface DataTypeStructuralQuery {
 /**
  *
  * @export
- * @enum {string}
+ * @interface Edges
  */
-
-export const EdgeKind = {
-  HasLink: "HAS_LINK",
-  HasDestination: "HAS_DESTINATION",
-  HasType: "HAS_TYPE",
-  References: "REFERENCES",
-} as const;
-
-export type EdgeKind = typeof EdgeKind[keyof typeof EdgeKind];
-
+export interface Edges {
+  /**
+   *
+   * @type {{ [key: string]: { [key: string]: Array<ValueInner>; }; }}
+   * @memberof Edges
+   */
+  knowledge_graph: { [key: string]: { [key: string]: Array<ValueInner> } };
+  /**
+   *
+   * @type {{ [key: string]: { [key: string]: Array<ValueInner1>; }; }}
+   * @memberof Edges
+   */
+  ontology: { [key: string]: { [key: string]: Array<ValueInner1> } };
+}
 /**
  *
  * @export
- * @interface EdgesValueInner
+ * @interface EntityIdentifier
  */
-export interface EdgesValueInner {
+export interface EntityIdentifier {
   /**
    *
-   * @type {GraphElementIdentifier}
-   * @memberof EdgesValueInner
+   * @type {string}
+   * @memberof EntityIdentifier
    */
-  destination: GraphElementIdentifier;
+  entity_id: string;
   /**
    *
-   * @type {EdgeKind}
-   * @memberof EdgesValueInner
+   * @type {string}
+   * @memberof EntityIdentifier
    */
-  edgeKind: EdgeKind;
+  owned_by_id: string;
 }
 /**
  * A [`Filter`] to query the datastore, recursively resolving according to the
@@ -501,13 +499,47 @@ export type Filter =
 export type FilterExpression = ParameterExpression | PathExpression;
 
 /**
+ * @type GraphElementEditionIdentifier
+ * @export
+ */
+export type GraphElementEditionIdentifier =
+  | GraphElementEditionIdentifierOneOf
+  | GraphElementEditionIdentifierOneOf1;
+
+/**
+ *
+ * @export
+ * @interface GraphElementEditionIdentifierOneOf
+ */
+export interface GraphElementEditionIdentifierOneOf {
+  /**
+   *
+   * @type {string}
+   * @memberof GraphElementEditionIdentifierOneOf
+   */
+  OntologyElementEditionId?: string;
+}
+/**
+ *
+ * @export
+ * @interface GraphElementEditionIdentifierOneOf1
+ */
+export interface GraphElementEditionIdentifierOneOf1 {
+  /**
+   *
+   * @type {PersistedEntityIdentifier}
+   * @memberof GraphElementEditionIdentifierOneOf1
+   */
+  KnowledgeGraphElementEditionId?: PersistedEntityIdentifier;
+}
+/**
  * @type GraphElementIdentifier
  * @export
  */
 export type GraphElementIdentifier = string;
 
 /**
- *
+ * The distance in the [`Subgraph`] to explore when searching from a root in a breadth-first search
  * @export
  * @interface GraphResolveDepths
  */
@@ -523,25 +555,69 @@ export interface GraphResolveDepths {
    * @type {number}
    * @memberof GraphResolveDepths
    */
+  entityResolveDepth: number;
+  /**
+   *
+   * @type {number}
+   * @memberof GraphResolveDepths
+   */
   entityTypeResolveDepth: number;
   /**
    *
    * @type {number}
    * @memberof GraphResolveDepths
    */
-  linkResolveDepth: number;
-  /**
-   *
-   * @type {number}
-   * @memberof GraphResolveDepths
-   */
-  linkTargetEntityResolveDepth: number;
-  /**
-   *
-   * @type {number}
-   * @memberof GraphResolveDepths
-   */
   propertyTypeResolveDepth: number;
+}
+/**
+ * @type KnowledgeGraphVertex
+ * @export
+ */
+export type KnowledgeGraphVertex = KnowledgeGraphVertexOneOf;
+
+/**
+ *
+ * @export
+ * @interface KnowledgeGraphVertexOneOf
+ */
+export interface KnowledgeGraphVertexOneOf {
+  /**
+   *
+   * @type {PersistedEntity}
+   * @memberof KnowledgeGraphVertexOneOf
+   */
+  entity?: PersistedEntity;
+}
+/**
+ * The associated information for \'Link\' entities
+ * @export
+ * @interface LinkEntityMetadata
+ */
+export interface LinkEntityMetadata {
+  /**
+   *
+   * @type {EntityIdentifier}
+   * @memberof LinkEntityMetadata
+   */
+  leftEntityIdentifier: EntityIdentifier;
+  /**
+   *
+   * @type {number}
+   * @memberof LinkEntityMetadata
+   */
+  leftOrder?: number;
+  /**
+   *
+   * @type {EntityIdentifier}
+   * @memberof LinkEntityMetadata
+   */
+  rightEntityIdentifier: EntityIdentifier;
+  /**
+   *
+   * @type {number}
+   * @memberof LinkEntityMetadata
+   */
+  rightOrder?: number;
 }
 /**
  *
@@ -570,23 +646,52 @@ export interface NotFilter {
   not: Filter;
 }
 /**
+ * @type OntologyVertex
+ * @export
+ */
+export type OntologyVertex =
+  | OntologyVertexOneOf
+  | OntologyVertexOneOf1
+  | OntologyVertexOneOf2;
+
+/**
  *
  * @export
- * @interface OutwardEdge
+ * @interface OntologyVertexOneOf
  */
-export interface OutwardEdge {
+export interface OntologyVertexOneOf {
   /**
    *
-   * @type {GraphElementIdentifier}
-   * @memberof OutwardEdge
+   * @type {PersistedDataType}
+   * @memberof OntologyVertexOneOf
    */
-  destination: GraphElementIdentifier;
+  dataType?: PersistedDataType;
+}
+/**
+ *
+ * @export
+ * @interface OntologyVertexOneOf1
+ */
+export interface OntologyVertexOneOf1 {
   /**
    *
-   * @type {EdgeKind}
-   * @memberof OutwardEdge
+   * @type {PersistedPropertyType}
+   * @memberof OntologyVertexOneOf1
    */
-  edgeKind: EdgeKind;
+  propertyType?: PersistedPropertyType;
+}
+/**
+ *
+ * @export
+ * @interface OntologyVertexOneOf2
+ */
+export interface OntologyVertexOneOf2 {
+  /**
+   *
+   * @type {PersistedEntityType}
+   * @memberof OntologyVertexOneOf2
+   */
+  entityType?: PersistedEntityType;
 }
 /**
  *
@@ -692,16 +797,10 @@ export interface PersistedEntity {
 export interface PersistedEntityIdentifier {
   /**
    *
-   * @type {string}
+   * @type {EntityIdentifier}
    * @memberof PersistedEntityIdentifier
    */
-  entityId: string;
-  /**
-   *
-   * @type {string}
-   * @memberof PersistedEntityIdentifier
-   */
-  ownedById: string;
+  entityIdentifier: EntityIdentifier;
   /**
    *
    * @type {string}
@@ -810,10 +909,10 @@ export interface PersistedOntologyMetadata {
   identifier: PersistedOntologyIdentifier;
   /**
    *
-   * @type {RemovedById}
+   * @type {string}
    * @memberof PersistedOntologyMetadata
    */
-  removedById?: RemovedById;
+  removedById?: string;
   /**
    *
    * @type {string}
@@ -1073,22 +1172,22 @@ export interface Subgraph {
   depths: GraphResolveDepths;
   /**
    *
-   * @type {{ [key: string]: Array<EdgesValueInner>; }}
+   * @type {Edges}
    * @memberof Subgraph
    */
-  edges: { [key: string]: Array<EdgesValueInner> };
+  edges: Edges;
   /**
    *
-   * @type {Array<GraphElementIdentifier>}
+   * @type {Array<GraphElementEditionIdentifier>}
    * @memberof Subgraph
    */
-  roots: Array<GraphElementIdentifier>;
+  roots: Array<GraphElementEditionIdentifier>;
   /**
    *
-   * @type {{ [key: string]: Vertex; }}
+   * @type {Vertices}
    * @memberof Subgraph
    */
-  vertices: { [key: string]: Vertex };
+  vertices: Vertices;
 }
 /**
  * The contents of a Data Type update request
@@ -1176,10 +1275,10 @@ export interface UpdateEntityRequest {
   entity: object;
   /**
    *
-   * @type {string}
+   * @type {EntityIdentifier}
    * @memberof UpdateEntityRequest
    */
-  entityId: string;
+  entityIdentifier: EntityIdentifier;
   /**
    *
    * @type {string}
@@ -1370,194 +1469,214 @@ export interface UpdatePropertyTypeRequest {
   typeToUpdate: string;
 }
 /**
- * @type Vertex
+ * @type ValueInner
  * @export
  */
-export type Vertex = VertexOneOf | VertexOneOf1 | VertexOneOf2 | VertexOneOf3;
+export type ValueInner =
+  | { [key: string]: ValueInnerOneOfValue1 }
+  | { [key: string]: ValueInnerOneOfValue };
+
+/**
+ * @type ValueInner1
+ * @export
+ */
+export type ValueInner1 =
+  | { [key: string]: ValueInner1OneOfValue1 }
+  | { [key: string]: ValueInner1OneOfValue };
 
 /**
  *
  * @export
- * @interface VertexOneOf
+ * @interface ValueInner1OneOfValue
  */
-export interface VertexOneOf {
+export interface ValueInner1OneOfValue {
   /**
    *
-   * @type {VertexOneOfInner}
-   * @memberof VertexOneOf
+   * @type {string}
+   * @memberof ValueInner1OneOfValue
    */
-  inner: VertexOneOfInner;
+  endpoint?: string;
   /**
    *
-   * @type {object}
-   * @memberof VertexOneOf
+   * @type {string}
+   * @memberof ValueInner1OneOfValue
    */
-  kind: VertexOneOfKindEnum;
+  kind?: ValueInner1OneOfValueKindEnum;
+  /**
+   *
+   * @type {boolean}
+   * @memberof ValueInner1OneOfValue
+   */
+  reversed?: boolean;
 }
 
-export const VertexOneOfKindEnum = {
-  DataType: "dataType",
+export const ValueInner1OneOfValueKindEnum = {
+  InheritsFrom: "INHERITS_FROM",
+  ConstrainsValuesOn: "CONSTRAINS_VALUES_ON",
+  ConstrainsPropertiesOn: "CONSTRAINS_PROPERTIES_ON",
+  ConstrainsLinksOn: "CONSTRAINS_LINKS_ON",
+  ConstrainsLinkDestinationsOn: "CONSTRAINS_LINK_DESTINATIONS_ON",
 } as const;
 
-export type VertexOneOfKindEnum =
-  typeof VertexOneOfKindEnum[keyof typeof VertexOneOfKindEnum];
+export type ValueInner1OneOfValueKindEnum =
+  typeof ValueInner1OneOfValueKindEnum[keyof typeof ValueInner1OneOfValueKindEnum];
 
 /**
  *
  * @export
- * @interface VertexOneOf1
+ * @interface ValueInner1OneOfValue1
  */
-export interface VertexOneOf1 {
+export interface ValueInner1OneOfValue1 {
   /**
    *
-   * @type {VertexOneOf1Inner}
-   * @memberof VertexOneOf1
+   * @type {ValueInner1OneOfValue1Endpoint}
+   * @memberof ValueInner1OneOfValue1
    */
-  inner: VertexOneOf1Inner;
+  endpoint?: ValueInner1OneOfValue1Endpoint;
   /**
    *
-   * @type {object}
-   * @memberof VertexOneOf1
+   * @type {string}
+   * @memberof ValueInner1OneOfValue1
    */
-  kind: VertexOneOf1KindEnum;
+  kind?: ValueInner1OneOfValue1KindEnum;
+  /**
+   *
+   * @type {boolean}
+   * @memberof ValueInner1OneOfValue1
+   */
+  reversed?: boolean;
 }
 
-export const VertexOneOf1KindEnum = {
-  PropertyType: "propertyType",
+export const ValueInner1OneOfValue1KindEnum = {
+  IsOfType: "IS_OF_TYPE",
 } as const;
 
-export type VertexOneOf1KindEnum =
-  typeof VertexOneOf1KindEnum[keyof typeof VertexOneOf1KindEnum];
+export type ValueInner1OneOfValue1KindEnum =
+  typeof ValueInner1OneOfValue1KindEnum[keyof typeof ValueInner1OneOfValue1KindEnum];
 
 /**
  *
  * @export
- * @interface VertexOneOf1Inner
+ * @interface ValueInner1OneOfValue1Endpoint
  */
-export interface VertexOneOf1Inner {
+export interface ValueInner1OneOfValue1Endpoint {
   /**
    *
-   * @type {PropertyType}
-   * @memberof VertexOneOf1Inner
+   * @type {string}
+   * @memberof ValueInner1OneOfValue1Endpoint
    */
-  inner: PropertyType;
+  entity_id: string;
   /**
    *
-   * @type {PersistedOntologyMetadata}
-   * @memberof VertexOneOf1Inner
+   * @type {string}
+   * @memberof ValueInner1OneOfValue1Endpoint
    */
-  metadata: PersistedOntologyMetadata;
+  owned_by_id: string;
 }
 /**
  *
  * @export
- * @interface VertexOneOf2
+ * @interface ValueInnerOneOfValue
  */
-export interface VertexOneOf2 {
+export interface ValueInnerOneOfValue {
   /**
    *
-   * @type {VertexOneOf2Inner}
-   * @memberof VertexOneOf2
+   * @type {ValueInnerOneOfValueEndpoint}
+   * @memberof ValueInnerOneOfValue
    */
-  inner: VertexOneOf2Inner;
+  endpoint?: ValueInnerOneOfValueEndpoint;
   /**
    *
-   * @type {object}
-   * @memberof VertexOneOf2
+   * @type {string}
+   * @memberof ValueInnerOneOfValue
    */
-  kind: VertexOneOf2KindEnum;
+  kind?: ValueInnerOneOfValueKindEnum;
+  /**
+   *
+   * @type {boolean}
+   * @memberof ValueInnerOneOfValue
+   */
+  reversed?: boolean;
 }
 
-export const VertexOneOf2KindEnum = {
-  EntityType: "entityType",
+export const ValueInnerOneOfValueKindEnum = {
+  Link: "HAS_LINK",
+  Endpoint: "HAS_ENDPOINT",
 } as const;
 
-export type VertexOneOf2KindEnum =
-  typeof VertexOneOf2KindEnum[keyof typeof VertexOneOf2KindEnum];
+export type ValueInnerOneOfValueKindEnum =
+  typeof ValueInnerOneOfValueKindEnum[keyof typeof ValueInnerOneOfValueKindEnum];
 
 /**
  *
  * @export
- * @interface VertexOneOf2Inner
+ * @interface ValueInnerOneOfValue1
  */
-export interface VertexOneOf2Inner {
+export interface ValueInnerOneOfValue1 {
   /**
    *
-   * @type {EntityType}
-   * @memberof VertexOneOf2Inner
+   * @type {string}
+   * @memberof ValueInnerOneOfValue1
    */
-  inner: EntityType;
+  endpoint?: string;
   /**
    *
-   * @type {PersistedOntologyMetadata}
-   * @memberof VertexOneOf2Inner
+   * @type {string}
+   * @memberof ValueInnerOneOfValue1
    */
-  metadata: PersistedOntologyMetadata;
-}
-/**
- *
- * @export
- * @interface VertexOneOf3
- */
-export interface VertexOneOf3 {
+  kind?: ValueInnerOneOfValue1KindEnum;
   /**
    *
-   * @type {VertexOneOf3Inner}
-   * @memberof VertexOneOf3
+   * @type {boolean}
+   * @memberof ValueInnerOneOfValue1
    */
-  inner: VertexOneOf3Inner;
-  /**
-   *
-   * @type {object}
-   * @memberof VertexOneOf3
-   */
-  kind: VertexOneOf3KindEnum;
+  reversed?: boolean;
 }
 
-export const VertexOneOf3KindEnum = {
-  Entity: "entity",
+export const ValueInnerOneOfValue1KindEnum = {
+  IsOfType: "IS_OF_TYPE",
 } as const;
 
-export type VertexOneOf3KindEnum =
-  typeof VertexOneOf3KindEnum[keyof typeof VertexOneOf3KindEnum];
+export type ValueInnerOneOfValue1KindEnum =
+  typeof ValueInnerOneOfValue1KindEnum[keyof typeof ValueInnerOneOfValue1KindEnum];
 
 /**
- * A record of an [`Entity`] that has been persisted in the datastore, with its associated
+ * Simply a pair-struct which holds an [`EntityIdentifier`] and a [`Timestamp`].
  * @export
- * @interface VertexOneOf3Inner
+ * @interface ValueInnerOneOfValueEndpoint
  */
-export interface VertexOneOf3Inner {
+export interface ValueInnerOneOfValueEndpoint {
   /**
    *
-   * @type {object}
-   * @memberof VertexOneOf3Inner
+   * @type {EntityIdentifier}
+   * @memberof ValueInnerOneOfValueEndpoint
    */
-  inner: object;
+  entityId: EntityIdentifier;
   /**
    *
-   * @type {PersistedEntityMetadata}
-   * @memberof VertexOneOf3Inner
+   * @type {string}
+   * @memberof ValueInnerOneOfValueEndpoint
    */
-  metadata: PersistedEntityMetadata;
+  timestamp: string;
 }
 /**
  *
  * @export
- * @interface VertexOneOfInner
+ * @interface Vertices
  */
-export interface VertexOneOfInner {
+export interface Vertices {
   /**
    *
-   * @type {DataType}
-   * @memberof VertexOneOfInner
+   * @type {{ [key: string]: { [key: string]: KnowledgeGraphVertex; }; }}
+   * @memberof Vertices
    */
-  inner: DataType;
+  knowledge_graph: { [key: string]: { [key: string]: KnowledgeGraphVertex } };
   /**
    *
-   * @type {PersistedOntologyMetadata}
-   * @memberof VertexOneOfInner
+   * @type {{ [key: string]: { [key: string]: OntologyVertex; }; }}
+   * @memberof Vertices
    */
-  metadata: PersistedOntologyMetadata;
+  ontology: { [key: string]: { [key: string]: OntologyVertex } };
 }
 
 /**
