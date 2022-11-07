@@ -13,21 +13,23 @@ use crate::store::{
     query::{Filter, FilterExpression, Parameter},
 };
 
-pub struct CompilerArtifacts<'param> {
-    parameters: Vec<&'param (dyn ToSql + Sync)>,
+// # Lifetime guidance
+// - 'c relates to the lifetime of the `SelectCompiler` (most constrained by the SelectStatement)
+// - 'p relates to the lifetime of the `Path`, should be the longest living
+
+pub struct CompilerArtifacts<'p> {
+    parameters: Vec<&'p (dyn ToSql + Sync)>,
     condition_index: usize,
     required_tables: HashSet<Table>,
 }
 
-pub struct SelectCompiler<'compiler, 'param, T> {
-    statement: SelectStatement<'compiler>,
-    artifacts: CompilerArtifacts<'param>,
+pub struct SelectCompiler<'c, 'p, T> {
+    statement: SelectStatement<'c>,
+    artifacts: CompilerArtifacts<'p>,
     _marker: PhantomData<fn(*const T)>,
 }
 
-impl<'compiler, 'param: 'compiler, T: PostgresQueryRecord + 'static>
-    SelectCompiler<'compiler, 'param, T>
-{
+impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
     /// Creates a new, empty compiler.
     pub fn new() -> Self {
         Self {
@@ -51,7 +53,7 @@ impl<'compiler, 'param: 'compiler, T: PostgresQueryRecord + 'static>
 
     /// Creates a new compiler, which will default to select the paths returned from
     /// [`PostgresQueryRecord::default_selection_paths()`].
-    pub fn with_default_selection() -> SelectCompiler<'compiler, 'static, T> {
+    pub fn with_default_selection() -> SelectCompiler<'c, 'static, T> {
         let mut default = SelectCompiler::new();
         for path in T::default_selection_paths() {
             default.add_selection_path(path);
@@ -73,9 +75,9 @@ impl<'compiler, 'param: 'compiler, T: PostgresQueryRecord + 'static>
     ///
     /// Optionally, the added selection can be distinct or ordered by providing [`Distinctness`]
     /// and [`Ordering`].
-    pub fn add_selection_path<'p: 'compiler>(
+    pub fn add_selection_path<'r: 'c>(
         &mut self,
-        path: &'p T::Path<'param>,
+        path: &'r T::Path<'p>,
     ) -> impl RowIndex + Display + Copy {
         let table = self.add_join_statements(path.relations());
         self.statement.selects.push(SelectExpression::from_column(
@@ -92,9 +94,9 @@ impl<'compiler, 'param: 'compiler, T: PostgresQueryRecord + 'static>
     ///
     /// Optionally, the added selection can be distinct or ordered by providing [`Distinctness`]
     /// and [`Ordering`].
-    pub fn add_distinct_selection_with_ordering<'p: 'compiler>(
+    pub fn add_distinct_selection_with_ordering<'r: 'c>(
         &mut self,
-        path: &'p T::Path<'param>,
+        path: &'r T::Path<'p>,
         distinctness: Distinctness,
         ordering: Option<Ordering>,
     ) -> impl RowIndex + Display + Copy {
@@ -118,14 +120,14 @@ impl<'compiler, 'param: 'compiler, T: PostgresQueryRecord + 'static>
     }
 
     /// Adds a new filter to the selection.
-    pub fn add_filter<'f: 'param>(&mut self, filter: &'f Filter<'param, T>) {
+    pub fn add_filter<'f: 'p>(&mut self, filter: &'f Filter<'p, T>) {
         let condition = self.compile_filter(filter);
         self.artifacts.condition_index += 1;
         self.statement.where_expression.add_condition(condition);
     }
 
     /// Transpiles the statement into SQL and the parameter to be passed to a prepared statement.
-    pub fn compile(&self) -> (String, &[&'param (dyn ToSql + Sync)]) {
+    pub fn compile(&self) -> (String, &[&'p (dyn ToSql + Sync)]) {
         (
             self.statement.transpile_to_string(),
             &self.artifacts.parameters,
@@ -133,10 +135,7 @@ impl<'compiler, 'param: 'compiler, T: PostgresQueryRecord + 'static>
     }
 
     /// Compiles a [`Filter`] to a `Condition`.
-    pub fn compile_filter<'f: 'param>(
-        &mut self,
-        filter: &'f Filter<'param, T>,
-    ) -> Condition<'compiler> {
+    pub fn compile_filter<'f: 'p>(&mut self, filter: &'f Filter<'p, T>) -> Condition<'c> {
         if let Some(condition) = self.compile_special_filter(filter) {
             return condition;
         }
@@ -177,9 +176,9 @@ impl<'compiler, 'param: 'compiler, T: PostgresQueryRecord + 'static>
     //          ensure compatibility
     fn compile_latest_version_filter(
         &mut self,
-        path: &T::Path<'param>,
+        path: &T::Path<'p>,
         operator: EqualityOperator,
-    ) -> Condition<'param> {
+    ) -> Condition<'c> {
         let mut version_column = Column {
             table: Table {
                 name: path.terminating_table_name(),
@@ -254,7 +253,7 @@ impl<'compiler, 'param: 'compiler, T: PostgresQueryRecord + 'static>
     ///
     /// The following [`Filter`]s will be special cased:
     /// - Comparing the `"version"` field on [`TableName::TypeIds`] with `"latest"` for equality.
-    fn compile_special_filter(&mut self, filter: &Filter<'param, T>) -> Option<Condition<'param>> {
+    fn compile_special_filter(&mut self, filter: &Filter<'p, T>) -> Option<Condition<'c>> {
         match filter {
             Filter::Equal(lhs, rhs) | Filter::NotEqual(lhs, rhs) => match (lhs, rhs) {
                 (
@@ -296,10 +295,10 @@ impl<'compiler, 'param: 'compiler, T: PostgresQueryRecord + 'static>
         }
     }
 
-    pub fn compile_filter_expression<'f: 'param>(
+    pub fn compile_filter_expression<'f: 'p>(
         &mut self,
-        expression: &'f FilterExpression<'param, T>,
-    ) -> Expression<'compiler> {
+        expression: &'f FilterExpression<'p, T>,
+    ) -> Expression<'c> {
         match expression {
             FilterExpression::Path(path) => {
                 let access = if let Some(field) = path.user_provided_path() {

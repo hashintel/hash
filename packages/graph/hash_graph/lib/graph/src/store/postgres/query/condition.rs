@@ -6,12 +6,12 @@ use crate::store::postgres::query::{Expression, Transpile};
 ///
 /// [`Filter`]: crate::store::query::Filter
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub enum Condition<'q> {
+pub enum Condition<'p> {
     All(Vec<Self>),
     Any(Vec<Self>),
     Not(Box<Self>),
-    Equal(Option<Expression<'q>>, Option<Expression<'q>>),
-    NotEqual(Option<Expression<'q>>, Option<Expression<'q>>),
+    Equal(Option<Expression<'p>>, Option<Expression<'p>>),
+    NotEqual(Option<Expression<'p>>, Option<Expression<'p>>),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
