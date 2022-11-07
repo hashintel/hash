@@ -2,9 +2,9 @@ import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
 import { Box, Typography } from "@mui/material";
 import { getPersistedEntityType } from "../../../../../lib/subgraph";
-import { WhiteCard } from "../../../types/entity-type/white-card";
+import { WhiteCard } from "../../../shared/white-card";
 import { useEntityEditor } from "./entity-editor-context";
-import { EntitySection } from "./shared/entity-section";
+import { SectionWrapper } from "../../../shared/section-wrapper";
 
 interface TypeCardProps {
   url: string;
@@ -49,13 +49,13 @@ export const TypesSection = () => {
   const entityTypeUrl = entity.entityTypeId.replace(/v\/\d+/, "");
 
   return (
-    <EntitySection
+    <SectionWrapper
       title="Types"
       titleTooltip="Types describe what an entity is, allowing information to be associated with it. Entities can have an unlimited number of types."
     >
       <Box display="flex" gap={2}>
         <TypeCard url={entityTypeUrl} title={entityTypeTitle} />
       </Box>
-    </EntitySection>
+    </SectionWrapper>
   );
 };

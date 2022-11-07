@@ -1,4 +1,3 @@
-import "@glideapps/glide-data-grid/dist/index.css";
 import { GlideGrid } from "../../../../../../components/GlideGlid/glide-grid";
 import { createHandleHeaderClicked } from "../../../../../../components/GlideGlid/utils/sorting";
 import { useDrawCell } from "../../../../../../components/GlideGlid/utils/use-draw-cell";

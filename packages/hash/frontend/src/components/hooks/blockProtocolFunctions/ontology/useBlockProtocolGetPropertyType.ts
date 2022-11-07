@@ -16,8 +16,14 @@ export const useBlockProtocolGetPropertyType = (): {
     GetPropertyTypeQuery,
     GetPropertyTypeQueryVariables
   >(getPropertyTypeQuery, {
-    // Property types are immutable, any request for an propertyTypeId should always return the same value.
-    fetchPolicy: "cache-first",
+    /**
+     * Property types are immutable, any request for an propertyTypeId should always return the same value.
+     * However, currently requests for non-existent property types currently return an empty subgraph, so
+     * we can't rely on this.
+     *
+     * @todo revert this back to cache-first once that's fixed
+     */
+    fetchPolicy: "network-only",
   });
 
   const getPropertyType = useCallback<GetPropertyTypeMessageCallback>(
