@@ -194,7 +194,7 @@ mod tests {
                     Some(FilterExpression::Parameter(Parameter::Number(1.0))),
                 ),
             ]),
-            r#"("type_ids_0_0"."base_uri" = $1) AND ("type_ids_0_0"."version" = $2)"#,
+            r#"("type_ids_0_0_0"."base_uri" = $1) AND ("type_ids_0_0_0"."version" = $2)"#,
             &[
                 &"https://blockprotocol.org/@blockprotocol/types/data-type/text/",
                 &1.0,
@@ -228,7 +228,7 @@ mod tests {
                     Some(FilterExpression::Parameter(Parameter::Number(1.0))),
                 ),
             ]),
-            r#"(("type_ids_0_0"."base_uri" = $1) OR ("type_ids_0_0"."version" = $2))"#,
+            r#"(("type_ids_0_0_0"."base_uri" = $1) OR ("type_ids_0_0_0"."version" = $2))"#,
             &[
                 &"https://blockprotocol.org/@blockprotocol/types/data-type/text/",
                 &1.0,
