@@ -2,10 +2,10 @@ use std::fmt;
 
 use crate::store::postgres::query::{Column, ColumnAccess, Table, TableName, Transpile};
 
-pub struct Relation<'q> {
-    pub current_column_access: ColumnAccess<'q>,
+pub struct Relation {
+    pub current_column_access: ColumnAccess<'static>,
     pub join_table_name: TableName,
-    pub join_column_access: ColumnAccess<'q>,
+    pub join_column_access: ColumnAccess<'static>,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]

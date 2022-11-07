@@ -83,16 +83,17 @@ impl From<OntologyRecord<EntityType>> for PersistedEntityType {
 impl<C: AsClient, T> Read<T> for PostgresStore<C>
 where
     T: for<'q> PersistedOntologyType<
-            Inner: PostgresQueryRecord<'q, Path<'q>: Debug + Sync>
+            Inner: PostgresQueryRecord<Path<'q>: Debug + Sync>
                        + OntologyDatabaseType
                        + TryFrom<serde_json::Value, Error: Context>
-                       + Send,
+                       + Send
+                       + 'static,
         > + Send,
 {
     type Query<'q> = Filter<'q, T::Inner>;
 
     async fn read<'f: 'q, 'q>(&self, filter: &'f Self::Query<'q>) -> Result<Vec<T>, QueryError> {
-        let mut compiler = SelectCompiler::with_default_selection();
+        let mut compiler = SelectCompiler::new();
         compiler.add_filter(filter);
         let (statement, parameters) = compiler.compile();
 
