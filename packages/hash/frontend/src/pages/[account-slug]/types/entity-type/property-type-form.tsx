@@ -14,6 +14,7 @@ import {
   Divider,
   inputLabelClasses,
   Stack,
+  Tooltip,
 } from "@mui/material";
 import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -164,7 +165,33 @@ export const PropertyTypeForm = ({
           inputProps={{ minRows: 1 }}
           label={
             <>
-              Description <QuestionIcon sx={{ order: 1, ml: 0.75 }} />
+              Description{" "}
+              <Tooltip
+                placement="top"
+                title="Descriptions help people understand what property types can be used for, and help make them more discoverable (allowing for reuse)."
+                PopperProps={{
+                  sx: {},
+                  modifiers: [
+                    {
+                      name: "offset",
+                      options: {
+                        offset: [0, 8],
+                      },
+                    },
+                  ],
+                }}
+              >
+                <Box
+                  sx={{
+                    order: 1,
+                    ml: 0.75,
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
+                  <QuestionIcon />
+                </Box>
+              </Tooltip>
             </>
           }
           required
