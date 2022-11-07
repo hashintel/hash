@@ -159,7 +159,7 @@ export default class extends EntityModel {
   }
 
   /**
-   * Remove an instance admin to the workspace instance.
+   * Remove an instance admin from the workspace instance.
    *
    * @param params.userModel - the user to be removed as a workspace instance admin.
    */
