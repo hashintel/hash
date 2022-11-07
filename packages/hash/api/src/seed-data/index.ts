@@ -5,7 +5,7 @@ import {
 } from "@hashintel/hash-backend-utils/system";
 import { GraphApi } from "@hashintel/hash-graph-client";
 import { OrgModel, OrgSize } from "../model";
-import { workspaceAccountId } from "../model/util";
+import { systemAccountId } from "../model/util";
 import { ensureDevUsersAreSeeded } from "./dev-users";
 import { PageDefinition, seedPages } from "./seed-pages";
 
@@ -22,7 +22,7 @@ const seedOrg = async (params: {
     providedInfo: {
       orgSize: OrgSize.ElevenToFifty,
     },
-    actorId: workspaceAccountId,
+    actorId: systemAccountId,
   });
 
   logger.info(
@@ -64,7 +64,7 @@ export const seedOrgsAndUsers = async (params: {
       await user.joinOrg(graphApi, {
         org: sharedOrgModel,
         responsibility: "Member",
-        actorId: workspaceAccountId,
+        actorId: systemAccountId,
       });
 
       logger.info(

@@ -15,7 +15,7 @@ import {
 } from "../../auth/ory-kratos";
 import { WORKSPACE_TYPES } from "../../graph/workspace-types";
 import { EntityTypeMismatchError } from "../../lib/error";
-import { workspaceAccountId } from "../util";
+import { systemAccountId } from "../util";
 
 type QualifiedEmail = { address: string; verified: boolean; primary: boolean };
 
@@ -170,7 +170,7 @@ export default class extends EntityModel {
     const entityTypeModel = WORKSPACE_TYPES.entityType.user;
 
     const entity = await EntityModel.create(graphApi, {
-      ownedById: workspaceAccountId,
+      ownedById: systemAccountId,
       properties,
       entityTypeModel,
       entityId: userAccountId,
@@ -401,7 +401,7 @@ export default class extends EntityModel {
     await this.createOutgoingLink(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.hasMembership,
       targetEntityModel: orgMembership,
-      ownedById: workspaceAccountId,
+      ownedById: systemAccountId,
       actorId,
     });
   }

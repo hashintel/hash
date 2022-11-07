@@ -5,7 +5,7 @@ import {
   EntityModelCreateParams,
   AccountFields,
 } from "..";
-import { workspaceAccountId } from "../util";
+import { systemAccountId } from "../util";
 import { WORKSPACE_TYPES } from "../../graph/workspace-types";
 import { EntityTypeMismatchError } from "../../lib/error";
 
@@ -66,7 +66,7 @@ export default class extends EntityModel {
     const entityTypeModel = WORKSPACE_TYPES.entityType.org;
 
     const entity = await EntityModel.create(graphApi, {
-      ownedById: workspaceAccountId,
+      ownedById: systemAccountId,
       properties,
       entityTypeModel,
       entityId: orgAccountId,

@@ -8,7 +8,7 @@ import {
   propertyTypeInitializer,
   entityTypeInitializer,
   linkTypeInitializer,
-  workspaceAccountId,
+  systemAccountId,
 } from "../model/util";
 
 // eslint-disable-next-line import/no-mutable-exports
@@ -88,7 +88,7 @@ export let WORKSPACE_TYPES: {
 
 export const adminLinkTypeInitializer = linkTypeInitializer({
   ...types.linkType.admin,
-  actorId: workspaceAccountId,
+  actorId: systemAccountId,
 });
 
 export const hashInstanceEntityTypeInitializer = async (graphApi: GraphApi) => {
@@ -112,7 +112,7 @@ export const hashInstanceEntityTypeInitializer = async (graphApi: GraphApi) => {
         destinationEntityTypeModels: [userEntityTypeModel],
       },
     ],
-    actorId: workspaceAccountId,
+    actorId: systemAccountId,
   })(graphApi);
 };
 
@@ -137,7 +137,7 @@ export const orgProvidedInfoPropertyTypeInitializer = async (
         },
       },
     ],
-    actorId: workspaceAccountId,
+    actorId: systemAccountId,
   })(graphApi);
 };
 
@@ -171,7 +171,7 @@ export const orgEntityTypeInitializer = async (graphApi: GraphApi) => {
       },
     ],
     outgoingLinks: [],
-    actorId: workspaceAccountId,
+    actorId: systemAccountId,
   })(graphApi);
 };
 
@@ -204,60 +204,60 @@ const orgMembershipEntityTypeInitializer = async (graphApi: GraphApi) => {
         required: true,
       },
     ],
-    actorId: workspaceAccountId,
+    actorId: systemAccountId,
   })(graphApi);
 };
 
 const shortnamePropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.shortName,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: workspaceAccountId,
+  actorId: systemAccountId,
 });
 
 const orgNamePropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.orgName,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: workspaceAccountId,
+  actorId: systemAccountId,
 });
 
 const orgSizePropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.orgSize,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: workspaceAccountId,
+  actorId: systemAccountId,
 });
 
 const emailPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.email,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: workspaceAccountId,
+  actorId: systemAccountId,
 });
 
 const kratosIdentityIdPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.kratosIdentityId,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: workspaceAccountId,
+  actorId: systemAccountId,
 });
 
 const preferredNamePropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.preferredName,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: workspaceAccountId,
+  actorId: systemAccountId,
 });
 
 const responsibilityPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.responsibility,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: workspaceAccountId,
+  actorId: systemAccountId,
 });
 
 const ofOrgLinkTypeInitializer = linkTypeInitializer({
   ...types.linkType.ofOrg,
-  actorId: workspaceAccountId,
+  actorId: systemAccountId,
 });
 
 const hasMembershipLinkTypeInitializer = linkTypeInitializer({
   ...types.linkType.hasMembership,
-  actorId: workspaceAccountId,
+  actorId: systemAccountId,
 });
 
 const userEntityTypeInitializer = async (graphApi: GraphApi) => {
@@ -308,19 +308,19 @@ const userEntityTypeInitializer = async (graphApi: GraphApi) => {
         destinationEntityTypeModels: [orgMembershipEntityTypeModel],
       },
     ],
-    actorId: workspaceAccountId,
+    actorId: systemAccountId,
   })(graphApi);
 };
 
 const componentIdPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.componentId,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: workspaceAccountId,
+  actorId: systemAccountId,
 });
 
 const blockDataLinkTypeInitializer = linkTypeInitializer({
   ...types.linkType.blockData,
-  actorId: workspaceAccountId,
+  actorId: systemAccountId,
 });
 
 const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
@@ -356,7 +356,7 @@ const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
         required: true,
       },
     ],
-    actorId: workspaceAccountId,
+    actorId: systemAccountId,
   })(graphApi);
 };
 
@@ -367,7 +367,7 @@ const tokensPropertyTypeInitializer = propertyTypeInitializer({
    * @see https://app.asana.com/0/1202805690238892/1203045933021778/f
    */
   possibleValues: [{ primitiveDataType: "object" }],
-  actorId: workspaceAccountId,
+  actorId: systemAccountId,
 });
 
 const textEntityTypeInitializer = async (graphApi: GraphApi) => {
@@ -387,7 +387,7 @@ const textEntityTypeInitializer = async (graphApi: GraphApi) => {
       },
     ],
     outgoingLinks: [],
-    actorId: workspaceAccountId,
+    actorId: systemAccountId,
   })(graphApi);
 };
 
@@ -400,48 +400,48 @@ const dummyEntityTypeInitializer = async (graphApi: GraphApi) => {
     ...types.entityType.dummy,
     properties: [],
     outgoingLinks: [],
-    actorId: workspaceAccountId,
+    actorId: systemAccountId,
   })(graphApi);
 };
 
 const archivedPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.archived,
   possibleValues: [{ primitiveDataType: "boolean" }],
-  actorId: workspaceAccountId,
+  actorId: systemAccountId,
 });
 
 const summaryPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.summary,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: workspaceAccountId,
+  actorId: systemAccountId,
 });
 
 const titlePropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.title,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: workspaceAccountId,
+  actorId: systemAccountId,
 });
 
 const indexPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.index,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: workspaceAccountId,
+  actorId: systemAccountId,
 });
 
 const iconPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.icon,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: workspaceAccountId,
+  actorId: systemAccountId,
 });
 
 const containsLinkTypeInitializer = linkTypeInitializer({
   ...types.linkType.contains,
-  actorId: workspaceAccountId,
+  actorId: systemAccountId,
 });
 
 const parentLinkTypeInitializer = linkTypeInitializer({
   ...types.linkType.parent,
-  actorId: workspaceAccountId,
+  actorId: systemAccountId,
 });
 
 const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
@@ -507,30 +507,30 @@ const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
         destinationEntityTypeModels: ["SELF_REFERENCE"],
       },
     ],
-    actorId: workspaceAccountId,
+    actorId: systemAccountId,
   })(graphApi);
 };
 
 const resolvedAtPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.resolvedAt,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: workspaceAccountId,
+  actorId: systemAccountId,
 });
 
 const deletedAtPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.deletedAt,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: workspaceAccountId,
+  actorId: systemAccountId,
 });
 
 const hasTextLinkTypeInitializer = linkTypeInitializer({
   ...types.linkType.hasText,
-  actorId: workspaceAccountId,
+  actorId: systemAccountId,
 });
 
 const authorLinkTypeInitializer = linkTypeInitializer({
   ...types.linkType.author,
-  actorId: workspaceAccountId,
+  actorId: systemAccountId,
 });
 
 const commentEntityTypeInitializer = async (graphApi: GraphApi) => {
@@ -589,7 +589,7 @@ const commentEntityTypeInitializer = async (graphApi: GraphApi) => {
         required: true,
       },
     ],
-    actorId: workspaceAccountId,
+    actorId: systemAccountId,
   })(graphApi);
 };
 

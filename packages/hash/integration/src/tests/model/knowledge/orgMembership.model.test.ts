@@ -10,7 +10,7 @@ import {
   OrgSize,
   UserModel,
 } from "@hashintel/hash-api/src/model";
-import { workspaceAccountId } from "@hashintel/hash-api/src/model/util";
+import { systemAccountId } from "@hashintel/hash-api/src/model/util";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { createTestUser } from "../../util";
 
@@ -61,7 +61,7 @@ describe("OrgMembership model class", () => {
     await testUser.createOutgoingLink(graphApi, {
       linkTypeModel: WORKSPACE_TYPES.linkType.hasMembership,
       targetEntityModel: testOrgMembership,
-      ownedById: workspaceAccountId,
+      ownedById: systemAccountId,
       actorId: testUser.entityId,
     });
   });

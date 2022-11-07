@@ -10,7 +10,7 @@ import {
   publicKratosSdk,
 } from "./ory-kratos";
 import { UserModel } from "../model";
-import { workspaceAccountId } from "../model/util";
+import { systemAccountId } from "../model/util";
 
 declare global {
   namespace Express {
@@ -58,7 +58,7 @@ const kratosAfterRegistrationHookHandler =
         await UserModel.createUser(graphApi, {
           emails,
           kratosIdentityId,
-          actorId: workspaceAccountId,
+          actorId: systemAccountId,
         });
 
         res.status(200).end();

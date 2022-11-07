@@ -4,7 +4,7 @@ import { GraphApi } from "@hashintel/hash-api/src/graph";
 import { UserModel } from "@hashintel/hash-api/src/model";
 import { ensureWorkspaceTypesExist } from "@hashintel/hash-api/src/graph/workspace-types";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { workspaceAccountId } from "@hashintel/hash-api/src/model/util";
+import { systemAccountId } from "@hashintel/hash-api/src/model/util";
 import {
   createLinkedAggregation,
   deleteLinkedAggregation,
@@ -98,7 +98,7 @@ export const createTestUser = async (
   const createdUser = await UserModel.createUser(graphApi, {
     emails: [`${shortname}@example.com`],
     kratosIdentityId,
-    actorId: workspaceAccountId,
+    actorId: systemAccountId,
   }).catch((err) => {
     logger.error(`Error making UserModel for ${shortname}`);
     throw err;

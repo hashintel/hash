@@ -7,7 +7,7 @@ import {
 import { ensureSystemEntitiesExists } from "@hashintel/hash-api/src/graph/system-entities";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { UserModel, HashInstanceModel } from "@hashintel/hash-api/src/model";
-import { workspaceAccountId } from "@hashintel/hash-api/src/model/util";
+import { systemAccountId } from "@hashintel/hash-api/src/model/util";
 import { createTestUser } from "../../util";
 
 jest.setTimeout(60000);
@@ -48,7 +48,7 @@ describe("WorkspaceInstance model class", () => {
 
     await hashInstanceModel.addAdmin(graphApi, {
       userModel: testWorkspaceAdmin,
-      actorId: workspaceAccountId,
+      actorId: systemAccountId,
     });
 
     const hashOutgoingAdminLinks = await hashInstanceModel.getOutgoingLinks(
@@ -78,7 +78,7 @@ describe("WorkspaceInstance model class", () => {
   it("can remove a hash instance admin", async () => {
     await hashInstanceModel.removeAdmin(graphApi, {
       userModel: testWorkspaceAdmin,
-      actorId: workspaceAccountId,
+      actorId: systemAccountId,
     });
 
     const hashInstanceOutgoingAdminLinks =

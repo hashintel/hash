@@ -6,7 +6,7 @@ import {
   UserModel,
   LinkModel,
 } from "..";
-import { workspaceAccountId } from "../util";
+import { systemAccountId } from "../util";
 import { WORKSPACE_TYPES } from "../../graph/workspace-types";
 import { EntityTypeMismatchError, NotFoundError } from "../../lib/error";
 
@@ -62,7 +62,7 @@ export default class extends EntityModel {
     const entityTypeModel = WORKSPACE_TYPES.entityType.hashInstance;
 
     const entityModel = await EntityModel.create(graphApi, {
-      ownedById: workspaceAccountId,
+      ownedById: systemAccountId,
       properties: {},
       entityTypeModel,
       actorId,
@@ -151,7 +151,7 @@ export default class extends EntityModel {
     }
 
     await this.createOutgoingLink(graphApi, {
-      ownedById: workspaceAccountId,
+      ownedById: systemAccountId,
       linkTypeModel: WORKSPACE_TYPES.linkType.admin,
       targetEntityModel: userModel,
       actorId,

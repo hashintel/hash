@@ -8,7 +8,7 @@ import {
   adminKratosSdk,
   createKratosIdentity,
 } from "@hashintel/hash-api/src/auth/ory-kratos";
-import { workspaceAccountId } from "@hashintel/hash-api/src/model/util";
+import { systemAccountId } from "@hashintel/hash-api/src/model/util";
 import { generateRandomShortname } from "../../util";
 
 jest.setTimeout(60000);
@@ -50,7 +50,7 @@ describe("User model class", () => {
     createdUser = await UserModel.createUser(graphApi, {
       emails: ["alice@example.com"],
       kratosIdentityId,
-      actorId: workspaceAccountId,
+      actorId: systemAccountId,
     });
   });
 
@@ -59,7 +59,7 @@ describe("User model class", () => {
       UserModel.createUser(graphApi, {
         emails: ["bob@example.com"],
         kratosIdentityId,
-        actorId: workspaceAccountId,
+        actorId: systemAccountId,
       }),
     ).rejects.toThrowError(`"${kratosIdentityId}" already exists.`);
   });
@@ -109,7 +109,7 @@ describe("User model class", () => {
       providedInfo: {
         orgSize: OrgSize.ElevenToFifty,
       },
-      actorId: workspaceAccountId,
+      actorId: systemAccountId,
     });
 
     const { entityId: orgEntityId } = testOrg;
@@ -121,7 +121,7 @@ describe("User model class", () => {
     await createdUser.joinOrg(graphApi, {
       org: testOrg,
       responsibility: "developer",
-      actorId: workspaceAccountId,
+      actorId: systemAccountId,
     });
 
     expect(await createdUser.isMemberOfOrg(graphApi, { orgEntityId })).toBe(
