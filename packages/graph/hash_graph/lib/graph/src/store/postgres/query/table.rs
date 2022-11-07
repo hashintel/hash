@@ -66,6 +66,7 @@ impl TableName {
 pub struct TableAlias {
     pub condition_index: usize,
     pub chain_depth: usize,
+    pub number: usize,
 }
 
 /// A table available in a compiled query.
@@ -78,8 +79,12 @@ pub struct Table {
 impl Transpile for Table {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         write!(fmt, "\"{}", self.name.as_str())?;
-        if let Some(alias) = self.alias {
-            write!(fmt, "_{}_{}", alias.condition_index, alias.chain_depth)?;
+        if let Some(alias) = &self.alias {
+            write!(
+                fmt,
+                "_{}_{}_{}",
+                alias.condition_index, alias.chain_depth, alias.number
+            )?;
         }
         fmt.write_char('"')
     }
@@ -166,11 +171,12 @@ mod tests {
                 name: TableName::TypeIds,
                 alias: Some(TableAlias {
                     condition_index: 1,
-                    chain_depth: 2
+                    chain_depth: 2,
+                    number: 3,
                 })
             }
             .transpile_to_string(),
-            r#""type_ids_1_2""#
+            r#""type_ids_1_2_3""#
         );
     }
 

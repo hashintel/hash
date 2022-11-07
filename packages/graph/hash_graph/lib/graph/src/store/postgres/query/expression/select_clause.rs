@@ -80,7 +80,8 @@ mod tests {
                                 name: DataTypeQueryPath::Version.terminating_table_name(),
                                 alias: Some(TableAlias {
                                     condition_index: 0,
-                                    chain_depth: 0
+                                    chain_depth: 0,
+                                    number: 0,
                                 }),
                             },
                             access: DataTypeQueryPath::Version.column_access(),
@@ -91,7 +92,8 @@ mod tests {
                             name: DataTypeQueryPath::BaseUri.terminating_table_name(),
                             alias: Some(TableAlias {
                                 condition_index: 0,
-                                chain_depth: 0
+                                chain_depth: 0,
+                                number: 0,
                             }),
                         },
                         access: DataTypeQueryPath::BaseUri.column_access(),
@@ -100,7 +102,7 @@ mod tests {
                 Some(Cow::Borrowed("latest_version"))
             )
             .transpile_to_string(),
-            r#"MAX("type_ids_0_0"."version") OVER (PARTITION BY "type_ids_0_0"."base_uri") AS "latest_version""#
+            r#"MAX("type_ids_0_0_0"."version") OVER (PARTITION BY "type_ids_0_0_0"."base_uri") AS "latest_version""#
         );
     }
 }

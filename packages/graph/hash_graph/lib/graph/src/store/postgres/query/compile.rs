@@ -1,4 +1,4 @@
-use std::{borrow::Cow, collections::HashSet, fmt::Display, marker::PhantomData};
+use std::{borrow::Cow, collections::HashSet, fmt::Display, marker::PhantomData, process::exit};
 
 use postgres_types::ToSql;
 use tokio_postgres::row::RowIndex;
@@ -371,9 +371,10 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
                 alias: Some(TableAlias {
                     condition_index: self.artifacts.condition_index,
                     chain_depth,
+                    number: 0,
                 }),
             };
-            let join_column = Column {
+            let mut join_column = Column {
                 table: join_table,
                 access: join_column_access,
             };
@@ -407,18 +408,36 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
                 }
             }
 
-            let join_expression = JoinExpression::new(join_column, current_column);
+            let mut found = false;
+            for existing in &self.statement.joins {
+                if existing.join == join_column {
+                    if existing.on == current_column {
+                        // We already have a join statement for this column, so we can reuse it.
+                        current_table = existing.join.table;
+                        found = true;
+                        break;
+                    }
+                    // We already have a join statement for this table, but it's on a different
+                    // column. We need to create a new join statement later on with a new, unique
+                    // alias.
+                    // TODO: Do we want to allow `unwrap` in those situations? It should never
+                    //       happen, as `alias` is always set.
+                    join_column
+                        .table
+                        .alias
+                        .as_mut()
+                        .expect("alias is not set")
+                        .number += 1;
+                }
+            }
 
-            if let Some(join_statement) = self
-                .statement
-                .joins
-                .iter()
-                .find(|existing| **existing == join_expression)
-            {
-                current_table = join_statement.join.table;
-            } else {
-                self.statement.joins.push(join_expression);
-                current_table = join_table;
+            if !found {
+                // We don't have a join statement for this column yet, so we need to create one.
+                current_table = join_column.table;
+                self.statement.joins.push(JoinExpression {
+                    join: join_column,
+                    on: current_column,
+                });
             }
             chain_depth += 1;
         }
