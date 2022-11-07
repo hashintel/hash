@@ -62,24 +62,24 @@ export let WORKSPACE_TYPES: {
      */
     dummy: EntityTypeModel;
   };
-  linkType: {
-    // User-related
-    hasMembership: LinkTypeModel;
-
-    // OrgMembership-related
-    ofOrg: LinkTypeModel;
-
-    // Block-related
-    blockData: LinkTypeModel;
-
-    // Page-related
-    contains: LinkTypeModel;
-    parent: LinkTypeModel;
-
-    // Comment-related
-    hasText: LinkTypeModel;
-    author: LinkTypeModel;
-  };
+  // linkType: {
+  //   // User-related
+  //   hasMembership: LinkTypeModel;
+  //
+  //   // OrgMembership-related
+  //   ofOrg: LinkTypeModel;
+  //
+  //   // Block-related
+  //   blockData: LinkTypeModel;
+  //
+  //   // Page-related
+  //   contains: LinkTypeModel;
+  //   parent: LinkTypeModel;
+  //
+  //   // Comment-related
+  //   hasText: LinkTypeModel;
+  //   author: LinkTypeModel;
+  // };
 };
 
 // Generate the schema for the org provided info property type
@@ -150,9 +150,9 @@ const orgMembershipEntityTypeInitializer = async (graphApi: GraphApi) => {
     graphApi,
   );
 
-  const ofOrgLinkTypeModel = await WORKSPACE_TYPES_INITIALIZERS.linkType.ofOrg(
-    graphApi,
-  );
+  // const ofOrgLinkTypeModel = await WORKSPACE_TYPES_INITIALIZERS.linkType.ofOrg(
+  //   graphApi,
+  // );
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
@@ -164,11 +164,11 @@ const orgMembershipEntityTypeInitializer = async (graphApi: GraphApi) => {
       },
     ],
     outgoingLinks: [
-      {
-        linkTypeModel: ofOrgLinkTypeModel,
-        destinationEntityTypeModels: [orgEntityTypeModel],
-        required: true,
-      },
+      // {
+      //   linkTypeModel: ofOrgLinkTypeModel,
+      //   destinationEntityTypeModels: [orgEntityTypeModel],
+      //   required: true,
+      // },
     ],
     actorId: workspaceAccountId,
   })(graphApi);
@@ -216,15 +216,15 @@ const responsibilityPropertyTypeInitializer = propertyTypeInitializer({
   actorId: workspaceAccountId,
 });
 
-const ofOrgLinkTypeInitializer = linkTypeInitializer({
-  ...types.linkType.ofOrg,
-  actorId: workspaceAccountId,
-});
-
-const hasMembershipLinkTypeInitializer = linkTypeInitializer({
-  ...types.linkType.hasMembership,
-  actorId: workspaceAccountId,
-});
+// const ofOrgLinkTypeInitializer = linkTypeInitializer({
+//   ...types.linkType.ofOrg,
+//   actorId: workspaceAccountId,
+// });
+//
+// const hasMembershipLinkTypeInitializer = linkTypeInitializer({
+//   ...types.linkType.hasMembership,
+//   actorId: workspaceAccountId,
+// });
 
 const userEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
@@ -240,8 +240,8 @@ const userEntityTypeInitializer = async (graphApi: GraphApi) => {
   const preferredNamePropertyTypeModel =
     await WORKSPACE_TYPES_INITIALIZERS.propertyType.preferredName(graphApi);
 
-  const hasMembershipLinkTypeModel =
-    await WORKSPACE_TYPES_INITIALIZERS.linkType.hasMembership(graphApi);
+  // const hasMembershipLinkTypeModel =
+  //   await WORKSPACE_TYPES_INITIALIZERS.linkType.hasMembership(graphApi);
 
   const orgMembershipEntityTypeModel =
     await WORKSPACE_TYPES_INITIALIZERS.entityType.orgMembership(graphApi);
@@ -269,10 +269,10 @@ const userEntityTypeInitializer = async (graphApi: GraphApi) => {
       },
     ],
     outgoingLinks: [
-      {
-        linkTypeModel: hasMembershipLinkTypeModel,
-        destinationEntityTypeModels: [orgMembershipEntityTypeModel],
-      },
+      // {
+      //   linkTypeModel: hasMembershipLinkTypeModel,
+      //   destinationEntityTypeModels: [orgMembershipEntityTypeModel],
+      // },
     ],
     actorId: workspaceAccountId,
   })(graphApi);
@@ -284,19 +284,19 @@ const componentIdPropertyTypeInitializer = propertyTypeInitializer({
   actorId: workspaceAccountId,
 });
 
-const blockDataLinkTypeInitializer = linkTypeInitializer({
-  ...types.linkType.blockData,
-  actorId: workspaceAccountId,
-});
+// const blockDataLinkTypeInitializer = linkTypeInitializer({
+//   ...types.linkType.blockData,
+//   actorId: workspaceAccountId,
+// });
 
 const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
 
   const componentIdPropertyTypeModel =
     await WORKSPACE_TYPES_INITIALIZERS.propertyType.componentId(graphApi);
-
-  const blockDataLinkTypeModel =
-    await WORKSPACE_TYPES_INITIALIZERS.linkType.blockData(graphApi);
+  //
+  // const blockDataLinkTypeModel =
+  //   await WORKSPACE_TYPES_INITIALIZERS.linkType.blockData(graphApi);
 
   const dummyEntityTypeModel =
     await WORKSPACE_TYPES_INITIALIZERS.entityType.dummy(graphApi);
@@ -312,15 +312,15 @@ const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
       },
     ],
     outgoingLinks: [
-      {
-        linkTypeModel: blockDataLinkTypeModel,
-        /**
-         * @todo: unset this when the destination entity type can be undefined
-         * @see https://app.asana.com/0/1202805690238892/1203015527055368/f
-         */
-        destinationEntityTypeModels: [dummyEntityTypeModel],
-        required: true,
-      },
+      // {
+      // linkTypeModel: blockDataLinkTypeModel,
+      // /**
+      //  * @todo: unset this when the destination entity type can be undefined
+      //  * @see https://app.asana.com/0/1202805690238892/1203015527055368/f
+      //  */
+      // destinationEntityTypeModels: [dummyEntityTypeModel],
+      // required: true,
+      // },
     ],
     actorId: workspaceAccountId,
   })(graphApi);
@@ -400,15 +400,15 @@ const iconPropertyTypeInitializer = propertyTypeInitializer({
   actorId: workspaceAccountId,
 });
 
-const containsLinkTypeInitializer = linkTypeInitializer({
-  ...types.linkType.contains,
-  actorId: workspaceAccountId,
-});
-
-const parentLinkTypeInitializer = linkTypeInitializer({
-  ...types.linkType.parent,
-  actorId: workspaceAccountId,
-});
+// const containsLinkTypeInitializer = linkTypeInitializer({
+//   ...types.linkType.contains,
+//   actorId: workspaceAccountId,
+// });
+//
+// const parentLinkTypeInitializer = linkTypeInitializer({
+//   ...types.linkType.parent,
+//   actorId: workspaceAccountId,
+// });
 
 const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
@@ -428,11 +428,11 @@ const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
   const iconPropertyTypeModel =
     await WORKSPACE_TYPES_INITIALIZERS.propertyType.icon(graphApi);
 
-  const containsLinkTypeModel =
-    await WORKSPACE_TYPES_INITIALIZERS.linkType.contains(graphApi);
-
-  const parentLinkTypeTypeModel =
-    await WORKSPACE_TYPES_INITIALIZERS.linkType.parent(graphApi);
+  // const containsLinkTypeModel =
+  //   await WORKSPACE_TYPES_INITIALIZERS.linkType.contains(graphApi);
+  //
+  // const parentLinkTypeTypeModel =
+  //   await WORKSPACE_TYPES_INITIALIZERS.linkType.parent(graphApi);
 
   const blockEntityTypeModel =
     await WORKSPACE_TYPES_INITIALIZERS.entityType.block(graphApi);
@@ -461,17 +461,17 @@ const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
       },
     ],
     outgoingLinks: [
-      {
-        linkTypeModel: containsLinkTypeModel,
-        destinationEntityTypeModels: [blockEntityTypeModel],
-        required: true,
-        array: true,
-        ordered: true,
-      },
-      {
-        linkTypeModel: parentLinkTypeTypeModel,
-        destinationEntityTypeModels: ["SELF_REFERENCE"],
-      },
+      // {
+      //   linkTypeModel: containsLinkTypeModel,
+      //   destinationEntityTypeModels: [blockEntityTypeModel],
+      //   required: true,
+      //   array: true,
+      //   ordered: true,
+      // },
+      // {
+      //   linkTypeModel: parentLinkTypeTypeModel,
+      //   destinationEntityTypeModels: ["SELF_REFERENCE"],
+      // },
     ],
     actorId: workspaceAccountId,
   })(graphApi);
@@ -489,15 +489,15 @@ const deletedAtPropertyTypeInitializer = propertyTypeInitializer({
   actorId: workspaceAccountId,
 });
 
-const hasTextLinkTypeInitializer = linkTypeInitializer({
-  ...types.linkType.hasText,
-  actorId: workspaceAccountId,
-});
-
-const authorLinkTypeInitializer = linkTypeInitializer({
-  ...types.linkType.author,
-  actorId: workspaceAccountId,
-});
+// const hasTextLinkTypeInitializer = linkTypeInitializer({
+//   ...types.linkType.hasText,
+//   actorId: workspaceAccountId,
+// });
+//
+// const authorLinkTypeInitializer = linkTypeInitializer({
+//   ...types.linkType.author,
+//   actorId: workspaceAccountId,
+// });
 
 const commentEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
@@ -508,14 +508,14 @@ const commentEntityTypeInitializer = async (graphApi: GraphApi) => {
   const deletedAtPropertyTypeModel =
     await WORKSPACE_TYPES_INITIALIZERS.propertyType.deletedAt(graphApi);
 
-  const hasTextLinkTypeModel =
-    await WORKSPACE_TYPES_INITIALIZERS.linkType.hasText(graphApi);
-
-  const parentLinkTypeTypeModel =
-    await WORKSPACE_TYPES_INITIALIZERS.linkType.parent(graphApi);
-
-  const authorLinkTypeTypeModel =
-    await WORKSPACE_TYPES_INITIALIZERS.linkType.author(graphApi);
+  // const hasTextLinkTypeModel =
+  //   await WORKSPACE_TYPES_INITIALIZERS.linkType.hasText(graphApi);
+  //
+  // const parentLinkTypeTypeModel =
+  //   await WORKSPACE_TYPES_INITIALIZERS.linkType.parent(graphApi);
+  //
+  // const authorLinkTypeTypeModel =
+  //   await WORKSPACE_TYPES_INITIALIZERS.linkType.author(graphApi);
 
   const userEntityTypeModel =
     await WORKSPACE_TYPES_INITIALIZERS.entityType.user(graphApi);
@@ -539,21 +539,21 @@ const commentEntityTypeInitializer = async (graphApi: GraphApi) => {
       },
     ],
     outgoingLinks: [
-      {
-        linkTypeModel: hasTextLinkTypeModel,
-        destinationEntityTypeModels: [textEntityTypeModel],
-        required: true,
-      },
-      {
-        linkTypeModel: parentLinkTypeTypeModel,
-        destinationEntityTypeModels: ["SELF_REFERENCE", blockEntityTypeModel],
-        required: true,
-      },
-      {
-        linkTypeModel: authorLinkTypeTypeModel,
-        destinationEntityTypeModels: [userEntityTypeModel],
-        required: true,
-      },
+      // {
+      //   linkTypeModel: hasTextLinkTypeModel,
+      //   destinationEntityTypeModels: [textEntityTypeModel],
+      //   required: true,
+      // },
+      // {
+      //   linkTypeModel: parentLinkTypeTypeModel,
+      //   destinationEntityTypeModels: ["SELF_REFERENCE", blockEntityTypeModel],
+      //   required: true,
+      // },
+      // {
+      //   linkTypeModel: authorLinkTypeTypeModel,
+      //   destinationEntityTypeModels: [userEntityTypeModel],
+      //   required: true,
+      // },
     ],
     actorId: workspaceAccountId,
   })(graphApi);
@@ -607,15 +607,15 @@ export const WORKSPACE_TYPES_INITIALIZERS: FlattenAndPromisify<
     text: textEntityTypeInitializer,
     dummy: dummyEntityTypeInitializer,
   },
-  linkType: {
-    ofOrg: ofOrgLinkTypeInitializer,
-    hasMembership: hasMembershipLinkTypeInitializer,
-    blockData: blockDataLinkTypeInitializer,
-    contains: containsLinkTypeInitializer,
-    parent: parentLinkTypeInitializer,
-    hasText: hasTextLinkTypeInitializer,
-    author: authorLinkTypeInitializer,
-  },
+  // linkType: {
+  //   ofOrg: ofOrgLinkTypeInitializer,
+  //   hasMembership: hasMembershipLinkTypeInitializer,
+  //   blockData: blockDataLinkTypeInitializer,
+  //   contains: containsLinkTypeInitializer,
+  //   parent: parentLinkTypeInitializer,
+  //   hasText: hasTextLinkTypeInitializer,
+  //   author: authorLinkTypeInitializer,
+  // },
 };
 
 /**
