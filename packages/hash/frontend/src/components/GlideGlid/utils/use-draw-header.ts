@@ -1,5 +1,4 @@
 import { DrawHeaderCallback, GridColumn } from "@glideapps/glide-data-grid";
-import { useTheme } from "@mui/material";
 import { useCallback } from "react";
 import { getCellHorizontalPadding } from "../utils";
 import { TableSort, TableSortType } from "./sorting";
@@ -32,8 +31,6 @@ export const useDrawHeader = <T extends string>(
   sort: TableSort<T>,
   columns: GridColumn[],
 ) => {
-  const { palette } = useTheme();
-
   const drawHeader: DrawHeaderCallback = useCallback(
     (args) => {
       const { ctx, rect, column, columnIndex, theme } = args;
@@ -45,7 +42,7 @@ export const useDrawHeader = <T extends string>(
       const centerY = y + height / 2 + 2;
 
       // draw text
-      ctx.fillStyle = palette.gray[80];
+      ctx.fillStyle = theme.textHeader;
       ctx.font = theme.headerFontStyle;
       ctx.fillText(column.title, x + paddingLeft, centerY);
 
@@ -63,7 +60,7 @@ export const useDrawHeader = <T extends string>(
 
       return true;
     },
-    [palette, sort, columns],
+    [sort, columns],
   );
 
   return drawHeader;
