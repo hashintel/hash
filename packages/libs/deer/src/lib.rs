@@ -1,4 +1,4 @@
-#![cfg_attr(nightly, feature(provide_any))]
+#![cfg_attr(nightly, feature(provide_any, error_in_core))]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(unreachable_pub, clippy::pedantic, clippy::nursery)]
 // TODO: once more stable introduce: warning missing_docs, clippy::missing_errors_doc
@@ -12,12 +12,13 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
-use core::marker::PhantomData;
 
-use error_stack::{IntoReport, Report, Result, ResultExt};
+use error_stack::{IntoReport, Result, ResultExt};
 use num_traits::ToPrimitive;
 
-use crate::error::{DeserializeError, DeserializerError, ObjectAccessError, VisitorError};
+use crate::error::{
+    ArrayAccessError, DeserializeError, DeserializerError, ObjectAccessError, VisitorError,
+};
 pub use crate::{
     error::{Error, ErrorProperty, Id, Namespace},
     number::Number,
@@ -41,11 +42,11 @@ pub trait ObjectAccess<'de> {
 }
 
 pub trait ArrayAccess<'de> {
-    fn next<T>(&mut self) -> Result<Option<T>, ObjectAccessError>
+    fn next<T>(&mut self) -> Result<Option<T>, ArrayAccessError>
     where
         T: Deserialize<'de>;
 
-    fn finish(self) -> Result<(), ObjectAccessError>;
+    fn finish(self) -> Result<(), ArrayAccessError>;
 }
 
 // TODO: Error PR: attach the expected and received type
