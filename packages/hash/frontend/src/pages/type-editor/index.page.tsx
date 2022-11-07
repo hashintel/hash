@@ -48,7 +48,6 @@ const ExampleUsage = ({ accountId }: { accountId: string }) => {
             propertyType: {
               kind: "propertyType",
               title: "Name",
-              pluralTitle: "Names",
               oneOf: [{ $ref: types.dataType.text.dataTypeId }],
             },
           },

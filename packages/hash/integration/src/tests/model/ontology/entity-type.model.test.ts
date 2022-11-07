@@ -59,7 +59,6 @@ beforeAll(async () => {
       schema: {
         kind: "entityType",
         title: "Worker",
-        pluralTitle: "Workers",
         type: "object",
         properties: {},
       },
@@ -72,7 +71,6 @@ beforeAll(async () => {
       schema: {
         kind: "entityType",
         title: "Address",
-        pluralTitle: "Addresses",
         type: "object",
         properties: {},
       },
@@ -85,7 +83,6 @@ beforeAll(async () => {
       schema: {
         kind: "propertyType",
         title: "Favorite Book",
-        pluralTitle: "Favorite Books",
         oneOf: [{ $ref: textDataTypeModel.schema.$id }],
       },
       actorId: testUser.entityId,
@@ -97,7 +94,6 @@ beforeAll(async () => {
       schema: {
         kind: "propertyType",
         title: "Name",
-        pluralTitle: "Names",
         oneOf: [{ $ref: textDataTypeModel.schema.$id }],
       },
       actorId: testUser.entityId,
@@ -109,7 +105,6 @@ beforeAll(async () => {
       schema: {
         kind: "linkType",
         title: "Knows",
-        pluralTitle: "Knows",
         description: "Knows of someone",
       },
       actorId: testUser.entityId,
@@ -121,7 +116,6 @@ beforeAll(async () => {
       schema: {
         kind: "linkType",
         title: "Previous Address",
-        pluralTitle: "Previous Addresses",
         description: "A previous address of something.",
       },
       actorId: testUser.entityId,
@@ -133,7 +127,6 @@ beforeAll(async () => {
   entityTypeSchema = {
     kind: "entityType",
     title: "Some",
-    pluralTitle: "Text",
     type: "object",
     properties: {
       [favoriteBookPropertyTypeModel.baseUri]: {

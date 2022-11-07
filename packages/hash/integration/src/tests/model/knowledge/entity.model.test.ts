@@ -62,7 +62,6 @@ describe("Entity CRU", () => {
         schema: {
           kind: "linkType",
           title: "Friends",
-          pluralTitle: "Friends",
           description: "Friend of",
         },
         actorId: testUser.entityId,
@@ -80,7 +79,6 @@ describe("Entity CRU", () => {
         schema: {
           kind: "propertyType",
           title: "Favorite Book",
-          pluralTitle: "Favorite Books",
           oneOf: [{ $ref: textDataTypeModel.schema.$id }],
         },
         actorId: testUser.entityId,
@@ -97,7 +95,6 @@ describe("Entity CRU", () => {
         schema: {
           kind: "propertyType",
           title: "Name",
-          pluralTitle: "Names",
           oneOf: [{ $ref: textDataTypeModel.schema.$id }],
         },
         actorId: testUser.entityId,

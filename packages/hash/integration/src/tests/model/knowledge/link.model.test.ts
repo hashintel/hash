@@ -81,7 +81,6 @@ describe("Link model class", () => {
         schema: {
           kind: "linkType",
           title: "Friends",
-          pluralTitle: "Friends",
           description: "Friend of",
         },
         actorId: testUser.entityId,
@@ -93,7 +92,6 @@ describe("Link model class", () => {
         schema: {
           kind: "linkType",
           title: "Acquaintance",
-          pluralTitle: "Acquaintances",
           description: "Acquainted with",
         },
         actorId: testUser.entityId,
@@ -232,7 +230,6 @@ describe("Link model class", () => {
       schema: {
         kind: "linkType",
         title: "Has song",
-        pluralTitle: "Has songs",
         description: "Has song",
       },
       actorId: testUser.entityId,

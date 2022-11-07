@@ -48,7 +48,6 @@ beforeAll(async () => {
   propertyTypeSchema = {
     kind: "propertyType",
     title: "A property type",
-    pluralTitle: "Multiple property types",
     oneOf: [
       {
         $ref: textDataTypeModel.schema.$id,

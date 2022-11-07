@@ -164,7 +164,6 @@ export const generateWorkspacePropertyTypeSchema = (
     kind: "propertyType",
     title: params.title,
     description: params.description,
-    pluralTitle: params.title,
     oneOf: possibleValues,
   };
 };
@@ -315,7 +314,6 @@ export const generateWorkspaceEntityTypeSchema = (
   return {
     $id: params.entityTypeId,
     title: params.title,
-    pluralTitle: params.title,
     type: "object",
     kind: "entityType",
     properties,
@@ -396,7 +394,6 @@ export const generateWorkspaceLinkTypeSchema = (
     kind: "linkType",
     $id: params.linkTypeId,
     title: params.title,
-    pluralTitle: params.title,
     description: params.description,
     relatedKeywords: params.relatedKeywords,
   };

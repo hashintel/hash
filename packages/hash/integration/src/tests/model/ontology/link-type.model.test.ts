@@ -28,7 +28,6 @@ let testUser2: UserModel;
 const linkTypeSchema: Omit<LinkType, "$id"> = {
   kind: "linkType",
   title: "A link",
-  pluralTitle: "Multiple Links",
   description: "A link between things",
 };
 

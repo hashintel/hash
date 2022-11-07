@@ -403,7 +403,6 @@ export interface EntityType {
    * @type {string}
    * @memberof EntityType
    */
-  pluralTitle: string;
   /**
    *
    * @type {object}
@@ -1105,7 +1104,6 @@ export interface PropertyType {
    * @type {string}
    * @memberof PropertyType
    */
-  pluralTitle: string;
   /**
    *
    * @type {string}
@@ -1327,7 +1325,6 @@ export interface UpdateEntityType {
    * @type {string}
    * @memberof UpdateEntityType
    */
-  pluralTitle: string;
   /**
    *
    * @type {object}
@@ -1427,7 +1424,6 @@ export interface UpdatePropertyType {
    * @type {string}
    * @memberof UpdatePropertyType
    */
-  pluralTitle: string;
   /**
    *
    * @type {string}

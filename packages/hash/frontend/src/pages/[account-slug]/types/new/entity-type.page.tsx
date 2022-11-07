@@ -111,8 +111,6 @@ const Page: NextPageWithLayout = () => {
     const baseUri = generateEntityTypeBaseUriForUser(name);
     const entityType: EntityType = {
       title: name,
-      // @todo make this not necessary
-      pluralTitle: name,
       description,
       kind: "entityType",
       type: "object",
