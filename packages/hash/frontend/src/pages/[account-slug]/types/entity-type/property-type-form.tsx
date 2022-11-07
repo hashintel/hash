@@ -18,11 +18,11 @@ import {
 import { Controller, useForm } from "react-hook-form";
 import { useBlockProtocolCreatePropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreatePropertyType";
 import { useBlockProtocolGetPropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetPropertyType";
-import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
 import { FRONTEND_URL } from "../../../../lib/config";
 import { getPersistedPropertyType } from "../../../../lib/subgraph";
 import { QuestionIcon } from "./question-icon";
 import { useRefetchPropertyTypes } from "./use-property-types";
+import { useRouteNamespace } from "./use-route-namespace";
 
 type PropertyTypeFormValues = {
   name: string;
@@ -63,20 +63,21 @@ export const PropertyTypeForm = ({
     reValidateMode: "onSubmit",
   });
 
-  const { authenticatedUser } = useAuthenticatedUser();
+  const routeNamespace = useRouteNamespace();
+
   const { createPropertyType } = useBlockProtocolCreatePropertyType(
-    authenticatedUser?.entityId ?? "",
+    routeNamespace?.id ?? "",
   );
   const { getPropertyType } = useBlockProtocolGetPropertyType();
 
   const generatePropertyTypeBaseUriForUser = (value: string) => {
-    if (!authenticatedUser?.shortname) {
+    if (!routeNamespace?.shortname) {
       throw new Error("User shortname must exist");
     }
 
     return generateBaseTypeId({
       domain: FRONTEND_URL,
-      namespace: authenticatedUser.shortname,
+      namespace: routeNamespace.shortname,
       kind: "property-type",
       title: value,
     });
