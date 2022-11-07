@@ -1,6 +1,6 @@
 import { DrawHeaderCallback, GridColumn } from "@glideapps/glide-data-grid";
 import { useCallback } from "react";
-import { getCellHorizontalPadding } from "../utils";
+import { getCellHorizontalPadding, getYCenter } from "../utils";
 import { TableSort, TableSortType } from "./sorting";
 
 const drawHeaderSortIndicator = (
@@ -34,12 +34,12 @@ export const useDrawHeader = <T extends string>(
   const drawHeader: DrawHeaderCallback = useCallback(
     (args) => {
       const { ctx, rect, column, columnIndex, theme } = args;
-      const { x, y, height } = rect;
+      const { x } = rect;
 
       const paddingLeft = getCellHorizontalPadding(columnIndex === 0);
 
       // center of the rectangle, we'll use it to draw the text & sort indicator
-      const centerY = y + height / 2 + 2;
+      const centerY = getYCenter(args);
 
       // draw text
       ctx.fillStyle = theme.textHeader;
