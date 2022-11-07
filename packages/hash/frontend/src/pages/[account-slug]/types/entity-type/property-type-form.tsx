@@ -23,9 +23,9 @@ import { useBlockProtocolCreatePropertyType } from "../../../../components/hooks
 import { useBlockProtocolGetPropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetPropertyType";
 import { FRONTEND_URL } from "../../../../lib/config";
 import { getPersistedPropertyType } from "../../../../lib/subgraph";
-import { fa100 } from "../../../../shared/icons/pro/fa100";
-import { faSquareCheck } from "../../../../shared/icons/pro/faSquareCheck";
-import { faText } from "../../../../shared/icons/pro/faText";
+import { fa100 } from "../../../../shared/icons/pro/fa-100";
+import { faSquareCheck } from "../../../../shared/icons/pro/fa-square-check";
+import { faText } from "../../../../shared/icons/pro/fa-text";
 import { QuestionIcon } from "./question-icon";
 import { useRefetchPropertyTypes } from "./use-property-types";
 import { useRouteNamespace } from "./use-route-namespace";
