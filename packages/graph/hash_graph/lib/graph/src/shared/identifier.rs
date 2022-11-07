@@ -2,7 +2,7 @@ use core::fmt;
 
 use chrono::{DateTime, Utc};
 use postgres_types::{FromSql, ToSql};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
 use serde_json;
 use type_system::uri::{BaseUri, VersionedUri};
 use utoipa::{openapi, ToSchema};
@@ -50,9 +50,7 @@ impl fmt::Display for AccountId {
     }
 }
 
-#[derive(
-    Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, ToSchema,
-)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct EntityIdentifier {
     owned_by_id: OwnedById,
     // TODO: rename this to entity_uuid?
@@ -76,6 +74,14 @@ impl EntityIdentifier {
     #[must_use]
     pub const fn entity_id(&self) -> EntityId {
         self.entity_id
+    }
+}
+
+impl ToSchema for EntityIdentifier {
+    fn schema() -> openapi::Schema {
+        openapi::Schema::Object(openapi::schema::Object::with_type(
+            openapi::SchemaType::String,
+        ))
     }
 }
 
