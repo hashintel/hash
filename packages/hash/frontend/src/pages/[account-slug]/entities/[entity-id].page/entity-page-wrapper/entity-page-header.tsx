@@ -5,7 +5,7 @@ import { Container } from "@mui/system";
 import { useRouter } from "next/router";
 import slugify from "slugify";
 import { TopContextBar } from "../../../../shared/top-context-bar";
-import { HashOntologyIcon } from "../../../types/entity-type/hash-ontology-icon";
+import { HashOntologyIcon } from "../../../shared/hash-ontology-icon";
 import { OntologyChip } from "../../../shared/ontology-chip";
 
 export const EntityPageHeader = ({ entityLabel }: { entityLabel: string }) => {

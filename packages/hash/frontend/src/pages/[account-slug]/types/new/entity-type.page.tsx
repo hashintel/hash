@@ -24,7 +24,7 @@ import { FRONTEND_URL } from "../../../../lib/config";
 import { useInitTypeSystem } from "../../../../lib/use-init-type-system";
 import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
 import { TopContextBar } from "../../../shared/top-context-bar";
-import { HashOntologyIcon } from "../entity-type/hash-ontology-icon";
+import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
 import { OntologyChip } from "../../shared/ontology-chip";
 import { useRouteNamespace } from "../entity-type/use-route-namespace";
 
