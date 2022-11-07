@@ -1,4 +1,3 @@
-import "@glideapps/glide-data-grid/dist/index.css";
 import { useMemo, useRef } from "react";
 import { DataEditorRef } from "@glideapps/glide-data-grid";
 import { useRowData } from "./property-table/use-row-data";
@@ -9,7 +8,7 @@ import { useEntityEditor } from "../entity-editor-context";
 import { GlideGrid } from "../../../../../../components/GlideGlid/glide-grid";
 import { useGridTooltip } from "../../../../../../components/GlideGlid/utils/use-grid-tooltip";
 import { renderValueCell } from "./property-table/cells/value-cell";
-import { renderDataTypeCell } from "./property-table/cells/data-type-cell";
+import { renderChipCell } from "./property-table/cells/chip-cell";
 import { createRenderPropertyNameCell } from "./property-table/cells/property-name-cell";
 import { useDrawHeader } from "../../../../../../components/GlideGlid/utils/use-draw-header";
 import { createHandleHeaderClicked } from "../../../../../../components/GlideGlid/utils/sorting";
@@ -47,7 +46,7 @@ export const PropertyTable = ({
   const customRenderers = useMemo(
     () => [
       withTooltips(renderValueCell),
-      renderDataTypeCell,
+      renderChipCell,
       createRenderPropertyNameCell(togglePropertyExpand, propertyExpandStatus),
       renderSummaryChipCell,
     ],

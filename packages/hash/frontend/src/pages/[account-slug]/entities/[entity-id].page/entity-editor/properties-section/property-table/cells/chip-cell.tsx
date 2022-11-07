@@ -8,39 +8,35 @@ import { Chip, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { Box } from "@mui/material";
 import { drawCellFadeOutGradient } from "../../../../../../../../components/GlideGlid/utils/draw-cell-fade-out-gradient";
 import { drawChipWithIcon } from "../../../../../../../../components/GlideGlid/utils/draw-chip-with-icon";
-import { PropertyRow } from "../types";
 
-export interface DataTypeCellProps {
-  readonly kind: "data-type-cell";
-  property: PropertyRow;
+export interface ChipCellProps {
+  readonly kind: "chip-cell";
+  chips: string[];
 }
 
-export type DataTypeCell = CustomCell<DataTypeCellProps>;
+export type ChipCell = CustomCell<ChipCellProps>;
 
-export const renderDataTypeCell: CustomRenderer<DataTypeCell> = {
+export const renderChipCell: CustomRenderer<ChipCell> = {
   kind: GridCellKind.Custom,
-  isMatch: (cell: CustomCell): cell is DataTypeCell =>
-    (cell.data as any).kind === "data-type-cell",
+  isMatch: (cell: CustomCell): cell is ChipCell =>
+    (cell.data as any).kind === "chip-cell",
   draw: (args, cell) => {
     const { theme, rect } = args;
-    const { dataTypes } = cell.data.property;
+    const { chips } = cell.data;
 
     const chipGap = 8;
     let chipLeft = rect.x + theme.cellHorizontalPadding;
 
-    for (let i = 0; i < dataTypes.length; i++) {
-      const dataType = dataTypes[i] ?? "";
-
-      const chipWidth = drawChipWithIcon(args, dataType, chipLeft);
+    for (let i = 0; i < chips.length; i++) {
+      const chipWidth = drawChipWithIcon(args, chips[i] ?? "", chipLeft);
 
       chipLeft += chipWidth + chipGap;
     }
 
     drawCellFadeOutGradient(args);
   },
-
   provideEditor: (cell) => {
-    const { dataTypes } = cell.data.property;
+    const { chips } = cell.data;
 
     return {
       disablePadding: true,
@@ -58,10 +54,10 @@ export const renderDataTypeCell: CustomRenderer<DataTypeCell> = {
               },
             }}
           >
-            {dataTypes.map((type) => (
+            {chips.map((chip) => (
               <Chip
-                key={type}
-                label={type}
+                key={chip}
+                label={chip}
                 icon={<FontAwesomeIcon icon={faAsterisk} />}
               />
             ))}
