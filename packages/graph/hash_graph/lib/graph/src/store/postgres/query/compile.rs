@@ -1,4 +1,4 @@
-use std::{borrow::Cow, collections::HashSet, fmt::Display, marker::PhantomData, process::exit};
+use std::{borrow::Cow, collections::HashSet, fmt::Display, marker::PhantomData};
 
 use postgres_types::ToSql;
 use tokio_postgres::row::RowIndex;

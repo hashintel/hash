@@ -614,4 +614,39 @@ mod tests {
             &[],
         );
     }
+
+    #[test]
+    fn link_entity_left_right_id() {
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk();
+
+        let filter = Filter::All(vec![
+            Filter::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(Some(
+                    Box::new(EntityQueryPath::Id),
+                )))),
+                Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
+            ),
+            Filter::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::RightEntity(Some(
+                    Box::new(EntityQueryPath::Id),
+                )))),
+                Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
+            ),
+        ]);
+        compiler.add_filter(&filter);
+
+        test_compilation(
+            &compiler,
+            r#"
+             SELECT *
+             FROM "entities"
+             INNER JOIN "entities" AS "entities_0_0_0"
+               ON "entities_0_0_0"."entity_id" = "entities"."left_entity_id"
+             INNER JOIN "entities" AS "entities_0_0_1"
+               ON "entities_0_0_1"."entity_id" = "entities"."right_entity_id"
+             WHERE ("entities_0_0_0"."entity_id" = $1) AND ("entities_0_0_1"."entity_id" = $2)
+            "#,
+            &[&Uuid::nil(), &Uuid::nil()],
+        );
+    }
 }
