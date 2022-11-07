@@ -48,7 +48,7 @@ impl Number {
     }
 
     #[cfg(not(feature = "arbitrary-precision"))]
-    fn float(n: f64) -> Self {
+    const fn float(n: f64) -> Self {
         Self(OpaqueNumber::Float(n))
     }
 }
@@ -82,14 +82,13 @@ impl FromPrimitive for Number {
 
     #[cfg(not(feature = "arbitrary-precision"))]
     fn from_i64(n: i64) -> Option<Self> {
-        if let Ok(n) = u64::try_from(n) {
+        Some(u64::try_from(n).ok().map_or_else(
+            // the number is guaranteed to be negative, because the positive numbers of `i64`
+            // are a subset of all numbers representable by `u64`
+            || Self::neg(n.unsigned_abs()),
             // the number is guaranteed to be positive
-            Some(Self::pos(n))
-        } else {
-            // the number is guaranteed to be negative, because the positive numbers of `i64` are a
-            // subset of all numbers representable by `u64`
-            Some(Self::neg(n.unsigned_abs()))
-        }
+            Self::pos,
+        ))
     }
 
     #[cfg(feature = "arbitrary-precision")]
@@ -305,12 +304,5 @@ impl Display for Number {
     #[cfg(feature = "arbitrary-precision")]
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         f.write_str(&self.0)
-    }
-}
-
-#[cfg(feature = "arbitrary-precision")]
-impl From<String> for Number {
-    fn from(value: String) -> Self {
-        Self(value)
     }
 }
