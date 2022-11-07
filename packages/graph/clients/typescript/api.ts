@@ -84,10 +84,10 @@ export interface ArchiveEntityRequest {
   actorId: string;
   /**
    *
-   * @type {EntityIdentifier}
+   * @type {string}
    * @memberof ArchiveEntityRequest
    */
-  entityIdentifier: EntityIdentifier;
+  entityIdentifier: string;
 }
 /**
  *
@@ -319,25 +319,6 @@ export interface Edges {
   ontology: { [key: string]: { [key: string]: Array<ValueInner1> } };
 }
 /**
- *
- * @export
- * @interface EntityIdentifier
- */
-export interface EntityIdentifier {
-  /**
-   *
-   * @type {string}
-   * @memberof EntityIdentifier
-   */
-  entity_id: string;
-  /**
-   *
-   * @type {string}
-   * @memberof EntityIdentifier
-   */
-  owned_by_id: string;
-}
-/**
  * A [`Filter`] to query the datastore, recursively resolving according to the
  * @export
  * @interface EntityStructuralQuery
@@ -398,11 +379,6 @@ export interface EntityType {
    * @memberof EntityType
    */
   links?: object;
-  /**
-   *
-   * @type {string}
-   * @memberof EntityType
-   */
   /**
    *
    * @type {object}
@@ -595,10 +571,10 @@ export interface KnowledgeGraphVertexOneOf {
 export interface LinkEntityMetadata {
   /**
    *
-   * @type {EntityIdentifier}
+   * @type {string}
    * @memberof LinkEntityMetadata
    */
-  leftEntityIdentifier: EntityIdentifier;
+  leftEntityIdentifier: string;
   /**
    *
    * @type {number}
@@ -607,10 +583,10 @@ export interface LinkEntityMetadata {
   leftOrder?: number;
   /**
    *
-   * @type {EntityIdentifier}
+   * @type {string}
    * @memberof LinkEntityMetadata
    */
-  rightEntityIdentifier: EntityIdentifier;
+  rightEntityIdentifier: string;
   /**
    *
    * @type {number}
@@ -796,10 +772,10 @@ export interface PersistedEntity {
 export interface PersistedEntityIdentifier {
   /**
    *
-   * @type {EntityIdentifier}
+   * @type {string}
    * @memberof PersistedEntityIdentifier
    */
-  entityIdentifier: EntityIdentifier;
+  entityIdentifier: string;
   /**
    *
    * @type {string}
@@ -1104,11 +1080,6 @@ export interface PropertyType {
    * @type {string}
    * @memberof PropertyType
    */
-  /**
-   *
-   * @type {string}
-   * @memberof PropertyType
-   */
   title: string;
 }
 
@@ -1273,10 +1244,10 @@ export interface UpdateEntityRequest {
   entity: object;
   /**
    *
-   * @type {EntityIdentifier}
+   * @type {string}
    * @memberof UpdateEntityRequest
    */
-  entityIdentifier: EntityIdentifier;
+  entityIdentifier: string;
   /**
    *
    * @type {string}
@@ -1320,11 +1291,6 @@ export interface UpdateEntityType {
    * @memberof UpdateEntityType
    */
   links?: object;
-  /**
-   *
-   * @type {string}
-   * @memberof UpdateEntityType
-   */
   /**
    *
    * @type {object}
@@ -1424,11 +1390,6 @@ export interface UpdatePropertyType {
    * @type {string}
    * @memberof UpdatePropertyType
    */
-  /**
-   *
-   * @type {string}
-   * @memberof UpdatePropertyType
-   */
   title: string;
 }
 
@@ -1477,8 +1438,8 @@ export type ValueInner =
  * @export
  */
 export type ValueInner1 =
-  | { [key: string]: ValueInner1OneOfValue1 }
-  | { [key: string]: ValueInner1OneOfValue };
+  | { [key: string]: ValueInner1OneOfValue }
+  | { [key: string]: ValueInnerOneOfValue1 };
 
 /**
  *
@@ -1517,58 +1478,6 @@ export const ValueInner1OneOfValueKindEnum = {
 export type ValueInner1OneOfValueKindEnum =
   typeof ValueInner1OneOfValueKindEnum[keyof typeof ValueInner1OneOfValueKindEnum];
 
-/**
- *
- * @export
- * @interface ValueInner1OneOfValue1
- */
-export interface ValueInner1OneOfValue1 {
-  /**
-   *
-   * @type {ValueInner1OneOfValue1Endpoint}
-   * @memberof ValueInner1OneOfValue1
-   */
-  endpoint?: ValueInner1OneOfValue1Endpoint;
-  /**
-   *
-   * @type {string}
-   * @memberof ValueInner1OneOfValue1
-   */
-  kind?: ValueInner1OneOfValue1KindEnum;
-  /**
-   *
-   * @type {boolean}
-   * @memberof ValueInner1OneOfValue1
-   */
-  reversed?: boolean;
-}
-
-export const ValueInner1OneOfValue1KindEnum = {
-  IsOfType: "IS_OF_TYPE",
-} as const;
-
-export type ValueInner1OneOfValue1KindEnum =
-  typeof ValueInner1OneOfValue1KindEnum[keyof typeof ValueInner1OneOfValue1KindEnum];
-
-/**
- *
- * @export
- * @interface ValueInner1OneOfValue1Endpoint
- */
-export interface ValueInner1OneOfValue1Endpoint {
-  /**
-   *
-   * @type {string}
-   * @memberof ValueInner1OneOfValue1Endpoint
-   */
-  entity_id: string;
-  /**
-   *
-   * @type {string}
-   * @memberof ValueInner1OneOfValue1Endpoint
-   */
-  owned_by_id: string;
-}
 /**
  *
  * @export
@@ -1644,10 +1553,10 @@ export type ValueInnerOneOfValue1KindEnum =
 export interface ValueInnerOneOfValueEndpoint {
   /**
    *
-   * @type {EntityIdentifier}
+   * @type {string}
    * @memberof ValueInnerOneOfValueEndpoint
    */
-  entityId: EntityIdentifier;
+  entityId: string;
   /**
    *
    * @type {string}
