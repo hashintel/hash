@@ -45,7 +45,7 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/fs-extra": "9.0.13",
-    "@types/node": "16.7.6",
+    "@types/node": "18.11.9",
     "@types/react": "18.0.25",
     "@typescript-eslint/eslint-plugin": "5.42.1",
     "@typescript-eslint/parser": "5.42.1",

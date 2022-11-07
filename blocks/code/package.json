@@ -20,14 +20,12 @@
   },
   "dependencies": {
     "@blockprotocol/graph": "0.0.18",
-    "prismjs": "1.28.0",
-    "styled-components": "5.3.5"
+    "prismjs": "1.28.0"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/prismjs": "1.26.0",
-    "@types/styled-components": "5.1.25",
     "block-scripts": "0.0.14",
     "eslint": "8.27.0",
     "mock-block-dock": "0.0.38",

@@ -116,7 +116,7 @@
     "@types/iframe-resizer": "3.5.9",
     "@types/jest": "29.2.2",
     "@types/jsonpath": "0.2.0",
-    "@types/lodash": "4.14.175",
+    "@types/lodash": "4.14.188",
     "@types/pluralize": "0.0.29",
     "@types/prosemirror-collab": "1.1.2",
     "@types/prosemirror-commands": "1.0.4",
