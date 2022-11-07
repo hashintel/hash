@@ -57,6 +57,10 @@ When you've finished adding positions to your agents, reset the simulation. You 
 
 Alice and Bob aren't very interesting right now. Let's teach them some manners. We can give the agents [behaviors](/docs/simulation/creating-simulations/behaviors) that enable them to act and respond to each other. In `init.json` let's add some file names into each of the behavior arrays.
 
+<Hint style="info">
+You can build Python behaviors instead of JavaScript behaviors if you prefer. Just make sure to name your files with a ".py" ending.
+</Hint>
+
 ```json
 [
   {
