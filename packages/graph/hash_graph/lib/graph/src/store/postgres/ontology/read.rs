@@ -93,7 +93,7 @@ where
     type Query<'q> = Filter<'q, T::Inner>;
 
     async fn read<'f: 'q, 'q>(&self, filter: &'f Self::Query<'q>) -> Result<Vec<T>, QueryError> {
-        let mut compiler = SelectCompiler::new();
+        let mut compiler = SelectCompiler::with_default_selection();
         compiler.add_filter(filter);
         let (statement, parameters) = compiler.compile();
 
