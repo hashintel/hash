@@ -20,14 +20,15 @@ import {
   EntityTypeEditorForm,
   EntityTypeEditorPropertyData,
 } from "./form-types";
-import { HashOntologyIcon } from "./hash-ontology-icon";
-import { OntologyChip } from "./ontology-chip";
+import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
+import { OntologyChip } from "../../shared/ontology-chip";
 import { PropertyListCard } from "./property-list-card";
 import { useEntityType } from "./use-entity-type";
 import {
   PropertyTypesContext,
-  useRemotePropertyTypes,
+  usePropertyTypesContextValue,
 } from "./use-property-types";
+import { useRouteNamespace } from "./use-route-namespace";
 import { mustBeVersionedUri } from "./util";
 
 const getBaseUri = (path: string) => {
@@ -76,6 +77,7 @@ const Page: NextPageWithLayout = () => {
   // @todo how to handle remote types
   const isDraft = !!router.query.draft;
   const baseEntityTypeUri = isDraft ? null : getBaseUri(router.asPath);
+  const namespace = useRouteNamespace();
 
   const draftEntityType = useMemo(() => {
     if (router.query.draft) {
@@ -98,6 +100,7 @@ const Page: NextPageWithLayout = () => {
 
   const [remoteEntityType, updateEntityType, publishDraft] = useEntityType(
     baseEntityTypeUri,
+    namespace?.id,
     (fetchedEntityType) => {
       reset({
         properties: Object.entries(fetchedEntityType.properties).map(
@@ -119,7 +122,7 @@ const Page: NextPageWithLayout = () => {
 
   const entityType = remoteEntityType ?? draftEntityType;
 
-  const propertyTypes = useRemotePropertyTypes();
+  const propertyTypes = usePropertyTypesContextValue();
 
   const handleSubmit = wrapHandleSubmit(async (data) => {
     if (!entityType) {
