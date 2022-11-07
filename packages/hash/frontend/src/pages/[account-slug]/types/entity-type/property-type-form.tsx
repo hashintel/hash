@@ -80,14 +80,11 @@ const propertyTypeDataTypes = [
   },
 ];
 
-// @todo namespace accounts?
 export const PropertyTypeForm = ({
-  createButtonProps,
   discardButtonProps,
   initialTitle,
   onCreatePropertyType,
 }: {
-  createButtonProps: Omit<ButtonProps, "size" | "variant" | "children">;
   discardButtonProps: Omit<ButtonProps, "size" | "variant" | "children">;
   initialTitle?: string;
   onCreatePropertyType: (propertyType: PropertyType) => void;
@@ -343,7 +340,6 @@ export const PropertyTypeForm = ({
       <Divider sx={{ mt: 2, mb: 3 }} />
       <Stack direction="row" spacing={1.25}>
         <Button
-          {...createButtonProps}
           loading={isSubmitting}
           disabled={isSubmitting || !!nameError}
           type="submit"

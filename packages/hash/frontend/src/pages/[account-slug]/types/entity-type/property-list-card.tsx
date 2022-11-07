@@ -165,7 +165,6 @@ const InsertPropertyRow = ({
               </IconButton>
             </Box>
             <PropertyTypeForm
-              createButtonProps={{}}
               discardButtonProps={bindToggle(modalPopupState)}
               initialTitle={searchText}
               onCreatePropertyType={onAdd}
