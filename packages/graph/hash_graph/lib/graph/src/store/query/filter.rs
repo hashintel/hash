@@ -319,14 +319,17 @@ impl Parameter<'_> {
                 //   see https://app.asana.com/0/1202805690238892/1203225514907875/f
             }
             (Parameter::Text(text), ParameterType::Timestamp) => {
-                *self = Parameter::Timestamp(
-                    Timestamp::from_str(&*text)
-                        .into_report()
-                        .change_context_lazy(|| ParameterConversionError {
-                            actual: self.to_owned(),
-                            expected: ParameterType::Timestamp,
-                        })?,
-                );
+                if text != "latest" {
+                    *self = Parameter::Timestamp(
+                        Timestamp::from_str(&*text)
+                            .into_report()
+                            .change_context_lazy(|| ParameterConversionError {
+                                actual: self.to_owned(),
+                                expected: ParameterType::Timestamp,
+                            })?,
+                    );
+                    // Do nothing if "latest"
+                }
             }
             (Parameter::Text(text), ParameterType::Uuid) => {
                 *self = Parameter::Uuid(Uuid::from_str(&*text).into_report().change_context_lazy(
