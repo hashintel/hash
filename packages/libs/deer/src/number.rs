@@ -1,20 +1,20 @@
-#[cfg(feature = "arbitrary-precision")]
-use num_bigint::{BigInt, BigUint, ToBigInt, ToBigUint};
+use core::fmt::{Display, Formatter, Write};
+use std::ops::Neg;
+
 use num_traits::{FromPrimitive, ToPrimitive};
-#[cfg(feature = "arbitrary-precision")]
-use rust_decimal::Decimal;
 
 // This indirection helps us to "disguise" the underlying storage, enabling us to seamlessly convert
 // and change the underlying storage at a later point in time, if required.
-#[derive(Debug, Clone)]
+#[cfg(not(feature = "arbitrary-precision"))]
+#[derive(Debug, Copy, Clone, PartialEq)]
 enum OpaqueNumber {
-    Int(i64),
-    #[cfg(feature = "arbitrary-precision")]
-    BigInt(BigInt),
+    PosInt(u64),
+    NegInt(u64),
     Float(f64),
-    #[cfg(feature = "arbitrary-precision")]
-    Decimal(Decimal),
 }
+
+#[cfg(feature = "arbitrary-precision")]
+type OpaqueNumber = String;
 
 /// Used to represent any rational number.
 ///
@@ -33,229 +33,284 @@ enum OpaqueNumber {
 /// `i64`, if that isn't possible it will fallback to a [`BigInt`].
 ///
 /// [`Deserializer`]: crate::Deserializer
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Number(OpaqueNumber);
 
-impl FromPrimitive for Number {
-    fn from_isize(n: isize) -> Option<Self> {
-        if let Ok(ok) = i64::try_from(n) {
-            return Some(Self(OpaqueNumber::Int(ok)));
-        }
-
-        #[cfg(feature = "arbitrary-precision")]
-        return Some(Self(OpaqueNumber::BigInt(n.into())));
-
-        #[cfg(not(feature = "arbitrary-precision"))]
-        return None;
+impl Number {
+    #[cfg(not(feature = "arbitrary-precision"))]
+    fn pos(n: impl Into<u64>) -> Self {
+        Self(OpaqueNumber::PosInt(n.into()))
     }
 
-    fn from_i8(n: i8) -> Option<Self> {
-        Some(Self(OpaqueNumber::Int(i64::from(n))))
+    #[cfg(not(feature = "arbitrary-precision"))]
+    fn neg(n: impl Into<u64>) -> Self {
+        Self(OpaqueNumber::NegInt(n.into()))
     }
 
-    fn from_i16(n: i16) -> Option<Self> {
-        Some(Self(OpaqueNumber::Int(i64::from(n))))
-    }
-
-    fn from_i32(n: i32) -> Option<Self> {
-        Some(Self(OpaqueNumber::Int(i64::from(n))))
-    }
-
-    fn from_i64(n: i64) -> Option<Self> {
-        Some(Self(OpaqueNumber::Int(n)))
-    }
-
-    fn from_i128(n: i128) -> Option<Self> {
-        if let Ok(ok) = i64::try_from(n) {
-            return Some(Self(OpaqueNumber::Int(ok)));
-        }
-
-        #[cfg(feature = "arbitrary-precision")]
-        return Some(Self(OpaqueNumber::BigInt(n.into())));
-
-        #[cfg(not(feature = "arbitrary-precision"))]
-        return None;
-    }
-
-    fn from_usize(n: usize) -> Option<Self> {
-        if let Ok(ok) = i64::try_from(n) {
-            return Some(Self(OpaqueNumber::Int(ok)));
-        }
-
-        #[cfg(feature = "arbitrary-precision")]
-        return Some(Self(OpaqueNumber::BigInt(n.into())));
-
-        #[cfg(not(feature = "arbitrary-precision"))]
-        return None;
-    }
-
-    fn from_u8(n: u8) -> Option<Self> {
-        Some(Self(OpaqueNumber::Int(i64::from(n))))
-    }
-
-    fn from_u16(n: u16) -> Option<Self> {
-        Some(Self(OpaqueNumber::Int(i64::from(n))))
-    }
-
-    fn from_u32(n: u32) -> Option<Self> {
-        Some(Self(OpaqueNumber::Int(i64::from(n))))
-    }
-
-    fn from_u64(n: u64) -> Option<Self> {
-        if let Ok(ok) = i64::try_from(n) {
-            return Some(Self(OpaqueNumber::Int(ok)));
-        }
-
-        #[cfg(feature = "arbitrary-precision")]
-        return Some(Self(OpaqueNumber::BigInt(n.into())));
-
-        #[cfg(not(feature = "arbitrary-precision"))]
-        return None;
-    }
-
-    fn from_u128(n: u128) -> Option<Self> {
-        if let Ok(ok) = i64::try_from(n) {
-            return Some(Self(OpaqueNumber::Int(ok)));
-        }
-
-        #[cfg(feature = "arbitrary-precision")]
-        return Some(Self(OpaqueNumber::BigInt(n.into())));
-
-        #[cfg(not(feature = "arbitrary-precision"))]
-        return None;
-    }
-
-    fn from_f32(n: f32) -> Option<Self> {
-        Some(Self(OpaqueNumber::Float(f64::from(n))))
-    }
-
-    fn from_f64(n: f64) -> Option<Self> {
-        Some(Self(OpaqueNumber::Float(n)))
+    #[cfg(not(feature = "arbitrary-precision"))]
+    fn float(n: f64) -> Self {
+        Self(OpaqueNumber::Float(n))
     }
 }
 
-macro_rules! to_int {
-    (#internal, $ty:ty; $method:ident) => {
-        fn $method(&self) -> Option<$ty> {
-            match &self.0 {
-                OpaqueNumber::Int(x) => x.$method(),
-                #[cfg(feature = "arbitrary-precision")]
-                OpaqueNumber::BigInt(x) => x.$method(),
-
-                // they return None because the conversion from int to float is not lossless
-                OpaqueNumber::Float(_) => None,
-                #[cfg(feature = "arbitrary-precision")]
-                OpaqueNumber::Decimal(_) => None,
+impl FromPrimitive for Number {
+    #[cfg(not(feature = "arbitrary-precision"))]
+    fn from_isize(n: isize) -> Option<Self> {
+        if let Ok(n) = u64::try_from(n) {
+            return Some(Self::pos(n));
+        } else if let Ok(n) = i64::try_from(n) {
+            // the value previously didn't fit into u64, therefore we can assume that the value will
+            // is negative
+            return Some(Self::neg(n.unsigned_abs()));
+        } else if let Ok(n) = i128::try_from(n) {
+            // this is not guaranteed to be negative, but there's a single bit (sign bit) which is
+            // unused in `i64`, but available in `u64`, and we don't want to waste single bits!
+            if n.is_negative() {
+                if let Ok(n) = u64::try_from(n.unsigned_abs()) {
+                    return Some(Self::neg(n));
+                }
             }
         }
-    };
-    ($($ty:ty; $method:ident),*) => {
-        $(to_int!(#internal, $ty; $method);)*
+
+        None
+    }
+
+    #[cfg(feature = "arbitrary-precision")]
+    fn from_isize(n: isize) -> Option<Self> {
+        Some(Self(n.to_string()))
+    }
+
+    #[cfg(not(feature = "arbitrary-precision"))]
+    fn from_i64(n: i64) -> Option<Self> {
+        if let Ok(n) = u64::try_from(n) {
+            // the number is guaranteed to be positive
+            Some(Self::pos(n))
+        } else {
+            // the number is guaranteed to be negative, because the positive numbers of `i64` are a
+            // subset of all numbers representable by `u64`
+            Some(Self::neg(n.unsigned_abs()))
+        }
+    }
+
+    #[cfg(feature = "arbitrary-precision")]
+    fn from_i64(n: i64) -> Option<Self> {
+        Some(Self(n.to_string()))
+    }
+
+    #[cfg(not(feature = "arbitrary-precision"))]
+    fn from_i128(n: i128) -> Option<Self> {
+        // `i128` numbers are not fully representable in our number type, we only support the first
+        // 64 bits in either negative or positive direction.
+        // `i128` and `u128` values are unlikely to be used and are mostly covered by `u64`
+        // (positive and negative), if they are needed one can use the `arbitrary-precision`
+        // feature. This library should also be able to be used in no-std environments, where the
+        // difference between 8 bytes vs 16 bytes per number might be significant.
+
+        if let Ok(n) = u64::try_from(n) {
+            return Some(Self::pos(n));
+        } else if let Ok(n) = u64::try_from(n.unsigned_abs()) {
+            // we do not need to check if the value already is negative, because the previous if
+            // statement covers the complete range of `u64`, therefore only negative values or
+            // values greater than `u64::MAX` are left, this means that if we `abs` all values the
+            // values left in the range of `u64` are negative and therefore we're able to
+            // ensure that the `try_from` will only cover negative values
+            return Some(Self::neg(n));
+        }
+
+        None
+    }
+
+    #[cfg(feature = "arbitrary-precision")]
+    fn from_i128(n: i128) -> Option<Self> {
+        Some(Self(n.to_string()))
+    }
+
+    #[cfg(not(feature = "arbitrary-precision"))]
+    fn from_usize(n: usize) -> Option<Self> {
+        u64::try_from(n).map(Self::pos).ok()
+    }
+
+    #[cfg(feature = "arbitrary-precision")]
+    fn from_usize(n: usize) -> Option<Self> {
+        Some(Self(n.to_string()))
+    }
+
+    #[cfg(not(feature = "arbitrary-precision"))]
+    fn from_u64(n: u64) -> Option<Self> {
+        Some(Self::pos(n))
+    }
+
+    #[cfg(feature = "arbitrary-precision")]
+    fn from_u64(n: u64) -> Option<Self> {
+        Some(Self(n.to_string()))
+    }
+
+    #[cfg(not(feature = "arbitrary-precision"))]
+    fn from_u128(n: u128) -> Option<Self> {
+        // for a detailed explanation why `u128` cannot be fully translated into the number type
+        // refer to the comments in `i128`
+        u64::try_from(n).map(Self::pos).ok()
+    }
+
+    #[cfg(feature = "arbitrary-precision")]
+    fn from_u128(n: u128) -> Option<Self> {
+        Some(Self(n.to_string()))
+    }
+
+    #[cfg(not(feature = "arbitrary-precision"))]
+    fn from_f64(n: f64) -> Option<Self> {
+        Some(Self::float(n))
+    }
+
+    #[cfg(feature = "arbitrary-precision")]
+    fn from_f64(n: f64) -> Option<Self> {
+        Some(Self(n.to_string()))
     }
 }
 
 impl ToPrimitive for Number {
-    to_int!(
-        isize; to_isize,
-        i8; to_i8,
-        i16; to_i16,
-        i32; to_i32,
-        i64; to_i64,
-        i128; to_i128,
-        usize; to_usize,
-        u8; to_u8,
-        u16; to_u16,
-        u32; to_u32,
-        u64; to_u64,
-        u128; to_u128
-    );
-
-    fn to_f32(&self) -> Option<f32> {
-        match &self.0 {
-            OpaqueNumber::Int(x) => x.to_f32(),
-            #[cfg(feature = "arbitrary-precision")]
-            OpaqueNumber::BigInt(x) => x.to_f32(),
-
-            OpaqueNumber::Float(x) => x.to_f32(),
-            #[cfg(feature = "arbitrary-precision")]
-            OpaqueNumber::Decimal(x) => x.to_f32(),
+    #[cfg(not(feature = "arbitrary-precision"))]
+    fn to_isize(&self) -> Option<isize> {
+        match self.0 {
+            OpaqueNumber::PosInt(int) => isize::try_from(int).ok(),
+            OpaqueNumber::NegInt(int) => isize::try_from(int).ok().map(Neg::neg),
+            OpaqueNumber::Float(_) => None,
         }
     }
 
-    fn to_f64(&self) -> Option<f64> {
-        match &self.0 {
-            OpaqueNumber::Int(x) => x.to_f64(),
-            #[cfg(feature = "arbitrary-precision")]
-            OpaqueNumber::BigInt(x) => x.to_f64(),
+    #[cfg(feature = "arbitrary-precision")]
+    fn to_isize(&self) -> Option<isize> {
+        self.0.parse().ok()
+    }
 
-            OpaqueNumber::Float(x) => Some(*x),
-            #[cfg(feature = "arbitrary-precision")]
-            OpaqueNumber::Decimal(x) => x.to_f64(),
+    #[cfg(not(feature = "arbitrary-precision"))]
+    fn to_i64(&self) -> Option<i64> {
+        // we cannot guarantee that post neg and pos ints actually fit into i64, as they both take a
+        // single bit more, we therefore convert both first to i64 (or at least try to) and then
+        // negate the negative numbers
+        match self.0 {
+            OpaqueNumber::PosInt(int) => i64::try_from(int).ok(),
+            OpaqueNumber::NegInt(int) => i64::try_from(int).ok().map(Neg::neg),
+            OpaqueNumber::Float(_) => None,
         }
+    }
+
+    #[cfg(feature = "arbitrary-precision")]
+    fn to_i64(&self) -> Option<i64> {
+        self.0.parse().ok()
+    }
+
+    #[cfg(not(feature = "arbitrary-precision"))]
+    fn to_i128(&self) -> Option<i128> {
+        // this is manually implemented, because `Number` actually saves more than `i64` for
+        // negative values, therefore the default implementation (which just defers to `i64` is
+        // inadequate)
+
+        match self.0 {
+            OpaqueNumber::PosInt(int) => Some(i128::from(int)),
+            OpaqueNumber::NegInt(int) => Some(-i128::from(int)),
+            OpaqueNumber::Float(_) => None,
+        }
+    }
+
+    #[cfg(feature = "arbitrary-precision")]
+    fn to_i128(&self) -> Option<i128> {
+        self.0.parse().ok()
+    }
+
+    #[cfg(not(feature = "arbitrary-precision"))]
+    fn to_u64(&self) -> Option<u64> {
+        if let Self(OpaqueNumber::PosInt(n)) = self {
+            Some(*n)
+        } else {
+            None
+        }
+    }
+
+    #[cfg(feature = "arbitrary-precision")]
+    fn to_u64(&self) -> Option<u64> {
+        self.0.parse().ok()
+    }
+
+    #[cfg(feature = "arbitrary-precision")]
+    fn to_usize(&self) -> Option<usize> {
+        self.0.parse().ok()
+    }
+
+    // while we can delegate to the default implementation of u64 for non arbitrary precision (we
+    // can only represent values in u64, which are fully contained in u128), we do not have the same
+    // guarantee when we only have a `String` as the inner type.
+    #[cfg(feature = "arbitrary-precision")]
+    fn to_u128(&self) -> Option<u128> {
+        self.0.parse().ok()
+    }
+
+    #[cfg(not(feature = "arbitrary-precision"))]
+    fn to_f64(&self) -> Option<f64> {
+        if let Self(OpaqueNumber::Float(float)) = self {
+            Some(*float)
+        } else {
+            None
+        }
+    }
+
+    #[cfg(feature = "arbitrary-precision")]
+    fn to_f64(&self) -> Option<f64> {
+        self.0.parse().ok()
     }
 }
 
 macro_rules! impl_from {
-    (#internal, $ty:ty) => {
-        impl From<$ty> for Number {
-            fn from(value: $ty) -> Self {
-                Self(OpaqueNumber::Int(i64::from(value)))
+    (#internal, $t:ty, $func:ident) => {
+        impl From<$t> for Number {
+            fn from(value: $t) -> Self {
+                // unwrap here is okay, as this **always** returns `Some`
+                Self::$func(value).unwrap()
             }
         }
     };
 
-    (#internal, $modifier:literal, $ty:ty) => {
-        impl From<$ty> for Number {
-            fn from(value: $ty) -> Self {
-                Self(OpaqueNumber::Float(f64::from(value)))
+    ($($t:ty: $func:ident),*) => {
+        $(impl_from!(#internal, $t, $func);)*
+    }
+}
+
+impl_from! {
+    i8: from_i8,
+    i16: from_i16,
+    i32: from_i32,
+    i64: from_i64,
+    u8: from_u8,
+    u16: from_u16,
+    u32: from_u32,
+    u64: from_u64,
+    f32: from_f32,
+    f64: from_f64
+}
+
+impl Display for Number {
+    #[cfg(not(feature = "arbitrary-precision"))]
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        match &self.0 {
+            OpaqueNumber::PosInt(pos) => Display::fmt(pos, f),
+            OpaqueNumber::NegInt(neg) => {
+                // emulate negative number
+                f.write_char('-')?;
+                Display::fmt(neg, f)
             }
-        }
-    };
-
-    ([$($($modifier:literal :)? $ty:ty),*]) => {
-        $(impl_from!(#internal, $($modifier ,)? $ty);)*
-    }
-}
-
-impl_from!([i8, i16, i32, i64, u8, u16, u32, "float": f32, "float": f64]);
-
-#[cfg(feature = "arbitrary-precision")]
-impl From<BigInt> for Number {
-    fn from(value: BigInt) -> Self {
-        value.to_i64().map_or_else(
-            || Self(OpaqueNumber::BigInt(value)),
-            |value| Self(OpaqueNumber::Int(value)),
-        )
-    }
-}
-
-#[cfg(feature = "arbitrary-precision")]
-impl ToBigInt for Number {
-    fn to_bigint(&self) -> Option<BigInt> {
-        match &self.0 {
-            OpaqueNumber::Int(int) => int.to_bigint(),
-            OpaqueNumber::BigInt(int) => Some(int.clone()),
-            OpaqueNumber::Float(float) => float.to_bigint(),
-            OpaqueNumber::Decimal(_) => None,
+            OpaqueNumber::Float(float) => Display::fmt(float, f),
         }
     }
-}
 
-#[cfg(feature = "arbitrary-precision")]
-impl ToBigUint for Number {
-    fn to_biguint(&self) -> Option<BigUint> {
-        match &self.0 {
-            OpaqueNumber::Int(int) => int.to_biguint(),
-            OpaqueNumber::BigInt(int) => int.to_biguint(),
-            OpaqueNumber::Float(float) => float.to_biguint(),
-            OpaqueNumber::Decimal(_) => None,
-        }
+    #[cfg(feature = "arbitrary-precision")]
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        f.write_str(&self.0)
     }
 }
 
 #[cfg(feature = "arbitrary-precision")]
-impl From<Decimal> for Number {
-    fn from(value: Decimal) -> Self {
-        Self(OpaqueNumber::Decimal(value))
+impl From<String> for Number {
+    fn from(value: String) -> Self {
+        Self(value)
     }
 }
