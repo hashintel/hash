@@ -95,7 +95,7 @@
     "@types/connect-pg-simple": "4.2.4",
     "@types/cron": "2.0.0",
     "@types/dedent": "0.7.0",
-    "@types/express-session": "1.17.4",
+    "@types/express-session": "1.17.5",
     "@types/html-to-text": "8.0.1",
     "@types/jest": "29.2.2",
     "@types/json-schema": "7.0.9",
