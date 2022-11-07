@@ -1,5 +1,7 @@
-use core::fmt::{Display, Formatter, Write};
-use std::ops::Neg;
+use core::{
+    fmt::{Display, Formatter, Write},
+    ops::Neg,
+};
 
 use num_traits::{FromPrimitive, ToPrimitive};
 
