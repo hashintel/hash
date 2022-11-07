@@ -330,7 +330,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   );
 
   pgm.createTable(
-    "entities",
+    "latest_entities",
     {
       entity_id: {
         type: "UUID",
@@ -394,19 +394,23 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
     },
   );
   // Only allow a single version of an entity in this table.
-  pgm.addConstraint("entities", "entities_primary_key", {
+  pgm.addConstraint("latest_entities", "latest_entities_primary_key", {
     primaryKey: ["entity_id"],
   });
 
-  pgm.addConstraint("entities", "entities_relation_constraint", {
+  pgm.addConstraint("latest_entities", "latest_entities_relation_constraint", {
     check: `(left_entity_id IS NULL     AND right_entity_id IS NULL) 
           OR left_entity_id IS NOT NULL AND right_entity_id IS NOT NULL`,
   });
 
-  pgm.addConstraint("entities", "entities_relation_order_constraint", {
-    check: `(left_entity_id IS NOT NULL AND right_entity_id IS NOT NULL)
+  pgm.addConstraint(
+    "latest_entities",
+    "latest_entities_relation_order_constraint",
+    {
+      check: `(left_entity_id IS NOT NULL AND right_entity_id IS NOT NULL)
             OR (left_order IS NULL AND right_order IS NULL)`,
-  });
+    },
+  );
 
   pgm.createTable(
     "entity_histories",
@@ -489,6 +493,17 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       check: `(left_entity_id IS NULL     AND right_entity_id IS NULL) 
             OR left_entity_id IS NOT NULL AND right_entity_id IS NOT NULL`,
     },
+  );
+
+  // This view contains the union of both latest and historic table.
+  // The latest entities come first when querying the view.
+  pgm.createView(
+    "entities",
+    {},
+    `
+    SELECT entity_id, version, entity_type_version_id, properties, left_order, right_order, left_entity_id, right_entity_id, FALSE AS archived, owned_by_id, created_by_id, updated_by_id FROM latest_entities
+    UNION ALL
+    SELECT entity_id, version, entity_type_version_id, properties, left_order, right_order, left_entity_id, right_entity_id, archived, owned_by_id, created_by_id, updated_by_id FROM entity_histories`,
   );
 }
 
