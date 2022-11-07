@@ -13,7 +13,7 @@ import { useInitTypeSystem } from "../../../../lib/use-init-type-system";
 import { mustBeVersionedUri } from "./util";
 
 type PropertyTypesContextValues = {
-  types: Record<VersionedUri, PropertyType>;
+  types: Record<VersionedUri, PropertyType> | null;
   refetch: () => Promise<void>;
 };
 
