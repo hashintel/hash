@@ -76,6 +76,7 @@ export const PropertyTypeForm = ({
       isSubmitting,
       errors: { name: nameError, description: descriptionError },
       touchedFields: { description: descriptionTouched },
+      isValid,
     },
     getValues,
     control,
@@ -318,7 +319,7 @@ export const PropertyTypeForm = ({
       <Stack direction="row" spacing={1.25}>
         <Button
           loading={isSubmitting}
-          disabled={isSubmitting || !!nameError}
+          disabled={isSubmitting || !isValid}
           type="submit"
           size="small"
         >
