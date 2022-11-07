@@ -91,7 +91,7 @@ export const getPropertyType: ResolverFn<
   const { graphApi } = dataSources;
 
   const { data: propertyTypeSubgraph } = await graphApi
-    .getDataTypesByQuery({
+    .getPropertyTypesByQuery({
       filter: {
         equal: [{ path: ["versionedUri"] }, { parameter: propertyTypeId }],
       },
