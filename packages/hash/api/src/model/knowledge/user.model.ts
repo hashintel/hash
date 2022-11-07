@@ -6,7 +6,7 @@ import {
   EntityModelCreateParams,
   OrgModel,
   OrgMembershipModel,
-  WorkspaceInstanceModel,
+  HashInstanceModel,
 } from "..";
 import {
   adminKratosSdk,
@@ -180,10 +180,11 @@ export default class extends EntityModel {
     const userModel = UserModel.fromEntityModel(entity);
 
     if (isInstanceAdmin) {
-      const workspaceInstanceModel =
-        await WorkspaceInstanceModel.getWorkspaceInstanceModel(graphApi);
+      const hashInstanceModel = await HashInstanceModel.getHashInstanceModel(
+        graphApi,
+      );
 
-      await workspaceInstanceModel.addAdmin(graphApi, { userModel, actorId });
+      await hashInstanceModel.addAdmin(graphApi, { userModel, actorId });
     }
 
     return userModel;
@@ -470,13 +471,14 @@ export default class extends EntityModel {
   }
 
   /**
-   * Whether or not the user is a workspace instance admin.
+   * Whether or not the user is a hash instance admin.
    */
-  async isWorkspaceInstanceAdmin(graphApi: GraphApi) {
-    const workspaceInstanceModel =
-      await WorkspaceInstanceModel.getWorkspaceInstanceModel(graphApi);
+  async isHashInstanceAdmin(graphApi: GraphApi) {
+    const hashInstanceModel = await HashInstanceModel.getHashInstanceModel(
+      graphApi,
+    );
 
-    return await workspaceInstanceModel.hasAdmin(graphApi, {
+    return await hashInstanceModel.hasAdmin(graphApi, {
       userModel: this,
     });
   }

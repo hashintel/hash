@@ -49,7 +49,7 @@ export let WORKSPACE_TYPES: {
     deletedAt: PropertyTypeModel;
   };
   entityType: {
-    workspaceInstance: EntityTypeModel;
+    hashInstance: EntityTypeModel;
     user: EntityTypeModel;
     org: EntityTypeModel;
     orgMembership: EntityTypeModel;
@@ -64,7 +64,7 @@ export let WORKSPACE_TYPES: {
     dummy: EntityTypeModel;
   };
   linkType: {
-    // WorkspaceInstance-related
+    // HASHInstance-related
     admin: LinkTypeModel;
 
     // User-related
@@ -91,9 +91,7 @@ export const adminLinkTypeInitializer = linkTypeInitializer({
   actorId: workspaceAccountId,
 });
 
-export const workspaceInstanceEntityTypeInitializer = async (
-  graphApi: GraphApi,
-) => {
+export const hashInstanceEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
 
   const adminLinkTypeModel = await WORKSPACE_TYPES_INITIALIZERS.linkType.admin(
@@ -106,7 +104,7 @@ export const workspaceInstanceEntityTypeInitializer = async (
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
-    ...types.entityType.workspaceInstance,
+    ...types.entityType.hashInstance,
     properties: [],
     outgoingLinks: [
       {
@@ -634,7 +632,7 @@ export const WORKSPACE_TYPES_INITIALIZERS: FlattenAndPromisify<
     deletedAt: deletedAtPropertyTypeInitializer,
   },
   entityType: {
-    workspaceInstance: workspaceInstanceEntityTypeInitializer,
+    hashInstance: hashInstanceEntityTypeInitializer,
     user: userEntityTypeInitializer,
     org: orgEntityTypeInitializer,
     orgMembership: orgMembershipEntityTypeInitializer,

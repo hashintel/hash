@@ -128,9 +128,9 @@ const workspaceEntityTypes = {
     title: "Comment",
     description: undefined,
   },
-  workspaceInstance: {
-    title: "Workspace Instance",
-    description: "A HASH workspace instance.",
+  hashInstance: {
+    title: "HASH Instance",
+    description: "An instance of HASH.",
   },
 } as const;
 

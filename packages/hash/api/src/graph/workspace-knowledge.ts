@@ -2,7 +2,7 @@ import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { GraphApi } from "@hashintel/hash-graph-client";
 import { NotFoundError } from "../lib/error";
 import { logger } from "../logger";
-import { WorkspaceInstanceModel } from "../model";
+import { HashInstanceModel } from "../model";
 import { workspaceAccountId } from "../model/util";
 
 /**
@@ -22,11 +22,11 @@ export const ensureWorkspaceKnowledgeExists = async (params: {
    *   https://app.asana.com/0/1201095311341924/1202573572594586/f
    */
 
-  await WorkspaceInstanceModel.getWorkspaceInstanceModel(graphApi).catch(
+  await HashInstanceModel.getHashInstanceModel(graphApi).catch(
     async (error: Error) => {
       // Create the workspace instance entity, if it doesn't already exist.
       if (error instanceof NotFoundError) {
-        return await WorkspaceInstanceModel.createWorkspaceInstance(graphApi, {
+        return await HashInstanceModel.createHashInstance(graphApi, {
           actorId: workspaceAccountId,
         });
       }

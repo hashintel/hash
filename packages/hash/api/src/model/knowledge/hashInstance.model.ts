@@ -1,6 +1,6 @@
 import { GraphApi } from "../../graph";
 import {
-  WorkspaceInstanceModel,
+  HashInstanceModel,
   EntityModel,
   EntityModelCreateParams,
   UserModel,
@@ -10,43 +10,43 @@ import { workspaceAccountId } from "../util";
 import { WORKSPACE_TYPES } from "../../graph/workspace-types";
 import { EntityTypeMismatchError, NotFoundError } from "../../lib/error";
 
-export type WorkspaceInstanceModelCreateParams = Omit<
+export type HashInstanceModelCreateParams = Omit<
   EntityModelCreateParams,
   "properties" | "entityTypeModel" | "ownedById"
 > & {};
 
 /**
- * @class {@link WorkspaceInstanceModel}
+ * @class {@link HashInstanceModel}
  */
 export default class extends EntityModel {
-  static fromEntityModel(entity: EntityModel): WorkspaceInstanceModel {
+  static fromEntityModel(entity: EntityModel): HashInstanceModel {
     if (
       entity.entityTypeModel.schema.$id !==
-      WORKSPACE_TYPES.entityType.workspaceInstance.schema.$id
+      WORKSPACE_TYPES.entityType.hashInstance.schema.$id
     ) {
       throw new EntityTypeMismatchError(
         entity.entityId,
-        WORKSPACE_TYPES.entityType.workspaceInstance.schema.$id,
+        WORKSPACE_TYPES.entityType.hashInstance.schema.$id,
         entity.entityTypeModel.schema.$id,
       );
     }
 
-    return new WorkspaceInstanceModel(entity);
+    return new HashInstanceModel(entity);
   }
 
   /**
-   * Create the workspace instance entity.
+   * Create the hash instance entity.
    *
    * @see {@link EntityModel.create} for the remaining params
    */
-  static async createWorkspaceInstance(
+  static async createHashInstance(
     graphApi: GraphApi,
-    params: WorkspaceInstanceModelCreateParams,
+    params: HashInstanceModelCreateParams,
   ) {
-    // Ensure the workspace instance entity has not already been created.
-    await WorkspaceInstanceModel.getWorkspaceInstanceModel(graphApi)
+    // Ensure the hash instance entity has not already been created.
+    await HashInstanceModel.getHashInstanceModel(graphApi)
       .then(() => {
-        throw new Error("Workspace instance entity already exists.");
+        throw new Error("Hash instance entity already exists.");
       })
       .catch((error: Error) => {
         if (!(error instanceof NotFoundError)) {
@@ -56,7 +56,7 @@ export default class extends EntityModel {
 
     const { actorId } = params;
 
-    const entityTypeModel = WORKSPACE_TYPES.entityType.workspaceInstance;
+    const entityTypeModel = WORKSPACE_TYPES.entityType.hashInstance;
 
     const entityModel = await EntityModel.create(graphApi, {
       ownedById: workspaceAccountId,
@@ -65,15 +65,15 @@ export default class extends EntityModel {
       actorId,
     });
 
-    return WorkspaceInstanceModel.fromEntityModel(entityModel);
+    return HashInstanceModel.fromEntityModel(entityModel);
   }
 
   /**
-   * Get the workspace instance.
+   * Get the hash instance.
    */
-  static async getWorkspaceInstanceModel(
+  static async getHashInstanceModel(
     graphApi: GraphApi,
-  ): Promise<WorkspaceInstanceModel> {
+  ): Promise<HashInstanceModel> {
     const entities = await EntityModel.getByQuery(graphApi, {
       all: [
         { equal: [{ path: ["version"] }, { parameter: "latest" }] },
@@ -81,8 +81,7 @@ export default class extends EntityModel {
           equal: [
             { path: ["type", "versionedUri"] },
             {
-              parameter:
-                WORKSPACE_TYPES.entityType.workspaceInstance.schema.$id,
+              parameter: WORKSPACE_TYPES.entityType.hashInstance.schema.$id,
             },
           ],
         },
@@ -90,24 +89,22 @@ export default class extends EntityModel {
     });
 
     if (entities.length > 1) {
-      throw new Error(
-        "More than one workspace instance entity found in the graph.",
-      );
+      throw new Error("More than one hash instance entity found in the graph.");
     }
 
     const entity = entities[0];
 
     if (!entity) {
-      throw new NotFoundError("Could not find workspace instance entity.");
+      throw new NotFoundError("Could not find hash instance entity.");
     }
 
-    return WorkspaceInstanceModel.fromEntityModel(entity);
+    return HashInstanceModel.fromEntityModel(entity);
   }
 
   /**
-   * Check whether or not the user is a workspace instance admin.
+   * Check whether or not the user is a hash instance admin.
    *
-   * @param params.userModel - the user that may be a workspace instance admin.
+   * @param params.userModel - the user that may be a hash instance admin.
    */
   async hasAdmin(
     graphApi: GraphApi,
@@ -130,9 +127,9 @@ export default class extends EntityModel {
   }
 
   /**
-   * Add an instance admin to the workspace instance.
+   * Add an instance admin to the hash instance.
    *
-   * @param params.userModel - the user to be added as a workspace instance admin.
+   * @param params.userModel - the user to be added as a hash instance admin.
    */
   async addAdmin(
     graphApi: GraphApi,
@@ -140,13 +137,13 @@ export default class extends EntityModel {
   ): Promise<void> {
     const { userModel, actorId } = params;
 
-    const isAlreadyWorkspaceInstanceAdmin = await this.hasAdmin(graphApi, {
+    const isAlreadyHashInstanceAdmin = await this.hasAdmin(graphApi, {
       userModel,
     });
 
-    if (isAlreadyWorkspaceInstanceAdmin) {
+    if (isAlreadyHashInstanceAdmin) {
       throw new Error(
-        `User with entityId "${userModel.entityId}" is already a workspace instance admin.`,
+        `User with entityId "${userModel.entityId}" is already a hash instance admin.`,
       );
     }
 
@@ -159,9 +156,9 @@ export default class extends EntityModel {
   }
 
   /**
-   * Remove an instance admin from the workspace instance.
+   * Remove an instance admin from the hash instance.
    *
-   * @param params.userModel - the user to be removed as a workspace instance admin.
+   * @param params.userModel - the user to be removed as a hash instance admin.
    */
   async removeAdmin(
     graphApi: GraphApi,

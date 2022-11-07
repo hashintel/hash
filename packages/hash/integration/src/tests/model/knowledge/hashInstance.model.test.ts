@@ -6,10 +6,7 @@ import {
 } from "@hashintel/hash-api/src/graph/workspace-types";
 import { ensureWorkspaceKnowledgeExists } from "@hashintel/hash-api/src/graph/workspace-knowledge";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
-import {
-  UserModel,
-  WorkspaceInstanceModel,
-} from "@hashintel/hash-api/src/model";
+import { UserModel, HashInstanceModel } from "@hashintel/hash-api/src/model";
 import { workspaceAccountId } from "@hashintel/hash-api/src/model/util";
 import { createTestUser } from "../../util";
 
@@ -36,62 +33,59 @@ describe("WorkspaceInstance model class", () => {
     await ensureWorkspaceKnowledgeExists({ graphApi, logger });
   });
 
-  let workspaceInstanceModel: WorkspaceInstanceModel;
+  let hashInstanceModel: HashInstanceModel;
 
-  it("can get the workspace instance", async () => {
-    workspaceInstanceModel =
-      await WorkspaceInstanceModel.getWorkspaceInstanceModel(graphApi);
+  it("can get the hash instance", async () => {
+    hashInstanceModel = await HashInstanceModel.getHashInstanceModel(graphApi);
 
-    expect(workspaceInstanceModel).toBeTruthy();
+    expect(hashInstanceModel).toBeTruthy();
   });
 
   let testWorkspaceAdmin: UserModel;
 
-  it("can add a workspace instance admin", async () => {
-    testWorkspaceAdmin = await createTestUser(
-      graphApi,
-      "workspaceInstTest",
-      logger,
-    );
+  it("can add a hash instance admin", async () => {
+    testWorkspaceAdmin = await createTestUser(graphApi, "hashInstTest", logger);
 
-    await workspaceInstanceModel.addAdmin(graphApi, {
+    await hashInstanceModel.addAdmin(graphApi, {
       userModel: testWorkspaceAdmin,
       actorId: workspaceAccountId,
     });
 
-    const workspaceOutgoingAdminLinks =
-      await workspaceInstanceModel.getOutgoingLinks(graphApi, {
+    const hashOutgoingAdminLinks = await hashInstanceModel.getOutgoingLinks(
+      graphApi,
+      {
         linkTypeModel: WORKSPACE_TYPES.linkType.admin,
-      });
+      },
+    );
 
-    expect(workspaceOutgoingAdminLinks).toHaveLength(1);
+    expect(hashOutgoingAdminLinks).toHaveLength(1);
 
-    const [workspaceOutgoingAdminLink] = workspaceOutgoingAdminLinks;
+    const [hashOutgoingAdminLink] = hashOutgoingAdminLinks;
 
-    expect(workspaceOutgoingAdminLink?.targetEntityModel).toEqual(
+    expect(hashOutgoingAdminLink?.targetEntityModel).toEqual(
       testWorkspaceAdmin,
     );
   });
 
-  it("can determine if user is workspace admin", async () => {
-    const hasWorkspaceAdmin = await workspaceInstanceModel.hasAdmin(graphApi, {
+  it("can determine if user is hash admin", async () => {
+    const hasWorkspaceAdmin = await hashInstanceModel.hasAdmin(graphApi, {
       userModel: testWorkspaceAdmin,
     });
 
     expect(hasWorkspaceAdmin).toBeTruthy();
   });
 
-  it("can remove a workspace instance admin", async () => {
-    await workspaceInstanceModel.removeAdmin(graphApi, {
+  it("can remove a hash instance admin", async () => {
+    await hashInstanceModel.removeAdmin(graphApi, {
       userModel: testWorkspaceAdmin,
       actorId: workspaceAccountId,
     });
 
-    const workspaceOutgoingAdminLinks =
-      await workspaceInstanceModel.getOutgoingLinks(graphApi, {
+    const hashInstanceOutgoingAdminLinks =
+      await hashInstanceModel.getOutgoingLinks(graphApi, {
         linkTypeModel: WORKSPACE_TYPES.linkType.admin,
       });
 
-    expect(workspaceOutgoingAdminLinks).toHaveLength(0);
+    expect(hashInstanceOutgoingAdminLinks).toHaveLength(0);
   });
 });
