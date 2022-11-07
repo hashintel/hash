@@ -25,12 +25,8 @@ type OpaqueNumber = String;
 /// This type also enables easy coercion of values at deserialization time.
 ///
 /// Without the `arbitrary-precision` feature enabled, integers are limited to `i64`, while floats
-/// are stored as `f64`, larger values are only supported using the aforementioned feature and are
-/// stored as [`BigInt`], [`Decimal`] respectively, there is no guarantee that the storage of
-/// arbitrarily sized values will be the same across breaking revisions.
-///
-/// Even with `arbitrary-precision` enabled, this type will try to fit the converted value into a
-/// `i64`, if that isn't possible it will fallback to a [`BigInt`].
+/// are stored as `f64`, larger values are only supported using the aforementioned feature, where
+/// every value is stored as a `String` instead.
 ///
 /// [`Deserializer`]: crate::Deserializer
 #[derive(Debug, Clone, PartialEq)]
