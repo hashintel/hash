@@ -44,15 +44,18 @@ export default class extends EntityModel {
     params: HashInstanceModelCreateParams,
   ) {
     // Ensure the hash instance entity has not already been created.
-    await HashInstanceModel.getHashInstanceModel(graphApi)
-      .then(() => {
-        throw new Error("Hash instance entity already exists.");
-      })
-      .catch((error: Error) => {
-        if (!(error instanceof NotFoundError)) {
-          throw error;
-        }
-      });
+    const existingHashInstance = await HashInstanceModel.getHashInstanceModel(
+      graphApi,
+    ).catch((error: Error) => {
+      if (error instanceof NotFoundError) {
+        return null;
+      }
+      throw error;
+    });
+
+    if (existingHashInstance) {
+      throw new Error("Hash instance entity already exists.");
+    }
 
     const { actorId } = params;
 
