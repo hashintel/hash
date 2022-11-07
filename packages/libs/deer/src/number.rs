@@ -1,3 +1,5 @@
+#[cfg(not(feature = "std"))]
+use alloc::string::ToString;
 use core::{
     fmt::{Display, Formatter, Write},
     ops::Neg,
