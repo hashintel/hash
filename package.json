@@ -19,7 +19,6 @@
       "packages/hash/search-loader",
       "packages/hash/shared",
       "packages/hash/task-executor",
-      "packages/hash/tsconfig",
       "sites/hashai",
       "sites/hashdev"
     ]
