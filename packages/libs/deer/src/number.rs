@@ -1,4 +1,4 @@
-#[cfg(not(feature = "std"))]
+#[cfg(all(not(feature = "std"), feature = "arbitrary-precision"))]
 use alloc::string::ToString;
 use core::{
     fmt::{Display, Formatter, Write},
