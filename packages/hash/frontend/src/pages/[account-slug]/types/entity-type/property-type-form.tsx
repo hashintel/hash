@@ -16,7 +16,7 @@ import {
   Stack,
   Tooltip,
 } from "@mui/material";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useBlockProtocolCreatePropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreatePropertyType";
 import { useBlockProtocolGetPropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetPropertyType";
@@ -54,16 +54,18 @@ export const PropertyTypeForm = ({
     handleSubmit: wrapHandleSubmit,
     formState: {
       isSubmitting,
-      errors: { name: nameError },
+      errors: { name: nameError, description: descriptionError },
+      touchedFields: { description: descriptionTouched },
     },
+    getValues,
     control,
     clearErrors,
     setFocus,
   } = useForm<PropertyTypeFormValues>({
     defaultValues: { name: initialTitle, description: "", expectedValues: [] },
     shouldFocusError: true,
-    mode: "onSubmit",
-    reValidateMode: "onSubmit",
+    mode: "onBlur",
+    reValidateMode: "onBlur",
   });
 
   useEffect(() => {
@@ -115,6 +117,13 @@ export const PropertyTypeForm = ({
     onCreatePropertyType(res.data.propertyType);
   });
 
+  /**
+   * Frustratingly, we have to track this ourselves
+   * @see https://github.com/react-hook-form/react-hook-form/discussions/2633
+   */
+  const [titleValid, setTitleValid] = useState(false);
+  const [descriptionValid, setDescriptionValid] = useState(false);
+
   return (
     <Box
       minWidth={500}
@@ -140,10 +149,12 @@ export const PropertyTypeForm = ({
           disabled={isSubmitting}
           error={!!nameError}
           helperText={nameError?.message}
+          success={titleValid}
           {...register("name", {
             required: true,
             onChange() {
               clearErrors("name");
+              setTitleValid(false);
             },
             async validate(value) {
               const propertyTypeId = generateInitialPropertyTypeId(
@@ -155,6 +166,10 @@ export const PropertyTypeForm = ({
               const exists =
                 !res.data ||
                 !!getPersistedPropertyType(res.data, propertyTypeId);
+
+              if (getValues("name") === value && !exists) {
+                setTitleValid(true);
+              }
 
               return exists ? "Property type name must be unique" : true;
             },
@@ -197,7 +212,20 @@ export const PropertyTypeForm = ({
           required
           placeholder="Describe this property type in one or two sentences"
           disabled={isSubmitting}
-          {...register("description", { required: true })}
+          success={descriptionValid}
+          error={!!descriptionError && descriptionTouched}
+          {...register("description", {
+            required: true,
+            onChange() {
+              clearErrors("description");
+              setDescriptionValid(false);
+            },
+            validate(value) {
+              setDescriptionValid(!!value);
+
+              return value ? true : "You must choose a description";
+            },
+          })}
         />
         <Controller
           render={({ field: { onChange, ...props } }) => (
