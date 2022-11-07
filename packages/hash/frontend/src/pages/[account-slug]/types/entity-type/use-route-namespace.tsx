@@ -27,7 +27,7 @@ export const useRouteNamespace = () => {
         };
       }
     }
-  }, [authenticatedUser, shortname, router]);
+  }, [authenticatedUser, shortname]);
 
   return namespace;
 };
