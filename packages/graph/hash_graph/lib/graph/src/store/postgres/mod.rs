@@ -29,7 +29,7 @@ use uuid::Uuid;
 use self::context::{OntologyRecord, PostgresContext};
 pub use self::pool::{AsClient, PostgresStorePool};
 use crate::{
-    identifier::{AccountId, EntityIdentifier, GraphElementEditionIdentifier, OntologyTypeVersion},
+    identifier::{AccountId, EntityIdentifier, GraphElementEditionIdentifier},
     knowledge::{
         Entity, EntityId, LinkEntityMetadata, PersistedEntity, PersistedEntityIdentifier,
         PersistedEntityMetadata,
@@ -39,7 +39,6 @@ use crate::{
         PersistedOntologyMetadata, PersistedPropertyType,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
-    shared::identifier::GraphElementIdentifier,
     store::{
         error::VersionedUriAlreadyExists,
         postgres::{ontology::OntologyDatabaseType, version_id::VersionId},

@@ -10,7 +10,6 @@ use crate::{
     identifier::GraphElementEditionIdentifier,
     ontology::{PersistedOntologyMetadata, PersistedPropertyType},
     provenance::{CreatedById, OwnedById, UpdatedById},
-    shared::identifier::GraphElementIdentifier,
     store::{
         crud::Read,
         postgres::{context::PostgresContext, DependencyContext, DependencyContextRef},

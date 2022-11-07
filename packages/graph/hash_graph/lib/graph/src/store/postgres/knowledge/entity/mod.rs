@@ -10,7 +10,7 @@ use type_system::uri::VersionedUri;
 use uuid::Uuid;
 
 use crate::{
-    identifier::{EntityIdentifier, GraphElementEditionIdentifier, GraphElementIdentifier},
+    identifier::{EntityIdentifier, GraphElementEditionIdentifier},
     knowledge::{
         Entity, EntityId, LinkEntityMetadata, PersistedEntity, PersistedEntityIdentifier,
         PersistedEntityMetadata,

@@ -8,7 +8,6 @@ use crate::{
     identifier::GraphElementEditionIdentifier,
     ontology::{PersistedDataType, PersistedOntologyMetadata},
     provenance::{CreatedById, OwnedById, UpdatedById},
-    shared::identifier::GraphElementIdentifier,
     store::{
         crud::Read,
         postgres::{context::PostgresContext, DependencyContext, DependencyContextRef},

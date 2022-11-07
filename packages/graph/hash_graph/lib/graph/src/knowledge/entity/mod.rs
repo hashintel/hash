@@ -2,7 +2,6 @@ mod query;
 
 use std::{collections::HashMap, fmt};
 
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tokio_postgres::types::{FromSql, ToSql};
 use type_system::uri::{BaseUri, VersionedUri};
@@ -11,8 +10,8 @@ use uuid::Uuid;
 
 pub use self::query::{EntityQueryPath, EntityQueryPathVisitor};
 use crate::{
-    identifier::{EntityIdentifier, EntityVersion, Timestamp},
-    provenance::{CreatedById, OwnedById, UpdatedById},
+    identifier::{EntityIdentifier, EntityVersion},
+    provenance::{CreatedById, UpdatedById},
 };
 
 // TODO: rename this to EntityUuid

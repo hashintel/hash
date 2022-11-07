@@ -17,19 +17,20 @@ use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
     identifier::EntityIdentifier,
     knowledge::{
-        Entity, EntityId, LinkEntityMetadata, PersistedEntity, PersistedEntityIdentifier,
-        PersistedEntityMetadata,
+        Entity, EntityId, LinkEntityMetadata, LinkOrder, PersistedEntity,
+        PersistedEntityIdentifier, PersistedEntityMetadata,
     },
-    provenance::{CreatedById, OwnedById, UpdatedById},
-    shared::identifier::GraphElementIdentifier,
+    provenance::{CreatedById, OwnedById, RemovedById, UpdatedById},
+    shared::identifier::{GraphElementEditionIdentifier, GraphElementIdentifier},
     store::{
         error::{EntityDoesNotExist, QueryError},
         query::Filter,
         EntityStore, StorePool,
     },
     subgraph::{
-        Edges, EntityStructuralQuery, GenericOutwardEdge, GraphResolveDepths, StructuralQuery,
-        Subgraph,
+        Edges, EntityStructuralQuery, GraphResolveDepths, KnowledgeGraphRootedEdges,
+        KnowledgeGraphVertex, KnowledgeGraphVertices, OntologyRootedEdges, OntologyVertex,
+        OntologyVertices, StructuralQuery, Subgraph, Vertices,
     },
 };
 
@@ -47,6 +48,7 @@ use crate::{
             OwnedById,
             CreatedById,
             UpdatedById,
+            RemovedById,
             CreateEntityRequest,
             UpdateEntityRequest,
             ArchiveEntityRequest,
@@ -60,6 +62,17 @@ use crate::{
             GraphResolveDepths,
             Edges,
             Subgraph,
+            EntityIdentifier,
+            LinkEntityMetadata,
+            KnowledgeGraphRootedEdges,
+            OntologyRootedEdges,
+            GraphElementEditionIdentifier,
+            Vertices,
+            OntologyVertices,
+            KnowledgeGraphVertices,
+            KnowledgeGraphVertex,
+            OntologyVertex,
+            LinkOrder
         )
     ),
     tags(

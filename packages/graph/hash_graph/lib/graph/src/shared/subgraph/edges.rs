@@ -5,7 +5,7 @@ use std::{
 
 use serde::Serialize;
 use type_system::uri::{BaseUri, VersionedUri};
-use utoipa::ToSchema;
+use utoipa::{openapi, ToSchema};
 
 use crate::identifier::{
     EntityAndTimestamp, EntityIdentifier, GraphElementEditionIdentifier, OntologyTypeVersion,
@@ -46,7 +46,7 @@ pub enum SharedEdgeKind {
     IsOfType,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct GenericOutwardEdge<E, V>
 where
@@ -58,6 +58,29 @@ where
     /// instead of Source-Edge-Target, interpret it as Target-Edge-Source
     pub reversed: bool,
     pub endpoint: V,
+}
+
+impl<E, V> GenericOutwardEdge<E, V>
+where
+    E: Serialize,
+    V: Serialize,
+{
+    fn schema(
+        edge_kind_schema: openapi::schema::Schema,
+        endpoint_schema: openapi::schema::Schema,
+    ) -> openapi::Schema {
+        openapi::ObjectBuilder::new()
+            .additional_properties(Some(openapi::Schema::from(
+                openapi::ObjectBuilder::new()
+                    .property("kind", edge_kind_schema)
+                    .property(
+                        "reversed",
+                        openapi::Object::with_type(openapi::SchemaType::Boolean),
+                    )
+                    .property("endpoint", endpoint_schema),
+            )))
+            .into()
+    }
 }
 
 impl<E, V> PartialOrd for GenericOutwardEdge<E, V>
@@ -80,18 +103,61 @@ where
     }
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, ToSchema)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 #[serde(untagged)]
 pub enum OntologyOutwardEdges {
     ToOntology(GenericOutwardEdge<OntologyEdgeKind, VersionedUri>),
     ToKnowledgeGraph(GenericOutwardEdge<SharedEdgeKind, EntityIdentifier>),
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, ToSchema)]
+impl ToSchema for OntologyOutwardEdges {
+    fn schema() -> openapi::Schema {
+        openapi::OneOfBuilder::new()
+            .item(openapi::schema::RefOr::T(<GenericOutwardEdge<
+                OntologyEdgeKind,
+                VersionedUri,
+            >>::schema(
+                OntologyEdgeKind::schema(),
+                openapi::schema::Schema::Object(openapi::schema::Object::with_type(
+                    openapi::SchemaType::String,
+                )),
+            )))
+            .item(<GenericOutwardEdge<SharedEdgeKind, VersionedUri>>::schema(
+                SharedEdgeKind::schema(),
+                EntityIdentifier::schema(),
+            ))
+            .into()
+    }
+}
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 #[serde(untagged)]
 pub enum KnowledgeGraphOutwardEdges {
     ToKnowledgeGraph(GenericOutwardEdge<KnowledgeGraphEdgeKind, EntityAndTimestamp>),
     ToOntology(GenericOutwardEdge<SharedEdgeKind, VersionedUri>),
+}
+
+impl ToSchema for KnowledgeGraphOutwardEdges {
+    fn schema() -> openapi::Schema {
+        openapi::OneOfBuilder::new()
+            .item(openapi::schema::RefOr::T(<GenericOutwardEdge<
+                KnowledgeGraphEdgeKind,
+                EntityAndTimestamp,
+            >>::schema(
+                KnowledgeGraphEdgeKind::schema(),
+                EntityAndTimestamp::schema(),
+            )))
+            .item(openapi::schema::RefOr::T(<GenericOutwardEdge<
+                SharedEdgeKind,
+                VersionedUri,
+            >>::schema(
+                SharedEdgeKind::schema(),
+                openapi::schema::Schema::Object(openapi::schema::Object::with_type(
+                    openapi::SchemaType::String,
+                )),
+            )))
+            .into()
+    }
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, ToSchema)]
@@ -101,17 +167,43 @@ pub enum OutwardEdge {
     KnowledgeGraph(KnowledgeGraphOutwardEdges),
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize)]
 #[serde(transparent)]
 pub struct OntologyRootedEdges(
     pub BTreeMap<BaseUri, BTreeMap<OntologyTypeVersion, BTreeSet<OntologyOutwardEdges>>>,
 );
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, ToSchema)]
+impl ToSchema for OntologyRootedEdges {
+    fn schema() -> openapi::Schema {
+        openapi::ObjectBuilder::new()
+            .title(Some(""))
+            .additional_properties(Some(openapi::Schema::from(
+                openapi::ObjectBuilder::new().additional_properties(Some(openapi::Array::new(
+                    OntologyOutwardEdges::schema(),
+                ))),
+            )))
+            .into()
+    }
+}
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize)]
 #[serde(transparent)]
 pub struct KnowledgeGraphRootedEdges(
     pub BTreeMap<EntityIdentifier, BTreeMap<Timestamp, BTreeSet<KnowledgeGraphOutwardEdges>>>,
 );
+
+impl ToSchema for KnowledgeGraphRootedEdges {
+    fn schema() -> openapi::Schema {
+        openapi::ObjectBuilder::new()
+            .title(Some(""))
+            .additional_properties(Some(openapi::Schema::from(
+                openapi::ObjectBuilder::new().additional_properties(Some(openapi::Array::new(
+                    KnowledgeGraphOutwardEdges::schema(),
+                ))),
+            )))
+            .into()
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 pub struct Edges {

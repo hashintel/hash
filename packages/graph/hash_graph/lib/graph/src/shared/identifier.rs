@@ -93,6 +93,7 @@ pub type EntityVersion = Timestamp;
 #[serde(rename_all = "camelCase")]
 pub struct EntityAndTimestamp {
     entity_id: EntityIdentifier,
+    #[schema(value_type = String)]
     timestamp: Timestamp,
 }
 
@@ -103,8 +104,9 @@ pub enum GraphElementIdentifier {
     KnowledgeGraphElementId(EntityIdentifier),
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, ToSchema)]
 pub enum GraphElementEditionIdentifier {
+    #[schema(value_type = String)]
     OntologyElementEditionId(VersionedUri),
     KnowledgeGraphElementEditionId(PersistedEntityIdentifier),
 }

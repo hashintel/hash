@@ -11,8 +11,8 @@ use type_system::uri::VersionedUri;
 use uuid::Uuid;
 
 use crate::{
-    identifier::{EntityIdentifier, EntityVersion, Timestamp},
-    knowledge::{Entity, EntityId, EntityQueryPath, PersistedEntityIdentifier},
+    identifier::{EntityIdentifier, Timestamp},
+    knowledge::{Entity, EntityQueryPath, PersistedEntityIdentifier},
     store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath},
 };
 

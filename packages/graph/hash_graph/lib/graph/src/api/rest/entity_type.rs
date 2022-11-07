@@ -28,10 +28,7 @@ use crate::{
         query::Filter,
         EntityTypeStore, StorePool,
     },
-    subgraph::{
-        Edges, EntityTypeStructuralQuery, GenericOutwardEdge, GraphResolveDepths, StructuralQuery,
-        Subgraph,
-    },
+    subgraph::{Edges, EntityTypeStructuralQuery, GraphResolveDepths, StructuralQuery, Subgraph},
 };
 
 #[derive(OpenApi)]
