@@ -167,7 +167,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
                * so it automatically handles focusing on closest node on margin-clicking
                */
               ".ProseMirror": [
-                getPageSectionContainerStyles(pageComments),
+                getPageSectionContainerStyles(pageComments, readonlyMode),
                 { paddingTop: 0, paddingBottom: "320px" },
               ],
               // prevents blue outline on selected nodes
