@@ -8,12 +8,12 @@ import { LinksIcon } from "../../../../../shared/icons";
 import { useEntityEditor } from "./entity-editor-context";
 import { getPropertyCountSummary } from "./properties-section/get-property-count-summary";
 import { PropertyTable } from "./properties-section/property-table";
-import { EntitySection } from "./shared/entity-section";
-import { EntitySectionEmptyState } from "./shared/entity-section-empty-state";
-import { WhiteChip } from "./shared/white-chip";
+import { SectionWrapper } from "../../../shared/section-wrapper";
+import { SectionEmptyState } from "../../../shared/section-empty-state";
+import { WhiteChip } from "../../../shared/white-chip";
 
 const EmptyState = () => (
-  <EntitySectionEmptyState
+  <SectionEmptyState
     title="This entity currently has no properties"
     titleIcon={<LinksIcon />}
     description="Properties contain data about entities, and are inherited from types"
@@ -37,7 +37,7 @@ export const PropertiesSection = () => {
   const isEmpty = emptyCount + notEmptyCount === 0;
 
   return (
-    <EntitySection
+    <SectionWrapper
       title="Properties"
       titleTooltip={
         isEmpty
@@ -78,6 +78,6 @@ export const PropertiesSection = () => {
           />
         </Paper>
       )}
-    </EntitySection>
+    </SectionWrapper>
   );
 };

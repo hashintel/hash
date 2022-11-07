@@ -49,7 +49,7 @@ import { QuestionIcon } from "./question-icon";
 import { StyledPlusCircleIcon } from "./styled-plus-circle-icon";
 import { usePropertyTypes } from "./use-property-types";
 import { mustBeVersionedUri, useStateCallback, withHandler } from "./util";
-import { WhiteCard } from "./white-card";
+import { WhiteCard } from "../../shared/white-card";
 
 const CenteredTableCell = styled(TableCell)(
   experimental_sx({

@@ -4,7 +4,7 @@ import { blankCell } from "../../../../../../../components/GlideGlid/utils";
 import { getPropertyCountSummary } from "../get-property-count-summary";
 import { SummaryChipCellProps } from "./cells/summary-chip-cell";
 import { UseGridTooltipResponse } from "../../../../../../../components/GlideGlid/utils/use-grid-tooltip/types";
-import { DataTypeCellProps } from "./cells/data-type-cell";
+import { ChipCellProps } from "./cells/chip-cell";
 import { PropertyNameCellProps } from "./cells/property-name-cell";
 import { ValueCellProps } from "./cells/value-cell/types";
 import { propertyGridIndexes } from "./constants";
@@ -91,9 +91,9 @@ export const useGetCellContent = (
             readonly: true,
             copyData: String(property.dataTypes),
             data: {
-              kind: "data-type-cell",
-              property,
-            } as DataTypeCellProps,
+              kind: "chip-cell",
+              chips: property.dataTypes,
+            } as ChipCellProps,
           };
       }
     },

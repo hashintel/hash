@@ -4,7 +4,7 @@ import {
 } from "@glideapps/glide-data-grid";
 import { useTheme } from "@mui/material";
 import { useCallback } from "react";
-import { getCellHorizontalPadding } from "../utils";
+import { getCellHorizontalPadding, getYCenter } from "../utils";
 
 export const useDrawCell = () => {
   const { palette } = useTheme();
@@ -17,11 +17,11 @@ export const useDrawCell = () => {
       }
 
       ctx.save();
-      const { x, y, height } = rect;
 
       const paddingLeft = getCellHorizontalPadding(col === 0);
       ctx.fillStyle = palette.gray[80];
-      ctx.fillText(cell.displayData, x + paddingLeft, y + height / 2 + 2);
+      ctx.fillText(cell.displayData, rect.x + paddingLeft, getYCenter(args));
+
       ctx.restore();
 
       return true;
