@@ -32,8 +32,8 @@
     "@local/tsconfig": "0.0.0-private",
     "@types/react": "18.0.15",
     "@types/react-dom": "18.0.6",
-    "@typescript-eslint/eslint-plugin": "5.42.0",
-    "@typescript-eslint/parser": "5.42.0",
+    "@typescript-eslint/eslint-plugin": "5.42.1",
+    "@typescript-eslint/parser": "5.42.1",
     "eslint": "8.27.0",
     "typescript": "4.8.4"
   },
