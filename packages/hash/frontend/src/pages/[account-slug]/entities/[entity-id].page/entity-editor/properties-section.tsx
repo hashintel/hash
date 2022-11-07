@@ -10,7 +10,7 @@ import { getPropertyCountSummary } from "./properties-section/get-property-count
 import { PropertyTable } from "./properties-section/property-table";
 import { EntitySection } from "./shared/entity-section";
 import { EntitySectionEmptyState } from "./shared/entity-section-empty-state";
-import { WhiteChip } from "./shared/white-chip";
+import { WhiteChip } from "../../../shared/white-chip";
 
 const EmptyState = () => (
   <EntitySectionEmptyState
