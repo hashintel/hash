@@ -43,7 +43,6 @@ export const useBlockProtocolAggregateEntityTypes = (): {
         variables: {
           dataTypeResolveDepth: 255,
           propertyTypeResolveDepth: 255,
-          linkTypeResolveDepth: 255,
           entityTypeResolveDepth: 0,
         },
       });

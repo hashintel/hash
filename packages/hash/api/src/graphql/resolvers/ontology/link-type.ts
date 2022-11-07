@@ -49,10 +49,8 @@ export const getAllLatestLinkTypes: ResolverFn<
       graphResolveDepths: {
         dataTypeResolveDepth: 0,
         propertyTypeResolveDepth: 0,
-        linkTypeResolveDepth: 0,
         entityTypeResolveDepth: 0,
-        linkTargetEntityResolveDepth: 0,
-        linkResolveDepth: 0,
+        entityResolveDepth: 0,
       },
     })
     .catch((err: AxiosError) => {
@@ -81,10 +79,8 @@ export const getLinkType: ResolverFn<
       graphResolveDepths: {
         dataTypeResolveDepth: 0,
         propertyTypeResolveDepth: 0,
-        linkTypeResolveDepth: 0,
         entityTypeResolveDepth: 0,
-        linkTargetEntityResolveDepth: 0,
-        linkResolveDepth: 0,
+        entityResolveDepth: 0,
       },
     })
     .catch((err: AxiosError) => {

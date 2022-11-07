@@ -31,7 +31,6 @@ export const entityTypeTypedef = gql`
     getAllLatestEntityTypes(
       dataTypeResolveDepth: Int!
       propertyTypeResolveDepth: Int!
-      linkTypeResolveDepth: Int!
       entityTypeResolveDepth: Int!
     ): Subgraph!
 
@@ -42,7 +41,6 @@ export const entityTypeTypedef = gql`
       entityTypeId: String!
       dataTypeResolveDepth: Int!
       propertyTypeResolveDepth: Int!
-      linkTypeResolveDepth: Int!
       entityTypeResolveDepth: Int!
     ): Subgraph!
   }

@@ -129,10 +129,8 @@ export const persistedEntityTypedef = gql`
     getAllLatestPersistedEntities(
       dataTypeResolveDepth: Int!
       propertyTypeResolveDepth: Int!
-      linkTypeResolveDepth: Int!
       entityTypeResolveDepth: Int!
-      linkTargetEntityResolveDepth: Int!
-      linkResolveDepth: Int!
+      entityResolveDepth: Int!
     ): Subgraph!
 
     """
@@ -149,10 +147,8 @@ export const persistedEntityTypedef = gql`
       entityVersion: String
       dataTypeResolveDepth: Int!
       propertyTypeResolveDepth: Int!
-      linkTypeResolveDepth: Int!
       entityTypeResolveDepth: Int!
-      linkTargetEntityResolveDepth: Int!
-      linkResolveDepth: Int!
+      entityResolveDepth: Int!
     ): Subgraph!
   }
 

@@ -16,18 +16,19 @@ const user: ResolverFn<
   GraphQLContext,
   {}
 > = async ({ accountId, entityId }, _, { dataSources }) => {
-  const orgMembership = await OrgMembership.getOrgMembershipById(
-    dataSources.db,
-    { accountId, entityId },
-  );
+  const orgMembership = undefined;
+  // const orgMembership = await OrgMembership.getOrgMembershipById(
+  //   dataSources.db,
+  //   { accountId, entityId },
+  // );
 
   if (!orgMembership) {
     throw new ApolloError(notFoundMsg(entityId, accountId), "NOT_FOUND");
   }
 
-  const orgMembershipUser = await orgMembership.getUser(dataSources.db);
+  // const orgMembershipUser = await orgMembership.getUser(dataSources.db);
 
-  return orgMembershipUser.toGQLUnknownEntity();
+  // return orgMembershipUser.toGQLUnknownEntity();
 };
 
 const org: ResolverFn<

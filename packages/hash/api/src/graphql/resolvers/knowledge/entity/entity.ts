@@ -57,10 +57,8 @@ export const getAllLatestPersistedEntities: ResolverFn<
   {
     dataTypeResolveDepth,
     propertyTypeResolveDepth,
-    linkTypeResolveDepth,
     entityTypeResolveDepth,
-    linkResolveDepth,
-    linkTargetEntityResolveDepth,
+    entityResolveDepth,
   },
   { dataSources },
   __,
@@ -75,10 +73,8 @@ export const getAllLatestPersistedEntities: ResolverFn<
       graphResolveDepths: {
         dataTypeResolveDepth,
         propertyTypeResolveDepth,
-        linkTypeResolveDepth,
         entityTypeResolveDepth,
-        linkResolveDepth,
-        linkTargetEntityResolveDepth,
+        entityResolveDepth,
       },
     })
     .catch((err: AxiosError) => {
@@ -103,10 +99,8 @@ export const getPersistedEntity: ResolverFn<
     entityVersion,
     dataTypeResolveDepth,
     propertyTypeResolveDepth,
-    linkTypeResolveDepth,
     entityTypeResolveDepth,
-    linkResolveDepth,
-    linkTargetEntityResolveDepth,
+    entityResolveDepth,
   },
   { dataSources },
   __,
@@ -131,10 +125,8 @@ export const getPersistedEntity: ResolverFn<
       graphResolveDepths: {
         dataTypeResolveDepth,
         propertyTypeResolveDepth,
-        linkTypeResolveDepth,
         entityTypeResolveDepth,
-        linkResolveDepth,
-        linkTargetEntityResolveDepth,
+        entityResolveDepth,
       },
     })
     .catch((err: AxiosError) => {

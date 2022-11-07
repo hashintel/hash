@@ -41,12 +41,7 @@ export const getAllLatestEntityTypes: ResolverFn<
   QueryGetAllLatestEntityTypesArgs
 > = async (
   _,
-  {
-    dataTypeResolveDepth,
-    propertyTypeResolveDepth,
-    linkTypeResolveDepth,
-    entityTypeResolveDepth,
-  },
+  { dataTypeResolveDepth, propertyTypeResolveDepth, entityTypeResolveDepth },
   { dataSources },
   __,
 ) => {
@@ -60,10 +55,8 @@ export const getAllLatestEntityTypes: ResolverFn<
       graphResolveDepths: {
         dataTypeResolveDepth,
         propertyTypeResolveDepth,
-        linkTypeResolveDepth,
         entityTypeResolveDepth,
-        linkTargetEntityResolveDepth: 0,
-        linkResolveDepth: 0,
+        entityResolveDepth: 0,
       },
     })
     .catch((err: AxiosError) => {
@@ -87,7 +80,6 @@ export const getEntityType: ResolverFn<
     entityTypeId,
     dataTypeResolveDepth,
     propertyTypeResolveDepth,
-    linkTypeResolveDepth,
     entityTypeResolveDepth,
   },
   { dataSources },
@@ -103,10 +95,8 @@ export const getEntityType: ResolverFn<
       graphResolveDepths: {
         dataTypeResolveDepth,
         propertyTypeResolveDepth,
-        linkTypeResolveDepth,
         entityTypeResolveDepth,
-        linkTargetEntityResolveDepth: 0,
-        linkResolveDepth: 0,
+        entityResolveDepth: 0,
       },
     })
     .catch((err: AxiosError) => {

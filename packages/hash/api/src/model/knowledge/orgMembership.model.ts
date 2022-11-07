@@ -148,10 +148,8 @@ export default class extends EntityModel {
         graphResolveDepths: {
           dataTypeResolveDepth: 0,
           propertyTypeResolveDepth: 0,
-          linkTypeResolveDepth: 0,
           entityTypeResolveDepth: 0,
-          linkResolveDepth: 0,
-          linkTargetEntityResolveDepth: 0,
+          entityResolveDepth: 0,
         },
       },
     );

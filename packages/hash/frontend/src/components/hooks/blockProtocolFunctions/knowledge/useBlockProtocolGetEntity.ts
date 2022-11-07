@@ -56,12 +56,10 @@ export const useBlockProtocolGetEntity = (): {
               // Get the full entity type _tree_
               dataTypeResolveDepth: 255,
               propertyTypeResolveDepth: 255,
-              linkTypeResolveDepth: 255,
               // Don't explore entityType references beyond the absolute neighbors
               entityTypeResolveDepth: 2,
               // Only get absolute neighbor entities
-              linkResolveDepth: 1,
-              linkTargetEntityResolveDepth: 1,
+              entityResolveDepth: 1,
             },
           }),
           getOutgoingLinksFn({ variables: { sourceEntityId: entityId } }),

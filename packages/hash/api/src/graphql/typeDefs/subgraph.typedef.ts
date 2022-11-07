@@ -11,9 +11,7 @@ export const subgraphTypedef = gql`
     dataTypeResolveDepth: Int!
     propertyTypeResolveDepth: Int!
     entityTypeResolveDepth: Int!
-    linkTypeResolveDepth: Int!
-    linkTargetEntityResolveDepth: Int!
-    linkResolveDepth: Int!
+    entityResolveDepth: Int!
   }
 
   type Subgraph {

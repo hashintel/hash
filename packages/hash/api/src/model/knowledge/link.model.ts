@@ -93,13 +93,10 @@ export default class {
           options?.graphResolveDepths?.dataTypeResolveDepth ?? 0,
         propertyTypeResolveDepth:
           options?.graphResolveDepths?.propertyTypeResolveDepth ?? 0,
-        linkTypeResolveDepth:
-          options?.graphResolveDepths?.linkTypeResolveDepth ?? 0,
         entityTypeResolveDepth:
           options?.graphResolveDepths?.entityTypeResolveDepth ?? 0,
-        linkResolveDepth: options?.graphResolveDepths?.linkResolveDepth ?? 0,
-        linkTargetEntityResolveDepth:
-          options?.graphResolveDepths?.linkTargetEntityResolveDepth ?? 0,
+        entityResolveDepth:
+          options?.graphResolveDepths?.entityResolveDepth ?? 0,
       },
     });
 

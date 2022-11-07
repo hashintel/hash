@@ -43,12 +43,10 @@ export const useBlockProtocolAggregateEntities = (): {
         variables: {
           dataTypeResolveDepth: 255,
           propertyTypeResolveDepth: 255,
-          linkTypeResolveDepth: 255,
           // Only get the direct and absolute neighbor entity types
           entityTypeResolveDepth: 2,
           // Only get absolute neighbor entities
-          linkResolveDepth: 1,
-          linkTargetEntityResolveDepth: 1,
+          entityResolveDepth: 1,
         },
       });
 

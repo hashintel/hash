@@ -31,20 +31,16 @@ export const getPersistedEntityQuery = gql`
     $entityVersion: String
     $dataTypeResolveDepth: Int!
     $propertyTypeResolveDepth: Int!
-    $linkTypeResolveDepth: Int!
     $entityTypeResolveDepth: Int!
-    $linkResolveDepth: Int!
-    $linkTargetEntityResolveDepth: Int!
+    $entityResolveDepth: Int!
   ) {
     getPersistedEntity(
       entityId: $entityId
       entityVersion: $entityVersion
       dataTypeResolveDepth: $dataTypeResolveDepth
       propertyTypeResolveDepth: $propertyTypeResolveDepth
-      linkTypeResolveDepth: $linkTypeResolveDepth
       entityTypeResolveDepth: $entityTypeResolveDepth
-      linkResolveDepth: $linkResolveDepth
-      linkTargetEntityResolveDepth: $linkTargetEntityResolveDepth
+      entityResolveDepth: $entityResolveDepth
     ) {
       ...SubgraphFields
     }
@@ -56,18 +52,14 @@ export const getAllLatestEntitiesQuery = gql`
   query getAllLatestPersistedEntities(
     $dataTypeResolveDepth: Int!
     $propertyTypeResolveDepth: Int!
-    $linkTypeResolveDepth: Int!
     $entityTypeResolveDepth: Int!
-    $linkResolveDepth: Int!
-    $linkTargetEntityResolveDepth: Int!
+    $entityResolveDepth: Int!
   ) {
     getAllLatestPersistedEntities(
       dataTypeResolveDepth: $dataTypeResolveDepth
       propertyTypeResolveDepth: $propertyTypeResolveDepth
-      linkTypeResolveDepth: $linkTypeResolveDepth
       entityTypeResolveDepth: $entityTypeResolveDepth
-      linkTargetEntityResolveDepth: $linkTargetEntityResolveDepth
-      linkResolveDepth: $linkResolveDepth
+      entityResolveDepth: $entityResolveDepth
     ) {
       ...SubgraphFields
     }
