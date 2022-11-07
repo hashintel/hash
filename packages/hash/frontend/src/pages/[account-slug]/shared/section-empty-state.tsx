@@ -1,18 +1,18 @@
 import { Box, Typography } from "@mui/material";
 import { ReactNode } from "react";
-import { WhiteCard } from "../../../../types/entity-type/white-card";
+import { WhiteCard } from "./white-card";
 
-interface EntitySectionEmptyStateProps {
+interface SectionEmptyStateProps {
   title: string;
   titleIcon: ReactNode;
   description: string;
 }
 
-export const EntitySectionEmptyState = ({
+export const SectionEmptyState = ({
   description,
   title,
   titleIcon,
-}: EntitySectionEmptyStateProps) => {
+}: SectionEmptyStateProps) => {
   return (
     <WhiteCard>
       <Box
