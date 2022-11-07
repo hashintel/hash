@@ -2,7 +2,7 @@ import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { createGraphClient } from "@hashintel/hash-api/src/graph";
 import {
   ensureWorkspaceTypesExist,
-  WORKSPACE_TYPES,
+  SYSTEM_TYPES,
 } from "@hashintel/hash-api/src/graph/workspace-types";
 import { ensureSystemEntitiesExists } from "@hashintel/hash-api/src/graph/system-entities";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
@@ -54,7 +54,7 @@ describe("WorkspaceInstance model class", () => {
     const hashOutgoingAdminLinks = await hashInstanceModel.getOutgoingLinks(
       graphApi,
       {
-        linkTypeModel: WORKSPACE_TYPES.linkType.admin,
+        linkTypeModel: SYSTEM_TYPES.linkType.admin,
       },
     );
 
@@ -83,7 +83,7 @@ describe("WorkspaceInstance model class", () => {
 
     const hashInstanceOutgoingAdminLinks =
       await hashInstanceModel.getOutgoingLinks(graphApi, {
-        linkTypeModel: WORKSPACE_TYPES.linkType.admin,
+        linkTypeModel: SYSTEM_TYPES.linkType.admin,
       });
 
     expect(hashInstanceOutgoingAdminLinks).toHaveLength(0);

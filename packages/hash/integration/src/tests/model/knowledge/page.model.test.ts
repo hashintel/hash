@@ -2,7 +2,7 @@ import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { createGraphClient } from "@hashintel/hash-api/src/graph";
 import {
   ensureWorkspaceTypesExist,
-  WORKSPACE_TYPES,
+  SYSTEM_TYPES,
 } from "@hashintel/hash-api/src/graph/workspace-types";
 import {
   BlockModel,
@@ -43,7 +43,7 @@ describe("Page model class", () => {
       componentId: "text",
       blockData: await EntityModel.create(graphApi, {
         ownedById: testUser.entityId,
-        entityTypeModel: WORKSPACE_TYPES.entityType.dummy,
+        entityTypeModel: SYSTEM_TYPES.entityType.dummy,
         properties: {},
         actorId: testUser.entityId,
       }),

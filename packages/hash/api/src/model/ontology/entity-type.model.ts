@@ -9,7 +9,7 @@ import {
 import { generateTypeId, types } from "@hashintel/hash-shared/types";
 import { EntityTypeModel, PropertyTypeModel, LinkTypeModel } from "../index";
 import { getNamespaceOfAccountOwner } from "./util";
-import { WORKSPACE_TYPES } from "../../graph/workspace-types";
+import { SYSTEM_TYPES } from "../../graph/system-types";
 
 export type EntityTypeModelConstructorParams = {
   ownedById: string;
@@ -267,8 +267,8 @@ export default class {
    */
   get workspaceTypeName(): string | undefined {
     for (const [key, workspaceEntityType] of Object.entries(
-      WORKSPACE_TYPES.entityType,
-    ) as [keyof typeof WORKSPACE_TYPES.entityType, EntityTypeModel][]) {
+      SYSTEM_TYPES.entityType,
+    ) as [keyof typeof SYSTEM_TYPES.entityType, EntityTypeModel][]) {
       if (workspaceEntityType.schema.$id === this.schema.$id) {
         return types.entityType[key].title;
       }

@@ -2,7 +2,7 @@ import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { createGraphClient } from "@hashintel/hash-api/src/graph";
 import {
   ensureWorkspaceTypesExist,
-  WORKSPACE_TYPES,
+  SYSTEM_TYPES,
 } from "@hashintel/hash-api/src/graph/workspace-types";
 import {
   OrgMembershipModel,
@@ -59,7 +59,7 @@ describe("OrgMembership model class", () => {
     });
 
     await testUser.createOutgoingLink(graphApi, {
-      linkTypeModel: WORKSPACE_TYPES.linkType.hasMembership,
+      linkTypeModel: SYSTEM_TYPES.linkType.hasMembership,
       targetEntityModel: testOrgMembership,
       ownedById: systemAccountId,
       actorId: testUser.entityId,

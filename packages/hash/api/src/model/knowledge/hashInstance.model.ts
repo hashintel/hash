@@ -7,7 +7,7 @@ import {
   LinkModel,
 } from "..";
 import { systemAccountId } from "../util";
-import { WORKSPACE_TYPES } from "../../graph/workspace-types";
+import { SYSTEM_TYPES } from "../../graph/system-types";
 import { EntityTypeMismatchError, NotFoundError } from "../../lib/error";
 
 export type HashInstanceModelCreateParams = Omit<
@@ -22,11 +22,11 @@ export default class extends EntityModel {
   static fromEntityModel(entity: EntityModel): HashInstanceModel {
     if (
       entity.entityTypeModel.schema.$id !==
-      WORKSPACE_TYPES.entityType.hashInstance.schema.$id
+      SYSTEM_TYPES.entityType.hashInstance.schema.$id
     ) {
       throw new EntityTypeMismatchError(
         entity.entityId,
-        WORKSPACE_TYPES.entityType.hashInstance.schema.$id,
+        SYSTEM_TYPES.entityType.hashInstance.schema.$id,
         entity.entityTypeModel.schema.$id,
       );
     }
@@ -59,7 +59,7 @@ export default class extends EntityModel {
 
     const { actorId } = params;
 
-    const entityTypeModel = WORKSPACE_TYPES.entityType.hashInstance;
+    const entityTypeModel = SYSTEM_TYPES.entityType.hashInstance;
 
     const entityModel = await EntityModel.create(graphApi, {
       ownedById: systemAccountId,
@@ -84,7 +84,7 @@ export default class extends EntityModel {
           equal: [
             { path: ["type", "versionedUri"] },
             {
-              parameter: WORKSPACE_TYPES.entityType.hashInstance.schema.$id,
+              parameter: SYSTEM_TYPES.entityType.hashInstance.schema.$id,
             },
           ],
         },
@@ -117,7 +117,7 @@ export default class extends EntityModel {
 
     return await LinkModel.get(graphApi, {
       sourceEntityId: this.entityId,
-      linkTypeId: WORKSPACE_TYPES.linkType.admin.schema.$id,
+      linkTypeId: SYSTEM_TYPES.linkType.admin.schema.$id,
       targetEntityId: userModel.entityId,
     })
       .then(() => true)
@@ -152,7 +152,7 @@ export default class extends EntityModel {
 
     await this.createOutgoingLink(graphApi, {
       ownedById: systemAccountId,
-      linkTypeModel: WORKSPACE_TYPES.linkType.admin,
+      linkTypeModel: SYSTEM_TYPES.linkType.admin,
       targetEntityModel: userModel,
       actorId,
     });
@@ -171,7 +171,7 @@ export default class extends EntityModel {
 
     const adminLink = await LinkModel.get(graphApi, {
       sourceEntityId: this.entityId,
-      linkTypeId: WORKSPACE_TYPES.linkType.admin.schema.$id,
+      linkTypeId: SYSTEM_TYPES.linkType.admin.schema.$id,
       targetEntityId: userModel.entityId,
     });
 

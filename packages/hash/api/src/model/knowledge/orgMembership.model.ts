@@ -8,7 +8,7 @@ import {
   LinkModel,
 } from "..";
 import { systemAccountId } from "../util";
-import { WORKSPACE_TYPES } from "../../graph/workspace-types";
+import { SYSTEM_TYPES } from "../../graph/system-types";
 import { EntityTypeMismatchError } from "../../lib/error";
 
 export type OrgMembershipModelCreateParams = Omit<
@@ -26,11 +26,11 @@ export default class extends EntityModel {
   static fromEntityModel(entity: EntityModel): OrgMembershipModel {
     if (
       entity.entityTypeModel.schema.$id !==
-      WORKSPACE_TYPES.entityType.orgMembership.schema.$id
+      SYSTEM_TYPES.entityType.orgMembership.schema.$id
     ) {
       throw new EntityTypeMismatchError(
         entity.entityId,
-        WORKSPACE_TYPES.entityType.orgMembership.schema.$id,
+        SYSTEM_TYPES.entityType.orgMembership.schema.$id,
         entity.entityTypeModel.schema.$id,
       );
     }
@@ -51,10 +51,10 @@ export default class extends EntityModel {
     const { responsibility, org, actorId } = params;
 
     const properties: object = {
-      [WORKSPACE_TYPES.propertyType.responsibility.baseUri]: responsibility,
+      [SYSTEM_TYPES.propertyType.responsibility.baseUri]: responsibility,
     };
 
-    const entityTypeModel = WORKSPACE_TYPES.entityType.orgMembership;
+    const entityTypeModel = SYSTEM_TYPES.entityType.orgMembership;
 
     const entity = await EntityModel.create(graphApi, {
       ownedById: systemAccountId,
@@ -64,7 +64,7 @@ export default class extends EntityModel {
     });
 
     await entity.createOutgoingLink(graphApi, {
-      linkTypeModel: WORKSPACE_TYPES.linkType.ofOrg,
+      linkTypeModel: SYSTEM_TYPES.linkType.ofOrg,
       targetEntityModel: org,
       ownedById: systemAccountId,
       actorId,
@@ -102,7 +102,7 @@ export default class extends EntityModel {
           equal: [
             { path: ["type", "versionedUri"] },
             {
-              parameter: WORKSPACE_TYPES.linkType.ofOrg.schema.$id,
+              parameter: SYSTEM_TYPES.linkType.ofOrg.schema.$id,
             },
           ],
         },
@@ -142,7 +142,7 @@ export default class extends EntityModel {
               equal: [
                 { path: ["type", "versionedUri"] },
                 {
-                  parameter: WORKSPACE_TYPES.linkType.hasMembership.schema.$id,
+                  parameter: SYSTEM_TYPES.linkType.hasMembership.schema.$id,
                 },
               ],
             },
