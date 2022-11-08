@@ -3082,22 +3082,6 @@
   dependencies:
     uuid "^8.3.2"
 
-"@blockprotocol/core@0.0.9":
-  version "0.0.9"
-  resolved "https://registry.yarnpkg.com/@blockprotocol/core/-/core-0.0.9.tgz#daa26024f05df821249d10b29cc4ae8a71fda161"
-  integrity sha512-5PoWT7acd0nEHaC379Ye6egNNstrE1EYHyCaZhQ7UTzutuJx9zdwsMgCoIjyPAxCfakFQft7fKukSHtvLBV+5w==
-  dependencies:
-    es-module-lexer "^0.10.5"
-    uuid "^8.3.2"
-
-"@blockprotocol/graph@0.0.13":
-  version "0.0.13"
-  resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.0.13.tgz#28557aa66a4f1262f8d10b0569ac16d283490b44"
-  integrity sha512-WdzF6jVB8PqAExNvLxVUnR8Cj2ooGMd1XUVegooNZWeLAEdisnurnfk1lzPvKvCa0b78ekYpTlmAn50AO+KH9Q==
-  dependencies:
-    "@blockprotocol/core" "0.0.9"
-    lit "^2.2.5"
-
 "@blockprotocol/graph@0.0.18":
   version "0.0.18"
   resolved "https://registry.yarnpkg.com/@blockprotocol/graph/-/graph-0.0.18.tgz#4b1634196329ff1a590725767bac5c8dbb38e721"
@@ -6312,19 +6296,10 @@
   dependencies:
     "@types/react" "*"
 
-"@types/react@*", "@types/react@16 || 17 || 18", "@types/react@18.0.25", "@types/react@>=16", "@types/react@^18.0.15":
+"@types/react@*", "@types/react@16 || 17 || 18", "@types/react@18.0.25", "@types/react@>=16":
   version "18.0.25"
   resolved "https://registry.yarnpkg.com/@types/react/-/react-18.0.25.tgz#8b1dcd7e56fe7315535a4af25435e0bb55c8ae44"
   integrity sha512-xD6c0KDT4m7n9uD4ZHi02lzskaiqcBxf4zi+tXZY98a04wvc0hi/TcCPC2FOESZi51Nd7tlUeOJY8RofL799/g==
-  dependencies:
-    "@types/prop-types" "*"
-    "@types/scheduler" "*"
-    csstype "^3.0.2"
-
-"@types/react@^17.0.39":
-  version "17.0.52"
-  resolved "https://registry.yarnpkg.com/@types/react/-/react-17.0.52.tgz#10d8b907b5c563ac014a541f289ae8eaa9bf2e9b"
-  integrity sha512-vwk8QqVODi0VaZZpDXQCmEmiOuyjEFPY7Ttaw5vjM112LOq37yz1CDJGrRJwA1fYEq4Iitd5rnjd1yWAc/bT+A==
   dependencies:
     "@types/prop-types" "*"
     "@types/scheduler" "*"
@@ -7345,9 +7320,9 @@ async@^2.6.2:
     lodash "^4.17.14"
 
 async@^3.1.0:
-  version "3.2.1"
-  resolved "https://registry.yarnpkg.com/async/-/async-3.2.1.tgz#d3274ec66d107a47476a4c49136aacdb00665fc8"
-  integrity sha512-XdD5lRO/87udXCMC9meWdYiR+Nq6ZjUfXidViUZGu2F1MO4T3XwZ1et0hb2++BgLfhyJwy44BGB/yx80ABx8hg==
+  version "3.2.3"
+  resolved "https://registry.yarnpkg.com/async/-/async-3.2.3.tgz#ac53dafd3f4720ee9e8a160628f18ea91df196c9"
+  integrity sha512-spZRyzKL5l5BZQrr/6m/SqFdBN0q3OCI0f9rjfBzCMBIP4p75P620rR3gTmaksNOhmzgdxcaxdNfMy6anrbM0g==
 
 asynckit@^0.4.0:
   version "0.4.0"
@@ -7686,20 +7661,6 @@ block-scripts@0.0.14:
     webpack-cli "^4.9.2"
     webpack-dev-server "^4.8.1"
     yargs-parser "21.0.1"
-
-blockprotocol@0.0.10:
-  version "0.0.10"
-  resolved "https://registry.yarnpkg.com/blockprotocol/-/blockprotocol-0.0.10.tgz#8ffb1c45ea789d6909012f101b9591b2e6213c7e"
-  integrity sha512-YyEEPQDyf+LGKSoiXjsOXySTvkT9TL/hyh1zKKua2HnsigdDSJ30fjHNWeiXAKO/6VEyjpHFXpEI7mmBjWDyig==
-  dependencies:
-    "@types/react" "^17.0.39"
-
-blockprotocol@0.0.12:
-  version "0.0.12"
-  resolved "https://registry.yarnpkg.com/blockprotocol/-/blockprotocol-0.0.12.tgz#95c29bc06629b0bb43436d076c17c7130a40277d"
-  integrity sha512-8OE9fHuZOeXgtNXk8jJZ+cTYwOcVkV95hHbz4440r1+8YuNpIvLcB8ueOgduaAN9gGCOTPWKolW3xM9vXcH1aw==
-  dependencies:
-    "@types/react" "^18.0.15"
 
 bluebird@^3.7.1:
   version "3.7.2"
@@ -14153,27 +14114,6 @@ mobx@6.5.0:
   resolved "https://registry.yarnpkg.com/mobx/-/mobx-6.5.0.tgz#dc2d028b1882737f6e813fc92454381e438b7ad3"
   integrity sha512-pHZ/cySF00FVENDWIDzJyoObFahK6Eg4d0papqm6d7yMkxWTZ/S/csqJX1A3PsYy4t5k3z2QnlwuCfMW5lSEwA==
 
-mock-block-dock@0.0.10:
-  version "0.0.10"
-  resolved "https://registry.yarnpkg.com/mock-block-dock/-/mock-block-dock-0.0.10.tgz#767a23d9743bba77ca7b60f6041d4e4b629e2d2f"
-  integrity sha512-PCbiBXGHLiJuJrls+30aqSYTRmp37rGXjGAqfr4US48PsjSsjV0GJUUH7/6HrXsXrndDaZeL+kj2oh8hoid/GQ==
-  dependencies:
-    blockprotocol "0.0.10"
-    lodash "^4.17.21"
-    uuid "^8.3.2"
-
-mock-block-dock@0.0.21:
-  version "0.0.21"
-  resolved "https://registry.yarnpkg.com/mock-block-dock/-/mock-block-dock-0.0.21.tgz#7323d339f4fb74e3523da9a2bec9a9c2110ce707"
-  integrity sha512-ISLPX1/r99UPHFY5mI5eLORwc9zXluMSk6wFY9un0DtI69gw4uXXjLAQt5VClgiotMI970ZNQzv2WaVau2zKaw==
-  dependencies:
-    "@blockprotocol/core" "0.0.9"
-    "@blockprotocol/graph" "0.0.13"
-    "@lit-labs/react" "^1.0.4"
-    lodash "^4.17.21"
-    react-json-view "^1.21.3"
-    uuid "^8.3.2"
-
 mock-block-dock@0.0.38:
   version "0.0.38"
   resolved "https://registry.yarnpkg.com/mock-block-dock/-/mock-block-dock-0.0.38.tgz#4098499f02808011a77a98a5577be73007d2d1f4"
@@ -15921,7 +15861,16 @@ react-dock@^0.2.4:
     lodash.debounce "^3.1.1"
     prop-types "^15.5.8"
 
-react-dom@^17.0.2, react-dom@^18.2.0:
+react-dom@^17.0.2:
+  version "17.0.2"
+  resolved "https://registry.yarnpkg.com/react-dom/-/react-dom-17.0.2.tgz#ecffb6845e3ad8dbfcdc498f0d0a939736502c23"
+  integrity sha512-s4h96KtLDUQlsENhMn1ar8t2bEa+q/YAtj8pPPdIjPDGBDIVNsrD9aXNWqspUe6AzKCIG0C1HZZLqLV7qpOBGA==
+  dependencies:
+    loose-envify "^1.1.0"
+    object-assign "^4.1.1"
+    scheduler "^0.20.2"
+
+react-dom@^18.2.0:
   version "18.2.0"
   resolved "https://registry.yarnpkg.com/react-dom/-/react-dom-18.2.0.tgz#22aaf38708db2674ed9ada224ca4aa708d821e3d"
   integrity sha512-6IMTriUmvsjHUjNtEDudZfuDQUoWXVxKHhlEGSk81n4YFS+r/Kl99wXiwlVXtPBtJenozv2P+hxDsw9eA7Xo6g==
@@ -16127,7 +16076,15 @@ react-transition-group@^4.4.5:
     loose-envify "^1.4.0"
     prop-types "^15.6.2"
 
-react@^17.0.2, react@^18.2.0:
+react@^17.0.2:
+  version "17.0.2"
+  resolved "https://registry.yarnpkg.com/react/-/react-17.0.2.tgz#d0b5cc516d29eb3eee383f75b62864cfb6800037"
+  integrity sha512-gnhPt75i/dq/z3/6q/0asP78D0u592D5L1pd7M8P+dck6Fu/jJeL6iVVK23fptSUZj8Vjf++7wXA8UNclGQcbA==
+  dependencies:
+    loose-envify "^1.1.0"
+    object-assign "^4.1.1"
+
+react@^18.2.0:
   version "18.2.0"
   resolved "https://registry.yarnpkg.com/react/-/react-18.2.0.tgz#555bd98592883255fa00de14f1151a917b5d77d5"
   integrity sha512-/3IjMdb2L9QbBdWiW5e3P2/npwMBaU9mHCSCUzNln0ZCYbcfTsGbTJrU/kGemdH2IWmB2ioZ+zkxtmq6g09fGQ==
@@ -16782,6 +16739,14 @@ saxes@^6.0.0:
   integrity sha512-xAg7SOnEhrm5zI3puOOKyy1OMcMlIJZYNJY7xLBwSze0UjhPLnWfj2GF2EpT0jmzaJKIWKHLsaSSajf35bcYnA==
   dependencies:
     xmlchars "^2.2.0"
+
+scheduler@^0.20.2:
+  version "0.20.2"
+  resolved "https://registry.yarnpkg.com/scheduler/-/scheduler-0.20.2.tgz#4baee39436e34aa93b4874bddcbf0fe8b8b50e91"
+  integrity sha512-2eWfGgAqqWFGqtdMmcL5zCMK1U8KlXv8SQFGglL3CEtd0aDVDWgeF/YoCmvln55m5zSk3J/20hTaSBeSObsQDQ==
+  dependencies:
+    loose-envify "^1.1.0"
+    object-assign "^4.1.1"
 
 scheduler@^0.23.0:
   version "0.23.0"
@@ -17870,9 +17835,9 @@ tapable@^2.0, tapable@^2.0.0, tapable@^2.1.1, tapable@^2.2.0:
   integrity sha512-GNzQvQTOIP6RyTfE2Qxb8ZVlNmw0n88vp1szwWRimP02mnTsx3Wtn5qRdqY9w2XduFNUgvOwhNnQsjwCp+kqaQ==
 
 tar@^6.0.2, tar@^6.1.2:
-  version "6.1.11"
-  resolved "https://registry.yarnpkg.com/tar/-/tar-6.1.11.tgz#6760a38f003afa1b2ffd0ffe9e9abbd0eab3d621"
-  integrity sha512-an/KZQzQUkZCkuoAA64hM92X0Urb6VpRhAFllDzz44U2mcD5scmT3zBc4VgVpkugF580+DQn8eAFSyoQt0tznA==
+  version "6.1.12"
+  resolved "https://registry.yarnpkg.com/tar/-/tar-6.1.12.tgz#3b742fb05669b55671fb769ab67a7791ea1a62e6"
+  integrity sha512-jU4TdemS31uABHd+Lt5WEYJuzn+TJTCBLljvIAHZOz6M9Os5pJ4dD+vRFLxPa/n3T0iEFzpi+0x1UfuDZYbRMw==
   dependencies:
     chownr "^2.0.0"
     fs-minipass "^2.0.0"
