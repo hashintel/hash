@@ -412,32 +412,6 @@ GET http://127.0.0.1:4000/entities
     });
 %}
 
-### Test
-POST http://127.0.0.1:4000/entities/query
-Content-Type: application/json
-
-{
-    "filter": {
-        "equal": [{ "path": ["version"] }, { "parameter": "latest" }]
-      },
-      "graphResolveDepths": {
-        "dataTypeResolveDepth": 255,
-        "propertyTypeResolveDepth": 255,
-        "entityTypeResolveDepth": 255,
-        "entityResolveDepth": 2
-      }
-}
-
-> {%
-    client.test("status", function() {
-        client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.roots.length === 2, "Unexpected number of entities");
-    });
-%}
-
-
-
-
 #### Get all latest entities by using a query
 #POST http://127.0.0.1:4000/entities/query
 #Content-Type: application/json
