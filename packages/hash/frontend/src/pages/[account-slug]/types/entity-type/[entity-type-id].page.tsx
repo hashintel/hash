@@ -6,7 +6,7 @@ import {
   ValueOrArray,
   VersionedUri,
 } from "@blockprotocol/type-system-web";
-import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
+import { faAsterisk, faPlus } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
 import { Box, Container, Typography } from "@mui/material";
 import { Buffer } from "buffer/";
@@ -15,8 +15,6 @@ import { useMemo } from "react";
 import { FormProvider, useForm, useWatch } from "react-hook-form";
 import { FRONTEND_URL } from "../../../../lib/config";
 import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
-import { Button } from "../../../../shared/ui/button";
-import { Link } from "../../../../shared/ui/link";
 import { TopContextBar } from "../../../shared/top-context-bar";
 import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
 import { OntologyChip } from "../../shared/ontology-chip";
@@ -26,6 +24,7 @@ import {
   EntityTypeEditorPropertyData,
 } from "./form-types";
 import { PropertyListCard } from "./property-list-card";
+import { TabButton } from "./tab-button";
 import { useEntityType } from "./use-entity-type";
 import {
   PropertyTypesContext,
@@ -262,19 +261,11 @@ const Page: NextPageWithLayout = () => {
                   {entityType.title}
                 </Typography>
                 <Box display="flex">
-                  <Link
-                    noLinkStyle
+                  <TabButton
                     href={extractBaseUri(entityType.$id as VersionedUri)}
                     sx={(theme) => ({
-                      pt: 2,
-                      pb: `calc(${theme.spacing(2)} - 3px)`,
-                      px: 0.25,
-                      borderBottom: 3,
-                      borderBottomColour: theme.palette.blue[60],
+                      borderBottomColor: theme.palette.blue[60],
                       color: theme.palette.blue[70],
-                      alignItems: "center",
-                      display: "flex",
-                      lineHeight: 1,
                     })}
                   >
                     <Typography
@@ -296,7 +287,28 @@ const Page: NextPageWithLayout = () => {
                         {propertiesCount}
                       </Typography>
                     </Box>
-                  </Link>
+                  </TabButton>
+                  <Box display="flex" ml="auto">
+                    <TabButton
+                      href="#"
+                      sx={(theme) => ({ color: theme.palette.gray[90] })}
+                    >
+                      <Typography
+                        variant="smallTextLabels"
+                        sx={{ fontWeight: 500 }}
+                      >
+                        Create new entity
+                      </Typography>
+                      <FontAwesomeIcon
+                        icon={faPlus}
+                        sx={(theme) => ({
+                          ...theme.typography.smallTextLabels,
+                          color: theme.palette.blue[70],
+                          ml: 1,
+                        })}
+                      />
+                    </TabButton>
+                  </Box>
                 </Box>
               </Container>
             </Box>
