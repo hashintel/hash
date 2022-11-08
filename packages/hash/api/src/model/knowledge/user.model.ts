@@ -174,7 +174,7 @@ export default class extends EntityModel {
         (await AccountFields.shortnameIsTaken(graphApi, { shortname }))
       ) {
         throw new Error(
-          `A user entity with shortname "${shortname}" already exists.`,
+          `An account with shortname "${shortname}" already exists.`,
         );
       }
     }
