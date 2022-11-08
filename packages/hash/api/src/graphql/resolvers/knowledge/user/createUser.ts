@@ -17,6 +17,7 @@ export const createUser: ResolverFn<
   _,
   {
     email,
+    password,
     isInstanceAdmin,
     shortname,
     preferredName,
@@ -32,6 +33,7 @@ export const createUser: ResolverFn<
       shortname: shortname ?? undefined,
       emails: [emailAddress],
     },
+    credentials: { password: { config: { password } } },
   });
 
   if (emailAddressVerified) {

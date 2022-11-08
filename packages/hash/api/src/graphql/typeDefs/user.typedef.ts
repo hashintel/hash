@@ -17,6 +17,7 @@ export const userTypedef = gql`
   extend type Mutation {
     createUser(
       email: UserEmailInput!
+      password: String!
       isInstanceAdmin: Boolean!
       shortname: String
       preferredName: String
