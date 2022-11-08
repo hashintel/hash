@@ -10,7 +10,6 @@ use crate::{
     },
     knowledge::PersistedEntity,
     ontology::{PersistedDataType, PersistedEntityType, PersistedPropertyType},
-    shared::serialize_map_with_escaped_object_keys,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
@@ -44,8 +43,7 @@ pub struct OntologyVertices(pub HashMap<BaseUri, HashMap<OntologyTypeVersion, On
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(transparent)]
 pub struct KnowledgeGraphVertices(
-    #[serde(serialize_with = "serialize_map_with_escaped_object_keys")]
-    pub  HashMap<EntityIdentifier, HashMap<EntityVersion, KnowledgeGraphVertex>>,
+    pub HashMap<EntityIdentifier, HashMap<EntityVersion, KnowledgeGraphVertex>>,
 );
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]

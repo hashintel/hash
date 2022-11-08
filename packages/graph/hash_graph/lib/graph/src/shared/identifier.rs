@@ -2,7 +2,7 @@ use core::fmt;
 
 use chrono::{DateTime, Utc};
 use postgres_types::{FromSql, ToSql};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json;
 use type_system::uri::{BaseUri, VersionedUri};
 use utoipa::{openapi, ToSchema};
@@ -50,12 +50,30 @@ impl fmt::Display for AccountId {
     }
 }
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct EntityIdentifier {
     owned_by_id: OwnedById,
     // TODO: rename this to entity_uuid?
     entity_id: EntityId,
+}
+
+impl Serialize for EntityIdentifier {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&format!("{}%{}", self.owned_by_id, self.entity_id))
+    }
+}
+
+impl<'de> Deserialize<'de> for EntityIdentifier {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let as_string = String::deserialize(deserializer)?;
+        todo!()
+    }
 }
 
 impl EntityIdentifier {
@@ -112,6 +130,7 @@ pub enum GraphElementIdentifier {
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, ToSchema)]
+#[serde(untagged)]
 pub enum GraphElementEditionIdentifier {
     #[schema(value_type = String)]
     OntologyElementEditionId(VersionedUri),

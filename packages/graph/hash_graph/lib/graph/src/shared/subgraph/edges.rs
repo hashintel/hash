@@ -7,12 +7,9 @@ use serde::Serialize;
 use type_system::uri::{BaseUri, VersionedUri};
 use utoipa::{openapi, ToSchema};
 
-use crate::{
-    identifier::{
-        EntityAndTimestamp, EntityIdentifier, GraphElementEditionIdentifier, OntologyTypeVersion,
-        Timestamp,
-    },
-    shared::serialize_map_with_escaped_object_keys,
+use crate::identifier::{
+    EntityAndTimestamp, EntityIdentifier, GraphElementEditionIdentifier, OntologyTypeVersion,
+    Timestamp,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, ToSchema)]
@@ -192,8 +189,7 @@ impl ToSchema for OntologyRootedEdges {
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize)]
 #[serde(transparent)]
 pub struct KnowledgeGraphRootedEdges(
-    #[serde(serialize_with = "serialize_map_with_escaped_object_keys")]
-    pub  BTreeMap<EntityIdentifier, BTreeMap<Timestamp, BTreeSet<KnowledgeGraphOutwardEdges>>>,
+    pub BTreeMap<EntityIdentifier, BTreeMap<Timestamp, BTreeSet<KnowledgeGraphOutwardEdges>>>,
 );
 
 impl ToSchema for KnowledgeGraphRootedEdges {
