@@ -6,16 +6,16 @@ import { HashInstanceModel } from "../model";
 import { workspaceAccountId } from "../model/util";
 
 /**
- * Ensures the required system knowledge has been created in the graph.
+ * Ensures the required system entities has been created in the graph.
  */
-export const ensureSystemKnowledgeExists = async (params: {
+export const ensureSystemEntitiesExists = async (params: {
   graphApi: GraphApi;
   logger: Logger;
 }) => {
   const { graphApi } = params;
-  logger.debug("Ensuring required Workspace knowledge exists");
+  logger.debug("Ensuring required Workspace entities exists");
 
-  // Create system knowledge if they don't already exist
+  // Create system entities if they don't already exist
   /**
    * @todo Use transactional primitive/bulk insert to be able to do this in parallel
    *   see the following task:
