@@ -19,7 +19,6 @@
       "packages/hash/search-loader",
       "packages/hash/shared",
       "packages/hash/task-executor",
-      "packages/hash/tsconfig",
       "sites/hashai",
       "sites/hashdev"
     ]
@@ -66,31 +65,29 @@
     ]
   },
   "resolutions": {
-    "@types/react": "18.0.15",
     "node-fetch": "^2.6.7",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "ts-node": "10.9.1"
   },
   "devDependencies": {
-    "check-dependency-version-consistency": "3.0.0",
-    "concurrently": "7.0.0",
+    "check-dependency-version-consistency": "3.0.3",
+    "concurrently": "7.5.0",
     "cross-env": "7.0.3",
     "dotenv-flow": "3.2.0",
-    "husky": "7.0.4",
-    "lint-staged": "12.3.3",
-    "lockfile-lint": "4.6.2",
+    "husky": "8.0.2",
+    "lint-staged": "13.0.3",
+    "lockfile-lint": "4.9.6",
     "markdownlint-cli": "0.32.2",
     "npm-run-all": "4.1.5",
-    "patch-package": "6.4.7",
+    "patch-package": "6.5.0",
     "postinstall-postinstall": "2.1.0",
-    "prettier": "2.5.1",
-    "prettier-plugin-packagejson": "2.2.15",
-    "prettier-plugin-sh": "0.8.1",
-    "serve": "13.0.2",
-    "suppress-exit-code": "1.0.0",
-    "ts-node": "10.4.0",
-    "turbo": "1.6.1",
+    "prettier": "2.7.1",
+    "prettier-plugin-packagejson": "2.3.0",
+    "prettier-plugin-sh": "0.12.8",
+    "suppress-exit-code": "3.1.0",
+    "turbo": "1.6.3",
     "wait-on": "6.0.1",
-    "yarn-deduplicate": "3.1.0"
+    "yarn-deduplicate": "6.0.0"
   }
 }
