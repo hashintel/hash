@@ -16,7 +16,7 @@ export const createUser: ResolverFn<
 > = async (
   _,
   {
-    email,
+    emailAddress,
     password,
     isInstanceAdmin,
     shortname,
@@ -26,8 +26,6 @@ export const createUser: ResolverFn<
   },
   { dataSources: { graphApi }, userModel: actorUserModel },
 ) => {
-  const { address: emailAddress, verified: emailAddressVerified } = email;
-
   const kratosIdentity = await createKratosIdentity({
     traits: {
       shortname: shortname ?? undefined,
@@ -36,13 +34,11 @@ export const createUser: ResolverFn<
     credentials: { password: { config: { password } } },
   });
 
-  if (emailAddressVerified) {
-    /**
-     * @todo: use kratos admin API to programmatically verify the email of the user
-     *
-     * @see https://github.com/ory/kratos/issues/2473
-     */
-  }
+  /**
+   * @todo: use kratos admin API to programmatically verify the email of the user
+   *
+   * @see https://github.com/ory/kratos/issues/2473
+   */
 
   const { id: kratosIdentityId } = kratosIdentity;
 

@@ -9,26 +9,15 @@ export const userTypedef = gql`
     isShortnameTaken(shortname: String!): Boolean!
   }
 
-  input UserEmailInput {
-    """
-    An email address (e.g. "alice@example.com").
-    """
-    address: String!
-    """
-    Whether or not the email address is verified.
-    """
-    verified: Boolean!
-  }
-
   extend type Mutation {
     """
     Create a User.
     """
     createUser(
       """
-      The email of the user.
+      The email address of the user.
       """
-      email: UserEmailInput!
+      emailAddress: String!
       """
       The password of the user.
       """
