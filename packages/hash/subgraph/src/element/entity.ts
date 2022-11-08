@@ -73,6 +73,45 @@ export const getEntitiesByEntityId = (
 };
 
 /**
+ * Gets an `EntityWithMetadata` with `EntityEditionId` whose lifespan overlaps a given `Date`
+ *
+ * @param subgraph
+ * @param entityId
+ * @param timestamp
+ *
+ * @throws if the vertices pointed to by `entityId` aren't `EntityVertex`es
+ */
+export const getEntityAtTimestamp = (
+  subgraph: Subgraph,
+  entityId: EntityId,
+  timestamp: Date | string,
+): Entity | undefined => {
+  const timestampString =
+    typeof timestamp === "string" ? timestamp : timestamp.toISOString();
+
+  const entityEditions = subgraph.vertices[entityId];
+  if (!entityEditions) {
+    throw new Error(`no entities found for entityId: ${entityId}`);
+  }
+
+  return Object.entries(entityEditions).find(
+    ([potentialEntityVersion, vertex]) => {
+      if (!isEntityVertex(vertex)) {
+        throw new Error(`expected entity vertex but got: ${vertex.kind}`);
+      }
+
+      return (
+        timestampString <= potentialEntityVersion
+        /** @todo - we need to know the endTime of the entity */
+        // &&
+        // (entity.metadata.endTime == null ||
+        //   entity.metadata.endTime > timestamp)
+      );
+    },
+  )?.[1] as Entity | undefined;
+};
+
+/**
  * Returns all root `Entity` vertices of the subgraph
  *
  * @param subgraph
