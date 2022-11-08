@@ -4,6 +4,7 @@ import {
   extractVersion,
   PropertyTypeReference,
   ValueOrArray,
+  VersionedUri,
 } from "@blockprotocol/type-system-web";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
@@ -11,17 +12,19 @@ import { Box, Container, Typography } from "@mui/material";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
-import { FormProvider, useForm } from "react-hook-form";
+import { FormProvider, useForm, useWatch } from "react-hook-form";
 import { FRONTEND_URL } from "../../../../lib/config";
 import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
+import { Button } from "../../../../shared/ui/button";
+import { Link } from "../../../../shared/ui/link";
 import { TopContextBar } from "../../../shared/top-context-bar";
+import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
+import { OntologyChip } from "../../shared/ontology-chip";
 import { EditBar } from "./edit-bar";
 import {
   EntityTypeEditorForm,
   EntityTypeEditorPropertyData,
 } from "./form-types";
-import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
-import { OntologyChip } from "../../shared/ontology-chip";
 import { PropertyListCard } from "./property-list-card";
 import { useEntityType } from "./use-entity-type";
 import {
@@ -96,7 +99,9 @@ const Page: NextPageWithLayout = () => {
   const formMethods = useForm<EntityTypeEditorForm>({
     defaultValues: { properties: [] },
   });
-  const { handleSubmit: wrapHandleSubmit, reset } = formMethods;
+
+  const { handleSubmit: wrapHandleSubmit, reset, control } = formMethods;
+  const propertiesCount = useWatch({ control, name: "properties.length" });
 
   const [remoteEntityType, updateEntityType, publishDraft] = useEntityType(
     baseEntityTypeUri,
@@ -256,6 +261,43 @@ const Page: NextPageWithLayout = () => {
                   />
                   {entityType.title}
                 </Typography>
+                <Box display="flex">
+                  <Link
+                    noLinkStyle
+                    href={extractBaseUri(entityType.$id as VersionedUri)}
+                    sx={(theme) => ({
+                      pt: 2,
+                      pb: `calc(${theme.spacing(2)} - 3px)`,
+                      px: 0.25,
+                      borderBottom: 3,
+                      borderBottomColour: theme.palette.blue[60],
+                      color: theme.palette.blue[70],
+                      alignItems: "center",
+                      display: "flex",
+                      lineHeight: 1,
+                    })}
+                  >
+                    <Typography
+                      variant="smallTextLabels"
+                      sx={{ fontWeight: 500 }}
+                    >
+                      Definition
+                    </Typography>
+                    <Box
+                      sx={(theme) => ({
+                        py: 0.25,
+                        px: 1,
+                        backgroundColor: theme.palette.blue[20],
+                        borderRadius: "30px",
+                        ml: 1,
+                      })}
+                    >
+                      <Typography variant="microText" sx={{ fontWeight: 500 }}>
+                        {propertiesCount}
+                      </Typography>
+                    </Box>
+                  </Link>
+                </Box>
               </Container>
             </Box>
           </Box>
