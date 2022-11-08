@@ -1,5 +1,5 @@
 {
-  "name": "@hashintel/block-html-para",
+  "name": "@blocks/html-para",
   "version": "0.1.0",
   "repository": {
     "type": "git",
@@ -9,8 +9,8 @@
   "license": "MIT",
   "author": "HASH",
   "scripts": {
-    "build": "echo \"@hashintel/block-html-para contains no resources to build\"",
-    "build:dev": "echo \"@hashintel/block-html-para contains no resources to build\"",
+    "build": "echo \"@blocks/html-para contains no resources to build\"",
+    "build:dev": "echo \"@blocks/html-para contains no resources to build\"",
     "serve": "serve -C -l 5005"
   },
   "devDependencies": {

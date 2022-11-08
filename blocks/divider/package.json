@@ -1,5 +1,5 @@
 {
-  "name": "@hashintel/block-divider",
+  "name": "@blocks/divider",
   "version": "0.1.1",
   "private": true,
   "description": "Break up content on a page with horizontal dividing lines",
