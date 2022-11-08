@@ -1,0 +1,20 @@
+{
+  "name": "@hashintel/temp",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "node --max-old-space-size=2048 --experimental-wasm-modules ./node_modules/.bin/ts-node-dev --respawn --transpile-only ./src/index.ts",
+    "lint:tsc": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@blockprotocol/type-system-node": "https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system-node?c415472",
+    "@hashintel/hash-api": "0.0.0",
+    "@hashintel/hash-graph-client": "0.0.0",
+    "@hashintel/subgraph": "0.0.0",
+    "ts-node": "10.4.0",
+    "typescript": "4.8.4"
+  },
+  "devDependencies": {
+    "ts-node-dev": "2.0.0-0"
+  }
+}
