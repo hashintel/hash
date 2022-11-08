@@ -1,11 +1,11 @@
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import {
-  WORKSPACE_ACCOUNT_NAME,
-  WORKSPACE_ACCOUNT_SHORTNAME,
+  SYSTEM_ACCOUNT_NAME,
+  SYSTEM_ACCOUNT_SHORTNAME,
 } from "@hashintel/hash-backend-utils/system";
 import { GraphApi } from "@hashintel/hash-graph-client";
 import { OrgModel, OrgSize } from "../model";
-import { workspaceAccountId } from "../model/util";
+import { systemAccountId } from "../model/util";
 import { ensureDevUsersAreSeeded } from "./dev-users";
 import { PageDefinition, seedPages } from "./seed-pages";
 
@@ -17,12 +17,12 @@ const seedOrg = async (params: {
   const { graphApi, logger } = params;
 
   const sharedOrgModel = await OrgModel.createOrg(graphApi, {
-    name: WORKSPACE_ACCOUNT_NAME,
-    shortname: WORKSPACE_ACCOUNT_SHORTNAME,
+    name: SYSTEM_ACCOUNT_NAME,
+    shortname: SYSTEM_ACCOUNT_SHORTNAME,
     providedInfo: {
       orgSize: OrgSize.ElevenToFifty,
     },
-    actorId: workspaceAccountId,
+    actorId: systemAccountId,
   });
 
   logger.info(
@@ -64,7 +64,7 @@ export const seedOrgsAndUsers = async (params: {
       await user.joinOrg(graphApi, {
         org: sharedOrgModel,
         responsibility: "Member",
-        actorId: workspaceAccountId,
+        actorId: systemAccountId,
       });
 
       logger.info(

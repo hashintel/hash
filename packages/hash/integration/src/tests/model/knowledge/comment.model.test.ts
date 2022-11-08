@@ -1,9 +1,9 @@
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { createGraphClient } from "@hashintel/hash-api/src/graph";
 import {
-  ensureWorkspaceTypesExist,
-  WORKSPACE_TYPES,
-} from "@hashintel/hash-api/src/graph/workspace-types";
+  ensureSystemTypesExist,
+  SYSTEM_TYPES,
+} from "@hashintel/hash-api/src/graph/system-types";
 import {
   BlockModel,
   EntityModel,
@@ -36,16 +36,16 @@ describe("Comment model class", () => {
   const testBlockComponentId = "test-component-id";
 
   beforeAll(async () => {
-    await ensureWorkspaceTypesExist({ graphApi, logger });
+    await ensureSystemTypesExist({ graphApi, logger });
 
     testUser = await createTestUser(graphApi, "commentModelTest", logger);
 
     const textEntity = await EntityModel.create(graphApi, {
       ownedById: testUser.ownedById,
       properties: {
-        [WORKSPACE_TYPES.propertyType.tokens.baseUri]: [],
+        [SYSTEM_TYPES.propertyType.tokens.baseUri]: [],
       },
-      entityTypeModel: WORKSPACE_TYPES.entityType.text,
+      entityTypeModel: SYSTEM_TYPES.entityType.text,
       actorId: testUser.ownedById,
     });
 
@@ -68,7 +68,7 @@ describe("Comment model class", () => {
 
     const hasText = await comment.getHasText(graphApi);
     expect(
-      (hasText.properties as any)[WORKSPACE_TYPES.propertyType.tokens.baseUri],
+      (hasText.properties as any)[SYSTEM_TYPES.propertyType.tokens.baseUri],
     ).toEqual([]);
 
     const commentAuthor = await comment.getAuthor(graphApi);

@@ -1,9 +1,9 @@
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { createGraphClient } from "@hashintel/hash-api/src/graph";
 import {
-  ensureWorkspaceTypesExist,
-  WORKSPACE_TYPES,
-} from "@hashintel/hash-api/src/graph/workspace-types";
+  ensureSystemTypesExist,
+  SYSTEM_TYPES,
+} from "@hashintel/hash-api/src/graph/system-types";
 import {
   BlockModel,
   EntityModel,
@@ -33,7 +33,7 @@ describe("Page model class", () => {
   let testUser: UserModel;
 
   beforeAll(async () => {
-    await ensureWorkspaceTypesExist({ graphApi, logger });
+    await ensureSystemTypesExist({ graphApi, logger });
     testUser = await createTestUser(graphApi, "pageModelTest", logger);
   });
 
@@ -43,7 +43,7 @@ describe("Page model class", () => {
       componentId: "text",
       blockData: await EntityModel.create(graphApi, {
         ownedById: testUser.entityId,
-        entityTypeModel: WORKSPACE_TYPES.entityType.dummy,
+        entityTypeModel: SYSTEM_TYPES.entityType.dummy,
         properties: {},
         actorId: testUser.entityId,
       }),
