@@ -10,6 +10,7 @@ import {
   extractEntityRoot,
   RootEntityAndSubgraph,
 } from "../../../lib/subgraph";
+import { PageErrorState } from "../../../components/page-error-state";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
@@ -53,7 +54,7 @@ const Page: NextPageWithLayout = () => {
   }
 
   if (!rootEntityAndSubgraph) {
-    return <h1>Entity not found</h1>;
+    return <PageErrorState />;
   }
 
   return (
