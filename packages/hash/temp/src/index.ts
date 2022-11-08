@@ -9,7 +9,7 @@ import { getEntityEditionsInTimeRange } from "./example-use-cases/entities-withi
 import { getLatestEditionOfEntity } from "./example-use-cases/latest-entity";
 import { getEntityTreeAtTimeToDepth } from "./example-use-cases/latest-entity-and-links";
 import { getImpliedEntityChanges } from "./example-use-cases/get-implied-entity-changes";
-import { mergeSubgraphs } from "./util";
+import { mergeSubgraphs, seed } from "./util";
 
 void (async () => {
   const graphApiHost = "localhost";
@@ -18,6 +18,10 @@ void (async () => {
   const graphApi = createGraphClient(logger, {
     host: graphApiHost,
     port: graphApiPort,
+  });
+
+  await seed(graphApi).catch((error: any) => {
+    throw new Error(`${JSON.stringify(error.response.data)}`);
   });
 
   const { data: latestEntitiesSubgraph } = (await graphApi.getEntitiesByQuery({
