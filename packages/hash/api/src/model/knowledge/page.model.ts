@@ -11,7 +11,7 @@ import {
   OrgModel,
   CommentModel,
 } from "..";
-import { WORKSPACE_TYPES } from "../../graph/workspace-types";
+import { SYSTEM_TYPES } from "../../graph/system-types";
 import { EntityTypeMismatchError } from "../../lib/error";
 
 type PageModelCreateParams = Omit<
@@ -31,11 +31,11 @@ export default class extends EntityModel {
   static fromEntityModel(entity: EntityModel): PageModel {
     if (
       entity.entityTypeModel.schema.$id !==
-      WORKSPACE_TYPES.entityType.page.schema.$id
+      SYSTEM_TYPES.entityType.page.schema.$id
     ) {
       throw new EntityTypeMismatchError(
         entity.entityId,
-        WORKSPACE_TYPES.entityType.page.schema.$id,
+        SYSTEM_TYPES.entityType.page.schema.$id,
         entity.entityTypeModel.schema.$id,
       );
     }
@@ -44,7 +44,7 @@ export default class extends EntityModel {
   }
 
   /**
-   * Get a workspace page entity by its entity id.
+   * Get a system page entity by its entity id.
    *
    * @param params.entityId - the entity id of the page
    */
@@ -67,7 +67,7 @@ export default class extends EntityModel {
   }
 
   /**
-   * Create a workspace page entity.
+   * Create a system page entity.
    *
    * @param params.title - the title of the page
    *
@@ -82,12 +82,12 @@ export default class extends EntityModel {
     const index = generateKeyBetween(prevIndex ?? null, null);
 
     const properties: object = {
-      [WORKSPACE_TYPES.propertyType.title.baseUri]: title,
-      [WORKSPACE_TYPES.propertyType.summary.baseUri]: summary,
-      [WORKSPACE_TYPES.propertyType.index.baseUri]: index,
+      [SYSTEM_TYPES.propertyType.title.baseUri]: title,
+      [SYSTEM_TYPES.propertyType.summary.baseUri]: summary,
+      [SYSTEM_TYPES.propertyType.index.baseUri]: index,
     };
 
-    const entityTypeModel = WORKSPACE_TYPES.entityType.page;
+    const entityTypeModel = SYSTEM_TYPES.entityType.page;
 
     const entity = await EntityModel.create(graphApi, {
       ownedById,
@@ -108,9 +108,9 @@ export default class extends EntityModel {
               blockData: await EntityModel.create(graphApi, {
                 ownedById,
                 properties: {
-                  [WORKSPACE_TYPES.propertyType.tokens.baseUri]: [],
+                  [SYSTEM_TYPES.propertyType.tokens.baseUri]: [],
                 },
-                entityTypeModel: WORKSPACE_TYPES.entityType.text,
+                entityTypeModel: SYSTEM_TYPES.entityType.text,
                 actorId,
               }),
               actorId,
@@ -141,7 +141,7 @@ export default class extends EntityModel {
         {
           equal: [
             { path: ["type", "versionedUri"] },
-            { parameter: WORKSPACE_TYPES.entityType.page.schema.$id },
+            { parameter: SYSTEM_TYPES.entityType.page.schema.$id },
           ],
         },
       ],
@@ -169,39 +169,35 @@ export default class extends EntityModel {
    * Get the value of the "Title" property of the page.
    */
   getTitle(): string {
-    return (this.properties as any)[WORKSPACE_TYPES.propertyType.title.baseUri];
+    return (this.properties as any)[SYSTEM_TYPES.propertyType.title.baseUri];
   }
 
   /**
    * Get the value of the "Summary" property of the page.
    */
   getSummary(): string | undefined {
-    return (this.properties as any)[
-      WORKSPACE_TYPES.propertyType.summary.baseUri
-    ];
+    return (this.properties as any)[SYSTEM_TYPES.propertyType.summary.baseUri];
   }
 
   /**
    * Get the value of the "Index" property of the page.
    */
   getIndex(): string | undefined {
-    return (this.properties as any)[WORKSPACE_TYPES.propertyType.index.baseUri];
+    return (this.properties as any)[SYSTEM_TYPES.propertyType.index.baseUri];
   }
 
   /**
    * Get the value of the "Icon" property of the page.
    */
   getIcon(): string | undefined {
-    return (this.properties as any)[WORKSPACE_TYPES.propertyType.icon.baseUri];
+    return (this.properties as any)[SYSTEM_TYPES.propertyType.icon.baseUri];
   }
 
   /**
    * Get the value of the "Archived" property of the page.
    */
   getArchived(): boolean | undefined {
-    return (this.properties as any)[
-      WORKSPACE_TYPES.propertyType.archived.baseUri
-    ];
+    return (this.properties as any)[SYSTEM_TYPES.propertyType.archived.baseUri];
   }
 
   /**
@@ -222,7 +218,7 @@ export default class extends EntityModel {
    */
   async getParentPage(graphApi: GraphApi): Promise<PageModel | null> {
     const parentPageLinks = await this.getOutgoingLinks(graphApi, {
-      linkTypeModel: WORKSPACE_TYPES.linkType.parent,
+      linkTypeModel: SYSTEM_TYPES.linkType.parent,
     });
 
     const [parentPageLink, ...unexpectedParentPageLinks] = parentPageLinks;
@@ -282,7 +278,7 @@ export default class extends EntityModel {
     },
   ): Promise<void> {
     const parentPageLinks = await this.getOutgoingLinks(graphApi, {
-      linkTypeModel: WORKSPACE_TYPES.linkType.parent,
+      linkTypeModel: SYSTEM_TYPES.linkType.parent,
     });
 
     const [parentPageLink, ...unexpectedParentPageLinks] = parentPageLinks;
@@ -341,7 +337,7 @@ export default class extends EntityModel {
       }
 
       await this.createOutgoingLink(graphApi, {
-        linkTypeModel: WORKSPACE_TYPES.linkType.parent,
+        linkTypeModel: SYSTEM_TYPES.linkType.parent,
         targetEntityModel: parentPageModel,
         ownedById: actorId,
         actorId,
@@ -350,7 +346,7 @@ export default class extends EntityModel {
 
     if (this.getIndex() !== newIndex) {
       const updatedPageEntityModel = await this.updateProperty(graphApi, {
-        propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.index.baseUri,
+        propertyTypeBaseUri: SYSTEM_TYPES.propertyType.index.baseUri,
         value: newIndex,
         actorId,
       });
@@ -374,7 +370,7 @@ export default class extends EntityModel {
           equal: [
             { path: ["type", "versionedUri"] },
             {
-              parameter: WORKSPACE_TYPES.linkType.contains.schema.$id,
+              parameter: SYSTEM_TYPES.linkType.contains.schema.$id,
             },
           ],
         },
@@ -428,7 +424,7 @@ export default class extends EntityModel {
 
     const linkParams = {
       targetEntityModel: block,
-      linkTypeModel: WORKSPACE_TYPES.linkType.contains,
+      linkTypeModel: SYSTEM_TYPES.linkType.contains,
       index:
         specifiedPosition ??
         // if position is not specified and there are no blocks currently in the page, specify the index of the link is `0`
@@ -461,7 +457,7 @@ export default class extends EntityModel {
     const { currentPosition, newPosition, actorId } = params;
 
     const contentLinks = await this.getOutgoingLinks(graphApi, {
-      linkTypeModel: WORKSPACE_TYPES.linkType.contains,
+      linkTypeModel: SYSTEM_TYPES.linkType.contains,
     });
 
     if (currentPosition < 0 || currentPosition >= contentLinks.length) {
@@ -511,7 +507,7 @@ export default class extends EntityModel {
     } = params;
 
     const contentLinks = await this.getOutgoingLinks(graphApi, {
-      linkTypeModel: WORKSPACE_TYPES.linkType.contains,
+      linkTypeModel: SYSTEM_TYPES.linkType.contains,
     });
 
     /**

@@ -22,7 +22,7 @@ import {
 
 import setupAuth from "./auth";
 import { RedisCache } from "./cache";
-import { ensureWorkspaceTypesExist } from "./graph/workspace-types";
+import { ensureSystemTypesExist } from "./graph/system-types";
 // import { createCollabApp } from "./collab/collabApp";
 import {
   AwsSesEmailTransporter,
@@ -130,7 +130,7 @@ const main = async () => {
     port: graphApiPort,
   });
 
-  await ensureWorkspaceTypesExist({ graphApi, logger });
+  await ensureSystemTypesExist({ graphApi, logger });
 
   await ensureSystemEntitiesExists({ graphApi, logger });
 
@@ -167,8 +167,8 @@ const main = async () => {
         })
       : new AwsSesEmailTransporter({
           from: `${getRequiredEnv(
-            "WORKSPACE_EMAIL_SENDER_NAME",
-          )} <${getRequiredEnv("WORKSPACE_EMAIL_ADDRESS")}>`,
+            "SYSTEM_EMAIL_SENDER_NAME",
+          )} <${getRequiredEnv("SYSTEM_EMAIL_ADDRESS")}>`,
           region: getAwsRegion(),
           subjectPrefix: isProdEnv ? undefined : "[DEV SITE] ",
         });

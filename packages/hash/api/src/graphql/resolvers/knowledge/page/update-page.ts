@@ -1,4 +1,4 @@
-import { WORKSPACE_TYPES } from "../../../../graph/workspace-types";
+import { SYSTEM_TYPES } from "../../../../graph/system-types";
 import { PageModel } from "../../../../model";
 import {
   MutationUpdatePersistedPageArgs,
@@ -26,7 +26,7 @@ export const updatePersistedPage: ResolverFn<
     updatedProperties: Object.entries(updatedProperties).map(
       ([propertyName, value]) => ({
         propertyTypeBaseUri:
-          WORKSPACE_TYPES.propertyType[
+          SYSTEM_TYPES.propertyType[
             propertyName as keyof MutationUpdatePersistedPageArgs["updatedProperties"]
           ].baseUri,
         value,

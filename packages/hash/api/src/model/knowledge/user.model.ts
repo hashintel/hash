@@ -13,9 +13,9 @@ import {
   KratosUserIdentity,
   KratosUserIdentityTraits,
 } from "../../auth/ory-kratos";
-import { WORKSPACE_TYPES } from "../../graph/workspace-types";
+import { SYSTEM_TYPES } from "../../graph/system-types";
 import { EntityTypeMismatchError } from "../../lib/error";
-import { workspaceAccountId } from "../util";
+import { systemAccountId } from "../util";
 
 type QualifiedEmail = { address: string; verified: boolean; primary: boolean };
 
@@ -35,11 +35,11 @@ export default class extends EntityModel {
   static fromEntityModel(entity: EntityModel): UserModel {
     if (
       entity.entityTypeModel.schema.$id !==
-      WORKSPACE_TYPES.entityType.user.schema.$id
+      SYSTEM_TYPES.entityType.user.schema.$id
     ) {
       throw new EntityTypeMismatchError(
         entity.entityId,
-        WORKSPACE_TYPES.entityType.user.schema.$id,
+        SYSTEM_TYPES.entityType.user.schema.$id,
         entity.entityTypeModel.schema.$id,
       );
     }
@@ -48,7 +48,7 @@ export default class extends EntityModel {
   }
 
   /**
-   * Get a workspace user entity by its entity id.
+   * Get a system user entity by its entity id.
    *
    * @param params.entityId - the entity id of the user
    */
@@ -64,7 +64,7 @@ export default class extends EntityModel {
   }
 
   /**
-   * Get a workspace user entity by their shortname.
+   * Get a system user entity by their shortname.
    *
    * @param params.shortname - the shortname of the user
    */
@@ -82,7 +82,7 @@ export default class extends EntityModel {
         {
           equal: [
             { path: ["type", "versionedUri"] },
-            { parameter: WORKSPACE_TYPES.entityType.user.schema.$id },
+            { parameter: SYSTEM_TYPES.entityType.user.schema.$id },
           ],
         },
       ],
@@ -96,7 +96,7 @@ export default class extends EntityModel {
   }
 
   /**
-   * Get a workspace user entity by their kratos identity id.
+   * Get a system user entity by their kratos identity id.
    *
    * @param params.kratosIdentityId - the kratos identity id
    */
@@ -114,7 +114,7 @@ export default class extends EntityModel {
         {
           equal: [
             { path: ["type", "versionedUri"] },
-            { parameter: WORKSPACE_TYPES.entityType.user.schema.$id },
+            { parameter: SYSTEM_TYPES.entityType.user.schema.$id },
           ],
         },
       ],
@@ -130,11 +130,11 @@ export default class extends EntityModel {
   }
 
   /**
-   * Create a workspace user entity.
+   * Create a system user entity.
    *
    * @param params.emails - the emails of the user
    * @param params.kratosIdentityId - the kratos identity id of the user
-   * @param params.isInstanceAdmin (optional) - whether or not the user is an instance admin of the workspace (defaults to `false`)
+   * @param params.isInstanceAdmin (optional) - whether or not the user is an instance admin of the HASH instance (defaults to `false`)
    */
   static async createUser(
     graphApi: GraphApi,
@@ -161,16 +161,16 @@ export default class extends EntityModel {
     const { data: userAccountId } = await graphApi.createAccountId();
 
     const properties: object = {
-      [WORKSPACE_TYPES.propertyType.email.baseUri]: emails,
-      [WORKSPACE_TYPES.propertyType.kratosIdentityId.baseUri]: kratosIdentityId,
-      [WORKSPACE_TYPES.propertyType.shortName.baseUri]: undefined,
-      [WORKSPACE_TYPES.propertyType.preferredName.baseUri]: undefined,
+      [SYSTEM_TYPES.propertyType.email.baseUri]: emails,
+      [SYSTEM_TYPES.propertyType.kratosIdentityId.baseUri]: kratosIdentityId,
+      [SYSTEM_TYPES.propertyType.shortName.baseUri]: undefined,
+      [SYSTEM_TYPES.propertyType.preferredName.baseUri]: undefined,
     };
 
-    const entityTypeModel = WORKSPACE_TYPES.entityType.user;
+    const entityTypeModel = SYSTEM_TYPES.entityType.user;
 
     const entity = await EntityModel.create(graphApi, {
-      ownedById: workspaceAccountId,
+      ownedById: systemAccountId,
       properties,
       entityTypeModel,
       entityId: userAccountId,
@@ -229,7 +229,7 @@ export default class extends EntityModel {
 
   async getQualifiedEmails(): Promise<QualifiedEmail[]> {
     const emails: string[] = (this.properties as any)[
-      WORKSPACE_TYPES.propertyType.email.baseUri
+      SYSTEM_TYPES.propertyType.email.baseUri
     ];
 
     const kratosIdentity = await this.getKratosIdentity();
@@ -257,7 +257,7 @@ export default class extends EntityModel {
   }
 
   getEmails(): string[] {
-    return (this.properties as any)[WORKSPACE_TYPES.propertyType.email.baseUri];
+    return (this.properties as any)[SYSTEM_TYPES.propertyType.email.baseUri];
   }
 
   /**
@@ -269,7 +269,7 @@ export default class extends EntityModel {
    */
   getShortname(): string | undefined {
     return (this.properties as any)[
-      WORKSPACE_TYPES.propertyType.shortName.baseUri
+      SYSTEM_TYPES.propertyType.shortName.baseUri
     ];
   }
 
@@ -303,7 +303,7 @@ export default class extends EntityModel {
     const previousShortname = this.getShortname();
 
     const updatedUser = await this.updateProperty(graphApi, {
-      propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.shortName.baseUri,
+      propertyTypeBaseUri: SYSTEM_TYPES.propertyType.shortName.baseUri,
       value: updatedShortname,
       actorId,
     }).then((updatedEntity) => new UserModel(updatedEntity));
@@ -313,7 +313,7 @@ export default class extends EntityModel {
     }).catch(async (error) => {
       // If an error occurred updating the entity, set the property to have the previous shortname
       await this.updateProperty(graphApi, {
-        propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.shortName.baseUri,
+        propertyTypeBaseUri: SYSTEM_TYPES.propertyType.shortName.baseUri,
         value: previousShortname,
         actorId,
       });
@@ -326,7 +326,7 @@ export default class extends EntityModel {
 
   getPreferredName(): string | undefined {
     return (this.properties as any)[
-      WORKSPACE_TYPES.propertyType.preferredName.baseUri
+      SYSTEM_TYPES.propertyType.preferredName.baseUri
     ];
   }
 
@@ -348,7 +348,7 @@ export default class extends EntityModel {
       );
     }
     const updatedEntity = await this.updateProperty(graphApi, {
-      propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.preferredName.baseUri,
+      propertyTypeBaseUri: SYSTEM_TYPES.propertyType.preferredName.baseUri,
       value: updatedPreferredName,
       actorId,
     });
@@ -358,7 +358,7 @@ export default class extends EntityModel {
 
   getKratosIdentityId(): string {
     return (this.properties as any)[
-      WORKSPACE_TYPES.propertyType.kratosIdentityId.baseUri
+      SYSTEM_TYPES.propertyType.kratosIdentityId.baseUri
     ];
   }
 
@@ -399,9 +399,9 @@ export default class extends EntityModel {
     );
 
     await this.createOutgoingLink(graphApi, {
-      linkTypeModel: WORKSPACE_TYPES.linkType.hasMembership,
+      linkTypeModel: SYSTEM_TYPES.linkType.hasMembership,
       targetEntityModel: orgMembership,
-      ownedById: workspaceAccountId,
+      ownedById: systemAccountId,
       actorId,
     });
   }
@@ -418,7 +418,7 @@ export default class extends EntityModel {
               equal: [
                 { path: ["type", "versionedUri"] },
                 {
-                  parameter: WORKSPACE_TYPES.linkType.hasMembership.schema.$id,
+                  parameter: SYSTEM_TYPES.linkType.hasMembership.schema.$id,
                 },
               ],
             },
