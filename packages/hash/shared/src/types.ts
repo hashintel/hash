@@ -2,7 +2,7 @@ import { BaseUri, VersionedUri } from "@blockprotocol/type-system-web";
 import slugify from "slugify";
 import { frontendUrl } from "./config";
 
-const workspaceNamespaceName = "example";
+const systemNamespaceName = "example";
 
 type SchemaKind = "data-type" | "property-type" | "entity-type" | "link-type";
 
@@ -11,7 +11,7 @@ export const slugifyTypeTitle = (title: string): string =>
   slugify(title, { lower: true });
 
 /**
- * Generate the base identifier of a type (its unversioned URI).
+ * Generate the base identifier of a type (its un-versioned URI).
  *
  * @param domain (optional) - the domain of the type, defaults the frontend url.
  * @param namespace - the namespace of the type.
@@ -63,15 +63,15 @@ export const generateTypeId = ({
   );
 
 /**
- * Generate the identifier of a workspace type (its versioned URI).
+ * Generate the identifier of a system type (its versioned URI).
  *
  * @param kind - the "kind" of the type ("entity-type", "property-type", "link-type" or "data-type").
  * @param title - the title of the type.
  */
-export const generateWorkspaceTypeId = (args: {
+export const generateSystemTypeId = (args: {
   kind: SchemaKind;
   title: string;
-}) => generateTypeId({ namespace: workspaceNamespaceName, ...args });
+}) => generateTypeId({ namespace: systemNamespaceName, ...args });
 
 /**
  * Generate the identifier of a block protocol type (its versioned URI).
@@ -90,12 +90,12 @@ export const generateBlockProtocolTypeId = (args: {
   });
 
 /**
- * The workspace entity types.
+ * The system entity types.
  *
  * @todo add missing descriptions
  * @see https://app.asana.com/0/1202805690238892/1203132327925695/f
  */
-const workspaceEntityTypes = {
+const systemEntityTypes = {
   block: {
     title: "Block",
     description: undefined,
@@ -134,18 +134,18 @@ const workspaceEntityTypes = {
   },
 } as const;
 
-type WorkspaceEntityTypeKey = keyof typeof workspaceEntityTypes;
+type SystemEntityTypeKey = keyof typeof systemEntityTypes;
 
-export type WorkspaceEntityTypeTitle =
-  typeof workspaceEntityTypes[WorkspaceEntityTypeKey]["title"];
+export type SystemEntityTypeTitle =
+  typeof systemEntityTypes[SystemEntityTypeKey]["title"];
 
 /**
- * The workspace property types.
+ * The system property types.
  *
  * @todo add missing descriptions
  * @see https://app.asana.com/0/1202805690238892/1203132327925695/f
  */
-const workspacePropertyTypes = {
+const systemPropertyTypes = {
   shortName: {
     title: "Shortname",
     description: undefined,
@@ -217,15 +217,15 @@ const workspacePropertyTypes = {
   },
 } as const;
 
-type WorkspacePropertyTypeKey = keyof typeof workspacePropertyTypes;
+type SystemPropertyTypeKey = keyof typeof systemPropertyTypes;
 
-export type WorkspacePropertyTypeTitle =
-  typeof workspacePropertyTypes[WorkspacePropertyTypeKey]["title"];
+export type SystemPropertyTypeTitle =
+  typeof systemPropertyTypes[SystemPropertyTypeKey]["title"];
 
 /**
- * The workspace link type titles.
+ * The system link type titles.
  */
-const workspaceLinkTypes = {
+const systemLinkTypes = {
   hasMembership: {
     title: "Has Membership",
     description: "Having a membership.",
@@ -260,10 +260,9 @@ const workspaceLinkTypes = {
   },
 } as const;
 
-type WorkspaceLinkTypeKey = keyof typeof workspaceLinkTypes;
+type SystemLinkTypeKey = keyof typeof systemLinkTypes;
 
-export type WorkspaceLinkTypeTitle =
-  typeof workspaceLinkTypes[WorkspaceLinkTypeKey];
+export type SystemLinkTypeTitle = typeof systemLinkTypes[SystemLinkTypeKey];
 
 /**
  * The primitive data types ("Text", "Number", etc.)
@@ -317,34 +316,34 @@ type LinkTypeDefinition = TypeDefinition & {
 };
 
 type TypeDefinitions = {
-  entityType: Record<WorkspaceEntityTypeKey, EntityTypeDefinition>;
-  propertyType: Record<WorkspacePropertyTypeKey, PropertyTypeDefinition>;
-  linkType: Record<WorkspaceLinkTypeKey, LinkTypeDefinition>;
+  entityType: Record<SystemEntityTypeKey, EntityTypeDefinition>;
+  propertyType: Record<SystemPropertyTypeKey, PropertyTypeDefinition>;
+  linkType: Record<SystemLinkTypeKey, LinkTypeDefinition>;
   dataType: Record<PrimitiveDataTypeKey, DataTypeDefinition>;
 };
 
 /**
- * The workspace and block protocol types that are statically available at run-time.
+ * The system and block protocol types that are statically available at run-time.
  */
 export const types: TypeDefinitions = {
-  entityType: Object.entries(workspaceEntityTypes).reduce(
+  entityType: Object.entries(systemEntityTypes).reduce(
     (prev, [key, { title, description }]) => {
       const definition: EntityTypeDefinition = {
         title,
         description,
-        entityTypeId: generateWorkspaceTypeId({ kind: "entity-type", title }),
+        entityTypeId: generateSystemTypeId({ kind: "entity-type", title }),
       };
 
       return { ...prev, [key]: definition };
     },
-    {} as Record<WorkspaceEntityTypeKey, EntityTypeDefinition>,
+    {} as Record<SystemEntityTypeKey, EntityTypeDefinition>,
   ),
-  propertyType: Object.entries(workspacePropertyTypes).reduce(
+  propertyType: Object.entries(systemPropertyTypes).reduce(
     (prev, [key, { title, description }]) => {
       const definition: PropertyTypeDefinition = {
         title,
         description,
-        propertyTypeId: generateWorkspaceTypeId({
+        propertyTypeId: generateSystemTypeId({
           kind: "property-type",
           title,
         }),
@@ -352,7 +351,7 @@ export const types: TypeDefinitions = {
 
       return { ...prev, [key]: definition };
     },
-    {} as Record<WorkspacePropertyTypeKey, PropertyTypeDefinition>,
+    {} as Record<SystemPropertyTypeKey, PropertyTypeDefinition>,
   ),
   dataType: Object.entries(primitiveDataTypes).reduce(
     (prev, [key, { title, description }]) => {
@@ -369,12 +368,12 @@ export const types: TypeDefinitions = {
     },
     {} as Record<PrimitiveDataTypeKey, DataTypeDefinition>,
   ),
-  linkType: Object.entries(workspaceLinkTypes).reduce(
+  linkType: Object.entries(systemLinkTypes).reduce(
     (prev, [key, { title, description }]) => {
       const definition: LinkTypeDefinition = {
         title,
         description,
-        linkTypeId: generateWorkspaceTypeId({
+        linkTypeId: generateSystemTypeId({
           kind: "link-type",
           title,
         }),
@@ -382,6 +381,6 @@ export const types: TypeDefinitions = {
 
       return { ...prev, [key]: definition };
     },
-    {} as Record<WorkspaceLinkTypeKey, LinkTypeDefinition>,
+    {} as Record<SystemLinkTypeKey, LinkTypeDefinition>,
   ),
 };
