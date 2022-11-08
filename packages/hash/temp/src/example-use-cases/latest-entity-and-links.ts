@@ -25,6 +25,7 @@ export const getEntityTreeAtTimeToDepth = (
     entity.metadata.identifier.entityIdentifier,
     timestamp,
   );
+
   return {
     entity,
     siblings: links.map(({ linkEntity, endpointEntity }) => {
