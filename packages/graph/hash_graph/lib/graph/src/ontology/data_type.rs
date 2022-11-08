@@ -11,24 +11,146 @@ use crate::store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath};
 /// A path to a [`DataType`] field.
 ///
 /// Note: [`DataType`]s currently don't reference other [`DataType`]s, so the path can only be a
-/// single field.
+/// single field. This means, that the path currently will always be a sequence with only one
+/// element.
 ///
 /// [`DataType`]: type_system::DataType
 // TODO: Adjust enum and docs when adding non-primitive data types
 //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
 #[derive(Debug, PartialEq, Eq)]
 pub enum DataTypeQueryPath {
-    VersionId,
+    /// The `owned_by_id` field of [`PersistedOntologyIdentifier`] belonging to the [`DataType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::DataTypeQueryPath;
+    /// let path = DataTypeQueryPath::deserialize(json!(["ownedById"]))?;
+    /// assert_eq!(path, DataTypeQueryPath::OwnedById);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`PersistedOntologyIdentifier`]: crate::ontology::PersistedOntologyIdentifier
     OwnedById,
+    /// The `created_by_id` field of [`PersistedOntologyMetadata`] belonging to the [`DataType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::DataTypeQueryPath;
+    /// let path = DataTypeQueryPath::deserialize(json!(["createdById"]))?;
+    /// assert_eq!(path, DataTypeQueryPath::CreatedById);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`PersistedOntologyMetadata`]: crate::ontology::PersistedOntologyMetadata
     CreatedById,
+    /// The `updated_by_id` field of [`PersistedOntologyMetadata`] belonging to the [`DataType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::DataTypeQueryPath;
+    /// let path = DataTypeQueryPath::deserialize(json!(["updatedById"]))?;
+    /// assert_eq!(path, DataTypeQueryPath::UpdatedById);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`PersistedOntologyMetadata`]: crate::ontology::PersistedOntologyMetadata
     UpdatedById,
-    Schema,
+    /// The [`BaseUri`] of a [`DataType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::DataTypeQueryPath;
+    /// let path = DataTypeQueryPath::deserialize(json!(["baseUri"]))?;
+    /// assert_eq!(path, DataTypeQueryPath::BaseUri);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`BaseUri`]: type_system::uri::BaseUri
     BaseUri,
+    /// The [`VersionedUri`] of a [`DataType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::DataTypeQueryPath;
+    /// let path = DataTypeQueryPath::deserialize(json!(["versionedUri"]))?;
+    /// assert_eq!(path, DataTypeQueryPath::VersionedUri);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`VersionedUri`]: type_system::uri::VersionedUri
     VersionedUri,
+    /// The version of the [`DataType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::DataTypeQueryPath;
+    /// let path = DataTypeQueryPath::deserialize(json!(["version"]))?;
+    /// assert_eq!(path, DataTypeQueryPath::Version);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// In addition to specifying the version directly, it's also possible to compare the version
+    /// with a `"latest"` parameter, which will only match the latest version of one
+    /// [`DataType`].
+    ///
+    /// ```rust
+    /// # use std::borrow::Cow;
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use type_system::DataType;
+    /// # use graph::{store::query::{Filter, FilterExpression, Parameter}, ontology::DataTypeQueryPath};
+    /// let filter_value = json!({ "equal": [{ "path": ["version"] }, { "parameter": "latest" }] });
+    /// let path = Filter::<DataType>::deserialize(filter_value)?;
+    /// assert_eq!(path, Filter::Equal(
+    ///     Some(FilterExpression::Path(DataTypeQueryPath::Version)),
+    ///     Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed("latest")))))
+    /// );
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
     Version,
+    /// Corresponds to [`DataType::title()`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::DataTypeQueryPath;
+    /// let path = DataTypeQueryPath::deserialize(json!(["title"]))?;
+    /// assert_eq!(path, DataTypeQueryPath::Title);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
     Title,
+    /// Corresponds to [`DataType::description()`]
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::DataTypeQueryPath;
+    /// let path = DataTypeQueryPath::deserialize(json!(["description"]))?;
+    /// assert_eq!(path, DataTypeQueryPath::Description);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
     Description,
+    /// Corresponds to [`DataType::json_type()`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::DataTypeQueryPath;
+    /// let path = DataTypeQueryPath::deserialize(json!(["type"]))?;
+    /// assert_eq!(path, DataTypeQueryPath::Type);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
     Type,
+    /// Only used internally and not available for deserialization.
+    VersionId,
+    /// Only used internally and not available for deserialization.
+    Schema,
 }
 
 impl QueryRecord for DataType {

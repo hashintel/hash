@@ -13,20 +13,204 @@ use crate::{
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum EntityQueryPath<'q> {
+    /// The `entity_id` field of [`PersistedEntityIdentifier`] belonging to the [`Entity`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::knowledge::EntityQueryPath;
+    /// let path = EntityQueryPath::deserialize(json!(["uuid"]))?;
+    /// assert_eq!(path, EntityQueryPath::Uuid);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`PersistedEntityIdentifier`]: crate::knowledge::PersistedEntityIdentifier
     Uuid,
-    OwnedById,
-    CreatedById,
-    UpdatedById,
+    /// The `version` field of [`PersistedEntityIdentifier`] belonging to the [`Entity`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::knowledge::EntityQueryPath;
+    /// let path = EntityQueryPath::deserialize(json!(["version"]))?;
+    /// assert_eq!(path, EntityQueryPath::Version);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`PersistedEntityIdentifier`]: crate::knowledge::PersistedEntityIdentifier
     Version,
+    /// Specifies if an entity is archived.
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::knowledge::EntityQueryPath;
+    /// let path = EntityQueryPath::deserialize(json!(["archived"]))?;
+    /// assert_eq!(path, EntityQueryPath::Archived);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
     Archived,
+    /// The `owned_by_id` field of [`PersistedEntityMetadata`] belonging to the [`Entity`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::knowledge::EntityQueryPath;
+    /// let path = EntityQueryPath::deserialize(json!(["ownedById"]))?;
+    /// assert_eq!(path, EntityQueryPath::OwnedById);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`PersistedEntityMetadata`]: crate::knowledge::PersistedEntityMetadata
+    OwnedById,
+    /// The `created_by_id` field of [`PersistedEntityMetadata`] belonging to the [`Entity`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::knowledge::EntityQueryPath;
+    /// let path = EntityQueryPath::deserialize(json!(["createdById"]))?;
+    /// assert_eq!(path, EntityQueryPath::CreatedById);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`PersistedEntityMetadata`]: crate::knowledge::PersistedEntityMetadata
+    CreatedById,
+    /// The `updated_by_id` field of [`PersistedEntityMetadata`] belonging to the [`Entity`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::knowledge::EntityQueryPath;
+    /// let path = EntityQueryPath::deserialize(json!(["updatedById"]))?;
+    /// assert_eq!(path, EntityQueryPath::UpdatedById);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`PersistedEntityMetadata`]: crate::knowledge::PersistedEntityMetadata
+    UpdatedById,
+    RemovedById,
+    Version,
     Type(EntityTypeQueryPath),
-    Properties(Option<Cow<'q, str>>),
+    /// Represents an [`Entity`] linking to this [`Entity`].
+    ///
+    /// Deserializes from `["incomingLinks", ...]` where `...` is the path of the source
+    /// [`Entity`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::knowledge::EntityQueryPath;
+    /// let path = EntityQueryPath::deserialize(json!(["incomingLinks", "id"]))?;
+    /// assert_eq!(
+    ///     path,
+    ///     EntityQueryPath::IncomingLinks(Box::new(EntityQueryPath::Id))
+    /// );
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
     IncomingLinks(Box<Self>),
+    /// Represents an [`Entity`] linked from this [`Entity`].
+    ///
+    /// Deserializes from `["outgoingLinks", ...]` where `...` is the path of the target
+    /// [`Entity`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::knowledge::EntityQueryPath;
+    /// let path = EntityQueryPath::deserialize(json!(["outgoingLinks", "id"]))?;
+    /// assert_eq!(
+    ///     path,
+    ///     EntityQueryPath::OutgoingLinks(Box::new(EntityQueryPath::Id))
+    /// );
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
     OutgoingLinks(Box<Self>),
+    /// Corresponds to [`LinkEntityMetadata::left_entity_id()`].
+    ///
+    /// Deserializes from `["leftEntity", ...]` where `...` is the path of the left [`Entity`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::knowledge::EntityQueryPath;
+    /// let path = EntityQueryPath::deserialize(json!(["leftEntity", "id"]))?;
+    /// assert_eq!(
+    ///     path,
+    ///     EntityQueryPath::LeftEntity(Some(Box::new(EntityQueryPath::Id)))
+    /// );
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`LinkEntityMetadata::left_entity_id()`]: crate::knowledge::LinkEntityMetadata::left_entity_id
     LeftEntity(Option<Box<Self>>),
+    /// Corresponds to [`LinkEntityMetadata::right_entity_id()`].
+    ///
+    /// Deserializes from `["leftEntity", ...]` where `...` is the path of the right [`Entity`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::knowledge::EntityQueryPath;
+    /// let path = EntityQueryPath::deserialize(json!(["rightEntity", "id"]))?;
+    /// assert_eq!(
+    ///     path,
+    ///     EntityQueryPath::RightEntity(Some(Box::new(EntityQueryPath::Id)))
+    /// );
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`LinkEntityMetadata::right_entity_id()`]: crate::knowledge::LinkEntityMetadata::right_entity_id
     RightEntity(Option<Box<Self>>),
+    /// Corresponds to [`LinkEntityMetadata::left_order()`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::knowledge::EntityQueryPath;
+    /// let path = EntityQueryPath::deserialize(json!(["leftOrder"]))?;
+    /// assert_eq!(path, EntityQueryPath::LeftOrder);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`LinkEntityMetadata::left_order()`]: crate::knowledge::LinkEntityMetadata::left_order
     LeftOrder,
+    /// Corresponds to [`LinkEntityMetadata::right_order()`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::knowledge::EntityQueryPath;
+    /// let path = EntityQueryPath::deserialize(json!(["rightOrder"]))?;
+    /// assert_eq!(path, EntityQueryPath::RightOrder);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`LinkEntityMetadata::right_order()`]: crate::knowledge::LinkEntityMetadata::right_order
     RightOrder,
+    /// Corresponds to [`Entity::properties()`].
+    ///
+    /// Deserializes from `["properties", ...]` where `...` is a path to a property URI of an
+    /// [`Entity`].
+    ///
+    /// ```rust
+    /// # use std::borrow::Cow;
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::knowledge::EntityQueryPath;
+    /// let path = EntityQueryPath::deserialize(json!([
+    ///     "properties",
+    ///     "https://blockprotocol.org/@blockprotocol/types/property-type/name/"
+    /// ]))?;
+    /// assert_eq!(
+    ///     path,
+    ///     EntityQueryPath::Properties(Some(Cow::Borrowed(
+    ///         "https://blockprotocol.org/@blockprotocol/types/property-type/name/"
+    ///     )))
+    /// );
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    Properties(Option<Cow<'q, str>>),
 }
 
 impl QueryRecord for EntityProperties {
@@ -85,17 +269,20 @@ impl RecordPath for EntityQueryPath<'_> {
 pub enum EntityQueryToken {
     // TODO: we want to expose `EntityId` here instead
     Uuid,
+    Version,
+    Archived,
+    Version,
     OwnedById,
     CreatedById,
     UpdatedById,
-    Version,
-    Archived,
     Type,
     Properties,
     IncomingLinks,
     OutgoingLinks,
     LeftEntity,
     RightEntity,
+    LeftOrder,
+    RightOrder,
 }
 
 /// Deserializes an [`EntityQueryPath`] from a string sequence.
@@ -105,9 +292,10 @@ pub struct EntityQueryPathVisitor {
 }
 
 impl EntityQueryPathVisitor {
-    pub const EXPECTING: &'static str =
-        "one of `uuid`, `ownedById`, `createdById`, `updatedById`, `version`, `archived`, `type`, \
-         `properties`, `incomingLinks`, `outgoingLinks`, `leftEntity`, `rightEntity`";
+    pub const EXPECTING: &'static str = "one of `uuid`, `version`, `archived`, `ownedById`, \
+                                         `createdById`, `updatedById`, `type`, `properties`, \
+                                         `incomingLinks`, `outgoingLinks`, `leftEntity`, \
+                                         `rightEntity`, `leftOrder`, `rightOrder`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -159,6 +347,8 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
             EntityQueryToken::RightEntity => EntityQueryPath::RightEntity(Some(Box::new(
                 Self::new(self.position).visit_seq(seq)?,
             ))),
+            EntityQueryToken::LeftOrder => EntityQueryPath::LeftOrder,
+            EntityQueryToken::RightOrder => EntityQueryPath::RightOrder,
         })
     }
 }

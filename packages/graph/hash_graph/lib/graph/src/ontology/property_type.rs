@@ -11,20 +11,158 @@ use crate::{
     store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath},
 };
 
+/// A path to a [`PropertyType`] field.
 #[derive(Debug, PartialEq, Eq)]
 pub enum PropertyTypeQueryPath {
-    VersionId,
+    /// The `owned_by_id` field of [`PersistedOntologyIdentifier`] belonging to the
+    /// [`PropertyType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::PropertyTypeQueryPath;
+    /// let path = PropertyTypeQueryPath::deserialize(json!(["ownedById"]))?;
+    /// assert_eq!(path, PropertyTypeQueryPath::OwnedById);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`PersistedOntologyIdentifier`]: crate::ontology::PersistedOntologyIdentifier
     OwnedById,
+    /// The `created_by_id` field of [`PersistedOntologyMetadata`] belonging to the
+    /// [`PropertyType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::PropertyTypeQueryPath;
+    /// let path = PropertyTypeQueryPath::deserialize(json!(["createdById"]))?;
+    /// assert_eq!(path, PropertyTypeQueryPath::CreatedById);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`PersistedOntologyMetadata`]: crate::ontology::PersistedOntologyMetadata
     CreatedById,
+    /// The `updated_by_id` field of [`PersistedOntologyMetadata`] belonging to the
+    /// [`PropertyType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::PropertyTypeQueryPath;
+    /// let path = PropertyTypeQueryPath::deserialize(json!(["updatedById"]))?;
+    /// assert_eq!(path, PropertyTypeQueryPath::UpdatedById);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`PersistedOntologyMetadata`]: crate::ontology::PersistedOntologyMetadata
     UpdatedById,
-    Schema,
+    /// The [`BaseUri`] of a [`PropertyType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::PropertyTypeQueryPath;
+    /// let path = PropertyTypeQueryPath::deserialize(json!(["baseUri"]))?;
+    /// assert_eq!(path, PropertyTypeQueryPath::BaseUri);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`BaseUri`]: type_system::uri::BaseUri
     BaseUri,
+    /// The [`VersionedUri`] of a [`PropertyType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::PropertyTypeQueryPath;
+    /// let path = PropertyTypeQueryPath::deserialize(json!(["versionedUri"]))?;
+    /// assert_eq!(path, PropertyTypeQueryPath::VersionedUri);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`VersionedUri`]: type_system::uri::VersionedUri
     VersionedUri,
+    /// The version of the [`PropertyType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::PropertyTypeQueryPath;
+    /// let path = PropertyTypeQueryPath::deserialize(json!(["version"]))?;
+    /// assert_eq!(path, PropertyTypeQueryPath::Version);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// In addition to specifying the version directly, it's also possible to compare the version
+    /// with a `"latest"` parameter, which will only match the latest version of one
+    /// [`PropertyType`].
     Version,
+    /// Corresponds to [`PropertyType::title()`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::PropertyTypeQueryPath;
+    /// let path = PropertyTypeQueryPath::deserialize(json!(["title"]))?;
+    /// assert_eq!(path, PropertyTypeQueryPath::Title);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
     Title,
+    /// Corresponds to [`PropertyType::description()`]
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::PropertyTypeQueryPath;
+    /// let path = PropertyTypeQueryPath::deserialize(json!(["description"]))?;
+    /// assert_eq!(path, PropertyTypeQueryPath::Description);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
     Description,
+    /// Corresponds to [`PropertyType::data_type_references()`].
+    ///
+    /// As a [`PropertyType`] can have multiple [`DataType`]s, the deserialized path requires an
+    /// additional selector to identify the [`DataType`] to query. Currently, only the `*` selector
+    /// is available, so the path will be deserialized as `["dataTypes", "*", ...]` where `...` is
+    /// the path to the desired field of the [`DataType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::{DataTypeQueryPath, PropertyTypeQueryPath};
+    /// let path = PropertyTypeQueryPath::deserialize(json!(["dataTypes", "*", "title"]))?;
+    /// assert_eq!(
+    ///     path,
+    ///     PropertyTypeQueryPath::DataTypes(DataTypeQueryPath::Title)
+    /// );
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`DataType`]: type_system::DataType
     DataTypes(DataTypeQueryPath),
+    /// Corresponds to [`PropertyType::property_type_references()`].
+    ///
+    /// As a [`PropertyType`] can have multiple nested [`PropertyType`]s, the deserialized path
+    /// requires an additional selector to identify the [`PropertyType`] to query. Currently, only
+    /// the `*` selector is available, so the path will be deserialized as `["propertyTypes", "*",
+    /// ...]` where `...` is the path to the desired field of the [`PropertyType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// use serde_json::json;
+    /// # use graph::ontology::PropertyTypeQueryPath;
+    /// let path = PropertyTypeQueryPath::deserialize(json!(["propertyTypes", "*", "title"]))?;
+    /// assert_eq!(
+    ///     path,
+    ///     PropertyTypeQueryPath::PropertyTypes(Box::new(PropertyTypeQueryPath::Title))
+    /// );
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
     PropertyTypes(Box<Self>),
+    /// Only used internally and not available for deserialization.
+    VersionId,
+    /// Only used internally and not available for deserialization.
+    Schema,
 }
 
 impl QueryRecord for PropertyType {

@@ -88,6 +88,12 @@ export interface ArchiveEntityRequest {
    * @memberof ArchiveEntityRequest
    */
   entityId: string;
+  /**
+   *
+   * @type {string}
+   * @memberof ArchiveEntityRequest
+   */
+  ownedById: string;
 }
 /**
  *
@@ -137,13 +143,13 @@ export interface CreateEntityRequest {
    * @type {string}
    * @memberof CreateEntityRequest
    */
-  entityTypeId: string;
+  entityId?: string;
   /**
    *
    * @type {string}
    * @memberof CreateEntityRequest
    */
-  entityUuid?: string;
+  entityTypeId: string;
   /**
    *
    * @type {LinkEntityMetadata}
@@ -281,7 +287,7 @@ export interface DataTypeReferenceUpdate {
   $ref: string;
 }
 /**
- * A [`Filter`] to query the datastore, recursively resolving according to the
+ * Structural queries are the main entry point to read data from the Graph.
  * @export
  * @interface DataTypeStructuralQuery
  */
@@ -298,25 +304,6 @@ export interface DataTypeStructuralQuery {
    * @memberof DataTypeStructuralQuery
    */
   graphResolveDepths: GraphResolveDepths;
-}
-/**
- *
- * @export
- * @interface DataTypeWithMetadata
- */
-export interface DataTypeWithMetadata {
-  /**
-   *
-   * @type {OntologyElementMetadata}
-   * @memberof DataTypeWithMetadata
-   */
-  metadata: OntologyElementMetadata;
-  /**
-   *
-   * @type {DataType}
-   * @memberof DataTypeWithMetadata
-   */
-  schema: DataType;
 }
 /**
  *
@@ -341,10 +328,10 @@ export type EdgeKind = typeof EdgeKind[keyof typeof EdgeKind];
 export interface EdgesValueInner {
   /**
    *
-   * @type {GraphElementId}
+   * @type {GraphElementIdentifier}
    * @memberof EdgesValueInner
    */
-  destination: GraphElementId;
+  destination: GraphElementIdentifier;
   /**
    *
    * @type {EdgeKind}
@@ -353,82 +340,7 @@ export interface EdgesValueInner {
   edgeKind: EdgeKind;
 }
 /**
- * A record of an [`Entity`] that has been persisted in the datastore, with its associated
- * @export
- * @interface Entity
- */
-export interface Entity {
-  /**
-   *
-   * @type {EntityMetadata}
-   * @memberof Entity
-   */
-  metadata: EntityMetadata;
-  /**
-   *
-   * @type {object}
-   * @memberof Entity
-   */
-  properties: object;
-}
-/**
- *
- * @export
- * @interface EntityEditionId
- */
-export interface EntityEditionId {
-  /**
-   *
-   * @type {string}
-   * @memberof EntityEditionId
-   */
-  baseId: string;
-  /**
-   *
-   * @type {string}
-   * @memberof EntityEditionId
-   */
-  version: string;
-}
-/**
- * The metadata of an [`Entity`] record.
- * @export
- * @interface EntityMetadata
- */
-export interface EntityMetadata {
-  /**
-   *
-   * @type {boolean}
-   * @memberof EntityMetadata
-   */
-  archived: boolean;
-  /**
-   *
-   * @type {EntityEditionId}
-   * @memberof EntityMetadata
-   */
-  editionId: EntityEditionId;
-  /**
-   *
-   * @type {string}
-   * @memberof EntityMetadata
-   */
-  entityTypeId: string;
-  /**
-   *
-   * @type {LinkEntityMetadata}
-   * @memberof EntityMetadata
-   */
-  linkMetadata?: LinkEntityMetadata;
-  /**
-   *
-   * @type {ProvenanceMetadata}
-   * @memberof EntityMetadata
-   */
-  provenance: ProvenanceMetadata;
-}
-/**
- * A [`Filter`] to query the datastore, recursively resolving according to the
+ * Structural queries are the main entry point to read data from the Graph.
  * @export
  * @interface EntityStructuralQuery
  */
@@ -540,7 +452,7 @@ export type EntityTypeTypeEnum =
   typeof EntityTypeTypeEnum[keyof typeof EntityTypeTypeEnum];
 
 /**
- * A [`Filter`] to query the datastore, recursively resolving according to the
+ * Structural queries are the main entry point to read data from the Graph.
  * @export
  * @interface EntityTypeStructuralQuery
  */
@@ -557,25 +469,6 @@ export interface EntityTypeStructuralQuery {
    * @memberof EntityTypeStructuralQuery
    */
   graphResolveDepths: GraphResolveDepths;
-}
-/**
- *
- * @export
- * @interface EntityTypeWithMetadata
- */
-export interface EntityTypeWithMetadata {
-  /**
-   *
-   * @type {OntologyElementMetadata}
-   * @memberof EntityTypeWithMetadata
-   */
-  metadata: OntologyElementMetadata;
-  /**
-   *
-   * @type {EntityType}
-   * @memberof EntityTypeWithMetadata
-   */
-  schema: EntityType;
 }
 /**
  *
@@ -608,10 +501,10 @@ export type Filter =
 export type FilterExpression = ParameterExpression | PathExpression;
 
 /**
- * @type GraphElementId
+ * @type GraphElementIdentifier
  * @export
  */
-export type GraphElementId = string;
+export type GraphElementIdentifier = string;
 
 /**
  *
@@ -651,37 +544,6 @@ export interface GraphResolveDepths {
   propertyTypeResolveDepth: number;
 }
 /**
- * The associated information for \'Link\' entities
- * @export
- * @interface LinkEntityMetadata
- */
-export interface LinkEntityMetadata {
-  /**
-   *
-   * @type {string}
-   * @memberof LinkEntityMetadata
-   */
-  leftEntityId: string;
-  /**
-   *
-   * @type {number}
-   * @memberof LinkEntityMetadata
-   */
-  leftOrder?: number;
-  /**
-   *
-   * @type {string}
-   * @memberof LinkEntityMetadata
-   */
-  rightEntityId: string;
-  /**
-   *
-   * @type {number}
-   * @memberof LinkEntityMetadata
-   */
-  rightOrder?: number;
-}
-/**
  *
  * @export
  * @interface NotEqualFilter
@@ -710,59 +572,15 @@ export interface NotFilter {
 /**
  *
  * @export
- * @interface OntologyElementMetadata
- */
-export interface OntologyElementMetadata {
-  /**
-   *
-   * @type {OntologyTypeEditionId}
-   * @memberof OntologyElementMetadata
-   */
-  editionId: OntologyTypeEditionId;
-  /**
-   *
-   * @type {string}
-   * @memberof OntologyElementMetadata
-   */
-  ownedById: string;
-  /**
-   *
-   * @type {ProvenanceMetadata}
-   * @memberof OntologyElementMetadata
-   */
-  provenance: ProvenanceMetadata;
-}
-/**
- *
- * @export
- * @interface OntologyTypeEditionId
- */
-export interface OntologyTypeEditionId {
-  /**
-   *
-   * @type {string}
-   * @memberof OntologyTypeEditionId
-   */
-  baseId: string;
-  /**
-   *
-   * @type {number}
-   * @memberof OntologyTypeEditionId
-   */
-  version: number;
-}
-/**
- *
- * @export
  * @interface OutwardEdge
  */
 export interface OutwardEdge {
   /**
    *
-   * @type {GraphElementId}
+   * @type {GraphElementIdentifier}
    * @memberof OutwardEdge
    */
-  destination: GraphElementId;
+  destination: GraphElementIdentifier;
   /**
    *
    * @type {EdgeKind}
@@ -802,14 +620,14 @@ export const PathExpressionPathEnum = {
   OwnedById: "ownedById",
   CreatedById: "createdById",
   UpdatedById: "updatedById",
+  RemovedById: "removedById",
   BaseUri: "baseUri",
   VersionedUri: "versionedUri",
   Version: "version",
-  Archived: "archived",
   Title: "title",
   Description: "description",
   Type: "type",
-  Uuid: "uuid",
+  Id: "id",
   Properties: "properties",
   IncomingLinks: "incomingLinks",
   OutgoingLinks: "outgoingLinks",
@@ -828,6 +646,200 @@ export const PathExpressionPathEnum = {
 export type PathExpressionPathEnum =
   typeof PathExpressionPathEnum[keyof typeof PathExpressionPathEnum];
 
+/**
+ *
+ * @export
+ * @interface PersistedDataType
+ */
+export interface PersistedDataType {
+  /**
+   *
+   * @type {DataType}
+   * @memberof PersistedDataType
+   */
+  inner: DataType;
+  /**
+   *
+   * @type {PersistedOntologyMetadata}
+   * @memberof PersistedDataType
+   */
+  metadata: PersistedOntologyMetadata;
+}
+/**
+ * A record of an [`Entity`] that has been persisted in the datastore, with its associated
+ * @export
+ * @interface PersistedEntity
+ */
+export interface PersistedEntity {
+  /**
+   *
+   * @type {object}
+   * @memberof PersistedEntity
+   */
+  inner: object;
+  /**
+   *
+   * @type {PersistedEntityMetadata}
+   * @memberof PersistedEntity
+   */
+  metadata: PersistedEntityMetadata;
+}
+/**
+ * The metadata required to uniquely identify an instance of an [`Entity`] that has been persisted
+ * @export
+ * @interface PersistedEntityIdentifier
+ */
+export interface PersistedEntityIdentifier {
+  /**
+   *
+   * @type {string}
+   * @memberof PersistedEntityIdentifier
+   */
+  entityId: string;
+  /**
+   *
+   * @type {string}
+   * @memberof PersistedEntityIdentifier
+   */
+  ownedById: string;
+  /**
+   *
+   * @type {string}
+   * @memberof PersistedEntityIdentifier
+   */
+  version: string;
+}
+/**
+ * The metadata of an [`Entity`] record.
+ * @export
+ * @interface PersistedEntityMetadata
+ */
+export interface PersistedEntityMetadata {
+  /**
+   *
+   * @type {boolean}
+   * @memberof PersistedEntityMetadata
+   */
+  archived: boolean;
+  /**
+   *
+   * @type {string}
+   * @memberof PersistedEntityMetadata
+   */
+  createdById: string;
+  /**
+   *
+   * @type {string}
+   * @memberof PersistedEntityMetadata
+   */
+  entityTypeId: string;
+  /**
+   *
+   * @type {PersistedEntityIdentifier}
+   * @memberof PersistedEntityMetadata
+   */
+  identifier: PersistedEntityIdentifier;
+  /**
+   *
+   * @type {LinkEntityMetadata}
+   * @memberof PersistedEntityMetadata
+   */
+  linkMetadata?: LinkEntityMetadata;
+  /**
+   *
+   * @type {string}
+   * @memberof PersistedEntityMetadata
+   */
+  updatedById: string;
+}
+/**
+ *
+ * @export
+ * @interface PersistedEntityType
+ */
+export interface PersistedEntityType {
+  /**
+   *
+   * @type {EntityType}
+   * @memberof PersistedEntityType
+   */
+  inner: EntityType;
+  /**
+   *
+   * @type {PersistedOntologyMetadata}
+   * @memberof PersistedEntityType
+   */
+  metadata: PersistedOntologyMetadata;
+}
+/**
+ * The metadata required to uniquely identify an ontology element that has been persisted in the
+ * @export
+ * @interface PersistedOntologyIdentifier
+ */
+export interface PersistedOntologyIdentifier {
+  /**
+   *
+   * @type {string}
+   * @memberof PersistedOntologyIdentifier
+   */
+  ownedById: string;
+  /**
+   *
+   * @type {string}
+   * @memberof PersistedOntologyIdentifier
+   */
+  uri: string;
+}
+/**
+ *
+ * @export
+ * @interface PersistedOntologyMetadata
+ */
+export interface PersistedOntologyMetadata {
+  /**
+   *
+   * @type {string}
+   * @memberof PersistedOntologyMetadata
+   */
+  createdById: string;
+  /**
+   *
+   * @type {PersistedOntologyIdentifier}
+   * @memberof PersistedOntologyMetadata
+   */
+  identifier: PersistedOntologyIdentifier;
+  /**
+   *
+   * @type {RemovedById}
+   * @memberof PersistedOntologyMetadata
+   */
+  removedById?: RemovedById;
+  /**
+   *
+   * @type {string}
+   * @memberof PersistedOntologyMetadata
+   */
+  updatedById: string;
+}
+/**
+ *
+ * @export
+ * @interface PersistedPropertyType
+ */
+export interface PersistedPropertyType {
+  /**
+   *
+   * @type {PropertyType}
+   * @memberof PersistedPropertyType
+   */
+  inner: PropertyType;
+  /**
+   *
+   * @type {PersistedOntologyMetadata}
+   * @memberof PersistedPropertyType
+   */
+  metadata: PersistedOntologyMetadata;
+}
 /**
  *
  * @export
@@ -1011,7 +1023,7 @@ export type PropertyTypeKindEnum =
   typeof PropertyTypeKindEnum[keyof typeof PropertyTypeKindEnum];
 
 /**
- * A [`Filter`] to query the datastore, recursively resolving according to the
+ * Structural queries are the main entry point to read data from the Graph.
  * @export
  * @interface PropertyTypeStructuralQuery
  */
@@ -1028,25 +1040,6 @@ export interface PropertyTypeStructuralQuery {
    * @memberof PropertyTypeStructuralQuery
    */
   graphResolveDepths: GraphResolveDepths;
-}
-/**
- *
- * @export
- * @interface PropertyTypeWithMetadata
- */
-export interface PropertyTypeWithMetadata {
-  /**
-   *
-   * @type {OntologyElementMetadata}
-   * @memberof PropertyTypeWithMetadata
-   */
-  metadata: OntologyElementMetadata;
-  /**
-   *
-   * @type {PropertyType}
-   * @memberof PropertyTypeWithMetadata
-   */
-  schema: PropertyType;
 }
 /**
  * @type PropertyValues
@@ -1069,25 +1062,6 @@ export type PropertyValuesUpdate =
 /**
  *
  * @export
- * @interface ProvenanceMetadata
- */
-export interface ProvenanceMetadata {
-  /**
-   *
-   * @type {string}
-   * @memberof ProvenanceMetadata
-   */
-  createdById: string;
-  /**
-   *
-   * @type {string}
-   * @memberof ProvenanceMetadata
-   */
-  updatedById: string;
-}
-/**
- *
- * @export
  * @interface Subgraph
  */
 export interface Subgraph {
@@ -1105,10 +1079,10 @@ export interface Subgraph {
   edges: { [key: string]: Array<EdgesValueInner> };
   /**
    *
-   * @type {Array<GraphElementId>}
+   * @type {Array<GraphElementIdentifier>}
    * @memberof Subgraph
    */
-  roots: Array<GraphElementId>;
+  roots: Array<GraphElementIdentifier>;
   /**
    *
    * @type {{ [key: string]: Vertex; }}
@@ -1463,16 +1437,16 @@ export type VertexOneOf1KindEnum =
 export interface VertexOneOf1Inner {
   /**
    *
-   * @type {OntologyElementMetadata}
-   * @memberof VertexOneOf1Inner
-   */
-  metadata: OntologyElementMetadata;
-  /**
-   *
    * @type {PropertyType}
    * @memberof VertexOneOf1Inner
    */
-  schema: PropertyType;
+  inner: PropertyType;
+  /**
+   *
+   * @type {PersistedOntologyMetadata}
+   * @memberof VertexOneOf1Inner
+   */
+  metadata: PersistedOntologyMetadata;
 }
 /**
  *
@@ -1509,16 +1483,16 @@ export type VertexOneOf2KindEnum =
 export interface VertexOneOf2Inner {
   /**
    *
-   * @type {OntologyElementMetadata}
-   * @memberof VertexOneOf2Inner
-   */
-  metadata: OntologyElementMetadata;
-  /**
-   *
    * @type {EntityType}
    * @memberof VertexOneOf2Inner
    */
-  schema: EntityType;
+  inner: EntityType;
+  /**
+   *
+   * @type {PersistedOntologyMetadata}
+   * @memberof VertexOneOf2Inner
+   */
+  metadata: PersistedOntologyMetadata;
 }
 /**
  *
@@ -1555,16 +1529,16 @@ export type VertexOneOf3KindEnum =
 export interface VertexOneOf3Inner {
   /**
    *
-   * @type {EntityMetadata}
-   * @memberof VertexOneOf3Inner
-   */
-  metadata: EntityMetadata;
-  /**
-   *
    * @type {object}
    * @memberof VertexOneOf3Inner
    */
-  properties: object;
+  inner: object;
+  /**
+   *
+   * @type {PersistedEntityMetadata}
+   * @memberof VertexOneOf3Inner
+   */
+  metadata: PersistedEntityMetadata;
 }
 /**
  *
@@ -1574,16 +1548,16 @@ export interface VertexOneOf3Inner {
 export interface VertexOneOfInner {
   /**
    *
-   * @type {OntologyElementMetadata}
-   * @memberof VertexOneOfInner
-   */
-  metadata: OntologyElementMetadata;
-  /**
-   *
    * @type {DataType}
    * @memberof VertexOneOfInner
    */
-  schema: DataType;
+  inner: DataType;
+  /**
+   *
+   * @type {PersistedOntologyMetadata}
+   * @memberof VertexOneOfInner
+   */
+  metadata: PersistedOntologyMetadata;
 }
 
 /**
@@ -1997,7 +1971,7 @@ export const DataTypeApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<OntologyElementMetadata>
+      ) => AxiosPromise<PersistedOntologyMetadata>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.createDataType(
         createDataTypeRequest,
@@ -2023,7 +1997,7 @@ export const DataTypeApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<DataTypeWithMetadata>
+      ) => AxiosPromise<PersistedDataType>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.getDataType(
         uri,
@@ -2071,7 +2045,7 @@ export const DataTypeApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<Array<DataTypeWithMetadata>>
+      ) => AxiosPromise<Array<PersistedDataType>>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getLatestDataTypes(options);
@@ -2095,7 +2069,7 @@ export const DataTypeApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<OntologyElementMetadata>
+      ) => AxiosPromise<PersistedOntologyMetadata>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.updateDataType(
         updateDataTypeRequest,
@@ -2131,7 +2105,7 @@ export const DataTypeApiFactory = function (
     createDataType(
       createDataTypeRequest: CreateDataTypeRequest,
       options?: any,
-    ): AxiosPromise<OntologyElementMetadata> {
+    ): AxiosPromise<PersistedOntologyMetadata> {
       return localVarFp
         .createDataType(createDataTypeRequest, options)
         .then((request) => request(axios, basePath));
@@ -2142,10 +2116,7 @@ export const DataTypeApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getDataType(
-      uri: string,
-      options?: any,
-    ): AxiosPromise<DataTypeWithMetadata> {
+    getDataType(uri: string, options?: any): AxiosPromise<PersistedDataType> {
       return localVarFp
         .getDataType(uri, options)
         .then((request) => request(axios, basePath));
@@ -2169,9 +2140,7 @@ export const DataTypeApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getLatestDataTypes(
-      options?: any,
-    ): AxiosPromise<Array<DataTypeWithMetadata>> {
+    getLatestDataTypes(options?: any): AxiosPromise<Array<PersistedDataType>> {
       return localVarFp
         .getLatestDataTypes(options)
         .then((request) => request(axios, basePath));
@@ -2185,7 +2154,7 @@ export const DataTypeApiFactory = function (
     updateDataType(
       updateDataTypeRequest: UpdateDataTypeRequest,
       options?: any,
-    ): AxiosPromise<OntologyElementMetadata> {
+    ): AxiosPromise<PersistedOntologyMetadata> {
       return localVarFp
         .updateDataType(updateDataTypeRequest, options)
         .then((request) => request(axios, basePath));
@@ -2209,7 +2178,7 @@ export interface DataTypeApiInterface {
   createDataType(
     createDataTypeRequest: CreateDataTypeRequest,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<OntologyElementMetadata>;
+  ): AxiosPromise<PersistedOntologyMetadata>;
 
   /**
    *
@@ -2221,7 +2190,7 @@ export interface DataTypeApiInterface {
   getDataType(
     uri: string,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<DataTypeWithMetadata>;
+  ): AxiosPromise<PersistedDataType>;
 
   /**
    *
@@ -2243,7 +2212,7 @@ export interface DataTypeApiInterface {
    */
   getLatestDataTypes(
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<DataTypeWithMetadata>>;
+  ): AxiosPromise<Array<PersistedDataType>>;
 
   /**
    *
@@ -2255,7 +2224,7 @@ export interface DataTypeApiInterface {
   updateDataType(
     updateDataTypeRequest: UpdateDataTypeRequest,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<OntologyElementMetadata>;
+  ): AxiosPromise<PersistedOntologyMetadata>;
 }
 
 /**
@@ -2455,7 +2424,7 @@ export const EntityApiAxiosParamCreator = function (
     },
     /**
      *
-     * @param {string} entityId The EntityId
+     * @param {string} entityId The ID of the entity
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -2609,7 +2578,10 @@ export const EntityApiFp = function (configuration?: Configuration) {
       createEntityRequest: CreateEntityRequest,
       options?: AxiosRequestConfig,
     ): Promise<
-      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<EntityMetadata>
+      (
+        axios?: AxiosInstance,
+        basePath?: string,
+      ) => AxiosPromise<PersistedEntityMetadata>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.createEntity(
         createEntityRequest,
@@ -2648,7 +2620,7 @@ export const EntityApiFp = function (configuration?: Configuration) {
     },
     /**
      *
-     * @param {string} entityId The EntityId
+     * @param {string} entityId The ID of the entity
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -2656,7 +2628,10 @@ export const EntityApiFp = function (configuration?: Configuration) {
       entityId: string,
       options?: AxiosRequestConfig,
     ): Promise<
-      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Entity>
+      (
+        axios?: AxiosInstance,
+        basePath?: string,
+      ) => AxiosPromise<PersistedEntity>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.getEntity(
         entityId,
@@ -2677,7 +2652,10 @@ export const EntityApiFp = function (configuration?: Configuration) {
     async getLatestEntities(
       options?: AxiosRequestConfig,
     ): Promise<
-      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<Entity>>
+      (
+        axios?: AxiosInstance,
+        basePath?: string,
+      ) => AxiosPromise<Array<PersistedEntity>>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getLatestEntities(options);
@@ -2698,7 +2676,10 @@ export const EntityApiFp = function (configuration?: Configuration) {
       updateEntityRequest: UpdateEntityRequest,
       options?: AxiosRequestConfig,
     ): Promise<
-      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<EntityMetadata>
+      (
+        axios?: AxiosInstance,
+        basePath?: string,
+      ) => AxiosPromise<PersistedEntityMetadata>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.updateEntity(
         updateEntityRequest,
@@ -2734,7 +2715,7 @@ export const EntityApiFactory = function (
     createEntity(
       createEntityRequest: CreateEntityRequest,
       options?: any,
-    ): AxiosPromise<EntityMetadata> {
+    ): AxiosPromise<PersistedEntityMetadata> {
       return localVarFp
         .createEntity(createEntityRequest, options)
         .then((request) => request(axios, basePath));
@@ -2755,11 +2736,11 @@ export const EntityApiFactory = function (
     },
     /**
      *
-     * @param {string} entityId The EntityId
+     * @param {string} entityId The ID of the entity
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getEntity(entityId: string, options?: any): AxiosPromise<Entity> {
+    getEntity(entityId: string, options?: any): AxiosPromise<PersistedEntity> {
       return localVarFp
         .getEntity(entityId, options)
         .then((request) => request(axios, basePath));
@@ -2769,7 +2750,7 @@ export const EntityApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getLatestEntities(options?: any): AxiosPromise<Array<Entity>> {
+    getLatestEntities(options?: any): AxiosPromise<Array<PersistedEntity>> {
       return localVarFp
         .getLatestEntities(options)
         .then((request) => request(axios, basePath));
@@ -2783,7 +2764,7 @@ export const EntityApiFactory = function (
     updateEntity(
       updateEntityRequest: UpdateEntityRequest,
       options?: any,
-    ): AxiosPromise<EntityMetadata> {
+    ): AxiosPromise<PersistedEntityMetadata> {
       return localVarFp
         .updateEntity(updateEntityRequest, options)
         .then((request) => request(axios, basePath));
@@ -2807,7 +2788,7 @@ export interface EntityApiInterface {
   createEntity(
     createEntityRequest: CreateEntityRequest,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<EntityMetadata>;
+  ): AxiosPromise<PersistedEntityMetadata>;
 
   /**
    *
@@ -2823,7 +2804,7 @@ export interface EntityApiInterface {
 
   /**
    *
-   * @param {string} entityId The EntityId
+   * @param {string} entityId The ID of the entity
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof EntityApiInterface
@@ -2831,7 +2812,7 @@ export interface EntityApiInterface {
   getEntity(
     entityId: string,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Entity>;
+  ): AxiosPromise<PersistedEntity>;
 
   /**
    *
@@ -2839,7 +2820,9 @@ export interface EntityApiInterface {
    * @throws {RequiredError}
    * @memberof EntityApiInterface
    */
-  getLatestEntities(options?: AxiosRequestConfig): AxiosPromise<Array<Entity>>;
+  getLatestEntities(
+    options?: AxiosRequestConfig,
+  ): AxiosPromise<Array<PersistedEntity>>;
 
   /**
    *
@@ -2851,7 +2834,7 @@ export interface EntityApiInterface {
   updateEntity(
     updateEntityRequest: UpdateEntityRequest,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<EntityMetadata>;
+  ): AxiosPromise<PersistedEntityMetadata>;
 }
 
 /**
@@ -2895,7 +2878,7 @@ export class EntityApi extends BaseAPI implements EntityApiInterface {
 
   /**
    *
-   * @param {string} entityId The EntityId
+   * @param {string} entityId The ID of the entity
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof EntityApi
@@ -3209,7 +3192,7 @@ export const EntityTypeApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<OntologyElementMetadata>
+      ) => AxiosPromise<PersistedOntologyMetadata>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.createEntityType(
@@ -3236,7 +3219,7 @@ export const EntityTypeApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<EntityTypeWithMetadata>
+      ) => AxiosPromise<PersistedEntityType>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.getEntityType(
         uri,
@@ -3284,7 +3267,7 @@ export const EntityTypeApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<Array<EntityTypeWithMetadata>>
+      ) => AxiosPromise<Array<PersistedEntityType>>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getLatestEntityTypes(options);
@@ -3308,7 +3291,7 @@ export const EntityTypeApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<OntologyElementMetadata>
+      ) => AxiosPromise<PersistedOntologyMetadata>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.updateEntityType(
@@ -3345,7 +3328,7 @@ export const EntityTypeApiFactory = function (
     createEntityType(
       createEntityTypeRequest: CreateEntityTypeRequest,
       options?: any,
-    ): AxiosPromise<OntologyElementMetadata> {
+    ): AxiosPromise<PersistedOntologyMetadata> {
       return localVarFp
         .createEntityType(createEntityTypeRequest, options)
         .then((request) => request(axios, basePath));
@@ -3359,7 +3342,7 @@ export const EntityTypeApiFactory = function (
     getEntityType(
       uri: string,
       options?: any,
-    ): AxiosPromise<EntityTypeWithMetadata> {
+    ): AxiosPromise<PersistedEntityType> {
       return localVarFp
         .getEntityType(uri, options)
         .then((request) => request(axios, basePath));
@@ -3385,7 +3368,7 @@ export const EntityTypeApiFactory = function (
      */
     getLatestEntityTypes(
       options?: any,
-    ): AxiosPromise<Array<EntityTypeWithMetadata>> {
+    ): AxiosPromise<Array<PersistedEntityType>> {
       return localVarFp
         .getLatestEntityTypes(options)
         .then((request) => request(axios, basePath));
@@ -3399,7 +3382,7 @@ export const EntityTypeApiFactory = function (
     updateEntityType(
       updateEntityTypeRequest: UpdateEntityTypeRequest,
       options?: any,
-    ): AxiosPromise<OntologyElementMetadata> {
+    ): AxiosPromise<PersistedOntologyMetadata> {
       return localVarFp
         .updateEntityType(updateEntityTypeRequest, options)
         .then((request) => request(axios, basePath));
@@ -3423,7 +3406,7 @@ export interface EntityTypeApiInterface {
   createEntityType(
     createEntityTypeRequest: CreateEntityTypeRequest,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<OntologyElementMetadata>;
+  ): AxiosPromise<PersistedOntologyMetadata>;
 
   /**
    *
@@ -3435,7 +3418,7 @@ export interface EntityTypeApiInterface {
   getEntityType(
     uri: string,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<EntityTypeWithMetadata>;
+  ): AxiosPromise<PersistedEntityType>;
 
   /**
    *
@@ -3457,7 +3440,7 @@ export interface EntityTypeApiInterface {
    */
   getLatestEntityTypes(
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<EntityTypeWithMetadata>>;
+  ): AxiosPromise<Array<PersistedEntityType>>;
 
   /**
    *
@@ -3469,7 +3452,7 @@ export interface EntityTypeApiInterface {
   updateEntityType(
     updateEntityTypeRequest: UpdateEntityTypeRequest,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<OntologyElementMetadata>;
+  ): AxiosPromise<PersistedOntologyMetadata>;
 }
 
 /**
@@ -3964,7 +3947,7 @@ export const GraphApiAxiosParamCreator = function (
     },
     /**
      *
-     * @param {string} entityId The EntityId
+     * @param {string} entityId The ID of the entity
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -4610,7 +4593,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<OntologyElementMetadata>
+      ) => AxiosPromise<PersistedOntologyMetadata>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.createDataType(
         createDataTypeRequest,
@@ -4633,7 +4616,10 @@ export const GraphApiFp = function (configuration?: Configuration) {
       createEntityRequest: CreateEntityRequest,
       options?: AxiosRequestConfig,
     ): Promise<
-      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<EntityMetadata>
+      (
+        axios?: AxiosInstance,
+        basePath?: string,
+      ) => AxiosPromise<PersistedEntityMetadata>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.createEntity(
         createEntityRequest,
@@ -4659,7 +4645,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<OntologyElementMetadata>
+      ) => AxiosPromise<PersistedOntologyMetadata>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.createEntityType(
@@ -4686,7 +4672,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<OntologyElementMetadata>
+      ) => AxiosPromise<PersistedOntologyMetadata>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.createPropertyType(
@@ -4713,7 +4699,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<DataTypeWithMetadata>
+      ) => AxiosPromise<PersistedDataType>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.getDataType(
         uri,
@@ -4776,7 +4762,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
     },
     /**
      *
-     * @param {string} entityId The EntityId
+     * @param {string} entityId The ID of the entity
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -4784,7 +4770,10 @@ export const GraphApiFp = function (configuration?: Configuration) {
       entityId: string,
       options?: AxiosRequestConfig,
     ): Promise<
-      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Entity>
+      (
+        axios?: AxiosInstance,
+        basePath?: string,
+      ) => AxiosPromise<PersistedEntity>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.getEntity(
         entityId,
@@ -4810,7 +4799,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<EntityTypeWithMetadata>
+      ) => AxiosPromise<PersistedEntityType>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.getEntityType(
         uri,
@@ -4858,7 +4847,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<Array<DataTypeWithMetadata>>
+      ) => AxiosPromise<Array<PersistedDataType>>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getLatestDataTypes(options);
@@ -4877,7 +4866,10 @@ export const GraphApiFp = function (configuration?: Configuration) {
     async getLatestEntities(
       options?: AxiosRequestConfig,
     ): Promise<
-      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<Entity>>
+      (
+        axios?: AxiosInstance,
+        basePath?: string,
+      ) => AxiosPromise<Array<PersistedEntity>>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getLatestEntities(options);
@@ -4899,7 +4891,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<Array<EntityTypeWithMetadata>>
+      ) => AxiosPromise<Array<PersistedEntityType>>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getLatestEntityTypes(options);
@@ -4921,7 +4913,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<Array<PropertyTypeWithMetadata>>
+      ) => AxiosPromise<Array<PersistedPropertyType>>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getLatestPropertyTypes(options);
@@ -4945,7 +4937,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<PropertyTypeWithMetadata>
+      ) => AxiosPromise<PersistedPropertyType>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.getPropertyType(
         uri,
@@ -4995,7 +4987,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<OntologyElementMetadata>
+      ) => AxiosPromise<PersistedOntologyMetadata>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.updateDataType(
         updateDataTypeRequest,
@@ -5018,7 +5010,10 @@ export const GraphApiFp = function (configuration?: Configuration) {
       updateEntityRequest: UpdateEntityRequest,
       options?: AxiosRequestConfig,
     ): Promise<
-      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<EntityMetadata>
+      (
+        axios?: AxiosInstance,
+        basePath?: string,
+      ) => AxiosPromise<PersistedEntityMetadata>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.updateEntity(
         updateEntityRequest,
@@ -5044,7 +5039,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<OntologyElementMetadata>
+      ) => AxiosPromise<PersistedOntologyMetadata>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.updateEntityType(
@@ -5071,7 +5066,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<OntologyElementMetadata>
+      ) => AxiosPromise<PersistedOntologyMetadata>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.updatePropertyType(
@@ -5118,7 +5113,7 @@ export const GraphApiFactory = function (
     createDataType(
       createDataTypeRequest: CreateDataTypeRequest,
       options?: any,
-    ): AxiosPromise<OntologyElementMetadata> {
+    ): AxiosPromise<PersistedOntologyMetadata> {
       return localVarFp
         .createDataType(createDataTypeRequest, options)
         .then((request) => request(axios, basePath));
@@ -5132,7 +5127,7 @@ export const GraphApiFactory = function (
     createEntity(
       createEntityRequest: CreateEntityRequest,
       options?: any,
-    ): AxiosPromise<EntityMetadata> {
+    ): AxiosPromise<PersistedEntityMetadata> {
       return localVarFp
         .createEntity(createEntityRequest, options)
         .then((request) => request(axios, basePath));
@@ -5146,7 +5141,7 @@ export const GraphApiFactory = function (
     createEntityType(
       createEntityTypeRequest: CreateEntityTypeRequest,
       options?: any,
-    ): AxiosPromise<OntologyElementMetadata> {
+    ): AxiosPromise<PersistedOntologyMetadata> {
       return localVarFp
         .createEntityType(createEntityTypeRequest, options)
         .then((request) => request(axios, basePath));
@@ -5160,7 +5155,7 @@ export const GraphApiFactory = function (
     createPropertyType(
       createPropertyTypeRequest: CreatePropertyTypeRequest,
       options?: any,
-    ): AxiosPromise<OntologyElementMetadata> {
+    ): AxiosPromise<PersistedOntologyMetadata> {
       return localVarFp
         .createPropertyType(createPropertyTypeRequest, options)
         .then((request) => request(axios, basePath));
@@ -5171,10 +5166,7 @@ export const GraphApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getDataType(
-      uri: string,
-      options?: any,
-    ): AxiosPromise<DataTypeWithMetadata> {
+    getDataType(uri: string, options?: any): AxiosPromise<PersistedDataType> {
       return localVarFp
         .getDataType(uri, options)
         .then((request) => request(axios, basePath));
@@ -5209,11 +5201,11 @@ export const GraphApiFactory = function (
     },
     /**
      *
-     * @param {string} entityId The EntityId
+     * @param {string} entityId The ID of the entity
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getEntity(entityId: string, options?: any): AxiosPromise<Entity> {
+    getEntity(entityId: string, options?: any): AxiosPromise<PersistedEntity> {
       return localVarFp
         .getEntity(entityId, options)
         .then((request) => request(axios, basePath));
@@ -5227,7 +5219,7 @@ export const GraphApiFactory = function (
     getEntityType(
       uri: string,
       options?: any,
-    ): AxiosPromise<EntityTypeWithMetadata> {
+    ): AxiosPromise<PersistedEntityType> {
       return localVarFp
         .getEntityType(uri, options)
         .then((request) => request(axios, basePath));
@@ -5251,9 +5243,7 @@ export const GraphApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getLatestDataTypes(
-      options?: any,
-    ): AxiosPromise<Array<DataTypeWithMetadata>> {
+    getLatestDataTypes(options?: any): AxiosPromise<Array<PersistedDataType>> {
       return localVarFp
         .getLatestDataTypes(options)
         .then((request) => request(axios, basePath));
@@ -5263,7 +5253,7 @@ export const GraphApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getLatestEntities(options?: any): AxiosPromise<Array<Entity>> {
+    getLatestEntities(options?: any): AxiosPromise<Array<PersistedEntity>> {
       return localVarFp
         .getLatestEntities(options)
         .then((request) => request(axios, basePath));
@@ -5275,7 +5265,7 @@ export const GraphApiFactory = function (
      */
     getLatestEntityTypes(
       options?: any,
-    ): AxiosPromise<Array<EntityTypeWithMetadata>> {
+    ): AxiosPromise<Array<PersistedEntityType>> {
       return localVarFp
         .getLatestEntityTypes(options)
         .then((request) => request(axios, basePath));
@@ -5287,7 +5277,7 @@ export const GraphApiFactory = function (
      */
     getLatestPropertyTypes(
       options?: any,
-    ): AxiosPromise<Array<PropertyTypeWithMetadata>> {
+    ): AxiosPromise<Array<PersistedPropertyType>> {
       return localVarFp
         .getLatestPropertyTypes(options)
         .then((request) => request(axios, basePath));
@@ -5301,7 +5291,7 @@ export const GraphApiFactory = function (
     getPropertyType(
       uri: string,
       options?: any,
-    ): AxiosPromise<PropertyTypeWithMetadata> {
+    ): AxiosPromise<PersistedPropertyType> {
       return localVarFp
         .getPropertyType(uri, options)
         .then((request) => request(axios, basePath));
@@ -5329,7 +5319,7 @@ export const GraphApiFactory = function (
     updateDataType(
       updateDataTypeRequest: UpdateDataTypeRequest,
       options?: any,
-    ): AxiosPromise<OntologyElementMetadata> {
+    ): AxiosPromise<PersistedOntologyMetadata> {
       return localVarFp
         .updateDataType(updateDataTypeRequest, options)
         .then((request) => request(axios, basePath));
@@ -5343,7 +5333,7 @@ export const GraphApiFactory = function (
     updateEntity(
       updateEntityRequest: UpdateEntityRequest,
       options?: any,
-    ): AxiosPromise<EntityMetadata> {
+    ): AxiosPromise<PersistedEntityMetadata> {
       return localVarFp
         .updateEntity(updateEntityRequest, options)
         .then((request) => request(axios, basePath));
@@ -5357,7 +5347,7 @@ export const GraphApiFactory = function (
     updateEntityType(
       updateEntityTypeRequest: UpdateEntityTypeRequest,
       options?: any,
-    ): AxiosPromise<OntologyElementMetadata> {
+    ): AxiosPromise<PersistedOntologyMetadata> {
       return localVarFp
         .updateEntityType(updateEntityTypeRequest, options)
         .then((request) => request(axios, basePath));
@@ -5371,7 +5361,7 @@ export const GraphApiFactory = function (
     updatePropertyType(
       updatePropertyTypeRequest: UpdatePropertyTypeRequest,
       options?: any,
-    ): AxiosPromise<OntologyElementMetadata> {
+    ): AxiosPromise<PersistedOntologyMetadata> {
       return localVarFp
         .updatePropertyType(updatePropertyTypeRequest, options)
         .then((request) => request(axios, basePath));
@@ -5403,7 +5393,7 @@ export interface GraphApiInterface {
   createDataType(
     createDataTypeRequest: CreateDataTypeRequest,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<OntologyElementMetadata>;
+  ): AxiosPromise<PersistedOntologyMetadata>;
 
   /**
    *
@@ -5415,7 +5405,7 @@ export interface GraphApiInterface {
   createEntity(
     createEntityRequest: CreateEntityRequest,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<EntityMetadata>;
+  ): AxiosPromise<PersistedEntityMetadata>;
 
   /**
    *
@@ -5427,7 +5417,7 @@ export interface GraphApiInterface {
   createEntityType(
     createEntityTypeRequest: CreateEntityTypeRequest,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<OntologyElementMetadata>;
+  ): AxiosPromise<PersistedOntologyMetadata>;
 
   /**
    *
@@ -5439,7 +5429,7 @@ export interface GraphApiInterface {
   createPropertyType(
     createPropertyTypeRequest: CreatePropertyTypeRequest,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<OntologyElementMetadata>;
+  ): AxiosPromise<PersistedOntologyMetadata>;
 
   /**
    *
@@ -5451,7 +5441,7 @@ export interface GraphApiInterface {
   getDataType(
     uri: string,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<DataTypeWithMetadata>;
+  ): AxiosPromise<PersistedDataType>;
 
   /**
    *
@@ -5479,7 +5469,7 @@ export interface GraphApiInterface {
 
   /**
    *
-   * @param {string} entityId The EntityId
+   * @param {string} entityId The ID of the entity
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof GraphApiInterface
@@ -5487,7 +5477,7 @@ export interface GraphApiInterface {
   getEntity(
     entityId: string,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Entity>;
+  ): AxiosPromise<PersistedEntity>;
 
   /**
    *
@@ -5499,7 +5489,7 @@ export interface GraphApiInterface {
   getEntityType(
     uri: string,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<EntityTypeWithMetadata>;
+  ): AxiosPromise<PersistedEntityType>;
 
   /**
    *
@@ -5521,7 +5511,7 @@ export interface GraphApiInterface {
    */
   getLatestDataTypes(
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<DataTypeWithMetadata>>;
+  ): AxiosPromise<Array<PersistedDataType>>;
 
   /**
    *
@@ -5529,7 +5519,9 @@ export interface GraphApiInterface {
    * @throws {RequiredError}
    * @memberof GraphApiInterface
    */
-  getLatestEntities(options?: AxiosRequestConfig): AxiosPromise<Array<Entity>>;
+  getLatestEntities(
+    options?: AxiosRequestConfig,
+  ): AxiosPromise<Array<PersistedEntity>>;
 
   /**
    *
@@ -5539,7 +5531,7 @@ export interface GraphApiInterface {
    */
   getLatestEntityTypes(
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<EntityTypeWithMetadata>>;
+  ): AxiosPromise<Array<PersistedEntityType>>;
 
   /**
    *
@@ -5549,7 +5541,7 @@ export interface GraphApiInterface {
    */
   getLatestPropertyTypes(
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<PropertyTypeWithMetadata>>;
+  ): AxiosPromise<Array<PersistedPropertyType>>;
 
   /**
    *
@@ -5561,7 +5553,7 @@ export interface GraphApiInterface {
   getPropertyType(
     uri: string,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<PropertyTypeWithMetadata>;
+  ): AxiosPromise<PersistedPropertyType>;
 
   /**
    *
@@ -5585,7 +5577,7 @@ export interface GraphApiInterface {
   updateDataType(
     updateDataTypeRequest: UpdateDataTypeRequest,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<OntologyElementMetadata>;
+  ): AxiosPromise<PersistedOntologyMetadata>;
 
   /**
    *
@@ -5597,7 +5589,7 @@ export interface GraphApiInterface {
   updateEntity(
     updateEntityRequest: UpdateEntityRequest,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<EntityMetadata>;
+  ): AxiosPromise<PersistedEntityMetadata>;
 
   /**
    *
@@ -5609,7 +5601,7 @@ export interface GraphApiInterface {
   updateEntityType(
     updateEntityTypeRequest: UpdateEntityTypeRequest,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<OntologyElementMetadata>;
+  ): AxiosPromise<PersistedOntologyMetadata>;
 
   /**
    *
@@ -5621,7 +5613,7 @@ export interface GraphApiInterface {
   updatePropertyType(
     updatePropertyTypeRequest: UpdatePropertyTypeRequest,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<OntologyElementMetadata>;
+  ): AxiosPromise<PersistedOntologyMetadata>;
 }
 
 /**
@@ -5754,7 +5746,7 @@ export class GraphApi extends BaseAPI implements GraphApiInterface {
 
   /**
    *
-   * @param {string} entityId The EntityId
+   * @param {string} entityId The ID of the entity
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof GraphApi
@@ -6210,7 +6202,7 @@ export const PropertyTypeApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<OntologyElementMetadata>
+      ) => AxiosPromise<PersistedOntologyMetadata>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.createPropertyType(
@@ -6235,7 +6227,7 @@ export const PropertyTypeApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<Array<PropertyTypeWithMetadata>>
+      ) => AxiosPromise<Array<PersistedPropertyType>>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.getLatestPropertyTypes(options);
@@ -6259,7 +6251,7 @@ export const PropertyTypeApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<PropertyTypeWithMetadata>
+      ) => AxiosPromise<PersistedPropertyType>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.getPropertyType(
         uri,
@@ -6309,7 +6301,7 @@ export const PropertyTypeApiFp = function (configuration?: Configuration) {
       (
         axios?: AxiosInstance,
         basePath?: string,
-      ) => AxiosPromise<OntologyElementMetadata>
+      ) => AxiosPromise<PersistedOntologyMetadata>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.updatePropertyType(
@@ -6346,7 +6338,7 @@ export const PropertyTypeApiFactory = function (
     createPropertyType(
       createPropertyTypeRequest: CreatePropertyTypeRequest,
       options?: any,
-    ): AxiosPromise<OntologyElementMetadata> {
+    ): AxiosPromise<PersistedOntologyMetadata> {
       return localVarFp
         .createPropertyType(createPropertyTypeRequest, options)
         .then((request) => request(axios, basePath));
@@ -6358,7 +6350,7 @@ export const PropertyTypeApiFactory = function (
      */
     getLatestPropertyTypes(
       options?: any,
-    ): AxiosPromise<Array<PropertyTypeWithMetadata>> {
+    ): AxiosPromise<Array<PersistedPropertyType>> {
       return localVarFp
         .getLatestPropertyTypes(options)
         .then((request) => request(axios, basePath));
@@ -6372,7 +6364,7 @@ export const PropertyTypeApiFactory = function (
     getPropertyType(
       uri: string,
       options?: any,
-    ): AxiosPromise<PropertyTypeWithMetadata> {
+    ): AxiosPromise<PersistedPropertyType> {
       return localVarFp
         .getPropertyType(uri, options)
         .then((request) => request(axios, basePath));
@@ -6400,7 +6392,7 @@ export const PropertyTypeApiFactory = function (
     updatePropertyType(
       updatePropertyTypeRequest: UpdatePropertyTypeRequest,
       options?: any,
-    ): AxiosPromise<OntologyElementMetadata> {
+    ): AxiosPromise<PersistedOntologyMetadata> {
       return localVarFp
         .updatePropertyType(updatePropertyTypeRequest, options)
         .then((request) => request(axios, basePath));
@@ -6424,7 +6416,7 @@ export interface PropertyTypeApiInterface {
   createPropertyType(
     createPropertyTypeRequest: CreatePropertyTypeRequest,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<OntologyElementMetadata>;
+  ): AxiosPromise<PersistedOntologyMetadata>;
 
   /**
    *
@@ -6434,7 +6426,7 @@ export interface PropertyTypeApiInterface {
    */
   getLatestPropertyTypes(
     options?: AxiosRequestConfig,
-  ): AxiosPromise<Array<PropertyTypeWithMetadata>>;
+  ): AxiosPromise<Array<PersistedPropertyType>>;
 
   /**
    *
@@ -6446,7 +6438,7 @@ export interface PropertyTypeApiInterface {
   getPropertyType(
     uri: string,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<PropertyTypeWithMetadata>;
+  ): AxiosPromise<PersistedPropertyType>;
 
   /**
    *
@@ -6470,7 +6462,7 @@ export interface PropertyTypeApiInterface {
   updatePropertyType(
     updatePropertyTypeRequest: UpdatePropertyTypeRequest,
     options?: AxiosRequestConfig,
-  ): AxiosPromise<OntologyElementMetadata>;
+  ): AxiosPromise<PersistedOntologyMetadata>;
 }
 
 /**

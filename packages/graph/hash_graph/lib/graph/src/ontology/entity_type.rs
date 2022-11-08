@@ -11,26 +11,219 @@ use crate::{
     store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath},
 };
 
+/// A path to a [`EntityType`] field.
 #[derive(Debug, PartialEq, Eq)]
 pub enum EntityTypeQueryPath {
-    VersionId,
+    /// The `owned_by_id` field of [`PersistedOntologyIdentifier`] belonging to the [`EntityType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::DataTypeQueryPath;
+    /// let path = DataTypeQueryPath::deserialize(json!(["ownedById"]))?;
+    /// assert_eq!(path, DataTypeQueryPath::OwnedById);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`PersistedOntologyIdentifier`]: crate::ontology::PersistedOntologyIdentifier
     OwnedById,
+    /// The `created_by_id` field of [`PersistedOntologyMetadata`] belonging to the [`EntityType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["createdById"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::CreatedById);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`PersistedOntologyMetadata`]: crate::ontology::PersistedOntologyMetadata
     CreatedById,
+    /// The `updated_by_id` field of [`PersistedOntologyMetadata`] belonging to the [`EntityType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["updatedById"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::UpdatedById);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`PersistedOntologyMetadata`]: crate::ontology::PersistedOntologyMetadata
     UpdatedById,
-    Schema,
+    /// The [`BaseUri`] of a [`EntityType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["baseUri"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::BaseUri);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`BaseUri`]: type_system::uri::BaseUri
     BaseUri,
+    /// The [`VersionedUri`] of a [`EntityType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["versionedUri"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::VersionedUri);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`VersionedUri`]: type_system::uri::VersionedUri
     VersionedUri,
+    /// The version of the [`EntityType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["version"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::Version);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// In addition to specifying the version directly, it's also possible to compare the version
+    /// with a `"latest"` parameter, which will only match the latest version of one
+    /// [`EntityType`].
+    ///
+    /// ```rust
+    /// # use std::borrow::Cow;
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use type_system::EntityType;
+    /// # use graph::{store::query::{Filter, FilterExpression, Parameter}, ontology::EntityTypeQueryPath};
+    /// let filter_value = json!({ "equal": [{ "path": ["version"] }, { "parameter": "latest" }] });
+    /// let path = Filter::<EntityType>::deserialize(filter_value)?;
+    /// assert_eq!(path, Filter::Equal(
+    ///     Some(FilterExpression::Path(EntityTypeQueryPath::Version)),
+    ///     Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed("latest")))))
+    /// );
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
     Version,
+    /// Corresponds to [`EntityType::title()`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["title"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::Title);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
     Title,
+    /// Corresponds to [`EntityType::description()`]
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["description"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::Description);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
     Description,
+    /// Corresponds to [`EntityType::default()`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["default"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::Default);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
     Default,
+    /// Corresponds to [`EntityType::examples()`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["examples"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::Examples);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
     Examples,
+    /// Corresponds to [`EntityType::property_type_references()`].
+    ///
+    /// As an [`EntityType`] can have multiple [`PropertyType`]s, the deserialized path requires an
+    /// additional selector to identify the [`PropertyType`] to query. Currently, only the `*`
+    /// selector is available, so the path will be deserialized as `["properties", "*", ...]`
+    /// where `...` is the path to the desired field of the [`PropertyType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::{EntityTypeQueryPath, PropertyTypeQueryPath};
+    /// let path = EntityTypeQueryPath::deserialize(json!(["properties", "*", "baseUri"]))?;
+    /// assert_eq!(
+    ///     path,
+    ///     EntityTypeQueryPath::Properties(PropertyTypeQueryPath::BaseUri)
+    /// );
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`PropertyType`]: type_system::PropertyType
     Properties(PropertyTypeQueryPath),
+    /// Corresponds to [`EntityType::required()`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["required"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::Required);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
     Required,
     // TODO: https://app.asana.com/0/1200211978612931/1203250001255262/f
     // Links(LinkTypeQueryPath),
+    /// Corresponds to [`EntityType::required_links()`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["requiredLinks"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::RequiredLinks);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
     RequiredLinks,
+    /// Currently, does not correspond to any field of [`EntityType`].
+    ///
+    /// In the future, this will most likely to something like [`EntityType::inherits_from()`].
+    ///
+    /// As an [`EntityType`] can inherit from multiple [`EntityType`]s, the deserialized path
+    /// requires an additional selector to identify the [`EntityType`] to query. Currently,
+    /// only the `*` selector is available, so the path will be deserialized as
+    /// `["inheritsFrom", "*", ...]` where `...` is the path to the desired field of the
+    /// [`EntityType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["inheritsFrom", "*", "baseUri"]))?;
+    /// assert_eq!(
+    ///     path,
+    ///     EntityTypeQueryPath::InheritsFrom(Box::new(EntityTypeQueryPath::BaseUri))
+    /// );
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
     InheritsFrom(Box<Self>),
+    /// Only used internally and not available for deserialization.
+    VersionId,
+    /// Only used internally and not available for deserialization.
+    Schema,
 }
 
 impl QueryRecord for EntityType {
