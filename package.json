@@ -21,9 +21,6 @@
       "packages/hash/task-executor",
       "sites/hashai",
       "sites/hashdev"
-    ],
-    "nohoist": [
-      "**/ts-node/**"
     ]
   },
   "scripts": {
