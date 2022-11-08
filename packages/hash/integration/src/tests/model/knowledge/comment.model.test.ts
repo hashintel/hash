@@ -38,7 +38,7 @@ describe("Comment model class", () => {
   beforeAll(async () => {
     await ensureWorkspaceTypesExist({ graphApi, logger });
 
-    testUser = await createTestUser(graphApi, "blockModelTest", logger);
+    testUser = await createTestUser(graphApi, "commentModelTest", logger);
 
     const textEntity = await EntityModel.create(graphApi, {
       ownedById: testUser.ownedById,

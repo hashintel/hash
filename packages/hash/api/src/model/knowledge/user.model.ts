@@ -6,6 +6,7 @@ import {
   EntityModelCreateParams,
   OrgModel,
   OrgMembershipModel,
+  HashInstanceModel,
 } from "..";
 import {
   adminKratosSdk,
@@ -24,6 +25,7 @@ type UserModelCreateParams = Omit<
 > & {
   emails: string[];
   kratosIdentityId: string;
+  isInstanceAdmin?: boolean;
 };
 
 /**
@@ -132,12 +134,18 @@ export default class extends EntityModel {
    *
    * @param params.emails - the emails of the user
    * @param params.kratosIdentityId - the kratos identity id of the user
+   * @param params.isInstanceAdmin (optional) - whether or not the user is an instance admin of the workspace (defaults to `false`)
    */
   static async createUser(
     graphApi: GraphApi,
     params: UserModelCreateParams,
   ): Promise<UserModel> {
-    const { emails, kratosIdentityId, actorId } = params;
+    const {
+      emails,
+      kratosIdentityId,
+      actorId,
+      isInstanceAdmin = false,
+    } = params;
 
     const existingUserWithKratosIdentityId =
       await UserModel.getUserByKratosIdentityId(graphApi, {
@@ -169,7 +177,17 @@ export default class extends EntityModel {
       actorId,
     });
 
-    return UserModel.fromEntityModel(entity);
+    const userModel = UserModel.fromEntityModel(entity);
+
+    if (isInstanceAdmin) {
+      const hashInstanceModel = await HashInstanceModel.getHashInstanceModel(
+        graphApi,
+      );
+
+      await hashInstanceModel.addAdmin(graphApi, { userModel, actorId });
+    }
+
+    return userModel;
   }
 
   /**
@@ -450,5 +468,18 @@ export default class extends EntityModel {
   isAccountSignupComplete(): boolean {
     /** @todo: check they have a verified email address */
     return !!this.getShortname() && !!this.getPreferredName();
+  }
+
+  /**
+   * Whether or not the user is a hash instance admin.
+   */
+  async isHashInstanceAdmin(graphApi: GraphApi) {
+    const hashInstanceModel = await HashInstanceModel.getHashInstanceModel(
+      graphApi,
+    );
+
+    return await hashInstanceModel.hasAdmin(graphApi, {
+      userModel: this,
+    });
   }
 }

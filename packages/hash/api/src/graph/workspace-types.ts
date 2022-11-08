@@ -49,6 +49,7 @@ export let WORKSPACE_TYPES: {
     deletedAt: PropertyTypeModel;
   };
   entityType: {
+    hashInstance: EntityTypeModel;
     user: EntityTypeModel;
     org: EntityTypeModel;
     orgMembership: EntityTypeModel;
@@ -63,6 +64,9 @@ export let WORKSPACE_TYPES: {
     dummy: EntityTypeModel;
   };
   linkType: {
+    // HASHInstance-related
+    admin: LinkTypeModel;
+
     // User-related
     hasMembership: LinkTypeModel;
 
@@ -80,6 +84,36 @@ export let WORKSPACE_TYPES: {
     hasText: LinkTypeModel;
     author: LinkTypeModel;
   };
+};
+
+export const adminLinkTypeInitializer = linkTypeInitializer({
+  ...types.linkType.admin,
+  actorId: workspaceAccountId,
+});
+
+export const hashInstanceEntityTypeInitializer = async (graphApi: GraphApi) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+
+  const adminLinkTypeModel = await WORKSPACE_TYPES_INITIALIZERS.linkType.admin(
+    graphApi,
+  );
+
+  const userEntityTypeModel =
+    await WORKSPACE_TYPES_INITIALIZERS.entityType.user(graphApi);
+
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+
+  return entityTypeInitializer({
+    ...types.entityType.hashInstance,
+    properties: [],
+    outgoingLinks: [
+      {
+        linkTypeModel: adminLinkTypeModel,
+        destinationEntityTypeModels: [userEntityTypeModel],
+      },
+    ],
+    actorId: workspaceAccountId,
+  })(graphApi);
 };
 
 // Generate the schema for the org provided info property type
@@ -598,6 +632,7 @@ export const WORKSPACE_TYPES_INITIALIZERS: FlattenAndPromisify<
     deletedAt: deletedAtPropertyTypeInitializer,
   },
   entityType: {
+    hashInstance: hashInstanceEntityTypeInitializer,
     user: userEntityTypeInitializer,
     org: orgEntityTypeInitializer,
     orgMembership: orgMembershipEntityTypeInitializer,
@@ -608,6 +643,7 @@ export const WORKSPACE_TYPES_INITIALIZERS: FlattenAndPromisify<
     dummy: dummyEntityTypeInitializer,
   },
   linkType: {
+    admin: adminLinkTypeInitializer,
     ofOrg: ofOrgLinkTypeInitializer,
     hasMembership: hasMembershipLinkTypeInitializer,
     blockData: blockDataLinkTypeInitializer,

@@ -128,6 +128,10 @@ const workspaceEntityTypes = {
     title: "Comment",
     description: undefined,
   },
+  hashInstance: {
+    title: "HASH Instance",
+    description: "An instance of HASH.",
+  },
 } as const;
 
 type WorkspaceEntityTypeKey = keyof typeof workspaceEntityTypes;
@@ -249,6 +253,10 @@ const workspaceLinkTypes = {
   author: {
     title: "Author",
     description: "The author of something.",
+  },
+  admin: {
+    title: "Admin",
+    description: "The admin of something.",
   },
 } as const;
 
