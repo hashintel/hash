@@ -317,7 +317,7 @@ export default class extends EntityModel {
       }))
     ) {
       throw new Error(
-        `A user entity with shortname "${updatedShortname}" already exists.`,
+        `An account with shortname "${updatedShortname}" already exists.`,
       );
     }
 
