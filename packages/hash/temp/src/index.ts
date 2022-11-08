@@ -1,8 +1,9 @@
 // Connect to the Graph API
 import { createGraphClient } from "@hashintel/hash-api/src/graph";
 import { logger } from "@hashintel/hash-api/src/logger";
-import { Subgraph } from "@hashintel/subgraph/src/types";
-import {entityRootedSubgraph} from "./example-use-cases/entity-rooted-subgraph";
+import { EntityEditionId, Subgraph } from "@hashintel/subgraph/src/types";
+import { entityRootedSubgraph } from "./example-use-cases/entity-rooted-subgraph";
+import { getAllEditionsOfAnEntity } from "./example-use-cases/editions-of-an-entity";
 
 void (async () => {
   const graphApiHost = "localhost";
@@ -26,6 +27,10 @@ void (async () => {
   })) as unknown as { data: Subgraph };
 
   entityRootedSubgraph(subgraph);
+  getAllEditionsOfAnEntity(
+    subgraph,
+    (subgraph.roots[0] as EntityEditionId).entityIdentifier,
+  );
 
-
+  process.exit();
 })();

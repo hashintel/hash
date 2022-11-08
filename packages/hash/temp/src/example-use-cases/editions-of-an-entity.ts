@@ -4,23 +4,15 @@ import {
   EntityVersion,
   Subgraph,
 } from "@hashintel/subgraph/src/types";
-import {
-  getRoots,
-  isEntityRootedSubgraph,
-} from "@hashintel/subgraph/src/roots";
-import { getEntity } from "@hashintel/subgraph/src/";
+import { getEntitiesByEntityId } from "@hashintel/subgraph/src/element/entity";
 
 export const getAllEditionsOfAnEntity = (
   subgraph: Subgraph,
   entityId: EntityId,
 ): Record<EntityVersion, Entity> => {
-  getEntity(subgraph);
-  if (isEntityRootedSubgraph(subgraph)) {
-    const roots = getRoots(subgraph);
+  const entities = getEntitiesByEntityId(subgraph, entityId);
 
-    // See TypeScript knows that the roots are `Entity` now
-    return roots[0]!.metadata.identifier.version;
-  } else {
-    throw new Error();
-  }
+  return Object.fromEntries(
+    entities.map((entity) => [entity.metadata.identifier.version, entity]),
+  );
 };
