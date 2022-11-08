@@ -16,11 +16,6 @@ export const ensureSystemEntitiesExists = async (params: {
   logger.debug("Ensuring required Workspace entities exists");
 
   // Create system entities if they don't already exist
-  /**
-   * @todo Use transactional primitive/bulk insert to be able to do this in parallel
-   *   see the following task:
-   *   https://app.asana.com/0/1201095311341924/1202573572594586/f
-   */
 
   await HashInstanceModel.getHashInstanceModel(graphApi).catch(
     async (error: Error) => {
