@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/hash-graph-client",
-  "version": "0.0.0",
+  "version": "0.0.0-private",
   "private": true,
   "description": "OpenAPI client for the HASH Graph API.",
   "license": "AGPL-3.0",
