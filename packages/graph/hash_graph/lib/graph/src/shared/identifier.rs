@@ -122,21 +122,6 @@ pub struct EntityAndTimestamp {
     timestamp: Timestamp,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize)]
-#[serde(untagged)]
-pub enum GraphElementIdentifier {
-    OntologyElementId(BaseUri),
-    KnowledgeGraphElementId(EntityIdentifier),
-}
-
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, ToSchema)]
-#[serde(untagged)]
-pub enum GraphElementEditionIdentifier {
-    #[schema(value_type = String)]
-    OntologyElementEditionId(VersionedUri),
-    KnowledgeGraphElementEditionId(PersistedEntityIdentifier),
-}
-
 // TODO: We have to do this because utoipa doesn't understand serde untagged
 //  https://github.com/juhaku/utoipa/issues/320
 impl ToSchema for GraphElementIdentifier {
@@ -146,6 +131,34 @@ impl ToSchema for GraphElementIdentifier {
             .example(Some(serde_json::json!(
                 "6013145d-7392-4630-ab16-e99c59134cb6"
             )))
+            .into()
+    }
+}
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+#[serde(untagged)]
+pub enum GraphElementIdentifier {
+    OntologyElementId(BaseUri),
+    KnowledgeGraphElementId(EntityIdentifier),
+}
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+#[serde(untagged)]
+pub enum GraphElementEditionIdentifier {
+    OntologyElementEditionId(VersionedUri),
+    KnowledgeGraphElementEditionId(PersistedEntityIdentifier),
+}
+
+// TODO: We have to do this because utoipa doesn't understand serde untagged
+//  https://github.com/juhaku/utoipa/issues/320
+impl ToSchema for GraphElementEditionIdentifier {
+    fn schema() -> openapi::Schema {
+        openapi::OneOfBuilder::new()
+            .item(openapi::Object::with_type(openapi::SchemaType::String))
+            .example(Some(serde_json::json!(
+                "6013145d-7392-4630-ab16-e99c59134cb6"
+            )))
+            .item(PersistedEntityIdentifier::schema())
             .into()
     }
 }

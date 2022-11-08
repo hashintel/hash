@@ -479,10 +479,10 @@ export type FilterExpression = ParameterExpression | PathExpression;
  */
 export type GraphElementEditionIdentifier =
   | GraphElementEditionIdentifierOneOf
-  | GraphElementEditionIdentifierOneOf1;
+  | string;
 
 /**
- *
+ * The metadata required to uniquely identify an instance of an [`Entity`] that has been persisted
  * @export
  * @interface GraphElementEditionIdentifierOneOf
  */
@@ -492,20 +492,13 @@ export interface GraphElementEditionIdentifierOneOf {
    * @type {string}
    * @memberof GraphElementEditionIdentifierOneOf
    */
-  OntologyElementEditionId?: string;
-}
-/**
- *
- * @export
- * @interface GraphElementEditionIdentifierOneOf1
- */
-export interface GraphElementEditionIdentifierOneOf1 {
+  entityIdentifier: string;
   /**
    *
-   * @type {PersistedEntityIdentifier}
-   * @memberof GraphElementEditionIdentifierOneOf1
+   * @type {string}
+   * @memberof GraphElementEditionIdentifierOneOf
    */
-  KnowledgeGraphElementEditionId?: PersistedEntityIdentifier;
+  version: string;
 }
 /**
  * @type GraphElementIdentifier
