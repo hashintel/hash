@@ -114,6 +114,8 @@ import { resolvePersistedComment } from "./knowledge/comment/resolve";
 import { deletePersistedComment } from "./knowledge/comment/delete";
 import { updatePersistedCommentText } from "./knowledge/comment/update-text";
 import { blockChildEntity } from "./knowledge/block/data-entity";
+import { loggedInAndSignedUpHashInstanceAdmin } from "./middlewares/loggedInAndSignedUpHashInstanceAdmin";
+import { createUser } from "./knowledge/user/createUser";
 
 /**
  * @todo: derive these from the statically declared system type names
@@ -221,6 +223,8 @@ export const resolvers = {
     resolvePersistedComment: loggedInAndSignedUp(resolvePersistedComment),
     deletePersistedComment: loggedInAndSignedUp(deletePersistedComment),
     updatePersistedCommentText: loggedInAndSignedUp(updatePersistedCommentText),
+    // HASH instance admin mutations
+    createUser: loggedInAndSignedUpHashInstanceAdmin(createUser),
   },
 
   JSONObject: JSONObjectResolver,

@@ -8,4 +8,20 @@ export const userTypedef = gql`
     """
     isShortnameTaken(shortname: String!): Boolean!
   }
+
+  input UserEmailInput {
+    address: String!
+    verified: Boolean!
+  }
+
+  extend type Mutation {
+    createUser(
+      email: UserEmailInput!
+      isInstanceAdmin: Boolean!
+      shortname: String
+      preferredName: String
+      linkResolveDepth: Int!
+      linkTargetEntityResolveDepth: Int!
+    ): Subgraph!
+  }
 `;
