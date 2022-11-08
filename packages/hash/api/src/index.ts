@@ -167,8 +167,8 @@ const main = async () => {
         })
       : new AwsSesEmailTransporter({
           from: `${getRequiredEnv(
-            "WORKSPACE_EMAIL_SENDER_NAME",
-          )} <${getRequiredEnv("WORKSPACE_EMAIL_ADDRESS")}>`,
+            "SYSTEM_EMAIL_SENDER_NAME",
+          )} <${getRequiredEnv("SYSTEM_EMAIL_ADDRESS")}>`,
           region: getAwsRegion(),
           subjectPrefix: isProdEnv ? undefined : "[DEV SITE] ",
         });

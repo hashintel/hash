@@ -1,4 +1,4 @@
-import { WORKSPACE_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
+import { SYSTEM_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 import { OrgModel, UserModel } from "..";
 import { GraphApi } from "../../graph";
 import { systemAccountId } from "../util";
@@ -15,7 +15,7 @@ export const getNamespaceOfAccountOwner = async (
   /** @todo - get rid of this hack for the root account */
   const namespace =
     params.ownerId === systemAccountId
-      ? WORKSPACE_ACCOUNT_SHORTNAME
+      ? SYSTEM_ACCOUNT_SHORTNAME
       : (
           (await UserModel.getUserById(graphApi, {
             entityId: params.ownerId,

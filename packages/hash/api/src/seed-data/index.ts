@@ -1,7 +1,7 @@
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import {
-  WORKSPACE_ACCOUNT_NAME,
-  WORKSPACE_ACCOUNT_SHORTNAME,
+  SYSTEM_ACCOUNT_NAME,
+  SYSTEM_ACCOUNT_SHORTNAME,
 } from "@hashintel/hash-backend-utils/system";
 import { GraphApi } from "@hashintel/hash-graph-client";
 import { OrgModel, OrgSize } from "../model";
@@ -17,8 +17,8 @@ const seedOrg = async (params: {
   const { graphApi, logger } = params;
 
   const sharedOrgModel = await OrgModel.createOrg(graphApi, {
-    name: WORKSPACE_ACCOUNT_NAME,
-    shortname: WORKSPACE_ACCOUNT_SHORTNAME,
+    name: SYSTEM_ACCOUNT_NAME,
+    shortname: SYSTEM_ACCOUNT_SHORTNAME,
     providedInfo: {
       orgSize: OrgSize.ElevenToFifty,
     },
