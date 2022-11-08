@@ -94,21 +94,25 @@ export const getEntityAtTimestamp = (
     throw new Error(`no entities found for entityId: ${entityId}`);
   }
 
-  return Object.entries(entityEditions).find(
-    ([potentialEntityVersion, vertex]) => {
-      if (!isEntityVertex(vertex)) {
-        throw new Error(`expected entity vertex but got: ${vertex.kind}`);
-      }
+  for (const [potentialEntityVersion, vertex] of Object.entries(
+    entityEditions,
+  )) {
+    if (!isEntityVertex(vertex)) {
+      throw new Error(`expected entity vertex but got: ${vertex.kind}`);
+    }
 
-      return (
-        timestampString <= potentialEntityVersion
-        /** @todo - we need to know the endTime of the entity */
-        // &&
-        // (entity.metadata.endTime == null ||
-        //   entity.metadata.endTime > timestamp)
-      );
-    },
-  )?.[1] as Entity | undefined;
+    if (
+      timestampString <= potentialEntityVersion
+      /** @todo - we need to know the endTime of the entity */
+      // &&
+      // (entity.metadata.endTime == null ||
+      //   entity.metadata.endTime > timestamp)
+    ) {
+      return vertex.inner;
+    }
+  }
+
+  return undefined;
 };
 
 /**
