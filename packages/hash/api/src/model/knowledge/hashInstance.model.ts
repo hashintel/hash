@@ -13,7 +13,7 @@ import { EntityTypeMismatchError, NotFoundError } from "../../lib/error";
 export type HashInstanceModelCreateParams = Omit<
   EntityModelCreateParams,
   "properties" | "entityTypeModel" | "ownedById"
-> & {};
+>;
 
 /**
  * @class {@link HashInstanceModel}
