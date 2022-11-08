@@ -5,10 +5,10 @@ use tokio_postgres::row::RowIndex;
 
 use crate::store::{
     postgres::query::{
-        Column, ColumnAccess, Condition, Distinctness, EqualityOperator, Expression, Function,
-        JoinExpression, OrderByExpression, Ordering, Path, PostgresQueryRecord, Relation,
-        SelectExpression, SelectStatement, Table, TableAlias, TableName, Transpile,
-        WhereExpression, WindowStatement, WithExpression,
+        expression::Constant, Column, ColumnAccess, Condition, Distinctness, EqualityOperator,
+        Expression, Function, JoinExpression, OrderByExpression, Ordering, Path,
+        PostgresQueryRecord, Relation, SelectExpression, SelectStatement, Table, TableAlias,
+        TableName, Transpile, WhereExpression, WindowStatement, WithExpression,
     },
     query::{Filter, FilterExpression, Parameter},
 };
@@ -174,7 +174,7 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
     // Warning: This adds a CTE to the statement, which is overwriting the `type_ids` table. When
     //          more CTEs are needed, a test should be added to cover both CTEs in one statement to
     //          ensure compatibility
-    fn compile_latest_version_filter(
+    fn compile_latest_ontology_version_filter(
         &mut self,
         path: &T::Path<'p>,
         operator: EqualityOperator,
@@ -248,6 +248,30 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
         }
     }
 
+    fn compile_latest_entity_version_filter(
+        &mut self,
+        path: &T::Path<'p>,
+        operator: EqualityOperator,
+    ) -> Condition<'c> {
+        let latest_version_expression = Some(Expression::Column(Column {
+            table: self.add_join_statements(path.relations()),
+            access: ColumnAccess::Table {
+                column: "latest_version",
+            },
+        }));
+
+        match operator {
+            EqualityOperator::Equal => Condition::Equal(
+                latest_version_expression,
+                Some(Expression::Constant(Constant::Boolean(true))),
+            ),
+            EqualityOperator::NotEqual => Condition::Equal(
+                latest_version_expression,
+                Some(Expression::Constant(Constant::Boolean(false))),
+            ),
+        }
+    }
+
     /// Searches for [`Filter`]s, which requires special treatment and returns the corresponding
     /// condition if any.
     ///
@@ -270,22 +294,30 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
                         filter,
                         parameter.as_ref(),
                     ) {
-                        (
-                            TableName::TypeIds | TableName::Entities,
-                            "version",
-                            Filter::Equal(..),
-                            "latest",
-                        ) => {
-                            Some(self.compile_latest_version_filter(path, EqualityOperator::Equal))
+                        (TableName::TypeIds, "version", Filter::Equal(..), "latest") => {
+                            Some(self.compile_latest_ontology_version_filter(
+                                path,
+                                EqualityOperator::Equal,
+                            ))
                         }
-                        (
-                            TableName::TypeIds | TableName::Entities,
-                            "version",
-                            Filter::NotEqual(..),
-                            "latest",
-                        ) => Some(
-                            self.compile_latest_version_filter(path, EqualityOperator::NotEqual),
-                        ),
+                        (TableName::TypeIds, "version", Filter::NotEqual(..), "latest") => {
+                            Some(self.compile_latest_ontology_version_filter(
+                                path,
+                                EqualityOperator::NotEqual,
+                            ))
+                        }
+                        (TableName::Entities, "version", Filter::Equal(..), "latest") => {
+                            Some(self.compile_latest_entity_version_filter(
+                                path,
+                                EqualityOperator::Equal,
+                            ))
+                        }
+                        (TableName::Entities, "version", Filter::NotEqual(..), "latest") => {
+                            Some(self.compile_latest_entity_version_filter(
+                                path,
+                                EqualityOperator::NotEqual,
+                            ))
+                        }
                         _ => None,
                     }
                 }

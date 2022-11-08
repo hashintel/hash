@@ -97,6 +97,7 @@ impl Path for EntityQueryPath<'_> {
             | Self::UpdatedById
             | Self::RemovedById
             | Self::Version
+            | Self::Archived
             | Self::LeftEntity(None)
             | Self::RightEntity(None)
             | Self::LeftOrder
@@ -116,6 +117,7 @@ impl Path for EntityQueryPath<'_> {
                 column: "entity_id",
             },
             Self::Version => ColumnAccess::Table { column: "version" },
+            Self::Archived => ColumnAccess::Table { column: "archived" },
             Self::Type(path) => path.column_access(),
             Self::OwnedById => ColumnAccess::Table {
                 column: "owned_by_id",
