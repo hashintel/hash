@@ -249,7 +249,7 @@ const Page: NextPageWithLayout = () => {
                     </>
                   }
                 />
-                <Typography variant="h1" fontWeight="bold" my={3}>
+                <Typography variant="h1" fontWeight="bold" my={3} mb={5.25}>
                   <FontAwesomeIcon
                     icon={faAsterisk}
                     sx={(theme) => ({
