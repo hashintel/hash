@@ -35,7 +35,7 @@ type OpaqueNumber = String;
 // Reason: `Eq` can only be derived for `arbitrary-precision`, this would lead to unexpected results
 // for library consumers and is therefore allowed.
 #[cfg_attr(
-    not(feature = "arbitrary-precision"),
+    feature = "arbitrary-precision",
     allow(clippy::derive_partial_eq_without_eq)
 )]
 #[derive(Debug, Clone, PartialEq)]
