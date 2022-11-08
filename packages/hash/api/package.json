@@ -85,10 +85,10 @@
     "uuid": "8.3.2"
   },
   "devDependencies": {
-    "@graphql-codegen/cli": "2.7.0",
-    "@graphql-codegen/introspection": "2.1.1",
-    "@graphql-codegen/typescript": "2.6.0",
-    "@graphql-codegen/typescript-resolvers": "2.6.7",
+    "@graphql-codegen/cli": "2.13.11",
+    "@graphql-codegen/introspection": "2.2.1",
+    "@graphql-codegen/typescript": "2.8.1",
+    "@graphql-codegen/typescript-resolvers": "2.7.6",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/app-root-path": "1.2.4",
