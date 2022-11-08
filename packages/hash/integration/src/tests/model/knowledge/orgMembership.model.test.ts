@@ -19,7 +19,7 @@ jest.setTimeout(60000);
 const logger = new Logger({
   mode: "dev",
   level: "debug",
-  serviceName: "org-membership-tests",
+  serviceName: "integration-tests",
 });
 
 const graphApiHost = getRequiredEnv("HASH_GRAPH_API_HOST");

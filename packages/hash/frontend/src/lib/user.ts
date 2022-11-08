@@ -88,6 +88,7 @@ export const constructUser = (params: {
 };
 
 export type AuthenticatedUser = User & {
+  isInstanceAdmin: boolean;
   emails: { address: string; primary: boolean; verified: boolean }[];
 };
 
@@ -108,9 +109,19 @@ export const constructAuthenticatedUser = (params: {
       ({ value }) => value === primaryEmailAddress,
     )?.verified === true;
 
+  /**
+   * @todo: determine whether an authenticated user is an instance admin from the subgraph
+   * when querying the incoming links of an entity rooted subgraph is supported
+   *
+   * @see https://app.asana.com/0/1202805690238892/1203250435416416/f
+   */
+  const isInstanceAdmin = false;
+
   const user = constructUser({ userEntityId, subgraph });
+
   return {
     ...user,
+    isInstanceAdmin,
     emails: [
       {
         address: primaryEmailAddress,
