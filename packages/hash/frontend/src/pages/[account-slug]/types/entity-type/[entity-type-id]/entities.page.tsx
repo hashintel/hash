@@ -1,13 +1,17 @@
 import "@glideapps/glide-data-grid/dist/index.css";
 import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
-import { GridCellKind, SizedGridColumn } from "@glideapps/glide-data-grid";
+import {
+  GridCellKind,
+  GridColumn,
+  SizedGridColumn,
+} from "@glideapps/glide-data-grid";
 import {
   Chip,
   FontAwesomeIcon,
   IconButton,
 } from "@hashintel/hash-design-system";
 import { Box, Paper, Stack } from "@mui/material";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { GlideGrid } from "../../../../../components/GlideGlid/glide-grid";
 import { GlideGridOverlayPortal } from "../../../../../components/GlideGlid/glide-grid-overlay-portal";
 import {
@@ -19,31 +23,46 @@ import { useDrawHeader } from "../../../../../components/GlideGlid/utils/use-dra
 import { renderDataTypeCell } from "../../../../[account-slug]/entities/[entity-id].page/entity-editor/properties-section/property-table/cells/data-type-cell";
 import { EntitySection } from "../../../../[account-slug]/entities/[entity-id].page/entity-editor/shared/entity-section";
 import { WhiteChip } from "../../../../[account-slug]/entities/[entity-id].page/entity-editor/shared/white-chip";
+import { useEntityTypeEntities } from "../../../../../components/hooks/useEntityTypeEntities";
+import { useEntityType } from "../use-entity-type";
+import { useRemotePropertyTypes } from "../use-property-types";
+import { NextPageWithLayout } from "../../../../../shared/layout";
 
-interface LinkColumn extends SizedGridColumn {
-  id: ColumnKey;
-}
+// interface LinkColumn extends SizedGridColumn {
+//   id: ColumnKey;
+// }
 
-export const columns: LinkColumn[] = [
-  {
-    title: "Name",
-    id: "name",
-    width: 200,
-  },
-  {
-    title: "Surname",
-    id: "surname",
-    width: 200,
-    grow: 1,
-  },
-];
+// export const columns: LinkColumn[] = [
+//   {
+//     title: "Entity",
+//     id: "entity",
+//     width: 200,
+//   },
+//   {
+//     title: "Namespace",
+//     id: "namespace",
+//     width: 200,
+//   },
+//   {
+//     title: "Slug",
+//     id: "slug",
+//     width: 200,
+//   },
+//   {
+//     title: "Additional Types",
+//     id: "additionalTypes",
+//     width: 200,
+//   },
+// ];
+
+const entityTypeId = "http://localhost:3000/@example/types/entity-type/user/";
 
 interface User {
   name: string;
   surname: String;
 }
 
-type ColumnKey = keyof User;
+// type ColumnKey = keyof User;
 
 const users: User[] = [
   {
@@ -64,15 +83,62 @@ const users: User[] = [
   },
 ];
 
-const gridIndexes = ["name", "surname"];
-
-const Page = () => {
+const Page: NextPageWithLayout = () => {
   const [showSearch, setShowSearch] = useState(false);
 
-  const [tableSort, setTableSort] = useState<TableSort<ColumnKey>>({
+  const [tableSort, setTableSort] = useState<TableSort<string>>({
     key: "name",
     dir: "desc",
   });
+
+  const propertyTypes = useRemotePropertyTypes();
+
+  const [remoteEntityType] = useEntityType(entityTypeId);
+
+  const entities = useEntityTypeEntities(entityTypeId);
+
+  const [gridIds, columns] = useMemo(() => {
+    console.log(remoteEntityType);
+    const gridIds = ["entity", "namespace", "slug", "additionalTypes"];
+
+    const columns: GridColumn[] = [
+      {
+        title: "Entity",
+        id: "entity",
+        width: 200,
+      },
+      {
+        title: "Namespace",
+        id: "namespace",
+        width: 200,
+      },
+      {
+        title: "Slug",
+        id: "slug",
+        width: 200,
+      },
+      {
+        title: "Additional Types",
+        id: "additionalTypes",
+        width: 200,
+      },
+      ...(remoteEntityType
+        ? Object.entries(remoteEntityType.properties).map((property) => {
+            console.log(property);
+            console.log(propertyTypes);
+            const propertyType = propertyTypes[property];
+            console.log(propertyType);
+            return {
+              title: propertyType.title,
+              id: propertyType.$id,
+              width: 200,
+            };
+          })
+        : []),
+    ];
+
+    return [gridIds, columns];
+  }, [remoteEntityType, propertyTypes]);
 
   const drawHeader = useDrawHeader(tableSort, columns);
 
@@ -87,8 +153,8 @@ const Page = () => {
   return (
     <Box m={5}>
       <EntitySection
-        title="Properties"
-        titleTooltip="The properties on an entity are determined by its type. To add a new property to this entity, specify an additional type or edit an existing one."
+        title="Entities"
+        titleTooltip="This table lists all entities with the ‘Company’ type that are accessible to you"
         titleStartContent={
           <Stack direction="row" spacing={1.5}>
             <Chip size="xs" label="3 values" />
@@ -114,17 +180,24 @@ const Page = () => {
             columns={columns}
             rows={users.length}
             getCellContent={([col, row]) => {
-              const user = sortedUsers[row];
+              // const user = sortedUsers[row];
 
-              const objKey = gridIndexes[col];
-              const cellValue = user[objKey];
+              // const objKey = gridIndexes[col];
+              // const cellValue = user[objKey];
 
+              // return {
+              //   kind: GridCellKind.Text,
+              //   allowOverlay: true,
+              //   copyData: cellValue,
+              //   displayData: cellValue,
+              //   data: cellValue,
+              // };
               return {
                 kind: GridCellKind.Text,
                 allowOverlay: true,
-                copyData: cellValue,
-                displayData: cellValue,
-                data: cellValue,
+                copyData: "test",
+                displayData: "test",
+                data: "test",
               };
             }}
             customRenderers={[renderDataTypeCell]}
