@@ -7,6 +7,7 @@ import { getAllEditionsOfAnEntity } from "./example-use-cases/editions-of-an-ent
 import { getEarliestEditionOfEntity } from "./example-use-cases/earliest-entity";
 import { getEntityEditionsInTimeRange } from "./example-use-cases/entities-within-time-range";
 import { getLatestEditionOfEntity } from "./example-use-cases/latest-entity";
+import { getEntityTreeAtTimeToDepth } from "./example-use-cases/latest-entity-and-links";
 
 void (async () => {
   const graphApiHost = "localhost";
@@ -53,5 +54,14 @@ void (async () => {
     new Date(Date.parse(latestEntity.metadata.identifier.version) - 1),
   );
 
+  // Get a linked-list-style representation of the entity and its links to a certain depth
+  getEntityTreeAtTimeToDepth(
+    subgraph,
+    someRootEntityEditionId.entityIdentifier,
+    someRootEntityEditionId.version,
+    3,
+  );
+
+  console.log("Successful finish");
   process.exit();
 })();
