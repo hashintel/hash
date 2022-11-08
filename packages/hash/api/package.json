@@ -105,8 +105,6 @@
     "@types/node-fetch": "^2.6.2",
     "@types/nodemailer": "6.4.6",
     "@types/pg": "8.6.0",
-    "@types/prosemirror-model": "1.16.2",
-    "@types/prosemirror-transform": "1.4.2",
     "@types/rword": "3.0.0",
     "@typescript-eslint/eslint-plugin": "5.42.1",
     "@typescript-eslint/parser": "5.42.1",
