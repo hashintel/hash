@@ -3099,8 +3099,13 @@
   dependencies:
     "@blockprotocol/core" "0.0.12"
 
+"@blockprotocol/type-system-node@https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system-node?c415472":
+  version "0.0.1"
+  resolved "https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system-node?c415472#94c191a1fbd5dbce73191b74bd28e3f9cec30720"
+
 "@blockprotocol/type-system-web@https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system-web?6526c0e":
   version "0.0.1"
+  uid dfb41fbd251e6ef8f13839ef9f7dda5f0f1369ae
   resolved "https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system-web?6526c0e#dfb41fbd251e6ef8f13839ef9f7dda5f0f1369ae"
 
 "@cloudamqp/amqp-client@^2.0.3":

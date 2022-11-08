@@ -21,7 +21,9 @@
       "packages/hash/task-executor",
       "packages/hash/tsconfig",
       "sites/hashai",
-      "sites/hashdev"
+      "sites/hashdev",
+      "packages/hash/subgraph",
+      "packages/hash/temp"
     ]
   },
   "scripts": {
