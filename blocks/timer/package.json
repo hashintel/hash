@@ -1,5 +1,5 @@
 {
-  "name": "@hashintel/block-timer",
+  "name": "@blocks/timer",
   "version": "0.2.0",
   "description": "Set a countdown timer to remind you when a certain amount of time has elapsed",
   "keywords": [
