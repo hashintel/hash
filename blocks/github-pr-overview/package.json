@@ -1,6 +1,6 @@
 {
-  "name": "@hashintel/github-pr-overview",
-  "version": "0.0.0",
+  "name": "@blocks/github-pr-overview",
+  "version": "0.1.0",
   "description": "Display an overview of a GitHub Pull Request, including a timeline of key events",
   "keywords": [
     "blockprotocol",
