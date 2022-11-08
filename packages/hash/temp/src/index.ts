@@ -8,6 +8,7 @@ import { getEarliestEditionOfEntity } from "./example-use-cases/earliest-entity"
 import { getEntityEditionsInTimeRange } from "./example-use-cases/entities-within-time-range";
 import { getLatestEditionOfEntity } from "./example-use-cases/latest-entity";
 import { getEntityTreeAtTimeToDepth } from "./example-use-cases/latest-entity-and-links";
+import { getImpliedEntityChanges } from "./example-use-cases/get-implied-entity-changes";
 
 void (async () => {
   const graphApiHost = "localhost";
@@ -60,6 +61,12 @@ void (async () => {
     someRootEntityEditionId.entityIdentifier,
     someRootEntityEditionId.version,
     3,
+  );
+
+  getImpliedEntityChanges(
+    subgraph,
+    someRootEntityEditionId.entityIdentifier,
+    6, // A depth of "3", multiplied by two to include link _and_ endpoint entities
   );
 
   console.log("Successful finish");
