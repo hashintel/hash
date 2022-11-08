@@ -423,7 +423,7 @@ impl DatabaseApi<'_> {
         }
     }
 
-    pub async fn get_entity_links(
+    pub async fn get_latest_entity_links(
         &self,
         source_entity_identifier: EntityIdentifier,
     ) -> Result<Vec<PersistedEntity>, QueryError> {
@@ -443,6 +443,12 @@ impl DatabaseApi<'_> {
                 Some(FilterExpression::Parameter(Parameter::Uuid(
                     source_entity_identifier.owned_by_id().as_uuid(),
                 ))),
+            ),
+            Filter::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::Version)),
+                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                    "latest",
+                )))),
             ),
         ]);
 

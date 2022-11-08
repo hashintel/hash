@@ -32,6 +32,7 @@ impl<C: AsClient> crud::Read<PersistedEntity> for PostgresStore<C> {
         let properties_index = compiler.add_selection_path(&EntityQueryPath::Properties(None));
         let entity_id_index = compiler.add_selection_path(&EntityQueryPath::Id);
         let version_index = compiler.add_selection_path(&EntityQueryPath::Version);
+        let archived_index = compiler.add_selection_path(&EntityQueryPath::Archived);
         let type_id_index =
             compiler.add_selection_path(&EntityQueryPath::Type(EntityTypeQueryPath::VersionedUri));
         let owned_by_id_index = compiler.add_selection_path(&EntityQueryPath::OwnedById);
@@ -113,7 +114,7 @@ impl<C: AsClient> crud::Read<PersistedEntity> for PostgresStore<C> {
                     link_metadata,
                     // TODO: only the historic table would have an `archived` field.
                     //   Consider what we should do about that.
-                    false,
+                    row.get(archived_index),
                 ))
             })
             .try_collect()

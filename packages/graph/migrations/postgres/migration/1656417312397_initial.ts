@@ -419,11 +419,15 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
     )`,
   });
 
-  pgm.addConstraint("latest_entities", "latest_entities_relation_order_constraint", {
-    // Because of the "entities_relation_constraint", we can check any one of the required link columns
-    check: `(left_entity_id IS NOT NULL)
+  pgm.addConstraint(
+    "latest_entities",
+    "latest_entities_relation_order_constraint",
+    {
+      // Because of the "entities_relation_constraint", we can check any one of the required link columns
+      check: `(left_entity_id IS NOT NULL)
             OR (left_order IS NULL AND right_order IS NULL)`,
-  });
+    },
+  );
 
   pgm.createTable(
     "entity_histories",
@@ -538,11 +542,29 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   // The latest entities come first when querying the view.
   pgm.createView(
     "entities",
-    {},
+    {
+      columns: [
+        "entity_id",
+        "owned_by_id",
+        "version",
+        "latest_version",
+        "entity_type_version_id",
+        "properties",
+        "left_entity_id",
+        "left_owned_by_id",
+        "right_entity_id",
+        "right_owned_by_id",
+        "left_order",
+        "right_order",
+        "archived",
+        "created_by_id",
+        "updated_by_id",
+      ],
+    },
     `
-    SELECT entity_id, owned_by_id, version, entity_type_version_id, properties, left_entity_id, left_owned_by_id, right_entity_id, right_owned_by_id, left_order, right_order, FALSE AS archived, created_by_id, updated_by_id FROM latest_entities
+    SELECT entity_id, owned_by_id, version, TRUE as latest_version, entity_type_version_id, properties, left_entity_id, left_owned_by_id, right_entity_id, right_owned_by_id, left_order, right_order, FALSE AS archived, created_by_id, updated_by_id FROM latest_entities
     UNION ALL
-    SELECT entity_id, owned_by_id, version, entity_type_version_id, properties, left_entity_id, left_owned_by_id, right_entity_id, right_owned_by_id, left_order, right_order, archived, created_by_id, updated_by_id FROM entity_histories`,
+    SELECT entity_id, owned_by_id, version, FALSE as latest_version,  entity_type_version_id, properties, left_entity_id, left_owned_by_id, right_entity_id, right_owned_by_id, left_order, right_order, archived, created_by_id, updated_by_id FROM entity_histories`,
   );
 }
 

@@ -829,6 +829,7 @@ export const PathExpressionPathEnum = {
   BaseUri: "baseUri",
   VersionedUri: "versionedUri",
   Version: "version",
+  Archived: "archived",
   Title: "title",
   Description: "description",
   Type: "type",
