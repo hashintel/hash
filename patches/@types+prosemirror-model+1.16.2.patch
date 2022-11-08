@@ -1,0 +1,31 @@
+diff --git a/node_modules/@types/prosemirror-model/index.d.ts b/node_modules/@types/prosemirror-model/index.d.ts
+index 52563d8..742af34 100755
+--- a/node_modules/@types/prosemirror-model/index.d.ts
++++ b/node_modules/@types/prosemirror-model/index.d.ts
+@@ -378,6 +378,10 @@ export class DOMParser<S extends Schema = any> {
+      * The schema into which the parser parses.
+      */
+     schema: S;
++    /**
++     * Parsed set of groups from spec.group
++     */
++    groups?: string[];
+     /**
+      * The set of [parse rules](#model.ParseRule) that the parser
+      * uses, in order of precedence.
+@@ -730,6 +734,15 @@ declare class ProsemirrorNode<S extends Schema = any> {
+     static fromJSON<S extends Schema = any>(schema: S, json: { [key: string]: any }): ProsemirrorNode<S>;
+ }
+ export { ProsemirrorNode as Node };
++/**
++ * The term Node is ambiguous which means we can't enforce the use of the Schema
++ * generic argument via eslint. To work around that, we disallow the direct
++ * import of Node from prosemirror-model and enforce the use of this
++ * ProsemirrorNode alias via eslint which allows to then enforce the use of the
++ * Schema generic argument.
++ */
++export { ProsemirrorNode };
++
+ /**
+  * Error type raised by [`Node.replace`](#model.Node.replace) when
+  * given an invalid replacement.
