@@ -120,7 +120,7 @@ export type PropertyTypeCreatorParams = {
 /**
  * Helper method for generating a property type schema for the Graph API.
  */
-export const generateWorkspacePropertyTypeSchema = (
+export const generateSystemPropertyTypeSchema = (
   params: PropertyTypeCreatorParams,
 ): PropertyType => {
   const possibleValues = params.possibleValues.map(
@@ -140,7 +140,7 @@ export const generateWorkspacePropertyTypeSchema = (
         inner = propertyTypeObject;
       } else {
         throw new Error(
-          "Please provide either a primitiveDataType or propertyTypeObjectProperties to generateWorkspacePropertyTypeSchema",
+          "Please provide either a primitiveDataType or propertyTypeObjectProperties to generateSystemPropertyTypeSchema",
         );
       }
 
@@ -190,7 +190,7 @@ export const propertyTypeInitializer = (
         `property type ${params.title} was uninitialized, and function was called without passing a graphApi object`,
       );
     } else {
-      const propertyType = generateWorkspacePropertyTypeSchema(params);
+      const propertyType = generateSystemPropertyTypeSchema(params);
 
       // initialize
       propertyTypeModel = await PropertyTypeModel.get(graphApi, {
@@ -247,7 +247,7 @@ export type EntityTypeCreatorParams = {
  * @todo make use of new type system package instead of ad-hoc types.
  *   https://app.asana.com/0/1202805690238892/1202892835843657/f
  */
-export const generateWorkspaceEntityTypeSchema = (
+export const generateSystemEntityTypeSchema = (
   params: EntityTypeCreatorParams,
 ): EntityType => {
   /** @todo - clean this up to be more readable: https://app.asana.com/0/1202805690238892/1202931031833226/f */
@@ -346,7 +346,7 @@ export const entityTypeInitializer = (
         `entity type ${params.title} was uninitialized, and function was called without passing a graphApi object`,
       );
     } else {
-      const entityType = generateWorkspaceEntityTypeSchema(params);
+      const entityType = generateSystemEntityTypeSchema(params);
 
       // initialize
       entityTypeModel = await EntityTypeModel.get(graphApi, {
@@ -389,7 +389,7 @@ export type LinkTypeCreatorParams = {
  * @todo make use of new type system package instead of ad-hoc types.
  *   https://app.asana.com/0/1202805690238892/1202892835843657/f
  */
-export const generateWorkspaceLinkTypeSchema = (
+export const generateSystemLinkTypeSchema = (
   params: LinkTypeCreatorParams,
 ): LinkType => {
   return {
@@ -423,7 +423,7 @@ export const linkTypeInitializer = (
         `link type ${params.title} was uninitialized, and function was called without passing a graphApi object`,
       );
     } else {
-      const linkType = generateWorkspaceLinkTypeSchema(params);
+      const linkType = generateSystemLinkTypeSchema(params);
 
       // initialize
       linkTypeModel = await LinkTypeModel.get(graphApi, {
