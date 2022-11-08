@@ -4,6 +4,9 @@ import { logger } from "@hashintel/hash-api/src/logger";
 import { EntityEditionId, Subgraph } from "@hashintel/subgraph/src/types";
 import { entityRootedSubgraph } from "./example-use-cases/entity-rooted-subgraph";
 import { getAllEditionsOfAnEntity } from "./example-use-cases/editions-of-an-entity";
+import { getEarliestEditionOfEntity } from "./example-use-cases/earliest-entity";
+import { getEntityEditionsInTimeRange } from "./example-use-cases/entities-within-time-range";
+import { getLatestEditionOfEntity } from "./example-use-cases/latest-entity";
 
 void (async () => {
   const graphApiHost = "localhost";
@@ -14,6 +17,7 @@ void (async () => {
     port: graphApiPort,
   });
 
+  // TODO: make the query bigger
   const { data: subgraph } = (await graphApi.getEntitiesByQuery({
     filter: {
       equal: [{ path: ["version"] }, { parameter: "latest" }],
@@ -26,10 +30,27 @@ void (async () => {
     },
   })) as unknown as { data: Subgraph };
 
+  const someRootEntityEditionId = subgraph.roots[0] as EntityEditionId;
+
   entityRootedSubgraph(subgraph);
-  getAllEditionsOfAnEntity(
+
+  getAllEditionsOfAnEntity(subgraph, someRootEntityEditionId.entityIdentifier);
+
+  const earliestEntity = getEarliestEditionOfEntity(
     subgraph,
-    (subgraph.roots[0] as EntityEditionId).entityIdentifier,
+    someRootEntityEditionId.entityIdentifier,
+  );
+  const latestEntity = getLatestEditionOfEntity(
+    subgraph,
+    someRootEntityEditionId.entityIdentifier,
+  );
+
+  getEntityEditionsInTimeRange(
+    subgraph,
+    someRootEntityEditionId.entityIdentifier,
+    // Pick a time-range between the earliest and latest entity editions
+    new Date(Date.parse(earliestEntity.metadata.identifier.version) + 1),
+    new Date(Date.parse(latestEntity.metadata.identifier.version) - 1),
   );
 
   process.exit();
