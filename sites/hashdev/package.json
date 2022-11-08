@@ -41,7 +41,7 @@
     "unified": "10.1.2"
   },
   "devDependencies": {
-    "@babel/core": "^7.12.10",
+    "@babel/core": "^7.20.2",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/fs-extra": "9.0.13",
@@ -49,7 +49,7 @@
     "@types/react": "18.0.25",
     "@typescript-eslint/eslint-plugin": "5.42.1",
     "@typescript-eslint/parser": "5.42.1",
-    "babel-loader": "^8.2.2",
+    "babel-loader": "^9.1.0",
     "eslint": "8.27.0",
     "typescript": "4.8.4"
   }
