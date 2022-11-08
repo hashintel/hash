@@ -14,7 +14,7 @@
     "serve": "serve -C -l 5005"
   },
   "devDependencies": {
-    "serve": "14.0.1"
+    "serve": "14.1.0"
   },
   "blockprotocol": {
     "displayName": "Inline HTML",
