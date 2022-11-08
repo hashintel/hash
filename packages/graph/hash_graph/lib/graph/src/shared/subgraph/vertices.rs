@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use serde::Serialize;
 use type_system::uri::BaseUri;
-use utoipa::ToSchema;
+use utoipa::{openapi, ToSchema};
 
 use crate::{
     identifier::{
@@ -12,20 +12,82 @@ use crate::{
     ontology::{PersistedDataType, PersistedEntityType, PersistedPropertyType},
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(tag = "kind", content = "inner")]
+#[serde(rename_all = "camelCase")]
 pub enum OntologyVertex {
     DataType(PersistedDataType),
     PropertyType(PersistedPropertyType),
     EntityType(PersistedEntityType),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
+// WARNING: This MUST be kept up to date with the enum names and serde attribute, as utoipa does
+// not currently support adjacently tagged enums so we must roll our own:
+// https://github.com/juhaku/utoipa/issues/219
+impl ToSchema for OntologyVertex {
+    fn schema() -> openapi::Schema {
+        let mut builder =
+            openapi::OneOfBuilder::new().discriminator(Some(openapi::Discriminator::new("kind")));
+
+        for (kind, schema) in [
+            ("dataType", PersistedDataType::schema()),
+            ("propertyType", PersistedPropertyType::schema()),
+            ("entityType", PersistedEntityType::schema()),
+        ] {
+            builder = builder.item(
+                openapi::ObjectBuilder::new()
+                    .property(
+                        "kind",
+                        // Apparently OpenAPI doesn't support const values, the best you can do is
+                        // an enum with one option
+                        openapi::Schema::from(
+                            openapi::ObjectBuilder::new().enum_values(Some([kind])),
+                        ),
+                    )
+                    .required("kind")
+                    .property("inner", schema)
+                    .required("inner"),
+            );
+        }
+
+        builder.into()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(tag = "kind", content = "inner")]
+#[serde(rename_all = "camelCase")]
 pub enum KnowledgeGraphVertex {
     Entity(PersistedEntity),
+}
+
+// WARNING: This MUST be kept up to date with the enum names and serde attribute, as utoipa does
+// not currently support adjacently tagged enums so we must roll our own:
+// https://github.com/juhaku/utoipa/issues/219
+impl ToSchema for KnowledgeGraphVertex {
+    fn schema() -> openapi::Schema {
+        let mut builder =
+            openapi::OneOfBuilder::new().discriminator(Some(openapi::Discriminator::new("kind")));
+
+        for (kind, schema) in [("entity", PersistedEntity::schema())] {
+            builder = builder.item(
+                openapi::ObjectBuilder::new()
+                    .property(
+                        "kind",
+                        // Apparently OpenAPI doesn't support const values, the best you can do is
+                        // an enum with one option
+                        openapi::Schema::from(
+                            openapi::ObjectBuilder::new().enum_values(Some([kind])),
+                        ),
+                    )
+                    .required("kind")
+                    .property("inner", schema)
+                    .required("inner"),
+            );
+        }
+
+        builder.into()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
@@ -47,6 +109,7 @@ pub struct KnowledgeGraphVertices(
 );
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct Vertices {
     #[serde(flatten)]
     ontology: OntologyVertices,

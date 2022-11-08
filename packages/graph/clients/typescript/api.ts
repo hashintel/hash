@@ -558,10 +558,43 @@ export type KnowledgeGraphVertex = KnowledgeGraphVertexOneOf;
 export interface KnowledgeGraphVertexOneOf {
   /**
    *
-   * @type {PersistedEntity}
+   * @type {KnowledgeGraphVertexOneOfInner}
    * @memberof KnowledgeGraphVertexOneOf
    */
-  entity?: PersistedEntity;
+  inner: KnowledgeGraphVertexOneOfInner;
+  /**
+   *
+   * @type {object}
+   * @memberof KnowledgeGraphVertexOneOf
+   */
+  kind: KnowledgeGraphVertexOneOfKindEnum;
+}
+
+export const KnowledgeGraphVertexOneOfKindEnum = {
+  Entity: "entity",
+} as const;
+
+export type KnowledgeGraphVertexOneOfKindEnum =
+  typeof KnowledgeGraphVertexOneOfKindEnum[keyof typeof KnowledgeGraphVertexOneOfKindEnum];
+
+/**
+ * A record of an [`Entity`] that has been persisted in the datastore, with its associated
+ * @export
+ * @interface KnowledgeGraphVertexOneOfInner
+ */
+export interface KnowledgeGraphVertexOneOfInner {
+  /**
+   *
+   * @type {object}
+   * @memberof KnowledgeGraphVertexOneOfInner
+   */
+  inner: object;
+  /**
+   *
+   * @type {PersistedEntityMetadata}
+   * @memberof KnowledgeGraphVertexOneOfInner
+   */
+  metadata: PersistedEntityMetadata;
 }
 /**
  * The associated information for \'Link\' entities
@@ -637,11 +670,25 @@ export type OntologyVertex =
 export interface OntologyVertexOneOf {
   /**
    *
-   * @type {PersistedDataType}
+   * @type {OntologyVertexOneOfInner}
    * @memberof OntologyVertexOneOf
    */
-  dataType?: PersistedDataType;
+  inner: OntologyVertexOneOfInner;
+  /**
+   *
+   * @type {object}
+   * @memberof OntologyVertexOneOf
+   */
+  kind: OntologyVertexOneOfKindEnum;
 }
+
+export const OntologyVertexOneOfKindEnum = {
+  DataType: "dataType",
+} as const;
+
+export type OntologyVertexOneOfKindEnum =
+  typeof OntologyVertexOneOfKindEnum[keyof typeof OntologyVertexOneOfKindEnum];
+
 /**
  *
  * @export
@@ -650,10 +697,43 @@ export interface OntologyVertexOneOf {
 export interface OntologyVertexOneOf1 {
   /**
    *
-   * @type {PersistedPropertyType}
+   * @type {OntologyVertexOneOf1Inner}
    * @memberof OntologyVertexOneOf1
    */
-  propertyType?: PersistedPropertyType;
+  inner: OntologyVertexOneOf1Inner;
+  /**
+   *
+   * @type {object}
+   * @memberof OntologyVertexOneOf1
+   */
+  kind: OntologyVertexOneOf1KindEnum;
+}
+
+export const OntologyVertexOneOf1KindEnum = {
+  PropertyType: "propertyType",
+} as const;
+
+export type OntologyVertexOneOf1KindEnum =
+  typeof OntologyVertexOneOf1KindEnum[keyof typeof OntologyVertexOneOf1KindEnum];
+
+/**
+ *
+ * @export
+ * @interface OntologyVertexOneOf1Inner
+ */
+export interface OntologyVertexOneOf1Inner {
+  /**
+   *
+   * @type {PropertyType}
+   * @memberof OntologyVertexOneOf1Inner
+   */
+  inner: PropertyType;
+  /**
+   *
+   * @type {PersistedOntologyMetadata}
+   * @memberof OntologyVertexOneOf1Inner
+   */
+  metadata: PersistedOntologyMetadata;
 }
 /**
  *
@@ -663,10 +743,62 @@ export interface OntologyVertexOneOf1 {
 export interface OntologyVertexOneOf2 {
   /**
    *
-   * @type {PersistedEntityType}
+   * @type {OntologyVertexOneOf2Inner}
    * @memberof OntologyVertexOneOf2
    */
-  entityType?: PersistedEntityType;
+  inner: OntologyVertexOneOf2Inner;
+  /**
+   *
+   * @type {object}
+   * @memberof OntologyVertexOneOf2
+   */
+  kind: OntologyVertexOneOf2KindEnum;
+}
+
+export const OntologyVertexOneOf2KindEnum = {
+  EntityType: "entityType",
+} as const;
+
+export type OntologyVertexOneOf2KindEnum =
+  typeof OntologyVertexOneOf2KindEnum[keyof typeof OntologyVertexOneOf2KindEnum];
+
+/**
+ *
+ * @export
+ * @interface OntologyVertexOneOf2Inner
+ */
+export interface OntologyVertexOneOf2Inner {
+  /**
+   *
+   * @type {EntityType}
+   * @memberof OntologyVertexOneOf2Inner
+   */
+  inner: EntityType;
+  /**
+   *
+   * @type {PersistedOntologyMetadata}
+   * @memberof OntologyVertexOneOf2Inner
+   */
+  metadata: PersistedOntologyMetadata;
+}
+/**
+ *
+ * @export
+ * @interface OntologyVertexOneOfInner
+ */
+export interface OntologyVertexOneOfInner {
+  /**
+   *
+   * @type {DataType}
+   * @memberof OntologyVertexOneOfInner
+   */
+  inner: DataType;
+  /**
+   *
+   * @type {PersistedOntologyMetadata}
+   * @memberof OntologyVertexOneOfInner
+   */
+  metadata: PersistedOntologyMetadata;
 }
 /**
  *
@@ -1575,7 +1707,7 @@ export interface Vertices {
    * @type {{ [key: string]: { [key: string]: KnowledgeGraphVertex; }; }}
    * @memberof Vertices
    */
-  knowledge_graph: { [key: string]: { [key: string]: KnowledgeGraphVertex } };
+  knowledgeGraph: { [key: string]: { [key: string]: KnowledgeGraphVertex } };
   /**
    *
    * @type {{ [key: string]: { [key: string]: OntologyVertex; }; }}
@@ -2448,20 +2580,23 @@ export const EntityApiAxiosParamCreator = function (
     },
     /**
      *
+     * @param {string} ownedById The ID of the owner
      * @param {string} entityId The ID of the entity
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getEntity: async (
+      ownedById: string,
       entityId: string,
       options: AxiosRequestConfig = {},
     ): Promise<RequestArgs> => {
+      // verify required parameter 'ownedById' is not null or undefined
+      assertParamExists("getEntity", "ownedById", ownedById);
       // verify required parameter 'entityId' is not null or undefined
       assertParamExists("getEntity", "entityId", entityId);
-      const localVarPath = `/entities/{entityId}`.replace(
-        `{${"entityId"}}`,
-        encodeURIComponent(String(entityId)),
-      );
+      const localVarPath = `/entities/{ownedById}/{entityId}`
+        .replace(`{${"ownedById"}}`, encodeURIComponent(String(ownedById)))
+        .replace(`{${"entityId"}}`, encodeURIComponent(String(entityId)));
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
       const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
       let baseOptions;
@@ -2644,11 +2779,13 @@ export const EntityApiFp = function (configuration?: Configuration) {
     },
     /**
      *
+     * @param {string} ownedById The ID of the owner
      * @param {string} entityId The ID of the entity
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     async getEntity(
+      ownedById: string,
       entityId: string,
       options?: AxiosRequestConfig,
     ): Promise<
@@ -2658,6 +2795,7 @@ export const EntityApiFp = function (configuration?: Configuration) {
       ) => AxiosPromise<PersistedEntity>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.getEntity(
+        ownedById,
         entityId,
         options,
       );
@@ -2760,13 +2898,18 @@ export const EntityApiFactory = function (
     },
     /**
      *
+     * @param {string} ownedById The ID of the owner
      * @param {string} entityId The ID of the entity
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getEntity(entityId: string, options?: any): AxiosPromise<PersistedEntity> {
+    getEntity(
+      ownedById: string,
+      entityId: string,
+      options?: any,
+    ): AxiosPromise<PersistedEntity> {
       return localVarFp
-        .getEntity(entityId, options)
+        .getEntity(ownedById, entityId, options)
         .then((request) => request(axios, basePath));
     },
     /**
@@ -2828,12 +2971,14 @@ export interface EntityApiInterface {
 
   /**
    *
+   * @param {string} ownedById The ID of the owner
    * @param {string} entityId The ID of the entity
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof EntityApiInterface
    */
   getEntity(
+    ownedById: string,
     entityId: string,
     options?: AxiosRequestConfig,
   ): AxiosPromise<PersistedEntity>;
@@ -2902,14 +3047,19 @@ export class EntityApi extends BaseAPI implements EntityApiInterface {
 
   /**
    *
+   * @param {string} ownedById The ID of the owner
    * @param {string} entityId The ID of the entity
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof EntityApi
    */
-  public getEntity(entityId: string, options?: AxiosRequestConfig) {
+  public getEntity(
+    ownedById: string,
+    entityId: string,
+    options?: AxiosRequestConfig,
+  ) {
     return EntityApiFp(this.configuration)
-      .getEntity(entityId, options)
+      .getEntity(ownedById, entityId, options)
       .then((request) => request(this.axios, this.basePath));
   }
 
@@ -3971,20 +4121,23 @@ export const GraphApiAxiosParamCreator = function (
     },
     /**
      *
+     * @param {string} ownedById The ID of the owner
      * @param {string} entityId The ID of the entity
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getEntity: async (
+      ownedById: string,
       entityId: string,
       options: AxiosRequestConfig = {},
     ): Promise<RequestArgs> => {
+      // verify required parameter 'ownedById' is not null or undefined
+      assertParamExists("getEntity", "ownedById", ownedById);
       // verify required parameter 'entityId' is not null or undefined
       assertParamExists("getEntity", "entityId", entityId);
-      const localVarPath = `/entities/{entityId}`.replace(
-        `{${"entityId"}}`,
-        encodeURIComponent(String(entityId)),
-      );
+      const localVarPath = `/entities/{ownedById}/{entityId}`
+        .replace(`{${"ownedById"}}`, encodeURIComponent(String(ownedById)))
+        .replace(`{${"entityId"}}`, encodeURIComponent(String(entityId)));
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
       const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
       let baseOptions;
@@ -4786,11 +4939,13 @@ export const GraphApiFp = function (configuration?: Configuration) {
     },
     /**
      *
+     * @param {string} ownedById The ID of the owner
      * @param {string} entityId The ID of the entity
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     async getEntity(
+      ownedById: string,
       entityId: string,
       options?: AxiosRequestConfig,
     ): Promise<
@@ -4800,6 +4955,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
       ) => AxiosPromise<PersistedEntity>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.getEntity(
+        ownedById,
         entityId,
         options,
       );
@@ -5225,13 +5381,18 @@ export const GraphApiFactory = function (
     },
     /**
      *
+     * @param {string} ownedById The ID of the owner
      * @param {string} entityId The ID of the entity
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getEntity(entityId: string, options?: any): AxiosPromise<PersistedEntity> {
+    getEntity(
+      ownedById: string,
+      entityId: string,
+      options?: any,
+    ): AxiosPromise<PersistedEntity> {
       return localVarFp
-        .getEntity(entityId, options)
+        .getEntity(ownedById, entityId, options)
         .then((request) => request(axios, basePath));
     },
     /**
@@ -5493,12 +5654,14 @@ export interface GraphApiInterface {
 
   /**
    *
+   * @param {string} ownedById The ID of the owner
    * @param {string} entityId The ID of the entity
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof GraphApiInterface
    */
   getEntity(
+    ownedById: string,
     entityId: string,
     options?: AxiosRequestConfig,
   ): AxiosPromise<PersistedEntity>;
@@ -5770,14 +5933,19 @@ export class GraphApi extends BaseAPI implements GraphApiInterface {
 
   /**
    *
+   * @param {string} ownedById The ID of the owner
    * @param {string} entityId The ID of the entity
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof GraphApi
    */
-  public getEntity(entityId: string, options?: AxiosRequestConfig) {
+  public getEntity(
+    ownedById: string,
+    entityId: string,
+    options?: AxiosRequestConfig,
+  ) {
     return GraphApiFp(this.configuration)
-      .getEntity(entityId, options)
+      .getEntity(ownedById, entityId, options)
       .then((request) => request(this.axios, this.basePath));
   }
 

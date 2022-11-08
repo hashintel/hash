@@ -285,6 +285,7 @@ async fn get_latest_entities<P: StorePool + Send>(
         (status = 500, description = "Store error occurred"),
     ),
     params(
+        ("ownedById" = Uuid, Path, description = "The ID of the owner"),
         ("entityId" = Uuid, Path, description = "The ID of the entity"),
     )
 )]
