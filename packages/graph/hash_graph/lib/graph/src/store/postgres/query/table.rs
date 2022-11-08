@@ -87,13 +87,13 @@ impl Transpile for Table {
 
 /// Specifier on how to access a column of a table.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum ColumnAccess<'q> {
+pub enum ColumnAccess<'param> {
     /// Accesses a column of a table directly: `"column"`
     Table { column: &'static str },
     /// Accesses a field of a JSON blob: `"column"->>'field'`
     Json {
         column: &'static str,
-        field: &'q str,
+        field: &'param str,
     },
     /// Accesses the field of a JSON blob by a numbered parameter: e.g. `"column"->>$1`
     JsonParameter { column: &'static str, index: usize },
@@ -121,9 +121,9 @@ impl Transpile for ColumnAccess<'_> {
 
 /// A column available in the database.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Column<'a> {
+pub struct Column<'param> {
     pub table: Table,
-    pub access: ColumnAccess<'a>,
+    pub access: ColumnAccess<'param>,
 }
 
 impl Transpile for Column<'_> {

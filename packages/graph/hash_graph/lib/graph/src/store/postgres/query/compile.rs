@@ -13,19 +13,23 @@ use crate::store::{
     query::{Filter, FilterExpression, Parameter},
 };
 
-pub struct CompilerArtifacts<'f> {
-    parameters: Vec<&'f (dyn ToSql + Sync)>,
+// # Lifetime guidance
+// - 'c relates to the lifetime of the `SelectCompiler` (most constrained by the SelectStatement)
+// - 'p relates to the lifetime of the `Path`, should be the longest living
+
+pub struct CompilerArtifacts<'p> {
+    parameters: Vec<&'p (dyn ToSql + Sync)>,
     condition_index: usize,
     required_tables: HashSet<Table>,
 }
 
-pub struct SelectCompiler<'f, 'q, T> {
-    statement: SelectStatement<'q>,
-    artifacts: CompilerArtifacts<'f>,
-    _marker: PhantomData<fn(&'f T)>,
+pub struct SelectCompiler<'c, 'p, T> {
+    statement: SelectStatement<'c>,
+    artifacts: CompilerArtifacts<'p>,
+    _marker: PhantomData<fn(*const T)>,
 }
 
-impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
+impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
     /// Creates a new, empty compiler.
     pub fn new() -> Self {
         Self {
@@ -49,8 +53,8 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
 
     /// Creates a new compiler, which will default to select the paths returned from
     /// [`PostgresQueryRecord::default_selection_paths()`].
-    pub fn with_default_selection() -> Self {
-        let mut default = Self::new();
+    pub fn with_default_selection() -> SelectCompiler<'c, 'static, T> {
+        let mut default = SelectCompiler::new();
         for path in T::default_selection_paths() {
             default.add_selection_path(path);
         }
@@ -71,7 +75,10 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
     ///
     /// Optionally, the added selection can be distinct or ordered by providing [`Distinctness`]
     /// and [`Ordering`].
-    pub fn add_selection_path(&mut self, path: &'q T::Path<'q>) -> impl RowIndex + Display + Copy {
+    pub fn add_selection_path<'r: 'c>(
+        &mut self,
+        path: &'r T::Path<'p>,
+    ) -> impl RowIndex + Display + Copy {
         let table = self.add_join_statements(path.relations());
         self.statement.selects.push(SelectExpression::from_column(
             Column {
@@ -87,9 +94,9 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
     ///
     /// Optionally, the added selection can be distinct or ordered by providing [`Distinctness`]
     /// and [`Ordering`].
-    pub fn add_distinct_selection_with_ordering(
+    pub fn add_distinct_selection_with_ordering<'r: 'c>(
         &mut self,
-        path: &'q T::Path<'q>,
+        path: &'r T::Path<'p>,
         distinctness: Distinctness,
         ordering: Option<Ordering>,
     ) -> impl RowIndex + Display + Copy {
@@ -113,14 +120,14 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
     }
 
     /// Adds a new filter to the selection.
-    pub fn add_filter(&mut self, filter: &'f Filter<'q, T>) {
+    pub fn add_filter<'f: 'p>(&mut self, filter: &'f Filter<'p, T>) {
         let condition = self.compile_filter(filter);
         self.artifacts.condition_index += 1;
         self.statement.where_expression.add_condition(condition);
     }
 
     /// Transpiles the statement into SQL and the parameter to be passed to a prepared statement.
-    pub fn compile(&self) -> (String, &[&'f (dyn ToSql + Sync)]) {
+    pub fn compile(&self) -> (String, &[&'p (dyn ToSql + Sync)]) {
         (
             self.statement.transpile_to_string(),
             &self.artifacts.parameters,
@@ -128,7 +135,7 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
     }
 
     /// Compiles a [`Filter`] to a `Condition`.
-    pub fn compile_filter(&mut self, filter: &'f Filter<'q, T>) -> Condition<'q> {
+    pub fn compile_filter<'f: 'p>(&mut self, filter: &'f Filter<'p, T>) -> Condition<'c> {
         if let Some(condition) = self.compile_special_filter(filter) {
             return condition;
         }
@@ -169,15 +176,15 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
     //          ensure compatibility
     fn compile_latest_version_filter(
         &mut self,
-        path: &'f T::Path<'q>,
+        path: &T::Path<'p>,
         operator: EqualityOperator,
-    ) -> Condition<'q> {
+    ) -> Condition<'c> {
         let mut version_column = Column {
             table: Table {
                 name: path.terminating_table_name(),
                 alias: None,
             },
-            access: path.column_access(),
+            access: ColumnAccess::Table { column: "version" },
         };
         // Depending on the table name of the path the partition table is selected
         let partition_column = match version_column.table.name {
@@ -246,7 +253,7 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
     ///
     /// The following [`Filter`]s will be special cased:
     /// - Comparing the `"version"` field on [`TableName::TypeIds`] with `"latest"` for equality.
-    fn compile_special_filter(&mut self, filter: &'f Filter<'q, T>) -> Option<Condition<'q>> {
+    fn compile_special_filter(&mut self, filter: &Filter<'p, T>) -> Option<Condition<'c>> {
         match filter {
             Filter::Equal(lhs, rhs) | Filter::NotEqual(lhs, rhs) => match (lhs, rhs) {
                 (
@@ -288,10 +295,10 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
         }
     }
 
-    pub fn compile_filter_expression(
+    pub fn compile_filter_expression<'f: 'p>(
         &mut self,
-        expression: &'f FilterExpression<'q, T>,
-    ) -> Expression<'q> {
+        expression: &'f FilterExpression<'p, T>,
+    ) -> Expression<'c> {
         match expression {
             FilterExpression::Path(path) => {
                 let access = if let Some(field) = path.user_provided_path() {
@@ -326,7 +333,7 @@ impl<'f: 'q, 'q, T: PostgresQueryRecord<'q>> SelectCompiler<'f, 'q, T> {
     ///
     /// Joining the tables attempts to deduplicate [`JoinExpression`]s. As soon as a new filter was
     /// compiled, each subsequent call will result in a new join-chain.
-    fn add_join_statements(&mut self, tables: impl IntoIterator<Item = Relation<'q>>) -> Table {
+    fn add_join_statements(&mut self, tables: impl IntoIterator<Item = Relation>) -> Table {
         let mut current_table = T::base_table();
         let mut chain_depth = 0;
         for Relation {

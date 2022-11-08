@@ -950,7 +950,7 @@ where
             .as_client()
             .query_one(
                 r#"
-                INSERT INTO entities (
+                INSERT INTO latest_entities (
                     entity_id, owned_by_id, version,
                     entity_type_version_id,
                     properties,
@@ -1012,7 +1012,7 @@ where
     //   This is especially important for making these queries single-shard Citus queries when we
     //   need that.
     //   see: https://app.asana.com/0/1201095311341924/1203214689883091/f
-    async fn lock_entity_for_update(
+    async fn lock_latest_entity_for_update(
         &self,
         entity_identifier: EntityIdentifier,
     ) -> Result<(), QueryError> {
@@ -1029,7 +1029,7 @@ where
                 //   https://docs.citusdata.com/en/stable/develop/reference_workarounds.html#sql-support-and-workarounds
                 //   see: https://app.asana.com/0/0/1203284257408542/f
                 r#"
-                SELECT * FROM entities
+                SELECT * FROM latest_entities
                 WHERE entity_id = $1
                 FOR UPDATE;
                 "#,
@@ -1046,7 +1046,7 @@ where
     //   This is especially important for making these queries single-shard Citus queries when we
     //   need that.
     //   see: https://app.asana.com/0/1201095311341924/1203214689883091/f
-    async fn move_entity_to_histories(
+    async fn move_latest_entity_to_histories(
         &self,
         entity_identifier: EntityIdentifier,
         historic_move: HistoricMove,
@@ -1057,7 +1057,7 @@ where
                 r#"
                 -- First we delete the _latest_ entity from the entities table.
                 WITH to_move_to_historic AS (
-                    DELETE FROM entities
+                    DELETE FROM latest_entities
                     WHERE entity_id = $1 AND owned_by_id = $2
                     RETURNING
                         entity_id, owned_by_id, version,

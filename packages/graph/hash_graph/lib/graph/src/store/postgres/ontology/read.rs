@@ -83,10 +83,11 @@ impl From<OntologyRecord<EntityType>> for PersistedEntityType {
 impl<C: AsClient, T> Read<T> for PostgresStore<C>
 where
     T: for<'q> PersistedOntologyType<
-            Inner: PostgresQueryRecord<'q, Path<'q>: Debug + Sync>
+            Inner: PostgresQueryRecord<Path<'q>: Debug + Sync>
                        + OntologyDatabaseType
                        + TryFrom<serde_json::Value, Error: Context>
-                       + Send,
+                       + Send
+                       + 'static,
         > + Send,
 {
     type Query<'q> = Filter<'q, T::Inner>;
