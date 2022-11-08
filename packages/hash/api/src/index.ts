@@ -27,6 +27,7 @@ import { ensureSystemTypesExist } from "./graph/system-types";
 import {
   AwsSesEmailTransporter,
   DummyEmailTransporter,
+  EmailTransporter,
 } from "./email/transporters";
 import { createApolloServer } from "./graphql/createApolloServer";
 import { CORS_CONFIG, FILE_UPLOAD_PROVIDER } from "./lib/config";
@@ -165,13 +166,19 @@ const main = async () => {
               )
             : undefined,
         })
-      : new AwsSesEmailTransporter({
+      : process.env.AWS_REGION
+      ? new AwsSesEmailTransporter({
           from: `${getRequiredEnv(
             "SYSTEM_EMAIL_SENDER_NAME",
           )} <${getRequiredEnv("SYSTEM_EMAIL_ADDRESS")}>`,
           region: getAwsRegion(),
           subjectPrefix: isProdEnv ? undefined : "[DEV SITE] ",
-        });
+        })
+      : ({
+          sendMail: (mail) => {
+            logger.info(`Tried to send mail to ${mail.to}:\n${mail.html}`);
+          },
+        } as EmailTransporter);
 
   let search: OpenSearch | undefined;
   if (process.env.HASH_OPENSEARCH_ENABLED === "true") {
