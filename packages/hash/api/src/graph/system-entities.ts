@@ -13,7 +13,7 @@ export const ensureSystemEntitiesExists = async (params: {
   logger: Logger;
 }) => {
   const { graphApi } = params;
-  logger.debug("Ensuring required Workspace entities exists");
+  logger.debug("Ensuring required system entities exists");
 
   // Create system entities if they don't already exist
 

@@ -8,7 +8,7 @@ test.beforeEach(async () => {
 });
 
 /**
- * @todo: Re-enable this playwright test when required workspace functionality is fixed
+ * @todo: Re-enable this playwright test when required backend functionality is fixed
  * @see https://app.asana.com/0/1202805690238892/1203106234191599/f
  */
 test.skip("user can create and update entity", async ({ page }) => {
