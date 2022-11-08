@@ -1,0 +1,16 @@
+diff --git a/node_modules/prosemirror-model/dist/index.d.ts b/node_modules/prosemirror-model/dist/index.d.ts
+index 66c24b1..2c97f3c 100644
+--- a/node_modules/prosemirror-model/dist/index.d.ts
++++ b/node_modules/prosemirror-model/dist/index.d.ts
+@@ -1617,3 +1617,11 @@ declare class Node {
+ }
+ 
+ export { AttributeSpec, Attrs, ContentMatch, DOMOutputSpec, DOMParser, DOMSerializer, Fragment, Mark, MarkSpec, MarkType, Node, NodeRange, NodeSpec, NodeType, ParseOptions, ParseRule, ReplaceError, ResolvedPos, Schema, SchemaSpec, Slice };
++/**
++ * The term Node is ambiguous which means we can't enforce the use of the Schema
++ * generic argument via eslint. To work around that, we disallow the direct
++ * import of Node from prosemirror-model and enforce the use of this
++ * ProsemirrorNode alias via eslint which allows to then enforce the use of the
++ * Schema generic argument.
++ */
++export { Node as ProsemirrorNode };

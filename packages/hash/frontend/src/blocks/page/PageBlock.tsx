@@ -1,15 +1,14 @@
 import { useApolloClient } from "@apollo/client";
-import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
-import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { Button } from "@hashintel/hash-design-system";
+import { BlockEntity } from "@hashintel/hash-shared/entity";
+import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
 import Box from "@mui/material/Box";
+import { SxProps } from "@mui/system";
 import { useRouter } from "next/router";
-import { Schema } from "prosemirror-model";
 import { EditorView } from "prosemirror-view";
 import "prosemirror-view/style/prosemirror.css";
 import { FunctionComponent, useLayoutEffect, useRef } from "react";
 import { useLocalstorageState } from "rooks";
-import { SxProps } from "@mui/system";
 import { PageThread } from "../../components/hooks/usePageComments";
 import { useInitTypeSystem } from "../../lib/use-init-type-system";
 import { useReadonlyMode } from "../../shared/readonly-mode";
@@ -56,7 +55,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
   >("hash.internal.debugging", false);
 
   const prosemirrorSetup = useRef<null | {
-    view: EditorView<Schema>;
+    view: EditorView;
     connection: EditorConnection | null;
     manager: ProsemirrorManager;
   }>(null);
