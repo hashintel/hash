@@ -5,7 +5,6 @@ edition = "2021"
 publish = false
 description = "HASH Graph API"
 
-
 [dependencies]
 async-trait = "0.1.57"
 axum = "0.5.16"
