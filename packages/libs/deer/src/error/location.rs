@@ -15,7 +15,7 @@ pub enum Location {
 }
 
 impl ErrorProperty for Location {
-    type Value<'a> = Vec<&'a Location>
+    type Value<'a> = Vec<&'a Self>
         where Self: 'a;
 
     fn key() -> &'static str {
@@ -23,6 +23,9 @@ impl ErrorProperty for Location {
     }
 
     fn value<'a>(stack: impl Iterator<Item = &'a Self>) -> Self::Value<'a> {
-        stack.collect()
+        let mut stack: Vec<_> = stack.collect();
+        stack.reverse();
+
+        stack
     }
 }

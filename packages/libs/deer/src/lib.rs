@@ -496,3 +496,47 @@ pub trait Deserialize<'de>: Sized {
     /// Deserialization was unsuccessful
     fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError>;
 }
+
+#[cfg(test)]
+pub(crate) mod test {
+    use std::marker::PhantomData;
+
+    use error_stack::{Frame, Report};
+    use serde::{
+        ser::{Error as _, SerializeMap},
+        Serialize, Serializer,
+    };
+
+    use crate::error::{Error, ErrorProperties};
+
+    struct SerializeFrame<'a, 'b, E: Error> {
+        frames: &'b [&'a Frame],
+        _marker: PhantomData<fn() -> *const E>,
+    }
+
+    impl<'a, 'b, E: Error> Serialize for SerializeFrame<'a, 'b, E> {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            let mut map = serializer.serialize_map(None)?;
+
+            E::Properties::output(E::Properties::value(&self.frames), &mut map)
+                .map_err(|error| S::Error::custom(format!("{error:?}")))?;
+
+            map.end()
+        }
+    }
+
+    pub(crate) fn to_json<E: Error>(report: Report<E>) -> serde_json::Value {
+        // we do not need to worry about the tree structure
+        let frames: Vec<_> = report.frames().collect();
+
+        let s: SerializeFrame<E> = SerializeFrame {
+            frames: &frames,
+            _marker: PhantomData::default(),
+        };
+
+        serde_json::to_value(s).unwrap()
+    }
+}
