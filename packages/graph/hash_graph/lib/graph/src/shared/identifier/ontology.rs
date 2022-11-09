@@ -33,6 +33,7 @@ impl ToSchema for OntologyTypeVersion {
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct OntologyTypeEditionId {
     #[schema(value_type = String)]
     base_id: BaseUri,
