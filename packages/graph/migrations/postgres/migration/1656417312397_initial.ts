@@ -332,6 +332,11 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   pgm.createTable(
     "latest_entities",
     {
+      owned_by_id: {
+        type: "UUID",
+        notNull: true,
+        references: "accounts",
+      },
       entity_uuid: {
         type: "UUID",
         references: "entity_uuids",
@@ -351,6 +356,26 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         type: "JSONB",
         notNull: true,
       },
+      left_owned_by_id: {
+        type: "UUID",
+        notNull: false,
+        references: "accounts",
+      },
+      left_entity_uuid: {
+        type: "UUID",
+        notNull: false,
+        references: "entity_uuids",
+      },
+      right_owned_by_id: {
+        type: "UUID",
+        notNull: false,
+        references: "accounts",
+      },
+      right_entity_uuid: {
+        type: "UUID",
+        notNull: false,
+        references: "entity_uuids",
+      },
       left_order: {
         // TODO: this is where we could do fractional indexing
         //  https://app.asana.com/0/1200211978612931/1202085856561975/f
@@ -362,21 +387,6 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         //  https://app.asana.com/0/1200211978612931/1202085856561975/f
         type: "integer",
         notNull: false,
-      },
-      left_entity_uuid: {
-        type: "UUID",
-        notNull: false,
-        references: "entity_uuids",
-      },
-      right_entity_uuid: {
-        type: "UUID",
-        notNull: false,
-        references: "entity_uuids",
-      },
-      owned_by_id: {
-        type: "UUID",
-        notNull: true,
-        references: "accounts",
       },
       created_by_id: {
         type: "UUID",
@@ -399,15 +409,22 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   });
 
   pgm.addConstraint("latest_entities", "latest_entities_relation_constraint", {
-    check: `(left_entity_uuid IS NULL     AND right_entity_uuid IS NULL) 
-          OR left_entity_uuid IS NOT NULL AND right_entity_uuid IS NOT NULL`,
+    check: `(
+      left_entity_uuid IS NULL AND left_owned_by_id IS NULL
+        AND right_entity_uuid IS NULL AND right_owned_by_id IS NULL
+    ) 
+    OR (
+      left_entity_uuid IS NOT NULL AND left_owned_by_id IS NOT NULL
+       AND right_entity_uuid IS NOT NULL AND right_owned_by_id IS NOT NULL
+    )`,
   });
 
   pgm.addConstraint(
     "latest_entities",
     "latest_entities_relation_order_constraint",
     {
-      check: `(left_entity_uuid IS NOT NULL AND right_entity_uuid IS NOT NULL)
+      // Because of the "entities_relation_constraint", we can check any one of the required link columns
+      check: `(left_entity_uuid IS NOT NULL)
             OR (left_order IS NULL AND right_order IS NULL)`,
     },
   );
@@ -415,6 +432,11 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   pgm.createTable(
     "entity_histories",
     {
+      owned_by_id: {
+        type: "UUID",
+        notNull: true,
+        references: "accounts",
+      },
       entity_uuid: {
         type: "UUID",
         references: "entity_uuids",
@@ -434,6 +456,26 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         type: "JSONB",
         notNull: true,
       },
+      left_owned_by_id: {
+        type: "UUID",
+        notNull: false,
+        references: "accounts",
+      },
+      left_entity_uuid: {
+        type: "UUID",
+        notNull: false,
+        references: "entity_uuids",
+      },
+      right_owned_by_id: {
+        type: "UUID",
+        notNull: false,
+        references: "accounts",
+      },
+      right_entity_uuid: {
+        type: "UUID",
+        notNull: false,
+        references: "entity_uuids",
+      },
       left_order: {
         // TODO: this is where we could do fractional indexing
         //  https://app.asana.com/0/1200211978612931/1202085856561975/f
@@ -446,26 +488,11 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         type: "integer",
         notNull: false,
       },
-      left_entity_uuid: {
-        type: "UUID",
-        notNull: false,
-        references: "entity_uuids",
-      },
-      right_entity_uuid: {
-        type: "UUID",
-        notNull: false,
-        references: "entity_uuids",
-      },
       archived: {
         // We may be able to reclaim some space here by using nullability.
         type: "boolean",
         notNull: true,
         default: "FALSE",
-      },
-      owned_by_id: {
-        type: "UUID",
-        notNull: true,
-        references: "accounts",
       },
       created_by_id: {
         type: "UUID",
@@ -490,8 +517,24 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
     "entity_histories",
     "entity_histories_relation_constraint",
     {
-      check: `(left_entity_uuid IS NULL     AND right_entity_uuid IS NULL) 
-            OR left_entity_uuid IS NOT NULL AND right_entity_uuid IS NOT NULL`,
+      check: `(
+      left_entity_uuid IS NULL AND left_owned_by_id IS NULL
+        AND right_entity_uuid IS NULL AND right_owned_by_id IS NULL
+    ) 
+    OR (
+      left_entity_uuid IS NOT NULL AND left_owned_by_id IS NOT NULL
+       AND right_entity_uuid IS NOT NULL AND right_owned_by_id IS NOT NULL
+    )`,
+    },
+  );
+
+  pgm.addConstraint(
+    "entity_histories",
+    "entities_histories_relation_order_constraint",
+    {
+      // Because of the "entities_histories_relation_constraint", we can check any one of the required link columns
+      check: `(left_entity_uuid IS NOT NULL)
+            OR (left_order IS NULL AND right_order IS NULL)`,
     },
   );
 
@@ -501,25 +544,27 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
     "entities",
     {
       columns: [
+        "owned_by_id",
         "entity_uuid",
         "version",
         "latest_version",
         "entity_type_version_id",
         "properties",
+        "left_owned_by_id",
+        "left_entity_uuid",
+        "right_owned_by_id",
+        "right_entity_uuid",
         "left_order",
         "right_order",
-        "left_entity_uuid",
-        "right_entity_uuid",
         "archived",
-        "owned_by_id",
         "created_by_id",
         "updated_by_id",
       ],
     },
     `
-    SELECT entity_uuid, version, TRUE as latest_version, entity_type_version_id, properties, left_order, right_order, left_entity_uuid, right_entity_uuid, FALSE AS archived, owned_by_id, created_by_id, updated_by_id FROM latest_entities
+    SELECT owned_by_id, entity_uuid, version, TRUE as latest_version, entity_type_version_id, properties, left_owned_by_id, left_entity_uuid, right_owned_by_id, right_entity_uuid, left_order, right_order, FALSE AS archived, created_by_id, updated_by_id FROM latest_entities
     UNION ALL
-    SELECT entity_uuid, version, FALSE as latest_version, entity_type_version_id, properties, left_order, right_order, left_entity_uuid, right_entity_uuid, archived, owned_by_id, created_by_id, updated_by_id FROM entity_histories`,
+    SELECT owned_by_id, entity_uuid, version, FALSE as latest_version, entity_type_version_id, properties, left_owned_by_id, left_entity_uuid, right_owned_by_id, right_entity_uuid, left_order, right_order, archived, created_by_id, updated_by_id FROM entity_histories`,
   );
 }
 
