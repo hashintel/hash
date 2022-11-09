@@ -6,8 +6,9 @@ import {
   FontAwesomeIcon,
   IconButton,
 } from "@hashintel/hash-design-system";
-import { Box, Paper, Stack } from "@mui/material";
-import { useMemo, useState } from "react";
+import { Box, Container, Paper, Stack } from "@mui/material";
+import { FunctionComponent, useCallback, useMemo, useState } from "react";
+import { extractBaseUri } from "@blockprotocol/type-system-web";
 import { GlideGrid } from "../../../../../components/GlideGlid/glide-grid";
 import { GlideGridOverlayPortal } from "../../../../../components/GlideGlid/glide-grid-overlay-portal";
 import {
@@ -16,23 +17,19 @@ import {
   TableSort,
 } from "../../../../../components/GlideGlid/utils/sorting";
 import { useDrawHeader } from "../../../../../components/GlideGlid/utils/use-draw-header";
-import { renderDataTypeCell } from "../../../../[account-slug]/entities/[entity-id].page/entity-editor/properties-section/property-table/cells/data-type-cell";
-import { EntitySection } from "../../../../[account-slug]/entities/[entity-id].page/entity-editor/shared/entity-section";
-import { WhiteChip } from "../../../../[account-slug]/entities/[entity-id].page/entity-editor/shared/white-chip";
 import { useEntityTypeEntities } from "../../../../../components/hooks/useEntityTypeEntities";
 import { useEntityType } from "../use-entity-type";
-import { useRemotePropertyTypes } from "../use-property-types";
+import {
+  usePropertyTypes,
+  usePropertyTypesContextValue,
+} from "../use-property-types";
 import { NextPageWithLayout } from "../../../../../shared/layout";
-import { FRONTEND_URL } from "../../../../../lib/config";
-import { extractBaseUri } from "@blockprotocol/type-system-web";
 import { mustBeVersionedUri } from "../util";
 import { parseEntityIdentifier } from "../../../../../lib/entities";
 import { Entity } from "../../../../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
 import { useAccounts } from "../../../../../components/hooks/useAccounts";
-
-const extractNamespace = (baseUri: string) => {
-  return baseUri.split(`${FRONTEND_URL}/`)[1]?.split(`/types/`)[0];
-};
+import { SectionWrapper } from "../../../shared/section-wrapper";
+import { WhiteChip } from "../../../shared/white-chip";
 
 export const generateEntityLabel = (
   entity: Entity,
@@ -106,7 +103,15 @@ export const generateEntityLabel = (
 
 const entityTypeId = "http://localhost:3000/@example/types/entity-type/user/";
 
-const Page: NextPageWithLayout = () => {
+export type EntitiesTabProps = {
+  entities: Entity[];
+  entityType: EntityType;
+};
+
+export const EntitiesTab: FunctionComponent<EntitiesTabProps> = ({
+  entities,
+  entityType,
+}) => {
   const [showSearch, setShowSearch] = useState(false);
 
   const [tableSort, setTableSort] = useState<TableSort<string>>({
@@ -116,21 +121,18 @@ const Page: NextPageWithLayout = () => {
 
   const { accounts } = useAccounts();
 
-  const propertyTypes = useRemotePropertyTypes();
+  const propertyTypes = usePropertyTypes();
 
-  const [remoteEntityType] = useEntityType(entityTypeId);
-
-  const { entities } = useEntityTypeEntities(
-    "http://localhost:3000/@example/types/entity-type/user/v/1",
+  const generateNameSpace = useCallback(
+    (ownedById: string) =>
+      accounts?.find(({ entityId }) => entityId === ownedById)?.shortname,
+    [accounts],
   );
-
-  const generateNameSpace = (ownedById: string) =>
-    accounts?.find(({ entityId }) => entityId === ownedById)?.shortname;
 
   const [columns, rows] = useMemo(() => {
     const propertyColumns =
-      propertyTypes && remoteEntityType
-        ? Object.keys(remoteEntityType.properties).reduce<GridColumn[]>(
+      propertyTypes && entityType
+        ? Object.keys(entityType.properties).reduce<GridColumn[]>(
             (columns, propertyId) => {
               const propertyType = Object.values(propertyTypes).find(
                 (prop) =>
@@ -174,31 +176,33 @@ const Page: NextPageWithLayout = () => {
     ];
 
     const rows: { [k: string]: string }[] =
-      entities?.map((entity) => {
-        const entityLabel = generateEntityLabel(entity, propertyTypes);
-        const namespace = generateNameSpace(entity.ownedById);
+      (propertyTypes &&
+        entities?.map((entity) => {
+          const entityLabel = generateEntityLabel(entity, propertyTypes);
+          const namespace = generateNameSpace(entity.ownedById);
 
-        return {
-          entity: entityLabel,
-          namespace: namespace ? `@${namespace}` : "",
-          additionalTypes: "",
-          ...propertyColumns.reduce((fields, column) => {
-            if (column.id) {
-              const propertyValue = entity.properties[column.id];
+          return {
+            entity: entityLabel,
+            namespace: namespace ? `@${namespace}` : "",
+            additionalTypes: "",
+            ...propertyColumns.reduce((fields, column) => {
+              if (column.id) {
+                const propertyValue = entity.properties[column.id];
 
-              const value = Array.isArray(propertyValue)
-                ? propertyValue.join(", ")
-                : propertyValue;
-              return { ...fields, [column.id]: value };
-            }
+                const value = Array.isArray(propertyValue)
+                  ? propertyValue.join(", ")
+                  : propertyValue;
+                return { ...fields, [column.id]: value };
+              }
 
-            return fields;
-          }, {}),
-        };
-      }) ?? [];
+              return fields;
+            }, {}),
+          };
+        })) ??
+      [];
 
     return [columns, rows];
-  }, [remoteEntityType, propertyTypes, entities]);
+  }, [entityType, propertyTypes, entities, generateNameSpace]);
 
   const drawHeader = useDrawHeader(tableSort, columns);
 
@@ -210,13 +214,14 @@ const Page: NextPageWithLayout = () => {
 
   const sortedRows = rows && sortRowData(rows, tableSort);
 
-  if (!entities || !propertyTypes || !remoteEntityType) {
-    return null;
-  }
+  console.log(propertyTypes);
+  // if (!entities || !propertyTypes || !entityType) {
+  //   return null;
+  // }
 
   return (
-    <Box m={5}>
-      <EntitySection
+    <Container>
+      <SectionWrapper
         title="Entities"
         titleTooltip="This table lists all entities with the ‘Company’ type that are accessible to you"
         titleStartContent={
@@ -268,13 +273,11 @@ const Page: NextPageWithLayout = () => {
                 data: "test",
               };
             }}
-            customRenderers={[renderDataTypeCell]}
+            customRenderers={[]}
           />
         </Paper>
-      </EntitySection>
+      </SectionWrapper>
       <GlideGridOverlayPortal />
-    </Box>
+    </Container>
   );
 };
-
-export default Page;

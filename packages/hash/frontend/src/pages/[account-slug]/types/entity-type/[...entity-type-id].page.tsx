@@ -7,34 +7,43 @@ import {
 } from "@blockprotocol/type-system-web";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
-import { Box, Container, Typography } from "@mui/material";
+import { Box, Container, Stack, Tab, Tabs, Typography } from "@mui/material";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
-import { FRONTEND_URL } from "../../../../../lib/config";
-import {
-  getPlainLayout,
-  NextPageWithLayout,
-} from "../../../../../shared/layout";
-import { TopContextBar } from "../../../../shared/top-context-bar";
-import { EditBar } from "../edit-bar";
+import { FRONTEND_URL } from "../../../../lib/config";
+import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
+import { TopContextBar } from "../../../shared/top-context-bar";
+import { EditBar } from "./edit-bar";
 import {
   EntityTypeEditorForm,
   EntityTypeEditorPropertyData,
-} from "../form-types";
-import { HashOntologyIcon } from "../../../shared/hash-ontology-icon";
-import { OntologyChip } from "../../../shared/ontology-chip";
-import { PropertyListCard } from "../property-list-card";
-import { useEntityType } from "../use-entity-type";
+} from "./form-types";
+import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
+import { OntologyChip } from "../../shared/ontology-chip";
+import { PropertyListCard } from "./property-list-card";
+import { useEntityType } from "./use-entity-type";
 import {
   PropertyTypesContext,
   usePropertyTypesContextValue,
-} from "../use-property-types";
-import { useRouteNamespace } from "../use-route-namespace";
-import { mustBeVersionedUri } from "../util";
+} from "./use-property-types";
+import { useRouteNamespace } from "./use-route-namespace";
+import { mustBeVersionedUri } from "./util";
+import { EntitiesTab } from "./tabs/entities-tab";
+import { DefinitionTab } from "./tabs/definition-tab";
+import { useEntityTypeEntities } from "../../../../components/hooks/useEntityTypeEntities";
 
-const getBaseUri = (path: string) => {
+// const getBaseUri = (path: string) => {
+//   const url = new URL(path, FRONTEND_URL);
+
+//   return `${FRONTEND_URL}${url.pathname}/`;
+// };
+
+const getBaseUri = (entityTypeId: string, namespace: string) =>
+  `${FRONTEND_URL}/${namespace}/types/entity-type/${entityTypeId}/`;
+
+const getActiveTabFromUri = (path: string) => {
   const url = new URL(path, FRONTEND_URL);
 
   return `${FRONTEND_URL}${url.pathname}/`;
@@ -77,10 +86,14 @@ const getSchemaFromEditorForm = (
 // @todo loading state
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
+
   // @todo how to handle remote types
   const isDraft = !!router.query.draft;
-  const baseEntityTypeUri = isDraft ? null : getBaseUri(router.asPath);
   const namespace = useRouteNamespace();
+  const entityTypeId = router.query["entity-type-id"][0];
+  const baseEntityTypeUri = isDraft
+    ? null
+    : getBaseUri(entityTypeId, router.query["account-slug"]);
 
   const draftEntityType = useMemo(() => {
     if (router.query.draft) {
@@ -124,6 +137,50 @@ const Page: NextPageWithLayout = () => {
   );
 
   const entityType = remoteEntityType ?? draftEntityType;
+
+  const { entities } = useEntityTypeEntities(entityType?.$id ?? "");
+
+  const NAVIGATION_TABS = useMemo(
+    () => [
+      {
+        id: "definition",
+        label: "Definition",
+        path: "",
+        numberIndicator: 3,
+      },
+      {
+        id: "entities",
+        label: "Entities",
+        path: "entities",
+        numberIndicator: entities?.length,
+      },
+      {
+        id: "views",
+        label: "Views",
+        path: "",
+      },
+      {
+        id: "dependents",
+        label: "Dependents",
+        path: "",
+      },
+      {
+        id: "activity",
+        label: "Activity",
+        path: "",
+      },
+    ],
+    [entities],
+  );
+
+  const [activeTab, setActiveTab] = useState(() => {
+    const activePath = router.query["entity-type-id"]?.[1] ?? "";
+    const tabIndex = NAVIGATION_TABS.findIndex(
+      (tab) => tab.path === activePath,
+    );
+
+    return tabIndex >= 0 ? tabIndex : 0;
+  });
 
   const propertyTypes = usePropertyTypesContextValue();
 
@@ -242,7 +299,7 @@ const Page: NextPageWithLayout = () => {
                         fontWeight="bold"
                         color={(theme) => theme.palette.blue[70]}
                       >
-                        {router.query["entity-type-id"]}
+                        {entityTypeId}
                       </Typography>
                     </>
                   }
@@ -259,26 +316,95 @@ const Page: NextPageWithLayout = () => {
                   />
                   {entityType.title}
                 </Typography>
+
+                <Tabs
+                  value={activeTab}
+                  onChange={(_, index) => {
+                    void router.push(
+                      `/@${namespace?.shortname}/types/entity-type/${entityTypeId}/${NAVIGATION_TABS[index]?.path}`,
+                      undefined,
+                      { shallow: true },
+                    );
+                    setActiveTab(index);
+                  }}
+                  TabIndicatorProps={{
+                    sx: ({ palette }) => ({
+                      height: 3,
+                      backgroundColor: palette.blue[60],
+                      minHeight: 0,
+                    }),
+                  }}
+                >
+                  {NAVIGATION_TABS.map((tab, index) => (
+                    <Tab
+                      label={
+                        <Stack direction="row">
+                          <Typography
+                            variant="smallTextLabels"
+                            fontWeight={500}
+                            sx={{
+                              paddingY: 0.25,
+                            }}
+                          >
+                            {tab.label}
+                          </Typography>
+                          {tab.numberIndicator ? (
+                            <Box
+                              sx={({ palette }) => ({
+                                marginLeft: 1,
+                                paddingX: 1,
+                                paddingY: 0.25,
+                                borderRadius: "50%",
+                                background:
+                                  activeTab === index
+                                    ? palette.blue[20]
+                                    : palette.gray[20],
+                              })}
+                            >
+                              <Typography
+                                variant="microText"
+                                sx={({ palette }) => ({
+                                  fontWeight: 500,
+                                  color:
+                                    activeTab === index
+                                      ? palette.primary.main
+                                      : palette.gray[80],
+                                })}
+                              >
+                                {tab.numberIndicator}
+                              </Typography>
+                            </Box>
+                          ) : null}
+                        </Stack>
+                      }
+                      id={tab.id}
+                      key={tab.id}
+                      sx={{
+                        marginRight: 3,
+                        paddingY: "11px",
+                        paddingX: 0.5,
+                        minWidth: 0,
+                        minHeight: 0,
+                      }}
+                    />
+                  ))}
+                </Tabs>
               </Container>
             </Box>
           </Box>
           <Box py={5}>
-            <Container>
-              <Typography variant="h5" mb={1.25}>
-                Properties of{" "}
-                <Box component="span" sx={{ fontWeight: "bold" }}>
-                  {entityType.title}
-                </Box>
-              </Typography>
-              <PropertyListCard />
-            </Container>
+            {activeTab === 0 ? (
+              <DefinitionTab entityTypeTitle={entityType.title} />
+            ) : null}
+            {activeTab === 1 ? (
+              <EntitiesTab entities={entities} entityType={entityType} />
+            ) : null}
           </Box>
         </Box>
       </FormProvider>
     </PropertyTypesContext.Provider>
   );
 };
-
 Page.getLayout = getPlainLayout;
 
 export default Page;
