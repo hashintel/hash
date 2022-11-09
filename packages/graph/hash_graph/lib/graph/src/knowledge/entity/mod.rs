@@ -2,7 +2,6 @@ mod query;
 
 use std::{collections::HashMap, fmt};
 
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tokio_postgres::types::{FromSql, ToSql};
 use type_system::uri::{BaseUri, VersionedUri};
@@ -10,10 +9,25 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 pub use self::query::{EntityQueryPath, EntityQueryPathVisitor};
-use crate::provenance::{CreatedById, OwnedById, UpdatedById};
+use crate::{
+    identifier::Timestamp,
+    provenance::{CreatedById, OwnedById, UpdatedById},
+};
 
 #[derive(
-    Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema, FromSql, ToSql,
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    Serialize,
+    Deserialize,
+    ToSchema,
+    FromSql,
+    ToSql,
 )]
 #[repr(transparent)]
 #[postgres(transparent)]
@@ -79,17 +93,13 @@ impl Entity {
 pub struct PersistedEntityIdentifier {
     entity_uuid: EntityUuid,
     #[schema(value_type = String)]
-    version: DateTime<Utc>,
+    version: Timestamp,
     owned_by_id: OwnedById,
 }
 
 impl PersistedEntityIdentifier {
     #[must_use]
-    pub const fn new(
-        entity_uuid: EntityUuid,
-        version: DateTime<Utc>,
-        owned_by_id: OwnedById,
-    ) -> Self {
+    pub const fn new(entity_uuid: EntityUuid, version: Timestamp, owned_by_id: OwnedById) -> Self {
         Self {
             entity_uuid,
             version,
@@ -103,7 +113,7 @@ impl PersistedEntityIdentifier {
     }
 
     #[must_use]
-    pub const fn version(&self) -> DateTime<Utc> {
+    pub const fn version(&self) -> Timestamp {
         self.version
     }
 

@@ -6,7 +6,19 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 #[derive(
-    Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema, FromSql, ToSql,
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    Serialize,
+    Deserialize,
+    ToSchema,
+    FromSql,
+    ToSql,
 )]
 #[repr(transparent)]
 #[postgres(transparent)]
