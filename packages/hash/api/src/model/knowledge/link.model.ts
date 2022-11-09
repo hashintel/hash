@@ -142,15 +142,18 @@ export default class {
           ],
         },
       ],
-    });
-
-    /**
-     * @todo: stop filtering the destination entity once it can be done as part of the structural query as part of the "links are entities" work
-     * @see https://app.asana.com/0/1201095311341924/1203250001255255/f
-     */
-    const [linkModel] = linkModels.filter(
-      ({ targetEntityModel }) => targetEntityModel.entityId === targetEntityId,
+    }).then((queryResponseUserModels) =>
+      /**
+       * @todo: stop filtering the destination entity once it can be done as part of the structural query as part of the "links are entities" work
+       * @see https://app.asana.com/0/1201095311341924/1203250001255255/f
+       */
+      queryResponseUserModels.filter(
+        ({ targetEntityModel }) =>
+          targetEntityModel.entityId === targetEntityId,
+      ),
     );
+
+    const [linkModel] = linkModels;
 
     if (!linkModel) {
       throw new NotFoundError(
