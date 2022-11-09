@@ -627,8 +627,20 @@ mod tests {
                 Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
             ),
             Filter::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(Some(
+                    Box::new(EntityQueryPath::OwnedById),
+                )))),
+                Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
+            ),
+            Filter::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::RightEntity(Some(
                     Box::new(EntityQueryPath::Id),
+                )))),
+                Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
+            ),
+            Filter::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::RightEntity(Some(
+                    Box::new(EntityQueryPath::OwnedById),
                 )))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
             ),
@@ -638,15 +650,16 @@ mod tests {
         test_compilation(
             &compiler,
             r#"
-             SELECT *
-             FROM "entities"
-             INNER JOIN "entities" AS "entities_0_0_0"
-               ON "entities_0_0_0"."entity_id" = "entities"."left_entity_id"
-             INNER JOIN "entities" AS "entities_0_0_1"
-               ON "entities_0_0_1"."entity_id" = "entities"."right_entity_id"
-             WHERE ("entities_0_0_0"."entity_id" = $1) AND ("entities_0_0_1"."entity_id" = $2)
+            SELECT *
+            FROM "entities"
+            INNER JOIN "entities" AS "entities_0_0_0"
+              ON "entities_0_0_0"."entity_uuid" = "entities"."left_entity_uuid"
+            INNER JOIN "entities" AS "entities_0_0_1"
+              ON "entities_0_0_1"."entity_uuid" = "entities"."right_entity_uuid"
+            WHERE ("entities_0_0_0"."entity_uuid" = $1) AND ("entities_0_0_0"."owned_by_id" = $2)
+              AND ("entities_0_0_1"."entity_uuid" = $3) AND ("entities_0_0_1"."owned_by_id" = $4)
             "#,
-            &[&Uuid::nil(), &Uuid::nil()],
+            &[&Uuid::nil(), &Uuid::nil(), &Uuid::nil(), &Uuid::nil()],
         );
     }
 }
