@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 pub use self::query::{EntityQueryPath, EntityQueryPathVisitor};
 use crate::{
-    identifier::{knowledge::EntityEditionId},
+    identifier::knowledge::EntityEditionId,
     provenance::{CreatedById, UpdatedById},
 };
 
@@ -90,6 +90,7 @@ impl Entity {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct LinkEntityMetadata {
+    // TODO: update these to `EntityId`
     left_entity_uuid: EntityUuid,
     right_entity_uuid: EntityUuid,
     #[serde(default, skip_serializing_if = "Option::is_none")]

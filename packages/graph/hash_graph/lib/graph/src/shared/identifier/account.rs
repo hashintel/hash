@@ -29,6 +29,11 @@ impl AccountId {
     pub const fn new(uuid: Uuid) -> Self {
         Self(uuid)
     }
+
+    #[must_use]
+    pub const fn as_uuid(self) -> Uuid {
+        self.0
+    }
 }
 
 impl fmt::Display for AccountId {

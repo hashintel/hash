@@ -18,6 +18,7 @@ pub use self::{
     postgres::{AsClient, PostgresStore, PostgresStorePool},
 };
 use crate::{
+    identifier::knowledge::EntityId,
     knowledge::{Entity, EntityUuid, LinkEntityMetadata, PersistedEntity, PersistedEntityMetadata},
     ontology::{
         PersistedDataType, PersistedEntityType, PersistedOntologyMetadata, PersistedPropertyType,
@@ -388,7 +389,7 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Filter<'q
     /// - if the account referred to by `actor_id` does not exist
     async fn update_entity(
         &mut self,
-        entity_uuid: EntityUuid,
+        entity_id: EntityId,
         entity: Entity,
         entity_type_id: VersionedUri,
         actor_id: UpdatedById,
@@ -398,15 +399,14 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Filter<'q
     ///
     /// # Errors:
     ///
-    /// - if there isn't an [`Entity`] associated with the [`EntityUuid`] in the latest entities
+    /// - if there isn't an [`Entity`] associated with the [`EntityId`] in the latest entities
     /// table
     ///   - this could be because the [`Entity`] doesn't exist, or
     ///   - the [`Entity`] has already been archived
     /// - if the account referred to by `actor_id` does not exist
     async fn archive_entity(
         &mut self,
-        entity_uuid: EntityUuid,
-        owned_by_id: OwnedById,
+        entity_id: EntityId,
         actor_id: UpdatedById,
     ) -> Result<(), ArchivalError>;
 }

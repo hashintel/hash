@@ -4,7 +4,7 @@ use serde_json;
 use type_system::uri::VersionedUri;
 use utoipa::{openapi, ToSchema};
 
-use crate::knowledge::EntityUuid;
+use crate::identifier::knowledge::EntityId;
 
 pub mod account;
 pub mod knowledge;
@@ -15,9 +15,7 @@ pub type Timestamp = DateTime<Utc>;
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum GraphElementIdentifier {
     OntologyElementId(VersionedUri),
-    // TODO: owned_by_id and version are required to identify a specific instance of an entity
-    //  https://app.asana.com/0/1202805690238892/1203214689883091/f
-    KnowledgeGraphElementId(EntityUuid),
+    KnowledgeGraphElementId(EntityId),
 }
 
 impl Serialize for GraphElementIdentifier {

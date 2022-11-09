@@ -234,7 +234,7 @@ pub struct DependencyContext {
         DependencyMap<VersionedUri, PersistedPropertyType, OntologyQueryDepth>,
     pub referenced_entity_types:
         DependencyMap<VersionedUri, PersistedEntityType, OntologyQueryDepth>,
-    pub linked_entities: DependencyMap<EntityUuid, PersistedEntity, KnowledgeGraphQueryDepth>,
+    pub linked_entities: DependencyMap<EntityId, PersistedEntity, KnowledgeGraphQueryDepth>,
     pub graph_resolve_depths: GraphResolveDepths,
 }
 
@@ -303,7 +303,7 @@ impl DependencyContext {
             .chain(self.linked_entities.into_values().map(|entity| {
                 (
                     GraphElementIdentifier::KnowledgeGraphElementId(
-                        entity.metadata().identifier().base_id().entity_uuid(),
+                        entity.metadata().identifier().base_id(),
                     ),
                     Vertex::Entity(entity),
                 )
@@ -327,8 +327,7 @@ pub struct DependencyContextRef<'a> {
         &'a mut DependencyMap<VersionedUri, PersistedPropertyType, OntologyQueryDepth>,
     pub referenced_entity_types:
         &'a mut DependencyMap<VersionedUri, PersistedEntityType, OntologyQueryDepth>,
-    pub linked_entities:
-        &'a mut DependencyMap<EntityUuid, PersistedEntity, KnowledgeGraphQueryDepth>,
+    pub linked_entities: &'a mut DependencyMap<EntityId, PersistedEntity, KnowledgeGraphQueryDepth>,
     pub graph_resolve_depths: GraphResolveDepths,
 }
 
@@ -879,10 +878,9 @@ where
 
     async fn insert_entity(
         &self,
-        entity_uuid: EntityUuid,
+        entity_id: EntityId,
         entity: Entity,
         entity_type_id: VersionedUri,
-        owned_by_id: OwnedById,
         created_by_id: CreatedById,
         updated_by_id: UpdatedById,
         link_metadata: Option<LinkEntityMetadata>,
@@ -903,18 +901,19 @@ where
             .query_one(
                 r#"
                 INSERT INTO latest_entities (
-                    entity_uuid, version,
+                    entity_uuid, owned_by_id, version,
                     entity_type_version_id,
                     properties,
                     left_order, right_order,
                     left_entity_uuid, right_entity_uuid,
-                    owned_by_id, created_by_id, updated_by_id
+                    created_by_id, updated_by_id
                 )
-                VALUES ($1, clock_timestamp(), $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                VALUES ($1, $2, clock_timestamp(), $3, $4, $5, $6, $7, $8, $9, $10)
                 RETURNING version;
                 "#,
                 &[
-                    &entity_uuid,
+                    &entity_id.entity_uuid(),
+                    &entity_id.owned_by_id().as_account_id(),
                     &entity_type_version_id,
                     &value,
                     &link_metadata.as_ref().map(LinkEntityMetadata::left_order),
@@ -925,7 +924,6 @@ where
                     &link_metadata
                         .as_ref()
                         .map(LinkEntityMetadata::right_entity_uuid),
-                    &owned_by_id.as_account_id(),
                     &created_by_id.as_account_id(),
                     &updated_by_id.as_account_id(),
                 ],
@@ -936,7 +934,7 @@ where
             .get(0);
 
         Ok(PersistedEntityMetadata::new(
-            EntityEditionId::new(EntityId::new(owned_by_id, entity_uuid), version),
+            EntityEditionId::new(entity_id, version),
             entity_type_id,
             created_by_id,
             updated_by_id,
@@ -947,14 +945,7 @@ where
         ))
     }
 
-    // TODO: We should be querying with an `owned_by_id` as part of the entity identifier.
-    //   This is especially important for making these queries single-shard Citus queries when we
-    //   need that.
-    //   see: https://app.asana.com/0/1201095311341924/1203214689883091/f
-    async fn lock_latest_entity_for_update(
-        &self,
-        entity_uuid: EntityUuid,
-    ) -> Result<(), QueryError> {
+    async fn lock_latest_entity_for_update(&self, entity_id: EntityId) -> Result<(), QueryError> {
         // TODO - address potential serializability issue.
         //   We don't have a data race per se, but the transaction isolation level of postgres would
         //   make new entries of the `entities` table inaccessible to peer lock-waiters.
@@ -969,10 +960,13 @@ where
                 //   see: https://app.asana.com/0/0/1203284257408542/f
                 r#"
                 SELECT * FROM latest_entities
-                WHERE entity_uuid = $1
+                WHERE entity_uuid = $1 AND owned_by_id = $2
                 FOR UPDATE;
                 "#,
-                &[&entity_uuid],
+                &[
+                    &entity_id.entity_uuid(),
+                    &entity_id.owned_by_id().as_account_id(),
+                ],
             )
             .await
             .into_report()
@@ -981,13 +975,9 @@ where
         Ok(())
     }
 
-    // TODO: We should be querying with an `owned_by_id` as part of the entity identifier.
-    //   This is especially important for making these queries single-shard Citus queries when we
-    //   need that.
-    //   see: https://app.asana.com/0/1201095311341924/1203214689883091/f
     async fn move_latest_entity_to_histories(
         &self,
-        entity_uuid: EntityUuid,
+        entity_id: EntityId,
         historic_move: HistoricMove,
     ) -> Result<PersistedEntityMetadata, InsertionError> {
         let historic_entity = self
@@ -997,7 +987,7 @@ where
                 -- First we delete the _latest_ entity from the entities table.
                 WITH to_move_to_historic AS (
                     DELETE FROM latest_entities
-                    WHERE entity_uuid = $1
+                    WHERE entity_uuid = $1 AND owned_by_id = $2
                     RETURNING
                         entity_uuid, version,
                         entity_type_version_id,
@@ -1026,7 +1016,7 @@ where
                         left_order, right_order,
                         left_entity_uuid, right_entity_uuid,
                         owned_by_id, created_by_id, updated_by_id,
-                        $2::boolean
+                        $3::boolean
                     FROM to_move_to_historic
                     -- We only return metadata
                     RETURNING
@@ -1046,7 +1036,8 @@ where
                 INNER JOIN type_ids ON inserted_in_historic.entity_type_version_id = type_ids.version_id;
                 "#,
                 &[
-                    &entity_uuid,
+                    &entity_id.entity_uuid(),
+                    &entity_id.owned_by_id().as_account_id(),
                     &(historic_move == HistoricMove::ForArchival),
                 ],
             )
