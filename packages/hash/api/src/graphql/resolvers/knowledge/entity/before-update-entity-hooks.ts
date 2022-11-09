@@ -84,8 +84,8 @@ const userEntityHookCallback: BeforeUpdateEntityHookCallback = async ({
     updatedProperties[SYSTEM_TYPES.propertyType.email.baseUri];
 
   if (
-    currentEmails.sort().join().toLowerCase() !==
-    updatedEmails.sort().join().toLowerCase()
+    [...currentEmails].sort().join().toLowerCase() !==
+    [...updatedEmails].sort().join().toLowerCase()
   ) {
     await userModel.updateKratosIdentityTraits({
       emails: updatedEmails,
