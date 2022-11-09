@@ -3,10 +3,12 @@ import {
   CustomRenderer,
   GridCellKind,
 } from "@glideapps/glide-data-grid";
+import { capitalize } from "lodash";
 import {
   getCellHorizontalPadding,
   getYCenter,
 } from "../../../../../../../../components/GlideGlid/utils";
+import { drawTextWithIcon } from "../../../../../../../../components/GlideGlid/utils/draw-text-with-icon";
 import { isValueEmpty } from "../../is-value-empty";
 import { ValueCell } from "./value-cell/types";
 import { ValueCellEditor } from "./value-cell/value-cell-editor";
@@ -29,6 +31,17 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
       ctx.fillStyle = "#91A5BA";
       ctx.font = "italic 14px Inter";
       return ctx.fillText("No value", left, yCenter);
+    }
+
+    if (typeof value === "boolean") {
+      return drawTextWithIcon({
+        args,
+        text: capitalize(String(value)),
+        icon: value ? "bpCheck" : "bpCross",
+        left,
+        iconColor: "#91A5BA",
+        iconSize: 16,
+      });
     }
 
     ctx.fillText(String(value), left, yCenter);
