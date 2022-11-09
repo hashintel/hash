@@ -23,7 +23,7 @@ pub use self::{
     entity_type::{EntityTypeQueryPath, EntityTypeQueryPathVisitor},
     property_type::{PropertyTypeQueryPath, PropertyTypeQueryPathVisitor},
 };
-use crate::provenance::{CreatedById, OwnedById, RemovedById, UpdatedById};
+use crate::provenance::{OwnedById, ProvenanceMetadata};
 
 pub enum Selector {
     Asterisk,
@@ -241,30 +241,30 @@ impl PropertyTypeWithMetadata {
 #[serde(rename_all = "camelCase")]
 pub struct PersistedOntologyMetadata {
     identifier: PersistedOntologyIdentifier,
-    created_by_id: CreatedById,
-    updated_by_id: UpdatedById,
-    removed_by_id: Option<RemovedById>,
+    #[serde(rename = "provenance")]
+    provenance_metadata: ProvenanceMetadata,
 }
 
 impl PersistedOntologyMetadata {
     #[must_use]
     pub const fn new(
         identifier: PersistedOntologyIdentifier,
-        created_by_id: CreatedById,
-        updated_by_id: UpdatedById,
-        removed_by_id: Option<RemovedById>,
+        provenance_metadata: ProvenanceMetadata,
     ) -> Self {
         Self {
             identifier,
-            created_by_id,
-            updated_by_id,
-            removed_by_id,
+            provenance_metadata,
         }
     }
 
     #[must_use]
     pub const fn identifier(&self) -> &PersistedOntologyIdentifier {
         &self.identifier
+    }
+
+    #[must_use]
+    pub const fn provenance_metadata(&self) -> ProvenanceMetadata {
+        self.provenance_metadata
     }
 }
 

@@ -586,9 +586,10 @@ where
             version_id,
             PersistedOntologyMetadata::new(
                 PersistedOntologyIdentifier::new(uri, owned_by_id),
-                created_by_id,
-                UpdatedById::new(created_by_id.as_account_id()),
-                None,
+                ProvenanceMetadata::new(
+                    created_by_id,
+                    UpdatedById::new(created_by_id.as_account_id()),
+                ),
             ),
         ))
     }
@@ -664,9 +665,7 @@ where
             version_id,
             PersistedOntologyMetadata::new(
                 PersistedOntologyIdentifier::new(uri, owned_by_id),
-                created_by_id,
-                updated_by_id,
-                None,
+                ProvenanceMetadata::new(created_by_id, updated_by_id),
             ),
         ))
     }

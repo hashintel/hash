@@ -11,8 +11,7 @@ use crate::{
         DataTypeWithMetadata, EntityTypeWithMetadata, PersistedOntologyIdentifier,
         PersistedOntologyMetadata, PersistedOntologyType, PropertyTypeWithMetadata,
     },
-    provenance::{CreatedById, OwnedById, RemovedById, UpdatedById},
-    shared::identifier::account::AccountId,
+    provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         crud::Read,
         postgres::{
@@ -34,9 +33,7 @@ impl From<OntologyRecord<DataType>> for DataTypeWithMetadata {
             data_type.record,
             PersistedOntologyMetadata::new(
                 identifier,
-                data_type.created_by_id,
-                data_type.updated_by_id,
-                data_type.removed_by_id,
+                ProvenanceMetadata::new(data_type.created_by_id, data_type.updated_by_id),
             ),
         )
     }
@@ -53,9 +50,7 @@ impl From<OntologyRecord<PropertyType>> for PropertyTypeWithMetadata {
             property_type.record,
             PersistedOntologyMetadata::new(
                 identifier,
-                property_type.created_by_id,
-                property_type.updated_by_id,
-                property_type.removed_by_id,
+                ProvenanceMetadata::new(property_type.created_by_id, property_type.updated_by_id),
             ),
         )
     }
@@ -71,9 +66,7 @@ impl From<OntologyRecord<EntityType>> for EntityTypeWithMetadata {
             entity_type.record,
             PersistedOntologyMetadata::new(
                 identifier,
-                entity_type.created_by_id,
-                entity_type.updated_by_id,
-                entity_type.removed_by_id,
+                ProvenanceMetadata::new(entity_type.created_by_id, entity_type.updated_by_id),
             ),
         )
     }
@@ -113,16 +106,13 @@ where
                 let owned_by_id = OwnedById::new(row.get(2));
                 let created_by_id = CreatedById::new(row.get(3));
                 let updated_by_id = UpdatedById::new(row.get(4));
-                let removed_by_id = row.get::<_, Option<AccountId>>(5).map(RemovedById::new);
 
                 let identifier = PersistedOntologyIdentifier::new(versioned_uri, owned_by_id);
                 Ok(T::new(
                     record,
                     PersistedOntologyMetadata::new(
                         identifier,
-                        created_by_id,
-                        updated_by_id,
-                        removed_by_id,
+                        ProvenanceMetadata::new(created_by_id, updated_by_id),
                     ),
                 ))
             })
