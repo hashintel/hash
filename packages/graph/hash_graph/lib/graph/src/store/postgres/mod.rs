@@ -585,11 +585,12 @@ where
         Ok((
             version_id,
             OntologyElementMetadata::new(
-                PersistedOntologyIdentifier::new(uri, owned_by_id),
+                PersistedOntologyIdentifier::new(uri),
                 ProvenanceMetadata::new(
                     created_by_id,
                     UpdatedById::new(created_by_id.as_account_id()),
                 ),
+                owned_by_id,
             ),
         ))
     }
@@ -664,8 +665,9 @@ where
         Ok((
             version_id,
             OntologyElementMetadata::new(
-                PersistedOntologyIdentifier::new(uri, owned_by_id),
+                PersistedOntologyIdentifier::new(uri),
                 ProvenanceMetadata::new(created_by_id, updated_by_id),
+                owned_by_id,
             ),
         ))
     }

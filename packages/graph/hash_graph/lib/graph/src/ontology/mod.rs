@@ -69,25 +69,17 @@ impl<'de> Deserialize<'de> for Selector {
 pub struct PersistedOntologyIdentifier {
     #[schema(value_type = String)]
     uri: VersionedUri,
-    // TODO: owned_by_id is not required to identify an ontology element
-    //  https://app.asana.com/0/1202805690238892/1203214689883091/f
-    owned_by_id: OwnedById,
 }
 
 impl PersistedOntologyIdentifier {
     #[must_use]
-    pub const fn new(uri: VersionedUri, owned_by_id: OwnedById) -> Self {
-        Self { uri, owned_by_id }
+    pub const fn new(uri: VersionedUri) -> Self {
+        Self { uri }
     }
 
     #[must_use]
     pub const fn uri(&self) -> &VersionedUri {
         &self.uri
-    }
-
-    #[must_use]
-    pub const fn owned_by_id(&self) -> OwnedById {
-        self.owned_by_id
     }
 }
 
@@ -243,6 +235,7 @@ pub struct OntologyElementMetadata {
     identifier: PersistedOntologyIdentifier,
     #[serde(rename = "provenance")]
     provenance_metadata: ProvenanceMetadata,
+    owned_by_id: OwnedById,
 }
 
 impl OntologyElementMetadata {
@@ -250,10 +243,12 @@ impl OntologyElementMetadata {
     pub const fn new(
         identifier: PersistedOntologyIdentifier,
         provenance_metadata: ProvenanceMetadata,
+        owned_by_id: OwnedById,
     ) -> Self {
         Self {
             identifier,
             provenance_metadata,
+            owned_by_id,
         }
     }
 
@@ -265,6 +260,11 @@ impl OntologyElementMetadata {
     #[must_use]
     pub const fn provenance_metadata(&self) -> ProvenanceMetadata {
         self.provenance_metadata
+    }
+
+    #[must_use]
+    pub const fn owned_by_id(&self) -> OwnedById {
+        self.owned_by_id
     }
 }
 
