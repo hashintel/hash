@@ -59,10 +59,10 @@ where
     if let Ok(body) = std::str::from_utf8(&bytes) {
         // would be nice to use `let_guard`s here
         if let Some(status_code) = status_code {
-            if !(status_code.is_success()) {
-                tracing::error!("{} body = {:?}", direction, body);
-            } else {
+            if status_code.is_success() {
                 tracing::trace!("{} body = {:?}", direction, body);
+            } else {
+                tracing::error!("{} body = {:?}", direction, body);
             }
         } else {
             tracing::trace!("{} body = {:?}", direction, body);
