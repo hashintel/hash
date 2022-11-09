@@ -3,34 +3,17 @@
 //! The value can be of any type, currently only printable attachments and context are supported, in
 //! the near future any values will be supported through the use of hooks.
 //!
-//! ## Attachment
+//! The returned JSON returned is a list of all current sources with the following output:
 //!
-//! ```json5
+//! ```json
 //! {
-//!     "type": "attachment",
-//!     "value": "..."
-//! }
-//! ```
-//!
-//! ## Context
-//!
-//! ```json5
-//! {
-//!     "type": "context",
-//!     "value": "..."
-//! }
-//! ```
-//!
-//! ## Report
-//!
-//! ```json5
-//! {
-//!     "frames": [/* Attachment | Context */],
-//!     "sources": [/* Report */]
+//!     "context": "string value",
+//!     "attachments": ["all attachments leading up to this context"],
+//!     "sources": [] // recursive render using `frame.sources()`
 //! }
 //! ```
 
-use alloc::format;
+use alloc::{format, vec::Vec};
 
 use serde::{ser::SerializeMap, Serialize, Serializer};
 
@@ -104,7 +87,7 @@ impl<'a> Serialize for SerializeContext<'a> {
         } = self;
 
         let mut map = serializer.serialize_map(Some(3))?;
-        map.serialize_entry("value", &format!("{context}"))?;
+        map.serialize_entry("context", &format!("{context}"))?;
         map.serialize_entry("attachments", &SerializeAttachments(&attachments[..]))?;
         map.serialize_entry("sources", &SerializeSources(sources))?;
 
