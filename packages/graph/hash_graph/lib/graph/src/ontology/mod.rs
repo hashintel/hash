@@ -198,14 +198,14 @@ where
 pub type OntologyQueryDepth = u8;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
-pub struct PersistedDataType {
+pub struct DataTypeWithMetadata {
     #[schema(value_type = VAR_DATA_TYPE)]
     #[serde(serialize_with = "serialize_ontology_type")]
     inner: DataType,
     metadata: PersistedOntologyMetadata,
 }
 
-impl PersistedDataType {
+impl DataTypeWithMetadata {
     #[must_use]
     pub const fn inner(&self) -> &DataType {
         &self.inner
@@ -218,14 +218,14 @@ impl PersistedDataType {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
-pub struct PersistedPropertyType {
+pub struct PropertyTypeWithMetadata {
     #[schema(value_type = VAR_PROPERTY_TYPE)]
     #[serde(serialize_with = "serialize_ontology_type")]
     inner: PropertyType,
     metadata: PersistedOntologyMetadata,
 }
 
-impl PersistedPropertyType {
+impl PropertyTypeWithMetadata {
     #[must_use]
     pub const fn inner(&self) -> &PropertyType {
         &self.inner
@@ -269,14 +269,14 @@ impl PersistedOntologyMetadata {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
-pub struct PersistedEntityType {
+pub struct EntityTypeWithMetadata {
     #[schema(value_type = VAR_ENTITY_TYPE)]
     #[serde(serialize_with = "serialize_ontology_type")]
     inner: EntityType,
     metadata: PersistedOntologyMetadata,
 }
 
-impl PersistedEntityType {
+impl EntityTypeWithMetadata {
     #[must_use]
     pub const fn inner(&self) -> &EntityType {
         &self.inner
@@ -294,7 +294,7 @@ pub trait PersistedOntologyType {
     fn new(record: Self::Inner, metadata: PersistedOntologyMetadata) -> Self;
 }
 
-impl PersistedOntologyType for PersistedDataType {
+impl PersistedOntologyType for DataTypeWithMetadata {
     type Inner = DataType;
 
     fn new(record: Self::Inner, metadata: PersistedOntologyMetadata) -> Self {
@@ -305,7 +305,7 @@ impl PersistedOntologyType for PersistedDataType {
     }
 }
 
-impl PersistedOntologyType for PersistedPropertyType {
+impl PersistedOntologyType for PropertyTypeWithMetadata {
     type Inner = PropertyType;
 
     fn new(record: Self::Inner, metadata: PersistedOntologyMetadata) -> Self {
@@ -316,7 +316,7 @@ impl PersistedOntologyType for PersistedPropertyType {
     }
 }
 
-impl PersistedOntologyType for PersistedEntityType {
+impl PersistedOntologyType for EntityTypeWithMetadata {
     type Inner = EntityType;
 
     fn new(record: Self::Inner, metadata: PersistedOntologyMetadata) -> Self {

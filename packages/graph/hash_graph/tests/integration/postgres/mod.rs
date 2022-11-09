@@ -14,8 +14,8 @@ use graph::{
         PersistedEntityMetadata,
     },
     ontology::{
-        EntityTypeQueryPath, PersistedDataType, PersistedEntityType, PersistedOntologyMetadata,
-        PersistedPropertyType,
+        DataTypeWithMetadata, EntityTypeQueryPath, EntityTypeWithMetadata,
+        PersistedOntologyMetadata, PropertyTypeWithMetadata,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
     shared::identifier::{account::AccountId, GraphElementIdentifier},
@@ -151,7 +151,7 @@ impl DatabaseApi<'_> {
     pub async fn get_data_type(
         &mut self,
         uri: &VersionedUri,
-    ) -> Result<PersistedDataType, QueryError> {
+    ) -> Result<DataTypeWithMetadata, QueryError> {
         let vertex = self
             .store
             .get_data_type(&StructuralQuery {
@@ -164,7 +164,7 @@ impl DatabaseApi<'_> {
             .expect("no data type found");
 
         match vertex {
-            Vertex::DataType(persisted_data_type) => Ok(persisted_data_type),
+            Vertex::DataType(data_type_with_metadata) => Ok(data_type_with_metadata),
             _ => unreachable!(),
         }
     }
@@ -194,7 +194,7 @@ impl DatabaseApi<'_> {
     pub async fn get_property_type(
         &mut self,
         uri: &VersionedUri,
-    ) -> Result<PersistedPropertyType, QueryError> {
+    ) -> Result<PropertyTypeWithMetadata, QueryError> {
         let vertex = self
             .store
             .get_property_type(&StructuralQuery {
@@ -207,7 +207,7 @@ impl DatabaseApi<'_> {
             .expect("no property type found");
 
         match vertex {
-            Vertex::PropertyType(persisted_property_type) => Ok(persisted_property_type),
+            Vertex::PropertyType(property_type_with_metadata) => Ok(property_type_with_metadata),
             _ => unreachable!(),
         }
     }
@@ -237,7 +237,7 @@ impl DatabaseApi<'_> {
     pub async fn get_entity_type(
         &mut self,
         uri: &VersionedUri,
-    ) -> Result<PersistedEntityType, QueryError> {
+    ) -> Result<EntityTypeWithMetadata, QueryError> {
         let vertex = self
             .store
             .get_entity_type(&StructuralQuery {

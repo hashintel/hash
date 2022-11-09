@@ -19,7 +19,7 @@ use crate::{
     api::rest::{read_from_store, report_to_status_code},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, PersistedDataType, PersistedOntologyIdentifier,
+        patch_id_and_parse, DataTypeWithMetadata, PersistedOntologyIdentifier,
         PersistedOntologyMetadata,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
@@ -49,7 +49,7 @@ use crate::{
             UpdatedById,
             PersistedOntologyIdentifier,
             PersistedOntologyMetadata,
-            PersistedDataType,
+            DataTypeWithMetadata,
             DataTypeStructuralQuery,
             GraphElementIdentifier,
             Vertex,
@@ -197,14 +197,14 @@ async fn get_data_types_by_query<P: StorePool + Send>(
     path = "/data-types",
     tag = "DataType",
     responses(
-        (status = 200, content_type = "application/json", description = "List of all data types at their latest versions", body = [PersistedDataType]),
+        (status = 200, content_type = "application/json", description = "List of all data types at their latest versions", body = [DataTypeWithMetadata]),
 
         (status = 500, description = "Store error occurred"),
     )
 )]
 async fn get_latest_data_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-) -> Result<Json<Vec<PersistedDataType>>, StatusCode> {
+) -> Result<Json<Vec<DataTypeWithMetadata>>, StatusCode> {
     read_from_store(pool.as_ref(), &Filter::<DataType>::for_latest_version())
         .await
         .map(Json)
@@ -215,7 +215,7 @@ async fn get_latest_data_types<P: StorePool + Send>(
     path = "/data-types/{uri}",
     tag = "DataType",
     responses(
-        (status = 200, content_type = "application/json", description = "The schema of the requested data type", body = PersistedDataType),
+        (status = 200, content_type = "application/json", description = "The schema of the requested data type", body = DataTypeWithMetadata),
         (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
         (status = 404, description = "Data type was not found"),
@@ -228,7 +228,7 @@ async fn get_latest_data_types<P: StorePool + Send>(
 async fn get_data_type<P: StorePool + Send>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<PersistedDataType>, StatusCode> {
+) -> Result<Json<DataTypeWithMetadata>, StatusCode> {
     read_from_store(
         pool.as_ref(),
         &Filter::<DataType>::for_versioned_uri(&uri.0),

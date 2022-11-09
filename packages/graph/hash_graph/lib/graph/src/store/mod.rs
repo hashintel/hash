@@ -21,7 +21,8 @@ use crate::{
     identifier::knowledge::EntityId,
     knowledge::{Entity, EntityUuid, LinkEntityMetadata, PersistedEntity, PersistedEntityMetadata},
     ontology::{
-        PersistedDataType, PersistedEntityType, PersistedOntologyMetadata, PersistedPropertyType,
+        DataTypeWithMetadata, EntityTypeWithMetadata, PersistedOntologyMetadata,
+        PropertyTypeWithMetadata,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
     shared::identifier::account::AccountId,
@@ -196,7 +197,7 @@ pub trait AccountStore {
 /// Describes the API of a store implementation for [`DataType`]s.
 #[async_trait]
 pub trait DataTypeStore:
-    for<'q> crud::Read<PersistedDataType, Query<'q> = Filter<'q, DataType>>
+    for<'q> crud::Read<DataTypeWithMetadata, Query<'q> = Filter<'q, DataType>>
 {
     /// Creates a new [`DataType`].
     ///
@@ -238,7 +239,7 @@ pub trait DataTypeStore:
 /// Describes the API of a store implementation for [`PropertyType`]s.
 #[async_trait]
 pub trait PropertyTypeStore:
-    for<'q> crud::Read<PersistedPropertyType, Query<'q> = Filter<'q, PropertyType>>
+    for<'q> crud::Read<PropertyTypeWithMetadata, Query<'q> = Filter<'q, PropertyType>>
 {
     /// Creates a new [`PropertyType`].
     ///
@@ -280,7 +281,7 @@ pub trait PropertyTypeStore:
 /// Describes the API of a store implementation for [`EntityType`]s.
 #[async_trait]
 pub trait EntityTypeStore:
-    for<'q> crud::Read<PersistedEntityType, Query<'q> = Filter<'q, EntityType>>
+    for<'q> crud::Read<EntityTypeWithMetadata, Query<'q> = Filter<'q, EntityType>>
 {
     /// Creates a new [`EntityType`].
     ///

@@ -18,7 +18,7 @@ use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, PersistedEntityType, PersistedOntologyIdentifier,
+        patch_id_and_parse, EntityTypeWithMetadata, PersistedOntologyIdentifier,
         PersistedOntologyMetadata,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
@@ -52,7 +52,7 @@ use crate::{
             UpdatedById,
             PersistedOntologyIdentifier,
             PersistedOntologyMetadata,
-            PersistedEntityType,
+            EntityTypeWithMetadata,
             EntityTypeStructuralQuery,
             GraphElementIdentifier,
             Vertex,
@@ -203,14 +203,14 @@ async fn get_entity_types_by_query<P: StorePool + Send>(
     path = "/entity-types",
     tag = "EntityType",
     responses(
-        (status = 200, content_type = "application/json", description = "List of all entity types at their latest versions", body = [PersistedEntityType]),
+        (status = 200, content_type = "application/json", description = "List of all entity types at their latest versions", body = [EntityTypeWithMetadata]),
 
         (status = 500, description = "Store error occurred"),
     )
 )]
 async fn get_latest_entity_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-) -> Result<Json<Vec<PersistedEntityType>>, StatusCode> {
+) -> Result<Json<Vec<EntityTypeWithMetadata>>, StatusCode> {
     read_from_store(pool.as_ref(), &Filter::<EntityType>::for_latest_version())
         .await
         .map(Json)
@@ -221,7 +221,7 @@ async fn get_latest_entity_types<P: StorePool + Send>(
     path = "/entity-types/{uri}",
     tag = "EntityType",
     responses(
-        (status = 200, content_type = "application/json", description = "The schema of the requested entity type", body = PersistedEntityType),
+        (status = 200, content_type = "application/json", description = "The schema of the requested entity type", body = EntityTypeWithMetadata),
         (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
         (status = 404, description = "Entity type was not found"),
@@ -234,7 +234,7 @@ async fn get_latest_entity_types<P: StorePool + Send>(
 async fn get_entity_type<P: StorePool + Send>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<PersistedEntityType>, StatusCode> {
+) -> Result<Json<EntityTypeWithMetadata>, StatusCode> {
     read_from_store(
         pool.as_ref(),
         &Filter::<EntityType>::for_versioned_uri(&uri.0),

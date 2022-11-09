@@ -20,7 +20,7 @@ use crate::{
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
         patch_id_and_parse, PersistedOntologyIdentifier, PersistedOntologyMetadata,
-        PersistedPropertyType,
+        PropertyTypeWithMetadata,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
     shared::identifier::GraphElementIdentifier,
@@ -51,7 +51,7 @@ use crate::{
             UpdatedById,
             PersistedOntologyIdentifier,
             PersistedOntologyMetadata,
-            PersistedPropertyType,
+            PropertyTypeWithMetadata,
             PropertyTypeStructuralQuery,
             GraphElementIdentifier,
             Vertex,
@@ -203,14 +203,14 @@ async fn get_property_types_by_query<P: StorePool + Send>(
     path = "/property-types",
     tag = "PropertyType",
     responses(
-        (status = 200, content_type = "application/json", description = "List of all property types at their latest versions", body = [PersistedPropertyType]),
+        (status = 200, content_type = "application/json", description = "List of all property types at their latest versions", body = [PropertyTypeWithMetadata]),
 
         (status = 500, description = "Store error occurred"),
     )
 )]
 async fn get_latest_property_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-) -> Result<Json<Vec<PersistedPropertyType>>, StatusCode> {
+) -> Result<Json<Vec<PropertyTypeWithMetadata>>, StatusCode> {
     read_from_store(pool.as_ref(), &Filter::<PropertyType>::for_latest_version())
         .await
         .map(Json)
@@ -221,7 +221,7 @@ async fn get_latest_property_types<P: StorePool + Send>(
     path = "/property-types/{uri}",
     tag = "PropertyType",
     responses(
-        (status = 200, content_type = "application/json", description = "The schema of the requested property type", body = PersistedPropertyType),
+        (status = 200, content_type = "application/json", description = "The schema of the requested property type", body = PropertyTypeWithMetadata),
         (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
         (status = 404, description = "Property type was not found"),
@@ -234,7 +234,7 @@ async fn get_latest_property_types<P: StorePool + Send>(
 async fn get_property_type<P: StorePool + Send>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<PersistedPropertyType>, StatusCode> {
+) -> Result<Json<PropertyTypeWithMetadata>, StatusCode> {
     read_from_store(
         pool.as_ref(),
         &Filter::<PropertyType>::for_versioned_uri(&uri.0),

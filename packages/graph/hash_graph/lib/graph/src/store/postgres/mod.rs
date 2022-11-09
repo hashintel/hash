@@ -32,8 +32,8 @@ use crate::{
         PersistedEntityMetadata,
     },
     ontology::{
-        OntologyQueryDepth, PersistedDataType, PersistedEntityType, PersistedOntologyIdentifier,
-        PersistedOntologyMetadata, PersistedPropertyType,
+        DataTypeWithMetadata, EntityTypeWithMetadata, OntologyQueryDepth,
+        PersistedOntologyIdentifier, PersistedOntologyMetadata, PropertyTypeWithMetadata,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
     shared::identifier::{account::AccountId, GraphElementIdentifier},
@@ -229,11 +229,12 @@ where
 
 pub struct DependencyContext {
     pub edges: Edges,
-    pub referenced_data_types: DependencyMap<VersionedUri, PersistedDataType, OntologyQueryDepth>,
+    pub referenced_data_types:
+        DependencyMap<VersionedUri, DataTypeWithMetadata, OntologyQueryDepth>,
     pub referenced_property_types:
-        DependencyMap<VersionedUri, PersistedPropertyType, OntologyQueryDepth>,
+        DependencyMap<VersionedUri, PropertyTypeWithMetadata, OntologyQueryDepth>,
     pub referenced_entity_types:
-        DependencyMap<VersionedUri, PersistedEntityType, OntologyQueryDepth>,
+        DependencyMap<VersionedUri, EntityTypeWithMetadata, OntologyQueryDepth>,
     pub linked_entities: DependencyMap<EntityId, PersistedEntity, KnowledgeGraphQueryDepth>,
     pub graph_resolve_depths: GraphResolveDepths,
 }
@@ -322,11 +323,11 @@ impl DependencyContext {
 pub struct DependencyContextRef<'a> {
     pub edges: &'a mut Edges,
     pub referenced_data_types:
-        &'a mut DependencyMap<VersionedUri, PersistedDataType, OntologyQueryDepth>,
+        &'a mut DependencyMap<VersionedUri, DataTypeWithMetadata, OntologyQueryDepth>,
     pub referenced_property_types:
-        &'a mut DependencyMap<VersionedUri, PersistedPropertyType, OntologyQueryDepth>,
+        &'a mut DependencyMap<VersionedUri, PropertyTypeWithMetadata, OntologyQueryDepth>,
     pub referenced_entity_types:
-        &'a mut DependencyMap<VersionedUri, PersistedEntityType, OntologyQueryDepth>,
+        &'a mut DependencyMap<VersionedUri, EntityTypeWithMetadata, OntologyQueryDepth>,
     pub linked_entities: &'a mut DependencyMap<EntityId, PersistedEntity, KnowledgeGraphQueryDepth>,
     pub graph_resolve_depths: GraphResolveDepths,
 }

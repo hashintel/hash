@@ -7,7 +7,7 @@ use tokio_postgres::GenericClient;
 use type_system::{uri::VersionedUri, DataType};
 
 use crate::{
-    ontology::{PersistedDataType, PersistedOntologyMetadata},
+    ontology::{DataTypeWithMetadata, PersistedOntologyMetadata},
     provenance::{CreatedById, OwnedById, UpdatedById},
     shared::identifier::GraphElementIdentifier,
     store::{
@@ -19,7 +19,7 @@ use crate::{
 };
 
 impl<C: AsClient> PostgresStore<C> {
-    /// Internal method to read a [`PersistedDataType`] into a [`DependencyContext`].
+    /// Internal method to read a [`DataTypeWithMetadata`] into a [`DependencyContext`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
     pub(crate) async fn get_data_type_as_dependency(
@@ -38,7 +38,7 @@ impl<C: AsClient> PostgresStore<C> {
                 data_type_id,
                 Some(graph_resolve_depths.data_type_resolve_depth),
                 || async {
-                    Ok(PersistedDataType::from(
+                    Ok(DataTypeWithMetadata::from(
                         self.read_versioned_ontology_type(data_type_id).await?,
                     ))
                 },
@@ -88,7 +88,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             graph_resolve_depths,
         } = *query;
 
-        let subgraphs = stream::iter(Read::<PersistedDataType>::read(self, filter).await?)
+        let subgraphs = stream::iter(Read::<DataTypeWithMetadata>::read(self, filter).await?)
             .then(|data_type| async move {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 

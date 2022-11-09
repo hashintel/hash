@@ -12,7 +12,9 @@ use utoipa::{openapi, ToSchema};
 
 use crate::{
     knowledge::{Entity, KnowledgeGraphQueryDepth, PersistedEntity},
-    ontology::{OntologyQueryDepth, PersistedDataType, PersistedEntityType, PersistedPropertyType},
+    ontology::{
+        DataTypeWithMetadata, EntityTypeWithMetadata, OntologyQueryDepth, PropertyTypeWithMetadata,
+    },
     shared::identifier::GraphElementIdentifier,
     store::query::{Filter, QueryRecord},
 };
@@ -21,9 +23,9 @@ use crate::{
 #[serde(rename_all = "camelCase")]
 #[serde(tag = "kind", content = "inner")]
 pub enum Vertex {
-    DataType(PersistedDataType),
-    PropertyType(PersistedPropertyType),
-    EntityType(PersistedEntityType),
+    DataType(DataTypeWithMetadata),
+    PropertyType(PropertyTypeWithMetadata),
+    EntityType(EntityTypeWithMetadata),
     Entity(PersistedEntity),
 }
 
@@ -36,9 +38,9 @@ impl ToSchema for Vertex {
             openapi::OneOfBuilder::new().discriminator(Some(openapi::Discriminator::new("kind")));
 
         for (kind, schema) in [
-            ("dataType", PersistedDataType::schema()),
-            ("propertyType", PersistedPropertyType::schema()),
-            ("entityType", PersistedEntityType::schema()),
+            ("dataType", DataTypeWithMetadata::schema()),
+            ("propertyType", PropertyTypeWithMetadata::schema()),
+            ("entityType", EntityTypeWithMetadata::schema()),
             ("entity", PersistedEntity::schema()),
         ] {
             builder = builder.item(

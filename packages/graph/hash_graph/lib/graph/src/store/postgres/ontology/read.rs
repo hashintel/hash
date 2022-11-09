@@ -8,8 +8,8 @@ use type_system::{uri::VersionedUri, DataType, EntityType, PropertyType};
 
 use crate::{
     ontology::{
-        PersistedDataType, PersistedEntityType, PersistedOntologyIdentifier,
-        PersistedOntologyMetadata, PersistedOntologyType, PersistedPropertyType,
+        DataTypeWithMetadata, EntityTypeWithMetadata, PersistedOntologyIdentifier,
+        PersistedOntologyMetadata, PersistedOntologyType, PropertyTypeWithMetadata,
     },
     provenance::{CreatedById, OwnedById, RemovedById, UpdatedById},
     shared::identifier::account::AccountId,
@@ -25,7 +25,7 @@ use crate::{
     },
 };
 
-impl From<OntologyRecord<DataType>> for PersistedDataType {
+impl From<OntologyRecord<DataType>> for DataTypeWithMetadata {
     fn from(data_type: OntologyRecord<DataType>) -> Self {
         let identifier =
             PersistedOntologyIdentifier::new(data_type.record.id().clone(), data_type.owned_by_id);
@@ -42,7 +42,7 @@ impl From<OntologyRecord<DataType>> for PersistedDataType {
     }
 }
 
-impl From<OntologyRecord<PropertyType>> for PersistedPropertyType {
+impl From<OntologyRecord<PropertyType>> for PropertyTypeWithMetadata {
     fn from(property_type: OntologyRecord<PropertyType>) -> Self {
         let identifier = PersistedOntologyIdentifier::new(
             property_type.record.id().clone(),
@@ -61,7 +61,7 @@ impl From<OntologyRecord<PropertyType>> for PersistedPropertyType {
     }
 }
 
-impl From<OntologyRecord<EntityType>> for PersistedEntityType {
+impl From<OntologyRecord<EntityType>> for EntityTypeWithMetadata {
     fn from(entity_type: OntologyRecord<EntityType>) -> Self {
         let identifier = PersistedOntologyIdentifier::new(
             entity_type.record.id().clone(),
