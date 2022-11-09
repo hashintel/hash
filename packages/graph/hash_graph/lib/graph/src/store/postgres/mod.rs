@@ -307,7 +307,7 @@ impl DependencyContext {
             .chain(self.linked_entities.into_values().map(|entity| {
                 (
                     GraphElementIdentifier::KnowledgeGraphElementId(
-                        entity.metadata().identifier().base_id(),
+                        entity.metadata().edition_id().base_id(),
                     ),
                     Vertex::Entity(entity),
                 )

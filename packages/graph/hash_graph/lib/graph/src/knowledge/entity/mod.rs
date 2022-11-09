@@ -127,7 +127,7 @@ impl LinkEntityMetadata {
 // TODO: deny_unknown_fields on other structs
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EntityMetadata {
-    identifier: EntityEditionId,
+    edition_id: EntityEditionId,
     #[schema(value_type = String)]
     entity_type_id: VersionedUri,
     #[serde(rename = "provenance")]
@@ -140,14 +140,14 @@ pub struct EntityMetadata {
 impl EntityMetadata {
     #[must_use]
     pub const fn new(
-        identifier: EntityEditionId,
+        edition_id: EntityEditionId,
         entity_type_id: VersionedUri,
         provenance_metadata: ProvenanceMetadata,
         link_metadata: Option<LinkEntityMetadata>,
         archived: bool,
     ) -> Self {
         Self {
-            identifier,
+            edition_id,
             entity_type_id,
             provenance_metadata,
             link_metadata,
@@ -156,8 +156,8 @@ impl EntityMetadata {
     }
 
     #[must_use]
-    pub const fn identifier(&self) -> &EntityEditionId {
-        &self.identifier
+    pub const fn edition_id(&self) -> &EntityEditionId {
+        &self.edition_id
     }
 
     #[must_use]

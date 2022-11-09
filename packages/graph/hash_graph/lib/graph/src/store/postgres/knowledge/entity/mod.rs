@@ -248,7 +248,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .then(|entity| async move {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 
-                let entity_id = entity.metadata().identifier().base_id();
+                let entity_id = entity.metadata().edition_id().base_id();
                 dependency_context
                     .linked_entities
                     .insert(&entity_id, None, entity);
