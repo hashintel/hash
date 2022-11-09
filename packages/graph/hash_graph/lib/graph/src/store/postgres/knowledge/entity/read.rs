@@ -7,10 +7,8 @@ use tokio_postgres::GenericClient;
 use type_system::uri::VersionedUri;
 
 use crate::{
-    knowledge::{
-        Entity, EntityQueryPath, EntityUuid, LinkEntityMetadata, PersistedEntity,
-        PersistedEntityIdentifier,
-    },
+    identifier::knowledge::{EntityEditionId, EntityId},
+    knowledge::{Entity, EntityQueryPath, EntityUuid, LinkEntityMetadata, PersistedEntity},
     ontology::EntityTypeQueryPath,
     provenance::{CreatedById, OwnedById, UpdatedById},
     store::{
@@ -91,10 +89,9 @@ impl<C: AsClient> crud::Read<PersistedEntity> for PostgresStore<C> {
 
                 Ok(PersistedEntity::new(
                     entity,
-                    PersistedEntityIdentifier::new(
-                        row.get(entity_uuid_index),
+                    EntityEditionId::new(
+                        EntityId::new(owned_by_id, row.get(entity_uuid_index)),
                         row.get(version_index),
-                        owned_by_id,
                     ),
                     entity_type_uri,
                     created_by_id,

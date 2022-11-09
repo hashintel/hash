@@ -10,8 +10,8 @@ use uuid::Uuid;
 
 pub use self::query::{EntityQueryPath, EntityQueryPathVisitor};
 use crate::{
-    identifier::Timestamp,
-    provenance::{CreatedById, OwnedById, UpdatedById},
+    identifier::{knowledge::EntityEditionId},
+    provenance::{CreatedById, UpdatedById},
 };
 
 #[derive(
@@ -86,43 +86,6 @@ impl Entity {
     }
 }
 
-/// The metadata required to uniquely identify an instance of an [`Entity`] that has been persisted
-/// in the datastore.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct PersistedEntityIdentifier {
-    entity_uuid: EntityUuid,
-    #[schema(value_type = String)]
-    version: Timestamp,
-    owned_by_id: OwnedById,
-}
-
-impl PersistedEntityIdentifier {
-    #[must_use]
-    pub const fn new(entity_uuid: EntityUuid, version: Timestamp, owned_by_id: OwnedById) -> Self {
-        Self {
-            entity_uuid,
-            version,
-            owned_by_id,
-        }
-    }
-
-    #[must_use]
-    pub const fn entity_uuid(&self) -> EntityUuid {
-        self.entity_uuid
-    }
-
-    #[must_use]
-    pub const fn version(&self) -> Timestamp {
-        self.version
-    }
-
-    #[must_use]
-    pub const fn owned_by_id(&self) -> OwnedById {
-        self.owned_by_id
-    }
-}
-
 /// The associated information for 'Link' entities
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -177,7 +140,7 @@ impl LinkEntityMetadata {
 // TODO: deny_unknown_fields on other structs
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct PersistedEntityMetadata {
-    identifier: PersistedEntityIdentifier,
+    identifier: EntityEditionId,
     #[schema(value_type = String)]
     entity_type_id: VersionedUri,
     // TODO: encapsulate these in a `ProvenanceMetadata` struct?
@@ -192,7 +155,7 @@ pub struct PersistedEntityMetadata {
 impl PersistedEntityMetadata {
     #[must_use]
     pub const fn new(
-        identifier: PersistedEntityIdentifier,
+        identifier: EntityEditionId,
         entity_type_id: VersionedUri,
         created_by_id: CreatedById,
         updated_by_id: UpdatedById,
@@ -210,7 +173,7 @@ impl PersistedEntityMetadata {
     }
 
     #[must_use]
-    pub const fn identifier(&self) -> &PersistedEntityIdentifier {
+    pub const fn identifier(&self) -> &EntityEditionId {
         &self.identifier
     }
 
@@ -253,7 +216,7 @@ impl PersistedEntity {
     #[must_use]
     pub const fn new(
         inner: Entity,
-        identifier: PersistedEntityIdentifier,
+        identifier: EntityEditionId,
         entity_type_id: VersionedUri,
         created_by_id: CreatedById,
         updated_by_id: UpdatedById,

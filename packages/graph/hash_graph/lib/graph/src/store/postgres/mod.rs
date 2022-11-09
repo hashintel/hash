@@ -26,9 +26,10 @@ use uuid::Uuid;
 use self::context::{OntologyRecord, PostgresContext};
 pub use self::pool::{AsClient, PostgresStorePool};
 use crate::{
+    identifier::knowledge::{EntityEditionId, EntityId},
     knowledge::{
         Entity, EntityUuid, KnowledgeGraphQueryDepth, LinkEntityMetadata, PersistedEntity,
-        PersistedEntityIdentifier, PersistedEntityMetadata,
+        PersistedEntityMetadata,
     },
     ontology::{
         OntologyQueryDepth, PersistedDataType, PersistedEntityType, PersistedOntologyIdentifier,
@@ -302,7 +303,7 @@ impl DependencyContext {
             .chain(self.linked_entities.into_values().map(|entity| {
                 (
                     GraphElementIdentifier::KnowledgeGraphElementId(
-                        entity.metadata().identifier().entity_uuid(),
+                        entity.metadata().identifier().base_id().entity_uuid(),
                     ),
                     Vertex::Entity(entity),
                 )
@@ -935,7 +936,7 @@ where
             .get(0);
 
         Ok(PersistedEntityMetadata::new(
-            PersistedEntityIdentifier::new(entity_uuid, version, owned_by_id),
+            EntityEditionId::new(EntityId::new(owned_by_id, entity_uuid), version),
             entity_type_id,
             created_by_id,
             updated_by_id,
@@ -1079,10 +1080,12 @@ where
         let entity_type_id = VersionedUri::new(base_uri, historic_entity.get::<_, i64>(3) as u32);
 
         Ok(PersistedEntityMetadata::new(
-            PersistedEntityIdentifier::new(
-                historic_entity.get(0),
+            EntityEditionId::new(
+                EntityId::new(
+                    OwnedById::new(historic_entity.get(8)),
+                    historic_entity.get(0),
+                ),
                 historic_entity.get(1),
-                OwnedById::new(historic_entity.get(8)),
             ),
             entity_type_id,
             CreatedById::new(historic_entity.get(9)),

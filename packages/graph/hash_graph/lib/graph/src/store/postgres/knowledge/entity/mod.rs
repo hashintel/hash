@@ -247,7 +247,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .then(|entity| async move {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 
-                let entity_uuid = entity.metadata().identifier().entity_uuid();
+                let entity_uuid = entity.metadata().identifier().base_id().entity_uuid();
                 dependency_context
                     .linked_entities
                     .insert(&entity_uuid, None, entity);
@@ -298,7 +298,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 entity_uuid,
                 entity,
                 entity_type_id,
-                old_entity_metadata.identifier().owned_by_id(),
+                old_entity_metadata.identifier().base_id().owned_by_id(),
                 old_entity_metadata.created_by_id(),
                 updated_by_id,
                 old_entity_metadata.link_metadata(),
@@ -353,7 +353,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 entity_uuid,
                 old_entity.inner().clone(),
                 old_entity.metadata().entity_type_id().clone(),
-                old_entity.metadata().identifier().owned_by_id(),
+                old_entity.metadata().identifier().base_id().owned_by_id(),
                 old_entity.metadata().created_by_id(),
                 actor_id,
                 old_entity.metadata().link_metadata(),

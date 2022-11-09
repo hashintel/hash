@@ -83,7 +83,9 @@ impl ToSchema for EntityVersion {
     }
 }
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(
+    Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, ToSchema,
+)]
 pub struct EntityEditionId {
     base_id: EntityId,
     version: EntityVersion,
