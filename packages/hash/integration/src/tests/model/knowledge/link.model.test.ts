@@ -11,7 +11,7 @@ import {
 } from "@hashintel/hash-api/src/model";
 import {
   EntityTypeCreatorParams,
-  generateWorkspaceEntityTypeSchema,
+  generateSystemEntityTypeSchema,
 } from "@hashintel/hash-api/src/model/util";
 import { generateTypeId } from "@hashintel/hash-shared/types";
 import { createTestUser } from "../../util";
@@ -53,7 +53,7 @@ describe("Link model class", () => {
     });
     return EntityTypeModel.create(graphApi, {
       ownedById: testUser.entityId,
-      schema: generateWorkspaceEntityTypeSchema({
+      schema: generateSystemEntityTypeSchema({
         entityTypeId,
         actorId: testUser.entityId,
         ...params,

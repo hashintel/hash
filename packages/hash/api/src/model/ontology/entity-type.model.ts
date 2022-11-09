@@ -9,7 +9,7 @@ import {
 import { generateTypeId, types } from "@hashintel/hash-shared/types";
 import { EntityTypeModel, PropertyTypeModel, LinkTypeModel } from "../index";
 import { getNamespaceOfAccountOwner } from "./util";
-import { WORKSPACE_TYPES } from "../../graph/workspace-types";
+import { SYSTEM_TYPES } from "../../graph/system-types";
 
 export type EntityTypeModelConstructorParams = {
   ownedById: string;
@@ -263,13 +263,13 @@ export default class {
   }
 
   /**
-   * Get the workspace type name of this entity type if it is a workspace type. Otherwise return `undefined`.
+   * Get the system type name of this entity type if it is a system type. Otherwise return `undefined`.
    */
-  get workspaceTypeName(): string | undefined {
-    for (const [key, workspaceEntityType] of Object.entries(
-      WORKSPACE_TYPES.entityType,
-    ) as [keyof typeof WORKSPACE_TYPES.entityType, EntityTypeModel][]) {
-      if (workspaceEntityType.schema.$id === this.schema.$id) {
+  get systemTypeName(): string | undefined {
+    for (const [key, systemEntityType] of Object.entries(
+      SYSTEM_TYPES.entityType,
+    ) as [keyof typeof SYSTEM_TYPES.entityType, EntityTypeModel][]) {
+      if (systemEntityType.schema.$id === this.schema.$id) {
         return types.entityType[key].title;
       }
     }

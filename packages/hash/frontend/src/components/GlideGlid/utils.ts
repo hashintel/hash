@@ -1,12 +1,21 @@
-import { CustomCell } from "@glideapps/glide-data-grid";
+import {
+  CustomCell,
+  GridCell,
+  GridCellKind,
+  getMiddleCenterBias,
+} from "@glideapps/glide-data-grid";
 import type { DrawArgs } from "@glideapps/glide-data-grid/dist/ts/data-grid/cells/cell-types";
 
 /**
  * @returns vertical center of a glide-grid cell
  */
-export const getYCenter = (args: DrawArgs<CustomCell>) => {
-  const { y, height } = args.rect;
-  return y + height / 2 + 1;
+export const getYCenter = (
+  args: Pick<DrawArgs<CustomCell>, "rect" | "ctx" | "theme">,
+) => {
+  const { rect, ctx, theme } = args;
+  const { y, height } = rect;
+
+  return y + height / 2 + getMiddleCenterBias(ctx, theme);
 };
 
 /**
@@ -15,3 +24,10 @@ export const getYCenter = (args: DrawArgs<CustomCell>) => {
  */
 export const getCellHorizontalPadding = (atFirstColumn?: boolean) =>
   atFirstColumn ? 36 : 22;
+
+export const blankCell: GridCell = {
+  kind: GridCellKind.Custom,
+  allowOverlay: false,
+  copyData: "",
+  data: {},
+};

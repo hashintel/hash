@@ -4,7 +4,7 @@ import { SvgIcon, SvgIconProps } from "@mui/material";
 import { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 
 type FontAwesomeIconProps = {
-  icon: IconDefinition;
+  icon: Pick<IconDefinition, "icon">;
 } & SvgIconProps;
 
 export const fontAwesomeIconClasses = {

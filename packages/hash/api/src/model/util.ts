@@ -66,10 +66,10 @@ export const RESTRICTED_SHORTNAMES = [
 export const nilUuid = "00000000-0000-0000-0000-000000000000" as const;
 
 /**
- * @todo: create workspace types in an account that's dedicated to
- * the HASH workspace. For now we're just chucking them in the root account.
+ * @todo: create system types in an account that's dedicated to
+ * the HASH instance. For now we're just chucking them in the root account.
  */
-export const workspaceAccountId = nilUuid;
+export const systemAccountId = nilUuid;
 
 /**
  * @todo use `extractBaseUri` from the type system package when they're unified,
@@ -120,7 +120,7 @@ export type PropertyTypeCreatorParams = {
 /**
  * Helper method for generating a property type schema for the Graph API.
  */
-export const generateWorkspacePropertyTypeSchema = (
+export const generateSystemPropertyTypeSchema = (
   params: PropertyTypeCreatorParams,
 ): PropertyType => {
   const possibleValues = params.possibleValues.map(
@@ -140,7 +140,7 @@ export const generateWorkspacePropertyTypeSchema = (
         inner = propertyTypeObject;
       } else {
         throw new Error(
-          "Please provide either a primitiveDataType or propertyTypeObjectProperties to generateWorkspacePropertyTypeSchema",
+          "Please provide either a primitiveDataType or propertyTypeObjectProperties to generateSystemPropertyTypeSchema",
         );
       }
 
@@ -190,7 +190,7 @@ export const propertyTypeInitializer = (
         `property type ${params.title} was uninitialized, and function was called without passing a graphApi object`,
       );
     } else {
-      const propertyType = generateWorkspacePropertyTypeSchema(params);
+      const propertyType = generateSystemPropertyTypeSchema(params);
 
       // initialize
       propertyTypeModel = await PropertyTypeModel.get(graphApi, {
@@ -199,7 +199,7 @@ export const propertyTypeInitializer = (
         if (error.response?.status === 404) {
           // The type was missing, try and create it
           return await PropertyTypeModel.create(graphApi, {
-            ownedById: workspaceAccountId,
+            ownedById: systemAccountId,
             schema: propertyType,
             actorId: params.actorId,
           }).catch((createError: AxiosError) => {
@@ -247,7 +247,7 @@ export type EntityTypeCreatorParams = {
  * @todo make use of new type system package instead of ad-hoc types.
  *   https://app.asana.com/0/1202805690238892/1202892835843657/f
  */
-export const generateWorkspaceEntityTypeSchema = (
+export const generateSystemEntityTypeSchema = (
   params: EntityTypeCreatorParams,
 ): EntityType => {
   /** @todo - clean this up to be more readable: https://app.asana.com/0/1202805690238892/1202931031833226/f */
@@ -346,7 +346,7 @@ export const entityTypeInitializer = (
         `entity type ${params.title} was uninitialized, and function was called without passing a graphApi object`,
       );
     } else {
-      const entityType = generateWorkspaceEntityTypeSchema(params);
+      const entityType = generateSystemEntityTypeSchema(params);
 
       // initialize
       entityTypeModel = await EntityTypeModel.get(graphApi, {
@@ -355,7 +355,7 @@ export const entityTypeInitializer = (
         if (error.response?.status === 404) {
           // The type was missing, try and create it
           return await EntityTypeModel.create(graphApi, {
-            ownedById: workspaceAccountId,
+            ownedById: systemAccountId,
             schema: entityType,
             actorId: params.actorId,
           }).catch((createError: AxiosError) => {
@@ -389,7 +389,7 @@ export type LinkTypeCreatorParams = {
  * @todo make use of new type system package instead of ad-hoc types.
  *   https://app.asana.com/0/1202805690238892/1202892835843657/f
  */
-export const generateWorkspaceLinkTypeSchema = (
+export const generateSystemLinkTypeSchema = (
   params: LinkTypeCreatorParams,
 ): LinkType => {
   return {
@@ -423,7 +423,7 @@ export const linkTypeInitializer = (
         `link type ${params.title} was uninitialized, and function was called without passing a graphApi object`,
       );
     } else {
-      const linkType = generateWorkspaceLinkTypeSchema(params);
+      const linkType = generateSystemLinkTypeSchema(params);
 
       // initialize
       linkTypeModel = await LinkTypeModel.get(graphApi, {
@@ -432,7 +432,7 @@ export const linkTypeInitializer = (
         if (error.response?.status === 404) {
           // The type was missing, try and create it
           return await LinkTypeModel.create(graphApi, {
-            ownedById: workspaceAccountId,
+            ownedById: systemAccountId,
             schema: linkType,
             actorId: params.actorId,
           }).catch((createError: AxiosError) => {
