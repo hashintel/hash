@@ -52,8 +52,8 @@ export const createUser: ResolverFn<
   });
 
   const userRootedSubgraph = await userModel.getRootedSubgraph(graphApi, {
-    linkResolveDepth,
-    linkTargetEntityResolveDepth,
+    linkResolveDepth: linkResolveDepth ?? 0,
+    linkTargetEntityResolveDepth: linkTargetEntityResolveDepth ?? 0,
   });
 
   return mapSubgraphToGql(userRootedSubgraph);
