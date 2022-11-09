@@ -5,7 +5,7 @@ use std::{
 };
 
 use graph::{
-    knowledge::{Entity, EntityUuid},
+    knowledge::{EntityProperties, EntityUuid},
     provenance::{CreatedById, OwnedById},
     shared::identifier::account::AccountId,
     store::{AccountStore, AsClient, EntityStore, PostgresStore},
@@ -119,7 +119,8 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
 
     let mut total_entities = 0;
     for (entity_type_str, entity_str, quantity) in SEED_ENTITIES {
-        let entity: Entity = serde_json::from_str(entity_str).expect("could not parse entity");
+        let entity: EntityProperties =
+            serde_json::from_str(entity_str).expect("could not parse entity");
         let entity_type_id = EntityType::from_str(entity_type_str)
             .expect("could not parse entity type")
             .id()

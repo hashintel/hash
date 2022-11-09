@@ -6,7 +6,7 @@ use serde::{
 };
 
 use crate::{
-    knowledge::Entity,
+    knowledge::EntityProperties,
     ontology::{EntityTypeQueryPath, EntityTypeQueryPathVisitor},
     store::query::{ParameterType, QueryRecord, RecordPath},
 };
@@ -30,7 +30,7 @@ pub enum EntityQueryPath<'q> {
     RightOrder,
 }
 
-impl QueryRecord for Entity {
+impl QueryRecord for EntityProperties {
     type Path<'q> = EntityQueryPath<'q>;
 }
 

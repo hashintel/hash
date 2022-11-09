@@ -12,7 +12,7 @@ use uuid::Uuid;
 
 use crate::{
     identifier::knowledge::EntityId,
-    knowledge::{Entity, EntityQueryPath},
+    knowledge::{EntityProperties, EntityQueryPath},
     store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath},
 };
 
@@ -73,7 +73,7 @@ where
     }
 }
 
-impl<'q> Filter<'q, Entity> {
+impl<'q> Filter<'q, EntityProperties> {
     /// Creates a `Filter` to search for all entities at their latest version.
     #[must_use]
     pub const fn for_all_latest_entities() -> Self {

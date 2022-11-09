@@ -1,4 +1,4 @@
-use graph::knowledge::Entity;
+use graph::knowledge::EntityProperties;
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use type_system::uri::{BaseUri, VersionedUri};
 
@@ -6,7 +6,8 @@ use crate::postgres::DatabaseTestWrapper;
 
 #[tokio::test]
 async fn insert() {
-    let person: Entity = serde_json::from_str(entity::PERSON_A_V1).expect("could not parse entity");
+    let person: EntityProperties =
+        serde_json::from_str(entity::PERSON_A_V1).expect("could not parse entity");
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
@@ -43,7 +44,7 @@ async fn insert() {
 
 #[tokio::test]
 async fn query() {
-    let organization: Entity =
+    let organization: EntityProperties =
         serde_json::from_str(entity::ORGANIZATION_V1).expect("could not parse entity");
 
     let mut database = DatabaseTestWrapper::new().await;
@@ -79,8 +80,10 @@ async fn query() {
 
 #[tokio::test]
 async fn update() {
-    let page_v1: Entity = serde_json::from_str(entity::PAGE_V1).expect("could not parse entity");
-    let page_v2: Entity = serde_json::from_str(entity::PAGE_V2).expect("could not parse entity");
+    let page_v1: EntityProperties =
+        serde_json::from_str(entity::PAGE_V1).expect("could not parse entity");
+    let page_v2: EntityProperties =
+        serde_json::from_str(entity::PAGE_V2).expect("could not parse entity");
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database

@@ -11,7 +11,7 @@ use type_system::{DataType, EntityType, PropertyType};
 use utoipa::{openapi, ToSchema};
 
 use crate::{
-    knowledge::{Entity, KnowledgeGraphQueryDepth, PersistedEntity},
+    knowledge::{EntityProperties, KnowledgeGraphQueryDepth, PersistedEntity},
     ontology::{
         DataTypeWithMetadata, EntityTypeWithMetadata, OntologyQueryDepth, PropertyTypeWithMetadata,
     },
@@ -152,7 +152,7 @@ impl Extend<Self> for Subgraph {
     DataTypeStructuralQuery = StructuralQuery<'static, DataType>,
     PropertyTypeStructuralQuery = StructuralQuery<'static, PropertyType>,
     EntityTypeStructuralQuery = StructuralQuery<'static, EntityType>,
-    EntityStructuralQuery = StructuralQuery<'static, Entity>,
+    EntityStructuralQuery = StructuralQuery<'static, EntityProperties>,
 )]
 pub struct StructuralQuery<'q, T: QueryRecord> {
     #[serde(bound = "'de: 'q, T::Path<'q>: Deserialize<'de>")]

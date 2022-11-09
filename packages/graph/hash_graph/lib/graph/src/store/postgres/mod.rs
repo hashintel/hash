@@ -28,8 +28,8 @@ pub use self::pool::{AsClient, PostgresStorePool};
 use crate::{
     identifier::knowledge::{EntityEditionId, EntityId},
     knowledge::{
-        Entity, EntityUuid, KnowledgeGraphQueryDepth, LinkEntityMetadata, PersistedEntity,
-        PersistedEntityMetadata,
+        EntityProperties, EntityUuid, KnowledgeGraphQueryDepth, LinkEntityMetadata,
+        PersistedEntity, PersistedEntityMetadata,
     },
     ontology::{
         DataTypeWithMetadata, EntityTypeWithMetadata, OntologyQueryDepth,
@@ -880,7 +880,7 @@ where
     async fn insert_entity(
         &self,
         entity_id: EntityId,
-        entity: Entity,
+        entity: EntityProperties,
         entity_type_id: VersionedUri,
         created_by_id: CreatedById,
         updated_by_id: UpdatedById,
@@ -1184,7 +1184,7 @@ impl PostgresStore<Transaction<'_>> {
     async fn insert_entity_batch_by_type(
         &self,
         entity_uuids: impl IntoIterator<Item = EntityUuid, IntoIter: Send> + Send,
-        entities: impl IntoIterator<Item = Entity, IntoIter: Send> + Send,
+        entities: impl IntoIterator<Item = EntityProperties, IntoIter: Send> + Send,
         entity_type_version_id: VersionId,
         owned_by_id: OwnedById,
         created_by: CreatedById,

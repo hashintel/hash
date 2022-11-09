@@ -80,7 +80,7 @@ mod tests {
     use uuid::Uuid;
 
     use crate::{
-        knowledge::{Entity, EntityQueryPath},
+        knowledge::{EntityProperties, EntityQueryPath},
         ontology::{DataTypeQueryPath, EntityTypeQueryPath, PropertyTypeQueryPath},
         store::{
             postgres::query::{
@@ -406,7 +406,7 @@ mod tests {
 
     #[test]
     fn entity_simple_query() {
-        let mut compiler = SelectCompiler::<Entity>::with_default_selection();
+        let mut compiler = SelectCompiler::<EntityProperties>::with_default_selection();
 
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::Uuid)),
@@ -438,7 +438,7 @@ mod tests {
 
     #[test]
     fn entity_latest_version_query() {
-        let mut compiler = SelectCompiler::<Entity>::with_default_selection();
+        let mut compiler = SelectCompiler::<EntityProperties>::with_default_selection();
 
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::Version)),
@@ -470,7 +470,7 @@ mod tests {
 
     #[test]
     fn entity_with_manual_selection() {
-        let mut compiler = SelectCompiler::<Entity>::new();
+        let mut compiler = SelectCompiler::<EntityProperties>::new();
         compiler.add_distinct_selection_with_ordering(
             &EntityQueryPath::Uuid,
             Distinctness::Distinct,
@@ -508,7 +508,7 @@ mod tests {
 
     #[test]
     fn entity_property_query() {
-        let mut compiler = SelectCompiler::<Entity>::with_asterisk();
+        let mut compiler = SelectCompiler::<EntityProperties>::with_asterisk();
 
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::Properties(Some(
@@ -536,7 +536,7 @@ mod tests {
 
     #[test]
     fn entity_property_null_query() {
-        let mut compiler = SelectCompiler::<Entity>::with_asterisk();
+        let mut compiler = SelectCompiler::<EntityProperties>::with_asterisk();
 
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::Properties(Some(
@@ -559,7 +559,7 @@ mod tests {
 
     #[test]
     fn entity_outgoing_link_query() {
-        let mut compiler = SelectCompiler::<Entity>::with_asterisk();
+        let mut compiler = SelectCompiler::<EntityProperties>::with_asterisk();
 
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::OutgoingLinks(
@@ -588,7 +588,7 @@ mod tests {
 
     #[test]
     fn entity_incoming_link_query() {
-        let mut compiler = SelectCompiler::<Entity>::with_asterisk();
+        let mut compiler = SelectCompiler::<EntityProperties>::with_asterisk();
 
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::IncomingLinks(
@@ -617,7 +617,7 @@ mod tests {
 
     #[test]
     fn link_entity_left_right_id() {
-        let mut compiler = SelectCompiler::<Entity>::with_asterisk();
+        let mut compiler = SelectCompiler::<EntityProperties>::with_asterisk();
 
         let filter = Filter::All(vec![
             Filter::Equal(

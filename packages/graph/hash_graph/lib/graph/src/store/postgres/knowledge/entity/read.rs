@@ -12,7 +12,9 @@ use crate::{
         account::AccountId,
         knowledge::{EntityEditionId, EntityId},
     },
-    knowledge::{Entity, EntityQueryPath, EntityUuid, LinkEntityMetadata, PersistedEntity},
+    knowledge::{
+        EntityProperties, EntityQueryPath, EntityUuid, LinkEntityMetadata, PersistedEntity,
+    },
     ontology::EntityTypeQueryPath,
     provenance::{CreatedById, OwnedById, UpdatedById},
     store::{
@@ -22,7 +24,7 @@ use crate::{
 
 #[async_trait]
 impl<C: AsClient> crud::Read<PersistedEntity> for PostgresStore<C> {
-    type Query<'q> = Filter<'q, Entity>;
+    type Query<'q> = Filter<'q, EntityProperties>;
 
     async fn read<'f: 'q, 'q>(
         &self,
@@ -71,7 +73,7 @@ impl<C: AsClient> crud::Read<PersistedEntity> for PostgresStore<C> {
             .change_context(QueryError)?
             .map(|row| row.into_report().change_context(QueryError))
             .and_then(|row| async move {
-                let entity: Entity = serde_json::from_value(row.get(properties_index))
+                let entity: EntityProperties = serde_json::from_value(row.get(properties_index))
                     .into_report()
                     .change_context(QueryError)?;
                 let entity_type_uri = VersionedUri::from_str(row.get(type_id_index))

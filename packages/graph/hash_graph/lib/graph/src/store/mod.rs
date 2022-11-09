@@ -19,7 +19,9 @@ pub use self::{
 };
 use crate::{
     identifier::knowledge::EntityId,
-    knowledge::{Entity, EntityUuid, LinkEntityMetadata, PersistedEntity, PersistedEntityMetadata},
+    knowledge::{
+        EntityProperties, EntityUuid, LinkEntityMetadata, PersistedEntity, PersistedEntityMetadata,
+    },
     ontology::{
         DataTypeWithMetadata, EntityTypeWithMetadata, PersistedOntologyMetadata,
         PropertyTypeWithMetadata,
@@ -324,7 +326,9 @@ pub trait EntityTypeStore:
 ///
 /// [Entities]: crate::knowledge::Entity
 #[async_trait]
-pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Filter<'q, Entity>> {
+pub trait EntityStore:
+    for<'q> crud::Read<PersistedEntity, Query<'q> = Filter<'q, EntityProperties>>
+{
     /// Creates a new [`Entity`].
     ///
     /// # Errors:
@@ -335,7 +339,7 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Filter<'q
     /// - if an [`EntityUuid`] was supplied and already exists in the store
     async fn create_entity(
         &mut self,
-        entity: Entity,
+        entity: EntityProperties,
         entity_type_id: VersionedUri,
         owned_by_id: OwnedById,
         entity_uuid: Option<EntityUuid>,
@@ -364,7 +368,8 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Filter<'q
     #[cfg(feature = "__internal_bench")]
     async fn insert_entities_batched_by_type(
         &mut self,
-        entities: impl IntoIterator<Item = (Option<EntityUuid>, Entity), IntoIter: Send> + Send,
+        entities: impl IntoIterator<Item = (Option<EntityUuid>, EntityProperties), IntoIter: Send>
+        + Send,
         entity_type_id: VersionedUri,
         owned_by_id: OwnedById,
         actor_id: CreatedById,
@@ -377,7 +382,7 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Filter<'q
     /// - if the requested [`Entity`] doesn't exist
     async fn get_entity<'f: 'q, 'q>(
         &self,
-        query: &'f StructuralQuery<'q, Entity>,
+        query: &'f StructuralQuery<'q, EntityProperties>,
     ) -> Result<Subgraph, QueryError>;
 
     /// Update an existing [`Entity`].
@@ -391,7 +396,7 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Filter<'q
     async fn update_entity(
         &mut self,
         entity_id: EntityId,
-        entity: Entity,
+        entity: EntityProperties,
         entity_type_id: VersionedUri,
         actor_id: UpdatedById,
     ) -> Result<PersistedEntityMetadata, UpdateError>;

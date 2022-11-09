@@ -11,7 +11,9 @@ use uuid::Uuid;
 
 use crate::{
     identifier::{knowledge::EntityId, GraphElementIdentifier},
-    knowledge::{Entity, EntityUuid, LinkEntityMetadata, PersistedEntity, PersistedEntityMetadata},
+    knowledge::{
+        EntityProperties, EntityUuid, LinkEntityMetadata, PersistedEntity, PersistedEntityMetadata,
+    },
     provenance::{CreatedById, OwnedById, UpdatedById},
     store::{
         crud::Read,
@@ -131,7 +133,7 @@ impl<C: AsClient> PostgresStore<C> {
 impl<C: AsClient> EntityStore for PostgresStore<C> {
     async fn create_entity(
         &mut self,
-        entity: Entity,
+        entity: EntityProperties,
         entity_type_id: VersionedUri,
         owned_by_id: OwnedById,
         entity_uuid: Option<EntityUuid>,
@@ -177,7 +179,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     #[cfg(feature = "__internal_bench")]
     async fn insert_entities_batched_by_type(
         &mut self,
-        entities: impl IntoIterator<Item = (Option<EntityUuid>, Entity), IntoIter: Send> + Send,
+        entities: impl IntoIterator<Item = (Option<EntityUuid>, EntityProperties), IntoIter: Send>
+        + Send,
         entity_type_id: VersionedUri,
         owned_by_id: OwnedById,
         actor_id: CreatedById,
@@ -236,7 +239,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
     async fn get_entity<'f: 'q, 'q>(
         &self,
-        query: &'f StructuralQuery<'q, Entity>,
+        query: &'f StructuralQuery<'q, EntityProperties>,
     ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
             ref filter,
@@ -271,7 +274,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     async fn update_entity(
         &mut self,
         entity_id: EntityId,
-        entity: Entity,
+        entity: EntityProperties,
         entity_type_id: VersionedUri,
         updated_by_id: UpdatedById,
     ) -> Result<PersistedEntityMetadata, UpdateError> {

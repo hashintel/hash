@@ -10,7 +10,7 @@ use error_stack::Result;
 use graph::{
     identifier::knowledge::EntityId,
     knowledge::{
-        Entity, EntityQueryPath, EntityUuid, LinkEntityMetadata, PersistedEntity,
+        EntityProperties, EntityQueryPath, EntityUuid, LinkEntityMetadata, PersistedEntity,
         PersistedEntityMetadata,
     },
     ontology::{
@@ -266,7 +266,7 @@ impl DatabaseApi<'_> {
 
     pub async fn create_entity(
         &mut self,
-        entity: Entity,
+        entity: EntityProperties,
         entity_type_id: VersionedUri,
         entity_uuid: Option<EntityUuid>,
     ) -> Result<PersistedEntityMetadata, InsertionError> {
@@ -303,7 +303,7 @@ impl DatabaseApi<'_> {
     pub async fn update_entity(
         &mut self,
         entity_id: EntityId,
-        entity: Entity,
+        entity: EntityProperties,
         entity_type_id: VersionedUri,
     ) -> Result<PersistedEntityMetadata, UpdateError> {
         self.store
@@ -318,7 +318,7 @@ impl DatabaseApi<'_> {
 
     async fn create_link_entity(
         &mut self,
-        entity: Entity,
+        entity: EntityProperties,
         entity_type_id: VersionedUri,
         entity_uuid: Option<EntityUuid>,
         left_entity_id: EntityId,

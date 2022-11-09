@@ -15,7 +15,9 @@ use utoipa::{OpenApi, ToSchema};
 
 use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
-    knowledge::{Entity, EntityUuid, LinkEntityMetadata, PersistedEntity, PersistedEntityMetadata},
+    knowledge::{
+        EntityProperties, EntityUuid, LinkEntityMetadata, PersistedEntity, PersistedEntityMetadata,
+    },
     provenance::{CreatedById, OwnedById, UpdatedById},
     shared::identifier::{
         knowledge::{EntityEditionId, EntityId},
@@ -94,7 +96,7 @@ impl RoutedResource for EntityResource {
 #[derive(Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct CreateEntityRequest {
-    entity: Entity,
+    entity: EntityProperties,
     #[schema(value_type = String)]
     entity_type_id: VersionedUri,
     owned_by_id: OwnedById,
@@ -256,9 +258,12 @@ async fn get_entities_by_query<P: StorePool + Send>(
 async fn get_latest_entities<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<PersistedEntity>>, StatusCode> {
-    read_from_store(pool.as_ref(), &Filter::<Entity>::for_all_latest_entities())
-        .await
-        .map(Json)
+    read_from_store(
+        pool.as_ref(),
+        &Filter::<EntityProperties>::for_all_latest_entities(),
+    )
+    .await
+    .map(Json)
 }
 
 #[utoipa::path(
@@ -282,7 +287,7 @@ async fn get_entity<P: StorePool + Send>(
 ) -> Result<Json<PersistedEntity>, StatusCode> {
     read_from_store(
         pool.as_ref(),
-        &Filter::<Entity>::for_latest_entity_by_entity_id(entity_id),
+        &Filter::<EntityProperties>::for_latest_entity_by_entity_id(entity_id),
     )
     .await
     .and_then(|mut entities| entities.pop().ok_or(StatusCode::NOT_FOUND))
@@ -292,7 +297,7 @@ async fn get_entity<P: StorePool + Send>(
 #[derive(ToSchema, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct UpdateEntityRequest {
-    entity: Entity,
+    entity: EntityProperties,
     entity_id: EntityId,
     #[schema(value_type = String)]
     entity_type_id: VersionedUri,

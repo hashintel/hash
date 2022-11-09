@@ -52,21 +52,21 @@ impl LinkOrder {
     }
 }
 
-/// An entity.
+/// The properties of an entity.
 ///
 /// When expressed as JSON, this should validate against its respective entity type(s).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[schema(value_type = Object)]
-pub struct Entity(HashMap<BaseUri, serde_json::Value>);
+pub struct EntityProperties(HashMap<BaseUri, serde_json::Value>);
 
-impl Entity {
+impl EntityProperties {
     #[must_use]
     pub fn empty() -> Self {
         Self(HashMap::new())
     }
 }
 
-impl Entity {
+impl EntityProperties {
     #[must_use]
     pub const fn properties(&self) -> &HashMap<BaseUri, serde_json::Value> {
         &self.0
@@ -195,14 +195,14 @@ impl PersistedEntityMetadata {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct PersistedEntity {
-    inner: Entity,
+    inner: EntityProperties,
     metadata: PersistedEntityMetadata,
 }
 
 impl PersistedEntity {
     #[must_use]
     pub const fn new(
-        inner: Entity,
+        inner: EntityProperties,
         identifier: EntityEditionId,
         entity_type_id: VersionedUri,
         created_by_id: CreatedById,
@@ -224,7 +224,7 @@ impl PersistedEntity {
     }
 
     #[must_use]
-    pub const fn inner(&self) -> &Entity {
+    pub const fn inner(&self) -> &EntityProperties {
         &self.inner
     }
 
@@ -241,7 +241,8 @@ mod tests {
     fn test_entity(json: &str) {
         let json_value: serde_json::Value = serde_json::from_str(json).expect("invalid JSON");
 
-        let entity: Entity = serde_json::from_value(json_value.clone()).expect("invalid entity");
+        let entity: EntityProperties =
+            serde_json::from_value(json_value.clone()).expect("invalid entity");
 
         assert_eq!(
             serde_json::to_value(entity.clone()).expect("could not serialize"),
