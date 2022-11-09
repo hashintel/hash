@@ -106,10 +106,9 @@ pub struct EntityQueryPathVisitor {
 }
 
 impl EntityQueryPathVisitor {
-    pub const EXPECTING: &'static str =
-        "one of `ownedById`, `createdById`, `updatedById`, `removedById`, `baseUri`, \
-         `versionedUri`, `version`, `archived`, `title`, `description`, `default`, `examples`, \
-         `properties`, `required`, `links`, `requiredLinks`, `inheritsFrom`";
+    pub const EXPECTING: &'static str = "one of `id`, `ownedById`, `createdById`, `updatedById`, \
+                                         `removedById`, `version`, `archived`, `type`, \
+                                         `properties`, `incomingLinks`, `outgoingLinks`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -210,9 +209,9 @@ mod tests {
         );
 
         assert_eq!(
-            EntityTypeQueryPath::deserialize(
-                de::value::SeqDeserializer::<_, de::value::Error>::new(once("invalid"))
-            )
+            EntityQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
+                once("invalid")
+            ))
             .expect_err(
                 "managed to convert entity query path with hidden token when it should have \
                  errored"
@@ -225,11 +224,9 @@ mod tests {
         );
 
         assert_eq!(
-            EntityTypeQueryPath::deserialize(
-                de::value::SeqDeserializer::<_, de::value::Error>::new(
-                    ["version", "test"].into_iter()
-                )
-            )
+            EntityQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
+                ["version", "test"].into_iter()
+            ))
             .expect_err(
                 "managed to convert entity query path with multiple tokens when it should have \
                  errored"
