@@ -7,7 +7,7 @@ import {
   getCellHorizontalPadding,
   getYCenter,
 } from "../../../../../../../../components/GlideGlid/utils";
-import { isValueEmpty } from "../../get-property-count-summary";
+import { isValueEmpty } from "../../is-value-empty";
 import { ValueCell } from "./value-cell/types";
 import { ValueCellEditor } from "./value-cell/value-cell-editor";
 
