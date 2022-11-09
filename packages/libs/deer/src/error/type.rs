@@ -7,7 +7,7 @@ use crate::{
 };
 
 #[derive(serde::Serialize)]
-pub struct ExpectedType(Schema);
+pub struct ExpectedType(pub(crate) Schema);
 
 impl ErrorProperty for ExpectedType {
     type Value<'a> = Option<&'a Self>

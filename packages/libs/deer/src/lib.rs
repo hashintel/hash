@@ -28,8 +28,6 @@ mod error;
 mod number;
 
 extern crate alloc;
-extern crate core;
-extern crate core;
 
 pub trait ObjectAccess<'de> {
     fn value<T>(&mut self, key: &str) -> Result<T, ObjectAccessError>

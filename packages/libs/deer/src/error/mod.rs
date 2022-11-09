@@ -65,6 +65,7 @@ mod location;
 mod macros;
 mod tuple;
 mod r#type;
+mod value;
 
 pub(crate) type Schema = BTreeMap<String, Box<dyn erased_serde::Serialize + Send + Sync>>;
 
