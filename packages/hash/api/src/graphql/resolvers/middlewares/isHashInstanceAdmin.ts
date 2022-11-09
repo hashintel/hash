@@ -13,7 +13,7 @@ export const isHashInstanceAdmin: ResolverMiddleware<
 
   if (!(await ctx.userModel.isHashInstanceAdmin(graphApi))) {
     throw new ForbiddenError(
-      "You must be HASH instance admin to perform this action.",
+      "You must be a HASH instance admin to perform this action.",
     );
   }
   return next(obj, args, ctx, info);
