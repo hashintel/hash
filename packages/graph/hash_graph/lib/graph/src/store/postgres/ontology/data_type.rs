@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use futures::{stream, StreamExt, TryStreamExt};
@@ -100,7 +102,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
 
                 let root = GraphElementIdentifier::OntologyElementId(data_type_id);
 
-                Ok::<_, Report<QueryError>>(dependency_context.into_subgraph(vec![root]))
+                Ok::<_, Report<QueryError>>(dependency_context.into_subgraph(HashSet::from([root])))
             })
             .try_collect::<Vec<_>>()
             .await?;

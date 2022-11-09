@@ -7,7 +7,7 @@ mod query;
 mod version_id;
 
 use std::{
-    collections::{hash_map::RawEntryMut, HashMap},
+    collections::{hash_map::RawEntryMut, HashMap, HashSet},
     future::Future,
     hash::Hash,
 };
@@ -264,7 +264,7 @@ impl DependencyContext {
     }
 
     #[must_use]
-    pub fn into_subgraph(self, roots: Vec<GraphElementIdentifier>) -> Subgraph {
+    pub fn into_subgraph(self, roots: HashSet<GraphElementIdentifier>) -> Subgraph {
         let vertices = self
             .referenced_data_types
             .into_values()
