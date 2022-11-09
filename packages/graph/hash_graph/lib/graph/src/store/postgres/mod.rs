@@ -32,8 +32,8 @@ use crate::{
         LinkEntityMetadata,
     },
     ontology::{
-        DataTypeWithMetadata, EntityTypeWithMetadata, OntologyQueryDepth,
-        PersistedOntologyIdentifier, PersistedOntologyMetadata, PropertyTypeWithMetadata,
+        DataTypeWithMetadata, EntityTypeWithMetadata, OntologyElementMetadata, OntologyQueryDepth,
+        PersistedOntologyIdentifier, PropertyTypeWithMetadata,
     },
     provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
     shared::identifier::{account::AccountId, GraphElementIdentifier},
@@ -541,7 +541,7 @@ where
         database_type: T,
         owned_by_id: OwnedById,
         created_by_id: CreatedById,
-    ) -> Result<(VersionId, PersistedOntologyMetadata), InsertionError>
+    ) -> Result<(VersionId, OntologyElementMetadata), InsertionError>
     where
         T: OntologyDatabaseType + Send + Sync + Into<serde_json::Value>,
     {
@@ -584,7 +584,7 @@ where
 
         Ok((
             version_id,
-            PersistedOntologyMetadata::new(
+            OntologyElementMetadata::new(
                 PersistedOntologyIdentifier::new(uri, owned_by_id),
                 ProvenanceMetadata::new(
                     created_by_id,
@@ -608,7 +608,7 @@ where
         &self,
         database_type: T,
         updated_by_id: UpdatedById,
-    ) -> Result<(VersionId, PersistedOntologyMetadata), UpdateError>
+    ) -> Result<(VersionId, OntologyElementMetadata), UpdateError>
     where
         T: OntologyDatabaseType
             + Send
@@ -663,7 +663,7 @@ where
 
         Ok((
             version_id,
-            PersistedOntologyMetadata::new(
+            OntologyElementMetadata::new(
                 PersistedOntologyIdentifier::new(uri, owned_by_id),
                 ProvenanceMetadata::new(created_by_id, updated_by_id),
             ),

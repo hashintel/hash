@@ -13,8 +13,8 @@ use graph::{
         Entity, EntityMetadata, EntityProperties, EntityQueryPath, EntityUuid, LinkEntityMetadata,
     },
     ontology::{
-        DataTypeWithMetadata, EntityTypeQueryPath, EntityTypeWithMetadata,
-        PersistedOntologyMetadata, PropertyTypeWithMetadata,
+        DataTypeWithMetadata, EntityTypeQueryPath, EntityTypeWithMetadata, OntologyElementMetadata,
+        PropertyTypeWithMetadata,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
     shared::identifier::{account::AccountId, GraphElementIdentifier},
@@ -137,7 +137,7 @@ impl DatabaseApi<'_> {
     pub async fn create_data_type(
         &mut self,
         data_type: DataType,
-    ) -> Result<PersistedOntologyMetadata, InsertionError> {
+    ) -> Result<OntologyElementMetadata, InsertionError> {
         self.store
             .create_data_type(
                 data_type,
@@ -171,7 +171,7 @@ impl DatabaseApi<'_> {
     pub async fn update_data_type(
         &mut self,
         data_type: DataType,
-    ) -> Result<PersistedOntologyMetadata, UpdateError> {
+    ) -> Result<OntologyElementMetadata, UpdateError> {
         self.store
             .update_data_type(data_type, UpdatedById::new(self.account_id))
             .await
@@ -180,7 +180,7 @@ impl DatabaseApi<'_> {
     pub async fn create_property_type(
         &mut self,
         property_type: PropertyType,
-    ) -> Result<PersistedOntologyMetadata, InsertionError> {
+    ) -> Result<OntologyElementMetadata, InsertionError> {
         self.store
             .create_property_type(
                 property_type,
@@ -214,7 +214,7 @@ impl DatabaseApi<'_> {
     pub async fn update_property_type(
         &mut self,
         property_type: PropertyType,
-    ) -> Result<PersistedOntologyMetadata, UpdateError> {
+    ) -> Result<OntologyElementMetadata, UpdateError> {
         self.store
             .update_property_type(property_type, UpdatedById::new(self.account_id))
             .await
@@ -223,7 +223,7 @@ impl DatabaseApi<'_> {
     pub async fn create_entity_type(
         &mut self,
         entity_type: EntityType,
-    ) -> Result<PersistedOntologyMetadata, InsertionError> {
+    ) -> Result<OntologyElementMetadata, InsertionError> {
         self.store
             .create_entity_type(
                 entity_type,
@@ -257,7 +257,7 @@ impl DatabaseApi<'_> {
     pub async fn update_entity_type(
         &mut self,
         entity_type: EntityType,
-    ) -> Result<PersistedOntologyMetadata, UpdateError> {
+    ) -> Result<OntologyElementMetadata, UpdateError> {
         self.store
             .update_entity_type(entity_type, UpdatedById::new(self.account_id))
             .await

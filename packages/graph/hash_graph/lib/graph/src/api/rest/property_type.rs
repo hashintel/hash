@@ -19,7 +19,7 @@ use crate::{
     api::rest::{read_from_store, report_to_status_code},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, PersistedOntologyIdentifier, PersistedOntologyMetadata,
+        patch_id_and_parse, OntologyElementMetadata, PersistedOntologyIdentifier,
         PropertyTypeWithMetadata,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
@@ -50,7 +50,7 @@ use crate::{
             CreatedById,
             UpdatedById,
             PersistedOntologyIdentifier,
-            PersistedOntologyMetadata,
+            OntologyElementMetadata,
             PropertyTypeWithMetadata,
             PropertyTypeStructuralQuery,
             GraphElementIdentifier,
@@ -102,7 +102,7 @@ struct CreatePropertyTypeRequest {
     request_body = CreatePropertyTypeRequest,
     tag = "PropertyType",
     responses(
-        (status = 201, content_type = "application/json", description = "The metadata of the created property type", body = PersistedOntologyMetadata),
+        (status = 201, content_type = "application/json", description = "The metadata of the created property type", body = OntologyElementMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 409, description = "Unable to create property type in the store as the base property type ID already exists"),
@@ -114,7 +114,7 @@ async fn create_property_type<P: StorePool + Send>(
     body: Json<CreatePropertyTypeRequest>,
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
-) -> Result<Json<PersistedOntologyMetadata>, StatusCode> {
+) -> Result<Json<OntologyElementMetadata>, StatusCode> {
     let Json(CreatePropertyTypeRequest {
         schema,
         owned_by_id,
@@ -259,7 +259,7 @@ struct UpdatePropertyTypeRequest {
     path = "/property-types",
     tag = "PropertyType",
     responses(
-        (status = 200, content_type = "application/json", description = "The metadata of the updated property type", body = PersistedOntologyMetadata),
+        (status = 200, content_type = "application/json", description = "The metadata of the updated property type", body = OntologyElementMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Base property type ID was not found"),
@@ -270,7 +270,7 @@ struct UpdatePropertyTypeRequest {
 async fn update_property_type<P: StorePool + Send>(
     body: Json<UpdatePropertyTypeRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<PersistedOntologyMetadata>, StatusCode> {
+) -> Result<Json<OntologyElementMetadata>, StatusCode> {
     let Json(UpdatePropertyTypeRequest {
         schema,
         type_to_update,

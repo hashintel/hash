@@ -18,8 +18,8 @@ use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, EntityTypeWithMetadata, PersistedOntologyIdentifier,
-        PersistedOntologyMetadata,
+        patch_id_and_parse, EntityTypeWithMetadata, OntologyElementMetadata,
+        PersistedOntologyIdentifier,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
     shared::identifier::GraphElementIdentifier,
@@ -51,7 +51,7 @@ use crate::{
             CreatedById,
             UpdatedById,
             PersistedOntologyIdentifier,
-            PersistedOntologyMetadata,
+            OntologyElementMetadata,
             EntityTypeWithMetadata,
             EntityTypeStructuralQuery,
             GraphElementIdentifier,
@@ -103,7 +103,7 @@ struct CreateEntityTypeRequest {
     request_body = CreateEntityTypeRequest,
     tag = "EntityType",
     responses(
-        (status = 201, content_type = "application/json", description = "The metadata of the created entity type", body = PersistedOntologyMetadata),
+        (status = 201, content_type = "application/json", description = "The metadata of the created entity type", body = OntologyElementMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 409, description = "Unable to create entity type in the datastore as the base entity type ID already exists"),
@@ -115,7 +115,7 @@ async fn create_entity_type<P: StorePool + Send>(
     body: Json<CreateEntityTypeRequest>,
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
-) -> Result<Json<PersistedOntologyMetadata>, StatusCode> {
+) -> Result<Json<OntologyElementMetadata>, StatusCode> {
     let Json(CreateEntityTypeRequest {
         schema,
         owned_by_id,
@@ -259,7 +259,7 @@ struct UpdateEntityTypeRequest {
     path = "/entity-types",
     tag = "EntityType",
     responses(
-        (status = 200, content_type = "application/json", description = "The metadata of the updated entity type", body = PersistedOntologyMetadata),
+        (status = 200, content_type = "application/json", description = "The metadata of the updated entity type", body = OntologyElementMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Base entity type ID was not found"),
@@ -270,7 +270,7 @@ struct UpdateEntityTypeRequest {
 async fn update_entity_type<P: StorePool + Send>(
     body: Json<UpdateEntityTypeRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<PersistedOntologyMetadata>, StatusCode> {
+) -> Result<Json<OntologyElementMetadata>, StatusCode> {
     let Json(UpdateEntityTypeRequest {
         schema,
         type_to_update,

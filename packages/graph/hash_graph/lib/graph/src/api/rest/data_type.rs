@@ -19,8 +19,8 @@ use crate::{
     api::rest::{read_from_store, report_to_status_code},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, DataTypeWithMetadata, PersistedOntologyIdentifier,
-        PersistedOntologyMetadata,
+        patch_id_and_parse, DataTypeWithMetadata, OntologyElementMetadata,
+        PersistedOntologyIdentifier,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
     shared::identifier::GraphElementIdentifier,
@@ -48,7 +48,7 @@ use crate::{
             CreatedById,
             UpdatedById,
             PersistedOntologyIdentifier,
-            PersistedOntologyMetadata,
+            OntologyElementMetadata,
             DataTypeWithMetadata,
             DataTypeStructuralQuery,
             GraphElementIdentifier,
@@ -100,7 +100,7 @@ struct CreateDataTypeRequest {
     request_body = CreateDataTypeRequest,
     tag = "DataType",
     responses(
-        (status = 201, content_type = "application/json", description = "The metadata of the created data type", body = PersistedOntologyMetadata),
+        (status = 201, content_type = "application/json", description = "The metadata of the created data type", body = OntologyElementMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 409, description = "Unable to create data type in the store as the base data type URI already exists"),
@@ -112,7 +112,7 @@ async fn create_data_type<P: StorePool + Send>(
     body: Json<CreateDataTypeRequest>,
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
-) -> Result<Json<PersistedOntologyMetadata>, StatusCode> {
+) -> Result<Json<OntologyElementMetadata>, StatusCode> {
     let Json(CreateDataTypeRequest {
         schema,
         owned_by_id,
@@ -253,7 +253,7 @@ struct UpdateDataTypeRequest {
     path = "/data-types",
     tag = "DataType",
     responses(
-        (status = 200, content_type = "application/json", description = "The metadata of the updated data type", body = PersistedOntologyMetadata),
+        (status = 200, content_type = "application/json", description = "The metadata of the updated data type", body = OntologyElementMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Base data type ID was not found"),
@@ -264,7 +264,7 @@ struct UpdateDataTypeRequest {
 async fn update_data_type<P: StorePool + Send>(
     body: Json<UpdateDataTypeRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<PersistedOntologyMetadata>, StatusCode> {
+) -> Result<Json<OntologyElementMetadata>, StatusCode> {
     let Json(UpdateDataTypeRequest {
         schema,
         type_to_update,

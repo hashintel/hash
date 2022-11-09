@@ -21,7 +21,7 @@ use crate::{
     identifier::knowledge::EntityId,
     knowledge::{Entity, EntityMetadata, EntityProperties, EntityUuid, LinkEntityMetadata},
     ontology::{
-        DataTypeWithMetadata, EntityTypeWithMetadata, PersistedOntologyMetadata,
+        DataTypeWithMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
         PropertyTypeWithMetadata,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
@@ -212,7 +212,7 @@ pub trait DataTypeStore:
         data_type: DataType,
         owned_by_id: OwnedById,
         actor_id: CreatedById,
-    ) -> Result<PersistedOntologyMetadata, InsertionError>;
+    ) -> Result<OntologyElementMetadata, InsertionError>;
 
     /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
     ///
@@ -233,7 +233,7 @@ pub trait DataTypeStore:
         &mut self,
         data_type: DataType,
         actor_id: UpdatedById,
-    ) -> Result<PersistedOntologyMetadata, UpdateError>;
+    ) -> Result<OntologyElementMetadata, UpdateError>;
 }
 
 /// Describes the API of a store implementation for [`PropertyType`]s.
@@ -254,7 +254,7 @@ pub trait PropertyTypeStore:
         property_type: PropertyType,
         owned_by_id: OwnedById,
         actor_id: CreatedById,
-    ) -> Result<PersistedOntologyMetadata, InsertionError>;
+    ) -> Result<OntologyElementMetadata, InsertionError>;
 
     /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
     ///
@@ -275,7 +275,7 @@ pub trait PropertyTypeStore:
         &mut self,
         property_type: PropertyType,
         actor_id: UpdatedById,
-    ) -> Result<PersistedOntologyMetadata, UpdateError>;
+    ) -> Result<OntologyElementMetadata, UpdateError>;
 }
 
 /// Describes the API of a store implementation for [`EntityType`]s.
@@ -296,7 +296,7 @@ pub trait EntityTypeStore:
         entity_type: EntityType,
         owned_by_id: OwnedById,
         actor_id: CreatedById,
-    ) -> Result<PersistedOntologyMetadata, InsertionError>;
+    ) -> Result<OntologyElementMetadata, InsertionError>;
 
     /// Get the [`Subgraph`]s specified by the [`StructuralQuery`].
     ///
@@ -317,7 +317,7 @@ pub trait EntityTypeStore:
         &mut self,
         entity_type: EntityType,
         actor_id: UpdatedById,
-    ) -> Result<PersistedOntologyMetadata, UpdateError>;
+    ) -> Result<OntologyElementMetadata, UpdateError>;
 }
 
 /// Describes the API of a store implementation for [Entities].

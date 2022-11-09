@@ -8,8 +8,8 @@ use type_system::{uri::VersionedUri, DataType, EntityType, PropertyType};
 
 use crate::{
     ontology::{
-        DataTypeWithMetadata, EntityTypeWithMetadata, PersistedOntologyIdentifier,
-        PersistedOntologyMetadata, PersistedOntologyType, PropertyTypeWithMetadata,
+        DataTypeWithMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
+        PersistedOntologyIdentifier, PersistedOntologyType, PropertyTypeWithMetadata,
     },
     provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
@@ -31,7 +31,7 @@ impl From<OntologyRecord<DataType>> for DataTypeWithMetadata {
 
         Self::new(
             data_type.record,
-            PersistedOntologyMetadata::new(
+            OntologyElementMetadata::new(
                 identifier,
                 ProvenanceMetadata::new(data_type.created_by_id, data_type.updated_by_id),
             ),
@@ -48,7 +48,7 @@ impl From<OntologyRecord<PropertyType>> for PropertyTypeWithMetadata {
 
         Self::new(
             property_type.record,
-            PersistedOntologyMetadata::new(
+            OntologyElementMetadata::new(
                 identifier,
                 ProvenanceMetadata::new(property_type.created_by_id, property_type.updated_by_id),
             ),
@@ -64,7 +64,7 @@ impl From<OntologyRecord<EntityType>> for EntityTypeWithMetadata {
         );
         Self::new(
             entity_type.record,
-            PersistedOntologyMetadata::new(
+            OntologyElementMetadata::new(
                 identifier,
                 ProvenanceMetadata::new(entity_type.created_by_id, entity_type.updated_by_id),
             ),
@@ -110,7 +110,7 @@ where
                 let identifier = PersistedOntologyIdentifier::new(versioned_uri, owned_by_id);
                 Ok(T::new(
                     record,
-                    PersistedOntologyMetadata::new(
+                    OntologyElementMetadata::new(
                         identifier,
                         ProvenanceMetadata::new(created_by_id, updated_by_id),
                     ),
