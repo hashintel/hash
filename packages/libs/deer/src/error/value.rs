@@ -30,7 +30,7 @@ pub struct ValueError;
 impl Error for ValueError {
     type Properties = (Location, ExpectedType, ReceivedValue);
 
-    const ID: Id = id!("value");
+    const ID: Id = id!["value"];
     const NAMESPACE: Namespace = NAMESPACE;
 
     fn message<'a>(
