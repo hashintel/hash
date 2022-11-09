@@ -87,7 +87,7 @@ export interface ArchiveEntityRequest {
    * @type {string}
    * @memberof ArchiveEntityRequest
    */
-  entityId: string;
+  entityUuid: string;
   /**
    *
    * @type {string}
@@ -143,13 +143,13 @@ export interface CreateEntityRequest {
    * @type {string}
    * @memberof CreateEntityRequest
    */
-  entityId?: string;
+  entityTypeId: string;
   /**
    *
    * @type {string}
    * @memberof CreateEntityRequest
    */
-  entityTypeId: string;
+  entityUuid?: string;
   /**
    *
    * @type {LinkEntityMetadata}
@@ -696,7 +696,7 @@ export interface PersistedEntityIdentifier {
    * @type {string}
    * @memberof PersistedEntityIdentifier
    */
-  entityId: string;
+  entityUuid: string;
   /**
    *
    * @type {string}
@@ -1180,13 +1180,13 @@ export interface UpdateEntityRequest {
    * @type {string}
    * @memberof UpdateEntityRequest
    */
-  entityId: string;
+  entityTypeId: string;
   /**
    *
    * @type {string}
    * @memberof UpdateEntityRequest
    */
-  entityTypeId: string;
+  entityUuid: string;
 }
 /**
  * The contents of an Entity Type update request
@@ -2425,19 +2425,19 @@ export const EntityApiAxiosParamCreator = function (
     },
     /**
      *
-     * @param {string} entityId The ID of the entity
+     * @param {string} entityUuid The UUID of the entity
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getEntity: async (
-      entityId: string,
+      entityUuid: string,
       options: AxiosRequestConfig = {},
     ): Promise<RequestArgs> => {
-      // verify required parameter 'entityId' is not null or undefined
-      assertParamExists("getEntity", "entityId", entityId);
-      const localVarPath = `/entities/{entityId}`.replace(
-        `{${"entityId"}}`,
-        encodeURIComponent(String(entityId)),
+      // verify required parameter 'entityUuid' is not null or undefined
+      assertParamExists("getEntity", "entityUuid", entityUuid);
+      const localVarPath = `/entities/{entityUuid}`.replace(
+        `{${"entityUuid"}}`,
+        encodeURIComponent(String(entityUuid)),
       );
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
       const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -2621,12 +2621,12 @@ export const EntityApiFp = function (configuration?: Configuration) {
     },
     /**
      *
-     * @param {string} entityId The ID of the entity
+     * @param {string} entityUuid The UUID of the entity
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     async getEntity(
-      entityId: string,
+      entityUuid: string,
       options?: AxiosRequestConfig,
     ): Promise<
       (
@@ -2635,7 +2635,7 @@ export const EntityApiFp = function (configuration?: Configuration) {
       ) => AxiosPromise<PersistedEntity>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.getEntity(
-        entityId,
+        entityUuid,
         options,
       );
       return createRequestFunction(
@@ -2737,13 +2737,16 @@ export const EntityApiFactory = function (
     },
     /**
      *
-     * @param {string} entityId The ID of the entity
+     * @param {string} entityUuid The UUID of the entity
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getEntity(entityId: string, options?: any): AxiosPromise<PersistedEntity> {
+    getEntity(
+      entityUuid: string,
+      options?: any,
+    ): AxiosPromise<PersistedEntity> {
       return localVarFp
-        .getEntity(entityId, options)
+        .getEntity(entityUuid, options)
         .then((request) => request(axios, basePath));
     },
     /**
@@ -2805,13 +2808,13 @@ export interface EntityApiInterface {
 
   /**
    *
-   * @param {string} entityId The ID of the entity
+   * @param {string} entityUuid The UUID of the entity
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof EntityApiInterface
    */
   getEntity(
-    entityId: string,
+    entityUuid: string,
     options?: AxiosRequestConfig,
   ): AxiosPromise<PersistedEntity>;
 
@@ -2879,14 +2882,14 @@ export class EntityApi extends BaseAPI implements EntityApiInterface {
 
   /**
    *
-   * @param {string} entityId The ID of the entity
+   * @param {string} entityUuid The UUID of the entity
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof EntityApi
    */
-  public getEntity(entityId: string, options?: AxiosRequestConfig) {
+  public getEntity(entityUuid: string, options?: AxiosRequestConfig) {
     return EntityApiFp(this.configuration)
-      .getEntity(entityId, options)
+      .getEntity(entityUuid, options)
       .then((request) => request(this.axios, this.basePath));
   }
 
@@ -3948,19 +3951,19 @@ export const GraphApiAxiosParamCreator = function (
     },
     /**
      *
-     * @param {string} entityId The ID of the entity
+     * @param {string} entityUuid The UUID of the entity
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     getEntity: async (
-      entityId: string,
+      entityUuid: string,
       options: AxiosRequestConfig = {},
     ): Promise<RequestArgs> => {
-      // verify required parameter 'entityId' is not null or undefined
-      assertParamExists("getEntity", "entityId", entityId);
-      const localVarPath = `/entities/{entityId}`.replace(
-        `{${"entityId"}}`,
-        encodeURIComponent(String(entityId)),
+      // verify required parameter 'entityUuid' is not null or undefined
+      assertParamExists("getEntity", "entityUuid", entityUuid);
+      const localVarPath = `/entities/{entityUuid}`.replace(
+        `{${"entityUuid"}}`,
+        encodeURIComponent(String(entityUuid)),
       );
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
       const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -4763,12 +4766,12 @@ export const GraphApiFp = function (configuration?: Configuration) {
     },
     /**
      *
-     * @param {string} entityId The ID of the entity
+     * @param {string} entityUuid The UUID of the entity
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     async getEntity(
-      entityId: string,
+      entityUuid: string,
       options?: AxiosRequestConfig,
     ): Promise<
       (
@@ -4777,7 +4780,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
       ) => AxiosPromise<PersistedEntity>
     > {
       const localVarAxiosArgs = await localVarAxiosParamCreator.getEntity(
-        entityId,
+        entityUuid,
         options,
       );
       return createRequestFunction(
@@ -5202,13 +5205,16 @@ export const GraphApiFactory = function (
     },
     /**
      *
-     * @param {string} entityId The ID of the entity
+     * @param {string} entityUuid The UUID of the entity
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getEntity(entityId: string, options?: any): AxiosPromise<PersistedEntity> {
+    getEntity(
+      entityUuid: string,
+      options?: any,
+    ): AxiosPromise<PersistedEntity> {
       return localVarFp
-        .getEntity(entityId, options)
+        .getEntity(entityUuid, options)
         .then((request) => request(axios, basePath));
     },
     /**
@@ -5470,13 +5476,13 @@ export interface GraphApiInterface {
 
   /**
    *
-   * @param {string} entityId The ID of the entity
+   * @param {string} entityUuid The UUID of the entity
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof GraphApiInterface
    */
   getEntity(
-    entityId: string,
+    entityUuid: string,
     options?: AxiosRequestConfig,
   ): AxiosPromise<PersistedEntity>;
 
@@ -5747,14 +5753,14 @@ export class GraphApi extends BaseAPI implements GraphApiInterface {
 
   /**
    *
-   * @param {string} entityId The ID of the entity
+   * @param {string} entityUuid The UUID of the entity
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof GraphApi
    */
-  public getEntity(entityId: string, options?: AxiosRequestConfig) {
+  public getEntity(entityUuid: string, options?: AxiosRequestConfig) {
     return GraphApiFp(this.configuration)
-      .getEntity(entityId, options)
+      .getEntity(entityUuid, options)
       .then((request) => request(this.axios, this.basePath));
   }
 
