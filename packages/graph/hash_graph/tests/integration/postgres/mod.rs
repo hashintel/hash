@@ -389,16 +389,24 @@ impl DatabaseApi<'_> {
             .expect("no entity found")
     }
 
-    pub async fn get_entity_links(
+    pub async fn get_latest_entity_links(
         &self,
         source_entity_id: EntityId,
     ) -> Result<Vec<PersistedEntity>, QueryError> {
-        let filter = Filter::Equal(
-            Some(FilterExpression::Path(EntityQueryPath::LeftEntity(None))),
-            Some(FilterExpression::Parameter(Parameter::Uuid(
-                source_entity_id.as_uuid(),
-            ))),
-        );
+        let filter = Filter::All(vec![
+            Filter::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(None))),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    source_entity_id.as_uuid(),
+                ))),
+            ),
+            Filter::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::Version)),
+                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                    "latest",
+                )))),
+            ),
+        ]);
 
         Ok(self
             .store

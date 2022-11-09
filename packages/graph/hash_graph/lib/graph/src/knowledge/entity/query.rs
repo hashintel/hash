@@ -19,6 +19,7 @@ pub enum EntityQueryPath<'q> {
     UpdatedById,
     RemovedById,
     Version,
+    Archived,
     Type(EntityTypeQueryPath),
     Properties(Option<Cow<'q, str>>),
     IncomingLinks(Box<Self>),
@@ -42,6 +43,7 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::UpdatedById => fmt.write_str("updatedById"),
             Self::RemovedById => fmt.write_str("removedById"),
             Self::Version => fmt.write_str("version"),
+            Self::Archived => fmt.write_str("archived"),
             Self::Type(path) => write!(fmt, "type.{path}"),
             Self::Properties(Some(property)) => write!(fmt, "properties.{property}"),
             Self::Properties(None) => fmt.write_str("properties"),
@@ -75,6 +77,7 @@ impl RecordPath for EntityQueryPath<'_> {
             Self::Type(path) => path.expected_type(),
             Self::Properties(_) => ParameterType::Any,
             Self::LeftOrder | Self::RightOrder => ParameterType::Number,
+            Self::Archived => ParameterType::Boolean,
         }
     }
 }
@@ -89,6 +92,7 @@ pub enum EntityQueryToken {
     UpdatedById,
     RemovedById,
     Version,
+    Archived,
     Type,
     Properties,
     IncomingLinks,
@@ -102,10 +106,9 @@ pub struct EntityQueryPathVisitor {
 }
 
 impl EntityQueryPathVisitor {
-    pub const EXPECTING: &'static str =
-        "one of `ownedById`, `createdById`, `updatedById`, `removedById`, `baseUri`, \
-         `versionedUri`, `version`, `title`, `description`, `default`, `examples`, `properties`, \
-         `required`, `links`, `requiredLinks`, `inheritsFrom`";
+    pub const EXPECTING: &'static str = "one of `id`, `ownedById`, `createdById`, `updatedById`, \
+                                         `removedById`, `version`, `archived`, `type`, \
+                                         `properties`, `incomingLinks`, `outgoingLinks`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -136,6 +139,7 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
             EntityQueryToken::UpdatedById => EntityQueryPath::UpdatedById,
             EntityQueryToken::RemovedById => EntityQueryPath::RemovedById,
             EntityQueryToken::Version => EntityQueryPath::Version,
+            EntityQueryToken::Archived => EntityQueryPath::Archived,
             EntityQueryToken::Type => {
                 let entity_type_query_path =
                     EntityTypeQueryPathVisitor::new(self.position).visit_seq(seq)?;
@@ -205,9 +209,9 @@ mod tests {
         );
 
         assert_eq!(
-            EntityTypeQueryPath::deserialize(
-                de::value::SeqDeserializer::<_, de::value::Error>::new(once("invalid"))
-            )
+            EntityQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
+                once("invalid")
+            ))
             .expect_err(
                 "managed to convert entity query path with hidden token when it should have \
                  errored"
@@ -220,11 +224,9 @@ mod tests {
         );
 
         assert_eq!(
-            EntityTypeQueryPath::deserialize(
-                de::value::SeqDeserializer::<_, de::value::Error>::new(
-                    ["version", "test"].into_iter()
-                )
-            )
+            EntityQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(
+                ["version", "test"].into_iter()
+            ))
             .expect_err(
                 "managed to convert entity query path with multiple tokens when it should have \
                  errored"

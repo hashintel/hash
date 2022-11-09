@@ -499,11 +499,27 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   // The latest entities come first when querying the view.
   pgm.createView(
     "entities",
-    {},
+    {
+      columns: [
+        "entity_id",
+        "version",
+        "latest_version",
+        "entity_type_version_id",
+        "properties",
+        "left_order",
+        "right_order",
+        "left_entity_id",
+        "right_entity_id",
+        "archived",
+        "owned_by_id",
+        "created_by_id",
+        "updated_by_id",
+      ],
+    },
     `
-    SELECT entity_id, version, entity_type_version_id, properties, left_order, right_order, left_entity_id, right_entity_id, FALSE AS archived, owned_by_id, created_by_id, updated_by_id FROM latest_entities
+    SELECT entity_id, version, TRUE as latest_version, entity_type_version_id, properties, left_order, right_order, left_entity_id, right_entity_id, FALSE AS archived, owned_by_id, created_by_id, updated_by_id FROM latest_entities
     UNION ALL
-    SELECT entity_id, version, entity_type_version_id, properties, left_order, right_order, left_entity_id, right_entity_id, archived, owned_by_id, created_by_id, updated_by_id FROM entity_histories`,
+    SELECT entity_id, version, FALSE as latest_version, entity_type_version_id, properties, left_order, right_order, left_entity_id, right_entity_id, archived, owned_by_id, created_by_id, updated_by_id FROM entity_histories`,
   );
 }
 

@@ -147,7 +147,7 @@ async fn get_entity_links() {
     .expect("could not create link");
 
     let links_from_source = api
-        .get_entity_links(person_a_metadata.identifier().entity_id())
+        .get_latest_entity_links(person_a_metadata.identifier().entity_id())
         .await
         .expect("could not fetch link");
 
@@ -246,7 +246,7 @@ async fn remove_link() {
         .expect("could not create link");
 
     assert!(
-        !api.get_entity_links(person_a_metadata.identifier().entity_id())
+        !api.get_latest_entity_links(person_a_metadata.identifier().entity_id())
             .await
             .expect("could not fetch links")
             .is_empty()
@@ -257,7 +257,7 @@ async fn remove_link() {
         .expect("could not remove link");
 
     assert!(
-        api.get_entity_links(person_a_metadata.identifier().entity_id())
+        api.get_latest_entity_links(person_a_metadata.identifier().entity_id())
             .await
             .expect("could not fetch links")
             .is_empty()

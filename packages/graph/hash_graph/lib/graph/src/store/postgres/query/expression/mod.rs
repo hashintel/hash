@@ -6,7 +6,7 @@ mod where_clause;
 mod with_clause;
 
 pub use self::{
-    conditional::{Expression, Function},
+    conditional::{Constant, Expression, Function},
     join_clause::{JoinExpression, Relation},
     order_clause::{OrderByExpression, Ordering},
     select_clause::SelectExpression,
