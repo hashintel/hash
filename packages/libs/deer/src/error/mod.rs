@@ -59,7 +59,10 @@ use alloc::{format, string::String};
 use core::fmt::{self, Debug, Display, Formatter};
 
 use error_stack::{Context, Frame, IntoReport, Result};
+pub use location::Location;
 
+mod location;
+mod macros;
 mod tuple;
 mod r#type;
 
