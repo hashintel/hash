@@ -17,7 +17,6 @@ pub enum EntityQueryPath<'q> {
     OwnedById,
     CreatedById,
     UpdatedById,
-    RemovedById,
     Version,
     Archived,
     Type(EntityTypeQueryPath),
@@ -41,7 +40,6 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::OwnedById => fmt.write_str("ownedById"),
             Self::CreatedById => fmt.write_str("createdById"),
             Self::UpdatedById => fmt.write_str("updatedById"),
-            Self::RemovedById => fmt.write_str("removedById"),
             Self::Version => fmt.write_str("version"),
             Self::Archived => fmt.write_str("archived"),
             Self::Type(path) => write!(fmt, "type.{path}"),
@@ -66,7 +64,6 @@ impl RecordPath for EntityQueryPath<'_> {
             | Self::OwnedById
             | Self::CreatedById
             | Self::UpdatedById
-            | Self::RemovedById
             | Self::LeftEntity(None)
             | Self::RightEntity(None) => ParameterType::Uuid,
             Self::LeftEntity(Some(path))
@@ -91,7 +88,6 @@ pub enum EntityQueryToken {
     OwnedById,
     CreatedById,
     UpdatedById,
-    RemovedById,
     Version,
     Archived,
     Type,
@@ -109,10 +105,9 @@ pub struct EntityQueryPathVisitor {
 }
 
 impl EntityQueryPathVisitor {
-    pub const EXPECTING: &'static str = "one of `uuid`, `ownedById`, `createdById`, \
-                                         `updatedById`, `removedById`, `version`, `archived`, \
-                                         `type`, `properties`, `incomingLinks`, `outgoingLinks`, \
-                                         `leftEntity`, `rightEntity`";
+    pub const EXPECTING: &'static str =
+        "one of `uuid`, `ownedById`, `createdById`, `updatedById`, `version`, `archived`, `type`, \
+         `properties`, `incomingLinks`, `outgoingLinks`, `leftEntity`, `rightEntity`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -141,7 +136,6 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
             EntityQueryToken::OwnedById => EntityQueryPath::OwnedById,
             EntityQueryToken::CreatedById => EntityQueryPath::CreatedById,
             EntityQueryToken::UpdatedById => EntityQueryPath::UpdatedById,
-            EntityQueryToken::RemovedById => EntityQueryPath::RemovedById,
             EntityQueryToken::Version => EntityQueryPath::Version,
             EntityQueryToken::Archived => EntityQueryPath::Archived,
             EntityQueryToken::Type => EntityQueryPath::Type(

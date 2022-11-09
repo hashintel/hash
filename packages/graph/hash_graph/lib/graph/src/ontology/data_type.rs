@@ -22,7 +22,6 @@ pub enum DataTypeQueryPath {
     OwnedById,
     CreatedById,
     UpdatedById,
-    RemovedById,
     Schema,
     BaseUri,
     VersionedUri,
@@ -64,7 +63,6 @@ impl RecordPath for DataTypeQueryPath {
             Self::VersionId | Self::OwnedById | Self::CreatedById | Self::UpdatedById => {
                 ParameterType::Uuid
             }
-            Self::RemovedById => ParameterType::Uuid,
             Self::Schema => ParameterType::Any,
             Self::BaseUri => ParameterType::BaseUri,
             Self::VersionedUri => ParameterType::VersionedUri,
@@ -81,7 +79,6 @@ impl fmt::Display for DataTypeQueryPath {
             Self::OwnedById => fmt.write_str("ownedById"),
             Self::CreatedById => fmt.write_str("createdById"),
             Self::UpdatedById => fmt.write_str("updatedById"),
-            Self::RemovedById => fmt.write_str("removedById"),
             Self::Schema => fmt.write_str("schema"),
             Self::BaseUri => fmt.write_str("baseUri"),
             Self::VersionedUri => fmt.write_str("versionedUri"),
@@ -100,7 +97,6 @@ enum DataTypeQueryToken {
     OwnedById,
     CreatedById,
     UpdatedById,
-    RemovedById,
     BaseUri,
     VersionedUri,
     Version,
@@ -117,8 +113,8 @@ pub struct DataTypeQueryPathVisitor {
 
 impl DataTypeQueryPathVisitor {
     pub const EXPECTING: &'static str = "one of `ownedById`, `createdById`, `updatedById`, \
-                                         `removedById`, `baseUri`, `versionedUri`, `version`, \
-                                         `title`, `description`, `type`";
+                                         `baseUri`, `versionedUri`, `version`, `title`, \
+                                         `description`, `type`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -146,7 +142,6 @@ impl<'de> Visitor<'de> for DataTypeQueryPathVisitor {
             DataTypeQueryToken::OwnedById => DataTypeQueryPath::OwnedById,
             DataTypeQueryToken::CreatedById => DataTypeQueryPath::CreatedById,
             DataTypeQueryToken::UpdatedById => DataTypeQueryPath::UpdatedById,
-            DataTypeQueryToken::RemovedById => DataTypeQueryPath::RemovedById,
             DataTypeQueryToken::BaseUri => DataTypeQueryPath::BaseUri,
             DataTypeQueryToken::VersionedUri => DataTypeQueryPath::VersionedUri,
             DataTypeQueryToken::Version => DataTypeQueryPath::Version,

@@ -3,8 +3,7 @@ use tokio_postgres::GenericClient;
 use type_system::uri::{BaseUri, VersionedUri};
 
 use crate::{
-    provenance::{CreatedById, OwnedById, RemovedById, UpdatedById},
-    shared::identifier::account::AccountId,
+    provenance::{CreatedById, OwnedById, UpdatedById},
     store::{postgres::ontology::OntologyDatabaseType, AsClient, QueryError},
 };
 
@@ -18,7 +17,6 @@ pub struct OntologyRecord<T> {
     pub owned_by_id: OwnedById,
     pub created_by_id: CreatedById,
     pub updated_by_id: UpdatedById,
-    pub removed_by_id: Option<RemovedById>,
     pub is_latest: bool,
 }
 
@@ -34,7 +32,7 @@ where
         .query_one(
             &format!(
                 r#"
-                SELECT schema, owned_by_id, created_by_id, updated_by_id, removed_by_id
+                SELECT schema, owned_by_id, created_by_id, updated_by_id
                 FROM {} type_table
                 INNER JOIN type_ids
                 ON type_table.version_id = type_ids.version_id
@@ -58,7 +56,6 @@ where
     let owned_by_id = OwnedById::new(row.get(1));
     let created_by_id = CreatedById::new(row.get(2));
     let updated_by_id = UpdatedById::new(row.get(3));
-    let removed_by_id = row.get::<_, Option<AccountId>>(4).map(RemovedById::new);
 
     Ok(OntologyRecord {
         record,
@@ -66,7 +63,6 @@ where
         is_latest: true,
         created_by_id,
         updated_by_id,
-        removed_by_id,
     })
 }
 
@@ -86,7 +82,7 @@ where
                     SELECT MAX(version) as latest
                     FROM type_ids
                     WHERE base_uri = $1
-                ), created_by_id, updated_by_id, removed_by_id
+                ), created_by_id, updated_by_id
                 FROM {} type_table
                 INNER JOIN type_ids
                 ON type_table.version_id = type_ids.version_id
@@ -107,7 +103,6 @@ where
     let latest: i64 = row.get(2);
     let created_by_id = CreatedById::new(row.get(3));
     let updated_by_id = UpdatedById::new(row.get(4));
-    let removed_by_id = row.get::<_, Option<AccountId>>(5).map(RemovedById::new);
 
     Ok(OntologyRecord {
         record,
@@ -115,6 +110,5 @@ where
         is_latest: latest as u32 == uri.version(),
         created_by_id,
         updated_by_id,
-        removed_by_id,
     })
 }

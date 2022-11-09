@@ -21,7 +21,6 @@ impl PostgresQueryRecord for EntityType {
             EntityTypeQueryPath::OwnedById,
             EntityTypeQueryPath::CreatedById,
             EntityTypeQueryPath::UpdatedById,
-            EntityTypeQueryPath::RemovedById,
         ]
     }
 }
@@ -87,7 +86,6 @@ impl Path for EntityTypeQueryPath {
             | Self::OwnedById
             | Self::CreatedById
             | Self::UpdatedById
-            | Self::RemovedById
             | Self::Schema
             | Self::VersionedUri
             | Self::Title
@@ -118,9 +116,6 @@ impl Path for EntityTypeQueryPath {
             },
             Self::UpdatedById => ColumnAccess::Table {
                 column: "updated_by_id",
-            },
-            Self::RemovedById => ColumnAccess::Table {
-                column: "removed_by_id",
             },
             Self::Schema => ColumnAccess::Table { column: "schema" },
             Self::VersionedUri => ColumnAccess::Json {

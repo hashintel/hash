@@ -134,8 +134,7 @@ mod tests {
                 "data_types"."schema",
                 "data_types"."owned_by_id",
                 "data_types"."created_by_id",
-                "data_types"."updated_by_id",
-                "data_types"."removed_by_id"
+                "data_types"."updated_by_id"
             FROM "data_types"
             "#,
             &[],

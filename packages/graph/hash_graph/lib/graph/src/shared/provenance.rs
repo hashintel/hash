@@ -48,7 +48,6 @@ macro_rules! define_provenance_id {
 define_provenance_id!(OwnedById);
 define_provenance_id!(CreatedById);
 define_provenance_id!(UpdatedById);
-define_provenance_id!(RemovedById);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]

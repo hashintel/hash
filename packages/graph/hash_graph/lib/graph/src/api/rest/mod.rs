@@ -380,7 +380,6 @@ impl Modify for FilterSchemaAddon {
                                             "ownedById",
                                             "createdById",
                                             "updatedById",
-                                            "removedById",
                                             "baseUri",
                                             "versionedUri",
                                             "version",
