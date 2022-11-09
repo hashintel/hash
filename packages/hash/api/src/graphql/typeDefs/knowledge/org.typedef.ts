@@ -34,5 +34,30 @@ export const persistedOrgTypedef = gql`
       """
       linkTargetEntityResolveDepth: Int
     ): Subgraph!
+    """
+    Add an existing user to an existing organization.
+    """
+    addUserToOrg(
+      """
+      The user to be added to the organization.
+      """
+      userEntityId: ID!
+      """
+      The organization the user will be added to.
+      """
+      orgEntityId: ID!
+      """
+      The responsibility of the user at the organization.
+      """
+      responsibility: String!
+      """
+      The depth of links that are returned in the response subgraph.
+      """
+      linkResolveDepth: Int
+      """
+      The depth of link target entities that are returned in the response subgraph.
+      """
+      linkTargetEntityResolveDepth: Int
+    ): Subgraph!
   }
 `;

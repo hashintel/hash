@@ -117,6 +117,7 @@ import { blockChildEntity } from "./knowledge/block/data-entity";
 import { loggedInAndSignedUpHashInstanceAdmin } from "./middlewares/loggedInAndSignedUpHashInstanceAdmin";
 import { createUser } from "./knowledge/user/create-user";
 import { createOrg } from "./knowledge/org/create-org";
+import { addUserToOrg } from "./knowledge/org/add-user-to-org";
 
 /**
  * @todo: derive these from the statically declared system type names
@@ -227,6 +228,7 @@ export const resolvers = {
     // HASH instance admin mutations
     createUser: loggedInAndSignedUpHashInstanceAdmin(createUser),
     createOrg: loggedInAndSignedUpHashInstanceAdmin(createOrg),
+    addUserToOrg: loggedInAndSignedUpHashInstanceAdmin(addUserToOrg),
   },
 
   JSONObject: JSONObjectResolver,
