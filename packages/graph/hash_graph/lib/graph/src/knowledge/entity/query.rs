@@ -97,6 +97,8 @@ pub enum EntityQueryToken {
     Properties,
     IncomingLinks,
     OutgoingLinks,
+    LeftEntity,
+    RightEntity,
 }
 
 /// Deserializes an [`EntityQueryPath`] from a string sequence.
@@ -106,9 +108,9 @@ pub struct EntityQueryPathVisitor {
 }
 
 impl EntityQueryPathVisitor {
-    pub const EXPECTING: &'static str = "one of `id`, `ownedById`, `createdById`, `updatedById`, \
-                                         `removedById`, `version`, `archived`, `type`, \
-                                         `properties`, `incomingLinks`, `outgoingLinks`";
+    pub const EXPECTING: &'static str =
+        "one of `id`, `ownedById`, `createdById`, `updatedById`, `removedById`, `version`, \
+         `type`, `properties`, `incomingLinks`, `outgoingLinks`, `leftEntity`, `rightEntity`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -140,12 +142,9 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
             EntityQueryToken::RemovedById => EntityQueryPath::RemovedById,
             EntityQueryToken::Version => EntityQueryPath::Version,
             EntityQueryToken::Archived => EntityQueryPath::Archived,
-            EntityQueryToken::Type => {
-                let entity_type_query_path =
-                    EntityTypeQueryPathVisitor::new(self.position).visit_seq(seq)?;
-
-                EntityQueryPath::Type(entity_type_query_path)
-            }
+            EntityQueryToken::Type => EntityQueryPath::Type(
+                EntityTypeQueryPathVisitor::new(self.position).visit_seq(seq)?,
+            ),
             EntityQueryToken::Properties => {
                 let property = seq
                     .next_element()?
@@ -153,17 +152,17 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
                 EntityQueryPath::Properties(Some(property))
             }
             EntityQueryToken::OutgoingLinks => {
-                let entity_query_path = seq
-                    .next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
-                EntityQueryPath::OutgoingLinks(entity_query_path)
+                EntityQueryPath::OutgoingLinks(Box::new(Self::new(self.position).visit_seq(seq)?))
             }
             EntityQueryToken::IncomingLinks => {
-                let entity_query_path = seq
-                    .next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
-                EntityQueryPath::IncomingLinks(entity_query_path)
+                EntityQueryPath::IncomingLinks(Box::new(Self::new(self.position).visit_seq(seq)?))
             }
+            EntityQueryToken::LeftEntity => EntityQueryPath::LeftEntity(Some(Box::new(
+                Self::new(self.position).visit_seq(seq)?,
+            ))),
+            EntityQueryToken::RightEntity => EntityQueryPath::RightEntity(Some(Box::new(
+                Self::new(self.position).visit_seq(seq)?,
+            ))),
         })
     }
 }
@@ -206,6 +205,10 @@ mod tests {
             EntityQueryPath::Properties(Some(Cow::Borrowed(
                 "https://blockprotocol.org/@alice/types/property-type/name/"
             )))
+        );
+        assert_eq!(
+            deserialize(["leftEntity", "id"]),
+            EntityQueryPath::LeftEntity(Some(Box::new(EntityQueryPath::Id)))
         );
 
         assert_eq!(
