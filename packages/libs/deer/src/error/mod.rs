@@ -59,7 +59,17 @@ use alloc::{collections::BTreeMap, format, string::String};
 use core::fmt::{self, Debug, Display, Formatter};
 
 use error_stack::{Context, Frame, IntoReport, Result};
+pub use extra::{
+    ArrayItemsCountError, ExpectedLength, LengthValue, ObjectItemsExtraError, ReceivedKeys,
+    ReceivedLength,
+};
 pub use location::Location;
+pub use r#type::{ExpectedType, ReceivedType, TypeError};
+pub use unknown::{
+    ExpectedField, ExpectedVariant, ReceivedField, ReceivedVariant, UnknownFieldError,
+    UnknownVariantError,
+};
+pub use value::{ReceivedValue, ValueError};
 
 use crate::error::macros::impl_error;
 
@@ -71,7 +81,8 @@ mod r#type;
 mod unknown;
 mod value;
 
-pub(crate) type Schema = BTreeMap<String, Box<dyn erased_serde::Serialize + Send + Sync>>;
+// TODO: most likely (in 0.2) we want to actually have a proper schema
+pub(crate) type Schema = BTreeMap<String, String>;
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Hash, Copy, Clone, serde::Serialize)]
 pub struct Namespace(&'static str);

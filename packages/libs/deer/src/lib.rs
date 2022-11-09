@@ -19,21 +19,12 @@ use num_traits::ToPrimitive;
 use crate::error::{
     ArrayAccessError, DeserializeError, DeserializerError, ObjectAccessError, VisitorError,
 };
-pub use crate::{
-    error::{Error, ErrorProperty, Id, Namespace},
-    number::Number,
-};
+pub use crate::number::Number;
 
-mod error;
+pub mod error;
 mod number;
 
 extern crate alloc;
-extern crate core;
-extern crate core;
-extern crate core;
-extern crate core;
-extern crate core;
-extern crate core;
 
 pub trait ObjectAccess<'de> {
     fn value<T>(&mut self, key: &str) -> Result<T, ObjectAccessError>
