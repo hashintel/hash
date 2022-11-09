@@ -26,6 +26,7 @@ pub use crate::{
 
 mod error;
 mod number;
+mod tuple;
 
 extern crate alloc;
 
