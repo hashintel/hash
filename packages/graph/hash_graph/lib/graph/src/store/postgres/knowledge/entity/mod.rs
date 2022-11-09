@@ -59,7 +59,7 @@ impl<C: AsClient> PostgresStore<C> {
                     OutwardEdge {
                         edge_kind: EdgeKind::HasType,
                         destination: GraphElementIdentifier::OntologyElementId(
-                            entity_type_id.clone(),
+                            entity_type_id.clone().into(),
                         ),
                     },
                 );
@@ -70,7 +70,7 @@ impl<C: AsClient> PostgresStore<C> {
                     > 0
                 {
                     self.get_entity_type_as_dependency(
-                        &entity_type_id,
+                        &entity_type_id.into(),
                         dependency_context.change_depth(GraphResolveDepths {
                             entity_type_resolve_depth: dependency_context
                                 .graph_resolve_depths

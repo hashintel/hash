@@ -4,9 +4,10 @@ use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use futures::{stream, StreamExt, TryStreamExt};
 use tokio_postgres::GenericClient;
-use type_system::{uri::VersionedUri, DataType};
+use type_system::DataType;
 
 use crate::{
+    identifier::ontology::OntologyTypeEditionId,
     ontology::{DataTypeWithMetadata, OntologyElementMetadata},
     provenance::{CreatedById, OwnedById, UpdatedById},
     shared::identifier::GraphElementIdentifier,
@@ -24,7 +25,7 @@ impl<C: AsClient> PostgresStore<C> {
     /// This is used to recursively resolve a type, so the result can be reused.
     pub(crate) async fn get_data_type_as_dependency(
         &self,
-        data_type_id: &VersionedUri,
+        data_type_id: &OntologyTypeEditionId,
         context: DependencyContextRef<'_>,
     ) -> Result<(), QueryError> {
         let DependencyContextRef {
@@ -92,7 +93,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             .then(|data_type| async move {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 
-                let data_type_id = data_type.metadata().identifier().uri().clone();
+                let data_type_id = data_type.metadata().edition_id().clone();
                 dependency_context
                     .referenced_data_types
                     .insert(&data_type_id, None, data_type);

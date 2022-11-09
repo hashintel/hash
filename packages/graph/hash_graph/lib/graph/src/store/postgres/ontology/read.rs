@@ -9,7 +9,7 @@ use type_system::{uri::VersionedUri, DataType, EntityType, PropertyType};
 use crate::{
     ontology::{
         DataTypeWithMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
-        PersistedOntologyIdentifier, PersistedOntologyType, PropertyTypeWithMetadata,
+        PersistedOntologyType, PropertyTypeWithMetadata,
     },
     provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
@@ -26,7 +26,7 @@ use crate::{
 
 impl From<OntologyRecord<DataType>> for DataTypeWithMetadata {
     fn from(data_type: OntologyRecord<DataType>) -> Self {
-        let identifier = PersistedOntologyIdentifier::new(data_type.record.id().clone());
+        let identifier = data_type.record.id().clone().into();
 
         Self::new(
             data_type.record,
@@ -41,7 +41,7 @@ impl From<OntologyRecord<DataType>> for DataTypeWithMetadata {
 
 impl From<OntologyRecord<PropertyType>> for PropertyTypeWithMetadata {
     fn from(property_type: OntologyRecord<PropertyType>) -> Self {
-        let identifier = PersistedOntologyIdentifier::new(property_type.record.id().clone());
+        let identifier = property_type.record.id().clone().into();
 
         Self::new(
             property_type.record,
@@ -56,7 +56,7 @@ impl From<OntologyRecord<PropertyType>> for PropertyTypeWithMetadata {
 
 impl From<OntologyRecord<EntityType>> for EntityTypeWithMetadata {
     fn from(entity_type: OntologyRecord<EntityType>) -> Self {
-        let identifier = PersistedOntologyIdentifier::new(entity_type.record.id().clone());
+        let identifier = entity_type.record.id().clone().into();
         Self::new(
             entity_type.record,
             OntologyElementMetadata::new(
@@ -103,11 +103,11 @@ where
                 let created_by_id = CreatedById::new(row.get(3));
                 let updated_by_id = UpdatedById::new(row.get(4));
 
-                let identifier = PersistedOntologyIdentifier::new(versioned_uri);
+                let edition_identifier = versioned_uri.into();
                 Ok(T::new(
                     record,
                     OntologyElementMetadata::new(
-                        identifier,
+                        edition_identifier,
                         ProvenanceMetadata::new(created_by_id, updated_by_id),
                         owned_by_id,
                     ),

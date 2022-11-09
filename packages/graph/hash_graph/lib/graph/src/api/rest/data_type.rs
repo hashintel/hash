@@ -17,10 +17,10 @@ use utoipa::{OpenApi, ToSchema};
 use super::api_resource::RoutedResource;
 use crate::{
     api::rest::{read_from_store, report_to_status_code},
+    identifier::ontology::OntologyTypeEditionId,
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
         patch_id_and_parse, DataTypeWithMetadata, OntologyElementMetadata,
-        PersistedOntologyIdentifier,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
     shared::identifier::GraphElementIdentifier,
@@ -47,7 +47,7 @@ use crate::{
             OwnedById,
             CreatedById,
             UpdatedById,
-            PersistedOntologyIdentifier,
+            OntologyTypeEditionId,
             OntologyElementMetadata,
             DataTypeWithMetadata,
             DataTypeStructuralQuery,

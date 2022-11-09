@@ -4,9 +4,10 @@ use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use futures::{stream, FutureExt, StreamExt, TryStreamExt};
 use tokio_postgres::GenericClient;
-use type_system::{uri::VersionedUri, EntityType, EntityTypeReference};
+use type_system::{EntityType, EntityTypeReference};
 
 use crate::{
+    identifier::ontology::OntologyTypeEditionId,
     ontology::{EntityTypeWithMetadata, OntologyElementMetadata},
     provenance::{CreatedById, OwnedById, UpdatedById},
     shared::identifier::GraphElementIdentifier,
@@ -24,7 +25,7 @@ impl<C: AsClient> PostgresStore<C> {
     /// This is used to recursively resolve a type, so the result can be reused.
     pub(crate) fn get_entity_type_as_dependency<'a: 'b, 'b>(
         &'a self,
-        entity_type_id: &'a VersionedUri,
+        entity_type_id: &'a OntologyTypeEditionId,
         mut dependency_context: DependencyContextRef<'b>,
     ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'b>> {
         async move {
@@ -52,7 +53,7 @@ impl<C: AsClient> PostgresStore<C> {
                         OutwardEdge {
                             edge_kind: EdgeKind::References,
                             destination: GraphElementIdentifier::OntologyElementId(
-                                property_type_ref.uri().clone(),
+                                property_type_ref.uri().clone().into(),
                             ),
                         },
                     );
@@ -65,7 +66,8 @@ impl<C: AsClient> PostgresStore<C> {
                         // TODO: Use relation tables
                         //   see https://app.asana.com/0/0/1202884883200942/f
                         self.get_property_type_as_dependency(
-                            property_type_ref.uri(),
+                            // TODO: we have to clone here because we can't call `Into` on the ref
+                            &property_type_ref.uri().clone().into(),
                             dependency_context.change_depth(GraphResolveDepths {
                                 property_type_resolve_depth: dependency_context
                                     .graph_resolve_depths
@@ -97,11 +99,11 @@ impl<C: AsClient> PostgresStore<C> {
                 //   see https://app.asana.com/0/0/1202884883200942/f
                 for entity_type_id in entity_type_ids {
                     dependency_context.edges.insert(
-                        GraphElementIdentifier::OntologyElementId(entity_type_id.clone()),
+                        GraphElementIdentifier::OntologyElementId(entity_type_id.clone().into()),
                         OutwardEdge {
                             edge_kind: EdgeKind::References,
                             destination: GraphElementIdentifier::OntologyElementId(
-                                entity_type_id.clone(),
+                                entity_type_id.clone().into(),
                             ),
                         },
                     );
@@ -112,7 +114,8 @@ impl<C: AsClient> PostgresStore<C> {
                         > 0
                     {
                         self.get_entity_type_as_dependency(
-                            entity_type_id,
+                            // TODO: we have to clone here because we can't call `Into` on the ref
+                            &entity_type_id.clone().into(),
                             dependency_context.change_depth(GraphResolveDepths {
                                 entity_type_resolve_depth: dependency_context
                                     .graph_resolve_depths
@@ -190,7 +193,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             .then(|entity_type| async move {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 
-                let entity_type_id = entity_type.metadata().identifier().uri().clone();
+                let entity_type_id = entity_type.metadata().edition_id().clone();
                 dependency_context.referenced_entity_types.insert(
                     &entity_type_id,
                     None,

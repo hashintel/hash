@@ -4,9 +4,10 @@ use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use futures::{stream, FutureExt, StreamExt, TryStreamExt};
 use tokio_postgres::GenericClient;
-use type_system::{uri::VersionedUri, PropertyType};
+use type_system::PropertyType;
 
 use crate::{
+    identifier::ontology::OntologyTypeEditionId,
     ontology::{OntologyElementMetadata, PropertyTypeWithMetadata},
     provenance::{CreatedById, OwnedById, UpdatedById},
     shared::identifier::GraphElementIdentifier,
@@ -24,7 +25,7 @@ impl<C: AsClient> PostgresStore<C> {
     /// This is used to recursively resolve a type, so the result can be reused.
     pub(crate) fn get_property_type_as_dependency<'a: 'b, 'b>(
         &'a self,
-        property_type_id: &'b VersionedUri,
+        property_type_id: &'b OntologyTypeEditionId,
         mut dependency_context: DependencyContextRef<'b>,
     ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'b>> {
         async move {
@@ -50,11 +51,11 @@ impl<C: AsClient> PostgresStore<C> {
                 //   see https://app.asana.com/0/0/1202884883200942/f
                 for data_type_ref in property_type.inner().data_type_references() {
                     dependency_context.edges.insert(
-                        GraphElementIdentifier::OntologyElementId(property_type_id.clone()),
+                        GraphElementIdentifier::OntologyElementId(property_type_id.clone().into()),
                         OutwardEdge {
                             edge_kind: EdgeKind::References,
                             destination: GraphElementIdentifier::OntologyElementId(
-                                data_type_ref.uri().clone(),
+                                data_type_ref.uri().clone().into(),
                             ),
                         },
                     );
@@ -64,7 +65,8 @@ impl<C: AsClient> PostgresStore<C> {
                         > 0
                     {
                         self.get_data_type_as_dependency(
-                            data_type_ref.uri(),
+                            // TODO: we have to clone here because we can't call `Into` on the ref
+                            &data_type_ref.uri().clone().into(),
                             dependency_context.change_depth(GraphResolveDepths {
                                 data_type_resolve_depth: dependency_context
                                     .graph_resolve_depths
@@ -85,7 +87,7 @@ impl<C: AsClient> PostgresStore<C> {
                         OutwardEdge {
                             edge_kind: EdgeKind::References,
                             destination: GraphElementIdentifier::OntologyElementId(
-                                property_type_ref.uri().clone(),
+                                property_type_ref.uri().clone().into(),
                             ),
                         },
                     );
@@ -96,7 +98,8 @@ impl<C: AsClient> PostgresStore<C> {
                         > 0
                     {
                         self.get_property_type_as_dependency(
-                            property_type_ref.uri(),
+                            // TODO: we have to clone here because we can't call `Into` on the ref
+                            &property_type_ref.uri().clone().into(),
                             dependency_context.change_depth(GraphResolveDepths {
                                 property_type_resolve_depth: dependency_context
                                     .graph_resolve_depths
@@ -174,7 +177,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
             .then(|property_type| async move {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 
-                let property_type_id = property_type.metadata().identifier().uri().clone();
+                let property_type_id = property_type.metadata().edition_id().clone();
                 dependency_context.referenced_property_types.insert(
                     &property_type_id,
                     None,

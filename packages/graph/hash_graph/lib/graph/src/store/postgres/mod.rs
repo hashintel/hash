@@ -26,14 +26,17 @@ use uuid::Uuid;
 use self::context::{OntologyRecord, PostgresContext};
 pub use self::pool::{AsClient, PostgresStorePool};
 use crate::{
-    identifier::knowledge::{EntityEditionId, EntityId},
+    identifier::{
+        knowledge::{EntityEditionId, EntityId},
+        ontology::OntologyTypeEditionId,
+    },
     knowledge::{
         Entity, EntityMetadata, EntityProperties, EntityUuid, KnowledgeGraphQueryDepth,
         LinkEntityMetadata,
     },
     ontology::{
         DataTypeWithMetadata, EntityTypeWithMetadata, OntologyElementMetadata, OntologyQueryDepth,
-        PersistedOntologyIdentifier, PropertyTypeWithMetadata,
+        PropertyTypeWithMetadata,
     },
     provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
     shared::identifier::{account::AccountId, GraphElementIdentifier},
@@ -230,11 +233,11 @@ where
 pub struct DependencyContext {
     pub edges: Edges,
     pub referenced_data_types:
-        DependencyMap<VersionedUri, DataTypeWithMetadata, OntologyQueryDepth>,
+        DependencyMap<OntologyTypeEditionId, DataTypeWithMetadata, OntologyQueryDepth>,
     pub referenced_property_types:
-        DependencyMap<VersionedUri, PropertyTypeWithMetadata, OntologyQueryDepth>,
+        DependencyMap<OntologyTypeEditionId, PropertyTypeWithMetadata, OntologyQueryDepth>,
     pub referenced_entity_types:
-        DependencyMap<VersionedUri, EntityTypeWithMetadata, OntologyQueryDepth>,
+        DependencyMap<OntologyTypeEditionId, EntityTypeWithMetadata, OntologyQueryDepth>,
     pub linked_entities: DependencyMap<EntityId, Entity, KnowledgeGraphQueryDepth>,
     pub graph_resolve_depths: GraphResolveDepths,
 }
@@ -272,7 +275,7 @@ impl DependencyContext {
             .map(|data_type| {
                 (
                     GraphElementIdentifier::OntologyElementId(
-                        data_type.metadata().identifier().uri().clone(),
+                        data_type.metadata().edition_id().clone(),
                     ),
                     Vertex::DataType(data_type),
                 )
@@ -283,7 +286,7 @@ impl DependencyContext {
                     .map(|property_type| {
                         (
                             GraphElementIdentifier::OntologyElementId(
-                                property_type.metadata().identifier().uri().clone(),
+                                property_type.metadata().edition_id().clone(),
                             ),
                             Vertex::PropertyType(property_type),
                         )
@@ -295,7 +298,7 @@ impl DependencyContext {
                     .map(|entity_type| {
                         (
                             GraphElementIdentifier::OntologyElementId(
-                                entity_type.metadata().identifier().uri().clone(),
+                                entity_type.metadata().edition_id().clone(),
                             ),
                             Vertex::EntityType(entity_type),
                         )
@@ -323,11 +326,11 @@ impl DependencyContext {
 pub struct DependencyContextRef<'a> {
     pub edges: &'a mut Edges,
     pub referenced_data_types:
-        &'a mut DependencyMap<VersionedUri, DataTypeWithMetadata, OntologyQueryDepth>,
+        &'a mut DependencyMap<OntologyTypeEditionId, DataTypeWithMetadata, OntologyQueryDepth>,
     pub referenced_property_types:
-        &'a mut DependencyMap<VersionedUri, PropertyTypeWithMetadata, OntologyQueryDepth>,
+        &'a mut DependencyMap<OntologyTypeEditionId, PropertyTypeWithMetadata, OntologyQueryDepth>,
     pub referenced_entity_types:
-        &'a mut DependencyMap<VersionedUri, EntityTypeWithMetadata, OntologyQueryDepth>,
+        &'a mut DependencyMap<OntologyTypeEditionId, EntityTypeWithMetadata, OntologyQueryDepth>,
     pub linked_entities: &'a mut DependencyMap<EntityId, Entity, KnowledgeGraphQueryDepth>,
     pub graph_resolve_depths: GraphResolveDepths,
 }
@@ -585,7 +588,7 @@ where
         Ok((
             version_id,
             OntologyElementMetadata::new(
-                PersistedOntologyIdentifier::new(uri),
+                uri.into(),
                 ProvenanceMetadata::new(
                     created_by_id,
                     UpdatedById::new(created_by_id.as_account_id()),
@@ -665,7 +668,7 @@ where
         Ok((
             version_id,
             OntologyElementMetadata::new(
-                PersistedOntologyIdentifier::new(uri),
+                uri.into(),
                 ProvenanceMetadata::new(created_by_id, updated_by_id),
                 owned_by_id,
             ),

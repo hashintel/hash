@@ -1,3 +1,5 @@
+use std::{fmt, fmt::Display};
+
 use postgres_types::{FromSql, ToSql};
 use serde::{Deserialize, Serialize};
 use type_system::uri::{BaseUri, VersionedUri};
@@ -51,6 +53,12 @@ impl OntologyTypeEditionId {
     #[must_use]
     pub const fn version(&self) -> OntologyTypeVersion {
         self.version
+    }
+}
+
+impl Display for OntologyTypeEditionId {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmt, "{}v/{}", self.base_id.as_str(), self.version.inner())
     }
 }
 

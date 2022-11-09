@@ -19,11 +19,10 @@ use crate::{
     api::rest::{read_from_store, report_to_status_code},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, OntologyElementMetadata, PersistedOntologyIdentifier,
-        PropertyTypeWithMetadata,
+        patch_id_and_parse, OntologyElementMetadata, PropertyTypeWithMetadata,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
-    shared::identifier::GraphElementIdentifier,
+    shared::identifier::{ontology::OntologyTypeEditionId, GraphElementIdentifier},
     store::{
         query::Filter, BaseUriAlreadyExists, BaseUriDoesNotExist, PropertyTypeStore, StorePool,
     },
@@ -49,7 +48,7 @@ use crate::{
             OwnedById,
             CreatedById,
             UpdatedById,
-            PersistedOntologyIdentifier,
+            OntologyTypeEditionId,
             OntologyElementMetadata,
             PropertyTypeWithMetadata,
             PropertyTypeStructuralQuery,

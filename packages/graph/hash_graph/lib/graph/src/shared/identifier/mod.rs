@@ -1,10 +1,9 @@
 use chrono::{DateTime, Utc};
 use serde::{Serialize, Serializer};
 use serde_json;
-use type_system::uri::VersionedUri;
 use utoipa::{openapi, ToSchema};
 
-use crate::identifier::knowledge::EntityId;
+use crate::identifier::{knowledge::EntityId, ontology::OntologyTypeEditionId};
 
 pub mod account;
 pub mod knowledge;
@@ -14,7 +13,7 @@ pub type Timestamp = DateTime<Utc>;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum GraphElementIdentifier {
-    OntologyElementId(VersionedUri),
+    OntologyElementId(OntologyTypeEditionId),
     KnowledgeGraphElementId(EntityId),
 }
 

@@ -19,10 +19,9 @@ use crate::{
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
         patch_id_and_parse, EntityTypeWithMetadata, OntologyElementMetadata,
-        PersistedOntologyIdentifier,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
-    shared::identifier::GraphElementIdentifier,
+    shared::identifier::{ontology::OntologyTypeEditionId, GraphElementIdentifier},
     store::{
         error::{BaseUriAlreadyExists, BaseUriDoesNotExist},
         query::Filter,
@@ -50,7 +49,7 @@ use crate::{
             OwnedById,
             CreatedById,
             UpdatedById,
-            PersistedOntologyIdentifier,
+            OntologyTypeEditionId,
             OntologyElementMetadata,
             EntityTypeWithMetadata,
             EntityTypeStructuralQuery,

@@ -1,8 +1,9 @@
 use error_stack::{Context, IntoReport, Result, ResultExt};
 use tokio_postgres::GenericClient;
-use type_system::uri::{BaseUri, VersionedUri};
+use type_system::uri::BaseUri;
 
 use crate::{
+    identifier::ontology::OntologyTypeEditionId,
     provenance::{CreatedById, OwnedById, UpdatedById},
     store::{postgres::ontology::OntologyDatabaseType, AsClient, QueryError},
 };
@@ -68,7 +69,7 @@ where
 
 pub async fn read_versioned_type<T>(
     client: &impl AsClient,
-    uri: &VersionedUri,
+    edition_id: &OntologyTypeEditionId,
 ) -> Result<OntologyRecord<T>, QueryError>
 where
     T: OntologyDatabaseType + TryFrom<serde_json::Value, Error: Context>,
@@ -90,7 +91,10 @@ where
                 "#,
                 T::table()
             ),
-            &[&uri.base_uri().as_str(), &i64::from(uri.version())],
+            &[
+                &edition_id.base_id().as_str(),
+                &i64::from(edition_id.version().inner()),
+            ],
         )
         .await
         .into_report()
@@ -107,7 +111,7 @@ where
     Ok(OntologyRecord {
         record,
         owned_by_id,
-        is_latest: latest as u32 == uri.version(),
+        is_latest: latest as u32 == edition_id.version().inner(),
         created_by_id,
         updated_by_id,
     })

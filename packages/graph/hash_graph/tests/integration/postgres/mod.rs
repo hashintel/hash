@@ -159,7 +159,9 @@ impl DatabaseApi<'_> {
             })
             .await?
             .vertices
-            .remove(&GraphElementIdentifier::OntologyElementId(uri.clone()))
+            .remove(&GraphElementIdentifier::OntologyElementId(
+                uri.clone().into(),
+            ))
             .expect("no data type found");
 
         match vertex {
@@ -202,7 +204,9 @@ impl DatabaseApi<'_> {
             })
             .await?
             .vertices
-            .remove(&GraphElementIdentifier::OntologyElementId(uri.clone()))
+            .remove(&GraphElementIdentifier::OntologyElementId(
+                uri.clone().into(),
+            ))
             .expect("no property type found");
 
         match vertex {
@@ -245,7 +249,9 @@ impl DatabaseApi<'_> {
             })
             .await?
             .vertices
-            .remove(&GraphElementIdentifier::OntologyElementId(uri.clone()))
+            .remove(&GraphElementIdentifier::OntologyElementId(
+                uri.clone().into(),
+            ))
             .expect("no entity type found");
 
         match vertex {

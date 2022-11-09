@@ -23,7 +23,10 @@ pub use self::{
     entity_type::{EntityTypeQueryPath, EntityTypeQueryPathVisitor},
     property_type::{PropertyTypeQueryPath, PropertyTypeQueryPathVisitor},
 };
-use crate::provenance::{OwnedById, ProvenanceMetadata};
+use crate::{
+    identifier::ontology::OntologyTypeEditionId,
+    provenance::{OwnedById, ProvenanceMetadata},
+};
 
 pub enum Selector {
     Asterisk,
@@ -59,27 +62,6 @@ impl<'de> Deserialize<'de> for Selector {
         }
 
         deserializer.deserialize_str(SelectorVisitor)
-    }
-}
-
-/// The metadata required to uniquely identify an ontology element that has been persisted in the
-/// datastore.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct PersistedOntologyIdentifier {
-    #[schema(value_type = String)]
-    uri: VersionedUri,
-}
-
-impl PersistedOntologyIdentifier {
-    #[must_use]
-    pub const fn new(uri: VersionedUri) -> Self {
-        Self { uri }
-    }
-
-    #[must_use]
-    pub const fn uri(&self) -> &VersionedUri {
-        &self.uri
     }
 }
 
@@ -232,7 +214,7 @@ impl PropertyTypeWithMetadata {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct OntologyElementMetadata {
-    identifier: PersistedOntologyIdentifier,
+    identifier: OntologyTypeEditionId,
     #[serde(rename = "provenance")]
     provenance_metadata: ProvenanceMetadata,
     owned_by_id: OwnedById,
@@ -241,7 +223,7 @@ pub struct OntologyElementMetadata {
 impl OntologyElementMetadata {
     #[must_use]
     pub const fn new(
-        identifier: PersistedOntologyIdentifier,
+        identifier: OntologyTypeEditionId,
         provenance_metadata: ProvenanceMetadata,
         owned_by_id: OwnedById,
     ) -> Self {
@@ -253,7 +235,7 @@ impl OntologyElementMetadata {
     }
 
     #[must_use]
-    pub const fn identifier(&self) -> &PersistedOntologyIdentifier {
+    pub const fn edition_id(&self) -> &OntologyTypeEditionId {
         &self.identifier
     }
 
