@@ -1,17 +1,13 @@
 import "@glideapps/glide-data-grid/dist/index.css";
 import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
-import {
-  GridCellKind,
-  GridColumn,
-  SizedGridColumn,
-} from "@glideapps/glide-data-grid";
+import { GridCellKind, GridColumn } from "@glideapps/glide-data-grid";
 import {
   Chip,
   FontAwesomeIcon,
   IconButton,
 } from "@hashintel/hash-design-system";
 import { Box, Paper, Stack } from "@mui/material";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { GlideGrid } from "../../../../../components/GlideGlid/glide-grid";
 import { GlideGridOverlayPortal } from "../../../../../components/GlideGlid/glide-grid-overlay-portal";
 import {
@@ -28,21 +24,11 @@ import { useEntityType } from "../use-entity-type";
 import { useRemotePropertyTypes } from "../use-property-types";
 import { NextPageWithLayout } from "../../../../../shared/layout";
 import { FRONTEND_URL } from "../../../../../lib/config";
-import { types } from "@hashintel/hash-shared/types";
 import { extractBaseUri } from "@blockprotocol/type-system-web";
 import { mustBeVersionedUri } from "../util";
-import {
-  // generateEntityLabel,
-  parseEntityIdentifier,
-} from "../../../../../lib/entities";
-import { useBlockProtocolGetEntity } from "../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolGetEntity";
-import {
-  extractEntityRoot,
-  getPropertyTypesByBaseUri,
-} from "../../../../../lib/subgraph";
-import { useBlockProtocolAggregateEntities } from "../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolAggregateEntities";
-import { useEntityTypeEntities2 } from "../../../../../components/hooks/useEntityTypeEntities2";
+import { parseEntityIdentifier } from "../../../../../lib/entities";
 import { Entity } from "../../../../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
+import { useAccounts } from "../../../../../components/hooks/useAccounts";
 
 const extractNamespace = (baseUri: string) => {
   return baseUri.split(`${FRONTEND_URL}/`)[1]?.split(`/types/`)[0];
@@ -120,32 +106,6 @@ export const generateEntityLabel = (
 
 const entityTypeId = "http://localhost:3000/@example/types/entity-type/user/";
 
-interface User {
-  name: string;
-  surname: String;
-}
-
-// type ColumnKey = keyof User;
-
-const users: User[] = [
-  {
-    name: "yusuf",
-    surname: "kınataş",
-  },
-  {
-    name: "luis",
-    surname: "bettencourt",
-  },
-  {
-    name: "bob",
-    surname: "bettencourt",
-  },
-  {
-    name: "zoe",
-    surname: "bettencourt",
-  },
-];
-
 const Page: NextPageWithLayout = () => {
   const [showSearch, setShowSearch] = useState(false);
 
@@ -154,7 +114,7 @@ const Page: NextPageWithLayout = () => {
     dir: "desc",
   });
 
-  const [rows, setRows] = useState<any>();
+  const { accounts } = useAccounts();
 
   const propertyTypes = useRemotePropertyTypes();
 
@@ -164,31 +124,12 @@ const Page: NextPageWithLayout = () => {
     "http://localhost:3000/@example/types/entity-type/user/v/1",
   );
 
-  const [gridIds, columns] = useMemo(() => {
-    const gridIds = ["entity", "namespace", "slug", "additionalTypes"];
+  const generateNameSpace = (ownedById: string) =>
+    accounts?.find(({ entityId }) => entityId === ownedById)?.shortname;
 
-    const columns: GridColumn[] = [
-      {
-        title: "Entity",
-        id: "entity",
-        width: 200,
-      },
-      {
-        title: "Namespace",
-        id: "namespace",
-        width: 200,
-      },
-      {
-        title: "Slug",
-        id: "slug",
-        width: 200,
-      },
-      {
-        title: "Additional Types",
-        id: "additionalTypes",
-        width: 200,
-      },
-      ...(propertyTypes && remoteEntityType
+  const [columns, rows] = useMemo(() => {
+    const propertyColumns =
+      propertyTypes && remoteEntityType
         ? Object.keys(remoteEntityType.properties).reduce<GridColumn[]>(
             (columns, propertyId) => {
               const propertyType = Object.values(propertyTypes).find(
@@ -211,38 +152,53 @@ const Page: NextPageWithLayout = () => {
             },
             [],
           )
-        : []),
+        : [];
+
+    const columns: GridColumn[] = [
+      {
+        title: "Entity",
+        id: "entity",
+        width: 200,
+      },
+      {
+        title: "Namespace",
+        id: "namespace",
+        width: 200,
+      },
+      {
+        title: "Additional Types",
+        id: "additionalTypes",
+        width: 200,
+      },
+      ...propertyColumns,
     ];
 
-    return [gridIds, columns];
-  }, [remoteEntityType, propertyTypes]);
+    const rows: { [k: string]: string }[] =
+      entities?.map((entity) => {
+        const entityLabel = generateEntityLabel(entity, propertyTypes);
+        const namespace = generateNameSpace(entity.ownedById);
 
-  const resolvePromisesSeq = async (tasks) => {
-    const results = [];
-    for (const task of tasks) {
-      results.push(await task);
-    }
+        return {
+          entity: entityLabel,
+          namespace: namespace ? `@${namespace}` : "",
+          additionalTypes: "",
+          ...propertyColumns.reduce((fields, column) => {
+            if (column.id) {
+              const propertyValue = entity.properties[column.id];
 
-    return results;
-  };
+              const value = Array.isArray(propertyValue)
+                ? propertyValue.join(", ")
+                : propertyValue;
+              return { ...fields, [column.id]: value };
+            }
 
-  const buildRows = async (entities: any) => {
-    const rows = entities.map((entity) => ({
-      entity: generateEntityLabel(entity, propertyTypes),
-      namespace: "",
-      slug: "",
-      additionalTypes: "",
-    }));
+            return fields;
+          }, {}),
+        };
+      }) ?? [];
 
-    setRows(rows);
-  };
-
-  useEffect(() => {
-    if (entities) {
-      console.log(entities);
-      buildRows(entities);
-    }
-  }, [entities]);
+    return [columns, rows];
+  }, [remoteEntityType, propertyTypes, entities]);
 
   const drawHeader = useDrawHeader(tableSort, columns);
 
@@ -252,7 +208,7 @@ const Page: NextPageWithLayout = () => {
     setTableSort,
   );
 
-  const sortedEntities = rows && sortRowData(rows, tableSort);
+  const sortedRows = rows && sortRowData(rows, tableSort);
 
   if (!entities || !propertyTypes || !remoteEntityType) {
     return null;
@@ -286,24 +242,22 @@ const Page: NextPageWithLayout = () => {
             onHeaderClicked={handleHeaderClicked}
             drawHeader={drawHeader}
             columns={columns}
-            rows={users.length}
-            getCellContent={([col, row]) => {
-              if (sortedEntities) {
-                const entity = sortedEntities[row];
-                console.log(entity);
+            rows={sortedRows.length}
+            getCellContent={([colIndex, rowIndex]) => {
+              if (sortedRows && columns) {
+                const row = sortedRows[rowIndex];
+                const objKey = columns[colIndex]?.id;
+                const cellValue = row?.[objKey];
 
-                const objKey = gridIds[col];
-                console.log(objKey);
-                // const cellValue = entity?.[objKey];
-                const cellValue = entity?.[objKey];
-
-                return {
-                  kind: GridCellKind.Text,
-                  allowOverlay: true,
-                  copyData: cellValue,
-                  displayData: cellValue,
-                  data: cellValue,
-                };
+                if (cellValue) {
+                  return {
+                    kind: GridCellKind.Text,
+                    allowOverlay: true,
+                    copyData: cellValue,
+                    displayData: cellValue,
+                    data: cellValue,
+                  };
+                }
               }
 
               return {
