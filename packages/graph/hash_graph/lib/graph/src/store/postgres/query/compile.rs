@@ -420,8 +420,6 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
                     // We already have a join statement for this table, but it's on a different
                     // column. We need to create a new join statement later on with a new, unique
                     // alias.
-                    // TODO: Do we want to allow `unwrap` in those situations? It should never
-                    //       happen, as `alias` is always set.
                     join_column
                         .table
                         .alias
