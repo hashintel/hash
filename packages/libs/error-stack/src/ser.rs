@@ -66,7 +66,7 @@ impl<'a> Serialize for SerializeFrame<'a> {
             FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
                 map.serialize_entry("type", "attachment")?;
                 // TODO: for now opaque attachments are unsupported, upcoming PR will fix that
-                map.serialize_entry("value", &())?;
+                map.serialize_entry("value", &Option::<()>::None)?;
             }
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
                 map.serialize_entry("type", "attachment")?;
