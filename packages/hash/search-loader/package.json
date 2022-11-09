@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/hash-search-loader",
-  "version": "0.0.0",
+  "version": "0.0.0-private",
   "private": true,
   "description": "Loads changes from the hash/realtime package stream into the search service",
   "license": "AGPL-3.0",
@@ -13,9 +13,9 @@
     "start": "cross-env NODE_ENV=production node --max-old-space-size=2048 ./node_modules/.bin/ts-node --transpile-only ./src/index.ts"
   },
   "dependencies": {
-    "@hashintel/hash-api": "0.0.0",
-    "@hashintel/hash-backend-utils": "0.0.0",
-    "@hashintel/hash-shared": "0.0.0",
+    "@hashintel/hash-api": "0.0.0-private",
+    "@hashintel/hash-backend-utils": "0.0.0-private",
+    "@hashintel/hash-shared": "0.0.0-private",
     "@opensearch-project/opensearch": "1.1.0",
     "hot-shots": "8.5.0",
     "slonik": "24.1.2",

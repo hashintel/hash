@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/hashdev",
-  "version": "0.1.1",
+  "version": "0.0.0-private",
   "private": true,
   "scripts": {
     "build": "next build",

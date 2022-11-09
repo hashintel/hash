@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/hash-shared",
-  "version": "0.0.0",
+  "version": "0.0.0-private",
   "private": true,
   "description": "Temporary catchall place for shared code",
   "license": "AGPL-3.0",
@@ -17,7 +17,7 @@
   "dependencies": {
     "@apollo/client": "3.6.9",
     "@blockprotocol/core": "0.0.12",
-    "@hashintel/hash-graph-client": "0.0.0",
+    "@hashintel/hash-graph-client": "0.0.0-private",
     "@sentry/browser": "7.16.0",
     "graphql-tag": "2.12.5",
     "immer": "9.0.6",
