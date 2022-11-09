@@ -4,7 +4,8 @@ use core::{
 };
 
 use super::{
-    macros::impl_error, Error, ErrorProperties, ErrorProperty, Id, Location, Namespace, NAMESPACE,
+    fold_field, macros::impl_error, Error, ErrorProperties, ErrorProperty, Id, Location, Namespace,
+    NAMESPACE,
 };
 use crate::id;
 

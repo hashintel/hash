@@ -4,7 +4,8 @@ use core::{
 };
 
 use super::{
-    macros::impl_error, Error, ErrorProperties, ErrorProperty, Id, Location, Namespace, NAMESPACE,
+    fold_field, macros::impl_error, Error, ErrorProperties, ErrorProperty, Id, Location, Namespace,
+    NAMESPACE,
 };
 use crate::id;
 
@@ -36,20 +37,6 @@ impl ErrorProperty for ReceivedField {
     fn value<'a>(stack: impl Iterator<Item = &'a Self>) -> Self::Value<'a> {
         stack.collect()
     }
-}
-
-fn fold_field<'a>(it: impl Iterator<Item = &'a str>) -> String {
-    it.enumerate().fold(String::new(), |mut acc, (idx, field)| {
-        if idx > 0 {
-            acc.push_str(", ");
-        }
-
-        acc.push('"');
-        acc.push_str(field);
-        acc.push('"');
-
-        acc
-    })
 }
 
 #[derive(Debug)]

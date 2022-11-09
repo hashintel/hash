@@ -61,6 +61,8 @@ use core::fmt::{self, Debug, Display, Formatter};
 use error_stack::{Context, Frame, IntoReport, Result};
 pub use location::Location;
 
+use crate::error::macros::impl_error;
+
 mod extra;
 mod location;
 mod macros;
@@ -92,6 +94,20 @@ impl Id {
     pub const fn new(path: &'static [&'static str]) -> Self {
         Self(path)
     }
+}
+
+pub(crate) fn fold_field<'a>(it: impl Iterator<Item = &'a str>) -> String {
+    it.enumerate().fold(String::new(), |mut acc, (idx, field)| {
+        if idx > 0 {
+            acc.push_str(", ");
+        }
+
+        acc.push('"');
+        acc.push_str(field);
+        acc.push('"');
+
+        acc
+    })
 }
 
 // This compatability struct needs to exist, because serde no-std errors do not implement `Context`
@@ -127,7 +143,7 @@ impl SerdeSerializeError {
     }
 }
 
-impl Context for SerdeSerializeError {}
+impl_error!(SerdeSerializeError);
 
 /// Value which is extracted/retrieved from a stack of [`error_stack::Frame`]s
 ///
