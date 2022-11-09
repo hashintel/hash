@@ -14,6 +14,8 @@ use crate::common::{create_report, ContextA, PrintableA, PrintableC};
 mod common;
 
 fn prepare() -> impl Drop {
+    std::env::set_var("RUST_LIB_BACKTRACE", "0");
+
     let settings = insta::Settings::clone_current();
 
     settings.bind_to_scope()

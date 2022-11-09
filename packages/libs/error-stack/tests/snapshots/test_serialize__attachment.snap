@@ -4,16 +4,20 @@ expression: report
 ---
 [
   {
-    "frames": [
+    "type": "attachment",
+    "value": "printable A",
+    "sources": [
       {
         "type": "attachment",
-        "value": "printable A",
-      },
-      {
-        "type": "context",
-        "value": "root error",
+        "value": None,
+        "sources": [
+          {
+            "type": "context",
+            "value": "root error",
+            "sources": [],
+          },
+        ],
       },
     ],
-    "sources": [],
   },
 ]

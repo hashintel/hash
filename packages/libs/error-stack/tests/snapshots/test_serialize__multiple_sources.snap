@@ -4,46 +4,60 @@ expression: a
 ---
 [
   {
-    "frames": [
-      {
-        "type": "attachment",
-        "value": "printable C: 4",
-      },
-      {
-        "type": "context",
-        "value": "context A",
-      },
-      {
-        "type": "attachment",
-        "value": "printable C: 3",
-      },
-    ],
+    "type": "attachment",
+    "value": "printable C: 4",
     "sources": [
       {
-        "frames": [
-          {
-            "type": "attachment",
-            "value": "printable C: 1",
-          },
+        "type": "attachment",
+        "value": None,
+        "sources": [
           {
             "type": "context",
-            "value": "root error",
+            "value": "context A",
+            "sources": [
+              {
+                "type": "attachment",
+                "value": "printable C: 3",
+                "sources": [
+                  {
+                    "type": "attachment",
+                    "value": "printable C: 1",
+                    "sources": [
+                      {
+                        "type": "attachment",
+                        "value": None,
+                        "sources": [
+                          {
+                            "type": "context",
+                            "value": "root error",
+                            "sources": [],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    "type": "attachment",
+                    "value": "printable C: 2",
+                    "sources": [
+                      {
+                        "type": "attachment",
+                        "value": None,
+                        "sources": [
+                          {
+                            "type": "context",
+                            "value": "root error",
+                            "sources": [],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
           },
         ],
-        "sources": [],
-      },
-      {
-        "frames": [
-          {
-            "type": "attachment",
-            "value": "printable C: 2",
-          },
-          {
-            "type": "context",
-            "value": "root error",
-          },
-        ],
-        "sources": [],
       },
     ],
   },
