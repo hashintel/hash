@@ -55,7 +55,7 @@
 //!
 //! [`Location`]: core::panic::Location
 
-use alloc::{format, string::String};
+use alloc::{collections::BTreeMap, format, string::String};
 use core::fmt::{self, Debug, Display, Formatter};
 
 use error_stack::{Context, Frame, IntoReport, Result};
@@ -65,6 +65,8 @@ mod location;
 mod macros;
 mod tuple;
 mod r#type;
+
+pub(crate) type Schema = BTreeMap<String, String>;
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Hash, Copy, Clone, serde::Serialize)]
 pub struct Namespace(&'static str);
