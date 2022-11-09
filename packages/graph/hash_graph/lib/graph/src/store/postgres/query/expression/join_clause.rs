@@ -24,7 +24,7 @@ impl<'q> JoinExpression<'q> {
 
 impl Transpile for JoinExpression<'_> {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.write_str("INNER JOIN ")?;
+        fmt.write_str("LEFT JOIN ")?;
         if self.join.table.alias.is_some() {
             let unaliased_table = Table {
                 name: self.join.table.name,
