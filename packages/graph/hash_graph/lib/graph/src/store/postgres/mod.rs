@@ -35,7 +35,7 @@ use crate::{
         DataTypeWithMetadata, EntityTypeWithMetadata, OntologyQueryDepth,
         PersistedOntologyIdentifier, PersistedOntologyMetadata, PropertyTypeWithMetadata,
     },
-    provenance::{CreatedById, OwnedById, UpdatedById},
+    provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
     shared::identifier::{account::AccountId, GraphElementIdentifier},
     store::{
         error::VersionedUriAlreadyExists,
@@ -944,8 +944,7 @@ where
         Ok(EntityMetadata::new(
             EntityEditionId::new(entity_id, version),
             entity_type_id,
-            created_by_id,
-            updated_by_id,
+            ProvenanceMetadata::new(created_by_id, updated_by_id),
             link_metadata,
             // TODO: only the historic table would have an `archived` field.
             //   Consider what we should do about that.
@@ -1105,8 +1104,10 @@ where
                 historic_entity.get(2),
             ),
             entity_type_id,
-            CreatedById::new(historic_entity.get(11)),
-            UpdatedById::new(historic_entity.get(12)),
+            ProvenanceMetadata::new(
+                CreatedById::new(historic_entity.get(11)),
+                UpdatedById::new(historic_entity.get(12)),
+            ),
             link_metadata,
             // TODO: only the historic table would have an `archived` field.
             //   Consider what we should do about that.

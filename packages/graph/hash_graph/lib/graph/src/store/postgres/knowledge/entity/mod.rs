@@ -299,7 +299,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 entity_id,
                 entity,
                 entity_type_id,
-                old_entity_metadata.created_by_id(),
+                old_entity_metadata.provenance_metadata().created_by_id(),
                 updated_by_id,
                 old_entity_metadata.link_metadata(),
             )
@@ -352,7 +352,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 entity_id,
                 old_entity.inner().clone(),
                 old_entity.metadata().entity_type_id().clone(),
-                old_entity.metadata().created_by_id(),
+                old_entity.metadata().provenance_metadata().created_by_id(),
                 actor_id,
                 old_entity.metadata().link_metadata(),
             )

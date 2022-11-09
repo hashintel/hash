@@ -11,7 +11,7 @@ use uuid::Uuid;
 pub use self::query::{EntityQueryPath, EntityQueryPathVisitor};
 use crate::{
     identifier::knowledge::{EntityEditionId, EntityId},
-    provenance::{CreatedById, UpdatedById},
+    provenance::ProvenanceMetadata,
 };
 
 #[derive(
@@ -130,10 +130,8 @@ pub struct EntityMetadata {
     identifier: EntityEditionId,
     #[schema(value_type = String)]
     entity_type_id: VersionedUri,
-    // TODO: encapsulate these in a `ProvenanceMetadata` struct?
-    //  https://app.asana.com/0/1201095311341924/1203227079758117/f
-    created_by_id: CreatedById,
-    updated_by_id: UpdatedById,
+    #[serde(rename = "provenance")]
+    provenance_metadata: ProvenanceMetadata,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     link_metadata: Option<LinkEntityMetadata>,
     archived: bool,
@@ -144,16 +142,14 @@ impl EntityMetadata {
     pub const fn new(
         identifier: EntityEditionId,
         entity_type_id: VersionedUri,
-        created_by_id: CreatedById,
-        updated_by_id: UpdatedById,
+        provenance_metadata: ProvenanceMetadata,
         link_metadata: Option<LinkEntityMetadata>,
         archived: bool,
     ) -> Self {
         Self {
             identifier,
             entity_type_id,
-            created_by_id,
-            updated_by_id,
+            provenance_metadata,
             link_metadata,
             archived,
         }
@@ -170,13 +166,8 @@ impl EntityMetadata {
     }
 
     #[must_use]
-    pub const fn created_by_id(&self) -> CreatedById {
-        self.created_by_id
-    }
-
-    #[must_use]
-    pub const fn updated_by_id(&self) -> UpdatedById {
-        self.updated_by_id
+    pub const fn provenance_metadata(&self) -> ProvenanceMetadata {
+        self.provenance_metadata
     }
 
     #[must_use]
@@ -205,8 +196,7 @@ impl Entity {
         inner: EntityProperties,
         identifier: EntityEditionId,
         entity_type_id: VersionedUri,
-        created_by_id: CreatedById,
-        updated_by_id: UpdatedById,
+        provenance_metadata: ProvenanceMetadata,
         link_metadata: Option<LinkEntityMetadata>,
         archived: bool,
     ) -> Self {
@@ -215,8 +205,7 @@ impl Entity {
             metadata: EntityMetadata::new(
                 identifier,
                 entity_type_id,
-                created_by_id,
-                updated_by_id,
+                provenance_metadata,
                 link_metadata,
                 archived,
             ),

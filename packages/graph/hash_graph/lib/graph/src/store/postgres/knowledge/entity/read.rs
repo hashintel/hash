@@ -14,7 +14,7 @@ use crate::{
     },
     knowledge::{Entity, EntityProperties, EntityQueryPath, EntityUuid, LinkEntityMetadata},
     ontology::EntityTypeQueryPath,
-    provenance::{CreatedById, OwnedById, UpdatedById},
+    provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         crud, postgres::query::SelectCompiler, query::Filter, AsClient, PostgresStore, QueryError,
     },
@@ -128,8 +128,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                         row.get(version_index),
                     ),
                     entity_type_uri,
-                    created_by_id,
-                    updated_by_id,
+                    ProvenanceMetadata::new(created_by_id, updated_by_id),
                     link_metadata,
                     // TODO: only the historic table would have an `archived` field.
                     //   Consider what we should do about that.
