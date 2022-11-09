@@ -15,6 +15,9 @@ export const getImpliedEntityChanges = (
   startBound?: string,
   endBound?: string,
 ): Date[] => {
+  if (depth < 0) {
+    return [];
+  }
   // First the easy part, get all the direct changes to the entity (new versions of the entity)
   const entityEditions = subgraph.vertices[entityId];
 
@@ -35,14 +38,19 @@ export const getImpliedEntityChanges = (
 
   const entityVersions = Object.keys(entityEditions)
     // We don't care about versions made before the start time bound
-    .filter((entityVersion) => entityVersion >= startTimeBound)
+    .filter(
+      (entityVersion) => entityVersion >= startTimeBound,
+      /** @todo - we want to check endTime of the entity */
+      // &&
+      //   entity.endTime <= endTimeBound
+    )
     .map((entityVersion) => new Date(entityVersion));
 
   // Now recursively get the changes to the edges
   const entityEdges = subgraph.edges[entityId];
 
   if (!entityEdges) {
-    return [];
+    return entityVersions;
   }
 
   return [
