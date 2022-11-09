@@ -12,6 +12,7 @@
 
 ## Table of Contents
 
+- [Table of Contents](#table-of-contents)
 - [Issue Tracking](#issue-tracking)
 - [Additional Documentation](#additional-documentation)
 - [Questions & Support](#questions--support)
@@ -28,16 +29,12 @@
   - [CLI Arguments and Options](#cli-arguments-and-options)
   - [Run a simulation](#run-a-simulation)
   - [Simulation Inputs](#simulation-inputs)
-    - [Behavior keys](#behavior-keys)
   - [Simulation Outputs](#simulation-outputs)
-    - [JSON-State](#json-state-json_statejson)
-    - [Analysis](#analysis-analysis_outputsjson)
+  - [Logging](#logging)
 - [Main Concepts](#main-concepts)
-  - [High-level Overview](#high-level-overview)
-    - [Starting an Experiment / the CLI](#starting-an-experiment--the-cli)
-    - [Workers](#workers)
-    - [Simulation Runs and the Package System](#simulation-runs-and-the-package-system)
-    - [DataStore](#datastore)
+- [The Project Layout](#the-project-layout)
+  - [The CLI](#the-cli)
+  - [The Engine Process(es)](#the-engine-processes)
 - [Contributors](#contributors)
 
 ## Issue Tracking

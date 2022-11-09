@@ -32,7 +32,7 @@ export const createPersistedEntity: ResolverFn<
 ) => {
   /**
    * @todo: prevent callers of this mutation from being able to create restricted
-   * workspace types (e.g. a `User` or an `Org`)
+   * system types (e.g. a `User` or an `Org`)
    *
    * @see https://app.asana.com/0/1202805690238892/1203084714149803/f
    */

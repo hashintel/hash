@@ -1,5 +1,5 @@
 {
-  "name": "@hashintel/block-embed",
+  "name": "@blocks/embed",
   "version": "0.1.0",
   "private": true,
   "description": "Embed external content",
@@ -26,7 +26,7 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "block-scripts": "0.0.14",
-    "eslint": "8.26.0",
+    "eslint": "8.27.0",
     "mock-block-dock": "0.0.10",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

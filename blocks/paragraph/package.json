@@ -1,5 +1,5 @@
 {
-  "name": "@hashintel/block-paragraph",
+  "name": "@blocks/paragraph",
   "version": "0.1.1",
   "private": true,
   "description": "Write a block of text to express an idea, make a point, or record a thought",
@@ -26,12 +26,11 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "block-scripts": "0.0.14",
-    "eslint": "8.26.0",
+    "eslint": "8.27.0",
     "mock-block-dock": "0.0.38",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "typescript": "4.8.4",
-    "typescript-json-schema": "0.50.1"
+    "typescript": "4.8.4"
   },
   "peerDependencies": {
     "react": "^18.2.0",
