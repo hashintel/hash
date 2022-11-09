@@ -214,7 +214,7 @@ impl PropertyTypeWithMetadata {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct OntologyElementMetadata {
-    identifier: OntologyTypeEditionId,
+    edition_id: OntologyTypeEditionId,
     #[serde(rename = "provenance")]
     provenance_metadata: ProvenanceMetadata,
     owned_by_id: OwnedById,
@@ -223,12 +223,12 @@ pub struct OntologyElementMetadata {
 impl OntologyElementMetadata {
     #[must_use]
     pub const fn new(
-        identifier: OntologyTypeEditionId,
+        edition_id: OntologyTypeEditionId,
         provenance_metadata: ProvenanceMetadata,
         owned_by_id: OwnedById,
     ) -> Self {
         Self {
-            identifier,
+            edition_id,
             provenance_metadata,
             owned_by_id,
         }
@@ -236,7 +236,7 @@ impl OntologyElementMetadata {
 
     #[must_use]
     pub const fn edition_id(&self) -> &OntologyTypeEditionId {
-        &self.identifier
+        &self.edition_id
     }
 
     #[must_use]
