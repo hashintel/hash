@@ -1,6 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "enabledManagers": ["github-actions", "npm"],
+  "ignorePaths": ["packages/engine/**"],
   "prConcurrentLimit": 5,
   "rebaseWhen": "conflicted",
   "schedule": ["every weekday before 5am"],
@@ -61,10 +62,6 @@
       "groupName": "Sentry",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^@sentry/"]
-    },
-    {
-      "enabled": false,
-      "matchFiles": ["packages/engine/stdlib/package.json"]
     }
   ]
 }
