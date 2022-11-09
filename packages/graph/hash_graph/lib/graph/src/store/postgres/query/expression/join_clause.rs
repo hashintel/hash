@@ -72,7 +72,7 @@ mod tests {
                 },
             )
             .transpile_to_string(),
-            r#"INNER JOIN "type_ids" ON "type_ids"."version_id" = "data_types"."version_id""#
+            r#"LEFT JOIN "type_ids" ON "type_ids"."version_id" = "data_types"."version_id""#
         );
 
         assert_eq!(
@@ -101,7 +101,7 @@ mod tests {
                 },
             )
             .transpile_to_string(),
-            r#"INNER JOIN "type_ids" AS "type_ids_0_1_2" ON "type_ids_0_1_2"."version_id" = "data_types"."version_id""#
+            r#"LEFT JOIN "type_ids" AS "type_ids_0_1_2" ON "type_ids_0_1_2"."version_id" = "data_types"."version_id""#
         );
     }
 }
