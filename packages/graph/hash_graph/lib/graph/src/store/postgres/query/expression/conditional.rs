@@ -25,12 +25,29 @@ impl Transpile for Function<'_> {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub enum Constant {
+    Boolean(bool),
+}
+
+impl Transpile for Constant {
+    fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Boolean(value) => fmt.write_str(if *value { "TRUE" } else { "FALSE" }),
+        }
+    }
+}
+
 /// A compiled expression in Postgres.
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Expression<'q> {
     Asterisk,
     Column(Column<'q>),
+    /// A parameter are transpiled as a placeholder, e.g. `$1`, in order to prevent SQL injection.
     Parameter(usize),
+    /// [`Constant`]s are directly transpiled into the SQL query. Caution has to be taken to
+    /// prevent SQL injection and no user input should ever be used as a [`Constant`].
+    Constant(Constant),
     Function(Box<Function<'q>>),
     Window(Box<Self>, WindowStatement<'q>),
 }
@@ -41,6 +58,7 @@ impl Transpile for Expression<'_> {
             Self::Asterisk => fmt.write_char('*'),
             Self::Column(column) => column.transpile(fmt),
             Self::Parameter(index) => write!(fmt, "${index}"),
+            Self::Constant(constant) => constant.transpile(fmt),
             Self::Function(function) => function.transpile(fmt),
             Self::Window(expression, window) => {
                 expression.transpile(fmt)?;
