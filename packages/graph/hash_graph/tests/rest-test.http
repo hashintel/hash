@@ -348,11 +348,13 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_a_entity_uuid", encodeURIComponent(response.body.identifier.entityUuid));
+    client.global.set("person_a_entity_id", response.body.identifier.baseId);
+    client.global.set("person_a_entity_uuid", response.body.identifier.baseId.split("%")[1])
+    client.global.set("encoded_person_a_entity_id", encodeURIComponent(response.body.identifier.baseId));
 %}
 
 ### Get Person entity
-GET http://127.0.0.1:4000/entities/{{person_a_entity_uuid}}
+GET http://127.0.0.1:4000/entities/{{encoded_person_a_entity_id}}
 
 > {%
     client.test("status", function() {
@@ -367,7 +369,7 @@ Accept: application/json
 
 {
  "actorId": "{{account_id}}",
- "entityUuid": "{{person_a_entity_uuid}}",
+ "entityId": "{{person_a_entity_id}}",
  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2",
  "entity": {
    "http://localhost:3000/@alice/types/property-type/name/": "Alice Allison"
@@ -398,7 +400,8 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_b_entity_uuid", encodeURIComponent(response.body.identifier.entityUuid));
+    client.global.set("person_b_entity_id", response.body.identifier.baseId);
+    client.global.set("person_b_entity_uuid", response.body.identifier.baseId.split("%")[1])
 %}
 
 ### Get all latest entities
@@ -459,8 +462,8 @@ Accept: application/json
   "entity": {},
   "entityTypeId": "{{friendship_link_entity_type_id}}",
   "linkMetadata": {
-    "leftEntityUuid": "{{person_a_entity_uuid}}",
-    "rightEntityUuid": "{{person_b_entity_uuid}}"
+    "leftEntityId": "{{person_a_entity_id}}",
+    "rightEntityId": "{{person_b_entity_id}}"
   }
 }
 
@@ -483,11 +486,11 @@ Content-Type: application/json
           {
             "path": [
               "leftEntity",
-              "id"
+              "uuid"
             ]
           },
           {
-            "parameter": "{{person_a_entity_id}}"
+            "parameter": "{{person_a_entity_uuid}}"
           }
         ]
       },
@@ -496,11 +499,11 @@ Content-Type: application/json
           {
             "path": [
               "rightEntity",
-              "id"
+              "uuid"
             ]
           },
           {
-            "parameter": "{{person_b_entity_id}}"
+            "parameter": "{{person_b_entity_uuid}}"
           }
         ]
       }
@@ -528,7 +531,7 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "entityUuid": "{{person_b_entity_uuid}}",
+  "entityId": "{{person_b_entity_id}}",
   "ownedById": "{{account_id}}",
   "actorId": "{{account_id}}"
 }
