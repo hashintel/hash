@@ -77,6 +77,20 @@ const userEntityHookCallback: BeforeUpdateEntityHookCallback = async ({
       throw new ApolloError("Cannot unset preferred name");
     }
   }
+
+  const currentEmails = userModel.getEmails();
+
+  const updatedEmails: string[] =
+    updatedProperties[SYSTEM_TYPES.propertyType.email.baseUri];
+
+  if (
+    [...currentEmails].sort().join().toLowerCase() !==
+    [...updatedEmails].sort().join().toLowerCase()
+  ) {
+    await userModel.updateKratosIdentityTraits({
+      emails: updatedEmails,
+    });
+  }
 };
 
 type BeforeUpdateEntityHook = {
