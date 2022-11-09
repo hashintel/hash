@@ -3,16 +3,23 @@ import { AxiosError } from "axios";
 
 import { GraphApi } from "../graph";
 import { UserModel } from "../model";
-import { workspaceAccountId } from "../model/util";
+import { systemAccountId } from "../model/util";
 import { createKratosIdentity } from "../auth/ory-kratos";
 
 type DevelopmentUser = {
   email: string;
   shortname: string;
   preferredName: string;
+  isInstanceAdmin?: boolean;
 };
 
 const devUsers: readonly DevelopmentUser[] = [
+  {
+    email: "admin@example.com",
+    shortname: "instance-admin",
+    preferredName: "Instance Admin",
+    isInstanceAdmin: true,
+  },
   {
     email: "alice@example.com",
     shortname: "alice",
@@ -36,7 +43,7 @@ export const ensureDevUsersAreSeeded = async ({
 }): Promise<UserModel[]> => {
   const createdUsers = [];
 
-  for (const { email, shortname, preferredName } of devUsers) {
+  for (const { email, shortname, preferredName, isInstanceAdmin } of devUsers) {
     const maybeNewIdentity = await createKratosIdentity({
       traits: { emails: [email] },
       credentials: {
@@ -65,17 +72,18 @@ export const ensureDevUsersAreSeeded = async ({
       let user = await UserModel.createUser(graphApi, {
         emails,
         kratosIdentityId,
-        actorId: workspaceAccountId,
+        actorId: systemAccountId,
+        isInstanceAdmin,
       });
 
       user = await user.updateShortname(graphApi, {
         updatedShortname: shortname,
-        actorId: workspaceAccountId,
+        actorId: systemAccountId,
       });
 
       user = await user.updatePreferredName(graphApi, {
         updatedPreferredName: preferredName,
-        actorId: workspaceAccountId,
+        actorId: systemAccountId,
       });
 
       createdUsers.push(user);

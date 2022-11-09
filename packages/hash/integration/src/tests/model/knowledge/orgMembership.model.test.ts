@@ -1,16 +1,16 @@
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { createGraphClient } from "@hashintel/hash-api/src/graph";
 import {
-  ensureWorkspaceTypesExist,
-  WORKSPACE_TYPES,
-} from "@hashintel/hash-api/src/graph/workspace-types";
+  ensureSystemTypesExist,
+  SYSTEM_TYPES,
+} from "@hashintel/hash-api/src/graph/system-types";
 import {
   OrgMembershipModel,
   OrgModel,
   OrgSize,
   UserModel,
 } from "@hashintel/hash-api/src/model";
-import { workspaceAccountId } from "@hashintel/hash-api/src/model/util";
+import { systemAccountId } from "@hashintel/hash-api/src/model/util";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { createTestUser } from "../../util";
 
@@ -19,7 +19,7 @@ jest.setTimeout(60000);
 const logger = new Logger({
   mode: "dev",
   level: "debug",
-  serviceName: "org-membership-tests",
+  serviceName: "integration-tests",
 });
 
 const graphApiHost = getRequiredEnv("HASH_GRAPH_API_HOST");
@@ -36,7 +36,7 @@ describe("OrgMembership model class", () => {
   let testOrg: OrgModel;
 
   beforeAll(async () => {
-    await ensureWorkspaceTypesExist({ graphApi, logger });
+    await ensureSystemTypesExist({ graphApi, logger });
     testUser = await createTestUser(graphApi, "orgMembershipTest", logger);
 
     testOrg = await OrgModel.createOrg(graphApi, {
@@ -59,9 +59,9 @@ describe("OrgMembership model class", () => {
     });
 
     await testUser.createOutgoingLink(graphApi, {
-      linkTypeModel: WORKSPACE_TYPES.linkType.hasMembership,
+      linkTypeModel: SYSTEM_TYPES.linkType.hasMembership,
       targetEntityModel: testOrgMembership,
-      ownedById: workspaceAccountId,
+      ownedById: systemAccountId,
       actorId: testUser.entityId,
     });
   });
