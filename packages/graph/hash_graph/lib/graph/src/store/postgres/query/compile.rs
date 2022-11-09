@@ -181,24 +181,10 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
     ) -> Condition<'c> {
         let mut version_column = Column {
             table: Table {
-                name: path.terminating_table_name(),
+                name: TableName::TypeIds,
                 alias: None,
             },
             access: ColumnAccess::Table { column: "version" },
-        };
-        // Depending on the table name of the path the partition table is selected
-        let partition_column = match version_column.table.name {
-            TableName::TypeIds => Column {
-                table: version_column.table,
-                access: ColumnAccess::Table { column: "base_uri" },
-            },
-            TableName::Entities => Column {
-                table: version_column.table,
-                access: ColumnAccess::Table {
-                    column: "entity_id",
-                },
-            },
-            _ => unreachable!(),
         };
 
         // Add a WITH expression selecting the partitioned version
@@ -214,7 +200,10 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
                             Box::new(Expression::Function(Box::new(Function::Max(
                                 Expression::Column(version_column.clone()),
                             )))),
-                            WindowStatement::partition_by(partition_column),
+                            WindowStatement::partition_by(Column {
+                                table: version_column.table,
+                                access: ColumnAccess::Table { column: "base_uri" },
+                            }),
                         ),
                         Some(Cow::Borrowed("latest_version")),
                     ),
