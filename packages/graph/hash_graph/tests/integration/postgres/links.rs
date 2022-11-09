@@ -46,8 +46,8 @@ async fn insert() {
         friend_of,
         friend_of_type_id.clone(),
         None,
-        person_a_metadata.identifier().base_id().entity_uuid(),
-        person_b_metadata.identifier().base_id().entity_uuid(),
+        person_a_metadata.identifier().base_id(),
+        person_b_metadata.identifier().base_id(),
     )
     .await
     .expect("could not create link");
@@ -65,12 +65,12 @@ async fn insert() {
         .expect("entity is not a link");
 
     assert_eq!(
-        link_metadata.left_entity_uuid(),
-        person_a_metadata.identifier().base_id().entity_uuid()
+        link_metadata.left_entity_id(),
+        person_a_metadata.identifier().base_id()
     );
     assert_eq!(
-        link_metadata.right_entity_uuid(),
-        person_b_metadata.identifier().base_id().entity_uuid()
+        link_metadata.right_entity_id(),
+        person_b_metadata.identifier().base_id()
     );
 }
 
@@ -130,8 +130,8 @@ async fn get_entity_links() {
         Entity::empty(),
         friend_link_type_id.clone(),
         None,
-        person_a_metadata.identifier().base_id().entity_uuid(),
-        person_b_metadata.identifier().base_id().entity_uuid(),
+        person_a_metadata.identifier().base_id(),
+        person_b_metadata.identifier().base_id(),
     )
     .await
     .expect("could not create link");
@@ -140,8 +140,8 @@ async fn get_entity_links() {
         Entity::empty(),
         acquaintance_entity_link_type_id.clone(),
         None,
-        person_a_metadata.identifier().base_id().entity_uuid(),
-        person_c_metadata.identifier().base_id().entity_uuid(),
+        person_a_metadata.identifier().base_id(),
+        person_c_metadata.identifier().base_id(),
     )
     .await
     .expect("could not create link");
@@ -177,22 +177,22 @@ async fn get_entity_links() {
     assert!(
         link_metadatas
             .iter()
-            .find(|link_metadata| link_metadata.left_entity_uuid()
-                == person_a_metadata.identifier().base_id().entity_uuid())
+            .find(|link_metadata| link_metadata.left_entity_id()
+                == person_a_metadata.identifier().base_id())
             .is_some()
     );
     assert!(
         link_metadatas
             .iter()
-            .find(|link_metadata| link_metadata.right_entity_uuid()
-                == person_b_metadata.identifier().base_id().entity_uuid())
+            .find(|link_metadata| link_metadata.right_entity_id()
+                == person_b_metadata.identifier().base_id())
             .is_some()
     );
     assert!(
         link_metadatas
             .iter()
-            .find(|link_metadata| link_metadata.right_entity_uuid()
-                == person_c_metadata.identifier().base_id().entity_uuid())
+            .find(|link_metadata| link_metadata.right_entity_id()
+                == person_c_metadata.identifier().base_id())
             .is_some()
     );
 }
@@ -239,8 +239,8 @@ async fn remove_link() {
             Entity::empty(),
             friend_link_type_id,
             None,
-            person_a_metadata.identifier().base_id().entity_uuid(),
-            person_b_metadata.identifier().base_id().entity_uuid(),
+            person_a_metadata.identifier().base_id(),
+            person_b_metadata.identifier().base_id(),
         )
         .await
         .expect("could not create link");

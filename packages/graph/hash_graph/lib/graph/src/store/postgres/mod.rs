@@ -438,7 +438,7 @@ where
                     VALUES ($1)
                     RETURNING entity_uuid;
                 "#,
-                &[&entity_uuid],
+                &[&entity_uuid.as_uuid()],
             )
             .await
             .into_report()
@@ -901,29 +901,36 @@ where
             .query_one(
                 r#"
                 INSERT INTO latest_entities (
-                    entity_uuid, owned_by_id, version,
+                    owned_by_id, entity_uuid, version,
                     entity_type_version_id,
                     properties,
+                    left_owned_by_id, left_entity_uuid,
+                    right_owned_by_id, right_entity_uuid,
                     left_order, right_order,
-                    left_entity_uuid, right_entity_uuid,
                     created_by_id, updated_by_id
                 )
-                VALUES ($1, $2, clock_timestamp(), $3, $4, $5, $6, $7, $8, $9, $10)
+                VALUES ($1, $2, clock_timestamp(), $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
                 RETURNING version;
                 "#,
                 &[
-                    &entity_id.entity_uuid(),
                     &entity_id.owned_by_id().as_account_id(),
+                    &entity_id.entity_uuid().as_uuid(),
                     &entity_type_version_id,
                     &value,
+                    &link_metadata
+                        .as_ref()
+                        .map(|metadata| metadata.left_entity_id().owned_by_id().as_account_id()),
+                    &link_metadata
+                        .as_ref()
+                        .map(|metadata| metadata.left_entity_id().entity_uuid().as_uuid()),
+                    &link_metadata
+                        .as_ref()
+                        .map(|metadata| metadata.right_entity_id().owned_by_id().as_account_id()),
+                    &link_metadata
+                        .as_ref()
+                        .map(|metadata| metadata.right_entity_id().entity_uuid().as_uuid()),
                     &link_metadata.as_ref().map(LinkEntityMetadata::left_order),
                     &link_metadata.as_ref().map(LinkEntityMetadata::right_order),
-                    &link_metadata
-                        .as_ref()
-                        .map(LinkEntityMetadata::left_entity_uuid),
-                    &link_metadata
-                        .as_ref()
-                        .map(LinkEntityMetadata::right_entity_uuid),
                     &created_by_id.as_account_id(),
                     &updated_by_id.as_account_id(),
                 ],
@@ -964,7 +971,7 @@ where
                 FOR UPDATE;
                 "#,
                 &[
-                    &entity_id.entity_uuid(),
+                    &entity_id.entity_uuid().as_uuid(),
                     &entity_id.owned_by_id().as_account_id(),
                 ],
             )
@@ -989,54 +996,59 @@ where
                     DELETE FROM latest_entities
                     WHERE entity_uuid = $1 AND owned_by_id = $2
                     RETURNING
-                        entity_uuid, version,
+                        owned_by_id, entity_uuid, version,
                         entity_type_version_id,
                         properties,
+                        left_owned_by_id, left_entity_uuid,
+                        right_owned_by_id, right_entity_uuid,
                         left_order, right_order,
-                        left_entity_uuid, right_entity_uuid,
-                        owned_by_id, created_by_id, updated_by_id
+                        created_by_id, updated_by_id
                 ),
                 inserted_in_historic AS (
                     -- We immediately put this deleted entity into the historic table.
                     -- As this should be done in a transaction, we should be safe that this move
                     -- doesn't produce invalid state.
                     INSERT INTO entity_histories(
-                        entity_uuid, version,
+                        owned_by_id, entity_uuid, version,
                         entity_type_version_id,
                         properties,
+                        left_owned_by_id, left_entity_uuid,
+                        right_owned_by_id, right_entity_uuid,
                         left_order, right_order,
-                        left_entity_uuid, right_entity_uuid,
-                        owned_by_id, created_by_id, updated_by_id,
+                        created_by_id, updated_by_id,
                         archived
                     )
                     SELECT
-                        entity_uuid, version,
+                        owned_by_id, entity_uuid, version,
                         entity_type_version_id,
                         properties,
+                        left_owned_by_id, left_entity_uuid,
+                        right_owned_by_id, right_entity_uuid,
                         left_order, right_order,
-                        left_entity_uuid, right_entity_uuid,
-                        owned_by_id, created_by_id, updated_by_id,
+                        created_by_id, updated_by_id,
                         $3::boolean
                     FROM to_move_to_historic
                     -- We only return metadata
                     RETURNING
-                        entity_uuid, version,
+                        owned_by_id, entity_uuid, version,
                         entity_type_version_id,
+                        left_owned_by_id, left_entity_uuid,
+                        right_owned_by_id, right_entity_uuid,
                         left_order, right_order,
-                        left_entity_uuid, right_entity_uuid,
-                        owned_by_id, created_by_id, updated_by_id
+                        created_by_id, updated_by_id
                 )
                 SELECT
-                    entity_uuid, inserted_in_historic.version,
+                    owned_by_id, entity_uuid, inserted_in_historic.version,
                     base_uri, type_ids.version,
+                    left_owned_by_id, left_entity_uuid,
+                    right_owned_by_id, right_entity_uuid,
                     left_order, right_order,
-                    left_entity_uuid, right_entity_uuid,
-                    owned_by_id, created_by_id, updated_by_id
+                    created_by_id, updated_by_id
                 FROM inserted_in_historic
                 INNER JOIN type_ids ON inserted_in_historic.entity_type_version_id = type_ids.version_id;
                 "#,
                 &[
-                    &entity_id.entity_uuid(),
+                    &entity_id.entity_uuid().as_uuid(),
                     &entity_id.owned_by_id().as_account_id(),
                     &(historic_move == HistoricMove::ForArchival),
                 ],
@@ -1046,41 +1058,54 @@ where
             .change_context(InsertionError)?;
 
         let link_metadata = match (
-            historic_entity.get(4),
             historic_entity.get(5),
             historic_entity.get(6),
             historic_entity.get(7),
+            historic_entity.get(8),
+            historic_entity.get(9),
+            historic_entity.get(10),
         ) {
-            (left_order, right_order, Some(left_entity_uuid), Some(right_entity_uuid)) => {
-                Some(LinkEntityMetadata::new(
-                    left_entity_uuid,
-                    right_entity_uuid,
-                    left_order,
-                    right_order,
-                ))
-            }
-            (None, None, None, None) => None,
+            (
+                Some(left_owned_by_id),
+                Some(left_entity_uuid),
+                Some(right_owned_by_id),
+                Some(right_entity_uuid),
+                left_order,
+                right_order,
+            ) => Some(LinkEntityMetadata::new(
+                EntityId::new(
+                    OwnedById::new(left_owned_by_id),
+                    EntityUuid::new(left_entity_uuid),
+                ),
+                EntityId::new(
+                    OwnedById::new(right_owned_by_id),
+                    EntityUuid::new(right_entity_uuid),
+                ),
+                left_order,
+                right_order,
+            )),
+            (None, None, None, None, None, None) => None,
             _ => {
                 unreachable!("incomplete link information was found in the DB table, this is fatal")
             }
         };
 
-        let base_uri = BaseUri::new(historic_entity.get(2))
+        let base_uri = BaseUri::new(historic_entity.get(3))
             .into_report()
             .change_context(InsertionError)?;
-        let entity_type_id = VersionedUri::new(base_uri, historic_entity.get::<_, i64>(3) as u32);
+        let entity_type_id = VersionedUri::new(base_uri, historic_entity.get::<_, i64>(4) as u32);
 
         Ok(PersistedEntityMetadata::new(
             EntityEditionId::new(
                 EntityId::new(
-                    OwnedById::new(historic_entity.get(8)),
-                    historic_entity.get(0),
+                    OwnedById::new(historic_entity.get(0)),
+                    EntityUuid::new(historic_entity.get(1)),
                 ),
-                historic_entity.get(1),
+                historic_entity.get(2),
             ),
             entity_type_id,
-            CreatedById::new(historic_entity.get(9)),
-            UpdatedById::new(historic_entity.get(10)),
+            CreatedById::new(historic_entity.get(11)),
+            UpdatedById::new(historic_entity.get(12)),
             link_metadata,
             // TODO: only the historic table would have an `archived` field.
             //   Consider what we should do about that.
@@ -1139,7 +1164,7 @@ impl PostgresStore<Transaction<'_>> {
         for entity_uuid in entity_uuids {
             writer
                 .as_mut()
-                .write(&[&entity_uuid])
+                .write(&[&entity_uuid.as_uuid()])
                 .await
                 .into_report()
                 .change_context(InsertionError)
@@ -1189,7 +1214,7 @@ impl PostgresStore<Transaction<'_>> {
             writer
                 .as_mut()
                 .write(&[
-                    &entity_uuid,
+                    &entity_uuid.as_uuid(),
                     &entity_type_version_id,
                     &value,
                     &owned_by_id.as_account_id(),

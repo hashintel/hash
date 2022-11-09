@@ -10,27 +10,14 @@ use uuid::Uuid;
 
 pub use self::query::{EntityQueryPath, EntityQueryPathVisitor};
 use crate::{
-    identifier::knowledge::EntityEditionId,
+    identifier::knowledge::{EntityEditionId, EntityId},
     provenance::{CreatedById, UpdatedById},
 };
 
 #[derive(
-    Debug,
-    Copy,
-    Clone,
-    PartialEq,
-    Eq,
-    Hash,
-    PartialOrd,
-    Ord,
-    Serialize,
-    Deserialize,
-    ToSchema,
-    FromSql,
-    ToSql,
+    Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize, ToSchema,
 )]
 #[repr(transparent)]
-#[postgres(transparent)]
 pub struct EntityUuid(Uuid);
 
 impl EntityUuid {
@@ -90,9 +77,8 @@ impl Entity {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct LinkEntityMetadata {
-    // TODO: update these to `EntityId`
-    left_entity_uuid: EntityUuid,
-    right_entity_uuid: EntityUuid,
+    left_entity_id: EntityId,
+    right_entity_id: EntityId,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     left_order: Option<LinkOrder>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -102,27 +88,27 @@ pub struct LinkEntityMetadata {
 impl LinkEntityMetadata {
     #[must_use]
     pub const fn new(
-        left_entity_uuid: EntityUuid,
-        right_entity_uuid: EntityUuid,
+        left_entity_id: EntityId,
+        right_entity_id: EntityId,
         left_order: Option<LinkOrder>,
         right_order: Option<LinkOrder>,
     ) -> Self {
         Self {
-            left_entity_uuid,
-            right_entity_uuid,
+            left_entity_id,
+            right_entity_id,
             left_order,
             right_order,
         }
     }
 
     #[must_use]
-    pub const fn left_entity_uuid(&self) -> EntityUuid {
-        self.left_entity_uuid
+    pub const fn left_entity_id(&self) -> EntityId {
+        self.left_entity_id
     }
 
     #[must_use]
-    pub const fn right_entity_uuid(&self) -> EntityUuid {
-        self.right_entity_uuid
+    pub const fn right_entity_id(&self) -> EntityId {
+        self.right_entity_id
     }
 
     #[must_use]

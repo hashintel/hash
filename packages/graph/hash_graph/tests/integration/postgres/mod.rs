@@ -321,8 +321,8 @@ impl DatabaseApi<'_> {
         entity: Entity,
         entity_type_id: VersionedUri,
         entity_uuid: Option<EntityUuid>,
-        left_entity_uuid: EntityUuid,
-        right_entity_uuid: EntityUuid,
+        left_entity_id: EntityId,
+        right_entity_id: EntityId,
     ) -> Result<PersistedEntityMetadata, InsertionError> {
         self.store
             .create_entity(
@@ -332,8 +332,8 @@ impl DatabaseApi<'_> {
                 entity_uuid,
                 CreatedById::new(self.account_id),
                 Some(LinkEntityMetadata::new(
-                    left_entity_uuid,
-                    right_entity_uuid,
+                    left_entity_id,
+                    right_entity_id,
                     None,
                     None,
                 )),
