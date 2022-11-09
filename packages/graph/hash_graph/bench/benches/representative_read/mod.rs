@@ -37,8 +37,8 @@ fn bench_representative_read_entity(c: &mut Criterion) {
     let samples = runtime.block_on(setup_and_extract_samples(&mut store_wrapper));
     let store = &store_wrapper.store;
 
-    for (account_id, type_ids_and_entity_ids) in samples.entities {
-        for (entity_type_id, entity_ids) in type_ids_and_entity_ids {
+    for (account_id, type_ids_and_entity_uuids) in samples.entities {
+        for (entity_type_id, entity_uuids) in type_ids_and_entity_uuids {
             group.bench_with_input(
                 BenchmarkId::new(
                     "get_entity_by_id",
@@ -47,9 +47,9 @@ fn bench_representative_read_entity(c: &mut Criterion) {
                         account_id, entity_type_id
                     ),
                 ),
-                &(account_id, entity_type_id, entity_ids),
-                |b, (_account_id, _entity_type_id, entity_ids)| {
-                    knowledge::entity::bench_get_entity_by_id(b, &runtime, store, entity_ids);
+                &(account_id, entity_type_id, entity_uuids),
+                |b, (_account_id, _entity_type_id, entity_uuids)| {
+                    knowledge::entity::bench_get_entity_by_id(b, &runtime, store, entity_uuids);
                 },
             );
         }

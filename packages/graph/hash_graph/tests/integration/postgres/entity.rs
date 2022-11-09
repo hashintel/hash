@@ -34,7 +34,7 @@ async fn insert() {
         .expect("could not create entity");
 
     let persisted_entity = api
-        .get_entity(metadata.identifier().entity_id())
+        .get_entity(metadata.identifier().entity_uuid())
         .await
         .expect("could not get entity");
 
@@ -70,7 +70,7 @@ async fn query() {
         .expect("could not create entity");
 
     let queried_organization = api
-        .get_entity(metadata.identifier().entity_id())
+        .get_entity(metadata.identifier().entity_uuid())
         .await
         .expect("could not get entity");
 
@@ -104,7 +104,7 @@ async fn update() {
         .expect("could not create entity");
 
     api.update_entity(
-        metadata.identifier().entity_id(),
+        metadata.identifier().entity_uuid(),
         page_v2.clone(),
         VersionedUri::new(
             BaseUri::new("https://blockprotocol.org/@alice/types/entity-type/page/".to_owned())
@@ -116,7 +116,7 @@ async fn update() {
     .expect("could not update entity");
 
     let persisted_entity = api
-        .get_entity(metadata.identifier().entity_id())
+        .get_entity(metadata.identifier().entity_uuid())
         .await
         .expect("could not get entity");
 

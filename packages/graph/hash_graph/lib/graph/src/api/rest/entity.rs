@@ -16,7 +16,7 @@ use utoipa::{OpenApi, ToSchema};
 use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
     knowledge::{
-        Entity, EntityId, LinkEntityMetadata, PersistedEntity, PersistedEntityIdentifier,
+        Entity, EntityUuid, LinkEntityMetadata, PersistedEntity, PersistedEntityIdentifier,
         PersistedEntityMetadata,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
@@ -49,7 +49,7 @@ use crate::{
             CreateEntityRequest,
             UpdateEntityRequest,
             ArchiveEntityRequest,
-            EntityId,
+            EntityUuid,
             PersistedEntityIdentifier,
             PersistedEntityMetadata,
             PersistedEntity,
@@ -85,7 +85,7 @@ impl RoutedResource for EntityResource {
                 )
                 .route("/archive", post(archive_entity::<P>))
                 .route("/query", post(get_entities_by_query::<P>))
-                .route("/:entity_id", get(get_entity::<P>)),
+                .route("/:entity_uuid", get(get_entity::<P>)),
         )
     }
 }
@@ -97,7 +97,7 @@ struct CreateEntityRequest {
     #[schema(value_type = String)]
     entity_type_id: VersionedUri,
     owned_by_id: OwnedById,
-    entity_id: Option<EntityId>,
+    entity_uuid: Option<EntityUuid>,
     actor_id: CreatedById,
     // TODO: this could break invariants if we don't move to fractional indexing
     //  https://app.asana.com/0/1201095311341924/1202085856561975/f
@@ -126,7 +126,7 @@ async fn create_entity<P: StorePool + Send>(
         entity,
         entity_type_id,
         owned_by_id,
-        entity_id,
+        entity_uuid,
         actor_id,
         link_metadata,
     }) = body;
@@ -141,7 +141,7 @@ async fn create_entity<P: StorePool + Send>(
             entity,
             entity_type_id,
             owned_by_id,
-            entity_id,
+            entity_uuid,
             actor_id,
             link_metadata,
         )
@@ -158,7 +158,7 @@ async fn create_entity<P: StorePool + Send>(
 #[derive(Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct ArchiveEntityRequest {
-    entity_id: EntityId,
+    entity_uuid: EntityUuid,
     owned_by_id: OwnedById,
     actor_id: UpdatedById,
 }
@@ -181,7 +181,7 @@ async fn archive_entity<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<(), StatusCode> {
     let Json(ArchiveEntityRequest {
-        entity_id,
+        entity_uuid,
         owned_by_id,
         actor_id,
     }) = body;
@@ -192,7 +192,7 @@ async fn archive_entity<P: StorePool + Send>(
     })?;
 
     store
-        .archive_entity(entity_id, owned_by_id, actor_id)
+        .archive_entity(entity_uuid, owned_by_id, actor_id)
         .await
         .map_err(|report| {
             if report.contains::<QueryError>() {
@@ -264,7 +264,7 @@ async fn get_latest_entities<P: StorePool + Send>(
 
 #[utoipa::path(
     get,
-    path = "/entities/{entityId}",
+    path = "/entities/{entityUuid}",
     tag = "Entity",
     responses(
         (status = 200, content_type = "application/json", description = "The requested entity", body = PersistedEntity),
@@ -274,16 +274,16 @@ async fn get_latest_entities<P: StorePool + Send>(
         (status = 500, description = "Store error occurred"),
     ),
     params(
-        ("entityId" = Uuid, Path, description = "The ID of the entity"),
+        ("entityUuid" = Uuid, Path, description = "The UUID of the entity"),
     )
 )]
 async fn get_entity<P: StorePool + Send>(
-    Path(entity_id): Path<EntityId>,
+    Path(entity_uuid): Path<EntityUuid>,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<PersistedEntity>, StatusCode> {
     read_from_store(
         pool.as_ref(),
-        &Filter::<Entity>::for_latest_entity_by_entity_id(entity_id),
+        &Filter::<Entity>::for_latest_entity_by_entity_uuid(entity_uuid),
     )
     .await
     .and_then(|mut entities| entities.pop().ok_or(StatusCode::NOT_FOUND))
@@ -294,7 +294,7 @@ async fn get_entity<P: StorePool + Send>(
 #[serde(rename_all = "camelCase")]
 struct UpdateEntityRequest {
     entity: Entity,
-    entity_id: EntityId,
+    entity_uuid: EntityUuid,
     #[schema(value_type = String)]
     entity_type_id: VersionedUri,
     actor_id: UpdatedById,
@@ -319,7 +319,7 @@ async fn update_entity<P: StorePool + Send>(
 ) -> Result<Json<PersistedEntityMetadata>, StatusCode> {
     let Json(UpdateEntityRequest {
         entity,
-        entity_id,
+        entity_uuid,
         entity_type_id,
         actor_id,
     }) = body;
@@ -330,7 +330,7 @@ async fn update_entity<P: StorePool + Send>(
     })?;
 
     store
-        .update_entity(entity_id, entity, entity_type_id, actor_id)
+        .update_entity(entity_uuid, entity, entity_type_id, actor_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update entity");

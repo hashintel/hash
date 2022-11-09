@@ -18,7 +18,7 @@ pub use self::{
     postgres::{AsClient, PostgresStore, PostgresStorePool},
 };
 use crate::{
-    knowledge::{Entity, EntityId, LinkEntityMetadata, PersistedEntity, PersistedEntityMetadata},
+    knowledge::{Entity, EntityUuid, LinkEntityMetadata, PersistedEntity, PersistedEntityMetadata},
     ontology::{
         PersistedDataType, PersistedEntityType, PersistedOntologyMetadata, PersistedPropertyType,
     },
@@ -330,13 +330,13 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Filter<'q
     /// - if the [`EntityType`] doesn't exist
     /// - if the [`Entity`] is not valid with respect to the specified [`EntityType`]
     /// - if the account referred to by `owned_by_id` does not exist
-    /// - if an [`EntityId`] was supplied and already exists in the store
+    /// - if an [`EntityUuid`] was supplied and already exists in the store
     async fn create_entity(
         &mut self,
         entity: Entity,
         entity_type_id: VersionedUri,
         owned_by_id: OwnedById,
-        entity_id: Option<EntityId>,
+        entity_uuid: Option<EntityUuid>,
         actor_id: CreatedById,
         link_metadata: Option<LinkEntityMetadata>,
     ) -> Result<PersistedEntityMetadata, InsertionError>;
@@ -355,18 +355,18 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Filter<'q
     /// - if the [`EntityType`] doesn't exist
     /// - if on of the [`Entity`] is not valid with respect to the specified [`EntityType`]
     /// - if the account referred to by `owned_by_id` does not exist
-    /// - if an [`EntityId`] was supplied and already exists in the store
+    /// - if an [`EntityUuid`] was supplied and already exists in the store
     ///
     /// # Notes
     #[doc(hidden)]
     #[cfg(feature = "__internal_bench")]
     async fn insert_entities_batched_by_type(
         &mut self,
-        entities: impl IntoIterator<Item = (Option<EntityId>, Entity), IntoIter: Send> + Send,
+        entities: impl IntoIterator<Item = (Option<EntityUuid>, Entity), IntoIter: Send> + Send,
         entity_type_id: VersionedUri,
         owned_by_id: OwnedById,
         actor_id: CreatedById,
-    ) -> Result<Vec<EntityId>, InsertionError>;
+    ) -> Result<Vec<EntityUuid>, InsertionError>;
 
     /// Get the [`Subgraph`]s specified by the [`StructuralQuery`].
     ///
@@ -388,7 +388,7 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Filter<'q
     /// - if the account referred to by `actor_id` does not exist
     async fn update_entity(
         &mut self,
-        entity_id: EntityId,
+        entity_uuid: EntityUuid,
         entity: Entity,
         entity_type_id: VersionedUri,
         actor_id: UpdatedById,
@@ -398,13 +398,14 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Filter<'q
     ///
     /// # Errors:
     ///
-    /// - if there isn't an [`Entity`] associated with the [`EntityId`] in the latest entities table
+    /// - if there isn't an [`Entity`] associated with the [`EntityUuid`] in the latest entities
+    /// table
     ///   - this could be because the [`Entity`] doesn't exist, or
     ///   - the [`Entity`] has already been archived
     /// - if the account referred to by `actor_id` does not exist
     async fn archive_entity(
         &mut self,
-        entity_id: EntityId,
+        entity_uuid: EntityUuid,
         owned_by_id: OwnedById,
         actor_id: UpdatedById,
     ) -> Result<(), ArchivalError>;

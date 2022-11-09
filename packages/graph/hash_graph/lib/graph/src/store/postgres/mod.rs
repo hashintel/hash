@@ -27,7 +27,7 @@ use self::context::{OntologyRecord, PostgresContext};
 pub use self::pool::{AsClient, PostgresStorePool};
 use crate::{
     knowledge::{
-        Entity, EntityId, KnowledgeGraphQueryDepth, LinkEntityMetadata, PersistedEntity,
+        Entity, EntityUuid, KnowledgeGraphQueryDepth, LinkEntityMetadata, PersistedEntity,
         PersistedEntityIdentifier, PersistedEntityMetadata,
     },
     ontology::{
@@ -233,7 +233,7 @@ pub struct DependencyContext {
         DependencyMap<VersionedUri, PersistedPropertyType, OntologyQueryDepth>,
     pub referenced_entity_types:
         DependencyMap<VersionedUri, PersistedEntityType, OntologyQueryDepth>,
-    pub linked_entities: DependencyMap<EntityId, PersistedEntity, KnowledgeGraphQueryDepth>,
+    pub linked_entities: DependencyMap<EntityUuid, PersistedEntity, KnowledgeGraphQueryDepth>,
     pub graph_resolve_depths: GraphResolveDepths,
 }
 
@@ -302,7 +302,7 @@ impl DependencyContext {
             .chain(self.linked_entities.into_values().map(|entity| {
                 (
                     GraphElementIdentifier::KnowledgeGraphElementId(
-                        entity.metadata().identifier().entity_id(),
+                        entity.metadata().identifier().entity_uuid(),
                     ),
                     Vertex::Entity(entity),
                 )
@@ -326,7 +326,8 @@ pub struct DependencyContextRef<'a> {
         &'a mut DependencyMap<VersionedUri, PersistedPropertyType, OntologyQueryDepth>,
     pub referenced_entity_types:
         &'a mut DependencyMap<VersionedUri, PersistedEntityType, OntologyQueryDepth>,
-    pub linked_entities: &'a mut DependencyMap<EntityId, PersistedEntity, KnowledgeGraphQueryDepth>,
+    pub linked_entities:
+        &'a mut DependencyMap<EntityUuid, PersistedEntity, KnowledgeGraphQueryDepth>,
     pub graph_resolve_depths: GraphResolveDepths,
 }
 
@@ -424,25 +425,25 @@ where
             .get(0))
     }
 
-    /// Inserts the specified [`EntityId`] into the database.
+    /// Inserts the specified [`EntityUuid`] into the database.
     ///
     /// # Errors
     ///
-    /// - if inserting the [`EntityId`] failed.
-    async fn insert_entity_id(&self, entity_id: EntityId) -> Result<(), InsertionError> {
+    /// - if inserting the [`EntityUuid`] failed.
+    async fn insert_entity_uuid(&self, entity_uuid: EntityUuid) -> Result<(), InsertionError> {
         self.as_client()
             .query_one(
                 r#"
-                    INSERT INTO entity_ids (entity_id)
+                    INSERT INTO entity_uuids (entity_uuid)
                     VALUES ($1)
-                    RETURNING entity_id;
+                    RETURNING entity_uuid;
                 "#,
-                &[&entity_id],
+                &[&entity_uuid],
             )
             .await
             .into_report()
             .change_context(InsertionError)
-            .attach_printable(entity_id)?;
+            .attach_printable(entity_uuid)?;
 
         Ok(())
     }
@@ -877,7 +878,7 @@ where
 
     async fn insert_entity(
         &self,
-        entity_id: EntityId,
+        entity_uuid: EntityUuid,
         entity: Entity,
         entity_type_id: VersionedUri,
         owned_by_id: OwnedById,
@@ -901,28 +902,28 @@ where
             .query_one(
                 r#"
                 INSERT INTO latest_entities (
-                    entity_id, version,
+                    entity_uuid, version,
                     entity_type_version_id,
                     properties,
                     left_order, right_order,
-                    left_entity_id, right_entity_id,
+                    left_entity_uuid, right_entity_uuid,
                     owned_by_id, created_by_id, updated_by_id
                 )
                 VALUES ($1, clock_timestamp(), $2, $3, $4, $5, $6, $7, $8, $9, $10)
                 RETURNING version;
                 "#,
                 &[
-                    &entity_id,
+                    &entity_uuid,
                     &entity_type_version_id,
                     &value,
                     &link_metadata.as_ref().map(LinkEntityMetadata::left_order),
                     &link_metadata.as_ref().map(LinkEntityMetadata::right_order),
                     &link_metadata
                         .as_ref()
-                        .map(LinkEntityMetadata::left_entity_id),
+                        .map(LinkEntityMetadata::left_entity_uuid),
                     &link_metadata
                         .as_ref()
-                        .map(LinkEntityMetadata::right_entity_id),
+                        .map(LinkEntityMetadata::right_entity_uuid),
                     &owned_by_id.as_account_id(),
                     &created_by_id.as_account_id(),
                     &updated_by_id.as_account_id(),
@@ -934,7 +935,7 @@ where
             .get(0);
 
         Ok(PersistedEntityMetadata::new(
-            PersistedEntityIdentifier::new(entity_id, version, owned_by_id),
+            PersistedEntityIdentifier::new(entity_uuid, version, owned_by_id),
             entity_type_id,
             created_by_id,
             updated_by_id,
@@ -949,7 +950,10 @@ where
     //   This is especially important for making these queries single-shard Citus queries when we
     //   need that.
     //   see: https://app.asana.com/0/1201095311341924/1203214689883091/f
-    async fn lock_latest_entity_for_update(&self, entity_id: EntityId) -> Result<(), QueryError> {
+    async fn lock_latest_entity_for_update(
+        &self,
+        entity_uuid: EntityUuid,
+    ) -> Result<(), QueryError> {
         // TODO - address potential serializability issue.
         //   We don't have a data race per se, but the transaction isolation level of postgres would
         //   make new entries of the `entities` table inaccessible to peer lock-waiters.
@@ -964,10 +968,10 @@ where
                 //   see: https://app.asana.com/0/0/1203284257408542/f
                 r#"
                 SELECT * FROM latest_entities
-                WHERE entity_id = $1
+                WHERE entity_uuid = $1
                 FOR UPDATE;
                 "#,
-                &[&entity_id],
+                &[&entity_uuid],
             )
             .await
             .into_report()
@@ -982,7 +986,7 @@ where
     //   see: https://app.asana.com/0/1201095311341924/1203214689883091/f
     async fn move_latest_entity_to_histories(
         &self,
-        entity_id: EntityId,
+        entity_uuid: EntityUuid,
         historic_move: HistoricMove,
     ) -> Result<PersistedEntityMetadata, InsertionError> {
         let historic_entity = self
@@ -992,13 +996,13 @@ where
                 -- First we delete the _latest_ entity from the entities table.
                 WITH to_move_to_historic AS (
                     DELETE FROM latest_entities
-                    WHERE entity_id = $1
+                    WHERE entity_uuid = $1
                     RETURNING
-                        entity_id, version,
+                        entity_uuid, version,
                         entity_type_version_id,
                         properties,
                         left_order, right_order,
-                        left_entity_id, right_entity_id,
+                        left_entity_uuid, right_entity_uuid,
                         owned_by_id, created_by_id, updated_by_id
                 ),
                 inserted_in_historic AS (
@@ -1006,42 +1010,42 @@ where
                     -- As this should be done in a transaction, we should be safe that this move
                     -- doesn't produce invalid state.
                     INSERT INTO entity_histories(
-                        entity_id, version,
+                        entity_uuid, version,
                         entity_type_version_id,
                         properties,
                         left_order, right_order,
-                        left_entity_id, right_entity_id,
+                        left_entity_uuid, right_entity_uuid,
                         owned_by_id, created_by_id, updated_by_id,
                         archived
                     )
                     SELECT
-                        entity_id, version,
+                        entity_uuid, version,
                         entity_type_version_id,
                         properties,
                         left_order, right_order,
-                        left_entity_id, right_entity_id,
+                        left_entity_uuid, right_entity_uuid,
                         owned_by_id, created_by_id, updated_by_id,
                         $2::boolean
                     FROM to_move_to_historic
                     -- We only return metadata
                     RETURNING
-                        entity_id, version,
+                        entity_uuid, version,
                         entity_type_version_id,
                         left_order, right_order,
-                        left_entity_id, right_entity_id,
+                        left_entity_uuid, right_entity_uuid,
                         owned_by_id, created_by_id, updated_by_id
                 )
                 SELECT
-                    entity_id, inserted_in_historic.version,
+                    entity_uuid, inserted_in_historic.version,
                     base_uri, type_ids.version,
                     left_order, right_order,
-                    left_entity_id, right_entity_id,
+                    left_entity_uuid, right_entity_uuid,
                     owned_by_id, created_by_id, updated_by_id
                 FROM inserted_in_historic
                 INNER JOIN type_ids ON inserted_in_historic.entity_type_version_id = type_ids.version_id;
                 "#,
                 &[
-                    &entity_id,
+                    &entity_uuid,
                     &(historic_move == HistoricMove::ForArchival),
                 ],
             )
@@ -1055,9 +1059,14 @@ where
             historic_entity.get(6),
             historic_entity.get(7),
         ) {
-            (left_order, right_order, Some(left_entity_id), Some(right_entity_id)) => Some(
-                LinkEntityMetadata::new(left_entity_id, right_entity_id, left_order, right_order),
-            ),
+            (left_order, right_order, Some(left_entity_uuid), Some(right_entity_uuid)) => {
+                Some(LinkEntityMetadata::new(
+                    left_entity_uuid,
+                    right_entity_uuid,
+                    left_order,
+                    right_order,
+                ))
+            }
             (None, None, None, None) => None,
             _ => {
                 unreachable!("incomplete link information was found in the DB table, this is fatal")
@@ -1120,27 +1129,27 @@ where
 impl PostgresStore<Transaction<'_>> {
     #[doc(hidden)]
     #[cfg(feature = "__internal_bench")]
-    async fn insert_entity_ids(
+    async fn insert_entity_uuids(
         &self,
-        entity_ids: impl IntoIterator<Item = EntityId, IntoIter: Send> + Send,
+        entity_uuids: impl IntoIterator<Item = EntityUuid, IntoIter: Send> + Send,
     ) -> Result<u64, InsertionError> {
         let sink = self
             .client
-            .copy_in("COPY entity_ids (entity_id) FROM STDIN BINARY")
+            .copy_in("COPY entity_uuids (entity_uuid) FROM STDIN BINARY")
             .await
             .into_report()
             .change_context(InsertionError)?;
         let writer = BinaryCopyInWriter::new(sink, &[Type::UUID]);
 
         futures::pin_mut!(writer);
-        for entity_id in entity_ids {
+        for entity_uuid in entity_uuids {
             writer
                 .as_mut()
-                .write(&[&entity_id])
+                .write(&[&entity_uuid])
                 .await
                 .into_report()
                 .change_context(InsertionError)
-                .attach_printable(entity_id)?;
+                .attach_printable(entity_uuid)?;
         }
 
         writer
@@ -1154,7 +1163,7 @@ impl PostgresStore<Transaction<'_>> {
     #[cfg(feature = "__internal_bench")]
     async fn insert_entity_batch_by_type(
         &self,
-        entity_ids: impl IntoIterator<Item = EntityId, IntoIter: Send> + Send,
+        entity_uuids: impl IntoIterator<Item = EntityUuid, IntoIter: Send> + Send,
         entities: impl IntoIterator<Item = Entity, IntoIter: Send> + Send,
         entity_type_version_id: VersionId,
         owned_by_id: OwnedById,
@@ -1164,7 +1173,7 @@ impl PostgresStore<Transaction<'_>> {
         let sink = self
             .client
             .copy_in(
-                "COPY entities (entity_id, entity_type_version_id, properties, owned_by_id, \
+                "COPY entities (entity_uuid, entity_type_version_id, properties, owned_by_id, \
                  updated_by_id, created_by_id) FROM STDIN BINARY",
             )
             .await
@@ -1179,14 +1188,14 @@ impl PostgresStore<Transaction<'_>> {
             Type::UUID,
         ]);
         futures::pin_mut!(writer);
-        for (entity_id, entity) in entity_ids.into_iter().zip(entities) {
+        for (entity_uuid, entity) in entity_uuids.into_iter().zip(entities) {
             let value = serde_json::to_value(entity)
                 .into_report()
                 .change_context(InsertionError)?;
             writer
                 .as_mut()
                 .write(&[
-                    &entity_id,
+                    &entity_uuid,
                     &entity_type_version_id,
                     &value,
                     &owned_by_id.as_account_id(),
@@ -1196,7 +1205,7 @@ impl PostgresStore<Transaction<'_>> {
                 .await
                 .into_report()
                 .change_context(InsertionError)
-                .attach_printable(entity_id)?;
+                .attach_printable(entity_uuid)?;
         }
 
         writer

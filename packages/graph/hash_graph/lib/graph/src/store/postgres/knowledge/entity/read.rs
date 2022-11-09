@@ -8,7 +8,7 @@ use type_system::uri::VersionedUri;
 
 use crate::{
     knowledge::{
-        Entity, EntityId, EntityQueryPath, LinkEntityMetadata, PersistedEntity,
+        Entity, EntityQueryPath, EntityUuid, LinkEntityMetadata, PersistedEntity,
         PersistedEntityIdentifier,
     },
     ontology::EntityTypeQueryPath,
@@ -29,7 +29,7 @@ impl<C: AsClient> crud::Read<PersistedEntity> for PostgresStore<C> {
         let mut compiler = SelectCompiler::new();
 
         let properties_index = compiler.add_selection_path(&EntityQueryPath::Properties(None));
-        let entity_id_index = compiler.add_selection_path(&EntityQueryPath::Id);
+        let entity_uuid_index = compiler.add_selection_path(&EntityQueryPath::Id);
         let version_index = compiler.add_selection_path(&EntityQueryPath::Version);
         let archived_index = compiler.add_selection_path(&EntityQueryPath::Archived);
         let type_id_index =
@@ -37,8 +37,9 @@ impl<C: AsClient> crud::Read<PersistedEntity> for PostgresStore<C> {
         let owned_by_id_index = compiler.add_selection_path(&EntityQueryPath::OwnedById);
         let created_by_id_index = compiler.add_selection_path(&EntityQueryPath::CreatedById);
         let updated_by_id_index = compiler.add_selection_path(&EntityQueryPath::UpdatedById);
-        let left_entity_id_index = compiler.add_selection_path(&EntityQueryPath::LeftEntity(None));
-        let right_entity_id_index =
+        let left_entity_uuid_index =
+            compiler.add_selection_path(&EntityQueryPath::LeftEntity(None));
+        let right_entity_uuid_index =
             compiler.add_selection_path(&EntityQueryPath::RightEntity(None));
         let left_order_index = compiler.add_selection_path(&EntityQueryPath::LeftOrder);
         let right_order_index = compiler.add_selection_path(&EntityQueryPath::RightOrder);
@@ -61,13 +62,13 @@ impl<C: AsClient> crud::Read<PersistedEntity> for PostgresStore<C> {
                     .change_context(QueryError)?;
 
                 let link_metadata = {
-                    let left_entity_id: Option<EntityId> = row.get(left_entity_id_index);
-                    let right_entity_id: Option<EntityId> = row.get(right_entity_id_index);
-                    match (left_entity_id, right_entity_id) {
-                        (Some(left_entity_id), Some(right_entity_id)) => {
+                    let left_entity_uuid: Option<EntityUuid> = row.get(left_entity_uuid_index);
+                    let right_entity_uuid: Option<EntityUuid> = row.get(right_entity_uuid_index);
+                    match (left_entity_uuid, right_entity_uuid) {
+                        (Some(left_entity_uuid), Some(right_entity_uuid)) => {
                             Some(LinkEntityMetadata::new(
-                                left_entity_id,
-                                right_entity_id,
+                                left_entity_uuid,
+                                right_entity_uuid,
                                 row.get(left_order_index),
                                 row.get(right_order_index),
                             ))
@@ -91,7 +92,7 @@ impl<C: AsClient> crud::Read<PersistedEntity> for PostgresStore<C> {
                 Ok(PersistedEntity::new(
                     entity,
                     PersistedEntityIdentifier::new(
-                        row.get(entity_id_index),
+                        row.get(entity_uuid_index),
                         row.get(version_index),
                         owned_by_id,
                     ),

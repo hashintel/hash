@@ -17,9 +17,9 @@ use crate::provenance::{CreatedById, OwnedById, UpdatedById};
 )]
 #[repr(transparent)]
 #[postgres(transparent)]
-pub struct EntityId(Uuid);
+pub struct EntityUuid(Uuid);
 
-impl EntityId {
+impl EntityUuid {
     #[must_use]
     pub const fn new(uuid: Uuid) -> Self {
         Self(uuid)
@@ -31,7 +31,7 @@ impl EntityId {
     }
 }
 
-impl fmt::Display for EntityId {
+impl fmt::Display for EntityUuid {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(fmt, "{}", &self.0)
     }
@@ -77,7 +77,7 @@ impl Entity {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct PersistedEntityIdentifier {
-    entity_id: EntityId,
+    entity_uuid: EntityUuid,
     #[schema(value_type = String)]
     version: DateTime<Utc>,
     owned_by_id: OwnedById,
@@ -85,17 +85,21 @@ pub struct PersistedEntityIdentifier {
 
 impl PersistedEntityIdentifier {
     #[must_use]
-    pub const fn new(entity_id: EntityId, version: DateTime<Utc>, owned_by_id: OwnedById) -> Self {
+    pub const fn new(
+        entity_uuid: EntityUuid,
+        version: DateTime<Utc>,
+        owned_by_id: OwnedById,
+    ) -> Self {
         Self {
-            entity_id,
+            entity_uuid,
             version,
             owned_by_id,
         }
     }
 
     #[must_use]
-    pub const fn entity_id(&self) -> EntityId {
-        self.entity_id
+    pub const fn entity_uuid(&self) -> EntityUuid {
+        self.entity_uuid
     }
 
     #[must_use]
@@ -113,8 +117,8 @@ impl PersistedEntityIdentifier {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct LinkEntityMetadata {
-    left_entity_id: EntityId,
-    right_entity_id: EntityId,
+    left_entity_uuid: EntityUuid,
+    right_entity_uuid: EntityUuid,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     left_order: Option<LinkOrder>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -124,27 +128,27 @@ pub struct LinkEntityMetadata {
 impl LinkEntityMetadata {
     #[must_use]
     pub const fn new(
-        left_entity_id: EntityId,
-        right_entity_id: EntityId,
+        left_entity_uuid: EntityUuid,
+        right_entity_uuid: EntityUuid,
         left_order: Option<LinkOrder>,
         right_order: Option<LinkOrder>,
     ) -> Self {
         Self {
-            left_entity_id,
-            right_entity_id,
+            left_entity_uuid,
+            right_entity_uuid,
             left_order,
             right_order,
         }
     }
 
     #[must_use]
-    pub const fn left_entity_id(&self) -> EntityId {
-        self.left_entity_id
+    pub const fn left_entity_uuid(&self) -> EntityUuid {
+        self.left_entity_uuid
     }
 
     #[must_use]
-    pub const fn right_entity_id(&self) -> EntityId {
-        self.right_entity_id
+    pub const fn right_entity_uuid(&self) -> EntityUuid {
+        self.right_entity_uuid
     }
 
     #[must_use]

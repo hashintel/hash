@@ -11,7 +11,7 @@ use type_system::uri::VersionedUri;
 use uuid::Uuid;
 
 use crate::{
-    knowledge::{Entity, EntityId, EntityQueryPath},
+    knowledge::{Entity, EntityQueryPath, EntityUuid},
     store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath},
 };
 
@@ -85,15 +85,15 @@ impl<'q> Filter<'q, Entity> {
     }
 
     /// Creates a `Filter` to search for a specific entities at their latest version, identified by
-    /// its [`EntityId`].
+    /// its [`EntityUuid`].
     #[must_use]
-    pub fn for_latest_entity_by_entity_id(entity_id: EntityId) -> Self {
+    pub fn for_latest_entity_by_entity_uuid(entity_uuid: EntityUuid) -> Self {
         Self::All(vec![
             Self::for_all_latest_entities(),
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::Id)),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.as_uuid(),
+                    entity_uuid.as_uuid(),
                 ))),
             ),
         ])

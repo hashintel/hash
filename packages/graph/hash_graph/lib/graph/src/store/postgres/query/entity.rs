@@ -43,44 +43,44 @@ impl Path for EntityQueryPath<'_> {
             .collect(),
             Self::LeftEntity(Some(path)) => once(Relation {
                 current_column_access: ColumnAccess::Table {
-                    column: "left_entity_id",
+                    column: "left_entity_uuid",
                 },
                 join_table_name: TableName::Entities,
                 join_column_access: ColumnAccess::Table {
-                    column: "entity_id",
+                    column: "entity_uuid",
                 },
             })
             .chain(path.relations())
             .collect(),
             Self::RightEntity(Some(path)) => once(Relation {
                 current_column_access: ColumnAccess::Table {
-                    column: "right_entity_id",
+                    column: "right_entity_uuid",
                 },
                 join_table_name: TableName::Entities,
                 join_column_access: ColumnAccess::Table {
-                    column: "entity_id",
+                    column: "entity_uuid",
                 },
             })
             .chain(path.relations())
             .collect(),
             Self::OutgoingLinks(path) => once(Relation {
                 current_column_access: ColumnAccess::Table {
-                    column: "entity_id",
+                    column: "entity_uuid",
                 },
                 join_table_name: TableName::Entities,
                 join_column_access: ColumnAccess::Table {
-                    column: "left_entity_id",
+                    column: "left_entity_uuid",
                 },
             })
             .chain(path.relations())
             .collect(),
             Self::IncomingLinks(path) => once(Relation {
                 current_column_access: ColumnAccess::Table {
-                    column: "entity_id",
+                    column: "entity_uuid",
                 },
                 join_table_name: TableName::Entities,
                 join_column_access: ColumnAccess::Table {
-                    column: "right_entity_id",
+                    column: "right_entity_uuid",
                 },
             })
             .chain(path.relations())
@@ -114,7 +114,7 @@ impl Path for EntityQueryPath<'_> {
     fn column_access(&self) -> ColumnAccess {
         match self {
             Self::Id => ColumnAccess::Table {
-                column: "entity_id",
+                column: "entity_uuid",
             },
             Self::Version => ColumnAccess::Table { column: "version" },
             Self::Archived => ColumnAccess::Table { column: "archived" },
@@ -132,10 +132,10 @@ impl Path for EntityQueryPath<'_> {
                 column: "removed_by_id",
             },
             Self::LeftEntity(None) => ColumnAccess::Table {
-                column: "left_entity_id",
+                column: "left_entity_uuid",
             },
             Self::RightEntity(None) => ColumnAccess::Table {
-                column: "right_entity_id",
+                column: "right_entity_uuid",
             },
             Self::LeftEntity(Some(path))
             | Self::RightEntity(Some(path))

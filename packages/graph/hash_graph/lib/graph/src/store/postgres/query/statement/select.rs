@@ -421,7 +421,7 @@ mod tests {
             r#"
             SELECT
                 "entities"."properties",
-                "entities"."entity_id",
+                "entities"."entity_uuid",
                 "entities"."version",
                 "entity_types_0_0_0"."schema"->>'$id',
                 "entities"."owned_by_id",
@@ -430,7 +430,7 @@ mod tests {
             FROM "entities"
             INNER JOIN "entity_types" AS "entity_types_0_0_0"
               ON "entity_types_0_0_0"."version_id" = "entities"."entity_type_version_id"
-            WHERE "entities"."entity_id" = $1
+            WHERE "entities"."entity_uuid" = $1
             "#,
             &[&"12345678-ABCD-4321-5678-ABCD5555DCBA"],
         );
@@ -453,7 +453,7 @@ mod tests {
             r#"
             SELECT
                 "entities"."properties",
-                "entities"."entity_id",
+                "entities"."entity_uuid",
                 "entities"."version",
                 "entity_types_0_0_0"."schema"->>'$id',
                 "entities"."owned_by_id",
@@ -493,13 +493,13 @@ mod tests {
             &compiler,
             r#"
             SELECT
-                DISTINCT ON("entities"."entity_id", "entities"."version")
-                "entities"."entity_id",
+                DISTINCT ON("entities"."entity_uuid", "entities"."version")
+                "entities"."entity_uuid",
                 "entities"."version",
                 "entities"."properties"
             FROM "entities"
             WHERE "entities"."created_by_id" = $1
-            ORDER BY "entities"."entity_id" ASC,
+            ORDER BY "entities"."entity_uuid" ASC,
                      "entities"."version" DESC
             "#,
             &[&Uuid::nil()],
@@ -577,9 +577,9 @@ mod tests {
             SELECT *
             FROM "entities"
             INNER JOIN "entities" AS "entities_0_0_0"
-              ON "entities_0_0_0"."left_entity_id" = "entities"."entity_id"
+              ON "entities_0_0_0"."left_entity_uuid" = "entities"."entity_uuid"
             INNER JOIN "entities" AS "entities_0_1_0"
-              ON "entities_0_1_0"."entity_id" = "entities_0_0_0"."right_entity_id"
+              ON "entities_0_1_0"."entity_uuid" = "entities_0_0_0"."right_entity_uuid"
             WHERE "entities_0_1_0"."version" IS NULL
             "#,
             &[],
@@ -606,9 +606,9 @@ mod tests {
             SELECT *
             FROM "entities"
             INNER JOIN "entities" AS "entities_0_0_0"
-              ON "entities_0_0_0"."right_entity_id" = "entities"."entity_id"
+              ON "entities_0_0_0"."right_entity_uuid" = "entities"."entity_uuid"
             INNER JOIN "entities" AS "entities_0_1_0"
-              ON "entities_0_1_0"."entity_id" = "entities_0_0_0"."left_entity_id"
+              ON "entities_0_1_0"."entity_uuid" = "entities_0_0_0"."left_entity_uuid"
             WHERE "entities_0_1_0"."version" IS NULL
             "#,
             &[],

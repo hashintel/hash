@@ -317,9 +317,9 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   );
 
   pgm.createTable(
-    "entity_ids",
+    "entity_uuids",
     {
-      entity_id: {
+      entity_uuid: {
         type: "UUID",
         primaryKey: true,
       },
@@ -332,9 +332,9 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   pgm.createTable(
     "latest_entities",
     {
-      entity_id: {
+      entity_uuid: {
         type: "UUID",
-        references: "entity_ids",
+        references: "entity_uuids",
         notNull: true,
       },
       version: {
@@ -363,15 +363,15 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         type: "integer",
         notNull: false,
       },
-      left_entity_id: {
+      left_entity_uuid: {
         type: "UUID",
         notNull: false,
-        references: "entity_ids",
+        references: "entity_uuids",
       },
-      right_entity_id: {
+      right_entity_uuid: {
         type: "UUID",
         notNull: false,
-        references: "entity_ids",
+        references: "entity_uuids",
       },
       owned_by_id: {
         type: "UUID",
@@ -395,19 +395,19 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   );
   // Only allow a single version of an entity in this table.
   pgm.addConstraint("latest_entities", "latest_entities_primary_key", {
-    primaryKey: ["entity_id"],
+    primaryKey: ["entity_uuid"],
   });
 
   pgm.addConstraint("latest_entities", "latest_entities_relation_constraint", {
-    check: `(left_entity_id IS NULL     AND right_entity_id IS NULL) 
-          OR left_entity_id IS NOT NULL AND right_entity_id IS NOT NULL`,
+    check: `(left_entity_uuid IS NULL     AND right_entity_uuid IS NULL) 
+          OR left_entity_uuid IS NOT NULL AND right_entity_uuid IS NOT NULL`,
   });
 
   pgm.addConstraint(
     "latest_entities",
     "latest_entities_relation_order_constraint",
     {
-      check: `(left_entity_id IS NOT NULL AND right_entity_id IS NOT NULL)
+      check: `(left_entity_uuid IS NOT NULL AND right_entity_uuid IS NOT NULL)
             OR (left_order IS NULL AND right_order IS NULL)`,
     },
   );
@@ -415,9 +415,9 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   pgm.createTable(
     "entity_histories",
     {
-      entity_id: {
+      entity_uuid: {
         type: "UUID",
-        references: "entity_ids",
+        references: "entity_uuids",
         notNull: true,
       },
       version: {
@@ -446,15 +446,15 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         type: "integer",
         notNull: false,
       },
-      left_entity_id: {
+      left_entity_uuid: {
         type: "UUID",
         notNull: false,
-        references: "entity_ids",
+        references: "entity_uuids",
       },
-      right_entity_id: {
+      right_entity_uuid: {
         type: "UUID",
         notNull: false,
-        references: "entity_ids",
+        references: "entity_uuids",
       },
       archived: {
         // We may be able to reclaim some space here by using nullability.
@@ -483,15 +483,15 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
     },
   );
   pgm.addConstraint("entity_histories", "entity_histories_primary_key", {
-    primaryKey: ["entity_id", "version"],
+    primaryKey: ["entity_uuid", "version"],
   });
 
   pgm.addConstraint(
     "entity_histories",
     "entity_histories_relation_constraint",
     {
-      check: `(left_entity_id IS NULL     AND right_entity_id IS NULL) 
-            OR left_entity_id IS NOT NULL AND right_entity_id IS NOT NULL`,
+      check: `(left_entity_uuid IS NULL     AND right_entity_uuid IS NULL) 
+            OR left_entity_uuid IS NOT NULL AND right_entity_uuid IS NOT NULL`,
     },
   );
 
@@ -501,15 +501,15 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
     "entities",
     {
       columns: [
-        "entity_id",
+        "entity_uuid",
         "version",
         "latest_version",
         "entity_type_version_id",
         "properties",
         "left_order",
         "right_order",
-        "left_entity_id",
-        "right_entity_id",
+        "left_entity_uuid",
+        "right_entity_uuid",
         "archived",
         "owned_by_id",
         "created_by_id",
@@ -517,9 +517,9 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       ],
     },
     `
-    SELECT entity_id, version, TRUE as latest_version, entity_type_version_id, properties, left_order, right_order, left_entity_id, right_entity_id, FALSE AS archived, owned_by_id, created_by_id, updated_by_id FROM latest_entities
+    SELECT entity_uuid, version, TRUE as latest_version, entity_type_version_id, properties, left_order, right_order, left_entity_uuid, right_entity_uuid, FALSE AS archived, owned_by_id, created_by_id, updated_by_id FROM latest_entities
     UNION ALL
-    SELECT entity_id, version, FALSE as latest_version, entity_type_version_id, properties, left_order, right_order, left_entity_id, right_entity_id, archived, owned_by_id, created_by_id, updated_by_id FROM entity_histories`,
+    SELECT entity_uuid, version, FALSE as latest_version, entity_type_version_id, properties, left_order, right_order, left_entity_uuid, right_entity_uuid, archived, owned_by_id, created_by_id, updated_by_id FROM entity_histories`,
   );
 }
 
@@ -534,7 +534,7 @@ DROP TABLE IF EXISTS property_type_data_type_references CASCADE;
 DROP TABLE IF EXISTS entity_types CASCADE;
 DROP TABLE IF EXISTS entity_type_property_type_references CASCADE;
 DROP TABLE IF EXISTS entity_type_entity_type_references CASCADE;
-DROP TABLE IF EXISTS entity_ids CASCADE;
+DROP TABLE IF EXISTS entity_uuids CASCADE;
 DROP TABLE IF EXISTS entities CASCADE;
 DROP TABLE IF EXISTS entity_histories CASCADE;
 DROP TABLE IF EXISTS accounts CASCADE;

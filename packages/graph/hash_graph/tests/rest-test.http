@@ -348,11 +348,11 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_a_entity_id", encodeURIComponent(response.body.identifier.entityId));
+    client.global.set("person_a_entity_uuid", encodeURIComponent(response.body.identifier.entityUuid));
 %}
 
 ### Get Person entity
-GET http://127.0.0.1:4000/entities/{{person_a_entity_id}}
+GET http://127.0.0.1:4000/entities/{{person_a_entity_uuid}}
 
 > {%
     client.test("status", function() {
@@ -367,7 +367,7 @@ Accept: application/json
 
 {
  "actorId": "{{account_id}}",
- "entityId": "{{person_a_entity_id}}",
+ "entityUuid": "{{person_a_entity_uuid}}",
  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2",
  "entity": {
    "http://localhost:3000/@alice/types/property-type/name/": "Alice Allison"
@@ -398,7 +398,7 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_b_entity_id", encodeURIComponent(response.body.identifier.entityId));
+    client.global.set("person_b_entity_uuid", encodeURIComponent(response.body.identifier.entityUuid));
 %}
 
 ### Get all latest entities
@@ -459,8 +459,8 @@ Accept: application/json
   "entity": {},
   "entityTypeId": "{{friendship_link_entity_type_id}}",
   "linkMetadata": {
-    "leftEntityId": "{{person_a_entity_id}}",
-    "rightEntityId": "{{person_b_entity_id}}"
+    "leftEntityUuid": "{{person_a_entity_uuid}}",
+    "rightEntityUuid": "{{person_b_entity_uuid}}"
   }
 }
 
@@ -528,7 +528,7 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "entityId": "{{person_b_entity_id}}",
+  "entityUuid": "{{person_b_entity_uuid}}",
   "ownedById": "{{account_id}}",
   "actorId": "{{account_id}}"
 }

@@ -9,7 +9,7 @@ use std::{borrow::Cow, str::FromStr};
 use error_stack::Result;
 use graph::{
     knowledge::{
-        Entity, EntityId, EntityQueryPath, LinkEntityMetadata, PersistedEntity,
+        Entity, EntityQueryPath, EntityUuid, LinkEntityMetadata, PersistedEntity,
         PersistedEntityMetadata,
     },
     ontology::{
@@ -267,30 +267,32 @@ impl DatabaseApi<'_> {
         &mut self,
         entity: Entity,
         entity_type_id: VersionedUri,
-        entity_id: Option<EntityId>,
+        entity_uuid: Option<EntityUuid>,
     ) -> Result<PersistedEntityMetadata, InsertionError> {
         self.store
             .create_entity(
                 entity,
                 entity_type_id,
                 OwnedById::new(self.account_id),
-                entity_id,
+                entity_uuid,
                 CreatedById::new(self.account_id),
                 None,
             )
             .await
     }
 
-    pub async fn get_entity(&self, entity_id: EntityId) -> Result<PersistedEntity, QueryError> {
+    pub async fn get_entity(&self, entity_uuid: EntityUuid) -> Result<PersistedEntity, QueryError> {
         let vertex = self
             .store
             .get_entity(&StructuralQuery {
-                filter: Filter::for_latest_entity_by_entity_id(entity_id),
+                filter: Filter::for_latest_entity_by_entity_uuid(entity_uuid),
                 graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
             .await?
             .vertices
-            .remove(&GraphElementIdentifier::KnowledgeGraphElementId(entity_id))
+            .remove(&GraphElementIdentifier::KnowledgeGraphElementId(
+                entity_uuid,
+            ))
             .expect("no entity found");
 
         match vertex {
@@ -301,13 +303,13 @@ impl DatabaseApi<'_> {
 
     pub async fn update_entity(
         &mut self,
-        entity_id: EntityId,
+        entity_uuid: EntityUuid,
         entity: Entity,
         entity_type_id: VersionedUri,
     ) -> Result<PersistedEntityMetadata, UpdateError> {
         self.store
             .update_entity(
-                entity_id,
+                entity_uuid,
                 entity,
                 entity_type_id,
                 UpdatedById::new(self.account_id),
@@ -319,20 +321,20 @@ impl DatabaseApi<'_> {
         &mut self,
         entity: Entity,
         entity_type_id: VersionedUri,
-        entity_id: Option<EntityId>,
-        left_entity_id: EntityId,
-        right_entity_id: EntityId,
+        entity_uuid: Option<EntityUuid>,
+        left_entity_uuid: EntityUuid,
+        right_entity_uuid: EntityUuid,
     ) -> Result<PersistedEntityMetadata, InsertionError> {
         self.store
             .create_entity(
                 entity,
                 entity_type_id,
                 OwnedById::new(self.account_id),
-                entity_id,
+                entity_uuid,
                 CreatedById::new(self.account_id),
                 Some(LinkEntityMetadata::new(
-                    left_entity_id,
-                    right_entity_id,
+                    left_entity_uuid,
+                    right_entity_uuid,
                     None,
                     None,
                 )),
@@ -342,7 +344,7 @@ impl DatabaseApi<'_> {
 
     pub async fn get_link_entity_target(
         &self,
-        source_entity_id: EntityId,
+        source_entity_uuid: EntityUuid,
         link_type_id: VersionedUri,
     ) -> Result<PersistedEntity, QueryError> {
         let filter = Filter::All(vec![
@@ -351,7 +353,7 @@ impl DatabaseApi<'_> {
                     Box::new(EntityQueryPath::Id),
                 )))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    source_entity_id.as_uuid(),
+                    source_entity_uuid.as_uuid(),
                 ))),
             ),
             Filter::Equal(
@@ -390,13 +392,13 @@ impl DatabaseApi<'_> {
 
     pub async fn get_latest_entity_links(
         &self,
-        source_entity_id: EntityId,
+        source_entity_uuid: EntityUuid,
     ) -> Result<Vec<PersistedEntity>, QueryError> {
         let filter = Filter::All(vec![
             Filter::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::LeftEntity(None))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    source_entity_id.as_uuid(),
+                    source_entity_uuid.as_uuid(),
                 ))),
             ),
             Filter::Equal(
@@ -423,10 +425,10 @@ impl DatabaseApi<'_> {
             .collect())
     }
 
-    async fn archive_entity(&mut self, link_entity_id: EntityId) -> Result<(), ArchivalError> {
+    async fn archive_entity(&mut self, link_entity_uuid: EntityUuid) -> Result<(), ArchivalError> {
         self.store
             .archive_entity(
-                link_entity_id,
+                link_entity_uuid,
                 OwnedById::new(self.account_id),
                 UpdatedById::new(self.account_id),
             )
