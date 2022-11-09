@@ -29,7 +29,7 @@ import {
 } from "./entity/impliedHistory";
 
 import { me } from "./knowledge/user/me";
-import { isShortnameTaken } from "./knowledge/user/isShortnameTaken";
+import { isShortnameTaken } from "./knowledge/user/is-shortname-taken";
 import { deprecatedCreateEntityType } from "./entityType/createEntityType";
 import { SYSTEM_TYPES, SystemType } from "../../types/entityTypes";
 import { entityTypeTypeFields } from "./entityType/entityTypeTypeFields";
@@ -114,6 +114,8 @@ import { resolvePersistedComment } from "./knowledge/comment/resolve";
 import { deletePersistedComment } from "./knowledge/comment/delete";
 import { updatePersistedCommentText } from "./knowledge/comment/update-text";
 import { blockChildEntity } from "./knowledge/block/data-entity";
+import { loggedInAndSignedUpHashInstanceAdmin } from "./middlewares/loggedInAndSignedUpHashInstanceAdmin";
+import { createUser } from "./knowledge/user/create-user";
 
 /**
  * @todo: derive these from the statically declared system type names
@@ -221,6 +223,8 @@ export const resolvers = {
     resolvePersistedComment: loggedInAndSignedUp(resolvePersistedComment),
     deletePersistedComment: loggedInAndSignedUp(deletePersistedComment),
     updatePersistedCommentText: loggedInAndSignedUp(updatePersistedCommentText),
+    // HASH instance admin mutations
+    createUser: loggedInAndSignedUpHashInstanceAdmin(createUser),
   },
 
   JSONObject: JSONObjectResolver,

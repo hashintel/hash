@@ -25,6 +25,8 @@ type UserModelCreateParams = Omit<
 > & {
   emails: string[];
   kratosIdentityId: string;
+  shortname?: string;
+  preferredName?: string;
   isInstanceAdmin?: boolean;
 };
 
@@ -135,6 +137,8 @@ export default class extends EntityModel {
    * @param params.emails - the emails of the user
    * @param params.kratosIdentityId - the kratos identity id of the user
    * @param params.isInstanceAdmin (optional) - whether or not the user is an instance admin of the HASH instance (defaults to `false`)
+   * @param params.shortname (optional) - the shortname of the user
+   * @param params.preferredName (optional) - the preferred name of the user
    */
   static async createUser(
     graphApi: GraphApi,
@@ -144,6 +148,8 @@ export default class extends EntityModel {
       emails,
       kratosIdentityId,
       actorId,
+      shortname,
+      preferredName,
       isInstanceAdmin = false,
     } = params;
 
@@ -158,13 +164,28 @@ export default class extends EntityModel {
       );
     }
 
+    if (shortname) {
+      if (AccountFields.shortnameIsInvalid(shortname)) {
+        throw new Error(`The shortname "${shortname}" is invalid`);
+      }
+
+      if (
+        AccountFields.shortnameIsRestricted(shortname) ||
+        (await AccountFields.shortnameIsTaken(graphApi, { shortname }))
+      ) {
+        throw new Error(
+          `An account with shortname "${shortname}" already exists.`,
+        );
+      }
+    }
+
     const { data: userAccountId } = await graphApi.createAccountId();
 
     const properties: object = {
       [SYSTEM_TYPES.propertyType.email.baseUri]: emails,
       [SYSTEM_TYPES.propertyType.kratosIdentityId.baseUri]: kratosIdentityId,
-      [SYSTEM_TYPES.propertyType.shortName.baseUri]: undefined,
-      [SYSTEM_TYPES.propertyType.preferredName.baseUri]: undefined,
+      [SYSTEM_TYPES.propertyType.shortName.baseUri]: shortname,
+      [SYSTEM_TYPES.propertyType.preferredName.baseUri]: preferredName,
     };
 
     const entityTypeModel = SYSTEM_TYPES.entityType.user;
@@ -296,7 +317,7 @@ export default class extends EntityModel {
       }))
     ) {
       throw new Error(
-        `A user entity with shortname "${updatedShortname}" already exists.`,
+        `An account with shortname "${updatedShortname}" already exists.`,
       );
     }
 
