@@ -1,8 +1,14 @@
+use std::str::FromStr;
+
 use postgres_types::{FromSql, ToSql};
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use utoipa::{openapi, ToSchema};
 
-use crate::{identifier::Timestamp, knowledge::EntityUuid, provenance::OwnedById};
+use crate::{
+    identifier::{account::AccountId, Timestamp},
+    knowledge::EntityUuid,
+    provenance::OwnedById,
+};
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct EntityId {
@@ -44,7 +50,24 @@ impl<'de> Deserialize<'de> for EntityId {
     where
         D: Deserializer<'de>,
     {
-        todo!()
+        // TODO: we can be more efficient than this, we know the byte sizes of all the elements
+        let as_string = String::deserialize(deserializer)?;
+        let mut parts = as_string.split('%');
+
+        Ok(Self {
+            owned_by_id: OwnedById::new(AccountId::new(
+                uuid::Uuid::from_str(parts.next().ok_or_else(|| {
+                    D::Error::custom("failed to find first component of `%` delimited string")
+                })?)
+                .map_err(|err| D::Error::custom(err.to_string()))?,
+            )),
+            entity_uuid: EntityUuid::new(
+                uuid::Uuid::from_str(parts.next().ok_or_else(|| {
+                    D::Error::custom("failed to find second component of `%` delimited string")
+                })?)
+                .map_err(|err| D::Error::custom(err.to_string()))?,
+            ),
+        })
     }
 }
 
@@ -86,6 +109,7 @@ impl ToSchema for EntityVersion {
 #[derive(
     Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, ToSchema,
 )]
+#[serde(rename_all = "camelCase")]
 pub struct EntityEditionId {
     base_id: EntityId,
     version: EntityVersion,
@@ -101,12 +125,12 @@ impl EntityEditionId {
     }
 
     #[must_use]
-    pub fn base_id(&self) -> EntityId {
+    pub const fn base_id(&self) -> EntityId {
         self.base_id
     }
 
     #[must_use]
-    pub fn version(&self) -> EntityVersion {
+    pub const fn version(&self) -> EntityVersion {
         self.version
     }
 }
