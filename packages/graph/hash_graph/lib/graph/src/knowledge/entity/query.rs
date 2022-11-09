@@ -13,7 +13,7 @@ use crate::{
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum EntityQueryPath<'q> {
-    Id,
+    Uuid,
     OwnedById,
     CreatedById,
     UpdatedById,
@@ -37,7 +37,7 @@ impl QueryRecord for Entity {
 impl fmt::Display for EntityQueryPath<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Id => fmt.write_str("id"),
+            Self::Uuid => fmt.write_str("uuid"),
             Self::OwnedById => fmt.write_str("ownedById"),
             Self::CreatedById => fmt.write_str("createdById"),
             Self::UpdatedById => fmt.write_str("updatedById"),
@@ -62,7 +62,7 @@ impl fmt::Display for EntityQueryPath<'_> {
 impl RecordPath for EntityQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::Id
+            Self::Uuid
             | Self::OwnedById
             | Self::CreatedById
             | Self::UpdatedById
@@ -86,7 +86,8 @@ impl RecordPath for EntityQueryPath<'_> {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum EntityQueryToken {
-    Id,
+    // TODO: we want to expose `EntityId` here instead
+    Uuid,
     OwnedById,
     CreatedById,
     UpdatedById,
@@ -108,9 +109,9 @@ pub struct EntityQueryPathVisitor {
 }
 
 impl EntityQueryPathVisitor {
-    pub const EXPECTING: &'static str = "one of `id`, `ownedById`, `createdById`, `updatedById`, \
-                                         `removedById`, `version`, `archived`, `type`, \
-                                         `properties`, `incomingLinks`, `outgoingLinks`, \
+    pub const EXPECTING: &'static str = "one of `uuid`, `ownedById`, `createdById`, \
+                                         `updatedById`, `removedById`, `version`, `archived`, \
+                                         `type`, `properties`, `incomingLinks`, `outgoingLinks`, \
                                          `leftEntity`, `rightEntity`";
 
     #[must_use]
@@ -136,7 +137,7 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
         self.position += 1;
 
         Ok(match token {
-            EntityQueryToken::Id => EntityQueryPath::Id,
+            EntityQueryToken::Uuid => EntityQueryPath::Uuid,
             EntityQueryToken::OwnedById => EntityQueryPath::OwnedById,
             EntityQueryToken::CreatedById => EntityQueryPath::CreatedById,
             EntityQueryToken::UpdatedById => EntityQueryPath::UpdatedById,
@@ -208,8 +209,8 @@ mod tests {
             )))
         );
         assert_eq!(
-            deserialize(["leftEntity", "id"]),
-            EntityQueryPath::LeftEntity(Some(Box::new(EntityQueryPath::Id)))
+            deserialize(["leftEntity", "uuid"]),
+            EntityQueryPath::LeftEntity(Some(Box::new(EntityQueryPath::Uuid)))
         );
 
         assert_eq!(

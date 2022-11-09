@@ -19,7 +19,7 @@ impl PostgresQueryRecord for Entity {
     fn default_selection_paths() -> &'static [Self::Path<'static>] {
         &[
             EntityQueryPath::Properties(None),
-            EntityQueryPath::Id,
+            EntityQueryPath::Uuid,
             EntityQueryPath::Version,
             EntityQueryPath::Type(EntityTypeQueryPath::VersionedUri),
             EntityQueryPath::OwnedById,
@@ -91,7 +91,7 @@ impl Path for EntityQueryPath<'_> {
 
     fn terminating_table_name(&self) -> TableName {
         match self {
-            Self::Id
+            Self::Uuid
             | Self::OwnedById
             | Self::CreatedById
             | Self::UpdatedById
@@ -113,7 +113,7 @@ impl Path for EntityQueryPath<'_> {
 
     fn column_access(&self) -> ColumnAccess {
         match self {
-            Self::Id => ColumnAccess::Table {
+            Self::Uuid => ColumnAccess::Table {
                 column: "entity_uuid",
             },
             Self::Version => ColumnAccess::Table { column: "version" },

@@ -37,7 +37,7 @@ impl<C: AsClient> crud::Read<PersistedEntity> for PostgresStore<C> {
         let mut compiler = SelectCompiler::new();
 
         let owned_by_id_index = compiler.add_selection_path(&EntityQueryPath::OwnedById);
-        let entity_uuid_index = compiler.add_selection_path(&EntityQueryPath::Id);
+        let entity_uuid_index = compiler.add_selection_path(&EntityQueryPath::Uuid);
         let version_index = compiler.add_selection_path(&EntityQueryPath::Version);
 
         let type_id_index =

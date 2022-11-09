@@ -349,7 +349,7 @@ impl DatabaseApi<'_> {
         let filter = Filter::All(vec![
             Filter::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::LeftEntity(Some(
-                    Box::new(EntityQueryPath::Id),
+                    Box::new(EntityQueryPath::Uuid),
                 )))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
                     source_entity_uuid.as_uuid(),

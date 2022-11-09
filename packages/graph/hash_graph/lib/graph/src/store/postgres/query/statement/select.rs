@@ -409,7 +409,7 @@ mod tests {
         let mut compiler = SelectCompiler::<Entity>::with_default_selection();
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path(EntityQueryPath::Id)),
+            Some(FilterExpression::Path(EntityQueryPath::Uuid)),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                 "12345678-ABCD-4321-5678-ABCD5555DCBA",
             )))),
@@ -472,7 +472,7 @@ mod tests {
     fn entity_with_manual_selection() {
         let mut compiler = SelectCompiler::<Entity>::new();
         compiler.add_distinct_selection_with_ordering(
-            &EntityQueryPath::Id,
+            &EntityQueryPath::Uuid,
             Distinctness::Distinct,
             Some(Ordering::Ascending),
         );
@@ -622,7 +622,7 @@ mod tests {
         let filter = Filter::All(vec![
             Filter::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::LeftEntity(Some(
-                    Box::new(EntityQueryPath::Id),
+                    Box::new(EntityQueryPath::Uuid),
                 )))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
             ),
@@ -634,7 +634,7 @@ mod tests {
             ),
             Filter::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::RightEntity(Some(
-                    Box::new(EntityQueryPath::Id),
+                    Box::new(EntityQueryPath::Uuid),
                 )))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
             ),

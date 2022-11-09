@@ -92,7 +92,7 @@ impl<'q> Filter<'q, Entity> {
         Self::All(vec![
             Self::for_all_latest_entities(),
             Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::Id)),
+                Some(FilterExpression::Path(EntityQueryPath::Uuid)),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
                     entity_id.entity_uuid().as_uuid(),
                 ))),
