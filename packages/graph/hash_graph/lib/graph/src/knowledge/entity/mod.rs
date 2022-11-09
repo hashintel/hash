@@ -126,7 +126,7 @@ impl LinkEntityMetadata {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 // TODO: deny_unknown_fields on other structs
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct PersistedEntityMetadata {
+pub struct EntityMetadata {
     identifier: EntityEditionId,
     #[schema(value_type = String)]
     entity_type_id: VersionedUri,
@@ -139,7 +139,7 @@ pub struct PersistedEntityMetadata {
     archived: bool,
 }
 
-impl PersistedEntityMetadata {
+impl EntityMetadata {
     #[must_use]
     pub const fn new(
         identifier: EntityEditionId,
@@ -194,12 +194,12 @@ impl PersistedEntityMetadata {
 /// metadata.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct PersistedEntity {
+pub struct Entity {
     inner: EntityProperties,
-    metadata: PersistedEntityMetadata,
+    metadata: EntityMetadata,
 }
 
-impl PersistedEntity {
+impl Entity {
     #[must_use]
     pub const fn new(
         inner: EntityProperties,
@@ -212,7 +212,7 @@ impl PersistedEntity {
     ) -> Self {
         Self {
             inner,
-            metadata: PersistedEntityMetadata::new(
+            metadata: EntityMetadata::new(
                 identifier,
                 entity_type_id,
                 created_by_id,
@@ -229,7 +229,7 @@ impl PersistedEntity {
     }
 
     #[must_use]
-    pub const fn metadata(&self) -> &PersistedEntityMetadata {
+    pub const fn metadata(&self) -> &EntityMetadata {
         &self.metadata
     }
 }

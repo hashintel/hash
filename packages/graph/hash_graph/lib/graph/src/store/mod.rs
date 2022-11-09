@@ -19,9 +19,7 @@ pub use self::{
 };
 use crate::{
     identifier::knowledge::EntityId,
-    knowledge::{
-        EntityProperties, EntityUuid, LinkEntityMetadata, PersistedEntity, PersistedEntityMetadata,
-    },
+    knowledge::{Entity, EntityMetadata, EntityProperties, EntityUuid, LinkEntityMetadata},
     ontology::{
         DataTypeWithMetadata, EntityTypeWithMetadata, PersistedOntologyMetadata,
         PropertyTypeWithMetadata,
@@ -327,7 +325,7 @@ pub trait EntityTypeStore:
 /// [Entities]: crate::knowledge::Entity
 #[async_trait]
 pub trait EntityStore:
-    for<'q> crud::Read<PersistedEntity, Query<'q> = Filter<'q, EntityProperties>>
+    for<'q> crud::Read<Entity, Query<'q> = Filter<'q, EntityProperties>>
 {
     /// Creates a new [`Entity`].
     ///
@@ -345,7 +343,7 @@ pub trait EntityStore:
         entity_uuid: Option<EntityUuid>,
         actor_id: CreatedById,
         link_metadata: Option<LinkEntityMetadata>,
-    ) -> Result<PersistedEntityMetadata, InsertionError>;
+    ) -> Result<EntityMetadata, InsertionError>;
 
     /// Inserts the entities with the specified [`EntityType`] into the `Store`.
     ///
@@ -399,7 +397,7 @@ pub trait EntityStore:
         entity: EntityProperties,
         entity_type_id: VersionedUri,
         actor_id: UpdatedById,
-    ) -> Result<PersistedEntityMetadata, UpdateError>;
+    ) -> Result<EntityMetadata, UpdateError>;
 
     /// Archives an [`Entity`].
     ///

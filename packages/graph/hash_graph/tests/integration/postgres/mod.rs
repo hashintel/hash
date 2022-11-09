@@ -10,8 +10,7 @@ use error_stack::Result;
 use graph::{
     identifier::knowledge::EntityId,
     knowledge::{
-        EntityProperties, EntityQueryPath, EntityUuid, LinkEntityMetadata, PersistedEntity,
-        PersistedEntityMetadata,
+        Entity, EntityMetadata, EntityProperties, EntityQueryPath, EntityUuid, LinkEntityMetadata,
     },
     ontology::{
         DataTypeWithMetadata, EntityTypeQueryPath, EntityTypeWithMetadata,
@@ -250,7 +249,7 @@ impl DatabaseApi<'_> {
             .expect("no entity type found");
 
         match vertex {
-            Vertex::EntityType(persisted_entity_type) => Ok(persisted_entity_type),
+            Vertex::EntityType(entity_type) => Ok(entity_type),
             _ => unreachable!(),
         }
     }
@@ -269,7 +268,7 @@ impl DatabaseApi<'_> {
         entity: EntityProperties,
         entity_type_id: VersionedUri,
         entity_uuid: Option<EntityUuid>,
-    ) -> Result<PersistedEntityMetadata, InsertionError> {
+    ) -> Result<EntityMetadata, InsertionError> {
         self.store
             .create_entity(
                 entity,
@@ -282,7 +281,7 @@ impl DatabaseApi<'_> {
             .await
     }
 
-    pub async fn get_entity(&self, entity_id: EntityId) -> Result<PersistedEntity, QueryError> {
+    pub async fn get_entity(&self, entity_id: EntityId) -> Result<Entity, QueryError> {
         let vertex = self
             .store
             .get_entity(&StructuralQuery {
@@ -295,7 +294,7 @@ impl DatabaseApi<'_> {
             .expect("no entity found");
 
         match vertex {
-            Vertex::Entity(persisted_entity) => Ok(persisted_entity),
+            Vertex::Entity(entity) => Ok(entity),
             _ => unreachable!(),
         }
     }
@@ -305,7 +304,7 @@ impl DatabaseApi<'_> {
         entity_id: EntityId,
         entity: EntityProperties,
         entity_type_id: VersionedUri,
-    ) -> Result<PersistedEntityMetadata, UpdateError> {
+    ) -> Result<EntityMetadata, UpdateError> {
         self.store
             .update_entity(
                 entity_id,
@@ -323,7 +322,7 @@ impl DatabaseApi<'_> {
         entity_uuid: Option<EntityUuid>,
         left_entity_id: EntityId,
         right_entity_id: EntityId,
-    ) -> Result<PersistedEntityMetadata, InsertionError> {
+    ) -> Result<EntityMetadata, InsertionError> {
         self.store
             .create_entity(
                 entity,
@@ -345,7 +344,7 @@ impl DatabaseApi<'_> {
         &self,
         source_entity_uuid: EntityUuid,
         link_type_id: VersionedUri,
-    ) -> Result<PersistedEntity, QueryError> {
+    ) -> Result<Entity, QueryError> {
         let filter = Filter::All(vec![
             Filter::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::LeftEntity(Some(
@@ -382,7 +381,7 @@ impl DatabaseApi<'_> {
             .vertices
             .into_iter()
             .map(|(_, vertex)| match vertex {
-                Vertex::Entity(persisted_entity) => Ok(persisted_entity),
+                Vertex::Entity(entity) => Ok(entity),
                 _ => unreachable!(),
             })
             .next()
@@ -392,7 +391,7 @@ impl DatabaseApi<'_> {
     pub async fn get_latest_entity_links(
         &self,
         source_entity_id: EntityId,
-    ) -> Result<Vec<PersistedEntity>, QueryError> {
+    ) -> Result<Vec<Entity>, QueryError> {
         let filter = Filter::All(vec![
             Filter::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::LeftEntity(None))),
@@ -426,7 +425,7 @@ impl DatabaseApi<'_> {
             .vertices
             .into_iter()
             .map(|(_, vertex)| match vertex {
-                Vertex::Entity(persisted_entity) => persisted_entity,
+                Vertex::Entity(entity) => entity,
                 _ => unreachable!(),
             })
             .collect())

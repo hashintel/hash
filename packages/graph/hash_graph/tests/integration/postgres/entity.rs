@@ -34,12 +34,12 @@ async fn insert() {
         .await
         .expect("could not create entity");
 
-    let persisted_entity = api
+    let entity = api
         .get_entity(metadata.identifier().base_id())
         .await
         .expect("could not get entity");
 
-    assert_eq!(persisted_entity.inner(), &person);
+    assert_eq!(entity.inner(), &person);
 }
 
 #[tokio::test]
@@ -118,10 +118,10 @@ async fn update() {
     .await
     .expect("could not update entity");
 
-    let persisted_entity = api
+    let entity = api
         .get_entity(metadata.identifier().base_id())
         .await
         .expect("could not get entity");
 
-    assert_eq!(persisted_entity.inner(), &page_v2);
+    assert_eq!(entity.inner(), &page_v2);
 }

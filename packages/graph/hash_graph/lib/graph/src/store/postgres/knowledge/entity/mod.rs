@@ -11,9 +11,7 @@ use uuid::Uuid;
 
 use crate::{
     identifier::{knowledge::EntityId, GraphElementIdentifier},
-    knowledge::{
-        EntityProperties, EntityUuid, LinkEntityMetadata, PersistedEntity, PersistedEntityMetadata,
-    },
+    knowledge::{Entity, EntityMetadata, EntityProperties, EntityUuid, LinkEntityMetadata},
     provenance::{CreatedById, OwnedById, UpdatedById},
     store::{
         crud::Read,
@@ -139,7 +137,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         entity_uuid: Option<EntityUuid>,
         created_by_id: CreatedById,
         link_metadata: Option<LinkEntityMetadata>,
-    ) -> Result<PersistedEntityMetadata, InsertionError> {
+    ) -> Result<EntityMetadata, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()
@@ -246,7 +244,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             graph_resolve_depths,
         } = *query;
 
-        let subgraphs = stream::iter(Read::<PersistedEntity>::read(self, filter).await?)
+        let subgraphs = stream::iter(Read::<Entity>::read(self, filter).await?)
             .then(|entity| async move {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 
@@ -277,7 +275,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         entity: EntityProperties,
         entity_type_id: VersionedUri,
         updated_by_id: UpdatedById,
-    ) -> Result<PersistedEntityMetadata, UpdateError> {
+    ) -> Result<EntityMetadata, UpdateError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()
@@ -337,7 +335,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .change_context(ArchivalError)?;
 
         // Prepare to create a new history entry to mark archival
-        let old_entity: PersistedEntity = transaction
+        let old_entity: Entity = transaction
             .read_one(&Filter::for_latest_entity_by_entity_id(entity_id))
             .await
             .change_context(ArchivalError)?;

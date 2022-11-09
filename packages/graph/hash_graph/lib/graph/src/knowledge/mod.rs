@@ -4,8 +4,8 @@
 mod entity;
 
 pub use self::entity::{
-    EntityProperties, EntityQueryPath, EntityQueryPathVisitor, EntityUuid, LinkEntityMetadata,
-    LinkOrder, PersistedEntity, PersistedEntityMetadata,
+    Entity, EntityMetadata, EntityProperties, EntityQueryPath, EntityQueryPathVisitor, EntityUuid,
+    LinkEntityMetadata, LinkOrder,
 };
 
 // TODO: update this doc: https://app.asana.com/0/1200211978612931/1203250001255262/f

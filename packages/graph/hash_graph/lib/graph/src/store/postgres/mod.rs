@@ -28,8 +28,8 @@ pub use self::pool::{AsClient, PostgresStorePool};
 use crate::{
     identifier::knowledge::{EntityEditionId, EntityId},
     knowledge::{
-        EntityProperties, EntityUuid, KnowledgeGraphQueryDepth, LinkEntityMetadata,
-        PersistedEntity, PersistedEntityMetadata,
+        Entity, EntityMetadata, EntityProperties, EntityUuid, KnowledgeGraphQueryDepth,
+        LinkEntityMetadata,
     },
     ontology::{
         DataTypeWithMetadata, EntityTypeWithMetadata, OntologyQueryDepth,
@@ -235,7 +235,7 @@ pub struct DependencyContext {
         DependencyMap<VersionedUri, PropertyTypeWithMetadata, OntologyQueryDepth>,
     pub referenced_entity_types:
         DependencyMap<VersionedUri, EntityTypeWithMetadata, OntologyQueryDepth>,
-    pub linked_entities: DependencyMap<EntityId, PersistedEntity, KnowledgeGraphQueryDepth>,
+    pub linked_entities: DependencyMap<EntityId, Entity, KnowledgeGraphQueryDepth>,
     pub graph_resolve_depths: GraphResolveDepths,
 }
 
@@ -328,7 +328,7 @@ pub struct DependencyContextRef<'a> {
         &'a mut DependencyMap<VersionedUri, PropertyTypeWithMetadata, OntologyQueryDepth>,
     pub referenced_entity_types:
         &'a mut DependencyMap<VersionedUri, EntityTypeWithMetadata, OntologyQueryDepth>,
-    pub linked_entities: &'a mut DependencyMap<EntityId, PersistedEntity, KnowledgeGraphQueryDepth>,
+    pub linked_entities: &'a mut DependencyMap<EntityId, Entity, KnowledgeGraphQueryDepth>,
     pub graph_resolve_depths: GraphResolveDepths,
 }
 
@@ -885,7 +885,7 @@ where
         created_by_id: CreatedById,
         updated_by_id: UpdatedById,
         link_metadata: Option<LinkEntityMetadata>,
-    ) -> Result<PersistedEntityMetadata, InsertionError> {
+    ) -> Result<EntityMetadata, InsertionError> {
         let entity_type_version_id = self
             .version_id_by_uri(&entity_type_id)
             .await
@@ -941,7 +941,7 @@ where
             .change_context(InsertionError)?
             .get(0);
 
-        Ok(PersistedEntityMetadata::new(
+        Ok(EntityMetadata::new(
             EntityEditionId::new(entity_id, version),
             entity_type_id,
             created_by_id,
@@ -987,7 +987,7 @@ where
         &self,
         entity_id: EntityId,
         historic_move: HistoricMove,
-    ) -> Result<PersistedEntityMetadata, InsertionError> {
+    ) -> Result<EntityMetadata, InsertionError> {
         let historic_entity = self
             .as_client()
             .query_one(
@@ -1096,7 +1096,7 @@ where
             .change_context(InsertionError)?;
         let entity_type_id = VersionedUri::new(base_uri, historic_entity.get::<_, i64>(4) as u32);
 
-        Ok(PersistedEntityMetadata::new(
+        Ok(EntityMetadata::new(
             EntityEditionId::new(
                 EntityId::new(
                     OwnedById::new(historic_entity.get(0)),
