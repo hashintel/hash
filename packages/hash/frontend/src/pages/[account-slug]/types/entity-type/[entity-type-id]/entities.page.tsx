@@ -11,7 +11,7 @@ import {
   IconButton,
 } from "@hashintel/hash-design-system";
 import { Box, Paper, Stack } from "@mui/material";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { GlideGrid } from "../../../../../components/GlideGlid/glide-grid";
 import { GlideGridOverlayPortal } from "../../../../../components/GlideGlid/glide-grid-overlay-portal";
 import {
@@ -27,33 +27,96 @@ import { useEntityTypeEntities } from "../../../../../components/hooks/useEntity
 import { useEntityType } from "../use-entity-type";
 import { useRemotePropertyTypes } from "../use-property-types";
 import { NextPageWithLayout } from "../../../../../shared/layout";
+import { FRONTEND_URL } from "../../../../../lib/config";
+import { types } from "@hashintel/hash-shared/types";
+import { extractBaseUri } from "@blockprotocol/type-system-web";
+import { mustBeVersionedUri } from "../util";
+import {
+  // generateEntityLabel,
+  parseEntityIdentifier,
+} from "../../../../../lib/entities";
+import { useBlockProtocolGetEntity } from "../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolGetEntity";
+import {
+  extractEntityRoot,
+  getPropertyTypesByBaseUri,
+} from "../../../../../lib/subgraph";
+import { useBlockProtocolAggregateEntities } from "../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolAggregateEntities";
+import { useEntityTypeEntities2 } from "../../../../../components/hooks/useEntityTypeEntities2";
+import { Entity } from "../../../../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
 
-// interface LinkColumn extends SizedGridColumn {
-//   id: ColumnKey;
-// }
+const extractNamespace = (baseUri: string) => {
+  return baseUri.split(`${FRONTEND_URL}/`)[1]?.split(`/types/`)[0];
+};
 
-// export const columns: LinkColumn[] = [
-//   {
-//     title: "Entity",
-//     id: "entity",
-//     width: 200,
-//   },
-//   {
-//     title: "Namespace",
-//     id: "namespace",
-//     width: 200,
-//   },
-//   {
-//     title: "Slug",
-//     id: "slug",
-//     width: 200,
-//   },
-//   {
-//     title: "Additional Types",
-//     id: "additionalTypes",
-//     width: 200,
-//   },
-// ];
+export const generateEntityLabel = (
+  entity: Entity,
+  propertyTypes: PropertyType[],
+  schema?: { labelProperty?: unknown; title?: unknown },
+): string => {
+  // if the schema has a labelProperty set, prefer that
+  const labelProperty = schema?.labelProperty;
+  if (
+    typeof labelProperty === "string" &&
+    typeof entity.properties[labelProperty] === "string" &&
+    entity.properties[labelProperty]
+  ) {
+    return entity.properties[labelProperty] as string;
+  }
+
+  // fallback to some likely display name properties
+  const options = [
+    "name",
+    "preferred name",
+    "display name",
+    "title",
+    "shortname",
+  ];
+
+  const propertyTypes2: { title?: string; propertyTypeBaseUri: string }[] =
+    Object.keys(entity.properties).map((propertyTypeBaseUri) => {
+      /** @todo - pick the latest version rather than first element? */
+
+      const propertyType = Object.values(propertyTypes).find(
+        (prop) =>
+          extractBaseUri(mustBeVersionedUri(prop.$id)) === propertyTypeBaseUri,
+      );
+      // const [propertyType] = getPropertyTypesByBaseUri(
+      //   rootEntityAndSubgraph.subgraph,
+      //   propertyTypeBaseUri,
+      // );
+
+      return propertyType
+        ? {
+            title: propertyType.title.toLowerCase(),
+            propertyTypeBaseUri,
+          }
+        : {
+            title: undefined,
+            propertyTypeBaseUri,
+          };
+    });
+
+  for (const option of options) {
+    const found = propertyTypes2.find(({ title }) => title === option);
+
+    if (found) {
+      return entity.properties[found.propertyTypeBaseUri];
+    }
+  }
+
+  // fallback to the entity type and a few characters of the entityId
+  let entityId = entity.entityId;
+  try {
+    // in case this entityId is a stringified JSON object, extract the real entityId from it
+    ({ entityId } = parseEntityIdentifier(entityId));
+  } catch {
+    // entityId was not a stringified object, it was already the real entityId
+  }
+
+  const entityTypeName = schema?.title ?? "Entity";
+
+  return `${entityTypeName}-${entityId.slice(0, 5)}`;
+};
 
 const entityTypeId = "http://localhost:3000/@example/types/entity-type/user/";
 
@@ -87,18 +150,21 @@ const Page: NextPageWithLayout = () => {
   const [showSearch, setShowSearch] = useState(false);
 
   const [tableSort, setTableSort] = useState<TableSort<string>>({
-    key: "name",
+    key: "entity",
     dir: "desc",
   });
+
+  const [rows, setRows] = useState<any>();
 
   const propertyTypes = useRemotePropertyTypes();
 
   const [remoteEntityType] = useEntityType(entityTypeId);
 
-  const entities = useEntityTypeEntities(entityTypeId);
+  const { entities } = useEntityTypeEntities(
+    "http://localhost:3000/@example/types/entity-type/user/v/1",
+  );
 
   const [gridIds, columns] = useMemo(() => {
-    console.log(remoteEntityType);
     const gridIds = ["entity", "namespace", "slug", "additionalTypes"];
 
     const columns: GridColumn[] = [
@@ -122,23 +188,61 @@ const Page: NextPageWithLayout = () => {
         id: "additionalTypes",
         width: 200,
       },
-      ...(remoteEntityType
-        ? Object.entries(remoteEntityType.properties).map((property) => {
-            console.log(property);
-            console.log(propertyTypes);
-            const propertyType = propertyTypes[property];
-            console.log(propertyType);
-            return {
-              title: propertyType.title,
-              id: propertyType.$id,
-              width: 200,
-            };
-          })
+      ...(propertyTypes && remoteEntityType
+        ? Object.keys(remoteEntityType.properties).reduce<GridColumn[]>(
+            (columns, propertyId) => {
+              const propertyType = Object.values(propertyTypes).find(
+                (prop) =>
+                  extractBaseUri(mustBeVersionedUri(prop.$id)) === propertyId,
+              );
+
+              if (propertyType) {
+                return [
+                  ...columns,
+                  {
+                    title: propertyType.title,
+                    id: propertyId,
+                    width: 200,
+                  },
+                ];
+              }
+
+              return columns;
+            },
+            [],
+          )
         : []),
     ];
 
     return [gridIds, columns];
   }, [remoteEntityType, propertyTypes]);
+
+  const resolvePromisesSeq = async (tasks) => {
+    const results = [];
+    for (const task of tasks) {
+      results.push(await task);
+    }
+
+    return results;
+  };
+
+  const buildRows = async (entities: any) => {
+    const rows = entities.map((entity) => ({
+      entity: generateEntityLabel(entity, propertyTypes),
+      namespace: "",
+      slug: "",
+      additionalTypes: "",
+    }));
+
+    setRows(rows);
+  };
+
+  useEffect(() => {
+    if (entities) {
+      console.log(entities);
+      buildRows(entities);
+    }
+  }, [entities]);
 
   const drawHeader = useDrawHeader(tableSort, columns);
 
@@ -148,7 +252,11 @@ const Page: NextPageWithLayout = () => {
     setTableSort,
   );
 
-  const sortedUsers = sortRowData(users, tableSort);
+  const sortedEntities = rows && sortRowData(rows, tableSort);
+
+  if (!entities || !propertyTypes || !remoteEntityType) {
+    return null;
+  }
 
   return (
     <Box m={5}>
@@ -180,18 +288,24 @@ const Page: NextPageWithLayout = () => {
             columns={columns}
             rows={users.length}
             getCellContent={([col, row]) => {
-              // const user = sortedUsers[row];
+              if (sortedEntities) {
+                const entity = sortedEntities[row];
+                console.log(entity);
 
-              // const objKey = gridIndexes[col];
-              // const cellValue = user[objKey];
+                const objKey = gridIds[col];
+                console.log(objKey);
+                // const cellValue = entity?.[objKey];
+                const cellValue = entity?.[objKey];
 
-              // return {
-              //   kind: GridCellKind.Text,
-              //   allowOverlay: true,
-              //   copyData: cellValue,
-              //   displayData: cellValue,
-              //   data: cellValue,
-              // };
+                return {
+                  kind: GridCellKind.Text,
+                  allowOverlay: true,
+                  copyData: cellValue,
+                  displayData: cellValue,
+                  data: cellValue,
+                };
+              }
+
               return {
                 kind: GridCellKind.Text,
                 allowOverlay: true,
