@@ -3,7 +3,7 @@ import type { DrawArgs } from "@glideapps/glide-data-grid/dist/ts/data-grid/cell
 import type { CustomIcon } from "@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites";
 import { getYCenter } from "../utils";
 
-interface drawTextWithIconParams {
+interface DrawTextWithIconParams {
   args: DrawArgs<CustomCell>;
   text: string;
   icon: CustomIcon;
@@ -23,7 +23,7 @@ export const drawTextWithIcon = ({
   gap = 6,
   textColor,
   iconColor,
-}: drawTextWithIconParams) => {
+}: DrawTextWithIconParams) => {
   const { ctx, theme } = args;
   const yCenter = getYCenter(args);
 
