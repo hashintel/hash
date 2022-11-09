@@ -66,7 +66,7 @@ mod macros;
 mod tuple;
 mod r#type;
 
-pub(crate) type Schema = BTreeMap<String, String>;
+pub(crate) type Schema = BTreeMap<String, Box<dyn erased_serde::Serialize + Send + Sync>>;
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Hash, Copy, Clone, serde::Serialize)]
 pub struct Namespace(&'static str);

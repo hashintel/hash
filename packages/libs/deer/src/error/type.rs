@@ -1,11 +1,42 @@
-use core::fmt::Formatter;
+use core::fmt::{Display, Formatter};
 
-use super::{Error, ErrorProperties, NAMESPACE};
-use crate::{error::Location, id, Id, Namespace};
+use super::{Error, ErrorProperties, ErrorProperty, Id, Namespace, NAMESPACE};
+use crate::{
+    error::{macros::impl_error, Location, Schema},
+    id,
+};
 
-pub struct ExpectedType {}
+#[derive(serde::Serialize)]
+pub struct ExpectedType(Schema);
 
-pub struct ReceivedType {}
+impl ErrorProperty for ExpectedType {
+    type Value<'a> = Option<&'a Self>
+        where Self: 'a;
+
+    fn key() -> &'static str {
+        "expected"
+    }
+
+    fn value<'a>(mut stack: impl Iterator<Item = &'a Self>) -> Self::Value<'a> {
+        stack.next()
+    }
+}
+
+#[derive(serde::Serialize)]
+pub struct ReceivedType(Schema);
+
+impl ErrorProperty for ReceivedType {
+    type Value<'a> = Option<&'a Self>
+        where Self: 'a;
+
+    fn key() -> &'static str {
+        "received"
+    }
+
+    fn value<'a>(mut stack: impl Iterator<Item = &'a Self>) -> Self::Value<'a> {
+        stack.next()
+    }
+}
 
 #[derive(Debug)]
 pub struct TypeError;
@@ -40,3 +71,11 @@ impl Error for TypeError {
         }
     }
 }
+
+impl Display for TypeError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        f.write_str("mismatch between expected type and type of received value")
+    }
+}
+
+impl_error!(TypeError);

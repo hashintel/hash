@@ -1,3 +1,5 @@
+use super::ErrorProperty;
+
 #[derive(Debug, serde::Serialize)]
 pub enum Location {
     /// Index of something tuple-like, like tuple of tuple struct.
@@ -10,4 +12,17 @@ pub enum Location {
     Entry(String),
     /// Name of an enum variant
     Variant(&'static str),
+}
+
+impl ErrorProperty for Location {
+    type Value<'a> = Vec<&'a Location>
+        where Self: 'a;
+
+    fn key() -> &'static str {
+        "location"
+    }
+
+    fn value<'a>(stack: impl Iterator<Item = &'a Self>) -> Self::Value<'a> {
+        stack.collect()
+    }
 }
