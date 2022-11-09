@@ -4,11 +4,11 @@ expression: report
 ---
 [
   {
-    "value": "context A",
+    "context": "context A",
     "attachments": [],
     "sources": [
       {
-        "value": "root error",
+        "context": "root error",
         "attachments": [
           "printable A",
         ],

@@ -4,13 +4,13 @@ expression: a
 ---
 [
   {
-    "value": "context A",
+    "context": "context A",
     "attachments": [
       "printable C: 4",
     ],
     "sources": [
       {
-        "value": "root error",
+        "context": "root error",
         "attachments": [
           "printable C: 1",
           "printable C: 3",
@@ -18,7 +18,7 @@ expression: a
         "sources": [],
       },
       {
-        "value": "root error",
+        "context": "root error",
         "attachments": [
           "printable C: 2",
           "printable C: 3",
