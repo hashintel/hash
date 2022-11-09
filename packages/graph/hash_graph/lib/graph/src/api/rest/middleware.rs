@@ -9,7 +9,7 @@ use tracing::{enabled, Level};
 // *Heavily* inspired by
 // https://github.com/tokio-rs/axum/blob/main/examples/print-request-response/src/main.rs
 
-/// A development-environment-focused Axum Handler function to buffer the body of requests and
+/// A development-environment-focused `axum` Handler function to buffer the body of requests and
 /// responses and log them. Overhead should be minimal when not in `Level::Trace`
 pub(super) async fn log_request_and_response(
     request: Request<Body>,
