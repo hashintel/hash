@@ -18,12 +18,12 @@ pub use self::{
     postgres::{AsClient, PostgresStore, PostgresStorePool},
 };
 use crate::{
-    identifier::AccountId,
     knowledge::{Entity, EntityId, LinkEntityMetadata, PersistedEntity, PersistedEntityMetadata},
     ontology::{
         PersistedDataType, PersistedEntityType, PersistedOntologyMetadata, PersistedPropertyType,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
+    shared::identifier::account::AccountId,
     store::query::Filter,
     subgraph::{StructuralQuery, Subgraph},
 };

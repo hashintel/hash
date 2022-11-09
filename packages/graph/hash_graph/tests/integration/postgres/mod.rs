@@ -8,7 +8,6 @@ use std::{borrow::Cow, str::FromStr};
 
 use error_stack::Result;
 use graph::{
-    identifier::AccountId,
     knowledge::{
         Entity, EntityId, EntityQueryPath, LinkEntityMetadata, PersistedEntity,
         PersistedEntityMetadata,
@@ -18,7 +17,7 @@ use graph::{
         PersistedPropertyType,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
-    shared::identifier::GraphElementIdentifier,
+    shared::identifier::{account::AccountId, GraphElementIdentifier},
     store::{
         error::ArchivalError,
         query::{Filter, FilterExpression, Parameter},

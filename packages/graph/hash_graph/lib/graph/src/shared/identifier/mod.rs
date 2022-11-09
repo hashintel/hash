@@ -1,33 +1,11 @@
-use core::fmt;
-
-use postgres_types::{FromSql, ToSql};
-use serde::{Deserialize, Serialize, Serializer};
+use serde::{Serialize, Serializer};
 use serde_json;
 use type_system::uri::VersionedUri;
 use utoipa::{openapi, ToSchema};
-use uuid::Uuid;
 
 use crate::knowledge::EntityId;
 
-#[derive(
-    Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema, FromSql, ToSql,
-)]
-#[repr(transparent)]
-#[postgres(transparent)]
-pub struct AccountId(Uuid);
-
-impl AccountId {
-    #[must_use]
-    pub const fn new(uuid: Uuid) -> Self {
-        Self(uuid)
-    }
-}
-
-impl fmt::Display for AccountId {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(fmt, "{}", &self.0)
-    }
-}
+pub mod account;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum GraphElementIdentifier {

@@ -3,7 +3,7 @@ use core::fmt;
 use serde::{Deserialize, Serialize};
 use utoipa::{openapi::Schema, ToSchema};
 
-use crate::identifier::AccountId;
+use crate::shared::identifier::account::AccountId;
 
 macro_rules! define_provenance_id {
     ($name:tt) => {

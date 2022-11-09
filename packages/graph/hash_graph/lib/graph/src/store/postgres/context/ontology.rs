@@ -3,8 +3,8 @@ use tokio_postgres::GenericClient;
 use type_system::uri::{BaseUri, VersionedUri};
 
 use crate::{
-    identifier::AccountId,
     provenance::{CreatedById, OwnedById, RemovedById, UpdatedById},
+    shared::identifier::account::AccountId,
     store::{postgres::ontology::OntologyDatabaseType, AsClient, QueryError},
 };
 
