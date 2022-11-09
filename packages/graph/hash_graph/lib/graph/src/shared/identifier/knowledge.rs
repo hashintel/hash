@@ -65,12 +65,12 @@ pub struct EntityVersion(Timestamp);
 
 impl EntityVersion {
     #[must_use]
-    pub const fn new(timestamp: Timestamp) -> Self {
-        Self(timestamp)
+    pub const fn new(inner: Timestamp) -> Self {
+        Self(inner)
     }
 
     #[must_use]
-    pub const fn timestamp(&self) -> Timestamp {
+    pub const fn inner(&self) -> Timestamp {
         self.0
     }
 }
@@ -85,6 +85,26 @@ impl ToSchema for EntityVersion {
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct EntityEditionId {
-    entity_id: EntityId,
+    base_id: EntityId,
     version: EntityVersion,
+}
+
+impl EntityEditionId {
+    #[must_use]
+    pub const fn new(entity_id: EntityId, version: EntityVersion) -> Self {
+        Self {
+            base_id: entity_id,
+            version,
+        }
+    }
+
+    #[must_use]
+    pub fn base_id(&self) -> EntityId {
+        self.base_id
+    }
+
+    #[must_use]
+    pub fn version(&self) -> EntityVersion {
+        self.version
+    }
 }
