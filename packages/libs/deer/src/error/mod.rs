@@ -60,6 +60,9 @@ use core::fmt::{self, Debug, Display, Formatter};
 
 use error_stack::{Context, Frame, IntoReport, Result};
 
+mod tuple;
+mod r#type;
+
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Hash, Copy, Clone, serde::Serialize)]
 pub struct Namespace(&'static str);
 
