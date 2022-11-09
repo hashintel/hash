@@ -91,7 +91,7 @@ mod tests {
         },
     };
 
-    fn test_compilation<'f: 'q, 'q, T: PostgresQueryRecord<'q>>(
+    fn test_compilation<'f, 'q: 'f, T: PostgresQueryRecord + 'static>(
         compiler: &SelectCompiler<'f, 'q, T>,
         expected_statement: &'static str,
         expected_parameters: &[&'f dyn ToSql],
@@ -451,7 +451,6 @@ mod tests {
         test_compilation(
             &compiler,
             r#"
-            WITH "entities" AS (SELECT *, MAX("entities"."version") OVER (PARTITION BY "entities"."entity_id") AS "latest_version" FROM "entities")
             SELECT
                 "entities"."properties",
                 "entities"."entity_id",
@@ -463,7 +462,7 @@ mod tests {
             FROM "entities"
             INNER JOIN "entity_types" AS "entity_types_0_0"
               ON "entity_types_0_0"."version_id" = "entities"."entity_type_version_id"
-            WHERE "entities"."version" = "entities"."latest_version"
+            WHERE "entities"."latest_version" = TRUE
             "#,
             &[],
         );

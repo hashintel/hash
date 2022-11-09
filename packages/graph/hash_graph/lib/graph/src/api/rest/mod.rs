@@ -369,6 +369,7 @@ impl Modify for FilterSchemaAddon {
                                             "baseUri",
                                             "versionedUri",
                                             "version",
+                                            "archived",
                                             "title",
                                             "description",
                                             "type",

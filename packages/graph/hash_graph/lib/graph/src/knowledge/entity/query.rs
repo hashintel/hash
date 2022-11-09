@@ -19,6 +19,7 @@ pub enum EntityQueryPath<'q> {
     UpdatedById,
     RemovedById,
     Version,
+    Archived,
     Type(EntityTypeQueryPath),
     Properties(Option<Cow<'q, str>>),
     IncomingLinks(Box<Self>),
@@ -42,6 +43,7 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::UpdatedById => fmt.write_str("updatedById"),
             Self::RemovedById => fmt.write_str("removedById"),
             Self::Version => fmt.write_str("version"),
+            Self::Archived => fmt.write_str("archived"),
             Self::Type(path) => write!(fmt, "type.{path}"),
             Self::Properties(Some(property)) => write!(fmt, "properties.{property}"),
             Self::Properties(None) => fmt.write_str("properties"),
@@ -75,6 +77,7 @@ impl RecordPath for EntityQueryPath<'_> {
             Self::Type(path) => path.expected_type(),
             Self::Properties(_) => ParameterType::Any,
             Self::LeftOrder | Self::RightOrder => ParameterType::Number,
+            Self::Archived => ParameterType::Boolean,
         }
     }
 }
@@ -89,6 +92,7 @@ pub enum EntityQueryToken {
     UpdatedById,
     RemovedById,
     Version,
+    Archived,
     Type,
     Properties,
     IncomingLinks,
@@ -137,6 +141,7 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
             EntityQueryToken::UpdatedById => EntityQueryPath::UpdatedById,
             EntityQueryToken::RemovedById => EntityQueryPath::RemovedById,
             EntityQueryToken::Version => EntityQueryPath::Version,
+            EntityQueryToken::Archived => EntityQueryPath::Archived,
             EntityQueryToken::Type => EntityQueryPath::Type(
                 EntityTypeQueryPathVisitor::new(self.position).visit_seq(seq)?,
             ),

@@ -6,7 +6,7 @@ use crate::{
     store::postgres::query::{ColumnAccess, Path, PostgresQueryRecord, Relation, Table, TableName},
 };
 
-impl<'q> PostgresQueryRecord<'q> for PropertyType {
+impl PostgresQueryRecord for PropertyType {
     fn base_table() -> Table {
         Table {
             name: TableName::PropertyTypes,
@@ -14,7 +14,7 @@ impl<'q> PostgresQueryRecord<'q> for PropertyType {
         }
     }
 
-    fn default_selection_paths() -> &'q [Self::Path<'q>] {
+    fn default_selection_paths() -> &'static [Self::Path<'static>] {
         &[
             PropertyTypeQueryPath::VersionedUri,
             PropertyTypeQueryPath::Schema,

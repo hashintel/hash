@@ -8,7 +8,7 @@ use crate::{
     store::postgres::query::{ColumnAccess, Path, PostgresQueryRecord, Relation, Table, TableName},
 };
 
-impl<'q> PostgresQueryRecord<'q> for Entity {
+impl PostgresQueryRecord for Entity {
     fn base_table() -> Table {
         Table {
             name: TableName::Entities,
@@ -16,7 +16,7 @@ impl<'q> PostgresQueryRecord<'q> for Entity {
         }
     }
 
-    fn default_selection_paths() -> &'q [Self::Path<'q>] {
+    fn default_selection_paths() -> &'static [Self::Path<'static>] {
         &[
             EntityQueryPath::Properties(None),
             EntityQueryPath::Id,
@@ -46,7 +46,9 @@ impl Path for EntityQueryPath<'_> {
                     column: "left_entity_id",
                 },
                 join_table_name: TableName::Entities,
-                join_column_access: Self::Id.column_access(),
+                join_column_access: ColumnAccess::Table {
+                    column: "entity_id",
+                },
             })
             .chain(path.relations())
             .collect(),
@@ -55,12 +57,16 @@ impl Path for EntityQueryPath<'_> {
                     column: "right_entity_id",
                 },
                 join_table_name: TableName::Entities,
-                join_column_access: Self::Id.column_access(),
+                join_column_access: ColumnAccess::Table {
+                    column: "entity_id",
+                },
             })
             .chain(path.relations())
             .collect(),
             Self::OutgoingLinks(path) => once(Relation {
-                current_column_access: Self::Id.column_access(),
+                current_column_access: ColumnAccess::Table {
+                    column: "entity_id",
+                },
                 join_table_name: TableName::Entities,
                 join_column_access: ColumnAccess::Table {
                     column: "left_entity_id",
@@ -69,7 +75,9 @@ impl Path for EntityQueryPath<'_> {
             .chain(path.relations())
             .collect(),
             Self::IncomingLinks(path) => once(Relation {
-                current_column_access: Self::Id.column_access(),
+                current_column_access: ColumnAccess::Table {
+                    column: "entity_id",
+                },
                 join_table_name: TableName::Entities,
                 join_column_access: ColumnAccess::Table {
                     column: "right_entity_id",
@@ -89,6 +97,7 @@ impl Path for EntityQueryPath<'_> {
             | Self::UpdatedById
             | Self::RemovedById
             | Self::Version
+            | Self::Archived
             | Self::LeftEntity(None)
             | Self::RightEntity(None)
             | Self::LeftOrder
@@ -108,6 +117,7 @@ impl Path for EntityQueryPath<'_> {
                 column: "entity_id",
             },
             Self::Version => ColumnAccess::Table { column: "version" },
+            Self::Archived => ColumnAccess::Table { column: "archived" },
             Self::Type(path) => path.column_access(),
             Self::OwnedById => ColumnAccess::Table {
                 column: "owned_by_id",
