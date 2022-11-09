@@ -1,5 +1,5 @@
 {
-  "name": "@hashintel/block-callout",
+  "name": "@blocks/callout",
   "version": "0.2.0",
   "private": true,
   "description": "Draw attention to an important point or message with framed text and a custom icon",
