@@ -66,8 +66,7 @@
   },
   "resolutions": {
     "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "ts-node": "10.9.1"
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
     "check-dependency-version-consistency": "3.0.3",
