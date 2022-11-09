@@ -43,7 +43,10 @@ impl Transpile for Constant {
 pub enum Expression<'q> {
     Asterisk,
     Column(Column<'q>),
+    /// A parameter are transpiled as a placeholder, e.g. `$1`, in order to prevent SQL injection.
     Parameter(usize),
+    /// [`Constant`]s are directly transpiled into the SQL query. Caution has to be taken to
+    /// prevent SQL injection and no user input should ever be used as a [`Constant`].
     Constant(Constant),
     Function(Box<Function<'q>>),
     Window(Box<Self>, WindowStatement<'q>),
