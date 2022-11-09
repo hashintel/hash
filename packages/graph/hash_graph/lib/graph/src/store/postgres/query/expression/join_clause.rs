@@ -24,6 +24,7 @@ impl<'q> JoinExpression<'q> {
 
 impl Transpile for JoinExpression<'_> {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        // TODO: https://app.asana.com/0/1202805690238892/1203324626226299/f
         fmt.write_str("LEFT JOIN ")?;
         if self.join.table.alias.is_some() {
             let unaliased_table = Table {
