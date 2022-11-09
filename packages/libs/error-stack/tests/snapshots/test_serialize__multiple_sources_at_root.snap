@@ -4,37 +4,17 @@ expression: a
 ---
 [
   {
-    "type": "attachment",
-    "value": "printable C: 1",
-    "sources": [
-      {
-        "type": "attachment",
-        "value": None,
-        "sources": [
-          {
-            "type": "context",
-            "value": "root error",
-            "sources": [],
-          },
-        ],
-      },
+    "value": "root error",
+    "attachments": [
+      "printable C: 1",
     ],
+    "sources": [],
   },
   {
-    "type": "attachment",
-    "value": "printable C: 2",
-    "sources": [
-      {
-        "type": "attachment",
-        "value": None,
-        "sources": [
-          {
-            "type": "context",
-            "value": "root error",
-            "sources": [],
-          },
-        ],
-      },
+    "value": "root error",
+    "attachments": [
+      "printable C: 2",
     ],
+    "sources": [],
   },
 ]
