@@ -1,9 +1,5 @@
 #![allow(dead_code)]
 
-pub fn create_report() -> Report<RootError> {
-    Report::new(RootError)
-}
-
 extern crate alloc;
 
 pub use alloc::{
@@ -152,7 +148,6 @@ impl fmt::Display for PrintableB {
     }
 }
 
-<<<<<<< HEAD
 #[derive(Debug, PartialEq, Eq)]
 pub struct PrintableC(pub u32);
 
@@ -167,8 +162,6 @@ pub fn create_report() -> Report<RootError> {
     Report::new(RootError)
 }
 
-=======
->>>>>>> origin/main
 pub fn create_error() -> Result<(), RootError> {
     Err(create_report())
 }
