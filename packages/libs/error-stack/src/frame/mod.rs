@@ -4,7 +4,7 @@ mod kind;
 use alloc::boxed::Box;
 #[cfg(nightly)]
 use core::any::{self, Demand, Provider};
-use core::{fmt, panic::Location};
+use core::{any::TypeId, fmt, panic::Location};
 
 use self::frame_impl::FrameImpl;
 pub use self::kind::{AttachmentKind, FrameKind};
@@ -29,6 +29,13 @@ pub struct Frame {
 impl Frame {
     /// Returns the location where this `Frame` was created.
     #[must_use]
+    #[deprecated(
+        since = "0.2.4",
+        note = "`location()` has been replaced with an additional attachment containing \
+                `Location<'static>` for each `Context`, similar to how `Backtrace` and \
+                `SpanTrace` are handled. Note: This means that once `location()` is removed you \
+                won't be able to get location of attachments anymore."
+    )]
     pub const fn location(&self) -> &'static Location<'static> {
         self.location
     }
@@ -110,6 +117,12 @@ impl Frame {
     pub fn downcast_mut<T: Send + Sync + 'static>(&mut self) -> Option<&mut T> {
         self.frame.as_any_mut().downcast_mut()
     }
+
+    /// Returns the [`TypeId`] of the held context or attachment by this frame.
+    #[must_use]
+    pub fn type_id(&self) -> TypeId {
+        self.frame.as_any().type_id()
+    }
 }
 
 #[cfg(nightly)]
@@ -122,18 +135,17 @@ impl Provider for Frame {
 impl fmt::Debug for Frame {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut debug = fmt.debug_struct("Frame");
-        debug.field("location", self.location());
+
         match self.kind() {
             FrameKind::Context(context) => {
                 debug.field("context", &context);
+                debug.finish()
             }
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
                 debug.field("attachment", &attachment);
+                debug.finish()
             }
-            FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
-                debug.field("attachment", &"opaque");
-            }
+            FrameKind::Attachment(AttachmentKind::Opaque(_)) => debug.finish_non_exhaustive(),
         }
-        debug.finish()
     }
 }

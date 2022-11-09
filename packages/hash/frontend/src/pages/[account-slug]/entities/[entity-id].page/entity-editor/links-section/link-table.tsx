@@ -1,10 +1,7 @@
-import "@glideapps/glide-data-grid/dist/index.css";
 import { GlideGrid } from "../../../../../../components/GlideGlid/glide-grid";
-import {
-  createHandleHeaderClicked,
-  useDrawCell,
-  useDrawHeader,
-} from "../../../../../../components/GlideGlid/utils";
+import { createHandleHeaderClicked } from "../../../../../../components/GlideGlid/utils/sorting";
+import { useDrawCell } from "../../../../../../components/GlideGlid/utils/use-draw-cell";
+import { useDrawHeader } from "../../../../../../components/GlideGlid/utils/use-draw-header";
 import { useEntityEditor } from "../entity-editor-context";
 import { linkGridColumns } from "./link-table/constants";
 import { useGetCellContent } from "./link-table/use-get-cell-content";

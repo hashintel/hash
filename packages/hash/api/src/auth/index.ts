@@ -10,7 +10,7 @@ import {
   publicKratosSdk,
 } from "./ory-kratos";
 import { UserModel } from "../model";
-import { workspaceAccountId } from "../model/util";
+import { systemAccountId } from "../model/util";
 
 declare global {
   namespace Express {
@@ -58,7 +58,7 @@ const kratosAfterRegistrationHookHandler =
         await UserModel.createUser(graphApi, {
           emails,
           kratosIdentityId,
-          actorId: workspaceAccountId,
+          actorId: systemAccountId,
         });
 
         res.status(200).end();
@@ -88,6 +88,7 @@ const setupAuth = (params: {
     kratosAfterRegistrationHookHandler({ graphApi }),
   );
 
+  // eslint-disable-next-line @typescript-eslint/no-misused-promises -- https://github.com/DefinitelyTyped/DefinitelyTyped/issues/50871
   app.use(async (req, _res, next) => {
     const kratosSession = await publicKratosSdk
       .toSession(undefined, req.header("cookie"))

@@ -1,3 +1,4 @@
+#![cfg_attr(nightly, feature(provide_any))]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(unreachable_pub, clippy::pedantic, clippy::nursery)]
 // TODO: once more stable introduce: warning missing_docs, clippy::missing_errors_doc
@@ -16,7 +17,10 @@ use core::marker::PhantomData;
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use num_traits::ToPrimitive;
 
-pub use crate::{error::Error, number::Number};
+pub use crate::{
+    error::{Error, ErrorProperty, ErrorVariant, Id, Namespace},
+    number::Number,
+};
 
 mod error;
 mod number;

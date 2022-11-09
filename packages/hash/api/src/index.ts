@@ -22,7 +22,7 @@ import {
 
 import setupAuth from "./auth";
 import { RedisCache } from "./cache";
-import { ensureWorkspaceTypesExist } from "./graph/workspace-types";
+import { ensureSystemTypesExist } from "./graph/system-types";
 // import { createCollabApp } from "./collab/collabApp";
 import {
   AwsSesEmailTransporter,
@@ -45,6 +45,7 @@ import { setupTelemetry } from "./telemetry/snowplow-setup";
 import { connectToTaskExecutor } from "./task-execution";
 import { createGraphClient } from "./graph";
 import { seedOrgsAndUsers } from "./seed-data";
+import { ensureSystemEntitiesExists } from "./graph/system-entities";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
@@ -129,7 +130,9 @@ const main = async () => {
     port: graphApiPort,
   });
 
-  await ensureWorkspaceTypesExist({ graphApi, logger });
+  await ensureSystemTypesExist({ graphApi, logger });
+
+  await ensureSystemEntitiesExists({ graphApi, logger });
 
   // Set sensible default security headers: https://www.npmjs.com/package/helmet
   // Temporarily disable contentSecurityPolicy for the GraphQL playground
@@ -164,8 +167,8 @@ const main = async () => {
         })
       : new AwsSesEmailTransporter({
           from: `${getRequiredEnv(
-            "WORKSPACE_EMAIL_SENDER_NAME",
-          )} <${getRequiredEnv("WORKSPACE_EMAIL_ADDRESS")}>`,
+            "SYSTEM_EMAIL_SENDER_NAME",
+          )} <${getRequiredEnv("SYSTEM_EMAIL_ADDRESS")}>`,
           region: getAwsRegion(),
           subjectPrefix: isProdEnv ? undefined : "[DEV SITE] ",
         });

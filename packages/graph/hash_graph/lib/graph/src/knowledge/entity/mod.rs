@@ -127,6 +127,21 @@ impl PersistedEntityMetadata {
     pub const fn entity_type_id(&self) -> &VersionedUri {
         &self.entity_type_id
     }
+
+    #[must_use]
+    pub const fn created_by_id(&self) -> CreatedById {
+        self.created_by_id
+    }
+
+    #[must_use]
+    pub const fn updated_by_id(&self) -> UpdatedById {
+        self.updated_by_id
+    }
+
+    #[must_use]
+    pub const fn removed_by_id(&self) -> Option<RemovedById> {
+        self.removed_by_id
+    }
 }
 
 /// A record of an [`Entity`] that has been persisted in the datastore, with its associated

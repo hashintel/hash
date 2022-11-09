@@ -14,20 +14,21 @@ import {
 import { useBlockProtocolAggregateEntityTypes } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregateEntityTypes";
 import { useBlockProtocolCreateEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreateEntityType";
 import { useBlockProtocolUpdateEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdateEntityType";
-import { useUser } from "../../../../components/hooks/useUser";
+import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
 import { getEntityTypesByBaseUri } from "../../../../lib/subgraph";
 import { useAdvancedInitTypeSystem } from "../../../../lib/use-init-type-system";
 import { mustBeVersionedUri } from "./util";
 
 export const useEntityType = (
   entityTypeBaseUri: string | null,
+  namespace?: string,
   onCompleted?: (entityType: EntityType) => void,
 ) => {
   const router = useRouter();
-  const { user } = useUser();
+  const { authenticatedUser } = useAuthenticatedUser();
+
   const { createEntityType } = useBlockProtocolCreateEntityType(
-    // @todo should use routing URL?
-    user?.accountId ?? "",
+    namespace ?? authenticatedUser?.entityId ?? "",
   );
   const [typeSystemLoading, loadTypeSystem] = useAdvancedInitTypeSystem();
 
@@ -117,10 +118,9 @@ export const useEntityType = (
 
   const publishDraft = useCallback(
     async (draftEntityType: EntityType) => {
-      const { $id: _, ...remainingProperties } = draftEntityType;
       const res = await createEntityType({
         data: {
-          entityType: remainingProperties,
+          entityType: draftEntityType,
         },
       });
 
@@ -141,7 +141,7 @@ export const useEntityType = (
   );
 
   return [
-    typeSystemLoading || !user ? null : entityType,
+    typeSystemLoading || !authenticatedUser ? null : entityType,
     updateCallback,
     publishDraft,
   ] as const;

@@ -2,7 +2,9 @@ import {
   LinkStructuralQuery,
   GraphApi,
   PersistedLink,
+  Filter,
 } from "@hashintel/hash-graph-client";
+import { NotFoundError } from "../../lib/error";
 
 import { EntityModel, LinkModel, LinkTypeModel } from "../index";
 
@@ -82,8 +84,8 @@ export default class {
 
   static async getByQuery(
     graphApi: GraphApi,
-    filter: object,
-    options?: Omit<Partial<LinkStructuralQuery>, "query">,
+    filter: Filter,
+    options?: Omit<Partial<LinkStructuralQuery>, "filter">,
   ): Promise<LinkModel[]> {
     const { data: linkRootedSubgraphs } = await graphApi.getLinksByQuery({
       filter,
@@ -124,9 +126,13 @@ export default class {
         {
           equal: [{ path: ["source", "id"] }, { parameter: sourceEntityId }],
         },
-        {
-          equal: [{ path: ["target", "id"] }, { parameter: targetEntityId }],
-        },
+        /**
+         * @todo: get a specific link in a single structural query as part of the "links are entities" work
+         * @see https://app.asana.com/0/1201095311341924/1203250001255255/f
+         */
+        // {
+        //   equal: [{ path: ["target", "id"] }, { parameter: targetEntityId }],
+        // },
         {
           equal: [
             { path: ["type", "versionedUri"] },
@@ -138,10 +144,16 @@ export default class {
       ],
     });
 
-    const [linkModel] = linkModels;
+    /**
+     * @todo: stop filtering the destination entity once it can be done as part of the structural query as part of the "links are entities" work
+     * @see https://app.asana.com/0/1201095311341924/1203250001255255/f
+     */
+    const [linkModel] = linkModels.filter(
+      ({ targetEntityModel }) => targetEntityModel.entityId === targetEntityId,
+    );
 
     if (!linkModel) {
-      throw new Error(
+      throw new NotFoundError(
         `Link with source entity ID = '${sourceEntityId}', target entity ID = '${targetEntityId}' and link type ID = '${linkTypeId}' not found.`,
       );
     } else if (linkModels.length > 1) {

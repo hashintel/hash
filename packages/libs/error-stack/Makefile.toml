@@ -14,6 +14,9 @@ CARGO_INSTA_TEST_HACK_FLAGS = "--keep-going --feature-powerset --include-feature
 [tasks.test]
 dependencies = ["install-rust-src"]
 
+[tasks.coverage]
+dependencies = ["install-rust-src"]
+
 # Required for UI tests
 [tasks.install-rust-src]
 private = true

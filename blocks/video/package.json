@@ -1,5 +1,5 @@
 {
-  "name": "@hashintel/block-video",
+  "name": "@blocks/video",
   "version": "0.2.0",
   "private": true,
   "description": "Embed MP4 and WEBM videos by URL or file upload and add an optional caption",
@@ -13,8 +13,8 @@
   "scripts": {
     "build": "block-scripts build",
     "dev": "block-scripts dev",
-    "fix:eslint": "eslint --ext .ts,.tsx --fix ./src/",
-    "lint:eslint": "eslint --ext .ts,.tsx ./src/",
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint .",
     "lint:tsc": "tsc --noEmit",
     "serve": "block-scripts serve"
   },
@@ -22,8 +22,10 @@
     "@blockprotocol/graph": "0.0.18"
   },
   "devDependencies": {
+    "@local/eslint-config": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
     "block-scripts": "0.0.14",
-    "eslint": "8.20.0",
+    "eslint": "8.27.0",
     "mock-block-dock": "0.0.38",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

@@ -7,7 +7,6 @@ import {
 } from "react";
 import { useRouter } from "next/router";
 import { SelfServiceRegistrationFlow } from "@ory/client";
-import { useMutation } from "@apollo/client";
 import { Typography, Container, Box } from "@mui/material";
 import { TextField } from "@hashintel/hash-design-system";
 import { AxiosError } from "axios";
@@ -20,15 +19,11 @@ import {
   oryKratosClient,
 } from "./shared/ory-kratos";
 import { Button } from "../shared/ui";
-import { useUser } from "../components/hooks/useUser";
+import { useAuthenticatedUser } from "../components/hooks/useAuthenticatedUser";
 import { AccountSetupForm } from "./signup.page/account-setup-form";
 
-import {
-  UpdateUserMutation,
-  UpdateUserMutationVariables,
-} from "../graphql/apiTypes.gen";
-import { updateUser as updateUserMutation } from "../graphql/queries/user.queries";
 import { parseGraphQLError } from "./shared/auth-utils";
+import { useUpdateAuthenticatedUser } from "../components/hooks/useUpdateAuthenticatedUser";
 
 const KratosRegistrationFlowForm: FunctionComponent = () => {
   const router = useRouter();
@@ -160,6 +155,7 @@ const KratosRegistrationFlowForm: FunctionComponent = () => {
         <TextField
           label="Email"
           type="email"
+          autoComplete="email"
           placeholder="Enter your email address"
           value={email}
           onChange={({ target }) => setEmail(target.value)}
@@ -174,6 +170,7 @@ const KratosRegistrationFlowForm: FunctionComponent = () => {
         <TextField
           label="Password"
           type="password"
+          autoComplete="new-password"
           value={password}
           onChange={({ target }) => setPassword(target.value)}
           error={
@@ -204,66 +201,54 @@ const KratosVerificationFlowForm: FunctionComponent = () => {
 const SignupPage: NextPageWithLayout = () => {
   const router = useRouter();
 
-  const { user, kratosSession: _kratosSession, refetch } = useUser();
+  const { authenticatedUser } = useAuthenticatedUser();
+
+  const [updateAuthenticatedUser, { loading: updateUserLoading }] =
+    useUpdateAuthenticatedUser();
 
   const [invitationInfo] = useState<null>(null);
   const [errorMessage, setErrorMessage] = useState<string>();
 
-  const [updateUser, { loading: updateUserLoading }] = useMutation<
-    UpdateUserMutation,
-    UpdateUserMutationVariables
-  >(updateUserMutation, {
-    onCompleted: async ({ updateUser: updatedUser }) => {
-      await refetch();
+  const handleAccountSetupSubmit = async (params: {
+    shortname: string;
+    preferredName: string;
+    responsibility?: string;
+  }) => {
+    const { shortname, preferredName } = params;
 
-      if (updatedUser.accountSignupComplete) {
+    const { updatedAuthenticatedUser, errors } = await updateAuthenticatedUser({
+      shortname,
+      preferredName,
+    });
+
+    if (errors && errors.length > 0) {
+      const { message } = parseGraphQLError([...errors]);
+      setErrorMessage(message);
+    }
+
+    if (updatedAuthenticatedUser) {
+      if (updatedAuthenticatedUser.accountSignupComplete) {
         void router.push("/");
       }
-    },
-    onError: ({ graphQLErrors }) => {
-      if (!graphQLErrors.length) {
-        return;
-      }
-      const { message } = parseGraphQLError([...graphQLErrors]);
-      setErrorMessage(message);
-    },
-  });
-
-  const handleAccountSetupSubmit =
-    (userEntityId: string) =>
-    async (params: {
-      shortname: string;
-      preferredName: string;
-      responsibility?: string;
-    }) => {
-      const { shortname, preferredName } = params;
-
-      await updateUser({
-        variables: {
-          userEntityId,
-          properties: { shortname, preferredName },
-        },
-      });
 
       /** @todo: set responsibility at org if in org invitation flow */
-    };
+    }
+  };
 
   /** @todo: un-comment this to actually check whether the email is verified */
   // const userHasVerifiedEmail =
-  //   kratosSession?.identity.verifiable_addresses?.find(
-  //     ({ verified }) => verified,
-  //   ) !== undefined;
+  //   authenticatedUser?.emails.find(({ verified }) => verified) !== undefined;
   const userHasVerifiedEmail = true;
 
   return (
     <Container sx={{ pt: 10 }}>
-      {user ? (
+      {authenticatedUser ? (
         userHasVerifiedEmail ? (
           <AccountSetupForm
-            onSubmit={handleAccountSetupSubmit(user.entityId)}
+            onSubmit={handleAccountSetupSubmit}
             loading={updateUserLoading}
             errorMessage={errorMessage}
-            email={user.emails[0]!.address}
+            email={authenticatedUser.emails[0]!.address}
             invitationInfo={invitationInfo}
           />
         ) : (
