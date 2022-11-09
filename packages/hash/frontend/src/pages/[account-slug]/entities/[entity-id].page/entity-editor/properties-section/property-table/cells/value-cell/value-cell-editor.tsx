@@ -1,26 +1,14 @@
-import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
-import { TextField } from "@hashintel/hash-design-system";
-import { cloneDeep } from "lodash";
-import { ValueCell } from "./types";
+import { ValueCellEditorProps } from "./types";
+import { BooleanEditor } from "./value-cell-editor/boolean-editor";
+import { NumberOrStringEditor } from "./value-cell-editor/number-or-string-editor";
 
-/**
- * @todo this should be used only for strings
- * make sure to handle editors for other types as well
- * */
-export const ValueCellEditor: ProvideEditorComponent<ValueCell> = ({
-  value,
-  onChange,
-}) => {
-  return (
-    <TextField
-      sx={{ my: "1px" }}
-      autoFocus
-      value={value.data.property.value}
-      onChange={(event) => {
-        const newValue = cloneDeep(value);
-        newValue.data.property.value = event.target.value;
-        onChange(newValue);
-      }}
-    />
-  );
+export const ValueCellEditor: ValueCellEditorProps = (props) => {
+  const { value: cell } = props;
+  const isBoolean = typeof cell.data.property.value === "boolean";
+
+  if (isBoolean) {
+    return <BooleanEditor {...props} />;
+  }
+
+  return <NumberOrStringEditor {...props} />;
 };
