@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use serde::{Serialize, Serializer};
 use serde_json;
 use type_system::uri::VersionedUri;
@@ -8,6 +9,8 @@ use crate::knowledge::EntityUuid;
 pub mod account;
 pub mod knowledge;
 pub mod ontology;
+
+pub type Timestamp = DateTime<Utc>;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum GraphElementIdentifier {
