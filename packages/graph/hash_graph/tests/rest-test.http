@@ -470,6 +470,58 @@ Accept: application/json
     });
 %}
 
+
+### Get link by source and target
+POST http://127.0.0.1:4000/entities/query
+Content-Type: application/json
+
+{
+  "filter": {
+    "all": [
+      {
+        "equal": [
+          {
+            "path": [
+              "leftEntity",
+              "id"
+            ]
+          },
+          {
+            "parameter": "{{person_a_entity_id}}"
+          }
+        ]
+      },
+      {
+        "equal": [
+          {
+            "path": [
+              "rightEntity",
+              "id"
+            ]
+          },
+          {
+            "parameter": "{{person_b_entity_id}}"
+          }
+        ]
+      }
+    ]
+  },
+  "graphResolveDepths": {
+    "dataTypeResolveDepth": 0,
+    "propertyTypeResolveDepth": 0,
+    "entityTypeResolveDepth": 0,
+    "linkTargetEntityResolveDepth": 0,
+    "linkResolveDepth": 0
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.roots.length === 1, "Unexpected number of entities");
+    });
+%}
+
 ### Archive an entity
 POST http://127.0.0.1:4000/entities/archive
 Content-Type: application/json

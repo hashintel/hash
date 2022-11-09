@@ -108,9 +108,10 @@ pub struct EntityQueryPathVisitor {
 }
 
 impl EntityQueryPathVisitor {
-    pub const EXPECTING: &'static str =
-        "one of `id`, `ownedById`, `createdById`, `updatedById`, `removedById`, `version`, \
-         `type`, `properties`, `incomingLinks`, `outgoingLinks`, `leftEntity`, `rightEntity`";
+    pub const EXPECTING: &'static str = "one of `id`, `ownedById`, `createdById`, `updatedById`, \
+                                         `removedById`, `version`, `archived`, `type`, \
+                                         `properties`, `incomingLinks`, `outgoingLinks`, \
+                                         `leftEntity`, `rightEntity`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {

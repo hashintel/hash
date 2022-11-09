@@ -2,6 +2,7 @@ use std::fmt;
 
 use crate::store::postgres::query::{Column, ColumnAccess, Table, TableName, Transpile};
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Relation {
     pub current_column_access: ColumnAccess<'static>,
     pub join_table_name: TableName,
@@ -23,7 +24,8 @@ impl<'q> JoinExpression<'q> {
 
 impl Transpile for JoinExpression<'_> {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.write_str("INNER JOIN ")?;
+        // TODO: https://app.asana.com/0/1202805690238892/1203324626226299/f
+        fmt.write_str("LEFT JOIN ")?;
         if self.join.table.alias.is_some() {
             let unaliased_table = Table {
                 name: self.join.table.name,
@@ -80,7 +82,8 @@ mod tests {
                         name: TableName::TypeIds,
                         alias: Some(TableAlias {
                             condition_index: 0,
-                            chain_depth: 1
+                            chain_depth: 1,
+                            number: 2,
                         }),
                     },
                     access: ColumnAccess::Table {
@@ -98,7 +101,7 @@ mod tests {
                 },
             )
             .transpile_to_string(),
-            r#"INNER JOIN "type_ids" AS "type_ids_0_1" ON "type_ids_0_1"."version_id" = "data_types"."version_id""#
+            r#"INNER JOIN "type_ids" AS "type_ids_0_1_2" ON "type_ids_0_1_2"."version_id" = "data_types"."version_id""#
         );
     }
 }
