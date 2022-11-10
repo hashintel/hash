@@ -250,7 +250,7 @@ pub struct DependencyContext {
         DependencyMap<OntologyTypeEditionId, PropertyTypeWithMetadata, OntologyQueryDepth>,
     pub referenced_entity_types:
         DependencyMap<OntologyTypeEditionId, EntityTypeWithMetadata, OntologyQueryDepth>,
-    pub linked_entities: DependencyMap<EntityId, Entity, KnowledgeGraphQueryDepth>,
+    pub linked_entities: DependencyMap<EntityEditionId, Entity, KnowledgeGraphQueryDepth>,
     pub graph_resolve_depths: GraphResolveDepths,
 }
 
@@ -376,7 +376,7 @@ pub struct DependencyContextRef<'a> {
         &'a mut DependencyMap<OntologyTypeEditionId, PropertyTypeWithMetadata, OntologyQueryDepth>,
     pub referenced_entity_types:
         &'a mut DependencyMap<OntologyTypeEditionId, EntityTypeWithMetadata, OntologyQueryDepth>,
-    pub linked_entities: &'a mut DependencyMap<EntityId, Entity, KnowledgeGraphQueryDepth>,
+    pub linked_entities: &'a mut DependencyMap<EntityEditionId, Entity, KnowledgeGraphQueryDepth>,
     pub graph_resolve_depths: GraphResolveDepths,
 }
 
