@@ -116,9 +116,9 @@ services:
     depends_on:
       - kratos-migrate
     image: oryd/kratos:v0.10.1
-    ports:
-      - "4433:4433" # public
-      - "4434:4434" # admin
+    # ports:
+    #   - "4433:4433" # public, doesn't need to be exposed
+    #   - "4434:4434" # admin, we don't want to expose this
     restart: unless-stopped
     environment:
       - SECRETS_COOKIE=VERY-INSECURE-AND-SHOULD-ONLY-BE-USED-IN-DEV
@@ -183,11 +183,11 @@ services:
       HASH_TASK_EXECUTOR_PORT: "${HASH_TASK_EXECUTOR_PORT}"
 
       SESSION_SECRET: "%{SESSION_SECRET}"
-      ORY_KRATOS_PUBLIC_URL: "${ORY_KRATOS_PUBLIC_URL}"
-      ORY_KRATOS_ADMIN_URL: "${ORY_KRATOS_ADMIN_URL}"
+      ORY_KRATOS_PUBLIC_URL: "http://kratos:4433"
+      ORY_KRATOS_ADMIN_URL: "http://kratos:4434"
       KRATOS_API_KEY: "${KRATOS_API_KEY}"
     ports:
-      - "8844:5001"
+      - "5001:5001"
 
   hash-frontend:
     build:
@@ -201,6 +201,7 @@ services:
         condition: on-failure
     environment:
       NEXT_PUBLIC_API_ORIGIN: "${NEXT_PUBLIC_API_ORIGIN}"
+      ORY_KRATOS_PUBLIC_URL: "http://kratos:4433"
 
     ports:
-      - "8800:3000"
+      - "3000:3000"
