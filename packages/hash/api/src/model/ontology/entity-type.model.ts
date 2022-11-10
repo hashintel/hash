@@ -1,10 +1,10 @@
 import { AxiosError } from "axios";
 
-import { EntityType, VersionedUri } from "@blockprotocol/type-system-web";
+import { VersionedUri, EntityType } from "@blockprotocol/type-system-web";
 import {
   GraphApi,
-  PersistedEntityType,
   UpdateEntityTypeRequest,
+  EntityTypeWithMetadata,
 } from "@hashintel/hash-graph-client";
 import { generateTypeId, types } from "@hashintel/hash-shared/types";
 import { EntityTypeModel, PropertyTypeModel, LinkTypeModel } from "../index";
@@ -16,7 +16,6 @@ export type EntityTypeModelConstructorParams = {
   schema: EntityType;
   createdById: string;
   updatedById: string;
-  removedById?: string;
 };
 
 export type EntityTypeModelCreateParams = {
@@ -31,18 +30,16 @@ export type EntityTypeModelCreateParams = {
 export default class {
   ownedById: string;
 
-  schema: EntityType & { $id: VersionedUri };
+  schema: EntityType;
 
   createdById: string;
   updatedById: string;
-  removedById?: string;
 
   constructor({
     schema,
     ownedById,
     createdById,
     updatedById,
-    removedById,
   }: EntityTypeModelConstructorParams) {
     this.ownedById = ownedById;
     /**
@@ -53,13 +50,15 @@ export default class {
 
     this.createdById = createdById;
     this.updatedById = updatedById;
-    this.removedById = removedById;
   }
 
-  static fromPersistedEntityType({
-    inner,
-    metadata: { identifier, createdById, updatedById, removedById },
-  }: PersistedEntityType): EntityTypeModel {
+  static fromEntityTypeWithMetadata({
+    schema,
+    metadata: {
+      ownedById,
+      provenance: { createdById, updatedById },
+    },
+  }: EntityTypeWithMetadata): EntityTypeModel {
     /**
      * @todo and a warning, these type casts are here to compensate for
      *   the differences between the Graph API package and the
@@ -72,11 +71,10 @@ export default class {
      *   https://app.asana.com/0/1202805690238892/1202892835843657/f
      */
     return new EntityTypeModel({
-      schema: inner as EntityType,
-      ownedById: identifier.ownedById,
+      schema: schema as EntityType,
+      ownedById,
       createdById,
       updatedById,
-      removedById,
     });
   }
 
@@ -101,24 +99,24 @@ export default class {
       kind: "entity-type",
       title: params.schema.title,
     });
-    const fullEntityType = { $id: entityTypeId, ...params.schema };
+    const schema = { $id: entityTypeId, ...params.schema };
 
     const { data: metadata } = await graphApi
       .createEntityType({
         actorId,
         ownedById,
-        schema: fullEntityType,
+        schema,
       })
       .catch((err: AxiosError) => {
         throw new Error(
           err.response?.status === 409
-            ? `entity type with the same URI already exists. [URI=${fullEntityType.$id}]`
+            ? `entity type with the same URI already exists. [URI=${schema.$id}]`
             : `[${err.code}] couldn't create entity type: ${err.response?.data}.`,
         );
       });
 
-    return EntityTypeModel.fromPersistedEntityType({
-      inner: fullEntityType,
+    return EntityTypeModel.fromEntityTypeWithMetadata({
+      schema,
       metadata,
     });
   }
@@ -136,7 +134,7 @@ export default class {
     const { data: persistedEntityTypes } =
       await graphApi.getLatestEntityTypes();
 
-    return persistedEntityTypes.map(EntityTypeModel.fromPersistedEntityType);
+    return persistedEntityTypes.map(EntityTypeModel.fromEntityTypeWithMetadata);
   }
 
   /**
@@ -155,7 +153,7 @@ export default class {
       entityTypeId,
     );
 
-    return EntityTypeModel.fromPersistedEntityType(persistedEntityType);
+    return EntityTypeModel.fromEntityTypeWithMetadata(persistedEntityType);
   }
 
   /**
@@ -180,10 +178,10 @@ export default class {
 
     const { data: metadata } = await graphApi.updateEntityType(updateArguments);
 
-    const { identifier } = metadata;
+    const { editionId } = metadata;
 
-    return EntityTypeModel.fromPersistedEntityType({
-      inner: { ...schema, $id: identifier.uri },
+    return EntityTypeModel.fromEntityTypeWithMetadata({
+      schema: { ...schema, $id: `${editionId.baseId}/v/${editionId.version}` },
       metadata,
     });
   }
