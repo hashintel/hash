@@ -1,6 +1,6 @@
 import { ApolloError } from "apollo-server-errors";
 import {
-  PersistedEntity,
+  Entity,
   GraphApi,
   Vertex,
   Subgraph,
@@ -22,14 +22,12 @@ import {
 import { exactlyOne, linkedTreeFlatten } from "../../util";
 
 export type EntityModelConstructorParams = {
-  ownedById: string;
   entityId: string;
   version: string;
   entityTypeModel: EntityTypeModel;
   properties: object;
   createdById: string;
   updatedById: string;
-  removedById: string | undefined;
 };
 
 export type EntityModelCreateParams = {
@@ -44,8 +42,6 @@ export type EntityModelCreateParams = {
  * @class {@link EntityModel}
  */
 export default class {
-  ownedById: string;
-
   entityId: string;
   version: string;
   entityTypeModel: EntityTypeModel;
@@ -53,20 +49,15 @@ export default class {
 
   createdById: string;
   updatedById: string;
-  removedById: string | undefined;
 
   constructor({
-    ownedById,
     entityId,
     version,
     entityTypeModel,
     properties,
     createdById,
     updatedById,
-    removedById,
   }: EntityModelConstructorParams) {
-    this.ownedById = ownedById;
-
     this.entityId = entityId;
     this.version = version;
     this.entityTypeModel = entityTypeModel;
@@ -74,17 +65,19 @@ export default class {
 
     this.createdById = createdById;
     this.updatedById = updatedById;
-    this.removedById = removedById;
   }
 
-  private static async fromPersistedEntity(
+  private static async fromEntity(
     graphApi: GraphApi,
-    { metadata, inner }: PersistedEntity,
+    { metadata, properties }: Entity,
     cachedEntityTypeModels?: Map<string, EntityTypeModel>,
   ): Promise<EntityModel> {
-    const { identifier, entityTypeId, createdById, updatedById, removedById } =
-      metadata;
-    const { ownedById, entityId, version } = identifier;
+    const {
+      editionId,
+      entityTypeId,
+      provenance: { createdById, updatedById },
+    } = metadata;
+
     const cachedEntityTypeModel = cachedEntityTypeModels?.get(entityTypeId);
 
     let entityTypeModel: EntityTypeModel;
@@ -99,14 +92,12 @@ export default class {
     }
 
     return new EntityModel({
-      ownedById,
-      entityId,
-      version,
+      entityId: editionId.baseId,
+      version: editionId.version,
       entityTypeModel,
-      properties: inner,
+      properties,
       createdById,
       updatedById,
-      removedById,
     });
   }
 
@@ -135,16 +126,16 @@ export default class {
       ownedById,
       entityTypeId: entityTypeModel.schema.$id,
       entity: properties,
-      entityId: overrideEntityId,
+      entityUuid: overrideEntityId,
       actorId,
     });
 
-    const persistedEntity: PersistedEntity = {
-      inner: properties,
+    const entity: Entity = {
+      properties,
       metadata,
     };
 
-    return EntityModel.fromPersistedEntity(graphApi, persistedEntity);
+    return EntityModel.fromEntity(graphApi, entity);
   }
 
   /**
@@ -316,8 +307,8 @@ export default class {
           options?.graphResolveDepths?.dataTypeResolveDepth ?? 0,
         propertyTypeResolveDepth:
           options?.graphResolveDepths?.propertyTypeResolveDepth ?? 0,
-        linkTypeResolveDepth:
-          options?.graphResolveDepths?.linkTypeResolveDepth ?? 0,
+        // linkTypeResolveDepth:
+        //   options?.graphResolveDepths?.linkTypeResolveDepth ?? 0,
         entityTypeResolveDepth:
           options?.graphResolveDepths?.entityTypeResolveDepth ?? 0,
         linkResolveDepth: options?.graphResolveDepths?.linkResolveDepth ?? 0,
@@ -332,7 +323,7 @@ export default class {
           Vertex,
           { kind: "entity" }
         >;
-        return EntityModel.fromPersistedEntity(graphApi, entityVertex.inner);
+        return EntityModel.fromEntity(graphApi, entityVertex.inner);
       }),
     );
   }
@@ -351,7 +342,7 @@ export default class {
     const { entityId } = params;
     const { data: persistedEntity } = await graphApi.getEntity(entityId);
 
-    return await EntityModel.fromPersistedEntity(graphApi, persistedEntity);
+    return await EntityModel.fromEntity(graphApi, persistedEntity);
   }
 
   /**
@@ -396,9 +387,9 @@ export default class {
       entity: properties,
     });
 
-    return EntityModel.fromPersistedEntity(graphApi, {
+    return EntityModel.fromEntity(graphApi, {
       metadata,
-      inner: properties,
+      properties,
     });
   }
 
@@ -495,7 +486,7 @@ export default class {
     const filter: Filter = {
       all: [
         {
-          equal: [{ path: ["target", "id"] }, { parameter: this.entityId }],
+          equal: [{ path: ["target", "uuid"] }, { parameter: this.entityId }],
         },
       ],
     };
@@ -528,7 +519,7 @@ export default class {
     const filter: Filter = {
       all: [
         {
-          equal: [{ path: ["source", "id"] }, { parameter: this.entityId }],
+          equal: [{ path: ["source", "uuid"] }, { parameter: this.entityId }],
         },
       ],
     };
@@ -563,13 +554,13 @@ export default class {
       filter: {
         all: [
           { equal: [{ path: ["version"] }, { parameter: "latest" }] },
-          { equal: [{ path: ["id"] }, { parameter: this.entityId }] },
+          { equal: [{ path: ["uuid"] }, { parameter: this.entityId }] },
         ],
       },
       graphResolveDepths: {
         dataTypeResolveDepth: 0,
         propertyTypeResolveDepth: 0,
-        linkTypeResolveDepth: 0,
+        // linkTypeResolveDepth: 0,
         entityTypeResolveDepth: 0,
         ...params,
       },
