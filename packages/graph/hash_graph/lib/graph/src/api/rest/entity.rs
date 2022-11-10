@@ -21,7 +21,7 @@ use crate::{
     provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
     shared::{
         identifier::{
-            knowledge::{EntityEditionId, EntityId, EntityVersion},
+            knowledge::{EntityEditionId, EntityId, EntityIdAndTimestamp, EntityVersion},
             GraphElementEditionId, GraphElementId,
         },
         subgraph::{
@@ -59,6 +59,7 @@ use crate::{
             EntityUuid,
             EntityId,
             EntityEditionId,
+            EntityIdAndTimestamp,
             EntityMetadata,
             Entity,
             EntityProperties,

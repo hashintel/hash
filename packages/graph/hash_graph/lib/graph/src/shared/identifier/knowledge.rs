@@ -134,3 +134,53 @@ impl EntityEditionId {
         self.version
     }
 }
+
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EntityIdAndTimestamp {
+    base_id: EntityId,
+    timestamp: Timestamp,
+}
+
+impl EntityIdAndTimestamp {
+    #[must_use]
+    pub const fn new(entity_id: EntityId, timestamp: Timestamp) -> Self {
+        Self {
+            base_id: entity_id,
+            timestamp,
+        }
+    }
+
+    #[must_use]
+    pub const fn base_id(&self) -> EntityId {
+        self.base_id
+    }
+
+    #[must_use]
+    pub const fn timestamp(&self) -> Timestamp {
+        self.timestamp
+    }
+}
+
+// WARNING: This MUST be kept up to date with the struct names and serde attributes
+//   Necessary because Timestamp doesn't implement ToSchema
+impl ToSchema for EntityIdAndTimestamp {
+    fn schema() -> openapi::Schema {
+        openapi::ObjectBuilder::new()
+            .property(
+                "baseId",
+                // Apparently OpenAPI doesn't support const values, the best you can do is
+                // an enum with one option
+                EntityId::schema(),
+            )
+            .required("baseId")
+            .property(
+                "timestamp",
+                openapi::Schema::Object(openapi::schema::Object::with_type(
+                    openapi::SchemaType::String,
+                )),
+            )
+            .required("timestamp")
+            .into()
+    }
+}
