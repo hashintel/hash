@@ -28,7 +28,7 @@ use crate::{
             depths::GraphResolveDepths,
             edges::{Edges, KnowledgeGraphEdgeKind, OutwardEdge, SharedEdgeKind},
             query::StructuralQuery,
-            vertices::Vertex,
+            vertices::{Vertex, Vertices},
         },
     },
     store::{
@@ -70,6 +70,7 @@ use crate::{
             ProvenanceMetadata,
             GraphElementId,
             GraphElementEditionId,
+            Vertices,
             Vertex,
             KnowledgeGraphEdgeKind,
             SharedEdgeKind,

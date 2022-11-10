@@ -28,7 +28,7 @@ use crate::{
             depths::GraphResolveDepths,
             edges::{Edges, OntologyEdgeKind, OutwardEdge, SharedEdgeKind},
             query::StructuralQuery,
-            vertices::Vertex,
+            vertices::{Vertex, Vertices},
         },
     },
     store::{
@@ -59,6 +59,7 @@ use crate::{
             PropertyTypeStructuralQuery,
             GraphElementId,
             GraphElementEditionId,
+            Vertices,
             Vertex,
             OntologyEdgeKind,
             SharedEdgeKind,
