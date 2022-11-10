@@ -96,7 +96,7 @@ impl<C: AsClient> PostgresStore<C> {
                 // TODO: Use relation tables
                 //   see https://app.asana.com/0/0/1202884883200942/f
 
-                self.resolve_dependency(
+                self.resolve_dependency_with_edge_kind(
                     &mut dependency_context,
                     entity_type_id.clone(),
                     parent_entity_type_ids,
@@ -110,7 +110,7 @@ impl<C: AsClient> PostgresStore<C> {
                     .into_keys()
                     .map(|reference| reference.uri().clone().into());
 
-                self.resolve_dependency(
+                self.resolve_dependency_with_edge_kind(
                     &mut dependency_context,
                     entity_type_id.clone(),
                     link_entity_type_ids,
@@ -126,7 +126,7 @@ impl<C: AsClient> PostgresStore<C> {
                     .flatten()
                     .map(|reference| reference.uri().clone().into());
 
-                self.resolve_dependency(
+                self.resolve_dependency_with_edge_kind(
                     &mut dependency_context,
                     entity_type_id.clone(),
                     link_destination_entity_type_ids,
@@ -140,7 +140,7 @@ impl<C: AsClient> PostgresStore<C> {
         .boxed()
     }
 
-    async fn resolve_dependency<'a: 'b, 'b: 'c, 'c>(
+    async fn resolve_dependency_with_edge_kind<'a: 'b, 'b: 'c, 'c>(
         &'a self,
         dependency_context: &'c mut DependencyContextRef<'b>,
         source_entity_type_id: OntologyTypeEditionId,

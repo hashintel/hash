@@ -88,6 +88,25 @@ impl<'q> Filter<'q, EntityProperties> {
         )
     }
 
+    /// Creates a `Filter` to search for all versions of an entities its [`EntityId`].
+    #[must_use]
+    pub fn for_entity_by_entity_id(entity_id: EntityId) -> Self {
+        Self::All(vec![
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::OwnedById)),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    entity_id.owned_by_id().as_uuid(),
+                ))),
+            ),
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::Uuid)),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    entity_id.entity_uuid().as_uuid(),
+                ))),
+            ),
+        ])
+    }
+    
     /// Creates a `Filter` to search for a specific entities at their latest version, identified by
     /// its [`EntityId`].
     #[must_use]
@@ -95,19 +114,21 @@ impl<'q> Filter<'q, EntityProperties> {
         Self::All(vec![
             Self::for_all_latest_entities(),
             Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::Uuid)),
-                Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.entity_uuid().as_uuid(),
-                ))),
-            ),
-            Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::OwnedById)),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
                     entity_id.owned_by_id().as_uuid(),
                 ))),
             ),
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::Uuid)),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    entity_id.entity_uuid().as_uuid(),
+                ))),
+            ),
         ])
     }
+
+    // TODO: write unit/integration/http tests for filters below
 
     /// Creates a `Filter` to search for a specific entity edition, identified by its
     /// [`EntityEditionId`].
@@ -115,21 +136,90 @@ impl<'q> Filter<'q, EntityProperties> {
     pub fn for_entity_by_edition_id(edition_id: EntityEditionId) -> Self {
         Self::All(vec![
             Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::Uuid)),
-                Some(FilterExpression::Parameter(Parameter::Uuid(
-                    edition_id.base_id().entity_uuid().as_uuid(),
-                ))),
-            ),
-            Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::OwnedById)),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
                     edition_id.base_id().owned_by_id().as_uuid(),
                 ))),
             ),
             Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::Uuid)),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    edition_id.base_id().entity_uuid().as_uuid(),
+                ))),
+            ),
+            Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::Version)),
                 Some(FilterExpression::Parameter(Parameter::Timestamp(
                     edition_id.version().inner(),
+                ))),
+            ),
+        ])
+    }
+
+    /// TODO
+    #[must_use]
+    pub fn for_outgoing_link_by_source_edition_id(edition_id: EntityEditionId) -> Self {
+        Self::All(vec![
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(Some(
+                    Box::new(EntityQueryPath::OwnedById),
+                )))),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    edition_id.base_id().owned_by_id().as_uuid(),
+                ))),
+            ),
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(Some(
+                    Box::new(EntityQueryPath::Uuid),
+                )))),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    edition_id.base_id().entity_uuid().as_uuid(),
+                ))),
+            ),
+        ])
+    }
+
+    /// TODO
+    #[must_use]
+    pub fn for_left_entity_by_entity_edition_id(edition_id: EntityEditionId) -> Self {
+        Self::All(vec![
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::OutgoingLinks(
+                    Box::new(EntityQueryPath::OwnedById),
+                ))),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    edition_id.base_id().owned_by_id().as_uuid(),
+                ))),
+            ),
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::OutgoingLinks(
+                    Box::new(EntityQueryPath::Uuid),
+                ))),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    edition_id.base_id().entity_uuid().as_uuid(),
+                ))),
+            ),
+        ])
+    }
+
+    /// TODO
+    #[must_use]
+    pub fn for_right_entity_by_entity_edition_id(edition_id: EntityEditionId) -> Self {
+        Self::All(vec![
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::IncomingLinks(
+                    Box::new(EntityQueryPath::OwnedById),
+                ))),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    edition_id.base_id().owned_by_id().as_uuid(),
+                ))),
+            ),
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::IncomingLinks(
+                    Box::new(EntityQueryPath::Uuid),
+                ))),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    edition_id.base_id().entity_uuid().as_uuid(),
                 ))),
             ),
         ])

@@ -22,10 +22,12 @@ pub enum OntologyEdgeKind {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, ToSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum KnowledgeGraphEdgeKind {
-    /// This [`Entity`] has an outgoing [`Link`] [`Entity`]
-    HasLink,
-    /// This [`Link`] [`Entity`] has another [`Entity`] at its end
-    HasEndpoint,
+    /// This [`Link`] [`Entity`] has another [`Entity`] on its 'left' endpoint
+    /// The `reverse` of this would be the equivalent of saying an [`Entity`] has an outgoing
+    /// `Link` [`Entity`]
+    HasLeftEndpoint,
+    /// This [`Link`] [`Entity`] has another [`Entity`] on its 'right' endpoint
+    HasRightEndpoint,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, ToSchema)]
