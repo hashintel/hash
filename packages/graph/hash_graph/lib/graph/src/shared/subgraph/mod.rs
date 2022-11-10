@@ -7,9 +7,8 @@ use depths::GraphResolveDepths;
 use edges::Edges;
 use serde::Serialize;
 use utoipa::ToSchema;
-use vertices::Vertex;
 
-use crate::shared::identifier::GraphElementId;
+use crate::{shared::identifier::GraphElementId, subgraph::vertices::Vertex};
 
 pub mod depths;
 pub mod edges;

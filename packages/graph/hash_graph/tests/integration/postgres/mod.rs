@@ -28,6 +28,7 @@ use graph::{
         EntityTypeStore, InsertionError, PostgresStore, PostgresStorePool, PropertyTypeStore,
         QueryError, StorePool, UpdateError,
     },
+    subgraph::vertices::{KnowledgeGraphVertex, OntologyVertex},
 };
 use tokio_postgres::{NoTls, Transaction};
 use type_system::{uri::VersionedUri, DataType, EntityType, PropertyType};
@@ -165,7 +166,9 @@ impl DatabaseApi<'_> {
             .expect("no data type found");
 
         match vertex {
-            Vertex::DataType(data_type_with_metadata) => Ok(data_type_with_metadata),
+            Vertex::Ontology(OntologyVertex::DataType(data_type_with_metadata)) => {
+                Ok(data_type_with_metadata)
+            }
             _ => unreachable!(),
         }
     }
@@ -208,7 +211,9 @@ impl DatabaseApi<'_> {
             .expect("no property type found");
 
         match vertex {
-            Vertex::PropertyType(property_type_with_metadata) => Ok(property_type_with_metadata),
+            Vertex::Ontology(OntologyVertex::PropertyType(property_type_with_metadata)) => {
+                Ok(property_type_with_metadata)
+            }
             _ => unreachable!(),
         }
     }
@@ -251,7 +256,7 @@ impl DatabaseApi<'_> {
             .expect("no entity type found");
 
         match vertex {
-            Vertex::EntityType(entity_type) => Ok(entity_type),
+            Vertex::Ontology(OntologyVertex::EntityType(entity_type)) => Ok(entity_type),
             _ => unreachable!(),
         }
     }
@@ -296,7 +301,7 @@ impl DatabaseApi<'_> {
             .expect("no entity found");
 
         match vertex {
-            Vertex::Entity(entity) => Ok(entity),
+            Vertex::KnowledgeGraph(KnowledgeGraphVertex::Entity(entity)) => Ok(entity),
             _ => unreachable!(),
         }
     }
@@ -383,7 +388,7 @@ impl DatabaseApi<'_> {
             .vertices
             .into_iter()
             .map(|(_, vertex)| match vertex {
-                Vertex::Entity(entity) => Ok(entity),
+                Vertex::KnowledgeGraph(KnowledgeGraphVertex::Entity(entity)) => Ok(entity),
                 _ => unreachable!(),
             })
             .next()
@@ -427,7 +432,7 @@ impl DatabaseApi<'_> {
             .vertices
             .into_iter()
             .map(|(_, vertex)| match vertex {
-                Vertex::Entity(entity) => entity,
+                Vertex::KnowledgeGraph(KnowledgeGraphVertex::Entity(entity)) => entity,
                 _ => unreachable!(),
             })
             .collect())

@@ -49,7 +49,10 @@ use crate::{
         AccountStore, BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError,
         UpdateError,
     },
-    subgraph::Subgraph,
+    subgraph::{
+        vertices::{KnowledgeGraphVertex, OntologyVertex},
+        Subgraph,
+    },
 };
 
 pub struct DependencyMap<V, T, D> {
@@ -278,7 +281,7 @@ impl DependencyContext {
             .map(|data_type| {
                 (
                     GraphElementId::OntologyElementId(data_type.metadata().edition_id().clone()),
-                    Vertex::DataType(data_type),
+                    Vertex::Ontology(OntologyVertex::DataType(data_type)),
                 )
             })
             .chain(
@@ -289,7 +292,7 @@ impl DependencyContext {
                             GraphElementId::OntologyElementId(
                                 property_type.metadata().edition_id().clone(),
                             ),
-                            Vertex::PropertyType(property_type),
+                            Vertex::Ontology(OntologyVertex::PropertyType(property_type)),
                         )
                     }),
             )
@@ -301,7 +304,7 @@ impl DependencyContext {
                             GraphElementId::OntologyElementId(
                                 entity_type.metadata().edition_id().clone(),
                             ),
-                            Vertex::EntityType(entity_type),
+                            Vertex::Ontology(OntologyVertex::EntityType(entity_type)),
                         )
                     }),
             )
@@ -310,7 +313,7 @@ impl DependencyContext {
                     GraphElementId::KnowledgeGraphElementId(
                         entity.metadata().edition_id().base_id(),
                     ),
-                    Vertex::Entity(entity),
+                    Vertex::KnowledgeGraph(KnowledgeGraphVertex::Entity(entity)),
                 )
             }))
             .collect();
