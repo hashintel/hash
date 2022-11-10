@@ -76,7 +76,8 @@ impl Vertices {
     }
 }
 
-// WARNING: We have to do this because utoipa doesn't understand serde flatten:
+// WARNING: This MUST be kept up to date with the enum variants.
+//   We have to do this because utoipa doesn't understand serde flatten:
 //   https://github.com/juhaku/utoipa/issues/120
 impl ToSchema for Vertices {
     fn schema() -> openapi::Schema {

@@ -22,8 +22,9 @@ pub enum GraphElementId {
     KnowledgeGraph(EntityId),
 }
 
-// TODO: We have to do this because utoipa doesn't understand serde untagged
-//  https://github.com/juhaku/utoipa/issues/320
+// WARNING: This MUST be kept up to date with the enum variants.
+//   We have to do this because utoipa doesn't understand serde untagged:
+//   https://github.com/juhaku/utoipa/issues/320
 impl ToSchema for GraphElementId {
     fn schema() -> openapi::Schema {
         openapi::OneOfBuilder::new()
@@ -42,8 +43,9 @@ pub enum GraphElementEditionId {
     KnowledgeGraph(EntityEditionId),
 }
 
-// TODO: We have to do this because utoipa doesn't understand serde untagged
-//  https://github.com/juhaku/utoipa/issues/320
+// WARNING: This MUST be kept up to date with the enum variants.
+//   We have to do this because utoipa doesn't understand serde untagged:
+//   https://github.com/juhaku/utoipa/issues/320
 impl ToSchema for GraphElementEditionId {
     fn schema() -> openapi::Schema {
         openapi::OneOfBuilder::new()
