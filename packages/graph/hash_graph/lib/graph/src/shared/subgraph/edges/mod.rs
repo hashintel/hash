@@ -8,9 +8,10 @@ use utoipa::{openapi, ToSchema};
 
 use crate::identifier::GraphElementId;
 
+mod edge;
 mod kind;
 
-pub use self::kind::*;
+pub use self::{edge::*, kind::*};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, ToSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
