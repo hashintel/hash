@@ -48,7 +48,7 @@ impl Extend<Self> for Subgraph {
         for subgraph in iter {
             self.roots.extend(subgraph.roots.into_iter());
             self.vertices.extend(subgraph.vertices);
-            self.edges.extend(subgraph.edges.into_iter());
+            self.edges.extend(subgraph.edges);
         }
     }
 }
