@@ -11,7 +11,10 @@ use type_system::uri::VersionedUri;
 use uuid::Uuid;
 
 use crate::{
-    identifier::knowledge::EntityId,
+    identifier::{
+        knowledge::{EntityEditionId, EntityId},
+        Timestamp,
+    },
     knowledge::{EntityProperties, EntityQueryPath},
     store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath},
 };
@@ -227,6 +230,8 @@ pub enum Parameter<'q> {
     Uuid(Uuid),
     #[serde(skip)]
     SignedInteger(i64),
+    #[serde(skip)]
+    Timestamp(Timestamp),
 }
 
 impl Parameter<'_> {
@@ -237,6 +242,7 @@ impl Parameter<'_> {
             Parameter::Text(text) => Parameter::Text(Cow::Owned(text.to_string())),
             Parameter::Uuid(uuid) => Parameter::Uuid(*uuid),
             Parameter::SignedInteger(integer) => Parameter::SignedInteger(*integer),
+            Parameter::Timestamp(timestamp) => Parameter::Timestamp(*timestamp),
         }
     }
 }
@@ -281,9 +287,18 @@ impl Parameter<'_> {
                 // TODO: validate versioned uri
                 //   see https://app.asana.com/0/1202805690238892/1203225514907875/f
             }
-            (_, ParameterType::Timestamp) => {
-                // TODO: validate timestamps
-                //   see https://app.asana.com/0/1202805690238892/1203225514907875/f
+            (Parameter::Text(text), ParameterType::Timestamp) => {
+                if text != "latest" {
+                    *self = Parameter::Timestamp(
+                        Timestamp::from_str(&*text)
+                            .into_report()
+                            .change_context_lazy(|| ParameterConversionError {
+                                actual: self.to_owned(),
+                                expected: ParameterType::Timestamp,
+                            })?,
+                    );
+                    // Do nothing if "latest"
+                }
             }
             (Parameter::Text(text), ParameterType::Uuid) => {
                 *self = Parameter::Uuid(Uuid::from_str(&*text).into_report().change_context_lazy(
@@ -325,6 +340,7 @@ impl fmt::Display for Parameter<'_> {
             Parameter::Text(text) => fmt::Display::fmt(text, fmt),
             Parameter::Uuid(uuid) => fmt::Display::fmt(uuid, fmt),
             Parameter::SignedInteger(integer) => fmt::Display::fmt(integer, fmt),
+            Parameter::Timestamp(timestamp) => fmt::Display::fmt(timestamp, fmt),
         }
     }
 }
