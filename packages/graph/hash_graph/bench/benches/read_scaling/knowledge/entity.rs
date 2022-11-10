@@ -3,7 +3,7 @@ use std::{iter::repeat, str::FromStr};
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion};
 use criterion_macro::criterion;
 use graph::{
-    knowledge::{Entity, EntityUuid},
+    knowledge::{EntityProperties, EntityUuid},
     provenance::{CreatedById, OwnedById},
     shared::identifier::account::AccountId,
     store::{query::Filter, AccountStore, AsClient, EntityStore, PostgresStore},
@@ -54,7 +54,8 @@ async fn seed_db(
     )
     .await;
 
-    let entity: Entity = serde_json::from_str(entity::BOOK_V1).expect("could not parse entity");
+    let entity: EntityProperties =
+        serde_json::from_str(entity::BOOK_V1).expect("could not parse entity");
     let entity_type_id = EntityType::from_str(entity_type::BOOK_V1)
         .expect("could not parse entity type")
         .id()

@@ -23,7 +23,10 @@ pub use self::{
     entity_type::{EntityTypeQueryPath, EntityTypeQueryPathVisitor},
     property_type::{PropertyTypeQueryPath, PropertyTypeQueryPathVisitor},
 };
-use crate::provenance::{CreatedById, OwnedById, RemovedById, UpdatedById};
+use crate::{
+    identifier::ontology::OntologyTypeEditionId,
+    provenance::{OwnedById, ProvenanceMetadata},
+};
 
 pub enum Selector {
     Asterisk,
@@ -59,35 +62,6 @@ impl<'de> Deserialize<'de> for Selector {
         }
 
         deserializer.deserialize_str(SelectorVisitor)
-    }
-}
-
-/// The metadata required to uniquely identify an ontology element that has been persisted in the
-/// datastore.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct PersistedOntologyIdentifier {
-    #[schema(value_type = String)]
-    uri: VersionedUri,
-    // TODO: owned_by_id is not required to identify an ontology element
-    //  https://app.asana.com/0/1202805690238892/1203214689883091/f
-    owned_by_id: OwnedById,
-}
-
-impl PersistedOntologyIdentifier {
-    #[must_use]
-    pub const fn new(uri: VersionedUri, owned_by_id: OwnedById) -> Self {
-        Self { uri, owned_by_id }
-    }
-
-    #[must_use]
-    pub const fn uri(&self) -> &VersionedUri {
-        &self.uri
-    }
-
-    #[must_use]
-    pub const fn owned_by_id(&self) -> OwnedById {
-        self.owned_by_id
     }
 }
 
@@ -198,92 +172,100 @@ where
 pub type OntologyQueryDepth = u8;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
-pub struct PersistedDataType {
+pub struct DataTypeWithMetadata {
     #[schema(value_type = VAR_DATA_TYPE)]
-    #[serde(serialize_with = "serialize_ontology_type")]
+    #[serde(rename = "schema", serialize_with = "serialize_ontology_type")]
     inner: DataType,
-    metadata: PersistedOntologyMetadata,
+    metadata: OntologyElementMetadata,
 }
 
-impl PersistedDataType {
+impl DataTypeWithMetadata {
     #[must_use]
     pub const fn inner(&self) -> &DataType {
         &self.inner
     }
 
     #[must_use]
-    pub const fn metadata(&self) -> &PersistedOntologyMetadata {
+    pub const fn metadata(&self) -> &OntologyElementMetadata {
         &self.metadata
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
-pub struct PersistedPropertyType {
+pub struct PropertyTypeWithMetadata {
     #[schema(value_type = VAR_PROPERTY_TYPE)]
-    #[serde(serialize_with = "serialize_ontology_type")]
+    #[serde(rename = "schema", serialize_with = "serialize_ontology_type")]
     inner: PropertyType,
-    metadata: PersistedOntologyMetadata,
+    metadata: OntologyElementMetadata,
 }
 
-impl PersistedPropertyType {
+impl PropertyTypeWithMetadata {
     #[must_use]
     pub const fn inner(&self) -> &PropertyType {
         &self.inner
     }
 
     #[must_use]
-    pub const fn metadata(&self) -> &PersistedOntologyMetadata {
+    pub const fn metadata(&self) -> &OntologyElementMetadata {
         &self.metadata
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct PersistedOntologyMetadata {
-    identifier: PersistedOntologyIdentifier,
-    created_by_id: CreatedById,
-    updated_by_id: UpdatedById,
-    removed_by_id: Option<RemovedById>,
+pub struct OntologyElementMetadata {
+    edition_id: OntologyTypeEditionId,
+    #[serde(rename = "provenance")]
+    provenance_metadata: ProvenanceMetadata,
+    owned_by_id: OwnedById,
 }
 
-impl PersistedOntologyMetadata {
+impl OntologyElementMetadata {
     #[must_use]
     pub const fn new(
-        identifier: PersistedOntologyIdentifier,
-        created_by_id: CreatedById,
-        updated_by_id: UpdatedById,
-        removed_by_id: Option<RemovedById>,
+        edition_id: OntologyTypeEditionId,
+        provenance_metadata: ProvenanceMetadata,
+        owned_by_id: OwnedById,
     ) -> Self {
         Self {
-            identifier,
-            created_by_id,
-            updated_by_id,
-            removed_by_id,
+            edition_id,
+            provenance_metadata,
+            owned_by_id,
         }
     }
 
     #[must_use]
-    pub const fn identifier(&self) -> &PersistedOntologyIdentifier {
-        &self.identifier
+    pub const fn edition_id(&self) -> &OntologyTypeEditionId {
+        &self.edition_id
+    }
+
+    #[must_use]
+    pub const fn provenance_metadata(&self) -> ProvenanceMetadata {
+        self.provenance_metadata
+    }
+
+    #[must_use]
+    pub const fn owned_by_id(&self) -> OwnedById {
+        self.owned_by_id
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
-pub struct PersistedEntityType {
+pub struct EntityTypeWithMetadata {
     #[schema(value_type = VAR_ENTITY_TYPE)]
-    #[serde(serialize_with = "serialize_ontology_type")]
+    #[serde(rename = "schema", serialize_with = "serialize_ontology_type")]
     inner: EntityType,
-    metadata: PersistedOntologyMetadata,
+    metadata: OntologyElementMetadata,
 }
 
-impl PersistedEntityType {
+impl EntityTypeWithMetadata {
     #[must_use]
     pub const fn inner(&self) -> &EntityType {
         &self.inner
     }
 
     #[must_use]
-    pub const fn metadata(&self) -> &PersistedOntologyMetadata {
+    pub const fn metadata(&self) -> &OntologyElementMetadata {
         &self.metadata
     }
 }
@@ -291,13 +273,13 @@ impl PersistedEntityType {
 pub trait PersistedOntologyType {
     type Inner;
 
-    fn new(record: Self::Inner, metadata: PersistedOntologyMetadata) -> Self;
+    fn new(record: Self::Inner, metadata: OntologyElementMetadata) -> Self;
 }
 
-impl PersistedOntologyType for PersistedDataType {
+impl PersistedOntologyType for DataTypeWithMetadata {
     type Inner = DataType;
 
-    fn new(record: Self::Inner, metadata: PersistedOntologyMetadata) -> Self {
+    fn new(record: Self::Inner, metadata: OntologyElementMetadata) -> Self {
         Self {
             inner: record,
             metadata,
@@ -305,10 +287,10 @@ impl PersistedOntologyType for PersistedDataType {
     }
 }
 
-impl PersistedOntologyType for PersistedPropertyType {
+impl PersistedOntologyType for PropertyTypeWithMetadata {
     type Inner = PropertyType;
 
-    fn new(record: Self::Inner, metadata: PersistedOntologyMetadata) -> Self {
+    fn new(record: Self::Inner, metadata: OntologyElementMetadata) -> Self {
         Self {
             inner: record,
             metadata,
@@ -316,10 +298,10 @@ impl PersistedOntologyType for PersistedPropertyType {
     }
 }
 
-impl PersistedOntologyType for PersistedEntityType {
+impl PersistedOntologyType for EntityTypeWithMetadata {
     type Inner = EntityType;
 
-    fn new(record: Self::Inner, metadata: PersistedOntologyMetadata) -> Self {
+    fn new(record: Self::Inner, metadata: OntologyElementMetadata) -> Self {
         Self {
             inner: record,
             metadata,

@@ -21,7 +21,6 @@ impl PostgresQueryRecord for PropertyType {
             PropertyTypeQueryPath::OwnedById,
             PropertyTypeQueryPath::CreatedById,
             PropertyTypeQueryPath::UpdatedById,
-            PropertyTypeQueryPath::RemovedById,
         ]
     }
 }
@@ -83,7 +82,6 @@ impl Path for PropertyTypeQueryPath {
             | Self::OwnedById
             | Self::CreatedById
             | Self::UpdatedById
-            | Self::RemovedById
             | Self::Schema
             | Self::VersionedUri
             | Self::Title
@@ -108,9 +106,6 @@ impl Path for PropertyTypeQueryPath {
             },
             Self::UpdatedById => ColumnAccess::Table {
                 column: "updated_by_id",
-            },
-            Self::RemovedById => ColumnAccess::Table {
-                column: "removed_by_id",
             },
             Self::Schema => ColumnAccess::Table { column: "schema" },
             Self::VersionedUri => ColumnAccess::Json {

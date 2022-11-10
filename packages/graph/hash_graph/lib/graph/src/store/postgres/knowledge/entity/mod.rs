@@ -10,8 +10,8 @@ use type_system::uri::VersionedUri;
 use uuid::Uuid;
 
 use crate::{
-    identifier::{knowledge::EntityId, GraphElementIdentifier},
-    knowledge::{Entity, EntityUuid, LinkEntityMetadata, PersistedEntity, PersistedEntityMetadata},
+    identifier::{knowledge::EntityId, GraphElementId},
+    knowledge::{Entity, EntityMetadata, EntityProperties, EntityUuid, LinkEntityMetadata},
     provenance::{CreatedById, OwnedById, UpdatedById},
     store::{
         crud::Read,
@@ -55,11 +55,11 @@ impl<C: AsClient> PostgresStore<C> {
                 let entity_type_id = entity.metadata().entity_type_id().clone();
 
                 dependency_context.edges.insert(
-                    GraphElementIdentifier::KnowledgeGraphElementId(entity_id),
+                    GraphElementId::KnowledgeGraphElementId(entity_id),
                     OutwardEdge {
                         edge_kind: EdgeKind::HasType,
-                        destination: GraphElementIdentifier::OntologyElementId(
-                            entity_type_id.clone(),
+                        destination: GraphElementId::OntologyElementId(
+                            entity_type_id.clone().into(),
                         ),
                     },
                 );
@@ -70,7 +70,7 @@ impl<C: AsClient> PostgresStore<C> {
                     > 0
                 {
                     self.get_entity_type_as_dependency(
-                        &entity_type_id,
+                        &entity_type_id.into(),
                         dependency_context.change_depth(GraphResolveDepths {
                             entity_type_resolve_depth: dependency_context
                                 .graph_resolve_depths
@@ -92,10 +92,10 @@ impl<C: AsClient> PostgresStore<C> {
                 //     .await?
                 // {
                 //     dependency_context.edges.insert(
-                //         GraphElementIdentifier::KnowledgeGraphElementId(entity_uuid),
+                //         GraphElementId::KnowledgeGraphElementId(entity_uuid),
                 //         OutwardEdge {
                 //             edge_kind: EdgeKind::HasLink,
-                //             destination: GraphElementIdentifier::Temporary(LinkId {
+                //             destination: GraphElementId::Temporary(LinkId {
                 //                 source_entity_uuid: link_record.source_entity_uuid,
                 //                 target_entity_uuid: link_record.target_entity_uuid,
                 //                 link_type_id: link_record.link_type_id.clone(),
@@ -131,13 +131,13 @@ impl<C: AsClient> PostgresStore<C> {
 impl<C: AsClient> EntityStore for PostgresStore<C> {
     async fn create_entity(
         &mut self,
-        entity: Entity,
+        entity: EntityProperties,
         entity_type_id: VersionedUri,
         owned_by_id: OwnedById,
         entity_uuid: Option<EntityUuid>,
         created_by_id: CreatedById,
         link_metadata: Option<LinkEntityMetadata>,
-    ) -> Result<PersistedEntityMetadata, InsertionError> {
+    ) -> Result<EntityMetadata, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()
@@ -177,7 +177,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     #[cfg(feature = "__internal_bench")]
     async fn insert_entities_batched_by_type(
         &mut self,
-        entities: impl IntoIterator<Item = (Option<EntityUuid>, Entity), IntoIter: Send> + Send,
+        entities: impl IntoIterator<Item = (Option<EntityUuid>, EntityProperties), IntoIter: Send>
+        + Send,
         entity_type_id: VersionedUri,
         owned_by_id: OwnedById,
         actor_id: CreatedById,
@@ -236,18 +237,18 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
     async fn get_entity<'f: 'q, 'q>(
         &self,
-        query: &'f StructuralQuery<'q, Entity>,
+        query: &'f StructuralQuery<'q, EntityProperties>,
     ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
             ref filter,
             graph_resolve_depths,
         } = *query;
 
-        let subgraphs = stream::iter(Read::<PersistedEntity>::read(self, filter).await?)
+        let subgraphs = stream::iter(Read::<Entity>::read(self, filter).await?)
             .then(|entity| async move {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 
-                let entity_id = entity.metadata().identifier().base_id();
+                let entity_id = entity.metadata().edition_id().base_id();
                 dependency_context
                     .linked_entities
                     .insert(&entity_id, None, entity);
@@ -255,7 +256,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 self.get_entity_as_dependency(entity_id, dependency_context.as_ref_object())
                     .await?;
 
-                let root = GraphElementIdentifier::KnowledgeGraphElementId(entity_id);
+                let root = GraphElementId::KnowledgeGraphElementId(entity_id);
 
                 Ok::<_, Report<QueryError>>(dependency_context.into_subgraph(HashSet::from([root])))
             })
@@ -271,10 +272,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     async fn update_entity(
         &mut self,
         entity_id: EntityId,
-        entity: Entity,
+        entity: EntityProperties,
         entity_type_id: VersionedUri,
         updated_by_id: UpdatedById,
-    ) -> Result<PersistedEntityMetadata, UpdateError> {
+    ) -> Result<EntityMetadata, UpdateError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()
@@ -298,7 +299,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 entity_id,
                 entity,
                 entity_type_id,
-                old_entity_metadata.created_by_id(),
+                old_entity_metadata.provenance_metadata().created_by_id(),
                 updated_by_id,
                 old_entity_metadata.link_metadata(),
             )
@@ -334,7 +335,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .change_context(ArchivalError)?;
 
         // Prepare to create a new history entry to mark archival
-        let old_entity: PersistedEntity = transaction
+        let old_entity: Entity = transaction
             .read_one(&Filter::for_latest_entity_by_entity_id(entity_id))
             .await
             .change_context(ArchivalError)?;
@@ -349,9 +350,9 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         transaction
             .insert_entity(
                 entity_id,
-                old_entity.inner().clone(),
+                old_entity.properties().clone(),
                 old_entity.metadata().entity_type_id().clone(),
-                old_entity.metadata().created_by_id(),
+                old_entity.metadata().provenance_metadata().created_by_id(),
                 actor_id,
                 old_entity.metadata().link_metadata(),
             )

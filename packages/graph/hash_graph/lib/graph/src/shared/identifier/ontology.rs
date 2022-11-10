@@ -1,3 +1,5 @@
+use std::{fmt, fmt::Display};
+
 use postgres_types::{FromSql, ToSql};
 use serde::{Deserialize, Serialize};
 use type_system::uri::{BaseUri, VersionedUri};
@@ -31,9 +33,11 @@ impl ToSchema for OntologyTypeVersion {
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct OntologyTypeEditionId {
     #[schema(value_type = String)]
     base_id: BaseUri,
+    #[schema(value_type = number)]
     version: OntologyTypeVersion,
 }
 
@@ -54,7 +58,13 @@ impl OntologyTypeEditionId {
     }
 }
 
-// TODO: The Type System crate doesn't let us destructure so we need to clone base_uri
+impl Display for OntologyTypeEditionId {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmt, "{}v/{}", self.base_id.as_str(), self.version.inner())
+    }
+}
+
+// The Type System crate doesn't let us destructure so we need to clone base_uri
 impl From<VersionedUri> for OntologyTypeEditionId {
     fn from(versioned_uri: VersionedUri) -> Self {
         Self {
@@ -66,7 +76,7 @@ impl From<VersionedUri> for OntologyTypeEditionId {
 
 impl From<OntologyTypeEditionId> for VersionedUri {
     fn from(edition_id: OntologyTypeEditionId) -> Self {
-        // TODO: we should make it possible to destructure to avoid the clone
+        // We should make it possible to destructure to avoid the clone
         Self::new(edition_id.base_id().clone(), edition_id.version.inner())
     }
 }

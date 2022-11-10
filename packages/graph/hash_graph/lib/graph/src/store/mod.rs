@@ -19,9 +19,10 @@ pub use self::{
 };
 use crate::{
     identifier::knowledge::EntityId,
-    knowledge::{Entity, EntityUuid, LinkEntityMetadata, PersistedEntity, PersistedEntityMetadata},
+    knowledge::{Entity, EntityMetadata, EntityProperties, EntityUuid, LinkEntityMetadata},
     ontology::{
-        PersistedDataType, PersistedEntityType, PersistedOntologyMetadata, PersistedPropertyType,
+        DataTypeWithMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
+        PropertyTypeWithMetadata,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
     shared::identifier::account::AccountId,
@@ -196,7 +197,7 @@ pub trait AccountStore {
 /// Describes the API of a store implementation for [`DataType`]s.
 #[async_trait]
 pub trait DataTypeStore:
-    for<'q> crud::Read<PersistedDataType, Query<'q> = Filter<'q, DataType>>
+    for<'q> crud::Read<DataTypeWithMetadata, Query<'q> = Filter<'q, DataType>>
 {
     /// Creates a new [`DataType`].
     ///
@@ -211,7 +212,7 @@ pub trait DataTypeStore:
         data_type: DataType,
         owned_by_id: OwnedById,
         actor_id: CreatedById,
-    ) -> Result<PersistedOntologyMetadata, InsertionError>;
+    ) -> Result<OntologyElementMetadata, InsertionError>;
 
     /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
     ///
@@ -232,13 +233,13 @@ pub trait DataTypeStore:
         &mut self,
         data_type: DataType,
         actor_id: UpdatedById,
-    ) -> Result<PersistedOntologyMetadata, UpdateError>;
+    ) -> Result<OntologyElementMetadata, UpdateError>;
 }
 
 /// Describes the API of a store implementation for [`PropertyType`]s.
 #[async_trait]
 pub trait PropertyTypeStore:
-    for<'q> crud::Read<PersistedPropertyType, Query<'q> = Filter<'q, PropertyType>>
+    for<'q> crud::Read<PropertyTypeWithMetadata, Query<'q> = Filter<'q, PropertyType>>
 {
     /// Creates a new [`PropertyType`].
     ///
@@ -253,7 +254,7 @@ pub trait PropertyTypeStore:
         property_type: PropertyType,
         owned_by_id: OwnedById,
         actor_id: CreatedById,
-    ) -> Result<PersistedOntologyMetadata, InsertionError>;
+    ) -> Result<OntologyElementMetadata, InsertionError>;
 
     /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
     ///
@@ -274,13 +275,13 @@ pub trait PropertyTypeStore:
         &mut self,
         property_type: PropertyType,
         actor_id: UpdatedById,
-    ) -> Result<PersistedOntologyMetadata, UpdateError>;
+    ) -> Result<OntologyElementMetadata, UpdateError>;
 }
 
 /// Describes the API of a store implementation for [`EntityType`]s.
 #[async_trait]
 pub trait EntityTypeStore:
-    for<'q> crud::Read<PersistedEntityType, Query<'q> = Filter<'q, EntityType>>
+    for<'q> crud::Read<EntityTypeWithMetadata, Query<'q> = Filter<'q, EntityType>>
 {
     /// Creates a new [`EntityType`].
     ///
@@ -295,7 +296,7 @@ pub trait EntityTypeStore:
         entity_type: EntityType,
         owned_by_id: OwnedById,
         actor_id: CreatedById,
-    ) -> Result<PersistedOntologyMetadata, InsertionError>;
+    ) -> Result<OntologyElementMetadata, InsertionError>;
 
     /// Get the [`Subgraph`]s specified by the [`StructuralQuery`].
     ///
@@ -316,14 +317,16 @@ pub trait EntityTypeStore:
         &mut self,
         entity_type: EntityType,
         actor_id: UpdatedById,
-    ) -> Result<PersistedOntologyMetadata, UpdateError>;
+    ) -> Result<OntologyElementMetadata, UpdateError>;
 }
 
 /// Describes the API of a store implementation for [Entities].
 ///
 /// [Entities]: crate::knowledge::Entity
 #[async_trait]
-pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Filter<'q, Entity>> {
+pub trait EntityStore:
+    for<'q> crud::Read<Entity, Query<'q> = Filter<'q, EntityProperties>>
+{
     /// Creates a new [`Entity`].
     ///
     /// # Errors:
@@ -334,13 +337,13 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Filter<'q
     /// - if an [`EntityUuid`] was supplied and already exists in the store
     async fn create_entity(
         &mut self,
-        entity: Entity,
+        entity: EntityProperties,
         entity_type_id: VersionedUri,
         owned_by_id: OwnedById,
         entity_uuid: Option<EntityUuid>,
         actor_id: CreatedById,
         link_metadata: Option<LinkEntityMetadata>,
-    ) -> Result<PersistedEntityMetadata, InsertionError>;
+    ) -> Result<EntityMetadata, InsertionError>;
 
     /// Inserts the entities with the specified [`EntityType`] into the `Store`.
     ///
@@ -363,7 +366,8 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Filter<'q
     #[cfg(feature = "__internal_bench")]
     async fn insert_entities_batched_by_type(
         &mut self,
-        entities: impl IntoIterator<Item = (Option<EntityUuid>, Entity), IntoIter: Send> + Send,
+        entities: impl IntoIterator<Item = (Option<EntityUuid>, EntityProperties), IntoIter: Send>
+        + Send,
         entity_type_id: VersionedUri,
         owned_by_id: OwnedById,
         actor_id: CreatedById,
@@ -376,7 +380,7 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Filter<'q
     /// - if the requested [`Entity`] doesn't exist
     async fn get_entity<'f: 'q, 'q>(
         &self,
-        query: &'f StructuralQuery<'q, Entity>,
+        query: &'f StructuralQuery<'q, EntityProperties>,
     ) -> Result<Subgraph, QueryError>;
 
     /// Update an existing [`Entity`].
@@ -390,10 +394,10 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Filter<'q
     async fn update_entity(
         &mut self,
         entity_id: EntityId,
-        entity: Entity,
+        entity: EntityProperties,
         entity_type_id: VersionedUri,
         actor_id: UpdatedById,
-    ) -> Result<PersistedEntityMetadata, UpdateError>;
+    ) -> Result<EntityMetadata, UpdateError>;
 
     /// Archives an [`Entity`].
     ///

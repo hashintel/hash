@@ -10,15 +10,14 @@ use error_stack::Result;
 use graph::{
     identifier::knowledge::EntityId,
     knowledge::{
-        Entity, EntityQueryPath, EntityUuid, LinkEntityMetadata, PersistedEntity,
-        PersistedEntityMetadata,
+        Entity, EntityMetadata, EntityProperties, EntityQueryPath, EntityUuid, LinkEntityMetadata,
     },
     ontology::{
-        EntityTypeQueryPath, PersistedDataType, PersistedEntityType, PersistedOntologyMetadata,
-        PersistedPropertyType,
+        DataTypeWithMetadata, EntityTypeQueryPath, EntityTypeWithMetadata, OntologyElementMetadata,
+        PropertyTypeWithMetadata,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
-    shared::identifier::{account::AccountId, GraphElementIdentifier},
+    shared::identifier::{account::AccountId, GraphElementId},
     store::{
         error::ArchivalError,
         query::{Filter, FilterExpression, Parameter},
@@ -138,7 +137,7 @@ impl DatabaseApi<'_> {
     pub async fn create_data_type(
         &mut self,
         data_type: DataType,
-    ) -> Result<PersistedOntologyMetadata, InsertionError> {
+    ) -> Result<OntologyElementMetadata, InsertionError> {
         self.store
             .create_data_type(
                 data_type,
@@ -151,7 +150,7 @@ impl DatabaseApi<'_> {
     pub async fn get_data_type(
         &mut self,
         uri: &VersionedUri,
-    ) -> Result<PersistedDataType, QueryError> {
+    ) -> Result<DataTypeWithMetadata, QueryError> {
         let vertex = self
             .store
             .get_data_type(&StructuralQuery {
@@ -160,11 +159,11 @@ impl DatabaseApi<'_> {
             })
             .await?
             .vertices
-            .remove(&GraphElementIdentifier::OntologyElementId(uri.clone()))
+            .remove(&GraphElementId::OntologyElementId(uri.clone().into()))
             .expect("no data type found");
 
         match vertex {
-            Vertex::DataType(persisted_data_type) => Ok(persisted_data_type),
+            Vertex::DataType(data_type_with_metadata) => Ok(data_type_with_metadata),
             _ => unreachable!(),
         }
     }
@@ -172,7 +171,7 @@ impl DatabaseApi<'_> {
     pub async fn update_data_type(
         &mut self,
         data_type: DataType,
-    ) -> Result<PersistedOntologyMetadata, UpdateError> {
+    ) -> Result<OntologyElementMetadata, UpdateError> {
         self.store
             .update_data_type(data_type, UpdatedById::new(self.account_id))
             .await
@@ -181,7 +180,7 @@ impl DatabaseApi<'_> {
     pub async fn create_property_type(
         &mut self,
         property_type: PropertyType,
-    ) -> Result<PersistedOntologyMetadata, InsertionError> {
+    ) -> Result<OntologyElementMetadata, InsertionError> {
         self.store
             .create_property_type(
                 property_type,
@@ -194,7 +193,7 @@ impl DatabaseApi<'_> {
     pub async fn get_property_type(
         &mut self,
         uri: &VersionedUri,
-    ) -> Result<PersistedPropertyType, QueryError> {
+    ) -> Result<PropertyTypeWithMetadata, QueryError> {
         let vertex = self
             .store
             .get_property_type(&StructuralQuery {
@@ -203,11 +202,11 @@ impl DatabaseApi<'_> {
             })
             .await?
             .vertices
-            .remove(&GraphElementIdentifier::OntologyElementId(uri.clone()))
+            .remove(&GraphElementId::OntologyElementId(uri.clone().into()))
             .expect("no property type found");
 
         match vertex {
-            Vertex::PropertyType(persisted_property_type) => Ok(persisted_property_type),
+            Vertex::PropertyType(property_type_with_metadata) => Ok(property_type_with_metadata),
             _ => unreachable!(),
         }
     }
@@ -215,7 +214,7 @@ impl DatabaseApi<'_> {
     pub async fn update_property_type(
         &mut self,
         property_type: PropertyType,
-    ) -> Result<PersistedOntologyMetadata, UpdateError> {
+    ) -> Result<OntologyElementMetadata, UpdateError> {
         self.store
             .update_property_type(property_type, UpdatedById::new(self.account_id))
             .await
@@ -224,7 +223,7 @@ impl DatabaseApi<'_> {
     pub async fn create_entity_type(
         &mut self,
         entity_type: EntityType,
-    ) -> Result<PersistedOntologyMetadata, InsertionError> {
+    ) -> Result<OntologyElementMetadata, InsertionError> {
         self.store
             .create_entity_type(
                 entity_type,
@@ -237,7 +236,7 @@ impl DatabaseApi<'_> {
     pub async fn get_entity_type(
         &mut self,
         uri: &VersionedUri,
-    ) -> Result<PersistedEntityType, QueryError> {
+    ) -> Result<EntityTypeWithMetadata, QueryError> {
         let vertex = self
             .store
             .get_entity_type(&StructuralQuery {
@@ -246,11 +245,11 @@ impl DatabaseApi<'_> {
             })
             .await?
             .vertices
-            .remove(&GraphElementIdentifier::OntologyElementId(uri.clone()))
+            .remove(&GraphElementId::OntologyElementId(uri.clone().into()))
             .expect("no entity type found");
 
         match vertex {
-            Vertex::EntityType(persisted_entity_type) => Ok(persisted_entity_type),
+            Vertex::EntityType(entity_type) => Ok(entity_type),
             _ => unreachable!(),
         }
     }
@@ -258,7 +257,7 @@ impl DatabaseApi<'_> {
     pub async fn update_entity_type(
         &mut self,
         entity_type: EntityType,
-    ) -> Result<PersistedOntologyMetadata, UpdateError> {
+    ) -> Result<OntologyElementMetadata, UpdateError> {
         self.store
             .update_entity_type(entity_type, UpdatedById::new(self.account_id))
             .await
@@ -266,10 +265,10 @@ impl DatabaseApi<'_> {
 
     pub async fn create_entity(
         &mut self,
-        entity: Entity,
+        entity: EntityProperties,
         entity_type_id: VersionedUri,
         entity_uuid: Option<EntityUuid>,
-    ) -> Result<PersistedEntityMetadata, InsertionError> {
+    ) -> Result<EntityMetadata, InsertionError> {
         self.store
             .create_entity(
                 entity,
@@ -282,7 +281,7 @@ impl DatabaseApi<'_> {
             .await
     }
 
-    pub async fn get_entity(&self, entity_id: EntityId) -> Result<PersistedEntity, QueryError> {
+    pub async fn get_entity(&self, entity_id: EntityId) -> Result<Entity, QueryError> {
         let vertex = self
             .store
             .get_entity(&StructuralQuery {
@@ -291,11 +290,11 @@ impl DatabaseApi<'_> {
             })
             .await?
             .vertices
-            .remove(&GraphElementIdentifier::KnowledgeGraphElementId(entity_id))
+            .remove(&GraphElementId::KnowledgeGraphElementId(entity_id))
             .expect("no entity found");
 
         match vertex {
-            Vertex::Entity(persisted_entity) => Ok(persisted_entity),
+            Vertex::Entity(entity) => Ok(entity),
             _ => unreachable!(),
         }
     }
@@ -303,9 +302,9 @@ impl DatabaseApi<'_> {
     pub async fn update_entity(
         &mut self,
         entity_id: EntityId,
-        entity: Entity,
+        entity: EntityProperties,
         entity_type_id: VersionedUri,
-    ) -> Result<PersistedEntityMetadata, UpdateError> {
+    ) -> Result<EntityMetadata, UpdateError> {
         self.store
             .update_entity(
                 entity_id,
@@ -318,12 +317,12 @@ impl DatabaseApi<'_> {
 
     async fn create_link_entity(
         &mut self,
-        entity: Entity,
+        entity: EntityProperties,
         entity_type_id: VersionedUri,
         entity_uuid: Option<EntityUuid>,
         left_entity_id: EntityId,
         right_entity_id: EntityId,
-    ) -> Result<PersistedEntityMetadata, InsertionError> {
+    ) -> Result<EntityMetadata, InsertionError> {
         self.store
             .create_entity(
                 entity,
@@ -345,7 +344,7 @@ impl DatabaseApi<'_> {
         &self,
         source_entity_uuid: EntityUuid,
         link_type_id: VersionedUri,
-    ) -> Result<PersistedEntity, QueryError> {
+    ) -> Result<Entity, QueryError> {
         let filter = Filter::All(vec![
             Filter::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::LeftEntity(Some(
@@ -382,7 +381,7 @@ impl DatabaseApi<'_> {
             .vertices
             .into_iter()
             .map(|(_, vertex)| match vertex {
-                Vertex::Entity(persisted_entity) => Ok(persisted_entity),
+                Vertex::Entity(entity) => Ok(entity),
                 _ => unreachable!(),
             })
             .next()
@@ -392,7 +391,7 @@ impl DatabaseApi<'_> {
     pub async fn get_latest_entity_links(
         &self,
         source_entity_id: EntityId,
-    ) -> Result<Vec<PersistedEntity>, QueryError> {
+    ) -> Result<Vec<Entity>, QueryError> {
         let filter = Filter::All(vec![
             Filter::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::LeftEntity(None))),
@@ -426,7 +425,7 @@ impl DatabaseApi<'_> {
             .vertices
             .into_iter()
             .map(|(_, vertex)| match vertex {
-                Vertex::Entity(persisted_entity) => persisted_entity,
+                Vertex::Entity(entity) => entity,
                 _ => unreachable!(),
             })
             .collect())

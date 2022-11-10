@@ -40,7 +40,7 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("text_data_type_id", encodeURIComponent(response.body.identifier.uri));
+    client.global.set("text_data_type_id", encodeURIComponent(`${response.body.editionId.baseId}v/${response.body.editionId.version}`));
 %}
 
 ### Get Text data type
@@ -98,7 +98,7 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_property_type_id", encodeURIComponent(response.body.identifier.uri));
+    client.global.set("person_property_type_id", encodeURIComponent(`${response.body.editionId.baseId}v/${response.body.editionId.version}`));
 %}
 
 ### Get Name property type
@@ -171,7 +171,7 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("friendship_link_entity_type_id", response.body.identifier.uri);
+    client.global.set("friendship_link_entity_type_id", `${response.body.editionId.baseId}v/${response.body.editionId.version}`);
 %}
 
 ### Get Friendship entity type
@@ -232,8 +232,8 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_entity_type_id", encodeURIComponent(response.body.identifier.uri));
-    client.global.set("encoded_person_entity_type_id", encodeURIComponent(response.body.identifier.uri));
+    client.global.set("person_entity_type_id", encodeURIComponent(`${response.body.editionId.baseId}v/${response.body.editionId.version}`));
+    client.global.set("encoded_person_entity_type_id", encodeURIComponent(`${response.body.editionId.baseId}v/${response.body.editionId.version}`));
 %}
 
 ### Get Person entity type
@@ -348,9 +348,9 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_a_entity_id", response.body.identifier.baseId);
-    client.global.set("person_a_entity_uuid", response.body.identifier.baseId.split("%")[1])
-    client.global.set("encoded_person_a_entity_id", encodeURIComponent(response.body.identifier.baseId));
+    client.global.set("person_a_entity_id", response.body.editionId.baseId);
+    client.global.set("person_a_entity_uuid", response.body.editionId.baseId.split("%")[1])
+    client.global.set("encoded_person_a_entity_id", encodeURIComponent(response.body.editionId.baseId));
 %}
 
 ### Get Person entity
@@ -400,8 +400,8 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_b_entity_id", response.body.identifier.baseId);
-    client.global.set("person_b_entity_uuid", response.body.identifier.baseId.split("%")[1])
+    client.global.set("person_b_entity_id", response.body.editionId.baseId);
+    client.global.set("person_b_entity_uuid", response.body.editionId.baseId.split("%")[1])
 %}
 
 ### Get all latest entities

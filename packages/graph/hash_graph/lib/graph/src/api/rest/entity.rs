@@ -15,11 +15,13 @@ use utoipa::{OpenApi, ToSchema};
 
 use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
-    knowledge::{Entity, EntityUuid, LinkEntityMetadata, PersistedEntity, PersistedEntityMetadata},
-    provenance::{CreatedById, OwnedById, UpdatedById},
+    knowledge::{
+        Entity, EntityMetadata, EntityProperties, EntityUuid, LinkEntityMetadata, LinkOrder,
+    },
+    provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
     shared::identifier::{
-        knowledge::{EntityEditionId, EntityId},
-        GraphElementIdentifier,
+        knowledge::{EntityEditionId, EntityId, EntityVersion},
+        GraphElementId,
     },
     store::{
         error::{EntityDoesNotExist, QueryError},
@@ -52,11 +54,15 @@ use crate::{
             EntityUuid,
             EntityId,
             EntityEditionId,
-            PersistedEntityMetadata,
-            PersistedEntity,
+            EntityMetadata,
             Entity,
+            EntityProperties,
+            EntityVersion,
             EntityStructuralQuery,
-            GraphElementIdentifier,
+            LinkEntityMetadata,
+            LinkOrder,
+            ProvenanceMetadata,
+            GraphElementId,
             Vertex,
             EdgeKind,
             OutwardEdge,
@@ -94,7 +100,7 @@ impl RoutedResource for EntityResource {
 #[derive(Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct CreateEntityRequest {
-    entity: Entity,
+    entity: EntityProperties,
     #[schema(value_type = String)]
     entity_type_id: VersionedUri,
     owned_by_id: OwnedById,
@@ -112,7 +118,7 @@ struct CreateEntityRequest {
     request_body = CreateEntityRequest,
     tag = "Entity",
     responses(
-        (status = 201, content_type = "application/json", description = "The metadata of the created entity", body = PersistedEntityMetadata),
+        (status = 201, content_type = "application/json", description = "The metadata of the created entity", body = EntityMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Entity Type URI was not found"),
@@ -122,7 +128,7 @@ struct CreateEntityRequest {
 async fn create_entity<P: StorePool + Send>(
     body: Json<CreateEntityRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<PersistedEntityMetadata>, StatusCode> {
+) -> Result<Json<EntityMetadata>, StatusCode> {
     let Json(CreateEntityRequest {
         entity,
         entity_type_id,
@@ -248,17 +254,20 @@ async fn get_entities_by_query<P: StorePool + Send>(
     path = "/entities",
     tag = "Entity",
     responses(
-        (status = 200, content_type = "application/json", description = "List of all entities", body = [PersistedEntity]),
+        (status = 200, content_type = "application/json", description = "List of all entities", body = [Entity]),
 
         (status = 500, description = "Store error occurred"),
     )
 )]
 async fn get_latest_entities<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-) -> Result<Json<Vec<PersistedEntity>>, StatusCode> {
-    read_from_store(pool.as_ref(), &Filter::<Entity>::for_all_latest_entities())
-        .await
-        .map(Json)
+) -> Result<Json<Vec<Entity>>, StatusCode> {
+    read_from_store(
+        pool.as_ref(),
+        &Filter::<EntityProperties>::for_all_latest_entities(),
+    )
+    .await
+    .map(Json)
 }
 
 #[utoipa::path(
@@ -266,23 +275,23 @@ async fn get_latest_entities<P: StorePool + Send>(
     path = "/entities/{entityId}",
     tag = "Entity",
     responses(
-        (status = 200, content_type = "application/json", description = "The requested entity", body = PersistedEntity),
+        (status = 200, content_type = "application/json", description = "The requested entity", body = Entity),
 
         (status = 400, content_type = "text/plain", description = "Provided entity id is invalid"),
         (status = 404, description = "Entity was not found"),
         (status = 500, description = "Store error occurred"),
     ),
     params(
-        ("entityUuid" = Uuid, Path, description = "The UUID of the entity"),
+        ("entityId" = EntityId, Path, description = "The EntityId"),
     )
 )]
 async fn get_entity<P: StorePool + Send>(
     Path(entity_id): Path<EntityId>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<PersistedEntity>, StatusCode> {
+) -> Result<Json<Entity>, StatusCode> {
     read_from_store(
         pool.as_ref(),
-        &Filter::<Entity>::for_latest_entity_by_entity_id(entity_id),
+        &Filter::<EntityProperties>::for_latest_entity_by_entity_id(entity_id),
     )
     .await
     .and_then(|mut entities| entities.pop().ok_or(StatusCode::NOT_FOUND))
@@ -292,7 +301,7 @@ async fn get_entity<P: StorePool + Send>(
 #[derive(ToSchema, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct UpdateEntityRequest {
-    entity: Entity,
+    entity: EntityProperties,
     entity_id: EntityId,
     #[schema(value_type = String)]
     entity_type_id: VersionedUri,
@@ -304,7 +313,7 @@ struct UpdateEntityRequest {
     path = "/entities",
     tag = "Entity",
     responses(
-        (status = 200, content_type = "application/json", description = "The metadata of the updated entity", body = PersistedEntityMetadata),
+        (status = 200, content_type = "application/json", description = "The metadata of the updated entity", body = EntityMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Entity ID or Entity Type URI was not found"),
@@ -315,7 +324,7 @@ struct UpdateEntityRequest {
 async fn update_entity<P: StorePool + Send>(
     body: Json<UpdateEntityRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<PersistedEntityMetadata>, StatusCode> {
+) -> Result<Json<EntityMetadata>, StatusCode> {
     let Json(UpdateEntityRequest {
         entity,
         entity_id,

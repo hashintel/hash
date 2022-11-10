@@ -50,7 +50,7 @@ impl<'de> Deserialize<'de> for EntityId {
     where
         D: Deserializer<'de>,
     {
-        // TODO: we can be more efficient than this, we know the byte sizes of all the elements
+        // We can be more efficient than this, we know the byte sizes of all the elements
         let as_string = String::deserialize(deserializer)?;
         let mut parts = as_string.split('%');
 

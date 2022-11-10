@@ -17,7 +17,6 @@ pub enum EntityTypeQueryPath {
     OwnedById,
     CreatedById,
     UpdatedById,
-    RemovedById,
     Schema,
     BaseUri,
     VersionedUri,
@@ -66,7 +65,6 @@ impl RecordPath for EntityTypeQueryPath {
             Self::VersionId | Self::OwnedById | Self::CreatedById | Self::UpdatedById => {
                 ParameterType::Uuid
             }
-            Self::RemovedById => ParameterType::Uuid,
             Self::Schema => ParameterType::Any,
             Self::BaseUri => ParameterType::BaseUri,
             Self::VersionedUri => ParameterType::VersionedUri,
@@ -90,7 +88,6 @@ impl fmt::Display for EntityTypeQueryPath {
             Self::OwnedById => fmt.write_str("ownedById"),
             Self::CreatedById => fmt.write_str("createdById"),
             Self::UpdatedById => fmt.write_str("updatedById"),
-            Self::RemovedById => fmt.write_str("removedById"),
             Self::Schema => fmt.write_str("schema"),
             Self::BaseUri => fmt.write_str("baseUri"),
             Self::VersionedUri => fmt.write_str("versionedUri"),
@@ -116,7 +113,6 @@ pub enum EntityTypeQueryToken {
     OwnedById,
     CreatedById,
     UpdatedById,
-    RemovedById,
     BaseUri,
     VersionedUri,
     Version,
@@ -138,10 +134,10 @@ pub struct EntityTypeQueryPathVisitor {
 }
 
 impl EntityTypeQueryPathVisitor {
-    pub const EXPECTING: &'static str =
-        "one of `ownedById`, `createdById`, `updatedById`, `removedById`, `baseUri`, \
-         `versionedUri`, `version`, `title`, `description`, `default`, `examples`, `properties`, \
-         `required`, `links`, `requiredLinks`, `inheritsFrom`";
+    pub const EXPECTING: &'static str = "one of `ownedById`, `createdById`, `updatedById`, \
+                                         `baseUri`, `versionedUri`, `version`, `title`, \
+                                         `description`, `default`, `examples`, `properties`, \
+                                         `required`, `links`, `requiredLinks`, `inheritsFrom`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -169,7 +165,6 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
             EntityTypeQueryToken::OwnedById => EntityTypeQueryPath::OwnedById,
             EntityTypeQueryToken::CreatedById => EntityTypeQueryPath::CreatedById,
             EntityTypeQueryToken::UpdatedById => EntityTypeQueryPath::UpdatedById,
-            EntityTypeQueryToken::RemovedById => EntityTypeQueryPath::RemovedById,
             EntityTypeQueryToken::BaseUri => EntityTypeQueryPath::BaseUri,
             EntityTypeQueryToken::VersionedUri => EntityTypeQueryPath::VersionedUri,
             EntityTypeQueryToken::Version => EntityTypeQueryPath::Version,

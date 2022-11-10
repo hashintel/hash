@@ -8,11 +8,10 @@ use type_system::{uri::VersionedUri, DataType, EntityType, PropertyType};
 
 use crate::{
     ontology::{
-        PersistedDataType, PersistedEntityType, PersistedOntologyIdentifier,
-        PersistedOntologyMetadata, PersistedOntologyType, PersistedPropertyType,
+        DataTypeWithMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
+        PersistedOntologyType, PropertyTypeWithMetadata,
     },
-    provenance::{CreatedById, OwnedById, RemovedById, UpdatedById},
-    shared::identifier::account::AccountId,
+    provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         crud::Read,
         postgres::{
@@ -25,55 +24,45 @@ use crate::{
     },
 };
 
-impl From<OntologyRecord<DataType>> for PersistedDataType {
+impl From<OntologyRecord<DataType>> for DataTypeWithMetadata {
     fn from(data_type: OntologyRecord<DataType>) -> Self {
-        let identifier =
-            PersistedOntologyIdentifier::new(data_type.record.id().clone(), data_type.owned_by_id);
+        let identifier = data_type.record.id().clone().into();
 
         Self::new(
             data_type.record,
-            PersistedOntologyMetadata::new(
+            OntologyElementMetadata::new(
                 identifier,
-                data_type.created_by_id,
-                data_type.updated_by_id,
-                data_type.removed_by_id,
+                ProvenanceMetadata::new(data_type.created_by_id, data_type.updated_by_id),
+                data_type.owned_by_id,
             ),
         )
     }
 }
 
-impl From<OntologyRecord<PropertyType>> for PersistedPropertyType {
+impl From<OntologyRecord<PropertyType>> for PropertyTypeWithMetadata {
     fn from(property_type: OntologyRecord<PropertyType>) -> Self {
-        let identifier = PersistedOntologyIdentifier::new(
-            property_type.record.id().clone(),
-            property_type.owned_by_id,
-        );
+        let identifier = property_type.record.id().clone().into();
 
         Self::new(
             property_type.record,
-            PersistedOntologyMetadata::new(
+            OntologyElementMetadata::new(
                 identifier,
-                property_type.created_by_id,
-                property_type.updated_by_id,
-                property_type.removed_by_id,
+                ProvenanceMetadata::new(property_type.created_by_id, property_type.updated_by_id),
+                property_type.owned_by_id,
             ),
         )
     }
 }
 
-impl From<OntologyRecord<EntityType>> for PersistedEntityType {
+impl From<OntologyRecord<EntityType>> for EntityTypeWithMetadata {
     fn from(entity_type: OntologyRecord<EntityType>) -> Self {
-        let identifier = PersistedOntologyIdentifier::new(
-            entity_type.record.id().clone(),
-            entity_type.owned_by_id,
-        );
+        let identifier = entity_type.record.id().clone().into();
         Self::new(
             entity_type.record,
-            PersistedOntologyMetadata::new(
+            OntologyElementMetadata::new(
                 identifier,
-                entity_type.created_by_id,
-                entity_type.updated_by_id,
-                entity_type.removed_by_id,
+                ProvenanceMetadata::new(entity_type.created_by_id, entity_type.updated_by_id),
+                entity_type.owned_by_id,
             ),
         )
     }
@@ -113,16 +102,14 @@ where
                 let owned_by_id = OwnedById::new(row.get(2));
                 let created_by_id = CreatedById::new(row.get(3));
                 let updated_by_id = UpdatedById::new(row.get(4));
-                let removed_by_id = row.get::<_, Option<AccountId>>(5).map(RemovedById::new);
 
-                let identifier = PersistedOntologyIdentifier::new(versioned_uri, owned_by_id);
+                let edition_identifier = versioned_uri.into();
                 Ok(T::new(
                     record,
-                    PersistedOntologyMetadata::new(
-                        identifier,
-                        created_by_id,
-                        updated_by_id,
-                        removed_by_id,
+                    OntologyElementMetadata::new(
+                        edition_identifier,
+                        ProvenanceMetadata::new(created_by_id, updated_by_id),
+                        owned_by_id,
                     ),
                 ))
             })

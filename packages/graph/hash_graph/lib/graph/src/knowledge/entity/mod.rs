@@ -11,7 +11,7 @@ use uuid::Uuid;
 pub use self::query::{EntityQueryPath, EntityQueryPathVisitor};
 use crate::{
     identifier::knowledge::{EntityEditionId, EntityId},
-    provenance::{CreatedById, UpdatedById},
+    provenance::ProvenanceMetadata,
 };
 
 #[derive(
@@ -52,21 +52,21 @@ impl LinkOrder {
     }
 }
 
-/// An entity.
+/// The properties of an entity.
 ///
 /// When expressed as JSON, this should validate against its respective entity type(s).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[schema(value_type = Object)]
-pub struct Entity(HashMap<BaseUri, serde_json::Value>);
+pub struct EntityProperties(HashMap<BaseUri, serde_json::Value>);
 
-impl Entity {
+impl EntityProperties {
     #[must_use]
     pub fn empty() -> Self {
         Self(HashMap::new())
     }
 }
 
-impl Entity {
+impl EntityProperties {
     #[must_use]
     pub const fn properties(&self) -> &HashMap<BaseUri, serde_json::Value> {
         &self.0
@@ -126,42 +126,38 @@ impl LinkEntityMetadata {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 // TODO: deny_unknown_fields on other structs
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct PersistedEntityMetadata {
-    identifier: EntityEditionId,
+pub struct EntityMetadata {
+    edition_id: EntityEditionId,
     #[schema(value_type = String)]
     entity_type_id: VersionedUri,
-    // TODO: encapsulate these in a `ProvenanceMetadata` struct?
-    //  https://app.asana.com/0/1201095311341924/1203227079758117/f
-    created_by_id: CreatedById,
-    updated_by_id: UpdatedById,
+    #[serde(rename = "provenance")]
+    provenance_metadata: ProvenanceMetadata,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     link_metadata: Option<LinkEntityMetadata>,
     archived: bool,
 }
 
-impl PersistedEntityMetadata {
+impl EntityMetadata {
     #[must_use]
     pub const fn new(
-        identifier: EntityEditionId,
+        edition_id: EntityEditionId,
         entity_type_id: VersionedUri,
-        created_by_id: CreatedById,
-        updated_by_id: UpdatedById,
+        provenance_metadata: ProvenanceMetadata,
         link_metadata: Option<LinkEntityMetadata>,
         archived: bool,
     ) -> Self {
         Self {
-            identifier,
+            edition_id,
             entity_type_id,
-            created_by_id,
-            updated_by_id,
+            provenance_metadata,
             link_metadata,
             archived,
         }
     }
 
     #[must_use]
-    pub const fn identifier(&self) -> &EntityEditionId {
-        &self.identifier
+    pub const fn edition_id(&self) -> &EntityEditionId {
+        &self.edition_id
     }
 
     #[must_use]
@@ -170,13 +166,8 @@ impl PersistedEntityMetadata {
     }
 
     #[must_use]
-    pub const fn created_by_id(&self) -> CreatedById {
-        self.created_by_id
-    }
-
-    #[must_use]
-    pub const fn updated_by_id(&self) -> UpdatedById {
-        self.updated_by_id
+    pub const fn provenance_metadata(&self) -> ProvenanceMetadata {
+        self.provenance_metadata
     }
 
     #[must_use]
@@ -194,29 +185,27 @@ impl PersistedEntityMetadata {
 /// metadata.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct PersistedEntity {
-    inner: Entity,
-    metadata: PersistedEntityMetadata,
+pub struct Entity {
+    properties: EntityProperties,
+    metadata: EntityMetadata,
 }
 
-impl PersistedEntity {
+impl Entity {
     #[must_use]
     pub const fn new(
-        inner: Entity,
+        properties: EntityProperties,
         identifier: EntityEditionId,
         entity_type_id: VersionedUri,
-        created_by_id: CreatedById,
-        updated_by_id: UpdatedById,
+        provenance_metadata: ProvenanceMetadata,
         link_metadata: Option<LinkEntityMetadata>,
         archived: bool,
     ) -> Self {
         Self {
-            inner,
-            metadata: PersistedEntityMetadata::new(
+            properties,
+            metadata: EntityMetadata::new(
                 identifier,
                 entity_type_id,
-                created_by_id,
-                updated_by_id,
+                provenance_metadata,
                 link_metadata,
                 archived,
             ),
@@ -224,12 +213,12 @@ impl PersistedEntity {
     }
 
     #[must_use]
-    pub const fn inner(&self) -> &Entity {
-        &self.inner
+    pub const fn properties(&self) -> &EntityProperties {
+        &self.properties
     }
 
     #[must_use]
-    pub const fn metadata(&self) -> &PersistedEntityMetadata {
+    pub const fn metadata(&self) -> &EntityMetadata {
         &self.metadata
     }
 }
@@ -241,7 +230,8 @@ mod tests {
     fn test_entity(json: &str) {
         let json_value: serde_json::Value = serde_json::from_str(json).expect("invalid JSON");
 
-        let entity: Entity = serde_json::from_value(json_value.clone()).expect("invalid entity");
+        let entity: EntityProperties =
+            serde_json::from_value(json_value.clone()).expect("invalid entity");
 
         assert_eq!(
             serde_json::to_value(entity.clone()).expect("could not serialize"),

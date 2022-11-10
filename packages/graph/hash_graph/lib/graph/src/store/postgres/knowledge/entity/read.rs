@@ -12,22 +12,22 @@ use crate::{
         account::AccountId,
         knowledge::{EntityEditionId, EntityId},
     },
-    knowledge::{Entity, EntityQueryPath, EntityUuid, LinkEntityMetadata, PersistedEntity},
+    knowledge::{Entity, EntityProperties, EntityQueryPath, EntityUuid, LinkEntityMetadata},
     ontology::EntityTypeQueryPath,
-    provenance::{CreatedById, OwnedById, UpdatedById},
+    provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         crud, postgres::query::SelectCompiler, query::Filter, AsClient, PostgresStore, QueryError,
     },
 };
 
 #[async_trait]
-impl<C: AsClient> crud::Read<PersistedEntity> for PostgresStore<C> {
-    type Query<'q> = Filter<'q, Entity>;
+impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
+    type Query<'q> = Filter<'q, EntityProperties>;
 
     async fn read<'f: 'q, 'q>(
         &self,
         filter: &'f Self::Query<'q>,
-    ) -> Result<Vec<PersistedEntity>, QueryError> {
+    ) -> Result<Vec<Entity>, QueryError> {
         // We can't define these inline otherwise we'll drop while borrowed
         let left_owned_by_id_query_path =
             EntityQueryPath::LeftEntity(Some(Box::new(EntityQueryPath::OwnedById)));
@@ -71,7 +71,7 @@ impl<C: AsClient> crud::Read<PersistedEntity> for PostgresStore<C> {
             .change_context(QueryError)?
             .map(|row| row.into_report().change_context(QueryError))
             .and_then(|row| async move {
-                let entity: Entity = serde_json::from_value(row.get(properties_index))
+                let entity: EntityProperties = serde_json::from_value(row.get(properties_index))
                     .into_report()
                     .change_context(QueryError)?;
                 let entity_type_uri = VersionedUri::from_str(row.get(type_id_index))
@@ -121,15 +121,14 @@ impl<C: AsClient> crud::Read<PersistedEntity> for PostgresStore<C> {
                 let created_by_id = CreatedById::new(row.get(created_by_id_index));
                 let updated_by_id = UpdatedById::new(row.get(updated_by_id_index));
 
-                Ok(PersistedEntity::new(
+                Ok(Entity::new(
                     entity,
                     EntityEditionId::new(
                         EntityId::new(owned_by_id, entity_uuid),
                         row.get(version_index),
                     ),
                     entity_type_uri,
-                    created_by_id,
-                    updated_by_id,
+                    ProvenanceMetadata::new(created_by_id, updated_by_id),
                     link_metadata,
                     // TODO: only the historic table would have an `archived` field.
                     //   Consider what we should do about that.

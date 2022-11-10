@@ -4,12 +4,13 @@ use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use futures::{stream, FutureExt, StreamExt, TryStreamExt};
 use tokio_postgres::GenericClient;
-use type_system::{uri::VersionedUri, EntityType, EntityTypeReference};
+use type_system::{EntityType, EntityTypeReference};
 
 use crate::{
-    ontology::{PersistedEntityType, PersistedOntologyMetadata},
+    identifier::ontology::OntologyTypeEditionId,
+    ontology::{EntityTypeWithMetadata, OntologyElementMetadata},
     provenance::{CreatedById, OwnedById, UpdatedById},
-    shared::identifier::GraphElementIdentifier,
+    shared::identifier::GraphElementId,
     store::{
         crud::Read,
         postgres::{context::PostgresContext, DependencyContext, DependencyContextRef},
@@ -19,12 +20,12 @@ use crate::{
 };
 
 impl<C: AsClient> PostgresStore<C> {
-    /// Internal method to read a [`PersistedEntityType`] into four [`DependencyContext`]s.
+    /// Internal method to read a [`EntityTypeWithMetadata`] into four [`DependencyContext`]s.
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
     pub(crate) fn get_entity_type_as_dependency<'a: 'b, 'b>(
         &'a self,
-        entity_type_id: &'a VersionedUri,
+        entity_type_id: &'a OntologyTypeEditionId,
         mut dependency_context: DependencyContextRef<'b>,
     ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'b>> {
         async move {
@@ -38,7 +39,7 @@ impl<C: AsClient> PostgresStore<C> {
                             .entity_type_resolve_depth,
                     ),
                     || async {
-                        Ok(PersistedEntityType::from(
+                        Ok(EntityTypeWithMetadata::from(
                             self.read_versioned_ontology_type(entity_type_id).await?,
                         ))
                     },
@@ -48,11 +49,11 @@ impl<C: AsClient> PostgresStore<C> {
             if let Some(entity_type) = unresolved_entity_type.cloned() {
                 for property_type_ref in entity_type.inner().property_type_references() {
                     dependency_context.edges.insert(
-                        GraphElementIdentifier::OntologyElementId(entity_type_id.clone()),
+                        GraphElementId::OntologyElementId(entity_type_id.clone()),
                         OutwardEdge {
                             edge_kind: EdgeKind::References,
-                            destination: GraphElementIdentifier::OntologyElementId(
-                                property_type_ref.uri().clone(),
+                            destination: GraphElementId::OntologyElementId(
+                                property_type_ref.uri().clone().into(),
                             ),
                         },
                     );
@@ -65,7 +66,8 @@ impl<C: AsClient> PostgresStore<C> {
                         // TODO: Use relation tables
                         //   see https://app.asana.com/0/0/1202884883200942/f
                         self.get_property_type_as_dependency(
-                            property_type_ref.uri(),
+                            // We have to clone here because we can't call `Into` on the ref
+                            &property_type_ref.uri().clone().into(),
                             dependency_context.change_depth(GraphResolveDepths {
                                 property_type_resolve_depth: dependency_context
                                     .graph_resolve_depths
@@ -97,11 +99,11 @@ impl<C: AsClient> PostgresStore<C> {
                 //   see https://app.asana.com/0/0/1202884883200942/f
                 for entity_type_id in entity_type_ids {
                     dependency_context.edges.insert(
-                        GraphElementIdentifier::OntologyElementId(entity_type_id.clone()),
+                        GraphElementId::OntologyElementId(entity_type_id.clone().into()),
                         OutwardEdge {
                             edge_kind: EdgeKind::References,
-                            destination: GraphElementIdentifier::OntologyElementId(
-                                entity_type_id.clone(),
+                            destination: GraphElementId::OntologyElementId(
+                                entity_type_id.clone().into(),
                             ),
                         },
                     );
@@ -112,7 +114,8 @@ impl<C: AsClient> PostgresStore<C> {
                         > 0
                     {
                         self.get_entity_type_as_dependency(
-                            entity_type_id,
+                            // We have to clone here because we can't call `Into` on the ref
+                            &entity_type_id.clone().into(),
                             dependency_context.change_depth(GraphResolveDepths {
                                 entity_type_resolve_depth: dependency_context
                                     .graph_resolve_depths
@@ -139,7 +142,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         entity_type: EntityType,
         owned_by_id: OwnedById,
         created_by_id: CreatedById,
-    ) -> Result<PersistedOntologyMetadata, InsertionError> {
+    ) -> Result<OntologyElementMetadata, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()
@@ -186,11 +189,11 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             graph_resolve_depths,
         } = *query;
 
-        let subgraphs = stream::iter(Read::<PersistedEntityType>::read(self, filter).await?)
+        let subgraphs = stream::iter(Read::<EntityTypeWithMetadata>::read(self, filter).await?)
             .then(|entity_type| async move {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 
-                let entity_type_id = entity_type.metadata().identifier().uri().clone();
+                let entity_type_id = entity_type.metadata().edition_id().clone();
                 dependency_context.referenced_entity_types.insert(
                     &entity_type_id,
                     None,
@@ -203,7 +206,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                 )
                 .await?;
 
-                let root = GraphElementIdentifier::OntologyElementId(entity_type_id);
+                let root = GraphElementId::OntologyElementId(entity_type_id);
 
                 Ok::<_, Report<QueryError>>(dependency_context.into_subgraph(HashSet::from([root])))
             })
@@ -220,7 +223,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         &mut self,
         entity_type: EntityType,
         updated_by: UpdatedById,
-    ) -> Result<PersistedOntologyMetadata, UpdateError> {
+    ) -> Result<OntologyElementMetadata, UpdateError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()

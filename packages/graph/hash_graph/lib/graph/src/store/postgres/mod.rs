@@ -26,17 +26,20 @@ use uuid::Uuid;
 use self::context::{OntologyRecord, PostgresContext};
 pub use self::pool::{AsClient, PostgresStorePool};
 use crate::{
-    identifier::knowledge::{EntityEditionId, EntityId},
+    identifier::{
+        knowledge::{EntityEditionId, EntityId},
+        ontology::OntologyTypeEditionId,
+    },
     knowledge::{
-        Entity, EntityUuid, KnowledgeGraphQueryDepth, LinkEntityMetadata, PersistedEntity,
-        PersistedEntityMetadata,
+        Entity, EntityMetadata, EntityProperties, EntityUuid, KnowledgeGraphQueryDepth,
+        LinkEntityMetadata,
     },
     ontology::{
-        OntologyQueryDepth, PersistedDataType, PersistedEntityType, PersistedOntologyIdentifier,
-        PersistedOntologyMetadata, PersistedPropertyType,
+        DataTypeWithMetadata, EntityTypeWithMetadata, OntologyElementMetadata, OntologyQueryDepth,
+        PropertyTypeWithMetadata,
     },
-    provenance::{CreatedById, OwnedById, UpdatedById},
-    shared::identifier::{account::AccountId, GraphElementIdentifier},
+    provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
+    shared::identifier::{account::AccountId, GraphElementId},
     store::{
         error::VersionedUriAlreadyExists,
         postgres::{ontology::OntologyDatabaseType, version_id::VersionId},
@@ -229,12 +232,13 @@ where
 
 pub struct DependencyContext {
     pub edges: Edges,
-    pub referenced_data_types: DependencyMap<VersionedUri, PersistedDataType, OntologyQueryDepth>,
+    pub referenced_data_types:
+        DependencyMap<OntologyTypeEditionId, DataTypeWithMetadata, OntologyQueryDepth>,
     pub referenced_property_types:
-        DependencyMap<VersionedUri, PersistedPropertyType, OntologyQueryDepth>,
+        DependencyMap<OntologyTypeEditionId, PropertyTypeWithMetadata, OntologyQueryDepth>,
     pub referenced_entity_types:
-        DependencyMap<VersionedUri, PersistedEntityType, OntologyQueryDepth>,
-    pub linked_entities: DependencyMap<EntityId, PersistedEntity, KnowledgeGraphQueryDepth>,
+        DependencyMap<OntologyTypeEditionId, EntityTypeWithMetadata, OntologyQueryDepth>,
+    pub linked_entities: DependencyMap<EntityId, Entity, KnowledgeGraphQueryDepth>,
     pub graph_resolve_depths: GraphResolveDepths,
 }
 
@@ -264,15 +268,13 @@ impl DependencyContext {
     }
 
     #[must_use]
-    pub fn into_subgraph(self, roots: HashSet<GraphElementIdentifier>) -> Subgraph {
+    pub fn into_subgraph(self, roots: HashSet<GraphElementId>) -> Subgraph {
         let vertices = self
             .referenced_data_types
             .into_values()
             .map(|data_type| {
                 (
-                    GraphElementIdentifier::OntologyElementId(
-                        data_type.metadata().identifier().uri().clone(),
-                    ),
+                    GraphElementId::OntologyElementId(data_type.metadata().edition_id().clone()),
                     Vertex::DataType(data_type),
                 )
             })
@@ -281,8 +283,8 @@ impl DependencyContext {
                     .into_values()
                     .map(|property_type| {
                         (
-                            GraphElementIdentifier::OntologyElementId(
-                                property_type.metadata().identifier().uri().clone(),
+                            GraphElementId::OntologyElementId(
+                                property_type.metadata().edition_id().clone(),
                             ),
                             Vertex::PropertyType(property_type),
                         )
@@ -293,8 +295,8 @@ impl DependencyContext {
                     .into_values()
                     .map(|entity_type| {
                         (
-                            GraphElementIdentifier::OntologyElementId(
-                                entity_type.metadata().identifier().uri().clone(),
+                            GraphElementId::OntologyElementId(
+                                entity_type.metadata().edition_id().clone(),
                             ),
                             Vertex::EntityType(entity_type),
                         )
@@ -302,8 +304,8 @@ impl DependencyContext {
             )
             .chain(self.linked_entities.into_values().map(|entity| {
                 (
-                    GraphElementIdentifier::KnowledgeGraphElementId(
-                        entity.metadata().identifier().base_id(),
+                    GraphElementId::KnowledgeGraphElementId(
+                        entity.metadata().edition_id().base_id(),
                     ),
                     Vertex::Entity(entity),
                 )
@@ -322,12 +324,12 @@ impl DependencyContext {
 pub struct DependencyContextRef<'a> {
     pub edges: &'a mut Edges,
     pub referenced_data_types:
-        &'a mut DependencyMap<VersionedUri, PersistedDataType, OntologyQueryDepth>,
+        &'a mut DependencyMap<OntologyTypeEditionId, DataTypeWithMetadata, OntologyQueryDepth>,
     pub referenced_property_types:
-        &'a mut DependencyMap<VersionedUri, PersistedPropertyType, OntologyQueryDepth>,
+        &'a mut DependencyMap<OntologyTypeEditionId, PropertyTypeWithMetadata, OntologyQueryDepth>,
     pub referenced_entity_types:
-        &'a mut DependencyMap<VersionedUri, PersistedEntityType, OntologyQueryDepth>,
-    pub linked_entities: &'a mut DependencyMap<EntityId, PersistedEntity, KnowledgeGraphQueryDepth>,
+        &'a mut DependencyMap<OntologyTypeEditionId, EntityTypeWithMetadata, OntologyQueryDepth>,
+    pub linked_entities: &'a mut DependencyMap<EntityId, Entity, KnowledgeGraphQueryDepth>,
     pub graph_resolve_depths: GraphResolveDepths,
 }
 
@@ -540,7 +542,7 @@ where
         database_type: T,
         owned_by_id: OwnedById,
         created_by_id: CreatedById,
-    ) -> Result<(VersionId, PersistedOntologyMetadata), InsertionError>
+    ) -> Result<(VersionId, OntologyElementMetadata), InsertionError>
     where
         T: OntologyDatabaseType + Send + Sync + Into<serde_json::Value>,
     {
@@ -583,11 +585,13 @@ where
 
         Ok((
             version_id,
-            PersistedOntologyMetadata::new(
-                PersistedOntologyIdentifier::new(uri, owned_by_id),
-                created_by_id,
-                UpdatedById::new(created_by_id.as_account_id()),
-                None,
+            OntologyElementMetadata::new(
+                uri.into(),
+                ProvenanceMetadata::new(
+                    created_by_id,
+                    UpdatedById::new(created_by_id.as_account_id()),
+                ),
+                owned_by_id,
             ),
         ))
     }
@@ -606,7 +610,7 @@ where
         &self,
         database_type: T,
         updated_by_id: UpdatedById,
-    ) -> Result<(VersionId, PersistedOntologyMetadata), UpdateError>
+    ) -> Result<(VersionId, OntologyElementMetadata), UpdateError>
     where
         T: OntologyDatabaseType
             + Send
@@ -661,11 +665,10 @@ where
 
         Ok((
             version_id,
-            PersistedOntologyMetadata::new(
-                PersistedOntologyIdentifier::new(uri, owned_by_id),
-                created_by_id,
-                updated_by_id,
-                None,
+            OntologyElementMetadata::new(
+                uri.into(),
+                ProvenanceMetadata::new(created_by_id, updated_by_id),
+                owned_by_id,
             ),
         ))
     }
@@ -879,12 +882,12 @@ where
     async fn insert_entity(
         &self,
         entity_id: EntityId,
-        entity: Entity,
+        entity: EntityProperties,
         entity_type_id: VersionedUri,
         created_by_id: CreatedById,
         updated_by_id: UpdatedById,
         link_metadata: Option<LinkEntityMetadata>,
-    ) -> Result<PersistedEntityMetadata, InsertionError> {
+    ) -> Result<EntityMetadata, InsertionError> {
         let entity_type_version_id = self
             .version_id_by_uri(&entity_type_id)
             .await
@@ -940,11 +943,10 @@ where
             .change_context(InsertionError)?
             .get(0);
 
-        Ok(PersistedEntityMetadata::new(
+        Ok(EntityMetadata::new(
             EntityEditionId::new(entity_id, version),
             entity_type_id,
-            created_by_id,
-            updated_by_id,
+            ProvenanceMetadata::new(created_by_id, updated_by_id),
             link_metadata,
             // TODO: only the historic table would have an `archived` field.
             //   Consider what we should do about that.
@@ -986,7 +988,7 @@ where
         &self,
         entity_id: EntityId,
         historic_move: HistoricMove,
-    ) -> Result<PersistedEntityMetadata, InsertionError> {
+    ) -> Result<EntityMetadata, InsertionError> {
         let historic_entity = self
             .as_client()
             .query_one(
@@ -1095,7 +1097,7 @@ where
             .change_context(InsertionError)?;
         let entity_type_id = VersionedUri::new(base_uri, historic_entity.get::<_, i64>(4) as u32);
 
-        Ok(PersistedEntityMetadata::new(
+        Ok(EntityMetadata::new(
             EntityEditionId::new(
                 EntityId::new(
                     OwnedById::new(historic_entity.get(0)),
@@ -1104,8 +1106,10 @@ where
                 historic_entity.get(2),
             ),
             entity_type_id,
-            CreatedById::new(historic_entity.get(11)),
-            UpdatedById::new(historic_entity.get(12)),
+            ProvenanceMetadata::new(
+                CreatedById::new(historic_entity.get(11)),
+                UpdatedById::new(historic_entity.get(12)),
+            ),
             link_metadata,
             // TODO: only the historic table would have an `archived` field.
             //   Consider what we should do about that.
@@ -1183,7 +1187,7 @@ impl PostgresStore<Transaction<'_>> {
     async fn insert_entity_batch_by_type(
         &self,
         entity_uuids: impl IntoIterator<Item = EntityUuid, IntoIter: Send> + Send,
-        entities: impl IntoIterator<Item = Entity, IntoIter: Send> + Send,
+        entities: impl IntoIterator<Item = EntityProperties, IntoIter: Send> + Send,
         entity_type_version_id: VersionId,
         owned_by_id: OwnedById,
         created_by: CreatedById,

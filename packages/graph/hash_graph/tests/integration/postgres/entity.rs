@@ -1,4 +1,4 @@
-use graph::knowledge::Entity;
+use graph::knowledge::EntityProperties;
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use type_system::uri::{BaseUri, VersionedUri};
 
@@ -6,7 +6,8 @@ use crate::postgres::DatabaseTestWrapper;
 
 #[tokio::test]
 async fn insert() {
-    let person: Entity = serde_json::from_str(entity::PERSON_A_V1).expect("could not parse entity");
+    let person: EntityProperties =
+        serde_json::from_str(entity::PERSON_A_V1).expect("could not parse entity");
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
@@ -33,17 +34,17 @@ async fn insert() {
         .await
         .expect("could not create entity");
 
-    let persisted_entity = api
-        .get_entity(metadata.identifier().base_id())
+    let entity = api
+        .get_entity(metadata.edition_id().base_id())
         .await
         .expect("could not get entity");
 
-    assert_eq!(persisted_entity.inner(), &person);
+    assert_eq!(entity.properties(), &person);
 }
 
 #[tokio::test]
 async fn query() {
-    let organization: Entity =
+    let organization: EntityProperties =
         serde_json::from_str(entity::ORGANIZATION_V1).expect("could not parse entity");
 
     let mut database = DatabaseTestWrapper::new().await;
@@ -70,17 +71,19 @@ async fn query() {
         .expect("could not create entity");
 
     let queried_organization = api
-        .get_entity(metadata.identifier().base_id())
+        .get_entity(metadata.edition_id().base_id())
         .await
         .expect("could not get entity");
 
-    assert_eq!(&organization, queried_organization.inner());
+    assert_eq!(&organization, queried_organization.properties());
 }
 
 #[tokio::test]
 async fn update() {
-    let page_v1: Entity = serde_json::from_str(entity::PAGE_V1).expect("could not parse entity");
-    let page_v2: Entity = serde_json::from_str(entity::PAGE_V2).expect("could not parse entity");
+    let page_v1: EntityProperties =
+        serde_json::from_str(entity::PAGE_V1).expect("could not parse entity");
+    let page_v2: EntityProperties =
+        serde_json::from_str(entity::PAGE_V2).expect("could not parse entity");
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
@@ -104,7 +107,7 @@ async fn update() {
         .expect("could not create entity");
 
     api.update_entity(
-        metadata.identifier().base_id(),
+        metadata.edition_id().base_id(),
         page_v2.clone(),
         VersionedUri::new(
             BaseUri::new("https://blockprotocol.org/@alice/types/entity-type/page/".to_owned())
@@ -115,10 +118,10 @@ async fn update() {
     .await
     .expect("could not update entity");
 
-    let persisted_entity = api
-        .get_entity(metadata.identifier().base_id())
+    let entity = api
+        .get_entity(metadata.edition_id().base_id())
         .await
         .expect("could not get entity");
 
-    assert_eq!(persisted_entity.inner(), &page_v2);
+    assert_eq!(entity.properties(), &page_v2);
 }
