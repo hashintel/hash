@@ -45,7 +45,7 @@ import { setupTelemetry } from "./telemetry/snowplow-setup";
 import { connectToTaskExecutor } from "./task-execution";
 import { createGraphClient } from "./graph";
 import { seedOrgsAndUsers } from "./seed-data";
-import { ensureSystemEntitiesExists } from "./graph/system-entities";
+// import { ensureSystemEntitiesExists } from "./graph/system-entities";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
@@ -132,7 +132,8 @@ const main = async () => {
 
   await ensureSystemTypesExist({ graphApi, logger });
 
-  await ensureSystemEntitiesExists({ graphApi, logger });
+  /** @todo: bring back when links are working */
+  // await ensureSystemEntitiesExists({ graphApi, logger });
 
   // Set sensible default security headers: https://www.npmjs.com/package/helmet
   // Temporarily disable contentSecurityPolicy for the GraphQL playground
