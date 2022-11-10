@@ -37,6 +37,7 @@ impl ToSchema for OntologyTypeVersion {
 pub struct OntologyTypeEditionId {
     #[schema(value_type = String)]
     base_id: BaseUri,
+    #[schema(value_type = number)]
     version: OntologyTypeVersion,
 }
 

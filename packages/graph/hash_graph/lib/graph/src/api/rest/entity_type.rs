@@ -20,7 +20,7 @@ use crate::{
         domain_validator::{DomainValidator, ValidateOntologyType},
         patch_id_and_parse, EntityTypeWithMetadata, OntologyElementMetadata,
     },
-    provenance::{CreatedById, OwnedById, UpdatedById},
+    provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
     shared::identifier::{ontology::OntologyTypeEditionId, GraphElementIdentifier},
     store::{
         error::{BaseUriAlreadyExists, BaseUriDoesNotExist},
@@ -54,6 +54,7 @@ use crate::{
             EntityTypeWithMetadata,
             EntityTypeStructuralQuery,
             GraphElementIdentifier,
+            ProvenanceMetadata,
             Vertex,
             EdgeKind,
             OutwardEdge,

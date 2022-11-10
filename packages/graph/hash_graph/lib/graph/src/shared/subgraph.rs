@@ -116,6 +116,7 @@ impl GraphResolveDepths {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Subgraph {
+    #[schema(value_type = Vec<GraphElementIdentifier>)]
     pub roots: HashSet<GraphElementIdentifier>,
     pub vertices: HashMap<GraphElementIdentifier, Vertex>,
     pub edges: Edges,
