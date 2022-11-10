@@ -106,22 +106,23 @@ async fn update() {
         .await
         .expect("could not create entity");
 
-    api.update_entity(
-        metadata.edition_id().base_id(),
-        page_v2.clone(),
-        VersionedUri::new(
-            BaseUri::new("https://blockprotocol.org/@alice/types/entity-type/page/".to_owned())
-                .expect("couldn't construct Base URI"),
-            1,
-        ),
-    )
-    .await
-    .expect("could not update entity");
+    let v2_metadata = api
+        .update_entity(
+            metadata.edition_id().base_id(),
+            page_v2.clone(),
+            VersionedUri::new(
+                BaseUri::new("https://blockprotocol.org/@alice/types/entity-type/page/".to_owned())
+                    .expect("couldn't construct Base URI"),
+                1,
+            ),
+        )
+        .await
+        .expect("could not update entity");
 
-    let entity = api
-        .get_entity(metadata.edition_id())
+    let entity_v2 = api
+        .get_entity(v2_metadata.edition_id())
         .await
         .expect("could not get entity");
 
-    assert_eq!(entity.properties(), &page_v2);
+    assert_eq!(entity_v2.properties(), &page_v2);
 }
