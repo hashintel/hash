@@ -12,7 +12,7 @@ use uuid::Uuid;
 use crate::{
     identifier::{
         knowledge::{EntityEditionId, EntityId},
-        GraphElementEditionId,
+        GraphElementEditionId, GraphElementId,
     },
     knowledge::{Entity, EntityMetadata, EntityProperties, EntityUuid, LinkEntityMetadata},
     provenance::{CreatedById, OwnedById, UpdatedById},
@@ -25,7 +25,9 @@ use crate::{
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
     subgraph::{
-        edges::{GenericOutwardEdge, KnowledgeGraphOutwardEdges, SharedEdgeKind},
+        edges::{
+            GenericOutwardEdge, KnowledgeGraphEdgeKind, KnowledgeGraphOutwardEdges, SharedEdgeKind,
+        },
         Subgraph,
     },
 };
@@ -44,11 +46,7 @@ impl<C: AsClient> PostgresStore<C> {
                 .linked_entities
                 .insert_with(
                     &entity_edition_id,
-                    Some(
-                        dependency_context
-                            .graph_resolve_depths
-                            .link_target_entity_resolve_depth,
-                    ),
+                    Some(dependency_context.graph_resolve_depths.entity_resolve_depth),
                     || async {
                         self.read_one(&Filter::for_entity_by_edition_id(entity_edition_id))
                             .await
