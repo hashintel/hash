@@ -7,23 +7,22 @@ use tokio_postgres::GenericClient;
 use type_system::PropertyType;
 
 use crate::{
-    identifier::{ontology::OntologyTypeEditionId, GraphElementId},
+    identifier::ontology::OntologyTypeEditionId,
     ontology::{OntologyElementMetadata, PropertyTypeWithMetadata},
     provenance::{CreatedById, OwnedById, UpdatedById},
     shared::{
         identifier::GraphElementEditionId,
-        subgraph::{
-            depths::GraphResolveDepths,
-            edges::{EdgeKind, OutwardEdge},
-            query::StructuralQuery,
-        },
+        subgraph::{depths::GraphResolveDepths, edges::OutwardEdge, query::StructuralQuery},
     },
     store::{
         crud::Read,
         postgres::{context::PostgresContext, DependencyContext, DependencyContextRef},
         AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, UpdateError,
     },
-    subgraph::Subgraph,
+    subgraph::{
+        edges::{GenericOutwardEdge, OntologyEdgeKind, OntologyOutwardEdges},
+        Subgraph,
+    },
 };
 
 impl<C: AsClient> PostgresStore<C> {
@@ -57,15 +56,6 @@ impl<C: AsClient> PostgresStore<C> {
                 // TODO: Use relation tables
                 //   see https://app.asana.com/0/0/1202884883200942/f
                 for data_type_ref in property_type.inner().data_type_references() {
-                    dependency_context.edges.insert(
-                        GraphElementId::Ontology(property_type_id.base_id().clone()),
-                        OutwardEdge {
-                            edge_kind: EdgeKind::References,
-                            destination: GraphElementId::Ontology(
-                                data_type_ref.uri().base_uri().clone(),
-                            ),
-                        },
-                    );
                     if dependency_context
                         .graph_resolve_depths
                         .data_type_resolve_depth
@@ -84,21 +74,21 @@ impl<C: AsClient> PostgresStore<C> {
                         )
                         .await?;
                     }
+                    dependency_context.edges.insert(
+                        GraphElementEditionId::Ontology(property_type_id.clone()),
+                        OutwardEdge::Ontology(OntologyOutwardEdges::ToOntology(
+                            GenericOutwardEdge {
+                                kind: OntologyEdgeKind::ConstrainsValuesOn,
+                                reversed: false,
+                                endpoint: data_type_ref.uri().clone().into(),
+                            },
+                        )),
+                    );
                 }
 
                 // TODO: Use relation tables
                 //   see https://app.asana.com/0/0/1202884883200942/f
                 for property_type_ref in property_type.inner().property_type_references() {
-                    dependency_context.edges.insert(
-                        GraphElementId::Ontology(property_type_id.base_id().clone()),
-                        OutwardEdge {
-                            edge_kind: EdgeKind::References,
-                            destination: GraphElementId::Ontology(
-                                property_type_ref.uri().base_uri().clone(),
-                            ),
-                        },
-                    );
-
                     if dependency_context
                         .graph_resolve_depths
                         .property_type_resolve_depth
@@ -117,6 +107,17 @@ impl<C: AsClient> PostgresStore<C> {
                         )
                         .await?;
                     }
+
+                    dependency_context.edges.insert(
+                        GraphElementEditionId::Ontology(property_type_id.clone().into()),
+                        OutwardEdge::Ontology(OntologyOutwardEdges::ToOntology(
+                            GenericOutwardEdge {
+                                kind: OntologyEdgeKind::ConstrainsPropertiesOn,
+                                reversed: false,
+                                endpoint: property_type_ref.uri().clone().into(),
+                            },
+                        )),
+                    );
                 }
             }
 
