@@ -46,6 +46,8 @@ COPY packages/hash/shared packages/hash/shared
 
 WORKDIR /app/packages/hash/frontend
 ENV NODE_ENV production
+ARG NEXT_PUBLIC_API_ORIGIN
+ENV NEXT_PUBLIC_API_ORIGIN ${NEXT_PUBLIC_API_ORIGIN}
 RUN yarn next build
 
 
@@ -65,7 +67,6 @@ RUN chown appuser:appgroup /app
 
 USER appuser
 ENV NODE_ENV production
-
 
 CMD ["yarn", "workspace","@hashintel/hash-frontend", "start"]
 

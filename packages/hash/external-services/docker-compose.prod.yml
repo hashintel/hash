@@ -55,8 +55,6 @@ services:
     build:
       dockerfile: deployment/graph/Dockerfile
       context: ../../graph
-      args:
-        PROFILE: dev
     environment:
       HASH_GRAPH_PG_USER: "${HASH_GRAPH_PG_USER}"
       HASH_GRAPH_PG_PASSWORD: "${HASH_GRAPH_PG_PASSWORD}"
@@ -64,10 +62,11 @@ services:
       HASH_GRAPH_PG_PORT: "5432"
       HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
       HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
+      HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN: "http://${FRONTEND_DOMAIN}/@(?P<shortname>[\\w-]+)/types/(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type)|(?:link-type))/[\\w-]+/"
       RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-graph=trace,hash_graph=trace,tokio_postgres=debug}"
       RUST_BACKTRACE: 1
     ports:
-      - "${HASH_GRAPH_API_PORT}:4000"
+      - "4000:4000"
 
   kratos-migrate:
     depends_on:
@@ -86,17 +85,17 @@ services:
     depends_on:
       - kratos-migrate
     image: oryd/kratos:v0.10.1
-    # ports:
-    #   - "4433:4433" # public, doesn't need to be exposed
+    ports:
+      - "4433:4433" # public, doesn't need to be exposed
     #   - "4434:4434" # admin, we don't want to expose this
     restart: unless-stopped
     environment:
-      - SECRETS_COOKIE=VERY-INSECURE-AND-SHOULD-ONLY-BE-USED-IN-DEV
-      - SECRETS_CIPHER=32-LONG-SECRET-NOT-SECURE-AT-ALL
-      - COURIER_SMTP_CONNECTION_URI=smtps://test:test@mailslurper:1025/?skip_ssl_verify=true
-      - DSN=postgres://${HASH_KRATOS_PG_USER}:${HASH_KRATOS_PG_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_KRATOS_PG_DEV_DATABASE}
-      - LOG_LEVEL=warning
-    command: serve -c /etc/config/kratos/kratos.dev.yml --dev --watch-courier
+      SECRETS_COOKIE: "VERY-INSECURE-AND-SHOULD-ONLY-BE-USED-IN-DEV"
+      SECRETS_CIPHER: "32-LONG-SECRET-NOT-SECURE-AT-ALL"
+      COURIER_SMTP_CONNECTION_URI: "smtps://test:test@mailslurper:1025/?skip_ssl_verify=true"
+      DSN: "postgres://${HASH_KRATOS_PG_USER}:${HASH_KRATOS_PG_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_KRATOS_PG_DEV_DATABASE}"
+      LOG_LEVEL: "warning"
+    command: serve -c /etc/config/kratos/kratos.dev.yml --watch-courier
     extra_hosts:
       - host.docker.internal:host-gateway
     volumes:
@@ -165,6 +164,9 @@ services:
     build:
       context: ../../../
       dockerfile: packages/hash/docker/frontend/prod/Dockerfile
+      args:
+        NEXT_PUBLIC_API_ORIGIN: "${NEXT_PUBLIC_API_ORIGIN}"
+
     depends_on:
       hash-api:
         condition: service_healthy
@@ -172,6 +174,7 @@ services:
       restart_policy:
         condition: on-failure
     environment:
+      FRONTEND_DOMAIN: "${FRONTEND_DOMAIN}"
       NEXT_PUBLIC_API_ORIGIN: "${NEXT_PUBLIC_API_ORIGIN}"
       ORY_KRATOS_PUBLIC_URL: "http://kratos:4433"
 
