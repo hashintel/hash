@@ -94,3 +94,7 @@ __pycache__
 
 # Application data
 /var
+
+**/target
+**/.next
+

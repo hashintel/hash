@@ -188,3 +188,19 @@ services:
       KRATOS_API_KEY: "${KRATOS_API_KEY}"
     ports:
       - "8844:5001"
+
+  hash-frontend:
+    build:
+      context: ../../../
+      dockerfile: packages/hash/docker/frontend/prod/Dockerfile
+    depends_on:
+      hash-api:
+        condition: service_healthy
+    deploy:
+      restart_policy:
+        condition: on-failure
+    environment:
+      NEXT_PUBLIC_API_ORIGIN: "${NEXT_PUBLIC_API_ORIGIN}"
+
+    ports:
+      - "8800:3000"
