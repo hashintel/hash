@@ -1,19 +1,16 @@
-import { useMemo } from "react";
 import { useQuery } from "@apollo/client";
 import {
   GetAllLatestPersistedEntitiesQuery,
   GetAllLatestPersistedEntitiesQueryVariables,
 } from "../../graphql/apiTypes.gen";
 import { getAllLatestEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
-import { getPersistedEntities, Subgraph } from "../../lib/subgraph";
-import { useInitTypeSystem } from "../../lib/use-init-type-system";
-import { Entity } from "@blockprotocol/graph";
+import { Subgraph } from "../../lib/subgraph";
 
-export const useEntityTypeEntities = (
+export const useEntityTypeEntities2 = (
   typeId: string,
 ): {
   loading: boolean;
-  entities?: Entity[];
+  subgraph?: Subgraph;
 } => {
   const { data, loading } = useQuery<
     GetAllLatestPersistedEntitiesQuery,
@@ -21,36 +18,24 @@ export const useEntityTypeEntities = (
   >(getAllLatestEntitiesQuery, {
     variables: {
       dataTypeResolveDepth: 0,
-      propertyTypeResolveDepth: 0,
+      propertyTypeResolveDepth: 1,
       linkTypeResolveDepth: 0,
       entityTypeResolveDepth: 1,
-      linkResolveDepth: 1,
-      linkTargetEntityResolveDepth: 1,
+      linkResolveDepth: 0,
+      linkTargetEntityResolveDepth: 0,
     },
     /** @todo reconsider caching. This is done for testing/demo purposes. */
     fetchPolicy: "no-cache",
   });
 
-  const loadingTypeSystem = useInitTypeSystem();
-
   const { getAllLatestPersistedEntities: subgraph } = data ?? {};
 
-  const entities = useMemo(() => {
-    if (!subgraph || loadingTypeSystem) {
-      return undefined;
-    }
-
+  return {
+    loading,
     /**
      * @todo: remove casting when we start returning links in the subgraph
      *   https://app.asana.com/0/0/1203214689883095/f
      */
-    return getPersistedEntities(subgraph as unknown as Subgraph).filter(
-      ({ entityTypeId }) => entityTypeId === typeId,
-    );
-  }, [subgraph, loadingTypeSystem]);
-
-  return {
-    loading,
-    entities,
+    subgraph: subgraph as unknown as Subgraph,
   };
 };

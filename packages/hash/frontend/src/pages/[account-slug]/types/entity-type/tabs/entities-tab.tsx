@@ -8,7 +8,7 @@ import {
 } from "@hashintel/hash-design-system";
 import { Box, Container, Paper, Stack } from "@mui/material";
 import { FunctionComponent, useCallback, useMemo, useState } from "react";
-import { extractBaseUri } from "@blockprotocol/type-system-web";
+import { EntityType, extractBaseUri } from "@blockprotocol/type-system-web";
 import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
 import { GlideGrid } from "../../../../../components/GlideGlid/glide-grid";
 import { GlideGridOverlayPortal } from "../../../../../components/GlideGlid/glide-grid-overlay-portal";
@@ -19,7 +19,10 @@ import {
 } from "../../../../../components/GlideGlid/utils/sorting";
 import { useDrawHeader } from "../../../../../components/GlideGlid/utils/use-draw-header";
 import { usePropertyTypes } from "../use-property-types";
-import { parseEntityIdentifier } from "../../../../../lib/entities";
+import {
+  generateEntityLabel,
+  parseEntityIdentifier,
+} from "../../../../../lib/entities";
 import { Entity } from "../../../../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
 import { useAccounts } from "../../../../../components/hooks/useAccounts";
 import { SectionWrapper } from "../../../shared/section-wrapper";
@@ -29,88 +32,20 @@ import { mustBeVersionedUri } from "../util";
 import { HomeIcon } from "../../../../../shared/icons/home-icon";
 import { EarthIcon } from "../../../../../shared/icons/earth-icon";
 import { renderValueIconCell } from "./value-icon-cell";
-
-export const generateEntityLabel = (
-  entity: Entity,
-  propertyTypes: PropertyType[],
-  schema?: { labelProperty?: unknown; title?: unknown },
-): string => {
-  // if the schema has a labelProperty set, prefer that
-  const labelProperty = schema?.labelProperty;
-  if (
-    typeof labelProperty === "string" &&
-    typeof entity.properties[labelProperty] === "string" &&
-    entity.properties[labelProperty]
-  ) {
-    return entity.properties[labelProperty] as string;
-  }
-
-  // fallback to some likely display name properties
-  const options = [
-    "name",
-    "preferred name",
-    "display name",
-    "title",
-    "shortname",
-  ];
-
-  const propertyTypes2: { title?: string; propertyTypeBaseUri: string }[] =
-    Object.keys(entity.properties).map((propertyTypeBaseUri) => {
-      /** @todo - pick the latest version rather than first element? */
-
-      const propertyType = Object.values(propertyTypes).find(
-        (prop) =>
-          extractBaseUri(mustBeVersionedUri(prop.$id)) === propertyTypeBaseUri,
-      );
-      // const [propertyType] = getPropertyTypesByBaseUri(
-      //   rootEntityAndSubgraph.subgraph,
-      //   propertyTypeBaseUri,
-      // );
-
-      return propertyType
-        ? {
-            title: propertyType.title.toLowerCase(),
-            propertyTypeBaseUri,
-          }
-        : {
-            title: undefined,
-            propertyTypeBaseUri,
-          };
-    });
-
-  for (const option of options) {
-    const found = propertyTypes2.find(({ title }) => title === option);
-
-    if (found) {
-      return entity.properties[found.propertyTypeBaseUri];
-    }
-  }
-
-  // fallback to the entity type and a few characters of the entityId
-  let entityId = entity.entityId;
-  try {
-    // in case this entityId is a stringified JSON object, extract the real entityId from it
-    ({ entityId } = parseEntityIdentifier(entityId));
-  } catch {
-    // entityId was not a stringified object, it was already the real entityId
-  }
-
-  const entityTypeName = schema?.title ?? "Entity";
-
-  return `${entityTypeName}-${entityId.slice(0, 5)}`;
-};
+import { getRootsAsEntities } from "../../../../../lib/subgraph";
 
 export type EntitiesTabProps = {
-  entities: Entity[];
+  // entities: Entity[];
+  entitiesSubgraph: Subgraph;
   entityType: EntityType;
   namespace: {
     id: string;
-    shortname: string;
+    shortname?: string;
   };
 };
 
 export const EntitiesTab: FunctionComponent<EntitiesTabProps> = ({
-  entities,
+  entitiesSubgraph,
   entityType,
   namespace,
 }) => {
@@ -119,6 +54,8 @@ export const EntitiesTab: FunctionComponent<EntitiesTabProps> = ({
     key: "entity",
     dir: "desc",
   });
+
+  const entities = getRootsAsEntities(entitiesSubgraph);
 
   const { accounts } = useAccounts();
 
@@ -134,7 +71,7 @@ export const EntitiesTab: FunctionComponent<EntitiesTabProps> = ({
     const propertyColumns =
       propertyTypes && entityType
         ? Object.keys(entityType.properties).reduce<GridColumn[]>(
-            (columns, propertyId) => {
+            (cols, propertyId) => {
               const propertyType = Object.values(propertyTypes).find(
                 (prop) =>
                   extractBaseUri(mustBeVersionedUri(prop.$id)) === propertyId,
@@ -142,7 +79,7 @@ export const EntitiesTab: FunctionComponent<EntitiesTabProps> = ({
 
               if (propertyType) {
                 return [
-                  ...columns,
+                  ...cols,
                   {
                     title: propertyType.title,
                     id: propertyId,
@@ -151,13 +88,13 @@ export const EntitiesTab: FunctionComponent<EntitiesTabProps> = ({
                 ];
               }
 
-              return columns;
+              return cols;
             },
             [],
           )
         : [];
 
-    const columns: GridColumn[] = [
+    const newColumns: GridColumn[] = [
       {
         title: "Entity",
         id: "entity",
@@ -177,15 +114,18 @@ export const EntitiesTab: FunctionComponent<EntitiesTabProps> = ({
       ...propertyColumns,
     ];
 
-    const rows: { [k: string]: string }[] =
+    const newRows: { [k: string]: string }[] =
       (propertyTypes &&
         entities?.map((entity) => {
-          const entityLabel = generateEntityLabel(entity, propertyTypes);
-          const namespace = generateNameSpace(entity.ownedById);
+          const entityLabel = generateEntityLabel({
+            root: entity,
+            subgraph: entitiesSubgraph,
+          });
+          const entityNamespace = generateNameSpace(entity.ownedById);
 
           return {
             entity: entityLabel,
-            namespace: namespace ? `@${namespace}` : "",
+            namespace: entityNamespace ? `@${entityNamespace}` : "",
             additionalTypes: "",
             ...propertyColumns.reduce((fields, column) => {
               if (column.id) {
@@ -203,7 +143,7 @@ export const EntitiesTab: FunctionComponent<EntitiesTabProps> = ({
         })) ??
       [];
 
-    return [columns, rows];
+    return [newColumns, newRows];
   }, [entityType, propertyTypes, entities, generateNameSpace]);
 
   const entitiesCount = useMemo(() => {
@@ -285,24 +225,24 @@ export const EntitiesTab: FunctionComponent<EntitiesTabProps> = ({
               getCellContent={([colIndex, rowIndex]) => {
                 if (sortedRows && columns) {
                   const row = sortedRows[rowIndex];
-                  const objKey = columns[colIndex]?.id;
-                  const cellValue = row?.[objKey];
-
-                  if (objKey === "entity") {
-                    return {
-                      kind: GridCellKind.Custom,
-                      allowOverlay: false,
-                      readonly: true,
-                      copyData: cellValue,
-                      data: {
-                        kind: "value-icon-cell",
-                        icon: "faAsterisk",
-                        value: cellValue,
-                      },
-                    };
-                  }
+                  const columnId = columns[colIndex]?.id;
+                  const cellValue = columnId && row?.[columnId];
 
                   if (cellValue) {
+                    if (columnId === "entity") {
+                      return {
+                        kind: GridCellKind.Custom,
+                        allowOverlay: false,
+                        readonly: true,
+                        copyData: cellValue,
+                        data: {
+                          kind: "value-icon-cell",
+                          icon: "faAsterisk",
+                          value: cellValue,
+                        },
+                      };
+                    }
+
                     return {
                       kind: GridCellKind.Text,
                       allowOverlay: false,
@@ -313,6 +253,7 @@ export const EntitiesTab: FunctionComponent<EntitiesTabProps> = ({
                     };
                   }
                 }
+
                 return blankCell;
               }}
               customRenderers={[renderValueIconCell]}

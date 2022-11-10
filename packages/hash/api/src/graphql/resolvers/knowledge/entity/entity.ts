@@ -71,7 +71,18 @@ export const getAllLatestPersistedEntities: ResolverFn<
   const { data: entitySubgraph } = await graphApi
     .getEntitiesByQuery({
       filter: {
-        equal: [{ path: ["version"] }, { parameter: "latest" }],
+        all: [
+          { equal: [{ path: ["version"] }, { parameter: "latest" }] },
+          {
+            equal: [
+              { path: ["type", "baseUri"] },
+              {
+                parameter:
+                  "http://localhost:3000/@example/types/entity-type/user/",
+              },
+            ],
+          },
+        ],
       },
       graphResolveDepths: {
         dataTypeResolveDepth,

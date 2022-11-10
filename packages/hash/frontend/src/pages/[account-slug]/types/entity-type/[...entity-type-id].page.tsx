@@ -125,7 +125,9 @@ const Page: NextPageWithLayout = () => {
 
   const entityType = remoteEntityType ?? draftEntityType;
 
-  const { entities } = useEntityTypeEntities(entityType?.$id ?? "");
+  const { subgraph: typeEntitiesSubgraph } = useEntityTypeEntities(
+    "http://localhost:3000/@example/types/entity-type/user/",
+  );
 
   const NAVIGATION_TABS = useMemo(
     () => [
@@ -139,7 +141,7 @@ const Page: NextPageWithLayout = () => {
         id: "entities",
         label: "Entities",
         path: "entities",
-        numberIndicator: entities?.length,
+        numberIndicator: typeEntitiesSubgraph?.roots.length,
       },
       {
         id: "views",
@@ -157,7 +159,7 @@ const Page: NextPageWithLayout = () => {
         path: "",
       },
     ],
-    [entities],
+    [typeEntitiesSubgraph],
   );
 
   const [activeTab, setActiveTab] = useState(() => {
@@ -201,7 +203,7 @@ const Page: NextPageWithLayout = () => {
     }
   });
 
-  if (!entityType) {
+  if (!entityType || !namespace) {
     return null;
   }
 
@@ -385,7 +387,8 @@ const Page: NextPageWithLayout = () => {
             ) : null}
             {activeTab === 1 ? (
               <EntitiesTab
-                entities={entities}
+                entitiesSubgraph={typeEntitiesSubgraph}
+                // subgraph={subgraph}
                 entityType={entityType}
                 namespace={namespace}
               />
