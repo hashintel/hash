@@ -341,10 +341,10 @@ export type EdgeKind = typeof EdgeKind[keyof typeof EdgeKind];
 export interface EdgesValueInner {
   /**
    *
-   * @type {GraphElementIdentifier}
+   * @type {GraphElementId}
    * @memberof EdgesValueInner
    */
-  destination: GraphElementIdentifier;
+  destination: GraphElementId;
   /**
    *
    * @type {EdgeKind}
@@ -608,10 +608,10 @@ export type Filter =
 export type FilterExpression = ParameterExpression | PathExpression;
 
 /**
- * @type GraphElementIdentifier
+ * @type GraphElementId
  * @export
  */
-export type GraphElementIdentifier = string;
+export type GraphElementId = string;
 
 /**
  *
@@ -759,10 +759,10 @@ export interface OntologyTypeEditionId {
 export interface OutwardEdge {
   /**
    *
-   * @type {GraphElementIdentifier}
+   * @type {GraphElementId}
    * @memberof OutwardEdge
    */
-  destination: GraphElementIdentifier;
+  destination: GraphElementId;
   /**
    *
    * @type {EdgeKind}
@@ -1105,10 +1105,10 @@ export interface Subgraph {
   edges: { [key: string]: Array<EdgesValueInner> };
   /**
    *
-   * @type {Array<GraphElementIdentifier>}
+   * @type {Array<GraphElementId>}
    * @memberof Subgraph
    */
-  roots: Array<GraphElementIdentifier>;
+  roots: Array<GraphElementId>;
   /**
    *
    * @type {{ [key: string]: Vertex; }}
