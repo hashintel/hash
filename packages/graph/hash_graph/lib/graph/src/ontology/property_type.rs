@@ -14,48 +14,6 @@ use crate::{
 /// A path to a [`PropertyType`] field.
 #[derive(Debug, PartialEq, Eq)]
 pub enum PropertyTypeQueryPath {
-    /// The `owned_by_id` field of [`PersistedOntologyIdentifier`] belonging to the
-    /// [`PropertyType`].
-    ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::ontology::PropertyTypeQueryPath;
-    /// let path = PropertyTypeQueryPath::deserialize(json!(["ownedById"]))?;
-    /// assert_eq!(path, PropertyTypeQueryPath::OwnedById);
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
-    ///
-    /// [`PersistedOntologyIdentifier`]: crate::ontology::PersistedOntologyIdentifier
-    OwnedById,
-    /// The `created_by_id` field of [`PersistedOntologyMetadata`] belonging to the
-    /// [`PropertyType`].
-    ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::ontology::PropertyTypeQueryPath;
-    /// let path = PropertyTypeQueryPath::deserialize(json!(["createdById"]))?;
-    /// assert_eq!(path, PropertyTypeQueryPath::CreatedById);
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
-    ///
-    /// [`PersistedOntologyMetadata`]: crate::ontology::PersistedOntologyMetadata
-    CreatedById,
-    /// The `updated_by_id` field of [`PersistedOntologyMetadata`] belonging to the
-    /// [`PropertyType`].
-    ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::ontology::PropertyTypeQueryPath;
-    /// let path = PropertyTypeQueryPath::deserialize(json!(["updatedById"]))?;
-    /// assert_eq!(path, PropertyTypeQueryPath::UpdatedById);
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
-    ///
-    /// [`PersistedOntologyMetadata`]: crate::ontology::PersistedOntologyMetadata
-    UpdatedById,
     /// The [`BaseUri`] of a [`PropertyType`].
     ///
     /// ```rust
@@ -69,19 +27,6 @@ pub enum PropertyTypeQueryPath {
     ///
     /// [`BaseUri`]: type_system::uri::BaseUri
     BaseUri,
-    /// The [`VersionedUri`] of a [`PropertyType`].
-    ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::ontology::PropertyTypeQueryPath;
-    /// let path = PropertyTypeQueryPath::deserialize(json!(["versionedUri"]))?;
-    /// assert_eq!(path, PropertyTypeQueryPath::VersionedUri);
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
-    ///
-    /// [`VersionedUri`]: type_system::uri::VersionedUri
-    VersionedUri,
     /// The version of the [`PropertyType`].
     ///
     /// ```rust
@@ -97,6 +42,61 @@ pub enum PropertyTypeQueryPath {
     /// with a `"latest"` parameter, which will only match the latest version of one
     /// [`PropertyType`].
     Version,
+    /// The [`VersionedUri`] of a [`PropertyType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::PropertyTypeQueryPath;
+    /// let path = PropertyTypeQueryPath::deserialize(json!(["versionedUri"]))?;
+    /// assert_eq!(path, PropertyTypeQueryPath::VersionedUri);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`VersionedUri`]: type_system::uri::VersionedUri
+    VersionedUri,
+    /// The [`OwnedById`] of the [`OntologyElementMetadata`] belonging to this [`PropertyType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::PropertyTypeQueryPath;
+    /// let path = PropertyTypeQueryPath::deserialize(json!(["ownedById"]))?;
+    /// assert_eq!(path, PropertyTypeQueryPath::OwnedById);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`OwnedById`]: crate::provenance::OwnedById
+    /// [`OntologyElementMetadata`]: crate::ontology::OntologyElementMetadata
+    OwnedById,
+    /// The [`CreatedById`] of the [`ProvenanceMetadata`] belonging to this [`PropertyType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::PropertyTypeQueryPath;
+    /// let path = PropertyTypeQueryPath::deserialize(json!(["createdById"]))?;
+    /// assert_eq!(path, PropertyTypeQueryPath::CreatedById);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`CreatedById`]: crate::provenance::CreatedById
+    /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
+    CreatedById,
+    /// The [`UpdatedById`] of the [`ProvenanceMetadata`] belonging to this [`PropertyType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::PropertyTypeQueryPath;
+    /// let path = PropertyTypeQueryPath::deserialize(json!(["updatedById"]))?;
+    /// assert_eq!(path, PropertyTypeQueryPath::UpdatedById);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`UpdatedById`]: crate::provenance::UpdatedById
+    /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
+    UpdatedById,
     /// Corresponds to [`PropertyType::title()`].
     ///
     /// ```rust
@@ -212,13 +212,13 @@ impl fmt::Display for PropertyTypeQueryPath {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::VersionId => fmt.write_str("versionId"),
+            Self::BaseUri => fmt.write_str("baseUri"),
+            Self::Version => fmt.write_str("version"),
+            Self::VersionedUri => fmt.write_str("versionedUri"),
             Self::OwnedById => fmt.write_str("ownedById"),
             Self::CreatedById => fmt.write_str("createdById"),
             Self::UpdatedById => fmt.write_str("updatedById"),
             Self::Schema => fmt.write_str("schema"),
-            Self::BaseUri => fmt.write_str("baseUri"),
-            Self::VersionedUri => fmt.write_str("versionedUri"),
-            Self::Version => fmt.write_str("version"),
             Self::Title => fmt.write_str("title"),
             Self::Description => fmt.write_str("description"),
             Self::DataTypes(path) => write!(fmt, "dataTypes.{path}"),
@@ -231,12 +231,12 @@ impl fmt::Display for PropertyTypeQueryPath {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum PropertyTypeQueryToken {
+    BaseUri,
+    Version,
+    VersionedUri,
     OwnedById,
     CreatedById,
     UpdatedById,
-    BaseUri,
-    VersionedUri,
-    Version,
     Title,
     Description,
     DataTypes,
@@ -250,8 +250,8 @@ pub struct PropertyTypeQueryPathVisitor {
 }
 
 impl PropertyTypeQueryPathVisitor {
-    pub const EXPECTING: &'static str = "one of `ownedById`, `createdById`, `updatedById`, \
-                                         `baseUri`, `versionedUri`, `version`, `title`, \
+    pub const EXPECTING: &'static str = "one of `baseUri`, `version`, `versionedUri`, \
+                                         `ownedById`, `createdById`, `updatedById`, `title`, \
                                          `description`, `dataTypes`, `propertyTypes`";
 
     #[must_use]

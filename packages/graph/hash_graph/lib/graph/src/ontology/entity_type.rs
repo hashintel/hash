@@ -14,45 +14,6 @@ use crate::{
 /// A path to a [`EntityType`] field.
 #[derive(Debug, PartialEq, Eq)]
 pub enum EntityTypeQueryPath {
-    /// The `owned_by_id` field of [`PersistedOntologyIdentifier`] belonging to the [`EntityType`].
-    ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::ontology::DataTypeQueryPath;
-    /// let path = DataTypeQueryPath::deserialize(json!(["ownedById"]))?;
-    /// assert_eq!(path, DataTypeQueryPath::OwnedById);
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
-    ///
-    /// [`PersistedOntologyIdentifier`]: crate::ontology::PersistedOntologyIdentifier
-    OwnedById,
-    /// The `created_by_id` field of [`PersistedOntologyMetadata`] belonging to the [`EntityType`].
-    ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::ontology::EntityTypeQueryPath;
-    /// let path = EntityTypeQueryPath::deserialize(json!(["createdById"]))?;
-    /// assert_eq!(path, EntityTypeQueryPath::CreatedById);
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
-    ///
-    /// [`PersistedOntologyMetadata`]: crate::ontology::PersistedOntologyMetadata
-    CreatedById,
-    /// The `updated_by_id` field of [`PersistedOntologyMetadata`] belonging to the [`EntityType`].
-    ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::ontology::EntityTypeQueryPath;
-    /// let path = EntityTypeQueryPath::deserialize(json!(["updatedById"]))?;
-    /// assert_eq!(path, EntityTypeQueryPath::UpdatedById);
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
-    ///
-    /// [`PersistedOntologyMetadata`]: crate::ontology::PersistedOntologyMetadata
-    UpdatedById,
     /// The [`BaseUri`] of a [`EntityType`].
     ///
     /// ```rust
@@ -66,19 +27,6 @@ pub enum EntityTypeQueryPath {
     ///
     /// [`BaseUri`]: type_system::uri::BaseUri
     BaseUri,
-    /// The [`VersionedUri`] of a [`EntityType`].
-    ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::ontology::EntityTypeQueryPath;
-    /// let path = EntityTypeQueryPath::deserialize(json!(["versionedUri"]))?;
-    /// assert_eq!(path, EntityTypeQueryPath::VersionedUri);
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
-    ///
-    /// [`VersionedUri`]: type_system::uri::VersionedUri
-    VersionedUri,
     /// The version of the [`EntityType`].
     ///
     /// ```rust
@@ -109,6 +57,61 @@ pub enum EntityTypeQueryPath {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     Version,
+    /// The [`VersionedUri`] of a [`EntityType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["versionedUri"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::VersionedUri);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`VersionedUri`]: type_system::uri::VersionedUri
+    VersionedUri,
+    /// The [`OwnedById`] of the [`OntologyElementMetadata`] belonging to this [`EntityType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["ownedById"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::OwnedById);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`OwnedById`]: crate::provenance::OwnedById
+    /// [`OntologyElementMetadata`]: crate::ontology::OntologyElementMetadata
+    OwnedById,
+    /// The [`CreatedById`] of the [`ProvenanceMetadata`] belonging to this [`EntityType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["createdById"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::CreatedById);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`CreatedById`]: crate::provenance::CreatedById
+    /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
+    CreatedById,
+    /// The [`UpdatedById`] of the [`ProvenanceMetadata`] belonging to this [`EntityType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["updatedById"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::UpdatedById);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`UpdatedById`]: crate::provenance::UpdatedById
+    /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
+    UpdatedById,
     /// Corresponds to [`EntityType::title()`].
     ///
     /// ```rust
@@ -278,13 +281,13 @@ impl fmt::Display for EntityTypeQueryPath {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::VersionId => fmt.write_str("versionId"),
+            Self::BaseUri => fmt.write_str("baseUri"),
+            Self::Version => fmt.write_str("version"),
+            Self::VersionedUri => fmt.write_str("versionedUri"),
             Self::OwnedById => fmt.write_str("ownedById"),
             Self::CreatedById => fmt.write_str("createdById"),
             Self::UpdatedById => fmt.write_str("updatedById"),
             Self::Schema => fmt.write_str("schema"),
-            Self::BaseUri => fmt.write_str("baseUri"),
-            Self::VersionedUri => fmt.write_str("versionedUri"),
-            Self::Version => fmt.write_str("version"),
             Self::Title => fmt.write_str("title"),
             Self::Description => fmt.write_str("description"),
             Self::Default => fmt.write_str("default"),
@@ -303,12 +306,12 @@ impl fmt::Display for EntityTypeQueryPath {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum EntityTypeQueryToken {
+    BaseUri,
+    Version,
+    VersionedUri,
     OwnedById,
     CreatedById,
     UpdatedById,
-    BaseUri,
-    VersionedUri,
-    Version,
     Title,
     Description,
     Default,
@@ -327,8 +330,8 @@ pub struct EntityTypeQueryPathVisitor {
 }
 
 impl EntityTypeQueryPathVisitor {
-    pub const EXPECTING: &'static str = "one of `ownedById`, `createdById`, `updatedById`, \
-                                         `baseUri`, `versionedUri`, `version`, `title`, \
+    pub const EXPECTING: &'static str = "one of `baseUri`, `version`, `versionedUri`, \
+                                         `ownedById`, `createdById`, `updatedById`, `title`, \
                                          `description`, `default`, `examples`, `properties`, \
                                          `required`, `links`, `requiredLinks`, `inheritsFrom`";
 
