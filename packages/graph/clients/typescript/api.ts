@@ -307,16 +307,16 @@ export interface DataTypeStructuralQuery {
 export interface DataTypeWithMetadata {
   /**
    *
-   * @type {DataType}
-   * @memberof DataTypeWithMetadata
-   */
-  inner: DataType;
-  /**
-   *
    * @type {OntologyElementMetadata}
    * @memberof DataTypeWithMetadata
    */
   metadata: OntologyElementMetadata;
+  /**
+   *
+   * @type {DataType}
+   * @memberof DataTypeWithMetadata
+   */
+  schema: DataType;
 }
 /**
  *
@@ -360,16 +360,16 @@ export interface EdgesValueInner {
 export interface Entity {
   /**
    *
-   * @type {object}
-   * @memberof Entity
-   */
-  inner: object;
-  /**
-   *
    * @type {EntityMetadata}
    * @memberof Entity
    */
   metadata: EntityMetadata;
+  /**
+   *
+   * @type {object}
+   * @memberof Entity
+   */
+  properties: object;
 }
 /**
  *
@@ -566,16 +566,16 @@ export interface EntityTypeStructuralQuery {
 export interface EntityTypeWithMetadata {
   /**
    *
-   * @type {EntityType}
-   * @memberof EntityTypeWithMetadata
-   */
-  inner: EntityType;
-  /**
-   *
    * @type {OntologyElementMetadata}
    * @memberof EntityTypeWithMetadata
    */
   metadata: OntologyElementMetadata;
+  /**
+   *
+   * @type {EntityType}
+   * @memberof EntityTypeWithMetadata
+   */
+  schema: EntityType;
 }
 /**
  *
@@ -1037,16 +1037,16 @@ export interface PropertyTypeStructuralQuery {
 export interface PropertyTypeWithMetadata {
   /**
    *
-   * @type {PropertyType}
-   * @memberof PropertyTypeWithMetadata
-   */
-  inner: PropertyType;
-  /**
-   *
    * @type {OntologyElementMetadata}
    * @memberof PropertyTypeWithMetadata
    */
   metadata: OntologyElementMetadata;
+  /**
+   *
+   * @type {PropertyType}
+   * @memberof PropertyTypeWithMetadata
+   */
+  schema: PropertyType;
 }
 /**
  * @type PropertyValues
@@ -1463,16 +1463,16 @@ export type VertexOneOf1KindEnum =
 export interface VertexOneOf1Inner {
   /**
    *
-   * @type {PropertyType}
-   * @memberof VertexOneOf1Inner
-   */
-  inner: PropertyType;
-  /**
-   *
    * @type {OntologyElementMetadata}
    * @memberof VertexOneOf1Inner
    */
   metadata: OntologyElementMetadata;
+  /**
+   *
+   * @type {PropertyType}
+   * @memberof VertexOneOf1Inner
+   */
+  schema: PropertyType;
 }
 /**
  *
@@ -1509,16 +1509,16 @@ export type VertexOneOf2KindEnum =
 export interface VertexOneOf2Inner {
   /**
    *
-   * @type {EntityType}
-   * @memberof VertexOneOf2Inner
-   */
-  inner: EntityType;
-  /**
-   *
    * @type {OntologyElementMetadata}
    * @memberof VertexOneOf2Inner
    */
   metadata: OntologyElementMetadata;
+  /**
+   *
+   * @type {EntityType}
+   * @memberof VertexOneOf2Inner
+   */
+  schema: EntityType;
 }
 /**
  *
@@ -1555,16 +1555,16 @@ export type VertexOneOf3KindEnum =
 export interface VertexOneOf3Inner {
   /**
    *
-   * @type {object}
-   * @memberof VertexOneOf3Inner
-   */
-  inner: object;
-  /**
-   *
    * @type {EntityMetadata}
    * @memberof VertexOneOf3Inner
    */
   metadata: EntityMetadata;
+  /**
+   *
+   * @type {object}
+   * @memberof VertexOneOf3Inner
+   */
+  properties: object;
 }
 /**
  *
@@ -1574,16 +1574,16 @@ export interface VertexOneOf3Inner {
 export interface VertexOneOfInner {
   /**
    *
-   * @type {DataType}
-   * @memberof VertexOneOfInner
-   */
-  inner: DataType;
-  /**
-   *
    * @type {OntologyElementMetadata}
    * @memberof VertexOneOfInner
    */
   metadata: OntologyElementMetadata;
+  /**
+   *
+   * @type {DataType}
+   * @memberof VertexOneOfInner
+   */
+  schema: DataType;
 }
 
 /**
