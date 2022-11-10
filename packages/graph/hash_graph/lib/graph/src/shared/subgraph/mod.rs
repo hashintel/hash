@@ -8,7 +8,10 @@ use edges::Edges;
 use serde::Serialize;
 use utoipa::ToSchema;
 
-use crate::{shared::identifier::GraphElementEditionId, subgraph::vertices::Vertex};
+use crate::{
+    shared::identifier::GraphElementEditionId,
+    subgraph::vertices::{KnowledgeGraphVertices, OntologyVertices, Vertices},
+};
 
 pub mod depths;
 pub mod edges;
@@ -20,7 +23,7 @@ pub mod vertices;
 pub struct Subgraph {
     #[schema(value_type = Vec<GraphElementId>)]
     pub roots: HashSet<GraphElementEditionId>,
-    pub vertices: HashMap<GraphElementEditionId, Vertex>,
+    pub vertices: Vertices,
     pub edges: Edges,
     pub depths: GraphResolveDepths,
 }
@@ -30,7 +33,10 @@ impl Subgraph {
     pub fn new(depths: GraphResolveDepths) -> Self {
         Self {
             roots: HashSet::new(),
-            vertices: HashMap::new(),
+            vertices: Vertices::new(
+                OntologyVertices(HashMap::new()),
+                KnowledgeGraphVertices(HashMap::new()),
+            ),
             edges: Edges::new(),
             depths,
         }
@@ -41,7 +47,7 @@ impl Extend<Self> for Subgraph {
     fn extend<T: IntoIterator<Item = Self>>(&mut self, iter: T) {
         for subgraph in iter {
             self.roots.extend(subgraph.roots.into_iter());
-            self.vertices.extend(subgraph.vertices.into_iter());
+            self.vertices.extend(subgraph.vertices);
             self.edges.extend(subgraph.edges.into_iter());
         }
     }

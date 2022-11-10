@@ -352,7 +352,7 @@ impl DatabaseApi<'_> {
 
     pub async fn get_link_entity_target(
         &self,
-        source_entity_uuid: EntityUuid,
+        source_entity_id: EntityId,
         link_type_id: VersionedUri,
     ) -> Result<Entity, QueryError> {
         let filter = Filter::All(vec![
@@ -361,7 +361,15 @@ impl DatabaseApi<'_> {
                     Box::new(EntityQueryPath::Uuid),
                 )))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    source_entity_uuid.as_uuid(),
+                    source_entity_id.entity_uuid().as_uuid(),
+                ))),
+            ),
+            Filter::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(Some(
+                    Box::new(EntityQueryPath::OwnedById),
+                )))),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    source_entity_id.owned_by_id().as_uuid(),
                 ))),
             ),
             Filter::Equal(
@@ -382,20 +390,25 @@ impl DatabaseApi<'_> {
             ),
         ]);
 
-        self.store
+        let mut subgraph = self
+            .store
             .get_entity(&StructuralQuery {
                 filter,
                 graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
-            .await?
-            .vertices
-            .into_iter()
-            .map(|(_, vertex)| match vertex {
-                Vertex::KnowledgeGraph(KnowledgeGraphVertex::Entity(entity)) => Ok(entity),
+            .await?;
+
+        Ok(subgraph.roots.into_iter()
+            .map(|edition_id| subgraph.vertices.remove(&edition_id))
+            .flatten() // Filter out Option::None
+            .map(|vertex| match vertex {
+                Vertex::KnowledgeGraph(KnowledgeGraphVertex::Entity(persisted_entity)) => {
+                    persisted_entity
+                }
                 _ => unreachable!(),
             })
             .next()
-            .expect("no entity found")
+            .expect("no entity found"))
     }
 
     pub async fn get_latest_entity_links(
@@ -425,17 +438,21 @@ impl DatabaseApi<'_> {
             ),
         ]);
 
-        Ok(self
+        let mut subgraph = self
             .store
             .get_entity(&StructuralQuery {
                 filter,
                 graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
-            .await?
-            .vertices
-            .into_iter()
-            .map(|(_, vertex)| match vertex {
-                Vertex::KnowledgeGraph(KnowledgeGraphVertex::Entity(entity)) => entity,
+            .await?;
+
+        Ok(subgraph.roots.into_iter()
+            .map(|edition_id| subgraph.vertices.remove(&edition_id))
+            .flatten() // Filter out Option::None
+            .map(|vertex| match vertex {
+                Vertex::KnowledgeGraph(KnowledgeGraphVertex::Entity(persisted_entity)) => {
+                    persisted_entity
+                }
                 _ => unreachable!(),
             })
             .collect())

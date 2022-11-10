@@ -53,10 +53,7 @@ async fn insert() {
     .expect("could not create link");
 
     let link_entity = api
-        .get_link_entity_target(
-            person_a_metadata.edition_id().base_id().entity_uuid(),
-            friend_of_type_id,
-        )
+        .get_link_entity_target(person_a_metadata.edition_id().base_id(), friend_of_type_id)
         .await
         .expect("could not fetch entity");
     let link_metadata = link_entity

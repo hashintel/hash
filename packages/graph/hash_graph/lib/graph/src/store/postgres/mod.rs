@@ -7,7 +7,10 @@ mod query;
 mod version_id;
 
 use std::{
-    collections::{hash_map::RawEntryMut, HashMap, HashSet},
+    collections::{
+        hash_map::{Entry, RawEntryMut},
+        HashMap, HashSet,
+    },
     future::Future,
     hash::Hash,
 };
@@ -41,7 +44,7 @@ use crate::{
     provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
     shared::{
         identifier::{account::AccountId, GraphElementEditionId},
-        subgraph::{depths::GraphResolveDepths, edges::Edges, vertices::Vertex},
+        subgraph::{depths::GraphResolveDepths, edges::Edges},
     },
     store::{
         error::VersionedUriAlreadyExists,
@@ -50,7 +53,10 @@ use crate::{
         UpdateError,
     },
     subgraph::{
-        vertices::{KnowledgeGraphVertex, OntologyVertex},
+        vertices::{
+            KnowledgeGraphVertex, KnowledgeGraphVertices, OntologyVertex, OntologyVertices,
+            Vertices,
+        },
         Subgraph,
     },
 };
@@ -275,50 +281,87 @@ impl DependencyContext {
 
     #[must_use]
     pub fn into_subgraph(self, roots: HashSet<GraphElementEditionId>) -> Subgraph {
-        let vertices = self
-            .referenced_data_types
-            .into_values()
-            .map(|data_type| {
-                (
-                    GraphElementEditionId::Ontology(data_type.metadata().edition_id().clone()),
-                    Vertex::Ontology(OntologyVertex::DataType(data_type)),
-                )
-            })
-            .chain(
-                self.referenced_property_types
-                    .into_values()
-                    .map(|property_type| {
+        let ontology_vertices = OntologyVertices(
+            self.referenced_data_types
+                .into_values()
+                .map(|data_type| {
+                    (
+                        data_type.metadata().edition_id().base_id().clone(),
                         (
-                            GraphElementEditionId::Ontology(
-                                property_type.metadata().edition_id().clone(),
-                            ),
-                            Vertex::Ontology(OntologyVertex::PropertyType(property_type)),
-                        )
-                    }),
-            )
-            .chain(
-                self.referenced_entity_types
-                    .into_values()
-                    .map(|entity_type| {
-                        (
-                            GraphElementEditionId::Ontology(
-                                entity_type.metadata().edition_id().clone(),
-                            ),
-                            Vertex::Ontology(OntologyVertex::EntityType(entity_type)),
-                        )
-                    }),
-            )
-            .chain(self.linked_entities.into_values().map(|entity| {
-                (
-                    GraphElementEditionId::KnowledgeGraph(entity.metadata().edition_id()),
-                    Vertex::KnowledgeGraph(KnowledgeGraphVertex::Entity(entity)),
+                            data_type.metadata().edition_id().version(),
+                            OntologyVertex::DataType(data_type),
+                        ),
+                    )
+                })
+                .chain(
+                    self.referenced_property_types
+                        .into_values()
+                        .map(|property_type| {
+                            (
+                                property_type.metadata().edition_id().base_id().clone(),
+                                (
+                                    property_type.metadata().edition_id().version(),
+                                    OntologyVertex::PropertyType(property_type),
+                                ),
+                            )
+                        }),
                 )
-            }))
-            .collect();
+                .chain(
+                    self.referenced_entity_types
+                        .into_values()
+                        .map(|entity_type| {
+                            (
+                                entity_type.metadata().edition_id().base_id().clone(),
+                                (
+                                    entity_type.metadata().edition_id().version(),
+                                    OntologyVertex::EntityType(entity_type),
+                                ),
+                            )
+                        }),
+                )
+                .fold(HashMap::new(), |mut map, (base_uri, (version, vertex))| {
+                    match map.entry(base_uri) {
+                        Entry::Occupied(entry) => {
+                            let inner_map = entry.into_mut();
+                            inner_map.entry(version).or_insert_with(|| vertex);
+                        }
+                        Entry::Vacant(entry) => {
+                            entry.insert(HashMap::from([(version, vertex)]));
+                        }
+                    };
+                    map
+                }),
+        );
+
+        let knowledge_graph_vertices = KnowledgeGraphVertices(
+            self.linked_entities
+                .into_values()
+                .map(|entity| {
+                    (
+                        entity.metadata().edition_id().base_id(),
+                        (
+                            entity.metadata().edition_id().version(),
+                            KnowledgeGraphVertex::Entity(entity),
+                        ),
+                    )
+                })
+                .fold(HashMap::new(), |mut map, (entity_id, (version, vertex))| {
+                    match map.entry(entity_id) {
+                        Entry::Occupied(entry) => {
+                            let inner_map = entry.into_mut();
+                            inner_map.entry(version).or_insert_with(|| vertex);
+                        }
+                        Entry::Vacant(entry) => {
+                            entry.insert(HashMap::from([(version, vertex)]));
+                        }
+                    };
+                    map
+                }),
+        );
 
         Subgraph {
             roots,
-            vertices,
+            vertices: Vertices::new(ontology_vertices, knowledge_graph_vertices),
             edges: self.edges,
             depths: self.graph_resolve_depths,
         }
