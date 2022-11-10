@@ -39,7 +39,7 @@ async fn insert() {
         .await
         .expect("could not get entity");
 
-    assert_eq!(entity.inner(), &person);
+    assert_eq!(entity.properties(), &person);
 }
 
 #[tokio::test]
@@ -75,7 +75,7 @@ async fn query() {
         .await
         .expect("could not get entity");
 
-    assert_eq!(&organization, queried_organization.inner());
+    assert_eq!(&organization, queried_organization.properties());
 }
 
 #[tokio::test]
@@ -123,5 +123,5 @@ async fn update() {
         .await
         .expect("could not get entity");
 
-    assert_eq!(entity.inner(), &page_v2);
+    assert_eq!(entity.properties(), &page_v2);
 }

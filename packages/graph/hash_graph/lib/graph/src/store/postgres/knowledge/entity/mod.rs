@@ -350,7 +350,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         transaction
             .insert_entity(
                 entity_id,
-                old_entity.inner().clone(),
+                old_entity.properties().clone(),
                 old_entity.metadata().entity_type_id().clone(),
                 old_entity.metadata().provenance_metadata().created_by_id(),
                 actor_id,

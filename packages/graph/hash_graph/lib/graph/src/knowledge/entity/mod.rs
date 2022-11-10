@@ -39,17 +39,7 @@ impl fmt::Display for EntityUuid {
 }
 
 #[derive(
-    Debug,
-    Copy,
-    Clone,
-    PartialEq,
-    Eq,
-    Hash,
-    Serialize,
-    Deserialize,
-    ToSchema,
-    FromSql,
-    ToSql,
+    Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema, FromSql, ToSql,
 )]
 #[repr(transparent)]
 #[postgres(transparent)]
@@ -196,14 +186,14 @@ impl EntityMetadata {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Entity {
-    inner: EntityProperties,
+    properties: EntityProperties,
     metadata: EntityMetadata,
 }
 
 impl Entity {
     #[must_use]
     pub const fn new(
-        inner: EntityProperties,
+        properties: EntityProperties,
         identifier: EntityEditionId,
         entity_type_id: VersionedUri,
         provenance_metadata: ProvenanceMetadata,
@@ -211,7 +201,7 @@ impl Entity {
         archived: bool,
     ) -> Self {
         Self {
-            inner,
+            properties,
             metadata: EntityMetadata::new(
                 identifier,
                 entity_type_id,
@@ -223,8 +213,8 @@ impl Entity {
     }
 
     #[must_use]
-    pub const fn inner(&self) -> &EntityProperties {
-        &self.inner
+    pub const fn properties(&self) -> &EntityProperties {
+        &self.properties
     }
 
     #[must_use]
