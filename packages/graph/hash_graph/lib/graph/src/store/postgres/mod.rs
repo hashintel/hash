@@ -41,7 +41,7 @@ use crate::{
     provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
     shared::{
         identifier::{account::AccountId, GraphElementId},
-        subgraph::{depths::GraphResolveDepths, edges::Edges},
+        subgraph::{depths::GraphResolveDepths, edges::Edges, vertices::Vertex},
     },
     store::{
         error::VersionedUriAlreadyExists,
@@ -49,7 +49,7 @@ use crate::{
         AccountStore, BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError,
         UpdateError,
     },
-    subgraph::{Subgraph, Vertex},
+    subgraph::Subgraph,
 };
 
 pub struct DependencyMap<V, T, D> {

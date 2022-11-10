@@ -28,10 +28,11 @@ use crate::{
         subgraph::{
             depths::GraphResolveDepths,
             edges::{EdgeKind, Edges, OutwardEdge},
+            vertices::Vertex,
         },
     },
     store::{query::Filter, BaseUriAlreadyExists, BaseUriDoesNotExist, DataTypeStore, StorePool},
-    subgraph::{DataTypeStructuralQuery, StructuralQuery, Subgraph, Vertex},
+    subgraph::{DataTypeStructuralQuery, StructuralQuery, Subgraph},
 };
 
 #[derive(OpenApi)]

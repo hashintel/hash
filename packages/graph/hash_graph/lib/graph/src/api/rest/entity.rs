@@ -27,6 +27,7 @@ use crate::{
         subgraph::{
             depths::GraphResolveDepths,
             edges::{EdgeKind, Edges, OutwardEdge},
+            vertices::Vertex,
         },
     },
     store::{
@@ -34,7 +35,7 @@ use crate::{
         query::Filter,
         EntityStore, StorePool,
     },
-    subgraph::{EntityStructuralQuery, StructuralQuery, Subgraph, Vertex},
+    subgraph::{EntityStructuralQuery, StructuralQuery, Subgraph},
 };
 
 #[derive(OpenApi)]
