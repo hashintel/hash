@@ -3,6 +3,7 @@ import {
   PersistedEntity,
   GraphApi,
   Vertex,
+  Subgraph,
   EntityStructuralQuery,
   Filter,
 } from "@hashintel/hash-graph-client";
@@ -546,5 +547,34 @@ export default class {
     const outgoingLinks = await LinkModel.getByQuery(graphApi, filter);
 
     return outgoingLinks;
+  }
+
+  /**
+   * Get subgraph rooted at the entity.
+   */
+  async getRootedSubgraph(
+    graphApi: GraphApi,
+    params: {
+      linkResolveDepth: number;
+      linkTargetEntityResolveDepth: number;
+    },
+  ): Promise<Subgraph> {
+    const { data: entitySubgraph } = await graphApi.getEntitiesByQuery({
+      filter: {
+        all: [
+          { equal: [{ path: ["version"] }, { parameter: "latest" }] },
+          { equal: [{ path: ["id"] }, { parameter: this.entityId }] },
+        ],
+      },
+      graphResolveDepths: {
+        dataTypeResolveDepth: 0,
+        propertyTypeResolveDepth: 0,
+        linkTypeResolveDepth: 0,
+        entityTypeResolveDepth: 0,
+        ...params,
+      },
+    });
+
+    return entitySubgraph;
   }
 }

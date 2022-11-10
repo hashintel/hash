@@ -1,0 +1,11 @@
+{
+  "extends": "./legacy-base-tsconfig-to-refactor.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "noEmit": true,
+    "target": "es5"
+  }
+}

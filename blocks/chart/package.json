@@ -1,6 +1,6 @@
 {
-  "name": "@hashintel/block-chart",
-  "version": "0.0.0",
+  "name": "@blocks/chart",
+  "version": "0.1.0",
   "description": "A block for plotting entities in a 2D chart",
   "keywords": [
     "blockprotocol",
@@ -11,8 +11,8 @@
   "scripts": {
     "build": "block-scripts build",
     "dev": "block-scripts dev",
-    "fix:eslint": "eslint --ext .ts,.tsx --fix ./src/",
-    "lint:eslint": "eslint --ext .ts,.tsx ./src/",
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint .",
     "lint:tsc": "tsc --noEmit",
     "serve": "block-scripts serve"
   },
@@ -23,8 +23,11 @@
     "lodash.debounce": "4.0.8"
   },
   "devDependencies": {
+    "@local/eslint-config": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
     "@types/lodash.debounce": "4.0.7",
     "block-scripts": "0.0.14",
+    "eslint": "8.27.0",
     "mock-block-dock": "0.0.10",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

@@ -2,6 +2,8 @@ import {
   EntityType,
   extractBaseUri,
   extractVersion,
+  PropertyTypeReference,
+  ValueOrArray,
 } from "@blockprotocol/type-system-web";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
@@ -13,16 +15,21 @@ import { FormProvider, useForm } from "react-hook-form";
 import { FRONTEND_URL } from "../../../../lib/config";
 import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
 import { TopContextBar } from "../../../shared/top-context-bar";
+import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
+import { OntologyChip } from "../../shared/ontology-chip";
 import { EditBar } from "./edit-bar";
-import { EntityTypeEditorForm } from "./form-types";
-import { HashOntologyIcon } from "./hash-ontology-icon";
-import { OntologyChip } from "./ontology-chip";
+import { EntityTypeTabs } from "./entity-type-tabs";
+import {
+  EntityTypeEditorForm,
+  EntityTypeEditorPropertyData,
+} from "./form-types";
 import { PropertyListCard } from "./property-list-card";
 import { useEntityType } from "./use-entity-type";
 import {
   PropertyTypesContext,
-  useRemotePropertyTypes,
+  usePropertyTypesContextValue,
 } from "./use-property-types";
+import { useRouteNamespace } from "./use-route-namespace";
 import { mustBeVersionedUri } from "./util";
 
 const getBaseUri = (path: string) => {
@@ -31,12 +38,47 @@ const getBaseUri = (path: string) => {
   return `${FRONTEND_URL}${url.pathname}/`;
 };
 
+const getSchemaFromEditorForm = (
+  properties: EntityTypeEditorPropertyData[],
+): Partial<EntityType> => {
+  const schemaProperties: Record<
+    string,
+    ValueOrArray<PropertyTypeReference>
+  > = {};
+  const required = [];
+
+  for (const property of properties) {
+    const propertyKey = extractBaseUri(property.$id);
+
+    const prop: ValueOrArray<PropertyTypeReference> = property.array
+      ? {
+          type: "array",
+          minItems: property.minValue,
+          maxItems: property.maxValue,
+          items: { $ref: property.$id },
+        }
+      : { $ref: property.$id };
+
+    schemaProperties[propertyKey] = prop;
+
+    if (property.required) {
+      required.push(extractBaseUri(property.$id));
+    }
+  }
+
+  return {
+    properties: schemaProperties,
+    required,
+  };
+};
+
 // @todo loading state
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
   // @todo how to handle remote types
   const isDraft = !!router.query.draft;
   const baseEntityTypeUri = isDraft ? null : getBaseUri(router.asPath);
+  const namespace = useRouteNamespace();
 
   const draftEntityType = useMemo(() => {
     if (router.query.draft) {
@@ -55,39 +97,41 @@ const Page: NextPageWithLayout = () => {
   const formMethods = useForm<EntityTypeEditorForm>({
     defaultValues: { properties: [] },
   });
+
   const { handleSubmit: wrapHandleSubmit, reset } = formMethods;
 
   const [remoteEntityType, updateEntityType, publishDraft] = useEntityType(
     baseEntityTypeUri,
+    namespace?.id,
     (fetchedEntityType) => {
       reset({
-        properties: Object.values(fetchedEntityType.properties).map((ref) => {
-          if ("type" in ref) {
-            // @todo handle property arrays
-            throw new Error("handle property arrays");
-          }
-          return { $id: mustBeVersionedUri(ref.$ref) };
-        }),
+        properties: Object.entries(fetchedEntityType.properties).map(
+          ([propertyId, ref]) => {
+            const isArray = "type" in ref;
+
+            return {
+              $id: mustBeVersionedUri(isArray ? ref.items.$ref : ref.$ref),
+              required: !!fetchedEntityType.required?.includes(propertyId),
+              array: isArray,
+              maxValue: isArray ? ref.maxItems : 0,
+              minValue: isArray ? ref.minItems : 0,
+            };
+          },
+        ),
       });
     },
   );
 
   const entityType = remoteEntityType ?? draftEntityType;
 
-  const propertyTypes = useRemotePropertyTypes();
+  const propertyTypes = usePropertyTypesContextValue();
 
   const handleSubmit = wrapHandleSubmit(async (data) => {
     if (!entityType) {
       return;
     }
 
-    const properties = Object.fromEntries(
-      data.properties.map((property) => {
-        const propertyKey = extractBaseUri(property.$id);
-
-        return [propertyKey, { $ref: property.$id }];
-      }),
-    );
+    const entityTypeSchema = getSchemaFromEditorForm(data.properties);
 
     if (isDraft) {
       if (!draftEntityType) {
@@ -96,12 +140,12 @@ const Page: NextPageWithLayout = () => {
 
       await publishDraft({
         ...draftEntityType,
-        properties,
+        ...entityTypeSchema,
       });
       reset(data);
     } else {
       const res = await updateEntityType({
-        properties,
+        ...entityTypeSchema,
       });
 
       if (!res.errors?.length) {
@@ -202,7 +246,7 @@ const Page: NextPageWithLayout = () => {
                     </>
                   }
                 />
-                <Typography variant="h1" fontWeight="bold" mt={3} mb={4.5}>
+                <Typography variant="h1" fontWeight="bold" mt={3} mb={5.25}>
                   <FontAwesomeIcon
                     icon={faAsterisk}
                     sx={(theme) => ({
@@ -214,6 +258,7 @@ const Page: NextPageWithLayout = () => {
                   />
                   {entityType.title}
                 </Typography>
+                <EntityTypeTabs entityType={entityType} />
               </Container>
             </Box>
           </Box>

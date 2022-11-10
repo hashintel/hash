@@ -1,5 +1,5 @@
 {
-  "name": "@hashintel/block-person",
+  "name": "@blocks/person",
   "version": "0.2.0",
   "private": true,
   "description": "Display information about a person, including their name, job title, email, website address, and an avatar",
@@ -13,8 +13,8 @@
   "scripts": {
     "build": "block-scripts build",
     "dev": "block-scripts dev",
-    "fix:eslint": "eslint --ext .ts,.tsx --fix ./src/",
-    "lint:eslint": "eslint --ext .ts,.tsx ./src/",
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint .",
     "lint:tsc": "tsc --noEmit",
     "serve": "block-scripts serve"
   },
@@ -23,9 +23,11 @@
     "dompurify": "2.3.6"
   },
   "devDependencies": {
-    "@types/dompurify": "2.3.3",
+    "@local/eslint-config": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
+    "@types/dompurify": "2.3.4",
     "block-scripts": "0.0.14",
-    "eslint": "8.20.0",
+    "eslint": "8.27.0",
     "mock-block-dock": "0.0.38",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

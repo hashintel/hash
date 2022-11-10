@@ -1,18 +1,21 @@
-import { PropertyType } from "@blockprotocol/type-system-web";
 import { SizedGridColumn } from "@glideapps/glide-data-grid";
+import { VerticalIndentationLineDir } from "../../../../../../../components/GlideGlid/utils/draw-vertical-indentation-line";
 
-export type PropertyRow = EnrichedPropertyType;
-
-export type EnrichedPropertyType = PropertyType & {
-  value: any;
-  /** @todo - Correct this, it is a property type BaseUri not an ID (it's unversioned) */
-  propertyTypeId: string;
+export type PropertyRow = {
+  title: string;
+  rowId: string;
+  value: unknown;
   dataTypes: string[];
   required: boolean;
+  children: PropertyRow[];
+  depth: number;
+  indent: number;
+  verticalLinesForEachIndent: VerticalIndentationLineDir[];
+  propertyKeyChain: string[];
 };
 
 export type PropertyColumnKey = Extract<
-  keyof EnrichedPropertyType,
+  keyof PropertyRow,
   "title" | "value" | "dataTypes"
 >;
 

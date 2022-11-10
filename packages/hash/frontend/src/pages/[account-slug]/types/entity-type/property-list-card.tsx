@@ -30,10 +30,16 @@ import {
   usePopupState,
 } from "material-ui-popup-state/hooks";
 import { Ref, useId, useRef, useState } from "react";
-import { useFieldArray, useFormContext } from "react-hook-form";
+import {
+  Controller,
+  useFieldArray,
+  useFormContext,
+  useWatch,
+} from "react-hook-form";
 import { Modal } from "../../../../components/Modals/Modal";
 import { EmptyPropertyListCard } from "./empty-property-list-card";
 import { EntityTypeEditorForm } from "./form-types";
+import { MultipleValuesCell } from "./multiple-values-cell";
 import { PropertyExpectedValues } from "./property-expected-values";
 import { PropertyListSelectorDropdownContext } from "./property-list-selector-dropdown";
 import { PropertyMenu } from "./property-menu";
@@ -43,7 +49,7 @@ import { QuestionIcon } from "./question-icon";
 import { StyledPlusCircleIcon } from "./styled-plus-circle-icon";
 import { usePropertyTypes } from "./use-property-types";
 import { mustBeVersionedUri, useStateCallback, withHandler } from "./util";
-import { WhiteCard } from "./white-card";
+import { WhiteCard } from "../../shared/white-card";
 
 const CenteredTableCell = styled(TableCell)(
   experimental_sx({
@@ -72,8 +78,8 @@ const InsertPropertyRow = ({
   const ourInputRef = useRef<HTMLInputElement>(null);
   const sharedRef = useForkRef(inputRef, ourInputRef);
 
-  const { watch } = useFormContext<EntityTypeEditorForm>();
-  const properties = watch("properties");
+  const { control } = useFormContext<EntityTypeEditorForm>();
+  const properties = useWatch({ control, name: "properties" });
 
   return (
     <TableRow
@@ -159,14 +165,9 @@ const InsertPropertyRow = ({
               </IconButton>
             </Box>
             <PropertyTypeForm
-              createButtonProps={withHandler(
-                bindToggle(modalPopupState),
-                () => {
-                  // onAdd();
-                },
-              )}
               discardButtonProps={bindToggle(modalPopupState)}
               initialTitle={searchText}
+              onCreatePropertyType={onAdd}
             />
           </>
         </Modal>
@@ -182,18 +183,22 @@ export const PropertyTypeRow = ({
   propertyIndex: number;
   onRemove: () => void;
 }) => {
-  const { watch } = useFormContext<EntityTypeEditorForm>();
+  const { control } = useFormContext<EntityTypeEditorForm>();
+
   const propertyTypes = usePropertyTypes();
-  const propertyId = mustBeVersionedUri(
-    watch(`properties.${propertyIndex}.$id`),
-  );
+
+  const [$id] = useWatch({
+    name: [`properties.${propertyIndex}.$id`],
+  });
+
+  const propertyId = mustBeVersionedUri($id);
   const property = propertyTypes ? propertyTypes[propertyId] : null;
 
-  if (!property) {
+  if (propertyTypes && !property) {
     throw new Error("Missing property type");
   }
 
-  return (
+  return property ? (
     <TableRow>
       <TableCell>
         <Typography variant="smallTextLabels" fontWeight={500}>
@@ -203,13 +208,20 @@ export const PropertyTypeRow = ({
       <TableCell>
         <PropertyExpectedValues property={property} />
       </TableCell>
-      <TableCell sx={{ textAlign: "center" }}>
-        <Checkbox />
-      </TableCell>
-      <TableCell sx={{ textAlign: "center" }}>
-        <Checkbox />
-      </TableCell>
-      <TableCell sx={{ px: "0px !important" }}>
+
+      <MultipleValuesCell propertyIndex={propertyIndex} />
+
+      <CenteredTableCell sx={{ textAlign: "center" }}>
+        <Controller
+          render={({ field: { value, ...field } }) => (
+            <Checkbox {...field} checked={value} />
+          )}
+          control={control}
+          name={`properties.${propertyIndex}.required`}
+        />
+      </CenteredTableCell>
+
+      <CenteredTableCell sx={{ px: "0px !important" }}>
         <TextField
           placeholder="Add default value"
           sx={{
@@ -227,12 +239,13 @@ export const PropertyTypeRow = ({
           }}
           inputProps={{ sx: { textOverflow: "ellipsis" } }}
         />
-      </TableCell>
+      </CenteredTableCell>
+
       <TableCell>
         <PropertyMenu onRemove={onRemove} property={property} />
       </TableCell>
     </TableRow>
-  );
+  ) : null;
 };
 
 export const PropertyListCard = () => {
@@ -262,6 +275,7 @@ export const PropertyListCard = () => {
       <Box sx={{ p: 0.5 }}>
         <Table
           sx={(theme) => ({
+            height: "100%",
             [`.${tableCellClasses.root}`]: {
               pl: 3.5,
               pr: 1,
@@ -350,6 +364,10 @@ export const PropertyListCard = () => {
                   ) {
                     append({
                       $id: mustBeVersionedUri(type.$id),
+                      required: false,
+                      array: false,
+                      minValue: 0,
+                      maxValue: 0,
                     });
                   }
                 }}

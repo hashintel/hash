@@ -1,5 +1,5 @@
 {
-  "name": "@hashintel/block-countdown",
+  "name": "@blocks/countdown",
   "version": "0.2.0",
   "description": "Countdown to a time and date",
   "keywords": [
@@ -16,8 +16,8 @@
   "scripts": {
     "build": "block-scripts build",
     "dev": "block-scripts dev",
-    "fix:eslint": "eslint --ext .ts,.tsx --fix ./src/",
-    "lint:eslint": "eslint --ext .ts,.tsx ./src/",
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint .",
     "lint:tsc": "tsc --noEmit",
     "serve": "block-scripts serve"
   },
@@ -27,8 +27,11 @@
     "react-datepicker": "4.7.0"
   },
   "devDependencies": {
-    "@types/react-datepicker": "^4.4.1",
+    "@local/eslint-config": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
+    "@types/react-datepicker": "^4.8.0",
     "block-scripts": "0.0.14",
+    "eslint": "8.27.0",
     "mock-block-dock": "0.0.38",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

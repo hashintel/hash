@@ -152,14 +152,16 @@ export const createEditorView = (
 
   const [errorPlugin, _onError] = createErrorPlugin(renderPortal);
 
-  const plugins: Plugin<unknown, Schema>[] = [
-    createSavePlugin(accountId, pageEntityId, client),
-    ...createFormatPlugins(renderPortal),
-    createSuggester(renderPortal, accountId, renderNode, () => manager),
-    createPlaceholderPlugin(renderPortal),
-    errorPlugin,
-    createFocusPageTitlePlugin(pageTitleRef),
-  ];
+  const plugins: Plugin<unknown, Schema>[] = readonly
+    ? []
+    : [
+        createSavePlugin(accountId, pageEntityId, client),
+        ...createFormatPlugins(renderPortal),
+        createSuggester(renderPortal, accountId, renderNode, () => manager),
+        createPlaceholderPlugin(renderPortal),
+        errorPlugin,
+        createFocusPageTitlePlugin(pageTitleRef),
+      ];
 
   const state = createProseMirrorState({ accountId, plugins });
 
