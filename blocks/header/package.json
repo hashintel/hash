@@ -1,5 +1,5 @@
 {
-  "name": "@hashintel/block-header",
+  "name": "@blocks/header",
   "version": "0.2.1",
   "private": true,
   "description": "Write titles, sub-titles, and section headings in four different sizes",

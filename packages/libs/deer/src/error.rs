@@ -27,7 +27,7 @@
 //!
 //! ### Separation of Variant and Properties
 //!
-//! Every variant, defined through [`ErrorVariant`], consists of 3 different values/types, the type
+//! Every variant, defined through [`Error`], consists of 3 different values/types, the type
 //! `Properties`, the const `ID` and the const `NAMESPACE`.
 //!
 //! The type `Properties` needs to implement `ErrorProperties`, which is implemented for all tuple
@@ -46,12 +46,12 @@
 //! object is **always** an object.
 //!
 //! This also has some downsides, for example that we are unable to require certain values, in the
-//! future we might be able to, by taking into account values on the [`ErrorVariant`] type itself.
+//! future we might be able to, by taking into account values on the [`Error`] type itself.
 //!
 //! Another downside of the current approach is, that a [`Display`] message cannot use the values of
 //! the properties, which is not ideal when writing "personalized" error messages during
-//! serialization. This is fixed because [`ErrorVariant`] implementations must provide
-//! [`ErrorVariant::message`], which receives all properties and their value.
+//! serialization. This is fixed because [`Error`] implementations must provide
+//! [`Error::message`], which receives all properties and their value.
 //!
 //! [`Location`]: core::panic::Location
 
@@ -121,7 +121,7 @@ impl Context for SerdeSerializeError {}
 /// Value which is extracted/retrieved from a stack of [`error_stack::Frame`]s
 ///
 /// Every type that is attached as a frame (or can be requested via `request_ref`), must implement
-/// this type, to be able to be used in conjunction with [`ErrorVariant`], it must provide the key
+/// this type, to be able to be used in conjunction with [`Error`], it must provide the key
 /// used in the `properties` output, as well as a value. The value does **not** need to be `Self`,
 /// so transformations are possible.
 ///
@@ -184,14 +184,14 @@ impl<T: ErrorProperty + 'static> ErrorProperties for T {
 /// Possible error that can be output.
 ///
 /// `deer` makes full use of `error-stack` and uses attachments and contexts to build up errors.
-/// These errors must implement [`ErrorVariant`] to be able to use `deer` capabilities.
+/// These errors must implement [`Error`] to be able to use `deer` capabilities.
 ///
 /// Each variant needs to define `Properties`, which is a tuple of all types it expects to output in
 /// the `properties` output, `deer` will then look through a report, gather and transform those
 /// properties, which are then used in the output and can be used while personalising the message.
 ///
 /// The combination of `NAMESPACE` and `ID` needs to be unique.
-pub trait ErrorVariant: Context + Debug + Display {
+pub trait Error: Context + Debug + Display {
     type Properties: ErrorProperties;
 
     const ID: Id;
@@ -211,19 +211,66 @@ pub trait ErrorVariant: Context + Debug + Display {
     ) -> fmt::Result;
 }
 
-/// The base error type of `deer`
-///
-/// This type is used as base for all deserialization errors and is based on
-/// [`error_stack::Context`], additional context is supplied via [`Report::attach`], therefore the
-/// necessary methods for the base implementations are minimal.
-///
-/// [`Report::attach`]: error_stack::Report::attach
-pub trait Error: Context {
-    /// Error message that this should encompass, additional context is supported via
-    /// [`Report::attach`]
-    ///
-    /// [`Report::attach`]: error_stack::Report::attach
-    fn message(contents: &str) -> Self;
-    fn new() -> Self;
-    fn empty() -> Self;
+/// This macro makes implementation of error structs easier, by implementing all necessary
+/// traits automatically and removing significant boilerplate.
+macro_rules! error {
+    ($(#[$attr:meta])* $name:ident : $display:literal) => {
+        $(#[$attr])*
+        #[derive(Debug)]
+        pub struct $name;
+
+        impl Display for $name {
+            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+                f.write_str($display)
+            }
+        }
+
+        #[cfg(feature = "std")]
+        impl std::error::Error for $name {}
+
+        #[cfg(all(not(feature = "std"), nightly))]
+        impl core::error::Error for $name {}
+
+        #[cfg(all(not(feature = "std"), not(nightly)))]
+        impl error_stack::Context for $name {}
+    };
 }
+
+error!(
+    /// Every visitor must return this error, this is just a wrapper context,
+    /// the actual error should implement [`Error`] instead.
+    VisitorError: "visitor has encountered one or more unrecoverable errors"
+);
+
+error!(
+    /// Every [`Deserialize`] implementation must return this error,
+    /// this is just a wrapper context which is used to aid error recovery,
+    /// the actual error should implement [`Error`] instead,
+    ///
+    /// [`Deserialize`]: crate::Deserialize
+    DeserializeError: "deserialize failed"
+);
+
+error!(
+    /// Every [`Deserializer`] implementation must return this error, this is just a wrapper context,
+    /// which is used to aid error recovery. The actual error should implement [`Error`] instead.
+    ///
+    /// [`Deserializer`]: crate::Deserializer
+    DeserializerError: "deserializer encountered unrecoverable error"
+);
+
+error!(
+    /// Every [`ObjectAccess`] implementation must return this error, this is just a wrapper context,
+    /// which is used to aid error recovery. The actual error should implement [`Error`] instead.
+    ///
+    /// [`ObjectAccess`]: crate::ObjectAccess
+    ObjectAccessError: "object access encountered one or more errors during access"
+);
+
+error!(
+    /// Every [`ArrayAccess`] implementation must return this error, this is just a wrapper context,
+    /// which is used to aid error recovery. The actual error should implement [`Error`] instead.
+    ///
+    /// [`ArrayAccess`]: crate::ArrayAccess
+    ArrayAccessError: "array access encountered one or more errors during access"
+);
