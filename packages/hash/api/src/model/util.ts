@@ -2,7 +2,13 @@ import {
   PropertyType,
   EntityType,
   PropertyValues,
-  LinkType,
+  DataTypeReference,
+  Object,
+  ValueOrArray,
+  PropertyTypeReference,
+  OneOf,
+  Array,
+  VersionedUri,
 } from "@blockprotocol/type-system-web";
 import { PrimitiveDataTypeKey, types } from "@hashintel/hash-shared/types";
 import { AxiosError } from "axios";
@@ -106,12 +112,12 @@ export const extractBaseUri = (versionedUri: string): string => {
 };
 
 export type PropertyTypeCreatorParams = {
-  propertyTypeId: string;
+  propertyTypeId: VersionedUri;
   title: string;
   description?: string;
   possibleValues: {
     primitiveDataType?: PrimitiveDataTypeKey;
-    propertyTypeObjectProperties?: { [_ in string]: { $ref: string } };
+    propertyTypeObjectProperties?: { [_ in string]: { $ref: VersionedUri } };
     array?: boolean;
   }[];
   actorId: string;
@@ -123,20 +129,21 @@ export type PropertyTypeCreatorParams = {
 export const generateSystemPropertyTypeSchema = (
   params: PropertyTypeCreatorParams,
 ): PropertyType => {
-  const possibleValues = params.possibleValues.map(
+  const possibleValues: PropertyValues[] = params.possibleValues.map(
     ({ array, primitiveDataType, propertyTypeObjectProperties }) => {
       let inner: PropertyValues;
 
       if (primitiveDataType) {
-        const dataTypeReference: PropertyValues.DataTypeReference = {
+        const dataTypeReference: DataTypeReference = {
           $ref: types.dataType[primitiveDataType].dataTypeId,
         };
         inner = dataTypeReference;
       } else if (propertyTypeObjectProperties) {
-        const propertyTypeObject: PropertyValues.PropertyTypeObject = {
-          type: "object" as const,
-          properties: propertyTypeObjectProperties,
-        };
+        const propertyTypeObject: Object<ValueOrArray<PropertyTypeReference>> =
+          {
+            type: "object" as const,
+            properties: propertyTypeObjectProperties,
+          };
         inner = propertyTypeObject;
       } else {
         throw new Error(
@@ -146,7 +153,7 @@ export const generateSystemPropertyTypeSchema = (
 
       // Optionally wrap inner in an array
       if (array) {
-        const arrayOfPropertyValues: PropertyValues.ArrayOfPropertyValues = {
+        const arrayOfPropertyValues: Array<OneOf<PropertyValues>> = {
           type: "array",
           items: {
             oneOf: [inner],
@@ -164,8 +171,7 @@ export const generateSystemPropertyTypeSchema = (
     kind: "propertyType",
     title: params.title,
     description: params.description,
-    pluralTitle: params.title,
-    oneOf: possibleValues,
+    oneOf: possibleValues as [PropertyValues, ...PropertyValues[]],
   };
 };
 
@@ -220,7 +226,7 @@ export const propertyTypeInitializer = (
 };
 
 export type EntityTypeCreatorParams = {
-  entityTypeId: string;
+  entityTypeId: VersionedUri;
   title: string;
   properties: {
     propertyTypeModel: PropertyTypeModel;
@@ -315,7 +321,6 @@ export const generateSystemEntityTypeSchema = (
   return {
     $id: params.entityTypeId,
     title: params.title,
-    pluralTitle: params.title,
     type: "object",
     kind: "entityType",
     properties,
@@ -383,71 +388,71 @@ export type LinkTypeCreatorParams = {
   actorId: string;
 };
 
-/**
- * Helper method for generating a link type schema for the Graph API.
- *
- * @todo make use of new type system package instead of ad-hoc types.
- *   https://app.asana.com/0/1202805690238892/1202892835843657/f
- */
-export const generateSystemLinkTypeSchema = (
-  params: LinkTypeCreatorParams,
-): LinkType => {
-  return {
-    kind: "linkType",
-    $id: params.linkTypeId,
-    title: params.title,
-    pluralTitle: params.title,
-    description: params.description,
-    relatedKeywords: params.relatedKeywords,
-  };
-};
+// /**
+//  * Helper method for generating a link type schema for the Graph API.
+//  *
+//  * @todo make use of new type system package instead of ad-hoc types.
+//  *   https://app.asana.com/0/1202805690238892/1202892835843657/f
+//  */
+// export const generateSystemLinkTypeSchema = (
+//   params: LinkTypeCreatorParams,
+// ): LinkType => {
+//   return {
+//     kind: "linkType",
+//     $id: params.linkTypeId,
+//     title: params.title,
+//     pluralTitle: params.title,
+//     description: params.description,
+//     relatedKeywords: params.relatedKeywords,
+//   };
+// };
 
-/**
- * Returns a function which can be used to initialize a given link type. This asynchronous design allows us to express
- * dependencies between types in a lazy fashion, where the dependencies can be initialized as they're encountered. (This is
- * likely to cause problems if we introduce circular dependencies)
- *
- * @param params the data required to create a new link type
- * @returns an async function which can be called to initialize the entity type, returning its LinkTypeModel
- */
-export const linkTypeInitializer = (
-  params: LinkTypeCreatorParams,
-): ((graphApi: GraphApi) => Promise<LinkTypeModel>) => {
-  let linkTypeModel: LinkTypeModel;
+// /**
+//  * Returns a function which can be used to initialize a given link type. This asynchronous design allows us to express
+//  * dependencies between types in a lazy fashion, where the dependencies can be initialized as they're encountered. (This is
+//  * likely to cause problems if we introduce circular dependencies)
+//  *
+//  * @param params the data required to create a new link type
+//  * @returns an async function which can be called to initialize the entity type, returning its LinkTypeModel
+//  */
+// export const linkTypeInitializer = (
+//   params: LinkTypeCreatorParams,
+// ): ((graphApi: GraphApi) => Promise<LinkTypeModel>) => {
+//   let linkTypeModel: LinkTypeModel;
 
-  return async (graphApi?: GraphApi) => {
-    if (linkTypeModel) {
-      return linkTypeModel;
-    } else if (graphApi == null) {
-      throw new Error(
-        `link type ${params.title} was uninitialized, and function was called without passing a graphApi object`,
-      );
-    } else {
-      const linkType = generateSystemLinkTypeSchema(params);
+//   return async (graphApi?: GraphApi) => {
+//     if (linkTypeModel) {
+//       return linkTypeModel;
+//     } else if (graphApi == null) {
+//       throw new Error(
+//         `link type ${params.title} was uninitialized, and function was called without passing a graphApi object`,
+//       );
+//     } else {
+//       const linkType = generateSystemLinkTypeSchema(params);
 
-      // initialize
-      linkTypeModel = await LinkTypeModel.get(graphApi, {
-        linkTypeId: linkType.$id,
-      }).catch(async (error: AxiosError) => {
-        if (error.response?.status === 404) {
-          // The type was missing, try and create it
-          return await LinkTypeModel.create(graphApi, {
-            ownedById: systemAccountId,
-            schema: linkType,
-            actorId: params.actorId,
-          }).catch((createError: AxiosError) => {
-            logger.warn(`Failed to create link type: ${params.title}`);
-            throw createError;
-          });
-        } else {
-          logger.warn(
-            `Failed to check existence of link type: ${params.title}`,
-          );
-          throw error;
-        }
-      });
+//       // initialize
+//       linkTypeModel = await LinkTypeModel.get(graphApi, {
+//         linkTypeId: linkType.$id,
+//       }).catch(async (error: AxiosError) => {
+//         if (error.response?.status === 404) {
+//           // The type was missing, try and create it
+//           return await LinkTypeModel.create(graphApi, {
+//             ownedById: systemAccountId,
+//             schema: linkType,
+//             actorId: params.actorId,
+//           }).catch((createError: AxiosError) => {
+//             logger.warn(`Failed to create link type: ${params.title}`);
+//             throw createError;
+//           });
+//         } else {
+//           logger.warn(
+//             `Failed to check existence of link type: ${params.title}`,
+//           );
+//           throw error;
+//         }
+//       });
 
-      return linkTypeModel;
-    }
-  };
-};
+//       return linkTypeModel;
+//     }
+//   };
+// };
