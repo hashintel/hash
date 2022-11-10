@@ -19,7 +19,7 @@ use graph::{
     provenance::{CreatedById, OwnedById, UpdatedById},
     shared::{
         identifier::{account::AccountId, GraphElementId},
-        subgraph::{depths::GraphResolveDepths, vertices::Vertex},
+        subgraph::{depths::GraphResolveDepths, query::StructuralQuery, vertices::Vertex},
     },
     store::{
         error::ArchivalError,
@@ -28,7 +28,6 @@ use graph::{
         EntityTypeStore, InsertionError, PostgresStore, PostgresStorePool, PropertyTypeStore,
         QueryError, StorePool, UpdateError,
     },
-    subgraph::StructuralQuery,
 };
 use tokio_postgres::{NoTls, Transaction};
 use type_system::{uri::VersionedUri, DataType, EntityType, PropertyType};

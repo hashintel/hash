@@ -15,6 +15,7 @@ use crate::{
         subgraph::{
             depths::GraphResolveDepths,
             edges::{EdgeKind, OutwardEdge},
+            query::StructuralQuery,
         },
     },
     store::{
@@ -22,7 +23,7 @@ use crate::{
         postgres::{context::PostgresContext, DependencyContext, DependencyContextRef},
         AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, UpdateError,
     },
-    subgraph::{StructuralQuery, Subgraph},
+    subgraph::Subgraph,
 };
 
 impl<C: AsClient> PostgresStore<C> {

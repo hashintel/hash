@@ -16,6 +16,7 @@ use crate::{
     shared::subgraph::{
         depths::GraphResolveDepths,
         edges::{EdgeKind, OutwardEdge},
+        query::StructuralQuery,
     },
     store::{
         crud::Read,
@@ -24,7 +25,7 @@ use crate::{
         query::Filter,
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
-    subgraph::{StructuralQuery, Subgraph},
+    subgraph::Subgraph,
 };
 
 impl<C: AsClient> PostgresStore<C> {
