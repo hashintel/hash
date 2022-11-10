@@ -195,8 +195,8 @@ Content-Type: application/json
     "dataTypeResolveDepth": 0,
     "propertyTypeResolveDepth": 0,
     "entityTypeResolveDepth": 0,
-    "linkTargetEntityResolveDepth": 0,
-    "linkResolveDepth": 0
+    "linkTargetEntityResolveDepth": 10,
+    "linkResolveDepth": 10
   }
 }
 
