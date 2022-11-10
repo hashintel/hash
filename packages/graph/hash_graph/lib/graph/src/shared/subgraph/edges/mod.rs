@@ -51,7 +51,7 @@ impl ToSchema for KnowledgeGraphRootedEdges {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 pub struct Edges {
     #[serde(flatten)]
     ontology: OntologyRootedEdges,
@@ -121,17 +121,5 @@ impl Edges {
         self.knowledge_graph
             .0
             .extend(other.knowledge_graph.0.into_iter());
-    }
-}
-
-// WARNING: This MUST be kept up to date with the enum variants.
-//   We have to do this because utoipa doesn't understand serde flatten:
-//   https://github.com/juhaku/utoipa/issues/120
-impl ToSchema for Edges {
-    fn schema() -> openapi::Schema {
-        openapi::AllOfBuilder::new()
-            .item(OntologyRootedEdges::schema())
-            .item(KnowledgeGraphRootedEdges::schema())
-            .into()
     }
 }

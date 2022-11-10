@@ -27,8 +27,8 @@ use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
 use utoipa::{
     openapi::{
-        self, schema, schema::RefOr, ArrayBuilder, ObjectBuilder, OneOfBuilder, Ref, SchemaFormat,
-        SchemaType,
+        self, schema, schema::RefOr, ArrayBuilder, KnownFormat, ObjectBuilder, OneOfBuilder, Ref,
+        SchemaFormat, SchemaType,
     },
     Modify, OpenApi,
 };
@@ -231,7 +231,10 @@ impl Modify for ExternalRefAddon {
                 }
 
                 for response in &mut operation.responses.responses.values_mut() {
-                    modify_component(response.content.values_mut());
+                    match response {
+                        RefOr::Ref(reference) => modify_reference(reference),
+                        RefOr::T(response) => modify_component(response.content.values_mut()),
+                    }
                 }
             }
         }
@@ -418,7 +421,9 @@ impl Modify for FilterSchemaAddon {
                                         .item(
                                             ObjectBuilder::new()
                                                 .schema_type(SchemaType::Number)
-                                                .format(Some(SchemaFormat::Float)),
+                                                .format(Some(SchemaFormat::KnownFormat(
+                                                    KnownFormat::Float,
+                                                ))),
                                         )
                                         .item(ObjectBuilder::new().schema_type(SchemaType::String)),
                                 )

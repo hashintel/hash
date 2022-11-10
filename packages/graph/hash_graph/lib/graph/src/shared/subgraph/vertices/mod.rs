@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use serde::Serialize;
 use type_system::uri::BaseUri;
-use utoipa::{openapi, ToSchema};
+use utoipa::{ToSchema};
 
 pub use self::vertex::*;
 use crate::identifier::{
@@ -23,7 +23,7 @@ pub struct KnowledgeGraphVertices(
     pub HashMap<EntityId, HashMap<EntityVersion, KnowledgeGraphVertex>>,
 );
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Vertices {
     #[serde(flatten)]
@@ -73,17 +73,5 @@ impl Vertices {
                         .map(Vertex::KnowledgeGraph)
                 }),
         }
-    }
-}
-
-// WARNING: This MUST be kept up to date with the enum variants.
-//   We have to do this because utoipa doesn't understand serde flatten:
-//   https://github.com/juhaku/utoipa/issues/120
-impl ToSchema for Vertices {
-    fn schema() -> openapi::Schema {
-        openapi::AllOfBuilder::new()
-            .item(OntologyVertices::schema())
-            .item(KnowledgeGraphVertices::schema())
-            .into()
     }
 }

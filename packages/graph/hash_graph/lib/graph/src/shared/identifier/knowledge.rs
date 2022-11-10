@@ -2,7 +2,11 @@ use std::str::FromStr;
 
 use postgres_types::{FromSql, ToSql};
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
-use utoipa::{openapi, ToSchema};
+use utoipa::{
+    openapi,
+    openapi::{KnownFormat, SchemaFormat},
+    ToSchema,
+};
 
 use crate::{
     identifier::{account::AccountId, Timestamp},
@@ -100,9 +104,10 @@ impl EntityVersion {
 
 impl ToSchema for EntityVersion {
     fn schema() -> openapi::Schema {
-        openapi::Schema::Object(openapi::schema::Object::with_type(
-            openapi::SchemaType::String,
-        ))
+        openapi::schema::ObjectBuilder::new()
+            .schema_type(openapi::SchemaType::String)
+            .format(Some(SchemaFormat::KnownFormat(KnownFormat::DateTime)))
+            .into()
     }
 }
 
@@ -176,9 +181,11 @@ impl ToSchema for EntityIdAndTimestamp {
             .required("baseId")
             .property(
                 "timestamp",
-                openapi::Schema::Object(openapi::schema::Object::with_type(
-                    openapi::SchemaType::String,
-                )),
+                openapi::schema::Object::from(
+                    openapi::schema::ObjectBuilder::new()
+                        .schema_type(openapi::SchemaType::String)
+                        .format(Some(SchemaFormat::KnownFormat(KnownFormat::DateTime))),
+                ),
             )
             .required("timestamp")
             .into()
