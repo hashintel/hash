@@ -217,18 +217,6 @@ export interface DataType {
 
   /**
    *
-   * @type {string}
-   * @memberof DataType
-   */
-  $id: string;
-  /**
-   *
-   * @type {string}
-   * @memberof DataType
-   */
-  description?: string;
-  /**
-   *
    * @type {object}
    * @memberof DataType
    */
@@ -238,7 +226,19 @@ export interface DataType {
    * @type {string}
    * @memberof DataType
    */
+  $id: string;
+  /**
+   *
+   * @type {string}
+   * @memberof DataType
+   */
   title: string;
+  /**
+   *
+   * @type {string}
+   * @memberof DataType
+   */
+  description?: string;
   /**
    *
    * @type {string}
@@ -454,6 +454,12 @@ export interface EntityStructuralQuery {
 export interface EntityType {
   /**
    *
+   * @type {object}
+   * @memberof EntityType
+   */
+  kind: EntityTypeKindEnum;
+  /**
+   *
    * @type {string}
    * @memberof EntityType
    */
@@ -463,7 +469,13 @@ export interface EntityType {
    * @type {object}
    * @memberof EntityType
    */
-  default?: object;
+  type: EntityTypeTypeEnum;
+  /**
+   *
+   * @type {string}
+   * @memberof EntityType
+   */
+  title: string;
   /**
    *
    * @type {string}
@@ -472,28 +484,16 @@ export interface EntityType {
   description?: string;
   /**
    *
+   * @type {object}
+   * @memberof EntityType
+   */
+  default?: object;
+  /**
+   *
    * @type {Array<object>}
    * @memberof EntityType
    */
   examples?: Array<object>;
-  /**
-   *
-   * @type {object}
-   * @memberof EntityType
-   */
-  kind: EntityTypeKindEnum;
-  /**
-   *
-   * @type {object}
-   * @memberof EntityType
-   */
-  links?: object;
-  /**
-   *
-   * @type {string}
-   * @memberof EntityType
-   */
-  pluralTitle: string;
   /**
    *
    * @type {object}
@@ -508,22 +508,16 @@ export interface EntityType {
   required?: Array<string>;
   /**
    *
+   * @type {object}
+   * @memberof EntityType
+   */
+  links?: object;
+  /**
+   *
    * @type {Array<string>}
    * @memberof EntityType
    */
   requiredLinks?: Array<string>;
-  /**
-   *
-   * @type {string}
-   * @memberof EntityType
-   */
-  title: string;
-  /**
-   *
-   * @type {object}
-   * @memberof EntityType
-   */
-  type: EntityTypeTypeEnum;
 }
 
 export const EntityTypeKindEnum = {
@@ -836,6 +830,12 @@ export type PathExpressionPathEnum =
 export interface PropertyArrayValue {
   /**
    *
+   * @type {string}
+   * @memberof PropertyArrayValue
+   */
+  type: PropertyArrayValueTypeEnum;
+  /**
+   *
    * @type {PropertyArrayValueItems}
    * @memberof PropertyArrayValue
    */
@@ -845,19 +845,13 @@ export interface PropertyArrayValue {
    * @type {number}
    * @memberof PropertyArrayValue
    */
-  maxItems?: number;
+  minItems?: number;
   /**
    *
    * @type {number}
    * @memberof PropertyArrayValue
    */
-  minItems?: number;
-  /**
-   *
-   * @type {string}
-   * @memberof PropertyArrayValue
-   */
-  type: PropertyArrayValueTypeEnum;
+  maxItems?: number;
 }
 
 export const PropertyArrayValueTypeEnum = {
@@ -888,6 +882,12 @@ export interface PropertyArrayValueItems {
 export interface PropertyArrayValueUpdate {
   /**
    *
+   * @type {string}
+   * @memberof PropertyArrayValueUpdate
+   */
+  type: PropertyArrayValueUpdateTypeEnum;
+  /**
+   *
    * @type {PropertyArrayValueUpdateItems}
    * @memberof PropertyArrayValueUpdate
    */
@@ -897,19 +897,13 @@ export interface PropertyArrayValueUpdate {
    * @type {number}
    * @memberof PropertyArrayValueUpdate
    */
-  maxItems?: number;
+  minItems?: number;
   /**
    *
    * @type {number}
    * @memberof PropertyArrayValueUpdate
    */
-  minItems?: number;
-  /**
-   *
-   * @type {string}
-   * @memberof PropertyArrayValueUpdate
-   */
-  type: PropertyArrayValueUpdateTypeEnum;
+  maxItems?: number;
 }
 
 export const PropertyArrayValueUpdateTypeEnum = {
@@ -940,16 +934,16 @@ export interface PropertyArrayValueUpdateItems {
 export interface PropertyObjectValue {
   /**
    *
-   * @type {object}
-   * @memberof PropertyObjectValue
-   */
-  properties: object;
-  /**
-   *
    * @type {string}
    * @memberof PropertyObjectValue
    */
   type: PropertyObjectValueTypeEnum;
+  /**
+   *
+   * @type {object}
+   * @memberof PropertyObjectValue
+   */
+  properties: object;
 }
 
 export const PropertyObjectValueTypeEnum = {
@@ -967,6 +961,12 @@ export type PropertyObjectValueTypeEnum =
 export interface PropertyType {
   /**
    *
+   * @type {object}
+   * @memberof PropertyType
+   */
+  kind: PropertyTypeKindEnum;
+  /**
+   *
    * @type {string}
    * @memberof PropertyType
    */
@@ -976,31 +976,19 @@ export interface PropertyType {
    * @type {string}
    * @memberof PropertyType
    */
-  description?: string;
+  title: string;
   /**
    *
-   * @type {object}
+   * @type {string}
    * @memberof PropertyType
    */
-  kind: PropertyTypeKindEnum;
+  description?: string;
   /**
    *
    * @type {Array<PropertyValues>}
    * @memberof PropertyType
    */
   oneOf: Array<PropertyValues>;
-  /**
-   *
-   * @type {string}
-   * @memberof PropertyType
-   */
-  pluralTitle: string;
-  /**
-   *
-   * @type {string}
-   * @memberof PropertyType
-   */
-  title: string;
 }
 
 export const PropertyTypeKindEnum = {
@@ -1126,12 +1114,6 @@ export interface UpdateDataType {
 
   /**
    *
-   * @type {string}
-   * @memberof UpdateDataType
-   */
-  description?: string;
-  /**
-   *
    * @type {object}
    * @memberof UpdateDataType
    */
@@ -1142,6 +1124,12 @@ export interface UpdateDataType {
    * @memberof UpdateDataType
    */
   title: string;
+  /**
+   *
+   * @type {string}
+   * @memberof UpdateDataType
+   */
+  description?: string;
   /**
    *
    * @type {string}
@@ -1224,7 +1212,19 @@ export interface UpdateEntityType {
    * @type {object}
    * @memberof UpdateEntityType
    */
-  default?: object;
+  kind: UpdateEntityTypeKindEnum;
+  /**
+   *
+   * @type {object}
+   * @memberof UpdateEntityType
+   */
+  type: UpdateEntityTypeTypeEnum;
+  /**
+   *
+   * @type {string}
+   * @memberof UpdateEntityType
+   */
+  title: string;
   /**
    *
    * @type {string}
@@ -1233,28 +1233,16 @@ export interface UpdateEntityType {
   description?: string;
   /**
    *
+   * @type {object}
+   * @memberof UpdateEntityType
+   */
+  default?: object;
+  /**
+   *
    * @type {Array<object>}
    * @memberof UpdateEntityType
    */
   examples?: Array<object>;
-  /**
-   *
-   * @type {object}
-   * @memberof UpdateEntityType
-   */
-  kind: UpdateEntityTypeKindEnum;
-  /**
-   *
-   * @type {object}
-   * @memberof UpdateEntityType
-   */
-  links?: object;
-  /**
-   *
-   * @type {string}
-   * @memberof UpdateEntityType
-   */
-  pluralTitle: string;
   /**
    *
    * @type {object}
@@ -1269,22 +1257,16 @@ export interface UpdateEntityType {
   required?: Array<string>;
   /**
    *
+   * @type {object}
+   * @memberof UpdateEntityType
+   */
+  links?: object;
+  /**
+   *
    * @type {Array<string>}
    * @memberof UpdateEntityType
    */
   requiredLinks?: Array<string>;
-  /**
-   *
-   * @type {string}
-   * @memberof UpdateEntityType
-   */
-  title: string;
-  /**
-   *
-   * @type {object}
-   * @memberof UpdateEntityType
-   */
-  type: UpdateEntityTypeTypeEnum;
 }
 
 export const UpdateEntityTypeKindEnum = {
@@ -1333,34 +1315,28 @@ export interface UpdateEntityTypeRequest {
 export interface UpdatePropertyType {
   /**
    *
-   * @type {string}
-   * @memberof UpdatePropertyType
-   */
-  description?: string;
-  /**
-   *
    * @type {object}
    * @memberof UpdatePropertyType
    */
   kind: UpdatePropertyTypeKindEnum;
   /**
    *
-   * @type {Array<PropertyValuesUpdate>}
-   * @memberof UpdatePropertyType
-   */
-  oneOf: Array<PropertyValuesUpdate>;
-  /**
-   *
-   * @type {string}
-   * @memberof UpdatePropertyType
-   */
-  pluralTitle: string;
-  /**
-   *
    * @type {string}
    * @memberof UpdatePropertyType
    */
   title: string;
+  /**
+   *
+   * @type {string}
+   * @memberof UpdatePropertyType
+   */
+  description?: string;
+  /**
+   *
+   * @type {Array<PropertyValuesUpdate>}
+   * @memberof UpdatePropertyType
+   */
+  oneOf: Array<PropertyValuesUpdate>;
 }
 
 export const UpdatePropertyTypeKindEnum = {
