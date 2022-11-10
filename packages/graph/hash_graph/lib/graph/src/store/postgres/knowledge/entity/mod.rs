@@ -50,10 +50,8 @@ impl<C: AsClient> PostgresStore<C> {
                             .link_target_entity_resolve_depth,
                     ),
                     || async {
-                        self.read_one(&Filter::for_latest_entity_by_entity_id(
-                            entity_edition_id.base_id(),
-                        ))
-                        .await
+                        self.read_one(&Filter::for_entity_by_edition_id(entity_edition_id))
+                            .await
                     },
                 )
                 .await?;

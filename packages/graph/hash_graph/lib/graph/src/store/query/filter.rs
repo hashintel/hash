@@ -112,7 +112,7 @@ impl<'q> Filter<'q, EntityProperties> {
     /// Creates a `Filter` to search for a specific entity edition, identified by its
     /// [`EntityEditionId`].
     #[must_use]
-    pub fn for_latest_entity_by_edition_id(edition_id: EntityEditionId) -> Self {
+    pub fn for_entity_by_edition_id(edition_id: EntityEditionId) -> Self {
         Self::All(vec![
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::Uuid)),
