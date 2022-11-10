@@ -2,7 +2,6 @@ import "../loadTestEnv";
 import { PostgresAdapter } from "@hashintel/hash-api/src/db";
 import { Org, User } from "@hashintel/hash-api/src/model";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { WayToUseHash } from "../../graphql/apiTypes.gen";
 import { recreateDbAndRunSchemaMigrations } from "../setup";
 
 jest.setTimeout(60000);
@@ -42,13 +41,13 @@ describe("Org model class ", () => {
         shortname: "test-user-1",
         preferredName: "Alice",
         emails: [{ address: "alice@hash.test", primary: true, verified: true }],
-        infoProvidedAtSignup: { usingHow: WayToUseHash.ByThemselves },
+        infoProvidedAtSignup: { usingHow: "BY_THEMSELVES" },
       }),
       User.createUser(db, {
         shortname: "test-user-2",
         preferredName: "Bob",
         emails: [{ address: "bob@hash.test", primary: true, verified: true }],
-        infoProvidedAtSignup: { usingHow: WayToUseHash.ByThemselves },
+        infoProvidedAtSignup: { usingHow: "BY_THEMSELVES" },
       }),
     ]);
 

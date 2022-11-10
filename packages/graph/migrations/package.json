@@ -1,14 +1,14 @@
 {
   "name": "@hashintel/hash-graph-migrations",
-  "version": "0.0.0",
+  "version": "0.0.0-private",
   "private": true,
   "description": "The data store for HASH",
   "license": "AGPL-3.0",
   "scripts": {
-    "fix:eslint": "eslint --ext .ts --fix .",
+    "fix:eslint": "eslint --fix .",
     "graph:migrate": "ts-node node_modules/.bin/node-pg-migrate -d HASH_GRAPH_PG_MIGRATION_URL -f ./postgres/migration-config.json",
     "graph:recreate-db": "ts-node postgres/scripts/recreate-graph-db.ts",
-    "lint:eslint": "eslint --ext .ts .",
+    "lint:eslint": "eslint .",
     "lint:tsc": "tsc --noEmit"
   },
   "dependencies": {
@@ -19,13 +19,16 @@
     "node-postgres": "0.6.2",
     "pg": "8.7.1",
     "prompts": "2.4.1",
-    "ts-node": "10.4.0",
+    "ts-node": "10.9.1",
     "typescript": "4.8.4",
     "yargs": "17.1.1"
   },
   "devDependencies": {
+    "@local/eslint-config": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
     "@types/node-pg-migrate": "2.3.1",
-    "@types/prompts": "2.0.14",
-    "httpyac": "5.5.5"
+    "@types/prompts": "2.4.1",
+    "eslint": "8.27.0",
+    "httpyac": "5.8.0"
   }
 }

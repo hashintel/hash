@@ -4,22 +4,14 @@ import { Box, Stack, Typography } from "@mui/material";
 import { Container } from "@mui/system";
 import { useRouter } from "next/router";
 import slugify from "slugify";
-import { generateEntityLabel } from "../../../../../lib/entities";
 import { TopContextBar } from "../../../../shared/top-context-bar";
-import { HashOntologyIcon } from "../../../types/entity-type/hash-ontology-icon";
-import { OntologyChip } from "../../../types/entity-type/ontology-chip";
-import { RootEntityAndSubgraph } from "../../../../../lib/subgraph";
+import { HashOntologyIcon } from "../../../shared/hash-ontology-icon";
+import { OntologyChip } from "../../../shared/ontology-chip";
 
-export const EntityPageHeader = ({
-  rootEntityAndSubgraph,
-}: {
-  rootEntityAndSubgraph: RootEntityAndSubgraph;
-}) => {
+export const EntityPageHeader = ({ entityLabel }: { entityLabel: string }) => {
   const router = useRouter();
 
   const accountSlug = router.query["account-slug"];
-
-  const entityLabel = generateEntityLabel(rootEntityAndSubgraph);
 
   return (
     <Box bgcolor="white">

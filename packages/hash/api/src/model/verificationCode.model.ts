@@ -1,7 +1,6 @@
 import { rword } from "rword";
 import { VerificationCode } from ".";
 import { DbClient } from "../db";
-import { VerificationCodeMetadata as GQLVerificationCodeMetadata } from "../graphql/apiTypes.gen";
 
 // Maximum age of a valid verification code (1 hour)
 export const MAX_AGE_MS = 1000 * 60 * 60;
@@ -101,13 +100,6 @@ class __VerificationCode {
       userId: this.userId,
     });
     this.used = true;
-  }
-
-  toGQLVerificationCodeMetadata(): GQLVerificationCodeMetadata {
-    return {
-      id: this.id,
-      createdAt: this.createdAt.toISOString(),
-    };
   }
 }
 

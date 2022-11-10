@@ -10,7 +10,7 @@ import {
   LinkTypeModel,
   UserModel,
 } from "@hashintel/hash-api/src/model";
-import { generateWorkspaceEntityTypeSchema } from "@hashintel/hash-api/src/model/util";
+import { generateSystemEntityTypeSchema } from "@hashintel/hash-api/src/model/util";
 import { generateTypeId } from "@hashintel/hash-shared/types";
 import { createTestUser } from "../../util";
 
@@ -113,7 +113,7 @@ describe("Entity CRU", () => {
 
     entityTypeModel = await EntityTypeModel.create(graphApi, {
       ownedById: testUser.entityId,
-      schema: generateWorkspaceEntityTypeSchema({
+      schema: generateSystemEntityTypeSchema({
         entityTypeId: generateTypeId({
           namespace: testUser.getShortname()!,
           kind: "entity-type",

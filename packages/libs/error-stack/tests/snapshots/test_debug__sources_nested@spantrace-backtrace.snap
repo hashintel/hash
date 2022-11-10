@@ -13,7 +13,7 @@ context A
  |  |- 3
  |  |
  |  |-> root error
- |      |- at tests/common.rs:147:5
+ |      |- at tests/common.rs:4:5
  |      |- backtrace (1)
  |      |- span trace with 2 frames (1)
  |      |- 6
@@ -33,7 +33,7 @@ context A
      |  |- 8
      |  |
      |  |-> root error
-     |      |- at tests/common.rs:147:5
+     |      |- at tests/common.rs:4:5
      |      |- backtrace (2)
      |      |- span trace with 2 frames (2)
      |
@@ -46,7 +46,7 @@ context A
      |  |- 8
      |  |
      |  |-> root error
-     |      |- at tests/common.rs:147:5
+     |      |- at tests/common.rs:4:5
      |      |- backtrace (3)
      |      |- span trace with 2 frames (3)
      |
@@ -60,7 +60,7 @@ context A
      |  |- 8
      |  |
      |  |-> root error
-     |      |- at tests/common.rs:147:5
+     |      |- at tests/common.rs:4:5
      |      |- backtrace (4)
      |      |- span trace with 2 frames (4)
      |
@@ -71,7 +71,7 @@ context A
      |  |- 8
      |  |
      |  |-> root error
-     |      |- at tests/common.rs:147:5
+     |      |- at tests/common.rs:4:5
      |      |- backtrace (5)
      |      |- span trace with 2 frames (5)
      |
@@ -85,7 +85,7 @@ context A
         |   |- at tests/test_debug.rs:177:10
         |
         |-> root error
-            |- at tests/common.rs:147:5
+            |- at tests/common.rs:4:5
             |- backtrace (6)
             |- span trace with 2 frames (6)
 

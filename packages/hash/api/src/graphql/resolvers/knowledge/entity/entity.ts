@@ -1,6 +1,6 @@
 import { Filter } from "@hashintel/hash-graph-client";
 import { AxiosError } from "axios";
-import { ApolloError } from "apollo-server-express";
+import { ApolloError, ForbiddenError } from "apollo-server-express";
 import { EntityModel } from "../../../../model";
 import {
   QueryGetPersistedEntityArgs,
@@ -16,6 +16,7 @@ import {
 } from "../model-mapping";
 import { LoggedInGraphQLContext } from "../../../context";
 import { mapSubgraphToGql } from "../../ontology/model-mapping";
+import { beforeUpdateEntityHooks } from "./before-update-entity-hooks";
 
 /** @todo - rename these and remove "persisted" - https://app.asana.com/0/0/1203157172269854/f */
 
@@ -31,7 +32,7 @@ export const createPersistedEntity: ResolverFn<
 ) => {
   /**
    * @todo: prevent callers of this mutation from being able to create restricted
-   * workspace types (e.g. a `User` or an `Org`)
+   * system types (e.g. a `User` or an `Org`)
    *
    * @see https://app.asana.com/0/1202805690238892/1203084714149803/f
    */
@@ -157,9 +158,26 @@ export const updatePersistedEntity: ResolverFn<
   { entityId, updatedProperties },
   { dataSources: { graphApi }, userModel },
 ) => {
-  const entityModel = await EntityModel.getLatest(graphApi, {
-    entityId,
-  });
+  // The user needs to be signed up if they aren't updating their own user entity
+  if (entityId !== userModel.entityId && !userModel.isAccountSignupComplete()) {
+    throw new ForbiddenError(
+      "You must complete the sign-up process to perform this action.",
+    );
+  }
+
+  const entityModel = await EntityModel.getLatest(graphApi, { entityId });
+
+  for (const beforeUpdateHook of beforeUpdateEntityHooks) {
+    if (
+      beforeUpdateHook.entityTypeId === entityModel.entityTypeModel.schema.$id
+    ) {
+      await beforeUpdateHook.callback({
+        graphApi,
+        entityModel,
+        updatedProperties,
+      });
+    }
+  }
 
   const updatedEntityModel = await entityModel.update(graphApi, {
     properties: updatedProperties,

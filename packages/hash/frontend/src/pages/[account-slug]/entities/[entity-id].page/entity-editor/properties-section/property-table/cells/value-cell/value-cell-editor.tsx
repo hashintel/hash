@@ -1,7 +1,7 @@
 import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
 import { TextField } from "@hashintel/hash-design-system";
 import { cloneDeep } from "lodash";
-import { ValueCell } from "../value-cell";
+import { ValueCell } from "./types";
 
 /**
  * @todo this should be used only for strings

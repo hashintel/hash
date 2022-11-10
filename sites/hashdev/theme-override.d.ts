@@ -137,4 +137,4 @@ declare module "@mui/material/Paper" {
 }
 
 // https://github.com/mui-org/material-ui/issues/28244
-export default "";
+export {};

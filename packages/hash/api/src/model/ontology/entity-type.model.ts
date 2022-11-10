@@ -1,6 +1,6 @@
 import { AxiosError } from "axios";
 
-import { EntityType } from "@blockprotocol/type-system-web";
+import { EntityType, VersionedUri } from "@blockprotocol/type-system-web";
 import {
   GraphApi,
   PersistedEntityType,
@@ -9,7 +9,7 @@ import {
 import { generateTypeId, types } from "@hashintel/hash-shared/types";
 import { EntityTypeModel, PropertyTypeModel, LinkTypeModel } from "../index";
 import { getNamespaceOfAccountOwner } from "./util";
-import { WORKSPACE_TYPES } from "../../graph/workspace-types";
+import { SYSTEM_TYPES } from "../../graph/system-types";
 
 export type EntityTypeModelConstructorParams = {
   ownedById: string;
@@ -31,7 +31,7 @@ export type EntityTypeModelCreateParams = {
 export default class {
   ownedById: string;
 
-  schema: EntityType;
+  schema: EntityType & { $id: VersionedUri };
 
   createdById: string;
   updatedById: string;
@@ -45,7 +45,11 @@ export default class {
     removedById,
   }: EntityTypeModelConstructorParams) {
     this.ownedById = ownedById;
-    this.schema = schema;
+    /**
+     * @todo: remove this casting when we update the type system package
+     * @see https://app.asana.com/0/1201095311341924/1203259817761581/f
+     */
+    this.schema = schema as EntityType & { $id: VersionedUri };
 
     this.createdById = createdById;
     this.updatedById = updatedById;
@@ -259,13 +263,13 @@ export default class {
   }
 
   /**
-   * Get the workspace type name of this entity type if it is a workspace type. Otherwise return `undefined`.
+   * Get the system type name of this entity type if it is a system type. Otherwise return `undefined`.
    */
-  get workspaceTypeName(): string | undefined {
-    for (const [key, workspaceEntityType] of Object.entries(
-      WORKSPACE_TYPES.entityType,
-    ) as [keyof typeof WORKSPACE_TYPES.entityType, EntityTypeModel][]) {
-      if (workspaceEntityType.schema.$id === this.schema.$id) {
+  get systemTypeName(): string | undefined {
+    for (const [key, systemEntityType] of Object.entries(
+      SYSTEM_TYPES.entityType,
+    ) as [keyof typeof SYSTEM_TYPES.entityType, EntityTypeModel][]) {
+      if (systemEntityType.schema.$id === this.schema.$id) {
         return types.entityType[key].title;
       }
     }

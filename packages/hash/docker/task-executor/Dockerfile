@@ -2,9 +2,9 @@ FROM node:16.16.0-alpine AS builder
 
 WORKDIR /app
 
+COPY libs/javascript/@local/tsconfig libs/javascript/@local/tsconfig
 COPY packages/hash/task-executor packages/hash/task-executor
 COPY package.json .
-COPY tsconfig.base.json .
 COPY yarn.lock .
 
 RUN --mount=type=cache,mode=0755,target=/yarn-cache \

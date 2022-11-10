@@ -5,7 +5,8 @@ import {
   EntityModelCreateParams,
   CommentModel,
 } from "..";
-import { WORKSPACE_TYPES } from "../../graph/workspace-types";
+import { SYSTEM_TYPES } from "../../graph/system-types";
+import { EntityTypeMismatchError } from "../../lib/error";
 
 type BlockModelCreateParams = Omit<
   EntityModelCreateParams,
@@ -22,10 +23,12 @@ export default class extends EntityModel {
   static fromEntityModel(entity: EntityModel): BlockModel {
     if (
       entity.entityTypeModel.schema.$id !==
-      WORKSPACE_TYPES.entityType.block.schema.$id
+      SYSTEM_TYPES.entityType.block.schema.$id
     ) {
-      throw new Error(
-        `Entity with id ${entity.entityId} is not a workspace block`,
+      throw new EntityTypeMismatchError(
+        entity.entityId,
+        SYSTEM_TYPES.entityType.block.schema.$id,
+        entity.entityTypeModel.schema.$id,
       );
     }
 
@@ -33,7 +36,7 @@ export default class extends EntityModel {
   }
 
   /**
-   * Get a workspace block entity by its entity id.
+   * Get a system block entity by its entity id.
    *
    * @param params.entityId - the entity id of the block
    */
@@ -47,7 +50,7 @@ export default class extends EntityModel {
   }
 
   /**
-   * Create a workspace block entity.
+   * Create a system block entity.
    *
    * @param params.componentId - the component id of the block
    * @param params.blockData - the linked block data entity
@@ -60,10 +63,10 @@ export default class extends EntityModel {
     const { componentId, blockData, ownedById, actorId } = params;
 
     const properties: object = {
-      [WORKSPACE_TYPES.propertyType.componentId.baseUri]: componentId,
+      [SYSTEM_TYPES.propertyType.componentId.baseUri]: componentId,
     };
 
-    const entityTypeModel = WORKSPACE_TYPES.entityType.block;
+    const entityTypeModel = SYSTEM_TYPES.entityType.block;
 
     const entity = await EntityModel.create(graphApi, {
       ownedById,
@@ -73,7 +76,7 @@ export default class extends EntityModel {
     });
 
     await entity.createOutgoingLink(graphApi, {
-      linkTypeModel: WORKSPACE_TYPES.linkType.blockData,
+      linkTypeModel: SYSTEM_TYPES.linkType.blockData,
       targetEntityModel: blockData,
       ownedById,
       actorId,
@@ -87,7 +90,7 @@ export default class extends EntityModel {
    */
   getComponentId(): string {
     return (this.properties as any)[
-      WORKSPACE_TYPES.propertyType.componentId.baseUri
+      SYSTEM_TYPES.propertyType.componentId.baseUri
     ];
   }
 
@@ -96,7 +99,7 @@ export default class extends EntityModel {
    */
   async getBlockData(graphApi: GraphApi): Promise<EntityModel> {
     const outgoingBlockDataLinks = await this.getOutgoingLinks(graphApi, {
-      linkTypeModel: WORKSPACE_TYPES.linkType.blockData,
+      linkTypeModel: SYSTEM_TYPES.linkType.blockData,
     });
 
     const outgoingBlockDataLink = outgoingBlockDataLinks[0];
@@ -112,7 +115,7 @@ export default class extends EntityModel {
 
   async getBlockComments(graphApi: GraphApi): Promise<CommentModel[]> {
     const blockCommentLinks = await this.getIncomingLinks(graphApi, {
-      linkTypeModel: WORKSPACE_TYPES.linkType.parent,
+      linkTypeModel: SYSTEM_TYPES.linkType.parent,
     });
 
     const comments = blockCommentLinks.map((link) =>
@@ -137,7 +140,7 @@ export default class extends EntityModel {
   ): Promise<void> {
     const { newBlockDataEntity, actorId } = params;
     const outgoingBlockDataLinks = await this.getOutgoingLinks(graphApi, {
-      linkTypeModel: WORKSPACE_TYPES.linkType.blockData,
+      linkTypeModel: SYSTEM_TYPES.linkType.blockData,
     });
 
     const outgoingBlockDataLink = outgoingBlockDataLinks[0];
@@ -160,7 +163,7 @@ export default class extends EntityModel {
     await outgoingBlockDataLink.remove(graphApi, { actorId });
 
     await this.createOutgoingLink(graphApi, {
-      linkTypeModel: WORKSPACE_TYPES.linkType.blockData,
+      linkTypeModel: SYSTEM_TYPES.linkType.blockData,
       targetEntityModel: newBlockDataEntity,
       ownedById: this.ownedById,
       actorId,

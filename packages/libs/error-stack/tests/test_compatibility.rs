@@ -12,17 +12,6 @@ use error_stack::IntoReportCompat;
 #[cfg(feature = "std")]
 use error_stack::Report;
 
-// All frames except backtraces in this file are printable (either a printable attachment or a
-// context), so only backtraces are "opaque". Depending on how the backtrace is generated, it will
-// appear at different locations. To simplify the general tests, we remove backtraces, they are
-// tested explicitly in other tests. On nightly, anyhow/eyre will capture the backtrace and provide
-// it by `Error::provide`. On non-nightly toolchains since 1.65 the backtrace will be captured by
-// `Report.
-#[cfg(all(rust_1_65, feature = "std"))]
-fn remove_opaque_frames(messages: &mut Vec<String>) {
-    messages.retain(|message| message != "opaque")
-}
-
 #[test]
 #[cfg(all(feature = "std", feature = "anyhow"))]
 fn anyhow() {
@@ -36,19 +25,14 @@ fn anyhow() {
 
     #[allow(unused_mut)]
     let mut report_messages = messages(&report);
-    #[cfg(rust_1_65)]
-    remove_opaque_frames(&mut report_messages);
 
     let anyhow_report = anyhow.into_report().unwrap_err();
-
     #[allow(unused_mut)]
     let mut anyhow_messages = messages(&anyhow_report);
-    #[cfg(rust_1_65)]
-    remove_opaque_frames(&mut anyhow_messages);
 
     assert_eq!(
-        anyhow_messages.into_iter().rev().collect::<Vec<_>>(),
-        report_messages,
+        remove_builtin_messages(anyhow_messages.into_iter().rev()),
+        remove_builtin_messages(report_messages),
     );
 }
 
@@ -60,7 +44,7 @@ fn anyhow_nostd() {
         .context(PrintableB(0)));
 
     let report = anyhow.into_report().unwrap_err();
-    let expected_output = ["printable B"];
+    let expected_output = ["Location", "printable B"];
     for (anyhow, expected) in messages(&report).into_iter().zip(expected_output) {
         assert_eq!(anyhow, expected);
     }
@@ -145,19 +129,14 @@ fn eyre() {
 
     #[allow(unused_mut)]
     let mut report_messages = messages(&report);
-    #[cfg(rust_1_65)]
-    remove_opaque_frames(&mut report_messages);
 
     let eyre_report = eyre.into_report().unwrap_err();
-
     #[allow(unused_mut)]
     let mut eyre_messages = messages(&eyre_report);
-    #[cfg(rust_1_65)]
-    remove_opaque_frames(&mut eyre_messages);
 
     assert_eq!(
-        eyre_messages.into_iter().rev().collect::<Vec<_>>(),
-        report_messages,
+        remove_builtin_messages(eyre_messages.into_iter().rev()),
+        remove_builtin_messages(report_messages),
     );
 }
 

@@ -5,6 +5,7 @@ module.exports = {
     "**/*.{c,m,}{j,t}s{x,}",
     "!**/node_modules/**",
     "!**/dist/**",
+    "!**/src/collab/**",
   ],
   coverageReporters: ["lcov", "text"],
   moduleNameMapper: {
