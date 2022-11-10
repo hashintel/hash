@@ -411,8 +411,8 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
 
             let mut found = false;
             for existing in &self.statement.joins {
-                if existing.join == join_column {
-                    if existing.on == current_column {
+                if existing.join.table == join_column.table {
+                    if existing.on == current_column && existing.join.access == join_column.access {
                         // We already have a join statement for this column, so we can reuse it.
                         current_table = existing.join.table;
                         found = true;
