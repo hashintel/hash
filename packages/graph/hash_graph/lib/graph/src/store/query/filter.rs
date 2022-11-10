@@ -11,7 +11,8 @@ use type_system::uri::VersionedUri;
 use uuid::Uuid;
 
 use crate::{
-    knowledge::{Entity, EntityId, EntityQueryPath},
+    identifier::knowledge::EntityId,
+    knowledge::{Entity, EntityQueryPath},
     store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath},
 };
 
@@ -91,9 +92,15 @@ impl<'q> Filter<'q, Entity> {
         Self::All(vec![
             Self::for_all_latest_entities(),
             Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::Id)),
+                Some(FilterExpression::Path(EntityQueryPath::Uuid)),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.as_uuid(),
+                    entity_id.entity_uuid().as_uuid(),
+                ))),
+            ),
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::OwnedById)),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    entity_id.owned_by_id().as_uuid(),
                 ))),
             ),
         ])

@@ -1,6 +1,6 @@
 mod read;
 
-use std::{future::Future, pin::Pin};
+use std::{collections::HashSet, future::Future, pin::Pin};
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
@@ -10,8 +10,8 @@ use type_system::uri::VersionedUri;
 use uuid::Uuid;
 
 use crate::{
-    identifier::GraphElementIdentifier,
-    knowledge::{Entity, EntityId, LinkEntityMetadata, PersistedEntity, PersistedEntityMetadata},
+    identifier::{knowledge::EntityId, GraphElementIdentifier},
+    knowledge::{Entity, EntityUuid, LinkEntityMetadata, PersistedEntity, PersistedEntityMetadata},
     provenance::{CreatedById, OwnedById, UpdatedById},
     store::{
         crud::Read,
@@ -86,18 +86,18 @@ impl<C: AsClient> PostgresStore<C> {
                 //   https://app.asana.com/0/1200211978612931/1203250001255262/f
 
                 // for link_record in self
-                //     .read_links_by_source(entity_id)
+                //     .read_links_by_source(entity_uuid)
                 //     .await?
                 //     .try_collect::<Vec<_>>()
                 //     .await?
                 // {
                 //     dependency_context.edges.insert(
-                //         GraphElementIdentifier::KnowledgeGraphElementId(entity_id),
+                //         GraphElementIdentifier::KnowledgeGraphElementId(entity_uuid),
                 //         OutwardEdge {
                 //             edge_kind: EdgeKind::HasLink,
                 //             destination: GraphElementIdentifier::Temporary(LinkId {
-                //                 source_entity_id: link_record.source_entity_id,
-                //                 target_entity_id: link_record.target_entity_id,
+                //                 source_entity_uuid: link_record.source_entity_uuid,
+                //                 target_entity_uuid: link_record.target_entity_uuid,
                 //                 link_type_id: link_record.link_type_id.clone(),
                 //             }),
                 //         },
@@ -134,7 +134,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         entity: Entity,
         entity_type_id: VersionedUri,
         owned_by_id: OwnedById,
-        entity_id: Option<EntityId>,
+        entity_uuid: Option<EntityUuid>,
         created_by_id: CreatedById,
         link_metadata: Option<LinkEntityMetadata>,
     ) -> Result<PersistedEntityMetadata, InsertionError> {
@@ -146,17 +146,17 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .change_context(InsertionError)?,
         );
 
-        let entity_id = entity_id.unwrap_or_else(|| EntityId::new(Uuid::new_v4()));
+        let entity_uuid = entity_uuid.unwrap_or_else(|| EntityUuid::new(Uuid::new_v4()));
+        let entity_id = EntityId::new(owned_by_id, entity_uuid);
 
         // TODO: match on and return the relevant error
         //   https://app.asana.com/0/1200211978612931/1202574350052904/f
-        transaction.insert_entity_id(entity_id).await?;
+        transaction.insert_entity_uuid(entity_uuid).await?;
         let metadata = transaction
             .insert_entity(
                 entity_id,
                 entity,
                 entity_type_id,
-                owned_by_id,
                 created_by_id,
                 UpdatedById::new(created_by_id.as_account_id()),
                 link_metadata,
@@ -177,11 +177,11 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     #[cfg(feature = "__internal_bench")]
     async fn insert_entities_batched_by_type(
         &mut self,
-        entities: impl IntoIterator<Item = (Option<EntityId>, Entity), IntoIter: Send> + Send,
+        entities: impl IntoIterator<Item = (Option<EntityUuid>, Entity), IntoIter: Send> + Send,
         entity_type_id: VersionedUri,
         owned_by_id: OwnedById,
         actor_id: CreatedById,
-    ) -> Result<Vec<EntityId>, InsertionError> {
+    ) -> Result<Vec<EntityUuid>, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()
@@ -190,15 +190,20 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .change_context(InsertionError)?,
         );
 
-        let (entity_ids, entities): (Vec<_>, Vec<_>) = entities
+        let (entity_uuids, entities): (Vec<_>, Vec<_>) = entities
             .into_iter()
-            .map(|(id, entity)| (id.unwrap_or_else(|| EntityId::new(Uuid::new_v4())), entity))
+            .map(|(id, entity)| {
+                (
+                    id.unwrap_or_else(|| EntityUuid::new(Uuid::new_v4())),
+                    entity,
+                )
+            })
             .unzip();
 
         // TODO: match on and return the relevant error
         //   https://app.asana.com/0/1200211978612931/1202574350052904/f
         transaction
-            .insert_entity_ids(entity_ids.iter().copied())
+            .insert_entity_uuids(entity_uuids.iter().copied())
             .await?;
 
         // Using one entity type per entity would result in more lookups, which results in a more
@@ -210,7 +215,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .change_context(InsertionError)?;
         transaction
             .insert_entity_batch_by_type(
-                entity_ids.iter().copied(),
+                entity_uuids.iter().copied(),
                 entities,
                 entity_type_version_id,
                 owned_by_id,
@@ -226,7 +231,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .into_report()
             .change_context(InsertionError)?;
 
-        Ok(entity_ids)
+        Ok(entity_uuids)
     }
 
     async fn get_entity<'f: 'q, 'q>(
@@ -242,7 +247,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .then(|entity| async move {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 
-                let entity_id = entity.metadata().identifier().entity_id();
+                let entity_id = entity.metadata().identifier().base_id();
                 dependency_context
                     .linked_entities
                     .insert(&entity_id, None, entity);
@@ -252,7 +257,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
                 let root = GraphElementIdentifier::KnowledgeGraphElementId(entity_id);
 
-                Ok::<_, Report<QueryError>>(dependency_context.into_subgraph(vec![root]))
+                Ok::<_, Report<QueryError>>(dependency_context.into_subgraph(HashSet::from([root])))
             })
             .try_collect::<Vec<_>>()
             .await?;
@@ -293,7 +298,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 entity_id,
                 entity,
                 entity_type_id,
-                old_entity_metadata.identifier().owned_by_id(),
                 old_entity_metadata.created_by_id(),
                 updated_by_id,
                 old_entity_metadata.link_metadata(),
@@ -314,7 +318,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     async fn archive_entity(
         &mut self,
         entity_id: EntityId,
-        _owned_by_id: OwnedById,
         actor_id: UpdatedById,
     ) -> Result<(), ArchivalError> {
         let transaction = PostgresStore::new(
@@ -348,7 +351,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 entity_id,
                 old_entity.inner().clone(),
                 old_entity.metadata().entity_type_id().clone(),
-                old_entity.metadata().identifier().owned_by_id(),
                 old_entity.metadata().created_by_id(),
                 actor_id,
                 old_entity.metadata().link_metadata(),

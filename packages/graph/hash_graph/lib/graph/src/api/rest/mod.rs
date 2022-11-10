@@ -388,7 +388,9 @@ impl Modify for FilterSchemaAddon {
                                             "title",
                                             "description",
                                             "type",
-                                            "id",
+                                            // TODO we don't really want to expose UUIDs but
+                                            //  entityIds instead
+                                            "uuid",
                                             "properties",
                                             "incomingLinks",
                                             "outgoingLinks",

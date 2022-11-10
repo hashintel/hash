@@ -1,39 +1,20 @@
-use core::fmt;
-
-use postgres_types::{FromSql, ToSql};
-use serde::{Deserialize, Serialize, Serializer};
+use chrono::{DateTime, Utc};
+use serde::{Serialize, Serializer};
 use serde_json;
 use type_system::uri::VersionedUri;
 use utoipa::{openapi, ToSchema};
-use uuid::Uuid;
 
-use crate::knowledge::EntityId;
+use crate::identifier::knowledge::EntityId;
 
-#[derive(
-    Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema, FromSql, ToSql,
-)]
-#[repr(transparent)]
-#[postgres(transparent)]
-pub struct AccountId(Uuid);
+pub mod account;
+pub mod knowledge;
+pub mod ontology;
 
-impl AccountId {
-    #[must_use]
-    pub const fn new(uuid: Uuid) -> Self {
-        Self(uuid)
-    }
-}
-
-impl fmt::Display for AccountId {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(fmt, "{}", &self.0)
-    }
-}
+pub type Timestamp = DateTime<Utc>;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum GraphElementIdentifier {
     OntologyElementId(VersionedUri),
-    // TODO: owned_by_id and version are required to identify a specific instance of an entity
-    //  https://app.asana.com/0/1202805690238892/1203214689883091/f
     KnowledgeGraphElementId(EntityId),
 }
 

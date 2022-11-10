@@ -1,6 +1,6 @@
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
-    knowledge::EntityId,
+    knowledge::EntityUuid,
     store::{query::Filter, EntityStore},
     subgraph::{GraphResolveDepths, StructuralQuery},
 };
@@ -13,17 +13,17 @@ pub fn bench_get_entity_by_id(
     b: &mut Bencher,
     runtime: &Runtime,
     store: &Store,
-    entity_ids: &[EntityId],
+    entity_uuids: &[EntityUuid],
 ) {
     b.to_async(runtime).iter_batched(
         || {
             // Each iteration, *before timing*, pick a random entity from the sample to query
-            *entity_ids.iter().choose(&mut thread_rng()).unwrap()
+            *entity_uuids.iter().choose(&mut thread_rng()).unwrap()
         },
-        |entity_id| async move {
+        |entity_uuid| async move {
             store
                 .get_entity(&StructuralQuery {
-                    filter: Filter::for_latest_entity_by_entity_id(entity_id),
+                    filter: Filter::for_latest_entity_by_entity_uuid(entity_uuid),
                     graph_resolve_depths: GraphResolveDepths {
                         data_type_resolve_depth: 0,
                         property_type_resolve_depth: 0,

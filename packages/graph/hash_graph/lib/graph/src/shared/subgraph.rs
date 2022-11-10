@@ -114,7 +114,7 @@ impl GraphResolveDepths {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Subgraph {
-    pub roots: Vec<GraphElementIdentifier>,
+    pub roots: HashSet<GraphElementIdentifier>,
     pub vertices: HashMap<GraphElementIdentifier, Vertex>,
     pub edges: Edges,
     pub depths: GraphResolveDepths,
@@ -124,7 +124,7 @@ impl Subgraph {
     #[must_use]
     pub fn new(depths: GraphResolveDepths) -> Self {
         Self {
-            roots: Vec::new(),
+            roots: HashSet::new(),
             vertices: HashMap::new(),
             edges: Edges::new(),
             depths,

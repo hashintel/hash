@@ -2,7 +2,6 @@ mod query;
 
 use std::{collections::HashMap, fmt};
 
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tokio_postgres::types::{FromSql, ToSql};
 use type_system::uri::{BaseUri, VersionedUri};
@@ -10,16 +9,18 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 pub use self::query::{EntityQueryPath, EntityQueryPathVisitor};
-use crate::provenance::{CreatedById, OwnedById, UpdatedById};
+use crate::{
+    identifier::knowledge::{EntityEditionId, EntityId},
+    provenance::{CreatedById, UpdatedById},
+};
 
 #[derive(
-    Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema, FromSql, ToSql,
+    Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize, ToSchema,
 )]
 #[repr(transparent)]
-#[postgres(transparent)]
-pub struct EntityId(Uuid);
+pub struct EntityUuid(Uuid);
 
-impl EntityId {
+impl EntityUuid {
     #[must_use]
     pub const fn new(uuid: Uuid) -> Self {
         Self(uuid)
@@ -31,7 +32,7 @@ impl EntityId {
     }
 }
 
-impl fmt::Display for EntityId {
+impl fmt::Display for EntityUuid {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(fmt, "{}", &self.0)
     }
@@ -69,43 +70,6 @@ impl Entity {
     #[must_use]
     pub const fn properties(&self) -> &HashMap<BaseUri, serde_json::Value> {
         &self.0
-    }
-}
-
-/// The metadata required to uniquely identify an instance of an [`Entity`] that has been persisted
-/// in the datastore.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct PersistedEntityIdentifier {
-    entity_id: EntityId,
-    #[schema(value_type = String)]
-    version: DateTime<Utc>,
-    owned_by_id: OwnedById,
-}
-
-impl PersistedEntityIdentifier {
-    #[must_use]
-    pub const fn new(entity_id: EntityId, version: DateTime<Utc>, owned_by_id: OwnedById) -> Self {
-        Self {
-            entity_id,
-            version,
-            owned_by_id,
-        }
-    }
-
-    #[must_use]
-    pub const fn entity_id(&self) -> EntityId {
-        self.entity_id
-    }
-
-    #[must_use]
-    pub const fn version(&self) -> DateTime<Utc> {
-        self.version
-    }
-
-    #[must_use]
-    pub const fn owned_by_id(&self) -> OwnedById {
-        self.owned_by_id
     }
 }
 
@@ -163,7 +127,7 @@ impl LinkEntityMetadata {
 // TODO: deny_unknown_fields on other structs
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct PersistedEntityMetadata {
-    identifier: PersistedEntityIdentifier,
+    identifier: EntityEditionId,
     #[schema(value_type = String)]
     entity_type_id: VersionedUri,
     // TODO: encapsulate these in a `ProvenanceMetadata` struct?
@@ -178,7 +142,7 @@ pub struct PersistedEntityMetadata {
 impl PersistedEntityMetadata {
     #[must_use]
     pub const fn new(
-        identifier: PersistedEntityIdentifier,
+        identifier: EntityEditionId,
         entity_type_id: VersionedUri,
         created_by_id: CreatedById,
         updated_by_id: UpdatedById,
@@ -196,7 +160,7 @@ impl PersistedEntityMetadata {
     }
 
     #[must_use]
-    pub const fn identifier(&self) -> &PersistedEntityIdentifier {
+    pub const fn identifier(&self) -> &EntityEditionId {
         &self.identifier
     }
 
@@ -239,7 +203,7 @@ impl PersistedEntity {
     #[must_use]
     pub const fn new(
         inner: Entity,
-        identifier: PersistedEntityIdentifier,
+        identifier: EntityEditionId,
         entity_type_id: VersionedUri,
         created_by_id: CreatedById,
         updated_by_id: UpdatedById,

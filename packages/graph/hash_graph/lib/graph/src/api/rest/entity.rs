@@ -15,12 +15,12 @@ use utoipa::{OpenApi, ToSchema};
 
 use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
-    knowledge::{
-        Entity, EntityId, LinkEntityMetadata, PersistedEntity, PersistedEntityIdentifier,
-        PersistedEntityMetadata,
-    },
+    knowledge::{Entity, EntityUuid, LinkEntityMetadata, PersistedEntity, PersistedEntityMetadata},
     provenance::{CreatedById, OwnedById, UpdatedById},
-    shared::identifier::GraphElementIdentifier,
+    shared::identifier::{
+        knowledge::{EntityEditionId, EntityId},
+        GraphElementIdentifier,
+    },
     store::{
         error::{EntityDoesNotExist, QueryError},
         query::Filter,
@@ -49,8 +49,9 @@ use crate::{
             CreateEntityRequest,
             UpdateEntityRequest,
             ArchiveEntityRequest,
+            EntityUuid,
             EntityId,
-            PersistedEntityIdentifier,
+            EntityEditionId,
             PersistedEntityMetadata,
             PersistedEntity,
             Entity,
@@ -85,7 +86,7 @@ impl RoutedResource for EntityResource {
                 )
                 .route("/archive", post(archive_entity::<P>))
                 .route("/query", post(get_entities_by_query::<P>))
-                .route("/:entity_id", get(get_entity::<P>)),
+                .route("/:entity_uuid", get(get_entity::<P>)),
         )
     }
 }
@@ -97,7 +98,7 @@ struct CreateEntityRequest {
     #[schema(value_type = String)]
     entity_type_id: VersionedUri,
     owned_by_id: OwnedById,
-    entity_id: Option<EntityId>,
+    entity_uuid: Option<EntityUuid>,
     actor_id: CreatedById,
     // TODO: this could break invariants if we don't move to fractional indexing
     //  https://app.asana.com/0/1201095311341924/1202085856561975/f
@@ -126,7 +127,7 @@ async fn create_entity<P: StorePool + Send>(
         entity,
         entity_type_id,
         owned_by_id,
-        entity_id,
+        entity_uuid,
         actor_id,
         link_metadata,
     }) = body;
@@ -141,7 +142,7 @@ async fn create_entity<P: StorePool + Send>(
             entity,
             entity_type_id,
             owned_by_id,
-            entity_id,
+            entity_uuid,
             actor_id,
             link_metadata,
         )
@@ -159,7 +160,6 @@ async fn create_entity<P: StorePool + Send>(
 #[serde(rename_all = "camelCase")]
 struct ArchiveEntityRequest {
     entity_id: EntityId,
-    owned_by_id: OwnedById,
     actor_id: UpdatedById,
 }
 
@@ -182,7 +182,6 @@ async fn archive_entity<P: StorePool + Send>(
 ) -> Result<(), StatusCode> {
     let Json(ArchiveEntityRequest {
         entity_id,
-        owned_by_id,
         actor_id,
     }) = body;
 
@@ -192,7 +191,7 @@ async fn archive_entity<P: StorePool + Send>(
     })?;
 
     store
-        .archive_entity(entity_id, owned_by_id, actor_id)
+        .archive_entity(entity_id, actor_id)
         .await
         .map_err(|report| {
             if report.contains::<QueryError>() {
@@ -274,7 +273,7 @@ async fn get_latest_entities<P: StorePool + Send>(
         (status = 500, description = "Store error occurred"),
     ),
     params(
-        ("entityId" = Uuid, Path, description = "The ID of the entity"),
+        ("entityUuid" = Uuid, Path, description = "The UUID of the entity"),
     )
 )]
 async fn get_entity<P: StorePool + Send>(

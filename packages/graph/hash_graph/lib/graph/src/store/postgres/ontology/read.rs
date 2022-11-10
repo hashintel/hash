@@ -7,12 +7,12 @@ use tokio_postgres::GenericClient;
 use type_system::{uri::VersionedUri, DataType, EntityType, PropertyType};
 
 use crate::{
-    identifier::AccountId,
     ontology::{
         PersistedDataType, PersistedEntityType, PersistedOntologyIdentifier,
         PersistedOntologyMetadata, PersistedOntologyType, PersistedPropertyType,
     },
     provenance::{CreatedById, OwnedById, RemovedById, UpdatedById},
+    shared::identifier::account::AccountId,
     store::{
         crud::Read,
         postgres::{

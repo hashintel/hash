@@ -5,9 +5,9 @@ use std::{
 };
 
 use graph::{
-    identifier::AccountId,
-    knowledge::{Entity, EntityId},
+    knowledge::{Entity, EntityUuid},
     provenance::{CreatedById, OwnedById},
+    shared::identifier::account::AccountId,
     store::{AccountStore, AsClient, EntityStore, PostgresStore},
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
@@ -154,7 +154,7 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
 
 /// DOC - TODO
 pub struct Samples {
-    pub entities: HashMap<AccountId, HashMap<VersionedUri, Vec<EntityId>>>,
+    pub entities: HashMap<AccountId, HashMap<VersionedUri, Vec<EntityUuid>>>,
     pub entity_types: HashMap<AccountId, Vec<VersionedUri>>,
 }
 
@@ -187,13 +187,13 @@ async fn get_samples(account_id: AccountId, store_wrapper: &mut StoreWrapper) ->
             .clone()
     }) {
         // For now we'll just pick a sample of 50 entities.
-        let sample_entity_ids = store_wrapper
+        let sample_entity_uuids = store_wrapper
             .store
             .as_client()
             .query(
                 r#"
                 -- Very naive and slow sampling, we can replace when this becomes a bottleneck
-                SELECT entity_id FROM entities
+                SELECT entity_uuid FROM entities
                 INNER JOIN type_ids
                 ON type_ids.version_id = entities.entity_type_version_id
                 WHERE type_ids.base_uri = $1 AND type_ids.version = $2
@@ -213,9 +213,9 @@ async fn get_samples(account_id: AccountId, store_wrapper: &mut StoreWrapper) ->
             .map(|row| row.get(0));
 
         match sample_map.entry(entity_type_id) {
-            Entry::Occupied(mut entry_slot) => entry_slot.get_mut().extend(sample_entity_ids),
+            Entry::Occupied(mut entry_slot) => entry_slot.get_mut().extend(sample_entity_uuids),
             Entry::Vacant(entry_slot) => {
-                entry_slot.insert(sample_entity_ids.collect::<Vec<_>>());
+                entry_slot.insert(sample_entity_uuids.collect::<Vec<_>>());
             }
         }
     }

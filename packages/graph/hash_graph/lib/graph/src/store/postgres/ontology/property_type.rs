@@ -1,4 +1,4 @@
-use std::{future::Future, pin::Pin};
+use std::{collections::HashSet, future::Future, pin::Pin};
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
@@ -189,7 +189,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
 
                 let root = GraphElementIdentifier::OntologyElementId(property_type_id);
 
-                Ok::<_, Report<QueryError>>(dependency_context.into_subgraph(vec![root]))
+                Ok::<_, Report<QueryError>>(dependency_context.into_subgraph(HashSet::from([root])))
             })
             .try_collect::<Vec<_>>()
             .await?;

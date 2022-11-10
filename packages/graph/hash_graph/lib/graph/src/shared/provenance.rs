@@ -2,12 +2,15 @@ use core::fmt;
 
 use serde::{Deserialize, Serialize};
 use utoipa::{openapi::Schema, ToSchema};
+use uuid::Uuid;
 
-use crate::identifier::AccountId;
+use crate::shared::identifier::account::AccountId;
 
 macro_rules! define_provenance_id {
     ($name:tt) => {
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+        #[derive(
+            Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize,
+        )]
         #[repr(transparent)]
         pub struct $name(AccountId);
 
@@ -20,6 +23,11 @@ macro_rules! define_provenance_id {
             #[must_use]
             pub const fn as_account_id(self) -> AccountId {
                 self.0
+            }
+
+            #[must_use]
+            pub const fn as_uuid(self) -> Uuid {
+                self.0.as_uuid()
             }
         }
 

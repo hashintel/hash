@@ -8,9 +8,9 @@ use std::{borrow::Cow, str::FromStr};
 
 use error_stack::Result;
 use graph::{
-    identifier::AccountId,
+    identifier::knowledge::EntityId,
     knowledge::{
-        Entity, EntityId, EntityQueryPath, LinkEntityMetadata, PersistedEntity,
+        Entity, EntityQueryPath, EntityUuid, LinkEntityMetadata, PersistedEntity,
         PersistedEntityMetadata,
     },
     ontology::{
@@ -18,7 +18,7 @@ use graph::{
         PersistedPropertyType,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
-    shared::identifier::GraphElementIdentifier,
+    shared::identifier::{account::AccountId, GraphElementIdentifier},
     store::{
         error::ArchivalError,
         query::{Filter, FilterExpression, Parameter},
@@ -268,14 +268,14 @@ impl DatabaseApi<'_> {
         &mut self,
         entity: Entity,
         entity_type_id: VersionedUri,
-        entity_id: Option<EntityId>,
+        entity_uuid: Option<EntityUuid>,
     ) -> Result<PersistedEntityMetadata, InsertionError> {
         self.store
             .create_entity(
                 entity,
                 entity_type_id,
                 OwnedById::new(self.account_id),
-                entity_id,
+                entity_uuid,
                 CreatedById::new(self.account_id),
                 None,
             )
@@ -320,7 +320,7 @@ impl DatabaseApi<'_> {
         &mut self,
         entity: Entity,
         entity_type_id: VersionedUri,
-        entity_id: Option<EntityId>,
+        entity_uuid: Option<EntityUuid>,
         left_entity_id: EntityId,
         right_entity_id: EntityId,
     ) -> Result<PersistedEntityMetadata, InsertionError> {
@@ -329,7 +329,7 @@ impl DatabaseApi<'_> {
                 entity,
                 entity_type_id,
                 OwnedById::new(self.account_id),
-                entity_id,
+                entity_uuid,
                 CreatedById::new(self.account_id),
                 Some(LinkEntityMetadata::new(
                     left_entity_id,
@@ -343,16 +343,16 @@ impl DatabaseApi<'_> {
 
     pub async fn get_link_entity_target(
         &self,
-        source_entity_id: EntityId,
+        source_entity_uuid: EntityUuid,
         link_type_id: VersionedUri,
     ) -> Result<PersistedEntity, QueryError> {
         let filter = Filter::All(vec![
             Filter::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::LeftEntity(Some(
-                    Box::new(EntityQueryPath::Id),
+                    Box::new(EntityQueryPath::Uuid),
                 )))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    source_entity_id.as_uuid(),
+                    source_entity_uuid.as_uuid(),
                 ))),
             ),
             Filter::Equal(
@@ -397,7 +397,15 @@ impl DatabaseApi<'_> {
             Filter::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::LeftEntity(None))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    source_entity_id.as_uuid(),
+                    source_entity_id.entity_uuid().as_uuid(),
+                ))),
+            ),
+            Filter::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(Some(
+                    Box::new(EntityQueryPath::OwnedById),
+                )))),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    source_entity_id.owned_by_id().as_uuid(),
                 ))),
             ),
             Filter::Equal(
@@ -426,11 +434,7 @@ impl DatabaseApi<'_> {
 
     async fn archive_entity(&mut self, link_entity_id: EntityId) -> Result<(), ArchivalError> {
         self.store
-            .archive_entity(
-                link_entity_id,
-                OwnedById::new(self.account_id),
-                UpdatedById::new(self.account_id),
-            )
+            .archive_entity(link_entity_id, UpdatedById::new(self.account_id))
             .await
     }
 }
