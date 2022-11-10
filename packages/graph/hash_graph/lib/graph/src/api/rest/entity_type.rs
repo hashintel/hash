@@ -25,9 +25,12 @@ use crate::{
         identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId, GraphElementId},
         subgraph::{
             depths::GraphResolveDepths,
-            edges::{Edges, OntologyEdgeKind, OutwardEdge, SharedEdgeKind},
+            edges::{
+                Edges, OntologyEdgeKind, OntologyOutwardEdges, OntologyRootedEdges, OutwardEdge,
+                SharedEdgeKind,
+            },
             query::StructuralQuery,
-            vertices::{Vertex, Vertices},
+            vertices::{OntologyVertices, Vertex, Vertices},
         },
     },
     store::{
@@ -61,13 +64,16 @@ use crate::{
             GraphElementId,
             GraphElementEditionId,
             ProvenanceMetadata,
+            OntologyVertices,
             Vertices,
             Vertex,
             OntologyEdgeKind,
             SharedEdgeKind,
             OutwardEdge,
-            GraphResolveDepths,
+            OntologyOutwardEdges,
+            OntologyRootedEdges,
             Edges,
+            GraphResolveDepths,
             Subgraph,
         )
     ),

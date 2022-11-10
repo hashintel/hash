@@ -21,12 +21,13 @@ pub struct OntologyRootedEdges(
     pub BTreeMap<BaseUri, BTreeMap<OntologyTypeVersion, BTreeSet<OntologyOutwardEdges>>>,
 );
 
+// This is needed because Utoipa doesn't know how to handle the BTreeMaps
 impl ToSchema for OntologyRootedEdges {
     fn schema() -> openapi::Schema {
         openapi::ObjectBuilder::new()
             .additional_properties(Some(openapi::Schema::from(
                 openapi::ObjectBuilder::new().additional_properties(Some(openapi::Array::new(
-                    OntologyOutwardEdges::schema(),
+                    openapi::Ref::from_schema_name("OntologyOutwardEdges"),
                 ))),
             )))
             .into()
@@ -39,19 +40,20 @@ pub struct KnowledgeGraphRootedEdges(
     pub BTreeMap<EntityId, BTreeMap<EntityVersion, BTreeSet<KnowledgeGraphOutwardEdges>>>,
 );
 
+// This is needed because Utoipa doesn't know how to handle the BTreeMaps
 impl ToSchema for KnowledgeGraphRootedEdges {
     fn schema() -> openapi::Schema {
         openapi::ObjectBuilder::new()
             .additional_properties(Some(openapi::Schema::from(
                 openapi::ObjectBuilder::new().additional_properties(Some(openapi::Array::new(
-                    KnowledgeGraphOutwardEdges::schema(),
+                    openapi::Ref::from_schema_name("KnowledgeGraphOutwardEdges"),
                 ))),
             )))
             .into()
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Edges {
     #[serde(flatten)]
     ontology: OntologyRootedEdges,
@@ -121,5 +123,21 @@ impl Edges {
         self.knowledge_graph
             .0
             .extend(other.knowledge_graph.0.into_iter());
+    }
+}
+
+// Utoipa generates `Edges` as an empty object if we don't manually do it, and we can't use
+// allOf because the generator can't handle it
+impl ToSchema for Edges {
+    fn schema() -> openapi::Schema {
+        openapi::ObjectBuilder::new()
+            .additional_properties(Some(openapi::Schema::from(
+                openapi::ObjectBuilder::new().additional_properties(Some(openapi::Array::new(
+                    openapi::OneOfBuilder::new()
+                        .item(openapi::Ref::from_schema_name("OntologyOutwardEdges"))
+                        .item(openapi::Ref::from_schema_name("KnowledgeGraphOutwardEdges")),
+                ))),
+            )))
+            .into()
     }
 }

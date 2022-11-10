@@ -95,8 +95,8 @@ pub enum Vertex {
 impl ToSchema for Vertex {
     fn schema() -> openapi::Schema {
         openapi::OneOfBuilder::new()
-            .item(OntologyVertex::schema())
-            .item(KnowledgeGraphVertex::schema())
+            .item(openapi::Ref::from_schema_name("OntologyVertex"))
+            .item(openapi::Ref::from_schema_name("KnowledgeGraphVertex"))
             .into()
     }
 }

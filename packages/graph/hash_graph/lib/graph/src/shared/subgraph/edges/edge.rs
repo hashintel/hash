@@ -11,7 +11,7 @@ use crate::{
     subgraph::edges::{KnowledgeGraphEdgeKind, OntologyEdgeKind, SharedEdgeKind},
 };
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct GenericOutwardEdge<E, V>
 where
@@ -23,6 +23,28 @@ where
     /// instead of Source-Edge-Target, interpret it as Target-Edge-Source
     pub reversed: bool,
     pub endpoint: V,
+}
+
+// Utoipa doesn't seem to be able to generate sensible interfaces for this, it gets confused by
+// the generic
+impl<E, V> GenericOutwardEdge<E, V>
+where
+    E: Serialize + ToSchema,
+    V: Serialize + ToSchema,
+{
+    fn schema() -> openapi::Schema {
+        openapi::ObjectBuilder::new()
+            .property("kind", V::schema())
+            .required("kind")
+            .property(
+                "reversed",
+                openapi::Object::with_type(openapi::SchemaType::Boolean),
+            )
+            .required("reversed")
+            .property("endpoint", E::schema())
+            .required("endpoint")
+            .into()
+    }
 }
 
 impl<E, V> PartialOrd for GenericOutwardEdge<E, V>
@@ -99,8 +121,8 @@ pub enum OutwardEdge {
 impl ToSchema for OutwardEdge {
     fn schema() -> openapi::Schema {
         openapi::OneOfBuilder::new()
-            .item(OntologyOutwardEdges::schema())
-            .item(KnowledgeGraphOutwardEdges::schema())
+            .item(openapi::Ref::from_schema_name("OntologyOutwardEdges"))
+            .item(openapi::Ref::from_schema_name("KnowledgeGraphOutwardEdges"))
             .into()
     }
 }

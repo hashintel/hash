@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use serde::Serialize;
 use type_system::uri::BaseUri;
-use utoipa::{ToSchema};
+use utoipa::{openapi, ToSchema};
 
 pub use self::vertex::*;
 use crate::identifier::{
@@ -23,7 +23,7 @@ pub struct KnowledgeGraphVertices(
     pub HashMap<EntityId, HashMap<EntityVersion, KnowledgeGraphVertex>>,
 );
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Vertices {
     #[serde(flatten)]
@@ -73,5 +73,21 @@ impl Vertices {
                         .map(Vertex::KnowledgeGraph)
                 }),
         }
+    }
+}
+
+// Utoipa generates `Edges` as an empty object if we don't manually do it, and we can't use
+// allOf because the generator can't handle it
+impl ToSchema for Vertices {
+    fn schema() -> openapi::Schema {
+        openapi::ObjectBuilder::new()
+            .additional_properties(Some(openapi::Schema::from(
+                openapi::ObjectBuilder::new().additional_properties(Some(openapi::Array::new(
+                    openapi::OneOfBuilder::new()
+                        .item(openapi::Ref::from_schema_name("KnowledgeGraphVertex"))
+                        .item(openapi::Ref::from_schema_name("OntologyVertex")),
+                ))),
+            )))
+            .into()
     }
 }

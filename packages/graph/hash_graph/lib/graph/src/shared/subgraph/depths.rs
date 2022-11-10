@@ -49,13 +49,13 @@ pub type SubgraphQueryDepth = u8;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct GraphResolveDepths {
-    #[schema(value_type = number)]
+    #[schema(value_type = i64)]
     pub data_type_resolve_depth: SubgraphQueryDepth,
-    #[schema(value_type = number)]
+    #[schema(value_type = i64)]
     pub property_type_resolve_depth: SubgraphQueryDepth,
-    #[schema(value_type = number)]
+    #[schema(value_type = i64)]
     pub entity_type_resolve_depth: SubgraphQueryDepth,
-    #[schema(value_type = number)]
+    #[schema(value_type = i64)]
     pub entity_resolve_depth: SubgraphQueryDepth,
 }
 
