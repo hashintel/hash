@@ -283,7 +283,7 @@ async fn get_latest_entities<P: StorePool + Send>(
     path = "/entities/{entityId}",
     tag = "Entity",
     responses(
-        (status = 200, content_type = "application/json", description = "The requested entity", body = Entity),
+        (status = 200, content_type = "application/json", description = "The latest version of the requested entity", body = Entity),
 
         (status = 400, content_type = "text/plain", description = "Provided entity id is invalid"),
         (status = 404, description = "Entity was not found"),
