@@ -28,11 +28,11 @@ export const persistedOrgTypedef = gql`
       """
       The depth of links that are returned in the response subgraph.
       """
-      linkResolveDepth: Int
+      linkResolveDepth: Int! = 0
       """
       The depth of link target entities that are returned in the response subgraph.
       """
-      linkTargetEntityResolveDepth: Int
+      linkTargetEntityResolveDepth: Int! = 0
     ): Subgraph!
   }
 `;

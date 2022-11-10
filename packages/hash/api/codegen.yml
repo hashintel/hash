@@ -19,6 +19,8 @@ generates:
       - "typescript-resolvers"
       - "typescript-operations"
     config:
+      avoidOptionals:
+        defaultValue: true
       noSchemaStitching: true
       skipTypename: true
       scalars:

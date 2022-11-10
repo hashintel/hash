@@ -25,8 +25,8 @@ export const createOrg: ResolverFn<
   });
 
   const orgRootedSubgraph = await orgModel.getRootedSubgraph(graphApi, {
-    linkResolveDepth: linkResolveDepth ?? 0,
-    linkTargetEntityResolveDepth: linkTargetEntityResolveDepth ?? 0,
+    linkResolveDepth,
+    linkTargetEntityResolveDepth,
   });
 
   return mapSubgraphToGql(orgRootedSubgraph);
