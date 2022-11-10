@@ -174,7 +174,7 @@ pub type OntologyQueryDepth = u8;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 pub struct DataTypeWithMetadata {
     #[schema(value_type = VAR_DATA_TYPE)]
-    #[serde(serialize_with = "serialize_ontology_type")]
+    #[serde(rename = "schema", serialize_with = "serialize_ontology_type")]
     inner: DataType,
     metadata: OntologyElementMetadata,
 }
@@ -194,7 +194,7 @@ impl DataTypeWithMetadata {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 pub struct PropertyTypeWithMetadata {
     #[schema(value_type = VAR_PROPERTY_TYPE)]
-    #[serde(serialize_with = "serialize_ontology_type")]
+    #[serde(rename = "schema", serialize_with = "serialize_ontology_type")]
     inner: PropertyType,
     metadata: OntologyElementMetadata,
 }
@@ -253,7 +253,7 @@ impl OntologyElementMetadata {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 pub struct EntityTypeWithMetadata {
     #[schema(value_type = VAR_ENTITY_TYPE)]
-    #[serde(serialize_with = "serialize_ontology_type")]
+    #[serde(rename = "schema", serialize_with = "serialize_ontology_type")]
     inner: EntityType,
     metadata: OntologyElementMetadata,
 }
