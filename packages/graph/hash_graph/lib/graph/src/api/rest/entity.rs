@@ -276,7 +276,7 @@ async fn get_latest_entities<P: StorePool + Send>(
         (status = 500, description = "Store error occurred"),
     ),
     params(
-        ("entityUuid" = Uuid, Path, description = "The UUID of the entity"),
+        ("entityId" = EntityId, Path, description = "The EntityId"),
     )
 )]
 async fn get_entity<P: StorePool + Send>(
