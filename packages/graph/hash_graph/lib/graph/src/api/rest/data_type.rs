@@ -33,7 +33,7 @@ use crate::{
         },
     },
     store::{query::Filter, BaseUriAlreadyExists, BaseUriDoesNotExist, DataTypeStore, StorePool},
-    subgraph::{DataTypeStructuralQuery, Subgraph},
+    subgraph::{query::DataTypeStructuralQuery, Subgraph},
 };
 
 #[derive(OpenApi)]

@@ -35,7 +35,7 @@ use crate::{
         query::Filter,
         EntityTypeStore, StorePool,
     },
-    subgraph::{EntityTypeStructuralQuery, Subgraph},
+    subgraph::{query::EntityTypeStructuralQuery, Subgraph},
 };
 
 #[derive(OpenApi)]

@@ -11,10 +11,10 @@ use vertices::Vertex;
 
 use crate::shared::identifier::GraphElementId;
 
-mod depths;
-mod edges;
-mod query;
-mod vertices;
+pub mod depths;
+pub mod edges;
+pub mod query;
+pub mod vertices;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
