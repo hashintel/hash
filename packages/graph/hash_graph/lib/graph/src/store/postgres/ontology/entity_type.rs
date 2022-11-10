@@ -66,7 +66,7 @@ impl<C: AsClient> PostgresStore<C> {
                         // TODO: Use relation tables
                         //   see https://app.asana.com/0/0/1202884883200942/f
                         self.get_property_type_as_dependency(
-                            // TODO: we have to clone here because we can't call `Into` on the ref
+                            // We have to clone here because we can't call `Into` on the ref
                             &property_type_ref.uri().clone().into(),
                             dependency_context.change_depth(GraphResolveDepths {
                                 property_type_resolve_depth: dependency_context
@@ -114,7 +114,7 @@ impl<C: AsClient> PostgresStore<C> {
                         > 0
                     {
                         self.get_entity_type_as_dependency(
-                            // TODO: we have to clone here because we can't call `Into` on the ref
+                            // We have to clone here because we can't call `Into` on the ref
                             &entity_type_id.clone().into(),
                             dependency_context.change_depth(GraphResolveDepths {
                                 entity_type_resolve_depth: dependency_context
