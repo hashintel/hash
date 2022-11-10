@@ -26,7 +26,7 @@ use crate::{
         },
         subgraph::{
             depths::GraphResolveDepths,
-            edges::{EdgeKind, Edges, OutwardEdge},
+            edges::{Edges, KnowledgeGraphEdgeKind, OutwardEdge, SharedEdgeKind},
             query::StructuralQuery,
             vertices::Vertex,
         },
@@ -71,7 +71,8 @@ use crate::{
             GraphElementId,
             GraphElementEditionId,
             Vertex,
-            EdgeKind,
+            KnowledgeGraphEdgeKind,
+            SharedEdgeKind,
             OutwardEdge,
             GraphResolveDepths,
             Edges,
