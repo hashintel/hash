@@ -21,7 +21,7 @@ use crate::{
         patch_id_and_parse, EntityTypeWithMetadata, OntologyElementMetadata,
     },
     provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
-    shared::identifier::{ontology::OntologyTypeEditionId, GraphElementIdentifier},
+    shared::identifier::{ontology::OntologyTypeEditionId, GraphElementId},
     store::{
         error::{BaseUriAlreadyExists, BaseUriDoesNotExist},
         query::Filter,
@@ -53,7 +53,7 @@ use crate::{
             OntologyElementMetadata,
             EntityTypeWithMetadata,
             EntityTypeStructuralQuery,
-            GraphElementIdentifier,
+            GraphElementId,
             ProvenanceMetadata,
             Vertex,
             EdgeKind,

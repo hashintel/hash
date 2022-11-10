@@ -21,7 +21,7 @@ use crate::{
     provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
     shared::identifier::{
         knowledge::{EntityEditionId, EntityId, EntityVersion},
-        GraphElementIdentifier,
+        GraphElementId,
     },
     store::{
         error::{EntityDoesNotExist, QueryError},
@@ -62,7 +62,7 @@ use crate::{
             LinkEntityMetadata,
             LinkOrder,
             ProvenanceMetadata,
-            GraphElementIdentifier,
+            GraphElementId,
             Vertex,
             EdgeKind,
             OutwardEdge,

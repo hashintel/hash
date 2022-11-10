@@ -17,7 +17,7 @@ use graph::{
         PropertyTypeWithMetadata,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
-    shared::identifier::{account::AccountId, GraphElementIdentifier},
+    shared::identifier::{account::AccountId, GraphElementId},
     store::{
         error::ArchivalError,
         query::{Filter, FilterExpression, Parameter},
@@ -159,9 +159,7 @@ impl DatabaseApi<'_> {
             })
             .await?
             .vertices
-            .remove(&GraphElementIdentifier::OntologyElementId(
-                uri.clone().into(),
-            ))
+            .remove(&GraphElementId::OntologyElementId(uri.clone().into()))
             .expect("no data type found");
 
         match vertex {
@@ -204,9 +202,7 @@ impl DatabaseApi<'_> {
             })
             .await?
             .vertices
-            .remove(&GraphElementIdentifier::OntologyElementId(
-                uri.clone().into(),
-            ))
+            .remove(&GraphElementId::OntologyElementId(uri.clone().into()))
             .expect("no property type found");
 
         match vertex {
@@ -249,9 +245,7 @@ impl DatabaseApi<'_> {
             })
             .await?
             .vertices
-            .remove(&GraphElementIdentifier::OntologyElementId(
-                uri.clone().into(),
-            ))
+            .remove(&GraphElementId::OntologyElementId(uri.clone().into()))
             .expect("no entity type found");
 
         match vertex {
@@ -296,7 +290,7 @@ impl DatabaseApi<'_> {
             })
             .await?
             .vertices
-            .remove(&GraphElementIdentifier::KnowledgeGraphElementId(entity_id))
+            .remove(&GraphElementId::KnowledgeGraphElementId(entity_id))
             .expect("no entity found");
 
         match vertex {

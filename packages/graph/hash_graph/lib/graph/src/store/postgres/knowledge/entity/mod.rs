@@ -10,7 +10,7 @@ use type_system::uri::VersionedUri;
 use uuid::Uuid;
 
 use crate::{
-    identifier::{knowledge::EntityId, GraphElementIdentifier},
+    identifier::{knowledge::EntityId, GraphElementId},
     knowledge::{Entity, EntityMetadata, EntityProperties, EntityUuid, LinkEntityMetadata},
     provenance::{CreatedById, OwnedById, UpdatedById},
     store::{
@@ -55,10 +55,10 @@ impl<C: AsClient> PostgresStore<C> {
                 let entity_type_id = entity.metadata().entity_type_id().clone();
 
                 dependency_context.edges.insert(
-                    GraphElementIdentifier::KnowledgeGraphElementId(entity_id),
+                    GraphElementId::KnowledgeGraphElementId(entity_id),
                     OutwardEdge {
                         edge_kind: EdgeKind::HasType,
-                        destination: GraphElementIdentifier::OntologyElementId(
+                        destination: GraphElementId::OntologyElementId(
                             entity_type_id.clone().into(),
                         ),
                     },
@@ -92,10 +92,10 @@ impl<C: AsClient> PostgresStore<C> {
                 //     .await?
                 // {
                 //     dependency_context.edges.insert(
-                //         GraphElementIdentifier::KnowledgeGraphElementId(entity_uuid),
+                //         GraphElementId::KnowledgeGraphElementId(entity_uuid),
                 //         OutwardEdge {
                 //             edge_kind: EdgeKind::HasLink,
-                //             destination: GraphElementIdentifier::Temporary(LinkId {
+                //             destination: GraphElementId::Temporary(LinkId {
                 //                 source_entity_uuid: link_record.source_entity_uuid,
                 //                 target_entity_uuid: link_record.target_entity_uuid,
                 //                 link_type_id: link_record.link_type_id.clone(),
@@ -256,7 +256,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 self.get_entity_as_dependency(entity_id, dependency_context.as_ref_object())
                     .await?;
 
-                let root = GraphElementIdentifier::KnowledgeGraphElementId(entity_id);
+                let root = GraphElementId::KnowledgeGraphElementId(entity_id);
 
                 Ok::<_, Report<QueryError>>(dependency_context.into_subgraph(HashSet::from([root])))
             })

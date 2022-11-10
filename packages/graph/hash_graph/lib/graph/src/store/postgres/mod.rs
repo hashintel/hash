@@ -39,7 +39,7 @@ use crate::{
         PropertyTypeWithMetadata,
     },
     provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
-    shared::identifier::{account::AccountId, GraphElementIdentifier},
+    shared::identifier::{account::AccountId, GraphElementId},
     store::{
         error::VersionedUriAlreadyExists,
         postgres::{ontology::OntologyDatabaseType, version_id::VersionId},
@@ -268,15 +268,13 @@ impl DependencyContext {
     }
 
     #[must_use]
-    pub fn into_subgraph(self, roots: HashSet<GraphElementIdentifier>) -> Subgraph {
+    pub fn into_subgraph(self, roots: HashSet<GraphElementId>) -> Subgraph {
         let vertices = self
             .referenced_data_types
             .into_values()
             .map(|data_type| {
                 (
-                    GraphElementIdentifier::OntologyElementId(
-                        data_type.metadata().edition_id().clone(),
-                    ),
+                    GraphElementId::OntologyElementId(data_type.metadata().edition_id().clone()),
                     Vertex::DataType(data_type),
                 )
             })
@@ -285,7 +283,7 @@ impl DependencyContext {
                     .into_values()
                     .map(|property_type| {
                         (
-                            GraphElementIdentifier::OntologyElementId(
+                            GraphElementId::OntologyElementId(
                                 property_type.metadata().edition_id().clone(),
                             ),
                             Vertex::PropertyType(property_type),
@@ -297,7 +295,7 @@ impl DependencyContext {
                     .into_values()
                     .map(|entity_type| {
                         (
-                            GraphElementIdentifier::OntologyElementId(
+                            GraphElementId::OntologyElementId(
                                 entity_type.metadata().edition_id().clone(),
                             ),
                             Vertex::EntityType(entity_type),
@@ -306,7 +304,7 @@ impl DependencyContext {
             )
             .chain(self.linked_entities.into_values().map(|entity| {
                 (
-                    GraphElementIdentifier::KnowledgeGraphElementId(
+                    GraphElementId::KnowledgeGraphElementId(
                         entity.metadata().edition_id().base_id(),
                     ),
                     Vertex::Entity(entity),

@@ -22,7 +22,7 @@ use crate::{
         patch_id_and_parse, OntologyElementMetadata, PropertyTypeWithMetadata,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
-    shared::identifier::{ontology::OntologyTypeEditionId, GraphElementIdentifier},
+    shared::identifier::{ontology::OntologyTypeEditionId, GraphElementId},
     store::{
         query::Filter, BaseUriAlreadyExists, BaseUriDoesNotExist, PropertyTypeStore, StorePool,
     },
@@ -52,7 +52,7 @@ use crate::{
             OntologyElementMetadata,
             PropertyTypeWithMetadata,
             PropertyTypeStructuralQuery,
-            GraphElementIdentifier,
+            GraphElementId,
             Vertex,
             EdgeKind,
             OutwardEdge,

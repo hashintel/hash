@@ -12,12 +12,12 @@ pub mod ontology;
 pub type Timestamp = DateTime<Utc>;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum GraphElementIdentifier {
+pub enum GraphElementId {
     OntologyElementId(OntologyTypeEditionId),
     KnowledgeGraphElementId(EntityId),
 }
 
-impl Serialize for GraphElementIdentifier {
+impl Serialize for GraphElementId {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -31,7 +31,7 @@ impl Serialize for GraphElementIdentifier {
 
 // TODO: We have to do this because utoipa doesn't understand serde untagged
 //  https://github.com/juhaku/utoipa/issues/320
-impl ToSchema for GraphElementIdentifier {
+impl ToSchema for GraphElementId {
     fn schema() -> openapi::Schema {
         openapi::OneOfBuilder::new()
             .item(openapi::Object::with_type(openapi::SchemaType::String))
