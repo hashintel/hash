@@ -35,7 +35,7 @@ async fn insert() {
         .expect("could not create entity");
 
     let entity = api
-        .get_entity(metadata.edition_id().base_id())
+        .get_entity(metadata.edition_id())
         .await
         .expect("could not get entity");
 
@@ -71,7 +71,7 @@ async fn query() {
         .expect("could not create entity");
 
     let queried_organization = api
-        .get_entity(metadata.edition_id().base_id())
+        .get_entity(metadata.edition_id())
         .await
         .expect("could not get entity");
 
@@ -119,7 +119,7 @@ async fn update() {
     .expect("could not update entity");
 
     let entity = api
-        .get_entity(metadata.edition_id().base_id())
+        .get_entity(metadata.edition_id())
         .await
         .expect("could not get entity");
 

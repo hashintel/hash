@@ -23,7 +23,7 @@ use crate::{
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
     shared::{
-        identifier::{ontology::OntologyTypeEditionId, GraphElementId},
+        identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId, GraphElementId},
         subgraph::{
             depths::GraphResolveDepths,
             edges::{EdgeKind, Edges, OutwardEdge},
@@ -58,6 +58,7 @@ use crate::{
             PropertyTypeWithMetadata,
             PropertyTypeStructuralQuery,
             GraphElementId,
+            GraphElementEditionId,
             Vertex,
             EdgeKind,
             OutwardEdge,

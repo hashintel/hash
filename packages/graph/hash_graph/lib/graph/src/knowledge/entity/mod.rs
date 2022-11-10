@@ -156,8 +156,8 @@ impl EntityMetadata {
     }
 
     #[must_use]
-    pub const fn edition_id(&self) -> &EntityEditionId {
-        &self.edition_id
+    pub const fn edition_id(&self) -> EntityEditionId {
+        self.edition_id
     }
 
     #[must_use]

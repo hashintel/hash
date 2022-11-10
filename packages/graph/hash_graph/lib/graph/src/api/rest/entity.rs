@@ -22,7 +22,7 @@ use crate::{
     shared::{
         identifier::{
             knowledge::{EntityEditionId, EntityId, EntityVersion},
-            GraphElementId,
+            GraphElementEditionId, GraphElementId,
         },
         subgraph::{
             depths::GraphResolveDepths,
@@ -68,6 +68,7 @@ use crate::{
             LinkOrder,
             ProvenanceMetadata,
             GraphElementId,
+            GraphElementEditionId,
             Vertex,
             EdgeKind,
             OutwardEdge,

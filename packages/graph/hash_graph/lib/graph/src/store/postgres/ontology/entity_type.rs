@@ -7,11 +7,11 @@ use tokio_postgres::GenericClient;
 use type_system::{EntityType, EntityTypeReference};
 
 use crate::{
-    identifier::ontology::OntologyTypeEditionId,
+    identifier::{ontology::OntologyTypeEditionId, GraphElementId},
     ontology::{EntityTypeWithMetadata, OntologyElementMetadata},
     provenance::{CreatedById, OwnedById, UpdatedById},
     shared::{
-        identifier::GraphElementId,
+        identifier::GraphElementEditionId,
         subgraph::{
             depths::GraphResolveDepths,
             edges::{EdgeKind, OutwardEdge},
@@ -56,11 +56,11 @@ impl<C: AsClient> PostgresStore<C> {
             if let Some(entity_type) = unresolved_entity_type.cloned() {
                 for property_type_ref in entity_type.inner().property_type_references() {
                     dependency_context.edges.insert(
-                        GraphElementId::OntologyElementId(entity_type_id.clone()),
+                        GraphElementId::Ontology(entity_type_id.base_id().clone()),
                         OutwardEdge {
                             edge_kind: EdgeKind::References,
-                            destination: GraphElementId::OntologyElementId(
-                                property_type_ref.uri().clone().into(),
+                            destination: GraphElementId::Ontology(
+                                property_type_ref.uri().base_uri().clone(),
                             ),
                         },
                     );
@@ -106,11 +106,11 @@ impl<C: AsClient> PostgresStore<C> {
                 //   see https://app.asana.com/0/0/1202884883200942/f
                 for entity_type_id in entity_type_ids {
                     dependency_context.edges.insert(
-                        GraphElementId::OntologyElementId(entity_type_id.clone().into()),
+                        GraphElementId::Ontology(entity_type_id.base_uri().clone()),
                         OutwardEdge {
                             edge_kind: EdgeKind::References,
-                            destination: GraphElementId::OntologyElementId(
-                                entity_type_id.clone().into(),
+                            destination: GraphElementId::Ontology(
+                                entity_type_id.base_uri().clone(),
                             ),
                         },
                     );
@@ -213,7 +213,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
                 )
                 .await?;
 
-                let root = GraphElementId::OntologyElementId(entity_type_id);
+                let root = GraphElementEditionId::Ontology(entity_type_id);
 
                 Ok::<_, Report<QueryError>>(dependency_context.into_subgraph(HashSet::from([root])))
             })

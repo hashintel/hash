@@ -8,7 +8,7 @@ use edges::Edges;
 use serde::Serialize;
 use utoipa::ToSchema;
 
-use crate::{shared::identifier::GraphElementId, subgraph::vertices::Vertex};
+use crate::{shared::identifier::GraphElementEditionId, subgraph::vertices::Vertex};
 
 pub mod depths;
 pub mod edges;
@@ -19,8 +19,8 @@ pub mod vertices;
 #[serde(rename_all = "camelCase")]
 pub struct Subgraph {
     #[schema(value_type = Vec<GraphElementId>)]
-    pub roots: HashSet<GraphElementId>,
-    pub vertices: HashMap<GraphElementId, Vertex>,
+    pub roots: HashSet<GraphElementEditionId>,
+    pub vertices: HashMap<GraphElementEditionId, Vertex>,
     pub edges: Edges,
     pub depths: GraphResolveDepths,
 }

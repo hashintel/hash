@@ -1,9 +1,13 @@
 use chrono::{DateTime, Utc};
-use serde::{Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 use serde_json;
+use type_system::uri::BaseUri;
 use utoipa::{openapi, ToSchema};
 
-use crate::identifier::{knowledge::EntityId, ontology::OntologyTypeEditionId};
+use crate::identifier::{
+    knowledge::{EntityEditionId, EntityId},
+    ontology::OntologyTypeEditionId,
+};
 
 pub mod account;
 pub mod knowledge;
@@ -11,22 +15,11 @@ pub mod ontology;
 
 pub type Timestamp = DateTime<Utc>;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(untagged)]
 pub enum GraphElementId {
-    OntologyElementId(OntologyTypeEditionId),
-    KnowledgeGraphElementId(EntityId),
-}
-
-impl Serialize for GraphElementId {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        match self {
-            Self::KnowledgeGraphElementId(identifier) => identifier.serialize(serializer),
-            Self::OntologyElementId(identifier) => identifier.serialize(serializer),
-        }
-    }
+    Ontology(BaseUri),
+    KnowledgeGraph(EntityId),
 }
 
 // TODO: We have to do this because utoipa doesn't understand serde untagged
@@ -38,6 +31,24 @@ impl ToSchema for GraphElementId {
             .example(Some(serde_json::json!(
                 "6013145d-7392-4630-ab16-e99c59134cb6"
             )))
+            .into()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum GraphElementEditionId {
+    Ontology(OntologyTypeEditionId),
+    KnowledgeGraph(EntityEditionId),
+}
+
+// TODO: We have to do this because utoipa doesn't understand serde untagged
+//  https://github.com/juhaku/utoipa/issues/320
+impl ToSchema for GraphElementEditionId {
+    fn schema() -> openapi::Schema {
+        openapi::OneOfBuilder::new()
+            .item(OntologyTypeEditionId::schema())
+            .item(EntityEditionId::schema())
             .into()
     }
 }

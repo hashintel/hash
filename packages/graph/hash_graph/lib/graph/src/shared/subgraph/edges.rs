@@ -6,7 +6,7 @@ use std::collections::{
 use serde::Serialize;
 use utoipa::{openapi, ToSchema};
 
-use crate::identifier::GraphElementIdentifier;
+use crate::identifier::GraphElementId;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, ToSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -25,11 +25,11 @@ pub enum EdgeKind {
 #[serde(rename_all = "camelCase")]
 pub struct OutwardEdge {
     pub edge_kind: EdgeKind,
-    pub destination: GraphElementIdentifier,
+    pub destination: GraphElementId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize)]
-pub struct Edges(HashMap<GraphElementIdentifier, HashSet<OutwardEdge>>);
+pub struct Edges(HashMap<GraphElementId, HashSet<OutwardEdge>>);
 
 impl Edges {
     #[must_use]
@@ -37,7 +37,7 @@ impl Edges {
         Self(HashMap::new())
     }
 
-    pub fn insert(&mut self, identifier: GraphElementIdentifier, edge: OutwardEdge) -> bool {
+    pub fn insert(&mut self, identifier: GraphElementId, edge: OutwardEdge) -> bool {
         match self.0.raw_entry_mut().from_key(&identifier) {
             RawEntryMut::Vacant(entry) => {
                 entry.insert(identifier, HashSet::from([edge]));
@@ -61,19 +61,16 @@ impl ToSchema for Edges {
 }
 
 impl IntoIterator for Edges {
-    type IntoIter = IntoIter<GraphElementIdentifier, HashSet<OutwardEdge>>;
-    type Item = (GraphElementIdentifier, HashSet<OutwardEdge>);
+    type IntoIter = IntoIter<GraphElementId, HashSet<OutwardEdge>>;
+    type Item = (GraphElementId, HashSet<OutwardEdge>);
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()
     }
 }
 
-impl Extend<(GraphElementIdentifier, HashSet<OutwardEdge>)> for Edges {
-    fn extend<T: IntoIterator<Item = (GraphElementIdentifier, HashSet<OutwardEdge>)>>(
-        &mut self,
-        other: T,
-    ) {
+impl Extend<(GraphElementId, HashSet<OutwardEdge>)> for Edges {
+    fn extend<T: IntoIterator<Item = (GraphElementId, HashSet<OutwardEdge>)>>(&mut self, other: T) {
         self.0.extend(other);
     }
 }

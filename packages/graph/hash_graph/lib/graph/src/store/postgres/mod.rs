@@ -40,7 +40,7 @@ use crate::{
     },
     provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
     shared::{
-        identifier::{account::AccountId, GraphElementId},
+        identifier::{account::AccountId, GraphElementEditionId},
         subgraph::{depths::GraphResolveDepths, edges::Edges, vertices::Vertex},
     },
     store::{
@@ -274,13 +274,13 @@ impl DependencyContext {
     }
 
     #[must_use]
-    pub fn into_subgraph(self, roots: HashSet<GraphElementId>) -> Subgraph {
+    pub fn into_subgraph(self, roots: HashSet<GraphElementEditionId>) -> Subgraph {
         let vertices = self
             .referenced_data_types
             .into_values()
             .map(|data_type| {
                 (
-                    GraphElementId::OntologyElementId(data_type.metadata().edition_id().clone()),
+                    GraphElementEditionId::Ontology(data_type.metadata().edition_id().clone()),
                     Vertex::Ontology(OntologyVertex::DataType(data_type)),
                 )
             })
@@ -289,7 +289,7 @@ impl DependencyContext {
                     .into_values()
                     .map(|property_type| {
                         (
-                            GraphElementId::OntologyElementId(
+                            GraphElementEditionId::Ontology(
                                 property_type.metadata().edition_id().clone(),
                             ),
                             Vertex::Ontology(OntologyVertex::PropertyType(property_type)),
@@ -301,7 +301,7 @@ impl DependencyContext {
                     .into_values()
                     .map(|entity_type| {
                         (
-                            GraphElementId::OntologyElementId(
+                            GraphElementEditionId::Ontology(
                                 entity_type.metadata().edition_id().clone(),
                             ),
                             Vertex::Ontology(OntologyVertex::EntityType(entity_type)),
@@ -310,9 +310,7 @@ impl DependencyContext {
             )
             .chain(self.linked_entities.into_values().map(|entity| {
                 (
-                    GraphElementId::KnowledgeGraphElementId(
-                        entity.metadata().edition_id().base_id(),
-                    ),
+                    GraphElementEditionId::KnowledgeGraph(entity.metadata().edition_id()),
                     Vertex::KnowledgeGraph(KnowledgeGraphVertex::Entity(entity)),
                 )
             }))

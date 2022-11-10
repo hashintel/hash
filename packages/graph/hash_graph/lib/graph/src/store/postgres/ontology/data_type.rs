@@ -10,7 +10,7 @@ use crate::{
     identifier::ontology::OntologyTypeEditionId,
     ontology::{DataTypeWithMetadata, OntologyElementMetadata},
     provenance::{CreatedById, OwnedById, UpdatedById},
-    shared::{identifier::GraphElementId, subgraph::query::StructuralQuery},
+    shared::{identifier::GraphElementEditionId, subgraph::query::StructuralQuery},
     store::{
         crud::Read,
         postgres::{context::PostgresContext, DependencyContext, DependencyContextRef},
@@ -101,7 +101,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                 self.get_data_type_as_dependency(&data_type_id, dependency_context.as_ref_object())
                     .await?;
 
-                let root = GraphElementId::OntologyElementId(data_type_id);
+                let root = GraphElementEditionId::Ontology(data_type_id);
 
                 Ok::<_, Report<QueryError>>(dependency_context.into_subgraph(HashSet::from([root])))
             })

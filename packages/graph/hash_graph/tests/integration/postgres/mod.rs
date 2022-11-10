@@ -8,7 +8,7 @@ use std::{borrow::Cow, str::FromStr};
 
 use error_stack::Result;
 use graph::{
-    identifier::knowledge::EntityId,
+    identifier::knowledge::{EntityEditionId, EntityId},
     knowledge::{
         Entity, EntityMetadata, EntityProperties, EntityQueryPath, EntityUuid, LinkEntityMetadata,
     },
@@ -18,7 +18,7 @@ use graph::{
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
     shared::{
-        identifier::{account::AccountId, GraphElementId},
+        identifier::{account::AccountId, GraphElementEditionId},
         subgraph::{depths::GraphResolveDepths, query::StructuralQuery, vertices::Vertex},
     },
     store::{
@@ -162,7 +162,7 @@ impl DatabaseApi<'_> {
             })
             .await?
             .vertices
-            .remove(&GraphElementId::OntologyElementId(uri.clone().into()))
+            .remove(&GraphElementEditionId::Ontology(uri.clone().into()))
             .expect("no data type found");
 
         match vertex {
@@ -207,7 +207,7 @@ impl DatabaseApi<'_> {
             })
             .await?
             .vertices
-            .remove(&GraphElementId::OntologyElementId(uri.clone().into()))
+            .remove(&GraphElementEditionId::Ontology(uri.clone().into()))
             .expect("no property type found");
 
         match vertex {
@@ -252,7 +252,7 @@ impl DatabaseApi<'_> {
             })
             .await?
             .vertices
-            .remove(&GraphElementId::OntologyElementId(uri.clone().into()))
+            .remove(&GraphElementEditionId::Ontology(uri.clone().into()))
             .expect("no entity type found");
 
         match vertex {
@@ -288,16 +288,19 @@ impl DatabaseApi<'_> {
             .await
     }
 
-    pub async fn get_entity(&self, entity_id: EntityId) -> Result<Entity, QueryError> {
+    pub async fn get_entity(
+        &self,
+        entity_edition_id: EntityEditionId,
+    ) -> Result<Entity, QueryError> {
         let vertex = self
             .store
             .get_entity(&StructuralQuery {
-                filter: Filter::for_latest_entity_by_entity_id(entity_id),
+                filter: Filter::for_latest_entity_by_entity_id(entity_edition_id.base_id()),
                 graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
             .await?
             .vertices
-            .remove(&GraphElementId::KnowledgeGraphElementId(entity_id))
+            .remove(&GraphElementEditionId::KnowledgeGraph(entity_edition_id))
             .expect("no entity found");
 
         match vertex {

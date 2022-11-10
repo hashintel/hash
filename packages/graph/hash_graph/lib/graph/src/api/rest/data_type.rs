@@ -24,7 +24,7 @@ use crate::{
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
     shared::{
-        identifier::GraphElementId,
+        identifier::{GraphElementEditionId, GraphElementId},
         subgraph::{
             depths::GraphResolveDepths,
             edges::{EdgeKind, Edges, OutwardEdge},
@@ -57,6 +57,7 @@ use crate::{
             DataTypeWithMetadata,
             DataTypeStructuralQuery,
             GraphElementId,
+            GraphElementEditionId,
             Vertex,
             EdgeKind,
             OutwardEdge,
