@@ -14,7 +14,6 @@
       "enum": ["object"]
     },
     "title": { "type": "string" },
-    "pluralTitle": { "type": "string" },
     "description": { "type": "string" },
     "default": {
       "$comment": "Default Entity instance",
@@ -55,7 +54,7 @@
     }
   },
   "additionalProperties": false,
-  "required": ["kind", "$id", "type", "title", "pluralTitle", "properties"],
+  "required": ["kind", "$id", "type", "title", "properties"],
   "$defs": {
     "propertyTypeObject": {
       "type": "object",

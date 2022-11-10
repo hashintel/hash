@@ -8,9 +8,6 @@
     "title": {
       "type": "string"
     },
-    "pluralTitle": {
-      "type": "string"
-    },
     "description": {
       "type": "string"
     },
@@ -21,7 +18,7 @@
       }
     }
   },
-  "required": ["kind", "title", "pluralTitle", "oneOf"],
+  "required": ["kind", "title", "oneOf"],
   "additionalProperties": false,
   "$defs": {
     "propertyValuesUpdate": {
