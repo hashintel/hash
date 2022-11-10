@@ -24,16 +24,17 @@ use crate::{
             knowledge::{EntityEditionId, EntityId, EntityVersion},
             GraphElementId,
         },
-        subgraph::depths::GraphResolveDepths,
+        subgraph::{
+            depths::GraphResolveDepths,
+            edges::{EdgeKind, Edges, OutwardEdge},
+        },
     },
     store::{
         error::{EntityDoesNotExist, QueryError},
         query::Filter,
         EntityStore, StorePool,
     },
-    subgraph::{
-        EdgeKind, Edges, EntityStructuralQuery, OutwardEdge, StructuralQuery, Subgraph, Vertex,
-    },
+    subgraph::{EntityStructuralQuery, StructuralQuery, Subgraph, Vertex},
 };
 
 #[derive(OpenApi)]

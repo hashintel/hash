@@ -13,7 +13,10 @@ use crate::{
     identifier::{knowledge::EntityId, GraphElementId},
     knowledge::{Entity, EntityMetadata, EntityProperties, EntityUuid, LinkEntityMetadata},
     provenance::{CreatedById, OwnedById, UpdatedById},
-    shared::subgraph::depths::GraphResolveDepths,
+    shared::subgraph::{
+        depths::GraphResolveDepths,
+        edges::{EdgeKind, OutwardEdge},
+    },
     store::{
         crud::Read,
         error::ArchivalError,
@@ -21,7 +24,7 @@ use crate::{
         query::Filter,
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
-    subgraph::{EdgeKind, OutwardEdge, StructuralQuery, Subgraph},
+    subgraph::{StructuralQuery, Subgraph},
 };
 
 impl<C: AsClient> PostgresStore<C> {

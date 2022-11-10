@@ -23,16 +23,17 @@ use crate::{
     provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
     shared::{
         identifier::{ontology::OntologyTypeEditionId, GraphElementId},
-        subgraph::depths::GraphResolveDepths,
+        subgraph::{
+            depths::GraphResolveDepths,
+            edges::{EdgeKind, Edges, OutwardEdge},
+        },
     },
     store::{
         error::{BaseUriAlreadyExists, BaseUriDoesNotExist},
         query::Filter,
         EntityTypeStore, StorePool,
     },
-    subgraph::{
-        EdgeKind, Edges, EntityTypeStructuralQuery, OutwardEdge, StructuralQuery, Subgraph, Vertex,
-    },
+    subgraph::{EntityTypeStructuralQuery, StructuralQuery, Subgraph, Vertex},
 };
 
 #[derive(OpenApi)]

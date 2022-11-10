@@ -23,11 +23,15 @@ use crate::{
         patch_id_and_parse, DataTypeWithMetadata, OntologyElementMetadata,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
-    shared::{identifier::GraphElementId, subgraph::depths::GraphResolveDepths},
-    store::{query::Filter, BaseUriAlreadyExists, BaseUriDoesNotExist, DataTypeStore, StorePool},
-    subgraph::{
-        DataTypeStructuralQuery, EdgeKind, Edges, OutwardEdge, StructuralQuery, Subgraph, Vertex,
+    shared::{
+        identifier::GraphElementId,
+        subgraph::{
+            depths::GraphResolveDepths,
+            edges::{EdgeKind, Edges, OutwardEdge},
+        },
     },
+    store::{query::Filter, BaseUriAlreadyExists, BaseUriDoesNotExist, DataTypeStore, StorePool},
+    subgraph::{DataTypeStructuralQuery, StructuralQuery, Subgraph, Vertex},
 };
 
 #[derive(OpenApi)]
