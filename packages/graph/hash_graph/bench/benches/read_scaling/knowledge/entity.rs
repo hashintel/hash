@@ -5,9 +5,9 @@ use criterion_macro::criterion;
 use graph::{
     knowledge::{EntityProperties, EntityUuid},
     provenance::{CreatedById, OwnedById},
-    shared::identifier::account::AccountId,
+    shared::{identifier::account::AccountId, subgraph::depths::GraphResolveDepths},
     store::{query::Filter, AccountStore, AsClient, EntityStore, PostgresStore},
-    subgraph::{GraphResolveDepths, StructuralQuery},
+    subgraph::StructuralQuery,
 };
 use graph_test_data::{data_type, entity, entity_type, link_type, property_type};
 use rand::{prelude::IteratorRandom, thread_rng};

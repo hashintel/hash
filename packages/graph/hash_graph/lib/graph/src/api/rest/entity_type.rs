@@ -21,15 +21,17 @@ use crate::{
         patch_id_and_parse, EntityTypeWithMetadata, OntologyElementMetadata,
     },
     provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
-    shared::identifier::{ontology::OntologyTypeEditionId, GraphElementId},
+    shared::{
+        identifier::{ontology::OntologyTypeEditionId, GraphElementId},
+        subgraph::depths::GraphResolveDepths,
+    },
     store::{
         error::{BaseUriAlreadyExists, BaseUriDoesNotExist},
         query::Filter,
         EntityTypeStore, StorePool,
     },
     subgraph::{
-        EdgeKind, Edges, EntityTypeStructuralQuery, GraphResolveDepths, OutwardEdge,
-        StructuralQuery, Subgraph, Vertex,
+        EdgeKind, Edges, EntityTypeStructuralQuery, OutwardEdge, StructuralQuery, Subgraph, Vertex,
     },
 };
 

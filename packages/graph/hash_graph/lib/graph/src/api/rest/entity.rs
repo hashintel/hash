@@ -19,9 +19,12 @@ use crate::{
         Entity, EntityMetadata, EntityProperties, EntityUuid, LinkEntityMetadata, LinkOrder,
     },
     provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
-    shared::identifier::{
-        knowledge::{EntityEditionId, EntityId, EntityVersion},
-        GraphElementId,
+    shared::{
+        identifier::{
+            knowledge::{EntityEditionId, EntityId, EntityVersion},
+            GraphElementId,
+        },
+        subgraph::depths::GraphResolveDepths,
     },
     store::{
         error::{EntityDoesNotExist, QueryError},
@@ -29,8 +32,7 @@ use crate::{
         EntityStore, StorePool,
     },
     subgraph::{
-        EdgeKind, Edges, EntityStructuralQuery, GraphResolveDepths, OutwardEdge, StructuralQuery,
-        Subgraph, Vertex,
+        EdgeKind, Edges, EntityStructuralQuery, OutwardEdge, StructuralQuery, Subgraph, Vertex,
     },
 };
 

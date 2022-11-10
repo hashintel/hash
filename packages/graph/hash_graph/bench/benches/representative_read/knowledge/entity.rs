@@ -1,8 +1,9 @@
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
     knowledge::EntityUuid,
+    shared::subgraph::depths::GraphResolveDepths,
     store::{query::Filter, EntityStore},
-    subgraph::{GraphResolveDepths, StructuralQuery},
+    subgraph::StructuralQuery,
 };
 use rand::{prelude::IteratorRandom, thread_rng};
 use tokio::runtime::Runtime;

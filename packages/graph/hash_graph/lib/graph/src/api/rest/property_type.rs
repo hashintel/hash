@@ -22,13 +22,16 @@ use crate::{
         patch_id_and_parse, OntologyElementMetadata, PropertyTypeWithMetadata,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
-    shared::identifier::{ontology::OntologyTypeEditionId, GraphElementId},
+    shared::{
+        identifier::{ontology::OntologyTypeEditionId, GraphElementId},
+        subgraph::depths::GraphResolveDepths,
+    },
     store::{
         query::Filter, BaseUriAlreadyExists, BaseUriDoesNotExist, PropertyTypeStore, StorePool,
     },
     subgraph::{
-        EdgeKind, Edges, GraphResolveDepths, OutwardEdge, PropertyTypeStructuralQuery,
-        StructuralQuery, Subgraph, Vertex,
+        EdgeKind, Edges, OutwardEdge, PropertyTypeStructuralQuery, StructuralQuery, Subgraph,
+        Vertex,
     },
 };
 

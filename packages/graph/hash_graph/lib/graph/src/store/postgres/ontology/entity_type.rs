@@ -10,13 +10,13 @@ use crate::{
     identifier::ontology::OntologyTypeEditionId,
     ontology::{EntityTypeWithMetadata, OntologyElementMetadata},
     provenance::{CreatedById, OwnedById, UpdatedById},
-    shared::identifier::GraphElementId,
+    shared::{identifier::GraphElementId, subgraph::depths::GraphResolveDepths},
     store::{
         crud::Read,
         postgres::{context::PostgresContext, DependencyContext, DependencyContextRef},
         AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
-    subgraph::{EdgeKind, GraphResolveDepths, OutwardEdge, StructuralQuery, Subgraph},
+    subgraph::{EdgeKind, OutwardEdge, StructuralQuery, Subgraph},
 };
 
 impl<C: AsClient> PostgresStore<C> {

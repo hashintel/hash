@@ -6,18 +6,19 @@ use std::{
     fmt::{Debug, Formatter},
 };
 
+use depths::GraphResolveDepths;
 use serde::{Deserialize, Serialize};
 use type_system::{DataType, EntityType, PropertyType};
 use utoipa::{openapi, ToSchema};
 
 use crate::{
-    knowledge::{Entity, EntityProperties, KnowledgeGraphQueryDepth},
-    ontology::{
-        DataTypeWithMetadata, EntityTypeWithMetadata, OntologyQueryDepth, PropertyTypeWithMetadata,
-    },
+    knowledge::{Entity, EntityProperties},
+    ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
     shared::identifier::GraphElementId,
     store::query::{Filter, QueryRecord},
 };
+
+mod depths;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -81,36 +82,6 @@ pub enum EdgeKind {
 pub struct OutwardEdge {
     pub edge_kind: EdgeKind,
     pub destination: GraphElementId,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct GraphResolveDepths {
-    #[schema(value_type = number)]
-    pub data_type_resolve_depth: OntologyQueryDepth,
-    #[schema(value_type = number)]
-    pub property_type_resolve_depth: OntologyQueryDepth,
-    #[schema(value_type = number)]
-    pub entity_type_resolve_depth: OntologyQueryDepth,
-    #[schema(value_type = number)]
-    // TODO: is this name accurate/satisfactory with the changes we've made?
-    pub link_resolve_depth: KnowledgeGraphQueryDepth,
-    // TODO: what is this?
-    #[schema(value_type = number)]
-    pub link_target_entity_resolve_depth: KnowledgeGraphQueryDepth,
-}
-
-impl GraphResolveDepths {
-    #[must_use]
-    pub const fn zeroed() -> Self {
-        Self {
-            data_type_resolve_depth: 0,
-            property_type_resolve_depth: 0,
-            entity_type_resolve_depth: 0,
-            link_resolve_depth: 0,
-            link_target_entity_resolve_depth: 0,
-        }
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]

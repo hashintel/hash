@@ -17,7 +17,10 @@ use graph::{
         PropertyTypeWithMetadata,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
-    shared::identifier::{account::AccountId, GraphElementId},
+    shared::{
+        identifier::{account::AccountId, GraphElementId},
+        subgraph::depths::GraphResolveDepths,
+    },
     store::{
         error::ArchivalError,
         query::{Filter, FilterExpression, Parameter},
@@ -25,7 +28,7 @@ use graph::{
         EntityTypeStore, InsertionError, PostgresStore, PostgresStorePool, PropertyTypeStore,
         QueryError, StorePool, UpdateError,
     },
-    subgraph::{GraphResolveDepths, StructuralQuery, Vertex},
+    subgraph::{StructuralQuery, Vertex},
 };
 use tokio_postgres::{NoTls, Transaction};
 use type_system::{uri::VersionedUri, DataType, EntityType, PropertyType};
