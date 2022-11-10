@@ -12,7 +12,7 @@ use uuid::Uuid;
 use crate::{
     identifier::{
         knowledge::{EntityEditionId, EntityId},
-        GraphElementEditionId, GraphElementId,
+        GraphElementEditionId,
     },
     knowledge::{Entity, EntityMetadata, EntityProperties, EntityUuid, LinkEntityMetadata},
     provenance::{CreatedById, OwnedById, UpdatedById},
@@ -25,9 +25,7 @@ use crate::{
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
     subgraph::{
-        edges::{
-            GenericOutwardEdge, KnowledgeGraphEdgeKind, KnowledgeGraphOutwardEdges, SharedEdgeKind,
-        },
+        edges::{GenericOutwardEdge, KnowledgeGraphOutwardEdges, SharedEdgeKind},
         Subgraph,
     },
 };

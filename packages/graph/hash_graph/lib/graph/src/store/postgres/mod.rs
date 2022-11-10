@@ -33,12 +33,9 @@ use crate::{
         knowledge::{EntityEditionId, EntityId},
         ontology::OntologyTypeEditionId,
     },
-    knowledge::{
-        Entity, EntityMetadata, EntityProperties, EntityUuid, KnowledgeGraphQueryDepth,
-        LinkEntityMetadata,
-    },
+    knowledge::{Entity, EntityMetadata, EntityProperties, EntityUuid, LinkEntityMetadata},
     ontology::{
-        DataTypeWithMetadata, EntityTypeWithMetadata, OntologyElementMetadata, OntologyQueryDepth,
+        DataTypeWithMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
         PropertyTypeWithMetadata,
     },
     provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
@@ -53,6 +50,7 @@ use crate::{
         UpdateError,
     },
     subgraph::{
+        depths::SubgraphQueryDepth,
         vertices::{
             KnowledgeGraphVertex, KnowledgeGraphVertices, OntologyVertex, OntologyVertices,
             Vertices,
@@ -245,12 +243,12 @@ where
 pub struct DependencyContext {
     pub edges: Edges,
     pub referenced_data_types:
-        DependencyMap<OntologyTypeEditionId, DataTypeWithMetadata, OntologyQueryDepth>,
+        DependencyMap<OntologyTypeEditionId, DataTypeWithMetadata, SubgraphQueryDepth>,
     pub referenced_property_types:
-        DependencyMap<OntologyTypeEditionId, PropertyTypeWithMetadata, OntologyQueryDepth>,
+        DependencyMap<OntologyTypeEditionId, PropertyTypeWithMetadata, SubgraphQueryDepth>,
     pub referenced_entity_types:
-        DependencyMap<OntologyTypeEditionId, EntityTypeWithMetadata, OntologyQueryDepth>,
-    pub linked_entities: DependencyMap<EntityEditionId, Entity, KnowledgeGraphQueryDepth>,
+        DependencyMap<OntologyTypeEditionId, EntityTypeWithMetadata, SubgraphQueryDepth>,
+    pub linked_entities: DependencyMap<EntityEditionId, Entity, SubgraphQueryDepth>,
     pub graph_resolve_depths: GraphResolveDepths,
 }
 
@@ -371,12 +369,12 @@ impl DependencyContext {
 pub struct DependencyContextRef<'a> {
     pub edges: &'a mut Edges,
     pub referenced_data_types:
-        &'a mut DependencyMap<OntologyTypeEditionId, DataTypeWithMetadata, OntologyQueryDepth>,
+        &'a mut DependencyMap<OntologyTypeEditionId, DataTypeWithMetadata, SubgraphQueryDepth>,
     pub referenced_property_types:
-        &'a mut DependencyMap<OntologyTypeEditionId, PropertyTypeWithMetadata, OntologyQueryDepth>,
+        &'a mut DependencyMap<OntologyTypeEditionId, PropertyTypeWithMetadata, SubgraphQueryDepth>,
     pub referenced_entity_types:
-        &'a mut DependencyMap<OntologyTypeEditionId, EntityTypeWithMetadata, OntologyQueryDepth>,
-    pub linked_entities: &'a mut DependencyMap<EntityEditionId, Entity, KnowledgeGraphQueryDepth>,
+        &'a mut DependencyMap<OntologyTypeEditionId, EntityTypeWithMetadata, SubgraphQueryDepth>,
+    pub linked_entities: &'a mut DependencyMap<EntityEditionId, Entity, SubgraphQueryDepth>,
     pub graph_resolve_depths: GraphResolveDepths,
 }
 
