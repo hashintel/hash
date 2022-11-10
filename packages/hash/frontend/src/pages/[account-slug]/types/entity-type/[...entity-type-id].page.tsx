@@ -10,7 +10,7 @@ import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon"
 import { Box, Container, Stack, Tab, Tabs, Typography } from "@mui/material";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { FRONTEND_URL } from "../../../../lib/config";
 import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
@@ -22,7 +22,6 @@ import {
 } from "./form-types";
 import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
 import { OntologyChip } from "../../shared/ontology-chip";
-import { PropertyListCard } from "./property-list-card";
 import { useEntityType } from "./use-entity-type";
 import {
   PropertyTypesContext,
@@ -34,20 +33,8 @@ import { EntitiesTab } from "./tabs/entities-tab";
 import { DefinitionTab } from "./tabs/definition-tab";
 import { useEntityTypeEntities } from "../../../../components/hooks/useEntityTypeEntities";
 
-// const getBaseUri = (path: string) => {
-//   const url = new URL(path, FRONTEND_URL);
-
-//   return `${FRONTEND_URL}${url.pathname}/`;
-// };
-
 const getBaseUri = (entityTypeId: string, namespace: string) =>
   `${FRONTEND_URL}/${namespace}/types/entity-type/${entityTypeId}/`;
-
-const getActiveTabFromUri = (path: string) => {
-  const url = new URL(path, FRONTEND_URL);
-
-  return `${FRONTEND_URL}${url.pathname}/`;
-};
 
 const getSchemaFromEditorForm = (
   properties: EntityTypeEditorPropertyData[],
@@ -397,7 +384,11 @@ const Page: NextPageWithLayout = () => {
               <DefinitionTab entityTypeTitle={entityType.title} />
             ) : null}
             {activeTab === 1 ? (
-              <EntitiesTab entities={entities} entityType={entityType} />
+              <EntitiesTab
+                entities={entities}
+                entityType={entityType}
+                namespace={namespace}
+              />
             ) : null}
           </Box>
         </Box>
