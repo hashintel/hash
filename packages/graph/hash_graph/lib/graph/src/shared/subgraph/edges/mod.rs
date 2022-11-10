@@ -8,6 +8,10 @@ use utoipa::{openapi, ToSchema};
 
 use crate::identifier::GraphElementId;
 
+mod kind;
+
+pub use self::kind::*;
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, ToSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum EdgeKind {
