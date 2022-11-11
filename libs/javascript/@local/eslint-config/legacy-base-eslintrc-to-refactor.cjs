@@ -373,60 +373,6 @@ module.exports = {
             varsIgnorePattern: "^_+",
           },
         ],
-
-        // yarn workspace @hashintel/hash-integration lint:eslint
-        // total: 180
-        // "@typescript-eslint/no-unsafe-argument": 2
-        // "@typescript-eslint/no-unsafe-assignment": 60
-        // "@typescript-eslint/no-unsafe-call": 31
-        // "@typescript-eslint/no-unsafe-member-access": 76
-        // "@typescript-eslint/no-unsafe-return": 2
-        // "@typescript-eslint/require-await": 2
-        // "@typescript-eslint/restrict-template-expressions": 7
-
-        // yarn workspace @hashintel/hash-frontend lint:eslint
-        // total: 974
-        // "@typescript-eslint/no-unsafe-argument": 105
-        // "@typescript-eslint/no-unsafe-assignment": 303
-        // "@typescript-eslint/no-unsafe-call":
-        // "@typescript-eslint/no-unsafe-member-access":
-        // "@typescript-eslint/no-unsafe-return":
-        // "@typescript-eslint/require-await":
-        // "@typescript-eslint/restrict-template-expressions":
-        // "@typescript-eslint/unbound-method":
-
-        // command (/Users/ak/-/projects/hash/github/hash/packages/hash/backend-utils) yarn run lint:eslint exited (1)
-        // total:
-        // "@typescript-eslint/no-unsafe-argument":
-        // "@typescript-eslint/no-unsafe-assignment":
-        // "@typescript-eslint/no-unsafe-call":
-        // "@typescript-eslint/no-unsafe-member-access":
-        // "@typescript-eslint/no-unsafe-return":
-        // "@typescript-eslint/require-await":
-        // "@typescript-eslint/restrict-template-expressions":
-        // "@typescript-eslint/unbound-method":
-
-        // command (/Users/ak/-/projects/hash/github/hash/blocks/table) yarn run lint:eslint exited (1)
-        // total:
-        // "@typescript-eslint/no-unsafe-argument":
-        // "@typescript-eslint/no-unsafe-assignment":
-        // "@typescript-eslint/no-unsafe-call":
-        // "@typescript-eslint/no-unsafe-member-access":
-        // "@typescript-eslint/no-unsafe-return":
-        // "@typescript-eslint/require-await":
-        // "@typescript-eslint/restrict-template-expressions":
-        // "@typescript-eslint/unbound-method":
-
-        // command (/Users/ak/-/projects/hash/github/hash/packages/hash/shared) yarn run lint:eslint exited (1)
-        // total:
-        // "@typescript-eslint/no-unsafe-argument":
-        // "@typescript-eslint/no-unsafe-assignment":
-        // "@typescript-eslint/no-unsafe-call":
-        // "@typescript-eslint/no-unsafe-member-access":
-        // "@typescript-eslint/no-unsafe-return":
-        // "@typescript-eslint/require-await":
-        // "@typescript-eslint/restrict-template-expressions":
-        // "@typescript-eslint/unbound-method":
       },
     },
     {

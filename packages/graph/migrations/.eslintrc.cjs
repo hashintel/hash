@@ -4,4 +4,9 @@ module.exports = {
   env: {
     node: true,
   },
+  rules: {
+    ...require("@local/eslint-config/disable-until-fixed.cjs")([
+      /* 2022-11-11:  1 */ "@typescript-eslint/require-await",
+    ]),
+  },
 };
