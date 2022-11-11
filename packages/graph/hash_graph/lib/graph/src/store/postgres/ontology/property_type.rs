@@ -51,7 +51,7 @@ impl<C: AsClient> PostgresStore<C> {
                 //   see https://app.asana.com/0/0/1202884883200942/f
                 for data_type_ref in property_type.inner().data_type_references() {
                     dependency_context.edges.insert(
-                        GraphElementId::OntologyElementId(property_type_id.clone().into()),
+                        GraphElementId::OntologyElementId(property_type_id.clone()),
                         OutwardEdge {
                             edge_kind: EdgeKind::References,
                             destination: GraphElementId::OntologyElementId(

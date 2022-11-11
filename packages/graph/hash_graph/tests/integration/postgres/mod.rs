@@ -347,9 +347,9 @@ impl DatabaseApi<'_> {
     ) -> Result<Entity, QueryError> {
         let filter = Filter::All(vec![
             Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(Some(
+                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
                     Box::new(EntityQueryPath::Uuid),
-                )))),
+                ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
                     source_entity_uuid.as_uuid(),
                 ))),
@@ -394,15 +394,17 @@ impl DatabaseApi<'_> {
     ) -> Result<Vec<Entity>, QueryError> {
         let filter = Filter::All(vec![
             Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(None))),
+                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
+                    Box::new(EntityQueryPath::Uuid),
+                ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
                     source_entity_id.entity_uuid().as_uuid(),
                 ))),
             ),
             Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(Some(
+                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
                     Box::new(EntityQueryPath::OwnedById),
-                )))),
+                ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
                     source_entity_id.owned_by_id().as_uuid(),
                 ))),
