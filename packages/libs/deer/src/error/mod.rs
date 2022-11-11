@@ -55,7 +55,7 @@
 //!
 //! [`Location`]: core::panic::Location
 
-use alloc::{collections::BTreeMap, format, string::String};
+use alloc::{boxed::Box, collections::BTreeMap, format, string::String};
 use core::fmt::{self, Debug, Display, Formatter};
 
 use error_stack::{Context, Frame, IntoReport, Result};
@@ -63,6 +63,7 @@ pub use extra::{
     ArrayLengthError, ExpectedLength, ObjectItemsExtraError, ReceivedKey, ReceivedLength,
 };
 pub use location::Location;
+use serde::{ser::SerializeMap, Serialize, Serializer};
 pub use r#type::{ExpectedType, ReceivedType, TypeError};
 pub use unknown::{
     ExpectedField, ExpectedVariant, ReceivedField, ReceivedVariant, UnknownFieldError,
@@ -79,9 +80,6 @@ mod tuple;
 mod r#type;
 mod unknown;
 mod value;
-
-// TODO: most likely (in 0.2) we want to actually have a proper schema
-pub(crate) type Schema = BTreeMap<String, String>;
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Hash, Copy, Clone, serde::Serialize)]
 pub struct Namespace(&'static str);
@@ -103,6 +101,64 @@ impl Id {
     #[must_use]
     pub const fn new(path: &'static [&'static str]) -> Self {
         Self(path)
+    }
+}
+
+// TODO: most likely (in 0.2) we want to actually have a proper schema
+pub struct Schema {
+    ty: String,
+    other: BTreeMap<String, Box<dyn erased_serde::Serialize + Send + Sync>>,
+}
+
+impl Schema {
+    #[must_use]
+    pub fn new(ty: impl Into<String>) -> Self {
+        Self {
+            ty: ty.into(),
+            other: BTreeMap::new(),
+        }
+    }
+
+    pub(crate) fn ty(&self) -> &str {
+        &self.ty
+    }
+
+    #[must_use]
+    pub fn with(
+        mut self,
+        key: impl Into<String>,
+        value: impl erased_serde::Serialize + Send + Sync + 'static,
+    ) -> Self {
+        self.other.insert(key.into(), Box::new(value));
+
+        self
+    }
+
+    pub fn set(
+        &mut self,
+        key: impl Into<String>,
+        value: impl erased_serde::Serialize + Send + Sync + 'static,
+    ) -> &mut Self {
+        self.other.insert(key.into(), Box::new(value));
+
+        self
+    }
+}
+
+impl Serialize for Schema {
+    fn serialize<S>(&self, serializer: S) -> core::result::Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut map = serializer.serialize_map(Some(self.other.len() + 1))?;
+
+        map.serialize_entry("type", &self.ty)?;
+
+        for (key, value) in &self.other {
+            map.serialize_entry(key, value)?;
+        }
+
+        map.end()
     }
 }
 
