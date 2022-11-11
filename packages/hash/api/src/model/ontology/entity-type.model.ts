@@ -1,10 +1,11 @@
 import { AxiosError } from "axios";
 
-import { VersionedUri, EntityType } from "@blockprotocol/type-system-web";
+import { EntityType } from "@blockprotocol/type-system-web";
 import {
   GraphApi,
   UpdateEntityTypeRequest,
   EntityTypeWithMetadata,
+  OntologyElementMetadata,
 } from "@hashintel/hash-graph-client";
 import { generateTypeId, types } from "@hashintel/hash-shared/types";
 import { EntityTypeModel, PropertyTypeModel, LinkTypeModel } from "../index";
@@ -12,10 +13,7 @@ import { getNamespaceOfAccountOwner } from "./util";
 import { SYSTEM_TYPES } from "../../graph/system-types";
 
 export type EntityTypeModelConstructorParams = {
-  ownedById: string;
-  schema: EntityType;
-  createdById: string;
-  updatedById: string;
+  entityType: EntityTypeWithMetadata;
 };
 
 export type EntityTypeModelCreateParams = {
@@ -28,54 +26,32 @@ export type EntityTypeModelCreateParams = {
  * @class {@link EntityTypeModel}
  */
 export default class {
-  ownedById: string;
+  private entityType: EntityTypeWithMetadata;
 
-  schema: EntityType;
+  get ownedById(): string {
+    return this.entityType.metadata.ownedById;
+  }
 
-  createdById: string;
-  updatedById: string;
-
-  constructor({
-    schema,
-    ownedById,
-    createdById,
-    updatedById,
-  }: EntityTypeModelConstructorParams) {
-    this.ownedById = ownedById;
+  get schema(): EntityType {
     /**
      * @todo: remove this casting when we update the type system package
      * @see https://app.asana.com/0/1201095311341924/1203259817761581/f
      */
-    this.schema = schema as EntityType & { $id: VersionedUri };
-
-    this.createdById = createdById;
-    this.updatedById = updatedById;
+    return this.entityType.schema as EntityType;
   }
 
-  static fromEntityTypeWithMetadata({
-    schema,
-    metadata: {
-      ownedById,
-      provenance: { createdById, updatedById },
-    },
-  }: EntityTypeWithMetadata): EntityTypeModel {
-    /**
-     * @todo and a warning, these type casts are here to compensate for
-     *   the differences between the Graph API package and the
-     *   type system package.
-     *
-     *   The type system package can be considered the source of truth in
-     *   terms of the shape of values returned from the API, but the API
-     *   client is unable to be given as type package types - it generates
-     *   its own types.
-     *   https://app.asana.com/0/1202805690238892/1202892835843657/f
-     */
-    return new EntityTypeModel({
-      schema: schema as EntityType,
-      ownedById,
-      createdById,
-      updatedById,
-    });
+  get metadata(): OntologyElementMetadata {
+    return this.entityType.metadata;
+  }
+
+  constructor({ entityType }: EntityTypeModelConstructorParams) {
+    this.entityType = entityType;
+  }
+
+  static fromEntityTypeWithMetadata(
+    entityType: EntityTypeWithMetadata,
+  ): EntityTypeModel {
+    return new EntityTypeModel({ entityType });
   }
 
   /**
