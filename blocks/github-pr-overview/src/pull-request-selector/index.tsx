@@ -50,6 +50,10 @@ export const PullRequestSelector: FunctionComponent<
     return repoMap;
   }, [allPrs]);
 
+  if (!selectedRepository) {
+    return null;
+  }
+
   return (
     <Box
       sx={({ palette }) => ({
@@ -112,7 +116,7 @@ export const PullRequestSelector: FunctionComponent<
             }
             disabled={!selectedRepository}
             disablePortal
-            options={reposToPrIds[selectedRepository!]?.sort() ?? []}
+            options={reposToPrIds[selectedRepository]?.sort() ?? []}
             label="Pull Request number or name"
             placeholder="Search for pull request"
           />
