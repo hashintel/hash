@@ -6,6 +6,7 @@ import {
   Subgraph,
   EntityStructuralQuery,
   Filter,
+  EntityMetadata,
 } from "@hashintel/hash-graph-client";
 
 import {
@@ -22,12 +23,8 @@ import {
 import { exactlyOne, linkedTreeFlatten } from "../../util";
 
 export type EntityModelConstructorParams = {
-  entityId: string;
-  version: string;
+  entity: Entity;
   entityTypeModel: EntityTypeModel;
-  properties: object;
-  createdById: string;
-  updatedById: string;
 };
 
 export type EntityModelCreateParams = {
@@ -42,41 +39,36 @@ export type EntityModelCreateParams = {
  * @class {@link EntityModel}
  */
 export default class {
-  entityId: string;
-  version: string;
+  private entity: Entity;
+
   entityTypeModel: EntityTypeModel;
-  properties: object;
 
-  createdById: string;
-  updatedById: string;
+  /** @todo: get rid of `entityId` accessor */
+  get entityId(): string {
+    return this.entity.metadata.editionId.baseId;
+  }
 
-  constructor({
-    entityId,
-    version,
-    entityTypeModel,
-    properties,
-    createdById,
-    updatedById,
-  }: EntityModelConstructorParams) {
-    this.entityId = entityId;
-    this.version = version;
+  get metadata(): EntityMetadata {
+    return this.entity.metadata;
+  }
+
+  get properties(): object {
+    return this.entity.properties;
+  }
+
+  constructor({ entity, entityTypeModel }: EntityModelConstructorParams) {
+    this.entity = entity;
     this.entityTypeModel = entityTypeModel;
-    this.properties = properties;
-
-    this.createdById = createdById;
-    this.updatedById = updatedById;
   }
 
   private static async fromEntity(
     graphApi: GraphApi,
-    { metadata, properties }: Entity,
+    entity: Entity,
     cachedEntityTypeModels?: Map<string, EntityTypeModel>,
   ): Promise<EntityModel> {
     const {
-      editionId,
-      entityTypeId,
-      provenance: { createdById, updatedById },
-    } = metadata;
+      metadata: { entityTypeId },
+    } = entity;
 
     const cachedEntityTypeModel = cachedEntityTypeModels?.get(entityTypeId);
 
@@ -91,14 +83,7 @@ export default class {
       }
     }
 
-    return new EntityModel({
-      entityId: editionId.baseId,
-      version: editionId.version,
-      entityTypeModel,
-      properties,
-      createdById,
-      updatedById,
-    });
+    return new EntityModel({ entity, entityTypeModel });
   }
 
   /**
