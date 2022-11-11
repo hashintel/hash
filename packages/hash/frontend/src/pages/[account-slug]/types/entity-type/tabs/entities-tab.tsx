@@ -238,7 +238,7 @@ export const EntitiesTab: FunctionComponent<EntitiesTabProps> = ({
                       copyData: cellValue,
                       data: {
                         kind: "value-icon-cell",
-                        icon: "faAsterisk",
+                        icon: "bpAsterisk",
                         value: cellValue,
                       },
                     };
@@ -246,7 +246,7 @@ export const EntitiesTab: FunctionComponent<EntitiesTabProps> = ({
 
                   return {
                     kind: GridCellKind.Text,
-                    allowOverlay: false,
+                    allowOverlay: true,
                     readonly: true,
                     copyData: cellValue,
                     displayData: cellValue,

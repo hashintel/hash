@@ -3,6 +3,7 @@ import {
   CustomRenderer,
   GridCellKind,
 } from "@glideapps/glide-data-grid";
+import type { CustomIcon } from "@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites";
 import {
   getCellHorizontalPadding,
   getYCenter,
@@ -10,8 +11,8 @@ import {
 
 export interface ValueIconCellProps {
   readonly kind: "value-icon-cell";
-  icon: string[];
   value: string;
+  icon: CustomIcon;
 }
 
 export type ValueIconCell = CustomCell<ValueIconCellProps>;
@@ -22,7 +23,7 @@ export const renderValueIconCell: CustomRenderer<ValueIconCell> = {
     (cell.data as any).kind === "value-icon-cell",
   draw: (args, cell) => {
     const { theme, rect, ctx } = args;
-    const { value } = cell.data;
+    const { value, icon } = cell.data;
 
     const yCenter = getYCenter(args);
     const iconGap = 8;
@@ -32,7 +33,7 @@ export const renderValueIconCell: CustomRenderer<ValueIconCell> = {
     const iconSize = 12;
 
     args.spriteManager.drawSprite(
-      "bpAsterisk",
+      icon,
       "normal",
       ctx,
       iconLeft,
