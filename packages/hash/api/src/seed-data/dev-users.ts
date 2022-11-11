@@ -18,7 +18,8 @@ const devUsers: readonly DevelopmentUser[] = [
     email: "admin@example.com",
     shortname: "instance-admin",
     preferredName: "Instance Admin",
-    isInstanceAdmin: true,
+    /** @todo: bring back instance admins when links are working again */
+    // isInstanceAdmin: true,
   },
   {
     email: "alice@example.com",
