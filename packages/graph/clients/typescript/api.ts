@@ -1857,13 +1857,13 @@ export type Vertex = KnowledgeGraphVertex | OntologyVertex;
  * @interface Vertices
  */
 export interface Vertices {
-  [key: string]: { [key: string]: Array<VerticesValueValueInner> };
+  [key: string]: { [key: string]: VerticesValueValue };
 }
 /**
- * @type VerticesValueValueInner
+ * @type VerticesValueValue
  * @export
  */
-export type VerticesValueValueInner = KnowledgeGraphVertex | OntologyVertex;
+export type VerticesValueValue = KnowledgeGraphVertex | OntologyVertex;
 
 /**
  * AccountApi - axios parameter creator

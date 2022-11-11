@@ -82,11 +82,11 @@ impl ToSchema for Vertices {
     fn schema() -> openapi::Schema {
         openapi::ObjectBuilder::new()
             .additional_properties(Some(openapi::Schema::from(
-                openapi::ObjectBuilder::new().additional_properties(Some(openapi::Array::new(
+                openapi::ObjectBuilder::new().additional_properties(Some(
                     openapi::OneOfBuilder::new()
                         .item(openapi::Ref::from_schema_name("KnowledgeGraphVertex"))
                         .item(openapi::Ref::from_schema_name("OntologyVertex")),
-                ))),
+                )),
             )))
             .into()
     }
