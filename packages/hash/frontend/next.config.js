@@ -34,6 +34,9 @@ process.env.NEXT_PUBLIC_BLOCK_BASED_ENTITY_EDITOR =
 // This allows the frontend to generate the graph type IDs in the browser
 process.env.NEXT_PUBLIC_FRONTEND_URL = process.env.FRONTEND_URL;
 
+// The API origin
+process.env.NEXT_PUBLIC_API_ORIGIN = process.env.API_ORIGIN;
+
 process.env.NEXT_PUBLIC_SENTRY_DSN = process.env.SENTRY_DSN;
 process.env.NEXT_PUBLIC_SENTRY_REPLAYS_SAMPLING_RATE =
   process.env.SENTRY_REPLAYS_SAMPLING_RATE;

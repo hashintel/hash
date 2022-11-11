@@ -135,7 +135,7 @@ services:
     environment:
       FRONTEND_URL: "${FRONTEND_URL}"
 
-      NEXT_PUBLIC_API_ORIGIN: "${NEXT_PUBLIC_API_ORIGIN}"
+      API_ORIGIN: "${API_ORIGIN}"
       SYSTEM_ACCOUNT_NAME: "${SYSTEM_ACCOUNT_NAME}"
       SYSTEM_ACCOUNT_SHORTNAME: "${SYSTEM_ACCOUNT_SHORTNAME}"
       SYSTEM_EMAIL_ADDRESS: "${SYSTEM_EMAIL_ADDRESS}"
@@ -166,7 +166,7 @@ services:
       dockerfile: packages/hash/docker/frontend/prod/Dockerfile
       args:
         FRONTEND_URL: "${FRONTEND_URL}"
-        NEXT_PUBLIC_API_ORIGIN: "${NEXT_PUBLIC_API_ORIGIN}"
+        API_ORIGIN: "${API_ORIGIN}"
 
     depends_on:
       hash-api:
@@ -176,7 +176,7 @@ services:
         condition: on-failure
     environment:
       FRONTEND_URL: "${FRONTEND_URL}"
-      NEXT_PUBLIC_API_ORIGIN: "${NEXT_PUBLIC_API_ORIGIN}"
+      API_ORIGIN: "${API_ORIGIN}"
       ORY_KRATOS_PUBLIC_URL: "http://kratos:4433"
 
     ports:

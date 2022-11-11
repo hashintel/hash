@@ -46,8 +46,8 @@ COPY packages/hash/shared packages/hash/shared
 
 WORKDIR /app/packages/hash/frontend
 ENV NODE_ENV production
-ARG NEXT_PUBLIC_API_ORIGIN
-ENV NEXT_PUBLIC_API_ORIGIN ${NEXT_PUBLIC_API_ORIGIN}
+ARG API_ORIGIN
+ENV API_ORIGIN ${API_ORIGIN}
 ARG FRONTEND_URL
 ENV FRONTEND_URL ${FRONTEND_URL}
 RUN yarn next build

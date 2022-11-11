@@ -373,7 +373,7 @@ If the service should report metrics to a StatsD server, the following variables
 - `HASH_REALTIME_PORT`: Realtime service listening port. (default: `3333`)
 - `HASH_SEARCH_LOADER_PORT`: (default: `3838`)
 - `HASH_SEARCH_QUEUE_NAME`: The name of the queue to push changes for the search loader service (default: `search`)
-- `NEXT_PUBLIC_API_ORIGIN`: The origin that the API service can be reached on (default: `http://localhost:5001`)
+- `API_ORIGIN`: The origin that the API service can be reached on (default: `http://localhost:5001`)
 - `SESSION_SECRET`: The secret used to sign login sessions (default: `secret`)
 - `LOG_LEVEL`: the level of runtime logs that should be omitted, either set to `debug`, `info`, `warn`, `error` (default: `info`)
 - `BLOCK_PROTOCOL_API_KEY`: the api key for fetching blocks from [BP Hub](https://blockprotocol.org/hub).
