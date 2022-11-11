@@ -56,11 +56,11 @@ impl Error for TypeError {
         let (_, expected, received) = properties;
 
         let expected = expected
-            .and_then(|expected| expected.0.get("type"))
+            .map(|expected| expected.0.ty())
             .map(|ty| format!("expected value of type {ty}"));
 
         let received = received
-            .and_then(|received| received.0.get("type"))
+            .map(|received| received.0.ty())
             .map(|ty| format!("received value of type {ty}"));
 
         match (expected, received) {

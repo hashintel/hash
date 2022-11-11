@@ -41,9 +41,9 @@ impl Error for ValueError {
     ) -> fmt::Result {
         let (_, expected, _) = properties;
 
-        let expected = expected
-            .and_then(|ExpectedType(inner)| inner.get("type"))
-            .map(|ty| format!("value has correct type ({ty}), but does not fit constraints."));
+        let expected = expected.map(|ExpectedType(inner)| inner.ty()).map(|ty| {
+            format!("received value is of correct type ({ty}), but does not fit constraints")
+        });
 
         match expected {
             Some(expected) => fmt.write_str(&expected),
@@ -59,3 +59,69 @@ impl Display for ValueError {
 }
 
 impl_error!(ValueError);
+
+#[cfg(test)]
+mod tests {
+    use alloc::vec;
+
+    use error_stack::Report;
+    use serde_json::json;
+
+    use super::*;
+    use crate::{
+        error::Schema,
+        test::{to_json, to_message},
+    };
+
+    #[test]
+    fn value() {
+        // we simulate that the error is in:
+        // [{field1: 256 <- here}, _, _]
+        // The value should be an i8, so between 0 and 255
+
+        let error = Report::new(ValueError)
+            .attach(Location::Array(0))
+            .attach(Location::Field("field1"))
+            .attach(ExpectedType(
+                Schema::new("integer")
+                    .with("minimum", 0)
+                    .with("maximum", 255),
+            ))
+            .attach(ReceivedValue(Box::new(256u16)));
+
+        assert_eq!(
+            to_json(&error),
+            json!({
+                "location": [
+                    {"type": "array", "value": 0},
+                    {"type": "field", "value": "field1"}
+                ],
+                "expected": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255,
+                },
+                "received": 256
+            })
+        );
+    }
+
+    #[test]
+    fn value_message() {
+        assert_eq!(
+            to_message(&Report::new(ValueError)),
+            "received value is of correct type, but does not fit constraints"
+        );
+
+        assert_eq!(
+            to_message(
+                &Report::new(ValueError).attach(ExpectedType(
+                    Schema::new("integer")
+                        .with("minimum", 0)
+                        .with("maximum", 255)
+                ))
+            ),
+            "received value is of correct type (integer), but does not fit constraints"
+        );
+    }
+}
