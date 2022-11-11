@@ -95,6 +95,16 @@ services:
       COURIER_SMTP_CONNECTION_URI: "smtps://test:test@mailslurper:1025/?skip_ssl_verify=true"
       DSN: "postgres://${HASH_KRATOS_PG_USER}:${HASH_KRATOS_PG_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_KRATOS_PG_DEV_DATABASE}"
       LOG_LEVEL: "warning"
+      COOKIES_PATH: "/"
+      COOKIES_DOMAIN: "${KRATOS_COOKIE_DOMAIN}"
+      SERVE_PUBLIC_BASE_URL: "${FRONTEND_URL}/kratos"
+      SERVE_PUBLIC_CORS_ALLOWED_HEADERS: "${FRONTEND_URL}"
+      SELFSERVICE_DEFAULT_BROWSER_RETURN_URL: "${FRONTEND_URL}/"
+      SELFSERVICE_ALLOWED_RETURN_URLS: "${FRONTEND_URL}"
+      SELFSERVICE_FLOWS_ERROR_UI_URL: "${FRONTEND_URL}/error"
+      SELFSERVICE_FLOWS_LOGOUT_AFTER_DEFAULT_BROWSER_RETURN_URL: "${FRONTEND_URL}/login"
+      SELFSERVICE_FLOWS_LOGIN_UI_URL: "${FRONTEND_URL}/login"
+      SELFSERVICE_FLOWS_REGISTRATION_UI_URL: "${FRONTEND_URL}/signup"
     command: serve -c /etc/config/kratos/kratos.dev.yml --watch-courier
     extra_hosts:
       - host.docker.internal:host-gateway
