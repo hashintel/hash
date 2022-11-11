@@ -12,7 +12,7 @@
       "cache": false
     },
     "lint:eslint": {
-      "env": ["CHECK_DISABLE_UNTIL_FIXED"],
+      "env": ["CHECK_TEMPORARILY_DISABLED_RULES"],
       "outputs": []
     },
     "lint:tsc": {

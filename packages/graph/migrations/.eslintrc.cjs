@@ -5,7 +5,7 @@ module.exports = {
     node: true,
   },
   rules: {
-    ...require("@local/eslint-config/disable-until-fixed.cjs")([
+    ...require("@local/eslint-config/temporarily-disable-rules.cjs")([
       /* 2022-11-11:  1 */ "@typescript-eslint/require-await",
     ]),
   },

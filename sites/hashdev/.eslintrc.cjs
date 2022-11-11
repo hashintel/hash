@@ -2,7 +2,7 @@
 module.exports = {
   ...require("@local/eslint-config/generate-workspace-config.cjs")(__dirname),
   rules: {
-    ...require("@local/eslint-config/disable-until-fixed.cjs")([
+    ...require("@local/eslint-config/temporarily-disable-rules.cjs")([
       /* 2022-11-11:  19 */ "@typescript-eslint/no-unsafe-assignment",
       /* 2022-11-11:   5 */ "@typescript-eslint/no-unsafe-call",
       /* 2022-11-11:  21 */ "@typescript-eslint/no-unsafe-member-access",

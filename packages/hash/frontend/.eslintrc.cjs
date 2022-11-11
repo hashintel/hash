@@ -3,7 +3,7 @@ module.exports = {
   ...require("@local/eslint-config/generate-workspace-config.cjs")(__dirname),
   plugins: ["@typescript-eslint", "canonical", "unicorn"],
   rules: {
-    ...require("@local/eslint-config/disable-until-fixed.cjs")([
+    ...require("@local/eslint-config/temporarily-disable-rules.cjs")([
       /* 2022-11-11: 105 */ "@typescript-eslint/no-unsafe-argument",
       /* 2022-11-11: 303 */ "@typescript-eslint/no-unsafe-assignment",
       /* 2022-11-11: 103 */ "@typescript-eslint/no-unsafe-call",
