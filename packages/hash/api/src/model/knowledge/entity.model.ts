@@ -2,7 +2,6 @@ import { ApolloError } from "apollo-server-errors";
 import {
   Entity,
   GraphApi,
-  Vertex,
   Subgraph,
   EntityStructuralQuery,
   Filter,
@@ -296,19 +295,23 @@ export default class {
         //   options?.graphResolveDepths?.linkTypeResolveDepth ?? 0,
         entityTypeResolveDepth:
           options?.graphResolveDepths?.entityTypeResolveDepth ?? 0,
-        linkResolveDepth: options?.graphResolveDepths?.linkResolveDepth ?? 0,
-        linkTargetEntityResolveDepth:
-          options?.graphResolveDepths?.linkTargetEntityResolveDepth ?? 0,
+        entityResolveDepth:
+          options?.graphResolveDepths?.entityResolveDepth ?? 0,
+        // linkResolveDepth: options?.graphResolveDepths?.linkResolveDepth ?? 0,
+        // linkTargetEntityResolveDepth:
+        //   options?.graphResolveDepths?.linkTargetEntityResolveDepth ?? 0,
       },
     });
 
     return await Promise.all(
-      subgraph.roots.map((entityId) => {
-        const entityVertex = subgraph.vertices[entityId] as Extract<
-          Vertex,
-          { kind: "entity" }
-        >;
-        return EntityModel.fromEntity(graphApi, entityVertex.inner);
+      subgraph.roots.map(({ baseId, version }) => {
+        const entityVertex = subgraph.vertices[baseId]?.[version];
+
+        if (entityVertex && entityVertex.kind === "entity") {
+          return EntityModel.fromEntity(graphApi, entityVertex.inner);
+        }
+
+        throw new Error("Could not get entity from sub-graph");
       }),
     );
   }
@@ -545,6 +548,7 @@ export default class {
       graphResolveDepths: {
         dataTypeResolveDepth: 0,
         propertyTypeResolveDepth: 0,
+        entityResolveDepth: 0,
         // linkTypeResolveDepth: 0,
         entityTypeResolveDepth: 0,
         ...params,
