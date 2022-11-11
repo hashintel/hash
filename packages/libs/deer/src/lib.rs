@@ -1,6 +1,11 @@
 #![cfg_attr(nightly, feature(provide_any, error_in_core))]
 #![cfg_attr(not(feature = "std"), no_std)]
-#![warn(unreachable_pub, clippy::pedantic, clippy::nursery)]
+#![warn(
+    unreachable_pub,
+    clippy::pedantic,
+    clippy::nursery,
+    clippy::alloc_instead_of_core
+)]
 // TODO: once more stable introduce: warning missing_docs, clippy::missing_errors_doc
 #![allow(clippy::module_name_repetitions)]
 #![allow(clippy::redundant_pub_crate)]
