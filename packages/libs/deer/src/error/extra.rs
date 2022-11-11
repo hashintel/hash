@@ -87,7 +87,7 @@ pub struct ExpectedLength(usize);
 
 impl ExpectedLength {
     #[must_use]
-    pub fn new(length: usize) -> Self {
+    pub const fn new(length: usize) -> Self {
         Self(length)
     }
 }
@@ -109,7 +109,7 @@ pub struct ReceivedLength(usize);
 
 impl ReceivedLength {
     #[must_use]
-    pub fn new(length: usize) -> Self {
+    pub const fn new(length: usize) -> Self {
         Self(length)
     }
 }
