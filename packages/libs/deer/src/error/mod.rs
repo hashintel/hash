@@ -262,11 +262,11 @@ macro_rules! error {
             }
         }
 
-        #[cfg(feature = "std")]
-        impl std::error::Error for $name {}
-
-        #[cfg(all(not(feature = "std"), nightly))]
+        #[cfg(nightly)]
         impl core::error::Error for $name {}
+
+        #[cfg(all(feature = "std", not(nightly)))]
+        impl std::error::Error for $name {}
 
         #[cfg(all(not(feature = "std"), not(nightly)))]
         impl error_stack::Context for $name {}
