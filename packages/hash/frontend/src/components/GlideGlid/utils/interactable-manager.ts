@@ -10,12 +10,12 @@ type InteractablePosition = {
 
 export type InteractableEventHandler = (interactable: Interactable) => void;
 
-interface Interactable {
+export interface Interactable {
   pos: InteractablePosition;
   path: CellPath;
   hovered: boolean;
   cellRect: Rectangle;
-  id: string;
+  id: string | number;
   onClick?: InteractableEventHandler;
   onMouseEnter?: InteractableEventHandler;
   onMouseLeave?: InteractableEventHandler;
@@ -31,6 +31,14 @@ interface CellPath {
   col: number;
   row: number;
 }
+
+const drawArgsToPath = ({
+  row,
+  col,
+  tableId,
+}: DrawArgs<CustomCell>): CellPath => {
+  return { row, col, tableId };
+};
 
 const isCursorOnInteractable = (
   cursorPos: CursorPos,
@@ -51,6 +59,10 @@ const isCursorOnInteractable = (
   return hovered;
 };
 
+const cellPathToString = ({ tableId, col, row }: CellPath) => {
+  return `${tableId}-${col}-${row}`;
+};
+
 class InteractableManagerClass {
   static instance: InteractableManagerClass | null = null;
 
@@ -61,7 +73,7 @@ class InteractableManagerClass {
     args: DrawArgs<CustomCell>,
     interactable: Omit<Interactable, "hovered" | "path" | "cellRect">,
   ): Interactable {
-    const { hoverX = -100, hoverY = -100, rect, col, row, tableId } = args;
+    const { hoverX = -100, hoverY = -100, rect } = args;
 
     const hovered = isCursorOnInteractable(
       { posX: hoverX, posY: hoverY },
@@ -73,16 +85,15 @@ class InteractableManagerClass {
       ...interactable,
       hovered,
       cellRect: rect,
-      path: { col, row, tableId },
+      path: drawArgsToPath(args),
     };
   }
 
-  cellPathToString({ tableId, col, row }: CellPath) {
-    return `${tableId}-${col}-${row}`;
-  }
-
-  setInteractablesForCell(path: CellPath, interactables: Interactable[]) {
-    const strPath = this.cellPathToString(path);
+  setInteractablesForCell(
+    args: DrawArgs<CustomCell>,
+    interactables: Interactable[],
+  ) {
+    const strPath = cellPathToString(drawArgsToPath(args));
 
     const interactableMap = Object.fromEntries(
       interactables.map((interactable) => [interactable.id, interactable]),
@@ -108,7 +119,7 @@ class InteractableManagerClass {
   }
 
   handleClick(path: CellPath, event: CursorPos) {
-    const strPath = this.cellPathToString(path);
+    const strPath = cellPathToString(path);
 
     const interactableMap = this.interactableStore[strPath] ?? {};
     const interactables = Object.values(interactableMap);
