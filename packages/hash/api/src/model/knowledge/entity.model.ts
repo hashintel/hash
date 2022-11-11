@@ -42,9 +42,17 @@ export default class {
 
   entityTypeModel: EntityTypeModel;
 
-  /** @todo: get rid of `entityId` accessor */
   get entityId(): string {
     return this.entity.metadata.editionId.baseId;
+  }
+
+  get entityUuid(): string {
+    const [entityId] = this.entity.metadata.editionId.baseId.split("%") as [
+      string,
+      string,
+    ];
+
+    return entityId;
   }
 
   get metadata(): EntityMetadata {
@@ -474,7 +482,7 @@ export default class {
     const filter: Filter = {
       all: [
         {
-          equal: [{ path: ["target", "uuid"] }, { parameter: this.entityId }],
+          equal: [{ path: ["target", "uuid"] }, { parameter: this.entityUuid }],
         },
       ],
     };
@@ -507,7 +515,7 @@ export default class {
     const filter: Filter = {
       all: [
         {
-          equal: [{ path: ["source", "uuid"] }, { parameter: this.entityId }],
+          equal: [{ path: ["source", "uuid"] }, { parameter: this.entityUuid }],
         },
       ],
     };
@@ -542,7 +550,7 @@ export default class {
       filter: {
         all: [
           { equal: [{ path: ["version"] }, { parameter: "latest" }] },
-          { equal: [{ path: ["uuid"] }, { parameter: this.entityId }] },
+          { equal: [{ path: ["uuid"] }, { parameter: this.entityUuid }] },
         ],
       },
       graphResolveDepths: {
