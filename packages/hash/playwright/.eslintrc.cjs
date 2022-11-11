@@ -4,7 +4,7 @@ module.exports = {
   rules: {
     ...require("@local/eslint-config/temporarily-disable-rules.cjs")([
       /* 2022-11-11:  21 */ "@typescript-eslint/no-unsafe-call",
-      /* 2022-11-11:  3 */ "@typescript-eslint/restrict-template-expressions",
+      /* 2022-11-11:   3 */ "@typescript-eslint/restrict-template-expressions",
     ]),
   },
   overrides: [
