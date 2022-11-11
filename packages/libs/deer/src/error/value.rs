@@ -13,6 +13,13 @@ use crate::id;
 #[derive(serde::Serialize)]
 pub struct ReceivedValue(Box<dyn erased_serde::Serialize + Send + Sync>);
 
+impl ReceivedValue {
+    #[must_use]
+    pub fn new(value: impl erased_serde::Serialize + Send + Sync + 'static) -> Self {
+        Self(Box::new(value))
+    }
+}
+
 impl ErrorProperty for ReceivedValue {
     type Value<'a> = Option<&'a Self>;
 
@@ -41,7 +48,7 @@ impl Error for ValueError {
     ) -> fmt::Result {
         let (_, expected, _) = properties;
 
-        let expected = expected.map(|ExpectedType(inner)| inner.ty()).map(|ty| {
+        let expected = expected.map(|expected| expected.schema().ty()).map(|ty| {
             format!("received value is of correct type ({ty}), but does not fit constraints")
         });
 
@@ -82,12 +89,12 @@ mod tests {
         let error = Report::new(ValueError)
             .attach(Location::Array(0))
             .attach(Location::Field("field1"))
-            .attach(ExpectedType(
+            .attach(ExpectedType::new(
                 Schema::new("integer")
-                    .with("minimum", 0)
-                    .with("maximum", 255),
+                    .with("minimum", u8::MIN)
+                    .with("maximum", u8::MAX),
             ))
-            .attach(ReceivedValue(Box::new(256u16)));
+            .attach(ReceivedValue::new(u8::MAX as u16 + 1));
 
         assert_eq!(
             to_json(&error),
@@ -115,10 +122,10 @@ mod tests {
 
         assert_eq!(
             to_message(
-                &Report::new(ValueError).attach(ExpectedType(
+                &Report::new(ValueError).attach(ExpectedType::new(
                     Schema::new("integer")
-                        .with("minimum", 0)
-                        .with("maximum", 255)
+                        .with("minimum", u8::MIN)
+                        .with("maximum", u8::MAX),
                 ))
             ),
             "received value is of correct type (integer), but does not fit constraints"

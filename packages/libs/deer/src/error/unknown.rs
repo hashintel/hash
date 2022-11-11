@@ -13,6 +13,13 @@ use crate::id;
 #[derive(serde::Serialize)]
 pub struct ExpectedField(&'static str);
 
+impl ExpectedField {
+    #[must_use]
+    pub const fn new(field: &'static str) -> Self {
+        Self(field)
+    }
+}
+
 impl ErrorProperty for ExpectedField {
     type Value<'a> = Vec<&'a Self>;
 
@@ -27,6 +34,13 @@ impl ErrorProperty for ExpectedField {
 
 #[derive(serde::Serialize)]
 pub struct ReceivedField(String);
+
+impl ReceivedField {
+    #[must_use]
+    pub fn new(field: impl Into<String>) -> Self {
+        Self(field.into())
+    }
+}
 
 impl ErrorProperty for ReceivedField {
     type Value<'a> = Vec<&'a Self>;
@@ -97,6 +111,13 @@ impl_error!(UnknownFieldError);
 #[derive(serde::Serialize)]
 pub struct ExpectedVariant(&'static str);
 
+impl ExpectedVariant {
+    #[must_use]
+    pub const fn new(variant: &'static str) -> Self {
+        Self(variant)
+    }
+}
+
 impl ErrorProperty for ExpectedVariant {
     type Value<'a> = Vec<&'a Self>;
 
@@ -111,6 +132,13 @@ impl ErrorProperty for ExpectedVariant {
 
 #[derive(serde::Serialize)]
 pub struct ReceivedVariant(String);
+
+impl ReceivedVariant {
+    #[must_use]
+    pub fn new(variant: impl Into<String>) -> Self {
+        Self(variant.into())
+    }
+}
 
 impl ErrorProperty for ReceivedVariant {
     type Value<'a> = Option<&'a Self>;

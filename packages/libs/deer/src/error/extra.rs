@@ -13,6 +13,13 @@ use crate::id;
 #[derive(serde::Serialize)]
 pub struct ReceivedKey(String);
 
+impl ReceivedKey {
+    #[must_use]
+    pub fn new(key: impl Into<String>) -> Self {
+        Self(key.into())
+    }
+}
+
 impl ErrorProperty for ReceivedKey {
     type Value<'a> = Vec<&'a Self>;
 
@@ -78,6 +85,13 @@ impl_error!(ObjectItemsExtraError);
 #[derive(serde::Serialize)]
 pub struct ExpectedLength(usize);
 
+impl ExpectedLength {
+    #[must_use]
+    pub fn new(length: usize) -> Self {
+        Self(length)
+    }
+}
+
 impl ErrorProperty for ExpectedLength {
     type Value<'a> = Option<&'a Self>;
 
@@ -92,6 +106,13 @@ impl ErrorProperty for ExpectedLength {
 
 #[derive(serde::Serialize)]
 pub struct ReceivedLength(usize);
+
+impl ReceivedLength {
+    #[must_use]
+    pub fn new(length: usize) -> Self {
+        Self(length)
+    }
+}
 
 impl ErrorProperty for ReceivedLength {
     type Value<'a> = Option<&'a Self>;
@@ -170,8 +191,8 @@ mod tests {
         let error = Report::new(ArrayLengthError)
             .attach(Location::Array(1))
             .attach(Location::Field("field1"))
-            .attach(ExpectedLength(2))
-            .attach(ReceivedLength(3));
+            .attach(ExpectedLength::new(2))
+            .attach(ReceivedLength::new(3));
 
         let value = to_json(&error);
 
@@ -198,7 +219,7 @@ mod tests {
         assert_eq!(
             to_message(
                 &Report::new(ArrayLengthError) //
-                    .attach(ReceivedLength(3))
+                    .attach(ReceivedLength::new(3))
             ),
             "received array of length 3"
         );
@@ -206,7 +227,7 @@ mod tests {
         assert_eq!(
             to_message(
                 &Report::new(ArrayLengthError) //
-                    .attach(ExpectedLength(2))
+                    .attach(ExpectedLength::new(2))
             ),
             "expected array of length 2"
         );
@@ -214,8 +235,8 @@ mod tests {
         assert_eq!(
             to_message(
                 &Report::new(ArrayLengthError)
-                    .attach(ExpectedLength(2))
-                    .attach(ReceivedLength(3))
+                    .attach(ExpectedLength::new(2))
+                    .attach(ReceivedLength::new(3))
             ),
             "expected array of length 2, but received array of length 3"
         );
@@ -227,7 +248,7 @@ mod tests {
         // [..., {field1: [...], field2: [...]} <- here]
         let error = Report::new(ObjectItemsExtraError)
             .attach(Location::Array(1))
-            .attach(ReceivedKey("field2".to_owned()));
+            .attach(ReceivedKey::new("field2"));
 
         let value = to_json(&error);
 

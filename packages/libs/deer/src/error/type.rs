@@ -8,7 +8,18 @@ use crate::{
 };
 
 #[derive(serde::Serialize)]
-pub struct ExpectedType(pub(crate) Schema);
+pub struct ExpectedType(Schema);
+
+impl ExpectedType {
+    #[must_use]
+    pub const fn new(schema: Schema) -> Self {
+        Self(schema)
+    }
+
+    pub(crate) const fn schema(&self) -> &Schema {
+        &self.0
+    }
+}
 
 impl ErrorProperty for ExpectedType {
     type Value<'a> = Option<&'a Self>
@@ -25,6 +36,17 @@ impl ErrorProperty for ExpectedType {
 
 #[derive(serde::Serialize)]
 pub struct ReceivedType(Schema);
+
+impl ReceivedType {
+    #[must_use]
+    pub const fn new(schema: Schema) -> Self {
+        Self(schema)
+    }
+
+    pub(crate) const fn schema(&self) -> &Schema {
+        &self.0
+    }
+}
 
 impl ErrorProperty for ReceivedType {
     type Value<'a> = Option<&'a Self>
@@ -56,11 +78,11 @@ impl Error for TypeError {
         let (_, expected, received) = properties;
 
         let expected = expected
-            .map(|expected| expected.0.ty())
+            .map(|expected| expected.schema().ty())
             .map(|ty| format!("expected value of type {ty}"));
 
         let received = received
-            .map(|received| received.0.ty())
+            .map(|received| received.schema().ty())
             .map(|ty| format!("received value of type {ty}"));
 
         match (expected, received) {
