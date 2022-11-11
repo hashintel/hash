@@ -2,6 +2,7 @@ import { AxiosError } from "axios";
 
 import {
   GraphApi,
+  OntologyElementMetadata,
   PropertyTypeWithMetadata,
   UpdatePropertyTypeRequest,
 } from "@hashintel/hash-graph-client";
@@ -12,57 +13,35 @@ import { extractBaseUri } from "../util";
 import { getNamespaceOfAccountOwner } from "./util";
 
 type PropertyTypeModelConstructorParams = {
-  ownedById: string;
-  schema: PropertyType;
-  createdById: string;
-  updatedById: string;
+  propertyType: PropertyTypeWithMetadata;
 };
 
 /**
  * @class {@link PropertyTypeModel}
  */
 export default class {
-  ownedById: string;
+  private propertyType: PropertyTypeWithMetadata;
 
-  schema: PropertyType;
-
-  createdById: string;
-  updatedById: string;
-  removedById: string | undefined;
-
-  constructor({
-    schema,
-    ownedById,
-    createdById,
-    updatedById,
-  }: PropertyTypeModelConstructorParams) {
-    this.ownedById = ownedById;
-    this.schema = schema;
-    this.createdById = createdById;
-    this.updatedById = updatedById;
+  get schema(): PropertyType {
+    /**
+     * @todo: remove this casting when we update the type system package
+     * @see https://app.asana.com/0/1201095311341924/1203259817761581/f
+     */
+    return this.propertyType.schema as PropertyType;
   }
 
-  static fromPropertyTypeWithMetadata({
-    schema,
-    metadata: { ownedById, provenance },
-  }: PropertyTypeWithMetadata): PropertyTypeModel {
-    /**
-     * @todo and a warning, these type casts are here to compensate for
-     *   the differences between the Graph API package and the
-     *   type system package.
-     *
-     *   The type system package can be considered the source of truth in
-     *   terms of the shape of values returned from the API, but the API
-     *   client is unable to be given as type package types - it generates
-     *   its own types.
-     *   https://app.asana.com/0/1202805690238892/1202892835843657/f
-     */
-    return new PropertyTypeModel({
-      schema: schema as PropertyType,
-      ownedById,
-      createdById: provenance.createdById,
-      updatedById: provenance.updatedById,
-    });
+  get metadata(): OntologyElementMetadata {
+    return this.propertyType.metadata;
+  }
+
+  constructor({ propertyType }: PropertyTypeModelConstructorParams) {
+    this.propertyType = propertyType;
+  }
+
+  static fromPropertyTypeWithMetadata(
+    propertyType: PropertyTypeWithMetadata,
+  ): PropertyTypeModel {
+    return new PropertyTypeModel({ propertyType });
   }
 
   /**

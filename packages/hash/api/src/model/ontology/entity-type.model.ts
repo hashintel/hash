@@ -28,10 +28,6 @@ export type EntityTypeModelCreateParams = {
 export default class {
   private entityType: EntityTypeWithMetadata;
 
-  get ownedById(): string {
-    return this.entityType.metadata.ownedById;
-  }
-
   get schema(): EntityType {
     /**
      * @todo: remove this casting when we update the type system package
