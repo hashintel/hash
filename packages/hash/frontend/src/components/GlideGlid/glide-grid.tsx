@@ -4,16 +4,21 @@ import {
   DataEditorProps,
   Theme,
   DataEditorRef,
+  Item,
 } from "@glideapps/glide-data-grid";
 import { useTheme } from "@mui/material";
-import { forwardRef, ForwardRefRenderFunction, useMemo } from "react";
+import { forwardRef, ForwardRefRenderFunction, useMemo, useState } from "react";
+import { uniqueId } from "lodash";
 import { getCellHorizontalPadding } from "./utils";
 import { customGridIcons } from "./utils/custom-grid-icons";
+import { InteractableManager } from "./utils/interactable-manager";
 
 const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
-  props,
+  { customRenderers, ...rest },
   ref,
 ) => {
+  const [tableId] = useState(uniqueId("grid"));
+
   const { palette } = useTheme();
 
   const gridTheme: Partial<Theme> = useMemo(
@@ -38,6 +43,38 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
     [palette],
   );
 
+  const interactableCustomRenderers = useMemo<
+    DataEditorProps["customRenderers"]
+  >(() => {
+    return customRenderers?.map((customRenderer) => {
+      return {
+        ...customRenderer,
+        draw: (args, cell) => customRenderer.draw({ ...args, tableId }, cell),
+        onClick: (args) => {
+          /** @todo investigate why `args` don't have `location` on it's type  */
+          const [col, row] = (args as unknown as { location: Item }).location;
+
+          const isClickHandledByManager = InteractableManager.handleClick(
+            {
+              tableId,
+              col,
+              row,
+            },
+            args,
+          );
+
+          if (isClickHandledByManager) {
+            args.preventDefault();
+          } else {
+            customRenderer.onClick?.(args);
+          }
+
+          return undefined;
+        },
+      };
+    });
+  }, [customRenderers, tableId]);
+
   return (
     <DataEditor
       ref={ref}
@@ -51,7 +88,8 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
       smoothScrollX
       smoothScrollY
       getCellsForSelection
-      {...props}
+      customRenderers={interactableCustomRenderers}
+      {...rest}
       /**
        * icons defined via `headerIcons` are avaiable to be drawn using
        * glide-grid's `spriteManager.drawSprite`,

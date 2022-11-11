@@ -8,15 +8,17 @@ type InteractablePosition = {
   bottom: number;
 };
 
+export type InteractableEventHandler = (interactable: Interactable) => void;
+
 interface Interactable {
   pos: InteractablePosition;
   path: CellPath;
   hovered: boolean;
   cellRect: Rectangle;
   id: string;
-  onClick?: () => void;
-  onMouseEnter?: () => void;
-  onMouseLeave?: () => void;
+  onClick?: InteractableEventHandler;
+  onMouseEnter?: InteractableEventHandler;
+  onMouseLeave?: InteractableEventHandler;
 }
 
 interface CursorPos {
@@ -93,7 +95,7 @@ class InteractableManagerClass {
           ? interactable.onMouseEnter
           : interactable.onMouseLeave;
 
-        event?.();
+        event?.(interactable);
       }
     }
 
@@ -119,13 +121,15 @@ class InteractableManagerClass {
       }
     }
 
-    if (foundInteractable) {
-      /**
-       * @todo if there is only a hover effect, we need to trigger it here, because hovers will be working on click on mobile
-       * also we should preventDefault here probably, if there is an event defined, we don't want the editor to popup
-       */
-      foundInteractable.onClick?.();
+    let handledClickEvent = false;
+
+    if (foundInteractable && foundInteractable.onClick) {
+      foundInteractable.onClick(foundInteractable);
+
+      handledClickEvent = true;
     }
+
+    return handledClickEvent;
   }
 }
 
