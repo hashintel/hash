@@ -21,7 +21,7 @@ pub mod vertices;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Subgraph {
-    #[schema(value_type = Vec<GraphElementId>)]
+    #[schema(value_type = Vec<GraphElementEditionId>)]
     pub roots: HashSet<GraphElementEditionId>,
     pub vertices: Vertices,
     pub edges: Edges,

@@ -1567,10 +1567,10 @@ export interface Subgraph {
   edges: Edges;
   /**
    *
-   * @type {Array<GraphElementId>}
+   * @type {Array<GraphElementEditionId>}
    * @memberof Subgraph
    */
-  roots: Array<GraphElementId>;
+  roots: Array<GraphElementEditionId>;
   /**
    *
    * @type {Vertices}
