@@ -28,7 +28,9 @@ impl ErrorProperty for ExpectedField {
     }
 
     fn value<'a>(stack: impl Iterator<Item = &'a Self>) -> Self::Value<'a> {
-        stack.collect()
+        let mut stack: Vec<_> = stack.collect();
+        stack.reverse();
+        stack
     }
 }
 
@@ -50,7 +52,9 @@ impl ErrorProperty for ReceivedField {
     }
 
     fn value<'a>(stack: impl Iterator<Item = &'a Self>) -> Self::Value<'a> {
-        stack.collect()
+        let mut stack: Vec<_> = stack.collect();
+        stack.reverse();
+        stack
     }
 }
 
@@ -203,3 +207,43 @@ impl Display for UnknownVariantError {
 }
 
 impl_error!(UnknownVariantError);
+
+#[cfg(test)]
+mod tests {
+    use alloc::vec;
+
+    use error_stack::Report;
+    use serde_json::json;
+
+    use super::*;
+    use crate::test::to_json;
+
+    // TODO: UnknownVariant
+
+    #[test]
+    fn field() {
+        // we try to parse:
+        // [_, _, {field1: _, field2: _ <- here, field3: _, field4: _ <- here}] into:
+        // struct Example { field1: _, field3: _ }
+
+        let report = Report::new(UnknownFieldError)
+            .attach(Location::Array(2))
+            .attach(ExpectedField::new("field1"))
+            .attach(ExpectedField::new("field3"))
+            .attach(ReceivedField::new("field1"))
+            .attach(ReceivedField::new("field2"))
+            .attach(ReceivedField::new("field3"))
+            .attach(ReceivedField::new("field4"));
+
+        assert_eq!(
+            to_json(&report),
+            json!({
+                "location": [
+                    {"type": "array", "value": 2}
+                ],
+                "expected": ["field1", "field3"],
+                "received": ["field1", "field2", "field3", "field4"]
+            })
+        );
+    }
+}

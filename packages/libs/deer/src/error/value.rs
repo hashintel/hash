@@ -94,7 +94,7 @@ mod tests {
                     .with("minimum", u8::MIN)
                     .with("maximum", u8::MAX),
             ))
-            .attach(ReceivedValue::new(u8::MAX as u16 + 1));
+            .attach(ReceivedValue::new(u16::from(u8::MAX) + 1));
 
         assert_eq!(
             to_json(&error),
