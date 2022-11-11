@@ -173,7 +173,7 @@ export const EntitiesTab: FunctionComponent<EntitiesTabProps> = ({
   }
 
   return (
-    <Box sx={{ paddingX: 2.5 }}>
+    <Box>
       <SectionWrapper
         title="Entities"
         titleTooltip="This table lists all entities with the ‘Company’ type that are accessible to you"
