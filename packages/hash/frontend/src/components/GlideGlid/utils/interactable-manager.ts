@@ -118,7 +118,10 @@ class InteractableManagerClass {
     this.interactableStore[strPath] = interactableMap;
   }
 
-  handleClick(path: CellPath, event: CursorPos) {
+  /**
+   * @returns true if handled the click event, false if not
+   */
+  handleClick(path: CellPath, event: CursorPos): boolean {
     const strPath = cellPathToString(path);
 
     const interactableMap = this.interactableStore[strPath] ?? {};
@@ -137,15 +140,21 @@ class InteractableManagerClass {
       }
     }
 
-    let handledClickEvent = false;
-
-    if (foundInteractable && foundInteractable.onClick) {
-      foundInteractable.onClick(foundInteractable);
-
-      handledClickEvent = true;
+    if (!foundInteractable) {
+      return false;
     }
 
-    return handledClickEvent;
+    const { onClick, onMouseEnter } = foundInteractable;
+
+    const handler = onClick ?? onMouseEnter;
+
+    if (handler) {
+      handler?.(foundInteractable);
+
+      return true;
+    }
+
+    return false;
   }
 }
 

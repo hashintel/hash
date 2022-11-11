@@ -1,6 +1,7 @@
 import type { DrawArgs } from "@glideapps/glide-data-grid/dist/ts/data-grid/cells/cell-types";
-import { getYCenter } from "../../utils";
+import { getCellHorizontalPadding, getYCenter } from "../../utils";
 import { drawCellFadeOutGradient } from "../draw-cell-fade-out-gradient";
+import { Interactable, InteractableManager } from "../interactable-manager";
 import { TooltipCell } from "./types";
 
 export class GridTooltipManager {
@@ -8,21 +9,10 @@ export class GridTooltipManager {
 
   private iconGap = 10;
 
-  // margin between last icon & cell border
-  private cellMargin = 24;
+  private cellMargin = getCellHorizontalPadding();
 
   constructor(private args: DrawArgs<TooltipCell>) {}
 
-  draw() {
-    this.drawTooltipIcons();
-  }
-
-  /**
-   * @todo this logic should be reusable for all custom cells
-   * we'll use the gradient solution below as
-   * replacement of ellipsis (...) on our custom cells
-   * even if a cell has tooltips, or not
-   */
   private drawBackground() {
     const { iconSize, iconGap, args, cellMargin } = this;
     const { ctx, cell, rect } = args;
@@ -40,14 +30,14 @@ export class GridTooltipManager {
     drawCellFadeOutGradient(args, totalWidth);
   }
 
-  private drawTooltipIcons() {
+  drawAndCreateInteractables(): Interactable[] {
     const { iconSize, iconGap, args, cellMargin } = this;
-    const { ctx, cell, rect, col, row, hoverX = -100, theme } = args;
+    const { ctx, cell, rect, col, row, theme } = args;
     const { hideTooltip, showTooltip, tooltips } = cell.data;
 
     if (!tooltips?.length) {
       drawCellFadeOutGradient(args);
-      return;
+      return [];
     }
 
     this.drawBackground();
@@ -58,7 +48,7 @@ export class GridTooltipManager {
       );
     }
 
-    let tooltipCount = 0;
+    const interactables: Interactable[] = [];
 
     for (let i = 0; i < tooltips.length; i++) {
       const tooltip = tooltips[i] ?? {
@@ -94,20 +84,27 @@ export class GridTooltipManager {
 
       const actualTooltipX = tooltipX - rect.x;
 
-      if (hoverX > actualTooltipX && hoverX < actualTooltipX + iconSize) {
-        tooltipCount++;
+      const interactable = InteractableManager.create(args, {
+        id: i,
+        pos: {
+          left: tooltipX,
+          right: tooltipX + iconSize,
+          top: yCenter - iconSize / 2,
+          bottom: yCenter + iconSize / 2,
+        },
+        onMouseEnter: () =>
+          showTooltip({
+            text: tooltip.text,
+            iconX: actualTooltipX + iconSize / 2,
+            col,
+            row,
+          }),
+        onMouseLeave: () => hideTooltip(col, row),
+      });
 
-        showTooltip({
-          text: tooltip.text,
-          iconX: actualTooltipX + iconSize / 2,
-          col,
-          row,
-        });
-      }
+      interactables.push(interactable);
     }
 
-    if (tooltipCount === 0) {
-      hideTooltip(col, row);
-    }
+    return interactables;
   }
 }

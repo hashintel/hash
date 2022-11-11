@@ -4,6 +4,8 @@ import {
   GridCellKind,
 } from "@glideapps/glide-data-grid";
 import { getYCenter } from "../../../../../../../../components/GlideGlid/utils";
+import { InteractableManager } from "../../../../../../../../components/GlideGlid/utils/interactable-manager";
+import { GridTooltipManager } from "../../../../../../../../components/GlideGlid/utils/use-grid-tooltip/grid-tooltip-manager";
 import { ValueCell } from "./value-cell/types";
 import { ValueCellEditor } from "./value-cell/value-cell-editor";
 
@@ -21,6 +23,11 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
     const yCenter = getYCenter(args);
 
     ctx.fillText(String(value), rect.x + theme.cellHorizontalPadding, yCenter);
+
+    const tooltipManager = new GridTooltipManager(args);
+    const tooltipInteractables = tooltipManager.drawAndCreateInteractables();
+
+    InteractableManager.setInteractablesForCell(args, tooltipInteractables);
   },
   provideEditor: () => {
     return {
