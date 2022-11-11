@@ -98,3 +98,4 @@ __pycache__
 **/target
 **/.next
 
+seed-users.json
