@@ -6,8 +6,8 @@ import {
 import { getAllLatestEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { Subgraph } from "../../lib/subgraph";
 
-export const useEntityTypeEntities2 = (
-  typeId: string,
+export const useEntityTypeEntities = (
+  entityTypeId: string,
 ): {
   loading: boolean;
   subgraph?: Subgraph;
@@ -17,6 +17,7 @@ export const useEntityTypeEntities2 = (
     GetAllLatestPersistedEntitiesQueryVariables
   >(getAllLatestEntitiesQuery, {
     variables: {
+      entityTypeId,
       dataTypeResolveDepth: 0,
       propertyTypeResolveDepth: 1,
       linkTypeResolveDepth: 0,

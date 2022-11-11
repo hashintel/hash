@@ -7,7 +7,7 @@ import {
 } from "@blockprotocol/type-system-web";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
-import { Box, Container, Stack, Tab, Tabs, Typography } from "@mui/material";
+import { Box, Container, Typography } from "@mui/material";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
 import { useMemo, useState } from "react";
@@ -23,18 +23,18 @@ import {
 import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
 import { OntologyChip } from "../../shared/ontology-chip";
 import { useEntityType } from "./use-entity-type";
-import {
-  PropertyTypesContext,
-  usePropertyTypesContextValue,
-} from "./use-property-types";
 import { useRouteNamespace } from "./use-route-namespace";
 import { mustBeVersionedUri } from "./util";
 import { EntitiesTab } from "./tabs/entities-tab";
 import { DefinitionTab } from "./tabs/definition-tab";
 import { useEntityTypeEntities } from "../../../../components/hooks/useEntityTypeEntities";
+import {
+  EntityTypeEditorTabs,
+  NAVIGATION_TABS,
+} from "./tabs/entity-type-editor-tabs";
 
 const getBaseUri = (entityTypeId: string, namespace: string) =>
-  `${FRONTEND_URL}/${namespace}/types/entity-type/${entityTypeId}/`;
+  `${FRONTEND_URL}/@${namespace}/types/entity-type/${entityTypeId}/`;
 
 const getSchemaFromEditorForm = (
   properties: EntityTypeEditorPropertyData[],
@@ -77,10 +77,25 @@ const Page: NextPageWithLayout = () => {
   // @todo how to handle remote types
   const isDraft = !!router.query.draft;
   const namespace = useRouteNamespace();
-  const entityTypeId = router.query["entity-type-id"][0];
-  const baseEntityTypeUri = isDraft
-    ? null
-    : getBaseUri(entityTypeId, router.query["account-slug"]);
+
+  const entityTypeId = router.query["entity-type-id"]?.[0] ?? "";
+  const baseEntityTypeUri =
+    !isDraft && namespace?.shortname
+      ? getBaseUri(entityTypeId, namespace.shortname)
+      : null;
+
+  const { subgraph: typeEntitiesSubgraph } = useEntityTypeEntities(
+    baseEntityTypeUri ?? "",
+  );
+
+  const [activeTab, setActiveTab] = useState(() => {
+    const activePath = router.query["entity-type-id"]?.[1] ?? "";
+    const tabIndex = NAVIGATION_TABS.findIndex(
+      (tab) => tab.path === activePath,
+    );
+
+    return tabIndex >= 0 ? tabIndex : 0;
+  });
 
   const draftEntityType = useMemo(() => {
     if (router.query.draft) {
@@ -100,6 +115,8 @@ const Page: NextPageWithLayout = () => {
     defaultValues: { properties: [] },
   });
   const { handleSubmit: wrapHandleSubmit, reset } = formMethods;
+
+  const properties = formMethods.watch("properties");
 
   const [remoteEntityType, updateEntityType, publishDraft] = useEntityType(
     baseEntityTypeUri,
@@ -124,54 +141,6 @@ const Page: NextPageWithLayout = () => {
   );
 
   const entityType = remoteEntityType ?? draftEntityType;
-
-  const { subgraph: typeEntitiesSubgraph } = useEntityTypeEntities(
-    "http://localhost:3000/@example/types/entity-type/user/",
-  );
-
-  const NAVIGATION_TABS = useMemo(
-    () => [
-      {
-        id: "definition",
-        label: "Definition",
-        path: "",
-        numberIndicator: 3,
-      },
-      {
-        id: "entities",
-        label: "Entities",
-        path: "entities",
-        numberIndicator: typeEntitiesSubgraph?.roots.length,
-      },
-      {
-        id: "views",
-        label: "Views",
-        path: "",
-      },
-      {
-        id: "dependents",
-        label: "Dependents",
-        path: "",
-      },
-      {
-        id: "activity",
-        label: "Activity",
-        path: "",
-      },
-    ],
-    [typeEntitiesSubgraph],
-  );
-
-  const [activeTab, setActiveTab] = useState(() => {
-    const activePath = router.query["entity-type-id"]?.[1] ?? "";
-    const tabIndex = NAVIGATION_TABS.findIndex(
-      (tab) => tab.path === activePath,
-    );
-
-    return tabIndex >= 0 ? tabIndex : 0;
-  });
-
-  const propertyTypes = usePropertyTypesContextValue();
 
   const handleSubmit = wrapHandleSubmit(async (data) => {
     if (!entityType) {
@@ -212,191 +181,133 @@ const Page: NextPageWithLayout = () => {
     : extractVersion(mustBeVersionedUri(entityType.$id));
 
   return (
-    <PropertyTypesContext.Provider value={propertyTypes}>
-      <FormProvider {...formMethods}>
-        <Box
-          sx={(theme) => ({
-            minHeight: "100vh",
-            background: theme.palette.gray[10],
-            display: "flex",
-            flexDirection: "column",
-          })}
-          component="form"
-          onSubmit={handleSubmit}
-        >
-          <Box bgcolor="white" borderBottom={1} borderColor="gray.20">
-            <TopContextBar
-              defaultCrumbIcon={null}
-              crumbs={[
-                {
-                  title: "Types",
-                  href: "#",
-                  id: "types",
-                },
-                {
-                  title: "Entity types",
-                  href: "#",
-                  id: "entity-types",
-                },
-                {
-                  title: entityType.title,
-                  href: "#",
-                  id: entityType.$id,
-                  icon: <FontAwesomeIcon icon={faAsterisk} />,
-                },
-              ]}
-              scrollToTop={() => {}}
-            />
-            <EditBar
-              currentVersion={currentVersion}
-              discardButtonProps={
-                // @todo confirmation of discard when draft
-                isDraft
-                  ? {
-                      href: `/${router.query["account-slug"]}/types/new/entity-type`,
-                    }
-                  : {
-                      onClick() {
-                        reset();
-                      },
-                    }
-              }
-            />
-
-            <Box pt={3.75}>
-              <Container>
-                <OntologyChip
-                  icon={<HashOntologyIcon />}
-                  domain="hash.ai"
-                  path={
-                    <>
-                      <Typography
-                        component="span"
-                        fontWeight="bold"
-                        color={(theme) => theme.palette.blue[70]}
-                      >
-                        {router.query["account-slug"]}
-                      </Typography>
-                      <Typography
-                        component="span"
-                        color={(theme) => theme.palette.blue[70]}
-                      >
-                        /types/entity-types/
-                      </Typography>
-                      <Typography
-                        component="span"
-                        fontWeight="bold"
-                        color={(theme) => theme.palette.blue[70]}
-                      >
-                        {entityTypeId}
-                      </Typography>
-                    </>
+    <FormProvider {...formMethods}>
+      <Box
+        sx={(theme) => ({
+          minHeight: "100vh",
+          background: theme.palette.gray[10],
+          display: "flex",
+          flexDirection: "column",
+        })}
+        component="form"
+        onSubmit={handleSubmit}
+      >
+        <Box bgcolor="white" borderBottom={1} borderColor="gray.20">
+          <TopContextBar
+            defaultCrumbIcon={null}
+            crumbs={[
+              {
+                title: "Types",
+                href: "#",
+                id: "types",
+              },
+              {
+                title: "Entity types",
+                href: "#",
+                id: "entity-types",
+              },
+              {
+                title: entityType.title,
+                href: "#",
+                id: entityType.$id,
+                icon: <FontAwesomeIcon icon={faAsterisk} />,
+              },
+            ]}
+            scrollToTop={() => {}}
+          />
+          <EditBar
+            currentVersion={currentVersion}
+            discardButtonProps={
+              // @todo confirmation of discard when draft
+              isDraft
+                ? {
+                    href: `/${router.query["account-slug"]}/types/new/entity-type`,
                   }
-                />
-                <Typography variant="h1" fontWeight="bold" mt={3} mb={4.5}>
-                  <FontAwesomeIcon
-                    icon={faAsterisk}
-                    sx={(theme) => ({
-                      fontSize: 40,
-                      mr: 3,
-                      color: theme.palette.gray[70],
-                      verticalAlign: "middle",
-                    })}
-                  />
-                  {entityType.title}
-                </Typography>
+                : {
+                    onClick() {
+                      reset();
+                    },
+                  }
+            }
+          />
 
-                <Tabs
-                  value={activeTab}
-                  onChange={(_, index) => {
-                    void router.push(
-                      `/@${namespace?.shortname}/types/entity-type/${entityTypeId}/${NAVIGATION_TABS[index]?.path}`,
-                      undefined,
-                      { shallow: true },
-                    );
-                    setActiveTab(index);
-                  }}
-                  TabIndicatorProps={{
-                    sx: ({ palette }) => ({
-                      height: 3,
-                      backgroundColor: palette.blue[60],
-                      minHeight: 0,
-                    }),
-                  }}
-                >
-                  {NAVIGATION_TABS.map((tab, index) => (
-                    <Tab
-                      label={
-                        <Stack direction="row">
-                          <Typography
-                            variant="smallTextLabels"
-                            fontWeight={500}
-                            sx={{
-                              paddingY: 0.25,
-                            }}
-                          >
-                            {tab.label}
-                          </Typography>
-                          {tab.numberIndicator ? (
-                            <Box
-                              sx={({ palette }) => ({
-                                marginLeft: 1,
-                                paddingX: 1,
-                                paddingY: 0.25,
-                                borderRadius: "50%",
-                                background:
-                                  activeTab === index
-                                    ? palette.blue[20]
-                                    : palette.gray[20],
-                              })}
-                            >
-                              <Typography
-                                variant="microText"
-                                sx={({ palette }) => ({
-                                  fontWeight: 500,
-                                  color:
-                                    activeTab === index
-                                      ? palette.primary.main
-                                      : palette.gray[80],
-                                })}
-                              >
-                                {tab.numberIndicator}
-                              </Typography>
-                            </Box>
-                          ) : null}
-                        </Stack>
-                      }
-                      id={tab.id}
-                      key={tab.id}
-                      sx={{
-                        marginRight: 3,
-                        paddingY: "11px",
-                        paddingX: 0.5,
-                        minWidth: 0,
-                        minHeight: 0,
-                      }}
-                    />
-                  ))}
-                </Tabs>
-              </Container>
-            </Box>
+          <Box pt={3.75}>
+            <Container>
+              <OntologyChip
+                icon={<HashOntologyIcon />}
+                domain="hash.ai"
+                path={
+                  <>
+                    <Typography
+                      component="span"
+                      fontWeight="bold"
+                      color={(theme) => theme.palette.blue[70]}
+                    >
+                      {router.query["account-slug"]}
+                    </Typography>
+                    <Typography
+                      component="span"
+                      color={(theme) => theme.palette.blue[70]}
+                    >
+                      /types/entity-types/
+                    </Typography>
+                    <Typography
+                      component="span"
+                      fontWeight="bold"
+                      color={(theme) => theme.palette.blue[70]}
+                    >
+                      {entityTypeId}
+                    </Typography>
+                  </>
+                }
+              />
+              <Typography variant="h1" fontWeight="bold" mt={3} mb={4.5}>
+                <FontAwesomeIcon
+                  icon={faAsterisk}
+                  sx={(theme) => ({
+                    fontSize: 40,
+                    mr: 3,
+                    color: theme.palette.gray[70],
+                    verticalAlign: "middle",
+                  })}
+                />
+                {entityType.title}
+              </Typography>
+
+              <EntityTypeEditorTabs
+                value={activeTab}
+                onChange={(_, index) => {
+                  void router.push(
+                    `/@${namespace?.shortname}/types/entity-type/${entityTypeId}/${NAVIGATION_TABS[index]?.path}`,
+                    undefined,
+                    { shallow: true },
+                  );
+                  setActiveTab(index);
+                }}
+                numberIndicators={[
+                  properties.length,
+                  typeEntitiesSubgraph?.roots.length,
+                ]}
+              />
+            </Container>
           </Box>
-          <Box py={5}>
+        </Box>
+
+        <Box py={5}>
+          <Container>
             {activeTab === 0 ? (
               <DefinitionTab entityTypeTitle={entityType.title} />
             ) : null}
-            {activeTab === 1 ? (
+            {activeTab === 1 && typeEntitiesSubgraph && baseEntityTypeUri ? (
               <EntitiesTab
                 entitiesSubgraph={typeEntitiesSubgraph}
-                // subgraph={subgraph}
-                entityType={entityType}
-                namespace={namespace}
+                baseEntityTypeUri={baseEntityTypeUri}
               />
             ) : null}
-          </Box>
+          </Container>
         </Box>
-      </FormProvider>
-    </PropertyTypesContext.Provider>
+      </Box>
+    </FormProvider>
   );
 };
 Page.getLayout = getPlainLayout;

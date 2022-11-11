@@ -1,7 +1,11 @@
 import { Typography } from "@mui/material";
-import { Box, Container } from "@mui/system";
+import { Box } from "@mui/system";
 import { FunctionComponent } from "react";
 import { PropertyListCard } from "../property-list-card";
+import {
+  PropertyTypesContext,
+  usePropertyTypesContextValue,
+} from "../use-property-types";
 
 export type DefinitionTabProps = {
   entityTypeTitle: string;
@@ -10,8 +14,10 @@ export type DefinitionTabProps = {
 export const DefinitionTab: FunctionComponent<DefinitionTabProps> = ({
   entityTypeTitle,
 }) => {
+  const propertyTypes = usePropertyTypesContextValue();
+
   return (
-    <Container>
+    <PropertyTypesContext.Provider value={propertyTypes}>
       <Typography variant="h5" mb={1.25}>
         Properties of{" "}
         <Box component="span" sx={{ fontWeight: "bold" }}>
@@ -19,6 +25,6 @@ export const DefinitionTab: FunctionComponent<DefinitionTabProps> = ({
         </Box>
       </Typography>
       <PropertyListCard />
-    </Container>
+    </PropertyTypesContext.Provider>
   );
 };

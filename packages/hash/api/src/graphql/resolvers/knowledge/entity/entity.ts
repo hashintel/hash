@@ -56,6 +56,7 @@ export const getAllLatestPersistedEntities: ResolverFn<
 > = async (
   _,
   {
+    entityTypeId,
     dataTypeResolveDepth,
     propertyTypeResolveDepth,
     linkTypeResolveDepth,
@@ -73,15 +74,18 @@ export const getAllLatestPersistedEntities: ResolverFn<
       filter: {
         all: [
           { equal: [{ path: ["version"] }, { parameter: "latest" }] },
-          {
-            equal: [
-              { path: ["type", "baseUri"] },
-              {
-                parameter:
-                  "http://localhost:3000/@example/types/entity-type/user/",
-              },
-            ],
-          },
+          ...(entityTypeId
+            ? ([
+                {
+                  equal: [
+                    { path: ["type", "baseUri"] },
+                    {
+                      parameter: entityTypeId,
+                    },
+                  ],
+                },
+              ] as Filter[])
+            : []),
         ],
       },
       graphResolveDepths: {

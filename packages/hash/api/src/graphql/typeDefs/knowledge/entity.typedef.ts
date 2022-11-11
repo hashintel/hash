@@ -127,6 +127,7 @@ export const persistedEntityTypedef = gql`
     Get a subgraph rooted at all entities at their latest version.
     """
     getAllLatestPersistedEntities(
+      entityTypeId: String
       dataTypeResolveDepth: Int!
       propertyTypeResolveDepth: Int!
       linkTypeResolveDepth: Int!
