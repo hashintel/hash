@@ -22,8 +22,8 @@ services:
       HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
       HASH_GRAPH_REALTIME_PG_USER: "${HASH_GRAPH_REALTIME_PG_USER}"
       HASH_GRAPH_REALTIME_PG_PASSWORD: "${HASH_GRAPH_REALTIME_PG_PASSWORD}"
-    ports:
-      - "${POSTGRES_PORT}:5432"
+    # ports:
+    #   - "${POSTGRES_PORT}:5432"
     volumes:
       - hash-postgres-data:/var/lib/postgresql/data
       - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
@@ -90,10 +90,11 @@ services:
     #   - "4434:4434" # admin, we don't want to expose this
     restart: unless-stopped
     environment:
-      SECRETS_COOKIE: "VERY-INSECURE-AND-SHOULD-ONLY-BE-USED-IN-DEV"
-      SECRETS_CIPHER: "32-LONG-SECRET-NOT-SECURE-AT-ALL"
+      SECRETS_COOKIE: "${KRATOS_SECRETS_COOKIE}"
+      SECRETS_CIPHER: "${KRATOS_SECRETS_CIPHER}"
       COURIER_SMTP_CONNECTION_URI: "smtps://test:test@mailslurper:1025/?skip_ssl_verify=true"
       DSN: "postgres://${HASH_KRATOS_PG_USER}:${HASH_KRATOS_PG_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_KRATOS_PG_DEV_DATABASE}"
+      # KRATOS_API_KEY: "${KRATOS_API_KEY}" Currently this cannot be set as an env variable :(
       LOG_LEVEL: "warning"
       COOKIES_PATH: "/"
       COOKIES_DOMAIN: "${KRATOS_COOKIE_DOMAIN}"
@@ -115,9 +116,9 @@ services:
 
   mailslurper:
     image: oryd/mailslurper:latest-smtps
-    ports:
-      - "4436:4436"
-      - "4437:4437"
+    # ports:
+    #   - "4436:4436"
+    #   - "4437:4437"
 
   hash-redis:
     image: redis:6.2
@@ -164,7 +165,6 @@ services:
       HASH_TASK_EXECUTOR_HOST: "${HASH_TASK_EXECUTOR_HOST}"
       HASH_TASK_EXECUTOR_PORT: "${HASH_TASK_EXECUTOR_PORT}"
 
-      SESSION_SECRET: "%{SESSION_SECRET}"
       ORY_KRATOS_PUBLIC_URL: "http://kratos:4433"
       ORY_KRATOS_ADMIN_URL: "http://kratos:4434"
       KRATOS_API_KEY: "${KRATOS_API_KEY}"

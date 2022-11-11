@@ -282,8 +282,6 @@ You **do not** need to set any environment variables to run the application.
 - `NODE_ENV`: ("development" or "production") the runtime environment. Controls
   default logging levels and output formatting.
 - `PORT`: the port number the API will listen on.
-- `SESSION_SECRET` The secret used to sign login sessions (default: `secret`)
-- `HTTPS_ENABLED`: (optional) Set to `"1"` if HTTPS is enabled on the frontend host.
 
 ### AWS configuration
 

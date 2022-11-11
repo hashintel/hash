@@ -7,7 +7,6 @@ The backend API service is configured using the following environment variables:
 - `NODE_ENV`: ("development" or "production") the runtime environment. Controls
   default logging levels and output formatting.
 - `PORT`: the port number the API will listen on.
-- `SESSION_SECRET`: a secret used to sign login sessions.
 - `AWS_REGION`: the AWS region to use for the Simple Email Service (SES) provider.
 - S3 file uploads:
   - `AWS_S3_REGION`: (optional) the AWS region where the file uploads bucket is located. If not
@@ -23,7 +22,6 @@ The backend API service is configured using the following environment variables:
   - `HASH_REDIS_HOST`: the hostname for the Redis server.
   - `HASH_REDIS_PORT`: the port number of the Redis server.
 - `FRONTEND_URL`: The URL the frontend is hosted on.
-- `HTTPS_ENABLED`: (optional) Set to `"1"` if HTTPS is enabled on the frontend host.
 - OpenSearch:
   - `HASH_OPENSEARCH_ENABLED`: (default: `false`) whether OpenSearch is used or not. `true` or `false`.
   - `HASH_OPENSEARCH_HOST`: the hostname of the OpenSearch cluster to connect to.
