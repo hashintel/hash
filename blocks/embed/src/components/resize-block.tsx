@@ -79,17 +79,13 @@ export const ResizeBlock: FunctionComponent<ResizeBlockProps> = ({
 
       const styles = {
         ...toCSSObject(divRef.current.style.cssText),
-        ...(Boolean(
-          dimensions.width && isInRange(dimensions.width, MIN_WIDTH, maxWidth),
-        ) && {
-          width: `${dimensions.width}px`,
-        }),
-        ...(Boolean(
-          dimensions.height &&
-            isInRange(dimensions.height, MIN_HEIGHT, maxHeight),
-        ) && {
-          height: `${dimensions.height}px`,
-        }),
+        ...(dimensions.width && isInRange(dimensions.width, MIN_WIDTH, maxWidth)
+          ? { width: `${dimensions.width}px` }
+          : {}),
+        ...(dimensions.height &&
+        isInRange(dimensions.height, MIN_HEIGHT, maxHeight)
+          ? { height: `${dimensions.height}px` }
+          : {}),
       } as CSSStyleDeclaration;
 
       divRef.current.style.cssText = toCSSText(styles);
