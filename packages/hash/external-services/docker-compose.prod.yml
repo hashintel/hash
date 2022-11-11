@@ -62,7 +62,7 @@ services:
       HASH_GRAPH_PG_PORT: "5432"
       HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
       HASH_GRAPH_LOG_FORMAT: "${HASH_GRAPH_LOG_FORMAT:-pretty}"
-      HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN: "http://${FRONTEND_DOMAIN}/@(?P<shortname>[\\w-]+)/types/(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type)|(?:link-type))/[\\w-]+/"
+      HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN: "${FRONTEND_URL}/@(?P<shortname>[\\w-]+)/types/(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type)|(?:link-type))/[\\w-]+/"
       RUST_LOG: "${HASH_GRAPH_LOG_LEVEL:-graph=trace,hash_graph=trace,tokio_postgres=debug}"
       RUST_BACKTRACE: 1
     ports:
@@ -133,7 +133,7 @@ services:
       restart_policy:
         condition: on-failure
     environment:
-      FRONTEND_DOMAIN: "${FRONTEND_DOMAIN}"
+      FRONTEND_URL: "${FRONTEND_URL}"
 
       NEXT_PUBLIC_API_ORIGIN: "${NEXT_PUBLIC_API_ORIGIN}"
       SYSTEM_ACCOUNT_NAME: "${SYSTEM_ACCOUNT_NAME}"
@@ -165,6 +165,7 @@ services:
       context: ../../../
       dockerfile: packages/hash/docker/frontend/prod/Dockerfile
       args:
+        FRONTEND_URL: "${FRONTEND_URL}"
         NEXT_PUBLIC_API_ORIGIN: "${NEXT_PUBLIC_API_ORIGIN}"
 
     depends_on:
@@ -174,7 +175,7 @@ services:
       restart_policy:
         condition: on-failure
     environment:
-      FRONTEND_DOMAIN: "${FRONTEND_DOMAIN}"
+      FRONTEND_URL: "${FRONTEND_URL}"
       NEXT_PUBLIC_API_ORIGIN: "${NEXT_PUBLIC_API_ORIGIN}"
       ORY_KRATOS_PUBLIC_URL: "http://kratos:4433"
 

@@ -32,7 +32,7 @@ process.env.NEXT_PUBLIC_BLOCK_BASED_ENTITY_EDITOR =
   process.env.BLOCK_BASED_ENTITY_EDITOR;
 
 // This allows the frontend to generate the graph type IDs in the browser
-process.env.NEXT_PUBLIC_FRONTEND_DOMAIN = process.env.FRONTEND_DOMAIN;
+process.env.NEXT_PUBLIC_FRONTEND_URL = process.env.FRONTEND_URL;
 
 process.env.NEXT_PUBLIC_SENTRY_DSN = process.env.SENTRY_DSN;
 process.env.NEXT_PUBLIC_SENTRY_REPLAYS_SAMPLING_RATE =

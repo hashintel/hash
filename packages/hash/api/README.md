@@ -22,7 +22,7 @@ The backend API service is configured using the following environment variables:
 - Redis
   - `HASH_REDIS_HOST`: the hostname for the Redis server.
   - `HASH_REDIS_PORT`: the port number of the Redis server.
-- `FRONTEND_DOMAIN`: The domain the frontend is hosted on.
+- `FRONTEND_URL`: The URL the frontend is hosted on.
 - `HTTPS_ENABLED`: (optional) Set to `"1"` if HTTPS is enabled on the frontend host.
 - OpenSearch:
   - `HASH_OPENSEARCH_ENABLED`: (default: `false`) whether OpenSearch is used or not. `true` or `false`.
