@@ -4,7 +4,9 @@
     unreachable_pub,
     clippy::pedantic,
     clippy::nursery,
-    clippy::alloc_instead_of_core
+    clippy::alloc_instead_of_core,
+    clippy::std_instead_of_alloc,
+    clippy::std_instead_of_core
 )]
 // TODO: once more stable introduce: warning missing_docs, clippy::missing_errors_doc
 #![allow(clippy::module_name_repetitions)]
