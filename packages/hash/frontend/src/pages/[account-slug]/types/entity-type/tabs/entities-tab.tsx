@@ -86,24 +86,24 @@ export const EntitiesTab: FunctionComponent<EntitiesTabProps> = ({
       {
         title: "Entity",
         id: "entity",
-        width: 200,
+        width: 250,
         grow: 1,
       },
       {
         title: "Entity Type Version",
         id: "entityTypeVersion",
-        width: 200,
+        width: 250,
       },
       {
         title: "Namespace",
         id: "namespace",
-        width: 200,
+        width: 250,
       },
-      {
-        title: "Additional Types",
-        id: "additionalTypes",
-        width: 200,
-      },
+      // {
+      //   title: "Additional Types",
+      //   id: "additionalTypes",
+      //   width: 250,
+      // },
       ...propertyColumns,
     ];
 
@@ -129,7 +129,7 @@ export const EntitiesTab: FunctionComponent<EntitiesTabProps> = ({
               }`
             : "",
           namespace: entityNamespace ? `@${entityNamespace}` : "",
-          additionalTypes: "",
+          // additionalTypes: "",
           ...propertyColumns.reduce((fields, column) => {
             if (column.id) {
               const propertyValue = entity.properties[column.id];
