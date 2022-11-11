@@ -3,7 +3,7 @@ import { stripNewLines } from "../util";
 
 export const shorthands: ColumnDefinitions | undefined = undefined;
 
-export async function up(pgm: MigrationBuilder): Promise<void> {
+export const up = (pgm: MigrationBuilder): void => {
   pgm.createTable(
     "accounts",
     {
@@ -509,7 +509,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
     },
   );
   // link_histories has no unique index!
-}
+};
 
 // A down migration would cause data loss.
 export const down = false;

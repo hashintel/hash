@@ -12,7 +12,6 @@ import {
   createPostgresConnPool,
   PgPool,
 } from "@hashintel/hash-backend-utils/postgres";
-import { Wal2JsonMsg } from "@hashintel/hash-backend-utils/wal2json";
 import {
   getRequiredEnv,
   waitOnResource,
@@ -153,13 +152,13 @@ const pollChanges = async (pool: PgPool, slotName: string) => {
     )
   `);
   // Push each row change onto the queues
-  for (const change of rows as any[]) {
+  for (const change of rows) {
     logger.debug({ message: "change", change });
-    if (change.action === "T") {
-      // Ignore TRUNCATE changes
+    // @ts-expect-error -- Ignore TRUNCATE changes (absent in types), see Wal2JsonMsg
+    if (change?.action === "T") {
       continue;
     }
-    const changeStr = JSON.stringify(change as Wal2JsonMsg);
+    const changeStr = JSON.stringify(change);
     await Promise.all(
       QUEUES.map(({ name, producer }) => producer.push(name, changeStr)),
     );
