@@ -51,7 +51,7 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
         ...customRenderer,
         draw: (args, cell) => customRenderer.draw({ ...args, tableId }, cell),
         onClick: (args) => {
-          /** @todo investigate why `args` don't have `location` on it's type  */
+          /** @todo investigate why `args` don't have `location` in it's type  */
           const [col, row] = (args as unknown as { location: Item }).location;
 
           const isClickHandledByManager = InteractableManager.handleClick(

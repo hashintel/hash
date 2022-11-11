@@ -59,9 +59,9 @@ class InteractableManagerClass {
 
   create(
     args: DrawArgs<CustomCell>,
-    interactable: Omit<Interactable, "hovered">,
+    interactable: Omit<Interactable, "hovered" | "path" | "cellRect">,
   ): Interactable {
-    const { hoverX = -100, hoverY = -100, rect } = args;
+    const { hoverX = -100, hoverY = -100, rect, col, row, tableId } = args;
 
     const hovered = isCursorOnInteractable(
       { posX: hoverX, posY: hoverY },
@@ -69,7 +69,12 @@ class InteractableManagerClass {
       rect,
     );
 
-    return { ...interactable, hovered };
+    return {
+      ...interactable,
+      hovered,
+      cellRect: rect,
+      path: { col, row, tableId },
+    };
   }
 
   cellPathToString({ tableId, col, row }: CellPath) {
