@@ -4,66 +4,42 @@ import {
   GraphApi,
   DataTypeWithMetadata,
   UpdateDataTypeRequest,
+  OntologyElementMetadata,
 } from "@hashintel/hash-graph-client";
 import { generateTypeId } from "@hashintel/hash-shared/types";
 import { DataTypeModel } from "../index";
 import { getNamespaceOfAccountOwner } from "./util";
 
 type DataTypeModelConstructorArgs = {
-  ownedById: string;
-  schema: DataType;
-  createdById: string;
-  updatedById: string;
+  dataType: DataTypeWithMetadata;
 };
 
 /**
  * @class {@link DataTypeModel}
  */
 export default class {
-  ownedById: string;
+  private dataType: DataTypeWithMetadata;
 
-  schema: DataType;
-
-  createdById: string;
-  updatedById: string;
-
-  constructor({
-    schema,
-    ownedById,
-    createdById,
-    updatedById,
-  }: DataTypeModelConstructorArgs) {
-    this.ownedById = ownedById;
-    this.schema = schema;
-
-    this.createdById = createdById;
-    this.updatedById = updatedById;
+  get schema(): DataType {
+    /**
+     * @todo: remove this casting when we update the type system package
+     * @see https://app.asana.com/0/1201095311341924/1203259817761581/f
+     */
+    return this.dataType.schema as DataType;
   }
 
-  static fromDataTypeWithMetadata({
-    schema,
-    metadata: {
-      ownedById,
-      provenance: { createdById, updatedById },
-    },
-  }: DataTypeWithMetadata): DataTypeModel {
-    /**
-     * @todo and a warning, these type casts are here to compensate for
-     *   the differences between the Graph API package and the
-     *   type system package.
-     *
-     *   The type system package can be considered the source of truth in
-     *   terms of the shape of values returned from the API, but the API
-     *   client is unable to be given as type package types - it generates
-     *   its own types.
-     *   https://app.asana.com/0/1202805690238892/1202892835843657/f
-     */
-    return new DataTypeModel({
-      schema: schema as DataType,
-      ownedById,
-      createdById,
-      updatedById,
-    });
+  get metadata(): OntologyElementMetadata {
+    return this.dataType.metadata;
+  }
+
+  constructor({ dataType }: DataTypeModelConstructorArgs) {
+    this.dataType = dataType;
+  }
+
+  static fromDataTypeWithMetadata(
+    dataType: DataTypeWithMetadata,
+  ): DataTypeModel {
+    return new DataTypeModel({ dataType });
   }
 
   /**
