@@ -447,6 +447,9 @@
     clippy::nursery,
     clippy::undocumented_unsafe_blocks,
     clippy::dbg_macro,
+    clippy::alloc_instead_of_core,
+    clippy::std_instead_of_alloc,
+    clippy::std_instead_of_core,
     clippy::print_stdout,
     clippy::print_stderr
 )]
