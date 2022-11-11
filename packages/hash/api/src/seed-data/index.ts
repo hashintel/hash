@@ -16,6 +16,14 @@ const seedOrg = async (params: {
 }): Promise<OrgModel> => {
   const { graphApi, logger } = params;
 
+  const existingOrgModel = await OrgModel.getOrgByShortname(graphApi, {
+    shortname: SYSTEM_ACCOUNT_SHORTNAME,
+  });
+
+  if (existingOrgModel) {
+    return existingOrgModel;
+  }
+
   const sharedOrgModel = await OrgModel.createOrg(graphApi, {
     name: SYSTEM_ACCOUNT_NAME,
     shortname: SYSTEM_ACCOUNT_SHORTNAME,

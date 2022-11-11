@@ -5,12 +5,15 @@ import { GraphApi } from "../graph";
 import { UserModel } from "../model";
 import { systemAccountId } from "../model/util";
 import { createKratosIdentity } from "../auth/ory-kratos";
+import { isDevEnv } from "../lib/env-config";
 
 type DevelopmentUser = {
   email: string;
   shortname: string;
   preferredName: string;
   isInstanceAdmin?: boolean;
+  // If not set, default to "password"
+  password?: string;
 };
 
 const devUsers: readonly DevelopmentUser[] = [
@@ -32,7 +35,7 @@ const devUsers: readonly DevelopmentUser[] = [
   },
 ] as const;
 
-const devPassword = "password";
+const devDefaultPassword = "password";
 
 export const ensureDevUsersAreSeeded = async ({
   graphApi,
@@ -43,13 +46,43 @@ export const ensureDevUsersAreSeeded = async ({
 }): Promise<UserModel[]> => {
   const createdUsers = [];
 
-  for (const { email, shortname, preferredName, isInstanceAdmin } of devUsers) {
+  // Only use `devUsers` if we are in a dev environment
+  let usersToSeed = !isDevEnv ? [] : devUsers;
+
+  // Or if we're explicitly setting users to seed.
+  if (process.env.HASH_SEED_USERS) {
+    try {
+      usersToSeed = JSON.parse(
+        process.env.HASH_SEED_USERS,
+      ) as DevelopmentUser[];
+    } catch (error) {
+      logger.error(
+        "Could not parse environment variable `HASH_SEED_USERS` as JSON. Make sure it's formatted correctly.",
+      );
+    }
+  }
+
+  for (let index = 0; index < usersToSeed.length; index++) {
+    const {
+      email,
+      shortname,
+      preferredName,
+      password = devDefaultPassword,
+      isInstanceAdmin,
+    } = usersToSeed[index]!;
+
+    if (!(email && shortname && preferredName)) {
+      logger.error(
+        `User entry at index ${index} is missing email, shortname or preferredName!`,
+      );
+      continue;
+    }
     const maybeNewIdentity = await createKratosIdentity({
       traits: { emails: [email] },
       credentials: {
         password: {
           config: {
-            password: devPassword,
+            password,
           },
         },
       },
@@ -89,9 +122,7 @@ export const ensureDevUsersAreSeeded = async ({
       createdUsers.push(user);
     }
 
-    logger.info(
-      `Development User available, email = "${email}" password = "${devPassword}".`,
-    );
+    logger.info(`Development User available, email = "${email}".`);
   }
 
   return createdUsers;

@@ -135,6 +135,10 @@ const main = async () => {
 
   await ensureSystemEntitiesExists({ graphApi, logger });
 
+  // This will seed users, an org and pages.
+  // Configurable through environment variables.
+  await seedOrgsAndUsers({ graphApi, logger });
+
   // Set sensible default security headers: https://www.npmjs.com/package/helmet
   // Temporarily disable contentSecurityPolicy for the GraphQL playground
   // Longer-term we can set rules which allow only the playground to load
@@ -146,11 +150,6 @@ const main = async () => {
 
   // Set up authentication related middeware and routes
   setupAuth({ app, graphApi, logger });
-
-  if (isDevEnv) {
-    // This will seed users, an org and pages.
-    await seedOrgsAndUsers({ graphApi, logger });
-  }
 
   // Create an email transporter
   const emailTransporter =
