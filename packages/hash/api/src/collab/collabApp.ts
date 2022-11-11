@@ -106,7 +106,7 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
   const sessionSupportCache = new LRU<string, SessionSupport>({
     max: 1000,
     maxAge: 1000 * 60 * 5,
-    dispose: (_, { apolloClient }) => {
+    dispose: ({ apolloClient }) => {
       apolloClient.stop();
     },
   });

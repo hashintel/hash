@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/hashai",
-  "version": "0.0.0",
+  "version": "0.0.0-private",
   "private": true,
   "scripts": {
     "exe": "ts-node --transpile-only",
