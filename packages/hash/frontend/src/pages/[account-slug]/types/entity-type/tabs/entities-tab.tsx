@@ -258,6 +258,7 @@ export const EntitiesTab: FunctionComponent<EntitiesTabProps> = ({
               return blankCell;
             }}
             customRenderers={[renderValueIconCell]}
+            resizableColumns
           />
         </Paper>
       </SectionWrapper>
