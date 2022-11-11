@@ -1,6 +1,8 @@
 use super::ErrorProperty;
 
 #[derive(Debug, serde::Serialize)]
+#[serde(tag = "type", content = "value")]
+#[serde(rename_all = "lowercase")]
 pub enum Location {
     /// Index of something tuple-like, like tuple of tuple struct.
     Tuple(usize),

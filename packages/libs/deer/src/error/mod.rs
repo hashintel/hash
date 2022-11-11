@@ -60,7 +60,7 @@ use core::fmt::{self, Debug, Display, Formatter};
 
 use error_stack::{Context, Frame, IntoReport, Result};
 pub use extra::{
-    ArrayItemsCountError, ExpectedLength, ObjectItemsExtraError, ReceivedKeys, ReceivedLength,
+    ArrayLengthError, ExpectedLength, ObjectItemsExtraError, ReceivedKey, ReceivedLength,
 };
 pub use location::Location;
 pub use r#type::{ExpectedType, ReceivedType, TypeError};

@@ -499,6 +499,7 @@ pub trait Deserialize<'de>: Sized {
 
 #[cfg(test)]
 pub(crate) mod test {
+    use core::fmt::{Display, Formatter};
     use std::marker::PhantomData;
 
     use error_stack::{Frame, Report};
@@ -528,7 +529,7 @@ pub(crate) mod test {
         }
     }
 
-    pub(crate) fn to_json<E: Error>(report: Report<E>) -> serde_json::Value {
+    pub(crate) fn to_json<E: Error>(report: &Report<E>) -> serde_json::Value {
         // we do not need to worry about the tree structure
         let frames: Vec<_> = report.frames().collect();
 
@@ -538,5 +539,30 @@ pub(crate) mod test {
         };
 
         serde_json::to_value(s).unwrap()
+    }
+
+    struct ErrorMessage<'a, 'b, E: Error> {
+        error: &'a E,
+        properties: &'b <E::Properties as ErrorProperties>::Value<'a>,
+    }
+
+    impl<E: Error> Display for ErrorMessage<'_, '_, E> {
+        fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+            self.error.message(f, self.properties)
+        }
+    }
+
+    pub(crate) fn to_message<E: Error>(report: &Report<E>) -> String {
+        let frames: Vec<_> = report.frames().collect();
+        let properties = E::Properties::value(&frames);
+
+        let error = report.current_context();
+
+        let message = ErrorMessage {
+            error,
+            properties: &properties,
+        };
+
+        format!("{message}")
     }
 }
