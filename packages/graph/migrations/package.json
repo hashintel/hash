@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/hash-graph-migrations",
-  "version": "0.0.0",
+  "version": "0.0.0-private",
   "private": true,
   "description": "The data store for HASH",
   "license": "AGPL-3.0",

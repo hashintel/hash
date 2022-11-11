@@ -78,8 +78,8 @@ const InsertPropertyRow = ({
   const ourInputRef = useRef<HTMLInputElement>(null);
   const sharedRef = useForkRef(inputRef, ourInputRef);
 
-  const { watch } = useFormContext<EntityTypeEditorForm>();
-  const properties = watch("properties");
+  const { control } = useFormContext<EntityTypeEditorForm>();
+  const properties = useWatch({ control, name: "properties" });
 
   return (
     <TableRow

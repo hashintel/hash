@@ -15,13 +15,14 @@ import { FormProvider, useForm } from "react-hook-form";
 import { FRONTEND_URL } from "../../../../lib/config";
 import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
 import { TopContextBar } from "../../../shared/top-context-bar";
+import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
+import { OntologyChip } from "../../shared/ontology-chip";
 import { EditBar } from "./edit-bar";
 import {
   EntityTypeEditorForm,
   EntityTypeEditorPropertyData,
 } from "./form-types";
-import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
-import { OntologyChip } from "../../shared/ontology-chip";
+// import { EntityTypeTabs } from "./entity-type-tabs";
 import { useEntityType } from "./use-entity-type";
 import { useRouteNamespace } from "./use-route-namespace";
 import { mustBeVersionedUri } from "./util";
@@ -261,7 +262,7 @@ const Page: NextPageWithLayout = () => {
                   </>
                 }
               />
-              <Typography variant="h1" fontWeight="bold" mt={3} mb={4.5}>
+              <Typography variant="h1" fontWeight="bold" mt={3} mb={5.25}>
                 <FontAwesomeIcon
                   icon={faAsterisk}
                   sx={(theme) => ({
@@ -273,6 +274,7 @@ const Page: NextPageWithLayout = () => {
                 />
                 {entityType.title}
               </Typography>
+              {/* <EntityTypeTabs entityType={entityType} /> */}
 
               <EntityTypeEditorTabs
                 value={activeTab}
