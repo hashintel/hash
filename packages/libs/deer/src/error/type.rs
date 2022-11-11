@@ -1,3 +1,4 @@
+use alloc::format;
 use core::fmt::{Display, Formatter};
 
 use super::{Error, ErrorProperties, ErrorProperty, Id, Namespace, NAMESPACE};

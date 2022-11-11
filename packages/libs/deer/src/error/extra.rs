@@ -1,3 +1,4 @@
+use alloc::{string::String, vec::Vec};
 use core::{
     fmt,
     fmt::{Display, Formatter},
@@ -154,6 +155,8 @@ impl_error!(ArrayLengthError);
 
 #[cfg(test)]
 mod tests {
+    use alloc::{borrow::ToOwned, vec};
+
     use error_stack::Report;
     use serde_json::json;
 

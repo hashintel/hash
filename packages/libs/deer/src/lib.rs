@@ -499,8 +499,11 @@ pub trait Deserialize<'de>: Sized {
 
 #[cfg(test)]
 pub(crate) mod test {
-    use core::fmt::{Display, Formatter};
-    use std::marker::PhantomData;
+    use alloc::{format, string::String, vec::Vec};
+    use core::{
+        fmt::{Display, Formatter},
+        marker::PhantomData,
+    };
 
     use error_stack::{Frame, Report};
     use serde::{
@@ -522,7 +525,7 @@ pub(crate) mod test {
         {
             let mut map = serializer.serialize_map(None)?;
 
-            E::Properties::output(E::Properties::value(&self.frames), &mut map)
+            E::Properties::output(E::Properties::value(self.frames), &mut map)
                 .map_err(|error| S::Error::custom(format!("{error:?}")))?;
 
             map.end()

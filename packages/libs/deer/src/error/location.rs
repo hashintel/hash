@@ -1,3 +1,5 @@
+use alloc::{string::String, vec::Vec};
+
 use super::ErrorProperty;
 
 #[derive(Debug, serde::Serialize)]
