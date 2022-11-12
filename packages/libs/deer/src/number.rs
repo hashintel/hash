@@ -327,7 +327,7 @@ impl Serialize for Number {
                 if let Ok(value) = i64::try_from(value) {
                     serializer.serialize_i64(-value)
                 } else {
-                    serializer.serialize_i128(-(value as i128))
+                    serializer.serialize_i128(-i128::from(value))
                 }
             }
             OpaqueNumber::Float(value) => serializer.serialize_f64(value),
@@ -338,7 +338,7 @@ impl Serialize for Number {
 // compatability shim, this could be $deer::private::Number instead, but by using the token
 // from `serde_json` we're able to also allow deserialization and serialization of the existing
 // `serde_json` `Number` type
-#[cfg(feature = "arbitrary_precision")]
+#[cfg(feature = "arbitrary-precision")]
 pub(crate) const TOKEN: &str = "$serde_json::private::Number";
 
 #[cfg(feature = "arbitrary-precision")]
@@ -350,7 +350,7 @@ impl Serialize for Number {
         use serde::ser::SerializeStruct;
 
         let mut s = serializer.serialize_struct(TOKEN, 1)?;
-        s.serialize_field(TOKEN, &self.n)?;
+        s.serialize_field(TOKEN, &self.0)?;
         s.end()
     }
 }
