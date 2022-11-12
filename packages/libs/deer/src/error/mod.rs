@@ -69,7 +69,7 @@ pub use unknown::{
     ExpectedField, ExpectedVariant, ReceivedField, ReceivedVariant, UnknownFieldError,
     UnknownVariantError,
 };
-pub use value::{ReceivedValue, ValueError};
+pub use value::{MissingError, ReceivedValue, ValueError};
 
 use crate::error::macros::impl_error;
 

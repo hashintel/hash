@@ -23,8 +23,8 @@ use error_stack::{Report, Result, ResultExt};
 use num_traits::ToPrimitive;
 
 use crate::error::{
-    ArrayAccessError, DeserializeError, DeserializerError, ExpectedType, ObjectAccessError,
-    ReceivedType, ReceivedValue, Schema, TypeError, ValueError, VisitorError,
+    ArrayAccessError, DeserializeError, DeserializerError, ExpectedType, MissingError,
+    ObjectAccessError, ReceivedType, ReceivedValue, Schema, TypeError, ValueError, VisitorError,
 };
 pub use crate::number::Number;
 
@@ -63,10 +63,9 @@ pub trait Visitor<'de>: Sized {
     fn expecting(&self) -> Schema;
 
     fn visit_none(self) -> Result<Self::Value, VisitorError> {
-        // Err(Report::new(Self::Error::message(
-        //     "unexpected missing value",
-        // )))
-        todo!()
+        Err(Report::new(MissingError)
+            .attach(ExpectedType::new(self.expecting()))
+            .change_context(VisitorError))
     }
 
     fn visit_null(self) -> Result<Self::Value, VisitorError> {
