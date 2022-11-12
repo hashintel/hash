@@ -80,6 +80,7 @@ mod tuple;
 mod r#type;
 mod unknown;
 mod value;
+mod hooks;
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Hash, Copy, Clone, serde::Serialize)]
 pub struct Namespace(&'static str);
