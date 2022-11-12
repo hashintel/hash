@@ -53,9 +53,8 @@ pub trait ArrayAccess<'de> {
     fn finish(self) -> Result<(), ArrayAccessError>;
 }
 
-// TODO: Error PR: attach the expected and received type
-// Reason: this definition is used by all other visitors, we provide fallbacks, which **currently**
-//  do not take into account the value provided. This will change with the error PR.
+// Reason: We error out on every `visit_*`, which means we do not use the value, but(!) IDEs like to
+// use the name to make autocomplete, therefore names for unused parameters are required.
 #[allow(unused_variables)]
 pub trait Visitor<'de>: Sized {
     type Value;
