@@ -72,6 +72,7 @@ impl Error for UnknownFieldError {
         fmt: &mut Formatter,
         properties: &<Self::Properties as ErrorProperties>::Value<'a>,
     ) -> fmt::Result {
+        // expected fields "field1", "...", but received fields "field1", "..."
         let (_, expected, received) = properties;
 
         let has_expected = !expected.is_empty();
@@ -80,20 +81,20 @@ impl Error for UnknownFieldError {
         let expected = expected.iter().map(|ExpectedField(inner)| *inner);
         let received = received.iter().map(|ReceivedField(inner)| inner.as_str());
 
-        if has_received {
-            let received = fold_field(received);
-
-            fmt.write_fmt(format_args!("received extra fields ({received})"))?;
-        }
-
-        if has_received && has_expected {
-            fmt.write_str(", ")?;
-        }
-
         if has_expected {
             let expected = fold_field(expected);
 
-            fmt.write_fmt(format_args!("only expected {expected}"))?;
+            fmt.write_fmt(format_args!("expected fields {expected}"))?;
+        }
+
+        if has_received && has_expected {
+            fmt.write_str(", but ")?;
+        }
+
+        if has_received {
+            let received = fold_field(received);
+
+            fmt.write_fmt(format_args!("received fields {received}"))?;
         }
 
         if !has_expected && !has_received {
@@ -106,7 +107,7 @@ impl Error for UnknownFieldError {
 
 impl Display for UnknownFieldError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str("extra unknown fields have been received")
+        f.write_str("received unknown fields")
     }
 }
 
@@ -216,10 +217,9 @@ mod tests {
     use serde_json::json;
 
     use super::*;
-    use crate::test::to_json;
+    use crate::test::{to_json, to_message};
 
     // TODO: UnknownVariant
-    // TODO: UnknownField Message
 
     #[test]
     fn field() {
@@ -245,6 +245,48 @@ mod tests {
                 "expected": ["field1", "field3"],
                 "received": ["field1", "field2", "field3", "field4"]
             })
+        );
+    }
+
+    #[test]
+    fn field_message() {
+        assert_eq!(
+            to_message(&Report::new(UnknownFieldError)),
+            "received unknown fields"
+        );
+
+        assert_eq!(
+            to_message(
+                &Report::new(UnknownFieldError)
+                    .attach(ExpectedField::new("field1"))
+                    .attach(ExpectedField::new("field2"))
+                    .attach(ExpectedField::new("field3"))
+            ),
+            r#"expected fields "field1", "field2", "field3""#
+        );
+
+        assert_eq!(
+            to_message(
+                &Report::new(UnknownFieldError)
+                    .attach(ReceivedField::new("field1"))
+                    .attach(ReceivedField::new("field2"))
+                    .attach(ReceivedField::new("field3"))
+            ),
+            r#"received fields "field1", "field2", "field3""#
+        );
+
+        assert_eq!(
+            to_message(
+                &Report::new(UnknownFieldError)
+                    .attach(ExpectedField::new("field1"))
+                    .attach(ExpectedField::new("field2"))
+                    .attach(ExpectedField::new("field3"))
+                    .attach(ReceivedField::new("field1"))
+                    .attach(ReceivedField::new("field2"))
+                    .attach(ReceivedField::new("field3"))
+                    .attach(ReceivedField::new("field4"))
+            ),
+            r#"expected fields "field1", "field2", "field3", but received fields "field1", "field2", "field3", "field4""#
         );
     }
 }
