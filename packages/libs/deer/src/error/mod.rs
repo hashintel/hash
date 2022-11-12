@@ -244,7 +244,7 @@ pub trait ErrorProperties {
 
     fn output<S>(value: Self::Value<'_>, map: &mut S) -> Result<(), SerdeSerializeError>
     where
-        S: serde::ser::SerializeMap;
+        S: SerializeMap;
 }
 
 impl<T: ErrorProperty + 'static> ErrorProperties for T {
@@ -264,7 +264,7 @@ impl<T: ErrorProperty + 'static> ErrorProperties for T {
 
     fn output<S>(value: Self::Value<'_>, map: &mut S) -> Result<(), SerdeSerializeError>
     where
-        S: serde::ser::SerializeMap,
+        S: SerializeMap,
     {
         let key = <T as ErrorProperty>::key();
 
