@@ -131,7 +131,9 @@ impl ErrorProperty for ExpectedVariant {
     }
 
     fn value<'a>(stack: impl Iterator<Item = &'a Self>) -> Self::Value<'a> {
-        stack.collect()
+        let mut stack: Vec<_> = stack.collect();
+        stack.reverse();
+        stack
     }
 }
 
@@ -171,26 +173,26 @@ impl Error for UnknownVariantError {
         fmt: &mut Formatter,
         properties: &<Self::Properties as ErrorProperties>::Value<'a>,
     ) -> fmt::Result {
-        // received unknown enum variant "{received}", expected enum variants "{expected}",
+        // expected enum variants "{expected}, but received unknown enum variant "{received}"",
         let (_, expected, received) = properties;
 
         let has_received = received.is_some();
         let has_expected = !expected.is_empty();
 
-        if let Some(ReceivedVariant(received)) = received {
-            fmt.write_fmt(format_args!(
-                r#"received unknown enum variant "{received}""#
-            ))?;
-        }
-
-        if has_received && has_expected {
-            fmt.write_str(", ")?;
-        }
-
         if has_expected {
             let expected = fold_field(expected.iter().map(|ExpectedVariant(inner)| *inner));
 
             fmt.write_fmt(format_args!("expected enum variants {expected}"))?;
+        }
+
+        if has_received && has_expected {
+            fmt.write_str(", but ")?;
+        }
+
+        if let Some(ReceivedVariant(received)) = received {
+            fmt.write_fmt(format_args!(
+                r#"received unknown enum variant "{received}""#
+            ))?;
         }
 
         if !has_expected && !has_received {
@@ -203,7 +205,7 @@ impl Error for UnknownVariantError {
 
 impl Display for UnknownVariantError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str("tried to decode unknown enum variant")
+        f.write_str("received unknown enum variant")
     }
 }
 
@@ -218,8 +220,6 @@ mod tests {
 
     use super::*;
     use crate::test::{to_json, to_message};
-
-    // TODO: UnknownVariant
 
     #[test]
     fn field() {
@@ -287,6 +287,62 @@ mod tests {
                     .attach(ReceivedField::new("field4"))
             ),
             r#"expected fields "field1", "field2", "field3", but received fields "field1", "field2", "field3", "field4""#
+        );
+    }
+
+    #[test]
+    fn variant() {
+        // we try to parse:
+        // [{"C": {...}}, ...]
+        // into enum { A: {}, B: {} }
+
+        let error = Report::new(UnknownVariantError)
+            .attach(Location::Array(0))
+            .attach(ExpectedVariant::new("A"))
+            .attach(ExpectedVariant::new("B"))
+            .attach(ReceivedVariant::new("C"));
+
+        assert_eq!(
+            to_json(&error),
+            json!({
+                "location": [
+                    {"type": "array", "value": 0}
+                ],
+                "expected": ["A", "B"],
+                "received": "C"
+            })
+        );
+    }
+
+    #[test]
+    fn variant_message() {
+        assert_eq!(
+            to_message(&Report::new(UnknownVariantError)),
+            "received unknown enum variant"
+        );
+
+        assert_eq!(
+            to_message(
+                &Report::new(UnknownVariantError)
+                    .attach(ExpectedVariant::new("A"))
+                    .attach(ExpectedVariant::new("B"))
+            ),
+            r#"expected enum variants "A", "B""#
+        );
+
+        assert_eq!(
+            to_message(&Report::new(UnknownVariantError).attach(ReceivedVariant::new("C"))),
+            r#"received unknown enum variant "C""#
+        );
+
+        assert_eq!(
+            to_message(
+                &Report::new(UnknownVariantError)
+                    .attach(ExpectedVariant::new("A"))
+                    .attach(ExpectedVariant::new("B"))
+                    .attach(ReceivedVariant::new("C"))
+            ),
+            r#"expected enum variants "A", "B", but received unknown enum variant "C""#
         );
     }
 }
