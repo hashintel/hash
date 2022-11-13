@@ -17,6 +17,7 @@ use bumpalo::Bump;
 use bumpalo_herd::Herd;
 use elsa::{FrozenMap, FrozenVec};
 use error_stack::Frame;
+use im::Vector;
 use serde::{
     ser::{Error as _, SerializeMap},
     Serialize, Serializer,
@@ -77,16 +78,17 @@ type Hook = Box<dyn for<'a> Fn(&[&'a Frame]) -> Option<Box<dyn erased_serde::Ser
 // static ARENA: Herd = Herd::new();
 
 // TODO: build our own?!
+// TODO: builtin, switch arc-swap with std equivalent
 // TODO: THIS IS NOT SYNC, THEREFORE WON'T WORK WITH STATIC!
 pub(crate) struct Hooks {
     // TODO: i'd like to remove this box
-    inner: ArcSwap<&'static [ErrorHook]>,
+    inner: ArcSwap<Vector<&'static [ErrorHook]>>,
 }
 
 impl Hooks {
     fn new() -> Self {
         Self {
-            inner: ArcSwap::new(Arc::new(&[])),
+            inner: ArcSwap::new(Arc::new(Vector::new())),
         }
     }
 
@@ -163,5 +165,7 @@ fn prepare<E: Error>() -> ErrorHook {
 }
 
 fn register(hooks: &'static [ErrorHook]) {
-    HOOKS.inner.store(Arc::new(hooks));
+    let mut value = Vector::clone(&HOOKS.inner.load_full());
+    value.push_back(hooks);
+    HOOKS.inner.store(Arc::new(value));
 }
