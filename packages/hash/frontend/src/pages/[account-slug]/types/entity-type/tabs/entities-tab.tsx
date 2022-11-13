@@ -1,6 +1,5 @@
-import "@glideapps/glide-data-grid/dist/index.css";
 import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
-import { GridCellKind, GridColumn } from "@glideapps/glide-data-grid";
+import { GridCellKind } from "@glideapps/glide-data-grid";
 import {
   Chip,
   FontAwesomeIcon,
@@ -8,9 +7,7 @@ import {
 } from "@hashintel/hash-design-system";
 import { Box, Paper, Stack } from "@mui/material";
 import { FunctionComponent, useMemo, useState } from "react";
-import { extractBaseUri, extractVersion } from "@blockprotocol/type-system-web";
 import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
-import { types } from "@hashintel/hash-shared/types";
 import { GlideGrid } from "../../../../../components/GlideGlid/glide-grid";
 import { GlideGridOverlayPortal } from "../../../../../components/GlideGlid/glide-grid-overlay-portal";
 import {
@@ -19,31 +16,23 @@ import {
   TableSort,
 } from "../../../../../components/GlideGlid/utils/sorting";
 import { useDrawHeader } from "../../../../../components/GlideGlid/utils/use-draw-header";
-import { generateEntityLabel } from "../../../../../lib/entities";
 import { SectionWrapper } from "../../../shared/section-wrapper";
 import { WhiteChip } from "../../../shared/white-chip";
 import { blankCell } from "../../../../../components/GlideGlid/utils";
 import { HomeIcon } from "../../../../../shared/icons/home-icon";
 import { EarthIcon } from "../../../../../shared/icons/earth-icon";
 import { renderValueIconCell } from "./value-icon-cell";
-import {
-  getEntity,
-  getEntityTypesByBaseUri,
-  getPersistedPropertyTypes,
-  getRootsAsEntities,
-  Subgraph,
-} from "../../../../../lib/subgraph";
-import { mustBeVersionedUri } from "../util";
+
 import { useRouteNamespace } from "../use-route-namespace";
+import { EntityTypeEntititiesInfo } from "../../../../../components/hooks/useEntityTypeEntities";
+import { useEntitiesTable } from "./use-entities-table";
 
 export type EntitiesTabProps = {
-  entitiesSubgraph: Subgraph;
-  baseEntityTypeUri: string;
+  entityTypeEntitiesInfo: EntityTypeEntititiesInfo;
 };
 
 export const EntitiesTab: FunctionComponent<EntitiesTabProps> = ({
-  entitiesSubgraph,
-  baseEntityTypeUri,
+  entityTypeEntitiesInfo: { entities, entityTypes, propertyTypes, subgraph },
 }) => {
   const [showSearch, setShowSearch] = useState(false);
   const [tableSort, setTableSort] = useState<TableSort<string>>({
@@ -53,100 +42,8 @@ export const EntitiesTab: FunctionComponent<EntitiesTabProps> = ({
 
   const namespace = useRouteNamespace();
 
-  const entities = getRootsAsEntities(entitiesSubgraph);
-  const entityTypes = getEntityTypesByBaseUri(
-    entitiesSubgraph,
-    baseEntityTypeUri,
-  ).map((entType) => entType.inner);
-  const propertyTypes = getPersistedPropertyTypes(entitiesSubgraph).map(
-    (propType) => propType.inner,
-  );
-
-  const [columns, rows] = useMemo(() => {
-    const propertyColumns: GridColumn[] = [];
-
-    for (const propertyType of propertyTypes) {
-      const propertyTypeBaseUri = extractBaseUri(
-        mustBeVersionedUri(propertyType.$id),
-      );
-
-      if (
-        propertyColumns.findIndex((col) => col.id === propertyTypeBaseUri) ===
-        -1
-      ) {
-        propertyColumns.push({
-          id: propertyTypeBaseUri,
-          title: propertyType.title,
-          width: 200,
-        });
-      }
-    }
-
-    const newColumns: GridColumn[] = [
-      {
-        title: "Entity",
-        id: "entity",
-        width: 250,
-        grow: 1,
-      },
-      {
-        title: "Entity Type Version",
-        id: "entityTypeVersion",
-        width: 250,
-      },
-      {
-        title: "Namespace",
-        id: "namespace",
-        width: 250,
-      },
-      // {
-      //   title: "Additional Types",
-      //   id: "additionalTypes",
-      //   width: 250,
-      // },
-      ...propertyColumns,
-    ];
-
-    const newRows: { [k: string]: string }[] =
-      entities?.map((entity) => {
-        const entityLabel = generateEntityLabel({
-          root: entity,
-          subgraph: entitiesSubgraph,
-        });
-        const entityNamespace = getEntity(entitiesSubgraph, entity.ownedById)
-          ?.properties[
-          extractBaseUri(types.propertyType.shortName.propertyTypeId)
-        ];
-        const entityType = entityTypes.find(
-          (type) => type.$id === entity.entityTypeId,
-        );
-
-        return {
-          entity: entityLabel,
-          entityTypeVersion: entityType
-            ? `v${extractVersion(mustBeVersionedUri(entityType.$id))} ${
-                entityType.title
-              }`
-            : "",
-          namespace: entityNamespace ? `@${entityNamespace}` : "",
-          // additionalTypes: "",
-          ...propertyColumns.reduce((fields, column) => {
-            if (column.id) {
-              const propertyValue = entity.properties[column.id];
-
-              const value = Array.isArray(propertyValue)
-                ? propertyValue.join(", ")
-                : propertyValue;
-              return { ...fields, [column.id]: value };
-            }
-
-            return fields;
-          }, {}),
-        };
-      }) ?? [];
-
-    return [newColumns, newRows];
-  }, [entities, entitiesSubgraph, propertyTypes, entityTypes]);
+  const { columns, rows } =
+    useEntitiesTable(entities, entityTypes, propertyTypes, subgraph) ?? {};
 
   const entitiesCount = useMemo(() => {
     const namespaceEntities =
@@ -158,7 +55,11 @@ export const EntitiesTab: FunctionComponent<EntitiesTabProps> = ({
     };
   }, [entities, namespace]);
 
-  const drawHeader = useDrawHeader(tableSort, columns);
+  const drawHeader = useDrawHeader(tableSort, columns ?? []);
+
+  if (!columns || !rows) {
+    return null;
+  }
 
   const handleHeaderClicked = createHandleHeaderClicked(
     columns,
@@ -167,10 +68,6 @@ export const EntitiesTab: FunctionComponent<EntitiesTabProps> = ({
   );
 
   const sortedRows = rows && sortRowData(rows, tableSort);
-
-  if (!entities) {
-    return null;
-  }
 
   return (
     <Box>

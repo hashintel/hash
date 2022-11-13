@@ -54,7 +54,6 @@ export const getPersistedEntityQuery = gql`
 
 export const getAllLatestEntitiesQuery = gql`
   query getAllLatestPersistedEntities(
-    $entityTypeId: String
     $dataTypeResolveDepth: Int!
     $propertyTypeResolveDepth: Int!
     $linkTypeResolveDepth: Int!
@@ -63,7 +62,6 @@ export const getAllLatestEntitiesQuery = gql`
     $linkTargetEntityResolveDepth: Int!
   ) {
     getAllLatestPersistedEntities(
-      entityTypeId: $entityTypeId
       dataTypeResolveDepth: $dataTypeResolveDepth
       propertyTypeResolveDepth: $propertyTypeResolveDepth
       linkTypeResolveDepth: $linkTypeResolveDepth
