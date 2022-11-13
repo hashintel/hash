@@ -1,11 +1,19 @@
-use alloc::{boxed::Box, format, string::String};
+use alloc::{boxed::Box, format, string::String, vec::Vec};
 use core::{
+    alloc::Layout,
     any::TypeId,
     cell::Cell,
     fmt,
     fmt::{Display, Formatter},
+    hint::spin_loop,
+    marker::PhantomData,
+    ptr,
+    ptr::NonNull,
+    sync::atomic::{AtomicI8, Ordering},
 };
 
+use bumpalo::Bump;
+use bumpalo_herd::Herd;
 use elsa::{FrozenMap, FrozenVec};
 use error_stack::Frame;
 use serde::{
@@ -65,17 +73,23 @@ struct SerializeError<'a> {
 
 type Hook = Box<dyn for<'a> Fn(&[&'a Frame]) -> Option<Box<dyn erased_serde::Serialize + 'a>>>;
 
+static ARENA: Herd = Herd::new();
+
 pub(crate) struct Hooks {
     // TODO: i'd like to remove this box
     inner: FrozenVec<Box<TypeId>>,
     hooks: FrozenMap<TypeId, Hook>,
-
-    namespace: FrozenMap<TypeId, &'static Namespace>,
-    id: FrozenMap<TypeId, &'static Id>,
 }
 
 impl Hooks {
-    pub fn insert<E: Error>(&self) {
+    fn new() -> Self {
+        Self {
+            inner: FrozenVec::new(),
+            hooks: FrozenMap::new(),
+        }
+    }
+
+    fn insert<E: Error>(&self) {
         let tid = TypeId::of::<E>();
 
         if self.inner.iter().any(|id| *id == tid) {
@@ -105,8 +119,7 @@ impl Hooks {
 
         self.inner.push(Box::new(tid));
         self.hooks.insert(tid, closure);
-
-        self.namespace.insert(tid, &E::NAMESPACE);
-        self.id.insert(tid, &E::ID);
     }
 }
+
+static HOOKS: Hooks = Hooks::new();
