@@ -85,9 +85,7 @@ const Page: NextPageWithLayout = () => {
       ? getBaseUri(entityTypeId, namespace.shortname)
       : null;
 
-  const { subgraph: typeEntitiesSubgraph } = useEntityTypeEntities(
-    baseEntityTypeUri ?? "",
-  );
+  const entityTypeEntitiesInfo = useEntityTypeEntities(baseEntityTypeUri ?? "");
 
   const [activeTab, setActiveTab] = useState(() => {
     const activePath = router.query["entity-type-id"]?.[1] ?? "";
@@ -288,7 +286,7 @@ const Page: NextPageWithLayout = () => {
                 }}
                 numberIndicators={[
                   properties.length,
-                  typeEntitiesSubgraph?.roots.length,
+                  entityTypeEntitiesInfo.entities?.length,
                 ]}
               />
             </Container>
@@ -300,11 +298,8 @@ const Page: NextPageWithLayout = () => {
             {activeTab === 0 ? (
               <DefinitionTab entityTypeTitle={entityType.title} />
             ) : null}
-            {activeTab === 1 && typeEntitiesSubgraph && baseEntityTypeUri ? (
-              <EntitiesTab
-                entitiesSubgraph={typeEntitiesSubgraph}
-                baseEntityTypeUri={baseEntityTypeUri}
-              />
+            {activeTab === 1 ? (
+              <EntitiesTab entityTypeEntitiesInfo={entityTypeEntitiesInfo} />
             ) : null}
           </Container>
         </Box>
