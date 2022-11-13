@@ -4,22 +4,23 @@ import {
   PropertyType,
   extractBaseUri,
 } from "@blockprotocol/type-system-web";
-import { useMemo } from "react";
+import { createContext, useContext, useMemo } from "react";
+import { Entity } from "../../../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
 import {
   GetAllLatestPersistedEntitiesQuery,
   GetAllLatestPersistedEntitiesQueryVariables,
-} from "../../graphql/apiTypes.gen";
-import { getAllLatestEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
+} from "../../../../graphql/apiTypes.gen";
+
+import { getAllLatestEntitiesQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import {
   getPersistedEntities,
   getPersistedEntityType,
   getPersistedPropertyType,
   Subgraph,
-} from "../../lib/subgraph";
-import { mustBeVersionedUri } from "../../pages/[account-slug]/types/entity-type/util";
-import { Entity } from "./blockProtocolFunctions/knowledge/knowledge-shim";
+} from "../../../../lib/subgraph";
+import { mustBeVersionedUri } from "./util";
 
-export type EntityTypeEntititiesInfo = {
+export type EntityTypeEntititiesContextValue = {
   loading: boolean;
   entities?: Entity[];
   entityTypes?: EntityType[];
@@ -27,9 +28,9 @@ export type EntityTypeEntititiesInfo = {
   subgraph?: Subgraph;
 };
 
-export const useEntityTypeEntities = (
+export const useEntityTypeEntitiesContextValue = (
   typeId: string,
-): EntityTypeEntititiesInfo => {
+): EntityTypeEntititiesContextValue => {
   const { data, loading } = useQuery<
     GetAllLatestPersistedEntitiesQuery,
     GetAllLatestPersistedEntitiesQueryVariables
@@ -51,7 +52,7 @@ export const useEntityTypeEntities = (
    *   https://app.asana.com/0/0/1203214689883095/f
    */
   const { getAllLatestPersistedEntities: subgraph } =
-    <{ getAllLatestPersistedEntities: Subgraph }>data ?? {};
+    (data as { getAllLatestPersistedEntities: Subgraph }) ?? {};
 
   const [entities, entityTypes, propertyTypes] =
     useMemo(() => {
@@ -106,4 +107,11 @@ export const useEntityTypeEntities = (
     propertyTypes,
     subgraph,
   };
+};
+
+export const EntityTypeEntitiesContext =
+  createContext<null | EntityTypeEntititiesContextValue>(null);
+
+export const useEntityTypeEntities = () => {
+  return useContext(EntityTypeEntitiesContext);
 };

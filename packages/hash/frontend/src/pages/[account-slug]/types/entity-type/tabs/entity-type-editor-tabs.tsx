@@ -1,11 +1,14 @@
 import { Typography, Tab, Stack, Box, Tabs, TabsProps } from "@mui/material";
 import { FunctionComponent } from "react";
+import { useFormContext, useWatch } from "react-hook-form";
+import { EntityTypeEditorForm } from "../form-types";
+import { useEntityTypeEntities } from "../use-entity-type-entities";
 
 export const NAVIGATION_TABS = [
   {
     id: "definition",
     label: "Definition",
-    path: "",
+    path: "#",
   },
   {
     id: "entities",
@@ -15,17 +18,17 @@ export const NAVIGATION_TABS = [
   {
     id: "views",
     label: "Views",
-    path: "",
+    path: "views",
   },
   {
     id: "dependents",
     label: "Dependents",
-    path: "",
+    path: "dependents",
   },
   {
     id: "activity",
     label: "Activity",
-    path: "",
+    path: "activity",
   },
 ];
 
@@ -87,32 +90,38 @@ export const EntityTypeEditorTab: FunctionComponent<
   />
 );
 
-export type EntityTypeEditorTabsProps = {
-  numberIndicators?: (number | undefined)[];
-} & TabsProps;
+export const EntityTypeEditorTabs: FunctionComponent<TabsProps> = ({
+  onChange,
+  value,
+}) => {
+  const { control } = useFormContext<EntityTypeEditorForm>();
+  const properties = useWatch({ control, name: "properties" });
 
-export const EntityTypeEditorTabs: FunctionComponent<
-  EntityTypeEditorTabsProps
-> = ({ numberIndicators, onChange, value }) => (
-  <Tabs
-    value={value}
-    onChange={onChange}
-    TabIndicatorProps={{
-      sx: ({ palette }) => ({
-        height: 3,
-        backgroundColor: palette.blue[60],
-        minHeight: 0,
-      }),
-    }}
-  >
-    {NAVIGATION_TABS.map(({ id, label }, index) => (
-      <EntityTypeEditorTab
-        key={id}
-        id={id}
-        label={label}
-        numberIndicator={numberIndicators?.[index]}
-        active={value === index}
-      />
-    ))}
-  </Tabs>
-);
+  const { entities } = useEntityTypeEntities() ?? {};
+
+  const numberIndicators = [properties.length, entities?.length];
+
+  return (
+    <Tabs
+      value={value}
+      onChange={onChange}
+      TabIndicatorProps={{
+        sx: ({ palette }) => ({
+          height: 3,
+          backgroundColor: palette.blue[60],
+          minHeight: 0,
+        }),
+      }}
+    >
+      {NAVIGATION_TABS.map(({ id, label }, index) => (
+        <EntityTypeEditorTab
+          key={id}
+          id={id}
+          label={label}
+          numberIndicator={numberIndicators?.[index]}
+          active={value === index}
+        />
+      ))}
+    </Tabs>
+  );
+};

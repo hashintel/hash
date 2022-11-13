@@ -22,18 +22,14 @@ import { blankCell } from "../../../../../components/GlideGlid/utils";
 import { HomeIcon } from "../../../../../shared/icons/home-icon";
 import { EarthIcon } from "../../../../../shared/icons/earth-icon";
 import { renderValueIconCell } from "./value-icon-cell";
-
 import { useRouteNamespace } from "../use-route-namespace";
-import { EntityTypeEntititiesInfo } from "../../../../../components/hooks/useEntityTypeEntities";
 import { useEntitiesTable } from "./use-entities-table";
+import { useEntityTypeEntities } from "../use-entity-type-entities";
 
-export type EntitiesTabProps = {
-  entityTypeEntitiesInfo: EntityTypeEntititiesInfo;
-};
+export const EntitiesTab: FunctionComponent = () => {
+  const { entities, entityTypes, propertyTypes, subgraph } =
+    useEntityTypeEntities() ?? {};
 
-export const EntitiesTab: FunctionComponent<EntitiesTabProps> = ({
-  entityTypeEntitiesInfo: { entities, entityTypes, propertyTypes, subgraph },
-}) => {
   const [showSearch, setShowSearch] = useState(false);
   const [tableSort, setTableSort] = useState<TableSort<string>>({
     key: "entity",
