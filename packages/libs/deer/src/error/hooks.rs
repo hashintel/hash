@@ -1,4 +1,4 @@
-use alloc::{boxed::Box, format, string::String, sync::Arc, vec::Vec};
+use alloc::{boxed::Box, collections::BTreeSet, format, string::String, sync::Arc, vec::Vec};
 use core::{
     alloc::Layout,
     any::TypeId,
@@ -9,7 +9,7 @@ use core::{
     marker::PhantomData,
     ptr,
     ptr::NonNull,
-    sync::atomic::{AtomicI8, Ordering},
+    sync::atomic::{AtomicI8, AtomicPtr, Ordering},
 };
 
 use arc_swap::ArcSwap;
@@ -18,6 +18,7 @@ use bumpalo_herd::Herd;
 use elsa::{FrozenMap, FrozenVec};
 use error_stack::Frame;
 use im::Vector;
+use sento::Pool;
 use serde::{
     ser::{Error as _, SerializeMap},
     Serialize, Serializer,
@@ -82,14 +83,12 @@ type Hook = Box<dyn for<'a> Fn(&[&'a Frame]) -> Option<Box<dyn erased_serde::Ser
 // TODO: THIS IS NOT SYNC, THEREFORE WON'T WORK WITH STATIC!
 pub(crate) struct Hooks {
     // TODO: i'd like to remove this box
-    inner: ArcSwap<Vector<&'static [ErrorHook]>>,
+    inner: Pool<Option<&'static [ErrorHook]>>,
 }
 
 impl Hooks {
     fn new() -> Self {
-        Self {
-            inner: ArcSwap::new(Arc::new(Vector::new())),
-        }
+        Self { inner: Pool::new() }
     }
 
     // fn insert<E: Error>(&self) {
@@ -150,7 +149,19 @@ fn register_inner<'a, E: Error>(
     }))
 }
 
-static HOOKS: Hooks = Hooks::new();
+// static HOOKS: Hooks = Hooks::new();
+
+struct PointerStore {
+    pool: Pool<&'static [ErrorHook]>,
+}
+
+impl PointerStore {
+    fn insert(&self, hooks: &'static [ErrorHook]) {
+        let ticket = self.pool.acquire();
+    }
+}
+
+// TODO: static pointer storage?
 
 struct ErrorHook {
     id: TypeId,
@@ -165,7 +176,10 @@ fn prepare<E: Error>() -> ErrorHook {
 }
 
 fn register(hooks: &'static [ErrorHook]) {
-    let mut value = Vector::clone(&HOOKS.inner.load_full());
-    value.push_back(hooks);
-    HOOKS.inner.store(Arc::new(value));
+    // let value = HOOKS.inner.acquire();
+    // value
+
+    // let mut value = Vector::clone(&HOOKS.inner.load_full());
+    // value.push_back(hooks);
+    // HOOKS.inner.store(Arc::new(value));
 }

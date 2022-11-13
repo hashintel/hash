@@ -18,6 +18,7 @@ bumpalo-herd = "0.1.2"
 left-right = "0.11.5"
 arc-swap = "1.5.1"
 im = "15.1.0"
+sento = "0.1.1"
 
 [dev-dependencies]
 serde_json = "1.0.87"
