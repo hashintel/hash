@@ -1,4 +1,4 @@
-use alloc::{boxed::Box, format, string::String, vec::Vec};
+use alloc::{boxed::Box, format, string::String, sync::Arc, vec::Vec};
 use core::{
     alloc::Layout,
     any::TypeId,
@@ -12,6 +12,7 @@ use core::{
     sync::atomic::{AtomicI8, Ordering},
 };
 
+use arc_swap::ArcSwap;
 use bumpalo::Bump;
 use bumpalo_herd::Herd;
 use elsa::{FrozenMap, FrozenVec};
@@ -73,53 +74,94 @@ struct SerializeError<'a> {
 
 type Hook = Box<dyn for<'a> Fn(&[&'a Frame]) -> Option<Box<dyn erased_serde::Serialize + 'a>>>;
 
-static ARENA: Herd = Herd::new();
+// static ARENA: Herd = Herd::new();
 
+// TODO: build our own?!
+// TODO: THIS IS NOT SYNC, THEREFORE WON'T WORK WITH STATIC!
 pub(crate) struct Hooks {
     // TODO: i'd like to remove this box
-    inner: FrozenVec<Box<TypeId>>,
-    hooks: FrozenMap<TypeId, Hook>,
+    inner: ArcSwap<&'static [ErrorHook]>,
 }
 
 impl Hooks {
     fn new() -> Self {
         Self {
-            inner: FrozenVec::new(),
-            hooks: FrozenMap::new(),
+            inner: ArcSwap::new(Arc::new(&[])),
         }
     }
 
-    fn insert<E: Error>(&self) {
-        let tid = TypeId::of::<E>();
+    // fn insert<E: Error>(&self) {
+    //     let tid = TypeId::of::<E>();
+    //
+    //     if self.inner.iter().any(|id| *id == tid) {
+    //         return;
+    //     }
+    //
+    //     let closure: Hook = Box::new(move |stack: &[&Frame]| {
+    //         let context = *stack.last()?;
+    //         let context: &E = context.downcast_ref::<E>()?;
+    //
+    //         let properties = E::Properties::value(stack);
+    //
+    //         let fmt = ErrorMessage {
+    //             context,
+    //             properties: &properties,
+    //         };
+    //
+    //         let message = format!("{fmt}");
+    //
+    //         Some(Box::new(SerializeError {
+    //             namespace: &E::NAMESPACE,
+    //             id: &E::ID,
+    //             properties: Box::new(SerializeErrorProperties::<E>::new(properties)),
+    //             message,
+    //         }))
+    //     });
+    //
+    //     self.inner.push(Box::new(tid));
+    //     self.hooks.insert(tid, closure);
+    // }
+}
 
-        if self.inner.iter().any(|id| *id == tid) {
-            return;
-        }
+// static HOOKS: Hooks = Hooks::new();
 
-        let closure: Hook = Box::new(move |stack: &[&Frame]| {
-            let context = *stack.last()?;
-            let context: &E = context.downcast_ref::<E>()?;
+fn register_inner<'a, E: Error>(
+    stack: &[&'a Frame],
+) -> Option<Box<dyn erased_serde::Serialize + 'a>> {
+    let context = *stack.last()?;
+    let context: &E = context.downcast_ref::<E>()?;
 
-            let properties = E::Properties::value(stack);
+    let properties = E::Properties::value(stack);
 
-            let fmt = ErrorMessage {
-                context,
-                properties: &properties,
-            };
+    let fmt = ErrorMessage {
+        context,
+        properties: &properties,
+    };
 
-            let message = format!("{fmt}");
+    let message = format!("{fmt}");
 
-            Some(Box::new(SerializeError {
-                namespace: &E::NAMESPACE,
-                id: &E::ID,
-                properties: Box::new(SerializeErrorProperties::<E>::new(properties)),
-                message,
-            }))
-        });
-
-        self.inner.push(Box::new(tid));
-        self.hooks.insert(tid, closure);
-    }
+    Some(Box::new(SerializeError {
+        namespace: &E::NAMESPACE,
+        id: &E::ID,
+        properties: Box::new(SerializeErrorProperties::<E>::new(properties)),
+        message,
+    }))
 }
 
 static HOOKS: Hooks = Hooks::new();
+
+struct ErrorHook {
+    id: TypeId,
+    hook: for<'a> fn(&[&'a Frame]) -> Option<Box<dyn erased_serde::Serialize + 'a>>,
+}
+
+fn prepare<E: Error>() -> ErrorHook {
+    ErrorHook {
+        id: TypeId::of::<E>(),
+        hook: register_inner::<E>,
+    }
+}
+
+fn register(hooks: &'static [ErrorHook]) {
+    HOOKS.inner.store(Arc::new(hooks));
+}
