@@ -89,11 +89,12 @@ impl<C: AsClient> PostgresStore<C> {
 
                 let parent_entity_type_ids = entity_type
                     .inner()
-                    .link_mappings()
-                    .into_keys()
-                    .map(|reference| reference.uri().clone().into());
+                    .inherits_from()
+                    .all_of()
+                    .iter()
+                    .map(|reference| OntologyTypeEditionId::from(reference.uri().clone()));
 
-                // TODO: Use relation tables
+                // TODO: Use structural queries or add multiple reference table and use these
                 //   see https://app.asana.com/0/0/1202884883200942/f
 
                 self.resolve_dependency_with_edge_kind(
@@ -108,7 +109,7 @@ impl<C: AsClient> PostgresStore<C> {
                     .inner()
                     .link_mappings()
                     .into_keys()
-                    .map(|reference| reference.uri().clone().into());
+                    .map(|reference| OntologyTypeEditionId::from(reference.uri().clone()));
 
                 self.resolve_dependency_with_edge_kind(
                     &mut dependency_context,
@@ -124,7 +125,7 @@ impl<C: AsClient> PostgresStore<C> {
                     .into_values()
                     .flatten() // Filter out Option::None
                     .flatten()
-                    .map(|reference| reference.uri().clone().into());
+                    .map(|reference| OntologyTypeEditionId::from(reference.uri().clone()));
 
                 self.resolve_dependency_with_edge_kind(
                     &mut dependency_context,
