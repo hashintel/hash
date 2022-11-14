@@ -49,7 +49,7 @@ impl<C: AsClient> PostgresStore<C> {
                     &entity_edition_id,
                     Some(dependency_context.graph_resolve_depths.entity_resolve_depth),
                     || async {
-                        self.read_one(&Filter::for_entity_by_edition_id(entity_edition_id))
+                        self.read_one(&Filter::for_entities_by_edition_id(entity_edition_id))
                             .await
                     },
                 )
@@ -92,7 +92,7 @@ impl<C: AsClient> PostgresStore<C> {
 
                 for outgoing_link_entity in <Self as Read<Entity>>::read(
                     self,
-                    &Filter::for_outgoing_link_by_source_edition_id(entity_edition_id),
+                    &Filter::for_outgoing_link_by_source_entity_edition_id(entity_edition_id),
                 )
                 .await?
                 {

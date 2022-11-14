@@ -134,7 +134,7 @@ impl<'q> Filter<'q, EntityProperties> {
     /// Creates a `Filter` to search for a specific entity edition, identified by its
     /// [`EntityEditionId`].
     #[must_use]
-    pub fn for_entity_by_edition_id(edition_id: EntityEditionId) -> Self {
+    pub fn for_entities_by_edition_id(edition_id: EntityEditionId) -> Self {
         Self::All(vec![
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::OwnedById)),
@@ -159,7 +159,7 @@ impl<'q> Filter<'q, EntityProperties> {
 
     /// TODO
     #[must_use]
-    pub fn for_outgoing_link_by_source_edition_id(edition_id: EntityEditionId) -> Self {
+    pub fn for_outgoing_link_by_source_entity_edition_id(edition_id: EntityEditionId) -> Self {
         Self::All(vec![
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::LeftEntity(Some(

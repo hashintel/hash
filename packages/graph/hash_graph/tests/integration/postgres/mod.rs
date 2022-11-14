@@ -295,7 +295,7 @@ impl DatabaseApi<'_> {
         let vertex = self
             .store
             .get_entity(&StructuralQuery {
-                filter: Filter::for_entity_by_edition_id(entity_edition_id),
+                filter: Filter::for_entities_by_edition_id(entity_edition_id),
                 graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
             .await?
