@@ -283,7 +283,7 @@ mod tests {
             let v = Arc::new(AppendOnlyVec::<usize>::new());
             let mut threads = Vec::new();
 
-            const N: usize = 8;
+            const N: usize = 4;
 
             let v1 = Arc::clone(&v);
             threads.push(loom::thread::spawn(move || {
