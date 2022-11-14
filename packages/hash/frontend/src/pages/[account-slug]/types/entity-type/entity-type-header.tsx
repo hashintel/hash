@@ -80,10 +80,13 @@ export const EntityTypeHeader: FunctionComponent<
   const isDraft = !!router.query.draft;
   const namespace = useRouteNamespace();
 
-  const entityTypeId = router.query["entity-type-id"] ?? "";
+  const entityTypeId = router.query["entity-type-id"];
   const baseEntityTypeUri =
     !isDraft && namespace?.shortname
-      ? getBaseUri(entityTypeId, namespace.shortname)
+      ? getBaseUri(
+          entityTypeId && !Array.isArray(entityTypeId) ? entityTypeId : "",
+          namespace.shortname,
+        )
       : null;
 
   const entityTypeEntitiesValue = useEntityTypeEntitiesContextValue(
@@ -268,18 +271,6 @@ export const EntityTypeHeader: FunctionComponent<
                   </Typography>
 
                   <EntityTypeTabs />
-
-                  {/* <EntityTypeEditorTabs
-                  value={activeTab}
-                  onChange={(_, index) => {
-                    void router.push(
-                      `/@${namespace?.shortname}/types/entity-type/${entityTypeId}/${NAVIGATION_TABS[index]?.path}`,
-                      undefined,
-                      { shallow: true },
-                    );
-                    setActiveTab(index);
-                  }}
-                /> */}
                 </Container>
               </Box>
             </Box>
