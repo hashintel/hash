@@ -22,6 +22,10 @@ services:
       HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DEV_DATABASE}"
       HASH_GRAPH_REALTIME_PG_USER: "${HASH_GRAPH_REALTIME_PG_USER}"
       HASH_GRAPH_REALTIME_PG_PASSWORD: "${HASH_GRAPH_REALTIME_PG_PASSWORD}"
+    # Note this isn't a complete security measure, we'd have to restrict
+    # `listen_addresses` and other postgres config to lock down access.
+    # The database port isn't forwarded outside the docker network.
+    # Uncomment the next lines to debug/introspect the instance.
     # ports:
     #   - "5432:5432"
     volumes:
@@ -89,6 +93,7 @@ services:
     depends_on:
       - kratos-migrate
     read_only: true
+    # These ports can be useful for introspection/debugging kratos.
     # ports:
     #   - "4433:4433" # public, doesn't need to be exposed
     #   - "4434:4434" # admin, we don't want to expose this
@@ -125,6 +130,7 @@ services:
     read_only: true
     security_opt:
       - no-new-privileges:true
+    # These ports can be useful for introspection/debugging the mock mail server.
     # ports:
     #   - "4436:4436"
     #   - "4437:4437"
