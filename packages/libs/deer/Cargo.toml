@@ -32,4 +32,4 @@ std = ['serde/std']
 arbitrary-precision = []
 
 [workspace]
-members = ['.', 'macros']
+members = ['.', 'macros', 'append-vec']
