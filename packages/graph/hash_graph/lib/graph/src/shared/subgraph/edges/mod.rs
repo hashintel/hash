@@ -13,7 +13,10 @@ use crate::identifier::{
 mod edge;
 mod kind;
 
-pub use self::{edge::*, kind::*};
+pub use self::{
+    edge::{GenericOutwardEdge, KnowledgeGraphOutwardEdges, OntologyOutwardEdges, OutwardEdge},
+    kind::{KnowledgeGraphEdgeKind, OntologyEdgeKind, SharedEdgeKind},
+};
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize)]
 #[serde(transparent)]
