@@ -132,6 +132,7 @@ impl Edges {
         }
     }
 
+    // TODO: Implement `Extend` trait instead
     pub fn extend(&mut self, other: Self) {
         self.ontology.0.extend(other.ontology.0.into_iter());
         self.knowledge_graph
