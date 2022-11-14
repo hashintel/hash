@@ -408,7 +408,6 @@ impl fmt::Display for ParameterConversionError {
 impl Context for ParameterConversionError {}
 
 impl Parameter<'_> {
-    #[expect(clippy::match_same_arms, reason = "multiple empty bodies due to TODOs")]
     fn convert_to_parameter_type(
         &mut self,
         expected: ParameterType,
