@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/hash-shared",
-  "version": "0.0.0",
+  "version": "0.0.0-private",
   "private": true,
   "description": "Temporary catchall place for shared code",
   "license": "AGPL-3.0",
@@ -17,7 +17,7 @@
   "dependencies": {
     "@apollo/client": "3.6.9",
     "@blockprotocol/core": "0.0.12",
-    "@hashintel/hash-graph-client": "0.0.0",
+    "@hashintel/hash-graph-client": "0.0.0-private",
     "@sentry/browser": "7.16.0",
     "graphql-tag": "2.12.5",
     "immer": "9.0.6",
@@ -40,10 +40,10 @@
   },
   "devDependencies": {
     "@blockprotocol/type-system-web": "https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system-web?6526c0e",
-    "@graphql-codegen/cli": "2.7.0",
-    "@graphql-codegen/fragment-matcher": "3.2.1",
-    "@graphql-codegen/typescript": "2.6.0",
-    "@graphql-codegen/typescript-operations": "2.4.3",
+    "@graphql-codegen/cli": "2.13.11",
+    "@graphql-codegen/fragment-matcher": "3.3.1",
+    "@graphql-codegen/typescript": "2.8.1",
+    "@graphql-codegen/typescript-operations": "2.5.6",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/lodash": "4.14.188",

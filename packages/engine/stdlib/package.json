@@ -1,6 +1,7 @@
 {
   "name": "hash_stdlib",
-  "version": "1.0.0",
+  "version": "0.0.0-private",
+  "private": true,
   "description": "HASH stdlib",
   "homepage": "https://github.com/hashintel/hash/tree/master/packages/engine/stdlib",
   "bugs": {

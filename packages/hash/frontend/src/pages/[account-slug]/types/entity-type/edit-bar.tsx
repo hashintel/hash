@@ -2,15 +2,13 @@ import { faSmile } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
 import { Box, Collapse, Container, Stack, Typography } from "@mui/material";
 import { ReactNode, useState } from "react";
-import { useFormContext } from "react-hook-form";
+import { useFormState } from "react-hook-form";
 import { PencilSimpleLine } from "../../../../shared/icons/svg";
 import { Button, ButtonProps } from "../../../../shared/ui/button";
 import { EntityTypeEditorForm } from "./form-types";
 
 const useFrozenValue = <T extends any>(value: T): T => {
-  const {
-    formState: { isDirty },
-  } = useFormContext<EntityTypeEditorForm>();
+  const { isDirty } = useFormState<EntityTypeEditorForm>();
 
   const [frozen, setFrozen] = useState(value);
 
@@ -35,9 +33,7 @@ const EditBarContents = ({
   discardButtonProps: ButtonProps;
   confirmButtonProps: ButtonProps;
 }) => {
-  const {
-    formState: { isSubmitting },
-  } = useFormContext<EntityTypeEditorForm>();
+  const { isSubmitting } = useFormState<EntityTypeEditorForm>();
 
   const frozenSubmitting = useFrozenValue(isSubmitting);
 
@@ -96,10 +92,7 @@ export const EditBar = ({
   currentVersion: number;
   discardButtonProps: Partial<ButtonProps>;
 }) => {
-  const {
-    formState: { isDirty },
-  } = useFormContext<EntityTypeEditorForm>();
-
+  const { isDirty } = useFormState<EntityTypeEditorForm>();
   const frozenVersion = useFrozenValue(currentVersion);
 
   return (

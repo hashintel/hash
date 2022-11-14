@@ -1,6 +1,6 @@
 {
-  "name": "toggle-item-block",
-  "version": "0.0.0",
+  "name": "@blocks/toggle-item",
+  "version": "0.1.0",
   "description": "Toggle list item block",
   "keywords": [
     "blockprotocol",

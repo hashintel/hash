@@ -1,7 +1,69 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "enabledManagers": ["github-actions"],
+  "enabledManagers": ["github-actions", "npm"],
+  "ignorePaths": ["packages/engine/**"],
+  "postUpdateOptions": ["yarnDedupeFewer"],
   "prConcurrentLimit": 5,
   "rebaseWhen": "conflicted",
-  "schedule": ["every weekday before 5am"]
+  "schedule": ["every weekday before 5am"],
+  "packageRules": [
+    {
+      "automerge": true,
+      "enabled": false,
+      "matchManagers": ["npm"],
+      "rangeStrategy": "bump",
+      "stabilityDays": 3
+    },
+    {
+      "enabled": true,
+      "matchManagers": ["npm"],
+      "matchFiles": ["package.json"]
+    },
+    {
+      "enabled": true,
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^cross-env$", "^dotenv-flow$", "^wait-on$"]
+    },
+    {
+      "enabled": true,
+      "groupName": "GraphQL Codegen",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^@graphql-codegen/"]
+    },
+    {
+      "enabled": true,
+      "groupName": "ESLint",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": [
+        "^@types/eslint",
+        "^@typescript-eslint/",
+        "^eslint-",
+        "^eslint$"
+      ]
+    },
+    {
+      "enabled": true,
+      "groupName": "Jest",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^@types/jest$", "^jest", "^ts-jest$", "^jest-"]
+    },
+    {
+      "enabled": true,
+      "groupName": "Playwright",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^@playwright/", "^playwright$", "^playwright-"]
+    },
+    {
+      "enabled": true,
+      "groupName": "Prettier",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^prettier$", "^prettier-"]
+    },
+    {
+      "enabled": true,
+      "groupName": "Sentry",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^@sentry/"]
+    }
+  ]
 }

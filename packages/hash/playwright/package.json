@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/hash-playwright",
-  "version": "0.0.0",
+  "version": "0.0.0-private",
   "private": true,
   "scripts": {
     "fix:eslint": "eslint --fix .",
@@ -9,8 +9,8 @@
     "test": "playwright test page-readonly-mode --project chromium"
   },
   "dependencies": {
-    "@hashintel/hash-backend-utils": "0.0.0",
-    "@hashintel/hash-shared": "0.0.0",
+    "@hashintel/hash-backend-utils": "0.0.0-private",
+    "@hashintel/hash-shared": "0.0.0-private",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@playwright/test": "1.27.1",
