@@ -3,15 +3,11 @@
 extern crate alloc;
 
 use alloc::boxed::Box;
-use core::{
-    cell::UnsafeCell,
-    mem::{ManuallyDrop, MaybeUninit},
-    ptr,
-};
+use core::{cell::UnsafeCell, mem::MaybeUninit, ptr};
 
 use crate::{
     lock::AtomicLock,
-    sync::{alloc, AtomicUsize, Layout, Ordering},
+    sync::{AtomicUsize, Ordering},
 };
 
 mod lock;
@@ -36,9 +32,15 @@ pub struct AppendOnlyVec<T, const N: usize = 16> {
     head: UnsafeCell<Node<T, N>>,
 }
 
+impl<T, const N: usize> Default for AppendOnlyVec<T, N> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T, const N: usize> Drop for AppendOnlyVec<T, N> {
     fn drop(&mut self) {
-        let length = self.length.load(Ordering::Relaxed);
+        let length = self.length.load(Ordering::Acquire);
         let (node, offset) = self.indices(length);
 
         let head = self.head.get_mut();
@@ -77,16 +79,6 @@ impl<T, const N: usize> AppendOnlyVec<T, N> {
 
     pub fn iter(&self) -> Iter<'_, T, N> {
         Iter::new(self)
-    }
-}
-
-fn uninit_box<T>() -> Box<MaybeUninit<T>> {
-    let layout = Layout::new::<MaybeUninit<T>>();
-
-    unsafe {
-        let ptr = alloc(layout) as *mut MaybeUninit<T>;
-
-        Box::from_raw(ptr)
     }
 }
 
@@ -219,7 +211,7 @@ mod tests {
             let v = Arc::new(AppendOnlyVec::<u64>::new());
 
             let mut threads = Vec::new();
-            const N: u64 = 2;
+            const N: u64 = 3;
 
             for thread_num in 0..N {
                 let v = v.clone();
