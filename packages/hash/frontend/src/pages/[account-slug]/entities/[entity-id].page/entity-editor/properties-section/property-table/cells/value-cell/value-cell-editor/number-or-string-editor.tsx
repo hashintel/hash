@@ -1,6 +1,6 @@
 import { TextField } from "@hashintel/hash-design-system";
-import { cloneDeep } from "lodash";
 import { types } from "@hashintel/hash-shared/types";
+import produce from "immer";
 import { ValueCellEditorComponent } from "../types";
 
 export const NumberOrStringEditor: ValueCellEditorComponent = ({
@@ -19,13 +19,15 @@ export const NumberOrStringEditor: ValueCellEditorComponent = ({
       type={isNumber ? "number" : "text"}
       inputMode={isNumber ? "numeric" : "text"}
       onChange={({ target }) => {
-        const newCell = cloneDeep(cell);
-        const clearedInput = target.value === "";
+        const newCell = produce(cell, (draftCell) => {
+          const isEmptyString = target.value === "";
 
-        const newValue =
-          isNumber && !clearedInput ? Number(target.value) : target.value;
+          const newValue =
+            isNumber && !isEmptyString ? Number(target.value) : target.value;
 
-        newCell.data.property.value = newValue;
+          draftCell.data.property.value = newValue;
+        });
+
         onChange(newCell);
       }}
     />

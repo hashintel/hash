@@ -4,7 +4,7 @@ import {
   MenuItem,
   TextField,
 } from "@hashintel/hash-design-system";
-import { cloneDeep } from "lodash";
+import produce from "immer";
 import { ValueCellEditorComponent } from "../types";
 
 export const BooleanEditor: ValueCellEditorComponent = ({
@@ -21,8 +21,10 @@ export const BooleanEditor: ValueCellEditorComponent = ({
       SelectProps={{ defaultOpen: true }}
       value={numberValue}
       onChange={({ target }) => {
-        const newCell = cloneDeep(cell);
-        newCell.data.property.value = !!target.value;
+        const newCell = produce(cell, (draftCell) => {
+          draftCell.data.property.value = !!target.value;
+        });
+
         onFinishedEditing(newCell);
       }}
     >
