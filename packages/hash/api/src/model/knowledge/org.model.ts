@@ -81,13 +81,13 @@ export default class extends EntityModel {
       SYSTEM_TYPES.entityType.org.schema.$id
     ) {
       throw new EntityTypeMismatchError(
-        entity.entityId,
+        entity.baseId,
         SYSTEM_TYPES.entityType.org.schema.$id,
         entity.entityTypeModel.schema.$id,
       );
     }
 
-    return new OrgModel(entity);
+    return new OrgModel({ entity, entityTypeModel: entity.entityTypeModel });
   }
 
   /**
@@ -172,7 +172,7 @@ export default class extends EntityModel {
       propertyTypeBaseUri: SYSTEM_TYPES.propertyType.shortName.baseUri,
       value: updatedShortname,
       actorId,
-    }).then((updatedEntity) => new OrgModel(updatedEntity));
+    }).then((updatedEntity) => OrgModel.fromEntityModel(updatedEntity));
   }
 
   getOrgName(): string {

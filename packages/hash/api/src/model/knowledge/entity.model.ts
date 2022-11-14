@@ -42,17 +42,20 @@ export default class {
 
   entityTypeModel: EntityTypeModel;
 
-  get entityId(): string {
-    return this.entity.metadata.editionId.baseId;
+  get baseId(): string {
+    return this.metadata.editionId.baseId;
   }
 
   get entityUuid(): string {
-    const [entityId] = this.entity.metadata.editionId.baseId.split("%") as [
-      string,
-      string,
-    ];
+    const [_, entityUuid] = this.baseId.split("%") as [string, string];
 
-    return entityId;
+    return entityUuid;
+  }
+
+  get ownedById(): string {
+    const [ownedById, _] = this.baseId.split("%") as [string, string];
+
+    return ownedById;
   }
 
   get metadata(): EntityMetadata {
@@ -373,11 +376,11 @@ export default class {
     },
   ): Promise<EntityModel> {
     const { properties, actorId } = params;
-    const { entityId, entityTypeModel } = this;
+    const { baseId, entityTypeModel } = this;
 
     const { data: metadata } = await graphApi.updateEntity({
       actorId,
-      entityId,
+      entityId: baseId,
       /** @todo: make this argument optional */
       entityTypeId: entityTypeModel.schema.$id,
       entity: properties,
@@ -443,9 +446,9 @@ export default class {
    * Get the latest version of this entity.
    */
   async getLatestVersion(graphApi: GraphApi) {
-    const { entityId } = this;
+    const { baseId } = this;
 
-    return await EntityModel.getLatest(graphApi, { entityId });
+    return await EntityModel.getLatest(graphApi, { entityId: baseId });
   }
 
   /** @see {@link LinkModel.create} */
