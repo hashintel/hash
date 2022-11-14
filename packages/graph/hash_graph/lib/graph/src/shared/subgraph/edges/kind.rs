@@ -11,22 +11,22 @@ pub enum OntologyEdgeKind {
     /// An [`EntityType`] or [`PropertyType`] can reference a [`PropertyType`] to constrain
     /// properties
     ConstrainsPropertiesOn,
-    /// An [`EntityType`] can reference a [`Link`] [`EntityType`] to constrain the existence of
-    /// certain kinds of [`Link`]s
+    /// An [`EntityType`] can reference a link [`EntityType`] to constrain the existence of
+    /// certain kinds of links
     ConstrainsLinksOn,
     /// An [`EntityType`] can reference an [`EntityType`] to constrain the target entities of
-    /// certain kinds of [`Link`]s
+    /// certain kinds of links
     ConstrainsLinkDestinationsOn,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, ToSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum KnowledgeGraphEdgeKind {
-    /// This [`Link`] [`Entity`] has another [`Entity`] on its 'left' endpoint
+    /// This link [`Entity`] has another [`Entity`] on its 'left' endpoint
     /// The `reverse` of this would be the equivalent of saying an [`Entity`] has an outgoing
     /// `Link` [`Entity`]
     HasLeftEndpoint,
-    /// This [`Link`] [`Entity`] has another [`Entity`] on its 'right' endpoint
+    /// This link [`Entity`] has another [`Entity`] on its 'right' endpoint
     HasRightEndpoint,
 }
 
