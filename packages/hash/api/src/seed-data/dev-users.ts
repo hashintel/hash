@@ -47,7 +47,7 @@ export const ensureDevUsersAreSeeded = async ({
   const createdUsers = [];
 
   // Only use `devUsers` if we are in a dev environment
-  let usersToSeed = !isDevEnv ? [] : devUsers;
+  let usersToSeed = isDevEnv ? devUsers : [];
 
   // Or if we're explicitly setting users to seed.
   if (process.env.HASH_SEED_USERS) {
