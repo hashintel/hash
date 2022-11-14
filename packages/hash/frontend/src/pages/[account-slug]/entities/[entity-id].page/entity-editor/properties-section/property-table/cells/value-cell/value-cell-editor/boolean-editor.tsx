@@ -4,40 +4,40 @@ import {
   MenuItem,
   TextField,
 } from "@hashintel/hash-design-system";
-import { capitalize, cloneDeep } from "lodash";
-import { ValueCellEditorProps } from "../types";
+import { cloneDeep } from "lodash";
+import { ValueCellEditorComponent } from "../types";
 
-export const BooleanEditor: ValueCellEditorProps = ({
+export const BooleanEditor: ValueCellEditorComponent = ({
   value: cell,
   onFinishedEditing,
 }) => {
   const { value } = cell.data.property;
+  const numberValue = value ? 1 : 0;
 
   return (
     <TextField
       sx={{ my: "1px" }}
       select
       SelectProps={{ defaultOpen: true }}
-      value={Number(value)}
+      value={numberValue}
       onChange={({ target }) => {
         const newCell = cloneDeep(cell);
         newCell.data.property.value = !!target.value;
-
         onFinishedEditing(newCell);
       }}
     >
-      {[0, 1].map((val) => (
+      {[0, 1].map((option) => (
         <MenuItem
-          key={val}
-          sx={{ display: !!val === value ? "none" : "flex" }}
+          key={option}
+          sx={{ display: option === numberValue ? "none" : "flex" }}
           className="click-outside-ignore"
-          value={val}
+          value={option}
         >
           <FontAwesomeIcon
-            icon={val ? faCheck : faClose}
+            icon={option ? faCheck : faClose}
             sx={{ mr: 1, color: ({ palette }) => palette.gray[50] }}
           />
-          {capitalize(String(!!val))}
+          {option ? "True" : "False"}
         </MenuItem>
       ))}
     </TextField>

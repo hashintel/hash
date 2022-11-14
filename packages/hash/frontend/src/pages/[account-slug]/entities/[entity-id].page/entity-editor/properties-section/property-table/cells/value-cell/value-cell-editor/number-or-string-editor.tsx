@@ -1,13 +1,15 @@
 import { TextField } from "@hashintel/hash-design-system";
 import { cloneDeep } from "lodash";
-import { ValueCellEditorProps } from "../types";
+import { types } from "@hashintel/hash-shared/types";
+import { ValueCellEditorComponent } from "../types";
 
-export const NumberOrStringEditor: ValueCellEditorProps = ({
+export const NumberOrStringEditor: ValueCellEditorComponent = ({
   value: cell,
   onChange,
 }) => {
-  const { value } = cell.data.property;
-  const isNumber = typeof value === "number";
+  const { value, dataTypes } = cell.data.property;
+  /** @todo remove dataTypes[0] when multiple data types are supported */
+  const isNumber = types.dataType.number.title === dataTypes[0];
 
   return (
     <TextField
@@ -18,9 +20,12 @@ export const NumberOrStringEditor: ValueCellEditorProps = ({
       inputMode={isNumber ? "numeric" : "text"}
       onChange={({ target }) => {
         const newCell = cloneDeep(cell);
-        const newValue = isNumber ? Number(target.value) : target.value;
-        newCell.data.property.value = newValue;
+        const clearedInput = target.value === "";
 
+        const newValue =
+          isNumber && !clearedInput ? Number(target.value) : target.value;
+
+        newCell.data.property.value = newValue;
         onChange(newCell);
       }}
     />

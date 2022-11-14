@@ -9,4 +9,4 @@ export interface ValueCellProps extends TooltipCellProps {
 
 export type ValueCell = CustomCell<ValueCellProps>;
 
-export type ValueCellEditorProps = ProvideEditorComponent<ValueCell>;
+export type ValueCellEditorComponent = ProvideEditorComponent<ValueCell>;

@@ -3,7 +3,6 @@ import {
   CustomRenderer,
   GridCellKind,
 } from "@glideapps/glide-data-grid";
-import { capitalize } from "lodash";
 import {
   getCellHorizontalPadding,
   getYCenter,
@@ -36,7 +35,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
     if (typeof value === "boolean") {
       return drawTextWithIcon({
         args,
-        text: capitalize(String(value)),
+        text: value ? "True" : "False",
         icon: value ? "bpCheck" : "bpCross",
         left,
         iconColor: "#91A5BA",
