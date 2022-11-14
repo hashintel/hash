@@ -14,7 +14,7 @@ const Page: NextPageWithLayout = () => {
 
   return (
     <PropertyTypesContext.Provider value={propertyTypes}>
-      <Typography variant="h5" mb={1.25}>
+      <Typography variant="h5" mb={2}>
         Properties of{" "}
         <Box component="span" sx={{ fontWeight: "bold" }}>
           {entityType?.title}
