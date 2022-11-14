@@ -62,7 +62,7 @@ use error_stack::{Context, Frame, IntoReport, Result};
 pub use extra::{
     ArrayLengthError, ExpectedLength, ObjectItemsExtraError, ReceivedKey, ReceivedLength,
 };
-pub use hooks::register_many;
+pub use hooks::register;
 pub use location::Location;
 use serde::ser::SerializeMap;
 pub use r#type::{ExpectedType, ReceivedType, TypeError};
@@ -84,7 +84,7 @@ mod unknown;
 mod value;
 
 pub mod __private {
-    pub use crate::error::hooks::register_many_hooks as register_many;
+    pub use crate::error::hooks::register_hooks as register;
 }
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Hash, Copy, Clone, serde::Serialize)]

@@ -7,7 +7,7 @@ use alloc::{
     vec::Vec,
 };
 use core::{
-    any::{Any, TypeId},
+    any::TypeId,
     cell::Cell,
     fmt,
     fmt::{Display, Formatter},
@@ -121,6 +121,7 @@ fn split_report(report: &Report<impl Context>) -> Vec<Vec<&Frame>> {
     fn rsplit(mut next: &Frame) -> Vec<VecDeque<&Frame>> {
         let mut head = VecDeque::new();
 
+        // TODO: in theory what we could do is push_front and then reverse?
         // "unroll" recursion if there's only a single straight path
         while next.sources().len() == 1 {
             head.push_back(next);
@@ -214,7 +215,7 @@ impl Hooks {
 
         // these need to be called separately, ideally this would be a const array, but TypeId::of
         // is not const
-        // TODO: can we remove this?
+        // TODO: can we remove this? TODO: where does it need to be called?
         self.push(&[
             Hook::new::<TypeError>(),
             Hook::new::<ValueError>(),
@@ -295,14 +296,14 @@ impl Hooks {
 static HOOKS: Hooks = Hooks::new();
 
 #[macro_export]
-macro_rules! register_many {
+macro_rules! register {
     (($ty:ident,)*) => {
-        $crate::error::__private::register_many(&[$($crate::error::Hook::new::<$ty>(),)*])
+        $crate::error::__private::register(&[$($crate::error::Hook::new::<$ty>(),)*])
     };
 }
 
-pub use register_many;
+pub use register;
 
-pub fn register_many_hooks(hooks: &[Hook]) {
+pub fn register_hooks(hooks: &[Hook]) {
     HOOKS.push(hooks);
 }
