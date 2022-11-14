@@ -7,7 +7,7 @@ import { systemAccountId } from "../model/util";
 import { createKratosIdentity } from "../auth/ory-kratos";
 import { isDevEnv } from "../lib/env-config";
 
-type DevelopmentUser = {
+type SeededUser = {
   email: string;
   shortname: string;
   preferredName: string;
@@ -16,7 +16,7 @@ type DevelopmentUser = {
   password?: string;
 };
 
-const devUsers: readonly DevelopmentUser[] = [
+const devUsers: readonly SeededUser[] = [
   {
     email: "admin@example.com",
     shortname: "instance-admin",
@@ -35,7 +35,7 @@ const devUsers: readonly DevelopmentUser[] = [
   },
 ] as const;
 
-export const ensureDevUsersAreSeeded = async ({
+export const ensureUsersAreSeeded = async ({
   graphApi,
   logger,
 }: {
@@ -50,9 +50,7 @@ export const ensureDevUsersAreSeeded = async ({
   // Or if we're explicitly setting users to seed.
   if (process.env.HASH_SEED_USERS) {
     try {
-      usersToSeed = JSON.parse(
-        process.env.HASH_SEED_USERS,
-      ) as DevelopmentUser[];
+      usersToSeed = JSON.parse(process.env.HASH_SEED_USERS) as SeededUser[];
     } catch (error) {
       logger.error(
         "Could not parse environment variable `HASH_SEED_USERS` as JSON. Make sure it's formatted correctly.",
@@ -90,7 +88,7 @@ export const ensureDevUsersAreSeeded = async ({
         return null;
       } else {
         logger.warn(
-          `Could not create development user identity, email = "${email}".`,
+          `Could not create seeded user identity, email = "${email}".`,
         );
         return Promise.reject(error);
       }
@@ -120,7 +118,7 @@ export const ensureDevUsersAreSeeded = async ({
       createdUsers.push(user);
     }
 
-    logger.info(`Development User available, email = "${email}".`);
+    logger.info(`Seeded User available, email = "${email}".`);
   }
 
   return createdUsers;
