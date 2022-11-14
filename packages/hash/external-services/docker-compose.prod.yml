@@ -23,7 +23,7 @@ services:
       HASH_GRAPH_REALTIME_PG_USER: "${HASH_GRAPH_REALTIME_PG_USER}"
       HASH_GRAPH_REALTIME_PG_PASSWORD: "${HASH_GRAPH_REALTIME_PG_PASSWORD}"
     # ports:
-    #   - "${POSTGRES_PORT}:5432"
+    #   - "5432:5432"
     volumes:
       - hash-postgres-data:/var/lib/postgresql/data
       - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
@@ -35,7 +35,7 @@ services:
       retries: 5
     command: -c 'config_file=/etc/postgresql/postgresql.conf'
 
-  graph-migrate:
+  hash-graph-migrate:
     build:
       context: ../../graph
       dockerfile: deployment/migrations/Dockerfile
@@ -45,16 +45,16 @@ services:
     environment:
       HASH_GRAPH_PG_MIGRATION_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${HASH_GRAPH_PG_DEV_DATABASE}"
 
-  graph:
+  hash-graph:
+    build:
+      dockerfile: deployment/graph/Dockerfile
+      context: ../../graph
     init: true
     depends_on:
       postgres:
         condition: service_healthy
-      graph-migrate:
+      hash-graph-migrate:
         condition: service_completed_successfully
-    build:
-      dockerfile: deployment/graph/Dockerfile
-      context: ../../graph
     environment:
       HASH_GRAPH_PG_USER: "${HASH_GRAPH_PG_USER}"
       HASH_GRAPH_PG_PASSWORD: "${HASH_GRAPH_PG_PASSWORD}"
@@ -69,22 +69,26 @@ services:
       - "4000:4000"
 
   kratos-migrate:
+    image: oryd/kratos:v0.10.1
     depends_on:
       postgres:
         condition: service_healthy
-    image: oryd/kratos:v0.10.1
+    read_only: true
     volumes:
       - type: bind
         source: ./kratos
         target: /etc/config/kratos
     environment:
-      - DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_KRATOS_PG_DEV_DATABASE}
+      - DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${HASH_KRATOS_PG_DEV_DATABASE}
     command: -c /etc/config/kratos/kratos.dev.yml migrate sql -e --yes
+    security_opt:
+      - no-new-privileges:true
 
   kratos:
+    image: oryd/kratos:v0.10.1
     depends_on:
       - kratos-migrate
-    image: oryd/kratos:v0.10.1
+    read_only: true
     # ports:
     #   - "4433:4433" # public, doesn't need to be exposed
     #   - "4434:4434" # admin, we don't want to expose this
@@ -93,7 +97,7 @@ services:
       SECRETS_COOKIE: "${KRATOS_SECRETS_COOKIE}"
       SECRETS_CIPHER: "${KRATOS_SECRETS_CIPHER}"
       COURIER_SMTP_CONNECTION_URI: "smtps://test:test@mailslurper:1025/?skip_ssl_verify=true"
-      DSN: "postgres://${HASH_KRATOS_PG_USER}:${HASH_KRATOS_PG_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_KRATOS_PG_DEV_DATABASE}"
+      DSN: "postgres://${HASH_KRATOS_PG_USER}:${HASH_KRATOS_PG_PASSWORD}@postgres:5432/${HASH_KRATOS_PG_DEV_DATABASE}"
       # KRATOS_API_KEY: "${KRATOS_API_KEY}" Currently this cannot be set as an env variable :(
       LOG_LEVEL: "warning"
       COOKIES_PATH: "/"
@@ -107,6 +111,8 @@ services:
       SELFSERVICE_FLOWS_LOGIN_UI_URL: "${FRONTEND_URL}/login"
       SELFSERVICE_FLOWS_REGISTRATION_UI_URL: "${FRONTEND_URL}/signup"
     command: serve -c /etc/config/kratos/kratos.dev.yml --watch-courier
+    security_opt:
+      - no-new-privileges:true
     extra_hosts:
       - host.docker.internal:host-gateway
     volumes:
@@ -116,12 +122,16 @@ services:
 
   mailslurper:
     image: oryd/mailslurper:latest-smtps
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
     # ports:
     #   - "4436:4436"
     #   - "4437:4437"
 
   hash-redis:
     image: redis:6.2
+    read_only: true
     deploy:
       restart_policy:
         condition: on-failure
@@ -130,13 +140,15 @@ services:
       interval: 2s
       timeout: 2s
       retries: 5
+    security_opt:
+      - no-new-privileges:true
 
   hash-api:
     build:
       context: ../../../
       dockerfile: packages/hash/docker/api/prod/Dockerfile
     depends_on:
-      graph:
+      hash-graph:
         condition: service_healthy
       hash-redis:
         condition: service_healthy
@@ -153,7 +165,7 @@ services:
       SYSTEM_EMAIL_SENDER_NAME: "${SYSTEM_EMAIL_SENDER_NAME}"
       HASH_SEED_USERS: "${HASH_SEED_USERS}"
 
-      HASH_GRAPH_API_HOST: "graph"
+      HASH_GRAPH_API_HOST: "hash-graph"
       HASH_GRAPH_API_PORT: "4000"
       LOG_LEVEL: "${LOG_LEVEL}"
 
