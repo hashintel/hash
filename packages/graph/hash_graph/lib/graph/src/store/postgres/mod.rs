@@ -1161,8 +1161,8 @@ impl PostgresStore<Transaction<'_>> {
         let sink = self
             .client
             .copy_in(
-                "COPY entities (entity_uuid, entity_type_version_id, properties, owned_by_id, \
-                 updated_by_id, created_by_id) FROM STDIN BINARY",
+                "COPY latest_entities (entity_uuid, entity_type_version_id, properties, \
+                 owned_by_id, updated_by_id, created_by_id) FROM STDIN BINARY",
             )
             .await
             .into_report()

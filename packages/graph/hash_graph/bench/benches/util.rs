@@ -164,7 +164,7 @@ impl Drop for StoreWrapper {
     }
 }
 
-pub async fn seed<D, P, L, E, C>(
+pub async fn seed<D, P, E, C>(
     store: &mut PostgresStore<C>,
     account_id: AccountId,
     data_types: D,
@@ -173,7 +173,6 @@ pub async fn seed<D, P, L, E, C>(
 ) where
     D: IntoIterator<Item = &'static str>,
     P: IntoIterator<Item = &'static str>,
-    L: IntoIterator<Item = &'static str>,
     E: IntoIterator<Item = &'static str>,
     C: AsClient,
 {
@@ -229,6 +228,7 @@ pub async fn seed<D, P, L, E, C>(
     }
 
     for entity_type_str in entity_types {
+        println!("creating entity type {}", entity_type_str);
         let entity_type =
             EntityType::from_str(entity_type_str).expect("could not parse entity type");
 
