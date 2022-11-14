@@ -51,7 +51,7 @@ where
         Err(err) => {
             return Err((
                 StatusCode::BAD_REQUEST,
-                format!("failed to read {} body: {}", direction, err),
+                format!("failed to read {direction} body: {err}"),
             ));
         }
     };
@@ -60,12 +60,12 @@ where
         // would be nice to use `let_guard`s here
         if let Some(status_code) = status_code {
             if status_code.is_success() {
-                tracing::trace!("{} body = {:?}", direction, body);
+                tracing::trace!("{direction} body = {body:?}");
             } else {
-                tracing::error!("{} body = {:?}", direction, body);
+                tracing::error!("{direction} body = {body:?}");
             }
         } else {
-            tracing::trace!("{} body = {:?}", direction, body);
+            tracing::trace!("{direction} body = {body:?}");
         }
     }
 
