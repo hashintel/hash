@@ -77,7 +77,7 @@ impl<T, const N: usize> AppendOnlyVec<T, N> {
     pub fn push(&self, value: T) {
         let _guard = self.lock.lock();
 
-        let length = self.length.load(Ordering::Relaxed);
+        let length = self.length.load(Ordering::Acquire);
         let (node, offset) = self.indices(length);
 
         unsafe {
@@ -88,7 +88,7 @@ impl<T, const N: usize> AppendOnlyVec<T, N> {
 
         // we need to do this once we're done, otherwise there is a possibility that while pushing,
         // another thread would access the memory that we're currently working on
-        self.length.fetch_add(1, Ordering::Relaxed);
+        self.length.fetch_add(1, Ordering::AcqRel);
     }
 
     pub fn iter(&self) -> Iter<'_, T, N> {
@@ -175,7 +175,7 @@ impl<'a, T, const N: usize> Iterator for Iter<'a, T, N> {
         }
 
         if self.offset == N {
-            // we reached a new node, therefore we need to switch our ptr to it and substract N from
+            // we reached a new node, therefore we need to switch our ptr to it and subtract N from
             // the length and offset
             self.offset -= N;
             self.length -= N;
