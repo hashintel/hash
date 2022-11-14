@@ -36,6 +36,7 @@ impl<C: AsClient> PostgresStore<C> {
     /// Internal method to read an [`Entity`] into a [`DependencyContext`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
+    #[expect(clippy::too_many_lines)]
     pub(crate) fn get_entity_as_dependency<'a: 'b, 'b>(
         &'a self,
         entity_edition_id: EntityEditionId,

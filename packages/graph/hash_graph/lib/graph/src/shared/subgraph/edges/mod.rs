@@ -1,4 +1,4 @@
-use std::collections::{btree_map::Entry, BTreeMap, BTreeSet};
+use std::collections::{hash_map::Entry, HashMap, HashSet};
 
 use serde::Serialize;
 use type_system::uri::BaseUri;
@@ -18,10 +18,10 @@ pub use self::{
     kind::{KnowledgeGraphEdgeKind, OntologyEdgeKind, SharedEdgeKind},
 };
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize)]
+#[derive(Debug, Serialize)]
 #[serde(transparent)]
 pub struct OntologyRootedEdges(
-    pub BTreeMap<BaseUri, BTreeMap<OntologyTypeVersion, BTreeSet<OntologyOutwardEdges>>>,
+    pub HashMap<BaseUri, HashMap<OntologyTypeVersion, HashSet<OntologyOutwardEdges>>>,
 );
 
 // This is needed because Utoipa doesn't know how to handle the BTreeMaps
@@ -37,10 +37,10 @@ impl ToSchema for OntologyRootedEdges {
     }
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize)]
+#[derive(Debug, Serialize)]
 #[serde(transparent)]
 pub struct KnowledgeGraphRootedEdges(
-    pub BTreeMap<EntityId, BTreeMap<EntityVersion, BTreeSet<KnowledgeGraphOutwardEdges>>>,
+    pub HashMap<EntityId, HashMap<EntityVersion, HashSet<KnowledgeGraphOutwardEdges>>>,
 );
 
 // This is needed because Utoipa doesn't know how to handle the BTreeMaps
@@ -56,7 +56,7 @@ impl ToSchema for KnowledgeGraphRootedEdges {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Serialize)]
 pub struct Edges {
     #[serde(flatten)]
     ontology: OntologyRootedEdges,
@@ -67,8 +67,8 @@ pub struct Edges {
 impl Edges {
     pub fn new() -> Self {
         Self {
-            ontology: OntologyRootedEdges(BTreeMap::new()),
-            knowledge_graph: KnowledgeGraphRootedEdges(BTreeMap::new()),
+            ontology: OntologyRootedEdges(HashMap::new()),
+            knowledge_graph: KnowledgeGraphRootedEdges(HashMap::new()),
         }
     }
 
@@ -83,7 +83,7 @@ impl Edges {
                     .ontology
                     .0
                     .entry(ontology_edition_id.base_id().clone())
-                    .or_insert(BTreeMap::new());
+                    .or_insert(HashMap::new());
 
                 match map.entry(ontology_edition_id.version()) {
                     Entry::Occupied(entry) => {
@@ -91,7 +91,7 @@ impl Edges {
                         set.insert(outward_edge)
                     }
                     Entry::Vacant(entry) => {
-                        entry.insert(BTreeSet::from([outward_edge]));
+                        entry.insert(HashSet::from([outward_edge]));
                         true
                     }
                 }
@@ -105,7 +105,7 @@ impl Edges {
                     .knowledge_graph
                     .0
                     .entry(entity_edition_id.base_id())
-                    .or_insert(BTreeMap::new());
+                    .or_insert(HashMap::new());
 
                 match map.entry(entity_edition_id.version().clone()) {
                     Entry::Occupied(entry) => {
@@ -113,7 +113,7 @@ impl Edges {
                         set.insert(outward_edge)
                     }
                     Entry::Vacant(entry) => {
-                        entry.insert(BTreeSet::from([outward_edge]));
+                        entry.insert(HashSet::from([outward_edge]));
                         true
                     }
                 }

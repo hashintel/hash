@@ -1,5 +1,3 @@
-use std::cmp::Ordering;
-
 use serde::Serialize;
 use utoipa::{openapi, ToSchema};
 
@@ -11,13 +9,9 @@ use crate::{
     subgraph::edges::{KnowledgeGraphEdgeKind, OntologyEdgeKind, SharedEdgeKind},
 };
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize)]
+#[derive(Debug, Hash, PartialEq, Eq, Serialize)]
 #[serde(deny_unknown_fields)]
-pub struct GenericOutwardEdge<E, V>
-where
-    E: Serialize + ToSchema,
-    V: Serialize + ToSchema,
-{
+pub struct GenericOutwardEdge<E, V> {
     pub kind: E,
     /// If true, interpret this as a reversed mapping and the endpoint as the source, that is,
     /// instead of Source-Edge-Target, interpret it as Target-Edge-Source
@@ -29,8 +23,8 @@ where
 // the generic
 impl<E, V> GenericOutwardEdge<E, V>
 where
-    E: Serialize + ToSchema,
-    V: Serialize + ToSchema,
+    E: ToSchema,
+    V: ToSchema,
 {
     fn schema() -> openapi::Schema {
         openapi::ObjectBuilder::new()
@@ -47,27 +41,7 @@ where
     }
 }
 
-impl<E, V> PartialOrd for GenericOutwardEdge<E, V>
-where
-    E: Serialize + ToSchema + PartialEq,
-    V: Serialize + ToSchema + PartialOrd + PartialEq,
-{
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.endpoint.partial_cmp(&other.endpoint)
-    }
-}
-
-impl<E, V> Ord for GenericOutwardEdge<E, V>
-where
-    E: Serialize + ToSchema + Eq,
-    V: Serialize + ToSchema + Ord + Eq,
-{
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.endpoint.cmp(&other.endpoint)
-    }
-}
-
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+#[derive(Debug, Hash, PartialEq, Eq, Serialize)]
 #[serde(untagged)]
 pub enum OntologyOutwardEdges {
     ToOntology(GenericOutwardEdge<OntologyEdgeKind, OntologyTypeEditionId>),
@@ -86,7 +60,7 @@ impl ToSchema for OntologyOutwardEdges {
     }
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+#[derive(Debug, Hash, PartialEq, Eq, Serialize)]
 #[serde(untagged)]
 pub enum KnowledgeGraphOutwardEdges {
     ToKnowledgeGraph(GenericOutwardEdge<KnowledgeGraphEdgeKind, EntityIdAndTimestamp>),
@@ -108,7 +82,7 @@ impl ToSchema for KnowledgeGraphOutwardEdges {
     }
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+#[derive(Debug, Hash, PartialEq, Eq, Serialize)]
 #[serde(untagged)]
 pub enum OutwardEdge {
     Ontology(OntologyOutwardEdges),
