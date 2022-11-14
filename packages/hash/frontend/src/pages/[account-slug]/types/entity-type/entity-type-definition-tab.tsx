@@ -2,7 +2,7 @@ import { TabProps } from "@mui/material";
 import { FunctionComponent } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { EntityTypeEditorForm } from "./form-types";
-import { TabButton } from "./tab-button";
+import { TabLink } from "./tab-link";
 
 export const EntityTypeDefinitionTab: FunctionComponent<TabProps> = ({
   value,
@@ -12,7 +12,7 @@ export const EntityTypeDefinitionTab: FunctionComponent<TabProps> = ({
   const propertiesCount = useWatch({ control, name: "properties.length" });
 
   return (
-    <TabButton
+    <TabLink
       {...props}
       value={value}
       label="Definition"

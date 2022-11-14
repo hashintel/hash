@@ -1,7 +1,7 @@
 import { TabProps } from "@mui/material";
 import { FunctionComponent } from "react";
 import { useEntityTypeEntities } from "./use-entity-type-entities";
-import { TabButton } from "./tab-button";
+import { TabLink } from "./tab-link";
 
 export const EntityTypeEntitiesTab: FunctionComponent<TabProps> = ({
   value,
@@ -10,7 +10,7 @@ export const EntityTypeEntitiesTab: FunctionComponent<TabProps> = ({
   const { entities } = useEntityTypeEntities() ?? {};
 
   return (
-    <TabButton
+    <TabLink
       {...props}
       value={value}
       label="Entities"

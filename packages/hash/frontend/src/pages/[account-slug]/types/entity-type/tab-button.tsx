@@ -1,100 +1,39 @@
-import { Box, Stack, Tab, Typography } from "@mui/material";
-import { useRouter } from "next/router";
-import { FunctionComponent } from "react";
-import { FRONTEND_URL } from "../../../../lib/config";
+import { Typography } from "@mui/material";
+import { ReactNode } from "react";
+import { Link, LinkProps } from "../../../../shared/ui/link";
 
 export type TabButtonProps = {
   label: string;
-  value: string;
-  count?: number;
-};
+  icon: ReactNode;
+} & LinkProps;
 
-export const TabButton: FunctionComponent<TabButtonProps> = ({
+export const TabButton = ({
   label,
-  value,
-  count,
+  icon,
+  sx = [],
   ...props
-}) => {
-  const router = useRouter();
+}: TabButtonProps) => (
+  <Link
+    {...props}
+    noLinkStyle
+    sx={[
+      ({ palette }) => ({
+        pt: 2,
+        pb: 1.5,
+        px: 0.25,
+        alignItems: "center",
+        display: "flex",
+        "&:hover": {
+          color: palette.primary.main,
+        },
+      }),
+      ...(Array.isArray(sx) ? sx : [sx]),
+    ]}
+  >
+    <Typography variant="smallTextLabels" sx={{ fontWeight: 500 }}>
+      {label}
+    </Typography>
 
-  const active = `${FRONTEND_URL}${router.asPath}` === value;
-
-  return (
-    <Tab
-      {...props}
-      value={value}
-      href={value}
-      component="a"
-      onClick={(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
-        event.preventDefault();
-        void router.push(value, undefined, { shallow: true });
-      }}
-      label={
-        <Stack direction="row">
-          <Typography
-            variant="smallTextLabels"
-            fontWeight={500}
-            sx={{
-              paddingY: 0.25,
-            }}
-          >
-            {label}
-          </Typography>
-
-          {/* {count ? (
-          <Box
-            sx={({ palette }) => ({
-              marginLeft: 1,
-              paddingX: 1,
-              paddingY: 0.25,
-              borderRadius: "50%",
-              background: active ? palette.blue[20] : palette.gray[20],
-            })}
-          >
-            <Typography
-              variant="microText"
-              sx={({ palette }) => ({
-                fontWeight: 500,
-                color: active ? palette.primary.main : palette.gray[80],
-              })}
-            >
-              {count}
-            </Typography>
-          </Box>
-        ) : null} */}
-        </Stack>
-      }
-      icon={
-        count ? (
-          <Box
-            sx={({ palette }) => ({
-              // marginLeft: 1,
-              paddingX: 1,
-              paddingY: 0.25,
-              borderRadius: "50%",
-              background: active ? palette.blue[20] : palette.gray[20],
-            })}
-          >
-            <Typography
-              variant="microText"
-              sx={({ palette }) => ({
-                fontWeight: 500,
-                color: active ? palette.primary.main : palette.gray[80],
-              })}
-            >
-              {count}
-            </Typography>
-          </Box>
-        ) : null
-      }
-      iconPosition="end"
-      sx={{
-        marginRight: 3,
-        paddingY: "11px",
-        paddingX: 0.5,
-        minWidth: 0,
-        minHeight: 0,
-      }}
-    />
-  );
-};
+    {icon ?? null}
+  </Link>
+);
