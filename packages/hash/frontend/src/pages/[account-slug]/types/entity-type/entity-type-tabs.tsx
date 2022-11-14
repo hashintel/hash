@@ -1,10 +1,10 @@
 import { extractBaseUri, VersionedUri } from "@blockprotocol/type-system-web";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { Box, Tab, Tabs, tabsClasses } from "@mui/material";
+import { frontendUrl } from "@hashintel/hash-shared/environment";
+import { Box, Tabs, tabsClasses } from "@mui/material";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
-import { FRONTEND_URL } from "../../../../lib/config";
 import { EntityTypeDefinitionTab } from "./entity-type-definition-tab";
 import { EntityTypeEntitiesTab } from "./entity-type-entities-tab";
 import { TabButton } from "./tab-button";
@@ -17,7 +17,7 @@ export const EntityTypeTabs = () => {
   const [activeTab, setActiveTab] = useState<string | undefined>(undefined);
 
   useEffect(() => {
-    setActiveTab(`${FRONTEND_URL}${router.asPath}`);
+    setActiveTab(`${frontendUrl}${router.asPath}`);
   }, [router.asPath]);
 
   const baseUri = useMemo(() => {

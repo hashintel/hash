@@ -12,7 +12,7 @@ import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
 import { FunctionComponent, ReactElement, ReactNode, useMemo } from "react";
 import { FormProvider, useForm } from "react-hook-form";
-import { FRONTEND_URL } from "../../../../lib/config";
+import { frontendUrl } from "@hashintel/hash-shared/environment";
 import { TopContextBar } from "../../../shared/top-context-bar";
 import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
 import { OntologyChip } from "../../shared/ontology-chip";
@@ -28,14 +28,10 @@ import {
   useEntityTypeEntitiesContextValue,
 } from "./use-entity-type-entities";
 import { EntityTypeTabs } from "./entity-type-tabs";
-import {
-  EntityTypeContext,
-  useEntityType,
-  useEntityTypeValue,
-} from "./use-entity-type";
+import { EntityTypeContext, useEntityTypeValue } from "./use-entity-type";
 
 const getBaseUri = (entityTypeId: string, namespace: string) =>
-  `${FRONTEND_URL}/@${namespace}/types/entity-type/${entityTypeId}/`;
+  `${frontendUrl}/@${namespace}/types/entity-type/${entityTypeId}/`;
 
 const getSchemaFromEditorForm = (
   properties: EntityTypeEditorPropertyData[],

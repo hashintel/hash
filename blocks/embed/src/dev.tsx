@@ -26,7 +26,7 @@ const getEmbedBlock = async (
   width?: number;
   providerName?: string;
 }> => {
-  return fetch(apiGraphQLEndpoint, {
+  const response = await fetch(apiGraphQLEndpoint, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -37,12 +37,15 @@ const getEmbedBlock = async (
       query:
         "query getEmbedCode($url: String!, $type: String) {\n  embedCode(url: $url, type: $type) {\n    html\n    providerName\n     height\n     width\n    __typename\n  }\n}\n",
     }),
-  })
-    .then((response) => response.json())
-    .then((responseData) => ({
-      ...responseData.data?.embedCode,
-      error: responseData?.errors?.[0]?.message,
-    }));
+  });
+  /* eslint-disable @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-return,@typescript-eslint/no-unsafe-member-access -- @todo validate JSON or add types */
+  const responseData = await response.json();
+
+  return {
+    ...responseData.data?.embedCode,
+    error: responseData?.errors?.[0]?.message,
+  };
+  /* eslint-enable @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-return,@typescript-eslint/no-unsafe-member-access */
 };
 
 // @todo replace typeof variants[number] with type BlockVariant when available

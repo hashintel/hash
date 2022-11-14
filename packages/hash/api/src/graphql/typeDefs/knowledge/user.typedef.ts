@@ -1,8 +1,11 @@
 import { gql } from "apollo-server-express";
 
-export const userTypedef = gql`
+export const persistedUserTypedef = gql`
   extend type Query {
-    me(linkResolveDepth: Int, linkTargetEntityResolveDepth: Int): Subgraph!
+    me(
+      linkResolveDepth: Int! = 0
+      linkTargetEntityResolveDepth: Int! = 0
+    ): Subgraph!
     """
     Determines whether a provided shortname is already taken
     """
@@ -37,11 +40,11 @@ export const userTypedef = gql`
       """
       The depth of links that are returned in the response subgraph.
       """
-      linkResolveDepth: Int
+      linkResolveDepth: Int! = 0
       """
       The depth of link target entities that are returned in the response subgraph.
       """
-      linkTargetEntityResolveDepth: Int
+      linkTargetEntityResolveDepth: Int! = 0
     ): Subgraph!
   }
 `;

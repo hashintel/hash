@@ -3,7 +3,12 @@ import {
   CustomRenderer,
   GridCellKind,
 } from "@glideapps/glide-data-grid";
-import { getYCenter } from "../../../../../../../../components/GlideGlid/utils";
+import {
+  getCellHorizontalPadding,
+  getYCenter,
+} from "../../../../../../../../components/GlideGlid/utils";
+import { drawTextWithIcon } from "../../../../../../../../components/GlideGlid/utils/draw-text-with-icon";
+import { isValueEmpty } from "../../is-value-empty";
 import { ValueCell } from "./value-cell/types";
 import { ValueCellEditor } from "./value-cell/value-cell-editor";
 
@@ -19,8 +24,26 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
     ctx.font = theme.baseFontStyle;
 
     const yCenter = getYCenter(args);
+    const left = rect.x + getCellHorizontalPadding();
 
-    ctx.fillText(String(value), rect.x + theme.cellHorizontalPadding, yCenter);
+    if (isValueEmpty(value)) {
+      ctx.fillStyle = "#91A5BA";
+      ctx.font = "italic 14px Inter";
+      return ctx.fillText("No value", left, yCenter);
+    }
+
+    if (typeof value === "boolean") {
+      return drawTextWithIcon({
+        args,
+        text: value ? "True" : "False",
+        icon: value ? "bpCheck" : "bpCross",
+        left,
+        iconColor: "#91A5BA",
+        iconSize: 16,
+      });
+    }
+
+    ctx.fillText(String(value), left, yCenter);
   },
   provideEditor: () => {
     return {

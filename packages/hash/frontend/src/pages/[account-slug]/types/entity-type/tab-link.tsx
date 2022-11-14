@@ -1,7 +1,7 @@
+import { frontendUrl } from "@hashintel/hash-shared/environment";
 import { Box, Stack, Tab, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { FunctionComponent } from "react";
-import { FRONTEND_URL } from "../../../../lib/config";
 
 export type TabLinkProps = {
   label: string;
@@ -17,7 +17,7 @@ export const TabLink: FunctionComponent<TabLinkProps> = ({
 }) => {
   const router = useRouter();
 
-  const active = `${FRONTEND_URL}${router.asPath}` === value;
+  const active = `${frontendUrl}${router.asPath}` === value;
 
   return (
     <Tab
