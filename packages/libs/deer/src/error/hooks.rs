@@ -81,41 +81,7 @@ impl Hooks {
             inner: AppendOnlyVec::new(),
         }
     }
-
-    // fn insert<E: Error>(&self) {
-    //     let tid = TypeId::of::<E>();
-    //
-    //     if self.inner.iter().any(|id| *id == tid) {
-    //         return;
-    //     }
-    //
-    //     let closure: Hook = Box::new(move |stack: &[&Frame]| {
-    //         let context = *stack.last()?;
-    //         let context: &E = context.downcast_ref::<E>()?;
-    //
-    //         let properties = E::Properties::value(stack);
-    //
-    //         let fmt = ErrorMessage {
-    //             context,
-    //             properties: &properties,
-    //         };
-    //
-    //         let message = format!("{fmt}");
-    //
-    //         Some(Box::new(SerializeError {
-    //             namespace: &E::NAMESPACE,
-    //             id: &E::ID,
-    //             properties: Box::new(SerializeErrorProperties::<E>::new(properties)),
-    //             message,
-    //         }))
-    //     });
-    //
-    //     self.inner.push(Box::new(tid));
-    //     self.hooks.insert(tid, closure);
-    // }
 }
-
-// static HOOKS: Hooks = Hooks::new();
 
 fn register_inner<'a, E: Error>(
     stack: &[&'a Frame],
