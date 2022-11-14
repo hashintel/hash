@@ -3,13 +3,13 @@ import { createGraphClient } from "@hashintel/hash-api/src/graph";
 import { ensureSystemTypesExist } from "@hashintel/hash-api/src/graph/system-types";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
-import { OrgModel, OrgSize, UserModel } from "@hashintel/hash-api/src/model";
+import { UserModel } from "@hashintel/hash-api/src/model";
 import {
   adminKratosSdk,
   createKratosIdentity,
 } from "@hashintel/hash-api/src/auth/ory-kratos";
 import { systemAccountId } from "@hashintel/hash-api/src/model/util";
-import { generateRandomShortname } from "../../util";
+import { createTestOrg, generateRandomShortname } from "../../util";
 
 jest.setTimeout(60000);
 
@@ -103,14 +103,7 @@ describe("User model class", () => {
   });
 
   it("can join an org", async () => {
-    const testOrg = await OrgModel.createOrg(graphApi, {
-      name: "Test org",
-      shortname: "test-org",
-      providedInfo: {
-        orgSize: OrgSize.ElevenToFifty,
-      },
-      actorId: systemAccountId,
-    });
+    const testOrg = await createTestOrg(graphApi, "userModelTest", logger);
 
     const { entityId: orgEntityId } = testOrg;
 
