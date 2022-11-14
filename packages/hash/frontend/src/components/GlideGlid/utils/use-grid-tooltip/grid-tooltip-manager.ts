@@ -1,7 +1,8 @@
 import type { DrawArgs } from "@glideapps/glide-data-grid/dist/ts/data-grid/cells/cell-types";
 import { getCellHorizontalPadding, getYCenter } from "../../utils";
 import { drawCellFadeOutGradient } from "../draw-cell-fade-out-gradient";
-import { Interactable, InteractableManager } from "../interactable-manager";
+import { InteractableManager } from "../interactable-manager";
+import { Interactable } from "../interactable-manager/types";
 import { TooltipCell } from "./types";
 
 export class GridTooltipManager {

@@ -1,73 +1,20 @@
-import { CustomCell, Rectangle } from "@glideapps/glide-data-grid";
+import { CustomCell } from "@glideapps/glide-data-grid";
 import type { DrawArgs } from "@glideapps/glide-data-grid/dist/ts/data-grid/cells/cell-types";
-
-type InteractablePosition = {
-  left: number;
-  right: number;
-  top: number;
-  bottom: number;
-};
-
-export type InteractableEventHandler = (interactable: Interactable) => void;
-
-export interface Interactable {
-  pos: InteractablePosition;
-  path: CellPath;
-  hovered: boolean;
-  cellRect: Rectangle;
-  id: string | number;
-  onClick?: InteractableEventHandler;
-  onMouseEnter?: InteractableEventHandler;
-  onMouseLeave?: InteractableEventHandler;
-}
-
-interface CursorPos {
-  posX: number;
-  posY: number;
-}
-
-interface CellPath {
-  tableId: string;
-  col: number;
-  row: number;
-}
-
-const drawArgsToPath = ({
-  row,
-  col,
-  tableId,
-}: DrawArgs<CustomCell>): CellPath => {
-  return { row, col, tableId };
-};
-
-const isCursorOnInteractable = (
-  cursorPos: CursorPos,
-  interactablePos: InteractablePosition,
-  cellRect: Rectangle,
-) => {
-  const left = interactablePos.left - cellRect.x;
-  const right = interactablePos.right - cellRect.x;
-  const top = interactablePos.top - cellRect.y;
-  const bottom = interactablePos.bottom - cellRect.y;
-
-  const cursorX = cursorPos.posX;
-  const cursorY = cursorPos.posY;
-
-  const hovered =
-    cursorX > left && cursorX < right && cursorY < bottom && cursorY > top;
-
-  return hovered;
-};
-
-const cellPathToString = ({ tableId, col, row }: CellPath) => {
-  return `${tableId}-${col}-${row}`;
-};
+import {
+  CellPath,
+  CursorPos,
+  Interactable,
+} from "./interactable-manager/types";
+import {
+  drawArgsToPath,
+  isCursorOnInteractable,
+} from "./interactable-manager/utils";
 
 class InteractableManagerClass {
   static instance: InteractableManagerClass | null = null;
 
-  // structure is like `{table}-{col}-{row}` -> id -> interactable
-  private interactableStore: Record<string, Record<string, Interactable>> = {};
+  private interactableStore: Record<CellPath, Record<string, Interactable>> =
+    {};
 
   create(
     args: DrawArgs<CustomCell>,
@@ -93,7 +40,7 @@ class InteractableManagerClass {
     args: DrawArgs<CustomCell>,
     interactables: Interactable[],
   ) {
-    const strPath = cellPathToString(drawArgsToPath(args));
+    const strPath = drawArgsToPath(args);
 
     const interactableMap = Object.fromEntries(
       interactables.map((interactable) => [interactable.id, interactable]),
@@ -122,9 +69,7 @@ class InteractableManagerClass {
    * @returns true if handled the click event, false if not
    */
   handleClick(path: CellPath, event: CursorPos): boolean {
-    const strPath = cellPathToString(path);
-
-    const interactableMap = this.interactableStore[strPath] ?? {};
+    const interactableMap = this.interactableStore[path] ?? {};
     const interactables = Object.values(interactableMap);
 
     let foundInteractable: Interactable | undefined;

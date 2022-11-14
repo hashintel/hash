@@ -55,11 +55,7 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
           const [col, row] = (args as unknown as { location: Item }).location;
 
           const isClickHandledByManager = InteractableManager.handleClick(
-            {
-              tableId,
-              col,
-              row,
-            },
+            `${tableId}-${col}-${row}`,
             args,
           );
 
