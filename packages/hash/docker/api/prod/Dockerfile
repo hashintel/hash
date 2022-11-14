@@ -1,4 +1,4 @@
-FROM node:16.16.0-alpine AS builder
+FROM node:16.18.1-alpine AS builder
 
 WORKDIR /app
 
@@ -33,21 +33,19 @@ COPY packages/graph/clients/typescript packages/graph/clients/typescript
 COPY packages/hash/backend-utils packages/hash/backend-utils
 COPY packages/hash/api packages/hash/api
 COPY packages/hash/shared packages/hash/shared
+RUN mkdir -p /app/var/uploads
 
 
 #########################################################################################
 
-FROM node:16.16.0-alpine
-
-COPY --from=builder /app /app
-
-WORKDIR /app
+FROM node:16.18.1-alpine
 
 # Run as a non-root user
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
-USER root
-RUN chown appuser:appgroup /app
+COPY --from=builder --chown=appgroup:appuser /app /app
+
+WORKDIR /app
 
 USER appuser
 ENV NODE_ENV production
