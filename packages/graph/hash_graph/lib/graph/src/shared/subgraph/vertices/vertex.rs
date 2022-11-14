@@ -10,9 +10,9 @@ use crate::{
 #[serde(tag = "kind", content = "inner")]
 #[serde(rename_all = "camelCase")]
 pub enum OntologyVertex {
-    DataType(DataTypeWithMetadata),
-    PropertyType(PropertyTypeWithMetadata),
-    EntityType(EntityTypeWithMetadata),
+    DataType(Box<DataTypeWithMetadata>),
+    PropertyType(Box<PropertyTypeWithMetadata>),
+    EntityType(Box<EntityTypeWithMetadata>),
 }
 
 // WARNING: This MUST be kept up to date with the enum names and serde attribute, as utoipa does
@@ -85,8 +85,8 @@ impl ToSchema for KnowledgeGraphVertex {
 #[serde(rename_all = "camelCase")]
 #[serde(untagged)]
 pub enum Vertex {
-    Ontology(OntologyVertex),
-    KnowledgeGraph(KnowledgeGraphVertex),
+    Ontology(Box<OntologyVertex>),
+    KnowledgeGraph(Box<KnowledgeGraphVertex>),
 }
 
 // WARNING: This MUST be kept up to date with the enum variants.

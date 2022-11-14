@@ -15,7 +15,7 @@ use crate::{
         knowledge::{EntityEditionId, EntityId},
         Timestamp,
     },
-    knowledge::{EntityProperties, EntityQueryPath},
+    knowledge::{EntityProperties, EntityQueryPath, EntityUuid},
     store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath},
 };
 
@@ -123,6 +123,21 @@ impl<'q> Filter<'q, EntityProperties> {
                 Some(FilterExpression::Path(EntityQueryPath::Uuid)),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
                     entity_id.entity_uuid().as_uuid(),
+                ))),
+            ),
+        ])
+    }
+
+    /// Creates a `Filter` to search for a specific entities at their latest version, identified by
+    /// its [`EntityUuid`].
+    #[must_use]
+    pub fn for_latest_entity_by_entity_uuid(entity_uuid: EntityUuid) -> Self {
+        Self::All(vec![
+            Self::for_all_latest_entities(),
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::Uuid)),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    entity_uuid.as_uuid(),
                 ))),
             ),
         ])
@@ -408,7 +423,6 @@ impl fmt::Display for ParameterConversionError {
 impl Context for ParameterConversionError {}
 
 impl Parameter<'_> {
-    #[expect(clippy::match_same_arms, reason = "multiple empty bodies due to TODOs")]
     fn convert_to_parameter_type(
         &mut self,
         expected: ParameterType,

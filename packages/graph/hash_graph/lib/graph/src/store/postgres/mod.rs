@@ -203,7 +203,7 @@ impl DependencyContext {
                         data_type.metadata().edition_id().base_id().clone(),
                         (
                             data_type.metadata().edition_id().version(),
-                            OntologyVertex::DataType(data_type),
+                            OntologyVertex::DataType(Box::new(data_type)),
                         ),
                     )
                 })
@@ -215,7 +215,7 @@ impl DependencyContext {
                                 property_type.metadata().edition_id().base_id().clone(),
                                 (
                                     property_type.metadata().edition_id().version(),
-                                    OntologyVertex::PropertyType(property_type),
+                                    OntologyVertex::PropertyType(Box::new(property_type)),
                                 ),
                             )
                         }),
@@ -228,7 +228,7 @@ impl DependencyContext {
                                 entity_type.metadata().edition_id().base_id().clone(),
                                 (
                                     entity_type.metadata().edition_id().version(),
-                                    OntologyVertex::EntityType(entity_type),
+                                    OntologyVertex::EntityType(Box::new(entity_type)),
                                 ),
                             )
                         }),
@@ -945,6 +945,10 @@ where
         Ok(())
     }
 
+    #[expect(
+        clippy::too_many_lines,
+        reason = "The query is long, but it's a single query"
+    )]
     async fn move_latest_entity_to_histories(
         &self,
         entity_id: EntityId,
@@ -1157,8 +1161,8 @@ impl PostgresStore<Transaction<'_>> {
         let sink = self
             .client
             .copy_in(
-                "COPY entities (entity_uuid, entity_type_version_id, properties, owned_by_id, \
-                 updated_by_id, created_by_id) FROM STDIN BINARY",
+                "COPY latest_entities (entity_uuid, entity_type_version_id, properties, \
+                 owned_by_id, updated_by_id, created_by_id) FROM STDIN BINARY",
             )
             .await
             .into_report()

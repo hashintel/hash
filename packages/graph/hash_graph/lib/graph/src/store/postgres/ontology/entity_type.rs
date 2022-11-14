@@ -145,7 +145,7 @@ impl<C: AsClient> PostgresStore<C> {
         &'a self,
         dependency_context: &'c mut DependencyContextRef<'b>,
         source_entity_type_id: OntologyTypeEditionId,
-        dependent_entity_type_ids: impl Iterator<Item = OntologyTypeEditionId>,
+        dependent_entity_type_ids: impl Iterator<Item = OntologyTypeEditionId> + Send,
         edge_kind: OntologyEdgeKind,
     ) -> Result<(), QueryError> {
         for dependent_entity_type_id in dependent_entity_type_ids {

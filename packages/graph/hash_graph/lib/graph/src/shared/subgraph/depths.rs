@@ -10,17 +10,19 @@ pub type SubgraphQueryDepth = u8;
 /// Elements in the [`Subgraph`] are connected via [`Edges`]. For example, ontology elements may
 /// have references to other records, a [`PropertyType`] may reference other [`PropertyType`]s or
 /// [`DataType`]s. The depths provided alongside a query specify how many steps to explore along a
-/// chain of references _of a certain [`EdgeKind`]_.
+/// chain of references _of a certain edge kind_.
 // TODO: update this to refer to specific `EdgeKind`s
 /// Meaning, any chain of property type references
 /// will be resolved up to the depth given for property types, and *each* data type referenced in
 /// those property types will in turn start a 'new chain' whose exploration depth is limited by the
 /// depth given for data types.
 ///
-/// A depth of `0` means that no edges are explored for that [`EdgeKind`].
+/// A depth of `0` means that no edges are explored for that edge kind.
 ///
+/// [`Subgraph`]: crate::subgraph::Subgraph
 /// [`DataType`]: type_system::DataType
 /// [`PropertyType`]: type_system::PropertyType
+/// [`Edges`]: crate::subgraph::edges::Edges
 ///
 /// # Example
 ///
