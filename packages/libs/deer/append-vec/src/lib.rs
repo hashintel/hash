@@ -3,11 +3,15 @@
 extern crate alloc;
 
 use alloc::boxed::Box;
-use core::mem::{ManuallyDrop, MaybeUninit};
+use core::{
+    cell::UnsafeCell,
+    mem::{ManuallyDrop, MaybeUninit},
+    ptr,
+};
 
 use crate::{
     lock::AtomicLock,
-    sync::{alloc, AtomicBool, AtomicUsize, Layout, Ordering, UnsafeCell},
+    sync::{alloc, AtomicBool, AtomicUsize, Layout, Ordering},
 };
 
 mod lock;
@@ -17,6 +21,18 @@ pub struct AppendOnlyVec<T, const N: usize = 16> {
     length: AtomicUsize,
     lock: AtomicLock,
 
+    // SAFETY: This `UnsafeCell` is not checked by loom, this might seem counterintuitive, but
+    // there's a reason for this.
+    //
+    // The `UnsafeCell` can be accessed mutably and by reference at the same, this is okay, because
+    // the only way to get contents is over `Iter` and `push()`, `push()` ensures through an
+    // `AtomicLock`, that there is only ever a single mutable access at the same time and items
+    // will only be modified at the end. `Iter` meanwhile takes a snapshot of the current length
+    // (stored in an AtomicUsize) and then iterates through all items. `length` will never
+    // decrement, and there is no way that items once pushed can be modified or are ever touched.
+    //
+    // In theory items could be modified through interior mutability, but that is the case with
+    // "normal" Iterators too.
     head: UnsafeCell<Node<T, N>>,
 }
 
@@ -51,6 +67,7 @@ impl<T, const N: usize> AppendOnlyVec<T, N> {
 
         unsafe {
             let head = &mut *self.head.get();
+
             head.set(node, offset, value);
         }
     }
