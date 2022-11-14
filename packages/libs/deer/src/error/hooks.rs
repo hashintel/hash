@@ -1,6 +1,13 @@
-use alloc::{boxed::Box, format, string::String};
+use alloc::{
+    boxed::Box,
+    collections::{BTreeMap, BTreeSet, VecDeque},
+    format,
+    string::String,
+    vec,
+    vec::Vec,
+};
 use core::{
-    any::TypeId,
+    any::{Any, TypeId},
     cell::Cell,
     fmt,
     fmt::{Display, Formatter},
@@ -8,7 +15,7 @@ use core::{
 };
 
 use deer_append_vec::AppendOnlyVec;
-use error_stack::Frame;
+use error_stack::{Context, Frame, Report};
 use serde::{
     ser::{Error as _, SerializeMap},
     Serialize, Serializer,
@@ -90,10 +97,87 @@ fn register_inner<'a, E: Error>(
     }))
 }
 
+/// Split the Report into "strains", which are just linear frames, which are used to determine
+/// the different errors.
+///
+/// Example:
+///
+/// ```text
+///     A
+///    / \
+///   B   C
+///  / \  |
+/// D   E F
+/// ```
+///
+/// will output:
+///
+/// ```text
+/// [A, B, D]
+/// [A, B, E]
+/// [A, C, F]
+/// ```
+fn split_report(report: &Report<impl Context>) -> Vec<Vec<&Frame>> {
+    fn rsplit(mut next: &Frame) -> Vec<VecDeque<&Frame>> {
+        let mut head = VecDeque::new();
+
+        // "unroll" recursion if there's only a single straight path
+        while next.sources().len() == 1 {
+            head.push_back(next);
+            next = &next.sources()[0];
+        }
+
+        head.push_back(next);
+
+        // we now either have 0 or more than 1 source, depending on the count we need to recurse
+        // deeper or stop recursion and go "up" again.
+        match next.sources().len() {
+            0 => vec![head],
+            // while loop ensures that this never happens
+            1 => unreachable!(),
+            _ => {
+                let len = head.len();
+                let head = head.into_iter();
+
+                next.sources()
+                    .iter()
+                    .flat_map(rsplit)
+                    .map(|mut tail| {
+                        // now that we have the tail we need to prepend our head
+                        // This is a bit counter-intuitive, but basically we do:
+                        // Tail: [D, E, F, G]
+                        // Head: [A, B, C]
+                        //
+                        // Tail.extend(Head): [D, E, F, G, A, B, C]
+                        //
+                        // [D, E, G, G, A, B, C] (rotate right)
+                        // [C, D, E, G, A, B] (rotate right)
+                        // [B, C, D, E, G, A] (rotate right)
+                        // [A, B, C, D, E, G]
+                        tail.extend(head.clone());
+                        tail.rotate_right(len);
+
+                        tail
+                    })
+                    .collect()
+            }
+        }
+    }
+
+    report
+        .current_frames()
+        .iter()
+        .flat_map(rsplit)
+        .map(core::convert::Into::into)
+        .collect()
+}
+
+type HookFn = for<'a> fn(&[&'a Frame]) -> Option<Box<dyn erased_serde::Serialize + 'a>>;
+
 #[derive(Copy, Clone)]
 pub struct Hook {
     id: TypeId,
-    hook: for<'a> fn(&[&'a Frame]) -> Option<Box<dyn erased_serde::Serialize + 'a>>,
+    hook: HookFn,
 }
 
 impl Hook {
@@ -118,7 +202,7 @@ impl Hooks {
         }
     }
 
-    fn push_builtin(&self) {
+    fn init(&self) {
         if self
             .init
             .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
@@ -128,7 +212,9 @@ impl Hooks {
             return;
         }
 
-        // these need to be called separately
+        // these need to be called separately, ideally this would be a const array, but TypeId::of
+        // is not const
+        // TODO: can we remove this?
         self.push(&[
             Hook::new::<TypeError>(),
             Hook::new::<ValueError>(),
@@ -141,11 +227,68 @@ impl Hooks {
     }
 
     fn push(&self, hooks: &[Hook]) {
-        self.push_builtin();
+        self.init();
 
         for hook in hooks {
             self.inner.push(*hook);
         }
+    }
+
+    /// Divide frames, this looks a every strain and checks and finds the underlying variants
+    /// Those variants then are extracted, meaning:
+    ///
+    /// ```text
+    /// [A, B (Error), C, D (Error)]
+    /// ```
+    ///
+    /// turns into:
+    ///
+    /// ```text
+    /// [A, B (Error)]
+    /// [A, B, C, D (Error)]
+    /// ```
+    fn divide_frames<'a>(&self, frames: &[Vec<&'a Frame>]) -> Vec<Vec<&'a Frame>> {
+        let ids: BTreeSet<_> = self.inner.iter().map(|hook| hook.id).collect();
+
+        frames
+            .iter()
+            .flat_map(|path| {
+                let mut div = vec![];
+                let mut walked = vec![];
+
+                for frame in path {
+                    walked.push(*frame);
+
+                    if ids.contains(&Frame::type_id(frame)) {
+                        div.push(walked.clone());
+                    }
+                }
+
+                div
+            })
+            .collect()
+    }
+
+    pub(crate) fn handle<'a>(
+        &self,
+        report: &'a Report<impl Context>,
+    ) -> Vec<Box<dyn erased_serde::Serialize + 'a>> {
+        let frames = split_report(report);
+        let frames = self.divide_frames(&frames);
+
+        let hooks: BTreeMap<_, _> = self.inner.iter().map(|hook| (hook.id, hook.hook)).collect();
+
+        frames
+            .iter()
+            .filter_map(|stack| {
+                let last = stack.last()?;
+                let type_id = Frame::type_id(last);
+
+                let hook = hooks.get(&type_id)?;
+
+                hook(stack.as_slice())
+            })
+            .collect()
     }
 }
 
