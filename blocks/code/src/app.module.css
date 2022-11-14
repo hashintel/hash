@@ -1,0 +1,109 @@
+.outerWrapper {
+  width: 100%;
+}
+
+.wrapper {
+  position: relative;
+  padding-left: 2rem;
+  padding-right: 2rem;
+  padding-bottom: 1rem;
+  padding-top: 3rem;
+  background-color: rgba(254, 243, 199, 0.5);
+}
+
+.wrapper *,
+.wrapper ::before,
+.wrapper ::after {
+  border: 0px solid rgb(229, 231, 235);
+  box-sizing: border-box;
+}
+
+.wrapper button,
+.wrapper input,
+.wrapper select,
+.wrapper textarea {
+  font-family: inherit;
+  font-size: 100%;
+  line-height: inherit;
+  color: inherit;
+}
+
+.wrapper input,
+.wrapper textarea {
+  padding: 0;
+}
+
+.wrapper button {
+  cursor: pointer;
+}
+
+.topPanel {
+  display: flex;
+  position: absolute;
+  top: 0.5rem;
+  right: 1rem;
+  left: 1rem;
+  transition-property: all;
+  color: #6b7280;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  justify-content: space-between;
+}
+
+.languageSelect {
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  background-color: transparent;
+  border-radius: 0.375rem;
+  cursor: pointer;
+}
+.languageSelect:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.buttonContainer {
+  display: flex;
+}
+
+.copyToClipboardButton {
+  display: flex;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  margin-right: 0.5rem;
+  background-color: rgba(0, 0, 0, 0.1);
+  align-items: center;
+  border-radius: 0.375rem;
+}
+
+.copyToClipboardButton span:first-of-type {
+  margin-right: 0.25rem;
+}
+
+.captionButton {
+  background-color: rgba(0, 0, 0, 0.1);
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  border-radius: 0.375rem;
+}
+
+.languageSelect:hover,
+.copyToClipboardButton:hover,
+.captionButton:hover {
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.caption {
+  color: #9ca3af;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  padding-top: 0.25rem;
+  width: 100%;
+  outline: 0;
+  border: 0;
+}
