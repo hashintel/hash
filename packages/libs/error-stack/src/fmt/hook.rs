@@ -759,16 +759,14 @@ mod default {
     #[cfg(any(rust_1_65, feature = "spantrace"))]
     use alloc::format;
     use alloc::{vec, vec::Vec};
-    use core::any::TypeId;
+    use core::{
+        any::TypeId,
+        panic::Location,
+        sync::atomic::{AtomicBool, Ordering},
+    };
     #[cfg(rust_1_65)]
     use std::backtrace::Backtrace;
-    use std::{
-        panic::Location,
-        sync::{
-            atomic::{AtomicBool, Ordering},
-            Once,
-        },
-    };
+    use std::sync::Once;
 
     #[cfg(feature = "pretty-print")]
     use owo_colors::{OwoColorize, Stream};
