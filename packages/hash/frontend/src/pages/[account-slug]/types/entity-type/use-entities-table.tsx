@@ -7,10 +7,10 @@ import {
 import { GridColumn } from "@glideapps/glide-data-grid";
 import { types } from "@hashintel/hash-shared/types";
 import { useMemo } from "react";
-import { Entity } from "../../../../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
-import { generateEntityLabel } from "../../../../../lib/entities";
-import { getEntity, Subgraph } from "../../../../../lib/subgraph";
-import { mustBeVersionedUri } from "../util";
+import { Entity } from "../../../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
+import { generateEntityLabel } from "../../../../lib/entities";
+import { getEntity, Subgraph } from "../../../../lib/subgraph";
+import { mustBeVersionedUri } from "./util";
 
 export const useEntitiesTable = (
   entities?: Entity[],

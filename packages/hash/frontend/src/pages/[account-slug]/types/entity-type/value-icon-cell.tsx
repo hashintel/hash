@@ -7,7 +7,7 @@ import type { CustomIcon } from "@glideapps/glide-data-grid/dist/ts/data-grid/da
 import {
   getCellHorizontalPadding,
   getYCenter,
-} from "../../../../../components/GlideGlid/utils";
+} from "../../../../components/GlideGlid/utils";
 
 export interface ValueIconCellProps {
   readonly kind: "value-icon-cell";

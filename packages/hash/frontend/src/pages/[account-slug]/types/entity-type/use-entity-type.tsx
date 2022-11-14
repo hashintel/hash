@@ -5,7 +5,9 @@ import {
 } from "@blockprotocol/type-system-web";
 import { useRouter } from "next/router";
 import {
+  createContext,
   useCallback,
+  useContext,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -19,7 +21,7 @@ import { getEntityTypesByBaseUri } from "../../../../lib/subgraph";
 import { useAdvancedInitTypeSystem } from "../../../../lib/use-init-type-system";
 import { mustBeVersionedUri } from "./util";
 
-export const useEntityType = (
+export const useEntityTypeValue = (
   entityTypeBaseUri: string | null,
   namespace?: string,
   onCompleted?: (entityType: EntityType) => void,
@@ -145,4 +147,10 @@ export const useEntityType = (
     updateCallback,
     publishDraft,
   ] as const;
+};
+
+export const EntityTypeContext = createContext<null | EntityType>(null);
+
+export const useEntityType = () => {
+  return useContext(EntityTypeContext);
 };

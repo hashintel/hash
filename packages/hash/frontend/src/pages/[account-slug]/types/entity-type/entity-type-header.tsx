@@ -10,10 +10,9 @@ import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon"
 import { Box, Container, Typography } from "@mui/material";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
-import { useMemo, useState } from "react";
+import { FunctionComponent, ReactElement, ReactNode, useMemo } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { FRONTEND_URL } from "../../../../lib/config";
-import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
 import { TopContextBar } from "../../../shared/top-context-bar";
 import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
 import { OntologyChip } from "../../shared/ontology-chip";
@@ -22,20 +21,18 @@ import {
   EntityTypeEditorForm,
   EntityTypeEditorPropertyData,
 } from "./form-types";
-// import { EntityTypeTabs } from "./entity-type-tabs";
-import { useEntityType } from "./use-entity-type";
 import { useRouteNamespace } from "./use-route-namespace";
 import { mustBeVersionedUri } from "./util";
-import { EntitiesTab } from "./tabs/entities-tab";
-import { DefinitionTab } from "./tabs/definition-tab";
-import {
-  EntityTypeEditorTabs,
-  NAVIGATION_TABS,
-} from "./tabs/entity-type-editor-tabs";
 import {
   EntityTypeEntitiesContext,
   useEntityTypeEntitiesContextValue,
 } from "./use-entity-type-entities";
+import { EntityTypeTabs } from "./entity-type-tabs";
+import {
+  EntityTypeContext,
+  useEntityType,
+  useEntityTypeValue,
+} from "./use-entity-type";
 
 const getBaseUri = (entityTypeId: string, namespace: string) =>
   `${FRONTEND_URL}/@${namespace}/types/entity-type/${entityTypeId}/`;
@@ -74,15 +71,20 @@ const getSchemaFromEditorForm = (
   };
 };
 
-// @todo loading state
-const Page: NextPageWithLayout = () => {
+export interface EntityTypeEditorHeaderProps {
+  children?: ReactNode;
+}
+
+export const EntityTypeHeader: FunctionComponent<
+  EntityTypeEditorHeaderProps
+> = ({ children }) => {
   const router = useRouter();
 
   // @todo how to handle remote types
   const isDraft = !!router.query.draft;
   const namespace = useRouteNamespace();
 
-  const entityTypeId = router.query["entity-type-id"]?.[0] ?? "";
+  const entityTypeId = router.query["entity-type-id"] ?? "";
   const baseEntityTypeUri =
     !isDraft && namespace?.shortname
       ? getBaseUri(entityTypeId, namespace.shortname)
@@ -91,15 +93,6 @@ const Page: NextPageWithLayout = () => {
   const entityTypeEntitiesValue = useEntityTypeEntitiesContextValue(
     baseEntityTypeUri ?? "",
   );
-
-  const [activeTab, setActiveTab] = useState(() => {
-    const activePath = router.query["entity-type-id"]?.[1] ?? "";
-    const tabIndex = NAVIGATION_TABS.findIndex(
-      (tab) => tab.path === activePath,
-    );
-
-    return tabIndex >= 0 ? tabIndex : 0;
-  });
 
   const draftEntityType = useMemo(() => {
     if (router.query.draft) {
@@ -120,7 +113,7 @@ const Page: NextPageWithLayout = () => {
   });
   const { handleSubmit: wrapHandleSubmit, reset } = formMethods;
 
-  const [remoteEntityType, updateEntityType, publishDraft] = useEntityType(
+  const [remoteEntityType, updateEntityType, publishDraft] = useEntityTypeValue(
     baseEntityTypeUri,
     namespace?.id,
     (fetchedEntityType) => {
@@ -184,101 +177,103 @@ const Page: NextPageWithLayout = () => {
 
   return (
     <FormProvider {...formMethods}>
-      <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
-        <Box
-          sx={(theme) => ({
-            minHeight: "100vh",
-            background: theme.palette.gray[10],
-            display: "flex",
-            flexDirection: "column",
-          })}
-          component="form"
-          onSubmit={handleSubmit}
-        >
-          <Box bgcolor="white" borderBottom={1} borderColor="gray.20">
-            <TopContextBar
-              defaultCrumbIcon={null}
-              crumbs={[
-                {
-                  title: "Types",
-                  href: "#",
-                  id: "types",
-                },
-                {
-                  title: "Entity types",
-                  href: "#",
-                  id: "entity-types",
-                },
-                {
-                  title: entityType.title,
-                  href: "#",
-                  id: entityType.$id,
-                  icon: <FontAwesomeIcon icon={faAsterisk} />,
-                },
-              ]}
-              scrollToTop={() => {}}
-            />
-            <EditBar
-              currentVersion={currentVersion}
-              discardButtonProps={
-                // @todo confirmation of discard when draft
-                isDraft
-                  ? {
-                      href: `/${router.query["account-slug"]}/types/new/entity-type`,
-                    }
-                  : {
-                      onClick() {
-                        reset();
-                      },
-                    }
-              }
-            />
+      <EntityTypeContext.Provider value={entityType}>
+        <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
+          <Box
+            sx={(theme) => ({
+              minHeight: "100vh",
+              background: theme.palette.gray[10],
+              display: "flex",
+              flexDirection: "column",
+            })}
+            component="form"
+            onSubmit={handleSubmit}
+          >
+            <Box bgcolor="white" borderBottom={1} borderColor="gray.20">
+              <TopContextBar
+                defaultCrumbIcon={null}
+                crumbs={[
+                  {
+                    title: "Types",
+                    href: "#",
+                    id: "types",
+                  },
+                  {
+                    title: "Entity types",
+                    href: "#",
+                    id: "entity-types",
+                  },
+                  {
+                    title: entityType.title,
+                    href: "#",
+                    id: entityType.$id,
+                    icon: <FontAwesomeIcon icon={faAsterisk} />,
+                  },
+                ]}
+                scrollToTop={() => {}}
+              />
+              <EditBar
+                currentVersion={currentVersion}
+                discardButtonProps={
+                  // @todo confirmation of discard when draft
+                  isDraft
+                    ? {
+                        href: `/${router.query["account-slug"]}/types/new/entity-type`,
+                      }
+                    : {
+                        onClick() {
+                          reset();
+                        },
+                      }
+                }
+              />
 
-            <Box pt={3.75}>
-              <Container>
-                <OntologyChip
-                  icon={<HashOntologyIcon />}
-                  domain="hash.ai"
-                  path={
-                    <>
-                      <Typography
-                        component="span"
-                        fontWeight="bold"
-                        color={(theme) => theme.palette.blue[70]}
-                      >
-                        {router.query["account-slug"]}
-                      </Typography>
-                      <Typography
-                        component="span"
-                        color={(theme) => theme.palette.blue[70]}
-                      >
-                        /types/entity-types/
-                      </Typography>
-                      <Typography
-                        component="span"
-                        fontWeight="bold"
-                        color={(theme) => theme.palette.blue[70]}
-                      >
-                        {entityTypeId}
-                      </Typography>
-                    </>
-                  }
-                />
-                <Typography variant="h1" fontWeight="bold" mt={3} mb={5.25}>
-                  <FontAwesomeIcon
-                    icon={faAsterisk}
-                    sx={(theme) => ({
-                      fontSize: 40,
-                      mr: 3,
-                      color: theme.palette.gray[70],
-                      verticalAlign: "middle",
-                    })}
+              <Box pt={3.75}>
+                <Container>
+                  <OntologyChip
+                    icon={<HashOntologyIcon />}
+                    domain="hash.ai"
+                    path={
+                      <>
+                        <Typography
+                          component="span"
+                          fontWeight="bold"
+                          color={(theme) => theme.palette.blue[70]}
+                        >
+                          {router.query["account-slug"]}
+                        </Typography>
+                        <Typography
+                          component="span"
+                          color={(theme) => theme.palette.blue[70]}
+                        >
+                          /types/entity-types/
+                        </Typography>
+                        <Typography
+                          component="span"
+                          fontWeight="bold"
+                          color={(theme) => theme.palette.blue[70]}
+                        >
+                          {entityTypeId}
+                        </Typography>
+                      </>
+                    }
                   />
-                  {entityType.title}
-                </Typography>
-                {/* <EntityTypeTabs entityType={entityType} /> */}
+                  <Typography variant="h1" fontWeight="bold" mt={3} mb={5.25}>
+                    <FontAwesomeIcon
+                      icon={faAsterisk}
+                      sx={(theme) => ({
+                        fontSize: 40,
+                        mr: 3,
+                        color: theme.palette.gray[70],
+                        verticalAlign: "middle",
+                      })}
+                    />
+                    {entityType.title}
+                  </Typography>
 
-                <EntityTypeEditorTabs
+                  <EntityTypeTabs />
+
+                  {/* <EntityTypeEditorTabs
                   value={activeTab}
                   onChange={(_, index) => {
                     void router.push(
@@ -288,24 +283,21 @@ const Page: NextPageWithLayout = () => {
                     );
                     setActiveTab(index);
                   }}
-                />
-              </Container>
+                /> */}
+                </Container>
+              </Box>
+            </Box>
+
+            <Box py={5}>
+              <Container>{children}</Container>
             </Box>
           </Box>
-
-          <Box py={5}>
-            <Container>
-              {activeTab === 0 ? (
-                <DefinitionTab entityTypeTitle={entityType.title} />
-              ) : null}
-              {activeTab === 1 ? <EntitiesTab /> : null}
-            </Container>
-          </Box>
-        </Box>
-      </EntityTypeEntitiesContext.Provider>
+        </EntityTypeEntitiesContext.Provider>
+      </EntityTypeContext.Provider>
     </FormProvider>
   );
 };
-Page.getLayout = getPlainLayout;
 
-export default Page;
+export const getEntityTypeEditorLayout = (page: ReactElement) => {
+  return <EntityTypeHeader>{page}</EntityTypeHeader>;
+};

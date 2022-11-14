@@ -6,7 +6,7 @@ import {
   IconButton,
 } from "@hashintel/hash-design-system";
 import { Box, Paper, Stack } from "@mui/material";
-import { FunctionComponent, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
 import { GlideGrid } from "../../../../../components/GlideGlid/glide-grid";
 import { GlideGridOverlayPortal } from "../../../../../components/GlideGlid/glide-grid-overlay-portal";
@@ -21,12 +21,14 @@ import { WhiteChip } from "../../../shared/white-chip";
 import { blankCell } from "../../../../../components/GlideGlid/utils";
 import { HomeIcon } from "../../../../../shared/icons/home-icon";
 import { EarthIcon } from "../../../../../shared/icons/earth-icon";
-import { renderValueIconCell } from "./value-icon-cell";
+import { renderValueIconCell } from "../value-icon-cell";
 import { useRouteNamespace } from "../use-route-namespace";
-import { useEntitiesTable } from "./use-entities-table";
+import { useEntitiesTable } from "../use-entities-table";
 import { useEntityTypeEntities } from "../use-entity-type-entities";
+import { NextPageWithLayout } from "../../../../../shared/layout";
+import { getEntityTypeEditorLayout } from "../entity-type-header";
 
-export const EntitiesTab: FunctionComponent = () => {
+const Page: NextPageWithLayout = () => {
   const { entities, entityTypes, propertyTypes, subgraph } =
     useEntityTypeEntities() ?? {};
 
@@ -159,3 +161,7 @@ export const EntitiesTab: FunctionComponent = () => {
     </Box>
   );
 };
+
+Page.getLayout = getEntityTypeEditorLayout;
+
+export default Page;
