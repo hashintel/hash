@@ -11,11 +11,8 @@ COPY package.json .
 COPY yarn.lock .
 RUN yarn install --frozen-lockfile --prefer-offline --force --build-from-source
 
-# explicitly build re2
-# RUN yarn add --ignore-workspace-root-check --force --build-from-source re2@1.15.9
 
-
-# Also ensure that api node modules can be cached
+# Also ensure that frontend node modules can be cached
 COPY libs/javascript/@local/tsconfig/package.json libs/javascript/@local/tsconfig/
 COPY libs/javascript/@local/eslint-config/package.json libs/javascript/@local/eslint-config/
 COPY packages/hash/frontend/package.json packages/hash/frontend/
