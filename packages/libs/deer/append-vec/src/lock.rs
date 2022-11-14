@@ -6,10 +6,7 @@
 //! This is heavily inspired from the excellent [try-lock](https://crates.io/crates/try-lock)
 //! crate, but without requiring a value to be guarded.
 
-use core::{
-    hint::spin_loop,
-    sync::atomic::{AtomicBool, Ordering},
-};
+use crate::sync::{spin_loop, AtomicBool, Ordering};
 
 pub(crate) struct LockGuard<'a> {
     lock: &'a AtomicLock,
