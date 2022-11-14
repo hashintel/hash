@@ -82,16 +82,15 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   );
 
   useEffect(() => {
-    let interval: any = null;
     if (localStart !== null) {
-      interval = setInterval(() => {
+      const interval = setInterval(() => {
         setCurrentLap(+new Date() - +localStart);
       }, 1000 / 60);
+
+      return () => clearInterval(interval);
     } else {
-      clearInterval(interval);
       setCurrentLap(0);
     }
-    return () => clearInterval(interval);
   }, [localStart]);
 
   const start_stop = () => {

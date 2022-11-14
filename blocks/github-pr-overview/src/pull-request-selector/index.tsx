@@ -106,13 +106,14 @@ export const PullRequestSelector: FunctionComponent<
             }}
             getOptionLabel={(option) =>
               `#${option} ${
-                allPrs?.get(`${selectedRepository}/${option}`)?.properties
-                  .title ?? ""
+                allPrs?.get(
+                  selectedRepository ? `${selectedRepository}/${option}` : "",
+                )?.properties.title ?? ""
               }`
             }
             disabled={!selectedRepository}
             disablePortal
-            options={reposToPrIds[selectedRepository!]?.sort() ?? []}
+            options={reposToPrIds[selectedRepository ?? ""]?.sort() ?? []}
             label="Pull Request number or name"
             placeholder="Search for pull request"
           />

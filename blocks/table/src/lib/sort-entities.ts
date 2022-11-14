@@ -2,7 +2,7 @@ import { AggregateOperationInput } from "@blockprotocol/graph";
 import { orderBy } from "lodash";
 
 export const sortEntities = (
-  entities: any[],
+  entities: unknown[],
   multiSort: NonNullable<AggregateOperationInput["multiSort"]>,
 ) => {
   return orderBy(

@@ -1,13 +1,18 @@
 import { MultiFilter } from "@blockprotocol/graph";
 import { get } from "lodash";
 
-export const filterEntities = (data: any[], multiFilter?: MultiFilter) => {
-  if (!multiFilter) return data;
+export const filterEntities = (
+  data: unknown[],
+  multiFilter?: MultiFilter,
+): unknown[] => {
+  if (!multiFilter) {
+    return data;
+  }
 
   return data.filter((entity) => {
     const results = multiFilter.filters
       .map((filterItem) => {
-        const item = get(entity, filterItem.field);
+        const item = get(entity, filterItem.field) as unknown;
 
         if (typeof item !== "string") return null;
 
