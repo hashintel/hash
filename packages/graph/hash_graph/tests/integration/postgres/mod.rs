@@ -398,17 +398,23 @@ impl DatabaseApi<'_> {
             })
             .await?;
 
-        Ok(subgraph.roots.into_iter()
-            .map(|edition_id| subgraph.vertices.remove(&edition_id))
-            .flatten() // Filter out Option::None
+        let roots = subgraph
+            .roots
+            .into_iter()
+            .filter_map(|edition_id| subgraph.vertices.remove(&edition_id))
             .map(|vertex| match vertex {
                 Vertex::KnowledgeGraph(KnowledgeGraphVertex::Entity(persisted_entity)) => {
                     persisted_entity
                 }
                 _ => unreachable!(),
             })
-            .next()
-            .expect("no entity found"))
+            .collect::<Vec<_>>();
+
+        match roots.as_slice() {
+            [] => panic!("no entity found"),
+            [entity] => Ok(entity.clone()),
+            [..] => panic!("more than one entity was found"),
+        }
     }
 
     pub async fn get_latest_entity_links(
