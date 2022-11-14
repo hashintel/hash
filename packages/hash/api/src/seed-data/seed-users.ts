@@ -50,6 +50,7 @@ export const ensureUsersAreSeeded = async ({
   // Or if we're explicitly setting users to seed.
   if (process.env.HASH_SEED_USERS) {
     try {
+      /** @todo validate the JSON parsed from the environment. */
       usersToSeed = JSON.parse(process.env.HASH_SEED_USERS) as SeededUser[];
     } catch (error) {
       logger.error(
