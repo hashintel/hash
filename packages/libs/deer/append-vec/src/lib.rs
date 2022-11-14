@@ -211,7 +211,7 @@ mod tests {
             let v = Arc::new(AppendOnlyVec::<u64>::new());
 
             let mut threads = Vec::new();
-            const N: u64 = 3;
+            const N: u64 = 2;
 
             for thread_num in 0..N {
                 let v = v.clone();
