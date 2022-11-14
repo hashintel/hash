@@ -20,6 +20,8 @@ pub struct OntologyVertices(pub HashMap<BaseUri, HashMap<OntologyTypeVersion, On
 #[derive(Debug, Serialize, ToSchema)]
 #[serde(transparent)]
 pub struct KnowledgeGraphVertices(
+    // TODO: expose it through methods instead of making this field `pub`
+    //   see https://app.asana.com/0/1202805690238892/1203358665695491/f
     pub HashMap<EntityId, HashMap<EntityVersion, KnowledgeGraphVertex>>,
 );
 

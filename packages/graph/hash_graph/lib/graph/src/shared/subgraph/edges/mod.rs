@@ -21,6 +21,8 @@ pub use self::{
 #[derive(Debug, Serialize)]
 #[serde(transparent)]
 pub struct OntologyRootedEdges(
+    // TODO: expose it through methods instead of making this field `pub`
+    //   see https://app.asana.com/0/1202805690238892/1203358665695491/f
     pub HashMap<BaseUri, HashMap<OntologyTypeVersion, HashSet<OntologyOutwardEdges>>>,
 );
 
@@ -40,6 +42,8 @@ impl ToSchema for OntologyRootedEdges {
 #[derive(Debug, Serialize)]
 #[serde(transparent)]
 pub struct KnowledgeGraphRootedEdges(
+    // TODO: expose it through methods instead of making this field `pub`
+    //   see https://app.asana.com/0/1202805690238892/1203358665695491/f
     pub HashMap<EntityId, HashMap<EntityVersion, HashSet<KnowledgeGraphOutwardEdges>>>,
 );
 
