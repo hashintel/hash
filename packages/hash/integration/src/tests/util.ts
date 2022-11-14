@@ -1,7 +1,7 @@
 import { GraphQLClient, ClientError } from "graphql-request";
 import { createKratosIdentity } from "@hashintel/hash-api/src/auth/ory-kratos";
 import { GraphApi } from "@hashintel/hash-api/src/graph";
-import { UserModel } from "@hashintel/hash-api/src/model";
+import { OrgModel, UserModel } from "@hashintel/hash-api/src/model";
 import { ensureSystemTypesExist } from "@hashintel/hash-api/src/graph/system-types";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { systemAccountId } from "@hashintel/hash-api/src/model/util";
@@ -43,6 +43,7 @@ import {
   SetParentPageMutation,
   GetAccountPagesTreeQueryVariables,
   GetAccountPagesTreeQuery,
+  OrgSize,
 } from "../graphql/apiTypes.gen";
 import {
   createEntity,
@@ -115,6 +116,27 @@ export const createTestUser = async (
     });
 
   return updatedUser;
+};
+
+export const createTestOrg = async (
+  graphApi: GraphApi,
+  shortNamePrefix: string,
+  logger: Logger,
+) => {
+  await ensureSystemTypesExist({ graphApi, logger });
+
+  const shortname = generateRandomShortname(shortNamePrefix);
+
+  const createdOrg = await OrgModel.createOrg(graphApi, {
+    name: "Test org",
+    shortname,
+    providedInfo: {
+      orgSize: OrgSize.ElevenToFifty,
+    },
+    actorId: systemAccountId,
+  });
+
+  return createdOrg;
 };
 
 export class ApiClient {

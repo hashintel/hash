@@ -116,6 +116,7 @@ import { updatePersistedCommentText } from "./knowledge/comment/update-text";
 import { blockChildEntity } from "./knowledge/block/data-entity";
 import { loggedInAndSignedUpHashInstanceAdmin } from "./middlewares/loggedInAndSignedUpHashInstanceAdmin";
 import { createUser } from "./knowledge/user/create-user";
+import { createOrg } from "./knowledge/org/create-org";
 
 /**
  * @todo: derive these from the statically declared system type names
@@ -225,6 +226,7 @@ export const resolvers = {
     updatePersistedCommentText: loggedInAndSignedUp(updatePersistedCommentText),
     // HASH instance admin mutations
     createUser: loggedInAndSignedUpHashInstanceAdmin(createUser),
+    createOrg: loggedInAndSignedUpHashInstanceAdmin(createOrg),
   },
 
   JSONObject: JSONObjectResolver,
