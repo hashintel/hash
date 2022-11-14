@@ -18,7 +18,7 @@ pub use self::{
     kind::{KnowledgeGraphEdgeKind, OntologyEdgeKind, SharedEdgeKind},
 };
 
-#[derive(Debug, Serialize)]
+#[derive(Default, Debug, Serialize)]
 #[serde(transparent)]
 pub struct OntologyRootedEdges(
     // TODO: expose it through methods instead of making this field `pub`
@@ -39,7 +39,7 @@ impl ToSchema for OntologyRootedEdges {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Default, Debug, Serialize)]
 #[serde(transparent)]
 pub struct KnowledgeGraphRootedEdges(
     // TODO: expose it through methods instead of making this field `pub`
@@ -60,7 +60,7 @@ impl ToSchema for KnowledgeGraphRootedEdges {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Default, Debug, Serialize)]
 pub struct Edges {
     #[serde(flatten)]
     ontology: OntologyRootedEdges,
@@ -97,7 +97,7 @@ impl Edges {
                     .ontology
                     .0
                     .entry(ontology_edition_id.base_id().clone())
-                    .or_insert(HashMap::new());
+                    .or_default();
 
                 match map.entry(ontology_edition_id.version()) {
                     Entry::Occupied(entry) => {
@@ -118,7 +118,7 @@ impl Edges {
                     .knowledge_graph
                     .0
                     .entry(entity_edition_id.base_id())
-                    .or_insert(HashMap::new());
+                    .or_default();
 
                 match map.entry(entity_edition_id.version().clone()) {
                     Entry::Occupied(entry) => {
