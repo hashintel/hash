@@ -23,7 +23,7 @@ pub(crate) struct AtomicLock {
 }
 
 impl AtomicLock {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             flag: AtomicBool::new(false),
         }
