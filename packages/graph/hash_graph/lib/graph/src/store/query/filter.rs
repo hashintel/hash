@@ -177,6 +177,14 @@ impl<'q> Filter<'q, EntityProperties> {
                     edition_id.base_id().entity_uuid().as_uuid(),
                 ))),
             ),
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(Some(
+                    Box::new(EntityQueryPath::Version),
+                )))),
+                Some(FilterExpression::Parameter(Parameter::Timestamp(
+                    edition_id.version().inner(),
+                ))),
+            ),
         ])
     }
 
@@ -200,6 +208,14 @@ impl<'q> Filter<'q, EntityProperties> {
                     edition_id.base_id().entity_uuid().as_uuid(),
                 ))),
             ),
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::OutgoingLinks(
+                    Box::new(EntityQueryPath::Version),
+                ))),
+                Some(FilterExpression::Parameter(Parameter::Timestamp(
+                    edition_id.version().inner(),
+                ))),
+            ),
         ])
     }
 
@@ -221,6 +237,14 @@ impl<'q> Filter<'q, EntityProperties> {
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
                     edition_id.base_id().entity_uuid().as_uuid(),
+                ))),
+            ),
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::IncomingLinks(
+                    Box::new(EntityQueryPath::Version),
+                ))),
+                Some(FilterExpression::Parameter(Parameter::Timestamp(
+                    edition_id.version().inner(),
                 ))),
             ),
         ])
