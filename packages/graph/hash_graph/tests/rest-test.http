@@ -195,8 +195,7 @@ Content-Type: application/json
     "dataTypeResolveDepth": 0,
     "propertyTypeResolveDepth": 0,
     "entityTypeResolveDepth": 0,
-    "linkTargetEntityResolveDepth": 10,
-    "linkResolveDepth": 10
+    "entityResolveDepth": 10
   }
 }
 
@@ -317,8 +316,7 @@ Content-Type: application/json
     "dataTypeResolveDepth": 0,
     "propertyTypeResolveDepth": 0,
     "entityTypeResolveDepth": 0,
-    "linkTargetEntityResolveDepth": 10,
-    "linkResolveDepth": 10
+    "entityResolveDepth": 10
   }
 }
 
@@ -435,8 +433,7 @@ GET http://127.0.0.1:4000/entities
 #    "dataTypeResolveDepth": 0,
 #    "propertyTypeResolveDepth": 0,
 #    "entityTypeResolveDepth": 0,
-#    "linkTargetEntityResolveDepth": 10,
-#    "linkResolveDepth": 10
+#    "entityResolveDepth": 10
 #  }
 #}
 #
@@ -513,8 +510,7 @@ Content-Type: application/json
     "dataTypeResolveDepth": 0,
     "propertyTypeResolveDepth": 0,
     "entityTypeResolveDepth": 0,
-    "linkTargetEntityResolveDepth": 0,
-    "linkResolveDepth": 0
+    "entityResolveDepth": 0
   }
 }
 
@@ -564,8 +560,7 @@ Content-Type: application/json
     "dataTypeResolveDepth": 0,
     "propertyTypeResolveDepth": 0,
     "entityTypeResolveDepth": 0,
-    "linkTargetEntityResolveDepth": 0,
-    "linkResolveDepth": 0
+    "entityResolveDepth": 0
   }
 }
 
@@ -598,8 +593,7 @@ Content-Type: application/json
     "dataTypeResolveDepth": 0,
     "propertyTypeResolveDepth": 0,
     "entityTypeResolveDepth": 0,
-    "linkTargetEntityResolveDepth": 0,
-    "linkResolveDepth": 0
+    "entityResolveDepth": 0
   }
 }
 

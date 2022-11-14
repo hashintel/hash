@@ -1,8 +1,8 @@
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
     knowledge::EntityUuid,
+    shared::subgraph::{depths::GraphResolveDepths, query::StructuralQuery},
     store::{query::Filter, EntityStore},
-    subgraph::{GraphResolveDepths, StructuralQuery},
 };
 use rand::{prelude::IteratorRandom, thread_rng};
 use tokio::runtime::Runtime;
@@ -28,8 +28,7 @@ pub fn bench_get_entity_by_id(
                         data_type_resolve_depth: 0,
                         property_type_resolve_depth: 0,
                         entity_type_resolve_depth: 0,
-                        link_resolve_depth: 0,
-                        link_target_entity_resolve_depth: 0,
+                        entity_resolve_depth: 0,
                     },
                 })
                 .await

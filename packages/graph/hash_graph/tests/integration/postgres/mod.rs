@@ -8,7 +8,7 @@ use std::{borrow::Cow, str::FromStr};
 
 use error_stack::Result;
 use graph::{
-    identifier::knowledge::EntityId,
+    identifier::knowledge::{EntityEditionId, EntityId},
     knowledge::{
         Entity, EntityMetadata, EntityProperties, EntityQueryPath, EntityUuid, LinkEntityMetadata,
     },
@@ -17,7 +17,10 @@ use graph::{
         PropertyTypeWithMetadata,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
-    shared::identifier::{account::AccountId, GraphElementId},
+    shared::{
+        identifier::{account::AccountId, GraphElementEditionId},
+        subgraph::{depths::GraphResolveDepths, query::StructuralQuery, vertices::Vertex},
+    },
     store::{
         error::ArchivalError,
         query::{Filter, FilterExpression, Parameter},
@@ -25,7 +28,7 @@ use graph::{
         EntityTypeStore, InsertionError, PostgresStore, PostgresStorePool, PropertyTypeStore,
         QueryError, StorePool, UpdateError,
     },
-    subgraph::{GraphResolveDepths, StructuralQuery, Vertex},
+    subgraph::vertices::{KnowledgeGraphVertex, OntologyVertex},
 };
 use tokio_postgres::{NoTls, Transaction};
 use type_system::{uri::VersionedUri, DataType, EntityType, PropertyType};
@@ -159,11 +162,13 @@ impl DatabaseApi<'_> {
             })
             .await?
             .vertices
-            .remove(&GraphElementId::OntologyElementId(uri.clone().into()))
+            .remove(&GraphElementEditionId::Ontology(uri.clone().into()))
             .expect("no data type found");
 
         match vertex {
-            Vertex::DataType(data_type_with_metadata) => Ok(data_type_with_metadata),
+            Vertex::Ontology(OntologyVertex::DataType(data_type_with_metadata)) => {
+                Ok(data_type_with_metadata)
+            }
             _ => unreachable!(),
         }
     }
@@ -202,11 +207,13 @@ impl DatabaseApi<'_> {
             })
             .await?
             .vertices
-            .remove(&GraphElementId::OntologyElementId(uri.clone().into()))
+            .remove(&GraphElementEditionId::Ontology(uri.clone().into()))
             .expect("no property type found");
 
         match vertex {
-            Vertex::PropertyType(property_type_with_metadata) => Ok(property_type_with_metadata),
+            Vertex::Ontology(OntologyVertex::PropertyType(property_type_with_metadata)) => {
+                Ok(property_type_with_metadata)
+            }
             _ => unreachable!(),
         }
     }
@@ -245,11 +252,11 @@ impl DatabaseApi<'_> {
             })
             .await?
             .vertices
-            .remove(&GraphElementId::OntologyElementId(uri.clone().into()))
+            .remove(&GraphElementEditionId::Ontology(uri.clone().into()))
             .expect("no entity type found");
 
         match vertex {
-            Vertex::EntityType(entity_type) => Ok(entity_type),
+            Vertex::Ontology(OntologyVertex::EntityType(entity_type)) => Ok(entity_type),
             _ => unreachable!(),
         }
     }
@@ -281,20 +288,23 @@ impl DatabaseApi<'_> {
             .await
     }
 
-    pub async fn get_entity(&self, entity_id: EntityId) -> Result<Entity, QueryError> {
+    pub async fn get_entity(
+        &self,
+        entity_edition_id: EntityEditionId,
+    ) -> Result<Entity, QueryError> {
         let vertex = self
             .store
             .get_entity(&StructuralQuery {
-                filter: Filter::for_latest_entity_by_entity_id(entity_id),
+                filter: Filter::for_entities_by_edition_id(entity_edition_id),
                 graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
             .await?
             .vertices
-            .remove(&GraphElementId::KnowledgeGraphElementId(entity_id))
+            .remove(&GraphElementEditionId::KnowledgeGraph(entity_edition_id))
             .expect("no entity found");
 
         match vertex {
-            Vertex::Entity(entity) => Ok(entity),
+            Vertex::KnowledgeGraph(KnowledgeGraphVertex::Entity(entity)) => Ok(entity),
             _ => unreachable!(),
         }
     }
@@ -342,7 +352,7 @@ impl DatabaseApi<'_> {
 
     pub async fn get_link_entity_target(
         &self,
-        source_entity_uuid: EntityUuid,
+        source_entity_id: EntityId,
         link_type_id: VersionedUri,
     ) -> Result<Entity, QueryError> {
         let filter = Filter::All(vec![
@@ -351,7 +361,15 @@ impl DatabaseApi<'_> {
                     Box::new(EntityQueryPath::Uuid),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    source_entity_uuid.as_uuid(),
+                    source_entity_id.entity_uuid().as_uuid(),
+                ))),
+            ),
+            Filter::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
+                    Box::new(EntityQueryPath::OwnedById),
+                ))),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    source_entity_id.owned_by_id().as_uuid(),
                 ))),
             ),
             Filter::Equal(
@@ -372,20 +390,31 @@ impl DatabaseApi<'_> {
             ),
         ]);
 
-        self.store
+        let mut subgraph = self
+            .store
             .get_entity(&StructuralQuery {
                 filter,
                 graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
-            .await?
-            .vertices
+            .await?;
+
+        let roots = subgraph
+            .roots
             .into_iter()
-            .map(|(_, vertex)| match vertex {
-                Vertex::Entity(entity) => Ok(entity),
+            .filter_map(|edition_id| subgraph.vertices.remove(&edition_id))
+            .map(|vertex| match vertex {
+                Vertex::KnowledgeGraph(KnowledgeGraphVertex::Entity(persisted_entity)) => {
+                    persisted_entity
+                }
                 _ => unreachable!(),
             })
-            .next()
-            .expect("no entity found")
+            .collect::<Vec<_>>();
+
+        match roots.as_slice() {
+            [] => panic!("no entity found"),
+            [entity] => Ok(entity.clone()),
+            [..] => panic!("more than one entity was found"),
+        }
     }
 
     pub async fn get_latest_entity_links(
@@ -417,17 +446,21 @@ impl DatabaseApi<'_> {
             ),
         ]);
 
-        Ok(self
+        let mut subgraph = self
             .store
             .get_entity(&StructuralQuery {
                 filter,
                 graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
-            .await?
-            .vertices
-            .into_iter()
-            .map(|(_, vertex)| match vertex {
-                Vertex::Entity(entity) => entity,
+            .await?;
+
+        Ok(subgraph.roots.into_iter()
+            .map(|edition_id| subgraph.vertices.remove(&edition_id))
+            .flatten() // Filter out Option::None
+            .map(|vertex| match vertex {
+                Vertex::KnowledgeGraph(KnowledgeGraphVertex::Entity(persisted_entity)) => {
+                    persisted_entity
+                }
                 _ => unreachable!(),
             })
             .collect())
