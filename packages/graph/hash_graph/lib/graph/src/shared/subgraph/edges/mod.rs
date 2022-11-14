@@ -76,13 +76,15 @@ impl Edges {
         }
     }
 
+    /// # Panics
+    ///
+    /// - if the `identifier` and `outward_edge` parameters are incompatible
     pub fn insert(&mut self, identifier: GraphElementEditionId, outward_edge: OutwardEdge) -> bool {
-        match identifier {
-            GraphElementEditionId::Ontology(ontology_edition_id) => {
-                let OutwardEdge::Ontology(outward_edge) = outward_edge else {
-                    panic!("tried to insert a knowledge-graph edge from an ontology element");
-                };
-
+        match (identifier, outward_edge) {
+            (
+                GraphElementEditionId::Ontology(ontology_edition_id),
+                OutwardEdge::Ontology(outward_edge),
+            ) => {
                 let map = self
                     .ontology
                     .0
@@ -100,11 +102,10 @@ impl Edges {
                     }
                 }
             }
-            GraphElementEditionId::KnowledgeGraph(entity_edition_id) => {
-                let OutwardEdge::KnowledgeGraph(outward_edge) = outward_edge else {
-                    panic!("tried to insert an ontology edge from a knowledge-graph element");
-                };
-
+            (
+                GraphElementEditionId::KnowledgeGraph(entity_edition_id),
+                OutwardEdge::KnowledgeGraph(outward_edge),
+            ) => {
                 let map = self
                     .knowledge_graph
                     .0
@@ -121,6 +122,12 @@ impl Edges {
                         true
                     }
                 }
+            }
+            (GraphElementEditionId::Ontology(_), OutwardEdge::KnowledgeGraph(_)) => {
+                panic!("tried to insert an knowledge edge from a ontology-graph element")
+            }
+            (GraphElementEditionId::KnowledgeGraph(_), OutwardEdge::Ontology(_)) => {
+                panic!("tried to insert an ontology edge from a knowledge-graph element")
             }
         }
     }
