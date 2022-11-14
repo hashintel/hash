@@ -11,7 +11,7 @@ use core::{
 
 use crate::{
     lock::AtomicLock,
-    sync::{alloc, AtomicBool, AtomicUsize, Layout, Ordering},
+    sync::{alloc, AtomicUsize, Layout, Ordering},
 };
 
 mod lock;
@@ -38,8 +38,11 @@ pub struct AppendOnlyVec<T, const N: usize = 16> {
 
 impl<T, const N: usize> Drop for AppendOnlyVec<T, N> {
     fn drop(&mut self) {
+        let length = self.length.load(Ordering::Relaxed);
+        let (node, offset) = self.indices(length);
+
         let head = self.head.get_mut();
-        unsafe { head.uninit() };
+        unsafe { head.uninit(node, offset) };
     }
 }
 
@@ -77,13 +80,6 @@ impl<T, const N: usize> AppendOnlyVec<T, N> {
     }
 }
 
-struct Node<T, const N: usize> {
-    store: [MaybeUninit<T>; N],
-
-    has_next: AtomicBool,
-    next: ManuallyDrop<Box<MaybeUninit<Node<T, N>>>>,
-}
-
 fn uninit_box<T>() -> Box<MaybeUninit<T>> {
     let layout = Layout::new::<MaybeUninit<T>>();
 
@@ -94,23 +90,33 @@ fn uninit_box<T>() -> Box<MaybeUninit<T>> {
     }
 }
 
+struct Node<T, const N: usize> {
+    store: [MaybeUninit<T>; N],
+
+    next: Option<Box<Node<T, N>>>,
+}
+
 impl<T, const N: usize> Node<T, N> {
     fn new() -> Self {
         Self {
             // this is the same as MaybeUninit::uninit_array()
             store: unsafe { MaybeUninit::<[MaybeUninit<T>; N]>::uninit().assume_init() },
-            // this is the same as Box::new_uninit()
-            next: ManuallyDrop::new(uninit_box()),
-            has_next: AtomicBool::new(false),
+            next: None,
         }
     }
 
-    unsafe fn uninit(&mut self) {
-        if self.has_next.load(Ordering::Relaxed) {
-            self.next.assume_init_mut().uninit();
+    unsafe fn uninit(&mut self, node: usize, offset: usize) {
+        let length = if node == 0 { offset } else { N };
+
+        for item in &mut self.store[..length] {
+            ptr::drop_in_place(item);
         }
 
-        ManuallyDrop::drop(&mut self.next)
+        if node != 0 {
+            if let Some(next) = &mut self.next {
+                next.uninit(node - 1, offset);
+            }
+        }
     }
 
     // SAFETY: The following invariants must be upheld:
@@ -119,8 +125,7 @@ impl<T, const N: usize> Node<T, N> {
     unsafe fn set(&mut self, node: usize, offset: usize, value: T) {
         if node == 1 && offset == 0 {
             // the next node is empty, and therefore needs to be allocated before we can use it
-            self.next.write(Node::new());
-            self.has_next.store(true, Ordering::Relaxed);
+            self.next = Some(Box::new(Node::new()));
         }
 
         if node == 0 {
@@ -131,7 +136,10 @@ impl<T, const N: usize> Node<T, N> {
             // the invariants ensure that the next node **always** exists, and the previous
             // statement will allocate a new node if necessary, therefore this recursion into the
             // next node is "safe"
-            self.next.assume_init_mut().set(node - 1, offset, value);
+            self.next
+                .as_mut()
+                .unwrap_unchecked()
+                .set(node - 1, offset, value);
         }
     }
 }
@@ -166,7 +174,7 @@ impl<'a, T, const N: usize> Iterator for Iter<'a, T, N> {
             self.offset -= N;
             self.length -= N;
 
-            self.node = unsafe { self.node.next.assume_init_ref() };
+            self.node = unsafe { self.node.next.as_ref().unwrap_unchecked() };
         }
 
         let item = unsafe { self.node.store[self.offset].assume_init_ref() };
@@ -215,6 +223,7 @@ mod tests {
 
             for thread_num in 0..N {
                 let v = v.clone();
+
                 threads.push(loom::thread::spawn(move || {
                     v.push(thread_num);
                     v.push(thread_num);
