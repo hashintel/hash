@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/hash-frontend",
-  "version": "0.0.0",
+  "version": "0.0.0-private",
   "private": true,
   "description": "HASH frontend",
   "license": "AGPL-3.0",
@@ -35,8 +35,8 @@
     "@fortawesome/free-regular-svg-icons": "6.0.0",
     "@fortawesome/free-solid-svg-icons": "6.0.0",
     "@glideapps/glide-data-grid": "5.1.4",
-    "@hashintel/hash-design-system": "0.0.0",
-    "@hashintel/hash-shared": "0.0.0",
+    "@hashintel/hash-design-system": "0.0.0-private",
+    "@hashintel/hash-shared": "0.0.0-private",
     "@headlessui/react": "1.4.1",
     "@lit-labs/react": "1.0.6",
     "@mui/icons-material": "5.10.6",
@@ -100,10 +100,10 @@
     "uuid": "8.3.2"
   },
   "devDependencies": {
-    "@graphql-codegen/cli": "2.7.0",
-    "@graphql-codegen/fragment-matcher": "3.2.1",
-    "@graphql-codegen/typescript": "2.6.0",
-    "@graphql-codegen/typescript-operations": "2.4.3",
+    "@graphql-codegen/cli": "2.13.11",
+    "@graphql-codegen/fragment-matcher": "3.3.1",
+    "@graphql-codegen/typescript": "2.8.1",
+    "@graphql-codegen/typescript-operations": "2.5.6",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@next/bundle-analyzer": "12.3.1",

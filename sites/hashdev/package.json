@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/hashdev",
-  "version": "0.1.1",
+  "version": "0.0.0-private",
   "private": true,
   "scripts": {
     "build": "next build",
@@ -30,7 +30,6 @@
     "mock-block-dock": "0.0.21",
     "next": "12.3.1",
     "next-mdx-remote": "4.0.3",
-    "prism": "4.1.2",
     "prismjs": "1.28.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
