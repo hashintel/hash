@@ -71,6 +71,7 @@ typings/
 # build files
 dist
 build
+target
 
 # vscode config
 .vscode/settings.json
@@ -94,8 +95,4 @@ __pycache__
 
 # Application data
 /var
-
-**/target
-**/.next
-
 seed-users.json
