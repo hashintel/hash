@@ -77,6 +77,10 @@ impl<T, const N: usize> AppendOnlyVec<T, N> {
     pub fn push(&self, value: T) {
         let _guard = self.lock.lock();
 
+        // We need to use `Acquire` as this is paired with the `fetch_add` at the end, it ensures
+        // that the atomic is the same across all threads.
+        // We *might* be able to relax this requirement.
+        // TODO: note(bmahmoud): @td - do you think we can relax the ordering here?
         let length = self.length.load(Ordering::Acquire);
         let (node, offset) = self.indices(length);
 
@@ -88,7 +92,7 @@ impl<T, const N: usize> AppendOnlyVec<T, N> {
 
         // we need to do this once we're done, otherwise there is a possibility that while pushing,
         // another thread would access the memory that we're currently working on
-        self.length.fetch_add(1, Ordering::AcqRel);
+        self.length.store(length + 1, Ordering::Release);
     }
 
     pub fn iter(&self) -> Iter<'_, T, N> {
