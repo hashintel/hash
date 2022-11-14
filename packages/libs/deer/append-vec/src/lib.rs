@@ -52,7 +52,17 @@ unsafe impl<T: Send, const N: usize> Send for AppendOnlyVec<T, N> {}
 unsafe impl<T: Send + Sync, const N: usize> Sync for AppendOnlyVec<T, N> {}
 
 impl<T, const N: usize> AppendOnlyVec<T, N> {
+    #[cfg(not(loom))]
     pub const fn new() -> Self {
+        Self {
+            length: AtomicUsize::new(0),
+            lock: AtomicLock::new(),
+            head: UnsafeCell::new(Node::new()),
+        }
+    }
+
+    #[cfg(loom)]
+    pub fn new() -> Self {
         Self {
             length: AtomicUsize::new(0),
             lock: AtomicLock::new(),
@@ -67,7 +77,7 @@ impl<T, const N: usize> AppendOnlyVec<T, N> {
     pub fn push(&self, value: T) {
         let _guard = self.lock.lock();
 
-        let length = self.length.fetch_add(1, Ordering::Relaxed);
+        let length = self.length.load(Ordering::Relaxed);
         let (node, offset) = self.indices(length);
 
         unsafe {
@@ -75,6 +85,10 @@ impl<T, const N: usize> AppendOnlyVec<T, N> {
 
             head.set(node, offset, value);
         }
+
+        // we need to do this once we're done, otherwise there is a possibility that while pushing,
+        // another thread would access the memory that we're currently working on
+        self.length.fetch_add(1, Ordering::Relaxed);
     }
 
     pub fn iter(&self) -> Iter<'_, T, N> {
@@ -258,6 +272,38 @@ mod tests {
             for thread_num in 0..N {
                 assert_eq!(2, v.iter().copied().filter(|&x| x == thread_num).count());
             }
+        })
+    }
+
+    // about the same code, but forces the creation of a new node on every single element
+    #[test]
+    #[cfg(loom)]
+    fn push_iter_loom() {
+        loom::model(|| {
+            let v = Arc::new(AppendOnlyVec::<usize>::new());
+            let mut threads = Vec::new();
+
+            const N: usize = 8;
+
+            let v1 = Arc::clone(&v);
+            threads.push(loom::thread::spawn(move || {
+                for i in 0..N {
+                    v1.push(i);
+                }
+            }));
+
+            let v1 = Arc::clone(&v);
+            threads.push(loom::thread::spawn(move || {
+                for _ in 0..N {
+                    let _items: Vec<_> = v1.iter().copied().collect();
+                }
+            }));
+
+            for t in threads {
+                t.join().expect("all threads could join")
+            }
+
+            assert_eq!(N, v.iter().count());
         })
     }
 }
