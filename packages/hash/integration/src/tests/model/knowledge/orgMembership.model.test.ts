@@ -7,12 +7,11 @@ import {
 import {
   OrgMembershipModel,
   OrgModel,
-  OrgSize,
   UserModel,
 } from "@hashintel/hash-api/src/model";
 import { systemAccountId } from "@hashintel/hash-api/src/model/util";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { createTestUser } from "../../util";
+import { createTestOrg, createTestUser } from "../../util";
 
 jest.setTimeout(60000);
 
@@ -39,14 +38,7 @@ describe("OrgMembership model class", () => {
     await ensureSystemTypesExist({ graphApi, logger });
     testUser = await createTestUser(graphApi, "orgMembershipTest", logger);
 
-    testOrg = await OrgModel.createOrg(graphApi, {
-      name: "Test org",
-      shortname: "test-org",
-      providedInfo: {
-        orgSize: OrgSize.ElevenToFifty,
-      },
-      actorId: testUser.entityId,
-    });
+    testOrg = await createTestOrg(graphApi, "orgMembershipTest", logger);
   });
 
   let testOrgMembership: OrgMembershipModel;

@@ -6,7 +6,7 @@ import { linkTypedef } from "./link.typedef";
 import { deprecatedEntityTypeTypedef } from "./entityType.typedef";
 import { pageTypedef } from "./page.typedef";
 import { textTypedef } from "./text.typedef";
-import { userTypedef } from "./knowledge/user.typedef";
+import { persistedUserTypedef } from "./knowledge/user.typedef";
 import { embedTypeDef } from "./embed.typedef";
 import { fileTypedef } from "./file.typedef";
 import { impliedHistoryTypedef } from "./impliedHistory.typedef";
@@ -24,6 +24,7 @@ import { persistedBlockTypedef } from "./knowledge/block.typedef";
 import { persistedLinkTypedef } from "./knowledge/link.typedef";
 import { subgraphTypedef } from "./subgraph.typedef";
 import { blockprotocolTypedef } from "./blockprotocol.typedef";
+import { persistedOrgTypedef } from "./knowledge/org.typedef";
 
 const baseSchema = gql`
   scalar Date
@@ -58,6 +59,8 @@ const knowledge = [
   persistedPageTypedef,
   persistedCommentTypedef,
   persistedLinkTypedef,
+  persistedUserTypedef,
+  persistedOrgTypedef,
 ];
 
 // This needs to be called 'schema' to be picked up by codegen -
@@ -75,7 +78,6 @@ export const schema = [
   pageTypedef,
   pagePaginationTypedef,
   textTypedef,
-  userTypedef,
   fileTypedef,
   executeTaskTypedef,
   ...ontology,
