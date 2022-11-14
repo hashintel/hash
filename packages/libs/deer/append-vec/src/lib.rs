@@ -231,4 +231,33 @@ mod tests {
             }
         })
     }
+
+    // about the same code, but forces the creation of a new node on every single element
+    #[test]
+    #[cfg(loom)]
+    fn push_many_loom() {
+        loom::model(|| {
+            let v = Arc::new(AppendOnlyVec::<u64, 1>::new());
+
+            let mut threads = Vec::new();
+            const N: u64 = 2;
+
+            for thread_num in 0..N {
+                let v = v.clone();
+
+                threads.push(loom::thread::spawn(move || {
+                    v.push(thread_num);
+                    v.push(thread_num);
+                }));
+            }
+
+            for t in threads {
+                t.join().expect("all threads could join")
+            }
+
+            for thread_num in 0..N {
+                assert_eq!(2, v.iter().copied().filter(|&x| x == thread_num).count());
+            }
+        })
+    }
 }
