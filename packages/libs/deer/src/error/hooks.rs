@@ -12,13 +12,8 @@ use core::{
     sync::atomic::{AtomicI8, AtomicPtr, Ordering},
 };
 
-use arc_swap::ArcSwap;
-use bumpalo::Bump;
-use bumpalo_herd::Herd;
-use elsa::{FrozenMap, FrozenVec};
+use deer_append_vec::AppendOnlyVec;
 use error_stack::Frame;
-use im::Vector;
-use sento::Pool;
 use serde::{
     ser::{Error as _, SerializeMap},
     Serialize, Serializer,
@@ -76,19 +71,15 @@ struct SerializeError<'a> {
 
 type Hook = Box<dyn for<'a> Fn(&[&'a Frame]) -> Option<Box<dyn erased_serde::Serialize + 'a>>>;
 
-// static ARENA: Herd = Herd::new();
-
-// TODO: build our own?!
-// TODO: builtin, switch arc-swap with std equivalent
-// TODO: THIS IS NOT SYNC, THEREFORE WON'T WORK WITH STATIC!
 pub(crate) struct Hooks {
-    // TODO: i'd like to remove this box
-    inner: Pool<Option<&'static [ErrorHook]>>,
+    inner: AppendOnlyVec<&'static [ErrorHook]>,
 }
 
 impl Hooks {
-    fn new() -> Self {
-        Self { inner: Pool::new() }
+    const fn new() -> Self {
+        Self {
+            inner: AppendOnlyVec::new(),
+        }
     }
 
     // fn insert<E: Error>(&self) {
@@ -149,19 +140,7 @@ fn register_inner<'a, E: Error>(
     }))
 }
 
-// static HOOKS: Hooks = Hooks::new();
-
-struct PointerStore {
-    pool: Pool<&'static [ErrorHook]>,
-}
-
-impl PointerStore {
-    fn insert(&self, hooks: &'static [ErrorHook]) {
-        let ticket = self.pool.acquire();
-    }
-}
-
-// TODO: static pointer storage?
+static HOOKS: Hooks = Hooks::new();
 
 struct ErrorHook {
     id: TypeId,
@@ -176,10 +155,5 @@ fn prepare<E: Error>() -> ErrorHook {
 }
 
 fn register(hooks: &'static [ErrorHook]) {
-    // let value = HOOKS.inner.acquire();
-    // value
-
-    // let mut value = Vector::clone(&HOOKS.inner.load_full());
-    // value.push_back(hooks);
-    // HOOKS.inner.store(Arc::new(value));
+    HOOKS.inner.push(hooks);
 }

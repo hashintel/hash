@@ -52,7 +52,7 @@ unsafe impl<T: Send, const N: usize> Send for AppendOnlyVec<T, N> {}
 unsafe impl<T: Send + Sync, const N: usize> Sync for AppendOnlyVec<T, N> {}
 
 impl<T, const N: usize> AppendOnlyVec<T, N> {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             length: AtomicUsize::new(0),
             lock: AtomicLock::new(),
@@ -89,7 +89,7 @@ struct Node<T, const N: usize> {
 }
 
 impl<T, const N: usize> Node<T, N> {
-    fn new() -> Self {
+    const fn new() -> Self {
         Self {
             // this is the same as MaybeUninit::uninit_array()
             store: unsafe { MaybeUninit::<[MaybeUninit<T>; N]>::uninit().assume_init() },
