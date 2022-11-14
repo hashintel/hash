@@ -156,7 +156,7 @@ const main = async () => {
     await syncAlgoliaIndex();
     console.log("Algolia Indexes Updated.");
   } catch (error) {
-    throw new Error(`Algolia Indexing Failed: ${error as string}`);
+    throw new Error(`Algolia Indexing Failed: ${JSON.stringify(error)}`);
   }
 };
 
