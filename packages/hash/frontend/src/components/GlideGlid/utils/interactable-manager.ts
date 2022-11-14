@@ -33,6 +33,7 @@ class InteractableManagerClass {
     args: DrawArgs<CustomCell>,
     props: Omit<Interactable, "hovered" | "path" | "cellRect">,
   ): Interactable {
+    // used -100 to prevent handling events on non-hovered cells
     const { hoverX = -100, hoverY = -100, rect } = args;
 
     const hovered = isCursorOnInteractable(
@@ -58,18 +59,14 @@ class InteractableManagerClass {
     args: DrawArgs<CustomCell>,
     interactables: Interactable[],
   ) {
-    const strPath = drawArgsToPath(args);
-
-    const interactableMap = Object.fromEntries(
-      interactables.map((interactable) => [interactable.id, interactable]),
-    );
+    const path = drawArgsToPath(args);
 
     /**
      * for each interactable, check if the hover status changed
      * if it's changed, trigger corresponding event
      */
     for (const interactable of interactables) {
-      const existing = this.interactableStore[strPath]?.[interactable.id];
+      const existing = this.interactableStore[path]?.[interactable.id];
 
       if (existing && existing.hovered !== interactable.hovered) {
         const event = interactable.hovered
@@ -80,7 +77,11 @@ class InteractableManagerClass {
       }
     }
 
-    this.interactableStore[strPath] = interactableMap;
+    const interactableMap = Object.fromEntries(
+      interactables.map((interactable) => [interactable.id, interactable]),
+    );
+
+    this.interactableStore[path] = interactableMap;
   }
 
   /**
