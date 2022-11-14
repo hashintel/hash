@@ -2,17 +2,13 @@
 
 extern crate alloc;
 
-use alloc::{alloc::alloc, boxed::Box};
-use core::{
-    alloc::Layout,
-    array,
-    cell::UnsafeCell,
-    marker::PhantomData,
-    mem::MaybeUninit,
-    sync::atomic::{AtomicUsize, Ordering},
-};
+use alloc::boxed::Box;
+use core::mem::MaybeUninit;
 
-use crate::lock::AtomicLock;
+use crate::{
+    lock::AtomicLock,
+    sync::{alloc, AtomicUsize, Layout, Ordering, UnsafeCell},
+};
 
 mod lock;
 pub(crate) mod sync;
