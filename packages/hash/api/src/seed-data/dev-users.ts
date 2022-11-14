@@ -35,8 +35,6 @@ const devUsers: readonly DevelopmentUser[] = [
   },
 ] as const;
 
-const devDefaultPassword = "password";
-
 export const ensureDevUsersAreSeeded = async ({
   graphApi,
   logger,
@@ -67,7 +65,7 @@ export const ensureDevUsersAreSeeded = async ({
       email,
       shortname,
       preferredName,
-      password = devDefaultPassword,
+      password = "password",
       isInstanceAdmin,
     } = usersToSeed[index]!;
 
