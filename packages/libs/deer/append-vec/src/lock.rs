@@ -23,8 +23,17 @@ pub(crate) struct AtomicLock {
 }
 
 impl AtomicLock {
+    #[cfg(not(loom))]
     #[inline]
     pub const fn new() -> Self {
+        Self {
+            locked: AtomicBool::new(false),
+        }
+    }
+
+    #[cfg(loom)]
+    #[inline]
+    pub fn new() -> Self {
         Self {
             locked: AtomicBool::new(false),
         }
