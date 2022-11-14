@@ -2,7 +2,11 @@ use std::str::FromStr;
 
 use postgres_types::{FromSql, ToSql};
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
-use utoipa::{openapi, ToSchema};
+use utoipa::{
+    openapi,
+    openapi::{KnownFormat, SchemaFormat},
+    ToSchema,
+};
 
 use crate::{
     identifier::{account::AccountId, Timestamp},
@@ -100,9 +104,10 @@ impl EntityVersion {
 
 impl ToSchema for EntityVersion {
     fn schema() -> openapi::Schema {
-        openapi::Schema::Object(openapi::schema::Object::with_type(
-            openapi::SchemaType::String,
-        ))
+        openapi::schema::ObjectBuilder::new()
+            .schema_type(openapi::SchemaType::String)
+            .format(Some(SchemaFormat::KnownFormat(KnownFormat::DateTime)))
+            .into()
     }
 }
 
@@ -132,5 +137,57 @@ impl EntityEditionId {
     #[must_use]
     pub const fn version(&self) -> EntityVersion {
         self.version
+    }
+}
+
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EntityIdAndTimestamp {
+    base_id: EntityId,
+    timestamp: Timestamp,
+}
+
+impl EntityIdAndTimestamp {
+    #[must_use]
+    pub const fn new(entity_id: EntityId, timestamp: Timestamp) -> Self {
+        Self {
+            base_id: entity_id,
+            timestamp,
+        }
+    }
+
+    #[must_use]
+    pub const fn base_id(&self) -> EntityId {
+        self.base_id
+    }
+
+    #[must_use]
+    pub const fn timestamp(&self) -> Timestamp {
+        self.timestamp
+    }
+}
+
+// WARNING: This MUST be kept up to date with the struct names and serde attributes
+//   Necessary because Timestamp doesn't implement ToSchema
+impl ToSchema for EntityIdAndTimestamp {
+    fn schema() -> openapi::Schema {
+        openapi::ObjectBuilder::new()
+            .property(
+                "baseId",
+                // Apparently OpenAPI doesn't support const values, the best you can do is
+                // an enum with one option
+                EntityId::schema(),
+            )
+            .required("baseId")
+            .property(
+                "timestamp",
+                openapi::schema::Object::from(
+                    openapi::schema::ObjectBuilder::new()
+                        .schema_type(openapi::SchemaType::String)
+                        .format(Some(SchemaFormat::KnownFormat(KnownFormat::DateTime))),
+                ),
+            )
+            .required("timestamp")
+            .into()
     }
 }

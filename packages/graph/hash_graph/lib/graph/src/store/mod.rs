@@ -25,9 +25,9 @@ use crate::{
         PropertyTypeWithMetadata,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
-    shared::identifier::account::AccountId,
+    shared::{identifier::account::AccountId, subgraph::query::StructuralQuery},
     store::query::Filter,
-    subgraph::{StructuralQuery, Subgraph},
+    subgraph::Subgraph,
 };
 
 #[derive(Debug)]

@@ -21,16 +21,24 @@ use crate::{
         patch_id_and_parse, EntityTypeWithMetadata, OntologyElementMetadata,
     },
     provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
-    shared::identifier::{ontology::OntologyTypeEditionId, GraphElementId},
+    shared::{
+        identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId, GraphElementId},
+        subgraph::{
+            depths::GraphResolveDepths,
+            edges::{
+                Edges, OntologyEdgeKind, OntologyOutwardEdges, OntologyRootedEdges, OutwardEdge,
+                SharedEdgeKind,
+            },
+            query::StructuralQuery,
+            vertices::{OntologyVertices, Vertex, Vertices},
+        },
+    },
     store::{
         error::{BaseUriAlreadyExists, BaseUriDoesNotExist},
         query::Filter,
         EntityTypeStore, StorePool,
     },
-    subgraph::{
-        EdgeKind, Edges, EntityTypeStructuralQuery, GraphResolveDepths, OutwardEdge,
-        StructuralQuery, Subgraph, Vertex,
-    },
+    subgraph::{query::EntityTypeStructuralQuery, Subgraph},
 };
 
 #[derive(OpenApi)]
@@ -54,12 +62,18 @@ use crate::{
             EntityTypeWithMetadata,
             EntityTypeStructuralQuery,
             GraphElementId,
+            GraphElementEditionId,
             ProvenanceMetadata,
+            OntologyVertices,
+            Vertices,
             Vertex,
-            EdgeKind,
+            OntologyEdgeKind,
+            SharedEdgeKind,
             OutwardEdge,
-            GraphResolveDepths,
+            OntologyOutwardEdges,
+            OntologyRootedEdges,
             Edges,
+            GraphResolveDepths,
             Subgraph,
         )
     ),
