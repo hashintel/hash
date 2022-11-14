@@ -251,11 +251,7 @@ impl<C: AsClient> PostgresStore<C> {
             OutwardEdge::KnowledgeGraph(KnowledgeGraphOutwardEdges::ToKnowledgeGraph(edge)),
         );
 
-        if dependency_context
-            .graph_resolve_depths
-            .entity_type_resolve_depth
-            > 0
-        {
+        if dependency_context.graph_resolve_depths.entity_resolve_depth > 0 {
             self.get_entity_as_dependency(
                 dependent_entity_edition_id,
                 dependency_context.change_depth(GraphResolveDepths {
