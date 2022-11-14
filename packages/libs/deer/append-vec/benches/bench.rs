@@ -63,7 +63,7 @@ struct Entry {
 intrusive_adapter!(EntryAdapter = Box<Entry>: Entry {link: LinkedListLink});
 
 fn push_multi_thread(c: &mut Criterion) {
-    let mut group = c.benchmark_group("group_multi_thread");
+    let mut group = c.benchmark_group("push_multi_thread");
 
     for i in N_INSERTIONS {
         group.bench_with_input(BenchmarkId::new("sharded_slab", i), i, |b, &i| {
@@ -126,10 +126,7 @@ fn push_multi_thread(c: &mut Criterion) {
                         for idx in 0..i {
                             let guard = slab.lock().unwrap();
 
-                            guard.push(Box::new(Entry {
-                                link: LinkedListLink::new(),
-                                value: Cell::new(idx),
-                            }));
+                            guard.push(idx);
                         }
                     });
 
@@ -281,5 +278,204 @@ fn push_single_thread(c: &mut Criterion) {
     }
 }
 
-criterion_group!(benches, push_single_thread, push_multi_thread);
-criterion_main!(benches);
+fn iter_multi_thread(c: &mut Criterion) {
+    let mut group = c.benchmark_group("iter_multi_thread");
+
+    for i in N_INSERTIONS {
+        group.bench_with_input(BenchmarkId::new("appendlist", i), i, |b, &i| {
+            b.iter_custom(|iters| {
+                let mut total = Duration::from_secs(0);
+
+                let slab = appendlist::AppendList::new();
+                for idx in 0..i {
+                    slab.push(idx);
+                }
+                let slab = Mutex::new(slab);
+                let slab = Arc::new(slab);
+
+                for _ in 0..iters {
+                    let bench = MultithreadedBench::<_, 5>::new(Arc::clone(&slab));
+
+                    let elapsed = bench.run(move |start, slab| {
+                        start.wait();
+
+                        let lock = slab.lock().unwrap();
+                        let _items: Vec<_> = lock.iter().copied().collect();
+                    });
+
+                    total += elapsed;
+                }
+
+                total
+            });
+        });
+
+        group.bench_with_input(BenchmarkId::new("intrusive-collections", i), i, |b, &i| {
+            b.iter_custom(|iters| {
+                let mut total = Duration::from_secs(0);
+
+                let mut slab = intrusive_collections::LinkedList::new(EntryAdapter::new());
+                for idx in 0..i {
+                    slab.push_back(Box::new(Entry {
+                        link: LinkedListLink::new(),
+                        value: Cell::new(idx),
+                    }));
+                }
+                let slab = Arc::new(Mutex::new(slab));
+
+                for _ in 0..iters {
+                    let bench = MultithreadedBench::<_, 5>::new(Arc::clone(&slab));
+
+                    let elapsed = bench.run(move |start, slab| {
+                        start.wait();
+
+                        let guard = slab.lock().unwrap();
+                        let _items: Vec<_> = guard.iter().map(|entry| entry.value.get()).collect();
+                    });
+
+                    total += elapsed;
+                }
+
+                total
+            });
+        });
+
+        group.bench_with_input(BenchmarkId::new("im", i), i, |b, &i| {
+            b.iter_custom(|iters| {
+                let mut total = Duration::from_secs(0);
+
+                let mut slab = im::Vector::new();
+                for idx in 0..i {
+                    slab.push_back(idx);
+                }
+
+                let slab = RwLock::new(slab);
+                let slab = Arc::new(slab);
+
+                for _ in 0..iters {
+                    let bench = MultithreadedBench::<_, 5>::new(Arc::clone(&slab));
+
+                    let elapsed = bench.run(move |start, slab| {
+                        start.wait();
+
+                        let guard = slab.read().unwrap();
+                        let _items: Vec<_> = guard.iter().copied().collect();
+                    });
+
+                    total += elapsed;
+                }
+
+                total
+            });
+        });
+
+        group.bench_with_input(BenchmarkId::new("deer-append-vec", i), i, |b, &i| {
+            b.iter_custom(|iters| {
+                let mut total = Duration::from_secs(0);
+
+                let slab = AppendOnlyVec::<usize>::new();
+                for idx in 0..i {
+                    slab.push(idx);
+                }
+                let slab = Arc::new(slab);
+
+                for _ in 0..iters {
+                    let bench = MultithreadedBench::<_, 5>::new(Arc::clone(&slab));
+
+                    let elapsed = bench.run(move |start, slab| {
+                        start.wait();
+
+                        let _items: Vec<_> = slab.iter().copied().collect();
+                    });
+
+                    total += elapsed;
+                }
+
+                total
+            });
+        });
+    }
+}
+
+fn iter_single_thread(c: &mut Criterion) {
+    let mut group = c.benchmark_group("iter_single_thread");
+
+    for i in N_INSERTIONS {
+        group.bench_with_input(BenchmarkId::new("appendlist", i), i, |b, &i| {
+            b.iter_with_setup(
+                || {
+                    let slab = appendlist::AppendList::<usize>::new();
+
+                    for idx in 0..i {
+                        slab.push(idx);
+                    }
+
+                    slab
+                },
+                |slab| {
+                    let _items: Vec<_> = slab.iter().copied().collect();
+                },
+            );
+        });
+
+        group.bench_with_input(BenchmarkId::new("intrusive-collections", i), i, |b, &i| {
+            b.iter_with_setup(
+                || {
+                    let mut slab = intrusive_collections::LinkedList::new(EntryAdapter::new());
+
+                    for idx in 0..i {
+                        let entry = Box::new(Entry {
+                            link: LinkedListLink::new(),
+                            value: Cell::new(idx),
+                        });
+
+                        slab.push_back(entry)
+                    }
+
+                    slab
+                },
+                |slab| {
+                    let _items: Vec<_> = slab.iter().map(|entry| entry.value.get()).collect();
+                },
+            );
+        });
+
+        group.bench_with_input(BenchmarkId::new("im", i), i, |b, &i| {
+            b.iter_with_setup(
+                || {
+                    let mut slab = im::Vector::<usize>::default();
+
+                    for idx in 0..i {
+                        slab.push_back(idx);
+                    }
+
+                    slab
+                },
+                |slab| {
+                    let _items: Vec<_> = slab.iter().copied().collect();
+                },
+            );
+        });
+
+        group.bench_with_input(BenchmarkId::new("deer-append-vec", i), i, |b, &i| {
+            b.iter_with_setup(
+                || {
+                    let slab = AppendOnlyVec::<usize>::default();
+
+                    for idx in 0..i {
+                        slab.push(idx);
+                    }
+
+                    slab
+                },
+                |slab| {
+                    let _items: Vec<_> = slab.iter().copied().collect();
+                },
+            );
+        });
+    }
+}
+
+criterion_group!(push, push_single_thread, push_multi_thread);
+criterion_group!(iter, iter_single_thread, iter_multi_thread);
+criterion_main!(push, iter);
