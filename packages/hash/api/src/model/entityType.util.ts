@@ -1,6 +1,6 @@
 import Ajv2019 from "ajv/dist/2019";
 import addFormats from "ajv-formats";
-import { frontendUrl } from "@hashintel/hash-shared/config";
+import { frontendUrl } from "@hashintel/hash-shared/environment";
 import { JSONSchema } from "./entityType.model";
 import { EntityType } from ".";
 
