@@ -388,6 +388,10 @@ export type LinkTypeCreatorParams = {
   actorId: string;
 };
 
+/**
+ * @todo: remove or refactor this method when link types equivalent is working
+ * @see https://app.asana.com/0/1202805690238892/1203361844133477/f
+ */
 // /**
 //  * Helper method for generating a link type schema for the Graph API.
 //  *

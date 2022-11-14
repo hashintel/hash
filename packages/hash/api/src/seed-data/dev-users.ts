@@ -18,7 +18,10 @@ const devUsers: readonly DevelopmentUser[] = [
     email: "admin@example.com",
     shortname: "instance-admin",
     preferredName: "Instance Admin",
-    /** @todo: bring back instance admins when links are working again */
+    /**
+     * @todo: bring back instance admins when links are working again
+     * @see https://app.asana.com/0/1202805690238892/1203361844133479/f
+     */
     // isInstanceAdmin: true,
   },
   {

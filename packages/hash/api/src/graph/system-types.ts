@@ -68,7 +68,10 @@ export let SYSTEM_TYPES: {
      */
     dummy: EntityTypeModel;
   };
-  /** @todo: bring back link types as entity types */
+  /**
+   * @todo: bring back link types as entity types
+   * @see https://app.asana.com/0/1202805690238892/1203361844133477/f
+   */
   // linkType: {
   //   // HASHInstance-related
   //   admin: LinkTypeModel;

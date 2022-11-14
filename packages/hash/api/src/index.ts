@@ -132,7 +132,10 @@ const main = async () => {
 
   await ensureSystemTypesExist({ graphApi, logger });
 
-  /** @todo: bring back when links are working */
+  /**
+   * @todo: fix this when links are working
+   * @see https://app.asana.com/0/1202805690238892/1203361844133479/f
+   */
   // await ensureSystemEntitiesExists({ graphApi, logger });
 
   // Set sensible default security headers: https://www.npmjs.com/package/helmet
