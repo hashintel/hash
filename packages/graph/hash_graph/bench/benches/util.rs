@@ -228,7 +228,6 @@ pub async fn seed<D, P, E, C>(
     }
 
     for entity_type_str in entity_types {
-        println!("creating entity type {}", entity_type_str);
         let entity_type =
             EntityType::from_str(entity_type_str).expect("could not parse entity type");
 
