@@ -76,6 +76,7 @@ const CustomAutocomplete = <T,>(
             },
           },
         }),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
       renderInput={renderInput}

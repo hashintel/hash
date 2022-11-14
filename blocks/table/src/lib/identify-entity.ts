@@ -30,7 +30,7 @@ export const identityEntityAndProperty = (
 
   for (let i = 0; i < accessorKeys.length; i++) {
     const key = accessorKeys[i]!;
-    const nextValue = nextObject[key];
+    const nextValue = nextObject[key] as unknown;
     if (isRecord(nextValue)) {
       nextObject = nextValue;
       if (nextObject.id && nextObject.type) {
