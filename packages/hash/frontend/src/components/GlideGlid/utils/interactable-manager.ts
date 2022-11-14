@@ -1,5 +1,6 @@
 import { CustomCell } from "@glideapps/glide-data-grid";
 import type { DrawArgs } from "@glideapps/glide-data-grid/dist/ts/data-grid/cells/cell-types";
+import { typedKeys } from "@hashintel/hash-shared/util";
 import {
   CellPath,
   CursorPos,
@@ -121,6 +122,38 @@ class InteractableManagerClass {
     }
 
     return false;
+  }
+
+  /**
+   * @param tableId Table to delete interactables
+   * @param boundaries If it's defined, function will delete `Interactables` saved for out-of-bound rows.
+   * This is used to prevent memory bloat on tables with too many rows.
+   * Using this we delete `Interactables` stored for non-visible rows while user scrolls through hundreds of rows
+   */
+  deleteInteractablesOfTable(
+    tableId: string,
+    boundaries?: { minRow: number; maxRow: number },
+  ) {
+    const keysToDelete: CellPath[] = typedKeys(this.interactableStore).filter(
+      (key) => {
+        if (key.startsWith(tableId)) {
+          if (!boundaries) {
+            return true;
+          }
+
+          const row = Number(key.slice(key.lastIndexOf("-") + 1, key.length));
+          if (row < boundaries.minRow || row > boundaries.maxRow) {
+            return true;
+          }
+        }
+
+        return false;
+      },
+    );
+
+    for (const key of keysToDelete) {
+      delete this.interactableStore[key];
+    }
   }
 }
 

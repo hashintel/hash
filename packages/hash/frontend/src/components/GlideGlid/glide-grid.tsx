@@ -7,19 +7,31 @@ import {
   Item,
 } from "@glideapps/glide-data-grid";
 import { useTheme } from "@mui/material";
-import { forwardRef, ForwardRefRenderFunction, useMemo, useState } from "react";
+import {
+  forwardRef,
+  ForwardRefRenderFunction,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { uniqueId } from "lodash";
 import { getCellHorizontalPadding } from "./utils";
 import { customGridIcons } from "./utils/custom-grid-icons";
 import { InteractableManager } from "./utils/interactable-manager";
 
 const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
-  { customRenderers, ...rest },
+  { customRenderers, onVisibleRegionChanged, ...rest },
   ref,
 ) => {
   const [tableId] = useState(uniqueId("grid"));
 
   const { palette } = useTheme();
+
+  useEffect(() => {
+    // delete saved interactables on unmount
+    return () => InteractableManager.deleteInteractablesOfTable(tableId);
+  }, [tableId]);
 
   const gridTheme: Partial<Theme> = useMemo(
     () => ({
@@ -71,6 +83,24 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
     });
   }, [customRenderers, tableId]);
 
+  const handleVisibleRegionChanged = useCallback<
+    NonNullable<DataEditorProps["onVisibleRegionChanged"]>
+  >(
+    (...args) => {
+      const range = args[0];
+      const minRow = range.y;
+      const maxRow = range.y + range.height;
+
+      InteractableManager.deleteInteractablesOfTable(tableId, {
+        minRow,
+        maxRow,
+      });
+
+      onVisibleRegionChanged?.(...args);
+    },
+    [onVisibleRegionChanged, tableId],
+  );
+
   return (
     <DataEditor
       ref={ref}
@@ -85,6 +115,7 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
       smoothScrollY
       getCellsForSelection
       customRenderers={interactableCustomRenderers}
+      onVisibleRegionChanged={handleVisibleRegionChanged}
       {...rest}
       /**
        * icons defined via `headerIcons` are avaiable to be drawn using
