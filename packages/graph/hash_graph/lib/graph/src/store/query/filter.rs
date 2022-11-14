@@ -106,7 +106,7 @@ impl<'q> Filter<'q, EntityProperties> {
             ),
         ])
     }
-    
+
     /// Creates a `Filter` to search for a specific entities at their latest version, identified by
     /// its [`EntityId`].
     #[must_use]
@@ -129,6 +129,7 @@ impl<'q> Filter<'q, EntityProperties> {
     }
 
     // TODO: write unit/integration/http tests for filters below
+    //   see https://app.asana.com/0/1202805690238892/1203348428860472/f
 
     /// Creates a `Filter` to search for a specific entity edition, identified by its
     /// [`EntityEditionId`].
