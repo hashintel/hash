@@ -120,7 +120,7 @@ impl Edges {
                     .entry(entity_edition_id.base_id())
                     .or_default();
 
-                match map.entry(entity_edition_id.version().clone()) {
+                match map.entry(entity_edition_id.version()) {
                     Entry::Occupied(entry) => {
                         let set = entry.into_mut();
                         set.insert(outward_edge)

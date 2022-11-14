@@ -389,7 +389,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .then(|entity| async move {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 
-                let entity_edition_id = entity.metadata().edition_id().clone();
+                let entity_edition_id = entity.metadata().edition_id();
                 dependency_context
                     .linked_entities
                     .insert(&entity_edition_id, None, entity);
