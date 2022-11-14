@@ -5,14 +5,14 @@
 import { MockBlockDock } from "mock-block-dock";
 import { render } from "react-dom";
 
-import Component from "./index";
+import ReactComponent from "./index";
 
 const node = document.getElementById("app");
 
 const DevApp = () => {
   return (
     <MockBlockDock
-      blockDefinition={{ ReactComponent: Component }}
+      blockDefinition={{ ReactComponent }}
       blockEntity={{
         entityId: "test-block-1",
         properties: {

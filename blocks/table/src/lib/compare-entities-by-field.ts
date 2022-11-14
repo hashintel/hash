@@ -1,9 +1,16 @@
 /** makes it possible to access nested paths (e.g person.location.name)
  */
-export const resolvePath = (object: any, path: string, defaultValue?: any) =>
-  path
-    .split(".")
-    .reduce((acc, currVal) => acc?.[currVal] ?? defaultValue, object);
+export const resolvePath = (
+  object: unknown,
+  path: string,
+  defaultValue?: unknown,
+) =>
+  path.split(".").reduce(
+    (acc, currVal) =>
+      // @ts-expect-error -- @todo refactor in a type-safe way
+      acc?.[currVal] ?? defaultValue,
+    object,
+  );
 
 export const compareEntitiesByField = (
   entityA: any,

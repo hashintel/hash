@@ -30,8 +30,10 @@ export const App: BlockComponent<BlockEntityProperties> = ({
     };
   });
 
-  // @todo set type correctly
-  const Header = `h${level}` as any;
+  if (![1, 2, 3, 4, 5, 6].includes(level)) {
+    throw new Error(`Unexpected level ${level} (expected 1 - 6)`);
+  }
+  const Header = `h${level}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
 
   return (
     <div ref={containerRef}>
