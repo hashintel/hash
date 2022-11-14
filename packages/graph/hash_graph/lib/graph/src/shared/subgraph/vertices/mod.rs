@@ -13,17 +13,17 @@ use crate::identifier::{
     GraphElementEditionId,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, Serialize, ToSchema)]
 #[serde(transparent)]
 pub struct OntologyVertices(pub HashMap<BaseUri, HashMap<OntologyTypeVersion, OntologyVertex>>);
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, Serialize, ToSchema)]
 #[serde(transparent)]
 pub struct KnowledgeGraphVertices(
     pub HashMap<EntityId, HashMap<EntityVersion, KnowledgeGraphVertex>>,
 );
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Vertices {
     #[serde(flatten)]
