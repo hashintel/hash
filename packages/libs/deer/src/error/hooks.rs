@@ -1,15 +1,10 @@
-use alloc::{boxed::Box, collections::BTreeSet, format, string::String, sync::Arc, vec::Vec};
+use alloc::{boxed::Box, format, string::String};
 use core::{
-    alloc::Layout,
     any::TypeId,
     cell::Cell,
     fmt,
     fmt::{Display, Formatter},
-    hint::spin_loop,
-    marker::PhantomData,
-    ptr,
-    ptr::NonNull,
-    sync::atomic::{AtomicI8, AtomicPtr, Ordering},
+    sync::atomic::{AtomicBool, Ordering},
 };
 
 use deer_append_vec::AppendOnlyVec;
@@ -19,7 +14,10 @@ use serde::{
     Serialize, Serializer,
 };
 
-use crate::error::{Error, ErrorProperties, Id, Namespace};
+use crate::error::{
+    ArrayLengthError, Error, ErrorProperties, Id, MissingError, Namespace, ObjectItemsExtraError,
+    TypeError, UnknownFieldError, UnknownVariantError, ValueError,
+};
 
 struct ErrorMessage<'a, 'b, E: Error> {
     context: &'a E,
@@ -69,20 +67,6 @@ struct SerializeError<'a> {
     message: String,
 }
 
-type Hook = Box<dyn for<'a> Fn(&[&'a Frame]) -> Option<Box<dyn erased_serde::Serialize + 'a>>>;
-
-pub(crate) struct Hooks {
-    inner: AppendOnlyVec<&'static [ErrorHook]>,
-}
-
-impl Hooks {
-    const fn new() -> Self {
-        Self {
-            inner: AppendOnlyVec::new(),
-        }
-    }
-}
-
 fn register_inner<'a, E: Error>(
     stack: &[&'a Frame],
 ) -> Option<Box<dyn erased_serde::Serialize + 'a>> {
@@ -106,20 +90,76 @@ fn register_inner<'a, E: Error>(
     }))
 }
 
-static HOOKS: Hooks = Hooks::new();
-
-struct ErrorHook {
+#[derive(Copy, Clone)]
+pub struct Hook {
     id: TypeId,
     hook: for<'a> fn(&[&'a Frame]) -> Option<Box<dyn erased_serde::Serialize + 'a>>,
 }
 
-fn prepare<E: Error>() -> ErrorHook {
-    ErrorHook {
-        id: TypeId::of::<E>(),
-        hook: register_inner::<E>,
+impl Hook {
+    pub fn new<E: Error>() -> Self {
+        Self {
+            id: TypeId::of::<E>(),
+            hook: register_inner::<E>,
+        }
     }
 }
 
-fn register(hooks: &'static [ErrorHook]) {
-    HOOKS.inner.push(hooks);
+pub(crate) struct Hooks {
+    inner: AppendOnlyVec<Hook>,
+    init: AtomicBool,
+}
+
+impl Hooks {
+    const fn new() -> Self {
+        Self {
+            inner: AppendOnlyVec::new(),
+            init: AtomicBool::new(false),
+        }
+    }
+
+    fn push_builtin(&self) {
+        if self
+            .init
+            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+            .is_err()
+        {
+            // we already initiated, and therefore need to stop
+            return;
+        }
+
+        // these need to be called separately
+        self.push(&[
+            Hook::new::<TypeError>(),
+            Hook::new::<ValueError>(),
+            Hook::new::<MissingError>(),
+            Hook::new::<UnknownVariantError>(),
+            Hook::new::<UnknownFieldError>(),
+            Hook::new::<ObjectItemsExtraError>(),
+            Hook::new::<ArrayLengthError>(),
+        ]);
+    }
+
+    fn push(&self, hooks: &[Hook]) {
+        self.push_builtin();
+
+        for hook in hooks {
+            self.inner.push(*hook);
+        }
+    }
+}
+
+static HOOKS: Hooks = Hooks::new();
+
+#[macro_export]
+macro_rules! register_many {
+    (($ty:ident,)*) => {
+        $crate::error::__private::register_many(&[$($crate::error::Hook::new::<$ty>(),)*])
+    };
+}
+
+pub use register_many;
+
+pub fn register_many_hooks(hooks: &[Hook]) {
+    HOOKS.push(hooks);
 }
