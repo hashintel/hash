@@ -302,8 +302,6 @@ export default class {
           options?.graphResolveDepths?.dataTypeResolveDepth ?? 0,
         propertyTypeResolveDepth:
           options?.graphResolveDepths?.propertyTypeResolveDepth ?? 0,
-        // linkTypeResolveDepth:
-        //   options?.graphResolveDepths?.linkTypeResolveDepth ?? 0,
         entityTypeResolveDepth:
           options?.graphResolveDepths?.entityTypeResolveDepth ?? 0,
         entityResolveDepth:
