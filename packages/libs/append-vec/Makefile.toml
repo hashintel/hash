@@ -5,3 +5,16 @@ CARGO_CLIPPY_HACK_FLAGS = "--workspace --feature-powerset --exclude-features def
 CARGO_TEST_HACK_FLAGS = "--workspace --feature-powerset --exclude-features default"
 CARGO_RUSTDOC_HACK_FLAGS = ""
 CARGO_DOC_HACK_FLAGS = ""
+CARGO_LOOM_HACK_FLAGS = ""
+CARGO_LOOM_FLAGS = "--release"
+
+[tasks.loom]
+category = "Test"
+description = "Runs loom tests suite"
+run_task = { name = ["loom-task"] }
+
+# Note: it is recommended that loom only uses `release`, therefore we set no profile
+[tasks.loom-task]
+extend = "cargo"
+args = ["hack", "@@split(CARGO_LOOM_HACK_FLAGS, )", "test", "@@split(CARGO_LOOM_FLAGS, )", "${@}"]
+env = { LOOM_MAX_BRANCHES = 1024, LOOM_LOG = "info", LOOM_LOCATION = 1, RUST_BACKTRACE = 1, RUSTFLAGS = "--cfg loom" }
