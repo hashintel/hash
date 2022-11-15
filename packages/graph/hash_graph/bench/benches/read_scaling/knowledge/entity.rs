@@ -3,13 +3,18 @@ use std::{iter::repeat, str::FromStr};
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion};
 use criterion_macro::criterion;
 use graph::{
-    knowledge::{EntityProperties, EntityUuid},
+    knowledge::{EntityProperties, EntityQueryPath, EntityUuid},
     provenance::{CreatedById, OwnedById},
-    shared::identifier::account::AccountId,
-    store::{query::Filter, AccountStore, AsClient, EntityStore, PostgresStore},
-    subgraph::{GraphResolveDepths, StructuralQuery},
+    shared::{
+        identifier::account::AccountId,
+        subgraph::{depths::GraphResolveDepths, query::StructuralQuery},
+    },
+    store::{
+        query::{Filter, FilterExpression, Parameter},
+        AccountStore, AsClient, EntityStore, PostgresStore,
+    },
 };
-use graph_test_data::{data_type, entity, entity_type, link_type, property_type};
+use graph_test_data::{data_type, entity, entity_type, property_type};
 use rand::{prelude::IteratorRandom, thread_rng};
 use tokio::runtime::Runtime;
 use type_system::EntityType;
@@ -50,7 +55,13 @@ async fn seed_db(
             property_type::BLURB_V1,
             property_type::PUBLISHED_ON_V1,
         ],
-        [entity_type::PERSON_V1, entity_type::BOOK_V1],
+        [
+            entity_type::LINK_V1,
+            entity_type::link::FRIEND_OF_V1,
+            entity_type::link::WRITTEN_BY_V1,
+            entity_type::PERSON_V1,
+            entity_type::BOOK_V1,
+        ],
     )
     .await;
 
@@ -102,14 +113,17 @@ pub fn bench_get_entity_by_id(
         |entity_uuid| async move {
             store
                 .get_entity(&StructuralQuery {
-                    filter: Filter::for_latest_entity_by_entity_uuid(entity_uuid),
+                    filter: Filter::Equal(
+                        Some(FilterExpression::Path(EntityQueryPath::Uuid)),
+                        Some(FilterExpression::Parameter(Parameter::Uuid(
+                            entity_uuid.as_uuid(),
+                        ))),
+                    ),
                     graph_resolve_depths: GraphResolveDepths {
                         data_type_resolve_depth: 0,
                         property_type_resolve_depth: 0,
                         entity_type_resolve_depth: 0,
-                        link_type_resolve_depth: 0,
-                        link_resolve_depth: 0,
-                        link_target_entity_resolve_depth: 0,
+                        entity_resolve_depth: 0,
                     },
                 })
                 .await

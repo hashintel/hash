@@ -10,13 +10,19 @@ use crate::{
     identifier::ontology::OntologyTypeEditionId,
     ontology::{OntologyElementMetadata, PropertyTypeWithMetadata},
     provenance::{CreatedById, OwnedById, UpdatedById},
-    shared::identifier::GraphElementId,
+    shared::{
+        identifier::GraphElementEditionId,
+        subgraph::{depths::GraphResolveDepths, edges::OutwardEdge, query::StructuralQuery},
+    },
     store::{
         crud::Read,
         postgres::{context::PostgresContext, DependencyContext, DependencyContextRef},
         AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, UpdateError,
     },
-    subgraph::{EdgeKind, GraphResolveDepths, OutwardEdge, StructuralQuery, Subgraph},
+    subgraph::{
+        edges::{GenericOutwardEdge, OntologyEdgeKind, OntologyOutwardEdges},
+        Subgraph,
+    },
 };
 
 impl<C: AsClient> PostgresStore<C> {
@@ -50,15 +56,6 @@ impl<C: AsClient> PostgresStore<C> {
                 // TODO: Use relation tables
                 //   see https://app.asana.com/0/0/1202884883200942/f
                 for data_type_ref in property_type.inner().data_type_references() {
-                    dependency_context.edges.insert(
-                        GraphElementId::OntologyElementId(property_type_id.clone().into()),
-                        OutwardEdge {
-                            edge_kind: EdgeKind::References,
-                            destination: GraphElementId::OntologyElementId(
-                                data_type_ref.uri().clone().into(),
-                            ),
-                        },
-                    );
                     if dependency_context
                         .graph_resolve_depths
                         .data_type_resolve_depth
@@ -77,21 +74,21 @@ impl<C: AsClient> PostgresStore<C> {
                         )
                         .await?;
                     }
+                    dependency_context.edges.insert(
+                        GraphElementEditionId::Ontology(property_type_id.clone()),
+                        OutwardEdge::Ontology(OntologyOutwardEdges::ToOntology(
+                            GenericOutwardEdge {
+                                kind: OntologyEdgeKind::ConstrainsValuesOn,
+                                reversed: false,
+                                endpoint: data_type_ref.uri().clone().into(),
+                            },
+                        )),
+                    );
                 }
 
                 // TODO: Use relation tables
                 //   see https://app.asana.com/0/0/1202884883200942/f
                 for property_type_ref in property_type.inner().property_type_references() {
-                    dependency_context.edges.insert(
-                        GraphElementId::OntologyElementId(property_type_id.clone()),
-                        OutwardEdge {
-                            edge_kind: EdgeKind::References,
-                            destination: GraphElementId::OntologyElementId(
-                                property_type_ref.uri().clone().into(),
-                            ),
-                        },
-                    );
-
                     if dependency_context
                         .graph_resolve_depths
                         .property_type_resolve_depth
@@ -110,6 +107,17 @@ impl<C: AsClient> PostgresStore<C> {
                         )
                         .await?;
                     }
+
+                    dependency_context.edges.insert(
+                        GraphElementEditionId::Ontology(property_type_id.clone()),
+                        OutwardEdge::Ontology(OntologyOutwardEdges::ToOntology(
+                            GenericOutwardEdge {
+                                kind: OntologyEdgeKind::ConstrainsPropertiesOn,
+                                reversed: false,
+                                endpoint: property_type_ref.uri().clone().into(),
+                            },
+                        )),
+                    );
                 }
             }
 
@@ -190,7 +198,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                 )
                 .await?;
 
-                let root = GraphElementId::OntologyElementId(property_type_id);
+                let root = GraphElementEditionId::Ontology(property_type_id);
 
                 Ok::<_, Report<QueryError>>(dependency_context.into_subgraph(HashSet::from([root])))
             })

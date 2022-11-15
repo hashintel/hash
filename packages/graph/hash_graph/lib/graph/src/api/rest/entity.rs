@@ -19,19 +19,31 @@ use crate::{
         Entity, EntityMetadata, EntityProperties, EntityUuid, LinkEntityMetadata, LinkOrder,
     },
     provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
-    shared::identifier::{
-        knowledge::{EntityEditionId, EntityId, EntityVersion},
-        GraphElementId,
+    shared::{
+        identifier::{
+            knowledge::{EntityEditionId, EntityId, EntityIdAndTimestamp, EntityVersion},
+            GraphElementEditionId, GraphElementId,
+        },
+        subgraph::{
+            depths::GraphResolveDepths,
+            edges::{
+                Edges, KnowledgeGraphEdgeKind, KnowledgeGraphOutwardEdges,
+                KnowledgeGraphRootedEdges, OntologyEdgeKind, OntologyOutwardEdges,
+                OntologyRootedEdges, OutwardEdge, SharedEdgeKind,
+            },
+            query::StructuralQuery,
+            vertices::{
+                KnowledgeGraphVertex, KnowledgeGraphVertices, OntologyVertex, OntologyVertices,
+                Vertex, Vertices,
+            },
+        },
     },
     store::{
         error::{EntityDoesNotExist, QueryError},
         query::Filter,
         EntityStore, StorePool,
     },
-    subgraph::{
-        EdgeKind, Edges, EntityStructuralQuery, GraphResolveDepths, OutwardEdge, StructuralQuery,
-        Subgraph, Vertex,
-    },
+    subgraph::{query::EntityStructuralQuery, Subgraph},
 };
 
 #[derive(OpenApi)]
@@ -54,6 +66,7 @@ use crate::{
             EntityUuid,
             EntityId,
             EntityEditionId,
+            EntityIdAndTimestamp,
             EntityMetadata,
             Entity,
             EntityProperties,
@@ -63,11 +76,23 @@ use crate::{
             LinkOrder,
             ProvenanceMetadata,
             GraphElementId,
+            GraphElementEditionId,
+            OntologyVertex,
+            KnowledgeGraphVertex,
             Vertex,
-            EdgeKind,
+            KnowledgeGraphVertices,
+            OntologyVertices,
+            Vertices,
+            SharedEdgeKind,
+            KnowledgeGraphEdgeKind,
+            OntologyEdgeKind,
             OutwardEdge,
-            GraphResolveDepths,
+            OntologyOutwardEdges,
+            KnowledgeGraphOutwardEdges,
+            OntologyRootedEdges,
+            KnowledgeGraphRootedEdges,
             Edges,
+            GraphResolveDepths,
             Subgraph,
         )
     ),
@@ -275,7 +300,7 @@ async fn get_latest_entities<P: StorePool + Send>(
     path = "/entities/{entityId}",
     tag = "Entity",
     responses(
-        (status = 200, content_type = "application/json", description = "The requested entity", body = Entity),
+        (status = 200, content_type = "application/json", description = "The latest version of the requested entity", body = Entity),
 
         (status = 400, content_type = "text/plain", description = "Provided entity id is invalid"),
         (status = 404, description = "Entity was not found"),

@@ -22,14 +22,19 @@ use crate::{
         patch_id_and_parse, OntologyElementMetadata, PropertyTypeWithMetadata,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
-    shared::identifier::{ontology::OntologyTypeEditionId, GraphElementId},
+    shared::{
+        identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId, GraphElementId},
+        subgraph::{
+            depths::GraphResolveDepths,
+            edges::{Edges, OntologyEdgeKind, OutwardEdge, SharedEdgeKind},
+            query::StructuralQuery,
+            vertices::{Vertex, Vertices},
+        },
+    },
     store::{
         query::Filter, BaseUriAlreadyExists, BaseUriDoesNotExist, PropertyTypeStore, StorePool,
     },
-    subgraph::{
-        EdgeKind, Edges, GraphResolveDepths, OutwardEdge, PropertyTypeStructuralQuery,
-        StructuralQuery, Subgraph, Vertex,
-    },
+    subgraph::{query::PropertyTypeStructuralQuery, Subgraph},
 };
 
 #[derive(OpenApi)]
@@ -53,8 +58,11 @@ use crate::{
             PropertyTypeWithMetadata,
             PropertyTypeStructuralQuery,
             GraphElementId,
+            GraphElementEditionId,
+            Vertices,
             Vertex,
-            EdgeKind,
+            OntologyEdgeKind,
+            SharedEdgeKind,
             OutwardEdge,
             GraphResolveDepths,
             Edges,

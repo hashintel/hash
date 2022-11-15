@@ -7,7 +7,10 @@ mod query;
 mod version_id;
 
 use std::{
-    collections::{hash_map::RawEntryMut, HashMap, HashSet},
+    collections::{
+        hash_map::{Entry, RawEntryMut},
+        HashMap, HashSet,
+    },
     future::Future,
     hash::Hash,
 };
@@ -30,23 +33,30 @@ use crate::{
         knowledge::{EntityEditionId, EntityId},
         ontology::OntologyTypeEditionId,
     },
-    knowledge::{
-        Entity, EntityMetadata, EntityProperties, EntityUuid, KnowledgeGraphQueryDepth,
-        LinkEntityMetadata,
-    },
+    knowledge::{Entity, EntityMetadata, EntityProperties, EntityUuid, LinkEntityMetadata},
     ontology::{
-        DataTypeWithMetadata, EntityTypeWithMetadata, OntologyElementMetadata, OntologyQueryDepth,
+        DataTypeWithMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
         PropertyTypeWithMetadata,
     },
     provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
-    shared::identifier::{account::AccountId, GraphElementId},
+    shared::{
+        identifier::{account::AccountId, GraphElementEditionId},
+        subgraph::{depths::GraphResolveDepths, edges::Edges},
+    },
     store::{
         error::VersionedUriAlreadyExists,
         postgres::{ontology::OntologyDatabaseType, version_id::VersionId},
         AccountStore, BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError,
         UpdateError,
     },
-    subgraph::{Edges, GraphResolveDepths, Subgraph, Vertex},
+    subgraph::{
+        depths::SubgraphQueryDepth,
+        vertices::{
+            KnowledgeGraphVertex, KnowledgeGraphVertices, OntologyVertex, OntologyVertices,
+            Vertices,
+        },
+        Subgraph,
+    },
 };
 
 pub struct DependencyMap<V, T, D> {
@@ -144,101 +154,17 @@ where
     pub fn into_values(self) -> impl Iterator<Item = T> {
         self.resolved.into_values().map(|value| value.0)
     }
-
-    pub fn into_vec(self) -> Vec<T> {
-        self.into_values().collect()
-    }
-}
-
-pub struct DependencySet<T, D> {
-    resolved: HashMap<T, Option<D>>,
-}
-
-impl<T, D> Default for DependencySet<T, D> {
-    fn default() -> Self {
-        Self {
-            resolved: HashMap::default(),
-        }
-    }
-}
-
-impl<T, D> DependencySet<T, D> {
-    pub fn new() -> Self {
-        Self::default()
-    }
-}
-
-impl<T, D> DependencySet<T, D>
-where
-    T: Eq + Hash + Clone,
-    D: PartialOrd + Send,
-{
-    /// Inserts a dependency into the map.
-    ///
-    /// If the dependency does not already exist in the dependency map, it will be inserted with the
-    /// provided `resolved_depth` and a reference to this dependency will be returned in order to
-    /// continue resolving it. In the case, that the dependency already exists, the
-    /// `resolved_depth` will be compared with depth used when inserting it before:
-    /// - If the previous `resolved_depth` was `None`, the dependency was not resolved yet and the
-    ///   value is returned
-    /// - If the new depth is higher, the depth will be updated and a reference to the dependency
-    ///   will be returned in order to keep resolving it
-    /// - Otherwise, `None` will be returned as no further resolution is needed
-    pub fn insert<'t, 's: 't>(
-        &'s mut self,
-        identifier: &'t T,
-        resolved_depth: Option<D>,
-    ) -> Option<&'t T> {
-        match self.resolved.raw_entry_mut().from_key(identifier) {
-            RawEntryMut::Vacant(entry) => {
-                let (value, _depth) = entry.insert(identifier.clone(), resolved_depth);
-                Some(value)
-            }
-            RawEntryMut::Occupied(entry) => {
-                let (value, used_depth) = entry.into_key_value();
-                match (used_depth, resolved_depth) {
-                    (None, Some(_)) => Some(value),
-                    (Some(used_depth), Some(resolved_depth)) if *used_depth < resolved_depth => {
-                        *used_depth = resolved_depth;
-                        Some(value)
-                    }
-                    _ => None,
-                }
-            }
-        }
-    }
-
-    pub fn into_vec(self) -> Vec<T> {
-        self.into_iter().collect()
-    }
-
-    pub fn remove(&mut self, value: &T) -> Option<T> {
-        self.resolved.remove_entry(value).map(|(value, _)| value)
-    }
-}
-
-impl<T, D> IntoIterator for DependencySet<T, D>
-where
-    T: Eq + Hash + Clone,
-{
-    type Item = T;
-
-    type IntoIter = impl Iterator<Item = T>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.resolved.into_keys()
-    }
 }
 
 pub struct DependencyContext {
     pub edges: Edges,
     pub referenced_data_types:
-        DependencyMap<OntologyTypeEditionId, DataTypeWithMetadata, OntologyQueryDepth>,
+        DependencyMap<OntologyTypeEditionId, DataTypeWithMetadata, SubgraphQueryDepth>,
     pub referenced_property_types:
-        DependencyMap<OntologyTypeEditionId, PropertyTypeWithMetadata, OntologyQueryDepth>,
+        DependencyMap<OntologyTypeEditionId, PropertyTypeWithMetadata, SubgraphQueryDepth>,
     pub referenced_entity_types:
-        DependencyMap<OntologyTypeEditionId, EntityTypeWithMetadata, OntologyQueryDepth>,
-    pub linked_entities: DependencyMap<EntityId, Entity, KnowledgeGraphQueryDepth>,
+        DependencyMap<OntologyTypeEditionId, EntityTypeWithMetadata, SubgraphQueryDepth>,
+    pub linked_entities: DependencyMap<EntityEditionId, Entity, SubgraphQueryDepth>,
     pub graph_resolve_depths: GraphResolveDepths,
 }
 
@@ -268,53 +194,88 @@ impl DependencyContext {
     }
 
     #[must_use]
-    pub fn into_subgraph(self, roots: HashSet<GraphElementId>) -> Subgraph {
-        let vertices = self
-            .referenced_data_types
-            .into_values()
-            .map(|data_type| {
-                (
-                    GraphElementId::OntologyElementId(data_type.metadata().edition_id().clone()),
-                    Vertex::DataType(data_type),
+    pub fn into_subgraph(self, roots: HashSet<GraphElementEditionId>) -> Subgraph {
+        let ontology_vertices = OntologyVertices(
+            self.referenced_data_types
+                .into_values()
+                .map(|data_type| {
+                    (
+                        data_type.metadata().edition_id().base_id().clone(),
+                        (
+                            data_type.metadata().edition_id().version(),
+                            OntologyVertex::DataType(Box::new(data_type)),
+                        ),
+                    )
+                })
+                .chain(
+                    self.referenced_property_types
+                        .into_values()
+                        .map(|property_type| {
+                            (
+                                property_type.metadata().edition_id().base_id().clone(),
+                                (
+                                    property_type.metadata().edition_id().version(),
+                                    OntologyVertex::PropertyType(Box::new(property_type)),
+                                ),
+                            )
+                        }),
                 )
-            })
-            .chain(
-                self.referenced_property_types
-                    .into_values()
-                    .map(|property_type| {
-                        (
-                            GraphElementId::OntologyElementId(
-                                property_type.metadata().edition_id().clone(),
-                            ),
-                            Vertex::PropertyType(property_type),
-                        )
-                    }),
-            )
-            .chain(
-                self.referenced_entity_types
-                    .into_values()
-                    .map(|entity_type| {
-                        (
-                            GraphElementId::OntologyElementId(
-                                entity_type.metadata().edition_id().clone(),
-                            ),
-                            Vertex::EntityType(entity_type),
-                        )
-                    }),
-            )
-            .chain(self.linked_entities.into_values().map(|entity| {
-                (
-                    GraphElementId::KnowledgeGraphElementId(
+                .chain(
+                    self.referenced_entity_types
+                        .into_values()
+                        .map(|entity_type| {
+                            (
+                                entity_type.metadata().edition_id().base_id().clone(),
+                                (
+                                    entity_type.metadata().edition_id().version(),
+                                    OntologyVertex::EntityType(Box::new(entity_type)),
+                                ),
+                            )
+                        }),
+                )
+                .fold(HashMap::new(), |mut map, (base_uri, (version, vertex))| {
+                    match map.entry(base_uri) {
+                        Entry::Occupied(entry) => {
+                            let inner_map = entry.into_mut();
+                            inner_map.entry(version).or_insert_with(|| vertex);
+                        }
+                        Entry::Vacant(entry) => {
+                            entry.insert(HashMap::from([(version, vertex)]));
+                        }
+                    };
+                    map
+                }),
+        );
+
+        let knowledge_graph_vertices = KnowledgeGraphVertices(
+            self.linked_entities
+                .into_values()
+                .map(|entity| {
+                    (
                         entity.metadata().edition_id().base_id(),
-                    ),
-                    Vertex::Entity(entity),
-                )
-            }))
-            .collect();
+                        (
+                            entity.metadata().edition_id().version(),
+                            KnowledgeGraphVertex::Entity(entity),
+                        ),
+                    )
+                })
+                .fold(HashMap::new(), |mut map, (entity_id, (version, vertex))| {
+                    match map.entry(entity_id) {
+                        Entry::Occupied(entry) => {
+                            let inner_map = entry.into_mut();
+                            inner_map.entry(version).or_insert_with(|| vertex);
+                        }
+                        Entry::Vacant(entry) => {
+                            entry.insert(HashMap::from([(version, vertex)]));
+                        }
+                    };
+                    map
+                }),
+        );
 
         Subgraph {
             roots,
-            vertices,
+            vertices: Vertices::new(ontology_vertices, knowledge_graph_vertices),
             edges: self.edges,
             depths: self.graph_resolve_depths,
         }
@@ -324,12 +285,12 @@ impl DependencyContext {
 pub struct DependencyContextRef<'a> {
     pub edges: &'a mut Edges,
     pub referenced_data_types:
-        &'a mut DependencyMap<OntologyTypeEditionId, DataTypeWithMetadata, OntologyQueryDepth>,
+        &'a mut DependencyMap<OntologyTypeEditionId, DataTypeWithMetadata, SubgraphQueryDepth>,
     pub referenced_property_types:
-        &'a mut DependencyMap<OntologyTypeEditionId, PropertyTypeWithMetadata, OntologyQueryDepth>,
+        &'a mut DependencyMap<OntologyTypeEditionId, PropertyTypeWithMetadata, SubgraphQueryDepth>,
     pub referenced_entity_types:
-        &'a mut DependencyMap<OntologyTypeEditionId, EntityTypeWithMetadata, OntologyQueryDepth>,
-    pub linked_entities: &'a mut DependencyMap<EntityId, Entity, KnowledgeGraphQueryDepth>,
+        &'a mut DependencyMap<OntologyTypeEditionId, EntityTypeWithMetadata, SubgraphQueryDepth>,
+    pub linked_entities: &'a mut DependencyMap<EntityEditionId, Entity, SubgraphQueryDepth>,
     pub graph_resolve_depths: GraphResolveDepths,
 }
 
@@ -984,6 +945,10 @@ where
         Ok(())
     }
 
+    #[expect(
+        clippy::too_many_lines,
+        reason = "The query is long, but it's a single query"
+    )]
     async fn move_latest_entity_to_histories(
         &self,
         entity_id: EntityId,
@@ -1196,8 +1161,8 @@ impl PostgresStore<Transaction<'_>> {
         let sink = self
             .client
             .copy_in(
-                "COPY entities (entity_uuid, entity_type_version_id, properties, owned_by_id, \
-                 updated_by_id, created_by_id) FROM STDIN BINARY",
+                "COPY latest_entities (entity_uuid, entity_type_version_id, properties, \
+                 owned_by_id, updated_by_id, created_by_id) FROM STDIN BINARY",
             )
             .await
             .into_report()
