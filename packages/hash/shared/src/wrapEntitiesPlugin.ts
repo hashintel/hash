@@ -9,17 +9,17 @@ import {
   Transaction,
 } from "prosemirror-state";
 import { keymap } from "prosemirror-keymap";
-import { ProsemirrorNode } from "prosemirror-model";
+import { Node } from "prosemirror-model";
 import { Mapping } from "prosemirror-transform";
 import { getBlockChildEntity, isTextEntity } from "./entity";
 import { isComponentNode, isEntityNode } from "./prosemirror";
 
-type WrapperNodes = [number, ProsemirrorNode[]];
+type WrapperNodes = [number, Node[]];
 type WrapperNodesList = WrapperNodes[];
 
 const getRangeForNodeAtMappedPosition = (
   pos: number,
-  node: ProsemirrorNode,
+  node: Node,
   tr: Transaction,
 ) => {
   const $start = tr.doc.resolve(tr.mapping.map(pos));
@@ -185,7 +185,7 @@ const prepareCommandForWrappedEntities =
               throw new Error("Cannot unwrap");
             }
 
-            const wrapperNodes: ProsemirrorNode[] = [];
+            const wrapperNodes: Node[] = [];
             const $originalStart = state.doc.resolve(pos);
 
             for (let depth = $originalStart.depth; depth > 0; depth--) {

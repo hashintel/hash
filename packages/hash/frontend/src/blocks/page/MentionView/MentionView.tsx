@@ -1,4 +1,4 @@
-import { ProsemirrorNode } from "prosemirror-model";
+import { Node } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
 import { RenderPortal } from "../usePortals";
 import { MentionDisplay } from "./MentionDisplay";
@@ -7,7 +7,7 @@ export class MentionView implements NodeView {
   dom: HTMLSpanElement;
 
   constructor(
-    public node: ProsemirrorNode,
+    public node: Node,
     public view: EditorView,
     public getPos: () => number,
     public renderPortal: RenderPortal,
@@ -19,7 +19,7 @@ export class MentionView implements NodeView {
     this.update(node);
   }
 
-  update(node: ProsemirrorNode) {
+  update(node: Node) {
     if (node.type.name !== "mention") {
       return false;
     }

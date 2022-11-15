@@ -1,9 +1,9 @@
 import { toggleMark } from "prosemirror-commands";
-import { NodeSpec, NodeType, ProsemirrorNode, Schema } from "prosemirror-model";
+import { NodeSpec, NodeType, Node, Schema } from "prosemirror-model";
 import { keymap } from "prosemirror-keymap";
 import { paragraphBlockComponentId } from "./blocks";
 
-type NodeWithAttrs<Attrs extends {}> = Omit<ProsemirrorNode, "attrs"> & {
+type NodeWithAttrs<Attrs extends {}> = Omit<Node, "attrs"> & {
   attrs: Attrs;
 };
 
@@ -19,9 +19,8 @@ export type NodeSpecs = {
   [name: string]: NodeSpec;
 };
 
-export const isEntityNode = (
-  node: ProsemirrorNode | null,
-): node is EntityNode => !!node && node.type === node.type.schema.nodes.entity;
+export const isEntityNode = (node: Node | null): node is EntityNode =>
+  !!node && node.type === node.type.schema.nodes.entity;
 
 export const componentNodeGroupName = "componentNode";
 
@@ -234,12 +233,10 @@ export const createSchema = (nodes: NodeSpecs) =>
 export const isComponentNodeType = (nodeType: NodeType) =>
   nodeType.groups?.includes(componentNodeGroupName) ?? false;
 
-export const isComponentNode = (node: ProsemirrorNode): node is ComponentNode =>
+export const isComponentNode = (node: Node): node is ComponentNode =>
   isComponentNodeType(node.type);
 
-export const findComponentNodes = (
-  containingNode: ProsemirrorNode,
-): ComponentNode[] => {
+export const findComponentNodes = (containingNode: Node): ComponentNode[] => {
   const componentNodes: ComponentNode[] = [];
 
   containingNode.descendants((node) => {
@@ -254,7 +251,7 @@ export const findComponentNodes = (
 };
 
 export const findComponentNode = (
-  containingNode: ProsemirrorNode,
+  containingNode: Node,
   containingNodePosition: number,
 ): [ComponentNode, number] | null => {
   let result: [ComponentNode, number] | null = null;
@@ -355,7 +352,7 @@ export const mutateSchema = (
   })(schema.spec);
 };
 
-export const isParagraphNode = (node: ProsemirrorNode) => {
+export const isParagraphNode = (node: Node) => {
   return componentNodeToId(node) === paragraphBlockComponentId;
 };
 

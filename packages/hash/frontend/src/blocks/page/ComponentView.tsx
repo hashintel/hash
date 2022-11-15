@@ -22,7 +22,7 @@ import {
 import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
 import { textBlockNodeToEntityProperties } from "@hashintel/hash-shared/text";
 import * as Sentry from "@sentry/nextjs";
-import { ProsemirrorNode } from "prosemirror-model";
+import { Node } from "prosemirror-model";
 import { TextSelection, Transaction } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
 import { BlockLoader } from "../../components/BlockLoader/BlockLoader";
@@ -88,7 +88,7 @@ export class ComponentView implements NodeView {
   private wasSuggested = false;
 
   constructor(
-    private node: ProsemirrorNode,
+    private node: Node,
     private readonly editorView: EditorView,
     private readonly getPos: () => number | undefined,
     private readonly renderPortal: RenderPortal,
@@ -137,7 +137,7 @@ export class ComponentView implements NodeView {
     this.update(this.node);
   }
 
-  update(node: ProsemirrorNode) {
+  update(node: Node) {
     this.node = node;
 
     /**
