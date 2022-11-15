@@ -31,8 +31,7 @@ export const PropertyTable = ({
     propertyExpandStatus,
   } = useEntityEditor();
   const rowData = useRowData();
-  const { tooltipElement, showTooltip, hideTooltip, withTooltips } =
-    useGridTooltip(gridRef);
+  const { tooltipElement, showTooltip, hideTooltip } = useGridTooltip(gridRef);
   const getCellContent = useGetCellContent(rowData, showTooltip, hideTooltip);
   const onCellEdited = useOnCellEdited(rowData);
   const drawHeader = useDrawHeader(propertySort, propertyGridColumns);
@@ -45,12 +44,12 @@ export const PropertyTable = ({
 
   const customRenderers = useMemo(
     () => [
-      withTooltips(renderValueCell),
+      renderValueCell,
       renderChipCell,
       createRenderPropertyNameCell(togglePropertyExpand, propertyExpandStatus),
       renderSummaryChipCell,
     ],
-    [togglePropertyExpand, propertyExpandStatus, withTooltips],
+    [togglePropertyExpand, propertyExpandStatus],
   );
 
   return (

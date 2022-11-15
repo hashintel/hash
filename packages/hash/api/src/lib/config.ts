@@ -1,4 +1,4 @@
-import { frontendUrl } from "@hashintel/hash-shared/config";
+import { frontendUrl } from "@hashintel/hash-shared/environment";
 import corsMiddleware from "cors";
 import { StorageType } from "../graphql/apiTypes.gen";
 
@@ -21,8 +21,6 @@ export const FILE_UPLOAD_PROVIDER =
   getEnvStorageType() || StorageType.LocalFileSystem;
 export const LOCAL_FILE_UPLOAD_PATH =
   process.env.LOCAL_FILE_UPLOAD_PATH || "var/uploads/";
-
-export const FRONTEND_DOMAIN = process.env.FRONTEND_DOMAIN || "localhost:3000";
 
 export const CORS_CONFIG: corsMiddleware.CorsOptions = {
   credentials: true,

@@ -1,13 +1,17 @@
 import { SvgIcon, SvgIconProps, SxProps, Theme } from "@mui/material";
+import type { SystemStyleObject } from "@mui/system";
 import { FunctionComponent } from "react";
 
-const getBaseSx = (sx: SxProps<Theme>, fontSize: number = 16) => [
+const getBaseSx = (
+  sx: SxProps<Theme>,
+  fontSize: number = 16,
+): ReadonlyArray<SystemStyleObject<Theme>> => [
   {
     width: "1em",
     height: "1em",
     fontSize,
   },
-  ...(Array.isArray(sx) ? sx : [sx]),
+  ...((Array.isArray(sx) ? sx : [sx]) as SystemStyleObject<Theme>[]),
 ];
 
 export const GithubIcon: FunctionComponent<SvgIconProps> = ({

@@ -12,7 +12,7 @@ type DocsFrontMatter = {
     objectId: string;
     title?: string;
     description?: string;
-    slug?: string;
+    slug: string;
     tags?: Array<string>;
   };
 };
@@ -65,7 +65,7 @@ type AlgoliaRecord = {
   tags?: Array<string>;
 };
 
-const generateAlgoliaRecords: () => AlgoliaRecord[] = () => {
+const generateAlgoliaRecords = (): AlgoliaRecord[] => {
   const getFormattedData = (matterData: DocsFrontMatter, type: string) => {
     const appendData = {
       ...matterData.data,
@@ -156,7 +156,7 @@ const main = async () => {
     await syncAlgoliaIndex();
     console.log("Algolia Indexes Updated.");
   } catch (error) {
-    throw new Error(`Algolia Indexing Failed: ${error}`);
+    throw new Error(`Algolia Indexing Failed: ${JSON.stringify(error)}`);
   }
 };
 
