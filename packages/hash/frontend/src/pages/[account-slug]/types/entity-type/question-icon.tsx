@@ -1,5 +1,5 @@
 import { faQuestionCircle } from "@fortawesome/free-regular-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
+import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { experimental_sx as sx, styled, Theme } from "@mui/material";
 import { ComponentProps } from "react";
 

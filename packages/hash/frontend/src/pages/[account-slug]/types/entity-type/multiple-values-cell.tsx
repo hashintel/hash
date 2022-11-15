@@ -1,4 +1,4 @@
-import { TextField } from "@hashintel/hash-design-system/text-field";
+import { TextField } from "@hashintel/hash-design-system";
 import {
   Box,
   Checkbox,

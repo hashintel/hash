@@ -11,16 +11,7 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "es2020",
-    "baseUrl": ".",
-    "paths": {
-      "@hashintel/hash-shared/*": ["../../../../packages/hash/shared/src/*"],
-      "@hashintel/hash-backend-utils/*": [
-        "../../../../packages/hash/backend-utils/src/*"
-      ],
-      "@hashintel/hash-design-system/*": [
-        "../../../../packages/hash/design-system/src/*"
-      ]
-    }
+    "baseUrl": "."
   },
   "ts-node": {
     "transpileOnly": true

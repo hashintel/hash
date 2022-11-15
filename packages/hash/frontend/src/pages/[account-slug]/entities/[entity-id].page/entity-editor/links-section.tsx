@@ -1,6 +1,9 @@
 import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, IconButton } from "@hashintel/hash-design-system";
-import { Chip } from "@hashintel/hash-design-system/chip";
+import {
+  FontAwesomeIcon,
+  IconButton,
+  Chip,
+} from "@hashintel/hash-design-system";
 import { Paper, Stack } from "@mui/material";
 import { useState } from "react";
 import { LinksIcon } from "../../../../../shared/icons";

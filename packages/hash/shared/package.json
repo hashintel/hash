@@ -5,7 +5,14 @@
   "description": "Temporary catchall place for shared code",
   "license": "AGPL-3.0",
   "exports": {
-    "./*": "./src/*.ts"
+    "./*": "./src/*"
+  },
+  "typesVersions": {
+    "*": {
+      "*": [
+        "./src/*"
+      ]
+    }
   },
   "scripts": {
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.yml",

@@ -5,12 +5,12 @@
   "description": "HASH backend utilities",
   "license": "AGPL-3.0",
   "exports": {
-    "./*": "./src/*.ts"
+    "./*": "./src/*"
   },
   "typesVersions": {
     "*": {
       "*": [
-        "src/*"
+        "./src/*"
       ]
     }
   },
