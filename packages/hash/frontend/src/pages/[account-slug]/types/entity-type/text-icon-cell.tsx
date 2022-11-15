@@ -18,7 +18,7 @@ export type TextIconCell = CustomCell<TextIconCellProps>;
 export const renderTextIconCell: CustomRenderer<TextIconCell> = {
   kind: GridCellKind.Custom,
   isMatch: (cell: CustomCell): cell is TextIconCell =>
-    (cell.data as any).kind === "value-icon-cell",
+    (cell.data as any).kind === "text-icon-cell",
   draw: (args, cell) => {
     const { theme, rect, ctx } = args;
     const { value, icon } = cell.data;

@@ -134,7 +134,7 @@ const Page: NextPageWithLayout = () => {
                       readonly: true,
                       copyData: cellValue,
                       data: {
-                        kind: "value-icon-cell",
+                        kind: "text-icon-cell",
                         icon: "bpAsterisk",
                         value: cellValue,
                       },
