@@ -1,23 +1,16 @@
 use std::fmt;
 
-use crate::store::postgres::query::{Column, ColumnAccess, Table, TableName, Transpile};
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Relation {
-    pub current_column_access: ColumnAccess<'static>,
-    pub join_table_name: TableName,
-    pub join_column_access: ColumnAccess<'static>,
-}
+use crate::store::postgres::query::{AliasedColumn, Transpile};
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct JoinExpression<'q> {
-    pub join: Column<'q>,
-    pub on: Column<'q>,
+    pub join: AliasedColumn<'q>,
+    pub on: AliasedColumn<'q>,
 }
 
 impl<'q> JoinExpression<'q> {
     #[must_use]
-    pub const fn new(join: Column<'q>, on: Column<'q>) -> Self {
+    pub const fn new(join: AliasedColumn<'q>, on: AliasedColumn<'q>) -> Self {
         Self { join, on }
     }
 }
@@ -26,15 +19,12 @@ impl Transpile for JoinExpression<'_> {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         // TODO: https://app.asana.com/0/1202805690238892/1203324626226299/f
         fmt.write_str("INNER JOIN ")?;
-        if self.join.table.alias.is_some() {
-            let unaliased_table = Table {
-                name: self.join.table.name,
-                alias: None,
-            };
-            unaliased_table.transpile(fmt)?;
+
+        if self.join.alias.is_some() {
+            self.join.column.table().transpile(fmt)?;
             fmt.write_str(" AS ")?;
         }
-        self.join.table.transpile(fmt)?;
+        self.join.table().transpile(fmt)?;
 
         fmt.write_str(" ON ")?;
         self.join.transpile(fmt)?;
@@ -46,30 +36,17 @@ impl Transpile for JoinExpression<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::store::postgres::query::{ColumnAccess, TableAlias, TableName};
+    use crate::store::postgres::query::{
+        table::{Column, DataTypes, Entities, TypeIds},
+        Alias,
+    };
 
     #[test]
     fn transpile_join_expression() {
         assert_eq!(
             JoinExpression::new(
-                Column {
-                    table: Table {
-                        name: TableName::TypeIds,
-                        alias: None,
-                    },
-                    access: ColumnAccess::Table {
-                        column: "version_id"
-                    },
-                },
-                Column {
-                    table: Table {
-                        name: TableName::DataTypes,
-                        alias: None,
-                    },
-                    access: ColumnAccess::Table {
-                        column: "version_id"
-                    },
-                },
+                Column::TypeIds(TypeIds::VersionId).aliased(None),
+                Column::DataTypes(DataTypes::VersionId).aliased(None),
             )
             .transpile_to_string(),
             r#"INNER JOIN "type_ids" ON "type_ids"."version_id" = "data_types"."version_id""#
@@ -77,31 +54,15 @@ mod tests {
 
         assert_eq!(
             JoinExpression::new(
-                Column {
-                    table: Table {
-                        name: TableName::TypeIds,
-                        alias: Some(TableAlias {
-                            condition_index: 0,
-                            chain_depth: 1,
-                            number: 2,
-                        }),
-                    },
-                    access: ColumnAccess::Table {
-                        column: "version_id"
-                    },
-                },
-                Column {
-                    table: Table {
-                        name: TableName::DataTypes,
-                        alias: None,
-                    },
-                    access: ColumnAccess::Table {
-                        column: "version_id"
-                    },
-                },
+                Column::Entities(Entities::LeftEntityUuid).aliased(Alias {
+                    condition_index: 0,
+                    chain_depth: 1,
+                    number: 2,
+                }),
+                Column::Entities(Entities::EntityUuid).aliased(None),
             )
             .transpile_to_string(),
-            r#"INNER JOIN "type_ids" AS "type_ids_0_1_2" ON "type_ids_0_1_2"."version_id" = "data_types"."version_id""#
+            r#"INNER JOIN "entities" AS "entities_0_1_2" ON "entities_0_1_2"."left_entity_uuid" = "entities"."entity_uuid""#
         );
     }
 }

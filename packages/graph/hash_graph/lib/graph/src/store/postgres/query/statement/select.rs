@@ -1,14 +1,14 @@
 use std::fmt::{self, Write};
 
 use crate::store::postgres::query::{
-    expression::OrderByExpression, Column, JoinExpression, SelectExpression, Table, Transpile,
-    WhereExpression, WithExpression,
+    expression::OrderByExpression, AliasedColumn, JoinExpression, SelectExpression, Table,
+    Transpile, WhereExpression, WithExpression,
 };
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct SelectStatement<'q> {
     pub with: WithExpression<'q>,
-    pub distinct: Vec<Column<'q>>,
+    pub distinct: Vec<AliasedColumn<'q>>,
     pub selects: Vec<SelectExpression<'q>>,
     pub from: Table,
     pub joins: Vec<JoinExpression<'q>>,
@@ -35,19 +35,19 @@ impl Transpile for SelectStatement<'_> {
             fmt.write_str("DISTINCT ON(")?;
 
             for (idx, column) in self.distinct.iter().enumerate() {
-                column.transpile(fmt)?;
-                if idx + 1 < self.distinct.len() {
+                if idx > 0 {
                     fmt.write_str(", ")?;
                 }
+                column.transpile(fmt)?;
             }
             fmt.write_str(") ")?;
         }
 
         for (idx, condition) in self.selects.iter().enumerate() {
-            condition.transpile(fmt)?;
-            if idx + 1 < self.selects.len() {
+            if idx > 0 {
                 fmt.write_str(", ")?;
             }
+            condition.transpile(fmt)?;
         }
         fmt.write_str("\nFROM ")?;
         self.from.transpile(fmt)?;
@@ -563,7 +563,7 @@ mod tests {
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::OutgoingLinks(
                 Box::new(EntityQueryPath::RightEntity(Box::new(
-                    EntityQueryPath::Version,
+                    EntityQueryPath::Uuid,
                 ))),
             ))),
             None,
@@ -577,9 +577,7 @@ mod tests {
             FROM "entities"
             INNER JOIN "entities" AS "entities_0_0_0"
               ON "entities_0_0_0"."left_entity_uuid" = "entities"."entity_uuid"
-            INNER JOIN "entities" AS "entities_0_1_0"
-              ON "entities_0_1_0"."entity_uuid" = "entities_0_0_0"."right_entity_uuid"
-            WHERE "entities_0_1_0"."version" IS NULL
+            WHERE "entities_0_0_0"."right_entity_uuid" IS NULL
             "#,
             &[],
         );
@@ -595,7 +593,9 @@ mod tests {
                     EntityQueryPath::Version,
                 ))),
             ))),
-            None,
+            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                "latest",
+            )))),
         );
         compiler.add_filter(&filter);
 
@@ -608,7 +608,7 @@ mod tests {
               ON "entities_0_0_0"."right_entity_uuid" = "entities"."entity_uuid"
             INNER JOIN "entities" AS "entities_0_1_0"
               ON "entities_0_1_0"."entity_uuid" = "entities_0_0_0"."left_entity_uuid"
-            WHERE "entities_0_1_0"."version" IS NULL
+            WHERE "entities_0_1_0"."latest_version" = TRUE
             "#,
             &[],
         );

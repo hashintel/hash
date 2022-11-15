@@ -1,6 +1,6 @@
 use std::fmt::{self, Write};
 
-use crate::store::postgres::query::{Column, Transpile, WindowStatement};
+use crate::store::postgres::query::{AliasedColumn, Transpile, WindowStatement};
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Function<'q> {
@@ -42,7 +42,7 @@ impl Transpile for Constant {
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Expression<'q> {
     Asterisk,
-    Column(Column<'q>),
+    Column(AliasedColumn<'q>),
     /// A parameter are transpiled as a placeholder, e.g. `$1`, in order to prevent SQL injection.
     Parameter(usize),
     /// [`Constant`]s are directly transpiled into the SQL query. Caution has to be taken to
@@ -84,7 +84,7 @@ mod tests {
     use super::*;
     use crate::{
         ontology::DataTypeQueryPath,
-        store::postgres::query::{test_helper::max_version_expression, Path, Table},
+        store::postgres::query::{test_helper::max_version_expression, Path},
     };
 
     #[test]
@@ -98,13 +98,11 @@ mod tests {
     #[test]
     fn transpile_function_expression() {
         assert_eq!(
-            Expression::Function(Box::new(Function::Min(Expression::Column(Column {
-                table: Table {
-                    name: DataTypeQueryPath::Version.terminating_table_name(),
-                    alias: None,
-                },
-                access: DataTypeQueryPath::Version.column_access(),
-            }))))
+            Expression::Function(Box::new(Function::Min(Expression::Column(
+                DataTypeQueryPath::Version
+                    .terminating_column()
+                    .aliased(None)
+            ))))
             .transpile_to_string(),
             r#"MIN("type_ids"."version")"#
         );

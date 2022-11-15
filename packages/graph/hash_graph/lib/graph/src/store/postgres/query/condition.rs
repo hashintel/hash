@@ -27,12 +27,12 @@ impl Transpile for Condition<'_> {
             Condition::Any(conditions) if conditions.is_empty() => fmt.write_str("FALSE"),
             Condition::All(conditions) => {
                 for (idx, condition) in conditions.iter().enumerate() {
+                    if idx > 0 {
+                        fmt.write_str(" AND ")?;
+                    }
                     fmt.write_char('(')?;
                     condition.transpile(fmt)?;
                     fmt.write_char(')')?;
-                    if idx + 1 < conditions.len() {
-                        fmt.write_str(" AND ")?;
-                    }
                 }
                 Ok(())
             }
@@ -41,12 +41,12 @@ impl Transpile for Condition<'_> {
                     fmt.write_char('(')?;
                 }
                 for (idx, condition) in conditions.iter().enumerate() {
+                    if idx > 0 {
+                        fmt.write_str(" OR ")?;
+                    }
                     fmt.write_char('(')?;
                     condition.transpile(fmt)?;
                     fmt.write_char(')')?;
-                    if idx + 1 < conditions.len() {
-                        fmt.write_str(" OR ")?;
-                    }
                 }
                 if conditions.len() > 1 {
                     fmt.write_char(')')?;
