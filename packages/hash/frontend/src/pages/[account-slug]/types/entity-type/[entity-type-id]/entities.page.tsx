@@ -146,7 +146,7 @@ const Page: NextPageWithLayout = () => {
                     allowOverlay: true,
                     readonly: true,
                     copyData: cellValue,
-                    displayData: cellValue,
+                    displayData: String(cellValue),
                     data: cellValue,
                   };
                 }
