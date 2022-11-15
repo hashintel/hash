@@ -78,6 +78,9 @@ use crate::{
 mod lock;
 pub(crate) mod sync;
 
+// note(bmahmoud): [PERFORMANCE] increase from 16 to 64
+//  push (single/multi): ~10%-40%
+//  iter (singe/multi): ~10%
 pub struct AVec<T, const N: usize = 16> {
     length: AtomicUsize,
     lock: AtomicLock,
@@ -156,6 +159,10 @@ impl<T, const N: usize> AVec<T, N> {
         // that the atomic is the same across all threads.
         // We *might* be able to relax this requirement.
         // TODO: note(bmahmoud): @td - do you think we can relax the ordering here?
+        // note(bmahmoud): [PERFORMANCE]
+        //  switching from Ordering::Acquired to Ordering::Relaxed brought a
+        //  performance boost of ~10%-30% in single threaded workloads, while there was no obvious
+        //  change in multi-threaded workloads.
         let length = self.length.load(Ordering::Acquire);
         let (node, offset) = Self::indices(length);
 
