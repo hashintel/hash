@@ -555,7 +555,6 @@ export default class {
         dataTypeResolveDepth: 0,
         propertyTypeResolveDepth: 0,
         entityResolveDepth: 0,
-        // linkTypeResolveDepth: 0,
         entityTypeResolveDepth: 0,
         ...params,
       },
