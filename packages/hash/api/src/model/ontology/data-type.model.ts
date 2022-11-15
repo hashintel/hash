@@ -22,8 +22,15 @@ export default class {
 
   get schema(): DataType {
     /**
-     * @todo: remove this casting when we update the type system package
-     * @see https://app.asana.com/0/1201095311341924/1203259817761581/f
+     * @todo and a warning, these type casts are here to compensate for
+     *   the differences between the Graph API package and the
+     *   type system package.
+     *
+     *   The type system package can be considered the source of truth in
+     *   terms of the shape of values returned from the API, but the API
+     *   client is unable to be given as type package types - it generates
+     *   its own types.
+     *   https://app.asana.com/0/1202805690238892/1202892835843657/f
      */
     return this.dataType.schema as DataType;
   }
