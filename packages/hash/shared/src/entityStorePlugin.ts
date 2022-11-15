@@ -1,6 +1,6 @@
 import { Draft, produce } from "immer";
 import { isEqual } from "lodash";
-import { ProsemirrorNode, Schema } from "prosemirror-model";
+import { ProsemirrorNode } from "prosemirror-model";
 import { EditorState, Plugin, PluginKey, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { v4 as uuid } from "uuid";
@@ -85,11 +85,11 @@ export type EntityStorePluginAction = { received?: boolean } & (
 );
 
 const EntityStoreListeners = new WeakMap<
-  Plugin<EntityStorePluginState, Schema>,
+  Plugin<EntityStorePluginState>,
   Set<EntityStorePluginStateListener>
 >();
 
-const entityStorePluginKey = new PluginKey<EntityStorePluginState, Schema>(
+const entityStorePluginKey = new PluginKey<EntityStorePluginState>(
   "entityStore",
 );
 
@@ -98,17 +98,16 @@ type EntityStoreMeta = {
   disableInterpretation?: boolean;
 };
 
-const getMeta = (
-  transaction: Transaction<Schema>,
-): EntityStoreMeta | undefined => transaction.getMeta(entityStorePluginKey);
+const getMeta = (transaction: Transaction): EntityStoreMeta | undefined =>
+  transaction.getMeta(entityStorePluginKey);
 
-const setMeta = (transaction: Transaction<Schema>, meta: EntityStoreMeta) =>
+const setMeta = (transaction: Transaction, meta: EntityStoreMeta) =>
   transaction.setMeta(entityStorePluginKey, meta);
 
 /**
  * @use {@link subscribeToEntityStore} if you need a live subscription
  */
-export const entityStorePluginState = (state: EditorState<Schema>) => {
+export const entityStorePluginState = (state: EditorState) => {
   const pluginState = entityStorePluginKey.getState(state);
 
   if (!pluginState) {
@@ -123,8 +122,8 @@ export const entityStorePluginState = (state: EditorState<Schema>) => {
  * @use {@link subscribeToEntityStore} if you need a live subscription
  */
 export const entityStorePluginStateFromTransaction = (
-  tr: Transaction<Schema>,
-  state: EditorState<Schema>,
+  tr: Transaction,
+  state: EditorState,
 ): EntityStorePluginState =>
   getMeta(tr)?.store ?? entityStorePluginState(state);
 
@@ -331,7 +330,7 @@ const entityStoreReducer = (
 };
 
 export const disableEntityStoreTransactionInterpretation = (
-  tr: Transaction<Schema>,
+  tr: Transaction,
 ) => {
   setMeta(tr, {
     ...(getMeta(tr) ?? {}),
@@ -343,8 +342,8 @@ export const disableEntityStoreTransactionInterpretation = (
  * @todo store actions on transaction
  */
 export const addEntityStoreAction = (
-  state: EditorState<Schema>,
-  tr: Transaction<Schema>,
+  state: EditorState,
+  tr: Transaction,
   action: EntityStorePluginAction,
 ) => {
   const prevState = entityStorePluginStateFromTransaction(tr, state);
@@ -359,7 +358,7 @@ export const addEntityStoreAction = (
 
 const updateEntityStoreListeners = collect<
   [
-    view: EditorView<Schema>,
+    view: EditorView,
     listener: EntityStorePluginStateListener,
     unsubscribe: boolean | undefined | void,
   ]
@@ -390,7 +389,7 @@ const updateEntityStoreListeners = collect<
 });
 
 export const subscribeToEntityStore = (
-  view: EditorView<Schema>,
+  view: EditorView,
   listener: EntityStorePluginStateListener,
 ) => {
   updateEntityStoreListeners(view, listener);
@@ -426,10 +425,10 @@ const getRequiredDraftIdFromEntityNode = (entityNode: EntityNode): string => {
 };
 
 class ProsemirrorStateChangeHandler {
-  private readonly tr: Transaction<Schema>;
+  private readonly tr: Transaction;
   private handled = false;
 
-  constructor(private state: EditorState<Schema>, private accountId: string) {
+  constructor(private state: EditorState, private accountId: string) {
     this.tr = state.tr;
   }
 
@@ -447,7 +446,7 @@ class ProsemirrorStateChangeHandler {
     return this.tr;
   }
 
-  private handleNode(node: ProsemirrorNode<Schema>, pos: number) {
+  private handleNode(node: ProsemirrorNode, pos: number) {
     if (isComponentNode(node)) {
       this.componentNode(node, pos);
     }
@@ -658,9 +657,9 @@ class ProsemirrorStateChangeHandler {
  */
 const scheduleNotifyEntityStoreSubscribers = collect<
   [
-    view: EditorView<Schema>,
-    prevState: EditorState<Schema>,
-    entityStorePlugin: Plugin<EntityStorePluginState, Schema>,
+    view: EditorView,
+    prevState: EditorState,
+    entityStorePlugin: Plugin<EntityStorePluginState>,
   ]
 >((calls) => {
   for (const [view, prevState, entityStorePlugin] of calls) {
@@ -668,7 +667,7 @@ const scheduleNotifyEntityStoreSubscribers = collect<
     const prevPluginState = entityStorePlugin.getState(prevState);
 
     // If the plugin state has changed, notify listeners
-    if (nextPluginState !== prevPluginState) {
+    if (nextPluginState && nextPluginState !== prevPluginState) {
       const listeners = EntityStoreListeners.get(entityStorePlugin);
 
       if (listeners) {
@@ -685,7 +684,7 @@ export const createEntityStorePlugin = ({
 }: {
   accountId: string;
 }) => {
-  const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
+  const entityStorePlugin = new Plugin<EntityStorePluginState>({
     key: entityStorePluginKey,
     state: {
       init(_): EntityStorePluginState {

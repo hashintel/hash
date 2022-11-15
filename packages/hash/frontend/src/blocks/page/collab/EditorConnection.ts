@@ -38,7 +38,7 @@ const repeat = <T>(val: T, count: number): T[] => {
 
 class State {
   constructor(
-    public edit: EditorState<Schema> | null,
+    public edit: EditorState | null,
     public comm: string | null,
     public version: number,
   ) {}
@@ -47,7 +47,7 @@ class State {
 type EditorConnectionAction =
   | {
       type: "loaded";
-      doc: ProsemirrorNode<Schema>;
+      doc: ProsemirrorNode;
       store: EntityStore;
       version: number;
     }
@@ -63,7 +63,7 @@ type EditorConnectionAction =
     }
   | {
       type: "update";
-      transaction: Transaction<Schema> | null;
+      transaction: Transaction | null;
       requestDone?: boolean;
       version: number;
     };
@@ -79,7 +79,7 @@ export class EditorConnection {
   constructor(
     public url: string,
     public schema: Schema,
-    public view: EditorView<Schema>,
+    public view: EditorView,
     public manager: ProsemirrorManager,
     public additionalPlugins: Plugin<unknown, Schema>[],
     public accountId: string,
@@ -141,7 +141,7 @@ export class EditorConnection {
         this.close();
         break;
       case "update": {
-        let currentState: EditorState<Schema>;
+        let currentState: EditorState;
 
         if (!this.state.edit) {
           if (
@@ -211,7 +211,7 @@ export class EditorConnection {
     this.poll();
   }
 
-  dispatchTransaction = (transaction: Transaction<Schema>) => {
+  dispatchTransaction = (transaction: Transaction) => {
     this.dispatch({ type: "update", transaction, version: this.state.version });
   };
 
@@ -341,7 +341,7 @@ export class EditorConnection {
           }
         }
 
-        let tr: Transaction<Schema> | null = null;
+        let tr: Transaction | null = null;
 
         if (data.steps?.length) {
           if (!this.state.edit) {
@@ -390,7 +390,7 @@ export class EditorConnection {
 
   // Send the given steps to the server
   send(
-    editState: EditorState<Schema>,
+    editState: EditorState,
     {
       steps = null,
       actions = [],
@@ -457,7 +457,7 @@ export class EditorConnection {
     );
   }
 
-  private unsentActions(editState: EditorState<Schema>) {
+  private unsentActions(editState: EditorState) {
     return entityStorePluginState(editState).trackedActions.filter(
       (action) => !this.sentActions.has(action.id),
     );

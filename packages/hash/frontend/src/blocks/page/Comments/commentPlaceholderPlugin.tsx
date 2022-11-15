@@ -1,5 +1,4 @@
 import Typography from "@mui/material/Typography";
-import { Schema } from "prosemirror-model";
 import { Plugin, PluginKey } from "prosemirror-state";
 import { Decoration, DecorationSet } from "prosemirror-view";
 import { RenderPortal } from "../usePortals";
@@ -13,14 +12,12 @@ interface CommentPlaceholderState {
   placeholder: string;
 }
 
-export const commentPlaceholderPluginkey = new PluginKey<
-  CommentPlaceholderState,
-  Schema
->("commentPlaceholder");
+export const commentPlaceholderPluginkey =
+  new PluginKey<CommentPlaceholderState>("commentPlaceholder");
 
 // Simplified version of createPlaceholderPlugin to be used in Comments
 export const commentPlaceholderPlugin = (renderPortal: RenderPortal) =>
-  new Plugin<CommentPlaceholderState, Schema>({
+  new Plugin<CommentPlaceholderState>({
     key: commentPlaceholderPluginkey,
     state: {
       init() {

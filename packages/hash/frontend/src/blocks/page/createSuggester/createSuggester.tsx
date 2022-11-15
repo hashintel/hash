@@ -2,7 +2,6 @@ import type { BlockVariant } from "@blockprotocol/core";
 import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
 import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
 import { Popper } from "@mui/material";
-import { Schema } from "prosemirror-model";
 import {
   EditorState,
   Plugin,
@@ -31,7 +30,7 @@ interface Trigger {
 /**
  * used to find a string triggering the suggester plugin
  */
-const findTrigger = (state: EditorState<Schema>): Trigger | null => {
+const findTrigger = (state: EditorState): Trigger | null => {
   // Only empty TextSelection has a $cursor
   const cursor = (state.selection as TextSelection).$cursor;
   if (!cursor) {
@@ -102,12 +101,10 @@ interface SuggesterState {
  * used to tag the suggester plugin/make it a singleton
  * @see https://prosemirror.net/docs/ref/#state.PluginKey
  */
-export const suggesterPluginKey = new PluginKey<SuggesterState, Schema>(
-  "suggester",
-);
+export const suggesterPluginKey = new PluginKey<SuggesterState>("suggester");
 
-const docChangedInTransaction = (tr: Transaction<Schema>) => {
-  const appendedTransaction: Transaction<Schema> | undefined = tr.getMeta(
+const docChangedInTransaction = (tr: Transaction) => {
+  const appendedTransaction: Transaction | undefined = tr.getMeta(
     "appendedTransaction",
   );
   const meta: SuggesterAction | undefined =
@@ -133,7 +130,7 @@ export const createSuggester = (
   documentRoot: HTMLElement,
   getManager?: () => ProsemirrorManager,
 ) =>
-  new Plugin<SuggesterState, Schema>({
+  new Plugin<SuggesterState>({
     key: suggesterPluginKey,
     state: {
       init() {
@@ -237,10 +234,10 @@ export const createSuggester = (
             case "Enter":
             case "ArrowUp":
             case "ArrowDown":
-              prevented = this.getState(view.state).isOpen();
+              prevented = this.getState(view.state)?.isOpen() ?? false;
               break;
             case "Escape":
-              prevented = this.getState(view.state).isOpen();
+              prevented = this.getState(view.state)?.isOpen() ?? false;
               tr.setMeta(suggesterPluginKey, { type: "escape" });
               break;
           }
@@ -366,4 +363,4 @@ export const createSuggester = (
         },
       };
     },
-  }) as Plugin<unknown, Schema>;
+  }) as Plugin<unknown>;
