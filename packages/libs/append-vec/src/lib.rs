@@ -59,7 +59,7 @@
     unreachable_pub,
     clippy::pedantic,
     clippy::nursery,
-    clippy::missing_safety_doc
+    clippy::undocumented_unsafe_blocks
 )]
 // TODO: once more stable introduce: warning missing_docs, clippy::missing_errors_doc
 #![allow(clippy::module_name_repetitions)]
@@ -109,12 +109,19 @@ impl<T, const N: usize> Drop for AppendOnlyVec<T, N> {
         let (node, offset) = Self::indices(length);
 
         let head = self.head.get_mut();
+
+        // SAFETY:
+        // * `drop()` means that no one will access the value anymore
+        // * node and offset are correctly computed from `Self::indices`
         unsafe { head.uninit(node, offset) };
     }
 }
 
+// SAFETY: We use `UnsafeCell`, the referred `Bucket` is `Send` if `T` is `Send`
 unsafe impl<T: Send, const N: usize> Send for AppendOnlyVec<T, N> {}
-unsafe impl<T: Send + Sync, const N: usize> Sync for AppendOnlyVec<T, N> {}
+
+// SAFETY: We use `UnsafeCell`, the referred `Bucket` is `Sync` if `T` is `Sync`
+unsafe impl<T: Sync, const N: usize> Sync for AppendOnlyVec<T, N> {}
 
 impl<T, const N: usize> AppendOnlyVec<T, N> {
     #[cfg(not(loom))]
@@ -150,11 +157,14 @@ impl<T, const N: usize> AppendOnlyVec<T, N> {
         let length = self.length.load(Ordering::Acquire);
         let (node, offset) = Self::indices(length);
 
-        unsafe {
-            let head = &mut *self.head.get();
+        // SAFETY: Lock has been acquired, therefore, we're the only mutable access, but(!) at the
+        // same time read access is possible, but these are only able to access elements not mutably
+        // modified by this function.
+        let head = unsafe { &mut *self.head.get() };
 
-            head.set(node, offset, value);
-        }
+        // SAFETY: node, offset are guaranteed to be the next item as the next index is length, and
+        // the value originates from `Self::indices`.
+        unsafe { head.set(node, offset, value) };
 
         // we need to do this once we're done, otherwise there is a possibility that while pushing,
         // another thread would access the memory that we're currently working on
@@ -175,12 +185,26 @@ struct Bucket<T, const N: usize> {
 impl<T, const N: usize> Bucket<T, N> {
     const fn new() -> Self {
         Self {
-            // this is the same as MaybeUninit::uninit_array()
+            // SAFETY:
+            // * this is the same as MaybeUninit::uninit_array()
+            // * items will be initialized via `set()` from the vec
             store: unsafe { MaybeUninit::<[MaybeUninit<T>; N]>::uninit().assume_init() },
             next: None,
         }
     }
 
+    /// # Safety
+    ///
+    /// If this function is not recursively called, the caller **must** verify that the node and
+    /// offset, which can be created through [`AppendOnlyVec::indices`] are correct.
+    ///
+    /// This function expects to be called on the `head` property with the appropriate length
+    /// supplied.
+    ///
+    /// Once called all items in this struct will be dropped and cannot be accessed, meaning that
+    /// subsequent operations on them will act upon dropped memory!
+    ///
+    /// Do **not** use this value once this function has been called!
     unsafe fn uninit(&mut self, node: usize, offset: usize) {
         let length = if node == 0 { offset } else { N };
 
@@ -195,17 +219,43 @@ impl<T, const N: usize> Bucket<T, N> {
         }
     }
 
-    // SAFETY: The following invariants must be upheld:
-    // 1) keys are only set sequentially
-    // 2) offset < N
+    /// # Safety
+    ///
+    /// `set` can only be called sequentially, if a new node is allocated all previous nodes need to
+    /// allocated before via `set` calls.
+    ///
+    /// `set` cannot be called twice with the same combination of `node` and `offset`.
+    ///
+    /// The `offset` must be smaller than `N`
+    ///
+    /// ## Do
+    ///
+    /// ```text
+    /// (N = 2)
+    /// set(0, 0);
+    /// set(0, 1);
+    /// set(1, 0);
+    /// set(1, 1);
+    /// ```
+    ///
+    /// ## Don't
+    ///
+    /// ```text
+    /// (N = 2)
+    /// set(0, 0);
+    /// set(0, 0); // ERROR: repeated call
+    /// set(1, 0); // ERROR: not sequential, will allocate new Bucket
+    /// set(2, 1); // ERROR: not sequential, will *NOT* allocate new Bucket
+    /// ```
     unsafe fn set(&mut self, node: usize, offset: usize, value: T) {
         if node == 1 && offset == 0 {
             // the next node is empty, and therefore needs to be allocated before we can use it
-            self.next = Some(Box::new(Bucket::new()));
+            self.next = Some(Box::new(Self::new()));
         }
 
         if node == 0 {
-            // we need to set our specific entry
+            // We're the requested node, therefore set the next item, the invariants guarantee that
+            // the array will be sequentially initialized.
             let entry = &mut self.store[offset];
             entry.write(value);
         } else {
@@ -229,6 +279,8 @@ pub struct Iter<'a, T, const N: usize> {
 impl<'a, T, const N: usize> Iter<'a, T, N> {
     fn new(vec: &'a AppendOnlyVec<T, N>) -> Self {
         Self {
+            // SAFETY: The vec guarantees that items are never mutably accessed and read, therefore
+            // it is safe to get a reference without lock.
             node: unsafe { &*vec.head.get() },
             length: vec.length.load(Ordering::Relaxed),
             offset: 0,
@@ -250,9 +302,11 @@ impl<'a, T, const N: usize> Iterator for Iter<'a, T, N> {
             self.offset -= N;
             self.length -= N;
 
+            // SAFETY: length only increments and vec guarantees that all buckets exist
             self.node = unsafe { self.node.next.as_ref().unwrap_unchecked() };
         }
 
+        // SAFETY: vec guarantees that all elements are initialized within length
         let item = unsafe { self.node.store[self.offset].assume_init_ref() };
         self.offset += 1;
 
@@ -262,7 +316,7 @@ impl<'a, T, const N: usize> Iterator for Iter<'a, T, N> {
 
 #[cfg(test)]
 mod tests {
-    use alloc::{sync::Arc, vec, vec::Vec};
+    use alloc::{vec, vec::Vec};
 
     use super::AppendOnlyVec;
 
@@ -292,7 +346,7 @@ mod tests {
     #[cfg(loom)]
     fn push_loom() {
         loom::model(|| {
-            let v = Arc::new(AppendOnlyVec::<u64>::new());
+            let v = loom::sync::Arc::new(AppendOnlyVec::<u64>::new());
 
             let mut threads = Vec::new();
             const N: u64 = 2;
@@ -321,7 +375,7 @@ mod tests {
     #[cfg(loom)]
     fn push_many_loom() {
         loom::model(|| {
-            let v = Arc::new(AppendOnlyVec::<u64, 1>::new());
+            let v = loom::sync::Arc::new(AppendOnlyVec::<u64, 1>::new());
 
             let mut threads = Vec::new();
             const N: u64 = 2;
@@ -345,24 +399,23 @@ mod tests {
         })
     }
 
-    // about the same code, but forces the creation of a new node on every single element
     #[test]
     #[cfg(loom)]
     fn push_iter_loom() {
         loom::model(|| {
-            let v = Arc::new(AppendOnlyVec::<usize>::new());
+            let v = loom::sync::Arc::new(AppendOnlyVec::<usize>::new());
             let mut threads = Vec::new();
 
             const N: usize = 4;
 
-            let v1 = Arc::clone(&v);
+            let v1 = loom::sync::Arc::clone(&v);
             threads.push(loom::thread::spawn(move || {
                 for i in 0..N {
                     v1.push(i);
                 }
             }));
 
-            let v1 = Arc::clone(&v);
+            let v1 = loom::sync::Arc::clone(&v);
             threads.push(loom::thread::spawn(move || {
                 for _ in 0..N {
                     let _items: Vec<_> = v1.iter().copied().collect();

@@ -24,14 +24,14 @@ pub(crate) struct AtomicLock {
 
 impl AtomicLock {
     #[cfg(not(loom))]
-    pub const fn new() -> Self {
+    pub(crate) const fn new() -> Self {
         Self {
             flag: AtomicBool::new(false),
         }
     }
 
     #[cfg(loom)]
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             flag: AtomicBool::new(false),
         }
