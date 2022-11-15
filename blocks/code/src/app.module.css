@@ -9,6 +9,7 @@
   padding-bottom: 1rem;
   padding-top: 3rem;
   background-color: rgba(254, 243, 199, 0.5);
+  font-family: Inter, "Helvetica", "Arial", sans-serif;
 }
 
 .wrapper *,
@@ -98,7 +99,8 @@
   background-color: rgba(0, 0, 0, 0.2);
 }
 
-.caption {
+.caption,
+.caption::placeholder {
   color: #9ca3af;
   font-size: 0.875rem;
   line-height: 1.25rem;
