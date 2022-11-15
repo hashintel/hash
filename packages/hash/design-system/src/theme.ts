@@ -21,4 +21,5 @@ export const theme = createTheme({
 export const createEmotionCache = (key?: string) =>
   createCache({ key: key ?? "css" });
 
-export * from "./theme/components/inputs/mui-outlined-input-theme-options";
+// @todo - consider re-exporting textFieldBorderRadius from another file
+export { textFieldBorderRadius } from "./theme/components/inputs/mui-outlined-input-theme-options";
