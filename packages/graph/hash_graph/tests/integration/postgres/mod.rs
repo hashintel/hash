@@ -443,9 +443,10 @@ impl DatabaseApi<'_> {
             })
             .await?;
 
-        Ok(subgraph.roots.into_iter()
-            .map(|edition_id| subgraph.vertices.remove(&edition_id))
-            .flatten() // Filter out Option::None
+        Ok(subgraph
+            .roots
+            .into_iter()
+            .filter_map(|edition_id| subgraph.vertices.remove(&edition_id))
             .map(|vertex| {
                 let Vertex::KnowledgeGraph(vertex) = vertex else { unreachable!() };
                 let KnowledgeGraphVertex::Entity(persisted_entity) = *vertex;
