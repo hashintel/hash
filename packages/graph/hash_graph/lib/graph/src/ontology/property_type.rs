@@ -11,20 +11,158 @@ use crate::{
     store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath},
 };
 
+/// A path to a [`PropertyType`] field.
 #[derive(Debug, PartialEq, Eq)]
 pub enum PropertyTypeQueryPath {
-    VersionId,
-    OwnedById,
-    CreatedById,
-    UpdatedById,
-    Schema,
+    /// The [`BaseUri`] of the [`PropertyType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::PropertyTypeQueryPath;
+    /// let path = PropertyTypeQueryPath::deserialize(json!(["baseUri"]))?;
+    /// assert_eq!(path, PropertyTypeQueryPath::BaseUri);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`BaseUri`]: type_system::uri::BaseUri
     BaseUri,
-    VersionedUri,
+    /// The version of the [`PropertyType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::PropertyTypeQueryPath;
+    /// let path = PropertyTypeQueryPath::deserialize(json!(["version"]))?;
+    /// assert_eq!(path, PropertyTypeQueryPath::Version);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// In addition to specifying the version directly, it's also possible to compare the version
+    /// with a `"latest"` parameter, which will only match the latest version of the
+    /// [`PropertyType`].
     Version,
+    /// The [`VersionedUri`] of the [`PropertyType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::PropertyTypeQueryPath;
+    /// let path = PropertyTypeQueryPath::deserialize(json!(["versionedUri"]))?;
+    /// assert_eq!(path, PropertyTypeQueryPath::VersionedUri);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`VersionedUri`]: type_system::uri::VersionedUri
+    VersionedUri,
+    /// The [`OwnedById`] of the [`OntologyElementMetadata`] belonging to the [`PropertyType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::PropertyTypeQueryPath;
+    /// let path = PropertyTypeQueryPath::deserialize(json!(["ownedById"]))?;
+    /// assert_eq!(path, PropertyTypeQueryPath::OwnedById);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`OwnedById`]: crate::provenance::OwnedById
+    /// [`OntologyElementMetadata`]: crate::ontology::OntologyElementMetadata
+    OwnedById,
+    /// The [`CreatedById`] of the [`ProvenanceMetadata`] belonging to the [`PropertyType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::PropertyTypeQueryPath;
+    /// let path = PropertyTypeQueryPath::deserialize(json!(["createdById"]))?;
+    /// assert_eq!(path, PropertyTypeQueryPath::CreatedById);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`CreatedById`]: crate::provenance::CreatedById
+    /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
+    CreatedById,
+    /// The [`UpdatedById`] of the [`ProvenanceMetadata`] belonging to the [`PropertyType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::PropertyTypeQueryPath;
+    /// let path = PropertyTypeQueryPath::deserialize(json!(["updatedById"]))?;
+    /// assert_eq!(path, PropertyTypeQueryPath::UpdatedById);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`UpdatedById`]: crate::provenance::UpdatedById
+    /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
+    UpdatedById,
+    /// Corresponds to [`PropertyType::title()`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::PropertyTypeQueryPath;
+    /// let path = PropertyTypeQueryPath::deserialize(json!(["title"]))?;
+    /// assert_eq!(path, PropertyTypeQueryPath::Title);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
     Title,
+    /// Corresponds to [`PropertyType::description()`]
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::PropertyTypeQueryPath;
+    /// let path = PropertyTypeQueryPath::deserialize(json!(["description"]))?;
+    /// assert_eq!(path, PropertyTypeQueryPath::Description);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
     Description,
+    /// Corresponds to [`PropertyType::data_type_references()`].
+    ///
+    /// As a [`PropertyType`] can have multiple [`DataType`]s, the deserialized path requires an
+    /// additional selector to identify the [`DataType`] to query. Currently, only the `*` selector
+    /// is available, so the path will be deserialized as `["dataTypes", "*", ...]` where `...` is
+    /// the path to the desired field of the [`DataType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::{DataTypeQueryPath, PropertyTypeQueryPath};
+    /// let path = PropertyTypeQueryPath::deserialize(json!(["dataTypes", "*", "title"]))?;
+    /// assert_eq!(
+    ///     path,
+    ///     PropertyTypeQueryPath::DataTypes(DataTypeQueryPath::Title)
+    /// );
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`DataType`]: type_system::DataType
     DataTypes(DataTypeQueryPath),
+    /// Corresponds to [`PropertyType::property_type_references()`].
+    ///
+    /// As a [`PropertyType`] can have multiple nested [`PropertyType`]s, the deserialized path
+    /// requires an additional selector to identify the [`PropertyType`] to query. Currently, only
+    /// the `*` selector is available, so the path will be deserialized as `["propertyTypes", "*",
+    /// ...]` where `...` is the path to the desired field of the [`PropertyType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// use serde_json::json;
+    /// # use graph::ontology::PropertyTypeQueryPath;
+    /// let path = PropertyTypeQueryPath::deserialize(json!(["propertyTypes", "*", "title"]))?;
+    /// assert_eq!(
+    ///     path,
+    ///     PropertyTypeQueryPath::PropertyTypes(Box::new(PropertyTypeQueryPath::Title))
+    /// );
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
     PropertyTypes(Box<Self>),
+    /// Only used internally and not available for deserialization.
+    VersionId,
+    /// Only used internally and not available for deserialization.
+    Schema,
 }
 
 impl QueryRecord for PropertyType {
@@ -74,13 +212,13 @@ impl fmt::Display for PropertyTypeQueryPath {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::VersionId => fmt.write_str("versionId"),
+            Self::BaseUri => fmt.write_str("baseUri"),
+            Self::Version => fmt.write_str("version"),
+            Self::VersionedUri => fmt.write_str("versionedUri"),
             Self::OwnedById => fmt.write_str("ownedById"),
             Self::CreatedById => fmt.write_str("createdById"),
             Self::UpdatedById => fmt.write_str("updatedById"),
             Self::Schema => fmt.write_str("schema"),
-            Self::BaseUri => fmt.write_str("baseUri"),
-            Self::VersionedUri => fmt.write_str("versionedUri"),
-            Self::Version => fmt.write_str("version"),
             Self::Title => fmt.write_str("title"),
             Self::Description => fmt.write_str("description"),
             Self::DataTypes(path) => write!(fmt, "dataTypes.{path}"),
@@ -93,12 +231,12 @@ impl fmt::Display for PropertyTypeQueryPath {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum PropertyTypeQueryToken {
+    BaseUri,
+    Version,
+    VersionedUri,
     OwnedById,
     CreatedById,
     UpdatedById,
-    BaseUri,
-    VersionedUri,
-    Version,
     Title,
     Description,
     DataTypes,
@@ -112,8 +250,8 @@ pub struct PropertyTypeQueryPathVisitor {
 }
 
 impl PropertyTypeQueryPathVisitor {
-    pub const EXPECTING: &'static str = "one of `ownedById`, `createdById`, `updatedById`, \
-                                         `baseUri`, `versionedUri`, `version`, `title`, \
+    pub const EXPECTING: &'static str = "one of `baseUri`, `version`, `versionedUri`, \
+                                         `ownedById`, `createdById`, `updatedById`, `title`, \
                                          `description`, `dataTypes`, `propertyTypes`";
 
     #[must_use]

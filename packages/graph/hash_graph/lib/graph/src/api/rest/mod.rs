@@ -115,19 +115,12 @@ pub fn rest_api_router<P: StorePool + Send + 'static>(
 
     // super-router can then be used as any other router.
     // Make sure extensions are added at the end so they are made available to merged routers.
+    // The `/api-doc` endpoints are nested as we don't want any layers or handlers for the api-doc
     merged_routes
         .layer(Extension(store))
         .layer(Extension(domain_regex))
-        .layer(
-            axum::middleware::from_fn(log_request_and_response)
-        )
-        .layer(
-            ServiceBuilder::new()
-                .layer(
-                    TraceLayer::new_for_http()
-                )
-        )
-        // We don't want any layers or handlers for the api-doc
+        .layer(axum::middleware::from_fn(log_request_and_response))
+        .layer(ServiceBuilder::new().layer(TraceLayer::new_for_http()))
         .nest(
             "/api-doc",
             Router::new()

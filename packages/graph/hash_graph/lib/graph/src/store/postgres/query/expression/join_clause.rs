@@ -25,7 +25,7 @@ impl<'q> JoinExpression<'q> {
 impl Transpile for JoinExpression<'_> {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         // TODO: https://app.asana.com/0/1202805690238892/1203324626226299/f
-        fmt.write_str("LEFT JOIN ")?;
+        fmt.write_str("INNER JOIN ")?;
         if self.join.table.alias.is_some() {
             let unaliased_table = Table {
                 name: self.join.table.name,
@@ -72,7 +72,7 @@ mod tests {
                 },
             )
             .transpile_to_string(),
-            r#"LEFT JOIN "type_ids" ON "type_ids"."version_id" = "data_types"."version_id""#
+            r#"INNER JOIN "type_ids" ON "type_ids"."version_id" = "data_types"."version_id""#
         );
 
         assert_eq!(
@@ -101,7 +101,7 @@ mod tests {
                 },
             )
             .transpile_to_string(),
-            r#"LEFT JOIN "type_ids" AS "type_ids_0_1_2" ON "type_ids_0_1_2"."version_id" = "data_types"."version_id""#
+            r#"INNER JOIN "type_ids" AS "type_ids_0_1_2" ON "type_ids_0_1_2"."version_id" = "data_types"."version_id""#
         );
     }
 }

@@ -119,11 +119,12 @@ impl<C: AsClient> PostgresStore<C> {
                 )
                 .await?;
 
+                // `flatten`s are used to flatten `Option<[EntityTypeReference]>`
                 let link_destination_entity_type_ids = entity_type
                     .inner()
                     .link_mappings()
                     .into_values()
-                    .flatten() // Filter out Option::None
+                    .flatten()
                     .flatten()
                     .map(|reference| OntologyTypeEditionId::from(reference.uri().clone()));
 

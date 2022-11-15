@@ -324,9 +324,7 @@ pub trait EntityTypeStore:
 ///
 /// [Entities]: crate::knowledge::Entity
 #[async_trait]
-pub trait EntityStore:
-    for<'q> crud::Read<Entity, Query<'q> = Filter<'q, EntityProperties>>
-{
+pub trait EntityStore: for<'q> crud::Read<Entity, Query<'q> = Filter<'q, Entity>> {
     /// Creates a new [`Entity`].
     ///
     /// # Errors:
@@ -380,7 +378,7 @@ pub trait EntityStore:
     /// - if the requested [`Entity`] doesn't exist
     async fn get_entity<'f: 'q, 'q>(
         &self,
-        query: &'f StructuralQuery<'q, EntityProperties>,
+        query: &'f StructuralQuery<'q, Entity>,
     ) -> Result<Subgraph, QueryError>;
 
     /// Update an existing [`Entity`].

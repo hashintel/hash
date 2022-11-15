@@ -15,7 +15,7 @@ use crate::{
         knowledge::{EntityEditionId, EntityId},
         Timestamp,
     },
-    knowledge::{EntityProperties, EntityQueryPath, EntityUuid},
+    knowledge::{Entity, EntityQueryPath, EntityUuid},
     store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath},
 };
 
@@ -76,7 +76,7 @@ where
     }
 }
 
-impl<'q> Filter<'q, EntityProperties> {
+impl<'q> Filter<'q, Entity> {
     /// Creates a `Filter` to search for all entities at their latest version.
     #[must_use]
     pub const fn for_all_latest_entities() -> Self {
@@ -177,25 +177,25 @@ impl<'q> Filter<'q, EntityProperties> {
     pub fn for_outgoing_link_by_source_entity_edition_id(edition_id: EntityEditionId) -> Self {
         Self::All(vec![
             Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(Some(
+                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
                     Box::new(EntityQueryPath::OwnedById),
-                )))),
+                ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
                     edition_id.base_id().owned_by_id().as_uuid(),
                 ))),
             ),
             Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(Some(
+                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
                     Box::new(EntityQueryPath::Uuid),
-                )))),
+                ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
                     edition_id.base_id().entity_uuid().as_uuid(),
                 ))),
             ),
             Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(Some(
+                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
                     Box::new(EntityQueryPath::Version),
-                )))),
+                ))),
                 Some(FilterExpression::Parameter(Parameter::Timestamp(
                     edition_id.version().inner(),
                 ))),

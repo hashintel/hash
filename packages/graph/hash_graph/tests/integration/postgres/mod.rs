@@ -349,17 +349,17 @@ impl DatabaseApi<'_> {
     ) -> Result<Entity, QueryError> {
         let filter = Filter::All(vec![
             Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(Some(
+                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
                     Box::new(EntityQueryPath::Uuid),
-                )))),
+                ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
                     source_entity_id.entity_uuid().as_uuid(),
                 ))),
             ),
             Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(Some(
+                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
                     Box::new(EntityQueryPath::OwnedById),
-                )))),
+                ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
                     source_entity_id.owned_by_id().as_uuid(),
                 ))),
@@ -414,15 +414,17 @@ impl DatabaseApi<'_> {
     ) -> Result<Vec<Entity>, QueryError> {
         let filter = Filter::All(vec![
             Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(None))),
+                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
+                    Box::new(EntityQueryPath::Uuid),
+                ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
                     source_entity_id.entity_uuid().as_uuid(),
                 ))),
             ),
             Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(Some(
+                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
                     Box::new(EntityQueryPath::OwnedById),
-                )))),
+                ))),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
                     source_entity_id.owned_by_id().as_uuid(),
                 ))),
@@ -443,9 +445,10 @@ impl DatabaseApi<'_> {
             })
             .await?;
 
-        Ok(subgraph.roots.into_iter()
-            .map(|edition_id| subgraph.vertices.remove(&edition_id))
-            .flatten() // Filter out Option::None
+        Ok(subgraph
+            .roots
+            .into_iter()
+            .filter_map(|edition_id| subgraph.vertices.remove(&edition_id))
             .map(|vertex| {
                 let Vertex::KnowledgeGraph(vertex) = vertex else { unreachable!() };
                 let KnowledgeGraphVertex::Entity(persisted_entity) = *vertex;
