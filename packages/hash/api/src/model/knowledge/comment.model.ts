@@ -28,13 +28,16 @@ export default class extends EntityModel {
       SYSTEM_TYPES.entityType.comment.schema.$id
     ) {
       throw new EntityTypeMismatchError(
-        entity.entityId,
+        entity.baseId,
         SYSTEM_TYPES.entityType.comment.schema.$id,
         entity.entityTypeModel.schema.$id,
       );
     }
 
-    return new CommentModel(entity);
+    return new CommentModel({
+      entity,
+      entityTypeModel: entity.entityTypeModel,
+    });
   }
 
   /**

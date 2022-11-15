@@ -34,13 +34,13 @@ export default class extends EntityModel {
       SYSTEM_TYPES.entityType.page.schema.$id
     ) {
       throw new EntityTypeMismatchError(
-        entity.entityId,
+        entity.baseId,
         SYSTEM_TYPES.entityType.page.schema.$id,
         entity.entityTypeModel.schema.$id,
       );
     }
 
-    return new PageModel(entity);
+    return new PageModel({ entity, entityTypeModel: entity.entityTypeModel });
   }
 
   /**
@@ -152,7 +152,7 @@ export default class extends EntityModel {
        * @todo: filter the pages by their ownedById in the query instead once it's supported
        * @see https://app.asana.com/0/1202805690238892/1203015527055374/f
        */
-      .filter(({ ownedById }) => ownedById === params.accountModel.entityId)
+      .filter(({ ownedById }) => ownedById === params.accountModel.entityUuid)
       .map(PageModel.fromEntityModel);
 
     return await Promise.all(

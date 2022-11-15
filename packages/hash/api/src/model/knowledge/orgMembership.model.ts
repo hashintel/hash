@@ -29,13 +29,16 @@ export default class extends EntityModel {
       SYSTEM_TYPES.entityType.orgMembership.schema.$id
     ) {
       throw new EntityTypeMismatchError(
-        entity.entityId,
+        entity.baseId,
         SYSTEM_TYPES.entityType.orgMembership.schema.$id,
         entity.entityTypeModel.schema.$id,
       );
     }
 
-    return new OrgMembershipModel(entity);
+    return new OrgMembershipModel({
+      entity,
+      entityTypeModel: entity.entityTypeModel,
+    });
   }
 
   /**

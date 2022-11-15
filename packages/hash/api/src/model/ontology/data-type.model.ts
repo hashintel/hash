@@ -1,54 +1,26 @@
 import { AxiosError } from "axios";
-
+import { DataType } from "@blockprotocol/type-system-web";
 import {
   GraphApi,
-  PersistedDataType,
+  DataTypeWithMetadata,
   UpdateDataTypeRequest,
+  OntologyElementMetadata,
 } from "@hashintel/hash-graph-client";
-import { DataType } from "@blockprotocol/type-system-web";
 import { generateTypeId } from "@hashintel/hash-shared/types";
 import { DataTypeModel } from "../index";
 import { getNamespaceOfAccountOwner } from "./util";
 
 type DataTypeModelConstructorArgs = {
-  ownedById: string;
-  schema: DataType;
-  createdById: string;
-  updatedById: string;
-  removedById?: string;
+  dataType: DataTypeWithMetadata;
 };
 
 /**
  * @class {@link DataTypeModel}
  */
 export default class {
-  ownedById: string;
+  private dataType: DataTypeWithMetadata;
 
-  schema: DataType;
-
-  createdById: string;
-  updatedById: string;
-  removedById?: string;
-
-  constructor({
-    schema,
-    ownedById,
-    createdById,
-    updatedById,
-    removedById,
-  }: DataTypeModelConstructorArgs) {
-    this.ownedById = ownedById;
-    this.schema = schema;
-
-    this.createdById = createdById;
-    this.updatedById = updatedById;
-    this.removedById = removedById;
-  }
-
-  static fromPersistedDataType({
-    inner,
-    metadata: { identifier, createdById, updatedById, removedById },
-  }: PersistedDataType): DataTypeModel {
+  get schema(): DataType {
     /**
      * @todo and a warning, these type casts are here to compensate for
      *   the differences between the Graph API package and the
@@ -60,13 +32,21 @@ export default class {
      *   its own types.
      *   https://app.asana.com/0/1202805690238892/1202892835843657/f
      */
-    return new DataTypeModel({
-      schema: inner as DataType,
-      ownedById: identifier.ownedById,
-      createdById,
-      updatedById,
-      removedById,
-    });
+    return this.dataType.schema as DataType;
+  }
+
+  get metadata(): OntologyElementMetadata {
+    return this.dataType.metadata;
+  }
+
+  constructor({ dataType }: DataTypeModelConstructorArgs) {
+    this.dataType = dataType;
+  }
+
+  static fromDataTypeWithMetadata(
+    dataType: DataTypeWithMetadata,
+  ): DataTypeModel {
+    return new DataTypeModel({ dataType });
   }
 
   /**
@@ -104,24 +84,24 @@ export default class {
       kind: "data-type",
       title: params.schema.title,
     });
-    const fullDataType = { $id: dataTypeUri, ...params.schema };
+    const schema = { $id: dataTypeUri, ...params.schema };
 
     const { data: metadata } = await graphApi
       .createDataType({
-        schema: fullDataType,
+        schema,
         ownedById,
         actorId,
       })
       .catch((err: AxiosError) => {
         throw new Error(
           err.response?.status === 409
-            ? `data type with the same URI already exists. [URI=${fullDataType.$id}]`
+            ? `data type with the same URI already exists. [URI=${schema.$id}]`
             : `[${err.code}] couldn't create data type: ${err.response?.data}.`,
         );
       });
 
-    return DataTypeModel.fromPersistedDataType({
-      inner: fullDataType,
+    return DataTypeModel.fromDataTypeWithMetadata({
+      schema,
       metadata,
     });
   }
@@ -140,7 +120,7 @@ export default class {
     const { dataTypeId } = params;
     const { data: persistedDataType } = await graphApi.getDataType(dataTypeId);
 
-    return DataTypeModel.fromPersistedDataType(persistedDataType);
+    return DataTypeModel.fromDataTypeWithMetadata(persistedDataType);
   }
 
   /**
@@ -176,10 +156,10 @@ export default class {
 
     const { data: metadata } = await graphApi.updateDataType(updateArguments);
 
-    const { identifier } = metadata;
+    const { editionId } = metadata;
 
-    return DataTypeModel.fromPersistedDataType({
-      inner: { ...schema, $id: identifier.uri },
+    return DataTypeModel.fromDataTypeWithMetadata({
+      schema: { ...schema, $id: `${editionId.baseId}/v/${editionId.version}` },
       metadata,
     });
   }

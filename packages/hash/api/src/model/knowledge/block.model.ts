@@ -26,13 +26,13 @@ export default class extends EntityModel {
       SYSTEM_TYPES.entityType.block.schema.$id
     ) {
       throw new EntityTypeMismatchError(
-        entity.entityId,
+        entity.baseId,
         SYSTEM_TYPES.entityType.block.schema.$id,
         entity.entityTypeModel.schema.$id,
       );
     }
 
-    return new BlockModel(entity);
+    return new BlockModel({ entity, entityTypeModel: entity.entityTypeModel });
   }
 
   /**

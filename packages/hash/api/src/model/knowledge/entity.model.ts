@@ -1,11 +1,11 @@
 import { ApolloError } from "apollo-server-errors";
 import {
-  PersistedEntity,
+  Entity,
   GraphApi,
-  Vertex,
   Subgraph,
   EntityStructuralQuery,
   Filter,
+  EntityMetadata,
 } from "@hashintel/hash-graph-client";
 
 import {
@@ -22,14 +22,8 @@ import {
 import { exactlyOne, linkedTreeFlatten } from "../../util";
 
 export type EntityModelConstructorParams = {
-  ownedById: string;
-  entityId: string;
-  version: string;
+  entity: Entity;
   entityTypeModel: EntityTypeModel;
-  properties: object;
-  createdById: string;
-  updatedById: string;
-  removedById: string | undefined;
 };
 
 export type EntityModelCreateParams = {
@@ -44,47 +38,48 @@ export type EntityModelCreateParams = {
  * @class {@link EntityModel}
  */
 export default class {
-  ownedById: string;
+  private entity: Entity;
 
-  entityId: string;
-  version: string;
   entityTypeModel: EntityTypeModel;
-  properties: object;
 
-  createdById: string;
-  updatedById: string;
-  removedById: string | undefined;
-
-  constructor({
-    ownedById,
-    entityId,
-    version,
-    entityTypeModel,
-    properties,
-    createdById,
-    updatedById,
-    removedById,
-  }: EntityModelConstructorParams) {
-    this.ownedById = ownedById;
-
-    this.entityId = entityId;
-    this.version = version;
-    this.entityTypeModel = entityTypeModel;
-    this.properties = properties;
-
-    this.createdById = createdById;
-    this.updatedById = updatedById;
-    this.removedById = removedById;
+  get baseId(): string {
+    return this.metadata.editionId.baseId;
   }
 
-  private static async fromPersistedEntity(
+  get entityUuid(): string {
+    const [_, entityUuid] = this.baseId.split("%") as [string, string];
+
+    return entityUuid;
+  }
+
+  get ownedById(): string {
+    const [ownedById, _] = this.baseId.split("%") as [string, string];
+
+    return ownedById;
+  }
+
+  get metadata(): EntityMetadata {
+    return this.entity.metadata;
+  }
+
+  get properties(): object {
+    return this.entity.properties;
+  }
+
+  constructor({ entity, entityTypeModel }: EntityModelConstructorParams) {
+    this.entity = entity;
+    this.entityTypeModel = entityTypeModel;
+  }
+
+  private static async fromEntity(
     graphApi: GraphApi,
-    { metadata, inner }: PersistedEntity,
+    entity: Entity,
     cachedEntityTypeModels?: Map<string, EntityTypeModel>,
   ): Promise<EntityModel> {
-    const { identifier, entityTypeId, createdById, updatedById, removedById } =
-      metadata;
-    const { ownedById, entityId, version } = identifier;
+    const {
+      metadata: { entityTypeId },
+    } = entity;
+
     const cachedEntityTypeModel = cachedEntityTypeModels?.get(entityTypeId);
 
     let entityTypeModel: EntityTypeModel;
@@ -98,16 +93,7 @@ export default class {
       }
     }
 
-    return new EntityModel({
-      ownedById,
-      entityId,
-      version,
-      entityTypeModel,
-      properties: inner,
-      createdById,
-      updatedById,
-      removedById,
-    });
+    return new EntityModel({ entity, entityTypeModel });
   }
 
   /**
@@ -135,16 +121,16 @@ export default class {
       ownedById,
       entityTypeId: entityTypeModel.schema.$id,
       entity: properties,
-      entityId: overrideEntityId,
+      entityUuid: overrideEntityId,
       actorId,
     });
 
-    const persistedEntity: PersistedEntity = {
-      inner: properties,
+    const entity: Entity = {
+      properties,
       metadata,
     };
 
-    return EntityModel.fromPersistedEntity(graphApi, persistedEntity);
+    return EntityModel.fromEntity(graphApi, entity);
   }
 
   /**
@@ -316,23 +302,22 @@ export default class {
           options?.graphResolveDepths?.dataTypeResolveDepth ?? 0,
         propertyTypeResolveDepth:
           options?.graphResolveDepths?.propertyTypeResolveDepth ?? 0,
-        linkTypeResolveDepth:
-          options?.graphResolveDepths?.linkTypeResolveDepth ?? 0,
         entityTypeResolveDepth:
           options?.graphResolveDepths?.entityTypeResolveDepth ?? 0,
-        linkResolveDepth: options?.graphResolveDepths?.linkResolveDepth ?? 0,
-        linkTargetEntityResolveDepth:
-          options?.graphResolveDepths?.linkTargetEntityResolveDepth ?? 0,
+        entityResolveDepth:
+          options?.graphResolveDepths?.entityResolveDepth ?? 0,
       },
     });
 
     return await Promise.all(
-      subgraph.roots.map((entityId) => {
-        const entityVertex = subgraph.vertices[entityId] as Extract<
-          Vertex,
-          { kind: "entity" }
-        >;
-        return EntityModel.fromPersistedEntity(graphApi, entityVertex.inner);
+      subgraph.roots.map(({ baseId, version }) => {
+        const entityVertex = subgraph.vertices[baseId]?.[version];
+
+        if (entityVertex && entityVertex.kind === "entity") {
+          return EntityModel.fromEntity(graphApi, entityVertex.inner);
+        }
+
+        throw new Error("Could not get entity from sub-graph");
       }),
     );
   }
@@ -351,7 +336,7 @@ export default class {
     const { entityId } = params;
     const { data: persistedEntity } = await graphApi.getEntity(entityId);
 
-    return await EntityModel.fromPersistedEntity(graphApi, persistedEntity);
+    return await EntityModel.fromEntity(graphApi, persistedEntity);
   }
 
   /**
@@ -386,19 +371,19 @@ export default class {
     },
   ): Promise<EntityModel> {
     const { properties, actorId } = params;
-    const { entityId, entityTypeModel } = this;
+    const { baseId, entityTypeModel } = this;
 
     const { data: metadata } = await graphApi.updateEntity({
       actorId,
-      entityId,
+      entityId: baseId,
       /** @todo: make this argument optional */
       entityTypeId: entityTypeModel.schema.$id,
       entity: properties,
     });
 
-    return EntityModel.fromPersistedEntity(graphApi, {
+    return EntityModel.fromEntity(graphApi, {
       metadata,
-      inner: properties,
+      properties,
     });
   }
 
@@ -456,9 +441,9 @@ export default class {
    * Get the latest version of this entity.
    */
   async getLatestVersion(graphApi: GraphApi) {
-    const { entityId } = this;
+    const { baseId } = this;
 
-    return await EntityModel.getLatest(graphApi, { entityId });
+    return await EntityModel.getLatest(graphApi, { entityId: baseId });
   }
 
   /** @see {@link LinkModel.create} */
@@ -495,7 +480,7 @@ export default class {
     const filter: Filter = {
       all: [
         {
-          equal: [{ path: ["target", "id"] }, { parameter: this.entityId }],
+          equal: [{ path: ["target", "uuid"] }, { parameter: this.entityUuid }],
         },
       ],
     };
@@ -528,7 +513,7 @@ export default class {
     const filter: Filter = {
       all: [
         {
-          equal: [{ path: ["source", "id"] }, { parameter: this.entityId }],
+          equal: [{ path: ["source", "uuid"] }, { parameter: this.entityUuid }],
         },
       ],
     };
@@ -563,13 +548,13 @@ export default class {
       filter: {
         all: [
           { equal: [{ path: ["version"] }, { parameter: "latest" }] },
-          { equal: [{ path: ["id"] }, { parameter: this.entityId }] },
+          { equal: [{ path: ["uuid"] }, { parameter: this.entityUuid }] },
         ],
       },
       graphResolveDepths: {
         dataTypeResolveDepth: 0,
         propertyTypeResolveDepth: 0,
-        linkTypeResolveDepth: 0,
+        entityResolveDepth: 0,
         entityTypeResolveDepth: 0,
         ...params,
       },

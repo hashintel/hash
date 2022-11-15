@@ -40,13 +40,13 @@ export default class extends EntityModel {
       SYSTEM_TYPES.entityType.user.schema.$id
     ) {
       throw new EntityTypeMismatchError(
-        entity.entityId,
+        entity.baseId,
         SYSTEM_TYPES.entityType.user.schema.$id,
         entity.entityTypeModel.schema.$id,
       );
     }
 
-    return new UserModel(entity);
+    return new UserModel({ entity, entityTypeModel: entity.entityTypeModel });
   }
 
   /**
@@ -327,7 +327,7 @@ export default class extends EntityModel {
       propertyTypeBaseUri: SYSTEM_TYPES.propertyType.shortName.baseUri,
       value: updatedShortname,
       actorId,
-    }).then((updatedEntity) => new UserModel(updatedEntity));
+    }).then((updatedEntity) => UserModel.fromEntityModel(updatedEntity));
 
     await this.updateKratosIdentityTraits({
       shortname: updatedShortname,
@@ -374,7 +374,7 @@ export default class extends EntityModel {
       actorId,
     });
 
-    return new UserModel(updatedEntity);
+    return UserModel.fromEntityModel(updatedEntity);
   }
 
   getKratosIdentityId(): string {
@@ -475,7 +475,7 @@ export default class extends EntityModel {
 
   async isMemberOfOrg(
     graphApi: GraphApi,
-    params: { orgEntityId: string },
+    params: { orgEntityUuid: string },
   ): Promise<boolean> {
     const orgMemberships = await this.getOrgMemberships(graphApi);
 
@@ -483,7 +483,7 @@ export default class extends EntityModel {
       orgMemberships.map((orgMembership) => orgMembership.getOrg(graphApi)),
     );
 
-    return !!orgs.find(({ entityId }) => entityId === params.orgEntityId);
+    return !!orgs.find(({ entityUuid }) => entityUuid === params.orgEntityUuid);
   }
 
   isAccountSignupComplete(): boolean {

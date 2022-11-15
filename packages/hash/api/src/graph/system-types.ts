@@ -1,13 +1,18 @@
+import { VersionedUri } from "@blockprotocol/type-system-web";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { GraphApi } from "@hashintel/hash-graph-client";
 import { types } from "@hashintel/hash-shared/types";
 import { logger } from "../logger";
 
-import { EntityTypeModel, LinkTypeModel, PropertyTypeModel } from "../model";
+import {
+  EntityTypeModel,
+  // LinkTypeModel,
+  PropertyTypeModel,
+} from "../model";
 import {
   propertyTypeInitializer,
   entityTypeInitializer,
-  linkTypeInitializer,
+  // linkTypeInitializer,
   systemAccountId,
 } from "../model/util";
 
@@ -63,44 +68,48 @@ export let SYSTEM_TYPES: {
      */
     dummy: EntityTypeModel;
   };
-  linkType: {
-    // HASHInstance-related
-    admin: LinkTypeModel;
+  /**
+   * @todo: bring back link types as entity types
+   * @see https://app.asana.com/0/1202805690238892/1203361844133477/f
+   */
+  // linkType: {
+  //   // HASHInstance-related
+  //   admin: LinkTypeModel;
 
-    // User-related
-    hasMembership: LinkTypeModel;
+  //   // User-related
+  //   hasMembership: LinkTypeModel;
 
-    // OrgMembership-related
-    ofOrg: LinkTypeModel;
+  //   // OrgMembership-related
+  //   ofOrg: LinkTypeModel;
 
-    // Block-related
-    blockData: LinkTypeModel;
+  //   // Block-related
+  //   blockData: LinkTypeModel;
 
-    // Page-related
-    contains: LinkTypeModel;
-    parent: LinkTypeModel;
+  //   // Page-related
+  //   contains: LinkTypeModel;
+  //   parent: LinkTypeModel;
 
-    // Comment-related
-    hasText: LinkTypeModel;
-    author: LinkTypeModel;
-  };
+  //   // Comment-related
+  //   hasText: LinkTypeModel;
+  //   author: LinkTypeModel;
+  // };
 };
 
-export const adminLinkTypeInitializer = linkTypeInitializer({
-  ...types.linkType.admin,
-  actorId: systemAccountId,
-});
+// export const adminLinkTypeInitializer = linkTypeInitializer({
+//   ...types.linkType.admin,
+//   actorId: systemAccountId,
+// });
 
 export const hashInstanceEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
 
-  const adminLinkTypeModel = await SYSTEM_TYPES_INITIALIZERS.linkType.admin(
-    graphApi,
-  );
+  // const adminLinkTypeModel = await SYSTEM_TYPES_INITIALIZERS.linkType.admin(
+  //   graphApi,
+  // );
 
-  const userEntityTypeModel = await SYSTEM_TYPES_INITIALIZERS.entityType.user(
-    graphApi,
-  );
+  // const userEntityTypeModel = await SYSTEM_TYPES_INITIALIZERS.entityType.user(
+  //   graphApi,
+  // );
 
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
@@ -108,10 +117,10 @@ export const hashInstanceEntityTypeInitializer = async (graphApi: GraphApi) => {
     ...types.entityType.hashInstance,
     properties: [],
     outgoingLinks: [
-      {
-        linkTypeModel: adminLinkTypeModel,
-        destinationEntityTypeModels: [userEntityTypeModel],
-      },
+      // {
+      //   linkTypeModel: adminLinkTypeModel,
+      //   destinationEntityTypeModels: [userEntityTypeModel],
+      // },
     ],
     actorId: systemAccountId,
   })(graphApi);
@@ -181,13 +190,14 @@ const orgMembershipEntityTypeInitializer = async (graphApi: GraphApi) => {
   const responsibilityPropertyTypeModel =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.responsibility(graphApi);
 
-  const orgEntityTypeModel = await SYSTEM_TYPES_INITIALIZERS.entityType.org(
-    graphApi,
-  );
+  // const orgEntityTypeModel = await SYSTEM_TYPES_INITIALIZERS.entityType.org(
+  //   graphApi,
+  // );
 
-  const ofOrgLinkTypeModel = await SYSTEM_TYPES_INITIALIZERS.linkType.ofOrg(
-    graphApi,
-  );
+  // const ofOrgLinkTypeModel = await SYSTEM_TYPES_INITIALIZERS.linkType.ofOrg(
+  //   graphApi,
+  // );
+
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
   return entityTypeInitializer({
@@ -199,11 +209,11 @@ const orgMembershipEntityTypeInitializer = async (graphApi: GraphApi) => {
       },
     ],
     outgoingLinks: [
-      {
-        linkTypeModel: ofOrgLinkTypeModel,
-        destinationEntityTypeModels: [orgEntityTypeModel],
-        required: true,
-      },
+      // {
+      //   linkTypeModel: ofOrgLinkTypeModel,
+      //   destinationEntityTypeModels: [orgEntityTypeModel],
+      //   required: true,
+      // },
     ],
     actorId: systemAccountId,
   })(graphApi);
@@ -251,15 +261,15 @@ const responsibilityPropertyTypeInitializer = propertyTypeInitializer({
   actorId: systemAccountId,
 });
 
-const ofOrgLinkTypeInitializer = linkTypeInitializer({
-  ...types.linkType.ofOrg,
-  actorId: systemAccountId,
-});
+// const ofOrgLinkTypeInitializer = linkTypeInitializer({
+//   ...types.linkType.ofOrg,
+//   actorId: systemAccountId,
+// });
 
-const hasMembershipLinkTypeInitializer = linkTypeInitializer({
-  ...types.linkType.hasMembership,
-  actorId: systemAccountId,
-});
+// const hasMembershipLinkTypeInitializer = linkTypeInitializer({
+//   ...types.linkType.hasMembership,
+//   actorId: systemAccountId,
+// });
 
 const userEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
@@ -275,11 +285,11 @@ const userEntityTypeInitializer = async (graphApi: GraphApi) => {
   const preferredNamePropertyTypeModel =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.preferredName(graphApi);
 
-  const hasMembershipLinkTypeModel =
-    await SYSTEM_TYPES_INITIALIZERS.linkType.hasMembership(graphApi);
+  // const hasMembershipLinkTypeModel =
+  //   await SYSTEM_TYPES_INITIALIZERS.linkType.hasMembership(graphApi);
 
-  const orgMembershipEntityTypeModel =
-    await SYSTEM_TYPES_INITIALIZERS.entityType.orgMembership(graphApi);
+  // const orgMembershipEntityTypeModel =
+  //   await SYSTEM_TYPES_INITIALIZERS.entityType.orgMembership(graphApi);
 
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
@@ -304,10 +314,10 @@ const userEntityTypeInitializer = async (graphApi: GraphApi) => {
       },
     ],
     outgoingLinks: [
-      {
-        linkTypeModel: hasMembershipLinkTypeModel,
-        destinationEntityTypeModels: [orgMembershipEntityTypeModel],
-      },
+      // {
+      //   linkTypeModel: hasMembershipLinkTypeModel,
+      //   destinationEntityTypeModels: [orgMembershipEntityTypeModel],
+      // },
     ],
     actorId: systemAccountId,
   })(graphApi);
@@ -319,10 +329,10 @@ const componentIdPropertyTypeInitializer = propertyTypeInitializer({
   actorId: systemAccountId,
 });
 
-const blockDataLinkTypeInitializer = linkTypeInitializer({
-  ...types.linkType.blockData,
-  actorId: systemAccountId,
-});
+// const blockDataLinkTypeInitializer = linkTypeInitializer({
+//   ...types.linkType.blockData,
+//   actorId: systemAccountId,
+// });
 
 const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
@@ -330,12 +340,12 @@ const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
   const componentIdPropertyTypeModel =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.componentId(graphApi);
 
-  const blockDataLinkTypeModel =
-    await SYSTEM_TYPES_INITIALIZERS.linkType.blockData(graphApi);
+  // const blockDataLinkTypeModel =
+  //   await SYSTEM_TYPES_INITIALIZERS.linkType.blockData(graphApi);
 
-  const dummyEntityTypeModel = await SYSTEM_TYPES_INITIALIZERS.entityType.dummy(
-    graphApi,
-  );
+  // const dummyEntityTypeModel = await SYSTEM_TYPES_INITIALIZERS.entityType.dummy(
+  //   graphApi,
+  // );
 
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
@@ -348,15 +358,15 @@ const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
       },
     ],
     outgoingLinks: [
-      {
-        linkTypeModel: blockDataLinkTypeModel,
-        /**
-         * @todo: unset this when the destination entity type can be undefined
-         * @see https://app.asana.com/0/1202805690238892/1203015527055368/f
-         */
-        destinationEntityTypeModels: [dummyEntityTypeModel],
-        required: true,
-      },
+      // {
+      //   linkTypeModel: blockDataLinkTypeModel,
+      //   /**
+      //    * @todo: unset this when the destination entity type can be undefined
+      //    * @see https://app.asana.com/0/1202805690238892/1203015527055368/f
+      //    */
+      //   destinationEntityTypeModels: [dummyEntityTypeModel],
+      //   required: true,
+      // },
     ],
     actorId: systemAccountId,
   })(graphApi);
@@ -436,15 +446,15 @@ const iconPropertyTypeInitializer = propertyTypeInitializer({
   actorId: systemAccountId,
 });
 
-const containsLinkTypeInitializer = linkTypeInitializer({
-  ...types.linkType.contains,
-  actorId: systemAccountId,
-});
+// const containsLinkTypeInitializer = linkTypeInitializer({
+//   ...types.linkType.contains,
+//   actorId: systemAccountId,
+// });
 
-const parentLinkTypeInitializer = linkTypeInitializer({
-  ...types.linkType.parent,
-  actorId: systemAccountId,
-});
+// const parentLinkTypeInitializer = linkTypeInitializer({
+//   ...types.linkType.parent,
+//   actorId: systemAccountId,
+// });
 
 const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
@@ -464,15 +474,15 @@ const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
   const iconPropertyTypeModel =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.icon(graphApi);
 
-  const containsLinkTypeModel =
-    await SYSTEM_TYPES_INITIALIZERS.linkType.contains(graphApi);
+  // const containsLinkTypeModel =
+  //   await SYSTEM_TYPES_INITIALIZERS.linkType.contains(graphApi);
 
-  const parentLinkTypeTypeModel =
-    await SYSTEM_TYPES_INITIALIZERS.linkType.parent(graphApi);
+  // const parentLinkTypeTypeModel =
+  //   await SYSTEM_TYPES_INITIALIZERS.linkType.parent(graphApi);
 
-  const blockEntityTypeModel = await SYSTEM_TYPES_INITIALIZERS.entityType.block(
-    graphApi,
-  );
+  // const blockEntityTypeModel = await SYSTEM_TYPES_INITIALIZERS.entityType.block(
+  //   graphApi,
+  // );
 
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
@@ -498,17 +508,17 @@ const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
       },
     ],
     outgoingLinks: [
-      {
-        linkTypeModel: containsLinkTypeModel,
-        destinationEntityTypeModels: [blockEntityTypeModel],
-        required: true,
-        array: true,
-        ordered: true,
-      },
-      {
-        linkTypeModel: parentLinkTypeTypeModel,
-        destinationEntityTypeModels: ["SELF_REFERENCE"],
-      },
+      // {
+      //   linkTypeModel: containsLinkTypeModel,
+      //   destinationEntityTypeModels: [blockEntityTypeModel],
+      //   required: true,
+      //   array: true,
+      //   ordered: true,
+      // },
+      // {
+      //   linkTypeModel: parentLinkTypeTypeModel,
+      //   destinationEntityTypeModels: ["SELF_REFERENCE"],
+      // },
     ],
     actorId: systemAccountId,
   })(graphApi);
@@ -526,15 +536,15 @@ const deletedAtPropertyTypeInitializer = propertyTypeInitializer({
   actorId: systemAccountId,
 });
 
-const hasTextLinkTypeInitializer = linkTypeInitializer({
-  ...types.linkType.hasText,
-  actorId: systemAccountId,
-});
+// const hasTextLinkTypeInitializer = linkTypeInitializer({
+//   ...types.linkType.hasText,
+//   actorId: systemAccountId,
+// });
 
-const authorLinkTypeInitializer = linkTypeInitializer({
-  ...types.linkType.author,
-  actorId: systemAccountId,
-});
+// const authorLinkTypeInitializer = linkTypeInitializer({
+//   ...types.linkType.author,
+//   actorId: systemAccountId,
+// });
 
 const commentEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
@@ -545,27 +555,27 @@ const commentEntityTypeInitializer = async (graphApi: GraphApi) => {
   const deletedAtPropertyTypeModel =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.deletedAt(graphApi);
 
-  const hasTextLinkTypeModel = await SYSTEM_TYPES_INITIALIZERS.linkType.hasText(
-    graphApi,
-  );
+  // const hasTextLinkTypeModel = await SYSTEM_TYPES_INITIALIZERS.linkType.hasText(
+  //   graphApi,
+  // );
 
-  const parentLinkTypeTypeModel =
-    await SYSTEM_TYPES_INITIALIZERS.linkType.parent(graphApi);
+  // const parentLinkTypeTypeModel =
+  //   await SYSTEM_TYPES_INITIALIZERS.linkType.parent(graphApi);
 
-  const authorLinkTypeTypeModel =
-    await SYSTEM_TYPES_INITIALIZERS.linkType.author(graphApi);
+  // const authorLinkTypeTypeModel =
+  //   await SYSTEM_TYPES_INITIALIZERS.linkType.author(graphApi);
 
-  const userEntityTypeModel = await SYSTEM_TYPES_INITIALIZERS.entityType.user(
-    graphApi,
-  );
+  // const userEntityTypeModel = await SYSTEM_TYPES_INITIALIZERS.entityType.user(
+  //   graphApi,
+  // );
 
-  const textEntityTypeModel = await SYSTEM_TYPES_INITIALIZERS.entityType.text(
-    graphApi,
-  );
+  // const textEntityTypeModel = await SYSTEM_TYPES_INITIALIZERS.entityType.text(
+  //   graphApi,
+  // );
 
-  const blockEntityTypeModel = await SYSTEM_TYPES_INITIALIZERS.entityType.block(
-    graphApi,
-  );
+  // const blockEntityTypeModel = await SYSTEM_TYPES_INITIALIZERS.entityType.block(
+  //   graphApi,
+  // );
 
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
@@ -580,21 +590,21 @@ const commentEntityTypeInitializer = async (graphApi: GraphApi) => {
       },
     ],
     outgoingLinks: [
-      {
-        linkTypeModel: hasTextLinkTypeModel,
-        destinationEntityTypeModels: [textEntityTypeModel],
-        required: true,
-      },
-      {
-        linkTypeModel: parentLinkTypeTypeModel,
-        destinationEntityTypeModels: ["SELF_REFERENCE", blockEntityTypeModel],
-        required: true,
-      },
-      {
-        linkTypeModel: authorLinkTypeTypeModel,
-        destinationEntityTypeModels: [userEntityTypeModel],
-        required: true,
-      },
+      // {
+      //   linkTypeModel: hasTextLinkTypeModel,
+      //   destinationEntityTypeModels: [textEntityTypeModel],
+      //   required: true,
+      // },
+      // {
+      //   linkTypeModel: parentLinkTypeTypeModel,
+      //   destinationEntityTypeModels: ["SELF_REFERENCE", blockEntityTypeModel],
+      //   required: true,
+      // },
+      // {
+      //   linkTypeModel: authorLinkTypeTypeModel,
+      //   destinationEntityTypeModels: [userEntityTypeModel],
+      //   required: true,
+      // },
     ],
     actorId: systemAccountId,
   })(graphApi);
@@ -649,16 +659,16 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     text: textEntityTypeInitializer,
     dummy: dummyEntityTypeInitializer,
   },
-  linkType: {
-    admin: adminLinkTypeInitializer,
-    ofOrg: ofOrgLinkTypeInitializer,
-    hasMembership: hasMembershipLinkTypeInitializer,
-    blockData: blockDataLinkTypeInitializer,
-    contains: containsLinkTypeInitializer,
-    parent: parentLinkTypeInitializer,
-    hasText: hasTextLinkTypeInitializer,
-    author: authorLinkTypeInitializer,
-  },
+  // linkType: {
+  //   admin: adminLinkTypeInitializer,
+  //   ofOrg: ofOrgLinkTypeInitializer,
+  //   hasMembership: hasMembershipLinkTypeInitializer,
+  //   blockData: blockDataLinkTypeInitializer,
+  //   contains: containsLinkTypeInitializer,
+  //   parent: parentLinkTypeInitializer,
+  //   hasText: hasTextLinkTypeInitializer,
+  //   author: authorLinkTypeInitializer,
+  // },
 };
 
 /**

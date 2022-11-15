@@ -44,8 +44,8 @@ import { getAwsRegion } from "./lib/aws-config";
 import { setupTelemetry } from "./telemetry/snowplow-setup";
 import { connectToTaskExecutor } from "./task-execution";
 import { createGraphClient } from "./graph";
-import { seedOrgsAndUsers } from "./seed-data";
-import { ensureSystemEntitiesExists } from "./graph/system-entities";
+// import { seedOrgsAndUsers } from "./seed-data";
+// import { ensureSystemEntitiesExists } from "./graph/system-entities";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
@@ -132,7 +132,11 @@ const main = async () => {
 
   await ensureSystemTypesExist({ graphApi, logger });
 
-  await ensureSystemEntitiesExists({ graphApi, logger });
+  /**
+   * @todo: fix this when links are working
+   * @see https://app.asana.com/0/1202805690238892/1203361844133479/f
+   */
+  // await ensureSystemEntitiesExists({ graphApi, logger });
 
   // Set sensible default security headers: https://www.npmjs.com/package/helmet
   // Temporarily disable contentSecurityPolicy for the GraphQL playground
@@ -148,7 +152,11 @@ const main = async () => {
 
   if (isDevEnv) {
     // This will seed users, an org and pages.
-    await seedOrgsAndUsers({ graphApi, logger });
+    /**
+     * @todo: fix this when links are working
+     * @see https://app.asana.com/0/1202805690238892/1203361844133479/f
+     */
+    // await seedOrgsAndUsers({ graphApi, logger });
   }
 
   // Create an email transporter

@@ -22,7 +22,7 @@
     "@aws-sdk/s3-presigned-post": "3.38.0",
     "@aws-sdk/s3-request-presigner": "3.38.0",
     "@blockprotocol/core": "0.0.12",
-    "@blockprotocol/type-system-web": "https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system-web?6526c0e",
+    "@blockprotocol/type-system-web": "https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system-web?244d25a",
     "@graphql-tools/schema": "8.5.0",
     "@hashintel/hash-backend-utils": "0.0.0-private",
     "@hashintel/hash-graph-client": "0.0.0-private",
