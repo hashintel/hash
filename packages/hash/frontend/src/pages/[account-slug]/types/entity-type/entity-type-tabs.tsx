@@ -23,10 +23,12 @@ export const EntityTypeTabs = () => {
     [router.query],
   );
 
+  const currentTab = router.query.tab ?? "";
+
   return (
     <Box display="flex" overflow="visible">
       <Tabs
-        value={router.asPath}
+        value={currentTab}
         TabIndicatorProps={{
           sx: ({ palette }) => ({
             height: 3,
@@ -45,16 +47,18 @@ export const EntityTypeTabs = () => {
         }}
       >
         <TabLink
-          value={baseUri}
+          value=""
+          href={baseUri}
           label="Definition"
           count={propertiesCount}
-          active={router.asPath === baseUri}
+          active={currentTab === ""}
         />
         <TabLink
-          value={`${baseUri}/entities`}
+          value="entities"
+          href={`${baseUri}?tab=entities`}
           label="Entities"
           count={entities?.length}
-          active={router.asPath === `${baseUri}/entities`}
+          active={currentTab === "entities"}
         />
       </Tabs>
 

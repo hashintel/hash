@@ -10,7 +10,7 @@ import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon"
 import { Box, Container, Typography } from "@mui/material";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
-import { FunctionComponent, ReactElement, ReactNode, useMemo } from "react";
+import { useMemo } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { frontendUrl } from "@hashintel/hash-shared/environment";
 import { TopContextBar } from "../../../shared/top-context-bar";
@@ -29,6 +29,10 @@ import {
 } from "./use-entity-type-entities";
 import { EntityTypeTabs } from "./entity-type-tabs";
 import { EntityTypeContext, useEntityTypeValue } from "./use-entity-type";
+import { NextPageWithLayout } from "../../../../shared/layout";
+import { getPlainLayout } from "../../../../shared/layout/plain-layout";
+import { DefinitionTab } from "./tabs/definition-tab";
+import { EntitiesTab } from "./tabs/entities-tab";
 
 const getBaseUri = (entityTypeId: string, namespace: string) =>
   `${frontendUrl}/@${namespace}/types/entity-type/${entityTypeId}/`;
@@ -67,13 +71,7 @@ const getSchemaFromEditorForm = (
   };
 };
 
-export interface EntityTypeEditorHeaderProps {
-  children?: ReactNode;
-}
-
-export const EntityTypeHeader: FunctionComponent<
-  EntityTypeEditorHeaderProps
-> = ({ children }) => {
+const Page: NextPageWithLayout = () => {
   const router = useRouter();
 
   // @todo how to handle remote types
@@ -173,6 +171,8 @@ export const EntityTypeHeader: FunctionComponent<
   const currentVersion = draftEntityType
     ? 0
     : extractVersion(mustBeVersionedUri(entityType.$id));
+
+  const currentTab = router.query.tab ?? "";
 
   return (
     <FormProvider {...formMethods}>
@@ -276,7 +276,10 @@ export const EntityTypeHeader: FunctionComponent<
             </Box>
 
             <Box py={5}>
-              <Container>{children}</Container>
+              <Container>
+                {currentTab === "" ? <DefinitionTab /> : null}
+                {currentTab === "entities" ? <EntitiesTab /> : null}
+              </Container>
             </Box>
           </Box>
         </EntityTypeEntitiesContext.Provider>
@@ -285,6 +288,6 @@ export const EntityTypeHeader: FunctionComponent<
   );
 };
 
-export const getEntityTypeEditorLayout = (page: ReactElement) => {
-  return <EntityTypeHeader>{page}</EntityTypeHeader>;
-};
+Page.getLayout = (page) => getPlainLayout(page);
+
+export default Page;

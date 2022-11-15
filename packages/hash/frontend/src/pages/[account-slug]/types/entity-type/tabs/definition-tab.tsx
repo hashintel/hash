@@ -1,14 +1,13 @@
 import { Box, Typography } from "@mui/material";
-import { NextPageWithLayout } from "../../../../../shared/layout";
+import { FunctionComponent } from "react";
 import { PropertyListCard } from "../property-list-card";
 import {
   PropertyTypesContext,
   usePropertyTypesContextValue,
 } from "../use-property-types";
-import { getEntityTypeEditorLayout } from "../entity-type-header";
 import { useEntityType } from "../use-entity-type";
 
-const Page: NextPageWithLayout = () => {
+export const DefinitionTab: FunctionComponent = () => {
   const propertyTypes = usePropertyTypesContextValue();
   const entityType = useEntityType();
 
@@ -24,6 +23,3 @@ const Page: NextPageWithLayout = () => {
     </PropertyTypesContext.Provider>
   );
 };
-Page.getLayout = getEntityTypeEditorLayout;
-
-export default Page;

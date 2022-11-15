@@ -4,6 +4,7 @@ import { FunctionComponent } from "react";
 
 export type TabLinkProps = {
   label: string;
+  href: string;
   value: string;
   count?: number;
   active?: boolean;
@@ -11,6 +12,7 @@ export type TabLinkProps = {
 
 export const TabLink: FunctionComponent<TabLinkProps> = ({
   label,
+  href,
   value,
   count,
   active,
@@ -22,11 +24,11 @@ export const TabLink: FunctionComponent<TabLinkProps> = ({
     <Tab
       {...props}
       value={value}
-      href={value}
+      href={href}
       component="a"
       onClick={(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
         event.preventDefault();
-        void router.push(value, undefined, { shallow: true });
+        void router.push(href, undefined, { shallow: true });
       }}
       label={
         <Stack direction="row">
