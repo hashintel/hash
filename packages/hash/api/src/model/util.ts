@@ -234,7 +234,7 @@ export type EntityTypeCreatorParams = {
     array?: { minItems?: number; maxItems?: number } | boolean;
   }[];
   outgoingLinks: {
-    entityLinkTypeModel: EntityTypeModel;
+    linkEntityTypeModel: EntityTypeModel;
     destinationEntityTypeModels: (
       | EntityTypeModel
       // Some models may reference themselves. This marker is used to stop infinite loops during initialization by telling the initializer to use a self reference
@@ -282,7 +282,7 @@ export const generateSystemEntityTypeSchema = (
           (
             prev,
             {
-              entityLinkTypeModel,
+              linkEntityTypeModel,
               destinationEntityTypeModels,
               ordered = false,
               minItems,
@@ -290,7 +290,7 @@ export const generateSystemEntityTypeSchema = (
             },
           ): EntityType["links"] => ({
             ...prev,
-            [entityLinkTypeModel.schema.$id]: {
+            [linkEntityTypeModel.schema.$id]: {
               type: "array",
               ordered,
               items: {
@@ -313,7 +313,7 @@ export const generateSystemEntityTypeSchema = (
 
   const requiredLinks = params.outgoingLinks
     .filter(({ required }) => !!required)
-    .map(({ entityLinkTypeModel }) => entityLinkTypeModel.schema.$id);
+    .map(({ linkEntityTypeModel }) => linkEntityTypeModel.schema.$id);
 
   return {
     $id: params.entityTypeId,
@@ -327,14 +327,14 @@ export const generateSystemEntityTypeSchema = (
   };
 };
 
-export type EntityLinkTypeCreatorParams = {
-  entityLinkTypeId: VersionedUri;
+export type LinkEntityTypeCreatorParams = {
+  linkEntityTypeId: VersionedUri;
   title: string;
   description: string;
   actorId: string;
 };
 
-const entityLinkTypeUri: VersionedUri =
+const linkEntityTypeUri: VersionedUri =
   "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1";
 
 /**
@@ -343,15 +343,15 @@ const entityLinkTypeUri: VersionedUri =
  * @todo make use of new type system package instead of ad-hoc types.
  *   https://app.asana.com/0/1202805690238892/1202892835843657/f
  */
-export const generateSystemEntityLinkTypeSchema = (
-  params: EntityLinkTypeCreatorParams,
+export const generateSystemLinkEntityTypeSchema = (
+  params: LinkEntityTypeCreatorParams,
 ): EntityType => {
   return {
     kind: "entityType",
-    $id: params.entityLinkTypeId,
+    $id: params.linkEntityTypeId,
     type: "object",
     title: params.title,
-    allOf: [{ $ref: entityLinkTypeUri }],
+    allOf: [{ $ref: linkEntityTypeUri }],
     properties: {},
   };
 };
@@ -365,7 +365,7 @@ export const generateSystemEntityLinkTypeSchema = (
  * @returns an async function which can be called to initialize the entity type, returning its EntityTypeModel
  */
 export const entityTypeInitializer = (
-  params: EntityTypeCreatorParams | EntityLinkTypeCreatorParams,
+  params: EntityTypeCreatorParams | LinkEntityTypeCreatorParams,
 ): ((graphApi: GraphApi) => Promise<EntityTypeModel>) => {
   let entityTypeModel: EntityTypeModel;
 
@@ -378,8 +378,8 @@ export const entityTypeInitializer = (
       );
     } else {
       const entityType =
-        "entityLinkTypeId" in params
-          ? generateSystemEntityLinkTypeSchema(params)
+        "linkEntityTypeId" in params
+          ? generateSystemLinkEntityTypeSchema(params)
           : generateSystemEntityTypeSchema(params);
 
       // initialize

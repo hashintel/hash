@@ -225,7 +225,7 @@ export type SystemPropertyTypeTitle =
 /**
  * The system link type titles.
  */
-const systemEntityLinkTypes = {
+const systemLinkEntityTypes = {
   hasMembership: {
     title: "Has Membership",
     description: "Having a membership.",
@@ -260,10 +260,10 @@ const systemEntityLinkTypes = {
   },
 } as const;
 
-type SystemEntityLinkTypeKey = keyof typeof systemEntityLinkTypes;
+type SystemLinkEntityTypeKey = keyof typeof systemLinkEntityTypes;
 
-export type SystemEntityLinkTypeTitle =
-  typeof systemEntityLinkTypes[SystemEntityLinkTypeKey];
+export type SystemLinkEntityTypeTitle =
+  typeof systemLinkEntityTypes[SystemLinkEntityTypeKey];
 
 /**
  * The primitive data types ("Text", "Number", etc.)
@@ -311,14 +311,14 @@ type PropertyTypeDefinition = TypeDefinition & { propertyTypeId: VersionedUri };
 
 type DataTypeDefinition = TypeDefinition & { dataTypeId: VersionedUri };
 
-type EntityLinkTypeDefinition = TypeDefinition & {
-  entityLinkTypeId: VersionedUri;
+type LinkEntityTypeDefinition = TypeDefinition & {
+  linkEntityTypeId: VersionedUri;
   description: string;
 };
 
 type TypeDefinitions = {
   entityType: Record<SystemEntityTypeKey, EntityTypeDefinition>;
-  entityLinkType: Record<SystemEntityLinkTypeKey, EntityLinkTypeDefinition>;
+  linkEntityType: Record<SystemLinkEntityTypeKey, LinkEntityTypeDefinition>;
   propertyType: Record<SystemPropertyTypeKey, PropertyTypeDefinition>;
   dataType: Record<PrimitiveDataTypeKey, DataTypeDefinition>;
 };
@@ -369,12 +369,12 @@ export const types: TypeDefinitions = {
     },
     {} as Record<PrimitiveDataTypeKey, DataTypeDefinition>,
   ),
-  entityLinkType: Object.entries(systemEntityLinkTypes).reduce(
+  linkEntityType: Object.entries(systemLinkEntityTypes).reduce(
     (prev, [key, { title, description }]) => {
-      const definition: EntityLinkTypeDefinition = {
+      const definition: LinkEntityTypeDefinition = {
         title,
         description,
-        entityLinkTypeId: generateSystemTypeId({
+        linkEntityTypeId: generateSystemTypeId({
           kind: "entity-type",
           title,
         }),
@@ -382,6 +382,6 @@ export const types: TypeDefinitions = {
 
       return { ...prev, [key]: definition };
     },
-    {} as Record<SystemEntityLinkTypeKey, EntityLinkTypeDefinition>,
+    {} as Record<SystemLinkEntityTypeKey, LinkEntityTypeDefinition>,
   ),
 };
