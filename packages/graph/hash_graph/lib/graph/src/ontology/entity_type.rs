@@ -290,8 +290,7 @@ impl RecordPath for EntityTypeQueryPath {
                 ParameterType::Any
             }
             Self::Properties(path) => path.expected_type(),
-            Self::Links(path) => path.expected_type(),
-            Self::InheritsFrom(path) => path.expected_type(),
+            Self::Links(path) | Self::InheritsFrom(path) => path.expected_type(),
         }
     }
 }

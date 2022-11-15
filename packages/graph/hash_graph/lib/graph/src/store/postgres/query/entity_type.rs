@@ -34,6 +34,9 @@ impl Path for EntityTypeQueryPath {
             Self::Properties(path) => once(Relation::EntityTypePropertyTypeReferences)
                 .chain(path.relations())
                 .collect(),
+            Self::Links(path) => once(Relation::EntityTypeLinks)
+                .chain(path.relations())
+                .collect(),
             Self::InheritsFrom(path) => once(Relation::EntityTypeInheritance)
                 .chain(path.relations())
                 .collect(),

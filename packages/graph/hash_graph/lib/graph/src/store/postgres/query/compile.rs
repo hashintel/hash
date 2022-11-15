@@ -6,7 +6,7 @@ use tokio_postgres::row::RowIndex;
 use crate::store::{
     postgres::query::{
         expression::Constant,
-        table::{Entities, JsonField, TypeIds},
+        table::{Entities, EntityTypes, JsonField, Relation, TypeIds},
         Alias, AliasedColumn, AliasedTable, Column, Condition, Distinctness, EqualityOperator,
         Expression, Function, JoinExpression, OrderByExpression, Ordering, Path,
         PostgresQueryRecord, SelectExpression, SelectStatement, Table, Transpile, WhereExpression,
@@ -321,6 +321,67 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
         }
     }
 
+    fn add_special_relation_conditions(
+        &mut self,
+        relation: Relation,
+        current_alias: Alias,
+        current_table: AliasedTable,
+    ) {
+        match relation {
+            Relation::EntityTypeLinks => {
+                self.artifacts.required_tables.insert(current_table);
+                self.statement
+                    .where_expression
+                    .add_condition(Condition::NotEqual(
+                        Some(Expression::Function(Box::new(Function::JsonExtractPath(
+                            vec![
+                                Expression::Column(
+                                    Column::EntityTypes(EntityTypes::Schema(None))
+                                        .aliased(current_alias),
+                                ),
+                                Expression::Constant(Constant::String("links")),
+                                Expression::Column(
+                                    Column::EntityTypes(EntityTypes::Schema(Some(
+                                        JsonField::Text(&Cow::Borrowed("$id")),
+                                    )))
+                                    .aliased(current_table.alias),
+                                ),
+                            ],
+                        )))),
+                        None,
+                    ));
+            }
+            Relation::EntityTypeInheritance => {
+                self.artifacts.required_tables.insert(current_table);
+                self.statement
+                    .where_expression
+                    .add_condition(Condition::NotEqual(
+                        Some(Expression::Function(Box::new(Function::JsonContains(
+                            Expression::Column(
+                                Column::EntityTypes(EntityTypes::Schema(Some(JsonField::Json(
+                                    &Cow::Borrowed("allOf"),
+                                ))))
+                                .aliased(current_alias),
+                            ),
+                            Expression::Function(Box::new(Function::JsonBuildArray(vec![
+                                Expression::Function(Box::new(Function::JsonBuildObject(vec![(
+                                    Expression::Constant(Constant::String("$ref")),
+                                    Expression::Column(
+                                        Column::EntityTypes(EntityTypes::Schema(Some(
+                                            JsonField::Text(&Cow::Borrowed("$id")),
+                                        )))
+                                        .aliased(current_table.alias),
+                                    ),
+                                )]))),
+                            ]))),
+                        )))),
+                        None,
+                    ));
+            }
+            _ => {}
+        }
+    }
+
     /// Joins a chain of [`Relation`]s and returns the table name of the last joined table.
     ///
     /// Joining the tables attempts to deduplicate [`JoinExpression`]s. As soon as a new filter was
@@ -331,6 +392,7 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
         let mut current_table = self.statement.from;
 
         for relation in path.relations() {
+            let current_alias = current_table.alias;
             for (current_column, join_column) in relation.joins() {
                 let current_column = current_column.aliased(current_table.alias);
                 let mut join_column = join_column.aliased(Alias {
@@ -393,7 +455,9 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
                     self.statement.joins.push(join_expression);
                 }
             }
+            self.add_special_relation_conditions(relation, current_alias, current_table);
         }
+
         self.artifacts.required_tables.insert(current_table);
         current_table.alias
     }
