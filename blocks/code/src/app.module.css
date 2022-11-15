@@ -1,8 +1,8 @@
-.outerWrapper {
+.block {
   width: 100%;
 }
 
-.wrapper {
+.blockInnerWrapper {
   position: relative;
   padding-left: 2rem;
   padding-right: 2rem;
@@ -12,29 +12,29 @@
   font-family: Inter, "Helvetica", "Arial", sans-serif;
 }
 
-.wrapper *,
-.wrapper ::before,
-.wrapper ::after {
+.block *,
+.block ::before,
+.block ::after {
   border: 0px solid rgb(229, 231, 235);
   box-sizing: border-box;
 }
 
-.wrapper button,
-.wrapper input,
-.wrapper select,
-.wrapper textarea {
+.block button,
+.block input,
+.block select,
+.block textarea {
   font-family: inherit;
   font-size: 100%;
   line-height: inherit;
   color: inherit;
 }
 
-.wrapper input,
-.wrapper textarea {
+.block input,
+.block textarea {
   padding: 0;
 }
 
-.wrapper button {
+.block button {
   cursor: pointer;
 }
 

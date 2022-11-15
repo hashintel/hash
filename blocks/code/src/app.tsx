@@ -129,8 +129,8 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   };
 
   return (
-    <div className={styles.outerWrapper} ref={blockRef}>
-      <div className={styles.wrapper}>
+    <div className={styles.block} ref={blockRef}>
+      <div className={styles.blockInnerWrapper}>
         <div className={styles.topPanel}>
           <select
             className={styles.languageSelect}
