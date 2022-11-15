@@ -193,8 +193,6 @@ pub enum EntityQueryPath<'q> {
     OutgoingLinks(Box<Self>),
     /// Corresponds to the entity specified by [`LinkEntityMetadata::left_entity_id()`].
     ///
-    /// It's `None` if this entity is not a link.
-    ///
     /// Deserializes from `["leftEntity", ...]` where `...` is the path of the left [`Entity`].
     ///
     /// ```rust
@@ -213,8 +211,6 @@ pub enum EntityQueryPath<'q> {
     /// [`LinkEntityMetadata::left_entity_id()`]: crate::knowledge::LinkEntityMetadata::left_entity_id
     LeftEntity(Box<Self>),
     /// Corresponds to the entity specified by [`LinkEntityMetadata::right_entity_id()`].
-    ///
-    /// It's `None` if this entity is not a link.
     ///
     /// Deserializes from `["leftEntity", ...]` where `...` is the path of the right [`Entity`].
     ///
