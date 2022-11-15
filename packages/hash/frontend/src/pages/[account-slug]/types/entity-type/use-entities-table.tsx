@@ -61,6 +61,7 @@ export const useEntitiesTable = (
         id: "namespace",
         width: 250,
       },
+      /** @todo: uncomment this when we have additional types for entities */
       // {
       //   title: "Additional Types",
       //   id: "additionalTypes",
@@ -91,6 +92,7 @@ export const useEntitiesTable = (
               }`
             : "",
           namespace: entityNamespace ? `@${entityNamespace}` : "",
+          /** @todo: uncomment this when we have additional types for entities */
           // additionalTypes: "",
           ...propertyColumns.reduce((fields, column) => {
             if (column.id) {
