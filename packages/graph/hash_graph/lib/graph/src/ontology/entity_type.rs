@@ -189,8 +189,26 @@ pub enum EntityTypeQueryPath {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     Required,
-    // TODO: https://app.asana.com/0/1200211978612931/1203250001255262/f
-    // Links(LinkTypeQueryPath),
+    /// Corresponds to the keys of [`EntityType::link_mappings()`].
+    ///
+    /// As an [`EntityType`] can link to multiple [`EntityType`]s, the deserialized path
+    /// requires an additional selector to identify the [`EntityType`] to query. Currently,
+    /// only the `*` selector is available, so the path will be deserialized as
+    /// `["inheritsFrom", "*", ...]` where `...` is the path to the desired field of the
+    /// [`EntityType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["links", "*", "baseUri"]))?;
+    /// assert_eq!(
+    ///     path,
+    ///     EntityTypeQueryPath::Links(Box::new(EntityTypeQueryPath::BaseUri))
+    /// );
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    Links(Box<Self>),
     /// Corresponds to [`EntityType::required_links()`].
     ///
     /// ```rust
@@ -272,8 +290,7 @@ impl RecordPath for EntityTypeQueryPath {
                 ParameterType::Any
             }
             Self::Properties(path) => path.expected_type(),
-            // TODO: https://app.asana.com/0/1200211978612931/1203250001255262/f
-            // Self::Links(path) => path.expected_type(),
+            Self::Links(path) => path.expected_type(),
             Self::InheritsFrom(path) => path.expected_type(),
         }
     }
@@ -296,8 +313,7 @@ impl fmt::Display for EntityTypeQueryPath {
             Self::Examples => fmt.write_str("examples"),
             Self::Properties(path) => write!(fmt, "properties.{path}"),
             Self::Required => fmt.write_str("required"),
-            // TODO: https://app.asana.com/0/1200211978612931/1203250001255262/f
-            // Self::Links(path) => write!(fmt, "links.{path}"),
+            Self::Links(path) => write!(fmt, "links.{path}"),
             Self::RequiredLinks => fmt.write_str("requiredLinks"),
             Self::InheritsFrom(path) => write!(fmt, "inheritsFrom.{path}"),
         }
