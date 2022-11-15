@@ -1,11 +1,10 @@
-import { Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
 import { RefObject } from "react";
 
 export const createFocusPageTitlePlugin = (
   pageTitleRef: RefObject<HTMLTextAreaElement>,
 ) =>
-  new Plugin<unknown, Schema>({
+  new Plugin<unknown>({
     props: {
       handleKeyDown: (view, event) => {
         const isArrowUp = event.key === "ArrowUp";

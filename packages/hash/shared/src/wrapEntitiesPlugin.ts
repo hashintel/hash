@@ -1,26 +1,26 @@
 import { entityStorePluginState } from "@hashintel/hash-shared/entityStorePlugin";
 import { mapValues } from "lodash";
-import { Command } from "prosemirror-commands";
-import { keymap } from "prosemirror-keymap";
-import { ProsemirrorNode, Schema } from "prosemirror-model";
 import {
+  Command,
   EditorState,
   NodeSelection,
   Plugin,
   TextSelection,
   Transaction,
 } from "prosemirror-state";
+import { keymap } from "prosemirror-keymap";
+import { ProsemirrorNode } from "prosemirror-model";
 import { Mapping } from "prosemirror-transform";
 import { getBlockChildEntity, isTextEntity } from "./entity";
 import { isComponentNode, isEntityNode } from "./prosemirror";
 
-type WrapperNodes = [number, ProsemirrorNode<Schema>[]];
+type WrapperNodes = [number, ProsemirrorNode[]];
 type WrapperNodesList = WrapperNodes[];
 
 const getRangeForNodeAtMappedPosition = (
   pos: number,
-  node: ProsemirrorNode<Schema>,
-  tr: Transaction<Schema>,
+  node: ProsemirrorNode,
+  tr: Transaction,
 ) => {
   const $start = tr.doc.resolve(tr.mapping.map(pos));
   const $end = tr.doc.resolve(tr.mapping.map(pos + node.nodeSize));
@@ -37,7 +37,7 @@ const getRangeForNodeAtMappedPosition = (
  * @todo make this take a transaction and not state
  */
 const ensureEntitiesAreWrapped = (
-  state: EditorState<Schema>,
+  state: EditorState,
   wrappers?: WrapperNodesList,
 ) => {
   const { tr, schema, doc } = state;
@@ -53,7 +53,7 @@ const ensureEntitiesAreWrapped = (
      */
     if (
       node.type !== schema.nodes.loading &&
-      parent.type === schema.nodes.doc &&
+      parent?.type === schema.nodes.doc &&
       // a block node is the outermost wrapping layer, and therefore already wrapped
       node.type !== schema.nodes.block
     ) {
@@ -99,11 +99,8 @@ const ensureEntitiesAreWrapped = (
  * appendTransaction (and similar), which can be useful if you need to bypass
  * them.
  */
-const stateWithTransaction = (
-  state: EditorState<Schema>,
-  tr: Transaction<Schema>,
-) =>
-  EditorState.create<Schema>({
+const stateWithTransaction = (state: EditorState, tr: Transaction) =>
+  EditorState.create({
     doc: tr.doc,
     selection: tr.selection,
     plugins: state.plugins,
@@ -114,8 +111,8 @@ const stateWithTransaction = (
  *       other things across
  */
 const combineTransactions = (
-  targetTransaction: Transaction<Schema>,
-  sourceTransaction: Transaction<Schema>,
+  targetTransaction: Transaction,
+  sourceTransaction: Transaction,
 ) => {
   for (const step of sourceTransaction.steps) {
     targetTransaction.step(step);
@@ -137,7 +134,7 @@ const combineTransactions = (
  * @todo ensure we remove undo item if command fails
  */
 const prepareCommandForWrappedEntities =
-  (command: Command<Schema>): Command<Schema> =>
+  (command: Command): Command =>
   (state, dispatch, view) => {
     // @todo maybe this doesn't work now
     if (state.selection instanceof NodeSelection) {
@@ -173,9 +170,7 @@ const prepareCommandForWrappedEntities =
           );
 
           const selection: TextSelection | null =
-            (state.selection as any) instanceof TextSelection
-              ? state.selection
-              : null;
+            state.selection instanceof TextSelection ? state.selection : null;
           const cursorPos = selection?.$cursor?.pos;
 
           const inNode =
@@ -190,7 +185,7 @@ const prepareCommandForWrappedEntities =
               throw new Error("Cannot unwrap");
             }
 
-            const wrapperNodes: ProsemirrorNode<Schema>[] = [];
+            const wrapperNodes: ProsemirrorNode[] = [];
             const $originalStart = state.doc.resolve(pos);
 
             for (let depth = $originalStart.depth; depth > 0; depth--) {
@@ -239,8 +234,8 @@ const prepareCommandForWrappedEntities =
     return retVal;
   };
 
-const wrapEntitiesKeymap = (baseKeymap: Record<string, Command<Schema>>) =>
-  keymap<Schema>({
+const wrapEntitiesKeymap = (baseKeymap: Record<string, Command>) =>
+  keymap({
     /**
      * Wrap all of the default keymap shortcuts to ensure that the block
      * nodeviews are unwrapped before prosemirror logic is applied (the block
@@ -252,16 +247,14 @@ const wrapEntitiesKeymap = (baseKeymap: Record<string, Command<Schema>>) =>
     "Mod-a": baseKeymap["Mod-a"]!,
   });
 
-export const wrapEntitiesPlugin = (
-  baseKeymap: Record<string, Command<Schema>>,
-) => {
+export const wrapEntitiesPlugin = (baseKeymap: Record<string, Command>) => {
   const wrappedKeymapPlugin = wrapEntitiesKeymap(baseKeymap);
 
   /**
    * This plugin ensures at the end of every transaction all necessary nodes
    * are wrapped with block nodeviews
    */
-  const ensureWrappedPlugin = new Plugin<unknown, Schema>({
+  const ensureWrappedPlugin = new Plugin<unknown>({
     appendTransaction: (_, __, newState) => ensureEntitiesAreWrapped(newState),
   });
 
