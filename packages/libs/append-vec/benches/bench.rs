@@ -11,8 +11,8 @@ use std::{
     time::{Duration, Instant},
 };
 
+use append_vec::AVec;
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
-use deer_append_vec::AppendOnlyVec;
 use intrusive_collections::{intrusive_adapter, LinkedListLink};
 
 const N_INSERTIONS: &[usize] = &[100, 300, 500];
@@ -196,7 +196,7 @@ fn push_multi_thread(c: &mut Criterion) {
                 let mut total = Duration::from_secs(0);
 
                 for _ in 0..iters {
-                    let slab = AppendOnlyVec::<usize>::new();
+                    let slab = AVec::<usize>::new();
                     let bench = MultithreadedBench::<_, 5>::new(Arc::new(slab));
 
                     let elapsed = bench.run(move |start, slab| {
@@ -269,7 +269,7 @@ fn push_single_thread(c: &mut Criterion) {
         });
 
         group.bench_with_input(BenchmarkId::new("deer-append-vec", i), i, |b, &i| {
-            b.iter_with_setup(AppendOnlyVec::<usize>::default, |slab| {
+            b.iter_with_setup(AVec::<usize>::default, |slab| {
                 for idx in 0..i {
                     slab.push(idx);
                 }
@@ -373,7 +373,7 @@ fn iter_multi_thread(c: &mut Criterion) {
             b.iter_custom(|iters| {
                 let mut total = Duration::from_secs(0);
 
-                let slab = AppendOnlyVec::<usize>::new();
+                let slab = AVec::<usize>::new();
                 for idx in 0..i {
                     slab.push(idx);
                 }
@@ -460,7 +460,7 @@ fn iter_single_thread(c: &mut Criterion) {
         group.bench_with_input(BenchmarkId::new("deer-append-vec", i), i, |b, &i| {
             b.iter_with_setup(
                 || {
-                    let slab = AppendOnlyVec::<usize>::default();
+                    let slab = AVec::<usize>::default();
 
                     for idx in 0..i {
                         slab.push(idx);

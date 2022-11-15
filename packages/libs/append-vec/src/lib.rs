@@ -6,12 +6,12 @@
 //!
 //! While reading is concurrent and can happen while values are being written,
 //! values can only be written synchronously and are guarded by a spinlock.
-//! This means that [`AppendOnlyVec`] works best when contention is low and values are mostly being
+//! This means that [`AVec`] works best when contention is low and values are mostly being
 //! read.
 //!
 //! ## How it works
 //!
-//! [`AppendOnlyVec`] is based on two parts: length (through an atomic) and an intrusive list of
+//! [`AVec`] is based on two parts: length (through an atomic) and an intrusive list of
 //! arrays which store items.
 //! The size of a bucket can be controlled through the const generic `N`, allowing one to tradeoff
 //! speed vs. allocated space.
@@ -61,7 +61,7 @@
     clippy::nursery,
     clippy::undocumented_unsafe_blocks
 )]
-// TODO: once more stable introduce: warning missing_docs, clippy::missing_errors_doc
+// TODO: once more stable introduce: warning missing_docs
 #![allow(clippy::module_name_repetitions)]
 #![allow(clippy::redundant_pub_crate)]
 
@@ -78,7 +78,7 @@ use crate::{
 mod lock;
 pub(crate) mod sync;
 
-pub struct AppendOnlyVec<T, const N: usize = 16> {
+pub struct AVec<T, const N: usize = 16> {
     length: AtomicUsize,
     lock: AtomicLock,
 
@@ -97,13 +97,13 @@ pub struct AppendOnlyVec<T, const N: usize = 16> {
     head: UnsafeCell<Bucket<T, N>>,
 }
 
-impl<T, const N: usize> Default for AppendOnlyVec<T, N> {
+impl<T, const N: usize> Default for AVec<T, N> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<T, const N: usize> Drop for AppendOnlyVec<T, N> {
+impl<T, const N: usize> Drop for AVec<T, N> {
     fn drop(&mut self) {
         let length = self.length.load(Ordering::Acquire);
         let (node, offset) = Self::indices(length);
@@ -118,12 +118,12 @@ impl<T, const N: usize> Drop for AppendOnlyVec<T, N> {
 }
 
 // SAFETY: We use `UnsafeCell`, the referred `Bucket` is `Send` if `T` is `Send`
-unsafe impl<T: Send, const N: usize> Send for AppendOnlyVec<T, N> {}
+unsafe impl<T: Send, const N: usize> Send for AVec<T, N> {}
 
 // SAFETY: We use `UnsafeCell`, the referred `Bucket` is `Sync` if `T` is `Sync`
-unsafe impl<T: Sync, const N: usize> Sync for AppendOnlyVec<T, N> {}
+unsafe impl<T: Sync, const N: usize> Sync for AVec<T, N> {}
 
-impl<T, const N: usize> AppendOnlyVec<T, N> {
+impl<T, const N: usize> AVec<T, N> {
     #[cfg(not(loom))]
     #[must_use]
     pub const fn new() -> Self {
@@ -196,7 +196,7 @@ impl<T, const N: usize> Bucket<T, N> {
     /// # Safety
     ///
     /// If this function is not recursively called, the caller **must** verify that the node and
-    /// offset, which can be created through [`AppendOnlyVec::indices`] are correct.
+    /// offset, which can be created through [`AVec::indices`] are correct.
     ///
     /// This function expects to be called on the `head` property with the appropriate length
     /// supplied.
@@ -277,7 +277,7 @@ pub struct Iter<'a, T, const N: usize> {
 }
 
 impl<'a, T, const N: usize> Iter<'a, T, N> {
-    fn new(vec: &'a AppendOnlyVec<T, N>) -> Self {
+    fn new(vec: &'a AVec<T, N>) -> Self {
         Self {
             // SAFETY: The vec guarantees that items are never mutably accessed and read, therefore
             // it is safe to get a reference without lock.
@@ -318,11 +318,11 @@ impl<'a, T, const N: usize> Iterator for Iter<'a, T, N> {
 mod tests {
     use alloc::{vec, vec::Vec};
 
-    use super::AppendOnlyVec;
+    use super::AVec;
 
     #[test]
     fn push_single() {
-        let vec = AppendOnlyVec::<u8, 4>::new();
+        let vec = AVec::<u8, 4>::new();
         vec.push(1);
 
         let vec: Vec<_> = vec.iter().copied().collect();
@@ -331,7 +331,7 @@ mod tests {
 
     #[test]
     fn push_many() {
-        let vec = AppendOnlyVec::<u8, 4>::new();
+        let vec = AVec::<u8, 4>::new();
         let range = u8::MIN..u8::MAX;
 
         for i in range.clone() {
@@ -346,7 +346,7 @@ mod tests {
     #[cfg(loom)]
     fn push_loom() {
         loom::model(|| {
-            let v = loom::sync::Arc::new(AppendOnlyVec::<u64>::new());
+            let v = loom::sync::Arc::new(AVec::<u64>::new());
 
             let mut threads = Vec::new();
             const N: u64 = 2;
@@ -375,7 +375,7 @@ mod tests {
     #[cfg(loom)]
     fn push_many_loom() {
         loom::model(|| {
-            let v = loom::sync::Arc::new(AppendOnlyVec::<u64, 1>::new());
+            let v = loom::sync::Arc::new(AVec::<u64, 1>::new());
 
             let mut threads = Vec::new();
             const N: u64 = 2;
@@ -403,7 +403,7 @@ mod tests {
     #[cfg(loom)]
     fn push_iter_loom() {
         loom::model(|| {
-            let v = loom::sync::Arc::new(AppendOnlyVec::<usize>::new());
+            let v = loom::sync::Arc::new(AVec::<usize>::new());
             let mut threads = Vec::new();
 
             const N: usize = 4;
