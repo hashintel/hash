@@ -10,8 +10,7 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "strict": true,
-    "target": "es2020",
-    "baseUrl": "."
+    "target": "es2020"
   },
   "ts-node": {
     "transpileOnly": true
