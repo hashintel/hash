@@ -5,6 +5,7 @@ import {
   Theme,
   DataEditorRef,
   Item,
+  GridColumn,
 } from "@glideapps/glide-data-grid";
 import { useTheme } from "@mui/material";
 import {
@@ -14,17 +15,32 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useState,
 } from "react";
-import { uniqueId } from "lodash";
+import { uniqueId, isEqual } from "lodash";
 import { getCellHorizontalPadding } from "./utils";
 import { customGridIcons } from "./utils/custom-grid-icons";
 import { InteractableManager } from "./utils/interactable-manager";
 
-const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
-  { customRenderers, onVisibleRegionChanged, ...rest },
+type GlideGridProps = Omit<
+  DataEditorProps,
+  "onColumnResize" | "onColumnResizeEnd" | "onColumnResizeStart"
+> & {
+  resizable?: boolean;
+};
+
+const GlideGrid: ForwardRefRenderFunction<DataEditorRef, GlideGridProps> = (
+  {
+    customRenderers,
+    onVisibleRegionChanged,
+    columns: columnsProperty,
+    resizable,
+    ...rest
+  },
   ref,
 ) => {
   const tableIdRef = useRef(uniqueId("grid"));
+  const [columns, setColumns] = useState(columnsProperty);
 
   const { palette } = useTheme();
 
@@ -103,6 +119,31 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
     [onVisibleRegionChanged],
   );
 
+  const handleColumnResize = useCallback(
+    (column: GridColumn, newSize: number) => {
+      setColumns((prevCols) => {
+        const index = prevCols.findIndex(({ title }) => title === column.title);
+        const newColumns = [...prevCols];
+
+        newColumns.splice(index, 1, {
+          ...prevCols[index]!,
+          width: newSize,
+        });
+        return newColumns;
+      });
+    },
+    [],
+  );
+
+  if (
+    !isEqual(
+      columnsProperty.map((col) => col.title),
+      columns.map((col) => col.title),
+    )
+  ) {
+    setColumns(columnsProperty);
+  }
+
   return (
     <DataEditor
       ref={ref}
@@ -118,6 +159,8 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
       getCellsForSelection
       customRenderers={interactableCustomRenderers}
       onVisibleRegionChanged={handleVisibleRegionChanged}
+      onColumnResize={resizable ? handleColumnResize : undefined}
+      columns={columns}
       {...rest}
       /**
        * icons defined via `headerIcons` are available to be drawn using
