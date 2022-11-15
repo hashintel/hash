@@ -5,12 +5,12 @@
   "description": "Temporary catchall place for shared code",
   "license": "AGPL-3.0",
   "exports": {
-    "./*": "./src/*"
+    "./*": "./src/*.ts"
   },
   "typesVersions": {
     "*": {
       "*": [
-        "./src/*"
+        "./src/*.ts"
       ]
     }
   },
