@@ -45,6 +45,12 @@ A-deer:
   - "packages/libs/deer/**/*"
   - "packages/libs/deer/**/.*"
 
+A-avector:
+  - "packages/libs/avector/*"
+  - "packages/libs/avector/.*"
+  - "packages/libs/avector/**/*"
+  - "packages/libs/avector/**/.*"
+
 A-backend:
   - "packages/graph/*"
   - "packages/graph/.*"
