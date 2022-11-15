@@ -28,71 +28,22 @@ module.exports = {
       "error",
       {
         selector:
-          "TSTypeReference[typeName.name=/^(DirectEditorProps|EditorProps|EditorView|EditorState|NodeView|ProsemirrorNode|Command|Transaction|Plugin|PluginKey)$/]:not([typeParameters])",
+          "TSTypeReference[typeName.name=/^(Plugin|PluginKey)$/]:not([typeParameters])",
         message: "Please provide a generic to avoid implicit `any`",
       },
       {
         selector:
-          "TSTypeReference[typeName.name=/^(DirectEditorProps|EditorProps|EditorView|EditorState|NodeView|ProsemirrorNode|Command|Transaction)$/][typeParameters.params.0.type=TSAnyKeyword]",
+          "TSTypeReference[typeName.name=/^(Plugin|PluginKey)$/][typeParameters.params.0.type=TSAnyKeyword]",
         message: "Please replace `any` with a specific type",
       },
       {
         selector:
-          "TSTypeReference[typeName.name=/^(Plugin|PluginKey)$/][typeParameters.params.length=1]",
+          "NewExpression[callee.name=/^(Plugin|PluginKey)$/]:not([typeParameters])",
         message: "Please provide a generic to avoid implicit `any`",
       },
       {
         selector:
-          "TSTypeReference[typeName.name=/^(Plugin|PluginKey)$/][typeParameters.params.1.type=TSAnyKeyword]",
-        message: "Please replace `any` with a specific type",
-      },
-      {
-        selector:
-          "TSClassImplements[expression.name=NodeView]:not([typeParameters])",
-        message: "Please provide a generic to avoid implicit `any`",
-      },
-      {
-        selector:
-          "TSClassImplements[expression.name=NodeView][typeParameters.params.0.type=TSAnyKeyword]",
-        message: "Please replace `any` with a specific type",
-      },
-      {
-        selector:
-          "CallExpression[callee.object.name=/^(EditorState|NodeSelection|TextSelection|ProsemirrorNode|MarkType)$/][callee.property.name=create]:not([typeParameters])",
-        message: "Please provide a generic to avoid implicit `any`",
-      },
-      {
-        selector:
-          "CallExpression[callee.object.name=/^(EditorState|NodeSelection|TextSelection|ProsemirrorNode|MarkType)$/][callee.property.name=create][typeParameters.params.0.type=TSAnyKeyword]",
-        message: "Please replace `any` with a specific type",
-      },
-      {
-        selector: "CallExpression[callee.name=keymap]:not([typeParameters])",
-        message: "Please provide a generic to avoid implicit `any`",
-      },
-      {
-        selector:
-          "CallExpression[callee.name=keymap][typeParameters.params.0.type=TSAnyKeyword]",
-        message: "Please replace `any` with a specific type",
-      },
-      {
-        selector:
-          "NewExpression[callee.name=/^(Plugin|PluginKey|EditorView|Selection|TextSelection|NodeSelection|AllSelection|SelectionRange|Slice|NodeRange|ReplaceStep|ReplaceAroundStep|AddMarkStep|RemoveMarkStep|Transform|InputRule|GapCursor)$/]:not([typeParameters])",
-        message: "Please provide a generic to avoid implicit `any`",
-      },
-      {
-        selector:
-          "NewExpression[callee.name=/^(EditorView|Selection|TextSelection|NodeSelection|AllSelection|SelectionRange|Slice|NodeRange|ReplaceStep|ReplaceAroundStep|AddMarkStep|RemoveMarkStep|Transform|InputRule|GapCursor)$/][typeParameters.params.0.type=TSAnyKeyword]",
-        message: "Please replace `any` with a specific type",
-      },
-      {
-        selector:
-          "NewExpression[callee.name=/^(Plugin|PluginKey)$/][typeParameters.params.length=1]",
-        message: "Please provide a generic to avoid implicit `any`",
-      },
-      {
-        selector:
-          "NewExpression[callee.name=/^(Plugin|PluginKey)$/][typeParameters.params.1.type=TSAnyKeyword]",
+          "NewExpression[callee.name=/^(Plugin|PluginKey)$/][typeParameters.params.0.type=TSAnyKeyword]",
         message: "Please replace `any` with a specific type",
       },
     ],

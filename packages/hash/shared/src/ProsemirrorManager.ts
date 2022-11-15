@@ -44,7 +44,7 @@ export class ProsemirrorManager {
   constructor(
     private schema: Schema,
     private accountId: string,
-    private view: EditorView<Schema> | null = null,
+    private view: EditorView | null = null,
     private componentNodeViewFactory: ComponentNodeViewFactory | null = null,
   ) {}
 
@@ -200,7 +200,7 @@ export class ProsemirrorManager {
    * and that the entity store has these blocks loaded in too. This function
    * handles that for you.
    */
-  async loadPage(currentState: EditorState<Schema>, entities: BlockEntity[]) {
+  async loadPage(currentState: EditorState, entities: BlockEntity[]) {
     const store = createEntityStore(
       entities,
       entityStorePluginState(currentState).store.draft,
@@ -239,7 +239,7 @@ export class ProsemirrorManager {
     draftBlockId: string,
     targetComponentId: string,
     targetVariant: BlockVariant,
-    node: ProsemirrorNode<Schema>,
+    node: ProsemirrorNode,
     pos: number,
   ) {
     const { view } = this;
@@ -262,7 +262,7 @@ export class ProsemirrorManager {
   /**
    * @todo consider removing the old block from the entity store
    */
-  async deleteNode(node: ProsemirrorNode<Schema>, pos: number) {
+  async deleteNode(node: ProsemirrorNode, pos: number) {
     const { view } = this;
 
     if (!view) {
@@ -485,7 +485,7 @@ export class ProsemirrorManager {
    * that for you.
    */
   private async createBlockEntity(
-    tr: Transaction<Schema>,
+    tr: Transaction,
     targetComponentId: string,
     blockDataProperties: {},
   ) {
