@@ -67,7 +67,7 @@ pub trait Transpile {
 mod test_helper {
     use crate::{
         ontology::DataTypeQueryPath,
-        store::postgres::query::{Expression, Function, Path, WindowStatement},
+        store::postgres::query::{Alias, Expression, Function, Path, WindowStatement},
     };
 
     pub fn trim_whitespace(string: impl Into<String>) -> String {
@@ -81,17 +81,21 @@ mod test_helper {
     pub fn max_version_expression() -> Expression<'static> {
         Expression::Window(
             Box::new(Expression::Function(Box::new(Function::Max(
-                Expression::Column(
-                    DataTypeQueryPath::Version
-                        .terminating_column()
-                        .aliased(None),
-                ),
+                Expression::Column(DataTypeQueryPath::Version.terminating_column().aliased(
+                    Alias {
+                        condition_index: 0,
+                        chain_depth: 0,
+                        number: 0,
+                    },
+                )),
             )))),
-            WindowStatement::partition_by(
-                DataTypeQueryPath::BaseUri
-                    .terminating_column()
-                    .aliased(None),
-            ),
+            WindowStatement::partition_by(DataTypeQueryPath::BaseUri.terminating_column().aliased(
+                Alias {
+                    condition_index: 0,
+                    chain_depth: 0,
+                    number: 0,
+                },
+            )),
         )
     }
 }

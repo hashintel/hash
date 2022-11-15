@@ -84,14 +84,14 @@ mod tests {
     use super::*;
     use crate::{
         ontology::DataTypeQueryPath,
-        store::postgres::query::{test_helper::max_version_expression, Path},
+        store::postgres::query::{test_helper::max_version_expression, Alias, Path},
     };
 
     #[test]
     fn transpile_window_expression() {
         assert_eq!(
             max_version_expression().transpile_to_string(),
-            r#"MAX("type_ids"."version") OVER (PARTITION BY "type_ids"."base_uri")"#
+            r#"MAX("type_ids_0_0_0"."version") OVER (PARTITION BY "type_ids_0_0_0"."base_uri")"#
         );
     }
 
@@ -101,10 +101,14 @@ mod tests {
             Expression::Function(Box::new(Function::Min(Expression::Column(
                 DataTypeQueryPath::Version
                     .terminating_column()
-                    .aliased(None)
+                    .aliased(Alias {
+                        condition_index: 1,
+                        chain_depth: 2,
+                        number: 3
+                    })
             ))))
             .transpile_to_string(),
-            r#"MIN("type_ids"."version")"#
+            r#"MIN("type_ids_1_2_3"."version")"#
         );
     }
 }

@@ -50,7 +50,7 @@ mod tests {
     use super::*;
     use crate::{
         ontology::DataTypeQueryPath,
-        store::postgres::query::{test_helper::trim_whitespace, Path},
+        store::postgres::query::{test_helper::trim_whitespace, Alias, Path},
     };
 
     #[test]
@@ -59,12 +59,16 @@ mod tests {
         order_by_expression.push(
             DataTypeQueryPath::Version
                 .terminating_column()
-                .aliased(None),
+                .aliased(Alias {
+                    condition_index: 1,
+                    chain_depth: 2,
+                    number: 3,
+                }),
             Ordering::Ascending,
         );
         assert_eq!(
             order_by_expression.transpile_to_string(),
-            r#"ORDER BY "type_ids"."version" ASC"#
+            r#"ORDER BY "type_ids_1_2_3"."version" ASC"#
         );
     }
 
@@ -74,19 +78,27 @@ mod tests {
         order_by_expression.push(
             DataTypeQueryPath::BaseUri
                 .terminating_column()
-                .aliased(None),
+                .aliased(Alias {
+                    condition_index: 1,
+                    chain_depth: 2,
+                    number: 3,
+                }),
             Ordering::Ascending,
         );
         order_by_expression.push(
-            DataTypeQueryPath::Type.terminating_column().aliased(None),
+            DataTypeQueryPath::Type.terminating_column().aliased(Alias {
+                condition_index: 4,
+                chain_depth: 5,
+                number: 6,
+            }),
             Ordering::Descending,
         );
 
         assert_eq!(
             trim_whitespace(order_by_expression.transpile_to_string()),
             trim_whitespace(
-                r#"ORDER BY "type_ids"."base_uri" ASC,
-                "data_types"."schema"->>'type' DESC"#
+                r#"ORDER BY "type_ids_1_2_3"."base_uri" ASC,
+                "data_types_4_5_6"."schema"->>'type' DESC"#
             )
         );
     }

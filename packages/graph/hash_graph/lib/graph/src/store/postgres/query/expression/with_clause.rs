@@ -56,13 +56,10 @@ mod tests {
     use std::borrow::Cow;
 
     use super::*;
-    use crate::{
-        ontology::DataTypeQueryPath,
-        store::postgres::query::{
-            expression::OrderByExpression,
-            test_helper::{max_version_expression, trim_whitespace},
-            Expression, Path, SelectExpression, SelectStatement, Table, WhereExpression,
-        },
+    use crate::store::postgres::query::{
+        expression::OrderByExpression,
+        test_helper::{max_version_expression, trim_whitespace},
+        Alias, Expression, SelectExpression, SelectStatement, Table, WhereExpression,
     };
 
     #[test]
@@ -80,7 +77,11 @@ mod tests {
                     Some(Cow::Borrowed("latest_version")),
                 ),
             ],
-            from: DataTypeQueryPath::Version.terminating_column().table(),
+            from: Table::TypeIds.aliased(Alias {
+                condition_index: 0,
+                chain_depth: 0,
+                number: 0,
+            }),
             joins: vec![],
             where_expression: WhereExpression::default(),
             order_by_expression: OrderByExpression::default(),
@@ -90,7 +91,7 @@ mod tests {
             trim_whitespace(with_clause.transpile_to_string()),
             trim_whitespace(
                 r#"
-                WITH "type_ids" AS (SELECT *, MAX("type_ids"."version") OVER (PARTITION BY "type_ids"."base_uri") AS "latest_version" FROM "type_ids")"#
+                WITH "type_ids" AS (SELECT *, MAX("type_ids_0_0_0"."version") OVER (PARTITION BY "type_ids_0_0_0"."base_uri") AS "latest_version" FROM "type_ids" AS "type_ids_0_0_0")"#
             )
         );
 
@@ -98,7 +99,11 @@ mod tests {
             with: WithExpression::default(),
             distinct: Vec::new(),
             selects: vec![SelectExpression::new(Expression::Asterisk, None)],
-            from: Table::DataTypes,
+            from: Table::DataTypes.aliased(Alias {
+                condition_index: 3,
+                chain_depth: 4,
+                number: 5,
+            }),
             joins: vec![],
             where_expression: WhereExpression::default(),
             order_by_expression: OrderByExpression::default(),
@@ -108,8 +113,8 @@ mod tests {
             trim_whitespace(with_clause.transpile_to_string()),
             trim_whitespace(
                 r#"
-                WITH "type_ids" AS (SELECT *, MAX("type_ids"."version") OVER (PARTITION BY "type_ids"."base_uri") AS "latest_version" FROM "type_ids"),
-                     "data_types" AS (SELECT * FROM "data_types")"#
+                WITH "type_ids" AS (SELECT *, MAX("type_ids_0_0_0"."version") OVER (PARTITION BY "type_ids_0_0_0"."base_uri") AS "latest_version" FROM "type_ids" AS "type_ids_0_0_0"),
+                     "data_types" AS (SELECT * FROM "data_types" AS "data_types_3_4_5")"#
             )
         );
     }

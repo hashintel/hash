@@ -1,6 +1,6 @@
 use std::{
     borrow::Cow,
-    fmt::{self, Debug, Write},
+    fmt::{self, Debug},
     hash::Hash,
 };
 
@@ -21,11 +21,8 @@ pub enum Table {
 }
 
 impl Table {
-    pub fn aliased(self, alias: impl Into<Option<Alias>>) -> AliasedTable {
-        AliasedTable {
-            table: self,
-            alias: alias.into(),
-        }
+    pub const fn aliased(self, alias: Alias) -> AliasedTable {
+        AliasedTable { table: self, alias }
     }
 
     const fn as_str(self) -> &'static str {
@@ -308,10 +305,10 @@ impl<'p> Column<'p> {
         }
     }
 
-    pub fn aliased(self, alias: impl Into<Option<Alias>>) -> AliasedColumn<'p> {
+    pub const fn aliased(self, alias: Alias) -> AliasedColumn<'p> {
         AliasedColumn {
             column: self,
-            alias: alias.into(),
+            alias,
         }
     }
 }
@@ -372,20 +369,19 @@ pub struct Alias {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct AliasedTable {
     pub table: Table,
-    pub alias: Option<Alias>,
+    pub alias: Alias,
 }
 
 impl Transpile for AliasedTable {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "\"{}", self.table.as_str())?;
-        if let Some(alias) = &self.alias {
-            write!(
-                fmt,
-                "_{}_{}_{}",
-                alias.condition_index, alias.chain_depth, alias.number
-            )?;
-        }
-        fmt.write_char('"')
+        write!(
+            fmt,
+            r#""{}_{}_{}_{}""#,
+            self.table.as_str(),
+            self.alias.condition_index,
+            self.alias.chain_depth,
+            self.alias.number
+        )
     }
 }
 
@@ -393,11 +389,11 @@ impl Transpile for AliasedTable {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct AliasedColumn<'param> {
     pub column: Column<'param>,
-    pub alias: Option<Alias>,
+    pub alias: Alias,
 }
 
 impl AliasedColumn<'_> {
-    pub fn table(self) -> AliasedTable {
+    pub const fn table(&self) -> AliasedTable {
         self.column.table().aliased(self.alias)
     }
 }
@@ -573,21 +569,23 @@ mod tests {
 
     #[test]
     fn transpile_aliased_column() {
+        let alias = Alias {
+            condition_index: 1,
+            chain_depth: 2,
+            number: 3,
+        };
+
         assert_eq!(
             DataTypeQueryPath::VersionId
                 .terminating_column()
-                .aliased(None)
+                .aliased(alias)
                 .transpile_to_string(),
-            r#""data_types"."version_id""#
+            r#""data_types_1_2_3"."version_id""#
         );
         assert_eq!(
             DataTypeQueryPath::Title
                 .terminating_column()
-                .aliased(Alias {
-                    condition_index: 1,
-                    chain_depth: 2,
-                    number: 3,
-                })
+                .aliased(alias)
                 .transpile_to_string(),
             r#""data_types_1_2_3"."schema"->>'title'"#
         );
