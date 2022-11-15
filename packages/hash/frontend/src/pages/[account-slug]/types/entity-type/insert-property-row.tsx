@@ -27,11 +27,11 @@ import { withHandler } from "./util";
 
 const PropertyTypeModal = ({
   popupState,
-  header,
+  title,
   children,
 }: {
   popupState: PopupState;
-  header: ReactNode;
+  title: ReactNode;
   children: ReactNode;
 }) => (
   <Modal
@@ -56,7 +56,12 @@ const PropertyTypeModal = ({
           display: "flex",
         })}
       >
-        {header}
+        <Typography
+          variant="regularTextLabels"
+          sx={{ fontWeight: 500, display: "flex", alignItems: "center" }}
+        >
+          {title}
+        </Typography>
         <IconButton
           {...bindToggle(popupState)}
           sx={(theme) => ({
@@ -135,11 +140,9 @@ export const InsertPropertyRow = ({
         />
         <PropertyTypeModal
           popupState={modalPopupState}
-          header={
+          title={
             <>
-              <Typography variant="regularTextLabels" sx={{ fontWeight: 500 }}>
-                Create new property type
-              </Typography>
+              Create new property type
               <QuestionIcon
                 sx={{
                   ml: 1.25,
