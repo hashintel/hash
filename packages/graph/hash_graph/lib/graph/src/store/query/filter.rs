@@ -15,7 +15,7 @@ use crate::{
         knowledge::{EntityEditionId, EntityId},
         Timestamp,
     },
-    knowledge::{EntityProperties, EntityQueryPath, EntityUuid},
+    knowledge::{Entity, EntityQueryPath, EntityUuid},
     store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath},
 };
 
@@ -76,7 +76,7 @@ where
     }
 }
 
-impl<'q> Filter<'q, EntityProperties> {
+impl<'q> Filter<'q, Entity> {
     /// Creates a `Filter` to search for all entities at their latest version.
     #[must_use]
     pub const fn for_all_latest_entities() -> Self {

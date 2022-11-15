@@ -3,12 +3,12 @@ use std::iter::once;
 use postgres_types::ToSql;
 
 use crate::{
-    knowledge::{EntityProperties, EntityQueryPath},
+    knowledge::{Entity, EntityQueryPath},
     ontology::EntityTypeQueryPath,
     store::postgres::query::{ColumnAccess, Path, PostgresQueryRecord, Relation, Table, TableName},
 };
 
-impl PostgresQueryRecord for EntityProperties {
+impl PostgresQueryRecord for Entity {
     fn base_table() -> Table {
         Table {
             name: TableName::Entities,

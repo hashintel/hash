@@ -281,7 +281,7 @@ export interface DataTypeReferenceUpdate {
   $ref: string;
 }
 /**
- * A [`Filter`] to query the datastore, recursively resolving according to the
+ * Structural queries are the main entry point to read data from the Graph.
  * @export
  * @interface DataTypeStructuralQuery
  */
@@ -429,7 +429,7 @@ export interface EntityMetadata {
   provenance: ProvenanceMetadata;
 }
 /**
- * A [`Filter`] to query the datastore, recursively resolving according to the
+ * Structural queries are the main entry point to read data from the Graph.
  * @export
  * @interface EntityStructuralQuery
  */
@@ -535,7 +535,7 @@ export type EntityTypeTypeEnum =
   typeof EntityTypeTypeEnum[keyof typeof EntityTypeTypeEnum];
 
 /**
- * A [`Filter`] to query the datastore, recursively resolving according to the
+ * Structural queries are the main entry point to read data from the Graph.
  * @export
  * @interface EntityTypeStructuralQuery
  */
@@ -1461,7 +1461,7 @@ export type PropertyTypeKindEnum =
   typeof PropertyTypeKindEnum[keyof typeof PropertyTypeKindEnum];
 
 /**
- * A [`Filter`] to query the datastore, recursively resolving according to the
+ * Structural queries are the main entry point to read data from the Graph.
  * @export
  * @interface PropertyTypeStructuralQuery
  */

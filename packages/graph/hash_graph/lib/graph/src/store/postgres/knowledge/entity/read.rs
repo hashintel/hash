@@ -22,7 +22,7 @@ use crate::{
 
 #[async_trait]
 impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
-    type Query<'q> = Filter<'q, EntityProperties>;
+    type Query<'q> = Filter<'q, Entity>;
 
     async fn read<'f: 'q, 'q>(
         &self,
