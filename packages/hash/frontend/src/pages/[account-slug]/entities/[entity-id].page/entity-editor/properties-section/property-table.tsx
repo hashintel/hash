@@ -65,7 +65,6 @@ export const PropertyTable = ({
         showSearch={showSearch}
         onSearchClose={onSearchClose}
         customRenderers={customRenderers}
-        resizable
         // define max height if there are lots of rows
         height={rowData.length > 10 ? 500 : undefined}
       />
