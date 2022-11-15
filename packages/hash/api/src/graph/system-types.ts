@@ -51,6 +51,10 @@ export let SYSTEM_TYPES: {
     hashInstance: EntityTypeModel;
     user: EntityTypeModel;
     org: EntityTypeModel;
+    /**
+     * @todo: make org membership entity type a link entity type
+     * @see https://app.asana.com/0/0/1203371754468058/f
+     */
     orgMembership: EntityTypeModel;
     block: EntityTypeModel;
     comment: EntityTypeModel;
