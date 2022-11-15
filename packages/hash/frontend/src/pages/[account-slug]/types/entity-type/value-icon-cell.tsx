@@ -4,10 +4,8 @@ import {
   GridCellKind,
 } from "@glideapps/glide-data-grid";
 import type { CustomIcon } from "@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites";
-import {
-  getCellHorizontalPadding,
-  getYCenter,
-} from "../../../../components/GlideGlid/utils";
+import { getCellHorizontalPadding } from "../../../../components/GlideGlid/utils";
+import { drawTextWithIcon } from "../../../../components/GlideGlid/utils/draw-text-with-icon";
 
 export interface ValueIconCellProps {
   readonly kind: "value-icon-cell";
@@ -25,30 +23,19 @@ export const renderValueIconCell: CustomRenderer<ValueIconCell> = {
     const { theme, rect, ctx } = args;
     const { value, icon } = cell.data;
 
-    const yCenter = getYCenter(args);
-    const iconGap = 8;
     const columnPadding = getCellHorizontalPadding(true);
-
     const iconLeft = rect.x + columnPadding;
-    const iconSize = 12;
-
-    args.spriteManager.drawSprite(
-      icon,
-      "normal",
-      ctx,
-      iconLeft,
-      yCenter - iconSize / 2,
-      iconSize,
-      theme,
-    );
-
-    const textLeft = rect.x + columnPadding + iconSize + iconGap;
 
     // prepare to fill text
-    ctx.fillStyle = theme.textHeader;
     ctx.font = theme.baseFontStyle;
 
-    // fill text
-    ctx.fillText(value, textLeft, yCenter);
+    drawTextWithIcon({
+      args,
+      icon,
+      text: value,
+      left: iconLeft,
+      iconSize: 12,
+      gap: 8,
+    });
   },
 };
