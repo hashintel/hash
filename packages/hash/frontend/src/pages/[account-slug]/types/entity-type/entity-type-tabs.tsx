@@ -44,11 +44,17 @@ export const EntityTypeTabs = () => {
           },
         }}
       >
-        <TabLink value={baseUri} label="Definition" count={propertiesCount} />
+        <TabLink
+          value={baseUri}
+          label="Definition"
+          count={propertiesCount}
+          active={router.asPath === baseUri}
+        />
         <TabLink
           value={`${baseUri}/entities`}
           label="Entities"
           count={entities?.length}
+          active={router.asPath === `${baseUri}/entities`}
         />
       </Tabs>
 
