@@ -6,14 +6,14 @@ import NextLink, { LinkProps as NextLinkProps } from "next/link";
 import MuiLink, { LinkProps as MuiLinkProps } from "@mui/material/Link";
 import { styled } from "@mui/material/styles";
 import { forwardRef, isValidElement } from "react";
+import { frontendUrl } from "@hashintel/hash-shared/environment";
 import { Button } from "./button";
-import { FRONTEND_URL } from "../../lib/config";
 
 // @todo: update the regex to check against the domain of the hosted version of HASH
 export const isHrefExternal = (href: string | UrlObject) =>
   typeof href === "string" &&
   (href === "/discord" || !/^(mailto:|#|\/)/.test(href)) &&
-  !href.startsWith(FRONTEND_URL);
+  !href.startsWith(frontendUrl);
 
 /**
  * This component is based on https://github.com/mui-org/material-ui/blob/a5c92dfd84dfe5888a8b383a9b5fe5701a934564/examples/nextjs/src/Link.js
