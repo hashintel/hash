@@ -118,7 +118,7 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
       onVisibleRegionChanged={handleVisibleRegionChanged}
       {...rest}
       /**
-       * icons defined via `headerIcons` are avaiable to be drawn using
+       * icons defined via `headerIcons` are available to be drawn using
        * glide-grid's `spriteManager.drawSprite`,
        * which will be used to draw svg icons inside custom cells
        */
