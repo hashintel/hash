@@ -13,7 +13,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useState,
+  useRef,
 } from "react";
 import { uniqueId } from "lodash";
 import { getCellHorizontalPadding } from "./utils";
@@ -24,14 +24,15 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
   { customRenderers, onVisibleRegionChanged, ...rest },
   ref,
 ) => {
-  const [tableId] = useState(uniqueId("grid"));
+  const tableIdRef = useRef(uniqueId("grid"));
 
   const { palette } = useTheme();
 
   useEffect(() => {
     // delete saved interactables on unmount
+    const tableId = tableIdRef.current;
     return () => InteractableManager.deleteInteractables(tableId);
-  }, [tableId]);
+  }, []);
 
   const gridTheme: Partial<Theme> = useMemo(
     () => ({
@@ -61,13 +62,14 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
     return customRenderers?.map((customRenderer) => {
       return {
         ...customRenderer,
-        draw: (args, cell) => customRenderer.draw({ ...args, tableId }, cell),
+        draw: (args, cell) =>
+          customRenderer.draw({ ...args, tableId: tableIdRef.current }, cell),
         onClick: (args) => {
           /** @todo investigate why `args` don't have `location` in it's type  */
           const [col, row] = (args as unknown as { location: Item }).location;
 
           const wasClickHandledByManager = InteractableManager.handleClick(
-            `${tableId}-${col}-${row}`,
+            `${tableIdRef.current}-${col}-${row}`,
             args,
           );
 
@@ -81,7 +83,7 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
         },
       };
     });
-  }, [customRenderers, tableId]);
+  }, [customRenderers]);
 
   const handleVisibleRegionChanged = useCallback<
     NonNullable<DataEditorProps["onVisibleRegionChanged"]>
@@ -91,14 +93,14 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
       const deleteBeforeRow = range.y;
       const deleteAfterRow = range.y + range.height;
 
-      InteractableManager.deleteInteractables(tableId, {
+      InteractableManager.deleteInteractables(tableIdRef.current, {
         deleteBeforeRow,
         deleteAfterRow,
       });
 
       onVisibleRegionChanged?.(...args);
     },
-    [onVisibleRegionChanged, tableId],
+    [onVisibleRegionChanged],
   );
 
   return (
