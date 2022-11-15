@@ -5,7 +5,7 @@ import {
 } from "@glideapps/glide-data-grid";
 import { types } from "@hashintel/hash-shared/types";
 import { InteractableManager } from "../../../../../../../../components/GlideGlid/utils/interactable-manager";
-import { GridTooltipManager } from "../../../../../../../../components/GlideGlid/utils/use-grid-tooltip/grid-tooltip-manager";
+import { drawInteractableTooltipIcons } from "../../../../../../../../components/GlideGlid/utils/use-grid-tooltip/draw-interactable-tooltip-icons";
 import {
   getCellHorizontalPadding,
   getYCenter,
@@ -52,9 +52,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
       ctx.fillText(String(value), left, yCenter);
     }
 
-    const tooltipManager = new GridTooltipManager(args);
-    const tooltipInteractables = tooltipManager.drawAndCreateInteractables();
-
+    const tooltipInteractables = drawInteractableTooltipIcons(args);
     InteractableManager.setInteractablesForCell(args, tooltipInteractables);
   },
   provideEditor: () => {

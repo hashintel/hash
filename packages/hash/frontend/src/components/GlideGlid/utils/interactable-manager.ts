@@ -95,18 +95,9 @@ class InteractableManagerClass {
     const interactableMap = this.interactableStore[path] ?? {};
     const interactables = Object.values(interactableMap);
 
-    let foundInteractable: Interactable | undefined;
-
-    for (let i = 0; i < interactables.length; i++) {
-      const interactable = interactables[i]!;
-      const { pos, cellRect } = interactable;
-
-      const hovered = isCursorOnInteractable(event, pos, cellRect);
-
-      if (hovered) {
-        foundInteractable = interactable;
-      }
-    }
+    const foundInteractable = interactables.find(({ pos, cellRect }) =>
+      isCursorOnInteractable(event, pos, cellRect),
+    );
 
     if (!foundInteractable) {
       return false;
