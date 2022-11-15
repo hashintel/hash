@@ -211,7 +211,7 @@ pub enum EntityQueryPath<'q> {
     ///
     /// [`Entity`]: crate::knowledge::Entity
     /// [`LinkEntityMetadata::left_entity_id()`]: crate::knowledge::LinkEntityMetadata::left_entity_id
-    LeftEntity(Option<Box<Self>>),
+    LeftEntity(Box<Self>),
     /// Corresponds to the entity specified by [`LinkEntityMetadata::right_entity_id()`].
     ///
     /// It's `None` if this entity is not a link.
@@ -232,7 +232,7 @@ pub enum EntityQueryPath<'q> {
     ///
     /// [`Entity`]: crate::knowledge::Entity
     /// [`LinkEntityMetadata::right_entity_id()`]: crate::knowledge::LinkEntityMetadata::right_entity_id
-    RightEntity(Option<Box<Self>>),
+    RightEntity(Box<Self>),
     /// Corresponds to [`LinkEntityMetadata::left_order()`].
     ///
     /// ```rust
@@ -305,10 +305,8 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::Properties(None) => fmt.write_str("properties"),
             Self::IncomingLinks(link) => write!(fmt, "incomingLinks.{link}"),
             Self::OutgoingLinks(link) => write!(fmt, "outgoingLinks.{link}"),
-            Self::LeftEntity(Some(path)) => write!(fmt, "leftEntityUuid.{path}"),
-            Self::LeftEntity(None) => fmt.write_str("leftEntityUuid"),
-            Self::RightEntity(Some(path)) => write!(fmt, "rightEntityUuid.{path}"),
-            Self::RightEntity(None) => fmt.write_str("rightEntityUuid"),
+            Self::LeftEntity(path) => write!(fmt, "leftEntityUuid.{path}"),
+            Self::RightEntity(path) => write!(fmt, "rightEntityUuid.{path}"),
             Self::LeftOrder => fmt.write_str("leftOrder"),
             Self::RightOrder => fmt.write_str("rightOrder"),
         }
@@ -318,14 +316,11 @@ impl fmt::Display for EntityQueryPath<'_> {
 impl RecordPath for EntityQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::Uuid
-            | Self::OwnedById
-            | Self::CreatedById
-            | Self::UpdatedById
-            | Self::LeftEntity(None)
-            | Self::RightEntity(None) => ParameterType::Uuid,
-            Self::LeftEntity(Some(path))
-            | Self::RightEntity(Some(path))
+            Self::Uuid | Self::OwnedById | Self::CreatedById | Self::UpdatedById => {
+                ParameterType::Uuid
+            }
+            Self::LeftEntity(path)
+            | Self::RightEntity(path)
             | Self::IncomingLinks(path)
             | Self::OutgoingLinks(path) => path.expected_type(),
             Self::Version => ParameterType::Timestamp,
@@ -414,12 +409,12 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
             EntityQueryToken::IncomingLinks => {
                 EntityQueryPath::IncomingLinks(Box::new(Self::new(self.position).visit_seq(seq)?))
             }
-            EntityQueryToken::LeftEntity => EntityQueryPath::LeftEntity(Some(Box::new(
-                Self::new(self.position).visit_seq(seq)?,
-            ))),
-            EntityQueryToken::RightEntity => EntityQueryPath::RightEntity(Some(Box::new(
-                Self::new(self.position).visit_seq(seq)?,
-            ))),
+            EntityQueryToken::LeftEntity => {
+                EntityQueryPath::LeftEntity(Box::new(Self::new(self.position).visit_seq(seq)?))
+            }
+            EntityQueryToken::RightEntity => {
+                EntityQueryPath::RightEntity(Box::new(Self::new(self.position).visit_seq(seq)?))
+            }
             EntityQueryToken::LeftOrder => EntityQueryPath::LeftOrder,
             EntityQueryToken::RightOrder => EntityQueryPath::RightOrder,
         })
@@ -467,7 +462,7 @@ mod tests {
         );
         assert_eq!(
             deserialize(["leftEntity", "uuid"]),
-            EntityQueryPath::LeftEntity(Some(Box::new(EntityQueryPath::Uuid)))
+            EntityQueryPath::LeftEntity(Box::new(EntityQueryPath::Uuid))
         );
 
         assert_eq!(

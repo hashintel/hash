@@ -29,10 +29,12 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
         filter: &'f Self::Query<'q>,
     ) -> Result<Vec<Entity>, QueryError> {
         // We can't define these inline otherwise we'll drop while borrowed
+        let left_entity_uuid_path = EntityQueryPath::LeftEntity(Box::new(EntityQueryPath::Uuid));
         let left_owned_by_id_query_path =
-            EntityQueryPath::LeftEntity(Some(Box::new(EntityQueryPath::OwnedById)));
+            EntityQueryPath::LeftEntity(Box::new(EntityQueryPath::OwnedById));
+        let right_entity_uuid_path = EntityQueryPath::RightEntity(Box::new(EntityQueryPath::Uuid));
         let right_owned_by_id_query_path =
-            EntityQueryPath::RightEntity(Some(Box::new(EntityQueryPath::OwnedById)));
+            EntityQueryPath::RightEntity(Box::new(EntityQueryPath::OwnedById));
 
         let mut compiler = SelectCompiler::new();
 
@@ -45,14 +47,12 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
 
         let properties_index = compiler.add_selection_path(&EntityQueryPath::Properties(None));
 
+        let left_entity_uuid_index = compiler.add_selection_path(&left_entity_uuid_path);
         let left_entity_owned_by_id_index =
             compiler.add_selection_path(&left_owned_by_id_query_path);
-        let left_entity_uuid_index =
-            compiler.add_selection_path(&EntityQueryPath::LeftEntity(None));
+        let right_entity_uuid_index = compiler.add_selection_path(&right_entity_uuid_path);
         let right_entity_owned_by_id_index =
             compiler.add_selection_path(&right_owned_by_id_query_path);
-        let right_entity_uuid_index =
-            compiler.add_selection_path(&EntityQueryPath::RightEntity(None));
         let left_order_index = compiler.add_selection_path(&EntityQueryPath::LeftOrder);
         let right_order_index = compiler.add_selection_path(&EntityQueryPath::RightOrder);
 

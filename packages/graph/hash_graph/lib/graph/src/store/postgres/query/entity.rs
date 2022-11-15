@@ -32,6 +32,11 @@ impl PostgresQueryRecord for Entity {
 impl Path for EntityQueryPath<'_> {
     fn relations(&self) -> Vec<Relation> {
         match self {
+            Self::LeftEntity(path) | Self::RightEntity(path)
+                if **path == EntityQueryPath::Uuid || **path == EntityQueryPath::OwnedById =>
+            {
+                vec![]
+            }
             Self::Type(path) => once(Relation {
                 current_column_access: ColumnAccess::Table {
                     column: "entity_type_version_id",
@@ -41,7 +46,7 @@ impl Path for EntityQueryPath<'_> {
             })
             .chain(path.relations())
             .collect(),
-            Self::LeftEntity(Some(path)) => once(Relation {
+            Self::LeftEntity(path) => once(Relation {
                 current_column_access: ColumnAccess::Table {
                     column: "left_entity_uuid",
                 },
@@ -52,7 +57,7 @@ impl Path for EntityQueryPath<'_> {
             })
             .chain(path.relations())
             .collect(),
-            Self::RightEntity(Some(path)) => once(Relation {
+            Self::RightEntity(path) => once(Relation {
                 current_column_access: ColumnAccess::Table {
                     column: "right_entity_uuid",
                 },
@@ -97,16 +102,14 @@ impl Path for EntityQueryPath<'_> {
             | Self::UpdatedById
             | Self::Version
             | Self::Archived
-            | Self::LeftEntity(None)
-            | Self::RightEntity(None)
             | Self::LeftOrder
             | Self::RightOrder
             | Self::Properties(_) => TableName::Entities,
             Self::Type(path) => path.terminating_table_name(),
             Self::IncomingLinks(path)
             | Self::OutgoingLinks(path)
-            | Self::LeftEntity(Some(path))
-            | Self::RightEntity(Some(path)) => path.terminating_table_name(),
+            | Self::LeftEntity(path)
+            | Self::RightEntity(path) => path.terminating_table_name(),
         }
     }
 
@@ -127,14 +130,22 @@ impl Path for EntityQueryPath<'_> {
             Self::UpdatedById => ColumnAccess::Table {
                 column: "updated_by_id",
             },
-            Self::LeftEntity(None) => ColumnAccess::Table {
+            Self::LeftEntity(path) if **path == EntityQueryPath::Uuid => ColumnAccess::Table {
                 column: "left_entity_uuid",
             },
-            Self::RightEntity(None) => ColumnAccess::Table {
+            Self::RightEntity(path) if **path == EntityQueryPath::Uuid => ColumnAccess::Table {
                 column: "right_entity_uuid",
             },
-            Self::LeftEntity(Some(path))
-            | Self::RightEntity(Some(path))
+            Self::LeftEntity(path) if **path == EntityQueryPath::OwnedById => ColumnAccess::Table {
+                column: "left_owned_by_id",
+            },
+            Self::RightEntity(path) if **path == EntityQueryPath::OwnedById => {
+                ColumnAccess::Table {
+                    column: "right_owned_by_id",
+                }
+            }
+            Self::LeftEntity(path)
+            | Self::RightEntity(path)
             | Self::IncomingLinks(path)
             | Self::OutgoingLinks(path) => path.column_access(),
             Self::LeftOrder => ColumnAccess::Table {
