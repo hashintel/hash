@@ -35,6 +35,9 @@ CARGO_BENCH_HACK_FLAGS = "--workspace"
 CARGO_MIRI_FLAGS = "--all-targets"
 CARGO_MIRI_HACK_FLAGS = "--workspace"
 
+CARGO_LOOM_FLAGS = "--all-targets"
+CARGO_LOOM_HACK_FLAGS = "--workspace"
+
 REPO_ROOT = { script = ["git rev-parse --show-toplevel"] }
 
 [env.production]
@@ -196,6 +199,20 @@ dependencies = ["install-miri"]
 extend = "cargo"
 args = ["hack", "@@split(CARGO_MIRI_HACK_FLAGS, )", "miri", "test", "--profile", "${CARGO_MAKE_CARGO_PROFILE}", "@@split(CARGO_MIRI_FLAGS, )", "--all-features", "${@}"]
 dependencies = ["install-miri"]
+
+# This task is by default disabled, as only concurrent libraries make use of loom
+# this is why loom is opt-in instead of opt-out
+[tasks.loom]
+disabled = true
+category = "Test"
+description = "Runs loom tests suite"
+run_task = { name = ["loom-task"] }
+
+# Note: it is recommended that loom only uses `release`, therefore we set no profile
+[tasks.loom-task]
+extend = "cargo"
+args = ["hack", "@@split(CARGO_LOOM_HACK_FLAGS, )", "test", "@@split(CARGO_LOOM_FLAGS, )", "${@}"]
+env = { LOOM_MAX_BRANCHES = 1024, LOOM_LOG = "info", LOOM_LOCATION = 1, RUST_BACKTRACE = 1, RUSTFLAGS = "--cfg loom" }
 
 ################################################################################
 ## Bench                                                                      ##
