@@ -4,7 +4,7 @@ import {
   extractBaseUri,
   extractVersion,
 } from "@blockprotocol/type-system-web";
-import { GridColumn } from "@glideapps/glide-data-grid";
+import { SizedGridColumn } from "@glideapps/glide-data-grid";
 import { types } from "@hashintel/hash-shared/types";
 import { useMemo } from "react";
 import { Entity } from "../../../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
@@ -23,7 +23,7 @@ export const useEntitiesTable = (
       return;
     }
 
-    const propertyColumns: GridColumn[] = [];
+    const propertyColumns: SizedGridColumn[] = [];
 
     if (propertyTypes) {
       for (const propertyType of propertyTypes) {
@@ -44,7 +44,7 @@ export const useEntitiesTable = (
       }
     }
 
-    const columns: GridColumn[] = [
+    const columns: SizedGridColumn[] = [
       {
         title: "Entity",
         id: "entity",
