@@ -24,9 +24,6 @@ export { default as DataTypeModel } from "./ontology/data-type.model";
 export * from "./ontology/property-type.model";
 export { default as PropertyTypeModel } from "./ontology/property-type.model";
 
-export * from "./ontology/link-type.model";
-export { default as LinkTypeModel } from "./ontology/link-type.model";
-
 export * from "./ontology/entity-type.model";
 export { default as EntityTypeModel } from "./ontology/entity-type.model";
 
