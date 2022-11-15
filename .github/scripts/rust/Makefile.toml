@@ -175,7 +175,7 @@ run_task = { name = ["coverage-task"] }
 [tasks.coverage-task]
 extend = "cargo"
 args = ["llvm-cov", "nextest", "--workspace", "--all-features", "--all-targets", "${@}"]
-dependencies = ["install-llvm-tools", "install-cargo-nextest"]
+dependencies = ["install-llvm-tools-preview", "install-cargo-nextest"]
 
 [tasks.miri]
 category = "Test"
@@ -222,9 +222,9 @@ install_crate = { rustup_component_name = "clippy" }
 private = true
 install_crate = { rustup_component_name = "rustfmt" }
 
-[tasks.install-llvm-tools]
+[tasks.install-llvm-tools-preview]
 private = true
-install_crate = { rustup_component_name = "llvm-tools" }
+install_crate = { rustup_component_name = "llvm-tools-preview" }
 
 [tasks.install-miri]
 private = true
