@@ -7,17 +7,17 @@ import type { CustomIcon } from "@glideapps/glide-data-grid/dist/ts/data-grid/da
 import { getCellHorizontalPadding } from "../../../../components/GlideGlid/utils";
 import { drawTextWithIcon } from "../../../../components/GlideGlid/utils/draw-text-with-icon";
 
-export interface ValueIconCellProps {
+export interface TextIconCellProps {
   readonly kind: "value-icon-cell";
   value: string;
   icon: CustomIcon;
 }
 
-export type ValueIconCell = CustomCell<ValueIconCellProps>;
+export type TextIconCell = CustomCell<TextIconCellProps>;
 
-export const renderValueIconCell: CustomRenderer<ValueIconCell> = {
+export const renderTextIconCell: CustomRenderer<TextIconCell> = {
   kind: GridCellKind.Custom,
-  isMatch: (cell: CustomCell): cell is ValueIconCell =>
+  isMatch: (cell: CustomCell): cell is TextIconCell =>
     (cell.data as any).kind === "value-icon-cell",
   draw: (args, cell) => {
     const { theme, rect, ctx } = args;

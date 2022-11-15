@@ -21,7 +21,7 @@ import { WhiteChip } from "../../../shared/white-chip";
 import { blankCell } from "../../../../../components/GlideGlid/utils";
 import { HomeIcon } from "../../../../../shared/icons/home-icon";
 import { EarthIcon } from "../../../../../shared/icons/earth-icon";
-import { renderValueIconCell } from "../value-icon-cell";
+import { renderTextIconCell } from "../text-icon-cell";
 import { useRouteNamespace } from "../use-route-namespace";
 import { useEntitiesTable } from "../use-entities-table";
 import { useEntityTypeEntities } from "../use-entity-type-entities";
@@ -154,7 +154,7 @@ const Page: NextPageWithLayout = () => {
 
               return blankCell;
             }}
-            customRenderers={[renderValueIconCell]}
+            customRenderers={[renderTextIconCell]}
           />
         </Paper>
       </SectionWrapper>
