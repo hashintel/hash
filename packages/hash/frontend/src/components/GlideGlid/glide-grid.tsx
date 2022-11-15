@@ -57,12 +57,11 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
     (row) => {
       if (row === hoveredRow) {
         return {
-          bgCell: "#f7f7f7",
-          bgCellMedium: "#f0f0f0",
+          bgCell: palette.gray[10],
         };
       }
     },
-    [hoveredRow],
+    [hoveredRow, palette],
   );
 
   return (
