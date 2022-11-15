@@ -1,4 +1,69 @@
+//! Concurrent Read Optimized Vector
+//!
+//! Vector which allows concurrent read access, simultaneous to writing.
+//! The vector can only be manipulated through pushing of items, once an item is pushed it can no
+//! longer be accessed mutably.
+//!
+//! While reading is concurrent and can happen while values are being written,
+//! values can only be written synchronously and are guarded by a spinlock.
+//! This means that [`AppendOnlyVec`] works best when contention is low and values are mostly being
+//! read.
+//!
+//! ## How it works
+//!
+//! [`AppendOnlyVec`] is based on two parts: length (through an atomic) and an intrusive list of
+//! arrays which store items.
+//! The size of a bucket can be controlled through the const generic `N`, allowing one to tradeoff
+//! speed vs. allocated space.
+//!
+//! The inner workings are best explained through a demonstration:
+//!
+//! ```text
+//! Step 1:
+//!     Vec<u8, 4>: [_, _, _, _]
+//!     A: Acquire Lock
+//!     B: Read, Length: 0
+//!
+//! Step 2:
+//!     Vec<u8, 4>: [_, _, _, _]
+//!     A: Load Length (0)
+//!     B: .next(): None
+//!
+//! Step 3:
+//!     Vec<u8, 4>: [1, _, _, _]
+//!     A: Push Value
+//!     B: Read, Length: 0
+//!
+//! Step 4:
+//!     Vec<u8, 4>: [1, _, _, _]
+//!     A: Store Length + 1
+//!     B: .next(): None
+//!
+//! Step 5:
+//!     Vec<u8, 4>: [1, _, _, _]
+//!     B: .iter(), Length: 1
+//! ```
+//!
+//! As one can see, the length is only changed, once the push is done, this means that even though
+//! we mutate and read the array at the same time we can guarantee, that never an uninitialized
+//! **or** write on the same address, entry will take place.
+//! Only once we can guarantee that writing to an entry has been done, and will never take place we
+//! will increment the length.
+//!
+//! Once a bucket has filled up, the vec will allocate a new bucket on the heap and use that,
+//! creating a linked list (into one direction).
+//! This means that every `N`th insertion will be slightly slower, as an allocation needs to be
+//! performed.
 #![no_std]
+#![warn(
+    unreachable_pub,
+    clippy::pedantic,
+    clippy::nursery,
+    clippy::missing_safety_doc
+)]
+// TODO: once more stable introduce: warning missing_docs, clippy::missing_errors_doc
+#![allow(clippy::module_name_repetitions)]
+#![allow(clippy::redundant_pub_crate)]
 
 extern crate alloc;
 
@@ -29,7 +94,7 @@ pub struct AppendOnlyVec<T, const N: usize = 16> {
     //
     // In theory items could be modified through interior mutability, but that is the case with
     // "normal" Iterators too.
-    head: UnsafeCell<Node<T, N>>,
+    head: UnsafeCell<Bucket<T, N>>,
 }
 
 impl<T, const N: usize> Default for AppendOnlyVec<T, N> {
@@ -41,7 +106,7 @@ impl<T, const N: usize> Default for AppendOnlyVec<T, N> {
 impl<T, const N: usize> Drop for AppendOnlyVec<T, N> {
     fn drop(&mut self) {
         let length = self.length.load(Ordering::Acquire);
-        let (node, offset) = self.indices(length);
+        let (node, offset) = Self::indices(length);
 
         let head = self.head.get_mut();
         unsafe { head.uninit(node, offset) };
@@ -53,11 +118,12 @@ unsafe impl<T: Send + Sync, const N: usize> Sync for AppendOnlyVec<T, N> {}
 
 impl<T, const N: usize> AppendOnlyVec<T, N> {
     #[cfg(not(loom))]
+    #[must_use]
     pub const fn new() -> Self {
         Self {
             length: AtomicUsize::new(0),
             lock: AtomicLock::new(),
-            head: UnsafeCell::new(Node::new()),
+            head: UnsafeCell::new(Bucket::new()),
         }
     }
 
@@ -66,11 +132,11 @@ impl<T, const N: usize> AppendOnlyVec<T, N> {
         Self {
             length: AtomicUsize::new(0),
             lock: AtomicLock::new(),
-            head: UnsafeCell::new(Node::new()),
+            head: UnsafeCell::new(Bucket::new()),
         }
     }
 
-    fn indices(&self, length: usize) -> (usize, usize) {
+    const fn indices(length: usize) -> (usize, usize) {
         (length / N, length % N)
     }
 
@@ -82,7 +148,7 @@ impl<T, const N: usize> AppendOnlyVec<T, N> {
         // We *might* be able to relax this requirement.
         // TODO: note(bmahmoud): @td - do you think we can relax the ordering here?
         let length = self.length.load(Ordering::Acquire);
-        let (node, offset) = self.indices(length);
+        let (node, offset) = Self::indices(length);
 
         unsafe {
             let head = &mut *self.head.get();
@@ -100,13 +166,13 @@ impl<T, const N: usize> AppendOnlyVec<T, N> {
     }
 }
 
-struct Node<T, const N: usize> {
+struct Bucket<T, const N: usize> {
     store: [MaybeUninit<T>; N],
 
-    next: Option<Box<Node<T, N>>>,
+    next: Option<Box<Bucket<T, N>>>,
 }
 
-impl<T, const N: usize> Node<T, N> {
+impl<T, const N: usize> Bucket<T, N> {
     const fn new() -> Self {
         Self {
             // this is the same as MaybeUninit::uninit_array()
@@ -135,7 +201,7 @@ impl<T, const N: usize> Node<T, N> {
     unsafe fn set(&mut self, node: usize, offset: usize, value: T) {
         if node == 1 && offset == 0 {
             // the next node is empty, and therefore needs to be allocated before we can use it
-            self.next = Some(Box::new(Node::new()));
+            self.next = Some(Box::new(Bucket::new()));
         }
 
         if node == 0 {
@@ -155,7 +221,7 @@ impl<T, const N: usize> Node<T, N> {
 }
 
 pub struct Iter<'a, T, const N: usize> {
-    node: &'a Node<T, N>,
+    node: &'a Bucket<T, N>,
     length: usize,
     offset: usize,
 }
