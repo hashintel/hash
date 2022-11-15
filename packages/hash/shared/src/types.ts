@@ -223,7 +223,7 @@ export type SystemPropertyTypeTitle =
   typeof systemPropertyTypes[SystemPropertyTypeKey]["title"];
 
 /**
- * The system link type titles.
+ * The system link entity type titles.
  */
 const systemLinkEntityTypes = {
   hasMembership: {
