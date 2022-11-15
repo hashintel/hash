@@ -4,9 +4,18 @@ import {
   DataEditorProps,
   Theme,
   DataEditorRef,
+  GridSelection,
+  CompactSelection,
 } from "@glideapps/glide-data-grid";
 import { useTheme } from "@mui/material";
-import { forwardRef, ForwardRefRenderFunction, useMemo } from "react";
+import {
+  forwardRef,
+  ForwardRefRenderFunction,
+  useCallback,
+  useMemo,
+  useState,
+} from "react";
+import { GetRowThemeCallback } from "@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-render";
 import { getCellHorizontalPadding } from "./utils";
 import { customGridIcons } from "./utils/custom-grid-icons";
 
@@ -15,6 +24,12 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
   ref,
 ) => {
   const { palette } = useTheme();
+  const [hoveredRow, setHoveredRow] = useState<number>();
+
+  const [selection, setSelection] = useState<GridSelection>({
+    columns: CompactSelection.empty(),
+    rows: CompactSelection.empty(),
+  });
 
   const gridTheme: Partial<Theme> = useMemo(
     () => ({
@@ -38,10 +53,24 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
     [palette],
   );
 
+  const getRowThemeOverride = useCallback<GetRowThemeCallback>(
+    (row) => {
+      if (row === hoveredRow) {
+        return {
+          bgCell: "#f7f7f7",
+          bgCellMedium: "#f0f0f0",
+        };
+      }
+    },
+    [hoveredRow],
+  );
+
   return (
     <DataEditor
       ref={ref}
       theme={gridTheme}
+      getRowThemeOverride={getRowThemeOverride}
+      gridSelection={selection}
       width="100%"
       headerHeight={42}
       rowHeight={42}
@@ -51,6 +80,26 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
       smoothScrollX
       smoothScrollY
       getCellsForSelection
+      onItemHovered={({ kind, location }) => {
+        const [col, row] = location;
+        setHoveredRow(kind === "cell" ? row : undefined);
+        setSelection({
+          ...selection,
+          current:
+            kind === "cell"
+              ? {
+                  cell: [col, row],
+                  range: {
+                    x: col,
+                    y: row,
+                    width: 1,
+                    height: 1,
+                  },
+                  rangeStack: [],
+                }
+              : undefined,
+        });
+      }}
       {...props}
       /**
        * icons defined via `headerIcons` are avaiable to be drawn using
