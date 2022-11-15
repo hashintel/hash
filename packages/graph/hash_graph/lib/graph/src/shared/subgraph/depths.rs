@@ -26,6 +26,8 @@ pub type SubgraphQueryDepth = u8;
 ///
 /// # Example
 ///
+/// - `Entity1` links to `Entity2` via `Link1`
+/// - `Entity2` links to `Entity3` via `Link2`
 /// - `EntityType1` references \[`EntityType2`, `PropertyType1`]
 /// - `EntityType2` references \[`PropertyType2`]
 /// - `PropertyType1` references \[`DataType2`]
@@ -34,19 +36,23 @@ pub type SubgraphQueryDepth = u8;
 /// - `PropertyType4` references \[`DataType3`]
 ///
 /// If a query on `EntityType1` is made with the following depths:
-/// - `entity_type_query_depth: 1`
-/// - `property_type_query_depth: 3`
-/// - `data_type_query_depth: 1`
+/// - `data_type_resolve_depth: 1`
+/// - `property_type_resolve_depth: 3`
+/// - `entity_type_resolve_depth: 1`
+/// - `entity_resolve_depth: 2`
 ///
-/// Then the returned subgraph will be:
-/// - `referenced_entity_types`: \[`EntityType2`]
-/// - `referenced_property_types`: \[`PropertyType1`, `PropertyType2`, `PropertyType3`]
-/// - `referenced_data_types`: \[`DataType1`, `DataType2`]
+/// then the returned subgraph will contain the following vertices in addition to the root edges:
+/// - \[`EntityType2`]
+/// - \[`PropertyType1`, `PropertyType2`, `PropertyType3`]
+/// - \[`DataType1`, `DataType2`]
+/// - \[`Link1`, `Entity2`]
 ///
 /// ## The idea of "chains"
 ///
 /// When `EntityType2` is explored its referenced property types get explored. The chain of
-/// _property type_ references is then resolved to a depth of `property_type_query_depth`.
+/// _property type_ references is then resolved to a depth of `property_type_resolve_depth`. `Link2`
+/// will not be included in the subgraph, because the depth for `entity_resolve_depth` is `2`
+/// and `Link2` is `3` edges away from `Entity1`.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
