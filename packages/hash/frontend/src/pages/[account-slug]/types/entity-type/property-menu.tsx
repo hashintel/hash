@@ -28,10 +28,12 @@ import {
 } from "../../shared/ontology-chip";
 
 export const PropertyMenu = ({
+  onEdit,
   onRemove,
   property,
   popupState,
 }: {
+  onEdit?: () => void;
   onRemove?: () => void;
   property: PropertyType;
   popupState: PopupState;
@@ -85,6 +87,15 @@ export const PropertyMenu = ({
         <Typography component={ListItem} variant="smallCaps">
           Actions
         </Typography>
+
+        <MenuItem
+          onClick={() => {
+            popupState.close();
+            onEdit?.();
+          }}
+        >
+          <ListItemText primary="Edit property" />
+        </MenuItem>
         <MenuItem
           onClick={() => {
             popupState.close();
