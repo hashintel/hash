@@ -3124,10 +3124,6 @@
   version "0.0.2"
   resolved "https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system-web?244d25a#2d34f812c2528ab2da63574a2f12495eb4fe60e9"
 
-"@blockprotocol/type-system-web@https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system-web?6526c0e":
-  version "0.0.1"
-  resolved "https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system-web?6526c0e#dfb41fbd251e6ef8f13839ef9f7dda5f0f1369ae"
-
 "@cloudamqp/amqp-client@^2.1.0":
   version "2.1.0"
   resolved "https://registry.yarnpkg.com/@cloudamqp/amqp-client/-/amqp-client-2.1.0.tgz#0c763fd20327d29dfef8b7ab10d36cb63da12876"
