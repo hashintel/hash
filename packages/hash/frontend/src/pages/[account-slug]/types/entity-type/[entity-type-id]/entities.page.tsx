@@ -27,8 +27,10 @@ import { useEntitiesTable } from "../use-entities-table";
 import { useEntityTypeEntities } from "../use-entity-type-entities";
 import { NextPageWithLayout } from "../../../../../shared/layout";
 import { getEntityTypeEditorLayout } from "../entity-type-header";
+import { useEntityType } from "../use-entity-type";
 
 const Page: NextPageWithLayout = () => {
+  const entityType = useEntityType();
   const { entities, entityTypes, propertyTypes, subgraph } =
     useEntityTypeEntities() ?? {};
 
@@ -71,7 +73,7 @@ const Page: NextPageWithLayout = () => {
     <Box>
       <SectionWrapper
         title="Entities"
-        titleTooltip="This table lists all entities with the ‘Company’ type that are accessible to you"
+        titleTooltip={`This table lists all entities with the ‘${entityType?.title}’ type that are accessible to you`}
         titleStartContent={
           <Stack direction="row">
             {entitiesCount.namespace || entitiesCount.public ? (
