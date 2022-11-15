@@ -327,7 +327,9 @@ export const mutateSchema = (
     set nodes(newNodes) {
       for (const [key, value] of Object.entries(newNodes)) {
         if (!this.nodes[key]) {
+          // @ts-expect-error -- NodeType#schema is readonly in prosemirror-model
           value.schema = schema;
+          // @ts-expect-error -- NodeType#nodes is readonly in prosemirror-model
           this.nodes[key] = value;
         } else {
           this.nodes[key]!.contentMatch = value.contentMatch;
@@ -343,7 +345,9 @@ export const mutateSchema = (
     set marks(newMarks) {
       for (const [key, value] of Object.entries(newMarks)) {
         if (!this.marks[key]) {
+          // @ts-expect-error -- NodeType#schema is readonly in prosemirror-model
           value.schema = schema;
+          // @ts-expect-error -- NodeType#nodes is readonly in prosemirror-model
           this.marks[key] = value;
         }
       }
