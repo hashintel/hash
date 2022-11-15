@@ -19,9 +19,9 @@ A query consists of two parts: a set of filters and the depth of how far the res
 
 ## Filter
 
-The filters are used to determine which root vertices will be included in the subgraph. A filter is composed of a set of condition of parameters and paths. A path is a sequence of steps that describe a path through the Graph. Depending on the type of the query the path will either start at an entity or a type. A parameter is a user defined variable that can be used to parameterize the query. As conditions, currently, equality and inequality conditions are supported.
+The filters are used to determine which root vertices will be included in the subgraph. A filter is composed of a set of condition of parameters and paths. A path is a sequence of steps that describe a path through the Graph. Depending on the type of the query the path will either start at an entity or a type. A parameter is a user defined variable that can be used to parameterize the query. A condition is a boolean expression that constrains the result space. Currently, equality and inequality are the only supported conditions.
 
-A path is a sequence of identifiers to describe a path based on the query type. For example, each type has a `baseUri` component that can be used to identify the type. If a query is supposed to filter all entity types, which have the URI `https://example.com/foo/`, the filter would look like
+A path is a sequence of tokens describing what component will be filtered on. For example, each type has a `baseUri` component that can be used to identify the type. If a query is supposed to filter all entity types, which have the URI `https://example.com/foo/`, the filter would look like
 
 ```json5
 {
@@ -31,22 +31,32 @@ A path is a sequence of identifiers to describe a path based on the query type. 
 }
 ```
 
-Currently, three different parameter types can be specified: booleans, numbers, and strings.
+Currently, three different parameter types can be specified: booleans, numbers, and strings. Depending on the path, the parameters may require a specific format, e.g. a UUID, a timestamp, or a URI.
 
 ### Composability
 
-Filters can be composed, so it's possible to match on more than one query. Currently, three different compositions are supported: `all`, `any` and `not`. The `all` composition will match if all conditions are true. The `any` composition will match if at least one condition is true. The `not` composition will match if the condition is false.
+Filters can be composed, so it's possible to match on more than one query. Currently, three different compositions are supported: `all`, `any` and `not`. The `all` composition will match if all conditions are true (corresponding to a logical `AND`). The `any` composition will match if at least one condition is true (logical `OR`). The `not` composition will match if the condition is false. Both, `all` and `any` may take a list of conditions.
 
 ```json5
 {
   filter: {
     all: [
       {
+        equal: [{ path: ["title"] }, { parameter: "Foo" }],
+      },
+      {
         notEqual: [{ path: ["description"] }, null],
       },
       {
         not: {
-          equal: [{ path: ["title"] }, { parameter: "Foo" }],
+          any: [
+            {
+              equal: [{ path: ["leftEntity", "title"] }, { parameter: "Bar" }],
+            },
+            {
+              equal: [{ path: ["leftEntity", "title"] }, { parameter: "Baz" }],
+            },
+          ],
         },
       },
     ],
@@ -58,15 +68,16 @@ An empty `all` filter will always match. An empty `any` filter will never match.
 
 ## Depth
 
-The depth determines how many edges away from the root vertices the subgraph will be resolved.
+The depth determines how many edges away from the root vertices the subgraph will be resolved. For entities, this will resolve the outgoing links, for link entities, this will resolve the left entity and the right entity.
 
-Elements in the subgraph are connected via edges. For example, ontology elements may have references to other records, a property type may reference other property types or data types. The depths provided alongside a filter specify how many steps to explore along a chain of references _of a certain edge kind_. Maning, any chain of property type references will be resolved up to the depth given for property types, and _each_ data type referenced in those property types will in turn start a 'new chain' whose exploration depth is limited by the
-depth given for data types.
+Elements in the subgraph are connected via edges. For example, ontology elements may have references to other records, a property type may reference other property types or data types or entities may link to other entities. The depths provided alongside a filter specify how many steps to explore along a chain of references _of a certain edge kind_. Meaning, any chain of property type references will be resolved up to the depth given for property types, and _each_ data type referenced in those property types will in turn start a 'new chain' whose exploration depth is limited by the depth given for data types.
 
 A depth of `0` means that no edges are explored for that edge kind.
 
 ### Example
 
+- `Entity1` links to `Entity2` via `Link1`
+- `Entity2` links to `Entity3` via `Link2`
 - `EntityType1` references \[`EntityType2`, `PropertyType1`]
 - `EntityType2` references \[`PropertyType2`]
 - `PropertyType1` references \[`DataType2`]
@@ -74,7 +85,7 @@ A depth of `0` means that no edges are explored for that edge kind.
 - `PropertyType3` references \[`PropertyType4`, `DataType3`]
 - `PropertyType4` references \[`DataType3`]
 
-if a query on `EntityType1` is made with the following depths:
+if a query on `Entity1` is made with the following depths:
 
 ```json5
 {
@@ -85,16 +96,19 @@ if a query on `EntityType1` is made with the following depths:
     dataTypeResolveDepth: 1,
     propertyTypeResolveDepth: 3,
     entityTypeResolveDepth: 1,
-    entityResolveDepth: 0,
+    entityResolveDepth: 2,
   },
 }
 ```
 
-then the returned subgraph will be:
+then the returned subgraph will contain the following vertices in addition to the root edges:
 
-- `referenced_entity_types`: \[`EntityType2`]
-- `referenced_property_types`: \[`PropertyType1`, `PropertyType2`, `PropertyType3`]
-- `referenced_data_types`: \[`DataType1`, `DataType2`]
+- \[`EntityType2`]
+- \[`PropertyType1`, `PropertyType2`, `PropertyType3`]
+- \[`DataType1`, `DataType2`]
+- \[`Link1`, `Entity2`]
+
+`Link2` will not be included in the subgraph, because the depth for `entityResolveDepth` is `2` and `Link2` is `3` edges away from `Entity1`.
 
 Please note, that all depth parameters has to be passed each time a query is made to prevent unexpected results.
 
@@ -130,12 +144,12 @@ For an exhaustive list of all supported paths, please generate the Rust document
 }
 ```
 
-## Get all entities owned by a specific user
+## Get all entities owned by a specific account
 
 ```json5
 {
   filter: {
-    equal: [{ path: ["ownedById"] }, { parameter: "{{user_id}}" }],
+    equal: [{ path: ["ownedById"] }, { parameter: "{{account_id}}" }],
   },
   graphResolveDepths: {
     // ...

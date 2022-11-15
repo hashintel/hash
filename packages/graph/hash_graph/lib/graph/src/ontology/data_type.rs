@@ -19,7 +19,7 @@ use crate::store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath};
 //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
 #[derive(Debug, PartialEq, Eq)]
 pub enum DataTypeQueryPath {
-    /// The [`BaseUri`] of a [`DataType`].
+    /// The [`BaseUri`] of the [`DataType`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
@@ -44,7 +44,7 @@ pub enum DataTypeQueryPath {
     /// ```
     ///
     /// In addition to specifying the version directly, it's also possible to compare the version
-    /// with a `"latest"` parameter, which will only match the latest version of one
+    /// with a `"latest"` parameter, which will only match the latest version of the
     /// [`DataType`].
     ///
     /// ```rust
@@ -62,7 +62,7 @@ pub enum DataTypeQueryPath {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     Version,
-    /// The [`VersionedUri`] of a [`DataType`].
+    /// The [`VersionedUri`] of the [`DataType`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
@@ -75,7 +75,7 @@ pub enum DataTypeQueryPath {
     ///
     /// [`VersionedUri`]: type_system::uri::VersionedUri
     VersionedUri,
-    /// The [`OwnedById`] of the [`OntologyElementMetadata`] belonging to this [`DataType`].
+    /// The [`OwnedById`] of the [`OntologyElementMetadata`] belonging to the [`DataType`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
@@ -89,7 +89,7 @@ pub enum DataTypeQueryPath {
     /// [`OwnedById`]: crate::provenance::OwnedById
     /// [`OntologyElementMetadata`]: crate::ontology::OntologyElementMetadata
     OwnedById,
-    /// The [`CreatedById`] of the [`ProvenanceMetadata`] belonging to this [`DataType`].
+    /// The [`CreatedById`] of the [`ProvenanceMetadata`] belonging to the [`DataType`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
@@ -103,7 +103,7 @@ pub enum DataTypeQueryPath {
     /// [`CreatedById`]: crate::provenance::CreatedById
     /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
     CreatedById,
-    /// The [`UpdatedById`] of the [`ProvenanceMetadata`] belonging to this [`DataType`].
+    /// The [`UpdatedById`] of the [`ProvenanceMetadata`] belonging to the [`DataType`].
     ///
     /// ```rust
     /// # use serde::Deserialize;

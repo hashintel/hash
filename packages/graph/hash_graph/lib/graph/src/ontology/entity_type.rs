@@ -14,7 +14,7 @@ use crate::{
 /// A path to a [`EntityType`] field.
 #[derive(Debug, PartialEq, Eq)]
 pub enum EntityTypeQueryPath {
-    /// The [`BaseUri`] of a [`EntityType`].
+    /// The [`BaseUri`] of the [`EntityType`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
@@ -39,7 +39,7 @@ pub enum EntityTypeQueryPath {
     /// ```
     ///
     /// In addition to specifying the version directly, it's also possible to compare the version
-    /// with a `"latest"` parameter, which will only match the latest version of one
+    /// with a `"latest"` parameter, which will only match the latest version of the
     /// [`EntityType`].
     ///
     /// ```rust
@@ -57,7 +57,7 @@ pub enum EntityTypeQueryPath {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     Version,
-    /// The [`VersionedUri`] of a [`EntityType`].
+    /// The [`VersionedUri`] of the [`EntityType`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
@@ -70,7 +70,7 @@ pub enum EntityTypeQueryPath {
     ///
     /// [`VersionedUri`]: type_system::uri::VersionedUri
     VersionedUri,
-    /// The [`OwnedById`] of the [`OntologyElementMetadata`] belonging to this [`EntityType`].
+    /// The [`OwnedById`] of the [`OntologyElementMetadata`] belonging to the [`EntityType`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
@@ -84,7 +84,7 @@ pub enum EntityTypeQueryPath {
     /// [`OwnedById`]: crate::provenance::OwnedById
     /// [`OntologyElementMetadata`]: crate::ontology::OntologyElementMetadata
     OwnedById,
-    /// The [`CreatedById`] of the [`ProvenanceMetadata`] belonging to this [`EntityType`].
+    /// The [`CreatedById`] of the [`ProvenanceMetadata`] belonging to the [`EntityType`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
@@ -98,7 +98,7 @@ pub enum EntityTypeQueryPath {
     /// [`CreatedById`]: crate::provenance::CreatedById
     /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
     CreatedById,
-    /// The [`UpdatedById`] of the [`ProvenanceMetadata`] belonging to this [`EntityType`].
+    /// The [`UpdatedById`] of the [`ProvenanceMetadata`] belonging to the [`EntityType`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
@@ -203,7 +203,8 @@ pub enum EntityTypeQueryPath {
     RequiredLinks,
     /// Currently, does not correspond to any field of [`EntityType`].
     ///
-    /// In the future, this will most likely to something like [`EntityType::inherits_from()`].
+    /// In the future, this will most likely correspond to something like
+    /// [`EntityType::inherits_from()`].
     ///
     /// As an [`EntityType`] can inherit from multiple [`EntityType`]s, the deserialized path
     /// requires an additional selector to identify the [`EntityType`] to query. Currently,

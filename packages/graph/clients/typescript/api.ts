@@ -482,12 +482,6 @@ export interface EntityType {
    * @type {string}
    * @memberof EntityType
    */
-  pluralTitle: string;
-  /**
-   *
-   * @type {string}
-   * @memberof EntityType
-   */
   description?: string;
   /**
    *
@@ -1450,12 +1444,6 @@ export interface PropertyType {
    * @type {string}
    * @memberof PropertyType
    */
-  pluralTitle: string;
-  /**
-   *
-   * @type {string}
-   * @memberof PropertyType
-   */
   description?: string;
   /**
    *
@@ -1716,12 +1704,6 @@ export interface UpdateEntityType {
    * @type {string}
    * @memberof UpdateEntityType
    */
-  pluralTitle: string;
-  /**
-   *
-   * @type {string}
-   * @memberof UpdateEntityType
-   */
   description?: string;
   /**
    *
@@ -1817,12 +1799,6 @@ export interface UpdatePropertyType {
    * @memberof UpdatePropertyType
    */
   title: string;
-  /**
-   *
-   * @type {string}
-   * @memberof UpdatePropertyType
-   */
-  pluralTitle: string;
   /**
    *
    * @type {string}

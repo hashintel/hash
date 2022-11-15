@@ -14,7 +14,7 @@ use crate::{
 /// A path to a [`PropertyType`] field.
 #[derive(Debug, PartialEq, Eq)]
 pub enum PropertyTypeQueryPath {
-    /// The [`BaseUri`] of a [`PropertyType`].
+    /// The [`BaseUri`] of the [`PropertyType`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
@@ -39,10 +39,10 @@ pub enum PropertyTypeQueryPath {
     /// ```
     ///
     /// In addition to specifying the version directly, it's also possible to compare the version
-    /// with a `"latest"` parameter, which will only match the latest version of one
+    /// with a `"latest"` parameter, which will only match the latest version of this
     /// [`PropertyType`].
     Version,
-    /// The [`VersionedUri`] of a [`PropertyType`].
+    /// The [`VersionedUri`] of the [`PropertyType`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
@@ -55,7 +55,7 @@ pub enum PropertyTypeQueryPath {
     ///
     /// [`VersionedUri`]: type_system::uri::VersionedUri
     VersionedUri,
-    /// The [`OwnedById`] of the [`OntologyElementMetadata`] belonging to this [`PropertyType`].
+    /// The [`OwnedById`] of the [`OntologyElementMetadata`] belonging to the [`PropertyType`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
@@ -69,7 +69,7 @@ pub enum PropertyTypeQueryPath {
     /// [`OwnedById`]: crate::provenance::OwnedById
     /// [`OntologyElementMetadata`]: crate::ontology::OntologyElementMetadata
     OwnedById,
-    /// The [`CreatedById`] of the [`ProvenanceMetadata`] belonging to this [`PropertyType`].
+    /// The [`CreatedById`] of the [`ProvenanceMetadata`] belonging to the [`PropertyType`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
@@ -83,7 +83,7 @@ pub enum PropertyTypeQueryPath {
     /// [`CreatedById`]: crate::provenance::CreatedById
     /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
     CreatedById,
-    /// The [`UpdatedById`] of the [`ProvenanceMetadata`] belonging to this [`PropertyType`].
+    /// The [`UpdatedById`] of the [`ProvenanceMetadata`] belonging to the [`PropertyType`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
