@@ -17,8 +17,6 @@ use intrusive_collections::{intrusive_adapter, LinkedListLink};
 
 const N_INSERTIONS: &[usize] = &[100, 300, 500];
 
-// TODO: iter (single, multi)
-
 #[derive(Clone)]
 struct MultithreadedBench<T, const N: usize = 5> {
     start: Arc<Barrier>,
