@@ -319,7 +319,6 @@ impl<'a, T, const N: usize> Iterator for Iter<'a, T, N> {
 #[cfg(test)]
 mod tests {
     use alloc::{vec, vec::Vec};
-    use core::hint::black_box;
 
     use super::AVec;
 
@@ -423,7 +422,7 @@ mod tests {
             let v1 = loom::sync::Arc::clone(&v);
             threads.push(loom::thread::spawn(move || {
                 for _ in 0..N {
-                    black_box(|| {
+                    core::hint::black_box(|| {
                         let _items: Vec<_> = v1.iter().copied().collect();
                     })();
                 }
