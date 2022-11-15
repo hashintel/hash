@@ -67,7 +67,7 @@ const Page: NextPageWithLayout = () => {
     setTableSort,
   );
 
-  const sortedRows = rows && sortRowData(rows, tableSort);
+  const sortedRows = sortRowData(rows, tableSort);
 
   return (
     <Box>
