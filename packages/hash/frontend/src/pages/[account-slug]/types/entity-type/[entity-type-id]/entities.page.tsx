@@ -1,12 +1,12 @@
 import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
-import { GridCellKind } from "@glideapps/glide-data-grid";
+import { GridCell, GridCellKind, Item } from "@glideapps/glide-data-grid";
 import {
   Chip,
   FontAwesomeIcon,
   IconButton,
 } from "@hashintel/hash-design-system";
 import { Box, Paper, Stack } from "@mui/material";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
 import { GlideGrid } from "../../../../../components/GlideGlid/glide-grid";
 import { GlideGridOverlayPortal } from "../../../../../components/GlideGlid/glide-grid-overlay-portal";
@@ -57,7 +57,46 @@ const Page: NextPageWithLayout = () => {
 
   const drawHeader = useDrawHeader(tableSort, columns ?? []);
 
-  if (!columns || !rows) {
+  const sortedRows = sortRowData(rows ?? [], tableSort);
+
+  const getCellContent = useCallback(
+    ([colIndex, rowIndex]: Item): GridCell => {
+      if (sortedRows && columns) {
+        const row = sortedRows[rowIndex];
+        const columnId = columns[colIndex]?.id;
+        const cellValue = columnId && row?.[columnId];
+
+        if (cellValue) {
+          if (columnId === "entity") {
+            return {
+              kind: GridCellKind.Custom,
+              allowOverlay: false,
+              readonly: true,
+              copyData: cellValue,
+              data: {
+                kind: "text-icon-cell",
+                icon: "bpAsterisk",
+                value: cellValue,
+              },
+            };
+          }
+
+          return {
+            kind: GridCellKind.Text,
+            allowOverlay: true,
+            readonly: true,
+            displayData: String(cellValue),
+            data: cellValue,
+          };
+        }
+      }
+
+      return blankCell;
+    },
+    [sortedRows, columns],
+  );
+
+  if (!columns || !sortedRows) {
     return null;
   }
 
@@ -66,8 +105,6 @@ const Page: NextPageWithLayout = () => {
     tableSort,
     setTableSort,
   );
-
-  const sortedRows = sortRowData(rows, tableSort);
 
   return (
     <Box>
@@ -120,40 +157,7 @@ const Page: NextPageWithLayout = () => {
             drawHeader={drawHeader}
             columns={columns}
             rows={sortedRows.length}
-            getCellContent={([colIndex, rowIndex]) => {
-              if (sortedRows && columns) {
-                const row = sortedRows[rowIndex];
-                const columnId = columns[colIndex]?.id;
-                const cellValue = columnId && row?.[columnId];
-
-                if (cellValue) {
-                  if (columnId === "entity") {
-                    return {
-                      kind: GridCellKind.Custom,
-                      allowOverlay: false,
-                      readonly: true,
-                      copyData: cellValue,
-                      data: {
-                        kind: "text-icon-cell",
-                        icon: "bpAsterisk",
-                        value: cellValue,
-                      },
-                    };
-                  }
-
-                  return {
-                    kind: GridCellKind.Text,
-                    allowOverlay: true,
-                    readonly: true,
-                    copyData: cellValue,
-                    displayData: String(cellValue),
-                    data: cellValue,
-                  };
-                }
-              }
-
-              return blankCell;
-            }}
+            getCellContent={getCellContent}
             customRenderers={[renderTextIconCell]}
           />
         </Paper>
