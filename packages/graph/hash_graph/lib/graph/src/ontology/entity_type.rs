@@ -391,10 +391,9 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
                     .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
                 self.position += 1;
 
-                let property_type_query_path =
-                    PropertyTypeQueryPathVisitor::new(self.position).visit_seq(seq)?;
-
-                EntityTypeQueryPath::Properties(property_type_query_path)
+                EntityTypeQueryPath::Properties(
+                    PropertyTypeQueryPathVisitor::new(self.position).visit_seq(seq)?,
+                )
             }
             EntityTypeQueryToken::Required => EntityTypeQueryPath::Required,
             EntityTypeQueryToken::Links => {
@@ -402,12 +401,7 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
                     .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
                 self.position += 1;
 
-                todo!("https://app.asana.com/0/1200211978612931/1203250001255262/f");
-
-                // let link_type_query_path =
-                //     LinkTypeQueryPathVisitor::new(self.position).visit_seq(seq)?;
-                //
-                // EntityTypeQueryPath::Links(link_type_query_path)
+                EntityTypeQueryPath::Links(Box::new(Self::new(self.position).visit_seq(seq)?))
             }
             EntityTypeQueryToken::RequiredLinks => EntityTypeQueryPath::RequiredLinks,
             EntityTypeQueryToken::InheritsFrom => {
@@ -415,9 +409,9 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
                     .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
                 self.position += 1;
 
-                let entity_type_query_path = Self::new(self.position).visit_seq(seq)?;
-
-                EntityTypeQueryPath::InheritsFrom(Box::new(entity_type_query_path))
+                EntityTypeQueryPath::InheritsFrom(Box::new(
+                    Self::new(self.position).visit_seq(seq)?,
+                ))
             }
         })
     }
