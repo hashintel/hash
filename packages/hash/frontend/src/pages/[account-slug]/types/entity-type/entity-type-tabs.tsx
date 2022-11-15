@@ -3,12 +3,19 @@ import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { Box, Tabs, tabsClasses } from "@mui/material";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
-import { EntityTypeDefinitionTab } from "./entity-type-definition-tab";
-import { EntityTypeEntitiesTab } from "./entity-type-entities-tab";
+import { useFormContext, useWatch } from "react-hook-form";
+import { EntityTypeEditorForm } from "./form-types";
 import { TabButton } from "./tab-button";
+import { TabLink } from "./tab-link";
+import { useEntityTypeEntities } from "./use-entity-type-entities";
 
 export const EntityTypeTabs = () => {
   const router = useRouter();
+
+  const { control } = useFormContext<EntityTypeEditorForm>();
+  const propertiesCount = useWatch({ control, name: "properties.length" });
+
+  const { entities } = useEntityTypeEntities() ?? {};
 
   const baseUri = useMemo(
     () =>
@@ -37,8 +44,12 @@ export const EntityTypeTabs = () => {
           },
         }}
       >
-        <EntityTypeDefinitionTab value={baseUri} />
-        <EntityTypeEntitiesTab value={`${baseUri}/entities`} />
+        <TabLink value={baseUri} label="Definition" count={propertiesCount} />
+        <TabLink
+          value={`${baseUri}/entities`}
+          label="Entities"
+          count={entities?.length}
+        />
       </Tabs>
 
       <Box display="flex" ml="auto">
