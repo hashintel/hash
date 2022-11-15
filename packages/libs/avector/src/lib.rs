@@ -91,6 +91,8 @@ pub struct AVec<T, const N: usize = 16> {
     // will only be modified at the end. `Iter` meanwhile takes a snapshot of the current length
     // (stored in an AtomicUsize) and then iterates through all items. `length` will never
     // decrement, and there is no way that items once pushed can be modified or are ever touched.
+    // The length is only incremented once the push has completed, meaning that the pushed item
+    // will not be accessed until `push()` has finished.
     //
     // In theory items could be modified through interior mutability, but that is the case with
     // "normal" Iterators too.
