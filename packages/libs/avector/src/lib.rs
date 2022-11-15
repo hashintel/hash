@@ -319,10 +319,12 @@ impl<'a, T, const N: usize> Iterator for Iter<'a, T, N> {
 #[cfg(test)]
 mod tests {
     use alloc::{vec, vec::Vec};
+    use core::hint::black_box;
 
     use super::AVec;
 
     #[test]
+    #[cfg(not(loom))]
     fn push_single() {
         let vec = AVec::<u8, 4>::new();
         vec.push(1);
@@ -332,6 +334,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(loom))]
     fn push_many() {
         let vec = AVec::<u8, 4>::new();
         let range = u8::MIN..u8::MAX;
@@ -420,7 +423,9 @@ mod tests {
             let v1 = loom::sync::Arc::clone(&v);
             threads.push(loom::thread::spawn(move || {
                 for _ in 0..N {
-                    let _items: Vec<_> = v1.iter().copied().collect();
+                    black_box(|| {
+                        let _items: Vec<_> = v1.iter().copied().collect();
+                    })();
                 }
             }));
 

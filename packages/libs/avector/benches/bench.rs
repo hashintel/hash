@@ -11,7 +11,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use append_vec::AVec;
+use avector::AVec;
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use intrusive_collections::{intrusive_adapter, LinkedListLink};
 
