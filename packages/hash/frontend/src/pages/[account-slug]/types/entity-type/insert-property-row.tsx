@@ -13,9 +13,10 @@ import {
   bindPopover,
   bindToggle,
   bindTrigger,
+  PopupState,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import { Ref, useId, useRef, useState } from "react";
+import { ReactNode, Ref, useId, useRef, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { Modal } from "../../../../components/Modals/Modal";
 import { EntityTypeEditorForm } from "./form-types";
@@ -23,6 +24,56 @@ import { PropertyTypeSelector } from "./property-type-selector";
 import { PropertyTypeForm } from "./property-type-form";
 import { QuestionIcon } from "./question-icon";
 import { withHandler } from "./util";
+
+const PropertyTypeModal = ({
+  popupState,
+  header,
+  children,
+}: {
+  popupState: PopupState;
+  header: ReactNode;
+  children: ReactNode;
+}) => (
+  <Modal
+    {...bindPopover(popupState)}
+    disableEscapeKeyDown
+    contentStyle={(theme) => ({
+      p: "0px !important",
+      border: 1,
+      borderColor: theme.palette.gray[20],
+    })}
+  >
+    <>
+      <Box
+        sx={(theme) => ({
+          px: 2.5,
+          pr: 1.5,
+          pb: 1.5,
+          pt: 2,
+          borderBottom: 1,
+          borderColor: theme.palette.gray[20],
+          alignItems: "center",
+          display: "flex",
+        })}
+      >
+        {header}
+        <IconButton
+          {...bindToggle(popupState)}
+          sx={(theme) => ({
+            ml: "auto",
+            svg: {
+              color: theme.palette.gray[50],
+              fontSize: 20,
+            },
+          })}
+        >
+          <FontAwesomeIcon icon={faClose} />
+        </IconButton>
+      </Box>
+      {children}
+    </>
+  </Modal>
+);
 
 export const InsertPropertyRow = ({
   inputRef,
@@ -82,29 +133,10 @@ export const InsertPropertyRow = ({
             variant: "propertyType",
           }}
         />
-
-        <Modal
-          {...bindPopover(modalPopupState)}
-          disableEscapeKeyDown
-          contentStyle={(theme) => ({
-            p: "0px !important",
-            border: 1,
-            borderColor: theme.palette.gray[20],
-          })}
-        >
-          <>
-            <Box
-              sx={(theme) => ({
-                px: 2.5,
-                pr: 1.5,
-                pb: 1.5,
-                pt: 2,
-                borderBottom: 1,
-                borderColor: theme.palette.gray[20],
-                alignItems: "center",
-                display: "flex",
-              })}
-            >
+        <PropertyTypeModal
+          popupState={modalPopupState}
+          header={
+            <>
               <Typography variant="regularTextLabels" sx={{ fontWeight: 500 }}>
                 Create new property type
               </Typography>
@@ -113,26 +145,15 @@ export const InsertPropertyRow = ({
                   ml: 1.25,
                 }}
               />
-              <IconButton
-                {...bindToggle(modalPopupState)}
-                sx={(theme) => ({
-                  ml: "auto",
-                  svg: {
-                    color: theme.palette.gray[50],
-                    fontSize: 20,
-                  },
-                })}
-              >
-                <FontAwesomeIcon icon={faClose} />
-              </IconButton>
-            </Box>
-            <PropertyTypeForm
-              discardButtonProps={bindToggle(modalPopupState)}
-              initialTitle={searchText}
-              onCreatePropertyType={onAdd}
-            />
-          </>
-        </Modal>
+            </>
+          }
+        >
+          <PropertyTypeForm
+            discardButtonProps={bindToggle(modalPopupState)}
+            initialTitle={searchText}
+            onCreatePropertyType={onAdd}
+          />
+        </PropertyTypeModal>
       </TableCell>
     </TableRow>
   );
