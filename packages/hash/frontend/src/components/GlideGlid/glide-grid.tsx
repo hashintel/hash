@@ -6,6 +6,7 @@ import {
   DataEditorRef,
   GridSelection,
   CompactSelection,
+  GridMouseEventArgs,
 } from "@glideapps/glide-data-grid";
 import { useTheme } from "@mui/material";
 import {
@@ -64,6 +65,26 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
     [hoveredRow, palette],
   );
 
+  const onCellSelect = ({ location: [col, row], kind }: GridMouseEventArgs) => {
+    setHoveredRow(kind === "cell" ? row : undefined);
+    setSelection({
+      ...selection,
+      current:
+        kind === "cell"
+          ? {
+              cell: [col, row],
+              range: {
+                x: col,
+                y: row,
+                width: 1,
+                height: 1,
+              },
+              rangeStack: [],
+            }
+          : undefined,
+    });
+  };
+
   return (
     <DataEditor
       ref={ref}
@@ -79,26 +100,8 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
       smoothScrollX
       smoothScrollY
       getCellsForSelection
-      onItemHovered={({ kind, location }) => {
-        const [col, row] = location;
-        setHoveredRow(kind === "cell" ? row : undefined);
-        setSelection({
-          ...selection,
-          current:
-            kind === "cell"
-              ? {
-                  cell: [col, row],
-                  range: {
-                    x: col,
-                    y: row,
-                    width: 1,
-                    height: 1,
-                  },
-                  rangeStack: [],
-                }
-              : undefined,
-        });
-      }}
+      onItemHovered={onCellSelect}
+      onCellClicked={(_, args) => args.isTouch && onCellSelect(args)}
       {...props}
       /**
        * icons defined via `headerIcons` are avaiable to be drawn using
