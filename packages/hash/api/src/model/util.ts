@@ -250,9 +250,6 @@ export type EntityTypeCreatorParams = {
 
 /**
  * Helper method for generating an entity type schema for the Graph API.
- *
- * @todo make use of new type system package instead of ad-hoc types.
- *   https://app.asana.com/0/1202805690238892/1202892835843657/f
  */
 export const generateSystemEntityTypeSchema = (
   params: EntityTypeCreatorParams,
@@ -338,10 +335,7 @@ const linkEntityTypeUri: VersionedUri =
   "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1";
 
 /**
- * Helper method for generating a link type schema for the Graph API.
- *
- * @todo make use of new type system package instead of ad-hoc types.
- *   https://app.asana.com/0/1202805690238892/1202892835843657/f
+ * Helper method for generating a link entity type schema for the Graph API.
  */
 export const generateSystemLinkEntityTypeSchema = (
   params: LinkEntityTypeCreatorParams,
