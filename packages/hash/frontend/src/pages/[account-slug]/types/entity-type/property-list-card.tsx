@@ -48,9 +48,11 @@ const CenteredTableCell = styled(TableCell)(
 
 export const PropertyTypeRow = ({
   propertyIndex,
+  onEdit,
   onRemove,
 }: {
   propertyIndex: number;
+  onEdit: () => void;
   onRemove: () => void;
 }) => {
   const { control } = useFormContext<EntityTypeEditorForm>();
@@ -151,6 +153,7 @@ export const PropertyTypeRow = ({
         }}
       >
         <PropertyMenu
+          onEdit={onEdit}
           onRemove={onRemove}
           property={property}
           popupState={menuPopupState}
@@ -241,6 +244,9 @@ export const PropertyListCard = () => {
               <PropertyTypeRow
                 key={type.id}
                 propertyIndex={index}
+                onEdit={() => {
+                  alert("Edit property");
+                }}
                 onRemove={() => {
                   remove(index);
                 }}
