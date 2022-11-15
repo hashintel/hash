@@ -9,6 +9,7 @@ see: https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs
 import re
 import json
 import itertools
+import os
 import toml
 
 from fnmatch import fnmatch
@@ -23,11 +24,20 @@ ALWAYS_RUN_PATTERNS = [".github/**"]
 # Toolchains used for the specified crates in addition to the toolchain which is defined in
 # rust-toolchain.toml
 TOOLCHAINS = {
-    "packages/libs/error-stack": ["1.63"],
+    "packages/libs/error-stack": ["1.63", "1.65"],
+    "packages/libs/deer": ["1.65"]
 }
 
 # Try and publish these crates when their version is changed in Cargo.toml
 PUBLISH_PATTERNS = ["packages/libs/error-stack**"]
+# deer is disabled for now because we don't want to publish it just yet
+# "packages/libs/deer**"
+
+# Build a docker container for these crates
+DOCKER_PATTERNS = ["packages/graph/hash_graph"]
+
+# Build a coverage report for these crates
+COVERAGE_PATTERNS = ["packages/graph/**", "packages/libs/**"]
 
 
 def generate_diffs():
@@ -48,7 +58,12 @@ def find_local_crates():
     `cargo-make` will run the sub-crate automatically.
     :return: a list of crate paths
     """
-    return [path.relative_to(CWD).parent for path in CWD.rglob("Cargo.toml")]
+    all_crates = [path.relative_to(CWD).parent for path in CWD.rglob("Cargo.toml")]
+    checked_crates = []
+    for crate in all_crates:
+        if not any(path in crate.parents for path in all_crates):
+            checked_crates.append(crate)
+    return checked_crates
 
 
 def filter_parent_crates(crates):
@@ -128,7 +143,35 @@ def filter_for_publishable_crates(crates):
     ]
 
 
-def output_matrix(name, crates, **kwargs):
+def filter_for_coverage_crates(crates):
+    """
+    Returns the crates for which a coverage report will be created
+    :param crates: a list of paths to crates
+    :return: a list of crate paths which are allowed to be published
+    """
+    return [
+        crate
+        for crate in crates
+        for pattern in COVERAGE_PATTERNS
+        if fnmatch(crate, pattern)
+    ]
+
+
+def filter_for_docker_crates(crates):
+    """
+    Returns the crates for which docker containers are built
+    :param crates: a list of paths to crates
+    :return: a list of crate paths for which docker containers are built
+    """
+    return [
+        crate
+        for crate in crates
+        for pattern in DOCKER_PATTERNS
+        if fnmatch(crate, pattern)
+    ]
+
+
+def output_matrix(name, github_output_file, crates, **kwargs):
     """
     Outputs the job matrix for the given crates
     :param name: The name where the list of crates will be stored to be read by GitHub Actions
@@ -155,8 +198,8 @@ def output_matrix(name, crates, **kwargs):
         ) as toolchain_toml:
             toolchains.append(toml.loads(toolchain_toml.read())["toolchain"]["channel"])
 
-        # We only run the default toolchain on lint/publish (rust-toolchain.toml)
-        if name not in ("lint", "publish"):
+        # We only run the default toolchain on coverage/lint/publish (rust-toolchain.toml)
+        if name not in ("coverage", "lint", "publish"):
             for pattern, additional_toolchains in TOOLCHAINS.items():
                 if fnmatch(crate, pattern):
                     toolchains += additional_toolchains
@@ -170,18 +213,23 @@ def output_matrix(name, crates, **kwargs):
     )
 
     matrix = dict(
-        directory=[str(crate) for crate in crates],
+        name=[crate.name.replace("_", "-") for crate in crates],
         toolchain=list(available_toolchains),
         **kwargs,
         exclude=[
-            dict(directory=str(elem[0]), toolchain=elem[1])
+            dict(name=elem[0].name.replace("_", "-"), toolchain=elem[1])
             for elem in excluded_toolchain_combinations
         ],
+        include=[
+            dict(name=crate.name.replace("_", "-"), directory=str(crate))
+            for crate in crates
+        ],
     )
-    if len(matrix["directory"]) == 0:
+            
+    if len(matrix["name"]) == 0:
         matrix = {}
 
-    print(f"::set-output name={name}::{json.dumps(matrix)}")
+    github_output_file.write(f"{name}={json.dumps(matrix)}\n")
     print(f"Job matrix for {name}: {json.dumps(matrix, indent=4)}")
 
 
@@ -190,16 +238,25 @@ def main():
     available_crates = find_local_crates()
     changed_crates = filter_for_changed_crates(diffs, available_crates)
     changed_parent_crates = filter_parent_crates(changed_crates)
+    coverage_crates = filter_for_coverage_crates(changed_parent_crates)
+    changed_docker_crates = filter_for_docker_crates(changed_parent_crates)
 
-    output_matrix("lint", changed_parent_crates)
-    output_matrix("test", changed_parent_crates, profile=["development", "production"])
+    github_output_file = open(os.environ["GITHUB_OUTPUT_FILE_PATH"], "w")
+
+    output_matrix("lint", github_output_file, changed_parent_crates)
+    output_matrix("test", github_output_file, changed_parent_crates, profile=["development", "production"])
+    output_matrix("coverage", github_output_file, coverage_crates)
+    output_matrix("docker", github_output_file, changed_docker_crates, profile=["production"])
     output_matrix(
         "publish",
+        github_output_file,
         filter_crates_by_changed_version(
             diffs, filter_for_publishable_crates(changed_crates)
         ),
         profile=["release"],
     )
+
+    github_output_file.close()
 
 
 if __name__ == "__main__":

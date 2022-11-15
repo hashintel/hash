@@ -21,7 +21,7 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
       onChangeText,
       value,
       transparent,
-      type,
+      type = "text",
       inputClassName,
       ...props
     },
@@ -41,7 +41,7 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
 
     const Input = (
       <input
-        type={type || "text"}
+        type={type}
         {...props}
         className={tw`${
           transparent ? "" : "bg-gray-100"

@@ -1,13 +1,17 @@
-import { test, expect } from "@playwright/test";
 import { sleep } from "@hashintel/hash-shared/sleep";
-import { loginUsingUi } from "./utils/login-using-ui";
-import { resetDb } from "./utils/reset-db";
+import { test, expect } from "./shared/runtime";
+import { loginUsingUi } from "./shared/login-using-ui";
+import { resetDb } from "./shared/reset-db";
 
 test.beforeEach(async () => {
   await resetDb();
 });
 
-test("user can create and update entity", async ({ page }) => {
+/**
+ * @todo: Re-enable this playwright test when required backend functionality is fixed
+ * @see https://app.asana.com/0/1202805690238892/1203106234191599/f
+ */
+test.skip("user can create and update entity", async ({ page }) => {
   await loginUsingUi({ page, accountShortName: "bob" });
 
   // Check if we are on the user page

@@ -11,19 +11,22 @@ import { ResolverMiddleware } from "./middlewareTypes";
 export const canAccessAccount: ResolverMiddleware<
   GraphQLContext,
   {
-    accountId: Scalars["ID"];
+    ownedById: Scalars["ID"];
   },
   LoggedInGraphQLContext
 > = (next) =>
   loggedInAndSignedUp(async (_, args, ctx, info) => {
+    const {
+      userModel,
+      dataSources: { graphApi },
+    } = ctx;
     let isAllowed = false;
-    if (ctx.user.accountId === args.accountId) {
+    if (userModel.entityId === args.ownedById) {
       isAllowed = true;
     } else {
-      isAllowed = await ctx.user.isMemberOfOrg(
-        ctx.dataSources.db,
-        args.accountId,
-      );
+      isAllowed = await userModel.isMemberOfOrg(graphApi, {
+        orgEntityId: args.ownedById,
+      });
     }
     if (!isAllowed) {
       throw new ForbiddenError(

@@ -1,7 +1,7 @@
 {
   "name": "@hashengine/apache-arrow-js-bundle",
-  "version": "0.0.0",
-  "private": "true",
+  "version": "0.0.0-private",
+  "private": true,
   "type": "module",
   "scripts": {
     "bundle": "webpack",

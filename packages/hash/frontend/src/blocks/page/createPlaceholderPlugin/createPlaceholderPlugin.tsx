@@ -2,7 +2,6 @@ import {
   findComponentNodes,
   isParagraphNode,
 } from "@hashintel/hash-shared/prosemirror";
-import { Schema } from "prosemirror-model";
 import { Plugin, PluginKey } from "prosemirror-state";
 import { Decoration, DecorationSet } from "prosemirror-view";
 import { RenderPortal } from "../usePortals";
@@ -15,12 +14,12 @@ interface PlaceholderPluginState {
 
 const defaultState = { focused: false, editable: true };
 
-const placeholderPluginKey = new PluginKey<PlaceholderPluginState, Schema>(
+const placeholderPluginKey = new PluginKey<PlaceholderPluginState>(
   "placeholderPlugin",
 );
 
 export const createPlaceholderPlugin = (renderPortal: RenderPortal) => {
-  return new Plugin<PlaceholderPluginState, Schema>({
+  return new Plugin<PlaceholderPluginState>({
     key: placeholderPluginKey,
     state: {
       init() {
@@ -54,7 +53,9 @@ export const createPlaceholderPlugin = (renderPortal: RenderPortal) => {
         const firstNode = state.selection.$anchor.node(1);
         const componentNode = firstNode && findComponentNodes(firstNode)[0];
 
-        if (!componentNode) return;
+        if (!componentNode) {
+          return;
+        }
 
         const pluginState =
           placeholderPluginKey.getState(state) ?? defaultState;
@@ -67,7 +68,9 @@ export const createPlaceholderPlugin = (renderPortal: RenderPortal) => {
         const showPlaceholder =
           isParagraph && isEmpty && isFocused && isEditable;
 
-        if (!showPlaceholder) return;
+        if (!showPlaceholder) {
+          return;
+        }
 
         const widgetPos = state.selection.$anchor.posAtIndex(0, 1);
 
@@ -118,5 +121,5 @@ export const createPlaceholderPlugin = (renderPortal: RenderPortal) => {
         },
       },
     },
-  }) as Plugin<unknown, Schema>;
+  }) as Plugin<unknown>;
 };

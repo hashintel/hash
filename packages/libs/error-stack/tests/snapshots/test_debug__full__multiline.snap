@@ -2,19 +2,23 @@
 source: tests/test_debug.rs
 expression: "format!(\"{report:#?}\")"
 ---
-Root error
-├╴tests/common.rs:147:5
-├╴A multiline
-│ attachment
-│ that might have some
-│ additional info
-├╴spantrace with 2 frames (1)
-╰╴backtrace with [n] frames (1)
+root error
+├╴ tests/common.rs:4:5
+├╴ backtrace (1)
+├╴ span trace with 2 frames (1)
+├╴ A multiline
+│  attachment
+│  that might have some
+│  additional info
+╰╴ A multiline
+   attachment
+   that might have some
+   additional info
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Backtrace No. 1
+backtrace no. 1
   [redacted]
 
-Span Trace No. 1
+span trace No. 1
   [redacted]

@@ -1,17 +1,12 @@
 import { ChangeEvent, useEffect, useState, FunctionComponent } from "react";
 import { useRouter } from "next/router";
-import { useMutation, useQuery } from "@apollo/client";
+import { useMutation } from "@apollo/client";
 
 import { Box } from "@mui/material";
-import {
-  GetAccountsQuery,
-  MutationTransferEntityArgs,
-} from "../../../graphql/apiTypes.gen";
+import { MutationTransferEntityArgs } from "../../../graphql/apiTypes.gen";
 import { transferEntityMutation } from "../../../graphql/queries/entityType.queries";
-import {
-  getAccountPages,
-  getAccounts,
-} from "../../../graphql/queries/account.queries";
+import { getAccountPagesTree } from "../../../graphql/queries/account.queries";
+import { useAccounts } from "../../../components/hooks/useAccounts";
 
 type AccountSelectProps = {
   onChange: (account: string) => void;
@@ -22,7 +17,7 @@ export const AccountSelect: FunctionComponent<AccountSelectProps> = ({
   onChange,
   value,
 }) => {
-  const { data } = useQuery<GetAccountsQuery>(getAccounts);
+  const { accounts } = useAccounts();
 
   return (
     <Box
@@ -38,9 +33,9 @@ export const AccountSelect: FunctionComponent<AccountSelectProps> = ({
       }
       value={value}
     >
-      {data?.accounts.map((account) => (
+      {accounts?.map((account) => (
         <option key={account.entityId} value={account.entityId}>
-          {account.properties.shortname}
+          {account.shortname}
         </option>
       ))}
     </Box>
@@ -78,8 +73,8 @@ export const PageTransferDropdown: FunctionComponent<
         newAccountId,
       },
       refetchQueries: [
-        { query: getAccountPages, variables: { accountId } },
-        { query: getAccountPages, variables: { accountId: newAccountId } },
+        { query: getAccountPagesTree, variables: { accountId } },
+        { query: getAccountPagesTree, variables: { accountId: newAccountId } },
       ],
     })
       .then(() => {

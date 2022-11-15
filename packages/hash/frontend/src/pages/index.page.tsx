@@ -1,36 +1,45 @@
 import { useEffect } from "react";
 import { useRouter } from "next/router";
 
-import { Box, Typography } from "@mui/material";
-import { useUser } from "../components/hooks/useUser";
+import { Box, Container, Typography } from "@mui/material";
+import { useLogoutFlow } from "../components/hooks/useLogoutFlow";
+import { useLoggedInUser } from "../components/hooks/useAuthenticatedUser";
 import { NextPageWithLayout } from "../shared/layout";
+import { Button } from "../shared/ui";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
-  const { user, loading } = useUser();
+  const { authenticatedUser, kratosSession } = useLoggedInUser();
+
+  const { logout } = useLogoutFlow();
 
   useEffect(() => {
-    if (loading) {
-      return;
+    if (authenticatedUser) {
+      void router.push(`/${authenticatedUser.entityId}`);
     }
+  }, [router, authenticatedUser]);
 
-    if (user) {
-      // Temporarily redirect logged in user to their account page
-      void router.push(`/${user.accountId}`);
-    } else {
-      void router.push("/login");
-    }
-  }, [loading, router, user]);
-
+  /** @todo: remove session developer information */
   return (
-    <Box component="main" pt="30vh" display="flex" justifyContent="center">
-      <Typography
-        variant="h1"
-        sx={({ palette }) => ({ color: palette.gray[70], fontWeight: 400 })}
-      >
-        Loading...
+    <Container sx={{ pt: 10 }}>
+      {authenticatedUser && (
+        <Typography variant="h1">
+          Hi {authenticatedUser.preferredName}!
+        </Typography>
+      )}
+      <Typography variant="h2" gutterBottom>
+        {kratosSession
+          ? "You have a kratos session"
+          : "You don't have a kratos session"}
       </Typography>
-    </Box>
+      <Button onClick={logout}>Log out</Button>
+      <Typography gutterBottom>
+        This is what your kratos session looks like:
+      </Typography>
+      {kratosSession ? (
+        <Box component="pre">{JSON.stringify(kratosSession, null, 2)}</Box>
+      ) : null}
+    </Container>
   );
 };
 

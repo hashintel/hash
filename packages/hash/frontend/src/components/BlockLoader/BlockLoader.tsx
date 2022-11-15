@@ -6,11 +6,7 @@ import {
   LinkedAggregation as BpLinkedAggregation,
 } from "@blockprotocol/graph";
 import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
-import {
-  BlockEntity,
-  isTextContainingEntityProperties,
-  isTextProperties,
-} from "@hashintel/hash-shared/entity";
+import { BlockEntity } from "@hashintel/hash-shared/entity";
 import {
   useCallback,
   useLayoutEffect,
@@ -32,7 +28,7 @@ import {
 import { fetchEmbedCode } from "./fetchEmbedCode";
 import { RemoteBlock } from "../RemoteBlock/RemoteBlock";
 import { useBlockLoadedContext } from "../../blocks/onBlockLoaded";
-import { useBlockProtocolAggregateEntities } from "../hooks/blockProtocolFunctions/useBlockProtocolAggregateEntities";
+import { useBlockProtocolAggregateEntities } from "../hooks/blockProtocolFunctions/knowledge/useBlockProtocolAggregateEntities";
 import { useBlockProtocolAggregateEntityTypes } from "../hooks/blockProtocolFunctions/useBlockProtocolAggregateEntityTypes";
 import { useBlockProtocolCreateEntity } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateEntity";
 import { useBlockProtocolCreateEntityType } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateEntityType";
@@ -45,7 +41,7 @@ import { useBlockProtocolUpdateEntity } from "../hooks/blockProtocolFunctions/us
 import { useBlockProtocolUpdateEntityType } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateEntityType";
 import { useBlockProtocolUpdateLink } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLink";
 import { useBlockProtocolUpdateLinkedAggregation } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLinkedAggregation";
-import { EntityType as ApiEntityType } from "../../graphql/apiTypes.gen";
+import { DeprecatedEntityType as ApiEntityType } from "../../graphql/apiTypes.gen";
 import { useReadonlyMode } from "../../shared/readonly-mode";
 import { DataMapEditor } from "./data-map-editor";
 import { mapData, SchemaMap } from "./shared";
@@ -70,19 +66,6 @@ type BlockLoaderProps = {
   // shouldSandbox?: boolean;
 };
 
-const removeTextEntities = (properties: {}) => {
-  // @see https://app.asana.com/0/1201095311341924/1202694273052398/f
-  if (isTextProperties(properties)) {
-    return { text: "" };
-  }
-
-  if (isTextContainingEntityProperties(properties)) {
-    return { ...properties, text: "" };
-  }
-
-  return properties;
-};
-
 // const sandboxingEnabled = !!process.env.NEXT_PUBLIC_SANDBOX;
 
 /**
@@ -98,7 +81,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   entityId,
   entityType,
   entityTypeId,
-  entityProperties: untransformedEntityProperties,
+  entityProperties,
   linkGroups,
   linkedEntities,
   linkedAggregations,
@@ -108,7 +91,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   const { readonlyMode } = useReadonlyMode();
   const { aggregateEntityTypes } =
     useBlockProtocolAggregateEntityTypes(accountId);
-  const { aggregateEntities } = useBlockProtocolAggregateEntities(accountId);
+  const { aggregateEntities } = useBlockProtocolAggregateEntities();
   const { createLinkedAggregation } =
     useBlockProtocolCreateLinkedAggregation(readonlyMode);
   const { createLink } = useBlockProtocolCreateLink(readonlyMode);
@@ -168,7 +151,9 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
       convertedEntityTypesForProvidedEntities.push(
         ...convertApiEntityTypesToBpEntityTypes(
           linkedAggregation.results.map(
-            ({ entityType: resultEntityType }) => resultEntityType,
+            /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
+            ({ entityType: resultEntityType }: { entityType: any }) =>
+              resultEntityType,
           ),
         ),
       );
@@ -184,7 +169,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
       accountId,
       entityId: entityId ?? "entityId-not-yet-set", // @todo ensure blocks always get sent an entityId
       entityTypeId,
-      properties: removeTextEntities(untransformedEntityProperties),
+      properties: entityProperties,
     });
 
     if (
@@ -212,7 +197,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     accountId,
     entityType,
     entityId,
-    untransformedEntityProperties,
+    entityProperties,
     entityTypeId,
     linkGroups,
     linkedEntities,
@@ -277,7 +262,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
         schemaMap={schemaMap}
         sourceBlockEntity={{
           ...graphProperties.blockEntity,
-          properties: untransformedEntityProperties,
+          properties: entityProperties,
         }}
         sourceBlockGraph={graphProperties.blockGraph}
         targetSchema={blockSchema}

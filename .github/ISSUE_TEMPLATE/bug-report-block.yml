@@ -1,0 +1,84 @@
+name: Bug Report (Blocks)
+description: Create a report to help us improve our blocks
+labels:
+  - A-blocks
+  - C-bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to fill out this bug report!
+
+        Please try to fill out the fields below. If you don't know what to put in the fields please left them blank.
+
+  - type: input
+    id: block
+    attributes:
+      label: Block impacted
+      description: The name of the block impacted.
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: To reproduce
+      description: Steps to reproduce the behavior.
+      placeholder: |
+        1.  Go to '...'
+        2.  Click on '...'
+        3.  Scroll down to '...'
+        4.  See error
+    validations:
+      required: false
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: A clear and concise description of what you expected to happen.
+    validations:
+      required: false
+
+  - type: input
+    id: device
+    attributes:
+      label: Device
+      description: What device do you use?
+      placeholder: e.g. iPhone 14
+    validations:
+      required: false
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      description: Which operating system do you use?
+      placeholder: e.g. Windows 10, macOS 13, Android
+    validations:
+      required: false
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser
+      description: Which browser do you use?
+      placeholder: e.g. Firefox 105.0.1, Safari 16.0
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Add any other context about the problem here, e.g. screenshots.
+    validations:
+      required: false

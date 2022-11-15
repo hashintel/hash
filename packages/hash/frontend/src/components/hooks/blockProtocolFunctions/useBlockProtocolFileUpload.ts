@@ -37,7 +37,9 @@ function computeChecksumMd5(file: File): Promise<string> {
     }
 
     fileReader.onload = (evt: ProgressEvent<FileReader>) => {
-      if (!evt.target?.result) return;
+      if (!evt.target?.result) {
+        return;
+      }
       spark.append(evt.target.result as ArrayBuffer);
       cursor += chunkSize;
 
@@ -83,9 +85,9 @@ export const useBlockProtocolFileUpload = (
     const formData = new FormData();
     const { url, fields } = presignedPostData;
 
-    Object.entries(fields).forEach(([key, val]) => {
+    for (const [key, val] of Object.entries(fields)) {
       formData.append(key, val as string);
-    });
+    }
 
     formData.append("file", file);
 

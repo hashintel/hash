@@ -20,6 +20,11 @@ export const MuiTypographyThemeOptions: Components<Theme>["MuiTypography"] = {
   },
   styleOverrides: {
     root: ({ ownerState, theme }) => ({
+      /** Headers that come after headers shouldn't have a top margin */
+      [`&[class*="MuiTypography-hashHeading"] + [class*="MuiTypography-hashHeading"]`]:
+        {
+          marginTop: 0,
+        },
       "& a": {
         ...(ownerState.variant === "hashBodyCopy" && {
           fontWeight: 600,

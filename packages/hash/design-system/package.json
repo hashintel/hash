@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/hash-design-system",
-  "version": "0.0.0",
+  "version": "0.0.0-private",
   "private": true,
   "description": "HASH Design System",
   "license": "AGPL-3.0",
@@ -13,8 +13,8 @@
     }
   },
   "scripts": {
-    "fix:eslint": "eslint --ext .js,.ts,.tsx --fix ./src/",
-    "lint:eslint": "eslint --ext .js,.ts,.tsx ./src/",
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint .",
     "lint:tsc": "tsc --noEmit",
     "test": "jest"
   },
@@ -28,20 +28,14 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
-    "@types/react": "18.0.15",
-    "@types/react-dom": "18.0.6",
-    "@typescript-eslint/eslint-plugin": "5.30.7",
-    "@typescript-eslint/parser": "5.30.7",
-    "eslint": "8.20.0",
-    "eslint-config-airbnb": "19.0.4",
-    "eslint-config-prettier": "8.5.0",
-    "eslint-plugin-canonical": "3.1.0",
-    "eslint-plugin-import": "2.26.0",
-    "eslint-plugin-jest": "26.6.0",
-    "eslint-plugin-jsx-a11y": "6.6.1",
-    "eslint-plugin-react": "7.30.1",
-    "eslint-plugin-react-hooks": "4.6.0",
-    "typescript": "4.7.4"
+    "@local/eslint-config": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
+    "@types/react": "18.0.25",
+    "@types/react-dom": "18.0.8",
+    "@typescript-eslint/eslint-plugin": "5.42.1",
+    "@typescript-eslint/parser": "5.42.1",
+    "eslint": "8.27.0",
+    "typescript": "4.8.4"
   },
   "peerDependencies": {
     "@mui/material": "^5.8.1"

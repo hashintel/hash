@@ -27,9 +27,9 @@ use self::cleanup::IN_USE_SHM_SEGMENTS;
 /// processes to all access a common region of memory (usually the operating system would prohibit
 /// processes from accessing the memory of another process directly).
 ///
-/// We use shared memory in hEngine to store data which is shared between agents (for example, we
-/// have a batch which stores all the messages each agent has sent/received, one for agent state,
-/// and one for storing arbitrary shared data).
+/// We use shared memory in HASH Engine to store data which is shared between agents (for example,
+/// we have a batch which stores all the messages each agent has sent/received, one for agent
+/// state, and one for storing arbitrary shared data).
 ///
 /// **Important:** to avoid memory leaks, it is essential that all shared memory segments are
 /// deallocated promptly once they are no longer required (they are not automatically freed by the

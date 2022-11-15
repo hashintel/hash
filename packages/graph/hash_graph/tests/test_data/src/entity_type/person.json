@@ -1,0 +1,25 @@
+{
+  "kind": "entityType",
+  "$id": "https://blockprotocol.org/@alice/types/entity-type/person/v/1",
+  "type": "object",
+  "title": "Person",
+  "pluralTitle": "People",
+  "properties": {
+    "https://blockprotocol.org/@alice/types/property-type/name/": {
+      "$ref": "https://blockprotocol.org/@alice/types/property-type/name/v/1"
+    }
+  },
+  "links": {
+    "https://blockprotocol.org/@alice/types/link-type/friend-of/v/1": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "https://blockprotocol.org/@alice/types/entity-type/person/v/1"
+          }
+        ]
+      },
+      "ordered": false
+    }
+  }
+}

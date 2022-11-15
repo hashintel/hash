@@ -1,8 +1,8 @@
-[comment]: <> (This CONTRIBUTING guide was heavily inspired by the great one provided by the lovely folks at Atom [https://github.com/atom/atom/blob/master/CONTRIBUTING.md])
+<!-- This CONTRIBUTING guide was heavily inspired by the great one provided by the lovely folks at Atom [https://github.com/atom/atom/blob/master/CONTRIBUTING.md] -->
 
-# Contributing to hEngine
+# Contributing to the HASH Engine
 
-Thank you for your interest in adding to the hEngine!
+_Thank you for your interest in contributing to the HASH Engine (aka. hEngine)_
 
 We've provided the following guidelines to help you with contributions, in addition to the ones described below, we've
 also established a set of [community guidelines](https://hash.ai/legal/community) to enable as many people as possible
@@ -10,28 +10,23 @@ to contribute to and benefit from HASH. Please follow these when interacting wit
 
 ## Table Of Contents
 
-- [I have a question, where do I go?](#i-have-a-question--where-do-i-go-)
-
-- [Getting started, what do I need to know?](#getting-started--what-do-i-need-to-know-)
-
+- [Table Of Contents](#table-of-contents)
+- [I have a question, where do I go?](#i-have-a-question-where-do-i-go)
+- [Getting started, what do I need to know?](#getting-started-what-do-i-need-to-know)
   - [Design Decisions](#design-decisions)
-
-- [How Can I Contribute?](#how-can-i-contribute-)
-
+- [How Can I Contribute?](#how-can-i-contribute)
   - [Reporting Bugs](#reporting-bugs)
   - [Suggesting Enhancements](#suggesting-enhancements)
   - [Your First Code Contribution](#your-first-code-contribution)
   - [Pull Requests](#pull-requests)
-
 - [Styleguides](#styleguides)
-
   - [Rust Styleguide](#rust-styleguide)
   - [JavaScript Styleguide](#javascript-styleguide)
   - [Python Styleguide](#python-styleguide)
   - [Documentation Styleguide](#documentation-styleguide)
-
 - [Additional Notes](#additional-notes)
   - [Issue and Pull Request Labels](#issue-and-pull-request-labels)
+  - [Hiring](#hiring)
 
 > **WIP** This document is a work in-progress, if the section you need isn't finished, please feel free to reach out to us for clarification!
 
@@ -83,14 +78,17 @@ So you've found a bug, next up is collecting useful information to give us to in
 
 If you have ideas of how to improve the hEngine, feel free to submit them on the [Product Feedback section of our community forum](https://community.hash.ai/c/product-feedback/2). If you want a more informal discussion around your ideas feel free to start a conversation on the Discord!
 
-[comment]: <> (The following sections are comments until the wishlist section of the new website is live)
-[comment]: <> (#### Before Submitting An Enhancement Suggestion)
+<!--
+The following sections are comments until the wishlist section of the new website is live
 
-[comment]: <> (> TODO)
+#### Before Submitting An Enhancement Suggestion
 
-[comment]: <> (#### How Do I Submit A &#40;Good&#41; Enhancement Suggestion?)
+> TODO
 
-[comment]: <> (> TODO)
+#### How Do I Submit A &#40;Good&#41; Enhancement Suggestion?
+
+> TODO
+-->
 
 ### Your First Code Contribution
 
@@ -111,7 +109,7 @@ If you have ideas of how to improve the hEngine, feel free to submit them on the
 
 ## Styleguides
 
-[comment]: <> (Cross-link to global style guides for the repo when they're added)
+<!-- Cross-link to global style guides for the repo when they're added -->
 
 ### Rust Styleguide
 

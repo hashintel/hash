@@ -1,31 +1,41 @@
 import { useQuery } from "@apollo/client";
 import {
-  HashBlock,
   defaultBlockComponentIds,
   fetchBlock,
+  HashBlock,
 } from "@hashintel/hash-shared/blocks";
-import { getPageInfoQuery } from "@hashintel/hash-shared/queries/page.queries";
+import {
+  GetPersistedPageQuery,
+  GetPersistedPageQueryVariables,
+} from "@hashintel/hash-shared/graphql/apiTypes.gen";
+import {
+  getPageInfoQuery,
+  getPersistedPageQuery,
+} from "@hashintel/hash-shared/queries/page.queries";
 import { isSafariBrowser } from "@hashintel/hash-shared/util";
-import { Box, Collapse, alpha, styled } from "@mui/material";
+import { alpha, Box, Collapse } from "@mui/material";
 import { keyBy } from "lodash";
 import { GetStaticPaths, GetStaticProps } from "next";
 import Head from "next/head";
 import { Router, useRouter } from "next/router";
 
-import { useEffect, useMemo, useState, FunctionComponent, useRef } from "react";
-import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
-import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
-import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
+import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
+// import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
+// import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
+// import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
 import { PageBlock } from "../../blocks/page/PageBlock";
 import { PageContextProvider } from "../../blocks/page/PageContext";
+import { PageSectionContainer } from "../../blocks/page/PageSectionContainer";
 import { PageTitle } from "../../blocks/page/PageTitle/PageTitle";
 import {
   AccountPagesInfo,
   useAccountPages,
 } from "../../components/hooks/useAccountPages";
 import { useArchivePage } from "../../components/hooks/useArchivePage";
-import { PageIcon } from "../../components/PageIcon";
+import { usePageComments } from "../../components/hooks/usePageComments";
+import { PageIcon, pageIconVariantSizes } from "../../components/PageIcon";
 import { PageIconButton } from "../../components/PageIconButton";
+import { PageLoadingState } from "../../components/PageLoadingState";
 import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
 import {
   GetPageInfoQuery,
@@ -33,11 +43,12 @@ import {
 } from "../../graphql/apiTypes.gen";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
+import { useReadonlyMode } from "../../shared/readonly-mode";
 import { useRouteAccountInfo, useRoutePageInfo } from "../../shared/routing";
 import { Button } from "../../shared/ui/button";
 import {
-  TopContextBar,
   TOP_CONTEXT_BAR_HEIGHT,
+  TopContextBar,
 } from "../shared/top-context-bar";
 
 // Apparently defining this is necessary in order to get server rendered props?
@@ -75,16 +86,20 @@ export const PageNotificationBanner: FunctionComponent = () => {
   const { pageEntityId } = useRoutePageInfo();
   const versionId = router.query.version as string | undefined;
 
-  const { unarchivePage } = useArchivePage();
+  const [archivePage] = useArchivePage();
 
   const { data } = useQuery<GetPageInfoQuery, GetPageInfoQueryVariables>(
     getPageInfoQuery,
     {
-      variables: { entityId: pageEntityId, accountId, versionId },
+      variables: {
+        ownedById: accountId,
+        entityId: pageEntityId,
+        entityVersion: versionId,
+      },
     },
   );
 
-  const archived = data?.page?.properties?.archived;
+  const archived = data?.persistedPage?.archived;
 
   return (
     <Collapse in={!!archived}>
@@ -117,7 +132,9 @@ export const PageNotificationBanner: FunctionComponent = () => {
             },
           })}
           onClick={() =>
-            accountId && pageEntityId && unarchivePage(accountId, pageEntityId)
+            accountId &&
+            pageEntityId &&
+            archivePage(false, accountId, pageEntityId)
           }
         >
           Restore
@@ -148,7 +165,7 @@ const generateCrumbsFromPages = ({
       id: currentPage.entityId,
       icon: (
         <PageIcon
-          accountId={accountId}
+          ownedById={accountId}
           entityId={currentPage.entityId}
           size="small"
         />
@@ -166,16 +183,6 @@ const generateCrumbsFromPages = ({
 
   return arr;
 };
-
-const Container = styled("div")(({ theme }) => ({
-  display: "grid",
-  gridTemplateColumns: "1fr minmax(65ch, 960px) 1fr",
-  padding: theme.spacing(6),
-
-  "& > *": {
-    gridColumn: "2",
-  },
-}));
 
 const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
   const router = useRouter();
@@ -197,16 +204,22 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
   );
 
   const { data, error, loading } = useQuery<
-    GetPageInfoQuery,
-    GetPageInfoQueryVariables
-  >(getPageInfoQuery, {
-    variables: { entityId: pageEntityId, accountId, versionId },
+    GetPersistedPageQuery,
+    GetPersistedPageQueryVariables
+  >(getPersistedPageQuery, {
+    variables: {
+      ownedById: accountId,
+      entityId: pageEntityId,
+      entityVersion: versionId,
+    },
   });
   const pageHeaderRef = useRef<HTMLElement>();
+  const { readonlyMode } = useReadonlyMode();
 
-  const collabPositions = useCollabPositions(accountId, pageEntityId);
-  const reportPosition = useCollabPositionReporter(accountId, pageEntityId);
-  useCollabPositionTracking(reportPosition);
+  // Collab position tracking is disabled.
+  // const collabPositions = useCollabPositions(accountId, pageEntityId);
+  // const reportPosition = useCollabPositionReporter(accountId, pageEntityId);
+  // useCollabPositionTracking(reportPosition);
 
   useEffect(() => {
     const handleRouteChange = () => {
@@ -223,43 +236,47 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
   }, [pageState]);
 
   const scrollToTop = () => {
-    if (!pageHeaderRef.current) return;
+    if (!pageHeaderRef.current) {
+      return;
+    }
     pageHeaderRef.current.scrollIntoView({ behavior: "smooth" });
   };
 
+  const { data: pageComments } = usePageComments(pageEntityId);
+
   if (pageState === "transferring") {
     return (
-      <Container>
+      <PageSectionContainer pageComments={pageComments}>
         <h1>Transferring you to the new page...</h1>
-      </Container>
+      </PageSectionContainer>
     );
   }
 
   if (loading) {
     return (
-      <Container>
-        <h1>Loading...</h1>
-      </Container>
+      <PageSectionContainer pageComments={pageComments}>
+        <PageLoadingState />
+      </PageSectionContainer>
     );
   }
 
   if (error) {
     return (
-      <Container>
+      <PageSectionContainer pageComments={pageComments}>
         <h1>Error: {error.message}</h1>
-      </Container>
+      </PageSectionContainer>
     );
   }
 
   if (!data) {
     return (
-      <Container>
+      <PageSectionContainer pageComments={pageComments}>
         <h1>No data loaded.</h1>
-      </Container>
+      </PageSectionContainer>
     );
   }
 
-  const { title, icon } = data.page.properties;
+  const { title, icon, contents } = data.persistedPage;
 
   const isSafari = isSafariBrowser();
   const pageTitle = isSafari && icon ? `${icon} ${title}` : title;
@@ -296,7 +313,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
           <TopContextBar
             crumbs={generateCrumbsFromPages({
               pages: accountPages,
-              pageId: data.page.entityId,
+              pageId: data.persistedPage.entityId,
               accountId,
             })}
             scrollToTop={scrollToTop}
@@ -304,34 +321,43 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
           <PageNotificationBanner />
         </Box>
 
-        <Container>
-          <Box display="flex">
+        <PageSectionContainer pageComments={pageComments}>
+          <Box position="relative">
             <PageIconButton
-              accountId={accountId}
+              ownedById={accountId}
               entityId={pageEntityId}
               versionId={versionId}
-              sx={{ mr: 3, alignSelf: "flex-start" }}
+              readonly={readonlyMode}
+              sx={({ breakpoints }) => ({
+                mb: 2,
+                [breakpoints.up(pageComments?.length ? "xl" : "lg")]: {
+                  position: "absolute",
+                  top: 0,
+                  right: "calc(100% + 24px)",
+                },
+              })}
             />
-
-            <Box flex={1}>
-              <Box
-                component="header"
-                ref={pageHeaderRef}
-                sx={{
-                  scrollMarginTop: HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT,
-                }}
-              >
-                <PageTitle
-                  value={title}
-                  accountId={accountId}
-                  entityId={pageEntityId}
-                />
-                {/* 
+            <Box
+              component="header"
+              ref={pageHeaderRef}
+              sx={{
+                scrollMarginTop:
+                  HEADER_HEIGHT +
+                  TOP_CONTEXT_BAR_HEIGHT +
+                  pageIconVariantSizes.medium.container,
+              }}
+            >
+              <PageTitle
+                value={title}
+                ownedById={accountId}
+                pageEntityId={pageEntityId}
+              />
+              {/*
             Commented out Version Dropdown and Transfer Page buttons.
             They will most likely be added back when new designs 
             for them have been added
           */}
-                {/* <div className={tw`mr-4`}>
+              {/* <div className={tw`mr-4`}>
             <label>Version</label>
             <div>
               <VersionDropdown
@@ -355,17 +381,19 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
               />
             </div>
           </div> */}
-              </Box>
-              <CollabPositionProvider value={collabPositions}>
-                <PageBlock
-                  accountId={accountId}
-                  blocks={blocksMap}
-                  entityId={pageEntityId}
-                />
-              </CollabPositionProvider>
             </Box>
           </Box>
-        </Container>
+        </PageSectionContainer>
+
+        <CollabPositionProvider value={[]}>
+          <PageBlock
+            accountId={accountId}
+            contents={contents}
+            blocks={blocksMap}
+            pageComments={pageComments}
+            entityId={pageEntityId}
+          />
+        </CollabPositionProvider>
       </PageContextProvider>
     </>
   );

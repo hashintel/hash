@@ -5,16 +5,16 @@ import {
   LinkGroup as BpLinkGroup,
   LinkedAggregation as BpLinkedAggregation,
   LinkedAggregationDefinition as BpLinkedAggregationDefinition,
-  Entity,
 } from "@blockprotocol/graph";
 
 import {
   UnknownEntity as ApiEntity,
-  EntityType as ApiEntityType,
+  DeprecatedEntityType as ApiEntityType,
   Link as ApiLink,
   LinkGroup as ApiLinkGroup,
   LinkedAggregation as ApiLinkedAggregation,
 } from "../graphql/apiTypes.gen";
+import { getPropertyTypesByBaseUri, RootEntityAndSubgraph } from "./subgraph";
 
 const isObject = (thing: unknown): thing is {} =>
   typeof thing === "object" && thing !== null;
@@ -444,9 +444,21 @@ export const convertApiEntityTypesToBpEntityTypes = (
  * @see https://blockprotocol.org/docs/spec/graph-service-specification#json-schema-extensions
  */
 export const generateEntityLabel = (
-  entity: Entity,
+  rootEntityAndSubgraph:
+    | RootEntityAndSubgraph
+    | Partial<{ entityId: string; properties: any }>,
   schema?: { labelProperty?: unknown; title?: unknown },
 ): string => {
+  /**
+   * @todo - this return type is only added to allow for incremental migration. It should be removed
+   *   https://app.asana.com/0/0/1203157172269854/f
+   */
+  if (!("subgraph" in rootEntityAndSubgraph)) {
+    throw new Error("expected Subgraph but got a deprecated response type");
+  }
+
+  const entity = rootEntityAndSubgraph.root;
+
   // if the schema has a labelProperty set, prefer that
   const labelProperty = schema?.labelProperty;
   if (
@@ -460,14 +472,36 @@ export const generateEntityLabel = (
   // fallback to some likely display name properties
   const options = [
     "name",
-    "preferredName",
-    "displayName",
+    "preferred name",
+    "display name",
     "title",
     "shortname",
   ];
+
+  const propertyTypes: { title?: string; propertyTypeBaseUri: string }[] =
+    Object.keys(entity.properties).map((propertyTypeBaseUri) => {
+      /** @todo - pick the latest version rather than first element? */
+      const [propertyType] = getPropertyTypesByBaseUri(
+        rootEntityAndSubgraph.subgraph,
+        propertyTypeBaseUri,
+      );
+
+      return propertyType
+        ? {
+            title: propertyType.inner.title.toLowerCase(),
+            propertyTypeBaseUri,
+          }
+        : {
+            title: undefined,
+            propertyTypeBaseUri,
+          };
+    });
+
   for (const option of options) {
-    if (typeof entity.properties[option] === "string") {
-      return entity.properties[option] as string;
+    const found = propertyTypes.find(({ title }) => title === option);
+
+    if (found) {
+      return entity.properties[found.propertyTypeBaseUri];
     }
   }
 

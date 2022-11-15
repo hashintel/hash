@@ -1,18 +1,16 @@
-import { ProsemirrorNode, Schema } from "prosemirror-model";
+import { ProsemirrorNode } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
-import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
 import { RenderPortal } from "../usePortals";
 import { MentionDisplay } from "./MentionDisplay";
 
-export class MentionView implements NodeView<Schema> {
+export class MentionView implements NodeView {
   dom: HTMLSpanElement;
 
   constructor(
-    public node: ProsemirrorNode<Schema>,
-    public view: EditorView<Schema>,
+    public node: ProsemirrorNode,
+    public view: EditorView,
     public getPos: () => number,
     public renderPortal: RenderPortal,
-    public manager: ProsemirrorManager,
     public accountId: string,
   ) {
     this.dom = document.createElement("span");
@@ -21,7 +19,7 @@ export class MentionView implements NodeView<Schema> {
     this.update(node);
   }
 
-  update(node: ProsemirrorNode<Schema>) {
+  update(node: ProsemirrorNode) {
     if (node.type.name !== "mention") {
       return false;
     }

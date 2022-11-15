@@ -13,7 +13,11 @@ export const updateEntity: ResolverFn<
   {},
   LoggedInGraphQLContext,
   MutationUpdateEntityArgs
-> = async (_, { accountId, entityId, properties }, { dataSources, user }) => {
+> = async (
+  _,
+  { accountId, entityId, properties },
+  { dataSources, userModel },
+) => {
   return await dataSources.db.transaction(async (client) => {
     // @todo: always get the latest version for now. This is a temporary measure.
     // return here when strict vs. optimistic entity mutation question is resolved.
@@ -31,7 +35,7 @@ export const updateEntity: ResolverFn<
     const propertiesToUpdate = properties.properties ?? properties;
     entity.properties = propertiesToUpdate;
     const updatePayload: UpdatePropertiesPayload = {
-      updatedByAccountId: user.accountId,
+      updatedByAccountId: userModel.entityId,
       properties: entity.properties,
     };
 

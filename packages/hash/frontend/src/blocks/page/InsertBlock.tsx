@@ -5,6 +5,7 @@ import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
 import type { BlockVariant } from "@blockprotocol/core";
 import { PlusBoxOutlineIcon } from "../../shared/icons/plus-box-outline-icon";
 import { BlockSuggester } from "./createSuggester/BlockSuggester";
+import { useReadonlyMode } from "../../shared/readonly-mode";
 
 type InsertBlockProps = {
   onBlockSuggesterChange: (
@@ -16,6 +17,7 @@ type InsertBlockProps = {
 export const InsertBlock: FunctionComponent<InsertBlockProps> = ({
   onBlockSuggesterChange,
 }) => {
+  const { readonlyMode } = useReadonlyMode();
   const [contextMenuPosition, setContextMenuPosition] = useState<{
     left: number;
     top: number;
@@ -27,6 +29,10 @@ export const InsertBlock: FunctionComponent<InsertBlockProps> = ({
     onBlockSuggesterChange(variant, blockMeta);
     onCloseSuggester();
   };
+
+  if (readonlyMode) {
+    return null;
+  }
 
   return (
     <>

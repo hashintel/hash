@@ -3,12 +3,12 @@
 [libs.rs]: https://lib.rs/crates/error-stack
 [rust-version]: https://www.rust-lang.org
 [documentation]: https://docs.rs/error-stack
-[license]: ./LICENSE.md
+[license]: https://github.com/hashintel/hash/blob/main/packages/libs/error-stack/LICENSE.md
 [discord]: https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_error-stack
 
 [![crates.io](https://img.shields.io/crates/v/error-stack)][crates.io]
 [![libs.rs](https://img.shields.io/badge/libs.rs-error--stack-orange)][libs.rs]
-[![rust-version](https://img.shields.io/badge/Rust-1.63.0/nightly--2022--08--19-blue)][rust-version]
+[![rust-version](https://img.shields.io/badge/Rust-1.63.0/nightly--2022--11--14-blue)][rust-version]
 [![documentation](https://img.shields.io/docsrs/error-stack)][documentation]
 [![license](https://img.shields.io/crates/l/error-stack)][license]
 [![discord](https://img.shields.io/discord/840573247803097118)][discord]
@@ -54,7 +54,7 @@ struct ExperimentError;
 
 impl fmt::Display for ExperimentError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Experiment error: Could not run experiment")
+        fmt.write_str("experiment error: could not run experiment")
     }
 }
 
@@ -69,17 +69,17 @@ fn start_experiments(
         .map(|exp_id| {
             let description = experiment_descriptions.get(*exp_id).ok_or_else(|| {
                 Report::new(ExperimentError)
-                    .attach_printable(format!("Experiment {exp_id} has no valid description"))
+                    .attach_printable(format!("experiment {exp_id} has no valid description"))
             })?;
 
             let experiment = parse_experiment(description)
-                .attach_printable(format!("Experiment {exp_id} could not be parsed"))
+                .attach_printable(format!("experiment {exp_id} could not be parsed"))
                 .change_context(ExperimentError)?;
 
             Ok(move || experiment.0 * experiment.1)
         })
         .collect::<Result<Vec<_>, ExperimentError>>()
-        .attach_printable("Unable to set up experiments")?;
+        .attach_printable("unable to set up experiments")?;
 
     Ok(experiments.iter().map(|experiment| experiment()).collect())
 }
@@ -95,6 +95,18 @@ fn main() -> Result<(), ExperimentError> {
 
 This will most likely result in an error and print
 
-![](assets/full.png)
+![](https://github.com/hashintel/hash/blob/8ed55bd73045fba83a7ea2e199b31d5b829537b9/packages/libs/error-stack/assets/full.png?raw=true)
 
-Please see the [documentation] for a full description.
+## Usage
+
+Please see the [documentation].
+
+For more examples of `error-stack` in use, please check out the [examples](https://github.com/hashintel/hash/tree/main/packages/libs/error-stack/examples) folder.
+
+## Contributors
+
+`error-stack` was created and is maintained by [HASH](https://hash.dev/). As an open-source project, we gratefully accept external contributions and have published a [contributing guide](https://github.com/hashintel/hash/blob/main/CONTRIBUTING.md) that outlines the process. If you have questions, please reach out to us on our [Discord server](https://hash.ai/discord).
+
+## License
+
+`error-stack` is available under a number of different open-source licenses. Please see the [LICENSE] file to review your options.

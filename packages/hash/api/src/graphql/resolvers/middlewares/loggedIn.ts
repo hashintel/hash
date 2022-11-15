@@ -6,8 +6,8 @@ export const loggedIn: ResolverMiddleware<
   GraphQLContext,
   any,
   LoggedInGraphQLContext
-> = (next) => (obj: any, args: any, ctx: GraphQLContext, info: any) => {
-  if (!ctx.user) {
+> = (next) => (obj, args, ctx, info) => {
+  if (!ctx.userModel) {
     throw new ForbiddenError("You must be logged in to perform this action.");
   }
   return next(obj, args, ctx as LoggedInGraphQLContext, info);

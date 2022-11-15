@@ -1,0 +1,14 @@
+{
+  "description": "The contents of a Data Type update request",
+  "type": "object",
+  "properties": {
+    "kind": {
+      "enum": ["dataType"]
+    },
+    "title": { "type": "string" },
+    "description": { "type": "string" },
+    "type": { "type": "string" }
+  },
+  "required": ["kind", "title", "type"],
+  "additionalProperties": true
+}

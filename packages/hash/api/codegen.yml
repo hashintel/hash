@@ -1,5 +1,5 @@
 overwrite: true
-schema: ./src/graphql/typeDefs/*.ts
+schema: ./src/graphql/typeDefs/**/*.ts
 require:
   - ts-node/register
 generates:
@@ -10,8 +10,7 @@ generates:
       noSchemaStitching: true
   ./src/graphql/apiTypes.gen.ts:
     documents:
-      - ../shared/src/queries/*.ts
-      - ./src/collab/graphql/queries/*.ts
+      - ../shared/src/queries/**/*.ts
     hooks:
       afterOneFileWrite:
         - prettier --write
@@ -20,9 +19,21 @@ generates:
       - "typescript-resolvers"
       - "typescript-operations"
     config:
+      avoidOptionals:
+        defaultValue: true
       noSchemaStitching: true
       skipTypename: true
       scalars:
-        TextToken: "@hashintel/hash-shared/graphql/types#TextToken"
         Date: string
         UnknownEntityProperties: "@hashintel/hash-shared/graphql/types#UnknownEntityProperties"
+        TextToken: "@hashintel/hash-shared/graphql/types#TextToken"
+        DataType: "@blockprotocol/type-system-web#DataType"
+        PropertyType: "@blockprotocol/type-system-web#PropertyType"
+        LinkType: "@blockprotocol/type-system-web#LinkType"
+        EntityType: "@blockprotocol/type-system-web#EntityType"
+        DataTypeWithoutId: "@hashintel/hash-shared/graphql/types#DataTypeWithoutId"
+        PropertyTypeWithoutId: "@hashintel/hash-shared/graphql/types#PropertyTypeWithoutId"
+        EntityTypeWithoutId: "@hashintel/hash-shared/graphql/types#EntityTypeWithoutId"
+        LinkTypeWithoutId: "@hashintel/hash-shared/graphql/types#LinkTypeWithoutId"
+        Edges: "@hashintel/hash-shared/graphql/types#Edges"
+        Vertices: "@hashintel/hash-shared/graphql/types#Vertices"

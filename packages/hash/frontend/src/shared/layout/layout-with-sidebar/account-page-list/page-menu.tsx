@@ -1,27 +1,35 @@
 import { FunctionComponent, useMemo, useState } from "react";
-import { ListItemIcon, ListItemText } from "@mui/material";
+import { ListItemIcon, ListItemText, PopoverPosition } from "@mui/material";
 import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
 import { faArchive, faLink } from "@fortawesome/free-solid-svg-icons";
 import { faFileAlt } from "@fortawesome/free-regular-svg-icons";
 import { Menu, FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { useArchivePage } from "../../../../components/hooks/useArchivePage";
 import { useRouteAccountInfo } from "../../../routing";
-import { useCreatePage } from "../../../../components/hooks/useCreatePage";
 import { MenuItem } from "../../../ui";
 
 type PageMenuProps = {
   popupState: PopupState;
   entityId: string;
+  createSubPage: () => Promise<void>;
+  archivePage: (
+    value: boolean,
+    accountId: string,
+    pageEntityId: string,
+  ) => Promise<void>;
+  onClose: () => void;
+  anchorPosition?: PopoverPosition;
 };
 
 export const PageMenu: FunctionComponent<PageMenuProps> = ({
   popupState,
   entityId,
+  createSubPage,
+  archivePage,
+  anchorPosition,
+  onClose,
 }) => {
   const [copied, setCopied] = useState(false);
   const { accountId } = useRouteAccountInfo();
-  const { createSubPage } = useCreatePage(accountId);
-  const { archivePage } = useArchivePage();
 
   // Commented out menu items whose functionality have not been
   // implemented yet
@@ -38,7 +46,7 @@ export const PageMenu: FunctionComponent<PageMenuProps> = ({
         onClick: async () => {
           try {
             // @todo handle loading/error states properly
-            await createSubPage(entityId);
+            await createSubPage();
           } catch (err) {
             // eslint-disable-next-line no-console -- TODO: consider using logger
             console.log("err ==> ", err);
@@ -67,7 +75,7 @@ export const PageMenu: FunctionComponent<PageMenuProps> = ({
         onClick: async () => {
           try {
             // @todo handle loading/error states properly
-            await archivePage(accountId, entityId);
+            await archivePage(true, accountId, entityId);
           } catch (err) {
             // eslint-disable-next-line no-console -- TODO: consider using logger
             console.log("Error archiving page: ", err);
@@ -103,12 +111,24 @@ export const PageMenu: FunctionComponent<PageMenuProps> = ({
     ],
     [copied, popupState, createSubPage, accountId, entityId, archivePage],
   );
+
+  const bindMenuProps = bindMenu(popupState);
+
   return (
     <Menu
-      {...bindMenu(popupState)}
+      {...bindMenuProps}
+      onClose={() => {
+        // run custom handler before handler of `bindMenu`
+        onClose();
+        return bindMenuProps.onClose();
+      }}
       onClick={(event) => {
         event.stopPropagation();
       }}
+      {...(anchorPosition && {
+        anchorReference: "anchorPosition",
+        anchorPosition,
+      })}
     >
       {menuItems.map(({ title, icon, onClick }, index) => {
         // if (type === "divider") {

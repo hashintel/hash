@@ -6,10 +6,13 @@ import {
   useState,
   FunctionComponent,
 } from "react";
-import { useBlockProtocolUpdateEntity } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateEntity";
-import { rewriteEntityIdentifier } from "../../../lib/entities";
+import { useUpdatePageTitle } from "../../../components/hooks/useUpdatePageTitle";
+import { useReadonlyMode } from "../../../shared/readonly-mode";
 import { usePageContext } from "../PageContext";
 import { cleanUpTitle, focusEditorBeginning } from "./utils";
+
+export const PAGE_TITLE_FONT_SIZE = "var(--step-4)";
+export const PAGE_TITLE_LINE_HEIGHT = 1.23;
 
 const StyledTextarea = styled(TextareaAutosize)(({ theme }) =>
   sx({
@@ -18,9 +21,10 @@ const StyledTextarea = styled(TextareaAutosize)(({ theme }) =>
     border: "none",
     resize: "none",
     fontFamily: "Open Sauce Two",
-    fontSize: "var(--step-4)",
+    fontSize: PAGE_TITLE_FONT_SIZE,
+    lineHeight: PAGE_TITLE_LINE_HEIGHT,
     fontWeight: 500,
-    lineHeight: 1.23,
+    color: theme.palette.black,
 
     "&::placeholder": {
       color: theme.palette.gray[40],
@@ -28,28 +32,30 @@ const StyledTextarea = styled(TextareaAutosize)(({ theme }) =>
     },
 
     ":disabled": {
-      opacity: 0.5,
+      opacity: 1,
+      background: "transparent",
     },
   }),
 );
 
 type PageTitleProps = {
-  accountId: string;
-  entityId: string;
+  ownedById: string;
+  pageEntityId: string;
   value: string;
 };
 
 export const PAGE_TITLE_PLACEHOLDER = "Untitled";
 
-// TODO: Add read-only mode based on page permissions
 export const PageTitle: FunctionComponent<PageTitleProps> = ({
-  accountId,
-  entityId,
+  ownedById,
+  pageEntityId,
   value,
 }) => {
   // TODO: Display update error once expected UX is discussed
-  const { updateEntity, updateEntityLoading } =
-    useBlockProtocolUpdateEntity(true);
+  const { readonlyMode } = useReadonlyMode();
+
+  const [updatePageTitle, { updatePageTitleLoading }] = useUpdatePageTitle();
+
   const [prevValue, setPrevValue] = useState(value);
   const [inputValue, setInputValue] = useState(value);
 
@@ -86,12 +92,7 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
       return;
     }
 
-    void updateEntity({
-      data: {
-        entityId: rewriteEntityIdentifier({ accountId, entityId }),
-        properties: { title: valueToSave },
-      },
-    });
+    void updatePageTitle(valueToSave, ownedById, pageEntityId);
   };
 
   if (value !== prevValue) {
@@ -104,7 +105,7 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
     <StyledTextarea
       ref={pageTitleRef}
       placeholder={PAGE_TITLE_PLACEHOLDER}
-      disabled={updateEntityLoading}
+      disabled={updatePageTitleLoading || readonlyMode}
       onChange={handleInputChange}
       onKeyDown={handleInputKeyDown}
       onBlur={handleInputBlur}

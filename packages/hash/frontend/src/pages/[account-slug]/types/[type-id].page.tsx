@@ -7,10 +7,10 @@ import { Box, styled } from "@mui/material";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import {
-  GetEntityTypeQuery,
-  GetEntityTypeQueryVariables,
+  DeprecatedGetEntityTypeQuery,
+  DeprecatedGetEntityTypeQueryVariables,
 } from "../../../graphql/apiTypes.gen";
-import { getEntityTypeQuery } from "../../../graphql/queries/entityType.queries";
+import { deprecatedGetEntityTypeQuery } from "../../../graphql/queries/entityType.queries";
 import {
   SchemaEditor,
   SchemaSelectElementType,
@@ -58,15 +58,15 @@ const Page: NextPageWithLayout = () => {
       ? decodeURIComponent(window.location.hash)
       : undefined;
 
-  const { data } = useQuery<GetEntityTypeQuery, GetEntityTypeQueryVariables>(
-    getEntityTypeQuery,
-    {
-      variables: { entityTypeId: typeId },
-      pollInterval: 5000,
-    },
-  );
+  const { data } = useQuery<
+    DeprecatedGetEntityTypeQuery,
+    DeprecatedGetEntityTypeQueryVariables
+  >(deprecatedGetEntityTypeQuery, {
+    variables: { entityTypeId: typeId },
+    pollInterval: 5000,
+  });
 
-  const schema = data?.getEntityType.properties;
+  const schema = data?.deprecatedGetEntityType.properties;
 
   const schema$id: string = schema?.$id;
 
@@ -111,6 +111,7 @@ const Page: NextPageWithLayout = () => {
          * Really these should instead be defined under $defs and referenced as such, but they might exist.
          */
         schemaLinkPath = `${
+          // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- @todo handle subSchemaReference
           schema$id + (subSchemaReference || "#")
         }/properties/${schemaRef}`;
       }
@@ -127,7 +128,9 @@ const Page: NextPageWithLayout = () => {
   );
 
   const scrollToTop = () => {
-    if (!pageHeaderRef.current) return;
+    if (!pageHeaderRef.current) {
+      return;
+    }
     pageHeaderRef.current.scrollIntoView({
       behavior: "smooth",
     });
@@ -195,7 +198,7 @@ const Page: NextPageWithLayout = () => {
         </Box>
         <SchemaEditor
           aggregateEntityTypes={aggregateEntityTypes}
-          entityTypeId={data.getEntityType.entityId}
+          entityTypeId={data.deprecatedGetEntityType.entityId}
           schema={schema}
           GoToSchemaElement={schemaSelectElement}
           subSchemaReference={subSchemaReference}

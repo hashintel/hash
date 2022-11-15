@@ -100,12 +100,21 @@ export type LinkProps = Omit<NextLinkProps, "passHref"> &
 
 // A styled version of the Next.js Link component:
 // https://nextjs.org/docs/api-reference/next/link
-export const Link = forwardRef<HTMLAnchorElement, LinkProps>(
+export const Link = forwardRef<
+  HTMLAnchorElement,
+  LinkProps & { openInNew?: boolean }
+>(
   (
     props,
     ref, // https://github.com/prettier/prettier/issues/11923
   ) => {
-    const { as: linkAs, className: classNameProps, href, ...other } = props;
+    const {
+      as: linkAs,
+      className: classNameProps,
+      href,
+      openInNew,
+      ...other
+    } = props;
 
     const router = useRouter();
     const pathname = typeof href === "string" ? href : href.pathname;
@@ -122,7 +131,7 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(
       }
     }
 
-    if (isHrefExternal(href)) {
+    if (openInNew || isHrefExternal(href)) {
       other.rel = "noopener";
       other.target = "_blank";
 

@@ -17,11 +17,7 @@ import {
   useRef,
   FunctionComponent,
 } from "react";
-import {
-  BlockEntity,
-  isTextContainingEntityProperties,
-  isTextEntity,
-} from "@hashintel/hash-shared/entity";
+import { BlockEntity, isTextEntity } from "@hashintel/hash-shared/entity";
 import {
   LoadingSpinner,
   TextField,
@@ -88,15 +84,17 @@ export const LoadEntityMenuContent: FunctionComponent<
     return entities.filter((entity) => {
       // we are interested in loading different child entities into blocks, not the block entities
       // – block entities are simply a reference to (a) a component and (b) a child entity
-      if (isBlockEntity(entity)) return false;
+      if (isBlockEntity(entity)) {
+        return false;
+      }
 
       /**
        * loading text entities does not work, possibly due to use of legacy __linkedData
        * @todo see if this works when __linkedData is removed
        */
       if (
-        isTextEntity(entity) ||
-        isTextContainingEntityProperties(entity.properties) ||
+        /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
+        isTextEntity(entity as any) ||
         entity.entityType.properties.title === "Page"
       ) {
         return false;

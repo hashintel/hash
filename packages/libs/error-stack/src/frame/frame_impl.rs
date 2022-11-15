@@ -1,8 +1,10 @@
 use alloc::boxed::Box;
 #[cfg(nightly)]
 use core::any::Demand;
+#[cfg(any(feature = "anyhow", feature = "eyre"))]
+use core::fmt;
 use core::{
-    any::TypeId,
+    any::Any,
     fmt::{Debug, Display},
     panic::Location,
 };
@@ -10,41 +12,12 @@ use core::{
 use crate::{AttachmentKind, Context, Frame, FrameKind};
 
 /// Internal representation of a [`Frame`].
-///
-/// # Safety
-///
-/// - It must be allowed to cast from `*dyn FrameImpl` to `*T` if `type_id() == TypeId::of::<T>()`.
-///   This is the case if [`type_id`] returns `TypeId::of::<T>()` and
-///     - `T` is `Self`,
-///     - `T` is the inner struct on `#[repr(transparent]`, or
-///     - `T` is the first struct on `#[repr(C)]`.
-///
-/// [`type_id`]: Self::type_id
-pub(super) unsafe trait FrameImpl: Send + Sync + 'static {
+pub(super) trait FrameImpl: Send + Sync + 'static {
     fn kind(&self) -> FrameKind<'_>;
 
-    /// Returns the [`TypeId`] of this `Frame`.
-    ///
-    /// It's guaranteed, that `*dyn FrameImpl` can be cast to a pointer to the type returned by
-    /// `type_id`.
-    fn type_id(&self) -> TypeId;
+    fn as_any(&self) -> &dyn Any;
 
-    /// Returns the location where this `Frame` was created.
-    fn location(&self) -> &'static Location<'static>;
-
-    /// Returns a shared reference to the source of this `Frame`.
-    ///
-    /// This corresponds to the `Frame` below this one in a [`Report`].
-    ///
-    /// [`Report`]: crate::Report
-    fn sources(&self) -> &[Frame];
-
-    /// Returns a mutable reference to the source of this `Frame`.
-    ///
-    /// This corresponds to the `Frame` below this one in a [`Report`].
-    ///
-    /// [`Report`]: crate::Report
-    fn sources_mut(&mut self) -> &mut [Frame];
+    fn as_any_mut(&mut self) -> &mut dyn Any;
 
     /// Provide values which can then be requested.
     #[cfg(nightly)]
@@ -54,30 +27,19 @@ pub(super) unsafe trait FrameImpl: Send + Sync + 'static {
 #[repr(C)]
 struct ContextFrame<C> {
     context: C,
-    location: &'static Location<'static>,
-    sources: Box<[Frame]>,
 }
 
-// SAFETY: `type_id` returns `C` and `C` is the first field in `#[repr(C)]`
-unsafe impl<C: Context> FrameImpl for ContextFrame<C> {
+impl<C: Context> FrameImpl for ContextFrame<C> {
     fn kind(&self) -> FrameKind<'_> {
         FrameKind::Context(&self.context)
     }
 
-    fn type_id(&self) -> TypeId {
-        TypeId::of::<C>()
+    fn as_any(&self) -> &dyn Any {
+        &self.context
     }
 
-    fn location(&self) -> &'static Location<'static> {
-        self.location
-    }
-
-    fn sources(&self) -> &[Frame] {
-        &self.sources
-    }
-
-    fn sources_mut(&mut self) -> &mut [Frame] {
-        &mut self.sources
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        &mut self.context
     }
 
     #[cfg(nightly)]
@@ -89,30 +51,19 @@ unsafe impl<C: Context> FrameImpl for ContextFrame<C> {
 #[repr(C)]
 struct AttachmentFrame<A> {
     attachment: A,
-    location: &'static Location<'static>,
-    sources: Box<[Frame]>,
 }
 
-// SAFETY: `type_id` returns `A` and `A` is the first field in `#[repr(C)]`
-unsafe impl<A: 'static + Send + Sync> FrameImpl for AttachmentFrame<A> {
+impl<A: 'static + Send + Sync> FrameImpl for AttachmentFrame<A> {
     fn kind(&self) -> FrameKind<'_> {
         FrameKind::Attachment(AttachmentKind::Opaque(&self.attachment))
     }
 
-    fn type_id(&self) -> TypeId {
-        TypeId::of::<A>()
+    fn as_any(&self) -> &dyn Any {
+        &self.attachment
     }
 
-    fn location(&self) -> &'static Location<'static> {
-        self.location
-    }
-
-    fn sources(&self) -> &[Frame] {
-        &self.sources
-    }
-
-    fn sources_mut(&mut self) -> &mut [Frame] {
-        &mut self.sources
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        &mut self.attachment
     }
 
     #[cfg(nightly)]
@@ -124,35 +75,121 @@ unsafe impl<A: 'static + Send + Sync> FrameImpl for AttachmentFrame<A> {
 #[repr(C)]
 struct PrintableAttachmentFrame<A> {
     attachment: A,
-    location: &'static Location<'static>,
-    sources: Box<[Frame]>,
 }
 
-// SAFETY: `type_id` returns `A` and `A` is the first field in `#[repr(C)]`
-unsafe impl<A: 'static + Debug + Display + Send + Sync> FrameImpl for PrintableAttachmentFrame<A> {
+impl<A: 'static + Debug + Display + Send + Sync> FrameImpl for PrintableAttachmentFrame<A> {
     fn kind(&self) -> FrameKind<'_> {
         FrameKind::Attachment(AttachmentKind::Printable(&self.attachment))
     }
 
-    fn type_id(&self) -> TypeId {
-        TypeId::of::<A>()
+    fn as_any(&self) -> &dyn Any {
+        &self.attachment
     }
 
-    fn location(&self) -> &'static Location<'static> {
-        self.location
-    }
-
-    fn sources(&self) -> &[Frame] {
-        &self.sources
-    }
-
-    fn sources_mut(&mut self) -> &mut [Frame] {
-        &mut self.sources
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        &mut self.attachment
     }
 
     #[cfg(nightly)]
     fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
         demand.provide_ref(&self.attachment);
+    }
+}
+
+#[repr(transparent)]
+#[cfg(feature = "anyhow")]
+struct AnyhowContext(anyhow::Error);
+
+#[cfg(feature = "anyhow")]
+impl fmt::Debug for AnyhowContext {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Debug::fmt(&self.0, fmt)
+    }
+}
+
+#[cfg(feature = "anyhow")]
+impl fmt::Display for AnyhowContext {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, fmt)
+    }
+}
+
+#[cfg(feature = "anyhow")]
+impl Context for AnyhowContext {
+    // `Provider` is only implemented for `anyhow::Error` on `std`
+    #[cfg(all(nightly, feature = "std"))]
+    #[inline]
+    fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
+        core::any::Provider::provide(&self.0, demand);
+    }
+}
+
+#[cfg(feature = "anyhow")]
+impl FrameImpl for AnyhowContext {
+    fn kind(&self) -> FrameKind<'_> {
+        FrameKind::Context(self)
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        &self.0
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        &mut self.0
+    }
+
+    #[cfg(nightly)]
+    #[inline]
+    fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
+        Context::provide(self, demand);
+    }
+}
+
+#[repr(transparent)]
+#[cfg(feature = "eyre")]
+struct EyreContext(eyre::Report);
+
+#[cfg(feature = "eyre")]
+impl fmt::Debug for EyreContext {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Debug::fmt(&self.0, fmt)
+    }
+}
+
+#[cfg(feature = "eyre")]
+impl fmt::Display for EyreContext {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, fmt)
+    }
+}
+
+#[cfg(feature = "eyre")]
+impl Context for EyreContext {
+    #[cfg(nightly)]
+    #[inline]
+    fn provide<'a>(&'a self, _demand: &mut Demand<'a>) {
+        // `eyre::Report` does not implement `Provider`
+    }
+}
+
+#[cfg(feature = "eyre")]
+impl FrameImpl for EyreContext {
+    fn kind(&self) -> FrameKind<'_> {
+        FrameKind::Context(self)
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        &self.0
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        &mut self.0
+    }
+
+    #[cfg(nightly)]
+    #[inline]
+    fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
+        Context::provide(self, demand);
     }
 }
 
@@ -167,11 +204,9 @@ impl Frame {
         C: Context,
     {
         Self {
-            frame: Box::new(ContextFrame {
-                context,
-                location,
-                sources,
-            }),
+            frame: Box::new(ContextFrame { context }),
+            location,
+            sources,
         }
     }
 
@@ -185,11 +220,37 @@ impl Frame {
         A: Send + Sync + 'static,
     {
         Self {
-            frame: Box::new(AttachmentFrame {
-                attachment,
-                location,
-                sources,
-            }),
+            frame: Box::new(AttachmentFrame { attachment }),
+            location,
+            sources,
+        }
+    }
+
+    /// Creates a frame from an [`anyhow::Error`].
+    #[cfg(feature = "anyhow")]
+    pub(crate) fn from_anyhow(
+        error: anyhow::Error,
+        location: &'static Location<'static>,
+        sources: Box<[Self]>,
+    ) -> Self {
+        Self {
+            frame: Box::new(AnyhowContext(error)),
+            location,
+            sources,
+        }
+    }
+
+    /// Creates a frame from an [`eyre::Report`].
+    #[cfg(feature = "eyre")]
+    pub(crate) fn from_eyre(
+        report: eyre::Report,
+        location: &'static Location<'static>,
+        sources: Box<[Self]>,
+    ) -> Self {
+        Self {
+            frame: Box::new(EyreContext(report)),
+            location,
+            sources,
         }
     }
 
@@ -206,11 +267,9 @@ impl Frame {
         A: Display + Debug + Send + Sync + 'static,
     {
         Self {
-            frame: Box::new(PrintableAttachmentFrame {
-                attachment,
-                location,
-                sources,
-            }),
+            frame: Box::new(PrintableAttachmentFrame { attachment }),
+            location,
+            sources,
         }
     }
 }

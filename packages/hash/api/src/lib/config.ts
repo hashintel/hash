@@ -1,3 +1,4 @@
+import { frontendUrl } from "@hashintel/hash-shared/environment";
 import corsMiddleware from "cors";
 import { StorageType } from "../graphql/apiTypes.gen";
 
@@ -21,13 +22,7 @@ export const FILE_UPLOAD_PROVIDER =
 export const LOCAL_FILE_UPLOAD_PATH =
   process.env.LOCAL_FILE_UPLOAD_PATH || "var/uploads/";
 
-export const FRONTEND_DOMAIN = process.env.FRONTEND_DOMAIN || "localhost:3000";
-
-export const FRONTEND_URL = `http${
-  process.env.HTTPS_ENABLED ? "s" : ""
-}://${FRONTEND_DOMAIN}`;
-
 export const CORS_CONFIG: corsMiddleware.CorsOptions = {
   credentials: true,
-  origin: [/-hashintel\.vercel\.app$/, /\.stage\.hash\.ai$/, FRONTEND_URL],
+  origin: [/-hashintel\.vercel\.app$/, /\.stage\.hash\.ai$/, frontendUrl],
 };

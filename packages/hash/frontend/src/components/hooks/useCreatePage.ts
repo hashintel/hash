@@ -1,88 +1,44 @@
 import { useMutation } from "@apollo/client";
 import { useRouter } from "next/router";
-
 import { useCallback } from "react";
 import {
-  CreatePageMutation,
-  CreatePageMutationVariables,
-  SetParentPageMutation,
-  SetParentPageMutationVariables,
+  CreatePersistedPageMutation,
+  CreatePersistedPageMutationVariables,
 } from "../../graphql/apiTypes.gen";
-import { getAccountPages } from "../../graphql/queries/account.queries";
-import { createPage, setParentPage } from "../../graphql/queries/page.queries";
+import { getAccountPagesTree } from "../../graphql/queries/account.queries";
+import { createPersistedPage } from "../../graphql/queries/page.queries";
 
-/**
- * Consider splitting this hook into two
- * so that it's easier to return error/loading
- * @see https://github.com/hashintel/hash/pull/409#discussion_r839416785
- */
-
-export const useCreatePage = (accountId: string) => {
+export const useCreatePage = (ownedById: string) => {
   const router = useRouter();
 
-  const [createPageFn] = useMutation<
-    CreatePageMutation,
-    CreatePageMutationVariables
-  >(createPage, {
+  const [createPageFn, { loading: createPageLoading }] = useMutation<
+    CreatePersistedPageMutation,
+    CreatePersistedPageMutationVariables
+  >(createPersistedPage, {
+    awaitRefetchQueries: true,
     refetchQueries: ({ data }) => [
       {
-        query: getAccountPages,
-        variables: { accountId: data!.createPage.accountId },
+        query: getAccountPagesTree,
+        variables: { ownedById: data?.createPersistedPage.ownedById },
       },
     ],
   });
 
-  const [setParentPageFn] = useMutation<
-    SetParentPageMutation,
-    SetParentPageMutationVariables
-  >(setParentPage, {
-    refetchQueries: ({ data }) => [
-      {
-        query: getAccountPages,
-        variables: { accountId: data!.setParentPage.accountId },
-      },
-    ],
-  });
-
-  const createUntitledPage = useCallback(async () => {
-    const response = await createPageFn({
-      variables: { accountId, properties: { title: "" } },
-    });
-
-    const { accountId: pageAccountId, entityId: pageEntityId } =
-      response.data?.createPage ?? {};
-
-    if (pageAccountId && pageEntityId) {
-      return router.push(`/${pageAccountId}/${pageEntityId}`);
-    }
-  }, [createPageFn, accountId, router]);
-
-  const createSubPage = useCallback(
-    async (parentPageEntityId: string) => {
+  const createUntitledPage = useCallback(
+    async (prevIndex: string | null) => {
       const response = await createPageFn({
-        variables: { accountId, properties: { title: "" } },
+        variables: { ownedById, properties: { title: "", prevIndex } },
       });
 
-      const { accountId: pageAccountId, entityId: pageEntityId } =
-        response.data?.createPage ?? {};
+      const { ownedById: pageOwnedById, entityId: pageEntityId } =
+        response.data?.createPersistedPage ?? {};
 
-      if (pageAccountId && pageEntityId) {
-        await setParentPageFn({
-          variables: {
-            accountId: pageAccountId,
-            pageEntityId,
-            parentPageEntityId,
-          },
-        });
-
-        return router.push(`/${pageAccountId}/${pageEntityId}`);
+      if (pageOwnedById && pageEntityId) {
+        return router.push(`/${pageOwnedById}/${pageEntityId}`);
       }
     },
-    [createPageFn, accountId, setParentPageFn, router],
+    [createPageFn, ownedById, router],
   );
 
-  return {
-    createUntitledPage,
-    createSubPage,
-  };
+  return [createUntitledPage, { loading: createPageLoading }] as const;
 };

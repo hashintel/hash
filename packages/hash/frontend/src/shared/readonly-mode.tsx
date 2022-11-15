@@ -1,5 +1,6 @@
 import { useRouter } from "next/router";
 import { createContext, ReactNode, useContext, useMemo } from "react";
+import { useAuthenticatedUser } from "../components/hooks/useAuthenticatedUser";
 
 export type ReadonlyModeInfo = {
   readonlyMode: boolean;
@@ -21,8 +22,9 @@ export const ReadonlyModeProvider = ({
   children?: ReactNode;
 }) => {
   const router = useRouter();
+  const { authenticatedUser } = useAuthenticatedUser();
 
-  const readonlyMode = "readonly" in router.query;
+  const readonlyMode = "readonly" in router.query || !authenticatedUser;
 
   const contextValue = useMemo(
     () => ({

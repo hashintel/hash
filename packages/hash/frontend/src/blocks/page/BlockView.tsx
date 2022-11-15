@@ -10,7 +10,7 @@ import {
 } from "@hashintel/hash-shared/prosemirror";
 import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
 import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
-import { ProsemirrorNode, Schema } from "prosemirror-model";
+import { ProsemirrorNode } from "prosemirror-model";
 import { NodeSelection, TextSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
 import { createRef } from "react";
@@ -24,6 +24,7 @@ import { BlockContext } from "./BlockContext";
 import { BlockHandle } from "./BlockHandle";
 import { InsertBlock } from "./InsertBlock";
 import { BlockHighlight } from "./BlockHighlight";
+import { CreateBlockCommentButton } from "./Comments/CreateBlockCommentButton";
 
 export const getBlockDomId = (blockEntityId: string) =>
   `entity-${blockEntityId}`;
@@ -32,12 +33,13 @@ export const getBlockDomId = (blockEntityId: string) =>
  * This is the node view that wraps every one of our blocks in order to inject
  * custom UI like the <select> to change type and the drag handles
  */
-export class BlockView implements NodeView<Schema> {
+export class BlockView implements NodeView {
   dom: HTMLDivElement;
   selectContainer: HTMLDivElement;
   insertBlockBottomContainer: HTMLDivElement;
   insertBlockTopContainer?: HTMLDivElement;
   contentDOM: HTMLDivElement;
+  rootNode: HTMLElement;
 
   allowDragging = false;
   dragging = false;
@@ -49,7 +51,7 @@ export class BlockView implements NodeView<Schema> {
   private store: EntityStore;
   private unsubscribe: Function;
 
-  getBlockEntityIdFromNode = (node: ProsemirrorNode<Schema>) => {
+  getBlockEntityIdFromNode = (node: ProsemirrorNode) => {
     const blockEntityNode = node.firstChild;
 
     if (!blockEntityNode || !isEntityNode(blockEntityNode)) {
@@ -83,12 +85,14 @@ export class BlockView implements NodeView<Schema> {
   };
 
   constructor(
-    public node: ProsemirrorNode<Schema>,
-    public editorView: EditorView<Schema>,
+    public node: ProsemirrorNode,
+    public editorView: EditorView,
     public getPos: () => number,
     public renderPortal: RenderPortal,
     public manager: ProsemirrorManager,
+    public documentRoot: HTMLElement,
   ) {
+    this.rootNode = documentRoot;
     this.dom = document.createElement("div");
     this.dom.classList.add(styles.Block!);
     this.dom.setAttribute("data-testid", "block");
@@ -172,7 +176,7 @@ export class BlockView implements NodeView<Schema> {
    * @todo find a more generalized alternative
    */
   ignoreMutation(
-    record: Parameters<NonNullable<NodeView<Schema>["ignoreMutation"]>>[0],
+    record: Parameters<NonNullable<NodeView["ignoreMutation"]>>[0],
   ) {
     if (record.target === this.dom && record.type === "attributes") {
       return record.attributeName === "class" || record.attributeName === "id";
@@ -187,7 +191,7 @@ export class BlockView implements NodeView<Schema> {
     return false;
   }
 
-  update(blockNode: ProsemirrorNode<Schema>) {
+  update(blockNode: ProsemirrorNode) {
     if (blockNode.type.name !== "block") {
       return false;
     }
@@ -253,7 +257,7 @@ export class BlockView implements NodeView<Schema> {
                    * starts
                    */
                   tr.setSelection(
-                    NodeSelection.create<Schema>(
+                    NodeSelection.create(
                       this.editorView.state.doc,
                       this.getPos(),
                     ),
@@ -267,6 +271,10 @@ export class BlockView implements NodeView<Schema> {
                 toggleShowDataMappingUi={() =>
                   ctx?.setShowDataMappingUi(!ctx.showDataMappingUi)
                 }
+              />
+              <CreateBlockCommentButton
+                blockId={blockEntityId}
+                rootNode={this.rootNode}
               />
             </BlockViewContext.Provider>
           );
@@ -358,7 +366,7 @@ export class BlockView implements NodeView<Schema> {
           )?.[1];
 
           if (nextPosition !== undefined) {
-            tr.setSelection(TextSelection.create<Schema>(tr.doc, nextPosition));
+            tr.setSelection(TextSelection.create(tr.doc, nextPosition));
           }
 
           editorView.focus();

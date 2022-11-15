@@ -1,4 +1,4 @@
-FROM node:16.16.0-alpine AS builder
+FROM node:16.18.1-alpine AS builder
 
 WORKDIR /app
 
@@ -8,13 +8,12 @@ COPY yarn.lock .
 RUN yarn install --frozen-lockfile --production --ignore-scripts --prefer-offline
 
 # Also ensure that api node modules can be cached
+COPY libs/javascript/@local/tsconfig/package.json libs/javascript/@local/tsconfig/
 COPY packages/hash/api/package.json packages/hash/api/
 COPY packages/hash/shared/package.json packages/hash/shared/
 COPY packages/hash/backend-utils/package.json packages/hash/backend-utils/
 COPY packages/hash/search-loader/package.json packages/hash/search-loader/
 RUN yarn workspace @hashintel/hash-search-loader install --frozen-lockfile --ignore-scripts --prefer-offline
-
-COPY tsconfig.base.json .
 
 COPY packages/hash/api/codegen.yml packages/hash/api/codegen.yml
 COPY packages/hash/api/src/graphql/typeDefs packages/hash/api/src/graphql/typeDefs
@@ -23,6 +22,7 @@ COPY packages/hash/shared/src/queries packages/hash/shared/src/queries
 
 RUN yarn workspace @hashintel/hash-api codegen
 
+COPY libs/javascript/@local/tsconfig libs/javascript/@local/tsconfig
 COPY packages/hash/backend-utils packages/hash/backend-utils
 COPY packages/hash/api packages/hash/api
 COPY packages/hash/shared packages/hash/shared
@@ -31,17 +31,13 @@ COPY packages/hash/search-loader packages/hash/search-loader
 
 #########################################################################################
 
-FROM node:16.16.0-alpine
-
-COPY --from=builder /app /app
-
-WORKDIR /app
+FROM node:16.18.1-alpine
 
 # Run as a non-root user
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+COPY --from=builder --chown=appgroup:appuser /app /app
 
-USER root
-RUN chown appuser:appgroup /app
+WORKDIR /app
 
 USER appuser
 ENV NODE_ENV production

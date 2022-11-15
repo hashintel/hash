@@ -1,3 +1,9 @@
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-nocheck
+/**
+ * @todo remove above ts-nocheck as we start re-enabling collab
+ *   https://app.asana.com/0/1202805690238892/1202924026802709/f
+ */
 import { ApolloClient } from "@apollo/client";
 import {
   AggregationVersion,
@@ -21,10 +27,13 @@ import {
   GetLinkedAggregationQueryVariables,
   GetLinkQuery,
   GetLinkQueryVariables,
-  GetPageQuery,
-  GetPageQueryVariables,
+  GetPersistedPageQuery,
+  GetPersistedPageQueryVariables,
   LatestEntityRef,
 } from "@hashintel/hash-shared/graphql/apiTypes.gen";
+import { getPersistedPageQuery } from "@hashintel/hash-shared/queries/page.queries";
+import { save } from "@hashintel/hash-shared/save";
+
 import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
 import {
   getLinkedAggregationIdentifierFieldsQuery,
@@ -36,8 +45,6 @@ import { Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
 import { Step } from "prosemirror-transform";
 import { getBlocksQuery } from "./graphql/queries/blocks.queries";
-import { getPageQuery } from "./graphql/queries/page.queries";
-import { save } from "./save";
 import { logger } from "../logger";
 import { EntityWatcher } from "./EntityWatcher";
 import { InvalidVersionError } from "./errors";
@@ -98,7 +105,7 @@ export class Instance {
   constructor(
     public accountId: string,
     public pageEntityId: string,
-    public state: EditorState<Schema>,
+    public state: EditorState,
     public manager: ProsemirrorManager,
     public savedContents: BlockEntity[],
     private entityWatcher: EntityWatcher,
@@ -420,7 +427,9 @@ export class Instance {
 
       try {
         this.checkVersion(version);
-        if (this.version !== version) return false;
+        if (this.version !== version) {
+          return false;
+        }
 
         const tr = this.state.tr;
 
@@ -548,7 +557,9 @@ export class Instance {
     };
 
   private sendUpdates() {
-    while (this.waiting.length) this.waiting.pop()?.finish();
+    while (this.waiting.length) {
+      this.waiting.pop()?.finish();
+    }
   }
 
   // : (Number)
@@ -572,7 +583,9 @@ export class Instance {
 
       this.checkVersion(version);
       const startIndex = this.updates.length - (this.version - version);
-      if (startIndex < 0) return false;
+      if (startIndex < 0) {
+        return false;
+      }
 
       let updates = this.updates.slice(startIndex);
 
@@ -749,7 +762,9 @@ const newInstance =
       let oldest = null;
       for (const instanceId of Object.keys(instances)) {
         const inst = instances[instanceId]!;
-        if (!oldest || inst.lastActive < oldest.lastActive) oldest = inst;
+        if (!oldest || inst.lastActive < oldest.lastActive) {
+          oldest = inst;
+        }
       }
       if (oldest) {
         instances[oldest.pageEntityId]!.stop();
@@ -759,11 +774,11 @@ const newInstance =
     }
 
     const { data } = await apolloClient.query<
-      GetPageQuery,
-      GetPageQueryVariables
+      GetPersistedPageQuery,
+      GetPersistedPageQueryVariables
     >({
-      query: getPageQuery,
-      variables: { entityId: pageEntityId, accountId },
+      query: getPersistedPageQuery,
+      variables: { ownedById: accountId, entityId: pageEntityId },
     });
 
     const state = createProseMirrorState({ accountId });
@@ -774,7 +789,7 @@ const newInstance =
      * @todo check plugins
      */
     const newState = state.apply(
-      await manager.loadPage(state, data.page.contents),
+      await manager.loadPage(state, data.persistedPage.contents),
     );
 
     // The instance may have been created whilst another user we were doing the above work
@@ -787,7 +802,7 @@ const newInstance =
       pageEntityId,
       newState,
       manager,
-      data.page.contents,
+      data.persistedPage.contents,
       entityWatcher,
       apolloClient,
     );

@@ -1,11 +1,11 @@
 import { isComponentNode } from "@hashintel/hash-shared/prosemirror";
 import { InputRule } from "prosemirror-inputrules";
-import { ProsemirrorNode, Mark, Schema } from "prosemirror-model";
+import { ProsemirrorNode, Mark } from "prosemirror-model";
 import { EditorState, TextSelection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import urlRegexSafe from "url-regex-safe";
 
-export const selectionContainsText = (state: EditorState<Schema>) => {
+export const selectionContainsText = (state: EditorState) => {
   const content = state.selection.content().content;
   let containsText = false;
 
@@ -13,6 +13,11 @@ export const selectionContainsText = (state: EditorState<Schema>) => {
     if (containsText) {
       return false;
     }
+
+    if (node.isInline) {
+      containsText = true;
+    }
+
     if (isComponentNode(node)) {
       node.content.descendants((childNode) => {
         if (childNode.isInline) {
@@ -32,11 +37,11 @@ export function isValidLink(text: string) {
   return urlRegexSafe().test(text);
 }
 
-export function getActiveMarksWithAttrs(editorState: EditorState<Schema>) {
+export function getActiveMarksWithAttrs(editorState: EditorState) {
   const activeMarks: { name: string; attrs?: Record<string, string> }[] = [];
   editorState.selection
     .content()
-    .content.descendants((node: ProsemirrorNode<Schema>) => {
+    .content.descendants((node: ProsemirrorNode) => {
       for (const mark of node.marks) {
         activeMarks.push({
           name: mark.type.name,
@@ -50,7 +55,7 @@ export function getActiveMarksWithAttrs(editorState: EditorState<Schema>) {
   return activeMarks;
 }
 
-export function updateLink(editorView: EditorView<Schema>, href: string) {
+export function updateLink(editorView: EditorView, href: string) {
   const { state, dispatch } = editorView;
 
   const from = state.selection.$from.pos;
@@ -77,7 +82,7 @@ export function updateLink(editorView: EditorView<Schema>, href: string) {
   dispatch?.(tr);
 }
 
-export function removeLink(editorView: EditorView<Schema>) {
+export function removeLink(editorView: EditorView) {
   const {
     state: { selection, tr, schema },
     dispatch,
@@ -86,13 +91,13 @@ export function removeLink(editorView: EditorView<Schema>) {
   const linkMarkType = schema.marks.link;
 
   if (selection instanceof TextSelection) {
-    const textSelection: TextSelection<Schema> = selection;
+    const textSelection: TextSelection = selection;
     const { $cursor } = textSelection;
 
     // For empty selection
     if ($cursor) {
-      const nodesBefore: [number, ProsemirrorNode<Schema>][] = [];
-      const nodesAfter: [number, ProsemirrorNode<Schema>][] = [];
+      const nodesBefore: [number, ProsemirrorNode][] = [];
+      const nodesAfter: [number, ProsemirrorNode][] = [];
 
       // Get sibling nodes to the left/right of the cursor
       $cursor.parent.nodesBetween(0, $cursor.parentOffset, (node, pos) => {
@@ -109,12 +114,12 @@ export function removeLink(editorView: EditorView<Schema>) {
       let startPosition = textSelection.$from.pos;
       let endPosition = textSelection.$to.pos;
 
-      let targetMark: Mark<Schema> | null = null;
+      let targetMark: Mark | null = null;
 
       for (let idx = nodesBefore.length - 1; idx >= 0; idx--) {
         const [pos, node] = nodesBefore[idx]!;
 
-        let linkMark: Mark<Schema<any, any>> | null;
+        let linkMark: Mark | null;
 
         if (targetMark && node.marks.includes(targetMark)) {
           linkMark = targetMark;
@@ -135,7 +140,7 @@ export function removeLink(editorView: EditorView<Schema>) {
       for (let idx = 0; idx < nodesAfter.length; idx++) {
         const [pos, node] = nodesAfter[idx]!;
 
-        let linkMark: Mark<Schema<any, any>> | null;
+        let linkMark: Mark | null;
 
         if (targetMark && node.marks.includes(targetMark)) {
           linkMark = targetMark;
@@ -166,7 +171,7 @@ export function removeLink(editorView: EditorView<Schema>) {
 }
 
 export function linkInputRule() {
-  return new InputRule<Schema>(
+  return new InputRule(
     new RegExp(`${urlRegexSafe({ returnString: true })}\\s$`),
     (state, match, start, end) => {
       const attrs = { href: match[0]!.slice(0, -1) };
@@ -176,8 +181,12 @@ export function linkInputRule() {
       if (match[1]) {
         const textStart = start + match[0]!.indexOf(match[1]);
         const textEnd = textStart + match[1].length;
-        if (textEnd < newEnd) tr.delete(textEnd, newEnd);
-        if (textStart > start) tr.delete(start, textStart);
+        if (textEnd < newEnd) {
+          tr.delete(textEnd, newEnd);
+        }
+        if (textStart > start) {
+          tr.delete(start, textStart);
+        }
         newEnd = start + match[1].length;
       }
 

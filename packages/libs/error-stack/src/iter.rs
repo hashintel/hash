@@ -24,10 +24,10 @@ use crate::Frame;
 /// ```text
 /// 1) Out: - Stack: [A, G]
 /// 2) Out: A Stack: [G] [B, C]
-/// 3) Out: B Stack: [G] [C] [D, E]
-/// 4) Out: D Stack: [G] [C] [E]
-/// 4) Out: E Stack: [G] [C]
-/// 5) Out: C Stack: [G] [F]
+/// 3) Out: B Stack: [G] [E] [C, D]
+/// 4) Out: C Stack: [G] [E] [D]
+/// 4) Out: D Stack: [G] [E]
+/// 5) Out: E Stack: [G] [F]
 /// 6) Out: F Stack: [G]
 /// 7) Out: G Stack: [H]
 /// 8) Out: H Stack: -
@@ -61,37 +61,17 @@ fn next<I: Iterator<Item = T>, T>(iter: &mut Vec<I>) -> Option<T> {
 /// This shows in numbers the index of the different depths, using this it's possible to linearize
 /// all frames and sort topologically, meaning that this ensures no child ever is before its parent.
 ///
-/// ```text
-///      1
-///     / \
-///    2   6
-///  / | \  \
-/// 3  4  5  7
-/// ```
-///
-///
-/// A reversed stack of the implementation is used. Considering the following tree:
+/// Iterating the following report will return the frames in alphabetical order:
 ///
 /// ```text
-///     A     G
-///    / \    |
-///   B   C   H
-///  / \  |
-/// D   E F
-/// ```
-///
-/// the algorithm will create the following through iteration:
-///
-/// ```text
-/// 1) Out: - Stack: [A, G]
-/// 2) Out: A Stack: [G] [B, C]
-/// 3) Out: B Stack: [G] [C] [D, E]
-/// 4) Out: D Stack: [G] [C] [E]
-/// 4) Out: E Stack: [G] [C]
-/// 5) Out: C Stack: [G] [F]
-/// 6) Out: F Stack: [G]
-/// 7) Out: G Stack: [H]
-/// 8) Out: H Stack: -
+/// A
+/// ╰┬▶ B
+///  │  ╰┬▶ C
+///  │   ╰▶ D
+///  ╰▶ E
+///     ╰─▶ F
+/// G
+/// ╰─▶ H
 /// ```
 ///
 /// [`Report`]: crate::Report

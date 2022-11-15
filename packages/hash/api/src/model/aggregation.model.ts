@@ -156,7 +156,9 @@ class __Aggregation {
         .map((filterItem) => {
           const item = get(entity.properties, filterItem.field);
 
-          if (typeof item !== "string") return null;
+          if (typeof item !== "string") {
+            return null;
+          }
 
           if (
             [

@@ -1,12 +1,13 @@
-import { Schema } from "prosemirror-model";
 import { Selection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 
 export const cleanUpTitle = (value: string): string =>
   value.trim().replace(/\s+/g, " ");
 
-export const focusEditorBeginning = (view?: EditorView<Schema>) => {
-  if (!view) return;
+export const focusEditorBeginning = (view?: EditorView) => {
+  if (!view) {
+    return;
+  }
 
   const { state } = view;
 

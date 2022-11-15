@@ -1,14 +1,14 @@
 import { ApolloError } from "apollo-server-express";
-import { ResolverFn, EntityType as GQLEntityType } from "../../apiTypes.gen";
+import { ResolverFn, DeprecatedEntityType } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { EntityType, UnresolvedGQLEntityType } from "../../../model";
 import { EntityTypeTypeFields } from "../../../db/adapter";
 
 type EntityTypeMaybeTypeFields = UnresolvedGQLEntityType & {
-  entityType?: GQLEntityType["entityType"];
-  entityTypeId?: GQLEntityType["entityTypeId"];
-  entityTypeVersionId?: GQLEntityType["entityTypeVersionId"];
-  entityTypeName?: GQLEntityType["entityTypeName"];
+  entityType?: DeprecatedEntityType["entityType"];
+  entityTypeId?: DeprecatedEntityType["entityTypeId"];
+  entityTypeVersionId?: DeprecatedEntityType["entityTypeVersionId"];
+  entityTypeName?: DeprecatedEntityType["entityTypeName"];
 };
 
 /**
@@ -24,7 +24,7 @@ const getEntityTypeType = async (dataSources: GraphQLContext["dataSources"]) =>
  */
 const entityType: ResolverFn<
   Omit<
-    GQLEntityType["entityType"],
+    DeprecatedEntityType["entityType"],
     | EntityTypeTypeFields
     | "linkGroups"
     | "linkedEntities"
@@ -44,7 +44,7 @@ const entityType: ResolverFn<
  * Get the entityTypeId of an EntityType, i.e. the entityId of the "EntityType" EntityType.
  */
 const entityTypeId: ResolverFn<
-  GQLEntityType["entityTypeId"],
+  DeprecatedEntityType["entityTypeId"],
   EntityTypeMaybeTypeFields,
   GraphQLContext,
   {}
@@ -62,7 +62,7 @@ const entityTypeId: ResolverFn<
  * Get the entityTypeName of an EntityType, i.e. the name of the "EntityType" EntityType.
  */
 const entityTypeName: ResolverFn<
-  GQLEntityType["entityTypeName"],
+  DeprecatedEntityType["entityTypeName"],
   EntityTypeMaybeTypeFields,
   GraphQLContext,
   {}
@@ -82,7 +82,7 @@ const entityTypeName: ResolverFn<
  * Get the entityTypeVersionId of an EntityType, i.e. the entityVersionId of the "EntityType" EntityType.
  */
 const entityTypeVersionId: ResolverFn<
-  GQLEntityType["entityTypeVersionId"],
+  DeprecatedEntityType["entityTypeVersionId"],
   EntityTypeMaybeTypeFields,
   GraphQLContext,
   {}

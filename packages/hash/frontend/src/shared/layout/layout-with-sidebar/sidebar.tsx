@@ -4,7 +4,7 @@ import { useRouter } from "next/router";
 import { Box, Drawer, Tooltip } from "@mui/material";
 import { faHome } from "@fortawesome/free-solid-svg-icons";
 import { IconButton } from "@hashintel/hash-design-system";
-import { AccountPageList } from "./account-page-list";
+import { AccountPageList } from "./account-page-list/account-page-list";
 
 import { AccountEntityTypeList } from "./account-entity-type-list";
 import { SidebarToggleIcon } from "../../icons";

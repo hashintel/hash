@@ -1,16 +1,16 @@
 import gql from "graphql-tag";
 
-export const getTextEntityType = gql`
-  query getTextEntityType {
-    getEntityType(choice: { systemTypeName: Text }) {
+export const deprecatedGetTextEntityType = gql`
+  query deprecatedGetTextEntityType {
+    deprecatedGetEntityType(choice: { systemTypeName: Text }) {
       entityId
     }
   }
 `;
 
-export const getComponentEntityType = gql`
-  query getComponentEntityType($componentId: ID!) {
-    getEntityType(choice: { componentId: $componentId }) {
+export const deprecatedGetComponentEntityType = gql`
+  query deprecatedGetComponentEntityType($componentId: ID!) {
+    deprecatedGetEntityType(choice: { componentId: $componentId }) {
       entityId
     }
   }

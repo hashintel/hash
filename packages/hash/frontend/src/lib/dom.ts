@@ -3,7 +3,9 @@
  * @returns true if noop
  */
 export const ensureMounted = <T extends Node>(child: T, parent: Element) => {
-  if (child.parentNode === parent) return true;
+  if (child.parentNode === parent) {
+    return true;
+  }
   parent.appendChild(child);
   return false;
 };

@@ -1,15 +1,10 @@
 import { Draft, produce } from "immer";
 import { isEqual } from "lodash";
-import { ProsemirrorNode, Schema } from "prosemirror-model";
+import { ProsemirrorNode } from "prosemirror-model";
 import { EditorState, Plugin, PluginKey, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { v4 as uuid } from "uuid";
-import {
-  BlockEntity,
-  getEntityChildEntity,
-  isDraftTextContainingEntityProperties,
-  isTextEntity,
-} from "./entity";
+import { BlockEntity, getEntityChildEntity, isTextEntity } from "./entity";
 import {
   createEntityStore,
   DraftEntity,
@@ -64,9 +59,16 @@ export type EntityStorePluginAction = { received?: boolean } & (
       type: "updateEntityProperties";
       payload: {
         draftId: string;
-        properties: { [key: string]: unknown };
         merge: boolean;
-      };
+      } & (
+        | {
+            blockEntityMetadata: {
+              componentId: string;
+              blockChildEntity?: { [key: string]: unknown };
+            };
+          }
+        | { properties: { [key: string]: unknown } }
+      );
     }
   | {
       type: "newDraftEntity";
@@ -83,11 +85,11 @@ export type EntityStorePluginAction = { received?: boolean } & (
 );
 
 const EntityStoreListeners = new WeakMap<
-  Plugin<EntityStorePluginState, Schema>,
+  Plugin<EntityStorePluginState>,
   Set<EntityStorePluginStateListener>
 >();
 
-const entityStorePluginKey = new PluginKey<EntityStorePluginState, Schema>(
+const entityStorePluginKey = new PluginKey<EntityStorePluginState>(
   "entityStore",
 );
 
@@ -96,17 +98,16 @@ type EntityStoreMeta = {
   disableInterpretation?: boolean;
 };
 
-const getMeta = (
-  transaction: Transaction<Schema>,
-): EntityStoreMeta | undefined => transaction.getMeta(entityStorePluginKey);
+const getMeta = (transaction: Transaction): EntityStoreMeta | undefined =>
+  transaction.getMeta(entityStorePluginKey);
 
-const setMeta = (transaction: Transaction<Schema>, meta: EntityStoreMeta) =>
+const setMeta = (transaction: Transaction, meta: EntityStoreMeta) =>
   transaction.setMeta(entityStorePluginKey, meta);
 
 /**
  * @use {@link subscribeToEntityStore} if you need a live subscription
  */
-export const entityStorePluginState = (state: EditorState<Schema>) => {
+export const entityStorePluginState = (state: EditorState) => {
   const pluginState = entityStorePluginKey.getState(state);
 
   if (!pluginState) {
@@ -121,8 +122,8 @@ export const entityStorePluginState = (state: EditorState<Schema>) => {
  * @use {@link subscribeToEntityStore} if you need a live subscription
  */
 export const entityStorePluginStateFromTransaction = (
-  tr: Transaction<Schema>,
-  state: EditorState<Schema>,
+  tr: Transaction,
+  state: EditorState,
 ): EntityStorePluginState =>
   getMeta(tr)?.store ?? entityStorePluginState(state);
 
@@ -154,17 +155,9 @@ const updateEntitiesByDraftId = (
 
   for (const entity of Object.values(draftEntityStore)) {
     if (isDraftBlockEntity(entity)) {
-      if (entity.properties.entity.draftId === draftId) {
-        entities.push(entity.properties.entity);
-      }
-
-      if (
-        isDraftTextContainingEntityProperties(
-          entity.properties.entity.properties,
-        ) &&
-        entity.properties.entity.properties.text.data.draftId === draftId
-      ) {
-        entities.push(entity.properties.entity.properties.text.data);
+      const blockChildEntity = entity.blockChildEntity!;
+      if (blockChildEntity.draftId && blockChildEntity.draftId === draftId) {
+        entities.push(blockChildEntity as DraftEntity);
       }
     }
   }
@@ -202,7 +195,8 @@ const setBlockChildEntity = (
       draftId: targetEntityDraftId,
       entityId: targetEntity.entityId,
       properties: targetEntity.properties,
-      updatedAt: targetEntity.updatedAt,
+      /** @todo use the actual updated date here https://app.asana.com/0/0/1203099452204542/f */
+      // updatedAt: targetEntity.updatedAt,
     };
 
     draftEntityStore[targetEntityDraftId] = targetDraftEntity;
@@ -266,16 +260,25 @@ const entityStoreReducer = (
         updateEntitiesByDraftId(
           draftState.store.draft,
           action.payload.draftId,
-          action.payload.merge
-            ? (draftEntity) => {
+          (draftEntity) => {
+            if ("blockEntityMetadata" in action.payload) {
+              draftEntity.componentId =
+                action.payload.blockEntityMetadata?.componentId;
+              draftEntity.blockChildEntity = action.payload.blockEntityMetadata
+                ?.blockChildEntity as any;
+            }
+
+            if ("properties" in action.payload) {
+              if (action.payload.merge) {
                 Object.assign(
                   draftEntity.properties,
                   action.payload.properties,
                 );
-              }
-            : (draftEntity) => {
+              } else {
                 draftEntity.properties = action.payload.properties;
-              },
+              }
+            }
+          },
         );
       });
     }
@@ -318,7 +321,6 @@ const entityStoreReducer = (
           accountId: action.payload.accountId,
           entityId: action.payload.entityId,
           draftId: action.payload.draftId,
-          updatedAt: new Date().toISOString(),
           properties: {},
         };
       });
@@ -328,7 +330,7 @@ const entityStoreReducer = (
 };
 
 export const disableEntityStoreTransactionInterpretation = (
-  tr: Transaction<Schema>,
+  tr: Transaction,
 ) => {
   setMeta(tr, {
     ...(getMeta(tr) ?? {}),
@@ -340,8 +342,8 @@ export const disableEntityStoreTransactionInterpretation = (
  * @todo store actions on transaction
  */
 export const addEntityStoreAction = (
-  state: EditorState<Schema>,
-  tr: Transaction<Schema>,
+  state: EditorState,
+  tr: Transaction,
   action: EntityStorePluginAction,
 ) => {
   const prevState = entityStorePluginStateFromTransaction(tr, state);
@@ -356,7 +358,7 @@ export const addEntityStoreAction = (
 
 const updateEntityStoreListeners = collect<
   [
-    view: EditorView<Schema>,
+    view: EditorView,
     listener: EntityStorePluginStateListener,
     unsubscribe: boolean | undefined | void,
   ]
@@ -387,7 +389,7 @@ const updateEntityStoreListeners = collect<
 });
 
 export const subscribeToEntityStore = (
-  view: EditorView<Schema>,
+  view: EditorView,
   listener: EntityStorePluginStateListener,
 ) => {
   updateEntityStoreListeners(view, listener);
@@ -423,10 +425,10 @@ const getRequiredDraftIdFromEntityNode = (entityNode: EntityNode): string => {
 };
 
 class ProsemirrorStateChangeHandler {
-  private readonly tr: Transaction<Schema>;
+  private readonly tr: Transaction;
   private handled = false;
 
-  constructor(private state: EditorState<Schema>, private accountId: string) {
+  constructor(private state: EditorState, private accountId: string) {
     this.tr = state.tr;
   }
 
@@ -444,7 +446,7 @@ class ProsemirrorStateChangeHandler {
     return this.tr;
   }
 
-  private handleNode(node: ProsemirrorNode<Schema>, pos: number) {
+  private handleNode(node: ProsemirrorNode, pos: number) {
     if (isComponentNode(node)) {
       this.componentNode(node, pos);
     }
@@ -481,7 +483,7 @@ class ProsemirrorStateChangeHandler {
 
       const componentId = componentNodeToId(node);
 
-      if (entity.properties.componentId !== componentId) {
+      if (entity.componentId !== componentId) {
         addEntityStoreAction(this.state, this.tr, {
           type: "updateEntityProperties",
           payload: {
@@ -518,25 +520,19 @@ class ProsemirrorStateChangeHandler {
       // @todo in what circumstances does this occur
       if (!isDraftBlockEntity(parentEntity)) {
         const componentNodeChild = findComponentNodes(node)[0];
+        const componentId = componentNodeChild
+          ? componentNodeToId(componentNodeChild)
+          : "";
 
         addEntityStoreAction(this.state, this.tr, {
           type: "updateEntityProperties",
           payload: {
             merge: false,
             draftId: parentEntity.draftId,
-            properties: {
-              entity: draftEntityStore[getRequiredDraftIdFromEntityNode(node)],
-              /**
-               * We don't currently rely on componentId of the draft
-               * right
-               * now, but this will be a problem in the future (i.e, if
-               * save starts using the draft entity store)
-               *
-               * @todo set this properly
-               */
-              componentId: componentNodeChild
-                ? componentNodeToId(componentNodeChild)
-                : "",
+            blockEntityMetadata: {
+              blockChildEntity:
+                draftEntityStore[getRequiredDraftIdFromEntityNode(node)],
+              componentId,
             },
           },
         });
@@ -551,10 +547,22 @@ class ProsemirrorStateChangeHandler {
       draftEntityStore,
     );
 
+    if (!childEntity) {
+      return;
+    }
+    // We should currently be
+    //          here V
+    // Block -> Entity -> Entity -> Component node
+    //  firstChild refers to ^
+    //  firstchild.firstChild refers to  ^
+    // and we'd like to update the child entity's text contents approrpiately.
+
     if (
       isTextEntity(childEntity) &&
       node.firstChild &&
-      isComponentNode(node.firstChild)
+      node.firstChild.firstChild &&
+      // Check if the next next entity node's child is a component node
+      isComponentNode(node.firstChild.firstChild)
     ) {
       const nextProps = textBlockNodeToEntityProperties(node.firstChild);
 
@@ -649,9 +657,9 @@ class ProsemirrorStateChangeHandler {
  */
 const scheduleNotifyEntityStoreSubscribers = collect<
   [
-    view: EditorView<Schema>,
-    prevState: EditorState<Schema>,
-    entityStorePlugin: Plugin<EntityStorePluginState, Schema>,
+    view: EditorView,
+    prevState: EditorState,
+    entityStorePlugin: Plugin<EntityStorePluginState>,
   ]
 >((calls) => {
   for (const [view, prevState, entityStorePlugin] of calls) {
@@ -659,7 +667,7 @@ const scheduleNotifyEntityStoreSubscribers = collect<
     const prevPluginState = entityStorePlugin.getState(prevState);
 
     // If the plugin state has changed, notify listeners
-    if (nextPluginState !== prevPluginState) {
+    if (nextPluginState && nextPluginState !== prevPluginState) {
       const listeners = EntityStoreListeners.get(entityStorePlugin);
 
       if (listeners) {
@@ -676,7 +684,7 @@ export const createEntityStorePlugin = ({
 }: {
   accountId: string;
 }) => {
-  const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
+  const entityStorePlugin = new Plugin<EntityStorePluginState>({
     key: entityStorePluginKey,
     state: {
       init(_): EntityStorePluginState {

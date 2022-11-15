@@ -1,0 +1,23 @@
+[package]
+name = "deer"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+error-stack = "0.2.1"
+
+num-traits = "0.2.15"
+
+serde = { version = "1.0.147", default_features = false, features = ['alloc', 'derive'] }
+
+[build-dependencies]
+rustc_version = "0.4.0"
+
+[features]
+default = ['std']
+std = ['serde/std']
+arbitrary-precision = []
+
+[workspace]
+members = ['.', 'macros']

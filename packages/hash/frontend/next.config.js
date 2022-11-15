@@ -31,6 +31,16 @@ process.env.NEXT_PUBLIC_BLOCK_BASED_ENTITY_EDITOR =
   process.env.NEXT_PUBLIC_BLOCK_BASED_ENTITY_EDITOR ??
   process.env.BLOCK_BASED_ENTITY_EDITOR;
 
+// This allows the frontend to generate the graph type IDs in the browser
+process.env.NEXT_PUBLIC_FRONTEND_URL = process.env.FRONTEND_URL;
+
+// The API origin
+process.env.NEXT_PUBLIC_API_ORIGIN = process.env.API_ORIGIN;
+
+process.env.NEXT_PUBLIC_SENTRY_DSN = process.env.SENTRY_DSN;
+process.env.NEXT_PUBLIC_SENTRY_REPLAYS_SAMPLING_RATE =
+  process.env.SENTRY_REPLAYS_SAMPLING_RATE;
+
 /**
  * @todo try using next-compose-plugins when upgrading next to 11 and/or to webpack 5
  *    was not building with compose-plugins on next 10 w/ webpack 4.
@@ -38,13 +48,18 @@ process.env.NEXT_PUBLIC_BLOCK_BASED_ENTITY_EDITOR =
 module.exports = withSentryConfig(
   withBundleAnalyzer(
     withTM({
-      pageExtensions: ["page.tsx", "page.ts", "page.jsx", "page.jsx"],
+      pageExtensions: ["page.tsx", "page.ts", "page.jsx", "page.jsx", "api.ts"],
 
       // We call linters in GitHub Actions for all pull requests. By not linting
       // again during `next build`, we save CI minutes and unlock more feedback.
       // Thus, we can get Playwright test results and Preview releases for WIP PRs.
       eslint: { ignoreDuringBuilds: true },
       typescript: { ignoreBuildErrors: true },
+
+      sentry: {
+        autoInstrumentServerFunctions: false,
+        hideSourceMaps: false,
+      },
 
       webpack: (webpackConfig) => {
         webpackConfig.module.rules.push({

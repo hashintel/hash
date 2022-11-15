@@ -140,11 +140,10 @@ export const Footer: FunctionComponent = () => (
               type="fair"
               href="https://hash.ai/platform/engine"
             >
-              hEngine
+              HASH Engine
             </FooterLinkWithLabel>
-            <FooterLink href="https://hash.ai/platform/core">hCore</FooterLink>
-            <FooterLink href="https://hash.ai/platform/cloud">
-              hCloud
+            <FooterLink href="https://hash.ai/platform/core">
+              HASH Core
             </FooterLink>
           </FooterSection>
         </Stack>

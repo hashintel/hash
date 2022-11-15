@@ -2,26 +2,26 @@
 source: tests/test_debug.rs
 expression: "format!(\"{report:#?}\")"
 ---
-Context B
-├╴tests/test_debug.rs:306:14
-├╴Printable C
+context B
+├╴ tests/test_debug.rs:304:14
+├╴ printable C
 │
-├─▶ Context A
-│   ├╴tests/test_debug.rs:303:14
-│   ├╴Printable B
-│   ╰╴1 additional opaque attachment
+├─▶ context A
+│   ├╴ tests/test_debug.rs:301:14
+│   ├╴ printable B
+│   ╰╴ 1 additional opaque attachment
 │
-╰─▶ Root error
-    ├╴tests/common.rs:147:5
-    ├╴Printable A
-    ├╴spantrace with 2 frames (1)
-    ├╴backtrace with [n] frames (1)
-    ╰╴2 additional opaque attachments
+╰─▶ root error
+    ├╴ tests/common.rs:4:5
+    ├╴ backtrace (1)
+    ├╴ span trace with 2 frames (1)
+    ├╴ printable A
+    ╰╴ 2 additional opaque attachments
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Backtrace No. 1
+backtrace no. 1
   [redacted]
 
-Span Trace No. 1
+span trace No. 1
   [redacted]

@@ -1,33 +1,32 @@
 import { useMutation } from "@apollo/client";
-import {
-  UpdatePageMutation,
-  UpdatePageMutationVariables,
-} from "@hashintel/hash-shared/graphql/apiTypes.gen";
-import {
-  getPageInfoQuery,
-  updatePage,
-} from "@hashintel/hash-shared/queries/page.queries";
+import { getPageInfoQuery } from "@hashintel/hash-shared/queries/page.queries";
 
 import { useCallback } from "react";
+import {
+  GetPageInfoQueryVariables,
+  UpdatePersistedPageMutation,
+  UpdatePersistedPageMutationVariables,
+} from "../../graphql/apiTypes.gen";
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
+import { updatePersistedPage } from "../../graphql/queries/page.queries";
 
 export const useArchivePage = () => {
-  const [updatePageFn] = useMutation<
-    UpdatePageMutation,
-    UpdatePageMutationVariables
-  >(updatePage);
+  const [updatePageFn, { loading }] = useMutation<
+    UpdatePersistedPageMutation,
+    UpdatePersistedPageMutationVariables
+  >(updatePersistedPage, { awaitRefetchQueries: true });
 
-  const getRefecthQueries = useCallback(
-    (accountId: string, pageEntityId: string) => [
+  const getRefetchQueries = useCallback(
+    (ownedById: string, pageEntityId: string) => [
       {
         query: getAccountPagesTree,
-        variables: { accountId },
+        variables: { ownedById },
       },
       {
         query: getPageInfoQuery,
-        variables: {
+        variables: <GetPageInfoQueryVariables>{
           entityId: pageEntityId,
-          accountId,
+          ownedById,
         },
       },
     ],
@@ -35,30 +34,17 @@ export const useArchivePage = () => {
   );
 
   const archivePage = useCallback(
-    async (accountId: string, pageEntityId: string) =>
+    async (value: boolean, ownedById: string, pageEntityId: string) => {
       await updatePageFn({
         variables: {
-          accountId,
           entityId: pageEntityId,
-          properties: { archived: true },
+          updatedProperties: { archived: value },
         },
-        refetchQueries: getRefecthQueries(accountId, pageEntityId),
-      }),
-    [updatePageFn, getRefecthQueries],
+        refetchQueries: getRefetchQueries(ownedById, pageEntityId),
+      });
+    },
+    [updatePageFn, getRefetchQueries],
   );
 
-  const unarchivePage = useCallback(
-    async (accountId: string, pageEntityId: string) =>
-      await updatePageFn({
-        variables: {
-          accountId,
-          entityId: pageEntityId,
-          properties: { archived: false },
-        },
-        refetchQueries: getRefecthQueries(accountId, pageEntityId),
-      }),
-    [updatePageFn, getRefecthQueries],
-  );
-
-  return { archivePage, unarchivePage };
+  return [archivePage, { loading }] as const;
 };

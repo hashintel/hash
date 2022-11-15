@@ -66,7 +66,7 @@ export const SchemaPropertiesTable: FunctionComponent<
           ?.sort((a, b) => a[0].localeCompare(b[0]))
           .map(([name, propertySchema]) => {
             const isRequired =
-              requiredArray?.includes(name) || !!propertySchema.required;
+              !!requiredArray?.includes(name) || !!propertySchema.required;
             return (
               <SchemaPropertyRow
                 dispatchSchemaUpdate={dispatchSchemaUpdate}

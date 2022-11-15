@@ -12,7 +12,7 @@ type DocsFrontMatter = {
     objectId: string;
     title?: string;
     description?: string;
-    slug?: string;
+    slug: string;
     tags?: Array<string>;
   };
 };
@@ -34,7 +34,7 @@ const getFileInfos = (
 
   let newArrayOfFiles = [...arrayOfFiles];
 
-  files.forEach((file) => {
+  for (const file of files) {
     if (fs.statSync(`${dirPath}/${file}`).isDirectory()) {
       newArrayOfFiles = getFileInfos(`${dirPath}/${file}`, arrayOfFiles, type);
     } else {
@@ -49,7 +49,7 @@ const getFileInfos = (
         newArrayOfFiles.push({ inputPath, outputPath, type });
       }
     }
-  });
+  }
 
   return newArrayOfFiles;
 };
@@ -65,7 +65,7 @@ type AlgoliaRecord = {
   tags?: Array<string>;
 };
 
-const generateAlgoliaRecords: () => AlgoliaRecord[] = () => {
+const generateAlgoliaRecords = (): AlgoliaRecord[] => {
   const getFormattedData = (matterData: DocsFrontMatter, type: string) => {
     const appendData = {
       ...matterData.data,
@@ -134,17 +134,17 @@ const syncAlgoliaIndex = async () => {
 
   const indexObjectLookup: Record<string, AlgoliaRecord> = {};
 
-  indexObjects.forEach((indexObject) => {
+  for (const indexObject of indexObjects) {
     indexObjectLookup[indexObject.objectID] = indexObject;
-  });
+  }
 
   const objectIDsToDelete: string[] = [];
 
-  oldIndexObjects.forEach(({ objectID }) => {
+  for (const { objectID } of oldIndexObjects) {
     if (!indexObjectLookup[objectID]) {
       objectIDsToDelete.push(objectID);
     }
-  });
+  }
 
   await index.deleteObjects(objectIDsToDelete);
 
@@ -156,7 +156,7 @@ const main = async () => {
     await syncAlgoliaIndex();
     console.log("Algolia Indexes Updated.");
   } catch (error) {
-    throw new Error(`Algolia Indexing Failed: ${error}`);
+    throw new Error(`Algolia Indexing Failed: ${JSON.stringify(error)}`);
   }
 };
 

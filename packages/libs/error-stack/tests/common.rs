@@ -1,29 +1,38 @@
 #![allow(dead_code)]
 
+pub fn create_report() -> Report<RootError> {
+    Report::new(RootError)
+}
+
 extern crate alloc;
 
 pub use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
+use core::{any::TypeId, panic::Location};
 #[allow(unused_imports)]
 use core::{
-    fmt, iter,
+    fmt,
+    future::Future,
+    iter,
     sync::atomic::{AtomicI8, Ordering},
 };
+#[cfg(all(rust_1_65, feature = "std"))]
+use std::backtrace::Backtrace;
 
 use error_stack::{AttachmentKind, Context, Frame, FrameKind, Report, Result};
-#[cfg(feature = "futures")]
-use futures_core::{Future, Stream};
 #[allow(unused_imports)]
 use once_cell::sync::Lazy;
+#[cfg(feature = "spantrace")]
+use tracing_error::SpanTrace;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct RootError;
 
 impl fmt::Display for RootError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Root error")
+        fmt.write_str("root error")
     }
 }
 
@@ -34,7 +43,7 @@ pub struct ContextA(pub u32);
 
 impl fmt::Display for ContextA {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Context A")
+        fmt.write_str("context A")
     }
 }
 
@@ -42,7 +51,7 @@ impl Context for ContextA {
     #[cfg(nightly)]
     fn provide<'a>(&'a self, demand: &mut core::any::Demand<'a>) {
         demand.provide_ref(&self.0);
-        demand.provide_value(|| self.0 as u64);
+        demand.provide_value(self.0 as u64);
     }
 }
 
@@ -51,7 +60,7 @@ pub struct ContextB(pub i32);
 
 impl fmt::Display for ContextB {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Context B")
+        fmt.write_str("context B")
     }
 }
 
@@ -59,25 +68,25 @@ impl Context for ContextB {
     #[cfg(nightly)]
     fn provide<'a>(&'a self, demand: &mut core::any::Demand<'a>) {
         demand.provide_ref(&self.0);
-        demand.provide_value(|| self.0 as i64);
+        demand.provide_value(self.0 as i64);
     }
 }
 
 #[derive(Debug)]
 #[cfg(feature = "spantrace")]
-pub struct ErrorA(pub u32, tracing_error::SpanTrace);
+pub struct ErrorA(pub u32, SpanTrace);
 
 #[cfg(feature = "spantrace")]
 impl ErrorA {
     pub fn new(value: u32) -> Self {
-        Self(value, tracing_error::SpanTrace::capture())
+        Self(value, SpanTrace::capture())
     }
 }
 
 #[cfg(feature = "spantrace")]
 impl fmt::Display for ErrorA {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Error A")
+        fmt.write_str("error A")
     }
 }
 
@@ -96,18 +105,18 @@ pub struct ErrorB(pub u32, std::backtrace::Backtrace);
 #[cfg(all(rust_1_65, feature = "std"))]
 impl ErrorB {
     pub fn new(value: u32) -> Self {
-        Self(value, std::backtrace::Backtrace::force_capture())
+        Self(value, Backtrace::force_capture())
     }
 }
 
 #[cfg(all(rust_1_65, feature = "std"))]
 impl fmt::Display for ErrorB {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Error B")
+        fmt.write_str("error B")
     }
 }
 
-#[cfg(all(rust_1_65, feature = "std"))]
+#[cfg(all(nightly, feature = "std"))]
 impl std::error::Error for ErrorB {
     fn provide<'a>(&'a self, demand: &mut core::any::Demand<'a>) {
         demand.provide_ref(&self.1);
@@ -116,7 +125,7 @@ impl std::error::Error for ErrorB {
 
 #[cfg(all(rust_1_65, feature = "std"))]
 impl ErrorB {
-    pub fn backtrace(&self) -> Option<&std::backtrace::Backtrace> {
+    pub fn backtrace(&self) -> Option<&Backtrace> {
         Some(&self.1)
     }
 }
@@ -130,7 +139,7 @@ pub struct PrintableA(pub u32);
 
 impl fmt::Display for PrintableA {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Printable A")
+        fmt.write_str("printable A")
     }
 }
 
@@ -139,38 +148,24 @@ pub struct PrintableB(pub u32);
 
 impl fmt::Display for PrintableB {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Printable B")
+        fmt.write_str("printable B")
     }
-}
-
-pub fn create_report() -> Report<RootError> {
-    Report::new(RootError)
 }
 
 pub fn create_error() -> Result<(), RootError> {
     Err(create_report())
 }
 
-pub fn create_iterator(num_elements: usize) -> impl Iterator<Item = Result<(), RootError>> {
-    iter::repeat_with(create_error).take(num_elements)
-}
-
-#[cfg(feature = "futures")]
 pub fn create_future() -> impl Future<Output = Result<(), RootError>> {
     futures::future::err(create_report())
 }
 
-#[cfg(feature = "futures")]
-pub fn create_stream(num_elements: usize) -> impl Stream<Item = Result<(), RootError>> {
-    futures::stream::iter(create_iterator(num_elements))
-}
-
 pub fn capture_ok<E>(closure: impl FnOnce() -> Result<(), E>) {
-    closure().expect("Expected an OK value, found an error")
+    closure().expect("expected an OK value, found an error")
 }
 
 pub fn capture_error<E>(closure: impl FnOnce() -> Result<(), E>) -> Report<E> {
-    closure().expect_err("Expected an error")
+    closure().expect_err("expected an error")
 }
 
 pub fn messages<E>(report: &Report<E>) -> Vec<String> {
@@ -179,14 +174,28 @@ pub fn messages<E>(report: &Report<E>) -> Vec<String> {
         .map(|frame| match frame.kind() {
             FrameKind::Context(context) => context.to_string(),
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => attachment.to_string(),
-            FrameKind::Attachment(AttachmentKind::Opaque(_)) => String::from("Opaque"),
-            FrameKind::Attachment(_) => panic!("Attachment was not covered"),
+            FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
+                #[cfg(all(rust_1_65, feature = "std"))]
+                if frame.type_id() == TypeId::of::<Backtrace>() {
+                    return String::from("Backtrace");
+                }
+                #[cfg(feature = "spantrace")]
+                if frame.type_id() == TypeId::of::<SpanTrace>() {
+                    return String::from("SpanTrace");
+                }
+                if frame.type_id() == TypeId::of::<Location>() {
+                    String::from("Location")
+                } else {
+                    String::from("opaque")
+                }
+            }
+            FrameKind::Attachment(_) => panic!("attachment was not covered"),
         })
         .collect()
 }
 
 pub fn frame_kinds<E>(report: &Report<E>) -> Vec<FrameKind> {
-    report.frames().map(Frame::kind).collect()
+    remove_builtin_frames(report).map(Frame::kind).collect()
 }
 
 #[cfg(all(rust_1_65, feature = "std"))]
@@ -209,27 +218,35 @@ pub fn supports_spantrace() -> bool {
     *STATE
 }
 
-/// Conditionally add two opaque layers to the end,
-/// as these catch the backtrace and spantrace if recorded.
-pub fn expect_messages<'a>(messages: &[&'a str]) -> Vec<&'a str> {
-    #[allow(unused_mut)]
-    let mut messages = alloc::vec::Vec::from(messages);
-    // the last entry should always be `Context`, `Backtrace` and `Spantrace`
-    // are both added after the `Context` therefore we need to push those layers, then `Context`
-    let last = messages.pop().unwrap();
-
-    #[cfg(all(rust_1_65, feature = "std"))]
-    if supports_backtrace() {
-        messages.push("Opaque");
-    }
-
-    #[cfg(feature = "spantrace")]
-    if supports_spantrace() {
-        messages.push("Opaque");
-    }
-
-    messages.push(last);
+pub fn remove_builtin_messages<S: AsRef<str>>(
+    messages: impl IntoIterator<Item = S>,
+) -> Vec<String> {
     messages
+        .into_iter()
+        .filter_map(|message| {
+            let message = message.as_ref();
+            if message != "Location" && message != "Backtrace" && message != "SpanTrace" {
+                Some(message.to_string())
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+pub fn remove_builtin_frames<E>(report: &Report<E>) -> impl Iterator<Item = &Frame> {
+    report.frames().filter(|frame| {
+        #[cfg(all(rust_1_65, feature = "std"))]
+        if frame.type_id() == TypeId::of::<Backtrace>() {
+            return false;
+        }
+        #[cfg(feature = "spantrace")]
+        if frame.type_id() == TypeId::of::<SpanTrace>() {
+            return false;
+        }
+
+        frame.type_id() != TypeId::of::<Location>()
+    })
 }
 
 /// Conditionally add two new frames to the count, as these are backtrace and spantrace.
@@ -246,7 +263,7 @@ pub fn expect_count(mut count: usize) -> usize {
         count += 1;
     }
 
-    count
+    count + 1
 }
 
 /// Helper macro used to match against the kinds.
@@ -303,43 +320,10 @@ pub fn expect_count(mut count: usize) -> usize {
 /// This is simplified pseudo-code to illustrate how the macro works.
 #[allow(unused_macros)]
 macro_rules! assert_kinds {
-    (#count,) => {0usize};
-    (#count, $x:tt $($xs:tt)*) => {1usize + assert_kinds!(#count, $($xs)*)};
-
     ($report:ident, [
-        $($prefix:pat_param),*
-        => (trace)
-        $($suffix:pat_param),*
+        $($pattern:pat_param),*
     ]) => {
-        let split_at = assert_kinds!(#count, $(($prefix))*);
-
-        let kinds = frame_kinds($report);
-        let (lhs, rhs) = kinds.split_at(split_at);
-
-        assert!(matches!(lhs, [$($prefix),*]));
-
-        let mut rhs = rhs.iter();
-
-        #[cfg(all(rust_1_65, feature = "std"))]
-        if supports_backtrace() {
-            assert!(matches!(
-                rhs.next(),
-                Some(FrameKind::Attachment(AttachmentKind::Opaque(_)))
-            ));
-        }
-
-        #[cfg(feature = "spantrace")]
-        if supports_spantrace() {
-            assert!(matches!(
-                rhs.next(),
-                Some(FrameKind::Attachment(AttachmentKind::Opaque(_)))
-            ));
-        }
-
-        $(
-            assert!(matches!(rhs.next(), Some($suffix)));
-        )*
-
-        assert!(matches!(rhs.next(), None));
+        let kinds = remove_builtin_frames($report).map(|frame| frame.kind()).collect::<Vec<_>>();
+        assert!(matches!(kinds.as_slice(), [$($pattern),*]));
     };
 }

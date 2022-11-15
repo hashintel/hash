@@ -9,6 +9,7 @@ import corsMiddleware from "cors";
 import { NextFunction, Request, Response, Router } from "express";
 import LRU from "lru-cache";
 import nocache from "nocache";
+import { BasicWhoAmIQuery } from "../graphql/apiTypes.gen";
 import { CORS_CONFIG } from "../lib/config";
 import { logger } from "../logger";
 import { EntityWatcher } from "./EntityWatcher";
@@ -23,7 +24,9 @@ import { Waiting } from "./Waiting";
 
 const parseVersion = (rawValue: Request["query"][string]) => {
   const num = Number(rawValue);
-  if (!Number.isNaN(num) && Math.floor(num) === num && num >= 0) return num;
+  if (!Number.isNaN(num) && Math.floor(num) === num && num >= 0) {
+    return num;
+  }
 
   throw new InvalidVersionError(rawValue);
 };
@@ -54,15 +57,20 @@ const requestUserInfo = async (
   try {
     const {
       data: { me },
-    } = await apolloClient.query({
+    } = await apolloClient.query<BasicWhoAmIQuery>({
       query: getBasicWhoAmI,
       errorPolicy: "none",
     });
 
+    const { entityId, shortname, preferredName } = me;
+    if (!shortname || !preferredName) {
+      throw new Error(`User with ID = '${entityId}' hasn't registered yet`);
+    }
+
     return {
-      entityId: me.entityId,
-      shortname: me.properties.shortname,
-      preferredName: me.properties.preferredName,
+      entityId,
+      shortname,
+      preferredName,
     };
   } catch (error) {
     if (error instanceof ApolloError && error.extensions.code === "FORBIDDEN") {
@@ -98,7 +106,7 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
   const sessionSupportCache = new LRU<string, SessionSupport>({
     max: 1000,
     maxAge: 1000 * 60 * 5,
-    dispose: (_, { apolloClient }) => {
+    dispose: ({ apolloClient }) => {
       apolloClient.stop();
     },
   });

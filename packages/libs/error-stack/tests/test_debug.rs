@@ -28,12 +28,12 @@ fn setup_tracing() {
 #[cfg(not(feature = "spantrace"))]
 fn setup_tracing() {}
 
-#[cfg(not(all(nightly, feature = "std")))]
+#[cfg(not(all(rust_1_65, feature = "std")))]
 fn setup_backtrace() {
     std::env::set_var("RUST_LIB_BACKTRACE", "0");
 }
 
-#[cfg(all(nightly, feature = "std"))]
+#[cfg(all(rust_1_65, feature = "std"))]
 fn setup_backtrace() {
     std::env::set_var("RUST_LIB_BACKTRACE", "1");
 }
@@ -61,7 +61,7 @@ fn snap_suffix() -> String {
         suffix.push("spantrace");
     }
 
-    #[cfg(all(nightly, feature = "std"))]
+    #[cfg(all(rust_1_65, feature = "std"))]
     if supports_backtrace() {
         suffix.push("backtrace");
     }
@@ -99,16 +99,16 @@ fn prepare(suffix: bool) -> impl Drop {
     }
 
     settings.add_filter(
-        r"Backtrace No\. (\d+)\n(?:  .*\n)*  .*",
-        "Backtrace No. $1\n  [redacted]",
+        r"backtrace no\. (\d+)\n(?:  .*\n)*  .*",
+        "backtrace no. $1\n  [redacted]",
     );
     settings.add_filter(
-        r"Span Trace No\. (\d+)\n(?:  .*\n)*  .*",
-        "Span Trace No. $1\n  [redacted]",
+        r"span trace No\. (\d+)\n(?:  .*\n)*  .*",
+        "span trace No. $1\n  [redacted]",
     );
     settings.add_filter(
-        r"backtrace with (\d+) frames \((\d+)\)",
-        "backtrace with [n] frames ($2)",
+        r"backtrace with( (\d+) frames)? \((\d+)\)",
+        "backtrace ($3)",
     );
 
     settings.bind_to_scope()
@@ -138,7 +138,7 @@ fn prepare(suffix: bool) -> impl Drop {
 ///               P 6       P 7
 ///                │         │
 ///                ▼         ▼
-///          Root Error 1   C 3
+///          root error 1   C 3
 ///                          │
 ///                          ▼
 ///                         P 8
@@ -151,19 +151,19 @@ fn prepare(suffix: bool) -> impl Drop {
 ///      C 4               P 16               P 11          P 12
 ///       │                  │                  │             │
 ///       ▼                  ▼                  ▼             ▼
-/// Root Error 2       ┌───P 10───┐            C 9           C 6
+/// root error 2       ┌───P 10───┐            C 9           C 6
 ///                    │          │             │             │
 ///                    ▼          ▼             ▼             ▼
-///                  P 13       P 14      Root Error 5       C 7
+///                  P 13       P 14      root error 5       C 7
 ///                    │          │                           │
 ///                    ▼          ▼                           ▼
-///                   C 8       P 15                    Root Error 6
+///                   C 8       P 15                    root error 6
 ///                    │          │
 ///                    ▼          ▼
-///              Root Error 3    C 5
+///              root error 3    C 5
 ///                               │
 ///                               ▼
-///                         Root Error 4
+///                         root error 4
 /// ```
 ///
 /// `P = Printable`, `C = Context`
@@ -237,7 +237,7 @@ fn sources_nested_alternate() {
 }
 
 #[cfg(all(
-    nightly,
+    rust_1_65,
     feature = "std",
     feature = "spantrace",
     feature = "pretty-print"
@@ -263,15 +263,13 @@ mod full {
     //!
     //! There are still some big snapshot tests, which are used evaluate all of the above.
 
+    #[cfg(nightly)]
+    use std::any::Demand;
     use std::{
-        any::Demand,
         error::Error,
         fmt::{Display, Formatter},
+        panic::Location,
     };
-
-    #[cfg(all(nightly, feature = "unstable"))]
-    use error_stack::fmt::DebugDiagnostic;
-    use error_stack::fmt::Emit;
 
     use super::*;
 
@@ -287,7 +285,7 @@ mod full {
             .attach_printable(PrintableB(0))
             .attach(AttachmentB)
             .change_context(ContextB(0))
-            .attach_printable("Printable C");
+            .attach_printable("printable C");
 
         assert_snapshot!(format!("{report:?}"));
     }
@@ -304,7 +302,7 @@ mod full {
             .attach_printable(PrintableB(0))
             .attach(AttachmentB)
             .change_context(ContextB(0))
-            .attach_printable("Printable C");
+            .attach_printable("printable C");
 
         assert_snapshot!(format!("{report:#?}"));
     }
@@ -321,15 +319,15 @@ mod full {
     impl Error for ContextC {}
 
     #[test]
-    fn multiline_ctx() {
+    fn multiline_context() {
         let _guard = prepare(false);
 
-        let report = create_report()
+        let report = Report::new(ContextC)
             .change_context(ContextC)
             .attach_printable(PrintableB(0))
             .attach(AttachmentB)
             .change_context(ContextB(0))
-            .attach_printable("Printable C");
+            .attach_printable("printable C");
 
         assert_snapshot!(format!("{report:#?}"));
     }
@@ -339,6 +337,7 @@ mod full {
         let _guard = prepare(false);
 
         let report = create_report()
+            .attach_printable("A multiline\nattachment\nthat might have some\nadditional info")
             .attach_printable("A multiline\nattachment\nthat might have some\nadditional info");
 
         assert_snapshot!(format!("{report:#?}"));
@@ -452,7 +451,9 @@ mod full {
 
         let report = create_report().attach(2u32);
 
-        Report::install_debug_hook::<u32>(|_, _| vec![Emit::next("unsigned 32bit integer")]);
+        Report::install_debug_hook::<u32>(|_, context| {
+            context.push_body("unsigned 32bit integer");
+        });
 
         assert_snapshot!(format!("{report:?}"));
     }
@@ -463,11 +464,24 @@ mod full {
 
         let report = create_report().attach(2u32);
 
-        Report::install_debug_hook::<u32>(|_, ctx| {
-            vec![Emit::next(format!(
-                "unsigned 32bit integer (No. {})",
-                ctx.increment()
-            ))]
+        Report::install_debug_hook::<u32>(|_, context| {
+            let idx = context.increment_counter();
+            context.push_body(format!("unsigned 32bit integer (No. {idx})"));
+        });
+
+        assert_snapshot!(format!("{report:?}"));
+    }
+
+    #[test]
+    fn hook_for_context() {
+        let _guard = prepare(false);
+
+        let report = create_report().attach(2u32);
+
+        Report::install_debug_hook::<RootError>(|_, _| {
+            // This should not be displayed as `RootError` is only used as `Context`, never as
+            // attachment.
+            unreachable!("A context should never be used as hook");
         });
 
         assert_snapshot!(format!("{report:?}"));
@@ -479,35 +493,12 @@ mod full {
 
         let report = create_report().attach(1u32).attach(2u64);
 
-        Report::install_debug_hook::<u32>(|_, _| vec![Emit::next("unsigned 32bit integer")]);
-        Report::install_debug_hook::<u64>(|_, _| vec![Emit::next("unsigned 64bit integer")]);
-
-        assert_snapshot!(format!("{report:?}"));
-    }
-
-    #[test]
-    fn hook_fallback() {
-        let _guard = prepare(false);
-
-        let report = create_report().attach(1u32);
-
-        Report::install_debug_hook_fallback(|_, _| vec![Emit::next("unknown")]);
-
-        assert_snapshot!(format!("{report:?}"));
-    }
-
-    #[test]
-    fn hook_defer() {
-        let _guard = prepare(false);
-
-        let report = create_report() //
-            .attach(1u32)
-            .attach(2u64)
-            .attach(3u16);
-
-        Report::install_debug_hook::<u16>(|_, _| vec![Emit::defer("u16")]);
-        Report::install_debug_hook::<u32>(|_, _| vec![Emit::defer("u32")]);
-        Report::install_debug_hook::<u64>(|_, _| vec![Emit::next("u64")]);
+        Report::install_debug_hook::<u32>(|_, context| {
+            context.push_body("unsigned 32bit integer");
+        });
+        Report::install_debug_hook::<u64>(|_, context| {
+            context.push_body("unsigned 64bit integer");
+        });
 
         assert_snapshot!(format!("{report:?}"));
     }
@@ -521,8 +512,9 @@ mod full {
             .attach(2u32)
             .attach(3u32);
 
-        Report::install_debug_hook::<u32>(|_, ctx| {
-            vec![Emit::next(format!("{}", ctx.decrement()))]
+        Report::install_debug_hook::<u32>(|_, context| {
+            let idx = context.decrement_counter();
+            context.push_body(idx.to_string());
         });
 
         assert_snapshot!(format!("{report:?}"));
@@ -537,8 +529,9 @@ mod full {
             .attach(2u32)
             .attach(3u32);
 
-        Report::install_debug_hook::<u32>(|_, ctx| {
-            vec![Emit::next(format!("{}", ctx.increment()))]
+        Report::install_debug_hook::<u32>(|_, context| {
+            let idx = context.increment_counter();
+            context.push_body(idx.to_string());
         });
 
         assert_snapshot!(format!("{report:?}"));
@@ -550,12 +543,12 @@ mod full {
 
         let report = create_report().attach(2u64);
 
-        Report::install_debug_hook::<u64>(|_, ctx| {
-            if ctx.alternate() {
-                ctx.attach_snippet("Snippet");
+        Report::install_debug_hook::<u64>(|_, context| {
+            if context.alternate() {
+                context.push_appendix("Snippet");
             }
 
-            vec![Emit::next("Empty")]
+            context.push_body("Empty");
         });
 
         assert_snapshot!("norm", format!("{report:?}"));
@@ -563,18 +556,32 @@ mod full {
         assert_snapshot!("alt", format!("{report:#?}"));
     }
 
+    #[test]
+    fn hook_location() {
+        let _guard = prepare(false);
+
+        let report = create_report();
+
+        Report::install_debug_hook::<Location<'static>>(|_, _| {});
+
+        assert_snapshot!(format!("{report:?}"))
+    }
+
+    #[cfg(nightly)]
     #[derive(Debug)]
     struct ContextD {
         code: usize,
         reason: &'static str,
     }
 
+    #[cfg(nightly)]
     impl Display for ContextD {
         fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-            f.write_str("Context D")
+            f.write_str("context D")
         }
     }
 
+    #[cfg(nightly)]
     impl Error for ContextD {
         fn provide<'a>(&'a self, req: &mut Demand<'a>) {
             req.provide_ref(&self.code);
@@ -583,6 +590,7 @@ mod full {
     }
 
     #[test]
+    #[cfg(nightly)]
     fn hook_provider() {
         let _guard = prepare(false);
 
@@ -591,9 +599,11 @@ mod full {
             reason: "Invalid User Input",
         });
 
-        Report::install_debug_hook::<usize>(|val, _| vec![Emit::next(format!("usize: {val}"))]);
-        Report::install_debug_hook::<&'static str>(|val, _| {
-            vec![Emit::next(format!("&'static str: {val}"))]
+        Report::install_debug_hook::<usize>(|value, context| {
+            context.push_body(format!("usize: {value}"));
+        });
+        Report::install_debug_hook::<&'static str>(|value, context| {
+            context.push_body(format!("&'static str: {value}"));
         });
 
         assert_snapshot!(format!("{report:?}"));

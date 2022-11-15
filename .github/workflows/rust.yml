@@ -24,6 +24,8 @@ jobs:
     outputs:
       lint: ${{ steps.crates.outputs.lint }}
       test: ${{ steps.crates.outputs.test }}
+      coverage: ${{ steps.crates.outputs.coverage }}
+      docker: ${{ steps.crates.outputs.docker }}
       publish: ${{ steps.crates.outputs.publish }}
       samples: ${{ steps.samples.outputs.samples }}
     steps:
@@ -37,15 +39,18 @@ jobs:
 
       - name: Find changed crates
         id: crates
-        run: python .github/scripts/rust/setup.py
+        run: |
+          export GITHUB_OUTPUT_FILE_PATH=$(mktemp)
+          python .github/scripts/rust/setup.py
+          cat $GITHUB_OUTPUT_FILE_PATH >> $GITHUB_OUTPUT
 
       - name: Determine samples
         id: samples
         run: |
           if [[ ${{ github.event_name }} = pull_request ]]; then
-            echo "::set-output name=samples::1"
+            echo "samples=1" >> $GITHUB_OUTPUT
           else
-            echo "::set-output name=samples::10"
+            echo "samples=10" >> $GITHUB_OUTPUT
           fi
 
   lint:
@@ -60,12 +65,10 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v3
 
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
+      - name: Install Rust toolchain
+        uses: ./.github/actions/install-rust-toolchain
         with:
-          profile: minimal
           toolchain: ${{ matrix.toolchain }}
-          override: true
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
@@ -113,12 +116,10 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v3
 
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
+      - name: Install Rust toolchain
+        uses: ./.github/actions/install-rust-toolchain
         with:
-          profile: minimal
           toolchain: ${{ matrix.toolchain }}
-          override: true
 
       - name: Cache Node dependencies
         uses: actions/cache@v3
@@ -143,7 +144,7 @@ jobs:
 
       - name: Install Python
         if: matrix.directory == 'packages/engine'
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: "3.10"
 
@@ -178,6 +179,92 @@ jobs:
                     --arg ddtags "$tags" \
                     '{ message: $message, ddsource: "hash-gh-actions", hostname: "github", service: "actions", ddtags: $ddtags }')
 
+  coverage:
+    name: coverage
+    needs: setup
+    if: needs.setup.outputs.coverage != '{}'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.setup.outputs.coverage) }}
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.toolchain }}
+          override: true
+
+      - name: Cache Node dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            **/node_modules
+          key: ${{ hashFiles('**/yarn.lock') }}
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ${{ matrix.directory }}
+          key: ${{ matrix.profile }}
+
+      - name: Install tools
+        shell: bash
+        run: |
+          cargo install cargo-quickinstall
+          cargo quickinstall cargo-make --version 0.35.15
+          cargo quickinstall cargo-nextest --version 0.9.28
+          cargo quickinstall cargo-llvm-cov --version 0.5.0
+
+      - name: Run tests
+        working-directory: ${{ matrix.directory }}
+        run: cargo +${{ matrix.toolchain }} make coverage --lcov --output-path lcov.info
+
+      - uses: codecov/codecov-action@v3
+        if: ${{ success() || failure() }}
+        name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
+        with:
+          fail_ci_if_error: true
+          files: ${{ matrix.directory }}/lcov.info
+          flags: ${{ matrix.name }}
+          token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
+
+  docker:
+    name: docker
+    needs: setup
+    if: needs.setup.outputs.docker != '{}'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.setup.outputs.docker) }}
+    defaults:
+      run:
+        working-directory: ${{ matrix.directory }}
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Cache Node dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            **/node_modules
+          key: ${{ hashFiles('**/yarn.lock') }}
+
+      - name: Install tools
+        run: |
+          cargo install cargo-quickinstall
+          cargo quickinstall cargo-make --version 0.35.15
+
+      - name: Build Docker container
+        run: cargo make --profile ${{ matrix.profile }} build-docker
+
+      - name: Test Docker container
+        run: cargo make --profile ${{ matrix.profile }} test-docker
+
   publish:
     name: publish
     needs: setup
@@ -190,13 +277,10 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v3
 
-      - name: Install Rust
-        id: toolchain
-        uses: actions-rs/toolchain@v1
+      - name: Install Rust toolchain
+        uses: ./.github/actions/install-rust-toolchain
         with:
-          profile: minimal
           toolchain: ${{ matrix.toolchain }}
-          override: true
 
       - name: Install tools
         if: github.event_name == 'pull_request'
@@ -234,16 +318,25 @@ jobs:
 
   merging-enabled:
     name: merging enabled
-    needs: [lint, test, publish]
+    needs: [setup, lint, test, coverage, docker, publish]
     if: always()
     runs-on: ubuntu-latest
     steps:
+      - name: check setup
+        run: |
+          [[ ${{ needs.setup.result }} = success ]]
       - name: check lint
         run: |
           [[ ${{ needs.lint.result }} =~ success|skipped ]]
       - name: check test
         run: |
           [[ ${{ needs.test.result }} =~ success|skipped ]]
+      - name: check coverage
+        run: |
+          [[ ${{ needs.coverage.result }} =~ success|skipped ]]
+      - name: check docker
+        run: |
+          [[ ${{ needs.docker.result }} =~ success|skipped ]]
       - name: check publish
         run: |
           [[ ${{ needs.publish.result }} =~ success|skipped ]]

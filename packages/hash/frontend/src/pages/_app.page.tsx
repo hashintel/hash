@@ -14,11 +14,14 @@ import { CacheProvider, EmotionCache } from "@emotion/react";
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
 import { theme, createEmotionCache } from "@hashintel/hash-design-system";
+import { SnackbarProvider } from "notistack";
+import { TypeSystemContextProvider } from "../lib/use-init-type-system";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 
+import { SessionProvider } from "./_app.page/session-provider";
 import twindConfig from "../../twind.config";
 import "./globals.scss";
-import { useUser } from "../components/hooks/useUser";
+import { useAuthenticatedUser } from "../components/hooks/useAuthenticatedUser";
 import {
   RouteAccountInfoProvider,
   RoutePageInfoProvider,
@@ -43,7 +46,7 @@ const App: FunctionComponent<AppProps> = ({
   const [ssr, setSsr] = useState(true);
   const router = useRouter();
 
-  const { user } = useUser({ client: apolloClient });
+  const { authenticatedUser } = useAuthenticatedUser({ client: apolloClient });
 
   useEffect(() => {
     configureScope((scope) =>
@@ -55,13 +58,13 @@ const App: FunctionComponent<AppProps> = ({
 
   useEffect(() => {
     if (
-      user &&
-      !user.accountSignupComplete &&
+      authenticatedUser &&
+      !authenticatedUser.accountSignupComplete &&
       !router.pathname.startsWith("/signup")
     ) {
       void router.push("/signup");
     }
-  }, [user, router]);
+  }, [authenticatedUser, router]);
 
   // App UI often depends on [account-slug] and other query params. However,
   // router.query is empty during server-side rendering for pages that don’t use
@@ -71,7 +74,7 @@ const App: FunctionComponent<AppProps> = ({
     return null; // Replace with app skeleton
   }
 
-  const getLayout = Component.getLayout || getPlainLayout;
+  const getLayout = Component.getLayout ?? getPlainLayout;
   return (
     <ApolloProvider client={apolloClient}>
       <CacheProvider value={emotionCache}>
@@ -80,9 +83,13 @@ const App: FunctionComponent<AppProps> = ({
           <ModalProvider>
             <RouteAccountInfoProvider>
               <RoutePageInfoProvider>
-                <ReadonlyModeProvider>
-                  {getLayout(<Component {...pageProps} />)}
-                </ReadonlyModeProvider>
+                <SessionProvider>
+                  <ReadonlyModeProvider>
+                    <SnackbarProvider maxSnack={3}>
+                      {getLayout(<Component {...pageProps} />)}
+                    </SnackbarProvider>
+                  </ReadonlyModeProvider>
+                </SessionProvider>
               </RoutePageInfoProvider>
             </RouteAccountInfoProvider>
           </ModalProvider>
@@ -92,4 +99,12 @@ const App: FunctionComponent<AppProps> = ({
   );
 };
 
-export default withTwindApp(twindConfig, App);
+const AppWithTypeSystemContextProvider: FunctionComponent<AppProps> = (
+  props,
+) => (
+  <TypeSystemContextProvider>
+    <App {...props} />
+  </TypeSystemContextProvider>
+);
+
+export default withTwindApp(twindConfig, AppWithTypeSystemContextProvider);

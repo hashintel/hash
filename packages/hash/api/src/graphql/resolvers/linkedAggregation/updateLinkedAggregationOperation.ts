@@ -14,7 +14,7 @@ export const updateLinkedAggregationOperation: ResolverFn<
 > = async (
   _,
   { sourceAccountId, aggregationId, updatedOperation },
-  { dataSources, user },
+  { dataSources, userModel },
 ) =>
   dataSources.db.transaction(async (client) => {
     const aggregation = await Aggregation.getAggregationById(client, {
@@ -35,7 +35,7 @@ export const updateLinkedAggregationOperation: ResolverFn<
         itemsPerPage: updatedOperation.itemsPerPage ?? 10,
         pageNumber: updatedOperation.pageNumber ?? 1,
       },
-      updatedByAccountId: user.accountId,
+      updatedByAccountId: userModel.entityId,
     });
 
     return aggregation.toGQLLinkedAggregation(dataSources.db);

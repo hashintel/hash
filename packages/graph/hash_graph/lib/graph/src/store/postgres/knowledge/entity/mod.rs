@@ -1,0 +1,313 @@
+mod read;
+
+use std::{future::Future, pin::Pin};
+
+use async_trait::async_trait;
+use error_stack::{IntoReport, Report, Result, ResultExt};
+use futures::{stream, FutureExt, StreamExt, TryStreamExt};
+use tokio_postgres::GenericClient;
+use type_system::uri::VersionedUri;
+use uuid::Uuid;
+
+use crate::{
+    identifier::{GraphElementIdentifier, LinkId},
+    knowledge::{Entity, EntityId, PersistedEntity, PersistedEntityMetadata, PersistedLink},
+    provenance::{CreatedById, OwnedById, UpdatedById},
+    store::{
+        crud::Read,
+        error::EntityDoesNotExist,
+        postgres::{DependencyContext, DependencyContextRef},
+        query::Filter,
+        AsClient, EntityStore, InsertionError, PostgresStore, QueryError, UpdateError,
+    },
+    subgraph::{EdgeKind, GraphResolveDepths, OutwardEdge, StructuralQuery, Subgraph},
+};
+
+impl<C: AsClient> PostgresStore<C> {
+    /// Internal method to read an [`Entity`] into a [`DependencyContext`].
+    ///
+    /// This is used to recursively resolve a type, so the result can be reused.
+    pub(crate) fn get_entity_as_dependency<'a: 'b, 'b>(
+        &'a self,
+        entity_id: EntityId,
+        mut dependency_context: DependencyContextRef<'b>,
+    ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'b>> {
+        async move {
+            let unresolved_entity = dependency_context
+                .linked_entities
+                .insert_with(
+                    &entity_id,
+                    Some(
+                        dependency_context
+                            .graph_resolve_depths
+                            .link_target_entity_resolve_depth,
+                    ),
+                    || async {
+                        self.read_one(&Filter::for_latest_entity_by_entity_id(entity_id))
+                            .await
+                    },
+                )
+                .await?;
+
+            if let Some(entity) = unresolved_entity {
+                // Cloning the entity type ID avoids multiple borrow errors which would otherwise
+                // require us to clone the entity
+                let entity_type_id = entity.metadata().entity_type_id().clone();
+
+                dependency_context.edges.insert(
+                    GraphElementIdentifier::KnowledgeGraphElementId(entity_id),
+                    OutwardEdge {
+                        edge_kind: EdgeKind::HasType,
+                        destination: GraphElementIdentifier::OntologyElementId(
+                            entity_type_id.clone(),
+                        ),
+                    },
+                );
+
+                if dependency_context
+                    .graph_resolve_depths
+                    .entity_type_resolve_depth
+                    > 0
+                {
+                    self.get_entity_type_as_dependency(
+                        &entity_type_id,
+                        dependency_context.change_depth(GraphResolveDepths {
+                            entity_type_resolve_depth: dependency_context
+                                .graph_resolve_depths
+                                .entity_type_resolve_depth
+                                - 1,
+                            ..dependency_context.graph_resolve_depths
+                        }),
+                    )
+                    .await?;
+                }
+
+                for link in <Self as Read<PersistedLink>>::read(
+                    self,
+                    &Filter::for_link_by_latest_source_entity(entity_id),
+                )
+                .await?
+                {
+                    dependency_context.edges.insert(
+                        GraphElementIdentifier::KnowledgeGraphElementId(entity_id),
+                        OutwardEdge {
+                            edge_kind: EdgeKind::HasLink,
+                            destination: GraphElementIdentifier::Temporary(LinkId {
+                                source_entity_id: link.inner().source_entity(),
+                                target_entity_id: link.inner().target_entity(),
+                                link_type_id: link.inner().link_type_id().clone(),
+                            }),
+                        },
+                    );
+
+                    if dependency_context.graph_resolve_depths.link_resolve_depth > 0 {
+                        self.get_link_as_dependency(
+                            &link,
+                            dependency_context.change_depth(GraphResolveDepths {
+                                link_resolve_depth: dependency_context
+                                    .graph_resolve_depths
+                                    .link_resolve_depth
+                                    - 1,
+                                ..dependency_context.graph_resolve_depths
+                            }),
+                        )
+                        .await?;
+                    }
+                }
+            }
+
+            Ok(())
+        }
+        .boxed()
+    }
+}
+
+#[async_trait]
+impl<C: AsClient> EntityStore for PostgresStore<C> {
+    async fn create_entity(
+        &mut self,
+        entity: Entity,
+        entity_type_id: VersionedUri,
+        owned_by_id: OwnedById,
+        entity_id: Option<EntityId>,
+        created_by_id: CreatedById,
+    ) -> Result<PersistedEntityMetadata, InsertionError> {
+        let transaction = PostgresStore::new(
+            self.as_mut_client()
+                .transaction()
+                .await
+                .into_report()
+                .change_context(InsertionError)?,
+        );
+
+        let entity_id = entity_id.unwrap_or_else(|| EntityId::new(Uuid::new_v4()));
+
+        // TODO: match on and return the relevant error
+        //   https://app.asana.com/0/1200211978612931/1202574350052904/f
+        transaction.insert_entity_id(entity_id).await?;
+        let metadata = transaction
+            .insert_entity(
+                entity_id,
+                entity,
+                entity_type_id,
+                owned_by_id,
+                created_by_id,
+                UpdatedById::new(created_by_id.as_account_id()),
+            )
+            .await?;
+
+        transaction
+            .client
+            .commit()
+            .await
+            .into_report()
+            .change_context(InsertionError)?;
+
+        Ok(metadata)
+    }
+
+    #[doc(hidden)]
+    #[cfg(feature = "__internal_bench")]
+    async fn insert_entities_batched_by_type(
+        &mut self,
+        entities: impl IntoIterator<Item = (Option<EntityId>, Entity), IntoIter: Send> + Send,
+        entity_type_id: VersionedUri,
+        owned_by_id: OwnedById,
+        actor_id: CreatedById,
+    ) -> Result<Vec<EntityId>, InsertionError> {
+        let transaction = PostgresStore::new(
+            self.as_mut_client()
+                .transaction()
+                .await
+                .into_report()
+                .change_context(InsertionError)?,
+        );
+
+        let (entity_ids, entities): (Vec<_>, Vec<_>) = entities
+            .into_iter()
+            .map(|(id, entity)| (id.unwrap_or_else(|| EntityId::new(Uuid::new_v4())), entity))
+            .unzip();
+
+        // TODO: match on and return the relevant error
+        //   https://app.asana.com/0/1200211978612931/1202574350052904/f
+        transaction
+            .insert_entity_ids(entity_ids.iter().copied())
+            .await?;
+
+        // Using one entity type per entity would result in more lookups, which results in a more
+        // complex logic and/or be inefficient.
+        // Please see the documentation for this function on the trait for more information.
+        let entity_type_version_id = transaction
+            .version_id_by_uri(&entity_type_id)
+            .await
+            .change_context(InsertionError)?;
+        transaction
+            .insert_entity_batch_by_type(
+                entity_ids.iter().copied(),
+                entities,
+                entity_type_version_id,
+                owned_by_id,
+                actor_id,
+                UpdatedById::new(actor_id.as_account_id()),
+            )
+            .await?;
+
+        transaction
+            .client
+            .commit()
+            .await
+            .into_report()
+            .change_context(InsertionError)?;
+
+        Ok(entity_ids)
+    }
+
+    async fn get_entity<'f: 'q, 'q>(
+        &self,
+        query: &'q StructuralQuery<'q, Entity>,
+    ) -> Result<Subgraph, QueryError> {
+        let StructuralQuery {
+            ref filter,
+            graph_resolve_depths,
+        } = *query;
+
+        let subgraphs = stream::iter(Read::<PersistedEntity>::read(self, filter).await?)
+            .then(|entity| async move {
+                let mut dependency_context = DependencyContext::new(graph_resolve_depths);
+
+                let entity_id = entity.metadata().identifier().entity_id();
+                dependency_context
+                    .linked_entities
+                    .insert(&entity_id, None, entity);
+
+                self.get_entity_as_dependency(entity_id, dependency_context.as_ref_object())
+                    .await?;
+
+                let root = GraphElementIdentifier::KnowledgeGraphElementId(entity_id);
+
+                Ok::<_, Report<QueryError>>(dependency_context.into_subgraph(vec![root]))
+            })
+            .try_collect::<Vec<_>>()
+            .await?;
+
+        let mut subgraph = Subgraph::new(graph_resolve_depths);
+        subgraph.extend(subgraphs);
+
+        Ok(subgraph)
+    }
+
+    async fn update_entity(
+        &mut self,
+        entity_id: EntityId,
+        entity: Entity,
+        entity_type_id: VersionedUri,
+        updated_by_id: UpdatedById,
+    ) -> Result<PersistedEntityMetadata, UpdateError> {
+        let transaction = PostgresStore::new(
+            self.as_mut_client()
+                .transaction()
+                .await
+                .into_report()
+                .change_context(UpdateError)?,
+        );
+
+        // TODO - address potential race condition
+        //  https://app.asana.com/0/1202805690238892/1203201674100967/f
+
+        let previous_entity: PersistedEntity = transaction
+            .read_one(&Filter::for_latest_entity_by_entity_id(entity_id))
+            .await
+            .change_context(UpdateError)?;
+
+        if !transaction
+            .contains_entity(entity_id)
+            .await
+            .change_context(UpdateError)?
+        {
+            return Err(Report::new(EntityDoesNotExist)
+                .attach_printable(entity_id)
+                .change_context(UpdateError));
+        }
+
+        let metadata = transaction
+            .insert_entity(
+                entity_id,
+                entity,
+                entity_type_id,
+                previous_entity.metadata().identifier().owned_by_id(),
+                previous_entity.metadata().created_by_id(),
+                updated_by_id,
+            )
+            .await
+            .change_context(UpdateError)?;
+
+        transaction
+            .client
+            .commit()
+            .await
+            .into_report()
+            .change_context(UpdateError)?;
+
+        Ok(metadata)
+    }
+}
