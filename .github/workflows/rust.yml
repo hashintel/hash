@@ -322,6 +322,9 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
+      - name: check setup
+        run: |
+          [[ ${{ needs.setup.result }} = success ]]
       - name: check lint
         run: |
           [[ ${{ needs.lint.result }} =~ success|skipped ]]
