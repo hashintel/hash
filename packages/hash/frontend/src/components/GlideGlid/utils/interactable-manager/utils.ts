@@ -7,6 +7,22 @@ export const drawArgsToPath = (args: DrawArgs<CustomCell>): CellPath => {
   return `${tableId}-${col}-${row}`;
 };
 
+export const splitPath = (path: CellPath) => {
+  const split = path.split("-");
+
+  if (split.length !== 3) {
+    throw new Error(`CellPath should have '{tableId}-{col}-{row}' format`);
+  }
+
+  const [tableId, col, row] = split;
+
+  return {
+    tableId: tableId!,
+    col: Number(col),
+    row: Number(row),
+  };
+};
+
 export const isCursorOnInteractable = (
   cursorPos: CursorPos,
   interactablePos: InteractablePosition,

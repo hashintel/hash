@@ -30,7 +30,7 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
 
   useEffect(() => {
     // delete saved interactables on unmount
-    return () => InteractableManager.deleteInteractablesOfTable(tableId);
+    return () => InteractableManager.deleteInteractables(tableId);
   }, [tableId]);
 
   const gridTheme: Partial<Theme> = useMemo(
@@ -66,12 +66,12 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
           /** @todo investigate why `args` don't have `location` in it's type  */
           const [col, row] = (args as unknown as { location: Item }).location;
 
-          const isClickHandledByManager = InteractableManager.handleClick(
+          const wasClickHandledByManager = InteractableManager.handleClick(
             `${tableId}-${col}-${row}`,
             args,
           );
 
-          if (isClickHandledByManager) {
+          if (wasClickHandledByManager) {
             args.preventDefault();
           } else {
             customRenderer.onClick?.(args);
@@ -88,12 +88,12 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
   >(
     (...args) => {
       const range = args[0];
-      const minRow = range.y;
-      const maxRow = range.y + range.height;
+      const deleteBeforeRow = range.y;
+      const deleteAfterRow = range.y + range.height;
 
-      InteractableManager.deleteInteractablesOfTable(tableId, {
-        minRow,
-        maxRow,
+      InteractableManager.deleteInteractables(tableId, {
+        deleteBeforeRow,
+        deleteAfterRow,
       });
 
       onVisibleRegionChanged?.(...args);

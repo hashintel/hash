@@ -9,6 +9,7 @@ import {
 import {
   drawArgsToPath,
   isCursorOnInteractable,
+  splitPath,
 } from "./interactable-manager/utils";
 
 class InteractableManagerClass {
@@ -113,6 +114,10 @@ class InteractableManagerClass {
 
     const { onClick, onMouseEnter } = foundInteractable;
 
+    /**
+     * if there is no onClick event defined, onMouseEnter works as onClick
+     * since onMouseEnter is mostly used for showing tooltips, this will enable showing tooltips on mobile when on touch
+     */
     const handler = onClick ?? onMouseEnter;
 
     if (handler) {
@@ -126,23 +131,27 @@ class InteractableManagerClass {
 
   /**
    * @param tableId Table to delete interactables
-   * @param boundaries If it's defined, function will delete `Interactables` saved for out-of-bound rows.
+   * @param boundaries If it's defined, function will delete `Interactables` before and after the boundaries.
    * This is used to prevent memory bloat on tables with too many rows.
    * Using this we delete `Interactables` stored for non-visible rows while user scrolls through hundreds of rows
    */
-  deleteInteractablesOfTable(
+  deleteInteractables(
     tableId: string,
-    boundaries?: { minRow: number; maxRow: number },
+    boundaries?: { deleteBeforeRow: number; deleteAfterRow: number },
   ) {
-    const keysToDelete: CellPath[] = typedKeys(this.interactableStore).filter(
-      (key) => {
-        if (key.startsWith(tableId)) {
+    const pathsToDelete: CellPath[] = typedKeys(this.interactableStore).filter(
+      (path) => {
+        if (path.startsWith(tableId)) {
           if (!boundaries) {
             return true;
           }
 
-          const row = Number(key.slice(key.lastIndexOf("-") + 1, key.length));
-          if (row < boundaries.minRow || row > boundaries.maxRow) {
+          const { row } = splitPath(path);
+
+          if (
+            row < boundaries.deleteBeforeRow ||
+            row > boundaries.deleteAfterRow
+          ) {
             return true;
           }
         }
@@ -151,7 +160,7 @@ class InteractableManagerClass {
       },
     );
 
-    for (const key of keysToDelete) {
+    for (const key of pathsToDelete) {
       delete this.interactableStore[key];
     }
   }

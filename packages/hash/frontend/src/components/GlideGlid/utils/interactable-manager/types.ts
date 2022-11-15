@@ -17,7 +17,7 @@ export interface Interactable {
   path: CellPath;
   hovered: boolean;
   cellRect: Rectangle;
-  id: string | number;
+  id: string;
   onClick?: InteractableEventHandler;
   onMouseEnter?: InteractableEventHandler;
   onMouseLeave?: InteractableEventHandler;

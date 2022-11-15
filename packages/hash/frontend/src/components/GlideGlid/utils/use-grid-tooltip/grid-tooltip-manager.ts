@@ -86,7 +86,7 @@ export class GridTooltipManager {
       const actualTooltipX = tooltipX - rect.x;
 
       const interactable = InteractableManager.create(args, {
-        id: i,
+        id: `tooltip-${i}`,
         pos: {
           left: tooltipX,
           right: tooltipX + iconSize,
