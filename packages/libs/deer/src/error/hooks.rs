@@ -229,6 +229,8 @@ impl Hooks {
 
     fn push(&self, hooks: &[Hook]) {
         self.init();
+        // TODO: we need to check if the combination of Namespace and Id already exists, if that is
+        //  the case panic?
 
         for hook in hooks {
             self.inner.push(*hook);
