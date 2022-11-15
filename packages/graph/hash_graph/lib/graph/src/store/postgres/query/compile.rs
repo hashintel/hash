@@ -243,7 +243,7 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
     /// condition if any.
     ///
     /// The following [`Filter`]s will be special cased:
-    /// - Comparing the `"version"` field on [`TableName::TypeIds`] with `"latest"` for equality.
+    /// - Comparing the `"version"` field on [`Table::TypeIds`] with `"latest"` for equality.
     fn compile_special_filter(&mut self, filter: &'p Filter<'p, T>) -> Option<Condition<'c>> {
         match filter {
             Filter::Equal(lhs, rhs) | Filter::NotEqual(lhs, rhs) => match (lhs, rhs) {
@@ -317,6 +317,8 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
     ///
     /// Joining the tables attempts to deduplicate [`JoinExpression`]s. As soon as a new filter was
     /// compiled, each subsequent call will result in a new join-chain.
+    ///
+    /// [`Relation`]: super::table::Relation
     fn add_join_statements(&mut self, path: &T::Path<'p>) -> Option<Alias> {
         let mut current_table = self.statement.from.aliased(None);
 

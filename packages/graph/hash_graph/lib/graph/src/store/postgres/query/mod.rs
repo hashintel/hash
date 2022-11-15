@@ -39,7 +39,7 @@ pub trait PostgresQueryRecord: for<'q> QueryRecord<Path<'q>: Path<'q>> {
 
 /// An absolute path inside of a query pointing to an attribute.
 pub trait Path<'p> {
-    /// Returns a list of [`TableName`]s required to traverse this path.
+    /// Returns a list of [`Relation`]s required to traverse this path.
     fn relations(&self) -> Vec<Relation>;
 
     /// The [`Column`] where this path ends.
