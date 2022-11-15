@@ -39,7 +39,7 @@ pub enum PropertyTypeQueryPath {
     /// ```
     ///
     /// In addition to specifying the version directly, it's also possible to compare the version
-    /// with a `"latest"` parameter, which will only match the latest version of this
+    /// with a `"latest"` parameter, which will only match the latest version of the
     /// [`PropertyType`].
     Version,
     /// The [`VersionedUri`] of the [`PropertyType`].
