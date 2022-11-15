@@ -5,6 +5,8 @@ import {
   Theme,
   DataEditorRef,
   Item,
+  GridColumn,
+  SizedGridColumn,
 } from "@glideapps/glide-data-grid";
 import { useTheme } from "@mui/material";
 import {
@@ -14,17 +16,33 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useState,
 } from "react";
 import { uniqueId } from "lodash";
 import { getCellHorizontalPadding } from "./utils";
 import { customGridIcons } from "./utils/custom-grid-icons";
 import { InteractableManager } from "./utils/interactable-manager";
 
-const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
-  { customRenderers, onVisibleRegionChanged, ...rest },
+type GlideGridProps = Omit<
+  DataEditorProps,
+  "onColumnResize" | "onColumnResizeEnd" | "onColumnResizeStart" | "columns"
+> & {
+  resizable?: boolean;
+  columns: SizedGridColumn[];
+};
+
+const GlideGrid: ForwardRefRenderFunction<DataEditorRef, GlideGridProps> = (
+  {
+    customRenderers,
+    onVisibleRegionChanged,
+    columns,
+    resizable = true,
+    ...rest
+  },
   ref,
 ) => {
   const tableIdRef = useRef(uniqueId("grid"));
+  const [columnSizes, setColumnSizes] = useState<Record<string, number>>({});
 
   const { palette } = useTheme();
 
@@ -103,6 +121,24 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
     [onVisibleRegionChanged],
   );
 
+  const handleColumnResize = useCallback(
+    (column: GridColumn, newSize: number) => {
+      setColumnSizes((prevColumnSizes) => {
+        return {
+          ...prevColumnSizes,
+          [column.id]: newSize,
+        };
+      });
+    },
+    [],
+  );
+
+  const resizedColumns = useMemo<GridColumn[]>(() => {
+    return columns.map((col) => {
+      return { ...col, width: columnSizes[col.id] ?? col.width };
+    });
+  }, [columns, columnSizes]);
+
   return (
     <DataEditor
       ref={ref}
@@ -118,6 +154,8 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
       getCellsForSelection
       customRenderers={interactableCustomRenderers}
       onVisibleRegionChanged={handleVisibleRegionChanged}
+      onColumnResize={resizable ? handleColumnResize : undefined}
+      columns={resizedColumns}
       {...rest}
       /**
        * icons defined via `headerIcons` are available to be drawn using
