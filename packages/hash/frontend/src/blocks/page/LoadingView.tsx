@@ -1,5 +1,5 @@
 import { Box } from "@mui/material";
-import { ProsemirrorNode, Schema } from "prosemirror-model";
+import { ProsemirrorNode } from "prosemirror-model";
 import { NodeView } from "prosemirror-view";
 import { BlockLoadingIndicator } from "../../components/RemoteBlock/RemoteBlock";
 
@@ -24,18 +24,15 @@ export const ProsemirrorLoadingState = () => {
   );
 };
 
-export class LoadingView implements NodeView<Schema> {
+export class LoadingView implements NodeView {
   dom: HTMLDivElement;
 
-  constructor(
-    node: ProsemirrorNode<Schema>,
-    private renderPortal: RenderPortal,
-  ) {
+  constructor(node: ProsemirrorNode, private renderPortal: RenderPortal) {
     this.dom = document.createElement("div");
     this.update(node);
   }
 
-  update(node: ProsemirrorNode<Schema>) {
+  update(node: ProsemirrorNode) {
     if (node.type.name !== "loading") {
       return false;
     }

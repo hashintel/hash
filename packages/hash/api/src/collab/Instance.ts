@@ -105,7 +105,7 @@ export class Instance {
   constructor(
     public accountId: string,
     public pageEntityId: string,
-    public state: EditorState<Schema>,
+    public state: EditorState,
     public manager: ProsemirrorManager,
     public savedContents: BlockEntity[],
     private entityWatcher: EntityWatcher,
