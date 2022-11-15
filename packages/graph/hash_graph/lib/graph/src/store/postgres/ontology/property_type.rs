@@ -109,7 +109,7 @@ impl<C: AsClient> PostgresStore<C> {
                     }
 
                     dependency_context.edges.insert(
-                        GraphElementEditionId::Ontology(property_type_id.clone().into()),
+                        GraphElementEditionId::Ontology(property_type_id.clone()),
                         OutwardEdge::Ontology(OntologyOutwardEdges::ToOntology(
                             GenericOutwardEdge {
                                 kind: OntologyEdgeKind::ConstrainsPropertiesOn,

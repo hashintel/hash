@@ -165,12 +165,9 @@ impl DatabaseApi<'_> {
             .remove(&GraphElementEditionId::Ontology(uri.clone().into()))
             .expect("no data type found");
 
-        match vertex {
-            Vertex::Ontology(OntologyVertex::DataType(data_type_with_metadata)) => {
-                Ok(data_type_with_metadata)
-            }
-            _ => unreachable!(),
-        }
+        let Vertex::Ontology(vertex) = vertex else { unreachable!() };
+        let OntologyVertex::DataType(data_type) = *vertex else { unreachable!() };
+        Ok(*data_type)
     }
 
     pub async fn update_data_type(
@@ -210,12 +207,9 @@ impl DatabaseApi<'_> {
             .remove(&GraphElementEditionId::Ontology(uri.clone().into()))
             .expect("no property type found");
 
-        match vertex {
-            Vertex::Ontology(OntologyVertex::PropertyType(property_type_with_metadata)) => {
-                Ok(property_type_with_metadata)
-            }
-            _ => unreachable!(),
-        }
+        let Vertex::Ontology(vertex) = vertex else { unreachable!() };
+        let OntologyVertex::PropertyType(property_type) = *vertex else { unreachable!() };
+        Ok(*property_type)
     }
 
     pub async fn update_property_type(
@@ -255,10 +249,9 @@ impl DatabaseApi<'_> {
             .remove(&GraphElementEditionId::Ontology(uri.clone().into()))
             .expect("no entity type found");
 
-        match vertex {
-            Vertex::Ontology(OntologyVertex::EntityType(entity_type)) => Ok(entity_type),
-            _ => unreachable!(),
-        }
+        let Vertex::Ontology(vertex) = vertex else { unreachable!() };
+        let OntologyVertex::EntityType(entity_type) = *vertex else { unreachable!() };
+        Ok(*entity_type)
     }
 
     pub async fn update_entity_type(
@@ -303,10 +296,9 @@ impl DatabaseApi<'_> {
             .remove(&GraphElementEditionId::KnowledgeGraph(entity_edition_id))
             .expect("no entity found");
 
-        match vertex {
-            Vertex::KnowledgeGraph(KnowledgeGraphVertex::Entity(entity)) => Ok(entity),
-            _ => unreachable!(),
-        }
+        let Vertex::KnowledgeGraph(vertex) = vertex else { unreachable!() };
+        let KnowledgeGraphVertex::Entity(persisted_entity) = *vertex;
+        Ok(persisted_entity)
     }
 
     pub async fn update_entity(
@@ -402,11 +394,10 @@ impl DatabaseApi<'_> {
             .roots
             .into_iter()
             .filter_map(|edition_id| subgraph.vertices.remove(&edition_id))
-            .map(|vertex| match vertex {
-                Vertex::KnowledgeGraph(KnowledgeGraphVertex::Entity(persisted_entity)) => {
-                    persisted_entity
-                }
-                _ => unreachable!(),
+            .map(|vertex| {
+                let Vertex::KnowledgeGraph(vertex) = vertex else { unreachable!() };
+                let KnowledgeGraphVertex::Entity(persisted_entity) = *vertex;
+                persisted_entity
             })
             .collect::<Vec<_>>();
 
@@ -455,11 +446,10 @@ impl DatabaseApi<'_> {
         Ok(subgraph.roots.into_iter()
             .map(|edition_id| subgraph.vertices.remove(&edition_id))
             .flatten() // Filter out Option::None
-            .map(|vertex| match vertex {
-                Vertex::KnowledgeGraph(KnowledgeGraphVertex::Entity(persisted_entity)) => {
-                    persisted_entity
-                }
-                _ => unreachable!(),
+            .map(|vertex| {
+                let Vertex::KnowledgeGraph(vertex) = vertex else { unreachable!() };
+                let KnowledgeGraphVertex::Entity(persisted_entity) = *vertex;
+                persisted_entity
             })
             .collect())
     }

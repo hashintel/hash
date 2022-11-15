@@ -53,7 +53,17 @@ const SEED_PROPERTY_TYPES: [&str; 20] = [
     property_type::CONTRIVED_PROPERTY_V1,
 ];
 
-const SEED_ENTITY_TYPES: [&str; 10] = [
+const SEED_ENTITY_TYPES: [&str; 20] = [
+    entity_type::LINK_V1,
+    entity_type::link::ACQUAINTANCE_OF_V1,
+    entity_type::link::CONTAINS_V1,
+    entity_type::link::FRIEND_OF_V1,
+    entity_type::link::LOCATED_AT_V1,
+    entity_type::link::OWNS_V1,
+    entity_type::link::OWNS_V2,
+    entity_type::link::SUBMITTED_BY_V1,
+    entity_type::link::TENANT_V1,
+    entity_type::link::WRITTEN_BY_V1,
     entity_type::UK_ADDRESS_V1,
     entity_type::BLOCK_V1,
     entity_type::ORGANIZATION_V1,
@@ -112,7 +122,6 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
         account_id,
         SEED_DATA_TYPES,
         SEED_PROPERTY_TYPES,
-        SEED_LINK_TYPES,
         SEED_ENTITY_TYPES,
     )
     .await;
@@ -211,7 +220,7 @@ async fn get_samples(account_id: AccountId, store_wrapper: &mut StoreWrapper) ->
                 panic!("failed to sample entities for entity type `{entity_type_id}`: {err}");
             })
             .into_iter()
-            .map(|row| row.get(0));
+            .map(|row| EntityUuid::new(row.get(0)));
 
         match sample_map.entry(entity_type_id) {
             Entry::Occupied(mut entry_slot) => entry_slot.get_mut().extend(sample_entity_uuids),

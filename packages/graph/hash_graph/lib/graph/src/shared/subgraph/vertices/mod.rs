@@ -63,7 +63,7 @@ impl Vertices {
                 .and_then(|inner| {
                     inner
                         .remove(&type_edition_id.version())
-                        .map(Vertex::Ontology)
+                        .map(|element| Vertex::Ontology(Box::new(element)))
                 }),
             GraphElementEditionId::KnowledgeGraph(entity_edition_id) => self
                 .knowledge_graph
@@ -72,7 +72,7 @@ impl Vertices {
                 .and_then(|inner| {
                     inner
                         .remove(&entity_edition_id.version())
-                        .map(Vertex::KnowledgeGraph)
+                        .map(|element| Vertex::KnowledgeGraph(Box::new(element)))
                 }),
         }
     }
