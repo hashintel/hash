@@ -241,7 +241,8 @@ export type EntityTypeCreatorParams = {
       | "SELF_REFERENCE"
     )[];
     required?: boolean;
-    array?: { minItems?: number; maxItems?: number } | boolean;
+    minItems?: number;
+    maxItems?: number;
     ordered?: boolean;
   }[];
   actorId: string;
@@ -283,33 +284,29 @@ export const generateSystemEntityTypeSchema = (
             {
               entityLinkTypeModel,
               destinationEntityTypeModels,
-              array,
               ordered = false,
+              minItems,
+              maxItems,
             },
-          ) => {
-            const oneOf = {
-              oneOf: destinationEntityTypeModels.map(
-                (entityTypeModelOrReference) => ({
-                  $ref:
-                    entityTypeModelOrReference === "SELF_REFERENCE"
-                      ? params.entityTypeId
-                      : entityTypeModelOrReference.schema.$id,
-                }),
-              ),
-            };
-
-            return {
-              ...prev,
-              [entityLinkTypeModel.schema.$id]: array
-                ? {
-                    type: "array",
-                    items: oneOf,
-                    ordered,
-                    ...(array === true ? {} : array),
-                  }
-                : oneOf,
-            };
-          },
+          ): EntityType["links"] => ({
+            ...prev,
+            [entityLinkTypeModel.schema.$id]: {
+              type: "array",
+              ordered,
+              items: {
+                oneOf: destinationEntityTypeModels.map(
+                  (entityTypeModelOrReference) => ({
+                    $ref:
+                      entityTypeModelOrReference === "SELF_REFERENCE"
+                        ? params.entityTypeId
+                        : entityTypeModelOrReference.schema.$id,
+                  }),
+                ),
+              },
+              minItems,
+              maxItems,
+            },
+          }),
           {},
         )
       : undefined;
