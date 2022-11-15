@@ -1,4 +1,3 @@
-import { Schema } from "prosemirror-model";
 import { EditorView } from "prosemirror-view";
 import {
   createContext,
@@ -11,8 +10,8 @@ import {
 } from "react";
 
 interface PageContextProps {
-  editorView: EditorView<Schema> | undefined;
-  setEditorView: (view: EditorView<Schema>) => void;
+  editorView: EditorView | undefined;
+  setEditorView: (view: EditorView) => void;
   pageTitleRef: RefObject<HTMLTextAreaElement>;
 }
 
@@ -20,7 +19,7 @@ const PageContext = createContext<PageContextProps | null>(null);
 
 export const PageContextProvider = ({ children }: PropsWithChildren) => {
   const pageTitleRef = useRef<HTMLTextAreaElement>(null);
-  const [editorView, setEditorView] = useState<EditorView<Schema>>();
+  const [editorView, setEditorView] = useState<EditorView>();
 
   const value = useMemo(
     () => ({ editorView, setEditorView, pageTitleRef }),

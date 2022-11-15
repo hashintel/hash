@@ -7,23 +7,47 @@ import {
   GridSelection,
   CompactSelection,
   GridMouseEventArgs,
+  Item,
+  GridColumn,
+  SizedGridColumn,
 } from "@glideapps/glide-data-grid";
 import { useTheme } from "@mui/material";
 import {
   forwardRef,
   ForwardRefRenderFunction,
   useCallback,
+  useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
+import { uniqueId } from "lodash";
 import { GetRowThemeCallback } from "@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-render";
 import { getCellHorizontalPadding } from "./utils";
 import { customGridIcons } from "./utils/custom-grid-icons";
+import { InteractableManager } from "./utils/interactable-manager";
 
-const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
-  props,
+type GlideGridProps = Omit<
+  DataEditorProps,
+  "onColumnResize" | "onColumnResizeEnd" | "onColumnResizeStart" | "columns"
+> & {
+  resizable?: boolean;
+  columns: SizedGridColumn[];
+};
+
+const GlideGrid: ForwardRefRenderFunction<DataEditorRef, GlideGridProps> = (
+  {
+    customRenderers,
+    onVisibleRegionChanged,
+    columns,
+    resizable = true,
+    ...rest
+  },
   ref,
 ) => {
+  const tableIdRef = useRef(uniqueId("grid"));
+  const [columnSizes, setColumnSizes] = useState<Record<string, number>>({});
+
   const { palette } = useTheme();
   const [hoveredRow, setHoveredRow] = useState<number>();
 
@@ -31,6 +55,12 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
     columns: CompactSelection.empty(),
     rows: CompactSelection.empty(),
   });
+
+  useEffect(() => {
+    // delete saved interactables on unmount
+    const tableId = tableIdRef.current;
+    return () => InteractableManager.deleteInteractables(tableId);
+  }, []);
 
   const gridTheme: Partial<Theme> = useMemo(
     () => ({
@@ -84,6 +114,70 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
           : undefined,
     });
   };
+  const interactableCustomRenderers = useMemo<
+    DataEditorProps["customRenderers"]
+  >(() => {
+    return customRenderers?.map((customRenderer) => {
+      return {
+        ...customRenderer,
+        draw: (args, cell) =>
+          customRenderer.draw({ ...args, tableId: tableIdRef.current }, cell),
+        onClick: (args) => {
+          /** @todo investigate why `args` don't have `location` in it's type  */
+          const [col, row] = (args as unknown as { location: Item }).location;
+
+          const wasClickHandledByManager = InteractableManager.handleClick(
+            `${tableIdRef.current}-${col}-${row}`,
+            args,
+          );
+
+          if (wasClickHandledByManager) {
+            args.preventDefault();
+          } else {
+            customRenderer.onClick?.(args);
+          }
+
+          return undefined;
+        },
+      };
+    });
+  }, [customRenderers]);
+
+  const handleVisibleRegionChanged = useCallback<
+    NonNullable<DataEditorProps["onVisibleRegionChanged"]>
+  >(
+    (...args) => {
+      const range = args[0];
+      const deleteBeforeRow = range.y;
+      const deleteAfterRow = range.y + range.height;
+
+      InteractableManager.deleteInteractables(tableIdRef.current, {
+        deleteBeforeRow,
+        deleteAfterRow,
+      });
+
+      onVisibleRegionChanged?.(...args);
+    },
+    [onVisibleRegionChanged],
+  );
+
+  const handleColumnResize = useCallback(
+    (column: GridColumn, newSize: number) => {
+      setColumnSizes((prevColumnSizes) => {
+        return {
+          ...prevColumnSizes,
+          [column.id]: newSize,
+        };
+      });
+    },
+    [],
+  );
+
+  const resizedColumns = useMemo<GridColumn[]>(() => {
+    return columns.map((col) => {
+      return { ...col, width: columnSizes[col.id] ?? col.width };
+    });
+  }, [columns, columnSizes]);
 
   return (
     <DataEditor
@@ -102,9 +196,13 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
       getCellsForSelection
       onItemHovered={onCellSelect}
       onCellClicked={(_, args) => args.isTouch && onCellSelect(args)}
-      {...props}
+      customRenderers={interactableCustomRenderers}
+      onVisibleRegionChanged={handleVisibleRegionChanged}
+      onColumnResize={resizable ? handleColumnResize : undefined}
+      columns={resizedColumns}
+      {...rest}
       /**
-       * icons defined via `headerIcons` are avaiable to be drawn using
+       * icons defined via `headerIcons` are available to be drawn using
        * glide-grid's `spriteManager.drawSprite`,
        * which will be used to draw svg icons inside custom cells
        */

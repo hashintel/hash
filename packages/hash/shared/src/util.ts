@@ -228,3 +228,7 @@ export const flatMapTree = <T>(graph: object, fn: (a: unknown) => T[]) => {
 export const isSafariBrowser = () =>
   navigator.userAgent.indexOf("Safari") > -1 &&
   navigator.userAgent.indexOf("Chrome") <= -1;
+
+export const typedKeys = <T extends keyof any>(
+  record: Record<T, unknown>,
+): T[] => Object.keys(record) as any;
