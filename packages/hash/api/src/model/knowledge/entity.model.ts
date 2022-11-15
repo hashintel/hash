@@ -308,9 +308,6 @@ export default class {
           options?.graphResolveDepths?.entityTypeResolveDepth ?? 0,
         entityResolveDepth:
           options?.graphResolveDepths?.entityResolveDepth ?? 0,
-        // linkResolveDepth: options?.graphResolveDepths?.linkResolveDepth ?? 0,
-        // linkTargetEntityResolveDepth:
-        //   options?.graphResolveDepths?.linkTargetEntityResolveDepth ?? 0,
       },
     });
 
