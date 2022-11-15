@@ -153,7 +153,6 @@ const Page: NextPageWithLayout = () => {
               return blankCell;
             }}
             customRenderers={[renderValueIconCell]}
-            resizableColumns
           />
         </Paper>
       </SectionWrapper>
