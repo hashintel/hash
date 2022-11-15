@@ -202,7 +202,7 @@ pub enum EntityQueryPath<'q> {
     /// let path = EntityQueryPath::deserialize(json!(["leftEntity", "uuid"]))?;
     /// assert_eq!(
     ///     path,
-    ///     EntityQueryPath::LeftEntity(Some(Box::new(EntityQueryPath::Uuid)))
+    ///     EntityQueryPath::LeftEntity(Box::new(EntityQueryPath::Uuid))
     /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
@@ -221,7 +221,7 @@ pub enum EntityQueryPath<'q> {
     /// let path = EntityQueryPath::deserialize(json!(["rightEntity", "uuid"]))?;
     /// assert_eq!(
     ///     path,
-    ///     EntityQueryPath::RightEntity(Some(Box::new(EntityQueryPath::Uuid)))
+    ///     EntityQueryPath::RightEntity(Box::new(EntityQueryPath::Uuid))
     /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
