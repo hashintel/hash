@@ -7,10 +7,9 @@ import {
   useRef,
 } from "react";
 import Prism from "prismjs";
-import { tw } from "twind";
 
-import "./prism-theme-override.scss";
-import { LanguageType } from "../utils";
+import styles from "./editor.module.css";
+import { LanguageType } from "./utils";
 
 type IEditorProps = {
   content: string;
@@ -112,14 +111,13 @@ export const Editor = ({
   };
 
   return (
-    <div className={`${tw`relative`} prism-theme-override`}>
+    <div className={styles.editor}>
       <link
         href="https://cdn.jsdelivr.net/npm/prismjs@1.25.0/themes/prism.css"
         rel="stylesheet"
       />
       <textarea
         ref={textAreaRef}
-        className={tw`resize-none outline-none bg-transparent text-transparent absolute left-0 w-full top-0`}
         onChange={handleChange}
         value={content}
         onKeyDown={handleKeyDown}
