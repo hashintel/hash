@@ -153,7 +153,7 @@ export default class extends EntityModel {
        * @see https://app.asana.com/0/1202805690238892/1203015527055374/f
        */
       .filter(({ ownedById }) => ownedById === params.accountModel.entityId)
-      .map(PageModel.fromEntityModel);
+      .map((entityModel) => PageModel.fromEntityModel(entityModel));
 
     return await Promise.all(
       pageModels.map(async (pageModel) => {

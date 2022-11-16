@@ -84,6 +84,7 @@ const main = async () => {
         port: statsdPort,
       });
       shutdown.addCleanup("StatsD", async () => {
+        // eslint-disable-next-line @typescript-eslint/unbound-method
         await promisify((statsd as StatsD).close).bind(statsd)();
       });
     }

@@ -195,6 +195,7 @@ class __EntityType {
         schema,
       })
       .catch((err) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- consider improving types in TS 4.9+ https://stackoverflow.com/a/70029241/1818285
         if (err.message.includes("not unique")) {
           throw new ApolloError(err.message, "NAME_NOT_UNIQUE");
         }

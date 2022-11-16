@@ -99,10 +99,14 @@ export class LocalFileSystemStorageProvider implements StorageProvider {
   }
 
   /** Uses the `key` generated in the previous upload request to know where to store the file */
-  getFilenameForUpload(req: express.Request, _file: any, cb: any) {
+  getFilenameForUpload(
+    req: express.Request,
+    _file: any,
+    cb: (error: Error | null, destination: string) => void,
+  ) {
     const key = req.body.key;
     if (!key) {
-      cb(new Error(`Parameter 'key' is missing from the upload request'`));
+      cb(new Error(`Parameter 'key' is missing from the upload request'`), "");
     } else {
       cb(null, req.body.key);
     }

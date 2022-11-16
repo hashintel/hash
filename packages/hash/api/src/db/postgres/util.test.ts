@@ -1,3 +1,4 @@
+import { TransactionFunctionType } from "slonik/dist/src/types";
 import { requireTransaction } from "./util";
 import { PoolConnection, TransactionConnection } from "./types";
 
@@ -13,7 +14,7 @@ describe("transaction flattening", () => {
     const poolConn = {
       ...({ type: "Pool" } as PoolConnection),
       transaction: jest
-        .fn()
+        .fn<Promise<any>, [TransactionFunctionType<any>]>()
         .mockImplementation((handler) => handler(transactionConn)),
     };
 
@@ -44,7 +45,7 @@ describe("transaction flattening", () => {
     const poolConn = {
       ...({ type: "Pool" } as PoolConnection),
       transaction: jest
-        .fn()
+        .fn<Promise<any>, [TransactionFunctionType<any>]>()
         .mockImplementation((handler) => handler(transactionConn)),
     };
 

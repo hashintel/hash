@@ -136,7 +136,9 @@ export default class {
     const { data: persistedEntityTypes } =
       await graphApi.getLatestEntityTypes();
 
-    return persistedEntityTypes.map(EntityTypeModel.fromPersistedEntityType);
+    return persistedEntityTypes.map((entityType) =>
+      EntityTypeModel.fromPersistedEntityType(entityType),
+    );
   }
 
   /**

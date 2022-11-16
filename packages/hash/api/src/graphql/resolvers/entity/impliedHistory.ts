@@ -155,7 +155,7 @@ const hydrateEntity = async (
   };
 
   const hydrateRecord = async (record: Record<string, any>) => {
-    for (const [key, value] of record.entries()) {
+    for (const [key, value] of Object.entries(record) as [string, unknown][]) {
       if (Array.isArray(value)) {
         hydrateArray(value);
       } else if (key === "__linkedData") {

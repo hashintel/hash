@@ -8,12 +8,10 @@ module.exports = {
     ...require("@local/eslint-config/temporarily-disable-rules.cjs")([
       /* 2022-11-15:  24 */ "@typescript-eslint/no-unsafe-argument",
       /* 2022-11-15:  74 */ "@typescript-eslint/no-unsafe-assignment",
-      /* 2022-11-15:   9 */ "@typescript-eslint/no-unsafe-call",
       /* 2022-11-15:  59 */ "@typescript-eslint/no-unsafe-member-access",
       /* 2022-11-15:  35 */ "@typescript-eslint/no-unsafe-return",
       /* 2022-11-15:  11 */ "@typescript-eslint/require-await",
       /* 2022-11-15:  59 */ "@typescript-eslint/restrict-template-expressions",
-      /* 2022-11-15:   7 */ "@typescript-eslint/unbound-method",
     ]),
   },
   ignorePatterns: [

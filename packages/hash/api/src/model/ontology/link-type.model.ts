@@ -127,7 +127,9 @@ export default class {
      */
     const { data: persistedLinkTypes } = await graphApi.getLatestLinkTypes();
 
-    return persistedLinkTypes.map(LinkTypeModel.fromPersistedLinkType);
+    return persistedLinkTypes.map((linkType) =>
+      LinkTypeModel.fromPersistedLinkType(linkType),
+    );
   }
 
   /**

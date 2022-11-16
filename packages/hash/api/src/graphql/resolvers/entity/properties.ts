@@ -124,7 +124,7 @@ export const resolveLinkedData = async (
       };
       // Resolve linked data for each entity in the array
       await Promise.all(
-        object.data.map((entity: DbUnknownEntity) => {
+        (object.data as DbUnknownEntity[]).map((entity) => {
           return resolveLinkedData(ctx, entity.accountId, entity, info);
         }),
       );
