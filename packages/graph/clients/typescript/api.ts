@@ -715,16 +715,16 @@ export type KnowledgeGraphOutwardEdges =
 export interface KnowledgeGraphOutwardEdgesOneOf {
   /**
    *
+   * @type {KnowledgeGraphOutwardEdgesOneOfEndpoint}
+   * @memberof KnowledgeGraphOutwardEdgesOneOf
+   */
+  endpoint: KnowledgeGraphOutwardEdgesOneOfEndpoint;
+  /**
+   *
    * @type {string}
    * @memberof KnowledgeGraphOutwardEdgesOneOf
    */
-  endpoint: KnowledgeGraphOutwardEdgesOneOfEndpointEnum;
-  /**
-   *
-   * @type {KnowledgeGraphOutwardEdgesOneOfKind}
-   * @memberof KnowledgeGraphOutwardEdgesOneOf
-   */
-  kind: KnowledgeGraphOutwardEdgesOneOfKind;
+  kind: KnowledgeGraphOutwardEdgesOneOfKindEnum;
   /**
    *
    * @type {boolean}
@@ -733,13 +733,13 @@ export interface KnowledgeGraphOutwardEdgesOneOf {
   reversed: boolean;
 }
 
-export const KnowledgeGraphOutwardEdgesOneOfEndpointEnum = {
+export const KnowledgeGraphOutwardEdgesOneOfKindEnum = {
   LeftEndpoint: "HAS_LEFT_ENDPOINT",
   RightEndpoint: "HAS_RIGHT_ENDPOINT",
 } as const;
 
-export type KnowledgeGraphOutwardEdgesOneOfEndpointEnum =
-  typeof KnowledgeGraphOutwardEdgesOneOfEndpointEnum[keyof typeof KnowledgeGraphOutwardEdgesOneOfEndpointEnum];
+export type KnowledgeGraphOutwardEdgesOneOfKindEnum =
+  typeof KnowledgeGraphOutwardEdgesOneOfKindEnum[keyof typeof KnowledgeGraphOutwardEdgesOneOfKindEnum];
 
 /**
  *
@@ -749,16 +749,16 @@ export type KnowledgeGraphOutwardEdgesOneOfEndpointEnum =
 export interface KnowledgeGraphOutwardEdgesOneOf1 {
   /**
    *
-   * @type {string}
-   * @memberof KnowledgeGraphOutwardEdgesOneOf1
-   */
-  endpoint: KnowledgeGraphOutwardEdgesOneOf1EndpointEnum;
-  /**
-   *
    * @type {GraphElementEditionIdOneOf}
    * @memberof KnowledgeGraphOutwardEdgesOneOf1
    */
-  kind: GraphElementEditionIdOneOf;
+  endpoint: GraphElementEditionIdOneOf;
+  /**
+   *
+   * @type {string}
+   * @memberof KnowledgeGraphOutwardEdgesOneOf1
+   */
+  kind: KnowledgeGraphOutwardEdgesOneOf1KindEnum;
   /**
    *
    * @type {boolean}
@@ -767,29 +767,29 @@ export interface KnowledgeGraphOutwardEdgesOneOf1 {
   reversed: boolean;
 }
 
-export const KnowledgeGraphOutwardEdgesOneOf1EndpointEnum = {
+export const KnowledgeGraphOutwardEdgesOneOf1KindEnum = {
   IsOfType: "IS_OF_TYPE",
 } as const;
 
-export type KnowledgeGraphOutwardEdgesOneOf1EndpointEnum =
-  typeof KnowledgeGraphOutwardEdgesOneOf1EndpointEnum[keyof typeof KnowledgeGraphOutwardEdgesOneOf1EndpointEnum];
+export type KnowledgeGraphOutwardEdgesOneOf1KindEnum =
+  typeof KnowledgeGraphOutwardEdgesOneOf1KindEnum[keyof typeof KnowledgeGraphOutwardEdgesOneOf1KindEnum];
 
 /**
  *
  * @export
- * @interface KnowledgeGraphOutwardEdgesOneOfKind
+ * @interface KnowledgeGraphOutwardEdgesOneOfEndpoint
  */
-export interface KnowledgeGraphOutwardEdgesOneOfKind {
+export interface KnowledgeGraphOutwardEdgesOneOfEndpoint {
   /**
    *
    * @type {string}
-   * @memberof KnowledgeGraphOutwardEdgesOneOfKind
+   * @memberof KnowledgeGraphOutwardEdgesOneOfEndpoint
    */
   baseId: string;
   /**
    *
    * @type {string}
-   * @memberof KnowledgeGraphOutwardEdgesOneOfKind
+   * @memberof KnowledgeGraphOutwardEdgesOneOfEndpoint
    */
   timestamp: string;
 }
@@ -976,16 +976,16 @@ export type OntologyOutwardEdges =
 export interface OntologyOutwardEdgesOneOf {
   /**
    *
-   * @type {string}
-   * @memberof OntologyOutwardEdgesOneOf
-   */
-  endpoint: OntologyOutwardEdgesOneOfEndpointEnum;
-  /**
-   *
    * @type {GraphElementEditionIdOneOf}
    * @memberof OntologyOutwardEdgesOneOf
    */
-  kind: GraphElementEditionIdOneOf;
+  endpoint: GraphElementEditionIdOneOf;
+  /**
+   *
+   * @type {string}
+   * @memberof OntologyOutwardEdgesOneOf
+   */
+  kind: OntologyOutwardEdgesOneOfKindEnum;
   /**
    *
    * @type {boolean}
@@ -994,7 +994,7 @@ export interface OntologyOutwardEdgesOneOf {
   reversed: boolean;
 }
 
-export const OntologyOutwardEdgesOneOfEndpointEnum = {
+export const OntologyOutwardEdgesOneOfKindEnum = {
   InheritsFrom: "INHERITS_FROM",
   ConstrainsValuesOn: "CONSTRAINS_VALUES_ON",
   ConstrainsPropertiesOn: "CONSTRAINS_PROPERTIES_ON",
@@ -1002,8 +1002,8 @@ export const OntologyOutwardEdgesOneOfEndpointEnum = {
   ConstrainsLinkDestinationsOn: "CONSTRAINS_LINK_DESTINATIONS_ON",
 } as const;
 
-export type OntologyOutwardEdgesOneOfEndpointEnum =
-  typeof OntologyOutwardEdgesOneOfEndpointEnum[keyof typeof OntologyOutwardEdgesOneOfEndpointEnum];
+export type OntologyOutwardEdgesOneOfKindEnum =
+  typeof OntologyOutwardEdgesOneOfKindEnum[keyof typeof OntologyOutwardEdgesOneOfKindEnum];
 
 /**
  *
@@ -1013,16 +1013,16 @@ export type OntologyOutwardEdgesOneOfEndpointEnum =
 export interface OntologyOutwardEdgesOneOf1 {
   /**
    *
-   * @type {string}
-   * @memberof OntologyOutwardEdgesOneOf1
-   */
-  endpoint: OntologyOutwardEdgesOneOf1EndpointEnum;
-  /**
-   *
    * @type {GraphElementEditionIdOneOf1}
    * @memberof OntologyOutwardEdgesOneOf1
    */
-  kind: GraphElementEditionIdOneOf1;
+  endpoint: GraphElementEditionIdOneOf1;
+  /**
+   *
+   * @type {string}
+   * @memberof OntologyOutwardEdgesOneOf1
+   */
+  kind: OntologyOutwardEdgesOneOf1KindEnum;
   /**
    *
    * @type {boolean}
@@ -1031,12 +1031,12 @@ export interface OntologyOutwardEdgesOneOf1 {
   reversed: boolean;
 }
 
-export const OntologyOutwardEdgesOneOf1EndpointEnum = {
+export const OntologyOutwardEdgesOneOf1KindEnum = {
   IsOfType: "IS_OF_TYPE",
 } as const;
 
-export type OntologyOutwardEdgesOneOf1EndpointEnum =
-  typeof OntologyOutwardEdgesOneOf1EndpointEnum[keyof typeof OntologyOutwardEdgesOneOf1EndpointEnum];
+export type OntologyOutwardEdgesOneOf1KindEnum =
+  typeof OntologyOutwardEdgesOneOf1KindEnum[keyof typeof OntologyOutwardEdgesOneOf1KindEnum];
 
 /**
  *

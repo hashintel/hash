@@ -11,24 +11,24 @@ use crate::{
 
 #[derive(Debug, Hash, PartialEq, Eq, Serialize)]
 #[serde(deny_unknown_fields)]
-pub struct GenericOutwardEdge<E, V> {
-    pub kind: E,
+pub struct GenericOutwardEdge<K, E> {
+    pub kind: K,
     /// If true, interpret this as a reversed mapping and the endpoint as the source, that is,
     /// instead of Source-Edge-Target, interpret it as Target-Edge-Source
     pub reversed: bool,
-    pub endpoint: V,
+    pub endpoint: E,
 }
 
 // Utoipa doesn't seem to be able to generate sensible interfaces for this, it gets confused by
 // the generic
-impl<E, V> GenericOutwardEdge<E, V>
+impl<K, E> GenericOutwardEdge<K, E>
 where
+    K: ToSchema,
     E: ToSchema,
-    V: ToSchema,
 {
     fn schema() -> openapi::Schema {
         openapi::ObjectBuilder::new()
-            .property("kind", V::schema())
+            .property("kind", K::schema())
             .required("kind")
             .property(
                 "reversed",
