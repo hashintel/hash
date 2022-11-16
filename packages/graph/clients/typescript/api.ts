@@ -392,6 +392,25 @@ export interface EntityIdAndTimestamp {
   timestamp: string;
 }
 /**
+ *
+ * @export
+ * @interface EntityLinkOrder
+ */
+export interface EntityLinkOrder {
+  /**
+   *
+   * @type {number}
+   * @memberof EntityLinkOrder
+   */
+  leftOrder?: number;
+  /**
+   *
+   * @type {number}
+   * @memberof EntityLinkOrder
+   */
+  rightOrder?: number;
+}
+/**
  * The metadata of an [`Entity`] record.
  * @export
  * @interface EntityMetadata
@@ -869,28 +888,47 @@ export interface KnowledgeGraphVertices {
 export interface LinkEntityMetadata {
   /**
    *
-   * @type {string}
-   * @memberof LinkEntityMetadata
-   */
-  leftEntityId: string;
-  /**
-   *
    * @type {number}
    * @memberof LinkEntityMetadata
    */
   leftOrder?: number;
   /**
    *
-   * @type {string}
-   * @memberof LinkEntityMetadata
-   */
-  rightEntityId: string;
-  /**
-   *
    * @type {number}
    * @memberof LinkEntityMetadata
    */
   rightOrder?: number;
+  /**
+   *
+   * @type {string}
+   * @memberof LinkEntityMetadata
+   */
+  leftEntityId: string;
+  /**
+   *
+   * @type {string}
+   * @memberof LinkEntityMetadata
+   */
+  rightEntityId: string;
+}
+/**
+ *
+ * @export
+ * @interface LinkEntityMetadataAllOf
+ */
+export interface LinkEntityMetadataAllOf {
+  /**
+   *
+   * @type {string}
+   * @memberof LinkEntityMetadataAllOf
+   */
+  leftEntityId: string;
+  /**
+   *
+   * @type {string}
+   * @memberof LinkEntityMetadataAllOf
+   */
+  rightEntityId: string;
 }
 /**
  *
