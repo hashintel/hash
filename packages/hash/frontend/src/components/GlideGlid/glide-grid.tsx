@@ -47,7 +47,7 @@ type GlideGridProps = Omit<
   resizable?: boolean;
   sortable?: boolean;
   initialPropertySort?: TableSort<string>;
-  getCellContent: (rowData: any) => (cell: Item) => GridCell | undefined;
+  getCellContent: (rowData: any) => (cell: Item) => GridCell;
   onSort?: (rowData: RowData) => RowData;
 };
 

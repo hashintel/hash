@@ -17,7 +17,7 @@ export const useGetCellContent = (
 ) => {
   const getCellContent = useCallback(
     (rowData: PropertyRow[]) =>
-      ([col, row]: Item): GridCell | undefined => {
+      ([col, row]: Item): GridCell => {
         const property = rowData[row];
 
         const hasChild = !!property?.children.length;
