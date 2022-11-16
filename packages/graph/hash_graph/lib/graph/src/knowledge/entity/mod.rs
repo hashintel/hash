@@ -236,7 +236,7 @@ mod tests {
         assert_eq!(
             serde_json::to_value(properties.clone()).expect("could not serialize"),
             json_value,
-            "{entity:#?}"
+            "{properties:#?}"
         );
     }
 
