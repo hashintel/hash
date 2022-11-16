@@ -45,6 +45,7 @@ type GlideGridProps = Omit<
   columns: SizedGridColumn[];
   rowData: RowData;
   resizable?: boolean;
+  sortable?: boolean;
   initialPropertySort?: TableSort<string>;
   getCellContent: (rowData: any) => (cell: Item) => GridCell | undefined;
   onSort?: (rowData: RowData) => RowData;
@@ -58,6 +59,7 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, GlideGridProps> = (
     columns,
     rowData,
     resizable = true,
+    sortable = true,
     initialPropertySort,
     getCellContent,
     onSort,
@@ -83,19 +85,24 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, GlideGridProps> = (
     },
   );
 
-  const defaultDrawHeader = useDrawHeader(propertySort, columns);
-
-  const handleHeaderClicked = createHandleHeaderClicked(
+  const defaultDrawHeader = useDrawHeader(
+    sortable ? propertySort : undefined,
     columns,
-    propertySort,
-    setPropertySort,
   );
 
-  const sortedRowData = useMemo(() => {
+  const handleHeaderClicked = sortable
+    ? createHandleHeaderClicked(columns, propertySort, setPropertySort)
+    : undefined;
+
+  const rows = useMemo(() => {
+    if (!sortable) {
+      return rowData;
+    }
+
     const sortedRows = sortRowData(rowData, propertySort);
 
     return onSort?.(sortedRows) ?? sortedRows;
-  }, [rowData, propertySort, onSort]);
+  }, [sortable, rowData, propertySort, onSort]);
 
   const gridTheme: Partial<Theme> = useMemo(
     () => ({
@@ -203,8 +210,8 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, GlideGridProps> = (
       columns={resizedColumns}
       drawHeader={drawHeader ?? defaultDrawHeader}
       onHeaderClicked={handleHeaderClicked}
-      getCellContent={getCellContent(sortedRowData)}
-      rows={sortedRowData.length}
+      getCellContent={getCellContent(rows)}
+      rows={rows.length}
       {...rest}
       /**
        * icons defined via `headerIcons` are available to be drawn using
