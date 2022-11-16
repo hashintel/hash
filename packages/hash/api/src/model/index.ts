@@ -33,8 +33,8 @@ export { default as EntityModel } from "./knowledge/entity.model";
 export * from "./knowledge/hashInstance.model";
 export { default as HashInstanceModel } from "./knowledge/hashInstance.model";
 
-export * from "./knowledge/link.model";
-export { default as LinkModel } from "./knowledge/link.model";
+export * from "./knowledge/linkEntity.model";
+export { default as LinkEntityModel } from "./knowledge/linkEntity.model";
 
 export * as AccountFields from "./knowledge/account.fields";
 

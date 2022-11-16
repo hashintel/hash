@@ -11,6 +11,7 @@ import { generateTypeId, types } from "@hashintel/hash-shared/types";
 import { EntityTypeModel, PropertyTypeModel, LinkTypeModel } from "../index";
 import { getNamespaceOfAccountOwner } from "./util";
 import { SYSTEM_TYPES } from "../../graph/system-types";
+import { linkEntityTypeUri } from "../util";
 
 export type EntityTypeModelConstructorParams = {
   entityType: EntityTypeWithMetadata;
@@ -252,5 +253,15 @@ export default class {
     }
 
     return undefined;
+  }
+
+  isLinkEntityType(): boolean {
+    /**
+     * @todo: account for link entity types being able to inherit from other link entity types
+     */
+    return (
+      !!this.schema.allOf &&
+      this.schema.allOf.some(({ $ref }) => $ref === linkEntityTypeUri)
+    );
   }
 }

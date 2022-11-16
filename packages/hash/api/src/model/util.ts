@@ -331,7 +331,7 @@ export type LinkEntityTypeCreatorParams = {
   actorId: string;
 };
 
-const linkEntityTypeUri: VersionedUri =
+export const linkEntityTypeUri: VersionedUri =
   "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1";
 
 /**

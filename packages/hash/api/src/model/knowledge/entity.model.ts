@@ -11,9 +11,8 @@ import {
 import {
   EntityModel,
   EntityTypeModel,
-  LinkModel,
+  LinkEntityModel,
   LinkModelCreateParams,
-  LinkTypeModel,
 } from "..";
 import {
   PersistedEntityDefinition,
@@ -38,7 +37,7 @@ export type EntityModelCreateParams = {
  * @class {@link EntityModel}
  */
 export default class {
-  private entity: Entity;
+  protected entity: Entity;
 
   entityTypeModel: EntityTypeModel;
 
@@ -71,7 +70,7 @@ export default class {
     this.entityTypeModel = entityTypeModel;
   }
 
-  private static async fromEntity(
+  static async fromEntity(
     graphApi: GraphApi,
     entity: Entity,
     cachedEntityTypeModels?: Map<string, EntityTypeModel>,
@@ -120,7 +119,7 @@ export default class {
     const { data: metadata } = await graphApi.createEntity({
       ownedById,
       entityTypeId: entityTypeModel.schema.$id,
-      entity: properties,
+      properties,
       entityUuid: overrideEntityId,
       actorId,
     });
@@ -378,13 +377,18 @@ export default class {
       entityId: baseId,
       /** @todo: make this argument optional */
       entityTypeId: entityTypeModel.schema.$id,
-      entity: properties,
+      properties,
     });
 
     return EntityModel.fromEntity(graphApi, {
       metadata,
       properties,
     });
+  }
+
+  async archive(graphApi: GraphApi, params: { actorId: string }) {
+    const { actorId } = params;
+    await graphApi.archiveEntity({ entityId: this.baseId, actorId });
   }
 
   /**
@@ -449,21 +453,10 @@ export default class {
   /** @see {@link LinkModel.create} */
   async createOutgoingLink(
     graphApi: GraphApi,
-    params: Omit<LinkModelCreateParams, "sourceEntityModel">,
-  ): Promise<LinkModel> {
-    return await LinkModel.create(graphApi, {
-      sourceEntityModel: this,
-      ...params,
-    });
-  }
-
-  /** @see {@link LinkModel.createLinkWithoutUpdatingSiblings} */
-  async createOutgoingLinkWithoutUpdatingSiblings(
-    graphApi: GraphApi,
-    params: Omit<LinkModelCreateParams, "sourceEntityModel">,
-  ): Promise<LinkModel> {
-    return await LinkModel.createLinkWithoutUpdatingSiblings(graphApi, {
-      sourceEntityModel: this,
+    params: Omit<LinkModelCreateParams, "leftEntityModel">,
+  ): Promise<LinkEntityModel> {
+    return await LinkEntityModel.createLinkEntity(graphApi, {
+      leftEntityModel: this,
       ...params,
     });
   }
@@ -471,67 +464,87 @@ export default class {
   /**
    * Get the incoming links of an entity.
    *
-   * @param params.linkTypeModel (optional) - the specific link type of the incoming links
+   * @param params.linkEntityTypeModel (optional) - the specific link entity type of the incoming links
    */
   async getIncomingLinks(
     graphApi: GraphApi,
-    params?: { linkTypeModel?: LinkTypeModel },
-  ): Promise<LinkModel[]> {
+    params?: { linkEntityTypeModel?: EntityTypeModel },
+  ): Promise<LinkEntityModel[]> {
     const filter: Filter = {
       all: [
         {
-          equal: [{ path: ["target", "uuid"] }, { parameter: this.entityUuid }],
+          equal: [
+            { path: ["rightEntity", "uuid"] },
+            { parameter: this.entityUuid },
+          ],
         },
       ],
     };
 
-    if (params?.linkTypeModel) {
+    if (params?.linkEntityTypeModel) {
       filter.all.push({
         equal: [
           { path: ["type", "versionedUri"] },
           {
-            parameter: params.linkTypeModel.schema.$id,
+            parameter: params.linkEntityTypeModel.schema.$id,
           },
         ],
       });
     }
 
-    const incomingLinks = await LinkModel.getByQuery(graphApi, filter);
+    const incomingLinkEntityModels = await EntityModel.getByQuery(
+      graphApi,
+      filter,
+    );
 
-    return incomingLinks;
+    return await Promise.all(
+      incomingLinkEntityModels.map((entityModel) =>
+        LinkEntityModel.fromEntity(graphApi, entityModel),
+      ),
+    );
   }
 
   /**
    * Get the outgoing links of an entity.
    *
-   * @param params.linkTypeModel (optional) - the specific link type of the outgoing links
+   * @param params.linkEntityTypeModel (optional) - the specific link type of the outgoing links
    */
   async getOutgoingLinks(
     graphApi: GraphApi,
-    params?: { linkTypeModel?: LinkTypeModel },
-  ): Promise<LinkModel[]> {
+    params?: { linkEntityTypeModel?: EntityTypeModel },
+  ): Promise<LinkEntityModel[]> {
     const filter: Filter = {
       all: [
         {
-          equal: [{ path: ["source", "uuid"] }, { parameter: this.entityUuid }],
+          equal: [
+            { path: ["leftEntity", "uuid"] },
+            { parameter: this.entityUuid },
+          ],
         },
       ],
     };
 
-    if (params?.linkTypeModel) {
+    if (params?.linkEntityTypeModel) {
       filter.all.push({
         equal: [
           { path: ["type", "versionedUri"] },
           {
-            parameter: params.linkTypeModel.schema.$id,
+            parameter: params.linkEntityTypeModel.schema.$id,
           },
         ],
       });
     }
 
-    const outgoingLinks = await LinkModel.getByQuery(graphApi, filter);
+    const outgoingLinkEntityModels = await EntityModel.getByQuery(
+      graphApi,
+      filter,
+    );
 
-    return outgoingLinks;
+    return Promise.all(
+      outgoingLinkEntityModels.map((entityModel) =>
+        LinkEntityModel.fromEntity(graphApi, entityModel),
+      ),
+    );
   }
 
   /**
