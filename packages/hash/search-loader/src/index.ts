@@ -53,6 +53,7 @@ if (STATSD_ENABLED) {
       globalTags: ["search-loader"],
     });
   } catch (err) {
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions -- error stringification may need improvement
     logger.error(`Could not start StatsD client: ${err}`);
   }
 }
@@ -97,6 +98,7 @@ const main = async () => {
   httpServer.listen({ host: "::", port: PORT });
   logger.info(`HTTP server listening on port ${PORT}`);
   shutdown.addCleanup("HTTP server", async () => {
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- the method is unbound and then bound
     await promisify(httpServer.close).bind(httpServer)();
   });
 
@@ -172,7 +174,7 @@ const main = async () => {
     const size = await queueConsumer.length(SEARCH_QUEUE_NAME);
     statsd?.gauge("queue_size", size);
   }, 5_000);
-  shutdown.addCleanup("statsd reporting", async () => clearInterval(int1));
+  shutdown.addCleanup("statsd reporting", () => clearInterval(int1));
 
   // Initialize the SearchLoader
   const loader = new SearchLoader({

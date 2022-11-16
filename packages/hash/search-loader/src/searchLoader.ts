@@ -43,9 +43,11 @@ export type SearchLoaderConfig = {
  * Returns:
  *  "Hello World! Welcome to HASH!"
  */
-const textEntityPropertiesToFTS = (properties: any): string => {
+const textEntityPropertiesToFTS = (properties: {
+  tokens: TextToken[];
+}): string => {
   return properties.tokens
-    .map((token: TextToken) => {
+    .map((token) => {
       switch (token.tokenType) {
         case "text":
           return token.text;
@@ -132,6 +134,7 @@ export class SearchLoader {
   private async loadMsgIntoSearchIndex(wal2jsonMsg: Wal2JsonMsg) {
     const table = wal2jsonMsg.table;
     if (table === "entity_versions") {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- this code is probably broken, EntityVersion is not exported from @hashintel/hash-backend-utils/pgTables
       const entity = EntityVersion.parseWal2JsonMsg(wal2jsonMsg);
 
       const entityType = await EntityType.getEntityType(this.db, {
@@ -140,6 +143,7 @@ export class SearchLoader {
 
       if (!entityType) {
         logger.error(
+          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
           `Could not find entity type with entityTypeVersionId "${entity.entityTypeVersionId}"`,
         );
         return;
@@ -152,6 +156,7 @@ export class SearchLoader {
         entityTypeId: entityType.entityId,
         entityTypeVersionId: entity.entityTypeVersionId,
         entityTypeName: entityType.metadata.name,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- @todo investigate
         updatedAt: entity.updatedAt.toISOString(),
         updatedByAccountId: entity.updatedByAccountId,
       };
@@ -162,7 +167,7 @@ export class SearchLoader {
         entityType.metadata.name === "Text"
       ) {
         indexedEntity[ENTITIES_SEARCH_FIELD] = textEntityPropertiesToFTS(
-          entity.properties,
+          entity.properties as { tokens: TextToken[] },
         );
         // @todo this should be done through a model class instead of explicitly through the DB adapter.
         const grandparents = await this.db.getAncestorReferences({

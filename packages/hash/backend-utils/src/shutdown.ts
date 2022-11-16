@@ -4,7 +4,7 @@ export type Signal = "SIGINT" | "SIGTERM" | "SIGKILL";
 
 type CleanupProcedure = {
   name: string;
-  cleanup: () => Promise<void>;
+  cleanup: () => Promise<void> | void;
 };
 
 export class GracefulShutdown {
@@ -27,7 +27,7 @@ export class GracefulShutdown {
   }
 
   /** Add a cleanup procedure to this instance. */
-  addCleanup(name: string, cleanup: () => Promise<void>) {
+  addCleanup(name: string, cleanup: () => void | Promise<void>) {
     this.cleanupProcedures.push({ name, cleanup });
   }
 
