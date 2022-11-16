@@ -27,7 +27,7 @@ impl PostgresQueryRecord for Entity {
     }
 }
 
-impl<'p> Path<'p> for EntityQueryPath<'p> {
+impl Path for EntityQueryPath<'_> {
     fn relations(&self) -> Vec<Relation> {
         match self {
             Self::LeftEntity(path) | Self::RightEntity(path)

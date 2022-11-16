@@ -26,7 +26,7 @@ impl PostgresQueryRecord for PropertyType {
     }
 }
 
-impl<'q> Path<'q> for PropertyTypeQueryPath {
+impl Path for PropertyTypeQueryPath {
     fn relations(&self) -> Vec<Relation> {
         match self {
             Self::BaseUri | Self::Version => vec![Relation::PropertyTypeIds],

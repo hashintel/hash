@@ -29,7 +29,7 @@ use crate::store::{
     query::QueryRecord,
 };
 
-pub trait PostgresQueryRecord: for<'q> QueryRecord<Path<'q>: Path<'q>> {
+pub trait PostgresQueryRecord: for<'q> QueryRecord<Path<'q>: Path> {
     /// The [`Table`] used for this `Query`.
     fn base_table() -> Table;
 
@@ -38,7 +38,7 @@ pub trait PostgresQueryRecord: for<'q> QueryRecord<Path<'q>: Path<'q>> {
 }
 
 /// An absolute path inside of a query pointing to an attribute.
-pub trait Path<'p> {
+pub trait Path {
     /// Returns a list of [`Relation`]s required to traverse this path.
     fn relations(&self) -> Vec<Relation>;
 

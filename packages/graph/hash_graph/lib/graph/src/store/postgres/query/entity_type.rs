@@ -26,7 +26,7 @@ impl PostgresQueryRecord for EntityType {
     }
 }
 
-impl Path<'_> for EntityTypeQueryPath {
+impl Path for EntityTypeQueryPath {
     /// Returns the relations that are required to access the path.
     fn relations(&self) -> Vec<Relation> {
         match self {

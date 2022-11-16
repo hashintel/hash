@@ -26,7 +26,7 @@ impl PostgresQueryRecord for DataType {
     }
 }
 
-impl Path<'_> for DataTypeQueryPath {
+impl Path for DataTypeQueryPath {
     fn relations(&self) -> Vec<Relation> {
         match self {
             Self::BaseUri | Self::Version => {
