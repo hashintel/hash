@@ -26,7 +26,7 @@ ALWAYS_RUN_PATTERNS = [".github/**"]
 TOOLCHAINS = {
     "packages/libs/error-stack": ["1.63", "1.65"],
     "packages/libs/deer": ["1.65"],
-    "packages/libs/append-vec": ["1.63", "1.65"]
+    "packages/libs/avector": ["1.63", "1.65"]
 }
 
 # Try and publish these crates when their version is changed in Cargo.toml
