@@ -6,21 +6,11 @@ import {
   useMemo,
   useState,
 } from "react";
-import {
-  SetTableSort,
-  TableSort,
-} from "../../../../../components/GlideGlid/utils/sorting";
 import { EntityEditorProps } from "../entity-editor";
-import { LinkColumnKey } from "./links-section/link-table/types";
-import { PropertyColumnKey } from "./properties-section/property-table/types";
 
 export type TableExpandStatus = Record<string, boolean>;
 
 interface Props extends EntityEditorProps {
-  propertySort: TableSort<PropertyColumnKey>;
-  setPropertySort: SetTableSort<PropertyColumnKey>;
-  linkSort: TableSort<LinkColumnKey>;
-  setLinkSort: SetTableSort<LinkColumnKey>;
   propertyExpandStatus: TableExpandStatus;
   togglePropertyExpand: (id: string) => void;
 }
