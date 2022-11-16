@@ -10,7 +10,7 @@ import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon"
 import { Box, Container, Typography } from "@mui/material";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { frontendUrl } from "@hashintel/hash-shared/environment";
 import { TopContextBar } from "../../../shared/top-context-bar";
@@ -33,6 +33,7 @@ import { NextPageWithLayout } from "../../../../shared/layout";
 import { getPlainLayout } from "../../../../shared/layout/plain-layout";
 import { DefinitionTab } from "./tabs/definition-tab";
 import { EntitiesTab } from "./tabs/entities-tab";
+import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
 
 const getBaseUri = (entityTypeId: string, namespace: string) =>
   `${frontendUrl}/@${namespace}/types/entity-type/${entityTypeId}/`;
@@ -77,6 +78,7 @@ const Page: NextPageWithLayout = () => {
   // @todo how to handle remote types
   const isDraft = !!router.query.draft;
   const namespace = useRouteNamespace();
+  const { authenticatedUser } = useAuthenticatedUser();
 
   const entityTypeId = router.query["entity-type-id"];
   const baseEntityTypeUri =
@@ -110,7 +112,12 @@ const Page: NextPageWithLayout = () => {
   });
   const { handleSubmit: wrapHandleSubmit, reset } = formMethods;
 
-  const [remoteEntityType, updateEntityType, publishDraft] = useEntityTypeValue(
+  const [
+    remoteEntityType,
+    updateEntityType,
+    publishDraft,
+    { loading: loadingRemoteEntityType },
+  ] = useEntityTypeValue(
     baseEntityTypeUri,
     namespace?.id,
     (fetchedEntityType) => {
@@ -133,6 +140,33 @@ const Page: NextPageWithLayout = () => {
   );
 
   const entityType = remoteEntityType ?? draftEntityType;
+
+  useEffect(() => {
+    if (authenticatedUser && !namespace) {
+      void router.replace(
+        `/@${authenticatedUser.shortname}/types/new/entity-type`,
+      );
+    }
+  }, [authenticatedUser, namespace, router]);
+
+  useEffect(() => {
+    if (authenticatedUser && !namespace) {
+      void router.replace(
+        `/@${authenticatedUser.shortname}/types/new/entity-type`,
+      );
+      return;
+    }
+
+    if (!loadingRemoteEntityType && !entityType) {
+      void router.replace(`/@${namespace?.shortname}/types/new/entity-type`);
+    }
+  }, [
+    router,
+    loadingRemoteEntityType,
+    authenticatedUser,
+    namespace,
+    entityType,
+  ]);
 
   const handleSubmit = wrapHandleSubmit(async (data) => {
     if (!entityType) {

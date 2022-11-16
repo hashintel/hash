@@ -28,6 +28,7 @@ export const useEntityTypeValue = (
 ) => {
   const router = useRouter();
   const { authenticatedUser } = useAuthenticatedUser();
+  const [loading, setLoading] = useState(true);
 
   const { createEntityType } = useBlockProtocolCreateEntityType(
     namespace ?? authenticatedUser?.entityId ?? "",
@@ -63,13 +64,14 @@ export const useEntityTypeValue = (
           : [];
 
         /** @todo - pick the latest version? */
-        const relevantEntityType = relevantEntityTypes
+        const relevantEntityType = relevantEntityTypes.length
           ? relevantEntityTypes[0]!.inner
           : null;
 
         await loadTypeSystem();
 
         if (!cancelled) {
+          setLoading(false);
           setEntityType(relevantEntityType);
           entityTypeRef.current = relevantEntityType;
           if (relevantEntityType) {
@@ -146,6 +148,7 @@ export const useEntityTypeValue = (
     typeSystemLoading || !authenticatedUser ? null : entityType,
     updateCallback,
     publishDraft,
+    { loading },
   ] as const;
 };
 
