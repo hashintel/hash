@@ -331,6 +331,8 @@ struct UpdateEntityRequest {
     #[schema(value_type = String)]
     entity_type_id: VersionedUri,
     actor_id: UpdatedById,
+    #[serde(flatten)]
+    order: EntityLinkOrder,
 }
 
 #[utoipa::path(
@@ -355,6 +357,7 @@ async fn update_entity<P: StorePool + Send>(
         entity_id,
         entity_type_id,
         actor_id,
+        order,
     }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -363,7 +366,7 @@ async fn update_entity<P: StorePool + Send>(
     })?;
 
     store
-        .update_entity(entity_id, properties, entity_type_id, actor_id)
+        .update_entity(entity_id, properties, entity_type_id, actor_id, order)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update entity");

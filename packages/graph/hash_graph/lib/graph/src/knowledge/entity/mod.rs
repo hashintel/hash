@@ -84,7 +84,7 @@ pub struct EntityLinkOrder {
 
 impl EntityLinkOrder {
     #[must_use]
-    pub fn new(left_order: Option<LinkOrder>, right_order: Option<LinkOrder>) -> Self {
+    pub const fn new(left_order: Option<LinkOrder>, right_order: Option<LinkOrder>) -> Self {
         Self {
             left_order,
             right_order,
@@ -123,10 +123,7 @@ impl LinkEntityMetadata {
         Self {
             left_entity_id,
             right_entity_id,
-            order: EntityLinkOrder {
-                left_order,
-                right_order,
-            },
+            order: EntityLinkOrder::new(left_order, right_order),
         }
     }
 

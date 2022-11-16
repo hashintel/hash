@@ -1690,6 +1690,18 @@ export interface UpdateDataTypeRequest {
 export interface UpdateEntityRequest {
   /**
    *
+   * @type {number}
+   * @memberof UpdateEntityRequest
+   */
+  leftOrder?: number;
+  /**
+   *
+   * @type {number}
+   * @memberof UpdateEntityRequest
+   */
+  rightOrder?: number;
+  /**
+   *
    * @type {string}
    * @memberof UpdateEntityRequest
    */
@@ -1710,6 +1722,37 @@ export interface UpdateEntityRequest {
    *
    * @type {object}
    * @memberof UpdateEntityRequest
+   */
+  properties: object;
+}
+/**
+ *
+ * @export
+ * @interface UpdateEntityRequestAllOf
+ */
+export interface UpdateEntityRequestAllOf {
+  /**
+   *
+   * @type {string}
+   * @memberof UpdateEntityRequestAllOf
+   */
+  actorId: string;
+  /**
+   *
+   * @type {string}
+   * @memberof UpdateEntityRequestAllOf
+   */
+  entityId: string;
+  /**
+   *
+   * @type {string}
+   * @memberof UpdateEntityRequestAllOf
+   */
+  entityTypeId: string;
+  /**
+   *
+   * @type {object}
+   * @memberof UpdateEntityRequestAllOf
    */
   properties: object;
 }
