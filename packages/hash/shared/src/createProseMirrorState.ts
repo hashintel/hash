@@ -1,7 +1,7 @@
 import { cloneDeep } from "lodash";
 import { baseKeymap } from "prosemirror-commands";
 import { dropCursor } from "prosemirror-dropcursor";
-import { ProsemirrorNode, Schema } from "prosemirror-model";
+import { Node, Schema } from "prosemirror-model";
 import { EditorState, Plugin } from "prosemirror-state";
 import { createEntityStorePlugin } from "./entityStorePlugin";
 import {
@@ -35,7 +35,7 @@ export const createProseMirrorState = ({
   plugins = [],
 }: {
   accountId: string;
-  doc?: ProsemirrorNode;
+  doc?: Node;
   plugins?: Plugin<unknown>[];
 }) => {
   return EditorState.create({

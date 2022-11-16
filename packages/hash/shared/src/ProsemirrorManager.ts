@@ -1,5 +1,5 @@
 import { BlockVariant, JsonObject } from "@blockprotocol/core";
-import { ProsemirrorNode, Schema } from "prosemirror-model";
+import { Node, Schema } from "prosemirror-model";
 import { EditorState, Transaction } from "prosemirror-state";
 import { EditorProps, EditorView } from "prosemirror-view";
 
@@ -239,7 +239,7 @@ export class ProsemirrorManager {
     draftBlockId: string,
     targetComponentId: string,
     targetVariant: BlockVariant,
-    node: ProsemirrorNode,
+    node: Node,
     pos: number,
   ) {
     const { view } = this;
@@ -262,7 +262,7 @@ export class ProsemirrorManager {
   /**
    * @todo consider removing the old block from the entity store
    */
-  async deleteNode(node: ProsemirrorNode, pos: number) {
+  async deleteNode(node: Node, pos: number) {
     const { view } = this;
 
     if (!view) {

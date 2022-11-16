@@ -4,10 +4,14 @@ import {
   DataEditorProps,
   Theme,
   DataEditorRef,
+  GridSelection,
+  CompactSelection,
+  GridMouseEventArgs,
   Item,
   GridColumn,
   SizedGridColumn,
   GridCell,
+  GetRowThemeCallback,
 } from "@glideapps/glide-data-grid";
 import { useTheme } from "@mui/material";
 import {
@@ -71,6 +75,12 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, GlideGridProps> = (
   const [columnSizes, setColumnSizes] = useState<Record<string, number>>({});
 
   const { palette } = useTheme();
+  const [hoveredRow, setHoveredRow] = useState<number>();
+
+  const [selection, setSelection] = useState<GridSelection>({
+    columns: CompactSelection.empty(),
+    rows: CompactSelection.empty(),
+  });
 
   useEffect(() => {
     // delete saved interactables on unmount
@@ -126,6 +136,36 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, GlideGridProps> = (
     [palette],
   );
 
+  const getRowThemeOverride = useCallback<GetRowThemeCallback>(
+    (row) => {
+      if (row === hoveredRow) {
+        return {
+          bgCell: palette.gray[10],
+        };
+      }
+    },
+    [hoveredRow, palette],
+  );
+
+  const onCellSelect = ({ location: [col, row], kind }: GridMouseEventArgs) => {
+    setHoveredRow(kind === "cell" ? row : undefined);
+    setSelection({
+      ...selection,
+      current:
+        kind === "cell"
+          ? {
+              cell: [col, row],
+              range: {
+                x: col,
+                y: row,
+                width: 1,
+                height: 1,
+              },
+              rangeStack: [],
+            }
+          : undefined,
+    });
+  };
   const interactableCustomRenderers = useMemo<
     DataEditorProps["customRenderers"]
   >(() => {
@@ -195,6 +235,8 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, GlideGridProps> = (
     <DataEditor
       ref={ref}
       theme={gridTheme}
+      getRowThemeOverride={getRowThemeOverride}
+      gridSelection={selection}
       width="100%"
       headerHeight={42}
       rowHeight={42}
@@ -204,6 +246,8 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, GlideGridProps> = (
       smoothScrollX
       smoothScrollY
       getCellsForSelection
+      onItemHovered={onCellSelect}
+      onCellClicked={(_, args) => args.isTouch && onCellSelect(args)}
       customRenderers={interactableCustomRenderers}
       onVisibleRegionChanged={handleVisibleRegionChanged}
       onColumnResize={resizable ? handleColumnResize : undefined}
