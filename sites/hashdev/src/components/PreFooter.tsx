@@ -11,6 +11,7 @@ import {
 } from "react";
 import { unstable_batchedUpdates } from "react-dom";
 import { FRONTEND_URL } from "../config";
+import { SubscribeResponseBody } from "../pages/api/subscribe.page";
 import { Button } from "./Button";
 import { FaIcon } from "./icons/FaIcon";
 import { NAV_HEIGHT } from "./Navbar";
@@ -146,9 +147,12 @@ export const Subscribe: FunctionComponent<BoxProps> = (props) => {
                     setLoading(true);
                   });
 
-                  const { data } = await axios.post("/api/subscribe", {
-                    email,
-                  });
+                  const { data } = await axios.post<SubscribeResponseBody>(
+                    "/api/subscribe",
+                    {
+                      email,
+                    },
+                  );
 
                   unstable_batchedUpdates(() => {
                     setLoading(false);

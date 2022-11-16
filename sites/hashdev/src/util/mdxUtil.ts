@@ -71,8 +71,7 @@ export const getSerializedPage = async (params: {
 }): Promise<
   [
     MDXRemoteSerializeResult<Record<string, unknown>>,
-    // @todo type this as unknown
-    Record<string, any>,
+    Record<string, unknown>,
     // @todo consider matching size here
     Image[],
   ]
