@@ -10,7 +10,8 @@ use error_stack::Result;
 use graph::{
     identifier::knowledge::{EntityEditionId, EntityId},
     knowledge::{
-        Entity, EntityMetadata, EntityProperties, EntityQueryPath, EntityUuid, LinkEntityMetadata,
+        Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryPath, EntityUuid,
+        LinkEntityMetadata,
     },
     ontology::{
         DataTypeWithMetadata, EntityTypeQueryPath, EntityTypeWithMetadata, OntologyElementMetadata,
@@ -306,6 +307,7 @@ impl DatabaseApi<'_> {
         entity_id: EntityId,
         properties: EntityProperties,
         entity_type_id: VersionedUri,
+        order: EntityLinkOrder,
     ) -> Result<EntityMetadata, UpdateError> {
         self.store
             .update_entity(
@@ -313,6 +315,7 @@ impl DatabaseApi<'_> {
                 properties,
                 entity_type_id,
                 UpdatedById::new(self.account_id),
+                order,
             )
             .await
     }
