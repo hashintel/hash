@@ -16,7 +16,8 @@ use utoipa::{OpenApi, ToSchema};
 use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
     knowledge::{
-        Entity, EntityMetadata, EntityProperties, EntityUuid, LinkEntityMetadata, LinkOrder,
+        Entity, EntityMetadata, EntityProperties, EntityQueryToken, EntityUuid, LinkEntityMetadata,
+        LinkOrder,
     },
     provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
     shared::{
@@ -73,6 +74,7 @@ use crate::{
             EntityProperties,
             EntityVersion,
             EntityStructuralQuery,
+            EntityQueryToken,
             LinkEntityMetadata,
             LinkOrder,
             ProvenanceMetadata,

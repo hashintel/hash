@@ -18,7 +18,7 @@ use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, EntityTypeWithMetadata, OntologyElementMetadata,
+        patch_id_and_parse, EntityTypeQueryToken, EntityTypeWithMetadata, OntologyElementMetadata,
     },
     provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
     shared::{
@@ -61,6 +61,7 @@ use crate::{
             OntologyElementMetadata,
             EntityTypeWithMetadata,
             EntityTypeStructuralQuery,
+            EntityTypeQueryToken,
             GraphElementId,
             GraphElementEditionId,
             ProvenanceMetadata,

@@ -5,6 +5,7 @@ use serde::{
     Deserialize,
 };
 use type_system::DataType;
+use utoipa::ToSchema;
 
 use crate::store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath};
 
@@ -216,9 +217,9 @@ impl fmt::Display for DataTypeQueryPath {
 }
 
 /// A single token in a [`DataTypeQueryPath`].
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-enum DataTypeQueryToken {
+pub enum DataTypeQueryToken {
     BaseUri,
     Version,
     VersionedUri,
