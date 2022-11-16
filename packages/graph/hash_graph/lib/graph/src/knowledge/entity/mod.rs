@@ -230,13 +230,13 @@ mod tests {
     fn test_entity(json: &str) {
         let json_value: serde_json::Value = serde_json::from_str(json).expect("invalid JSON");
 
-        let entity: EntityProperties =
+        let properties: EntityProperties =
             serde_json::from_value(json_value.clone()).expect("invalid entity");
 
         assert_eq!(
-            serde_json::to_value(entity.clone()).expect("could not serialize"),
+            serde_json::to_value(properties.clone()).expect("could not serialize"),
             json_value,
-            "{entity:#?}"
+            "{properties:#?}"
         );
     }
 

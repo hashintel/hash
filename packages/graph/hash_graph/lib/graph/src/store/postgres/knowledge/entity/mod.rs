@@ -272,7 +272,7 @@ impl<C: AsClient> PostgresStore<C> {
 impl<C: AsClient> EntityStore for PostgresStore<C> {
     async fn create_entity(
         &mut self,
-        entity: EntityProperties,
+        properties: EntityProperties,
         entity_type_id: VersionedUri,
         owned_by_id: OwnedById,
         entity_uuid: Option<EntityUuid>,
@@ -296,7 +296,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let metadata = transaction
             .insert_entity(
                 entity_id,
-                entity,
+                properties,
                 entity_type_id,
                 created_by_id,
                 UpdatedById::new(created_by_id.as_account_id()),
@@ -416,7 +416,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     async fn update_entity(
         &mut self,
         entity_id: EntityId,
-        entity: EntityProperties,
+        properties: EntityProperties,
         entity_type_id: VersionedUri,
         updated_by_id: UpdatedById,
     ) -> Result<EntityMetadata, UpdateError> {
@@ -441,7 +441,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let entity_metadata = transaction
             .insert_entity(
                 entity_id,
-                entity,
+                properties,
                 entity_type_id,
                 old_entity_metadata.provenance_metadata().created_by_id(),
                 updated_by_id,

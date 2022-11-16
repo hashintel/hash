@@ -125,7 +125,7 @@ impl RoutedResource for EntityResource {
 #[derive(Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct CreateEntityRequest {
-    entity: EntityProperties,
+    properties: EntityProperties,
     #[schema(value_type = String)]
     entity_type_id: VersionedUri,
     owned_by_id: OwnedById,
@@ -155,7 +155,7 @@ async fn create_entity<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<EntityMetadata>, StatusCode> {
     let Json(CreateEntityRequest {
-        entity,
+        properties,
         entity_type_id,
         owned_by_id,
         entity_uuid,
@@ -170,7 +170,7 @@ async fn create_entity<P: StorePool + Send>(
 
     store
         .create_entity(
-            entity,
+            properties,
             entity_type_id,
             owned_by_id,
             entity_uuid,
@@ -323,7 +323,7 @@ async fn get_entity<P: StorePool + Send>(
 #[derive(ToSchema, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct UpdateEntityRequest {
-    entity: EntityProperties,
+    properties: EntityProperties,
     entity_id: EntityId,
     #[schema(value_type = String)]
     entity_type_id: VersionedUri,
@@ -348,7 +348,7 @@ async fn update_entity<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<EntityMetadata>, StatusCode> {
     let Json(UpdateEntityRequest {
-        entity,
+        properties,
         entity_id,
         entity_type_id,
         actor_id,
@@ -360,7 +360,7 @@ async fn update_entity<P: StorePool + Send>(
     })?;
 
     store
-        .update_entity(entity_id, entity, entity_type_id, actor_id)
+        .update_entity(entity_id, properties, entity_type_id, actor_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update entity");
