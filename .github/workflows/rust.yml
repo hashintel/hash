@@ -157,6 +157,11 @@ jobs:
         working-directory: ${{ matrix.directory }}
         run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} miri --no-fail-fast
 
+      - name: Run loom
+        if: ${{ startsWith(matrix.toolchain, 'nightly') }}
+        working-directory: ${{ matrix.directory }}
+        run: cargo +${{ matrix.toolchain }} make --profile ${{ matrix.profile }} loom --no-fail-fast
+
       - name: Ensure empty git diff
         run: git --no-pager diff --exit-code --color
 
