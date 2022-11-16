@@ -19,7 +19,8 @@
       ],
       "@hashintel/hash-design-system/*": [
         "../../../../packages/hash/design-system/src/*"
-      ]
+      ],
+      "@hashintel/subgraph/*": ["../../../../packages/hash/subgraph/src/*"]
     }
   },
   "ts-node": {
