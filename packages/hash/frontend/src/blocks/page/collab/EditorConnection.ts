@@ -15,7 +15,7 @@ import {
 import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
 import { isString } from "lodash";
 import { collab, receiveTransaction, sendableSteps } from "prosemirror-collab";
-import { ProsemirrorNode, Schema } from "prosemirror-model";
+import { Node, Schema } from "prosemirror-model";
 import { EditorState, Plugin, Transaction } from "prosemirror-state";
 import { Step } from "prosemirror-transform";
 import { EditorView } from "prosemirror-view";
@@ -47,7 +47,7 @@ class State {
 type EditorConnectionAction =
   | {
       type: "loaded";
-      doc: ProsemirrorNode;
+      doc: Node;
       store: EntityStore;
       version: number;
     }

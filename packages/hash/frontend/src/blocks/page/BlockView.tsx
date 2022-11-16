@@ -10,7 +10,7 @@ import {
 } from "@hashintel/hash-shared/prosemirror";
 import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
 import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
-import { ProsemirrorNode } from "prosemirror-model";
+import { Node } from "prosemirror-model";
 import { NodeSelection, TextSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
 import { createRef } from "react";
@@ -51,7 +51,7 @@ export class BlockView implements NodeView {
   private store: EntityStore;
   private unsubscribe: Function;
 
-  getBlockEntityIdFromNode = (node: ProsemirrorNode) => {
+  getBlockEntityIdFromNode = (node: Node) => {
     const blockEntityNode = node.firstChild;
 
     if (!blockEntityNode || !isEntityNode(blockEntityNode)) {
@@ -85,7 +85,7 @@ export class BlockView implements NodeView {
   };
 
   constructor(
-    public node: ProsemirrorNode,
+    public node: Node,
     public editorView: EditorView,
     public getPos: () => number,
     public renderPortal: RenderPortal,
@@ -161,7 +161,7 @@ export class BlockView implements NodeView {
      * they're handled by React
      */
     return (
-      this.blockHandleRef.current?.contains(evt.target as Node) ||
+      this.blockHandleRef.current?.contains(evt.target as globalThis.Node) ||
       (evt.target === this.blockHandleRef.current && evt.type === "mousedown")
     );
   }
@@ -191,7 +191,7 @@ export class BlockView implements NodeView {
     return false;
   }
 
-  update(blockNode: ProsemirrorNode) {
+  update(blockNode: Node) {
     if (blockNode.type.name !== "block") {
       return false;
     }
