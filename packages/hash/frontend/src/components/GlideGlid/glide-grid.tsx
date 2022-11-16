@@ -4,7 +4,13 @@ import {
   DataEditorProps,
   Theme,
   DataEditorRef,
+  GridSelection,
+  CompactSelection,
+  GridMouseEventArgs,
   Item,
+  GridColumn,
+  SizedGridColumn,
+  GetRowThemeCallback,
 } from "@glideapps/glide-data-grid";
 import { useTheme } from "@mui/material";
 import {
@@ -14,19 +20,41 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useState,
 } from "react";
 import { uniqueId } from "lodash";
 import { getCellHorizontalPadding } from "./utils";
 import { customGridIcons } from "./utils/custom-grid-icons";
 import { InteractableManager } from "./utils/interactable-manager";
 
-const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
-  { customRenderers, onVisibleRegionChanged, ...rest },
+type GlideGridProps = Omit<
+  DataEditorProps,
+  "onColumnResize" | "onColumnResizeEnd" | "onColumnResizeStart" | "columns"
+> & {
+  resizable?: boolean;
+  columns: SizedGridColumn[];
+};
+
+const GlideGrid: ForwardRefRenderFunction<DataEditorRef, GlideGridProps> = (
+  {
+    customRenderers,
+    onVisibleRegionChanged,
+    columns,
+    resizable = true,
+    ...rest
+  },
   ref,
 ) => {
   const tableIdRef = useRef(uniqueId("grid"));
+  const [columnSizes, setColumnSizes] = useState<Record<string, number>>({});
 
   const { palette } = useTheme();
+  const [hoveredRow, setHoveredRow] = useState<number>();
+
+  const [selection, setSelection] = useState<GridSelection>({
+    columns: CompactSelection.empty(),
+    rows: CompactSelection.empty(),
+  });
 
   useEffect(() => {
     // delete saved interactables on unmount
@@ -56,6 +84,36 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
     [palette],
   );
 
+  const getRowThemeOverride = useCallback<GetRowThemeCallback>(
+    (row) => {
+      if (row === hoveredRow) {
+        return {
+          bgCell: palette.gray[10],
+        };
+      }
+    },
+    [hoveredRow, palette],
+  );
+
+  const onCellSelect = ({ location: [col, row], kind }: GridMouseEventArgs) => {
+    setHoveredRow(kind === "cell" ? row : undefined);
+    setSelection({
+      ...selection,
+      current:
+        kind === "cell"
+          ? {
+              cell: [col, row],
+              range: {
+                x: col,
+                y: row,
+                width: 1,
+                height: 1,
+              },
+              rangeStack: [],
+            }
+          : undefined,
+    });
+  };
   const interactableCustomRenderers = useMemo<
     DataEditorProps["customRenderers"]
   >(() => {
@@ -103,10 +161,30 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
     [onVisibleRegionChanged],
   );
 
+  const handleColumnResize = useCallback(
+    (column: GridColumn, newSize: number) => {
+      setColumnSizes((prevColumnSizes) => {
+        return {
+          ...prevColumnSizes,
+          [column.id]: newSize,
+        };
+      });
+    },
+    [],
+  );
+
+  const resizedColumns = useMemo<GridColumn[]>(() => {
+    return columns.map((col) => {
+      return { ...col, width: columnSizes[col.id] ?? col.width };
+    });
+  }, [columns, columnSizes]);
+
   return (
     <DataEditor
       ref={ref}
       theme={gridTheme}
+      getRowThemeOverride={getRowThemeOverride}
+      gridSelection={selection}
       width="100%"
       headerHeight={42}
       rowHeight={42}
@@ -116,8 +194,12 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, DataEditorProps> = (
       smoothScrollX
       smoothScrollY
       getCellsForSelection
+      onItemHovered={onCellSelect}
+      onCellClicked={(_, args) => args.isTouch && onCellSelect(args)}
       customRenderers={interactableCustomRenderers}
       onVisibleRegionChanged={handleVisibleRegionChanged}
+      onColumnResize={resizable ? handleColumnResize : undefined}
+      columns={resizedColumns}
       {...rest}
       /**
        * icons defined via `headerIcons` are available to be drawn using
