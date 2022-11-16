@@ -22,9 +22,7 @@ export const getAllLatestLinkTypesQuery = gql`
 export const createLinkTypeMutation = gql`
   mutation createLinkType($ownedById: ID!, $linkType: LinkTypeWithoutId!) {
     createLinkType(ownedById: $ownedById, linkType: $linkType) {
-      linkTypeId
-      ownedById
-      linkType
+      # This is a scalar, which has no selection.
     }
   }
 `;
@@ -35,9 +33,7 @@ export const updateLinkTypeMutation = gql`
     $updatedLinkType: LinkTypeWithoutId!
   ) {
     updateLinkType(linkTypeId: $linkTypeId, updatedLinkType: $updatedLinkType) {
-      linkTypeId
-      ownedById
-      linkType
+      # This is a scalar, which has no selection.
     }
   }
 `;
