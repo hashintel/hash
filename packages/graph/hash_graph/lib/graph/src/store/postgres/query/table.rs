@@ -160,14 +160,14 @@ impl Entities<'_> {
             | Self::OwnedById
             | Self::CreatedById
             | Self::UpdatedById
-            | Self::EntityTypeVersionId
-            | Self::LeftOrder
-            | Self::RightOrder => false,
+            | Self::EntityTypeVersionId => false,
             Self::Properties(_)
             | Self::LeftEntityUuid
             | Self::RightEntityUuid
             | Self::LeftEntityOwnedById
-            | Self::RightEntityOwnedById => true,
+            | Self::RightEntityOwnedById
+            | Self::LeftOrder
+            | Self::RightOrder => true,
         }
     }
 }
