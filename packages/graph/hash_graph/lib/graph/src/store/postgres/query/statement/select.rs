@@ -127,14 +127,9 @@ mod tests {
     #[test]
     fn default_selection() {
         test_compilation(
-            &SelectCompiler::<DataType>::with_default_selection(),
+            &SelectCompiler::<DataType>::with_asterisk(),
             r#"
-            SELECT
-                "data_types"."schema"->>'$id',
-                "data_types"."schema",
-                "data_types"."owned_by_id",
-                "data_types"."created_by_id",
-                "data_types"."updated_by_id"
+            SELECT *
             FROM "data_types"
             "#,
             &[],
@@ -405,7 +400,7 @@ mod tests {
 
     #[test]
     fn entity_simple_query() {
-        let mut compiler = SelectCompiler::<Entity>::with_default_selection();
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk();
 
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::Uuid)),
@@ -418,14 +413,7 @@ mod tests {
         test_compilation(
             &compiler,
             r#"
-            SELECT
-                "entities"."properties",
-                "entities"."entity_uuid",
-                "entities"."version",
-                "entity_types_0_0_0"."schema"->>'$id',
-                "entities"."owned_by_id",
-                "entities"."created_by_id",
-                "entities"."updated_by_id"
+            SELECT *
             FROM "entities"
             INNER JOIN "entity_types" AS "entity_types_0_0_0"
               ON "entity_types_0_0_0"."version_id" = "entities"."entity_type_version_id"
@@ -437,7 +425,7 @@ mod tests {
 
     #[test]
     fn entity_latest_version_query() {
-        let mut compiler = SelectCompiler::<Entity>::with_default_selection();
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk();
 
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::Version)),
@@ -450,14 +438,7 @@ mod tests {
         test_compilation(
             &compiler,
             r#"
-            SELECT
-                "entities"."properties",
-                "entities"."entity_uuid",
-                "entities"."version",
-                "entity_types_0_0_0"."schema"->>'$id',
-                "entities"."owned_by_id",
-                "entities"."created_by_id",
-                "entities"."updated_by_id"
+            SELECT *
             FROM "entities"
             INNER JOIN "entity_types" AS "entity_types_0_0_0"
               ON "entity_types_0_0_0"."version_id" = "entities"."entity_type_version_id"

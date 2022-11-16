@@ -13,16 +13,6 @@ impl PostgresQueryRecord for PropertyType {
             alias: None,
         }
     }
-
-    fn default_selection_paths() -> &'static [Self::Path<'static>] {
-        &[
-            PropertyTypeQueryPath::VersionedUri,
-            PropertyTypeQueryPath::Schema,
-            PropertyTypeQueryPath::OwnedById,
-            PropertyTypeQueryPath::CreatedById,
-            PropertyTypeQueryPath::UpdatedById,
-        ]
-    }
 }
 
 impl Path for PropertyTypeQueryPath {

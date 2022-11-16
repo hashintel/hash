@@ -13,16 +13,6 @@ impl PostgresQueryRecord for DataType {
             alias: None,
         }
     }
-
-    fn default_selection_paths() -> &'static [Self::Path<'static>] {
-        &[
-            DataTypeQueryPath::VersionedUri,
-            DataTypeQueryPath::Schema,
-            DataTypeQueryPath::OwnedById,
-            DataTypeQueryPath::CreatedById,
-            DataTypeQueryPath::UpdatedById,
-        ]
-    }
 }
 
 impl Path for DataTypeQueryPath {

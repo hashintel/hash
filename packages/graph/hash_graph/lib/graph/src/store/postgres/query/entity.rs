@@ -15,18 +15,6 @@ impl PostgresQueryRecord for Entity {
             alias: None,
         }
     }
-
-    fn default_selection_paths() -> &'static [Self::Path<'static>] {
-        &[
-            EntityQueryPath::Properties(None),
-            EntityQueryPath::Uuid,
-            EntityQueryPath::Version,
-            EntityQueryPath::Type(EntityTypeQueryPath::VersionedUri),
-            EntityQueryPath::OwnedById,
-            EntityQueryPath::CreatedById,
-            EntityQueryPath::UpdatedById,
-        ]
-    }
 }
 
 impl Path for EntityQueryPath<'_> {

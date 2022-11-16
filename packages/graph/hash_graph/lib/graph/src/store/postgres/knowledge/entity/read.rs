@@ -16,7 +16,10 @@ use crate::{
     ontology::EntityTypeQueryPath,
     provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
-        crud, postgres::query::SelectCompiler, query::Filter, AsClient, PostgresStore, QueryError,
+        crud,
+        postgres::query::{Distinctness, SelectCompiler},
+        query::Filter,
+        AsClient, PostgresStore, QueryError,
     },
 };
 
@@ -24,6 +27,7 @@ use crate::{
 impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
     type Query<'q> = Filter<'q, Entity>;
 
+    #[expect(clippy::too_many_lines)]
     async fn read<'f: 'q, 'q>(
         &self,
         filter: &'f Self::Query<'q>,
@@ -39,8 +43,16 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
         let mut compiler = SelectCompiler::new();
 
         let owned_by_id_index = compiler.add_selection_path(&EntityQueryPath::OwnedById);
-        let entity_uuid_index = compiler.add_selection_path(&EntityQueryPath::Uuid);
-        let version_index = compiler.add_selection_path(&EntityQueryPath::Version);
+        let entity_uuid_index = compiler.add_distinct_selection_with_ordering(
+            &EntityQueryPath::Uuid,
+            Distinctness::Distinct,
+            None,
+        );
+        let version_index = compiler.add_distinct_selection_with_ordering(
+            &EntityQueryPath::Version,
+            Distinctness::Distinct,
+            None,
+        );
 
         let type_id_index =
             compiler.add_selection_path(&EntityQueryPath::Type(EntityTypeQueryPath::VersionedUri));

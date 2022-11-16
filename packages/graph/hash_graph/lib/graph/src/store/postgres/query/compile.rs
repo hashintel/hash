@@ -51,16 +51,6 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
         }
     }
 
-    /// Creates a new compiler, which will default to select the paths returned from
-    /// [`PostgresQueryRecord::default_selection_paths()`].
-    pub fn with_default_selection() -> SelectCompiler<'c, 'static, T> {
-        let mut default = SelectCompiler::new();
-        for path in T::default_selection_paths() {
-            default.add_selection_path(path);
-        }
-        default
-    }
-
     /// Creates a new compiler, which will select everything using the asterisk (`*`).
     pub fn with_asterisk() -> Self {
         let mut default = Self::new();
