@@ -13,4 +13,23 @@ module.exports = {
     ]),
     "import/no-extraneous-dependencies": ["error", { devDependencies: true }],
   },
+  overrides: [
+    {
+      files: ["./src/**/*.ts"],
+      rules: {
+        "no-restricted-imports": [
+          "error",
+          {
+            patterns: [
+              {
+                group: ["@hashintel/hash-backend-utils/*"],
+                message:
+                  "This package is shared by FE and BE, move backend utils here if both need them.",
+              },
+            ],
+          },
+        ],
+      },
+    },
+  ],
 };
