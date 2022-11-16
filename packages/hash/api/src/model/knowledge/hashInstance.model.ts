@@ -4,7 +4,6 @@ import {
   EntityModel,
   EntityModelCreateParams,
   UserModel,
-  LinkModel,
 } from "..";
 import { systemAccountId } from "../util";
 import { SYSTEM_TYPES } from "../../graph/system-types";
@@ -25,13 +24,16 @@ export default class extends EntityModel {
       SYSTEM_TYPES.entityType.hashInstance.schema.$id
     ) {
       throw new EntityTypeMismatchError(
-        entity.entityId,
+        entity.baseId,
         SYSTEM_TYPES.entityType.hashInstance.schema.$id,
         entity.entityTypeModel.schema.$id,
       );
     }
 
-    return new HashInstanceModel(entity);
+    return new HashInstanceModel({
+      entity,
+      entityTypeModel: entity.entityTypeModel,
+    });
   }
 
   /**

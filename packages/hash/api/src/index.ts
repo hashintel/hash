@@ -46,7 +46,7 @@ import { setupTelemetry } from "./telemetry/snowplow-setup";
 import { connectToTaskExecutor } from "./task-execution";
 import { createGraphClient } from "./graph";
 // import { seedOrgsAndUsers } from "./seed-data";
-// import { ensureSystemEntitiesExists } from "./graph/system-entities";
+import { ensureSystemEntitiesExists } from "./graph/system-entities";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
@@ -133,11 +133,7 @@ const main = async () => {
 
   await ensureSystemTypesExist({ graphApi, logger });
 
-  /**
-   * @todo: fix this when links are working
-   * @see https://app.asana.com/0/1202805690238892/1203361844133479/f
-   */
-  // await ensureSystemEntitiesExists({ graphApi, logger });
+  await ensureSystemEntitiesExists({ graphApi, logger });
 
   // This will seed users, an org and pages.
   /**
@@ -156,7 +152,7 @@ const main = async () => {
   // Parse request body as JSON - allow higher than the default 100kb limit
   app.use(json({ limit: "16mb" }));
 
-  // Set up authentication related middeware and routes
+  // Set up authentication related middleware and routes
   setupAuth({ app, graphApi, logger });
 
   // Create an email transporter
