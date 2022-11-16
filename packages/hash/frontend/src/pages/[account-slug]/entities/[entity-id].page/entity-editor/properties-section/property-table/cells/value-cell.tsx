@@ -49,7 +49,8 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
       });
     } else {
       // draw plain text
-      ctx.fillText(String(value), left, yCenter);
+      const text = Array.isArray(value) ? value.join(", ") : String(value);
+      ctx.fillText(text, left, yCenter);
     }
 
     const tooltipInteractables = drawInteractableTooltipIcons(args);
@@ -57,7 +58,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
   },
   provideEditor: () => {
     return {
-      styleOverride: { boxShadow: "none" },
+      styleOverride: { boxShadow: "none", background: "transparent" },
       disablePadding: true,
       editor: ValueCellEditor,
     };
