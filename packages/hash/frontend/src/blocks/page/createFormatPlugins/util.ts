@@ -1,6 +1,6 @@
 import { isComponentNode } from "@hashintel/hash-shared/prosemirror";
 import { InputRule } from "prosemirror-inputrules";
-import { ProsemirrorNode, Mark } from "prosemirror-model";
+import { Node, Mark } from "prosemirror-model";
 import { EditorState, TextSelection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import urlRegexSafe from "url-regex-safe";
@@ -39,18 +39,16 @@ export function isValidLink(text: string) {
 
 export function getActiveMarksWithAttrs(editorState: EditorState) {
   const activeMarks: { name: string; attrs?: Record<string, string> }[] = [];
-  editorState.selection
-    .content()
-    .content.descendants((node: ProsemirrorNode) => {
-      for (const mark of node.marks) {
-        activeMarks.push({
-          name: mark.type.name,
-          attrs: mark.attrs,
-        });
-      }
+  editorState.selection.content().content.descendants((node: Node) => {
+    for (const mark of node.marks) {
+      activeMarks.push({
+        name: mark.type.name,
+        attrs: mark.attrs,
+      });
+    }
 
-      return true;
-    });
+    return true;
+  });
 
   return activeMarks;
 }
@@ -96,8 +94,8 @@ export function removeLink(editorView: EditorView) {
 
     // For empty selection
     if ($cursor) {
-      const nodesBefore: [number, ProsemirrorNode][] = [];
-      const nodesAfter: [number, ProsemirrorNode][] = [];
+      const nodesBefore: [number, Node][] = [];
+      const nodesAfter: [number, Node][] = [];
 
       // Get sibling nodes to the left/right of the cursor
       $cursor.parent.nodesBetween(0, $cursor.parentOffset, (node, pos) => {
