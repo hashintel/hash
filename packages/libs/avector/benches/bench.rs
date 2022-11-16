@@ -501,6 +501,12 @@ fn iter_single_thread(c: &mut Criterion) {
     }
 }
 
+#[cfg(not(any(miri, loom)))]
 criterion_group!(push, push_single_thread, push_multi_thread);
+#[cfg(not(any(miri, loom)))]
 criterion_group!(iter, iter_single_thread, iter_multi_thread);
+#[cfg(not(any(miri, loom)))]
 criterion_main!(push, iter);
+
+#[cfg(any(miri, loom))]
+fn main() {}

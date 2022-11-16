@@ -78,7 +78,7 @@ use crate::{
 mod lock;
 pub(crate) mod sync;
 
-// note(bmahmoud): [PERFORMANCE] increase from 16 to 64
+// note(bm): [PERFORMANCE] increase from 16 to 64
 //  push (single/multi): ~10%-40%
 //  iter (singe/multi): ~10%
 pub struct AVec<T, const N: usize = 16> {
@@ -152,14 +152,36 @@ impl<T, const N: usize> AVec<T, N> {
         (length / N, length % N)
     }
 
+    // note(bm):
+    //  there's a potential concurrent writing method implementation possible,
+    //  which uses 3 atomics instead:
+    //      * open <- currently active pushes
+    //      * length <- currently visible length
+    //      * actual <- actual length
+    //  on every bucket: `AtomicBool`/`AtomicU8`: `next_init`
+    //      (this could potentially be replaced with another `AtomicUsize` on `AVec`,
+    //       because allocation is linear, this would be more complex)
+    //
+    //  1) whenever a process enters `push()` he increments `open` (AcqRel).
+    //  2) he immediately `fetch_add` `actual` (AcqRel), and calls set with the returned value
+    //  3) once the push has been done, decrement `open` (AcqRel), if the value of `open` is `0`
+    //     flush
+    //  4) flush: store the value of `actual` in `length`
+    //
+    //  On a bucket boundary we would need to check `next_init` (or something similar), if the value
+    //  already exists, only then we can proceed and would need to spin lock until then (or CondVar
+    //  on std?)
+    //
+    // ^ What is outlined above is complete theory, should be taken with a grain of salt and might
+    //   be experimented upon in a future release/PR.
     pub fn push(&self, value: T) {
         let _guard = self.lock.lock();
 
         // We need to use `Acquire` as this is paired with the `fetch_add` at the end, it ensures
         // that the atomic is the same across all threads.
         // We *might* be able to relax this requirement.
-        // TODO: note(bmahmoud): @td - do you think we can relax the ordering here?
-        // note(bmahmoud): [PERFORMANCE]
+        // TODO: note(bm): @td - do you think we can relax the ordering here?
+        // note(bm): [PERFORMANCE]
         //  switching from Ordering::Acquired to Ordering::Relaxed brought a
         //  performance boost of ~10%-30% in single threaded workloads, while there was no obvious
         //  change in multi-threaded workloads.
