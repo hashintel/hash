@@ -10,7 +10,7 @@ import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { Box, Container, Typography } from "@mui/material";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { NextPageWithLayout } from "../../../../shared/layout";
 import { getPlainLayout } from "../../../../shared/layout/plain-layout";
@@ -31,6 +31,7 @@ import {
   EntityTypeEntitiesContext,
   useEntityTypeEntitiesContextValue,
 } from "./use-entity-type-entities";
+import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
 import {
   PropertyTypesContext,
   usePropertyTypesContextValue,
@@ -78,6 +79,7 @@ const Page: NextPageWithLayout = () => {
   // @todo how to handle remote types
   const isDraft = !!router.query.draft;
   const namespace = useRouteNamespace();
+  const { authenticatedUser } = useAuthenticatedUser();
 
   const entityTypeId = router.query["entity-type-id"] as string;
   const baseEntityTypeUri = !isDraft
@@ -108,7 +110,12 @@ const Page: NextPageWithLayout = () => {
   });
   const { handleSubmit: wrapHandleSubmit, reset } = formMethods;
 
-  const [remoteEntityType, updateEntityType, publishDraft] = useEntityTypeValue(
+  const [
+    remoteEntityType,
+    updateEntityType,
+    publishDraft,
+    { loading: loadingRemoteEntityType },
+  ] = useEntityTypeValue(
     baseEntityTypeUri,
     namespace?.id,
     (fetchedEntityType) => {
@@ -131,6 +138,33 @@ const Page: NextPageWithLayout = () => {
   );
 
   const entityType = remoteEntityType ?? draftEntityType;
+
+  useEffect(() => {
+    if (authenticatedUser && !namespace) {
+      void router.replace(
+        `/@${authenticatedUser.shortname}/types/new/entity-type`,
+      );
+    }
+  }, [authenticatedUser, namespace, router]);
+
+  useEffect(() => {
+    if (authenticatedUser && !namespace) {
+      void router.replace(
+        `/@${authenticatedUser.shortname}/types/new/entity-type`,
+      );
+      return;
+    }
+
+    if (!loadingRemoteEntityType && !entityType) {
+      void router.replace(`/@${namespace?.shortname}/types/new/entity-type`);
+    }
+  }, [
+    router,
+    loadingRemoteEntityType,
+    authenticatedUser,
+    namespace,
+    entityType,
+  ]);
 
   const handleSubmit = wrapHandleSubmit(async (data) => {
     if (!entityType) {
