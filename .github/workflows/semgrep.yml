@@ -1,16 +1,15 @@
 name: Semgrep
 
 on:
-
   # Scan changed files in PRs (diff-aware scanning):
   pull_request: {}
-  
+
   # Scan mainline and `dev/*` trunks to report all findings:
   push:
     branches:
       - main
       - dev/*
-      
+
   schedule:
     - cron: "30 0 1,15 * *" # scheduled for 00:30 UTC on both the 1st and 15th of the month
 
@@ -28,7 +27,6 @@ jobs:
     if: (github.actor != 'dependabot[bot]')
 
     steps:
-    
       - uses: actions/checkout@v3
         name: Check-out Git project source
 
@@ -36,16 +34,15 @@ jobs:
         name: Run Semgrep
         env:
           SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
-          
+
       - name: Check SARIF file exists following Semgrep run
         id: sarif_file_check
         uses: andstor/file-existence-action@v2
         with:
-           files: "semgrep.sarif"
+          files: "semgrep.sarif"
 
       - name: Upload SARIF file for GitHub Advanced Security Dashboard
         uses: github/codeql-action/upload-sarif@v2
         with:
           sarif_file: semgrep.sarif
         if: always()
-        
