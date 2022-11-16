@@ -10,6 +10,7 @@ import {
   Item,
   GridColumn,
   SizedGridColumn,
+  GetRowThemeCallback,
 } from "@glideapps/glide-data-grid";
 import { useTheme } from "@mui/material";
 import {
@@ -22,7 +23,6 @@ import {
   useState,
 } from "react";
 import { uniqueId } from "lodash";
-import { GetRowThemeCallback } from "@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-render";
 import { getCellHorizontalPadding } from "./utils";
 import { customGridIcons } from "./utils/custom-grid-icons";
 import { InteractableManager } from "./utils/interactable-manager";
