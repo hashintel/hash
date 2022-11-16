@@ -71,7 +71,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
             .change_context(QueryError)?
             .map(|row| row.into_report().change_context(QueryError))
             .and_then(|row| async move {
-                let entity: EntityProperties = serde_json::from_value(row.get(properties_index))
+                let properties: EntityProperties = serde_json::from_value(row.get(properties_index))
                     .into_report()
                     .change_context(QueryError)?;
                 let entity_type_uri = VersionedUri::from_str(row.get(type_id_index))
@@ -122,7 +122,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                 let updated_by_id = UpdatedById::new(row.get(updated_by_id_index));
 
                 Ok(Entity::new(
-                    entity,
+                    properties,
                     EntityEditionId::new(
                         EntityId::new(owned_by_id, entity_uuid),
                         row.get(version_index),

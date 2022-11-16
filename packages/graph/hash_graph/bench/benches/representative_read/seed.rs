@@ -128,7 +128,7 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
 
     let mut total_entities = 0;
     for (entity_type_str, entity_str, quantity) in SEED_ENTITIES {
-        let entity: EntityProperties =
+        let properties: EntityProperties =
             serde_json::from_str(entity_str).expect("could not parse entity");
         let entity_type_id = EntityType::from_str(entity_type_str)
             .expect("could not parse entity type")
@@ -137,7 +137,7 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
 
         store
             .insert_entities_batched_by_type(
-                repeat((None, entity)).take(quantity),
+                repeat((None, properties)).take(quantity),
                 entity_type_id,
                 OwnedById::new(account_id),
                 CreatedById::new(account_id),

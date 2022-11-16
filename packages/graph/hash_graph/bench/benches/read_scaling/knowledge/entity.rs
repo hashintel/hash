@@ -65,7 +65,7 @@ async fn seed_db(
     )
     .await;
 
-    let entity: EntityProperties =
+    let properties: EntityProperties =
         serde_json::from_str(entity::BOOK_V1).expect("could not parse entity");
     let entity_type_id = EntityType::from_str(entity_type::BOOK_V1)
         .expect("could not parse entity type")
@@ -74,7 +74,7 @@ async fn seed_db(
 
     let entity_uuids = store
         .insert_entities_batched_by_type(
-            repeat((None, entity)).take(total),
+            repeat((None, properties)).take(total),
             entity_type_id,
             OwnedById::new(account_id),
             CreatedById::new(account_id),

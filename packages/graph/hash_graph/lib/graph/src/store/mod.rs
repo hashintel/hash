@@ -330,12 +330,12 @@ pub trait EntityStore: for<'q> crud::Read<Entity, Query<'q> = Filter<'q, Entity>
     /// # Errors:
     ///
     /// - if the [`EntityType`] doesn't exist
-    /// - if the [`Entity`] is not valid with respect to the specified [`EntityType`]
+    /// - if the [`EntityProperties`] is not valid with respect to the specified [`EntityType`]
     /// - if the account referred to by `owned_by_id` does not exist
     /// - if an [`EntityUuid`] was supplied and already exists in the store
     async fn create_entity(
         &mut self,
-        entity: EntityProperties,
+        properties: EntityProperties,
         entity_type_id: VersionedUri,
         owned_by_id: OwnedById,
         entity_uuid: Option<EntityUuid>,
@@ -392,7 +392,7 @@ pub trait EntityStore: for<'q> crud::Read<Entity, Query<'q> = Filter<'q, Entity>
     async fn update_entity(
         &mut self,
         entity_id: EntityId,
-        entity: EntityProperties,
+        properties: EntityProperties,
         entity_type_id: VersionedUri,
         actor_id: UpdatedById,
     ) -> Result<EntityMetadata, UpdateError>;

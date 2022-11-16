@@ -843,7 +843,7 @@ where
     async fn insert_entity(
         &self,
         entity_id: EntityId,
-        entity: EntityProperties,
+        properties: EntityProperties,
         entity_type_id: VersionedUri,
         created_by_id: CreatedById,
         updated_by_id: UpdatedById,
@@ -857,7 +857,7 @@ where
         // TODO: Validate entity against entity type
         //  https://app.asana.com/0/0/1202629282579257/f
 
-        let value = serde_json::to_value(entity)
+        let value = serde_json::to_value(properties)
             .into_report()
             .change_context(InsertionError)?;
         let version = self

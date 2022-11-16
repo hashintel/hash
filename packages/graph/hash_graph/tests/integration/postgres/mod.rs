@@ -265,13 +265,13 @@ impl DatabaseApi<'_> {
 
     pub async fn create_entity(
         &mut self,
-        entity: EntityProperties,
+        properties: EntityProperties,
         entity_type_id: VersionedUri,
         entity_uuid: Option<EntityUuid>,
     ) -> Result<EntityMetadata, InsertionError> {
         self.store
             .create_entity(
-                entity,
+                properties,
                 entity_type_id,
                 OwnedById::new(self.account_id),
                 entity_uuid,
@@ -304,13 +304,13 @@ impl DatabaseApi<'_> {
     pub async fn update_entity(
         &mut self,
         entity_id: EntityId,
-        entity: EntityProperties,
+        properties: EntityProperties,
         entity_type_id: VersionedUri,
     ) -> Result<EntityMetadata, UpdateError> {
         self.store
             .update_entity(
                 entity_id,
-                entity,
+                properties,
                 entity_type_id,
                 UpdatedById::new(self.account_id),
             )
@@ -319,7 +319,7 @@ impl DatabaseApi<'_> {
 
     async fn create_link_entity(
         &mut self,
-        entity: EntityProperties,
+        properties: EntityProperties,
         entity_type_id: VersionedUri,
         entity_uuid: Option<EntityUuid>,
         left_entity_id: EntityId,
@@ -327,7 +327,7 @@ impl DatabaseApi<'_> {
     ) -> Result<EntityMetadata, InsertionError> {
         self.store
             .create_entity(
-                entity,
+                properties,
                 entity_type_id,
                 OwnedById::new(self.account_id),
                 entity_uuid,
