@@ -2628,6 +2628,59 @@ export const EntityApiAxiosParamCreator = function (
   return {
     /**
      *
+     * @param {ArchiveEntityRequest} archiveEntityRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    archiveEntity: async (
+      archiveEntityRequest: ArchiveEntityRequest,
+      options: AxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      // verify required parameter 'archiveEntityRequest' is not null or undefined
+      assertParamExists(
+        "archiveEntity",
+        "archiveEntityRequest",
+        archiveEntityRequest,
+      );
+      const localVarPath = `/entities/archive`;
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
+
+      const localVarRequestOptions = {
+        method: "POST",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      localVarHeaderParameter["Content-Type"] = "application/json";
+
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
+      localVarRequestOptions.data = serializeDataIfNeeded(
+        archiveEntityRequest,
+        localVarRequestOptions,
+        configuration,
+      );
+
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
      * @param {CreateEntityRequest} createEntityRequest
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -2880,6 +2933,29 @@ export const EntityApiFp = function (configuration?: Configuration) {
   return {
     /**
      *
+     * @param {ArchiveEntityRequest} archiveEntityRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    async archiveEntity(
+      archiveEntityRequest: ArchiveEntityRequest,
+      options?: AxiosRequestConfig,
+    ): Promise<
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>
+    > {
+      const localVarAxiosArgs = await localVarAxiosParamCreator.archiveEntity(
+        archiveEntityRequest,
+        options,
+      );
+      return createRequestFunction(
+        localVarAxiosArgs,
+        globalAxios,
+        BASE_PATH,
+        configuration,
+      );
+    },
+    /**
+     *
      * @param {CreateEntityRequest} createEntityRequest
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -3006,6 +3082,20 @@ export const EntityApiFactory = function (
   return {
     /**
      *
+     * @param {ArchiveEntityRequest} archiveEntityRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    archiveEntity(
+      archiveEntityRequest: ArchiveEntityRequest,
+      options?: any,
+    ): AxiosPromise<void> {
+      return localVarFp
+        .archiveEntity(archiveEntityRequest, options)
+        .then((request) => request(axios, basePath));
+    },
+    /**
+     *
      * @param {CreateEntityRequest} createEntityRequest
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -3078,6 +3168,18 @@ export const EntityApiFactory = function (
 export interface EntityApiInterface {
   /**
    *
+   * @param {ArchiveEntityRequest} archiveEntityRequest
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof EntityApiInterface
+   */
+  archiveEntity(
+    archiveEntityRequest: ArchiveEntityRequest,
+    options?: AxiosRequestConfig,
+  ): AxiosPromise<void>;
+
+  /**
+   *
    * @param {CreateEntityRequest} createEntityRequest
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
@@ -3140,6 +3242,22 @@ export interface EntityApiInterface {
  * @extends {BaseAPI}
  */
 export class EntityApi extends BaseAPI implements EntityApiInterface {
+  /**
+   *
+   * @param {ArchiveEntityRequest} archiveEntityRequest
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof EntityApi
+   */
+  public archiveEntity(
+    archiveEntityRequest: ArchiveEntityRequest,
+    options?: AxiosRequestConfig,
+  ) {
+    return EntityApiFp(this.configuration)
+      .archiveEntity(archiveEntityRequest, options)
+      .then((request) => request(this.axios, this.basePath));
+  }
+
   /**
    *
    * @param {CreateEntityRequest} createEntityRequest
@@ -3840,6 +3958,59 @@ export const GraphApiAxiosParamCreator = function (
   configuration?: Configuration,
 ) {
   return {
+    /**
+     *
+     * @param {ArchiveEntityRequest} archiveEntityRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    archiveEntity: async (
+      archiveEntityRequest: ArchiveEntityRequest,
+      options: AxiosRequestConfig = {},
+    ): Promise<RequestArgs> => {
+      // verify required parameter 'archiveEntityRequest' is not null or undefined
+      assertParamExists(
+        "archiveEntity",
+        "archiveEntityRequest",
+        archiveEntityRequest,
+      );
+      const localVarPath = `/entities/archive`;
+      // use dummy base URL string because the URL constructor only accepts absolute URLs.
+      const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+      let baseOptions;
+      if (configuration) {
+        baseOptions = configuration.baseOptions;
+      }
+
+      const localVarRequestOptions = {
+        method: "POST",
+        ...baseOptions,
+        ...options,
+      };
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      localVarHeaderParameter["Content-Type"] = "application/json";
+
+      setSearchParams(localVarUrlObj, localVarQueryParameter);
+      let headersFromBaseOptions =
+        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      localVarRequestOptions.headers = {
+        ...localVarHeaderParameter,
+        ...headersFromBaseOptions,
+        ...options.headers,
+      };
+      localVarRequestOptions.data = serializeDataIfNeeded(
+        archiveEntityRequest,
+        localVarRequestOptions,
+        configuration,
+      );
+
+      return {
+        url: toPathString(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
     /**
      *
      * @param {*} [options] Override http request option.
@@ -4858,6 +5029,29 @@ export const GraphApiFp = function (configuration?: Configuration) {
   return {
     /**
      *
+     * @param {ArchiveEntityRequest} archiveEntityRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    async archiveEntity(
+      archiveEntityRequest: ArchiveEntityRequest,
+      options?: AxiosRequestConfig,
+    ): Promise<
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>
+    > {
+      const localVarAxiosArgs = await localVarAxiosParamCreator.archiveEntity(
+        archiveEntityRequest,
+        options,
+      );
+      return createRequestFunction(
+        localVarAxiosArgs,
+        globalAxios,
+        BASE_PATH,
+        configuration,
+      );
+    },
+    /**
+     *
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -5380,6 +5574,20 @@ export const GraphApiFactory = function (
   return {
     /**
      *
+     * @param {ArchiveEntityRequest} archiveEntityRequest
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    archiveEntity(
+      archiveEntityRequest: ArchiveEntityRequest,
+      options?: any,
+    ): AxiosPromise<void> {
+      return localVarFp
+        .archiveEntity(archiveEntityRequest, options)
+        .then((request) => request(axios, basePath));
+    },
+    /**
+     *
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -5666,6 +5874,18 @@ export const GraphApiFactory = function (
 export interface GraphApiInterface {
   /**
    *
+   * @param {ArchiveEntityRequest} archiveEntityRequest
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApiInterface
+   */
+  archiveEntity(
+    archiveEntityRequest: ArchiveEntityRequest,
+    options?: AxiosRequestConfig,
+  ): AxiosPromise<void>;
+
+  /**
+   *
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof GraphApiInterface
@@ -5910,6 +6130,22 @@ export interface GraphApiInterface {
  * @extends {BaseAPI}
  */
 export class GraphApi extends BaseAPI implements GraphApiInterface {
+  /**
+   *
+   * @param {ArchiveEntityRequest} archiveEntityRequest
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof GraphApi
+   */
+  public archiveEntity(
+    archiveEntityRequest: ArchiveEntityRequest,
+    options?: AxiosRequestConfig,
+  ) {
+    return GraphApiFp(this.configuration)
+      .archiveEntity(archiveEntityRequest, options)
+      .then((request) => request(this.axios, this.basePath));
+  }
+
   /**
    *
    * @param {*} [options] Override http request option.
