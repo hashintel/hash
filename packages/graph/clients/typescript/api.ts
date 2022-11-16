@@ -128,12 +128,6 @@ export interface CreateEntityRequest {
   actorId: string;
   /**
    *
-   * @type {object}
-   * @memberof CreateEntityRequest
-   */
-  entity: object;
-  /**
-   *
    * @type {string}
    * @memberof CreateEntityRequest
    */
@@ -156,6 +150,12 @@ export interface CreateEntityRequest {
    * @memberof CreateEntityRequest
    */
   ownedById: string;
+  /**
+   *
+   * @type {object}
+   * @memberof CreateEntityRequest
+   */
+  properties: object;
 }
 /**
  *
@@ -1658,12 +1658,6 @@ export interface UpdateEntityRequest {
   actorId: string;
   /**
    *
-   * @type {object}
-   * @memberof UpdateEntityRequest
-   */
-  entity: object;
-  /**
-   *
    * @type {string}
    * @memberof UpdateEntityRequest
    */
@@ -1674,6 +1668,12 @@ export interface UpdateEntityRequest {
    * @memberof UpdateEntityRequest
    */
   entityTypeId: string;
+  /**
+   *
+   * @type {object}
+   * @memberof UpdateEntityRequest
+   */
+  properties: object;
 }
 /**
  * The contents of an Entity Type update request
