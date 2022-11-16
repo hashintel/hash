@@ -12,7 +12,7 @@ import {
 } from "@blockprotocol/type-system-web";
 import { PrimitiveDataTypeKey, types } from "@hashintel/hash-shared/types";
 import { AxiosError } from "axios";
-import { EntityTypeModel, LinkTypeModel, PropertyTypeModel } from ".";
+import { EntityTypeModel, PropertyTypeModel } from ".";
 import { GraphApi } from "../graph";
 import { logger } from "../logger";
 
@@ -234,14 +234,15 @@ export type EntityTypeCreatorParams = {
     array?: { minItems?: number; maxItems?: number } | boolean;
   }[];
   outgoingLinks: {
-    linkTypeModel: LinkTypeModel;
+    linkEntityTypeModel: EntityTypeModel;
     destinationEntityTypeModels: (
       | EntityTypeModel
       // Some models may reference themselves. This marker is used to stop infinite loops during initialization by telling the initializer to use a self reference
       | "SELF_REFERENCE"
     )[];
     required?: boolean;
-    array?: { minItems?: number; maxItems?: number } | boolean;
+    minItems?: number;
+    maxItems?: number;
     ordered?: boolean;
   }[];
   actorId: string;
@@ -249,9 +250,6 @@ export type EntityTypeCreatorParams = {
 
 /**
  * Helper method for generating an entity type schema for the Graph API.
- *
- * @todo make use of new type system package instead of ad-hoc types.
- *   https://app.asana.com/0/1202805690238892/1202892835843657/f
  */
 export const generateSystemEntityTypeSchema = (
   params: EntityTypeCreatorParams,
@@ -281,42 +279,38 @@ export const generateSystemEntityTypeSchema = (
           (
             prev,
             {
-              linkTypeModel,
+              linkEntityTypeModel,
               destinationEntityTypeModels,
-              array,
               ordered = false,
+              minItems,
+              maxItems,
             },
-          ) => {
-            const oneOf = {
-              oneOf: destinationEntityTypeModels.map(
-                (entityTypeModelOrReference) => ({
-                  $ref:
-                    entityTypeModelOrReference === "SELF_REFERENCE"
-                      ? params.entityTypeId
-                      : entityTypeModelOrReference.schema.$id,
-                }),
-              ),
-            };
-
-            return {
-              ...prev,
-              [linkTypeModel.schema.$id]: array
-                ? {
-                    type: "array",
-                    items: oneOf,
-                    ordered,
-                    ...(array === true ? {} : array),
-                  }
-                : oneOf,
-            };
-          },
+          ): EntityType["links"] => ({
+            ...prev,
+            [linkEntityTypeModel.schema.$id]: {
+              type: "array",
+              ordered,
+              items: {
+                oneOf: destinationEntityTypeModels.map(
+                  (entityTypeModelOrReference) => ({
+                    $ref:
+                      entityTypeModelOrReference === "SELF_REFERENCE"
+                        ? params.entityTypeId
+                        : entityTypeModelOrReference.schema.$id,
+                  }),
+                ),
+              },
+              minItems,
+              maxItems,
+            },
+          }),
           {},
         )
       : undefined;
 
   const requiredLinks = params.outgoingLinks
     .filter(({ required }) => !!required)
-    .map(({ linkTypeModel }) => linkTypeModel.schema.$id);
+    .map(({ linkEntityTypeModel }) => linkEntityTypeModel.schema.$id);
 
   return {
     $id: params.entityTypeId,
@@ -330,6 +324,32 @@ export const generateSystemEntityTypeSchema = (
   };
 };
 
+export type LinkEntityTypeCreatorParams = {
+  linkEntityTypeId: VersionedUri;
+  title: string;
+  description: string;
+  actorId: string;
+};
+
+const linkEntityTypeUri: VersionedUri =
+  "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1";
+
+/**
+ * Helper method for generating a link entity type schema for the Graph API.
+ */
+export const generateSystemLinkEntityTypeSchema = (
+  params: LinkEntityTypeCreatorParams,
+): EntityType => {
+  return {
+    kind: "entityType",
+    $id: params.linkEntityTypeId,
+    type: "object",
+    title: params.title,
+    allOf: [{ $ref: linkEntityTypeUri }],
+    properties: {},
+  };
+};
+
 /**
  * Returns a function which can be used to initialize a given entity type. This asynchronous design allows us to express
  * dependencies between types in a lazy fashion, where the dependencies can be initialized as they're encountered. (This is
@@ -339,7 +359,7 @@ export const generateSystemEntityTypeSchema = (
  * @returns an async function which can be called to initialize the entity type, returning its EntityTypeModel
  */
 export const entityTypeInitializer = (
-  params: EntityTypeCreatorParams,
+  params: EntityTypeCreatorParams | LinkEntityTypeCreatorParams,
 ): ((graphApi: GraphApi) => Promise<EntityTypeModel>) => {
   let entityTypeModel: EntityTypeModel;
 
@@ -351,7 +371,10 @@ export const entityTypeInitializer = (
         `entity type ${params.title} was uninitialized, and function was called without passing a graphApi object`,
       );
     } else {
-      const entityType = generateSystemEntityTypeSchema(params);
+      const entityType =
+        "linkEntityTypeId" in params
+          ? generateSystemLinkEntityTypeSchema(params)
+          : generateSystemEntityTypeSchema(params);
 
       // initialize
       entityTypeModel = await EntityTypeModel.get(graphApi, {
@@ -379,84 +402,3 @@ export const entityTypeInitializer = (
     }
   };
 };
-
-export type LinkTypeCreatorParams = {
-  linkTypeId: string;
-  title: string;
-  description: string;
-  relatedKeywords?: string[];
-  actorId: string;
-};
-
-/**
- * @todo: remove or refactor this method when link types equivalent is working
- * @see https://app.asana.com/0/1202805690238892/1203361844133477/f
- */
-// /**
-//  * Helper method for generating a link type schema for the Graph API.
-//  *
-//  * @todo make use of new type system package instead of ad-hoc types.
-//  *   https://app.asana.com/0/1202805690238892/1202892835843657/f
-//  */
-// export const generateSystemLinkTypeSchema = (
-//   params: LinkTypeCreatorParams,
-// ): LinkType => {
-//   return {
-//     kind: "linkType",
-//     $id: params.linkTypeId,
-//     title: params.title,
-//     pluralTitle: params.title,
-//     description: params.description,
-//     relatedKeywords: params.relatedKeywords,
-//   };
-// };
-
-// /**
-//  * Returns a function which can be used to initialize a given link type. This asynchronous design allows us to express
-//  * dependencies between types in a lazy fashion, where the dependencies can be initialized as they're encountered. (This is
-//  * likely to cause problems if we introduce circular dependencies)
-//  *
-//  * @param params the data required to create a new link type
-//  * @returns an async function which can be called to initialize the entity type, returning its LinkTypeModel
-//  */
-// export const linkTypeInitializer = (
-//   params: LinkTypeCreatorParams,
-// ): ((graphApi: GraphApi) => Promise<LinkTypeModel>) => {
-//   let linkTypeModel: LinkTypeModel;
-
-//   return async (graphApi?: GraphApi) => {
-//     if (linkTypeModel) {
-//       return linkTypeModel;
-//     } else if (graphApi == null) {
-//       throw new Error(
-//         `link type ${params.title} was uninitialized, and function was called without passing a graphApi object`,
-//       );
-//     } else {
-//       const linkType = generateSystemLinkTypeSchema(params);
-
-//       // initialize
-//       linkTypeModel = await LinkTypeModel.get(graphApi, {
-//         linkTypeId: linkType.$id,
-//       }).catch(async (error: AxiosError) => {
-//         if (error.response?.status === 404) {
-//           // The type was missing, try and create it
-//           return await LinkTypeModel.create(graphApi, {
-//             ownedById: systemAccountId,
-//             schema: linkType,
-//             actorId: params.actorId,
-//           }).catch((createError: AxiosError) => {
-//             logger.warn(`Failed to create link type: ${params.title}`);
-//             throw createError;
-//           });
-//         } else {
-//           logger.warn(
-//             `Failed to check existence of link type: ${params.title}`,
-//           );
-//           throw error;
-//         }
-//       });
-
-//       return linkTypeModel;
-//     }
-//   };
-// };

@@ -4,7 +4,7 @@ import { frontendUrl } from "./config";
 
 const systemNamespaceName = "example";
 
-type SchemaKind = "data-type" | "property-type" | "entity-type" | "link-type";
+type SchemaKind = "data-type" | "property-type" | "entity-type";
 
 /** Slugify the title of a type */
 export const slugifyTypeTitle = (title: string): string =>
@@ -223,9 +223,9 @@ export type SystemPropertyTypeTitle =
   typeof systemPropertyTypes[SystemPropertyTypeKey]["title"];
 
 /**
- * The system link type titles.
+ * The system link entity type titles.
  */
-const systemLinkTypes = {
+const systemLinkEntityTypes = {
   hasMembership: {
     title: "Has Membership",
     description: "Having a membership.",
@@ -260,9 +260,10 @@ const systemLinkTypes = {
   },
 } as const;
 
-type SystemLinkTypeKey = keyof typeof systemLinkTypes;
+type SystemLinkEntityTypeKey = keyof typeof systemLinkEntityTypes;
 
-export type SystemLinkTypeTitle = typeof systemLinkTypes[SystemLinkTypeKey];
+export type SystemLinkEntityTypeTitle =
+  typeof systemLinkEntityTypes[SystemLinkEntityTypeKey];
 
 /**
  * The primitive data types ("Text", "Number", etc.)
@@ -310,15 +311,15 @@ type PropertyTypeDefinition = TypeDefinition & { propertyTypeId: VersionedUri };
 
 type DataTypeDefinition = TypeDefinition & { dataTypeId: VersionedUri };
 
-type LinkTypeDefinition = TypeDefinition & {
-  linkTypeId: VersionedUri;
+type LinkEntityTypeDefinition = TypeDefinition & {
+  linkEntityTypeId: VersionedUri;
   description: string;
 };
 
 type TypeDefinitions = {
   entityType: Record<SystemEntityTypeKey, EntityTypeDefinition>;
+  linkEntityType: Record<SystemLinkEntityTypeKey, LinkEntityTypeDefinition>;
   propertyType: Record<SystemPropertyTypeKey, PropertyTypeDefinition>;
-  linkType: Record<SystemLinkTypeKey, LinkTypeDefinition>;
   dataType: Record<PrimitiveDataTypeKey, DataTypeDefinition>;
 };
 
@@ -368,19 +369,19 @@ export const types: TypeDefinitions = {
     },
     {} as Record<PrimitiveDataTypeKey, DataTypeDefinition>,
   ),
-  linkType: Object.entries(systemLinkTypes).reduce(
+  linkEntityType: Object.entries(systemLinkEntityTypes).reduce(
     (prev, [key, { title, description }]) => {
-      const definition: LinkTypeDefinition = {
+      const definition: LinkEntityTypeDefinition = {
         title,
         description,
-        linkTypeId: generateSystemTypeId({
-          kind: "link-type",
+        linkEntityTypeId: generateSystemTypeId({
+          kind: "entity-type",
           title,
         }),
       };
 
       return { ...prev, [key]: definition };
     },
-    {} as Record<SystemLinkTypeKey, LinkTypeDefinition>,
+    {} as Record<SystemLinkEntityTypeKey, LinkEntityTypeDefinition>,
   ),
 };
