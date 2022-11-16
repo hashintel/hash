@@ -5,14 +5,9 @@ import {
   PropertyTypeVertex,
 } from "@hashintel/hash-shared/graphql/types";
 import { EntityType, PropertyType } from "@blockprotocol/type-system-web";
-import {
-  EntityTypeModel,
-  LinkTypeModel,
-  PropertyTypeModel,
-} from "../../../model";
+import { EntityTypeModel, PropertyTypeModel } from "../../../model";
 import {
   PersistedEntityType as PersistedEntityTypeGql,
-  PersistedLinkType as PersistedLinkTypeGql,
   PersistedPropertyType as PersistedPropertyTypeGql,
   Subgraph as SubgraphGql,
 } from "../../apiTypes.gen";
@@ -24,15 +19,6 @@ export const mapPropertyTypeModelToGQL = (
   accountId: propertyType.ownedById,
   propertyTypeId: propertyType.schema.$id,
   propertyType: propertyType.schema,
-});
-
-export const mapLinkTypeModelToGQL = (
-  linkType: LinkTypeModel,
-): PersistedLinkTypeGql => ({
-  ownedById: linkType.ownedById,
-  accountId: linkType.ownedById,
-  linkTypeId: linkType.schema.$id,
-  linkType: linkType.schema,
 });
 
 export const mapEntityTypeModelToGQL = (
@@ -64,7 +50,6 @@ export const mapSubgraphToGql = (subgraph: Subgraph): SubgraphGql => {
         switch (vertex.kind) {
           // These types are compatible with the Type System package's types
           case "dataType":
-          case "linkType":
           case "link": {
             return [identifier, vertex];
           }

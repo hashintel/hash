@@ -32,9 +32,6 @@ export type OntologyCallbacks = {
   getEntityType: GetEntityTypeMessageCallback;
   updateEntityType: UpdateEntityTypeMessageCallback;
   createLinkType: CreateLinkTypeMessageCallback;
-  aggregateLinkTypes: AggregateLinkTypesMessageCallback;
-  getLinkType: GetLinkTypeMessageCallback;
-  updateLinkType: UpdateLinkTypeMessageCallback;
 };
 
 /* Shared types */
@@ -150,46 +147,5 @@ export type UpdateEntityTypeMessageCallback = MessageCallback<
   UpdateEntityTypeRequest,
   null,
   EntityTypeResponse,
-  ReadOrModifyResourceError
->;
-
-/* Link type CRU */
-
-export type LinkTypeResponse = Response<"linkType", LinkType>;
-
-export type CreateLinkTypeRequest = {
-  linkType: Omit<LinkType, "$id">;
-};
-export type CreateLinkTypeMessageCallback = MessageCallback<
-  CreateLinkTypeRequest,
-  null,
-  LinkTypeResponse,
-  CreateResourceError
->;
-
-export type AggregateLinkTypesRequest = {};
-export type AggregateLinkTypesMessageCallback = MessageCallback<
-  AggregateLinkTypesRequest,
-  null,
-  Subgraph,
-  ReadOrModifyResourceError
->;
-
-export type GetLinkTypeRequest = Pick<LinkTypeResponse, "linkTypeId">;
-export type GetLinkTypeMessageCallback = MessageCallback<
-  GetLinkTypeRequest,
-  null,
-  Subgraph,
-  ReadOrModifyResourceError
->;
-
-export type UpdateLinkTypeRequest = {
-  linkTypeId: string;
-  linkType: Omit<LinkType, "$id">;
-};
-export type UpdateLinkTypeMessageCallback = MessageCallback<
-  UpdateLinkTypeRequest,
-  null,
-  LinkTypeResponse,
   ReadOrModifyResourceError
 >;
