@@ -53,7 +53,8 @@ use crate::{
         get_entities_by_query,
         get_entity,
         get_latest_entities,
-        update_entity
+        update_entity,
+        archive_entity
     ),
     components(
         schemas(
