@@ -68,7 +68,7 @@
 extern crate alloc;
 
 use alloc::boxed::Box;
-use core::{cell::UnsafeCell, mem::MaybeUninit, ptr};
+use core::{cell::UnsafeCell, mem::MaybeUninit, ops::Index, ptr};
 
 use crate::{
     lock::AtomicLock,
@@ -102,7 +102,7 @@ pub struct AVec<T, const N: usize = 16> {
     head: UnsafeCell<Bucket<T, N>>,
 }
 
-impl<T, const N: usize> Default for AVec<T, N> {
+impl<T> Default for AVec<T, 16> {
     fn default() -> Self {
         Self::new()
     }
@@ -205,6 +205,45 @@ impl<T, const N: usize> AVec<T, N> {
     pub fn iter(&self) -> Iter<'_, T, N> {
         Iter::new(self)
     }
+
+    pub fn len(&self) -> usize {
+        self.length.load(Ordering::Relaxed)
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    pub fn get(&self, index: usize) -> Option<&T> {
+        let len = self.len();
+        if index >= len {
+            None
+        } else {
+            let (node, offset) = Self::indices(index);
+
+            // SAFETY:
+            // * if statement checks that the item has been initialized
+            // * node and offset are calculated via `Self::indices`
+            let item = unsafe { (*self.head.get()).get(node, offset) };
+
+            Some(item)
+        }
+    }
+}
+
+impl<T, const N: usize> Index<usize> for AVec<T, N> {
+    type Output = T;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        self.get(index).map_or_else(
+            || {
+                // This message is copied from the default output for rust array access
+                let len = self.len();
+                panic!("index out of bounds: the len is {len} but the index is {index}")
+            },
+            |value| value,
+        )
+    }
 }
 
 struct Bucket<T, const N: usize> {
@@ -299,6 +338,18 @@ impl<T, const N: usize> Bucket<T, N> {
                 .set(node - 1, offset, value);
         }
     }
+
+    /// # Safety
+    ///
+    /// `get` can only be called on an index that has already been initialized, the value of `node`
+    /// and `offset` must be supplied from [`AVec::indices`]
+    unsafe fn get(&self, node: usize, offset: usize) -> &T {
+        if node == 0 {
+            self.store.get_unchecked(offset).assume_init_ref()
+        } else {
+            self.next.as_ref().unwrap_unchecked().get(node - 1, offset)
+        }
+    }
 }
 
 pub struct Iter<'a, T, const N: usize> {
@@ -350,6 +401,38 @@ mod tests {
     use alloc::{vec, vec::Vec};
 
     use super::AVec;
+
+    #[test]
+    #[cfg(not(loom))]
+    fn get() {
+        let vec = AVec::default();
+        for n in u8::MIN..=u8::MAX {
+            vec.push(n);
+        }
+
+        assert_eq!(vec.get(0), Some(&0));
+        assert_eq!(vec.get(16), Some(&16));
+        assert_eq!(vec.get(256), None);
+    }
+
+    #[test]
+    #[cfg(not(loom))]
+    fn index() {
+        let vec = AVec::default();
+        vec.push(1);
+
+        assert_eq!(vec[0], 1);
+    }
+
+    #[test]
+    #[should_panic]
+    #[cfg(not(loom))]
+    fn index_panic() {
+        let vec = AVec::default();
+        vec.push(1);
+
+        assert_eq!(vec[1], 1);
+    }
 
     #[test]
     #[cfg(not(loom))]
@@ -451,9 +534,10 @@ mod tests {
             let v1 = loom::sync::Arc::clone(&v);
             threads.push(loom::thread::spawn(move || {
                 for _ in 0..N {
-                    core::hint::black_box(|| {
-                        let _items: Vec<_> = v1.iter().copied().collect();
-                    })();
+                    core::hint::black_box(loom::sync::Arc::as_ptr(&v1));
+                    let items: Vec<_> = v1.iter().copied().collect();
+                    core::hint::black_box(items.as_ptr());
+                    core::hint::black_box(loom::sync::Arc::as_ptr(&v1));
                 }
             }));
 
