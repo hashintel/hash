@@ -1,6 +1,6 @@
 import { BaseUri, VersionedUri } from "@blockprotocol/type-system-web";
 import slugify from "slugify";
-import { SYSTEM_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
+import { SYSTEM_ACCOUNT_SHORTNAME } from "@hashintel/hash-shared/environment";
 import { frontendUrl } from "./environment";
 
 type SchemaKind = "data-type" | "property-type" | "entity-type" | "link-type";
