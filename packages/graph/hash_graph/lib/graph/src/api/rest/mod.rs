@@ -36,7 +36,7 @@ use utoipa::{
 use self::api_resource::RoutedResource;
 use crate::{
     api::rest::middleware::log_request_and_response,
-    ontology::domain_validator::DomainValidator,
+    ontology::{domain_validator::DomainValidator, Selector},
     store::{crud::Read, QueryError, StorePool},
 };
 
@@ -158,11 +158,16 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
 
 #[derive(OpenApi)]
 #[openapi(
-        tags(
-            (name = "Graph", description = "HASH Graph API")
-        ),
-        modifiers(&MergeAddon, &ExternalRefAddon, &OperationGraphTagAddon, &FilterSchemaAddon)
-    )]
+    tags(
+        (name = "Graph", description = "HASH Graph API")
+    ),
+    modifiers(&MergeAddon, &ExternalRefAddon, &OperationGraphTagAddon, &FilterSchemaAddon),
+    components(
+        schemas(
+            Selector,
+        )
+    ),
+)]
 struct OpenApiDocumentation;
 
 /// Addon to merge multiple [`OpenApi`] documents together.
@@ -302,7 +307,6 @@ impl Modify for OperationGraphTagAddon {
 struct FilterSchemaAddon;
 
 impl Modify for FilterSchemaAddon {
-    #[expect(clippy::too_many_lines)]
     fn modify(&self, openapi: &mut openapi::OpenApi) {
         if let Some(ref mut components) = openapi.components {
             components.schemas.insert(
@@ -375,7 +379,8 @@ impl Modify for FilterSchemaAddon {
                                             .item(Ref::from_schema_name("DataTypeQueryToken"))
                                             .item(Ref::from_schema_name("PropertyTypeQueryToken"))
                                             .item(Ref::from_schema_name("EntityTypeQueryToken"))
-                                            .item(Ref::from_schema_name("EntityQueryToken")),
+                                            .item(Ref::from_schema_name("EntityQueryToken"))
+                                            .item(Ref::from_schema_name("Selector")),
                                     ),
                                 )
                                 .required("path"),

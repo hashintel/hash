@@ -1321,7 +1321,7 @@ export interface ParameterExpression {
 export interface PathExpression {
   /**
    *
-   * @type {Array<DataTypeQueryToken | PropertyTypeQueryToken | EntityTypeQueryToken | EntityQueryToken>}
+   * @type {Array<DataTypeQueryToken | PropertyTypeQueryToken | EntityTypeQueryToken | EntityQueryToken | Selector>}
    * @memberof PathExpression
    */
   path: Array<
@@ -1329,6 +1329,7 @@ export interface PathExpression {
     | PropertyTypeQueryToken
     | EntityTypeQueryToken
     | EntityQueryToken
+    | Selector
   >;
 }
 /**
@@ -1604,6 +1605,18 @@ export interface ProvenanceMetadata {
    */
   updatedById: string;
 }
+/**
+ *
+ * @export
+ * @enum {string}
+ */
+
+export const Selector = {
+  Star: "*",
+} as const;
+
+export type Selector = typeof Selector[keyof typeof Selector];
+
 /**
  *
  * @export
