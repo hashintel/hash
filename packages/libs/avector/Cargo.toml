@@ -12,9 +12,6 @@ publish = false
 criterion = { version = "0.4.0", features = ['html_reports'] }
 
 # Benchmark targets
-sharded-slab = "0.1.4"
-scc = "0.11.2"
-appendlist = "1.4.0"
 intrusive-collections = "0.9.4"
 im = "15.1.0"
 

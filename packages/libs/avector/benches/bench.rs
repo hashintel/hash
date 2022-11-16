@@ -1,7 +1,5 @@
 //! Benchmark usecases against:
-//! * (std) sharded-slab
-//! * (std) scc
-//! * (std) appendlist
+//! * (alloc) built-in Vec
 //! * (std) intrusive-collections
 //! * (std) im
 use std::{
@@ -77,31 +75,6 @@ fn push_multi_thread(c: &mut Criterion) {
 
                         for idx in 0..i {
                             let mut guard = slab.write().unwrap();
-
-                            guard.push(idx);
-                        }
-                    });
-
-                    total += elapsed;
-                }
-
-                total
-            });
-        });
-
-        group.bench_with_input(BenchmarkId::new("appendlist", i), i, |b, &i| {
-            b.iter_custom(|iters| {
-                let mut total = Duration::from_secs(0);
-
-                for _ in 0..iters {
-                    let slab = Mutex::new(appendlist::AppendList::new());
-                    let bench = MultithreadedBench::<_, 5>::new(Arc::new(slab));
-
-                    let elapsed = bench.run(move |start, slab| {
-                        start.wait();
-
-                        for idx in 0..i {
-                            let guard = slab.lock().unwrap();
 
                             guard.push(idx);
                         }
@@ -205,14 +178,6 @@ fn push_single_thread(c: &mut Criterion) {
             });
         });
 
-        group.bench_with_input(BenchmarkId::new("appendlist", i), i, |b, &i| {
-            b.iter_with_setup(appendlist::AppendList::<usize>::new, |slab| {
-                for idx in 0..i {
-                    slab.push(idx);
-                }
-            });
-        });
-
         group.bench_with_input(BenchmarkId::new("intrusive-collections", i), i, |b, &i| {
             b.iter_with_setup(
                 || intrusive_collections::LinkedList::new(EntryAdapter::new()),
@@ -269,35 +234,6 @@ fn iter_multi_thread(c: &mut Criterion) {
                         start.wait();
 
                         let lock = slab.read().unwrap();
-                        let items: Vec<_> = lock.iter().copied().collect();
-                        black_box(items);
-                    });
-
-                    total += elapsed;
-                }
-
-                total
-            });
-        });
-
-        group.bench_with_input(BenchmarkId::new("appendlist", i), i, |b, &i| {
-            b.iter_custom(|iters| {
-                let mut total = Duration::from_secs(0);
-
-                let slab = appendlist::AppendList::new();
-                for idx in 0..i {
-                    slab.push(idx);
-                }
-                let slab = Mutex::new(slab);
-                let slab = Arc::new(slab);
-
-                for _ in 0..iters {
-                    let bench = MultithreadedBench::<_, 5>::new(Arc::clone(&slab));
-
-                    let elapsed = bench.run(move |start, slab| {
-                        start.wait();
-
-                        let lock = slab.lock().unwrap();
                         let items: Vec<_> = lock.iter().copied().collect();
                         black_box(items);
                     });
@@ -416,24 +352,6 @@ fn iter_single_thread(c: &mut Criterion) {
                 },
                 |slab| {
                     #[allow(clippy::iter_cloned_collect)]
-                    let items: Vec<_> = slab.iter().copied().collect();
-                    black_box(items);
-                },
-            );
-        });
-
-        group.bench_with_input(BenchmarkId::new("appendlist", i), i, |b, &i| {
-            b.iter_with_setup(
-                || {
-                    let slab = appendlist::AppendList::<usize>::new();
-
-                    for idx in 0..i {
-                        slab.push(idx);
-                    }
-
-                    slab
-                },
-                |slab| {
                     let items: Vec<_> = slab.iter().copied().collect();
                     black_box(items);
                 },
