@@ -8,7 +8,7 @@ import { getCellHorizontalPadding } from "../../../../components/GlideGlid/utils
 import { drawTextWithIcon } from "../../../../components/GlideGlid/utils/draw-text-with-icon";
 
 export interface TextIconCellProps {
-  readonly kind: "value-icon-cell";
+  readonly kind: "text-icon-cell";
   value: string;
   icon: CustomIcon;
 }
