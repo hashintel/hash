@@ -32,17 +32,8 @@ export const EntityEditorContextProvider = ({
   setEntity,
   children,
 }: PropsWithChildren<EntityEditorProps>) => {
-  const [propertySort, setPropertySort] = useState<Props["propertySort"]>({
-    key: "title",
-    dir: "asc",
-  });
   const [propertyExpandStatus, setPropertyExpandStatus] =
     useState<TableExpandStatus>({});
-
-  const [linkSort, setLinkSort] = useState<Props["linkSort"]>({
-    key: "type",
-    dir: "asc",
-  });
 
   const togglePropertyExpand = useCallback((id: string) => {
     setPropertyExpandStatus((status) => {
@@ -54,20 +45,12 @@ export const EntityEditorContextProvider = ({
     () => ({
       rootEntityAndSubgraph,
       setEntity,
-      propertySort,
-      setPropertySort,
-      linkSort,
-      setLinkSort,
       propertyExpandStatus,
       togglePropertyExpand,
     }),
     [
       rootEntityAndSubgraph,
       setEntity,
-      propertySort,
-      setPropertySort,
-      linkSort,
-      setLinkSort,
       propertyExpandStatus,
       togglePropertyExpand,
     ],

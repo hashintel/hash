@@ -12,92 +12,92 @@ import { getTooltipsOfPropertyRow } from "./get-tooltips-of-property-row";
 import { PropertyRow } from "./types";
 
 export const useGetCellContent = (
-  rowData: PropertyRow[],
   showTooltip: UseGridTooltipResponse["showTooltip"],
   hideTooltip: UseGridTooltipResponse["hideTooltip"],
 ) => {
   const getCellContent = useCallback(
-    ([col, row]: Item): GridCell => {
-      const property = rowData[row];
+    (rowData: PropertyRow[]) =>
+      ([col, row]: Item): GridCell | undefined => {
+        const property = rowData[row];
 
-      const hasChild = !!property?.children.length;
+        const hasChild = !!property?.children.length;
 
-      if (!property) {
-        throw new Error("property not found");
-      }
+        if (!property) {
+          throw new Error("property not found");
+        }
 
-      const columnKey = propertyGridIndexes[col];
+        const columnKey = propertyGridIndexes[col];
 
-      if (!columnKey) {
-        throw new Error("columnKey not found");
-      }
+        if (!columnKey) {
+          throw new Error("columnKey not found");
+        }
 
-      switch (columnKey) {
-        case "title":
-          return {
-            kind: GridCellKind.Custom,
-            allowOverlay: false,
-            readonly: true,
-            copyData: property.title,
-            data: {
-              kind: "property-name-cell",
-              property,
-            } as PropertyNameCellProps,
-          };
-
-        case "value":
-          if (hasChild) {
-            const { emptyCount, notEmptyCount } = getPropertyCountSummary(
-              property.value,
-            );
-
-            const valuesCount = notEmptyCount || "none";
-            const valueWord = notEmptyCount === 1 ? "a value" : "values";
-
+        switch (columnKey) {
+          case "title":
             return {
               kind: GridCellKind.Custom,
               allowOverlay: false,
-              copyData: "",
+              readonly: true,
+              copyData: property.title,
               data: {
-                kind: "summary-chip-cell",
-                primaryText: `${emptyCount + notEmptyCount} properties`,
-                secondaryText: `(${valuesCount} with ${valueWord})`,
-              } as SummaryChipCellProps,
+                kind: "property-name-cell",
+                property,
+              } as PropertyNameCellProps,
             };
-          }
 
-          return {
-            kind: GridCellKind.Custom,
-            allowOverlay: true,
-            copyData: String(property.value),
-            cursor: "pointer",
-            data: {
-              kind: "value-cell",
-              tooltips: getTooltipsOfPropertyRow(property),
-              showTooltip,
-              hideTooltip,
-              property,
-            } as ValueCellProps,
-          };
+          case "value":
+            if (hasChild) {
+              const { emptyCount, notEmptyCount } = getPropertyCountSummary(
+                property.value,
+              );
 
-        case "dataTypes":
-          if (hasChild) {
-            return blankCell;
-          }
+              const valuesCount = notEmptyCount || "none";
+              const valueWord = notEmptyCount === 1 ? "a value" : "values";
 
-          return {
-            kind: GridCellKind.Custom,
-            allowOverlay: true,
-            readonly: true,
-            copyData: String(property.dataTypes),
-            data: {
-              kind: "chip-cell",
-              chips: property.dataTypes,
-            } as ChipCellProps,
-          };
-      }
-    },
-    [rowData, showTooltip, hideTooltip],
+              return {
+                kind: GridCellKind.Custom,
+                allowOverlay: false,
+                copyData: "",
+                data: {
+                  kind: "summary-chip-cell",
+                  primaryText: `${emptyCount + notEmptyCount} properties`,
+                  secondaryText: `(${valuesCount} with ${valueWord})`,
+                } as SummaryChipCellProps,
+              };
+            }
+
+            return {
+              kind: GridCellKind.Custom,
+              allowOverlay: true,
+              copyData: String(property.value),
+              cursor: "pointer",
+              data: {
+                kind: "value-cell",
+                tooltips: getTooltipsOfPropertyRow(property),
+                showTooltip,
+                hideTooltip,
+                property,
+              } as ValueCellProps,
+            };
+
+          case "dataTypes":
+            if (hasChild) {
+              return blankCell;
+            }
+
+            return {
+              kind: GridCellKind.Custom,
+              allowOverlay: true,
+              readonly: true,
+              copyData: String(property.dataTypes),
+              data: {
+                kind: "chip-cell",
+                chips: property.dataTypes,
+              } as ChipCellProps,
+            };
+        }
+      },
+    [showTooltip, hideTooltip],
   );
 
   return getCellContent;

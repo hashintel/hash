@@ -1,8 +1,5 @@
 import { GlideGrid } from "../../../../../../components/GlideGlid/glide-grid";
-import { createHandleHeaderClicked } from "../../../../../../components/GlideGlid/utils/sorting";
 import { useDrawCell } from "../../../../../../components/GlideGlid/utils/use-draw-cell";
-import { useDrawHeader } from "../../../../../../components/GlideGlid/utils/use-draw-header";
-import { useEntityEditor } from "../entity-editor-context";
 import { linkGridColumns } from "./link-table/constants";
 import { useGetCellContent } from "./link-table/use-get-cell-content";
 import { useRowData } from "./link-table/use-row-data";
@@ -13,25 +10,15 @@ interface LinkTableProps {
 }
 
 export const LinkTable = ({ showSearch, onSearchClose }: LinkTableProps) => {
-  const { linkSort, setLinkSort } = useEntityEditor();
   const rowData = useRowData();
-  const drawHeader = useDrawHeader(linkSort, linkGridColumns);
   const drawCell = useDrawCell();
-  const getCellContent = useGetCellContent(rowData);
-
-  const handleHeaderClicked = createHandleHeaderClicked(
-    linkGridColumns,
-    linkSort,
-    setLinkSort,
-  );
+  const getCellContent = useGetCellContent();
 
   return (
     <GlideGrid
       columns={linkGridColumns}
-      rows={rowData.length}
+      rowData={rowData}
       getCellContent={getCellContent}
-      onHeaderClicked={handleHeaderClicked}
-      drawHeader={drawHeader}
       drawCell={drawCell}
       showSearch={showSearch}
       onSearchClose={onSearchClose}

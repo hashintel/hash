@@ -16,7 +16,7 @@ import { TableExpandStatus } from "../../entity-editor-context";
  * ```
  */
 export const flattenExpandedItemsOfTree = <
-  T extends { children: T[]; rowId: string },
+  T extends { children?: T[]; rowId?: string },
 >(
   tree: T[],
   expandStatus: TableExpandStatus,
@@ -25,13 +25,14 @@ export const flattenExpandedItemsOfTree = <
 
   for (const item of tree) {
     flattened.push(item);
+    if (item.rowId && item.children) {
+      const expanded = expandStatus[item.rowId];
 
-    const expanded = expandStatus[item.rowId];
-
-    if (expanded) {
-      flattened.push(
-        ...flattenExpandedItemsOfTree(item.children, expandStatus),
-      );
+      if (expanded) {
+        flattened.push(
+          ...flattenExpandedItemsOfTree(item.children, expandStatus),
+        );
+      }
     }
   }
 
