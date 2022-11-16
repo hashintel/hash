@@ -1,28 +1,9 @@
 import { gql } from "apollo-server-express";
 
 export const entityTypeTypedef = gql`
-  scalar EntityType
+  # scalar EntityType
   scalar EntityTypeWithoutId
-
-  type PersistedEntityType {
-    """
-    The specific versioned URI of the entity type
-    """
-    entityTypeId: String!
-    """
-    The id of the account that owns this entity type.
-    """
-    ownedById: ID!
-    """
-    Alias of ownedById - the id of the account that owns this entity type.
-    """
-    accountId: ID!
-      @deprecated(reason: "accountId is deprecated. Use ownedById instead.")
-    """
-    The entity type
-    """
-    entityType: EntityType!
-  }
+  scalar EntityTypeWithMetadata
 
   extend type Query {
     """
@@ -57,7 +38,7 @@ export const entityTypeTypedef = gql`
       """
       ownedById: ID
       entityType: EntityTypeWithoutId!
-    ): PersistedEntityType!
+    ): EntityTypeWithMetadata!
 
     """
     Update a entity type.
@@ -71,6 +52,6 @@ export const entityTypeTypedef = gql`
       New entity type schema contents to be used.
       """
       updatedEntityType: EntityTypeWithoutId!
-    ): PersistedEntityType!
+    ): EntityTypeWithMetadata!
   }
 `;

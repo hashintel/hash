@@ -27,6 +27,7 @@
     "@hashintel/hash-backend-utils": "0.0.0-private",
     "@hashintel/hash-graph-client": "0.0.0-private",
     "@hashintel/hash-shared": "0.0.0-private",
+    "@hashintel/subgraph": "0.0.0-private",
     "@ory/client": "0.2.0-alpha.4",
     "@ory/integrations": "0.2.6",
     "@ory/kratos-client": "0.10.1",
