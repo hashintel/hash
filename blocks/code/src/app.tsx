@@ -1,14 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { tw } from "twind";
 
 import {
   BlockComponent,
   useGraphBlockService,
 } from "@blockprotocol/graph/react";
-
+import styles from "./app.module.css";
 import { CopyIcon } from "./icons";
 import { languages, LanguageType } from "./utils";
-import { Editor } from "./components/editor";
+import { Editor } from "./editor";
 
 type BlockEntityProperties = {
   caption?: string;
@@ -130,15 +129,11 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   };
 
   return (
-    <div className={tw`w-full`} ref={blockRef}>
-      <div
-        className={tw`group px-10 pt-12 pb-3 relative bg-yellow-100 bg-opacity-50 mb-1`}
-      >
-        <div
-          className={tw`transition-all invisible opacity-0 visible opacity-100 group-hover:visible group-hover:opacity-100 absolute top-2 left-4 right-4 flex justify-between text-xs text-gray-500`}
-        >
+    <div className={styles.block} ref={blockRef}>
+      <div className={styles.blockInnerWrapper}>
+        <div className={styles.topPanel}>
           <select
-            className={tw`py-1 px-2 bg-transparent cursor-pointer hover:bg-black hover:bg-opacity-10 rounded-md `}
+            className={styles.languageSelect}
             value={localData.language}
             onChange={(evt) =>
               handleLanguageChange(evt.target.value as LanguageType)
@@ -151,19 +146,18 @@ export const App: BlockComponent<BlockEntityProperties> = ({
             ))}
           </select>
 
-          <div className={tw`flex`}>
+          <div className={styles.buttonContainer}>
             <button
               type="button"
-              className={tw`mr-2 bg-black flex items-center bg-opacity-10 hover:bg-opacity-20 px-2 py-1 rounded-md`}
+              className={styles.copyToClipboardButton}
               onClick={copyToClipboard}
             >
-              <span className={tw`mr-1`}>{copied ? "Copied" : "Copy"}</span>{" "}
-              <CopyIcon />
+              <span>{copied ? "Copied" : "Copy"}</span> <CopyIcon />
             </button>
             {!readonly && (
               <button
                 type="button"
-                className={tw`bg-black bg-opacity-10 hover:bg-opacity-20 px-2 py-1 rounded-md`}
+                className={styles.captionButton}
                 onClick={handleCaptionButtonClick}
               >
                 Caption
@@ -182,9 +176,8 @@ export const App: BlockComponent<BlockEntityProperties> = ({
       </div>
       <input
         ref={captionRef}
-        className={tw`text-sm text-gray-400 outline-none w-full ${
-          captionIsVisible ? "" : "invisible"
-        }`}
+        className={styles.caption}
+        style={captionIsVisible ? {} : { visibility: "hidden" }}
         placeholder="Write a caption..."
         value={localData.caption ?? ""}
         onChange={(evt) => updateLocalData({ caption: evt.target.value })}

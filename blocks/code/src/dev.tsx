@@ -2,10 +2,10 @@
  * This is the entry point for developing and debugging.
  * This file is not bundled with the library during the build process.
  */
-import { render } from "react-dom";
-import { tw } from "twind";
+import { createRoot } from "react-dom/client";
 import { MockBlockDock } from "mock-block-dock";
 
+import packageJSON from "../package.json";
 import Component from "./index";
 
 const node = document.getElementById("app");
@@ -18,16 +18,19 @@ const initialData = {
   language: "javascript",
 };
 
-const App = () => {
+const DevApp = () => {
   return (
-    <div className={tw`mx-auto mt-14 max-w-3xl`}>
-      <MockBlockDock
-        blockDefinition={{ ReactComponent: Component }}
-        blockEntity={{ entityId: "entity-code", properties: initialData }}
-        debug
-      />
-    </div>
+    <MockBlockDock
+      blockDefinition={{ ReactComponent: Component }}
+      blockEntity={{ entityId: "entity-code", properties: initialData }}
+      blockInfo={packageJSON.blockprotocol}
+      debug
+    />
   );
 };
 
-render(<App />, node);
+if (node) {
+  createRoot(node).render(<DevApp />);
+} else {
+  throw new Error("Unable to find DOM element with id 'app'");
+}
