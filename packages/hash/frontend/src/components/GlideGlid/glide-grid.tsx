@@ -78,7 +78,7 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, GlideGridProps> = (
 
   const [propertySort, setPropertySort] = useState<TableSort<string>>(
     initialPropertySort ?? {
-      key: columns[0]?.id ?? "title",
+      key: columns[0]?.id ?? "",
       dir: "asc",
     },
   );
