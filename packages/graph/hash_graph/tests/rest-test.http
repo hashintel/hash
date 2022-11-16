@@ -336,7 +336,7 @@ Accept: application/json
 {
   "ownedById": "{{account_id}}",
   "actorId": "{{account_id}}",
-  "entity": {
+  "properties": {
     "http://localhost:3000/@alice/types/property-type/name/": "Alice"
   },
   "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/1"
@@ -369,7 +369,7 @@ Accept: application/json
  "actorId": "{{account_id}}",
  "entityId": "{{person_a_entity_id}}",
  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2",
- "entity": {
+ "properties": {
    "http://localhost:3000/@alice/types/property-type/name/": "Alice Allison"
  }
 }
@@ -388,7 +388,7 @@ Accept: application/json
 {
   "ownedById": "{{account_id}}",
   "actorId": "{{account_id}}",
-  "entity": {
+  "properties": {
     "http://localhost:3000/@alice/types/property-type/name/": "Bob"
   },
   "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/1"
@@ -456,7 +456,7 @@ Accept: application/json
 {
   "ownedById": "{{account_id}}",
   "actorId": "{{account_id}}",
-  "entity": {},
+  "properties": {},
   "entityTypeId": "{{friendship_link_entity_type_id}}",
   "linkMetadata": {
     "leftEntityId": "{{person_a_entity_id}}",
