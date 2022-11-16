@@ -16,8 +16,8 @@ use utoipa::{OpenApi, ToSchema};
 use crate::{
     api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
     knowledge::{
-        Entity, EntityMetadata, EntityProperties, EntityQueryToken, EntityUuid, LinkEntityMetadata,
-        LinkOrder,
+        Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryToken, EntityUuid,
+        LinkEntityMetadata, LinkOrder,
     },
     provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
     shared::{
@@ -71,6 +71,7 @@ use crate::{
             EntityIdAndTimestamp,
             EntityMetadata,
             Entity,
+            EntityLinkOrder,
             EntityProperties,
             EntityVersion,
             EntityStructuralQuery,
@@ -331,6 +332,8 @@ struct UpdateEntityRequest {
     #[schema(value_type = String)]
     entity_type_id: VersionedUri,
     actor_id: UpdatedById,
+    #[serde(flatten)]
+    order: EntityLinkOrder,
 }
 
 #[utoipa::path(
@@ -355,6 +358,7 @@ async fn update_entity<P: StorePool + Send>(
         entity_id,
         entity_type_id,
         actor_id,
+        order,
     }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -363,7 +367,7 @@ async fn update_entity<P: StorePool + Send>(
     })?;
 
     store
-        .update_entity(entity_id, properties, entity_type_id, actor_id)
+        .update_entity(entity_id, properties, entity_type_id, actor_id, order)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update entity");

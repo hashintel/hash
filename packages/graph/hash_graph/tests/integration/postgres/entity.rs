@@ -1,4 +1,4 @@
-use graph::knowledge::EntityProperties;
+use graph::knowledge::{EntityLinkOrder, EntityProperties};
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use type_system::uri::{BaseUri, VersionedUri};
 
@@ -115,6 +115,7 @@ async fn update() {
                     .expect("couldn't construct Base URI"),
                 1,
             ),
+            EntityLinkOrder::new(None, None),
         )
         .await
         .expect("could not update entity");
