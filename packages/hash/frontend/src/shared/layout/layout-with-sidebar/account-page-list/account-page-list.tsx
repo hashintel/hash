@@ -181,7 +181,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     setOverId(over?.id ?? null);
   };
 
-  const handleDragEnd = async ({ active, over }: DragEndEvent) => {
+  const handleDragEnd = ({ active, over }: DragEndEvent) => {
     resetState();
 
     if (projected && over) {

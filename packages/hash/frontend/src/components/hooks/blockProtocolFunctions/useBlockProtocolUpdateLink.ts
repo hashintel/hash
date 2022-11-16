@@ -6,7 +6,7 @@ export const useBlockProtocolUpdateLink = (): {
   updateLink: EmbedderGraphMessageCallbacks["updateLink"];
 } => {
   const updateLink: EmbedderGraphMessageCallbacks["updateLink"] = useCallback(
-    async (_actions) => {
+    (_actions) => {
       throw new Error("Updating single links via linkId not yet implemented.");
     },
     [],

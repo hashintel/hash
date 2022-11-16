@@ -15,7 +15,7 @@ interface DragProps {
   attributes?: DraggableAttributes;
   listeners?: Record<string, Function>;
   style?: CSSProperties;
-  wrapperRef?(node: HTMLLIElement): void;
+  wrapperRef?(this: void, node: HTMLLIElement): void;
 }
 export interface PageTreeItemProps {
   id: string;

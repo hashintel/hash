@@ -150,8 +150,9 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
       );
       convertedEntityTypesForProvidedEntities.push(
         ...convertApiEntityTypesToBpEntityTypes(
+          /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
           linkedAggregation.results.map(
-            /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
             ({ entityType: resultEntityType }: { entityType: any }) =>
               resultEntityType,
           ),

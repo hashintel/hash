@@ -71,6 +71,7 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
 
   useHookEmbedderService(wrapperRef, {
     callbacks: {
+      // eslint-disable-next-line @typescript-eslint/require-await -- async is required upstream
       async hook({ data }) {
         if (data?.type === "text" && data.path === "$.text") {
           editableRef?.(data.node);
