@@ -4,6 +4,7 @@ use serde::{
     de::{self, SeqAccess, Visitor},
     Deserialize, Deserializer,
 };
+use utoipa::ToSchema;
 
 use crate::{
     knowledge::Entity,
@@ -329,7 +330,7 @@ impl RecordPath for EntityQueryPath<'_> {
 }
 
 /// A single token in an [`EntityQueryPath`].
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub enum EntityQueryToken {
     // TODO: we want to expose `EntityId` here instead

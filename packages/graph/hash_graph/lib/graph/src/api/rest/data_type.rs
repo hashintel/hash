@@ -20,7 +20,7 @@ use crate::{
     identifier::ontology::OntologyTypeEditionId,
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, DataTypeWithMetadata, OntologyElementMetadata,
+        patch_id_and_parse, DataTypeQueryToken, DataTypeWithMetadata, OntologyElementMetadata,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
     shared::{
@@ -56,6 +56,7 @@ use crate::{
             OntologyElementMetadata,
             DataTypeWithMetadata,
             DataTypeStructuralQuery,
+            DataTypeQueryToken,
             GraphElementId,
             GraphElementEditionId,
             Vertices,
