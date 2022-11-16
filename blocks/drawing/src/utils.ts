@@ -10,6 +10,7 @@ import { TDDocument, TDExport, TldrawApp } from "@tldraw/tldraw";
 export const handleExport = async (
   _: TldrawApp,
   info: TDExport,
+  // eslint-disable-next-line @typescript-eslint/require-await -- @tldraw/tldraw types define onExport as async
 ): Promise<void> => {
   const blobUrl = URL.createObjectURL(info.blob);
   const link = document.createElement("a");
@@ -48,6 +49,6 @@ export const getInitialDocument = (
   entityId: string,
 ): TDDocument => {
   return isValidSerializedDocument(serializedDocument)
-    ? JSON.parse(serializedDocument)
+    ? (JSON.parse(serializedDocument) as TDDocument)
     : getDefaultDocument(entityId);
 };

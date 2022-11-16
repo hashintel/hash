@@ -1,8 +1,20 @@
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/cells/cell-types.d.ts b/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/cells/cell-types.d.ts
+index ba1b224..3a3c15b 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/cells/cell-types.d.ts
++++ b/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/cells/cell-types.d.ts
+@@ -18,6 +18,7 @@ export interface BaseDrawArgs {
+ }
+ /** @category Drawing */
+ export interface DrawArgs<T extends InnerGridCell> extends BaseDrawArgs {
++    tableId: string;
+     cell: T;
+ }
+ /** @category Drawing */
 diff --git a/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites.d.ts b/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites.d.ts
-index f13ff02..034dfeb 100644
+index f13ff02..d0eb371 100644
 --- a/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites.d.ts
 +++ b/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-sprites.d.ts
-@@ -1,6 +1,13 @@
+@@ -1,6 +1,15 @@
  import type { Theme } from "../common/styles";
  import { HeaderIconMap } from "./sprites";
  declare type HeaderIcon = keyof HeaderIconMap;
@@ -12,11 +24,13 @@ index f13ff02..034dfeb 100644
 +  | "bpAsteriskCircle"
 +  | "bpAsterisk"
 +  | "bpChevronRight"
++  | "bpCheck"
++  | "bpCross"
 +  | "bpChevronDown";
  declare type Sprite = HeaderIconMap["headerArray"];
  /** @category Columns */
  export declare type SpriteMap = Record<string | HeaderIcon, Sprite>;
-@@ -13,7 +20,7 @@ export declare class SpriteManager {
+@@ -13,7 +22,7 @@ export declare class SpriteManager {
      private headerIcons;
      private inFlight;
      constructor(headerIcons: SpriteMap | undefined, onSettled: () => void);
@@ -26,3 +40,28 @@ index f13ff02..034dfeb 100644
  export {};
  //# sourceMappingURL=data-grid-sprites.d.ts.map
 \ No newline at end of file
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-types.d.ts b/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-types.d.ts
+index ac3954b..bda979b 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-types.d.ts
++++ b/node_modules/@glideapps/glide-data-grid/dist/ts/data-grid/data-grid-types.d.ts
+@@ -224,7 +224,7 @@ export declare function isSizedGridColumn(c: GridColumn): c is SizedGridColumn;
+ /** @category Columns */
+ export interface SizedGridColumn extends BaseGridColumn {
+     readonly width: number;
+-    readonly id?: string;
++    readonly id: string;
+ }
+ /** @category Columns */
+ export interface AutoGridColumn extends BaseGridColumn {
+diff --git a/node_modules/@glideapps/glide-data-grid/dist/ts/index.d.ts b/node_modules/@glideapps/glide-data-grid/dist/ts/index.d.ts
+index 8758cad..af65974 100644
+--- a/node_modules/@glideapps/glide-data-grid/dist/ts/index.d.ts
++++ b/node_modules/@glideapps/glide-data-grid/dist/ts/index.d.ts
+@@ -15,6 +15,7 @@ export { measureTextCached, getMiddleCenterBias, drawTextCellExternal as drawTex
+ export { getDataEditorTheme as getDefaultTheme, useTheme } from "./common/styles";
+ export { useColumnSizer } from "./data-editor/use-column-sizer";
+ export { useCustomCells } from "./data-editor/use-custom-cells";
++export { GetRowThemeCallback } from "./data-grid/data-grid-render";
+ /**
+  * @category DataEditor
+  * @hidden

@@ -1,4 +1,4 @@
-import { NodeType, ProsemirrorNode, Schema, Slice } from "prosemirror-model";
+import { NodeType, Node, Slice } from "prosemirror-model";
 
 // /**
 //  * Prosemirror doesn't know to convert hard breaks into new line characters
@@ -10,12 +10,12 @@ import { NodeType, ProsemirrorNode, Schema, Slice } from "prosemirror-model";
 //  * @todo look into whether this is needed for mentions and for links
 //  */
 export const clipboardTextSerializer =
-  (lineBreakNodetype?: NodeType<Schema>) => (slice: Slice<Schema>) => {
+  (lineBreakNodetype?: NodeType) => (slice: Slice) => {
     return slice.content.textBetween(
       0,
       slice.content.size,
       "\n\n",
-      (node: ProsemirrorNode<Schema>) => {
+      (node: Node) => {
         if (node.type === lineBreakNodetype) {
           return "\n";
         }

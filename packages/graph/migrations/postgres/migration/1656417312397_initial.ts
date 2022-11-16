@@ -3,7 +3,7 @@ import { stripNewLines } from "../util";
 
 export const shorthands: ColumnDefinitions | undefined = undefined;
 
-export async function up(pgm: MigrationBuilder): Promise<void> {
+export const up = (pgm: MigrationBuilder): void => {
   pgm.createTable(
     "accounts",
     {
@@ -534,7 +534,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
     UNION ALL
     SELECT owned_by_id, entity_uuid, version, FALSE as latest_version, entity_type_version_id, properties, left_owned_by_id, left_entity_uuid, right_owned_by_id, right_entity_uuid, left_order, right_order, archived, created_by_id, updated_by_id FROM entity_histories`,
   );
-}
+};
 
 // A down migration would cause data loss.
 export const down = false;

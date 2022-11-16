@@ -18,9 +18,9 @@ import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
 import { ReactNode, useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { frontendUrl } from "@hashintel/hash-shared/environment";
 import { useBlockProtocolGetEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
 import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
-import { FRONTEND_URL } from "../../../../lib/config";
 import { useInitTypeSystem } from "../../../../lib/use-init-type-system";
 import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
 import { TopContextBar } from "../../../shared/top-context-bar";
@@ -96,7 +96,7 @@ const Page: NextPageWithLayout = () => {
     }
 
     return generateBaseTypeId({
-      domain: FRONTEND_URL,
+      domain: frontendUrl,
       namespace: namespace.shortname ?? "",
       kind: "entity-type",
       title: value,

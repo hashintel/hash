@@ -50,6 +50,19 @@ export default class extends EntityModel {
   static async createOrg(graphApi: GraphApi, params: OrgModelCreateParams) {
     const { shortname, name, providedInfo, actorId } = params;
 
+    if (AccountFields.shortnameIsInvalid(shortname)) {
+      throw new Error(`The shortname "${shortname}" is invalid`);
+    }
+
+    if (
+      AccountFields.shortnameIsRestricted(shortname) ||
+      (await AccountFields.shortnameIsTaken(graphApi, { shortname }))
+    ) {
+      throw new Error(
+        `An account with shortname "${shortname}" already exists.`,
+      );
+    }
+
     const { data: orgAccountId } = await graphApi.createAccountId();
 
     const properties: object = {

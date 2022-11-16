@@ -50,7 +50,7 @@
     "lint:prettier": "prettier --check --ignore-unknown .",
     "lint:tsc": "turbo run --continue lint:tsc",
     "lint:yarn-deduplicate": "yarn-deduplicate --fail --list --strategy=fewer",
-    "postinstall": "patch-package && husky install && yarn codegen",
+    "postinstall": "patch-package --error-on-warn && husky install && yarn codegen",
     "seed-data:opensearch": "yarn workspace @hashintel/hash-search-loader clear-opensearch",
     "seed-data:redis": "yarn workspace @hashintel/hash-realtime clear-redis",
     "seed-data": "concurrently \"yarn:seed-data:*\"",

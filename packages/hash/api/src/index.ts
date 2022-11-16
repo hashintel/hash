@@ -27,6 +27,7 @@ import { ensureSystemTypesExist } from "./graph/system-types";
 import {
   AwsSesEmailTransporter,
   DummyEmailTransporter,
+  EmailTransporter,
 } from "./email/transporters";
 import { createApolloServer } from "./graphql/createApolloServer";
 import { CORS_CONFIG, FILE_UPLOAD_PROVIDER } from "./lib/config";
@@ -138,6 +139,14 @@ const main = async () => {
    */
   // await ensureSystemEntitiesExists({ graphApi, logger });
 
+  // This will seed users, an org and pages.
+  /**
+   * @todo: fix this when links are working
+   * @see https://app.asana.com/0/1202805690238892/1203361844133479/f
+   */
+  // // Configurable through environment variables.
+  // await seedOrgsAndUsers({ graphApi, logger });
+
   // Set sensible default security headers: https://www.npmjs.com/package/helmet
   // Temporarily disable contentSecurityPolicy for the GraphQL playground
   // Longer-term we can set rules which allow only the playground to load
@@ -149,15 +158,6 @@ const main = async () => {
 
   // Set up authentication related middeware and routes
   setupAuth({ app, graphApi, logger });
-
-  if (isDevEnv) {
-    // This will seed users, an org and pages.
-    /**
-     * @todo: fix this when links are working
-     * @see https://app.asana.com/0/1202805690238892/1203361844133479/f
-     */
-    // await seedOrgsAndUsers({ graphApi, logger });
-  }
 
   // Create an email transporter
   const emailTransporter =
@@ -173,13 +173,19 @@ const main = async () => {
               )
             : undefined,
         })
-      : new AwsSesEmailTransporter({
+      : process.env.AWS_REGION
+      ? new AwsSesEmailTransporter({
           from: `${getRequiredEnv(
             "SYSTEM_EMAIL_SENDER_NAME",
           )} <${getRequiredEnv("SYSTEM_EMAIL_ADDRESS")}>`,
           region: getAwsRegion(),
           subjectPrefix: isProdEnv ? undefined : "[DEV SITE] ",
-        });
+        })
+      : ({
+          sendMail: (mail) => {
+            logger.info(`Tried to send mail to ${mail.to}:\n${mail.html}`);
+          },
+        } as EmailTransporter);
 
   let search: OpenSearch | undefined;
   if (process.env.HASH_OPENSEARCH_ENABLED === "true") {

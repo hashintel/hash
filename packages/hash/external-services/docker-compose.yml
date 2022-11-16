@@ -129,11 +129,12 @@ services:
       - "4434:4434" # admin
     restart: unless-stopped
     environment:
-      - SECRETS_COOKIE=VERY-INSECURE-AND-SHOULD-ONLY-BE-USED-IN-DEV
-      - SECRETS_CIPHER=32-LONG-SECRET-NOT-SECURE-AT-ALL
-      - COURIER_SMTP_CONNECTION_URI=smtps://test:test@mailslurper:1025/?skip_ssl_verify=true
-      - DSN=postgres://${HASH_KRATOS_PG_USER}:${HASH_KRATOS_PG_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_KRATOS_PG_DEV_DATABASE}
-      - LOG_LEVEL=trace
+      SECRETS_COOKIE: "${KRATOS_SECRETS_COOKIE}"
+      SECRETS_CIPHER: "${KRATOS_SECRETS_CIPHER}"
+      COURIER_SMTP_CONNECTION_URI: "smtps://test:test@mailslurper:1025/?skip_ssl_verify=true"
+      DSN: "postgres://${HASH_KRATOS_PG_USER}:${HASH_KRATOS_PG_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_KRATOS_PG_DEV_DATABASE}"
+      # KRATOS_API_KEY: "${KRATOS_API_KEY}" Currently this cannot be set as an env variable :(
+      LOG_LEVEL: trace
     command: serve -c /etc/config/kratos/kratos.dev.yml --dev --watch-courier
     extra_hosts:
       - host.docker.internal:host-gateway

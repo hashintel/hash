@@ -128,13 +128,13 @@ const LoginPage: NextPageWithLayout = () => {
       );
   };
 
-  const emailInputUiNode = flow?.ui.nodes.find(
+  const emailInputUiNode = flow?.ui?.nodes.find(
     ({ attributes }) =>
       isUiNodeInputAttributes(attributes) &&
       attributes.name === "traits.emails",
   );
 
-  const passwordInputUiNode = flow?.ui.nodes.find(
+  const passwordInputUiNode = flow?.ui?.nodes.find(
     ({ attributes }) =>
       isUiNodeInputAttributes(attributes) && attributes.name === "password",
   );
@@ -186,7 +186,7 @@ const LoginPage: NextPageWithLayout = () => {
           required
         />
         <Button type="submit">Log in to your account</Button>
-        {flow?.ui.messages?.map(({ text, id }) => (
+        {flow?.ui?.messages?.map(({ text, id }) => (
           <Typography key={id}>{text}</Typography>
         ))}
         {errorMessage ? <Typography>{errorMessage}</Typography> : null}

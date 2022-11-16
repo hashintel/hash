@@ -6,7 +6,7 @@ import {
   FunctionComponent,
 } from "react";
 import { Column, Row } from "react-table";
-import { GraphBlockHandler } from "@blockprotocol/graph";
+import { Entity, GraphBlockHandler } from "@blockprotocol/graph";
 import { tw } from "twind";
 import { identityEntityAndProperty } from "../lib/identify-entity";
 
@@ -57,7 +57,7 @@ export const EditableCell: FunctionComponent<EditableCellProps> = ({
       accessorKey,
     );
 
-    const newEntity = JSON.parse(JSON.stringify(objectToUpdate));
+    const newEntity = JSON.parse(JSON.stringify(objectToUpdate)) as Entity;
 
     // Set a potentially nested property
     const updateKeyChain = property.split(".");
@@ -65,9 +65,11 @@ export const EditableCell: FunctionComponent<EditableCellProps> = ({
     for (let i = 0; i < updateKeyChain.length; i++) {
       const key = updateKeyChain[i]!;
       if (i === updateKeyChain.length - 1) {
+        // @ts-expect-error -- consider refactoring in a type-safe way
         objectToModify[key] = value;
       } else {
-        objectToModify = objectToModify[key];
+        // @ts-expect-error -- consider refactoring in a type-safe way
+        objectToModify = objectToModify[key] as unknown;
       }
     }
 

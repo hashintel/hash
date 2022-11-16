@@ -12,7 +12,7 @@ import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
 import { FormProvider, useForm } from "react-hook-form";
-import { FRONTEND_URL } from "../../../../lib/config";
+import { frontendUrl } from "@hashintel/hash-shared/environment";
 import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
 import { TopContextBar } from "../../../shared/top-context-bar";
 import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
@@ -33,9 +33,9 @@ import { useRouteNamespace } from "./use-route-namespace";
 import { mustBeVersionedUri } from "./util";
 
 const getBaseUri = (path: string) => {
-  const url = new URL(path, FRONTEND_URL);
+  const url = new URL(path, frontendUrl);
 
-  return `${FRONTEND_URL}${url.pathname}/`;
+  return `${frontendUrl}${url.pathname}/`;
 };
 
 const getSchemaFromEditorForm = (
