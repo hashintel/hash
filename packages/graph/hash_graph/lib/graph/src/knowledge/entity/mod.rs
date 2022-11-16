@@ -8,7 +8,7 @@ use type_system::uri::{BaseUri, VersionedUri};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-pub use self::query::{EntityQueryPath, EntityQueryPathVisitor};
+pub use self::query::{EntityQueryPath, EntityQueryPathVisitor, EntityQueryToken};
 use crate::{
     identifier::knowledge::{EntityEditionId, EntityId},
     provenance::ProvenanceMetadata,

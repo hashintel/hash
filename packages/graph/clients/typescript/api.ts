@@ -255,6 +255,27 @@ export type DataTypeKindEnum =
   typeof DataTypeKindEnum[keyof typeof DataTypeKindEnum];
 
 /**
+ * A single token in a [`DataTypeQueryPath`].
+ * @export
+ * @enum {string}
+ */
+
+export const DataTypeQueryToken = {
+  BaseUri: "baseUri",
+  Version: "version",
+  VersionedUri: "versionedUri",
+  OwnedById: "ownedById",
+  CreatedById: "createdById",
+  UpdatedById: "updatedById",
+  Title: "title",
+  Description: "description",
+  Type: "type",
+} as const;
+
+export type DataTypeQueryToken =
+  typeof DataTypeQueryToken[keyof typeof DataTypeQueryToken];
+
+/**
  *
  * @export
  * @interface DataTypeReference
@@ -429,6 +450,32 @@ export interface EntityMetadata {
   provenance: ProvenanceMetadata;
 }
 /**
+ * A single token in an [`EntityQueryPath`].
+ * @export
+ * @enum {string}
+ */
+
+export const EntityQueryToken = {
+  Uuid: "uuid",
+  Version: "version",
+  Archived: "archived",
+  OwnedById: "ownedById",
+  CreatedById: "createdById",
+  UpdatedById: "updatedById",
+  Type: "type",
+  Properties: "properties",
+  IncomingLinks: "incomingLinks",
+  OutgoingLinks: "outgoingLinks",
+  LeftEntity: "leftEntity",
+  RightEntity: "rightEntity",
+  LeftOrder: "leftOrder",
+  RightOrder: "rightOrder",
+} as const;
+
+export type EntityQueryToken =
+  typeof EntityQueryToken[keyof typeof EntityQueryToken];
+
+/**
  * Structural queries are the main entry point to read data from the Graph.
  * @export
  * @interface EntityStructuralQuery
@@ -533,6 +580,33 @@ export const EntityTypeTypeEnum = {
 
 export type EntityTypeTypeEnum =
   typeof EntityTypeTypeEnum[keyof typeof EntityTypeTypeEnum];
+
+/**
+ * A single token in a [`EntityTypeQueryPath`].
+ * @export
+ * @enum {string}
+ */
+
+export const EntityTypeQueryToken = {
+  BaseUri: "baseUri",
+  Version: "version",
+  VersionedUri: "versionedUri",
+  OwnedById: "ownedById",
+  CreatedById: "createdById",
+  UpdatedById: "updatedById",
+  Title: "title",
+  Description: "description",
+  Default: "default",
+  Examples: "examples",
+  Properties: "properties",
+  Required: "required",
+  Links: "links",
+  RequiredLinks: "requiredLinks",
+  InheritsFrom: "inheritsFrom",
+} as const;
+
+export type EntityTypeQueryToken =
+  typeof EntityTypeQueryToken[keyof typeof EntityTypeQueryToken];
 
 /**
  * Structural queries are the main entry point to read data from the Graph.
@@ -1247,43 +1321,16 @@ export interface ParameterExpression {
 export interface PathExpression {
   /**
    *
-   * @type {Array<object>}
+   * @type {Array<DataTypeQueryToken | PropertyTypeQueryToken | EntityTypeQueryToken | EntityQueryToken>}
    * @memberof PathExpression
    */
-  path: Array<PathExpressionPathEnum>;
+  path: Array<
+    | DataTypeQueryToken
+    | PropertyTypeQueryToken
+    | EntityTypeQueryToken
+    | EntityQueryToken
+  >;
 }
-
-export const PathExpressionPathEnum = {
-  Star: "*",
-  OwnedById: "ownedById",
-  CreatedById: "createdById",
-  UpdatedById: "updatedById",
-  BaseUri: "baseUri",
-  VersionedUri: "versionedUri",
-  Version: "version",
-  Archived: "archived",
-  Title: "title",
-  Description: "description",
-  Type: "type",
-  Uuid: "uuid",
-  Properties: "properties",
-  IncomingLinks: "incomingLinks",
-  OutgoingLinks: "outgoingLinks",
-  Default: "default",
-  Examples: "examples",
-  Required: "required",
-  Links: "links",
-  RequiredLinks: "requiredLinks",
-  Source: "source",
-  Target: "target",
-  RelatedKeywords: "relatedKeywords",
-  DataTypes: "dataTypes",
-  PropertyTypes: "propertyTypes",
-} as const;
-
-export type PathExpressionPathEnum =
-  typeof PathExpressionPathEnum[keyof typeof PathExpressionPathEnum];
-
 /**
  *
  * @export
@@ -1459,6 +1506,28 @@ export const PropertyTypeKindEnum = {
 
 export type PropertyTypeKindEnum =
   typeof PropertyTypeKindEnum[keyof typeof PropertyTypeKindEnum];
+
+/**
+ * A single token in a [`DataTypeQueryPath`].
+ * @export
+ * @enum {string}
+ */
+
+export const PropertyTypeQueryToken = {
+  BaseUri: "baseUri",
+  Version: "version",
+  VersionedUri: "versionedUri",
+  OwnedById: "ownedById",
+  CreatedById: "createdById",
+  UpdatedById: "updatedById",
+  Title: "title",
+  Description: "description",
+  DataTypes: "dataTypes",
+  PropertyTypes: "propertyTypes",
+} as const;
+
+export type PropertyTypeQueryToken =
+  typeof PropertyTypeQueryToken[keyof typeof PropertyTypeQueryToken];
 
 /**
  * Structural queries are the main entry point to read data from the Graph.

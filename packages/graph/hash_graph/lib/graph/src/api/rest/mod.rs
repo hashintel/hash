@@ -370,37 +370,13 @@ impl Modify for FilterSchemaAddon {
                                 .title(Some("PathExpression"))
                                 .property(
                                     "path",
-                                    ArrayBuilder::new().items(ObjectBuilder::new().enum_values(
-                                        Some([
-                                            "*",
-                                            "ownedById",
-                                            "createdById",
-                                            "updatedById",
-                                            "baseUri",
-                                            "versionedUri",
-                                            "version",
-                                            "archived",
-                                            "title",
-                                            "description",
-                                            "type",
-                                            // TODO we don't really want to expose UUIDs but
-                                            //  entityIds instead
-                                            "uuid",
-                                            "properties",
-                                            "incomingLinks",
-                                            "outgoingLinks",
-                                            "default",
-                                            "examples",
-                                            "required",
-                                            "links",
-                                            "requiredLinks",
-                                            "source",
-                                            "target",
-                                            "relatedKeywords",
-                                            "dataTypes",
-                                            "propertyTypes",
-                                        ]),
-                                    )),
+                                    ArrayBuilder::new().items(
+                                        OneOfBuilder::new()
+                                            .item(Ref::from_schema_name("DataTypeQueryToken"))
+                                            .item(Ref::from_schema_name("PropertyTypeQueryToken"))
+                                            .item(Ref::from_schema_name("EntityTypeQueryToken"))
+                                            .item(Ref::from_schema_name("EntityQueryToken")),
+                                    ),
                                 )
                                 .required("path"),
                         )

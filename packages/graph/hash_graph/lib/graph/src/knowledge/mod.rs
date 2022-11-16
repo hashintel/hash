@@ -4,6 +4,6 @@
 mod entity;
 
 pub use self::entity::{
-    Entity, EntityMetadata, EntityProperties, EntityQueryPath, EntityQueryPathVisitor, EntityUuid,
-    LinkEntityMetadata, LinkOrder,
+    Entity, EntityMetadata, EntityProperties, EntityQueryPath, EntityQueryPathVisitor,
+    EntityQueryToken, EntityUuid, LinkEntityMetadata, LinkOrder,
 };

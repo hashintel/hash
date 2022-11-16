@@ -5,6 +5,7 @@ use serde::{
     Deserialize,
 };
 use type_system::EntityType;
+use utoipa::ToSchema;
 
 use crate::{
     ontology::{property_type::PropertyTypeQueryPathVisitor, PropertyTypeQueryPath, Selector},
@@ -304,7 +305,7 @@ impl fmt::Display for EntityTypeQueryPath {
 }
 
 /// A single token in a [`EntityTypeQueryPath`].
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub enum EntityTypeQueryToken {
     BaseUri,

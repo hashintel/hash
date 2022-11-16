@@ -19,9 +19,9 @@ use type_system::{uri::VersionedUri, DataType, EntityType, PropertyType};
 use utoipa::ToSchema;
 
 pub use self::{
-    data_type::{DataTypeQueryPath, DataTypeQueryPathVisitor},
-    entity_type::{EntityTypeQueryPath, EntityTypeQueryPathVisitor},
-    property_type::{PropertyTypeQueryPath, PropertyTypeQueryPathVisitor},
+    data_type::{DataTypeQueryPath, DataTypeQueryPathVisitor, DataTypeQueryToken},
+    entity_type::{EntityTypeQueryPath, EntityTypeQueryPathVisitor, EntityTypeQueryToken},
+    property_type::{PropertyTypeQueryPath, PropertyTypeQueryPathVisitor, PropertyTypeQueryToken},
 };
 use crate::{
     identifier::ontology::OntologyTypeEditionId,
