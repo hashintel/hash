@@ -90,6 +90,7 @@ export const createTestUser = async (
       emails: [`${shortname}@example.com`],
     },
   }).catch((err) => {
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions -- error stringification may need improvement
     logger.error(`Error when creating Kratos Identity, ${shortname}: ${err}`);
     throw err;
   });
@@ -151,7 +152,8 @@ export class ApiClient {
       throw new Error("No response errors found on client error");
     }
     return clientError.response.errors.map(
-      (error: any) => error.extensions.code,
+      // @ts-expect-error -- @todo investigate why error.extensions is not defined
+      (error) => error.extensions.code as string,
     );
   };
 

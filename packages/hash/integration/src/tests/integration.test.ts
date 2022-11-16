@@ -93,8 +93,8 @@ const createNewBobWithOrg = async () => {
   const bobOrg = await Org.createOrg(db, {
     createdByAccountId: bobUser.entityId,
     properties: {
-      shortname: `${bobUser.properties.shortname}-org`,
-      name: `${bobUser.properties.preferredName}'s Org`,
+      shortname: `${bobUser.properties.shortname!}-org`,
+      name: `${bobUser.properties.preferredName!}'s Org`,
     },
   });
 
@@ -276,10 +276,11 @@ describe("logged in user ", () => {
 
     const cookie = setCookieValue.split(";")[0]!;
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- blocked by loginWithLoginCode being any
     client.setCookie(cookie);
   });
 
-  afterAll(async () => {
+  afterAll(() => {
     /** @todo: delete test user from db */
     client.removeCookie();
   });
@@ -296,6 +297,7 @@ describe("logged in user ", () => {
 
     const gqlOrg = await client.createOrg(variables);
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- blocked by createOrg being any
     const org = (await Org.getOrgById(db, gqlOrg))!;
 
     // Test the org has been created correctly

@@ -152,7 +152,7 @@ export class OpenSearch extends DataSource implements SearchAdapter {
         await sleep(retryIntervalMillis);
       }
     }
-    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions -- error stringification may need to be improved
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions -- error stringification may need improvement
     throw new Error(`connecting to OpenSearch: ${connErr}`);
   }
 

@@ -46,7 +46,7 @@ export class GracefulShutdown {
         this.logger.debug(`${name} cleaned up`);
       } catch (err) {
         wasError = true;
-        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions -- error stringification may need to be improved
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions -- error stringification may need improvement
         this.logger.error(`cleaning up ${name}: ${err}`);
       }
     }
