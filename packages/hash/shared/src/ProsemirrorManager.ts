@@ -262,7 +262,7 @@ export class ProsemirrorManager {
   /**
    * @todo consider removing the old block from the entity store
    */
-  async deleteNode(node: Node, pos: number) {
+  deleteNode(node: Node, pos: number) {
     const { view } = this;
 
     if (!view) {
@@ -330,14 +330,14 @@ export class ProsemirrorManager {
       } else {
         const newBlockProperties = entityProperties;
 
-        targetBlockId = await this.createBlockEntity(
+        targetBlockId = this.createBlockEntity(
           tr,
           targetComponentId,
           newBlockProperties,
         );
       }
     } else {
-      targetBlockId = await this.createBlockEntity(
+      targetBlockId = this.createBlockEntity(
         tr,
         targetComponentId,
         entityProperties,
@@ -484,7 +484,7 @@ export class ProsemirrorManager {
    * a completely new block + its block data entity. This function will do
    * that for you.
    */
-  private async createBlockEntity(
+  private createBlockEntity(
     tr: Transaction,
     targetComponentId: string,
     blockDataProperties: {},
