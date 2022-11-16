@@ -136,11 +136,6 @@ module.exports = {
             message: "Please use ./src/tests/testUtils.tsx#render instead",
           },
           {
-            name: "prosemirror-model",
-            importNames: ["Node"],
-            message: "Please import ProsemirrorNode instead",
-          },
-          {
             name: "@mui/material",
             importNames: ["Link"],
             message:

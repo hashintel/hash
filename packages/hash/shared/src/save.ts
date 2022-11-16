@@ -1,6 +1,6 @@
 import { ApolloClient } from "@apollo/client";
 import { isEqual } from "lodash";
-import { ProsemirrorNode } from "prosemirror-model";
+import { Node } from "prosemirror-model";
 import { v4 as uuid } from "uuid";
 
 import { BlockEntity, isDraftTextEntity } from "./entity";
@@ -42,7 +42,7 @@ const calculateSaveActions = async (
   ownedById: string,
   textEntityTypeId: string,
   blocks: BlockEntity[],
-  doc: ProsemirrorNode,
+  doc: Node,
   getEntityTypeForComponent: (
     componentId: string,
   ) => Promise<EntityTypeForComponentResult>,
@@ -380,7 +380,7 @@ export const save = async (
   apolloClient: ApolloClient<unknown>,
   ownedById: string,
   pageEntityId: string,
-  doc: ProsemirrorNode,
+  doc: Node,
   store: EntityStore,
 ) => {
   const blocks = await apolloClient

@@ -1,4 +1,4 @@
-import { NodeType, ProsemirrorNode, Slice } from "prosemirror-model";
+import { NodeType, Node, Slice } from "prosemirror-model";
 
 // /**
 //  * Prosemirror doesn't know to convert hard breaks into new line characters
@@ -15,7 +15,7 @@ export const clipboardTextSerializer =
       0,
       slice.content.size,
       "\n\n",
-      (node: ProsemirrorNode) => {
+      (node: Node) => {
         if (node.type === lineBreakNodetype) {
           return "\n";
         }

@@ -1,6 +1,6 @@
 import { Draft, produce } from "immer";
 import { isEqual } from "lodash";
-import { ProsemirrorNode } from "prosemirror-model";
+import { Node } from "prosemirror-model";
 import { EditorState, Plugin, PluginKey, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { v4 as uuid } from "uuid";
@@ -446,7 +446,7 @@ class ProsemirrorStateChangeHandler {
     return this.tr;
   }
 
-  private handleNode(node: ProsemirrorNode, pos: number) {
+  private handleNode(node: Node, pos: number) {
     if (isComponentNode(node)) {
       this.componentNode(node, pos);
     }
