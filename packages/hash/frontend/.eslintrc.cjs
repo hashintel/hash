@@ -32,10 +32,6 @@ module.exports = {
               "Please use the custom wrapper component in src/shared/ui component instead to ensure Next.js and MUI compatibility.",
           },
           {
-            name: "@mui/material/*",
-            message: "Please import from @mui/material instead",
-          },
-          {
             name: "@mui/material",
             importNames: [
               "Avatar",
@@ -58,6 +54,12 @@ module.exports = {
             importNames: ["useSnackbar"],
             message:
               "Please use the custom src/components/hooks/useSnackbar hook instead.",
+          },
+        ],
+        patterns: [
+          {
+            group: ["@mui/material/*"],
+            message: "Please import from @mui/material instead",
           },
         ],
       },
