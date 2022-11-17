@@ -1,3 +1,13 @@
+/**
+ * Ensures compatibility between the types that are generated from the Graph's OpenAPI spec and the native TS types
+ * defined within this module.
+ *
+ * This allows us to directly cast `SubgraphGraphApi as Subgraph` later on, without running through a lot of logic,
+ * while still benefiting from `tsc` warning us if the two types go out of sync. The methods defined within this test
+ * (and its associated modules) are therefore not for use within the library generally, as the `Subgraph` type should
+ * be used everywhere.
+ */
+
 import { Subgraph as SubgraphGraphApi } from "@hashintel/hash-graph-client";
 import { Subgraph } from "../src";
 import { mapVertices } from "./compatibility.test/map-vertices";
