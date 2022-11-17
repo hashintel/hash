@@ -1,11 +1,67 @@
-import { Edges as EdgesGraphApi } from "@hashintel/hash-graph-client";
+import {
+  Edges as EdgesGraphApi,
+  OutwardEdge as OutwardEdgeGraphApi,
+} from "@hashintel/hash-graph-client";
 import { validateBaseUri } from "@blockprotocol/type-system-node";
 import {
   Edges,
+  isEntityAndTimestamp,
+  isEntityId,
   isKnowledgeGraphOutwardEdge,
   isOntologyOutwardEdge,
+  isOntologyTypeEditionId,
+  OutwardEdge,
 } from "../../src";
-import { isEntityId } from "./util";
+
+export const mapOutwardEdge = (
+  outwardEdge: OutwardEdgeGraphApi,
+): OutwardEdge => {
+  switch (outwardEdge.kind) {
+    // Ontology edge-kind cases
+    case "CONSTRAINS_PROPERTIES_ON":
+    case "CONSTRAINS_LINKS_ON":
+    case "CONSTRAINS_LINK_DESTINATIONS_ON":
+    case "INHERITS_FROM":
+    case "CONSTRAINS_VALUES_ON": {
+      return outwardEdge;
+    }
+    // Knowledge-graph edge-kind cases
+    case "HAS_LEFT_ENDPOINT":
+    case "HAS_RIGHT_ENDPOINT": {
+      if (!isEntityAndTimestamp(outwardEdge.endpoint)) {
+        throw new Error(
+          `Expected an \`EntityAndTimestamp\` for knowledge-graph edge-kind endpoint but found:\n${JSON.stringify(
+            outwardEdge,
+          )}`,
+        );
+      }
+      return {
+        ...outwardEdge,
+        endpoint: {
+          baseId: outwardEdge.endpoint.baseId,
+          timestamp: outwardEdge.endpoint.timestamp,
+        },
+      };
+    }
+    // Shared edge-kind cases
+    case "IS_OF_TYPE": {
+      if (!isOntologyTypeEditionId(outwardEdge.endpoint)) {
+        throw new Error(
+          `Expected an \`OntologyTypeEditionId\` for knowledge-graph to ontology edge endpoint but found:\n${JSON.stringify(
+            outwardEdge,
+          )}`,
+        );
+      }
+      return {
+        ...outwardEdge,
+        endpoint: {
+          baseId: outwardEdge.endpoint.baseId,
+          version: outwardEdge.endpoint.version,
+        },
+      };
+    }
+  }
+};
 
 export const mapEdges = (edges: EdgesGraphApi): Edges => {
   const mappedEdges: Edges = {};
@@ -28,14 +84,15 @@ export const mapEdges = (edges: EdgesGraphApi): Edges => {
           }
 
           const mappedOutwardEdges = outwardEdges.map((outwardEdge) => {
-            if (isKnowledgeGraphOutwardEdge(outwardEdge)) {
+            const mappedOutwardEdge = mapOutwardEdge(outwardEdge);
+            if (isKnowledgeGraphOutwardEdge(mappedOutwardEdge)) {
               throw new Error(
                 `Expected an ontology outward edge but found:\n${JSON.stringify(
                   outwardEdge,
                 )}`,
               );
             }
-            return outwardEdge;
+            return mappedOutwardEdge;
           });
 
           return [versionNumber, mappedOutwardEdges];
@@ -54,14 +111,15 @@ export const mapEdges = (edges: EdgesGraphApi): Edges => {
           }
 
           const mappedOutwardEdges = outwardEdges.map((outwardEdge) => {
-            if (isOntologyOutwardEdge(outwardEdge)) {
+            const mappedOutwardEdge = mapOutwardEdge(outwardEdge);
+            if (isOntologyOutwardEdge(mappedOutwardEdge)) {
               throw new Error(
                 `Expected an ontology outward edge but found:\n${JSON.stringify(
                   outwardEdge,
                 )}`,
               );
             }
-            return outwardEdge;
+            return mappedOutwardEdge;
           });
 
           return [version, mappedOutwardEdges];
