@@ -80,10 +80,7 @@ export const isOntologyTypeEditionId = (
     typeof editionId.version === "number" &&
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore-expect -- This is fixed in TS 4.9
-    Number.isInteger(editionId.version) &&
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore-expect -- This is fixed in TS 4.9
-    editionId.version >= 0
+    Number.isInteger(editionId.version)
   );
 };
 
