@@ -132,15 +132,13 @@ export const EntitiesTab: FunctionComponent = () => {
               </Stack>
             ) : null}
 
-            <Stack direction="row" spacing={0.5}>
-              <IconButton
-                rounded
-                onClick={() => setShowSearch(true)}
-                sx={{ color: ({ palette }) => palette.gray[60] }}
-              >
-                <FontAwesomeIcon icon={faMagnifyingGlass} />
-              </IconButton>
-            </Stack>
+            <IconButton
+              rounded
+              onClick={() => setShowSearch(true)}
+              sx={{ color: ({ palette }) => palette.gray[60] }}
+            >
+              <FontAwesomeIcon icon={faMagnifyingGlass} />
+            </IconButton>
           </Stack>
         }
         tooltipIcon={
