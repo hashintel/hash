@@ -7,7 +7,6 @@ module.exports = {
     "!**/dist/**",
   ],
   coverageReporters: ["lcov", "text"],
-  preset: "ts-jest",
   testEnvironment: "node",
   moduleNameMapper: {
     "@hashintel/hash-backend-utils(.*)": "<rootDir>/../backend-utils/src$1",
