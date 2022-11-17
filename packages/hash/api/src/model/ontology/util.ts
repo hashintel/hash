@@ -18,10 +18,10 @@ export const getNamespaceOfAccountOwner = async (
       ? SYSTEM_ACCOUNT_SHORTNAME
       : (
           (await UserModel.getUserById(graphApi, {
-            entityId: params.ownerId,
+            entityId: `${systemAccountId}%${params.ownerId}`,
           }).catch(() => undefined)) ??
           (await OrgModel.getOrgById(graphApi, {
-            entityId: params.ownerId,
+            entityId: `${systemAccountId}%${params.ownerId}`,
           }).catch(() => undefined))
         )?.getShortname();
 

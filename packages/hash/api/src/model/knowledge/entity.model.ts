@@ -45,6 +45,10 @@ export default class {
     return this.metadata.editionId.baseId;
   }
 
+  get version(): string {
+    return this.metadata.editionId.version;
+  }
+
   get entityUuid(): string {
     const [_, entityUuid] = this.baseId.split("%") as [string, string];
 

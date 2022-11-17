@@ -338,7 +338,7 @@ export const linkEntityTypeUri: VersionedUri =
  * Helper method for generating a link entity type schema for the Graph API.
  */
 export const generateSystemLinkEntityTypeSchema = (
-  params: LinkEntityTypeCreatorParams,
+  params: Omit<LinkEntityTypeCreatorParams, "actorId">,
 ): EntityType => {
   return {
     kind: "entityType",
