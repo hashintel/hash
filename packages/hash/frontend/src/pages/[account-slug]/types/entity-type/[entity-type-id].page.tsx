@@ -27,7 +27,7 @@ import {
   EntityTypeEntitiesContext,
   useEntityTypeEntitiesContextValue,
 } from "./use-entity-type-entities";
-import { EntityTypeTabs } from "./entity-type-tabs";
+import { EntityTypeTabs, getTabFromQuery } from "./entity-type-tabs";
 import { EntityTypeContext, useEntityTypeValue } from "./use-entity-type";
 import { NextPageWithLayout } from "../../../../shared/layout";
 import { getPlainLayout } from "../../../../shared/layout/plain-layout";
@@ -172,7 +172,7 @@ const Page: NextPageWithLayout = () => {
     ? 0
     : extractVersion(mustBeVersionedUri(entityType.$id));
 
-  const currentTab = router.query.tab ?? "";
+  const currentTab = getTabFromQuery(router.query.tab as string);
 
   return (
     <FormProvider {...formMethods}>
@@ -277,7 +277,7 @@ const Page: NextPageWithLayout = () => {
 
             <Box py={5}>
               <Container>
-                {currentTab === "" ? <DefinitionTab /> : null}
+                {currentTab === "definition" ? <DefinitionTab /> : null}
                 {currentTab === "entities" ? <EntitiesTab /> : null}
               </Container>
             </Box>

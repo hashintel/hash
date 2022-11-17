@@ -9,6 +9,14 @@ import { TabButton } from "./tab-button";
 import { TabLink } from "./tab-link";
 import { useEntityTypeEntities } from "./use-entity-type-entities";
 
+export const getTabFromQuery = (query?: string) => {
+  if (!query) {
+    return "definition";
+  }
+
+  return query;
+};
+
 export const EntityTypeTabs = () => {
   const router = useRouter();
 
@@ -23,12 +31,12 @@ export const EntityTypeTabs = () => {
     [router.query],
   );
 
-  const currentTab = router.query.tab ?? "";
+  const currentTab = getTabFromQuery(router.query.tab as string);
 
   return (
     <Box display="flex" overflow="visible">
       <Tabs
-        value={currentTab}
+        value={router.query.tab ?? ""}
         TabIndicatorProps={{
           sx: ({ palette }) => ({
             height: 3,
@@ -51,7 +59,7 @@ export const EntityTypeTabs = () => {
           href={baseUri}
           label="Definition"
           count={propertiesCount}
-          active={currentTab === ""}
+          active={currentTab === "definition"}
         />
         <TabLink
           value="entities"
