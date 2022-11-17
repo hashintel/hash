@@ -194,7 +194,7 @@ pub enum EntityTypeQueryPath {
     /// As an [`EntityType`] can link to multiple [`EntityType`]s, the deserialized path
     /// requires an additional selector to identify the [`EntityType`] to query. Currently,
     /// only the `*` selector is available, so the path will be deserialized as
-    /// `["inheritsFrom", "*", ...]` where `...` is the path to the desired field of the
+    /// `["links", "*", ...]` where `...` is the path to the desired field of the
     /// [`EntityType`].
     ///
     /// ```rust
