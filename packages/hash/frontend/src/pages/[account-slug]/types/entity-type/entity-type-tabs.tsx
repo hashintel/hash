@@ -33,7 +33,7 @@ export const EntityTypeTabs = () => {
   const currentTab = getTabFromQuery(router.query.tab as string);
 
   return (
-    <Box display="flex" overflow="visible">
+    <Box display="flex">
       <Tabs
         value={router.query.tab ?? ""}
         TabIndicatorProps={{
