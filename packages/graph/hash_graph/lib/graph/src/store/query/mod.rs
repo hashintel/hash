@@ -56,9 +56,9 @@ pub trait OntologyPath: 'static {
     /// [`VersionedUri`]: type_system::uri::VersionedUri
     fn versioned_uri() -> Self;
 
-    /// Returns the path identifying the [`OntologyVersion`].
+    /// Returns the path identifying the [`OntologyTypeVersion`].
     ///
-    /// [`OntologyVersion`]: crate::ontology::OntologyVersion
+    /// [`OntologyTypeVersion`]: crate::identifier::ontology::OntologyTypeVersion
     fn version() -> Self;
 
     /// Returns the path identifying the [`OwnedById`].
