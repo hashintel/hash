@@ -10,15 +10,16 @@ import { ValueCellProps } from "./cells/value-cell/types";
 import { propertyGridIndexes } from "./constants";
 import { getTooltipsOfPropertyRow } from "./get-tooltips-of-property-row";
 import { PropertyRow } from "./types";
+import { RowData } from "../../../../../../../components/GlideGlid/glide-grid";
 
 export const useCreateGetCellContent = (
   showTooltip: UseGridTooltipResponse["showTooltip"],
   hideTooltip: UseGridTooltipResponse["hideTooltip"],
 ) => {
   const createGetCellContent = useCallback(
-    (rowData: PropertyRow[]) =>
+    (rowData: RowData) =>
       ([col, row]: Item): GridCell => {
-        const property = rowData[row];
+        const property = rowData[row] as PropertyRow;
 
         const hasChild = !!property?.children.length;
 

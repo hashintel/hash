@@ -1,13 +1,14 @@
 import { GridCell, GridCellKind, Item } from "@glideapps/glide-data-grid";
 import { useCallback } from "react";
+import { RowData } from "../../../../../../../components/GlideGlid/glide-grid";
 import { linkGridIndexes } from "./constants";
 import { LinkRow } from "./types";
 
 export const useCreateGetCellContent = () => {
   const createGetCellContent = useCallback(
-    (rowData: LinkRow[]) =>
+    (rowData: RowData) =>
       ([col, row]: Item): GridCell => {
-        const link = rowData[row];
+        const link = rowData[row] as LinkRow;
 
         if (!link) {
           throw new Error("link not found");
