@@ -22,7 +22,7 @@ export type EntityTypeEntititiesContextValue = {
 };
 
 export const useEntityTypeEntitiesContextValue = (
-  typeId: string,
+  typeId: string | null,
 ): EntityTypeEntititiesContextValue => {
   const [subgraph, setSubgraph] = useState<Subgraph>();
   const { aggregateEntities } = useBlockProtocolAggregateEntities();

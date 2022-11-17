@@ -87,9 +87,8 @@ const Page: NextPageWithLayout = () => {
         )
       : null;
 
-  const entityTypeEntitiesValue = useEntityTypeEntitiesContextValue(
-    baseEntityTypeUri ?? "",
-  );
+  const entityTypeEntitiesValue =
+    useEntityTypeEntitiesContextValue(baseEntityTypeUri);
 
   const draftEntityType = useMemo(() => {
     if (router.query.draft) {
