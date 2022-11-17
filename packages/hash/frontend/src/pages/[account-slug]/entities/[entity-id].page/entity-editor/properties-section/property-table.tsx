@@ -1,7 +1,7 @@
 import { useMemo, useRef } from "react";
 import { DataEditorRef } from "@glideapps/glide-data-grid";
 import { useRowData } from "./property-table/use-row-data";
-import { useGetCellContent } from "./property-table/use-get-cell-content";
+import { useCreateGetCellContent } from "./property-table/use-create-get-cell-content";
 import { propertyGridColumns } from "./property-table/constants";
 import { useOnCellEdited } from "./property-table/use-on-cell-edited";
 import { useEntityEditor } from "../entity-editor-context";
@@ -25,7 +25,10 @@ export const PropertyTable = ({
   const { togglePropertyExpand, propertyExpandStatus } = useEntityEditor();
   const [rowData, flattenRowData] = useRowData();
   const { tooltipElement, showTooltip, hideTooltip } = useGridTooltip(gridRef);
-  const getCellContent = useGetCellContent(showTooltip, hideTooltip);
+  const createGetCellContent = useCreateGetCellContent(
+    showTooltip,
+    hideTooltip,
+  );
   const onCellEdited = useOnCellEdited(rowData);
 
   const customRenderers = useMemo(
@@ -43,7 +46,7 @@ export const PropertyTable = ({
       <GlideGrid
         ref={gridRef}
         columns={propertyGridColumns}
-        getCellContent={getCellContent}
+        createGetCellContent={createGetCellContent}
         onCellEdited={onCellEdited}
         rowData={rowData}
         showSearch={showSearch}

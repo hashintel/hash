@@ -3,8 +3,8 @@ import { useCallback } from "react";
 import { linkGridIndexes } from "./constants";
 import { LinkRow } from "./types";
 
-export const useGetCellContent = () => {
-  const getCellContent = useCallback(
+export const useCreateGetCellContent = () => {
+  const createGetCellContent = useCallback(
     (rowData: LinkRow[]) =>
       ([col, row]: Item): GridCell => {
         const link = rowData[row];
@@ -31,5 +31,5 @@ export const useGetCellContent = () => {
     [],
   );
 
-  return getCellContent;
+  return createGetCellContent;
 };

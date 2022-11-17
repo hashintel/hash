@@ -51,7 +51,7 @@ type GlideGridProps = Omit<
   resizable?: boolean;
   sortable?: boolean;
   initialPropertySort?: TableSort<string>;
-  getCellContent: (rowData: any) => (cell: Item) => GridCell;
+  createGetCellContent: (rowData: RowData) => (cell: Item) => GridCell;
   onSort?: (rowData: RowData) => RowData;
 };
 
@@ -65,7 +65,7 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, GlideGridProps> = (
     resizable = true,
     sortable = true,
     initialPropertySort,
-    getCellContent,
+    createGetCellContent,
     onSort,
     ...rest
   },
@@ -254,7 +254,7 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, GlideGridProps> = (
       columns={resizedColumns}
       drawHeader={drawHeader ?? defaultDrawHeader}
       onHeaderClicked={handleHeaderClicked}
-      getCellContent={getCellContent(rows)}
+      getCellContent={createGetCellContent(rows)}
       rows={rows.length}
       {...rest}
       /**

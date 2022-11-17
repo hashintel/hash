@@ -11,11 +11,11 @@ import { propertyGridIndexes } from "./constants";
 import { getTooltipsOfPropertyRow } from "./get-tooltips-of-property-row";
 import { PropertyRow } from "./types";
 
-export const useGetCellContent = (
+export const useCreateGetCellContent = (
   showTooltip: UseGridTooltipResponse["showTooltip"],
   hideTooltip: UseGridTooltipResponse["hideTooltip"],
 ) => {
-  const getCellContent = useCallback(
+  const createGetCellContent = useCallback(
     (rowData: PropertyRow[]) =>
       ([col, row]: Item): GridCell => {
         const property = rowData[row];
@@ -100,5 +100,5 @@ export const useGetCellContent = (
     [showTooltip, hideTooltip],
   );
 
-  return getCellContent;
+  return createGetCellContent;
 };
