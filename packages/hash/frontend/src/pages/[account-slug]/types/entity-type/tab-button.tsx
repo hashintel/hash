@@ -18,8 +18,7 @@ export const TabButton = ({
     noLinkStyle
     sx={[
       ({ palette }) => ({
-        pt: 2,
-        pb: 1.5,
+        py: 1.5,
         px: 0.25,
         alignItems: "center",
         display: "flex",
