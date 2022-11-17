@@ -41,8 +41,7 @@ pub enum Filter<'q, T: QueryRecord> {
 
 impl<'q, T> Filter<'q, T>
 where
-    T: QueryRecord,
-    T::Path<'q>: OntologyPath,
+    T: QueryRecord<Path<'q>: OntologyPath>,
 {
     /// Creates a `Filter` to search for all ontology types of kind `T` at their latest version.
     #[must_use]

@@ -5,10 +5,12 @@ use tokio_postgres::row::RowIndex;
 
 use crate::store::{
     postgres::query::{
-        expression::Constant, Column, ColumnAccess, Condition, Distinctness, EqualityOperator,
+        expression::Constant,
+        table::{Entities, JsonField, TypeIds},
+        Alias, AliasedColumn, AliasedTable, Column, Condition, Distinctness, EqualityOperator,
         Expression, Function, JoinExpression, OrderByExpression, Ordering, Path,
-        PostgresQueryRecord, Relation, SelectExpression, SelectStatement, Table, TableAlias,
-        TableName, Transpile, WhereExpression, WindowStatement, WithExpression,
+        PostgresQueryRecord, SelectExpression, SelectStatement, Table, Transpile, WhereExpression,
+        WindowStatement, WithExpression,
     },
     query::{Filter, FilterExpression, Parameter},
 };
@@ -20,7 +22,7 @@ use crate::store::{
 pub struct CompilerArtifacts<'p> {
     parameters: Vec<&'p (dyn ToSql + Sync)>,
     condition_index: usize,
-    required_tables: HashSet<Table>,
+    required_tables: HashSet<AliasedTable>,
 }
 
 pub struct SelectCompiler<'c, 'p, T> {
@@ -79,12 +81,9 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
         &mut self,
         path: &'r T::Path<'p>,
     ) -> impl RowIndex + Display + Copy {
-        let table = self.add_join_statements(path.relations());
+        let alias = self.add_join_statements(path);
         self.statement.selects.push(SelectExpression::from_column(
-            Column {
-                table,
-                access: path.column_access(),
-            },
+            path.terminating_column().aliased(alias),
             None,
         ));
         self.statement.selects.len() - 1
@@ -100,18 +99,14 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
         distinctness: Distinctness,
         ordering: Option<Ordering>,
     ) -> impl RowIndex + Display + Copy {
-        let table = self.add_join_statements(path.relations());
-        let column = Column {
-            table,
-            access: path.column_access(),
-        };
+        let column = path
+            .terminating_column()
+            .aliased(self.add_join_statements(path));
         if distinctness == Distinctness::Distinct {
-            self.statement.distinct.push(column.clone());
+            self.statement.distinct.push(column);
         }
         if let Some(ordering) = ordering {
-            self.statement
-                .order_by_expression
-                .push(column.clone(), ordering);
+            self.statement.order_by_expression.push(column, ordering);
         }
         self.statement
             .selects
@@ -140,7 +135,7 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
             return condition;
         }
 
-        let condition = match filter {
+        match filter {
             Filter::All(filters) => Condition::All(
                 filters
                     .iter()
@@ -166,8 +161,7 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
                 rhs.as_ref()
                     .map(|expression| self.compile_filter_expression(expression)),
             ),
-        };
-        condition
+        }
     }
 
     /// Compiles the `path` to a condition, which is searching for the latest version.
@@ -179,18 +173,12 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
         path: &T::Path<'p>,
         operator: EqualityOperator,
     ) -> Condition<'c> {
-        let mut version_column = Column {
-            table: Table {
-                name: TableName::TypeIds,
-                alias: None,
-            },
-            access: ColumnAccess::Table { column: "version" },
-        };
+        let version_column = Column::TypeIds(TypeIds::Version);
 
         // Add a WITH expression selecting the partitioned version
         self.statement
             .with
-            .add_statement(version_column.table.name, SelectStatement {
+            .add_statement(Table::TypeIds, SelectStatement {
                 with: WithExpression::default(),
                 distinct: Vec::new(),
                 selects: vec![
@@ -198,34 +186,27 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
                     SelectExpression::new(
                         Expression::Window(
                             Box::new(Expression::Function(Box::new(Function::Max(
-                                Expression::Column(version_column.clone()),
+                                Expression::Column(version_column.aliased(None)),
                             )))),
-                            WindowStatement::partition_by(Column {
-                                table: version_column.table,
-                                access: ColumnAccess::Table { column: "base_uri" },
-                            }),
+                            WindowStatement::partition_by(
+                                Column::TypeIds(TypeIds::BaseUri).aliased(None),
+                            ),
                         ),
                         Some(Cow::Borrowed("latest_version")),
                     ),
                 ],
-                from: Table {
-                    name: version_column.table.name,
-                    alias: None,
-                },
+                from: version_column.table(),
                 joins: vec![],
                 where_expression: WhereExpression::default(),
                 order_by_expression: OrderByExpression::default(),
             });
 
+        let alias = self.add_join_statements(path);
         // Join the table of `path` and compare the version to the latest version
-        version_column.table = self.add_join_statements(path.relations());
-        let latest_version_expression = Some(Expression::Column(Column {
-            table: version_column.table,
-            access: ColumnAccess::Table {
-                column: "latest_version",
-            },
-        }));
-        let version_expression = Some(Expression::Column(version_column));
+        let latest_version_expression = Some(Expression::Column(
+            Column::TypeIds(TypeIds::LatestVersion).aliased(alias),
+        ));
+        let version_expression = Some(Expression::Column(version_column.aliased(alias)));
 
         match operator {
             EqualityOperator::Equal => {
@@ -242,12 +223,9 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
         path: &T::Path<'p>,
         operator: EqualityOperator,
     ) -> Condition<'c> {
-        let latest_version_expression = Some(Expression::Column(Column {
-            table: self.add_join_statements(path.relations()),
-            access: ColumnAccess::Table {
-                column: "latest_version",
-            },
-        }));
+        let latest_version_expression = Some(Expression::Column(
+            Column::Entities(Entities::LatestVersion).aliased(self.add_join_statements(path)),
+        ));
 
         match operator {
             EqualityOperator::Equal => Condition::Equal(
@@ -265,8 +243,8 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
     /// condition if any.
     ///
     /// The following [`Filter`]s will be special cased:
-    /// - Comparing the `"version"` field on [`TableName::TypeIds`] with `"latest"` for equality.
-    fn compile_special_filter(&mut self, filter: &Filter<'p, T>) -> Option<Condition<'c>> {
+    /// - Comparing the `"version"` field on [`Table::TypeIds`] with `"latest"` for equality.
+    fn compile_special_filter(&mut self, filter: &'p Filter<'p, T>) -> Option<Condition<'c>> {
         match filter {
             Filter::Equal(lhs, rhs) | Filter::NotEqual(lhs, rhs) => match (lhs, rhs) {
                 (
@@ -276,44 +254,43 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
                 | (
                     Some(FilterExpression::Parameter(Parameter::Text(parameter))),
                     Some(FilterExpression::Path(path)),
-                ) => {
-                    match (
-                        path.terminating_table_name(),
-                        path.column_access().column(),
-                        filter,
-                        parameter.as_ref(),
-                    ) {
-                        (TableName::TypeIds, "version", Filter::Equal(..), "latest") => {
-                            Some(self.compile_latest_ontology_version_filter(
-                                path,
-                                EqualityOperator::Equal,
-                            ))
-                        }
-                        (TableName::TypeIds, "version", Filter::NotEqual(..), "latest") => {
-                            Some(self.compile_latest_ontology_version_filter(
-                                path,
-                                EqualityOperator::NotEqual,
-                            ))
-                        }
-                        (TableName::Entities, "version", Filter::Equal(..), "latest") => {
-                            Some(self.compile_latest_entity_version_filter(
-                                path,
-                                EqualityOperator::Equal,
-                            ))
-                        }
-                        (TableName::Entities, "version", Filter::NotEqual(..), "latest") => {
-                            Some(self.compile_latest_entity_version_filter(
-                                path,
-                                EqualityOperator::NotEqual,
-                            ))
-                        }
-                        _ => None,
+                ) => match (path.terminating_column(), filter, parameter.as_ref()) {
+                    (Column::TypeIds(TypeIds::Version), Filter::Equal(..), "latest") => Some(
+                        self.compile_latest_ontology_version_filter(path, EqualityOperator::Equal),
+                    ),
+                    (Column::TypeIds(TypeIds::Version), Filter::NotEqual(..), "latest") => {
+                        Some(self.compile_latest_ontology_version_filter(
+                            path,
+                            EqualityOperator::NotEqual,
+                        ))
                     }
-                }
+                    (Column::Entities(Entities::Version), Filter::Equal(..), "latest") => Some(
+                        self.compile_latest_entity_version_filter(path, EqualityOperator::Equal),
+                    ),
+                    (Column::Entities(Entities::Version), Filter::NotEqual(..), "latest") => Some(
+                        self.compile_latest_entity_version_filter(path, EqualityOperator::NotEqual),
+                    ),
+                    _ => None,
+                },
                 _ => None,
             },
             _ => None,
         }
+    }
+
+    pub fn compile_path_column(&mut self, path: &'p T::Path<'p>) -> AliasedColumn<'c> {
+        let column = path.terminating_column();
+        let column =
+            if let Column::Entities(Entities::Properties(Some(JsonField::Text(field)))) = column {
+                self.artifacts.parameters.push(field);
+                Column::Entities(Entities::Properties(Some(JsonField::Parameter(
+                    self.artifacts.parameters.len(),
+                ))))
+            } else {
+                column
+            };
+
+        column.aliased(self.add_join_statements(path))
     }
 
     pub fn compile_filter_expression<'f: 'p>(
@@ -321,21 +298,7 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
         expression: &'f FilterExpression<'p, T>,
     ) -> Expression<'c> {
         match expression {
-            FilterExpression::Path(path) => {
-                let access = if let Some(field) = path.user_provided_path() {
-                    self.artifacts.parameters.push(field);
-                    ColumnAccess::JsonParameter {
-                        column: path.column_access().column(),
-                        index: self.artifacts.parameters.len(),
-                    }
-                } else {
-                    path.column_access()
-                };
-                Expression::Column(Column {
-                    table: self.add_join_statements(path.relations()),
-                    access,
-                })
-            }
+            FilterExpression::Path(path) => Expression::Column(self.compile_path_column(path)),
             FilterExpression::Parameter(parameter) => {
                 match parameter {
                     Parameter::Number(number) => self.artifacts.parameters.push(number),
@@ -354,93 +317,76 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
     ///
     /// Joining the tables attempts to deduplicate [`JoinExpression`]s. As soon as a new filter was
     /// compiled, each subsequent call will result in a new join-chain.
-    fn add_join_statements(&mut self, tables: impl IntoIterator<Item = Relation>) -> Table {
-        let mut current_table = T::base_table();
-        let mut chain_depth = 0;
-        for Relation {
-            current_column_access,
-            join_table_name,
-            join_column_access,
-        } in tables
-        {
-            let current_column = Column {
-                table: current_table,
-                access: current_column_access,
-            };
-            let join_table = Table {
-                name: join_table_name,
-                alias: Some(TableAlias {
+    ///
+    /// [`Relation`]: super::table::Relation
+    fn add_join_statements(&mut self, path: &T::Path<'p>) -> Option<Alias> {
+        let mut current_table = self.statement.from.aliased(None);
+
+        for relation in path.relations() {
+            for (current_column, join_column) in relation.joins() {
+                let current_column = current_column.aliased(current_table.alias);
+                let mut join_column = join_column.aliased(Alias {
                     condition_index: self.artifacts.condition_index,
-                    chain_depth,
+                    chain_depth: current_table.alias.map_or(0, |alias| alias.chain_depth + 1),
                     number: 0,
-                }),
-            };
-            let mut join_column = Column {
-                table: join_table,
-                access: join_column_access,
-            };
-
-            // If we join on the same column as the previous join, we can reuse the that join. For
-            // example, if we join on `entities.entity_type_version_id = entity_type.version_id` and
-            // then on `entity_type.version_id = type_ids.version_id`, we can merge the two joins
-            // into `entities.entity_type_version_id = type_ids.version_id`. We, however, need to
-            // make sure, that we only alter a join statement with a table we don't require anymore.
-            if let Some(last_join) = self.statement.joins.last_mut() {
-                // Check if we are joining on the same column as the previous join
-                if last_join.join == current_column
-                    && !self
-                        .artifacts
-                        .required_tables
-                        .contains(&last_join.join.table)
-                {
-                    last_join.join.table.name = join_column.table.name;
-                    last_join.join.access = join_column.access;
-                    current_table = last_join.join.table;
-
-                    if let [.., previous_join, this_join] = self.statement.joins.as_slice() {
-                        // It's possible that we just duplicated the last two join statements, so
-                        // remove the last one.
-                        if previous_join == this_join {
-                            self.statement.joins.pop();
-                        }
-                    }
-
-                    continue;
-                }
-            }
-
-            let mut found = false;
-            for existing in &self.statement.joins {
-                if existing.join.table == join_column.table {
-                    if existing.on == current_column && existing.join.access == join_column.access {
-                        // We already have a join statement for this column, so we can reuse it.
-                        current_table = existing.join.table;
-                        found = true;
-                        break;
-                    }
-                    // We already have a join statement for this table, but it's on a different
-                    // column. We need to create a new join statement later on with a new, unique
-                    // alias.
-                    join_column
-                        .table
-                        .alias
-                        .as_mut()
-                        .expect("alias is not set")
-                        .number += 1;
-                }
-            }
-
-            if !found {
-                // We don't have a join statement for this column yet, so we need to create one.
-                current_table = join_column.table;
-                self.statement.joins.push(JoinExpression {
-                    join: join_column,
-                    on: current_column,
                 });
+
+                // If we join on the same column as the previous join, we can reuse the that join.
+                // For example, if we join on `entities.entity_type_version_id =
+                // entity_type.version_id` and then on `entity_type.version_id =
+                // type_ids.version_id`, we can merge the two joins into `entities.
+                // entity_type_version_id = type_ids.version_id`. We, however, need to
+                // make sure, that we only alter a join statement with a table we don't require
+                // anymore.
+                if let Some(last_join) = self.statement.joins.last_mut() {
+                    // Check if we are joining on the same column as the previous join
+                    if last_join.join == current_column
+                        && !self
+                            .artifacts
+                            .required_tables
+                            .contains(&last_join.join.table())
+                    {
+                        last_join.join.table().table = join_column.table().table;
+                        last_join.join.column = join_column.column;
+                        current_table = last_join.join.table();
+
+                        if let [.., previous_join, this_join] = self.statement.joins.as_slice() {
+                            // It's possible that we just duplicated the last two join statements,
+                            // so remove the last one.
+                            if previous_join == this_join {
+                                self.statement.joins.pop();
+                            }
+                        }
+
+                        continue;
+                    }
+                }
+
+                let mut found = false;
+                for existing in &self.statement.joins {
+                    if existing.join.table() == join_column.table() {
+                        if existing.on == current_column && existing.join == join_column {
+                            // We already have a join statement for this column, so we can reuse it.
+                            current_table = existing.join.table();
+                            found = true;
+                            break;
+                        }
+                        // We already have a join statement for this table, but it's on a different
+                        // column. We need to create a new join statement later on with a new,
+                        // unique alias.
+                        join_column.alias.as_mut().expect("alias is not set").number += 1;
+                    }
+                }
+
+                if !found {
+                    let join_expression = JoinExpression::new(join_column, current_column);
+                    // We don't have a join statement for this column yet, so we need to create one.
+                    current_table = join_expression.join.table();
+                    self.statement.joins.push(join_expression);
+                }
             }
-            chain_depth += 1;
         }
         self.artifacts.required_tables.insert(current_table);
-        current_table
+        current_table.alias
     }
 }

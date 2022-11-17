@@ -29,10 +29,10 @@ impl Transpile for WhereExpression<'_> {
 
         fmt.write_str("WHERE ")?;
         for (idx, condition) in self.conditions.iter().enumerate() {
-            condition.transpile(fmt)?;
-            if idx + 1 < self.conditions.len() {
-                fmt.write_str("\n  AND ")?;
+            if idx > 0 {
+                fmt.write_str(" AND ")?;
             }
+            condition.transpile(fmt)?;
         }
 
         Ok(())
