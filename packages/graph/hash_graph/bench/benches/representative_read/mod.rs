@@ -19,6 +19,7 @@
 
 use criterion::{BenchmarkId, Criterion};
 use criterion_macro::criterion;
+use graph::subgraph::GraphResolveDepths;
 
 use crate::{representative_read::seed::setup_and_extract_samples, util::setup};
 
@@ -30,8 +31,8 @@ mod seed;
 const DB_NAME: &str = "representative_read";
 
 #[criterion]
-fn bench_representative_read_entity(c: &mut Criterion) {
-    let mut group = c.benchmark_group("representative_read_entity");
+fn bench_representative_read_single_entity(c: &mut Criterion) {
+    let mut group = c.benchmark_group("representative_read_single_entity");
     let (runtime, mut store_wrapper) = setup(DB_NAME, false, false);
 
     let samples = runtime.block_on(setup_and_extract_samples(&mut store_wrapper));
@@ -41,7 +42,7 @@ fn bench_representative_read_entity(c: &mut Criterion) {
         for (entity_type_id, entity_ids) in type_ids_and_entity_ids {
             group.bench_with_input(
                 BenchmarkId::new(
-                    "get_entity_by_id",
+                    "entity_by_id",
                     format!(
                         "Account ID: `{}`, Entity Type ID: `{}`",
                         account_id, entity_type_id
@@ -53,6 +54,122 @@ fn bench_representative_read_entity(c: &mut Criterion) {
                 },
             );
         }
+    }
+}
+
+#[criterion]
+fn bench_representative_read_multiple_entities(c: &mut Criterion) {
+    let mut group = c.benchmark_group("representative_read_multiple_entities");
+    let (runtime, store_wrapper) = setup(DB_NAME, false, false);
+    group.sample_size(10);
+
+    let graph_resolve_depths = [
+        GraphResolveDepths {
+            data_type_resolve_depth: 0,
+            property_type_resolve_depth: 0,
+            entity_type_resolve_depth: 0,
+            link_type_resolve_depth: 0,
+            link_resolve_depth: 0,
+            link_target_entity_resolve_depth: 0,
+        },
+        GraphResolveDepths {
+            data_type_resolve_depth: 0,
+            property_type_resolve_depth: 0,
+            entity_type_resolve_depth: 2,
+            link_type_resolve_depth: 2,
+            link_resolve_depth: 0,
+            link_target_entity_resolve_depth: 0,
+        },
+        GraphResolveDepths {
+            data_type_resolve_depth: 0,
+            property_type_resolve_depth: 2,
+            entity_type_resolve_depth: 2,
+            link_type_resolve_depth: 2,
+            link_resolve_depth: 0,
+            link_target_entity_resolve_depth: 0,
+        },
+        GraphResolveDepths {
+            data_type_resolve_depth: 2,
+            property_type_resolve_depth: 2,
+            entity_type_resolve_depth: 2,
+            link_type_resolve_depth: 2,
+            link_resolve_depth: 0,
+            link_target_entity_resolve_depth: 0,
+        },
+        GraphResolveDepths {
+            data_type_resolve_depth: 2,
+            property_type_resolve_depth: 2,
+            entity_type_resolve_depth: 2,
+            link_type_resolve_depth: 2,
+            link_resolve_depth: 1,
+            link_target_entity_resolve_depth: 1,
+        },
+        GraphResolveDepths {
+            data_type_resolve_depth: 255,
+            property_type_resolve_depth: 255,
+            entity_type_resolve_depth: 255,
+            link_type_resolve_depth: 255,
+            link_resolve_depth: 255,
+            link_target_entity_resolve_depth: 255,
+        },
+    ];
+
+    for graph_resolve_depth in graph_resolve_depths {
+        // The name unifies entity types/link types and entities/links to be comparable to
+        // `dev/links`
+        group.bench_with_input(
+            BenchmarkId::new(
+                "entity_by_property",
+                format!(
+                    "depths: DT={}, PT={}, ET={}, E={}",
+                    graph_resolve_depth.data_type_resolve_depth,
+                    graph_resolve_depth.property_type_resolve_depth,
+                    graph_resolve_depth
+                        .entity_type_resolve_depth
+                        .max(graph_resolve_depth.link_type_resolve_depth),
+                    graph_resolve_depth.link_resolve_depth
+                        + graph_resolve_depth.link_target_entity_resolve_depth,
+                ),
+            ),
+            &graph_resolve_depth,
+            |b, graph_resolve_depth| {
+                knowledge::entity::bench_get_entities_by_property(
+                    b,
+                    &runtime,
+                    &store_wrapper.store,
+                    *graph_resolve_depth,
+                );
+            },
+        );
+    }
+
+    for graph_resolve_depth in graph_resolve_depths {
+        // The name unifies entity types/link types and entities/links to be comparable to
+        // `dev/links`
+        group.bench_with_input(
+            BenchmarkId::new(
+                "link_by_source_by_property",
+                format!(
+                    "depths: DT={}, PT={}, ET={}, E={}",
+                    graph_resolve_depth.data_type_resolve_depth,
+                    graph_resolve_depth.property_type_resolve_depth,
+                    graph_resolve_depth
+                        .entity_type_resolve_depth
+                        .max(graph_resolve_depth.link_type_resolve_depth),
+                    graph_resolve_depth.link_resolve_depth
+                        + graph_resolve_depth.link_target_entity_resolve_depth,
+                ),
+            ),
+            &graph_resolve_depth,
+            |b, graph_resolve_depth| {
+                knowledge::entity::bench_get_link_by_target_by_property(
+                    b,
+                    &runtime,
+                    &store_wrapper.store,
+                    *graph_resolve_depth,
+                );
+            },
+        );
     }
 }
 
