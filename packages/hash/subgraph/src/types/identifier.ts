@@ -1,5 +1,5 @@
 import { OntologyTypeEditionId } from "@hashintel/hash-graph-client";
-import { validate } from "uuid";
+import { validate as validateUuid } from "uuid";
 
 // ${AccountId}%${EntityUuid}`
 export type EntityId = `${string}%${string}`;
@@ -34,8 +34,8 @@ export const isEntityId = (entityId: string): entityId is EntityId => {
   return (
     accountId != null &&
     entityUuid != null &&
-    validate(accountId) &&
-    validate(entityUuid)
+    validateUuid(accountId) &&
+    validateUuid(entityUuid)
   );
 };
 
