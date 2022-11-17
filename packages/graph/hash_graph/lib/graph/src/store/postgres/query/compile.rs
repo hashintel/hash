@@ -39,7 +39,11 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
                 with: WithExpression::default(),
                 distinct: Vec::new(),
                 selects: Vec::new(),
-                from: T::base_table(),
+                from: T::base_table().aliased(Alias {
+                    condition_index: 0,
+                    chain_depth: 0,
+                    number: 0,
+                }),
                 joins: Vec::new(),
                 where_expression: WhereExpression::default(),
                 order_by_expression: OrderByExpression::default(),
@@ -173,7 +177,11 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
         path: &T::Path<'p>,
         operator: EqualityOperator,
     ) -> Condition<'c> {
-        let version_column = Column::TypeIds(TypeIds::Version);
+        let version_column = Column::TypeIds(TypeIds::Version).aliased(Alias {
+            condition_index: 0,
+            chain_depth: 0,
+            number: 0,
+        });
 
         // Add a WITH expression selecting the partitioned version
         self.statement
@@ -186,10 +194,10 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
                     SelectExpression::new(
                         Expression::Window(
                             Box::new(Expression::Function(Box::new(Function::Max(
-                                Expression::Column(version_column.aliased(None)),
+                                Expression::Column(version_column),
                             )))),
                             WindowStatement::partition_by(
-                                Column::TypeIds(TypeIds::BaseUri).aliased(None),
+                                Column::TypeIds(TypeIds::BaseUri).aliased(version_column.alias),
                             ),
                         ),
                         Some(Cow::Borrowed("latest_version")),
@@ -206,7 +214,7 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
         let latest_version_expression = Some(Expression::Column(
             Column::TypeIds(TypeIds::LatestVersion).aliased(alias),
         ));
-        let version_expression = Some(Expression::Column(version_column.aliased(alias)));
+        let version_expression = Some(Expression::Column(version_column.column.aliased(alias)));
 
         match operator {
             EqualityOperator::Equal => {
@@ -319,15 +327,15 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
     /// compiled, each subsequent call will result in a new join-chain.
     ///
     /// [`Relation`]: super::table::Relation
-    fn add_join_statements(&mut self, path: &T::Path<'p>) -> Option<Alias> {
-        let mut current_table = self.statement.from.aliased(None);
+    fn add_join_statements(&mut self, path: &T::Path<'p>) -> Alias {
+        let mut current_table = self.statement.from;
 
         for relation in path.relations() {
             for (current_column, join_column) in relation.joins() {
                 let current_column = current_column.aliased(current_table.alias);
                 let mut join_column = join_column.aliased(Alias {
                     condition_index: self.artifacts.condition_index,
-                    chain_depth: current_table.alias.map_or(0, |alias| alias.chain_depth + 1),
+                    chain_depth: current_table.alias.chain_depth + 1,
                     number: 0,
                 });
 
@@ -374,7 +382,7 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
                         // We already have a join statement for this table, but it's on a different
                         // column. We need to create a new join statement later on with a new,
                         // unique alias.
-                        join_column.alias.as_mut().expect("alias is not set").number += 1;
+                        join_column.alias.number += 1;
                     }
                 }
 

@@ -45,22 +45,30 @@ mod tests {
             SelectExpression::from_column(
                 DataTypeQueryPath::BaseUri
                     .terminating_column()
-                    .aliased(None),
-                None,
+                    .aliased(Alias {
+                        condition_index: 1,
+                        chain_depth: 2,
+                        number: 3,
+                    }),
+                None
             )
             .transpile_to_string(),
-            r#""type_ids"."base_uri""#
+            r#""type_ids_1_2_3"."base_uri""#
         );
 
         assert_eq!(
             SelectExpression::from_column(
                 DataTypeQueryPath::VersionedUri
                     .terminating_column()
-                    .aliased(None),
-                Some(Cow::Borrowed("versionedUri")),
+                    .aliased(Alias {
+                        condition_index: 1,
+                        chain_depth: 2,
+                        number: 3,
+                    }),
+                Some(Cow::Borrowed("versionedUri"))
             )
             .transpile_to_string(),
-            r#""data_types"."schema"->>'$id' AS "versionedUri""#
+            r#""data_types_1_2_3"."schema"->>'$id' AS "versionedUri""#
         );
 
         assert_eq!(
@@ -71,26 +79,26 @@ mod tests {
                             DataTypeQueryPath::Version
                                 .terminating_column()
                                 .aliased(Alias {
-                                    condition_index: 0,
-                                    chain_depth: 0,
-                                    number: 0,
-                                }),
+                                    condition_index: 1,
+                                    chain_depth: 2,
+                                    number: 3,
+                                })
                         )
                     )))),
                     WindowStatement::partition_by(
                         DataTypeQueryPath::BaseUri
                             .terminating_column()
                             .aliased(Alias {
-                                condition_index: 0,
-                                chain_depth: 0,
-                                number: 0,
+                                condition_index: 1,
+                                chain_depth: 2,
+                                number: 3,
                             })
-                    ),
+                    )
                 ),
-                Some(Cow::Borrowed("latest_version")),
+                Some(Cow::Borrowed("latest_version"))
             )
             .transpile_to_string(),
-            r#"MAX("type_ids_0_0_0"."version") OVER (PARTITION BY "type_ids_0_0_0"."base_uri") AS "latest_version""#
+            r#"MAX("type_ids_1_2_3"."version") OVER (PARTITION BY "type_ids_1_2_3"."base_uri") AS "latest_version""#
         );
     }
 }
