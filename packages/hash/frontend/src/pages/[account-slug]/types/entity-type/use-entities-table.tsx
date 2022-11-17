@@ -23,19 +23,15 @@ export const useEntitiesTable = (
       return;
     }
 
-    const propertyColumns: SizedGridColumn[] = [];
-
+    const propertyColumnsMap = new Map<string, SizedGridColumn>();
     if (propertyTypes) {
       for (const propertyType of propertyTypes) {
         const propertyTypeBaseUri = extractBaseUri(
           mustBeVersionedUri(propertyType.$id),
         );
 
-        if (
-          propertyColumns.findIndex((col) => col.id === propertyTypeBaseUri) ===
-          -1
-        ) {
-          propertyColumns.push({
+        if (!propertyColumnsMap.has(propertyTypeBaseUri)) {
+          propertyColumnsMap.set(propertyTypeBaseUri, {
             id: propertyTypeBaseUri,
             title: propertyType.title,
             width: 200,
@@ -43,6 +39,7 @@ export const useEntitiesTable = (
         }
       }
     }
+    const propertyColumns = Array.from(propertyColumnsMap.values());
 
     const columns: SizedGridColumn[] = [
       {
