@@ -1,6 +1,6 @@
 import { ApolloError } from "apollo-server-express";
 import { AxiosError } from "axios";
-import { PropertyTypeWithMetadata } from "@hashintel/subgraph/types";
+import { PropertyTypeWithMetadata } from "@hashintel/hash-subgraph";
 
 import {
   MutationCreatePropertyTypeArgs,

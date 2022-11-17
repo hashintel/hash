@@ -1,6 +1,6 @@
 import { ApolloError } from "apollo-server-express";
 import { AxiosError } from "axios";
-import { EntityTypeWithMetadata } from "@hashintel/subgraph/types";
+import { EntityTypeWithMetadata } from "@hashintel/hash-subgraph";
 
 import {
   MutationCreateEntityTypeArgs,

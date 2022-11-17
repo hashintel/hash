@@ -15,7 +15,6 @@ import {
 import {
   PropertyType,
   EntityType,
-  LinkType,
   VersionedUri,
 } from "@blockprotocol/type-system-web";
 import { Subgraph } from "../../../../lib/subgraph";
@@ -31,7 +30,6 @@ export type OntologyCallbacks = {
   aggregateEntityTypes: AggregateEntityTypesMessageCallback;
   getEntityType: GetEntityTypeMessageCallback;
   updateEntityType: UpdateEntityTypeMessageCallback;
-  createLinkType: CreateLinkTypeMessageCallback;
 };
 
 /* Shared types */
