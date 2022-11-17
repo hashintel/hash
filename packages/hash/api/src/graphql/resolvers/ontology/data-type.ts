@@ -26,10 +26,8 @@ export const getAllLatestDataTypes: ResolverFn<
       graphResolveDepths: {
         dataTypeResolveDepth,
         propertyTypeResolveDepth: 0,
-        linkTypeResolveDepth: 0,
         entityTypeResolveDepth: 0,
-        linkTargetEntityResolveDepth: 0,
-        linkResolveDepth: 0,
+        entityResolveDepth: 0,
       },
     })
     .catch((err: AxiosError) => {
@@ -59,10 +57,8 @@ export const getDataType: ResolverFn<
       graphResolveDepths: {
         dataTypeResolveDepth,
         propertyTypeResolveDepth: 0,
-        linkTypeResolveDepth: 0,
         entityTypeResolveDepth: 0,
-        linkTargetEntityResolveDepth: 0,
-        linkResolveDepth: 0,
+        entityResolveDepth: 0,
       },
     })
     .catch((err: AxiosError) => {

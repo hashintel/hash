@@ -62,7 +62,7 @@ export const persistedCommentTypedef = gql`
     """
     The full entity type definition.
     """
-    entityType: PersistedEntityType!
+    entityType: EntityTypeWithMetadata!
     """
     The linked entities of the entity.
     """

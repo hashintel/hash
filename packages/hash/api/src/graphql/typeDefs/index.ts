@@ -15,7 +15,6 @@ import { pagePaginationTypedef } from "./paginationConnections.typedef";
 import { executeTaskTypedef } from "./taskExecution.typedef";
 import { dataTypeTypedef } from "./ontology/data-type.typedef";
 import { propertyTypeTypedef } from "./ontology/property-type.typedef";
-import { linkTypeTypedef } from "./ontology/link-type.typedef";
 import { entityTypeTypedef } from "./ontology/entity-type.typedef";
 import { persistedEntityTypedef } from "./knowledge/entity.typedef";
 import { persistedPageTypedef } from "./knowledge/page.typedef";
@@ -46,12 +45,7 @@ const baseSchema = gql`
   }
 `;
 
-const ontology = [
-  dataTypeTypedef,
-  propertyTypeTypedef,
-  linkTypeTypedef,
-  entityTypeTypedef,
-];
+const ontology = [dataTypeTypedef, propertyTypeTypedef, entityTypeTypedef];
 
 const knowledge = [
   persistedEntityTypedef,

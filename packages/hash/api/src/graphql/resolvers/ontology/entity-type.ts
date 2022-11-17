@@ -1,8 +1,8 @@
 import { ApolloError } from "apollo-server-express";
 import { AxiosError } from "axios";
+import { EntityTypeWithMetadata } from "@hashintel/hash-subgraph";
 
 import {
-  PersistedEntityType,
   MutationCreateEntityTypeArgs,
   MutationUpdateEntityTypeArgs,
   QueryGetEntityTypeArgs,
@@ -15,7 +15,7 @@ import { EntityTypeModel } from "../../../model";
 import { mapEntityTypeModelToGQL, mapSubgraphToGql } from "./model-mapping";
 
 export const createEntityType: ResolverFn<
-  Promise<PersistedEntityType>,
+  Promise<EntityTypeWithMetadata>,
   {},
   LoggedInGraphQLContext,
   MutationCreateEntityTypeArgs
@@ -41,12 +41,7 @@ export const getAllLatestEntityTypes: ResolverFn<
   QueryGetAllLatestEntityTypesArgs
 > = async (
   _,
-  {
-    dataTypeResolveDepth,
-    propertyTypeResolveDepth,
-    linkTypeResolveDepth,
-    entityTypeResolveDepth,
-  },
+  { dataTypeResolveDepth, propertyTypeResolveDepth, entityTypeResolveDepth },
   { dataSources },
   __,
 ) => {
@@ -60,10 +55,8 @@ export const getAllLatestEntityTypes: ResolverFn<
       graphResolveDepths: {
         dataTypeResolveDepth,
         propertyTypeResolveDepth,
-        linkTypeResolveDepth,
         entityTypeResolveDepth,
-        linkTargetEntityResolveDepth: 0,
-        linkResolveDepth: 0,
+        entityResolveDepth: 0,
       },
     })
     .catch((err: AxiosError) => {
@@ -87,7 +80,6 @@ export const getEntityType: ResolverFn<
     entityTypeId,
     dataTypeResolveDepth,
     propertyTypeResolveDepth,
-    linkTypeResolveDepth,
     entityTypeResolveDepth,
   },
   { dataSources },
@@ -103,10 +95,8 @@ export const getEntityType: ResolverFn<
       graphResolveDepths: {
         dataTypeResolveDepth,
         propertyTypeResolveDepth,
-        linkTypeResolveDepth,
         entityTypeResolveDepth,
-        linkTargetEntityResolveDepth: 0,
-        linkResolveDepth: 0,
+        entityResolveDepth: 0,
       },
     })
     .catch((err: AxiosError) => {
@@ -120,7 +110,7 @@ export const getEntityType: ResolverFn<
 };
 
 export const updateEntityType: ResolverFn<
-  Promise<PersistedEntityType>,
+  Promise<EntityTypeWithMetadata>,
   {},
   LoggedInGraphQLContext,
   MutationUpdateEntityTypeArgs
