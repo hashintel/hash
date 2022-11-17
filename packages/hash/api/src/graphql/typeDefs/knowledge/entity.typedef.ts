@@ -1,95 +1,37 @@
 import { gql } from "apollo-server-express";
 
-export const persistedEntityTypedef = gql`
+export const entityWithMetadataTypedef = gql`
+  scalar EntityId
+  scalar EntityEditionId
   scalar PropertyObject
   scalar EntityMetadata
 
   interface EntityWithMetadata {
-    properties: PropertyObject!
+    """
+    Metadata for the entity.
+    """
     metadata: EntityMetadata!
+    """
+    Properties of entity.
+    """
+    properties: PropertyObject!
   }
 
-  interface PersistedEntity {
-    # These fields are repeated everywhere they're used because
-    # (a) GQL requires it - https://github.com/graphql/graphql-spec/issues/533
-    # (b) string interpolation breaks the code generator's introspection
-    #
-    # Could maybe use a custom schema loader to parse it ourselves:
-    # https://www.graphql-code-generator.com/docs/getting-started/schema-field#custom-schema-loader
-    #
-    # For now, _COPY ANY CHANGES_ from here to any type that 'implements Entity'
+  type UnknownEntityWithMetadata implements EntityWithMetadata {
     """
-    The id of the entity
+    Metadata for the entity.
     """
-    entityId: ID!
+    metadata: EntityMetadata!
     """
-    The specific version of the entity
+    Properties of entity.
     """
-    entityVersion: String!
-    """
-    The id of the account that owns this entity.
-    """
-    ownedById: ID!
-    """
-    Alias of ownedById - the id of the account that owns this entity.
-    """
-    accountId: ID!
-      @deprecated(reason: "accountId is deprecated. Use ownedById instead.")
-    """
-    The versioned URI of this entity's type.
-    """
-    entityTypeId: String!
-    """
-    The JSON object containing the entity's properties.
-    """
-    properties: JSONObject!
-  }
-
-  type UnknownPersistedEntity implements PersistedEntity {
-    # ENTITY INTERFACE FIELDS BEGIN #
-    """
-    The id of the entity
-    """
-    entityId: ID!
-    """
-    The specific version of the entity
-    """
-    entityVersion: String!
-    """
-    The id of the account that owns this entity.
-    """
-    ownedById: ID!
-    """
-    Alias of ownedById - the id of the account that owns this entity.
-    """
-    accountId: ID!
-      @deprecated(reason: "accountId is deprecated. Use ownedById instead.")
-    """
-    The versioned URI of this entity's type.
-    """
-    entityTypeId: String!
-    """
-    The JSON object containing the entity's properties.
-    """
-    properties: JSONObject!
-    # ENTITY INTERFACE FIELDS END #
-  }
-
-  """
-  For referring to an existing entity owned by a specific account id
-  """
-  input PersistedExistingEntity {
-    """
-    This may be a reference to a placeholder set using placeholderId on a previous UpdatePageContentsAction.
-    """
-    entityId: ID!
-    ownedById: ID!
+    properties: PropertyObject!
   }
 
   """
   Select entity types by ONE of componentId, entityTypeId
   """
-  input PersistedEntityTypeChoice {
+  input EntityWithMetadataTypeChoice {
     # Previously the EntityTypeChoice included 'componentId: ID', which made it possible
     # to create a block using an already-existing entity type based on its componentId
     # we should reconsider what we do about the component ID
@@ -107,14 +49,14 @@ export const persistedEntityTypedef = gql`
     The index of the link (if any)
     """
     index: Int
-    entity: PersistedEntityDefinition!
+    entity: EntityWithMetadataDefinition!
   }
 
-  input PersistedEntityDefinition {
+  input EntityWithMetadataDefinition {
     """
     Existing Entity to use instead of creating a new entity.
     """
-    existingEntity: PersistedExistingEntity
+    existingEntity: EntityId
     """
     The type of which to instantiate the new entity.
     """
@@ -146,7 +88,7 @@ export const persistedEntityTypedef = gql`
     """
     Get a subgraph rooted at an entity resolved by its id.
     """
-    getPersistedEntity(
+    getEntityWithMetadata(
       """
       The id of the entity.
       """
@@ -168,7 +110,7 @@ export const persistedEntityTypedef = gql`
     """
     Create an entity.
     """
-    createPersistedEntity(
+    createEntityWithMetadata(
       """
       The owner of the create entity. Defaults to the user calling the mutation.
       """
@@ -190,7 +132,7 @@ export const persistedEntityTypedef = gql`
     """
     Update an entity.
     """
-    updatePersistedEntity(
+    updateEntityWithMetadata(
       """
       The id of the entity.
       """
