@@ -55,37 +55,33 @@ export const useEntityTypeEntitiesContextValue = (
           extractBaseUri(mustBeVersionedUri(entityTypeId)) === typeId,
       );
 
-      const relevantTypes = relevantEntities.reduce(
-        (typesArray: EntityType[], { entityTypeId }) => {
+      const relevantTypesMap = new Map<string, EntityType>();
+      for (const { entityTypeId } of relevantEntities) {
+        if (!relevantTypesMap.has(entityTypeId)) {
           const type = getPersistedEntityType(subgraph, entityTypeId)?.inner;
-
-          if (type && !typesArray.find(({ $id }) => $id === entityTypeId)) {
-            return [...typesArray, type];
+          if (type) {
+            relevantTypesMap.set(entityTypeId, type);
           }
+        }
+      }
+      const relevantTypes = Array.from(relevantTypesMap.values());
 
-          return typesArray;
-        },
-        [],
-      );
-
-      const relevantProperties: PropertyType[] = [];
-
+      const relevantPropertiesMap = new Map<string, PropertyType>();
       for (const { properties } of relevantTypes) {
         for (const prop of Object.values(properties)) {
           const propertyUri = "items" in prop ? prop.items.$ref : prop.$ref;
-
-          if (!relevantProperties.find(({ $id }) => $id === propertyUri)) {
+          if (!relevantPropertiesMap.has(propertyUri)) {
             const propertyType = getPersistedPropertyType(
               subgraph,
               propertyUri,
             )?.inner;
-
             if (propertyType) {
-              relevantProperties.push(propertyType);
+              relevantPropertiesMap.set(propertyUri, propertyType);
             }
           }
         }
       }
+      const relevantProperties = Array.from(relevantPropertiesMap.values());
 
       return [relevantEntities, relevantTypes, relevantProperties];
     }, [subgraph, typeId]) ?? [];
