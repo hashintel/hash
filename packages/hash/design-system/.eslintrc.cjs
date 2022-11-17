@@ -11,9 +11,9 @@ module.exports = {
     "no-restricted-imports": [
       "error",
       {
-        paths: [
+        patterns: [
           {
-            name: "@mui/material/*",
+            group: ["@mui/material/*"],
             message: "Please import from @mui/material instead",
           },
         ],

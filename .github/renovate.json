@@ -5,7 +5,7 @@
   "postUpdateOptions": ["yarnDedupeFewer"],
   "prConcurrentLimit": 5,
   "rebaseWhen": "conflicted",
-  "schedule": ["every weekday before 5am"],
+  "schedule": ["before 5am on Monday", "before 5am on Thursday"],
   "packageRules": [
     {
       "automerge": true,
@@ -58,6 +58,12 @@
       "groupName": "Prettier",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^prettier$", "^prettier-"]
+    },
+    {
+      "enabled": true,
+      "groupName": "ProseMirror",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^prosemirror-"]
     },
     {
       "enabled": true,
