@@ -11,13 +11,9 @@ import { TabLink } from "./tab-link";
 import { useEntityTypeEntities } from "./use-entity-type-entities";
 import { getEntityTypeBaseUri } from "./[entity-type-id].page";
 
-export const getTabFromQuery = (query?: string) => {
-  if (!query) {
-    return "definition";
-  }
+const defaultTab = "definition";
 
-  return query;
-};
+export const useCurrentTab = () => useRouter().query.tab ?? defaultTab;
 
 export const EntityTypeTabs = () => {
   const router = useRouter();
@@ -34,7 +30,7 @@ export const EntityTypeTabs = () => {
     router.query["account-slug"] as string,
   );
 
-  const currentTab = getTabFromQuery(router.query.tab as string);
+  const currentTab = useCurrentTab();
 
   useFontLoadedCallback(
     [
