@@ -34,8 +34,8 @@ import { getPlainLayout } from "../../../../shared/layout/plain-layout";
 import { DefinitionTab } from "./tabs/definition-tab";
 import { EntitiesTab } from "./tabs/entities-tab";
 
-const getBaseUri = (entityTypeId: string, namespace: string) =>
-  `${frontendUrl}/@${namespace}/types/entity-type/${entityTypeId}/`;
+export const getEntityTypeBaseUri = (entityTypeId: string, namespace: string) =>
+  `${frontendUrl}/${namespace}/types/entity-type/${entityTypeId}/`;
 
 const getSchemaFromEditorForm = (
   properties: EntityTypeEditorPropertyData[],
@@ -78,14 +78,10 @@ const Page: NextPageWithLayout = () => {
   const isDraft = !!router.query.draft;
   const namespace = useRouteNamespace();
 
-  const entityTypeId = router.query["entity-type-id"];
-  const baseEntityTypeUri =
-    !isDraft && namespace?.shortname
-      ? getBaseUri(
-          entityTypeId && !Array.isArray(entityTypeId) ? entityTypeId : "",
-          namespace.shortname,
-        )
-      : null;
+  const entityTypeId = router.query["entity-type-id"] as string;
+  const baseEntityTypeUri = !isDraft
+    ? getEntityTypeBaseUri(entityTypeId, router.query["account-slug"] as string)
+    : null;
 
   const entityTypeEntitiesValue =
     useEntityTypeEntitiesContextValue(baseEntityTypeUri);

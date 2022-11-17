@@ -2,12 +2,12 @@ import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { Box, Tabs, tabsClasses } from "@mui/material";
 import { useRouter } from "next/router";
-import { useMemo } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { EntityTypeEditorForm } from "./form-types";
 import { TabButton } from "./tab-button";
 import { TabLink } from "./tab-link";
 import { useEntityTypeEntities } from "./use-entity-type-entities";
+import { getEntityTypeBaseUri } from "./[entity-type-id].page";
 
 export const getTabFromQuery = (query?: string) => {
   if (!query) {
@@ -25,10 +25,9 @@ export const EntityTypeTabs = () => {
 
   const { entities } = useEntityTypeEntities() ?? {};
 
-  const baseUri = useMemo(
-    () =>
-      `/${router.query["account-slug"]}/types/entity-type/${router.query["entity-type-id"]}`,
-    [router.query],
+  const baseUri = getEntityTypeBaseUri(
+    router.query["account-slug"] as string,
+    router.query["entity-type-id"] as string,
   );
 
   const currentTab = getTabFromQuery(router.query.tab as string);
