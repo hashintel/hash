@@ -10,6 +10,8 @@ generates:
       - "typescript-operations"
     config:
       skipTypename: true
+      # TODO: We should consider consolidating shared codegen config across our packages.
+      #   See https://app.asana.com/0/1201095311341924/1203393349856541/f
       scalars:
         Date: string
         UnknownEntityProperties: "@hashintel/hash-shared/graphql/types#UnknownEntityProperties"
