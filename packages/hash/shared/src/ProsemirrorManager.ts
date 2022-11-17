@@ -262,7 +262,8 @@ export class ProsemirrorManager {
   /**
    * @todo consider removing the old block from the entity store
    */
-  deleteNode(node: Node, pos: number) {
+  // eslint-disable-next-line @typescript-eslint/require-await -- using async for future proofing
+  async deleteNode(node: Node, pos: number) {
     const { view } = this;
 
     if (!view) {
