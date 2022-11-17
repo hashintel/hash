@@ -327,6 +327,45 @@ Content-Type: application/json
     });
 %}
 
+### Get all entity types which links to a link (should be none)
+POST http://127.0.0.1:4000/entity-types/query
+Content-Type: application/json
+
+{
+  "filter": {
+    "all": [
+      {
+        "equal": [
+          {
+            "path": [
+              "links",
+              "*",
+              "baseUri"
+            ]
+          },
+          {
+            "parameter": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/"
+          }
+        ]
+      }
+    ]
+  },
+  "graphResolveDepths": {
+    "dataTypeResolveDepth": 0,
+    "propertyTypeResolveDepth": 0,
+    "entityTypeResolveDepth": 0,
+    "entityResolveDepth": 0
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.roots.length === 0, "Unexpected number of entities");
+    });
+%}
+
+
 
 ### Insert Person entity
 POST http://127.0.0.1:4000/entities
