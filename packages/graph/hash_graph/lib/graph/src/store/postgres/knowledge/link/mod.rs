@@ -6,7 +6,11 @@ use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
 use futures::{future::FutureExt, stream, StreamExt, TryStreamExt};
 use tokio_postgres::GenericClient;
+#[cfg(feature = "__internal_bench")]
+use type_system::uri::VersionedUri;
 
+#[cfg(feature = "__internal_bench")]
+use crate::knowledge::EntityId;
 use crate::{
     knowledge::{Link, LinkRootedSubgraph, PersistedLink},
     provenance::{CreatedById, OwnedById, RemovedById},
