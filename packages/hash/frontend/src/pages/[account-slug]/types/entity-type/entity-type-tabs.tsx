@@ -2,7 +2,9 @@ import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { Box, Tabs, tabsClasses } from "@mui/material";
 import { useRouter } from "next/router";
+import { useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
+import { useFontLoadedCallback } from "../../../../components/hooks/useFontLoadedCallback";
 import { EntityTypeEditorForm } from "./form-types";
 import { TabButton } from "./tab-button";
 import { TabLink } from "./tab-link";
@@ -20,6 +22,8 @@ export const getTabFromQuery = (query?: string) => {
 export const EntityTypeTabs = () => {
   const router = useRouter();
 
+  const [animateTabs, setAnimateTabs] = useState(false);
+
   const { control } = useFormContext<EntityTypeEditorForm>();
   const propertiesCount = useWatch({ control, name: "properties.length" });
 
@@ -32,6 +36,16 @@ export const EntityTypeTabs = () => {
 
   const currentTab = getTabFromQuery(router.query.tab as string);
 
+  useFontLoadedCallback(
+    [
+      {
+        family: "Open Sauce Two",
+        weight: "500",
+      },
+    ],
+    () => setAnimateTabs(true),
+  );
+
   return (
     <Box display="flex">
       <Tabs
@@ -42,6 +56,7 @@ export const EntityTypeTabs = () => {
             backgroundColor: palette.blue[60],
             minHeight: 0,
             bottom: -1,
+            ...(!animateTabs ? { transition: "none" } : {}),
           }),
         }}
         sx={{
@@ -57,14 +72,14 @@ export const EntityTypeTabs = () => {
           value=""
           href={baseUri}
           label="Definition"
-          count={propertiesCount}
+          count={propertiesCount ?? 0}
           active={currentTab === "definition"}
         />
         <TabLink
           value="entities"
           href={`${baseUri}?tab=entities`}
           label="Entities"
-          count={entities?.length}
+          count={entities?.length ?? 0}
           active={currentTab === "entities"}
         />
       </Tabs>
