@@ -374,36 +374,74 @@ mod tests {
         );
     }
 
-    // TODO: https://app.asana.com/0/1200211978612931/1203250001255262/f
-    // #[test]
-    // fn entity_type_by_referenced_link_types() {
-    //     let mut compiler = SelectCompiler::<EntityType>::with_asterisk();
-    //
-    //     let filter = Filter::Equal(
-    //         Some(FilterExpression::Path(EntityTypeQueryPath::Links(
-    //             LinkTypeQueryPath::Title,
-    //         ))),
-    //         Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-    //             "Friend Of",
-    //         )))),
-    //     );
-    //     compiler.add_filter(&filter);
-    //
-    //     test_compilation(
-    //         &compiler,
-    //         r#"
-    //         SELECT *
-    //         FROM "entity_types"
-    //         INNER JOIN "entity_type_link_type_references" AS
-    // "entity_type_link_type_references_0_0"           ON
-    // "entity_type_link_type_references_0_0"."source_entity_type_version_id" =
-    // "entity_types"."version_id"         INNER JOIN "link_types" AS "link_types_0_1"
-    //           ON "link_types_0_1"."version_id" =
-    // "entity_type_link_type_references_0_0"."target_link_type_version_id"         WHERE
-    // "link_types_0_1"."schema"->>'title' = $1         "#,
-    //         &[&"Friend Of"],
-    //     );
-    // }
+    #[test]
+    fn entity_type_by_referenced_link_types() {
+        let mut compiler = SelectCompiler::<EntityType>::with_asterisk();
+
+        let filter = Filter::Equal(
+            Some(FilterExpression::Path(EntityTypeQueryPath::Links(
+                Box::new(EntityTypeQueryPath::Links(Box::new(
+                    EntityTypeQueryPath::Title,
+                ))),
+            ))),
+            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                "Friend Of",
+            )))),
+        );
+        compiler.add_filter(&filter);
+
+        test_compilation(
+            &compiler,
+            r#"
+            SELECT *
+            FROM "entity_types" AS "entity_types_0_0_0"
+            INNER JOIN "entity_type_entity_type_references" AS "entity_type_entity_type_references_0_1_0"
+              ON "entity_type_entity_type_references_0_1_0"."source_entity_type_version_id" = "entity_types_0_0_0"."version_id"
+            INNER JOIN "entity_types" AS "entity_types_0_2_0"
+              ON "entity_types_0_2_0"."version_id" = "entity_type_entity_type_references_0_1_0"."target_entity_type_version_id"
+            INNER JOIN "entity_type_entity_type_references" AS "entity_type_entity_type_references_0_3_0"
+              ON "entity_type_entity_type_references_0_3_0"."source_entity_type_version_id" = "entity_types_0_2_0"."version_id"
+            INNER JOIN "entity_types" AS "entity_types_0_4_0"
+              ON "entity_types_0_4_0"."version_id" = "entity_type_entity_type_references_0_3_0"."target_entity_type_version_id"
+            WHERE jsonb_extract_path("entity_types_0_0_0"."schema", 'links', "entity_types_0_2_0"."schema"->>'$id') IS NOT NULL
+              AND jsonb_extract_path("entity_types_0_2_0"."schema", 'links', "entity_types_0_4_0"."schema"->>'$id') IS NOT NULL
+              AND "entity_types_0_4_0"."schema"->>'title' = $1
+            "#,
+            &[&"Friend Of"],
+        );
+    }
+
+    #[test]
+    fn entity_type_by_inheritance() {
+        let mut compiler = SelectCompiler::<EntityType>::with_asterisk();
+
+        let filter = Filter::Equal(
+            Some(FilterExpression::Path(EntityTypeQueryPath::InheritsFrom(
+                Box::new(EntityTypeQueryPath::BaseUri),
+            ))),
+            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                "https://blockprotocol.org/@blockprotocol/types/entity-type/link/",
+            )))),
+        );
+        compiler.add_filter(&filter);
+
+        test_compilation(
+            &compiler,
+            r#"
+            SELECT *
+            FROM "entity_types" AS "entity_types_0_0_0"
+            INNER JOIN "entity_type_entity_type_references" AS "entity_type_entity_type_references_0_1_0"
+              ON "entity_type_entity_type_references_0_1_0"."source_entity_type_version_id" = "entity_types_0_0_0"."version_id"
+            INNER JOIN "entity_types" AS "entity_types_0_2_0"
+              ON "entity_types_0_2_0"."version_id" = "entity_type_entity_type_references_0_1_0"."target_entity_type_version_id"
+            INNER JOIN "type_ids" AS "type_ids_0_3_0"
+              ON "type_ids_0_3_0"."version_id" = "entity_types_0_2_0"."version_id"
+            WHERE jsonb_contains("entity_types_0_0_0"."schema"->'allOf', jsonb_build_array(jsonb_build_object('$ref', "entity_types_0_2_0"."schema"->>'$id'))) IS NOT NULL
+              AND "type_ids_0_3_0"."base_uri" = $1
+            "#,
+            &[&"https://blockprotocol.org/@blockprotocol/types/entity-type/link/"],
+        );
+    }
 
     #[test]
     fn entity_simple_query() {

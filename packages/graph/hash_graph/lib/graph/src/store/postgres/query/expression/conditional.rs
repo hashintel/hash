@@ -6,6 +6,10 @@ use crate::store::postgres::query::{AliasedColumn, Transpile, WindowStatement};
 pub enum Function<'q> {
     Min(Expression<'q>),
     Max(Expression<'q>),
+    JsonExtractPath(Vec<Expression<'q>>),
+    JsonContains(Expression<'q>, Expression<'q>),
+    JsonBuildArray(Vec<Expression<'q>>),
+    JsonBuildObject(Vec<(Expression<'q>, Expression<'q>)>),
 }
 
 impl Transpile for Function<'_> {
@@ -21,6 +25,45 @@ impl Transpile for Function<'_> {
                 expression.transpile(fmt)?;
                 fmt.write_char(')')
             }
+            Self::JsonExtractPath(paths) => {
+                fmt.write_str("jsonb_extract_path(")?;
+                for (i, expression) in paths.iter().enumerate() {
+                    if i > 0 {
+                        fmt.write_str(", ")?;
+                    }
+                    expression.transpile(fmt)?;
+                }
+                fmt.write_char(')')
+            }
+            Self::JsonContains(json, value) => {
+                fmt.write_str("jsonb_contains(")?;
+                json.transpile(fmt)?;
+                fmt.write_str(", ")?;
+                value.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::JsonBuildArray(expressions) => {
+                fmt.write_str("jsonb_build_array(")?;
+                for (i, expression) in expressions.iter().enumerate() {
+                    if i > 0 {
+                        fmt.write_str(", ")?;
+                    }
+                    expression.transpile(fmt)?;
+                }
+                fmt.write_char(')')
+            }
+            Self::JsonBuildObject(pairs) => {
+                fmt.write_str("jsonb_build_object(")?;
+                for (i, (key, value)) in pairs.iter().enumerate() {
+                    if i > 0 {
+                        fmt.write_str(", ")?;
+                    }
+                    key.transpile(fmt)?;
+                    fmt.write_str(", ")?;
+                    value.transpile(fmt)?;
+                }
+                fmt.write_char(')')
+            }
         }
     }
 }
@@ -28,12 +71,14 @@ impl Transpile for Function<'_> {
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Constant {
     Boolean(bool),
+    String(&'static str),
 }
 
 impl Transpile for Constant {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Boolean(value) => fmt.write_str(if *value { "TRUE" } else { "FALSE" }),
+            Self::String(value) => write!(fmt, "'{value}'"),
         }
     }
 }

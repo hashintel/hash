@@ -423,6 +423,7 @@ pub enum Relation {
     PropertyTypeDataTypeReferences,
     PropertyTypePropertyTypeReferences,
     EntityTypePropertyTypeReferences,
+    EntityTypeLinks,
     EntityTypeInheritance,
     EntityType,
     LeftEndpoint,
@@ -488,7 +489,7 @@ impl Relation {
                     Column::PropertyTypes(PropertyTypes::VersionId),
                 ),
             ],
-            Self::EntityTypeInheritance => &[
+            Self::EntityTypeLinks | Self::EntityTypeInheritance => &[
                 (
                     Column::EntityTypes(EntityTypes::VersionId),
                     Column::EntityTypeEntityTypeReferences(

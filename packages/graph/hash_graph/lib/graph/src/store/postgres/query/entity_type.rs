@@ -34,6 +34,9 @@ impl Path for EntityTypeQueryPath {
             Self::Properties(path) => once(Relation::EntityTypePropertyTypeReferences)
                 .chain(path.relations())
                 .collect(),
+            Self::Links(path) => once(Relation::EntityTypeLinks)
+                .chain(path.relations())
+                .collect(),
             Self::InheritsFrom(path) => once(Relation::EntityTypeInheritance)
                 .chain(path.relations())
                 .collect(),
@@ -71,7 +74,7 @@ impl Path for EntityTypeQueryPath {
             Self::RequiredLinks => Column::EntityTypes(EntityTypes::Schema(Some(JsonField::Text(
                 &Cow::Borrowed("requiredLinks"),
             )))),
-            Self::InheritsFrom(path) => path.terminating_column(),
+            Self::Links(path) | Self::InheritsFrom(path) => path.terminating_column(),
             Self::Properties(path) => path.terminating_column(),
         }
     }
