@@ -324,12 +324,12 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
     fn add_special_relation_conditions(
         &mut self,
         relation: Relation,
-        current_alias: Alias,
-        current_table: AliasedTable,
+        base_alias: Alias,
+        joined_table: AliasedTable,
     ) {
         match relation {
             Relation::EntityTypeLinks => {
-                self.artifacts.required_tables.insert(current_table);
+                self.artifacts.required_tables.insert(joined_table);
                 self.statement
                     .where_expression
                     .add_condition(Condition::NotEqual(
@@ -337,14 +337,14 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
                             vec![
                                 Expression::Column(
                                     Column::EntityTypes(EntityTypes::Schema(None))
-                                        .aliased(current_alias),
+                                        .aliased(base_alias),
                                 ),
                                 Expression::Constant(Constant::String("links")),
                                 Expression::Column(
                                     Column::EntityTypes(EntityTypes::Schema(Some(
                                         JsonField::Text(&Cow::Borrowed("$id")),
                                     )))
-                                    .aliased(current_table.alias),
+                                    .aliased(joined_table.alias),
                                 ),
                             ],
                         )))),
@@ -352,7 +352,7 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
                     ));
             }
             Relation::EntityTypeInheritance => {
-                self.artifacts.required_tables.insert(current_table);
+                self.artifacts.required_tables.insert(joined_table);
                 self.statement
                     .where_expression
                     .add_condition(Condition::NotEqual(
@@ -361,7 +361,7 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
                                 Column::EntityTypes(EntityTypes::Schema(Some(JsonField::Json(
                                     &Cow::Borrowed("allOf"),
                                 ))))
-                                .aliased(current_alias),
+                                .aliased(base_alias),
                             ),
                             Expression::Function(Box::new(Function::JsonBuildArray(vec![
                                 Expression::Function(Box::new(Function::JsonBuildObject(vec![(
@@ -370,7 +370,7 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
                                         Column::EntityTypes(EntityTypes::Schema(Some(
                                             JsonField::Text(&Cow::Borrowed("$id")),
                                         )))
-                                        .aliased(current_table.alias),
+                                        .aliased(joined_table.alias),
                                     ),
                                 )]))),
                             ]))),
