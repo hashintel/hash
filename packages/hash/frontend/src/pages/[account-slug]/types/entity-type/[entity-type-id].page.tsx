@@ -151,6 +151,10 @@ const Page: NextPageWithLayout = () => {
 
   useEffect(() => {
     if (authenticatedUser && !namespace) {
+      // eslint-disable-next-line no-console
+      console.error(
+        `Error: Couldn't find namespace with shortname '${router.query["account-slug"]}'.`,
+      );
       void router.replace(
         `/@${authenticatedUser.shortname}/types/new/entity-type`,
       );
@@ -158,6 +162,10 @@ const Page: NextPageWithLayout = () => {
     }
 
     if (!loadingRemoteEntityType && !entityType) {
+      // eslint-disable-next-line no-console
+      console.error(
+        `Error: Couldn't find entity type with id '${router.query["entity-type-id"]}'.`,
+      );
       void router.replace(`/@${namespace?.shortname}/types/new/entity-type`);
     }
   }, [
