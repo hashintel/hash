@@ -124,8 +124,7 @@ export const createPage = gql`
     $properties: PersistedPageCreationData!
   ) {
     createPersistedPage(ownedById: $ownedById, properties: $properties) {
-      ownedById
-      entityId
+      metadata
     }
   }
   ${pageFieldsFragment}
@@ -147,11 +146,11 @@ export const getPage = gql`
 export const getAccountPagesTree = gql`
   query getAccountPagesTree($ownedById: ID!) {
     persistedPages(ownedById: $ownedById) {
-      entityId
       title
       parentPage {
-        entityId
+        metadata
       }
+      metadata
     }
   }
 `;
@@ -181,9 +180,9 @@ export const setPageParent = gql`
       pageEntityId: $pageEntityId
       parentPageEntityId: $parentPageEntityId
     ) {
-      entityId
       title
       summary
+      metadata
     }
   }
 `;

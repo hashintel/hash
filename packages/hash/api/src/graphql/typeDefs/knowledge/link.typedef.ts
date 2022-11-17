@@ -25,11 +25,11 @@ export const persistedLinkTypedef = gql`
     """
     The link's source entity.
     """
-    sourceEntity: UnknownPersistedEntity!
+    sourceEntity: UnknownEntityWithMetadata!
     """
     The link's target entity.
     """
-    targetEntity: UnknownPersistedEntity!
+    targetEntity: UnknownEntityWithMetadata!
   }
 
   input CreatePersistedLinkInput {

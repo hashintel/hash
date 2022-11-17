@@ -3,16 +3,9 @@ import { gql } from "@apollo/client";
 const persistedBlockFieldsFragment = gql`
   fragment PersistedBlockFields on PersistedBlock {
     __typename
-    entityId
-    entityVersion
-    accountId
-    entityTypeId
-    componentId
+    metadata
     blockChildEntity {
-      entityId
-      entityTypeId
-      entityVersion
-      accountId
+      metadata
       properties
     }
     properties
@@ -25,12 +18,11 @@ const persistedPageFieldsFragment = gql`
     title
     icon
     summary
-    ownedById
-    entityId
-    entityVersion
     contents {
       ...PersistedBlockFields
     }
+    metadata
+    properties
     __typename
   }
   ${persistedBlockFieldsFragment}
@@ -51,7 +43,7 @@ export const getPageInfoQuery = gql`
       entityId: $entityId
       entityVersion: $entityVersion
     ) {
-      entityId
+      metadata
       ...PersistedPagePropertyFields
     }
   }
