@@ -6,7 +6,7 @@ import {
   ValueOrArray,
 } from "@blockprotocol/type-system-web";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
+import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { Box, Container, Typography } from "@mui/material";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
