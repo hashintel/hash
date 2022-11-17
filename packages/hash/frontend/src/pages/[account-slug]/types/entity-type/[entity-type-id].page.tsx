@@ -27,7 +27,7 @@ import {
   EntityTypeEntitiesContext,
   useEntityTypeEntitiesContextValue,
 } from "./use-entity-type-entities";
-import { EntityTypeTabs, getTabFromQuery } from "./entity-type-tabs";
+import { EntityTypeTabs, useCurrentTab } from "./entity-type-tabs";
 import { EntityTypeContext, useEntityTypeValue } from "./use-entity-type";
 import { NextPageWithLayout } from "../../../../shared/layout";
 import { getPlainLayout } from "../../../../shared/layout/plain-layout";
@@ -165,6 +165,8 @@ const Page: NextPageWithLayout = () => {
     }
   });
 
+  const currentTab = useCurrentTab();
+
   if (!entityType || !namespace) {
     return null;
   }
@@ -172,8 +174,6 @@ const Page: NextPageWithLayout = () => {
   const currentVersion = draftEntityType
     ? 0
     : extractVersion(mustBeVersionedUri(entityType.$id));
-
-  const currentTab = getTabFromQuery(router.query.tab as string);
 
   return (
     <FormProvider {...formMethods}>
