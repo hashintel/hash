@@ -288,6 +288,6 @@ const Page: NextPageWithLayout = () => {
   );
 };
 
-Page.getLayout = (page) => getPlainLayout(page);
+Page.getLayout = getPlainLayout;
 
 export default Page;
