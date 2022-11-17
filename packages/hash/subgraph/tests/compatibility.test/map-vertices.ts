@@ -1,8 +1,8 @@
 import {
   DataType as DataTypeGraphApi,
   EntityType as EntityTypeGraphApi,
-  KnowledgeGraphVertex,
   OntologyVertex as OntologyVertexGraphApi,
+  KnowledgeGraphVertex as KnowledgeGraphVertexGraphApi,
   PropertyType as PropertyTypeGraphApi,
   Vertices as VerticesGraphApi,
 } from "@hashintel/hash-graph-client";
@@ -14,8 +14,16 @@ import {
   PropertyValues,
   validateBaseUri,
   validateVersionedUri,
+  VersionedUri,
 } from "@blockprotocol/type-system-node";
-import { isEntityId, OntologyVertex, Vertices } from "../../src";
+import {
+  isEntityId,
+  OntologyVertex,
+  KnowledgeGraphVertex,
+  Vertices,
+  PropertyObject,
+  EntityId,
+} from "../../src";
 
 const mapDataType = (dataType: DataTypeGraphApi): DataType => {
   const idResult = validateVersionedUri(dataType.$id);
@@ -96,6 +104,33 @@ const mapOntologyVertex = (vertex: OntologyVertexGraphApi): OntologyVertex => {
   }
 };
 
+const mapKnowledgeGraphVertex = (
+  vertex: KnowledgeGraphVertexGraphApi,
+): KnowledgeGraphVertex => {
+  return {
+    ...vertex,
+    inner: {
+      ...vertex.inner,
+      properties: vertex.inner.properties as PropertyObject,
+      metadata: {
+        ...vertex.inner.metadata,
+        editionId: {
+          baseId: vertex.inner.metadata.editionId.baseId as EntityId,
+          version: vertex.inner.metadata.editionId.version,
+        },
+        entityTypeId: vertex.inner.metadata.entityTypeId as VersionedUri,
+        linkMetadata: {
+          ...vertex.inner.metadata.linkMetadata,
+          leftEntityId: vertex.inner.metadata.linkMetadata
+            ?.leftEntityId as EntityId,
+          rightEntityId: vertex.inner.metadata.linkMetadata
+            ?.rightEntityId as EntityId,
+        },
+      },
+    },
+  };
+};
+
 export const mapVertices = (vertices: VerticesGraphApi): Vertices => {
   const mappedVertices: Vertices = {};
 
@@ -128,7 +163,7 @@ export const mapVertices = (vertices: VerticesGraphApi): Vertices => {
             );
           }
 
-          const mappedVertex: OntologyVertex = mapOntologyVertex(vertex);
+          const mappedVertex = mapOntologyVertex(vertex);
           return [versionNumber, mappedVertex];
         }),
       );
@@ -150,7 +185,7 @@ export const mapVertices = (vertices: VerticesGraphApi): Vertices => {
             );
           }
 
-          const mappedVertex: KnowledgeGraphVertex = vertex;
+          const mappedVertex = mapKnowledgeGraphVertex(vertex);
           return [version, mappedVertex];
         }),
       );
