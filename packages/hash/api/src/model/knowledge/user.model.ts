@@ -7,6 +7,7 @@ import {
   OrgModel,
   OrgMembershipModel,
   HashInstanceModel,
+  LinkEntityModel,
 } from "..";
 import {
   adminKratosSdk,
@@ -420,56 +421,38 @@ export default class extends EntityModel {
     );
 
     await this.createOutgoingLink(graphApi, {
-      linkTypeModel: SYSTEM_TYPES.linkType.hasMembership,
-      targetEntityModel: orgMembership,
+      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.hasMembership,
+      rightEntityModel: orgMembership,
       ownedById: systemAccountId,
       actorId,
     });
   }
 
   async getOrgMemberships(graphApi: GraphApi): Promise<OrgMembershipModel[]> {
-    const { data: outgoingOrgMembershipLinkRootedSubgraphs } =
-      await graphApi.getLinksByQuery({
-        filter: {
-          all: [
-            {
-              equal: [{ path: ["source", "id"] }, { parameter: this.entityId }],
-            },
-            {
-              equal: [
-                { path: ["type", "versionedUri"] },
-                {
-                  parameter: SYSTEM_TYPES.linkType.hasMembership.schema.$id,
-                },
-              ],
-            },
-          ],
-        },
-        graphResolveDepths: {
-          dataTypeResolveDepth: 0,
-          propertyTypeResolveDepth: 0,
-          linkTypeResolveDepth: 0,
-          entityTypeResolveDepth: 0,
-          linkResolveDepth: 0,
-          linkTargetEntityResolveDepth: 0,
-        },
+    const outgoingOrgMembershipLinkEntityModels =
+      await LinkEntityModel.getByQuery(graphApi, {
+        all: [
+          {
+            equal: [
+              { path: ["leftEntity", "uuid"] },
+              { parameter: this.entityUuid },
+            ],
+          },
+          {
+            equal: [
+              { path: ["type", "versionedUri"] },
+              {
+                parameter: SYSTEM_TYPES.linkEntityType.hasMembership.schema.$id,
+              },
+            ],
+          },
+        ],
       });
 
     return await Promise.all(
-      outgoingOrgMembershipLinkRootedSubgraphs.map(async ({ link }) => {
-        const orgMembership = await OrgMembershipModel.getOrgMembershipById(
-          graphApi,
-          {
-            entityId: link.inner.targetEntityId,
-          },
-        );
-
-        if (!orgMembership) {
-          throw new Error("Critical: could not find target of link");
-        }
-
-        return orgMembership;
-      }),
+      outgoingOrgMembershipLinkEntityModels.map(({ rightEntityModel }) =>
+        OrgMembershipModel.fromEntityModel(rightEntityModel),
+      ),
     );
   }
 

@@ -76,8 +76,8 @@ export default class extends EntityModel {
     });
 
     await entity.createOutgoingLink(graphApi, {
-      linkTypeModel: SYSTEM_TYPES.linkType.blockData,
-      targetEntityModel: blockData,
+      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.blockData,
+      rightEntityModel: blockData,
       ownedById,
       actorId,
     });
@@ -99,27 +99,27 @@ export default class extends EntityModel {
    */
   async getBlockData(graphApi: GraphApi): Promise<EntityModel> {
     const outgoingBlockDataLinks = await this.getOutgoingLinks(graphApi, {
-      linkTypeModel: SYSTEM_TYPES.linkType.blockData,
+      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.blockData,
     });
 
     const outgoingBlockDataLink = outgoingBlockDataLinks[0];
 
     if (!outgoingBlockDataLink) {
       throw new Error(
-        `Block with entityId ${this.entityId} does not have an outgoing blockData link`,
+        `Block with entityId ${this.baseId} does not have an outgoing blockData link`,
       );
     }
 
-    return outgoingBlockDataLink.targetEntityModel;
+    return outgoingBlockDataLink.rightEntityModel;
   }
 
   async getBlockComments(graphApi: GraphApi): Promise<CommentModel[]> {
     const blockCommentLinks = await this.getIncomingLinks(graphApi, {
-      linkTypeModel: SYSTEM_TYPES.linkType.parent,
+      linkTypeModel: SYSTEM_TYPES.linkEntityType.parent,
     });
 
     const comments = blockCommentLinks.map((link) =>
-      CommentModel.fromEntityModel(link.sourceEntityModel),
+      CommentModel.fromEntityModel(link.leftEntityModel),
     );
 
     return comments;
@@ -140,31 +140,31 @@ export default class extends EntityModel {
   ): Promise<void> {
     const { newBlockDataEntity, actorId } = params;
     const outgoingBlockDataLinks = await this.getOutgoingLinks(graphApi, {
-      linkTypeModel: SYSTEM_TYPES.linkType.blockData,
+      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.blockData,
     });
 
     const outgoingBlockDataLink = outgoingBlockDataLinks[0];
 
     if (!outgoingBlockDataLink) {
       throw new Error(
-        `Block with entityId ${this.entityId} does not have an outgoing block data link`,
+        `Block with entityId ${this.baseId} does not have an outgoing block data link`,
       );
     }
 
     if (
-      outgoingBlockDataLink.targetEntityModel.entityId ===
-      newBlockDataEntity.entityId
+      outgoingBlockDataLink.rightEntityModel.entityUuid ===
+      newBlockDataEntity.entityUuid
     ) {
       throw new Error(
-        `The block with entity id ${this.entityId} already has a linked block data entity with entity id ${newBlockDataEntity.entityId}`,
+        `The block with entity id ${this.baseId} already has a linked block data entity with entity id ${newBlockDataEntity.baseId}`,
       );
     }
 
-    await outgoingBlockDataLink.remove(graphApi, { actorId });
+    await outgoingBlockDataLink.archive(graphApi, { actorId });
 
     await this.createOutgoingLink(graphApi, {
-      linkTypeModel: SYSTEM_TYPES.linkType.blockData,
-      targetEntityModel: newBlockDataEntity,
+      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.blockData,
+      rightEntityModel: newBlockDataEntity,
       ownedById: this.ownedById,
       actorId,
     });

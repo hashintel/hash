@@ -5,7 +5,7 @@ import {
   EntityModelCreateParams,
   OrgModel,
   UserModel,
-  LinkModel,
+  LinkEntityModel,
 } from "..";
 import { systemAccountId } from "../util";
 import { SYSTEM_TYPES } from "../../graph/system-types";
@@ -67,8 +67,8 @@ export default class extends EntityModel {
     });
 
     await entity.createOutgoingLink(graphApi, {
-      linkTypeModel: SYSTEM_TYPES.linkType.ofOrg,
-      targetEntityModel: org,
+      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.ofOrg,
+      rightEntityModel: org,
       ownedById: systemAccountId,
       actorId,
     });
@@ -96,36 +96,42 @@ export default class extends EntityModel {
    * Get the org linked to the org membership.
    */
   async getOrg(graphApi: GraphApi): Promise<OrgModel> {
-    const outgoingOrgLinks = await LinkModel.getByQuery(graphApi, {
-      all: [
-        {
-          equal: [{ path: ["source", "id"] }, { parameter: this.entityId }],
-        },
-        {
-          equal: [
-            { path: ["type", "versionedUri"] },
-            {
-              parameter: SYSTEM_TYPES.linkType.ofOrg.schema.$id,
-            },
-          ],
-        },
-      ],
-    });
+    const outgoingOrgLinkEntityModels = await LinkEntityModel.getByQuery(
+      graphApi,
+      {
+        all: [
+          {
+            equal: [
+              { path: ["leftEntity", "uuid"] },
+              { parameter: this.entityUuid },
+            ],
+          },
+          {
+            equal: [
+              { path: ["type", "versionedUri"] },
+              {
+                parameter: SYSTEM_TYPES.linkEntityType.ofOrg.schema.$id,
+              },
+            ],
+          },
+        ],
+      },
+    );
 
-    const [outgoingOrgLink] = outgoingOrgLinks;
+    const [outgoingOrgLinkEntityModel] = outgoingOrgLinkEntityModels;
 
-    if (!outgoingOrgLink) {
+    if (!outgoingOrgLinkEntityModel) {
       /**
        * This should never be the case, as the `org` link is required on `OrgMembership` entities.
        *
        * @todo: potentially remove this when the Graph API validates entities based on their schema
        */
       throw new Error(
-        `Critical: org membership with entity id ${this.entityId} doesn't have an outgoing "org" link`,
+        `Critical: org membership with entity id ${this.baseId} doesn't have an outgoing "org" link`,
       );
     }
 
-    const { targetEntityModel: orgEntityModel } = outgoingOrgLink;
+    const { rightEntityModel: orgEntityModel } = outgoingOrgLinkEntityModel;
 
     return OrgModel.fromEntityModel(orgEntityModel);
   }
@@ -134,46 +140,37 @@ export default class extends EntityModel {
    * Get the user linked to the org membership.
    */
   async getUser(graphApi: GraphApi) {
-    const { data: incomingOrgMembershipLinks } = await graphApi.getLinksByQuery(
-      {
-        filter: {
-          all: [
-            {
-              equal: [{ path: ["target", "id"] }, { parameter: this.entityId }],
-            },
-            {
-              equal: [
-                { path: ["type", "versionedUri"] },
-                {
-                  parameter: SYSTEM_TYPES.linkType.hasMembership.schema.$id,
-                },
-              ],
-            },
-          ],
-        },
-        graphResolveDepths: {
-          dataTypeResolveDepth: 0,
-          propertyTypeResolveDepth: 0,
-          linkTypeResolveDepth: 0,
-          entityTypeResolveDepth: 0,
-          linkResolveDepth: 0,
-          linkTargetEntityResolveDepth: 0,
-        },
-      },
-    );
+    const incomingOrgMembershipLinkEntityModels =
+      await LinkEntityModel.getByQuery(graphApi, {
+        all: [
+          {
+            equal: [
+              { path: ["rightEntity", "uuid"] },
+              { parameter: this.entityUuid },
+            ],
+          },
+          {
+            equal: [
+              { path: ["type", "versionedUri"] },
+              {
+                parameter: SYSTEM_TYPES.linkEntityType.hasMembership.schema.$id,
+              },
+            ],
+          },
+        ],
+      });
 
-    const [incomingOrgMembershipLinkRootedSubgraph] =
-      incomingOrgMembershipLinks;
+    const [incomingOrgMembershipLinkEntityModel] =
+      incomingOrgMembershipLinkEntityModels;
 
-    if (!incomingOrgMembershipLinkRootedSubgraph) {
+    if (!incomingOrgMembershipLinkEntityModel) {
       throw new Error(
-        `Critical: org membership with entity id ${this.entityId} doesn't have a linked user`,
+        `Critical: org membership with entity id ${this.baseId} doesn't have a linked user`,
       );
     }
 
-    return await UserModel.getUserById(graphApi, {
-      entityId:
-        incomingOrgMembershipLinkRootedSubgraph.link.inner.sourceEntityId,
-    });
+    return UserModel.fromEntityModel(
+      incomingOrgMembershipLinkEntityModel.rightEntityModel,
+    );
   }
 }
