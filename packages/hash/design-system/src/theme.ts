@@ -1,4 +1,4 @@
-import { createTheme, ThemeOptions } from "@mui/material/styles";
+import { createTheme, ThemeOptions } from "@mui/material";
 import createCache from "@emotion/cache";
 
 import { palette } from "./theme/palette";
