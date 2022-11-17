@@ -74,7 +74,7 @@ async fn seed_db(
 
     let entity_uuids = store
         .insert_entities_batched_by_type(
-            repeat((None, properties)).take(total),
+            repeat((None, properties, None)).take(total),
             entity_type_id,
             OwnedById::new(account_id),
             CreatedById::new(account_id),

@@ -1149,10 +1149,12 @@ impl PostgresStore<Transaction<'_>> {
 
     #[doc(hidden)]
     #[cfg(feature = "__internal_bench")]
+    #[expect(clippy::too_many_arguments)]
     async fn insert_entity_batch_by_type(
         &self,
         entity_uuids: impl IntoIterator<Item = EntityUuid, IntoIter: Send> + Send,
         entities: impl IntoIterator<Item = EntityProperties, IntoIter: Send> + Send,
+        link_metadatas: impl IntoIterator<Item = Option<LinkEntityMetadata>, IntoIter: Send> + Send,
         entity_type_version_id: VersionId,
         owned_by_id: OwnedById,
         created_by: CreatedById,
@@ -1162,7 +1164,8 @@ impl PostgresStore<Transaction<'_>> {
             .client
             .copy_in(
                 "COPY latest_entities (entity_uuid, entity_type_version_id, properties, \
-                 owned_by_id, updated_by_id, created_by_id) FROM STDIN BINARY",
+                 owned_by_id, updated_by_id, created_by_id, left_owned_by_id, left_entity_uuid, \
+                 right_owned_by_id, right_entity_uuid, left_order, right_order) FROM STDIN BINARY",
             )
             .await
             .into_report()
@@ -1174,9 +1177,17 @@ impl PostgresStore<Transaction<'_>> {
             Type::UUID,
             Type::UUID,
             Type::UUID,
+            Type::UUID,
+            Type::UUID,
+            Type::UUID,
+            Type::UUID,
+            Type::INT4,
+            Type::INT4,
         ]);
         futures::pin_mut!(writer);
-        for (entity_uuid, entity) in entity_uuids.into_iter().zip(entities) {
+        for ((entity_uuid, entity), link_metadata) in
+            entity_uuids.into_iter().zip(entities).zip(link_metadatas)
+        {
             let value = serde_json::to_value(entity)
                 .into_report()
                 .change_context(InsertionError)?;
@@ -1189,6 +1200,24 @@ impl PostgresStore<Transaction<'_>> {
                     &owned_by_id.as_account_id(),
                     &created_by.as_account_id(),
                     &updated_by_id.as_account_id(),
+                    &link_metadata
+                        .as_ref()
+                        .map(|metadata| metadata.left_entity_id().owned_by_id().as_account_id()),
+                    &link_metadata
+                        .as_ref()
+                        .map(|metadata| metadata.left_entity_id().entity_uuid().as_uuid()),
+                    &link_metadata
+                        .as_ref()
+                        .map(|metadata| metadata.right_entity_id().owned_by_id().as_account_id()),
+                    &link_metadata
+                        .as_ref()
+                        .map(|metadata| metadata.right_entity_id().entity_uuid().as_uuid()),
+                    &link_metadata
+                        .as_ref()
+                        .and_then(LinkEntityMetadata::left_order),
+                    &link_metadata
+                        .as_ref()
+                        .and_then(LinkEntityMetadata::right_order),
                 ])
                 .await
                 .into_report()

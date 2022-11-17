@@ -5,7 +5,8 @@ use std::{
 };
 
 use graph::{
-    knowledge::{EntityProperties, EntityUuid},
+    identifier::knowledge::EntityId,
+    knowledge::{EntityProperties, EntityUuid, LinkEntityMetadata},
     provenance::{CreatedById, OwnedById},
     shared::identifier::account::AccountId,
     store::{AccountStore, AsClient, EntityStore, PostgresStore},
@@ -94,6 +95,19 @@ const SEED_ENTITIES: [(&str, &str, usize); 12] = [
     (entity_type::SONG_V1, entity::SONG_V1, 100),
 ];
 
+/// Seeding data for links between entities.
+///
+/// The first entity is always the link entity, the second is the left entity index in
+/// `SEED_ENTITIES`, the third is the right entity index in `SEED_ENTITIES`.
+const SEED_LINKS: &[(&str, usize, usize)] = &[
+    (entity_type::link::WRITTEN_BY_V1, 2, 7),
+    (entity_type::link::WRITTEN_BY_V1, 2, 8),
+    (entity_type::link::WRITTEN_BY_V1, 2, 9),
+    (entity_type::link::CONTAINS_V1, 10, 11),
+    (entity_type::link::WRITTEN_BY_V1, 5, 9),
+    (entity_type::link::WRITTEN_BY_V1, 6, 8),
+];
+
 /// Sets up the sample "representative" environment in which operations are benchmarked.
 ///
 /// This initializes the database for all benchmarks within this module, and therefore should be a
@@ -127,6 +141,8 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
     .await;
 
     let mut total_entities = 0;
+    let mut total_link_entities = 0;
+    let mut entity_uuids = Vec::new();
     for (entity_type_str, entity_str, quantity) in SEED_ENTITIES {
         let properties: EntityProperties =
             serde_json::from_str(entity_str).expect("could not parse entity");
@@ -135,17 +151,47 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
             .id()
             .clone();
 
-        store
+        let uuids = store
             .insert_entities_batched_by_type(
-                repeat((None, properties)).take(quantity),
+                repeat((None, properties, None)).take(quantity),
                 entity_type_id,
                 OwnedById::new(account_id),
                 CreatedById::new(account_id),
             )
             .await
             .expect("failed to create entities");
+        entity_uuids.push(uuids);
 
         total_entities += quantity;
+    }
+
+    for (entity_type_str, left_entity_index, right_entity_index) in SEED_LINKS {
+        let entity_type_id = EntityType::from_str(entity_type_str)
+            .expect("could not parse entity type")
+            .id()
+            .clone();
+
+        let uuids = store
+            .insert_entities_batched_by_type(
+                entity_uuids[*left_entity_index]
+                    .iter()
+                    .zip(&entity_uuids[*right_entity_index])
+                    .map(|(left_uuid, right_uuid)| {
+                        LinkEntityMetadata::new(
+                            EntityId::new(OwnedById::new(account_id), *left_uuid),
+                            EntityId::new(OwnedById::new(account_id), *right_uuid),
+                            None,
+                            None,
+                        )
+                    })
+                    .map(|link_metadata| (None, EntityProperties::empty(), Some(link_metadata))),
+                entity_type_id,
+                OwnedById::new(account_id),
+                CreatedById::new(account_id),
+            )
+            .await
+            .expect("failed to create entities");
+        total_link_entities += uuids.len();
     }
 
     store
@@ -155,9 +201,10 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
         .expect("failed to commit transaction");
 
     eprintln!(
-        "Finished seeding database {} with {} entities after {:#?}",
+        "Finished seeding database {} with {} entities and {} entity links after {:#?}",
         store_wrapper.bench_db_name,
         total_entities,
+        total_link_entities,
         now.elapsed().unwrap()
     );
 }
