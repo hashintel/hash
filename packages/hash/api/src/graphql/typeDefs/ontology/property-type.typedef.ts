@@ -1,7 +1,6 @@
 import { gql } from "apollo-server-express";
 
 export const propertyTypeTypedef = gql`
-  scalar PropertyType
   scalar PropertyTypeWithoutId
   scalar PropertyTypeWithMetadata
 

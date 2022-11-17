@@ -1,7 +1,6 @@
 import { gql } from "apollo-server-express";
 
 export const entityTypeTypedef = gql`
-  # scalar EntityType
   scalar EntityTypeWithoutId
   scalar EntityTypeWithMetadata
 
