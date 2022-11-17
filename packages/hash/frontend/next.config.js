@@ -44,8 +44,8 @@ process.env.NEXT_PUBLIC_SYSTEM_ACCOUNT_NAME = process.env.SYSTEM_ACCOUNT_NAME;
 process.env.NEXT_PUBLIC_API_ORIGIN = process.env.API_ORIGIN;
 
 process.env.NEXT_PUBLIC_SENTRY_DSN = process.env.SENTRY_DSN;
-process.env.NEXT_PUBLIC_SENTRY_REPLAYS_SAMPLING_RATE =
-  process.env.SENTRY_REPLAYS_SAMPLING_RATE;
+process.env.NEXT_PUBLIC_SENTRY_REPLAY_SESSION_SAMPLE_RATE =
+  process.env.SENTRY_REPLAY_SESSION_SAMPLE_RATE;
 
 /**
  * @todo try using next-compose-plugins when upgrading next to 11 and/or to webpack 5
