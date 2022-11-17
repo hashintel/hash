@@ -1,17 +1,11 @@
-import { useQuery } from "@apollo/client";
 import {
   EntityType,
   PropertyType,
   extractBaseUri,
 } from "@blockprotocol/type-system-web";
-import { createContext, useContext, useMemo } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { Entity } from "../../../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
-import {
-  GetAllLatestPersistedEntitiesQuery,
-  GetAllLatestPersistedEntitiesQueryVariables,
-} from "../../../../graphql/apiTypes.gen";
-
-import { getAllLatestEntitiesQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { useBlockProtocolAggregateEntities } from "../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolAggregateEntities";
 import {
   getPersistedEntities,
   getPersistedEntityType,
@@ -21,7 +15,6 @@ import {
 import { mustBeVersionedUri } from "./util";
 
 export type EntityTypeEntititiesContextValue = {
-  loading: boolean;
   entities?: Entity[];
   entityTypes?: EntityType[];
   propertyTypes?: PropertyType[];
@@ -31,28 +24,25 @@ export type EntityTypeEntititiesContextValue = {
 export const useEntityTypeEntitiesContextValue = (
   typeId: string,
 ): EntityTypeEntititiesContextValue => {
-  const { data, loading } = useQuery<
-    GetAllLatestPersistedEntitiesQuery,
-    GetAllLatestPersistedEntitiesQueryVariables
-  >(getAllLatestEntitiesQuery, {
-    variables: {
-      dataTypeResolveDepth: 0,
-      propertyTypeResolveDepth: 1,
-      linkTypeResolveDepth: 0,
-      entityTypeResolveDepth: 1,
-      linkResolveDepth: 0,
-      linkTargetEntityResolveDepth: 0,
-    },
-    /** @todo reconsider caching. This is done for testing/demo purposes. */
-    fetchPolicy: "no-cache",
-  });
+  const [subgraph, setSubgraph] = useState<Subgraph>();
+  const { aggregateEntities } = useBlockProtocolAggregateEntities();
 
-  /**
-   * @todo: remove casting when we start returning links in the subgraph
-   *   https://app.asana.com/0/0/1203214689883095/f
-   */
-  const { getAllLatestPersistedEntities: subgraph } =
-    (data as { getAllLatestPersistedEntities: Subgraph }) ?? {};
+  useEffect(() => {
+    void aggregateEntities({
+      data: {
+        dataTypeResolveDepth: 0,
+        propertyTypeResolveDepth: 1,
+        linkTypeResolveDepth: 0,
+        entityTypeResolveDepth: 1,
+        linkResolveDepth: 0,
+        linkTargetEntityResolveDepth: 0,
+      },
+    }).then((res) => {
+      if (res.data) {
+        setSubgraph(res.data);
+      }
+    });
+  }, [aggregateEntities]);
 
   const [entities, entityTypes, propertyTypes] =
     useMemo(() => {
@@ -101,7 +91,6 @@ export const useEntityTypeEntitiesContextValue = (
     }, [subgraph, typeId]) ?? [];
 
   return {
-    loading,
     entities,
     entityTypes,
     propertyTypes,
