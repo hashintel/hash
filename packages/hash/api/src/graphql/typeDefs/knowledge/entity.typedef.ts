@@ -185,7 +185,7 @@ export const persistedEntityTypedef = gql`
       Associated Entities to either create/get and link to this entity.
       """
       linkedEntities: [PersistedLinkedEntityDefinition!]
-    ): UnknownPersistedEntity!
+    ): EntityWithMetadata!
 
     """
     Update an entity.
@@ -199,6 +199,6 @@ export const persistedEntityTypedef = gql`
       The updated properties of the entity.
       """
       updatedProperties: JSONObject!
-    ): UnknownPersistedEntity!
+    ): EntityWithMetadata!
   }
 `;

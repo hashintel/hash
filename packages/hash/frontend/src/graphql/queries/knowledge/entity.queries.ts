@@ -17,10 +17,9 @@ export const createPersistedEntityMutation = gql`
       entityTypeId: $entityTypeId
       properties: $properties
     ) {
-      ...PersistedEntityFields
+      # This is a scalar, which has no selection.
     }
   }
-  ${persistedEntityFieldsFragment}
 `;
 
 /** @todo - rename these and remove "persisted" - https://app.asana.com/0/0/1203157172269854/f */
@@ -103,8 +102,7 @@ export const updatePersistedEntityMutation = gql`
       entityId: $entityId
       updatedProperties: $updatedProperties
     ) {
-      ...PersistedEntityFields
+      # This is a scalar, which has no selection.
     }
   }
-  ${persistedEntityFieldsFragment}
 `;
