@@ -25,12 +25,15 @@ export const MultipleValuesCell = ({
   const [multipleValuesMenuOpen, setMultipleValuesMenuOpen] = useState(false);
 
   const [array, minValue, maxValue] = useWatch({
+    control,
     name: [
       `properties.${propertyIndex}.array`,
       `properties.${propertyIndex}.minValue`,
       `properties.${propertyIndex}.maxValue`,
     ],
   });
+
+  const summaryVisible = array && !multipleValuesMenuOpen;
 
   return (
     <>
@@ -50,12 +53,10 @@ export const MultipleValuesCell = ({
             cursor: "pointer",
             height: 1,
             transition: transitions.create("border-color"),
-            border: `1px solid ${
-              multipleValuesMenuOpen ? palette.gray[40] : "transparent"
-            } !important`,
-            "&:hover": {
-              borderColor: `${palette.gray[40]} !important`,
-            },
+            border: 1,
+            borderColor: multipleValuesMenuOpen
+              ? `${palette.gray[40]} !important`
+              : "transparent !important",
           })}
         >
           <Box
@@ -64,7 +65,7 @@ export const MultipleValuesCell = ({
               borderRadius: "4px 30px 30px 4px",
               backgroundColor: "transparent",
               transition: transitions.create(["padding", "background-color"]),
-              ...(array && !multipleValuesMenuOpen
+              ...(summaryVisible
                 ? {
                     py: 0.5,
                     px: 0.75,
@@ -81,10 +82,7 @@ export const MultipleValuesCell = ({
               name={`properties.${propertyIndex}.array`}
             />
 
-            <Collapse
-              orientation="horizontal"
-              in={array && !multipleValuesMenuOpen}
-            >
+            <Collapse orientation="horizontal" in={summaryVisible}>
               <Typography
                 variant="smallTextLabels"
                 sx={{
@@ -124,6 +122,10 @@ export const MultipleValuesCell = ({
                     p: 1.5,
                     background: palette.white,
                     borderColor: palette.gray[30],
+                    boxShadow:
+                      "0px 11px 30px rgba(61, 78, 133, 0.04), 0px 7.12963px 18.37px rgba(61, 78, 133, 0.05), 0px 4.23704px 8.1px rgba(61, 78, 133, 0.06), 0px 0.203704px 0.62963px rgba(61, 78, 133, 0.07)",
+                    borderBottomLeftRadius: 4,
+                    borderBottomRightRadius: 4,
                   })}
                 >
                   <TextField

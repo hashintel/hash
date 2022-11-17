@@ -7,13 +7,19 @@ import {
 } from "@blockprotocol/type-system-web";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
-import { Box, Container, Typography } from "@mui/material";
+import { Box, Container, Theme, Typography } from "@mui/material";
+import { GlobalStyles } from "@mui/system";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { frontendUrl } from "@hashintel/hash-shared/environment";
-import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
+import {
+  getLayoutWithHeader,
+  getLayoutWithSidebar,
+  getPlainLayout,
+  NextPageWithLayout,
+} from "../../../../shared/layout";
 import { TopContextBar } from "../../../shared/top-context-bar";
 import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
 import { OntologyChip } from "../../shared/ontology-chip";
@@ -165,120 +171,128 @@ const Page: NextPageWithLayout = () => {
     : extractVersion(mustBeVersionedUri(entityType.$id));
 
   return (
-    <PropertyTypesContext.Provider value={propertyTypes}>
-      <FormProvider {...formMethods}>
-        <Box
-          sx={(theme) => ({
-            minHeight: "100vh",
-            background: theme.palette.gray[10],
-            display: "flex",
-            flexDirection: "column",
-          })}
-          component="form"
-          onSubmit={handleSubmit}
-        >
-          <Box bgcolor="white" borderBottom={1} borderColor="gray.20">
-            <TopContextBar
-              defaultCrumbIcon={null}
-              crumbs={[
-                {
-                  title: "Types",
-                  href: "#",
-                  id: "types",
-                },
-                {
-                  title: "Entity types",
-                  href: "#",
-                  id: "entity-types",
-                },
-                {
-                  title: entityType.title,
-                  href: "#",
-                  id: entityType.$id,
-                  icon: <FontAwesomeIcon icon={faAsterisk} />,
-                },
-              ]}
-              scrollToTop={() => {}}
-            />
-            <EditBar
-              currentVersion={currentVersion}
-              discardButtonProps={
-                // @todo confirmation of discard when draft
-                isDraft
-                  ? {
-                      href: `/${router.query["account-slug"]}/types/new/entity-type`,
-                    }
-                  : {
-                      onClick() {
-                        reset();
-                      },
-                    }
-              }
-            />
+    <>
+      <PropertyTypesContext.Provider value={propertyTypes}>
+        <FormProvider {...formMethods}>
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+            }}
+            component="form"
+            onSubmit={handleSubmit}
+          >
+            <Box bgcolor="white" borderBottom={1} borderColor="gray.20">
+              <TopContextBar
+                defaultCrumbIcon={null}
+                crumbs={[
+                  {
+                    title: "Types",
+                    href: "#",
+                    id: "types",
+                  },
+                  {
+                    title: "Entity types",
+                    href: "#",
+                    id: "entity-types",
+                  },
+                  {
+                    title: entityType.title,
+                    href: "#",
+                    id: entityType.$id,
+                    icon: <FontAwesomeIcon icon={faAsterisk} />,
+                  },
+                ]}
+                scrollToTop={() => {}}
+              />
+              <EditBar
+                currentVersion={currentVersion}
+                discardButtonProps={
+                  // @todo confirmation of discard when draft
+                  isDraft
+                    ? {
+                        href: `/${router.query["account-slug"]}/types/new/entity-type`,
+                      }
+                    : {
+                        onClick() {
+                          reset();
+                        },
+                      }
+                }
+              />
 
-            <Box pt={3.75}>
-              <Container>
-                <OntologyChip
-                  icon={<HashOntologyIcon />}
-                  domain="hash.ai"
-                  path={
-                    <>
-                      <Typography
-                        component="span"
-                        fontWeight="bold"
-                        color={(theme) => theme.palette.blue[70]}
-                      >
-                        {router.query["account-slug"]}
-                      </Typography>
-                      <Typography
-                        component="span"
-                        color={(theme) => theme.palette.blue[70]}
-                      >
-                        /types/entity-types/
-                      </Typography>
-                      <Typography
-                        component="span"
-                        fontWeight="bold"
-                        color={(theme) => theme.palette.blue[70]}
-                      >
-                        {router.query["entity-type-id"]}
-                      </Typography>
-                    </>
-                  }
-                />
-                <Typography variant="h1" fontWeight="bold" mt={3} mb={5.25}>
-                  <FontAwesomeIcon
-                    icon={faAsterisk}
-                    sx={(theme) => ({
-                      fontSize: 40,
-                      mr: 3,
-                      color: theme.palette.gray[70],
-                      verticalAlign: "middle",
-                    })}
+              <Box pt={3.75}>
+                <Container>
+                  <OntologyChip
+                    icon={<HashOntologyIcon />}
+                    domain="hash.ai"
+                    path={
+                      <>
+                        <Typography
+                          component="span"
+                          fontWeight="bold"
+                          color={(theme) => theme.palette.blue[70]}
+                        >
+                          {router.query["account-slug"]}
+                        </Typography>
+                        <Typography
+                          component="span"
+                          color={(theme) => theme.palette.blue[70]}
+                        >
+                          /types/entity-types/
+                        </Typography>
+                        <Typography
+                          component="span"
+                          fontWeight="bold"
+                          color={(theme) => theme.palette.blue[70]}
+                        >
+                          {router.query["entity-type-id"]}
+                        </Typography>
+                      </>
+                    }
                   />
-                  {entityType.title}
+                  <Typography variant="h1" fontWeight="bold" mt={3} mb={5.25}>
+                    <FontAwesomeIcon
+                      icon={faAsterisk}
+                      sx={(theme) => ({
+                        fontSize: 40,
+                        mr: 3,
+                        color: theme.palette.gray[70],
+                        verticalAlign: "middle",
+                      })}
+                    />
+                    {entityType.title}
+                  </Typography>
+                  <EntityTypeTabs entityType={entityType} />
+                </Container>
+              </Box>
+            </Box>
+            <Box py={5}>
+              <Container>
+                <Typography variant="h5" mb={1.25}>
+                  Properties of{" "}
+                  <Box component="span" sx={{ fontWeight: "bold" }}>
+                    {entityType.title}
+                  </Box>
                 </Typography>
-                <EntityTypeTabs entityType={entityType} />
+                <PropertyListCard />
               </Container>
             </Box>
           </Box>
-          <Box py={5}>
-            <Container>
-              <Typography variant="h5" mb={1.25}>
-                Properties of{" "}
-                <Box component="span" sx={{ fontWeight: "bold" }}>
-                  {entityType.title}
-                </Box>
-              </Typography>
-              <PropertyListCard />
-            </Container>
-          </Box>
-        </Box>
-      </FormProvider>
-    </PropertyTypesContext.Provider>
+        </FormProvider>
+      </PropertyTypesContext.Provider>
+      <GlobalStyles<Theme>
+        styles={(theme) => ({
+          body: {
+            minHeight: "100vh",
+            background: theme.palette.gray[10],
+          },
+        })}
+      />
+    </>
   );
 };
 
-Page.getLayout = getPlainLayout;
+Page.getLayout = (page) => getLayoutWithHeader(page);
 
 export default Page;
