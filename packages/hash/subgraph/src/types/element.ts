@@ -2,10 +2,7 @@ import {
   DataTypeWithMetadata as DataTypeWithMetadataGraphApi,
   EntityTypeWithMetadata as EntityTypeWithMetadataGraphApi,
   PropertyTypeWithMetadata as PropertyTypeWithMetadataGraphApi,
-  Entity as EntityGraphApi,
   ProvenanceMetadata as ProvenanceMetadataGraphApi,
-  LinkEntityMetadata,
-  ProvenanceMetadata,
 } from "@hashintel/hash-graph-client";
 import {
   BaseUri,
