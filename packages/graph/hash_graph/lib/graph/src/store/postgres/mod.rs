@@ -1227,7 +1227,7 @@ impl PostgresStore<Transaction<'_>> {
             Type::UUID,
         ]);
         futures::pin_mut!(writer);
-        for (source_entity_id, target_entity_id, index) in entity_ids.into_iter() {
+        for (source_entity_id, target_entity_id, index) in entity_ids {
             writer
                 .as_mut()
                 .write(&[
@@ -1235,7 +1235,7 @@ impl PostgresStore<Transaction<'_>> {
                     &target_entity_id,
                     &link_type_version_id,
                     &owned_by_id,
-                    &index.map(|i| i as i64),
+                    &index.map(i64::from),
                     &created_by,
                 ])
                 .await
