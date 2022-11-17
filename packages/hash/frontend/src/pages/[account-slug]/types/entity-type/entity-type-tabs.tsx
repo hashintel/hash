@@ -26,8 +26,8 @@ export const EntityTypeTabs = () => {
   const { entities } = useEntityTypeEntities() ?? {};
 
   const baseUri = getEntityTypeBaseUri(
-    router.query["account-slug"] as string,
     router.query["entity-type-id"] as string,
+    router.query["account-slug"] as string,
   );
 
   const currentTab = getTabFromQuery(router.query.tab as string);
