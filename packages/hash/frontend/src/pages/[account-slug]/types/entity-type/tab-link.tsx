@@ -44,7 +44,7 @@ export const TabLink: FunctionComponent<TabLinkProps> = ({
         </Stack>
       }
       icon={
-        count ? (
+        typeof count === "number" ? (
           <Box
             sx={({ palette }) => ({
               display: "flex",
