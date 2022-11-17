@@ -1,0 +1,92 @@
+import { BaseUri } from "@blockprotocol/type-system-node";
+import {
+  isEntityEditionId,
+  isOntologyTypeEditionId,
+  EntityId,
+  EntityVersion,
+  EntityEditionId,
+  EntityIdAndTimestamp,
+  OntologyTypeEditionId,
+} from "./identifier";
+
+// -------------------------------- Edge Kinds --------------------------------
+
+const ONTOLOGY_EDGE_KINDS = [
+  "INHERITS_FROM",
+  "CONSTRAINS_VALUES_ON",
+  "CONSTRAINS_PROPERTIES_ON",
+  "CONSTRAINS_LINKS_ON",
+  "CONSTRAINS_LINK_DESTINATIONS_ON",
+];
+const KNOWLEDGE_GRAPH_EDGE_KIND = ["HAS_LEFT_ENDPOINT", "HAS_RIGHT_ENDPOINT"];
+const SHARED_EDGE_KIND = ["IS_OF_TYPE"];
+
+export type OntologyEdgeKind = typeof ONTOLOGY_EDGE_KINDS[number];
+export type KnowledgeGraphEdgeKind = typeof KNOWLEDGE_GRAPH_EDGE_KIND[number];
+export type SharedEdgeKind = typeof SHARED_EDGE_KIND[number];
+
+export const isOntologyEdgeKind = (kind: string): kind is OntologyEdgeKind => {
+  return ONTOLOGY_EDGE_KINDS.includes(kind);
+};
+
+export const isKnowledgeGraphEdgeKind = (
+  kind: string,
+): kind is KnowledgeGraphEdgeKind => {
+  return KNOWLEDGE_GRAPH_EDGE_KIND.includes(kind);
+};
+
+export const isSharedEdgeKind = (kind: string): kind is SharedEdgeKind => {
+  return SHARED_EDGE_KIND.includes(kind);
+};
+
+// -------------------------------- Outward Edges --------------------------------
+
+/**
+ * A "partial" definition of an edge which is complete when joined with the missing left-endpoint (usually the source
+ * of the edge)
+ */
+type GenericOutwardEdge<K, E> = {
+  kind: K;
+  reversed: boolean;
+  endpoint: E;
+};
+
+export type OntologyOutwardEdge =
+  | GenericOutwardEdge<OntologyEdgeKind, OntologyTypeEditionId>
+  | GenericOutwardEdge<SharedEdgeKind, EntityEditionId>;
+
+export type KnowledgeGraphOutwardEdge =
+  | GenericOutwardEdge<KnowledgeGraphEdgeKind, EntityIdAndTimestamp>
+  | GenericOutwardEdge<SharedEdgeKind, OntologyTypeEditionId>;
+
+export type OutwardEdge = OntologyOutwardEdge | KnowledgeGraphOutwardEdge;
+
+export const isOntologyOutwardEdge = (
+  edge: OutwardEdge,
+): edge is OntologyOutwardEdge => {
+  return (
+    isOntologyEdgeKind(edge.kind) ||
+    (isSharedEdgeKind(edge.kind) && isEntityEditionId(edge.endpoint))
+  );
+};
+
+export const isKnowledgeGraphOutwardEdge = (
+  edge: OutwardEdge,
+): edge is KnowledgeGraphOutwardEdge => {
+  return (
+    isKnowledgeGraphEdgeKind(edge.kind) ||
+    (isSharedEdgeKind(edge.kind) && isOntologyTypeEditionId(edge.endpoint))
+  );
+};
+
+// -------------------------------- The `Edges` type --------------------------------
+
+export type Edges = {
+  [_: BaseUri]: {
+    [_: number]: OntologyOutwardEdge[];
+  };
+} & {
+  [_: EntityId]: {
+    [_: EntityVersion]: KnowledgeGraphOutwardEdge[];
+  };
+};

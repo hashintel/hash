@@ -8,7 +8,9 @@
   },
   "dependencies": {
     "@blockprotocol/type-system-node": "https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system-node?244d25a",
-    "typescript": "4.8.4"
+    "@hashintel/hash-graph-client": "0.0.0-private",
+    "typescript": "4.8.4",
+    "uuid": "8.3.2"
   },
   "devDependencies": {}
 }
