@@ -17,8 +17,12 @@ impl<'q> JoinExpression<'q> {
 
 impl Transpile for JoinExpression<'_> {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        // TODO: https://app.asana.com/0/1202805690238892/1203324626226299/f
-        fmt.write_str("INNER JOIN ")?;
+        match (self.join.column.nullable(), self.on.column.nullable()) {
+            (false, false) => write!(fmt, "INNER JOIN ")?,
+            (true, false) => write!(fmt, "LEFT OUTER JOIN ")?,
+            (false, true) => write!(fmt, "RIGHT OUTER JOIN ")?,
+            (true, true) => write!(fmt, "FULL OUTER JOIN ")?,
+        };
 
         if self.join.alias.is_some() {
             self.join.column.table().transpile(fmt)?;
@@ -62,7 +66,7 @@ mod tests {
                 Column::Entities(Entities::EntityUuid).aliased(None),
             )
             .transpile_to_string(),
-            r#"INNER JOIN "entities" AS "entities_0_1_2" ON "entities_0_1_2"."left_entity_uuid" = "entities"."entity_uuid""#
+            r#"LEFT OUTER JOIN "entities" AS "entities_0_1_2" ON "entities_0_1_2"."left_entity_uuid" = "entities"."entity_uuid""#
         );
     }
 }

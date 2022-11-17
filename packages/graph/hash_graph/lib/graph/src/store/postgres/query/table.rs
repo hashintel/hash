@@ -88,6 +88,18 @@ macro_rules! impl_ontology_column {
                 Schema(Option<JsonField<'static>>),
             }
 
+            impl $name {
+                pub const fn nullable(self) -> bool {
+                    match self {
+                        Self::VersionId
+                        | Self::OwnedById
+                        | Self::CreatedById
+                        | Self::UpdatedById => false,
+                        Self::Schema(_) => true,
+                    }
+                }
+            }
+
             impl Transpile for $name {
                 fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
                     let column = match self {
@@ -136,6 +148,28 @@ pub enum Entities<'p> {
     RightEntityUuid,
     LeftEntityOwnedById,
     RightEntityOwnedById,
+}
+
+impl Entities<'_> {
+    pub const fn nullable(self) -> bool {
+        match self {
+            Self::EntityUuid
+            | Self::Version
+            | Self::LatestVersion
+            | Self::Archived
+            | Self::OwnedById
+            | Self::CreatedById
+            | Self::UpdatedById
+            | Self::EntityTypeVersionId => false,
+            Self::Properties(_)
+            | Self::LeftEntityUuid
+            | Self::RightEntityUuid
+            | Self::LeftEntityOwnedById
+            | Self::RightEntityOwnedById
+            | Self::LeftOrder
+            | Self::RightOrder => true,
+        }
+    }
 }
 
 impl Transpile for Entities<'_> {
@@ -261,6 +295,16 @@ impl<'p> Column<'p> {
             }
             Self::EntityTypePropertyTypeReferences(_) => Table::EntityTypePropertyTypeReferences,
             Self::EntityTypeEntityTypeReferences(_) => Table::EntityTypeEntityTypeReferences,
+        }
+    }
+
+    pub const fn nullable(self) -> bool {
+        match self {
+            Self::DataTypes(column) => column.nullable(),
+            Self::PropertyTypes(column) => column.nullable(),
+            Self::EntityTypes(column) => column.nullable(),
+            Self::Entities(column) => column.nullable(),
+            _ => false,
         }
     }
 

@@ -575,7 +575,7 @@ mod tests {
             r#"
             SELECT *
             FROM "entities"
-            INNER JOIN "entities" AS "entities_0_0_0"
+            LEFT OUTER JOIN "entities" AS "entities_0_0_0"
               ON "entities_0_0_0"."left_entity_uuid" = "entities"."entity_uuid"
             WHERE "entities_0_0_0"."right_entity_uuid" IS NULL
             "#,
@@ -604,9 +604,9 @@ mod tests {
             r#"
             SELECT *
             FROM "entities"
-            INNER JOIN "entities" AS "entities_0_0_0"
+            LEFT OUTER JOIN "entities" AS "entities_0_0_0"
               ON "entities_0_0_0"."right_entity_uuid" = "entities"."entity_uuid"
-            INNER JOIN "entities" AS "entities_0_1_0"
+            RIGHT OUTER JOIN "entities" AS "entities_0_1_0"
               ON "entities_0_1_0"."entity_uuid" = "entities_0_0_0"."left_entity_uuid"
             WHERE "entities_0_1_0"."latest_version" = TRUE
             "#,
