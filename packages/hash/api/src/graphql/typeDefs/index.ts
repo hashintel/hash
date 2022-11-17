@@ -4,7 +4,6 @@ import { blockTypedef } from "./block.typedef";
 import { entityTypedef } from "./entity.typedef";
 import { linkTypedef } from "./link.typedef";
 import { deprecatedEntityTypeTypedef } from "./entityType.typedef";
-import { pageTypedef } from "./page.typedef";
 import { textTypedef } from "./text.typedef";
 import { persistedUserTypedef } from "./knowledge/user.typedef";
 import { embedTypeDef } from "./embed.typedef";
@@ -69,7 +68,6 @@ export const schema = [
   aggregationTypedef,
   deprecatedEntityTypeTypedef,
   impliedHistoryTypedef,
-  pageTypedef,
   pagePaginationTypedef,
   textTypedef,
   fileTypedef,

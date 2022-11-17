@@ -23,6 +23,36 @@ export const pagePaginationTypedef = gql`
     nextPageCursor: String
   }
 
+  type EntityRef {
+    accountId: ID!
+    entityId: ID!
+    entityVersionId: ID!
+  }
+
+  type PageSearchResult {
+    """
+    The accuracy of the search result. A number in the range [0, 1]
+    """
+    score: Float!
+    """
+    A reference to the page where the search result was found.
+    """
+    page: EntityRef!
+    """
+    A reference to the block in the page where the search result was found. This is
+    null if the search match corresponds to a page title.
+    """
+    block: EntityRef
+    """
+    A reference to the text entity in the block where the search result was found. This
+    is null if the search match corresponds to a page title.
+    """
+    text: EntityRef
+    """
+    The content of the search match.
+    """
+    content: String!
+  }
   """
   An edge of a paginated query result.
 
