@@ -26,7 +26,7 @@ export const TabLink: FunctionComponent<TabLinkProps> = ({
       value={value}
       href={href}
       component="a"
-      onClick={(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+      onClick={(event) => {
         event.preventDefault();
         void router.push(href, undefined, { shallow: true });
       }}
