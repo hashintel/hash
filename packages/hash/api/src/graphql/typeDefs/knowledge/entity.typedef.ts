@@ -1,6 +1,14 @@
 import { gql } from "apollo-server-express";
 
 export const persistedEntityTypedef = gql`
+  scalar PropertyObject
+  scalar EntityMetadata
+
+  interface EntityWithMetadata {
+    properties: PropertyObject!
+    metadata: EntityMetadata!
+  }
+
   interface PersistedEntity {
     # These fields are repeated everywhere they're used because
     # (a) GQL requires it - https://github.com/graphql/graphql-spec/issues/533
