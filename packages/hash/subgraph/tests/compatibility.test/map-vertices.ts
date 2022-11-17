@@ -15,8 +15,7 @@ import {
   validateBaseUri,
   validateVersionedUri,
 } from "@blockprotocol/type-system-node";
-import { OntologyVertex, Vertices } from "../../src";
-import { isEntityId } from "./util";
+import { isEntityId, OntologyVertex, Vertices } from "../../src";
 
 const mapDataType = (dataType: DataTypeGraphApi): DataType => {
   const idResult = validateVersionedUri(dataType.$id);
