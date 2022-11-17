@@ -1,6 +1,6 @@
 use std::{borrow::Cow, fmt};
 
-use crate::store::postgres::query::{Column, Expression, Transpile};
+use crate::store::postgres::query::{AliasedColumn, Expression, Transpile};
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct SelectExpression<'q> {
@@ -16,7 +16,7 @@ impl<'q> SelectExpression<'q> {
     }
 
     #[must_use]
-    pub const fn from_column(column: Column<'q>, alias: Option<Cow<'q, str>>) -> Self {
+    pub const fn from_column(column: AliasedColumn<'q>, alias: Option<Cow<'q, str>>) -> Self {
         Self::new(Expression::Column(column), alias)
     }
 }
@@ -36,73 +36,69 @@ mod tests {
     use super::*;
     use crate::{
         ontology::DataTypeQueryPath,
-        store::postgres::query::{Function, Path, Table, TableAlias, WindowStatement},
+        store::postgres::query::{Alias, Function, Path, WindowStatement},
     };
 
     #[test]
     fn transpile_select_expression() {
         assert_eq!(
             SelectExpression::from_column(
-                Column {
-                    table: Table {
-                        name: DataTypeQueryPath::BaseUri.terminating_table_name(),
-                        alias: None,
-                    },
-                    access: DataTypeQueryPath::BaseUri.column_access(),
-                },
+                DataTypeQueryPath::BaseUri
+                    .terminating_column()
+                    .aliased(Alias {
+                        condition_index: 1,
+                        chain_depth: 2,
+                        number: 3,
+                    }),
                 None
             )
             .transpile_to_string(),
-            r#""type_ids"."base_uri""#
+            r#""type_ids_1_2_3"."base_uri""#
         );
 
         assert_eq!(
             SelectExpression::from_column(
-                Column {
-                    table: Table {
-                        name: DataTypeQueryPath::VersionedUri.terminating_table_name(),
-                        alias: None,
-                    },
-                    access: DataTypeQueryPath::VersionedUri.column_access(),
-                },
+                DataTypeQueryPath::VersionedUri
+                    .terminating_column()
+                    .aliased(Alias {
+                        condition_index: 1,
+                        chain_depth: 2,
+                        number: 3,
+                    }),
                 Some(Cow::Borrowed("versionedUri"))
             )
             .transpile_to_string(),
-            r#""data_types"."schema"->>'$id' AS "versionedUri""#
+            r#""data_types_1_2_3"."schema"->>'$id' AS "versionedUri""#
         );
 
         assert_eq!(
             SelectExpression::new(
                 Expression::Window(
                     Box::new(Expression::Function(Box::new(Function::Max(
-                        Expression::Column(Column {
-                            table: Table {
-                                name: DataTypeQueryPath::Version.terminating_table_name(),
-                                alias: Some(TableAlias {
-                                    condition_index: 0,
-                                    chain_depth: 0,
-                                    number: 0,
-                                }),
-                            },
-                            access: DataTypeQueryPath::Version.column_access(),
-                        })
+                        Expression::Column(
+                            DataTypeQueryPath::Version
+                                .terminating_column()
+                                .aliased(Alias {
+                                    condition_index: 1,
+                                    chain_depth: 2,
+                                    number: 3,
+                                })
+                        )
                     )))),
-                    WindowStatement::partition_by(Column {
-                        table: Table {
-                            name: DataTypeQueryPath::BaseUri.terminating_table_name(),
-                            alias: Some(TableAlias {
-                                condition_index: 0,
-                                chain_depth: 0,
-                                number: 0,
-                            }),
-                        },
-                        access: DataTypeQueryPath::BaseUri.column_access(),
-                    })
+                    WindowStatement::partition_by(
+                        DataTypeQueryPath::BaseUri
+                            .terminating_column()
+                            .aliased(Alias {
+                                condition_index: 1,
+                                chain_depth: 2,
+                                number: 3,
+                            })
+                    )
                 ),
                 Some(Cow::Borrowed("latest_version"))
             )
             .transpile_to_string(),
-            r#"MAX("type_ids_0_0_0"."version") OVER (PARTITION BY "type_ids_0_0_0"."base_uri") AS "latest_version""#
+            r#"MAX("type_ids_1_2_3"."version") OVER (PARTITION BY "type_ids_1_2_3"."base_uri") AS "latest_version""#
         );
     }
 }

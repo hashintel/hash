@@ -3,7 +3,7 @@ mod read;
 use std::{collections::HashSet, future::Future, pin::Pin};
 
 use async_trait::async_trait;
-use error_stack::{IntoReport, Report, Result, ResultExt};
+use error_stack::{bail, IntoReport, Report, Result, ResultExt};
 use futures::{stream, FutureExt, StreamExt, TryStreamExt};
 use tokio_postgres::GenericClient;
 use type_system::uri::VersionedUri;
@@ -14,7 +14,9 @@ use crate::{
         knowledge::{EntityEditionId, EntityId, EntityIdAndTimestamp},
         GraphElementEditionId,
     },
-    knowledge::{Entity, EntityMetadata, EntityProperties, EntityUuid, LinkEntityMetadata},
+    knowledge::{
+        Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkEntityMetadata,
+    },
     provenance::{CreatedById, OwnedById, UpdatedById},
     shared::subgraph::{depths::GraphResolveDepths, edges::OutwardEdge, query::StructuralQuery},
     store::{
@@ -419,6 +421,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         properties: EntityProperties,
         entity_type_id: VersionedUri,
         updated_by_id: UpdatedById,
+        order: EntityLinkOrder,
     ) -> Result<EntityMetadata, UpdateError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
@@ -438,6 +441,46 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .await
             .change_context(UpdateError)?;
 
+        let link_metadata = match (
+            old_entity_metadata.link_metadata(),
+            order.left(),
+            order.right(),
+        ) {
+            (None, None, None) => None,
+            (None, ..) => bail!(
+                Report::new(UpdateError)
+                    .attach_printable("cannot update link order of an entity that is not a link")
+            ),
+            (Some(link_metadata), left, right) => {
+                let new_left_order = match (link_metadata.left_order(), left) {
+                    (None, None) => None,
+                    (Some(_), None) => bail!(Report::new(UpdateError).attach_printable(
+                        "left order was set on entity but new order was not provided"
+                    )),
+                    (None, Some(_)) => bail!(Report::new(UpdateError).attach_printable(
+                        "cannot set left order of a link that does not have a left order"
+                    )),
+                    (Some(_), Some(new_left)) => Some(new_left),
+                };
+                let new_right_order = match (link_metadata.right_order(), right) {
+                    (None, None) => None,
+                    (Some(_), None) => bail!(Report::new(UpdateError).attach_printable(
+                        "right order was set on entity but new order was not provided"
+                    )),
+                    (None, Some(_)) => bail!(Report::new(UpdateError).attach_printable(
+                        "cannot set right order of a link that does not have a right order"
+                    )),
+                    (Some(_), Some(new_right)) => Some(new_right),
+                };
+                Some(LinkEntityMetadata::new(
+                    link_metadata.left_entity_id(),
+                    link_metadata.right_entity_id(),
+                    new_left_order,
+                    new_right_order,
+                ))
+            }
+        };
+
         let entity_metadata = transaction
             .insert_entity(
                 entity_id,
@@ -445,7 +488,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 entity_type_id,
                 old_entity_metadata.provenance_metadata().created_by_id(),
                 updated_by_id,
-                old_entity_metadata.link_metadata(),
+                link_metadata,
             )
             .await
             .change_context(UpdateError)?;

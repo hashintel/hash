@@ -1,19 +1,16 @@
 use std::iter::once;
 
-use postgres_types::ToSql;
-
 use crate::{
     knowledge::{Entity, EntityQueryPath},
-    ontology::EntityTypeQueryPath,
-    store::postgres::query::{ColumnAccess, Path, PostgresQueryRecord, Relation, Table, TableName},
+    store::postgres::query::{
+        table::{Column, Entities, JsonField, Relation},
+        Path, PostgresQueryRecord, Table,
+    },
 };
 
 impl PostgresQueryRecord for Entity {
     fn base_table() -> Table {
-        Table {
-            name: TableName::Entities,
-            alias: None,
-        }
+        Table::Entities
     }
 }
 
@@ -25,140 +22,55 @@ impl Path for EntityQueryPath<'_> {
             {
                 vec![]
             }
-            Self::Type(path) => once(Relation {
-                current_column_access: ColumnAccess::Table {
-                    column: "entity_type_version_id",
-                },
-                join_table_name: TableName::EntityTypes,
-                join_column_access: EntityTypeQueryPath::VersionId.column_access(),
-            })
-            .chain(path.relations())
-            .collect(),
-            Self::LeftEntity(path) => once(Relation {
-                current_column_access: ColumnAccess::Table {
-                    column: "left_entity_uuid",
-                },
-                join_table_name: TableName::Entities,
-                join_column_access: ColumnAccess::Table {
-                    column: "entity_uuid",
-                },
-            })
-            .chain(path.relations())
-            .collect(),
-            Self::RightEntity(path) => once(Relation {
-                current_column_access: ColumnAccess::Table {
-                    column: "right_entity_uuid",
-                },
-                join_table_name: TableName::Entities,
-                join_column_access: ColumnAccess::Table {
-                    column: "entity_uuid",
-                },
-            })
-            .chain(path.relations())
-            .collect(),
-            Self::OutgoingLinks(path) => once(Relation {
-                current_column_access: ColumnAccess::Table {
-                    column: "entity_uuid",
-                },
-                join_table_name: TableName::Entities,
-                join_column_access: ColumnAccess::Table {
-                    column: "left_entity_uuid",
-                },
-            })
-            .chain(path.relations())
-            .collect(),
-            Self::IncomingLinks(path) => once(Relation {
-                current_column_access: ColumnAccess::Table {
-                    column: "entity_uuid",
-                },
-                join_table_name: TableName::Entities,
-                join_column_access: ColumnAccess::Table {
-                    column: "right_entity_uuid",
-                },
-            })
-            .chain(path.relations())
-            .collect(),
+            Self::Type(path) => once(Relation::EntityType).chain(path.relations()).collect(),
+            Self::LeftEntity(path) => once(Relation::LeftEndpoint)
+                .chain(path.relations())
+                .collect(),
+            Self::RightEntity(path) => once(Relation::RightEndpoint)
+                .chain(path.relations())
+                .collect(),
+            Self::OutgoingLinks(path) => once(Relation::OutgoingLink)
+                .chain(path.relations())
+                .collect(),
+            Self::IncomingLinks(path) => once(Relation::IncomingLink)
+                .chain(path.relations())
+                .collect(),
             _ => vec![],
         }
     }
 
-    fn terminating_table_name(&self) -> TableName {
+    fn terminating_column(&self) -> Column {
         match self {
-            Self::Uuid
-            | Self::OwnedById
-            | Self::CreatedById
-            | Self::UpdatedById
-            | Self::Version
-            | Self::Archived
-            | Self::LeftOrder
-            | Self::RightOrder
-            | Self::Properties(_) => TableName::Entities,
-            Self::Type(path) => path.terminating_table_name(),
-            Self::IncomingLinks(path)
-            | Self::OutgoingLinks(path)
-            | Self::LeftEntity(path)
-            | Self::RightEntity(path) => path.terminating_table_name(),
-        }
-    }
-
-    fn column_access(&self) -> ColumnAccess {
-        match self {
-            Self::Uuid => ColumnAccess::Table {
-                column: "entity_uuid",
-            },
-            Self::Version => ColumnAccess::Table { column: "version" },
-            Self::Archived => ColumnAccess::Table { column: "archived" },
-            Self::Type(path) => path.column_access(),
-            Self::OwnedById => ColumnAccess::Table {
-                column: "owned_by_id",
-            },
-            Self::CreatedById => ColumnAccess::Table {
-                column: "created_by_id",
-            },
-            Self::UpdatedById => ColumnAccess::Table {
-                column: "updated_by_id",
-            },
-            Self::LeftEntity(path) if **path == EntityQueryPath::Uuid => ColumnAccess::Table {
-                column: "left_entity_uuid",
-            },
-            Self::RightEntity(path) if **path == EntityQueryPath::Uuid => ColumnAccess::Table {
-                column: "right_entity_uuid",
-            },
-            Self::LeftEntity(path) if **path == EntityQueryPath::OwnedById => ColumnAccess::Table {
-                column: "left_owned_by_id",
-            },
+            Self::Uuid => Column::Entities(Entities::EntityUuid),
+            Self::Version => Column::Entities(Entities::Version),
+            Self::Archived => Column::Entities(Entities::Archived),
+            Self::Type(path) => path.terminating_column(),
+            Self::OwnedById => Column::Entities(Entities::OwnedById),
+            Self::CreatedById => Column::Entities(Entities::CreatedById),
+            Self::UpdatedById => Column::Entities(Entities::UpdatedById),
+            Self::LeftEntity(path) if **path == EntityQueryPath::Uuid => {
+                Column::Entities(Entities::LeftEntityUuid)
+            }
+            Self::LeftEntity(path) if **path == EntityQueryPath::OwnedById => {
+                Column::Entities(Entities::LeftEntityOwnedById)
+            }
+            Self::RightEntity(path) if **path == EntityQueryPath::Uuid => {
+                Column::Entities(Entities::RightEntityUuid)
+            }
             Self::RightEntity(path) if **path == EntityQueryPath::OwnedById => {
-                ColumnAccess::Table {
-                    column: "right_owned_by_id",
-                }
+                Column::Entities(Entities::RightEntityOwnedById)
             }
             Self::LeftEntity(path)
             | Self::RightEntity(path)
             | Self::IncomingLinks(path)
-            | Self::OutgoingLinks(path) => path.column_access(),
-            Self::LeftOrder => ColumnAccess::Table {
-                column: "left_order",
-            },
-            Self::RightOrder => ColumnAccess::Table {
-                column: "right_order",
-            },
-            Self::Properties(path) => path.as_ref().map_or(
-                ColumnAccess::Table {
-                    column: "properties",
-                },
-                |path| ColumnAccess::Json {
-                    column: "properties",
-                    field: path.as_ref(),
-                },
-            ),
-        }
-    }
-
-    fn user_provided_path(&self) -> Option<&(dyn ToSql + Sync)> {
-        if let Self::Properties(Some(field)) = self {
-            Some(field)
-        } else {
-            None
+            | Self::OutgoingLinks(path) => path.terminating_column(),
+            Self::LeftOrder => Column::Entities(Entities::LeftOrder),
+            Self::RightOrder => Column::Entities(Entities::RightOrder),
+            Self::Properties(path) => path
+                .as_ref()
+                .map_or(Column::Entities(Entities::Properties(None)), |path| {
+                    Column::Entities(Entities::Properties(Some(JsonField::Text(path))))
+                }),
         }
     }
 }

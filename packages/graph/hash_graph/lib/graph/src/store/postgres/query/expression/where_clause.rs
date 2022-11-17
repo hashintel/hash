@@ -29,10 +29,10 @@ impl Transpile for WhereExpression<'_> {
 
         fmt.write_str("WHERE ")?;
         for (idx, condition) in self.conditions.iter().enumerate() {
-            condition.transpile(fmt)?;
-            if idx + 1 < self.conditions.len() {
-                fmt.write_str("\n  AND ")?;
+            if idx > 0 {
+                fmt.write_str(" AND ")?;
             }
+            condition.transpile(fmt)?;
         }
 
         Ok(())
@@ -70,7 +70,7 @@ mod tests {
 
         assert_eq!(
             where_clause.transpile_to_string(),
-            r#"WHERE "type_ids_0_0_0"."version" = "type_ids_0_0_0"."latest_version""#
+            r#"WHERE "type_ids_0_1_0"."version" = "type_ids_0_1_0"."latest_version""#
         );
 
         let filter_b = Filter::<DataType>::All(vec![
@@ -91,8 +91,8 @@ mod tests {
             trim_whitespace(where_clause.transpile_to_string()),
             trim_whitespace(
                 r#"
-                WHERE "type_ids_0_0_0"."version" = "type_ids_0_0_0"."latest_version"
-                  AND ("type_ids_0_0_0"."base_uri" = $1) AND ("type_ids_0_0_0"."version" = $2)"#
+                WHERE "type_ids_0_1_0"."version" = "type_ids_0_1_0"."latest_version"
+                  AND ("type_ids_0_1_0"."base_uri" = $1) AND ("type_ids_0_1_0"."version" = $2)"#
             )
         );
 
@@ -106,9 +106,9 @@ mod tests {
             trim_whitespace(where_clause.transpile_to_string()),
             trim_whitespace(
                 r#"
-                WHERE "type_ids_0_0_0"."version" = "type_ids_0_0_0"."latest_version"
-                  AND ("type_ids_0_0_0"."base_uri" = $1) AND ("type_ids_0_0_0"."version" = $2)
-                  AND "data_types"."schema"->>'description' IS NOT NULL"#
+                WHERE "type_ids_0_1_0"."version" = "type_ids_0_1_0"."latest_version"
+                  AND ("type_ids_0_1_0"."base_uri" = $1) AND ("type_ids_0_1_0"."version" = $2)
+                  AND "data_types_0_0_0"."schema"->>'description' IS NOT NULL"#
             )
         );
 
@@ -132,10 +132,10 @@ mod tests {
             trim_whitespace(where_clause.transpile_to_string()),
             trim_whitespace(
                 r#"
-                WHERE "type_ids_0_0_0"."version" = "type_ids_0_0_0"."latest_version"
-                  AND ("type_ids_0_0_0"."base_uri" = $1) AND ("type_ids_0_0_0"."version" = $2)
-                  AND "data_types"."schema"->>'description' IS NOT NULL
-                  AND (("data_types"."schema"->>'title' = $3) OR ("data_types"."schema"->>'description' = $4))"#
+                WHERE "type_ids_0_1_0"."version" = "type_ids_0_1_0"."latest_version"
+                  AND ("type_ids_0_1_0"."base_uri" = $1) AND ("type_ids_0_1_0"."version" = $2)
+                  AND "data_types_0_0_0"."schema"->>'description' IS NOT NULL
+                  AND (("data_types_0_0_0"."schema"->>'title' = $3) OR ("data_types_0_0_0"."schema"->>'description' = $4))"#
             )
         );
 

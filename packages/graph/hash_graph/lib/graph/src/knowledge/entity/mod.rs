@@ -73,16 +73,43 @@ impl EntityProperties {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct EntityLinkOrder {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    left_order: Option<LinkOrder>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    right_order: Option<LinkOrder>,
+}
+
+impl EntityLinkOrder {
+    #[must_use]
+    pub const fn new(left_order: Option<LinkOrder>, right_order: Option<LinkOrder>) -> Self {
+        Self {
+            left_order,
+            right_order,
+        }
+    }
+
+    #[must_use]
+    pub const fn left(&self) -> Option<LinkOrder> {
+        self.left_order
+    }
+
+    #[must_use]
+    pub const fn right(&self) -> Option<LinkOrder> {
+        self.right_order
+    }
+}
+
 /// The associated information for 'Link' entities
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct LinkEntityMetadata {
     left_entity_id: EntityId,
     right_entity_id: EntityId,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    left_order: Option<LinkOrder>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    right_order: Option<LinkOrder>,
+    #[serde(flatten)]
+    order: EntityLinkOrder,
 }
 
 impl LinkEntityMetadata {
@@ -96,8 +123,7 @@ impl LinkEntityMetadata {
         Self {
             left_entity_id,
             right_entity_id,
-            left_order,
-            right_order,
+            order: EntityLinkOrder::new(left_order, right_order),
         }
     }
 
@@ -113,12 +139,12 @@ impl LinkEntityMetadata {
 
     #[must_use]
     pub const fn left_order(&self) -> Option<LinkOrder> {
-        self.left_order
+        self.order.left_order
     }
 
     #[must_use]
     pub const fn right_order(&self) -> Option<LinkOrder> {
-        self.right_order
+        self.order.right_order
     }
 }
 

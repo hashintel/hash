@@ -413,6 +413,25 @@ export interface EntityIdAndTimestamp {
   timestamp: string;
 }
 /**
+ *
+ * @export
+ * @interface EntityLinkOrder
+ */
+export interface EntityLinkOrder {
+  /**
+   *
+   * @type {number}
+   * @memberof EntityLinkOrder
+   */
+  leftOrder?: number;
+  /**
+   *
+   * @type {number}
+   * @memberof EntityLinkOrder
+   */
+  rightOrder?: number;
+}
+/**
  * The metadata of an [`Entity`] record.
  * @export
  * @interface EntityMetadata
@@ -943,28 +962,47 @@ export interface KnowledgeGraphVertices {
 export interface LinkEntityMetadata {
   /**
    *
-   * @type {string}
-   * @memberof LinkEntityMetadata
-   */
-  leftEntityId: string;
-  /**
-   *
    * @type {number}
    * @memberof LinkEntityMetadata
    */
   leftOrder?: number;
   /**
    *
-   * @type {string}
-   * @memberof LinkEntityMetadata
-   */
-  rightEntityId: string;
-  /**
-   *
    * @type {number}
    * @memberof LinkEntityMetadata
    */
   rightOrder?: number;
+  /**
+   *
+   * @type {string}
+   * @memberof LinkEntityMetadata
+   */
+  leftEntityId: string;
+  /**
+   *
+   * @type {string}
+   * @memberof LinkEntityMetadata
+   */
+  rightEntityId: string;
+}
+/**
+ *
+ * @export
+ * @interface LinkEntityMetadataAllOf
+ */
+export interface LinkEntityMetadataAllOf {
+  /**
+   *
+   * @type {string}
+   * @memberof LinkEntityMetadataAllOf
+   */
+  leftEntityId: string;
+  /**
+   *
+   * @type {string}
+   * @memberof LinkEntityMetadataAllOf
+   */
+  rightEntityId: string;
 }
 /**
  *
@@ -1734,6 +1772,18 @@ export interface UpdateDataTypeRequest {
 export interface UpdateEntityRequest {
   /**
    *
+   * @type {number}
+   * @memberof UpdateEntityRequest
+   */
+  leftOrder?: number;
+  /**
+   *
+   * @type {number}
+   * @memberof UpdateEntityRequest
+   */
+  rightOrder?: number;
+  /**
+   *
    * @type {string}
    * @memberof UpdateEntityRequest
    */
@@ -1754,6 +1804,37 @@ export interface UpdateEntityRequest {
    *
    * @type {object}
    * @memberof UpdateEntityRequest
+   */
+  properties: object;
+}
+/**
+ *
+ * @export
+ * @interface UpdateEntityRequestAllOf
+ */
+export interface UpdateEntityRequestAllOf {
+  /**
+   *
+   * @type {string}
+   * @memberof UpdateEntityRequestAllOf
+   */
+  actorId: string;
+  /**
+   *
+   * @type {string}
+   * @memberof UpdateEntityRequestAllOf
+   */
+  entityId: string;
+  /**
+   *
+   * @type {string}
+   * @memberof UpdateEntityRequestAllOf
+   */
+  entityTypeId: string;
+  /**
+   *
+   * @type {object}
+   * @memberof UpdateEntityRequestAllOf
    */
   properties: object;
 }

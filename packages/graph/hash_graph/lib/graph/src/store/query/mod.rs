@@ -7,7 +7,6 @@ pub use self::filter::{Filter, FilterExpression, Parameter, ParameterConversionE
 /// A record stored in the [`store`].
 ///
 /// [`store`]: crate::store
-// TODO: Implement for `DataType`, `PropertyType`, etc. when `Path` is implemented
 pub trait QueryRecord {
     type Path<'q>: RecordPath;
 }

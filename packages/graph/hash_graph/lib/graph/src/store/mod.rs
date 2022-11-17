@@ -19,7 +19,9 @@ pub use self::{
 };
 use crate::{
     identifier::knowledge::EntityId,
-    knowledge::{Entity, EntityMetadata, EntityProperties, EntityUuid, LinkEntityMetadata},
+    knowledge::{
+        Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkEntityMetadata,
+    },
     ontology::{
         DataTypeWithMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
         PropertyTypeWithMetadata,
@@ -395,6 +397,7 @@ pub trait EntityStore: for<'q> crud::Read<Entity, Query<'q> = Filter<'q, Entity>
         properties: EntityProperties,
         entity_type_id: VersionedUri,
         actor_id: UpdatedById,
+        order: EntityLinkOrder,
     ) -> Result<EntityMetadata, UpdateError>;
 
     /// Archives an [`Entity`].

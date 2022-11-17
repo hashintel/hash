@@ -1,17 +1,18 @@
-use postgres_types::ToSql;
+use std::borrow::Cow;
+
 use type_system::DataType;
 
 use crate::{
     ontology::DataTypeQueryPath,
-    store::postgres::query::{ColumnAccess, Path, PostgresQueryRecord, Relation, Table, TableName},
+    store::postgres::query::{
+        table::{Column, DataTypes, JsonField, Relation, TypeIds},
+        Path, PostgresQueryRecord, Table,
+    },
 };
 
 impl PostgresQueryRecord for DataType {
     fn base_table() -> Table {
-        Table {
-            name: TableName::DataTypes,
-            alias: None,
-        }
+        Table::DataTypes
     }
 }
 
@@ -19,68 +20,33 @@ impl Path for DataTypeQueryPath {
     fn relations(&self) -> Vec<Relation> {
         match self {
             Self::BaseUri | Self::Version => {
-                vec![Relation {
-                    current_column_access: Self::VersionId.column_access(),
-                    join_table_name: TableName::TypeIds,
-                    join_column_access: Self::VersionId.column_access(),
-                }]
+                vec![Relation::DataTypeIds]
             }
             _ => vec![],
         }
     }
 
-    fn terminating_table_name(&self) -> TableName {
+    fn terminating_column(&self) -> Column<'static> {
         match self {
-            Self::BaseUri | Self::Version => TableName::TypeIds,
-            Self::VersionId
-            | Self::OwnedById
-            | Self::CreatedById
-            | Self::UpdatedById
-            | Self::Schema
-            | Self::VersionedUri
-            | Self::Title
-            | Self::Type
-            | Self::Description => TableName::DataTypes,
+            Self::BaseUri => Column::TypeIds(TypeIds::BaseUri),
+            Self::Version => Column::TypeIds(TypeIds::Version),
+            Self::VersionId => Column::DataTypes(DataTypes::VersionId),
+            Self::OwnedById => Column::DataTypes(DataTypes::OwnedById),
+            Self::CreatedById => Column::DataTypes(DataTypes::CreatedById),
+            Self::UpdatedById => Column::DataTypes(DataTypes::UpdatedById),
+            Self::Schema => Column::DataTypes(DataTypes::Schema(None)),
+            Self::VersionedUri => Column::DataTypes(DataTypes::Schema(Some(JsonField::Text(
+                &Cow::Borrowed("$id"),
+            )))),
+            Self::Title => Column::DataTypes(DataTypes::Schema(Some(JsonField::Text(
+                &Cow::Borrowed("title"),
+            )))),
+            Self::Type => Column::DataTypes(DataTypes::Schema(Some(JsonField::Text(
+                &Cow::Borrowed("type"),
+            )))),
+            Self::Description => Column::DataTypes(DataTypes::Schema(Some(JsonField::Text(
+                &Cow::Borrowed("description"),
+            )))),
         }
-    }
-
-    fn column_access(&self) -> ColumnAccess {
-        match self {
-            Self::BaseUri => ColumnAccess::Table { column: "base_uri" },
-            Self::Version => ColumnAccess::Table { column: "version" },
-            Self::VersionId => ColumnAccess::Table {
-                column: "version_id",
-            },
-            Self::OwnedById => ColumnAccess::Table {
-                column: "owned_by_id",
-            },
-            Self::CreatedById => ColumnAccess::Table {
-                column: "created_by_id",
-            },
-            Self::UpdatedById => ColumnAccess::Table {
-                column: "updated_by_id",
-            },
-            Self::Schema => ColumnAccess::Table { column: "schema" },
-            Self::VersionedUri => ColumnAccess::Json {
-                column: "schema",
-                field: "$id",
-            },
-            Self::Title => ColumnAccess::Json {
-                column: "schema",
-                field: "title",
-            },
-            Self::Type => ColumnAccess::Json {
-                column: "schema",
-                field: "type",
-            },
-            Self::Description => ColumnAccess::Json {
-                column: "schema",
-                field: "description",
-            },
-        }
-    }
-
-    fn user_provided_path(&self) -> Option<&(dyn ToSql + Sync)> {
-        None
     }
 }
