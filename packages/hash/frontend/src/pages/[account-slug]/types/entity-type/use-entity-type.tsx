@@ -152,5 +152,11 @@ export const useEntityTypeValue = (
 export const EntityTypeContext = createContext<null | EntityType>(null);
 
 export const useEntityType = () => {
-  return useContext(EntityTypeContext);
+  const entityTypeContext = useContext(EntityTypeContext);
+
+  if (!entityTypeContext) {
+    throw new Error("no EntityTypeEntitiesContext value has been provided");
+  }
+
+  return entityTypeContext;
 };
