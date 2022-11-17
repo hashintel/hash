@@ -34,7 +34,7 @@ import {
   TableSort,
 } from "./utils/sorting";
 
-export type Row = Record<string, any>;
+export type Row = Record<string, unknown>;
 export type RowData = Row[];
 
 type GlideGridProps = Omit<
