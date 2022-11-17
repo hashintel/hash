@@ -83,7 +83,7 @@ export const isOntologyTypeEditionId = (
     Number.isInteger(editionId.version) &&
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore-expect -- This is fixed in TS 4.9
-    editionId.version > 1
+    editionId.version >= 0
   );
 };
 
