@@ -78,7 +78,7 @@ export const EntityTypeTabs = () => {
               icon={faPlus}
               sx={(theme) => ({
                 ...theme.typography.smallTextLabels,
-                color: theme.palette.blue[60],
+                fill: "inherit",
                 ml: 1,
               })}
             />

@@ -23,8 +23,10 @@ export const TabButton = ({
         px: 0.25,
         alignItems: "center",
         display: "flex",
+        fill: palette.blue[70],
         "&:hover": {
           color: palette.primary.main,
+          fill: palette.blue[60],
         },
       }),
       ...(Array.isArray(sx) ? sx : [sx]),
