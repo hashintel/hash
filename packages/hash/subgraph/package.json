@@ -4,13 +4,23 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
-    "lint:tsc": "tsc --noEmit"
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint .",
+    "lint:tsc": "tsc --noEmit",
+    "test": "jest"
   },
   "dependencies": {
     "@blockprotocol/type-system-node": "https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system-node?244d25a",
     "@hashintel/hash-graph-client": "0.0.0-private",
-    "typescript": "4.8.4",
     "uuid": "8.3.2"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@hashintel/hash-api": "0.0.0-private",
+    "@hashintel/hash-backend-utils": "0.0.0-private",
+    "@types/jest": "29.2.2",
+    "axios": "0.27.2",
+    "jest": "29.3.0",
+    "ts-jest": "29.0.3",
+    "typescript": "4.8.4"
+  }
 }
