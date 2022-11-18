@@ -2,10 +2,10 @@ import { ReactNode, useEffect, useState, FunctionComponent } from "react";
 import {
   Box,
   Collapse,
+  FormHelperText,
   TextField as MuiTextField,
   TextFieldProps as MuiTextFieldProps,
 } from "@mui/material";
-import FormHelperText from "@mui/material/FormHelperText";
 import { faCircleExclamation } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "./icons/FontAwesomeIcon";
 
