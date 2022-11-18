@@ -17,7 +17,7 @@
 //!
 //! [`BenchmarkId`]: criterion::BenchmarkId
 
-use criterion::{BenchmarkId, Criterion};
+use criterion::{BenchmarkId, Criterion, SamplingMode};
 use criterion_macro::criterion;
 use graph::subgraph::GraphResolveDepths;
 
@@ -62,6 +62,7 @@ fn bench_representative_read_multiple_entities(c: &mut Criterion) {
     let mut group = c.benchmark_group("representative_read_multiple_entities");
     let (runtime, store_wrapper) = setup(DB_NAME, false, false);
     group.sample_size(10);
+    group.sampling_mode(SamplingMode::Flat);
 
     let graph_resolve_depths = [
         GraphResolveDepths {
