@@ -7,22 +7,22 @@ import {
 } from "../../../model";
 import {
   PersistedBlock,
-  PersistedEntity,
+  EntityWithMetadata,
   PersistedLink,
   PersistedPage,
   PersistedComment,
 } from "../../apiTypes.gen";
 import { mapEntityTypeModelToGQL } from "../ontology/model-mapping";
 
-export type ExternalPersistedEntityResolversGQL = "linkedEntities";
-export type UnresolvedPersistedEntityGQL = Omit<
-  PersistedEntity,
-  ExternalPersistedEntityResolversGQL
+export type ExternalEntityWithMetadataResolversGQL = "linkedEntities";
+export type UnresolvedEntityWithMetadataGQL = Omit<
+  EntityWithMetadata,
+  ExternalEntityWithMetadataResolversGQL
 > & { systemTypeName?: string };
 
 export const mapEntityModelToGQL = (
   entityModel: EntityModel,
-): UnresolvedPersistedEntityGQL => ({
+): UnresolvedEntityWithMetadataGQL => ({
   entityId: entityModel.entityId,
   entityTypeId: entityModel.entityTypeModel.schema.$id,
   entityVersion: entityModel.version,
@@ -30,7 +30,7 @@ export const mapEntityModelToGQL = (
   accountId: entityModel.ownedById,
   properties: entityModel.properties,
   /**
-   * To be used by the `PersistedEntity` `__resolveType` resolver method to reliably determine
+   * To be used by the `EntityWithMetadata` `__resolveType` resolver method to reliably determine
    * the GQL type of this entity. Note that this is not exposed in the GQL type definitions,
    * and is therefore not returned to GraphQL clients.
    */
@@ -38,7 +38,7 @@ export const mapEntityModelToGQL = (
 });
 
 export type ExternalPersistedPageResolversGQL =
-  | ExternalPersistedEntityResolversGQL
+  | ExternalEntityWithMetadataResolversGQL
   | "contents";
 export type UnresolvedPersistedPageGQL = Omit<
   PersistedPage,
@@ -59,7 +59,7 @@ export const mapPageModelToGQL = (
 });
 
 export type ExternalPersistedCommentResolversGQL =
-  | ExternalPersistedEntityResolversGQL
+  | ExternalEntityWithMetadataResolversGQL
   | "hasText"
   | "textUpdatedAt"
   | "parent"
@@ -81,7 +81,7 @@ export const mapCommentModelToGQL = (
 });
 
 export type ExternalPersistedBlockResolversGQL =
-  | ExternalPersistedEntityResolversGQL
+  | ExternalEntityWithMetadataResolversGQL
   | "blockChildEntity";
 export type UnresolvedPersistedBlockGQL = Omit<
   PersistedBlock,
@@ -99,8 +99,8 @@ export type UnresolvedPersistedLinkGQL = Omit<
   PersistedLink,
   "sourceEntity" | "targetEntity"
 > & {
-  sourceEntity: UnresolvedPersistedEntityGQL;
-  targetEntity: UnresolvedPersistedEntityGQL;
+  sourceEntity: UnresolvedEntityWithMetadataGQL;
+  targetEntity: UnresolvedEntityWithMetadataGQL;
 };
 
 export const mapLinkModelToGQL = (

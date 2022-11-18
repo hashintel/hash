@@ -2,11 +2,11 @@ import { useMemo } from "react";
 import { useQuery } from "@apollo/client";
 import { types } from "@hashintel/hash-shared/types";
 import {
-  GetAllLatestPersistedEntitiesQuery,
-  GetAllLatestPersistedEntitiesQueryVariables,
+  GetAllLatestEntitiesWithMetadataQuery,
+  GetAllLatestEntitiesWithMetadataQueryVariables,
 } from "../../graphql/apiTypes.gen";
 import { getAllLatestEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
-import { getPersistedEntities, Subgraph } from "../../lib/subgraph";
+import { getEntitiesWithMetadata, Subgraph } from "../../lib/subgraph";
 import { useInitTypeSystem } from "../../lib/use-init-type-system";
 import { constructUser, User } from "../../lib/user";
 
@@ -15,8 +15,8 @@ export const useUsers = (): {
   users?: User[];
 } => {
   const { data, loading } = useQuery<
-    GetAllLatestPersistedEntitiesQuery,
-    GetAllLatestPersistedEntitiesQueryVariables
+    GetAllLatestEntitiesWithMetadataQuery,
+    GetAllLatestEntitiesWithMetadataQueryVariables
   >(getAllLatestEntitiesQuery, {
     variables: {
       dataTypeResolveDepth: 0,
@@ -32,7 +32,7 @@ export const useUsers = (): {
 
   const loadingTypeSystem = useInitTypeSystem();
 
-  const { getAllLatestPersistedEntities: subgraph } = data ?? {};
+  const { getAllLatestEntitiesWithMetadata: subgraph } = data ?? {};
 
   const users = useMemo(() => {
     if (!subgraph || loadingTypeSystem) {
@@ -43,7 +43,7 @@ export const useUsers = (): {
      * @todo: remove casting when we start returning links in the subgraph
      *   https://app.asana.com/0/0/1203214689883095/f
      */
-    return getPersistedEntities(subgraph as unknown as Subgraph)
+    return getEntitiesWithMetadata(subgraph as unknown as Subgraph)
       .filter(
         ({ entityTypeId }) =>
           entityTypeId === types.entityType.user.entityTypeId,

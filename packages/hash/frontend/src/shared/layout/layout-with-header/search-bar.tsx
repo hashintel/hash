@@ -1,5 +1,5 @@
-import { useQuery } from "@apollo/client";
-import { PageSearchResult } from "@hashintel/hash-shared/graphql/apiTypes.gen";
+// import { useQuery } from "@apollo/client";
+import { PageSearchResult } from "../../../../../graphql/apiTypes.gen";
 import { escapeRegExp } from "lodash";
 import {
   ReactNode,
@@ -13,11 +13,6 @@ import { Box, Theme, useTheme, useMediaQuery, SxProps } from "@mui/material";
 
 import { IconButton } from "@hashintel/hash-design-system";
 import { getBlockDomId } from "../../../blocks/page/BlockView";
-import {
-  SearchPagesQuery,
-  SearchPagesQueryVariables,
-} from "../../../graphql/apiTypes.gen";
-import { searchPages } from "../../../graphql/queries/search.queries";
 import { useAuthenticatedUser } from "../../../components/hooks/useAuthenticatedUser";
 import { HASH_OPENSEARCH_ENABLED } from "../../../lib/public-env";
 import { SearchInput } from "./search-bar/search-input";
@@ -159,19 +154,21 @@ const SearchBarWhenSearchIsEnabled: FunctionComponent = () => {
     }
   }, [displayedQuery, displaySearchInput]);
 
-  const { authenticatedUser } = useAuthenticatedUser();
+  const { authenticatedUser: _ } = useAuthenticatedUser();
 
-  const { data, loading } = useQuery<
-    SearchPagesQuery,
-    SearchPagesQueryVariables
-  >(searchPages, {
-    variables: {
-      accountId: authenticatedUser!.entityId,
-      query: submittedQuery,
-    },
-    skip: !authenticatedUser?.entityId || !submittedQuery,
-    fetchPolicy: "network-only",
-  });
+  const data: any = [];
+  const loading = false;
+  // const { data, loading } = useQuery<
+  //   SearchPagesQuery,
+  //   SearchPagesQueryVariables
+  // >(searchPages, {
+  //   variables: {
+  //     accountId: authenticatedUser!.entityId,
+  //     query: submittedQuery,
+  //   },
+  //   skip: !authenticatedUser?.entityId || !submittedQuery,
+  //   fetchPolicy: "network-only",
+  // });
 
   useKey(["Escape"], () => setResultListVisible(false));
 

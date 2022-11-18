@@ -13,15 +13,6 @@ import {
 } from "./entity";
 import { createLink } from "./link/createLink";
 import { deleteLink } from "./link/deleteLink";
-import { blocks, blockProperties, blockLinkedEntities } from "./block";
-import {
-  page,
-  pageProperties,
-  updatePage,
-  updatePageContents,
-  searchPages,
-  pageLinkedEntities,
-} from "./pages";
 import { embedCode } from "./embed";
 import {
   getImpliedEntityHistory,
@@ -86,12 +77,12 @@ import { createPersistedComment } from "./knowledge/comment/comment";
 import { persistedBlocks } from "./knowledge/block/block";
 import { getBlockProtocolBlocks } from "./blockprotocol/getBlock";
 import {
-  createPersistedEntity,
-  getPersistedEntity,
+  createEntityWithMetadata,
+  getEntityWithMetadata,
   getAllLatestPersistedEntities,
-  updatePersistedEntity,
+  updateEntityWithMetadata,
 } from "./knowledge/entity/entity";
-import { UnresolvedPersistedEntityGQL } from "./knowledge/model-mapping";
+import { UnresolvedEntityWithMetadataGQL } from "./knowledge/model-mapping";
 import {
   createPersistedLink,
   deletePersistedLink,
@@ -130,7 +121,6 @@ export const resolvers = {
   Query: {
     // Logged in and signed up users only,
     aggregateEntity: loggedInAndSignedUp(aggregateEntity),
-    blocks: loggedInAndSignedUp(blocks),
     deprecatedGetAccountEntityTypes: loggedInAndSignedUp(
       deprecatedGetAccountEntityTypes,
     ),
@@ -140,10 +130,8 @@ export const resolvers = {
     deprecatedGetEntityType: loggedInAndSignedUp(deprecatedGetEntityType),
     getLink: loggedInAndSignedUp(getLink),
     getLinkedAggregation: loggedInAndSignedUp(getLinkedAggregation),
-    page: canAccessAccount(page),
     getImpliedEntityHistory: loggedInAndSignedUp(getImpliedEntityHistory),
     getImpliedEntityVersion: loggedInAndSignedUp(getImpliedEntityVersion),
-    searchPages: loggedInAndSignedUp(searchPages),
     // Logged in users only
     me: loggedIn(me),
     // Any user
@@ -162,7 +150,7 @@ export const resolvers = {
     persistedPages: loggedInAndSignedUp(persistedPages),
     persistedPageComments: loggedInAndSignedUp(persistedPageComments),
     persistedBlocks: loggedInAndSignedUp(persistedBlocks),
-    getPersistedEntity: loggedInAndSignedUp(getPersistedEntity),
+    getEntityWithMetadata: loggedInAndSignedUp(getEntityWithMetadata),
     getAllLatestPersistedEntities: loggedInAndSignedUp(
       getAllLatestPersistedEntities,
     ),
@@ -185,8 +173,6 @@ export const resolvers = {
     transferEntity: loggedInAndSignedUp(transferEntity),
     updateEntity: loggedInAndSignedUp(updateEntity),
     deprecatedUpdateEntityType: loggedInAndSignedUp(deprecatedUpdateEntityType),
-    updatePage: loggedInAndSignedUp(updatePage),
-    updatePageContents: loggedInAndSignedUp(updatePageContents),
     updatePersistedPageContents: loggedInAndSignedUp(
       updatePersistedPageContents,
     ),
@@ -203,8 +189,8 @@ export const resolvers = {
     createEntityType: loggedInAndSignedUp(createEntityType),
     updateEntityType: loggedInAndSignedUp(updateEntityType),
     // Knowledge
-    createPersistedEntity: loggedInAndSignedUp(createPersistedEntity),
-    updatePersistedEntity: loggedIn(updatePersistedEntity),
+    createEntityWithMetadata: loggedInAndSignedUp(createEntityWithMetadata),
+    updateEntityWithMetadata: loggedIn(updateEntityWithMetadata),
     createPersistedLink: loggedInAndSignedUp(createPersistedLink),
     deletePersistedLink: loggedInAndSignedUp(deletePersistedLink),
     createPersistedPage: loggedInAndSignedUp(createPersistedPage),
@@ -220,18 +206,6 @@ export const resolvers = {
   },
 
   JSONObject: JSONObjectResolver,
-
-  Block: {
-    properties:
-      blockProperties /** @todo: remove this resolver as it is deprecated */,
-    ...blockLinkedEntities,
-  },
-
-  Page: {
-    properties:
-      pageProperties /** @todo: remove this resolver as it is deprecated */,
-    ...pageLinkedEntities,
-  },
 
   FileProperties: {
     url: fileFields.url,
@@ -279,17 +253,17 @@ export const resolvers = {
 
   // New knowledge field resolvers
 
-  PersistedEntity: {
+  EntityWithMetadata: {
     /**
-     * Determines whether a `PersistedEntity` instance should be treated as a
+     * Determines whether a `EntityWithMetadata` instance should be treated as a
      * system GQL type definition (for example as a `PersistedPage`), or
-     * whether to treat it is an `UnknownPersistedEntity`.
+     * whether to treat it is an `UnknownEntityWithMetadata`.
      */
     __resolveType: ({
       systemTypeName,
-    }: UnresolvedPersistedEntityGQL):
+    }: UnresolvedEntityWithMetadataGQL):
       | SystemEntityGQLTypeName
-      | "UnknownPersistedEntity" => {
+      | "UnknownEntityWithMetadata" => {
       const systemEntityGQLTypeName = systemTypeName
         ? `Persisted${systemTypeName.split(" ").join("")}`
         : undefined;
@@ -297,7 +271,7 @@ export const resolvers = {
       return systemEntityGQLTypeName &&
         isSystemEntityGQLTypeName(systemEntityGQLTypeName)
         ? systemEntityGQLTypeName
-        : "UnknownPersistedEntity";
+        : "UnknownEntityWithMetadata";
     },
   },
 
@@ -320,7 +294,7 @@ export const resolvers = {
 
   /**
    * @todo Add Entity.linkedEntities field resolver for resolving linked entities
-   *   PersistedEntity: { linkedEntities .. }
+   *   EntityWithMetadata: { linkedEntities .. }
    *   see https://app.asana.com/0/0/1203057486837594/f
    */
 };

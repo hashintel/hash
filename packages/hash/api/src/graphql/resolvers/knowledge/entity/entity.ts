@@ -3,16 +3,16 @@ import { AxiosError } from "axios";
 import { ApolloError, ForbiddenError } from "apollo-server-express";
 import { EntityModel } from "../../../../model";
 import {
-  QueryGetPersistedEntityArgs,
-  MutationCreatePersistedEntityArgs,
-  MutationUpdatePersistedEntityArgs,
+  QueryGetEntityWithMetadataArgs,
+  MutationCreateEntityWithMetadataArgs,
+  MutationUpdateEntityWithMetadataArgs,
   ResolverFn,
   Subgraph,
-  QueryGetAllLatestPersistedEntitiesArgs,
+  QueryGetAllLatestEntitiesWithMetadataArgs,
 } from "../../../apiTypes.gen";
 import {
   mapEntityModelToGQL,
-  UnresolvedPersistedEntityGQL,
+  UnresolvedEntityWithMetadataGQL,
 } from "../model-mapping";
 import { LoggedInGraphQLContext } from "../../../context";
 import { mapSubgraphToGql } from "../../ontology/model-mapping";
@@ -20,11 +20,11 @@ import { beforeUpdateEntityHooks } from "./before-update-entity-hooks";
 
 /** @todo - rename these and remove "persisted" - https://app.asana.com/0/0/1203157172269854/f */
 
-export const createPersistedEntity: ResolverFn<
-  Promise<UnresolvedPersistedEntityGQL>,
+export const createEntityWithMetadata: ResolverFn<
+  Promise<UnresolvedEntityWithMetadataGQL>,
   {},
   LoggedInGraphQLContext,
-  MutationCreatePersistedEntityArgs
+  MutationCreateEntityWithMetadataArgs
 > = async (
   _,
   { ownedById, properties, entityTypeId, linkedEntities },
@@ -48,11 +48,11 @@ export const createPersistedEntity: ResolverFn<
   return mapEntityModelToGQL(entity);
 };
 
-export const getAllLatestPersistedEntities: ResolverFn<
+export const getAllLatestEntitiesWithMetadata: ResolverFn<
   Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
-  QueryGetAllLatestPersistedEntitiesArgs
+  QueryGetAllLatestEntitiesWithMetadataArgs
 > = async (
   _,
   {
@@ -92,11 +92,11 @@ export const getAllLatestPersistedEntities: ResolverFn<
   return mapSubgraphToGql(entitySubgraph);
 };
 
-export const getPersistedEntity: ResolverFn<
+export const getEntityWithMetadata: ResolverFn<
   Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
-  QueryGetPersistedEntityArgs
+  QueryGetEntityWithMetadataArgs
 > = async (
   _,
   {
@@ -148,11 +148,11 @@ export const getPersistedEntity: ResolverFn<
   return mapSubgraphToGql(entitySubgraph);
 };
 
-export const updatePersistedEntity: ResolverFn<
-  Promise<UnresolvedPersistedEntityGQL>,
+export const updateEntityWithMetadata: ResolverFn<
+  Promise<UnresolvedEntityWithMetadataGQL>,
   {},
   LoggedInGraphQLContext,
-  MutationUpdatePersistedEntityArgs
+  MutationUpdateEntityWithMetadataArgs
 > = async (
   _,
   { entityId, updatedProperties },

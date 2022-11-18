@@ -23,7 +23,7 @@ generates:
         PropertyTypeWithoutId: "@hashintel/hash-shared/graphql/types#PropertyTypeWithoutId"
         PropertyTypeWithMetadata: "@hashintel/hash-subgraph#PropertyTypeWithMetadata"
         EntityId: "@hashintel/hash-graph#EntityId"
-        EntityEditionId: "@hashintel/hash-graph#EntityEditionId"
-        Edges: "@hashintel/hash-shared/graphql/types#Edges"
+        EntityEditionId: "@hashintel/hash-subgraph#EntityEditionId"
+        Edges: "@hashintel/hash-shared/subgraphql/types#Edges"
         Vertices: "@hashintel/hash-shared/graphql/types#Vertices"
     documents: ./src/graphql/queries/**/*.ts
