@@ -63,7 +63,7 @@ pub use extra::{
     ArrayLengthError, ExpectedLength, ObjectItemsExtraError, ReceivedKey, ReceivedLength,
 };
 pub use location::Location;
-use serde::{ser::SerializeMap, Serialize, Serializer};
+use serde::ser::SerializeMap;
 pub use r#type::{ExpectedType, ReceivedType, TypeError};
 pub use unknown::{
     ExpectedField, ExpectedVariant, ReceivedField, ReceivedVariant, UnknownFieldError,
@@ -105,8 +105,11 @@ impl Id {
 }
 
 // TODO: most likely (in 0.2) we want to actually have a proper schema
+#[derive(serde::Serialize)]
 pub struct Schema {
+    #[serde(rename = "type")]
     ty: String,
+    #[serde(flatten)]
     other: BTreeMap<String, Box<dyn erased_serde::Serialize + Send + Sync>>,
 }
 
@@ -142,23 +145,6 @@ impl Schema {
         self.other.insert(key.into(), Box::new(value));
 
         self
-    }
-}
-
-impl Serialize for Schema {
-    fn serialize<S>(&self, serializer: S) -> core::result::Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut map = serializer.serialize_map(Some(self.other.len() + 1))?;
-
-        map.serialize_entry("type", &self.ty)?;
-
-        for (key, value) in &self.other {
-            map.serialize_entry(key, value)?;
-        }
-
-        map.end()
     }
 }
 
