@@ -47,9 +47,9 @@ impl<'a> Serialize for SerializeAttachment<'a> {
     }
 }
 
-struct SerializeAttachments<'a, 'b>(&'a [&'b Frame]);
+struct SerializeAttachmentList<'a, 'b>(&'a [&'b Frame]);
 
-impl<'a, 'b> Serialize for SerializeAttachments<'a, 'b> {
+impl<'a, 'b> Serialize for SerializeAttachmentList<'a, 'b> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -89,7 +89,7 @@ impl<'a> Serialize for SerializeContext<'a> {
 
         let mut map = serializer.serialize_map(Some(3))?;
         map.serialize_entry("context", &format!("{context}"))?;
-        map.serialize_entry("attachments", &SerializeAttachments(&attachments[..]))?;
+        map.serialize_entry("attachments", &SerializeAttachmentList(&attachments[..]))?;
         map.serialize_entry("sources", &SerializeSources(sources))?;
 
         map.end()
