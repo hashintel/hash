@@ -47,7 +47,7 @@ impl Vertices {
     }
 
     pub fn extend(&mut self, other: Self) {
-        for (key, value) in other.ontology.0.into_iter() {
+        for (key, value) in other.ontology.0 {
             match self.ontology.0.entry(key) {
                 Entry::Occupied(entry) => {
                     entry.into_mut().extend(value);
@@ -57,7 +57,7 @@ impl Vertices {
                 }
             }
         }
-        for (key, value) in other.knowledge_graph.0.into_iter() {
+        for (key, value) in other.knowledge_graph.0 {
             match self.knowledge_graph.0.entry(key) {
                 Entry::Occupied(entry) => {
                     entry.into_mut().extend(value);
