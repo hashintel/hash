@@ -18,15 +18,15 @@ export const isOutwardLinkEdge = (
 };
 
 /** @todo - is there a way to have TS force us to make this always satisfy `KnowledgeGraphOutwardEdge`? */
-export type HasRightEndpointEdge = {
+export type HasLeftEntityEdge = {
   reversed: false;
   kind: "HAS_RIGHT_ENDPOINT";
   rightEndpoint: EntityIdAndTimestamp;
 };
 
-export const isHasRightEndpointEdge = (
+export const isHasLeftEntityEdge = (
   outwardEdge: KnowledgeGraphOutwardEdge,
-): outwardEdge is HasRightEndpointEdge => {
+): outwardEdge is HasLeftEntityEdge => {
   return outwardEdge.kind === "HAS_RIGHT_ENTITY" && !outwardEdge.reversed;
 };
 

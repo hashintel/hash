@@ -4,7 +4,7 @@ import { Entity } from "../../types/element";
 import { getEntityAtTimestamp } from "../element/entity";
 import {
   isOutwardLinkEdge,
-  isHasRightEndpointEdge,
+  isHasLeftEntityEdge,
 } from "../../types/edge/outward-edge-alias";
 import { mustBeDefined } from "../../shared/invariant";
 
@@ -70,7 +70,7 @@ export const getOutgoingLinksForEntityAtMoment = (
  * @param {EntityId} entityId The ID of the link entity
  * @param {Date | string} timestamp A `Date` or an ISO-formatted datetime string of the moment to search for
  */
-export const getRightEndpointForLinkEntityAtMoment = (
+export const getRightEntityForLinkEntityAtMoment = (
   subgraph: Subgraph,
   entityId: EntityId,
   timestamp: Date | string,
@@ -81,7 +81,7 @@ export const getRightEndpointForLinkEntityAtMoment = (
   );
 
   const endpointEntityId = mustBeDefined(
-    Object.values(linkEntityEdges).flat().find(isHasRightEndpointEdge)
+    Object.values(linkEntityEdges).flat().find(isHasLeftEntityEdge)
       ?.rightEndpoint.baseId,
     "link entities must have right endpoints",
   );
@@ -93,7 +93,7 @@ export const getRightEndpointForLinkEntityAtMoment = (
 };
 
 /**
- * For a given moment in time, get all outgoing link entities, and their endpoints, from a given entity.
+ * For a given moment in time, get all outgoing link entities, and their right entities, from a given entity.
  *
  * @param subgraph
  * @param {EntityId} entityId The ID of the source entity to search for outgoing links from
@@ -105,7 +105,7 @@ export const getOutgoingLinkAndTargetEntitiesAtMoment = (
   entityId: EntityId,
   timestamp: Date | string,
   includeArchived: boolean = false,
-): { linkEntity: Entity; endpointEntity: Entity }[] => {
+): { linkEntity: Entity; rightEntity: Entity }[] => {
   return getOutgoingLinksForEntityAtMoment(
     subgraph,
     entityId,
@@ -114,7 +114,7 @@ export const getOutgoingLinkAndTargetEntitiesAtMoment = (
   ).map((linkEntity) => {
     return {
       linkEntity,
-      endpointEntity: getRightEndpointForLinkEntityAtMoment(
+      rightEntity: getRightEntityForLinkEntityAtMoment(
         subgraph,
         linkEntity.metadata.editionId.baseId,
         timestamp,
