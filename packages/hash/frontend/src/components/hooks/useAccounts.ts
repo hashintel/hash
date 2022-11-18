@@ -4,11 +4,11 @@ import { types } from "@hashintel/hash-shared/types";
 import { constructMinimalOrg, MinimalOrg } from "../../lib/org";
 import { constructMinimalUser, MinimalUser } from "../../lib/user";
 import {
-  GetAllLatestEntitiesWithMetadataQuery,
-  GetAllLatestEntitiesWithMetadataQueryVariables,
+  GetAllLatestPersistedEntitiesQuery,
+  GetAllLatestPersistedEntitiesQueryVariables,
 } from "../../graphql/apiTypes.gen";
 import { getAllLatestEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
-import { getEntitiesWithMetadata, Subgraph } from "../../lib/subgraph";
+import { getPersistedEntities, Subgraph } from "../../lib/subgraph";
 import { useInitTypeSystem } from "../../lib/use-init-type-system";
 
 export const useAccounts = (): {
@@ -16,8 +16,8 @@ export const useAccounts = (): {
   accounts?: (MinimalOrg | MinimalUser)[];
 } => {
   const { data, loading } = useQuery<
-    GetAllLatestEntitiesWithMetadataQuery,
-    GetAllLatestEntitiesWithMetadataQueryVariables
+    GetAllLatestPersistedEntitiesQuery,
+    GetAllLatestPersistedEntitiesQueryVariables
   >(getAllLatestEntitiesQuery, {
     variables: {
       dataTypeResolveDepth: 0,
@@ -38,10 +38,9 @@ export const useAccounts = (): {
       return undefined;
     }
 
-    const subgraph =
-      data.getAllLatestEntitiesWithMetadata as unknown as Subgraph;
+    const subgraph = data.getAllLatestPersistedEntities as unknown as Subgraph;
 
-    return getEntitiesWithMetadata(subgraph)
+    return getPersistedEntities(subgraph)
       .filter(
         ({ entityTypeId }) =>
           entityTypeId === types.entityType.user.entityTypeId ||
