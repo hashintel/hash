@@ -13,11 +13,11 @@ use crate::identifier::{
     GraphElementEditionId,
 };
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Default, Debug, Serialize, ToSchema)]
 #[serde(transparent)]
 pub struct OntologyVertices(pub HashMap<BaseUri, HashMap<OntologyTypeVersion, OntologyVertex>>);
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Default, Debug, Serialize, ToSchema)]
 #[serde(transparent)]
 pub struct KnowledgeGraphVertices(
     // TODO: expose it through methods instead of making this field `pub`
@@ -25,7 +25,7 @@ pub struct KnowledgeGraphVertices(
     pub HashMap<EntityId, HashMap<EntityVersion, KnowledgeGraphVertex>>,
 );
 
-#[derive(Debug, Serialize)]
+#[derive(Default, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Vertices {
     #[serde(flatten)]
@@ -47,7 +47,7 @@ impl Vertices {
     }
 
     pub fn extend(&mut self, other: Self) {
-        for (key, value) in other.ontology.0.into_iter() {
+        for (key, value) in other.ontology.0 {
             match self.ontology.0.entry(key) {
                 Entry::Occupied(entry) => {
                     entry.into_mut().extend(value);
@@ -57,7 +57,7 @@ impl Vertices {
                 }
             }
         }
-        for (key, value) in other.knowledge_graph.0.into_iter() {
+        for (key, value) in other.knowledge_graph.0 {
             match self.knowledge_graph.0.entry(key) {
                 Entry::Occupied(entry) => {
                     entry.into_mut().extend(value);

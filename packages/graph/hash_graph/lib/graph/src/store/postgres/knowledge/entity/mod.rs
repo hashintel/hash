@@ -394,7 +394,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             graph_resolve_depths,
         } = *query;
 
-        let subgraphs = stream::iter(Read::<Entity>::read(self, filter).await?)
+        let mut subgraph = stream::iter(Read::<Entity>::read(self, filter).await?)
             .then(|entity| async move {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 
@@ -413,11 +413,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
                 Ok::<_, Report<QueryError>>(dependency_context.into_subgraph(HashSet::from([root])))
             })
-            .try_collect::<Vec<_>>()
+            .try_collect::<Subgraph>()
             .await?;
 
-        let mut subgraph = Subgraph::new(graph_resolve_depths);
-        subgraph.extend(subgraphs);
+        subgraph.depths = graph_resolve_depths;
 
         Ok(subgraph)
     }
