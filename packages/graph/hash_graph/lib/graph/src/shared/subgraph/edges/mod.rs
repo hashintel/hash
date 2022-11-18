@@ -100,10 +100,7 @@ impl Edges {
                     .or_default();
 
                 match map.entry(ontology_edition_id.version()) {
-                    Entry::Occupied(entry) => {
-                        let set = entry.into_mut();
-                        set.insert(outward_edge)
-                    }
+                    Entry::Occupied(entry) => entry.into_mut().insert(outward_edge),
                     Entry::Vacant(entry) => {
                         entry.insert(HashSet::from([outward_edge]));
                         true
@@ -121,10 +118,7 @@ impl Edges {
                     .or_default();
 
                 match map.entry(entity_edition_id.version()) {
-                    Entry::Occupied(entry) => {
-                        let set = entry.into_mut();
-                        set.insert(outward_edge)
-                    }
+                    Entry::Occupied(entry) => entry.into_mut().insert(outward_edge),
                     Entry::Vacant(entry) => {
                         entry.insert(HashSet::from([outward_edge]));
                         true
@@ -144,8 +138,7 @@ impl Edges {
         for (key, value) in other.ontology.0.into_iter() {
             match self.ontology.0.entry(key) {
                 Entry::Occupied(entry) => {
-                    let inner_map = entry.into_mut();
-                    inner_map.extend(value);
+                    entry.into_mut().extend(value);
                 }
                 Entry::Vacant(entry) => {
                     entry.insert(value);
@@ -155,8 +148,7 @@ impl Edges {
         for (key, value) in other.knowledge_graph.0.into_iter() {
             match self.knowledge_graph.0.entry(key) {
                 Entry::Occupied(entry) => {
-                    let inner_map = entry.into_mut();
-                    inner_map.extend(value);
+                    entry.into_mut().extend(value);
                 }
                 Entry::Vacant(entry) => {
                     entry.insert(value);

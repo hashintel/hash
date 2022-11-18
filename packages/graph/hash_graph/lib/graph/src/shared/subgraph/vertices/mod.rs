@@ -50,8 +50,7 @@ impl Vertices {
         for (key, value) in other.ontology.0.into_iter() {
             match self.ontology.0.entry(key) {
                 Entry::Occupied(entry) => {
-                    let inner_map = entry.into_mut();
-                    inner_map.extend(value);
+                    entry.into_mut().extend(value);
                 }
                 Entry::Vacant(entry) => {
                     entry.insert(value);
@@ -61,8 +60,7 @@ impl Vertices {
         for (key, value) in other.knowledge_graph.0.into_iter() {
             match self.knowledge_graph.0.entry(key) {
                 Entry::Occupied(entry) => {
-                    let inner_map = entry.into_mut();
-                    inner_map.extend(value);
+                    entry.into_mut().extend(value);
                 }
                 Entry::Vacant(entry) => {
                     entry.insert(value);
