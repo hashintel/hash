@@ -140,6 +140,7 @@ const useFreezeScrollWhileTransitioning = () => {
 
         // Before we start our calculations, remove the applied offset
         docNode.style.removeProperty("top");
+        docNode.style.removeProperty("position");
 
         // If the page isn't long enough to scroll to compensate for the removed
         // offset, we want to apply some extra padding using min height
