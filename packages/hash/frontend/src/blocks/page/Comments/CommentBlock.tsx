@@ -13,7 +13,7 @@ import {
   FontAwesomeIcon,
   IconButton,
   LoadingSpinner,
-} from "@hashintel/hash-design-system/ui";
+} from "@hashintel/hash-design-system";
 import { formatDistanceToNowStrict } from "date-fns";
 import {
   faChevronDown,
