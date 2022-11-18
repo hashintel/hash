@@ -83,7 +83,7 @@ impl Error for UnknownFieldError {
 
         if has_expected {
             fmt.write_str("expected fields ")?;
-            fmt_fold_fields(fmt, expected)?
+            fmt_fold_fields(fmt, expected)?;
         }
 
         if has_received && has_expected {
