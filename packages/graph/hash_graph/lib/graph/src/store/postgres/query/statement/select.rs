@@ -127,23 +127,6 @@ mod tests {
     }
 
     #[test]
-    fn default_selection() {
-        test_compilation(
-            &SelectCompiler::<DataType>::with_default_selection(),
-            r#"
-            SELECT
-                "data_types_0_0_0"."schema"->>'$id',
-                "data_types_0_0_0"."schema",
-                "data_types_0_0_0"."owned_by_id",
-                "data_types_0_0_0"."created_by_id",
-                "data_types_0_0_0"."updated_by_id"
-            FROM "data_types" AS "data_types_0_0_0"
-            "#,
-            &[],
-        );
-    }
-
-    #[test]
     fn simple_expression() {
         let mut compiler = SelectCompiler::<DataType>::with_asterisk();
         compiler.add_filter(&Filter::Equal(
@@ -445,7 +428,7 @@ mod tests {
 
     #[test]
     fn entity_simple_query() {
-        let mut compiler = SelectCompiler::<Entity>::with_default_selection();
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk();
 
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::Uuid)),
@@ -458,17 +441,8 @@ mod tests {
         test_compilation(
             &compiler,
             r#"
-            SELECT
-                "entities_0_0_0"."properties",
-                "entities_0_0_0"."entity_uuid",
-                "entities_0_0_0"."version",
-                "entity_types_0_1_0"."schema"->>'$id',
-                "entities_0_0_0"."owned_by_id",
-                "entities_0_0_0"."created_by_id",
-                "entities_0_0_0"."updated_by_id"
+            SELECT *
             FROM "entities" AS "entities_0_0_0"
-            INNER JOIN "entity_types" AS "entity_types_0_1_0"
-              ON "entity_types_0_1_0"."version_id" = "entities_0_0_0"."entity_type_version_id"
             WHERE "entities_0_0_0"."entity_uuid" = $1
             "#,
             &[&"12345678-ABCD-4321-5678-ABCD5555DCBA"],
@@ -477,7 +451,7 @@ mod tests {
 
     #[test]
     fn entity_latest_version_query() {
-        let mut compiler = SelectCompiler::<Entity>::with_default_selection();
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk();
 
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::Version)),
@@ -490,17 +464,8 @@ mod tests {
         test_compilation(
             &compiler,
             r#"
-            SELECT
-                "entities_0_0_0"."properties",
-                "entities_0_0_0"."entity_uuid",
-                "entities_0_0_0"."version",
-                "entity_types_0_1_0"."schema"->>'$id',
-                "entities_0_0_0"."owned_by_id",
-                "entities_0_0_0"."created_by_id",
-                "entities_0_0_0"."updated_by_id"
+            SELECT *
             FROM "entities" AS "entities_0_0_0"
-            INNER JOIN "entity_types" AS "entity_types_0_1_0"
-              ON "entity_types_0_1_0"."version_id" = "entities_0_0_0"."entity_type_version_id"
             WHERE "entities_0_0_0"."latest_version" = TRUE
             "#,
             &[],

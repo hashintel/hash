@@ -14,16 +14,6 @@ impl PostgresQueryRecord for EntityType {
     fn base_table() -> Table {
         Table::EntityTypes
     }
-
-    fn default_selection_paths() -> &'static [Self::Path<'static>] {
-        &[
-            EntityTypeQueryPath::VersionedUri,
-            EntityTypeQueryPath::Schema,
-            EntityTypeQueryPath::OwnedById,
-            EntityTypeQueryPath::CreatedById,
-            EntityTypeQueryPath::UpdatedById,
-        ]
-    }
 }
 
 impl Path for EntityTypeQueryPath {
