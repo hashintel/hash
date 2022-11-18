@@ -1,4 +1,4 @@
-import { Box, Stack, Tab, Typography } from "@mui/material";
+import { Box, Stack, Tab, Typography, typographyClasses } from "@mui/material";
 import { useRouter } from "next/router";
 import { FunctionComponent } from "react";
 
@@ -23,6 +23,7 @@ export const TabLink: FunctionComponent<TabLinkProps> = ({
   return (
     <Tab
       {...props}
+      disableRipple
       value={value}
       href={href}
       component="a"
@@ -67,13 +68,20 @@ export const TabLink: FunctionComponent<TabLinkProps> = ({
         ) : undefined
       }
       iconPosition="end"
-      sx={{
+      sx={({ palette }) => ({
         marginRight: 3,
         paddingY: 1.25,
         paddingX: 0.5,
         minWidth: 0,
         minHeight: 0,
-      }}
+        ":hover": {
+          [`.${typographyClasses.root}`]: {
+            color: `${
+              active ? palette.primary.main : palette.blue[60]
+            } !important`,
+          },
+        },
+      })}
     />
   );
 };
