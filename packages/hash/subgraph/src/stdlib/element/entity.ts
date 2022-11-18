@@ -35,7 +35,7 @@ export const getEntityByEditionId = (
   subgraph: Subgraph,
   entityEditionId: EntityEditionId,
 ): Entity | undefined => {
-  const [entityId, version] = [entityEditionId.baseId, entityEditionId.version];
+  const { baseId: entityId, version } = entityEditionId;
   const vertex = subgraph.vertices[entityId]?.[version];
 
   if (!vertex) {
