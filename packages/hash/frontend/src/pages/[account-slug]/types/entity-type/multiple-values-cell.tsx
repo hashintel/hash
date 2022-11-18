@@ -168,7 +168,7 @@ export const MultipleValuesCell = ({
           zIndex: 1,
         }}
         transition
-        disablePortal
+        // Attempt to prevent this messing with the edit bar scroll freezing
         modifiers={[
           { name: "flip", enabled: false },
           { name: "preventOverflow", enabled: false },
