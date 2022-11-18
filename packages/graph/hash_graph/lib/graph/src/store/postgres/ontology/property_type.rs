@@ -80,7 +80,7 @@ impl<C: AsClient> PostgresStore<C> {
                             GenericOutwardEdge {
                                 kind: OntologyEdgeKind::ConstrainsValuesOn,
                                 reversed: false,
-                                endpoint: data_type_ref.uri().clone().into(),
+                                right_endpoint: data_type_ref.uri().clone().into(),
                             },
                         )),
                     );
@@ -114,7 +114,7 @@ impl<C: AsClient> PostgresStore<C> {
                             GenericOutwardEdge {
                                 kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                                 reversed: false,
-                                endpoint: property_type_ref.uri().clone().into(),
+                                right_endpoint: property_type_ref.uri().clone().into(),
                             },
                         )),
                     );

@@ -81,7 +81,7 @@ impl<C: AsClient> PostgresStore<C> {
                             GenericOutwardEdge {
                                 kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                                 reversed: false,
-                                endpoint: property_type_ref.uri().clone().into(),
+                                right_endpoint: property_type_ref.uri().clone().into(),
                             },
                         )),
                     );
@@ -155,7 +155,7 @@ impl<C: AsClient> PostgresStore<C> {
                 OutwardEdge::Ontology(OntologyOutwardEdges::ToOntology(GenericOutwardEdge {
                     kind: edge_kind,
                     reversed: false,
-                    endpoint: dependent_entity_type_id.clone(),
+                    right_endpoint: dependent_entity_type_id.clone(),
                 })),
             );
 

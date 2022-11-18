@@ -87,7 +87,7 @@ impl<C: AsClient> PostgresStore<C> {
                         GenericOutwardEdge {
                             kind: SharedEdgeKind::IsOfType,
                             reversed: false,
-                            endpoint: entity_type_id.into(),
+                            right_endpoint: entity_type_id.into(),
                         },
                     )),
                 );
@@ -134,7 +134,7 @@ impl<C: AsClient> PostgresStore<C> {
                             // outgoing `Link` `Entity`
                             kind: KnowledgeGraphEdgeKind::HasLeftEndpoint,
                             reversed: true,
-                            endpoint: EntityIdAndTimestamp::new(
+                            right_endpoint: EntityIdAndTimestamp::new(
                                 outgoing_link_entity.metadata().edition_id().base_id(),
                                 earliest_version.inner(),
                             ),
@@ -180,7 +180,7 @@ impl<C: AsClient> PostgresStore<C> {
                         GenericOutwardEdge {
                             kind: KnowledgeGraphEdgeKind::HasLeftEndpoint,
                             reversed: false,
-                            endpoint: EntityIdAndTimestamp::new(
+                            right_endpoint: EntityIdAndTimestamp::new(
                                 left_entity.metadata().edition_id().base_id(),
                                 earliest_version.inner(),
                             ),
@@ -226,7 +226,7 @@ impl<C: AsClient> PostgresStore<C> {
                         GenericOutwardEdge {
                             kind: KnowledgeGraphEdgeKind::HasRightEndpoint,
                             reversed: false,
-                            endpoint: EntityIdAndTimestamp::new(
+                            right_endpoint: EntityIdAndTimestamp::new(
                                 right_entity.metadata().edition_id().base_id(),
                                 earliest_version.inner(),
                             ),
