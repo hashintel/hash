@@ -590,6 +590,7 @@ export default class {
         all: [
           { equal: [{ path: ["version"] }, { parameter: "latest" }] },
           { equal: [{ path: ["uuid"] }, { parameter: this.entityUuid }] },
+          { equal: [{ path: ["ownedById"] }, { parameter: this.ownedById }] },
         ],
       },
       graphResolveDepths: {

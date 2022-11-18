@@ -108,6 +108,12 @@ export default class extends EntityModel {
           },
           {
             equal: [
+              { path: ["leftEntity", "ownedById"] },
+              { parameter: this.ownedById },
+            ],
+          },
+          {
+            equal: [
               { path: ["type", "versionedUri"] },
               {
                 parameter: SYSTEM_TYPES.linkEntityType.ofOrg.schema.$id,
@@ -153,6 +159,12 @@ export default class extends EntityModel {
             equal: [
               { path: ["rightEntity", "uuid"] },
               { parameter: this.entityUuid },
+            ],
+          },
+          {
+            equal: [
+              { path: ["leftEntity", "ownedById"] },
+              { parameter: this.ownedById },
             ],
           },
           {

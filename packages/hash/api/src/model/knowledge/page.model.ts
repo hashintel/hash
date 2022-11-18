@@ -371,6 +371,12 @@ export default class extends EntityModel {
         },
         {
           equal: [
+            { path: ["leftEntity", "ownedById"] },
+            { parameter: this.ownedById },
+          ],
+        },
+        {
+          equal: [
             { path: ["type", "versionedUri"] },
             {
               parameter: SYSTEM_TYPES.linkEntityType.contains.schema.$id,
