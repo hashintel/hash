@@ -377,6 +377,12 @@ export default class extends EntityModel {
             },
           ],
         },
+        {
+          equal: [{ path: ["version"] }, { parameter: "latest" }],
+        },
+        {
+          equal: [{ path: ["archived"] }, { parameter: false }],
+        },
       ],
     });
 

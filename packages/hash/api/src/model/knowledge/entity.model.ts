@@ -482,6 +482,18 @@ export default class {
             { parameter: this.entityUuid },
           ],
         },
+        {
+          equal: [
+            { path: ["rightEntity", "ownedById"] },
+            { parameter: this.ownedById },
+          ],
+        },
+        {
+          equal: [{ path: ["version"] }, { parameter: "latest" }],
+        },
+        {
+          equal: [{ path: ["archived"] }, { parameter: false }],
+        },
       ],
     };
 
@@ -503,7 +515,7 @@ export default class {
 
     return await Promise.all(
       incomingLinkEntityModels.map((entityModel) =>
-        LinkEntityModel.fromEntity(graphApi, entityModel),
+        LinkEntityModel.fromEntity(graphApi, entityModel.entity),
       ),
     );
   }
@@ -524,6 +536,18 @@ export default class {
             { path: ["leftEntity", "uuid"] },
             { parameter: this.entityUuid },
           ],
+        },
+        {
+          equal: [
+            { path: ["leftEntity", "ownedById"] },
+            { parameter: this.ownedById },
+          ],
+        },
+        {
+          equal: [{ path: ["version"] }, { parameter: "latest" }],
+        },
+        {
+          equal: [{ path: ["archived"] }, { parameter: false }],
         },
       ],
     };
@@ -546,7 +570,7 @@ export default class {
 
     return Promise.all(
       outgoingLinkEntityModels.map((entityModel) =>
-        LinkEntityModel.fromEntity(graphApi, entityModel),
+        LinkEntityModel.fromEntity(graphApi, entityModel.entity),
       ),
     );
   }

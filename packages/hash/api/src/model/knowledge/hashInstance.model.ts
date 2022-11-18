@@ -142,6 +142,12 @@ export default class extends EntityModel {
               { parameter: userModel.entityUuid },
             ],
           },
+          {
+            equal: [{ path: ["version"] }, { parameter: "latest" }],
+          },
+          {
+            equal: [{ path: ["archived"] }, { parameter: false }],
+          },
         ],
       },
     );
@@ -218,6 +224,12 @@ export default class extends EntityModel {
               { path: ["rightEntity", "uuid"] },
               { parameter: userModel.entityUuid },
             ],
+          },
+          {
+            equal: [{ path: ["version"] }, { parameter: "latest" }],
+          },
+          {
+            equal: [{ path: ["archived"] }, { parameter: false }],
           },
         ],
       },

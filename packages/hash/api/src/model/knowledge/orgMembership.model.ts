@@ -114,6 +114,12 @@ export default class extends EntityModel {
               },
             ],
           },
+          {
+            equal: [{ path: ["version"] }, { parameter: "latest" }],
+          },
+          {
+            equal: [{ path: ["archived"] }, { parameter: false }],
+          },
         ],
       },
     );
@@ -156,6 +162,12 @@ export default class extends EntityModel {
                 parameter: SYSTEM_TYPES.linkEntityType.hasMembership.schema.$id,
               },
             ],
+          },
+          {
+            equal: [{ path: ["version"] }, { parameter: "latest" }],
+          },
+          {
+            equal: [{ path: ["archived"] }, { parameter: false }],
           },
         ],
       });
