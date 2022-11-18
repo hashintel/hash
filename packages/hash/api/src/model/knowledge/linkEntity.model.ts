@@ -17,6 +17,7 @@ export type LinkModelConstructorParams = {
 
 export type LinkModelCreateParams = {
   ownedById: string;
+  properties?: object;
   linkEntityTypeModel: EntityTypeModel;
   leftEntityModel: EntityModel;
   leftOrder?: number;
@@ -136,6 +137,7 @@ export default class extends EntityModel {
       leftOrder,
       rightEntityModel,
       rightOrder,
+      properties = {},
     } = params;
 
     if (!linkEntityTypeModel.isLinkEntityType()) {
@@ -143,9 +145,6 @@ export default class extends EntityModel {
         `Entity type with ID "${linkEntityTypeModel.schema.$id}" is not a link entity type.`,
       );
     }
-
-    /** @todo: allow for the creation of properties on links */
-    const properties = {};
 
     const { data: linkEntityMetadata } = await graphApi.createEntity({
       ownedById,
