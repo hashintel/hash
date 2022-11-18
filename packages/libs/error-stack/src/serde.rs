@@ -31,8 +31,9 @@ impl<'a> Serialize for SerializeAttachment<'a> {
         #[allow(clippy::match_same_arms)]
         match frame.kind() {
             FrameKind::Context(_) => {
+                // TODO: for now `Context` is unsupported, upcoming PR will fix via hooks
                 // `SerializeContext` ensures that no context is ever serialized
-                unreachable!()
+                todo!()
             }
             FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
                 // TODO: for now opaque attachments are unsupported, upcoming PR will fix that
