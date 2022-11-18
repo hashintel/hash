@@ -478,7 +478,7 @@ mod fmt;
 #[cfg(feature = "std")]
 mod hook;
 #[cfg(feature = "serde")]
-mod ser;
+mod serde;
 
 #[cfg(feature = "std")]
 #[allow(deprecated, unreachable_pub)]
