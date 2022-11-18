@@ -38,7 +38,7 @@ export const getOutgoingLinksForEntityAtMoment = (
       // Extract the link `EntityEditionId`s from the endpoints of the link edges
       .flatMap(([_, outwardEdges]) => {
         return outwardEdges.filter(isOutwardLinkEdge).map((edge) => {
-          return edge.endpoint;
+          return edge.rightEndpoint;
         });
       })
       .map(({ baseId: linkEntityId, timestamp: _firstEditionTimestamp }) => {
@@ -81,8 +81,8 @@ export const getRightEndpointForLinkEntityAtMoment = (
   );
 
   const endpointEntityId = mustBeDefined(
-    Object.values(linkEntityEdges).flat().find(isHasRightEndpointEdge)?.endpoint
-      .baseId,
+    Object.values(linkEntityEdges).flat().find(isHasRightEndpointEdge)
+      ?.rightEndpoint.baseId,
     "link entities must have right endpoints",
   );
 

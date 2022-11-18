@@ -68,9 +68,7 @@ export const createEntityTypeMutation = gql`
     $entityType: EntityTypeWithoutId!
   ) {
     createEntityType(ownedById: $ownedById, entityType: $entityType) {
-      entityTypeId
-      ownedById
-      entityType
+      # This is a scalar, which has no selection.
     }
   }
 `;
@@ -84,9 +82,7 @@ export const updateEntityTypeMutation = gql`
       entityTypeId: $entityTypeId
       updatedEntityType: $updatedEntityType
     ) {
-      entityTypeId
-      ownedById
-      entityType
+      # This is a scalar, which has no selection.
     }
   }
 `;

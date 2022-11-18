@@ -38,11 +38,11 @@ pub enum KnowledgeGraphEdgeKind {
     /// `Link` [`Entity`].
     ///
     /// [`Entity`]: crate::knowledge::Entity
-    HasLeftEndpoint,
+    HasLeftEntity,
     /// This link [`Entity`] has another [`Entity`] on its 'right' endpoint.
     ///
     /// [`Entity`]: crate::knowledge::Entity
-    HasRightEndpoint,
+    HasRightEntity,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, ToSchema)]

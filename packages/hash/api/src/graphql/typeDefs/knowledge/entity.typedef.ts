@@ -110,7 +110,7 @@ export const persistedEntityTypedef = gql`
     """
     The type of which to instantiate the new entity.
     """
-    entityType: PersistedEntityTypeChoice
+    entityType: EntityTypeWithMetadata
     """
     The properties of new entity.
     """

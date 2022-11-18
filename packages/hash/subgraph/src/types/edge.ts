@@ -19,8 +19,7 @@ const ONTOLOGY_EDGE_KINDS = [
   "CONSTRAINS_LINK_DESTINATIONS_ON",
 ] as const;
 const KNOWLEDGE_GRAPH_EDGE_KIND = [
-  "HAS_LEFT_ENDPOINT",
-  "HAS_RIGHT_ENDPOINT",
+  "HAS_LEFT_ENTITY", "HAS_RIGHT_ENTITY",
 ] as const;
 const SHARED_EDGE_KIND = ["IS_OF_TYPE"] as const;
 
@@ -51,7 +50,7 @@ export const isSharedEdgeKind = (kind: string): kind is SharedEdgeKind => {
 type GenericOutwardEdge<K, E> = {
   kind: K;
   reversed: boolean;
-  endpoint: E;
+  rightEndpoint: E;
 };
 
 export type OntologyOutwardEdge =
@@ -69,7 +68,7 @@ export const isOntologyOutwardEdge = (
 ): edge is OntologyOutwardEdge => {
   return (
     isOntologyEdgeKind(edge.kind) ||
-    (isSharedEdgeKind(edge.kind) && isEntityEditionId(edge.endpoint))
+    (isSharedEdgeKind(edge.kind) && isEntityEditionId(edge.rightEndpoint))
   );
 };
 
@@ -78,7 +77,7 @@ export const isKnowledgeGraphOutwardEdge = (
 ): edge is KnowledgeGraphOutwardEdge => {
   return (
     isKnowledgeGraphEdgeKind(edge.kind) ||
-    (isSharedEdgeKind(edge.kind) && isOntologyTypeEditionId(edge.endpoint))
+    (isSharedEdgeKind(edge.kind) && isOntologyTypeEditionId(edge.rightEndpoint))
   );
 };
 

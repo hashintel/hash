@@ -4,7 +4,6 @@ import { useCallback, useState } from "react";
 import {
   AggregateDataTypesMessageCallback,
   AggregateEntityTypesMessageCallback,
-  AggregateLinkTypesMessageCallback,
   AggregatePropertyTypesMessageCallback,
 } from "../../components/hooks/blockProtocolFunctions/ontology/ontology-types-shim";
 import { useLoggedInUser } from "../../components/hooks/useAuthenticatedUser";
@@ -28,8 +27,7 @@ const ExampleUsage = ({ accountId }: { accountId: string }) => {
         fn:
           | AggregateDataTypesMessageCallback
           | AggregatePropertyTypesMessageCallback
-          | AggregateEntityTypesMessageCallback
-          | AggregateLinkTypesMessageCallback,
+          | AggregateEntityTypesMessageCallback,
       ) =>
       (_: any) => {
         void (async () => {
@@ -86,10 +84,6 @@ const ExampleUsage = ({ accountId }: { accountId: string }) => {
 
         <Button size="medium" onClick={getType(functions.aggregateEntityTypes)}>
           Get entity types
-        </Button>
-
-        <Button size="medium" onClick={getType(functions.aggregateLinkTypes)}>
-          Get link types
         </Button>
 
         <div>

@@ -34,11 +34,6 @@ import { useBlockProtocolAggregateEntityTypes } from "../../components/hooks/blo
 import { useBlockProtocolGetEntityType } from "../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
 import { useBlockProtocolUpdateEntityType } from "../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdateEntityType";
 
-import { useBlockProtocolCreateLinkType } from "../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreateLinkType";
-import { useBlockProtocolAggregateLinkTypes } from "../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregateLinkTypes";
-import { useBlockProtocolGetLinkType } from "../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetLinkType";
-import { useBlockProtocolUpdateLinkType } from "../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdateLinkType";
-
 // Knowledge Graph Operations
 import { useBlockProtocolGetEntity } from "../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolGetEntity";
 import { useBlockProtocolAggregateEntities } from "../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolAggregateEntities";
@@ -104,13 +99,6 @@ export const useBlockProtocolFunctionsWithOntology = (
   const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes();
   const { getEntityType } = useBlockProtocolGetEntityType();
   const { updateEntityType } = useBlockProtocolUpdateEntityType(readonlyMode);
-  const { createLinkType } = useBlockProtocolCreateLinkType(
-    ownedById,
-    readonlyMode,
-  );
-  const { aggregateLinkTypes } = useBlockProtocolAggregateLinkTypes();
-  const { getLinkType } = useBlockProtocolGetLinkType();
-  const { updateLinkType } = useBlockProtocolUpdateLinkType(readonlyMode);
 
   const { updateLink } = useBlockProtocolUpdateLink();
 
@@ -138,9 +126,5 @@ export const useBlockProtocolFunctionsWithOntology = (
     aggregateEntityTypes,
     getEntityType,
     updateEntityType,
-    createLinkType,
-    aggregateLinkTypes,
-    getLinkType,
-    updateLinkType,
   };
 };

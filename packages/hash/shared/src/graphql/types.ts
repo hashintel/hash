@@ -5,10 +5,9 @@ import {
   EntityType,
 } from "@blockprotocol/type-system-web";
 import {
-  PersistedDataType as GraphApiPersistedDataType,
-  PersistedPropertyType as GraphApiPersistedPropertyType,
-  PersistedLinkType as GraphApiPersistedLinkType,
-  PersistedEntityType as GraphApiPersistedEntityType,
+  DataType as GraphApiPersistedDataType,
+  PropertyType as GraphApiPersistedPropertyType,
+  EntityType as GraphApiPersistedEntityType,
   Vertex as GraphApiVertex,
 } from "@hashintel/hash-graph-client";
 import { PersistedEntity } from "@hashintel/hash-shared/graphql/apiTypes.gen";
@@ -42,11 +41,8 @@ export type PersistedPropertyType = Omit<
 > & {
   inner: PropertyType;
 };
-export type PersistedEntityType = Omit<GraphApiPersistedLinkType, "inner"> & {
+export type PersistedEntityType = Omit<GraphApiPersistedEntityType, "inner"> & {
   inner: EntityType;
-};
-export type PersistedLinkType = Omit<GraphApiPersistedEntityType, "inner"> & {
-  inner: LinkType;
 };
 
 export type DataTypeVertex = Omit<
@@ -61,13 +57,6 @@ export type PropertyTypeVertex = Omit<
   "inner"
 > & {
   inner: PersistedPropertyType;
-};
-
-export type LinkTypeVertex = Omit<
-  Extract<GraphApiVertex, { kind: "linkType" }>,
-  "inner"
-> & {
-  inner: PersistedLinkType;
 };
 
 export type EntityTypeVertex = Omit<
@@ -89,7 +78,6 @@ export type LinkVertex = Extract<GraphApiVertex, { kind: "link" }>;
 export type Vertex =
   | DataTypeVertex
   | PropertyTypeVertex
-  | LinkTypeVertex
   | EntityTypeVertex
   | EntityVertex
   | LinkVertex;

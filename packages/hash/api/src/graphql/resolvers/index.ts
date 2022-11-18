@@ -64,12 +64,6 @@ import {
   getPropertyType,
   updatePropertyType,
 } from "./ontology/property-type";
-import {
-  createLinkType,
-  getAllLatestLinkTypes,
-  getLinkType,
-  updateLinkType,
-} from "./ontology/link-type";
 
 import {
   createEntityType,
@@ -161,8 +155,6 @@ export const resolvers = {
     getDataType: loggedInAndSignedUp(getDataType),
     getAllLatestPropertyTypes: loggedInAndSignedUp(getAllLatestPropertyTypes),
     getPropertyType: loggedInAndSignedUp(getPropertyType),
-    getAllLatestLinkTypes: loggedInAndSignedUp(getAllLatestLinkTypes),
-    getLinkType: loggedInAndSignedUp(getLinkType),
     getAllLatestEntityTypes: loggedInAndSignedUp(getAllLatestEntityTypes),
     getEntityType: loggedInAndSignedUp(getEntityType),
     // Knowledge
@@ -208,8 +200,6 @@ export const resolvers = {
     // Ontology
     createPropertyType: loggedInAndSignedUp(createPropertyType),
     updatePropertyType: loggedInAndSignedUp(updatePropertyType),
-    createLinkType: loggedInAndSignedUp(createLinkType),
-    updateLinkType: loggedInAndSignedUp(updateLinkType),
     createEntityType: loggedInAndSignedUp(createEntityType),
     updateEntityType: loggedInAndSignedUp(updateEntityType),
     // Knowledge
