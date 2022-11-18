@@ -13,12 +13,14 @@ import {
  *
  * */
 
+const versionedUriGroupsPattern = /(.+\/)v\/(\d+)(.*)/;
+
 export const extractBaseUri = (id: VersionedUri): BaseUri => {
-  return id.match(/(.+\/)v\/(\d+)(.*)/g)![1]!;
+  return id.match(versionedUriGroupsPattern)![1]!;
 };
 
 export const extractVersion = (id: VersionedUri): number => {
-  return Number(id.match(/(.+\/)v\/(\d+)(.*)/g)![2]!);
+  return Number(id.match(versionedUriGroupsPattern)![2]!);
 };
 
 export const validateBaseUri = (
@@ -44,7 +46,7 @@ export const validateVersionedUri = (
   try {
     const _ = new URL(uri);
 
-    if (/(.+)\/v\/(\d+)(.*)/.test(uri)) {
+    if (versionedUriGroupsPattern.test(uri)) {
       return {
         type: "Ok",
         inner: uri as VersionedUri,
