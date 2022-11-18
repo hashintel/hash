@@ -8,6 +8,7 @@ on:
   push:
     branches:
       - main
+      - canary
       - dev/*
 
   schedule:
