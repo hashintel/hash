@@ -58,14 +58,14 @@ pub fn bench_get_entities_by_property(
                         Cow::Borrowed("https://blockprotocol.org/@alice/types/property-type/name/"),
                     )))),
                     Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                        "Bob",
+                        "Alice",
                     )))),
                 ),
                 graph_resolve_depths,
             })
             .await
             .expect("failed to read entity from store");
-        assert_eq!(subgraph.roots.len(), 1000);
+        assert_eq!(subgraph.roots.len(), 100);
     });
 }
 
@@ -85,13 +85,13 @@ pub fn bench_get_link_by_target_by_property(
                         )))),
                     ))),
                     Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                        "Bob",
+                        "Alice",
                     )))),
                 ),
                 graph_resolve_depths,
             })
             .await
             .expect("failed to read entity from store");
-        assert_eq!(subgraph.roots.len(), 1000);
+        assert_eq!(subgraph.roots.len(), 100);
     });
 }

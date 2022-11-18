@@ -65,11 +65,6 @@ fn bench_representative_read_multiple_entities(c: &mut Criterion) {
     let (runtime, store_wrapper) = setup(DB_NAME, false, false);
     group.sample_size(10);
     group.sampling_mode(SamplingMode::Flat);
-    // Set the warm_up and measurement times to try and encourage Criterion to run as few iterations
-    // as possible as these benchmarks run a *lot* longer than the intended Criterion benchmark,
-    // by a few orders of magnitude
-    group.warm_up_time(Duration::from_nanos(1));
-    group.measurement_time(Duration::from_millis(100));
 
     let graph_resolve_depths = [
         GraphResolveDepths {
@@ -159,7 +154,7 @@ fn bench_representative_read_multiple_entities(c: &mut Criterion) {
     }
 }
 
-// #[criterion]
+#[criterion]
 fn bench_representative_read_entity_type(c: &mut Criterion) {
     let mut group = c.benchmark_group("representative_read_entity_type");
     let (runtime, mut store_wrapper) = setup(DB_NAME, false, false);
