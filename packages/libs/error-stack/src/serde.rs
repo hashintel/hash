@@ -32,12 +32,12 @@ impl<'a> Serialize for SerializeAttachment<'a> {
         match frame.kind() {
             FrameKind::Context(_) => {
                 // TODO: for now `Context` is unsupported, upcoming PR will fix via hooks
-                // `SerializeContext` ensures that no context is ever serialized
+                // `SerializeAttachmentList` ensures that no context is ever serialized
                 todo!()
             }
             FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
                 // TODO: for now opaque attachments are unsupported, upcoming PR will fix that
-                // `SerializeContext` ensures that no such attachment is added
+                // `SerializeAttachmentList` ensures that no such attachment is added
                 todo!()
             }
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
