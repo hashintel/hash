@@ -148,18 +148,19 @@ impl Schema {
     }
 }
 
-pub(crate) fn fold_field<'a>(it: impl Iterator<Item = &'a str>) -> String {
-    it.enumerate().fold(String::new(), |mut acc, (idx, field)| {
+pub(crate) fn fmt_fold_fields<'a>(
+    fmt: &mut Formatter,
+    it: impl Iterator<Item = &'a str>,
+) -> fmt::Result {
+    for (idx, field) in it.enumerate() {
         if idx > 0 {
-            acc.push_str(", ");
+            fmt.write_str(", ")?;
         }
 
-        acc.push('"');
-        acc.push_str(field);
-        acc.push('"');
+        write!(fmt, r#""{field}""#)?;
+    }
 
-        acc
-    })
+    Ok(())
 }
 
 // This compatability struct needs to exist, because serde no-std errors do not implement `Context`

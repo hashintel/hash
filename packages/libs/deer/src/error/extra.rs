@@ -5,8 +5,8 @@ use core::{
 };
 
 use super::{
-    fold_field, macros::impl_error, Error, ErrorProperties, ErrorProperty, Id, Location, Namespace,
-    NAMESPACE,
+    fmt_fold_fields, macros::impl_error, Error, ErrorProperties, ErrorProperty, Id, Location,
+    Namespace, NAMESPACE,
 };
 use crate::id;
 
@@ -66,9 +66,8 @@ impl Error for ObjectItemsExtraError {
                 }
             };
 
-            let received = fold_field(received.iter().map(|ReceivedKey(key)| key.as_str()));
             fmt.write_str(" (")?;
-            fmt.write_str(&received)?;
+            fmt_fold_fields(fmt, received.iter().map(|ReceivedKey(key)| key.as_str()))?;
             fmt.write_str(")")
         }
     }

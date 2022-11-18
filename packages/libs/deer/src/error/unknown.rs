@@ -5,8 +5,8 @@ use core::{
 };
 
 use super::{
-    fold_field, macros::impl_error, Error, ErrorProperties, ErrorProperty, Id, Location, Namespace,
-    NAMESPACE,
+    fmt_fold_fields, macros::impl_error, Error, ErrorProperties, ErrorProperty, Id, Location,
+    Namespace, NAMESPACE,
 };
 use crate::id;
 
@@ -82,9 +82,8 @@ impl Error for UnknownFieldError {
         let received = received.iter().map(|ReceivedField(inner)| inner.as_str());
 
         if has_expected {
-            let expected = fold_field(expected);
-
-            fmt.write_fmt(format_args!("expected fields {expected}"))?;
+            fmt.write_str("expected fields ")?;
+            fmt_fold_fields(fmt, expected)?
         }
 
         if has_received && has_expected {
@@ -92,9 +91,8 @@ impl Error for UnknownFieldError {
         }
 
         if has_received {
-            let received = fold_field(received);
-
-            fmt.write_fmt(format_args!("received fields {received}"))?;
+            fmt.write_str("received fields ")?;
+            fmt_fold_fields(fmt, received)?;
         }
 
         if !has_expected && !has_received {
@@ -180,9 +178,8 @@ impl Error for UnknownVariantError {
         let has_expected = !expected.is_empty();
 
         if has_expected {
-            let expected = fold_field(expected.iter().map(|ExpectedVariant(inner)| *inner));
-
-            fmt.write_fmt(format_args!("expected enum variants {expected}"))?;
+            fmt.write_str("expected enum variants ")?;
+            fmt_fold_fields(fmt, expected.iter().map(|ExpectedVariant(inner)| *inner))?;
         }
 
         if has_received && has_expected {
