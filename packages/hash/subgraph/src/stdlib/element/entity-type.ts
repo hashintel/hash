@@ -95,9 +95,9 @@ export const getEntityTypesByBaseUri = (
   if (!versionObject) {
     return [];
   }
-  const dataTypeVertices = Object.values(versionObject);
+  const entityTypeVertices = Object.values(versionObject);
 
-  return dataTypeVertices.map((vertex) => {
+  return entityTypeVertices.map((vertex) => {
     if (!isEntityTypeVertex(vertex)) {
       throw new Error(`expected entity type vertex but got: ${vertex.kind}`);
     }
