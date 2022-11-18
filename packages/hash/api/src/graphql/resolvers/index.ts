@@ -291,10 +291,4 @@ export const resolvers = {
   PersistedBlock: {
     blockChildEntity,
   },
-
-  /**
-   * @todo Add Entity.linkedEntities field resolver for resolving linked entities
-   *   EntityWithMetadata: { linkedEntities .. }
-   *   see https://app.asana.com/0/0/1203057486837594/f
-   */
 };
