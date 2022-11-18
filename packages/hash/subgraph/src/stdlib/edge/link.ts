@@ -12,9 +12,9 @@ import { mustBeDefined } from "../../shared/invariant";
  * For a given moment in time, get all outgoing link entities from a given entity.
  *
  * @param subgraph
- * @param {EntityId} entityId The ID of the source entity to search for outgoing links from
- * @param {Date | string} timestamp A `Date` or an ISO-formatted datetime string of the moment to search for
- * @param includeArchived Whether or not to return currently-archived links, defaults to false
+ * @param {EntityId} entityId - The ID of the source entity to search for outgoing links from
+ * @param {Date | string} timestamp - A `Date` or an ISO-formatted datetime string of the moment to search for
+ * @param includeArchived - Whether or not to return currently-archived links, defaults to false
  */
 export const getOutgoingLinksForEntityAtMoment = (
   subgraph: Subgraph,
@@ -67,8 +67,8 @@ export const getOutgoingLinksForEntityAtMoment = (
  * For a given moment in time, get the "right entity" (by default this is the "destination") of a given link entity.
  *
  * @param subgraph
- * @param {EntityId} entityId The ID of the link entity
- * @param {Date | string} timestamp A `Date` or an ISO-formatted datetime string of the moment to search for
+ * @param {EntityId} entityId - The ID of the link entity
+ * @param {Date | string} timestamp - A `Date` or an ISO-formatted datetime string of the moment to search for
  */
 export const getRightEntityForLinkEntityAtMoment = (
   subgraph: Subgraph,
@@ -96,9 +96,9 @@ export const getRightEntityForLinkEntityAtMoment = (
  * For a given moment in time, get all outgoing link entities, and their right entities, from a given entity.
  *
  * @param subgraph
- * @param {EntityId} entityId The ID of the source entity to search for outgoing links from
- * @param {Date | string} timestamp A `Date` or an ISO-formatted datetime string of the moment to search for
- * @param includeArchived Whether or not to return currently-archived links, defaults to false
+ * @param {EntityId} entityId - The ID of the source entity to search for outgoing links from
+ * @param {Date | string} timestamp - A `Date` or an ISO-formatted datetime string of the moment to search for
+ * @param includeArchived - Whether or not to return currently-archived links, defaults to false
  */
 export const getOutgoingLinkAndTargetEntitiesAtMoment = (
   subgraph: Subgraph,

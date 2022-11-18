@@ -72,7 +72,7 @@ export const getEntityEditionsByEntityId = (
  *
  * @param subgraph
  * @param entityId
- * @param {Date | string} timestamp A `Date` or an ISO-formatted datetime string of the moment to search for
+ * @param {Date | string} timestamp - A `Date` or an ISO-formatted datetime string of the moment to search for
  */
 export const getEntityAtTimestamp = (
   subgraph: Subgraph,
