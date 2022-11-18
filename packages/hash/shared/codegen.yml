@@ -28,4 +28,4 @@ generates:
         Vertices: "@hashintel/hash-shared/graphql/types#Vertices"
     documents:
       - ./src/queries/*.ts
-      - ../api/src/collab/graphql/queries/*.ts
+      # - ../api/src/collab/graphql/queries/*.ts

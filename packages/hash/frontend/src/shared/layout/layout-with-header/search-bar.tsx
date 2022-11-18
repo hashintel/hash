@@ -1,5 +1,5 @@
 // import { useQuery } from "@apollo/client";
-import { PageSearchResult } from "../../../../../graphql/apiTypes.gen";
+// import { PageSearchResult } from "../../../../../graphql/apiTypes.gen";
 import { escapeRegExp } from "lodash";
 import {
   ReactNode,
@@ -31,7 +31,7 @@ const splitByMatches = (result: string, query: string) => {
   return result.split(new RegExp(`(${separator})`, "gi"));
 };
 
-const toBlockUrl = (searchPage: PageSearchResult): string => {
+const toBlockUrl = (searchPage: any): string => {
   const segments = [
     "/",
     searchPage.page.accountId,
@@ -158,6 +158,9 @@ const SearchBarWhenSearchIsEnabled: FunctionComponent = () => {
 
   const data: any = [];
   const loading = false;
+  /**
+   * @todo: We currently do not support search, see https://app.asana.com/0/1201095311341924/1202681411010022/f
+   */
   // const { data, loading } = useQuery<
   //   SearchPagesQuery,
   //   SearchPagesQueryVariables
@@ -239,7 +242,7 @@ const SearchBarWhenSearchIsEnabled: FunctionComponent = () => {
               No results found for&nbsp;<b>{submittedQuery}</b>.
             </ResultItem>
           ) : (
-            data.searchPages.map((searchPage) => (
+            data.searchPages.map((searchPage: any) => (
               <ResultItem
                 key={searchPage.block?.entityId ?? searchPage.page.entityId}
               >

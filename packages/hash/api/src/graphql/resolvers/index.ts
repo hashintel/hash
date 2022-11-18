@@ -38,7 +38,6 @@ import { deleteLinkedAggregation } from "./linkedAggregation/deleteLinkedAggrega
 import { updateLinkedAggregationOperation } from "./linkedAggregation/updateLinkedAggregationOperation";
 import { createLinkedAggregation } from "./linkedAggregation/createLinkedAggregation";
 import { linkedAggregationResults } from "./linkedAggregation/linkedAggregationResults";
-import { pageSearchResultConnection } from "./paginationConnection/pageSearchResultConnection";
 import {
   executeDemoTask,
   executeGithubSpecTask,
@@ -137,7 +136,6 @@ export const resolvers = {
     // Any user
     isShortnameTaken,
     embedCode,
-    pageSearchResultConnection,
     // Ontology
     getAllLatestDataTypes: loggedInAndSignedUp(getAllLatestDataTypes),
     getDataType: loggedInAndSignedUp(getDataType),
