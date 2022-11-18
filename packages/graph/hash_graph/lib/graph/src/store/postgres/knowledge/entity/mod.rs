@@ -320,8 +320,14 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     #[cfg(feature = "__internal_bench")]
     async fn insert_entities_batched_by_type(
         &mut self,
-        entities: impl IntoIterator<Item = (Option<EntityUuid>, EntityProperties), IntoIter: Send>
-        + Send,
+        entities: impl IntoIterator<
+            Item = (
+                Option<EntityUuid>,
+                EntityProperties,
+                Option<LinkEntityMetadata>,
+            ),
+            IntoIter: Send,
+        > + Send,
         entity_type_id: VersionedUri,
         owned_by_id: OwnedById,
         actor_id: CreatedById,
@@ -334,15 +340,15 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .change_context(InsertionError)?,
         );
 
-        let (entity_uuids, entities): (Vec<_>, Vec<_>) = entities
-            .into_iter()
-            .map(|(id, entity)| {
-                (
-                    id.unwrap_or_else(|| EntityUuid::new(Uuid::new_v4())),
-                    entity,
-                )
-            })
-            .unzip();
+        let entities = entities.into_iter();
+        let mut entity_uuids = Vec::with_capacity(entities.size_hint().0);
+        let mut entity_properties = Vec::with_capacity(entities.size_hint().0);
+        let mut entity_link_metadatas = Vec::with_capacity(entities.size_hint().0);
+        for (entity_uuid, properties, link_metadata) in entities {
+            entity_uuids.push(entity_uuid.unwrap_or_else(|| EntityUuid::new(Uuid::new_v4())));
+            entity_properties.push(properties);
+            entity_link_metadatas.push(link_metadata);
+        }
 
         // TODO: match on and return the relevant error
         //   https://app.asana.com/0/1200211978612931/1202574350052904/f
@@ -360,7 +366,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         transaction
             .insert_entity_batch_by_type(
                 entity_uuids.iter().copied(),
-                entities,
+                entity_properties,
+                entity_link_metadatas,
                 entity_type_version_id,
                 owned_by_id,
                 actor_id,
