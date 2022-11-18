@@ -1,4 +1,4 @@
-import { Components, Theme } from "@mui/material/styles";
+import { Components, Theme } from "@mui/material";
 import { MuiChipThemeOptions } from "./components/data-display/mui-chip-theme-options";
 import {
   MuiIconButtonThemeOptions,

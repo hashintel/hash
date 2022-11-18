@@ -6,7 +6,8 @@ import {
   EntityModelCreateParams,
   UserModel,
 } from "..";
-import { WORKSPACE_TYPES } from "../../graph/workspace-types";
+import { SYSTEM_TYPES } from "../../graph/system-types";
+import { EntityTypeMismatchError } from "../../lib/error";
 
 type CommentModelCreateParams = Omit<
   EntityModelCreateParams,
@@ -24,10 +25,12 @@ export default class extends EntityModel {
   static fromEntityModel(entity: EntityModel): CommentModel {
     if (
       entity.entityTypeModel.schema.$id !==
-      WORKSPACE_TYPES.entityType.comment.schema.$id
+      SYSTEM_TYPES.entityType.comment.schema.$id
     ) {
-      throw new Error(
-        `Entity with id ${entity.entityId} is not a workspace comment`,
+      throw new EntityTypeMismatchError(
+        entity.entityId,
+        SYSTEM_TYPES.entityType.comment.schema.$id,
+        entity.entityTypeModel.schema.$id,
       );
     }
 
@@ -35,7 +38,7 @@ export default class extends EntityModel {
   }
 
   /**
-   * Get a workspace comment entity by its entity id.
+   * Get a system comment entity by its entity id.
    *
    * @param params.entityId - the entity id of the comment
    */
@@ -49,7 +52,7 @@ export default class extends EntityModel {
   }
 
   /**
-   * Create a workspace comment entity.
+   * Create a system comment entity.
    *
    * @param params.author - the user that created the comment
    * @param params.parent - the linked parent entity
@@ -62,7 +65,7 @@ export default class extends EntityModel {
   ): Promise<CommentModel> {
     const { ownedById, actorId, tokens, parent, author } = params;
 
-    const entityTypeModel = WORKSPACE_TYPES.entityType.comment;
+    const entityTypeModel = SYSTEM_TYPES.entityType.comment;
 
     const entity = await EntityModel.create(graphApi, {
       ownedById,
@@ -74,28 +77,28 @@ export default class extends EntityModel {
     const textEntity = await EntityModel.create(graphApi, {
       ownedById,
       properties: {
-        [WORKSPACE_TYPES.propertyType.tokens.baseUri]: tokens,
+        [SYSTEM_TYPES.propertyType.tokens.baseUri]: tokens,
       },
-      entityTypeModel: WORKSPACE_TYPES.entityType.text,
+      entityTypeModel: SYSTEM_TYPES.entityType.text,
       actorId,
     });
 
     await entity.createOutgoingLink(graphApi, {
-      linkTypeModel: WORKSPACE_TYPES.linkType.hasText,
+      linkTypeModel: SYSTEM_TYPES.linkType.hasText,
       targetEntityModel: textEntity,
       ownedById,
       actorId,
     });
 
     await entity.createOutgoingLink(graphApi, {
-      linkTypeModel: WORKSPACE_TYPES.linkType.parent,
+      linkTypeModel: SYSTEM_TYPES.linkType.parent,
       targetEntityModel: parent,
       ownedById,
       actorId,
     });
 
     await entity.createOutgoingLink(graphApi, {
-      linkTypeModel: WORKSPACE_TYPES.linkType.author,
+      linkTypeModel: SYSTEM_TYPES.linkType.author,
       targetEntityModel: author,
       ownedById,
       actorId,
@@ -128,7 +131,7 @@ export default class extends EntityModel {
     const textEntityModel = await this.getHasText(graphApi);
 
     await textEntityModel.updateProperty(graphApi, {
-      propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.tokens.baseUri,
+      propertyTypeBaseUri: SYSTEM_TYPES.propertyType.tokens.baseUri,
       value: tokens,
       actorId,
     });
@@ -156,7 +159,7 @@ export default class extends EntityModel {
     if (
       actorId !== this.createdById &&
       parentModel.entityTypeModel.schema.$id ===
-        WORKSPACE_TYPES.entityType.block.schema.$id &&
+        SYSTEM_TYPES.entityType.block.schema.$id &&
       actorId !== parentModel.createdById
     ) {
       throw new Error(
@@ -167,7 +170,7 @@ export default class extends EntityModel {
     await this.updateProperties(graphApi, {
       updatedProperties: [
         {
-          propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.resolvedAt.baseUri,
+          propertyTypeBaseUri: SYSTEM_TYPES.propertyType.resolvedAt.baseUri,
           value: new Date().toISOString(),
         },
       ],
@@ -200,7 +203,7 @@ export default class extends EntityModel {
     await this.updateProperties(graphApi, {
       updatedProperties: [
         {
-          propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.deletedAt.baseUri,
+          propertyTypeBaseUri: SYSTEM_TYPES.propertyType.deletedAt.baseUri,
           value: new Date().toISOString(),
         },
       ],
@@ -215,7 +218,7 @@ export default class extends EntityModel {
    */
   getResolvedAt(): string {
     return (this.properties as any)[
-      WORKSPACE_TYPES.propertyType.resolvedAt.baseUri
+      SYSTEM_TYPES.propertyType.resolvedAt.baseUri
     ];
   }
 
@@ -224,7 +227,7 @@ export default class extends EntityModel {
    */
   getDeletedAt(): string {
     return (this.properties as any)[
-      WORKSPACE_TYPES.propertyType.deletedAt.baseUri
+      SYSTEM_TYPES.propertyType.deletedAt.baseUri
     ];
   }
 
@@ -233,7 +236,7 @@ export default class extends EntityModel {
    */
   async getHasText(graphApi: GraphApi): Promise<EntityModel> {
     const hasTextLinks = await this.getOutgoingLinks(graphApi, {
-      linkTypeModel: WORKSPACE_TYPES.linkType.hasText,
+      linkTypeModel: SYSTEM_TYPES.linkType.hasText,
     });
 
     const [hasTextLink, ...unexpectedHasTextLinks] = hasTextLinks;
@@ -258,7 +261,7 @@ export default class extends EntityModel {
    */
   async getParent(graphApi: GraphApi): Promise<EntityModel> {
     const parentLinks = await this.getOutgoingLinks(graphApi, {
-      linkTypeModel: WORKSPACE_TYPES.linkType.parent,
+      linkTypeModel: SYSTEM_TYPES.linkType.parent,
     });
 
     const [parentLink, ...unexpectedParentLinks] = parentLinks;
@@ -283,7 +286,7 @@ export default class extends EntityModel {
    */
   async getAuthor(graphApi: GraphApi): Promise<UserModel> {
     const authorLinks = await this.getOutgoingLinks(graphApi, {
-      linkTypeModel: WORKSPACE_TYPES.linkType.author,
+      linkTypeModel: SYSTEM_TYPES.linkType.author,
     });
 
     const [authorLink, ...unexpectedAuthorLinks] = authorLinks;
@@ -308,7 +311,7 @@ export default class extends EntityModel {
    */
   async getReplies(graphApi: GraphApi): Promise<CommentModel[]> {
     const replyLinks = await this.getIncomingLinks(graphApi, {
-      linkTypeModel: WORKSPACE_TYPES.linkType.parent,
+      linkTypeModel: SYSTEM_TYPES.linkType.parent,
     });
 
     const replies = replyLinks.map((reply) =>

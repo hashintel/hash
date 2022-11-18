@@ -1,10 +1,10 @@
 import { FunctionComponent, useCallback, useState } from "react";
 import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { faComment } from "@fortawesome/free-regular-svg-icons";
-import Box from "@mui/material/Box";
-import Popper from "@mui/material/Popper";
+import { Box, Popper } from "@mui/material";
 import styles from "../style.module.css";
 import { CreateBlockComment } from "./CreateBlockComment";
+import { useReadonlyMode } from "../../../shared/readonly-mode";
 
 type CreateBlockCommentButtonProps = {
   blockId: string | null;
@@ -16,9 +16,15 @@ export const CreateBlockCommentButton: FunctionComponent<
 > = ({ blockId, rootNode }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
+  const { readonlyMode } = useReadonlyMode();
+
   const closeInput = useCallback(() => {
     setAnchorEl(null);
   }, []);
+
+  if (readonlyMode) {
+    return null;
+  }
 
   return (
     <Box className={styles.Block__Comments_Button}>

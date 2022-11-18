@@ -1,5 +1,5 @@
 import { EntityType } from "@blockprotocol/type-system-web";
-import { Button, TextField } from "@hashintel/hash-design-system/ui";
+import { Button, TextField } from "@hashintel/hash-design-system";
 import {
   addVersionToBaseUri,
   generateBaseTypeId,
@@ -16,16 +16,17 @@ import {
 } from "@mui/material";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { frontendUrl } from "@hashintel/hash-shared/environment";
 import { useBlockProtocolGetEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
 import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
-import { FRONTEND_URL } from "../../../../lib/config";
 import { useInitTypeSystem } from "../../../../lib/use-init-type-system";
 import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
 import { TopContextBar } from "../../../shared/top-context-bar";
-import { HashOntologyIcon } from "../entity-type/hash-ontology-icon";
-import { OntologyChip } from "../entity-type/ontology-chip";
+import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
+import { OntologyChip } from "../../shared/ontology-chip";
+import { useRouteNamespace } from "../entity-type/use-route-namespace";
 
 const FormHelperLabel = ({
   children,
@@ -74,37 +75,36 @@ const Page: NextPageWithLayout = () => {
 
   const router = useRouter();
   const { authenticatedUser, loading } = useAuthenticatedUser();
-
   const { getEntityType } = useBlockProtocolGetEntityType();
+  const namespace = useRouteNamespace();
 
-  if (
-    authenticatedUser &&
-    router.query["account-slug"] !== `@${authenticatedUser.shortname}`
-  ) {
-    void router.replace(
-      `/@${authenticatedUser.shortname}/types/new/entity-type`,
-    );
-  }
+  useEffect(() => {
+    if (authenticatedUser && !namespace) {
+      void router.replace(
+        `/@${authenticatedUser.shortname}/types/new/entity-type`,
+      );
+    }
+  }, [authenticatedUser, namespace, router]);
 
-  if (typeSystemLoading || loading || !authenticatedUser) {
+  if (typeSystemLoading || loading || !authenticatedUser || !namespace) {
     return null;
   }
 
   const generateEntityTypeBaseUriForUser = (value: string) => {
-    if (!authenticatedUser?.shortname) {
-      throw new Error("User shortname must exist");
+    if (!namespace) {
+      throw new Error("User or Org shortname must exist");
     }
 
     return generateBaseTypeId({
-      domain: FRONTEND_URL,
-      namespace: authenticatedUser.shortname,
+      domain: frontendUrl,
+      namespace: namespace.shortname ?? "",
       kind: "entity-type",
       title: value,
     });
   };
 
   const handleFormSubmit = handleSubmit(async ({ name, description }) => {
-    if (!authenticatedUser.shortname) {
+    if (!namespace) {
       throw new Error("Namespace for entity type creation missing");
     }
 
@@ -158,7 +158,7 @@ const Page: NextPageWithLayout = () => {
                     fontWeight="bold"
                     color="inherit"
                   >
-                    {router.query["account-slug"]}
+                    {`@${namespace.shortname}`}
                   </Typography>
                   /types/new/entity-type
                 </Typography>

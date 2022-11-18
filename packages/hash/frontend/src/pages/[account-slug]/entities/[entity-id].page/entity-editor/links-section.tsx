@@ -1,20 +1,22 @@
 import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, IconButton } from "@hashintel/hash-design-system";
-import { Chip } from "@hashintel/hash-design-system/chip";
+import {
+  FontAwesomeIcon,
+  IconButton,
+  Chip,
+} from "@hashintel/hash-design-system";
 import { Paper, Stack } from "@mui/material";
 import { useState } from "react";
 import { LinksIcon } from "../../../../../shared/icons";
 import { useEntityEditor } from "./entity-editor-context";
 import { LinkTable } from "./links-section/link-table";
-import { EntitySection } from "./shared/entity-section";
-import { EntitySectionEmptyState } from "./shared/entity-section-empty-state";
+import { SectionWrapper } from "../../../shared/section-wrapper";
+import { SectionEmptyState } from "../../../shared/section-empty-state";
 
 const EmptyState = () => (
-  <EntitySectionEmptyState
+  <SectionEmptyState
     title="This entity currently has no links"
     titleIcon={<LinksIcon />}
-    description="Links contain information about connections or relationships between
-different entities"
+    description="Links contain information about connections or relationships between different entities"
   />
 );
 
@@ -31,9 +33,13 @@ export const LinksSection = () => {
   const isEmpty = !entity.links.length;
 
   return (
-    <EntitySection
+    <SectionWrapper
       title="Links"
-      titleTooltip="The links on an entity are determined by its type. To add a new link to this entity, specify an additional type or edit an existing one."
+      titleTooltip={
+        isEmpty
+          ? ""
+          : "The links on an entity are determined by its type. To add a new link to this entity, specify an additional type or edit an existing one."
+      }
       titleStartContent={
         isEmpty ? (
           <Chip label="No links" />
@@ -63,6 +69,6 @@ export const LinksSection = () => {
           />
         </Paper>
       )}
-    </EntitySection>
+    </SectionWrapper>
   );
 };

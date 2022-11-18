@@ -6,34 +6,36 @@ import {
   ValueOrArray,
 } from "@blockprotocol/type-system-web";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
+import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { Box, Container, Typography } from "@mui/material";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
 import { FormProvider, useForm } from "react-hook-form";
-import { FRONTEND_URL } from "../../../../lib/config";
+import { frontendUrl } from "@hashintel/hash-shared/environment";
 import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
 import { TopContextBar } from "../../../shared/top-context-bar";
+import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
+import { OntologyChip } from "../../shared/ontology-chip";
 import { EditBar } from "./edit-bar";
+import { EntityTypeTabs } from "./entity-type-tabs";
 import {
   EntityTypeEditorForm,
   EntityTypeEditorPropertyData,
 } from "./form-types";
-import { HashOntologyIcon } from "./hash-ontology-icon";
-import { OntologyChip } from "./ontology-chip";
 import { PropertyListCard } from "./property-list-card";
 import { useEntityType } from "./use-entity-type";
 import {
   PropertyTypesContext,
-  useRemotePropertyTypes,
+  usePropertyTypesContextValue,
 } from "./use-property-types";
+import { useRouteNamespace } from "./use-route-namespace";
 import { mustBeVersionedUri } from "./util";
 
 const getBaseUri = (path: string) => {
-  const url = new URL(path, FRONTEND_URL);
+  const url = new URL(path, frontendUrl);
 
-  return `${FRONTEND_URL}${url.pathname}/`;
+  return `${frontendUrl}${url.pathname}/`;
 };
 
 const getSchemaFromEditorForm = (
@@ -76,6 +78,7 @@ const Page: NextPageWithLayout = () => {
   // @todo how to handle remote types
   const isDraft = !!router.query.draft;
   const baseEntityTypeUri = isDraft ? null : getBaseUri(router.asPath);
+  const namespace = useRouteNamespace();
 
   const draftEntityType = useMemo(() => {
     if (router.query.draft) {
@@ -94,10 +97,12 @@ const Page: NextPageWithLayout = () => {
   const formMethods = useForm<EntityTypeEditorForm>({
     defaultValues: { properties: [] },
   });
+
   const { handleSubmit: wrapHandleSubmit, reset } = formMethods;
 
   const [remoteEntityType, updateEntityType, publishDraft] = useEntityType(
     baseEntityTypeUri,
+    namespace?.id,
     (fetchedEntityType) => {
       reset({
         properties: Object.entries(fetchedEntityType.properties).map(
@@ -119,7 +124,7 @@ const Page: NextPageWithLayout = () => {
 
   const entityType = remoteEntityType ?? draftEntityType;
 
-  const propertyTypes = useRemotePropertyTypes();
+  const propertyTypes = usePropertyTypesContextValue();
 
   const handleSubmit = wrapHandleSubmit(async (data) => {
     if (!entityType) {
@@ -241,7 +246,7 @@ const Page: NextPageWithLayout = () => {
                     </>
                   }
                 />
-                <Typography variant="h1" fontWeight="bold" mt={3} mb={4.5}>
+                <Typography variant="h1" fontWeight="bold" mt={3} mb={5.25}>
                   <FontAwesomeIcon
                     icon={faAsterisk}
                     sx={(theme) => ({
@@ -253,6 +258,7 @@ const Page: NextPageWithLayout = () => {
                   />
                   {entityType.title}
                 </Typography>
+                <EntityTypeTabs entityType={entityType} />
               </Container>
             </Box>
           </Box>

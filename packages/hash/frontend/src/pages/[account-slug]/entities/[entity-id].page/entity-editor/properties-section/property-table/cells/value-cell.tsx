@@ -3,16 +3,17 @@ import {
   CustomRenderer,
   GridCellKind,
 } from "@glideapps/glide-data-grid";
-import { TooltipCellProps } from "../../../../../../../../components/GlideGlid/use-grid-tooltip/types";
-import { EnrichedPropertyType } from "../types";
+import { types } from "@hashintel/hash-shared/types";
+import { InteractableManager } from "../../../../../../../../components/GlideGlid/utils/interactable-manager";
+import { drawInteractableTooltipIcons } from "../../../../../../../../components/GlideGlid/utils/use-grid-tooltip/draw-interactable-tooltip-icons";
+import {
+  getCellHorizontalPadding,
+  getYCenter,
+} from "../../../../../../../../components/GlideGlid/utils";
+import { drawTextWithIcon } from "../../../../../../../../components/GlideGlid/utils/draw-text-with-icon";
+import { isValueEmpty } from "../../is-value-empty";
+import { ValueCell } from "./value-cell/types";
 import { ValueCellEditor } from "./value-cell/value-cell-editor";
-
-export interface ValueCellProps extends TooltipCellProps {
-  readonly kind: "value-cell";
-  property: EnrichedPropertyType;
-}
-
-export type ValueCell = CustomCell<ValueCellProps>;
 
 export const renderValueCell: CustomRenderer<ValueCell> = {
   kind: GridCellKind.Custom,
@@ -20,13 +21,39 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
     (cell.data as any).kind === "value-cell",
   draw: (args, cell) => {
     const { ctx, rect, theme } = args;
-    const { x, y, height } = rect;
-    const { property } = cell.data;
-
-    const yCenter = y + height / 2 + 2;
+    const { value, dataTypes } = cell.data.property;
 
     ctx.fillStyle = theme.textHeader;
-    ctx.fillText(property.value, x + theme.cellHorizontalPadding, yCenter);
+    ctx.font = theme.baseFontStyle;
+
+    const yCenter = getYCenter(args);
+    const left = rect.x + getCellHorizontalPadding();
+
+    /** @todo remove dataTypes[0] when multiple data types are supported */
+    const isBoolean = dataTypes[0] === types.dataType.boolean.title;
+
+    if (isValueEmpty(value)) {
+      // draw empty value
+      ctx.fillStyle = "#91A5BA";
+      ctx.font = "italic 14px Inter";
+      ctx.fillText("No value", left, yCenter);
+    } else if (isBoolean) {
+      // draw boolean
+      return drawTextWithIcon({
+        args,
+        text: value ? "True" : "False",
+        icon: value ? "bpCheck" : "bpCross",
+        left,
+        iconColor: "#91A5BA",
+        iconSize: 16,
+      });
+    } else {
+      // draw plain text
+      ctx.fillText(String(value), left, yCenter);
+    }
+
+    const tooltipInteractables = drawInteractableTooltipIcons(args);
+    InteractableManager.setInteractablesForCell(args, tooltipInteractables);
   },
   provideEditor: () => {
     return {

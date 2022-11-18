@@ -5,7 +5,7 @@ import {
   UnresolvedPersistedCommentGQL,
   UnresolvedPersistedEntityGQL,
 } from "../model-mapping";
-import { WORKSPACE_TYPES } from "../../../../graph/workspace-types";
+import { SYSTEM_TYPES } from "../../../../graph/system-types";
 
 export const persistedCommentHasText: ResolverFn<
   Promise<UnresolvedPersistedEntityGQL[]>,
@@ -22,7 +22,7 @@ export const persistedCommentHasText: ResolverFn<
   // @todo implement `TextModel` class so that a `TextModel.getTokens()` method can be used here
   return (
     (textEntityModel.properties as any)[
-      WORKSPACE_TYPES.propertyType.tokens.baseUri
+      SYSTEM_TYPES.propertyType.tokens.baseUri
     ] ?? []
   );
 };

@@ -1,12 +1,11 @@
 import { toggleMark } from "prosemirror-commands";
-import { NodeSpec, NodeType, ProsemirrorNode, Schema } from "prosemirror-model";
+import { NodeSpec, NodeType, Node, Schema } from "prosemirror-model";
 import { keymap } from "prosemirror-keymap";
 import { paragraphBlockComponentId } from "./blocks";
 
-type NodeWithAttrs<Attrs extends {}> = Omit<
-  ProsemirrorNode<Schema>,
-  "attrs"
-> & { attrs: Attrs };
+type NodeWithAttrs<Attrs extends {}> = Omit<Node, "attrs"> & {
+  attrs: Attrs;
+};
 
 type ComponentNodeAttrs = {};
 export type ComponentNode = NodeWithAttrs<ComponentNodeAttrs>;
@@ -20,9 +19,8 @@ export type NodeSpecs = {
   [name: string]: NodeSpec;
 };
 
-export const isEntityNode = (
-  node: ProsemirrorNode<Schema> | null,
-): node is EntityNode => !!node && node.type === node.type.schema.nodes.entity;
+export const isEntityNode = (node: Node | null): node is EntityNode =>
+  !!node && node.type === node.type.schema.nodes.entity;
 
 export const componentNodeGroupName = "componentNode";
 
@@ -54,7 +52,7 @@ export const mentionNode: NodeSpec = {
         "data-mention-type": mentionType,
         "data-entity-id": entityId,
       },
-    ] as const;
+    ];
   },
   parseDOM: [
     {
@@ -82,7 +80,7 @@ export const loadingNode: NodeSpec = {
    * @see import("./ProsemirrorManager.ts").ProsemirrorManager#prepareToDisableBlankDefaultComponentNode
    */
   group: componentNodeGroupName,
-  toDOM: () => ["div", 0] as const,
+  toDOM: () => ["div", 0],
 };
 
 export const blockNode: NodeSpec = {
@@ -102,7 +100,7 @@ export const blockNode: NodeSpec = {
         "data-hash-type": "block",
       },
       0,
-    ] as const;
+    ];
   },
   parseDOM: [
     {
@@ -117,7 +115,7 @@ export const entityNode: NodeSpec = {
     draftId: { default: null },
   },
   toDOM: () => {
-    return ["div", { "data-hash-type": "entity" }, 0] as const;
+    return ["div", { "data-hash-type": "entity" }, 0];
   },
   parseDOM: [
     {
@@ -143,7 +141,7 @@ export const createSchema = (nodes: NodeSpecs) =>
     nodes,
     marks: {
       strong: {
-        toDOM: () => ["strong", { style: "font-weight:bold;" }, 0] as const,
+        toDOM: () => ["strong", { style: "font-weight:bold;" }, 0],
         parseDOM: [
           { tag: "strong" },
           /**
@@ -185,7 +183,7 @@ export const createSchema = (nodes: NodeSpecs) =>
         ],
       },
       em: {
-        toDOM: () => ["em", 0] as const,
+        toDOM: () => ["em", 0],
         parseDOM: [{ tag: "em" }, { tag: "i" }, { style: "font-style=italic" }],
       },
       /**
@@ -198,7 +196,7 @@ export const createSchema = (nodes: NodeSpecs) =>
        * @todo fix this
        */
       underlined: {
-        toDOM: () => ["u", 0] as const,
+        toDOM: () => ["u", 0],
         parseDOM: [
           { tag: "u" },
           { style: "text-decoration=underline" },
@@ -216,7 +214,7 @@ export const createSchema = (nodes: NodeSpecs) =>
             "a",
             { href, style: "color: blue; text-decoration: underline" },
             0,
-          ] as const;
+          ];
         },
         parseDOM: [
           {
@@ -232,16 +230,13 @@ export const createSchema = (nodes: NodeSpecs) =>
     },
   });
 
-export const isComponentNodeType = (nodeType: NodeType<Schema>) =>
+export const isComponentNodeType = (nodeType: NodeType) =>
   nodeType.groups?.includes(componentNodeGroupName) ?? false;
 
-export const isComponentNode = (
-  node: ProsemirrorNode<Schema>,
-): node is ComponentNode => isComponentNodeType(node.type);
+export const isComponentNode = (node: Node): node is ComponentNode =>
+  isComponentNodeType(node.type);
 
-export const findComponentNodes = (
-  containingNode: ProsemirrorNode<Schema>,
-): ComponentNode[] => {
+export const findComponentNodes = (containingNode: Node): ComponentNode[] => {
   const componentNodes: ComponentNode[] = [];
 
   containingNode.descendants((node) => {
@@ -256,7 +251,7 @@ export const findComponentNodes = (
 };
 
 export const findComponentNode = (
-  containingNode: ProsemirrorNode<Schema>,
+  containingNode: Node,
   containingNodePosition: number,
 ): [ComponentNode, number] | null => {
   let result: [ComponentNode, number] | null = null;
@@ -329,7 +324,9 @@ export const mutateSchema = (
     set nodes(newNodes) {
       for (const [key, value] of Object.entries(newNodes)) {
         if (!this.nodes[key]) {
+          // @ts-expect-error -- NodeType#schema is readonly in prosemirror-model
           value.schema = schema;
+          // @ts-expect-error -- NodeType#nodes is readonly in prosemirror-model
           this.nodes[key] = value;
         } else {
           this.nodes[key]!.contentMatch = value.contentMatch;
@@ -345,7 +342,9 @@ export const mutateSchema = (
     set marks(newMarks) {
       for (const [key, value] of Object.entries(newMarks)) {
         if (!this.marks[key]) {
+          // @ts-expect-error -- NodeType#schema is readonly in prosemirror-model
           value.schema = schema;
+          // @ts-expect-error -- NodeType#nodes is readonly in prosemirror-model
           this.marks[key] = value;
         }
       }
@@ -353,12 +352,12 @@ export const mutateSchema = (
   })(schema.spec);
 };
 
-export const isParagraphNode = (node: ProsemirrorNode<Schema>) => {
+export const isParagraphNode = (node: Node) => {
   return componentNodeToId(node) === paragraphBlockComponentId;
 };
 
 export const formatKeymap = (schema: Schema) =>
-  keymap<Schema>({
+  keymap({
     // Mod- stands for Cmd- o macOS and Ctrl- elsewhere
     "Mod-b": toggleMark(schema.marks.strong!),
     "Mod-i": toggleMark(schema.marks.em!),

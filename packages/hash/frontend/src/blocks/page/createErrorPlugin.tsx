@@ -1,5 +1,4 @@
 import { Box, Stack, Typography } from "@mui/material";
-import { Schema } from "prosemirror-model";
 import { Plugin, PluginKey, Transaction } from "prosemirror-state";
 import { FunctionComponent } from "react";
 import { Button, Dialog } from "@hashintel/hash-design-system";
@@ -35,15 +34,15 @@ const ErrorView: FunctionComponent<ErrorProps> = ({ errored }) => {
 const defaultErrorProps = { errored: false };
 
 export const createErrorPlugin = (renderPortal: RenderPortal) => {
-  const key = new PluginKey<ErrorProps, Schema>();
+  const key = new PluginKey<ErrorProps>();
   return [
-    new Plugin<ErrorProps, Schema>({
+    new Plugin<ErrorProps>({
       key,
       state: {
         init() {
           return defaultErrorProps;
         },
-        apply(tr: Transaction<Schema>, value: ErrorProps) {
+        apply(tr: Transaction, value: ErrorProps) {
           if (typeof tr.getMeta(key) === "boolean") {
             return { errored: true };
           }
@@ -72,8 +71,8 @@ export const createErrorPlugin = (renderPortal: RenderPortal) => {
           },
         };
       },
-    }) as Plugin<unknown, Schema>,
-    (tr: Transaction<Schema>) => {
+    }) as Plugin<unknown>,
+    (tr: Transaction) => {
       // @todo log
       return tr.setMeta(key, true);
     },

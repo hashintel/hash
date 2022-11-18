@@ -29,7 +29,7 @@ import {
 } from "./entity/impliedHistory";
 
 import { me } from "./knowledge/user/me";
-import { isShortnameTaken } from "./knowledge/user/isShortnameTaken";
+import { isShortnameTaken } from "./knowledge/user/is-shortname-taken";
 import { deprecatedCreateEntityType } from "./entityType/createEntityType";
 import { SYSTEM_TYPES, SystemType } from "../../types/entityTypes";
 import { entityTypeTypeFields } from "./entityType/entityTypeTypeFields";
@@ -114,22 +114,22 @@ import { resolvePersistedComment } from "./knowledge/comment/resolve";
 import { deletePersistedComment } from "./knowledge/comment/delete";
 import { updatePersistedCommentText } from "./knowledge/comment/update-text";
 import { blockChildEntity } from "./knowledge/block/data-entity";
+import { loggedInAndSignedUpHashInstanceAdmin } from "./middlewares/loggedInAndSignedUpHashInstanceAdmin";
+import { createUser } from "./knowledge/user/create-user";
+import { createOrg } from "./knowledge/org/create-org";
 
 /**
- * @todo: derive these from the statically declared workspace type names
+ * @todo: derive these from the statically declared system type names
  * @see https://app.asana.com/0/1202805690238892/1203063463721797/f
  */
-const workpsaceEntityGQLTypeNames = [
-  "PersistedPage",
-  "PersistedBlock",
-] as const;
+const systemEntityGQLTypeNames = ["PersistedPage", "PersistedBlock"] as const;
 
-type WorkspaceEntityGQLTypeName = typeof workpsaceEntityGQLTypeNames[number];
+type SystemEntityGQLTypeName = typeof systemEntityGQLTypeNames[number];
 
-const isWorkspaceEntityGQLTypeName = (
+const isSystemEntityGQLTypeName = (
   name: string,
-): name is WorkspaceEntityGQLTypeName =>
-  workpsaceEntityGQLTypeNames.includes(name as WorkspaceEntityGQLTypeName);
+): name is SystemEntityGQLTypeName =>
+  systemEntityGQLTypeNames.includes(name as SystemEntityGQLTypeName);
 
 /** @todo - Refactor the names of these https://app.asana.com/0/1200211978612931/1203234667392169/f */
 export const resolvers = {
@@ -166,7 +166,7 @@ export const resolvers = {
     getAllLatestEntityTypes: loggedInAndSignedUp(getAllLatestEntityTypes),
     getEntityType: loggedInAndSignedUp(getEntityType),
     // Knowledge
-    persistedPage: loggedInAndSignedUp(persistedPage),
+    persistedPage,
     persistedPages: loggedInAndSignedUp(persistedPages),
     persistedPageComments: loggedInAndSignedUp(persistedPageComments),
     persistedBlocks: loggedInAndSignedUp(persistedBlocks),
@@ -224,6 +224,9 @@ export const resolvers = {
     resolvePersistedComment: loggedInAndSignedUp(resolvePersistedComment),
     deletePersistedComment: loggedInAndSignedUp(deletePersistedComment),
     updatePersistedCommentText: loggedInAndSignedUp(updatePersistedCommentText),
+    // HASH instance admin mutations
+    createUser: loggedInAndSignedUpHashInstanceAdmin(createUser),
+    createOrg: loggedInAndSignedUpHashInstanceAdmin(createOrg),
   },
 
   JSONObject: JSONObjectResolver,
@@ -289,21 +292,21 @@ export const resolvers = {
   PersistedEntity: {
     /**
      * Determines whether a `PersistedEntity` instance should be treated as a
-     * workspace GQL type definition (for example as a `PersistedPage`), or
+     * system GQL type definition (for example as a `PersistedPage`), or
      * whether to treat it is an `UnknownPersistedEntity`.
      */
     __resolveType: ({
-      workspaceTypeName,
+      systemTypeName,
     }: UnresolvedPersistedEntityGQL):
-      | WorkspaceEntityGQLTypeName
+      | SystemEntityGQLTypeName
       | "UnknownPersistedEntity" => {
-      const workspaceEntityGQLTypeName = workspaceTypeName
-        ? `Persisted${workspaceTypeName.split(" ").join("")}`
+      const systemEntityGQLTypeName = systemTypeName
+        ? `Persisted${systemTypeName.split(" ").join("")}`
         : undefined;
 
-      return workspaceEntityGQLTypeName &&
-        isWorkspaceEntityGQLTypeName(workspaceEntityGQLTypeName)
-        ? workspaceEntityGQLTypeName
+      return systemEntityGQLTypeName &&
+        isSystemEntityGQLTypeName(systemEntityGQLTypeName)
+        ? systemEntityGQLTypeName
         : "UnknownPersistedEntity";
     },
   },

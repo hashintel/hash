@@ -2,7 +2,7 @@
 //!
 //! [![crates.io](https://img.shields.io/crates/v/error-stack)][crates.io]
 //! [![libs.rs](https://img.shields.io/badge/libs.rs-error--stack-orange)][libs.rs]
-//! [![rust-version](https://img.shields.io/badge/Rust-1.63.0/nightly--2022--10--12-blue)][rust-version]
+//! [![rust-version](https://img.shields.io/badge/Rust-1.63.0/nightly--2022--11--14-blue)][rust-version]
 //! [![discord](https://img.shields.io/discord/840573247803097118)][discord]
 //!
 //! [crates.io]: https://crates.io/crates/error-stack
@@ -445,7 +445,14 @@
     unreachable_pub,
     clippy::pedantic,
     clippy::nursery,
-    clippy::undocumented_unsafe_blocks
+    clippy::undocumented_unsafe_blocks,
+    clippy::dbg_macro,
+    clippy::print_stdout,
+    clippy::print_stderr,
+    clippy::alloc_instead_of_core,
+    clippy::std_instead_of_alloc,
+    clippy::std_instead_of_core,
+    clippy::if_then_some_else_none
 )]
 #![allow(clippy::redundant_pub_crate)] // This would otherwise clash with `unreachable_pub`
 #![allow(clippy::missing_errors_doc)] // This is an error handling library producing Results, not Errors

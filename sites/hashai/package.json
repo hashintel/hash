@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/hashai",
-  "version": "0.0.0",
+  "version": "0.0.0-private",
   "private": true,
   "scripts": {
     "exe": "ts-node --transpile-only",
@@ -18,6 +18,6 @@
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "eslint": "8.26.0"
+    "eslint": "8.27.0"
   }
 }

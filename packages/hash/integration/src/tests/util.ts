@@ -1,10 +1,10 @@
 import { GraphQLClient, ClientError } from "graphql-request";
 import { createKratosIdentity } from "@hashintel/hash-api/src/auth/ory-kratos";
 import { GraphApi } from "@hashintel/hash-api/src/graph";
-import { UserModel } from "@hashintel/hash-api/src/model";
-import { ensureWorkspaceTypesExist } from "@hashintel/hash-api/src/graph/workspace-types";
+import { OrgModel, UserModel } from "@hashintel/hash-api/src/model";
+import { ensureSystemTypesExist } from "@hashintel/hash-api/src/graph/system-types";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { workspaceAccountId } from "@hashintel/hash-api/src/model/util";
+import { systemAccountId } from "@hashintel/hash-api/src/model/util";
 import {
   createLinkedAggregation,
   deleteLinkedAggregation,
@@ -43,6 +43,7 @@ import {
   SetParentPageMutation,
   GetAccountPagesTreeQueryVariables,
   GetAccountPagesTreeQuery,
+  OrgSize,
 } from "../graphql/apiTypes.gen";
 import {
   createEntity,
@@ -79,7 +80,7 @@ export const createTestUser = async (
   shortNamePrefix: string,
   logger: Logger,
 ) => {
-  await ensureWorkspaceTypesExist({ graphApi, logger });
+  await ensureSystemTypesExist({ graphApi, logger });
 
   const shortname = generateRandomShortname(shortNamePrefix);
 
@@ -98,7 +99,7 @@ export const createTestUser = async (
   const createdUser = await UserModel.createUser(graphApi, {
     emails: [`${shortname}@example.com`],
     kratosIdentityId,
-    actorId: workspaceAccountId,
+    actorId: systemAccountId,
   }).catch((err) => {
     logger.error(`Error making UserModel for ${shortname}`);
     throw err;
@@ -115,6 +116,27 @@ export const createTestUser = async (
     });
 
   return updatedUser;
+};
+
+export const createTestOrg = async (
+  graphApi: GraphApi,
+  shortNamePrefix: string,
+  logger: Logger,
+) => {
+  await ensureSystemTypesExist({ graphApi, logger });
+
+  const shortname = generateRandomShortname(shortNamePrefix);
+
+  const createdOrg = await OrgModel.createOrg(graphApi, {
+    name: "Test org",
+    shortname,
+    providedInfo: {
+      orgSize: OrgSize.ElevenToFifty,
+    },
+    actorId: systemAccountId,
+  });
+
+  return createdOrg;
 };
 
 export class ApiClient {

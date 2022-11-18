@@ -16,6 +16,7 @@ export const getTreeItemList = (
 
   return pagesList
     .filter((page) => page.parentPageEntityId === parentId)
+    .sort((pageA, pageB) => (pageA.index > pageB.index ? 1 : -1))
     .reduce((prev, page) => {
       const children = getTreeItemList(pagesList, page.entityId, depth + 1);
 

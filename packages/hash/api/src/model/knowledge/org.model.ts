@@ -5,8 +5,9 @@ import {
   EntityModelCreateParams,
   AccountFields,
 } from "..";
-import { workspaceAccountId } from "../util";
-import { WORKSPACE_TYPES } from "../../graph/workspace-types";
+import { systemAccountId } from "../util";
+import { SYSTEM_TYPES } from "../../graph/system-types";
+import { EntityTypeMismatchError } from "../../lib/error";
 
 /**
  * @todo revisit organization size provided info. These constant strings could
@@ -38,7 +39,7 @@ export type OrgModelCreateParams = Omit<
  */
 export default class extends EntityModel {
   /**
-   * Create a workspace organization entity.
+   * Create a system organization entity.
    *
    * @param params.shortname - the shortname of the organization
    * @param params.name - the name of the organization
@@ -49,23 +50,35 @@ export default class extends EntityModel {
   static async createOrg(graphApi: GraphApi, params: OrgModelCreateParams) {
     const { shortname, name, providedInfo, actorId } = params;
 
+    if (AccountFields.shortnameIsInvalid(shortname)) {
+      throw new Error(`The shortname "${shortname}" is invalid`);
+    }
+
+    if (
+      AccountFields.shortnameIsRestricted(shortname) ||
+      (await AccountFields.shortnameIsTaken(graphApi, { shortname }))
+    ) {
+      throw new Error(
+        `An account with shortname "${shortname}" already exists.`,
+      );
+    }
+
     const { data: orgAccountId } = await graphApi.createAccountId();
 
     const properties: object = {
-      [WORKSPACE_TYPES.propertyType.shortName.baseUri]: shortname,
-      [WORKSPACE_TYPES.propertyType.orgName.baseUri]: name,
-      [WORKSPACE_TYPES.propertyType.orgProvidedInfo.baseUri]: providedInfo
+      [SYSTEM_TYPES.propertyType.shortName.baseUri]: shortname,
+      [SYSTEM_TYPES.propertyType.orgName.baseUri]: name,
+      [SYSTEM_TYPES.propertyType.orgProvidedInfo.baseUri]: providedInfo
         ? {
-            [WORKSPACE_TYPES.propertyType.orgSize.baseUri]:
-              providedInfo.orgSize,
+            [SYSTEM_TYPES.propertyType.orgSize.baseUri]: providedInfo.orgSize,
           }
         : undefined,
     };
 
-    const entityTypeModel = WORKSPACE_TYPES.entityType.org;
+    const entityTypeModel = SYSTEM_TYPES.entityType.org;
 
     const entity = await EntityModel.create(graphApi, {
-      ownedById: workspaceAccountId,
+      ownedById: systemAccountId,
       properties,
       entityTypeModel,
       entityId: orgAccountId,
@@ -78,10 +91,12 @@ export default class extends EntityModel {
   static fromEntityModel(entity: EntityModel): OrgModel {
     if (
       entity.entityTypeModel.schema.$id !==
-      WORKSPACE_TYPES.entityType.org.schema.$id
+      SYSTEM_TYPES.entityType.org.schema.$id
     ) {
-      throw new Error(
-        `Entity with id ${entity.entityId} is not a workspace org`,
+      throw new EntityTypeMismatchError(
+        entity.entityId,
+        SYSTEM_TYPES.entityType.org.schema.$id,
+        entity.entityTypeModel.schema.$id,
       );
     }
 
@@ -89,7 +104,7 @@ export default class extends EntityModel {
   }
 
   /**
-   * Get a workspace organization entity by its entity id.
+   * Get a system organization entity by its entity id.
    *
    * @param params.entityId - the entity id of the organization
    */
@@ -105,7 +120,7 @@ export default class extends EntityModel {
   }
 
   /**
-   * Get a workspace organization entity by its shortname.
+   * Get a system organization entity by its shortname.
    *
    * @param params.shortname - the shortname of the organization
    */
@@ -120,7 +135,7 @@ export default class extends EntityModel {
         {
           equal: [
             { path: ["type", "versionedUri"] },
-            { parameter: WORKSPACE_TYPES.entityType.org.schema.$id },
+            { parameter: SYSTEM_TYPES.entityType.org.schema.$id },
           ],
         },
       ],
@@ -135,7 +150,7 @@ export default class extends EntityModel {
 
   getShortname(): string {
     return (this.properties as any)[
-      WORKSPACE_TYPES.propertyType.shortName.baseUri
+      SYSTEM_TYPES.propertyType.shortName.baseUri
     ];
   }
 
@@ -162,21 +177,19 @@ export default class extends EntityModel {
       }))
     ) {
       throw new Error(
-        `A user entity with shortname "${updatedShortname}" already exists.`,
+        `An account with shortname "${updatedShortname}" already exists.`,
       );
     }
 
     return await this.updateProperty(graphApi, {
-      propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.shortName.baseUri,
+      propertyTypeBaseUri: SYSTEM_TYPES.propertyType.shortName.baseUri,
       value: updatedShortname,
       actorId,
     }).then((updatedEntity) => new OrgModel(updatedEntity));
   }
 
   getOrgName(): string {
-    return (this.properties as any)[
-      WORKSPACE_TYPES.propertyType.orgName.baseUri
-    ];
+    return (this.properties as any)[SYSTEM_TYPES.propertyType.orgName.baseUri];
   }
 
   static orgNameIsInvalid(preferredName: string) {
@@ -200,7 +213,7 @@ export default class extends EntityModel {
     }
 
     const updatedEntity = await this.updateProperty(graphApi, {
-      propertyTypeBaseUri: WORKSPACE_TYPES.propertyType.orgName.baseUri,
+      propertyTypeBaseUri: SYSTEM_TYPES.propertyType.orgName.baseUri,
       value: updatedOrgName,
       actorId,
     });

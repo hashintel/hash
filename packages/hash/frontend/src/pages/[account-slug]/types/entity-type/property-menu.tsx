@@ -1,9 +1,11 @@
 import { extractVersion, PropertyType } from "@blockprotocol/type-system-web";
 import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
-import { IconButton } from "@hashintel/hash-design-system/icon-button";
-import { Menu } from "@hashintel/hash-design-system/menu";
-import { MenuItem } from "@hashintel/hash-design-system/menu-item";
+import {
+  FontAwesomeIcon,
+  IconButton,
+  Menu,
+  MenuItem,
+} from "@hashintel/hash-design-system";
 import {
   Divider,
   ListItem,
@@ -21,7 +23,10 @@ import {
   usePopupState,
 } from "material-ui-popup-state/hooks";
 import { Fragment, useId } from "react";
-import { OntologyChip, parseUriForOntologyChip } from "./ontology-chip";
+import {
+  OntologyChip,
+  parseUriForOntologyChip,
+} from "../../shared/ontology-chip";
 import { mustBeVersionedUri } from "./util";
 
 export const PropertyMenu = ({

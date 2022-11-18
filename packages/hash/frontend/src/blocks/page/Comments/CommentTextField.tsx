@@ -1,7 +1,6 @@
 import { useEffect, useRef, useLayoutEffect, FunctionComponent } from "react";
 import { EditorState } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { Schema } from "prosemirror-model";
 import { baseKeymap } from "prosemirror-commands";
 import { keymap } from "prosemirror-keymap";
 import {
@@ -66,7 +65,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
   onClose,
   onSubmit,
 }) => {
-  const viewRef = useRef<EditorView<Schema>>();
+  const viewRef = useRef<EditorView>();
   const [portals, renderPortal] = usePortals();
   const { accountId } = useRouteAccountInfo();
   const editorContainerRef = useRef<HTMLDivElement>();
@@ -102,10 +101,10 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
         ...textTokenNodes,
       });
 
-      const state = EditorState.create<Schema>({
+      const state = EditorState.create({
         schema,
         plugins: [
-          keymap<Schema>({
+          keymap({
             Enter() {
               if (eventsRef.current.onSubmit) {
                 void eventsRef.current.onSubmit();
@@ -122,7 +121,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
               return false;
             },
           }),
-          keymap<Schema>(baseKeymap),
+          keymap(baseKeymap),
           ...createFormatPlugins(renderPortal),
           formatKeymap(schema),
           createSuggester(renderPortal, accountId, editorContainer),

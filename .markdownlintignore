@@ -90,6 +90,7 @@ typings/
 # build files
 dist
 build
+target
 
 # vscode config
 .vscode/settings.json
@@ -110,3 +111,4 @@ __pycache__
 
 # Application data
 /var
+seed-users.json

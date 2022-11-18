@@ -1,4 +1,3 @@
-import { Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
 import { DirectEditorProps, EditorView } from "prosemirror-view";
 import { RenderPortal } from "./usePortals";
@@ -6,13 +5,13 @@ import { mentionNodeView } from "./MentionView/MentionNodeView";
 import { clipboardTextSerializer } from "./clipboardTextSerializer";
 
 export const createTextEditorView = (
-  state: EditorState<Schema>,
+  state: EditorState,
   renderNode: HTMLElement,
   renderPortal: RenderPortal,
   accountId: string,
-  editorProps?: Partial<DirectEditorProps<Schema>>,
+  editorProps?: Partial<DirectEditorProps>,
 ) =>
-  new EditorView<Schema>(renderNode, {
+  new EditorView(renderNode, {
     ...editorProps,
     state,
     clipboardTextSerializer: clipboardTextSerializer(

@@ -1,8 +1,10 @@
 import { PropertyType } from "@blockprotocol/type-system-web";
 import { faClose } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
-import { IconButton } from "@hashintel/hash-design-system/icon-button";
-import { TextField } from "@hashintel/hash-design-system/text-field";
+import {
+  FontAwesomeIcon,
+  IconButton,
+  TextField,
+} from "@hashintel/hash-design-system";
 import {
   Box,
   ButtonBase,
@@ -49,7 +51,7 @@ import { QuestionIcon } from "./question-icon";
 import { StyledPlusCircleIcon } from "./styled-plus-circle-icon";
 import { usePropertyTypes } from "./use-property-types";
 import { mustBeVersionedUri, useStateCallback, withHandler } from "./util";
-import { WhiteCard } from "./white-card";
+import { WhiteCard } from "../../shared/white-card";
 
 const CenteredTableCell = styled(TableCell)(
   experimental_sx({
@@ -78,8 +80,8 @@ const InsertPropertyRow = ({
   const ourInputRef = useRef<HTMLInputElement>(null);
   const sharedRef = useForkRef(inputRef, ourInputRef);
 
-  const { watch } = useFormContext<EntityTypeEditorForm>();
-  const properties = watch("properties");
+  const { control } = useFormContext<EntityTypeEditorForm>();
+  const properties = useWatch({ control, name: "properties" });
 
   return (
     <TableRow
@@ -165,14 +167,9 @@ const InsertPropertyRow = ({
               </IconButton>
             </Box>
             <PropertyTypeForm
-              createButtonProps={withHandler(
-                bindToggle(modalPopupState),
-                () => {
-                  // onAdd();
-                },
-              )}
               discardButtonProps={bindToggle(modalPopupState)}
               initialTitle={searchText}
+              onCreatePropertyType={onAdd}
             />
           </>
         </Modal>

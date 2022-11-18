@@ -1,5 +1,5 @@
 import { faList, faPlus } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
+import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import {
   Box,
   cardActionAreaClasses,
@@ -9,7 +9,7 @@ import {
   Theme,
   Typography,
 } from "@mui/material";
-import { WhiteCard } from "./white-card";
+import { WhiteCard } from "../../shared/white-card";
 
 const cardActionHoverBlue: SxProps<Theme> = (theme) => ({
   [`.${cardActionAreaClasses.root}:hover &`]: {

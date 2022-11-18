@@ -1,7 +1,7 @@
 import { cloneDeep } from "lodash";
 import { baseKeymap } from "prosemirror-commands";
 import { dropCursor } from "prosemirror-dropcursor";
-import { ProsemirrorNode, Schema } from "prosemirror-model";
+import { Node, Schema } from "prosemirror-model";
 import { EditorState, Plugin } from "prosemirror-state";
 import { createEntityStorePlugin } from "./entityStorePlugin";
 import {
@@ -23,7 +23,7 @@ const nodes = {
 const createInitialDoc = (schema: Schema = createSchema(cloneDeep(nodes))) =>
   schema.node("doc", {}, [schema.node("loading")]);
 
-const defaultPlugins: Plugin<any, Schema>[] = [
+const defaultPlugins: Plugin<unknown>[] = [
   ...wrapEntitiesPlugin(baseKeymap),
   // This enables an indicator to appear when drag and dropping blocks
   dropCursor(),
@@ -35,10 +35,10 @@ export const createProseMirrorState = ({
   plugins = [],
 }: {
   accountId: string;
-  doc?: ProsemirrorNode<Schema>;
-  plugins?: Plugin<any, Schema>[];
+  doc?: Node;
+  plugins?: Plugin<unknown>[];
 }) => {
-  return EditorState.create<Schema>({
+  return EditorState.create({
     doc,
     plugins: [
       ...defaultPlugins,

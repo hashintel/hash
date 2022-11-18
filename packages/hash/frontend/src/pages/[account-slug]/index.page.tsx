@@ -8,9 +8,13 @@ import { Link } from "../../shared/ui";
 import { useRouteAccountInfo } from "../../shared/routing";
 
 const Page: NextPageWithLayout = () => {
-  const { authenticatedUser } = useAuthenticatedUser();
+  const { loading, authenticatedUser } = useAuthenticatedUser();
   const { orgs } = useOrgs();
   const { accountId } = useRouteAccountInfo();
+
+  if (loading) {
+    return null;
+  }
 
   if (!authenticatedUser) {
     return (

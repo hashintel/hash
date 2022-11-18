@@ -1,7 +1,6 @@
 import { PropertyType } from "@blockprotocol/type-system-web";
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
-import { TextField } from "@hashintel/hash-design-system/text-field";
+import { FontAwesomeIcon, TextField } from "@hashintel/hash-design-system";
 import {
   Autocomplete,
   Box,
@@ -18,7 +17,10 @@ import {
   useState,
 } from "react";
 import { ArrowUpRightIcon } from "../../../../shared/icons/svg";
-import { OntologyChip, parseUriForOntologyChip } from "./ontology-chip";
+import {
+  OntologyChip,
+  parseUriForOntologyChip,
+} from "../../shared/ontology-chip";
 import { PropertyExpectedValues } from "./property-expected-values";
 import { PropertyListSelectorDropdown } from "./property-list-selector-dropdown";
 import { usePropertyTypes } from "./use-property-types";
@@ -100,16 +102,15 @@ const PropertySelector: ForwardRefRenderFunction<
           onAdd(option);
         }
       }}
+      // Using onKeyUp to prevent a new line character being inputted into inputs in the modal
+      onKeyUp={(evt) => {
+        if (evt.key === "Enter" && !highlightedRef.current) {
+          modalPopupState.open();
+        }
+      }}
       onKeyDown={(evt) => {
-        switch (evt.key) {
-          case "Enter":
-            if (!highlightedRef.current) {
-              modalPopupState.open();
-            }
-            break;
-          case "Escape":
-            onCancel();
-            break;
+        if (evt.key === "Escape") {
+          onCancel();
         }
       }}
       onBlur={() => {

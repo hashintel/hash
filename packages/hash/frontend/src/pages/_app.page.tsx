@@ -11,13 +11,13 @@ import { configureScope } from "@sentry/nextjs";
 import { AppProps as NextAppProps } from "next/app";
 import { useRouter } from "next/router";
 import { CacheProvider, EmotionCache } from "@emotion/react";
-import CssBaseline from "@mui/material/CssBaseline";
-import { ThemeProvider } from "@mui/material/styles";
+import { CssBaseline, ThemeProvider } from "@mui/material";
 import { theme, createEmotionCache } from "@hashintel/hash-design-system";
 import { SnackbarProvider } from "notistack";
 import { TypeSystemContextProvider } from "../lib/use-init-type-system";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 
+import { SessionProvider } from "./_app.page/session-provider";
 import twindConfig from "../../twind.config";
 import "./globals.scss";
 import { useAuthenticatedUser } from "../components/hooks/useAuthenticatedUser";
@@ -82,11 +82,13 @@ const App: FunctionComponent<AppProps> = ({
           <ModalProvider>
             <RouteAccountInfoProvider>
               <RoutePageInfoProvider>
-                <ReadonlyModeProvider>
-                  <SnackbarProvider maxSnack={3}>
-                    {getLayout(<Component {...pageProps} />)}
-                  </SnackbarProvider>
-                </ReadonlyModeProvider>
+                <SessionProvider>
+                  <ReadonlyModeProvider>
+                    <SnackbarProvider maxSnack={3}>
+                      {getLayout(<Component {...pageProps} />)}
+                    </SnackbarProvider>
+                  </ReadonlyModeProvider>
+                </SessionProvider>
               </RoutePageInfoProvider>
             </RouteAccountInfoProvider>
           </ModalProvider>
