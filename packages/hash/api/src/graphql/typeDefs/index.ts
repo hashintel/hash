@@ -9,7 +9,6 @@ import { embedTypeDef } from "./embed.typedef";
 import { fileTypedef } from "./file.typedef";
 import { impliedHistoryTypedef } from "./impliedHistory.typedef";
 import { aggregationTypedef } from "./aggregation.typedef";
-import { pagePaginationTypedef } from "./paginationConnections.typedef";
 import { executeTaskTypedef } from "./taskExecution.typedef";
 import { dataTypeTypedef } from "./ontology/data-type.typedef";
 import { propertyTypeTypedef } from "./ontology/property-type.typedef";
@@ -66,7 +65,6 @@ export const schema = [
   aggregationTypedef,
   deprecatedEntityTypeTypedef,
   impliedHistoryTypedef,
-  pagePaginationTypedef,
   textTypedef,
   fileTypedef,
   executeTaskTypedef,
