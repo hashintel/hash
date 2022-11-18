@@ -4,7 +4,7 @@ import { Entity } from "../../types/element";
 import { getEntityAtTimestamp } from "../element/entity";
 import {
   isOutwardLinkEdge,
-  isHasLeftEntityEdge,
+  isHasRightEntityEdge,
 } from "../../types/edge/outward-edge-alias";
 import { mustBeDefined } from "../../shared/invariant";
 
@@ -81,7 +81,7 @@ export const getRightEntityForLinkEntityAtMoment = (
   );
 
   const endpointEntityId = mustBeDefined(
-    Object.values(linkEntityEdges).flat().find(isHasLeftEntityEdge)
+    Object.values(linkEntityEdges).flat().find(isHasRightEntityEdge)
       ?.rightEndpoint.baseId,
     "link entities must have right endpoints",
   );
