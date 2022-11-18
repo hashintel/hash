@@ -6,6 +6,7 @@ import {
 } from "../../types/identifier";
 import { isEntityVertex } from "../../types/vertex";
 import { Entity } from "../../types/element";
+import { mustBeDefined } from "../../shared/invariant";
 
 /**
  * Returns all `Entity`s within the vertices of the subgraph
@@ -72,8 +73,6 @@ export const getEntityEditionsByEntityId = (
  * @param subgraph
  * @param entityId
  * @param {Date | string} timestamp A `Date` or an ISO-formatted datetime string of the moment to search for
- *
- * @throws if the vertices pointed to by `entityId` aren't `EntityVertex`es
  */
 export const getEntityAtTimestamp = (
   subgraph: Subgraph,
@@ -85,7 +84,7 @@ export const getEntityAtTimestamp = (
 
   const entityEditions = subgraph.vertices[entityId];
   if (!entityEditions) {
-    throw new Error(`no entities found for entityId: ${entityId}`);
+    return undefined;
   }
 
   for (const [potentialEntityVersion, vertex] of Object.entries(
@@ -124,16 +123,12 @@ export const getRootsAsEntities = (subgraph: Subgraph): Entity[] => {
         )}`,
       );
     }
-    const rootVertex =
-      subgraph.vertices[rootEditionId.baseId]?.[rootEditionId.version];
-
-    if (!rootVertex) {
-      throw new Error(
-        `looked in vertex set but failed to find root: ${JSON.stringify(
-          rootEditionId,
-        )}`,
-      );
-    }
+    const rootVertex = mustBeDefined(
+      subgraph.vertices[rootEditionId.baseId]?.[rootEditionId.version],
+      `roots should have corresponding vertices but ${JSON.stringify(
+        rootEditionId,
+      )} was missing`,
+    );
 
     return rootVertex.inner;
   });
