@@ -67,11 +67,11 @@ export const getEntityEditionsByEntityId = (
 };
 
 /**
- * Gets an `EntityWithMetadata` by its `EntityId` whose lifespan overlaps a given `Date` moment
+ * Gets an `Entity` by its `EntityId` whose lifespan overlaps a given `Date` moment
  *
  * @param subgraph
  * @param entityId
- * @param {string} timestamp An ISO-formatted datetime string of the moment to search for
+ * @param {Date | string} timestamp A `Date` or an ISO-formatted datetime string of the moment to search for
  *
  * @throws if the vertices pointed to by `entityId` aren't `EntityVertex`es
  */
@@ -93,7 +93,10 @@ export const getEntityAtTimestamp = (
   )) {
     if (
       timestampString <= potentialEntityVersion
-      /** @todo - we need to know the endTime of the entity */
+      /**
+       *  @todo - we need to know the endTime of the entity
+       *    https://app.asana.com/0/1201095311341924/1203331904553375/f
+       */
       // &&
       // (entity.metadata.endTime == null ||
       //   entity.metadata.endTime > timestamp)
