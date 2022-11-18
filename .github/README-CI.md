@@ -21,9 +21,11 @@ Script files used in GitHub Actions workflows
 ## Freestanding files
 
 ### GitHub.com automations
+
 - `pull_request_template.md` contains the template shown when opening a pull request
 - `labeler.yml` contains definitions for automatic labelling of pull requests
 
 ### Third-party config files
+
 - `codecov.yml` contains our Codecov configuration
 - `renovate.json` contains our Mend Renovate configuration
