@@ -1,5 +1,9 @@
 #![allow(dead_code)]
 
+pub fn create_report() -> Report<RootError> {
+    Report::new(RootError)
+}
+
 extern crate alloc;
 
 pub use alloc::{
@@ -156,10 +160,6 @@ impl fmt::Display for PrintableC {
         fmt.write_str("printable C: ")?;
         fmt::Display::fmt(&self.0, fmt)
     }
-}
-
-pub fn create_report() -> Report<RootError> {
-    Report::new(RootError)
 }
 
 pub fn create_error() -> Result<(), RootError> {
