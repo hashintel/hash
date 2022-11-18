@@ -260,6 +260,7 @@ export default class {
   isLinkEntityType(): boolean {
     /**
      * @todo: account for link entity types being able to inherit from other link entity types
+     * @see https://app.asana.com/0/1200211978612931/1201726402115269/f
      */
     return (
       !!this.schema.allOf &&
