@@ -127,18 +127,6 @@ mod tests {
     }
 
     #[test]
-    fn default_selection() {
-        test_compilation(
-            &SelectCompiler::<DataType>::with_asterisk(),
-            r#"
-            SELECT *
-            FROM "data_types" AS "data_types_0_0_0"
-            "#,
-            &[],
-        );
-    }
-
-    #[test]
     fn simple_expression() {
         let mut compiler = SelectCompiler::<DataType>::with_asterisk();
         compiler.add_filter(&Filter::Equal(
