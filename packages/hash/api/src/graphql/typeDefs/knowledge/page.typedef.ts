@@ -1,7 +1,7 @@
 import { gql } from "apollo-server-express";
 
 export const persistedPageTypedef = gql`
-  type PersistedPage implements EntityWithMetadata {
+  type PersistedPage {
     """
     The title of the page.
     """

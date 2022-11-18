@@ -250,29 +250,6 @@ export const resolvers = {
   },
 
   // New knowledge field resolvers
-
-  EntityWithMetadata: {
-    /**
-     * Determines whether a `EntityWithMetadata` instance should be treated as a
-     * system GQL type definition (for example as a `PersistedPage`), or
-     * whether to treat it is an `UnknownEntityWithMetadata`.
-     */
-    __resolveType: ({
-      systemTypeName,
-    }: UnresolvedEntityWithMetadataGQL):
-      | SystemEntityGQLTypeName
-      | "UnknownEntityWithMetadata" => {
-      const systemEntityGQLTypeName = systemTypeName
-        ? `Persisted${systemTypeName.split(" ").join("")}`
-        : undefined;
-
-      return systemEntityGQLTypeName &&
-        isSystemEntityGQLTypeName(systemEntityGQLTypeName)
-        ? systemEntityGQLTypeName
-        : "UnknownEntityWithMetadata";
-    },
-  },
-
   PersistedPage: {
     contents: persistedPageContents,
     parentPage: parentPersistedPage,

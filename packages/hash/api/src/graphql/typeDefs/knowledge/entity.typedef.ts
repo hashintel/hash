@@ -6,18 +6,7 @@ export const entityWithMetadataTypedef = gql`
   scalar PropertyObject
   scalar EntityMetadata
 
-  interface EntityWithMetadata {
-    """
-    Metadata for the entity.
-    """
-    metadata: EntityMetadata!
-    """
-    Properties of entity.
-    """
-    properties: PropertyObject!
-  }
-
-  type UnknownEntityWithMetadata implements EntityWithMetadata {
+  type EntityWithMetadata {
     """
     Metadata for the entity.
     """

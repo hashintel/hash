@@ -1,7 +1,7 @@
 import { gql } from "apollo-server-express";
 
 export const persistedCommentTypedef = gql`
-  type PersistedComment implements EntityWithMetadata {
+  type PersistedComment {
     """
     Stringified timestamp of when the entity was resolved.
     """
@@ -25,7 +25,7 @@ export const persistedCommentTypedef = gql`
     """
     User that created the comment
     """
-    author: UnknownEntityWithMetadata!
+    author: EntityWithMetadata!
 
     """
     Parent entity the comment belongs to

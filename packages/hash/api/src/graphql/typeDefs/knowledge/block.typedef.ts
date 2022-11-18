@@ -1,7 +1,7 @@
 import { gql } from "apollo-server-express";
 
 export const persistedBlockTypedef = gql`
-  type PersistedBlock implements EntityWithMetadata {
+  type PersistedBlock {
     """
     The block's linked child entity.
     """
