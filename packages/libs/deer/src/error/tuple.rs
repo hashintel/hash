@@ -25,6 +25,40 @@ macro_rules! all_the_tuples {
     };
 }
 
+/// internal macro to implement [`ErrorProperties`] for all tuple variants.
+///
+/// because it is not possible to easily implement a trait over all possible tuples this helper
+/// macro is invoked for every possible tuple combination.
+/// This is because there is currently no "official" support for variadic in Rust.
+///
+/// The support for variadic in Rust seems to have stalled,
+/// the tracking issue is: <https://github.com/rust-lang/rfcs/issues/376>
+///
+/// For [`ErrorProperties::value`] it simply defers to the type of each element in the tuple and
+/// then returns the result as a tuple, meaning
+/// `(T1, ..., Tn)` -> `(T1::value(stack), ..., Tn::value(stack))`
+///
+/// The implementation of [`ErrorProperties::output`] functions similarly, but because the function
+/// is fallible it collects all errors using [`Report::extend_one`] and checks if any errors
+/// occurred.
+///
+/// Pseudo code implementation:
+///
+/// ```text
+/// let (T1, ..., Tn) = value;
+///
+/// for T in (T1, ..., Tn) {
+///     // we exploit the fact that variables and types can have the same name
+///     let maybe_error = T::output(T, map);
+///     error.extend_one(maybe_error);
+/// }
+///
+/// if error {
+///     Err(error)
+/// } else {
+///     Ok(())
+/// }
+/// ```
 macro_rules! properties {
     ($($elem:ident),*) => {
         #[automatically_derived]
