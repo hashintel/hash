@@ -76,20 +76,20 @@ fn bench_representative_read_multiple_entities(c: &mut Criterion) {
         GraphResolveDepths {
             data_type_resolve_depth: 0,
             property_type_resolve_depth: 0,
+            entity_type_resolve_depth: 0,
+            entity_resolve_depth: 2,
+        },
+        GraphResolveDepths {
+            data_type_resolve_depth: 0,
+            property_type_resolve_depth: 0,
             entity_type_resolve_depth: 2,
-            entity_resolve_depth: 0,
+            entity_resolve_depth: 2,
         },
         GraphResolveDepths {
             data_type_resolve_depth: 0,
             property_type_resolve_depth: 2,
             entity_type_resolve_depth: 2,
-            entity_resolve_depth: 0,
-        },
-        GraphResolveDepths {
-            data_type_resolve_depth: 2,
-            property_type_resolve_depth: 2,
-            entity_type_resolve_depth: 2,
-            entity_resolve_depth: 0,
+            entity_resolve_depth: 2,
         },
         GraphResolveDepths {
             data_type_resolve_depth: 2,
