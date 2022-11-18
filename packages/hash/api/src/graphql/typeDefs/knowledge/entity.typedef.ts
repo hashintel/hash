@@ -28,23 +28,9 @@ export const entityWithMetadataTypedef = gql`
     properties: PropertyObject!
   }
 
-  """
-  Select entity types by ONE of componentId, entityTypeId
-  """
-  input EntityWithMetadataTypeChoice {
-    # Previously the EntityTypeChoice included 'componentId: ID', which made it possible
-    # to create a block using an already-existing entity type based on its componentId
-    # we should reconsider what we do about the component ID
-    # see https://app.asana.com/0/0/1202924026802716/f
-    """
-    A fixed entity type ID. This may be a reference to a placeholder set using a previous createEntityTypeAction.
-    """
-    entityTypeId: String
-  }
-
   input PersistedLinkedEntityDefinition {
     destinationAccountId: ID!
-    linkTypeId: String!
+    linkEntityTypeId: String!
     """
     The index of the link (if any)
     """
@@ -60,7 +46,7 @@ export const entityWithMetadataTypedef = gql`
     """
     The type of which to instantiate the new entity.
     """
-    entityType: EntityTypeWithMetadata
+    entityType: String
     """
     The properties of new entity.
     """
