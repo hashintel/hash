@@ -29,17 +29,17 @@ export type KnowledgeGraphEdgeKind = typeof KNOWLEDGE_GRAPH_EDGE_KIND[number];
 export type SharedEdgeKind = typeof SHARED_EDGE_KIND[number];
 
 export const isOntologyEdgeKind = (kind: string): kind is OntologyEdgeKind => {
-  return (ONTOLOGY_EDGE_KINDS as unknown as string[]).includes(kind);
+  return (ONTOLOGY_EDGE_KINDS as ReadonlyArray<string>).includes(kind);
 };
 
 export const isKnowledgeGraphEdgeKind = (
   kind: string,
 ): kind is KnowledgeGraphEdgeKind => {
-  return (KNOWLEDGE_GRAPH_EDGE_KIND as unknown as string[]).includes(kind);
+  return (KNOWLEDGE_GRAPH_EDGE_KIND as ReadonlyArray<string>).includes(kind);
 };
 
 export const isSharedEdgeKind = (kind: string): kind is SharedEdgeKind => {
-  return (SHARED_EDGE_KIND as unknown as string[]).includes(kind);
+  return (SHARED_EDGE_KIND as ReadonlyArray<string>).includes(kind);
 };
 
 // -------------------------------- Outward Edges --------------------------------
