@@ -76,13 +76,11 @@ export const entityWithMetadataTypedef = gql`
     """
     Get a subgraph rooted at all entities at their latest version.
     """
-    getAllLatestPersistedEntities(
+    getAllLatestEntitiesWithMetadata(
       dataTypeResolveDepth: Int!
       propertyTypeResolveDepth: Int!
-      linkTypeResolveDepth: Int!
       entityTypeResolveDepth: Int!
-      linkTargetEntityResolveDepth: Int!
-      linkResolveDepth: Int!
+      entityResolveDepth: Int!
     ): Subgraph!
 
     """
@@ -99,10 +97,8 @@ export const entityWithMetadataTypedef = gql`
       entityVersion: String
       dataTypeResolveDepth: Int!
       propertyTypeResolveDepth: Int!
-      linkTypeResolveDepth: Int!
       entityTypeResolveDepth: Int!
-      linkTargetEntityResolveDepth: Int!
-      linkResolveDepth: Int!
+      entityResolveDepth: Int!
     ): Subgraph!
   }
 

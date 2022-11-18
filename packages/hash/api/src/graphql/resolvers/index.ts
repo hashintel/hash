@@ -79,7 +79,7 @@ import { getBlockProtocolBlocks } from "./blockprotocol/getBlock";
 import {
   createEntityWithMetadata,
   getEntityWithMetadata,
-  getAllLatestPersistedEntities,
+  getAllLatestEntitiesWithMetadata,
   updateEntityWithMetadata,
 } from "./knowledge/entity/entity";
 import { UnresolvedEntityWithMetadataGQL } from "./knowledge/model-mapping";
@@ -151,8 +151,8 @@ export const resolvers = {
     persistedPageComments: loggedInAndSignedUp(persistedPageComments),
     persistedBlocks: loggedInAndSignedUp(persistedBlocks),
     getEntityWithMetadata: loggedInAndSignedUp(getEntityWithMetadata),
-    getAllLatestPersistedEntities: loggedInAndSignedUp(
-      getAllLatestPersistedEntities,
+    getAllLatestEntitiesWithMetadata: loggedInAndSignedUp(
+      getAllLatestEntitiesWithMetadata,
     ),
     /** @todo - delete this - https://app.asana.com/0/0/1203157172269854/f */
     outgoingPersistedLinks: loggedInAndSignedUp(outgoingPersistedLinks),
