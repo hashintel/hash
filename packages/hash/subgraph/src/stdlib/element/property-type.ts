@@ -1,13 +1,9 @@
-import {
-  BaseUri,
-  extractBaseUri,
-  extractVersion,
-  VersionedUri,
-} from "@blockprotocol/type-system-node";
+import { BaseUri, VersionedUri } from "@blockprotocol/type-system-node";
 import { OntologyTypeEditionId } from "../../types/identifier";
 import { Subgraph } from "../../types/subgraph";
 import { PropertyTypeWithMetadata } from "../../types/element";
 import { isPropertyTypeVertex } from "../../types/vertex";
+import { extractBaseUri, extractVersion } from "../../shared/type-system-patch";
 
 /**
  * Returns all `PropertyTypeWithMetadata`s within the vertices of the subgraph
