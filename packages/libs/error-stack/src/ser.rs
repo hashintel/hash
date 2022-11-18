@@ -1,13 +1,13 @@
-//! Implementation of general report serialization.
+//! Implementation of general [`Report`] serialization.
 //!
 //! The value can be of any type, currently only printable attachments and context are supported, in
 //! the near future any values will be supported through the use of hooks.
 //!
-//! The returned JSON returned is a list of all current sources with the following output:
+//! The serialized [`Report`] is a list of all current sources with the following output:
 //!
 //! ```json
 //! {
-//!     "context": "string value",
+//!     "context": "context display output",
 //!     "attachments": ["all attachments leading up to this context"],
 //!     "sources": [] // recursive render using `frame.sources()`
 //! }
@@ -37,7 +37,7 @@ impl<'a> Serialize for SerializeAttachment<'a> {
             FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
                 // TODO: for now opaque attachments are unsupported, upcoming PR will fix that
                 // `SerializeContext` ensures that no such attachment is added
-                unreachable!()
+                todo!()
             }
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
                 format!("{attachment}").serialize(serializer)
