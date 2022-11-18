@@ -1,6 +1,6 @@
 mod vertex;
 
-use std::collections::HashMap;
+use std::collections::{hash_map::Entry, HashMap};
 
 use serde::Serialize;
 use type_system::uri::BaseUri;
@@ -47,10 +47,28 @@ impl Vertices {
     }
 
     pub fn extend(&mut self, other: Self) {
-        self.ontology.0.extend(other.ontology.0.into_iter());
-        self.knowledge_graph
-            .0
-            .extend(other.knowledge_graph.0.into_iter());
+        for (key, value) in other.ontology.0.into_iter() {
+            match self.ontology.0.entry(key) {
+                Entry::Occupied(entry) => {
+                    let inner_map = entry.into_mut();
+                    inner_map.extend(value);
+                }
+                Entry::Vacant(entry) => {
+                    entry.insert(value);
+                }
+            }
+        }
+        for (key, value) in other.knowledge_graph.0.into_iter() {
+            match self.knowledge_graph.0.entry(key) {
+                Entry::Occupied(entry) => {
+                    let inner_map = entry.into_mut();
+                    inner_map.extend(value);
+                }
+                Entry::Vacant(entry) => {
+                    entry.insert(value);
+                }
+            }
+        }
     }
 
     #[must_use]
