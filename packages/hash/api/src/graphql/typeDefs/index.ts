@@ -1,6 +1,5 @@
 import { gql } from "apollo-server-express";
 
-import { blockTypedef } from "./block.typedef";
 import { entityTypedef } from "./entity.typedef";
 import { linkTypedef } from "./link.typedef";
 import { deprecatedEntityTypeTypedef } from "./entityType.typedef";
@@ -60,7 +59,6 @@ const knowledge = [
 // It could alternatively be a default export.
 export const schema = [
   baseSchema,
-  blockTypedef,
   blockprotocolTypedef,
   embedTypeDef,
   entityTypedef,
