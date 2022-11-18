@@ -87,7 +87,7 @@ impl<C: AsClient> PostgresStore<C> {
                         GenericOutwardEdge {
                             kind: SharedEdgeKind::IsOfType,
                             reversed: false,
-                            endpoint: entity_type_id.into(),
+                            right_endpoint: entity_type_id.into(),
                         },
                     )),
                 );
@@ -132,9 +132,9 @@ impl<C: AsClient> PostgresStore<C> {
                         GenericOutwardEdge {
                             // (HasLeftEndpoint, reversed=true) is equivalent to an
                             // outgoing `Link` `Entity`
-                            kind: KnowledgeGraphEdgeKind::HasLeftEndpoint,
+                            kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                             reversed: true,
-                            endpoint: EntityIdAndTimestamp::new(
+                            right_endpoint: EntityIdAndTimestamp::new(
                                 outgoing_link_entity.metadata().edition_id().base_id(),
                                 earliest_version.inner(),
                             ),
@@ -178,9 +178,9 @@ impl<C: AsClient> PostgresStore<C> {
                         entity_edition_id,
                         left_entity.metadata().edition_id(),
                         GenericOutwardEdge {
-                            kind: KnowledgeGraphEdgeKind::HasLeftEndpoint,
+                            kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                             reversed: false,
-                            endpoint: EntityIdAndTimestamp::new(
+                            right_endpoint: EntityIdAndTimestamp::new(
                                 left_entity.metadata().edition_id().base_id(),
                                 earliest_version.inner(),
                             ),
@@ -224,9 +224,9 @@ impl<C: AsClient> PostgresStore<C> {
                         entity_edition_id,
                         right_entity.metadata().edition_id(),
                         GenericOutwardEdge {
-                            kind: KnowledgeGraphEdgeKind::HasRightEndpoint,
+                            kind: KnowledgeGraphEdgeKind::HasRightEntity,
                             reversed: false,
-                            endpoint: EntityIdAndTimestamp::new(
+                            right_endpoint: EntityIdAndTimestamp::new(
                                 right_entity.metadata().edition_id().base_id(),
                                 earliest_version.inner(),
                             ),
@@ -394,7 +394,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             graph_resolve_depths,
         } = *query;
 
-        let subgraphs = stream::iter(Read::<Entity>::read(self, filter).await?)
+        let mut subgraph = stream::iter(Read::<Entity>::read(self, filter).await?)
             .then(|entity| async move {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 
@@ -413,11 +413,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
                 Ok::<_, Report<QueryError>>(dependency_context.into_subgraph(HashSet::from([root])))
             })
-            .try_collect::<Vec<_>>()
+            .try_collect::<Subgraph>()
             .await?;
 
-        let mut subgraph = Subgraph::new(graph_resolve_depths);
-        subgraph.extend(subgraphs);
+        subgraph.depths = graph_resolve_depths;
 
         Ok(subgraph)
     }

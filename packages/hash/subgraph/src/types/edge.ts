@@ -3,7 +3,7 @@ import {
   isEntityEditionId,
   isOntologyTypeEditionId,
   EntityId,
-  EntityVersion,
+  Timestamp,
   EntityEditionId,
   EntityIdAndTimestamp,
   OntologyTypeEditionId,
@@ -17,26 +17,28 @@ const ONTOLOGY_EDGE_KINDS = [
   "CONSTRAINS_PROPERTIES_ON",
   "CONSTRAINS_LINKS_ON",
   "CONSTRAINS_LINK_DESTINATIONS_ON",
-];
-const KNOWLEDGE_GRAPH_EDGE_KIND = ["HAS_LEFT_ENDPOINT", "HAS_RIGHT_ENDPOINT"];
-const SHARED_EDGE_KIND = ["IS_OF_TYPE"];
+] as const;
+const KNOWLEDGE_GRAPH_EDGE_KIND = [
+  "HAS_LEFT_ENTITY", "HAS_RIGHT_ENTITY",
+] as const;
+const SHARED_EDGE_KIND = ["IS_OF_TYPE"] as const;
 
 export type OntologyEdgeKind = typeof ONTOLOGY_EDGE_KINDS[number];
 export type KnowledgeGraphEdgeKind = typeof KNOWLEDGE_GRAPH_EDGE_KIND[number];
 export type SharedEdgeKind = typeof SHARED_EDGE_KIND[number];
 
 export const isOntologyEdgeKind = (kind: string): kind is OntologyEdgeKind => {
-  return ONTOLOGY_EDGE_KINDS.includes(kind);
+  return (ONTOLOGY_EDGE_KINDS as ReadonlyArray<string>).includes(kind);
 };
 
 export const isKnowledgeGraphEdgeKind = (
   kind: string,
 ): kind is KnowledgeGraphEdgeKind => {
-  return KNOWLEDGE_GRAPH_EDGE_KIND.includes(kind);
+  return (KNOWLEDGE_GRAPH_EDGE_KIND as ReadonlyArray<string>).includes(kind);
 };
 
 export const isSharedEdgeKind = (kind: string): kind is SharedEdgeKind => {
-  return SHARED_EDGE_KIND.includes(kind);
+  return (SHARED_EDGE_KIND as ReadonlyArray<string>).includes(kind);
 };
 
 // -------------------------------- Outward Edges --------------------------------
@@ -48,7 +50,7 @@ export const isSharedEdgeKind = (kind: string): kind is SharedEdgeKind => {
 type GenericOutwardEdge<K, E> = {
   kind: K;
   reversed: boolean;
-  endpoint: E;
+  rightEndpoint: E;
 };
 
 export type OntologyOutwardEdge =
@@ -66,7 +68,7 @@ export const isOntologyOutwardEdge = (
 ): edge is OntologyOutwardEdge => {
   return (
     isOntologyEdgeKind(edge.kind) ||
-    (isSharedEdgeKind(edge.kind) && isEntityEditionId(edge.endpoint))
+    (isSharedEdgeKind(edge.kind) && isEntityEditionId(edge.rightEndpoint))
   );
 };
 
@@ -75,7 +77,7 @@ export const isKnowledgeGraphOutwardEdge = (
 ): edge is KnowledgeGraphOutwardEdge => {
   return (
     isKnowledgeGraphEdgeKind(edge.kind) ||
-    (isSharedEdgeKind(edge.kind) && isOntologyTypeEditionId(edge.endpoint))
+    (isSharedEdgeKind(edge.kind) && isOntologyTypeEditionId(edge.rightEndpoint))
   );
 };
 
@@ -87,6 +89,6 @@ export type Edges = {
   };
 } & {
   [_: EntityId]: {
-    [_: EntityVersion]: KnowledgeGraphOutwardEdge[];
+    [_: Timestamp]: KnowledgeGraphOutwardEdge[];
   };
 };

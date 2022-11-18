@@ -54,7 +54,7 @@ pub type SubgraphQueryDepth = u8;
 /// will not be included in the subgraph, because the depth for `entity_resolve_depth` is `2`
 /// and `Link2` is `3` edges away from `Entity1`.
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct GraphResolveDepths {
     #[schema(value_type = i64)]
