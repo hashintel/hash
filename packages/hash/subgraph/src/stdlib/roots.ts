@@ -17,6 +17,17 @@ import { getEntityByEditionId } from "./element/entity";
 import { Vertex } from "../types/vertex";
 import { mustBeDefined } from "../shared/invariant";
 
+/**
+ * Returns all root elements.
+ *
+ * The type of this can be constrained by using some of the helper type-guards:
+ * - isDataTypeRootedSubgraph
+ * - isPropertyTypeRootedSubgraph
+ * - isEntityTypeRootedSubgraph
+ * - isEntityRootedSubgraph
+ *
+ * @param subgraph
+ */
 export const getRoots = <RootType extends GraphElement>(
   subgraph: Subgraph<RootType>,
 ): RootType[] =>
