@@ -2,7 +2,6 @@ import {
   Edges as EdgesGraphApi,
   OutwardEdge as OutwardEdgeGraphApi,
 } from "@hashintel/hash-graph-client";
-import { validateBaseUri } from "@blockprotocol/type-system-node";
 import {
   Edges,
   isEntityAndTimestamp,
@@ -12,6 +11,7 @@ import {
   isOntologyTypeEditionId,
   OutwardEdge,
 } from "../../src";
+import { validateBaseUri } from "../../src/shared/type-system-patch";
 
 export const mapOutwardEdge = (
   outwardEdge: OutwardEdgeGraphApi,
