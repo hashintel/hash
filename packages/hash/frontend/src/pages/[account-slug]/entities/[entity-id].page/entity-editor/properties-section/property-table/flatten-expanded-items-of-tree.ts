@@ -25,6 +25,7 @@ export const flattenExpandedItemsOfTree = <
 
   for (const item of tree) {
     flattened.push(item);
+
     const expanded = expandStatus[item.rowId];
 
     if (expanded) {
