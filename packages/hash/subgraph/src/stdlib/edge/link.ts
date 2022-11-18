@@ -3,7 +3,7 @@ import { EntityId } from "../../types/identifier";
 import { Entity } from "../../types/element";
 import { getEntityAtTimestamp } from "../element/entity";
 import {
-  isHasLinkEdge,
+  isOutwardLinkEdge,
   isHasRightEndpointEdge,
 } from "../../types/edge/outward-edge-alias";
 import { mustBeDefined } from "../../shared/invariant";
@@ -37,7 +37,7 @@ export const getOutgoingLinksForEntityAtMoment = (
       .filter(([edgeTimestamp, _]) => edgeTimestamp <= timestampString)
       // Extract the link `EntityEditionId`s from the endpoints of the link edges
       .flatMap(([_, outwardEdges]) => {
-        return outwardEdges.filter(isHasLinkEdge).map((edge) => {
+        return outwardEdges.filter(isOutwardLinkEdge).map((edge) => {
           return edge.endpoint;
         });
       })

@@ -5,15 +5,15 @@ import { KnowledgeGraphOutwardEdge } from "../edge";
 import { EntityIdAndTimestamp } from "../identifier";
 
 /** @todo - is there a way to have TS force us to make this always satisfy `KnowledgeGraphOutwardEdge`? */
-export type HasLinkEdge = {
+export type OutwardLinkEdge = {
   reversed: true;
   kind: "HAS_LEFT_ENDPOINT";
   endpoint: EntityIdAndTimestamp;
 };
 
-export const isHasLinkEdge = (
+export const isOutwardLinkEdge = (
   outwardEdge: KnowledgeGraphOutwardEdge,
-): outwardEdge is HasLinkEdge => {
+): outwardEdge is OutwardLinkEdge => {
   return outwardEdge.kind === "HAS_LEFT_ENDPOINT" && outwardEdge.reversed;
 };
 
@@ -31,14 +31,14 @@ export const isHasRightEndpointEdge = (
 };
 
 /** @todo - is there a way to have TS force us to make this always satisfy `KnowledgeGraphOutwardEdge`? */
-export type HasIncomingDirectedLinkEdge = {
+export type IncomingLinkEdge = {
   reversed: true;
   kind: "HAS_RIGHT_ENDPOINT";
   endpoint: EntityIdAndTimestamp;
 };
 
-export const isHasIncomingDirectedLinkEdge = (
+export const isIncomingLinkEdge = (
   outwardEdge: KnowledgeGraphOutwardEdge,
-): outwardEdge is HasRightEndpointEdge => {
+): outwardEdge is IncomingLinkEdge => {
   return outwardEdge.kind === "HAS_RIGHT_ENDPOINT" && outwardEdge.reversed;
 };
