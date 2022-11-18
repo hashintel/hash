@@ -37,7 +37,7 @@ export const mapOutwardEdge = (
       }
       return {
         ...outwardEdge,
-        endpoint: {
+        rightEndpoint: {
           baseId: outwardEdge.rightEndpoint.baseId,
           timestamp: outwardEdge.rightEndpoint.timestamp,
         },
@@ -54,7 +54,7 @@ export const mapOutwardEdge = (
       }
       return {
         ...outwardEdge,
-        endpoint: {
+        rightEndpoint: {
           baseId: outwardEdge.rightEndpoint.baseId,
           version: outwardEdge.rightEndpoint.version,
         },

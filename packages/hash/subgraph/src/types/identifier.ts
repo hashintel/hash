@@ -4,8 +4,11 @@ import { validate as validateUuid } from "uuid";
 // ${AccountId}%${EntityUuid}`
 export type EntityId = `${string}%${string}`;
 
+/** @todo - consider Type Branding this */
+export type Timestamp = string;
+
 // ISO-formatted datetime string
-export type EntityVersion = string;
+export type EntityVersion = Timestamp;
 
 /**
  * An identifier of a specific edition of an `Entity` at a given `EntityVersion`
@@ -22,7 +25,7 @@ export type EntityEditionId = {
  */
 export type EntityIdAndTimestamp = {
   baseId: EntityId;
-  timestamp: string;
+  timestamp: Timestamp;
 };
 
 export { OntologyTypeEditionId };

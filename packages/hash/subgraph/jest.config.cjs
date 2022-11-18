@@ -15,7 +15,5 @@ module.exports = {
   moduleNameMapper: {
     "@hashintel/hash-graph-client": "<rootDir>/../../graph/clients/typescript",
   },
-  testMatch: [
-    "<rootDir>/tests/**/*.test.ts",
-  ],
+  testMatch: ["<rootDir>/tests/**/*.test.ts"],
 };
