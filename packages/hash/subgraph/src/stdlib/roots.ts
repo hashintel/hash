@@ -15,26 +15,24 @@ import { getPropertyTypeByEditionId } from "./element/property-type";
 import { getEntityTypeByEditionId } from "./element/entity-type";
 import { getEntityByEditionId } from "./element/entity";
 import { Vertex } from "../types/vertex";
+import { mustBeDefined } from "../shared/invariant";
 
 export const getRoots = <RootType extends GraphElement>(
   subgraph: Subgraph<RootType>,
 ): RootType[] =>
   subgraph.roots.map((rootEditionId) => {
-    const root = subgraph.vertices[rootEditionId.baseId]?.[
-      // We could use type-guards here to convince TS that it's safe, but that would be slower, it's currently not
-      // smart enough to realise this can produce a value of type `Vertex` as it struggles with discriminating
-      // `EntityId` and `BaseUri`
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      (rootEditionId as any).version
-    ] as Vertex;
-
-    if (!root) {
-      throw new Error(
-        `couldn't find the root ${JSON.stringify(
-          rootEditionId,
-        )} in the vertex set`,
-      );
-    }
+    const root = mustBeDefined(
+      subgraph.vertices[rootEditionId.baseId]?.[
+        // We could use type-guards here to convince TS that it's safe, but that would be slower, it's currently not
+        // smart enough to realise this can produce a value of type `Vertex` as it struggles with discriminating
+        // `EntityId` and `BaseUri`
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (rootEditionId as any).version
+      ] as Vertex,
+      `roots should have corresponding vertices but ${JSON.stringify(
+        rootEditionId,
+      )} was missing`,
+    );
 
     return root.inner as RootType;
   });
@@ -55,12 +53,12 @@ export const isDataTypeRootedSubgraph = (
       return false;
     }
 
-    const dataType = getDataTypeByEditionId(subgraph, rootEditionId);
-    if (!dataType) {
-      throw new Error(
-        `missing root data type with id: ${JSON.stringify(rootEditionId)}`,
-      );
-    }
+    mustBeDefined(
+      getDataTypeByEditionId(subgraph, rootEditionId),
+      `roots should have corresponding vertices but ${JSON.stringify(
+        rootEditionId,
+      )} was missing`,
+    );
   }
 
   return true;
@@ -82,12 +80,12 @@ export const isPropertyTypeRootedSubgraph = (
       return false;
     }
 
-    const propertyType = getPropertyTypeByEditionId(subgraph, rootEditionId);
-    if (!propertyType) {
-      throw new Error(
-        `missing root property type with id: ${JSON.stringify(rootEditionId)}`,
-      );
-    }
+    mustBeDefined(
+      getPropertyTypeByEditionId(subgraph, rootEditionId),
+      `roots should have corresponding vertices but ${JSON.stringify(
+        rootEditionId,
+      )} was missing`,
+    );
   }
 
   return true;
@@ -109,12 +107,12 @@ export const isEntityTypeRootedSubgraph = (
       return false;
     }
 
-    const entityType = getEntityTypeByEditionId(subgraph, rootEditionId);
-    if (!entityType) {
-      throw new Error(
-        `missing root entity type with id: ${JSON.stringify(rootEditionId)}`,
-      );
-    }
+    mustBeDefined(
+      getEntityTypeByEditionId(subgraph, rootEditionId),
+      `roots should have corresponding vertices but ${JSON.stringify(
+        rootEditionId,
+      )} was missing`,
+    );
   }
 
   return true;
@@ -136,12 +134,12 @@ export const isEntityRootedSubgraph = (
       return false;
     }
 
-    const entity = getEntityByEditionId(subgraph, rootEditionId);
-    if (!entity) {
-      throw new Error(
-        `missing root entity with id: ${JSON.stringify(rootEditionId)}`,
-      );
-    }
+    mustBeDefined(
+      getEntityByEditionId(subgraph, rootEditionId),
+      `roots should have corresponding vertices but ${JSON.stringify(
+        rootEditionId,
+      )} was missing`,
+    );
   }
 
   return true;
