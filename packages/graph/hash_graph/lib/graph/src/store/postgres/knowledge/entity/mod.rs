@@ -87,7 +87,7 @@ impl<C: AsClient> PostgresStore<C> {
                         GenericOutwardEdge {
                             kind: SharedEdgeKind::IsOfType,
                             reversed: false,
-                            endpoint: entity_type_id.into(),
+                            right_endpoint: entity_type_id.into(),
                         },
                     )),
                 );
@@ -132,9 +132,9 @@ impl<C: AsClient> PostgresStore<C> {
                         GenericOutwardEdge {
                             // (HasLeftEndpoint, reversed=true) is equivalent to an
                             // outgoing `Link` `Entity`
-                            kind: KnowledgeGraphEdgeKind::HasLeftEndpoint,
+                            kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                             reversed: true,
-                            endpoint: EntityIdAndTimestamp::new(
+                            right_endpoint: EntityIdAndTimestamp::new(
                                 outgoing_link_entity.metadata().edition_id().base_id(),
                                 earliest_version.inner(),
                             ),
@@ -178,9 +178,9 @@ impl<C: AsClient> PostgresStore<C> {
                         entity_edition_id,
                         left_entity.metadata().edition_id(),
                         GenericOutwardEdge {
-                            kind: KnowledgeGraphEdgeKind::HasLeftEndpoint,
+                            kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                             reversed: false,
-                            endpoint: EntityIdAndTimestamp::new(
+                            right_endpoint: EntityIdAndTimestamp::new(
                                 left_entity.metadata().edition_id().base_id(),
                                 earliest_version.inner(),
                             ),
@@ -224,9 +224,9 @@ impl<C: AsClient> PostgresStore<C> {
                         entity_edition_id,
                         right_entity.metadata().edition_id(),
                         GenericOutwardEdge {
-                            kind: KnowledgeGraphEdgeKind::HasRightEndpoint,
+                            kind: KnowledgeGraphEdgeKind::HasRightEntity,
                             reversed: false,
-                            endpoint: EntityIdAndTimestamp::new(
+                            right_endpoint: EntityIdAndTimestamp::new(
                                 right_entity.metadata().edition_id().base_id(),
                                 earliest_version.inner(),
                             ),

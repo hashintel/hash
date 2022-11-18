@@ -785,8 +785,8 @@ export interface GraphResolveDepths {
  */
 
 export const KnowledgeGraphEdgeKind = {
-  LeftEndpoint: "HAS_LEFT_ENDPOINT",
-  RightEndpoint: "HAS_RIGHT_ENDPOINT",
+  LeftEntity: "HAS_LEFT_ENTITY",
+  RightEntity: "HAS_RIGHT_ENTITY",
 } as const;
 
 export type KnowledgeGraphEdgeKind =
@@ -808,12 +808,6 @@ export type KnowledgeGraphOutwardEdges =
 export interface KnowledgeGraphOutwardEdgesOneOf {
   /**
    *
-   * @type {KnowledgeGraphOutwardEdgesOneOfEndpoint}
-   * @memberof KnowledgeGraphOutwardEdgesOneOf
-   */
-  endpoint: KnowledgeGraphOutwardEdgesOneOfEndpoint;
-  /**
-   *
    * @type {string}
    * @memberof KnowledgeGraphOutwardEdgesOneOf
    */
@@ -824,11 +818,17 @@ export interface KnowledgeGraphOutwardEdgesOneOf {
    * @memberof KnowledgeGraphOutwardEdgesOneOf
    */
   reversed: boolean;
+  /**
+   *
+   * @type {KnowledgeGraphOutwardEdgesOneOfRightEndpoint}
+   * @memberof KnowledgeGraphOutwardEdgesOneOf
+   */
+  rightEndpoint: KnowledgeGraphOutwardEdgesOneOfRightEndpoint;
 }
 
 export const KnowledgeGraphOutwardEdgesOneOfKindEnum = {
-  LeftEndpoint: "HAS_LEFT_ENDPOINT",
-  RightEndpoint: "HAS_RIGHT_ENDPOINT",
+  LeftEntity: "HAS_LEFT_ENTITY",
+  RightEntity: "HAS_RIGHT_ENTITY",
 } as const;
 
 export type KnowledgeGraphOutwardEdgesOneOfKindEnum =
@@ -842,12 +842,6 @@ export type KnowledgeGraphOutwardEdgesOneOfKindEnum =
 export interface KnowledgeGraphOutwardEdgesOneOf1 {
   /**
    *
-   * @type {GraphElementEditionIdOneOf}
-   * @memberof KnowledgeGraphOutwardEdgesOneOf1
-   */
-  endpoint: GraphElementEditionIdOneOf;
-  /**
-   *
    * @type {string}
    * @memberof KnowledgeGraphOutwardEdgesOneOf1
    */
@@ -858,6 +852,12 @@ export interface KnowledgeGraphOutwardEdgesOneOf1 {
    * @memberof KnowledgeGraphOutwardEdgesOneOf1
    */
   reversed: boolean;
+  /**
+   *
+   * @type {GraphElementEditionIdOneOf}
+   * @memberof KnowledgeGraphOutwardEdgesOneOf1
+   */
+  rightEndpoint: GraphElementEditionIdOneOf;
 }
 
 export const KnowledgeGraphOutwardEdgesOneOf1KindEnum = {
@@ -870,19 +870,19 @@ export type KnowledgeGraphOutwardEdgesOneOf1KindEnum =
 /**
  *
  * @export
- * @interface KnowledgeGraphOutwardEdgesOneOfEndpoint
+ * @interface KnowledgeGraphOutwardEdgesOneOfRightEndpoint
  */
-export interface KnowledgeGraphOutwardEdgesOneOfEndpoint {
+export interface KnowledgeGraphOutwardEdgesOneOfRightEndpoint {
   /**
    *
    * @type {string}
-   * @memberof KnowledgeGraphOutwardEdgesOneOfEndpoint
+   * @memberof KnowledgeGraphOutwardEdgesOneOfRightEndpoint
    */
   baseId: string;
   /**
    *
    * @type {string}
-   * @memberof KnowledgeGraphOutwardEdgesOneOfEndpoint
+   * @memberof KnowledgeGraphOutwardEdgesOneOfRightEndpoint
    */
   timestamp: string;
 }
@@ -1088,12 +1088,6 @@ export type OntologyOutwardEdges =
 export interface OntologyOutwardEdgesOneOf {
   /**
    *
-   * @type {GraphElementEditionIdOneOf}
-   * @memberof OntologyOutwardEdgesOneOf
-   */
-  endpoint: GraphElementEditionIdOneOf;
-  /**
-   *
    * @type {string}
    * @memberof OntologyOutwardEdgesOneOf
    */
@@ -1104,6 +1098,12 @@ export interface OntologyOutwardEdgesOneOf {
    * @memberof OntologyOutwardEdgesOneOf
    */
   reversed: boolean;
+  /**
+   *
+   * @type {GraphElementEditionIdOneOf}
+   * @memberof OntologyOutwardEdgesOneOf
+   */
+  rightEndpoint: GraphElementEditionIdOneOf;
 }
 
 export const OntologyOutwardEdgesOneOfKindEnum = {
@@ -1125,12 +1125,6 @@ export type OntologyOutwardEdgesOneOfKindEnum =
 export interface OntologyOutwardEdgesOneOf1 {
   /**
    *
-   * @type {GraphElementEditionIdOneOf1}
-   * @memberof OntologyOutwardEdgesOneOf1
-   */
-  endpoint: GraphElementEditionIdOneOf1;
-  /**
-   *
    * @type {string}
    * @memberof OntologyOutwardEdgesOneOf1
    */
@@ -1141,6 +1135,12 @@ export interface OntologyOutwardEdgesOneOf1 {
    * @memberof OntologyOutwardEdgesOneOf1
    */
   reversed: boolean;
+  /**
+   *
+   * @type {GraphElementEditionIdOneOf1}
+   * @memberof OntologyOutwardEdgesOneOf1
+   */
+  rightEndpoint: GraphElementEditionIdOneOf1;
 }
 
 export const OntologyOutwardEdgesOneOf1KindEnum = {

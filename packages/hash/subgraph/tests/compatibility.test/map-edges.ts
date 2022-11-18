@@ -26,9 +26,9 @@ export const mapOutwardEdge = (
       return outwardEdge;
     }
     // Knowledge-graph edge-kind cases
-    case "HAS_LEFT_ENDPOINT":
-    case "HAS_RIGHT_ENDPOINT": {
-      if (!isEntityAndTimestamp(outwardEdge.endpoint)) {
+    case "HAS_LEFT_ENTITY":
+    case "HAS_RIGHT_ENTITY": {
+      if (!isEntityAndTimestamp(outwardEdge.rightEndpoint)) {
         throw new Error(
           `Expected an \`EntityAndTimestamp\` for knowledge-graph edge-kind endpoint but found:\n${JSON.stringify(
             outwardEdge,
@@ -38,14 +38,14 @@ export const mapOutwardEdge = (
       return {
         ...outwardEdge,
         endpoint: {
-          baseId: outwardEdge.endpoint.baseId,
-          timestamp: outwardEdge.endpoint.timestamp,
+          baseId: outwardEdge.rightEndpoint.baseId,
+          timestamp: outwardEdge.rightEndpoint.timestamp,
         },
       };
     }
     // Shared edge-kind cases
     case "IS_OF_TYPE": {
-      if (!isOntologyTypeEditionId(outwardEdge.endpoint)) {
+      if (!isOntologyTypeEditionId(outwardEdge.rightEndpoint)) {
         throw new Error(
           `Expected an \`OntologyTypeEditionId\` for knowledge-graph to ontology edge endpoint but found:\n${JSON.stringify(
             outwardEdge,
@@ -55,8 +55,8 @@ export const mapOutwardEdge = (
       return {
         ...outwardEdge,
         endpoint: {
-          baseId: outwardEdge.endpoint.baseId,
-          version: outwardEdge.endpoint.version,
+          baseId: outwardEdge.rightEndpoint.baseId,
+          version: outwardEdge.rightEndpoint.version,
         },
       };
     }

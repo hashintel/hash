@@ -17,8 +17,6 @@
 //!
 //! [`BenchmarkId`]: criterion::BenchmarkId
 
-use std::time::Duration;
-
 use criterion::{BenchmarkId, Criterion, SamplingMode};
 use criterion_macro::criterion;
 use graph::subgraph::depths::GraphResolveDepths;
