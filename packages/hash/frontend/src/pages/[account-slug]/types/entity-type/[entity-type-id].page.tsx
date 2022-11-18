@@ -60,8 +60,10 @@ const getSchemaFromEditorForm = (
       ? {
           type: "array",
           minItems: property.minValue,
-          maxItems: property.maxValue,
           items: { $ref: property.$id },
+          ...(property.maxValue === Infinity
+            ? {}
+            : { maxItems: property.maxValue }),
         }
       : { $ref: property.$id };
 
@@ -119,7 +121,7 @@ const Page: NextPageWithLayout = () => {
               $id: mustBeVersionedUri(isArray ? ref.items.$ref : ref.$ref),
               required: !!fetchedEntityType.required?.includes(propertyId),
               array: isArray,
-              maxValue: isArray ? ref.maxItems : 0,
+              maxValue: isArray ? ref.maxItems ?? Infinity : Infinity,
               minValue: isArray ? ref.minItems : 0,
             };
           },

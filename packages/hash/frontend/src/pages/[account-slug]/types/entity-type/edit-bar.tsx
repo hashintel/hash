@@ -151,7 +151,7 @@ const useFreezeScrollWhileTransitioning = () => {
         if (bottomPadding > 0) {
           docNode.style.setProperty(
             "min-height",
-            `${clientHeight + bottomPadding}px`,
+            `${clientHeight - appliedOffset}px`,
           );
         } else {
           docNode.style.removeProperty("min-height");
