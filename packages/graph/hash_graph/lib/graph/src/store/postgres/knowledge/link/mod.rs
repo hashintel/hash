@@ -6,7 +6,11 @@ use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
 use futures::{future::FutureExt, stream, StreamExt, TryStreamExt};
 use tokio_postgres::GenericClient;
+#[cfg(feature = "__internal_bench")]
+use type_system::uri::VersionedUri;
 
+#[cfg(feature = "__internal_bench")]
+use crate::knowledge::EntityId;
 use crate::{
     knowledge::{Link, LinkRootedSubgraph, PersistedLink},
     provenance::{CreatedById, OwnedById, RemovedById},
@@ -140,6 +144,51 @@ impl<C: AsClient> LinkStore for PostgresStore<C> {
             .change_context(InsertionError)?;
 
         Ok(())
+    }
+
+    #[doc(hidden)]
+    #[cfg(feature = "__internal_bench")]
+    async fn insert_links_batched_by_type(
+        &mut self,
+        links: impl IntoIterator<Item = (EntityId, EntityId), IntoIter: Send> + Send,
+        link_type_id: VersionedUri,
+        owned_by_id: OwnedById,
+        actor_id: CreatedById,
+    ) -> Result<u64, InsertionError> {
+        let transaction = PostgresStore::new(
+            self.as_mut_client()
+                .transaction()
+                .await
+                .into_report()
+                .change_context(InsertionError)?,
+        );
+
+        let link_type_version_id = transaction
+            .version_id_by_uri(&link_type_id)
+            .await
+            .change_context(InsertionError)?;
+
+        let count = transaction
+            .insert_link_batch_by_type(
+                links
+                    .into_iter()
+                    .map(|(source_entity_id, taraget_entity_id)| {
+                        (source_entity_id, taraget_entity_id, None)
+                    }),
+                link_type_version_id,
+                owned_by_id,
+                actor_id,
+            )
+            .await?;
+
+        transaction
+            .client
+            .commit()
+            .await
+            .into_report()
+            .change_context(InsertionError)?;
+
+        Ok(count)
     }
 
     async fn get_links<'f: 'q, 'q>(

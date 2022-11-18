@@ -462,6 +462,16 @@ pub trait LinkStore: for<'q> crud::Read<PersistedLink, Query<'q> = Filter<'q, Li
         actor_id: CreatedById,
     ) -> Result<(), InsertionError>;
 
+    #[doc(hidden)]
+    #[cfg(feature = "__internal_bench")]
+    async fn insert_links_batched_by_type(
+        &mut self,
+        links: impl IntoIterator<Item = (EntityId, EntityId), IntoIter: Send> + Send,
+        link_type_id: VersionedUri,
+        owned_by_id: OwnedById,
+        actor_id: CreatedById,
+    ) -> Result<u64, InsertionError>;
+
     /// Get the [`LinkRootedSubgraph`]s specified by the [`StructuralQuery`].
     ///
     /// # Errors
