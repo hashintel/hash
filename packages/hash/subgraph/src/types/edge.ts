@@ -3,7 +3,7 @@ import {
   isEntityEditionId,
   isOntologyTypeEditionId,
   EntityId,
-  EntityVersion,
+  Timestamp,
   EntityEditionId,
   EntityIdAndTimestamp,
   OntologyTypeEditionId,
@@ -90,6 +90,6 @@ export type Edges = {
   };
 } & {
   [_: EntityId]: {
-    [_: EntityVersion]: KnowledgeGraphOutwardEdge[];
+    [_: Timestamp]: KnowledgeGraphOutwardEdge[];
   };
 };
