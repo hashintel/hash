@@ -75,7 +75,9 @@ export const MultipleValuesCell = ({
           if (multipleValuesMenuOpen) {
             setMultipleValuesMenuOpen(false);
           } else {
-            setValue(`properties.${propertyIndex}.array`, true);
+            setValue(`properties.${propertyIndex}.array`, true, {
+              shouldDirty: true,
+            });
             setMultipleValuesMenuOpen(true);
           }
         }}
@@ -115,8 +117,12 @@ export const MultipleValuesCell = ({
                 onChange={(evt) => {
                   setMultipleValuesMenuOpen(evt.target.checked);
                   if (!evt.target.checked) {
-                    setValue(`properties.${propertyIndex}.minValue`, 0);
-                    setValue(`properties.${propertyIndex}.maxValue`, Infinity);
+                    setValue(`properties.${propertyIndex}.minValue`, 0, {
+                      shouldDirty: true,
+                    });
+                    setValue(`properties.${propertyIndex}.maxValue`, Infinity, {
+                      shouldDirty: true,
+                    });
                   }
                   field.onChange(evt);
                 }}
@@ -204,7 +210,11 @@ export const MultipleValuesCell = ({
                       onChange(evt) {
                         const min = evt.target.value;
                         if (min > maxValue) {
-                          setValue(`properties.${propertyIndex}.maxValue`, min);
+                          setValue(
+                            `properties.${propertyIndex}.maxValue`,
+                            min,
+                            { shouldDirty: true },
+                          );
                         }
                       },
                     })}
@@ -217,12 +227,13 @@ export const MultipleValuesCell = ({
                       ∞
                       <Checkbox
                         checked={maxValue === Infinity}
-                        onChange={() =>
+                        onChange={(evt) =>
                           setValue(
                             `properties.${propertyIndex}.maxValue`,
-                            maxValue === Infinity
-                              ? Math.max(1, minValue)
-                              : Infinity,
+                            evt.target.checked
+                              ? Infinity
+                              : Math.max(1, minValue),
+                            { shouldDirty: true },
                           )
                         }
                         sx={{
@@ -245,6 +256,7 @@ export const MultipleValuesCell = ({
                             setValue(
                               `properties.${propertyIndex}.minValue`,
                               max,
+                              { shouldDirty: true },
                             );
                           }
                         },
