@@ -14,15 +14,7 @@ import {
   GetRowThemeCallback,
 } from "@glideapps/glide-data-grid";
 import { useTheme } from "@mui/material";
-import {
-  forwardRef,
-  ForwardRefRenderFunction,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { Ref, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { uniqueId } from "lodash";
 import { getCellHorizontalPadding } from "./utils";
 import { customGridIcons } from "./utils/custom-grid-icons";
@@ -30,14 +22,14 @@ import { InteractableManager } from "./utils/interactable-manager";
 import { useDrawHeader } from "./utils/use-draw-header";
 import {
   createHandleHeaderClicked,
-  sortRowData,
+  sortRowData as sortRows,
   TableSort,
 } from "./utils/sorting";
 
 export type Row = Record<string, unknown>;
 export type RowData = Row[];
 
-type GlideGridProps = Omit<
+type GlideGridProps<T> = Omit<
   DataEditorProps,
   | "onColumnResize"
   | "onColumnResizeEnd"
@@ -47,30 +39,29 @@ type GlideGridProps = Omit<
   | "rows"
 > & {
   columns: SizedGridColumn[];
-  rowData: RowData;
+  rowData: T;
   resizable?: boolean;
   sortable?: boolean;
   initialPropertySort?: TableSort<string>;
-  createGetCellContent: (rowData: RowData) => (cell: Item) => GridCell;
-  onSort?: (rowData: RowData) => RowData;
+  tableRef?: Ref<DataEditorRef>;
+  createGetCellContent: (rowData: T) => (cell: Item) => GridCell;
+  sortRowData?: (rowData: T, sort: TableSort<string>) => T;
 };
 
-const GlideGrid: ForwardRefRenderFunction<DataEditorRef, GlideGridProps> = (
-  {
-    customRenderers,
-    onVisibleRegionChanged,
-    drawHeader,
-    columns,
-    rowData,
-    resizable = true,
-    sortable = true,
-    initialPropertySort,
-    createGetCellContent,
-    onSort,
-    ...rest
-  },
-  ref,
-) => {
+export const GlideGrid = <T extends RowData>({
+  customRenderers,
+  onVisibleRegionChanged,
+  drawHeader,
+  columns,
+  rowData,
+  resizable = true,
+  sortable = true,
+  initialPropertySort,
+  createGetCellContent,
+  sortRowData,
+  tableRef,
+  ...rest
+}: GlideGridProps<T>) => {
   const tableIdRef = useRef(uniqueId("grid"));
   const [columnSizes, setColumnSizes] = useState<Record<string, number>>({});
 
@@ -109,10 +100,10 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, GlideGridProps> = (
       return rowData;
     }
 
-    const sortedRows = sortRowData(rowData, propertySort);
+    const sortRowFn = sortRowData ?? sortRows;
 
-    return onSort?.(sortedRows) ?? sortedRows;
-  }, [sortable, rowData, propertySort, onSort]);
+    return sortRowFn(rowData, propertySort);
+  }, [sortable, rowData, propertySort, sortRowData]);
 
   const gridTheme: Partial<Theme> = useMemo(
     () => ({
@@ -233,7 +224,7 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, GlideGridProps> = (
 
   return (
     <DataEditor
-      ref={ref}
+      ref={tableRef}
       theme={gridTheme}
       getRowThemeOverride={getRowThemeOverride}
       gridSelection={selection}
@@ -266,7 +257,3 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, GlideGridProps> = (
     />
   );
 };
-
-const GlideGridForwardRef = forwardRef(GlideGrid);
-
-export { GlideGridForwardRef as GlideGrid };

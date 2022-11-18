@@ -1,15 +1,18 @@
 import { useCallback, useMemo } from "react";
-import { RowData } from "../../../../../../../components/GlideGlid/glide-grid";
 import { PropertyRow } from "./types";
 import { generatePropertyRowsFromEntity } from "./use-row-data/generate-property-rows-from-entity";
 import { useEntityEditor } from "../../entity-editor-context";
 import { fillRowDataIndentCalculations } from "./fill-row-data-indent-calculations";
 import { flattenExpandedItemsOfTree } from "./flatten-expanded-items-of-tree";
+import {
+  sortRowData,
+  TableSort,
+} from "../../../../../../../components/GlideGlid/utils/sorting";
 
 export const useRowData = () => {
   const { rootEntityAndSubgraph, propertyExpandStatus } = useEntityEditor();
 
-  const rowData = useMemo<PropertyRow[]>(() => {
+  const rows = useMemo<PropertyRow[]>(() => {
     if (!rootEntityAndSubgraph) {
       return [];
     }
@@ -17,12 +20,12 @@ export const useRowData = () => {
     return generatePropertyRowsFromEntity(rootEntityAndSubgraph);
   }, [rootEntityAndSubgraph]);
 
-  const flattenRowData = useCallback(
-    (sortedRowData: RowData) => {
-      const propertyRows = sortedRowData as PropertyRow[];
+  const sortAndFlattenRowData = useCallback(
+    (rowData: PropertyRow[], sort: TableSort<string>) => {
+      const sortedRowData = sortRowData(rowData, sort);
 
       const flattenedRowData = flattenExpandedItemsOfTree(
-        propertyRows,
+        sortedRowData,
         propertyExpandStatus,
       );
 
@@ -33,5 +36,5 @@ export const useRowData = () => {
     [propertyExpandStatus],
   );
 
-  return [rowData, flattenRowData] as const;
+  return [rows, sortAndFlattenRowData] as const;
 };

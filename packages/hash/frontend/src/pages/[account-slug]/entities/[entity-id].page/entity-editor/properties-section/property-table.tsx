@@ -21,10 +21,10 @@ export const PropertyTable = ({
   showSearch,
   onSearchClose,
 }: PropertyTableProps) => {
-  const gridRef = useRef<DataEditorRef>(null);
+  const tableRef = useRef<DataEditorRef>(null);
   const { togglePropertyExpand, propertyExpandStatus } = useEntityEditor();
-  const [rowData, flattenRowData] = useRowData();
-  const { tooltipElement, showTooltip, hideTooltip } = useGridTooltip(gridRef);
+  const [rowData, sortAndFlattenRowData] = useRowData();
+  const { tooltipElement, showTooltip, hideTooltip } = useGridTooltip(tableRef);
   const createGetCellContent = useCreateGetCellContent(
     showTooltip,
     hideTooltip,
@@ -44,7 +44,7 @@ export const PropertyTable = ({
   return (
     <>
       <GlideGrid
-        ref={gridRef}
+        tableRef={tableRef}
         columns={propertyGridColumns}
         createGetCellContent={createGetCellContent}
         onCellEdited={onCellEdited}
@@ -52,7 +52,7 @@ export const PropertyTable = ({
         showSearch={showSearch}
         onSearchClose={onSearchClose}
         customRenderers={customRenderers}
-        onSort={flattenRowData}
+        sortRowData={sortAndFlattenRowData}
         // define max height if there are lots of rows
         height={rowData.length > 10 ? 500 : undefined}
       />
