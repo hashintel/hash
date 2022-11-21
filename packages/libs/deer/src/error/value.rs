@@ -67,6 +67,43 @@ impl Display for ValueError {
 
 impl_error!(ValueError);
 
+#[derive(Debug)]
+pub struct MissingError;
+
+impl Error for MissingError {
+    type Properties = (Location, ExpectedType);
+
+    const ID: Id = id!["value", "missing"];
+    const NAMESPACE: Namespace = NAMESPACE;
+
+    fn message<'a>(
+        &self,
+        fmt: &mut Formatter,
+        properties: &<Self::Properties as ErrorProperties>::Value<'a>,
+    ) -> fmt::Result {
+        let (_, expected) = properties;
+
+        match expected {
+            Some(expected) => {
+                let ty = expected.schema().ty();
+
+                fmt.write_fmt(format_args!(
+                    "received no value, but expected value of type {ty}"
+                ))
+            }
+            None => Display::fmt(self, fmt),
+        }
+    }
+}
+
+impl Display for MissingError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.write_str("unexpected missing value")
+    }
+}
+
+impl_error!(MissingError);
+
 #[cfg(test)]
 mod tests {
     use alloc::vec;
@@ -83,8 +120,8 @@ mod tests {
     #[test]
     fn value() {
         // we simulate that the error is in:
-        // [{field1: 256 <- here}, _, _]
-        // The value should be an i8, so between 0 and 255
+        // [{field1: _, here ->}, _, _]
+        // We expect a value at field2, but that field does not exist
 
         let error = Report::new(ValueError)
             .attach(Location::Array(0))
@@ -129,6 +166,56 @@ mod tests {
                 ))
             ),
             "received value is of correct type (integer), but does not fit constraints"
+        );
+    }
+
+    #[test]
+    fn missing() {
+        // we simulate that the error is in:
+        // [{field1: _, here ->}, _, _]
+        // We expect a value of type u8 at field2, but that field does not exist
+
+        let error = Report::new(MissingError)
+            .attach(Location::Array(0))
+            .attach(Location::Field("field2"))
+            .attach(ExpectedType::new(
+                Schema::new("integer")
+                    .with("minimum", u8::MIN)
+                    .with("maximum", u8::MAX),
+            ));
+
+        assert_eq!(
+            to_json(&error),
+            json!({
+                "location": [
+                    {"type": "array", "value": 0},
+                    {"type": "field", "value": "field2"}
+                ],
+                "expected": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255,
+                }
+            })
+        );
+    }
+
+    #[test]
+    fn missing_message() {
+        assert_eq!(
+            to_message(&Report::new(MissingError)),
+            "unexpected missing value"
+        );
+
+        assert_eq!(
+            to_message(
+                &Report::new(MissingError).attach(ExpectedType::new(
+                    Schema::new("integer")
+                        .with("minimum", u8::MIN)
+                        .with("maximum", u8::MAX),
+                ))
+            ),
+            "received no value, but expected value of type integer"
         );
     }
 }
