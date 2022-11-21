@@ -1,7 +1,7 @@
 import { ApolloError, UserInputError } from "apollo-server-express";
 import { GraphApi } from "@hashintel/hash-graph-client";
 import { generateKeyBetween } from "fractional-indexing";
-import { EntityId } from "@hashintel/hash-subgraph";
+import { EntityId, PropertyObject } from "@hashintel/hash-subgraph";
 import {
   EntityModel,
   PageModel,
@@ -82,7 +82,7 @@ export default class extends EntityModel {
 
     const index = generateKeyBetween(prevIndex ?? null, null);
 
-    const properties: object = {
+    const properties: PropertyObject = {
       [SYSTEM_TYPES.propertyType.title.baseUri]: title,
       [SYSTEM_TYPES.propertyType.summary.baseUri]: summary,
       [SYSTEM_TYPES.propertyType.index.baseUri]: index,
@@ -463,7 +463,7 @@ export default class extends EntityModel {
     const { currentPosition, newPosition, actorId } = params;
 
     const contentLinks = await this.getOutgoingLinks(graphApi, {
-      linkTypeModel: SYSTEM_TYPES.linkType.contains,
+      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.contains,
     });
 
     if (currentPosition < 0 || currentPosition >= contentLinks.length) {
@@ -475,14 +475,17 @@ export default class extends EntityModel {
       throw new UserInputError(`invalid newPosition: ${params.newPosition}`);
     }
 
-    const link = contentLinks.find(({ index }) => index === currentPosition);
+    const link = contentLinks.find(
+      ({ linkMetadata }) => linkMetadata.leftOrder === currentPosition,
+    );
 
     if (!link) {
       throw new Error(
-        `Critical: could not find contents link with index ${currentPosition} for page with entityId ${this.entityId} in account ${this.ownedById}`,
+        `Critical: could not find contents link with index ${currentPosition} for page with entityId ${this.baseId}`,
       );
     }
 
+    /** @todo - link.update currently doesn't allow updating of link metadata */
     await link.update(graphApi, {
       updatedIndex: newPosition,
       actorId,
