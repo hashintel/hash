@@ -1,13 +1,11 @@
 import { ApolloError } from "apollo-server-errors";
 import {
-  Entity,
   GraphApi,
-  Subgraph,
   EntityStructuralQuery,
   Filter,
-  EntityMetadata,
 } from "@hashintel/hash-graph-client";
-
+import { Entity, Subgraph } from "@hashintel/hash-subgraph";
+import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import {
   EntityModel,
   EntityTypeModel,
@@ -20,6 +18,13 @@ import {
 } from "../../graphql/apiTypes.gen";
 import { exactlyOne, linkedTreeFlatten } from "../../util";
 
+/**
+ * @todo: import this directly from `@hashintel/hash-subgraph` once it is exported
+ * @see  https://app.asana.com/0/1202805690238892/1203409252899196/f
+ */
+export type EntityMetadata = Entity["metadata"];
+export type EntityProperties = Entity["properties"];
+
 export type EntityModelConstructorParams = {
   entity: Entity;
   entityTypeModel: EntityTypeModel;
@@ -27,7 +32,7 @@ export type EntityModelConstructorParams = {
 
 export type EntityModelCreateParams = {
   ownedById: string;
-  properties: object;
+  properties: EntityProperties;
   entityTypeModel: EntityTypeModel;
   entityId?: string;
   actorId: string;
@@ -65,7 +70,7 @@ export default class {
     return this.entity.metadata;
   }
 
-  get properties(): object {
+  get properties(): EntityProperties {
     return this.entity.properties;
   }
 
@@ -130,7 +135,7 @@ export default class {
 
     const entity: Entity = {
       properties,
-      metadata,
+      metadata: metadata as EntityMetadata,
     };
 
     return EntityModel.fromEntity(graphApi, entity);
@@ -313,15 +318,9 @@ export default class {
     });
 
     return await Promise.all(
-      subgraph.roots.map(({ baseId, version }) => {
-        const entityVertex = subgraph.vertices[baseId]?.[version];
-
-        if (entityVertex && entityVertex.kind === "entity") {
-          return EntityModel.fromEntity(graphApi, entityVertex.inner);
-        }
-
-        throw new Error("Could not get entity from sub-graph");
-      }),
+      getRootsAsEntities(subgraph as Subgraph).map((entity) =>
+        EntityModel.fromEntity(graphApi, entity),
+      ),
     );
   }
 
@@ -339,7 +338,7 @@ export default class {
     const { entityId } = params;
     const { data: persistedEntity } = await graphApi.getEntity(entityId);
 
-    return await EntityModel.fromEntity(graphApi, persistedEntity);
+    return await EntityModel.fromEntity(graphApi, persistedEntity as Entity);
   }
 
   /**
@@ -369,7 +368,7 @@ export default class {
   async update(
     graphApi: GraphApi,
     params: {
-      properties: object;
+      properties: EntityProperties;
       actorId: string;
     },
   ): Promise<EntityModel> {
@@ -385,7 +384,7 @@ export default class {
     });
 
     return EntityModel.fromEntity(graphApi, {
-      metadata,
+      metadata: metadata as EntityMetadata,
       properties,
     });
   }
@@ -411,7 +410,7 @@ export default class {
     const { updatedProperties, actorId } = params;
 
     return await this.update(graphApi, {
-      properties: updatedProperties.reduce(
+      properties: updatedProperties.reduce<EntityProperties>(
         (prev, { propertyTypeBaseUri, value }) => ({
           ...prev,
           [propertyTypeBaseUri]: value,

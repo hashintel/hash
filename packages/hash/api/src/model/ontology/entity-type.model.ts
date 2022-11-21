@@ -4,12 +4,11 @@ import { EntityType } from "@blockprotocol/type-system-web";
 import {
   GraphApi,
   UpdateEntityTypeRequest,
-  EntityTypeWithMetadata,
-  OntologyElementMetadata,
 } from "@hashintel/hash-graph-client";
+import { EntityTypeWithMetadata } from "@hashintel/hash-subgraph";
 import { generateTypeId, types } from "@hashintel/hash-shared/types";
 import { EntityTypeModel, PropertyTypeModel } from "../index";
-import { getNamespaceOfAccountOwner } from "./util";
+import { getNamespaceOfAccountOwner, OntologyElementMetadata } from "./util";
 import { SYSTEM_TYPES } from "../../graph/system-types";
 import { linkEntityTypeUri } from "../util";
 
@@ -111,10 +110,11 @@ export default class {
      *   authorized to see.
      *   https://app.asana.com/0/1202805690238892/1202890446280569/f
      */
-    const { data: persistedEntityTypes } =
-      await graphApi.getLatestEntityTypes();
+    const { data: entityTypes } = await graphApi.getLatestEntityTypes();
 
-    return persistedEntityTypes.map(EntityTypeModel.fromEntityTypeWithMetadata);
+    return (entityTypes as EntityTypeWithMetadata[]).map(
+      EntityTypeModel.fromEntityTypeWithMetadata,
+    );
   }
 
   /**
@@ -133,7 +133,9 @@ export default class {
       entityTypeId,
     );
 
-    return EntityTypeModel.fromEntityTypeWithMetadata(persistedEntityType);
+    return EntityTypeModel.fromEntityTypeWithMetadata(
+      persistedEntityType as EntityTypeWithMetadata,
+    );
   }
 
   /**

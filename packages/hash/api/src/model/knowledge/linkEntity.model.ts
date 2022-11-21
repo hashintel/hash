@@ -1,12 +1,24 @@
 import {
   GraphApi,
-  Entity,
-  LinkEntityMetadata,
   Filter,
   EntityStructuralQuery,
 } from "@hashintel/hash-graph-client";
+import { Entity, Subgraph } from "@hashintel/hash-subgraph";
+import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 
-import { EntityModel, EntityTypeModel, LinkEntityModel } from "../index";
+import {
+  EntityMetadata,
+  EntityModel,
+  EntityProperties,
+  EntityTypeModel,
+  LinkEntityModel,
+} from "../index";
+
+/**
+ * @todo: import this directly from `@hashintel/hash-subgraph` once it is exported
+ * @see  https://app.asana.com/0/1202805690238892/1203409252899196/f
+ */
+type LinkEntityMetadata = NonNullable<Entity["metadata"]["linkMetadata"]>;
 
 export type LinkModelConstructorParams = {
   linkEntity: Entity;
@@ -17,7 +29,7 @@ export type LinkModelConstructorParams = {
 
 export type LinkModelCreateParams = {
   ownedById: string;
-  properties?: object;
+  properties?: EntityProperties;
   linkEntityTypeModel: EntityTypeModel;
   leftEntityModel: EntityModel;
   leftOrder?: number;
@@ -102,15 +114,9 @@ export default class extends EntityModel {
     });
 
     return await Promise.all(
-      subgraph.roots.map(({ baseId, version }) => {
-        const entityVertex = subgraph.vertices[baseId]?.[version];
-
-        if (entityVertex && entityVertex.kind === "entity") {
-          return LinkEntityModel.fromEntity(graphApi, entityVertex.inner);
-        }
-
-        throw new Error("Could not get link entity from sub-graph");
-      }),
+      getRootsAsEntities(subgraph as Subgraph).map((entity) =>
+        LinkEntityModel.fromEntity(graphApi, entity),
+      ),
     );
   }
 
@@ -160,7 +166,7 @@ export default class extends EntityModel {
     });
 
     return await LinkEntityModel.fromEntity(graphApi, {
-      metadata: linkEntityMetadata,
+      metadata: linkEntityMetadata as EntityMetadata,
       properties,
     });
   }
