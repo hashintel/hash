@@ -18,7 +18,7 @@ export const entityTypeTypedef = gql`
     Get a subgraph rooted at an entity type resolved by its versioned URI.
     """
     getEntityType(
-      entityTypeId: String!
+      entityTypeId: VersionedUri!
       dataTypeResolveDepth: Int!
       propertyTypeResolveDepth: Int!
       entityTypeResolveDepth: Int!
@@ -44,7 +44,7 @@ export const entityTypeTypedef = gql`
       """
       The entity type versioned $id to update.
       """
-      entityTypeId: String!
+      entityTypeId: VersionedUri!
       """
       New entity type schema contents to be used.
       """

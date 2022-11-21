@@ -3,6 +3,7 @@ import { gql } from "apollo-server-express";
 /** @todo - docs */
 
 export const subgraphTypedef = gql`
+  scalar VersionedUri
   scalar Vertices
   scalar Edges
 
@@ -11,9 +12,7 @@ export const subgraphTypedef = gql`
     dataTypeResolveDepth: Int!
     propertyTypeResolveDepth: Int!
     entityTypeResolveDepth: Int!
-    linkTypeResolveDepth: Int!
-    linkTargetEntityResolveDepth: Int!
-    linkResolveDepth: Int!
+    entityResolveDepth: Int!
   }
 
   type Subgraph {

@@ -13,15 +13,6 @@ import {
 } from "./entity";
 import { createLink } from "./link/createLink";
 import { deleteLink } from "./link/deleteLink";
-import { blocks, blockProperties, blockLinkedEntities } from "./block";
-import {
-  page,
-  pageProperties,
-  updatePage,
-  updatePageContents,
-  searchPages,
-  pageLinkedEntities,
-} from "./pages";
 import { embedCode } from "./embed";
 import {
   getImpliedEntityHistory,
@@ -47,7 +38,6 @@ import { deleteLinkedAggregation } from "./linkedAggregation/deleteLinkedAggrega
 import { updateLinkedAggregationOperation } from "./linkedAggregation/updateLinkedAggregationOperation";
 import { createLinkedAggregation } from "./linkedAggregation/createLinkedAggregation";
 import { linkedAggregationResults } from "./linkedAggregation/linkedAggregationResults";
-import { pageSearchResultConnection } from "./paginationConnection/pageSearchResultConnection";
 import {
   executeDemoTask,
   executeGithubSpecTask,
@@ -86,12 +76,12 @@ import { createPersistedComment } from "./knowledge/comment/comment";
 import { persistedBlocks } from "./knowledge/block/block";
 import { getBlockProtocolBlocks } from "./blockprotocol/getBlock";
 import {
-  createPersistedEntity,
-  getPersistedEntity,
-  getAllLatestPersistedEntities,
-  updatePersistedEntity,
+  createEntityWithMetadata,
+  getEntityWithMetadata,
+  getAllLatestEntitiesWithMetadata,
+  updateEntityWithMetadata,
 } from "./knowledge/entity/entity";
-import { UnresolvedPersistedEntityGQL } from "./knowledge/model-mapping";
+import { UnresolvedEntityWithMetadataGQL } from "./knowledge/model-mapping";
 import {
   createPersistedLink,
   deletePersistedLink,
@@ -130,7 +120,6 @@ export const resolvers = {
   Query: {
     // Logged in and signed up users only,
     aggregateEntity: loggedInAndSignedUp(aggregateEntity),
-    blocks: loggedInAndSignedUp(blocks),
     deprecatedGetAccountEntityTypes: loggedInAndSignedUp(
       deprecatedGetAccountEntityTypes,
     ),
@@ -140,16 +129,13 @@ export const resolvers = {
     deprecatedGetEntityType: loggedInAndSignedUp(deprecatedGetEntityType),
     getLink: loggedInAndSignedUp(getLink),
     getLinkedAggregation: loggedInAndSignedUp(getLinkedAggregation),
-    page: canAccessAccount(page),
     getImpliedEntityHistory: loggedInAndSignedUp(getImpliedEntityHistory),
     getImpliedEntityVersion: loggedInAndSignedUp(getImpliedEntityVersion),
-    searchPages: loggedInAndSignedUp(searchPages),
     // Logged in users only
     me: loggedIn(me),
     // Any user
     isShortnameTaken,
     embedCode,
-    pageSearchResultConnection,
     // Ontology
     getAllLatestDataTypes: loggedInAndSignedUp(getAllLatestDataTypes),
     getDataType: loggedInAndSignedUp(getDataType),
@@ -162,9 +148,9 @@ export const resolvers = {
     persistedPages: loggedInAndSignedUp(persistedPages),
     persistedPageComments: loggedInAndSignedUp(persistedPageComments),
     persistedBlocks: loggedInAndSignedUp(persistedBlocks),
-    getPersistedEntity: loggedInAndSignedUp(getPersistedEntity),
-    getAllLatestPersistedEntities: loggedInAndSignedUp(
-      getAllLatestPersistedEntities,
+    getEntityWithMetadata: loggedInAndSignedUp(getEntityWithMetadata),
+    getAllLatestEntitiesWithMetadata: loggedInAndSignedUp(
+      getAllLatestEntitiesWithMetadata,
     ),
     /** @todo - delete this - https://app.asana.com/0/0/1203157172269854/f */
     outgoingPersistedLinks: loggedInAndSignedUp(outgoingPersistedLinks),
@@ -185,8 +171,6 @@ export const resolvers = {
     transferEntity: loggedInAndSignedUp(transferEntity),
     updateEntity: loggedInAndSignedUp(updateEntity),
     deprecatedUpdateEntityType: loggedInAndSignedUp(deprecatedUpdateEntityType),
-    updatePage: loggedInAndSignedUp(updatePage),
-    updatePageContents: loggedInAndSignedUp(updatePageContents),
     updatePersistedPageContents: loggedInAndSignedUp(
       updatePersistedPageContents,
     ),
@@ -203,8 +187,8 @@ export const resolvers = {
     createEntityType: loggedInAndSignedUp(createEntityType),
     updateEntityType: loggedInAndSignedUp(updateEntityType),
     // Knowledge
-    createPersistedEntity: loggedInAndSignedUp(createPersistedEntity),
-    updatePersistedEntity: loggedIn(updatePersistedEntity),
+    createEntityWithMetadata: loggedInAndSignedUp(createEntityWithMetadata),
+    updateEntityWithMetadata: loggedIn(updateEntityWithMetadata),
     createPersistedLink: loggedInAndSignedUp(createPersistedLink),
     deletePersistedLink: loggedInAndSignedUp(deletePersistedLink),
     createPersistedPage: loggedInAndSignedUp(createPersistedPage),
@@ -220,18 +204,6 @@ export const resolvers = {
   },
 
   JSONObject: JSONObjectResolver,
-
-  Block: {
-    properties:
-      blockProperties /** @todo: remove this resolver as it is deprecated */,
-    ...blockLinkedEntities,
-  },
-
-  Page: {
-    properties:
-      pageProperties /** @todo: remove this resolver as it is deprecated */,
-    ...pageLinkedEntities,
-  },
 
   FileProperties: {
     url: fileFields.url,
@@ -278,29 +250,6 @@ export const resolvers = {
   },
 
   // New knowledge field resolvers
-
-  PersistedEntity: {
-    /**
-     * Determines whether a `PersistedEntity` instance should be treated as a
-     * system GQL type definition (for example as a `PersistedPage`), or
-     * whether to treat it is an `UnknownPersistedEntity`.
-     */
-    __resolveType: ({
-      systemTypeName,
-    }: UnresolvedPersistedEntityGQL):
-      | SystemEntityGQLTypeName
-      | "UnknownPersistedEntity" => {
-      const systemEntityGQLTypeName = systemTypeName
-        ? `Persisted${systemTypeName.split(" ").join("")}`
-        : undefined;
-
-      return systemEntityGQLTypeName &&
-        isSystemEntityGQLTypeName(systemEntityGQLTypeName)
-        ? systemEntityGQLTypeName
-        : "UnknownPersistedEntity";
-    },
-  },
-
   PersistedPage: {
     contents: persistedPageContents,
     parentPage: parentPersistedPage,
@@ -317,10 +266,4 @@ export const resolvers = {
   PersistedBlock: {
     blockChildEntity,
   },
-
-  /**
-   * @todo Add Entity.linkedEntities field resolver for resolving linked entities
-   *   PersistedEntity: { linkedEntities .. }
-   *   see https://app.asana.com/0/0/1203057486837594/f
-   */
 };

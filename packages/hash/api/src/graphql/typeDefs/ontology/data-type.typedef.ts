@@ -1,6 +1,7 @@
 import { gql } from "apollo-server-express";
 
 export const dataTypeTypedef = gql`
+  scalar VersionedUri
   # scalar DataType
   # scalar DataTypeWithoutId
   # scalar DataTypeWithMetadata
@@ -14,7 +15,10 @@ export const dataTypeTypedef = gql`
     """
     Get a subgraph rooted at an data type resolved by its versioned URI.
     """
-    getDataType(dataTypeId: String!, dataTypeResolveDepth: Int!): Subgraph!
+    getDataType(
+      dataTypeId: VersionedUri!
+      dataTypeResolveDepth: Int!
+    ): Subgraph!
   }
 
   # The following mutations should not be exposed until user defined data types

@@ -3,7 +3,7 @@ import { subgraphFieldsFragment } from "../subgraph";
 
 export const getPropertyTypeQuery = gql`
   query getPropertyType(
-    $propertyTypeId: String!
+    $propertyTypeId: VersionedUri!
     $dataTypeResolveDepth: Int!
     $propertyTypeResolveDepth: Int!
   ) {
@@ -46,7 +46,7 @@ export const createPropertyTypeMutation = gql`
 
 export const updatePropertyTypeMutation = gql`
   mutation updatePropertyType(
-    $propertyTypeId: String!
+    $propertyTypeId: VersionedUri!
     $updatedPropertyType: PropertyTypeWithoutId!
   ) {
     updatePropertyType(

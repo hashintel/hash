@@ -3,18 +3,8 @@ import { gql } from "@apollo/client";
 const persistedBlockFieldsFragment = gql`
   fragment PersistedBlockFields on PersistedBlock {
     __typename
-    entityId
-    entityVersion
-    accountId
-    entityTypeId
-    componentId
-    blockChildEntity {
-      entityId
-      entityTypeId
-      entityVersion
-      accountId
-      properties
-    }
+    metadata
+    blockChildEntity
     properties
   }
 `;
@@ -25,12 +15,11 @@ const persistedPageFieldsFragment = gql`
     title
     icon
     summary
-    ownedById
-    entityId
-    entityVersion
     contents {
       ...PersistedBlockFields
     }
+    metadata
+    properties
     __typename
   }
   ${persistedBlockFieldsFragment}
@@ -51,7 +40,7 @@ export const getPageInfoQuery = gql`
       entityId: $entityId
       entityVersion: $entityVersion
     ) {
-      entityId
+      metadata
       ...PersistedPagePropertyFields
     }
   }
@@ -97,33 +86,4 @@ export const updatePersistedPageContents = gql`
   }
 
   ${persistedPageFieldsFragment}
-`;
-
-const pagePropertiesFieldsFragment = gql`
-  fragment PagePropertyFields on PageProperties {
-    title
-    archived
-    icon
-  }
-`;
-
-export const updatePage = gql`
-  mutation updatePage(
-    $accountId: ID!
-    $entityId: ID!
-    $properties: PageUpdateData!
-  ) {
-    updatePage(
-      accountId: $accountId
-      entityId: $entityId
-      properties: $properties
-    ) {
-      accountId
-      entityId
-      properties {
-        ...PagePropertyFields
-      }
-    }
-  }
-  ${pagePropertiesFieldsFragment}
 `;

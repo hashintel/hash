@@ -17,7 +17,7 @@ export const propertyTypeTypedef = gql`
     Get a subgraph rooted at an property type resolved by its versioned URI.
     """
     getPropertyType(
-      propertyTypeId: String!
+      propertyTypeId: VersionedUri!
       dataTypeResolveDepth: Int!
       propertyTypeResolveDepth: Int!
     ): Subgraph!
@@ -42,7 +42,7 @@ export const propertyTypeTypedef = gql`
       """
       The property type versioned $id to update.
       """
-      propertyTypeId: String!
+      propertyTypeId: VersionedUri!
       """
       New property type schema contents to be used.
       """

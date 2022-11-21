@@ -14,7 +14,7 @@ export const setParentPage = gql`
       prevIndex: $prevIndex
       nextIndex: $nextIndex
     ) {
-      ownedById
+      metadata
       title
       summary
       __typename
@@ -28,8 +28,7 @@ export const createPersistedPage = gql`
     $properties: PersistedPageCreationData!
   ) {
     createPersistedPage(ownedById: $ownedById, properties: $properties) {
-      ownedById
-      entityId
+      metadata
     }
   }
 `;
@@ -43,8 +42,7 @@ export const updatePersistedPage = gql`
       entityId: $entityId
       updatedProperties: $updatedProperties
     ) {
-      ownedById
-      entityId
+      metadata
     }
   }
 `;

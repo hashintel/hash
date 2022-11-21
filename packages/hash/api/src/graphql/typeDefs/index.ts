@@ -1,22 +1,19 @@
 import { gql } from "apollo-server-express";
 
-import { blockTypedef } from "./block.typedef";
 import { entityTypedef } from "./entity.typedef";
 import { linkTypedef } from "./link.typedef";
 import { deprecatedEntityTypeTypedef } from "./entityType.typedef";
-import { pageTypedef } from "./page.typedef";
 import { textTypedef } from "./text.typedef";
 import { persistedUserTypedef } from "./knowledge/user.typedef";
 import { embedTypeDef } from "./embed.typedef";
 import { fileTypedef } from "./file.typedef";
 import { impliedHistoryTypedef } from "./impliedHistory.typedef";
 import { aggregationTypedef } from "./aggregation.typedef";
-import { pagePaginationTypedef } from "./paginationConnections.typedef";
 import { executeTaskTypedef } from "./taskExecution.typedef";
 import { dataTypeTypedef } from "./ontology/data-type.typedef";
 import { propertyTypeTypedef } from "./ontology/property-type.typedef";
 import { entityTypeTypedef } from "./ontology/entity-type.typedef";
-import { persistedEntityTypedef } from "./knowledge/entity.typedef";
+import { entityWithMetadataTypedef } from "./knowledge/entity.typedef";
 import { persistedPageTypedef } from "./knowledge/page.typedef";
 import { persistedCommentTypedef } from "./knowledge/comment.typedef";
 import { persistedBlockTypedef } from "./knowledge/block.typedef";
@@ -48,7 +45,7 @@ const baseSchema = gql`
 const ontology = [dataTypeTypedef, propertyTypeTypedef, entityTypeTypedef];
 
 const knowledge = [
-  persistedEntityTypedef,
+  entityWithMetadataTypedef,
   persistedBlockTypedef,
   persistedPageTypedef,
   persistedCommentTypedef,
@@ -61,7 +58,6 @@ const knowledge = [
 // It could alternatively be a default export.
 export const schema = [
   baseSchema,
-  blockTypedef,
   blockprotocolTypedef,
   embedTypeDef,
   entityTypedef,
@@ -69,8 +65,6 @@ export const schema = [
   aggregationTypedef,
   deprecatedEntityTypeTypedef,
   impliedHistoryTypedef,
-  pageTypedef,
-  pagePaginationTypedef,
   textTypedef,
   fileTypedef,
   executeTaskTypedef,
