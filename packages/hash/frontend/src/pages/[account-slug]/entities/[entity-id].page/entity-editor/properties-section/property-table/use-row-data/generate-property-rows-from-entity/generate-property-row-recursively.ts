@@ -58,7 +58,7 @@ export const generatePropertyRowRecursively = (
 
   const propertyType = propertyTypeVersions[0]!.inner;
 
-  const dataTypes = getDataTypesOfPropertyType(
+  const { isArray, dataTypes } = getDataTypesOfPropertyType(
     propertyType,
     rootEntityAndSubgraph.subgraph,
   );
@@ -97,6 +97,7 @@ export const generatePropertyRowRecursively = (
     title: propertyType.title,
     value,
     dataTypes,
+    isArray,
     required,
     depth,
     children,

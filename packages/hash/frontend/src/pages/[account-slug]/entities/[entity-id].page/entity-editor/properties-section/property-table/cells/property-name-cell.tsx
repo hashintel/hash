@@ -28,7 +28,7 @@ export const createRenderPropertyNameCell = (
     isMatch: (cell: CustomCell): cell is PropertyNameCell =>
       (cell.data as any).kind === "property-name-cell",
     draw: (args, cell) => {
-      const { ctx, theme, rect } = args;
+      const { ctx, theme, rect, spriteManager } = args;
       const {
         children,
         depth,
@@ -36,6 +36,7 @@ export const createRenderPropertyNameCell = (
         indent,
         verticalLinesForEachIndent,
         rowId,
+        isArray,
       } = cell.data.property;
 
       const yCenter = getYCenter(args);
@@ -53,6 +54,21 @@ export const createRenderPropertyNameCell = (
 
       // fill text
       ctx.fillText(title, textLeft, yCenter);
+      const textWidth = ctx.measureText(title).width;
+      const listIconSize = 14;
+
+      // draw list icon
+      if (isArray) {
+        spriteManager.drawSprite(
+          "bpList",
+          "normal",
+          ctx,
+          textLeft + textWidth + 8,
+          yCenter - listIconSize / 2,
+          listIconSize,
+          theme,
+        );
+      }
 
       // prepare to draw indentation lines
       ctx.strokeStyle = "#DDE7F0";

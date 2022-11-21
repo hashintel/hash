@@ -13,7 +13,7 @@ export const propertyGridColumns: PropertyColumn[] = [
     width: 300,
   },
   {
-    title: "Data type",
+    title: "Expected type",
     id: "dataTypes",
     width: 200,
   },

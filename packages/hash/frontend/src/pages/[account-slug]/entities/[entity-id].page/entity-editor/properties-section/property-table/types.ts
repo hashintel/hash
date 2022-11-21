@@ -6,6 +6,7 @@ export type PropertyRow = {
   rowId: string;
   value: unknown;
   dataTypes: string[];
+  isArray: boolean;
   required: boolean;
   children: PropertyRow[];
   depth: number;
