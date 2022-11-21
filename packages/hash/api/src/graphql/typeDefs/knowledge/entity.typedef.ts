@@ -29,9 +29,9 @@ export const entityWithMetadataTypedef = gql`
 
   input EntityWithMetadataDefinition {
     """
-    Existing Entity to use instead of creating a new entity.
+    The EntityId of the existing entity to use instead of creating a new entity.
     """
-    existingEntity: EntityId
+    existingEntityId: EntityId
     """
     The type of which to instantiate the new entity.
     """
