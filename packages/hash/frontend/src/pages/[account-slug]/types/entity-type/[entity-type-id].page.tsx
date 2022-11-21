@@ -311,7 +311,7 @@ const Page: NextPageWithLayout = () => {
                       {entityType.title}
                     </Typography>
 
-                    <EntityTypeTabs />
+                    {isDraft ? null : <EntityTypeTabs />}
                   </Container>
                 </Box>
               </Box>
