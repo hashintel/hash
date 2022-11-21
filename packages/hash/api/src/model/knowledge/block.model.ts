@@ -152,8 +152,8 @@ export default class extends EntityModel {
     }
 
     if (
-      outgoingBlockDataLink.rightEntityModel.entityUuid ===
-      newBlockDataEntity.entityUuid
+      outgoingBlockDataLink.rightEntityModel.baseId ===
+      newBlockDataEntity.baseId
     ) {
       throw new Error(
         `The block with entity id ${this.baseId} already has a linked block data entity with entity id ${newBlockDataEntity.baseId}`,

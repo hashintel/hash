@@ -249,7 +249,7 @@ export default class extends EntityModel {
   ): Promise<boolean> {
     const { page } = params;
 
-    if (this.entityUuid === page.entityUuid) {
+    if (this.baseId === page.baseId) {
       throw new Error("A page cannot be the parent of itself");
     }
 
@@ -259,7 +259,7 @@ export default class extends EntityModel {
       return false;
     }
 
-    if (parentPage.entityUuid === page.entityUuid) {
+    if (parentPage.baseId === page.baseId) {
       return true;
     }
 
