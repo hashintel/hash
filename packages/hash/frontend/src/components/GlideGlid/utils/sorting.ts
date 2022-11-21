@@ -39,7 +39,8 @@ export const sortRowData = <T extends RowData>(
    * cloning the array, we want to return a new array,
    * so React can run effects & update state properly
    */
-  return [...rowData].sort((row1, row2) => {
+  const rows = [...rowData] as T;
+  return rows.sort((row1, row2) => {
     // we sort only by alphabetical order for now
     const key1 = String(row1[sort.key]);
     const key2 = String(row2[sort.key]);
