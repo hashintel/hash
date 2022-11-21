@@ -37,11 +37,11 @@ describe("Link entity model class", () => {
 
   let testUserModel: UserModel;
   let testEntityTypeModel: EntityTypeModel;
-  let linkEntityTypeFriendModel: EntityTypeModel;
-  let linkEntityTypeAcquaintanceModel: EntityTypeModel;
+  let friendLinkEntityTypeModel: EntityTypeModel;
+  let acquaintanceLinkEntityTypeModel: EntityTypeModel;
   let leftEntityModel: EntityModel;
-  let rightEntityFriendModel: EntityModel;
-  let rightEntityAcquaintanceModel: EntityModel;
+  let friendRightEntityModel: EntityModel;
+  let acquaintanceRightEntityModel: EntityModel;
 
   const createEntityType = (
     params: Omit<EntityTypeCreatorParams, "entityTypeId" | "actorId">,
@@ -80,7 +80,7 @@ describe("Link entity model class", () => {
         },
         actorId: testUserModel.entityUuid,
       }).then((linkEntityType) => {
-        linkEntityTypeFriendModel = linkEntityType;
+        friendLinkEntityTypeModel = linkEntityType;
       }),
       EntityTypeModel.create(graphApi, {
         ownedById: testUserModel.entityUuid,
@@ -94,7 +94,7 @@ describe("Link entity model class", () => {
         },
         actorId: testUserModel.entityUuid,
       }).then((linkEntityType) => {
-        linkEntityTypeAcquaintanceModel = linkEntityType;
+        acquaintanceLinkEntityTypeModel = linkEntityType;
       }),
     ]);
 
@@ -103,12 +103,12 @@ describe("Link entity model class", () => {
       properties: [],
       outgoingLinks: [
         {
-          linkEntityTypeModel: linkEntityTypeFriendModel,
+          linkEntityTypeModel: friendLinkEntityTypeModel,
           destinationEntityTypeModels: ["SELF_REFERENCE"],
           ordered: false,
         },
         {
-          linkEntityTypeModel: linkEntityTypeAcquaintanceModel,
+          linkEntityTypeModel: acquaintanceLinkEntityTypeModel,
           destinationEntityTypeModels: ["SELF_REFERENCE"],
           ordered: false,
         },
@@ -130,7 +130,7 @@ describe("Link entity model class", () => {
         properties: {},
         actorId: testUserModel.entityUuid,
       }).then((entity) => {
-        rightEntityFriendModel = entity;
+        friendRightEntityModel = entity;
       }),
       EntityModel.create(graphApi, {
         ownedById: testUserModel.entityUuid,
@@ -138,7 +138,7 @@ describe("Link entity model class", () => {
         properties: {},
         actorId: testUserModel.entityUuid,
       }).then((entity) => {
-        rightEntityAcquaintanceModel = entity;
+        acquaintanceRightEntityModel = entity;
       }),
     ]);
   });
@@ -150,8 +150,8 @@ describe("Link entity model class", () => {
     linkEntityFriendModel = await LinkEntityModel.createLinkEntity(graphApi, {
       ownedById: testUserModel.entityUuid,
       leftEntityModel,
-      linkEntityTypeModel: linkEntityTypeFriendModel,
-      rightEntityModel: rightEntityFriendModel,
+      linkEntityTypeModel: friendLinkEntityTypeModel,
+      rightEntityModel: friendRightEntityModel,
       actorId: testUserModel.entityUuid,
     });
 
@@ -160,8 +160,8 @@ describe("Link entity model class", () => {
       {
         ownedById: testUserModel.entityUuid,
         leftEntityModel,
-        linkEntityTypeModel: linkEntityTypeAcquaintanceModel,
-        rightEntityModel: rightEntityAcquaintanceModel,
+        linkEntityTypeModel: acquaintanceLinkEntityTypeModel,
+        rightEntityModel: acquaintanceRightEntityModel,
         actorId: testUserModel.entityUuid,
       },
     );
@@ -176,15 +176,15 @@ describe("Link entity model class", () => {
 
   it("can get a single entity link", async () => {
     const links = await leftEntityModel.getOutgoingLinks(graphApi, {
-      linkEntityTypeModel: linkEntityTypeFriendModel,
+      linkEntityTypeModel: friendLinkEntityTypeModel,
     });
 
     expect(links).toHaveLength(1);
     const link = links[0];
 
     expect(link?.leftEntityModel).toEqual(leftEntityModel);
-    expect(link?.entityTypeModel).toEqual(linkEntityTypeFriendModel);
-    expect(link?.rightEntityModel).toEqual(rightEntityFriendModel);
+    expect(link?.entityTypeModel).toEqual(friendLinkEntityTypeModel);
+    expect(link?.rightEntityModel).toEqual(friendRightEntityModel);
   });
 
   it("can archive a link", async () => {
@@ -193,7 +193,7 @@ describe("Link entity model class", () => {
     });
 
     const links = await leftEntityModel.getOutgoingLinks(graphApi, {
-      linkEntityTypeModel: linkEntityTypeAcquaintanceModel,
+      linkEntityTypeModel: acquaintanceLinkEntityTypeModel,
     });
 
     expect(links).toHaveLength(0);
