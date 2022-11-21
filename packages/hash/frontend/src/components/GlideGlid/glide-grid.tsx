@@ -26,6 +26,7 @@ import { uniqueId } from "lodash";
 import { getCellHorizontalPadding } from "./utils";
 import { customGridIcons } from "./utils/custom-grid-icons";
 import { InteractableManager } from "./utils/interactable-manager";
+import { useRenderGridPortal } from "./utils/use-render-grid-portal";
 
 type GlideGridProps = Omit<
   DataEditorProps,
@@ -45,6 +46,7 @@ const GlideGrid: ForwardRefRenderFunction<DataEditorRef, GlideGridProps> = (
   },
   ref,
 ) => {
+  useRenderGridPortal();
   const tableIdRef = useRef(uniqueId("grid"));
   const [columnSizes, setColumnSizes] = useState<Record<string, number>>({});
 

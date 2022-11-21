@@ -29,6 +29,13 @@ export const useGridTooltip = (
 
   const showTooltip = useCallback<TooltipCellProps["showTooltip"]>(
     (newTooltip) => {
+      const isEditorOpen =
+        !!document.querySelector(`div[id="portal"]`)?.children.length;
+
+      if (isEditorOpen) {
+        return;
+      }
+
       if (!isEqual(gridTooltip, newTooltip)) {
         setGridTooltip(newTooltip);
       }
