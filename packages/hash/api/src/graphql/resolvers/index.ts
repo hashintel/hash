@@ -65,12 +65,6 @@ import {
   getAllLatestEntitiesWithMetadata,
   updateEntityWithMetadata,
 } from "./knowledge/entity/entity";
-import { UnresolvedEntityWithMetadataGQL } from "./knowledge/model-mapping";
-import {
-  createPersistedLink,
-  deletePersistedLink,
-  outgoingPersistedLinks,
-} from "./knowledge/link/link";
 import { setParentPersistedPage } from "./knowledge/page/set-parent-page";
 import { updatePersistedPage } from "./knowledge/page/update-page";
 import { persistedCommentHasText } from "./knowledge/comment/has-text";
@@ -131,8 +125,6 @@ export const resolvers = {
     getAllLatestEntitiesWithMetadata: loggedInAndSignedUp(
       getAllLatestEntitiesWithMetadata,
     ),
-    /** @todo - delete this - https://app.asana.com/0/0/1203157172269854/f */
-    outgoingPersistedLinks: loggedInAndSignedUp(outgoingPersistedLinks),
   },
 
   Mutation: {
@@ -165,8 +157,6 @@ export const resolvers = {
     // Knowledge
     createEntityWithMetadata: loggedInAndSignedUp(createEntityWithMetadata),
     updateEntityWithMetadata: loggedIn(updateEntityWithMetadata),
-    createPersistedLink: loggedInAndSignedUp(createPersistedLink),
-    deletePersistedLink: loggedInAndSignedUp(deletePersistedLink),
     createPersistedPage: loggedInAndSignedUp(createPersistedPage),
     setParentPersistedPage: loggedInAndSignedUp(setParentPersistedPage),
     updatePersistedPage: loggedInAndSignedUp(updatePersistedPage),
