@@ -118,50 +118,11 @@ export default class extends EntityModel {
   ): Promise<boolean> {
     const { userModel } = params;
 
-    const outgoingAdminLinkEntityModels = await LinkEntityModel.getByQuery(
+    const outgoingAdminLinkEntityModels = await this.getOutgoingLinks(
       graphApi,
       {
-        all: [
-          {
-            equal: [
-              { path: ["leftEntity", "uuid"] },
-              { parameter: this.entityUuid },
-            ],
-          },
-          {
-            equal: [
-              { path: ["leftEntity", "ownedById"] },
-              { parameter: this.ownedById },
-            ],
-          },
-          {
-            equal: [
-              { path: ["type", "versionedUri"] },
-              {
-                parameter: SYSTEM_TYPES.linkEntityType.admin.schema.$id,
-              },
-            ],
-          },
-          {
-            equal: [
-              { path: ["rightEntity", "uuid"] },
-              { parameter: userModel.entityUuid },
-            ],
-          },
-
-          {
-            equal: [
-              { path: ["rightEntity", "ownedById"] },
-              { parameter: userModel.ownedById },
-            ],
-          },
-          {
-            equal: [{ path: ["version"] }, { parameter: "latest" }],
-          },
-          {
-            equal: [{ path: ["archived"] }, { parameter: false }],
-          },
-        ],
+        linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.admin,
+        rightEntityModel: userModel,
       },
     );
 

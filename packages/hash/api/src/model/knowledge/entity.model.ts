@@ -526,7 +526,10 @@ export default class {
    */
   async getOutgoingLinks(
     graphApi: GraphApi,
-    params?: { linkEntityTypeModel?: EntityTypeModel },
+    params?: {
+      linkEntityTypeModel?: EntityTypeModel;
+      rightEntityModel?: EntityModel;
+    },
   ): Promise<LinkEntityModel[]> {
     const filter: Filter = {
       all: [
@@ -560,6 +563,23 @@ export default class {
           },
         ],
       });
+    }
+
+    if (params?.rightEntityModel) {
+      filter.all.push(
+        {
+          equal: [
+            { path: ["rightEntity", "uuid"] },
+            { parameter: params.rightEntityModel.entityUuid },
+          ],
+        },
+        {
+          equal: [
+            { path: ["rightEntity", "ownedById"] },
+            { parameter: params.rightEntityModel.ownedById },
+          ],
+        },
+      );
     }
 
     const outgoingLinkEntityModels = await EntityModel.getByQuery(
@@ -601,6 +621,6 @@ export default class {
       },
     });
 
-    return entitySubgraph;
+    return entitySubgraph as Subgraph;
   }
 }
