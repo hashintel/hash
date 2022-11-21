@@ -32,7 +32,7 @@ const graphApi = createGraphClient(logger, {
   port: graphApiPort,
 });
 
-describe("Link model class", () => {
+describe("Link entity model class", () => {
   let namespace: string;
 
   let testUser: UserModel;
