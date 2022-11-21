@@ -1,6 +1,7 @@
 import { ApolloError, UserInputError } from "apollo-server-express";
 import { GraphApi } from "@hashintel/hash-graph-client";
 import { generateKeyBetween } from "fractional-indexing";
+import { EntityId } from "@hashintel/hash-subgraph";
 import {
   EntityModel,
   PageModel,
@@ -13,7 +14,6 @@ import {
 } from "..";
 import { SYSTEM_TYPES } from "../../graph/system-types";
 import { EntityTypeMismatchError } from "../../lib/error";
-import {EntityId} from "@hashintel/hash-subgraph";
 
 type PageModelCreateParams = Omit<
   EntityModelCreateParams,
@@ -419,7 +419,6 @@ export default class extends EntityModel {
    * @param params.block - the block to insert in the page
    * @param params.position (optional) - the position of the block in the page
    * @param params.insertedById - the id of the account that is inserting the block into the page
-   * @param params.updateSiblings (optional) - whether or not to update the sibling link indexes when inserting the block, defaults to `true`
    */
   async insertBlock(
     graphApi: GraphApi,
