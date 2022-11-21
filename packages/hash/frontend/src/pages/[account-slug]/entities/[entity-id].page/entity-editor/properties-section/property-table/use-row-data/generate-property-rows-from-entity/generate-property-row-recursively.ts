@@ -5,7 +5,7 @@ import {
   RootEntityAndSubgraph,
 } from "../../../../../../../../../lib/subgraph";
 import { PropertyRow } from "../../types";
-import { getExpectedTypesOfPropertyType } from "./get-data-types-of-property-type";
+import { getExpectedTypesOfPropertyType } from "./get-expected-types-of-property-type";
 
 /**
  * This function generates property row data,
