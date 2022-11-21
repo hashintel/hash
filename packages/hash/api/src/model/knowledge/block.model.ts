@@ -1,5 +1,5 @@
 import { GraphApi } from "@hashintel/hash-graph-client";
-import {EntityId, PropertyObject} from "@hashintel/hash-subgraph";
+import { EntityId, PropertyObject } from "@hashintel/hash-subgraph";
 import {
   EntityModel,
   BlockModel,
@@ -116,7 +116,7 @@ export default class extends EntityModel {
 
   async getBlockComments(graphApi: GraphApi): Promise<CommentModel[]> {
     const blockCommentLinks = await this.getIncomingLinks(graphApi, {
-      linkTypeModel: SYSTEM_TYPES.linkEntityType.parent,
+      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.parent,
     });
 
     const comments = blockCommentLinks.map((link) =>
