@@ -1,6 +1,9 @@
+/** @todo - Fix this file */
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-nocheck
 import dedent from "dedent";
 import { URLSearchParams } from "url";
-import { Org, OrgEmailInvitation, VerificationCode } from "../model";
+import { VerificationCode } from "../model";
 import { EmailTransporter } from "./transporters";
 
 const { FRONTEND_URL } = require("../lib/config");
