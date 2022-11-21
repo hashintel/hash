@@ -62,14 +62,6 @@ describe("Link entity model class", () => {
     });
   };
 
-  const _createEntity = (params: { entityTypeModel: EntityTypeModel }) =>
-    EntityModel.create(graphApi, {
-      ownedById: testUserModel.entityUuid,
-      properties: {},
-      actorId: testUserModel.entityUuid,
-      ...params,
-    });
-
   beforeAll(async () => {
     testUserModel = await createTestUser(graphApi, "linktest", logger);
 
