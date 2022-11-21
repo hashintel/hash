@@ -1,6 +1,16 @@
 #![cfg_attr(nightly, feature(provide_any, error_in_core))]
 #![cfg_attr(not(feature = "std"), no_std)]
-#![warn(unreachable_pub, clippy::pedantic, clippy::nursery)]
+#![warn(
+    unreachable_pub,
+    clippy::pedantic,
+    clippy::nursery,
+    clippy::alloc_instead_of_core,
+    clippy::std_instead_of_alloc,
+    clippy::std_instead_of_core,
+    clippy::if_then_some_else_none,
+    clippy::print_stdout,
+    clippy::print_stderr
+)]
 // TODO: once more stable introduce: warning missing_docs, clippy::missing_errors_doc
 #![allow(clippy::module_name_repetitions)]
 #![allow(clippy::redundant_pub_crate)]
@@ -19,12 +29,9 @@ use num_traits::ToPrimitive;
 use crate::error::{
     ArrayAccessError, DeserializeError, DeserializerError, ObjectAccessError, VisitorError,
 };
-pub use crate::{
-    error::{Error, ErrorProperty, Id, Namespace},
-    number::Number,
-};
+pub use crate::number::Number;
 
-mod error;
+pub mod error;
 mod number;
 
 extern crate alloc;
@@ -498,4 +505,77 @@ pub trait Deserialize<'de>: Sized {
     ///
     /// Deserialization was unsuccessful
     fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError>;
+}
+
+#[cfg(test)]
+pub(crate) mod test {
+    use alloc::{format, string::String, vec::Vec};
+    use core::{
+        fmt::{Display, Formatter},
+        marker::PhantomData,
+    };
+
+    use error_stack::{Frame, Report};
+    use serde::{
+        ser::{Error as _, SerializeMap},
+        Serialize, Serializer,
+    };
+
+    use crate::error::{Error, ErrorProperties};
+
+    struct SerializeFrame<'a, 'b, E: Error> {
+        frames: &'b [&'a Frame],
+        _marker: PhantomData<fn() -> *const E>,
+    }
+
+    impl<'a, 'b, E: Error> Serialize for SerializeFrame<'a, 'b, E> {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            let mut map = serializer.serialize_map(None)?;
+
+            E::Properties::output(E::Properties::value(self.frames), &mut map)
+                .map_err(|error| S::Error::custom(format!("{error:?}")))?;
+
+            map.end()
+        }
+    }
+
+    pub(crate) fn to_json<E: Error>(report: &Report<E>) -> serde_json::Value {
+        // we do not need to worry about the tree structure
+        let frames: Vec<_> = report.frames().collect();
+
+        let s: SerializeFrame<E> = SerializeFrame {
+            frames: &frames,
+            _marker: PhantomData::default(),
+        };
+
+        serde_json::to_value(s).unwrap()
+    }
+
+    struct ErrorMessage<'a, 'b, E: Error> {
+        error: &'a E,
+        properties: &'b <E::Properties as ErrorProperties>::Value<'a>,
+    }
+
+    impl<E: Error> Display for ErrorMessage<'_, '_, E> {
+        fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+            self.error.message(f, self.properties)
+        }
+    }
+
+    pub(crate) fn to_message<E: Error>(report: &Report<E>) -> String {
+        let frames: Vec<_> = report.frames().collect();
+        let properties = E::Properties::value(&frames);
+
+        let error = report.current_context();
+
+        let message = ErrorMessage {
+            error,
+            properties: &properties,
+        };
+
+        format!("{message}")
+    }
 }
