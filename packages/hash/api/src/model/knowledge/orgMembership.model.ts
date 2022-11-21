@@ -6,6 +6,7 @@ import {
   OrgModel,
   UserModel,
   LinkEntityModel,
+  EntityProperties,
 } from "..";
 import { systemAccountId } from "../util";
 import { SYSTEM_TYPES } from "../../graph/system-types";
@@ -194,7 +195,7 @@ export default class extends EntityModel {
     }
 
     return UserModel.fromEntityModel(
-      incomingOrgMembershipLinkEntityModel.rightEntityModel,
+      incomingOrgMembershipLinkEntityModel.leftEntityModel,
     );
   }
 }
