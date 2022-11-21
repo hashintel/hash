@@ -4,12 +4,12 @@ import { ResolverFn } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import {
   mapBlockModelToGQL,
-  UnresolvedPersistedEntityGQL,
+  UnresolvedEntityWithMetadataGQL,
   UnresolvedPersistedPageGQL,
 } from "../model-mapping";
 
 export const persistedPageContents: ResolverFn<
-  Promise<UnresolvedPersistedEntityGQL[]>,
+  Promise<UnresolvedEntityWithMetadataGQL[]>,
   UnresolvedPersistedPageGQL,
   LoggedInGraphQLContext,
   {}

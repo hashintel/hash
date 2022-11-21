@@ -3,12 +3,12 @@ import { ResolverFn } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import {
   UnresolvedPersistedCommentGQL,
-  UnresolvedPersistedEntityGQL,
+  UnresolvedEntityWithMetadataGQL,
   mapEntityModelToGQL,
 } from "../model-mapping";
 
 export const persistedCommentParent: ResolverFn<
-  Promise<UnresolvedPersistedEntityGQL>,
+  Promise<UnresolvedEntityWithMetadataGQL>,
   UnresolvedPersistedCommentGQL,
   LoggedInGraphQLContext,
   {}

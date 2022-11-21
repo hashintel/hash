@@ -4,12 +4,12 @@ import { QueryPersistedBlocksArgs, ResolverFn } from "../../../apiTypes.gen";
 import { GraphQLContext } from "../../../context";
 import {
   UnresolvedPersistedBlockGQL,
-  UnresolvedPersistedEntityGQL,
+  UnresolvedEntityWithMetadataGQL,
   mapEntityModelToGQL,
 } from "../model-mapping";
 
 export const blockChildEntity: ResolverFn<
-  Promise<UnresolvedPersistedEntityGQL>,
+  Promise<UnresolvedEntityWithMetadataGQL>,
   UnresolvedPersistedBlockGQL,
   GraphQLContext,
   QueryPersistedBlocksArgs

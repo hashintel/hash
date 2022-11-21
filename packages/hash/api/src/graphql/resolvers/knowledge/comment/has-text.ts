@@ -3,12 +3,12 @@ import { ResolverFn } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import {
   UnresolvedPersistedCommentGQL,
-  UnresolvedPersistedEntityGQL,
+  UnresolvedEntityWithMetadataGQL,
 } from "../model-mapping";
 import { SYSTEM_TYPES } from "../../../../graph/system-types";
 
 export const persistedCommentHasText: ResolverFn<
-  Promise<UnresolvedPersistedEntityGQL[]>,
+  Promise<UnresolvedEntityWithMetadataGQL[]>,
   UnresolvedPersistedCommentGQL,
   LoggedInGraphQLContext,
   {}
