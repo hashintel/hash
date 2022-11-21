@@ -5,7 +5,8 @@ export type PropertyRow = {
   title: string;
   rowId: string;
   value: unknown;
-  dataTypes: string[];
+  expectedTypes: string[];
+  isArray: boolean;
   required: boolean;
   children: PropertyRow[];
   depth: number;
@@ -16,7 +17,7 @@ export type PropertyRow = {
 
 export type PropertyColumnKey = Extract<
   keyof PropertyRow,
-  "title" | "value" | "dataTypes"
+  "title" | "value" | "expectedTypes"
 >;
 
 export interface PropertyColumn extends SizedGridColumn {

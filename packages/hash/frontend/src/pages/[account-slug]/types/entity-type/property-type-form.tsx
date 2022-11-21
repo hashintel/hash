@@ -1,8 +1,11 @@
 import { PropertyType } from "@blockprotocol/type-system-web";
-import { Button, ButtonProps } from "@hashintel/hash-design-system/button";
-import { Chip } from "@hashintel/hash-design-system/chip";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
-import { TextField } from "@hashintel/hash-design-system/text-field";
+import {
+  Button,
+  ButtonProps,
+  Chip,
+  FontAwesomeIcon,
+  TextField,
+} from "@hashintel/hash-design-system";
 import {
   addVersionToBaseUri,
   generateBaseTypeId,

@@ -4,16 +4,16 @@ module.exports = {
   plugins: ["@typescript-eslint", "canonical", "unicorn"],
   rules: {
     ...require("@local/eslint-config/temporarily-disable-rules.cjs")([
-      /* 2022-11-11:  14 */ "@typescript-eslint/no-unsafe-assignment",
+      /* 2022-11-15:  14 */ "@typescript-eslint/no-unsafe-assignment",
     ]),
     "jsx-a11y/label-has-associated-control": "off",
     "import/no-default-export": "error",
     "no-restricted-imports": [
       "error",
       {
-        paths: [
+        patterns: [
           {
-            name: "@mui/material/*",
+            group: ["@mui/material/*"],
             message: "Please import from @mui/material instead",
           },
         ],

@@ -25,6 +25,7 @@ import {
   sortRowData as sortRows,
   TableSort,
 } from "./utils/sorting";
+import { useRenderGridPortal } from "./utils/use-render-grid-portal";
 
 export type Row = Record<string, unknown>;
 export type RowData = Row[];
@@ -62,6 +63,8 @@ export const GlideGrid = <T extends RowData>({
   tableRef,
   ...rest
 }: GlideGridProps<T>) => {
+  useRenderGridPortal();
+
   const tableIdRef = useRef(uniqueId("grid"));
   const [columnSizes, setColumnSizes] = useState<Record<string, number>>({});
 
