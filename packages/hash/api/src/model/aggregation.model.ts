@@ -1,7 +1,9 @@
+/** @todo - Fix this file */
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-nocheck
 import jp from "jsonpath";
 import { UserInputError } from "apollo-server-errors";
 import { get, merge, orderBy } from "lodash";
-import { DbClient } from "../db";
 import {
   Entity,
   isUnupportedJSONPath,
@@ -15,7 +17,6 @@ import {
   AggregateOperation,
   AggregateOperationInput,
 } from "../graphql/apiTypes.gen";
-import { DbAggregation } from "../db/adapter";
 
 export type GQLLinkedAggregationExternalResolvers = "__typename" | "results";
 
