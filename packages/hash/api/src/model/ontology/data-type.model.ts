@@ -1,11 +1,10 @@
 import { AxiosError } from "axios";
 import { DataType } from "@blockprotocol/type-system-web";
+import { GraphApi, UpdateDataTypeRequest } from "@hashintel/hash-graph-client";
 import {
-  GraphApi,
   DataTypeWithMetadata,
-  UpdateDataTypeRequest,
   OntologyElementMetadata,
-} from "@hashintel/hash-graph-client";
+} from "@hashintel/hash-subgraph";
 import { generateTypeId } from "@hashintel/hash-shared/types";
 import { DataTypeModel } from "../index";
 import { getNamespaceOfAccountOwner } from "./util";
@@ -120,7 +119,9 @@ export default class {
     const { dataTypeId } = params;
     const { data: persistedDataType } = await graphApi.getDataType(dataTypeId);
 
-    return DataTypeModel.fromDataTypeWithMetadata(persistedDataType);
+    return DataTypeModel.fromDataTypeWithMetadata(
+      persistedDataType as DataTypeWithMetadata,
+    );
   }
 
   /**

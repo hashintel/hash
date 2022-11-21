@@ -1,4 +1,5 @@
 import { GraphApi } from "@hashintel/hash-graph-client";
+import { PropertyObject } from "@hashintel/hash-subgraph";
 import {
   EntityModel,
   UserModel,
@@ -181,11 +182,15 @@ export default class extends EntityModel {
 
     const { data: userAccountId } = await graphApi.createAccountId();
 
-    const properties: object = {
+    const properties: PropertyObject = {
       [SYSTEM_TYPES.propertyType.email.baseUri]: emails,
       [SYSTEM_TYPES.propertyType.kratosIdentityId.baseUri]: kratosIdentityId,
-      [SYSTEM_TYPES.propertyType.shortName.baseUri]: shortname,
-      [SYSTEM_TYPES.propertyType.preferredName.baseUri]: preferredName,
+      ...(shortname
+        ? { [SYSTEM_TYPES.propertyType.shortName.baseUri]: shortname }
+        : {}),
+      ...(preferredName
+        ? { [SYSTEM_TYPES.propertyType.preferredName.baseUri]: preferredName }
+        : {}),
     };
 
     const entityTypeModel = SYSTEM_TYPES.entityType.user;
@@ -420,56 +425,23 @@ export default class extends EntityModel {
     );
 
     await this.createOutgoingLink(graphApi, {
-      linkTypeModel: SYSTEM_TYPES.linkType.hasMembership,
-      targetEntityModel: orgMembership,
+      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.hasMembership,
+      rightEntityModel: orgMembership,
       ownedById: systemAccountId,
       actorId,
     });
   }
 
   async getOrgMemberships(graphApi: GraphApi): Promise<OrgMembershipModel[]> {
-    const { data: outgoingOrgMembershipLinkRootedSubgraphs } =
-      await graphApi.getLinksByQuery({
-        filter: {
-          all: [
-            {
-              equal: [{ path: ["source", "id"] }, { parameter: this.entityId }],
-            },
-            {
-              equal: [
-                { path: ["type", "versionedUri"] },
-                {
-                  parameter: SYSTEM_TYPES.linkType.hasMembership.schema.$id,
-                },
-              ],
-            },
-          ],
-        },
-        graphResolveDepths: {
-          dataTypeResolveDepth: 0,
-          propertyTypeResolveDepth: 0,
-          linkTypeResolveDepth: 0,
-          entityTypeResolveDepth: 0,
-          linkResolveDepth: 0,
-          linkTargetEntityResolveDepth: 0,
-        },
-      });
+    const outgoingOrgMembershipLinkEntityModels = await this.getOutgoingLinks(
+      graphApi,
+      { linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.hasMembership },
+    );
 
     return await Promise.all(
-      outgoingOrgMembershipLinkRootedSubgraphs.map(async ({ link }) => {
-        const orgMembership = await OrgMembershipModel.getOrgMembershipById(
-          graphApi,
-          {
-            entityId: link.inner.targetEntityId,
-          },
-        );
-
-        if (!orgMembership) {
-          throw new Error("Critical: could not find target of link");
-        }
-
-        return orgMembership;
-      }),
+      outgoingOrgMembershipLinkEntityModels.map(({ rightEntityModel }) =>
+        OrgMembershipModel.fromEntityModel(rightEntityModel),
+      ),
     );
   }
 

@@ -1,19 +1,21 @@
 import { ApolloError } from "apollo-server-errors";
 import {
-  Entity,
   GraphApi,
-  Subgraph,
   EntityStructuralQuery,
   Filter,
-  EntityMetadata,
 } from "@hashintel/hash-graph-client";
-
+import {
+  Entity,
+  Subgraph,
+  EntityMetadata,
+  PropertyObject,
+} from "@hashintel/hash-subgraph";
+import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import {
   EntityModel,
   EntityTypeModel,
-  LinkModel,
+  LinkEntityModel,
   LinkModelCreateParams,
-  LinkTypeModel,
 } from "..";
 import {
   PersistedEntityDefinition,
@@ -28,7 +30,7 @@ export type EntityModelConstructorParams = {
 
 export type EntityModelCreateParams = {
   ownedById: string;
-  properties: object;
+  properties: PropertyObject;
   entityTypeModel: EntityTypeModel;
   entityId?: string;
   actorId: string;
@@ -38,12 +40,16 @@ export type EntityModelCreateParams = {
  * @class {@link EntityModel}
  */
 export default class {
-  private entity: Entity;
+  protected entity: Entity;
 
   entityTypeModel: EntityTypeModel;
 
   get baseId(): string {
     return this.metadata.editionId.baseId;
+  }
+
+  get version(): string {
+    return this.metadata.editionId.version;
   }
 
   get entityUuid(): string {
@@ -62,7 +68,7 @@ export default class {
     return this.entity.metadata;
   }
 
-  get properties(): object {
+  get properties(): PropertyObject {
     return this.entity.properties;
   }
 
@@ -71,7 +77,7 @@ export default class {
     this.entityTypeModel = entityTypeModel;
   }
 
-  private static async fromEntity(
+  static async fromEntity(
     graphApi: GraphApi,
     entity: Entity,
     cachedEntityTypeModels?: Map<string, EntityTypeModel>,
@@ -120,14 +126,14 @@ export default class {
     const { data: metadata } = await graphApi.createEntity({
       ownedById,
       entityTypeId: entityTypeModel.schema.$id,
-      entity: properties,
+      properties,
       entityUuid: overrideEntityId,
       actorId,
     });
 
     const entity: Entity = {
       properties,
-      metadata,
+      metadata: metadata as EntityMetadata,
     };
 
     return EntityModel.fromEntity(graphApi, entity);
@@ -310,15 +316,9 @@ export default class {
     });
 
     return await Promise.all(
-      subgraph.roots.map(({ baseId, version }) => {
-        const entityVertex = subgraph.vertices[baseId]?.[version];
-
-        if (entityVertex && entityVertex.kind === "entity") {
-          return EntityModel.fromEntity(graphApi, entityVertex.inner);
-        }
-
-        throw new Error("Could not get entity from sub-graph");
-      }),
+      getRootsAsEntities(subgraph as Subgraph).map((entity) =>
+        EntityModel.fromEntity(graphApi, entity),
+      ),
     );
   }
 
@@ -336,7 +336,7 @@ export default class {
     const { entityId } = params;
     const { data: persistedEntity } = await graphApi.getEntity(entityId);
 
-    return await EntityModel.fromEntity(graphApi, persistedEntity);
+    return await EntityModel.fromEntity(graphApi, persistedEntity as Entity);
   }
 
   /**
@@ -366,7 +366,7 @@ export default class {
   async update(
     graphApi: GraphApi,
     params: {
-      properties: object;
+      properties: PropertyObject;
       actorId: string;
     },
   ): Promise<EntityModel> {
@@ -378,13 +378,18 @@ export default class {
       entityId: baseId,
       /** @todo: make this argument optional */
       entityTypeId: entityTypeModel.schema.$id,
-      entity: properties,
+      properties,
     });
 
     return EntityModel.fromEntity(graphApi, {
-      metadata,
+      metadata: metadata as EntityMetadata,
       properties,
     });
+  }
+
+  async archive(graphApi: GraphApi, params: { actorId: string }) {
+    const { actorId } = params;
+    await graphApi.archiveEntity({ entityId: this.baseId, actorId });
   }
 
   /**
@@ -403,7 +408,7 @@ export default class {
     const { updatedProperties, actorId } = params;
 
     return await this.update(graphApi, {
-      properties: updatedProperties.reduce(
+      properties: updatedProperties.reduce<PropertyObject>(
         (prev, { propertyTypeBaseUri, value }) => ({
           ...prev,
           [propertyTypeBaseUri]: value,
@@ -449,21 +454,10 @@ export default class {
   /** @see {@link LinkModel.create} */
   async createOutgoingLink(
     graphApi: GraphApi,
-    params: Omit<LinkModelCreateParams, "sourceEntityModel">,
-  ): Promise<LinkModel> {
-    return await LinkModel.create(graphApi, {
-      sourceEntityModel: this,
-      ...params,
-    });
-  }
-
-  /** @see {@link LinkModel.createLinkWithoutUpdatingSiblings} */
-  async createOutgoingLinkWithoutUpdatingSiblings(
-    graphApi: GraphApi,
-    params: Omit<LinkModelCreateParams, "sourceEntityModel">,
-  ): Promise<LinkModel> {
-    return await LinkModel.createLinkWithoutUpdatingSiblings(graphApi, {
-      sourceEntityModel: this,
+    params: Omit<LinkModelCreateParams, "leftEntityModel">,
+  ): Promise<LinkEntityModel> {
+    return await LinkEntityModel.createLinkEntity(graphApi, {
+      leftEntityModel: this,
       ...params,
     });
   }
@@ -471,67 +465,131 @@ export default class {
   /**
    * Get the incoming links of an entity.
    *
-   * @param params.linkTypeModel (optional) - the specific link type of the incoming links
+   * @param params.linkEntityTypeModel (optional) - the specific link entity type of the incoming links
    */
   async getIncomingLinks(
     graphApi: GraphApi,
-    params?: { linkTypeModel?: LinkTypeModel },
-  ): Promise<LinkModel[]> {
+    params?: { linkEntityTypeModel?: EntityTypeModel },
+  ): Promise<LinkEntityModel[]> {
     const filter: Filter = {
       all: [
         {
-          equal: [{ path: ["target", "uuid"] }, { parameter: this.entityUuid }],
+          equal: [
+            { path: ["rightEntity", "uuid"] },
+            { parameter: this.entityUuid },
+          ],
+        },
+        {
+          equal: [
+            { path: ["rightEntity", "ownedById"] },
+            { parameter: this.ownedById },
+          ],
+        },
+        {
+          equal: [{ path: ["version"] }, { parameter: "latest" }],
+        },
+        {
+          equal: [{ path: ["archived"] }, { parameter: false }],
         },
       ],
     };
 
-    if (params?.linkTypeModel) {
+    if (params?.linkEntityTypeModel) {
       filter.all.push({
         equal: [
           { path: ["type", "versionedUri"] },
           {
-            parameter: params.linkTypeModel.schema.$id,
+            parameter: params.linkEntityTypeModel.schema.$id,
           },
         ],
       });
     }
 
-    const incomingLinks = await LinkModel.getByQuery(graphApi, filter);
+    const incomingLinkEntityModels = await EntityModel.getByQuery(
+      graphApi,
+      filter,
+    );
 
-    return incomingLinks;
+    return await Promise.all(
+      incomingLinkEntityModels.map((entityModel) =>
+        LinkEntityModel.fromEntity(graphApi, entityModel.entity),
+      ),
+    );
   }
 
   /**
    * Get the outgoing links of an entity.
    *
-   * @param params.linkTypeModel (optional) - the specific link type of the outgoing links
+   * @param params.linkEntityTypeModel (optional) - the specific link type of the outgoing links
    */
   async getOutgoingLinks(
     graphApi: GraphApi,
-    params?: { linkTypeModel?: LinkTypeModel },
-  ): Promise<LinkModel[]> {
+    params?: {
+      linkEntityTypeModel?: EntityTypeModel;
+      rightEntityModel?: EntityModel;
+    },
+  ): Promise<LinkEntityModel[]> {
     const filter: Filter = {
       all: [
         {
-          equal: [{ path: ["source", "uuid"] }, { parameter: this.entityUuid }],
+          equal: [
+            { path: ["leftEntity", "uuid"] },
+            { parameter: this.entityUuid },
+          ],
+        },
+        {
+          equal: [
+            { path: ["leftEntity", "ownedById"] },
+            { parameter: this.ownedById },
+          ],
+        },
+        {
+          equal: [{ path: ["version"] }, { parameter: "latest" }],
+        },
+        {
+          equal: [{ path: ["archived"] }, { parameter: false }],
         },
       ],
     };
 
-    if (params?.linkTypeModel) {
+    if (params?.linkEntityTypeModel) {
       filter.all.push({
         equal: [
           { path: ["type", "versionedUri"] },
           {
-            parameter: params.linkTypeModel.schema.$id,
+            parameter: params.linkEntityTypeModel.schema.$id,
           },
         ],
       });
     }
 
-    const outgoingLinks = await LinkModel.getByQuery(graphApi, filter);
+    if (params?.rightEntityModel) {
+      filter.all.push(
+        {
+          equal: [
+            { path: ["rightEntity", "uuid"] },
+            { parameter: params.rightEntityModel.entityUuid },
+          ],
+        },
+        {
+          equal: [
+            { path: ["rightEntity", "ownedById"] },
+            { parameter: params.rightEntityModel.ownedById },
+          ],
+        },
+      );
+    }
 
-    return outgoingLinks;
+    const outgoingLinkEntityModels = await EntityModel.getByQuery(
+      graphApi,
+      filter,
+    );
+
+    return Promise.all(
+      outgoingLinkEntityModels.map((entityModel) =>
+        LinkEntityModel.fromEntity(graphApi, entityModel.entity),
+      ),
+    );
   }
 
   /**
@@ -549,6 +607,7 @@ export default class {
         all: [
           { equal: [{ path: ["version"] }, { parameter: "latest" }] },
           { equal: [{ path: ["uuid"] }, { parameter: this.entityUuid }] },
+          { equal: [{ path: ["ownedById"] }, { parameter: this.ownedById }] },
         ],
       },
       graphResolveDepths: {
@@ -560,6 +619,6 @@ export default class {
       },
     });
 
-    return entitySubgraph;
+    return entitySubgraph as Subgraph;
   }
 }

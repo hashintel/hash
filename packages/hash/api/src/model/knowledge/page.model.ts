@@ -6,7 +6,7 @@ import {
   PageModel,
   EntityModelCreateParams,
   BlockModel,
-  LinkModel,
+  LinkEntityModel,
   UserModel,
   OrgModel,
   CommentModel,
@@ -218,14 +218,14 @@ export default class extends EntityModel {
    */
   async getParentPage(graphApi: GraphApi): Promise<PageModel | null> {
     const parentPageLinks = await this.getOutgoingLinks(graphApi, {
-      linkTypeModel: SYSTEM_TYPES.linkType.parent,
+      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.parent,
     });
 
     const [parentPageLink, ...unexpectedParentPageLinks] = parentPageLinks;
 
     if (unexpectedParentPageLinks.length > 0) {
       throw new Error(
-        `Critical: Page with entityId ${this.entityId} in account ${this.ownedById} has more than one parent page`,
+        `Critical: Page with entity ID ${this.baseId} has more than one parent page`,
       );
     }
 
@@ -233,7 +233,7 @@ export default class extends EntityModel {
       return null;
     }
 
-    return PageModel.fromEntityModel(parentPageLink.targetEntityModel);
+    return PageModel.fromEntityModel(parentPageLink.rightEntityModel);
   }
 
   /**
@@ -249,7 +249,7 @@ export default class extends EntityModel {
   ): Promise<boolean> {
     const { page } = params;
 
-    if (this.entityId === page.entityId) {
+    if (this.baseId === page.baseId) {
       throw new Error("A page cannot be the parent of itself");
     }
 
@@ -259,7 +259,7 @@ export default class extends EntityModel {
       return false;
     }
 
-    if (parentPage.entityId === page.entityId) {
+    if (parentPage.baseId === page.baseId) {
       return true;
     }
 
@@ -278,26 +278,26 @@ export default class extends EntityModel {
     },
   ): Promise<void> {
     const parentPageLinks = await this.getOutgoingLinks(graphApi, {
-      linkTypeModel: SYSTEM_TYPES.linkType.parent,
+      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.parent,
     });
 
     const [parentPageLink, ...unexpectedParentPageLinks] = parentPageLinks;
 
     if (unexpectedParentPageLinks.length > 0) {
       throw new Error(
-        `Critical: Page with entityId ${this.entityId} in account ${this.ownedById} has more than one parent page`,
+        `Critical: Page with entityId ${this.baseId} has more than one parent page`,
       );
     }
 
     if (!parentPageLink) {
       throw new Error(
-        `Page with entityId ${this.entityId} in account ${this.ownedById} does not have a parent page`,
+        `Page with entityId ${this.baseId} does not have a parent page`,
       );
     }
 
     const { actorId } = params;
 
-    await parentPageLink.remove(graphApi, { actorId });
+    await parentPageLink.archive(graphApi, { actorId });
   }
 
   /**
@@ -331,14 +331,14 @@ export default class extends EntityModel {
       // Check whether adding the parent page would create a cycle
       if (await parentPageModel.hasParentPage(graphApi, { page: this })) {
         throw new ApolloError(
-          `Could not set '${parentPageModel.entityId}' as parent of '${this.entityId}', this would create a cyclic dependency.`,
+          `Could not set '${parentPageModel.baseId}' as parent of '${this.baseId}', this would create a cyclic dependency.`,
           "CYCLIC_TREE",
         );
       }
 
       await this.createOutgoingLink(graphApi, {
-        linkTypeModel: SYSTEM_TYPES.linkType.parent,
-        targetEntityModel: parentPageModel,
+        linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.parent,
+        rightEntityModel: parentPageModel,
         ownedById: actorId,
         actorId,
       });
@@ -361,24 +361,39 @@ export default class extends EntityModel {
    * Get the blocks in this page.
    */
   async getBlocks(graphApi: GraphApi): Promise<BlockModel[]> {
-    const outgoingBlockDataLinks = await LinkModel.getByQuery(graphApi, {
+    const outgoingBlockDataLinks = await LinkEntityModel.getByQuery(graphApi, {
       all: [
         {
-          equal: [{ path: ["source", "id"] }, { parameter: this.entityId }],
+          equal: [
+            { path: ["leftEntity", "uuid"] },
+            { parameter: this.entityUuid },
+          ],
+        },
+        {
+          equal: [
+            { path: ["leftEntity", "ownedById"] },
+            { parameter: this.ownedById },
+          ],
         },
         {
           equal: [
             { path: ["type", "versionedUri"] },
             {
-              parameter: SYSTEM_TYPES.linkType.contains.schema.$id,
+              parameter: SYSTEM_TYPES.linkEntityType.contains.schema.$id,
             },
           ],
+        },
+        {
+          equal: [{ path: ["version"] }, { parameter: "latest" }],
+        },
+        {
+          equal: [{ path: ["archived"] }, { parameter: false }],
         },
       ],
     });
 
-    return outgoingBlockDataLinks.map(({ targetEntityModel }) =>
-      BlockModel.fromEntityModel(targetEntityModel),
+    return outgoingBlockDataLinks.map(({ rightEntityModel }) =>
+      BlockModel.fromEntityModel(rightEntityModel),
     );
   }
 
@@ -411,32 +426,23 @@ export default class extends EntityModel {
       block: BlockModel;
       position?: number;
       actorId: string;
-      updateSiblings?: boolean;
     },
   ) {
-    const {
-      position: specifiedPosition,
-      updateSiblings = true,
-      actorId,
-    } = params;
+    const { position: specifiedPosition, actorId } = params;
 
     const { block } = params;
 
-    const linkParams = {
-      targetEntityModel: block,
-      linkTypeModel: SYSTEM_TYPES.linkType.contains,
-      index:
+    await this.createOutgoingLink(graphApi, {
+      rightEntityModel: block,
+      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.contains,
+      leftOrder:
         specifiedPosition ??
         // if position is not specified and there are no blocks currently in the page, specify the index of the link is `0`
         ((await this.getBlocks(graphApi)).length === 0 ? 0 : undefined),
       // assume that link to block is owned by the same account as the page
       ownedById: this.ownedById,
       actorId,
-    };
-
-    await (updateSiblings
-      ? this.createOutgoingLink(graphApi, linkParams)
-      : this.createOutgoingLinkWithoutUpdatingSiblings(graphApi, linkParams));
+    });
   }
 
   /**
@@ -496,18 +502,12 @@ export default class extends EntityModel {
       position: number;
       actorId: string;
       allowRemovingFinal?: boolean;
-      updateSiblings?: boolean;
     },
   ) {
-    const {
-      allowRemovingFinal = false,
-      position,
-      updateSiblings,
-      actorId,
-    } = params;
+    const { allowRemovingFinal = false, position, actorId } = params;
 
-    const contentLinks = await this.getOutgoingLinks(graphApi, {
-      linkTypeModel: SYSTEM_TYPES.linkType.contains,
+    const contentLinkEntityModels = await this.getOutgoingLinks(graphApi, {
+      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.contains,
     });
 
     /**
@@ -517,23 +517,20 @@ export default class extends EntityModel {
      *   see: https://app.asana.com/0/1200211978612931/1203031430417465/f
      */
 
-    const link = contentLinks.find(({ index }) => index === position);
+    const linkEntityModel = contentLinkEntityModels.find(
+      ({ linkMetadata }) => linkMetadata.leftOrder === position,
+    );
 
-    if (!link) {
+    if (!linkEntityModel) {
       throw new Error(
-        `Critical: could not find contents link with index ${position} for page with entityId ${this.entityId} in account ${this.ownedById}`,
+        `Critical: could not find contents link with index ${position} for page with entity ID ${this.baseId}`,
       );
     }
 
-    if (!allowRemovingFinal && contentLinks.length === 1) {
+    if (!allowRemovingFinal && contentLinkEntityModels.length === 1) {
       throw new Error("Cannot remove final block from page");
     }
 
-    const removeParams = { actorId };
-
-    // Don't always reorder siblings as it could break the expected indices on the frontend.
-    await (updateSiblings
-      ? link.remove(graphApi, removeParams)
-      : link.removeWithoutUpdatingSiblings(graphApi, removeParams));
+    await linkEntityModel.archive(graphApi, { actorId });
   }
 }

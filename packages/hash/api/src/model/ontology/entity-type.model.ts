@@ -4,13 +4,16 @@ import { EntityType } from "@blockprotocol/type-system-web";
 import {
   GraphApi,
   UpdateEntityTypeRequest,
+} from "@hashintel/hash-graph-client";
+import {
   EntityTypeWithMetadata,
   OntologyElementMetadata,
-} from "@hashintel/hash-graph-client";
+} from "@hashintel/hash-subgraph";
 import { generateTypeId, types } from "@hashintel/hash-shared/types";
-import { EntityTypeModel, PropertyTypeModel, LinkTypeModel } from "../index";
+import { EntityTypeModel, PropertyTypeModel } from "../index";
 import { getNamespaceOfAccountOwner } from "./util";
 import { SYSTEM_TYPES } from "../../graph/system-types";
+import { linkEntityTypeUri } from "../util";
 
 export type EntityTypeModelConstructorParams = {
   entityType: EntityTypeWithMetadata;
@@ -110,10 +113,11 @@ export default class {
      *   authorized to see.
      *   https://app.asana.com/0/1202805690238892/1202890446280569/f
      */
-    const { data: persistedEntityTypes } =
-      await graphApi.getLatestEntityTypes();
+    const { data: entityTypes } = await graphApi.getLatestEntityTypes();
 
-    return persistedEntityTypes.map(EntityTypeModel.fromEntityTypeWithMetadata);
+    return (entityTypes as EntityTypeWithMetadata[]).map(
+      EntityTypeModel.fromEntityTypeWithMetadata,
+    );
   }
 
   /**
@@ -132,7 +136,9 @@ export default class {
       entityTypeId,
     );
 
-    return EntityTypeModel.fromEntityTypeWithMetadata(persistedEntityType);
+    return EntityTypeModel.fromEntityTypeWithMetadata(
+      persistedEntityType as EntityTypeWithMetadata,
+    );
   }
 
   /**
@@ -166,14 +172,16 @@ export default class {
   }
 
   /**
-   * Get all outgoing link types of the entity type.
+   * Get all outgoing link entity types of the entity type.
    */
-  async getOutgoingLinkTypes(graphApi: GraphApi): Promise<LinkTypeModel[]> {
-    const linkTypeIds = Object.keys(this.schema.links ?? {});
+  async getOutgoingLinkEntityTypes(
+    graphApi: GraphApi,
+  ): Promise<EntityTypeModel[]> {
+    const linkEntityTypeIds = Object.keys(this.schema.links ?? {});
 
     return await Promise.all(
-      linkTypeIds.map((linkTypeId) =>
-        LinkTypeModel.get(graphApi, { linkTypeId }),
+      linkEntityTypeIds.map((entityTypeId) =>
+        EntityTypeModel.get(graphApi, { entityTypeId }),
       ),
     );
   }
@@ -184,18 +192,18 @@ export default class {
    * @todo: deprecate this method when the Graph API can be relied upon for schema validation
    * @see https://app.asana.com/0/1200211978612931/1203031430417465/f
    *
-   * @param params.outgoingLinkType - the outgoing link type for which to check whether it is ordered
+   * @param params.outgoingLinkEntityType - the outgoing link entity type for which to check whether it is ordered
    */
-  isOutgoingLinkOrdered(params: { outgoingLinkType: LinkTypeModel }) {
-    const { outgoingLinkType } = params;
+  isOutgoingLinkOrdered(params: { outgoingLinkEntityType: EntityTypeModel }) {
+    const { outgoingLinkEntityType } = params;
 
     const outgoingLinkDefinition = Object.entries(this.schema.links ?? {}).find(
-      ([linkTypeId]) => linkTypeId === outgoingLinkType.schema.$id,
+      ([linkTypeId]) => linkTypeId === outgoingLinkEntityType.schema.$id,
     )?.[1];
 
     if (!outgoingLinkDefinition) {
       throw new Error(
-        `Link type with ID = '${outgoingLinkType.schema.$id}' is not an outgoing link on entity type with ID = '${this.schema.$id}'`,
+        `Link type with ID = '${outgoingLinkEntityType.schema.$id}' is not an outgoing link on entity type with ID = '${this.schema.$id}'`,
       );
     }
 
@@ -252,5 +260,16 @@ export default class {
     }
 
     return undefined;
+  }
+
+  isLinkEntityType(): boolean {
+    /**
+     * @todo: account for link entity types being able to inherit from other link entity types
+     * @see https://app.asana.com/0/1200211978612931/1201726402115269/f
+     */
+    return (
+      !!this.schema.allOf &&
+      this.schema.allOf.some(({ $ref }) => $ref === linkEntityTypeUri)
+    );
   }
 }

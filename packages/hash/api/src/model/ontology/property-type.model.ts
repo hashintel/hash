@@ -2,10 +2,12 @@ import { AxiosError } from "axios";
 
 import {
   GraphApi,
-  OntologyElementMetadata,
-  PropertyTypeWithMetadata,
   UpdatePropertyTypeRequest,
 } from "@hashintel/hash-graph-client";
+import {
+  PropertyTypeWithMetadata,
+  OntologyElementMetadata,
+} from "@hashintel/hash-subgraph";
 import { generateTypeId } from "@hashintel/hash-shared/types";
 import { PropertyType } from "@blockprotocol/type-system-web";
 import { PropertyTypeModel } from "../index";
@@ -117,7 +119,7 @@ export default class {
     );
 
     return PropertyTypeModel.fromPropertyTypeWithMetadata(
-      persistedPropertyType,
+      persistedPropertyType as PropertyTypeWithMetadata,
     );
   }
 

@@ -331,14 +331,14 @@ export type LinkEntityTypeCreatorParams = {
   actorId: string;
 };
 
-const linkEntityTypeUri: VersionedUri =
+export const linkEntityTypeUri: VersionedUri =
   "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1";
 
 /**
  * Helper method for generating a link entity type schema for the Graph API.
  */
 export const generateSystemLinkEntityTypeSchema = (
-  params: LinkEntityTypeCreatorParams,
+  params: Omit<LinkEntityTypeCreatorParams, "actorId">,
 ): EntityType => {
   return {
     kind: "entityType",
