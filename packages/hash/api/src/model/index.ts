@@ -4,7 +4,6 @@
 
 import EntityType from "./entityType.model";
 import VerificationCode from "./verificationCode.model";
-import Entity from "./entity.model";
 import Account from "./account.model";
 import AccessToken from "./accessToken.model";
 import File from "./file.model";
@@ -62,9 +61,6 @@ export { Link };
 
 export * from "./aggregation.model";
 export { Aggregation };
-
-export * from "./entity.model";
-export { Entity };
 
 export * from "./account.model";
 export { Account };
