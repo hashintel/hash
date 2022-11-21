@@ -105,7 +105,15 @@ impl Id {
 }
 
 // TODO: most likely (in 0.2) we want to actually have a proper schema
+<<<<<<< HEAD
 #[derive(serde::Serialize)]
+=======
+// TODO: this is currently completely untyped, we might want to adhere to a standard, like
+//  JSON-Schema or OpenAPI
+//  The problem here mainly is: which crate to use, one can use utoipa (but that has significant
+//  overhead)  there's no real library out there that properly just provides the types
+//  necessary.
+>>>>>>> b4c42669e (feat: implement (most) Visitor errors using new errors)
 pub struct Schema {
     #[serde(rename = "type")]
     ty: String,
