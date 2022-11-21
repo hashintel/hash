@@ -22,6 +22,9 @@ export type OrgMembershipModelCreateParams = Omit<
 
 /**
  * @class {@link OrgMembershipModel}
+ *
+ * @todo: turn into link entity model when or memberships are stored in link entities
+ * @see https://app.asana.com/0/0/1203371754468058/f
  */
 export default class extends EntityModel {
   static fromEntityModel(entity: EntityModel): OrgMembershipModel {
