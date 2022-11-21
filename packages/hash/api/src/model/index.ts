@@ -3,7 +3,6 @@
 // when accessed from outside of this module.
 
 import VerificationCode from "./verificationCode.model";
-import Account from "./account.model";
 import File from "./file.model";
 import Aggregation from "./aggregation.model";
 
@@ -52,9 +51,6 @@ export { VerificationCode };
 
 export * from "./aggregation.model";
 export { Aggregation };
-
-export * from "./account.model";
-export { Account };
 
 export * from "./file.model";
 export { File };
