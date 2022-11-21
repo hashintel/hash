@@ -116,6 +116,7 @@ export const GlideGrid = <T extends RowData>({
       horizontalBorderColor: "transparent",
       accentColor: palette.blue[70],
       textHeader: palette.gray[80],
+      textDark: palette.gray[80],
       bgHeaderHasFocus: "transparent",
       textBubble: palette.gray[70],
       bgBubble: palette.gray[20],
