@@ -10,7 +10,7 @@ const iconGap = 10;
 const cellMargin = getCellHorizontalPadding();
 
 const drawBackground = (args: DrawArgs<TooltipCell>) => {
-  const { ctx, cell, rect } = args;
+  const { ctx, cell, rect, theme } = args;
   const { tooltips } = cell.data;
 
   // paint the whole bg first
@@ -19,7 +19,7 @@ const drawBackground = (args: DrawArgs<TooltipCell>) => {
   const rectRight = rect.x + rect.width;
   const rectLeft = rectRight - totalWidth;
 
-  ctx.fillStyle = "white";
+  ctx.fillStyle = theme.bgCell;
   ctx.fillRect(rectLeft, rect.y, totalWidth, rect.height);
 
   drawCellFadeOutGradient(args, totalWidth);
