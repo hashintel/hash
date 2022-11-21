@@ -5,7 +5,7 @@ import {
   RootEntityAndSubgraph,
 } from "../../../../../../../../../lib/subgraph";
 import { PropertyRow } from "../../types";
-import { getDataTypesOfPropertyType } from "./get-data-types-of-property-type";
+import { getExpectedTypesOfPropertyType } from "./get-expected-types-of-property-type";
 
 /**
  * This function generates property row data,
@@ -58,7 +58,7 @@ export const generatePropertyRowRecursively = (
 
   const propertyType = propertyTypeVersions[0]!.inner;
 
-  const dataTypes = getDataTypesOfPropertyType(
+  const { isArray, expectedTypes } = getExpectedTypesOfPropertyType(
     propertyType,
     rootEntityAndSubgraph.subgraph,
   );
@@ -96,7 +96,8 @@ export const generatePropertyRowRecursively = (
     rowId,
     title: propertyType.title,
     value,
-    dataTypes,
+    expectedTypes,
+    isArray,
     required,
     depth,
     children,

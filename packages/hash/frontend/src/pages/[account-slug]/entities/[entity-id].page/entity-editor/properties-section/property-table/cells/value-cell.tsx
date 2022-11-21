@@ -21,7 +21,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
     (cell.data as any).kind === "value-cell",
   draw: (args, cell) => {
     const { ctx, rect, theme } = args;
-    const { value, dataTypes } = cell.data.property;
+    const { value, expectedTypes } = cell.data.property;
 
     ctx.fillStyle = theme.textHeader;
     ctx.font = theme.baseFontStyle;
@@ -29,8 +29,8 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
     const yCenter = getYCenter(args);
     const left = rect.x + getCellHorizontalPadding();
 
-    /** @todo remove dataTypes[0] when multiple data types are supported */
-    const isBoolean = dataTypes[0] === types.dataType.boolean.title;
+    /** @todo remove expectedTypes[0] when multiple data types are supported */
+    const isBoolean = expectedTypes[0] === types.dataType.boolean.title;
 
     if (isValueEmpty(value)) {
       // draw empty value
@@ -49,7 +49,8 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
       });
     } else {
       // draw plain text
-      ctx.fillText(String(value), left, yCenter);
+      const text = Array.isArray(value) ? value.join(", ") : String(value);
+      ctx.fillText(text, left, yCenter);
     }
 
     const tooltipInteractables = drawInteractableTooltipIcons(args);
@@ -57,7 +58,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
   },
   provideEditor: () => {
     return {
-      styleOverride: { boxShadow: "none" },
+      styleOverride: { boxShadow: "none", background: "transparent" },
       disablePadding: true,
       editor: ValueCellEditor,
     };

@@ -6,7 +6,9 @@ export const GlideGridOverlayPortal = () => {
   return (
     <div
       id="portal"
-      style={{ position: "fixed", left: 0, top: 0, zIndex: 9999 }}
+      // keeping z-index at 999, so we can show other MUI components like tooltips etc. on grid editors.
+      // all absolute MUI components have zIndex >= 1000
+      style={{ position: "fixed", left: 0, top: 0, zIndex: 999 }}
     />
   );
 };
