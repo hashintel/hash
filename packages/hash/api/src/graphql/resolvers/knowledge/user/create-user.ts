@@ -1,12 +1,8 @@
+import { Subgraph } from "@hashintel/hash-subgraph";
 import { createKratosIdentity } from "../../../../auth/ory-kratos";
 import { UserModel } from "../../../../model";
-import {
-  MutationCreateUserArgs,
-  ResolverFn,
-  Subgraph,
-} from "../../../apiTypes.gen";
+import { MutationCreateUserArgs, ResolverFn } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { mapSubgraphToGql } from "../../ontology/model-mapping";
 
 export const createUser: ResolverFn<
   Promise<Subgraph>,
@@ -48,13 +44,11 @@ export const createUser: ResolverFn<
     preferredName: preferredName ?? undefined,
     kratosIdentityId,
     isInstanceAdmin,
-    actorId: actoruserModel.entityUuid,
+    actorId: actorUserModel.entityUuid,
   });
 
-  const userRootedSubgraph = await userModel.getRootedSubgraph(graphApi, {
+  return await userModel.getRootedSubgraph(graphApi, {
     linkResolveDepth,
     linkTargetEntityResolveDepth,
   });
-
-  return mapSubgraphToGql(userRootedSubgraph);
 };
