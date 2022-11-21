@@ -5,17 +5,11 @@ import { embedCode } from "./embed";
 
 import { me } from "./knowledge/user/me";
 import { isShortnameTaken } from "./knowledge/user/is-shortname-taken";
-import { deprecatedCreateEntityType } from "./entityType/createEntityType";
-import { entityTypeTypeFields } from "./entityType/entityTypeTypeFields";
-import { entityTypeInheritance } from "./entityType/entityTypeInheritance";
-import { deprecatedGetAccountEntityTypes } from "./entityType/getAccountEntityTypes";
-import { deprecatedGetEntityType } from "./entityType/getEntityType";
 import { fileFields } from "./file";
 import { requestFileUpload } from "./file/requestFileUpload";
 import { createFileFromLink } from "./file/createFileFromLink";
 import { loggedIn } from "./middlewares/loggedIn";
 import { loggedInAndSignedUp } from "./middlewares/loggedInAndSignedUp";
-import { deprecatedUpdateEntityType } from "./entityType/updateEntityType";
 import { deleteLinkedAggregation } from "./linkedAggregation/deleteLinkedAggregation";
 import { updateLinkedAggregationOperation } from "./linkedAggregation/updateLinkedAggregationOperation";
 import { createLinkedAggregation } from "./linkedAggregation/createLinkedAggregation";
@@ -94,11 +88,7 @@ const isSystemEntityGQLTypeName = (
 export const resolvers = {
   Query: {
     // Logged in and signed up users only,
-    deprecatedGetAccountEntityTypes: loggedInAndSignedUp(
-      deprecatedGetAccountEntityTypes,
-    ),
     getBlockProtocolBlocks,
-    deprecatedGetEntityType: loggedInAndSignedUp(deprecatedGetEntityType),
     getLinkedAggregation: loggedInAndSignedUp(getLinkedAggregation),
     // Logged in users only
     me: loggedIn(me),
@@ -130,9 +120,7 @@ export const resolvers = {
       updateLinkedAggregationOperation,
     ),
     deleteLinkedAggregation: loggedInAndSignedUp(deleteLinkedAggregation),
-    deprecatedCreateEntityType: loggedInAndSignedUp(deprecatedCreateEntityType),
     createFileFromLink: loggedInAndSignedUp(createFileFromLink),
-    deprecatedUpdateEntityType: loggedInAndSignedUp(deprecatedUpdateEntityType),
     updatePersistedPageContents: loggedInAndSignedUp(
       updatePersistedPageContents,
     ),
@@ -171,15 +159,6 @@ export const resolvers = {
 
   LinkedAggregation: {
     results: linkedAggregationResults,
-  },
-
-  DeprecatedEntityType: {
-    entityType: entityTypeTypeFields.entityType,
-    entityTypeId: entityTypeTypeFields.entityTypeId,
-    entityTypeName: entityTypeTypeFields.entityTypeName,
-    entityTypeVersionId: entityTypeTypeFields.entityTypeVersionId,
-
-    ...entityTypeInheritance,
   },
 
   Account: {
