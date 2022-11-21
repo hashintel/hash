@@ -4,7 +4,6 @@
 
 import VerificationCode from "./verificationCode.model";
 import Account from "./account.model";
-import AccessToken from "./accessToken.model";
 import File from "./file.model";
 import Aggregation from "./aggregation.model";
 
@@ -56,9 +55,6 @@ export { Aggregation };
 
 export * from "./account.model";
 export { Account };
-
-export * from "./accessToken.model";
-export { AccessToken };
 
 export * from "./file.model";
 export { File };
