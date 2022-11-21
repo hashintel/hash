@@ -100,7 +100,7 @@ export const persistedPageTypedef = gql`
     The block entity to insert into the page. You should not set a componentId
     if you provide this
     """
-    existingBlockEntity: EntityId
+    existingBlockEntityId: EntityId
     """
     The entity to associate with the new block
     """
