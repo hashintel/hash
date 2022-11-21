@@ -6,7 +6,6 @@ import VerificationCode from "./verificationCode.model";
 import Account from "./account.model";
 import AccessToken from "./accessToken.model";
 import File from "./file.model";
-import Link from "./link.model";
 import Aggregation from "./aggregation.model";
 
 export * from "./ontology/data-type.model";
@@ -51,9 +50,6 @@ export { default as CommentModel } from "./knowledge/comment.model";
 
 export * from "./verificationCode.model";
 export { VerificationCode };
-
-export * from "./link.model";
-export { Link };
 
 export * from "./aggregation.model";
 export { Aggregation };
