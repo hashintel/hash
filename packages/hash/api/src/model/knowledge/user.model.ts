@@ -8,7 +8,6 @@ import {
   OrgModel,
   OrgMembershipModel,
   HashInstanceModel,
-  LinkEntityModel,
 } from "..";
 import {
   adminKratosSdk,
@@ -434,37 +433,10 @@ export default class extends EntityModel {
   }
 
   async getOrgMemberships(graphApi: GraphApi): Promise<OrgMembershipModel[]> {
-    const outgoingOrgMembershipLinkEntityModels =
-      await LinkEntityModel.getByQuery(graphApi, {
-        all: [
-          {
-            equal: [
-              { path: ["leftEntity", "uuid"] },
-              { parameter: this.entityUuid },
-            ],
-          },
-          {
-            equal: [
-              { path: ["leftEntity", "ownedById"] },
-              { parameter: this.ownedById },
-            ],
-          },
-          {
-            equal: [
-              { path: ["type", "versionedUri"] },
-              {
-                parameter: SYSTEM_TYPES.linkEntityType.hasMembership.schema.$id,
-              },
-            ],
-          },
-          {
-            equal: [{ path: ["version"] }, { parameter: "latest" }],
-          },
-          {
-            equal: [{ path: ["archived"] }, { parameter: false }],
-          },
-        ],
-      });
+    const outgoingOrgMembershipLinkEntityModels = await this.getOutgoingLinks(
+      graphApi,
+      { linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.hasMembership },
+    );
 
     return await Promise.all(
       outgoingOrgMembershipLinkEntityModels.map(({ rightEntityModel }) =>
