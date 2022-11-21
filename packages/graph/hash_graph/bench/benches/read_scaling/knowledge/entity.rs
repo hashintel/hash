@@ -74,7 +74,7 @@ async fn seed_db(
 
     let entity_uuids = store
         .insert_entities_batched_by_type(
-            repeat((None, properties)).take(total),
+            repeat((None, properties, None)).take(total),
             entity_type_id,
             OwnedById::new(account_id),
             CreatedById::new(account_id),
@@ -149,7 +149,7 @@ fn bench_scaling_read_entity(c: &mut Criterion) {
 
         group.bench_with_input(
             BenchmarkId::new(
-                "get_entity_type_by_id",
+                "get_entity_by_id",
                 format!(
                     "Account ID: `{}`, Number Of Entities: `{}`",
                     account_id, size

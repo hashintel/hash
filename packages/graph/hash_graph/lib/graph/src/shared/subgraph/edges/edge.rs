@@ -10,13 +10,13 @@ use crate::{
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Serialize)]
-#[serde(deny_unknown_fields)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct GenericOutwardEdge<K, E> {
     pub kind: K,
     /// If true, interpret this as a reversed mapping and the endpoint as the source, that is,
     /// instead of Source-Edge-Target, interpret it as Target-Edge-Source
     pub reversed: bool,
-    pub endpoint: E,
+    pub right_endpoint: E,
 }
 
 // Utoipa doesn't seem to be able to generate sensible interfaces for this, it gets confused by
@@ -35,8 +35,8 @@ where
                 openapi::Object::with_type(openapi::SchemaType::Boolean),
             )
             .required("reversed")
-            .property("endpoint", E::schema())
-            .required("endpoint")
+            .property("rightEndpoint", E::schema())
+            .required("rightEndpoint")
             .into()
     }
 }

@@ -31,6 +31,8 @@ export type EntityTypeWithMetadata = Omit<
   "schema"
 > & { schema: EntityType };
 
+export type { OntologyElementMetadata } from "@hashintel/hash-graph-client";
+
 /** Plain JSON value and object definitions */
 type JsonValue = string | number | boolean | JsonObject | JsonValue[];
 type JsonObject = {
@@ -46,16 +48,18 @@ export type PropertyObject = {
   [_: BaseUri]: PropertyValue;
 };
 
+export type LinkEntityMetadata = {
+  leftOrder?: number;
+  rightOrder?: number;
+  leftEntityId: EntityId;
+  rightEntityId: EntityId;
+};
+
 export type EntityMetadata = {
   archived: boolean;
   editionId: EntityEditionId;
   entityTypeId: VersionedUri;
-  linkMetadata?: {
-    leftOrder?: number;
-    rightOrder?: number;
-    leftEntityId: EntityId;
-    rightEntityId: EntityId;
-  };
+  linkMetadata?: LinkEntityMetadata;
   provenance: ProvenanceMetadataGraphApi;
 };
 

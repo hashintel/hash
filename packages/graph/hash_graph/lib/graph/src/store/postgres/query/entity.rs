@@ -2,7 +2,6 @@ use std::iter::once;
 
 use crate::{
     knowledge::{Entity, EntityQueryPath},
-    ontology::EntityTypeQueryPath,
     store::postgres::query::{
         table::{Column, Entities, JsonField, Relation},
         Path, PostgresQueryRecord, Table,
@@ -12,18 +11,6 @@ use crate::{
 impl PostgresQueryRecord for Entity {
     fn base_table() -> Table {
         Table::Entities
-    }
-
-    fn default_selection_paths() -> &'static [Self::Path<'static>] {
-        &[
-            EntityQueryPath::Properties(None),
-            EntityQueryPath::Uuid,
-            EntityQueryPath::Version,
-            EntityQueryPath::Type(EntityTypeQueryPath::VersionedUri),
-            EntityQueryPath::OwnedById,
-            EntityQueryPath::CreatedById,
-            EntityQueryPath::UpdatedById,
-        ]
     }
 }
 

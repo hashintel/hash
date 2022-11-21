@@ -87,7 +87,7 @@ impl<C: AsClient> PostgresStore<C> {
                         GenericOutwardEdge {
                             kind: SharedEdgeKind::IsOfType,
                             reversed: false,
-                            endpoint: entity_type_id.into(),
+                            right_endpoint: entity_type_id.into(),
                         },
                     )),
                 );
@@ -132,9 +132,9 @@ impl<C: AsClient> PostgresStore<C> {
                         GenericOutwardEdge {
                             // (HasLeftEndpoint, reversed=true) is equivalent to an
                             // outgoing `Link` `Entity`
-                            kind: KnowledgeGraphEdgeKind::HasLeftEndpoint,
+                            kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                             reversed: true,
-                            endpoint: EntityIdAndTimestamp::new(
+                            right_endpoint: EntityIdAndTimestamp::new(
                                 outgoing_link_entity.metadata().edition_id().base_id(),
                                 earliest_version.inner(),
                             ),
@@ -178,9 +178,9 @@ impl<C: AsClient> PostgresStore<C> {
                         entity_edition_id,
                         left_entity.metadata().edition_id(),
                         GenericOutwardEdge {
-                            kind: KnowledgeGraphEdgeKind::HasLeftEndpoint,
+                            kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                             reversed: false,
-                            endpoint: EntityIdAndTimestamp::new(
+                            right_endpoint: EntityIdAndTimestamp::new(
                                 left_entity.metadata().edition_id().base_id(),
                                 earliest_version.inner(),
                             ),
@@ -224,9 +224,9 @@ impl<C: AsClient> PostgresStore<C> {
                         entity_edition_id,
                         right_entity.metadata().edition_id(),
                         GenericOutwardEdge {
-                            kind: KnowledgeGraphEdgeKind::HasRightEndpoint,
+                            kind: KnowledgeGraphEdgeKind::HasRightEntity,
                             reversed: false,
-                            endpoint: EntityIdAndTimestamp::new(
+                            right_endpoint: EntityIdAndTimestamp::new(
                                 right_entity.metadata().edition_id().base_id(),
                                 earliest_version.inner(),
                             ),
@@ -320,8 +320,14 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     #[cfg(feature = "__internal_bench")]
     async fn insert_entities_batched_by_type(
         &mut self,
-        entities: impl IntoIterator<Item = (Option<EntityUuid>, EntityProperties), IntoIter: Send>
-        + Send,
+        entities: impl IntoIterator<
+            Item = (
+                Option<EntityUuid>,
+                EntityProperties,
+                Option<LinkEntityMetadata>,
+            ),
+            IntoIter: Send,
+        > + Send,
         entity_type_id: VersionedUri,
         owned_by_id: OwnedById,
         actor_id: CreatedById,
@@ -334,15 +340,15 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .change_context(InsertionError)?,
         );
 
-        let (entity_uuids, entities): (Vec<_>, Vec<_>) = entities
-            .into_iter()
-            .map(|(id, entity)| {
-                (
-                    id.unwrap_or_else(|| EntityUuid::new(Uuid::new_v4())),
-                    entity,
-                )
-            })
-            .unzip();
+        let entities = entities.into_iter();
+        let mut entity_uuids = Vec::with_capacity(entities.size_hint().0);
+        let mut entity_properties = Vec::with_capacity(entities.size_hint().0);
+        let mut entity_link_metadatas = Vec::with_capacity(entities.size_hint().0);
+        for (entity_uuid, properties, link_metadata) in entities {
+            entity_uuids.push(entity_uuid.unwrap_or_else(|| EntityUuid::new(Uuid::new_v4())));
+            entity_properties.push(properties);
+            entity_link_metadatas.push(link_metadata);
+        }
 
         // TODO: match on and return the relevant error
         //   https://app.asana.com/0/1200211978612931/1202574350052904/f
@@ -360,7 +366,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         transaction
             .insert_entity_batch_by_type(
                 entity_uuids.iter().copied(),
-                entities,
+                entity_properties,
+                entity_link_metadatas,
                 entity_type_version_id,
                 owned_by_id,
                 actor_id,
@@ -387,7 +394,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             graph_resolve_depths,
         } = *query;
 
-        let subgraphs = stream::iter(Read::<Entity>::read(self, filter).await?)
+        let mut subgraph = stream::iter(Read::<Entity>::read(self, filter).await?)
             .then(|entity| async move {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 
@@ -406,11 +413,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
                 Ok::<_, Report<QueryError>>(dependency_context.into_subgraph(HashSet::from([root])))
             })
-            .try_collect::<Vec<_>>()
+            .try_collect::<Subgraph>()
             .await?;
 
-        let mut subgraph = Subgraph::new(graph_resolve_depths);
-        subgraph.extend(subgraphs);
+        subgraph.depths = graph_resolve_depths;
 
         Ok(subgraph)
     }

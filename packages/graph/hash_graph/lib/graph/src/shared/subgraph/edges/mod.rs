@@ -100,10 +100,7 @@ impl Edges {
                     .or_default();
 
                 match map.entry(ontology_edition_id.version()) {
-                    Entry::Occupied(entry) => {
-                        let set = entry.into_mut();
-                        set.insert(outward_edge)
-                    }
+                    Entry::Occupied(entry) => entry.into_mut().insert(outward_edge),
                     Entry::Vacant(entry) => {
                         entry.insert(HashSet::from([outward_edge]));
                         true
@@ -121,10 +118,7 @@ impl Edges {
                     .or_default();
 
                 match map.entry(entity_edition_id.version()) {
-                    Entry::Occupied(entry) => {
-                        let set = entry.into_mut();
-                        set.insert(outward_edge)
-                    }
+                    Entry::Occupied(entry) => entry.into_mut().insert(outward_edge),
                     Entry::Vacant(entry) => {
                         entry.insert(HashSet::from([outward_edge]));
                         true
@@ -140,12 +134,27 @@ impl Edges {
         }
     }
 
-    // TODO: Implement `Extend` trait instead
     pub fn extend(&mut self, other: Self) {
-        self.ontology.0.extend(other.ontology.0.into_iter());
-        self.knowledge_graph
-            .0
-            .extend(other.knowledge_graph.0.into_iter());
+        for (key, value) in other.ontology.0 {
+            match self.ontology.0.entry(key) {
+                Entry::Occupied(entry) => {
+                    entry.into_mut().extend(value);
+                }
+                Entry::Vacant(entry) => {
+                    entry.insert(value);
+                }
+            }
+        }
+        for (key, value) in other.knowledge_graph.0 {
+            match self.knowledge_graph.0.entry(key) {
+                Entry::Occupied(entry) => {
+                    entry.into_mut().extend(value);
+                }
+                Entry::Vacant(entry) => {
+                    entry.insert(value);
+                }
+            }
+        }
     }
 }
 

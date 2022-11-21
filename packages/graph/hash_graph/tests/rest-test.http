@@ -596,10 +596,10 @@ Content-Type: application/json
     ]
   },
   "graphResolveDepths": {
-    "dataTypeResolveDepth": 0,
-    "propertyTypeResolveDepth": 0,
-    "entityTypeResolveDepth": 0,
-    "entityResolveDepth": 0
+    "dataTypeResolveDepth": 10,
+    "propertyTypeResolveDepth": 10,
+    "entityTypeResolveDepth": 10,
+    "entityResolveDepth": 10
   }
 }
 

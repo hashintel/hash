@@ -366,8 +366,14 @@ pub trait EntityStore: for<'q> crud::Read<Entity, Query<'q> = Filter<'q, Entity>
     #[cfg(feature = "__internal_bench")]
     async fn insert_entities_batched_by_type(
         &mut self,
-        entities: impl IntoIterator<Item = (Option<EntityUuid>, EntityProperties), IntoIter: Send>
-        + Send,
+        entities: impl IntoIterator<
+            Item = (
+                Option<EntityUuid>,
+                EntityProperties,
+                Option<LinkEntityMetadata>,
+            ),
+            IntoIter: Send,
+        > + Send,
         entity_type_id: VersionedUri,
         owned_by_id: OwnedById,
         actor_id: CreatedById,
