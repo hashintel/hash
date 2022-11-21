@@ -151,11 +151,11 @@ describe("Link entity model class", () => {
     ]);
   });
 
-  let friendLinkEntityModel: LinkEntityModel;
-  let acquaintanceEntityLinkModel: LinkEntityModel;
+  let linkEntityFriendModel: LinkEntityModel;
+  let linkEntityAcquaintanceModel: LinkEntityModel;
 
   it("can link entities", async () => {
-    friendLinkEntityModel = await LinkEntityModel.createLinkEntity(graphApi, {
+    linkEntityFriendModel = await LinkEntityModel.createLinkEntity(graphApi, {
       ownedById: testUserModel.entityUuid,
       leftEntityModel,
       linkEntityTypeModel: linkEntityTypeFriendModel,
@@ -163,7 +163,7 @@ describe("Link entity model class", () => {
       actorId: testUserModel.entityUuid,
     });
 
-    acquaintanceEntityLinkModel = await LinkEntityModel.createLinkEntity(
+    linkEntityAcquaintanceModel = await LinkEntityModel.createLinkEntity(
       graphApi,
       {
         ownedById: testUserModel.entityUuid,
@@ -178,8 +178,8 @@ describe("Link entity model class", () => {
   it("can get all entity links", async () => {
     const allLinks = await leftEntityModel.getOutgoingLinks(graphApi);
     expect(allLinks).toHaveLength(2);
-    expect(allLinks).toContainEqual(friendLinkEntityModel);
-    expect(allLinks).toContainEqual(acquaintanceEntityLinkModel);
+    expect(allLinks).toContainEqual(linkEntityFriendModel);
+    expect(allLinks).toContainEqual(linkEntityAcquaintanceModel);
   });
 
   it("can get a single entity link", async () => {
@@ -196,7 +196,7 @@ describe("Link entity model class", () => {
   });
 
   it("can archive a link", async () => {
-    await acquaintanceEntityLinkModel.archive(graphApi, {
+    await linkEntityAcquaintanceModel.archive(graphApi, {
       actorId: testUserModel.entityUuid,
     });
 
