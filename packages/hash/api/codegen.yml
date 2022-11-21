@@ -39,6 +39,6 @@ generates:
         EntityId: "@hashintel/hash-subgraph#EntityId"
         EntityEditionId: "@hashintel/hash-subgraph#EntityEditionId"
         EntityMetadata: "@hashintel/hash-subgraph#EntityMetadata"
-        EntityWithMetadata: "@hashintel/hash-subgraph#Entity"
+        EntityWithMetadata: "@hashintel/hash-subgraph#EntityWithMetadata"
         Edges: "@hashintel/hash-shared/graphql/types#Edges"
         Vertices: "@hashintel/hash-shared/graphql/types#Vertices"
