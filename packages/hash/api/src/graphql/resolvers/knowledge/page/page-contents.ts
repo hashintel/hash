@@ -1,15 +1,14 @@
 import { ApolloError } from "apollo-server-errors";
 import { PageModel } from "../../../../model";
-import { ResolverFn } from "../../../apiTypes.gen";
+import { EntityWithMetadata, ResolverFn } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import {
   mapBlockModelToGQL,
-  UnresolvedEntityWithMetadataGQL,
   UnresolvedPersistedPageGQL,
 } from "../model-mapping";
 
 export const persistedPageContents: ResolverFn<
-  Promise<UnresolvedEntityWithMetadataGQL[]>,
+  Promise<EntityWithMetadata[]>,
   UnresolvedPersistedPageGQL,
   LoggedInGraphQLContext,
   {}

@@ -1,21 +1,18 @@
 import { CommentModel } from "../../../../model";
-import { ResolverFn } from "../../../apiTypes.gen";
+import { EntityWithMetadata, ResolverFn } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import {
-  UnresolvedPersistedCommentGQL,
-  UnresolvedEntityWithMetadataGQL,
-} from "../model-mapping";
+import { UnresolvedPersistedCommentGQL } from "../model-mapping";
 import { SYSTEM_TYPES } from "../../../../graph/system-types";
 
 export const persistedCommentHasText: ResolverFn<
-  Promise<UnresolvedEntityWithMetadataGQL[]>,
+  Promise<EntityWithMetadata[]>,
   UnresolvedPersistedCommentGQL,
   LoggedInGraphQLContext,
   {}
-> = async ({ entityId }, _, { dataSources }) => {
+> = async ({ metadata }, _, { dataSources }) => {
   const { graphApi } = dataSources;
   const commentModel = await CommentModel.getCommentById(graphApi, {
-    entityId,
+    entityId: metadata.editionId.baseId,
   });
   const textEntityModel = await commentModel.getHasText(graphApi);
 

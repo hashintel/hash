@@ -1,20 +1,19 @@
 import { CommentModel } from "../../../../model";
-import { ResolverFn } from "../../../apiTypes.gen";
+import { EntityWithMetadata, ResolverFn } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import {
   UnresolvedPersistedCommentGQL,
-  UnresolvedEntityWithMetadataGQL,
   mapEntityModelToGQL,
 } from "../model-mapping";
 
 export const persistedCommentAuthor: ResolverFn<
-  Promise<UnresolvedEntityWithMetadataGQL>,
+  Promise<EntityWithMetadata>,
   UnresolvedPersistedCommentGQL,
   LoggedInGraphQLContext,
   {}
-> = async ({ entityId }, _, { dataSources: { graphApi } }) => {
+> = async ({ metadata }, _, { dataSources: { graphApi } }) => {
   const commentModel = await CommentModel.getCommentById(graphApi, {
-    entityId,
+    entityId: metadata.editionId.baseId,
   });
   const authorModel = await commentModel.getAuthor(graphApi);
 
