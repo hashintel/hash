@@ -2,7 +2,6 @@
 // The name of these default imports define the name of the model classes
 // when accessed from outside of this module.
 
-import EntityType from "./entityType.model";
 import VerificationCode from "./verificationCode.model";
 import Account from "./account.model";
 import AccessToken from "./accessToken.model";
@@ -49,9 +48,6 @@ export * from "./knowledge/comment.model";
 export { default as CommentModel } from "./knowledge/comment.model";
 
 /** @todo: deprecate legacy model classes */
-
-export * from "./entityType.model";
-export { EntityType };
 
 export * from "./verificationCode.model";
 export { VerificationCode };
