@@ -15,6 +15,7 @@ import {
   extractOwnedByIdFromEntityId,
 } from "@hashintel/hash-subgraph";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
+import { VersionedUri } from "@blockprotocol/type-system-web";
 import {
   EntityModel,
   EntityTypeModel,
@@ -22,10 +23,10 @@ import {
   LinkModelCreateParams,
 } from "..";
 import {
-  PersistedEntityDefinition,
   PersistedLinkedEntityDefinition,
+  EntityWithMetadataDefinition,
 } from "../../graphql/apiTypes.gen";
-import { exactlyOne, linkedTreeFlatten } from "../../util";
+import { linkedTreeFlatten } from "../../util";
 
 export type EntityModelConstructorParams = {
   entity: Entity;
@@ -152,7 +153,7 @@ export default class {
     graphApi: GraphApi,
     params: {
       ownedById: string;
-      entityTypeId: string;
+      entityTypeId: VersionedUri;
       properties: any;
       linkedEntities?: PersistedLinkedEntityDefinition[];
       actorId: string;
@@ -162,13 +163,13 @@ export default class {
       params;
 
     const entitiesInTree = linkedTreeFlatten<
-      PersistedEntityDefinition,
+      EntityWithMetadataDefinition,
       PersistedLinkedEntityDefinition,
       "linkedEntities",
       "entity"
     >(
       {
-        entityType: { entityTypeId },
+        entityTypeId,
         entityProperties: properties,
         linkedEntities,
       },
@@ -247,30 +248,29 @@ export default class {
     graphApi: GraphApi,
     params: {
       ownedById: string;
-      entityDefinition: Omit<PersistedEntityDefinition, "linkedEntities">;
+      entityDefinition: Omit<EntityWithMetadataDefinition, "linkedEntities">;
       actorId: string;
     },
   ): Promise<EntityModel> {
     const { entityDefinition, ownedById, actorId } = params;
-    const { entityProperties, existingEntity } = entityDefinition;
+    const { entityProperties, existingEntityId } = entityDefinition;
 
     let entity;
 
-    if (existingEntity) {
+    if (existingEntityId) {
       entity = await EntityModel.getLatest(graphApi, {
-        entityId: existingEntity.entityId,
+        entityId: existingEntityId,
       });
       if (!entity) {
         throw new ApolloError(
-          `Entity ${existingEntity.entityId} owned by ${existingEntity.ownedById} not found`,
+          `Entity ${existingEntityId} not found`,
           "NOT_FOUND",
         );
       }
     } else if (entityProperties) {
-      const { entityType } = entityDefinition;
-      const { entityTypeId } = entityType ?? {};
+      const { entityTypeId } = entityDefinition;
 
-      if (!exactlyOne(entityTypeId)) {
+      if (!entityTypeId) {
         throw new ApolloError(
           `Given no valid type identifier. Must be one of entityTypeId`,
           "NOT_FOUND",
@@ -278,7 +278,7 @@ export default class {
       }
 
       const entityTypeModel = await EntityTypeModel.get(graphApi, {
-        entityTypeId: entityTypeId!,
+        entityTypeId,
       });
 
       entity = await EntityModel.create(graphApi, {
