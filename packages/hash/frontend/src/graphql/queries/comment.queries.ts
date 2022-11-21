@@ -22,7 +22,7 @@ export const createPersistedComment = gql`
 `;
 
 export const resolvePersistedComment = gql`
-  mutation resolvePersistedComment($entityId: ID!) {
+  mutation resolvePersistedComment($entityId: EntityId!) {
     resolvePersistedComment(entityId: $entityId) {
       ...CommentFields
     }
@@ -31,7 +31,7 @@ export const resolvePersistedComment = gql`
 `;
 
 export const deletePersistedComment = gql`
-  mutation deletePersistedComment($entityId: ID!) {
+  mutation deletePersistedComment($entityId: EntityId!) {
     deletePersistedComment(entityId: $entityId) {
       ...CommentFields
     }
@@ -40,7 +40,10 @@ export const deletePersistedComment = gql`
 `;
 
 export const updatePersistedCommentText = gql`
-  mutation updatePersistedCommentText($entityId: ID!, $tokens: [TextToken!]!) {
+  mutation updatePersistedCommentText(
+    $entityId: EntityId!
+    $tokens: [TextToken!]!
+  ) {
     updatePersistedCommentText(entityId: $entityId, tokens: $tokens) {
       ...CommentFields
     }

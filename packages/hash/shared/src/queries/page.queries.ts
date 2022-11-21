@@ -34,7 +34,11 @@ const persistedPagePropertiesFieldsFragment = gql`
 `;
 
 export const getPageInfoQuery = gql`
-  query getPageInfo($ownedById: ID!, $entityId: ID!, $entityVersion: String) {
+  query getPageInfo(
+    $ownedById: ID!
+    $entityId: EntityId!
+    $entityVersion: String
+  ) {
     persistedPage(
       ownedById: $ownedById
       entityId: $entityId
@@ -50,7 +54,7 @@ export const getPageInfoQuery = gql`
 export const getPersistedPageQuery = gql`
   query getPersistedPage(
     $ownedById: ID!
-    $entityId: ID!
+    $entityId: EntityId!
     $entityVersion: String
   ) {
     persistedPage(
@@ -67,7 +71,7 @@ export const getPersistedPageQuery = gql`
 export const updatePersistedPageContents = gql`
   mutation updatePersistedPageContents(
     $ownedById: ID!
-    $entityId: ID!
+    $entityId: EntityId!
     $actions: [UpdatePersistedPageAction!]!
   ) {
     updatePersistedPageContents(
