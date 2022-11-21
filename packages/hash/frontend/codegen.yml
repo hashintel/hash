@@ -25,6 +25,8 @@ generates:
         PropertyTypeWithMetadata: "@hashintel/hash-subgraph#PropertyTypeWithMetadata"
         EntityId: "@hashintel/hash-subgraph#EntityId"
         EntityEditionId: "@hashintel/hash-subgraph#EntityEditionId"
+        EntityMetadata: "@hashintel/hash-subgraph#EntityMetadata"
+        EntityWithMetadata: "@hashintel/hash-subgraph#Entity"
         Edges: "@hashintel/hash-shared/graphql/types#Edges"
         Vertices: "@hashintel/hash-shared/graphql/types#Vertices"
     documents:

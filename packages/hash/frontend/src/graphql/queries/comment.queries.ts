@@ -4,13 +4,8 @@ export const commentFieldsFragment = gql`
   fragment CommentFields on PersistedComment {
     hasText
     textUpdatedAt
-    author {
-      metadata
-      properties
-    }
-    parent {
-      metadata
-    }
+    author
+    parent
     metadata
   }
 `;

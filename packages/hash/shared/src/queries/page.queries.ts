@@ -4,10 +4,7 @@ const persistedBlockFieldsFragment = gql`
   fragment PersistedBlockFields on PersistedBlock {
     __typename
     metadata
-    blockChildEntity {
-      metadata
-      properties
-    }
+    blockChildEntity
     properties
   }
 `;
