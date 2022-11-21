@@ -1,6 +1,7 @@
 import { ApolloError } from "apollo-server-errors";
+import { EntityWithMetadata } from "@hashintel/hash-subgraph";
 import { PageModel } from "../../../../model";
-import { EntityWithMetadata, ResolverFn } from "../../../apiTypes.gen";
+import { ResolverFn } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import {
   mapBlockModelToGQL,

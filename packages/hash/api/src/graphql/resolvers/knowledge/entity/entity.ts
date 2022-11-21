@@ -2,6 +2,7 @@ import { Filter } from "@hashintel/hash-graph-client";
 import { AxiosError } from "axios";
 import { ApolloError, ForbiddenError } from "apollo-server-express";
 import {
+  EntityWithMetadata,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
   Subgraph,
@@ -13,7 +14,6 @@ import {
   MutationUpdateEntityWithMetadataArgs,
   ResolverFn,
   QueryGetAllLatestEntitiesWithMetadataArgs,
-  EntityWithMetadata,
 } from "../../../apiTypes.gen";
 import { mapEntityModelToGQL } from "../model-mapping";
 import { LoggedInGraphQLContext } from "../../../context";

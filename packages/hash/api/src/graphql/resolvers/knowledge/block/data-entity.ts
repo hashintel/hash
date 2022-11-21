@@ -1,10 +1,7 @@
+import { EntityWithMetadata } from "@hashintel/hash-subgraph";
 import { BlockModel } from "../../../../model";
 
-import {
-  EntityWithMetadata,
-  QueryPersistedBlocksArgs,
-  ResolverFn,
-} from "../../../apiTypes.gen";
+import { QueryPersistedBlocksArgs, ResolverFn } from "../../../apiTypes.gen";
 import { GraphQLContext } from "../../../context";
 import {
   UnresolvedPersistedBlockGQL,

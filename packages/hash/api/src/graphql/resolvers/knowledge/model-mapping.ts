@@ -1,3 +1,4 @@
+import { EntityWithMetadata } from "@hashintel/hash-subgraph";
 import {
   BlockModel,
   CommentModel,
@@ -6,7 +7,6 @@ import {
 } from "../../../model";
 import {
   PersistedBlock,
-  EntityWithMetadata,
   PersistedPage,
   PersistedComment,
 } from "../../apiTypes.gen";
