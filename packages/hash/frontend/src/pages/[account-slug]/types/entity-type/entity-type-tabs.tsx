@@ -6,14 +6,10 @@ import { useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { useFontLoadedCallback } from "../../../../components/hooks/useFontLoadedCallback";
 import { EntityTypeEditorForm } from "./form-types";
-import { TabButton } from "./tab-button";
 import { TabLink } from "./tab-link";
+import { getTabUri, getTabValue, useCurrentTab } from "./use-current-tab";
 import { useEntityTypeEntities } from "./use-entity-type-entities";
-import { getEntityTypeBaseUri } from "./[entity-type-id].page";
-
-const defaultTab = "definition";
-
-export const useCurrentTab = () => useRouter().query.tab ?? defaultTab;
+import { getEntityTypeBaseUri } from "./util";
 
 export const EntityTypeTabs = () => {
   const router = useRouter();
@@ -59,31 +55,40 @@ export const EntityTypeTabs = () => {
           minHeight: 0,
           overflow: "visible",
           alignItems: "flex-end",
+          flex: 1,
           [`.${tabsClasses.scroller}`]: {
             overflow: "visible !important",
           },
         }}
       >
         <TabLink
-          value=""
-          href={baseUri}
+          value={getTabValue("definition")}
+          href={getTabUri(baseUri, "definition")}
           label="Definition"
           count={propertiesCount ?? 0}
           active={currentTab === "definition"}
         />
         <TabLink
-          value="entities"
-          href={`${baseUri}?tab=entities`}
+          value={getTabValue("entities")}
+          href={getTabUri(baseUri, "entities")}
           label="Entities"
           count={entities?.length ?? 0}
           active={currentTab === "entities"}
         />
-      </Tabs>
 
-      <Box display="flex" ml="auto">
-        <TabButton
+        <TabLink
+          value="create"
           href="#"
           label="Create new entity"
+          sx={(theme) => ({
+            ml: "auto",
+            color: "inherit",
+            fill: theme.palette.blue[70],
+            "&:hover": {
+              color: theme.palette.primary.main,
+              fill: theme.palette.blue[60],
+            },
+          })}
           icon={
             <FontAwesomeIcon
               icon={faPlus}
@@ -95,7 +100,7 @@ export const EntityTypeTabs = () => {
             />
           }
         />
-      </Box>
+      </Tabs>
     </Box>
   );
 };
