@@ -46,20 +46,24 @@ export type PropertyObject = {
   [_: BaseUri]: PropertyValue;
 };
 
+export type LinkEntityMetadata = {
+  leftOrder?: number;
+  rightOrder?: number;
+  leftEntityId: EntityId;
+  rightEntityId: EntityId;
+};
+
+export type EntityMetadata = {
+  archived: boolean;
+  editionId: EntityEditionId;
+  entityTypeId: VersionedUri;
+  linkMetadata?: LinkEntityMetadata;
+  provenance: ProvenanceMetadataGraphApi;
+};
+
 export type Entity = {
   properties: PropertyObject;
-  metadata: {
-    archived: boolean;
-    editionId: EntityEditionId;
-    entityTypeId: VersionedUri;
-    linkMetadata?: {
-      leftOrder?: number;
-      rightOrder?: number;
-      leftEntityId: EntityId;
-      rightEntityId: EntityId;
-    };
-    provenance: ProvenanceMetadataGraphApi;
-  };
+  metadata: EntityMetadata;
 };
 
 export type GraphElement =
