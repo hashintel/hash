@@ -9,7 +9,6 @@ import { Box, Paper, Stack } from "@mui/material";
 import { FunctionComponent, useCallback, useMemo, useState } from "react";
 import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
 import { GlideGrid } from "../../../../../components/GlideGlid/glide-grid";
-import { GlideGridOverlayPortal } from "../../../../../components/GlideGlid/glide-grid-overlay-portal";
 import {
   createHandleHeaderClicked,
   sortRowData,
@@ -158,7 +157,6 @@ export const EntitiesTab: FunctionComponent = () => {
           />
         </Paper>
       </SectionWrapper>
-      <GlideGridOverlayPortal />
     </Box>
   );
 };
