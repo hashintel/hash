@@ -9,7 +9,7 @@ export const persistedLinkTypedef = gql`
     """
     The versioned URI of this link's type.
     """
-    linkTypeId: String!
+    linkTypeId: VersionedUri!
     """
     The index of the link (if any).
     """
@@ -36,7 +36,7 @@ export const persistedLinkTypedef = gql`
     """
     The versioned URI of this link's type.
     """
-    linkTypeId: String!
+    linkTypeId: VersionedUri!
     """
     The index of the link (if any).
     """
@@ -59,7 +59,7 @@ export const persistedLinkTypedef = gql`
     """
     The versioned URI of this link's type.
     """
-    linkTypeId: String!
+    linkTypeId: VersionedUri!
     """
     The id of the link's source entity.
     """
