@@ -4,6 +4,7 @@ import {
   BlockModel,
   EntityModelCreateParams,
   CommentModel,
+  EntityProperties,
 } from "..";
 import { SYSTEM_TYPES } from "../../graph/system-types";
 import { EntityTypeMismatchError } from "../../lib/error";
@@ -62,7 +63,7 @@ export default class extends EntityModel {
   ): Promise<BlockModel> {
     const { componentId, blockData, ownedById, actorId } = params;
 
-    const properties: object = {
+    const properties: EntityProperties = {
       [SYSTEM_TYPES.propertyType.componentId.baseUri]: componentId,
     };
 

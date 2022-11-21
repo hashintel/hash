@@ -4,6 +4,7 @@ import {
   EntityModel,
   EntityModelCreateParams,
   AccountFields,
+  EntityProperties,
 } from "..";
 import { systemAccountId } from "../util";
 import { SYSTEM_TYPES } from "../../graph/system-types";
@@ -65,14 +66,16 @@ export default class extends EntityModel {
 
     const { data: orgAccountId } = await graphApi.createAccountId();
 
-    const properties: object = {
+    const properties: EntityProperties = {
       [SYSTEM_TYPES.propertyType.shortName.baseUri]: shortname,
       [SYSTEM_TYPES.propertyType.orgName.baseUri]: name,
-      [SYSTEM_TYPES.propertyType.orgProvidedInfo.baseUri]: providedInfo
+      ...(providedInfo
         ? {
-            [SYSTEM_TYPES.propertyType.orgSize.baseUri]: providedInfo.orgSize,
+            [SYSTEM_TYPES.propertyType.orgProvidedInfo.baseUri]: {
+              [SYSTEM_TYPES.propertyType.orgSize.baseUri]: providedInfo.orgSize,
+            },
           }
-        : undefined,
+        : {}),
     };
 
     const entityTypeModel = SYSTEM_TYPES.entityType.org;

@@ -8,6 +8,7 @@ import {
   OrgMembershipModel,
   HashInstanceModel,
   LinkEntityModel,
+  EntityProperties,
 } from "..";
 import {
   adminKratosSdk,
@@ -182,11 +183,15 @@ export default class extends EntityModel {
 
     const { data: userAccountId } = await graphApi.createAccountId();
 
-    const properties: object = {
+    const properties: EntityProperties = {
       [SYSTEM_TYPES.propertyType.email.baseUri]: emails,
       [SYSTEM_TYPES.propertyType.kratosIdentityId.baseUri]: kratosIdentityId,
-      [SYSTEM_TYPES.propertyType.shortName.baseUri]: shortname,
-      [SYSTEM_TYPES.propertyType.preferredName.baseUri]: preferredName,
+      ...(shortname
+        ? { [SYSTEM_TYPES.propertyType.shortName.baseUri]: shortname }
+        : {}),
+      ...(preferredName
+        ? { [SYSTEM_TYPES.propertyType.preferredName.baseUri]: preferredName }
+        : {}),
     };
 
     const entityTypeModel = SYSTEM_TYPES.entityType.user;
