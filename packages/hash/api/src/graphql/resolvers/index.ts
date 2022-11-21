@@ -1,8 +1,6 @@
 import { JSONObjectResolver } from "graphql-scalars";
 
 import { Entity } from "../apiTypes.gen";
-import { createLink } from "./link/createLink";
-import { deleteLink } from "./link/deleteLink";
 import { embedCode } from "./embed";
 
 import { me } from "./knowledge/user/me";
@@ -29,7 +27,6 @@ import {
   executeGithubDiscoverTask,
   executeGithubReadTask,
 } from "./taskExecutor";
-import { getLink } from "./link/getLink";
 import { getLinkedAggregation } from "./linkedAggregation/getLinkedAggregation";
 import { getAllLatestDataTypes, getDataType } from "./ontology/data-type";
 import {
@@ -102,7 +99,6 @@ export const resolvers = {
     ),
     getBlockProtocolBlocks,
     deprecatedGetEntityType: loggedInAndSignedUp(deprecatedGetEntityType),
-    getLink: loggedInAndSignedUp(getLink),
     getLinkedAggregation: loggedInAndSignedUp(getLinkedAggregation),
     // Logged in users only
     me: loggedIn(me),
@@ -129,8 +125,6 @@ export const resolvers = {
 
   Mutation: {
     // Logged in and signed up users only
-    createLink: loggedInAndSignedUp(createLink),
-    deleteLink: loggedInAndSignedUp(deleteLink),
     createLinkedAggregation: loggedInAndSignedUp(createLinkedAggregation),
     updateLinkedAggregationOperation: loggedInAndSignedUp(
       updateLinkedAggregationOperation,
