@@ -6,7 +6,6 @@ import EntityType from "./entityType.model";
 import VerificationCode from "./verificationCode.model";
 import Entity from "./entity.model";
 import Account from "./account.model";
-import Org from "./org.model";
 import AccessToken from "./accessToken.model";
 import OrgInvitationLink from "./orgInvitationLink.model";
 import OrgEmailInvitation from "./orgEmailInvitation.model";
@@ -71,9 +70,6 @@ export { Entity };
 
 export * from "./account.model";
 export { Account };
-
-export * from "./org.model";
-export { Org };
 
 export * from "./accessToken.model";
 export { AccessToken };
