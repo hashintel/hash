@@ -189,7 +189,7 @@ export const fetchBlock = async (
     try {
       schemaUrl = deriveAbsoluteUrl({ baseUrl, path: metadata.schema });
       // @todo needs validation
-      schema = schemaUrl ? await (await fetch(schemaUrl)).json() : {};
+      schema = (schemaUrl && (await (await fetch(schemaUrl)).json())) ?? {};
     } catch (err) {
       blockCache.delete(baseUrl);
       throw new Error(
