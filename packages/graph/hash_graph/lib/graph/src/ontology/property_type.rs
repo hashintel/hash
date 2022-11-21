@@ -183,12 +183,20 @@ impl OntologyPath for PropertyTypeQueryPath {
         Self::Version
     }
 
-    fn title() -> Self {
-        Self::Title
+    fn owned_by_id() -> Self {
+        Self::OwnedById
     }
 
-    fn description() -> Self {
-        Self::Description
+    fn created_by_id() -> Self {
+        Self::CreatedById
+    }
+
+    fn updated_by_id() -> Self {
+        Self::UpdatedById
+    }
+
+    fn schema() -> Self {
+        Self::Schema
     }
 }
 

@@ -14,16 +14,6 @@ impl PostgresQueryRecord for PropertyType {
     fn base_table() -> Table {
         Table::PropertyTypes
     }
-
-    fn default_selection_paths() -> &'static [Self::Path<'static>] {
-        &[
-            PropertyTypeQueryPath::VersionedUri,
-            PropertyTypeQueryPath::Schema,
-            PropertyTypeQueryPath::OwnedById,
-            PropertyTypeQueryPath::CreatedById,
-            PropertyTypeQueryPath::UpdatedById,
-        ]
-    }
 }
 
 impl Path for PropertyTypeQueryPath {

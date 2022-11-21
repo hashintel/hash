@@ -17,9 +17,9 @@ use crate::{
         postgres::{
             context::OntologyRecord,
             ontology::OntologyDatabaseType,
-            query::{PostgresQueryRecord, SelectCompiler},
+            query::{Distinctness, PostgresQueryRecord, SelectCompiler},
         },
-        query::Filter,
+        query::{Filter, OntologyPath, QueryRecord},
         AsClient, PostgresStore, QueryError,
     },
 };
@@ -72,7 +72,7 @@ impl From<OntologyRecord<EntityType>> for EntityTypeWithMetadata {
 impl<C: AsClient, T> Read<T> for PostgresStore<C>
 where
     T: for<'q> PersistedOntologyType<
-            Inner: PostgresQueryRecord<Path<'q>: Debug + Sync>
+            Inner: PostgresQueryRecord<Path<'q>: Debug + Send + Sync + OntologyPath>
                        + OntologyDatabaseType
                        + TryFrom<serde_json::Value, Error: Context>
                        + Send
@@ -82,7 +82,27 @@ where
     type Query<'q> = Filter<'q, T::Inner>;
 
     async fn read<'f: 'q, 'q>(&self, filter: &'f Self::Query<'q>) -> Result<Vec<T>, QueryError> {
-        let mut compiler = SelectCompiler::with_default_selection();
+        let versioned_uri_path =
+            <<T::Inner as QueryRecord>::Path<'q> as OntologyPath>::versioned_uri();
+        let schema_path = <<T::Inner as QueryRecord>::Path<'q> as OntologyPath>::schema();
+        let owned_by_id_path = <<T::Inner as QueryRecord>::Path<'q> as OntologyPath>::owned_by_id();
+        let created_by_id_path =
+            <<T::Inner as QueryRecord>::Path<'q> as OntologyPath>::created_by_id();
+        let updated_by_id_path =
+            <<T::Inner as QueryRecord>::Path<'q> as OntologyPath>::updated_by_id();
+
+        let mut compiler = SelectCompiler::new();
+
+        let versioned_uri_index = compiler.add_distinct_selection_with_ordering(
+            &versioned_uri_path,
+            Distinctness::Distinct,
+            None,
+        );
+        let schema_index = compiler.add_selection_path(&schema_path);
+        let owned_by_id_index = compiler.add_selection_path(&owned_by_id_path);
+        let created_by_id_index = compiler.add_selection_path(&created_by_id_path);
+        let updated_by_id_path_index = compiler.add_selection_path(&updated_by_id_path);
+
         compiler.add_filter(filter);
         let (statement, parameters) = compiler.compile();
 
@@ -93,15 +113,15 @@ where
             .change_context(QueryError)?
             .map(|row| row.into_report().change_context(QueryError))
             .and_then(|row| async move {
-                let versioned_uri = VersionedUri::from_str(row.get(0))
+                let versioned_uri = VersionedUri::from_str(row.get(versioned_uri_index))
                     .into_report()
                     .change_context(QueryError)?;
-                let record = <T::Inner>::try_from(row.get::<_, serde_json::Value>(1))
+                let record = <T::Inner>::try_from(row.get::<_, serde_json::Value>(schema_index))
                     .into_report()
                     .change_context(QueryError)?;
-                let owned_by_id = OwnedById::new(row.get(2));
-                let created_by_id = CreatedById::new(row.get(3));
-                let updated_by_id = UpdatedById::new(row.get(4));
+                let owned_by_id = OwnedById::new(row.get(owned_by_id_index));
+                let created_by_id = CreatedById::new(row.get(created_by_id_index));
+                let updated_by_id = UpdatedById::new(row.get(updated_by_id_path_index));
 
                 let edition_identifier = versioned_uri.into();
                 Ok(T::new(

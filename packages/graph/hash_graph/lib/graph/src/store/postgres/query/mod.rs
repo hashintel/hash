@@ -32,9 +32,6 @@ use crate::store::{
 pub trait PostgresQueryRecord: for<'q> QueryRecord<Path<'q>: Path> {
     /// The [`Table`] used for this `Query`.
     fn base_table() -> Table;
-
-    /// Default [`Path`]s returned when querying this record.
-    fn default_selection_paths() -> &'static [Self::Path<'static>];
 }
 
 /// An absolute path inside of a query pointing to an attribute.
