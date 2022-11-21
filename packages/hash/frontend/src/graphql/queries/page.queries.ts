@@ -3,8 +3,8 @@ import { commentFieldsFragment } from "./comment.queries";
 
 export const setParentPage = gql`
   mutation setParentPage(
-    $pageEntityId: ID!
-    $parentPageEntityId: ID
+    $pageEntityId: EntityId!
+    $parentPageEntityId: EntityId
     $prevIndex: String
     $nextIndex: String
   ) {

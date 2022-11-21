@@ -179,7 +179,7 @@ export const persistedPageTypedef = gql`
     """
     The new entity's fixed ID
     """
-    newEntityEntityId: ID!
+    newEntityEntityId: EntityId!
   }
 
   """
@@ -290,8 +290,8 @@ export const persistedPageTypedef = gql`
     If the parentPageEntityId is not set, any existing page link is removed.
     """
     setParentPersistedPage(
-      pageEntityId: ID!
-      parentPageEntityId: ID
+      pageEntityId: EntityId!
+      parentPageEntityId: EntityId
       prevIndex: String
       nextIndex: String
     ): PersistedPage!

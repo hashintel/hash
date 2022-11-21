@@ -57,7 +57,7 @@ export const persistedCommentTypedef = gql`
       """
       Id of the block or comment the comment belongs to
       """
-      parentEntityId: ID!
+      parentEntityId: EntityId!
       """
       Text contents of the comment
       """

@@ -24,7 +24,10 @@ export const getAccountPagesTree = gql`
 `;
 
 export const setPageParent = gql`
-  mutation setParentPage($pageEntityId: ID!, $parentPageEntityId: ID) {
+  mutation setParentPage(
+    $pageEntityId: EntityId!
+    $parentPageEntityId: EntityId
+  ) {
     setParentPersistedPage(
       pageEntityId: $pageEntityId
       parentPageEntityId: $parentPageEntityId

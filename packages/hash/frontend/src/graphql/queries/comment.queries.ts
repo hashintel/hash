@@ -12,7 +12,7 @@ export const commentFieldsFragment = gql`
 
 export const createPersistedComment = gql`
   mutation createPersistedComment(
-    $parentEntityId: ID!
+    $parentEntityId: EntityId!
     $tokens: [TextToken!]!
   ) {
     createPersistedComment(parentEntityId: $parentEntityId, tokens: $tokens) {
