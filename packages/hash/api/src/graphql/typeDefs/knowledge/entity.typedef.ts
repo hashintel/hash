@@ -1,7 +1,6 @@
 import { gql } from "apollo-server-express";
 
 export const entityWithMetadataTypedef = gql`
-  scalar VersionedUri
   scalar EntityId
   scalar EntityEditionId
   scalar PropertyObject
