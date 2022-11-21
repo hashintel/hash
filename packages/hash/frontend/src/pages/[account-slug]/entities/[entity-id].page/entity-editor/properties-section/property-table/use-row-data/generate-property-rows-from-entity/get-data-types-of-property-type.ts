@@ -35,12 +35,12 @@ const isArrayOfPropertyValues = (
   return "type" in propertyValue && propertyValue.type === "array";
 };
 
-export const getDataTypesOfPropertyType = (
+export const getExpectedTypesOfPropertyType = (
   propertyType: PropertyType,
   subgraph: Subgraph,
 ) => {
   let isArray = false;
-  let dataTypes: string[] = [];
+  let expectedTypes: string[] = [];
 
   const firstType = propertyType.oneOf[0];
 
@@ -50,13 +50,13 @@ export const getDataTypesOfPropertyType = (
 
   if (isArrayOfPropertyValues(firstType)) {
     isArray = true;
-    dataTypes = getReferencedTypeTitles(firstType.items.oneOf, subgraph);
+    expectedTypes = getReferencedTypeTitles(firstType.items.oneOf, subgraph);
   } else {
-    dataTypes = getReferencedTypeTitles(propertyType.oneOf, subgraph);
+    expectedTypes = getReferencedTypeTitles(propertyType.oneOf, subgraph);
   }
 
   return {
     isArray,
-    dataTypes,
+    expectedTypes,
   };
 };

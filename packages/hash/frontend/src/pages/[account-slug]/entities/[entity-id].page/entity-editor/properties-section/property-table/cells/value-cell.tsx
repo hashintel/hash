@@ -21,7 +21,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
     (cell.data as any).kind === "value-cell",
   draw: (args, cell) => {
     const { ctx, rect, theme } = args;
-    const { value, dataTypes } = cell.data.property;
+    const { value, expectedTypes: dataTypes } = cell.data.property;
 
     ctx.fillStyle = theme.textHeader;
     ctx.font = theme.baseFontStyle;

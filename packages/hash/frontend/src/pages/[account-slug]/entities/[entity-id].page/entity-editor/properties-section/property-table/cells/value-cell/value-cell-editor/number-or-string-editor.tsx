@@ -7,7 +7,7 @@ export const NumberOrStringEditor: ValueCellEditorComponent = ({
   value: cell,
   onChange,
 }) => {
-  const { value, dataTypes } = cell.data.property;
+  const { value, expectedTypes: dataTypes } = cell.data.property;
   /** @todo remove dataTypes[0] when multiple data types are supported */
   const isNumber = types.dataType.number.title === dataTypes[0];
 

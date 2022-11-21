@@ -14,7 +14,7 @@ export const propertyGridColumns: PropertyColumn[] = [
   },
   {
     title: "Expected type",
-    id: "dataTypes",
+    id: "expectedTypes",
     width: 200,
   },
 ];
@@ -22,5 +22,5 @@ export const propertyGridColumns: PropertyColumn[] = [
 export const propertyGridIndexes: PropertyColumnKey[] = [
   "title",
   "value",
-  "dataTypes",
+  "expectedTypes",
 ];
