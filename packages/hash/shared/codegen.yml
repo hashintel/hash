@@ -16,6 +16,7 @@ generates:
         TextToken: ./types#TextToken
         Date: string
         UnknownEntityProperties: ./types#UnknownEntityProperties
+        VersionedUri: "@hashintel/hash-subgraph#VersionedUri"
         DataTypeWithoutId: "@hashintel/hash-shared/graphql/types#DataTypeWithoutId"
         DataTypeWithMetadata: "@hashintel/hash-subgraph#DataTypeWithMetadata"
         EntityTypeWithoutId: "@hashintel/hash-shared/graphql/types#EntityTypeWithoutId"

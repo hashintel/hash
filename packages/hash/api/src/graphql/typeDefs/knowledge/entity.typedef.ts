@@ -1,6 +1,7 @@
 import { gql } from "apollo-server-express";
 
 export const entityWithMetadataTypedef = gql`
+  scalar VersionedUri
   scalar EntityId
   scalar EntityEditionId
   scalar PropertyObject
@@ -19,7 +20,7 @@ export const entityWithMetadataTypedef = gql`
 
   input PersistedLinkedEntityDefinition {
     destinationAccountId: ID!
-    linkEntityTypeId: String!
+    linkEntityTypeId: VersionedUri!
     """
     The index of the link (if any)
     """
@@ -35,7 +36,7 @@ export const entityWithMetadataTypedef = gql`
     """
     The type of which to instantiate the new entity.
     """
-    entityType: String
+    entityTypeId: VersionedUri
     """
     The properties of new entity.
     """
@@ -89,7 +90,7 @@ export const entityWithMetadataTypedef = gql`
       """
       The type of which to instantiate the new entity.
       """
-      entityTypeId: ID!
+      entityTypeId: VersionedUri!
       """
       The properties of new entity.
       """
