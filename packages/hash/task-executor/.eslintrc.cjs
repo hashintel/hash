@@ -7,11 +7,11 @@ module.exports = {
   rules: {
     "no-console": "off",
     ...require("@local/eslint-config/temporarily-disable-rules.cjs")([
-      /* 2022-11-11:   2 */ "@typescript-eslint/no-unsafe-argument",
-      /* 2022-11-11:   8 */ "@typescript-eslint/no-unsafe-assignment",
-      /* 2022-11-11:   5 */ "@typescript-eslint/no-unsafe-call",
-      /* 2022-11-11:   5 */ "@typescript-eslint/no-unsafe-member-access",
-      /* 2022-11-11:   2 */ "@typescript-eslint/no-unsafe-return",
+      /* 2022-11-15:   2 */ "@typescript-eslint/no-unsafe-argument",
+      /* 2022-11-15:   8 */ "@typescript-eslint/no-unsafe-assignment",
+      /* 2022-11-15:   5 */ "@typescript-eslint/no-unsafe-call",
+      /* 2022-11-15:   5 */ "@typescript-eslint/no-unsafe-member-access",
+      /* 2022-11-15:   2 */ "@typescript-eslint/no-unsafe-return",
     ]),
   },
 };
