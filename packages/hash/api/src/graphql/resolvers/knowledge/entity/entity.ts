@@ -1,27 +1,28 @@
 import { Filter } from "@hashintel/hash-graph-client";
 import { AxiosError } from "axios";
 import { ApolloError, ForbiddenError } from "apollo-server-express";
+import {
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+  Subgraph,
+} from "@hashintel/hash-subgraph";
 import { EntityModel } from "../../../../model";
 import {
   QueryGetEntityWithMetadataArgs,
   MutationCreateEntityWithMetadataArgs,
   MutationUpdateEntityWithMetadataArgs,
   ResolverFn,
-  Subgraph,
   QueryGetAllLatestEntitiesWithMetadataArgs,
+  EntityWithMetadata,
 } from "../../../apiTypes.gen";
-import {
-  mapEntityModelToGQL,
-  UnresolvedEntityWithMetadataGQL,
-} from "../model-mapping";
+import { mapEntityModelToGQL } from "../model-mapping";
 import { LoggedInGraphQLContext } from "../../../context";
-import { mapSubgraphToGql } from "../../ontology/model-mapping";
 import { beforeUpdateEntityHooks } from "./before-update-entity-hooks";
 
 /** @todo - rename these and remove "persisted" - https://app.asana.com/0/0/1203157172269854/f */
 
 export const createEntityWithMetadata: ResolverFn<
-  Promise<UnresolvedEntityWithMetadataGQL>,
+  Promise<EntityWithMetadata>,
   {},
   LoggedInGraphQLContext,
   MutationCreateEntityWithMetadataArgs
@@ -58,10 +59,8 @@ export const getAllLatestEntitiesWithMetadata: ResolverFn<
   {
     dataTypeResolveDepth,
     propertyTypeResolveDepth,
-    linkTypeResolveDepth,
     entityTypeResolveDepth,
-    linkResolveDepth,
-    linkTargetEntityResolveDepth,
+    entityResolveDepth,
   },
   { dataSources },
   __,
@@ -76,10 +75,8 @@ export const getAllLatestEntitiesWithMetadata: ResolverFn<
       graphResolveDepths: {
         dataTypeResolveDepth,
         propertyTypeResolveDepth,
-        linkTypeResolveDepth,
         entityTypeResolveDepth,
-        linkResolveDepth,
-        linkTargetEntityResolveDepth,
+        entityResolveDepth,
       },
     })
     .catch((err: AxiosError) => {
@@ -89,7 +86,7 @@ export const getAllLatestEntitiesWithMetadata: ResolverFn<
       );
     });
 
-  return mapSubgraphToGql(entitySubgraph);
+  return entitySubgraph as Subgraph;
 };
 
 export const getEntityWithMetadata: ResolverFn<
@@ -104,10 +101,8 @@ export const getEntityWithMetadata: ResolverFn<
     entityVersion,
     dataTypeResolveDepth,
     propertyTypeResolveDepth,
-    linkTypeResolveDepth,
     entityTypeResolveDepth,
-    linkResolveDepth,
-    linkTargetEntityResolveDepth,
+    entityResolveDepth,
   },
   { dataSources },
   __,
@@ -122,7 +117,18 @@ export const getEntityWithMetadata: ResolverFn<
           { parameter: entityVersion ?? "latest" },
         ],
       },
-      { equal: [{ path: ["id"] }, { parameter: entityId }] },
+      {
+        equal: [
+          { path: ["uuid"] },
+          { parameter: extractEntityUuidFromEntityId(entityId) },
+        ],
+      },
+      {
+        equal: [
+          { path: ["ownedById"] },
+          { parameter: extractOwnedByIdFromEntityId(entityId) },
+        ],
+      },
     ],
   };
 
@@ -132,10 +138,8 @@ export const getEntityWithMetadata: ResolverFn<
       graphResolveDepths: {
         dataTypeResolveDepth,
         propertyTypeResolveDepth,
-        linkTypeResolveDepth,
         entityTypeResolveDepth,
-        linkResolveDepth,
-        linkTargetEntityResolveDepth,
+        entityResolveDepth,
       },
     })
     .catch((err: AxiosError) => {
@@ -145,11 +149,11 @@ export const getEntityWithMetadata: ResolverFn<
       );
     });
 
-  return mapSubgraphToGql(entitySubgraph);
+  return entitySubgraph as Subgraph;
 };
 
 export const updateEntityWithMetadata: ResolverFn<
-  Promise<UnresolvedEntityWithMetadataGQL>,
+  Promise<EntityWithMetadata>,
   {},
   LoggedInGraphQLContext,
   MutationUpdateEntityWithMetadataArgs
