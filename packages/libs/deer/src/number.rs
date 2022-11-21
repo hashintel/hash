@@ -5,6 +5,7 @@ use core::fmt::{Display, Formatter};
 use core::ops::Neg;
 
 use num_traits::{FromPrimitive, ToPrimitive};
+use serde::{Serialize, Serializer};
 
 // This indirection helps us to "disguise" the underlying storage, enabling us to seamlessly convert
 // and change the underlying storage at a later point in time, if required.
@@ -309,5 +310,47 @@ impl Display for Number {
     #[cfg(feature = "arbitrary-precision")]
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         f.write_str(&self.0)
+    }
+}
+
+#[cfg(not(feature = "arbitrary-precision"))]
+impl Serialize for Number {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self.0 {
+            OpaqueNumber::PosInt(value) => serializer.serialize_u64(value),
+            OpaqueNumber::NegInt(value) => {
+                // in most cases the value will be compatible with i64, but in some cases we need to
+                // "escalate" to i128, which not every serializer might support
+                if let Ok(value) = i64::try_from(value) {
+                    serializer.serialize_i64(-value)
+                } else {
+                    serializer.serialize_i128(-i128::from(value))
+                }
+            }
+            OpaqueNumber::Float(value) => serializer.serialize_f64(value),
+        }
+    }
+}
+
+// compatability shim, this could be $deer::private::Number instead, but by using the token
+// from `serde_json` we're able to also allow deserialization and serialization of the existing
+// `serde_json` `Number` type
+#[cfg(feature = "arbitrary-precision")]
+pub(crate) const TOKEN: &str = "$serde_json::private::Number";
+
+#[cfg(feature = "arbitrary-precision")]
+impl Serialize for Number {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        use serde::ser::SerializeStruct;
+
+        let mut s = serializer.serialize_struct(TOKEN, 1)?;
+        s.serialize_field(TOKEN, &self.0)?;
+        s.end()
     }
 }
