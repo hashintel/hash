@@ -2,7 +2,6 @@
 // The name of these default imports define the name of the model classes
 // when accessed from outside of this module.
 
-import VerificationCode from "./verificationCode.model";
 import File from "./file.model";
 import Aggregation from "./aggregation.model";
 
@@ -45,9 +44,6 @@ export * from "./knowledge/comment.model";
 export { default as CommentModel } from "./knowledge/comment.model";
 
 /** @todo: deprecate legacy model classes */
-
-export * from "./verificationCode.model";
-export { VerificationCode };
 
 export * from "./aggregation.model";
 export { Aggregation };
