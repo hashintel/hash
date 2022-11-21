@@ -71,7 +71,7 @@ export const persistedCommentTypedef = gql`
       """
       Id of the comment to resolve
       """
-      entityId: ID!
+      entityId: EntityId!
     ): PersistedComment!
 
     """
@@ -81,7 +81,7 @@ export const persistedCommentTypedef = gql`
       """
       Id of the comment to delete
       """
-      entityId: ID!
+      entityId: EntityId!
     ): PersistedComment!
 
     """
@@ -91,7 +91,7 @@ export const persistedCommentTypedef = gql`
       """
       Id of the comment being edited
       """
-      entityId: ID!
+      entityId: EntityId!
       """
       New Text contents of the comment
       """

@@ -65,7 +65,7 @@ export const entityWithMetadataTypedef = gql`
       """
       The id of the entity.
       """
-      entityId: ID!
+      entityId: EntityId!
       """
       The version of the entity. Defaults to the latest version.
       """
@@ -107,7 +107,7 @@ export const entityWithMetadataTypedef = gql`
       """
       The id of the entity.
       """
-      entityId: ID!
+      entityId: EntityId!
       """
       The updated properties of the entity.
       """
