@@ -42,7 +42,7 @@ export type EntityModelCreateParams = {
  * @class {@link EntityModel}
  */
 export default class {
-  protected entity: Entity;
+  entity: Entity;
 
   entityTypeModel: EntityTypeModel;
 
