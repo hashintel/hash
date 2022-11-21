@@ -140,7 +140,6 @@ export const updatePersistedPageContents: ResolverFn<
         await pageModel.insertBlock(graphApi, {
           block: insertedBlocks[insertCount]!,
           position: action.insertBlock.position,
-          updateSiblings: false,
           actorId: userModel.entityUuid,
         });
         insertCount += 1;
@@ -156,7 +155,6 @@ export const updatePersistedPageContents: ResolverFn<
           allowRemovingFinal: actions
             .slice(i + 1)
             .some((actionToFollow) => actionToFollow.insertBlock),
-          updateSiblings: false,
         });
       }
     } catch (error) {

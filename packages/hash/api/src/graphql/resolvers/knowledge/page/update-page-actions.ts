@@ -76,7 +76,7 @@ const isPlaceholderId = (value: unknown): value is `placeholder-${string}` =>
   typeof value === "string" && value.startsWith("placeholder-");
 
 export class PlaceholderResultsMap {
-  private map = new Map<string, string>();
+  private map = new Map<string, EntityId>();
 
   get(placeholderId: string) {
     if (isPlaceholderId(placeholderId)) {
@@ -93,7 +93,10 @@ export class PlaceholderResultsMap {
     return this.map.has(placeholderId);
   }
 
-  set(placeholderId: string | null | undefined, entity: { entityId: string }) {
+  set(
+    placeholderId: string | null | undefined,
+    entity: { entityId: EntityId },
+  ) {
     if (isPlaceholderId(placeholderId)) {
       this.map.set(placeholderId, entity.entityId);
     }

@@ -12,8 +12,9 @@ export const persistedPageContents: ResolverFn<
   UnresolvedPersistedPageGQL,
   LoggedInGraphQLContext,
   {}
-> = async ({ entityId }, _, { dataSources }) => {
+> = async ({ metadata }, _, { dataSources }) => {
   const { graphApi } = dataSources;
+  const entityId = metadata.editionId.baseId;
   const page = await PageModel.getPageById(graphApi, { entityId });
 
   if (!page) {
