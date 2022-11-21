@@ -438,6 +438,7 @@ export const up = (pgm: MigrationBuilder): void => {
       created_at: {
         type: "TIMESTAMP WITH TIME ZONE",
         notNull: true,
+        default: pgm.func("clock_timestamp()"),
       },
     },
     {
