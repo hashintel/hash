@@ -6,6 +6,14 @@ export { VersionedUri } from "@blockprotocol/type-system-node";
 // ${AccountId}%${EntityUuid}`
 export type EntityId = `${string}%${string}`;
 
+export function extractOwnedByIdFromEntityId(entityId: EntityId): string {
+  return entityId.split("%")[0]!;
+}
+
+export function extractEntityUuidFromEntityId(entityId: EntityId): string {
+  return entityId.split("%")[1]!;
+}
+
 /** @todo - consider Type Branding this */
 export type Timestamp = string;
 
