@@ -17,7 +17,6 @@ import { entityWithMetadataTypedef } from "./knowledge/entity.typedef";
 import { persistedPageTypedef } from "./knowledge/page.typedef";
 import { persistedCommentTypedef } from "./knowledge/comment.typedef";
 import { persistedBlockTypedef } from "./knowledge/block.typedef";
-import { persistedLinkTypedef } from "./knowledge/link.typedef";
 import { subgraphTypedef } from "./subgraph.typedef";
 import { blockprotocolTypedef } from "./blockprotocol.typedef";
 import { persistedOrgTypedef } from "./knowledge/org.typedef";
@@ -49,7 +48,6 @@ const knowledge = [
   persistedBlockTypedef,
   persistedPageTypedef,
   persistedCommentTypedef,
-  persistedLinkTypedef,
   persistedUserTypedef,
   persistedOrgTypedef,
 ];

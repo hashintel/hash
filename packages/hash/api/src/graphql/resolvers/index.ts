@@ -1,39 +1,15 @@
 import { JSONObjectResolver } from "graphql-scalars";
 
 import { Entity } from "../apiTypes.gen";
-
-import {
-  aggregateEntity,
-  createEntity,
-  entity,
-  entities,
-  entityFields,
-  updateEntity,
-  transferEntity,
-} from "./entity";
-import { createLink } from "./link/createLink";
-import { deleteLink } from "./link/deleteLink";
 import { embedCode } from "./embed";
-import {
-  getImpliedEntityHistory,
-  getImpliedEntityVersion,
-} from "./entity/impliedHistory";
 
 import { me } from "./knowledge/user/me";
 import { isShortnameTaken } from "./knowledge/user/is-shortname-taken";
-import { deprecatedCreateEntityType } from "./entityType/createEntityType";
-import { SYSTEM_TYPES, SystemType } from "../../types/entityTypes";
-import { entityTypeTypeFields } from "./entityType/entityTypeTypeFields";
-import { entityTypeInheritance } from "./entityType/entityTypeInheritance";
-import { deprecatedGetAccountEntityTypes } from "./entityType/getAccountEntityTypes";
-import { deprecatedGetEntityType } from "./entityType/getEntityType";
 import { fileFields } from "./file";
 import { requestFileUpload } from "./file/requestFileUpload";
 import { createFileFromLink } from "./file/createFileFromLink";
 import { loggedIn } from "./middlewares/loggedIn";
 import { loggedInAndSignedUp } from "./middlewares/loggedInAndSignedUp";
-import { canAccessAccount } from "./middlewares/canAccessAccount";
-import { deprecatedUpdateEntityType } from "./entityType/updateEntityType";
 import { deleteLinkedAggregation } from "./linkedAggregation/deleteLinkedAggregation";
 import { updateLinkedAggregationOperation } from "./linkedAggregation/updateLinkedAggregationOperation";
 import { createLinkedAggregation } from "./linkedAggregation/createLinkedAggregation";
@@ -45,7 +21,6 @@ import {
   executeGithubDiscoverTask,
   executeGithubReadTask,
 } from "./taskExecutor";
-import { getLink } from "./link/getLink";
 import { getLinkedAggregation } from "./linkedAggregation/getLinkedAggregation";
 import { getAllLatestDataTypes, getDataType } from "./ontology/data-type";
 import {
@@ -81,12 +56,6 @@ import {
   getAllLatestEntitiesWithMetadata,
   updateEntityWithMetadata,
 } from "./knowledge/entity/entity";
-import { UnresolvedEntityWithMetadataGQL } from "./knowledge/model-mapping";
-import {
-  createPersistedLink,
-  deletePersistedLink,
-  outgoingPersistedLinks,
-} from "./knowledge/link/link";
 import { setParentPersistedPage } from "./knowledge/page/set-parent-page";
 import { updatePersistedPage } from "./knowledge/page/update-page";
 import { persistedCommentHasText } from "./knowledge/comment/has-text";
@@ -119,18 +88,8 @@ const isSystemEntityGQLTypeName = (
 export const resolvers = {
   Query: {
     // Logged in and signed up users only,
-    aggregateEntity: loggedInAndSignedUp(aggregateEntity),
-    deprecatedGetAccountEntityTypes: loggedInAndSignedUp(
-      deprecatedGetAccountEntityTypes,
-    ),
     getBlockProtocolBlocks,
-    entity: loggedInAndSignedUp(entity),
-    entities: loggedInAndSignedUp(canAccessAccount(entities)),
-    deprecatedGetEntityType: loggedInAndSignedUp(deprecatedGetEntityType),
-    getLink: loggedInAndSignedUp(getLink),
     getLinkedAggregation: loggedInAndSignedUp(getLinkedAggregation),
-    getImpliedEntityHistory: loggedInAndSignedUp(getImpliedEntityHistory),
-    getImpliedEntityVersion: loggedInAndSignedUp(getImpliedEntityVersion),
     // Logged in users only
     me: loggedIn(me),
     // Any user
@@ -152,25 +111,16 @@ export const resolvers = {
     getAllLatestEntitiesWithMetadata: loggedInAndSignedUp(
       getAllLatestEntitiesWithMetadata,
     ),
-    /** @todo - delete this - https://app.asana.com/0/0/1203157172269854/f */
-    outgoingPersistedLinks: loggedInAndSignedUp(outgoingPersistedLinks),
   },
 
   Mutation: {
     // Logged in and signed up users only
-    createEntity: loggedInAndSignedUp(createEntity),
-    createLink: loggedInAndSignedUp(createLink),
-    deleteLink: loggedInAndSignedUp(deleteLink),
     createLinkedAggregation: loggedInAndSignedUp(createLinkedAggregation),
     updateLinkedAggregationOperation: loggedInAndSignedUp(
       updateLinkedAggregationOperation,
     ),
     deleteLinkedAggregation: loggedInAndSignedUp(deleteLinkedAggregation),
-    deprecatedCreateEntityType: loggedInAndSignedUp(deprecatedCreateEntityType),
     createFileFromLink: loggedInAndSignedUp(createFileFromLink),
-    transferEntity: loggedInAndSignedUp(transferEntity),
-    updateEntity: loggedInAndSignedUp(updateEntity),
-    deprecatedUpdateEntityType: loggedInAndSignedUp(deprecatedUpdateEntityType),
     updatePersistedPageContents: loggedInAndSignedUp(
       updatePersistedPageContents,
     ),
@@ -189,8 +139,6 @@ export const resolvers = {
     // Knowledge
     createEntityWithMetadata: loggedInAndSignedUp(createEntityWithMetadata),
     updateEntityWithMetadata: loggedIn(updateEntityWithMetadata),
-    createPersistedLink: loggedInAndSignedUp(createPersistedLink),
-    deletePersistedLink: loggedInAndSignedUp(deletePersistedLink),
     createPersistedPage: loggedInAndSignedUp(createPersistedPage),
     setParentPersistedPage: loggedInAndSignedUp(setParentPersistedPage),
     updatePersistedPage: loggedInAndSignedUp(updatePersistedPage),
@@ -209,38 +157,8 @@ export const resolvers = {
     url: fileFields.url,
   },
 
-  UnknownEntity: {
-    properties: entityFields.properties,
-  },
-
-  Entity: {
-    __resolveType({ entityTypeName }: Entity) {
-      // @todo this should also check if the type is in the HASH account
-      //    otherwise it'll catch User, Org etc types in other accounts
-      //    which may have a different structure to the HASH one.
-      //    should also extract this check (e.g. to src/types/entityTypes).
-      if (SYSTEM_TYPES.includes(entityTypeName as SystemType)) {
-        return entityTypeName;
-      }
-      return "UnknownEntity";
-    },
-    history: entityFields.history,
-    linkGroups: entityFields.linkGroups,
-    linkedEntities: entityFields.linkedEntities,
-    linkedAggregations: entityFields.linkedAggregations,
-  },
-
   LinkedAggregation: {
     results: linkedAggregationResults,
-  },
-
-  DeprecatedEntityType: {
-    entityType: entityTypeTypeFields.entityType,
-    entityTypeId: entityTypeTypeFields.entityTypeId,
-    entityTypeName: entityTypeTypeFields.entityTypeName,
-    entityTypeVersionId: entityTypeTypeFields.entityTypeVersionId,
-
-    ...entityTypeInheritance,
   },
 
   Account: {
