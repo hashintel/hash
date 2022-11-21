@@ -56,25 +56,25 @@ export const ArrayEditor: ValueCellEditorComponent = ({
     onChange(newCell);
   };
 
-  const removeItem = (index: number) => {
+  const removeItem = (indexToRemove: number) => {
     const newCell = produce(cell, (draftCell) => {
       draftCell.data.property.value = items
-        .filter((_, index2) => index !== index2)
+        .filter((_, index) => indexToRemove !== index)
         .map(({ value }) => value);
     });
     onChange(newCell);
   };
 
-  const updateItem = (index: number, value: string) => {
+  const updateItem = (indexToUpdate: number, value: string) => {
     setEditingRow("");
 
     if (!value.trim().length) {
-      return removeItem(index);
+      return removeItem(indexToUpdate);
     }
 
     const newCell = produce(cell, (draftCell) => {
-      draftCell.data.property.value = items.map((item, index2) =>
-        index === index2 ? value : item.value,
+      draftCell.data.property.value = items.map((item, index) =>
+        indexToUpdate === index ? value : item.value,
       );
     });
     onChange(newCell);
@@ -114,7 +114,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
           maxHeight: 300,
           overflowY: "scroll",
           overflowX: "hidden",
-          borderBottom: `1px solid`,
+          borderBottom: "1px solid",
           borderColor: "gray.20",
         }}
       >
