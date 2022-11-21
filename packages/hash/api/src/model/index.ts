@@ -8,7 +8,6 @@ import Entity from "./entity.model";
 import Account from "./account.model";
 import AccessToken from "./accessToken.model";
 import OrgInvitationLink from "./orgInvitationLink.model";
-import OrgEmailInvitation from "./orgEmailInvitation.model";
 import File from "./file.model";
 import Link from "./link.model";
 import Aggregation from "./aggregation.model";
@@ -76,9 +75,6 @@ export { AccessToken };
 
 export * from "./orgInvitationLink.model";
 export { OrgInvitationLink };
-
-export * from "./orgEmailInvitation.model";
-export { OrgEmailInvitation };
 
 export * from "./file.model";
 export { File };
