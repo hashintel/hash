@@ -21,7 +21,7 @@ export const createOrg: ResolverFn<
     shortname,
     name,
     providedInfo: { orgSize },
-    actorId: userModel.entityId,
+    actorId: userModel.entityUuid,
   });
 
   const orgRootedSubgraph = await orgModel.getRootedSubgraph(graphApi, {

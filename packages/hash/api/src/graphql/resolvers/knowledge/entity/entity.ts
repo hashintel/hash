@@ -38,11 +38,11 @@ export const createEntityWithMetadata: ResolverFn<
    */
 
   const entity = await EntityModel.createEntityWithLinks(graphApi, {
-    ownedById: ownedById ?? userModel.entityId,
+    ownedById: ownedById ?? userModel.entityUuid,
     entityTypeId,
     properties,
     linkedEntities: linkedEntities ?? undefined,
-    actorId: userModel.entityId,
+    actorId: userModel.entityUuid,
   });
 
   return mapEntityModelToGQL(entity);
@@ -159,7 +159,10 @@ export const updateEntityWithMetadata: ResolverFn<
   { dataSources: { graphApi }, userModel },
 ) => {
   // The user needs to be signed up if they aren't updating their own user entity
-  if (entityId !== userModel.entityId && !userModel.isAccountSignupComplete()) {
+  if (
+    entityId !== userModel.entityUuid &&
+    !userModel.isAccountSignupComplete()
+  ) {
     throw new ForbiddenError(
       "You must complete the sign-up process to perform this action.",
     );
@@ -181,7 +184,7 @@ export const updateEntityWithMetadata: ResolverFn<
 
   const updatedEntityModel = await entityModel.update(graphApi, {
     properties: updatedProperties,
-    actorId: userModel.entityId,
+    actorId: userModel.entityUuid,
   });
 
   return mapEntityModelToGQL(updatedEntityModel);

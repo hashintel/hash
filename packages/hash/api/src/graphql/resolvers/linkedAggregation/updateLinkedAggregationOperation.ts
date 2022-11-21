@@ -35,7 +35,7 @@ export const updateLinkedAggregationOperation: ResolverFn<
         itemsPerPage: updatedOperation.itemsPerPage ?? 10,
         pageNumber: updatedOperation.pageNumber ?? 1,
       },
-      updatedByAccountId: userModel.entityId,
+      updatedByAccountId: userModel.entityUuid,
     });
 
     return aggregation.toGQLLinkedAggregation(dataSources.db);

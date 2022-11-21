@@ -203,9 +203,9 @@ export const handleInsertNewBlock = async (
     } else if (blockComponentId) {
       block = await BlockModel.createBlock(graphApi, {
         blockData,
-        ownedById: userModel.entityId,
+        ownedById: userModel.entityUuid,
         componentId: blockComponentId,
-        actorId: userModel.entityId,
+        actorId: userModel.entityUuid,
       });
     } else {
       throw new Error(
@@ -260,7 +260,7 @@ export const handleSwapBlockData = async (
 
   await block.updateBlockDataEntity(graphApi, {
     newBlockDataEntity,
-    actorId: userModel.entityId,
+    actorId: userModel.entityUuid,
   });
 };
 
@@ -292,6 +292,6 @@ export const handleUpdateEntity = async (
     updatedProperties: Object.entries(action.properties).map(
       ([key, value]) => ({ propertyTypeBaseUri: key, value }),
     ),
-    actorId: userModel.entityId,
+    actorId: userModel.entityUuid,
   });
 };

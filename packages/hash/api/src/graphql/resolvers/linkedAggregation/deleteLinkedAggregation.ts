@@ -24,7 +24,7 @@ export const deleteLinkedAggregation: ResolverFn<
     }
 
     await aggregation.delete(client, {
-      deletedByAccountId: userModel.entityId,
+      deletedByAccountId: userModel.entityUuid,
     });
 
     return true;
