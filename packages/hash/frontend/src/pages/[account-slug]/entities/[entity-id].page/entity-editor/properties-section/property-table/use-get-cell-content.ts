@@ -80,7 +80,7 @@ export const useGetCellContent = (
             } as ValueCellProps,
           };
 
-        case "dataTypes":
+        case "expectedTypes":
           if (hasChild) {
             return blankCell;
           }
@@ -89,10 +89,10 @@ export const useGetCellContent = (
             kind: GridCellKind.Custom,
             allowOverlay: true,
             readonly: true,
-            copyData: String(property.dataTypes),
+            copyData: String(property.expectedTypes),
             data: {
               kind: "chip-cell",
-              chips: property.dataTypes,
+              chips: property.expectedTypes,
             } as ChipCellProps,
           };
       }
