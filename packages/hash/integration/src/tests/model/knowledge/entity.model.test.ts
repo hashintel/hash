@@ -39,7 +39,7 @@ describe("Entity CRU", () => {
   let textDataTypeModel: DataTypeModel;
   let namePropertyTypeModel: PropertyTypeModel;
   let favoriteBookPropertyTypeModel: PropertyTypeModel;
-  let linkEntityTypeFriend: EntityTypeModel;
+  let linkEntityTypeFriendModel: EntityTypeModel;
 
   beforeAll(async () => {
     testUser = await createTestUser(graphApi, "entitytest", logger);
@@ -72,7 +72,7 @@ describe("Entity CRU", () => {
         actorId: testUser.entityUuid,
       })
         .then((val) => {
-          linkEntityTypeFriend = val;
+          linkEntityTypeFriendModel = val;
         })
         .catch((err) => {
           logger.error(`Something went wrong making link type Friends: ${err}`);
@@ -128,7 +128,7 @@ describe("Entity CRU", () => {
         ],
         outgoingLinks: [
           {
-            linkEntityTypeModel: linkEntityTypeFriend,
+            linkEntityTypeModel: linkEntityTypeFriendModel,
             destinationEntityTypeModels: ["SELF_REFERENCE"],
           },
         ],
