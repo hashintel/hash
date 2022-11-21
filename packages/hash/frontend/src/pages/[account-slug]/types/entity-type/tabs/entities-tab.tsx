@@ -1,4 +1,7 @@
-import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
+import {
+  faAsterisk,
+  faMagnifyingGlass,
+} from "@fortawesome/free-solid-svg-icons";
 import { GridCell, GridCellKind, Item } from "@glideapps/glide-data-grid";
 import {
   Chip,
@@ -25,6 +28,7 @@ import { useRouteNamespace } from "../use-route-namespace";
 import { useEntitiesTable } from "../use-entities-table";
 import { useEntityTypeEntities } from "../use-entity-type-entities";
 import { useEntityType } from "../use-entity-type";
+import { SectionEmptyState } from "../../../shared/section-empty-state";
 
 export const EntitiesTab: FunctionComponent = () => {
   const entityType = useEntityType();
@@ -103,6 +107,8 @@ export const EntitiesTab: FunctionComponent = () => {
     setTableSort,
   );
 
+  const isEmpty = entitiesCount.namespace + entitiesCount.public === 0;
+
   return (
     <Box>
       <SectionWrapper
@@ -145,16 +151,26 @@ export const EntitiesTab: FunctionComponent = () => {
         }
       >
         <Paper sx={{ overflow: "hidden" }}>
-          <GlideGrid
-            showSearch={showSearch}
-            onSearchClose={() => setShowSearch(false)}
-            onHeaderClicked={handleHeaderClicked}
-            drawHeader={drawHeader}
-            columns={columns}
-            rows={sortedRows.length}
-            getCellContent={getCellContent}
-            customRenderers={[renderTextIconCell]}
-          />
+          {isEmpty ? (
+            <SectionEmptyState
+              title="There are no entities of this type visible to you"
+              titleIcon={
+                <FontAwesomeIcon icon={faAsterisk} sx={{ fontSize: 18 }} />
+              }
+              description="Assigning this type to an entity will result in it being shown here"
+            />
+          ) : (
+            <GlideGrid
+              showSearch={showSearch}
+              onSearchClose={() => setShowSearch(false)}
+              onHeaderClicked={handleHeaderClicked}
+              drawHeader={drawHeader}
+              columns={columns}
+              rows={sortedRows.length}
+              getCellContent={getCellContent}
+              customRenderers={[renderTextIconCell]}
+            />
+          )}
         </Paper>
       </SectionWrapper>
     </Box>
