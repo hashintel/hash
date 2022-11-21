@@ -25,7 +25,7 @@ export const canAccessAccount: ResolverMiddleware<
       isAllowed = true;
     } else {
       isAllowed = await userModel.isMemberOfOrg(graphApi, {
-        orgEntityId: args.ownedById,
+        orgEntityUuid: args.ownedById,
       });
     }
     if (!isAllowed) {
