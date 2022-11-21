@@ -47,7 +47,7 @@ const MyApp: FunctionComponent<MyAppProps> = ({
   return (
     <MuiProvider emotionCache={emotionCache} theme={theme}>
       <NextNProgress
-        color={theme.palette.secondary.light}
+        color="#05A2C2" // @todo use theme color when we switch to Design System colors
         height={2}
         options={{ showSpinner: false }}
         showOnShallow
