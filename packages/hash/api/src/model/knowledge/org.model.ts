@@ -1,10 +1,10 @@
+import { PropertyObject } from "@hashintel/hash-subgraph";
 import { GraphApi } from "../../graph";
 import {
   OrgModel,
   EntityModel,
   EntityModelCreateParams,
   AccountFields,
-  EntityProperties,
 } from "..";
 import { systemAccountId } from "../util";
 import { SYSTEM_TYPES } from "../../graph/system-types";
@@ -66,7 +66,7 @@ export default class extends EntityModel {
 
     const { data: orgAccountId } = await graphApi.createAccountId();
 
-    const properties: EntityProperties = {
+    const properties: PropertyObject = {
       [SYSTEM_TYPES.propertyType.shortName.baseUri]: shortname,
       [SYSTEM_TYPES.propertyType.orgName.baseUri]: name,
       ...(providedInfo

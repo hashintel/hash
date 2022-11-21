@@ -4,7 +4,12 @@ import {
   EntityStructuralQuery,
   Filter,
 } from "@hashintel/hash-graph-client";
-import { Entity, Subgraph, EntityMetadata } from "@hashintel/hash-subgraph";
+import {
+  Entity,
+  Subgraph,
+  EntityMetadata,
+  PropertyObject,
+} from "@hashintel/hash-subgraph";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import {
   EntityModel,
@@ -18,12 +23,6 @@ import {
 } from "../../graphql/apiTypes.gen";
 import { exactlyOne, linkedTreeFlatten } from "../../util";
 
-/**
- * @todo: import this directly from `@hashintel/hash-subgraph` once it is exported
- * @see  https://app.asana.com/0/1202805690238892/1203409252899196/f
- */
-export type EntityProperties = Entity["properties"];
-
 export type EntityModelConstructorParams = {
   entity: Entity;
   entityTypeModel: EntityTypeModel;
@@ -31,7 +30,7 @@ export type EntityModelConstructorParams = {
 
 export type EntityModelCreateParams = {
   ownedById: string;
-  properties: EntityProperties;
+  properties: PropertyObject;
   entityTypeModel: EntityTypeModel;
   entityId?: string;
   actorId: string;
@@ -69,7 +68,7 @@ export default class {
     return this.entity.metadata;
   }
 
-  get properties(): EntityProperties {
+  get properties(): PropertyObject {
     return this.entity.properties;
   }
 
@@ -367,7 +366,7 @@ export default class {
   async update(
     graphApi: GraphApi,
     params: {
-      properties: EntityProperties;
+      properties: PropertyObject;
       actorId: string;
     },
   ): Promise<EntityModel> {
@@ -409,7 +408,7 @@ export default class {
     const { updatedProperties, actorId } = params;
 
     return await this.update(graphApi, {
-      properties: updatedProperties.reduce<EntityProperties>(
+      properties: updatedProperties.reduce<PropertyObject>(
         (prev, { propertyTypeBaseUri, value }) => ({
           ...prev,
           [propertyTypeBaseUri]: value,

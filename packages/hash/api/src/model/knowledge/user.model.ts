@@ -1,4 +1,5 @@
 import { GraphApi } from "@hashintel/hash-graph-client";
+import { PropertyObject } from "@hashintel/hash-subgraph";
 import {
   EntityModel,
   UserModel,
@@ -8,7 +9,6 @@ import {
   OrgMembershipModel,
   HashInstanceModel,
   LinkEntityModel,
-  EntityProperties,
 } from "..";
 import {
   adminKratosSdk,
@@ -183,7 +183,7 @@ export default class extends EntityModel {
 
     const { data: userAccountId } = await graphApi.createAccountId();
 
-    const properties: EntityProperties = {
+    const properties: PropertyObject = {
       [SYSTEM_TYPES.propertyType.email.baseUri]: emails,
       [SYSTEM_TYPES.propertyType.kratosIdentityId.baseUri]: kratosIdentityId,
       ...(shortname

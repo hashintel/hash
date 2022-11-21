@@ -3,22 +3,16 @@ import {
   Filter,
   EntityStructuralQuery,
 } from "@hashintel/hash-graph-client";
-import { Entity, Subgraph } from "@hashintel/hash-subgraph";
+import {
+  Entity,
+  Subgraph,
+  LinkEntityMetadata,
+  EntityMetadata,
+  PropertyObject,
+} from "@hashintel/hash-subgraph";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 
-import {
-  EntityMetadata,
-  EntityModel,
-  EntityProperties,
-  EntityTypeModel,
-  LinkEntityModel,
-} from "../index";
-
-/**
- * @todo: import this directly from `@hashintel/hash-subgraph` once it is exported
- * @see  https://app.asana.com/0/1202805690238892/1203409252899196/f
- */
-type LinkEntityMetadata = NonNullable<Entity["metadata"]["linkMetadata"]>;
+import { EntityModel, EntityTypeModel, LinkEntityModel } from "../index";
 
 export type LinkModelConstructorParams = {
   linkEntity: Entity;
@@ -29,7 +23,7 @@ export type LinkModelConstructorParams = {
 
 export type LinkModelCreateParams = {
   ownedById: string;
-  properties?: EntityProperties;
+  properties?: PropertyObject;
   linkEntityTypeModel: EntityTypeModel;
   leftEntityModel: EntityModel;
   leftOrder?: number;

@@ -1,3 +1,4 @@
+import { PropertyObject } from "@hashintel/hash-subgraph";
 import { GraphApi } from "../../graph";
 import {
   OrgMembershipModel,
@@ -6,7 +7,6 @@ import {
   OrgModel,
   UserModel,
   LinkEntityModel,
-  EntityProperties,
 } from "..";
 import { systemAccountId } from "../util";
 import { SYSTEM_TYPES } from "../../graph/system-types";
@@ -57,7 +57,7 @@ export default class extends EntityModel {
   ) {
     const { responsibility, org, actorId } = params;
 
-    const properties: EntityProperties = {
+    const properties: PropertyObject = {
       [SYSTEM_TYPES.propertyType.responsibility.baseUri]: responsibility,
     };
 
