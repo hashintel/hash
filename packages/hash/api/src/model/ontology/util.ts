@@ -1,14 +1,7 @@
 import { SYSTEM_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
-import { EntityTypeWithMetadata } from "@hashintel/hash-subgraph";
 import { OrgModel, UserModel } from "..";
 import { GraphApi } from "../../graph";
 import { systemAccountId } from "../util";
-
-/**
- * @todo: import this directly from `@hashintel/hash-subgraph` once it is exported
- * @see  https://app.asana.com/0/1202805690238892/1203409252899196/f
- */
-export type OntologyElementMetadata = EntityTypeWithMetadata["metadata"];
 
 /**
  * Get the namespace of an account owner by its id

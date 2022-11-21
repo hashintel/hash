@@ -5,10 +5,13 @@ import {
   GraphApi,
   UpdateEntityTypeRequest,
 } from "@hashintel/hash-graph-client";
-import { EntityTypeWithMetadata } from "@hashintel/hash-subgraph";
+import {
+  EntityTypeWithMetadata,
+  OntologyElementMetadata,
+} from "@hashintel/hash-subgraph";
 import { generateTypeId, types } from "@hashintel/hash-shared/types";
 import { EntityTypeModel, PropertyTypeModel } from "../index";
-import { getNamespaceOfAccountOwner, OntologyElementMetadata } from "./util";
+import { getNamespaceOfAccountOwner } from "./util";
 import { SYSTEM_TYPES } from "../../graph/system-types";
 import { linkEntityTypeUri } from "../util";
 

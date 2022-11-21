@@ -1,10 +1,13 @@
 import { AxiosError } from "axios";
 import { DataType } from "@blockprotocol/type-system-web";
 import { GraphApi, UpdateDataTypeRequest } from "@hashintel/hash-graph-client";
-import { DataTypeWithMetadata } from "@hashintel/hash-subgraph";
+import {
+  DataTypeWithMetadata,
+  OntologyElementMetadata,
+} from "@hashintel/hash-subgraph";
 import { generateTypeId } from "@hashintel/hash-shared/types";
 import { DataTypeModel } from "../index";
-import { getNamespaceOfAccountOwner, OntologyElementMetadata } from "./util";
+import { getNamespaceOfAccountOwner } from "./util";
 
 type DataTypeModelConstructorArgs = {
   dataType: DataTypeWithMetadata;

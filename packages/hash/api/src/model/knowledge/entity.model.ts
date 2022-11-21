@@ -4,7 +4,7 @@ import {
   EntityStructuralQuery,
   Filter,
 } from "@hashintel/hash-graph-client";
-import { Entity, Subgraph } from "@hashintel/hash-subgraph";
+import { Entity, Subgraph, EntityMetadata } from "@hashintel/hash-subgraph";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import {
   EntityModel,
@@ -22,7 +22,6 @@ import { exactlyOne, linkedTreeFlatten } from "../../util";
  * @todo: import this directly from `@hashintel/hash-subgraph` once it is exported
  * @see  https://app.asana.com/0/1202805690238892/1203409252899196/f
  */
-export type EntityMetadata = Entity["metadata"];
 export type EntityProperties = Entity["properties"];
 
 export type EntityModelConstructorParams = {

@@ -4,12 +4,15 @@ import {
   GraphApi,
   UpdatePropertyTypeRequest,
 } from "@hashintel/hash-graph-client";
-import { PropertyTypeWithMetadata } from "@hashintel/hash-subgraph";
+import {
+  PropertyTypeWithMetadata,
+  OntologyElementMetadata,
+} from "@hashintel/hash-subgraph";
 import { generateTypeId } from "@hashintel/hash-shared/types";
 import { PropertyType } from "@blockprotocol/type-system-web";
 import { PropertyTypeModel } from "../index";
 import { extractBaseUri } from "../util";
-import { getNamespaceOfAccountOwner, OntologyElementMetadata } from "./util";
+import { getNamespaceOfAccountOwner } from "./util";
 
 type PropertyTypeModelConstructorParams = {
   propertyType: PropertyTypeWithMetadata;
