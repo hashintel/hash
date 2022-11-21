@@ -1,18 +1,27 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { faPencil, faTrash } from "@fortawesome/free-solid-svg-icons";
+import {
+  faCheck,
+  faClose,
+  faPencil,
+  faTrash,
+} from "@fortawesome/free-solid-svg-icons";
 import { Box, Divider, Typography } from "@mui/material";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { useState } from "react";
 import { SortableItem } from "./types";
 import { ValueChip } from "./value-chip";
 import { RowAction } from "./row-action";
+import { InlineTextEditor } from "./inline-text-editor";
 
 interface SortableRowProps {
   item: SortableItem;
   selected: boolean;
   onRemove: (index: number) => void;
   onSelect: (id: string) => void;
+  onEditClicked: (id: string) => void;
+  onEditFinished: (index: number, value: string) => void;
+  editing: boolean;
 }
 
 export const SortableRow = ({
@@ -20,6 +29,9 @@ export const SortableRow = ({
   onRemove,
   selected,
   onSelect,
+  onEditClicked,
+  onEditFinished,
+  editing,
 }: SortableRowProps) => {
   const { id, value, index } = item;
   const {
@@ -35,19 +47,22 @@ export const SortableRow = ({
     animateLayoutChanges: undefined,
   });
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
   const [hovered, setHovered] = useState(false);
+  const [draftValue, setDraftValue] = useState(String(value));
+  const [prevEditing, setPrevEditing] = useState(editing);
 
-  const shouldShowActions = !isDragging && !isSorting && (hovered || selected);
+  const shouldShowActions =
+    !isDragging && !isSorting && (hovered || selected || editing);
+
+  if (prevEditing !== editing) {
+    setPrevEditing(editing);
+    setDraftValue(String(value));
+  }
 
   return (
     <Box
       ref={setNodeRef}
-      style={style}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
       {...attributes}
       sx={{
         height: 48,
@@ -84,34 +99,67 @@ export const SortableRow = ({
       >
         {index + 1}
       </Typography>
-      <ValueChip value={value} selected={selected} />
+
+      {editing ? (
+        <InlineTextEditor
+          value={draftValue}
+          onChange={(val) => {
+            setDraftValue(val);
+          }}
+          onEnterPressed={() => {
+            onEditFinished(index, draftValue);
+          }}
+        />
+      ) : (
+        <ValueChip value={value} selected={selected} />
+      )}
 
       {shouldShowActions && (
         <Box
-          sx={{
-            display: "flex",
-            position: "absolute",
-            inset: 0,
-            left: "unset",
-            "::before": {
-              content: `""`,
-              width: 50,
-              background: `linear-gradient(90deg, transparent 0%, white 100%)`,
+          display="flex"
+          sx={[
+            !editing && {
+              position: "absolute",
+              inset: 0,
+              left: "unset",
+              "::before": {
+                content: `""`,
+                width: 50,
+                background: `linear-gradient(90deg, transparent 0%, white 100%)`,
+              },
             },
-          }}
+          ]}
         >
           <Box sx={{ display: "flex", background: "white" }}>
-            <RowAction
-              tooltip="Edit"
-              icon={faPencil}
-              onClick={() => onRemove(index)}
-            />
-            <Divider orientation="vertical" />
-            <RowAction
-              tooltip="Delete"
-              icon={faTrash}
-              onClick={() => onRemove(index)}
-            />
+            {editing ? (
+              <>
+                <RowAction
+                  tooltip="Save Changes"
+                  icon={faCheck}
+                  onClick={() => onEditFinished(index, draftValue)}
+                />
+                <Divider orientation="vertical" />
+                <RowAction
+                  tooltip="Discard Changes"
+                  icon={faClose}
+                  onClick={() => onEditFinished(index, String(value))}
+                />
+              </>
+            ) : (
+              <>
+                <RowAction
+                  tooltip="Edit"
+                  icon={faPencil}
+                  onClick={() => onEditClicked(id)}
+                />
+                <Divider orientation="vertical" />
+                <RowAction
+                  tooltip="Delete"
+                  icon={faTrash}
+                  onClick={() => onRemove(index)}
+                />
+              </>
+            )}
           </Box>
         </Box>
       )}

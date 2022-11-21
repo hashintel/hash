@@ -1,7 +1,6 @@
-import { TextField } from "@hashintel/hash-design-system";
 import { Box } from "@mui/material";
 import produce from "immer";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   closestCenter,
   DndContext,
@@ -20,11 +19,16 @@ import { ValueCellEditorComponent } from "../types";
 import { SortableItem } from "./array-editor/types";
 import { SortableRow } from "./array-editor/sortable-row";
 import { AddAnotherButton } from "./array-editor/add-another-button";
+import { InlineTextEditor } from "./array-editor/inline-text-editor";
+
+const NEW_ROW_KEY = "new";
 
 export const ArrayEditor: ValueCellEditorComponent = ({
   value: cell,
   onChange,
 }) => {
+  const scrollableContainer = useRef<HTMLDivElement>(null);
+
   const items = useMemo(() => {
     const propertyVal = cell.data.property.value;
     const values = Array.isArray(propertyVal) ? propertyVal : [propertyVal];
@@ -38,15 +42,15 @@ export const ArrayEditor: ValueCellEditorComponent = ({
     return itemsArray;
   }, [cell]);
 
-  const [isAdding, setIsAdding] = useState(!items.length);
   const [input, setInput] = useState("");
   const [selectedRow, setSelectedRow] = useState("");
+  const [editingRow, setEditingRow] = useState(items.length ? "" : NEW_ROW_KEY);
 
   const addItem = (text: string) => {
     const newCell = produce(cell, (draftCell) => {
       draftCell.data.property.value = [
         ...items.map(({ value }) => value),
-        text.trim(),
+        text,
       ];
     });
     onChange(newCell);
@@ -61,8 +65,24 @@ export const ArrayEditor: ValueCellEditorComponent = ({
     onChange(newCell);
   };
 
+  const updateItem = (index: number, value: string) => {
+    setEditingRow("");
+
+    if (!value.trim().length) {
+      return removeItem(index);
+    }
+
+    const newCell = produce(cell, (draftCell) => {
+      draftCell.data.property.value = items.map((item, index2) =>
+        index === index2 ? value : item.value,
+      );
+    });
+    onChange(newCell);
+  };
+
   const moveItem = (oldIndex: number, newIndex: number) => {
     setSelectedRow("");
+    setEditingRow("");
     const newCell = produce(cell, (draftCell) => {
       const newItems = arrayMove(items, oldIndex, newIndex);
 
@@ -89,6 +109,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
       })}
     >
       <Box
+        ref={scrollableContainer}
         sx={{
           maxHeight: 300,
           overflowY: "scroll",
@@ -116,6 +137,9 @@ export const ArrayEditor: ValueCellEditorComponent = ({
                 key={item.id}
                 item={item}
                 onRemove={removeItem}
+                onEditClicked={(id) => setEditingRow(id)}
+                onEditFinished={updateItem}
+                editing={editingRow === item.id}
                 selected={selectedRow === item.id}
                 onSelect={(id) =>
                   setSelectedRow((prevId) => (id === prevId ? "" : id))
@@ -126,29 +150,32 @@ export const ArrayEditor: ValueCellEditorComponent = ({
         </DndContext>
       </Box>
 
-      {!isAdding ? (
-        <AddAnotherButton onClick={() => setIsAdding(true)} />
-      ) : (
-        <TextField
-          value={input}
-          onChange={(event) => setInput(event.target.value)}
-          autoFocus
-          placeholder="Start typing..."
-          variant="standard"
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.stopPropagation();
-
-              const text = input.trim();
-              if (text.length) {
-                addItem(text);
-              }
-
-              setInput("");
-              setIsAdding(false);
-            }
+      {editingRow !== NEW_ROW_KEY ? (
+        <AddAnotherButton
+          onClick={() => {
+            setEditingRow(NEW_ROW_KEY);
+            setSelectedRow("");
           }}
-          sx={{ p: 2, width: "100%" }}
+        />
+      ) : (
+        <InlineTextEditor
+          value={input}
+          onChange={(value) => setInput(value)}
+          onEnterPressed={() => {
+            if (input.trim().length) {
+              addItem(input);
+            }
+
+            setInput("");
+            setEditingRow("");
+
+            // using setImmediate, so scroll happens after item is rendered
+            setImmediate(() => {
+              scrollableContainer.current?.scrollTo({
+                top: scrollableContainer.current.scrollHeight,
+              });
+            });
+          }}
         />
       )}
     </Box>
