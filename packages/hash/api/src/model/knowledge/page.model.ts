@@ -13,6 +13,7 @@ import {
 } from "..";
 import { SYSTEM_TYPES } from "../../graph/system-types";
 import { EntityTypeMismatchError } from "../../lib/error";
+import {EntityId} from "@hashintel/hash-subgraph";
 
 type PageModelCreateParams = Omit<
   EntityModelCreateParams,
@@ -50,7 +51,7 @@ export default class extends EntityModel {
    */
   static async getPageById(
     graphApi: GraphApi,
-    params: { entityId: string; entityVersion?: string },
+    params: { entityId: EntityId; entityVersion?: string },
   ): Promise<PageModel> {
     const { entityId, entityVersion } = params;
 

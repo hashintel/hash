@@ -9,6 +9,7 @@ import {
   createKratosIdentity,
 } from "@hashintel/hash-api/src/auth/ory-kratos";
 import { systemAccountId } from "@hashintel/hash-api/src/model/util";
+import { EntityId } from "@hashintel/hash-subgraph";
 import { createTestOrg, generateRandomShortname } from "../../util";
 
 jest.setTimeout(60000);
@@ -36,7 +37,7 @@ describe("User model class", () => {
 
   let createdUser: UserModel;
 
-  let kratosIdentityId: string;
+  let kratosIdentityId: EntityId;
 
   it("can create a user", async () => {
     const identity = await createKratosIdentity({

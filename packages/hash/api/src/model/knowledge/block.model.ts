@@ -1,5 +1,5 @@
 import { GraphApi } from "@hashintel/hash-graph-client";
-import { PropertyObject } from "@hashintel/hash-subgraph";
+import {EntityId, PropertyObject} from "@hashintel/hash-subgraph";
 import {
   EntityModel,
   BlockModel,
@@ -43,7 +43,7 @@ export default class extends EntityModel {
    */
   static async getBlockById(
     graphApi: GraphApi,
-    params: { entityId: string },
+    params: { entityId: EntityId },
   ): Promise<BlockModel> {
     const entity = await EntityModel.getLatest(graphApi, params);
 

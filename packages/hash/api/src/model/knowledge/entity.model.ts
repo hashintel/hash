@@ -9,6 +9,8 @@ import {
   Subgraph,
   EntityMetadata,
   PropertyObject,
+  EntityId,
+  EntityVersion,
 } from "@hashintel/hash-subgraph";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import {
@@ -330,7 +332,7 @@ export default class {
   static async getLatest(
     graphApi: GraphApi,
     params: {
-      entityId: string;
+      entityId: EntityId;
     },
   ): Promise<EntityModel> {
     const { entityId } = params;
@@ -348,8 +350,8 @@ export default class {
   static async getVersion(
     _graphApi: GraphApi,
     _params: {
-      entityId: string;
-      entityVersion: string;
+      entityId: EntityId;
+      entityVersion: EntityVersion;
     },
   ): Promise<EntityModel> {
     throw new Error(

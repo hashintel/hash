@@ -1,5 +1,5 @@
 import { GraphApi } from "@hashintel/hash-graph-client";
-import { PropertyObject } from "@hashintel/hash-subgraph";
+import { EntityId, PropertyObject } from "@hashintel/hash-subgraph";
 import {
   EntityModel,
   UserModel,
@@ -57,7 +57,7 @@ export default class extends EntityModel {
    */
   static async getUserById(
     graphApi: GraphApi,
-    params: { entityId: string },
+    params: { entityId: EntityId },
   ): Promise<UserModel> {
     const entity = await EntityModel.getLatest(graphApi, {
       entityId: params.entityId,

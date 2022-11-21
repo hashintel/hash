@@ -3,6 +3,7 @@ import {
   PropertyType,
   EntityType,
 } from "@blockprotocol/type-system-web";
+import { EntityId } from "@hashintel/hash-subgraph";
 
 export type TextToken =
   | {
@@ -14,7 +15,7 @@ export type TextToken =
       link?: string;
     }
   | { tokenType: "hardBreak" }
-  | { tokenType: "mention"; mentionType: "user"; entityId: string };
+  | { tokenType: "mention"; mentionType: "user"; entityId: EntityId };
 
 export type UnknownEntityProperties = {};
 
