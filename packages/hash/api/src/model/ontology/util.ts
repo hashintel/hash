@@ -12,7 +12,6 @@ export const getNamespaceOfAccountOwner = async (
   graphApi: GraphApi,
   params: { ownerId: string },
 ) => {
-  /** @todo - get rid of this hack for the root account */
   const namespace =
     params.ownerId === systemAccountId
       ? SYSTEM_ACCOUNT_SHORTNAME
