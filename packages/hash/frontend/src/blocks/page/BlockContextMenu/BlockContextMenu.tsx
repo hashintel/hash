@@ -97,7 +97,6 @@ const BlockContextMenu: ForwardRefRenderFunction<
         icon: <FontAwesomeIcon icon={faLink} />,
         onClick: () => {
           const url = new URL(document.location.href);
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- false-positive, exception should be removed after refactoring ESLint config
           url.hash = getBlockDomId(entityId!);
           void navigator.clipboard.writeText(url.toString());
         },

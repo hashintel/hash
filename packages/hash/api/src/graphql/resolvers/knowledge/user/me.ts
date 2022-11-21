@@ -13,8 +13,8 @@ export const me: ResolverFn<
   { userModel, dataSources: { graphApi } },
 ) => {
   const subgraph = await userModel.getRootedSubgraph(graphApi, {
-    linkResolveDepth: linkResolveDepth ?? 0,
-    linkTargetEntityResolveDepth: linkTargetEntityResolveDepth ?? 0,
+    linkResolveDepth,
+    linkTargetEntityResolveDepth,
   });
 
   return mapSubgraphToGql(subgraph);

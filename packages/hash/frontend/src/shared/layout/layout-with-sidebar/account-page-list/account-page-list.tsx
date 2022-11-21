@@ -25,8 +25,7 @@ import {
   DragEndEvent,
   DragStartEvent,
 } from "@dnd-kit/core";
-import Box from "@mui/material/Box";
-import Collapse from "@mui/material/Collapse";
+import { Box, Collapse } from "@mui/material";
 import { useAccountPages } from "../../../../components/hooks/useAccountPages";
 import { useCreatePage } from "../../../../components/hooks/useCreatePage";
 import { useCreateSubPage } from "../../../../components/hooks/useCreateSubPage";

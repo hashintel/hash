@@ -1,8 +1,10 @@
 import { PropertyType } from "@blockprotocol/type-system-web";
 import { faClose } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
-import { IconButton } from "@hashintel/hash-design-system/icon-button";
-import { TextField } from "@hashintel/hash-design-system/text-field";
+import {
+  FontAwesomeIcon,
+  IconButton,
+  TextField,
+} from "@hashintel/hash-design-system";
 import {
   Box,
   ButtonBase,
@@ -78,8 +80,8 @@ const InsertPropertyRow = ({
   const ourInputRef = useRef<HTMLInputElement>(null);
   const sharedRef = useForkRef(inputRef, ourInputRef);
 
-  const { watch } = useFormContext<EntityTypeEditorForm>();
-  const properties = watch("properties");
+  const { control } = useFormContext<EntityTypeEditorForm>();
+  const properties = useWatch({ control, name: "properties" });
 
   return (
     <TableRow

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { Container, Typography } from "@mui/material";
 import init, { ValueOrArray } from "@blockprotocol/type-system-web";
-import { Button } from "@hashintel/hash-design-system/button";
+import { Button } from "@hashintel/hash-design-system";
 import { types } from "@hashintel/hash-shared/types";
 import { useAuthenticatedUser } from "../components/hooks/useAuthenticatedUser";
 import { NextPageWithLayout } from "../shared/layout";

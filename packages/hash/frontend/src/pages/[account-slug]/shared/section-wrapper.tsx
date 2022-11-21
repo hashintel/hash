@@ -1,6 +1,6 @@
 import { Box, Tooltip, Typography } from "@mui/material";
-import { ReactNode } from "react";
-import { CircleInfoIcon } from "../../../shared/icons";
+import { FunctionComponent, ReactNode } from "react";
+import { CircleInfoIcon } from "../../../shared/icons/circle-info-icon";
 
 interface SectionWrapperProps {
   children: ReactNode;
@@ -8,40 +8,43 @@ interface SectionWrapperProps {
   titleTooltip?: string;
   titleStartContent?: ReactNode;
   titleEndContent?: ReactNode;
+  tooltipIcon?: ReactNode;
 }
 
-export const SectionWrapper = ({
+export const SectionWrapper: FunctionComponent<SectionWrapperProps> = ({
   children,
   title,
   titleTooltip,
   titleStartContent,
   titleEndContent,
-}: SectionWrapperProps) => {
-  return (
-    <Box>
-      <Box mb={2} display="flex" alignItems="center" gap={1.5} flexWrap="wrap">
-        <Typography variant="h5">
-          {title}
-          {titleTooltip && (
-            <Tooltip title={titleTooltip} placement="top">
-              <Box display="inline">
-                <Box
-                  component={CircleInfoIcon}
-                  sx={{
-                    ml: 1,
-                    color: ({ palette }) => palette.gray[50],
-                  }}
-                />
-              </Box>
-            </Tooltip>
-          )}
-        </Typography>
+  tooltipIcon,
+}) => (
+  <Box>
+    <Box mb={2} display="flex" alignItems="center" gap={1.5} flexWrap="wrap">
+      <Box display="flex" alignItems="center">
+        <Typography variant="h5">{title}</Typography>
 
-        <Box>{titleStartContent}</Box>
-        <Box sx={{ ml: "auto" }}>{titleEndContent}</Box>
+        {titleTooltip && (
+          <Tooltip title={titleTooltip} placement="top">
+            <Box
+              sx={{
+                display: "flex",
+                ml: 1,
+                mr: 1.5,
+                color: ({ palette }) => palette.gray[50],
+                fontSize: 14,
+              }}
+            >
+              {tooltipIcon ?? <CircleInfoIcon fontSize="inherit" />}
+            </Box>
+          </Tooltip>
+        )}
       </Box>
 
-      {children}
+      <Box>{titleStartContent}</Box>
+      <Box sx={{ ml: "auto" }}>{titleEndContent}</Box>
     </Box>
-  );
-};
+
+    {children}
+  </Box>
+);

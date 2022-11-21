@@ -1,8 +1,11 @@
 import { PropertyType } from "@blockprotocol/type-system-web";
-import { Button, ButtonProps } from "@hashintel/hash-design-system/button";
-import { Chip } from "@hashintel/hash-design-system/chip";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
-import { TextField } from "@hashintel/hash-design-system/text-field";
+import {
+  Button,
+  ButtonProps,
+  Chip,
+  FontAwesomeIcon,
+  TextField,
+} from "@hashintel/hash-design-system";
 import {
   addVersionToBaseUri,
   generateBaseTypeId,
@@ -19,9 +22,9 @@ import {
 } from "@mui/material";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
+import { frontendUrl } from "@hashintel/hash-shared/environment";
 import { useBlockProtocolCreatePropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreatePropertyType";
 import { useBlockProtocolGetPropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetPropertyType";
-import { FRONTEND_URL } from "../../../../lib/config";
 import { getPersistedPropertyType } from "../../../../lib/subgraph";
 import { fa100 } from "../../../../shared/icons/pro/fa-100";
 import { faSquareCheck } from "../../../../shared/icons/pro/fa-square-check";
@@ -105,7 +108,7 @@ export const PropertyTypeForm = ({
     }
 
     return generateBaseTypeId({
-      domain: FRONTEND_URL,
+      domain: frontendUrl,
       namespace: routeNamespace.shortname,
       kind: "property-type",
       title: value,

@@ -1,10 +1,10 @@
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { createGraphClient } from "@hashintel/hash-api/src/graph";
 import { ensureSystemTypesExist } from "@hashintel/hash-api/src/graph/system-types";
-import { OrgModel, OrgSize } from "@hashintel/hash-api/src/model";
+import { OrgModel } from "@hashintel/hash-api/src/model";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { systemAccountId } from "@hashintel/hash-api/src/model/util";
-import { generateRandomShortname } from "../../util";
+import { createTestOrg, generateRandomShortname } from "../../util";
 
 jest.setTimeout(60000);
 
@@ -28,16 +28,11 @@ describe("Org model class", () => {
   });
 
   let createdOrg: OrgModel;
-  let shortname = "test-org";
+  let shortname: string;
   it("can create an org", async () => {
-    createdOrg = await OrgModel.createOrg(graphApi, {
-      name: "Test org",
-      shortname,
-      providedInfo: {
-        orgSize: OrgSize.ElevenToFifty,
-      },
-      actorId: systemAccountId,
-    });
+    createdOrg = await createTestOrg(graphApi, "orgModelTest", logger);
+
+    shortname = createdOrg.getShortname();
   });
 
   it("can get the account id", () => {
@@ -46,6 +41,7 @@ describe("Org model class", () => {
 
   it("can update the shortname of an org", async () => {
     shortname = generateRandomShortname("orgTest");
+
     createdOrg = await createdOrg.updateShortname(graphApi, {
       updatedShortname: shortname,
       actorId: systemAccountId,

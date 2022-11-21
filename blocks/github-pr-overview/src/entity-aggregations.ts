@@ -227,11 +227,13 @@ export const getEntityTypeIdsAndPrs = async (
       ({ data }) => aggregateEntities({ data }),
     );
 
-    const mappedPullRequests = new Map();
+    const mappedPullRequests = new Map<string, GithubPullRequestEntityType>();
 
     for (const pullRequest of prs) {
-      const pullRequestId = `${pullRequest.properties.repository}/${pullRequest.properties.number}`;
-      mappedPullRequests.set(pullRequestId, pullRequest);
+      if (pullRequest.properties.repository && pullRequest.properties.number) {
+        const pullRequestId = `${pullRequest.properties.repository}/${pullRequest.properties.number}`;
+        mappedPullRequests.set(pullRequestId, pullRequest);
+      }
     }
 
     return { entityTypeIds: githubEntityTypeIds!, prs: mappedPullRequests };

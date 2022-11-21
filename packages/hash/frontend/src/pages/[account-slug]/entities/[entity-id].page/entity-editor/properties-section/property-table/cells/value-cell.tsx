@@ -3,7 +3,15 @@ import {
   CustomRenderer,
   GridCellKind,
 } from "@glideapps/glide-data-grid";
-import { getYCenter } from "../../../../../../../../components/GlideGlid/utils";
+import { types } from "@hashintel/hash-shared/types";
+import { InteractableManager } from "../../../../../../../../components/GlideGlid/utils/interactable-manager";
+import { drawInteractableTooltipIcons } from "../../../../../../../../components/GlideGlid/utils/use-grid-tooltip/draw-interactable-tooltip-icons";
+import {
+  getCellHorizontalPadding,
+  getYCenter,
+} from "../../../../../../../../components/GlideGlid/utils";
+import { drawTextWithIcon } from "../../../../../../../../components/GlideGlid/utils/draw-text-with-icon";
+import { isValueEmpty } from "../../is-value-empty";
 import { ValueCell } from "./value-cell/types";
 import { ValueCellEditor } from "./value-cell/value-cell-editor";
 
@@ -13,18 +21,44 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
     (cell.data as any).kind === "value-cell",
   draw: (args, cell) => {
     const { ctx, rect, theme } = args;
-    const { value } = cell.data.property;
+    const { value, expectedTypes } = cell.data.property;
 
     ctx.fillStyle = theme.textHeader;
     ctx.font = theme.baseFontStyle;
 
     const yCenter = getYCenter(args);
+    const left = rect.x + getCellHorizontalPadding();
 
-    ctx.fillText(String(value), rect.x + theme.cellHorizontalPadding, yCenter);
+    /** @todo remove expectedTypes[0] when multiple data types are supported */
+    const isBoolean = expectedTypes[0] === types.dataType.boolean.title;
+
+    if (isValueEmpty(value)) {
+      // draw empty value
+      ctx.fillStyle = "#91A5BA";
+      ctx.font = "italic 14px Inter";
+      ctx.fillText("No value", left, yCenter);
+    } else if (isBoolean) {
+      // draw boolean
+      return drawTextWithIcon({
+        args,
+        text: value ? "True" : "False",
+        icon: value ? "bpCheck" : "bpCross",
+        left,
+        iconColor: "#91A5BA",
+        iconSize: 16,
+      });
+    } else {
+      // draw plain text
+      const text = Array.isArray(value) ? value.join(", ") : String(value);
+      ctx.fillText(text, left, yCenter);
+    }
+
+    const tooltipInteractables = drawInteractableTooltipIcons(args);
+    InteractableManager.setInteractablesForCell(args, tooltipInteractables);
   },
   provideEditor: () => {
     return {
-      styleOverride: { boxShadow: "none" },
+      styleOverride: { boxShadow: "none", background: "transparent" },
       disablePadding: true,
       editor: ValueCellEditor,
     };

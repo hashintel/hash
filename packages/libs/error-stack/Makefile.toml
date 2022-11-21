@@ -13,6 +13,7 @@ CARGO_INSTA_TEST_HACK_FLAGS = "--keep-going --feature-powerset --include-feature
 
 [tasks.test]
 dependencies = ["install-rust-src"]
+env = { TRYBUILD = "overwrite" }
 
 [tasks.coverage]
 dependencies = ["install-rust-src"]

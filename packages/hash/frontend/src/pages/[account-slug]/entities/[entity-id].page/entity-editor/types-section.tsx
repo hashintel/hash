@@ -1,5 +1,5 @@
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
+import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { Box, Typography } from "@mui/material";
 import { getPersistedEntityType } from "../../../../../lib/subgraph";
 import { WhiteCard } from "../../../shared/white-card";

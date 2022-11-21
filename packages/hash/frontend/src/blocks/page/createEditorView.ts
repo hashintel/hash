@@ -13,7 +13,6 @@ import {
 } from "@hashintel/hash-shared/entityStorePlugin";
 
 // import applyDevTools from "prosemirror-dev-tools";
-import { Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
 import { RefObject } from "react";
 import { LoadingView } from "./LoadingView";
@@ -38,7 +37,7 @@ const createSavePlugin = (
 ) => {
   let saveQueue = Promise.resolve<unknown>(null);
 
-  const triggerSave = (view: EditorView<Schema>) => {
+  const triggerSave = (view: EditorView) => {
     saveQueue = saveQueue.catch().then(async () => {
       const [newContents, newDraftToEntityId] = await save(
         client,
@@ -63,7 +62,7 @@ const createSavePlugin = (
     });
   };
 
-  let latestView: EditorView<Schema> | null = null;
+  let latestView: EditorView | null = null;
 
   let interval: ReturnType<typeof setInterval> | void;
 
@@ -87,8 +86,8 @@ const createSavePlugin = (
     }
   }, minWaitTime);
 
-  return new Plugin<unknown, Schema>({
-    view: (_viewOnCreation: EditorView<Schema>) => {
+  return new Plugin<unknown>({
+    view: (_viewOnCreation: EditorView) => {
       return {
         update: (view, prevState) => {
           latestView = view;
@@ -152,7 +151,7 @@ export const createEditorView = (
 
   const [errorPlugin, _onError] = createErrorPlugin(renderPortal);
 
-  const plugins: Plugin<unknown, Schema>[] = readonly
+  const plugins: Plugin<unknown>[] = readonly
     ? []
     : [
         createSavePlugin(accountId, pageEntityId, client),
@@ -174,9 +173,7 @@ export const createEditorView = (
     accountId,
     {
       nodeViews: {
-        // Reason for adding `_decorations`:
-        // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/57384#issuecomment-1018936089
-        block(currentNode, currentView, getPos, _decorations) {
+        block(currentNode, currentView, getPos) {
           if (typeof getPos === "boolean") {
             throw new Error("Invalid config for nodeview");
           }
@@ -189,9 +186,7 @@ export const createEditorView = (
             renderNode,
           );
         },
-        // Reason for adding unused params e.g. `_decorations`:
-        // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/57384#issuecomment-1018936089
-        loading(currentNode, _currentView, _getPos, _decorations) {
+        loading(currentNode, _currentView, _getPos) {
           return new LoadingView(currentNode, renderPortal);
         },
       },
@@ -203,9 +198,7 @@ export const createEditorView = (
     state.schema,
     accountId,
     view,
-    // Reason for adding `_decorations`:
-    // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/57384#issuecomment-1018936089
-    (block) => (node, editorView, getPos, _decorations) => {
+    (block) => (node, editorView, getPos) => {
       if (typeof getPos === "boolean") {
         throw new Error("Invalid config for nodeview");
       }

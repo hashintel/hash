@@ -1,6 +1,6 @@
 import { BaseUri, VersionedUri } from "@blockprotocol/type-system-web";
 import slugify from "slugify";
-import { frontendUrl } from "./config";
+import { frontendUrl } from "./environment";
 
 const systemNamespaceName = "example";
 

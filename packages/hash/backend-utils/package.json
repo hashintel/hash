@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/hash-backend-utils",
-  "version": "0.0.0",
+  "version": "0.0.0-private",
   "private": true,
   "description": "HASH backend utilities",
   "license": "AGPL-3.0",
@@ -10,7 +10,7 @@
   "typesVersions": {
     "*": {
       "*": [
-        "src/*"
+        "./src/*.ts"
       ]
     }
   },

@@ -5,7 +5,6 @@ import { isEqual } from "lodash";
 import { bindPopover, usePopupState } from "material-ui-popup-state/hooks";
 import { RefObject, useCallback, useState } from "react";
 import { useWindowEventListener } from "rooks";
-import { GridTooltipManager } from "./use-grid-tooltip/grid-tooltip-manager";
 import {
   GridTooltip,
   TooltipCellProps,
@@ -30,6 +29,13 @@ export const useGridTooltip = (
 
   const showTooltip = useCallback<TooltipCellProps["showTooltip"]>(
     (newTooltip) => {
+      const isEditorOpen =
+        !!document.querySelector(`div[id="portal"]`)?.children.length;
+
+      if (isEditorOpen) {
+        return;
+      }
+
       if (!isEqual(gridTooltip, newTooltip)) {
         setGridTooltip(newTooltip);
       }
@@ -65,26 +71,9 @@ export const useGridTooltip = (
     [popupState, gridTooltip],
   );
 
-  const withTooltips = useCallback<UseGridTooltipResponse["withTooltips"]>(
-    (customRenderer) => {
-      return {
-        ...customRenderer,
-        draw: (...params) => {
-          customRenderer.draw(...params);
-
-          const drawArgs = params[0];
-          const tooltipManager = new GridTooltipManager(drawArgs);
-          tooltipManager.draw();
-        },
-      };
-    },
-    [],
-  );
-
   return {
     showTooltip,
     hideTooltip,
-    withTooltips,
     tooltipElement: (
       <Popover
         {...bindPopover(popupState)}
