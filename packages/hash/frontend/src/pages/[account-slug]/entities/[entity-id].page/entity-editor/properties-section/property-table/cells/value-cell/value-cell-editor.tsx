@@ -6,10 +6,10 @@ import { NumberOrStringEditor } from "./value-cell-editor/number-or-string-edito
 
 export const ValueCellEditor: ValueCellEditorComponent = (props) => {
   const { value } = props;
-  const { expectedTypes: dataTypes, isArray } = value.data.property;
+  const { expectedTypes, isArray } = value.data.property;
 
-  /** @todo remove dataTypes[0] when multiple data types are supported */
-  const isBoolean = dataTypes[0] === types.dataType.boolean.title;
+  /** @todo remove expectedTypes[0] when multiple data types are supported */
+  const isBoolean = expectedTypes[0] === types.dataType.boolean.title;
 
   if (isArray) {
     return <ArrayEditor {...props} />;
