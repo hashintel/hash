@@ -23,7 +23,7 @@ export const EntityTypeTabs = () => {
   const { control } = useFormContext<EntityTypeEditorForm>();
   const propertiesCount = useWatch({ control, name: "properties.length" });
 
-  const { entities } = useEntityTypeEntities() ?? {};
+  const { entities } = useEntityTypeEntities();
 
   const baseUri = getEntityTypeBaseUri(
     router.query["entity-type-id"] as string,

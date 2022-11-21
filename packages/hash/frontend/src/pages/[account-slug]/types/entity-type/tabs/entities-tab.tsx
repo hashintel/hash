@@ -30,7 +30,7 @@ import { useEntityType } from "../use-entity-type";
 export const EntitiesTab: FunctionComponent = () => {
   const entityType = useEntityType();
   const { entities, entityTypes, propertyTypes, subgraph } =
-    useEntityTypeEntities() ?? {};
+    useEntityTypeEntities();
 
   const [showSearch, setShowSearch] = useState(false);
   const [tableSort, setTableSort] = useState<TableSort<string>>({
