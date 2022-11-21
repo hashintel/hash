@@ -12,34 +12,31 @@ import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
 import { FormProvider, useForm } from "react-hook-form";
-import { frontendUrl } from "@hashintel/hash-shared/environment";
+import { NextPageWithLayout } from "../../../../shared/layout";
+import { getPlainLayout } from "../../../../shared/layout/plain-layout";
 import { TopContextBar } from "../../../shared/top-context-bar";
 import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
 import { OntologyChip } from "../../shared/ontology-chip";
 import { EditBar } from "./edit-bar";
+import { EntityTypeTabs } from "./entity-type-tabs";
 import {
   EntityTypeEditorForm,
   EntityTypeEditorPropertyData,
 } from "./form-types";
-import { useRouteNamespace } from "./use-route-namespace";
-import { mustBeVersionedUri } from "./util";
+import { DefinitionTab } from "./tabs/definition-tab";
+import { EntitiesTab } from "./tabs/entities-tab";
+import { useCurrentTab } from "./use-current-tab";
+import { EntityTypeContext, useEntityTypeValue } from "./use-entity-type";
 import {
   EntityTypeEntitiesContext,
   useEntityTypeEntitiesContextValue,
 } from "./use-entity-type-entities";
-import { EntityTypeTabs, useCurrentTab } from "./entity-type-tabs";
-import { EntityTypeContext, useEntityTypeValue } from "./use-entity-type";
-import { NextPageWithLayout } from "../../../../shared/layout";
-import { getPlainLayout } from "../../../../shared/layout/plain-layout";
-import { DefinitionTab } from "./tabs/definition-tab";
-import { EntitiesTab } from "./tabs/entities-tab";
 import {
   PropertyTypesContext,
   usePropertyTypesContextValue,
 } from "./use-property-types";
-
-export const getEntityTypeBaseUri = (entityTypeId: string, namespace: string) =>
-  `${frontendUrl}/${namespace}/types/entity-type/${entityTypeId}/`;
+import { useRouteNamespace } from "./use-route-namespace";
+import { getEntityTypeBaseUri, mustBeVersionedUri } from "./util";
 
 const getSchemaFromEditorForm = (
   properties: EntityTypeEditorPropertyData[],
