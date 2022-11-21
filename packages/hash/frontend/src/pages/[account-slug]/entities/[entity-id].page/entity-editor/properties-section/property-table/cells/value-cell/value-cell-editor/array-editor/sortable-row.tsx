@@ -1,12 +1,12 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { faClose, faPencil } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, IconButton } from "@hashintel/hash-design-system";
+import { faPencil, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { Box, Divider, Typography } from "@mui/material";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { useState } from "react";
 import { SortableItem } from "./types";
 import { ValueChip } from "./value-chip";
+import { RowAction } from "./row-action";
 
 interface SortableRowProps {
   item: SortableItem;
@@ -101,21 +101,17 @@ export const SortableRow = ({
           }}
         >
           <Box sx={{ display: "flex", background: "white" }}>
-            <IconButton
+            <RowAction
+              tooltip="Edit"
+              icon={faPencil}
               onClick={() => onRemove(index)}
-              sx={{ background: "white !important", width: 50 }}
-              size="small"
-            >
-              <FontAwesomeIcon icon={faPencil} />
-            </IconButton>
+            />
             <Divider orientation="vertical" />
-            <IconButton
+            <RowAction
+              tooltip="Delete"
+              icon={faTrash}
               onClick={() => onRemove(index)}
-              sx={{ background: "white !important", width: 50 }}
-              size="small"
-            >
-              <FontAwesomeIcon icon={faClose} />
-            </IconButton>
+            />
           </Box>
         </Box>
       )}
