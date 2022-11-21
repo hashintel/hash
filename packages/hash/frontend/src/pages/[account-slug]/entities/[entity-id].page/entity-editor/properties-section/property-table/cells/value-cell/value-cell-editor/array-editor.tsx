@@ -1,71 +1,82 @@
-import { faPlus } from "@fortawesome/free-solid-svg-icons";
-import {
-  Chip,
-  FontAwesomeIcon,
-  IconButton,
-  TextField,
-} from "@hashintel/hash-design-system";
-import { Box, Tooltip } from "@mui/material";
+import { TextField } from "@hashintel/hash-design-system";
+import { Box } from "@mui/material";
 import produce from "immer";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import {
+  closestCenter,
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { ValueCellEditorComponent } from "../types";
-import { faText } from "../../../../../../../../../../shared/icons/pro/fa-text";
-
-const ValueChip = ({
-  value,
-  onDelete,
-}: {
-  value: string;
-  onDelete: () => void;
-}) => {
-  return (
-    <Chip
-      icon={
-        <Tooltip title="Text" placement="top">
-          <FontAwesomeIcon
-            icon={{ icon: faText }}
-            sx={{
-              /**
-               * used zIndex:1, otherwise label of the chip is rendered over icon with transparent background,
-               * which prevents tooltip from opening
-               */
-              zIndex: 1,
-            }}
-          />
-        </Tooltip>
-      }
-      label={value}
-      onDelete={onDelete}
-    />
-  );
-};
+import { SortableItem } from "./array-editor/types";
+import { SortableRow } from "./array-editor/sortable-row";
+import { AddAnotherButton } from "./array-editor/add-another-button";
 
 export const ArrayEditor: ValueCellEditorComponent = ({
   value: cell,
   onChange,
 }) => {
-  const { value } = cell.data.property;
+  const items = useMemo(() => {
+    const propertyVal = cell.data.property.value;
+    const values = Array.isArray(propertyVal) ? propertyVal : [propertyVal];
 
-  const valuesArray = Array.isArray(value) ? value : [value];
+    const itemsArray: SortableItem[] = values.map((value, index) => ({
+      index,
+      id: `${index}_${String(value)}`,
+      value,
+    }));
 
-  const [isAdding, setIsAdding] = useState(!valuesArray.length);
+    return itemsArray;
+  }, [cell]);
+
+  const [isAdding, setIsAdding] = useState(!items.length);
   const [input, setInput] = useState("");
+  const [selectedRow, setSelectedRow] = useState("");
 
   const addItem = (text: string) => {
     const newCell = produce(cell, (draftCell) => {
-      draftCell.data.property.value = [...valuesArray, text.trim()];
+      draftCell.data.property.value = [
+        ...items.map(({ value }) => value),
+        text.trim(),
+      ];
     });
     onChange(newCell);
   };
 
   const removeItem = (index: number) => {
     const newCell = produce(cell, (draftCell) => {
-      draftCell.data.property.value = valuesArray.filter(
-        (_, index2) => index !== index2,
-      );
+      draftCell.data.property.value = items
+        .filter((_, index2) => index !== index2)
+        .map(({ value }) => value);
     });
     onChange(newCell);
   };
+
+  const moveItem = (oldIndex: number, newIndex: number) => {
+    setSelectedRow("");
+    const newCell = produce(cell, (draftCell) => {
+      const newItems = arrayMove(items, oldIndex, newIndex);
+
+      draftCell.data.property.value = newItems.map(({ value }) => value);
+    });
+    onChange(newCell);
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
 
   return (
     <Box
@@ -74,21 +85,49 @@ export const ArrayEditor: ValueCellEditorComponent = ({
         borderColor: theme.palette.gray[30],
         borderRadius: theme.borderRadii.lg,
         background: "white",
-        px: 2,
-        py: 1.5,
-        display: "flex",
-        flexWrap: "wrap",
-        gap: 0.75,
+        overflow: "hidden",
       })}
     >
-      {valuesArray.map((val, index) => (
-        // eslint-disable-next-line react/no-array-index-key
-        <ValueChip key={index} value={val} onDelete={() => removeItem(index)} />
-      ))}
+      <Box
+        sx={{
+          maxHeight: 300,
+          overflowY: "scroll",
+          overflowX: "hidden",
+          borderBottom: `1px solid`,
+          borderColor: "gray.20",
+        }}
+      >
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={(event) => {
+            const { active, over } = event;
+
+            if (active.id !== over?.id) {
+              const oldIndex = items.findIndex(({ id }) => id === active.id);
+              const newIndex = items.findIndex(({ id }) => id === over?.id);
+              moveItem(oldIndex, newIndex);
+            }
+          }}
+        >
+          <SortableContext items={items} strategy={verticalListSortingStrategy}>
+            {items.map((item) => (
+              <SortableRow
+                key={item.id}
+                item={item}
+                onRemove={removeItem}
+                selected={selectedRow === item.id}
+                onSelect={(id) =>
+                  setSelectedRow((prevId) => (id === prevId ? "" : id))
+                }
+              />
+            ))}
+          </SortableContext>
+        </DndContext>
+      </Box>
+
       {!isAdding ? (
-        <IconButton onClick={() => setIsAdding(true)} size="small">
-          <FontAwesomeIcon icon={faPlus} />
-        </IconButton>
+        <AddAnotherButton onClick={() => setIsAdding(true)} />
       ) : (
         <TextField
           value={input}
@@ -109,6 +148,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
               setIsAdding(false);
             }
           }}
+          sx={{ p: 2, width: "100%" }}
         />
       )}
     </Box>
