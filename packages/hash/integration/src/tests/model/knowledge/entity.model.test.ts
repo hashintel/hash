@@ -195,7 +195,7 @@ describe("Entity CRU", () => {
     ).filter((entity) => entity.ownedById === testUser.entityUuid);
 
     const newlyUpdatedModel = allEntityModels.find(
-      (ent) => ent.entityUuid === updatedEntityModel.entityUuid,
+      (ent) => ent.baseId === updatedEntityModel.baseId,
     );
 
     // Even though we've inserted two entities, they're the different versions
