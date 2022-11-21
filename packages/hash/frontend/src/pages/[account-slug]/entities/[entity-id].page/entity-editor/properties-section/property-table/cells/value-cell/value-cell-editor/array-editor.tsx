@@ -102,7 +102,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
     <Box
       sx={(theme) => ({
         border: "1px solid",
-        borderColor: theme.palette.gray[30],
+        borderColor: "gray.30",
         borderRadius: theme.borderRadii.lg,
         background: "white",
         overflow: "hidden",
