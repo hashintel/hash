@@ -29,7 +29,7 @@ export type EntityTypeModelCreateParams = {
  * @class {@link EntityTypeModel}
  */
 export default class {
-  private entityType: EntityTypeWithMetadata;
+  entityType: EntityTypeWithMetadata;
 
   get schema(): EntityType {
     /**
