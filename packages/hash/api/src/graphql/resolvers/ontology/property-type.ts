@@ -1,6 +1,6 @@
 import { ApolloError } from "apollo-server-express";
 import { AxiosError } from "axios";
-import { PropertyTypeWithMetadata } from "@hashintel/hash-subgraph";
+import { PropertyTypeWithMetadata, Subgraph } from "@hashintel/hash-subgraph";
 
 import {
   MutationCreatePropertyTypeArgs,
@@ -8,11 +8,9 @@ import {
   QueryGetPropertyTypeArgs,
   QueryGetAllLatestPropertyTypesArgs,
   ResolverFn,
-  Subgraph,
 } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import { PropertyTypeModel } from "../../../model";
-import { mapPropertyTypeModelToGQL, mapSubgraphToGql } from "./model-mapping";
 
 export const createPropertyType: ResolverFn<
   Promise<PropertyTypeWithMetadata>,
@@ -31,7 +29,7 @@ export const createPropertyType: ResolverFn<
     throw new ApolloError(err, "CREATION_ERROR");
   });
 
-  return mapPropertyTypeModelToGQL(createdPropertyTypeModel);
+  return createdPropertyTypeModel.propertyType;
 };
 
 export const getAllLatestPropertyTypes: ResolverFn<
@@ -72,7 +70,7 @@ export const getAllLatestPropertyTypes: ResolverFn<
       );
     });
 
-  return mapSubgraphToGql(propertyTypeSubgraph);
+  return propertyTypeSubgraph as Subgraph;
 };
 
 export const getPropertyType: ResolverFn<
@@ -107,7 +105,7 @@ export const getPropertyType: ResolverFn<
       );
     });
 
-  return mapSubgraphToGql(propertyTypeSubgraph);
+  return propertyTypeSubgraph as Subgraph;
 };
 
 export const updatePropertyType: ResolverFn<
@@ -142,5 +140,5 @@ export const updatePropertyType: ResolverFn<
       throw new ApolloError(msg, "CREATION_ERROR");
     });
 
-  return mapPropertyTypeModelToGQL(updatedPropertyTypeModel);
+  return updatedPropertyTypeModel.propertyType;
 };
