@@ -11,6 +11,8 @@ import {
   PropertyObject,
   EntityId,
   EntityVersion,
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
 } from "@hashintel/hash-subgraph";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import {
@@ -46,24 +48,20 @@ export default class {
 
   entityTypeModel: EntityTypeModel;
 
-  get baseId(): string {
+  get baseId(): EntityId {
     return this.metadata.editionId.baseId;
   }
 
-  get version(): string {
+  get version(): EntityVersion {
     return this.metadata.editionId.version;
   }
 
   get entityUuid(): string {
-    const [_, entityUuid] = this.baseId.split("%") as [string, string];
-
-    return entityUuid;
+    return extractEntityUuidFromEntityId(this.baseId);
   }
 
   get ownedById(): string {
-    const [ownedById, _] = this.baseId.split("%") as [string, string];
-
-    return ownedById;
+    return extractOwnedByIdFromEntityId(this.baseId);
   }
 
   get metadata(): EntityMetadata {
