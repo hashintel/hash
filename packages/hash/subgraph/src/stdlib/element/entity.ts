@@ -5,7 +5,7 @@ import {
   isEntityEditionId,
 } from "../../types/identifier";
 import { isEntityVertex } from "../../types/vertex";
-import { Entity } from "../../types/element";
+import { EntityWithMetadata } from "../../types/element";
 import { mustBeDefined } from "../../shared/invariant";
 
 /**
@@ -13,7 +13,7 @@ import { mustBeDefined } from "../../shared/invariant";
  *
  * @param subgraph
  */
-export const getEntities = (subgraph: Subgraph): Entity[] => {
+export const getEntities = (subgraph: Subgraph): EntityWithMetadata[] => {
   return Object.values(
     Object.values(subgraph.vertices).flatMap((versionObject) =>
       Object.values(versionObject)
@@ -34,7 +34,7 @@ export const getEntities = (subgraph: Subgraph): Entity[] => {
 export const getEntityByEditionId = (
   subgraph: Subgraph,
   entityEditionId: EntityEditionId,
-): Entity | undefined => {
+): EntityWithMetadata | undefined => {
   const { baseId: entityId, version } = entityEditionId;
   const vertex = subgraph.vertices[entityId]?.[version];
 
@@ -54,7 +54,7 @@ export const getEntityByEditionId = (
 export const getEntityEditionsByEntityId = (
   subgraph: Subgraph,
   entityId: EntityId,
-): Entity[] => {
+): EntityWithMetadata[] => {
   const versionObject = subgraph.vertices[entityId];
 
   if (!versionObject) {
@@ -78,7 +78,7 @@ export const getEntityAtTimestamp = (
   subgraph: Subgraph,
   entityId: EntityId,
   timestamp: Date | string,
-): Entity | undefined => {
+): EntityWithMetadata | undefined => {
   const timestampString =
     typeof timestamp === "string" ? timestamp : timestamp.toISOString();
 
@@ -114,7 +114,7 @@ export const getEntityAtTimestamp = (
  * @throws if the roots aren't all `EntityEditionId`s
  * @throws if the subgraph is malformed and there isn't a vertex associated with the root ID
  */
-export const getRootsAsEntities = (subgraph: Subgraph): Entity[] => {
+export const getRootsAsEntities = (subgraph: Subgraph): EntityWithMetadata[] => {
   return subgraph.roots.map((rootEditionId) => {
     if (!isEntityEditionId(rootEditionId)) {
       throw new Error(

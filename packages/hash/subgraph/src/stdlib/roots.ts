@@ -1,6 +1,6 @@
 import {
   DataTypeWithMetadata,
-  Entity,
+  EntityWithMetadata,
   EntityTypeWithMetadata,
   GraphElement,
   PropertyTypeWithMetadata,
@@ -139,7 +139,7 @@ export const isEntityTypeRootedSubgraph = (
  */
 export const isEntityRootedSubgraph = (
   subgraph: Subgraph,
-): subgraph is Subgraph<Entity> => {
+): subgraph is Subgraph<EntityWithMetadata> => {
   for (const rootEditionId of subgraph.roots) {
     if (!isEntityEditionId(rootEditionId)) {
       return false;
