@@ -84,8 +84,10 @@ export default class extends EntityModel {
 
     const properties: PropertyObject = {
       [SYSTEM_TYPES.propertyType.title.baseUri]: title,
-      [SYSTEM_TYPES.propertyType.summary.baseUri]: summary,
-      [SYSTEM_TYPES.propertyType.index.baseUri]: index,
+      ...(summary
+        ? { [SYSTEM_TYPES.propertyType.summary.baseUri]: summary }
+        : {}),
+      ...(index ? { [SYSTEM_TYPES.propertyType.index.baseUri]: index } : {}),
     };
 
     const entityTypeModel = SYSTEM_TYPES.entityType.page;
@@ -485,9 +487,10 @@ export default class extends EntityModel {
       );
     }
 
-    /** @todo - link.update currently doesn't allow updating of link metadata */
-    await link.update(graphApi, {
-      updatedIndex: newPosition,
+    await link.updateOrder(graphApi, {
+      linkOrder: {
+        leftOrder: newPosition
+      },
       actorId,
     });
   }
