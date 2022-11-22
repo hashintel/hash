@@ -32,7 +32,7 @@
     "@graphql-codegen/typescript-resolvers": "2.7.6",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@types/jest": "29.2.2",
+    "@types/jest": "29.2.3",
     "@types/prompts": "2.4.1",
     "@typescript-eslint/eslint-plugin": "5.42.1",
     "@typescript-eslint/parser": "5.42.1",

@@ -114,7 +114,7 @@
     "@types/dotenv-flow": "3.2.0",
     "@types/emoji-mart": "3.0.9",
     "@types/iframe-resizer": "3.5.9",
-    "@types/jest": "29.2.2",
+    "@types/jest": "29.2.3",
     "@types/jsonpath": "0.2.0",
     "@types/lodash": "4.14.188",
     "@types/pluralize": "0.0.29",
