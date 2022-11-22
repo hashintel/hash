@@ -87,7 +87,9 @@ export default class extends EntityModel {
       ...(summary
         ? { [SYSTEM_TYPES.propertyType.summary.baseUri]: summary }
         : {}),
-      ...(index !== undefined ? { [SYSTEM_TYPES.propertyType.index.baseUri]: index } : {}),
+      ...(index !== undefined
+        ? { [SYSTEM_TYPES.propertyType.index.baseUri]: index }
+        : {}),
     };
 
     const entityTypeModel = SYSTEM_TYPES.entityType.page;
@@ -489,7 +491,7 @@ export default class extends EntityModel {
 
     await link.updateOrder(graphApi, {
       linkOrder: {
-        leftOrder: newPosition
+        leftOrder: newPosition,
       },
       actorId,
     });
