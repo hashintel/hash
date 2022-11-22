@@ -46,7 +46,7 @@ export const entityWithMetadataTypedef = gql`
     linkedEntities: [PersistedLinkedEntityDefinition!]
   }
 
-  # TODO: rename these and remove "persisted" - https://app.asana.com/0/0/1203157172269854/f
+  # TODO: rename these and remove "withMetadata" - https://app.asana.com/0/0/1203157172269854/f
   extend type Query {
     """
     Get a subgraph rooted at all entities at their latest version.

@@ -19,7 +19,7 @@ import { mapEntityModelToGQL } from "../model-mapping";
 import { LoggedInGraphQLContext } from "../../../context";
 import { beforeUpdateEntityHooks } from "./before-update-entity-hooks";
 
-/** @todo - rename these and remove "persisted" - https://app.asana.com/0/0/1203157172269854/f */
+/** @todo - rename these and remove "withMetadata" - https://app.asana.com/0/0/1203157172269854/f */
 
 export const createEntityWithMetadata: ResolverFn<
   Promise<EntityWithMetadata>,
