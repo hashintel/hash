@@ -7,7 +7,6 @@ import {
 } from "../../../../graphql/apiTypes.gen";
 import { getAllLatestEntityTypesQuery } from "../../../../graphql/queries/ontology/entity-type.queries";
 import { AggregateEntityTypesMessageCallback } from "./ontology-types-shim";
-import { Subgraph } from "../../../../lib/subgraph";
 
 export const useBlockProtocolAggregateEntityTypes = (): {
   aggregateEntityTypes: AggregateEntityTypesMessageCallback;
@@ -43,7 +42,6 @@ export const useBlockProtocolAggregateEntityTypes = (): {
         variables: {
           dataTypeResolveDepth: 255,
           propertyTypeResolveDepth: 255,
-          linkTypeResolveDepth: 255,
           entityTypeResolveDepth: 0,
         },
       });
@@ -60,11 +58,7 @@ export const useBlockProtocolAggregateEntityTypes = (): {
       }
 
       return {
-        /**
-         * @todo: remove this when we start returning links in the subgraph
-         *   https://app.asana.com/0/0/1203214689883095/f
-         */
-        data: response.data.getAllLatestEntityTypes as Subgraph,
+        data: response.data.getAllLatestEntityTypes,
       };
     },
     [aggregateFn],
