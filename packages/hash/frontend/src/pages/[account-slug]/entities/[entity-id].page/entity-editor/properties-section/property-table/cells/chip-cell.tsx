@@ -6,8 +6,8 @@ import {
 } from "@glideapps/glide-data-grid";
 import { Chip, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { Box } from "@mui/material";
-import { drawCellFadeOutGradient } from "../../../../../../../../components/GlideGlid/utils/draw-cell-fade-out-gradient";
-import { drawChipWithIcon } from "../../../../../../../../components/GlideGlid/utils/draw-chip-with-icon";
+import { drawCellFadeOutGradient } from "../../../../../../../../components/grid/utils/draw-cell-fade-out-gradient";
+import { drawChipWithIcon } from "../../../../../../../../components/grid/utils/draw-chip-with-icon";
 
 export interface ChipCellProps {
   readonly kind: "chip-cell";

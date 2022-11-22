@@ -1,7 +1,6 @@
 import { PropertyType } from "@blockprotocol/type-system-web";
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
-import { TextField } from "@hashintel/hash-design-system/text-field";
+import { FontAwesomeIcon, TextField } from "@hashintel/hash-design-system";
 import {
   Autocomplete,
   Box,

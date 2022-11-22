@@ -55,10 +55,31 @@
 //!
 //! [`Location`]: core::panic::Location
 
-use alloc::{format, string::String};
+use alloc::{boxed::Box, collections::BTreeMap, format, string::String};
 use core::fmt::{self, Debug, Display, Formatter};
 
 use error_stack::{Context, Frame, IntoReport, Result};
+pub use extra::{
+    ArrayLengthError, ExpectedLength, ObjectItemsExtraError, ReceivedKey, ReceivedLength,
+};
+pub use location::Location;
+use serde::ser::SerializeMap;
+pub use r#type::{ExpectedType, ReceivedType, TypeError};
+pub use unknown::{
+    ExpectedField, ExpectedVariant, ReceivedField, ReceivedVariant, UnknownFieldError,
+    UnknownVariantError,
+};
+pub use value::{MissingError, ReceivedValue, ValueError};
+
+use crate::error::macros::impl_error;
+
+mod extra;
+mod location;
+mod macros;
+mod tuple;
+mod r#type;
+mod unknown;
+mod value;
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Hash, Copy, Clone, serde::Serialize)]
 pub struct Namespace(&'static str);
@@ -81,6 +102,70 @@ impl Id {
     pub const fn new(path: &'static [&'static str]) -> Self {
         Self(path)
     }
+}
+
+// TODO: most likely (in 0.2) we want to actually have a proper schema
+// TODO: this is currently completely untyped, we might want to adhere to a standard, like
+//  JSON-Schema or OpenAPI
+//  The problem here mainly is: which crate to use, one can use utoipa (but that has significant
+//  overhead)  there's no real library out there that properly just provides the types
+//  necessary.
+#[derive(serde::Serialize)]
+pub struct Schema {
+    #[serde(rename = "type")]
+    ty: String,
+    #[serde(flatten)]
+    other: BTreeMap<String, Box<dyn erased_serde::Serialize + Send + Sync>>,
+}
+
+impl Schema {
+    #[must_use]
+    pub fn new(ty: impl Into<String>) -> Self {
+        Self {
+            ty: ty.into(),
+            other: BTreeMap::new(),
+        }
+    }
+
+    pub(crate) fn ty(&self) -> &str {
+        &self.ty
+    }
+
+    #[must_use]
+    pub fn with(
+        mut self,
+        key: impl Into<String>,
+        value: impl erased_serde::Serialize + Send + Sync + 'static,
+    ) -> Self {
+        self.other.insert(key.into(), Box::new(value));
+
+        self
+    }
+
+    pub fn set(
+        &mut self,
+        key: impl Into<String>,
+        value: impl erased_serde::Serialize + Send + Sync + 'static,
+    ) -> &mut Self {
+        self.other.insert(key.into(), Box::new(value));
+
+        self
+    }
+}
+
+pub(crate) fn fmt_fold_fields<'a>(
+    fmt: &mut Formatter,
+    it: impl Iterator<Item = &'a str>,
+) -> fmt::Result {
+    for (idx, field) in it.enumerate() {
+        if idx > 0 {
+            fmt.write_str(", ")?;
+        }
+
+        write!(fmt, r#""{field}""#)?;
+    }
+
+    Ok(())
 }
 
 // This compatability struct needs to exist, because serde no-std errors do not implement `Context`
@@ -116,7 +201,7 @@ impl SerdeSerializeError {
     }
 }
 
-impl Context for SerdeSerializeError {}
+impl_error!(SerdeSerializeError);
 
 /// Value which is extracted/retrieved from a stack of [`error_stack::Frame`]s
 ///
@@ -151,7 +236,7 @@ pub trait ErrorProperties {
 
     fn output<S>(value: Self::Value<'_>, map: &mut S) -> Result<(), SerdeSerializeError>
     where
-        S: serde::ser::SerializeMap;
+        S: SerializeMap;
 }
 
 impl<T: ErrorProperty + 'static> ErrorProperties for T {
@@ -171,7 +256,7 @@ impl<T: ErrorProperty + 'static> ErrorProperties for T {
 
     fn output<S>(value: Self::Value<'_>, map: &mut S) -> Result<(), SerdeSerializeError>
     where
-        S: serde::ser::SerializeMap,
+        S: SerializeMap,
     {
         let key = <T as ErrorProperty>::key();
 
@@ -225,11 +310,11 @@ macro_rules! error {
             }
         }
 
-        #[cfg(feature = "std")]
-        impl std::error::Error for $name {}
-
-        #[cfg(all(not(feature = "std"), nightly))]
+        #[cfg(nightly)]
         impl core::error::Error for $name {}
+
+        #[cfg(all(feature = "std", not(nightly)))]
+        impl std::error::Error for $name {}
 
         #[cfg(all(not(feature = "std"), not(nightly)))]
         impl error_stack::Context for $name {}
