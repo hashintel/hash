@@ -13,7 +13,9 @@ import { EntityTypeMismatchError, NotFoundError } from "../../lib/error";
 export type HashInstanceModelCreateParams = Omit<
   EntityModelCreateParams,
   "properties" | "entityTypeModel" | "ownedById"
->;
+> & {
+  userRegistrationIsDisabled?: boolean;
+};
 
 /**
  * @class {@link HashInstanceModel}
@@ -63,7 +65,10 @@ export default class extends EntityModel {
 
     const entityModel = await EntityModel.create(graphApi, {
       ownedById: systemAccountId,
-      properties: {},
+      properties: {
+        [SYSTEM_TYPES.propertyType.userRegistrationIsDisabled.getBaseUri()]:
+          params.userRegistrationIsDisabled ?? false,
+      },
       entityTypeModel,
       actorId,
     });
@@ -233,5 +238,11 @@ export default class extends EntityModel {
     }
 
     await outgoingAdminLinkEntityModel.archive(graphApi, { actorId });
+  }
+
+  isUserRegistrationDisabled(): boolean {
+    return (this.getProperties() as any)[
+      SYSTEM_TYPES.propertyType.userRegistrationIsDisabled.getBaseUri()
+    ];
   }
 }

@@ -154,6 +154,14 @@ export default class extends EntityModel {
       isInstanceAdmin = false,
     } = params;
 
+    const hashInstanceModel = await HashInstanceModel.getHashInstanceModel(
+      graphApi,
+    );
+
+    if (hashInstanceModel.isUserRegistrationDisabled()) {
+      throw new Error("User registration is disabled.");
+    }
+
     const existingUserWithKratosIdentityId =
       await UserModel.getUserByKratosIdentityId(graphApi, {
         kratosIdentityId,
@@ -210,10 +218,6 @@ export default class extends EntityModel {
     const userModel = UserModel.fromEntityModel(entity);
 
     if (isInstanceAdmin) {
-      const hashInstanceModel = await HashInstanceModel.getHashInstanceModel(
-        graphApi,
-      );
-
       await hashInstanceModel.addAdmin(graphApi, { userModel, actorId });
     }
 
