@@ -372,6 +372,6 @@ pub trait ReportExt<C: Context> {
 
 impl<C: Context> ReportExt<C> for Report<C> {
     fn export(self) -> Export<C> {
-        Export(self)
+        Export::new(self)
     }
 }

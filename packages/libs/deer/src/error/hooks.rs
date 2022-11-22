@@ -194,14 +194,14 @@ type RwLock<T> = spin::RwLock<T>;
 type RwLock<T> = std::sync::RwLock<T>;
 
 pub(crate) struct Hooks {
-    inner: RwLock<BTreeMap<TypeId, HookFn>>,
+    inner: RwLock<Option<BTreeMap<TypeId, HookFn>>>,
     init: spin::Once,
 }
 
 impl Hooks {
     const fn new() -> Self {
         Self {
-            inner: RwLock::new(BTreeMap::new()),
+            inner: RwLock::new(None),
             init: spin::Once::new(),
         }
     }
@@ -230,19 +230,20 @@ impl Hooks {
         let mut inner = self.inner.write().expect("lock has not been poisoned");
         #[cfg(not(feature = "std"))]
         let mut inner = self.inner.write();
+        let inner = inner.get_or_insert(BTreeMap::new());
 
         for hook in hooks {
             inner.insert(hook.id, hook.hook);
         }
     }
 
-    fn read_hooks_with<T>(&self, f: impl FnOnce(&BTreeMap<TypeId, HookFn>) -> T) -> T {
+    fn read_hooks_with<T>(&self, f: impl FnOnce(Option<&BTreeMap<TypeId, HookFn>>) -> T) -> T {
         #[cfg(feature = "std")]
         let hooks = self.inner.read().expect("should not be poisoned");
         #[cfg(not(feature = "std"))]
         let hooks = self.inner.read();
 
-        f(&hooks)
+        f(hooks.as_ref())
     }
 
     /// Divide frames, this looks a every strain and checks and finds the underlying variants
@@ -262,7 +263,9 @@ impl Hooks {
         &self,
         frames: impl IntoIterator<Item = Vec<&'a Frame>>,
     ) -> impl IntoIterator<Item = Vec<&'a Frame>> {
-        let ids: BTreeSet<_> = self.read_hooks_with(|inner| inner.keys().copied().collect());
+        let ids: BTreeSet<_> = self.read_hooks_with(|inner| {
+            inner.map_or_else(BTreeSet::new, |inner| inner.keys().copied().collect())
+        });
 
         frames.into_iter().flat_map(move |path| {
             let mut div = vec![];
@@ -296,7 +299,8 @@ impl Hooks {
 
             // TODO: potentially we'd want to move this out, depending on performance
             //  but this is an RwLock, which means that usually speed should not be of concern.
-            let hook: HookFn = self.read_hooks_with(|hooks| hooks.get(&type_id).copied())?;
+            let hook: HookFn =
+                self.read_hooks_with(|hooks| hooks.and_then(|hooks| hooks.get(&type_id).copied()))?;
 
             hook(stack.as_slice())
         }))
@@ -319,6 +323,12 @@ pub fn register_hooks(hooks: &[Hook]) {
 }
 
 pub struct Export<C: Context>(Report<C>);
+
+impl<C: Context> Export<C> {
+    pub(crate) fn new(report: Report<C>) -> Self {
+        Self(report)
+    }
+}
 
 impl<C: Context> Serialize for Export<C> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
