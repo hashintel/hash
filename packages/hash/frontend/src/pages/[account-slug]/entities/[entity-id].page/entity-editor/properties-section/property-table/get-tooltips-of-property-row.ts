@@ -1,4 +1,4 @@
-import { CellTooltipData } from "../../../../../../../components/GlideGlid/utils/use-grid-tooltip/types";
+import { CellTooltipData } from "../../../../../../../components/grid/utils/use-grid-tooltip/types";
 import { PropertyRow } from "./types";
 
 export const getTooltipsOfPropertyRow = (
