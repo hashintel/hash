@@ -79,260 +79,260 @@ export const MultipleValuesCell = ({
     useState<HTMLDivElement | null>(null);
 
   return (
-    <TableCell
-      ref={(ref: HTMLDivElement) => setAnchorEl(ref)}
-      sx={{
-        p: "0 !important",
-        position: "relative",
-      }}
-    >
-      <Box
-        onClick={() => {
-          if (multipleValuesMenuOpen) {
-            setMultipleValuesMenuOpen(false);
-          } else {
-            setValue(`properties.${propertyIndex}.array`, true, {
-              shouldDirty: true,
-            });
-            setMultipleValuesMenuOpen(true);
-          }
+    <>
+      <TableCell
+        ref={(ref: HTMLDivElement) => setAnchorEl(ref)}
+        sx={{
+          p: "0 !important",
+          position: "relative",
         }}
-        sx={({ palette, transitions }) => ({
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          cursor: "pointer",
-          height: 1,
-          transition: transitions.create("border-color"),
-          border: 1,
-          borderColor: `${
-            multipleValuesMenuOpen ? palette.gray[40] : "transparent"
-          } !important`,
-        })}
       >
         <Box
+          onClick={() => {
+            if (multipleValuesMenuOpen) {
+              setMultipleValuesMenuOpen(false);
+            } else {
+              setValue(`properties.${propertyIndex}.array`, true, {
+                shouldDirty: true,
+              });
+              setMultipleValuesMenuOpen(true);
+            }
+          }}
           sx={({ palette, transitions }) => ({
-            display: "inline-flex",
-            borderRadius: "4px 30px 30px 4px",
-            backgroundColor: "transparent",
-            transition: transitions.create(["padding", "background-color"]),
-            ...(array
-              ? {
-                  py: 0.5,
-                  px: 0.75,
-                  background: palette.gray[20],
-                }
-              : {}),
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            cursor: "pointer",
+            height: 1,
+            transition: transitions.create("border-color"),
+            border: 1,
+            borderColor: `${
+              multipleValuesMenuOpen ? palette.gray[40] : "transparent"
+            } !important`,
           })}
         >
-          <Controller
-            render={({ field: { value, ...field } }) => (
-              <Checkbox
-                {...field}
-                checked={value}
-                onChange={(evt) => {
-                  setMultipleValuesMenuOpen(evt.target.checked);
-
-                  let nextMinValue = resetMinValue;
-                  let nextMaxValue = resetMaxValue;
-
-                  if (!evt.target.checked) {
-                    setResetMinValue(minValue);
-                    setResetMaxValue(maxValue);
-                    nextMinValue = 0;
-                    nextMaxValue = Infinity;
+          <Box
+            sx={({ palette, transitions }) => ({
+              display: "inline-flex",
+              borderRadius: "4px 30px 30px 4px",
+              backgroundColor: "transparent",
+              transition: transitions.create(["padding", "background-color"]),
+              ...(array
+                ? {
+                    py: 0.5,
+                    px: 0.75,
+                    background: palette.gray[20],
                   }
+                : {}),
+            })}
+          >
+            <Controller
+              render={({ field: { value, ...field } }) => (
+                <Checkbox
+                  {...field}
+                  checked={value}
+                  onChange={(evt) => {
+                    setMultipleValuesMenuOpen(evt.target.checked);
 
-                  setValue(
-                    `properties.${propertyIndex}.minValue`,
-                    nextMinValue,
-                    { shouldDirty: true },
-                  );
+                    let nextMinValue = resetMinValue;
+                    let nextMaxValue = resetMaxValue;
+
+                    if (!evt.target.checked) {
+                      setResetMinValue(minValue);
+                      setResetMaxValue(maxValue);
+                      nextMinValue = 0;
+                      nextMaxValue = Infinity;
+                    }
+
+                    setValue(
+                      `properties.${propertyIndex}.minValue`,
+                      nextMinValue,
+                      { shouldDirty: true },
+                    );
+                    setValue(
+                      `properties.${propertyIndex}.maxValue`,
+                      nextMaxValue,
+                      { shouldDirty: true },
+                    );
+                    field.onChange(evt);
+                  }}
+                  onClick={(evt) => {
+                    evt.stopPropagation();
+                  }}
+                />
+              )}
+              control={control}
+              name={`properties.${propertyIndex}.array`}
+            />
+
+            <Collapse orientation="horizontal" in={array}>
+              <Typography
+                variant="smallTextLabels"
+                sx={{
+                  display: "flex",
+                  ml: 1,
+                  fontWeight: 500,
+                  whiteSpace: "nowrap",
+                  color: ({ palette }) => palette.gray[70],
+                  userSelect: "none",
+                }}
+              >
+                {isArrayFrozenMinValue !== isArrayFrozenMaxValue
+                  ? `${isArrayFrozenMinValue} ${
+                      isArrayFrozenMaxValue === Infinity
+                        ? "or more"
+                        : `to ${isArrayFrozenMaxValue}`
+                    }`
+                  : isArrayFrozenMinValue}
+              </Typography>
+            </Collapse>
+          </Box>
+        </Box>
+        <Popper
+          open={multipleValuesMenuOpen}
+          anchorEl={anchorEl}
+          container={anchorEl}
+          placement="bottom"
+          sx={{
+            width: 1,
+            zIndex: 1,
+          }}
+          transition
+          // Attempt to prevent this messing with the edit bar scroll freezing
+          modifiers={[
+            { name: "flip", enabled: false },
+            { name: "preventOverflow", enabled: false },
+            {
+              name: "offset",
+              enabled: true,
+              options: {
+                offset: () => [0, -1],
+              },
+            },
+          ]}
+        >
+          {({ TransitionProps }) => {
+            return (
+              <ClickAwayListener
+                onClickAway={() => setMultipleValuesMenuOpen(false)}
+              >
+                <Fade {...TransitionProps}>
+                  <Box
+                    sx={({ palette, boxShadows }) => ({
+                      border: 1,
+                      p: 1.5,
+                      background: palette.white,
+                      borderColor: palette.gray[30],
+                      boxShadow: boxShadows.md,
+                      borderBottomLeftRadius: 4,
+                      borderBottomRightRadius: 4,
+                      userSelect: "none",
+                    })}
+                  >
+                    <TextField
+                      type="number"
+                      size="small"
+                      label="Minimum"
+                      inputProps={{ min: 0 }}
+                      {...register(`properties.${propertyIndex}.minValue`, {
+                        valueAsNumber: true,
+                        onChange(evt) {
+                          const min = evt.target.value;
+                          if (min > maxValue) {
+                            setValue(
+                              `properties.${propertyIndex}.maxValue`,
+                              min,
+                              { shouldDirty: true },
+                            );
+                          }
+                        },
+                      })}
+                      value={menuOpenFrozenMinValue}
+                      sx={{ mb: 2 }}
+                    />
+                    <FormControl>
+                      <InputLabel
+                        {...inputLabelProps}
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                        }}
+                        htmlFor={maximumFieldId}
+                      >
+                        Maximum
+                        <Box
+                          display="flex"
+                          color={({ palette }) => palette.gray[70]}
+                        >
+                          ∞
+                          <div ref={setInfinityCheckboxNode} />
+                        </Box>
+                      </InputLabel>
+
+                      <Collapse in={maxValue < Infinity}>
+                        <OutlinedInput
+                          {...getInputProps()}
+                          type="number"
+                          inputProps={{ min: 0 }}
+                          {...register(`properties.${propertyIndex}.maxValue`, {
+                            valueAsNumber: true,
+                            onChange(evt) {
+                              const max = evt.target.value;
+                              if (max < minValue) {
+                                setValue(
+                                  `properties.${propertyIndex}.minValue`,
+                                  max,
+                                  { shouldDirty: true },
+                                );
+                              }
+                            },
+                          })}
+                          value={frozenMaxValue}
+                          size="small"
+                          id={maximumFieldId}
+                        />
+                      </Collapse>
+                    </FormControl>
+                  </Box>
+                </Fade>
+              </ClickAwayListener>
+            );
+          }}
+        </Popper>
+      </TableCell>{" "}
+      {
+        // We use a portal here, to ensure this is outside of the
+        // FormControl context so clicking on it doesn't focus the
+        // field and cause a blue highlight
+        infinityCheckboxNode
+          ? createPortal(
+              <Checkbox
+                checked={maxValue === Infinity}
+                onChange={(evt) => {
+                  evt.stopPropagation();
+
                   setValue(
                     `properties.${propertyIndex}.maxValue`,
-                    nextMaxValue,
+                    evt.target.checked
+                      ? Infinity
+                      : Math.max(
+                          resetMaxValue === Infinity ? 1 : resetMaxValue,
+                          minValue,
+                        ),
                     { shouldDirty: true },
                   );
-                  field.onChange(evt);
+                  setResetMaxValue(maxValue);
                 }}
-                onClick={(evt) => {
-                  evt.stopPropagation();
+                sx={{
+                  "&, > svg": { fontSize: "inherit" },
+                  ml: 0.6,
                 }}
-              />
-            )}
-            control={control}
-            name={`properties.${propertyIndex}.array`}
-          />
-
-          <Collapse orientation="horizontal" in={array}>
-            <Typography
-              variant="smallTextLabels"
-              sx={{
-                display: "flex",
-                ml: 1,
-                fontWeight: 500,
-                whiteSpace: "nowrap",
-                color: ({ palette }) => palette.gray[70],
-                userSelect: "none",
-              }}
-            >
-              {isArrayFrozenMinValue !== isArrayFrozenMaxValue
-                ? `${isArrayFrozenMinValue} ${
-                    isArrayFrozenMaxValue === Infinity
-                      ? "or more"
-                      : `to ${isArrayFrozenMaxValue}`
-                  }`
-                : isArrayFrozenMinValue}
-            </Typography>
-          </Collapse>
-        </Box>
-      </Box>
-      <Popper
-        open={multipleValuesMenuOpen}
-        anchorEl={anchorEl}
-        container={anchorEl}
-        placement="bottom"
-        sx={{
-          width: 1,
-          zIndex: 1,
-        }}
-        transition
-        // Attempt to prevent this messing with the edit bar scroll freezing
-        modifiers={[
-          { name: "flip", enabled: false },
-          { name: "preventOverflow", enabled: false },
-          {
-            name: "offset",
-            enabled: true,
-            options: {
-              offset: () => [0, -1],
-            },
-          },
-        ]}
-      >
-        {({ TransitionProps }) => {
-          return (
-            <ClickAwayListener
-              onClickAway={() => setMultipleValuesMenuOpen(false)}
-            >
-              <Fade {...TransitionProps}>
-                <Box
-                  sx={({ palette, boxShadows }) => ({
-                    border: 1,
-                    p: 1.5,
-                    background: palette.white,
-                    borderColor: palette.gray[30],
-                    boxShadow: boxShadows.md,
-                    borderBottomLeftRadius: 4,
-                    borderBottomRightRadius: 4,
-                    userSelect: "none",
-                  })}
-                >
-                  <TextField
-                    type="number"
-                    size="small"
-                    label="Minimum"
-                    inputProps={{ min: 0 }}
-                    {...register(`properties.${propertyIndex}.minValue`, {
-                      valueAsNumber: true,
-                      onChange(evt) {
-                        const min = evt.target.value;
-                        if (min > maxValue) {
-                          setValue(
-                            `properties.${propertyIndex}.maxValue`,
-                            min,
-                            { shouldDirty: true },
-                          );
-                        }
-                      },
-                    })}
-                    value={menuOpenFrozenMinValue}
-                    sx={{ mb: 2 }}
-                  />
-                  <FormControl>
-                    <InputLabel
-                      {...inputLabelProps}
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                      }}
-                      htmlFor={maximumFieldId}
-                    >
-                      Maximum
-                      <Box
-                        display="flex"
-                        color={({ palette }) => palette.gray[70]}
-                      >
-                        ∞
-                        <div ref={setInfinityCheckboxNode} />
-                      </Box>
-                    </InputLabel>
-
-                    <Collapse in={maxValue < Infinity}>
-                      <OutlinedInput
-                        {...getInputProps()}
-                        type="number"
-                        inputProps={{ min: 0 }}
-                        {...register(`properties.${propertyIndex}.maxValue`, {
-                          valueAsNumber: true,
-                          onChange(evt) {
-                            const max = evt.target.value;
-                            if (max < minValue) {
-                              setValue(
-                                `properties.${propertyIndex}.minValue`,
-                                max,
-                                { shouldDirty: true },
-                              );
-                            }
-                          },
-                        })}
-                        value={frozenMaxValue}
-                        size="small"
-                        id={maximumFieldId}
-                      />
-                    </Collapse>
-                  </FormControl>
-                  {
-                    // We use a portal here, to ensure this is outside of the
-                    // FormControl context so clicking on it doesn't focus the
-                    // field and cause a blue highlight
-                    infinityCheckboxNode
-                      ? createPortal(
-                          <Checkbox
-                            checked={maxValue === Infinity}
-                            onChange={(evt) => {
-                              evt.stopPropagation();
-
-                              setValue(
-                                `properties.${propertyIndex}.maxValue`,
-                                evt.target.checked
-                                  ? Infinity
-                                  : Math.max(
-                                      resetMaxValue === Infinity
-                                        ? 1
-                                        : resetMaxValue,
-                                      minValue,
-                                    ),
-                                { shouldDirty: true },
-                              );
-                              setResetMaxValue(maxValue);
-                            }}
-                            sx={{
-                              "&, > svg": { fontSize: "inherit" },
-                              ml: 0.6,
-                            }}
-                          />,
-                          infinityCheckboxNode,
-                        )
-                      : null
-                  }
-                </Box>
-              </Fade>
-            </ClickAwayListener>
-          );
-        }}
-      </Popper>
-    </TableCell>
+              />,
+              infinityCheckboxNode,
+            )
+          : null
+      }
+    </>
   );
 };
