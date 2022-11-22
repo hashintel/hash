@@ -2,13 +2,15 @@ import { gql } from "@apollo/client";
 import { subgraphFieldsFragment } from "../subgraph";
 
 export const createEntityWithMetadataMutation = gql`
-  mutation createEntityWithMetadata($entityTypeId: ID!, $properties: JSONObject!) {
+  mutation createEntityWithMetadata(
+    $entityTypeId: ID!
+    $properties: JSONObject!
+  ) {
+    # This is a scalar, which has no selection.
     createEntityWithMetadata(
       entityTypeId: $entityTypeId
       properties: $properties
-    ) {
-      # This is a scalar, which has no selection.
-    }
+    )
   }
 `;
 
@@ -69,11 +71,10 @@ export const updateEntityWithMetadataMutation = gql`
     $entityId: EntityId!
     $updatedProperties: JSONObject!
   ) {
+    # This is a scalar, which has no selection.
     updateEntityWithMetadata(
       entityId: $entityId
       updatedProperties: $updatedProperties
-    ) {
-      # This is a scalar, which has no selection.
-    }
+    )
   }
 `;
