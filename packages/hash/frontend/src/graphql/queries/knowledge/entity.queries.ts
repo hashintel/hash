@@ -16,7 +16,7 @@ export const createEntityWithMetadataMutation = gql`
 
 export const getEntityWithMetadataQuery = gql`
   query getEntityWithMetadata(
-    $entityId: ID!
+    $entityId: EntityId!
     $entityVersion: String
     $dataTypeResolveDepth: Int!
     $propertyTypeResolveDepth: Int!
@@ -66,7 +66,7 @@ export const getAllLatestEntitiesWithMetadataQuery = gql`
 
 export const updateEntityWithMetadataMutation = gql`
   mutation updateEntityWithMetadata(
-    $entityId: ID!
+    $entityId: EntityId!
     $updatedProperties: JSONObject!
   ) {
     updateEntityWithMetadata(

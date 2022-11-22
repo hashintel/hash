@@ -1,14 +1,13 @@
 import { ApolloError } from "apollo-server-express";
 import { AxiosError } from "axios";
 
+import { Subgraph } from "@hashintel/hash-subgraph";
 import {
-  Subgraph,
   QueryGetDataTypeArgs,
   ResolverFn,
   QueryGetAllLatestDataTypesArgs,
 } from "../../apiTypes.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
-import { mapSubgraphToGql } from "./model-mapping";
 
 export const getAllLatestDataTypes: ResolverFn<
   Promise<Subgraph>,
@@ -37,7 +36,7 @@ export const getAllLatestDataTypes: ResolverFn<
       );
     });
 
-  return mapSubgraphToGql(dataTypeSubgraph);
+  return dataTypeSubgraph as Subgraph;
 };
 
 export const getDataType: ResolverFn<
@@ -68,5 +67,5 @@ export const getDataType: ResolverFn<
       );
     });
 
-  return mapSubgraphToGql(dataTypeSubgraph);
+  return dataTypeSubgraph as Subgraph;
 };

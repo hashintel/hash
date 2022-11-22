@@ -2,7 +2,7 @@
 // The name of these default imports define the name of the model classes
 // when accessed from outside of this module.
 
-import File from "./file.model";
+// import File from "./file.model";
 import Aggregation from "./aggregation.model";
 
 export * from "./ontology/data-type.model";
@@ -48,5 +48,5 @@ export { default as CommentModel } from "./knowledge/comment.model";
 export * from "./aggregation.model";
 export { Aggregation };
 
-export * from "./file.model";
-export { File };
+// export * from "./file.model";
+// export { File };

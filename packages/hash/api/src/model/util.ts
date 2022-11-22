@@ -10,7 +10,11 @@ import {
   Array,
   VersionedUri,
 } from "@blockprotocol/type-system-web";
-import { PrimitiveDataTypeKey, types } from "@hashintel/hash-shared/types";
+import {
+  nilUuid,
+  PrimitiveDataTypeKey,
+  types,
+} from "@hashintel/hash-shared/types";
 import { AxiosError } from "axios";
 import { EntityTypeModel, PropertyTypeModel } from ".";
 import { GraphApi } from "../graph";
@@ -68,8 +72,6 @@ export const RESTRICTED_SHORTNAMES = [
   "users",
   "v2",
 ];
-
-export const nilUuid = "00000000-0000-0000-0000-000000000000" as const;
 
 /**
  * @todo: create system types in an account that's dedicated to

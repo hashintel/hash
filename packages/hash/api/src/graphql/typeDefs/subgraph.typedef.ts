@@ -3,6 +3,7 @@ import { gql } from "apollo-server-express";
 /** @todo - docs */
 
 export const subgraphTypedef = gql`
+  scalar GraphElementEditionId
   scalar VersionedUri
   scalar Vertices
   scalar Edges
@@ -16,7 +17,7 @@ export const subgraphTypedef = gql`
   }
 
   type Subgraph {
-    roots: [String!]!
+    roots: [GraphElementEditionId!]!
     vertices: Vertices!
     edges: Edges!
     depths: ResolveDepths!

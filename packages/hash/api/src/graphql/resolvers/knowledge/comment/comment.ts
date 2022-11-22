@@ -29,7 +29,7 @@ export const createPersistedComment: ResolverFn<
     ownedById: parentModel.ownedById,
     parent: parentModel,
     author: userModel,
-    actorId: userModel.entityId,
+    actorId: userModel.entityUuid,
   });
 
   return mapCommentModelToGQL(commentModel);
