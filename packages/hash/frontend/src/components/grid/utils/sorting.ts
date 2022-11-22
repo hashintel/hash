@@ -1,5 +1,5 @@
 import { GridColumn } from "@glideapps/glide-data-grid";
-import { RowData } from "../glide-grid";
+import { RowData } from "../grid";
 
 export type TableSortType = "asc" | "desc";
 

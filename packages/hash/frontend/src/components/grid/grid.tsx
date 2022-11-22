@@ -30,7 +30,7 @@ import { useRenderGridPortal } from "./utils/use-render-grid-portal";
 export type Row = Record<string, unknown>;
 export type RowData = Row[];
 
-type GlideGridProps<T> = Omit<
+type GridProps<T> = Omit<
   DataEditorProps,
   | "onColumnResize"
   | "onColumnResizeEnd"
@@ -49,7 +49,7 @@ type GlideGridProps<T> = Omit<
   sortRowData?: (rowData: T, sort: TableSort<string>) => T;
 };
 
-export const GlideGrid = <T extends RowData>({
+export const Grid = <T extends RowData>({
   customRenderers,
   onVisibleRegionChanged,
   drawHeader,
@@ -62,7 +62,7 @@ export const GlideGrid = <T extends RowData>({
   sortRowData,
   tableRef,
   ...rest
-}: GlideGridProps<T>) => {
+}: GridProps<T>) => {
   useRenderGridPortal();
 
   const tableIdRef = useRef(uniqueId("grid"));
@@ -254,7 +254,7 @@ export const GlideGrid = <T extends RowData>({
       {...rest}
       /**
        * icons defined via `headerIcons` are available to be drawn using
-       * glide-grid's `spriteManager.drawSprite`,
+       * glide's `spriteManager.drawSprite`,
        * which will be used to draw svg icons inside custom cells
        */
       headerIcons={customGridIcons}

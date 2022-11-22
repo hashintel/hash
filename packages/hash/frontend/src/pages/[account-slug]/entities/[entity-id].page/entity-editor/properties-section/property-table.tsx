@@ -5,12 +5,12 @@ import { useCreateGetCellContent } from "./property-table/use-create-get-cell-co
 import { propertyGridColumns } from "./property-table/constants";
 import { useOnCellEdited } from "./property-table/use-on-cell-edited";
 import { useEntityEditor } from "../entity-editor-context";
-import { GlideGrid } from "../../../../../../components/GlideGlid/glide-grid";
-import { useGridTooltip } from "../../../../../../components/GlideGlid/utils/use-grid-tooltip";
+import { useGridTooltip } from "../../../../../../components/grid/utils/use-grid-tooltip";
 import { renderValueCell } from "./property-table/cells/value-cell";
 import { renderChipCell } from "./property-table/cells/chip-cell";
 import { createRenderPropertyNameCell } from "./property-table/cells/property-name-cell";
 import { renderSummaryChipCell } from "./property-table/cells/summary-chip-cell";
+import { Grid } from "../../../../../../components/grid/grid";
 
 interface PropertyTableProps {
   showSearch: boolean;
@@ -43,7 +43,7 @@ export const PropertyTable = ({
 
   return (
     <>
-      <GlideGrid
+      <Grid
         tableRef={tableRef}
         columns={propertyGridColumns}
         createGetCellContent={createGetCellContent}
