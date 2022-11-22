@@ -5,11 +5,14 @@ import {
   ClickAwayListener,
   Collapse,
   Fade,
+  FormControl,
+  InputLabel,
   Popper,
   TableCell,
   Typography,
 } from "@mui/material";
-import { useState } from "react";
+import { useId, useState } from "react";
+import { createPortal } from "react-dom";
 import { Controller, useFormContext, useWatch } from "react-hook-form";
 import { EntityTypeEditorForm } from "./form-types";
 
@@ -64,6 +67,11 @@ export const MultipleValuesCell = ({
 
   const isArrayFrozenMinValue = useFrozenValue(minValue, !array);
   const isArrayFrozenMaxValue = useFrozenValue(maxValue, !array);
+
+  const maximumFieldId = useId();
+
+  const [infinityCheckboxNode, setInfinityCheckboxNode] =
+    useState<HTMLDivElement | null>(null);
 
   return (
     <TableCell
@@ -237,56 +245,79 @@ export const MultipleValuesCell = ({
                     value={menuOpenFrozenMinValue}
                     sx={{ mb: 2 }}
                   />
-                  <Box display="flex">
-                    Maximum
-                    <Box display="flex" ml="auto">
-                      ∞
-                      <Checkbox
-                        checked={maxValue === Infinity}
-                        onChange={(evt) => {
-                          setValue(
-                            `properties.${propertyIndex}.maxValue`,
-                            evt.target.checked
-                              ? Infinity
-                              : Math.max(
-                                  resetMaxValue === Infinity
-                                    ? 1
-                                    : resetMaxValue,
-                                  minValue,
-                                ),
-                            { shouldDirty: true },
-                          );
-                          setResetMaxValue(maxValue);
-                        }}
-                        sx={{
-                          "&, > svg": { fontSize: "inherit" },
-                          ml: 0.6,
-                        }}
+                  <FormControl>
+                    <InputLabel
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                      }}
+                      htmlFor={maximumFieldId}
+                    >
+                      Maximum
+                      <Box display="flex">
+                        ∞
+                        <div ref={setInfinityCheckboxNode} />
+                      </Box>
+                    </InputLabel>
+
+                    <Collapse in={maxValue < Infinity}>
+                      <TextField
+                        type="number"
+                        inputProps={{ min: 0 }}
+                        {...register(`properties.${propertyIndex}.maxValue`, {
+                          valueAsNumber: true,
+                          onChange(evt) {
+                            const max = evt.target.value;
+                            if (max < minValue) {
+                              setValue(
+                                `properties.${propertyIndex}.minValue`,
+                                max,
+                                { shouldDirty: true },
+                              );
+                            }
+                          },
+                        })}
+                        value={frozenMaxValue}
+                        size="small"
+                        id={maximumFieldId}
                       />
-                    </Box>
-                  </Box>
-                  <Collapse in={maxValue < Infinity}>
-                    <TextField
-                      type="number"
-                      label={null}
-                      inputProps={{ min: 0 }}
-                      {...register(`properties.${propertyIndex}.maxValue`, {
-                        valueAsNumber: true,
-                        onChange(evt) {
-                          const max = evt.target.value;
-                          if (max < minValue) {
-                            setValue(
-                              `properties.${propertyIndex}.minValue`,
-                              max,
-                              { shouldDirty: true },
-                            );
-                          }
-                        },
-                      })}
-                      value={frozenMaxValue}
-                      size="small"
-                    />
-                  </Collapse>
+                    </Collapse>
+                  </FormControl>
+                  {
+                    // We use a portal here, to ensure this is outside of the
+                    // FormControl context so clicking on it doesn't focus the
+                    // field and cause a blue highlight
+                    infinityCheckboxNode
+                      ? createPortal(
+                          <Checkbox
+                            checked={maxValue === Infinity}
+                            onChange={(evt) => {
+                              evt.stopPropagation();
+
+                              setValue(
+                                `properties.${propertyIndex}.maxValue`,
+                                evt.target.checked
+                                  ? Infinity
+                                  : Math.max(
+                                      resetMaxValue === Infinity
+                                        ? 1
+                                        : resetMaxValue,
+                                      minValue,
+                                    ),
+                                { shouldDirty: true },
+                              );
+                              setResetMaxValue(maxValue);
+                            }}
+                            sx={{
+                              "&, > svg": { fontSize: "inherit" },
+                              ml: 0.6,
+                            }}
+                          />,
+                          infinityCheckboxNode,
+                        )
+                      : null
+                  }
                 </Box>
               </Fade>
             </ClickAwayListener>
