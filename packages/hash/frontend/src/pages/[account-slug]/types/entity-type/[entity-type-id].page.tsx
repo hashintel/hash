@@ -176,43 +176,6 @@ const Page: NextPageWithLayout = () => {
     <>
       <PropertyTypesContext.Provider value={propertyTypes}>
         <FormProvider {...formMethods}>
-          <TopContextBar
-            defaultCrumbIcon={null}
-            crumbs={[
-              {
-                title: "Types",
-                href: "#",
-                id: "types",
-              },
-              {
-                title: "Entity types",
-                href: "#",
-                id: "entity-types",
-              },
-              {
-                title: entityType.title,
-                href: "#",
-                id: entityType.$id,
-                icon: <FontAwesomeIcon icon={faAsterisk} />,
-              },
-            ]}
-            scrollToTop={() => {}}
-          />
-          <EditBar
-            currentVersion={currentVersion}
-            discardButtonProps={
-              // @todo confirmation of discard when draft
-              isDraft
-                ? {
-                    href: `/${router.query["account-slug"]}/types/new/entity-type`,
-                  }
-                : {
-                    onClick() {
-                      reset();
-                    },
-                  }
-            }
-          />
           <Box
             sx={{
               display: "flex",
@@ -222,6 +185,43 @@ const Page: NextPageWithLayout = () => {
             onSubmit={handleSubmit}
           >
             <Box bgcolor="white" borderBottom={1} borderColor="gray.20">
+              <TopContextBar
+                defaultCrumbIcon={null}
+                crumbs={[
+                  {
+                    title: "Types",
+                    href: "#",
+                    id: "types",
+                  },
+                  {
+                    title: "Entity types",
+                    href: "#",
+                    id: "entity-types",
+                  },
+                  {
+                    title: entityType.title,
+                    href: "#",
+                    id: entityType.$id,
+                    icon: <FontAwesomeIcon icon={faAsterisk} />,
+                  },
+                ]}
+                scrollToTop={() => {}}
+              />
+              <EditBar
+                currentVersion={currentVersion}
+                discardButtonProps={
+                  // @todo confirmation of discard when draft
+                  isDraft
+                    ? {
+                        href: `/${router.query["account-slug"]}/types/new/entity-type`,
+                      }
+                    : {
+                        onClick() {
+                          reset();
+                        },
+                      }
+                }
+              />
               <Box pt={3.75}>
                 <Container>
                   <OntologyChip
