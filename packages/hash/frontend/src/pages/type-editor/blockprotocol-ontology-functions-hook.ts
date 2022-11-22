@@ -10,7 +10,6 @@ import { EmbedderGraphMessageCallbacks } from "@blockprotocol/graph";
 import { OntologyCallbacks } from "../../components/hooks/blockProtocolFunctions/ontology/ontology-types-shim";
 import { KnowledgeCallbacks } from "../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
 
-import { useBlockProtocolCreateLink } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolCreateLink";
 import { useBlockProtocolCreateLinkedAggregation } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolCreateLinkedAggregation";
 import { useBlockProtocolDeleteLink } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolDeleteLink";
 import { useBlockProtocolDeleteLinkedAggregation } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolDeleteLinkedAggregation";
@@ -46,6 +45,7 @@ export type GraphMessageCallbacks = Omit<
   | "aggregateEntities"
   | "updateEntity"
   | "getEntityType"
+  | "createLink"
   | "getLink"
   | "getLinkedAggregation"
   | "deleteEntity"
@@ -67,7 +67,6 @@ export const useBlockProtocolFunctionsWithOntology = (
   const { aggregateEntities } = useBlockProtocolAggregateEntities();
   const { createLinkedAggregation } =
     useBlockProtocolCreateLinkedAggregation(readonlyMode);
-  const { createLink } = useBlockProtocolCreateLink(readonlyMode);
   const { createEntity } = useBlockProtocolCreateEntity(readonlyMode);
 
   const { getEntity } = useBlockProtocolGetEntity();
@@ -106,7 +105,6 @@ export const useBlockProtocolFunctionsWithOntology = (
     aggregateEntities,
     createEntity,
     createLinkedAggregation,
-    createLink,
     deleteLinkedAggregation,
     deleteLink,
     uploadFile,
