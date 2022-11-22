@@ -194,6 +194,7 @@ type RwLock<T> = spin::RwLock<T>;
 type RwLock<T> = std::sync::RwLock<T>;
 
 pub(crate) struct Hooks {
+    // we need to use `Option<BTreeMap<..>>` because `BTreeMap::new` is only const on nightly
     inner: RwLock<Option<BTreeMap<TypeId, HookFn>>>,
     init: spin::Once,
 }
@@ -325,7 +326,7 @@ pub fn register_hooks(hooks: &[Hook]) {
 pub struct Export<C: Context>(Report<C>);
 
 impl<C: Context> Export<C> {
-    pub(crate) fn new(report: Report<C>) -> Self {
+    pub(crate) const fn new(report: Report<C>) -> Self {
         Self(report)
     }
 }
@@ -341,5 +342,215 @@ impl<C: Context> Serialize for Export<C> {
 
 #[cfg(test)]
 mod tests {
-    // TODO
+    use alloc::{format, vec::Vec};
+    use core::fmt::{Display, Formatter};
+
+    use error_stack::{AttachmentKind, Context, Frame, FrameKind, Report};
+
+    use crate::{
+        error::{
+            hooks::{split_report, Hook, HOOKS},
+            Error, ErrorProperties, Id, Namespace, NAMESPACE,
+        },
+        id,
+    };
+
+    #[derive(Debug)]
+    struct Printable(&'static str);
+
+    impl Display for Printable {
+        fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+            f.write_str(self.0)
+        }
+    }
+
+    #[derive(Debug)]
+    struct Root;
+
+    impl Display for Root {
+        fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+            f.write_str("Root Error")
+        }
+    }
+
+    impl Context for Root {}
+
+    fn assert_stack(frames: &[&Frame], expect: &[&'static str]) {
+        let frames: Vec<_> = frames
+            .iter()
+            .filter_map(|frame| match frame.kind() {
+                FrameKind::Context(context) => Some(format!("{context}")),
+                FrameKind::Attachment(AttachmentKind::Printable(printable)) => {
+                    Some(format!("{printable}"))
+                }
+                FrameKind::Attachment(_) => None,
+            })
+            .collect();
+
+        assert_eq!(frames, expect);
+    }
+
+    /// ```text
+    ///     A -
+    ///    / \  \
+    ///   B   C  G
+    ///  / \  |
+    /// D   E F
+    /// ```
+    ///
+    /// will output:
+    ///
+    /// ```text
+    /// [A, B, D]
+    /// [A, B, E]
+    /// [A, C, F]
+    /// [A, G]
+    /// ```
+    #[test]
+    #[allow(clippy::many_single_char_names)]
+    fn split() {
+        let f = Report::new(Root).attach_printable(Printable("F"));
+        let e = Report::new(Root).attach_printable(Printable("E"));
+        let mut d = Report::new(Root).attach_printable(Printable("D"));
+
+        d.extend_one(e);
+
+        let mut b = d.attach_printable(Printable("B"));
+        let c = f.attach_printable(Printable("C"));
+
+        let g = Report::new(Root).attach_printable(Printable("G"));
+
+        b.extend_one(c);
+        b.extend_one(g);
+
+        let a = b.attach_printable(Printable("A"));
+
+        let stacks: Vec<_> = split_report(&a).into_iter().collect();
+
+        assert_stack(&stacks[0], &["A", "B", "D", "Root Error"]);
+        assert_stack(&stacks[1], &["A", "B", "E", "Root Error"]);
+        assert_stack(&stacks[2], &["A", "C", "F", "Root Error"]);
+        assert_stack(&stacks[3], &["A", "G", "Root Error"]);
+    }
+
+    #[derive(Debug)]
+    struct Y;
+
+    impl Display for Y {
+        fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+            f.write_str("Y Error")
+        }
+    }
+
+    impl Context for Y {}
+
+    #[derive(Debug)]
+    struct Z;
+
+    impl Display for Z {
+        fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+            f.write_str("Z Error")
+        }
+    }
+
+    impl Context for Z {}
+
+    impl Error for Z {
+        type Properties = ();
+
+        const ID: Id = id!["custom"];
+        const NAMESPACE: Namespace = NAMESPACE;
+
+        fn message<'a>(
+            &self,
+            fmt: &mut Formatter,
+            _: &<Self::Properties as ErrorProperties>::Value<'a>,
+        ) -> core::fmt::Result {
+            fmt.write_str("Z Error")
+        }
+    }
+
+    /// ```text
+    ///     A - -
+    ///    / \  \ \
+    ///   B   C  G H
+    ///  / \  |  | |
+    /// Y   Y Y  Y Y
+    /// |   | |  |
+    /// Z   E |  Z
+    /// |   | |  |
+    /// D   Z F  Z
+    /// |   | |
+    /// Z   Y Z
+    /// ```
+    ///
+    /// Y: `Context`, `!Error`
+    /// Z: `Context`, `Error`
+    ///
+    /// will output:
+    ///
+    /// ```text
+    /// [A, B, Y Error, Z Error]
+    /// [A, B, Y Error, Z Error, D, Z Error]
+    /// [A, B, Y Error, E, Z Error]
+    /// [A, C, Y Error, F, Z Error]
+    /// [A, G, Y Error, Z Error]
+    /// [A, G, Y Error, Z Error, Z Error]
+    /// ```
+    #[test]
+    #[allow(clippy::many_single_char_names)]
+    fn divide() {
+        let mut b = Report::new(Z)
+            .attach_printable(Printable("D"))
+            .change_context(Z)
+            .change_context(Y);
+
+        let e = Report::new(Y)
+            .change_context(Z)
+            .attach_printable(Printable("E"))
+            .change_context(Y);
+        b.extend_one(e);
+
+        let mut b = b.attach_printable(Printable("B"));
+
+        let c = Report::new(Z)
+            .attach_printable(Printable("F"))
+            .change_context(Y)
+            .attach_printable(Printable("C"));
+
+        let g = Report::new(Z)
+            .change_context(Z)
+            .change_context(Y)
+            .attach_printable(Printable("G"));
+
+        let h = Report::new(Y).attach_printable(Printable("H"));
+
+        b.extend_one(c);
+        b.extend_one(g);
+        b.extend_one(h);
+
+        let a = b.attach_printable(Printable("A"));
+
+        HOOKS.push(&[Hook::new::<Z>()]);
+
+        let split = split_report(&a);
+        let frames = HOOKS.divide_frames(split);
+
+        let stacks: Vec<_> = frames.into_iter().collect();
+
+        // [A, B, Y Error, Z Error]
+        // [A, B, Y Error, Z Error, D, Z Error]
+        // [A, B, Y Error, E, Z Error]
+        // [A, C, Y Error, F, Z Error]
+        // [A, G, Y Error, Z Error]
+        // [A, G, Y Error, Z Error, Z Error]
+        assert_stack(&stacks[0], &["A", "B", "Y Error", "Z Error"]);
+        assert_stack(&stacks[1], &[
+            "A", "B", "Y Error", "Z Error", "D", "Z Error",
+        ]);
+        assert_stack(&stacks[2], &["A", "B", "Y Error", "E", "Z Error"]);
+        assert_stack(&stacks[3], &["A", "C", "Y Error", "F", "Z Error"]);
+        assert_stack(&stacks[4], &["A", "G", "Y Error", "Z Error"]);
+        assert_stack(&stacks[5], &["A", "G", "Y Error", "Z Error", "Z Error"]);
+    }
 }
