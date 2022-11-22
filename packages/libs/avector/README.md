@@ -1,14 +1,6 @@
-[crates.io]: https://crates.io/crates/avector
-[libs.rs]: https://lib.rs/crates/avector
 [rust-version]: https://www.rust-lang.org
-[documentation]: https://docs.rs/avector
-[license]: https://github.com/hashintel/hash/blob/main/packages/libs/avector/LICENSE.md
 
-[![crates.io](https://img.shields.io/crates/v/avector)][crates.io]
-[![libs.rs](https://img.shields.io/badge/libs.rs-avector-orange)][libs.rs]
 [![rust-version](https://img.shields.io/badge/Rust-1.63.0/nightly--2022--11--14-blue)][rust-version]
-[![documentation](https://img.shields.io/docsrs/avector)][documentation]
-[![license](https://img.shields.io/crates/l/avector)][license]
 
 [Open issues](https://github.com/hashintel/hash/issues?q=is%3Aissue+is%3Aopen+label%3AA-avector) / [Discussions](https://github.com/hashintel/hash/discussions?discussions_q=label%3AA-avector)
 
