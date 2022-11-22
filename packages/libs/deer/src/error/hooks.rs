@@ -342,15 +342,17 @@ impl<C: Context> Serialize for Export<C> {
 
 #[cfg(test)]
 mod tests {
-    use alloc::{format, vec::Vec};
+    use alloc::{format, vec, vec::Vec};
     use core::fmt::{Display, Formatter};
 
     use error_stack::{AttachmentKind, Context, Frame, FrameKind, Report};
+    use serde_json::{json, to_value};
 
     use crate::{
         error::{
             hooks::{split_report, Hook, HOOKS},
-            Error, ErrorProperties, Id, Namespace, NAMESPACE,
+            Error, ErrorProperties, ExpectedType, Id, Location, MissingError, Namespace,
+            ReceivedValue, ReportExt, Schema, ValueError, VisitorError, NAMESPACE,
         },
         id,
     };
@@ -499,7 +501,7 @@ mod tests {
     /// ```
     #[test]
     #[allow(clippy::many_single_char_names)]
-    fn divide() {
+    fn divide_integration() {
         let mut b = Report::new(Z)
             .attach_printable(Printable("D"))
             .change_context(Z)
@@ -552,5 +554,129 @@ mod tests {
         assert_stack(&stacks[3], &["A", "C", "Y Error", "F", "Z Error"]);
         assert_stack(&stacks[4], &["A", "G", "Y Error", "Z Error"]);
         assert_stack(&stacks[5], &["A", "G", "Y Error", "Z Error", "Z Error"]);
+    }
+
+    #[test]
+    fn divide_ignore() {
+        let report = Report::new(Y).attach(Printable("A"));
+        let split = split_report(&report);
+        let frames = HOOKS.divide_frames(split);
+
+        assert_eq!(frames.into_iter().count(), 0);
+    }
+
+    #[test]
+    fn divide_division() {
+        let report = Report::new(Z)
+            .attach_printable(Printable("A"))
+            .attach_printable(Printable("B"))
+            .change_context(Z)
+            .attach_printable(Printable("C"))
+            .attach_printable(Printable("D"));
+
+        HOOKS.push(&[Hook::new::<Z>()]);
+
+        let split = split_report(&report);
+        let mut frames = HOOKS.divide_frames(split).into_iter();
+
+        assert_stack(&frames.next().unwrap(), &["D", "C", "Z Error"]);
+        assert_stack(&frames.next().unwrap(), &[
+            "D", "C", "Z Error", "B", "A", "Z Error",
+        ]);
+    }
+
+    #[test]
+    fn serialize_single() {
+        // simulates that we expected to receive `id` (of type int) at `.0.a.b`, but did not
+        let report = Report::new(MissingError)
+            .attach(Location::Array(0))
+            .attach(Location::Field("a"))
+            .attach(Location::Field("b"))
+            .attach(ExpectedType::new(Schema::new("integer")));
+
+        let export = report.export();
+        let export = to_value(export).expect("should be ok");
+
+        assert_eq!(
+            export,
+            json!([{
+                "namespace": "deer",
+                "id": ["value", "missing"],
+                "message": "received no value, but expected value of type integer",
+                "properties": {
+                    "location": [
+                        {"type": "array", "value": 0},
+                        {"type": "field", "value": "a"},
+                        {"type": "field", "value": "b"}
+                    ],
+                    "expected": {
+                        "type": "integer"
+                    }
+                }
+            }])
+        );
+    }
+
+    #[test]
+    fn serialize_multiple() {
+        // simulates that we have two errors:
+        // * ValueError: u8 @ `.0.a`, received 256
+        // * MissingError: String @`.0.b`, received nothing
+
+        let mut missing = Report::new(MissingError)
+            .attach(ExpectedType::new(Schema::new("string")))
+            .attach(Location::Field("b"))
+            .change_context(VisitorError);
+
+        let value = Report::new(ValueError)
+            .attach(ReceivedValue::new(256u16))
+            .attach(ExpectedType::new(
+                Schema::new("integer")
+                    .with("minimum", u8::MIN)
+                    .with("maximum", u8::MAX),
+            ))
+            .attach(Location::Field("a"))
+            .change_context(VisitorError);
+
+        missing.extend_one(value);
+
+        let report = missing.attach(Location::Array(0));
+
+        let export = report.export();
+        let export = to_value(export).expect("should be ok");
+
+        assert_eq!(
+            export,
+            json!([{
+                "namespace": "deer",
+                "id": ["value", "missing"],
+                "message": "received no value, but expected value of type string",
+                "properties": {
+                    "location": [
+                        {"type": "array", "value": 0},
+                        {"type": "field", "value": "b"}
+                    ],
+                    "expected": {
+                        "type": "string"
+                    }
+                }
+            }, {
+                "namespace": "deer",
+                "id": ["value"],
+                "message": "received value of correct type (integer), but does not fit constraint",
+                "properties": {
+                    "location": [
+                        {"type": "array", "value": 0},
+                        {"type": "field", "value": "a"}
+                    ],
+                    "received": 256,
+                    "expected": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 255,
+                    }
+                }
+            }])
+        );
     }
 }
