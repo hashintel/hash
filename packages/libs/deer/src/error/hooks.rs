@@ -11,10 +11,10 @@ use core::{
     cell::Cell,
     fmt,
     fmt::{Display, Formatter},
+    ops::DerefMut,
     sync::atomic::{AtomicBool, Ordering},
 };
 
-use deer_append_vec::AppendOnlyVec;
 use error_stack::{Context, Frame, Report};
 use serde::{
     ser::{Error as _, SerializeMap},
@@ -190,15 +190,21 @@ impl Hook {
     }
 }
 
+#[cfg(not(feature = "std"))]
+type HookVec = spin::RwLock<Vec<Hook>>;
+
+#[cfg(feature = "std")]
+type HookVec = std::sync::RwLock<Vec<Hook>>;
+
 pub(crate) struct Hooks {
-    inner: AppendOnlyVec<Hook>,
+    inner: HookVec,
     init: AtomicBool,
 }
 
 impl Hooks {
     const fn new() -> Self {
         Self {
-            inner: AppendOnlyVec::new(),
+            inner: HookVec::new(Vec::new()),
             init: AtomicBool::new(false),
         }
     }
@@ -232,8 +238,13 @@ impl Hooks {
         // TODO: we need to check if the combination of Namespace and Id already exists, if that is
         //  the case panic?
 
+        #[cfg(feature = "std")]
+        let mut inner = self.inner.write().expect("lock has not been poisoned");
+        #[cfg(not(feature = "std"))]
+        let mut inner = self.inner.write();
+
         for hook in hooks {
-            self.inner.push(*hook);
+            inner.push(*hook);
         }
     }
 
@@ -251,7 +262,13 @@ impl Hooks {
     /// [A, B, C, D (Error)]
     /// ```
     fn divide_frames<'a>(&self, frames: &[Vec<&'a Frame>]) -> Vec<Vec<&'a Frame>> {
-        let ids: BTreeSet<_> = self.inner.iter().map(|hook| hook.id).collect();
+        let ids: BTreeSet<_> = {
+            #[cfg(feature = "std")]
+            let inner = self.inner.read().expect("should not be poisoned");
+            #[cfg(not(feature = "std"))]
+            let inner = self.inner.read();
+            inner.iter().map(|hook| hook.id).collect()
+        };
 
         frames
             .iter()
@@ -279,7 +296,13 @@ impl Hooks {
         let frames = split_report(report);
         let frames = self.divide_frames(&frames);
 
-        let hooks: BTreeMap<_, _> = self.inner.iter().map(|hook| (hook.id, hook.hook)).collect();
+        let hooks: BTreeMap<_, _> = {
+            #[cfg(feature = "std")]
+            let inner = self.inner.read().expect("should not be poisoned");
+            #[cfg(not(feature = "std"))]
+            let inner = self.inner.read();
+            inner.iter().map(|hook| (hook.id, hook.hook)).collect()
+        };
 
         frames
             .iter()
@@ -287,7 +310,7 @@ impl Hooks {
                 let last = stack.last()?;
                 let type_id = Frame::type_id(last);
 
-                let hook = hooks.get(&type_id)?;
+                let hook: HookFn = *hooks.get(&type_id)?;
 
                 hook(stack.as_slice())
             })
