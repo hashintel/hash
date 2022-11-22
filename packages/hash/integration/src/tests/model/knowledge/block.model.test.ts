@@ -49,7 +49,7 @@ describe("Block model class", () => {
      * once the exact role of the block data entity's entity type is known.
      */
     dummyEntityType = await EntityTypeModel.create(graphApi, {
-      ownedById: testUser.entityId,
+      ownedById: testUser.entityUuid,
       schema: generateSystemEntityTypeSchema({
         entityTypeId: generateTypeId({
           namespace: testUser.getShortname()!,
@@ -59,61 +59,65 @@ describe("Block model class", () => {
         title: "Dummy",
         properties: [],
         outgoingLinks: [],
-        actorId: testUser.entityId,
+        actorId: testUser.entityUuid,
       }),
-      actorId: testUser.entityId,
+      actorId: testUser.entityUuid,
     });
 
     testBlockDataEntity = await EntityModel.create(graphApi, {
-      ownedById: testUser.entityId,
+      ownedById: testUser.entityUuid,
       properties: {},
       entityTypeModel: dummyEntityType,
-      actorId: testUser.entityId,
+      actorId: testUser.entityUuid,
     });
   });
 
   it("can create a Block", async () => {
     testBlock = await BlockModel.createBlock(graphApi, {
-      ownedById: testUser.entityId,
+      ownedById: testUser.entityUuid,
       componentId: testBlockComponentId,
       blockData: testBlockDataEntity,
-      actorId: testUser.entityId,
+      actorId: testUser.entityUuid,
     });
   });
 
   it("can get a block by its entity id", async () => {
     const fetchedBlock = await BlockModel.getBlockById(graphApi, {
-      entityId: testBlock.entityId,
+      entityId: testBlock.baseId,
     });
 
     expect(fetchedBlock).not.toBeNull();
 
-    expect(fetchedBlock).toEqual(testBlock);
+    expect(fetchedBlock.entity).toEqual(testBlock.entity);
   });
 
   it("can get the block's data entity", async () => {
     const fetchedBlockData = await testBlock.getBlockData(graphApi);
 
-    expect(fetchedBlockData).toEqual(testBlockDataEntity);
+    expect(fetchedBlockData.entity).toEqual(testBlockDataEntity.entity);
   });
 
   it("can update the block data entity", async () => {
     const newBlockDataEntity = await EntityModel.create(graphApi, {
-      ownedById: testUser.entityId,
+      ownedById: testUser.entityUuid,
       properties: {},
       entityTypeModel: dummyEntityType,
-      actorId: testUser.entityId,
+      actorId: testUser.entityUuid,
     });
 
     expect(testBlockDataEntity).not.toEqual(newBlockDataEntity);
-    expect(await testBlock.getBlockData(graphApi)).toEqual(testBlockDataEntity);
+    expect((await testBlock.getBlockData(graphApi)).entity).toEqual(
+      testBlockDataEntity.entity,
+    );
 
     await testBlock.updateBlockDataEntity(graphApi, {
       newBlockDataEntity,
-      actorId: testUser.entityId,
+      actorId: testUser.entityUuid,
     });
 
-    expect(await testBlock.getBlockData(graphApi)).toEqual(newBlockDataEntity);
+    expect((await testBlock.getBlockData(graphApi)).entity).toEqual(
+      newBlockDataEntity.entity,
+    );
   });
 
   it("cannot update the block data entity to the same data entity", async () => {
@@ -122,7 +126,7 @@ describe("Block model class", () => {
     await expect(
       testBlock.updateBlockDataEntity(graphApi, {
         newBlockDataEntity: currentDataEntity,
-        actorId: testUser.entityId,
+        actorId: testUser.entityUuid,
       }),
     ).rejects.toThrow(/already has a linked block data entity with entity id/);
   });
