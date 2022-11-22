@@ -1,4 +1,7 @@
-import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
+import {
+  faAsterisk,
+  faMagnifyingGlass,
+} from "@fortawesome/free-solid-svg-icons";
 import { GridCell, GridCellKind, Item } from "@glideapps/glide-data-grid";
 import {
   Chip,
@@ -19,6 +22,7 @@ import { TypeEntitiesRow, useEntitiesTable } from "../use-entities-table";
 import { useEntityTypeEntities } from "../use-entity-type-entities";
 import { useEntityType } from "../use-entity-type";
 import { Grid } from "../../../../../components/grid/grid";
+import { SectionEmptyState } from "../../../shared/section-empty-state";
 
 export const EntitiesTab: FunctionComponent = () => {
   const entityType = useEntityType();
@@ -84,6 +88,8 @@ export const EntitiesTab: FunctionComponent = () => {
     return null;
   }
 
+  const isEmpty = entitiesCount.namespace + entitiesCount.public === 0;
+
   return (
     <Box>
       <SectionWrapper
@@ -126,14 +132,24 @@ export const EntitiesTab: FunctionComponent = () => {
         }
       >
         <Paper sx={{ overflow: "hidden" }}>
-          <Grid
-            showSearch={showSearch}
-            onSearchClose={() => setShowSearch(false)}
-            columns={columns}
-            rowData={rows}
-            createGetCellContent={createGetCellContent}
-            customRenderers={[renderTextIconCell]}
-          />
+          {isEmpty ? (
+            <SectionEmptyState
+              title="There are no entities of this type visible to you"
+              titleIcon={
+                <FontAwesomeIcon icon={faAsterisk} sx={{ fontSize: 18 }} />
+              }
+              description="Assigning this type to an entity will result in it being shown here"
+            />
+          ) : (
+            <Grid
+              showSearch={showSearch}
+              onSearchClose={() => setShowSearch(false)}
+              columns={columns}
+              rowData={rows}
+              createGetCellContent={createGetCellContent}
+              customRenderers={[renderTextIconCell]}
+            />
+          )}
         </Paper>
       </SectionWrapper>
     </Box>
