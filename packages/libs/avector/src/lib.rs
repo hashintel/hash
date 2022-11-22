@@ -152,7 +152,6 @@ impl<T, const N: usize> AVec<T, N> {
         (length / N, length % N)
     }
 
-    // note(bm):
     //  there's a potential concurrent writing method implementation possible,
     //  which uses 3 atomics instead:
     //      * open <- currently active pushes
