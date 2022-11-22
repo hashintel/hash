@@ -1,8 +1,4 @@
-import {
-  EntityType,
-  extractBaseUri,
-  VersionedUri,
-} from "@blockprotocol/type-system-web";
+import { EntityType, extractBaseUri } from "@blockprotocol/type-system-web";
 import { useRouter } from "next/router";
 import {
   useCallback,
@@ -11,6 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { extractEntityUuidFromEntityId } from "@hashintel/hash-subgraph";
 import { useBlockProtocolAggregateEntityTypes } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregateEntityTypes";
 import { useBlockProtocolCreateEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreateEntityType";
 import { useBlockProtocolUpdateEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdateEntityType";
@@ -28,7 +25,12 @@ export const useEntityType = (
   const { authenticatedUser } = useAuthenticatedUser();
 
   const { createEntityType } = useBlockProtocolCreateEntityType(
-    namespace ?? authenticatedUser?.entityId ?? "",
+    namespace ??
+      (authenticatedUser !== undefined
+        ? extractEntityUuidFromEntityId(
+            authenticatedUser.entityEditionId.baseId,
+          )
+        : ""),
   );
   const [typeSystemLoading, loadTypeSystem] = useAdvancedInitTypeSystem();
 
@@ -107,8 +109,8 @@ export const useEntityType = (
       });
 
       if (entityTypeRef.current === currentEntity && res.data) {
-        setEntityType(res.data.entityType);
-        entityTypeRef.current = res.data.entityType;
+        setEntityType(res.data.schema);
+        entityTypeRef.current = res.data.schema;
       }
 
       return res;
@@ -128,12 +130,11 @@ export const useEntityType = (
         throw new Error("Could not publish changes");
       }
 
-      // @todo remove casting
-      const newUrl = extractBaseUri(res.data.entityTypeId as VersionedUri);
+      const newUrl = extractBaseUri(res.data.schema.$id);
 
       if (newUrl) {
-        setEntityType(res.data.entityType);
-        entityTypeRef.current = res.data.entityType;
+        setEntityType(res.data.schema);
+        entityTypeRef.current = res.data.schema;
         await router.replace(newUrl, newUrl, { shallow: true });
       }
     },
