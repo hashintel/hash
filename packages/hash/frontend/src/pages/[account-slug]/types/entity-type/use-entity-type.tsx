@@ -55,6 +55,7 @@ export const useEntityTypeValue = (
         extractBaseUri(mustBeVersionedUri(entityType.$id)) !==
           entityTypeBaseUri)
     ) {
+      setLoading(true);
       setEntityType(null);
       entityTypeRef.current = null;
       void aggregateEntityTypes({ data: {} }).then(async (res) => {
@@ -81,6 +82,7 @@ export const useEntityTypeValue = (
       });
       return () => {
         cancelled = true;
+        setLoading(false);
       };
     }
   }, [
