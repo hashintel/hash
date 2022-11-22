@@ -34,7 +34,7 @@ export const mapEntityModelToGQL = (
    * the GQL type of this entity. Note that this is not exposed in the GQL type definitions,
    * and is therefore not returned to GraphQL clients.
    */
-  systemTypeName: entityModel.entityTypeModel.systemTypeName,
+  systemTypeName: entityModel.entityTypeModel.getSystemTypeName(),
 });
 
 export type ExternalPersistedPageResolversGQL =

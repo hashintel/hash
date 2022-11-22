@@ -259,7 +259,7 @@ export default class {
   /**
    * Get the system type name of this entity type if it is a system type. Otherwise return `undefined`.
    */
-  get systemTypeName(): string | undefined {
+  getSystemTypeName(): string | undefined {
     for (const [key, systemEntityType] of Object.entries(
       SYSTEM_TYPES.entityType,
     ) as [keyof typeof SYSTEM_TYPES.entityType, EntityTypeModel][]) {
