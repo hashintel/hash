@@ -43,6 +43,11 @@ export const MultipleValuesCell = ({
     ],
   });
 
+  // This will help to restore values after re-enabling multiple
+  // values/disabling infinity
+  const [resetMinValue, setResetMinValue] = useState(minValue);
+  const [resetMaxValue, setResetMaxValue] = useState(maxValue);
+
   const menuOpenFrozenMinValue = useFrozenValue(
     minValue,
     !multipleValuesMenuOpen,
@@ -114,14 +119,27 @@ export const MultipleValuesCell = ({
                 checked={value}
                 onChange={(evt) => {
                   setMultipleValuesMenuOpen(evt.target.checked);
+
+                  let nextMinValue = resetMinValue;
+                  let nextMaxValue = resetMaxValue;
+
                   if (!evt.target.checked) {
-                    setValue(`properties.${propertyIndex}.minValue`, 0, {
-                      shouldDirty: true,
-                    });
-                    setValue(`properties.${propertyIndex}.maxValue`, Infinity, {
-                      shouldDirty: true,
-                    });
+                    setResetMinValue(minValue);
+                    setResetMaxValue(maxValue);
+                    nextMinValue = 0;
+                    nextMaxValue = Infinity;
                   }
+
+                  setValue(
+                    `properties.${propertyIndex}.minValue`,
+                    nextMinValue,
+                    { shouldDirty: true },
+                  );
+                  setValue(
+                    `properties.${propertyIndex}.maxValue`,
+                    nextMaxValue,
+                    { shouldDirty: true },
+                  );
                   field.onChange(evt);
                 }}
                 onClick={(evt) => {
@@ -225,15 +243,21 @@ export const MultipleValuesCell = ({
                       ∞
                       <Checkbox
                         checked={maxValue === Infinity}
-                        onChange={(evt) =>
+                        onChange={(evt) => {
                           setValue(
                             `properties.${propertyIndex}.maxValue`,
                             evt.target.checked
                               ? Infinity
-                              : Math.max(1, minValue),
+                              : Math.max(
+                                  resetMaxValue === Infinity
+                                    ? 1
+                                    : resetMaxValue,
+                                  minValue,
+                                ),
                             { shouldDirty: true },
-                          )
-                        }
+                          );
+                          setResetMaxValue(maxValue);
+                        }}
                         sx={{
                           "&, > svg": { fontSize: "inherit" },
                           ml: 0.6,
