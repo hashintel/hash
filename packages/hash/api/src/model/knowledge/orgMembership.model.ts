@@ -27,22 +27,19 @@ export type OrgMembershipModelCreateParams = Omit<
  * @see https://app.asana.com/0/0/1203371754468058/f
  */
 export default class extends EntityModel {
-  static fromEntityModel(entity: EntityModel): OrgMembershipModel {
+  static fromEntityModel(entityModel: EntityModel): OrgMembershipModel {
     if (
-      entity.entityTypeModel.schema.$id !==
+      entityModel.entityTypeModel.schema.$id !==
       SYSTEM_TYPES.entityType.orgMembership.schema.$id
     ) {
       throw new EntityTypeMismatchError(
-        entity.baseId,
+        entityModel.baseId,
         SYSTEM_TYPES.entityType.orgMembership.schema.$id,
-        entity.entityTypeModel.schema.$id,
+        entityModel.entityTypeModel.schema.$id,
       );
     }
 
-    return new OrgMembershipModel({
-      entity,
-      entityTypeModel: entity.entityTypeModel,
-    });
+    return new OrgMembershipModel(entityModel);
   }
 
   /**
@@ -113,7 +110,7 @@ export default class extends EntityModel {
           {
             equal: [
               { path: ["leftEntity", "ownedById"] },
-              { parameter: this.ownedById },
+              { parameter: this.getOwnedById() },
             ],
           },
           {
@@ -168,7 +165,7 @@ export default class extends EntityModel {
           {
             equal: [
               { path: ["leftEntity", "ownedById"] },
-              { parameter: this.ownedById },
+              { parameter: this.getOwnedById() },
             ],
           },
           {

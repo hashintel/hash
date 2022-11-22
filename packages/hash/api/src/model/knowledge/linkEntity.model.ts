@@ -41,7 +41,7 @@ export default class extends EntityModel {
   rightEntityModel: EntityModel;
 
   get linkMetadata(): LinkEntityMetadata {
-    return this.entity.getMetadata().linkMetadata!;
+    return this.getMetadata().linkMetadata!;
   }
 
   constructor({
@@ -117,7 +117,7 @@ export default class extends EntityModel {
   /**
    * Create a link entity between a left and a right entity.
    *
-   * @param params.ownedById - the id of the account who owns the new link entity
+   * @param params.getOwnedById() - the id of the account who owns the new link entity
    * @param params.linkEntityTypeModel - the link entity type of the link entity
    * @param params.leftEntityModel - the left entity of the link
    * @param params.leftOrder (optional) - the left order of the link entity

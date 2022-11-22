@@ -58,12 +58,6 @@ export default class {
     return entityUuid;
   }
 
-  get ownedById(): string {
-    const [ownedById, _] = this.baseId.split("%") as [string, string];
-
-    return ownedById;
-  }
-
   constructor({ entity, entityTypeModel }: EntityModelConstructorParams) {
     this.entity = entity;
     this.entityTypeModel = entityTypeModel;
@@ -75,6 +69,12 @@ export default class {
 
   getProperties(): PropertyObject {
     return this.entity.properties;
+  }
+
+  getOwnedById(): string {
+    const [ownedById, _] = this.baseId.split("%") as [string, string];
+
+    return ownedById;
   }
 
   static async fromEntity(
@@ -142,7 +142,7 @@ export default class {
   /**
    * Create an entity along with any new/existing entities specified through links.
    *
-   * @param params.ownedById - the id of owner of the entity
+   * @param params.getOwnedById() - the id of owner of the entity
    * @param params.entityTypeId - the id of the entity's type
    * @param params.entityProperties - the properties of the entity
    * @param params.linkedEntities (optional) - the linked entity definitions of the entity
@@ -239,7 +239,7 @@ export default class {
    * Get or create an entity given either by new entity properties or a reference
    * to an existing entity.
    *
-   * @param params.ownedById the id of owner of the entity
+   * @param params.getOwnedById() the id of owner of the entity
    * @param params.entityDefinition the definition of how to get or create the entity (excluding any linked entities)
    * @param params.createdById - the id of the account that is creating the entity
    */
@@ -262,7 +262,9 @@ export default class {
       });
       if (!entity) {
         throw new ApolloError(
-          `Entity ${existingEntity.entityId} owned by ${existingEntity.ownedById} not found`,
+          `Entity ${
+            existingEntity.entityId
+          } owned by ${existingEntity.getOwnedById()} not found`,
           "NOT_FOUND",
         );
       }
@@ -485,7 +487,7 @@ export default class {
         {
           equal: [
             { path: ["rightEntity", "ownedById"] },
-            { parameter: this.ownedById },
+            { parameter: this.getOwnedById() },
           ],
         },
         {
@@ -543,7 +545,7 @@ export default class {
         {
           equal: [
             { path: ["leftEntity", "ownedById"] },
-            { parameter: this.ownedById },
+            { parameter: this.getOwnedById() },
           ],
         },
         {
@@ -577,7 +579,7 @@ export default class {
         {
           equal: [
             { path: ["rightEntity", "ownedById"] },
-            { parameter: params.rightEntityModel.ownedById },
+            { parameter: params.rightEntityModel.getOwnedById() },
           ],
         },
       );
@@ -610,7 +612,12 @@ export default class {
         all: [
           { equal: [{ path: ["version"] }, { parameter: "latest" }] },
           { equal: [{ path: ["uuid"] }, { parameter: this.entityUuid }] },
-          { equal: [{ path: ["ownedById"] }, { parameter: this.ownedById }] },
+          {
+            equal: [
+              { path: ["ownedById"] },
+              { parameter: this.getOwnedById() },
+            ],
+          },
         ],
       },
       graphResolveDepths: {

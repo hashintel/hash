@@ -192,7 +192,7 @@ describe("Entity CRU", () => {
       await EntityModel.getByQuery(graphApi, {
         all: [{ equal: [{ path: ["version"] }, { parameter: "latest" }] }],
       })
-    ).filter((entity) => entity.ownedById === testUser.entityUuid);
+    ).filter((entity) => entity.getOwnedById() === testUser.entityUuid);
 
     const newlyUpdatedModel = allEntityModels.find(
       (ent) => ent.baseId === updatedEntityModel.baseId,
@@ -238,7 +238,7 @@ describe("Entity CRU", () => {
   //           // The "new" entity is in fact just an existing entity, so only a link will be created.
   //           existingEntity: {
   //             entityId: updatedEntityModel.entityId,
-  //             ownedById: updatedEntityModel.ownedById,
+  //             ownedById: updatedEntityModel.getOwnedById(),
   //           },
   //         },
   //       },

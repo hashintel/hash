@@ -157,7 +157,10 @@ export default class extends EntityModel {
        * @todo: filter the pages by their ownedById in the query instead once it's supported
        * @see https://app.asana.com/0/1202805690238892/1203015527055374/f
        */
-      .filter(({ ownedById }) => ownedById === params.accountModel.entityUuid)
+      .filter(
+        (pageEntityModel) =>
+          pageEntityModel.getOwnedById() === params.accountModel.entityUuid,
+      )
       .map(PageModel.fromEntityModel);
 
     return await Promise.all(
@@ -387,7 +390,7 @@ export default class extends EntityModel {
         {
           equal: [
             { path: ["leftEntity", "ownedById"] },
-            { parameter: this.ownedById },
+            { parameter: this.getOwnedById() },
           ],
         },
         {
@@ -455,7 +458,7 @@ export default class extends EntityModel {
         // if position is not specified and there are no blocks currently in the page, specify the index of the link is `0`
         ((await this.getBlocks(graphApi)).length === 0 ? 0 : undefined),
       // assume that link to block is owned by the same account as the page
-      ownedById: this.ownedById,
+      ownedById: this.getOwnedById(),
       actorId,
     });
   }
@@ -494,7 +497,9 @@ export default class extends EntityModel {
 
     if (!link) {
       throw new Error(
-        `Critical: could not find contents link with index ${currentPosition} for page with entityId ${this.entityId} in account ${this.ownedById}`,
+        `Critical: could not find contents link with index ${currentPosition} for page with entityId ${
+          this.entityId
+        } in account ${this.getOwnedById()}`,
       );
     }
 

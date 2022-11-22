@@ -26,7 +26,7 @@ export const createPersistedComment: ResolverFn<
 
   const commentModel = await CommentModel.createComment(graphApi, {
     tokens,
-    ownedById: parentModel.ownedById,
+    ownedById: parentModel.getOwnedById(),
     parent: parentModel,
     author: userModel,
     actorId: userModel.entityId,

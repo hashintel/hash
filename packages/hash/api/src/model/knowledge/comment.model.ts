@@ -246,13 +246,17 @@ export default class extends EntityModel {
 
     if (unexpectedHasTextLinks.length > 0) {
       throw new Error(
-        `Critical: Comment with entityId ${this.entityId} in account ${this.ownedById} has more than one linked text entities`,
+        `Critical: Comment with entityId ${
+          this.entityId
+        } in account ${this.getOwnedById()} has more than one linked text entities`,
       );
     }
 
     if (!hasTextLink) {
       throw new Error(
-        `Critical: Comment with entityId ${this.entityId} in account ${this.ownedById} doesn't have any linked text entities`,
+        `Critical: Comment with entityId ${
+          this.entityId
+        } in account ${this.getOwnedById()} doesn't have any linked text entities`,
       );
     }
 
@@ -271,13 +275,17 @@ export default class extends EntityModel {
 
     if (!parentLink) {
       throw new Error(
-        `Critical: comment with entityId ${this.entityId} in account ${this.ownedById} has no linked parent entity`,
+        `Critical: comment with entityId ${
+          this.entityId
+        } in account ${this.getOwnedById()} has no linked parent entity`,
       );
     }
 
     if (unexpectedParentLinks.length > 0) {
       throw new Error(
-        `Critical: Comment with entityId ${this.entityId} in account ${this.ownedById} has more than one linked parent entity`,
+        `Critical: Comment with entityId ${
+          this.entityId
+        } in account ${this.getOwnedById()} has more than one linked parent entity`,
       );
     }
 
@@ -296,13 +304,17 @@ export default class extends EntityModel {
 
     if (!authorLink) {
       throw new Error(
-        `Critical: comment with entityId ${this.entityId} in account ${this.ownedById} has no linked author entity`,
+        `Critical: comment with entityId ${
+          this.entityId
+        } in account ${this.getOwnedById()} has no linked author entity`,
       );
     }
 
     if (unexpectedAuthorLinks.length > 0) {
       throw new Error(
-        `Critical: Comment with entityId ${this.entityId} in account ${this.ownedById} has more than one linked author entity`,
+        `Critical: Comment with entityId ${
+          this.entityId
+        } in account ${this.getOwnedById()} has more than one linked author entity`,
       );
     }
 

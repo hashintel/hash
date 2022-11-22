@@ -19,22 +19,19 @@ export type HashInstanceModelCreateParams = Omit<
  * @class {@link HashInstanceModel}
  */
 export default class extends EntityModel {
-  static fromEntityModel(entity: EntityModel): HashInstanceModel {
+  static fromEntityModel(entityModel: EntityModel): HashInstanceModel {
     if (
-      entity.entityTypeModel.schema.$id !==
+      entityModel.entityTypeModel.schema.$id !==
       SYSTEM_TYPES.entityType.hashInstance.schema.$id
     ) {
       throw new EntityTypeMismatchError(
-        entity.baseId,
+        entityModel.baseId,
         SYSTEM_TYPES.entityType.hashInstance.schema.$id,
-        entity.entityTypeModel.schema.$id,
+        entityModel.entityTypeModel.schema.$id,
       );
     }
 
-    return new HashInstanceModel({
-      entity,
-      entityTypeModel: entity.entityTypeModel,
-    });
+    return new HashInstanceModel(entityModel);
   }
 
   /**
@@ -188,7 +185,7 @@ export default class extends EntityModel {
           {
             equal: [
               { path: ["leftEntity", "ownedById"] },
-              { parameter: this.ownedById },
+              { parameter: this.getOwnedById() },
             ],
           },
           {
@@ -208,7 +205,7 @@ export default class extends EntityModel {
           {
             equal: [
               { path: ["rightEntity", "ownedById"] },
-              { parameter: userModel.ownedById },
+              { parameter: userModel.getOwnedById() },
             ],
           },
           {

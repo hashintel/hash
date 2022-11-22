@@ -166,7 +166,7 @@ export default class extends EntityModel {
     await this.createOutgoingLink(graphApi, {
       linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.blockData,
       rightEntityModel: newBlockDataEntity,
-      ownedById: this.ownedById,
+      ownedById: this.getOwnedById(),
       actorId,
     });
   }

@@ -63,7 +63,7 @@ export default class {
   /**
    * Create an entity type.
    *
-   * @param params.ownedById - the id of the account who owns the entity type
+   * @param params.getOwnedById() - the id of the account who owns the entity type
    * @param params.schema - the `EntityType`
    * @param params.actorId - the id of the account that is creating the entity type
    */
@@ -73,7 +73,7 @@ export default class {
   ): Promise<EntityTypeModel> {
     const { ownedById, actorId } = params;
     const namespace = await getNamespaceOfAccountOwner(graphApi, {
-      ownerId: params.ownedById,
+      ownerId: params.getOwnedById(),
     });
 
     const entityTypeId = generateTypeId({

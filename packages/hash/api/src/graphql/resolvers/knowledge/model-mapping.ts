@@ -26,8 +26,8 @@ export const mapEntityModelToGQL = (
   entityId: entityModel.entityId,
   entityTypeId: entityModel.entityTypeModel.schema.$id,
   entityVersion: entityModel.version,
-  ownedById: entityModel.ownedById,
-  accountId: entityModel.ownedById,
+  ownedById: entityModel.getOwnedById(),
+  accountId: entityModel.getOwnedById(),
   properties: entityModel.getProperties(),
   /**
    * To be used by the `EntityWithMetadata` `__resolveType` resolver method to reliably determine
@@ -106,7 +106,7 @@ export type UnresolvedPersistedLinkGQL = Omit<
 export const mapLinkModelToGQL = (
   linkModel: LinkModel,
 ): UnresolvedPersistedLinkGQL => ({
-  ownedById: linkModel.ownedById,
+  ownedById: linkModel.getOwnedById(),
   linkTypeId: linkModel.linkTypeModel.schema.$id,
   index: linkModel.index,
   sourceEntityId: linkModel.sourceEntityModel.entityId,
