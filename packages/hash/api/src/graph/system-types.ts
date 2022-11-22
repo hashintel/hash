@@ -169,7 +169,6 @@ export const orgEntityTypeInitializer = async (graphApi: GraphApi) => {
         required: false,
       },
     ],
-    outgoingLinks: [],
     actorId: systemAccountId,
   })(graphApi);
 };
@@ -231,7 +230,6 @@ const orgMembershipLinkEntityTypeInitializer = async (graphApi: GraphApi) => {
       },
     ],
     actorId: systemAccountId,
-    outgoingLinks: [],
   })(graphApi);
 };
 
@@ -365,7 +363,6 @@ const textEntityTypeInitializer = async (graphApi: GraphApi) => {
         array: true,
       },
     ],
-    outgoingLinks: [],
     actorId: systemAccountId,
   })(graphApi);
 };
@@ -378,7 +375,6 @@ const dummyEntityTypeInitializer = async (graphApi: GraphApi) => {
   return entityTypeInitializer({
     ...types.entityType.dummy,
     properties: [],
-    outgoingLinks: [],
     actorId: systemAccountId,
   })(graphApi);
 };
