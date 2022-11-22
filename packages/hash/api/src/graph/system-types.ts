@@ -135,7 +135,7 @@ export const orgProvidedInfoPropertyTypeInitializer = async (
       {
         propertyTypeObjectProperties: {
           [orgSizeBaseUri]: {
-            $ref: orgSizePropertyTypeModel.schema.$id,
+            $ref: orgSizePropertyTypeModel.getSchema().$id,
           },
         },
       },

@@ -31,13 +31,13 @@ type PageModelCreateParams = Omit<
 export default class extends EntityModel {
   static fromEntityModel(entityModel: EntityModel): PageModel {
     if (
-      entityModel.entityTypeModel.schema.$id !==
-      SYSTEM_TYPES.entityType.page.schema.$id
+      entityModel.entityTypeModel.getSchema().$id !==
+      SYSTEM_TYPES.entityType.page.getSchema().$id
     ) {
       throw new EntityTypeMismatchError(
         entityModel.getBaseId(),
-        SYSTEM_TYPES.entityType.page.schema.$id,
-        entityModel.entityTypeModel.schema.$id,
+        SYSTEM_TYPES.entityType.page.getSchema().$id,
+        entityModel.entityTypeModel.getSchema().$id,
       );
     }
 
@@ -146,7 +146,7 @@ export default class extends EntityModel {
         {
           equal: [
             { path: ["type", "versionedUri"] },
-            { parameter: SYSTEM_TYPES.entityType.page.schema.$id },
+            { parameter: SYSTEM_TYPES.entityType.page.getSchema().$id },
           ],
         },
       ],
@@ -398,7 +398,7 @@ export default class extends EntityModel {
           equal: [
             { path: ["type", "versionedUri"] },
             {
-              parameter: SYSTEM_TYPES.linkEntityType.contains.schema.$id,
+              parameter: SYSTEM_TYPES.linkEntityType.contains.getSchema().$id,
             },
           ],
         },

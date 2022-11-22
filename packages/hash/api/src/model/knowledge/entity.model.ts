@@ -125,7 +125,7 @@ export default class {
 
     const { data: metadata } = await graphApi.createEntity({
       ownedById,
-      entityTypeId: entityTypeModel.schema.$id,
+      entityTypeId: entityTypeModel.getSchema().$id,
       properties,
       entityUuid: overrideEntityId,
       actorId,
@@ -382,7 +382,7 @@ export default class {
       actorId,
       entityId: this.getBaseId(),
       /** @todo: make this argument optional */
-      entityTypeId: entityTypeModel.schema.$id,
+      entityTypeId: entityTypeModel.getSchema().$id,
       properties,
     });
 
@@ -504,7 +504,7 @@ export default class {
         equal: [
           { path: ["type", "versionedUri"] },
           {
-            parameter: params.linkEntityTypeModel.schema.$id,
+            parameter: params.linkEntityTypeModel.getSchema().$id,
           },
         ],
       });
@@ -562,7 +562,7 @@ export default class {
         equal: [
           { path: ["type", "versionedUri"] },
           {
-            parameter: params.linkEntityTypeModel.schema.$id,
+            parameter: params.linkEntityTypeModel.getSchema().$id,
           },
         ],
       });

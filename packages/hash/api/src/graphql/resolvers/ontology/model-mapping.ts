@@ -17,8 +17,8 @@ export const mapPropertyTypeModelToGQL = (
 ): PersistedPropertyTypeGql => ({
   ownedById: propertyType.ownedById,
   accountId: propertyType.ownedById,
-  propertyTypeId: propertyType.schema.$id,
-  propertyType: propertyType.schema,
+  propertyTypeId: propertyType.getSchema().$id,
+  propertyType: propertyType.getSchema(),
 });
 
 export const mapEntityTypeModelToGQL = (
@@ -26,8 +26,8 @@ export const mapEntityTypeModelToGQL = (
 ): PersistedEntityTypeGql => ({
   ownedById: entityType.ownedById,
   accountId: entityType.ownedById,
-  entityTypeId: entityType.schema.$id,
-  entityType: entityType.schema,
+  entityTypeId: entityType.getSchema().$id,
+  entityType: entityType.getSchema(),
 });
 
 /** @todo - move this outside of ontology */

@@ -23,13 +23,13 @@ type BlockModelCreateParams = Omit<
 export default class extends EntityModel {
   static fromEntityModel(entityModel: EntityModel): BlockModel {
     if (
-      entityModel.entityTypeModel.schema.$id !==
-      SYSTEM_TYPES.entityType.block.schema.$id
+      entityModel.entityTypeModel.getSchema().$id !==
+      SYSTEM_TYPES.entityType.block.getSchema().$id
     ) {
       throw new EntityTypeMismatchError(
         entityModel.getBaseId(),
-        SYSTEM_TYPES.entityType.block.schema.$id,
-        entityModel.entityTypeModel.schema.$id,
+        SYSTEM_TYPES.entityType.block.getSchema().$id,
+        entityModel.entityTypeModel.getSchema().$id,
       );
     }
 

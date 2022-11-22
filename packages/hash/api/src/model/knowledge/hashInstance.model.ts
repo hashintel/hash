@@ -21,13 +21,13 @@ export type HashInstanceModelCreateParams = Omit<
 export default class extends EntityModel {
   static fromEntityModel(entityModel: EntityModel): HashInstanceModel {
     if (
-      entityModel.entityTypeModel.schema.$id !==
-      SYSTEM_TYPES.entityType.hashInstance.schema.$id
+      entityModel.entityTypeModel.getSchema().$id !==
+      SYSTEM_TYPES.entityType.hashInstance.getSchema().$id
     ) {
       throw new EntityTypeMismatchError(
         entityModel.getBaseId(),
-        SYSTEM_TYPES.entityType.hashInstance.schema.$id,
-        entityModel.entityTypeModel.schema.$id,
+        SYSTEM_TYPES.entityType.hashInstance.getSchema().$id,
+        entityModel.entityTypeModel.getSchema().$id,
       );
     }
 
@@ -84,7 +84,7 @@ export default class extends EntityModel {
           equal: [
             { path: ["type", "versionedUri"] },
             {
-              parameter: SYSTEM_TYPES.entityType.hashInstance.schema.$id,
+              parameter: SYSTEM_TYPES.entityType.hashInstance.getSchema().$id,
             },
           ],
         },
@@ -192,7 +192,7 @@ export default class extends EntityModel {
             equal: [
               { path: ["type", "versionedUri"] },
               {
-                parameter: SYSTEM_TYPES.linkEntityType.admin.schema.$id,
+                parameter: SYSTEM_TYPES.linkEntityType.admin.getSchema().$id,
               },
             ],
           },

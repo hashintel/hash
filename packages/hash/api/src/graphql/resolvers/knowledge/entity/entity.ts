@@ -169,7 +169,8 @@ export const updateEntityWithMetadata: ResolverFn<
 
   for (const beforeUpdateHook of beforeUpdateEntityHooks) {
     if (
-      beforeUpdateHook.entityTypeId === entityModel.entityTypeModel.schema.$id
+      beforeUpdateHook.entityTypeId ===
+      entityModel.entityTypeModel.getSchema().$id
     ) {
       await beforeUpdateHook.callback({
         graphApi,

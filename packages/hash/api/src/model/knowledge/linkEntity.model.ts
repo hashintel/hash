@@ -142,7 +142,9 @@ export default class extends EntityModel {
 
     if (!linkEntityTypeModel.isLinkEntityType()) {
       throw new Error(
-        `Entity type with ID "${linkEntityTypeModel.schema.$id}" is not a link entity type.`,
+        `Entity type with ID "${
+          linkEntityTypeModel.getSchema().$id
+        }" is not a link entity type.`,
       );
     }
 
@@ -155,7 +157,7 @@ export default class extends EntityModel {
         rightOrder,
       },
       actorId,
-      entityTypeId: linkEntityTypeModel.schema.$id,
+      entityTypeId: linkEntityTypeModel.getSchema().$id,
       properties,
     });
 

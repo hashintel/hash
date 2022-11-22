@@ -93,13 +93,13 @@ export default class extends EntityModel {
 
   static fromEntityModel(entityModel: EntityModel): OrgModel {
     if (
-      entityModel.entityTypeModel.schema.$id !==
-      SYSTEM_TYPES.entityType.org.schema.$id
+      entityModel.entityTypeModel.getSchema().$id !==
+      SYSTEM_TYPES.entityType.org.getSchema().$id
     ) {
       throw new EntityTypeMismatchError(
         entityModel.getBaseId(),
-        SYSTEM_TYPES.entityType.org.schema.$id,
-        entityModel.entityTypeModel.schema.$id,
+        SYSTEM_TYPES.entityType.org.getSchema().$id,
+        entityModel.entityTypeModel.getSchema().$id,
       );
     }
 
@@ -138,7 +138,7 @@ export default class extends EntityModel {
         {
           equal: [
             { path: ["type", "versionedUri"] },
-            { parameter: SYSTEM_TYPES.entityType.org.schema.$id },
+            { parameter: SYSTEM_TYPES.entityType.org.getSchema().$id },
           ],
         },
       ],

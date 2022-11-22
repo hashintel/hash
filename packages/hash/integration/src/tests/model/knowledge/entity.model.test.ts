@@ -84,7 +84,7 @@ describe("Entity CRU", () => {
         schema: {
           kind: "propertyType",
           title: "Favorite Book",
-          oneOf: [{ $ref: textDataTypeModel.schema.$id }],
+          oneOf: [{ $ref: textDataTypeModel.getSchema().$id }],
         },
         actorId: testUser.getEntityUuid(),
       })
@@ -100,7 +100,7 @@ describe("Entity CRU", () => {
         schema: {
           kind: "propertyType",
           title: "Name",
-          oneOf: [{ $ref: textDataTypeModel.schema.$id }],
+          oneOf: [{ $ref: textDataTypeModel.getSchema().$id }],
         },
         actorId: testUser.getEntityUuid(),
       })
@@ -230,7 +230,7 @@ describe("Entity CRU", () => {
   //   const aliceEntityModel = await EntityModel.createEntityWithLinks(graphApi, {
   //     ownedById: testUser.getEntityUuid(),
   //     // First create a new entity given the following definition
-  //     entityTypeId: entityTypeModel.schema.$id,
+  //     entityTypeId: entityTypeModel.getSchema().$id,
   //     properties: {
   //       [namePropertyTypeModel.baseUri]: "Alice",
   //       [favoriteBookPropertyTypeModel.baseUri]: "some text",
@@ -239,7 +239,7 @@ describe("Entity CRU", () => {
   //       {
   //         // Then create an entity + link
   //         destinationAccountId: testUser.entityId,
-  //         linkTypeId: linkTypeFriend.schema.$id,
+  //         linkTypeId: linkTypeFriend.getSchema().$id,
   //         entity: {
   //           // The "new" entity is in fact just an existing entity, so only a link will be created.
   //           existingEntity: {

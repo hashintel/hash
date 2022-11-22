@@ -37,13 +37,13 @@ type UserModelCreateParams = Omit<
 export default class extends EntityModel {
   static fromEntityModel(entityModel: EntityModel): UserModel {
     if (
-      entityModel.entityTypeModel.schema.$id !==
-      SYSTEM_TYPES.entityType.user.schema.$id
+      entityModel.entityTypeModel.getSchema().$id !==
+      SYSTEM_TYPES.entityType.user.getSchema().$id
     ) {
       throw new EntityTypeMismatchError(
         entityModel.getBaseId(),
-        SYSTEM_TYPES.entityType.user.schema.$id,
-        entityModel.entityTypeModel.schema.$id,
+        SYSTEM_TYPES.entityType.user.getSchema().$id,
+        entityModel.entityTypeModel.getSchema().$id,
       );
     }
 
@@ -85,7 +85,7 @@ export default class extends EntityModel {
         {
           equal: [
             { path: ["type", "versionedUri"] },
-            { parameter: SYSTEM_TYPES.entityType.user.schema.$id },
+            { parameter: SYSTEM_TYPES.entityType.user.getSchema().$id },
           ],
         },
       ],
@@ -117,7 +117,7 @@ export default class extends EntityModel {
         {
           equal: [
             { path: ["type", "versionedUri"] },
-            { parameter: SYSTEM_TYPES.entityType.user.schema.$id },
+            { parameter: SYSTEM_TYPES.entityType.user.getSchema().$id },
           ],
         },
       ],
@@ -453,11 +453,13 @@ export default class extends EntityModel {
   ): Promise<boolean> {
     const orgMemberships = await this.getOrgMemberships(graphApi);
 
-    const orgs = await Promise.all(
+    const orgModels = await Promise.all(
       orgMemberships.map((orgMembership) => orgMembership.getOrg(graphApi)),
     );
 
-    return !!orgs.find(({ entityUuid }) => entityUuid === params.orgEntityUuid);
+    return !!orgModels.find(
+      (orgModel) => orgModel.getEntityUuid() === params.orgEntityUuid,
+    );
   }
 
   isAccountSignupComplete(): boolean {

@@ -31,7 +31,11 @@ export type EntityTypeModelCreateParams = {
 export default class {
   private entityType: EntityTypeWithMetadata;
 
-  get schema(): EntityType {
+  constructor({ entityType }: EntityTypeModelConstructorParams) {
+    this.entityType = entityType;
+  }
+
+  getSchema(): EntityType {
     /**
      * @todo and a warning, these type casts are here to compensate for
      *   the differences between the Graph API package and the
@@ -44,10 +48,6 @@ export default class {
      *   https://app.asana.com/0/1202805690238892/1202892835843657/f
      */
     return this.entityType.schema as EntityType;
-  }
-
-  constructor({ entityType }: EntityTypeModelConstructorParams) {
-    this.entityType = entityType;
   }
 
   getMetadata(): OntologyElementMetadata {
@@ -63,7 +63,7 @@ export default class {
   /**
    * Create an entity type.
    *
-   * @param params.getOwnedById() - the id of the account who owns the entity type
+   * @param params.ownedById - the id of the account who owns the entity type
    * @param params.schema - the `EntityType`
    * @param params.actorId - the id of the account that is creating the entity type
    */
@@ -73,7 +73,7 @@ export default class {
   ): Promise<EntityTypeModel> {
     const { ownedById, actorId } = params;
     const namespace = await getNamespaceOfAccountOwner(graphApi, {
-      ownerId: params.getOwnedById(),
+      ownerId: params.ownedById,
     });
 
     const entityTypeId = generateTypeId({
@@ -157,7 +157,7 @@ export default class {
     const { schema, actorId } = params;
     const updateArguments: UpdateEntityTypeRequest = {
       actorId,
-      typeToUpdate: this.schema.$id,
+      typeToUpdate: this.getSchema().$id,
       schema,
     };
 
@@ -166,7 +166,10 @@ export default class {
     const { editionId } = metadata;
 
     return EntityTypeModel.fromEntityTypeWithMetadata({
-      schema: { ...schema, $id: `${editionId.baseId}/v/${editionId.version}` },
+      schema: {
+        ...schema,
+        $id: `${editionId.baseId}/v/${editionId.version}`,
+      },
       metadata,
     });
   }
@@ -177,7 +180,7 @@ export default class {
   async getOutgoingLinkEntityTypes(
     graphApi: GraphApi,
   ): Promise<EntityTypeModel[]> {
-    const linkEntityTypeIds = Object.keys(this.schema.links ?? {});
+    const linkEntityTypeIds = Object.keys(this.getSchema().links ?? {});
 
     return await Promise.all(
       linkEntityTypeIds.map((entityTypeId) =>
@@ -197,13 +200,19 @@ export default class {
   isOutgoingLinkOrdered(params: { outgoingLinkEntityType: EntityTypeModel }) {
     const { outgoingLinkEntityType } = params;
 
-    const outgoingLinkDefinition = Object.entries(this.schema.links ?? {}).find(
-      ([linkTypeId]) => linkTypeId === outgoingLinkEntityType.schema.$id,
+    const outgoingLinkDefinition = Object.entries(
+      this.getSchema().links ?? {},
+    ).find(
+      ([linkTypeId]) => linkTypeId === outgoingLinkEntityType.getSchema().$id,
     )?.[1];
 
     if (!outgoingLinkDefinition) {
       throw new Error(
-        `Link type with ID = '${outgoingLinkEntityType.schema.$id}' is not an outgoing link on entity type with ID = '${this.schema.$id}'`,
+        `Link type with ID = '${
+          outgoingLinkEntityType.getSchema().$id
+        }' is not an outgoing link on entity type with ID = '${
+          this.getSchema().$id
+        }'`,
       );
     }
 
@@ -222,7 +231,7 @@ export default class {
    * Get all property types of the entity type.
    */
   async getPropertyTypes(graphApi: GraphApi): Promise<PropertyTypeModel[]> {
-    const propertyTypeIds = Object.entries(this.schema.properties).map(
+    const propertyTypeIds = Object.entries(this.getSchema().properties).map(
       ([property, valueOrArray]) => {
         if ("$ref" in valueOrArray) {
           return valueOrArray.$ref;
@@ -254,7 +263,7 @@ export default class {
     for (const [key, systemEntityType] of Object.entries(
       SYSTEM_TYPES.entityType,
     ) as [keyof typeof SYSTEM_TYPES.entityType, EntityTypeModel][]) {
-      if (systemEntityType.schema.$id === this.schema.$id) {
+      if (systemEntityType.getSchema().$id === this.getSchema().$id) {
         return types.entityType[key].title;
       }
     }
@@ -267,9 +276,10 @@ export default class {
      * @todo: account for link entity types being able to inherit from other link entity types
      * @see https://app.asana.com/0/1200211978612931/1201726402115269/f
      */
+    const schema = this.getSchema();
     return (
-      !!this.schema.allOf &&
-      this.schema.allOf.some(({ $ref }) => $ref === linkEntityTypeUri)
+      !!schema.allOf &&
+      schema.allOf.some(({ $ref }) => $ref === linkEntityTypeUri)
     );
   }
 }

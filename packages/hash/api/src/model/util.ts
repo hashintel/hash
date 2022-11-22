@@ -261,10 +261,10 @@ export const generateSystemEntityTypeSchema = (
       [propertyTypeModel.baseUri]: array
         ? {
             type: "array",
-            items: { $ref: propertyTypeModel.schema.$id },
+            items: { $ref: propertyTypeModel.getSchema().$id },
             ...(array === true ? {} : array),
           }
-        : { $ref: propertyTypeModel.schema.$id },
+        : { $ref: propertyTypeModel.getSchema().$id },
     }),
     {},
   );
@@ -287,7 +287,7 @@ export const generateSystemEntityTypeSchema = (
             },
           ): EntityType["links"] => ({
             ...prev,
-            [linkEntityTypeModel.schema.$id]: {
+            [linkEntityTypeModel.getSchema().$id]: {
               type: "array",
               ordered,
               items: {
@@ -296,7 +296,7 @@ export const generateSystemEntityTypeSchema = (
                     $ref:
                       entityTypeModelOrReference === "SELF_REFERENCE"
                         ? params.entityTypeId
-                        : entityTypeModelOrReference.schema.$id,
+                        : entityTypeModelOrReference.getSchema().$id,
                   }),
                 ),
               },
@@ -310,7 +310,7 @@ export const generateSystemEntityTypeSchema = (
 
   const requiredLinks = params.outgoingLinks
     .filter(({ required }) => !!required)
-    .map(({ linkEntityTypeModel }) => linkEntityTypeModel.schema.$id);
+    .map(({ linkEntityTypeModel }) => linkEntityTypeModel.getSchema().$id);
 
   return {
     $id: params.entityTypeId,

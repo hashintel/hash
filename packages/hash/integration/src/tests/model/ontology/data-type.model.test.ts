@@ -56,10 +56,12 @@ describe("Data type CRU", () => {
 
   it("can read a data type", async () => {
     const fetchedDataType = await DataTypeModel.get(graphApi, {
-      dataTypeId: createdDataTypeModel.schema.$id,
+      dataTypeId: createdDataTypeModel.getSchema().$id,
     });
 
-    expect(fetchedDataType.schema).toEqual(createdDataTypeModel.schema);
+    expect(fetchedDataType.getSchema()).toEqual(
+      createdDataTypeModel.getSchema(),
+    );
   });
 
   const updatedTitle = "New text!";

@@ -86,7 +86,7 @@ beforeAll(async () => {
         kind: "propertyType",
         title: "Favorite Book",
         pluralTitle: "Favorite Books",
-        oneOf: [{ $ref: textDataTypeModel.schema.$id }],
+        oneOf: [{ $ref: textDataTypeModel.getSchema().$id }],
       },
       actorId: testUser.entityId,
     }).then((val) => {
@@ -98,7 +98,7 @@ beforeAll(async () => {
         kind: "propertyType",
         title: "Name",
         pluralTitle: "Names",
-        oneOf: [{ $ref: textDataTypeModel.schema.$id }],
+        oneOf: [{ $ref: textDataTypeModel.getSchema().$id }],
       },
       actorId: testUser.entityId,
     }).then((val) => {
@@ -137,24 +137,24 @@ beforeAll(async () => {
     type: "object",
     properties: {
       [favoriteBookPropertyTypeModel.baseUri]: {
-        $ref: favoriteBookPropertyTypeModel.schema.$id,
+        $ref: favoriteBookPropertyTypeModel.getSchema().$id,
       },
       [namePropertyTypeModel.baseUri]: {
-        $ref: namePropertyTypeModel.schema.$id,
+        $ref: namePropertyTypeModel.getSchema().$id,
       },
     },
     links: {
-      [knowsLinkTypeModel.schema.$id]: {
+      [knowsLinkTypeModel.getSchema().$id]: {
         type: "array",
         items: {
-          oneOf: [{ $ref: workerEntityTypeModel.schema.$id }],
+          oneOf: [{ $ref: workerEntityTypeModel.getSchema().$id }],
         },
         ordered: false,
       },
-      [previousAddressLinkTypeModel.schema.$id]: {
+      [previousAddressLinkTypeModel.getSchema().$id]: {
         type: "array",
         items: {
-          oneOf: [{ $ref: addressEntityTypeModel.schema.$id }],
+          oneOf: [{ $ref: addressEntityTypeModel.getSchema().$id }],
         },
         ordered: true,
       },
@@ -175,10 +175,12 @@ describe("Entity type CRU", () => {
 
   it("can read an entity type", async () => {
     const fetchedEntityType = await EntityTypeModel.get(graphApi, {
-      entityTypeId: createdEntityType.schema.$id,
+      entityTypeId: createdEntityType.getSchema().$id,
     });
 
-    expect(fetchedEntityType.schema).toEqual(createdEntityType.schema);
+    expect(fetchedEntityType.getSchema()).toEqual(
+      createdEntityType.getSchema(),
+    );
   });
 
   const updatedTitle = "New text!";
@@ -197,21 +199,21 @@ describe("Entity type CRU", () => {
     expect(updatedEntityTypeModel.createdById).toBe(testUser.entityId);
     expect(updatedEntityTypeModel.updatedById).toBe(testUser2.entityId);
 
-    updatedId = updatedEntityTypeModel.schema.$id;
+    updatedId = updatedEntityTypeModel.getSchema().$id;
   });
 
   it("can read all latest entity types", async () => {
     const allEntityTypes = await EntityTypeModel.getAllLatest(graphApi);
 
     const newlyUpdated = allEntityTypes.find(
-      (dt) => dt.schema.$id === updatedId,
+      (dt) => dt.getSchema().$id === updatedId,
     );
 
     expect(allEntityTypes.length).toBeGreaterThan(0);
     expect(newlyUpdated).toBeDefined();
 
-    expect(newlyUpdated!.schema.$id).toEqual(updatedId);
-    expect(newlyUpdated!.schema.title).toEqual(updatedTitle);
+    expect(newlyUpdated!.getSchema().$id).toEqual(updatedId);
+    expect(newlyUpdated!.getSchema().title).toEqual(updatedTitle);
   });
 
   it("can get all outgoing link types", async () => {
@@ -228,13 +230,15 @@ describe("Entity type CRU", () => {
 
     expect(propertyTypes).toHaveLength(2);
 
-    const propertyTypeVersioned$ids = propertyTypes.map((pt) => pt.schema.$id);
+    const propertyTypeVersioned$ids = propertyTypes.map(
+      (pt) => pt.getSchema().$id,
+    );
 
     expect(propertyTypeVersioned$ids).toContain(
-      namePropertyTypeModel.schema.$id,
+      namePropertyTypeModel.getSchema().$id,
     );
     expect(propertyTypeVersioned$ids).toContain(
-      favoriteBookPropertyTypeModel.schema.$id,
+      favoriteBookPropertyTypeModel.getSchema().$id,
     );
   });
 

@@ -24,13 +24,13 @@ type CommentModelCreateParams = Omit<
 export default class extends EntityModel {
   static fromEntityModel(entityModel: EntityModel): CommentModel {
     if (
-      entityModel.entityTypeModel.schema.$id !==
-      SYSTEM_TYPES.entityType.comment.schema.$id
+      entityModel.entityTypeModel.getSchema().$id !==
+      SYSTEM_TYPES.entityType.comment.getSchema().$id
     ) {
       throw new EntityTypeMismatchError(
         entityModel.getBaseId(),
-        SYSTEM_TYPES.entityType.comment.schema.$id,
-        entityModel.entityTypeModel.schema.$id,
+        SYSTEM_TYPES.entityType.comment.getSchema().$id,
+        entityModel.entityTypeModel.getSchema().$id,
       );
     }
 
@@ -158,8 +158,8 @@ export default class extends EntityModel {
     // or the author of the block the comment is attached to
     if (
       actorId !== this.createdById &&
-      parentModel.entityTypeModel.schema.$id ===
-        SYSTEM_TYPES.entityType.block.schema.$id &&
+      parentModel.entityTypeModel.getSchema().$id ===
+        SYSTEM_TYPES.entityType.block.getSchema().$id &&
       actorId !== parentModel.createdById
     ) {
       throw new Error(

@@ -29,13 +29,13 @@ export type OrgMembershipModelCreateParams = Omit<
 export default class extends EntityModel {
   static fromEntityModel(entityModel: EntityModel): OrgMembershipModel {
     if (
-      entityModel.entityTypeModel.schema.$id !==
-      SYSTEM_TYPES.entityType.orgMembership.schema.$id
+      entityModel.entityTypeModel.getSchema().$id !==
+      SYSTEM_TYPES.entityType.orgMembership.getSchema().$id
     ) {
       throw new EntityTypeMismatchError(
         entityModel.getBaseId(),
-        SYSTEM_TYPES.entityType.orgMembership.schema.$id,
-        entityModel.entityTypeModel.schema.$id,
+        SYSTEM_TYPES.entityType.orgMembership.getSchema().$id,
+        entityModel.entityTypeModel.getSchema().$id,
       );
     }
 
@@ -117,7 +117,7 @@ export default class extends EntityModel {
             equal: [
               { path: ["type", "versionedUri"] },
               {
-                parameter: SYSTEM_TYPES.linkEntityType.ofOrg.schema.$id,
+                parameter: SYSTEM_TYPES.linkEntityType.ofOrg.getSchema().$id,
               },
             ],
           },
@@ -172,7 +172,8 @@ export default class extends EntityModel {
             equal: [
               { path: ["type", "versionedUri"] },
               {
-                parameter: SYSTEM_TYPES.linkEntityType.hasMembership.schema.$id,
+                parameter:
+                  SYSTEM_TYPES.linkEntityType.hasMembership.getSchema().$id,
               },
             ],
           },

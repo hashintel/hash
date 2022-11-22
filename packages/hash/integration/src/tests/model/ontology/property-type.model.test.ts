@@ -51,7 +51,7 @@ beforeAll(async () => {
     pluralTitle: "Multiple property types",
     oneOf: [
       {
-        $ref: textDataTypeModel.schema.$id,
+        $ref: textDataTypeModel.getSchema().$id,
       },
     ],
   };
@@ -70,10 +70,12 @@ describe("Property type CRU", () => {
 
   it("can read a property type", async () => {
     const fetchedPropertyType = await PropertyTypeModel.get(graphApi, {
-      propertyTypeId: createdPropertyTypeModel.schema.$id,
+      propertyTypeId: createdPropertyTypeModel.getSchema().$id,
     });
 
-    expect(fetchedPropertyType.schema).toEqual(createdPropertyTypeModel.schema);
+    expect(fetchedPropertyType.getSchema()).toEqual(
+      createdPropertyTypeModel.getSchema(),
+    );
   });
 
   const updatedTitle = "New test!";
