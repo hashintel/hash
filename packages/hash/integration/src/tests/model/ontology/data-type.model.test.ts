@@ -48,9 +48,9 @@ describe("Data type CRU", () => {
 
   it("can create a data type", async () => {
     createdDataTypeModel = await DataTypeModel.create(graphApi, {
-      ownedById: testUser.entityId,
+      ownedById: testUser.entityUuid,
       schema: dataTypeSchema,
-      actorId: testUser.entityId,
+      actorId: testUser.entityUuid,
     });
   });
 
@@ -64,17 +64,25 @@ describe("Data type CRU", () => {
 
   const updatedTitle = "New text!";
   it("can update a data type", async () => {
-    expect(createdDataTypeModel.createdById).toBe(testUser.entityId);
-    expect(createdDataTypeModel.updatedById).toBe(testUser.entityId);
+    expect(createdDataTypeModel.metadata.provenance.createdById).toBe(
+      testUser.entityUuid,
+    );
+    expect(createdDataTypeModel.metadata.provenance.updatedById).toBe(
+      testUser.entityUuid,
+    );
 
     createdDataTypeModel = await createdDataTypeModel
       .update(graphApi, {
         schema: { ...dataTypeSchema, title: updatedTitle },
-        actorId: testUser2.entityId,
+        actorId: testUser2.entityUuid,
       })
       .catch((err) => Promise.reject(err.data));
 
-    expect(createdDataTypeModel.createdById).toBe(testUser.entityId);
-    expect(createdDataTypeModel.updatedById).toBe(testUser2.entityId);
+    expect(createdDataTypeModel.metadata.provenance.createdById).toBe(
+      testUser.entityUuid,
+    );
+    expect(createdDataTypeModel.metadata.provenance.updatedById).toBe(
+      testUser2.entityUuid,
+    );
   });
 });
