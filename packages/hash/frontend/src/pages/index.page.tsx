@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useRouter } from "next/router";
+import { extractEntityUuidFromEntityId } from "@hashintel/hash-subgraph";
 
 import { Box, Container, Typography } from "@mui/material";
 import { useLogoutFlow } from "../components/hooks/useLogoutFlow";
@@ -15,7 +16,11 @@ const Page: NextPageWithLayout = () => {
 
   useEffect(() => {
     if (authenticatedUser) {
-      void router.push(`/${authenticatedUser.entityId}`);
+      void router.push(
+        `/${extractEntityUuidFromEntityId(
+          authenticatedUser.entityEditionId.baseId,
+        )}`,
+      );
     }
   }, [router, authenticatedUser]);
 

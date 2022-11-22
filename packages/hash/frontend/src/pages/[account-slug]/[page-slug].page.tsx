@@ -153,7 +153,7 @@ const generateCrumbsFromPages = ({
   accountId: string;
   pages: AccountPagesInfo["data"];
 }) => {
-  const pageMap = new Map(pages.map((page) => [page.entityId, page]));
+  const pageMap = new Map(pages.map((page) => [page.pageEntityId, page]));
 
   let currentPage = pageMap.get(pageId);
   let arr = [];
@@ -161,12 +161,12 @@ const generateCrumbsFromPages = ({
   while (currentPage) {
     arr.push({
       title: currentPage.title,
-      href: `/${accountId}/${currentPage.entityId}`,
-      id: currentPage.entityId,
+      href: `/${accountId}/${currentPage.pageEntityId}`,
+      id: currentPage.pageEntityId,
       icon: (
         <PageIcon
           ownedById={accountId}
-          entityId={currentPage.entityId}
+          entityId={currentPage.pageEntityId}
           size="small"
         />
       ),

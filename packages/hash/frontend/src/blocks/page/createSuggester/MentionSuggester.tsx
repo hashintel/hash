@@ -48,7 +48,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
 
     const iterablePages: Array<SearchableItem> = pages.map((page) => ({
       name: page.title,
-      entityId: page.entityId,
+      entityId: page.pageEntityId,
       type: "page",
     }));
 

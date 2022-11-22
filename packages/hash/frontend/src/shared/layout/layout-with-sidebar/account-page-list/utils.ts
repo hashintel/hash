@@ -18,7 +18,7 @@ export const getTreeItemList = (
     .filter((page) => page.parentPageEntityId === parentId)
     .sort((pageA, pageB) => (pageA.index > pageB.index ? 1 : -1))
     .reduce((prev, page) => {
-      const children = getTreeItemList(pagesList, page.entityId, depth + 1);
+      const children = getTreeItemList(pagesList, page.pageEntityId, depth + 1);
 
       const item: TreeItem = {
         page,
@@ -42,7 +42,7 @@ export const isPageCollapsed = (
   }
 
   const parentPage = treeItemList.find(
-    ({ page }) => page.entityId === parentPageEntityId,
+    ({ page }) => page.pageEntityId === parentPageEntityId,
   );
 
   const parentExpanded =
@@ -78,14 +78,14 @@ export const getProjection = (
   dragDepth: number,
 ) => {
   const expandedPages = pages.filter(
-    ({ page }) => !collapsedPageIds.includes(page.entityId),
+    ({ page }) => !collapsedPageIds.includes(page.pageEntityId),
   );
 
   const overItemIndex = expandedPages.findIndex(
-    ({ page }) => page.entityId === overId,
+    ({ page }) => page.pageEntityId === overId,
   );
   const activeItemIndex = expandedPages.findIndex(
-    ({ page }) => page.entityId === activeId,
+    ({ page }) => page.pageEntityId === activeId,
   );
 
   const activeItem = expandedPages[activeItemIndex];
@@ -109,7 +109,7 @@ export const getProjection = (
     }
 
     if (depth > previousItem.depth) {
-      return previousItem.page.entityId;
+      return previousItem.page.pageEntityId;
     }
 
     const newParent = newItems
