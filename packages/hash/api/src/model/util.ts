@@ -330,6 +330,9 @@ export type LinkEntityTypeCreatorParams = Omit<
   "entityTypeId"
 > & {
   linkEntityTypeId: VersionedUri;
+  title: string;
+  description?: string;
+  actorId: string;
 };
 
 export const linkEntityTypeUri: VersionedUri =

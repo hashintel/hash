@@ -156,6 +156,10 @@ const systemPropertyTypes = {
     title: "Email",
     description: undefined,
   },
+  userRegistrationIsDisabled: {
+    title: "User Registration Is Disabled",
+    description: "Whether or not user registration is disabled.",
+  },
   kratosIdentityId: {
     title: "Kratos Identity Id",
     description: undefined,
@@ -311,6 +315,7 @@ type DataTypeDefinition = TypeDefinition & { dataTypeId: VersionedUri };
 
 type LinkEntityTypeDefinition = TypeDefinition & {
   linkEntityTypeId: VersionedUri;
+  description?: string;
 };
 
 type TypeDefinitions = {
