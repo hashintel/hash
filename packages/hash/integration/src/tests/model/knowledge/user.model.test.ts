@@ -9,7 +9,6 @@ import {
   createKratosIdentity,
 } from "@hashintel/hash-api/src/auth/ory-kratos";
 import { systemAccountId } from "@hashintel/hash-api/src/model/util";
-import { EntityId } from "@hashintel/hash-subgraph";
 import { createTestOrg, generateRandomShortname } from "../../util";
 
 jest.setTimeout(60000);
@@ -66,20 +65,20 @@ describe("User model class", () => {
   });
 
   it("can get the account id", () => {
-    expect(createdUser.entityId).toBeDefined();
+    expect(createdUser.entityUuid).toBeDefined();
   });
 
   it("can update the shortname of a user", async () => {
     createdUser = await createdUser.updateShortname(graphApi, {
       updatedShortname: shortname,
-      actorId: createdUser.entityId,
+      actorId: createdUser.entityUuid,
     });
   });
 
   it("can update the preferred name of a user", async () => {
     createdUser = await createdUser.updatePreferredName(graphApi, {
       updatedPreferredName: "Alice",
-      actorId: createdUser.entityId,
+      actorId: createdUser.entityUuid,
     });
   });
 
@@ -106,9 +105,9 @@ describe("User model class", () => {
   it("can join an org", async () => {
     const testOrg = await createTestOrg(graphApi, "userModelTest", logger);
 
-    const { entityId: orgEntityId } = testOrg;
+    const orgEntityUuid = testOrg.entityUuid;
 
-    expect(await createdUser.isMemberOfOrg(graphApi, { orgEntityId })).toBe(
+    expect(await createdUser.isMemberOfOrg(graphApi, { orgEntityUuid })).toBe(
       false,
     );
 
@@ -118,7 +117,7 @@ describe("User model class", () => {
       actorId: systemAccountId,
     });
 
-    expect(await createdUser.isMemberOfOrg(graphApi, { orgEntityId })).toBe(
+    expect(await createdUser.isMemberOfOrg(graphApi, { orgEntityUuid })).toBe(
       true,
     );
   });
