@@ -111,8 +111,8 @@ const useFreezeScrollWhileTransitioning = () => {
     const isRelevant = (evt: TransitionEvent) =>
       evt.target === node && evt.propertyName === "height";
 
-    const observer = new ResizeObserver(([size]) => {
-      const offset = size!.contentRect.height - beginningHeight;
+    const applyOffset = (currentHeight: number) => {
+      const offset = currentHeight - beginningHeight;
       // We can't adjust further that the scroll position, or you'll see a blank
       // space at the top. In this event, we'll compensate for the difference
       // so far as we can
@@ -121,6 +121,11 @@ const useFreezeScrollWhileTransitioning = () => {
       // Adjust the whole page to compensate for the current offset caused by the
       // edit bar height
       docNode.style.setProperty("top", `${appliedOffset}px`);
+      console.log(appliedOffset);
+    };
+
+    const observer = new ResizeObserver(([size]) => {
+      applyOffset(size!.contentRect.height);
     });
 
     observerRef.current = observer;
@@ -134,36 +139,40 @@ const useFreezeScrollWhileTransitioning = () => {
      */
     const end = (evt?: TransitionEvent) => {
       if (!evt || isRelevant(evt)) {
-        node.removeEventListener("transitionend", end);
-        node.removeEventListener("transitioncancel", end);
-        observer.unobserve(node);
+        console.log(window.getComputedStyle(node).height);
+        // applyOffset(window.getComputedStyle(node));
+        setTimeout(() => {
+          node.removeEventListener("transitionend", end);
+          node.removeEventListener("transitioncancel", end);
+          observer.unobserve(node);
 
-        // Before we start our calculations, remove the applied offset
-        docNode.style.removeProperty("top");
-        docNode.style.removeProperty("position");
+          // Before we start our calculations, remove the applied offset
+          docNode.style.removeProperty("top");
+          docNode.style.removeProperty("position");
 
-        // If the page isn't long enough to scroll to compensate for the removed
-        // offset, we want to apply some extra padding using min height
-        const { scrollTop, clientHeight, scrollHeight } = docNode;
-        const bottomPadding =
-          (scrollHeight - scrollTop - clientHeight + appliedOffset) * -1;
+          // If the page isn't long enough to scroll to compensate for the removed
+          // offset, we want to apply some extra padding using min height
+          const { scrollTop, clientHeight, scrollHeight } = docNode;
+          const bottomPadding =
+            (scrollHeight - scrollTop - clientHeight + appliedOffset) * -1;
 
-        if (bottomPadding > 0) {
-          docNode.style.setProperty(
-            "min-height",
-            `${clientHeight - appliedOffset}px`,
-          );
-        } else {
-          docNode.style.removeProperty("min-height");
-        }
+          if (bottomPadding > 0) {
+            docNode.style.setProperty(
+              "min-height",
+              `${Math.ceil(clientHeight - appliedOffset)}px`,
+            );
+          } else {
+            docNode.style.removeProperty("min-height");
+          }
 
-        // Now that the transition has finished, we want to adjust the scroll to
-        // compensate for the offset we've just removed
-        docNode.style.setProperty("scroll-behavior", "auto");
-        docNode.scrollTo({
-          top: scrollTop - appliedOffset,
-        });
-        docNode.style.removeProperty("scroll-behavior");
+          // Now that the transition has finished, we want to adjust the scroll to
+          // compensate for the offset we've just removed
+          docNode.style.setProperty("scroll-behavior", "auto");
+          docNode.scrollTo({
+            top: scrollTop - appliedOffset,
+          });
+          docNode.style.removeProperty("scroll-behavior");
+        }, 0);
       }
     };
 
@@ -218,44 +227,48 @@ export const EditBar = ({
   const collapseIn = currentVersion === 0 || isDirty;
 
   return (
-    <Collapse in={collapseIn} ref={ref}>
-      <Box
-        sx={(theme) => ({
-          height: 66,
-          backgroundColor: theme.palette.blue[70],
-          color: theme.palette.white,
-          display: "flex",
-          alignItems: "center",
-        })}
-      >
-        {frozenVersion === 0 ? (
-          <EditBarContents
-            icon={<FontAwesomeIcon icon={faSmile} sx={{ fontSize: 14 }} />}
-            title="Currently editing"
-            label="- this type has not yet been created"
-            discardButtonProps={{
-              children: "Discard this type",
-              ...discardButtonProps,
-            }}
-            confirmButtonProps={{
-              children: "Create",
-            }}
-          />
-        ) : (
-          <EditBarContents
-            icon={<PencilSimpleLine />}
-            title="Currently editing"
-            label={`Version ${frozenVersion} -> ${frozenVersion + 1}`}
-            discardButtonProps={{
-              children: "Discard changes",
-              ...discardButtonProps,
-            }}
-            confirmButtonProps={{
-              children: "Publish update",
-            }}
-          />
-        )}
+    <Box position="relative" overflow="visible">
+      <Box sx={{ position: "absolute", bottom: 0, width: "100%" }}>
+        <Collapse in={collapseIn} ref={ref}>
+          <Box
+            sx={(theme) => ({
+              height: 66,
+              backgroundColor: theme.palette.blue[70],
+              color: theme.palette.white,
+              display: "flex",
+              alignItems: "center",
+            })}
+          >
+            {frozenVersion === 0 ? (
+              <EditBarContents
+                icon={<FontAwesomeIcon icon={faSmile} sx={{ fontSize: 14 }} />}
+                title="Currently editing"
+                label="- this type has not yet been created"
+                discardButtonProps={{
+                  children: "Discard this type",
+                  ...discardButtonProps,
+                }}
+                confirmButtonProps={{
+                  children: "Create",
+                }}
+              />
+            ) : (
+              <EditBarContents
+                icon={<PencilSimpleLine />}
+                title="Currently editing"
+                label={`Version ${frozenVersion} -> ${frozenVersion + 1}`}
+                discardButtonProps={{
+                  children: "Discard changes",
+                  ...discardButtonProps,
+                }}
+                confirmButtonProps={{
+                  children: "Publish update",
+                }}
+              />
+            )}
+          </Box>
+        </Collapse>
       </Box>
-    </Collapse>
+    </Box>
   );
 };

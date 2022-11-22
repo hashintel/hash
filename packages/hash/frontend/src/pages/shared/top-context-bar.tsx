@@ -26,6 +26,7 @@ export const TopContextBar = ({
       height={TOP_CONTEXT_BAR_HEIGHT}
       pl={sidebarOpen ? 3 : 8}
       pr={4}
+      bgcolor={(theme) => theme.palette.white}
     >
       <Box>
         <Breadcrumbs
