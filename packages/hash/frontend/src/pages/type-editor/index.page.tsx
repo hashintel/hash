@@ -2,6 +2,10 @@ import { types } from "@hashintel/hash-shared/types";
 import { Box, Container } from "@mui/material";
 import { useCallback, useState } from "react";
 import {
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+} from "@hashintel/hash-subgraph";
+import {
   AggregateDataTypesMessageCallback,
   AggregateEntityTypesMessageCallback,
   AggregatePropertyTypesMessageCallback,
@@ -46,7 +50,6 @@ const ExampleUsage = ({ accountId }: { accountId: string }) => {
             propertyType: {
               kind: "propertyType",
               title: "Name",
-              pluralTitle: "Names",
               oneOf: [{ $ref: types.dataType.text.dataTypeId }],
             },
           },
@@ -113,7 +116,11 @@ const Page: NextPageWithLayout = () => {
   ) : (
     <Container sx={{ pt: 10 }}>
       Hello!
-      <ExampleUsage accountId={authenticatedUser.entityId} />
+      <ExampleUsage
+        accountId={extractEntityUuidFromEntityId(
+          authenticatedUser.entityEditionId.baseId,
+        )}
+      />
     </Container>
   );
 };
