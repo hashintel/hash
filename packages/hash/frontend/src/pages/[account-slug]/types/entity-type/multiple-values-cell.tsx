@@ -89,9 +89,9 @@ export const MultipleValuesCell = ({
           height: 1,
           transition: transitions.create("border-color"),
           border: 1,
-          borderColor: multipleValuesMenuOpen
-            ? `${palette.gray[40]} !important`
-            : "transparent !important",
+          borderColor: `${
+            multipleValuesMenuOpen ? palette.gray[40] : "transparent"
+          } !important`,
         })}
       >
         <Box
