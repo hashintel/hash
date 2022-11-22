@@ -1,18 +1,50 @@
-import { useLayoutEffect } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 /**
- * MUI's implementation applies a padding to the body which may break the layout.
- * This version applies different yet equally effective styles to the document element.
- *
- * Used to replace the functionality behind `disableScollLock` property of MUI's
- * components modal, drawer, menu, popover, dialog.
+ * @see https://github.com/mui/material-ui/blob/master/packages/mui-utils/src/getScrollbarSize.ts
  */
-export const useScrollLock = (active: boolean) =>
-  useLayoutEffect(() => {
-    document.documentElement.style.cssText = active
-      ? "position: fixed; overflow-y: auto; width: 100%"
-      : "";
+const getScrollbarSize = (doc: Document) => {
+  const documentWidth = doc.documentElement.clientWidth;
+  return Math.abs(window.innerWidth - documentWidth);
+};
+
+const useLastScrollbarSize = () => {
+  const [lastScrollbarSize, setLastScrollbarSize] = useState(0);
+  const observerRef = useRef<ResizeObserver>();
+
+  useEffect(() => {
+    observerRef.current = new ResizeObserver(() => {
+      const scrollbarSize = getScrollbarSize(document);
+
+      if (scrollbarSize > 0) {
+        setLastScrollbarSize(scrollbarSize);
+      }
+    });
+
+    observerRef.current.observe(document.body);
+
     return () => {
-      document.documentElement.style.cssText = "";
+      observerRef.current?.disconnect();
     };
-  }, [active]);
+  }, []);
+
+  return lastScrollbarSize;
+};
+
+/**
+ * This function does the same thing as MUI's scroll-lock mechanism, but in a hook.
+ * So we can use the same scroll-lock at custom components
+ */
+export const useScrollLock = (active: boolean) => {
+  const scrollbarSize = useLastScrollbarSize();
+
+  useLayoutEffect(() => {
+    document.body.style.cssText =
+      active && scrollbarSize
+        ? `padding-right: ${scrollbarSize}px; overflow: hidden;`
+        : "";
+    return () => {
+      document.body.style.cssText = "";
+    };
+  }, [active, scrollbarSize]);
+};
