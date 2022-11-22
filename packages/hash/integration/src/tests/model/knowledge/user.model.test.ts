@@ -37,7 +37,7 @@ describe("User model class", () => {
 
   let createdUser: UserModel;
 
-  let kratosIdentityId: EntityId;
+  let kratosIdentityId: string;
 
   it("can create a user", async () => {
     const identity = await createKratosIdentity({
