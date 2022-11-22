@@ -10,7 +10,7 @@ import {
   EntityType,
   PropertyType,
   VersionedUri,
-} from "@blockprotocol/type-system-node";
+} from "@blockprotocol/type-system-web";
 import { EntityEditionId, EntityId } from "./identifier";
 
 // Due to restrictions with how much OpenAPI can express, we patch the schemas with the better-typed ones from the

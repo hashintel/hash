@@ -1,4 +1,4 @@
-import { BaseUri, VersionedUri } from "@blockprotocol/type-system-node";
+import { BaseUri, VersionedUri } from "@blockprotocol/type-system-web";
 import { isEntityTypeVertex } from "../../types/vertex";
 import { Subgraph } from "../../types/subgraph";
 import { EntityTypeWithMetadata } from "../../types/element";

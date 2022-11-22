@@ -2,7 +2,7 @@ import { VersionedUri } from "@blockprotocol/type-system-node";
 import { OntologyTypeEditionId } from "@hashintel/hash-graph-client";
 import { validate as validateUuid } from "uuid";
 
-export { VersionedUri } from "@blockprotocol/type-system-node";
+export { VersionedUri } from "@blockprotocol/type-system-web";
 
 // ${AccountId}%${EntityUuid}`
 export type EntityId = `${string}%${string}`;

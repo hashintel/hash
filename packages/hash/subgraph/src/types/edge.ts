@@ -1,4 +1,4 @@
-import { BaseUri } from "@blockprotocol/type-system-node";
+import { BaseUri } from "@blockprotocol/type-system-web";
 import {
   isEntityEditionId,
   isOntologyTypeEditionId,
