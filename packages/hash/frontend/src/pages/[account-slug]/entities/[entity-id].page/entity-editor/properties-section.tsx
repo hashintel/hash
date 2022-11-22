@@ -6,6 +6,7 @@ import {
 } from "@hashintel/hash-design-system";
 import { Paper, Stack } from "@mui/material";
 import { useState } from "react";
+import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { LinksIcon } from "../../../../../shared/icons";
 import { useEntityEditor } from "./entity-editor-context";
 import { getPropertyCountSummary } from "./properties-section/get-property-count-summary";
@@ -23,14 +24,14 @@ const EmptyState = () => (
 );
 
 export const PropertiesSection = () => {
-  const { rootEntityAndSubgraph } = useEntityEditor();
+  const { entitySubgraph } = useEntityEditor();
   const [showSearch, setShowSearch] = useState(false);
 
-  if (!rootEntityAndSubgraph) {
+  if (!entitySubgraph) {
     return null;
   }
 
-  const entity = rootEntityAndSubgraph.root;
+  const entity = getRoots(entitySubgraph)[0]!;
 
   const { emptyCount, notEmptyCount } = getPropertyCountSummary(
     entity.properties,
