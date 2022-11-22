@@ -1,10 +1,11 @@
+import { EntityVersion } from "@hashintel/hash-subgraph";
 import { CommentModel } from "../../../../model";
 import { ResolverFn } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import { UnresolvedPersistedCommentGQL } from "../model-mapping";
 
 export const persistedCommentTextUpdatedAt: ResolverFn<
-  Promise<string>,
+  Promise<EntityVersion>,
   UnresolvedPersistedCommentGQL,
   LoggedInGraphQLContext,
   {}
