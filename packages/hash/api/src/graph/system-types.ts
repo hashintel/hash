@@ -216,10 +216,24 @@ const responsibilityPropertyTypeInitializer = propertyTypeInitializer({
   actorId: systemAccountId,
 });
 
-const orgMembershipLinkEntityTypeInitializer = entityTypeInitializer({
-  ...types.linkEntityType.orgMembership,
-  actorId: systemAccountId,
-});
+const orgMembershipLinkEntityTypeInitializer = async (graphApi: GraphApi) => {
+  /* eslint-disable @typescript-eslint/no-use-before-define */
+  const responsibilityPropertyTypeModel =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.responsibility(graphApi);
+  /* eslint-enable @typescript-eslint/no-use-before-define */
+
+  return entityTypeInitializer({
+    ...types.linkEntityType.orgMembership,
+    properties: [
+      {
+        propertyTypeModel: responsibilityPropertyTypeModel,
+        required: true,
+      },
+    ],
+    actorId: systemAccountId,
+    outgoingLinks: [],
+  })(graphApi);
+};
 
 const userEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */

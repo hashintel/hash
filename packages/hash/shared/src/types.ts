@@ -312,7 +312,6 @@ type DataTypeDefinition = TypeDefinition & { dataTypeId: VersionedUri };
 
 type LinkEntityTypeDefinition = TypeDefinition & {
   linkEntityTypeId: VersionedUri;
-  description: string;
 };
 
 type TypeDefinitions = {
