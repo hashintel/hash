@@ -20,7 +20,7 @@ import {
 } from "@mui/material";
 import { experimental_sx, styled } from "@mui/system";
 import { usePopupState } from "material-ui-popup-state/hooks";
-import { useId, useRef, useState } from "react";
+import { useId, useRef } from "react";
 import {
   Controller,
   useFieldArray,
@@ -64,9 +64,6 @@ export const PropertyTypeRow = ({
     variant: "popover",
     popupId: `property-menu-${popupId}`,
   });
-
-  const [hovered, setHovered] = useState(false);
-  const visiblyHovered = hovered || menuPopupState.isOpen;
 
   const propertyTypes = usePropertyTypes();
   const propertyId = mustBeVersionedUri($id);
