@@ -8,7 +8,7 @@
 //! ```json
 //! {
 //!     "context": "context display output",
-//!     "attachments": ["all attachments leading up to this context"],
+//!     "attachments": ["all", "attachments", "leading", "up", "to", "this", "context"],
 //!     "sources": [] // recursive render using `frame.sources()`
 //! }
 //! ```
