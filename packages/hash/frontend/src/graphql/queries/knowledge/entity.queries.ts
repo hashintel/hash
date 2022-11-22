@@ -3,7 +3,7 @@ import { subgraphFieldsFragment } from "../subgraph";
 
 export const createEntityWithMetadataMutation = gql`
   mutation createEntityWithMetadata(
-    $entityTypeId: ID!
+    $entityTypeId: VersionedUri!
     $properties: JSONObject!
   ) {
     # This is a scalar, which has no selection.
@@ -22,20 +22,16 @@ export const getEntityWithMetadataQuery = gql`
     $entityVersion: String
     $dataTypeResolveDepth: Int!
     $propertyTypeResolveDepth: Int!
-    $linkTypeResolveDepth: Int!
     $entityTypeResolveDepth: Int!
-    $linkResolveDepth: Int!
-    $linkTargetEntityResolveDepth: Int!
+    $entityResolveDepth: Int!
   ) {
     getEntityWithMetadata(
       entityId: $entityId
       entityVersion: $entityVersion
       dataTypeResolveDepth: $dataTypeResolveDepth
       propertyTypeResolveDepth: $propertyTypeResolveDepth
-      linkTypeResolveDepth: $linkTypeResolveDepth
       entityTypeResolveDepth: $entityTypeResolveDepth
-      linkResolveDepth: $linkResolveDepth
-      linkTargetEntityResolveDepth: $linkTargetEntityResolveDepth
+      entityResolveDepth: $entityResolveDepth
     ) {
       ...SubgraphFields
     }
@@ -47,18 +43,14 @@ export const getAllLatestEntitiesWithMetadataQuery = gql`
   query getAllLatestEntitiesWithMetadata(
     $dataTypeResolveDepth: Int!
     $propertyTypeResolveDepth: Int!
-    $linkTypeResolveDepth: Int!
     $entityTypeResolveDepth: Int!
-    $linkResolveDepth: Int!
-    $linkTargetEntityResolveDepth: Int!
+    $entityResolveDepth: Int!
   ) {
     getAllLatestEntitiesWithMetadata(
       dataTypeResolveDepth: $dataTypeResolveDepth
       propertyTypeResolveDepth: $propertyTypeResolveDepth
-      linkTypeResolveDepth: $linkTypeResolveDepth
       entityTypeResolveDepth: $entityTypeResolveDepth
-      linkTargetEntityResolveDepth: $linkTargetEntityResolveDepth
-      linkResolveDepth: $linkResolveDepth
+      entityResolveDepth: $entityResolveDepth
     ) {
       ...SubgraphFields
     }
