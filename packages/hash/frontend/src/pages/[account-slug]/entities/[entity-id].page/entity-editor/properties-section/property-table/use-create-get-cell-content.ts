@@ -1,9 +1,9 @@
 import { GridCell, GridCellKind, Item } from "@glideapps/glide-data-grid";
 import { useCallback } from "react";
-import { blankCell } from "../../../../../../../components/GlideGlid/utils";
+import { blankCell } from "../../../../../../../components/grid/utils";
 import { getPropertyCountSummary } from "../get-property-count-summary";
 import { SummaryChipCellProps } from "./cells/summary-chip-cell";
-import { UseGridTooltipResponse } from "../../../../../../../components/GlideGlid/utils/use-grid-tooltip/types";
+import { UseGridTooltipResponse } from "../../../../../../../components/grid/utils/use-grid-tooltip/types";
 import { ChipCellProps } from "./cells/chip-cell";
 import { PropertyNameCellProps } from "./cells/property-name-cell";
 import { ValueCellProps } from "./cells/value-cell/types";

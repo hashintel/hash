@@ -11,10 +11,9 @@ import {
 import { Box, Paper, Stack } from "@mui/material";
 import { FunctionComponent, useCallback, useMemo, useState } from "react";
 import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
-import { GlideGrid } from "../../../../../components/GlideGlid/glide-grid";
 import { SectionWrapper } from "../../../shared/section-wrapper";
 import { WhiteChip } from "../../../shared/white-chip";
-import { blankCell } from "../../../../../components/GlideGlid/utils";
+import { blankCell } from "../../../../../components/grid/utils";
 import { HomeIcon } from "../../../../../shared/icons/home-icon";
 import { EarthIcon } from "../../../../../shared/icons/earth-icon";
 import { renderTextIconCell } from "../text-icon-cell";
@@ -22,6 +21,7 @@ import { useRouteNamespace } from "../use-route-namespace";
 import { TypeEntitiesRow, useEntitiesTable } from "../use-entities-table";
 import { useEntityTypeEntities } from "../use-entity-type-entities";
 import { useEntityType } from "../use-entity-type";
+import { Grid } from "../../../../../components/grid/grid";
 import { SectionEmptyState } from "../../../shared/section-empty-state";
 
 export const EntitiesTab: FunctionComponent = () => {
@@ -141,7 +141,7 @@ export const EntitiesTab: FunctionComponent = () => {
               description="Assigning this type to an entity will result in it being shown here"
             />
           ) : (
-            <GlideGrid
+            <Grid
               showSearch={showSearch}
               onSearchClose={() => setShowSearch(false)}
               columns={columns}

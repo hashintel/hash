@@ -1,5 +1,5 @@
-import { GlideGrid } from "../../../../../../components/GlideGlid/glide-grid";
-import { useDrawCell } from "../../../../../../components/GlideGlid/utils/use-draw-cell";
+import { Grid } from "../../../../../../components/grid/grid";
+import { useDrawCell } from "../../../../../../components/grid/utils/use-draw-cell";
 import { linkGridColumns } from "./link-table/constants";
 import { useCreateGetCellContent } from "./link-table/use-create-get-cell-content";
 import { useRowData } from "./link-table/use-row-data";
@@ -15,7 +15,7 @@ export const LinkTable = ({ showSearch, onSearchClose }: LinkTableProps) => {
   const createGetCellContent = useCreateGetCellContent();
 
   return (
-    <GlideGrid
+    <Grid
       columns={linkGridColumns}
       rowData={rowData}
       createGetCellContent={createGetCellContent}

@@ -4,13 +4,13 @@ import {
   GridCellKind,
 } from "@glideapps/glide-data-grid";
 import { types } from "@hashintel/hash-shared/types";
-import { InteractableManager } from "../../../../../../../../components/GlideGlid/utils/interactable-manager";
-import { drawInteractableTooltipIcons } from "../../../../../../../../components/GlideGlid/utils/use-grid-tooltip/draw-interactable-tooltip-icons";
+import { InteractableManager } from "../../../../../../../../components/grid/utils/interactable-manager";
+import { drawInteractableTooltipIcons } from "../../../../../../../../components/grid/utils/use-grid-tooltip/draw-interactable-tooltip-icons";
 import {
   getCellHorizontalPadding,
   getYCenter,
-} from "../../../../../../../../components/GlideGlid/utils";
-import { drawTextWithIcon } from "../../../../../../../../components/GlideGlid/utils/draw-text-with-icon";
+} from "../../../../../../../../components/grid/utils";
+import { drawTextWithIcon } from "../../../../../../../../components/grid/utils/draw-text-with-icon";
 import { isValueEmpty } from "../../is-value-empty";
 import { ValueCell } from "./value-cell/types";
 import { ValueCellEditor } from "./value-cell/value-cell-editor";
