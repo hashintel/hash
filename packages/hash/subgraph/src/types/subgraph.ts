@@ -1,16 +1,40 @@
 import {
-  GraphElementEditionId,
   GraphResolveDepths,
+  OntologyTypeEditionId,
 } from "@hashintel/hash-graph-client";
-import { GraphElement } from "./element";
+import {
+  DataTypeWithMetadata,
+  EntityTypeWithMetadata,
+  EntityWithMetadata,
+  PropertyTypeWithMetadata,
+} from "./element";
 import { Vertices } from "./vertex";
 import { Edges } from "./edge";
+import { EntityEditionId } from "./identifier";
 
-export type Subgraph<
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  RootType extends GraphElement = GraphElement,
-> = {
-  roots: GraphElementEditionId[];
+export type SubgraphRootTypes = {
+  dataType: {
+    editionId: OntologyTypeEditionId;
+    element: DataTypeWithMetadata;
+  };
+  propertyType: {
+    editionId: OntologyTypeEditionId;
+    element: PropertyTypeWithMetadata;
+  };
+  entityType: {
+    editionId: OntologyTypeEditionId;
+    element: EntityTypeWithMetadata;
+  };
+  entity: {
+    editionId: EntityEditionId;
+    element: EntityWithMetadata;
+  };
+};
+
+export type SubgraphRootType = SubgraphRootTypes[keyof SubgraphRootTypes];
+
+export type Subgraph<RootType extends SubgraphRootType = SubgraphRootType> = {
+  roots: RootType["editionId"][];
   vertices: Vertices;
   edges: Edges;
   depths: GraphResolveDepths;

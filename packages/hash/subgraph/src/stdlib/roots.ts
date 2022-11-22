@@ -1,11 +1,8 @@
 import {
-  DataTypeWithMetadata,
-  EntityWithMetadata,
-  EntityTypeWithMetadata,
-  GraphElement,
-  PropertyTypeWithMetadata,
-} from "../types/element";
-import { Subgraph } from "../types/subgraph";
+  Subgraph,
+  SubgraphRootType,
+  SubgraphRootTypes,
+} from "../types/subgraph";
 import { getDataTypeByEditionId } from "./element/data-type";
 import {
   isEntityEditionId,
@@ -28,9 +25,9 @@ import { mustBeDefined } from "../shared/invariant";
  *
  * @param subgraph
  */
-export const getRoots = <RootType extends GraphElement>(
+export const getRoots = <RootType extends SubgraphRootType>(
   subgraph: Subgraph<RootType>,
-): RootType[] =>
+): RootType["element"][] =>
   subgraph.roots.map((rootEditionId) => {
     const root = mustBeDefined(
       subgraph.vertices[rootEditionId.baseId]?.[
@@ -45,7 +42,7 @@ export const getRoots = <RootType extends GraphElement>(
       )} was missing`,
     );
 
-    return root.inner as RootType;
+    return root.inner as RootType["element"];
   });
 
 /**
@@ -58,7 +55,7 @@ export const getRoots = <RootType extends GraphElement>(
  */
 export const isDataTypeRootedSubgraph = (
   subgraph: Subgraph,
-): subgraph is Subgraph<DataTypeWithMetadata> => {
+): subgraph is Subgraph<SubgraphRootTypes["dataType"]> => {
   for (const rootEditionId of subgraph.roots) {
     if (!isOntologyTypeEditionId(rootEditionId)) {
       return false;
@@ -85,7 +82,7 @@ export const isDataTypeRootedSubgraph = (
  */
 export const isPropertyTypeRootedSubgraph = (
   subgraph: Subgraph,
-): subgraph is Subgraph<PropertyTypeWithMetadata> => {
+): subgraph is Subgraph<SubgraphRootTypes["propertyType"]> => {
   for (const rootEditionId of subgraph.roots) {
     if (!isOntologyTypeEditionId(rootEditionId)) {
       return false;
@@ -112,7 +109,7 @@ export const isPropertyTypeRootedSubgraph = (
  */
 export const isEntityTypeRootedSubgraph = (
   subgraph: Subgraph,
-): subgraph is Subgraph<EntityTypeWithMetadata> => {
+): subgraph is Subgraph<SubgraphRootTypes["entityType"]> => {
   for (const rootEditionId of subgraph.roots) {
     if (!isOntologyTypeEditionId(rootEditionId)) {
       return false;
@@ -139,7 +136,7 @@ export const isEntityTypeRootedSubgraph = (
  */
 export const isEntityRootedSubgraph = (
   subgraph: Subgraph,
-): subgraph is Subgraph<EntityWithMetadata> => {
+): subgraph is Subgraph<SubgraphRootTypes["entity"]> => {
   for (const rootEditionId of subgraph.roots) {
     if (!isEntityEditionId(rootEditionId)) {
       return false;
