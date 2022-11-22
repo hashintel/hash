@@ -58,7 +58,7 @@
 use alloc::{boxed::Box, collections::BTreeMap, format, string::String};
 use core::fmt::{self, Debug, Display, Formatter};
 
-use error_stack::{Context, Frame, IntoReport, Result};
+use error_stack::{Context, Frame, IntoReport, Report, Result};
 pub use extra::{
     ArrayLengthError, ExpectedLength, ObjectItemsExtraError, ReceivedKey, ReceivedLength,
 };
@@ -72,7 +72,7 @@ pub use unknown::{
 };
 pub use value::{MissingError, ReceivedValue, ValueError};
 
-use crate::error::macros::impl_error;
+use crate::error::{hooks::Export, macros::impl_error};
 
 mod extra;
 mod hooks;
@@ -365,3 +365,13 @@ error!(
     /// [`ArrayAccess`]: crate::ArrayAccess
     ArrayAccessError: "array access encountered one or more errors during access"
 );
+
+pub trait ReportExt<C: Context> {
+    fn export(self) -> Export<C>;
+}
+
+impl<C: Context> ReportExt<C> for Report<C> {
+    fn export(self) -> Export<C> {
+        Export(self)
+    }
+}

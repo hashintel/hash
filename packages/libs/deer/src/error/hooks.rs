@@ -318,13 +318,18 @@ pub fn register_hooks(hooks: &[Hook]) {
     HOOKS.push(hooks);
 }
 
-struct Handle<C: Context>(Report<C>);
+pub struct Export<C: Context>(Report<C>);
 
-impl<C: Context> Serialize for Handle<C> {
+impl<C: Context> Serialize for Export<C> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
         HOOKS.serialize_report(&self.0, serializer)
     }
+}
+
+#[cfg(test)]
+mod tests {
+    // TODO
 }
