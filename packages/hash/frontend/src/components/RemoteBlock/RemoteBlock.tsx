@@ -16,6 +16,7 @@ type RemoteBlockProps = {
     EmbedderGraphMessageCallbacks,
     | "createEntity"
     | "getEntity"
+    | "updateEntity"
     | "aggregateEntities"
     | "deleteEntity"
     | "createLink"
