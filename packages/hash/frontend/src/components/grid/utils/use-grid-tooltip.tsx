@@ -1,6 +1,5 @@
 import { DataEditorRef } from "@glideapps/glide-data-grid";
-import { Popover } from "@hashintel/hash-design-system";
-import { PopoverPosition, Typography } from "@mui/material";
+import { Popover, PopoverPosition, Typography } from "@mui/material";
 import { isEqual } from "lodash";
 import { bindPopover, usePopupState } from "material-ui-popup-state/hooks";
 import { RefObject, useCallback, useState } from "react";

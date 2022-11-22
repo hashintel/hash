@@ -3,7 +3,6 @@ import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import {
   FontAwesomeIcon,
   IconButton,
-  Menu,
   MenuItem,
 } from "@hashintel/hash-design-system";
 import {
@@ -12,6 +11,7 @@ import {
   listItemClasses,
   ListItemText,
   listItemTextClasses,
+  Menu,
   menuItemClasses,
   tableRowClasses,
   Tooltip,
