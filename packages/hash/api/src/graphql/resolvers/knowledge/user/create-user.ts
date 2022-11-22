@@ -44,7 +44,7 @@ export const createUser: ResolverFn<
     preferredName: preferredName ?? undefined,
     kratosIdentityId,
     isInstanceAdmin,
-    actorId: actorUserModel.entityUuid,
+    actorId: actorUserModel.getEntityUuid(),
   });
 
   return await userModel.getRootedSubgraph(graphApi, {

@@ -27,22 +27,19 @@ export type OrgMembershipModelCreateParams = Omit<
  * @see https://app.asana.com/0/0/1203371754468058/f
  */
 export default class extends EntityModel {
-  static fromEntityModel(entity: EntityModel): OrgMembershipModel {
+  static fromEntityModel(entityModel: EntityModel): OrgMembershipModel {
     if (
-      entity.entityTypeModel.schema.$id !==
-      SYSTEM_TYPES.entityType.orgMembership.schema.$id
+      entityModel.entityTypeModel.getSchema().$id !==
+      SYSTEM_TYPES.entityType.orgMembership.getSchema().$id
     ) {
       throw new EntityTypeMismatchError(
-        entity.baseId,
-        SYSTEM_TYPES.entityType.orgMembership.schema.$id,
-        entity.entityTypeModel.schema.$id,
+        entityModel.getBaseId(),
+        SYSTEM_TYPES.entityType.orgMembership.getSchema().$id,
+        entityModel.entityTypeModel.getSchema().$id,
       );
     }
 
-    return new OrgMembershipModel({
-      entity,
-      entityTypeModel: entity.entityTypeModel,
-    });
+    return new OrgMembershipModel(entityModel);
   }
 
   /**
@@ -58,7 +55,7 @@ export default class extends EntityModel {
     const { responsibility, org, actorId } = params;
 
     const properties: PropertyObject = {
-      [SYSTEM_TYPES.propertyType.responsibility.baseUri]: responsibility,
+      [SYSTEM_TYPES.propertyType.responsibility.getBaseUri()]: responsibility,
     };
 
     const entityTypeModel = SYSTEM_TYPES.entityType.orgMembership;
@@ -107,20 +104,20 @@ export default class extends EntityModel {
           {
             equal: [
               { path: ["leftEntity", "uuid"] },
-              { parameter: this.entityUuid },
+              { parameter: this.getEntityUuid() },
             ],
           },
           {
             equal: [
               { path: ["leftEntity", "ownedById"] },
-              { parameter: this.ownedById },
+              { parameter: this.getOwnedById() },
             ],
           },
           {
             equal: [
               { path: ["type", "versionedUri"] },
               {
-                parameter: SYSTEM_TYPES.linkEntityType.ofOrg.schema.$id,
+                parameter: SYSTEM_TYPES.linkEntityType.ofOrg.getSchema().$id,
               },
             ],
           },
@@ -143,7 +140,7 @@ export default class extends EntityModel {
        * @todo: potentially remove this when the Graph API validates entities based on their schema
        */
       throw new Error(
-        `Critical: org membership with entity id ${this.baseId} doesn't have an outgoing "org" link`,
+        `Critical: org membership with entity id ${this.getBaseId()} doesn't have an outgoing "org" link`,
       );
     }
 
@@ -162,20 +159,21 @@ export default class extends EntityModel {
           {
             equal: [
               { path: ["rightEntity", "uuid"] },
-              { parameter: this.entityUuid },
+              { parameter: this.getEntityUuid() },
             ],
           },
           {
             equal: [
               { path: ["leftEntity", "ownedById"] },
-              { parameter: this.ownedById },
+              { parameter: this.getOwnedById() },
             ],
           },
           {
             equal: [
               { path: ["type", "versionedUri"] },
               {
-                parameter: SYSTEM_TYPES.linkEntityType.hasMembership.schema.$id,
+                parameter:
+                  SYSTEM_TYPES.linkEntityType.hasMembership.getSchema().$id,
               },
             ],
           },
@@ -193,7 +191,7 @@ export default class extends EntityModel {
 
     if (!incomingOrgMembershipLinkEntityModel) {
       throw new Error(
-        `Critical: org membership with entity id ${this.baseId} doesn't have a linked user`,
+        `Critical: org membership with entity id ${this.getBaseId()} doesn't have a linked user`,
       );
     }
 

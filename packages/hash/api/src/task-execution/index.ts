@@ -77,7 +77,7 @@ export const CachedEntityTypes = async (
       if (entityTypeModel === undefined) {
         // check all entityTypes to see if there's one with the same name as the stream
         entityTypeModel = entityTypes.find(
-          (entityType) => entityType.schema.title === entityTypeTitle,
+          (entityType) => entityType.getSchema().title === entityTypeTitle,
         );
       }
       return entityTypeModel;
@@ -85,8 +85,8 @@ export const CachedEntityTypes = async (
 
     createNew: async (entityTypeTitle: string, jsonSchema: EntityType) => {
       const entityTypeModel = await EntityTypeModel.create(graphApi, {
-        ownedById: user.entityUuid,
-        actorId: user.entityUuid,
+        ownedById: user.getEntityUuid(),
+        actorId: user.getEntityUuid(),
         schema: { ...jsonSchema, title: entityTypeTitle },
       });
 

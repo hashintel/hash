@@ -49,33 +49,33 @@ export default class {
 
   entityTypeModel: EntityTypeModel;
 
-  get baseId(): EntityId {
-    return this.metadata.editionId.baseId;
-  }
-
-  get version(): EntityVersion {
-    return this.metadata.editionId.version;
-  }
-
-  get entityUuid(): string {
-    return extractEntityUuidFromEntityId(this.baseId);
-  }
-
-  get ownedById(): string {
-    return extractOwnedByIdFromEntityId(this.baseId);
-  }
-
-  get metadata(): EntityMetadata {
-    return this.entity.metadata;
-  }
-
-  get properties(): PropertyObject {
-    return this.entity.properties;
-  }
-
   constructor({ entity, entityTypeModel }: EntityModelConstructorParams) {
     this.entity = entity;
     this.entityTypeModel = entityTypeModel;
+  }
+
+  getVersion(): string {
+    return this.getMetadata().editionId.version;
+  }
+
+  getBaseId(): EntityId {
+    return this.getMetadata().editionId.baseId;
+  }
+
+  getMetadata(): EntityMetadata {
+    return this.entity.metadata;
+  }
+
+  getProperties(): PropertyObject {
+    return this.entity.properties;
+  }
+
+  getOwnedById(): string {
+    return extractOwnedByIdFromEntityId(this.getBaseId());
+  }
+
+  getEntityUuid(): string {
+    return extractEntityUuidFromEntityId(this.getBaseId());
   }
 
   static async fromEntity(
@@ -126,7 +126,7 @@ export default class {
 
     const { data: metadata } = await graphApi.createEntity({
       ownedById,
-      entityTypeId: entityTypeModel.schema.$id,
+      entityTypeId: entityTypeModel.getSchema().$id,
       properties,
       entityUuid: overrideEntityId,
       actorId,
@@ -374,13 +374,13 @@ export default class {
     },
   ): Promise<EntityModel> {
     const { properties, actorId } = params;
-    const { baseId, entityTypeModel } = this;
+    const { entityTypeModel } = this;
 
     const { data: metadata } = await graphApi.updateEntity({
       actorId,
-      entityId: baseId,
+      entityId: this.getBaseId(),
       /** @todo: make this argument optional */
-      entityTypeId: entityTypeModel.schema.$id,
+      entityTypeId: entityTypeModel.getSchema().$id,
       properties,
     });
 
@@ -392,7 +392,7 @@ export default class {
 
   async archive(graphApi: GraphApi, params: { actorId: string }) {
     const { actorId } = params;
-    await graphApi.archiveEntity({ entityId: this.baseId, actorId });
+    await graphApi.archiveEntity({ entityId: this.getBaseId(), actorId });
   }
 
   /**
@@ -416,7 +416,7 @@ export default class {
           ...prev,
           [propertyTypeBaseUri]: value,
         }),
-        this.properties,
+        this.getProperties(),
       ),
       actorId,
     });
@@ -449,9 +449,9 @@ export default class {
    * Get the latest version of this entity.
    */
   async getLatestVersion(graphApi: GraphApi) {
-    const { baseId } = this;
-
-    return await EntityModel.getLatest(graphApi, { entityId: baseId });
+    return await EntityModel.getLatest(graphApi, {
+      entityId: this.getBaseId(),
+    });
   }
 
   /** @see {@link LinkModel.create} */
@@ -479,13 +479,13 @@ export default class {
         {
           equal: [
             { path: ["rightEntity", "uuid"] },
-            { parameter: this.entityUuid },
+            { parameter: this.getEntityUuid() },
           ],
         },
         {
           equal: [
             { path: ["rightEntity", "ownedById"] },
-            { parameter: this.ownedById },
+            { parameter: this.getOwnedById() },
           ],
         },
         {
@@ -502,7 +502,7 @@ export default class {
         equal: [
           { path: ["type", "versionedUri"] },
           {
-            parameter: params.linkEntityTypeModel.schema.$id,
+            parameter: params.linkEntityTypeModel.getSchema().$id,
           },
         ],
       });
@@ -537,13 +537,13 @@ export default class {
         {
           equal: [
             { path: ["leftEntity", "uuid"] },
-            { parameter: this.entityUuid },
+            { parameter: this.getEntityUuid() },
           ],
         },
         {
           equal: [
             { path: ["leftEntity", "ownedById"] },
-            { parameter: this.ownedById },
+            { parameter: this.getOwnedById() },
           ],
         },
         {
@@ -560,7 +560,7 @@ export default class {
         equal: [
           { path: ["type", "versionedUri"] },
           {
-            parameter: params.linkEntityTypeModel.schema.$id,
+            parameter: params.linkEntityTypeModel.getSchema().$id,
           },
         ],
       });
@@ -571,13 +571,13 @@ export default class {
         {
           equal: [
             { path: ["rightEntity", "uuid"] },
-            { parameter: params.rightEntityModel.entityUuid },
+            { parameter: params.rightEntityModel.getEntityUuid() },
           ],
         },
         {
           equal: [
             { path: ["rightEntity", "ownedById"] },
-            { parameter: params.rightEntityModel.ownedById },
+            { parameter: params.rightEntityModel.getOwnedById() },
           ],
         },
       );
@@ -609,8 +609,13 @@ export default class {
       filter: {
         all: [
           { equal: [{ path: ["version"] }, { parameter: "latest" }] },
-          { equal: [{ path: ["uuid"] }, { parameter: this.entityUuid }] },
-          { equal: [{ path: ["ownedById"] }, { parameter: this.ownedById }] },
+          { equal: [{ path: ["uuid"] }, { parameter: this.getEntityUuid() }] },
+          {
+            equal: [
+              { path: ["ownedById"] },
+              { parameter: this.getOwnedById() },
+            ],
+          },
         ],
       },
       graphResolveDepths: {

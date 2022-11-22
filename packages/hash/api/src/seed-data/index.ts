@@ -49,7 +49,7 @@ const seedOrg = async (params: {
     },
   ];
 
-  await seedPages(pageTitles, sharedOrgModel.entityUuid, params);
+  await seedPages(pageTitles, sharedOrgModel.getEntityUuid(), params);
 
   logger.info(
     `Development Org with shortname = "${sharedOrgModel.getShortname()}" now has seeded pages.`,
@@ -101,7 +101,7 @@ export const seedOrgsAndUsers = async (params: {
         },
       ];
 
-      await seedPages(pageTitles, user.entityUuid, params);
+      await seedPages(pageTitles, user.getEntityUuid(), params);
       logger.info(
         `Seeded User with shortname = "${user.getShortname()}" now has seeded pages.`,
       );

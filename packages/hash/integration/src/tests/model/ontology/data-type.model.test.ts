@@ -48,41 +48,43 @@ describe("Data type CRU", () => {
 
   it("can create a data type", async () => {
     createdDataTypeModel = await DataTypeModel.create(graphApi, {
-      ownedById: testUser.entityUuid,
+      ownedById: testUser.getEntityUuid(),
       schema: dataTypeSchema,
-      actorId: testUser.entityUuid,
+      actorId: testUser.getEntityUuid(),
     });
   });
 
   it("can read a data type", async () => {
     const fetchedDataType = await DataTypeModel.get(graphApi, {
-      dataTypeId: createdDataTypeModel.schema.$id,
+      dataTypeId: createdDataTypeModel.getSchema().$id,
     });
 
-    expect(fetchedDataType.schema).toEqual(createdDataTypeModel.schema);
+    expect(fetchedDataType.getSchema()).toEqual(
+      createdDataTypeModel.getSchema(),
+    );
   });
 
   const updatedTitle = "New text!";
   it("can update a data type", async () => {
-    expect(createdDataTypeModel.metadata.provenance.createdById).toBe(
-      testUser.entityUuid,
+    expect(createdDataTypeModel.getMetadata().provenance.createdById).toBe(
+      testUser.getEntityUuid(),
     );
-    expect(createdDataTypeModel.metadata.provenance.updatedById).toBe(
-      testUser.entityUuid,
+    expect(createdDataTypeModel.getMetadata().provenance.updatedById).toBe(
+      testUser.getEntityUuid(),
     );
 
     createdDataTypeModel = await createdDataTypeModel
       .update(graphApi, {
         schema: { ...dataTypeSchema, title: updatedTitle },
-        actorId: testUser2.entityUuid,
+        actorId: testUser2.getEntityUuid(),
       })
       .catch((err) => Promise.reject(err.data));
 
-    expect(createdDataTypeModel.metadata.provenance.createdById).toBe(
-      testUser.entityUuid,
+    expect(createdDataTypeModel.getMetadata().provenance.createdById).toBe(
+      testUser.getEntityUuid(),
     );
-    expect(createdDataTypeModel.metadata.provenance.updatedById).toBe(
-      testUser2.entityUuid,
+    expect(createdDataTypeModel.getMetadata().provenance.updatedById).toBe(
+      testUser2.getEntityUuid(),
     );
   });
 });

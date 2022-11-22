@@ -36,7 +36,7 @@ describe("Org model class", () => {
   });
 
   it("can get the account id", () => {
-    expect(createdOrg.entityUuid).toBeDefined();
+    expect(createdOrg.getEntityUuid()).toBeDefined();
   });
 
   it("can update the shortname of an org", async () => {

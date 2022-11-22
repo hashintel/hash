@@ -21,7 +21,7 @@ export const canAccessAccount: ResolverMiddleware<
       dataSources: { graphApi },
     } = ctx;
     let isAllowed = false;
-    if (userModel.entityUuid === args.ownedById) {
+    if (userModel.getEntityUuid() === args.ownedById) {
       isAllowed = true;
     } else {
       isAllowed = await userModel.isMemberOfOrg(graphApi, {

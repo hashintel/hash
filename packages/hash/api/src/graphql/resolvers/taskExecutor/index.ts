@@ -200,13 +200,13 @@ export const executeGithubReadTask: ResolverFn<
         /** @todo - check primary key to see if entity already exists */
         // Insert the entity
         const entityModel = await EntityModel.create(graphApi, {
-          ownedById: userModel.entityUuid,
-          actorId: userModel.entityUuid,
+          ownedById: userModel.getEntityUuid(),
+          actorId: userModel.getEntityUuid(),
           entityTypeModel,
           properties: record.data as PropertyObject,
         });
 
-        createdEntities.push(entityModel.baseId);
+        createdEntities.push(entityModel.getBaseId());
       }
 
       logger.debug(`Inserted ${createdEntities.length} entities from Github`);
