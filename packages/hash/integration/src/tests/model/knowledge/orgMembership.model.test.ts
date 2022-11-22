@@ -47,14 +47,14 @@ describe("OrgMembership model class", () => {
     testOrgMembership = await OrgMembershipModel.createOrgMembership(graphApi, {
       responsibility: "test",
       org: testOrg,
-      actorId: testUser.entityId,
+      actorId: testUser.entityUuid,
     });
 
     await testUser.createOutgoingLink(graphApi, {
-      linkTypeModel: SYSTEM_TYPES.linkType.hasMembership,
-      targetEntityModel: testOrgMembership,
+      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.hasMembership,
+      rightEntityModel: testOrgMembership,
       ownedById: systemAccountId,
-      actorId: testUser.entityId,
+      actorId: testUser.entityUuid,
     });
   });
 
@@ -67,6 +67,6 @@ describe("OrgMembership model class", () => {
   it("can get the user of an org membership", async () => {
     const fetchedUser = await testOrgMembership.getUser(graphApi);
 
-    expect(fetchedUser?.entityId).toEqual(testUser.entityId);
+    expect(fetchedUser?.entity).toEqual(testUser.entity);
   });
 });
