@@ -6,6 +6,8 @@ import {
 } from "@hashintel/hash-design-system";
 import { Paper, Stack } from "@mui/material";
 import { useState } from "react";
+import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { getOutgoingLinksForEntityAtMoment } from "@hashintel/hash-subgraph/src/stdlib/edge/link";
 import { LinksIcon } from "../../../../../shared/icons";
 import { useEntityEditor } from "./entity-editor-context";
 import { LinkTable } from "./links-section/link-table";
@@ -21,16 +23,22 @@ const EmptyState = () => (
 );
 
 export const LinksSection = () => {
-  const { rootEntityAndSubgraph } = useEntityEditor();
+  const { entitySubgraph } = useEntityEditor();
   const [showSearch, setShowSearch] = useState(false);
 
-  if (!rootEntityAndSubgraph) {
+  if (!entitySubgraph) {
     return null;
   }
 
-  const entity = rootEntityAndSubgraph.root;
+  const entity = getRoots(entitySubgraph)[0]!;
+  const outgoingLinks = getOutgoingLinksForEntityAtMoment(
+    entitySubgraph,
+    entity.metadata.editionId.baseId,
+    /** @todo - We probably want to use entity endTime - https://app.asana.com/0/1201095311341924/1203331904553375/f */
+    new Date(),
+  );
 
-  const isEmpty = !entity.links.length;
+  const isEmpty = outgoingLinks.length === 0;
 
   return (
     <SectionWrapper
@@ -45,7 +53,7 @@ export const LinksSection = () => {
           <Chip label="No links" />
         ) : (
           <Stack direction="row" spacing={1.5}>
-            <Chip size="xs" label={`${entity.links.length} links`} />
+            <Chip size="xs" label={`${outgoingLinks.length} links`} />
             <Stack direction="row" spacing={0.5}>
               <IconButton
                 rounded
