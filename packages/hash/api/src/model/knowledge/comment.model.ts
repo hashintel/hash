@@ -77,7 +77,7 @@ export default class extends EntityModel {
     const textEntity = await EntityModel.create(graphApi, {
       ownedById,
       properties: {
-        [SYSTEM_TYPES.propertyType.tokens.baseUri]: tokens,
+        [SYSTEM_TYPES.propertyType.tokens.getBaseUri()]: tokens,
       },
       entityTypeModel: SYSTEM_TYPES.entityType.text,
       actorId,
@@ -131,7 +131,7 @@ export default class extends EntityModel {
     const textEntityModel = await this.getHasText(graphApi);
 
     await textEntityModel.updateProperty(graphApi, {
-      propertyTypeBaseUri: SYSTEM_TYPES.propertyType.tokens.baseUri,
+      propertyTypeBaseUri: SYSTEM_TYPES.propertyType.tokens.getBaseUri(),
       value: tokens,
       actorId,
     });
@@ -170,7 +170,8 @@ export default class extends EntityModel {
     await this.updateProperties(graphApi, {
       updatedProperties: [
         {
-          propertyTypeBaseUri: SYSTEM_TYPES.propertyType.resolvedAt.baseUri,
+          propertyTypeBaseUri:
+            SYSTEM_TYPES.propertyType.resolvedAt.getBaseUri(),
           value: new Date().toISOString(),
         },
       ],
@@ -203,7 +204,7 @@ export default class extends EntityModel {
     await this.updateProperties(graphApi, {
       updatedProperties: [
         {
-          propertyTypeBaseUri: SYSTEM_TYPES.propertyType.deletedAt.baseUri,
+          propertyTypeBaseUri: SYSTEM_TYPES.propertyType.deletedAt.getBaseUri(),
           value: new Date().toISOString(),
         },
       ],
@@ -218,7 +219,7 @@ export default class extends EntityModel {
    */
   getResolvedAt(): string {
     return (this.getProperties() as any)[
-      SYSTEM_TYPES.propertyType.resolvedAt.baseUri
+      SYSTEM_TYPES.propertyType.resolvedAt.getBaseUri()
     ];
   }
 
@@ -227,7 +228,7 @@ export default class extends EntityModel {
    */
   getDeletedAt(): string {
     return (this.getProperties() as any)[
-      SYSTEM_TYPES.propertyType.deletedAt.baseUri
+      SYSTEM_TYPES.propertyType.deletedAt.getBaseUri()
     ];
   }
 

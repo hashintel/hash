@@ -55,7 +55,7 @@ export default class extends EntityModel {
     const { responsibility, org, actorId } = params;
 
     const properties: PropertyObject = {
-      [SYSTEM_TYPES.propertyType.responsibility.baseUri]: responsibility,
+      [SYSTEM_TYPES.propertyType.responsibility.getBaseUri()]: responsibility,
     };
 
     const entityTypeModel = SYSTEM_TYPES.entityType.orgMembership;

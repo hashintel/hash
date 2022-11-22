@@ -67,12 +67,13 @@ export default class extends EntityModel {
     const { data: orgAccountId } = await graphApi.createAccountId();
 
     const properties: PropertyObject = {
-      [SYSTEM_TYPES.propertyType.shortName.baseUri]: shortname,
-      [SYSTEM_TYPES.propertyType.orgName.baseUri]: name,
+      [SYSTEM_TYPES.propertyType.shortName.getBaseUri()]: shortname,
+      [SYSTEM_TYPES.propertyType.orgName.getBaseUri()]: name,
       ...(providedInfo
         ? {
-            [SYSTEM_TYPES.propertyType.orgProvidedInfo.baseUri]: {
-              [SYSTEM_TYPES.propertyType.orgSize.baseUri]: providedInfo.orgSize,
+            [SYSTEM_TYPES.propertyType.orgProvidedInfo.getBaseUri()]: {
+              [SYSTEM_TYPES.propertyType.orgSize.getBaseUri()]:
+                providedInfo.orgSize,
             },
           }
         : {}),
@@ -153,7 +154,7 @@ export default class extends EntityModel {
 
   getShortname(): string {
     return (this.getProperties() as any)[
-      SYSTEM_TYPES.propertyType.shortName.baseUri
+      SYSTEM_TYPES.propertyType.shortName.getBaseUri()
     ];
   }
 
@@ -185,7 +186,7 @@ export default class extends EntityModel {
     }
 
     return await this.updateProperty(graphApi, {
-      propertyTypeBaseUri: SYSTEM_TYPES.propertyType.shortName.baseUri,
+      propertyTypeBaseUri: SYSTEM_TYPES.propertyType.shortName.getBaseUri(),
       value: updatedShortname,
       actorId,
     }).then((updatedEntity) => OrgModel.fromEntityModel(updatedEntity));
@@ -193,7 +194,7 @@ export default class extends EntityModel {
 
   getOrgName(): string {
     return (this.getProperties() as any)[
-      SYSTEM_TYPES.propertyType.orgName.baseUri
+      SYSTEM_TYPES.propertyType.orgName.getBaseUri()
     ];
   }
 
@@ -218,7 +219,7 @@ export default class extends EntityModel {
     }
 
     const updatedEntity = await this.updateProperty(graphApi, {
-      propertyTypeBaseUri: SYSTEM_TYPES.propertyType.orgName.baseUri,
+      propertyTypeBaseUri: SYSTEM_TYPES.propertyType.orgName.getBaseUri(),
       value: updatedOrgName,
       actorId,
     });

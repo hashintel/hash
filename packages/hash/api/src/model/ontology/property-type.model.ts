@@ -156,7 +156,7 @@ export default class {
     });
   }
 
-  get baseUri() {
+  getBaseUri() {
     return extractBaseUri(this.getSchema().$id);
   }
 }

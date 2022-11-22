@@ -28,7 +28,7 @@ export const updatePersistedPage: ResolverFn<
         propertyTypeBaseUri:
           SYSTEM_TYPES.propertyType[
             propertyName as keyof MutationUpdatePersistedPageArgs["updatedProperties"]
-          ].baseUri,
+          ].getBaseUri(),
         value,
       }),
     ),

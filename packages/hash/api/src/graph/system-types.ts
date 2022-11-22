@@ -127,7 +127,7 @@ export const orgProvidedInfoPropertyTypeInitializer = async (
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
     await SYSTEM_TYPES_INITIALIZERS.propertyType.orgSize(graphApi);
 
-  const orgSizeBaseUri = orgSizePropertyTypeModel.baseUri;
+  const orgSizeBaseUri = orgSizePropertyTypeModel.getBaseUri();
 
   return propertyTypeInitializer({
     ...types.propertyType.orgProvidedInfo,

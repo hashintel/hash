@@ -136,10 +136,10 @@ beforeAll(async () => {
     pluralTitle: "Text",
     type: "object",
     properties: {
-      [favoriteBookPropertyTypeModel.baseUri]: {
+      [favoriteBookPropertyTypeModel.getBaseUri()]: {
         $ref: favoriteBookPropertyTypeModel.getSchema().$id,
       },
-      [namePropertyTypeModel.baseUri]: {
+      [namePropertyTypeModel.getBaseUri()]: {
         $ref: namePropertyTypeModel.getSchema().$id,
       },
     },

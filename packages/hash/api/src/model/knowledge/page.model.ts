@@ -83,13 +83,13 @@ export default class extends EntityModel {
     const index = generateKeyBetween(prevIndex ?? null, null);
 
     const properties: PropertyObject = {
-      [SYSTEM_TYPES.propertyType.title.baseUri]: title,
+      [SYSTEM_TYPES.propertyType.title.getBaseUri()]: title,
       ...(summary === undefined
         ? {}
-        : { [SYSTEM_TYPES.propertyType.summary.baseUri]: summary }),
+        : { [SYSTEM_TYPES.propertyType.summary.getBaseUri()]: summary }),
       ...(index === undefined
         ? {}
-        : { [SYSTEM_TYPES.propertyType.index.baseUri]: index }),
+        : { [SYSTEM_TYPES.propertyType.index.getBaseUri()]: index }),
     };
 
     const entityTypeModel = SYSTEM_TYPES.entityType.page;
@@ -113,7 +113,7 @@ export default class extends EntityModel {
               blockData: await EntityModel.create(graphApi, {
                 ownedById,
                 properties: {
-                  [SYSTEM_TYPES.propertyType.tokens.baseUri]: [],
+                  [SYSTEM_TYPES.propertyType.tokens.getBaseUri()]: [],
                 },
                 entityTypeModel: SYSTEM_TYPES.entityType.text,
                 actorId,
@@ -179,7 +179,7 @@ export default class extends EntityModel {
    */
   getTitle(): string {
     return (this.getProperties() as any)[
-      SYSTEM_TYPES.propertyType.title.baseUri
+      SYSTEM_TYPES.propertyType.title.getBaseUri()
     ];
   }
 
@@ -188,7 +188,7 @@ export default class extends EntityModel {
    */
   getSummary(): string | undefined {
     return (this.getProperties() as any)[
-      SYSTEM_TYPES.propertyType.summary.baseUri
+      SYSTEM_TYPES.propertyType.summary.getBaseUri()
     ];
   }
 
@@ -197,7 +197,7 @@ export default class extends EntityModel {
    */
   getIndex(): string | undefined {
     return (this.getProperties() as any)[
-      SYSTEM_TYPES.propertyType.index.baseUri
+      SYSTEM_TYPES.propertyType.index.getBaseUri()
     ];
   }
 
@@ -206,7 +206,7 @@ export default class extends EntityModel {
    */
   getIcon(): string | undefined {
     return (this.getProperties() as any)[
-      SYSTEM_TYPES.propertyType.icon.baseUri
+      SYSTEM_TYPES.propertyType.icon.getBaseUri()
     ];
   }
 
@@ -215,7 +215,7 @@ export default class extends EntityModel {
    */
   getArchived(): boolean | undefined {
     return (this.getProperties() as any)[
-      SYSTEM_TYPES.propertyType.archived.baseUri
+      SYSTEM_TYPES.propertyType.archived.getBaseUri()
     ];
   }
 
@@ -365,7 +365,7 @@ export default class extends EntityModel {
 
     if (this.getIndex() !== newIndex) {
       const updatedPageEntityModel = await this.updateProperty(graphApi, {
-        propertyTypeBaseUri: SYSTEM_TYPES.propertyType.index.baseUri,
+        propertyTypeBaseUri: SYSTEM_TYPES.propertyType.index.getBaseUri(),
         value: newIndex,
         actorId,
       });

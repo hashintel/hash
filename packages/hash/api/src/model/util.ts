@@ -108,7 +108,7 @@ export const splitVersionedUri = (
  *  https://app.asana.com/0/1200211978612931/1202923896339225/f
  */
 export const extractBaseUri = (versionedUri: string): string => {
-  return splitVersionedUri(versionedUri).baseUri;
+  return splitVersionedUri(versionedUri).getBaseUri();
 };
 
 export type PropertyTypeCreatorParams = {
@@ -258,7 +258,7 @@ export const generateSystemEntityTypeSchema = (
   const properties = params.properties.reduce(
     (prev, { propertyTypeModel, array }) => ({
       ...prev,
-      [propertyTypeModel.baseUri]: array
+      [propertyTypeModel.getBaseUri()]: array
         ? {
             type: "array",
             items: { $ref: propertyTypeModel.getSchema().$id },
@@ -271,7 +271,7 @@ export const generateSystemEntityTypeSchema = (
 
   const requiredProperties = params.properties
     .filter(({ required }) => !!required)
-    .map(({ propertyTypeModel }) => propertyTypeModel.baseUri);
+    .map(({ propertyTypeModel }) => propertyTypeModel.getBaseUri());
 
   const links =
     params.outgoingLinks.length > 0

@@ -143,8 +143,8 @@ describe("Entity CRU", () => {
     createdEntityModel = await EntityModel.create(graphApi, {
       ownedById: testUser.getEntityUuid(),
       properties: {
-        [namePropertyTypeModel.baseUri]: "Bob",
-        [favoriteBookPropertyTypeModel.baseUri]: "some text",
+        [namePropertyTypeModel.getBaseUri()]: "Bob",
+        [favoriteBookPropertyTypeModel.getBaseUri()]: "some text",
       },
       entityTypeModel,
       actorId: testUser.getEntityUuid(),
@@ -176,8 +176,9 @@ describe("Entity CRU", () => {
     updatedEntityModel = await createdEntityModel
       .update(graphApi, {
         properties: {
-          [namePropertyTypeModel.baseUri]: "Updated Bob",
-          [favoriteBookPropertyTypeModel.baseUri]: "Even more text than before",
+          [namePropertyTypeModel.getBaseUri()]: "Updated Bob",
+          [favoriteBookPropertyTypeModel.getBaseUri()]:
+            "Even more text than before",
         },
         actorId: testUser2.getEntityUuid(),
       })
@@ -214,11 +215,11 @@ describe("Entity CRU", () => {
     );
     expect(
       (newlyUpdatedModel!.getProperties() as any)[
-        namePropertyTypeModel.baseUri
+        namePropertyTypeModel.getBaseUri()
       ],
     ).toEqual(
       (updatedEntityModel.getProperties() as any)[
-        namePropertyTypeModel.baseUri
+        namePropertyTypeModel.getBaseUri()
       ],
     );
   });
@@ -232,8 +233,8 @@ describe("Entity CRU", () => {
   //     // First create a new entity given the following definition
   //     entityTypeId: entityTypeModel.getSchema().$id,
   //     properties: {
-  //       [namePropertyTypeModel.baseUri]: "Alice",
-  //       [favoriteBookPropertyTypeModel.baseUri]: "some text",
+  //       [namePropertyTypeModel.getBaseUri()]: "Alice",
+  //       [favoriteBookPropertyTypeModel.getBaseUri()]: "some text",
   //     },
   //     linkedEntities: [
   //       {

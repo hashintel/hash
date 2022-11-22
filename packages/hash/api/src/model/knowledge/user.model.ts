@@ -183,13 +183,17 @@ export default class extends EntityModel {
     const { data: userAccountId } = await graphApi.createAccountId();
 
     const properties: PropertyObject = {
-      [SYSTEM_TYPES.propertyType.email.baseUri]: emails,
-      [SYSTEM_TYPES.propertyType.kratosIdentityId.baseUri]: kratosIdentityId,
+      [SYSTEM_TYPES.propertyType.email.getBaseUri()]: emails,
+      [SYSTEM_TYPES.propertyType.kratosIdentityId.getBaseUri()]:
+        kratosIdentityId,
       ...(shortname
-        ? { [SYSTEM_TYPES.propertyType.shortName.baseUri]: shortname }
+        ? { [SYSTEM_TYPES.propertyType.shortName.getBaseUri()]: shortname }
         : {}),
       ...(preferredName
-        ? { [SYSTEM_TYPES.propertyType.preferredName.baseUri]: preferredName }
+        ? {
+            [SYSTEM_TYPES.propertyType.preferredName.getBaseUri()]:
+              preferredName,
+          }
         : {}),
     };
 
@@ -255,7 +259,7 @@ export default class extends EntityModel {
 
   async getQualifiedEmails(): Promise<QualifiedEmail[]> {
     const emails: string[] = (this.getProperties() as any)[
-      SYSTEM_TYPES.propertyType.email.baseUri
+      SYSTEM_TYPES.propertyType.email.getBaseUri()
     ];
 
     const kratosIdentity = await this.getKratosIdentity();
@@ -284,7 +288,7 @@ export default class extends EntityModel {
 
   getEmails(): string[] {
     return (this.getProperties() as any)[
-      SYSTEM_TYPES.propertyType.email.baseUri
+      SYSTEM_TYPES.propertyType.email.getBaseUri()
     ];
   }
 
@@ -297,7 +301,7 @@ export default class extends EntityModel {
    */
   getShortname(): string | undefined {
     return (this.getProperties() as any)[
-      SYSTEM_TYPES.propertyType.shortName.baseUri
+      SYSTEM_TYPES.propertyType.shortName.getBaseUri()
     ];
   }
 
@@ -331,7 +335,7 @@ export default class extends EntityModel {
     const previousShortname = this.getShortname();
 
     const updatedUser = await this.updateProperty(graphApi, {
-      propertyTypeBaseUri: SYSTEM_TYPES.propertyType.shortName.baseUri,
+      propertyTypeBaseUri: SYSTEM_TYPES.propertyType.shortName.getBaseUri(),
       value: updatedShortname,
       actorId,
     }).then((updatedEntity) => UserModel.fromEntityModel(updatedEntity));
@@ -341,7 +345,7 @@ export default class extends EntityModel {
     }).catch(async (error) => {
       // If an error occurred updating the entity, set the property to have the previous shortname
       await this.updateProperty(graphApi, {
-        propertyTypeBaseUri: SYSTEM_TYPES.propertyType.shortName.baseUri,
+        propertyTypeBaseUri: SYSTEM_TYPES.propertyType.shortName.getBaseUri(),
         value: previousShortname,
         actorId,
       });
@@ -354,7 +358,7 @@ export default class extends EntityModel {
 
   getPreferredName(): string | undefined {
     return (this.getProperties() as any)[
-      SYSTEM_TYPES.propertyType.preferredName.baseUri
+      SYSTEM_TYPES.propertyType.preferredName.getBaseUri()
     ];
   }
 
@@ -376,7 +380,7 @@ export default class extends EntityModel {
       );
     }
     const updatedEntity = await this.updateProperty(graphApi, {
-      propertyTypeBaseUri: SYSTEM_TYPES.propertyType.preferredName.baseUri,
+      propertyTypeBaseUri: SYSTEM_TYPES.propertyType.preferredName.getBaseUri(),
       value: updatedPreferredName,
       actorId,
     });
@@ -386,7 +390,7 @@ export default class extends EntityModel {
 
   getKratosIdentityId(): string {
     return (this.getProperties() as any)[
-      SYSTEM_TYPES.propertyType.kratosIdentityId.baseUri
+      SYSTEM_TYPES.propertyType.kratosIdentityId.getBaseUri()
     ];
   }
 

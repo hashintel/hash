@@ -57,7 +57,7 @@ const userEntityHookCallback: BeforeUpdateEntityHookCallback = async ({
   const currentShortname = userModel.getShortname();
 
   const updatedShortname: string | undefined =
-    updatedProperties[SYSTEM_TYPES.propertyType.shortName.baseUri];
+    updatedProperties[SYSTEM_TYPES.propertyType.shortName.getBaseUri()];
 
   if (currentShortname !== updatedShortname) {
     if (!updatedShortname) {
@@ -70,7 +70,7 @@ const userEntityHookCallback: BeforeUpdateEntityHookCallback = async ({
   const currentPreferredName = userModel.getPreferredName();
 
   const updatedPreferredName: string | undefined =
-    updatedProperties[SYSTEM_TYPES.propertyType.preferredName.baseUri];
+    updatedProperties[SYSTEM_TYPES.propertyType.preferredName.getBaseUri()];
 
   if (currentPreferredName !== updatedPreferredName) {
     if (!updatedPreferredName) {
@@ -81,7 +81,7 @@ const userEntityHookCallback: BeforeUpdateEntityHookCallback = async ({
   const currentEmails = userModel.getEmails();
 
   const updatedEmails: string[] =
-    updatedProperties[SYSTEM_TYPES.propertyType.email.baseUri];
+    updatedProperties[SYSTEM_TYPES.propertyType.email.getBaseUri()];
 
   if (
     [...currentEmails].sort().join().toLowerCase() !==
