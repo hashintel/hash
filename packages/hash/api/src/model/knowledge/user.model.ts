@@ -439,10 +439,8 @@ export default class extends EntityModel {
       { linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.orgMembership },
     );
 
-    return await Promise.all(
-      outgoingOrgMembershipLinkEntityModels.map(({ rightEntityModel }) =>
-        OrgMembershipModel.fromEntityModel(rightEntityModel),
-      ),
+    return outgoingOrgMembershipLinkEntityModels.map((orgLinkEntityModel) =>
+      OrgMembershipModel.fromLinkEntityModel(orgLinkEntityModel),
     );
   }
 
@@ -452,8 +450,8 @@ export default class extends EntityModel {
   ): Promise<boolean> {
     const orgMemberships = await this.getOrgMemberships(graphApi);
 
-    const orgModels = await Promise.all(
-      orgMemberships.map((orgMembership) => orgMembership.getOrg(graphApi)),
+    const orgModels = orgMemberships.map((orgMembership) =>
+      orgMembership.getOrg(),
     );
 
     return !!orgModels.find(

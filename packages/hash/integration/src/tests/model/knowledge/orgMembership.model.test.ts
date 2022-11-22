@@ -49,13 +49,13 @@ describe("OrgMembership model class", () => {
   });
 
   it("can get the org of an org membership", async () => {
-    const fetchedOrg = await testOrgMembership.getOrg(graphApi);
+    const fetchedOrg = testOrgMembership.getOrg();
 
     expect(fetchedOrg).toEqual(testOrg);
   });
 
   it("can get the user of an org membership", async () => {
-    const fetchedUser = await testOrgMembership.getUser(graphApi);
+    const fetchedUser = testOrgMembership.getUser();
 
     expect(fetchedUser?.entity).toEqual(testUser.entity);
   });

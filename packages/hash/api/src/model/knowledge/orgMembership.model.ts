@@ -2,11 +2,11 @@ import { EntityId, PropertyObject } from "@hashintel/hash-subgraph";
 import { GraphApi } from "../../graph";
 import {
   OrgMembershipModel,
-  EntityModel,
   EntityModelCreateParams,
   OrgModel,
   UserModel,
   LinkEntityModel,
+  LinkModelConstructorParams,
 } from "..";
 import { systemAccountId } from "../util";
 import { SYSTEM_TYPES } from "../../graph/system-types";
@@ -21,26 +21,50 @@ export type OrgMembershipModelCreateParams = Omit<
   user: UserModel;
 };
 
-/**
- * @class {@link OrgMembershipModel}
- *
- * @todo: turn into link entity model when or memberships are stored in link entities
- * @see https://app.asana.com/0/0/1203371754468058/f
- */
-export default class extends EntityModel {
-  static fromEntityModel(entityModel: EntityModel): OrgMembershipModel {
+export default class extends LinkEntityModel {
+  constructor({
+    linkEntity,
+    linkEntityTypeModel,
+    leftEntityModel,
+    rightEntityModel,
+  }: LinkModelConstructorParams) {
     if (
-      entityModel.entityTypeModel.getSchema().$id !==
+      linkEntityTypeModel.getSchema().$id !==
       SYSTEM_TYPES.linkEntityType.orgMembership.getSchema().$id
     ) {
       throw new EntityTypeMismatchError(
-        entityModel.getBaseId(),
+        linkEntity.metadata.editionId.baseId,
         SYSTEM_TYPES.linkEntityType.orgMembership.getSchema().$id,
-        entityModel.entityTypeModel.getSchema().$id,
+        linkEntityTypeModel.getSchema().$id,
+      );
+    }
+    super({
+      linkEntity,
+      linkEntityTypeModel,
+      leftEntityModel,
+      rightEntityModel,
+    });
+  }
+
+  static fromLinkEntityModel(
+    linkEntityModel: LinkEntityModel,
+  ): OrgMembershipModel {
+    if (
+      linkEntityModel.entityTypeModel.getSchema().$id !==
+      SYSTEM_TYPES.linkEntityType.orgMembership.getSchema().$id
+    ) {
+      throw new EntityTypeMismatchError(
+        linkEntityModel.getBaseId(),
+        SYSTEM_TYPES.linkEntityType.orgMembership.getSchema().$id,
+        linkEntityModel.entityTypeModel.getSchema().$id,
       );
     }
 
-    return new OrgMembershipModel(entityModel);
+    return new OrgMembershipModel({
+      ...linkEntityModel,
+      linkEntity: linkEntityModel.entity,
+      linkEntityTypeModel: linkEntityModel.entityTypeModel,
+    });
   }
 
   /**
@@ -67,7 +91,7 @@ export default class extends EntityModel {
       actorId,
     });
 
-    return OrgMembershipModel.fromEntityModel(entity);
+    return OrgMembershipModel.fromLinkEntityModel(entity);
   }
 
   /**
@@ -79,109 +103,28 @@ export default class extends EntityModel {
     graphApi: GraphApi,
     params: { entityId: EntityId },
   ): Promise<OrgMembershipModel | null> {
-    const entity = await EntityModel.getLatest(graphApi, {
+    const entityModel = await LinkEntityModel.getLatest(graphApi, {
       entityId: params.entityId,
     });
 
-    return entity ? OrgMembershipModel.fromEntityModel(entity) : null;
+    return entityModel
+      ? OrgMembershipModel.fromLinkEntityModel(
+          await LinkEntityModel.fromEntity(graphApi, entityModel.entity),
+        )
+      : null;
   }
 
   /**
    * Get the org linked to the org membership.
    */
-  async getOrg(graphApi: GraphApi): Promise<OrgModel> {
-    const outgoingOrgLinkEntityModels = await LinkEntityModel.getByQuery(
-      graphApi,
-      {
-        all: [
-          {
-            equal: [{ path: ["uuid"] }, { parameter: this.getEntityUuid() }],
-          },
-          {
-            equal: [
-              { path: ["ownedById"] },
-              { parameter: this.getOwnedById() },
-            ],
-          },
-          {
-            equal: [
-              { path: ["rightEntity", "type", "versionedUri"] },
-              {
-                parameter: SYSTEM_TYPES.entityType.org.getSchema().$id,
-              },
-            ],
-          },
-          {
-            equal: [{ path: ["version"] }, { parameter: "latest" }],
-          },
-          {
-            equal: [{ path: ["archived"] }, { parameter: false }],
-          },
-        ],
-      },
-    );
-
-    const [outgoingOrgLinkEntityModel] = outgoingOrgLinkEntityModels;
-
-    if (!outgoingOrgLinkEntityModel) {
-      /**
-       * This should never be the case, as the `org` link is required on `OrgMembership` entities.
-       *
-       * @todo: potentially remove this when the Graph API validates entities based on their schema
-       */
-      throw new Error(
-        `Critical: org membership with entity id ${this.getBaseId()} doesn't have an outgoing "org" link`,
-      );
-    }
-
-    const { rightEntityModel: orgEntityModel } = outgoingOrgLinkEntityModel;
-
-    return OrgModel.fromEntityModel(orgEntityModel);
+  getOrg(): OrgModel {
+    return OrgModel.fromEntityModel(this.rightEntityModel);
   }
 
   /**
    * Get the user linked to the org membership.
    */
-  async getUser(graphApi: GraphApi) {
-    const userEntityModels = await EntityModel.getByQuery(graphApi, {
-      all: [
-        {
-          equal: [
-            { path: ["outgoingLinks", "uuid"] },
-            { parameter: this.getEntityUuid() },
-          ],
-        },
-        {
-          equal: [
-            { path: ["outgoingLinks", "ownedById"] },
-            { parameter: this.getOwnedById() },
-          ],
-        },
-        {
-          equal: [
-            { path: ["type", "versionedUri"] },
-            {
-              parameter: SYSTEM_TYPES.entityType.user.getSchema().$id,
-            },
-          ],
-        },
-        {
-          equal: [{ path: ["version"] }, { parameter: "latest" }],
-        },
-        {
-          equal: [{ path: ["archived"] }, { parameter: false }],
-        },
-      ],
-    });
-
-    const [userEntityModel] = userEntityModels;
-
-    if (!userEntityModel) {
-      throw new Error(
-        `Critical: org membership with entity id ${this.getBaseId()} doesn't have a linked user`,
-      );
-    }
-
-    return UserModel.fromEntityModel(userEntityModel);
+  getUser(): UserModel {
+    return UserModel.fromEntityModel(this.leftEntityModel);
   }
 }
