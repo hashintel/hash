@@ -2,7 +2,8 @@ import { JsonObject } from "@blockprotocol/core";
 import { ApolloError } from "apollo-server-express";
 import { upperFirst, camelCase } from "lodash";
 import { singular } from "pluralize";
-import { Entity } from "../../../model";
+import { EntityType } from "@blockprotocol/type-system-web";
+import { PropertyObject } from "@hashintel/hash-subgraph";
 import { CachedEntityTypes, Task } from "../../../task-execution";
 import {
   MutationExecuteGithubCheckTaskArgs,
@@ -11,6 +12,7 @@ import {
   ResolverFn,
 } from "../../apiTypes.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../context";
+import { EntityModel } from "../../../model";
 
 export const executeDemoTask: ResolverFn<
   Promise<string>,
@@ -113,7 +115,7 @@ export const executeGithubDiscoverTask: ResolverFn<
 > = async (
   _,
   { config },
-  { dataSources: { db, taskExecutor }, userModel, logger },
+  { dataSources: { graphApi, taskExecutor }, userModel, logger },
 ) => {
   if (!taskExecutor) {
     throw new ApolloError(
@@ -126,7 +128,10 @@ export const executeGithubDiscoverTask: ResolverFn<
         config,
       );
 
-      const existingEntityChecker = await CachedEntityTypes(db, userModel);
+      const existingEntityChecker = await CachedEntityTypes(
+        graphApi,
+        userModel,
+      );
 
       for (const message of catalog) {
         if (!message.name || !message.json_schema) {
@@ -138,7 +143,10 @@ export const executeGithubDiscoverTask: ResolverFn<
         if (existingEntityChecker.getExisting(entityTypeName) === undefined) {
           await existingEntityChecker.createNew(
             entityTypeName,
-            message.json_schema,
+            /** @todo - this cast is unsafe, we need to update the logic to convert the JSON schema to a valid
+             *    entity type
+             */
+            message.json_schema as unknown as EntityType,
           );
           logger.debug(`Created a new EntityType: ${entityTypeName}`);
         }
@@ -159,7 +167,7 @@ export const executeGithubReadTask: ResolverFn<
 > = async (
   _,
   { config },
-  { dataSources: { db, taskExecutor }, userModel, logger },
+  { dataSources: { graphApi, taskExecutor }, userModel, logger },
 ) => {
   if (!taskExecutor) {
     throw new ApolloError(
@@ -174,12 +182,16 @@ export const executeGithubReadTask: ResolverFn<
       );
       logger.debug(`Received ${airbyteRecords.length} records from Github`);
 
-      const existingEntityChecker = await CachedEntityTypes(db, userModel);
+      const existingEntityChecker = await CachedEntityTypes(
+        graphApi,
+        userModel,
+      );
       for (const record of airbyteRecords) {
         const entityTypeName = streamNameToEntityTypeName(record.stream);
         /** @todo - Check if entity already exists */
-        const entityTypeId = existingEntityChecker.getExisting(entityTypeName);
-        if (!entityTypeId) {
+        const entityTypeModel =
+          existingEntityChecker.getExisting(entityTypeName);
+        if (!entityTypeModel) {
           throw new Error(
             `Couldn't find EntityType for ingested data with name: ${entityTypeName}`,
           );
@@ -187,15 +199,14 @@ export const executeGithubReadTask: ResolverFn<
 
         /** @todo - check primary key to see if entity already exists */
         // Insert the entity
-        const entity = await Entity.create(db, {
-          accountId: userModel.entityUuid,
-          createdByAccountId: userModel.entityUuid,
-          versioned: true,
-          entityTypeId,
-          properties: record.data,
+        const entityModel = await EntityModel.create(graphApi, {
+          ownedById: userModel.entityUuid,
+          actorId: userModel.entityUuid,
+          entityTypeModel,
+          properties: record.data as PropertyObject,
         });
 
-        createdEntities.push(entity.entityId);
+        createdEntities.push(entityModel.baseId);
       }
 
       logger.debug(`Inserted ${createdEntities.length} entities from Github`);
