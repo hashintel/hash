@@ -118,10 +118,10 @@ mod tests {
         // we expected a u8 integer, but received a float
 
         let error = Report::new(TypeError)
-            .attach(Location::Array(0))
-            .attach(Location::Entry("entry1".into()))
-            .attach(Location::Array(1))
             .attach(Location::Field("field2"))
+            .attach(Location::Array(1))
+            .attach(Location::Entry("entry1".into()))
+            .attach(Location::Array(0))
             .attach(ExpectedType::new(
                 Schema::new("integer")
                     .with("minimum", u8::MIN)

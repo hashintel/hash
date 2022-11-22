@@ -188,8 +188,8 @@ mod tests {
         // we simulate that the error happens in:
         // [..., {field1: [_, _, _] <- here}]
         let error = Report::new(ArrayLengthError)
-            .attach(Location::Array(1))
             .attach(Location::Field("field1"))
+            .attach(Location::Array(1))
             .attach(ExpectedLength::new(2))
             .attach(ReceivedLength::new(3));
 

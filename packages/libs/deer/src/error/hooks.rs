@@ -589,9 +589,9 @@ mod tests {
     fn serialize_single() {
         // simulates that we expected to receive `id` (of type int) at `.0.a.b`, but did not
         let report = Report::new(MissingError)
-            .attach(Location::Array(0))
-            .attach(Location::Field("a"))
             .attach(Location::Field("b"))
+            .attach(Location::Field("a"))
+            .attach(Location::Array(0))
             .attach(ExpectedType::new(Schema::new("integer")));
 
         let export = report.export();
@@ -663,7 +663,7 @@ mod tests {
             }, {
                 "namespace": "deer",
                 "id": ["value"],
-                "message": "received value of correct type (integer), but does not fit constraint",
+                "message": "received value is of correct type (integer), but does not fit constraints",
                 "properties": {
                     "location": [
                         {"type": "array", "value": 0},

@@ -124,8 +124,8 @@ mod tests {
         // We expect a value at field2, but that field does not exist
 
         let error = Report::new(ValueError)
-            .attach(Location::Array(0))
             .attach(Location::Field("field1"))
+            .attach(Location::Array(0))
             .attach(ExpectedType::new(
                 Schema::new("integer")
                     .with("minimum", u8::MIN)
@@ -176,8 +176,8 @@ mod tests {
         // We expect a value of type u8 at field2, but that field does not exist
 
         let error = Report::new(MissingError)
-            .attach(Location::Array(0))
             .attach(Location::Field("field2"))
+            .attach(Location::Array(0))
             .attach(ExpectedType::new(
                 Schema::new("integer")
                     .with("minimum", u8::MIN)
