@@ -22,7 +22,7 @@ export const useRouteNamespace = () => {
 
       if (entity) {
         return {
-          id: entity.entityId,
+          id: entity.entityEditionId.baseId,
           shortname: entity.shortname,
         };
       }
