@@ -1,4 +1,4 @@
-import {EntityId, PropertyObject} from "@hashintel/hash-subgraph";
+import { EntityId, PropertyObject } from "@hashintel/hash-subgraph";
 import { GraphApi } from "../../graph";
 import {
   OrgMembershipModel,
