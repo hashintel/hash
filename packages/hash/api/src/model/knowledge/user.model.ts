@@ -47,7 +47,10 @@ export default class extends EntityModel {
       );
     }
 
-    return new UserModel({ entity, entityTypeModel: entity.entityTypeModel });
+    return new UserModel({
+      entity: entity.entity,
+      entityTypeModel: entity.entityTypeModel,
+    });
   }
 
   /**

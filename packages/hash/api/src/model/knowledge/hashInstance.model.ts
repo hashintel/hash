@@ -32,7 +32,7 @@ export default class extends EntityModel {
     }
 
     return new HashInstanceModel({
-      entity,
+      entity: entity.entity,
       entityTypeModel: entity.entityTypeModel,
     });
   }
