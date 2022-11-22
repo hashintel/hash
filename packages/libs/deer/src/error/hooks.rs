@@ -179,6 +179,7 @@ pub struct Hook {
 }
 
 impl Hook {
+    #[must_use]
     pub fn new<E: Error>() -> Self {
         Self {
             id: TypeId::of::<E>(),
@@ -312,7 +313,7 @@ static HOOKS: Hooks = Hooks::new();
 
 #[macro_export]
 macro_rules! register {
-    (($ty:ident,)*) => {
+    ($($ty:ident),+) => {
         $crate::error::__private::register(&[$($crate::error::Hook::new::<$ty>(),)*])
     };
 }
@@ -342,8 +343,11 @@ impl<C: Context> Serialize for Export<C> {
 
 #[cfg(test)]
 mod tests {
-    use alloc::{format, vec, vec::Vec};
-    use core::fmt::{Display, Formatter};
+    use alloc::{collections::BTreeMap, format, vec, vec::Vec};
+    use core::{
+        any::TypeId,
+        fmt::{Display, Formatter},
+    };
 
     use error_stack::{AttachmentKind, Context, Frame, FrameKind, Report};
     use serde_json::{json, to_value};
@@ -678,5 +682,43 @@ mod tests {
                 }
             }])
         );
+    }
+
+    #[derive(Debug)]
+    struct X;
+
+    impl Display for X {
+        fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+            f.write_str("X Error")
+        }
+    }
+
+    impl Context for X {}
+
+    impl Error for X {
+        type Properties = ();
+
+        const ID: Id = id!["value"];
+        const NAMESPACE: Namespace = NAMESPACE;
+
+        fn message<'a>(
+            &self,
+            f: &mut Formatter,
+            _: &<Self::Properties as ErrorProperties>::Value<'a>,
+        ) -> core::fmt::Result {
+            f.write_str("X Error")
+        }
+    }
+
+    #[test]
+    fn register() {
+        register![X];
+
+        // Reason: `Option` implements `cloned` twice, this just makes it easier as we do not need
+        // to specify the type
+        #[allow(clippy::redundant_closure_for_method_calls)]
+        let hooks: Option<BTreeMap<_, _>> = HOOKS.read_hooks_with(|hooks| hooks.cloned());
+        let hooks = hooks.expect("should have hooks");
+        hooks.contains_key(&TypeId::of::<X>());
     }
 }
