@@ -52,12 +52,6 @@ export default class {
     return this.getMetadata().editionId.version;
   }
 
-  get entityUuid(): string {
-    const [_, entityUuid] = this.baseId.split("%") as [string, string];
-
-    return entityUuid;
-  }
-
   constructor({ entity, entityTypeModel }: EntityModelConstructorParams) {
     this.entity = entity;
     this.entityTypeModel = entityTypeModel;
@@ -75,6 +69,12 @@ export default class {
     const [ownedById, _] = this.baseId.split("%") as [string, string];
 
     return ownedById;
+  }
+
+  getEntityUuid(): string {
+    const [_, entityUuid] = this.baseId.split("%") as [string, string];
+
+    return entityUuid;
   }
 
   static async fromEntity(
@@ -481,7 +481,7 @@ export default class {
         {
           equal: [
             { path: ["rightEntity", "uuid"] },
-            { parameter: this.entityUuid },
+            { parameter: this.getEntityUuid() },
           ],
         },
         {
@@ -539,7 +539,7 @@ export default class {
         {
           equal: [
             { path: ["leftEntity", "uuid"] },
-            { parameter: this.entityUuid },
+            { parameter: this.getEntityUuid() },
           ],
         },
         {
@@ -573,7 +573,7 @@ export default class {
         {
           equal: [
             { path: ["rightEntity", "uuid"] },
-            { parameter: params.rightEntityModel.entityUuid },
+            { parameter: params.rightEntityModel.getEntityUuid() },
           ],
         },
         {
@@ -611,7 +611,7 @@ export default class {
       filter: {
         all: [
           { equal: [{ path: ["version"] }, { parameter: "latest" }] },
-          { equal: [{ path: ["uuid"] }, { parameter: this.entityUuid }] },
+          { equal: [{ path: ["uuid"] }, { parameter: this.getEntityUuid() }] },
           {
             equal: [
               { path: ["ownedById"] },

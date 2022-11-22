@@ -159,7 +159,8 @@ export default class extends EntityModel {
        */
       .filter(
         (pageEntityModel) =>
-          pageEntityModel.getOwnedById() === params.accountModel.entityUuid,
+          pageEntityModel.getOwnedById() ===
+          params.accountModel.getEntityUuid(),
       )
       .map(PageModel.fromEntityModel);
 
@@ -384,7 +385,7 @@ export default class extends EntityModel {
         {
           equal: [
             { path: ["leftEntity", "uuid"] },
-            { parameter: this.entityUuid },
+            { parameter: this.getEntityUuid() },
           ],
         },
         {

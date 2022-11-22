@@ -179,7 +179,7 @@ export default class extends EntityModel {
           {
             equal: [
               { path: ["leftEntity", "uuid"] },
-              { parameter: this.entityUuid },
+              { parameter: this.getEntityUuid() },
             ],
           },
           {
@@ -199,7 +199,7 @@ export default class extends EntityModel {
           {
             equal: [
               { path: ["rightEntity", "uuid"] },
-              { parameter: userModel.entityUuid },
+              { parameter: userModel.getEntityUuid() },
             ],
           },
           {
