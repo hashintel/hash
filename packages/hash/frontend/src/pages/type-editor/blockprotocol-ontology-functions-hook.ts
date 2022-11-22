@@ -43,6 +43,7 @@ import { useBlockProtocolUpdateEntity } from "../../components/hooks/blockProtoc
 export type GraphMessageCallbacks = Omit<
   EmbedderGraphMessageCallbacks,
   | "getEntity"
+  | "createEntity"
   | "aggregateEntities"
   | "updateEntity"
   | "getEntityType"
