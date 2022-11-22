@@ -12,6 +12,13 @@ import { generateEntityLabel } from "../../../../lib/entities";
 import { getEntity, Subgraph } from "../../../../lib/subgraph";
 import { mustBeVersionedUri } from "./util";
 
+export interface TypeEntitiesRow {
+  entity: string;
+  entityTypeVersion: string;
+  namespace: string;
+  [k: string]: string;
+}
+
 export const useEntitiesTable = (
   entities?: Entity[],
   entityTypes?: EntityType[],
@@ -67,7 +74,7 @@ export const useEntitiesTable = (
       ...propertyColumns,
     ];
 
-    const rows: { [k: string]: string }[] =
+    const rows: TypeEntitiesRow[] =
       entities?.map((entity) => {
         const entityLabel = generateEntityLabel({
           root: entity,
