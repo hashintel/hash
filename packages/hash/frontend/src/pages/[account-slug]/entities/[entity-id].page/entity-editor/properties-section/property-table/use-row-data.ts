@@ -7,7 +7,7 @@ import { flattenExpandedItemsOfTree } from "./flatten-expanded-items-of-tree";
 import {
   sortRowData,
   TableSort,
-} from "../../../../../../../components/GlideGlid/utils/sorting";
+} from "../../../../../../../components/grid/utils/sorting";
 
 export const useRowData = () => {
   const { rootEntityAndSubgraph, propertyExpandStatus } = useEntityEditor();

@@ -6,9 +6,9 @@ import {
 import {
   getCellHorizontalPadding,
   getYCenter,
-} from "../../../../../../../../components/GlideGlid/utils";
-import { drawCellFadeOutGradient } from "../../../../../../../../components/GlideGlid/utils/draw-cell-fade-out-gradient";
-import { drawVerticalIndentationLine } from "../../../../../../../../components/GlideGlid/utils/draw-vertical-indentation-line";
+} from "../../../../../../../../components/grid/utils";
+import { drawCellFadeOutGradient } from "../../../../../../../../components/grid/utils/draw-cell-fade-out-gradient";
+import { drawVerticalIndentationLine } from "../../../../../../../../components/grid/utils/draw-vertical-indentation-line";
 import { TableExpandStatus } from "../../../entity-editor-context";
 import { PropertyRow } from "../types";
 
