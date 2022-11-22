@@ -7,7 +7,6 @@ import {
 } from "../../../../graphql/apiTypes.gen";
 import { getAllLatestPropertyTypesQuery } from "../../../../graphql/queries/ontology/property-type.queries";
 import { AggregatePropertyTypesMessageCallback } from "./ontology-types-shim";
-import { Subgraph } from "../../../../lib/subgraph";
 
 export const useBlockProtocolAggregatePropertyTypes = (): {
   aggregatePropertyTypes: AggregatePropertyTypesMessageCallback;
@@ -59,11 +58,7 @@ export const useBlockProtocolAggregatePropertyTypes = (): {
         }
 
         return {
-          /**
-           * @todo: remove this when we start returning links in the subgraph
-           *   https://app.asana.com/0/0/1203214689883095/f
-           */
-          data: response.data.getAllLatestPropertyTypes as Subgraph,
+          data: response.data.getAllLatestPropertyTypes,
         };
       },
       [aggregateFn],
