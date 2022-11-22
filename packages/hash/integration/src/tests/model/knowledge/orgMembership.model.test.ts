@@ -1,15 +1,11 @@
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { createGraphClient } from "@hashintel/hash-api/src/graph";
-import {
-  ensureSystemTypesExist,
-  SYSTEM_TYPES,
-} from "@hashintel/hash-api/src/graph/system-types";
+import { ensureSystemTypesExist } from "@hashintel/hash-api/src/graph/system-types";
 import {
   OrgMembershipModel,
   OrgModel,
   UserModel,
 } from "@hashintel/hash-api/src/model";
-import { systemAccountId } from "@hashintel/hash-api/src/model/util";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { createTestOrg, createTestUser } from "../../util";
 
@@ -48,24 +44,18 @@ describe("OrgMembership model class", () => {
       responsibility: "test",
       org: testOrg,
       actorId: testUser.getEntityUuid(),
-    });
-
-    await testUser.createOutgoingLink(graphApi, {
-      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.hasMembership,
-      rightEntityModel: testOrgMembership,
-      ownedById: systemAccountId,
-      actorId: testUser.getEntityUuid(),
+      user: testUser,
     });
   });
 
   it("can get the org of an org membership", async () => {
-    const fetchedOrg = await testOrgMembership.getOrg(graphApi);
+    const fetchedOrg = testOrgMembership.getOrg();
 
     expect(fetchedOrg).toEqual(testOrg);
   });
 
   it("can get the user of an org membership", async () => {
-    const fetchedUser = await testOrgMembership.getUser(graphApi);
+    const fetchedUser = testOrgMembership.getUser();
 
     expect(fetchedUser?.entity).toEqual(testUser.entity);
   });

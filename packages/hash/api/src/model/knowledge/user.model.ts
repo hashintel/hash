@@ -425,15 +425,10 @@ export default class extends EntityModel {
   ) {
     const { org, responsibility, actorId } = params;
 
-    const orgMembership = await OrgMembershipModel.createOrgMembership(
-      graphApi,
-      { responsibility, org, actorId },
-    );
-
-    await this.createOutgoingLink(graphApi, {
-      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.hasMembership,
-      rightEntityModel: orgMembership,
-      ownedById: systemAccountId,
+    await OrgMembershipModel.createOrgMembership(graphApi, {
+      responsibility,
+      org,
+      user: this,
       actorId,
     });
   }
@@ -441,13 +436,11 @@ export default class extends EntityModel {
   async getOrgMemberships(graphApi: GraphApi): Promise<OrgMembershipModel[]> {
     const outgoingOrgMembershipLinkEntityModels = await this.getOutgoingLinks(
       graphApi,
-      { linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.hasMembership },
+      { linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.orgMembership },
     );
 
-    return await Promise.all(
-      outgoingOrgMembershipLinkEntityModels.map(({ rightEntityModel }) =>
-        OrgMembershipModel.fromEntityModel(rightEntityModel),
-      ),
+    return outgoingOrgMembershipLinkEntityModels.map((orgLinkEntityModel) =>
+      OrgMembershipModel.fromLinkEntityModel(orgLinkEntityModel),
     );
   }
 
@@ -457,8 +450,8 @@ export default class extends EntityModel {
   ): Promise<boolean> {
     const orgMemberships = await this.getOrgMemberships(graphApi);
 
-    const orgModels = await Promise.all(
-      orgMemberships.map((orgMembership) => orgMembership.getOrg(graphApi)),
+    const orgModels = orgMemberships.map((orgMembership) =>
+      orgMembership.getOrg(),
     );
 
     return !!orgModels.find(
