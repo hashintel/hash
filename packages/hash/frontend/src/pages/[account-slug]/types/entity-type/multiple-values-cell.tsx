@@ -300,7 +300,7 @@ export const MultipleValuesCell = ({
             );
           }}
         </Popper>
-      </TableCell>{" "}
+      </TableCell>
       {
         // We use a portal here, to ensure this is outside of the
         // FormControl context so clicking on it doesn't focus the
