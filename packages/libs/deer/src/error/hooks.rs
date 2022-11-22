@@ -196,39 +196,32 @@ type HookVec = std::sync::RwLock<Vec<Hook>>;
 
 pub(crate) struct Hooks {
     inner: HookVec,
-    init: AtomicBool,
+    init: spin::Once,
 }
 
 impl Hooks {
     const fn new() -> Self {
         Self {
             inner: HookVec::new(Vec::new()),
-            init: AtomicBool::new(false),
+            init: spin::Once::new(),
         }
     }
 
     fn init(&self) {
-        if self
-            .init
-            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
-            .is_err()
-        {
-            // we already initiated, and therefore need to stop
-            return;
-        }
-
-        // these need to be called separately, ideally this would be a const array, but TypeId::of
-        // is not const
-        // TODO: can we remove this? TODO: where does it need to be called?
-        self.push(&[
-            Hook::new::<TypeError>(),
-            Hook::new::<ValueError>(),
-            Hook::new::<MissingError>(),
-            Hook::new::<UnknownVariantError>(),
-            Hook::new::<UnknownFieldError>(),
-            Hook::new::<ObjectItemsExtraError>(),
-            Hook::new::<ArrayLengthError>(),
-        ]);
+        // `spin::Once` has (in contrast to `std::sync::Once`, which - if called recursively -
+        // creates a deadlock or panic)
+        self.init.call_once(|| {
+            // TODO: can we remove this?
+            self.push(&[
+                Hook::new::<TypeError>(),
+                Hook::new::<ValueError>(),
+                Hook::new::<MissingError>(),
+                Hook::new::<UnknownVariantError>(),
+                Hook::new::<UnknownFieldError>(),
+                Hook::new::<ObjectItemsExtraError>(),
+                Hook::new::<ArrayLengthError>(),
+            ]);
+        });
     }
 
     fn push(&self, hooks: &[Hook]) {

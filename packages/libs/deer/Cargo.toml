@@ -12,7 +12,7 @@ num-traits = "0.2.15"
 serde = { version = "1.0.147", default_features = false, features = ['alloc', 'derive'] }
 erased-serde = { version = "0.3.23", default_features = false, features = ['alloc'] }
 
-spin = { version = "0.9.4", default_features = false, features = ['rwlock'] }
+spin = { version = "0.9.4", default_features = false, features = ['rwlock', 'once'] }
 
 [dev-dependencies]
 serde_json = "1.0.87"
