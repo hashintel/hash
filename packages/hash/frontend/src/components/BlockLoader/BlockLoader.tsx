@@ -30,7 +30,6 @@ import { RemoteBlock } from "../RemoteBlock/RemoteBlock";
 import { useBlockLoadedContext } from "../../blocks/onBlockLoaded";
 import { useBlockProtocolAggregateEntities } from "../hooks/blockProtocolFunctions/knowledge/useBlockProtocolAggregateEntities";
 import { useBlockProtocolCreateLinkedAggregation } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateLinkedAggregation";
-import { useBlockProtocolDeleteLink } from "../hooks/blockProtocolFunctions/useBlockProtocolDeleteLink";
 import { useBlockProtocolDeleteLinkedAggregation } from "../hooks/blockProtocolFunctions/useBlockProtocolDeleteLinkedAggregation";
 import { useBlockProtocolFileUpload } from "../hooks/blockProtocolFunctions/useBlockProtocolFileUpload";
 import { useBlockProtocolUpdateEntity } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateEntity";
@@ -90,7 +89,6 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     useBlockProtocolCreateLinkedAggregation(readonlyMode);
   const { deleteLinkedAggregation } =
     useBlockProtocolDeleteLinkedAggregation(readonlyMode);
-  const { deleteLink } = useBlockProtocolDeleteLink(readonlyMode);
   const { updateEntity } = useBlockProtocolUpdateEntity(false, readonlyMode);
   const { uploadFile } = useBlockProtocolFileUpload(accountId, readonlyMode);
   const { updateEntityType } = useBlockProtocolUpdateEntityType(readonlyMode);
@@ -195,7 +193,6 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     aggregateEntities,
     createLinkedAggregation,
     deleteLinkedAggregation,
-    deleteLink,
     /**
      * @todo remove this when embed block no longer relies on server-side oEmbed calls
      * @see https://app.asana.com/0/1200211978612931/1202509819279267/f

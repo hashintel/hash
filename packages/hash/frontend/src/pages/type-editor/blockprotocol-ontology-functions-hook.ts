@@ -11,7 +11,6 @@ import { OntologyCallbacks } from "../../components/hooks/blockProtocolFunctions
 import { KnowledgeCallbacks } from "../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
 
 import { useBlockProtocolCreateLinkedAggregation } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolCreateLinkedAggregation";
-import { useBlockProtocolDeleteLink } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolDeleteLink";
 import { useBlockProtocolDeleteLinkedAggregation } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolDeleteLinkedAggregation";
 import { useBlockProtocolFileUpload } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolFileUpload";
 import { useBlockProtocolUpdateLink } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateLink";
@@ -47,6 +46,7 @@ export type GraphMessageCallbacks = Omit<
   | "getEntityType"
   | "createLink"
   | "getLink"
+  | "deleteLink"
   | "getLinkedAggregation"
   | "deleteEntity"
   | "deleteEntityType"
@@ -74,7 +74,6 @@ export const useBlockProtocolFunctionsWithOntology = (
 
   const { deleteLinkedAggregation } =
     useBlockProtocolDeleteLinkedAggregation(readonlyMode);
-  const { deleteLink } = useBlockProtocolDeleteLink(readonlyMode);
   const { uploadFile } = useBlockProtocolFileUpload(ownedById, readonlyMode);
   const { updateLinkedAggregation } =
     useBlockProtocolUpdateLinkedAggregation(readonlyMode);
@@ -106,7 +105,6 @@ export const useBlockProtocolFunctionsWithOntology = (
     createEntity,
     createLinkedAggregation,
     deleteLinkedAggregation,
-    deleteLink,
     uploadFile,
     updateLink,
     updateLinkedAggregation,
