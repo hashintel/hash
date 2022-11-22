@@ -15,6 +15,7 @@ type RemoteBlockProps = {
   graphCallbacks: Omit<
     EmbedderGraphMessageCallbacks,
     | "aggregateEntityTypes"
+    | "createEntity"
     | "getEntity"
     | "aggregateEntities"
     | "getEntityType"
