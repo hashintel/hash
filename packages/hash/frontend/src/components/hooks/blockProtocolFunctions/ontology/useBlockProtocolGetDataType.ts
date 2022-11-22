@@ -7,7 +7,6 @@ import {
 } from "../../../../graphql/apiTypes.gen";
 import { getDataTypeQuery } from "../../../../graphql/queries/ontology/data-type.queries";
 import { GetDataTypeMessageCallback } from "./ontology-types-shim";
-import { Subgraph } from "../../../../lib/subgraph";
 
 export const useBlockProtocolGetDataType = (): {
   getDataType: GetDataTypeMessageCallback;
@@ -21,8 +20,8 @@ export const useBlockProtocolGetDataType = (): {
   );
 
   const getDataType = useCallback<GetDataTypeMessageCallback>(
-    async ({ data }) => {
-      if (!data) {
+    async ({ data: dataTypeId }) => {
+      if (!dataTypeId) {
         return {
           errors: [
             {
@@ -32,8 +31,6 @@ export const useBlockProtocolGetDataType = (): {
           ],
         };
       }
-
-      const { dataTypeId } = data;
 
       const response = await getFn({
         variables: {
@@ -54,11 +51,7 @@ export const useBlockProtocolGetDataType = (): {
       }
 
       return {
-        /**
-         * @todo: remove this when we start returning links in the subgraph
-         *   https://app.asana.com/0/0/1203214689883095/f
-         */
-        data: response.data.getDataType as Subgraph,
+        data: response.data.getDataType,
       };
     },
     [getFn],
