@@ -70,12 +70,10 @@ extern crate alloc;
 use alloc::boxed::Box;
 use core::{cell::UnsafeCell, mem::MaybeUninit, ops::Index, ptr};
 
-use crate::{
-    lock::AtomicLock,
-    sync::{AtomicUsize, Ordering},
-};
+use spin::mutex::SpinMutex;
 
-mod lock;
+use crate::sync::{AtomicUsize, Ordering};
+
 pub(crate) mod sync;
 
 // note: [PERFORMANCE] increase from 16 to 64
@@ -83,7 +81,7 @@ pub(crate) mod sync;
 //  iter (singe/multi): ~10%
 pub struct AVec<T, const N: usize = 16> {
     length: AtomicUsize,
-    lock: AtomicLock,
+    lock: SpinMutex<()>,
 
     // SAFETY: This `UnsafeCell` is not checked by loom, this might seem counterintuitive, but
     // there's a reason for this.
@@ -134,7 +132,7 @@ impl<T, const N: usize> AVec<T, N> {
     pub const fn new() -> Self {
         Self {
             length: AtomicUsize::new(0),
-            lock: AtomicLock::new(),
+            lock: SpinMutex::new(()),
             head: UnsafeCell::new(Bucket::new()),
         }
     }
