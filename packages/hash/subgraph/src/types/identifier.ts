@@ -1,3 +1,4 @@
+import { VersionedUri } from "@blockprotocol/type-system-node";
 import { OntologyTypeEditionId } from "@hashintel/hash-graph-client";
 import { validate as validateUuid } from "uuid";
 
@@ -41,6 +42,12 @@ export type EntityIdAndTimestamp = {
 export { OntologyTypeEditionId };
 
 export type GraphElementEditionId = EntityEditionId | OntologyTypeEditionId;
+
+export const ontologyTypeEditionIdToVersionedUri = (
+  ontologyTypeEditionId: OntologyTypeEditionId,
+): VersionedUri => {
+  return `${ontologyTypeEditionId.baseId}v/${ontologyTypeEditionId.version}` as VersionedUri;
+};
 
 export const isEntityId = (entityId: string): entityId is EntityId => {
   const [accountId, entityUuid] = entityId.split("%");

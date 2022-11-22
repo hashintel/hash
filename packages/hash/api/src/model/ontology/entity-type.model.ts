@@ -8,6 +8,7 @@ import {
 import {
   EntityTypeWithMetadata,
   OntologyElementMetadata,
+  ontologyTypeEditionIdToVersionedUri,
 } from "@hashintel/hash-subgraph";
 import { generateTypeId, types } from "@hashintel/hash-shared/types";
 import { EntityTypeModel, PropertyTypeModel } from "../index";
@@ -166,7 +167,10 @@ export default class {
     const { editionId } = metadata;
 
     return EntityTypeModel.fromEntityTypeWithMetadata({
-      schema: { ...schema, $id: `${editionId.baseId}/v/${editionId.version}` },
+      schema: {
+        ...schema,
+        $id: ontologyTypeEditionIdToVersionedUri(editionId),
+      },
       metadata,
     });
   }
