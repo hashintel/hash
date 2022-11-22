@@ -99,7 +99,7 @@ const PropertyTypeSelect: FunctionComponent<
 
   return (
     <SelectInput
-      className={tw`w-32`}
+      style={tw`w-32`}
       options={typeOptions}
       onChangeValue={updatePermittedType}
       value={currentType}

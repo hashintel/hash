@@ -47,7 +47,12 @@ export const AccountEntityOfTypeList: FunctionComponent<
   return (
     <ul>
       {results.map((entity) => (
-        <li className={tw`mb-2`} key={entity.entityId}>
+        <li
+          style={{
+            marginBottom: "0.5rem",
+          }}
+          key={entity.entityId}
+        >
           <Link noLinkStyle href={`/${accountId}/entities/${entity.entityId}`}>
             <a>{generateEntityLabel(entity, entity.entityType.properties)}</a>
           </Link>

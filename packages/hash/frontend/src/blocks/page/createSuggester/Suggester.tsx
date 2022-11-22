@@ -77,8 +77,22 @@ export const Suggester = <T,>({
     >
       <Box component="ul" sx={{ overflow: "auto" }}>
         {loading && (
-          <li className={tw`flex justify-center py-1`}>
-            <SpinnerIcon className={tw`h-3 w-3 text-gray-500 animate-spin`} />
+          <li
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              paddingBottom: "0.25rem",
+              paddingTop: "0.25rem",
+            }}
+          >
+            <SpinnerIcon
+              style={{
+                animation: "spin 1s linear infinite",
+                color: "#6B7280",
+                height: "0.75rem",
+                width: "0.75rem",
+              }}
+            />
           </li>
         )}
         {options.length === 0 && (

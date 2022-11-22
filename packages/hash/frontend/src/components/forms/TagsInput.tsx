@@ -68,7 +68,7 @@ export const TagsInput: FunctionComponent<TagsInputProps> = ({
   return (
     <div
       style={{ minHeight: minHeight ?? 48 }}
-      className={tw`flex flex-wrap bg-white items-start rounded-lg p-2 border(1 solid gray-300 hover:gray-400 focus-within:gray-500)`}
+      style={tw`flex flex-wrap bg-white items-start rounded-lg p-2 border(1 solid gray-300 hover:gray-400 focus-within:gray-500)`}
       onClick={() => inputRef.current?.focus()}
       onKeyDown={(evt) => {
         if (evt.key === "Enter") {
@@ -78,17 +78,17 @@ export const TagsInput: FunctionComponent<TagsInputProps> = ({
       role="button"
       tabIndex={0}
     >
-      <ul className={tw`flex flex-wrap items-start`}>
+      <ul style={tw`flex flex-wrap items-start`}>
         {tags.map((tag) => (
           <li
             key={tag}
-            className={tw`relative flex flex-wrap bg-gray-300 text-sm pl-3 pr-6 py-1 rounded-2xl mr-1 mb-1`}
+            style={tw`relative flex flex-wrap bg-gray-300 text-sm pl-3 pr-6 py-1 rounded-2xl mr-1 mb-1`}
           >
             {tag}{" "}
             <button
               type="button"
               onClick={() => handleRemove(tag)}
-              className={tw`absolute border-none bg-transparent cursor-pointer right-0 top-0 bottom-0 pr-2 pl-0.5 focus:outline-none`}
+              style={tw`absolute border-none bg-transparent cursor-pointer right-0 top-0 bottom-0 pr-2 pl-0.5 focus:outline-none`}
             >
               &times;
             </button>
@@ -98,7 +98,7 @@ export const TagsInput: FunctionComponent<TagsInputProps> = ({
       <input
         type="text"
         ref={inputRef}
-        className={tw`border-none flex-1 focus:outline-none bg-transparent text-sm py-1 px-1`}
+        style={tw`border-none flex-1 focus:outline-none bg-transparent text-sm py-1 px-1`}
         placeholder={placeholder}
         onKeyDown={handleKeyDown}
         onBlur={handleBlur}

@@ -19,7 +19,7 @@ export const AuthModalLayout: FunctionComponent<AuthModalLayoutProps> = ({
     as="div"
     open={show}
     onClose={onClose ?? (() => {})}
-    className={tw`fixed z-10 inset-0 overflow-y-auto`}
+    style={tw`fixed z-10 inset-0 overflow-y-auto`}
   >
     <AuthLayout onClose={onClose} loading={loading}>
       {children}

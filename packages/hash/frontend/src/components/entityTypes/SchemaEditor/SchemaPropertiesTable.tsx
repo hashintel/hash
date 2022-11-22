@@ -46,7 +46,7 @@ export const SchemaPropertiesTable: FunctionComponent<
 
   return (
     <table
-      className={tw`max-w-full w-full text-sm text-left border-separate border border-gray-100 rounded-2xl`}
+      style={tw`max-w-full w-full text-sm text-left border-separate border border-gray-100 rounded-2xl`}
       style={{ borderSpacing: 0 }}
     >
       <thead>
@@ -81,12 +81,12 @@ export const SchemaPropertiesTable: FunctionComponent<
         {!readonly ? (
           <tr className={trClasses}>
             <td className={tdClasses} colSpan={7}>
-              <div className={tw`text-uppercase font-bold mr-12 mb-1`}>
+              <div style={tw`text-uppercase font-bold mr-12 mb-1`}>
                 New property
               </div>
               <form onSubmit={onAddPropertyFormSubmit}>
                 <TextInputOrDisplay
-                  className={tw`w-64`}
+                  style={tw`w-64`}
                   placeholder="newProperty"
                   readonly={false}
                   updateText={setNewPropertyName}

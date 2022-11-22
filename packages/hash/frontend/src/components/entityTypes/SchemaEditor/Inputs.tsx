@@ -1,22 +1,22 @@
-import { useEffect, useState, FunctionComponent } from "react";
+import { useEffect, useState, FunctionComponent, CSSProperties } from "react";
 import { Checkbox } from "../../forms/Checkbox";
 import { TextInput } from "../../forms/TextInput";
 
 export const TextInputOrDisplay: FunctionComponent<{
-  className?: string;
   clearOnUpdate?: boolean;
   placeholder?: string;
   readonly: boolean;
   required?: boolean;
+  style?: CSSProperties;
   updateOnBlur?: boolean;
   updateText: (value: string) => void;
   value: string;
 }> = ({
-  className,
   clearOnUpdate,
   placeholder,
   readonly,
   required,
+  style,
   updateOnBlur,
   updateText,
   value,
@@ -52,7 +52,7 @@ export const TextInputOrDisplay: FunctionComponent<{
 
   return (
     <TextInput
-      className={tw`${className}`}
+      style={style}
       placeholder={placeholder}
       value={draftText}
       required={required}

@@ -212,14 +212,14 @@ export const SchemaEditor: FunctionComponent<JsonSchemaEditorProps> = ({
 
   return (
     <div>
-      <header className={tw`mb-12`}>
+      <header style={tw`mb-12`}>
         <h1>
           <strong>Schema: {title ?? "No title."}</strong>
         </h1>
       </header>
 
       <section>
-        <div className={tw`flex items-center mb-7`}>
+        <div style={tw`flex items-center mb-7`}>
           <h2>
             Properties of{" "}
             <Link noLinkStyle href={workingSchemaDraft.$id ?? "#"}>
@@ -227,14 +227,14 @@ export const SchemaEditor: FunctionComponent<JsonSchemaEditorProps> = ({
             </Link>
           </h2>
           {subSchemaReference ? (
-            <h3 className={tw`ml-2`}>{` > ${subSchemaReference
+            <h3 style={tw`ml-2`}>{` > ${subSchemaReference
               .split("/")
               .pop()}`}</h3>
           ) : null}
         </div>
-        <div className={tw`mb-4`}>
+        <div style={tw`mb-4`}>
           <TextInputOrDisplay
-            className={tw`max-w-3xl`}
+            style={tw`max-w-3xl`}
             placeholder="Describe your schema"
             readonly={readonly}
             updateText={updateSchemaDescription}
@@ -259,7 +259,7 @@ export const SchemaEditor: FunctionComponent<JsonSchemaEditorProps> = ({
       </section>
 
       {subSchemas.length > 0 ? (
-        <section className={tw`mt-8`}>
+        <section style={tw`mt-8`}>
           <h2>Sub-schemas in {title}</h2>
           {subSchemas.map((subSchema) => (
             <SubSchemaItem
@@ -271,13 +271,13 @@ export const SchemaEditor: FunctionComponent<JsonSchemaEditorProps> = ({
               workingSchemaDraft={workingSchemaDraft}
             />
           ))}
-          <div className={tw`mt-8`}>
-            <div className={tw`text-uppercase font-bold text-sm mr-12 mb-1`}>
+          <div style={tw`mt-8`}>
+            <div style={tw`text-uppercase font-bold text-sm mr-12 mb-1`}>
               New sub-schema
             </div>
             <form onSubmit={onNewSubSchemaFormSubmit}>
               <TextInputOrDisplay
-                className={tw`w-64`}
+                style={tw`w-64`}
                 required
                 placeholder="MySubSchema"
                 readonly={false}

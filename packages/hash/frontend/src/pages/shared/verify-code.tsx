@@ -112,14 +112,14 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
   };
 
   return (
-    <div className={tw`w-8/12 max-w-4xl`}>
-      <LogoIcon className={tw`mb-6`} />
+    <div style={tw`w-8/12 max-w-4xl`}>
+      <LogoIcon style={tw`mb-6`} />
       <div
-        className={tw`h-96 mb-9 rounded-2xl bg-white shadow-xl flex justify-center items-center text-center`}
+        style={tw`h-96 mb-9 rounded-2xl bg-white shadow-xl flex justify-center items-center text-center`}
       >
-        <div className={tw`w-8/12`}>
+        <div style={tw`w-8/12`}>
           {!!invitationInfo && <InviteHeader invitationInfo={invitationInfo} />}
-          <p className={tw`font-bold`}>
+          <p style={tw`font-bold`}>
             A verification code has been sent to{" "}
             <span>
               {isShortname(loginIdentifier)
@@ -127,13 +127,13 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
                 : loginIdentifier}
             </span>
           </p>
-          <p className={tw`mb-10`}>
+          <p style={tw`mb-10`}>
             Click the link in this email or enter the verification phrase below
             to continue
           </p>
-          <form className={tw`relative`} onSubmit={onSubmit}>
+          <form style={tw`relative`} onSubmit={onSubmit}>
             <input
-              className={tw`block border-0 border-solid border-b-1 border-gray-300 w-11/12 mx-auto mb-2 py-3 pl-3 pr-20 text-2xl text-center focus:outline-none focus:border-blue-500`}
+              style={tw`block border-0 border-solid border-b-1 border-gray-300 w-11/12 mx-auto mb-2 py-3 pl-3 pr-20 text-2xl text-center focus:outline-none focus:border-blue-500`}
               onChange={({ target }) =>
                 updateState({ text: parseVerificationCodeInput(target.value) })
               }
@@ -144,52 +144,52 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
             />
             <button
               type="submit"
-              className={tw`absolute bg-transparent border-none cursor-pointer right-0 top-1/2 mr-3 transition-all -translate-y-1/2 flex items-center disabled:opacity-40 disabled:pointer-events-none focus:outline-none text(blue-500 hover:blue-700 focus:blue-600) font-bold py-2 px-2`}
+              style={tw`absolute bg-transparent border-none cursor-pointer right-0 top-1/2 mr-3 transition-all -translate-y-1/2 flex items-center disabled:opacity-40 disabled:pointer-events-none focus:outline-none text(blue-500 hover:blue-700 focus:blue-600) font-bold py-2 px-2`}
               disabled={!isInputValid() || loading}
             >
               {loading ? (
                 <>
-                  <span className={tw`mr-1`}>Loading</span>
-                  <HashIcon className={tw`h-4 w-4 animate-spin`} />
+                  <span style={tw`mr-1`}>Loading</span>
+                  <HashIcon style={tw`h-4 w-4 animate-spin`} />
                 </>
               ) : (
                 <>
-                  <span className={tw`mr-1`}>Submit</span>
+                  <span style={tw`mr-1`}>Submit</span>
                   <KeyboardReturnIcon />
                 </>
               )}
             </button>
           </form>
           {errorMessage && (
-            <span className={tw`text-red-500 text-sm`}>{errorMessage}</span>
+            <span style={tw`text-red-500 text-sm`}>{errorMessage}</span>
           )}
         </div>
       </div>
-      <div className={tw`flex justify-between`}>
+      <div style={tw`flex justify-between`}>
         <button
           type="button"
-          className={tw`bg-transparent border-none cursor-pointer focus:outline-none border(b-1 transparent hover:current focus:current)`}
+          style={tw`bg-transparent border-none cursor-pointer focus:outline-none border(b-1 transparent hover:current focus:current)`}
           onClick={goBack}
         >
-          &larr; <span className={tw`ml-1`}>Try logging in another way</span>
+          &larr; <span style={tw`ml-1`}>Try logging in another way</span>
         </button>
         {emailResent ? (
-          <div className={tw`flex items-center`}>
-            <span className={tw`mr-1`}>No email yet?</span>
-            <span className={tw`font-bold text-green-500`}>Email Resent</span>
+          <div style={tw`flex items-center`}>
+            <span style={tw`mr-1`}>No email yet?</span>
+            <span style={tw`font-bold text-green-500`}>Email Resent</span>
           </div>
         ) : (
-          <div className={tw`flex items-center`}>
-            <span className={tw`mr-1`}>No email yet?</span>
+          <div style={tw`flex items-center`}>
+            <span style={tw`mr-1`}>No email yet?</span>
             <button
               type="button"
-              className={tw`bg-transparent border-none cursor-pointer text-blue-500 focus:text-blue-700 hover:text-blue-700 disabled:opacity-50 font-bold focus:outline-none flex items-center`}
+              style={tw`bg-transparent border-none cursor-pointer text-blue-500 focus:text-blue-700 hover:text-blue-700 disabled:opacity-50 font-bold focus:outline-none flex items-center`}
               onClick={handleResendCode}
               disabled={requestCodeLoading || syntheticLoading}
             >
               <span>Resend email</span>
               {(requestCodeLoading || syntheticLoading) && (
-                <HashIcon className={tw`h-3 w-3 ml-1 animate-spin`} />
+                <HashIcon style={tw`h-3 w-3 ml-1 animate-spin`} />
               )}
             </button>
           </div>

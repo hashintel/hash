@@ -47,7 +47,7 @@ const Page: NextPageWithLayout = () => {
 
   return (
     <>
-      <header className={tw`mb-12`}>
+      <header style={tw`mb-12`}>
         <h1>
           Create new <strong>entity type</strong>
         </h1>
@@ -58,7 +58,7 @@ const Page: NextPageWithLayout = () => {
       </header>
       <section>
         <form data-testid="entity-type-creation-form" onSubmit={submit}>
-          <div className={tw`max-w-2xl lg:flex`}>
+          <div style={tw`max-w-2xl lg:flex`}>
             <TextField
               name="name"
               label="Name"
@@ -90,7 +90,7 @@ const Page: NextPageWithLayout = () => {
             />
           </div>
 
-          <div className={tw`mt-8`}>
+          <div style={tw`mt-8`}>
             <Collapse in={!!error?.message}>
               <Typography
                 sx={({ palette }) => ({

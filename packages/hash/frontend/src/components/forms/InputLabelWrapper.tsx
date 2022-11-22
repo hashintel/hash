@@ -6,9 +6,7 @@ export const InputLabelWrapper: FunctionComponent<{
   className?: string;
 }> = ({ label, children, className = "" }) => (
   <label>
-    <div
-      className={tw`mb-1 uppercase text-sm font-semibold ${className || ""}`}
-    >
+    <div style={tw`mb-1 uppercase text-sm font-semibold ${className || ""}`}>
       {label}
     </div>
     {children}

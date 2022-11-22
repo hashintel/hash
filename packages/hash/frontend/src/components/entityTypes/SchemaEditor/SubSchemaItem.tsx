@@ -95,7 +95,7 @@ export const SubSchemaItem: FunctionComponent<SubSchemaItemProps> = ({
   };
 
   return (
-    <div className={tw`mb-4`} key={subSchemaName}>
+    <div style={tw`mb-4`} key={subSchemaName}>
       <GoToSchemaElement schemaRef={`#/$defs/${subSchemaName}`} />
       <Button
         variant="danger"

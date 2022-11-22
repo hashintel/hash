@@ -30,12 +30,45 @@ export const LinkModal: FunctionComponent<LinkModalProps> = ({
 
   return (
     <div
-      className={tw`absolute z-10 w-80 mt-2 left-1/2 -translate-x-1/2 shadow-lg border-1 bg-white rounded-md`}
+      style={{
+        backgroundColor: "#ffffff",
+        borderRadius: "0.375rem",
+        boxShadow:
+          "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+        left: "50%",
+        marginTop: "0.5rem",
+        position: "absolute",
+        transform: "translateX(-50%)",
+        width: "20rem",
+        zIndex: "10",
+      }}
       ref={linkModalRef}
     >
-      <form className={tw`flex px-4 pt-4 pb-3`} onSubmit={handleUpdateLink}>
+      <form
+        style={{
+          display: "flex",
+          paddingLeft: "1rem",
+          paddingRight: "1rem",
+          paddingBottom: "0.75rem",
+          paddingTop: "1rem",
+        }}
+        onSubmit={handleUpdateLink}
+      >
         <input
-          className={tw`block w-full px-2 py-1 text-sm border-gray-300 border-solid border-1 outline-none rounded-sm focus:outline-none focus:border-gray-500`}
+          style={{
+            borderColor: "#D1D5DB",
+            borderRadius: "0.125rem",
+            borderStyle: "solid",
+            display: "block",
+            fontSize: "0.875rem",
+            lineHeight: "1.25rem",
+            outline: "0",
+            paddingBottom: "0.25rem",
+            paddingLeft: "0.5rem",
+            paddingRight: "0.5rem",
+            paddingTop: "0.25rem",
+            width: "100%",
+          }}
           type="text"
           onChange={(evt) => setNewLinkHref(evt.target.value)}
           value={newLinkHref}
@@ -44,68 +77,174 @@ export const LinkModal: FunctionComponent<LinkModalProps> = ({
         />
       </form>
 
-      <div className={tw`text-gray-700`}>
+      <div style={{ color: "#374151" }}>
         {!savedLinkMarkHref && isValidLink(newLinkHref) && (
           <button
-            className={tw`bg-transparent cursor-pointer text-sm text-gray-700 hover:bg-gray-200 bg-gray-200 flex items-center w-full px-4 py-1 my-1`}
+            style={{
+              alignItems: "center",
+              backgroundColor: "#E5E7EB",
+              color: "#374151",
+              cursor: "pointer",
+              display: "flex",
+              fontSize: "0.875rem",
+              lineHeight: "1.25rem",
+              marginBottom: "0.25rem",
+              marginTop: "0.25rem",
+              paddingBottom: "0.25rem",
+              paddingLeft: "1rem",
+              paddingRight: "1rem",
+              paddingTop: "0.25rem",
+              width: "100%",
+              // :hover { background-color: #E5E7EB; }
+            }}
             onClick={() => updateLink(newLinkHref)}
             type="button"
           >
-            <LinkIcon className={tw`!text-base mr-1`} />
-            <span className={tw``}>Add Link</span>
+            <LinkIcon style={{ marginRight: "0.25rem" }} />
+            <span>Add Link</span>
           </button>
         )}
         {savedLinkMarkHref && (
           <>
-            <div className={tw`text-xs`}>
-              <p className={tw`text-xxs px-4 uppercase mb-2`}>Linked To</p>
+            <div
+              style={{
+                fontSize: "0.75rem",
+                lineHeight: "1rem",
+              }}
+            >
+              <p
+                style={{
+                  paddingLeft: "1rem",
+                  paddingRight: "1rem",
+                  marginBottom: "0.5rem",
+                  textTransform: "uppercase",
+                }}
+              >
+                Linked To
+              </p>
               {/* @todo discuss if this is better off as a link tag since that allows user to do extra
               stuff like "open in new window", "copy link" */}
               <button
-                className={tw`flex bg-transparent cursor-pointer border-none hover:bg-gray-200 text-left w-full px-4 py-1.5 focus:outline-none`}
+                style={{
+                  display: "flex",
+                  paddingTop: "0.375rem",
+                  paddingBottom: "0.375rem",
+                  paddingLeft: "1rem",
+                  paddingRight: "1rem",
+                  backgroundColor: "transparent",
+                  textAlign: "left",
+                  width: "100%",
+                  borderStyle: "none",
+                  cursor: "pointer",
+                  // :hover { background-color: #E5E7EB; }
+                }}
                 onClick={openUrl}
                 type="button"
               >
-                <LanguageIcon className={tw`!text-base mr-1`} />
+                <LanguageIcon
+                  style={{
+                    marginRight: "0.25rem",
+                  }}
+                />
                 <div>
                   <p
-                    className={tw`text-sm leading-none break-all mb-0.5`}
                     style={{
                       display: "-webkit-box",
-                      WebkitLineClamp: 4,
-                      WebkitBoxOrient: "vertical",
+                      fontSize: "0.875rem",
+                      lineHeight: "1",
+                      marginBottom: "0.125rem",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
+                      WebkitBoxOrient: "vertical",
+                      WebkitLineClamp: 4,
+                      wordBreak: "break-all",
                     }}
                   >
                     {savedLinkMarkHref}
                   </p>
-                  <span className={tw`font-light`}>Web page</span>
+                  <span
+                    style={{
+                      fontWeight: "300",
+                    }}
+                  >
+                    Web page
+                  </span>
                 </div>
               </button>
             </div>
-            <div className={tw`h-px bg-gray-100`} />
-            <ul className={tw`text-sm py-1`}>
+            <div
+              style={{
+                backgroundColor: "#F3F4F6",
+                height: "1px",
+              }}
+            />
+            <ul
+              style={{
+                fontSize: "0.875rem",
+                lineHeight: "1.25rem",
+                paddingBottom: "0.25rem",
+                paddingTop: "0.25rem",
+              }}
+            >
               {isValidLink(newLinkHref) && (
                 <li style={{ listStyle: "none" }}>
                   <button
-                    className={tw`bg-transparent cursor-pointer border-none text-sm text-gray-700 hover:bg-gray-200 flex items-center w-full px-4 py-1 my-1`}
+                    style={{
+                      alignItems: "center",
+                      backgroundColor: "transparent",
+                      borderStyle: "none",
+                      color: "#374151",
+                      cursor: "pointer",
+                      display: "flex",
+                      fontSize: "0.875rem",
+                      lineHeight: "1.25rem",
+                      marginBottom: "0.25rem",
+                      marginTop: "0.25rem",
+                      paddingBottom: "0.25rem",
+                      paddingLeft: "1rem",
+                      paddingRight: "1rem",
+                      paddingTop: "0.25rem",
+                      width: "100%",
+                      // :hover { background-color: #E5E7EB; }
+                    }}
                     onClick={() => updateLink(newLinkHref)}
                     type="button"
                   >
-                    <LinkIcon className={tw`!text-base mr-1`} />
-                    <span className={tw``}>Update Link</span>
+                    <LinkIcon
+                      style={{
+                        marginRight: "0.25rem",
+                      }}
+                    />
+                    <span>Update Link</span>
                   </button>
                 </li>
               )}
               <li style={{ listStyle: "none" }}>
                 <button
-                  className={tw`bg-transparent cursor-pointer border-none hover:bg-gray-200 text-gray-700 flex items-center w-full px-4 py-1`}
+                  style={{
+                    alignItems: "center",
+                    backgroundColor: "transparent",
+                    borderStyle: "none",
+                    color: "#374151",
+                    cursor: "pointer",
+                    display: "flex",
+                    paddingBottom: "0.25rem",
+                    paddingLeft: "1rem",
+                    paddingRight: "1rem",
+                    paddingTop: "0.25rem",
+                    width: "100%",
+                    // :hover { background-color: #E5E7EB; }
+                  }}
                   onClick={removeLink}
                   type="button"
                 >
-                  <DeleteIcon className={tw`!text-base mr-1 text-gray-700`} />
-                  <span className={tw``}>Remove link</span>
+                  <DeleteIcon
+                    style={{
+                      marginRight: "0.25rem",
+                      color: "#374151",
+                    }}
+                  />
+                  <span>Remove link</span>
                 </button>
               </li>
             </ul>

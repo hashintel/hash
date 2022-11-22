@@ -92,6 +92,19 @@ const App: FunctionComponent<AppProps> = ({
           </ModalProvider>
         </ThemeProvider>
       </CacheProvider>
+      {/* eslint-disable-next-line react/no-unknown-property -- leftover from tailwind; can be removed when `animation: spin` is removed from JSX CSS */}
+      <style jsx global>
+        {`
+          @keyframes spin {
+            from {
+              transform: rotate(0deg);
+            }
+            to {
+              transform: rotate(360deg);
+            }
+          } ;
+        `}
+      </style>
     </ApolloProvider>
   );
 };

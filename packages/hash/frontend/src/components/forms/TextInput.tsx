@@ -1,4 +1,4 @@
-import { ChangeEvent, forwardRef, HTMLProps } from "react";
+import { ChangeEvent, CSSProperties, forwardRef, HTMLProps } from "react";
 import { InputLabelWrapper } from "./InputLabelWrapper";
 
 type TextInputProps = {
@@ -8,7 +8,7 @@ type TextInputProps = {
   onChangeText?: (newText: string) => void;
   value?: string;
   transparent?: boolean;
-  inputClassName?: string;
+  inputStyle?: CSSProperties;
 } & Omit<HTMLProps<HTMLInputElement>, "label" | "value" | "onChange">;
 
 export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
@@ -21,7 +21,7 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
       value,
       transparent,
       type = "text",
-      inputClassName,
+      inputStyle,
       ...props
     },
     ref,
@@ -42,11 +42,17 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
       <input
         type={type}
         {...props}
-        className={tw`${
-          transparent ? "" : "bg-gray-100"
-        } border(1 solid gray-300 hover:gray-400 focus:gray-500) focus:outline-none rounded-lg h-11 py-4 px-5 w-full ${
-          inputClassName ?? ""
-        }`}
+        style={{
+          ...(transparent ? {} : { backgroundColor: "#F3F4F6" }),
+          borderRadius: "0.5rem",
+          height: "2.75rem",
+          paddingBottom: "1rem",
+          paddingLeft: "1.25rem",
+          paddingRight: "1.25rem",
+          paddingTop: "1rem",
+          width: "100%",
+          ...inputStyle,
+        }}
         onChange={_onChange}
         ref={ref}
         {...(value !== undefined ? { value } : {})}

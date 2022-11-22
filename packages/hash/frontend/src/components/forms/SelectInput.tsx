@@ -45,18 +45,18 @@ export const SelectInput = forwardRef<HTMLSelectElement, SelectInputProps>(
     );
 
     return (
-      <div className={tw`flex flex-col ${className}`}>
+      <div style={tw`flex flex-col ${className}`}>
         {label && (
           <label
             htmlFor={inputId}
-            className={tw`${labelClass} mb-1 uppercase text-sm font-semibold`}
+            style={tw`${labelClass} mb-1 uppercase text-sm font-semibold`}
           >
             {label}
           </label>
         )}
         <select
           id={inputId}
-          className={tw`border(1 gray-300 hover:gray-400 focus:gray-500) ${
+          style={tw`border(1 gray-300 hover:gray-400 focus:gray-500) ${
             !value ? "text-gray-400" : ""
           }  bg-white focus:outline-none rounded-lg h-11 px-5 mb-2 w-full `}
           onChange={_onChange}
@@ -66,7 +66,7 @@ export const SelectInput = forwardRef<HTMLSelectElement, SelectInputProps>(
           {...props}
         >
           {placeholder && (
-            <option value="" disabled className={tw`hidden`}>
+            <option value="" disabled style={tw`hidden`}>
               {placeholder || "---"}
             </option>
           )}

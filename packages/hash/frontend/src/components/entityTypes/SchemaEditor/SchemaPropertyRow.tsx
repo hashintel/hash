@@ -81,7 +81,7 @@ export const SchemaPropertyRow: FunctionComponent<SchemaPropertyRowProps> = ({
     <tr className={trClasses}>
       <td className={tdClasses}>
         <TextInputOrDisplay
-          className={tw`w-36`}
+          style={{ width: "9rem" }}
           placeholder="The property name"
           readonly={readonly}
           updateText={updatePropertyName}
