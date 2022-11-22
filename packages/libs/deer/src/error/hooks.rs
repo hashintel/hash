@@ -1,6 +1,6 @@
 use alloc::{
     boxed::Box,
-    collections::{BTreeMap, BTreeSet, VecDeque},
+    collections::{BTreeMap, BTreeSet},
     format,
     string::String,
     vec,
@@ -11,6 +11,7 @@ use core::{
     cell::Cell,
     fmt,
     fmt::{Display, Formatter},
+    iter::once,
 };
 
 use error_stack::{Context, Frame, Report};
@@ -95,6 +96,53 @@ fn register_inner<'a, E: Error>(
     }))
 }
 
+enum EitherIterator<V, I1: Iterator<Item = V>, I2: Iterator<Item = V>> {
+    Left(I1),
+    Right(I2),
+}
+
+impl<V, I1: Iterator<Item = V>, I2: Iterator<Item = V>> Iterator for EitherIterator<V, I1, I2> {
+    type Item = V;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            Self::Left(it1) => it1.next(),
+            Self::Right(it2) => it2.next(),
+        }
+    }
+}
+
+struct StackEntry<'a> {
+    head: Vec<&'a Frame>,
+    next: Option<&'a Frame>,
+}
+
+impl<'a> StackEntry<'a> {
+    fn find(self) -> impl IntoIterator<Item = StackEntry<'a>> {
+        let mut head = self.head;
+        let mut next = match self.next {
+            None => return EitherIterator::Left(once(StackEntry { head, next: None })),
+            Some(frame) => frame,
+        };
+
+        while next.sources().len() == 1 {
+            head.push(next);
+            next = &next.sources()[0];
+        }
+
+        head.push(next);
+
+        if next.sources().is_empty() {
+            EitherIterator::Left(once(StackEntry { head, next: None }))
+        } else {
+            EitherIterator::Right(next.sources().iter().rev().map(move |source| StackEntry {
+                head: head.clone(),
+                next: Some(source),
+            }))
+        }
+    }
+}
+
 /// Split the Report into "strains", which are just linear frames, which are used to determine
 /// the different errors.
 ///
@@ -115,59 +163,40 @@ fn register_inner<'a, E: Error>(
 /// [A, B, E]
 /// [A, C, F]
 /// ```
-fn split_report(report: &Report<impl Context>) -> impl IntoIterator<Item = Vec<&Frame>> {
-    fn rsplit(mut next: &Frame) -> Vec<VecDeque<&Frame>> {
-        let mut head = VecDeque::new();
+struct FrameSplitIterator<'a> {
+    stack: Vec<StackEntry<'a>>,
+}
 
-        // TODO: in theory what we could do is push_front and then reverse?
-        // "unroll" recursion if there's only a single straight path
-        while next.sources().len() == 1 {
-            head.push_back(next);
-            next = &next.sources()[0];
-        }
+impl<'a> FrameSplitIterator<'a> {
+    fn new(report: &'a Report<impl Context>) -> Self {
+        let stack = report
+            .current_frames()
+            .iter()
+            .rev()
+            .map(|frame| StackEntry {
+                head: vec![],
+                next: Some(frame),
+            })
+            .collect();
 
-        head.push_back(next);
+        Self { stack }
+    }
+}
 
-        // we now either have 0 or more than 1 source, depending on the count we need to recurse
-        // deeper or stop recursion and go "up" again.
-        match next.sources().len() {
-            0 => vec![head],
-            // while loop ensures that this never happens
-            1 => unreachable!(),
-            _ => {
-                let len = head.len();
-                let head = head.into_iter();
+impl<'a> Iterator for FrameSplitIterator<'a> {
+    type Item = Vec<&'a Frame>;
 
-                next.sources()
-                    .iter()
-                    .flat_map(rsplit)
-                    .map(|mut tail| {
-                        // now that we have the tail we need to prepend our head
-                        // This is a bit counter-intuitive, but basically we do:
-                        // Tail: [D, E, F, G]
-                        // Head: [A, B, C]
-                        //
-                        // Tail.extend(Head): [D, E, F, G, A, B, C]
-                        //
-                        // [D, E, G, G, A, B, C] (rotate right)
-                        // [C, D, E, G, A, B] (rotate right)
-                        // [B, C, D, E, G, A] (rotate right)
-                        // [A, B, C, D, E, G]
-                        tail.extend(head.clone());
-                        tail.rotate_right(len);
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let next = self.stack.pop()?;
 
-                        tail
-                    })
-                    .collect()
+            if next.next.is_none() {
+                return Some(next.head);
             }
+
+            self.stack.extend(next.find());
         }
     }
-
-    report
-        .current_frames()
-        .iter()
-        .flat_map(rsplit)
-        .map(Into::into)
 }
 
 type HookFn = for<'a> fn(&[&'a Frame]) -> Option<Box<dyn erased_serde::Serialize + 'a>>;
@@ -212,7 +241,8 @@ impl Hooks {
         // `spin::Once` has (in contrast to `std::sync::Once`, which - if called recursively -
         // creates a deadlock or panic)
         self.init.call_once(|| {
-            // TODO: can we remove this?
+            // once (if ever) `TypeId::of` can be called in cost contexts on stable, this can be
+            // replaced with a slice of builtin hooks instead.
             self.push(&[
                 Hook::new::<TypeError>(),
                 Hook::new::<ValueError>(),
@@ -292,7 +322,7 @@ impl Hooks {
     ) -> Result<S::Ok, S::Error> {
         self.init();
 
-        let frames = split_report(report);
+        let frames = FrameSplitIterator::new(report);
         let frames = self.divide_frames(frames);
 
         serializer.collect_seq(frames.into_iter().filter_map(|stack| {
@@ -354,7 +384,7 @@ mod tests {
 
     use crate::{
         error::{
-            hooks::{split_report, Hook, HOOKS},
+            hooks::{FrameSplitIterator, Hook, HOOKS},
             Error, ErrorProperties, ExpectedType, Id, Location, MissingError, Namespace,
             ReceivedValue, ReportExt, Schema, ValueError, VisitorError, NAMESPACE,
         },
@@ -431,7 +461,7 @@ mod tests {
 
         let a = b.attach_printable(Printable("A"));
 
-        let stacks: Vec<_> = split_report(&a).into_iter().collect();
+        let stacks: Vec<_> = FrameSplitIterator::new(&a).into_iter().collect();
 
         assert_stack(&stacks[0], &["A", "B", "D", "Root Error"]);
         assert_stack(&stacks[1], &["A", "B", "E", "Root Error"]);
@@ -539,7 +569,7 @@ mod tests {
 
         HOOKS.push(&[Hook::new::<Z>()]);
 
-        let split = split_report(&a);
+        let split = FrameSplitIterator::new(&a);
         let frames = HOOKS.divide_frames(split);
 
         let stacks: Vec<_> = frames.into_iter().collect();
@@ -563,7 +593,7 @@ mod tests {
     #[test]
     fn divide_ignore() {
         let report = Report::new(Y).attach(Printable("A"));
-        let split = split_report(&report);
+        let split = FrameSplitIterator::new(&report);
         let frames = HOOKS.divide_frames(split);
 
         assert_eq!(frames.into_iter().count(), 0);
@@ -580,7 +610,7 @@ mod tests {
 
         HOOKS.push(&[Hook::new::<Z>()]);
 
-        let split = split_report(&report);
+        let split = FrameSplitIterator::new(&report);
         let mut frames = HOOKS.divide_frames(split).into_iter();
 
         assert_stack(&frames.next().unwrap(), &["D", "C", "Z Error"]);
