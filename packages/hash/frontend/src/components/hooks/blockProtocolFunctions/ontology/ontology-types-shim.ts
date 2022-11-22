@@ -20,8 +20,9 @@ import {
 import {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
+  Subgraph,
+  SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
-import { Subgraph } from "../../../../lib/subgraph";
 
 export type OntologyCallbacks = {
   aggregateDataTypes: AggregateDataTypesMessageCallback;
@@ -40,14 +41,14 @@ export type OntologyCallbacks = {
 export type AggregateDataTypesMessageCallback = MessageCallback<
   {},
   null,
-  Subgraph,
+  Subgraph<SubgraphRootTypes["dataType"]>,
   ReadOrModifyResourceError
 >;
 
 export type GetDataTypeMessageCallback = MessageCallback<
   VersionedUri,
   null,
-  Subgraph,
+  Subgraph<SubgraphRootTypes["dataType"]>,
   ReadOrModifyResourceError
 >;
 
@@ -66,14 +67,14 @@ export type CreatePropertyTypeMessageCallback = MessageCallback<
 export type AggregatePropertyTypesMessageCallback = MessageCallback<
   {},
   null,
-  Subgraph,
+  Subgraph<SubgraphRootTypes["propertyType"]>,
   ReadOrModifyResourceError
 >;
 
 export type GetPropertyTypeMessageCallback = MessageCallback<
   VersionedUri,
   null,
-  Subgraph,
+  Subgraph<SubgraphRootTypes["propertyType"]>,
   ReadOrModifyResourceError
 >;
 
@@ -103,14 +104,14 @@ export type CreateEntityTypeMessageCallback = MessageCallback<
 export type AggregateEntityTypesMessageCallback = MessageCallback<
   {},
   null,
-  Subgraph,
+  Subgraph<SubgraphRootTypes["entityType"]>,
   ReadOrModifyResourceError
 >;
 
 export type GetEntityTypeMessageCallback = MessageCallback<
   VersionedUri,
   null,
-  Subgraph,
+  Subgraph<SubgraphRootTypes["entityType"]>,
   ReadOrModifyResourceError
 >;
 

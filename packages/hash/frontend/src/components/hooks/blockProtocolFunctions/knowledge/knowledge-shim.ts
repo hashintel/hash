@@ -17,6 +17,7 @@ import {
   PropertyObject,
   Subgraph,
   VersionedUri,
+  SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
 
 export type KnowledgeCallbacks = {
@@ -30,14 +31,14 @@ export type KnowledgeCallbacks = {
 export type GetEntityMessageCallback = MessageCallback<
   EntityId,
   null,
-  Subgraph,
+  Subgraph<SubgraphRootTypes["entity"]>,
   ReadOrModifyResourceError
 >;
 
 export type AggregateEntitiesMessageCallback = MessageCallback<
   {},
   null,
-  Subgraph,
+  Subgraph<SubgraphRootTypes["entity"]>,
   ReadOrModifyResourceError
 >;
 
