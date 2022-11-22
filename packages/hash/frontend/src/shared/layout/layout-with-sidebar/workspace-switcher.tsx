@@ -14,6 +14,7 @@ import {
   bindMenu,
 } from "material-ui-popup-state/hooks";
 import { Avatar, Menu, FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { extractEntityUuidFromEntityId } from "@hashintel/hash-subgraph";
 import { useAuthenticatedUser } from "../../../components/hooks/useAuthenticatedUser";
 import { Button, MenuItem } from "../../ui";
 import { useRouteAccountInfo } from "../../routing";
@@ -36,13 +37,18 @@ export const WorkspaceSwitcher: FunctionComponent<
   const activeWorkspace = useMemo(() => {
     let accountName = "";
 
-    if (authenticatedUser && accountId === authenticatedUser.entityId) {
+    if (
+      authenticatedUser &&
+      accountId ===
+        extractEntityUuidFromEntityId(authenticatedUser.entityEditionId.baseId)
+    ) {
       accountName =
         // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- @todo how to handle empty preferredName
         authenticatedUser.preferredName || authenticatedUser.shortname!;
     } else {
       const activeOrg = authenticatedUser?.memberOf.find(
-        ({ entityId }) => entityId === accountId,
+        ({ entityEditionId: { baseId } }) =>
+          extractEntityUuidFromEntityId(baseId) === accountId,
       );
 
       if (activeOrg) {
@@ -58,21 +64,31 @@ export const WorkspaceSwitcher: FunctionComponent<
       return [];
     }
 
+    const entityUuid = extractEntityUuidFromEntityId(
+      authenticatedUser.entityEditionId.baseId,
+    );
+
     return [
       {
-        key: authenticatedUser.entityId,
-        url: `/${authenticatedUser.entityId}`,
+        key: entityUuid,
+        url: `/${entityUuid}`,
         title: "My personal workspace",
         subText: `@${authenticatedUser.shortname ?? "user"}`,
         avatarTitle: authenticatedUser.preferredName ?? "U",
       },
-      ...authenticatedUser.memberOf.map(({ entityId, name, members }) => ({
-        key: entityId,
-        url: `/${entityId}`,
-        title: name,
-        subText: `${members.length} members`,
-        avatarTitle: name,
-      })),
+      ...authenticatedUser.memberOf.map(
+        ({ entityEditionId: { baseId }, name, members }) => {
+          const orgEntityUuid = extractEntityUuidFromEntityId(baseId);
+
+          return {
+            key: orgEntityUuid,
+            url: `/${orgEntityUuid}`,
+            title: name,
+            subText: `${members.length} members`,
+            avatarTitle: name,
+          };
+        },
+      ),
     ];
   }, [authenticatedUser]);
 
