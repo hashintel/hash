@@ -1,4 +1,3 @@
-import { VersionedUri } from "@blockprotocol/type-system-node";
 import { OntologyTypeEditionId } from "@hashintel/hash-graph-client";
 import { validate as validateUuid } from "uuid";
 
