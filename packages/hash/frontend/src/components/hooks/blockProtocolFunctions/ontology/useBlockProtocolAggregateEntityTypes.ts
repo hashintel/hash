@@ -1,6 +1,7 @@
 import { useLazyQuery } from "@apollo/client";
 
 import { useCallback } from "react";
+import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import {
   GetAllLatestEntityTypesQuery,
   GetAllLatestEntityTypesQueryVariables,
@@ -58,7 +59,10 @@ export const useBlockProtocolAggregateEntityTypes = (): {
       }
 
       return {
-        data: response.data.getAllLatestEntityTypes,
+        /** @todo - Is there a way we can ergonomically encode this in the GraphQL type? */
+        data: response.data.getAllLatestEntityTypes as Subgraph<
+          SubgraphRootTypes["entityType"]
+        >,
       };
     },
     [aggregateFn],

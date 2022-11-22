@@ -1,13 +1,13 @@
 import { useLazyQuery } from "@apollo/client";
 
 import { useCallback } from "react";
+import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import {
   GetEntityTypeQuery,
   GetEntityTypeQueryVariables,
 } from "../../../../graphql/apiTypes.gen";
 import { getEntityTypeQuery } from "../../../../graphql/queries/ontology/entity-type.queries";
 import { GetEntityTypeMessageCallback } from "./ontology-types-shim";
-import { Subgraph } from "../../../../lib/subgraph";
 
 export const useBlockProtocolGetEntityType = (): {
   getEntityType: GetEntityTypeMessageCallback;
@@ -62,7 +62,10 @@ export const useBlockProtocolGetEntityType = (): {
       }
 
       return {
-        data: response.data.getEntityType,
+        /** @todo - Is there a way we can ergonomically encode this in the GraphQL type? */
+        data: response.data.getEntityType as Subgraph<
+          SubgraphRootTypes["entityType"]
+        >,
       };
     },
     [getFn],
