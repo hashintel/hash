@@ -30,6 +30,7 @@
     "mock-block-dock": "0.0.21",
     "next": "12.3.1",
     "next-mdx-remote": "4.0.3",
+    "nextjs-progressbar": "0.0.16",
     "prismjs": "1.28.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

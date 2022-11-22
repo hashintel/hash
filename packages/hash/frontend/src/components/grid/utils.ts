@@ -7,7 +7,7 @@ import {
 import type { DrawArgs } from "@glideapps/glide-data-grid/dist/ts/data-grid/cells/cell-types";
 
 /**
- * @returns vertical center of a glide-grid cell
+ * @returns vertical center of a grid cell
  */
 export const getYCenter = (
   args: Pick<DrawArgs<CustomCell>, "rect" | "ctx" | "theme">,

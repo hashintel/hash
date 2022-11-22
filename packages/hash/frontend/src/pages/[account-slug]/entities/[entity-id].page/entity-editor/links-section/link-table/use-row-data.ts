@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import { sortRowData } from "../../../../../../../components/GlideGlid/utils/sorting";
 import { generateEntityLabel } from "../../../../../../../lib/entities";
 import {
   getPersistedEntityType,
@@ -9,7 +8,7 @@ import { useEntityEditor } from "../../entity-editor-context";
 import { LinkRow } from "./types";
 
 export const useRowData = () => {
-  const { rootEntityAndSubgraph, linkSort } = useEntityEditor();
+  const { rootEntityAndSubgraph } = useEntityEditor();
 
   const rowData = useMemo<LinkRow[]>(() => {
     if (!rootEntityAndSubgraph) {
@@ -41,9 +40,5 @@ export const useRowData = () => {
     );
   }, [rootEntityAndSubgraph]);
 
-  const sortedRowData = useMemo(() => {
-    return sortRowData(rowData, linkSort);
-  }, [rowData, linkSort]);
-
-  return sortedRowData;
+  return rowData;
 };

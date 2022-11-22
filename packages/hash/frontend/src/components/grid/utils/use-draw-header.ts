@@ -28,7 +28,7 @@ const drawHeaderSortIndicator = (
 };
 
 export const useDrawHeader = <T extends string>(
-  sort: TableSort<T>,
+  sort: TableSort<T> | undefined,
   columns: GridColumn[],
 ) => {
   const drawHeader: DrawHeaderCallback = useCallback(
@@ -47,15 +47,18 @@ export const useDrawHeader = <T extends string>(
       ctx.fillText(column.title, x + paddingLeft, centerY);
 
       const columnKey = columns[columnIndex]?.id;
-      const isSorted = columnKey === sort.key;
 
-      // draw sort indicator
-      if (isSorted) {
-        const titleWidth = ctx.measureText(column.title).width;
-        const indicatorX = x + paddingLeft + titleWidth + 6;
-        const indicatorY = centerY;
+      if (sort) {
+        const isSorted = columnKey === sort.key;
 
-        drawHeaderSortIndicator(indicatorX, indicatorY, sort.dir, ctx);
+        // draw sort indicator
+        if (isSorted) {
+          const titleWidth = ctx.measureText(column.title).width;
+          const indicatorX = x + paddingLeft + titleWidth + 6;
+          const indicatorY = centerY;
+
+          drawHeaderSortIndicator(indicatorX, indicatorY, sort.dir, ctx);
+        }
       }
 
       return true;
