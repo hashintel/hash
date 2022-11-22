@@ -20,9 +20,9 @@ import {
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { frontendUrl } from "@hashintel/hash-shared/environment";
+import { getPropertyTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
 import { useBlockProtocolCreatePropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreatePropertyType";
 import { useBlockProtocolGetPropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetPropertyType";
-import { getPersistedPropertyType } from "../../../../lib/subgraph";
 import { fa100 } from "../../../../shared/icons/pro/fa-100";
 import { faSquareCheck } from "../../../../shared/icons/pro/fa-square-check";
 import { faText } from "../../../../shared/icons/pro/fa-text";
@@ -183,8 +183,7 @@ export const PropertyTypeForm = ({
               const res = await getPropertyType({ data: propertyTypeId });
 
               const exists =
-                !res.data ||
-                !!getPersistedPropertyType(res.data, propertyTypeId);
+                !res.data || !!getPropertyTypeById(res.data, propertyTypeId);
 
               if (getValues("name") === value && !exists) {
                 setTitleValid(true);

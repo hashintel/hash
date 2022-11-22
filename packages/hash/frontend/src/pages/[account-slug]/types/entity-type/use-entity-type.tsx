@@ -8,11 +8,11 @@ import {
   useState,
 } from "react";
 import { extractEntityUuidFromEntityId } from "@hashintel/hash-subgraph";
+import { getEntityTypesByBaseUri } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import { useBlockProtocolAggregateEntityTypes } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregateEntityTypes";
 import { useBlockProtocolCreateEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreateEntityType";
 import { useBlockProtocolUpdateEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdateEntityType";
 import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
-import { getEntityTypesByBaseUri } from "../../../../lib/subgraph";
 import { useAdvancedInitTypeSystem } from "../../../../lib/use-init-type-system";
 import { mustBeVersionedUri } from "./util";
 
@@ -63,9 +63,10 @@ export const useEntityType = (
           : [];
 
         /** @todo - pick the latest version? */
-        const relevantEntityType = relevantEntityTypes
-          ? relevantEntityTypes[0]!.inner
-          : null;
+        const relevantEntityType =
+          relevantEntityTypes.length > 0
+            ? relevantEntityTypes[0]!.schema
+            : null;
 
         await loadTypeSystem();
 
