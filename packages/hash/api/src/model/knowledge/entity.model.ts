@@ -154,7 +154,7 @@ export default class {
     params: {
       ownedById: string;
       entityTypeId: VersionedUri;
-      properties: any;
+      properties: PropertyObject;
       linkedEntities?: PersistedLinkedEntityDefinition[];
       actorId: string;
     },
@@ -217,15 +217,15 @@ export default class {
           if (!parentEntity) {
             throw new ApolloError("Could not find parent entity");
           }
-          const linkTypeModel = await LinkTypeModel.get(graphApi, {
-            linkTypeId: link.meta.linkTypeId,
+          const linkEntityTypeModel = await EntityTypeModel.get(graphApi, {
+            entityTypeId: link.meta.linkEntityTypeId,
           });
 
           // links are created as an outgoing link from the parent entity to the children.
           await parentEntity.entity.createOutgoingLink(graphApi, {
-            linkTypeModel,
-            targetEntityModel: entity,
-            index: link.meta.index ?? undefined,
+            linkEntityTypeModel,
+            rightEntityModel: entity,
+            leftOrder: link.meta.index ?? undefined,
             ownedById,
             actorId,
           });
