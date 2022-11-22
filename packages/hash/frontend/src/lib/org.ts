@@ -1,37 +1,44 @@
 import { extractBaseUri } from "@blockprotocol/type-system-web";
 import { types } from "@hashintel/hash-shared/types";
+import { Subgraph, EntityEditionId } from "@hashintel/hash-subgraph";
+import { getEntityByEditionId } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import {
-  EntityVertex,
-  getIncomingLinksOfEntity,
-  mustGetEntity,
-  Subgraph,
-} from "./subgraph";
-import { constructMinimalUser, MinimalUser } from "./user";
+  // constructMinimalUser,
+  MinimalUser,
+} from "./user";
 
 export type MinimalOrg = {
   kind: "org";
-  entityId: string;
+  entityEditionId: EntityEditionId;
   shortname: string;
   name: string;
 };
 
 export const constructMinimalOrg = (params: {
   subgraph: Subgraph;
-  orgEntityId: string;
+  orgEntityEditionId: EntityEditionId;
 }): MinimalOrg => {
-  const { subgraph, orgEntityId } = params;
+  const { subgraph, orgEntityEditionId } = params;
 
-  const { properties } = mustGetEntity({ subgraph, entityId: orgEntityId });
+  const { metadata, properties } =
+    getEntityByEditionId(subgraph, orgEntityEditionId) ?? {};
+  if (!properties || !metadata) {
+    throw new Error(
+      `Could not find entity with ID ${orgEntityEditionId} in subgraph`,
+    );
+  }
 
-  const shortname: string =
-    properties[extractBaseUri(types.propertyType.shortName.propertyTypeId)];
+  const shortname: string = properties[
+    extractBaseUri(types.propertyType.shortName.propertyTypeId)
+  ] as string;
 
-  const name: string =
-    properties[extractBaseUri(types.propertyType.orgName.propertyTypeId)];
+  const name: string = properties[
+    extractBaseUri(types.propertyType.orgName.propertyTypeId)
+  ] as string;
 
   return {
     kind: "org",
-    entityId: orgEntityId,
+    entityEditionId: orgEntityEditionId,
     shortname,
     name,
   };
@@ -43,42 +50,17 @@ export type Org = MinimalOrg & {
 
 export const constructOrg = (params: {
   subgraph: Subgraph;
-  orgEntityId: string;
+  orgEntityEditionId: EntityEditionId;
 }): Org => {
-  const { subgraph, orgEntityId } = params;
-
-  const incomingOfOrgLinks = getIncomingLinksOfEntity({
-    entityId: orgEntityId,
-    subgraph,
-    linkTypeId: types.linkType.ofOrg.linkTypeId,
-  });
-
-  const orgMemberships = incomingOfOrgLinks.map(
-    ({ inner }) =>
-      subgraph.vertices[inner.sourceEntityId] as unknown as EntityVertex,
-  );
+  const { subgraph, orgEntityEditionId } = params;
 
   return {
-    ...constructMinimalOrg({ orgEntityId, subgraph }),
-    members: orgMemberships.map(({ inner: orgMembershipEntity }) => {
-      const responsibility: string =
-        orgMembershipEntity.properties[
-          extractBaseUri(types.propertyType.responsibility.propertyTypeId)
-        ];
-
-      const incomingHasMembershipLinks = getIncomingLinksOfEntity({
-        entityId: orgMembershipEntity.entityId,
-        subgraph,
-        linkTypeId: types.linkType.hasMembership.linkTypeId,
-      });
-
-      const userEntityId = incomingHasMembershipLinks[0]!.inner.sourceEntityId;
-
-      return {
-        ...constructMinimalUser({ subgraph, userEntityId }),
-        responsibility,
-      };
+    ...constructMinimalOrg({
+      subgraph,
+      orgEntityEditionId,
     }),
+    /** @todo implement incoming link subgraph helper */
+    members: [],
   };
 };
 
