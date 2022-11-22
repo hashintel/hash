@@ -32,7 +32,6 @@ import { useBlockProtocolAggregateEntities } from "../hooks/blockProtocolFunctio
 import { useBlockProtocolCreateLinkedAggregation } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateLinkedAggregation";
 import { useBlockProtocolDeleteLinkedAggregation } from "../hooks/blockProtocolFunctions/useBlockProtocolDeleteLinkedAggregation";
 import { useBlockProtocolFileUpload } from "../hooks/blockProtocolFunctions/useBlockProtocolFileUpload";
-import { useBlockProtocolUpdateLink } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLink";
 import { useBlockProtocolUpdateLinkedAggregation } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLinkedAggregation";
 import { DeprecatedEntityType as ApiEntityType } from "../../graphql/apiTypes.gen";
 import { useReadonlyMode } from "../../shared/readonly-mode";
@@ -90,8 +89,6 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   const { uploadFile } = useBlockProtocolFileUpload(accountId, readonlyMode);
   const { updateLinkedAggregation } =
     useBlockProtocolUpdateLinkedAggregation(readonlyMode);
-
-  const { updateLink } = useBlockProtocolUpdateLink();
 
   const { showDataMappingUi, setShowDataMappingUi } = useBlockContext();
 
@@ -195,7 +192,6 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
      */
     getEmbedBlock: fetchEmbedCode,
     uploadFile,
-    updateLink,
     updateLinkedAggregation,
   };
 

@@ -13,7 +13,6 @@ import { KnowledgeCallbacks } from "../../components/hooks/blockProtocolFunction
 import { useBlockProtocolCreateLinkedAggregation } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolCreateLinkedAggregation";
 import { useBlockProtocolDeleteLinkedAggregation } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolDeleteLinkedAggregation";
 import { useBlockProtocolFileUpload } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolFileUpload";
-import { useBlockProtocolUpdateLink } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateLink";
 import { useBlockProtocolUpdateLinkedAggregation } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateLinkedAggregation";
 
 import { useReadonlyMode } from "../../shared/readonly-mode";
@@ -46,6 +45,7 @@ export type GraphMessageCallbacks = Omit<
   | "getEntityType"
   | "createLink"
   | "getLink"
+  | "updateLink"
   | "deleteLink"
   | "getLinkedAggregation"
   | "deleteEntity"
@@ -98,15 +98,12 @@ export const useBlockProtocolFunctionsWithOntology = (
   const { getEntityType } = useBlockProtocolGetEntityType();
   const { updateEntityType } = useBlockProtocolUpdateEntityType(readonlyMode);
 
-  const { updateLink } = useBlockProtocolUpdateLink();
-
   return {
     aggregateEntities,
     createEntity,
     createLinkedAggregation,
     deleteLinkedAggregation,
     uploadFile,
-    updateLink,
     updateLinkedAggregation,
     // Knowledge operations
     getEntity,

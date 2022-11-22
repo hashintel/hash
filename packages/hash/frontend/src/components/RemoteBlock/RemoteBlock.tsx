@@ -21,6 +21,7 @@ type RemoteBlockProps = {
     | "deleteEntity"
     | "createLink"
     | "getLink"
+    | "updateLink"
     | "deleteLink"
     | "getLinkedAggregation"
     | "createEntityType"
