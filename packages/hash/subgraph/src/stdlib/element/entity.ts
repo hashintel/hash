@@ -114,7 +114,9 @@ export const getEntityAtTimestamp = (
  * @throws if the roots aren't all `EntityEditionId`s
  * @throws if the subgraph is malformed and there isn't a vertex associated with the root ID
  */
-export const getRootsAsEntities = (subgraph: Subgraph): EntityWithMetadata[] => {
+export const getRootsAsEntities = (
+  subgraph: Subgraph,
+): EntityWithMetadata[] => {
   return subgraph.roots.map((rootEditionId) => {
     if (!isEntityEditionId(rootEditionId)) {
       throw new Error(

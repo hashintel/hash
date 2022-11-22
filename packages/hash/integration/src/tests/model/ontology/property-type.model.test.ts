@@ -36,19 +36,18 @@ beforeAll(async () => {
   testUser2 = await createTestUser(graphApi, "pt-test-2", logger);
 
   textDataTypeModel = await DataTypeModel.create(graphApi, {
-    ownedById: testUser.entityId,
+    ownedById: testUser.entityUuid,
     schema: {
       kind: "dataType",
       title: "Text",
       type: "string",
     },
-    actorId: testUser.entityId,
+    actorId: testUser.entityUuid,
   });
 
   propertyTypeSchema = {
     kind: "propertyType",
     title: "A property type",
-    pluralTitle: "Multiple property types",
     oneOf: [
       {
         $ref: textDataTypeModel.getSchema().$id,
@@ -62,9 +61,9 @@ describe("Property type CRU", () => {
 
   it("can create a property type", async () => {
     createdPropertyTypeModel = await PropertyTypeModel.create(graphApi, {
-      ownedById: testUser.entityId,
+      ownedById: testUser.entityUuid,
       schema: propertyTypeSchema,
-      actorId: testUser.entityId,
+      actorId: testUser.entityUuid,
     });
   });
 
@@ -81,8 +80,12 @@ describe("Property type CRU", () => {
   const updatedTitle = "New test!";
 
   it("can update a property type", async () => {
-    expect(createdPropertyTypeModel.createdById).toBe(testUser.entityId);
-    expect(createdPropertyTypeModel.updatedById).toBe(testUser.entityId);
+    expect(createdPropertyTypeModel.metadata.provenance.createdById).toBe(
+      testUser.entityUuid,
+    );
+    expect(createdPropertyTypeModel.metadata.provenance.updatedById).toBe(
+      testUser.entityUuid,
+    );
 
     createdPropertyTypeModel = await createdPropertyTypeModel
       .update(graphApi, {
@@ -90,11 +93,15 @@ describe("Property type CRU", () => {
           ...propertyTypeSchema,
           title: updatedTitle,
         },
-        actorId: testUser2.entityId,
+        actorId: testUser2.entityUuid,
       })
       .catch((err) => Promise.reject(err.data));
 
-    expect(createdPropertyTypeModel.createdById).toBe(testUser.entityId);
-    expect(createdPropertyTypeModel.updatedById).toBe(testUser2.entityId);
+    expect(createdPropertyTypeModel.metadata.provenance.createdById).toBe(
+      testUser.entityUuid,
+    );
+    expect(createdPropertyTypeModel.metadata.provenance.updatedById).toBe(
+      testUser2.entityUuid,
+    );
   });
 });

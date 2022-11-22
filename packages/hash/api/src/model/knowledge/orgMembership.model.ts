@@ -1,4 +1,4 @@
-import { PropertyObject } from "@hashintel/hash-subgraph";
+import { EntityId, PropertyObject } from "@hashintel/hash-subgraph";
 import { GraphApi } from "../../graph";
 import {
   OrgMembershipModel,
@@ -84,7 +84,7 @@ export default class extends EntityModel {
    */
   static async getOrgMembershipById(
     graphApi: GraphApi,
-    params: { entityId: string },
+    params: { entityId: EntityId },
   ): Promise<OrgMembershipModel | null> {
     const entity = await EntityModel.getLatest(graphApi, {
       entityId: params.entityId,

@@ -17,7 +17,7 @@ type DataTypeModelConstructorArgs = {
  * @class {@link DataTypeModel}
  */
 export default class {
-  private dataType: DataTypeWithMetadata;
+  dataType: DataTypeWithMetadata;
 
   constructor({ dataType }: DataTypeModelConstructorArgs) {
     this.dataType = dataType;

@@ -22,7 +22,7 @@ type PropertyTypeModelConstructorParams = {
  * @class {@link PropertyTypeModel}
  */
 export default class {
-  private propertyType: PropertyTypeWithMetadata;
+  propertyType: PropertyTypeWithMetadata;
 
   constructor({ propertyType }: PropertyTypeModelConstructorParams) {
     this.propertyType = propertyType;

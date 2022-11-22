@@ -326,7 +326,7 @@ const calculateSaveActions = async (
           ownedById: draftEntity.accountId,
           position,
           entity: {
-            existingEntity: {
+            existingEntityId: {
               ownedById: blockData!.accountId,
               entityId: blockChildEntityId,
             },

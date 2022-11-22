@@ -20,7 +20,7 @@ export const resolvePersistedComment: ResolverFn<
   });
 
   const updatedCommentModel = await commentModel.resolve(graphApi, {
-    actorId: userModel.entityId,
+    actorId: userModel.entityUuid,
   });
 
   return mapCommentModelToGQL(updatedCommentModel);

@@ -1,21 +1,19 @@
+import { TextToken } from "@hashintel/hash-shared/graphql/types";
 import { CommentModel } from "../../../../model";
 import { ResolverFn } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import {
-  UnresolvedPersistedCommentGQL,
-  UnresolvedPersistedEntityGQL,
-} from "../model-mapping";
+import { UnresolvedPersistedCommentGQL } from "../model-mapping";
 import { SYSTEM_TYPES } from "../../../../graph/system-types";
 
 export const persistedCommentHasText: ResolverFn<
-  Promise<UnresolvedPersistedEntityGQL[]>,
+  Promise<TextToken[]>,
   UnresolvedPersistedCommentGQL,
   LoggedInGraphQLContext,
   {}
-> = async ({ entityId }, _, { dataSources }) => {
+> = async ({ metadata }, _, { dataSources }) => {
   const { graphApi } = dataSources;
   const commentModel = await CommentModel.getCommentById(graphApi, {
-    entityId,
+    entityId: metadata.editionId.baseId,
   });
   const textEntityModel = await commentModel.getHasText(graphApi);
 

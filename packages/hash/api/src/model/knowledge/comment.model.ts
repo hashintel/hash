@@ -1,8 +1,9 @@
 import { GraphApi } from "@hashintel/hash-graph-client";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
+import { EntityId } from "@hashintel/hash-subgraph";
 import {
-  EntityModel,
   CommentModel,
+  EntityModel,
   EntityModelCreateParams,
   UserModel,
 } from "..";
@@ -22,19 +23,22 @@ type CommentModelCreateParams = Omit<
  * @class {@link CommentModel}
  */
 export default class extends EntityModel {
-  static fromEntityModel(entityModel: EntityModel): CommentModel {
+  static fromEntityModel(entity: EntityModel): CommentModel {
     if (
-      entityModel.entityTypeModel.getSchema().$id !==
-      SYSTEM_TYPES.entityType.comment.getSchema().$id
+      entity.entityTypeModel.schema.$id !==
+      SYSTEM_TYPES.entityType.comment.schema.$id
     ) {
       throw new EntityTypeMismatchError(
-        entityModel.getBaseId(),
-        SYSTEM_TYPES.entityType.comment.getSchema().$id,
-        entityModel.entityTypeModel.getSchema().$id,
+        entity.baseId,
+        SYSTEM_TYPES.entityType.comment.schema.$id,
+        entity.entityTypeModel.schema.$id,
       );
     }
 
-    return new CommentModel(entityModel);
+    return new CommentModel({
+      entity: entity.entity,
+      entityTypeModel: entity.entityTypeModel,
+    });
   }
 
   /**
@@ -44,7 +48,7 @@ export default class extends EntityModel {
    */
   static async getCommentById(
     graphApi: GraphApi,
-    params: { entityId: string },
+    params: { entityId: EntityId },
   ): Promise<CommentModel> {
     const entity = await EntityModel.getLatest(graphApi, params);
 
@@ -77,29 +81,29 @@ export default class extends EntityModel {
     const textEntity = await EntityModel.create(graphApi, {
       ownedById,
       properties: {
-        [SYSTEM_TYPES.propertyType.tokens.getBaseUri()]: tokens,
+        [SYSTEM_TYPES.propertyType.tokens.baseUri]: tokens,
       },
       entityTypeModel: SYSTEM_TYPES.entityType.text,
       actorId,
     });
 
     await entity.createOutgoingLink(graphApi, {
-      linkTypeModel: SYSTEM_TYPES.linkType.hasText,
-      targetEntityModel: textEntity,
+      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.hasText,
+      rightEntityModel: textEntity,
       ownedById,
       actorId,
     });
 
     await entity.createOutgoingLink(graphApi, {
-      linkTypeModel: SYSTEM_TYPES.linkType.parent,
-      targetEntityModel: parent,
+      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.parent,
+      rightEntityModel: parent,
       ownedById,
       actorId,
     });
 
     await entity.createOutgoingLink(graphApi, {
-      linkTypeModel: SYSTEM_TYPES.linkType.author,
-      targetEntityModel: author,
+      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.author,
+      rightEntityModel: author,
       ownedById,
       actorId,
     });
@@ -122,16 +126,16 @@ export default class extends EntityModel {
   ): Promise<CommentModel> {
     const { actorId, tokens } = params;
 
-    if (actorId !== this.createdById) {
+    if (actorId !== this.ownedById) {
       throw new Error(
-        `Critical: account ${actorId} does not have permission to edit the comment with entityId ${this.entityId}`,
+        `Critical: account ${actorId} does not have permission to edit the comment with entityId ${this.baseId}`,
       );
     }
 
     const textEntityModel = await this.getHasText(graphApi);
 
     await textEntityModel.updateProperty(graphApi, {
-      propertyTypeBaseUri: SYSTEM_TYPES.propertyType.tokens.getBaseUri(),
+      propertyTypeBaseUri: SYSTEM_TYPES.propertyType.tokens.baseUri,
       value: tokens,
       actorId,
     });
@@ -157,21 +161,20 @@ export default class extends EntityModel {
     // Throw error if the user trying to resolve the comment is not the comment's author
     // or the author of the block the comment is attached to
     if (
-      actorId !== this.createdById &&
-      parentModel.entityTypeModel.getSchema().$id ===
-        SYSTEM_TYPES.entityType.block.getSchema().$id &&
-      actorId !== parentModel.createdById
+      actorId !== this.ownedById &&
+      parentModel.entityTypeModel.schema.$id ===
+        SYSTEM_TYPES.entityType.block.schema.$id &&
+      actorId !== parentModel.ownedById
     ) {
       throw new Error(
-        `Critical: account ${actorId} does not have permission to resolve the comment with entityId ${this.entityId}`,
+        `Critical: account ${actorId} does not have permission to resolve the comment with entityId ${this.baseId}`,
       );
     }
 
     await this.updateProperties(graphApi, {
       updatedProperties: [
         {
-          propertyTypeBaseUri:
-            SYSTEM_TYPES.propertyType.resolvedAt.getBaseUri(),
+          propertyTypeBaseUri: SYSTEM_TYPES.propertyType.resolvedAt.baseUri,
           value: new Date().toISOString(),
         },
       ],
@@ -195,16 +198,16 @@ export default class extends EntityModel {
     const { actorId } = params;
 
     // Throw error if the user trying to delete the comment is not the comment's author
-    if (actorId !== this.createdById) {
+    if (actorId !== this.ownedById) {
       throw new Error(
-        `Critical: account ${actorId} does not have permission to delete the comment with entityId ${this.entityId}`,
+        `Critical: account ${actorId} does not have permission to delete the comment with entityId ${this.baseId}`,
       );
     }
 
     await this.updateProperties(graphApi, {
       updatedProperties: [
         {
-          propertyTypeBaseUri: SYSTEM_TYPES.propertyType.deletedAt.getBaseUri(),
+          propertyTypeBaseUri: SYSTEM_TYPES.propertyType.deletedAt.baseUri,
           value: new Date().toISOString(),
         },
       ],
@@ -218,8 +221,8 @@ export default class extends EntityModel {
    * Get the value of the "Resolved At" property of the comment.
    */
   getResolvedAt(): string {
-    return (this.getProperties() as any)[
-      SYSTEM_TYPES.propertyType.resolvedAt.getBaseUri()
+    return (this.properties as any)[
+      SYSTEM_TYPES.propertyType.resolvedAt.baseUri
     ];
   }
 
@@ -227,8 +230,8 @@ export default class extends EntityModel {
    * Get the value of the "Deleted At" property of the comment.
    */
   getDeletedAt(): string {
-    return (this.getProperties() as any)[
-      SYSTEM_TYPES.propertyType.deletedAt.getBaseUri()
+    return (this.properties as any)[
+      SYSTEM_TYPES.propertyType.deletedAt.baseUri
     ];
   }
 
@@ -237,28 +240,24 @@ export default class extends EntityModel {
    */
   async getHasText(graphApi: GraphApi): Promise<EntityModel> {
     const hasTextLinks = await this.getOutgoingLinks(graphApi, {
-      linkTypeModel: SYSTEM_TYPES.linkType.hasText,
+      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.hasText,
     });
 
     const [hasTextLink, ...unexpectedHasTextLinks] = hasTextLinks;
 
     if (unexpectedHasTextLinks.length > 0) {
       throw new Error(
-        `Critical: Comment with entityId ${
-          this.entityId
-        } in account ${this.getOwnedById()} has more than one linked text entities`,
+        `Critical: Comment with entityId ${this.baseId} has more than one linked text entities`,
       );
     }
 
     if (!hasTextLink) {
       throw new Error(
-        `Critical: Comment with entityId ${
-          this.entityId
-        } in account ${this.getOwnedById()} doesn't have any linked text entities`,
+        `Critical: Comment with entityId ${this.baseId} doesn't have any linked text entities`,
       );
     }
 
-    return hasTextLink.targetEntityModel;
+    return hasTextLink.rightEntityModel;
   }
 
   /**
@@ -266,28 +265,24 @@ export default class extends EntityModel {
    */
   async getParent(graphApi: GraphApi): Promise<EntityModel> {
     const parentLinks = await this.getOutgoingLinks(graphApi, {
-      linkTypeModel: SYSTEM_TYPES.linkType.parent,
+      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.parent,
     });
 
     const [parentLink, ...unexpectedParentLinks] = parentLinks;
 
     if (!parentLink) {
       throw new Error(
-        `Critical: comment with entityId ${
-          this.entityId
-        } in account ${this.getOwnedById()} has no linked parent entity`,
+        `Critical: comment with entityId ${this.baseId} has no linked parent entity`,
       );
     }
 
     if (unexpectedParentLinks.length > 0) {
       throw new Error(
-        `Critical: Comment with entityId ${
-          this.entityId
-        } in account ${this.getOwnedById()} has more than one linked parent entity`,
+        `Critical: Comment with entityId ${this.baseId} has more than one linked parent entity`,
       );
     }
 
-    return parentLink.targetEntityModel;
+    return parentLink.rightEntityModel;
   }
 
   /**
@@ -295,28 +290,24 @@ export default class extends EntityModel {
    */
   async getAuthor(graphApi: GraphApi): Promise<UserModel> {
     const authorLinks = await this.getOutgoingLinks(graphApi, {
-      linkTypeModel: SYSTEM_TYPES.linkType.author,
+      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.author,
     });
 
     const [authorLink, ...unexpectedAuthorLinks] = authorLinks;
 
     if (!authorLink) {
       throw new Error(
-        `Critical: comment with entityId ${
-          this.entityId
-        } in account ${this.getOwnedById()} has no linked author entity`,
+        `Critical: comment with entityId ${this.baseId} has no linked author entity`,
       );
     }
 
     if (unexpectedAuthorLinks.length > 0) {
       throw new Error(
-        `Critical: Comment with entityId ${
-          this.entityId
-        } in account ${this.getOwnedById()} has more than one linked author entity`,
+        `Critical: Comment with entityId ${this.baseId} has more than one linked author entity`,
       );
     }
 
-    return UserModel.fromEntityModel(authorLink.targetEntityModel);
+    return UserModel.fromEntityModel(authorLink.rightEntityModel);
   }
 
   /**
@@ -324,13 +315,11 @@ export default class extends EntityModel {
    */
   async getReplies(graphApi: GraphApi): Promise<CommentModel[]> {
     const replyLinks = await this.getIncomingLinks(graphApi, {
-      linkTypeModel: SYSTEM_TYPES.linkType.parent,
+      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.parent,
     });
 
-    const replies = replyLinks.map((reply) =>
-      CommentModel.fromEntityModel(reply.sourceEntityModel),
+    return replyLinks.map((reply) =>
+      CommentModel.fromEntityModel(reply.rightEntityModel),
     );
-
-    return replies;
   }
 }

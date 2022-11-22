@@ -1,6 +1,6 @@
 import { ApolloError } from "apollo-server-express";
 import { AxiosError } from "axios";
-import { EntityTypeWithMetadata } from "@hashintel/hash-subgraph";
+import { EntityTypeWithMetadata, Subgraph } from "@hashintel/hash-subgraph";
 
 import {
   MutationCreateEntityTypeArgs,
@@ -8,11 +8,9 @@ import {
   QueryGetEntityTypeArgs,
   QueryGetAllLatestEntityTypesArgs,
   ResolverFn,
-  Subgraph,
 } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import { EntityTypeModel } from "../../../model";
-import { mapEntityTypeModelToGQL, mapSubgraphToGql } from "./model-mapping";
 
 export const createEntityType: ResolverFn<
   Promise<EntityTypeWithMetadata>,
@@ -24,14 +22,14 @@ export const createEntityType: ResolverFn<
   const { ownedById, entityType } = params;
 
   const createdEntityTypeModel = await EntityTypeModel.create(graphApi, {
-    ownedById: ownedById ?? userModel.entityId,
+    ownedById: ownedById ?? userModel.entityUuid,
     schema: entityType,
-    actorId: userModel.entityId,
+    actorId: userModel.entityUuid,
   }).catch((err) => {
     throw new ApolloError(err, "CREATION_ERROR");
   });
 
-  return mapEntityTypeModelToGQL(createdEntityTypeModel);
+  return createdEntityTypeModel.entityType;
 };
 
 export const getAllLatestEntityTypes: ResolverFn<
@@ -66,7 +64,7 @@ export const getAllLatestEntityTypes: ResolverFn<
       );
     });
 
-  return mapSubgraphToGql(entityTypeSubgraph);
+  return entityTypeSubgraph as Subgraph;
 };
 
 export const getEntityType: ResolverFn<
@@ -106,7 +104,7 @@ export const getEntityType: ResolverFn<
       );
     });
 
-  return mapSubgraphToGql(entityTypeSubgraph);
+  return entityTypeSubgraph as Subgraph;
 };
 
 export const updateEntityType: ResolverFn<
@@ -130,7 +128,7 @@ export const updateEntityType: ResolverFn<
   const updatedEntityTypeModel = await entityTypeModel
     .update(graphApi, {
       schema: updatedEntityType,
-      actorId: userModel.entityId,
+      actorId: userModel.entityUuid,
     })
     .catch((err: AxiosError) => {
       const msg =
@@ -141,5 +139,5 @@ export const updateEntityType: ResolverFn<
       throw new ApolloError(msg, "CREATION_ERROR");
     });
 
-  return mapEntityTypeModelToGQL(updatedEntityTypeModel);
+  return updatedEntityTypeModel.entityType;
 };

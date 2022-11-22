@@ -2,13 +2,14 @@ import {
   GraphApi,
   Filter,
   EntityStructuralQuery,
+  EntityLinkOrder,
 } from "@hashintel/hash-graph-client";
 import {
-  EntityWithMetadata,
   Subgraph,
   LinkEntityMetadata,
   EntityMetadata,
   PropertyObject,
+  EntityWithMetadata,
 } from "@hashintel/hash-subgraph";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 
@@ -40,6 +41,10 @@ export default class extends EntityModel {
 
   rightEntityModel: EntityModel;
 
+  get linkMetadata(): LinkEntityMetadata {
+    return this.entity.metadata.linkMetadata!;
+  }
+
   constructor({
     linkEntity,
     linkEntityTypeModel,
@@ -49,10 +54,6 @@ export default class extends EntityModel {
     super({ entity: linkEntity, entityTypeModel: linkEntityTypeModel });
     this.leftEntityModel = leftEntityModel;
     this.rightEntityModel = rightEntityModel;
-  }
-
-  getLinkMetadata(): LinkEntityMetadata {
-    return this.getMetadata().linkMetadata!;
   }
 
   static async fromEntity(
@@ -142,22 +143,20 @@ export default class extends EntityModel {
 
     if (!linkEntityTypeModel.isLinkEntityType()) {
       throw new Error(
-        `Entity type with ID "${
-          linkEntityTypeModel.getSchema().$id
-        }" is not a link entity type.`,
+        `Entity type with ID "${linkEntityTypeModel.schema.$id}" is not a link entity type.`,
       );
     }
 
     const { data: linkEntityMetadata } = await graphApi.createEntity({
       ownedById,
       linkMetadata: {
-        leftEntityId: leftEntityModel.getBaseId(),
+        leftEntityId: leftEntityModel.baseId,
         leftOrder,
-        rightEntityId: rightEntityModel.getBaseId(),
+        rightEntityId: rightEntityModel.baseId,
         rightOrder,
       },
       actorId,
-      entityTypeId: linkEntityTypeModel.getSchema().$id,
+      entityTypeId: linkEntityTypeModel.schema.$id,
       properties,
     });
 
@@ -168,21 +167,66 @@ export default class extends EntityModel {
   }
 
   /**
-   * Update the link without modifying the indexes of its sibling links.
+   * Update an entity.
+   *
+   * @param params.properties - the properties object of the entity
+   * @param params.linkOrder {EntityLinkOrder} - the new orders to update for the link
+   * @param params.actorId - the id of the account that is updating the entity
+   */
+  async update(
+    graphApi: GraphApi,
+    params: {
+      properties: PropertyObject;
+      linkOrder: EntityLinkOrder;
+      actorId: string;
+    },
+  ): Promise<EntityModel> {
+    const { properties, actorId, linkOrder } = params;
+    const { baseId, entityTypeModel } = this;
+
+    const { data: metadata } = await graphApi.updateEntity({
+      actorId,
+      entityId: baseId,
+      entityTypeId: entityTypeModel.schema.$id,
+      properties,
+      leftOrder: linkOrder.leftOrder,
+      rightOrder: linkOrder.rightOrder,
+    });
+
+    return LinkEntityModel.fromEntity(graphApi, {
+      metadata: metadata as EntityMetadata,
+      properties,
+    });
+  }
+
+  /**
+   * Update the link without modifying the indices of its sibling links.
    *
    * @todo: deprecate this method when the Graph API handles updating the sibling indexes
    * @see https://app.asana.com/0/1200211978612931/1203031430417465/f
    *
-   * @param params.updatedIndex - the updated index of the link
+   * @param params.linkOrder {EntityLinkOrder} - the new orders to update for the link
    * @param params.actorId - the id of the account that is updating the link
    */
-  private async updateLink(
-    _graphApi: GraphApi,
-    _params: { updatedLeftOrder?: number; updatedRightOrder?: number },
+  async updateOrder(
+    graphApi: GraphApi,
+    params: { linkOrder: EntityLinkOrder; actorId: string },
   ) {
-    /**
-     * @todo: implement this when `updateEntity` can update the link metadata of a link
-     * @see https://app.asana.com/0/1202805690238892/1203384069111429/f
-     */
+    const { actorId, linkOrder } = params;
+    const { baseId, entityTypeModel, properties } = this;
+
+    const { data: metadata } = await graphApi.updateEntity({
+      actorId,
+      entityId: baseId,
+      entityTypeId: entityTypeModel.schema.$id,
+      properties,
+      leftOrder: linkOrder.leftOrder,
+      rightOrder: linkOrder.rightOrder,
+    });
+
+    return LinkEntityModel.fromEntity(graphApi, {
+      metadata: metadata as EntityMetadata,
+      properties,
+    });
   }
 }

@@ -46,13 +46,13 @@ describe("Entity CRU", () => {
     testUser2 = await createTestUser(graphApi, "entitytest", logger);
 
     textDataTypeModel = await DataTypeModel.create(graphApi, {
-      ownedById: testUser.getEntityUuid(),
+      ownedById: testUser.entityUuid,
       schema: {
         kind: "dataType",
         title: "Text",
         type: "string",
       },
-      actorId: testUser.getEntityUuid(),
+      actorId: testUser.entityUuid,
     }).catch((err) => {
       logger.error(`Something went wrong making Text: ${err}`);
       throw err;
@@ -60,7 +60,7 @@ describe("Entity CRU", () => {
 
     await Promise.all([
       EntityTypeModel.create(graphApi, {
-        ownedById: testUser.getEntityUuid(),
+        ownedById: testUser.entityUuid,
         schema: {
           kind: "entityType",
           title: "Friends",
@@ -69,7 +69,7 @@ describe("Entity CRU", () => {
           properties: {},
           allOf: [{ $ref: linkEntityTypeUri }],
         },
-        actorId: testUser.getEntityUuid(),
+        actorId: testUser.entityUuid,
       })
         .then((val) => {
           linkEntityTypeFriendModel = val;
@@ -80,13 +80,13 @@ describe("Entity CRU", () => {
         }),
 
       PropertyTypeModel.create(graphApi, {
-        ownedById: testUser.getEntityUuid(),
+        ownedById: testUser.entityUuid,
         schema: {
           kind: "propertyType",
           title: "Favorite Book",
-          oneOf: [{ $ref: textDataTypeModel.getSchema().$id }],
+          oneOf: [{ $ref: textDataTypeModel.schema.$id }],
         },
-        actorId: testUser.getEntityUuid(),
+        actorId: testUser.entityUuid,
       })
         .then((val) => {
           favoriteBookPropertyTypeModel = val;
@@ -96,13 +96,13 @@ describe("Entity CRU", () => {
           throw err;
         }),
       PropertyTypeModel.create(graphApi, {
-        ownedById: testUser.getEntityUuid(),
+        ownedById: testUser.entityUuid,
         schema: {
           kind: "propertyType",
           title: "Name",
-          oneOf: [{ $ref: textDataTypeModel.getSchema().$id }],
+          oneOf: [{ $ref: textDataTypeModel.schema.$id }],
         },
-        actorId: testUser.getEntityUuid(),
+        actorId: testUser.entityUuid,
       })
         .then((val) => {
           namePropertyTypeModel = val;
@@ -114,7 +114,7 @@ describe("Entity CRU", () => {
     ]);
 
     entityTypeModel = await EntityTypeModel.create(graphApi, {
-      ownedById: testUser.getEntityUuid(),
+      ownedById: testUser.entityUuid,
       schema: generateSystemEntityTypeSchema({
         entityTypeId: generateTypeId({
           namespace: testUser.getShortname()!,
@@ -132,63 +132,58 @@ describe("Entity CRU", () => {
             destinationEntityTypeModels: ["SELF_REFERENCE"],
           },
         ],
-        actorId: testUser.getEntityUuid(),
+        actorId: testUser.entityUuid,
       }),
-      actorId: testUser.getEntityUuid(),
+      actorId: testUser.entityUuid,
     });
   });
 
   let createdEntityModel: EntityModel;
   it("can create an entity", async () => {
     createdEntityModel = await EntityModel.create(graphApi, {
-      ownedById: testUser.getEntityUuid(),
+      ownedById: testUser.entityUuid,
       properties: {
-        [namePropertyTypeModel.getBaseUri()]: "Bob",
-        [favoriteBookPropertyTypeModel.getBaseUri()]: "some text",
+        [namePropertyTypeModel.baseUri]: "Bob",
+        [favoriteBookPropertyTypeModel.baseUri]: "some text",
       },
       entityTypeModel,
-      actorId: testUser.getEntityUuid(),
+      actorId: testUser.entityUuid,
     });
   });
 
   it("can read an entity", async () => {
     const fetchedEntityModel = await EntityModel.getLatest(graphApi, {
-      entityId: createdEntityModel.getBaseId(),
+      entityId: createdEntityModel.baseId,
     });
 
-    expect(fetchedEntityModel.getBaseId()).toEqual(
-      createdEntityModel.getBaseId(),
-    );
-    expect(fetchedEntityModel.getVersion()).toEqual(
-      createdEntityModel.getVersion(),
-    );
+    expect(fetchedEntityModel.baseId).toEqual(createdEntityModel.baseId);
+    expect(fetchedEntityModel.version).toEqual(createdEntityModel.version);
   });
 
   let updatedEntityModel: EntityModel;
   it("can update an entity", async () => {
-    expect(createdEntityModel.getMetadata().provenance.createdById).toBe(
-      testUser.getEntityUuid(),
+    expect(createdEntityModel.metadata.provenance.createdById).toBe(
+      testUser.entityUuid,
     );
-    expect(createdEntityModel.getMetadata().provenance.updatedById).toBe(
-      testUser.getEntityUuid(),
+    expect(createdEntityModel.metadata.provenance.updatedById).toBe(
+      testUser.entityUuid,
     );
 
     updatedEntityModel = await createdEntityModel
       .update(graphApi, {
         properties: {
-          [namePropertyTypeModel.getBaseUri()]: "Updated Bob",
-          [favoriteBookPropertyTypeModel.getBaseUri()]:
-            "Even more text than before",
+          [namePropertyTypeModel.baseUri]: "Updated Bob",
+          [favoriteBookPropertyTypeModel.baseUri]: "Even more text than before",
         },
-        actorId: testUser2.getEntityUuid(),
+        actorId: testUser2.entityUuid,
       })
       .catch((err) => Promise.reject(err.data));
 
-    expect(updatedEntityModel.getMetadata().provenance.createdById).toBe(
-      testUser.getEntityUuid(),
+    expect(updatedEntityModel.metadata.provenance.createdById).toBe(
+      testUser.entityUuid,
     );
-    expect(updatedEntityModel.getMetadata().provenance.updatedById).toBe(
-      testUser2.getEntityUuid(),
+    expect(updatedEntityModel.metadata.provenance.updatedById).toBe(
+      testUser2.entityUuid,
     );
   });
 
@@ -197,10 +192,10 @@ describe("Entity CRU", () => {
       await EntityModel.getByQuery(graphApi, {
         all: [{ equal: [{ path: ["version"] }, { parameter: "latest" }] }],
       })
-    ).filter((entity) => entity.getOwnedById() === testUser.getEntityUuid());
+    ).filter((entity) => entity.ownedById === testUser.entityUuid);
 
     const newlyUpdatedModel = allEntityModels.find(
-      (ent) => ent.getBaseId() === updatedEntityModel.getBaseId(),
+      (ent) => ent.baseId === updatedEntityModel.baseId,
     );
 
     // Even though we've inserted two entities, they're the different versions
@@ -210,54 +205,46 @@ describe("Entity CRU", () => {
     expect(allEntityModels.length).toBeGreaterThanOrEqual(1);
     expect(newlyUpdatedModel).toBeDefined();
 
-    expect(newlyUpdatedModel!.getVersion()).toEqual(
-      updatedEntityModel.getVersion(),
-    );
+    expect(newlyUpdatedModel!.version).toEqual(updatedEntityModel.version);
     expect(
-      (newlyUpdatedModel!.getProperties() as any)[
-        namePropertyTypeModel.getBaseUri()
-      ],
+      (newlyUpdatedModel!.properties as any)[namePropertyTypeModel.baseUri],
     ).toEqual(
-      (updatedEntityModel.getProperties() as any)[
-        namePropertyTypeModel.getBaseUri()
-      ],
+      (updatedEntityModel.properties as any)[namePropertyTypeModel.baseUri],
     );
   });
 
-  /**
-   * @todo: bring back test when `EntityModel.createEntityWithLinks` is fixed
-   */
-  // it("can create entity with linked entities from an entity definition", async () => {
-  //   const aliceEntityModel = await EntityModel.createEntityWithLinks(graphApi, {
-  //     ownedById: testUser.getEntityUuid(),
-  //     // First create a new entity given the following definition
-  //     entityTypeId: entityTypeModel.getSchema().$id,
-  //     properties: {
-  //       [namePropertyTypeModel.getBaseUri()]: "Alice",
-  //       [favoriteBookPropertyTypeModel.getBaseUri()]: "some text",
-  //     },
-  //     linkedEntities: [
-  //       {
-  //         // Then create an entity + link
-  //         destinationAccountId: testUser.entityId,
-  //         linkTypeId: linkTypeFriend.getSchema().$id,
-  //         entity: {
-  //           // The "new" entity is in fact just an existing entity, so only a link will be created.
-  //           existingEntity: {
-  //             entityId: updatedEntityModel.entityId,
-  //             ownedById: updatedEntityModel.getOwnedById(),
-  //           },
-  //         },
-  //       },
-  //     ],
-  //     actorId: testUser.entityId,
-  //   });
+  it("can create entity with linked entities from an entity definition", async () => {
+    const aliceEntityModel = await EntityModel.createEntityWithLinks(graphApi, {
+      ownedById: testUser.entityUuid,
+      // First create a new entity given the following definition
+      entityTypeId: entityTypeModel.schema.$id,
+      properties: {
+        [namePropertyTypeModel.baseUri]: "Alice",
+        [favoriteBookPropertyTypeModel.baseUri]: "some text",
+      },
+      linkedEntities: [
+        {
+          // Then create an entity + link
+          destinationAccountId: testUser.baseId,
+          linkEntityTypeId: linkEntityTypeFriendModel.schema.$id,
+          entity: {
+            // The "new" entity is in fact just an existing entity, so only a link will be created.
+            existingEntityId: updatedEntityModel.baseId,
+          },
+        },
+      ],
+      actorId: testUser.entityUuid,
+    });
 
-  //   const linkedEntity = (
-  //     await aliceEntityModel.getOutgoingLinks(graphApi)
-  //   ).map((linkModel) => linkModel)[0]!;
+    const linkEntityModel = (
+      await aliceEntityModel.getOutgoingLinks(graphApi)
+    ).map((outgoingLinkEntityModel) => outgoingLinkEntityModel)[0]!;
 
-  //   expect(linkedEntity.targetEntityModel).toEqual(updatedEntityModel);
-  //   expect(linkedEntity.linkTypeModel).toEqual(linkTypeFriend);
-  // });
+    expect(linkEntityModel.rightEntityModel.entity).toEqual(
+      updatedEntityModel.entity,
+    );
+    expect(linkEntityModel.metadata.entityTypeId).toEqual(
+      linkEntityTypeFriendModel.entityType.schema.$id,
+    );
+  });
 });
