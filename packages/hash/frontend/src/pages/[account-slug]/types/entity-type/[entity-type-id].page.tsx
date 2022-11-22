@@ -141,14 +141,6 @@ const Page: NextPageWithLayout = () => {
 
   useEffect(() => {
     if (authenticatedUser && !namespace) {
-      void router.replace(
-        `/@${authenticatedUser.shortname}/types/new/entity-type`,
-      );
-    }
-  }, [authenticatedUser, namespace, router]);
-
-  useEffect(() => {
-    if (authenticatedUser && !namespace) {
       // eslint-disable-next-line no-console
       console.error(
         `Error: Couldn't find namespace with shortname '${router.query["account-slug"]}'.`,
