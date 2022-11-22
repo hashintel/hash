@@ -32,7 +32,6 @@ import { useBlockProtocolAggregateEntities } from "../hooks/blockProtocolFunctio
 import { useBlockProtocolCreateLinkedAggregation } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateLinkedAggregation";
 import { useBlockProtocolDeleteLinkedAggregation } from "../hooks/blockProtocolFunctions/useBlockProtocolDeleteLinkedAggregation";
 import { useBlockProtocolFileUpload } from "../hooks/blockProtocolFunctions/useBlockProtocolFileUpload";
-import { useBlockProtocolUpdateEntityType } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateEntityType";
 import { useBlockProtocolUpdateLink } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLink";
 import { useBlockProtocolUpdateLinkedAggregation } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLinkedAggregation";
 import { DeprecatedEntityType as ApiEntityType } from "../../graphql/apiTypes.gen";
@@ -89,7 +88,6 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   const { deleteLinkedAggregation } =
     useBlockProtocolDeleteLinkedAggregation(readonlyMode);
   const { uploadFile } = useBlockProtocolFileUpload(accountId, readonlyMode);
-  const { updateEntityType } = useBlockProtocolUpdateEntityType(readonlyMode);
   const { updateLinkedAggregation } =
     useBlockProtocolUpdateLinkedAggregation(readonlyMode);
 
@@ -196,7 +194,6 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
      * @see https://app.asana.com/0/1200211978612931/1202509819279267/f
      */
     getEmbedBlock: fetchEmbedCode,
-    updateEntityType,
     uploadFile,
     updateLink,
     updateLinkedAggregation,
