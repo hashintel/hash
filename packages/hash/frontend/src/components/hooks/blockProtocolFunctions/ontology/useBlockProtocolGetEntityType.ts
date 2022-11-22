@@ -27,8 +27,8 @@ export const useBlockProtocolGetEntityType = (): {
   );
 
   const getEntityType = useCallback<GetEntityTypeMessageCallback>(
-    async ({ data }) => {
-      if (!data) {
+    async ({ data: entityTypeId }) => {
+      if (!entityTypeId) {
         return {
           errors: [
             {
@@ -38,8 +38,6 @@ export const useBlockProtocolGetEntityType = (): {
           ],
         };
       }
-
-      const { entityTypeId } = data;
 
       const response = await getFn({
         query: getEntityTypeQuery,
@@ -64,11 +62,7 @@ export const useBlockProtocolGetEntityType = (): {
       }
 
       return {
-        /**
-         * @todo: remove this when we start returning links in the subgraph
-         *   https://app.asana.com/0/0/1203214689883095/f
-         */
-        data: response.data.getEntityType as Subgraph,
+        data: response.data.getEntityType,
       };
     },
     [getFn],
