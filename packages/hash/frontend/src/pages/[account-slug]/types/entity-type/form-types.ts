@@ -6,6 +6,7 @@ export type EntityTypeEditorPropertyData = {
   array: boolean;
   minValue: number;
   maxValue: number;
+  infinity: boolean;
 };
 
 export type EntityTypeEditorForm = {

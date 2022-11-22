@@ -42,12 +42,13 @@ export const MultipleValuesCell = ({
   const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
   const [multipleValuesMenuOpen, setMultipleValuesMenuOpen] = useState(false);
 
-  const [array, minValue, maxValue] = useWatch({
+  const [array, minValue, maxValue, infinity] = useWatch({
     control,
     name: [
       `properties.${propertyIndex}.array`,
       `properties.${propertyIndex}.minValue`,
       `properties.${propertyIndex}.maxValue`,
+      `properties.${propertyIndex}.infinity`,
     ],
   });
 
@@ -63,11 +64,6 @@ export const MultipleValuesCell = ({
   const menuOpenFrozenMaxValue = useFrozenValue(
     maxValue,
     !multipleValuesMenuOpen,
-  );
-
-  const frozenMaxValue = useFrozenValue(
-    menuOpenFrozenMaxValue,
-    maxValue === Infinity,
   );
 
   const isArrayFrozenMinValue = useFrozenValue(minValue, !array);
@@ -141,7 +137,7 @@ export const MultipleValuesCell = ({
                       setResetMinValue(minValue);
                       setResetMaxValue(maxValue);
                       nextMinValue = 0;
-                      nextMaxValue = Infinity;
+                      nextMaxValue = 1;
                     }
 
                     setValue(
@@ -179,9 +175,7 @@ export const MultipleValuesCell = ({
               >
                 {isArrayFrozenMinValue !== isArrayFrozenMaxValue
                   ? `${isArrayFrozenMinValue} ${
-                      isArrayFrozenMaxValue === Infinity
-                        ? "or more"
-                        : `to ${isArrayFrozenMaxValue}`
+                      infinity ? "or more" : `to ${isArrayFrozenMaxValue}`
                     }`
                   : isArrayFrozenMinValue}
               </Typography>
@@ -270,7 +264,7 @@ export const MultipleValuesCell = ({
                         </Box>
                       </InputLabel>
 
-                      <Collapse in={maxValue < Infinity}>
+                      <Collapse in={!infinity}>
                         {/* Using a controller as Infinity is not a valid value for a HTML number input */}
                         <Controller
                           render={({ field: { value: _, ...field } }) => (
@@ -293,11 +287,7 @@ export const MultipleValuesCell = ({
 
                                 field.onChange(max);
                               }}
-                              value={
-                                frozenMaxValue === Infinity
-                                  ? ""
-                                  : frozenMaxValue
-                              }
+                              value={menuOpenFrozenMaxValue}
                               size="small"
                               id={maximumFieldId}
                             />
@@ -319,27 +309,28 @@ export const MultipleValuesCell = ({
         // field and cause a blue highlight
         infinityCheckboxNode
           ? createPortal(
-              <Checkbox
-                checked={maxValue === Infinity}
-                onChange={(evt) => {
-                  evt.stopPropagation();
-
-                  setValue(
-                    `properties.${propertyIndex}.maxValue`,
-                    evt.target.checked
-                      ? Infinity
-                      : Math.max(
-                          resetMaxValue === Infinity ? 1 : resetMaxValue,
-                          minValue,
-                        ),
-                    { shouldDirty: true },
-                  );
-                  setResetMaxValue(maxValue);
-                }}
-                sx={{
-                  "&, > svg": { fontSize: "inherit" },
-                  ml: 0.6,
-                }}
+              <Controller
+                render={({ field: { value, ...field } }) => (
+                  <Checkbox
+                    {...field}
+                    checked={value}
+                    onChange={(evt) => {
+                      if (typeof maxValue !== "number") {
+                        setValue(
+                          `properties.${propertyIndex}.maxValue`,
+                          Math.max(1, minValue),
+                          { shouldDirty: true },
+                        );
+                      }
+                      field.onChange(evt.target.checked);
+                    }}
+                    sx={{
+                      "&, > svg": { fontSize: "inherit" },
+                      ml: 0.6,
+                    }}
+                  />
+                )}
+                name={`properties.${propertyIndex}.infinity`}
               />,
               infinityCheckboxNode,
             )

@@ -264,7 +264,8 @@ export const PropertyListCard = () => {
                       required: false,
                       array: false,
                       minValue: 0,
-                      maxValue: Infinity,
+                      maxValue: 1,
+                      infinity: true,
                     });
                   }
                 }}
