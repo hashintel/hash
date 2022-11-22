@@ -55,7 +55,6 @@ export let SYSTEM_TYPES: {
      * @todo: make org membership entity type a link entity type
      * @see https://app.asana.com/0/0/1203371754468058/f
      */
-    orgMembership: EntityTypeModel;
     block: EntityTypeModel;
     comment: EntityTypeModel;
     page: EntityTypeModel;
@@ -71,10 +70,7 @@ export let SYSTEM_TYPES: {
     admin: EntityTypeModel;
 
     // User-related
-    hasMembership: EntityTypeModel;
-
-    // OrgMembership-related
-    ofOrg: EntityTypeModel;
+    orgMembership: EntityTypeModel;
 
     // Block-related
     blockData: EntityTypeModel;
@@ -178,40 +174,6 @@ export const orgEntityTypeInitializer = async (graphApi: GraphApi) => {
   })(graphApi);
 };
 
-const orgMembershipEntityTypeInitializer = async (graphApi: GraphApi) => {
-  /* eslint-disable @typescript-eslint/no-use-before-define */
-  const responsibilityPropertyTypeModel =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.responsibility(graphApi);
-
-  const orgEntityTypeModel = await SYSTEM_TYPES_INITIALIZERS.entityType.org(
-    graphApi,
-  );
-
-  const ofOrgLinkEntityTypeModel =
-    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.ofOrg(graphApi);
-
-  /* eslint-enable @typescript-eslint/no-use-before-define */
-
-  return entityTypeInitializer({
-    ...types.entityType.orgMembership,
-    properties: [
-      {
-        propertyTypeModel: responsibilityPropertyTypeModel,
-        required: true,
-      },
-    ],
-    outgoingLinks: [
-      {
-        linkEntityTypeModel: ofOrgLinkEntityTypeModel,
-        destinationEntityTypeModels: [orgEntityTypeModel],
-        required: true,
-        maxItems: 1,
-      },
-    ],
-    actorId: systemAccountId,
-  })(graphApi);
-};
-
 const shortnamePropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.shortName,
   possibleValues: [{ primitiveDataType: "text" }],
@@ -254,13 +216,8 @@ const responsibilityPropertyTypeInitializer = propertyTypeInitializer({
   actorId: systemAccountId,
 });
 
-const ofOrgLinkEntityTypeInitializer = entityTypeInitializer({
-  ...types.linkEntityType.ofOrg,
-  actorId: systemAccountId,
-});
-
-const hasMembershipLinkEntityTypeInitializer = entityTypeInitializer({
-  ...types.linkEntityType.hasMembership,
+const orgMembershipLinkEntityTypeInitializer = entityTypeInitializer({
+  ...types.linkEntityType.orgMembership,
   actorId: systemAccountId,
 });
 
@@ -278,11 +235,12 @@ const userEntityTypeInitializer = async (graphApi: GraphApi) => {
   const preferredNamePropertyTypeModel =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.preferredName(graphApi);
 
-  const hasMembershipLinkEntityTypeModel =
-    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.hasMembership(graphApi);
+  const orgEntityTypeModel = await SYSTEM_TYPES_INITIALIZERS.entityType.org(
+    graphApi,
+  );
 
-  const orgMembershipEntityTypeModel =
-    await SYSTEM_TYPES_INITIALIZERS.entityType.orgMembership(graphApi);
+  const orgMembershipLinkEntityTypeModel =
+    await SYSTEM_TYPES_INITIALIZERS.linkEntityType.orgMembership(graphApi);
 
   /* eslint-enable @typescript-eslint/no-use-before-define */
 
@@ -308,8 +266,8 @@ const userEntityTypeInitializer = async (graphApi: GraphApi) => {
     ],
     outgoingLinks: [
       {
-        linkEntityTypeModel: hasMembershipLinkEntityTypeModel,
-        destinationEntityTypeModels: [orgMembershipEntityTypeModel],
+        linkEntityTypeModel: orgMembershipLinkEntityTypeModel,
+        destinationEntityTypeModels: [orgEntityTypeModel],
         maxItems: 1,
       },
     ],
@@ -649,7 +607,6 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     hashInstance: hashInstanceEntityTypeInitializer,
     user: userEntityTypeInitializer,
     org: orgEntityTypeInitializer,
-    orgMembership: orgMembershipEntityTypeInitializer,
     block: blockEntityTypeInitializer,
     page: pageEntityTypeInitializer,
     comment: commentEntityTypeInitializer,
@@ -658,8 +615,7 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
   },
   linkEntityType: {
     admin: adminLinkEntityTypeInitializer,
-    ofOrg: ofOrgLinkEntityTypeInitializer,
-    hasMembership: hasMembershipLinkEntityTypeInitializer,
+    orgMembership: orgMembershipLinkEntityTypeInitializer,
     blockData: blockDataLinkEntityTypeInitializer,
     contains: containsLinkEntityTypeInitializer,
     parent: parentLinkEntityTypeInitializer,

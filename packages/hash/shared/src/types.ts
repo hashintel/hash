@@ -127,10 +127,6 @@ const systemEntityTypes = {
     title: "Org",
     description: undefined,
   },
-  orgMembership: {
-    title: "Org Membership",
-    description: undefined,
-  },
   comment: {
     title: "Comment",
     description: undefined,
@@ -233,13 +229,9 @@ export type SystemPropertyTypeTitle =
  * The system link entity type titles.
  */
 const systemLinkEntityTypes = {
-  hasMembership: {
-    title: "Has Membership",
-    description: "Having a membership.",
-  },
-  ofOrg: {
-    title: "Of Org",
-    description: "Belonging to an organization",
+  orgMembership: {
+    title: "Org Membership",
+    description: undefined,
   },
   blockData: {
     title: "Block Data",
