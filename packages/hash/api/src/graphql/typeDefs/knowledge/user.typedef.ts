@@ -2,10 +2,7 @@ import { gql } from "apollo-server-express";
 
 export const persistedUserTypedef = gql`
   extend type Query {
-    me(
-      linkResolveDepth: Int! = 0
-      linkTargetEntityResolveDepth: Int! = 0
-    ): Subgraph!
+    me(entityResolveDepth: Int! = 0): Subgraph!
     """
     Determines whether a provided shortname is already taken
     """

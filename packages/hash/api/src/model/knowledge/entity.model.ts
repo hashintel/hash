@@ -601,8 +601,7 @@ export default class {
   async getRootedSubgraph(
     graphApi: GraphApi,
     params: {
-      linkResolveDepth: number;
-      linkTargetEntityResolveDepth: number;
+      entityResolveDepth: number;
     },
   ): Promise<Subgraph> {
     const { data: entitySubgraph } = await graphApi.getEntitiesByQuery({
@@ -616,12 +615,12 @@ export default class {
               { parameter: this.getOwnedById() },
             ],
           },
+          { equal: [{ path: ["archived"] }, { parameter: false }] },
         ],
       },
       graphResolveDepths: {
         dataTypeResolveDepth: 0,
         propertyTypeResolveDepth: 0,
-        entityResolveDepth: 0,
         entityTypeResolveDepth: 0,
         ...params,
       },
