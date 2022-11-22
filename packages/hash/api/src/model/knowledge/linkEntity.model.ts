@@ -117,7 +117,7 @@ export default class extends EntityModel {
   /**
    * Create a link entity between a left and a right entity.
    *
-   * @param params.getOwnedById() - the id of the account who owns the new link entity
+   * @param params.ownedById - the id of the account who owns the new link entity
    * @param params.linkEntityTypeModel - the link entity type of the link entity
    * @param params.leftEntityModel - the left entity of the link
    * @param params.leftOrder (optional) - the left order of the link entity
@@ -149,9 +149,9 @@ export default class extends EntityModel {
     const { data: linkEntityMetadata } = await graphApi.createEntity({
       ownedById,
       linkMetadata: {
-        leftEntityId: leftEntityModel.baseId,
+        leftEntityId: leftEntityModel.getBaseId(),
         leftOrder,
-        rightEntityId: rightEntityModel.baseId,
+        rightEntityId: rightEntityModel.getBaseId(),
         rightOrder,
       },
       actorId,

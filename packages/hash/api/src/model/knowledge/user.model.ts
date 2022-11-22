@@ -41,7 +41,7 @@ export default class extends EntityModel {
       SYSTEM_TYPES.entityType.user.schema.$id
     ) {
       throw new EntityTypeMismatchError(
-        entityModel.baseId,
+        entityModel.getBaseId(),
         SYSTEM_TYPES.entityType.user.schema.$id,
         entityModel.entityTypeModel.schema.$id,
       );

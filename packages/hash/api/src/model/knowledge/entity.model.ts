@@ -44,10 +44,6 @@ export default class {
 
   entityTypeModel: EntityTypeModel;
 
-  get baseId(): string {
-    return this.getMetadata().editionId.baseId;
-  }
-
   get version(): string {
     return this.getMetadata().editionId.version;
   }
@@ -55,6 +51,10 @@ export default class {
   constructor({ entity, entityTypeModel }: EntityModelConstructorParams) {
     this.entity = entity;
     this.entityTypeModel = entityTypeModel;
+  }
+
+  getBaseId(): string {
+    return this.getMetadata().editionId.baseId;
   }
 
   getMetadata(): EntityMetadata {
@@ -66,13 +66,13 @@ export default class {
   }
 
   getOwnedById(): string {
-    const [ownedById, _] = this.baseId.split("%") as [string, string];
+    const [ownedById, _] = this.getBaseId().split("%") as [string, string];
 
     return ownedById;
   }
 
   getEntityUuid(): string {
-    const [_, entityUuid] = this.baseId.split("%") as [string, string];
+    const [_, entityUuid] = this.getBaseId().split("%") as [string, string];
 
     return entityUuid;
   }
@@ -376,11 +376,11 @@ export default class {
     },
   ): Promise<EntityModel> {
     const { properties, actorId } = params;
-    const { baseId, entityTypeModel } = this;
+    const { entityTypeModel } = this;
 
     const { data: metadata } = await graphApi.updateEntity({
       actorId,
-      entityId: baseId,
+      entityId: this.getBaseId(),
       /** @todo: make this argument optional */
       entityTypeId: entityTypeModel.schema.$id,
       properties,
@@ -394,7 +394,7 @@ export default class {
 
   async archive(graphApi: GraphApi, params: { actorId: string }) {
     const { actorId } = params;
-    await graphApi.archiveEntity({ entityId: this.baseId, actorId });
+    await graphApi.archiveEntity({ entityId: this.getBaseId(), actorId });
   }
 
   /**
@@ -451,9 +451,9 @@ export default class {
    * Get the latest version of this entity.
    */
   async getLatestVersion(graphApi: GraphApi) {
-    const { baseId } = this;
-
-    return await EntityModel.getLatest(graphApi, { entityId: baseId });
+    return await EntityModel.getLatest(graphApi, {
+      entityId: this.getBaseId(),
+    });
   }
 
   /** @see {@link LinkModel.create} */

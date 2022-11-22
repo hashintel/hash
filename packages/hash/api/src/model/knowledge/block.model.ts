@@ -27,7 +27,7 @@ export default class extends EntityModel {
       SYSTEM_TYPES.entityType.block.schema.$id
     ) {
       throw new EntityTypeMismatchError(
-        entityModel.baseId,
+        entityModel.getBaseId(),
         SYSTEM_TYPES.entityType.block.schema.$id,
         entityModel.entityTypeModel.schema.$id,
       );
@@ -107,7 +107,7 @@ export default class extends EntityModel {
 
     if (!outgoingBlockDataLink) {
       throw new Error(
-        `Block with entityId ${this.baseId} does not have an outgoing blockData link`,
+        `Block with entityId ${this.getBaseId()} does not have an outgoing blockData link`,
       );
     }
 
@@ -148,16 +148,16 @@ export default class extends EntityModel {
 
     if (!outgoingBlockDataLink) {
       throw new Error(
-        `Block with entityId ${this.baseId} does not have an outgoing block data link`,
+        `Block with entityId ${this.getBaseId()} does not have an outgoing block data link`,
       );
     }
 
     if (
-      outgoingBlockDataLink.rightEntityModel.baseId ===
-      newBlockDataEntity.baseId
+      outgoingBlockDataLink.rightEntityModel.getBaseId() ===
+      newBlockDataEntity.getBaseId()
     ) {
       throw new Error(
-        `The block with entity id ${this.baseId} already has a linked block data entity with entity id ${newBlockDataEntity.baseId}`,
+        `The block with entity id ${this.getBaseId()} already has a linked block data entity with entity id ${newBlockDataEntity.getBaseId()}`,
       );
     }
 

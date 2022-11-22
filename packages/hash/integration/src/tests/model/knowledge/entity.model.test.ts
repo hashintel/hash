@@ -153,10 +153,12 @@ describe("Entity CRU", () => {
 
   it("can read an entity", async () => {
     const fetchedEntityModel = await EntityModel.getLatest(graphApi, {
-      entityId: createdEntityModel.baseId,
+      entityId: createdEntityModel.getBaseId(),
     });
 
-    expect(fetchedEntityModel.baseId).toEqual(createdEntityModel.baseId);
+    expect(fetchedEntityModel.getBaseId()).toEqual(
+      createdEntityModel.getBaseId(),
+    );
     expect(fetchedEntityModel.version).toEqual(createdEntityModel.version);
   });
 
@@ -195,7 +197,7 @@ describe("Entity CRU", () => {
     ).filter((entity) => entity.getOwnedById() === testUser.getEntityUuid());
 
     const newlyUpdatedModel = allEntityModels.find(
-      (ent) => ent.baseId === updatedEntityModel.baseId,
+      (ent) => ent.getBaseId() === updatedEntityModel.getBaseId(),
     );
 
     // Even though we've inserted two entities, they're the different versions

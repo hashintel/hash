@@ -33,7 +33,7 @@ export default class extends EntityModel {
       SYSTEM_TYPES.entityType.orgMembership.schema.$id
     ) {
       throw new EntityTypeMismatchError(
-        entityModel.baseId,
+        entityModel.getBaseId(),
         SYSTEM_TYPES.entityType.orgMembership.schema.$id,
         entityModel.entityTypeModel.schema.$id,
       );
@@ -140,7 +140,7 @@ export default class extends EntityModel {
        * @todo: potentially remove this when the Graph API validates entities based on their schema
        */
       throw new Error(
-        `Critical: org membership with entity id ${this.baseId} doesn't have an outgoing "org" link`,
+        `Critical: org membership with entity id ${this.getBaseId()} doesn't have an outgoing "org" link`,
       );
     }
 
@@ -190,7 +190,7 @@ export default class extends EntityModel {
 
     if (!incomingOrgMembershipLinkEntityModel) {
       throw new Error(
-        `Critical: org membership with entity id ${this.baseId} doesn't have a linked user`,
+        `Critical: org membership with entity id ${this.getBaseId()} doesn't have a linked user`,
       );
     }
 

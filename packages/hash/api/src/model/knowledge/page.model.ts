@@ -35,7 +35,7 @@ export default class extends EntityModel {
       SYSTEM_TYPES.entityType.page.schema.$id
     ) {
       throw new EntityTypeMismatchError(
-        entityModel.baseId,
+        entityModel.getBaseId(),
         SYSTEM_TYPES.entityType.page.schema.$id,
         entityModel.entityTypeModel.schema.$id,
       );
@@ -244,7 +244,7 @@ export default class extends EntityModel {
 
     if (unexpectedParentPageLinks.length > 0) {
       throw new Error(
-        `Critical: Page with entity ID ${this.baseId} has more than one parent page`,
+        `Critical: Page with entity ID ${this.getBaseId()} has more than one parent page`,
       );
     }
 
@@ -268,7 +268,7 @@ export default class extends EntityModel {
   ): Promise<boolean> {
     const { page } = params;
 
-    if (this.baseId === page.baseId) {
+    if (this.getBaseId() === page.getBaseId()) {
       throw new Error("A page cannot be the parent of itself");
     }
 
@@ -278,7 +278,7 @@ export default class extends EntityModel {
       return false;
     }
 
-    if (parentPage.baseId === page.baseId) {
+    if (parentPage.getBaseId() === page.getBaseId()) {
       return true;
     }
 
@@ -304,13 +304,13 @@ export default class extends EntityModel {
 
     if (unexpectedParentPageLinks.length > 0) {
       throw new Error(
-        `Critical: Page with entityId ${this.baseId} has more than one parent page`,
+        `Critical: Page with entityId ${this.getBaseId()} has more than one parent page`,
       );
     }
 
     if (!parentPageLink) {
       throw new Error(
-        `Page with entityId ${this.baseId} does not have a parent page`,
+        `Page with entityId ${this.getBaseId()} does not have a parent page`,
       );
     }
 
@@ -350,7 +350,7 @@ export default class extends EntityModel {
       // Check whether adding the parent page would create a cycle
       if (await parentPageModel.hasParentPage(graphApi, { page: this })) {
         throw new ApolloError(
-          `Could not set '${parentPageModel.baseId}' as parent of '${this.baseId}', this would create a cyclic dependency.`,
+          `Could not set '${parentPageModel.getBaseId()}' as parent of '${this.getBaseId()}', this would create a cyclic dependency.`,
           "CYCLIC_TREE",
         );
       }
@@ -544,7 +544,7 @@ export default class extends EntityModel {
 
     if (!linkEntityModel) {
       throw new Error(
-        `Critical: could not find contents link with index ${position} for page with entity ID ${this.baseId}`,
+        `Critical: could not find contents link with index ${position} for page with entity ID ${this.getBaseId()}`,
       );
     }
 

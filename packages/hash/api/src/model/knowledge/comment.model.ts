@@ -22,22 +22,19 @@ type CommentModelCreateParams = Omit<
  * @class {@link CommentModel}
  */
 export default class extends EntityModel {
-  static fromEntityModel(entity: EntityModel): CommentModel {
+  static fromEntityModel(entityModel: EntityModel): CommentModel {
     if (
-      entity.entityTypeModel.schema.$id !==
+      entityModel.entityTypeModel.schema.$id !==
       SYSTEM_TYPES.entityType.comment.schema.$id
     ) {
       throw new EntityTypeMismatchError(
-        entity.baseId,
+        entityModel.getBaseId(),
         SYSTEM_TYPES.entityType.comment.schema.$id,
-        entity.entityTypeModel.schema.$id,
+        entityModel.entityTypeModel.schema.$id,
       );
     }
 
-    return new CommentModel({
-      entity,
-      entityTypeModel: entity.entityTypeModel,
-    });
+    return new CommentModel(entityModel);
   }
 
   /**

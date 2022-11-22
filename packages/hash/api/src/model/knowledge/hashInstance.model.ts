@@ -25,7 +25,7 @@ export default class extends EntityModel {
       SYSTEM_TYPES.entityType.hashInstance.schema.$id
     ) {
       throw new EntityTypeMismatchError(
-        entityModel.baseId,
+        entityModel.getBaseId(),
         SYSTEM_TYPES.entityType.hashInstance.schema.$id,
         entityModel.entityTypeModel.schema.$id,
       );
@@ -149,7 +149,7 @@ export default class extends EntityModel {
 
     if (isAlreadyHashInstanceAdmin) {
       throw new Error(
-        `User with entityId "${userModel.baseId}" is already a hash instance admin.`,
+        `User with entityId "${userModel.getBaseId()}" is already a hash instance admin.`,
       );
     }
 
@@ -228,7 +228,7 @@ export default class extends EntityModel {
 
     if (!outgoingAdminLinkEntityModel) {
       throw new Error(
-        `The user with entity ID ${userModel.baseId} is not a HASH instance admin.`,
+        `The user with entity ID ${userModel.getBaseId()} is not a HASH instance admin.`,
       );
     }
 
