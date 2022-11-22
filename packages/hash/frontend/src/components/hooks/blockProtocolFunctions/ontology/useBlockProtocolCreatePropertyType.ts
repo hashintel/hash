@@ -63,10 +63,7 @@ export const useBlockProtocolCreatePropertyType = (
       }
 
       return {
-        data: {
-          propertyTypeId: responseData.createPropertyType.propertyTypeId,
-          propertyType: responseData.createPropertyType.propertyType,
-        },
+        data: responseData.createPropertyType,
       };
     },
     [ownedById, createFn, readonly],
