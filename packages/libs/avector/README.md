@@ -6,7 +6,7 @@
 
 # avector
 
-`avector` is an implementation of an append only vector with focus on concurrent access (optimized for reads), providing an API that only takes `&self`, instead of `&mut self`, while still being thread-safe and performant, without utilizing locks. Enabling usage in no-std environments.
+`avector` is an implementation of an append-only vector with a focus on concurrent access (optimized for reads), providing an API that only takes `&self`, instead of `&mut self`, while still being thread-safe and performant, without utilizing locks. Enabling usage in no-std environments.
 
 ## Example
 
