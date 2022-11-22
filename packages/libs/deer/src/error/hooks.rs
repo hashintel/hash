@@ -11,7 +11,6 @@ use core::{
     cell::Cell,
     fmt,
     fmt::{Display, Formatter},
-    sync::atomic::{AtomicBool, Ordering},
 };
 
 use error_stack::{Context, Frame, Report};
@@ -189,20 +188,20 @@ impl Hook {
 }
 
 #[cfg(not(feature = "std"))]
-type HookVec = spin::RwLock<Vec<Hook>>;
+type RwLock<T> = spin::RwLock<T>;
 
 #[cfg(feature = "std")]
-type HookVec = std::sync::RwLock<Vec<Hook>>;
+type RwLock<T> = std::sync::RwLock<T>;
 
 pub(crate) struct Hooks {
-    inner: HookVec,
+    inner: RwLock<BTreeMap<TypeId, HookFn>>,
     init: spin::Once,
 }
 
 impl Hooks {
     const fn new() -> Self {
         Self {
-            inner: HookVec::new(Vec::new()),
+            inner: RwLock::new(BTreeMap::new()),
             init: spin::Once::new(),
         }
     }
@@ -225,18 +224,25 @@ impl Hooks {
     }
 
     fn push(&self, hooks: &[Hook]) {
-        self.init();
         // TODO: we need to check if the combination of Namespace and Id already exists, if that is
         //  the case panic?
-
         #[cfg(feature = "std")]
         let mut inner = self.inner.write().expect("lock has not been poisoned");
         #[cfg(not(feature = "std"))]
         let mut inner = self.inner.write();
 
         for hook in hooks {
-            inner.push(*hook);
+            inner.insert(hook.id, hook.hook);
         }
+    }
+
+    fn read_hooks_with<T>(&self, f: impl FnOnce(&BTreeMap<TypeId, HookFn>) -> T) -> T {
+        #[cfg(feature = "std")]
+        let hooks = self.inner.read().expect("should not be poisoned");
+        #[cfg(not(feature = "std"))]
+        let hooks = self.inner.read();
+
+        f(&hooks)
     }
 
     /// Divide frames, this looks a every strain and checks and finds the underlying variants
@@ -256,13 +262,7 @@ impl Hooks {
         &self,
         frames: impl IntoIterator<Item = Vec<&'a Frame>>,
     ) -> impl IntoIterator<Item = Vec<&'a Frame>> {
-        let ids: BTreeSet<_> = {
-            #[cfg(feature = "std")]
-            let inner = self.inner.read().expect("should not be poisoned");
-            #[cfg(not(feature = "std"))]
-            let inner = self.inner.read();
-            inner.iter().map(|hook| hook.id).collect()
-        };
+        let ids: BTreeSet<_> = self.read_hooks_with(|inner| inner.keys().copied().collect());
 
         frames.into_iter().flat_map(move |path| {
             let mut div = vec![];
@@ -280,27 +280,23 @@ impl Hooks {
         })
     }
 
-    pub(crate) fn serialize_report<S: Serializer>(
+    fn serialize_report<S: Serializer>(
         &self,
         report: &Report<impl Context>,
         serializer: S,
     ) -> Result<S::Ok, S::Error> {
+        self.init();
+
         let frames = split_report(report);
         let frames = self.divide_frames(frames);
-
-        let hooks: BTreeMap<_, _> = {
-            #[cfg(feature = "std")]
-            let inner = self.inner.read().expect("should not be poisoned");
-            #[cfg(not(feature = "std"))]
-            let inner = self.inner.read();
-            inner.iter().map(|hook| (hook.id, hook.hook)).collect()
-        };
 
         serializer.collect_seq(frames.into_iter().filter_map(|stack| {
             let last = stack.last()?;
             let type_id = Frame::type_id(last);
 
-            let hook: HookFn = *hooks.get(&type_id)?;
+            // TODO: potentially we'd want to move this out, depending on performance
+            //  but this is an RwLock, which means that usually speed should not be of concern.
+            let hook: HookFn = self.read_hooks_with(|hooks| hooks.get(&type_id).copied())?;
 
             hook(stack.as_slice())
         }))
