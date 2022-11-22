@@ -271,26 +271,38 @@ export const MultipleValuesCell = ({
                       </InputLabel>
 
                       <Collapse in={maxValue < Infinity}>
-                        <OutlinedInput
-                          {...getInputProps()}
-                          type="number"
-                          inputProps={{ min: 0 }}
-                          {...register(`properties.${propertyIndex}.maxValue`, {
-                            valueAsNumber: true,
-                            onChange(evt) {
-                              const max = evt.target.value;
-                              if (max < minValue) {
-                                setValue(
-                                  `properties.${propertyIndex}.minValue`,
-                                  max,
-                                  { shouldDirty: true },
-                                );
+                        {/* Using a controller as Infinity is not a valid value for a HTML number input */}
+                        <Controller
+                          render={({ field: { value: _, ...field } }) => (
+                            <OutlinedInput
+                              {...getInputProps()}
+                              {...field}
+                              type="number"
+                              inputProps={{ min: 0 }}
+                              onChange={(evt) => {
+                                const max = (evt.target as HTMLInputElement)
+                                  .valueAsNumber;
+
+                                if (max < minValue) {
+                                  setValue(
+                                    `properties.${propertyIndex}.minValue`,
+                                    max,
+                                    { shouldDirty: true },
+                                  );
+                                }
+
+                                field.onChange(max);
+                              }}
+                              value={
+                                frozenMaxValue === Infinity
+                                  ? ""
+                                  : frozenMaxValue
                               }
-                            },
-                          })}
-                          value={frozenMaxValue}
-                          size="small"
-                          id={maximumFieldId}
+                              size="small"
+                              id={maximumFieldId}
+                            />
+                          )}
+                          name={`properties.${propertyIndex}.maxValue`}
                         />
                       </Collapse>
                     </FormControl>
