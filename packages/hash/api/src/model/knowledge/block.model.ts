@@ -21,19 +21,19 @@ type BlockModelCreateParams = Omit<
  * @class {@link BlockModel}
  */
 export default class extends EntityModel {
-  static fromEntityModel(entity: EntityModel): BlockModel {
+  static fromEntityModel(entityModel: EntityModel): BlockModel {
     if (
-      entity.entityTypeModel.schema.$id !==
+      entityModel.entityTypeModel.schema.$id !==
       SYSTEM_TYPES.entityType.block.schema.$id
     ) {
       throw new EntityTypeMismatchError(
-        entity.baseId,
+        entityModel.baseId,
         SYSTEM_TYPES.entityType.block.schema.$id,
-        entity.entityTypeModel.schema.$id,
+        entityModel.entityTypeModel.schema.$id,
       );
     }
 
-    return new BlockModel({ entity, entityTypeModel: entity.entityTypeModel });
+    return new BlockModel(entityModel);
   }
 
   /**
@@ -90,7 +90,7 @@ export default class extends EntityModel {
    * Get the component id of the block.
    */
   getComponentId(): string {
-    return (this.properties as any)[
+    return (this.getProperties() as any)[
       SYSTEM_TYPES.propertyType.componentId.baseUri
     ];
   }
@@ -116,7 +116,7 @@ export default class extends EntityModel {
 
   async getBlockComments(graphApi: GraphApi): Promise<CommentModel[]> {
     const blockCommentLinks = await this.getIncomingLinks(graphApi, {
-      linkTypeModel: SYSTEM_TYPES.linkEntityType.parent,
+      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.parent,
     });
 
     const comments = blockCommentLinks.map((link) =>

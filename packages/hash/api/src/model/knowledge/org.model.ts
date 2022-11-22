@@ -91,19 +91,19 @@ export default class extends EntityModel {
     return OrgModel.fromEntityModel(entity);
   }
 
-  static fromEntityModel(entity: EntityModel): OrgModel {
+  static fromEntityModel(entityModel: EntityModel): OrgModel {
     if (
-      entity.entityTypeModel.schema.$id !==
+      entityModel.entityTypeModel.schema.$id !==
       SYSTEM_TYPES.entityType.org.schema.$id
     ) {
       throw new EntityTypeMismatchError(
-        entity.baseId,
+        entityModel.baseId,
         SYSTEM_TYPES.entityType.org.schema.$id,
-        entity.entityTypeModel.schema.$id,
+        entityModel.entityTypeModel.schema.$id,
       );
     }
 
-    return new OrgModel({ entity, entityTypeModel: entity.entityTypeModel });
+    return new OrgModel(entityModel);
   }
 
   /**
@@ -152,7 +152,7 @@ export default class extends EntityModel {
   }
 
   getShortname(): string {
-    return (this.properties as any)[
+    return (this.getProperties() as any)[
       SYSTEM_TYPES.propertyType.shortName.baseUri
     ];
   }
@@ -192,7 +192,9 @@ export default class extends EntityModel {
   }
 
   getOrgName(): string {
-    return (this.properties as any)[SYSTEM_TYPES.propertyType.orgName.baseUri];
+    return (this.getProperties() as any)[
+      SYSTEM_TYPES.propertyType.orgName.baseUri
+    ];
   }
 
   static orgNameIsInvalid(preferredName: string) {

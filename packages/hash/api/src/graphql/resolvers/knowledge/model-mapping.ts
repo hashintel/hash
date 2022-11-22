@@ -28,7 +28,7 @@ export const mapEntityModelToGQL = (
   entityVersion: entityModel.version,
   ownedById: entityModel.ownedById,
   accountId: entityModel.ownedById,
-  properties: entityModel.properties,
+  properties: entityModel.getProperties(),
   /**
    * To be used by the `EntityWithMetadata` `__resolveType` resolver method to reliably determine
    * the GQL type of this entity. Note that this is not exposed in the GQL type definitions,
@@ -51,7 +51,7 @@ export const mapPageModelToGQL = (
   ...mapEntityModelToGQL(pageModel),
   entityType: mapEntityTypeModelToGQL(pageModel.entityTypeModel),
   title: pageModel.getTitle(),
-  properties: pageModel.properties,
+  properties: pageModel.getProperties(),
   archived: pageModel.getArchived(),
   summary: pageModel.getSummary(),
   index: pageModel.getIndex(),

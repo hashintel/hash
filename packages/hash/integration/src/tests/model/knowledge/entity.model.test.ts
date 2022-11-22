@@ -207,9 +207,13 @@ describe("Entity CRU", () => {
 
     expect(newlyUpdatedModel!.version).toEqual(updatedEntityModel.version);
     expect(
-      (newlyUpdatedModel!.properties as any)[namePropertyTypeModel.baseUri],
+      (newlyUpdatedModel!.getProperties() as any)[
+        namePropertyTypeModel.baseUri
+      ],
     ).toEqual(
-      (updatedEntityModel.properties as any)[namePropertyTypeModel.baseUri],
+      (updatedEntityModel.getProperties() as any)[
+        namePropertyTypeModel.baseUri
+      ],
     );
   });
 

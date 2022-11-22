@@ -68,7 +68,9 @@ describe("Comment model class", () => {
 
     const hasText = await comment.getHasText(graphApi);
     expect(
-      (hasText.properties as any)[SYSTEM_TYPES.propertyType.tokens.baseUri],
+      (hasText.getProperties() as any)[
+        SYSTEM_TYPES.propertyType.tokens.baseUri
+      ],
     ).toEqual([]);
 
     const commentAuthor = await comment.getAuthor(graphApi);

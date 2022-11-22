@@ -35,19 +35,19 @@ type UserModelCreateParams = Omit<
  * @class {@link UserModel}
  */
 export default class extends EntityModel {
-  static fromEntityModel(entity: EntityModel): UserModel {
+  static fromEntityModel(entityModel: EntityModel): UserModel {
     if (
-      entity.entityTypeModel.schema.$id !==
+      entityModel.entityTypeModel.schema.$id !==
       SYSTEM_TYPES.entityType.user.schema.$id
     ) {
       throw new EntityTypeMismatchError(
-        entity.baseId,
+        entityModel.baseId,
         SYSTEM_TYPES.entityType.user.schema.$id,
-        entity.entityTypeModel.schema.$id,
+        entityModel.entityTypeModel.schema.$id,
       );
     }
 
-    return new UserModel({ entity, entityTypeModel: entity.entityTypeModel });
+    return new UserModel(entityModel);
   }
 
   /**
@@ -254,7 +254,7 @@ export default class extends EntityModel {
   }
 
   async getQualifiedEmails(): Promise<QualifiedEmail[]> {
-    const emails: string[] = (this.properties as any)[
+    const emails: string[] = (this.getProperties() as any)[
       SYSTEM_TYPES.propertyType.email.baseUri
     ];
 
@@ -283,7 +283,9 @@ export default class extends EntityModel {
   }
 
   getEmails(): string[] {
-    return (this.properties as any)[SYSTEM_TYPES.propertyType.email.baseUri];
+    return (this.getProperties() as any)[
+      SYSTEM_TYPES.propertyType.email.baseUri
+    ];
   }
 
   /**
@@ -294,7 +296,7 @@ export default class extends EntityModel {
    * https://app.asana.com/0/1202805690238892/1202944961125764/f
    */
   getShortname(): string | undefined {
-    return (this.properties as any)[
+    return (this.getProperties() as any)[
       SYSTEM_TYPES.propertyType.shortName.baseUri
     ];
   }
@@ -351,7 +353,7 @@ export default class extends EntityModel {
   }
 
   getPreferredName(): string | undefined {
-    return (this.properties as any)[
+    return (this.getProperties() as any)[
       SYSTEM_TYPES.propertyType.preferredName.baseUri
     ];
   }
@@ -383,7 +385,7 @@ export default class extends EntityModel {
   }
 
   getKratosIdentityId(): string {
-    return (this.properties as any)[
+    return (this.getProperties() as any)[
       SYSTEM_TYPES.propertyType.kratosIdentityId.baseUri
     ];
   }

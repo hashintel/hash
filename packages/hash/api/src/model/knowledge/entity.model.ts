@@ -40,7 +40,7 @@ export type EntityModelCreateParams = {
  * @class {@link EntityModel}
  */
 export default class {
-  protected entity: EntityWithMetadata;
+  entity: EntityWithMetadata;
 
   entityTypeModel: EntityTypeModel;
 
@@ -64,10 +64,6 @@ export default class {
     return ownedById;
   }
 
-  get properties(): PropertyObject {
-    return this.entity.properties;
-  }
-
   constructor({ entity, entityTypeModel }: EntityModelConstructorParams) {
     this.entity = entity;
     this.entityTypeModel = entityTypeModel;
@@ -75,6 +71,10 @@ export default class {
 
   getMetadata(): EntityMetadata {
     return this.entity.metadata;
+  }
+
+  getProperties(): PropertyObject {
+    return this.entity.properties;
   }
 
   static async fromEntity(
@@ -416,7 +416,7 @@ export default class {
           ...prev,
           [propertyTypeBaseUri]: value,
         }),
-        this.properties,
+        this.getProperties(),
       ),
       actorId,
     });

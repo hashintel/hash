@@ -220,7 +220,7 @@ export default class extends EntityModel {
    * Get the value of the "Resolved At" property of the comment.
    */
   getResolvedAt(): string {
-    return (this.properties as any)[
+    return (this.getProperties() as any)[
       SYSTEM_TYPES.propertyType.resolvedAt.baseUri
     ];
   }
@@ -229,7 +229,7 @@ export default class extends EntityModel {
    * Get the value of the "Deleted At" property of the comment.
    */
   getDeletedAt(): string {
-    return (this.properties as any)[
+    return (this.getProperties() as any)[
       SYSTEM_TYPES.propertyType.deletedAt.baseUri
     ];
   }

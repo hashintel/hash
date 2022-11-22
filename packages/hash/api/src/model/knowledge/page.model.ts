@@ -1,6 +1,7 @@
 import { ApolloError, UserInputError } from "apollo-server-express";
 import { GraphApi } from "@hashintel/hash-graph-client";
 import { generateKeyBetween } from "fractional-indexing";
+import { PropertyObject } from "@hashintel/hash-subgraph";
 import {
   EntityModel,
   PageModel,
@@ -28,19 +29,19 @@ type PageModelCreateParams = Omit<
  * @class {@link PageModel}
  */
 export default class extends EntityModel {
-  static fromEntityModel(entity: EntityModel): PageModel {
+  static fromEntityModel(entityModel: EntityModel): PageModel {
     if (
-      entity.entityTypeModel.schema.$id !==
+      entityModel.entityTypeModel.schema.$id !==
       SYSTEM_TYPES.entityType.page.schema.$id
     ) {
       throw new EntityTypeMismatchError(
-        entity.baseId,
+        entityModel.baseId,
         SYSTEM_TYPES.entityType.page.schema.$id,
-        entity.entityTypeModel.schema.$id,
+        entityModel.entityTypeModel.schema.$id,
       );
     }
 
-    return new PageModel({ entity, entityTypeModel: entity.entityTypeModel });
+    return new PageModel(entityModel);
   }
 
   /**
@@ -81,10 +82,14 @@ export default class extends EntityModel {
 
     const index = generateKeyBetween(prevIndex ?? null, null);
 
-    const properties: object = {
+    const properties: PropertyObject = {
       [SYSTEM_TYPES.propertyType.title.baseUri]: title,
-      [SYSTEM_TYPES.propertyType.summary.baseUri]: summary,
-      [SYSTEM_TYPES.propertyType.index.baseUri]: index,
+      ...(summary === undefined
+        ? {}
+        : { [SYSTEM_TYPES.propertyType.summary.baseUri]: summary }),
+      ...(index === undefined
+        ? {}
+        : { [SYSTEM_TYPES.propertyType.index.baseUri]: index }),
     };
 
     const entityTypeModel = SYSTEM_TYPES.entityType.page;
@@ -169,35 +174,45 @@ export default class extends EntityModel {
    * Get the value of the "Title" property of the page.
    */
   getTitle(): string {
-    return (this.properties as any)[SYSTEM_TYPES.propertyType.title.baseUri];
+    return (this.getProperties() as any)[
+      SYSTEM_TYPES.propertyType.title.baseUri
+    ];
   }
 
   /**
    * Get the value of the "Summary" property of the page.
    */
   getSummary(): string | undefined {
-    return (this.properties as any)[SYSTEM_TYPES.propertyType.summary.baseUri];
+    return (this.getProperties() as any)[
+      SYSTEM_TYPES.propertyType.summary.baseUri
+    ];
   }
 
   /**
    * Get the value of the "Index" property of the page.
    */
   getIndex(): string | undefined {
-    return (this.properties as any)[SYSTEM_TYPES.propertyType.index.baseUri];
+    return (this.getProperties() as any)[
+      SYSTEM_TYPES.propertyType.index.baseUri
+    ];
   }
 
   /**
    * Get the value of the "Icon" property of the page.
    */
   getIcon(): string | undefined {
-    return (this.properties as any)[SYSTEM_TYPES.propertyType.icon.baseUri];
+    return (this.getProperties() as any)[
+      SYSTEM_TYPES.propertyType.icon.baseUri
+    ];
   }
 
   /**
    * Get the value of the "Archived" property of the page.
    */
   getArchived(): boolean | undefined {
-    return (this.properties as any)[SYSTEM_TYPES.propertyType.archived.baseUri];
+    return (this.getProperties() as any)[
+      SYSTEM_TYPES.propertyType.archived.baseUri
+    ];
   }
 
   /**
