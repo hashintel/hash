@@ -1,4 +1,8 @@
-import { TextField } from "@hashintel/hash-design-system";
+import {
+  getInputProps,
+  inputLabelProps,
+  TextField,
+} from "@hashintel/hash-design-system";
 import {
   Box,
   Checkbox,
@@ -7,6 +11,7 @@ import {
   Fade,
   FormControl,
   InputLabel,
+  OutlinedInput,
   Popper,
   TableCell,
   Typography,
@@ -246,6 +251,7 @@ export const MultipleValuesCell = ({
                   />
                   <FormControl>
                     <InputLabel
+                      {...inputLabelProps}
                       sx={{
                         display: "flex",
                         alignItems: "center",
@@ -254,14 +260,18 @@ export const MultipleValuesCell = ({
                       htmlFor={maximumFieldId}
                     >
                       Maximum
-                      <Box display="flex">
+                      <Box
+                        display="flex"
+                        color={({ palette }) => palette.gray[70]}
+                      >
                         ∞
                         <div ref={setInfinityCheckboxNode} />
                       </Box>
                     </InputLabel>
 
                     <Collapse in={maxValue < Infinity}>
-                      <TextField
+                      <OutlinedInput
+                        {...getInputProps()}
                         type="number"
                         inputProps={{ min: 0 }}
                         {...register(`properties.${propertyIndex}.maxValue`, {
