@@ -12,7 +12,7 @@ num-traits = "0.2.15"
 serde = { version = "1.0.147", default_features = false, features = ['alloc', 'derive'] }
 erased-serde = { version = "0.3.23", default_features = false, features = ['alloc'] }
 
-deer-append-vec = { path = "./append-vec" }
+spin = { version = "0.9.4", default_features = false, features = ['rwlock'] }
 
 [dev-dependencies]
 serde_json = "1.0.87"
@@ -22,8 +22,8 @@ rustc_version = "0.4.0"
 
 [features]
 default = ['std']
-std = ['serde/std']
+std = ['serde/std', 'spin/rwlock']
 arbitrary-precision = []
 
 [workspace]
-members = ['.', 'macros', 'append-vec']
+members = ['.', 'macros']
