@@ -29,7 +29,6 @@ import { fetchEmbedCode } from "./fetchEmbedCode";
 import { RemoteBlock } from "../RemoteBlock/RemoteBlock";
 import { useBlockLoadedContext } from "../../blocks/onBlockLoaded";
 import { useBlockProtocolAggregateEntities } from "../hooks/blockProtocolFunctions/knowledge/useBlockProtocolAggregateEntities";
-import { useBlockProtocolCreateEntityType } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateEntityType";
 import { useBlockProtocolCreateLink } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateLink";
 import { useBlockProtocolCreateLinkedAggregation } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateLinkedAggregation";
 import { useBlockProtocolDeleteLink } from "../hooks/blockProtocolFunctions/useBlockProtocolDeleteLink";
@@ -91,10 +90,6 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   const { createLinkedAggregation } =
     useBlockProtocolCreateLinkedAggregation(readonlyMode);
   const { createLink } = useBlockProtocolCreateLink(readonlyMode);
-  const { createEntityType } = useBlockProtocolCreateEntityType(
-    accountId,
-    readonlyMode,
-  );
   const { deleteLinkedAggregation } =
     useBlockProtocolDeleteLinkedAggregation(readonlyMode);
   const { deleteLink } = useBlockProtocolDeleteLink(readonlyMode);
@@ -200,7 +195,6 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
 
   const functions = {
     aggregateEntities,
-    createEntityType,
     createLinkedAggregation,
     createLink,
     deleteLinkedAggregation,

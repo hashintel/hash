@@ -14,14 +14,15 @@ import { useRemoteBlock } from "./useRemoteBlock";
 type RemoteBlockProps = {
   graphCallbacks: Omit<
     EmbedderGraphMessageCallbacks,
-    | "aggregateEntityTypes"
     | "createEntity"
     | "getEntity"
     | "aggregateEntities"
-    | "getEntityType"
+    | "deleteEntity"
     | "getLink"
     | "getLinkedAggregation"
-    | "deleteEntity"
+    | "createEntityType"
+    | "aggregateEntityTypes"
+    | "getEntityType"
     | "deleteEntityType"
   >;
   graphProperties: Required<BlockGraphProperties<UnknownRecord>["graph"]>;
