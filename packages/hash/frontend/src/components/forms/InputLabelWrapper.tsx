@@ -1,5 +1,4 @@
 import { FunctionComponent, ReactNode } from "react";
-import { tw } from "twind";
 
 export const InputLabelWrapper: FunctionComponent<{
   children: ReactNode;

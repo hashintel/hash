@@ -1,6 +1,5 @@
 import { useRouter } from "next/router";
 import { useState, FunctionComponent } from "react";
-import { tw } from "twind";
 
 import { JsonSchema } from "@hashintel/hash-shared/json-utils";
 import { Button } from "../../../shared/ui";

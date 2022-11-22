@@ -1,5 +1,4 @@
 import { ChangeEvent, forwardRef, HTMLProps } from "react";
-import { tw } from "twind";
 import { InputLabelWrapper } from "./InputLabelWrapper";
 
 type TextInputProps = {

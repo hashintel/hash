@@ -4,7 +4,6 @@ import { Collapse, Typography } from "@mui/material";
 
 import { useRouter } from "next/router";
 import { FormEvent, useState } from "react";
-import { tw } from "twind";
 import {
   DeprecatedCreateEntityTypeMutation,
   DeprecatedCreateEntityTypeMutationVariables,

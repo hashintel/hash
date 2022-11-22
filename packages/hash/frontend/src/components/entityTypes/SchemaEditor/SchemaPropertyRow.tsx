@@ -1,5 +1,4 @@
 import { FunctionComponent } from "react";
-import { tw } from "twind";
 
 import { JsonSchema } from "@hashintel/hash-shared/json-utils";
 import { tdClasses, trClasses } from "./SchemaPropertiesTable";

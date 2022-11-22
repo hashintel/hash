@@ -1,6 +1,5 @@
 import { Dialog } from "@headlessui/react";
 import { ReactNode, FunctionComponent } from "react";
-import { tw } from "twind";
 import { AuthLayout } from "./auth-layout";
 
 export type AuthModalLayoutProps = {

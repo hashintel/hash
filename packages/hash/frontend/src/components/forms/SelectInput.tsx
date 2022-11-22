@@ -6,7 +6,6 @@ import {
   useState,
   HTMLProps,
 } from "react";
-import { tw } from "twind";
 
 type SelectInputProps = {
   label?: string;

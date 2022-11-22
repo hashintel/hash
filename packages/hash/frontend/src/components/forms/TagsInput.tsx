@@ -1,5 +1,4 @@
 import { FunctionComponent, KeyboardEvent, useRef } from "react";
-import { tw } from "twind";
 
 type TagsInputProps = {
   minHeight?: number;

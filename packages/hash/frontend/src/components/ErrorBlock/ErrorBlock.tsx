@@ -1,11 +1,6 @@
 import type { FallbackRender } from "@sentry/react";
 import { FunctionComponent } from "react";
-import { tw } from "twind";
 import { Button } from "../../shared/ui";
-
-/**
- * @todo make twind and other global styles available in iframes
- */
 
 type FallbackRenderProps = Parameters<FallbackRender>[0];
 

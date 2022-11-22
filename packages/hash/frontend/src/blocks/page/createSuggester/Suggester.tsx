@@ -1,7 +1,6 @@
 import { Box, SxProps, Theme, Typography } from "@mui/material";
 import { ReactElement, useEffect, useRef, useState } from "react";
 import { useKey } from "rooks";
-import { tw } from "twind";
 import { SpinnerIcon } from "../../../shared/icons";
 
 export interface SuggesterProps<T> {

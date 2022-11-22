@@ -1,5 +1,4 @@
 import { FunctionComponent, memo } from "react";
-import { tw } from "twind";
 
 type InviteHeaderProps = {
   invitationInfo: {

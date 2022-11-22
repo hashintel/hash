@@ -1,6 +1,5 @@
 import { useMemo, FunctionComponent } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { tw } from "twind";
 
 import { SelectInput } from "../../components/forms/SelectInput";
 import { useShortnameInput } from "../../components/hooks/useShortnameInput";

@@ -1,5 +1,4 @@
 import { useMemo, FunctionComponent } from "react";
-import { tw } from "twind";
 import ArticleIcon from "@mui/icons-material/Article";
 
 import { useUsers } from "../../../components/hooks/useUsers";

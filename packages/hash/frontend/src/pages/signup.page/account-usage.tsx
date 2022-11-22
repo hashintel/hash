@@ -1,5 +1,4 @@
 import { useState, FunctionComponent } from "react";
-import { tw } from "twind";
 
 import { HumanGreetingIcon, PeopleIcon, SpinnerIcon } from "../../shared/icons";
 

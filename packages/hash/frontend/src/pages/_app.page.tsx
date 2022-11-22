@@ -5,7 +5,6 @@ require("setimmediate");
 import { ApolloProvider } from "@apollo/client/react";
 import { FunctionComponent, useEffect, useState } from "react";
 import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloClient";
-import withTwindApp from "@twind/next/app";
 import { ModalProvider } from "react-modal-hook";
 import { configureScope } from "@sentry/nextjs";
 import { AppProps as NextAppProps } from "next/app";
@@ -18,7 +17,6 @@ import { TypeSystemContextProvider } from "../lib/use-init-type-system";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 
 import { SessionProvider } from "./_app.page/session-provider";
-import twindConfig from "../../twind.config";
 import "./globals.scss";
 import { useAuthenticatedUser } from "../components/hooks/useAuthenticatedUser";
 import {
@@ -106,4 +104,4 @@ const AppWithTypeSystemContextProvider: FunctionComponent<AppProps> = (
   </TypeSystemContextProvider>
 );
 
-export default withTwindApp(twindConfig, AppWithTypeSystemContextProvider);
+export default AppWithTypeSystemContextProvider;

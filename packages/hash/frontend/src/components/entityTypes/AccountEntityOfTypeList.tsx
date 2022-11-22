@@ -5,7 +5,6 @@ import {
   AggregateEntityQueryVariables,
 } from "@hashintel/hash-shared/graphql/apiTypes.gen";
 import { FunctionComponent } from "react";
-import { tw } from "twind";
 import { Typography } from "@mui/material";
 import { generateEntityLabel } from "../../lib/entities";
 import { Link } from "../../shared/ui";

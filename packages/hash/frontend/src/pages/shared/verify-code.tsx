@@ -7,7 +7,6 @@ import {
   ClipboardEventHandler,
   FormEvent,
 } from "react";
-import { tw } from "twind";
 
 import { LogoIcon, HashIcon, KeyboardReturnIcon } from "../../shared/icons";
 import { InviteHeader } from "./invite-header";

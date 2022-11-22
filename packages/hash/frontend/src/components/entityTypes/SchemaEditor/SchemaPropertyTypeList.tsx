@@ -7,7 +7,6 @@ import {
 } from "react";
 import { Schema } from "jsonschema";
 
-import { tw } from "twind";
 import { primitiveJsonTypes } from "@hashintel/hash-shared/json-utils";
 import { SchemaOptionsContext, SchemaSelectElementType } from "./SchemaEditor";
 import { SelectInput } from "../../forms/SelectInput";

@@ -12,7 +12,6 @@ import {
   useState,
   FunctionComponent,
 } from "react";
-import { tw } from "twind";
 import { debounce, get } from "lodash";
 
 import { JsonSchema } from "@hashintel/hash-shared/json-utils";

@@ -1,5 +1,4 @@
 import { FunctionComponent } from "react";
-import { tw } from "twind";
 import { DropdownIcon } from "../../../shared/icons";
 
 interface MarksTooltipProps {

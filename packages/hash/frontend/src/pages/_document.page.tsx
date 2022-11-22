@@ -1,10 +1,8 @@
 import createEmotionServer from "@emotion/server/create-instance";
-import withTwindDocument from "@twind/next/document";
 import NextDocument, { Html, Head, Main, NextScript } from "next/document";
 
 import { createEmotionCache } from "@hashintel/hash-design-system";
 import { Children } from "react";
-import twindConfig from "../../twind.config";
 
 class Document extends NextDocument {
   render() {
@@ -82,6 +80,4 @@ Document.getInitialProps = async (ctx) => {
   };
 };
 
-// @todo remove twind when we have completely switched to MUI
-// NB: Some blocks set twind as a peer-dependency
-export default withTwindDocument(twindConfig, Document);
+export default Document;

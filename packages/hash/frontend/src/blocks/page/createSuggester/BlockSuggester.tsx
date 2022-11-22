@@ -1,6 +1,5 @@
 import { BlockVariant } from "@blockprotocol/core";
 import { FunctionComponent, useMemo } from "react";
-import { tw } from "twind";
 import { Box, SxProps, Theme, Typography } from "@mui/material";
 import { HashBlockMeta } from "@hashintel/hash-shared/blocks";
 
