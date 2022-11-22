@@ -178,12 +178,12 @@ export const App: BlockComponent<BlockEntityProperties> = ({
             },
           });
         })
-        .catch((err) => {
+        .catch((err: unknown) => {
           dispatch({
             type: "UPDATE_STATE",
             payload: {
               blockState: BlockState.Error,
-              infoMessage: err.message,
+              infoMessage: (err as Error).message,
             },
           });
         });
@@ -219,12 +219,12 @@ export const App: BlockComponent<BlockEntityProperties> = ({
             },
           });
         })
-        .catch((err) => {
+        .catch((err: unknown) => {
           dispatch({
             type: "UPDATE_STATE",
             payload: {
               blockState: BlockState.Error,
-              infoMessage: err.message,
+              infoMessage: (err as Error).message,
             },
           });
         });

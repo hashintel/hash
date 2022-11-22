@@ -1,4 +1,5 @@
-use std::{error::Error, fmt, sync::RwLock};
+use alloc::fmt;
+use std::{error::Error, sync::RwLock};
 
 use crate::{
     fmt::{install_builtin_hooks, HookContext, Hooks},

@@ -1,6 +1,8 @@
-// eslint-disable-next-line no-restricted-imports
-import MuiLink, { LinkProps as MuiLinkProps } from "@mui/material/Link";
-import { styled } from "@mui/material/styles";
+import {
+  Link as MuiLink,
+  LinkProps as MuiLinkProps,
+  styled,
+} from "@mui/material";
 import clsx from "clsx";
 // eslint-disable-next-line no-restricted-imports
 import NextLink, { LinkProps as NextLinkProps } from "next/link";

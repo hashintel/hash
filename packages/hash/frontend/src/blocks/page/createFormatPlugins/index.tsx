@@ -1,6 +1,6 @@
 import { toggleMark } from "prosemirror-commands";
 import { inputRules } from "prosemirror-inputrules";
-import { Mark, Schema } from "prosemirror-model";
+import { Mark } from "prosemirror-model";
 import {
   EditorState,
   NodeSelection,
@@ -32,15 +32,15 @@ interface LinkPluginState {
   linkUrl: null | string;
 }
 
-const markPluginKey = new PluginKey<MarksTooltipState, Schema>("markPlugin");
-const linkPluginKey = new PluginKey<LinkPluginState, Schema>("linkPlugin");
+const markPluginKey = new PluginKey<MarksTooltipState>("markPlugin");
+const linkPluginKey = new PluginKey<LinkPluginState>("linkPlugin");
 
 export function createFormatPlugins(renderPortal: RenderPortal) {
   let timeout: NodeJS.Timeout;
 
   const linkModalRef = createRef<HTMLDivElement>();
 
-  const marksTooltip = new Plugin<MarksTooltipState, Schema>({
+  const marksTooltip = new Plugin<MarksTooltipState>({
     key: markPluginKey,
     /**
      * This allows us to keep track of whether the view is focused, which
@@ -90,7 +90,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
       },
     },
 
-    view(editorView: EditorView<Schema>) {
+    view(editorView: EditorView) {
       const mountNode = document.createElement("div");
 
       return {
@@ -99,7 +99,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
           renderPortal(null, mountNode);
           mountNode.remove();
         },
-        update: (view: EditorView<Schema>, lastState?: EditorState<Schema>) => {
+        update: (view: EditorView, lastState?: EditorState) => {
           const dragging = !!editorView.dragging;
 
           const state = view.state;
@@ -179,7 +179,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
     },
   });
 
-  const linkPlugin = new Plugin<LinkPluginState, Schema>({
+  const linkPlugin = new Plugin<LinkPluginState>({
     key: linkPluginKey,
     state: {
       init() {
@@ -257,7 +257,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
       },
     },
 
-    view(editorView: EditorView<Schema>) {
+    view(editorView: EditorView) {
       const mountNode = document.createElement("div");
 
       return {
@@ -265,7 +265,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
           renderPortal(null, mountNode);
           mountNode.remove();
         },
-        update: (view: EditorView<Schema>) => {
+        update: (view: EditorView) => {
           ensureMounted(mountNode, document.body);
           const state = view.state;
 
@@ -325,5 +325,5 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
     inputRules({
       rules: [linkInputRule()],
     }),
-  ] as Plugin<unknown, Schema>[];
+  ] as Plugin<unknown>[];
 }

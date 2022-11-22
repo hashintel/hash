@@ -1,4 +1,3 @@
-import { GlideGridOverlayPortal } from "../../../../components/GlideGlid/glide-grid-overlay-portal";
 import { EntityEditorContextProvider } from "./entity-editor/entity-editor-context";
 import { LinksSection } from "./entity-editor/links-section";
 import { PeersSection } from "./entity-editor/peers-section";
@@ -28,8 +27,6 @@ export const EntityEditor = ({
       <LinksSection />
 
       <PeersSection />
-
-      <GlideGridOverlayPortal />
     </EntityEditorContextProvider>
   );
 };

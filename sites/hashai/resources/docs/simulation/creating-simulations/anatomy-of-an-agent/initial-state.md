@@ -12,10 +12,10 @@ All HASH simulations begin life in the `init` file found in the root of a HASH p
 There are three ways to populate the initial state of a simulation. You can:
 
 1.  Define the individual agents in `init.json`
-1.  Programmatically generate the initial agents in an `init.js` or `init.py` file.
-1.  Define "creator" agents in `init.json` with behaviors that will generate agents, using published behaviors, or your own.
+1.  Define "creator" agents in `init.json` with behaviors that will generate agents
+1.  Programmatically generate the initial agents directly in an `init.js` or `init.py` file.
 
-## Init.json
+## init.json
 
 In `init.json` you'll explicitly define all your agents as JSON blobs in an array. Here's what that might look like:
 
@@ -36,11 +36,11 @@ You can create whatever field names you need on your agents, but be aware of set
 
 When you make a change to the file, you'll need to reset your simulation to see updated agents appear in the 3D Viewer.
 
-## Init.js and Init.py
+## init.js and init.py
 
-The default init.json approach has some limitations. Because it's compliant JSON, you can't set dynamically set properties on the agent. If you want to generate random values, or run loops to generate your agents, then `init.js` or `init.py` will give you that functionality.
+The default `init.json` approach has some limitations. Because it's compliant JSON, you can't set dynamically set properties on the agent. If you want to generate random values, or run loops to generate your agents, then `init.js` or `init.py` will give you that functionality.
 
-You can transform the init.json file into a JavaScript or Python file by right clicking it and selecting "Convert to..." your desired language.
+You can transform the `init.json` file into a JavaScript or Python file by right clicking it and selecting "Convert to..." your desired language.
 
 ![](https://cdn-us1.hash.ai/site/docs/image%20%2864%29.png)
 
@@ -92,7 +92,7 @@ def init(context):
 </Tabs>
 
 <Hint style="warning">
-**init.js** and **init.py** must return an array of objects
+`init.js` and `init.py` must return an array of objects
 </Hint>
 
 To programmatically create agents, you can add loops and similar logic to append agents to the array.

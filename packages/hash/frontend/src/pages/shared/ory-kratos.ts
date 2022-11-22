@@ -28,6 +28,9 @@ export const oryKratosClient = new V0alpha2Api(
      * Next.js API handler.
      */
     basePath: "/api/ory",
+    baseOptions: {
+      withCredentials: true,
+    },
   }),
 );
 

@@ -1,16 +1,5 @@
 import { isPlainObject } from "lodash";
-
-const isValueEmpty = (val: unknown) => {
-  if (val === "" || val === null || val === undefined) {
-    return true;
-  }
-
-  if (Array.isArray(val) && !val.length) {
-    return true;
-  }
-
-  return false;
-};
+import { isValueEmpty } from "./is-value-empty";
 
 export const getPropertyCountSummary = (properties: unknown) => {
   let emptyCount = 0;

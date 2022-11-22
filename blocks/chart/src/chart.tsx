@@ -93,6 +93,7 @@ const parsePossiblePropertyKeysFromEntityType = (
   entityType.properties && typeof entityType.properties === "object"
     ? Object.entries(entityType.properties)
         .filter(
+          /* eslint-disable @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access -- @todo consider refactoring in a type-safe way */
           ([_, propertyDefinition]) =>
             typeof propertyDefinition === "object" &&
             !Array.isArray(propertyDefinition) &&
@@ -103,6 +104,7 @@ const parsePossiblePropertyKeysFromEntityType = (
                 Array.isArray(propertyDefinition.type) &&
                 (propertyDefinition.type.includes("number") ||
                   propertyDefinition.type.includes("integer")))),
+          /* eslint-enable @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access */
         )
         .map(([propertyKey]) => propertyKey)
     : [];
@@ -584,6 +586,7 @@ const mapSeriesDefinitionsToEChartSeries = (params: {
               position: "top",
               color: "black",
               fontSize: 12,
+              // eslint-disable-next-line @typescript-eslint/restrict-template-expressions -- @todo check if data is stringified as expected
               formatter: ({ name, data }) => `${name} ${data}`,
             }
           : undefined,

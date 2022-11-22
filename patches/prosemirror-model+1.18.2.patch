@@ -1,0 +1,15 @@
+diff --git a/node_modules/prosemirror-model/dist/index.d.ts b/node_modules/prosemirror-model/dist/index.d.ts
+index 196ade9..31ef008 100644
+--- a/node_modules/prosemirror-model/dist/index.d.ts
++++ b/node_modules/prosemirror-model/dist/index.d.ts
+@@ -741,6 +741,10 @@ declare class NodeType {
+     are allowed.
+     */
+     markSet: readonly MarkType[] | null;
++    /**
++     Parsed set of groups from spec.group
++    */
++    groups?: string[];
+     /**
+     The node type's [whitespace](https://prosemirror.net/docs/ref/#model.NodeSpec.whitespace) option.
+     */

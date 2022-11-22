@@ -1,6 +1,9 @@
-import { Button, ButtonProps } from "@hashintel/hash-design-system/button";
-import { Chip } from "@hashintel/hash-design-system/chip";
-import { textFieldBorderRadius } from "@hashintel/hash-design-system/theme/components/inputs/mui-outlined-input-theme-options";
+import {
+  Button,
+  ButtonProps,
+  Chip,
+  textFieldBorderRadius,
+} from "@hashintel/hash-design-system";
 import {
   autocompleteClasses,
   Box,

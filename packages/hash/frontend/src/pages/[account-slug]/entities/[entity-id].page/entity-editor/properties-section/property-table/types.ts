@@ -1,11 +1,12 @@
 import { SizedGridColumn } from "@glideapps/glide-data-grid";
-import { VerticalIndentationLineDir } from "../../../../../../../components/GlideGlid/utils/draw-vertical-indentation-line";
+import { VerticalIndentationLineDir } from "../../../../../../../components/grid/utils/draw-vertical-indentation-line";
 
 export type PropertyRow = {
   title: string;
   rowId: string;
   value: unknown;
-  dataTypes: string[];
+  expectedTypes: string[];
+  isArray: boolean;
   required: boolean;
   children: PropertyRow[];
   depth: number;
@@ -16,7 +17,7 @@ export type PropertyRow = {
 
 export type PropertyColumnKey = Extract<
   keyof PropertyRow,
-  "title" | "value" | "dataTypes"
+  "title" | "value" | "expectedTypes"
 >;
 
 export interface PropertyColumn extends SizedGridColumn {

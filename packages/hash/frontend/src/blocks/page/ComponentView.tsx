@@ -22,7 +22,7 @@ import {
 import { ProsemirrorManager } from "@hashintel/hash-shared/ProsemirrorManager";
 import { textBlockNodeToEntityProperties } from "@hashintel/hash-shared/text";
 import * as Sentry from "@sentry/nextjs";
-import { ProsemirrorNode, Schema } from "prosemirror-model";
+import { Node } from "prosemirror-model";
 import { TextSelection, Transaction } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
 import { BlockLoader } from "../../components/BlockLoader/BlockLoader";
@@ -75,7 +75,7 @@ export const componentViewTargetSelector = "div[data-target=true]";
  *    and attaches an editable DOM node if the component provides for it.
  *    The node type name is the id of the block component (i.e. its URI).
  */
-export class ComponentView implements NodeView<Schema> {
+export class ComponentView implements NodeView {
   public readonly dom = document.createElement("div");
   public readonly contentDOM = document.createElement("div");
 
@@ -88,8 +88,8 @@ export class ComponentView implements NodeView<Schema> {
   private wasSuggested = false;
 
   constructor(
-    private node: ProsemirrorNode<Schema>,
-    private readonly editorView: EditorView<Schema>,
+    private node: Node,
+    private readonly editorView: EditorView,
     private readonly getPos: () => number | undefined,
     private readonly renderPortal: RenderPortal,
     private readonly block: HashBlock,
@@ -137,7 +137,7 @@ export class ComponentView implements NodeView<Schema> {
     this.update(this.node);
   }
 
-  update(node: ProsemirrorNode<Schema>) {
+  update(node: Node) {
     this.node = node;
 
     /**
@@ -289,7 +289,7 @@ export class ComponentView implements NodeView<Schema> {
 
   private editableRef = (editableNode: HTMLElement | null) => {
     const state = this.editorView.state;
-    let tr: Transaction<Schema> | null = null;
+    let tr: Transaction | null = null;
 
     if (editableNode && this.isNodeInDoc()) {
       const childEntity = getBlockChildEntity(
@@ -323,9 +323,7 @@ export class ComponentView implements NodeView<Schema> {
 
       if (this.wasSuggested) {
         tr ??= state.tr;
-        tr.setSelection(
-          TextSelection.create<Schema>(state.doc, this.mustGetPos() + 1),
-        );
+        tr.setSelection(TextSelection.create(state.doc, this.mustGetPos() + 1));
 
         this.wasSuggested = false;
       }
