@@ -78,7 +78,7 @@ use crate::{
 mod lock;
 pub(crate) mod sync;
 
-// note(bm): [PERFORMANCE] increase from 16 to 64
+// note: [PERFORMANCE] increase from 16 to 64
 //  push (single/multi): ~10%-40%
 //  iter (singe/multi): ~10%
 pub struct AVec<T, const N: usize = 16> {
@@ -152,7 +152,6 @@ impl<T, const N: usize> AVec<T, N> {
         (length / N, length % N)
     }
 
-    // note(bm):
     //  there's a potential concurrent writing method implementation possible,
     //  which uses 3 atomics instead:
     //      * open <- currently active pushes
