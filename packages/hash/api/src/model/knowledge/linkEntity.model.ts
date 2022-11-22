@@ -40,10 +40,6 @@ export default class extends EntityModel {
 
   rightEntityModel: EntityModel;
 
-  get linkMetadata(): LinkEntityMetadata {
-    return this.getMetadata().linkMetadata!;
-  }
-
   constructor({
     linkEntity,
     linkEntityTypeModel,
@@ -53,6 +49,10 @@ export default class extends EntityModel {
     super({ entity: linkEntity, entityTypeModel: linkEntityTypeModel });
     this.leftEntityModel = leftEntityModel;
     this.rightEntityModel = rightEntityModel;
+  }
+
+  getLinkMetadata(): LinkEntityMetadata {
+    return this.getMetadata().linkMetadata!;
   }
 
   static async fromEntity(
