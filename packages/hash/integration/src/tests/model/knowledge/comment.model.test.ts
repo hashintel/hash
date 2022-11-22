@@ -72,9 +72,9 @@ describe("Comment model class", () => {
     ).toEqual([]);
 
     const commentAuthor = await comment.getAuthor(graphApi);
-    expect(commentAuthor).toEqual(testUser);
+    expect(commentAuthor.entity).toEqual(testUser.entity);
 
     const parentBlock = await comment.getParent(graphApi);
-    expect(parentBlock).toEqual(testBlock);
+    expect(parentBlock.entity).toEqual(testBlock.entity);
   });
 });

@@ -33,7 +33,10 @@ export default class extends EntityModel {
       );
     }
 
-    return new BlockModel({ entity, entityTypeModel: entity.entityTypeModel });
+    return new BlockModel({
+      entity: entity.entity,
+      entityTypeModel: entity.entityTypeModel,
+    });
   }
 
   /**

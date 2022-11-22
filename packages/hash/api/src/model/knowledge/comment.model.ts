@@ -36,7 +36,7 @@ export default class extends EntityModel {
     }
 
     return new CommentModel({
-      entity,
+      entity: entity.entity,
       entityTypeModel: entity.entityTypeModel,
     });
   }
