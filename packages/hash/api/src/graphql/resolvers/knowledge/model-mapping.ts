@@ -25,7 +25,7 @@ export const mapEntityModelToGQL = (
 ): UnresolvedEntityWithMetadataGQL => ({
   entityId: entityModel.entityId,
   entityTypeId: entityModel.entityTypeModel.schema.$id,
-  entityVersion: entityModel.version,
+  entityVersion: entityModel.getVersion(),
   ownedById: entityModel.getOwnedById(),
   accountId: entityModel.getOwnedById(),
   properties: entityModel.getProperties(),

@@ -44,13 +44,13 @@ export default class {
 
   entityTypeModel: EntityTypeModel;
 
-  get version(): string {
-    return this.getMetadata().editionId.version;
-  }
-
   constructor({ entity, entityTypeModel }: EntityModelConstructorParams) {
     this.entity = entity;
     this.entityTypeModel = entityTypeModel;
+  }
+
+  getVersion(): string {
+    return this.getMetadata().editionId.version;
   }
 
   getBaseId(): string {

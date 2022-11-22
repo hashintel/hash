@@ -159,7 +159,9 @@ describe("Entity CRU", () => {
     expect(fetchedEntityModel.getBaseId()).toEqual(
       createdEntityModel.getBaseId(),
     );
-    expect(fetchedEntityModel.version).toEqual(createdEntityModel.version);
+    expect(fetchedEntityModel.getVersion()).toEqual(
+      createdEntityModel.getVersion(),
+    );
   });
 
   let updatedEntityModel: EntityModel;
@@ -207,7 +209,9 @@ describe("Entity CRU", () => {
     expect(allEntityModels.length).toBeGreaterThanOrEqual(1);
     expect(newlyUpdatedModel).toBeDefined();
 
-    expect(newlyUpdatedModel!.version).toEqual(updatedEntityModel.version);
+    expect(newlyUpdatedModel!.getVersion()).toEqual(
+      updatedEntityModel.getVersion(),
+    );
     expect(
       (newlyUpdatedModel!.getProperties() as any)[
         namePropertyTypeModel.baseUri
