@@ -32,7 +32,7 @@ export const updatePersistedPage: ResolverFn<
         value,
       }),
     ),
-    actorId: userModel.entityUuid,
+    actorId: userModel.getEntityUuid(),
   });
 
   const updatedPageModel = PageModel.fromEntityModel(updatedPageEntityModel);

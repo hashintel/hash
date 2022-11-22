@@ -15,5 +15,5 @@ export const persistedCommentTextUpdatedAt: ResolverFn<
   });
   const textEntityModel = await commentModel.getHasText(graphApi);
 
-  return textEntityModel.version;
+  return textEntityModel.getVersion();
 };

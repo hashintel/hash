@@ -29,19 +29,19 @@ type PageModelCreateParams = Omit<
  * @class {@link PageModel}
  */
 export default class extends EntityModel {
-  static fromEntityModel(entity: EntityModel): PageModel {
+  static fromEntityModel(entityModel: EntityModel): PageModel {
     if (
-      entity.entityTypeModel.schema.$id !==
-      SYSTEM_TYPES.entityType.page.schema.$id
+      entityModel.entityTypeModel.getSchema().$id !==
+      SYSTEM_TYPES.entityType.page.getSchema().$id
     ) {
       throw new EntityTypeMismatchError(
-        entity.baseId,
-        SYSTEM_TYPES.entityType.page.schema.$id,
-        entity.entityTypeModel.schema.$id,
+        entityModel.getBaseId(),
+        SYSTEM_TYPES.entityType.page.getSchema().$id,
+        entityModel.entityTypeModel.getSchema().$id,
       );
     }
 
-    return new PageModel({ entity, entityTypeModel: entity.entityTypeModel });
+    return new PageModel(entityModel);
   }
 
   /**
@@ -83,12 +83,12 @@ export default class extends EntityModel {
     const index = generateKeyBetween(prevIndex ?? null, null);
 
     const properties: PropertyObject = {
-      [SYSTEM_TYPES.propertyType.title.baseUri]: title,
+      [SYSTEM_TYPES.propertyType.title.getBaseUri()]: title,
       ...(summary
-        ? { [SYSTEM_TYPES.propertyType.summary.baseUri]: summary }
+        ? { [SYSTEM_TYPES.propertyType.summary.getBaseUri()]: summary }
         : {}),
       ...(index !== undefined
-        ? { [SYSTEM_TYPES.propertyType.index.baseUri]: index }
+        ? { [SYSTEM_TYPES.propertyType.index.getBaseUri()]: index }
         : {}),
     };
 
@@ -113,7 +113,7 @@ export default class extends EntityModel {
               blockData: await EntityModel.create(graphApi, {
                 ownedById,
                 properties: {
-                  [SYSTEM_TYPES.propertyType.tokens.baseUri]: [],
+                  [SYSTEM_TYPES.propertyType.tokens.getBaseUri()]: [],
                 },
                 entityTypeModel: SYSTEM_TYPES.entityType.text,
                 actorId,
@@ -146,7 +146,7 @@ export default class extends EntityModel {
         {
           equal: [
             { path: ["type", "versionedUri"] },
-            { parameter: SYSTEM_TYPES.entityType.page.schema.$id },
+            { parameter: SYSTEM_TYPES.entityType.page.getSchema().$id },
           ],
         },
       ],
@@ -157,7 +157,11 @@ export default class extends EntityModel {
        * @todo: filter the pages by their ownedById in the query instead once it's supported
        * @see https://app.asana.com/0/1202805690238892/1203015527055374/f
        */
-      .filter(({ ownedById }) => ownedById === params.accountModel.entityUuid)
+      .filter(
+        (pageEntityModel) =>
+          pageEntityModel.getOwnedById() ===
+          params.accountModel.getEntityUuid(),
+      )
       .map(PageModel.fromEntityModel);
 
     return await Promise.all(
@@ -174,35 +178,45 @@ export default class extends EntityModel {
    * Get the value of the "Title" property of the page.
    */
   getTitle(): string {
-    return (this.properties as any)[SYSTEM_TYPES.propertyType.title.baseUri];
+    return (this.getProperties() as any)[
+      SYSTEM_TYPES.propertyType.title.getBaseUri()
+    ];
   }
 
   /**
    * Get the value of the "Summary" property of the page.
    */
   getSummary(): string | undefined {
-    return (this.properties as any)[SYSTEM_TYPES.propertyType.summary.baseUri];
+    return (this.getProperties() as any)[
+      SYSTEM_TYPES.propertyType.summary.getBaseUri()
+    ];
   }
 
   /**
    * Get the value of the "Index" property of the page.
    */
   getIndex(): string | undefined {
-    return (this.properties as any)[SYSTEM_TYPES.propertyType.index.baseUri];
+    return (this.getProperties() as any)[
+      SYSTEM_TYPES.propertyType.index.getBaseUri()
+    ];
   }
 
   /**
    * Get the value of the "Icon" property of the page.
    */
   getIcon(): string | undefined {
-    return (this.properties as any)[SYSTEM_TYPES.propertyType.icon.baseUri];
+    return (this.getProperties() as any)[
+      SYSTEM_TYPES.propertyType.icon.getBaseUri()
+    ];
   }
 
   /**
    * Get the value of the "Archived" property of the page.
    */
   getArchived(): boolean | undefined {
-    return (this.properties as any)[SYSTEM_TYPES.propertyType.archived.baseUri];
+    return (this.getProperties() as any)[
+      SYSTEM_TYPES.propertyType.archived.getBaseUri()
+    ];
   }
 
   /**
@@ -230,7 +244,7 @@ export default class extends EntityModel {
 
     if (unexpectedParentPageLinks.length > 0) {
       throw new Error(
-        `Critical: Page with entity ID ${this.baseId} has more than one parent page`,
+        `Critical: Page with entity ID ${this.getBaseId()} has more than one parent page`,
       );
     }
 
@@ -254,7 +268,7 @@ export default class extends EntityModel {
   ): Promise<boolean> {
     const { page } = params;
 
-    if (this.baseId === page.baseId) {
+    if (this.getBaseId() === page.getBaseId()) {
       throw new Error("A page cannot be the parent of itself");
     }
 
@@ -264,7 +278,7 @@ export default class extends EntityModel {
       return false;
     }
 
-    if (parentPage.baseId === page.baseId) {
+    if (parentPage.getBaseId() === page.getBaseId()) {
       return true;
     }
 
@@ -290,13 +304,13 @@ export default class extends EntityModel {
 
     if (unexpectedParentPageLinks.length > 0) {
       throw new Error(
-        `Critical: Page with entityId ${this.baseId} has more than one parent page`,
+        `Critical: Page with entityId ${this.getBaseId()} has more than one parent page`,
       );
     }
 
     if (!parentPageLink) {
       throw new Error(
-        `Page with entityId ${this.baseId} does not have a parent page`,
+        `Page with entityId ${this.getBaseId()} does not have a parent page`,
       );
     }
 
@@ -336,7 +350,7 @@ export default class extends EntityModel {
       // Check whether adding the parent page would create a cycle
       if (await parentPageModel.hasParentPage(graphApi, { page: this })) {
         throw new ApolloError(
-          `Could not set '${parentPageModel.baseId}' as parent of '${this.baseId}', this would create a cyclic dependency.`,
+          `Could not set '${parentPageModel.getBaseId()}' as parent of '${this.getBaseId()}', this would create a cyclic dependency.`,
           "CYCLIC_TREE",
         );
       }
@@ -351,7 +365,7 @@ export default class extends EntityModel {
 
     if (this.getIndex() !== newIndex) {
       const updatedPageEntityModel = await this.updateProperty(graphApi, {
-        propertyTypeBaseUri: SYSTEM_TYPES.propertyType.index.baseUri,
+        propertyTypeBaseUri: SYSTEM_TYPES.propertyType.index.getBaseUri(),
         value: newIndex,
         actorId,
       });
@@ -371,20 +385,20 @@ export default class extends EntityModel {
         {
           equal: [
             { path: ["leftEntity", "uuid"] },
-            { parameter: this.entityUuid },
+            { parameter: this.getEntityUuid() },
           ],
         },
         {
           equal: [
             { path: ["leftEntity", "ownedById"] },
-            { parameter: this.ownedById },
+            { parameter: this.getOwnedById() },
           ],
         },
         {
           equal: [
             { path: ["type", "versionedUri"] },
             {
-              parameter: SYSTEM_TYPES.linkEntityType.contains.schema.$id,
+              parameter: SYSTEM_TYPES.linkEntityType.contains.getSchema().$id,
             },
           ],
         },
@@ -444,7 +458,7 @@ export default class extends EntityModel {
         // if position is not specified and there are no blocks currently in the page, specify the index of the link is `0`
         ((await this.getBlocks(graphApi)).length === 0 ? 0 : undefined),
       // assume that link to block is owned by the same account as the page
-      ownedById: this.ownedById,
+      ownedById: this.getOwnedById(),
       actorId,
     });
   }
@@ -480,12 +494,13 @@ export default class extends EntityModel {
     }
 
     const link = contentLinks.find(
-      ({ linkMetadata }) => linkMetadata.leftOrder === currentPosition,
+      (linkEntityModel) =>
+        linkEntityModel.getLinkMetadata().leftOrder === currentPosition,
     );
 
     if (!link) {
       throw new Error(
-        `Critical: could not find contents link with index ${currentPosition} for page with entityId ${this.baseId}`,
+        `Critical: could not find contents link with index ${currentPosition} for page with entityId ${this.getBaseId()}`,
       );
     }
 
@@ -526,12 +541,13 @@ export default class extends EntityModel {
      */
 
     const linkEntityModel = contentLinkEntityModels.find(
-      ({ linkMetadata }) => linkMetadata.leftOrder === position,
+      (contentLinkEntityModel) =>
+        contentLinkEntityModel.getLinkMetadata().leftOrder === position,
     );
 
     if (!linkEntityModel) {
       throw new Error(
-        `Critical: could not find contents link with index ${position} for page with entity ID ${this.baseId}`,
+        `Critical: could not find contents link with index ${position} for page with entity ID ${this.getBaseId()}`,
       );
     }
 

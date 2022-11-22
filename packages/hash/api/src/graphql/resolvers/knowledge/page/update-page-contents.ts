@@ -140,18 +140,18 @@ export const updatePersistedPageContents: ResolverFn<
         await pageModel.insertBlock(graphApi, {
           block: insertedBlocks[insertCount]!,
           position: action.insertBlock.position,
-          actorId: userModel.entityUuid,
+          actorId: userModel.getEntityUuid(),
         });
         insertCount += 1;
       } else if (action.moveBlock) {
         await pageModel.moveBlock(graphApi, {
           ...action.moveBlock,
-          actorId: userModel.entityUuid,
+          actorId: userModel.getEntityUuid(),
         });
       } else if (action.removeBlock) {
         await pageModel.removeBlock(graphApi, {
           position: action.removeBlock.position,
-          actorId: userModel.entityUuid,
+          actorId: userModel.getEntityUuid(),
           allowRemovingFinal: actions
             .slice(i + 1)
             .some((actionToFollow) => actionToFollow.insertBlock),

@@ -136,7 +136,7 @@ export const handleCreateNewEntity = async (params: {
     placeholderResults.set(entityPlaceholderId, {
       entityId: (
         await createEntityWithPlaceholders(entityDefinition, entityOwnedById)
-      ).baseId,
+      ).getBaseId(),
     });
   } catch (error) {
     if (error instanceof UserInputError) {
@@ -186,7 +186,9 @@ export const handleInsertNewBlock = async (
       blockOwnedById,
     );
 
-    placeholderResults.set(entityPlaceholderId, { entityId: blockData.baseId });
+    placeholderResults.set(entityPlaceholderId, {
+      entityId: blockData.getBaseId(),
+    });
 
     let block: BlockModel;
 
@@ -208,9 +210,9 @@ export const handleInsertNewBlock = async (
     } else if (blockComponentId) {
       block = await BlockModel.createBlock(graphApi, {
         blockData,
-        ownedById: userModel.entityUuid,
+        ownedById: userModel.getEntityUuid(),
         componentId: blockComponentId,
-        actorId: userModel.entityUuid,
+        actorId: userModel.getEntityUuid(),
       });
     } else {
       throw new Error(
@@ -218,7 +220,7 @@ export const handleInsertNewBlock = async (
       );
     }
 
-    placeholderResults.set(blockPlaceholderId, { entityId: block.baseId });
+    placeholderResults.set(blockPlaceholderId, { entityId: block.getBaseId() });
 
     return block;
   } catch (error) {
@@ -265,7 +267,7 @@ export const handleSwapBlockData = async (
 
   await block.updateBlockDataEntity(graphApi, {
     newBlockDataEntity,
-    actorId: userModel.entityUuid,
+    actorId: userModel.getEntityUuid(),
   });
 };
 
@@ -297,6 +299,6 @@ export const handleUpdateEntity = async (
     updatedProperties: Object.entries(action.properties).map(
       ([key, value]) => ({ propertyTypeBaseUri: key, value }),
     ),
-    actorId: userModel.entityUuid,
+    actorId: userModel.getEntityUuid(),
   });
 };

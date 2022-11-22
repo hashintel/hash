@@ -110,7 +110,7 @@ export const splitVersionedUri = (
  *  https://app.asana.com/0/1200211978612931/1202923896339225/f
  */
 export const extractBaseUri = (versionedUri: string): string => {
-  return splitVersionedUri(versionedUri).getBaseUri();
+  return splitVersionedUri(versionedUri).baseUri;
 };
 
 export type PropertyTypeCreatorParams = {

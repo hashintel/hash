@@ -22,9 +22,9 @@ export const createEntityType: ResolverFn<
   const { ownedById, entityType } = params;
 
   const createdEntityTypeModel = await EntityTypeModel.create(graphApi, {
-    ownedById: ownedById ?? userModel.entityUuid,
+    ownedById: ownedById ?? userModel.getEntityUuid(),
     schema: entityType,
-    actorId: userModel.entityUuid,
+    actorId: userModel.getEntityUuid(),
   }).catch((err) => {
     throw new ApolloError(err, "CREATION_ERROR");
   });
@@ -128,7 +128,7 @@ export const updateEntityType: ResolverFn<
   const updatedEntityTypeModel = await entityTypeModel
     .update(graphApi, {
       schema: updatedEntityType,
-      actorId: userModel.entityUuid,
+      actorId: userModel.getEntityUuid(),
     })
     .catch((err: AxiosError) => {
       const msg =

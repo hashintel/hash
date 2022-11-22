@@ -45,7 +45,7 @@ export const createPersistedPage: ResolverFn<
     ownedById,
     title,
     prevIndex: prevIndex ?? undefined,
-    actorId: userModel.entityUuid,
+    actorId: userModel.getEntityUuid(),
   });
 
   return mapPageModelToGQL(pageModel);

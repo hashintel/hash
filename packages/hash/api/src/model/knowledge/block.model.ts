@@ -21,22 +21,19 @@ type BlockModelCreateParams = Omit<
  * @class {@link BlockModel}
  */
 export default class extends EntityModel {
-  static fromEntityModel(entity: EntityModel): BlockModel {
+  static fromEntityModel(entityModel: EntityModel): BlockModel {
     if (
-      entity.entityTypeModel.schema.$id !==
-      SYSTEM_TYPES.entityType.block.schema.$id
+      entityModel.entityTypeModel.getSchema().$id !==
+      SYSTEM_TYPES.entityType.block.getSchema().$id
     ) {
       throw new EntityTypeMismatchError(
-        entity.baseId,
-        SYSTEM_TYPES.entityType.block.schema.$id,
-        entity.entityTypeModel.schema.$id,
+        entityModel.getBaseId(),
+        SYSTEM_TYPES.entityType.block.getSchema().$id,
+        entityModel.entityTypeModel.getSchema().$id,
       );
     }
 
-    return new BlockModel({
-      entity: entity.entity,
-      entityTypeModel: entity.entityTypeModel,
-    });
+    return new BlockModel(entityModel);
   }
 
   /**
@@ -67,7 +64,7 @@ export default class extends EntityModel {
     const { componentId, blockData, ownedById, actorId } = params;
 
     const properties: PropertyObject = {
-      [SYSTEM_TYPES.propertyType.componentId.baseUri]: componentId,
+      [SYSTEM_TYPES.propertyType.componentId.getBaseUri()]: componentId,
     };
 
     const entityTypeModel = SYSTEM_TYPES.entityType.block;
@@ -93,8 +90,8 @@ export default class extends EntityModel {
    * Get the component id of the block.
    */
   getComponentId(): string {
-    return (this.properties as any)[
-      SYSTEM_TYPES.propertyType.componentId.baseUri
+    return (this.getProperties() as any)[
+      SYSTEM_TYPES.propertyType.componentId.getBaseUri()
     ];
   }
 
@@ -110,7 +107,7 @@ export default class extends EntityModel {
 
     if (!outgoingBlockDataLink) {
       throw new Error(
-        `Block with entityId ${this.baseId} does not have an outgoing blockData link`,
+        `Block with entityId ${this.getBaseId()} does not have an outgoing blockData link`,
       );
     }
 
@@ -151,16 +148,16 @@ export default class extends EntityModel {
 
     if (!outgoingBlockDataLink) {
       throw new Error(
-        `Block with entityId ${this.baseId} does not have an outgoing block data link`,
+        `Block with entityId ${this.getBaseId()} does not have an outgoing block data link`,
       );
     }
 
     if (
-      outgoingBlockDataLink.rightEntityModel.baseId ===
-      newBlockDataEntity.baseId
+      outgoingBlockDataLink.rightEntityModel.getBaseId() ===
+      newBlockDataEntity.getBaseId()
     ) {
       throw new Error(
-        `The block with entity id ${this.baseId} already has a linked block data entity with entity id ${newBlockDataEntity.baseId}`,
+        `The block with entity id ${this.getBaseId()} already has a linked block data entity with entity id ${newBlockDataEntity.getBaseId()}`,
       );
     }
 
@@ -169,7 +166,7 @@ export default class extends EntityModel {
     await this.createOutgoingLink(graphApi, {
       linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.blockData,
       rightEntityModel: newBlockDataEntity,
-      ownedById: this.ownedById,
+      ownedById: this.getOwnedById(),
       actorId,
     });
   }

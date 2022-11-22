@@ -47,14 +47,14 @@ describe("OrgMembership model class", () => {
     testOrgMembership = await OrgMembershipModel.createOrgMembership(graphApi, {
       responsibility: "test",
       org: testOrg,
-      actorId: testUser.entityUuid,
+      actorId: testUser.getEntityUuid(),
     });
 
     await testUser.createOutgoingLink(graphApi, {
       linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.hasMembership,
       rightEntityModel: testOrgMembership,
       ownedById: systemAccountId,
-      actorId: testUser.entityUuid,
+      actorId: testUser.getEntityUuid(),
     });
   });
 

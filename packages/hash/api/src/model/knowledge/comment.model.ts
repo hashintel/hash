@@ -23,22 +23,19 @@ type CommentModelCreateParams = Omit<
  * @class {@link CommentModel}
  */
 export default class extends EntityModel {
-  static fromEntityModel(entity: EntityModel): CommentModel {
+  static fromEntityModel(entityModel: EntityModel): CommentModel {
     if (
-      entity.entityTypeModel.schema.$id !==
-      SYSTEM_TYPES.entityType.comment.schema.$id
+      entityModel.entityTypeModel.getSchema().$id !==
+      SYSTEM_TYPES.entityType.comment.getSchema().$id
     ) {
       throw new EntityTypeMismatchError(
-        entity.baseId,
-        SYSTEM_TYPES.entityType.comment.schema.$id,
-        entity.entityTypeModel.schema.$id,
+        entityModel.getBaseId(),
+        SYSTEM_TYPES.entityType.comment.getSchema().$id,
+        entityModel.entityTypeModel.getSchema().$id,
       );
     }
 
-    return new CommentModel({
-      entity: entity.entity,
-      entityTypeModel: entity.entityTypeModel,
-    });
+    return new CommentModel(entityModel);
   }
 
   /**
@@ -81,7 +78,7 @@ export default class extends EntityModel {
     const textEntity = await EntityModel.create(graphApi, {
       ownedById,
       properties: {
-        [SYSTEM_TYPES.propertyType.tokens.baseUri]: tokens,
+        [SYSTEM_TYPES.propertyType.tokens.getBaseUri()]: tokens,
       },
       entityTypeModel: SYSTEM_TYPES.entityType.text,
       actorId,
@@ -126,16 +123,16 @@ export default class extends EntityModel {
   ): Promise<CommentModel> {
     const { actorId, tokens } = params;
 
-    if (actorId !== this.ownedById) {
+    if (actorId !== this.getOwnedById()) {
       throw new Error(
-        `Critical: account ${actorId} does not have permission to edit the comment with entityId ${this.baseId}`,
+        `Critical: account ${actorId} does not have permission to edit the comment with entityId ${this.getBaseId()}`,
       );
     }
 
     const textEntityModel = await this.getHasText(graphApi);
 
     await textEntityModel.updateProperty(graphApi, {
-      propertyTypeBaseUri: SYSTEM_TYPES.propertyType.tokens.baseUri,
+      propertyTypeBaseUri: SYSTEM_TYPES.propertyType.tokens.getBaseUri(),
       value: tokens,
       actorId,
     });
@@ -161,20 +158,21 @@ export default class extends EntityModel {
     // Throw error if the user trying to resolve the comment is not the comment's author
     // or the author of the block the comment is attached to
     if (
-      actorId !== this.ownedById &&
-      parentModel.entityTypeModel.schema.$id ===
-        SYSTEM_TYPES.entityType.block.schema.$id &&
-      actorId !== parentModel.ownedById
+      actorId !== this.getOwnedById() &&
+      parentModel.entityTypeModel.getSchema().$id ===
+        SYSTEM_TYPES.entityType.block.getSchema().$id &&
+      actorId !== parentModel.getOwnedById()
     ) {
       throw new Error(
-        `Critical: account ${actorId} does not have permission to resolve the comment with entityId ${this.baseId}`,
+        `Critical: account ${actorId} does not have permission to resolve the comment with entityId ${this.getBaseId()}`,
       );
     }
 
     await this.updateProperties(graphApi, {
       updatedProperties: [
         {
-          propertyTypeBaseUri: SYSTEM_TYPES.propertyType.resolvedAt.baseUri,
+          propertyTypeBaseUri:
+            SYSTEM_TYPES.propertyType.resolvedAt.getBaseUri(),
           value: new Date().toISOString(),
         },
       ],
@@ -198,16 +196,16 @@ export default class extends EntityModel {
     const { actorId } = params;
 
     // Throw error if the user trying to delete the comment is not the comment's author
-    if (actorId !== this.ownedById) {
+    if (actorId !== this.getOwnedById()) {
       throw new Error(
-        `Critical: account ${actorId} does not have permission to delete the comment with entityId ${this.baseId}`,
+        `Critical: account ${actorId} does not have permission to delete the comment with entityId ${this.getBaseId()}`,
       );
     }
 
     await this.updateProperties(graphApi, {
       updatedProperties: [
         {
-          propertyTypeBaseUri: SYSTEM_TYPES.propertyType.deletedAt.baseUri,
+          propertyTypeBaseUri: SYSTEM_TYPES.propertyType.deletedAt.getBaseUri(),
           value: new Date().toISOString(),
         },
       ],
@@ -221,8 +219,8 @@ export default class extends EntityModel {
    * Get the value of the "Resolved At" property of the comment.
    */
   getResolvedAt(): string {
-    return (this.properties as any)[
-      SYSTEM_TYPES.propertyType.resolvedAt.baseUri
+    return (this.getProperties() as any)[
+      SYSTEM_TYPES.propertyType.resolvedAt.getBaseUri()
     ];
   }
 
@@ -230,8 +228,8 @@ export default class extends EntityModel {
    * Get the value of the "Deleted At" property of the comment.
    */
   getDeletedAt(): string {
-    return (this.properties as any)[
-      SYSTEM_TYPES.propertyType.deletedAt.baseUri
+    return (this.getProperties() as any)[
+      SYSTEM_TYPES.propertyType.deletedAt.getBaseUri()
     ];
   }
 
@@ -247,13 +245,13 @@ export default class extends EntityModel {
 
     if (unexpectedHasTextLinks.length > 0) {
       throw new Error(
-        `Critical: Comment with entityId ${this.baseId} has more than one linked text entities`,
+        `Critical: Comment with entityId ${this.getBaseId()} has more than one linked text entities`,
       );
     }
 
     if (!hasTextLink) {
       throw new Error(
-        `Critical: Comment with entityId ${this.baseId} doesn't have any linked text entities`,
+        `Critical: Comment with entityId ${this.getBaseId()} doesn't have any linked text entities`,
       );
     }
 
@@ -272,13 +270,13 @@ export default class extends EntityModel {
 
     if (!parentLink) {
       throw new Error(
-        `Critical: comment with entityId ${this.baseId} has no linked parent entity`,
+        `Critical: comment with entityId ${this.getBaseId()} has no linked parent entity`,
       );
     }
 
     if (unexpectedParentLinks.length > 0) {
       throw new Error(
-        `Critical: Comment with entityId ${this.baseId} has more than one linked parent entity`,
+        `Critical: Comment with entityId ${this.getBaseId()} has more than one linked parent entity`,
       );
     }
 
@@ -297,13 +295,13 @@ export default class extends EntityModel {
 
     if (!authorLink) {
       throw new Error(
-        `Critical: comment with entityId ${this.baseId} has no linked author entity`,
+        `Critical: comment with entityId ${this.getBaseId()} has no linked author entity`,
       );
     }
 
     if (unexpectedAuthorLinks.length > 0) {
       throw new Error(
-        `Critical: Comment with entityId ${this.baseId} has more than one linked author entity`,
+        `Critical: Comment with entityId ${this.getBaseId()} has more than one linked author entity`,
       );
     }
 
