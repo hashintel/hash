@@ -170,6 +170,7 @@ export default class extends EntityModel {
    * Update an entity.
    *
    * @param params.properties - the properties object of the entity
+   * @param params.linkOrder {EntityLinkOrder} - the new orders to update for the link
    * @param params.actorId - the id of the account that is updating the entity
    */
   async update(

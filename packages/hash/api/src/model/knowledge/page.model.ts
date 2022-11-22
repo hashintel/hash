@@ -87,7 +87,7 @@ export default class extends EntityModel {
       ...(summary
         ? { [SYSTEM_TYPES.propertyType.summary.baseUri]: summary }
         : {}),
-      ...(index ? { [SYSTEM_TYPES.propertyType.index.baseUri]: index } : {}),
+      ...(index !== undefined ? { [SYSTEM_TYPES.propertyType.index.baseUri]: index } : {}),
     };
 
     const entityTypeModel = SYSTEM_TYPES.entityType.page;
