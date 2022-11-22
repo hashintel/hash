@@ -159,7 +159,7 @@ const ExampleEntityEditorPage: NextPageWithLayout = () => {
     }
   }, [loadingUser, router, kratosSession]);
 
-  return loadingUser || !authenticatedUser || loadingTypeSystem ? (
+  return !authenticatedUser || loadingTypeSystem ? (
     <Container sx={{ pt: 10 }}>Loading...</Container>
   ) : (
     <Container sx={{ pt: 10 }}>
