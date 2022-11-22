@@ -46,12 +46,12 @@ export default class {
     return this.entityType.schema as EntityType;
   }
 
-  get metadata(): OntologyElementMetadata {
-    return this.entityType.metadata;
-  }
-
   constructor({ entityType }: EntityTypeModelConstructorParams) {
     this.entityType = entityType;
+  }
+
+  getMetadata(): OntologyElementMetadata {
+    return this.entityType.metadata;
   }
 
   static fromEntityTypeWithMetadata(

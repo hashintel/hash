@@ -39,12 +39,12 @@ export default class {
     return this.propertyType.schema as PropertyType;
   }
 
-  get metadata(): OntologyElementMetadata {
-    return this.propertyType.metadata;
-  }
-
   constructor({ propertyType }: PropertyTypeModelConstructorParams) {
     this.propertyType = propertyType;
+  }
+
+  getMetadata(): OntologyElementMetadata {
+    return this.propertyType.metadata;
   }
 
   static fromPropertyTypeWithMetadata(

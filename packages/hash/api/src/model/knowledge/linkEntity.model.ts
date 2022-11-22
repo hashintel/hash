@@ -4,7 +4,7 @@ import {
   EntityStructuralQuery,
 } from "@hashintel/hash-graph-client";
 import {
-  Entity,
+  EntityWithMetadata,
   Subgraph,
   LinkEntityMetadata,
   EntityMetadata,
@@ -15,7 +15,7 @@ import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/
 import { EntityModel, EntityTypeModel, LinkEntityModel } from "../index";
 
 export type LinkModelConstructorParams = {
-  linkEntity: Entity;
+  linkEntity: EntityWithMetadata;
   linkEntityTypeModel: EntityTypeModel;
   leftEntityModel: EntityModel;
   rightEntityModel: EntityModel;
@@ -41,7 +41,7 @@ export default class extends EntityModel {
   rightEntityModel: EntityModel;
 
   get linkMetadata(): LinkEntityMetadata {
-    return this.entity.metadata.linkMetadata!;
+    return this.entity.getMetadata().linkMetadata!;
   }
 
   constructor({
@@ -57,7 +57,7 @@ export default class extends EntityModel {
 
   static async fromEntity(
     graphApi: GraphApi,
-    linkEntity: Entity,
+    linkEntity: EntityWithMetadata,
   ): Promise<LinkEntityModel> {
     if (!linkEntity.metadata.linkMetadata) {
       throw new Error(

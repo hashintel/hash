@@ -5,7 +5,7 @@ import {
   Filter,
 } from "@hashintel/hash-graph-client";
 import {
-  Entity,
+  EntityWithMetadata,
   Subgraph,
   EntityMetadata,
   PropertyObject,
@@ -24,7 +24,7 @@ import {
 import { exactlyOne, linkedTreeFlatten } from "../../util";
 
 export type EntityModelConstructorParams = {
-  entity: Entity;
+  entity: EntityWithMetadata;
   entityTypeModel: EntityTypeModel;
 };
 
@@ -40,16 +40,16 @@ export type EntityModelCreateParams = {
  * @class {@link EntityModel}
  */
 export default class {
-  protected entity: Entity;
+  protected entity: EntityWithMetadata;
 
   entityTypeModel: EntityTypeModel;
 
   get baseId(): string {
-    return this.metadata.editionId.baseId;
+    return this.getMetadata().editionId.baseId;
   }
 
   get version(): string {
-    return this.metadata.editionId.version;
+    return this.getMetadata().editionId.version;
   }
 
   get entityUuid(): string {
@@ -64,10 +64,6 @@ export default class {
     return ownedById;
   }
 
-  get metadata(): EntityMetadata {
-    return this.entity.metadata;
-  }
-
   get properties(): PropertyObject {
     return this.entity.properties;
   }
@@ -77,9 +73,13 @@ export default class {
     this.entityTypeModel = entityTypeModel;
   }
 
+  getMetadata(): EntityMetadata {
+    return this.entity.metadata;
+  }
+
   static async fromEntity(
     graphApi: GraphApi,
-    entity: Entity,
+    entity: EntityWithMetadata,
     cachedEntityTypeModels?: Map<string, EntityTypeModel>,
   ): Promise<EntityModel> {
     const {
@@ -131,7 +131,7 @@ export default class {
       actorId,
     });
 
-    const entity: Entity = {
+    const entity: EntityWithMetadata = {
       properties,
       metadata: metadata as EntityMetadata,
     };
@@ -336,7 +336,10 @@ export default class {
     const { entityId } = params;
     const { data: persistedEntity } = await graphApi.getEntity(entityId);
 
-    return await EntityModel.fromEntity(graphApi, persistedEntity as Entity);
+    return await EntityModel.fromEntity(
+      graphApi,
+      persistedEntity as EntityWithMetadata,
+    );
   }
 
   /**

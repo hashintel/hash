@@ -162,10 +162,10 @@ describe("Entity CRU", () => {
 
   let updatedEntityModel: EntityModel;
   it("can update an entity", async () => {
-    expect(createdEntityModel.metadata.provenance.createdById).toBe(
+    expect(createdEntityModel.getMetadata().provenance.createdById).toBe(
       testUser.entityUuid,
     );
-    expect(createdEntityModel.metadata.provenance.updatedById).toBe(
+    expect(createdEntityModel.getMetadata().provenance.updatedById).toBe(
       testUser.entityUuid,
     );
 
@@ -179,10 +179,10 @@ describe("Entity CRU", () => {
       })
       .catch((err) => Promise.reject(err.data));
 
-    expect(updatedEntityModel.metadata.provenance.createdById).toBe(
+    expect(updatedEntityModel.getMetadata().provenance.createdById).toBe(
       testUser.entityUuid,
     );
-    expect(updatedEntityModel.metadata.provenance.updatedById).toBe(
+    expect(updatedEntityModel.getMetadata().provenance.updatedById).toBe(
       testUser2.entityUuid,
     );
   });

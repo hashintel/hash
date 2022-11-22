@@ -34,12 +34,12 @@ export default class {
     return this.dataType.schema as DataType;
   }
 
-  get metadata(): OntologyElementMetadata {
-    return this.dataType.metadata;
-  }
-
   constructor({ dataType }: DataTypeModelConstructorArgs) {
     this.dataType = dataType;
+  }
+
+  getMetadata(): OntologyElementMetadata {
+    return this.dataType.metadata;
   }
 
   static fromDataTypeWithMetadata(
