@@ -14,6 +14,7 @@ import { useRemoteBlock } from "./useRemoteBlock";
 type RemoteBlockProps = {
   graphCallbacks: Omit<
     EmbedderGraphMessageCallbacks,
+    | "aggregateEntityTypes"
     | "getEntity"
     | "aggregateEntities"
     | "getEntityType"

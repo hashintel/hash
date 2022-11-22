@@ -29,7 +29,6 @@ import { fetchEmbedCode } from "./fetchEmbedCode";
 import { RemoteBlock } from "../RemoteBlock/RemoteBlock";
 import { useBlockLoadedContext } from "../../blocks/onBlockLoaded";
 import { useBlockProtocolAggregateEntities } from "../hooks/blockProtocolFunctions/knowledge/useBlockProtocolAggregateEntities";
-import { useBlockProtocolAggregateEntityTypes } from "../hooks/blockProtocolFunctions/useBlockProtocolAggregateEntityTypes";
 import { useBlockProtocolCreateEntity } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateEntity";
 import { useBlockProtocolCreateEntityType } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateEntityType";
 import { useBlockProtocolCreateLink } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateLink";
@@ -89,8 +88,6 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   // shouldSandbox,
 }) => {
   const { readonlyMode } = useReadonlyMode();
-  const { aggregateEntityTypes } =
-    useBlockProtocolAggregateEntityTypes(accountId);
   const { aggregateEntities } = useBlockProtocolAggregateEntities();
   const { createLinkedAggregation } =
     useBlockProtocolCreateLinkedAggregation(readonlyMode);
@@ -207,7 +204,6 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   ]);
 
   const functions = {
-    aggregateEntityTypes,
     aggregateEntities,
     createEntity,
     createEntityType,
