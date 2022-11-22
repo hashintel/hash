@@ -121,7 +121,6 @@ const useFreezeScrollWhileTransitioning = () => {
       // Adjust the whole page to compensate for the current offset caused by the
       // edit bar height
       docNode.style.setProperty("top", `${appliedOffset}px`);
-      console.log(appliedOffset);
     };
 
     const observer = new ResizeObserver(([size]) => {
@@ -139,40 +138,37 @@ const useFreezeScrollWhileTransitioning = () => {
      */
     const end = (evt?: TransitionEvent) => {
       if (!evt || isRelevant(evt)) {
-        console.log(window.getComputedStyle(node).height);
-        // applyOffset(window.getComputedStyle(node));
-        setTimeout(() => {
-          node.removeEventListener("transitionend", end);
-          node.removeEventListener("transitioncancel", end);
-          observer.unobserve(node);
+        applyOffset(parseInt(window.getComputedStyle(node).height, 10));
+        node.removeEventListener("transitionend", end);
+        node.removeEventListener("transitioncancel", end);
+        observer.unobserve(node);
 
-          // Before we start our calculations, remove the applied offset
-          docNode.style.removeProperty("top");
-          docNode.style.removeProperty("position");
+        // Before we start our calculations, remove the applied offset
+        docNode.style.removeProperty("top");
+        docNode.style.removeProperty("position");
 
-          // If the page isn't long enough to scroll to compensate for the removed
-          // offset, we want to apply some extra padding using min height
-          const { scrollTop, clientHeight, scrollHeight } = docNode;
-          const bottomPadding =
-            (scrollHeight - scrollTop - clientHeight + appliedOffset) * -1;
+        // If the page isn't long enough to scroll to compensate for the removed
+        // offset, we want to apply some extra padding using min height
+        const { scrollTop, clientHeight, scrollHeight } = docNode;
+        const bottomPadding =
+          (scrollHeight - scrollTop - clientHeight + appliedOffset) * -1;
 
-          if (bottomPadding > 0) {
-            docNode.style.setProperty(
-              "min-height",
-              `${Math.ceil(clientHeight - appliedOffset)}px`,
-            );
-          } else {
-            docNode.style.removeProperty("min-height");
-          }
+        if (bottomPadding > 0) {
+          docNode.style.setProperty(
+            "min-height",
+            `${Math.ceil(clientHeight - appliedOffset)}px`,
+          );
+        } else {
+          docNode.style.removeProperty("min-height");
+        }
 
-          // Now that the transition has finished, we want to adjust the scroll to
-          // compensate for the offset we've just removed
-          docNode.style.setProperty("scroll-behavior", "auto");
-          docNode.scrollTo({
-            top: scrollTop - appliedOffset,
-          });
-          docNode.style.removeProperty("scroll-behavior");
-        }, 0);
+        // Now that the transition has finished, we want to adjust the scroll to
+        // compensate for the offset we've just removed
+        docNode.style.setProperty("scroll-behavior", "auto");
+        docNode.scrollTo({
+          top: scrollTop - appliedOffset,
+        });
+        docNode.style.removeProperty("scroll-behavior");
       }
     };
 
@@ -227,48 +223,44 @@ export const EditBar = ({
   const collapseIn = currentVersion === 0 || isDirty;
 
   return (
-    <Box position="relative" overflow="visible">
-      <Box sx={{ position: "absolute", bottom: 0, width: "100%" }}>
-        <Collapse in={collapseIn} ref={ref}>
-          <Box
-            sx={(theme) => ({
-              height: 66,
-              backgroundColor: theme.palette.blue[70],
-              color: theme.palette.white,
-              display: "flex",
-              alignItems: "center",
-            })}
-          >
-            {frozenVersion === 0 ? (
-              <EditBarContents
-                icon={<FontAwesomeIcon icon={faSmile} sx={{ fontSize: 14 }} />}
-                title="Currently editing"
-                label="- this type has not yet been created"
-                discardButtonProps={{
-                  children: "Discard this type",
-                  ...discardButtonProps,
-                }}
-                confirmButtonProps={{
-                  children: "Create",
-                }}
-              />
-            ) : (
-              <EditBarContents
-                icon={<PencilSimpleLine />}
-                title="Currently editing"
-                label={`Version ${frozenVersion} -> ${frozenVersion + 1}`}
-                discardButtonProps={{
-                  children: "Discard changes",
-                  ...discardButtonProps,
-                }}
-                confirmButtonProps={{
-                  children: "Publish update",
-                }}
-              />
-            )}
-          </Box>
-        </Collapse>
+    <Collapse in={collapseIn} ref={ref}>
+      <Box
+        sx={(theme) => ({
+          height: 66,
+          backgroundColor: theme.palette.blue[70],
+          color: theme.palette.white,
+          display: "flex",
+          alignItems: "center",
+        })}
+      >
+        {frozenVersion === 0 ? (
+          <EditBarContents
+            icon={<FontAwesomeIcon icon={faSmile} sx={{ fontSize: 14 }} />}
+            title="Currently editing"
+            label="- this type has not yet been created"
+            discardButtonProps={{
+              children: "Discard this type",
+              ...discardButtonProps,
+            }}
+            confirmButtonProps={{
+              children: "Create",
+            }}
+          />
+        ) : (
+          <EditBarContents
+            icon={<PencilSimpleLine />}
+            title="Currently editing"
+            label={`Version ${frozenVersion} -> ${frozenVersion + 1}`}
+            discardButtonProps={{
+              children: "Discard changes",
+              ...discardButtonProps,
+            }}
+            confirmButtonProps={{
+              children: "Publish update",
+            }}
+          />
+        )}
       </Box>
-    </Box>
+    </Collapse>
   );
 };
