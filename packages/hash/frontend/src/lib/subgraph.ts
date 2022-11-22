@@ -222,34 +222,6 @@ export const mustGetEntity = (params: {
 };
 
 /**
- * Gets the outgoing links of an entity.
- *
- * @param params.subgraph
- * @param params.entityId - the entity id of the source entity.
- * @param params.linkTypeId (optional) - the id of the link type
- *
- * @todo - version is required to identify a specific instance of an entity
- *   https://app.asana.com/0/1202805690238892/1203214689883091/f
- */
-export const getOutgoingLinksOfEntity = (params: {
-  entityId: string;
-  subgraph: Subgraph;
-  linkTypeId?: string;
-}): LinkVertex["inner"][] => {
-  const { entityId, subgraph, linkTypeId } = params;
-
-  const outgoingLinks = subgraph.edges[entityId]!.filter(
-    ({ edgeKind }) => edgeKind === "HAS_LINK",
-  ).map(
-    ({ destination }) => (subgraph.vertices[destination] as LinkVertex).inner,
-  );
-
-  return linkTypeId
-    ? outgoingLinks.filter(({ inner }) => inner.linkTypeId === linkTypeId)
-    : outgoingLinks;
-};
-
-/**
  * Gets the incoming links of an entity.
  *
  * @param params.subgraph
