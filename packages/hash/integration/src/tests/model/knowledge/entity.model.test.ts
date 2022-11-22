@@ -213,40 +213,38 @@ describe("Entity CRU", () => {
     );
   });
 
-  /**
-   * @todo: bring back test when `EntityModel.createEntityWithLinks` is fixed
-   */
-  // it("can create entity with linked entities from an entity definition", async () => {
-  //   const aliceEntityModel = await EntityModel.createEntityWithLinks(graphApi, {
-  //     ownedById: testUser.entityUuid,
-  //     // First create a new entity given the following definition
-  //     entityTypeId: entityTypeModel.schema.$id,
-  //     properties: {
-  //       [namePropertyTypeModel.baseUri]: "Alice",
-  //       [favoriteBookPropertyTypeModel.baseUri]: "some text",
-  //     },
-  //     linkedEntities: [
-  //       {
-  //         // Then create an entity + link
-  //         destinationAccountId: testUser.entityId,
-  //         linkTypeId: linkTypeFriend.schema.$id,
-  //         entity: {
-  //           // The "new" entity is in fact just an existing entity, so only a link will be created.
-  //           existingEntityId: {
-  //             entityId: updatedEntityModel.entityId,
-  //             ownedById: updatedEntityModel.ownedById,
-  //           },
-  //         },
-  //       },
-  //     ],
-  //     actorId: testUser.entityId,
-  //   });
+  it("can create entity with linked entities from an entity definition", async () => {
+    const aliceEntityModel = await EntityModel.createEntityWithLinks(graphApi, {
+      ownedById: testUser.entityUuid,
+      // First create a new entity given the following definition
+      entityTypeId: entityTypeModel.schema.$id,
+      properties: {
+        [namePropertyTypeModel.baseUri]: "Alice",
+        [favoriteBookPropertyTypeModel.baseUri]: "some text",
+      },
+      linkedEntities: [
+        {
+          // Then create an entity + link
+          destinationAccountId: testUser.baseId,
+          linkEntityTypeId: linkEntityTypeFriendModel.schema.$id,
+          entity: {
+            // The "new" entity is in fact just an existing entity, so only a link will be created.
+            existingEntityId: updatedEntityModel.baseId,
+          },
+        },
+      ],
+      actorId: testUser.entityUuid,
+    });
 
-  //   const linkedEntity = (
-  //     await aliceEntityModel.getOutgoingLinks(graphApi)
-  //   ).map((linkModel) => linkModel)[0]!;
+    const linkEntityModel = (
+      await aliceEntityModel.getOutgoingLinks(graphApi)
+    ).map((outgoingLinkEntityModel) => outgoingLinkEntityModel)[0]!;
 
-  //   expect(linkedEntity.targetEntityModel).toEqual(updatedEntityModel);
-  //   expect(linkedEntity.linkTypeModel).toEqual(linkTypeFriend);
-  // });
+    expect(linkEntityModel.rightEntityModel.entity).toEqual(
+      updatedEntityModel.entity,
+    );
+    expect(linkEntityModel.metadata.entityTypeId).toEqual(
+      linkEntityTypeFriendModel.entityType.schema.$id,
+    );
+  });
 });
