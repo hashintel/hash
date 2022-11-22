@@ -8,7 +8,6 @@ import {
   Popper,
   TableCell,
   Typography,
-  useTheme,
 } from "@mui/material";
 import { useState } from "react";
 import { Controller, useFormContext, useWatch } from "react-hook-form";
@@ -34,7 +33,6 @@ export const MultipleValuesCell = ({
 
   const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
   const [multipleValuesMenuOpen, setMultipleValuesMenuOpen] = useState(false);
-  const { transitions } = useTheme();
 
   const [array, minValue, maxValue] = useWatch({
     control,
@@ -81,7 +79,7 @@ export const MultipleValuesCell = ({
             setMultipleValuesMenuOpen(true);
           }
         }}
-        sx={({ palette }) => ({
+        sx={({ palette, transitions }) => ({
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
@@ -95,7 +93,7 @@ export const MultipleValuesCell = ({
         })}
       >
         <Box
-          sx={({ palette }) => ({
+          sx={({ palette, transitions }) => ({
             display: "inline-flex",
             borderRadius: "4px 30px 30px 4px",
             backgroundColor: "transparent",
