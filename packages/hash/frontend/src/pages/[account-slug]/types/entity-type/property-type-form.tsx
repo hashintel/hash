@@ -95,7 +95,7 @@ export const PropertyTypeForm = ({
   const routeNamespace = useRouteNamespace();
 
   const { createPropertyType } = useBlockProtocolCreatePropertyType(
-    routeNamespace?.id ?? "",
+    routeNamespace?.accountId ?? "",
   );
   const { getPropertyType } = useBlockProtocolGetPropertyType();
 

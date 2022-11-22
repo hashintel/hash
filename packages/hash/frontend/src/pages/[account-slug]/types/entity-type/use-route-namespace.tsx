@@ -1,8 +1,12 @@
 import { useRouter } from "next/router";
 import { useMemo } from "react";
+import { extractEntityUuidFromEntityId } from "@hashintel/hash-subgraph";
 import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
 
-export const useRouteNamespace = () => {
+export const useRouteNamespace = (): {
+  accountId: string;
+  shortname?: string;
+} | undefined => {
   const { authenticatedUser } = useAuthenticatedUser();
   const router = useRouter();
 
@@ -22,7 +26,9 @@ export const useRouteNamespace = () => {
 
       if (entity) {
         return {
-          id: entity.entityEditionId.baseId,
+          accountId: extractEntityUuidFromEntityId(
+            entity.entityEditionId.baseId,
+          ),
           shortname: entity.shortname,
         };
       }
