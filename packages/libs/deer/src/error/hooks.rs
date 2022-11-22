@@ -11,7 +11,6 @@ use core::{
     cell::Cell,
     fmt,
     fmt::{Display, Formatter},
-    ops::DerefMut,
     sync::atomic::{AtomicBool, Ordering},
 };
 
@@ -117,7 +116,7 @@ fn register_inner<'a, E: Error>(
 /// [A, B, E]
 /// [A, C, F]
 /// ```
-fn split_report(report: &Report<impl Context>) -> Vec<Vec<&Frame>> {
+fn split_report(report: &Report<impl Context>) -> impl IntoIterator<Item = Vec<&Frame>> {
     fn rsplit(mut next: &Frame) -> Vec<VecDeque<&Frame>> {
         let mut head = VecDeque::new();
 
@@ -169,8 +168,7 @@ fn split_report(report: &Report<impl Context>) -> Vec<Vec<&Frame>> {
         .current_frames()
         .iter()
         .flat_map(rsplit)
-        .map(core::convert::Into::into)
-        .collect()
+        .map(Into::into)
 }
 
 type HookFn = for<'a> fn(&[&'a Frame]) -> Option<Box<dyn erased_serde::Serialize + 'a>>;
@@ -261,7 +259,10 @@ impl Hooks {
     /// [A, B (Error)]
     /// [A, B, C, D (Error)]
     /// ```
-    fn divide_frames<'a>(&self, frames: &[Vec<&'a Frame>]) -> Vec<Vec<&'a Frame>> {
+    fn divide_frames<'a>(
+        &self,
+        frames: impl IntoIterator<Item = Vec<&'a Frame>>,
+    ) -> impl IntoIterator<Item = Vec<&'a Frame>> {
         let ids: BTreeSet<_> = {
             #[cfg(feature = "std")]
             let inner = self.inner.read().expect("should not be poisoned");
@@ -270,31 +271,29 @@ impl Hooks {
             inner.iter().map(|hook| hook.id).collect()
         };
 
-        frames
-            .iter()
-            .flat_map(|path| {
-                let mut div = vec![];
-                let mut walked = vec![];
+        frames.into_iter().flat_map(move |path| {
+            let mut div = vec![];
+            let mut walked = vec![];
 
-                for frame in path {
-                    walked.push(*frame);
+            for frame in path {
+                walked.push(frame);
 
-                    if ids.contains(&Frame::type_id(frame)) {
-                        div.push(walked.clone());
-                    }
+                if ids.contains(&Frame::type_id(frame)) {
+                    div.push(walked.clone());
                 }
+            }
 
-                div
-            })
-            .collect()
+            div
+        })
     }
 
-    pub(crate) fn handle<'a>(
+    pub(crate) fn serialize_report<S: Serializer>(
         &self,
-        report: &'a Report<impl Context>,
-    ) -> Vec<Box<dyn erased_serde::Serialize + 'a>> {
+        report: &Report<impl Context>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error> {
         let frames = split_report(report);
-        let frames = self.divide_frames(&frames);
+        let frames = self.divide_frames(frames);
 
         let hooks: BTreeMap<_, _> = {
             #[cfg(feature = "std")]
@@ -304,17 +303,14 @@ impl Hooks {
             inner.iter().map(|hook| (hook.id, hook.hook)).collect()
         };
 
-        frames
-            .iter()
-            .filter_map(|stack| {
-                let last = stack.last()?;
-                let type_id = Frame::type_id(last);
+        serializer.collect_seq(frames.into_iter().filter_map(|stack| {
+            let last = stack.last()?;
+            let type_id = Frame::type_id(last);
 
-                let hook: HookFn = *hooks.get(&type_id)?;
+            let hook: HookFn = *hooks.get(&type_id)?;
 
-                hook(stack.as_slice())
-            })
-            .collect()
+            hook(stack.as_slice())
+        }))
     }
 }
 
@@ -331,4 +327,15 @@ pub use register;
 
 pub fn register_hooks(hooks: &[Hook]) {
     HOOKS.push(hooks);
+}
+
+struct Handle<C: Context>(Report<C>);
+
+impl<C: Context> Serialize for Handle<C> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        HOOKS.serialize_report(&self.0, serializer)
+    }
 }
