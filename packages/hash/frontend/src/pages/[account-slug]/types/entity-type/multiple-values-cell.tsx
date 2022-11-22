@@ -212,13 +212,12 @@ export const MultipleValuesCell = ({
             >
               <Fade {...TransitionProps}>
                 <Box
-                  sx={({ palette }) => ({
+                  sx={({ palette, boxShadows }) => ({
                     border: 1,
                     p: 1.5,
                     background: palette.white,
                     borderColor: palette.gray[30],
-                    boxShadow:
-                      "0px 11px 30px rgba(61, 78, 133, 0.04), 0px 7.12963px 18.37px rgba(61, 78, 133, 0.05), 0px 4.23704px 8.1px rgba(61, 78, 133, 0.06), 0px 0.203704px 0.62963px rgba(61, 78, 133, 0.07)",
+                    boxShadow: boxShadows.md,
                     borderBottomLeftRadius: 4,
                     borderBottomRightRadius: 4,
                     userSelect: "none",
