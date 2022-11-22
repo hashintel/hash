@@ -1,4 +1,4 @@
-import { PropertyType } from "@blockprotocol/type-system-web";
+import { PropertyType, PropertyValues } from "@blockprotocol/type-system-web";
 import { Button, ButtonProps } from "@hashintel/hash-design-system/button";
 import { Chip } from "@hashintel/hash-design-system/chip";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
@@ -118,11 +118,10 @@ export const PropertyTypeForm = ({
         propertyType: {
           oneOf: data.expectedValues.map((value) => ({
             $ref: value.dataTypeId,
-          })),
+          })) as [PropertyValues, ...PropertyValues[]],
           description: data.description,
           title: data.name,
           kind: "propertyType",
-          pluralTitle: data.name,
         },
       },
     });
@@ -134,7 +133,7 @@ export const PropertyTypeForm = ({
 
     await refetchPropertyTypes?.();
 
-    onCreatePropertyType(res.data.propertyType);
+    onCreatePropertyType(res.data.schema);
   });
 
   /**
@@ -181,7 +180,7 @@ export const PropertyTypeForm = ({
                 generatePropertyTypeBaseUriForUser(value),
               );
 
-              const res = await getPropertyType({ data: { propertyTypeId } });
+              const res = await getPropertyType({ data: propertyTypeId });
 
               const exists =
                 !res.data ||
