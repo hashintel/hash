@@ -4,7 +4,7 @@ import {
   Item,
 } from "@glideapps/glide-data-grid";
 import { useScrollLock } from "@hashintel/hash-design-system";
-import { PropsWithChildren } from "react";
+import { MutableRefObject, PropsWithChildren } from "react";
 import { InteractableManager } from "./interactable-manager";
 
 const ScrollLockWrapper = ({ children }: PropsWithChildren) => {
@@ -24,19 +24,20 @@ const ScrollLockWrapper = ({ children }: PropsWithChildren) => {
  */
 export const overrideCustomRenderers = (
   customRenderers: DataEditorProps["customRenderers"],
-  tableId: string,
+  tableIdRef: MutableRefObject<string>,
 ): DataEditorProps["customRenderers"] => {
   return customRenderers?.map(
     ({ draw, provideEditor, onClick, ...restFields }) => {
       return {
         ...restFields,
-        draw: (args, cell) => draw({ ...args, tableId }, cell),
+        draw: (args, cell) =>
+          draw({ ...args, tableId: tableIdRef.current }, cell),
         onClick: (args) => {
           /** @todo investigate why `args` don't have `location` in it's type  */
           const [col, row] = (args as unknown as { location: Item }).location;
 
           const wasClickHandledByManager = InteractableManager.handleClick(
-            `${tableId}-${col}-${row}`,
+            `${tableIdRef.current}-${col}-${row}`,
             args,
           );
 

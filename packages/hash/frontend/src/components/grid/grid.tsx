@@ -164,7 +164,7 @@ export const Grid = <T extends RowData>({
   };
 
   const overriddenCustomRenderers = useMemo(
-    () => overrideCustomRenderers(customRenderers, tableIdRef.current),
+    () => overrideCustomRenderers(customRenderers, tableIdRef),
     [customRenderers],
   );
 

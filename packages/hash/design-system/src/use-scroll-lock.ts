@@ -31,6 +31,11 @@ const useLastScrollbarSize = () => {
   return lastScrollbarSize;
 };
 
+const removeBodyStyles = () => {
+  document.body.style.removeProperty("overflow");
+  document.body.style.removeProperty("padding-right");
+};
+
 /**
  * This function does the same thing as MUI's scroll-lock mechanism, but in a hook.
  * So we can use the same scroll-lock at custom components
@@ -39,12 +44,13 @@ export const useScrollLock = (active: boolean) => {
   const scrollbarSize = useLastScrollbarSize();
 
   useLayoutEffect(() => {
-    document.body.style.cssText =
-      active && scrollbarSize
-        ? `padding-right: ${scrollbarSize}px; overflow: hidden;`
-        : "";
-    return () => {
-      document.body.style.cssText = "";
-    };
+    if (active && scrollbarSize) {
+      document.body.style.setProperty("padding-right", `${scrollbarSize}px`);
+      document.body.style.setProperty("overflow", `hidden`);
+    } else {
+      removeBodyStyles();
+    }
+
+    return () => removeBodyStyles();
   }, [active, scrollbarSize]);
 };
