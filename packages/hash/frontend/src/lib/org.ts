@@ -24,7 +24,7 @@ export const constructMinimalOrg = (params: {
     getEntityByEditionId(subgraph, orgEntityEditionId) ?? {};
   if (!properties || !metadata) {
     throw new Error(
-      `Could not find entity with ID ${orgEntityEditionId} in subgraph`,
+      `Could not find entity edition with ID ${orgEntityEditionId} in subgraph`,
     );
   }
 
