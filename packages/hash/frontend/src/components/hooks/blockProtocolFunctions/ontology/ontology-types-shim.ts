@@ -17,7 +17,12 @@ import {
   EntityType,
   VersionedUri,
 } from "@blockprotocol/type-system-web";
-import { Subgraph } from "../../../../lib/subgraph";
+import {
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+  Subgraph,
+  SubgraphRootTypes,
+} from "@hashintel/hash-subgraph";
 
 export type OntologyCallbacks = {
   aggregateDataTypes: AggregateDataTypesMessageCallback;
@@ -32,44 +37,22 @@ export type OntologyCallbacks = {
   updateEntityType: UpdateEntityTypeMessageCallback;
 };
 
-/* Shared types */
-
-/**
- * Create Response object from the name and type of an ontology type kind.
- * This exists to reduce repetition in the types.
- *
- * For example turning
- *   Response<"dataType", DataType>
- * into
- *   { dataTypeId: string; dataType: DataType }
- */
-type Response<N extends string, T> = {
-  [_ in `${N}Id`]: string;
-} & { [_ in N]: T };
-
-export type AggregateResult<T> = {
-  results: T[];
-};
-
 /* Data type CRU */
-export type AggregateDataTypesRequest = {};
 export type AggregateDataTypesMessageCallback = MessageCallback<
-  AggregateDataTypesRequest,
+  {},
   null,
-  Subgraph,
+  Subgraph<SubgraphRootTypes["dataType"]>,
   ReadOrModifyResourceError
 >;
 
 export type GetDataTypeMessageCallback = MessageCallback<
-  { dataTypeId: VersionedUri },
+  VersionedUri,
   null,
-  Subgraph,
+  Subgraph<SubgraphRootTypes["dataType"]>,
   ReadOrModifyResourceError
 >;
 
 /* Property type CRU */
-
-export type PropertyTypeResponse = Response<"propertyType", PropertyType>;
 
 export type CreatePropertyTypeRequest = {
   propertyType: Omit<PropertyType, "$id">;
@@ -77,39 +60,36 @@ export type CreatePropertyTypeRequest = {
 export type CreatePropertyTypeMessageCallback = MessageCallback<
   CreatePropertyTypeRequest,
   null,
-  PropertyTypeResponse,
+  PropertyTypeWithMetadata,
   CreateResourceError
 >;
 
-export type AggregatePropertyTypesRequest = {};
 export type AggregatePropertyTypesMessageCallback = MessageCallback<
-  AggregatePropertyTypesRequest,
+  {},
   null,
-  Subgraph,
+  Subgraph<SubgraphRootTypes["propertyType"]>,
   ReadOrModifyResourceError
 >;
 
 export type GetPropertyTypeMessageCallback = MessageCallback<
-  { propertyTypeId: VersionedUri },
+  VersionedUri,
   null,
-  Subgraph,
+  Subgraph<SubgraphRootTypes["propertyType"]>,
   ReadOrModifyResourceError
 >;
 
 export type UpdatePropertyTypeRequest = {
-  propertyTypeId: string;
+  propertyTypeId: VersionedUri;
   propertyType: Omit<PropertyType, "$id">;
 };
 export type UpdatePropertyTypeMessageCallback = MessageCallback<
   UpdatePropertyTypeRequest,
   null,
-  PropertyTypeResponse,
+  PropertyTypeWithMetadata,
   ReadOrModifyResourceError
 >;
 
 /* Entity type CRU */
-
-export type EntityTypeResponse = Response<"entityType", EntityType>;
 
 export type EntityTypeRequest = {
   entityType: Omit<EntityType, "$id">;
@@ -117,33 +97,31 @@ export type EntityTypeRequest = {
 export type CreateEntityTypeMessageCallback = MessageCallback<
   EntityTypeRequest,
   null,
-  EntityTypeResponse,
+  EntityTypeWithMetadata,
   CreateResourceError
 >;
 
-export type AggregateEntityTypesRequest = {};
 export type AggregateEntityTypesMessageCallback = MessageCallback<
-  AggregateEntityTypesRequest,
+  {},
   null,
-  Subgraph,
+  Subgraph<SubgraphRootTypes["entityType"]>,
   ReadOrModifyResourceError
 >;
 
-export type GetEntityTypeRequest = Pick<EntityTypeResponse, "entityTypeId">;
 export type GetEntityTypeMessageCallback = MessageCallback<
-  GetEntityTypeRequest,
+  VersionedUri,
   null,
-  Subgraph,
+  Subgraph<SubgraphRootTypes["entityType"]>,
   ReadOrModifyResourceError
 >;
 
 export type UpdateEntityTypeRequest = {
-  entityTypeId: string;
+  entityTypeId: VersionedUri;
   entityType: Omit<EntityType, "$id">;
 };
 export type UpdateEntityTypeMessageCallback = MessageCallback<
   UpdateEntityTypeRequest,
   null,
-  EntityTypeResponse,
+  EntityTypeWithMetadata,
   ReadOrModifyResourceError
 >;
