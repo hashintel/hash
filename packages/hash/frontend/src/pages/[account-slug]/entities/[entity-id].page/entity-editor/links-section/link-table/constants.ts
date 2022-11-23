@@ -3,7 +3,7 @@ import { LinkColumn, LinkColumnKey } from "./types";
 export const linkGridColumns: LinkColumn[] = [
   {
     title: "Link Type",
-    id: "type",
+    id: "linkEntityTypeTitle",
     width: 200,
   },
   {
@@ -13,7 +13,7 @@ export const linkGridColumns: LinkColumn[] = [
   },
   {
     title: "Relationship",
-    id: "relationShip",
+    id: "relationship",
     grow: 1,
     width: 200,
   },
@@ -25,8 +25,8 @@ export const linkGridColumns: LinkColumn[] = [
 ];
 
 export const linkGridIndexes: LinkColumnKey[] = [
-  "type",
+  "linkEntityTypeTitle",
   "linkedWith",
-  "relationShip",
+  "relationship",
   "expectedEntityType",
 ];

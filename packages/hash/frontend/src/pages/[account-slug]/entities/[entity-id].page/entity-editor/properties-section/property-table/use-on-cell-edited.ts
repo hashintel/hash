@@ -5,6 +5,7 @@ import {
 } from "@glideapps/glide-data-grid";
 import { useCallback } from "react";
 import { cloneDeep, set } from "lodash";
+import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { useSnackbar } from "../../../../../../../components/hooks/useSnackbar";
 import { useEntityEditor } from "../../entity-editor-context";
 import { useBlockProtocolUpdateEntity } from "../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolUpdateEntity";
@@ -17,16 +18,16 @@ import { ValueCell } from "./cells/value-cell/types";
  */
 export const useOnCellEdited = (rowData: PropertyRow[]) => {
   const snackbar = useSnackbar();
-  const { rootEntityAndSubgraph, setEntity } = useEntityEditor();
+  const { entitySubgraph, setEntity } = useEntityEditor();
   const { updateEntity } = useBlockProtocolUpdateEntity();
 
   const onCellEdited = useCallback(
     async ([col, row]: Item, newValue: EditableGridCell) => {
-      if (!rootEntityAndSubgraph || newValue.kind !== GridCellKind.Custom) {
+      if (!entitySubgraph || newValue.kind !== GridCellKind.Custom) {
         return;
       }
 
-      const entity = rootEntityAndSubgraph.root;
+      const entity = getRoots(entitySubgraph)[0]!;
 
       const valueCell = newValue as ValueCell;
 
@@ -66,7 +67,7 @@ export const useOnCellEdited = (rowData: PropertyRow[]) => {
       try {
         await updateEntity({
           data: {
-            entityId: entity.entityId,
+            entityId: entity.metadata.editionId.baseId,
             updatedProperties,
           },
         });
@@ -76,7 +77,7 @@ export const useOnCellEdited = (rowData: PropertyRow[]) => {
         snackbar.error(`Failed to update "${property.title}"`);
       }
     },
-    [rowData, rootEntityAndSubgraph, setEntity, updateEntity, snackbar],
+    [rowData, entitySubgraph, setEntity, updateEntity, snackbar],
   );
 
   return onCellEdited;

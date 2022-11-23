@@ -1,23 +1,26 @@
+import {
+  EntityWithMetadata,
+  Subgraph,
+  SubgraphRootTypes,
+} from "@hashintel/hash-subgraph";
 import { EntityEditorContextProvider } from "./entity-editor/entity-editor-context";
 import { LinksSection } from "./entity-editor/links-section";
 import { PeersSection } from "./entity-editor/peers-section";
 import { PropertiesSection } from "./entity-editor/properties-section";
 import { TypesSection } from "./entity-editor/types-section";
-import { RootEntityAndSubgraph } from "../../../../lib/subgraph";
-import { Entity } from "../../../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
 
 export interface EntityEditorProps {
-  rootEntityAndSubgraph: RootEntityAndSubgraph | undefined;
-  setEntity: (entity: Entity | undefined) => void;
+  entitySubgraph: Subgraph<SubgraphRootTypes["entity"]> | undefined;
+  setEntity: (entity: EntityWithMetadata | undefined) => void;
 }
 
 export const EntityEditor = ({
-  rootEntityAndSubgraph,
+  entitySubgraph,
   setEntity,
 }: EntityEditorProps) => {
   return (
     <EntityEditorContextProvider
-      rootEntityAndSubgraph={rootEntityAndSubgraph}
+      entitySubgraph={entitySubgraph}
       setEntity={setEntity}
     >
       <TypesSection />

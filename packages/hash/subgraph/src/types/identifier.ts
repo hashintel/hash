@@ -8,16 +8,23 @@ import { VersionedUri as TVersionedUri } from "@blockprotocol/type-system-web";
 
 export type VersionedUri = TVersionedUri;
 
-// ${AccountId}%${EntityUuid}`
+// `${AccountId}%${EntityUuid}`
 export type EntityId = `${string}%${string}`;
 
-export function extractOwnedByIdFromEntityId(entityId: EntityId): string {
-  return entityId.split("%")[0]!;
-}
+export const entityIdFromOwnedByIdAndEntityUuid = (
+  ownedById: string,
+  entityUuid: string,
+): EntityId => {
+  return `${ownedById}%${entityUuid}`;
+};
 
-export function extractEntityUuidFromEntityId(entityId: EntityId): string {
+export const extractOwnedByIdFromEntityId = (entityId: EntityId): string => {
+  return entityId.split("%")[0]!;
+};
+
+export const extractEntityUuidFromEntityId = (entityId: EntityId): string => {
   return entityId.split("%")[1]!;
-}
+};
 
 /** @todo - consider Type Branding this */
 export type Timestamp = string;

@@ -1,7 +1,8 @@
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { Box, Typography } from "@mui/material";
-import { getPersistedEntityType } from "../../../../../lib/subgraph";
+import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import { WhiteCard } from "../../../shared/white-card";
 import { useEntityEditor } from "./entity-editor-context";
 import { SectionWrapper } from "../../../shared/section-wrapper";
@@ -34,19 +35,19 @@ const TypeCard = ({ url, title }: TypeCardProps) => {
 };
 
 export const TypesSection = () => {
-  const { rootEntityAndSubgraph } = useEntityEditor();
+  const { entitySubgraph } = useEntityEditor();
 
-  if (!rootEntityAndSubgraph) {
+  if (!entitySubgraph) {
     return null;
   }
 
-  const entity = rootEntityAndSubgraph.root;
+  const entity = getRoots(entitySubgraph)[0]!;
 
-  const entityTypeTitle = getPersistedEntityType(
-    rootEntityAndSubgraph.subgraph,
-    entity.entityTypeId,
-  )!.inner.title;
-  const entityTypeUrl = entity.entityTypeId.replace(/v\/\d+/, "");
+  const entityTypeTitle = getEntityTypeById(
+    entitySubgraph,
+    entity.metadata.entityTypeId,
+  )!.schema.title;
+  const entityTypeUrl = entity.metadata.entityTypeId.replace(/v\/\d+/, "");
 
   return (
     <SectionWrapper

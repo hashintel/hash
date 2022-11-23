@@ -78,7 +78,7 @@ const Page: NextPageWithLayout = () => {
 
   // @todo how to handle remote types
   const isDraft = !!router.query.draft;
-  const namespace = useRouteNamespace();
+  const { loading: loadingNamespace, namespace } = useRouteNamespace();
   const { authenticatedUser } = useAuthenticatedUser();
 
   const entityTypeId = router.query["entity-type-id"] as string;
@@ -140,7 +140,7 @@ const Page: NextPageWithLayout = () => {
   const entityType = remoteEntityType ?? draftEntityType;
 
   useEffect(() => {
-    if (authenticatedUser && !namespace) {
+    if (authenticatedUser && !loadingNamespace && !namespace) {
       // eslint-disable-next-line no-console
       console.warn(
         `Error: Couldn't find namespace with shortname '${router.query["account-slug"]}'.`,
@@ -159,6 +159,7 @@ const Page: NextPageWithLayout = () => {
       void router.replace(`/@${namespace?.shortname}/types/new/entity-type`);
     }
   }, [
+    loadingNamespace,
     router,
     loadingRemoteEntityType,
     authenticatedUser,

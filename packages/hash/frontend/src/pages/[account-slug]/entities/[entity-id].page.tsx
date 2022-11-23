@@ -1,49 +1,59 @@
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
+import {
+  entityIdFromOwnedByIdAndEntityUuid,
+  EntityWithMetadata,
+  Subgraph,
+  SubgraphRootTypes,
+} from "@hashintel/hash-subgraph";
 import { useBlockProtocolGetEntity } from "../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolGetEntity";
 import { useLoggedInUser } from "../../../components/hooks/useAuthenticatedUser";
 import { getPlainLayout, NextPageWithLayout } from "../../../shared/layout";
 import { EntityEditor } from "./[entity-id].page/entity-editor";
 import { EntityPageLoadingState } from "./[entity-id].page/entity-page-loading-state";
 import { EntityPageWrapper } from "./[entity-id].page/entity-page-wrapper";
-import {
-  extractEntityRoot,
-  RootEntityAndSubgraph,
-} from "../../../lib/subgraph";
 import { PageErrorState } from "../../../components/page-error-state";
+/** @todo - This should be moved somewhere shared */
+import { useRouteNamespace } from "../types/entity-type/use-route-namespace";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
+  const { namespace } = useRouteNamespace();
   const { authenticatedUser } = useLoggedInUser();
   const { getEntity } = useBlockProtocolGetEntity();
 
-  const [rootEntityAndSubgraph, setRootEntityAndSubgraph] =
-    useState<RootEntityAndSubgraph>();
+  const [entitySubgraph, setEntitySubgraph] =
+    useState<Subgraph<SubgraphRootTypes["entity"]>>();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const init = async () => {
-      try {
-        const entityId = router.query["entity-id"] as string;
+    if (namespace) {
+      const init = async () => {
+        try {
+          const entityUuid = router.query["entity-id"] as string;
 
-        const { data: subgraph } = await getEntity({ data: { entityId } });
+          const { data: subgraph } = await getEntity({
+            data: entityIdFromOwnedByIdAndEntityUuid(
+              namespace.accountId,
+              entityUuid,
+            ),
+          });
 
-        if (subgraph) {
-          try {
-            /** @todo - error handling, this will throw if entity doesn't exist, but we may want to handle or report
-             *    other errors */
-            setRootEntityAndSubgraph(extractEntityRoot(subgraph));
-          } catch {
-            setRootEntityAndSubgraph(undefined);
+          if (subgraph) {
+            try {
+              setEntitySubgraph(subgraph);
+            } catch {
+              setEntitySubgraph(undefined);
+            }
           }
+        } finally {
+          setLoading(false);
         }
-      } finally {
-        setLoading(false);
-      }
-    };
+      };
 
-    void init();
-  }, [router.query, getEntity]);
+      void init();
+    }
+  }, [namespace, router.query, getEntity]);
 
   if (!authenticatedUser) {
     return null;
@@ -53,36 +63,50 @@ const Page: NextPageWithLayout = () => {
     return <EntityPageLoadingState />;
   }
 
-  if (!rootEntityAndSubgraph) {
+  if (!entitySubgraph) {
     return <PageErrorState />;
   }
 
   return (
-    <EntityPageWrapper rootEntityAndSubgraph={rootEntityAndSubgraph}>
+    <EntityPageWrapper entitySubgraph={entitySubgraph}>
       <EntityEditor
-        rootEntityAndSubgraph={rootEntityAndSubgraph}
+        entitySubgraph={entitySubgraph}
         setEntity={(entity) =>
-          setRootEntityAndSubgraph((entityAndSubgraph) => {
-            return entityAndSubgraph && entity
-              ? {
-                  root: entity,
-                  subgraph: {
-                    ...entityAndSubgraph.subgraph,
+          setEntitySubgraph((entityAndSubgraph) => {
+            if (entity) {
+              /**
+               * @todo - This is a problem, subgraphs should probably be immutable, there will be a new identifier
+               *   for the updated entity. This version will not match the one returned by the data store.
+               *   For places where we mutate elements, we should probably store them separately from the subgraph to
+               *   allow for optimistic updates without being incorrect.
+               */
+              const newEntity = JSON.parse(
+                JSON.stringify(entity),
+              ) as EntityWithMetadata;
+              const newEntityVersion = new Date().toISOString();
+              newEntity.metadata.editionId.version = newEntityVersion;
+
+              return entityAndSubgraph
+                ? ({
+                    ...entityAndSubgraph,
+                    roots: [newEntity.metadata.editionId],
                     vertices: {
-                      ...entityAndSubgraph.subgraph.vertices,
-                      /**
-                       * @todo - This is a problem, entity records should be immutable, there will be a new identifier
-                       *   for the updated entity. For places where we mutate elements, we should probably store them
-                       *   separately from the subgraph to allow for optimistic updates without being incorrect.
-                       */
-                      [entity.entityId]: {
-                        kind: "entity",
-                        inner: entity,
+                      ...entityAndSubgraph.vertices,
+                      [newEntity.metadata.editionId.baseId]: {
+                        ...entityAndSubgraph.vertices[
+                          newEntity.metadata.editionId.baseId
+                        ],
+                        [newEntityVersion]: {
+                          kind: "entity",
+                          inner: newEntity,
+                        },
                       },
                     },
-                  },
-                }
-              : undefined;
+                  } as Subgraph<SubgraphRootTypes["entity"]>)
+                : undefined;
+            } else {
+              return undefined;
+            }
           })
         }
       />

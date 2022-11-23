@@ -76,15 +76,15 @@ const Page: NextPageWithLayout = () => {
   const router = useRouter();
   const { authenticatedUser, loading } = useAuthenticatedUser();
   const { getEntityType } = useBlockProtocolGetEntityType();
-  const namespace = useRouteNamespace();
+  const { namespace, loading: loadingNamespace } = useRouteNamespace();
 
   useEffect(() => {
-    if (authenticatedUser && !namespace) {
+    if (authenticatedUser && !loadingNamespace && !namespace) {
       void router.replace(
         `/@${authenticatedUser.shortname}/types/new/entity-type`,
       );
     }
-  }, [authenticatedUser, namespace, router]);
+  }, [loadingNamespace, authenticatedUser, namespace, router]);
 
   if (typeSystemLoading || loading || !authenticatedUser || !namespace) {
     return null;

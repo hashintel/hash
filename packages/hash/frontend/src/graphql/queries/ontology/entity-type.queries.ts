@@ -6,7 +6,6 @@ export const getEntityTypeQuery = gql`
     $entityTypeId: VersionedUri!
     $dataTypeResolveDepth: Int!
     $propertyTypeResolveDepth: Int!
-    $linkTypeResolveDepth: Int!
     $entityTypeResolveDepth: Int!
   ) {
     getEntityType(

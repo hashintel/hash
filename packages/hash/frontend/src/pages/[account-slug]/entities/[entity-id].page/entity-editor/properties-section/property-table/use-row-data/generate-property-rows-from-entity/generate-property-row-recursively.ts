@@ -1,9 +1,7 @@
 import { isPlainObject } from "lodash";
 import { isUnknownObject } from "@hashintel/hash-shared/util";
-import {
-  getPropertyTypesByBaseUri,
-  RootEntityAndSubgraph,
-} from "../../../../../../../../../lib/subgraph";
+import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
+import { getPropertyTypesByBaseUri } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
 import { PropertyRow } from "../../types";
 import { getExpectedTypesOfPropertyType } from "./get-expected-types-of-property-type";
 
@@ -25,7 +23,7 @@ import { getExpectedTypesOfPropertyType } from "./get-expected-types-of-property
  * propertyKeyChain = ["a", "b", "c"]
  * ```
  *
- * @param rootEntityAndSubgraph
+ * @param entitySubgraph
  * An object storing root entity & subgraph of that entity
  *
  * @param requiredPropertyTypes
@@ -41,12 +39,12 @@ export const generatePropertyRowRecursively = (
   properties: unknown,
   propertyTypeBaseUri: string,
   propertyKeyChain: string[],
-  rootEntityAndSubgraph: RootEntityAndSubgraph,
+  entitySubgraph: Subgraph<SubgraphRootTypes["entity"]>,
   requiredPropertyTypes: string[],
   depth = 0,
 ): PropertyRow => {
   const propertyTypeVersions = getPropertyTypesByBaseUri(
-    rootEntityAndSubgraph.subgraph,
+    entitySubgraph,
     propertyTypeBaseUri,
   );
 
@@ -56,12 +54,9 @@ export const generatePropertyRowRecursively = (
     );
   }
 
-  const propertyType = propertyTypeVersions[0]!.inner;
+  const propertyType = propertyTypeVersions[0]!.schema;
 
-  const { isArray, expectedTypes } = getExpectedTypesOfPropertyType(
-    propertyType,
-    rootEntityAndSubgraph.subgraph,
-  );
+  const { isArray, expectedTypes } = getExpectedTypesOfPropertyType(propertyType, entitySubgraph);
 
   const required = !!requiredPropertyTypes?.includes(propertyTypeBaseUri);
 
@@ -79,7 +74,7 @@ export const generatePropertyRowRecursively = (
             properties[propertyTypeBaseUri],
             subPropertyTypeBaseUri,
             [...propertyKeyChain, subPropertyTypeBaseUri],
-            rootEntityAndSubgraph,
+            entitySubgraph,
             requiredPropertyTypes,
             depth + 1,
           ),

@@ -10,15 +10,15 @@ import {
 } from "../../../../../../../components/grid/utils/sorting";
 
 export const useRowData = () => {
-  const { rootEntityAndSubgraph, propertyExpandStatus } = useEntityEditor();
+  const { entitySubgraph, propertyExpandStatus } = useEntityEditor();
 
   const rows = useMemo<PropertyRow[]>(() => {
-    if (!rootEntityAndSubgraph) {
+    if (!entitySubgraph) {
       return [];
     }
 
-    return generatePropertyRowsFromEntity(rootEntityAndSubgraph);
-  }, [rootEntityAndSubgraph]);
+    return generatePropertyRowsFromEntity(entitySubgraph);
+  }, [entitySubgraph]);
 
   const sortAndFlattenRowData = useCallback(
     (rowData: PropertyRow[], sort: TableSort<string>) => {

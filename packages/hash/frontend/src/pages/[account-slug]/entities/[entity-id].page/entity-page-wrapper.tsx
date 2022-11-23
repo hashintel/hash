@@ -1,6 +1,7 @@
 import { Box, Stack } from "@mui/material";
 import { Container } from "@mui/system";
 import { PropsWithChildren } from "react";
+import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import { EntityPageHeader } from "./entity-page-wrapper/entity-page-header";
 import { RootEntityAndSubgraph } from "../../../../lib/subgraph";
 import { generateEntityLabel } from "../../../../lib/entities";
@@ -11,9 +12,11 @@ import { generateEntityLabel } from "../../../../lib/entities";
  */
 export const EntityPageWrapper = ({
   children,
-  rootEntityAndSubgraph,
-}: PropsWithChildren<{ rootEntityAndSubgraph: RootEntityAndSubgraph }>) => {
-  const entityLabel = generateEntityLabel(rootEntityAndSubgraph);
+  entitySubgraph,
+}: PropsWithChildren<{
+  entitySubgraph: Subgraph<SubgraphRootTypes["entity"]>;
+}>) => {
+  const entityLabel = generateEntityLabel(entitySubgraph);
 
   return (
     <Stack minHeight="100vh">
