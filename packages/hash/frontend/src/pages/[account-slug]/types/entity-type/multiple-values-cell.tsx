@@ -223,26 +223,36 @@ export const MultipleValuesCell = ({
                       userSelect: "none",
                     })}
                   >
-                    <TextField
-                      type="number"
-                      size="small"
-                      label="Minimum"
-                      inputProps={{ min: 0 }}
-                      {...register(`properties.${propertyIndex}.minValue`, {
-                        valueAsNumber: true,
-                        onChange(evt) {
-                          const min = evt.target.value;
-                          if (min > maxValue) {
-                            setValue(
-                              `properties.${propertyIndex}.maxValue`,
-                              min,
-                              { shouldDirty: true },
-                            );
-                          }
-                        },
-                      })}
-                      value={menuOpenFrozenMinValue}
-                      sx={{ mb: 2 }}
+                    <Controller
+                      render={({ field: { value: _, ...field } }) => (
+                        <TextField
+                          {...field}
+                          onChange={(evt) => {
+                            const target = evt.target as HTMLInputElement;
+                            const min = target.valueAsNumber;
+
+                            if (Number.isNaN(min)) {
+                              field.onChange(target.value);
+                            } else {
+                              if (min > maxValue) {
+                                setValue(
+                                  `properties.${propertyIndex}.maxValue`,
+                                  min,
+                                  { shouldDirty: true },
+                                );
+                              }
+                              field.onChange(min);
+                            }
+                          }}
+                          type="number"
+                          size="small"
+                          label="Minimum"
+                          inputProps={{ min: 0 }}
+                          value={menuOpenFrozenMinValue}
+                          sx={{ mb: 2 }}
+                        />
+                      )}
+                      name={`properties.${propertyIndex}.minValue`}
                     />
                     <FormControl>
                       <InputLabel
@@ -274,18 +284,22 @@ export const MultipleValuesCell = ({
                               type="number"
                               inputProps={{ min: 0 }}
                               onChange={(evt) => {
-                                const max = (evt.target as HTMLInputElement)
-                                  .valueAsNumber;
+                                const target = evt.target as HTMLInputElement;
+                                const max = target.valueAsNumber;
 
-                                if (max < minValue) {
-                                  setValue(
-                                    `properties.${propertyIndex}.minValue`,
-                                    max,
-                                    { shouldDirty: true },
-                                  );
+                                if (Number.isNaN(max)) {
+                                  field.onChange(target.value);
+                                } else {
+                                  if (max < minValue) {
+                                    setValue(
+                                      `properties.${propertyIndex}.minValue`,
+                                      max,
+                                      { shouldDirty: true },
+                                    );
+                                  }
+
+                                  field.onChange(max);
                                 }
-
-                                field.onChange(max);
                               }}
                               value={menuOpenFrozenMaxValue}
                               size="small"
