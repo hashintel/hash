@@ -3,7 +3,6 @@ import * as Sentry from "@sentry/nextjs";
 import { useRouter } from "next/router";
 import { useContext, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { isEntityRootedSubgraph } from "@hashintel/hash-subgraph/src/stdlib/roots";
-import { EntityEditionId } from "@hashintel/hash-subgraph";
 
 import { meQuery } from "../../graphql/queries/user.queries";
 import { MeQuery, MeQueryVariables } from "../../graphql/apiTypes.gen";
@@ -56,7 +55,7 @@ export const useAuthenticatedUser = (
         ? constructAuthenticatedUser({
             // We make the assertion check above, but the type isn't refined here
             // to be a Subgraph<EntityWithMetadata>
-            userEntityEditionId: subgraph.roots[0]! as EntityEditionId,
+            userEntityEditionId: subgraph.roots[0]!,
             /**
              * @todo: ensure this subgraph contains the incoming links of orgs
              * at depth 2 to support constructing the `members` of an `Org`.
