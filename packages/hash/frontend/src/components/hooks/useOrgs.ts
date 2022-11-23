@@ -41,10 +41,6 @@ export const useOrgs = (): {
       return undefined;
     }
 
-    /**
-     * @todo: remove casting when we start returning links in the subgraph
-     *   https://app.asana.com/0/0/1203214689883095/f
-     */
     return getRootsAsEntities(subgraph)
       .filter(
         ({ metadata: { entityTypeId } }) =>
