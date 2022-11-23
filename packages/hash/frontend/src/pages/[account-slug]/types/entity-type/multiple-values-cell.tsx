@@ -55,6 +55,7 @@ export const MultipleValuesCell = ({
   // values/disabling infinity
   const [resetMinValue, setResetMinValue] = useState(minValue);
   const [resetMaxValue, setResetMaxValue] = useState(maxValue);
+  const [resetInfinity, setResetInfinity] = useState(infinity);
 
   const menuOpenFrozenMinValue = useFrozenValue(
     minValue,
@@ -62,6 +63,10 @@ export const MultipleValuesCell = ({
   );
   const menuOpenFrozenMaxValue = useFrozenValue(
     maxValue,
+    !multipleValuesMenuOpen,
+  );
+  const menuOpenFrozenInfinity = useFrozenValue(
+    infinity,
     !multipleValuesMenuOpen,
   );
 
@@ -131,12 +136,15 @@ export const MultipleValuesCell = ({
 
                     let nextMinValue = resetMinValue;
                     let nextMaxValue = resetMaxValue;
+                    let nextInfinity = resetInfinity;
 
                     if (!evt.target.checked) {
                       setResetMinValue(minValue);
                       setResetMaxValue(maxValue);
+                      setResetInfinity(infinity);
                       nextMinValue = 0;
                       nextMaxValue = 1;
+                      nextInfinity = true;
                     }
 
                     setValue(
@@ -147,6 +155,11 @@ export const MultipleValuesCell = ({
                     setValue(
                       `properties.${propertyIndex}.maxValue`,
                       nextMaxValue,
+                      { shouldDirty: true },
+                    );
+                    setValue(
+                      `properties.${propertyIndex}.infinity`,
+                      nextInfinity,
                       { shouldDirty: true },
                     );
                     field.onChange(evt);
@@ -349,10 +362,10 @@ export const MultipleValuesCell = ({
         infinityCheckboxNode
           ? createPortal(
               <Controller
-                render={({ field: { value, ...field } }) => (
+                render={({ field: { value: _, ...field } }) => (
                   <Checkbox
                     {...field}
-                    checked={value}
+                    checked={menuOpenFrozenInfinity}
                     onChange={(evt) => {
                       if (typeof maxValue !== "number") {
                         setValue(
