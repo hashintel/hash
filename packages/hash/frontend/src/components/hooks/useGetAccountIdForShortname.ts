@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { extractEntityUuidFromEntityId } from "@hashintel/hash-subgraph";
 import { nilUuid } from "@hashintel/hash-shared/types";
+import { SYSTEM_ACCOUNT_SHORTNAME } from "@hashintel/hash-shared/environment";
 import { useUsers } from "./useUsers";
 import { useOrgs } from "./useOrgs";
 
@@ -14,9 +15,11 @@ export const useGetAccountIdForShortname = (
     /**
      * @todo - This is incredibly flakey right now.
      *    We should be creating system types and entities under the actual org, _not_ the nilUuid
-     *    We should be making SYSTEM_ACCOUNT_SHORTNAME available in the frontend
      */
-    if (shortname === "example-org" || shortname === "example") {
+    if (
+      shortname === SYSTEM_ACCOUNT_SHORTNAME ||
+      shortname === "example" // This is the root account
+    ) {
       return nilUuid;
     }
 
