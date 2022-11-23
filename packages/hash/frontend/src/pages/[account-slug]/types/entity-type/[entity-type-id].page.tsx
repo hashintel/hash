@@ -339,6 +339,6 @@ const Page: NextPageWithLayout = () => {
   );
 };
 
-Page.getLayout = (page) => getLayoutWithHeader(page);
+Page.getLayout = getLayoutWithHeader;
 
 export default Page;
