@@ -20,6 +20,7 @@ import { persistedBlockTypedef } from "./knowledge/block.typedef";
 import { subgraphTypedef } from "./subgraph.typedef";
 import { blockprotocolTypedef } from "./blockprotocol.typedef";
 import { persistedOrgTypedef } from "./knowledge/org.typedef";
+import { hashInstanceTypedef } from "./knowledge/hashInstance.typedef";
 
 const baseSchema = gql`
   scalar Date
@@ -50,6 +51,7 @@ const knowledge = [
   persistedCommentTypedef,
   userTypedef,
   persistedOrgTypedef,
+  hashInstanceTypedef,
 ];
 
 // This needs to be called 'schema' to be picked up by codegen -

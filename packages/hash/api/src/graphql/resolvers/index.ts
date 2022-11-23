@@ -70,6 +70,7 @@ import { blockChildEntity } from "./knowledge/block/data-entity";
 import { loggedInAndSignedUpHashInstanceAdmin } from "./middlewares/loggedInAndSignedUpHashInstanceAdmin";
 import { createUser } from "./knowledge/user/create-user";
 import { createOrg } from "./knowledge/org/create-org";
+import { hashInstanceEntity } from "./knowledge/hashInstance/hashInstance";
 
 /** @todo - Refactor the names of these https://app.asana.com/0/1200211978612931/1203234667392169/f */
 export const resolvers = {
@@ -98,6 +99,7 @@ export const resolvers = {
     getAllLatestEntitiesWithMetadata: loggedInAndSignedUp(
       getAllLatestEntitiesWithMetadata,
     ),
+    hashInstanceEntity,
   },
 
   Mutation: {
