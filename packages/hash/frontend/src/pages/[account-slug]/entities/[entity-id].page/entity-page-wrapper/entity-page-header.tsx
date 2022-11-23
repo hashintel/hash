@@ -8,7 +8,13 @@ import { TopContextBar } from "../../../../shared/top-context-bar";
 import { HashOntologyIcon } from "../../../shared/hash-ontology-icon";
 import { OntologyChip } from "../../../shared/ontology-chip";
 
-export const EntityPageHeader = ({ entityLabel }: { entityLabel: string }) => {
+export const EntityPageHeader = ({
+  entityLabel,
+  subtle,
+}: {
+  entityLabel: string;
+  subtle?: boolean;
+}) => {
   const router = useRouter();
 
   const accountSlug = router.query["account-slug"];
@@ -56,7 +62,12 @@ export const EntityPageHeader = ({ entityLabel }: { entityLabel: string }) => {
             ]}
           />
 
-          <Stack direction="row" alignItems="center" spacing={2}>
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={2}
+            sx={{ color: subtle ? "gray.50" : "gray.90" }}
+          >
             <FontAwesomeIcon icon={faAsterisk} sx={{ fontSize: 40 }} />
             <Typography variant="h1" fontWeight="bold">
               {entityLabel}

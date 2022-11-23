@@ -18,6 +18,7 @@ import { StyledPlusCircleIcon } from "./styled-plus-circle-icon";
 type PropertyListSelectorDropdownProps = {
   query: string;
   createButtonProps: Omit<ButtonProps, "children" | "variant" | "size">;
+  variant: "entityType" | "propertyType";
 };
 
 export const PropertyListSelectorDropdownContext =
@@ -37,7 +38,8 @@ export const PropertyListSelectorDropdown = ({
   children,
   ...props
 }: PaperProps) => {
-  const { query, createButtonProps } = usePropertyListSelectorDropdownContext();
+  const { query, createButtonProps, variant } =
+    usePropertyListSelectorDropdownContext();
   return (
     <>
       <Box
@@ -123,7 +125,11 @@ export const PropertyListSelectorDropdown = ({
               </Typography>
             </>
           ) : null}
-          <Chip color="purple" label="PROPERTY TYPE" sx={{ ml: 1.5 }} />
+          {variant === "entityType" ? (
+            <Chip color="teal" label="ENTITY TYPE" sx={{ ml: 1.5 }} />
+          ) : (
+            <Chip color="purple" label="PROPERTY TYPE" sx={{ ml: 1.5 }} />
+          )}
         </Button>
       </Paper>
     </>

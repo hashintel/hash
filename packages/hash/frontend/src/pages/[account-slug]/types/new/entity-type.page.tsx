@@ -58,6 +58,7 @@ const generateInitialEntityTypeId = (baseUri: string) =>
 
 const Page: NextPageWithLayout = () => {
   const typeSystemLoading = useInitTypeSystem();
+  const router = useRouter();
 
   const {
     handleSubmit,
@@ -71,9 +72,11 @@ const Page: NextPageWithLayout = () => {
     shouldFocusError: true,
     mode: "onSubmit",
     reValidateMode: "onSubmit",
+    defaultValues: {
+      name: router.query.name as string,
+    },
   });
 
-  const router = useRouter();
   const { authenticatedUser, loading } = useAuthenticatedUser();
   const { getEntityType } = useBlockProtocolGetEntityType();
   const namespace = useRouteNamespace();

@@ -106,6 +106,7 @@ const InsertPropertyRow = ({
                   evt.stopPropagation();
                 },
               },
+              variant: "propertyType",
             }
           }
         >

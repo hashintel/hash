@@ -459,6 +459,21 @@ export const generateEntityLabel = (
 
   const entity = rootEntityAndSubgraph.root;
 
+  const getFallbackLabel = () => {
+    // fallback to the entity type and a few characters of the entityId
+    let entityId = entity.entityId;
+    try {
+      // in case this entityId is a stringified JSON object, extract the real entityId from it
+      ({ entityId } = parseEntityIdentifier(entityId));
+    } catch {
+      // entityId was not a stringified object, it was already the real entityId
+    }
+
+    const entityTypeName = schema?.title ?? "Entity";
+
+    return `${entityTypeName}-${entityId.slice(0, 5)}`;
+  };
+
   // if the schema has a labelProperty set, prefer that
   const labelProperty = schema?.labelProperty;
   if (
@@ -466,7 +481,7 @@ export const generateEntityLabel = (
     typeof entity.properties[labelProperty] === "string" &&
     entity.properties[labelProperty]
   ) {
-    return entity.properties[labelProperty] as string;
+    return entity.properties[labelProperty] || getFallbackLabel();
   }
 
   // fallback to some likely display name properties
@@ -501,20 +516,9 @@ export const generateEntityLabel = (
     const found = propertyTypes.find(({ title }) => title === option);
 
     if (found) {
-      return entity.properties[found.propertyTypeBaseUri];
+      return entity.properties[found.propertyTypeBaseUri] || getFallbackLabel();
     }
   }
 
-  // fallback to the entity type and a few characters of the entityId
-  let entityId = entity.entityId;
-  try {
-    // in case this entityId is a stringified JSON object, extract the real entityId from it
-    ({ entityId } = parseEntityIdentifier(entityId));
-  } catch {
-    // entityId was not a stringified object, it was already the real entityId
-  }
-
-  const entityTypeName = schema?.title ?? "Entity";
-
-  return `${entityTypeName}-${entityId.slice(0, 5)}`;
+  return getFallbackLabel();
 };
