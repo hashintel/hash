@@ -11,7 +11,7 @@ import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 export type AccountPage = {
   title: string;
   entityId: EntityId;
-  parentPageEntityId?: string | null;
+  parentPageEntityId?: EntityId | null;
   index: string;
 };
 
