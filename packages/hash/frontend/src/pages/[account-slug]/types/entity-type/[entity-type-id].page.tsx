@@ -102,7 +102,7 @@ const Page: NextPageWithLayout = () => {
 
   const [remoteEntityType, updateEntityType, publishDraft] = useEntityType(
     baseEntityTypeUri,
-    namespace?.id,
+    namespace?.accountId,
     (fetchedEntityType) => {
       reset({
         properties: Object.entries(fetchedEntityType.properties).map(

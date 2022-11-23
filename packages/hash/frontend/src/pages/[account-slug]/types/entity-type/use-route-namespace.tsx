@@ -2,28 +2,38 @@ import { useRouter } from "next/router";
 import { useMemo } from "react";
 import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
 
-export const useRouteNamespace = () => {
+export const useRouteNamespace = ():
+  | {
+      accountId: string;
+      shortname?: string;
+    }
+  | undefined => {
   const { authenticatedUser } = useAuthenticatedUser();
   const router = useRouter();
 
   const shortname = router.query["account-slug"];
 
   const namespace = useMemo(() => {
-    let entity;
+    let accountShortname;
+    let accountId;
 
     if (authenticatedUser) {
       if (shortname === `@${authenticatedUser.shortname}`) {
-        entity = authenticatedUser;
+        accountShortname = authenticatedUser.shortname;
+        accountId = authenticatedUser.userAccountId;
       } else {
-        entity = authenticatedUser.memberOf?.find(
-          (org) => `@${org.shortname}` === shortname,
+        const org = authenticatedUser.memberOf?.find(
+          (potentialOrg) => `@${potentialOrg.shortname}` === shortname,
         );
+
+        accountShortname = org?.shortname;
+        accountId = org?.orgAccountId;
       }
 
-      if (entity) {
+      if (accountShortname && accountId) {
         return {
-          id: entity.entityId,
-          shortname: entity.shortname,
+          accountId,
+          shortname: accountShortname,
         };
       }
     }
