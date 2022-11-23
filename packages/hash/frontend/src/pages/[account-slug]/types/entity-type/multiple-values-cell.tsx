@@ -36,8 +36,7 @@ export const MultipleValuesCell = ({
 }: {
   propertyIndex: number;
 }) => {
-  const { register, control, setValue } =
-    useFormContext<EntityTypeEditorForm>();
+  const { control, setValue } = useFormContext<EntityTypeEditorForm>();
 
   const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
   const [multipleValuesMenuOpen, setMultipleValuesMenuOpen] = useState(false);
@@ -205,116 +204,115 @@ export const MultipleValuesCell = ({
             },
           ]}
         >
-          {({ TransitionProps }) => {
-            return (
-              <ClickAwayListener
-                onClickAway={() => setMultipleValuesMenuOpen(false)}
-              >
-                <Fade {...TransitionProps}>
-                  <Box
-                    sx={({ palette, boxShadows }) => ({
-                      border: 1,
-                      p: 1.5,
-                      background: palette.white,
-                      borderColor: palette.gray[30],
-                      boxShadow: boxShadows.md,
-                      borderBottomLeftRadius: 4,
-                      borderBottomRightRadius: 4,
-                      userSelect: "none",
-                    })}
-                  >
-                    <Controller
-                      render={({ field: { value: _, ...field } }) => (
-                        <TextField
-                          {...field}
-                          onChange={(evt) => {
-                            const target = evt.target as HTMLInputElement;
-                            const min = target.valueAsNumber;
+          {({ TransitionProps }) => (
+            <ClickAwayListener
+              onClickAway={() => setMultipleValuesMenuOpen(false)}
+            >
+              <Fade {...TransitionProps}>
+                <Box
+                  sx={({ palette, boxShadows }) => ({
+                    border: 1,
+                    p: 1.5,
+                    background: palette.white,
+                    borderColor: palette.gray[30],
+                    boxShadow: boxShadows.md,
+                    borderBottomLeftRadius: 4,
+                    borderBottomRightRadius: 4,
+                    userSelect: "none",
+                  })}
+                >
+                  {/* Controllers are used for min/max as their values are frozen during animation */}
+                  <Controller
+                    render={({ field: { value: _, ...field } }) => (
+                      <TextField
+                        {...field}
+                        onChange={(evt) => {
+                          const target = evt.target as HTMLInputElement;
+                          const min = target.valueAsNumber;
 
-                            if (Number.isNaN(min)) {
-                              field.onChange(target.value);
-                            } else {
-                              if (min > maxValue) {
-                                setValue(
-                                  `properties.${propertyIndex}.maxValue`,
-                                  min,
-                                  { shouldDirty: true },
-                                );
-                              }
-                              field.onChange(min);
+                          if (Number.isNaN(min)) {
+                            field.onChange(target.value);
+                          } else {
+                            if (min > maxValue) {
+                              setValue(
+                                `properties.${propertyIndex}.maxValue`,
+                                min,
+                                { shouldDirty: true },
+                              );
                             }
-                          }}
-                          type="number"
-                          size="small"
-                          label="Minimum"
-                          inputProps={{ min: 0 }}
-                          value={menuOpenFrozenMinValue}
-                          sx={{ mb: 2 }}
-                        />
-                      )}
-                      name={`properties.${propertyIndex}.minValue`}
-                    />
-                    <FormControl>
-                      <InputLabel
-                        {...inputLabelProps}
-                        sx={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
+                            field.onChange(min);
+                          }
                         }}
-                        htmlFor={maximumFieldId}
+                        type="number"
+                        size="small"
+                        label="Minimum"
+                        inputProps={{ min: 0 }}
+                        value={menuOpenFrozenMinValue}
+                        sx={{ mb: 2 }}
+                      />
+                    )}
+                    name={`properties.${propertyIndex}.minValue`}
+                  />
+                  <FormControl>
+                    <InputLabel
+                      {...inputLabelProps}
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                      }}
+                      htmlFor={maximumFieldId}
+                    >
+                      Maximum
+                      <Box
+                        display="flex"
+                        color={({ palette }) => palette.gray[70]}
                       >
-                        Maximum
-                        <Box
-                          display="flex"
-                          color={({ palette }) => palette.gray[70]}
-                        >
-                          ∞
-                          <div ref={setInfinityCheckboxNode} />
-                        </Box>
-                      </InputLabel>
+                        ∞
+                        <div ref={setInfinityCheckboxNode} />
+                      </Box>
+                    </InputLabel>
 
-                      <Collapse in={!infinity}>
-                        {/* Using a controller as Infinity is not a valid value for a HTML number input */}
-                        <Controller
-                          render={({ field: { value: _, ...field } }) => (
-                            <OutlinedInput
-                              {...getInputProps()}
-                              {...field}
-                              type="number"
-                              inputProps={{ min: 0 }}
-                              onChange={(evt) => {
-                                const target = evt.target as HTMLInputElement;
-                                const max = target.valueAsNumber;
+                    <Collapse in={!infinity}>
+                      {/* Using a controller as Infinity is not a valid value for a HTML number input */}
+                      <Controller
+                        render={({ field: { value: _, ...field } }) => (
+                          <OutlinedInput
+                            {...getInputProps()}
+                            {...field}
+                            type="number"
+                            inputProps={{ min: 0 }}
+                            onChange={(evt) => {
+                              const target = evt.target as HTMLInputElement;
+                              const max = target.valueAsNumber;
 
-                                if (Number.isNaN(max)) {
-                                  field.onChange(target.value);
-                                } else {
-                                  if (max < minValue) {
-                                    setValue(
-                                      `properties.${propertyIndex}.minValue`,
-                                      max,
-                                      { shouldDirty: true },
-                                    );
-                                  }
-
-                                  field.onChange(max);
+                              if (Number.isNaN(max)) {
+                                field.onChange(target.value);
+                              } else {
+                                if (max < minValue) {
+                                  setValue(
+                                    `properties.${propertyIndex}.minValue`,
+                                    max,
+                                    { shouldDirty: true },
+                                  );
                                 }
-                              }}
-                              value={menuOpenFrozenMaxValue}
-                              size="small"
-                              id={maximumFieldId}
-                            />
-                          )}
-                          name={`properties.${propertyIndex}.maxValue`}
-                        />
-                      </Collapse>
-                    </FormControl>
-                  </Box>
-                </Fade>
-              </ClickAwayListener>
-            );
-          }}
+
+                                field.onChange(max);
+                              }
+                            }}
+                            value={menuOpenFrozenMaxValue}
+                            size="small"
+                            id={maximumFieldId}
+                          />
+                        )}
+                        name={`properties.${propertyIndex}.maxValue`}
+                      />
+                    </Collapse>
+                  </FormControl>
+                </Box>
+              </Fade>
+            </ClickAwayListener>
+          )}
         </Popper>
       </TableCell>
       {
