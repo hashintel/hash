@@ -20,7 +20,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { frontendUrl } from "@hashintel/hash-shared/environment";
 import { useBlockProtocolCreatePropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreatePropertyType";
@@ -32,7 +32,10 @@ import { faText } from "../../../../shared/icons/pro/fa-text";
 import { QuestionIcon } from "./question-icon";
 import { useRefetchPropertyTypes } from "./use-property-types";
 import { useRouteNamespace } from "./use-route-namespace";
-import { PropertyTypeSelectorDropdown } from "./property-type-selector-dropdown";
+import {
+  PropertyTypeSelectorDropdown,
+  PropertyTypeSelectorDropdownContext,
+} from "./property-type-selector-dropdown";
 
 const generateInitialPropertyTypeId = (baseUri: string) =>
   addVersionToBaseUri(baseUri, 1);
@@ -92,6 +95,10 @@ export const PropertyTypeForm = ({
     reValidateMode: "onBlur",
   });
 
+  const [autocompleteFocused, setAutocompleteFocused] = useState(false);
+  const [creatingCustomPropertyType, setCreatingCustomPropertyType] =
+    useState(false);
+
   useEffect(() => {
     setFocus(initialTitle ? "description" : "name");
   }, [initialTitle, setFocus]);
@@ -148,6 +155,15 @@ export const PropertyTypeForm = ({
   const [titleValid, setTitleValid] = useState(false);
   const [descriptionValid, setDescriptionValid] = useState(false);
 
+  const propertyTypeSelectorDropdownContextValue = useMemo(
+    () => ({
+      customPropertyMenuOpen: creatingCustomPropertyType,
+      openCustomPropertyMenu: () => setCreatingCustomPropertyType(true),
+      closeCustomPropertyMenu: () => setCreatingCustomPropertyType(false),
+    }),
+    [creatingCustomPropertyType, setCreatingCustomPropertyType],
+  );
+
   return (
     <Box
       minWidth={500}
@@ -160,6 +176,7 @@ export const PropertyTypeForm = ({
         alignItems="stretch"
         spacing={3}
         sx={{
+          // position: "relative",
           [`.${inputLabelClasses.root}`]: {
             display: "flex",
             alignItems: "center",
@@ -251,68 +268,90 @@ export const PropertyTypeForm = ({
           })}
         />
         <Controller
-          render={({ field: { onChange, ...props } }) => (
-            <Autocomplete
-              multiple
-              popupIcon={null}
-              clearIcon={null}
-              forcePopupIcon={false}
-              selectOnFocus={false}
-              openOnFocus
-              clearOnBlur={false}
-              onChange={(_evt, data) => onChange(data)}
-              {...props}
-              PaperComponent={PropertyTypeSelectorDropdown}
-              renderTags={(value, getTagProps) =>
-                value.map((option, index) => (
-                  <Chip
-                    {...getTagProps({ index })}
-                    key={option.dataTypeId}
-                    label={
-                      <Typography
-                        variant="smallTextLabels"
-                        sx={{ display: "flex", alignItems: "center" }}
-                      >
-                        <FontAwesomeIcon
-                          icon={{ icon: option.icon }}
-                          sx={{ fontSize: "1em", mr: "1ch" }}
-                        />
-                        {option.title}
-                      </Typography>
-                    }
-                    color="blue"
+          render={({ field: { onChange, onBlur, ...props } }) => (
+            <PropertyTypeSelectorDropdownContext.Provider
+              value={propertyTypeSelectorDropdownContextValue}
+            >
+              <Autocomplete
+                multiple
+                popupIcon={null}
+                clearIcon={null}
+                forcePopupIcon={false}
+                selectOnFocus={false}
+                // openOnFocus
+                open={autocompleteFocused || creatingCustomPropertyType}
+                clearOnBlur={false}
+                onFocus={() => {
+                  setAutocompleteFocused(true);
+                }}
+                onBlur={() => {
+                  onBlur();
+                  setAutocompleteFocused(false);
+                }}
+                onChange={(_evt, data) => onChange(data)}
+                {...props}
+                PaperComponent={PropertyTypeSelectorDropdown}
+                renderTags={(value, getTagProps) =>
+                  value.map((option, index) => (
+                    <Chip
+                      {...getTagProps({ index })}
+                      key={option.dataTypeId}
+                      label={
+                        <Typography
+                          variant="smallTextLabels"
+                          sx={{ display: "flex", alignItems: "center" }}
+                        >
+                          <FontAwesomeIcon
+                            icon={{ icon: option.icon }}
+                            sx={{ fontSize: "1em", mr: "1ch" }}
+                          />
+                          {option.title}
+                        </Typography>
+                      }
+                      color="blue"
+                    />
+                  ))
+                }
+                renderInput={(inputProps) => (
+                  <TextField
+                    {...inputProps}
+                    label="Expected values"
+                    sx={{
+                      alignSelf: "flex-start",
+                      width: "70%",
+                    }}
+                    placeholder="Select acceptable values"
                   />
-                ))
-              }
-              renderInput={(inputProps) => (
-                <TextField
-                  {...inputProps}
-                  label="Expected values"
-                  sx={{ alignSelf: "flex-start", width: "70%" }}
-                  placeholder="Select acceptable values"
-                />
-              )}
-              options={propertyTypeDataTypes}
-              getOptionLabel={(obj) => obj.title}
-              disableCloseOnSelect
-              renderOption={(optProps, opt) => (
-                <Box component="li" {...optProps} sx={{ py: 1.5, px: 2.25 }}>
-                  <FontAwesomeIcon
-                    icon={{ icon: opt.icon }}
-                    sx={(theme) => ({ color: theme.palette.gray[50] })}
-                  />
-                  <Typography
-                    variant="smallTextLabels"
-                    component="span"
-                    ml={1.5}
-                    color={(theme) => theme.palette.gray[80]}
-                  >
-                    {opt.title}
-                  </Typography>
-                  <Chip color="blue" label="DATA TYPE" sx={{ ml: 1.5 }} />
-                </Box>
-              )}
-            />
+                )}
+                options={propertyTypeDataTypes}
+                getOptionLabel={(obj) => obj.title}
+                disableCloseOnSelect
+                disablePortal
+                renderOption={(optProps, opt) => (
+                  <Box component="li" {...optProps} sx={{ py: 1.5, px: 2.25 }}>
+                    <FontAwesomeIcon
+                      icon={{ icon: opt.icon }}
+                      sx={(theme) => ({ color: theme.palette.gray[50] })}
+                    />
+                    <Typography
+                      variant="smallTextLabels"
+                      component="span"
+                      ml={1.5}
+                      color={(theme) => theme.palette.gray[80]}
+                    >
+                      {opt.title}
+                    </Typography>
+                    <Chip color="blue" label="DATA TYPE" sx={{ ml: 1.5 }} />
+                  </Box>
+                )}
+                componentsProps={{
+                  popper: {
+                    sx: { width: "100% !important" },
+                    placement: "bottom-start",
+                  },
+                }}
+              />
+            </PropertyTypeSelectorDropdownContext.Provider>
           )}
           control={control}
           rules={{ required: true }}

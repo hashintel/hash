@@ -11,37 +11,40 @@ import {
   PaperProps,
   Typography,
 } from "@mui/material";
-import { useState } from "react";
+import { createContext, useContext, useState } from "react";
 import { PROPERTY_SELECTOR_HEIGHT } from "./property-selector";
 import { StyledPlusCircleIcon } from "./styled-plus-circle-icon";
 
-// type PropertyTypeSelectorDropdownProps = {
-//   query: string;
-//   createButtonProps: Omit<ButtonProps, "children" | "variant" | "size">;
-// };
+type PropertyTypeSelectorDropdownProps = {
+  customPropertyMenuOpen: boolean;
+  openCustomPropertyMenu: () => void;
+  closeCustomPropertyMenu: () => void;
+};
 
-// export const PropertyTypeSelectorDropdownContext =
-//   createContext<PropertyTypeSelectorDropdownProps | null>(null);
+export const PropertyTypeSelectorDropdownContext =
+  createContext<PropertyTypeSelectorDropdownProps | null>(null);
 
-// const usePropertyTypeSelectorDropdownContext = () => {
-//   const value = useContext(PropertyTypeSelectorDropdownContext);
-//   if (value === null) {
-//     throw new Error(
-//       "Must wrap with PropertyTypeSelectorDropdownContext.Provider",
-//     );
-//   }
-//   return value;
-// };
+const usePropertyTypeSelectorDropdownContext = () => {
+  const value = useContext(PropertyTypeSelectorDropdownContext);
+  if (value === null) {
+    throw new Error(
+      "Must wrap with PropertyTypeSelectorDropdownContext.Provider",
+    );
+  }
+  return value;
+};
 
 export const PropertyTypeSelectorDropdown = ({
   children,
   ...props
 }: PaperProps) => {
-  const [creatingPropertyType, setCreatingPropertyType] = useState(false);
-  console.log(creatingPropertyType);
-  return creatingPropertyType ? (
-    <Box>hey</Box>
-  ) : (
+  const {
+    customPropertyMenuOpen,
+    openCustomPropertyMenu,
+    closeCustomPropertyMenu,
+  } = usePropertyTypeSelectorDropdownContext();
+
+  return (
     <>
       <Box
         sx={(theme) => ({
@@ -91,49 +94,43 @@ export const PropertyTypeSelectorDropdown = ({
           },
         })}
       >
-        {children}
-        <Button
-          variant="tertiary"
-          startIcon={<StyledPlusCircleIcon />}
-          sx={{
-            width: "100%",
-            display: "flex",
-            alignItems: "center",
-            mt: 1,
-          }}
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            console.log("click");
-            setCreatingPropertyType(true);
-          }}
-          // {...createButtonProps}
-        >
-          <Typography
-            variant="smallTextLabels"
-            sx={(theme) => ({
-              color: theme.palette.gray[60],
-              fontWeight: 500,
-            })}
-          >
-            Create
-          </Typography>
-          {/* {query ? (
-            <>
-              &nbsp;
+        {customPropertyMenuOpen ? (
+          <Box>
+            hello
+            <Button onClick={closeCustomPropertyMenu}>close</Button>
+          </Box>
+        ) : (
+          <>
+            {children}
+            <Button
+              variant="tertiary"
+              startIcon={<StyledPlusCircleIcon />}
+              sx={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                mt: 1,
+              }}
+              onMouseDown={(event) => {
+                // prevent dropdown from closing
+                event.preventDefault();
+              }}
+              onClick={openCustomPropertyMenu}
+            >
               <Typography
                 variant="smallTextLabels"
                 sx={(theme) => ({
                   color: theme.palette.gray[60],
-                  fontWeight: 600,
+                  fontWeight: 500,
                 })}
               >
-                {query}
+                Specify a custom expected value
               </Typography>
-            </>
-          ) : null} */}
-          <Chip color="purple" label="PROPERTY TYPE" sx={{ ml: 1.5 }} />
-        </Button>
+
+              <Chip color="purple" label="PROPERTY TYPE" sx={{ ml: 1.5 }} />
+            </Button>
+          </>
+        )}
       </Paper>
     </>
   );
