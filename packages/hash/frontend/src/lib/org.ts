@@ -65,7 +65,10 @@ export const constructOrg = (params: {
       subgraph,
       orgEntityEditionId,
     }),
-    /** @todo implement incoming link subgraph helper */
+    /**
+     * @todo implement members once we are able to fetch incoming links
+     *   see https://app.asana.com/0/1201095311341924/1203250435416416/f
+     */
     members: [],
   };
 };
