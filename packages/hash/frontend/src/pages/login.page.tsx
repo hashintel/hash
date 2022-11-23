@@ -13,10 +13,12 @@ import {
 } from "./shared/ory-kratos";
 import { Button } from "../shared/ui";
 import { useLogoutFlow } from "../components/hooks/useLogoutFlow";
+import { useHashInstance } from "../components/hooks/useHashInstance";
 
 const LoginPage: NextPageWithLayout = () => {
   // Get ?flow=... from the URL
   const router = useRouter();
+  const { hashInstance } = useHashInstance();
 
   const {
     return_to: returnTo,
@@ -196,9 +198,11 @@ const LoginPage: NextPageWithLayout = () => {
           </Button>
         ) : (
           <>
-            <Button variant="secondary" href="/signup">
-              Create account
-            </Button>
+            {hashInstance && !hashInstance.userRegistrationIsDisabled ? (
+              <Button variant="secondary" href="/signup">
+                Create account
+              </Button>
+            ) : null}
             {/* @todo: implement kratos recovery flow, and add button here */}
             {/* <Button variant="secondary" href="/recovery">
               Recover your account

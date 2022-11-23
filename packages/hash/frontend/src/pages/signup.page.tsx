@@ -24,9 +24,18 @@ import { AccountSetupForm } from "./signup.page/account-setup-form";
 
 import { parseGraphQLError } from "./shared/auth-utils";
 import { useUpdateAuthenticatedUser } from "../components/hooks/useUpdateAuthenticatedUser";
+import { useHashInstance } from "../components/hooks/useHashInstance";
 
 const KratosRegistrationFlowForm: FunctionComponent = () => {
   const router = useRouter();
+  const { hashInstance } = useHashInstance();
+
+  useEffect(() => {
+    // If user registration is disabled, redirect the user to the login page
+    if (hashInstance && hashInstance.userRegistrationIsDisabled) {
+      void router.push("/login");
+    }
+  }, [hashInstance, router]);
 
   // The "flow" represents a registration process and contains
   // information about the form we need to render (e.g. username + password)
