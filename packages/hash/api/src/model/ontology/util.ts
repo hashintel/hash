@@ -1,4 +1,4 @@
-import { SYSTEM_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
+import { SYSTEM_ACCOUNT_SHORTNAME } from "@hashintel/hash-shared/environment";
 import { OrgModel, UserModel } from "..";
 import { GraphApi } from "../../graph";
 import { systemAccountId } from "../util";
