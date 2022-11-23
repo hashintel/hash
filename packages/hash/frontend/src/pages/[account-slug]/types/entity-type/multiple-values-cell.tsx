@@ -329,7 +329,10 @@ export const MultipleValuesCell = ({
                           />
                         )}
                         name={`properties.${propertyIndex}.maxValue`}
-                        rules={{ min: 0, required: true }}
+                        rules={{
+                          min: 0,
+                          required: true,
+                        }}
                       />
                     </Collapse>
                   </FormControl>
