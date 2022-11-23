@@ -42,6 +42,7 @@ import {
 } from "./utils";
 import { IDENTATION_WIDTH } from "./page-tree-item";
 import { PagesLoadingState } from "./pages-loading-state";
+import { splitEntityId } from "@hashintel/hash-subgraph";
 
 type AccountPageListProps = {
   accountId: string;
@@ -244,19 +245,21 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   ) => {
     return treeItemList
       .filter(({ page }) => page.parentPageEntityId === parentId)
-      .map(({ page: { entityId: entityId, title }, depth }) => {
+      .map(({ page: { entityId, title }, depth }) => {
         const expanded =
           expandedPageIds.includes(entityId) && activeId !== entityId;
         const children = renderPageTree(treeItemList, entityId);
         const expandable = !!children.length;
         const collapsed = collapsedPageIds.includes(entityId);
 
+        const [ownedById, entityUuid] = splitEntityId(entityId);
+
         const item = (
           <AccountPageListItem
             key={entityId}
             title={title}
             id={entityId}
-            url={`/${accountId}/${entityId}`}
+            url={`/${ownedById}/${entityUuid}`}
             depth={entityId === activeId && projected ? projected.depth : depth}
             onCollapse={expandable ? () => handleToggle(entityId) : undefined}
             selected={currentPageEntityId === entityId}
