@@ -83,7 +83,7 @@ export const constructUser = (params: {
       const org = getRightEntityForLinkEntityAtMoment(
         subgraph,
         metadata.editionId.baseId,
-        metadata.editionId.version,
+        new Date(),
       );
 
       return {
