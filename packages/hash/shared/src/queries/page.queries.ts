@@ -4,8 +4,9 @@ const persistedBlockFieldsFragment = gql`
   fragment PersistedBlockFields on PersistedBlock {
     __typename
     metadata
-    blockChildEntity
     properties
+    blockChildEntity
+    componentId
   }
 `;
 
@@ -54,15 +55,10 @@ export const getPersistedPageQuery = gql`
 
 export const updatePersistedPageContents = gql`
   mutation updatePersistedPageContents(
-    $ownedById: ID!
     $entityId: EntityId!
     $actions: [UpdatePersistedPageAction!]!
   ) {
-    updatePersistedPageContents(
-      ownedById: $ownedById
-      entityId: $entityId
-      actions: $actions
-    ) {
+    updatePersistedPageContents(entityId: $entityId, actions: $actions) {
       page {
         ...PersistedPageFields
       }

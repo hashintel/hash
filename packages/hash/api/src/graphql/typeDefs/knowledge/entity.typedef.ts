@@ -30,8 +30,9 @@ export const entityWithMetadataTypedef = gql`
   input EntityWithMetadataDefinition {
     """
     The EntityId of the existing entity to use instead of creating a new entity.
+    This may be a reference to a placeholder set using placeholderId on a previous UpdatePageContentsAction.
     """
-    existingEntityId: EntityId
+    existingEntityId: String
     """
     The type of which to instantiate the new entity.
     """

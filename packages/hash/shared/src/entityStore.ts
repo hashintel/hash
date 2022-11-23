@@ -1,9 +1,15 @@
 import { Draft, produce } from "immer";
+import {
+  EntityId,
+  EntityMetadata,
+  EntityVersion,
+  LinkEntityMetadata,
+  VersionedUri,
+} from "@hashintel/hash-subgraph";
 
 import { generateDraftIdForEntity } from "./entityStorePlugin";
 import { BlockEntity } from "./entity";
 import { types } from "./types";
-import { MinimalEntityTypeFieldsFragment } from "./graphql/apiTypes.gen";
 
 export type EntityStoreType = BlockEntity | BlockEntity["blockChildEntity"];
 
@@ -13,11 +19,20 @@ export const TEXT_TOKEN_PROPERTY_TYPE_BASE_URI =
   types.propertyType.tokens.propertyTypeId.slice(0, -3);
 
 export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
-  accountId: string;
-  entityId: string | null;
-  entityTypeId?: string | null;
-  entityVersion?: string;
-  entityType?: MinimalEntityTypeFieldsFragment;
+  // accountId: string;
+  // entityId: EntityId | null;
+  // entityTypeId?: string | null;
+  // entityVersion?: string;
+  // entityType?: MinimalEntityTypeFieldsFragment;
+  metadata: {
+    editionId: {
+      baseId: EntityId | null;
+      version?: EntityVersion;
+    };
+    entityTypeId?: VersionedUri | null;
+    linkMetadata?: LinkEntityMetadata;
+    provenance?: EntityMetadata["provenance"];
+  };
   /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */
   blockChildEntity?: Type & { draftId?: string };
   properties: Record<string, unknown>;
@@ -56,7 +71,7 @@ export type EntityStore = {
  * @todo should be more robust
  */
 export const isEntity = (value: unknown): value is EntityStoreType =>
-  typeof value === "object" && value !== null && "entityId" in value;
+  typeof value === "object" && value !== null && "metadata" in value;
 
 // @todo does this need to be more robust?
 export const isBlockEntity = (entity: unknown): entity is BlockEntity =>
@@ -81,9 +96,11 @@ export const isDraftBlockEntity = (
  */
 export const getDraftEntityByEntityId = (
   draft: EntityStore["draft"],
-  entityId: string,
+  entityId: EntityId,
 ): DraftEntity | undefined =>
-  Object.values(draft).find((entity) => entity.entityId === entityId);
+  Object.values(draft).find(
+    (entity) => entity.metadata.editionId.baseId === entityId,
+  );
 
 const findEntities = (contents: BlockEntity[]): EntityStoreType[] => {
   const entities: EntityStoreType[] = [];
@@ -98,21 +115,17 @@ const findEntities = (contents: BlockEntity[]): EntityStoreType[] => {
   return entities;
 };
 
-/**
- * @todo remove need to cast in this function
- */
 const restoreDraftId = (
-  entity: { entityId: string | null; draftId?: string },
+  identifiers: { entityId: EntityId | null; draftId?: string },
   entityToDraft: Record<string, string>,
-) => {
-  const textEntityId = entity.entityId;
+): string => {
+  const textEntityId = identifiers.entityId;
 
   if (!textEntityId) {
     throw new Error("entity id does not exist when expected to");
   }
 
-  // eslint-disable-next-line no-param-reassign
-  entity.draftId = entityToDraft[textEntityId]!;
+  return entityToDraft[textEntityId]!;
 };
 
 /**
@@ -122,7 +135,7 @@ const restoreDraftId = (
 export const createEntityStore = (
   contents: BlockEntity[],
   draftData: Record<string, DraftEntity>,
-  presetDraftIds: Record<string, string> = {},
+  presetDraftIds: Record<string, EntityId> = {},
 ): EntityStore => {
   const saved: EntityStore["saved"] = {};
   const draft: EntityStore["draft"] = {};
@@ -135,24 +148,25 @@ export const createEntityStore = (
   );
 
   for (const row of Object.values(draftData)) {
-    if (row.entityId) {
-      entityToDraft[row.entityId] = row.draftId;
+    if (row.metadata.editionId.baseId) {
+      entityToDraft[row.metadata.editionId.baseId] = row.draftId;
     }
   }
 
   const entities = findEntities(contents);
 
   for (const entity of entities) {
-    if (entity && !entityToDraft[entity.entityId]) {
-      entityToDraft[entity.entityId] = generateDraftIdForEntity(
-        entity.entityId,
-      );
+    const entityId = entity.metadata.editionId.baseId;
+    if (entity && !entityToDraft[entityId]) {
+      entityToDraft[entityId] = generateDraftIdForEntity(entityId);
     }
   }
 
   for (const entity of entities) {
-    saved[entity.entityId] = entity;
-    const draftId = entityToDraft[entity.entityId]!;
+    const entityId = entity.metadata.editionId.baseId;
+
+    saved[entityId] = entity;
+    const draftId = entityToDraft[entityId]!;
     /**
      * We current violate Immer's rules, as properties inside entities can be
      * other entities themselves, and we expect `entity.property.entity` to be
@@ -167,8 +181,10 @@ export const createEntityStore = (
       (draftEntity: Draft<DraftEntity>) => {
         if (draftData[draftId]) {
           if (
-            new Date(draftData[draftId]!.entityVersion ?? 0).getTime() >
-            new Date(draftEntity.entityVersion ?? 0).getTime()
+            new Date(
+              draftData[draftId]!.metadata.editionId.version ?? 0,
+            ).getTime() >
+            new Date(draftEntity.metadata.editionId.version ?? 0).getTime()
           ) {
             Object.assign(draftEntity, draftData[draftId]);
           }
@@ -180,14 +196,31 @@ export const createEntityStore = (
       draft[draftId]!,
       (draftEntity: Draft<DraftEntity>) => {
         if (isDraftBlockEntity(draftEntity)) {
-          restoreDraftId(draftEntity, entityToDraft);
+          const restoredDraftId = restoreDraftId(
+            {
+              entityId: draftEntity.metadata.editionId.baseId,
+              draftId: draftEntity.draftId,
+            },
+            entityToDraft,
+          );
+
+          draftEntity.draftId = restoredDraftId;
 
           // Set the blockChildEntity's draft ID on a block draft.
           if (
             !draftEntity.blockChildEntity?.draftId &&
-            draftEntity.blockChildEntity?.entityId
+            draftEntity.blockChildEntity?.metadata.editionId.baseId
           ) {
-            restoreDraftId(draftEntity.blockChildEntity, entityToDraft);
+            const restoredBlockDraftId = restoreDraftId(
+              {
+                entityId:
+                  draftEntity.blockChildEntity.metadata.editionId.baseId,
+                draftId: draftEntity.blockChildEntity.draftId,
+              },
+              entityToDraft,
+            );
+
+            draftEntity.blockChildEntity.draftId = restoredBlockDraftId;
           }
         }
       },
@@ -197,7 +230,15 @@ export const createEntityStore = (
   for (const [draftId, draftEntity] of Object.entries(draftData)) {
     const updated = {
       ...draftEntity,
-      entityId: presetDraftIds[draftEntity.draftId] ?? draftEntity.entityId,
+      metadata: {
+        ...draftEntity.metadata,
+        editionId: {
+          ...draftEntity.metadata.editionId,
+          baseId:
+            presetDraftIds[draftEntity.draftId] ??
+            draftEntity.metadata.editionId.baseId,
+        },
+      },
     };
 
     draft[draftId] ??= updated;
@@ -208,12 +249,15 @@ export const createEntityStore = (
     if (!draftEntity) {
       throw new Error("Cannot update relevant entity id");
     }
-    if (draftEntity.entityId && draftEntity.entityId !== entityId) {
+    if (
+      draftEntity.metadata.editionId.baseId &&
+      draftEntity.metadata.editionId.baseId !== entityId
+    ) {
       throw new Error("Cannot update entity id of existing draft entity");
     }
 
     draft[draftId] = produce(draftEntity, (draftDraftEntity) => {
-      draftDraftEntity.entityId = entityId;
+      draftDraftEntity.metadata.editionId.baseId = entityId;
     });
   }
 

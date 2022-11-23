@@ -11,7 +11,7 @@ import { PersistedPageFieldsFragment, Text } from "./graphql/apiTypes.gen";
 import { TextToken } from "./graphql/types";
 import { DistributiveOmit, DistributivePick, flatMapTree } from "./util";
 
-type ContentsEntity = DistributiveOmit<
+export type ContentsEntity = DistributiveOmit<
   PersistedPageFieldsFragment["contents"][number],
   "__typename"
 >;
