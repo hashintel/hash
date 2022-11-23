@@ -34,16 +34,8 @@ const persistedPagePropertiesFieldsFragment = gql`
 `;
 
 export const getPageInfoQuery = gql`
-  query getPageInfo(
-    $ownedById: ID!
-    $entityId: EntityId!
-    $entityVersion: String
-  ) {
-    persistedPage(
-      ownedById: $ownedById
-      entityId: $entityId
-      entityVersion: $entityVersion
-    ) {
+  query getPageInfo($entityId: EntityId!) {
+    persistedPage(entityId: $entityId) {
       metadata
       ...PersistedPagePropertyFields
     }
@@ -52,16 +44,8 @@ export const getPageInfoQuery = gql`
 `;
 
 export const getPersistedPageQuery = gql`
-  query getPersistedPage(
-    $ownedById: ID!
-    $entityId: EntityId!
-    $entityVersion: String
-  ) {
-    persistedPage(
-      ownedById: $ownedById
-      entityId: $entityId
-      entityVersion: $entityVersion
-    ) {
+  query getPersistedPage($entityId: EntityId!) {
+    persistedPage(entityId: $entityId) {
       ...PersistedPageFields
     }
   }

@@ -25,6 +25,8 @@ import {
   DragEndEvent,
   DragStartEvent,
 } from "@dnd-kit/core";
+import { splitEntityId } from "@hashintel/hash-subgraph";
+
 import { Box, Collapse } from "@mui/material";
 import { useAccountPages } from "../../../../components/hooks/useAccountPages";
 import { useCreatePage } from "../../../../components/hooks/useCreatePage";
@@ -42,7 +44,6 @@ import {
 } from "./utils";
 import { IDENTATION_WIDTH } from "./page-tree-item";
 import { PagesLoadingState } from "./pages-loading-state";
-import { splitEntityId } from "@hashintel/hash-subgraph";
 
 type AccountPageListProps = {
   accountId: string;

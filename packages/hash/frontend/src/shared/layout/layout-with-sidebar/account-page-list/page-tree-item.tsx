@@ -27,11 +27,7 @@ export interface PageTreeItemProps {
   expandable: boolean;
   collapsed: boolean;
   createSubPage: () => Promise<void>;
-  archivePage: (
-    value: boolean,
-    accountId: string,
-    pageEntityId: string,
-  ) => Promise<void>;
+  archivePage: (value: boolean, pageEntityId: EntityId) => Promise<void>;
   onCollapse?: () => void;
   dragProps?: DragProps;
 }
