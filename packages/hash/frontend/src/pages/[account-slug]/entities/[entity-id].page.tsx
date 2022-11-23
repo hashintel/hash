@@ -1,6 +1,7 @@
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import {
+  entityIdFromOwnedByIdAndEntityUuid,
   EntityWithMetadata,
   Subgraph,
   SubgraphRootTypes,
@@ -32,7 +33,10 @@ const Page: NextPageWithLayout = () => {
           const entityUuid = router.query["entity-id"] as string;
 
           const { data: subgraph } = await getEntity({
-            data: `${namespace.accountId}%${entityUuid}`,
+            data: entityIdFromOwnedByIdAndEntityUuid(
+              namespace.accountId,
+              entityUuid,
+            ),
           });
 
           if (subgraph) {
