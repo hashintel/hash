@@ -78,7 +78,7 @@ export const constructUser = (params: {
       ] as string;
 
       if (!metadata.linkMetadata?.rightEntityId) {
-        throw new Error("Expected membership to contain a right-link");
+        throw new Error("Expected org membership to contain a right entity");
       }
       const org = getRightEntityForLinkEntityAtMoment(
         subgraph,
