@@ -3,33 +3,38 @@ import { useMemo } from "react";
 import { extractEntityUuidFromEntityId } from "@hashintel/hash-subgraph";
 import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
 
-export const useRouteNamespace = (): {
-  accountId: string;
-  shortname?: string;
-} | undefined => {
+export const useRouteNamespace = ():
+  | {
+      accountId: string;
+      shortname?: string;
+    }
+  | undefined => {
   const { authenticatedUser } = useAuthenticatedUser();
   const router = useRouter();
 
   const shortname = router.query["account-slug"];
 
   const namespace = useMemo(() => {
-    let entity;
+    let accountShortname;
+    let accountId;
 
     if (authenticatedUser) {
       if (shortname === `@${authenticatedUser.shortname}`) {
-        entity = authenticatedUser;
+        accountShortname = authenticatedUser.shortname;
+        accountId = authenticatedUser.userAccountId;
       } else {
-        entity = authenticatedUser.memberOf?.find(
+        const org = authenticatedUser.memberOf?.find(
           (org) => `@${org.shortname}` === shortname,
         );
+
+        accountShortname = org?.shortname;
+        accountId = org?.orgAccountId;
       }
 
-      if (entity) {
+      if (accountShortname && accountId) {
         return {
-          accountId: extractEntityUuidFromEntityId(
-            entity.entityEditionId.baseId,
-          ),
-          shortname: entity.shortname,
+          accountId,
+          shortname: accountShortname,
         };
       }
     }
