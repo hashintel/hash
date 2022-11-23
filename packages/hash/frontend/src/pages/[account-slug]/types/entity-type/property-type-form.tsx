@@ -32,6 +32,7 @@ import { faText } from "../../../../shared/icons/pro/fa-text";
 import { QuestionIcon } from "./question-icon";
 import { useRefetchPropertyTypes } from "./use-property-types";
 import { useRouteNamespace } from "./use-route-namespace";
+import { PropertyTypeSelectorDropdown } from "./property-type-selector-dropdown";
 
 const generateInitialPropertyTypeId = (baseUri: string) =>
   addVersionToBaseUri(baseUri, 1);
@@ -261,6 +262,7 @@ export const PropertyTypeForm = ({
               clearOnBlur={false}
               onChange={(_evt, data) => onChange(data)}
               {...props}
+              PaperComponent={PropertyTypeSelectorDropdown}
               renderTags={(value, getTagProps) =>
                 value.map((option, index) => (
                   <Chip
