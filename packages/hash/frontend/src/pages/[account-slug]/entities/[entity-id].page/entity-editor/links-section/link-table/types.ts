@@ -10,7 +10,7 @@ export type LinkRow = {
 
 export type LinkColumnKey = Extract<
   keyof LinkRow,
-  "type" | "linkedWith" | "expectedEntityType" | "relationShip"
+  "linkEntityTypeTitle" | "linkedWith" | "expectedEntityType" | "relationship"
 >;
 
 export interface LinkColumn extends SizedGridColumn {
