@@ -13,10 +13,33 @@ export const ErrorBlock: FunctionComponent<ErrorBlockProps> = ({
   onRetry,
 }) => (
   <div
-    style={tw`flex flex-row items-baseline px-3 py-2 border-2 border-red-300 rounded`}
+    style={{
+      alignItems: "baseline",
+      borderColor: "#FCA5A5",
+      borderRadius: "0.25rem",
+      borderWidth: "2px",
+      display: "flex",
+      flexDirection: "row",
+      paddingBottom: "0.5rem",
+      paddingLeft: "0.75rem",
+      paddingRight: "0.75rem",
+      paddingTop: "0.5rem",
+    }}
     contentEditable="false"
   >
-    Error: <span style={tw`flex-grow truncate font-mono`}>{error.message}</span>
+    Error:{" "}
+    <span
+      style={{
+        flexGrow: "1",
+        fontFamily:
+          'Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {error.message}
+    </span>
     <Button sx={{ whiteSpace: "nowrap" }} onClick={onRetry}>
       Reload block
     </Button>

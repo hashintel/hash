@@ -11,7 +11,15 @@ type InviteHeaderProps = {
 export const InviteHeader: FunctionComponent<InviteHeaderProps> = memo(
   ({ invitationInfo }) => {
     return (
-      <p style={tw`font-bold text-2xl text-blue-500 mb-12`}>
+      <p
+        style={{
+          color: "#3B82F6",
+          fontSize: "1.5rem",
+          fontWeight: "700",
+          lineHeight: "2rem",
+          marginBottom: "3rem",
+        }}
+      >
         {invitationInfo.inviterPreferredName
           ? `${invitationInfo.inviterPreferredName} has invited you to join 
           ${invitationInfo.orgName}`

@@ -47,7 +47,7 @@ const Page: NextPageWithLayout = () => {
 
   return (
     <>
-      <header style={tw`mb-12`}>
+      <header style={{ marginBottom: "3rem" }}>
         <h1>
           Create new <strong>entity type</strong>
         </h1>
@@ -58,7 +58,14 @@ const Page: NextPageWithLayout = () => {
       </header>
       <section>
         <form data-testid="entity-type-creation-form" onSubmit={submit}>
-          <div style={tw`max-w-2xl lg:flex`}>
+          <div
+            style={{
+              maxWidth: "42rem",
+              // @media (min-width: 1024px) {
+              //  display: flex;
+              // }
+            }}
+          >
             <TextField
               name="name"
               label="Name"
