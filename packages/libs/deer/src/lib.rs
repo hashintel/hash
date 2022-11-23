@@ -425,7 +425,7 @@ pub trait Deserializer<'de>: Sized {
     /// # Errors
     ///
     /// Current value is not of type null
-    fn deserialize_null<V>(self, visitor: V) -> Result<V, DeserializerError>
+    fn deserialize_null<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>;
 

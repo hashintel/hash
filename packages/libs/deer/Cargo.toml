@@ -24,4 +24,4 @@ std = ['serde/std']
 arbitrary-precision = []
 
 [workspace]
-members = ['.', 'macros']
+members = ['.', 'macros', 'json']
