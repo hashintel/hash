@@ -50,7 +50,7 @@ pub trait ArrayAccess<'de> {
     where
         T: Deserialize<'de>;
 
-    fn finish(self) -> Result<(), ArrayAccessError>;
+    fn end(self) -> Result<(), ArrayAccessError>;
 }
 
 // Reason: We error out on every `visit_*`, which means we do not use the value, but(!) IDEs like to
