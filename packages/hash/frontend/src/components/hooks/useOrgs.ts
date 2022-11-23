@@ -1,13 +1,13 @@
 import { useMemo } from "react";
 import { useQuery } from "@apollo/client";
 import { types } from "@hashintel/hash-shared/types";
-import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
+import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import {
   GetAllLatestEntitiesWithMetadataQuery,
   GetAllLatestEntitiesWithMetadataQueryVariables,
 } from "../../graphql/apiTypes.gen";
 import { getAllLatestEntitiesWithMetadataQuery } from "../../graphql/queries/knowledge/entity.queries";
-import { useInitTypeSystem } from "../../lib/use-init-type-system";
 import { constructOrg, Org } from "../../lib/org";
 /**
  * Retrieves a list of organizations.
@@ -32,27 +32,26 @@ export const useOrgs = (): {
     fetchPolicy: "no-cache",
   });
 
-  const loadingTypeSystem = useInitTypeSystem();
-
   const { getAllLatestEntitiesWithMetadata: subgraph } = data ?? {};
 
   const orgs = useMemo(() => {
-    if (!subgraph || loadingTypeSystem) {
+    if (!subgraph) {
       return undefined;
     }
 
-    return getRootsAsEntities(subgraph)
+    /** @todo - Is there a way we can ergonomically encode this in the GraphQL type? */
+    return getRoots(subgraph as Subgraph<SubgraphRootTypes["entity"]>)
       .filter(
         ({ metadata: { entityTypeId } }) =>
           entityTypeId === types.entityType.org.entityTypeId,
       )
-      .map(({ metadata: { editionId: orgEntityEditionId } }) =>
+      .map(({ metadata: { editionId } }) =>
         constructOrg({
           subgraph,
-          orgEntityEditionId,
+          orgEntityEditionId: editionId,
         }),
       );
-  }, [subgraph, loadingTypeSystem]);
+  }, [subgraph]);
 
   return {
     loading,
