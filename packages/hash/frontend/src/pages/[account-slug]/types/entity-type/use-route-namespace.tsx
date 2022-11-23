@@ -2,12 +2,13 @@ import { useRouter } from "next/router";
 import { useMemo } from "react";
 import { useGetAccountIdForShortname } from "../../../../components/hooks/useGetAccountIdForShortname";
 
-export const useRouteNamespace = ():
-  | {
-      accountId: string;
-      shortname?: string;
-    }
-  | undefined => {
+export const useRouteNamespace = (): {
+  loading: boolean;
+  namespace?: {
+    accountId: string;
+    shortname?: string;
+  };
+} => {
   const router = useRouter();
   const shortname = router.query["account-slug"];
 
@@ -15,18 +16,22 @@ export const useRouteNamespace = ():
     throw new Error("shortname can't be an array");
   }
 
-  const { accountId } = useGetAccountIdForShortname(
-    shortname ? shortname.substring(1) : undefined,
+  const shortnameWithoutPrefix = shortname ? shortname.substring(1) : undefined;
+  const { loading, accountId } = useGetAccountIdForShortname(
+    shortnameWithoutPrefix,
   );
 
   return useMemo(() => {
-    if (accountId) {
+    if (!loading && accountId) {
       return {
-        accountId,
-        shortname,
+        loading,
+        namespace: {
+          accountId,
+          shortname: shortnameWithoutPrefix,
+        },
       };
     } else {
-      return undefined;
+      return { loading };
     }
-  }, [accountId, shortname]);
+  }, [loading, accountId, shortnameWithoutPrefix]);
 };

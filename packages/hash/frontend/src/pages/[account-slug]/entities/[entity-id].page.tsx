@@ -17,7 +17,7 @@ import { useRouteNamespace } from "../types/entity-type/use-route-namespace";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
-  const namespace = useRouteNamespace();
+  const { namespace } = useRouteNamespace();
   const { authenticatedUser } = useLoggedInUser();
   const { getEntity } = useBlockProtocolGetEntity();
 

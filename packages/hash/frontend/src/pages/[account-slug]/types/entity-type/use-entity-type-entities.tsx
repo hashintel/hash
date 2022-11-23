@@ -4,27 +4,28 @@ import {
   extractBaseUri,
 } from "@blockprotocol/type-system-web";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { EntityWithMetadata } from "@hashintel/hash-subgraph";
-import { useBlockProtocolAggregateEntities } from "../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolAggregateEntities";
 import {
-  getPersistedEntities,
-  getPersistedEntityType,
-  getPersistedPropertyType,
+  EntityWithMetadata,
   Subgraph,
-} from "../../../../lib/subgraph";
-import { mustBeVersionedUri } from "./util";
+  SubgraphRootTypes,
+} from "@hashintel/hash-subgraph";
+import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
+import { getPropertyTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
+import { useBlockProtocolAggregateEntities } from "../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolAggregateEntities";
 
 export type EntityTypeEntitiesContextValue = {
   entities?: EntityWithMetadata[];
   entityTypes?: EntityType[];
   propertyTypes?: PropertyType[];
-  subgraph?: Subgraph;
+  subgraph?: Subgraph<SubgraphRootTypes["entity"]>;
 };
 
 export const useEntityTypeEntitiesContextValue = (
-  typeId: string | null,
+  typeBaseUri: string | null,
 ): EntityTypeEntitiesContextValue => {
-  const [subgraph, setSubgraph] = useState<Subgraph>();
+  const [subgraph, setSubgraph] =
+    useState<Subgraph<SubgraphRootTypes["entity"]>>();
   const { aggregateEntities } = useBlockProtocolAggregateEntities();
 
   useEffect(() => {
@@ -50,15 +51,17 @@ export const useEntityTypeEntitiesContextValue = (
         return undefined;
       }
 
-      const relevantEntities = getPersistedEntities(subgraph).filter(
-        ({ entityTypeId }) =>
-          extractBaseUri(mustBeVersionedUri(entityTypeId)) === typeId,
+      const relevantEntities = getRoots(subgraph).filter(
+        ({ metadata: { entityTypeId } }) =>
+          extractBaseUri(entityTypeId) === typeBaseUri,
       );
 
       const relevantTypesMap = new Map<string, EntityType>();
-      for (const { entityTypeId } of relevantEntities) {
+      for (const {
+        metadata: { entityTypeId },
+      } of relevantEntities) {
         if (!relevantTypesMap.has(entityTypeId)) {
-          const type = getPersistedEntityType(subgraph, entityTypeId)?.inner;
+          const type = getEntityTypeById(subgraph, entityTypeId)?.schema;
           if (type) {
             relevantTypesMap.set(entityTypeId, type);
           }
@@ -71,10 +74,10 @@ export const useEntityTypeEntitiesContextValue = (
         for (const prop of Object.values(properties)) {
           const propertyUri = "items" in prop ? prop.items.$ref : prop.$ref;
           if (!relevantPropertiesMap.has(propertyUri)) {
-            const propertyType = getPersistedPropertyType(
+            const propertyType = getPropertyTypeById(
               subgraph,
               propertyUri,
-            )?.inner;
+            )?.schema;
             if (propertyType) {
               relevantPropertiesMap.set(propertyUri, propertyType);
             }
@@ -84,7 +87,7 @@ export const useEntityTypeEntitiesContextValue = (
       const relevantProperties = Array.from(relevantPropertiesMap.values());
 
       return [relevantEntities, relevantTypes, relevantProperties];
-    }, [subgraph, typeId]) ?? [];
+    }, [subgraph, typeBaseUri]) ?? [];
 
   return {
     entities,
