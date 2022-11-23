@@ -1,4 +1,4 @@
-import { FormEvent, useState, FunctionComponent } from "react";
+import { FormEvent, useState, FunctionComponent, CSSProperties } from "react";
 import { JsonSchema } from "@hashintel/hash-shared/json-utils";
 import { SchemaSelectElementType } from "./SchemaEditor";
 import { SchemaPropertyRow } from "./SchemaPropertyRow";
@@ -13,11 +13,25 @@ type SchemaPropertiesTableProps = {
   selectedSchema: JsonSchema;
 };
 
-const cellPadding = "pl-4 pr-8 py-4";
+const cellPadding: CSSProperties = {
+  paddingBottom: "1rem",
+  paddingLeft: "1rem",
+  paddingRight: "2rem",
+  paddingTop: "1rem",
+};
 
-const thClasses = tw`sticky first:rounded-tl-2xl last:rounded-tr-2xl ${cellPadding}`;
-export const trClasses = tw`border border-gray-100 rounded-2xl odd:bg-gray-50 even:bg-gray-100`;
-export const tdClasses = tw`${cellPadding}`;
+const thStyle: CSSProperties = {
+  position: "sticky",
+  ...cellPadding,
+  // first:rounded-tl-2xl last:rounded-tr-2xl
+};
+export const trStyle: CSSProperties = {
+  borderRadius: "1rem",
+  borderWidth: "1px",
+  borderColor: "#F3F4F6",
+  // odd:bg-gray-50 even:bg-gray-100
+};
+export const tdStyle = cellPadding;
 
 export const SchemaPropertiesTable: FunctionComponent<
   SchemaPropertiesTableProps
@@ -46,18 +60,28 @@ export const SchemaPropertiesTable: FunctionComponent<
 
   return (
     <table
-      style={tw`max-w-full w-full text-sm text-left border-separate border border-gray-100 rounded-2xl`}
-      style={{ borderSpacing: 0 }}
+      style={{
+        borderCollapse: "separate",
+        borderColor: "#F3F4F6",
+        borderRadius: "1rem",
+        borderSpacing: 0,
+        borderWidth: "1px",
+        fontSize: "0.875rem",
+        lineHeight: "1.25rem",
+        maxWidth: "100%",
+        textAlign: "left",
+        width: "100%",
+      }}
     >
       <thead>
         <tr>
-          <th className={thClasses}>Property</th>
-          <th className={thClasses}>Expected Type</th>
-          <th className={thClasses}>Description</th>
-          <th className={thClasses}>Array</th>
-          <th className={thClasses}>Required</th>
-          <th className={thClasses}>Constraints</th>
-          <th className={thClasses}>Delete</th>
+          <th style={thStyle}>Property</th>
+          <th style={thStyle}>Expected Type</th>
+          <th style={thStyle}>Description</th>
+          <th style={thStyle}>Array</th>
+          <th style={thStyle}>Required</th>
+          <th style={thStyle}>Constraints</th>
+          <th style={thStyle}>Delete</th>
         </tr>
       </thead>
       <tbody>
@@ -79,14 +103,21 @@ export const SchemaPropertiesTable: FunctionComponent<
             );
           })}
         {!readonly ? (
-          <tr className={trClasses}>
-            <td className={tdClasses} colSpan={7}>
-              <div style={tw`text-uppercase font-bold mr-12 mb-1`}>
+          <tr style={trStyle}>
+            <td style={tdStyle} colSpan={7}>
+              <div
+                style={{
+                  fontWeight: "700",
+                  marginBottom: "0.25rem",
+                  marginRight: "3rem",
+                  textTransform: "uppercase",
+                }}
+              >
                 New property
               </div>
               <form onSubmit={onAddPropertyFormSubmit}>
                 <TextInputOrDisplay
-                  style={tw`w-64`}
+                  style={{ width: "16rem" }}
                   placeholder="newProperty"
                   readonly={false}
                   updateText={setNewPropertyName}

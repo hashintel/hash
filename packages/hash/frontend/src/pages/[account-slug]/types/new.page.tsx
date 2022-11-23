@@ -90,7 +90,7 @@ const Page: NextPageWithLayout = () => {
             />
           </div>
 
-          <div style={tw`mt-8`}>
+          <div style={{ marginTop: "2rem" }}>
             <Collapse in={!!error?.message}>
               <Typography
                 sx={({ palette }) => ({

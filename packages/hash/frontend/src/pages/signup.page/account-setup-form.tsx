@@ -187,7 +187,7 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
           </div>
 
           {!!invitationInfo && (
-            <div style={tw`mt-8`}>
+            <div style={{ marginTop: "2rem" }}>
               <Controller
                 control={control}
                 name="responsibility"

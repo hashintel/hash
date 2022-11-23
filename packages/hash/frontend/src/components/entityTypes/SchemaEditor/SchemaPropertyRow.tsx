@@ -1,7 +1,7 @@
 import { FunctionComponent } from "react";
 
 import { JsonSchema } from "@hashintel/hash-shared/json-utils";
-import { tdClasses, trClasses } from "./SchemaPropertiesTable";
+import { tdStyle, trStyle } from "./SchemaPropertiesTable";
 import { SchemaPropertyTypeList } from "./SchemaPropertyTypeList";
 import { SchemaSelectElementType } from "./SchemaEditor";
 import { ToggleInputOrDisplay, TextInputOrDisplay } from "./Inputs";
@@ -78,8 +78,8 @@ export const SchemaPropertyRow: FunctionComponent<SchemaPropertyRowProps> = ({
   const { description } = property;
 
   return (
-    <tr className={trClasses}>
-      <td className={tdClasses}>
+    <tr className={trStyle}>
+      <td className={tdStyle}>
         <TextInputOrDisplay
           style={{ width: "9rem" }}
           placeholder="The property name"
@@ -89,7 +89,7 @@ export const SchemaPropertyRow: FunctionComponent<SchemaPropertyRowProps> = ({
           updateOnBlur
         />
       </td>
-      <td className={tdClasses}>
+      <td className={tdStyle}>
         <SchemaPropertyTypeList
           hasSubSchema={!!properties}
           propertyName={name}
@@ -100,7 +100,7 @@ export const SchemaPropertyRow: FunctionComponent<SchemaPropertyRowProps> = ({
           updatePermittedType={updatePermittedType}
         />
       </td>
-      <td className={tdClasses}>
+      <td className={tdStyle}>
         <TextInputOrDisplay
           placeholder="Describe the property..."
           readonly={readonly}
@@ -109,21 +109,21 @@ export const SchemaPropertyRow: FunctionComponent<SchemaPropertyRowProps> = ({
           updateOnBlur
         />
       </td>
-      <td className={tdClasses}>
+      <td className={tdStyle}>
         <ToggleInputOrDisplay
           checked={isArray}
           onChange={() => togglePropertyIsArray()}
           readonly={readonly}
         />
       </td>
-      <td className={tdClasses}>
+      <td className={tdStyle}>
         <ToggleInputOrDisplay
           checked={required}
           onChange={() => togglePropertyIsRequired()}
           readonly={readonly}
         />
       </td>
-      <td className={tdClasses}>
+      <td className={tdStyle}>
         {/* @todo constraints may appear on any in a list of types, need to display this multiple times */}
         {Object.entries(constraints).map(([typeName, value]) => (
           <div key={typeName}>
@@ -133,7 +133,7 @@ export const SchemaPropertyRow: FunctionComponent<SchemaPropertyRowProps> = ({
           </div>
         ))}
       </td>
-      <td className={tdClasses}>
+      <td className={tdStyle}>
         <Button variant="danger" onClick={deleteProperty}>
           Delete
         </Button>

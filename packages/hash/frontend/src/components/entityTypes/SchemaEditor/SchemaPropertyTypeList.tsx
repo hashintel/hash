@@ -99,7 +99,7 @@ const PropertyTypeSelect: FunctionComponent<
 
   return (
     <SelectInput
-      style={tw`w-32`}
+      style={{ width: "8rem" }}
       options={typeOptions}
       onChangeValue={updatePermittedType}
       value={currentType}
