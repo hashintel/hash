@@ -204,6 +204,37 @@ impl<'q> Filter<'q, Entity> {
 
     /// TODO
     #[must_use]
+    pub fn for_incoming_link_by_source_entity_edition_id(edition_id: EntityEditionId) -> Self {
+        Self::All(vec![
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::RightEntity(
+                    Box::new(EntityQueryPath::OwnedById),
+                ))),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    edition_id.base_id().owned_by_id().as_uuid(),
+                ))),
+            ),
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::RightEntity(
+                    Box::new(EntityQueryPath::Uuid),
+                ))),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    edition_id.base_id().entity_uuid().as_uuid(),
+                ))),
+            ),
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::RightEntity(
+                    Box::new(EntityQueryPath::Version),
+                ))),
+                Some(FilterExpression::Parameter(Parameter::Timestamp(
+                    edition_id.version().inner(),
+                ))),
+            ),
+        ])
+    }
+
+    /// TODO
+    #[must_use]
     pub fn for_left_entity_by_entity_edition_id(edition_id: EntityEditionId) -> Self {
         Self::All(vec![
             Self::Equal(

@@ -129,12 +129,63 @@ impl<C: AsClient> PostgresStore<C> {
                         entity_edition_id,
                         outgoing_link_entity.metadata().edition_id(),
                         OutwardEdge {
-                            // (HasLeftEndpoint, reversed=true) is equivalent to an
-                            // outgoing `Link` `Entity`
+                            // (HasLeftEntity, reversed=true) is equivalent to an
+                            // outgoing link `Entity`
                             kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                             reversed: true,
                             right_endpoint: EntityIdAndTimestamp::new(
                                 outgoing_link_entity.metadata().edition_id().base_id(),
+                                earliest_version.inner(),
+                            ),
+                        },
+                    )
+                    .await?;
+                }
+
+                for incoming_link_entity in <Self as Read<Entity>>::read(
+                    self,
+                    &Filter::for_incoming_link_by_source_entity_edition_id(entity_edition_id),
+                )
+                .await?
+                {
+                    // We want to log the time the link entity was *first* added from this entity.
+                    // We therefore need to find the timestamp of the first link entity
+                    // TODO: this is very slow, we should update structural querying to be able to
+                    //  get the first timestamp of something efficiently
+                    let mut all_incoming_link_entity_editions: Vec<_> =
+                        <Self as Read<Entity>>::read(
+                            self,
+                            &Filter::for_entity_by_entity_id(
+                                incoming_link_entity.metadata().edition_id().base_id(),
+                            ),
+                        )
+                        .await?
+                        .into_iter()
+                        .map(|entity| entity.metadata().edition_id())
+                        .collect();
+
+                    all_incoming_link_entity_editions.sort();
+
+                    let earliest_version = all_incoming_link_entity_editions
+                        .into_iter()
+                        .next()
+                        .expect(
+                            "we got the edition id from the entity in the first place, there must \
+                             be at least one version",
+                        )
+                        .version();
+
+                    self.resolve_entity_dependency_with_edge_kind(
+                        &mut dependency_context,
+                        entity_edition_id,
+                        incoming_link_entity.metadata().edition_id(),
+                        OutwardEdge {
+                            // (HasRightEntity, reversed=true) is equivalent to an
+                            // incoming link `Entity`
+                            kind: KnowledgeGraphEdgeKind::HasRightEntity,
+                            reversed: true,
+                            right_endpoint: EntityIdAndTimestamp::new(
+                                incoming_link_entity.metadata().edition_id().base_id(),
                                 earliest_version.inner(),
                             ),
                         },
