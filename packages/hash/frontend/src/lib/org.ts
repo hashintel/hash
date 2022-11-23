@@ -1,6 +1,10 @@
 import { extractBaseUri } from "@blockprotocol/type-system-web";
 import { types } from "@hashintel/hash-shared/types";
-import { Subgraph, EntityEditionId } from "@hashintel/hash-subgraph";
+import {
+  Subgraph,
+  EntityEditionId,
+  extractEntityUuidFromEntityId,
+} from "@hashintel/hash-subgraph";
 import { getEntityByEditionId } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import {
   // constructMinimalUser,
@@ -10,6 +14,7 @@ import {
 export type MinimalOrg = {
   kind: "org";
   entityEditionId: EntityEditionId;
+  orgAccountId: string;
   shortname: string;
   name: string;
 };
@@ -39,6 +44,7 @@ export const constructMinimalOrg = (params: {
   return {
     kind: "org",
     entityEditionId: orgEntityEditionId,
+    orgAccountId: extractEntityUuidFromEntityId(orgEntityEditionId.baseId),
     shortname,
     name,
   };

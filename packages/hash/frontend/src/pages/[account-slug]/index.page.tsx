@@ -1,7 +1,6 @@
 import { Box, Typography } from "@mui/material";
 import { faWarning } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { extractEntityUuidFromEntityId } from "@hashintel/hash-subgraph";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { useAuthenticatedUser } from "../../components/hooks/useAuthenticatedUser";
 import { useOrgs } from "../../components/hooks/useOrgs";
@@ -41,17 +40,11 @@ const Page: NextPageWithLayout = () => {
     );
   }
 
-  const ownWorkspace =
-    accountId ===
-    extractEntityUuidFromEntityId(authenticatedUser.entityEditionId.baseId);
+  const ownWorkspace = accountId === authenticatedUser.userAccountId;
 
   const thisOrg = ownWorkspace
     ? undefined
-    : orgs?.find(
-        (org) =>
-          extractEntityUuidFromEntityId(org.entityEditionId.baseId) ===
-          accountId,
-      );
+    : orgs?.find((org) => org.orgAccountId === accountId);
 
   if (!ownWorkspace && !thisOrg) {
     return (

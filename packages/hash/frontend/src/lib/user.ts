@@ -1,6 +1,10 @@
 import { extractBaseUri } from "@blockprotocol/type-system-web";
 import { types } from "@hashintel/hash-shared/types";
-import { Subgraph, EntityEditionId } from "@hashintel/hash-subgraph";
+import {
+  Subgraph,
+  EntityEditionId,
+  extractEntityUuidFromEntityId,
+} from "@hashintel/hash-subgraph";
 import { getEntityByEditionId } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import {
   getOutgoingLinksForEntityAtMoment,
@@ -12,6 +16,7 @@ import { constructOrg, Org } from "./org";
 export type MinimalUser = {
   kind: "user";
   entityEditionId: EntityEditionId;
+  userAccountId: string;
   accountSignupComplete: boolean;
   shortname?: string;
   preferredName?: string;
@@ -44,6 +49,7 @@ export const constructMinimalUser = (params: {
   return {
     kind: "user",
     entityEditionId: userEntityEditionId,
+    userAccountId: extractEntityUuidFromEntityId(userEntityEditionId.baseId),
     shortname,
     preferredName,
     accountSignupComplete,
