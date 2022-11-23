@@ -228,6 +228,8 @@ export const createEntityStore = (
   }
 
   for (const [draftId, draftEntity] of Object.entries(draftData)) {
+    // BaseId is readonly, so we have to do this instead of assigning
+    // updated.metadata.editionId.baseId
     const updated = {
       ...draftEntity,
       metadata: {
