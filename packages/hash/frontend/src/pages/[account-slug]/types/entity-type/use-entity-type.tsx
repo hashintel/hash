@@ -26,11 +26,7 @@ export const useEntityType = (
 
   const { createEntityType } = useBlockProtocolCreateEntityType(
     namespace ??
-      (authenticatedUser !== undefined
-        ? extractEntityUuidFromEntityId(
-            authenticatedUser.entityEditionId.baseId,
-          )
-        : ""),
+      (authenticatedUser !== undefined ? authenticatedUser.userAccountId : ""),
   );
   const [typeSystemLoading, loadTypeSystem] = useAdvancedInitTypeSystem();
 
