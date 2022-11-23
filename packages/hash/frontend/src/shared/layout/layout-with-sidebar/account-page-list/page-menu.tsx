@@ -1,9 +1,14 @@
 import { FunctionComponent, useMemo, useState } from "react";
-import { ListItemIcon, ListItemText, PopoverPosition } from "@mui/material";
+import {
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  PopoverPosition,
+} from "@mui/material";
 import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
 import { faArchive, faLink } from "@fortawesome/free-solid-svg-icons";
 import { faFileAlt } from "@fortawesome/free-regular-svg-icons";
-import { Menu, FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { useRouteAccountInfo } from "../../../routing";
 import { MenuItem } from "../../../ui";
 

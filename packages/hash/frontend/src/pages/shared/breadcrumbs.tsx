@@ -3,13 +3,13 @@ import {
   Button,
   FontAwesomeIcon,
   IconButton,
-  Menu,
 } from "@hashintel/hash-design-system";
 import {
   Box,
   Breadcrumbs as MuiBreadcrumbs,
   ListItemIcon,
   ListItemText,
+  Menu,
   Tooltip,
 } from "@mui/material";
 import {

@@ -7,6 +7,13 @@
   "exports": {
     "./*": "./src/*.ts"
   },
+  "typesVersions": {
+    "*": {
+      "*": [
+        "./src/*.ts"
+      ]
+    }
+  },
   "scripts": {
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.yml",
     "fix:eslint": "eslint --fix .",
@@ -19,7 +26,7 @@
     "@blockprotocol/core": "0.0.12",
     "@hashintel/hash-graph-client": "0.0.0-private",
     "@hashintel/hash-subgraph": "0.0.0-private",
-    "@sentry/browser": "7.16.0",
+    "@sentry/browser": "7.19.0",
     "graphql-tag": "2.12.5",
     "immer": "9.0.6",
     "jsonschema": "1.4.0",

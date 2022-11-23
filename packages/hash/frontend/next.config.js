@@ -36,12 +36,18 @@ process.env.NEXT_PUBLIC_BLOCK_BASED_ENTITY_EDITOR =
 // This allows the frontend to generate the graph type IDs in the browser
 process.env.NEXT_PUBLIC_FRONTEND_URL = process.env.FRONTEND_URL;
 
+// This allows the frontend to have the system account shortname, used to generate system types in shared/src/types.ts
+// the frontend imports 'types' from that file in various places
+process.env.NEXT_PUBLIC_SYSTEM_ACCOUNT_SHORTNAME =
+  process.env.SYSTEM_ACCOUNT_SHORTNAME;
+process.env.NEXT_PUBLIC_SYSTEM_ACCOUNT_NAME = process.env.SYSTEM_ACCOUNT_NAME;
+
 // The API origin
 process.env.NEXT_PUBLIC_API_ORIGIN = process.env.API_ORIGIN;
 
 process.env.NEXT_PUBLIC_SENTRY_DSN = process.env.SENTRY_DSN;
-process.env.NEXT_PUBLIC_SENTRY_REPLAYS_SAMPLING_RATE =
-  process.env.SENTRY_REPLAYS_SAMPLING_RATE;
+process.env.NEXT_PUBLIC_SENTRY_REPLAY_SESSION_SAMPLE_RATE =
+  process.env.SENTRY_REPLAY_SESSION_SAMPLE_RATE;
 
 /**
  * @todo try using next-compose-plugins when upgrading next to 11 and/or to webpack 5

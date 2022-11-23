@@ -1,11 +1,12 @@
 /** @sync ../components/Snippet.tsx */
+import "../../styles/globals.css";
 import "../../styles/prism.css";
 
 import { EmotionCache } from "@emotion/react";
 import type { AppProps } from "next/app";
 import { useRouter } from "next/router";
 import { useEffect, FunctionComponent } from "react";
-import "../../styles/globals.css";
+import NextNProgress from "nextjs-progressbar";
 import { PageLayout } from "../components/PageLayout";
 import { theme } from "../theme";
 import { MuiProvider } from "../theme/MuiProvider";
@@ -45,6 +46,12 @@ const MyApp: FunctionComponent<MyAppProps> = ({
 
   return (
     <MuiProvider emotionCache={emotionCache} theme={theme}>
+      <NextNProgress
+        color="#05A2C2" // @todo use theme color when we switch to Design System colors
+        height={2}
+        options={{ showSpinner: false }}
+        showOnShallow
+      />
       {getLayout(<Component {...pageProps} />)}
     </MuiProvider>
   );

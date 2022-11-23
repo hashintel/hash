@@ -1,4 +1,5 @@
 import { validateVersionedUri } from "@blockprotocol/type-system-web";
+import { frontendUrl } from "@hashintel/hash-shared/environment";
 import { bindToggle, bindTrigger } from "material-ui-popup-state/hooks";
 import { SetStateAction, useLayoutEffect, useRef, useState } from "react";
 
@@ -63,3 +64,6 @@ export const mustBeVersionedUri = (uri: string) => {
   }
   return validatedId.inner;
 };
+
+export const getEntityTypeBaseUri = (entityTypeId: string, namespace: string) =>
+  `${frontendUrl}/${namespace}/types/entity-type/${entityTypeId}/`;

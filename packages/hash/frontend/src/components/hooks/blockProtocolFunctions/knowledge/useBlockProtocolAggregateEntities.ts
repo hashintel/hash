@@ -47,6 +47,7 @@ export const useBlockProtocolAggregateEntities = (): {
           entityTypeResolveDepth: 2,
           // Only get absolute neighbor link entities and their endpoint entities
           entityResolveDepth: 2,
+          ...data,
         },
       });
 

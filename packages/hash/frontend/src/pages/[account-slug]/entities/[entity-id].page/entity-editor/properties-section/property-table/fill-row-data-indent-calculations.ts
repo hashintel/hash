@@ -1,4 +1,4 @@
-import { VerticalIndentationLineDir } from "../../../../../../../components/GlideGlid/utils/draw-vertical-indentation-line";
+import { VerticalIndentationLineDir } from "../../../../../../../components/grid/utils/draw-vertical-indentation-line";
 import { PropertyRow } from "./types";
 
 const markUpperHalvesOfIndentationLines = (rowData: PropertyRow[]) => {

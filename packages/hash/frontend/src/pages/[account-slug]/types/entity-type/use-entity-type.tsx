@@ -1,7 +1,9 @@
 import { EntityType, extractBaseUri } from "@blockprotocol/type-system-web";
 import { useRouter } from "next/router";
 import {
+  createContext,
   useCallback,
+  useContext,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -15,13 +17,14 @@ import { useAuthenticatedUser } from "../../../../components/hooks/useAuthentica
 import { useAdvancedInitTypeSystem } from "../../../../lib/use-init-type-system";
 import { mustBeVersionedUri } from "./util";
 
-export const useEntityType = (
+export const useEntityTypeValue = (
   entityTypeBaseUri: string | null,
   namespace?: string,
   onCompleted?: (entityType: EntityType) => void,
 ) => {
   const router = useRouter();
   const { authenticatedUser } = useAuthenticatedUser();
+  const [loading, setLoading] = useState(true);
 
   const { createEntityType } = useBlockProtocolCreateEntityType(
     namespace ??
@@ -49,6 +52,7 @@ export const useEntityType = (
         extractBaseUri(mustBeVersionedUri(entityType.$id)) !==
           entityTypeBaseUri)
     ) {
+      setLoading(true);
       setEntityType(null);
       entityTypeRef.current = null;
       void aggregateEntityTypes({ data: {} }).then(async (res) => {
@@ -66,6 +70,7 @@ export const useEntityType = (
         await loadTypeSystem();
 
         if (!cancelled) {
+          setLoading(false);
           setEntityType(relevantEntityType);
           entityTypeRef.current = relevantEntityType;
           if (relevantEntityType) {
@@ -75,6 +80,7 @@ export const useEntityType = (
       });
       return () => {
         cancelled = true;
+        setLoading(false);
       };
     }
   }, [
@@ -141,5 +147,18 @@ export const useEntityType = (
     typeSystemLoading || !authenticatedUser ? null : entityType,
     updateCallback,
     publishDraft,
+    { loading },
   ] as const;
+};
+
+export const EntityTypeContext = createContext<null | EntityType>(null);
+
+export const useEntityType = () => {
+  const entityTypeContext = useContext(EntityTypeContext);
+
+  if (!entityTypeContext) {
+    throw new Error("no EntityTypeEntitiesContext value has been provided");
+  }
+
+  return entityTypeContext;
 };
