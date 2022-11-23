@@ -1,7 +1,11 @@
-use deer::{error::DeserializerError, Visitor};
-use error_stack::{Result, ResultExt};
-use serde_json::Value;
+use deer::{
+    error::{DeserializerError, ExpectedType, ReceivedType, Schema, TypeError},
+    Visitor,
+};
+use error_stack::{Report, Result, ResultExt};
+use serde_json::{value::RawValue, Value};
 
+// TODO: incremental parsing instead!
 // TODO: arbitrary-precision
 fn serde_to_deer_number(number: serde_json::Number) -> Option<deer::Number> {
     if let Some(int) = number.as_i64() {
@@ -13,11 +17,11 @@ fn serde_to_deer_number(number: serde_json::Number) -> Option<deer::Number> {
     }
 }
 
-struct Deserializer {
-    value: Option<Value>,
+struct Deserializer<'de> {
+    value: Option<&'de RawValue>,
 }
 
-impl<'de> deer::Deserializer<'de> for Deserializer {
+impl<'de> deer::Deserializer<'de> for Deserializer<'de> {
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>,
@@ -40,10 +44,13 @@ impl<'de> deer::Deserializer<'de> for Deserializer {
     where
         V: Visitor<'de>,
     {
-        if let Some(Value::Null) = self.value {
+        if self.value.map(|value| value.get()) == Some("null") {
             visitor.visit_null().change_context(DeserializerError)
         } else {
-            todo!()
+            // TODO: ReceivedType ?!
+            Err(Report::new(TypeError)
+                .attach(ExpectedType::new(Schema::new("null")))
+                .change_context(DeserializerError))
         }
     }
 
