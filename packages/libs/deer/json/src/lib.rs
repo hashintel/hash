@@ -1,5 +1,5 @@
 use deer::{
-    error::{DeserializerError, ExpectedType, ReceivedType, Schema, TypeError},
+    error::{DeserializerError, ExpectedType, MissingError, ReceivedType, Schema, TypeError},
     Visitor,
 };
 use error_stack::{Report, Result, ResultExt};
@@ -7,7 +7,7 @@ use serde_json::{value::RawValue, Value};
 
 // TODO: incremental parsing instead!
 // TODO: arbitrary-precision
-fn serde_to_deer_number(number: serde_json::Number) -> Option<deer::Number> {
+fn serde_to_deer_number(number: &serde_json::Number) -> Option<deer::Number> {
     if let Some(int) = number.as_i64() {
         Some(deer::Number::from(int))
     } else if let Some(int) = number.as_u64() {
@@ -17,11 +17,22 @@ fn serde_to_deer_number(number: serde_json::Number) -> Option<deer::Number> {
     }
 }
 
-struct Deserializer<'de> {
-    value: Option<&'de RawValue>,
+fn into_schema(value: &Value) -> Schema {
+    match value {
+        Value::Null => Schema::new("null"),
+        Value::Bool(_) => Schema::new("boolean"),
+        Value::Number(_) => Schema::new("number"),
+        Value::String(_) => Schema::new("string"),
+        Value::Array(_) => Schema::new("array"),
+        Value::Object(_) => Schema::new("object"),
+    }
 }
 
-impl<'de> deer::Deserializer<'de> for Deserializer<'de> {
+struct Deserializer {
+    value: Option<Value>,
+}
+
+impl<'de> deer::Deserializer<'de> for Deserializer {
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>,
@@ -33,10 +44,12 @@ impl<'de> deer::Deserializer<'de> for Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        if self.value.is_none() {
-            visitor.visit_none().change_context(DeserializerError)
-        } else {
-            todo!()
+        match self.value {
+            None => visitor.visit_none().change_context(DeserializerError),
+            Some(value) => Err(Report::new(TypeError)
+                .attach(ExpectedType::new(Schema::new("none")))
+                .attach(ReceivedType::new(into_schema(&value)))
+                .change_context(DeserializerError)),
         }
     }
 
@@ -44,13 +57,15 @@ impl<'de> deer::Deserializer<'de> for Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        if self.value.map(|value| value.get()) == Some("null") {
-            visitor.visit_null().change_context(DeserializerError)
-        } else {
-            // TODO: ReceivedType ?!
-            Err(Report::new(TypeError)
+        match self.value {
+            Some(Value::Null) => visitor.visit_null().change_context(DeserializerError),
+            Some(value) => Err(Report::new(TypeError)
                 .attach(ExpectedType::new(Schema::new("null")))
-                .change_context(DeserializerError))
+                .attach(ReceivedType::new(into_schema(&value)))
+                .change_context(DeserializerError)),
+            None => Err(Report::new(MissingError)
+                .attach(ExpectedType::new(Schema::new("null")))
+                .change_context(DeserializerError)),
         }
     }
 
@@ -58,10 +73,17 @@ impl<'de> deer::Deserializer<'de> for Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        if let Some(Value::Bool(bool)) = self.value {
-            visitor.visit_bool(bool).change_context(DeserializerError)
-        } else {
-            todo!()
+        // TODO: use Deserializer instead? ~> we'd need a compatability layer
+
+        match self.value {
+            Some(Value::Bool(bool)) => visitor.visit_bool(bool).change_context(DeserializerError),
+            Some(value) => Err(Report::new(TypeError)
+                .attach(ExpectedType::new(Schema::new("boolean")))
+                .attach(ReceivedType::new(into_schema(&value)))
+                .change_context(DeserializerError)),
+            None => Err(Report::new(MissingError)
+                .attach(ExpectedType::new(Schema::new("boolean")))
+                .change_context(DeserializerError)),
         }
     }
 
@@ -109,7 +131,7 @@ impl<'de> deer::Deserializer<'de> for Deserializer<'de> {
         // TODO: borrowed string vs str?! ~> default implementation?!?!
         if let Some(Value::String(string)) = self.value {
             visitor
-                .visit_string(string)
+                .visit_string(string.clone())
                 .change_context(DeserializerError)
         } else {
             todo!()
@@ -121,7 +143,7 @@ impl<'de> deer::Deserializer<'de> for Deserializer<'de> {
         V: Visitor<'de>,
     {
         if let Some(Value::String(string)) = self.value {
-            visitor.visit_str(&string).change_context(DeserializerError)
+            visitor.visit_str(string).change_context(DeserializerError)
         } else {
             todo!()
         }
