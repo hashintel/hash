@@ -49,17 +49,9 @@ export const persistedPageTypedef = gql`
     """
     persistedPage(
       """
-      The account ID that owns the Page.
-      """
-      ownedById: ID!
-      """
       The id of the page entity.
       """
       entityId: EntityId!
-      """
-      The version of the page entity. Defaults to the latest version.
-      """
-      entityVersion: String
     ): PersistedPage!
 
     """

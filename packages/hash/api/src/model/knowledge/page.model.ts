@@ -29,6 +29,20 @@ type PageModelCreateParams = Omit<
  * @class {@link PageModel}
  */
 export default class extends EntityModel {
+  constructor(pageEntityModel: EntityModel) {
+    if (
+      pageEntityModel.getMetadata().entityTypeId !==
+      SYSTEM_TYPES.entityType.page.getSchema().$id
+    ) {
+      throw new EntityTypeMismatchError(
+        pageEntityModel.getBaseId(),
+        SYSTEM_TYPES.entityType.page.getSchema().$id,
+        pageEntityModel.getMetadata().entityTypeId,
+      );
+    }
+    super(pageEntityModel);
+  }
+
   static fromEntityModel(entityModel: EntityModel): PageModel {
     if (
       entityModel.entityTypeModel.getSchema().$id !==
@@ -51,18 +65,13 @@ export default class extends EntityModel {
    */
   static async getPageById(
     graphApi: GraphApi,
-    params: { entityId: EntityId; entityVersion?: string },
+    params: { entityId: EntityId },
   ): Promise<PageModel> {
-    const { entityId, entityVersion } = params;
+    const { entityId } = params;
 
-    const entity = entityVersion
-      ? await EntityModel.getVersion(graphApi, {
-          entityId,
-          entityVersion,
-        })
-      : await EntityModel.getLatest(graphApi, {
-          entityId,
-        });
+    const entity = await EntityModel.getLatest(graphApi, {
+      entityId,
+    });
 
     return PageModel.fromEntityModel(entity);
   }
