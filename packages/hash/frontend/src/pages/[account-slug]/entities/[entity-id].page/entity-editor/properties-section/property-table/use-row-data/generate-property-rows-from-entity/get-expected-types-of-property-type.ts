@@ -1,11 +1,17 @@
-import { PropertyType, PropertyValues } from "@blockprotocol/type-system-web";
+import {
+  Array,
+  DataTypeReference,
+  OneOf,
+  PropertyType,
+  PropertyValues,
+} from "@blockprotocol/type-system-web";
 import {
   getPersistedDataType,
   Subgraph,
 } from "../../../../../../../../../lib/subgraph";
 
 const getDataTypeTitle = (
-  dataTypeReference: PropertyValues.DataTypeReference,
+  dataTypeReference: DataTypeReference,
   subgraph: Subgraph,
 ) => {
   const dataTypeId = dataTypeReference.$ref;
@@ -31,7 +37,7 @@ const getReferencedTypeTitles = (
 
 const isArrayOfPropertyValues = (
   propertyValue: PropertyValues,
-): propertyValue is PropertyValues.ArrayOfPropertyValues => {
+): propertyValue is Array<OneOf<PropertyValues>> => {
   return "type" in propertyValue && propertyValue.type === "array";
 };
 

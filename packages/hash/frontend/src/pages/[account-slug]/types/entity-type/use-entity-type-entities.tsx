@@ -4,7 +4,7 @@ import {
   extractBaseUri,
 } from "@blockprotocol/type-system-web";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { Entity } from "../../../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
+import { EntityWithMetadata } from "@hashintel/hash-subgraph";
 import { useBlockProtocolAggregateEntities } from "../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolAggregateEntities";
 import {
   getPersistedEntities,
@@ -14,8 +14,8 @@ import {
 } from "../../../../lib/subgraph";
 import { mustBeVersionedUri } from "./util";
 
-export type EntityTypeEntititiesContextValue = {
-  entities?: Entity[];
+export type EntityTypeEntitiesContextValue = {
+  entities?: EntityWithMetadata[];
   entityTypes?: EntityType[];
   propertyTypes?: PropertyType[];
   subgraph?: Subgraph;
@@ -23,7 +23,7 @@ export type EntityTypeEntititiesContextValue = {
 
 export const useEntityTypeEntitiesContextValue = (
   typeId: string | null,
-): EntityTypeEntititiesContextValue => {
+): EntityTypeEntitiesContextValue => {
   const [subgraph, setSubgraph] = useState<Subgraph>();
   const { aggregateEntities } = useBlockProtocolAggregateEntities();
 
@@ -95,7 +95,7 @@ export const useEntityTypeEntitiesContextValue = (
 };
 
 export const EntityTypeEntitiesContext =
-  createContext<null | EntityTypeEntititiesContextValue>(null);
+  createContext<null | EntityTypeEntitiesContextValue>(null);
 
 export const useEntityTypeEntities = () => {
   const entityTypeEntitiesContext = useContext(EntityTypeEntitiesContext);

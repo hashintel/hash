@@ -1,11 +1,7 @@
 import { useMemo } from "react";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
-import {
-  getOutgoingLinkAndTargetEntitiesAtMoment,
-  getOutgoingLinksForEntityAtMoment,
-} from "@hashintel/hash-subgraph/src/stdlib/edge/link";
+import { getOutgoingLinkAndTargetEntitiesAtMoment } from "@hashintel/hash-subgraph/src/stdlib/edge/link";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
-import { sortRowData } from "../../../../../../../components/GlideGlid/utils/sorting";
 import { generateEntityLabel } from "../../../../../../../lib/entities";
 import { useEntityEditor } from "../../entity-editor-context";
 import { LinkRow } from "./types";

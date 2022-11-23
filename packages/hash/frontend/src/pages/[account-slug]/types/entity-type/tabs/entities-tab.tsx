@@ -38,7 +38,8 @@ export const EntitiesTab: FunctionComponent = () => {
 
   const entitiesCount = useMemo(() => {
     const namespaceEntities =
-      entities?.filter((entity) => entity.ownedById === namespace?.id) ?? [];
+      entities?.filter((entity) => entity.ownedById === namespace?.accountId) ??
+      [];
 
     return {
       namespace: namespaceEntities.length,
