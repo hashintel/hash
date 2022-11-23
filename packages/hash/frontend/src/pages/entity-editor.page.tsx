@@ -4,11 +4,7 @@ import { Container, Typography } from "@mui/material";
 import init, { ValueOrArray, Array } from "@blockprotocol/type-system-web";
 import { Button } from "@hashintel/hash-design-system";
 import { types } from "@hashintel/hash-shared/types";
-import {
-  extractEntityUuidFromEntityId,
-  Subgraph,
-  SubgraphRootTypes,
-} from "@hashintel/hash-subgraph";
+import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import { getPropertyTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
@@ -163,11 +159,7 @@ const ExampleEntityEditorPage: NextPageWithLayout = () => {
     <Container sx={{ pt: 10 }}>Loading...</Container>
   ) : (
     <Container sx={{ pt: 10 }}>
-      <ExampleUsage
-        ownedById={extractEntityUuidFromEntityId(
-          authenticatedUser.entityEditionId.baseId,
-        )}
-      />
+      <ExampleUsage ownedById={authenticatedUser.userAccountId} />
     </Container>
   );
 };
