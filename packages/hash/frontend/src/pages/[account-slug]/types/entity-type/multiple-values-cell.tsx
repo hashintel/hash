@@ -169,10 +169,12 @@ export const MultipleValuesCell = ({
                   userSelect: "none",
                 }}
               >
-                {isArrayFrozenMinValue !== isArrayFrozenMaxValue
-                  ? `${isArrayFrozenMinValue} ${
-                      infinity ? "or more" : `to ${isArrayFrozenMaxValue}`
-                    }`
+                {infinity ||
+                (isArrayFrozenMinValue !== isArrayFrozenMaxValue &&
+                  typeof isArrayFrozenMaxValue === "number")
+                  ? `${
+                      isArrayFrozenMinValue === "" ? 0 : isArrayFrozenMinValue
+                    } ${infinity ? "or more" : `to ${isArrayFrozenMaxValue}`}`
                   : isArrayFrozenMinValue}
               </Typography>
             </Collapse>
@@ -225,11 +227,13 @@ export const MultipleValuesCell = ({
                         {...field}
                         onChange={(evt) => {
                           const target = evt.target as HTMLInputElement;
-                          const min = target.valueAsNumber;
+                          let min = target.valueAsNumber;
 
                           if (Number.isNaN(min)) {
                             field.onChange(target.value);
                           } else {
+                            min = Math.max(0, min);
+
                             if (min > maxValue) {
                               setValue(
                                 `properties.${propertyIndex}.maxValue`,
@@ -238,6 +242,15 @@ export const MultipleValuesCell = ({
                               );
                             }
                             field.onChange(min);
+                          }
+                        }}
+                        onBlur={(evt) => {
+                          if (evt.target.value === "") {
+                            setValue(
+                              `properties.${propertyIndex}.minValue`,
+                              0,
+                              { shouldDirty: true },
+                            );
                           }
                         }}
                         type="number"
@@ -249,6 +262,7 @@ export const MultipleValuesCell = ({
                       />
                     )}
                     name={`properties.${propertyIndex}.minValue`}
+                    rules={{ min: 0, required: true }}
                   />
                   <FormControl>
                     <InputLabel
@@ -280,11 +294,12 @@ export const MultipleValuesCell = ({
                             inputProps={{ min: 0 }}
                             onChange={(evt) => {
                               const target = evt.target as HTMLInputElement;
-                              const max = target.valueAsNumber;
+                              let max = target.valueAsNumber;
 
                               if (Number.isNaN(max)) {
                                 field.onChange(target.value);
                               } else {
+                                max = Math.max(max, 0);
                                 if (max < minValue) {
                                   setValue(
                                     `properties.${propertyIndex}.minValue`,
@@ -296,12 +311,25 @@ export const MultipleValuesCell = ({
                                 field.onChange(max);
                               }
                             }}
+                            onBlur={(evt) => {
+                              if (evt.target.value === "") {
+                                setValue(
+                                  `properties.${propertyIndex}.maxValue`,
+                                  Math.max(
+                                    1,
+                                    typeof minValue === "number" ? minValue : 0,
+                                  ),
+                                  { shouldDirty: true },
+                                );
+                              }
+                            }}
                             value={menuOpenFrozenMaxValue}
                             size="small"
                             id={maximumFieldId}
                           />
                         )}
                         name={`properties.${propertyIndex}.maxValue`}
+                        rules={{ min: 0, required: true }}
                       />
                     </Collapse>
                   </FormControl>
@@ -312,7 +340,7 @@ export const MultipleValuesCell = ({
         </Popper>
       </TableCell>
       {
-        // We use a portal here, to ensure this is outside of the
+        // We use a portal here, to ensure this is outside the
         // FormControl context so clicking on it doesn't focus the
         // field and cause a blue highlight
         infinityCheckboxNode
@@ -326,7 +354,10 @@ export const MultipleValuesCell = ({
                       if (typeof maxValue !== "number") {
                         setValue(
                           `properties.${propertyIndex}.maxValue`,
-                          Math.max(1, minValue),
+                          Math.max(
+                            1,
+                            typeof minValue === "number" ? minValue : 0,
+                          ),
                           { shouldDirty: true },
                         );
                       }

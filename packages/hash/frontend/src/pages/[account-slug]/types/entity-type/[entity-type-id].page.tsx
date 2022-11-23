@@ -54,6 +54,13 @@ const getSchemaFromEditorForm = (
   for (const property of properties) {
     const propertyKey = extractBaseUri(property.$id);
 
+    if (
+      typeof property.minValue === "string" ||
+      typeof property.maxValue === "string"
+    ) {
+      throw new Error("Invalid property constraint");
+    }
+
     const prop: ValueOrArray<PropertyTypeReference> = property.array
       ? {
           type: "array",
