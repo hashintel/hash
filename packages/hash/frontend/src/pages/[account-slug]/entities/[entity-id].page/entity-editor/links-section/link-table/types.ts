@@ -1,11 +1,11 @@
 import { SizedGridColumn } from "@glideapps/glide-data-grid";
 
 export type LinkRow = {
-  type: string;
+  linkEntityTypeTitle: string;
   linkedWith: string;
-  relationShip: string;
+  relationship: string;
   expectedEntityType: string;
-  linkId: string;
+  linkEntityTypeId: string;
 };
 
 export type LinkColumnKey = Extract<

@@ -35,9 +35,9 @@ export const useRowData = () => {
       return {
         expectedEntityType: referencedEntityType?.schema.title ?? "",
         linkedWith: generateEntityLabel(entitySubgraph),
-        linkId: linkEntity.metadata.entityTypeId,
-        relationShip: "Outbound",
-        type: linkEntityType?.schema.title ?? "",
+        linkEntityTypeId: linkEntity.metadata.entityTypeId,
+        relationship: "Outbound",
+        linkEntityTypeTitle: linkEntityType?.schema.title ?? "",
       };
     });
   }, [entitySubgraph]);
