@@ -1,6 +1,6 @@
 import { FunctionComponent, ReactNode } from "react";
 import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
-import { Menu } from "@hashintel/hash-design-system";
+import { Menu } from "@mui/material";
 
 type CommentBlockMenuProps = {
   popupState: PopupState;

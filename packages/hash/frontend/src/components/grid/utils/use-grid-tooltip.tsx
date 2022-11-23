@@ -1,6 +1,5 @@
 import { DataEditorRef } from "@glideapps/glide-data-grid";
-import { Popover } from "@hashintel/hash-design-system";
-import { PopoverPosition, Typography } from "@mui/material";
+import { Popover, PopoverPosition, Typography } from "@mui/material";
 import { isEqual } from "lodash";
 import { bindPopover, usePopupState } from "material-ui-popup-state/hooks";
 import { RefObject, useCallback, useState } from "react";
@@ -84,7 +83,6 @@ export const useGridTooltip = (
          * it causes the page scroll to reset
          * @see https://github.com/blockprotocol/blockprotocol/pull/588 the PR solved the same issue on BP repo
          */
-        disableScrollLock
         anchorReference="anchorPosition"
         anchorPosition={tooltipPos}
         transformOrigin={{ horizontal: "center", vertical: "bottom" }}
