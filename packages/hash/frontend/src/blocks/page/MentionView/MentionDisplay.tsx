@@ -49,7 +49,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
         } else {
           // Once the query loads, either display the found title, or display "Unknown Page" if the page doesn't exist in the page array
           pageTitle =
-            pages.find((page) => page.pageEntityId === entityId)?.title ??
+            pages.find((page) => page.entityId === entityId)?.title ??
             "Unknown Page";
         }
 

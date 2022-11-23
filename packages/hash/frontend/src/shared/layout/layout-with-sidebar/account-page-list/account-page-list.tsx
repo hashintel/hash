@@ -121,12 +121,12 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
         .filter((item) =>
           isPageCollapsed(item, treeItems, expandedPageIds, activeId),
         )
-        .map(({ page }) => page.pageEntityId),
+        .map(({ page }) => page.entityId),
     [treeItems, expandedPageIds, activeId],
   );
 
   const pagesFlatIdList = useMemo(
-    () => treeItems.map(({ page }) => page.pageEntityId),
+    () => treeItems.map(({ page }) => page.entityId),
     [treeItems],
   );
 
@@ -190,10 +190,10 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
       const clonedItems = [...treeItems];
 
       const overIndex = clonedItems.findIndex(
-        ({ page }) => page.pageEntityId === over.id,
+        ({ page }) => page.entityId === over.id,
       );
       const activeIndex = clonedItems.findIndex(
-        ({ page }) => page.pageEntityId === active.id,
+        ({ page }) => page.entityId === active.id,
       );
       const activeTreeItem = clonedItems[activeIndex];
 
@@ -216,7 +216,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
         );
 
         const newIndex = parentSortedItems.findIndex(
-          ({ page }) => page.pageEntityId === activeId,
+          ({ page }) => page.entityId === activeId,
         );
 
         const beforeIndex = parentSortedItems[newIndex - 1]?.page.index ?? null;
@@ -245,7 +245,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   ) => {
     return treeItemList
       .filter(({ page }) => page.parentPageEntityId === parentId)
-      .map(({ page: { pageEntityId: entityId, title }, depth }) => {
+      .map(({ page: { entityId: entityId, title }, depth }) => {
         const expanded =
           expandedPageIds.includes(entityId) && activeId !== entityId;
         const children = renderPageTree(treeItemList, entityId);

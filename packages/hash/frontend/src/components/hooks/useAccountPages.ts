@@ -10,7 +10,7 @@ import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 
 export type AccountPage = {
   title: string;
-  pageEntityId: EntityId;
+  entityId: EntityId;
   parentPageEntityId?: string | null;
   index: string;
 };
@@ -46,7 +46,7 @@ export const useAccountPages = (ownedById: string): AccountPagesInfo => {
           parentPage?.metadata.editionId.baseId ?? null;
 
         return {
-          pageEntityId,
+          entityId: pageEntityId,
           parentPageEntityId,
           title,
           index: index ?? "",
