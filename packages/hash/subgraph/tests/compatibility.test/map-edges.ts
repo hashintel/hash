@@ -1,6 +1,7 @@
 import {
   Edges as EdgesGraphApi,
-  OutwardEdge as OutwardEdgeGraphApi,
+  KnowledgeGraphOutwardEdges,
+  OntologyOutwardEdges,
 } from "@hashintel/hash-graph-client";
 import {
   Edges,
@@ -14,7 +15,7 @@ import {
 import { validateBaseUri } from "../../src/shared/type-system-patch";
 
 export const mapOutwardEdge = (
-  outwardEdge: OutwardEdgeGraphApi,
+  outwardEdge: OntologyOutwardEdges | KnowledgeGraphOutwardEdges,
 ): OutwardEdge => {
   switch (outwardEdge.kind) {
     // Ontology edge-kind cases
