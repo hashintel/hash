@@ -16,7 +16,10 @@ use utoipa::{OpenApi, ToSchema};
 
 use super::api_resource::RoutedResource;
 use crate::{
-    api::rest::{read_from_store, report_to_status_code},
+    api::{
+        rest::{read_from_store, report_to_status_code},
+        utoipa::subgraph::{Edges, Subgraph, Vertices},
+    },
     identifier::ontology::OntologyTypeEditionId,
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
@@ -27,13 +30,13 @@ use crate::{
         identifier::{GraphElementEditionId, GraphElementId},
         subgraph::{
             depths::GraphResolveDepths,
-            edges::{Edges, OntologyEdgeKind, OutwardEdge, SharedEdgeKind},
+            edges::{OntologyEdgeKind, SharedEdgeKind},
             query::StructuralQuery,
-            vertices::{Vertex, Vertices},
+            vertices::Vertex,
         },
     },
     store::{query::Filter, BaseUriAlreadyExists, BaseUriDoesNotExist, DataTypeStore, StorePool},
-    subgraph::{query::DataTypeStructuralQuery, Subgraph},
+    subgraph::{self, query::DataTypeStructuralQuery},
 };
 
 #[derive(OpenApi)]
@@ -63,7 +66,6 @@ use crate::{
             Vertex,
             OntologyEdgeKind,
             SharedEdgeKind,
-            OutwardEdge,
             GraphResolveDepths,
             Subgraph,
             Edges
@@ -177,7 +179,7 @@ async fn create_data_type<P: StorePool + Send>(
 async fn get_data_types_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     Json(query): Json<serde_json::Value>,
-) -> Result<Json<Subgraph>, StatusCode> {
+) -> Result<Json<subgraph::Subgraph>, StatusCode> {
     pool.acquire()
         .map_err(|error| {
             tracing::error!(?error, "Could not acquire access to the store");
@@ -288,7 +290,7 @@ async fn update_data_type<P: StorePool + Send>(
     let data_type = patch_id_and_parse(&new_type_id, schema).map_err(|report| {
         tracing::error!(error=?report, "Couldn't patch schema and convert to Data Type");
         StatusCode::UNPROCESSABLE_ENTITY
-        // TODO - We should probably return more information to the client
+        // TODO - We should probably return more information to the clientssS
         //  https://app.asana.com/0/1201095311341924/1202574350052904/f
     })?;
 

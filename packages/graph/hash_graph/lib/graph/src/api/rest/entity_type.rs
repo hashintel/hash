@@ -15,7 +15,10 @@ use type_system::{uri::VersionedUri, EntityType};
 use utoipa::{OpenApi, ToSchema};
 
 use crate::{
-    api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
+    api::{
+        rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
+        utoipa::subgraph::{Edges, OntologyRootedEdges, OntologyVertices, Subgraph, Vertices},
+    },
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
         patch_id_and_parse, EntityTypeQueryToken, EntityTypeWithMetadata, OntologyElementMetadata,
@@ -25,12 +28,9 @@ use crate::{
         identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId, GraphElementId},
         subgraph::{
             depths::GraphResolveDepths,
-            edges::{
-                Edges, OntologyEdgeKind, OntologyOutwardEdges, OntologyRootedEdges, OutwardEdge,
-                SharedEdgeKind,
-            },
+            edges::{OntologyEdgeKind, SharedEdgeKind},
             query::StructuralQuery,
-            vertices::{OntologyVertices, Vertex, Vertices},
+            vertices::Vertex,
         },
     },
     store::{
@@ -38,7 +38,7 @@ use crate::{
         query::Filter,
         EntityTypeStore, StorePool,
     },
-    subgraph::{query::EntityTypeStructuralQuery, Subgraph},
+    subgraph::{self, edges::OntologyOutwardEdges, query::EntityTypeStructuralQuery},
 };
 
 #[derive(OpenApi)]
@@ -70,7 +70,6 @@ use crate::{
             Vertex,
             OntologyEdgeKind,
             SharedEdgeKind,
-            OutwardEdge,
             OntologyOutwardEdges,
             OntologyRootedEdges,
             Edges,
@@ -186,7 +185,7 @@ async fn create_entity_type<P: StorePool + Send>(
 async fn get_entity_types_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     Json(query): Json<serde_json::Value>,
-) -> Result<Json<Subgraph>, StatusCode> {
+) -> Result<Json<subgraph::Subgraph>, StatusCode> {
     pool.acquire()
         .map_err(|error| {
             tracing::error!(?error, "Could not acquire access to the store");

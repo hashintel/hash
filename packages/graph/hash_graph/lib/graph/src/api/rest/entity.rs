@@ -14,7 +14,13 @@ use type_system::uri::VersionedUri;
 use utoipa::{OpenApi, ToSchema};
 
 use crate::{
-    api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
+    api::{
+        rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
+        utoipa::subgraph::{
+            Edges, KnowledgeGraphRootedEdges, KnowledgeGraphVertices, OntologyRootedEdges,
+            OntologyVertices, Subgraph, Vertices,
+        },
+    },
     knowledge::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryToken, EntityUuid,
         LinkEntityMetadata, LinkOrder,
@@ -27,16 +33,9 @@ use crate::{
         },
         subgraph::{
             depths::GraphResolveDepths,
-            edges::{
-                Edges, KnowledgeGraphEdgeKind, KnowledgeGraphOutwardEdges,
-                KnowledgeGraphRootedEdges, OntologyEdgeKind, OntologyOutwardEdges,
-                OntologyRootedEdges, OutwardEdge, SharedEdgeKind,
-            },
+            edges::{KnowledgeGraphEdgeKind, OntologyEdgeKind, SharedEdgeKind},
             query::StructuralQuery,
-            vertices::{
-                KnowledgeGraphVertex, KnowledgeGraphVertices, OntologyVertex, OntologyVertices,
-                Vertex, Vertices,
-            },
+            vertices::{KnowledgeGraphVertex, OntologyVertex, Vertex},
         },
     },
     store::{
@@ -44,7 +43,11 @@ use crate::{
         query::Filter,
         EntityStore, StorePool,
     },
-    subgraph::{query::EntityStructuralQuery, Subgraph},
+    subgraph::{
+        self,
+        edges::{KnowledgeGraphOutwardEdges, OntologyOutwardEdges},
+        query::EntityStructuralQuery,
+    },
 };
 
 #[derive(OpenApi)]
@@ -90,7 +93,6 @@ use crate::{
             SharedEdgeKind,
             KnowledgeGraphEdgeKind,
             OntologyEdgeKind,
-            OutwardEdge,
             OntologyOutwardEdges,
             KnowledgeGraphOutwardEdges,
             OntologyRootedEdges,
@@ -254,7 +256,7 @@ async fn archive_entity<P: StorePool + Send>(
 async fn get_entities_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     Json(query): Json<serde_json::Value>,
-) -> Result<Json<Subgraph>, StatusCode> {
+) -> Result<Json<subgraph::Subgraph>, StatusCode> {
     pool.acquire()
         .map_err(|error| {
             tracing::error!(?error, "Could not acquire access to the store");

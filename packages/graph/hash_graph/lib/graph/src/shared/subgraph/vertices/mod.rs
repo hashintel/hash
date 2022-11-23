@@ -2,43 +2,70 @@ mod vertex;
 
 use std::collections::{hash_map::Entry, HashMap};
 
-use serde::Serialize;
-use type_system::uri::BaseUri;
-use utoipa::{openapi, ToSchema};
+use serde::{Serialize, Serializer};
 
 pub use self::vertex::*;
 use crate::identifier::{
-    knowledge::{EntityId, EntityVersion},
-    ontology::OntologyTypeVersion,
-    GraphElementEditionId,
+    knowledge::EntityEditionId, ontology::OntologyTypeEditionId, GraphElementEditionId,
 };
 
-#[derive(Default, Debug, Serialize, ToSchema)]
-#[serde(transparent)]
-pub struct OntologyVertices(pub HashMap<BaseUri, HashMap<OntologyTypeVersion, OntologyVertex>>);
-
-#[derive(Default, Debug, Serialize, ToSchema)]
-#[serde(transparent)]
-pub struct KnowledgeGraphVertices(
-    // TODO: expose it through methods instead of making this field `pub`
-    //   see https://app.asana.com/0/1202805690238892/1203358665695491/f
-    pub HashMap<EntityId, HashMap<EntityVersion, KnowledgeGraphVertex>>,
-);
-
-#[derive(Default, Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Default, Debug)]
 pub struct Vertices {
-    #[serde(flatten)]
-    ontology: OntologyVertices,
-    #[serde(flatten)]
-    knowledge_graph: KnowledgeGraphVertices,
+    ontology: HashMap<OntologyTypeEditionId, OntologyVertex>,
+    knowledge_graph: HashMap<EntityEditionId, KnowledgeGraphVertex>,
+}
+
+impl Serialize for Vertices {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        crate::api::utoipa::subgraph::Vertices {
+            ontology: self
+                .ontology
+                .iter()
+                .fold(HashMap::new(), |mut map, (id, vertex)| {
+                    match map.entry(id.base_id()) {
+                        Entry::Occupied(mut entry) => {
+                            entry.get_mut().insert(id.version(), vertex);
+                        }
+                        Entry::Vacant(entry) => {
+                            let mut map = HashMap::new();
+                            map.insert(id.version(), vertex);
+                            entry.insert(map);
+                        }
+                    }
+                    map
+                }),
+            knowledge_graph: self.knowledge_graph.iter().fold(
+                HashMap::new(),
+                |mut map, (id, vertex)| {
+                    match map.entry(id.base_id()) {
+                        Entry::Occupied(mut entry) => {
+                            entry.get_mut().insert(id.version(), vertex);
+                        }
+                        Entry::Vacant(entry) => {
+                            let mut map = HashMap::new();
+                            map.insert(id.version(), vertex);
+                            entry.insert(map);
+                        }
+                    }
+                    map
+                },
+            ),
+        }
+        .serialize(serializer)
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub enum VertexIdentifier {
+    Ontology(OntologyTypeEditionId),
+    Knowledge(EntityEditionId),
 }
 
 impl Vertices {
     #[must_use]
     pub const fn new(
-        ontology_vertices: OntologyVertices,
-        knowledge_graph_vertices: KnowledgeGraphVertices,
+        ontology_vertices: HashMap<OntologyTypeEditionId, OntologyVertex>,
+        knowledge_graph_vertices: HashMap<EntityEditionId, KnowledgeGraphVertex>,
     ) -> Self {
         Self {
             ontology: ontology_vertices,
@@ -47,26 +74,8 @@ impl Vertices {
     }
 
     pub fn extend(&mut self, other: Self) {
-        for (key, value) in other.ontology.0 {
-            match self.ontology.0.entry(key) {
-                Entry::Occupied(entry) => {
-                    entry.into_mut().extend(value);
-                }
-                Entry::Vacant(entry) => {
-                    entry.insert(value);
-                }
-            }
-        }
-        for (key, value) in other.knowledge_graph.0 {
-            match self.knowledge_graph.0.entry(key) {
-                Entry::Occupied(entry) => {
-                    entry.into_mut().extend(value);
-                }
-                Entry::Vacant(entry) => {
-                    entry.insert(value);
-                }
-            }
-        }
+        self.ontology.extend(other.ontology);
+        self.knowledge_graph.extend(other.knowledge_graph);
     }
 
     #[must_use]
@@ -74,38 +83,12 @@ impl Vertices {
         match identifier {
             GraphElementEditionId::Ontology(type_edition_id) => self
                 .ontology
-                .0
-                .get_mut(type_edition_id.base_id())
-                .and_then(|inner| {
-                    inner
-                        .remove(&type_edition_id.version())
-                        .map(|element| Vertex::Ontology(Box::new(element)))
-                }),
+                .remove(type_edition_id)
+                .map(|element| Vertex::Ontology(Box::new(element))),
             GraphElementEditionId::KnowledgeGraph(entity_edition_id) => self
                 .knowledge_graph
-                .0
-                .get_mut(&entity_edition_id.base_id())
-                .and_then(|inner| {
-                    inner
-                        .remove(&entity_edition_id.version())
-                        .map(|element| Vertex::KnowledgeGraph(Box::new(element)))
-                }),
+                .remove(entity_edition_id)
+                .map(|element| Vertex::KnowledgeGraph(Box::new(element))),
         }
-    }
-}
-
-// Utoipa generates `Edges` as an empty object if we don't manually do it, and we can't use
-// allOf because the generator can't handle it
-impl ToSchema for Vertices {
-    fn schema() -> openapi::Schema {
-        openapi::ObjectBuilder::new()
-            .additional_properties(Some(openapi::Schema::from(
-                openapi::ObjectBuilder::new().additional_properties(Some(
-                    openapi::OneOfBuilder::new()
-                        .item(openapi::Ref::from_schema_name("KnowledgeGraphVertex"))
-                        .item(openapi::Ref::from_schema_name("OntologyVertex")),
-                )),
-            )))
-            .into()
     }
 }

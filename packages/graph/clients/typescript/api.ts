@@ -1333,12 +1333,6 @@ export interface OntologyVertices {
   [key: string]: { [key: string]: OntologyVertex };
 }
 /**
- * @type OutwardEdge
- * @export
- */
-export type OutwardEdge = KnowledgeGraphOutwardEdges | OntologyOutwardEdges;
-
-/**
  *
  * @export
  * @interface ParameterExpression

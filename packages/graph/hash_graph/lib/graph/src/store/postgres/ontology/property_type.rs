@@ -12,7 +12,7 @@ use crate::{
     provenance::{CreatedById, OwnedById, UpdatedById},
     shared::{
         identifier::GraphElementEditionId,
-        subgraph::{depths::GraphResolveDepths, edges::OutwardEdge, query::StructuralQuery},
+        subgraph::{depths::GraphResolveDepths, query::StructuralQuery},
     },
     store::{
         crud::Read,
@@ -20,7 +20,7 @@ use crate::{
         AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, UpdateError,
     },
     subgraph::{
-        edges::{GenericOutwardEdge, OntologyEdgeKind, OntologyOutwardEdges},
+        edges::{Edge, OntologyEdgeKind, OntologyOutwardEdges, OutwardEdge},
         Subgraph,
     },
 };
@@ -74,16 +74,14 @@ impl<C: AsClient> PostgresStore<C> {
                         )
                         .await?;
                     }
-                    dependency_context.edges.insert(
-                        GraphElementEditionId::Ontology(property_type_id.clone()),
-                        OutwardEdge::Ontology(OntologyOutwardEdges::ToOntology(
-                            GenericOutwardEdge {
-                                kind: OntologyEdgeKind::ConstrainsValuesOn,
-                                reversed: false,
-                                right_endpoint: data_type_ref.uri().clone().into(),
-                            },
-                        )),
-                    );
+                    dependency_context.edges.insert(Edge::Ontology {
+                        edition_id: property_type_id.clone(),
+                        edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
+                            kind: OntologyEdgeKind::ConstrainsValuesOn,
+                            reversed: false,
+                            right_endpoint: data_type_ref.uri().clone().into(),
+                        }),
+                    });
                 }
 
                 // TODO: Use relation tables
@@ -108,16 +106,14 @@ impl<C: AsClient> PostgresStore<C> {
                         .await?;
                     }
 
-                    dependency_context.edges.insert(
-                        GraphElementEditionId::Ontology(property_type_id.clone()),
-                        OutwardEdge::Ontology(OntologyOutwardEdges::ToOntology(
-                            GenericOutwardEdge {
-                                kind: OntologyEdgeKind::ConstrainsPropertiesOn,
-                                reversed: false,
-                                right_endpoint: property_type_ref.uri().clone().into(),
-                            },
-                        )),
-                    );
+                    dependency_context.edges.insert(Edge::Ontology {
+                        edition_id: property_type_id.clone(),
+                        edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
+                            kind: OntologyEdgeKind::ConstrainsValuesOn,
+                            reversed: false,
+                            right_endpoint: property_type_ref.uri().clone().into(),
+                        }),
+                    });
                 }
             }
 

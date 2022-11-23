@@ -16,7 +16,10 @@ use utoipa::{OpenApi, ToSchema};
 
 use super::api_resource::RoutedResource;
 use crate::{
-    api::rest::{read_from_store, report_to_status_code},
+    api::{
+        rest::{read_from_store, report_to_status_code},
+        utoipa::subgraph::{Edges, Subgraph, Vertices},
+    },
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
         patch_id_and_parse, OntologyElementMetadata, PropertyTypeQueryToken,
@@ -27,15 +30,15 @@ use crate::{
         identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId, GraphElementId},
         subgraph::{
             depths::GraphResolveDepths,
-            edges::{Edges, OntologyEdgeKind, OutwardEdge, SharedEdgeKind},
+            edges::{OntologyEdgeKind, SharedEdgeKind},
             query::StructuralQuery,
-            vertices::{Vertex, Vertices},
+            vertices::Vertex,
         },
     },
     store::{
         query::Filter, BaseUriAlreadyExists, BaseUriDoesNotExist, PropertyTypeStore, StorePool,
     },
-    subgraph::{query::PropertyTypeStructuralQuery, Subgraph},
+    subgraph::{self, query::PropertyTypeStructuralQuery},
 };
 
 #[derive(OpenApi)]
@@ -65,7 +68,6 @@ use crate::{
             Vertex,
             OntologyEdgeKind,
             SharedEdgeKind,
-            OutwardEdge,
             GraphResolveDepths,
             Edges,
             Subgraph,
@@ -180,7 +182,7 @@ async fn create_property_type<P: StorePool + Send>(
 async fn get_property_types_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     Json(query): Json<serde_json::Value>,
-) -> Result<Json<Subgraph>, StatusCode> {
+) -> Result<Json<subgraph::Subgraph>, StatusCode> {
     pool.acquire()
         .map_err(|error| {
             tracing::error!(?error, "Could not acquire access to the store");
