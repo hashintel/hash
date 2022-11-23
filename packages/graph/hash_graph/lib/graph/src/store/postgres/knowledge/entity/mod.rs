@@ -18,7 +18,6 @@ use crate::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkEntityMetadata,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
-    shared::subgraph::{depths::GraphResolveDepths, query::StructuralQuery},
     store::{
         crud::Read,
         error::ArchivalError,
@@ -27,9 +26,11 @@ use crate::{
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
     subgraph::{
+        depths::GraphResolveDepths,
         edges::{
             Edge, KnowledgeGraphEdgeKind, KnowledgeGraphOutwardEdges, OutwardEdge, SharedEdgeKind,
         },
+        query::StructuralQuery,
         Subgraph,
     },
 };

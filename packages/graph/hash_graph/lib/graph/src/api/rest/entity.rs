@@ -21,23 +21,15 @@ use crate::{
             OntologyVertices, Subgraph, Vertices,
         },
     },
+    identifier::{
+        knowledge::{EntityEditionId, EntityId, EntityIdAndTimestamp, EntityVersion},
+        GraphElementEditionId, GraphElementId,
+    },
     knowledge::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryToken, EntityUuid,
         LinkEntityMetadata, LinkOrder,
     },
     provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
-    shared::{
-        identifier::{
-            knowledge::{EntityEditionId, EntityId, EntityIdAndTimestamp, EntityVersion},
-            GraphElementEditionId, GraphElementId,
-        },
-        subgraph::{
-            depths::GraphResolveDepths,
-            edges::{KnowledgeGraphEdgeKind, OntologyEdgeKind, SharedEdgeKind},
-            query::StructuralQuery,
-            vertices::{KnowledgeGraphVertex, OntologyVertex, Vertex},
-        },
-    },
     store::{
         error::{EntityDoesNotExist, QueryError},
         query::Filter,
@@ -45,8 +37,13 @@ use crate::{
     },
     subgraph::{
         self,
-        edges::{KnowledgeGraphOutwardEdges, OntologyOutwardEdges},
-        query::EntityStructuralQuery,
+        depths::GraphResolveDepths,
+        edges::{
+            KnowledgeGraphEdgeKind, KnowledgeGraphOutwardEdges, OntologyEdgeKind,
+            OntologyOutwardEdges, SharedEdgeKind,
+        },
+        query::{EntityStructuralQuery, StructuralQuery},
+        vertices::{KnowledgeGraphVertex, OntologyVertex, Vertex},
     },
 };
 

@@ -3,16 +3,14 @@ use std::{iter::repeat, str::FromStr};
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion};
 use criterion_macro::criterion;
 use graph::{
+    identifier::account::AccountId,
     knowledge::{EntityProperties, EntityQueryPath, EntityUuid},
     provenance::{CreatedById, OwnedById},
-    shared::{
-        identifier::account::AccountId,
-        subgraph::{depths::GraphResolveDepths, query::StructuralQuery},
-    },
     store::{
         query::{Filter, FilterExpression, Parameter},
         AccountStore, AsClient, EntityStore, PostgresStore,
     },
+    subgraph::{depths::GraphResolveDepths, query::StructuralQuery},
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use rand::{prelude::IteratorRandom, thread_rng};

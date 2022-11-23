@@ -20,23 +20,20 @@ use crate::{
         rest::{read_from_store, report_to_status_code},
         utoipa::subgraph::{Edges, Subgraph, Vertices},
     },
-    identifier::ontology::OntologyTypeEditionId,
+    identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId, GraphElementId},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
         patch_id_and_parse, DataTypeQueryToken, DataTypeWithMetadata, OntologyElementMetadata,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
-    shared::{
-        identifier::{GraphElementEditionId, GraphElementId},
-        subgraph::{
-            depths::GraphResolveDepths,
-            edges::{OntologyEdgeKind, SharedEdgeKind},
-            query::StructuralQuery,
-            vertices::Vertex,
-        },
-    },
     store::{query::Filter, BaseUriAlreadyExists, BaseUriDoesNotExist, DataTypeStore, StorePool},
-    subgraph::{self, query::DataTypeStructuralQuery},
+    subgraph::{
+        self,
+        depths::GraphResolveDepths,
+        edges::{OntologyEdgeKind, SharedEdgeKind},
+        query::{DataTypeStructuralQuery, StructuralQuery},
+        vertices::Vertex,
+    },
 };
 
 #[derive(OpenApi)]
@@ -290,7 +287,7 @@ async fn update_data_type<P: StorePool + Send>(
     let data_type = patch_id_and_parse(&new_type_id, schema).map_err(|report| {
         tracing::error!(error=?report, "Couldn't patch schema and convert to Data Type");
         StatusCode::UNPROCESSABLE_ENTITY
-        // TODO - We should probably return more information to the clientssS
+        // TODO - We should probably return more information to the client
         //  https://app.asana.com/0/1201095311341924/1202574350052904/f
     })?;
 

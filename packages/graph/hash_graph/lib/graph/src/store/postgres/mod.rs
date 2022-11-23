@@ -27,8 +27,10 @@ use self::context::{OntologyRecord, PostgresContext};
 pub use self::pool::{AsClient, PostgresStorePool};
 use crate::{
     identifier::{
+        account::AccountId,
         knowledge::{EntityEditionId, EntityId},
         ontology::OntologyTypeEditionId,
+        GraphElementEditionId,
     },
     knowledge::{Entity, EntityMetadata, EntityProperties, EntityUuid, LinkEntityMetadata},
     ontology::{
@@ -36,10 +38,6 @@ use crate::{
         PropertyTypeWithMetadata,
     },
     provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
-    shared::{
-        identifier::{account::AccountId, GraphElementEditionId},
-        subgraph::{depths::GraphResolveDepths, edges::Edges},
-    },
     store::{
         error::VersionedUriAlreadyExists,
         postgres::{ontology::OntologyDatabaseType, version_id::VersionId},
@@ -47,7 +45,8 @@ use crate::{
         UpdateError,
     },
     subgraph::{
-        depths::SubgraphQueryDepth,
+        depths::{GraphResolveDepths, SubgraphQueryDepth},
+        edges::Edges,
         vertices::{KnowledgeGraphVertex, OntologyVertex, Vertices},
         Subgraph,
     },

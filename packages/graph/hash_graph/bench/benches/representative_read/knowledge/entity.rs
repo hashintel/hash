@@ -3,11 +3,11 @@ use std::borrow::Cow;
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
     knowledge::{EntityQueryPath, EntityUuid},
-    shared::subgraph::{depths::GraphResolveDepths, query::StructuralQuery},
     store::{
         query::{Filter, FilterExpression, Parameter},
         EntityStore,
     },
+    subgraph::{depths::GraphResolveDepths, query::StructuralQuery},
 };
 use rand::{prelude::IteratorRandom, thread_rng};
 use tokio::runtime::Runtime;

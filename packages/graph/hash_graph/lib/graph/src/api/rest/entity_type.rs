@@ -19,26 +19,24 @@ use crate::{
         rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
         utoipa::subgraph::{Edges, OntologyRootedEdges, OntologyVertices, Subgraph, Vertices},
     },
+    identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId, GraphElementId},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
         patch_id_and_parse, EntityTypeQueryToken, EntityTypeWithMetadata, OntologyElementMetadata,
     },
     provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
-    shared::{
-        identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId, GraphElementId},
-        subgraph::{
-            depths::GraphResolveDepths,
-            edges::{OntologyEdgeKind, SharedEdgeKind},
-            query::StructuralQuery,
-            vertices::Vertex,
-        },
-    },
     store::{
         error::{BaseUriAlreadyExists, BaseUriDoesNotExist},
         query::Filter,
         EntityTypeStore, StorePool,
     },
-    subgraph::{self, edges::OntologyOutwardEdges, query::EntityTypeStructuralQuery},
+    subgraph::{
+        self,
+        depths::GraphResolveDepths,
+        edges::{OntologyEdgeKind, OntologyOutwardEdges, SharedEdgeKind},
+        query::{EntityTypeStructuralQuery, StructuralQuery},
+        vertices::Vertex,
+    },
 };
 
 #[derive(OpenApi)]

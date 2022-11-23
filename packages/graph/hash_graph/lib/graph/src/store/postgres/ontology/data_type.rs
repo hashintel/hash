@@ -7,16 +7,15 @@ use tokio_postgres::GenericClient;
 use type_system::DataType;
 
 use crate::{
-    identifier::ontology::OntologyTypeEditionId,
+    identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId},
     ontology::{DataTypeWithMetadata, OntologyElementMetadata},
     provenance::{CreatedById, OwnedById, UpdatedById},
-    shared::{identifier::GraphElementEditionId, subgraph::query::StructuralQuery},
     store::{
         crud::Read,
         postgres::{context::PostgresContext, DependencyContext, DependencyContextRef},
         AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
-    subgraph::Subgraph,
+    subgraph::{query::StructuralQuery, Subgraph},
 };
 
 impl<C: AsClient> PostgresStore<C> {
