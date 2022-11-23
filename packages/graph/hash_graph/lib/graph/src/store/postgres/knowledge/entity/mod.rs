@@ -84,7 +84,7 @@ impl<C: AsClient> PostgresStore<C> {
 
                 dependency_context.edges.insert(Edge::KnowledgeGraph {
                     edition_id: entity_edition_id,
-                    edge: KnowledgeGraphOutwardEdges::ToOntology(OutwardEdge {
+                    outward_edge: KnowledgeGraphOutwardEdges::ToOntology(OutwardEdge {
                         kind: SharedEdgeKind::IsOfType,
                         reversed: false,
                         right_endpoint: entity_type_id.into(),
@@ -249,7 +249,7 @@ impl<C: AsClient> PostgresStore<C> {
     ) -> Result<(), QueryError> {
         dependency_context.edges.insert(Edge::KnowledgeGraph {
             edition_id: source_entity_edition_id,
-            edge: KnowledgeGraphOutwardEdges::ToKnowledgeGraph(edge),
+            outward_edge: KnowledgeGraphOutwardEdges::ToKnowledgeGraph(edge),
         });
 
         if dependency_context.graph_resolve_depths.entity_resolve_depth > 0 {

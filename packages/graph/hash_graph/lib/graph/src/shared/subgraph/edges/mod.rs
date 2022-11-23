@@ -1,7 +1,5 @@
 use std::collections::{hash_map::Entry, HashMap, HashSet};
 
-use serde::{Serialize, Serializer};
-
 use crate::identifier::{knowledge::EntityEditionId, ontology::OntologyTypeEditionId};
 
 mod edge;
@@ -18,35 +16,34 @@ pub struct Edges {
     knowledge_graph: HashMap<EntityEditionId, HashSet<KnowledgeGraphOutwardEdges>>,
 }
 
-impl Serialize for Edges {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
+impl Edges {
+    #[must_use]
+    pub fn into_utoipa(self) -> crate::api::utoipa::subgraph::Edges {
         crate::api::utoipa::subgraph::Edges {
-            ontology: crate::api::utoipa::subgraph::OntologyRootedEdges(self.ontology.iter().fold(
-                HashMap::new(),
-                |mut map, (id, edges)| {
-                    let edges = edges.iter().collect();
-                    match map.entry(id.base_id()) {
-                        Entry::Occupied(mut entry) => {
-                            entry.get_mut().insert(id.version(), edges);
+            ontology: crate::api::utoipa::subgraph::OntologyRootedEdges(
+                self.ontology
+                    .into_iter()
+                    .fold(HashMap::new(), |mut map, (id, edges)| {
+                        let edges = edges.into_iter().collect();
+                        match map.entry(id.base_id().clone()) {
+                            Entry::Occupied(entry) => {
+                                entry.into_mut().insert(id.version(), edges);
+                            }
+                            Entry::Vacant(entry) => {
+                                entry.insert(HashMap::from([(id.version(), edges)]));
+                            }
                         }
-                        Entry::Vacant(entry) => {
-                            entry.insert(HashMap::from([(id.version(), edges)]));
-                        }
-                    }
-                    map
-                },
-            )),
+                        map
+                    }),
+            ),
             knowledge_graph: crate::api::utoipa::subgraph::KnowledgeGraphRootedEdges(
                 self.knowledge_graph
-                    .iter()
+                    .into_iter()
                     .fold(HashMap::new(), |mut map, (id, edges)| {
-                        let edges = edges.iter().collect();
+                        let edges = edges.into_iter().collect();
                         match map.entry(id.base_id()) {
-                            Entry::Occupied(mut entry) => {
-                                entry.get_mut().insert(id.version(), edges);
+                            Entry::Occupied(entry) => {
+                                entry.into_mut().insert(id.version(), edges);
                             }
                             Entry::Vacant(entry) => {
                                 entry.insert(HashMap::from([(id.version(), edges)]));
@@ -56,18 +53,17 @@ impl Serialize for Edges {
                     }),
             ),
         }
-        .serialize(serializer)
     }
 }
 
 pub enum Edge {
     Ontology {
         edition_id: OntologyTypeEditionId,
-        edge: OntologyOutwardEdges,
+        outward_edge: OntologyOutwardEdges,
     },
     KnowledgeGraph {
         edition_id: EntityEditionId,
-        edge: KnowledgeGraphOutwardEdges,
+        outward_edge: KnowledgeGraphOutwardEdges,
     },
 }
 
@@ -85,33 +81,33 @@ impl Edges {
     /// - If the set already contained this value, `false` is returned.
     pub fn insert(&mut self, edge: Edge) -> bool {
         match edge {
-            Edge::Ontology { edition_id, edge } => match self.ontology.entry(edition_id) {
-                Entry::Occupied(mut entry) => entry.get_mut().insert(edge),
+            Edge::Ontology {
+                edition_id,
+                outward_edge,
+            } => match self.ontology.entry(edition_id) {
+                Entry::Occupied(entry) => entry.into_mut().insert(outward_edge),
                 Entry::Vacant(entry) => {
-                    let mut set = HashSet::new();
-                    set.insert(edge);
-                    entry.insert(set);
+                    entry.insert(HashSet::from([outward_edge]));
                     true
                 }
             },
-            Edge::KnowledgeGraph { edition_id, edge } => {
-                match self.knowledge_graph.entry(edition_id) {
-                    Entry::Occupied(mut entry) => entry.get_mut().insert(edge),
-                    Entry::Vacant(entry) => {
-                        let mut set = HashSet::new();
-                        set.insert(edge);
-                        entry.insert(set);
-                        true
-                    }
+            Edge::KnowledgeGraph {
+                edition_id,
+                outward_edge,
+            } => match self.knowledge_graph.entry(edition_id) {
+                Entry::Occupied(entry) => entry.into_mut().insert(outward_edge),
+                Entry::Vacant(entry) => {
+                    entry.insert(HashSet::from([outward_edge]));
+                    true
                 }
-            }
+            },
         }
     }
 
     pub fn extend(&mut self, other: Self) {
         for (edition_id, edges) in other.ontology {
             match self.ontology.entry(edition_id) {
-                Entry::Occupied(mut entry) => entry.get_mut().extend(edges),
+                Entry::Occupied(entry) => entry.into_mut().extend(edges),
                 Entry::Vacant(entry) => {
                     entry.insert(edges);
                 }
@@ -120,7 +116,7 @@ impl Edges {
 
         for (edition_id, edges) in other.knowledge_graph {
             match self.knowledge_graph.entry(edition_id) {
-                Entry::Occupied(mut entry) => entry.get_mut().extend(edges),
+                Entry::Occupied(entry) => entry.into_mut().extend(edges),
                 Entry::Vacant(entry) => {
                     entry.insert(edges);
                 }

@@ -2,7 +2,6 @@ use std::{collections::HashSet, fmt::Debug};
 
 use depths::GraphResolveDepths;
 use edges::Edges;
-use serde::Serialize;
 
 use crate::{shared::identifier::GraphElementEditionId, subgraph::vertices::Vertices};
 
@@ -11,13 +10,24 @@ pub mod edges;
 pub mod query;
 pub mod vertices;
 
-#[derive(Debug, Default, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default)]
 pub struct Subgraph {
     pub roots: HashSet<GraphElementEditionId>,
     pub vertices: Vertices,
     pub edges: Edges,
     pub depths: GraphResolveDepths,
+}
+
+impl Subgraph {
+    #[must_use]
+    pub fn into_utoipa(self) -> crate::api::utoipa::subgraph::Subgraph {
+        crate::api::utoipa::subgraph::Subgraph {
+            roots: self.roots.into_iter().collect(),
+            vertices: self.vertices.into_utoipa(),
+            edges: self.edges.into_utoipa(),
+            depths: self.depths,
+        }
+    }
 }
 
 impl Subgraph {

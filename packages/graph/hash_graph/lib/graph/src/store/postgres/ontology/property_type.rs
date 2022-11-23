@@ -74,7 +74,7 @@ impl<C: AsClient> PostgresStore<C> {
                     }
                     dependency_context.edges.insert(Edge::Ontology {
                         edition_id: property_type_id.clone(),
-                        edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
+                        outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
                             kind: OntologyEdgeKind::ConstrainsValuesOn,
                             reversed: false,
                             right_endpoint: data_type_ref.uri().clone().into(),
@@ -106,7 +106,7 @@ impl<C: AsClient> PostgresStore<C> {
 
                     dependency_context.edges.insert(Edge::Ontology {
                         edition_id: property_type_id.clone(),
-                        edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
+                        outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
                             kind: OntologyEdgeKind::ConstrainsValuesOn,
                             reversed: false,
                             right_endpoint: property_type_ref.uri().clone().into(),

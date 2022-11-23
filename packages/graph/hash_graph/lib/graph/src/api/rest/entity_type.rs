@@ -31,7 +31,6 @@ use crate::{
         EntityTypeStore, StorePool,
     },
     subgraph::{
-        self,
         depths::GraphResolveDepths,
         edges::{OntologyEdgeKind, OntologyOutwardEdges, SharedEdgeKind},
         query::{EntityTypeStructuralQuery, StructuralQuery},
@@ -183,7 +182,7 @@ async fn create_entity_type<P: StorePool + Send>(
 async fn get_entity_types_by_query<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     Json(query): Json<serde_json::Value>,
-) -> Result<Json<subgraph::Subgraph>, StatusCode> {
+) -> Result<Json<Subgraph>, StatusCode> {
     pool.acquire()
         .map_err(|error| {
             tracing::error!(?error, "Could not acquire access to the store");
@@ -207,7 +206,7 @@ async fn get_entity_types_by_query<P: StorePool + Send>(
                 })
         })
         .await
-        .map(Json)
+        .map(|subgraph| Json(subgraph.into_utoipa()))
 }
 
 #[utoipa::path(

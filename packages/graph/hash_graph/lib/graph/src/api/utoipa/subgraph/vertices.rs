@@ -15,30 +15,28 @@ use crate::{
     subgraph::vertices::{KnowledgeGraphVertex, OntologyVertex},
 };
 
+#[derive(Serialize, ToSchema)]
+#[serde(transparent)]
+pub struct OntologyVertices(pub HashMap<BaseUri, HashMap<OntologyTypeVersion, OntologyVertex>>);
+
+#[derive(Serialize, ToSchema)]
+#[serde(transparent)]
+pub struct KnowledgeGraphVertices(
+    pub HashMap<EntityId, HashMap<EntityVersion, KnowledgeGraphVertex>>,
+);
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Vertices<'u> {
+pub struct Vertices {
     #[serde(flatten)]
-    pub ontology: HashMap<&'u BaseUri, HashMap<OntologyTypeVersion, &'u OntologyVertex>>,
+    pub ontology: OntologyVertices,
     #[serde(flatten)]
-    pub knowledge_graph: HashMap<EntityId, HashMap<EntityVersion, &'u KnowledgeGraphVertex>>,
+    pub knowledge_graph: KnowledgeGraphVertices,
 }
-
-#[derive(Serialize, ToSchema)]
-#[serde(transparent)]
-pub struct OntologyVertices<'u>(
-    HashMap<&'u BaseUri, HashMap<OntologyTypeVersion, &'u OntologyVertex>>,
-);
-
-#[derive(Serialize, ToSchema)]
-#[serde(transparent)]
-pub struct KnowledgeGraphVertices<'u>(
-    HashMap<EntityId, HashMap<EntityVersion, &'u KnowledgeGraphVertex>>,
-);
 
 // Utoipa generates `Edges` as an empty object if we don't manually do it, and we can't use
 // allOf because the generator can't handle it
-impl ToSchema for Vertices<'_> {
+impl ToSchema for Vertices {
     fn schema() -> Schema {
         ObjectBuilder::new()
             .additional_properties(Some(Schema::from(

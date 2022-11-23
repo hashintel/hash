@@ -2,8 +2,6 @@ mod vertex;
 
 use std::collections::{hash_map::Entry, HashMap};
 
-use serde::{Serialize, Serializer};
-
 pub use self::vertex::*;
 use crate::identifier::{
     knowledge::EntityEditionId, ontology::OntologyTypeEditionId, GraphElementEditionId,
@@ -15,50 +13,42 @@ pub struct Vertices {
     knowledge_graph: HashMap<EntityEditionId, KnowledgeGraphVertex>,
 }
 
-impl Serialize for Vertices {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+impl Vertices {
+    #[must_use]
+    pub fn into_utoipa(self) -> crate::api::utoipa::subgraph::Vertices {
         crate::api::utoipa::subgraph::Vertices {
-            ontology: self
-                .ontology
-                .iter()
-                .fold(HashMap::new(), |mut map, (id, vertex)| {
-                    match map.entry(id.base_id()) {
-                        Entry::Occupied(mut entry) => {
-                            entry.get_mut().insert(id.version(), vertex);
+            ontology: crate::api::utoipa::subgraph::OntologyVertices(
+                self.ontology
+                    .into_iter()
+                    .fold(HashMap::new(), |mut map, (id, vertex)| {
+                        match map.entry(id.base_id().clone()) {
+                            Entry::Occupied(entry) => {
+                                entry.into_mut().insert(id.version(), vertex);
+                            }
+                            Entry::Vacant(entry) => {
+                                entry.insert(HashMap::from([(id.version(), vertex)]));
+                            }
                         }
-                        Entry::Vacant(entry) => {
-                            let mut map = HashMap::new();
-                            map.insert(id.version(), vertex);
-                            entry.insert(map);
+                        map
+                    }),
+            ),
+            knowledge_graph: crate::api::utoipa::subgraph::KnowledgeGraphVertices(
+                self.knowledge_graph
+                    .into_iter()
+                    .fold(HashMap::new(), |mut map, (id, vertex)| {
+                        match map.entry(id.base_id()) {
+                            Entry::Occupied(entry) => {
+                                entry.into_mut().insert(id.version(), vertex);
+                            }
+                            Entry::Vacant(entry) => {
+                                entry.insert(HashMap::from([(id.version(), vertex)]));
+                            }
                         }
-                    }
-                    map
-                }),
-            knowledge_graph: self.knowledge_graph.iter().fold(
-                HashMap::new(),
-                |mut map, (id, vertex)| {
-                    match map.entry(id.base_id()) {
-                        Entry::Occupied(mut entry) => {
-                            entry.get_mut().insert(id.version(), vertex);
-                        }
-                        Entry::Vacant(entry) => {
-                            let mut map = HashMap::new();
-                            map.insert(id.version(), vertex);
-                            entry.insert(map);
-                        }
-                    }
-                    map
-                },
+                        map
+                    }),
             ),
         }
-        .serialize(serializer)
     }
-}
-
-#[derive(Debug, PartialEq, Eq, Hash)]
-pub enum VertexIdentifier {
-    Ontology(OntologyTypeEditionId),
-    Knowledge(EntityEditionId),
 }
 
 impl Vertices {

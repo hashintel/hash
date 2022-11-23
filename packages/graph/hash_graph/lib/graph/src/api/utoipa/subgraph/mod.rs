@@ -12,9 +12,9 @@ use crate::{identifier::GraphElementEditionId, subgraph::depths::GraphResolveDep
 
 #[derive(Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct Subgraph<'u> {
+pub struct Subgraph {
     pub roots: Vec<GraphElementEditionId>,
-    pub vertices: Vertices<'u>,
-    pub edges: Edges<'u>,
+    pub vertices: Vertices,
+    pub edges: Edges,
     pub depths: GraphResolveDepths,
 }
