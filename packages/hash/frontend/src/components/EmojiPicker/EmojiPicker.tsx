@@ -1,6 +1,5 @@
 import Picker from "@emoji-mart/react";
-import { Popover } from "@hashintel/hash-design-system";
-import { PopoverProps } from "@mui/material";
+import { Popover, PopoverProps } from "@mui/material";
 import { BaseEmoji } from "emoji-mart";
 import { bindPopover, PopupState } from "material-ui-popup-state/core";
 

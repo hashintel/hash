@@ -6,7 +6,7 @@ import { useRef, forwardRef, useMemo, ForwardRefRenderFunction } from "react";
 
 import { useKey } from "rooks";
 
-import { Box, Divider, Typography } from "@mui/material";
+import { Box, Divider, Menu, Typography } from "@mui/material";
 import { bindMenu } from "material-ui-popup-state";
 import { PopupState } from "material-ui-popup-state/hooks";
 // import { format } from "date-fns";
@@ -25,7 +25,7 @@ import {
 } from "@fortawesome/free-regular-svg-icons";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 
-import { Menu, FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { useUserBlocks } from "../../userBlocks";
 import { getBlockDomId } from "../BlockView";
 
@@ -97,7 +97,6 @@ const BlockContextMenu: ForwardRefRenderFunction<
         icon: <FontAwesomeIcon icon={faLink} />,
         onClick: () => {
           const url = new URL(document.location.href);
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- false-positive, exception should be removed after refactoring ESLint config
           url.hash = getBlockDomId(entityId!);
           void navigator.clipboard.writeText(url.toString());
         },

@@ -152,6 +152,16 @@ impl fmt::Display for PrintableB {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub struct PrintableC(pub u32);
+
+impl fmt::Display for PrintableC {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("printable C: ")?;
+        fmt::Display::fmt(&self.0, fmt)
+    }
+}
+
 pub fn create_error() -> Result<(), RootError> {
     Err(create_report())
 }

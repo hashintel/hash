@@ -1,15 +1,17 @@
 import { extractVersion, PropertyType } from "@blockprotocol/type-system-web";
 import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
-import { IconButton } from "@hashintel/hash-design-system/icon-button";
-import { Menu } from "@hashintel/hash-design-system/menu";
-import { MenuItem } from "@hashintel/hash-design-system/menu-item";
+import {
+  FontAwesomeIcon,
+  IconButton,
+  MenuItem,
+} from "@hashintel/hash-design-system";
 import {
   Divider,
   ListItem,
   listItemClasses,
   ListItemText,
   listItemTextClasses,
+  Menu,
   menuItemClasses,
   tableRowClasses,
   Tooltip,

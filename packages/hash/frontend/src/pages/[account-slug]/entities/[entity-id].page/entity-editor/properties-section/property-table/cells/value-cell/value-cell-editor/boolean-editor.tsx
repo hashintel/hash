@@ -37,7 +37,7 @@ export const BooleanEditor: ValueCellEditorComponent = ({
         >
           <FontAwesomeIcon
             icon={option ? faCheck : faClose}
-            sx={{ mr: 1, color: ({ palette }) => palette.gray[50] }}
+            sx={{ mr: 1, color: "gray.50" }}
           />
           {option ? "True" : "False"}
         </MenuItem>

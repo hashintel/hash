@@ -1,5 +1,5 @@
 import { EntityType } from "@blockprotocol/type-system-web";
-import { Button, TextField } from "@hashintel/hash-design-system/ui";
+import { Button, TextField } from "@hashintel/hash-design-system";
 import {
   addVersionToBaseUri,
   generateBaseTypeId,

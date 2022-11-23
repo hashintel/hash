@@ -1,16 +1,18 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { PropertyRow } from "./types";
 import { generatePropertyRowsFromEntity } from "./use-row-data/generate-property-rows-from-entity";
 import { useEntityEditor } from "../../entity-editor-context";
 import { fillRowDataIndentCalculations } from "./fill-row-data-indent-calculations";
-import { sortRowData } from "../../../../../../../components/GlideGlid/utils/sorting";
 import { flattenExpandedItemsOfTree } from "./flatten-expanded-items-of-tree";
+import {
+  sortRowData,
+  TableSort,
+} from "../../../../../../../components/grid/utils/sorting";
 
 export const useRowData = () => {
-  const { rootEntityAndSubgraph, propertySort, propertyExpandStatus } =
-    useEntityEditor();
+  const { rootEntityAndSubgraph, propertyExpandStatus } = useEntityEditor();
 
-  const rowData = useMemo<PropertyRow[]>(() => {
+  const rows = useMemo<PropertyRow[]>(() => {
     if (!rootEntityAndSubgraph) {
       return [];
     }
@@ -18,21 +20,21 @@ export const useRowData = () => {
     return generatePropertyRowsFromEntity(rootEntityAndSubgraph);
   }, [rootEntityAndSubgraph]);
 
-  const sortedRowData = useMemo(
-    () => sortRowData(rowData, propertySort),
-    [rowData, propertySort],
+  const sortAndFlattenRowData = useCallback(
+    (rowData: PropertyRow[], sort: TableSort<string>) => {
+      const sortedRowData = sortRowData(rowData, sort);
+
+      const flattenedRowData = flattenExpandedItemsOfTree(
+        sortedRowData,
+        propertyExpandStatus,
+      );
+
+      fillRowDataIndentCalculations(flattenedRowData);
+
+      return flattenedRowData;
+    },
+    [propertyExpandStatus],
   );
 
-  const flattenedAndFilledRowData = useMemo(() => {
-    const flattenedRowData = flattenExpandedItemsOfTree(
-      sortedRowData,
-      propertyExpandStatus,
-    );
-
-    fillRowDataIndentCalculations(flattenedRowData);
-
-    return flattenedRowData;
-  }, [sortedRowData, propertyExpandStatus]);
-
-  return flattenedAndFilledRowData;
+  return [rows, sortAndFlattenRowData] as const;
 };
