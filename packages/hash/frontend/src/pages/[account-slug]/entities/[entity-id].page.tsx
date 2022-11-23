@@ -12,9 +12,12 @@ import { EntityEditor } from "./[entity-id].page/entity-editor";
 import { EntityPageLoadingState } from "./[entity-id].page/entity-page-loading-state";
 import { EntityPageWrapper } from "./[entity-id].page/entity-page-wrapper";
 import { PageErrorState } from "../../../components/page-error-state";
+/** @todo - This should be moved somewhere shared */
+import { useRouteNamespace } from "../types/entity-type/use-route-namespace";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
+  const namespace = useRouteNamespace();
   const { authenticatedUser } = useLoggedInUser();
   const { getEntity } = useBlockProtocolGetEntity();
 
@@ -23,29 +26,30 @@ const Page: NextPageWithLayout = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const init = async () => {
-      try {
-        const accountId = router.query["account-slug"] as string;
-        const entityUuid = router.query["entity-id"] as string;
+    if (namespace) {
+      const init = async () => {
+        try {
+          const entityUuid = router.query["entity-id"] as string;
 
-        const { data: subgraph } = await getEntity({
-          data: `${accountId}%${entityUuid}`,
-        });
+          const { data: subgraph } = await getEntity({
+            data: `${namespace.accountId}%${entityUuid}`,
+          });
 
-        if (subgraph) {
-          try {
-            setEntitySubgraph(subgraph);
-          } catch {
-            setEntitySubgraph(undefined);
+          if (subgraph) {
+            try {
+              setEntitySubgraph(subgraph);
+            } catch {
+              setEntitySubgraph(undefined);
+            }
           }
+        } finally {
+          setLoading(false);
         }
-      } finally {
-        setLoading(false);
-      }
-    };
+      };
 
-    void init();
-  }, [router.query, getEntity]);
+      void init();
+    }
+  }, [namespace, router.query, getEntity]);
 
   if (!authenticatedUser) {
     return null;
