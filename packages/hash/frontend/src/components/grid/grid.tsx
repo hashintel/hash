@@ -26,6 +26,7 @@ import {
   TableSort,
 } from "./utils/sorting";
 import { useRenderGridPortal } from "./utils/use-render-grid-portal";
+import { overrideCustomRenderers } from "./utils/override-custom-renderers";
 
 export type Row = Record<string, unknown>;
 export type RowData = Row[];
@@ -161,34 +162,11 @@ export const Grid = <T extends RowData>({
           : undefined,
     });
   };
-  const interactableCustomRenderers = useMemo<
-    DataEditorProps["customRenderers"]
-  >(() => {
-    return customRenderers?.map((customRenderer) => {
-      return {
-        ...customRenderer,
-        draw: (args, cell) =>
-          customRenderer.draw({ ...args, tableId: tableIdRef.current }, cell),
-        onClick: (args) => {
-          /** @todo investigate why `args` don't have `location` in it's type  */
-          const [col, row] = (args as unknown as { location: Item }).location;
 
-          const wasClickHandledByManager = InteractableManager.handleClick(
-            `${tableIdRef.current}-${col}-${row}`,
-            args,
-          );
-
-          if (wasClickHandledByManager) {
-            args.preventDefault();
-          } else {
-            customRenderer.onClick?.(args);
-          }
-
-          return undefined;
-        },
-      };
-    });
-  }, [customRenderers]);
+  const overriddenCustomRenderers = useMemo(
+    () => overrideCustomRenderers(customRenderers, tableIdRef),
+    [customRenderers],
+  );
 
   const handleVisibleRegionChanged = useCallback<
     NonNullable<DataEditorProps["onVisibleRegionChanged"]>
@@ -243,7 +221,7 @@ export const Grid = <T extends RowData>({
       getCellsForSelection
       onItemHovered={onCellSelect}
       onCellClicked={(_, args) => args.isTouch && onCellSelect(args)}
-      customRenderers={interactableCustomRenderers}
+      customRenderers={overriddenCustomRenderers}
       onVisibleRegionChanged={handleVisibleRegionChanged}
       onColumnResize={resizable ? handleColumnResize : undefined}
       columns={resizedColumns}
