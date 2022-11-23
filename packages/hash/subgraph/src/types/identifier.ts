@@ -5,6 +5,7 @@ import { validate as validateUuid } from "uuid";
 // directly here, and have to import as alias before re-exporting the type
 // if we don't, the `api` package is unable to use this library.
 import { VersionedUri as TVersionedUri } from "@blockprotocol/type-system-web";
+
 export type VersionedUri = TVersionedUri;
 
 // ${AccountId}%${EntityUuid}`
