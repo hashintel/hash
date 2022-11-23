@@ -1,6 +1,6 @@
 import { gql } from "apollo-server-express";
 
-export const persistedUserTypedef = gql`
+export const userTypedef = gql`
   extend type Query {
     me(entityResolveDepth: Int! = 0): Subgraph!
     """

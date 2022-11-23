@@ -4,7 +4,7 @@ import { entityTypedef } from "./entity.typedef";
 import { linkTypedef } from "./link.typedef";
 import { deprecatedEntityTypeTypedef } from "./entityType.typedef";
 import { textTypedef } from "./text.typedef";
-import { persistedUserTypedef } from "./knowledge/user.typedef";
+import { userTypedef } from "./knowledge/user.typedef";
 import { embedTypeDef } from "./embed.typedef";
 import { fileTypedef } from "./file.typedef";
 import { impliedHistoryTypedef } from "./impliedHistory.typedef";
@@ -48,7 +48,7 @@ const knowledge = [
   persistedBlockTypedef,
   persistedPageTypedef,
   persistedCommentTypedef,
-  persistedUserTypedef,
+  userTypedef,
   persistedOrgTypedef,
 ];
 
