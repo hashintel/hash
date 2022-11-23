@@ -1,5 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "dependencyDashboard": true,
   "enabledManagers": ["github-actions", "npm"],
   "ignorePaths": ["packages/engine/**"],
   "postUpdateOptions": ["yarnDedupeFewer"],
@@ -11,8 +12,7 @@
       "automerge": true,
       "enabled": false,
       "matchManagers": ["npm"],
-      "rangeStrategy": "bump",
-      "stabilityDays": 3
+      "rangeStrategy": "bump"
     },
     {
       "enabled": true,
