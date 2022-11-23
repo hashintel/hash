@@ -271,7 +271,6 @@ export const MultipleValuesCell = ({
                     </InputLabel>
 
                     <Collapse in={!infinity}>
-                      {/* Using a controller as Infinity is not a valid value for a HTML number input */}
                       <Controller
                         render={({ field: { value: _, ...field } }) => (
                           <OutlinedInput
