@@ -5,6 +5,7 @@ import {
   EntityModel,
   EntityModelCreateParams,
   AccountFields,
+  HashInstanceModel,
 } from "..";
 import { systemAccountId } from "../util";
 import { SYSTEM_TYPES } from "../../graph/system-types";
@@ -50,6 +51,14 @@ export default class extends EntityModel {
    */
   static async createOrg(graphApi: GraphApi, params: OrgModelCreateParams) {
     const { shortname, name, providedInfo, actorId } = params;
+
+    const hashInstanceModel = await HashInstanceModel.getHashInstanceModel(
+      graphApi,
+    );
+
+    if (hashInstanceModel.isOrgCreationDisabled()) {
+      throw new Error("Org creation is disabled.");
+    }
 
     if (AccountFields.shortnameIsInvalid(shortname)) {
       throw new Error(`The shortname "${shortname}" is invalid`);

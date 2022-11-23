@@ -160,6 +160,10 @@ const systemPropertyTypes = {
     title: "User Registration Is Enabled",
     description: "Whether or not user registration is enabled.",
   },
+  orgCreationIsEnabled: {
+    title: "Org Creation Is Enabled",
+    description: "Whether or not org creation is enabled.",
+  },
   kratosIdentityId: {
     title: "Kratos Identity Id",
     description: undefined,

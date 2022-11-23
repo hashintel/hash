@@ -7,8 +7,12 @@ import {
   GetHashInstanceEntityQueryQueryVariables,
 } from "../../graphql/apiTypes.gen";
 import { useInitTypeSystem } from "../../lib/use-init-type-system";
-import { HashInstance } from "../../lib/hashInstance";
 import { getHashInstanceEntityQuery } from "../../graphql/queries/knowledge/hashInstance.queries";
+
+type HashInstance = {
+  userRegistrationIsEnabled: boolean;
+  orgCreationIsEnabled: boolean;
+};
 
 /**
  * Retrieves the HASH instance.
@@ -46,8 +50,13 @@ export const useHashInstance = (): {
       )
     ] as boolean;
 
+    const orgCreationIsEnabled = properties[
+      extractBaseUri(types.propertyType.orgCreationIsEnabled.propertyTypeId)
+    ] as boolean;
+
     return {
       userRegistrationIsEnabled,
+      orgCreationIsEnabled,
     };
   }, [hashInstanceEntity, loadingTypeSystem]);
 

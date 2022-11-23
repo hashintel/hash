@@ -49,6 +49,7 @@ export let SYSTEM_TYPES: {
 
     // HASH Instance related
     userRegistrationIsEnabled: PropertyTypeModel;
+    orgCreationIsEnabled: PropertyTypeModel;
   };
   entityType: {
     hashInstance: EntityTypeModel;
@@ -95,6 +96,12 @@ const userRegistrationIsEnabledPropertyTypeInitializer =
     actorId: systemAccountId,
   });
 
+const orgCreationIsEnabledPropertyTypeInitializer = propertyTypeInitializer({
+  ...types.propertyType.orgCreationIsEnabled,
+  possibleValues: [{ primitiveDataType: "boolean" }],
+  actorId: systemAccountId,
+});
+
 export const adminLinkEntityTypeInitializer = entityTypeInitializer({
   ...types.linkEntityType.admin,
   actorId: systemAccountId,
@@ -107,6 +114,9 @@ export const hashInstanceEntityTypeInitializer = async (graphApi: GraphApi) => {
     await SYSTEM_TYPES_INITIALIZERS.propertyType.userRegistrationIsEnabled(
       graphApi,
     );
+
+  const orgCreationIsEnabledPropertyTypeModel =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.orgCreationIsEnabled(graphApi);
 
   const adminLinkEntityTypeModel =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.admin(graphApi);
@@ -122,6 +132,10 @@ export const hashInstanceEntityTypeInitializer = async (graphApi: GraphApi) => {
     properties: [
       {
         propertyTypeModel: userRegistrationIsEnabledPropertyTypeModel,
+        required: true,
+      },
+      {
+        propertyTypeModel: orgCreationIsEnabledPropertyTypeModel,
         required: true,
       },
     ],
@@ -634,6 +648,7 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     deletedAt: deletedAtPropertyTypeInitializer,
 
     userRegistrationIsEnabled: userRegistrationIsEnabledPropertyTypeInitializer,
+    orgCreationIsEnabled: orgCreationIsEnabledPropertyTypeInitializer,
   },
   entityType: {
     hashInstance: hashInstanceEntityTypeInitializer,
