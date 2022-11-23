@@ -1,14 +1,14 @@
 import { useMemo } from "react";
 import { useQuery } from "@apollo/client";
 import { types } from "@hashintel/hash-shared/types";
-import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
+import { extractBaseUri } from "@blockprotocol/type-system-web";
 import {
-  GetAllLatestEntitiesWithMetadataQuery,
-  GetAllLatestEntitiesWithMetadataQueryVariables,
+  GetHashInstanceEntityQueryQuery,
+  GetHashInstanceEntityQueryQueryVariables,
 } from "../../graphql/apiTypes.gen";
-import { getAllLatestEntitiesWithMetadataQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { useInitTypeSystem } from "../../lib/use-init-type-system";
-import { constructHashInstance, HashInstance } from "../../lib/hashInstance";
+import { HashInstance } from "../../lib/hashInstance";
+import { getHashInstanceEntityQuery } from "../../graphql/queries/knowledge/hashInstance.queries";
 
 /**
  * Retrieves the HASH instance.
@@ -22,44 +22,34 @@ export const useHashInstance = (): {
    * be fetched to get the HASH instance entity.
    */
   const { data, loading } = useQuery<
-    GetAllLatestEntitiesWithMetadataQuery,
-    GetAllLatestEntitiesWithMetadataQueryVariables
-  >(getAllLatestEntitiesWithMetadataQuery, {
-    variables: {
-      dataTypeResolveDepth: 0,
-      propertyTypeResolveDepth: 0,
-      entityTypeResolveDepth: 0,
-      entityResolveDepth: 1,
-    },
+    GetHashInstanceEntityQueryQuery,
+    GetHashInstanceEntityQueryQueryVariables
+  >(getHashInstanceEntityQuery, {
     /** @todo reconsider caching. This is done for testing/demo purposes. */
     fetchPolicy: "no-cache",
   });
 
   const loadingTypeSystem = useInitTypeSystem();
 
-  const { getAllLatestEntitiesWithMetadata: subgraph } = data ?? {};
+  const { hashInstanceEntity } = data ?? {};
 
-  const hashInstance = useMemo(() => {
-    if (!subgraph || loadingTypeSystem) {
+  const hashInstance = useMemo<HashInstance | undefined>(() => {
+    if (!hashInstanceEntity || loadingTypeSystem) {
       return undefined;
     }
 
-    const hashInstanceEditionId = getRootsAsEntities(subgraph).find(
-      ({ metadata: { entityTypeId } }) =>
-        entityTypeId === types.entityType.hashInstance.entityTypeId,
-    )?.metadata.editionId;
+    const { properties } = hashInstanceEntity;
 
-    if (!hashInstanceEditionId) {
-      throw new Error(
-        "A HASH Instance entity could not be found in the subgraph.",
-      );
-    }
+    const userRegistrationIsDisabled = properties[
+      extractBaseUri(
+        types.propertyType.userRegistrationIsDisabled.propertyTypeId,
+      )
+    ] as boolean;
 
-    return constructHashInstance({
-      subgraph,
-      hashInstanceEditionId,
-    });
-  }, [subgraph, loadingTypeSystem]);
+    return {
+      userRegistrationIsDisabled,
+    };
+  }, [hashInstanceEntity, loadingTypeSystem]);
 
   return {
     loading,
