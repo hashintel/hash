@@ -56,7 +56,7 @@ export default class extends EntityModel {
       graphApi,
     );
 
-    if (hashInstanceModel.isOrgCreationDisabled()) {
+    if (!hashInstanceModel.isOrgCreationEnabled()) {
       throw new Error("Org creation is disabled.");
     }
 

@@ -158,7 +158,7 @@ export default class extends EntityModel {
       graphApi,
     );
 
-    if (hashInstanceModel.isUserRegistrationDisabled()) {
+    if (!hashInstanceModel.isUserRegistrationEnabled()) {
       throw new Error("User registration is disabled.");
     }
 

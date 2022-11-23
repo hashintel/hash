@@ -156,9 +156,9 @@ const systemPropertyTypes = {
     title: "Email",
     description: undefined,
   },
-  userRegistrationIsEnabled: {
-    title: "User Registration Is Enabled",
-    description: "Whether or not user registration is enabled.",
+  userCreationIsEnabled: {
+    title: "User Creation Is Enabled",
+    description: "Whether or not user creation is enabled.",
   },
   orgCreationIsEnabled: {
     title: "Org Creation Is Enabled",

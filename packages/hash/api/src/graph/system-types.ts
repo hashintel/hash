@@ -48,7 +48,7 @@ export let SYSTEM_TYPES: {
     deletedAt: PropertyTypeModel;
 
     // HASH Instance related
-    userRegistrationIsEnabled: PropertyTypeModel;
+    userCreationIsEnabled: PropertyTypeModel;
     orgCreationIsEnabled: PropertyTypeModel;
   };
   entityType: {
@@ -89,12 +89,11 @@ export let SYSTEM_TYPES: {
   };
 };
 
-const userRegistrationIsEnabledPropertyTypeInitializer =
-  propertyTypeInitializer({
-    ...types.propertyType.userRegistrationIsEnabled,
-    possibleValues: [{ primitiveDataType: "boolean" }],
-    actorId: systemAccountId,
-  });
+const userCreationIsEnabledPropertyTypeInitializer = propertyTypeInitializer({
+  ...types.propertyType.userCreationIsEnabled,
+  possibleValues: [{ primitiveDataType: "boolean" }],
+  actorId: systemAccountId,
+});
 
 const orgCreationIsEnabledPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.orgCreationIsEnabled,
@@ -110,8 +109,8 @@ export const adminLinkEntityTypeInitializer = entityTypeInitializer({
 export const hashInstanceEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
 
-  const userRegistrationIsEnabledPropertyTypeModel =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.userRegistrationIsEnabled(
+  const userCreationIsEnabledPropertyTypeModel =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.userCreationIsEnabled(
       graphApi,
     );
 
@@ -131,7 +130,7 @@ export const hashInstanceEntityTypeInitializer = async (graphApi: GraphApi) => {
     ...types.entityType.hashInstance,
     properties: [
       {
-        propertyTypeModel: userRegistrationIsEnabledPropertyTypeModel,
+        propertyTypeModel: userCreationIsEnabledPropertyTypeModel,
         required: true,
       },
       {
@@ -647,7 +646,7 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     resolvedAt: resolvedAtPropertyTypeInitializer,
     deletedAt: deletedAtPropertyTypeInitializer,
 
-    userRegistrationIsEnabled: userRegistrationIsEnabledPropertyTypeInitializer,
+    userCreationIsEnabled: userCreationIsEnabledPropertyTypeInitializer,
     orgCreationIsEnabled: orgCreationIsEnabledPropertyTypeInitializer,
   },
   entityType: {
