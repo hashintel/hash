@@ -1,8 +1,12 @@
-import { VersionedUri } from "@blockprotocol/type-system-node";
 import { OntologyTypeEditionId } from "@hashintel/hash-graph-client";
 import { validate as validateUuid } from "uuid";
 
-export { VersionedUri } from "@blockprotocol/type-system-node";
+// For strange behavior we haven't found the cause of, we are unable to export
+// directly here, and have to import as alias before re-exporting the type
+// if we don't, the `api` package is unable to use this library.
+import { VersionedUri as TVersionedUri } from "@blockprotocol/type-system-web";
+
+export type VersionedUri = TVersionedUri;
 
 // ${AccountId}%${EntityUuid}`
 export type EntityId = `${string}%${string}`;

@@ -105,7 +105,7 @@ export const useUpdateAuthenticatedUser = () => {
         }
 
         const updatedAuthenticatedUser = constructAuthenticatedUser({
-          userEntityId,
+          userEntityEditionId: userEntityId,
           /**
            * @todo: ensure this subgraph contains the incoming links of orgs
            * at depth 2 to support constructing the `members` of an `Org`.

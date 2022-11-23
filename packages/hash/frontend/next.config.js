@@ -2,6 +2,8 @@ const { config } = require("dotenv-flow");
 const path = require("path");
 const withTM = require("next-transpile-modules")([
   "@hashintel/hash-shared",
+  "@hashintel/hash-subgraph",
+  "@hashintel/hash-graph-client",
   "@hashintel/hash-design-system",
 ]); // pass the modules you would like to see transpiled
 const HtmlWebpackPlugin = require("html-webpack-plugin");

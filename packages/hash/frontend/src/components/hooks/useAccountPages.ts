@@ -1,4 +1,5 @@
 import { useQuery } from "@apollo/client";
+import { EntityId } from "@hashintel/hash-subgraph";
 import { useMemo } from "react";
 
 import {
@@ -9,7 +10,7 @@ import { getAccountPagesTree } from "../../graphql/queries/account.queries";
 
 export type AccountPage = {
   title: string;
-  entityId: string;
+  entityId: EntityId;
   parentPageEntityId?: string | null;
   index: string;
 };
@@ -33,11 +34,19 @@ export const useAccountPages = (ownedById: string): AccountPagesInfo => {
     }
 
     return data?.persistedPages.map(
-      ({ entityId, parentPage, title, index }) => {
-        const parentPageEntityId = parentPage?.entityId ?? null;
+      ({
+        metadata: {
+          editionId: { baseId: pageEntityId },
+        },
+        parentPage,
+        title,
+        index,
+      }): AccountPage => {
+        const parentPageEntityId =
+          parentPage?.metadata.editionId.baseId ?? null;
 
         return {
-          entityId,
+          entityId: pageEntityId,
           parentPageEntityId,
           title,
           index: index ?? "",

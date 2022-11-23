@@ -2,6 +2,7 @@ import { QueryHookOptions, useQuery } from "@apollo/client";
 import * as Sentry from "@sentry/nextjs";
 import { useRouter } from "next/router";
 import { useContext, useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { isEntityRootedSubgraph } from "@hashintel/hash-subgraph/src/stdlib/roots";
 
 import { meQuery } from "../../graphql/queries/user.queries";
 import { MeQuery, MeQueryVariables } from "../../graphql/apiTypes.gen";
@@ -47,9 +48,14 @@ export const useAuthenticatedUser = (
 
   const authenticatedUser = useMemo<AuthenticatedUser | undefined>(
     () =>
-      !loadingTypeSystem && subgraph && kratosSession
+      !loadingTypeSystem &&
+      subgraph &&
+      kratosSession &&
+      isEntityRootedSubgraph(subgraph)
         ? constructAuthenticatedUser({
-            userEntityId: subgraph.roots[0]!,
+            // We make the assertion check above, but the type isn't refined here
+            // to be a Subgraph<EntityWithMetadata>
+            userEntityEditionId: subgraph.roots[0]!,
             /**
              * @todo: ensure this subgraph contains the incoming links of orgs
              * at depth 2 to support constructing the `members` of an `Org`.
@@ -74,13 +80,13 @@ export const useAuthenticatedUser = (
         scope.setUser(null);
       } else if (
         authenticatedUser &&
-        sentryUser?.id !== authenticatedUser.entityId
+        sentryUser?.id !== authenticatedUser.entityEditionId.baseId
       ) {
         const primaryEmail = authenticatedUser.emails.find(
           (email) => email.primary,
         );
         Sentry.setUser({
-          id: authenticatedUser.entityId,
+          id: authenticatedUser.entityEditionId.baseId,
           email: primaryEmail?.address,
         });
       }
