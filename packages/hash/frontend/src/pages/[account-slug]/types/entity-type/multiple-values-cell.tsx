@@ -151,9 +151,6 @@ export const MultipleValuesCell = ({
                     );
                     field.onChange(evt);
                   }}
-                  onClick={(evt) => {
-                    evt.stopPropagation();
-                  }}
                 />
               )}
               control={control}
