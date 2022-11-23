@@ -107,7 +107,7 @@ export const PageHeader: FunctionComponent = () => {
             >
               Sign In
             </Button>
-            {hashInstance && !hashInstance.userRegistrationIsDisabled ? (
+            {hashInstance && hashInstance.userRegistrationIsEnabled ? (
               <Button href="/signup" size={isMobile ? "xs" : "small"}>
                 Sign Up
               </Button>

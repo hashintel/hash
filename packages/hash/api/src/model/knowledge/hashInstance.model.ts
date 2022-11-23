@@ -14,7 +14,7 @@ export type HashInstanceModelCreateParams = Omit<
   EntityModelCreateParams,
   "properties" | "entityTypeModel" | "ownedById"
 > & {
-  userRegistrationIsDisabled?: boolean;
+  userRegistrationIsEnabled?: boolean;
 };
 
 /**
@@ -66,8 +66,8 @@ export default class extends EntityModel {
     const entityModel = await EntityModel.create(graphApi, {
       ownedById: systemAccountId,
       properties: {
-        [SYSTEM_TYPES.propertyType.userRegistrationIsDisabled.getBaseUri()]:
-          params.userRegistrationIsDisabled ?? false,
+        [SYSTEM_TYPES.propertyType.userRegistrationIsEnabled.getBaseUri()]:
+          params.userRegistrationIsEnabled ?? true,
       },
       entityTypeModel,
       actorId,
@@ -242,7 +242,7 @@ export default class extends EntityModel {
 
   isUserRegistrationDisabled(): boolean {
     return (this.getProperties() as any)[
-      SYSTEM_TYPES.propertyType.userRegistrationIsDisabled.getBaseUri()
+      SYSTEM_TYPES.propertyType.userRegistrationIsEnabled.getBaseUri()
     ];
   }
 }

@@ -40,14 +40,14 @@ export const useHashInstance = (): {
 
     const { properties } = hashInstanceEntity;
 
-    const userRegistrationIsDisabled = properties[
+    const userRegistrationIsEnabled = properties[
       extractBaseUri(
-        types.propertyType.userRegistrationIsDisabled.propertyTypeId,
+        types.propertyType.userRegistrationIsEnabled.propertyTypeId,
       )
     ] as boolean;
 
     return {
-      userRegistrationIsDisabled,
+      userRegistrationIsEnabled,
     };
   }, [hashInstanceEntity, loadingTypeSystem]);
 

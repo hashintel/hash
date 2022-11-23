@@ -156,9 +156,9 @@ const systemPropertyTypes = {
     title: "Email",
     description: undefined,
   },
-  userRegistrationIsDisabled: {
-    title: "User Registration Is Disabled",
-    description: "Whether or not user registration is disabled.",
+  userRegistrationIsEnabled: {
+    title: "User Registration Is Enabled",
+    description: "Whether or not user registration is enabled.",
   },
   kratosIdentityId: {
     title: "Kratos Identity Id",

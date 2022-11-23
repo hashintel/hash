@@ -48,7 +48,7 @@ export let SYSTEM_TYPES: {
     deletedAt: PropertyTypeModel;
 
     // HASH Instance related
-    userRegistrationIsDisabled: PropertyTypeModel;
+    userRegistrationIsEnabled: PropertyTypeModel;
   };
   entityType: {
     hashInstance: EntityTypeModel;
@@ -88,9 +88,9 @@ export let SYSTEM_TYPES: {
   };
 };
 
-const userRegistrationIsDisabledPropertyTypeInitializer =
+const userRegistrationIsEnabledPropertyTypeInitializer =
   propertyTypeInitializer({
-    ...types.propertyType.userRegistrationIsDisabled,
+    ...types.propertyType.userRegistrationIsEnabled,
     possibleValues: [{ primitiveDataType: "boolean" }],
     actorId: systemAccountId,
   });
@@ -103,8 +103,8 @@ export const adminLinkEntityTypeInitializer = entityTypeInitializer({
 export const hashInstanceEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
 
-  const userRegistrationIsDisabledPropertyTypeModel =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.userRegistrationIsDisabled(
+  const userRegistrationIsEnabledPropertyTypeModel =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.userRegistrationIsEnabled(
       graphApi,
     );
 
@@ -121,7 +121,7 @@ export const hashInstanceEntityTypeInitializer = async (graphApi: GraphApi) => {
     ...types.entityType.hashInstance,
     properties: [
       {
-        propertyTypeModel: userRegistrationIsDisabledPropertyTypeModel,
+        propertyTypeModel: userRegistrationIsEnabledPropertyTypeModel,
         required: true,
       },
     ],
@@ -633,8 +633,7 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
     resolvedAt: resolvedAtPropertyTypeInitializer,
     deletedAt: deletedAtPropertyTypeInitializer,
 
-    userRegistrationIsDisabled:
-      userRegistrationIsDisabledPropertyTypeInitializer,
+    userRegistrationIsEnabled: userRegistrationIsEnabledPropertyTypeInitializer,
   },
   entityType: {
     hashInstance: hashInstanceEntityTypeInitializer,
