@@ -53,7 +53,7 @@ const userEntityHookCallback: BeforeUpdateEntityHookCallback = async ({
 
   const currentShortname = userModel.getShortname();
 
-  const updatedShortname: string | undefined = updatedProperties[
+  const updatedShortname = updatedProperties[
     SYSTEM_TYPES.propertyType.shortName.getBaseUri()
   ] as string | undefined;
 
