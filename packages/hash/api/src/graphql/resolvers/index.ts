@@ -71,19 +71,6 @@ import { loggedInAndSignedUpHashInstanceAdmin } from "./middlewares/loggedInAndS
 import { createUser } from "./knowledge/user/create-user";
 import { createOrg } from "./knowledge/org/create-org";
 
-/**
- * @todo: derive these from the statically declared system type names
- * @see https://app.asana.com/0/1202805690238892/1203063463721797/f
- */
-const systemEntityGQLTypeNames = ["PersistedPage", "PersistedBlock"] as const;
-
-type SystemEntityGQLTypeName = typeof systemEntityGQLTypeNames[number];
-
-const isSystemEntityGQLTypeName = (
-  name: string,
-): name is SystemEntityGQLTypeName =>
-  systemEntityGQLTypeNames.includes(name as SystemEntityGQLTypeName);
-
 /** @todo - Refactor the names of these https://app.asana.com/0/1200211978612931/1203234667392169/f */
 export const resolvers = {
   Query: {

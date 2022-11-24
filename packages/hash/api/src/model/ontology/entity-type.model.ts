@@ -48,7 +48,7 @@ export default class {
      *   its own types.
      *   https://app.asana.com/0/1202805690238892/1202892835843657/f
      */
-    return this.entityType.schema as EntityType;
+    return this.entityType.schema;
   }
 
   getMetadata(): OntologyElementMetadata {
