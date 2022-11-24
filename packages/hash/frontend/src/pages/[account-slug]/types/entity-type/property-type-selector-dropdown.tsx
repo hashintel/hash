@@ -1,6 +1,5 @@
 import {
   Button,
-  // ButtonProps,
   Chip,
   textFieldBorderRadius,
 } from "@hashintel/hash-design-system";
@@ -11,7 +10,8 @@ import {
   PaperProps,
   Typography,
 } from "@mui/material";
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext } from "react";
+import { PropertyTypeCustomMenu } from "./custom-property-type-menu";
 import { PROPERTY_SELECTOR_HEIGHT } from "./property-selector";
 import { StyledPlusCircleIcon } from "./styled-plus-circle-icon";
 
@@ -95,10 +95,7 @@ export const PropertyTypeSelectorDropdown = ({
         })}
       >
         {customPropertyMenuOpen ? (
-          <Box>
-            hello
-            <Button onClick={closeCustomPropertyMenu}>close</Button>
-          </Box>
+          <PropertyTypeCustomMenu closeMenu={closeCustomPropertyMenu} />
         ) : (
           <>
             {children}
