@@ -137,6 +137,8 @@ impl Report<()> {
     /// <pre>
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/hook__debug_hook_provide.snap"))]
     /// </pre>
+    ///
+    /// [`Error::provide`]: std::error::Error::provide
     #[cfg(feature = "std")]
     pub fn install_debug_hook<T: Send + Sync + 'static>(
         hook: impl Fn(&T, &mut HookContext<T>) + Send + Sync + 'static,

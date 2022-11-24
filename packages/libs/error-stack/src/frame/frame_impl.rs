@@ -1,12 +1,7 @@
 use alloc::boxed::Box;
 #[cfg(nightly)]
 use core::any::Demand;
-#[cfg(any(feature = "anyhow", feature = "eyre"))]
-use core::fmt;
-use core::{
-    any::Any,
-    fmt::{Debug, Display},
-};
+use core::{any::Any, fmt};
 
 use crate::{AttachmentKind, Context, Frame, FrameKind};
 
@@ -76,7 +71,9 @@ struct PrintableAttachmentFrame<A> {
     attachment: A,
 }
 
-impl<A: 'static + Debug + Display + Send + Sync> FrameImpl for PrintableAttachmentFrame<A> {
+impl<A: 'static + fmt::Debug + fmt::Display + Send + Sync> FrameImpl
+    for PrintableAttachmentFrame<A>
+{
     fn kind(&self) -> FrameKind<'_> {
         FrameKind::Attachment(AttachmentKind::Printable(&self.attachment))
     }
@@ -239,7 +236,7 @@ impl Frame {
     /// [`Display`]: core::fmt::Display
     pub(crate) fn from_printable_attachment<A>(attachment: A, sources: Box<[Self]>) -> Self
     where
-        A: Display + Debug + Send + Sync + 'static,
+        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
         Self {
             frame: Box::new(PrintableAttachmentFrame { attachment }),
