@@ -19,11 +19,6 @@ export const TEXT_TOKEN_PROPERTY_TYPE_BASE_URI =
   types.propertyType.tokens.propertyTypeId.slice(0, -3);
 
 export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
-  // accountId: string;
-  // entityId: EntityId | null;
-  // entityTypeId?: string | null;
-  // entityVersion?: string;
-  // entityType?: MinimalEntityTypeFieldsFragment;
   metadata: {
     editionId: {
       baseId: EntityId | null;
@@ -116,7 +111,7 @@ const findEntities = (contents: BlockEntity[]): EntityStoreType[] => {
 };
 
 const restoreDraftId = (
-  identifiers: { entityId: EntityId | null; draftId?: string },
+  identifiers: { entityId: string | null; draftId?: string },
   entityToDraft: Record<string, string>,
 ): string => {
   const textEntityId = identifiers.entityId;
@@ -135,7 +130,7 @@ const restoreDraftId = (
 export const createEntityStore = (
   contents: BlockEntity[],
   draftData: Record<string, DraftEntity>,
-  presetDraftIds: Record<string, EntityId> = {},
+  presetDraftIds: Record<string, string> = {},
 ): EntityStore => {
   const saved: EntityStore["saved"] = {};
   const draft: EntityStore["draft"] = {};
@@ -236,9 +231,8 @@ export const createEntityStore = (
         ...draftEntity.metadata,
         editionId: {
           ...draftEntity.metadata.editionId,
-          baseId:
-            presetDraftIds[draftEntity.draftId] ??
-            draftEntity.metadata.editionId.baseId,
+          baseId: (presetDraftIds[draftEntity.draftId] ??
+            draftEntity.metadata.editionId.baseId) as EntityId,
         },
       },
     };
@@ -259,7 +253,7 @@ export const createEntityStore = (
     }
 
     draft[draftId] = produce(draftEntity, (draftDraftEntity) => {
-      draftDraftEntity.metadata.editionId.baseId = entityId;
+      draftDraftEntity.metadata.editionId.baseId = entityId as EntityId;
     });
   }
 

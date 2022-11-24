@@ -52,7 +52,7 @@ export type EntityStorePluginAction = { received?: boolean } & (
       type: "mergeNewPageContents";
       payload: {
         blocks: BlockEntity[];
-        presetDraftIds: Record<string, EntityId>;
+        presetDraftIds: Record<string, string>;
       };
     }
   | { type: "store"; payload: EntityStore }
@@ -592,7 +592,7 @@ class ProsemirrorStateChangeHandler {
     const draftEntityStore = this.getDraftEntityStoreFromTransaction();
 
     const entityId = node.attrs.draftId
-      ? draftEntityStore[node.attrs.draftId]?.entityId
+      ? draftEntityStore[node.attrs.draftId]?.metadata.editionId.baseId
       : null;
 
     const draftId = entityId
