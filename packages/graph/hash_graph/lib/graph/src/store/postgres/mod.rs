@@ -1188,56 +1188,6 @@ impl PostgresStore<Transaction<'_>> {
             .into_report()
             .change_context(InsertionError)
     }
-
-    #[doc(hidden)]
-    #[cfg(feature = "__internal_bench")]
-    async fn insert_link_batch_by_type(
-        &self,
-        entity_ids: impl IntoIterator<Item = (EntityId, EntityId, Option<u32>), IntoIter: Send> + Send,
-        link_type_version_id: VersionId,
-        owned_by_id: OwnedById,
-        created_by: CreatedById,
-    ) -> Result<u64, InsertionError> {
-        let sink = self
-            .client
-            .copy_in(
-                "COPY links (source_entity_id, target_entity_id, link_type_version_id, \
-                 owned_by_id, link_index, created_by_id) FROM STDIN BINARY",
-            )
-            .await
-            .into_report()
-            .change_context(InsertionError)?;
-        let writer = BinaryCopyInWriter::new(sink, &[
-            Type::UUID,
-            Type::UUID,
-            Type::UUID,
-            Type::UUID,
-            Type::INT8,
-            Type::UUID,
-        ]);
-        futures::pin_mut!(writer);
-        for (source_entity_id, target_entity_id, index) in entity_ids {
-            writer
-                .as_mut()
-                .write(&[
-                    &source_entity_id,
-                    &target_entity_id,
-                    &link_type_version_id,
-                    &owned_by_id,
-                    &index.map(i64::from),
-                    &created_by,
-                ])
-                .await
-                .into_report()
-                .change_context(InsertionError)?;
-        }
-
-        writer
-            .finish()
-            .await
-            .into_report()
-            .change_context(InsertionError)
-    }
 }
 
 #[async_trait]
