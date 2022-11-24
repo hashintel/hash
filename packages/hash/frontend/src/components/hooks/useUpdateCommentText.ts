@@ -1,6 +1,7 @@
 import { useMutation } from "@apollo/client";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
 import { useCallback } from "react";
+import { EntityId } from "@hashintel/hash-subgraph";
 import {
   UpdatePersistedCommentTextMutation,
   UpdatePersistedCommentTextMutationVariables,
@@ -8,7 +9,7 @@ import {
 import { updatePersistedCommentText } from "../../graphql/queries/comment.queries";
 import { getPersistedPageComments } from "../../graphql/queries/page.queries";
 
-export const useUpdateCommentText = (pageId: string) => {
+export const useUpdateCommentText = (pageId: EntityId) => {
   const [updatePageCommentTextFn, { loading }] = useMutation<
     UpdatePersistedCommentTextMutation,
     UpdatePersistedCommentTextMutationVariables
@@ -25,7 +26,7 @@ export const useUpdateCommentText = (pageId: string) => {
   });
 
   const updatePageCommentText = useCallback(
-    async (commentId: string, tokens: TextToken[]) => {
+    async (commentId: EntityId, tokens: TextToken[]) => {
       await updatePageCommentTextFn({
         variables: { entityId: commentId, tokens },
       });
