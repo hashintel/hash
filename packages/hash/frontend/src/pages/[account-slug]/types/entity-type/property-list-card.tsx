@@ -17,7 +17,11 @@ import {
   Typography,
 } from "@mui/material";
 import { experimental_sx, styled } from "@mui/system";
-import { usePopupState } from "material-ui-popup-state/hooks";
+import {
+  bindPopover,
+  bindTrigger,
+  usePopupState,
+} from "material-ui-popup-state/hooks";
 import { useId, useRef } from "react";
 import {
   Controller,
@@ -32,6 +36,7 @@ import { InsertPropertyRow } from "./insert-property-row";
 import { MultipleValuesCell } from "./multiple-values-cell";
 import { PropertyExpectedValues } from "./property-expected-values";
 import { PropertyMenu } from "./property-menu";
+import { PropertyTypeModal } from "./property-type-modal";
 import { QuestionIcon } from "./question-icon";
 import { StyledPlusCircleIcon } from "./styled-plus-circle-icon";
 import { usePropertyTypes } from "./use-property-types";
@@ -46,11 +51,9 @@ const CenteredTableCell = styled(TableCell)(
 
 export const PropertyTypeRow = ({
   propertyIndex,
-  onEdit,
   onRemove,
 }: {
   propertyIndex: number;
-  onEdit: () => void;
   onRemove: () => void;
 }) => {
   const { control } = useFormContext<EntityTypeEditorForm>();
@@ -63,6 +66,12 @@ export const PropertyTypeRow = ({
   const menuPopupState = usePopupState({
     variant: "popover",
     popupId: `property-menu-${popupId}`,
+  });
+
+  const editModalId = useId();
+  const editModalPopupState = usePopupState({
+    variant: "popover",
+    popupId: `edit-property-type-modal-${editModalId}`,
   });
 
   const propertyTypes = usePropertyTypes();
@@ -78,66 +87,74 @@ export const PropertyTypeRow = ({
   }
 
   return (
-    <TableRow
-      sx={[
-        (theme) => ({
-          [`.${tableCellClasses.root}`]: {
-            "&:first-of-type": {
-              borderTopLeftRadius: theme.borderRadii.md,
-              borderBottomLeftRadius: theme.borderRadii.md,
+    <>
+      <TableRow
+        sx={[
+          (theme) => ({
+            [`.${tableCellClasses.root}`]: {
+              "&:first-of-type": {
+                borderTopLeftRadius: theme.borderRadii.md,
+                borderBottomLeftRadius: theme.borderRadii.md,
+              },
+              "&:last-of-type": {
+                borderTopRightRadius: theme.borderRadii.md,
+                borderBottomRightRadius: theme.borderRadii.md,
+              },
             },
-            "&:last-of-type": {
-              borderTopRightRadius: theme.borderRadii.md,
-              borderBottomRightRadius: theme.borderRadii.md,
+          }),
+          (theme) => ({
+            [`&:hover .${tableCellClasses.root}`]: {
+              background: theme.palette.gray[10],
             },
-          },
-        }),
-        (theme) => ({
-          [`&:hover .${tableCellClasses.root}`]: {
-            background: theme.palette.gray[10],
-          },
-        }),
-      ]}
-    >
-      <TableCell>
-        <Typography variant="smallTextLabels" fontWeight={500}>
-          {property.title}
-        </Typography>
-      </TableCell>
-      <TableCell>
-        <PropertyExpectedValues property={property} />
-      </TableCell>
-
-      <MultipleValuesCell propertyIndex={propertyIndex} />
-
-      <CenteredTableCell sx={{ textAlign: "center" }}>
-        <Controller
-          render={({ field: { value, ...field } }) => (
-            <Checkbox {...field} checked={value} />
-          )}
-          control={control}
-          name={`properties.${propertyIndex}.required`}
-        />
-      </CenteredTableCell>
-
-      <TableCell
-        sx={{
-          [`.${iconButtonClasses.root}`]: {
-            opacity: 0,
-            [`.${tableRowClasses.root}:hover &`]: {
-              opacity: 1,
-            },
-          },
-        }}
+          }),
+        ]}
       >
-        <PropertyMenu
-          onEdit={onEdit}
-          onRemove={onRemove}
-          property={property}
-          popupState={menuPopupState}
-        />
-      </TableCell>
-    </TableRow>
+        <TableCell>
+          <Typography variant="smallTextLabels" fontWeight={500}>
+            {property.title}
+          </Typography>
+        </TableCell>
+        <TableCell>
+          <PropertyExpectedValues property={property} />
+        </TableCell>
+
+        <MultipleValuesCell propertyIndex={propertyIndex} />
+
+        <CenteredTableCell sx={{ textAlign: "center" }}>
+          <Controller
+            render={({ field: { value, ...field } }) => (
+              <Checkbox {...field} checked={value} />
+            )}
+            control={control}
+            name={`properties.${propertyIndex}.required`}
+          />
+        </CenteredTableCell>
+
+        <TableCell
+          sx={{
+            [`.${iconButtonClasses.root}`]: {
+              opacity: 0,
+              [`.${tableRowClasses.root}:hover &`]: {
+                opacity: 1,
+              },
+            },
+          }}
+        >
+          <PropertyMenu
+            editButtonProps={bindTrigger(editModalPopupState)}
+            onRemove={onRemove}
+            property={property}
+            popupState={menuPopupState}
+          />
+        </TableCell>
+      </TableRow>
+      <PropertyTypeModal
+        popupState={editModalPopupState}
+        title={<>Edit Property Type</>}
+      >
+        foo
+      </PropertyTypeModal>
+    </>
   );
 };
 
@@ -219,9 +236,6 @@ export const PropertyListCard = () => {
               <PropertyTypeRow
                 key={type.id}
                 propertyIndex={index}
-                onEdit={() => {
-                  alert("Edit property");
-                }}
                 onRemove={() => {
                   remove(index);
                 }}
