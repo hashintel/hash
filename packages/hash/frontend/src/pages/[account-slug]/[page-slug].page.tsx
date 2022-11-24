@@ -322,11 +322,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
                   pageIconVariantSizes.medium.container,
               }}
             >
-              <PageTitle
-                value={title}
-                ownedById={accountId}
-                pageEntityId={pageEntityId}
-              />
+              <PageTitle value={title} pageEntityId={pageEntityId} />
               {/*
             Commented out Version Dropdown and Transfer Page buttons.
             They will most likely be added back when new designs 
