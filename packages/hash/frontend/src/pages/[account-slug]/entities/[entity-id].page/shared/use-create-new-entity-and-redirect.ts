@@ -3,12 +3,14 @@ import { useRouter } from "next/router";
 import { useCallback } from "react";
 import { useBlockProtocolCreateEntity } from "../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolCreateEntity";
 import { useBlockProtocolGetEntityType } from "../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
+import { useAuthenticatedUser } from "../../../../../components/hooks/useAuthenticatedUser";
 import { getPersistedEntityType } from "../../../../../lib/subgraph";
 
 export const useCreateNewEntityAndRedirect = () => {
   const router = useRouter();
   const { createEntity } = useBlockProtocolCreateEntity();
   const { getEntityType } = useBlockProtocolGetEntityType();
+  const { authenticatedUser } = useAuthenticatedUser();
 
   const createNewEntityAndRedirect = useCallback(
     async (arg: { entityType: EntityType } | { entityTypeId: string }) => {
@@ -52,9 +54,11 @@ export const useCreateNewEntityAndRedirect = () => {
         },
       });
 
-      await router.push(`/@alice/entities/${entity.data?.entityId}`);
+      await router.push(
+        `/@${authenticatedUser?.shortname}/entities/${entity.data?.entityId}`,
+      );
     },
-    [router, createEntity, getEntityType],
+    [router, createEntity, getEntityType, authenticatedUser],
   );
 
   return createNewEntityAndRedirect;
