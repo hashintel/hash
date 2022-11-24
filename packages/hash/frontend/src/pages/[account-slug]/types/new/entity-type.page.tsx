@@ -1,5 +1,6 @@
 import { EntityType } from "@blockprotocol/type-system-web";
 import { Button, TextField } from "@hashintel/hash-design-system";
+import { frontendUrl } from "@hashintel/hash-shared/environment";
 import {
   addVersionToBaseUri,
   generateBaseTypeId,
@@ -18,11 +19,14 @@ import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
 import { ReactNode, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { frontendUrl } from "@hashintel/hash-shared/environment";
 import { useBlockProtocolGetEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
 import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
 import { useInitTypeSystem } from "../../../../lib/use-init-type-system";
-import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
+import {
+  getLayoutWithHeader,
+  NextPageWithLayout,
+} from "../../../../shared/layout";
+import { Link } from "../../../../shared/ui/link";
 import { TopContextBar } from "../../../shared/top-context-bar";
 import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
 import { OntologyChip } from "../../shared/ontology-chip";
@@ -284,12 +288,13 @@ const Page: NextPageWithLayout = () => {
                 >
                   Create new entity type
                 </Button>
-                {/** @todo set correct URL */}
                 <Button
-                  href="/"
+                  href={`/${namespace.id}`}
                   variant="tertiary"
                   size="small"
                   disabled={isSubmitting}
+                  // For some reason, Button doesn't know it can take component
+                  {...({ component: Link } as any)}
                 >
                   Discard draft
                 </Button>
@@ -302,6 +307,6 @@ const Page: NextPageWithLayout = () => {
   );
 };
 
-Page.getLayout = getPlainLayout;
+Page.getLayout = getLayoutWithHeader;
 
 export default Page;
