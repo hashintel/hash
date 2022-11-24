@@ -3,7 +3,7 @@ import { DataEditorRef } from "@glideapps/glide-data-grid";
 import { useRowData } from "./property-table/use-row-data";
 import { useCreateGetCellContent } from "./property-table/use-create-get-cell-content";
 import { propertyGridColumns } from "./property-table/constants";
-import { useCreateOnCellEdited } from "./property-table/use-on-cell-edited";
+import { useCreateOnCellEdited } from "./property-table/use-create-on-cell-edited";
 import { useEntityEditor } from "../entity-editor-context";
 import { useGridTooltip } from "../../../../../../components/grid/utils/use-grid-tooltip";
 import { renderValueCell } from "./property-table/cells/value-cell";
