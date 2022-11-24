@@ -1,10 +1,10 @@
-import { EntityType } from "@blockprotocol/type-system-web";
 import { useRouter } from "next/router";
 import { useCallback } from "react";
 import { useBlockProtocolCreateEntity } from "../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolCreateEntity";
 import { useBlockProtocolGetEntityType } from "../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
 import { useAuthenticatedUser } from "../../../../../components/hooks/useAuthenticatedUser";
 import { getPersistedEntityType } from "../../../../../lib/subgraph";
+import { generateDefaultProperties } from "./use-create-new-entity-and-redirect/generate-default-properties";
 
 export const useCreateNewEntityAndRedirect = () => {
   const router = useRouter();
@@ -13,44 +13,35 @@ export const useCreateNewEntityAndRedirect = () => {
   const { authenticatedUser } = useAuthenticatedUser();
 
   const createNewEntityAndRedirect = useCallback(
-    async (arg: { entityType: EntityType } | { entityTypeId: string }) => {
-      let entityType: EntityType;
+    async (entityTypeId: string) => {
+      const { data: subgraph } = await getEntityType({
+        data: { entityTypeId },
+      });
 
-      if ("entityType" in arg) {
-        entityType = arg.entityType;
-      } else {
-        const res = await getEntityType({
-          data: { entityTypeId: arg.entityTypeId },
-        });
-
-        if (!res.data) {
-          throw new Error("subgraph not found");
-        }
-
-        const { inner } =
-          getPersistedEntityType(res.data, arg.entityTypeId) ?? {};
-
-        if (!inner) {
-          throw new Error("persisted entity type not found");
-        }
-
-        entityType = inner;
+      if (!subgraph) {
+        throw new Error("subgraph not found");
       }
 
-      const properties: Record<string, unknown> = {};
+      const { inner } = getPersistedEntityType(subgraph, entityTypeId) ?? {};
 
-      for (const propertyKey of Object.keys(entityType.properties)) {
-        /**
-         * @todo assigning empty string for each property to make them visible for now,
-         * but need to make sure if this works with arrays & nested properties
-         */
-        properties[propertyKey] = "";
+      if (!inner) {
+        throw new Error("persisted entity type not found");
       }
+
+      const entityType = inner;
 
       const entity = await createEntity({
         data: {
           entityTypeId: entityType.$id,
-          properties,
+          /**
+           * @todo after implementing this ticket: https://app.asana.com/0/1203312852763953/1203433085114587/f (internal)
+           * we should just use `properties: {}` here, and delete `generateDefaultProperties` function,
+           * this is a temporary workaround for entity table to show the rows with empty values
+           */
+          properties: generateDefaultProperties(
+            entityType.properties,
+            subgraph,
+          ),
         },
       });
 

@@ -20,7 +20,7 @@ const Page: NextPageWithLayout = () => {
       if (entityTypeId) {
         try {
           setLoading(true);
-          await createNewEntityAndRedirect({ entityTypeId });
+          await createNewEntityAndRedirect(entityTypeId);
         } finally {
           setLoading(false);
         }

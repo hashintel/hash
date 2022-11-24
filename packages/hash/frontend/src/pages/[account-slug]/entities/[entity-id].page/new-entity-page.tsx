@@ -77,7 +77,7 @@ export const NewEntityPage = () => {
                       setIsSelectingType(false);
                       setLoading(true);
 
-                      await createNewEntityAndRedirect({ entityType });
+                      await createNewEntityAndRedirect(entityType.$id);
                     } catch (error: any) {
                       snackbar.error(error.message);
                     } finally {
