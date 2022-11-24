@@ -420,9 +420,15 @@ export default class extends EntityModel {
       ],
     });
 
-    return outgoingBlockDataLinks.map(({ rightEntityModel }) =>
-      BlockModel.fromEntityModel(rightEntityModel),
-    );
+    return outgoingBlockDataLinks
+      .sort(
+        (a, b) =>
+          (a.getLinkMetadata().leftOrder ?? 0) -
+          (b.getLinkMetadata().leftOrder ?? 0),
+      )
+      .map(({ rightEntityModel }) =>
+        BlockModel.fromEntityModel(rightEntityModel),
+      );
   }
 
   /**
