@@ -54,13 +54,13 @@ test("user can create page", async ({ page }) => {
   await page.keyboard.press(`${modifierKey}+i`);
 
   // Insert a divider
-  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await sleep(500); // TODO: investigate flakiness in FF and Webkit
   await page.keyboard.press("Enter");
-  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await sleep(500); // TODO: investigate flakiness in FF and Webkit
   await page.keyboard.type("/divider");
-  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await sleep(500); // TODO: investigate flakiness in FF and Webkit
   await page.keyboard.press("Enter");
-  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await sleep(500); // TODO: investigate flakiness in FF and Webkit
 
   // Wait for divider block to load
   await expect(blockRegion).not.toContainText("Loading...", {
@@ -71,18 +71,18 @@ test("user can create page", async ({ page }) => {
   // TODO: Move the cursor below the new divider and update the test?
 
   // Insert a paragraph creation with newlines
-  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await sleep(500); // TODO: investigate flakiness in FF and Webkit
   await page.keyboard.type("Second paragraph");
-  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await sleep(500); // TODO: investigate flakiness in FF and Webkit
   await page.keyboard.press("Shift+Enter");
-  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await sleep(500); // TODO: investigate flakiness in FF and Webkit
   await page.keyboard.press("Shift+Enter");
-  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await sleep(500); // TODO: investigate flakiness in FF and Webkit
   await page.keyboard.type("with");
   await page.keyboard.press("Shift+Enter");
-  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await sleep(500); // TODO: investigate flakiness in FF and Webkit
   await page.keyboard.type("line breaks");
-  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await sleep(500); // TODO: investigate flakiness in FF and Webkit
 
   // Expect just inserted content to be present on the page
   await expect(blockRegion).toContainText(
@@ -97,7 +97,7 @@ test("user can create page", async ({ page }) => {
   );
 
   await page.keyboard.press("Enter");
-  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await sleep(500); // TODO: investigate flakiness in FF and Webkit
 
   await expect(blockRegion.locator('[data-testid="block-handle"]')).toHaveCount(
     4,
@@ -132,7 +132,7 @@ test("user can create page", async ({ page }) => {
   ).toHaveCount(0);
 
   // Give collab some time to sync data
-  await sleep(2000);
+  await sleep(4000);
 
   // Check content stability after page reload
   await page.reload();
@@ -181,19 +181,19 @@ test("user can rename page", async ({ page }) => {
   await expect(listOfPages).toContainText(pageName2);
 
   // Revert page name change (using Tab)
-  await sleep(500); // TODO: Investigate why delay is required for <PageTitle /> state to work
+  await sleep(2000); // TODO: Investigate why delay is required for <PageTitle /> state to work
   await pageTitle.fill(pageName1);
   await pageTitle.press("Tab");
   await expect(listOfPages).toContainText(pageName1);
 
   // Change page name (by clicking outside)
-  await sleep(500); // TODO: Investigate why delay is required for <PageTitle /> state to work
+  await sleep(2000); // TODO: Investigate why delay is required for <PageTitle /> state to work
   await pageTitle.fill(pageName2);
   await page.click("main");
   await expect(listOfPages).toContainText(pageName2);
 
   // Revert page name change (using Esc)
-  await sleep(500); // TODO: Investigate why delay is required for <PageTitle /> state to work
+  await sleep(2000); // TODO: Investigate why delay is required for <PageTitle /> state to work
   await pageTitle.fill(pageName1);
   await pageTitle.press("Escape");
   await expect(listOfPages).not.toContainText(pageName2);
