@@ -31,7 +31,7 @@ import { overrideCustomRenderers } from "./utils/override-custom-renderers";
 export type Row = Record<string, unknown>;
 export type RowData = Row[];
 
-type GridProps<T> = Omit<
+export type GridProps<T> = Omit<
   DataEditorProps,
   | "onColumnResize"
   | "onColumnResizeEnd"
@@ -39,6 +39,7 @@ type GridProps<T> = Omit<
   | "columns"
   | "getCellContent"
   | "rows"
+  | "onCellEdited"
 > & {
   columns: SizedGridColumn[];
   rowData: T;
@@ -47,6 +48,7 @@ type GridProps<T> = Omit<
   initialPropertySort?: TableSort<string>;
   tableRef?: Ref<DataEditorRef>;
   createGetCellContent: (rowData: T) => (cell: Item) => GridCell;
+  createOnCellEdited?: (rowData: T) => DataEditorProps["onCellEdited"];
   sortRowData?: (rowData: T, sort: TableSort<string>) => T;
 };
 
@@ -62,6 +64,7 @@ export const Grid = <T extends RowData>({
   createGetCellContent,
   sortRowData,
   tableRef,
+  createOnCellEdited,
   ...rest
 }: GridProps<T>) => {
   useRenderGridPortal();
@@ -228,6 +231,7 @@ export const Grid = <T extends RowData>({
       drawHeader={drawHeader ?? defaultDrawHeader}
       onHeaderClicked={handleHeaderClicked}
       getCellContent={createGetCellContent(rows)}
+      onCellEdited={createOnCellEdited?.(rows)}
       rows={rows.length}
       {...rest}
       /**
