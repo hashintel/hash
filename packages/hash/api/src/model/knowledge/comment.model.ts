@@ -317,7 +317,7 @@ export default class extends EntityModel {
     });
 
     return replyLinks.map((reply) =>
-      CommentModel.fromEntityModel(reply.rightEntityModel),
+      CommentModel.fromEntityModel(reply.leftEntityModel),
     );
   }
 }
