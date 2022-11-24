@@ -23,12 +23,12 @@ import {
   TextField,
   FontAwesomeIcon,
 } from "@hashintel/hash-design-system";
+import { EntityId } from "@hashintel/hash-subgraph";
 import { useBlockView } from "../BlockViewContext";
 import { useRouteAccountInfo } from "../../../shared/routing";
 import { MenuItem } from "../../../shared/ui";
 import { useAccountEntities } from "../../../components/hooks/useAccountEntities";
 import { generateEntityLabel } from "../../../lib/entities";
-import {EntityId} from "@hashintel/hash-subgraph";
 
 type LoadEntityMenuContentProps = {
   blockEntityId: EntityId | null;

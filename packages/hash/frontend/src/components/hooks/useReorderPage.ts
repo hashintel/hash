@@ -17,16 +17,19 @@ export const useReorderPage = () => {
     SetParentPageMutationVariables
   >(setParentPage, {
     awaitRefetchQueries: true,
-    refetchQueries: ({ data }) => data ? [
-      {
-        query: getAccountPagesTree,
-        variables: {
-          ownedById: extractOwnedByIdFromEntityId(
-            data.setParentPersistedPage.metadata.editionId.baseId,
-          ),
-        },
-      },
-    ] : [],
+    refetchQueries: ({ data }) =>
+      data
+        ? [
+            {
+              query: getAccountPagesTree,
+              variables: {
+                ownedById: extractOwnedByIdFromEntityId(
+                  data.setParentPersistedPage.metadata.editionId.baseId,
+                ),
+              },
+            },
+          ]
+        : [],
   });
 
   const reorderPage = useCallback(
