@@ -9,9 +9,9 @@ import {
 import { useBlockProtocolGetEntity } from "../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolGetEntity";
 import { useLoggedInUser } from "../../../components/hooks/useAuthenticatedUser";
 import { getPlainLayout, NextPageWithLayout } from "../../../shared/layout";
-import { EntityEditor } from "./[entity-id].page/entity-editor";
-import { EntityPageLoadingState } from "./[entity-id].page/entity-page-loading-state";
-import { EntityPageWrapper } from "./[entity-id].page/entity-page-wrapper";
+import { EntityEditor } from "./[entity-uuid].page/entity-editor";
+import { EntityPageLoadingState } from "./[entity-uuid].page/entity-page-loading-state";
+import { EntityPageWrapper } from "./[entity-uuid].page/entity-page-wrapper";
 import { PageErrorState } from "../../../components/page-error-state";
 /** @todo - This should be moved somewhere shared */
 import { useRouteNamespace } from "../types/entity-type/use-route-namespace";
@@ -30,7 +30,7 @@ const Page: NextPageWithLayout = () => {
     if (namespace) {
       const init = async () => {
         try {
-          const entityUuid = router.query["entity-id"] as string;
+          const entityUuid = router.query["entity-uuid"] as string;
 
           const { data: subgraph } = await getEntity({
             data: entityIdFromOwnedByIdAndEntityUuid(
