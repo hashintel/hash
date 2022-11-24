@@ -27,7 +27,7 @@ test("user can create page", async ({ page }) => {
   await page.waitForURL((url) => !!url.pathname.match(/^\/[\w-]+$/));
 
   // TODO: investigate why delay is required for create page button to work
-  await sleep(500);
+  await sleep(5000);
   await page.locator(createPageButtonSelector).click();
 
   await page.waitForURL((url) => !!url.pathname.match(/^\/[\w-]+\/[\w-]+$/));
@@ -166,7 +166,7 @@ test("user can rename page", async ({ page }) => {
   await loginUsingTempForm({ page });
 
   // TODO: investigate why delay is required for create page button to work
-  await sleep(500);
+  await sleep(5000);
   await page.locator(createPageButtonSelector).click();
 
   await page.waitForURL((url) => !!url.pathname.match(/^\/[\w-]+\/[\w-]+$/));
