@@ -1,7 +1,7 @@
 import { Container, Stack, Typography } from "@mui/material";
 import { Box, TypographyProps } from "@mui/system";
-import Head from "next/head";
 import Image from "next/image";
+import { NextSeo } from "next-seo";
 import { createContext, ReactNode, useContext, FunctionComponent } from "react";
 import { format } from "date-fns";
 import { FRONTEND_URL } from "../config";
@@ -76,42 +76,23 @@ export const BlogPostHead: FunctionComponent<{
 
   return (
     <>
-      <Head>
-        <title>{fullTitle}</title>
-        <meta name="description" content={pageDescription} />
-        <meta name="twitter:description" content={pageDescription} />
-        <meta name="twitter:title" content={fullTitle} />
-        <meta name="twitter:site" content="@hashintel" />
-        {photos.post ? (
-          <>
-            <meta name="twitter:card" content="summary_large_image" />
-            <meta
-              name="twitter:image:src"
-              content={`${FRONTEND_URL}${photos.post.src}`}
-            />
-            <meta
-              property="og:image"
-              content={`${FRONTEND_URL}${photos.post.src}`}
-            />
-          </>
-        ) : null}
-        <meta name="og:title" content={fullTitle} />
-        <meta name="og:description" content={pageDescription} />
-        <meta property="og:site_name" content="HASH for Developers" />
-        <meta property="og:type" content="article" />
-        {authors.map((author) => (
-          <>
-            <meta property="og:article:author" content={author.name} />
-            <meta property="article:author" content={author.name} />
-          </>
-        ))}
-        {dateIso ? (
-          <>
-            <meta property="og:article:published_time" content={dateIso} />
-            <meta property="article:published_time" content={dateIso} />
-          </>
-        ) : null}
-      </Head>
+      <NextSeo
+        title={fullTitle}
+        description={pageDescription}
+        {...(photos.post
+          ? {
+              openGraph: {
+                images: [{ url: `${FRONTEND_URL}${photos.post.src}` }],
+                type: "article",
+                article: {
+                  authors: authors.map((author) => author.name),
+                  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- don't want empty string
+                  publishedTime: dateIso || undefined,
+                },
+              },
+            }
+          : {})}
+      />
       <Box pt={8}>
         <Container
           sx={(theme) => ({

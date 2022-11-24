@@ -8,14 +8,12 @@ import {
 } from "@mui/material";
 import { useTheme } from "@mui/system";
 import type { NextPage } from "next";
-import Head from "next/head";
 import Image from "next/image";
 import { ComponentProps, FunctionComponent, ReactNode } from "react";
 import { Button } from "../components/Button";
 import { GradientContainer } from "../components/GradientContainer";
 import { FaIcon } from "../components/icons/FaIcon";
 import { Link } from "../components/Link";
-import { SITE_DESCRIPTION } from "../config";
 
 const StylishDivider: FunctionComponent<
   ComponentProps<typeof Stack> & { wide?: boolean }
@@ -284,21 +282,8 @@ const Projects: FunctionComponent<ComponentProps<typeof Stack>> = (props) => {
 };
 
 const Home: NextPage = () => {
-  const fullTitle = "HASH.dev – HASH for Developers";
-
   return (
     <>
-      <Head>
-        <title>{fullTitle}</title>
-        <meta name="description" content={SITE_DESCRIPTION} />
-        <meta name="twitter:description" content={SITE_DESCRIPTION} />
-        <meta name="twitter:title" content={fullTitle} />
-        <meta name="twitter:site" content="@hashintel" />
-        <meta name="og:title" content={fullTitle} />
-        <meta name="og:description" content={SITE_DESCRIPTION} />
-        <meta property="og:site_name" content="HASH for Developers" />
-        <meta property="og:type" content="website" />
-      </Head>
       <Hero />
       <Projects />
     </>
