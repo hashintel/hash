@@ -12,48 +12,8 @@ pub use self::{
 
 #[derive(Default, Debug)]
 pub struct Edges {
-    ontology: HashMap<OntologyTypeEditionId, HashSet<OntologyOutwardEdges>>,
-    knowledge_graph: HashMap<EntityEditionId, HashSet<KnowledgeGraphOutwardEdges>>,
-}
-
-impl Edges {
-    #[must_use]
-    pub fn into_utoipa(self) -> crate::api::utoipa::subgraph::Edges {
-        crate::api::utoipa::subgraph::Edges {
-            ontology: crate::api::utoipa::subgraph::OntologyRootedEdges(
-                self.ontology
-                    .into_iter()
-                    .fold(HashMap::new(), |mut map, (id, edges)| {
-                        let edges = edges.into_iter().collect();
-                        match map.entry(id.base_id().clone()) {
-                            Entry::Occupied(entry) => {
-                                entry.into_mut().insert(id.version(), edges);
-                            }
-                            Entry::Vacant(entry) => {
-                                entry.insert(HashMap::from([(id.version(), edges)]));
-                            }
-                        }
-                        map
-                    }),
-            ),
-            knowledge_graph: crate::api::utoipa::subgraph::KnowledgeGraphRootedEdges(
-                self.knowledge_graph
-                    .into_iter()
-                    .fold(HashMap::new(), |mut map, (id, edges)| {
-                        let edges = edges.into_iter().collect();
-                        match map.entry(id.base_id()) {
-                            Entry::Occupied(entry) => {
-                                entry.into_mut().insert(id.version(), edges);
-                            }
-                            Entry::Vacant(entry) => {
-                                entry.insert(HashMap::from([(id.version(), edges)]));
-                            }
-                        }
-                        map
-                    }),
-            ),
-        }
-    }
+    pub ontology: HashMap<OntologyTypeEditionId, HashSet<OntologyOutwardEdges>>,
+    pub knowledge_graph: HashMap<EntityEditionId, HashSet<KnowledgeGraphOutwardEdges>>,
 }
 
 pub enum Edge {

@@ -1,6 +1,6 @@
 mod vertex;
 
-use std::collections::{hash_map::Entry, HashMap};
+use std::collections::HashMap;
 
 pub use self::vertex::*;
 use crate::identifier::{
@@ -9,46 +9,8 @@ use crate::identifier::{
 
 #[derive(Default, Debug)]
 pub struct Vertices {
-    ontology: HashMap<OntologyTypeEditionId, OntologyVertex>,
-    knowledge_graph: HashMap<EntityEditionId, KnowledgeGraphVertex>,
-}
-
-impl Vertices {
-    #[must_use]
-    pub fn into_utoipa(self) -> crate::api::utoipa::subgraph::Vertices {
-        crate::api::utoipa::subgraph::Vertices {
-            ontology: crate::api::utoipa::subgraph::OntologyVertices(
-                self.ontology
-                    .into_iter()
-                    .fold(HashMap::new(), |mut map, (id, vertex)| {
-                        match map.entry(id.base_id().clone()) {
-                            Entry::Occupied(entry) => {
-                                entry.into_mut().insert(id.version(), vertex);
-                            }
-                            Entry::Vacant(entry) => {
-                                entry.insert(HashMap::from([(id.version(), vertex)]));
-                            }
-                        }
-                        map
-                    }),
-            ),
-            knowledge_graph: crate::api::utoipa::subgraph::KnowledgeGraphVertices(
-                self.knowledge_graph
-                    .into_iter()
-                    .fold(HashMap::new(), |mut map, (id, vertex)| {
-                        match map.entry(id.base_id()) {
-                            Entry::Occupied(entry) => {
-                                entry.into_mut().insert(id.version(), vertex);
-                            }
-                            Entry::Vacant(entry) => {
-                                entry.insert(HashMap::from([(id.version(), vertex)]));
-                            }
-                        }
-                        map
-                    }),
-            ),
-        }
-    }
+    pub ontology: HashMap<OntologyTypeEditionId, OntologyVertex>,
+    pub knowledge_graph: HashMap<EntityEditionId, KnowledgeGraphVertex>,
 }
 
 impl Vertices {

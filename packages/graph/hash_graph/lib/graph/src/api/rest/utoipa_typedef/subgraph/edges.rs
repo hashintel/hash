@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{hash_map::Entry, HashMap};
 
 use serde::Serialize;
 use type_system::uri::BaseUri;
@@ -33,6 +33,43 @@ pub struct Edges {
     pub ontology: OntologyRootedEdges,
     #[serde(flatten)]
     pub knowledge_graph: KnowledgeGraphRootedEdges,
+}
+
+impl From<crate::subgraph::edges::Edges> for Edges {
+    fn from(edges: crate::subgraph::edges::Edges) -> Self {
+        Self {
+            ontology: OntologyRootedEdges(edges.ontology.into_iter().fold(
+                HashMap::new(),
+                |mut map, (id, edges)| {
+                    let edges = edges.into_iter().collect();
+                    match map.entry(id.base_id().clone()) {
+                        Entry::Occupied(entry) => {
+                            entry.into_mut().insert(id.version(), edges);
+                        }
+                        Entry::Vacant(entry) => {
+                            entry.insert(HashMap::from([(id.version(), edges)]));
+                        }
+                    }
+                    map
+                },
+            )),
+            knowledge_graph: KnowledgeGraphRootedEdges(edges.knowledge_graph.into_iter().fold(
+                HashMap::new(),
+                |mut map, (id, edges)| {
+                    let edges = edges.into_iter().collect();
+                    match map.entry(id.base_id()) {
+                        Entry::Occupied(entry) => {
+                            entry.into_mut().insert(id.version(), edges);
+                        }
+                        Entry::Vacant(entry) => {
+                            entry.insert(HashMap::from([(id.version(), edges)]));
+                        }
+                    }
+                    map
+                },
+            )),
+        }
+    }
 }
 
 // Utoipa generates `Edges` as an empty object if we don't manually do it, and we can't use

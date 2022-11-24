@@ -14,9 +14,10 @@ use type_system::uri::VersionedUri;
 use utoipa::{OpenApi, ToSchema};
 
 use crate::{
-    api::{
-        rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
-        utoipa::subgraph::{
+    api::rest::{
+        api_resource::RoutedResource,
+        read_from_store, report_to_status_code,
+        utoipa_typedef::subgraph::{
             Edges, KnowledgeGraphRootedEdges, KnowledgeGraphVertices, OntologyRootedEdges,
             OntologyVertices, Subgraph, Vertices,
         },
@@ -273,7 +274,7 @@ async fn get_entities_by_query<P: StorePool + Send>(
             })
         })
         .await
-        .map(|subgraph| Json(subgraph.into_utoipa()))
+        .map(|subgraph| Json(subgraph.into()))
 }
 
 #[utoipa::path(

@@ -16,9 +16,9 @@ use utoipa::{OpenApi, ToSchema};
 
 use super::api_resource::RoutedResource;
 use crate::{
-    api::{
-        rest::{read_from_store, report_to_status_code},
-        utoipa::subgraph::{Edges, Subgraph, Vertices},
+    api::rest::{
+        read_from_store, report_to_status_code,
+        utoipa_typedef::subgraph::{Edges, Subgraph, Vertices},
     },
     identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId, GraphElementId},
     ontology::{
@@ -196,7 +196,7 @@ async fn get_data_types_by_query<P: StorePool + Send>(
             })
         })
         .await
-        .map(|subgraph| Json(subgraph.into_utoipa()))
+        .map(|subgraph| Json(subgraph.into()))
 }
 
 #[utoipa::path(

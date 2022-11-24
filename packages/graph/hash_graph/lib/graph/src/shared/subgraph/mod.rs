@@ -20,18 +20,6 @@ pub struct Subgraph {
 
 impl Subgraph {
     #[must_use]
-    pub fn into_utoipa(self) -> crate::api::utoipa::subgraph::Subgraph {
-        crate::api::utoipa::subgraph::Subgraph {
-            roots: self.roots.into_iter().collect(),
-            vertices: self.vertices.into_utoipa(),
-            edges: self.edges.into_utoipa(),
-            depths: self.depths,
-        }
-    }
-}
-
-impl Subgraph {
-    #[must_use]
     pub fn new(depths: GraphResolveDepths) -> Self {
         Self {
             roots: HashSet::new(),
