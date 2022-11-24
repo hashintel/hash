@@ -382,7 +382,9 @@ export default class extends EntityModel {
       .sort(
         (a, b) =>
           (a.getLinkMetadata().leftOrder ?? 0) -
-          (b.getLinkMetadata().leftOrder ?? 0),
+            (b.getLinkMetadata().leftOrder ?? 0) ||
+          a.getBaseId().localeCompare(b.getBaseId()) ||
+          a.getVersion().localeCompare(b.getVersion()),
       )
       .map(({ rightEntityModel }) =>
         BlockModel.fromEntityModel(rightEntityModel),
