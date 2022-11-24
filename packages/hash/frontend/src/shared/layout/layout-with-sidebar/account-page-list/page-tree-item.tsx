@@ -10,7 +10,6 @@ import { PAGE_TITLE_PLACEHOLDER } from "../../../../blocks/page/PageTitle/PageTi
 import { PageIconButton } from "../../../../components/PageIconButton";
 import { Link } from "../../../ui";
 import { PageMenu } from "./page-menu";
-import { useRouteAccountInfo } from "../../../routing";
 
 interface DragProps {
   isSorting?: boolean;
@@ -61,8 +60,6 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
   ) => {
     const [hovered, setHovered] = useState(false);
     const [anchorPosition, setAnchorPosition] = useState<PopoverPosition>();
-
-    const { accountId } = useRouteAccountInfo();
 
     const popupState = usePopupState({
       variant: "popover",
@@ -148,7 +145,6 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
 
           <PageIconButton
             hasDarkBg={selected}
-            ownedById={accountId}
             entityId={pageEntityId}
             size="small"
             onClick={stopEvent}

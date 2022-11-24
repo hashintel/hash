@@ -25,7 +25,7 @@ import {
   DragEndEvent,
   DragStartEvent,
 } from "@dnd-kit/core";
-import { splitEntityId } from "@hashintel/hash-subgraph";
+import { EntityId, isEntityId, splitEntityId } from "@hashintel/hash-subgraph";
 
 import { Box, Collapse } from "@mui/material";
 import { useAccountPages } from "../../../../components/hooks/useAccountPages";
@@ -47,7 +47,7 @@ import { PagesLoadingState } from "./pages-loading-state";
 
 type AccountPageListProps = {
   accountId: string;
-  currentPageEntityId?: string;
+  currentPageEntityId?: EntityId;
 };
 
 const measuringConfig = {
@@ -223,9 +223,13 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
         const beforeIndex = parentSortedItems[newIndex - 1]?.page.index ?? null;
         const afterIndex = parentSortedItems[newIndex + 1]?.page.index ?? null;
 
+        if (typeof active.id !== "string" || !isEntityId(active.id)) {
+          throw new Error("Expected draggable element ID to be an `EntityId`");
+        }
+
         setTreeItems(sortedItems);
         reorderPage(
-          active.id.toString(),
+          active.id,
           parentPageEntityId,
           beforeIndex,
           afterIndex,

@@ -153,13 +153,7 @@ const generateCrumbsFromPages = ({
       title: currentPage.title,
       href: `/${ownedById}/${entityUuid}`,
       id: currentPage.entityId,
-      icon: (
-        <PageIcon
-          ownedById={ownedById}
-          entityId={currentPage.entityId}
-          size="small"
-        />
-      ),
+      icon: <PageIcon entityId={currentPage.entityId} size="small" />,
     });
 
     if (currentPage.parentPageEntityId) {
@@ -175,13 +169,9 @@ const generateCrumbsFromPages = ({
 };
 
 const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
-  const router = useRouter();
-
   const { accountId } = useRouteAccountInfo();
   // pageEntityId is the consistent identifier for pages (across all versions)
   const { pageEntityId } = useRoutePageInfo();
-  // versionId is an optional param for requesting a specific page version
-  const versionId = router.query.version as string | undefined;
 
   const { data: accountPages } = useAccountPages(accountId);
 
@@ -311,9 +301,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
         <PageSectionContainer pageComments={pageComments}>
           <Box position="relative">
             <PageIconButton
-              ownedById={accountId}
               entityId={pageEntityId}
-              versionId={versionId}
               readonly={readonlyMode}
               sx={({ breakpoints }) => ({
                 mb: 2,
