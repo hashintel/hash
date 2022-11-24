@@ -3,7 +3,6 @@ import { Container } from "@mui/system";
 import { PropsWithChildren } from "react";
 import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import { EntityPageHeader } from "./entity-page-wrapper/entity-page-header";
-import { RootEntityAndSubgraph } from "../../../../lib/subgraph";
 import { generateEntityLabel } from "../../../../lib/entities";
 
 /**

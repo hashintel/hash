@@ -5,19 +5,17 @@ import {
   PropertyType,
   PropertyValues,
 } from "@blockprotocol/type-system-web";
-import {
-  getPersistedDataType,
-  Subgraph,
-} from "../../../../../../../../../lib/subgraph";
+import { Subgraph } from "@hashintel/hash-subgraph";
+import { getDataTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/data-type";
 
 const getDataTypeTitle = (
   dataTypeReference: DataTypeReference,
   subgraph: Subgraph,
 ) => {
   const dataTypeId = dataTypeReference.$ref;
-  const persistedDataType = getPersistedDataType(subgraph, dataTypeId);
+  const persistedDataType = getDataTypeById(subgraph, dataTypeId);
 
-  return persistedDataType?.inner.title ?? "undefined";
+  return persistedDataType?.schema.title ?? "undefined";
 };
 
 const getReferencedTypeTitles = (
