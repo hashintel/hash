@@ -4,8 +4,17 @@ All notable changes to `error-stack` will be documented in this file.
 
 ## Planned
 
-- Support for [`serde`](https://serde.rs) (`Serialize` only)
 - Support for [`defmt`](https://defmt.ferrous-systems.com)
+
+## 0.3.0 - Unreleased
+
+### Breaking Changes
+
+- Remove all previously deprecated methods ([#1485](https://github.com/hashintel/hash/pull/1485))
+
+### Features
+
+- Add serializing support using [`serde`](https://serde.rs) ([#1290](https://github.com/hashintel/hash/pull/1290))
 
 ## [0.2.4](https://github.com/hashintel/hash/tree/error-stack%400.2.4/packages/libs/error-stack) - 2022-11-04
 

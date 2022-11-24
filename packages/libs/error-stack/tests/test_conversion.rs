@@ -10,7 +10,6 @@ fn io_error() -> Result<(), io::Error> {
 }
 
 #[test]
-#[allow(deprecated)]
 fn report() {
     let report = io_error().into_report().expect_err("Not an error");
     assert!(report.contains::<io::Error>());

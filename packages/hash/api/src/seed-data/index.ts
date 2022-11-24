@@ -2,7 +2,7 @@ import { Logger } from "@hashintel/hash-backend-utils/logger";
 import {
   SYSTEM_ACCOUNT_NAME,
   SYSTEM_ACCOUNT_SHORTNAME,
-} from "@hashintel/hash-backend-utils/system";
+} from "@hashintel/hash-shared/environment";
 import { GraphApi } from "@hashintel/hash-graph-client";
 import { OrgModel, OrgSize } from "../model";
 import { systemAccountId } from "../model/util";

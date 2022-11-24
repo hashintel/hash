@@ -7,6 +7,7 @@ import {
   Collapse,
   formHelperTextClasses,
   InputAdornment,
+  InputProps,
   outlinedInputClasses,
   TextField as MuiTextField,
   TextFieldProps as MuiTextFieldProps,
@@ -34,12 +35,73 @@ const useFrozenValue = <T extends any>(value: T): T => {
   return frozenValue;
 };
 
+export const getInputProps = ({
+  success,
+  error,
+  multiline,
+  autoResize,
+  ...otherProps
+}: InputProps &
+  Pick<
+    TextFieldProps,
+    "success" | "error" | "multiline" | "autoResize"
+  > = {}): InputProps => {
+  const { sx: InputPropsSx = [], ...otherInputProps } = otherProps;
+
+  const renderEndAdornment = () => {
+    if (error || success) {
+      return (
+        <InputAdornment position="end">
+          <FontAwesomeIcon
+            icon={success ? faCheckCircle : faCircleExclamation}
+            sx={({ palette }) => ({
+              color: success ? palette.green[60] : palette.red[60],
+            })}
+          />
+        </InputAdornment>
+      );
+    }
+    return null;
+  };
+
+  return {
+    sx: [
+      ({ palette }) => ({
+        [`& .${outlinedInputClasses.notchedOutline}, &:hover .${outlinedInputClasses.notchedOutline}`]:
+          {
+            borderColor: success
+              ? palette.green[60]
+              : error
+              ? palette.red[40]
+              : palette.gray[30],
+          },
+        ...(multiline &&
+          autoResize && {
+            [`& .${outlinedInputClasses.input}`]: {
+              resize: "auto",
+            },
+          }),
+      }),
+      ...(Array.isArray(InputPropsSx) ? InputPropsSx : [InputPropsSx]),
+    ],
+    ...{ notched: false },
+    ...otherInputProps,
+    endAdornment:
+      error || success ? renderEndAdornment() : otherProps?.endAdornment,
+  };
+};
+
+export const inputLabelProps = {
+  disableAnimation: true,
+  shrink: true,
+};
+
 export const TextField: FunctionComponent<TextFieldProps> = forwardRef(
   (
     {
       helperText,
       sx,
-      InputProps = {},
+      InputProps: inputProps = {},
       success,
       error,
       label,
@@ -49,24 +111,7 @@ export const TextField: FunctionComponent<TextFieldProps> = forwardRef(
     },
     ref,
   ) => {
-    const { sx: InputPropsSx = [], ...otherInputProps } = InputProps;
     const frozenHelperText = useFrozenValue(helperText);
-
-    const renderEndAdornment = () => {
-      if (error || success) {
-        return (
-          <InputAdornment position="end">
-            <FontAwesomeIcon
-              icon={success ? faCheckCircle : faCircleExclamation}
-              sx={({ palette }) => ({
-                color: success ? palette.green[60] : palette.red[60],
-              })}
-            />
-          </InputAdornment>
-        );
-      }
-      return null;
-    };
 
     return (
       <MuiTextField
@@ -104,35 +149,14 @@ export const TextField: FunctionComponent<TextFieldProps> = forwardRef(
             </>
           ) : null
         }
-        InputLabelProps={{
-          disableAnimation: true,
-          shrink: true,
-        }}
-        InputProps={{
-          sx: [
-            ({ palette }) => ({
-              [`& .${outlinedInputClasses.notchedOutline}, &:hover .${outlinedInputClasses.notchedOutline}`]:
-                {
-                  borderColor: success
-                    ? palette.green[60]
-                    : error
-                    ? palette.red[40]
-                    : palette.gray[30],
-                },
-              ...(textFieldProps.multiline &&
-                autoResize && {
-                  [`& .${outlinedInputClasses.input}`]: {
-                    resize: "auto",
-                  },
-                }),
-            }),
-            ...(Array.isArray(InputPropsSx) ? InputPropsSx : [InputPropsSx]),
-          ],
-          ...{ notched: false },
-          ...otherInputProps,
-          endAdornment:
-            error || success ? renderEndAdornment() : InputProps?.endAdornment,
-        }}
+        InputLabelProps={inputLabelProps}
+        InputProps={getInputProps({
+          ...inputProps,
+          success,
+          error,
+          autoResize,
+          multiline: textFieldProps.multiline,
+        })}
         helperText={
           <Collapse in={!!helperText}>
             <Box>{frozenHelperText}</Box>

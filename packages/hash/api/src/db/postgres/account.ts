@@ -1,6 +1,6 @@
 import { NotFoundError, sql } from "slonik";
 
-import { SYSTEM_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
+import { SYSTEM_ACCOUNT_SHORTNAME } from "@hashintel/hash-shared/environment";
 import { Connection } from "./types";
 
 import { DbEntityNotFoundError } from "../errors";
