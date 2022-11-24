@@ -69,7 +69,7 @@ pub mod api;
 
 pub mod knowledge;
 pub mod ontology;
-pub mod shared;
+mod shared;
 
 pub mod store;
 

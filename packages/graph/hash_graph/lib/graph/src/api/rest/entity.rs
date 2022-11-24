@@ -14,37 +14,37 @@ use type_system::uri::VersionedUri;
 use utoipa::{OpenApi, ToSchema};
 
 use crate::{
-    api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
+    api::rest::{
+        api_resource::RoutedResource,
+        read_from_store, report_to_status_code,
+        utoipa_typedef::subgraph::{
+            Edges, KnowledgeGraphRootedEdges, KnowledgeGraphVertices, OntologyRootedEdges,
+            OntologyVertices, Subgraph, Vertices,
+        },
+    },
+    identifier::{
+        knowledge::{EntityEditionId, EntityId, EntityIdAndTimestamp, EntityVersion},
+        GraphElementEditionId, GraphElementId,
+    },
     knowledge::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryToken, EntityUuid,
         LinkEntityMetadata, LinkOrder,
     },
     provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
-    shared::{
-        identifier::{
-            knowledge::{EntityEditionId, EntityId, EntityIdAndTimestamp, EntityVersion},
-            GraphElementEditionId, GraphElementId,
-        },
-        subgraph::{
-            depths::GraphResolveDepths,
-            edges::{
-                Edges, KnowledgeGraphEdgeKind, KnowledgeGraphOutwardEdges,
-                KnowledgeGraphRootedEdges, OntologyEdgeKind, OntologyOutwardEdges,
-                OntologyRootedEdges, OutwardEdge, SharedEdgeKind,
-            },
-            query::StructuralQuery,
-            vertices::{
-                KnowledgeGraphVertex, KnowledgeGraphVertices, OntologyVertex, OntologyVertices,
-                Vertex, Vertices,
-            },
-        },
-    },
     store::{
         error::{EntityDoesNotExist, QueryError},
         query::Filter,
         EntityStore, StorePool,
     },
-    subgraph::{query::EntityStructuralQuery, Subgraph},
+    subgraph::{
+        depths::GraphResolveDepths,
+        edges::{
+            KnowledgeGraphEdgeKind, KnowledgeGraphOutwardEdges, OntologyEdgeKind,
+            OntologyOutwardEdges, SharedEdgeKind,
+        },
+        query::{EntityStructuralQuery, StructuralQuery},
+        vertices::{KnowledgeGraphVertex, OntologyVertex, Vertex},
+    },
 };
 
 #[derive(OpenApi)]
@@ -90,7 +90,6 @@ use crate::{
             SharedEdgeKind,
             KnowledgeGraphEdgeKind,
             OntologyEdgeKind,
-            OutwardEdge,
             OntologyOutwardEdges,
             KnowledgeGraphOutwardEdges,
             OntologyRootedEdges,
@@ -275,7 +274,7 @@ async fn get_entities_by_query<P: StorePool + Send>(
             })
         })
         .await
-        .map(Json)
+        .map(|subgraph| Json(subgraph.into()))
 }
 
 #[utoipa::path(
