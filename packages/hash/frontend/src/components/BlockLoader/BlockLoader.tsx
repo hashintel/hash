@@ -146,7 +146,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     };
 
     const blockEntity = convertApiEntityToBpEntity({
-      entityId,
+      entityId: entityId ?? "entityId-not-yet-set", // @todo ensure blocks always get sent an entityId
       entityTypeId,
       properties: entityProperties,
     });
