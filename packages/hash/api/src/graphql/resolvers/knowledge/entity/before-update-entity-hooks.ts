@@ -67,7 +67,7 @@ const userEntityHookCallback: BeforeUpdateEntityHookCallback = async ({
 
   const currentPreferredName = userModel.getPreferredName();
 
-  const updatedPreferredName: string | undefined = updatedProperties[
+  const updatedPreferredName = updatedProperties[
     SYSTEM_TYPES.propertyType.preferredName.getBaseUri()
   ] as string | undefined;
 
