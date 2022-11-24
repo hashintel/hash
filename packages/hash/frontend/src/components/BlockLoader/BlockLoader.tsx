@@ -18,6 +18,8 @@ import { uniqBy } from "lodash";
 
 import { useLocalstorageState } from "rooks";
 import { JsonSchema } from "@hashintel/hash-shared/json-utils";
+import { EntityId } from "@hashintel/hash-subgraph";
+
 import {
   convertApiEntityToBpEntity,
   convertApiEntityTypesToBpEntityTypes,
@@ -47,7 +49,7 @@ type BlockLoaderProps = {
   blockMetadata: HashBlockMeta;
   blockSchema: JsonSchema;
   editableRef: (node: HTMLElement | null) => void;
-  entityId: string;
+  entityId: EntityId;
   entityType?: Pick<ApiEntityType, "entityId" | "properties">;
   entityTypeId: string;
   entityProperties: {};
@@ -80,7 +82,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   // shouldSandbox,
 }) => {
   const { authenticatedUser } = useAuthenticatedUser();
-  const accountId = authenticatedUser?.userAccountId ?? "";
+  const accountId = authenticatedUser?.userAccountId;
 
   const { readonlyMode } = useReadonlyMode();
   const { aggregateEntities } = useBlockProtocolAggregateEntities();
@@ -144,8 +146,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     };
 
     const blockEntity = convertApiEntityToBpEntity({
-      accountId,
-      entityId: entityId ?? "entityId-not-yet-set", // @todo ensure blocks always get sent an entityId
+      entityId,
       entityTypeId,
       properties: entityProperties,
     });
@@ -172,7 +173,6 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
       readonly: readonlyMode,
     };
   }, [
-    accountId,
     entityType,
     entityId,
     entityProperties,
