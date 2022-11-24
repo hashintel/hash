@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
+  splitEntityId,
 } from "@hashintel/hash-subgraph";
 import {
   CreatePersistedPageMutation,
@@ -45,8 +46,7 @@ export const useCreatePage = (ownedById: string) => {
         response.data?.createPersistedPage?.metadata.editionId.baseId;
 
       if (pageEntityId) {
-        const pageOwnedById = extractOwnedByIdFromEntityId(pageEntityId);
-        const pageEntityUuid = extractEntityUuidFromEntityId(pageEntityId);
+        const [pageOwnedById, pageEntityUuid] = splitEntityId(pageEntityId);
         return router.push(`/${pageOwnedById}/${pageEntityUuid}`);
       }
     },
