@@ -1,11 +1,9 @@
-import { TextField } from "@hashintel/hash-design-system";
 import {
   Box,
   ButtonBase,
   Checkbox,
   checkboxClasses,
   iconButtonClasses,
-  outlinedInputClasses,
   svgIconClasses,
   Table,
   TableBody,
