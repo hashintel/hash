@@ -2,6 +2,11 @@ import { useMutation } from "@apollo/client";
 import { useRouter } from "next/router";
 import { useCallback } from "react";
 import {
+  EntityId,
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+} from "@hashintel/hash-subgraph";
+import {
   CreatePersistedPageMutation,
   CreatePersistedPageMutationVariables,
   SetParentPageMutation,
@@ -32,14 +37,14 @@ export const useCreateSubPage = (ownedById: string) => {
   });
 
   const createSubPage = useCallback(
-    async (parentPageEntityId: string, prevIndex: string | null) => {
+    async (parentPageEntityId: EntityId, prevIndex: string | null) => {
       const response = await createPageFn({
         variables: { ownedById, properties: { title: "Untitled" } },
       });
 
       if (response.data?.createPersistedPage) {
-        const { ownedById: pageOwnedById, entityId: pageEntityId } =
-          response.data.createPersistedPage;
+        const pageEntityId =
+          response.data?.createPersistedPage?.metadata.editionId.baseId;
 
         await setParentPageFn({
           variables: {
@@ -49,7 +54,11 @@ export const useCreateSubPage = (ownedById: string) => {
           },
         });
 
-        await router.push(`/${pageOwnedById}/${pageEntityId}`);
+        if (pageEntityId) {
+          const pageOwnedById = extractOwnedByIdFromEntityId(pageEntityId);
+          const pageEntityUuid = extractEntityUuidFromEntityId(pageEntityId);
+          return router.push(`/${pageOwnedById}/${pageEntityUuid}`);
+        }
       }
     },
     [createPageFn, ownedById, setParentPageFn, router],
