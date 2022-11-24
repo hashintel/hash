@@ -17,9 +17,11 @@ export const generateDefaultProperties = (
   for (const propertyKey of Object.keys(properties)) {
     const property = properties[propertyKey];
 
-    if (property && "$ref" in property) {
+    if (property) {
+      const propertyTypeId =
+        "$ref" in property ? property.$ref : property.items.$ref;
       const { inner: propertyType } =
-        getPersistedPropertyType(subgraph, property.$ref) ?? {};
+        getPersistedPropertyType(subgraph, propertyTypeId) ?? {};
 
       result[propertyKey] = getDefaultValueOfPropertyType(
         propertyType!,
