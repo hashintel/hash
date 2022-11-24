@@ -2,6 +2,10 @@ import { useMutation } from "@apollo/client";
 import { useRouter } from "next/router";
 import { useCallback } from "react";
 import {
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+} from "@hashintel/hash-subgraph";
+import {
   CreatePersistedPageMutation,
   CreatePersistedPageMutationVariables,
 } from "../../graphql/apiTypes.gen";
@@ -16,12 +20,19 @@ export const useCreatePage = (ownedById: string) => {
     CreatePersistedPageMutationVariables
   >(createPersistedPage, {
     awaitRefetchQueries: true,
-    refetchQueries: ({ data }) => [
-      {
-        query: getAccountPagesTree,
-        variables: { ownedById: data?.createPersistedPage.ownedById },
-      },
-    ],
+    refetchQueries: ({ data }) =>
+      data
+        ? [
+            {
+              query: getAccountPagesTree,
+              variables: {
+                ownedById: extractOwnedByIdFromEntityId(
+                  data.createPersistedPage.metadata.editionId.baseId,
+                ),
+              },
+            },
+          ]
+        : [],
   });
 
   const createUntitledPage = useCallback(
@@ -30,11 +41,13 @@ export const useCreatePage = (ownedById: string) => {
         variables: { ownedById, properties: { title: "", prevIndex } },
       });
 
-      const { ownedById: pageOwnedById, entityId: pageEntityId } =
-        response.data?.createPersistedPage ?? {};
+      const pageEntityId =
+        response.data?.createPersistedPage?.metadata.editionId.baseId;
 
-      if (pageOwnedById && pageEntityId) {
-        return router.push(`/${pageOwnedById}/${pageEntityId}`);
+      if (pageEntityId) {
+        const pageOwnedById = extractOwnedByIdFromEntityId(pageEntityId);
+        const pageEntityUuid = extractEntityUuidFromEntityId(pageEntityId);
+        return router.push(`/${pageOwnedById}/${pageEntityUuid}`);
       }
     },
     [createPageFn, ownedById, router],

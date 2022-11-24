@@ -148,7 +148,7 @@ export const PageBlock: FunctionComponent<PageBlockProps> = ({
               >
                 {pageComments?.map((comment) => (
                   <CommentThread
-                    key={comment.entityId}
+                    key={comment.metadata.editionId.baseId}
                     pageId={entityId}
                     comment={comment}
                   />
