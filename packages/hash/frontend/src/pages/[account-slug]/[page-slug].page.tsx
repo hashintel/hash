@@ -198,9 +198,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
     GetPersistedPageQueryVariables
   >(getPersistedPageQuery, {
     variables: {
-      ownedById: accountId,
       entityId: pageEntityId,
-      entityVersion: versionId,
     },
   });
   const pageHeaderRef = useRef<HTMLElement>();
