@@ -28,20 +28,6 @@ type PageModelCreateParams = Omit<
  * @class {@link PageModel}
  */
 export default class extends EntityModel {
-  constructor(pageEntityModel: EntityModel) {
-    if (
-      pageEntityModel.getMetadata().entityTypeId !==
-      SYSTEM_TYPES.entityType.page.getSchema().$id
-    ) {
-      throw new EntityTypeMismatchError(
-        pageEntityModel.getBaseId(),
-        SYSTEM_TYPES.entityType.page.getSchema().$id,
-        pageEntityModel.getMetadata().entityTypeId,
-      );
-    }
-    super(pageEntityModel);
-  }
-
   static fromEntityModel(entityModel: EntityModel): PageModel {
     if (
       entityModel.entityTypeModel.getSchema().$id !==
