@@ -177,7 +177,12 @@ const Page: NextPageWithLayout = () => {
       </Box>
       <Box flex={1} bgcolor="gray.10" borderTop={1} borderColor="gray.20">
         <Container>
-          <Box py={8} component="form" onSubmit={handleFormSubmit}>
+          <Box
+            py={8}
+            component="form"
+            onSubmit={handleFormSubmit}
+            data-testid="entity-type-creation-form"
+          >
             <Stack
               alignItems="stretch"
               sx={(theme) => ({
