@@ -4,6 +4,8 @@ import { faChevronRight, faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { CSSProperties, forwardRef, MouseEvent, useState } from "react";
 import { DraggableAttributes } from "@dnd-kit/core";
+import { EntityId } from "@hashintel/hash-subgraph";
+
 import { PAGE_TITLE_PLACEHOLDER } from "../../../../blocks/page/PageTitle/PageTitle";
 import { PageIconButton } from "../../../../components/PageIconButton";
 import { Link } from "../../../ui";
@@ -18,7 +20,7 @@ interface DragProps {
   wrapperRef?(node: HTMLLIElement): void;
 }
 export interface PageTreeItemProps {
-  id: string;
+  pageEntityId: EntityId;
   title: string;
   url: string;
   depth: number;
@@ -42,7 +44,7 @@ const stopEvent = (event: MouseEvent) => {
 export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
   (
     {
-      id,
+      pageEntityId,
       title,
       expandable,
       url,
@@ -147,7 +149,7 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
           <PageIconButton
             hasDarkBg={selected}
             ownedById={accountId}
-            entityId={id}
+            entityId={pageEntityId}
             size="small"
             onClick={stopEvent}
             popoverProps={{ onClick: stopEvent }}
@@ -217,7 +219,7 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
             </Box>
           </Tooltip>
           <PageMenu
-            entityId={id}
+            entityId={pageEntityId}
             popupState={popupState}
             createSubPage={createSubPage}
             archivePage={archivePage}

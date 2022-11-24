@@ -64,7 +64,9 @@ export const PageHeader: FunctionComponent = () => {
           >
             <Link
               noLinkStyle
-              href={`/${authenticatedUser ? authenticatedUser.entityId : ""}`}
+              href={`/${
+                authenticatedUser ? authenticatedUser.userAccountId : ""
+              }`}
             >
               <HashAlphaNavIcon
                 sx={({ palette }) => ({
