@@ -1,13 +1,12 @@
-import { QueryHookOptions, useQuery } from "@apollo/client";
+import { ApolloQueryResult, QueryHookOptions, useQuery } from "@apollo/client";
 import * as Sentry from "@sentry/nextjs";
 import { useRouter } from "next/router";
 import { useContext, useEffect, useLayoutEffect, useMemo, useRef } from "react";
-import { isEntityRootedSubgraph } from "@hashintel/hash-subgraph/src/stdlib/roots";
 
+import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import { meQuery } from "../../graphql/queries/user.queries";
 import { MeQuery, MeQueryVariables } from "../../graphql/apiTypes.gen";
 import { oryKratosClient } from "../../pages/shared/ory-kratos";
-import { Subgraph } from "../../lib/subgraph";
 import { AuthenticatedUser, constructAuthenticatedUser } from "../../lib/user";
 import { useInitTypeSystem } from "../../lib/use-init-type-system";
 import { SessionContext } from "../../pages/shared/session-context";
@@ -48,25 +47,18 @@ export const useAuthenticatedUser = (
 
   const authenticatedUser = useMemo<AuthenticatedUser | undefined>(
     () =>
-      !loadingTypeSystem &&
-      subgraph &&
-      kratosSession &&
-      isEntityRootedSubgraph(subgraph)
+      !loadingTypeSystem && subgraph && kratosSession
         ? constructAuthenticatedUser({
-            // We make the assertion check above, but the type isn't refined here
-            // to be a Subgraph<EntityWithMetadata>
-            userEntityEditionId: subgraph.roots[0]!,
+            userEntityEditionId: (
+              subgraph as Subgraph<SubgraphRootTypes["entity"]>
+            ).roots[0]!,
             /**
              * @todo: ensure this subgraph contains the incoming links of orgs
              * at depth 2 to support constructing the `members` of an `Org`.
              *
              * @see https://app.asana.com/0/1202805690238892/1203250435416412/f
              */
-            /**
-             * @todo: remove casting when we start returning links in the subgraph
-             *   https://app.asana.com/0/0/1203214689883095/f
-             */
-            subgraph: subgraph as unknown as Subgraph,
+            subgraph,
             kratosSession,
           })
         : undefined,
@@ -132,7 +124,16 @@ export const useAuthenticatedUser = (
     authenticatedUser,
     kratosSession,
     refetch: () =>
-      Promise.all([refetchUser(), fetchKratosIdentity(forceLogin)]),
+      Promise.all([
+        // Until we change the GraphQL query scalars to return constrained Subgraphs, we need to (safely) cast
+        // ourselves
+        (
+          refetchUser as () => Promise<
+            ApolloQueryResult<{ me: Subgraph<SubgraphRootTypes["entity"]> }>
+          >
+        )(),
+        fetchKratosIdentity(forceLogin),
+      ]),
     loading: loadingUser || loadingKratosSession,
   };
 };

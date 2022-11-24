@@ -4,11 +4,11 @@ import { useCallback, useState } from "react";
 import { types } from "@hashintel/hash-shared/types";
 import { extractBaseUri } from "@blockprotocol/type-system-web";
 import { GraphQLError } from "graphql";
+import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import {
   UpdateEntityWithMetadataMutation,
   UpdateEntityWithMetadataMutationVariables,
 } from "../../graphql/apiTypes.gen";
-import { extractEntityRoot, mustGetEntity, Subgraph } from "../../lib/subgraph";
 import { AuthenticatedUser, constructAuthenticatedUser } from "../../lib/user";
 import { updateEntityWithMetadataMutation } from "../../graphql/queries/knowledge/entity.queries";
 import { useAuthenticatedUser } from "./useAuthenticatedUser";
@@ -47,26 +47,17 @@ export const useUpdateAuthenticatedUser = () => {
           },
         ] = await refetch();
 
-        const {
-          root: { entityId: userEntityId },
-        } = extractEntityRoot(latestMeSubgraph as unknown as Subgraph);
+        const userEntity = getRoots(latestMeSubgraph)[0]!;
 
         /**
          * @todo: use a partial update mutation instead
          * @see https://app.asana.com/0/1202805690238892/1203285029221330/f
          */
-        const { properties: currentProperties } = mustGetEntity({
-          /**
-           * @todo: remove casting when we start returning links in the subgraph
-           *   https://app.asana.com/0/0/1203214689883095/f
-           */
-          subgraph: latestMeSubgraph as unknown as Subgraph,
-          entityId: userEntityId,
-        });
+        const { properties: currentProperties } = userEntity;
 
         const { errors } = await updatePersistedEntity({
           variables: {
-            entityId: userEntityId,
+            entityId: userEntity.metadata.editionId.baseId,
             updatedProperties: {
               ...currentProperties,
               ...(params.shortname
@@ -105,18 +96,14 @@ export const useUpdateAuthenticatedUser = () => {
         }
 
         const updatedAuthenticatedUser = constructAuthenticatedUser({
-          userEntityEditionId: userEntityId,
+          userEntityEditionId: userEntity.metadata.editionId,
           /**
            * @todo: ensure this subgraph contains the incoming links of orgs
            * at depth 2 to support constructing the `members` of an `Org`.
            *
            * @see https://app.asana.com/0/1202805690238892/1203250435416412/f
            */
-          /**
-           * @todo: remove casting when we start returning links in the subgraph
-           *   https://app.asana.com/0/0/1203214689883095/f
-           */
-          subgraph: updatedSubgraph as unknown as Subgraph,
+          subgraph: updatedSubgraph,
           kratosSession,
         });
 

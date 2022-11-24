@@ -56,7 +56,7 @@ export type EntityIdAndTimestamp = {
   timestamp: Timestamp;
 };
 
-export { OntologyTypeEditionId };
+export type { OntologyTypeEditionId };
 
 export type GraphElementEditionId = EntityEditionId | OntologyTypeEditionId;
 
