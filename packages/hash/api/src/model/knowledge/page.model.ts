@@ -69,11 +69,11 @@ export default class extends EntityModel {
   ): Promise<PageModel> {
     const { entityId } = params;
 
-    const entity = await EntityModel.getLatest(graphApi, {
+    const entityModel = await EntityModel.getLatest(graphApi, {
       entityId,
     });
 
-    return PageModel.fromEntityModel(entity);
+    return PageModel.fromEntityModel(entityModel);
   }
 
   /**
