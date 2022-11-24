@@ -22,8 +22,6 @@ const defaultSeoProps: DefaultSeoProps = {
     site: "@hashintel",
   },
   openGraph: {
-    // title: siteTitle,
-    // description: siteDescription,
     images: [{ url: `${FRONTEND_URL}/social-cover.png` }],
     siteName: "HASH for Developers",
     type: "website",
