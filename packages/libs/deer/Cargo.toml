@@ -22,7 +22,7 @@ rustc_version = "0.4.0"
 
 [features]
 default = ['std']
-std = ['serde/std', 'spin/rwlock']
+std = ['serde/std']
 arbitrary-precision = []
 
 [workspace]
