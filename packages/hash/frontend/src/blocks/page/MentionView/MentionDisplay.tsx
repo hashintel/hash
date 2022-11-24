@@ -1,13 +1,17 @@
 import { useMemo, FunctionComponent } from "react";
 import ArticleIcon from "@mui/icons-material/Article";
 
+import {
+  EntityId,
+  extractEntityUuidFromEntityId,
+} from "@hashintel/hash-subgraph";
 import { useUsers } from "../../../components/hooks/useUsers";
 import { useAccountPages } from "../../../components/hooks/useAccountPages";
 import { Link } from "../../../shared/ui";
 
 interface MentionDisplayProps {
-  entityId: string;
-  mentionType: string;
+  entityId: EntityId;
+  mentionType: "page" | "user";
   accountId: string;
 }
 
@@ -16,34 +20,48 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
   mentionType,
   accountId,
 }) => {
-  const { users } = useUsers();
+  const { users, loading: usersLoading } = useUsers();
   const { data: pages, loading: pagesLoading } = useAccountPages(accountId);
 
   const { title, href, icon } = useMemo(() => {
     switch (mentionType) {
       case "user": {
-        let userName = "";
-
-        // Only set username to "User" if the query hasn't already run before
-        if (!users) {
-          userName = "User";
+        // Only set the title to "Page" if the query hasn't returned yet
+        if (!users || (usersLoading && !users.length)) {
+          /** @todo - What should the href be here? */
+          return {
+            title: "User",
+            href: `#`,
+            icon: "@",
+          };
         } else {
           // Once the query loads, either display the found name, or display "Unknown User" if the user doesn't exist in the users array
-          userName =
-            users.find((item) => item.entityId === entityId)?.preferredName ??
-            "Unknown User";
-        }
+          const matchingUser = users.find(
+            (user) => user.entityEditionId.baseId === entityId,
+          );
 
-        return {
-          title: userName,
-          href: `/${entityId}`,
-          icon: "@",
-        };
+          if (matchingUser) {
+            return {
+              title: matchingUser.preferredName,
+              href: `@${
+                matchingUser.shortname
+              }/entities/${extractEntityUuidFromEntityId(entityId)}`,
+              icon: "@",
+            };
+          } else {
+            /** @todo - What should the href be here? */
+            return {
+              title: "Unknown User",
+              href: `#`,
+              icon: "@",
+            };
+          }
+        }
       }
       case "page": {
         let pageTitle = "";
 
-        // Only set the title to "Page" if the query hasn't run before
+        // Only set the title to "Page" if the query hasn't returned yet
         if (pagesLoading && !pages.length) {
           pageTitle = "Page";
         } else {
@@ -62,7 +80,15 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
       default:
         return { title: "", href: "", icon: "@" };
     }
-  }, [accountId, entityId, mentionType, users, pages, pagesLoading]);
+  }, [
+    accountId,
+    entityId,
+    mentionType,
+    users,
+    pages,
+    pagesLoading,
+    usersLoading,
+  ]);
 
   return (
     <Link noLinkStyle href={href} sx={{ fontWeight: 500, color: "#9ca3af" }}>
