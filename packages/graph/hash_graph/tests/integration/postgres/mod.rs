@@ -1,36 +1,42 @@
 mod data_type;
 mod entity;
 mod entity_type;
-mod link_type;
 mod links;
 mod property_type;
 
 use std::{borrow::Cow, str::FromStr};
 
-use error_stack::{Report, Result};
+use error_stack::Result;
 use graph::{
-    identifier::AccountId,
+    identifier::{
+        account::AccountId,
+        knowledge::{EntityEditionId, EntityId},
+        GraphElementEditionId,
+    },
     knowledge::{
-        Entity, EntityId, Link, LinkQueryPath, PersistedEntity, PersistedEntityMetadata,
-        PersistedLink,
+        Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryPath, EntityUuid,
+        LinkEntityMetadata,
     },
     ontology::{
-        LinkTypeQueryPath, PersistedDataType, PersistedEntityType, PersistedLinkType,
-        PersistedOntologyMetadata, PersistedPropertyType,
+        DataTypeWithMetadata, EntityTypeQueryPath, EntityTypeWithMetadata, OntologyElementMetadata,
+        PropertyTypeWithMetadata,
     },
-    provenance::{CreatedById, OwnedById, RemovedById, UpdatedById},
-    shared::identifier::GraphElementIdentifier,
+    provenance::{CreatedById, OwnedById, UpdatedById},
     store::{
-        error::LinkRemovalError,
+        error::ArchivalError,
         query::{Filter, FilterExpression, Parameter},
         AccountStore, AsClient, DataTypeStore, DatabaseConnectionInfo, DatabaseType, EntityStore,
-        EntityTypeStore, InsertionError, LinkStore, LinkTypeStore, PostgresStore,
-        PostgresStorePool, PropertyTypeStore, QueryError, StorePool, UpdateError,
+        EntityTypeStore, InsertionError, PostgresStore, PostgresStorePool, PropertyTypeStore,
+        QueryError, StorePool, UpdateError,
     },
-    subgraph::{GraphResolveDepths, StructuralQuery, Vertex},
+    subgraph::{
+        depths::GraphResolveDepths,
+        query::StructuralQuery,
+        vertices::{KnowledgeGraphVertex, OntologyVertex, Vertex},
+    },
 };
 use tokio_postgres::{NoTls, Transaction};
-use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};
+use type_system::{uri::VersionedUri, DataType, EntityType, PropertyType};
 use uuid::Uuid;
 
 pub struct DatabaseTestWrapper {
@@ -75,17 +81,15 @@ impl DatabaseTestWrapper {
         }
     }
 
-    pub async fn seed<D, P, L, E>(
+    pub async fn seed<D, P, E>(
         &mut self,
         data_types: D,
         property_types: P,
-        link_types: L,
         entity_types: E,
     ) -> Result<DatabaseApi<'_>, InsertionError>
     where
         D: IntoIterator<Item = &'static str>,
         P: IntoIterator<Item = &'static str>,
-        L: IntoIterator<Item = &'static str>,
         E: IntoIterator<Item = &'static str>,
     {
         let mut store = PostgresStore::new(
@@ -122,17 +126,6 @@ impl DatabaseTestWrapper {
                 .await?;
         }
 
-        // Insert link types before entity types so entity types can refer to them
-        for link_type in link_types {
-            store
-                .create_link_type(
-                    LinkType::from_str(link_type).expect("could not parse link type"),
-                    OwnedById::new(account_id),
-                    CreatedById::new(account_id),
-                )
-                .await?;
-        }
-
         for entity_type in entity_types {
             store
                 .create_entity_type(
@@ -152,7 +145,7 @@ impl DatabaseApi<'_> {
     pub async fn create_data_type(
         &mut self,
         data_type: DataType,
-    ) -> Result<PersistedOntologyMetadata, InsertionError> {
+    ) -> Result<OntologyElementMetadata, InsertionError> {
         self.store
             .create_data_type(
                 data_type,
@@ -165,7 +158,7 @@ impl DatabaseApi<'_> {
     pub async fn get_data_type(
         &mut self,
         uri: &VersionedUri,
-    ) -> Result<PersistedDataType, QueryError> {
+    ) -> Result<DataTypeWithMetadata, QueryError> {
         let vertex = self
             .store
             .get_data_type(&StructuralQuery {
@@ -174,19 +167,18 @@ impl DatabaseApi<'_> {
             })
             .await?
             .vertices
-            .remove(&GraphElementIdentifier::OntologyElementId(uri.clone()))
+            .remove(&GraphElementEditionId::Ontology(uri.clone().into()))
             .expect("no data type found");
 
-        match vertex {
-            Vertex::DataType(persisted_data_type) => Ok(persisted_data_type),
-            _ => unreachable!(),
-        }
+        let Vertex::Ontology(vertex) = vertex else { unreachable!() };
+        let OntologyVertex::DataType(data_type) = *vertex else { unreachable!() };
+        Ok(*data_type)
     }
 
     pub async fn update_data_type(
         &mut self,
         data_type: DataType,
-    ) -> Result<PersistedOntologyMetadata, UpdateError> {
+    ) -> Result<OntologyElementMetadata, UpdateError> {
         self.store
             .update_data_type(data_type, UpdatedById::new(self.account_id))
             .await
@@ -195,7 +187,7 @@ impl DatabaseApi<'_> {
     pub async fn create_property_type(
         &mut self,
         property_type: PropertyType,
-    ) -> Result<PersistedOntologyMetadata, InsertionError> {
+    ) -> Result<OntologyElementMetadata, InsertionError> {
         self.store
             .create_property_type(
                 property_type,
@@ -208,7 +200,7 @@ impl DatabaseApi<'_> {
     pub async fn get_property_type(
         &mut self,
         uri: &VersionedUri,
-    ) -> Result<PersistedPropertyType, QueryError> {
+    ) -> Result<PropertyTypeWithMetadata, QueryError> {
         let vertex = self
             .store
             .get_property_type(&StructuralQuery {
@@ -217,19 +209,18 @@ impl DatabaseApi<'_> {
             })
             .await?
             .vertices
-            .remove(&GraphElementIdentifier::OntologyElementId(uri.clone()))
+            .remove(&GraphElementEditionId::Ontology(uri.clone().into()))
             .expect("no property type found");
 
-        match vertex {
-            Vertex::PropertyType(persisted_property_type) => Ok(persisted_property_type),
-            _ => unreachable!(),
-        }
+        let Vertex::Ontology(vertex) = vertex else { unreachable!() };
+        let OntologyVertex::PropertyType(property_type) = *vertex else { unreachable!() };
+        Ok(*property_type)
     }
 
     pub async fn update_property_type(
         &mut self,
         property_type: PropertyType,
-    ) -> Result<PersistedOntologyMetadata, UpdateError> {
+    ) -> Result<OntologyElementMetadata, UpdateError> {
         self.store
             .update_property_type(property_type, UpdatedById::new(self.account_id))
             .await
@@ -238,7 +229,7 @@ impl DatabaseApi<'_> {
     pub async fn create_entity_type(
         &mut self,
         entity_type: EntityType,
-    ) -> Result<PersistedOntologyMetadata, InsertionError> {
+    ) -> Result<OntologyElementMetadata, InsertionError> {
         self.store
             .create_entity_type(
                 entity_type,
@@ -251,7 +242,7 @@ impl DatabaseApi<'_> {
     pub async fn get_entity_type(
         &mut self,
         uri: &VersionedUri,
-    ) -> Result<PersistedEntityType, QueryError> {
+    ) -> Result<EntityTypeWithMetadata, QueryError> {
         let vertex = self
             .store
             .get_entity_type(&StructuralQuery {
@@ -260,217 +251,222 @@ impl DatabaseApi<'_> {
             })
             .await?
             .vertices
-            .remove(&GraphElementIdentifier::OntologyElementId(uri.clone()))
+            .remove(&GraphElementEditionId::Ontology(uri.clone().into()))
             .expect("no entity type found");
 
-        match vertex {
-            Vertex::EntityType(persisted_entity_type) => Ok(persisted_entity_type),
-            _ => unreachable!(),
-        }
+        let Vertex::Ontology(vertex) = vertex else { unreachable!() };
+        let OntologyVertex::EntityType(entity_type) = *vertex else { unreachable!() };
+        Ok(*entity_type)
     }
 
     pub async fn update_entity_type(
         &mut self,
         entity_type: EntityType,
-    ) -> Result<PersistedOntologyMetadata, UpdateError> {
+    ) -> Result<OntologyElementMetadata, UpdateError> {
         self.store
             .update_entity_type(entity_type, UpdatedById::new(self.account_id))
             .await
     }
 
-    pub async fn create_link_type(
-        &mut self,
-        link_type: LinkType,
-    ) -> Result<PersistedOntologyMetadata, InsertionError> {
-        self.store
-            .create_link_type(
-                link_type,
-                OwnedById::new(self.account_id),
-                CreatedById::new(self.account_id),
-            )
-            .await
-    }
-
-    pub async fn get_link_type(
-        &mut self,
-        uri: &VersionedUri,
-    ) -> Result<PersistedLinkType, QueryError> {
-        let vertex = self
-            .store
-            .get_link_type(&StructuralQuery {
-                filter: Filter::for_versioned_uri(uri),
-                graph_resolve_depths: GraphResolveDepths::zeroed(),
-            })
-            .await?
-            .vertices
-            .remove(&GraphElementIdentifier::OntologyElementId(uri.clone()))
-            .expect("no link type found");
-
-        match vertex {
-            Vertex::LinkType(persisted_link_type) => Ok(persisted_link_type),
-            _ => unreachable!(),
-        }
-    }
-
-    pub async fn update_link_type(
-        &mut self,
-        link_type: LinkType,
-    ) -> Result<PersistedOntologyMetadata, UpdateError> {
-        self.store
-            .update_link_type(link_type, UpdatedById::new(self.account_id))
-            .await
-    }
-
     pub async fn create_entity(
         &mut self,
-        entity: Entity,
+        properties: EntityProperties,
         entity_type_id: VersionedUri,
-        entity_id: Option<EntityId>,
-    ) -> Result<PersistedEntityMetadata, InsertionError> {
+        entity_uuid: Option<EntityUuid>,
+    ) -> Result<EntityMetadata, InsertionError> {
         self.store
             .create_entity(
-                entity,
+                properties,
                 entity_type_id,
                 OwnedById::new(self.account_id),
-                entity_id,
+                entity_uuid,
                 CreatedById::new(self.account_id),
+                None,
             )
             .await
     }
 
-    pub async fn get_entity(&mut self, entity_id: EntityId) -> Result<PersistedEntity, QueryError> {
+    pub async fn get_entity(
+        &self,
+        entity_edition_id: EntityEditionId,
+    ) -> Result<Entity, QueryError> {
         let vertex = self
             .store
             .get_entity(&StructuralQuery {
-                filter: Filter::for_latest_entity_by_entity_id(entity_id),
+                filter: Filter::for_entities_by_edition_id(entity_edition_id),
                 graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
             .await?
             .vertices
-            .remove(&GraphElementIdentifier::KnowledgeGraphElementId(entity_id))
+            .remove(&GraphElementEditionId::KnowledgeGraph(entity_edition_id))
             .expect("no entity found");
 
-        match vertex {
-            Vertex::Entity(persisted_entity) => Ok(persisted_entity),
-            _ => unreachable!(),
-        }
+        let Vertex::KnowledgeGraph(vertex) = vertex else { unreachable!() };
+        let KnowledgeGraphVertex::Entity(persisted_entity) = *vertex;
+        Ok(persisted_entity)
     }
 
     pub async fn update_entity(
         &mut self,
         entity_id: EntityId,
-        entity: Entity,
+        properties: EntityProperties,
         entity_type_id: VersionedUri,
-    ) -> Result<PersistedEntityMetadata, UpdateError> {
+        order: EntityLinkOrder,
+    ) -> Result<EntityMetadata, UpdateError> {
         self.store
             .update_entity(
                 entity_id,
-                entity,
+                properties,
                 entity_type_id,
                 UpdatedById::new(self.account_id),
+                order,
             )
             .await
     }
 
-    async fn create_link(
+    async fn create_link_entity(
         &mut self,
-        source_entity_id: EntityId,
-        target_entity_id: EntityId,
-        link_type_id: VersionedUri,
-    ) -> Result<(), InsertionError> {
-        let link = Link::new(source_entity_id, target_entity_id, link_type_id, None);
+        properties: EntityProperties,
+        entity_type_id: VersionedUri,
+        entity_uuid: Option<EntityUuid>,
+        left_entity_id: EntityId,
+        right_entity_id: EntityId,
+    ) -> Result<EntityMetadata, InsertionError> {
         self.store
-            .create_link(
-                &link,
+            .create_entity(
+                properties,
+                entity_type_id,
                 OwnedById::new(self.account_id),
+                entity_uuid,
                 CreatedById::new(self.account_id),
+                Some(LinkEntityMetadata::new(
+                    left_entity_id,
+                    right_entity_id,
+                    None,
+                    None,
+                )),
             )
             .await
     }
 
-    async fn create_ordered_link(
-        &mut self,
-        source_entity_id: EntityId,
-        target_entity_id: EntityId,
-        link_type_id: VersionedUri,
-        index: i32,
-    ) -> Result<(), InsertionError> {
-        let link = Link::new(
-            source_entity_id,
-            target_entity_id,
-            link_type_id,
-            Some(index),
-        );
-        self.store
-            .create_link(
-                &link,
-                OwnedById::new(self.account_id),
-                CreatedById::new(self.account_id),
-            )
-            .await
-    }
-
-    pub async fn get_link_target(
+    pub async fn get_link_entity_target(
         &self,
         source_entity_id: EntityId,
         link_type_id: VersionedUri,
-    ) -> Result<PersistedLink, QueryError> {
-        Ok(self
-            .store
-            .get_links(&StructuralQuery {
-                filter: Filter::All(vec![
-                    Filter::for_link_by_latest_source_entity(source_entity_id),
-                    Filter::Equal(
-                        Some(FilterExpression::Path(LinkQueryPath::Type(
-                            LinkTypeQueryPath::BaseUri,
-                        ))),
-                        Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                            link_type_id.base_uri().as_str(),
-                        )))),
-                    ),
-                    Filter::Equal(
-                        Some(FilterExpression::Path(LinkQueryPath::Type(
-                            LinkTypeQueryPath::Version,
-                        ))),
-                        Some(FilterExpression::Parameter(Parameter::SignedInteger(
-                            link_type_id.version().into(),
-                        ))),
-                    ),
-                ]),
-                graph_resolve_depths: GraphResolveDepths::zeroed(),
-            })
-            .await?
-            .pop()
-            .ok_or_else(|| Report::new(QueryError).attach_printable("no link found"))?
-            .link
-            .clone())
-    }
+    ) -> Result<Entity, QueryError> {
+        let filter = Filter::All(vec![
+            Filter::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
+                    Box::new(EntityQueryPath::Uuid),
+                ))),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    source_entity_id.entity_uuid().as_uuid(),
+                ))),
+            ),
+            Filter::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
+                    Box::new(EntityQueryPath::OwnedById),
+                ))),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    source_entity_id.owned_by_id().as_uuid(),
+                ))),
+            ),
+            Filter::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::Type(
+                    EntityTypeQueryPath::BaseUri,
+                ))),
+                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                    link_type_id.base_uri().as_str(),
+                )))),
+            ),
+            Filter::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::Type(
+                    EntityTypeQueryPath::Version,
+                ))),
+                Some(FilterExpression::Parameter(Parameter::SignedInteger(
+                    link_type_id.version().into(),
+                ))),
+            ),
+        ]);
 
-    pub async fn get_entity_links(
-        &self,
-        source_entity_id: EntityId,
-    ) -> Result<Vec<PersistedLink>, QueryError> {
-        Ok(self
+        let mut subgraph = self
             .store
-            .get_links(&StructuralQuery {
-                filter: Filter::for_link_by_latest_source_entity(source_entity_id),
+            .get_entity(&StructuralQuery {
+                filter,
                 graph_resolve_depths: GraphResolveDepths::zeroed(),
             })
-            .await?
+            .await?;
+
+        let roots = subgraph
+            .roots
             .into_iter()
-            .map(|link_rooted_subgraph| link_rooted_subgraph.link)
+            .filter_map(|edition_id| subgraph.vertices.remove(&edition_id))
+            .map(|vertex| {
+                let Vertex::KnowledgeGraph(vertex) = vertex else { unreachable!() };
+                let KnowledgeGraphVertex::Entity(persisted_entity) = *vertex;
+                persisted_entity
+            })
+            .collect::<Vec<_>>();
+
+        match roots.as_slice() {
+            [] => panic!("no entity found"),
+            [entity] => Ok(entity.clone()),
+            [..] => panic!("more than one entity was found"),
+        }
+    }
+
+    pub async fn get_latest_entity_links(
+        &self,
+        source_entity_id: EntityId,
+    ) -> Result<Vec<Entity>, QueryError> {
+        let filter = Filter::All(vec![
+            Filter::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
+                    Box::new(EntityQueryPath::Uuid),
+                ))),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    source_entity_id.entity_uuid().as_uuid(),
+                ))),
+            ),
+            Filter::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
+                    Box::new(EntityQueryPath::OwnedById),
+                ))),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    source_entity_id.owned_by_id().as_uuid(),
+                ))),
+            ),
+            Filter::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::Version)),
+                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                    "latest",
+                )))),
+            ),
+        ]);
+
+        let mut subgraph = self
+            .store
+            .get_entity(&StructuralQuery {
+                filter,
+                graph_resolve_depths: GraphResolveDepths::zeroed(),
+            })
+            .await?;
+
+        Ok(subgraph
+            .roots
+            .into_iter()
+            .filter_map(|edition_id| subgraph.vertices.remove(&edition_id))
+            .map(|vertex| {
+                let Vertex::KnowledgeGraph(vertex) = vertex else { unreachable!() };
+                let KnowledgeGraphVertex::Entity(persisted_entity) = *vertex;
+                persisted_entity
+            })
             .collect())
     }
 
-    async fn remove_link(
-        &mut self,
-        source_entity_id: EntityId,
-        target_entity_id: EntityId,
-        link_type_id: VersionedUri,
-    ) -> Result<(), LinkRemovalError> {
-        let link = Link::new(source_entity_id, target_entity_id, link_type_id, None);
+    async fn archive_entity(&mut self, link_entity_id: EntityId) -> Result<(), ArchivalError> {
         self.store
-            .remove_link(&link, RemovedById::new(self.account_id))
+            .archive_entity(link_entity_id, UpdatedById::new(self.account_id))
             .await
     }
 }

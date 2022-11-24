@@ -12,7 +12,7 @@ async fn insert() {
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
-        .seed([data_type::NUMBER_V1], [], [], [])
+        .seed([data_type::NUMBER_V1], [], [])
         .await
         .expect("could not seed database");
 
@@ -28,7 +28,7 @@ async fn query() {
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
-        .seed([data_type::TEXT_V1], [], [], [])
+        .seed([data_type::TEXT_V1], [], [])
         .await
         .expect("could not seed database");
 
@@ -54,7 +54,7 @@ async fn update() {
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
-        .seed([data_type::NUMBER_V1, data_type::TEXT_V1], [], [], [])
+        .seed([data_type::NUMBER_V1, data_type::TEXT_V1], [], [])
         .await
         .expect("could not seed database");
 

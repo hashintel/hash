@@ -229,13 +229,15 @@ export const PropertyListCard = () => {
                 onCancel={() => {
                   setAddingNewProperty(false);
                 }}
-                onAdd={(type) => {
+                onAdd={(propertyType) => {
                   setAddingNewProperty(false);
                   if (
-                    !getValues("properties").some(({ $id }) => $id === type.$id)
+                    !getValues("properties").some(
+                      ({ $id }) => $id === propertyType.$id,
+                    )
                   ) {
                     append({
-                      $id: mustBeVersionedUri(type.$id),
+                      $id: propertyType.$id,
                       required: false,
                       array: false,
                       minValue: 0,

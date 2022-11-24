@@ -14,7 +14,7 @@ export const persistedBlocks: ResolverFn<
   QueryPersistedBlocksArgs
 > = async (_, params, { dataSources: { graphApi } }) => {
   const blocks = await Promise.all(
-    params.blocks.map(({ entityId }) =>
+    params.blocks.map((entityId) =>
       BlockModel.getBlockById(graphApi, { entityId }),
     ),
   );

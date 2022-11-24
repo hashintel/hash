@@ -1,11 +1,7 @@
+import { Subgraph } from "@hashintel/hash-subgraph";
 import { OrgModel } from "../../../../model";
-import {
-  MutationCreateOrgArgs,
-  ResolverFn,
-  Subgraph,
-} from "../../../apiTypes.gen";
+import { MutationCreateOrgArgs, ResolverFn } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { mapSubgraphToGql } from "../../ontology/model-mapping";
 
 export const createOrg: ResolverFn<
   Promise<Subgraph>,
@@ -14,20 +10,17 @@ export const createOrg: ResolverFn<
   MutationCreateOrgArgs
 > = async (
   _,
-  { name, shortname, orgSize, linkResolveDepth, linkTargetEntityResolveDepth },
+  { name, shortname, orgSize, entityResolveDepth },
   { dataSources: { graphApi }, userModel },
 ) => {
   const orgModel = await OrgModel.createOrg(graphApi, {
     shortname,
     name,
     providedInfo: { orgSize },
-    actorId: userModel.entityId,
+    actorId: userModel.getEntityUuid(),
   });
 
-  const orgRootedSubgraph = await orgModel.getRootedSubgraph(graphApi, {
-    linkResolveDepth,
-    linkTargetEntityResolveDepth,
+  return await orgModel.getRootedSubgraph(graphApi, {
+    entityResolveDepth,
   });
-
-  return mapSubgraphToGql(orgRootedSubgraph);
 };

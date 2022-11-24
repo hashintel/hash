@@ -12,16 +12,15 @@ export const getNamespaceOfAccountOwner = async (
   graphApi: GraphApi,
   params: { ownerId: string },
 ) => {
-  /** @todo - get rid of this hack for the root account */
   const namespace =
     params.ownerId === systemAccountId
       ? SYSTEM_ACCOUNT_SHORTNAME
       : (
           (await UserModel.getUserById(graphApi, {
-            entityId: params.ownerId,
+            entityId: `${systemAccountId}%${params.ownerId}`,
           }).catch(() => undefined)) ??
           (await OrgModel.getOrgById(graphApi, {
-            entityId: params.ownerId,
+            entityId: `${systemAccountId}%${params.ownerId}`,
           }).catch(() => undefined))
         )?.getShortname();
 

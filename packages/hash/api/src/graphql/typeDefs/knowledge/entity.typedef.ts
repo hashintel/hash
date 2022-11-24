@@ -1,116 +1,42 @@
 import { gql } from "apollo-server-express";
 
-export const persistedEntityTypedef = gql`
-  interface PersistedEntity {
-    # These fields are repeated everywhere they're used because
-    # (a) GQL requires it - https://github.com/graphql/graphql-spec/issues/533
-    # (b) string interpolation breaks the code generator's introspection
-    #
-    # Could maybe use a custom schema loader to parse it ourselves:
-    # https://www.graphql-code-generator.com/docs/getting-started/schema-field#custom-schema-loader
-    #
-    # For now, _COPY ANY CHANGES_ from here to any type that 'implements Entity'
-    """
-    The id of the entity
-    """
-    entityId: ID!
-    """
-    The specific version of the entity
-    """
-    entityVersion: String!
-    """
-    The id of the account that owns this entity.
-    """
-    ownedById: ID!
-    """
-    Alias of ownedById - the id of the account that owns this entity.
-    """
-    accountId: ID!
-      @deprecated(reason: "accountId is deprecated. Use ownedById instead.")
-    """
-    The versioned URI of this entity's type.
-    """
-    entityTypeId: String!
-    """
-    The JSON object containing the entity's properties.
-    """
-    properties: JSONObject!
-  }
-
-  type UnknownPersistedEntity implements PersistedEntity {
-    # ENTITY INTERFACE FIELDS BEGIN #
-    """
-    The id of the entity
-    """
-    entityId: ID!
-    """
-    The specific version of the entity
-    """
-    entityVersion: String!
-    """
-    The id of the account that owns this entity.
-    """
-    ownedById: ID!
-    """
-    Alias of ownedById - the id of the account that owns this entity.
-    """
-    accountId: ID!
-      @deprecated(reason: "accountId is deprecated. Use ownedById instead.")
-    """
-    The versioned URI of this entity's type.
-    """
-    entityTypeId: String!
-    """
-    The JSON object containing the entity's properties.
-    """
-    properties: JSONObject!
-    # ENTITY INTERFACE FIELDS END #
-  }
-
+export const entityWithMetadataTypedef = gql`
+  scalar EntityId
+  scalar EntityEditionId
   """
-  For referring to an existing entity owned by a specific account id
+  @todo rename to 'Entity' once we get rid of deprecated GQL types.
+    See https://app.asana.com/0/1201095311341924/1203411297593704/f
   """
-  input PersistedExistingEntity {
-    """
-    This may be a reference to a placeholder set using placeholderId on a previous UpdatePageContentsAction.
-    """
-    entityId: ID!
-    ownedById: ID!
-  }
-
+  scalar EntityWithMetadata
   """
-  Select entity types by ONE of componentId, entityTypeId
+  @todo we intend to use only a single scalar instead of the following ones.
+    To support existing pieces of the application, these scalars are useful for 'Knowledge' types
+    that wrap entities with custom resolvers.
+    Changing this this can be considered part of https://app.asana.com/0/1202805690238892/1203157172269854/f
   """
-  input PersistedEntityTypeChoice {
-    # Previously the EntityTypeChoice included 'componentId: ID', which made it possible
-    # to create a block using an already-existing entity type based on its componentId
-    # we should reconsider what we do about the component ID
-    # see https://app.asana.com/0/0/1202924026802716/f
-    """
-    A fixed entity type ID. This may be a reference to a placeholder set using a previous createEntityTypeAction.
-    """
-    entityTypeId: String
-  }
+  scalar PropertyObject
+  scalar EntityMetadata
 
   input PersistedLinkedEntityDefinition {
     destinationAccountId: ID!
-    linkTypeId: String!
+    linkEntityTypeId: VersionedUri!
     """
     The index of the link (if any)
     """
     index: Int
-    entity: PersistedEntityDefinition!
+    entity: EntityWithMetadataDefinition!
   }
 
-  input PersistedEntityDefinition {
+  input EntityWithMetadataDefinition {
     """
-    Existing Entity to use instead of creating a new entity.
+    The EntityId of the existing entity to use instead of creating a new entity.
+    This may be a reference to a placeholder set using placeholderId on a previous UpdatePageContentsAction.
     """
-    existingEntity: PersistedExistingEntity
+    existingEntityId: EntityId
     """
     The type of which to instantiate the new entity.
     """
-    entityType: PersistedEntityTypeChoice
+    entityTypeId: VersionedUri
     """
     The properties of new entity.
     """
@@ -121,38 +47,34 @@ export const persistedEntityTypedef = gql`
     linkedEntities: [PersistedLinkedEntityDefinition!]
   }
 
-  # TODO: rename these and remove "persisted" - https://app.asana.com/0/0/1203157172269854/f
+  # TODO: rename these and remove "withMetadata" - https://app.asana.com/0/0/1203157172269854/f
   extend type Query {
     """
     Get a subgraph rooted at all entities at their latest version.
     """
-    getAllLatestPersistedEntities(
+    getAllLatestEntitiesWithMetadata(
       dataTypeResolveDepth: Int!
       propertyTypeResolveDepth: Int!
-      linkTypeResolveDepth: Int!
       entityTypeResolveDepth: Int!
-      linkTargetEntityResolveDepth: Int!
-      linkResolveDepth: Int!
+      entityResolveDepth: Int!
     ): Subgraph!
 
     """
     Get a subgraph rooted at an entity resolved by its id.
     """
-    getPersistedEntity(
+    getEntityWithMetadata(
       """
       The id of the entity.
       """
-      entityId: ID!
+      entityId: EntityId!
       """
       The version of the entity. Defaults to the latest version.
       """
       entityVersion: String
       dataTypeResolveDepth: Int!
       propertyTypeResolveDepth: Int!
-      linkTypeResolveDepth: Int!
       entityTypeResolveDepth: Int!
-      linkTargetEntityResolveDepth: Int!
-      linkResolveDepth: Int!
+      entityResolveDepth: Int!
     ): Subgraph!
   }
 
@@ -160,7 +82,7 @@ export const persistedEntityTypedef = gql`
     """
     Create an entity.
     """
-    createPersistedEntity(
+    createEntityWithMetadata(
       """
       The owner of the create entity. Defaults to the user calling the mutation.
       """
@@ -168,7 +90,7 @@ export const persistedEntityTypedef = gql`
       """
       The type of which to instantiate the new entity.
       """
-      entityTypeId: ID!
+      entityTypeId: VersionedUri!
       """
       The properties of new entity.
       """
@@ -177,20 +99,20 @@ export const persistedEntityTypedef = gql`
       Associated Entities to either create/get and link to this entity.
       """
       linkedEntities: [PersistedLinkedEntityDefinition!]
-    ): UnknownPersistedEntity!
+    ): EntityWithMetadata!
 
     """
     Update an entity.
     """
-    updatePersistedEntity(
+    updateEntityWithMetadata(
       """
       The id of the entity.
       """
-      entityId: ID!
+      entityId: EntityId!
       """
       The updated properties of the entity.
       """
       updatedProperties: JSONObject!
-    ): UnknownPersistedEntity!
+    ): EntityWithMetadata!
   }
 `;

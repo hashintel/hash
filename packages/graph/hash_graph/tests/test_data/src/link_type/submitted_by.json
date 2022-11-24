@@ -1,7 +1,0 @@
-{
-  "kind": "linkType",
-  "$id": "https://blockprotocol.org/@alice/types/link-type/submitted-by/v/1",
-  "title": "Submitted By",
-  "pluralTitle": "Submitted By",
-  "description": "Suggested, proposed, or presented by"
-}

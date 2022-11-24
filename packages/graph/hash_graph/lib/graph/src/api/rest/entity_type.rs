@@ -15,22 +15,29 @@ use type_system::{uri::VersionedUri, EntityType};
 use utoipa::{OpenApi, ToSchema};
 
 use crate::{
-    api::rest::{api_resource::RoutedResource, read_from_store, report_to_status_code},
+    api::rest::{
+        api_resource::RoutedResource,
+        read_from_store, report_to_status_code,
+        utoipa_typedef::subgraph::{
+            Edges, OntologyRootedEdges, OntologyVertices, Subgraph, Vertices,
+        },
+    },
+    identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId, GraphElementId},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, PersistedEntityType, PersistedOntologyIdentifier,
-        PersistedOntologyMetadata,
+        patch_id_and_parse, EntityTypeQueryToken, EntityTypeWithMetadata, OntologyElementMetadata,
     },
-    provenance::{CreatedById, OwnedById, UpdatedById},
-    shared::identifier::GraphElementIdentifier,
+    provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         error::{BaseUriAlreadyExists, BaseUriDoesNotExist},
         query::Filter,
         EntityTypeStore, StorePool,
     },
     subgraph::{
-        EdgeKind, Edges, EntityTypeStructuralQuery, GraphResolveDepths, OutwardEdge,
-        StructuralQuery, Subgraph, Vertex,
+        depths::GraphResolveDepths,
+        edges::{OntologyEdgeKind, OntologyOutwardEdges, SharedEdgeKind},
+        query::{EntityTypeStructuralQuery, StructuralQuery},
+        vertices::Vertex,
     },
 };
 
@@ -50,16 +57,23 @@ use crate::{
             OwnedById,
             CreatedById,
             UpdatedById,
-            PersistedOntologyIdentifier,
-            PersistedOntologyMetadata,
-            PersistedEntityType,
+            OntologyTypeEditionId,
+            OntologyElementMetadata,
+            EntityTypeWithMetadata,
             EntityTypeStructuralQuery,
-            GraphElementIdentifier,
+            EntityTypeQueryToken,
+            GraphElementId,
+            GraphElementEditionId,
+            ProvenanceMetadata,
+            OntologyVertices,
+            Vertices,
             Vertex,
-            EdgeKind,
-            OutwardEdge,
-            GraphResolveDepths,
+            OntologyEdgeKind,
+            SharedEdgeKind,
+            OntologyOutwardEdges,
+            OntologyRootedEdges,
             Edges,
+            GraphResolveDepths,
             Subgraph,
         )
     ),
@@ -103,7 +117,7 @@ struct CreateEntityTypeRequest {
     request_body = CreateEntityTypeRequest,
     tag = "EntityType",
     responses(
-        (status = 201, content_type = "application/json", description = "The metadata of the created entity type", body = PersistedOntologyMetadata),
+        (status = 201, content_type = "application/json", description = "The metadata of the created entity type", body = OntologyElementMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 409, description = "Unable to create entity type in the datastore as the base entity type ID already exists"),
@@ -115,7 +129,7 @@ async fn create_entity_type<P: StorePool + Send>(
     body: Json<CreateEntityTypeRequest>,
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
-) -> Result<Json<PersistedOntologyMetadata>, StatusCode> {
+) -> Result<Json<OntologyElementMetadata>, StatusCode> {
     let Json(CreateEntityTypeRequest {
         schema,
         owned_by_id,
@@ -195,7 +209,7 @@ async fn get_entity_types_by_query<P: StorePool + Send>(
                 })
         })
         .await
-        .map(Json)
+        .map(|subgraph| Json(subgraph.into()))
 }
 
 #[utoipa::path(
@@ -203,14 +217,14 @@ async fn get_entity_types_by_query<P: StorePool + Send>(
     path = "/entity-types",
     tag = "EntityType",
     responses(
-        (status = 200, content_type = "application/json", description = "List of all entity types at their latest versions", body = [PersistedEntityType]),
+        (status = 200, content_type = "application/json", description = "List of all entity types at their latest versions", body = [EntityTypeWithMetadata]),
 
         (status = 500, description = "Store error occurred"),
     )
 )]
 async fn get_latest_entity_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-) -> Result<Json<Vec<PersistedEntityType>>, StatusCode> {
+) -> Result<Json<Vec<EntityTypeWithMetadata>>, StatusCode> {
     read_from_store(pool.as_ref(), &Filter::<EntityType>::for_latest_version())
         .await
         .map(Json)
@@ -221,7 +235,7 @@ async fn get_latest_entity_types<P: StorePool + Send>(
     path = "/entity-types/{uri}",
     tag = "EntityType",
     responses(
-        (status = 200, content_type = "application/json", description = "The schema of the requested entity type", body = PersistedEntityType),
+        (status = 200, content_type = "application/json", description = "The schema of the requested entity type", body = EntityTypeWithMetadata),
         (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
         (status = 404, description = "Entity type was not found"),
@@ -234,7 +248,7 @@ async fn get_latest_entity_types<P: StorePool + Send>(
 async fn get_entity_type<P: StorePool + Send>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<PersistedEntityType>, StatusCode> {
+) -> Result<Json<EntityTypeWithMetadata>, StatusCode> {
     read_from_store(
         pool.as_ref(),
         &Filter::<EntityType>::for_versioned_uri(&uri.0),
@@ -259,7 +273,7 @@ struct UpdateEntityTypeRequest {
     path = "/entity-types",
     tag = "EntityType",
     responses(
-        (status = 200, content_type = "application/json", description = "The metadata of the updated entity type", body = PersistedOntologyMetadata),
+        (status = 200, content_type = "application/json", description = "The metadata of the updated entity type", body = OntologyElementMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Base entity type ID was not found"),
@@ -270,7 +284,7 @@ struct UpdateEntityTypeRequest {
 async fn update_entity_type<P: StorePool + Send>(
     body: Json<UpdateEntityTypeRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<PersistedOntologyMetadata>, StatusCode> {
+) -> Result<Json<OntologyElementMetadata>, StatusCode> {
     let Json(UpdateEntityTypeRequest {
         schema,
         type_to_update,

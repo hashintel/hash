@@ -1,5 +1,6 @@
 import { UniqueIdentifier } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
+import { EntityId } from "@hashintel/hash-subgraph";
 import { AccountPage } from "../../../../components/hooks/useAccountPages";
 
 export interface TreeItem {
@@ -99,7 +100,7 @@ export const getProjection = (
 
   const depth = Math.min(Math.max(projectedDepth, minDepth), maxDepth);
 
-  const getParentId = (): string | null => {
+  const getParentId = (): EntityId | null => {
     if (depth === 0 || !previousItem) {
       return null;
     }

@@ -1,5 +1,5 @@
-import { useQuery } from "@apollo/client";
-import { PageSearchResult } from "@hashintel/hash-shared/graphql/apiTypes.gen";
+// import { useQuery } from "@apollo/client";
+// import { PageSearchResult } from "../../../../../graphql/apiTypes.gen";
 import { escapeRegExp } from "lodash";
 import {
   ReactNode,
@@ -13,11 +13,6 @@ import { Box, Theme, useTheme, useMediaQuery, SxProps } from "@mui/material";
 
 import { IconButton } from "@hashintel/hash-design-system";
 import { getBlockDomId } from "../../../blocks/page/BlockView";
-import {
-  SearchPagesQuery,
-  SearchPagesQueryVariables,
-} from "../../../graphql/apiTypes.gen";
-import { searchPages } from "../../../graphql/queries/search.queries";
 import { useAuthenticatedUser } from "../../../components/hooks/useAuthenticatedUser";
 import { HASH_OPENSEARCH_ENABLED } from "../../../lib/public-env";
 import { SearchInput } from "./search-bar/search-input";
@@ -36,7 +31,7 @@ const splitByMatches = (result: string, query: string) => {
   return result.split(new RegExp(`(${separator})`, "gi"));
 };
 
-const toBlockUrl = (searchPage: PageSearchResult): string => {
+const toBlockUrl = (searchPage: any): string => {
   const segments = [
     "/",
     searchPage.page.accountId,
@@ -159,19 +154,24 @@ const SearchBarWhenSearchIsEnabled: FunctionComponent = () => {
     }
   }, [displayedQuery, displaySearchInput]);
 
-  const { authenticatedUser } = useAuthenticatedUser();
+  const { authenticatedUser: _ } = useAuthenticatedUser();
 
-  const { data, loading } = useQuery<
-    SearchPagesQuery,
-    SearchPagesQueryVariables
-  >(searchPages, {
-    variables: {
-      accountId: authenticatedUser!.entityId,
-      query: submittedQuery,
-    },
-    skip: !authenticatedUser?.entityId || !submittedQuery,
-    fetchPolicy: "network-only",
-  });
+  const data: any = [];
+  const loading = false;
+  /**
+   * @todo: We currently do not support search, see https://app.asana.com/0/1201095311341924/1202681411010022/f
+   */
+  // const { data, loading } = useQuery<
+  //   SearchPagesQuery,
+  //   SearchPagesQueryVariables
+  // >(searchPages, {
+  //   variables: {
+  //     accountId: authenticatedUser!.entityId,
+  //     query: submittedQuery,
+  //   },
+  //   skip: !authenticatedUser?.entityId || !submittedQuery,
+  //   fetchPolicy: "network-only",
+  // });
 
   useKey(["Escape"], () => setResultListVisible(false));
 
@@ -242,7 +242,7 @@ const SearchBarWhenSearchIsEnabled: FunctionComponent = () => {
               No results found for&nbsp;<b>{submittedQuery}</b>.
             </ResultItem>
           ) : (
-            data.searchPages.map((searchPage) => (
+            data.searchPages.map((searchPage: any) => (
               <ResultItem
                 key={searchPage.block?.entityId ?? searchPage.page.entityId}
               >
