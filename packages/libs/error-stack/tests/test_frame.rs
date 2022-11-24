@@ -34,30 +34,6 @@ fn opaque_attachment() {
 }
 
 #[test]
-fn source_deprecated() {
-    let mut report = create_report()
-        .attach(AttachmentA(10))
-        .attach(AttachmentB(20));
-
-    assert_eq!(report.current_frames().len(), 1);
-    let frame = report.frames_mut().next().expect("No frame found");
-
-    #[allow(deprecated)]
-    let source = frame.source_mut().expect("No source frame found");
-    let attachment = source
-        .downcast_mut::<AttachmentA>()
-        .expect("Wrong source frame");
-    attachment.0 += 10;
-
-    #[allow(deprecated)]
-    let source = frame.source().expect("No source frame found");
-    let attachment = source
-        .downcast_ref::<AttachmentA>()
-        .expect("Wrong source frame");
-    assert_eq!(attachment.0, 20);
-}
-
-#[test]
 fn sources() {
     let mut a = create_report().attach(AttachmentA(10));
     let b = create_report().attach(AttachmentA(20));
