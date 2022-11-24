@@ -92,7 +92,6 @@ impl<A: 'static + fmt::Debug + fmt::Display + Send + Sync> FrameImpl
     }
 }
 
-#[repr(transparent)]
 #[cfg(feature = "anyhow")]
 struct AnyhowContext(anyhow::Error);
 
@@ -141,7 +140,6 @@ impl FrameImpl for AnyhowContext {
     }
 }
 
-#[repr(transparent)]
 #[cfg(feature = "eyre")]
 struct EyreContext(eyre::Report);
 
