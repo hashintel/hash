@@ -7,8 +7,6 @@ import {
 } from "@mui/material";
 import { FunctionComponent } from "react";
 
-import { useScrollLock } from "@hashintel/hash-design-system";
-
 const style: SxProps<Theme> = {
   position: "absolute",
   top: "50%",
@@ -32,20 +30,16 @@ type ModalProps = MuiModalProps & {
 export const Modal: FunctionComponent<ModalProps> = ({
   open,
   children,
-  disableScrollLock = false,
   onClose,
   contentStyle = [],
   ...props
 }) => {
-  useScrollLock(!disableScrollLock && open);
-
   return (
     <MuiModal
       open={open}
       onClose={onClose}
       aria-labelledby="modal-modal-title"
       aria-describedby="modal-modal-description"
-      disableScrollLock
       {...props}
     >
       <Box

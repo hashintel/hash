@@ -1,5 +1,5 @@
 import { FunctionComponent } from "react";
-import { Button, Dialog } from "@hashintel/hash-design-system";
+import { Button } from "@hashintel/hash-design-system";
 import {
   backdropClasses,
   dialogClasses,
@@ -7,6 +7,7 @@ import {
   DialogContent,
   DialogContentText,
   Box,
+  Dialog,
 } from "@mui/material";
 
 type CommentBlockDeleteConfirmationDialogProps = {

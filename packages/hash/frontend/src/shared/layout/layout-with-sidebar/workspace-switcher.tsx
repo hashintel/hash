@@ -6,6 +6,7 @@ import {
   ListItemText,
   ListItemAvatar,
   Tooltip,
+  Menu,
 } from "@mui/material";
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
 import {
@@ -13,7 +14,7 @@ import {
   bindTrigger,
   bindMenu,
 } from "material-ui-popup-state/hooks";
-import { Avatar, Menu, FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { Avatar, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { useAuthenticatedUser } from "../../../components/hooks/useAuthenticatedUser";
 import { Button, MenuItem } from "../../ui";
 import { useRouteAccountInfo } from "../../routing";

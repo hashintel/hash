@@ -1,18 +1,18 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "automerge": true,
+  "dependencyDashboard": true,
+  "dependencyDashboardApproval": true,
   "enabledManagers": ["github-actions", "npm"],
   "ignorePaths": ["packages/engine/**"],
   "postUpdateOptions": ["yarnDedupeFewer"],
-  "prConcurrentLimit": 5,
   "rebaseWhen": "conflicted",
   "schedule": ["before 5am on Monday", "before 5am on Thursday"],
   "packageRules": [
     {
-      "automerge": true,
       "enabled": false,
       "matchManagers": ["npm"],
-      "rangeStrategy": "bump",
-      "stabilityDays": 3
+      "rangeStrategy": "bump"
     },
     {
       "enabled": true,
