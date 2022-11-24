@@ -15,12 +15,11 @@ import {
   parseUriForOntologyChip,
 } from "../../shared/ontology-chip";
 import {
-  PropertyListSelectorDropdown,
-  PropertyListSelectorDropdownContext,
-} from "./property-list-selector-dropdown";
+  TypeListSelectorDropdown,
+  TypeListSelectorDropdownContext,
+  TYPE_SELECTOR_HEIGHT,
+} from "./type-list-selector-dropdown";
 import { useEntityTypes } from "./use-entity-types";
-
-const HEIGHT = 57;
 
 export const EntityTypeSelector: FunctionComponent<{
   onSelect: (entityType: EntityType) => void;
@@ -58,7 +57,7 @@ export const EntityTypeSelector: FunctionComponent<{
   const highlightedRef = useRef<null | EntityType>(null);
 
   return (
-    <PropertyListSelectorDropdownContext.Provider
+    <TypeListSelectorDropdownContext.Provider
       // eslint-disable-next-line react/jsx-no-constructed-context-values
       value={{
         query: search,
@@ -132,7 +131,7 @@ export const EntityTypeSelector: FunctionComponent<{
               sx: (theme) => ({
                 // The popover needs to know how tall this is to draw
                 // a shadow around it
-                height: HEIGHT,
+                height: TYPE_SELECTOR_HEIGHT,
 
                 // Focus is handled by the options popover
                 "&.Mui-focused": {
@@ -223,11 +222,11 @@ export const EntityTypeSelector: FunctionComponent<{
           );
         }}
         sx={{ width: "100%", maxWidth: 440 }}
-        PaperComponent={PropertyListSelectorDropdown}
+        PaperComponent={TypeListSelectorDropdown}
         componentsProps={{
           popper: { modifiers },
         }}
       />
-    </PropertyListSelectorDropdownContext.Provider>
+    </TypeListSelectorDropdownContext.Provider>
   );
 };

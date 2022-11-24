@@ -22,10 +22,11 @@ import {
   parseUriForOntologyChip,
 } from "../../shared/ontology-chip";
 import { PropertyExpectedValues } from "./property-expected-values";
-import { PropertyListSelectorDropdown } from "./property-list-selector-dropdown";
+import {
+  TypeListSelectorDropdown,
+  TYPE_SELECTOR_HEIGHT,
+} from "./type-list-selector-dropdown";
 import { usePropertyTypes } from "./use-property-types";
-
-export const PROPERTY_SELECTOR_HEIGHT = 57;
 
 const PropertySelector: ForwardRefRenderFunction<
   HTMLInputElement,
@@ -141,7 +142,7 @@ const PropertySelector: ForwardRefRenderFunction<
             sx: (theme) => ({
               // The popover needs to know how tall this is to draw
               // a shadow around it
-              height: PROPERTY_SELECTOR_HEIGHT,
+              height: TYPE_SELECTOR_HEIGHT,
 
               // Focus is handled by the options popover
               "&.Mui-focused": {
@@ -237,7 +238,7 @@ const PropertySelector: ForwardRefRenderFunction<
           </li>
         );
       }}
-      PaperComponent={PropertyListSelectorDropdown}
+      PaperComponent={TypeListSelectorDropdown}
       componentsProps={{
         popper: { modifiers },
       }}

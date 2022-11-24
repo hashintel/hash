@@ -43,7 +43,7 @@ import { EmptyPropertyListCard } from "./empty-property-list-card";
 import { EntityTypeEditorForm } from "./form-types";
 import { MultipleValuesCell } from "./multiple-values-cell";
 import { PropertyExpectedValues } from "./property-expected-values";
-import { PropertyListSelectorDropdownContext } from "./property-list-selector-dropdown";
+import { TypeListSelectorDropdownContext } from "./type-list-selector-dropdown";
 import { PropertyMenu } from "./property-menu";
 import { PropertySelector } from "./property-selector";
 import { PropertyTypeForm } from "./property-type-form";
@@ -92,7 +92,7 @@ const InsertPropertyRow = ({
       }}
     >
       <TableCell colSpan={2}>
-        <PropertyListSelectorDropdownContext.Provider
+        <TypeListSelectorDropdownContext.Provider
           value={
             // eslint-disable-next-line react/jsx-no-constructed-context-values
             {
@@ -123,7 +123,7 @@ const InsertPropertyRow = ({
               )
             }
           />
-        </PropertyListSelectorDropdownContext.Provider>
+        </TypeListSelectorDropdownContext.Provider>
         <Modal
           {...bindPopover(modalPopupState)}
           disableEscapeKeyDown
