@@ -85,27 +85,63 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
   );
 
   return (
-    <div style={tw`w-9/12 max-w-3xl`}>
-      <LogoIcon style={tw`mb-16`} />
-      <div style={tw`mb-9`}>
-        <h1 style={tw`text-3xl font-bold mb-4`}>{title}</h1>
-        <p style={tw`text-2xl mb-14 font-light`}>{subtitle}</p>
+    <div style={{ width: "75%", maxWidth: "48rem" }}>
+      <LogoIcon style={{ marginBottom: "4rem" }} />
+      <div style={{ marginBottom: "2.25rem" }}>
+        <h1
+          style={{
+            fontSize: "1.875rem",
+            fontWeight: "700",
+            lineHeight: "2.25rem",
+            marginBottom: "1rem",
+          }}
+        >
+          {title}
+        </h1>
+        <p
+          style={{
+            fontSize: "1.5rem",
+            fontWeight: "300",
+            lineHeight: "2rem",
+            marginBottom: "3.5rem",
+          }}
+        >
+          {subtitle}
+        </p>
         <form onSubmit={onSubmit}>
-          <div style={tw`mb-8`}>
-            <label htmlFor="shortname" style={tw`block mb-5`}>
-              <p style={tw`block font-bold uppercase mb-2`}>
+          <div style={{ marginBottom: "2rem" }}>
+            <label
+              htmlFor="shortname"
+              style={{ display: "block", marginBottom: "1.25rem" }}
+            >
+              <p
+                style={{
+                  display: "block",
+                  fontWeight: "700",
+                  marginBottom: "0.5rem",
+                  textTransform: "uppercase",
+                }}
+              >
                 Personal Username
               </p>
-              <p style={tw`text-sm text-black text-opacity-60 mb-5`}>
+              <p
+                style={{
+                  color: "#000000",
+                  fontSize: "0.875rem",
+                  marginBottom: "1.25rem",
+                  opacity: 0.6,
+                  lineHeight: "1.25rem",
+                }}
+              >
                 Your own personal graph will exist under this username. e.g.
                 https://hash.ai/
-                <strong style={tw`text-black text-opacity-100`}>
+                <strong style={{ color: "#000000", opacity: "1" }}>
                   @{shortnameWatcher || "example"}
                 </strong>
               </p>
             </label>
-            <div style={tw`flex items-center`}>
-              <div style={tw`relative`}>
+            <div style={{ display: "flex", alignItems: "center" }}>
+              <div style={{ position: "relative" }}>
                 <Controller
                   control={control}
                   name="shortname"
@@ -134,7 +170,13 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
                 />
 
                 <span
-                  style={tw`absolute text-gray-400 left-5 top-1/2 -translate-y-1/2`}
+                  style={{
+                    position: "absolute",
+                    left: "1.25rem",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    color: "#9CA3AF",
+                  }}
                 >
                   @
                 </span>
@@ -168,19 +210,53 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
             </div>
           </div>
           <div>
-            <label htmlFor="name" style={tw`block font-bold uppercase mb-2`}>
-              Preferred name <span style={tw`font-normal`}>or first name</span>
+            <label
+              htmlFor="name"
+              style={{
+                display: "block",
+                fontWeight: "700",
+                marginBottom: "0.5rem",
+                textTransform: "uppercase",
+              }}
+            >
+              Preferred name{" "}
+              <span style={{ fontWeight: "400" }}>or first name</span>
             </label>
-            <p style={tw`text-sm text-black text-opacity-60 mb-5`}>
+            <p
+              style={{
+                color: "#000000",
+                fontSize: "0.875rem",
+                lineHeight: "1.25rem",
+                marginBottom: "1.25rem",
+                opacity: 0.6,
+              }}
+            >
               What shall we call you when referring to you? e.g. “Hi,{" "}
-              <strong style={tw`text-black text-opacity-100 capitalize`}>
+              <strong
+                style={{
+                  color: "#000000",
+                  opacity: 1,
+                  textTransform: "capitalize",
+                }}
+              >
                 {preferredNameWatcher || "Bobby"}
               </strong>
               ”
             </p>
             <input
               id="name"
-              style={tw`w-64 border-1 border-gray-300 border-solid focus:outline-none focus:border-blue-500 rounded-lg h-11 py-6 px-5`}
+              style={{
+                paddingLeft: "1.25rem",
+                paddingRight: "1.25rem",
+                paddingTop: "1.5rem",
+                paddingBottom: "1.5rem",
+                width: "16rem",
+                height: "2.75rem",
+                borderRadius: "0.5rem",
+                borderColor: "#D1D5DB",
+                borderStyle: "solid",
+                // focus:outline-none focus:border-blue-500
+              }}
               placeholder="Bobby"
               {...register("preferredName", { required: true })}
             />
@@ -206,14 +282,44 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
               />
 
               {errorMessage ? (
-                <p style={tw`text-red-500 text-sm mt-5 `}>{errorMessage}</p>
+                <p
+                  style={{
+                    marginTop: "1.25rem",
+                    color: "#EF4444",
+                    fontSize: "0.875rem",
+                    lineHeight: "1.25rem",
+                  }}
+                >
+                  {errorMessage}
+                </p>
               ) : null}
             </div>
           )}
 
           <button
             type="submit"
-            style={tw`group cursor-pointer border-none w-64 bg-gradient-to-r from-blue-400 via-blue-500 to-pink-500 rounded-lg h-11 transition-all disabled:opacity-50 flex items-center justify-center text-white text-sm font-bold mt-14`}
+            style={
+              {
+                alignItems: "center",
+                backgroundColor: "#EC4899",
+                backgroundImage:
+                  "background-image: linear-gradient(to right, var(--tw-gradient-stops))",
+                borderRadius: "0.5rem",
+                borderStyle: "none",
+                color: "#ffffff",
+                cursor: "pointer",
+                display: "flex",
+                fontSize: "0.875rem",
+                fontWeight: "700",
+                height: "2.75rem",
+                justifyContent: "center",
+                lineHeight: "1.25rem",
+                marginTop: "3.5rem",
+                transitionProperty: "all",
+                width: "16rem",
+              }
+              // disabled:opacity-50
+            }
             disabled={
               !isValid ||
               loading ||
@@ -221,11 +327,24 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
             }
           >
             {loading ? (
-              <SpinnerIcon style={tw`h-4 w-4 text-white animate-spin`} />
+              <SpinnerIcon
+                style={{
+                  animation: "spin 1s linear infinite",
+                  color: "#ffffff",
+                  width: "1rem",
+                  height: "1rem",
+                }}
+              />
             ) : (
               <>
                 <span>Continue</span>
-                <span style={tw`ml-2 transition-all group-hover:translate-x-1`}>
+                <span
+                  style={{
+                    marginLeft: "0.5rem",
+                    transitionProperty: "all",
+                    // group-hover:translate-x-1
+                  }}
+                >
                   &rarr;
                 </span>
               </>
