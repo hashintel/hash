@@ -20,6 +20,6 @@
     "eslint-plugin-react": "7.31.11",
     "eslint-plugin-react-hooks": "4.6.0",
     "eslint-plugin-typescript-sort-keys": "2.1.0",
-    "eslint-plugin-unicorn": "44.0.2"
+    "eslint-plugin-unicorn": "45.0.0"
   }
 }
