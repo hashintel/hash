@@ -4,15 +4,19 @@ import { Box, Tabs, tabsClasses } from "@mui/material";
 import { useRouter } from "next/router";
 import { useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
+import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
 import { useFontLoadedCallback } from "../../../../components/hooks/useFontLoadedCallback";
 import { EntityTypeEditorForm } from "./form-types";
 import { TabLink } from "./tab-link";
 import { getTabUri, getTabValue, useCurrentTab } from "./use-current-tab";
 import { useEntityTypeEntities } from "./use-entity-type-entities";
 import { getEntityTypeBaseUri } from "./util";
+import { useEntityType } from "./use-entity-type";
 
 export const EntityTypeTabs = () => {
   const router = useRouter();
+  const { authenticatedUser } = useAuthenticatedUser();
+  const entityType = useEntityType();
 
   const [animateTabs, setAnimateTabs] = useState(false);
 
@@ -78,7 +82,9 @@ export const EntityTypeTabs = () => {
 
         <TabLink
           value="create"
-          href="#"
+          href={`/@${
+            authenticatedUser?.shortname
+          }/entities/new?entity-type-id=${encodeURIComponent(entityType.$id)}`}
           label="Create new entity"
           sx={(theme) => ({
             ml: "auto",
