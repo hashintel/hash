@@ -20,8 +20,8 @@ export const entityIdFromOwnedByIdAndEntityUuid = (
 
 /** @todo - consider Type Branding this */
 export const splitEntityId = (entityId: EntityId): [string, string] => {
-  const split = entityId.split("%");
-  return [split[0]!, split[1]!];
+  const [ownedById, entityUuid] = entityId.split("%");
+  return [ownedById!, entityUuid!];
 };
 
 export const extractOwnedByIdFromEntityId = (entityId: EntityId): string => {
