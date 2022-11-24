@@ -2,6 +2,7 @@ import { useMutation } from "@apollo/client";
 import { getPageInfoQuery } from "@hashintel/hash-shared/queries/page.queries";
 
 import { useCallback } from "react";
+import { EntityId } from "@hashintel/hash-subgraph";
 import {
   GetPageInfoQueryVariables,
   UpdatePersistedPageMutation,
@@ -34,7 +35,7 @@ export const useUpdatePageIcon = () => {
   );
 
   const updatePageIcon = useCallback(
-    async (icon: string, ownedById: string, pageEntityId: string) => {
+    async (icon: string, ownedById: string, pageEntityId: EntityId) => {
       await updatePageFn({
         variables: {
           entityId: pageEntityId,
