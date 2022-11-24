@@ -20,12 +20,19 @@ export const useCreatePage = (ownedById: string) => {
     CreatePersistedPageMutationVariables
   >(createPersistedPage, {
     awaitRefetchQueries: true,
-    refetchQueries: ({ data }) => [
-      {
-        query: getAccountPagesTree,
-        variables: { ownedById: data?.createPersistedPage.metadata },
-      },
-    ],
+    refetchQueries: ({ data }) =>
+      data
+        ? [
+            {
+              query: getAccountPagesTree,
+              variables: {
+                ownedById: extractOwnedByIdFromEntityId(
+                  data.createPersistedPage.metadata.editionId.baseId,
+                ),
+              },
+            },
+          ]
+        : [],
   });
 
   const createUntitledPage = useCallback(
