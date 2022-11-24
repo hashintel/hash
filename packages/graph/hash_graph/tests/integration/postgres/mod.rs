@@ -11,6 +11,7 @@ use graph::{
     identifier::{
         account::AccountId,
         knowledge::{EntityEditionId, EntityId},
+        ontology::OntologyTypeEditionId,
         GraphElementEditionId,
     },
     knowledge::{
@@ -163,11 +164,13 @@ impl DatabaseApi<'_> {
             .store
             .get_data_type(&StructuralQuery {
                 filter: Filter::for_versioned_uri(uri),
-                graph_resolve_depths: GraphResolveDepths::zeroed(),
+                graph_resolve_depths: GraphResolveDepths::default(),
             })
             .await?
             .vertices
-            .remove(&GraphElementEditionId::Ontology(uri.clone().into()))
+            .remove(&GraphElementEditionId::Ontology(
+                OntologyTypeEditionId::from(uri),
+            ))
             .expect("no data type found");
 
         let Vertex::Ontology(vertex) = vertex else { unreachable!() };
@@ -205,11 +208,13 @@ impl DatabaseApi<'_> {
             .store
             .get_property_type(&StructuralQuery {
                 filter: Filter::for_versioned_uri(uri),
-                graph_resolve_depths: GraphResolveDepths::zeroed(),
+                graph_resolve_depths: GraphResolveDepths::default(),
             })
             .await?
             .vertices
-            .remove(&GraphElementEditionId::Ontology(uri.clone().into()))
+            .remove(&GraphElementEditionId::Ontology(
+                OntologyTypeEditionId::from(uri),
+            ))
             .expect("no property type found");
 
         let Vertex::Ontology(vertex) = vertex else { unreachable!() };
@@ -247,11 +252,13 @@ impl DatabaseApi<'_> {
             .store
             .get_entity_type(&StructuralQuery {
                 filter: Filter::for_versioned_uri(uri),
-                graph_resolve_depths: GraphResolveDepths::zeroed(),
+                graph_resolve_depths: GraphResolveDepths::default(),
             })
             .await?
             .vertices
-            .remove(&GraphElementEditionId::Ontology(uri.clone().into()))
+            .remove(&GraphElementEditionId::Ontology(
+                OntologyTypeEditionId::from(uri),
+            ))
             .expect("no entity type found");
 
         let Vertex::Ontology(vertex) = vertex else { unreachable!() };
@@ -294,7 +301,7 @@ impl DatabaseApi<'_> {
             .store
             .get_entity(&StructuralQuery {
                 filter: Filter::for_entities_by_edition_id(entity_edition_id),
-                graph_resolve_depths: GraphResolveDepths::zeroed(),
+                graph_resolve_depths: GraphResolveDepths::default(),
             })
             .await?
             .vertices
@@ -393,7 +400,7 @@ impl DatabaseApi<'_> {
             .store
             .get_entity(&StructuralQuery {
                 filter,
-                graph_resolve_depths: GraphResolveDepths::zeroed(),
+                graph_resolve_depths: GraphResolveDepths::default(),
             })
             .await?;
 
@@ -448,7 +455,7 @@ impl DatabaseApi<'_> {
             .store
             .get_entity(&StructuralQuery {
                 filter,
-                graph_resolve_depths: GraphResolveDepths::zeroed(),
+                graph_resolve_depths: GraphResolveDepths::default(),
             })
             .await?;
 
