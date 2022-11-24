@@ -11,36 +11,21 @@ import {
   RootEntityAndSubgraph,
 } from "../../../lib/subgraph";
 import { PageErrorState } from "../../../components/page-error-state";
-import { NewEntityPage } from "./[entity-id].page/new-entity-page";
 import { generateEntityLabel } from "../../../lib/entities";
-import { useCreateNewEntityAndRedirect } from "./[entity-id].page/shared/use-create-new-entity-and-redirect";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
   const { authenticatedUser } = useLoggedInUser();
   const { getEntity } = useBlockProtocolGetEntity();
-  const createNewEntityAndRedirect = useCreateNewEntityAndRedirect();
 
   const [rootEntityAndSubgraph, setRootEntityAndSubgraph] =
     useState<RootEntityAndSubgraph>();
   const [loading, setLoading] = useState(true);
-  const [showSelectEntityType, setShowSelectEntityType] = useState(false);
 
   useEffect(() => {
     const init = async () => {
       try {
         const entityId = router.query["entity-id"] as string;
-        const entityTypeId = router.query["entity-type-id"] as string;
-
-        if (entityId === "new") {
-          if (entityTypeId) {
-            return createNewEntityAndRedirect({ entityTypeId });
-          }
-
-          setShowSelectEntityType(true);
-
-          return;
-        }
 
         const { data: subgraph } = await getEntity({ data: { entityId } });
 
@@ -59,7 +44,7 @@ const Page: NextPageWithLayout = () => {
     };
 
     void init();
-  }, [router.query, getEntity, createNewEntityAndRedirect]);
+  }, [router.query, getEntity]);
 
   if (!authenticatedUser) {
     return null;
@@ -67,10 +52,6 @@ const Page: NextPageWithLayout = () => {
 
   if (loading) {
     return <EntityPageLoadingState />;
-  }
-
-  if (showSelectEntityType) {
-    return <NewEntityPage />;
   }
 
   if (!rootEntityAndSubgraph) {

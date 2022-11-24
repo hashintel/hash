@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import { useCallback } from "react";
 import { useBlockProtocolCreateEntity } from "../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolCreateEntity";
 import { useBlockProtocolGetEntityType } from "../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
+import { getPersistedEntityType } from "../../../../../lib/subgraph";
 
 export const useCreateNewEntityAndRedirect = () => {
   const router = useRouter();
@@ -16,13 +17,22 @@ export const useCreateNewEntityAndRedirect = () => {
       if ("entityType" in arg) {
         entityType = arg.entityType;
       } else {
-        // const res = await getEntityType({
-        //   data: { entityTypeId: arg.entityTypeId },
-        // });
-        //  entityType = res.data?.
-        /**
-         * @todo check why res.data does not have something like `EntityType`
-         */
+        const res = await getEntityType({
+          data: { entityTypeId: arg.entityTypeId },
+        });
+
+        if (!res.data) {
+          throw new Error("subgraph not found");
+        }
+
+        const { inner } =
+          getPersistedEntityType(res.data, arg.entityTypeId) ?? {};
+
+        if (!inner) {
+          throw new Error("persisted entity type not found");
+        }
+
+        entityType = inner;
       }
 
       const properties: Record<string, unknown> = {};
@@ -44,7 +54,7 @@ export const useCreateNewEntityAndRedirect = () => {
 
       await router.push(`/@alice/entities/${entity.data?.entityId}`);
     },
-    [router, createEntity],
+    [router, createEntity, getEntityType],
   );
 
   return createNewEntityAndRedirect;
