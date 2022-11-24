@@ -45,5 +45,9 @@ function _computeChecksumMd5(file: File): Promise<string> {
 export const useBlockProtocolFileUpload = (
   _readonly?: boolean,
 ): { uploadFile: EmbedderGraphMessageCallbacks["uploadFile"] } => {
-  throw new Error("File uploading is not implemented.");
+  return {
+    uploadFile: (_) => {
+      throw new Error("File uploading is not implemented.");
+    },
+  };
 };
