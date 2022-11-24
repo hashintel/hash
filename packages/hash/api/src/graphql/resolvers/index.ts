@@ -1,13 +1,11 @@
 import { JSONObjectResolver } from "graphql-scalars";
 
-import { Entity } from "../apiTypes.gen";
 import { embedCode } from "./embed";
 
 import { me } from "./knowledge/user/me";
 import { isShortnameTaken } from "./knowledge/user/is-shortname-taken";
 import { fileFields } from "./file";
 import { requestFileUpload } from "./file/requestFileUpload";
-import { createFileFromLink } from "./file/createFileFromLink";
 import { loggedIn } from "./middlewares/loggedIn";
 import { loggedInAndSignedUp } from "./middlewares/loggedInAndSignedUp";
 import { deleteLinkedAggregation } from "./linkedAggregation/deleteLinkedAggregation";
@@ -107,7 +105,6 @@ export const resolvers = {
       updateLinkedAggregationOperation,
     ),
     deleteLinkedAggregation: loggedInAndSignedUp(deleteLinkedAggregation),
-    createFileFromLink: loggedInAndSignedUp(createFileFromLink),
     updatePersistedPageContents: loggedInAndSignedUp(
       updatePersistedPageContents,
     ),
@@ -146,12 +143,6 @@ export const resolvers = {
 
   LinkedAggregation: {
     results: linkedAggregationResults,
-  },
-
-  Account: {
-    __resolveType({ entityTypeName }: Entity) {
-      return entityTypeName;
-    },
   },
 
   // New knowledge field resolvers

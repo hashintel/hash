@@ -12,22 +12,3 @@ export const getAccountPagesTree = gql`
     }
   }
 `;
-
-export const deprecatedGetAccountEntityTypes = gql`
-  query deprecatedGetAccountEntityTypes(
-    $accountId: ID!
-    $includeAllTypes: Boolean = false
-    $includeOtherTypesInUse: Boolean = false
-  ) {
-    deprecatedGetAccountEntityTypes(
-      accountId: $accountId
-      includeAllTypes: $includeAllTypes
-      includeOtherTypesInUse: $includeOtherTypesInUse
-    ) {
-      entityId
-      entityTypeId
-      entityVersionId
-      properties
-    }
-  }
-`;

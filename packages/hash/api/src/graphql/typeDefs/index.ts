@@ -1,14 +1,9 @@
 import { gql } from "apollo-server-express";
 
-import { entityTypedef } from "./entity.typedef";
+import { deprecatedTypedef } from "./deprecated.typedef";
 import { linkTypedef } from "./link.typedef";
-import { deprecatedEntityTypeTypedef } from "./entityType.typedef";
-import { textTypedef } from "./text.typedef";
 import { userTypedef } from "./knowledge/user.typedef";
 import { embedTypeDef } from "./embed.typedef";
-import { fileTypedef } from "./file.typedef";
-import { impliedHistoryTypedef } from "./impliedHistory.typedef";
-import { aggregationTypedef } from "./aggregation.typedef";
 import { executeTaskTypedef } from "./taskExecution.typedef";
 import { dataTypeTypedef } from "./ontology/data-type.typedef";
 import { propertyTypeTypedef } from "./ontology/property-type.typedef";
@@ -58,13 +53,8 @@ export const schema = [
   baseSchema,
   blockprotocolTypedef,
   embedTypeDef,
-  entityTypedef,
+  deprecatedTypedef,
   linkTypedef,
-  aggregationTypedef,
-  deprecatedEntityTypeTypedef,
-  impliedHistoryTypedef,
-  textTypedef,
-  fileTypedef,
   executeTaskTypedef,
   ...ontology,
   ...knowledge,

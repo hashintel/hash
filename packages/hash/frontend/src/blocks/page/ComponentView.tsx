@@ -209,9 +209,6 @@ export class ComponentView implements NodeView {
                     ? childEntity.properties
                     : BLANK_PROPERTIES
                 }
-                linkGroups={childEntity?.linkGroups ?? []}
-                linkedEntities={childEntity?.linkedEntities ?? []}
-                linkedAggregations={childEntity?.linkedAggregations ?? []}
                 onBlockLoaded={this.onBlockLoaded}
               />
             </Sentry.ErrorBoundary>
