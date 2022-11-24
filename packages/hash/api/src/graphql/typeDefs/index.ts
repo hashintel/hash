@@ -1,7 +1,6 @@
 import { gql } from "apollo-server-express";
 
 import { deprecatedTypedef } from "./deprecated.typedef";
-import { linkTypedef } from "./link.typedef";
 import { userTypedef } from "./knowledge/user.typedef";
 import { embedTypeDef } from "./embed.typedef";
 import { executeTaskTypedef } from "./taskExecution.typedef";
@@ -54,7 +53,6 @@ export const schema = [
   blockprotocolTypedef,
   embedTypeDef,
   deprecatedTypedef,
-  linkTypedef,
   executeTaskTypedef,
   ...ontology,
   ...knowledge,
