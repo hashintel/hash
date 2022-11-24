@@ -353,14 +353,6 @@ export default class {
           { equal: [{ path: ["archived"] }, { parameter: false }] },
         ],
       },
-      {
-        graphResolveDepths: {
-          dataTypeResolveDepth: 0,
-          propertyTypeResolveDepth: 0,
-          entityTypeResolveDepth: 0,
-          entityResolveDepth: 0,
-        },
-      },
     );
 
     if (unexpectedEntities.length > 0) {
