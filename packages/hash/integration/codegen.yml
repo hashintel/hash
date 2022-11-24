@@ -23,7 +23,7 @@ generates:
         DataTypeWithMetadata: "@hashintel/hash-subgraph#DataTypeWithMetadata"
         PropertyTypeWithMetadata: "@hashintel/hash-subgraph#PropertyTypeWithMetadata"
         EntityTypeWithMetadata: "@hashintel/hash-subgraph#EntityTypeWithMetadata"
-        EntityWithMetadata: "@hashintel/hash-subgraph#EntityWithMetadata"
+        Entity: "@hashintel/hash-subgraph#EntityWithMetadata"
         EntityId: "@hashintel/hash-subgraph#EntityId"
         EntityEditionId: "@hashintel/hash-subgraph#EntityEditionId"
         EntityMetadata: "@hashintel/hash-subgraph#EntityMetadata"

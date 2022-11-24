@@ -3,19 +3,19 @@ import { useLazyQuery } from "@apollo/client";
 import { useCallback } from "react";
 import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import {
-  GetAllLatestEntitiesWithMetadataQuery,
-  GetAllLatestEntitiesWithMetadataQueryVariables,
+  GetAllLatestEntitiesQuery,
+  GetAllLatestEntitiesQueryVariables,
 } from "../../../../graphql/apiTypes.gen";
-import { getAllLatestEntitiesWithMetadataQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { getAllLatestEntitiesQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { AggregateEntitiesMessageCallback } from "./knowledge-shim";
 
 export const useBlockProtocolAggregateEntities = (): {
   aggregateEntities: AggregateEntitiesMessageCallback;
 } => {
   const [aggregateFn] = useLazyQuery<
-    GetAllLatestEntitiesWithMetadataQuery,
-    GetAllLatestEntitiesWithMetadataQueryVariables
-  >(getAllLatestEntitiesWithMetadataQuery, {
+    GetAllLatestEntitiesQuery,
+    GetAllLatestEntitiesQueryVariables
+  >(getAllLatestEntitiesQuery, {
     /** @todo reconsider caching. This is done for testing/demo purposes. */
     fetchPolicy: "no-cache",
   });
@@ -64,7 +64,7 @@ export const useBlockProtocolAggregateEntities = (): {
 
       return {
         /** @todo - Is there a way we can ergonomically encode this in the GraphQL type? */
-        data: response.getAllLatestEntitiesWithMetadata as Subgraph<
+        data: response.getAllLatestEntities as Subgraph<
           SubgraphRootTypes["entity"]
         >,
       };

@@ -8,11 +8,11 @@ import {
 } from "@hashintel/hash-subgraph";
 import { EntityModel } from "../../../../model";
 import {
-  QueryGetEntityWithMetadataArgs,
-  MutationCreateEntityWithMetadataArgs,
-  MutationUpdateEntityWithMetadataArgs,
+  QueryGetEntityArgs,
+  MutationCreateEntityArgs,
+  MutationUpdateEntityArgs,
   ResolverFn,
-  QueryGetAllLatestEntitiesWithMetadataArgs,
+  QueryGetAllLatestEntitiesArgs,
 } from "../../../apiTypes.gen";
 import { mapEntityModelToGQL } from "../model-mapping";
 import { LoggedInGraphQLContext } from "../../../context";
@@ -20,11 +20,11 @@ import { beforeUpdateEntityHooks } from "./before-update-entity-hooks";
 
 /** @todo - rename these and remove "withMetadata" - https://app.asana.com/0/0/1203157172269854/f */
 
-export const createEntityWithMetadata: ResolverFn<
+export const createEntity: ResolverFn<
   Promise<EntityWithMetadata>,
   {},
   LoggedInGraphQLContext,
-  MutationCreateEntityWithMetadataArgs
+  MutationCreateEntityArgs
 > = async (
   _,
   { ownedById, properties, entityTypeId, linkedEntities },
@@ -48,11 +48,11 @@ export const createEntityWithMetadata: ResolverFn<
   return mapEntityModelToGQL(entity);
 };
 
-export const getAllLatestEntitiesWithMetadata: ResolverFn<
+export const getAllLatestEntities: ResolverFn<
   Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
-  QueryGetAllLatestEntitiesWithMetadataArgs
+  QueryGetAllLatestEntitiesArgs
 > = async (
   _,
   {
@@ -88,11 +88,11 @@ export const getAllLatestEntitiesWithMetadata: ResolverFn<
   return entitySubgraph as Subgraph;
 };
 
-export const getEntityWithMetadata: ResolverFn<
+export const getEntity: ResolverFn<
   Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
-  QueryGetEntityWithMetadataArgs
+  QueryGetEntityArgs
 > = async (
   _,
   {
@@ -146,11 +146,11 @@ export const getEntityWithMetadata: ResolverFn<
   return entitySubgraph as Subgraph;
 };
 
-export const updateEntityWithMetadata: ResolverFn<
+export const updateEntity: ResolverFn<
   Promise<EntityWithMetadata>,
   {},
   LoggedInGraphQLContext,
-  MutationUpdateEntityWithMetadataArgs
+  MutationUpdateEntityArgs
 > = async (
   _,
   { entityId, updatedProperties },

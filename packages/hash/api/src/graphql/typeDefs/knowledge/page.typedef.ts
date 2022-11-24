@@ -96,7 +96,7 @@ export const persistedPageTypedef = gql`
     """
     The entity to associate with the new block
     """
-    entity: EntityWithMetadataDefinition!
+    entity: EntityDefinition!
     """
     Allows UpdatePageContentsActions to reference entities created in other actions. Also allows callers to updatePageContents to find the entity id created for this definition in the result. See UpdatePageContentsResult.
     """
@@ -163,7 +163,7 @@ export const persistedPageTypedef = gql`
   Create an entity, which you can then reference in other actions, such as a InsertBlockAction
   """
   input CreatePersistedEntityAction {
-    entity: EntityWithMetadataDefinition!
+    entity: EntityDefinition!
     entityPlaceholderId: ID
     ownedById: ID!
   }

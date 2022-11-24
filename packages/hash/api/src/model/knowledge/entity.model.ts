@@ -25,7 +25,7 @@ import {
 } from "..";
 import {
   PersistedLinkedEntityDefinition,
-  EntityWithMetadataDefinition,
+  EntityDefinition,
 } from "../../graphql/apiTypes.gen";
 import { linkedTreeFlatten } from "../../util";
 
@@ -164,7 +164,7 @@ export default class {
       params;
 
     const entitiesInTree = linkedTreeFlatten<
-      EntityWithMetadataDefinition,
+      EntityDefinition,
       PersistedLinkedEntityDefinition,
       "linkedEntities",
       "entity"
@@ -249,7 +249,7 @@ export default class {
     graphApi: GraphApi,
     params: {
       ownedById: string;
-      entityDefinition: Omit<EntityWithMetadataDefinition, "linkedEntities">;
+      entityDefinition: Omit<EntityDefinition, "linkedEntities">;
       actorId: string;
     },
   ): Promise<EntityModel> {

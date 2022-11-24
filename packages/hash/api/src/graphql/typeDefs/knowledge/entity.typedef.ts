@@ -1,13 +1,13 @@
 import { gql } from "apollo-server-express";
 
-export const entityWithMetadataTypedef = gql`
+export const entityTypedef = gql`
   scalar EntityId
   scalar EntityEditionId
   """
   @todo rename to 'Entity' once we get rid of deprecated GQL types.
     See https://app.asana.com/0/1201095311341924/1203411297593704/f
   """
-  scalar EntityWithMetadata
+  scalar Entity
   """
   @todo we intend to use only a single scalar instead of the following ones.
     To support existing pieces of the application, these scalars are useful for 'Knowledge' types
@@ -24,10 +24,10 @@ export const entityWithMetadataTypedef = gql`
     The index of the link (if any)
     """
     index: Int
-    entity: EntityWithMetadataDefinition!
+    entity: EntityDefinition!
   }
 
-  input EntityWithMetadataDefinition {
+  input EntityDefinition {
     """
     The EntityId of the existing entity to use instead of creating a new entity.
     This may be a reference to a placeholder set using placeholderId on a previous UpdatePageContentsAction.
@@ -52,7 +52,7 @@ export const entityWithMetadataTypedef = gql`
     """
     Get a subgraph rooted at all entities at their latest version.
     """
-    getAllLatestEntitiesWithMetadata(
+    getAllLatestEntities(
       dataTypeResolveDepth: Int!
       propertyTypeResolveDepth: Int!
       entityTypeResolveDepth: Int!
@@ -62,7 +62,7 @@ export const entityWithMetadataTypedef = gql`
     """
     Get a subgraph rooted at an entity resolved by its id.
     """
-    getEntityWithMetadata(
+    getEntity(
       """
       The id of the entity.
       """
@@ -82,7 +82,7 @@ export const entityWithMetadataTypedef = gql`
     """
     Create an entity.
     """
-    createEntityWithMetadata(
+    createEntity(
       """
       The owner of the create entity. Defaults to the user calling the mutation.
       """
@@ -99,12 +99,12 @@ export const entityWithMetadataTypedef = gql`
       Associated Entities to either create/get and link to this entity.
       """
       linkedEntities: [PersistedLinkedEntityDefinition!]
-    ): EntityWithMetadata!
+    ): Entity!
 
     """
     Update an entity.
     """
-    updateEntityWithMetadata(
+    updateEntity(
       """
       The id of the entity.
       """
@@ -113,6 +113,6 @@ export const entityWithMetadataTypedef = gql`
       The updated properties of the entity.
       """
       updatedProperties: JSONObject!
-    ): EntityWithMetadata!
+    ): Entity!
   }
 `;

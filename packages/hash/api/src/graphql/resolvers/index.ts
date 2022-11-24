@@ -49,10 +49,10 @@ import { createPersistedComment } from "./knowledge/comment/comment";
 import { persistedBlocks } from "./knowledge/block/block";
 import { getBlockProtocolBlocks } from "./blockprotocol/getBlock";
 import {
-  createEntityWithMetadata,
-  getEntityWithMetadata,
-  getAllLatestEntitiesWithMetadata,
-  updateEntityWithMetadata,
+  createEntity,
+  getEntity,
+  getAllLatestEntities,
+  updateEntity,
 } from "./knowledge/entity/entity";
 import { setParentPersistedPage } from "./knowledge/page/set-parent-page";
 import { updatePersistedPage } from "./knowledge/page/update-page";
@@ -92,10 +92,8 @@ export const resolvers = {
     persistedPages: loggedInAndSignedUp(persistedPages),
     persistedPageComments: loggedInAndSignedUp(persistedPageComments),
     persistedBlocks: loggedInAndSignedUp(persistedBlocks),
-    getEntityWithMetadata: loggedInAndSignedUp(getEntityWithMetadata),
-    getAllLatestEntitiesWithMetadata: loggedInAndSignedUp(
-      getAllLatestEntitiesWithMetadata,
-    ),
+    getEntity: loggedInAndSignedUp(getEntity),
+    getAllLatestEntities: loggedInAndSignedUp(getAllLatestEntities),
   },
 
   Mutation: {
@@ -121,8 +119,8 @@ export const resolvers = {
     createEntityType: loggedInAndSignedUp(createEntityType),
     updateEntityType: loggedInAndSignedUp(updateEntityType),
     // Knowledge
-    createEntityWithMetadata: loggedInAndSignedUp(createEntityWithMetadata),
-    updateEntityWithMetadata: loggedIn(updateEntityWithMetadata),
+    createEntity: loggedInAndSignedUp(createEntity),
+    updateEntity: loggedIn(updateEntity),
     createPersistedPage: loggedInAndSignedUp(createPersistedPage),
     setParentPersistedPage: loggedInAndSignedUp(setParentPersistedPage),
     updatePersistedPage: loggedInAndSignedUp(updatePersistedPage),

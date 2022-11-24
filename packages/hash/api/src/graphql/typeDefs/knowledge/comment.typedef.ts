@@ -25,12 +25,12 @@ export const persistedCommentTypedef = gql`
     """
     User that created the comment
     """
-    author: EntityWithMetadata!
+    author: Entity!
 
     """
     Parent entity the comment belongs to
     """
-    parent: EntityWithMetadata!
+    parent: Entity!
 
     """
     Array of comments created in response to this comment

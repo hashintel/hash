@@ -8,7 +8,7 @@ import { executeTaskTypedef } from "./taskExecution.typedef";
 import { dataTypeTypedef } from "./ontology/data-type.typedef";
 import { propertyTypeTypedef } from "./ontology/property-type.typedef";
 import { entityTypeTypedef } from "./ontology/entity-type.typedef";
-import { entityWithMetadataTypedef } from "./knowledge/entity.typedef";
+import { entityTypedef } from "./knowledge/entity.typedef";
 import { persistedPageTypedef } from "./knowledge/page.typedef";
 import { persistedCommentTypedef } from "./knowledge/comment.typedef";
 import { persistedBlockTypedef } from "./knowledge/block.typedef";
@@ -39,7 +39,7 @@ const baseSchema = gql`
 const ontology = [dataTypeTypedef, propertyTypeTypedef, entityTypeTypedef];
 
 const knowledge = [
-  entityWithMetadataTypedef,
+  entityTypedef,
   persistedBlockTypedef,
   persistedPageTypedef,
   persistedCommentTypedef,

@@ -5,7 +5,7 @@ export const persistedBlockTypedef = gql`
     """
     The block's linked child entity.
     """
-    blockChildEntity: EntityWithMetadata!
+    blockChildEntity: Entity!
     """
     The component id of the block.
     """

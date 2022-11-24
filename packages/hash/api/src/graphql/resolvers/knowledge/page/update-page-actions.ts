@@ -7,7 +7,7 @@ import { VersionedUri } from "@blockprotocol/type-system-web";
 import { BlockModel, EntityModel, UserModel } from "../../../../model";
 import {
   CreatePersistedEntityAction,
-  EntityWithMetadataDefinition,
+  EntityDefinition,
   InsertPersistedBlockAction,
   SwapPersistedBlockDataAction,
   UpdatePersistedEntityAction,
@@ -16,10 +16,7 @@ import {
 
 export const createEntityWithPlaceholdersFn =
   (graphApi: GraphApi, placeholderResults: PlaceholderResultsMap) =>
-  async (
-    originalDefinition: EntityWithMetadataDefinition,
-    entityActorId: string,
-  ) => {
+  async (originalDefinition: EntityDefinition, entityActorId: string) => {
     const entityDefinition = produce(originalDefinition, (draft) => {
       if (draft.existingEntityId) {
         draft.existingEntityId = placeholderResults.get(
@@ -121,7 +118,7 @@ export const handleCreateNewEntity = async (params: {
   index: number;
   placeholderResults: PlaceholderResultsMap;
   createEntityWithPlaceholders: (
-    originalDefinition: EntityWithMetadataDefinition,
+    originalDefinition: EntityDefinition,
     entityActorId: string,
   ) => Promise<EntityModel>;
 }): Promise<void> => {
@@ -161,7 +158,7 @@ export const handleInsertNewBlock = async (
     insertBlockAction: InsertPersistedBlockAction;
     index: number;
     createEntityWithPlaceholders: (
-      originalDefinition: EntityWithMetadataDefinition,
+      originalDefinition: EntityDefinition,
       entityActorId: string,
     ) => Promise<EntityModel>;
     placeholderResults: PlaceholderResultsMap;
