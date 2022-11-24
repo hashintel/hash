@@ -403,26 +403,28 @@ export const save = async (
     },
   );
 
-  // Even if the actions list is empty, we hit the endpoint to get an updated
-  // page result.
-  const res = await apolloClient.mutate<
-    UpdatePersistedPageContentsMutation,
-    UpdatePersistedPageContentsMutationVariables
-  >({
-    variables: { entityId: pageEntityId, actions },
-    mutation: updatePersistedPageContents,
-  });
+  let currentBlocks = blocks;
+  let placeholders: UpdatePersistedPageContentsResultPlaceholder[] = [];
 
-  if (!res.data) {
-    throw new Error("Failed");
+  if (actions.length > 0) {
+    // Even if the actions list is empty, we hit the endpoint to get an updated
+    // page result.
+    const res = await apolloClient.mutate<
+      UpdatePersistedPageContentsMutation,
+      UpdatePersistedPageContentsMutationVariables
+    >({
+      variables: { entityId: pageEntityId, actions },
+      mutation: updatePersistedPageContents,
+    });
+
+    if (!res.data) {
+      throw new Error("Failed");
+    }
+
+    currentBlocks = res.data.updatePersistedPageContents.page.contents;
+    placeholders = res.data.updatePersistedPageContents.placeholders;
   }
-  const draftToEntityId = getDraftEntityIds(
-    res.data.updatePersistedPageContents.placeholders,
-    placeholderToDraft,
-  );
+  const draftToEntityId = getDraftEntityIds(placeholders, placeholderToDraft);
 
-  return [
-    res.data.updatePersistedPageContents.page.contents,
-    draftToEntityId,
-  ] as const;
+  return [currentBlocks, draftToEntityId] as const;
 };
