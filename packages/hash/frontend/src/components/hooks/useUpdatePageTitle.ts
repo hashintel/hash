@@ -2,6 +2,7 @@ import { useMutation } from "@apollo/client";
 import { getPageInfoQuery } from "@hashintel/hash-shared/queries/page.queries";
 
 import { useCallback } from "react";
+import { EntityId } from "@hashintel/hash-subgraph";
 import {
   GetPageInfoQueryVariables,
   UpdatePersistedPageMutation,
@@ -17,7 +18,7 @@ export const useUpdatePageTitle = () => {
   >(updatePersistedPage, { awaitRefetchQueries: true });
 
   const getRefetchQueries = useCallback(
-    (ownedById: string, pageEntityId: string) => [
+    (ownedById: string, pageEntityId: EntityId) => [
       {
         query: getAccountPagesTree,
         variables: { ownedById },
@@ -34,7 +35,7 @@ export const useUpdatePageTitle = () => {
   );
 
   const updatePageTitle = useCallback(
-    async (title: string, ownedById: string, pageEntityId: string) => {
+    async (title: string, ownedById: string, pageEntityId: EntityId) => {
       await updatePageFn({
         variables: {
           entityId: pageEntityId,
