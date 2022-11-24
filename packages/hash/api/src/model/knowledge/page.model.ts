@@ -7,7 +7,6 @@ import {
   PageModel,
   EntityModelCreateParams,
   BlockModel,
-  LinkEntityModel,
   UserModel,
   OrgModel,
   CommentModel,
@@ -389,35 +388,8 @@ export default class extends EntityModel {
    * Get the blocks in this page.
    */
   async getBlocks(graphApi: GraphApi): Promise<BlockModel[]> {
-    const outgoingBlockDataLinks = await LinkEntityModel.getByQuery(graphApi, {
-      all: [
-        {
-          equal: [
-            { path: ["leftEntity", "uuid"] },
-            { parameter: this.getEntityUuid() },
-          ],
-        },
-        {
-          equal: [
-            { path: ["leftEntity", "ownedById"] },
-            { parameter: this.getOwnedById() },
-          ],
-        },
-        {
-          equal: [
-            { path: ["type", "versionedUri"] },
-            {
-              parameter: SYSTEM_TYPES.linkEntityType.contains.getSchema().$id,
-            },
-          ],
-        },
-        {
-          equal: [{ path: ["version"] }, { parameter: "latest" }],
-        },
-        {
-          equal: [{ path: ["archived"] }, { parameter: false }],
-        },
-      ],
+    const outgoingBlockDataLinks = await this.getOutgoingLinks(graphApi, {
+      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.contains,
     });
 
     return outgoingBlockDataLinks
