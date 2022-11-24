@@ -53,7 +53,11 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
   };
 
   const [collapsedReplies, uncollapsibleReplies] = useMemo(() => {
-    const replies = [...comment.replies];
+    const replies = [...comment.replies].sort((replyA, replyB) =>
+      replyA.metadata.editionId.version.localeCompare(
+        replyB.metadata.editionId.version,
+      ),
+    );
     const lastItems = replies.splice(
       replies.length - UNCOLLAPSIBLE_REPLIES_NUMBER,
       UNCOLLAPSIBLE_REPLIES_NUMBER,
