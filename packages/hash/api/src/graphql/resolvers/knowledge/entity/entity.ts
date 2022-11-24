@@ -3,8 +3,7 @@ import { AxiosError } from "axios";
 import { ApolloError, ForbiddenError } from "apollo-server-express";
 import {
   EntityWithMetadata,
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
+  splitEntityId,
   Subgraph,
 } from "@hashintel/hash-subgraph";
 import { EntityModel } from "../../../../model";
@@ -108,6 +107,7 @@ export const getEntityWithMetadata: ResolverFn<
   __,
 ) => {
   const { graphApi } = dataSources;
+  const [ownedById, entityUuid] = splitEntityId(entityId);
 
   const filter: Filter = {
     all: [
@@ -118,16 +118,10 @@ export const getEntityWithMetadata: ResolverFn<
         ],
       },
       {
-        equal: [
-          { path: ["uuid"] },
-          { parameter: extractEntityUuidFromEntityId(entityId) },
-        ],
+        equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
       },
       {
-        equal: [
-          { path: ["ownedById"] },
-          { parameter: extractOwnedByIdFromEntityId(entityId) },
-        ],
+        equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
       },
     ],
   };

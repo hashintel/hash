@@ -26,7 +26,6 @@ import {
   OntologyChip,
   parseUriForOntologyChip,
 } from "../../shared/ontology-chip";
-import { mustBeVersionedUri } from "./util";
 
 export const PropertyMenu = ({
   onRemove,
@@ -37,7 +36,7 @@ export const PropertyMenu = ({
   property: PropertyType;
   popupState: PopupState;
 }) => {
-  const version = extractVersion(mustBeVersionedUri(property.$id));
+  const version = extractVersion(property.$id);
   const ontology = parseUriForOntologyChip(property.$id);
 
   return (

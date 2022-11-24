@@ -1,11 +1,7 @@
 import { useMutation } from "@apollo/client";
 import { useRouter } from "next/router";
 import { useCallback } from "react";
-import {
-  EntityId,
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
-} from "@hashintel/hash-subgraph";
+import { EntityId, splitEntityId } from "@hashintel/hash-subgraph";
 import {
   CreatePersistedPageMutation,
   CreatePersistedPageMutationVariables,
@@ -55,8 +51,7 @@ export const useCreateSubPage = (ownedById: string) => {
         });
 
         if (pageEntityId) {
-          const pageOwnedById = extractOwnedByIdFromEntityId(pageEntityId);
-          const pageEntityUuid = extractEntityUuidFromEntityId(pageEntityId);
+          const [pageOwnedById, pageEntityUuid] = splitEntityId(pageEntityId);
           return router.push(`/${pageOwnedById}/${pageEntityUuid}`);
         }
       }
