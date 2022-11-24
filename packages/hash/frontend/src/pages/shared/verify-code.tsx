@@ -112,14 +112,25 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
   };
 
   return (
-    <div style={tw`w-8/12 max-w-4xl`}>
-      <LogoIcon style={tw`mb-6`} />
+    <div style={{ width: "66.666667%", maxWidth: "56rem" }}>
+      <LogoIcon style={{ marginBottom: "1.5rem" }} />
       <div
-        style={tw`h-96 mb-9 rounded-2xl bg-white shadow-xl flex justify-center items-center text-center`}
+        style={{
+          alignItems: "center",
+          backgroundColor: "#ffffff",
+          borderRadius: "1rem",
+          boxShadow:
+            "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+          display: "flex",
+          height: "24rem",
+          justifyContent: "center",
+          marginBottom: "2.25rem",
+          textAlign: "center",
+        }}
       >
-        <div style={tw`w-8/12`}>
+        <div style={{ width: "66.666667%" }}>
           {!!invitationInfo && <InviteHeader invitationInfo={invitationInfo} />}
-          <p style={tw`font-bold`}>
+          <p style={{ fontWeight: "700" }}>
             A verification code has been sent to{" "}
             <span>
               {isShortname(loginIdentifier)
@@ -127,13 +138,28 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
                 : loginIdentifier}
             </span>
           </p>
-          <p style={tw`mb-10`}>
+          <p style={{ marginBottom: "2.5rem" }}>
             Click the link in this email or enter the verification phrase below
             to continue
           </p>
-          <form style={tw`relative`} onSubmit={onSubmit}>
+          <form style={{ position: "relative" }} onSubmit={onSubmit}>
             <input
-              style={tw`block border-0 border-solid border-b-1 border-gray-300 w-11/12 mx-auto mb-2 py-3 pl-3 pr-20 text-2xl text-center focus:outline-none focus:border-blue-500`}
+              style={{
+                borderColor: "#D1D5DB",
+                borderStyle: "solid",
+                borderWidth: "0",
+                display: "block",
+                fontSize: "1.5rem",
+                lineHeight: "2rem",
+                marginBottom: "0.5rem",
+                paddingBottom: "0.75rem",
+                paddingLeft: "0.75rem",
+                paddingRight: "5rem",
+                paddingTop: "0.75rem",
+                textAlign: "center",
+                width: "91.666667%",
+                // focus:outline-none focus:border-blue-500
+              }}
               onChange={({ target }) =>
                 updateState({ text: parseVerificationCodeInput(target.value) })
               }
@@ -144,52 +170,112 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
             />
             <button
               type="submit"
-              style={tw`absolute bg-transparent border-none cursor-pointer right-0 top-1/2 mr-3 transition-all -translate-y-1/2 flex items-center disabled:opacity-40 disabled:pointer-events-none focus:outline-none text(blue-500 hover:blue-700 focus:blue-600) font-bold py-2 px-2`}
+              style={{
+                alignItems: "center",
+                backgroundColor: "transparent",
+                borderStyle: "none",
+                color: "#3B82F6",
+                cursor: "pointer",
+                display: "flex",
+                fontWeight: "700",
+                marginRight: "0.75rem",
+                paddingBottom: "0.5rem",
+                paddingLeft: "0.5rem",
+                paddingRight: "0.5rem",
+                paddingTop: "0.5rem",
+                position: "absolute",
+                right: "0",
+                top: "50%",
+                transitionProperty: "all",
+                transform: "traslateY(-50%)",
+                // disabled:opacity-40 disabled:pointer-events-none focus:outline-none hover:text-blue-700 focus:text-blue-600
+              }}
               disabled={!isInputValid() || loading}
             >
               {loading ? (
                 <>
-                  <span style={tw`mr-1`}>Loading</span>
-                  <HashIcon style={tw`h-4 w-4 animate-spin`} />
+                  <span style={{ marginRight: "0.25rem" }}>Loading</span>
+                  <HashIcon
+                    style={{
+                      animation: "spin 1s linear infinite",
+                      height: "1rem",
+                      width: "1rem",
+                    }}
+                  />
                 </>
               ) : (
                 <>
-                  <span style={tw`mr-1`}>Submit</span>
+                  <span style={{ marginRight: "0.25rem" }}>Submit</span>
                   <KeyboardReturnIcon />
                 </>
               )}
             </button>
           </form>
           {errorMessage && (
-            <span style={tw`text-red-500 text-sm`}>{errorMessage}</span>
+            <span
+              style={{
+                color: "#EF4444",
+                fontSize: "0.875rem",
+                lineHeight: "1.25rem",
+              }}
+            >
+              {errorMessage}
+            </span>
           )}
         </div>
       </div>
-      <div style={tw`flex justify-between`}>
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
         <button
           type="button"
-          style={tw`bg-transparent border-none cursor-pointer focus:outline-none border(b-1 transparent hover:current focus:current)`}
+          style={{
+            backgroundColor: "transparent",
+            borderColor: "transparent",
+            borderStyle: "none",
+            cursor: "pointer",
+            // focus:outline-none hover:border-current focus:border-current
+          }}
           onClick={goBack}
         >
-          &larr; <span style={tw`ml-1`}>Try logging in another way</span>
+          &larr;{" "}
+          <span style={{ marginLeft: "0.25rem" }}>
+            Try logging in another way
+          </span>
         </button>
         {emailResent ? (
-          <div style={tw`flex items-center`}>
-            <span style={tw`mr-1`}>No email yet?</span>
-            <span style={tw`font-bold text-green-500`}>Email Resent</span>
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <span style={{ marginRight: "0.25rem" }}>No email yet?</span>
+            <span style={{ color: "#10B981", fontWeight: "700" }}>
+              Email Resent
+            </span>
           </div>
         ) : (
-          <div style={tw`flex items-center`}>
-            <span style={tw`mr-1`}>No email yet?</span>
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <span style={{ marginRight: "0.25rem" }}>No email yet?</span>
             <button
               type="button"
-              style={tw`bg-transparent border-none cursor-pointer text-blue-500 focus:text-blue-700 hover:text-blue-700 disabled:opacity-50 font-bold focus:outline-none flex items-center`}
+              style={{
+                alignItems: "center",
+                backgroundColor: "transparent",
+                borderStyle: "none",
+                color: "#3B82F6",
+                cursor: "pointer",
+                display: "flex",
+                fontWeight: "700",
+                // focus:text-blue-700 hover:text-blue-700 disabled:opacity-50 focus:outline-none
+              }}
               onClick={handleResendCode}
               disabled={requestCodeLoading || syntheticLoading}
             >
               <span>Resend email</span>
               {(requestCodeLoading || syntheticLoading) && (
-                <HashIcon style={tw`h-3 w-3 ml-1 animate-spin`} />
+                <HashIcon
+                  style={{
+                    animation: "spin 1s linear infinite",
+                    height: "0.75rem",
+                    marginLeft: "0.25rem",
+                    width: "0.75rem",
+                  }}
+                />
               )}
             </button>
           </div>
