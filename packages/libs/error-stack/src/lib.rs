@@ -484,9 +484,6 @@ mod hook;
 #[cfg(feature = "serde")]
 mod serde;
 
-#[cfg(feature = "std")]
-#[allow(deprecated, unreachable_pub)]
-pub use self::hook::HookAlreadySet;
 pub use self::{
     compat::IntoReportCompat,
     context::Context,

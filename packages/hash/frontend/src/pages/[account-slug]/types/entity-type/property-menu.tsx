@@ -13,16 +13,15 @@ import {
   listItemTextClasses,
   Menu,
   menuItemClasses,
-  tableRowClasses,
   Tooltip,
   Typography,
 } from "@mui/material";
 import {
   bindMenu,
   bindTrigger,
-  usePopupState,
+  PopupState,
 } from "material-ui-popup-state/hooks";
-import { Fragment, useId } from "react";
+import { Fragment } from "react";
 import {
   OntologyChip,
   parseUriForOntologyChip,
@@ -32,32 +31,18 @@ import { mustBeVersionedUri } from "./util";
 export const PropertyMenu = ({
   onRemove,
   property,
-  ...props
+  popupState,
 }: {
   onRemove?: () => void;
   property: PropertyType;
+  popupState: PopupState;
 }) => {
-  const id = useId();
-  const popupState = usePopupState({
-    variant: "popover",
-    popupId: `property-${id}`,
-  });
-
   const version = extractVersion(mustBeVersionedUri(property.$id));
   const ontology = parseUriForOntologyChip(property.$id);
 
   return (
     <>
-      <IconButton
-        {...props}
-        sx={{
-          opacity: 0,
-          [`.${tableRowClasses.root}:hover &`]: {
-            opacity: 1,
-          },
-        }}
-        {...bindTrigger(popupState)}
-      >
+      <IconButton {...bindTrigger(popupState)}>
         <FontAwesomeIcon
           icon={faEllipsis}
           sx={(theme) => ({
@@ -68,6 +53,8 @@ export const PropertyMenu = ({
       </IconButton>
       <Menu
         {...bindMenu(popupState)}
+        // We need the table's hover state to stay correct when this opens
+        disablePortal
         anchorOrigin={{
           vertical: "bottom",
           horizontal: "right",

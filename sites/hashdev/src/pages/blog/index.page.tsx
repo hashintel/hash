@@ -7,8 +7,8 @@ import {
 } from "@mui/material";
 import { Box } from "@mui/system";
 import { GetStaticProps } from "next";
-import Head from "next/head";
 import Image from "next/image";
+import { NextSeo } from "next-seo";
 import { ComponentProps, FunctionComponent, Fragment } from "react";
 import { BlogPostAuthor, BlogPostPagePhoto } from "../../components/BlogPost";
 import { GradientContainer } from "../../components/GradientContainer";
@@ -260,9 +260,7 @@ const BlogPage: NextPageWithLayout<BlogPageListProps> = ({ pages }) => {
   return (
     // @todo lighter gradient
     <>
-      <Head>
-        <title>HASH Developer Blog</title>
-      </Head>
+      <NextSeo title="HASH Developer Blog" />
       <GradientContainer py={{ xs: 9, md: 13 }}>
         <Container>
           <Stack direction="row" justifyContent="space-between">
