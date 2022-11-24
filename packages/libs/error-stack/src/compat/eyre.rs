@@ -1,5 +1,3 @@
-use core::panic::Location;
-
 use eyre::Report as EyreReport;
 
 use crate::{Frame, IntoReportCompat, Report, Result};
@@ -20,8 +18,7 @@ impl<T> IntoReportCompat for core::result::Result<T, EyreReport> {
                     .collect::<alloc::vec::Vec<_>>();
 
                 #[cfg_attr(not(feature = "std"), allow(unused_mut))]
-                let mut report =
-                    Report::from_frame(Frame::from_eyre(eyre, Location::caller(), Box::new([])));
+                let mut report = Report::from_frame(Frame::from_eyre(eyre, Box::new([])));
 
                 for source in sources {
                     report = report.attach_printable(source);

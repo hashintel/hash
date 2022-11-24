@@ -33,9 +33,9 @@ const PropertyTypeDisplay: FunctionComponent<
       {(Array.isArray(type) ? type : [type])
         .map<ReactNode>((permittedType) =>
           permittedType === "object" && hasSubSchema ? (
-            <GoToSchemaElement schemaRef={propertyName} />
+            <GoToSchemaElement key={permittedType} schemaRef={propertyName} />
           ) : (
-            <span>{permittedType}</span>
+            <span key={permittedType}>{permittedType}</span>
           ),
         )
         .reduce((prev, curr) => [prev, ", ", curr])}

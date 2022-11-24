@@ -88,7 +88,7 @@ impl<'a> Serialize for SerializeContext<'a> {
         } = self;
 
         let mut map = serializer.serialize_map(Some(3))?;
-        map.serialize_entry("context", &format!("{context}"))?;
+        map.serialize_entry("context", &format!("{context}").as_str())?;
         map.serialize_entry("attachments", &SerializeAttachmentList(&attachments[..]))?;
         map.serialize_entry("sources", &SerializeSources(sources))?;
 
