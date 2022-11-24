@@ -159,7 +159,7 @@ export class ComponentView implements NodeView {
       const blockDraftId = entity?.draftId;
 
       // @todo handle entity id not being defined
-      const entityId = entity.entityId ?? "";
+      const entityId = entity.metadata.editionId.baseId ?? "";
 
       /** used by collaborative editing feature `FocusTracker` */
       this.target.setAttribute("data-entity-id", entityId);
@@ -202,10 +202,8 @@ export class ComponentView implements NodeView {
                 // shouldSandbox={!this.editable}
                 editableRef={this.editableRef}
                 // @todo these asserted non-null fields do not definitely exist when the block is first loaded
-                accountId={childEntity?.accountId!}
-                entityId={childEntity?.entityId!}
-                entityTypeId={childEntity?.entityTypeId!}
-                entityType={childEntity?.entityType}
+                entityId={childEntity?.metadata.editionId.baseId!}
+                entityTypeId={childEntity?.metadata.entityTypeId!}
                 entityProperties={
                   childEntity && "properties" in childEntity
                     ? childEntity.properties

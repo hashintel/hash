@@ -38,11 +38,11 @@ import { useReadonlyMode } from "../../shared/readonly-mode";
 import { DataMapEditor } from "./data-map-editor";
 import { mapData, SchemaMap } from "./shared";
 import { useBlockContext } from "../../blocks/page/BlockContext";
+import { useAuthenticatedUser } from "../hooks/useAuthenticatedUser";
 
 // @todo consolidate these properties, e.g. take all entityX, linkX into a single childEntity prop
 // @see https://app.asana.com/0/1200211978612931/1202807842439190/f
 type BlockLoaderProps = {
-  accountId: string;
   blockEntityId: string;
   blockMetadata: HashBlockMeta;
   blockSchema: JsonSchema;
@@ -65,7 +65,6 @@ type BlockLoaderProps = {
  * and passes the correctly formatted data to RemoteBlock, along with message callbacks
  */
 export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
-  accountId,
   blockEntityId,
   blockMetadata,
   blockSchema,
@@ -80,6 +79,9 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   onBlockLoaded,
   // shouldSandbox,
 }) => {
+  const { authenticatedUser } = useAuthenticatedUser();
+  const accountId = authenticatedUser?.userAccountId ?? "";
+
   const { readonlyMode } = useReadonlyMode();
   const { aggregateEntities } = useBlockProtocolAggregateEntities();
   const { createLinkedAggregation } =
