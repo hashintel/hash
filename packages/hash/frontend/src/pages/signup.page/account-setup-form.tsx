@@ -158,11 +158,22 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
                       }}
                       onBlur={field.onBlur}
                       autoFocus
-                      style={tw`w-64 border-1 ${
-                        shortnameError
-                          ? "border-red-300 focus:border-red-500"
-                          : "border-gray-300 focus:border-blue-500"
-                      } border-solid focus:outline-none rounded-lg h-11 py-6 pl-9 pr-5 mr-7`}
+                      style={{
+                        borderColor: shortnameError
+                          ? "#FCA5A5" // focus:border-red-500
+                          : "#D1D5DB", // focus:border-blue-500"
+                        borderRadius: "0.5rem",
+                        borderStyle: "solid",
+                        borderWidth: 1,
+                        height: "2.75rem",
+                        marginRight: "1.75rem",
+                        paddingBottom: "1.5rem",
+                        paddingLeft: "2.25rem",
+                        paddingRight: "1.25rem",
+                        paddingTop: "1.5rem",
+                        width: "16rem",
+                        // focus:outline-none
+                      }}
                       placeholder="example"
                       autoComplete="off"
                     />
@@ -182,22 +193,43 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
                 </span>
               </div>
               <div
-                style={{ minHeight: 50 }}
-                style={tw`transition-opacity max-w-sm flex items-center border-1 ${
-                  shortnameError ? "border-red-300" : "border-blue-300"
-                } rounded-md px-3.5`}
+                style={{
+                  alignItems: "center",
+                  borderColor: shortnameError ? "#FCA5A5" : "#D1D5DB",
+                  borderRadius: "0.375rem",
+                  borderWidth: 1,
+                  display: "flex",
+                  maxWidth: "24rem",
+                  minHeight: 50,
+                  paddingLeft: "0.875rem",
+                  paddingRight: "0.875rem",
+                  transitionProperty: "opacity",
+                }}
               >
                 <InfoIcon
-                  style={tw`h-6 w-6 mr-3 ${
-                    shortnameError ? "text-red-500" : "text-blue-500"
-                  }`}
+                  style={{
+                    color: shortnameError ? "#EF4444" : "#3B82F6",
+                    height: "1.5rem",
+                    marginRight: "0.75rem",
+                    width: "1.5rem",
+                  }}
                 />
                 <span
-                  style={tw`flex-1 ${
-                    shortnameError
-                      ? "text-red-500 text-sm"
-                      : "text-black text-opacity-60 text-xs"
-                  }`}
+                  style={{
+                    flex: "1 1 0%",
+                    ...(shortnameError
+                      ? {
+                          color: "#EF4444",
+                          fontSize: "0.875rem",
+                          lineHeight: "1.25rem",
+                        }
+                      : {
+                          color: "#000000",
+                          textOpacity: "0.6",
+                          fontSize: "0.75rem",
+                          lineHeight: "1rem",
+                        }),
+                  }}
                 >
                   {shortnameError ?? (
                     <>
