@@ -474,6 +474,14 @@ export const generateEntityLabel = (
     return `${entityTypeName}-${entityId.slice(0, 5)}`;
   };
 
+  const getFallbackIfNotString = (val: any) => {
+    if (!val || typeof val !== "string") {
+      return getFallbackLabel();
+    }
+
+    return val;
+  };
+
   // if the schema has a labelProperty set, prefer that
   const labelProperty = schema?.labelProperty;
   if (
@@ -481,7 +489,7 @@ export const generateEntityLabel = (
     typeof entity.properties[labelProperty] === "string" &&
     entity.properties[labelProperty]
   ) {
-    return entity.properties[labelProperty] || getFallbackLabel();
+    return getFallbackIfNotString(entity.properties[labelProperty]);
   }
 
   // fallback to some likely display name properties
@@ -516,7 +524,9 @@ export const generateEntityLabel = (
     const found = propertyTypes.find(({ title }) => title === option);
 
     if (found) {
-      return entity.properties[found.propertyTypeBaseUri] || getFallbackLabel();
+      return getFallbackIfNotString(
+        entity.properties[found.propertyTypeBaseUri],
+      );
     }
   }
 
