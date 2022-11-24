@@ -1,11 +1,9 @@
-import { TextField } from "@hashintel/hash-design-system";
 import {
   Box,
   ButtonBase,
   Checkbox,
   checkboxClasses,
   iconButtonClasses,
-  outlinedInputClasses,
   svgIconClasses,
   Table,
   TableBody,
@@ -120,26 +118,6 @@ export const PropertyTypeRow = ({
         />
       </CenteredTableCell>
 
-      <CenteredTableCell sx={{ px: "0px !important" }}>
-        <TextField
-          placeholder="Add default value"
-          sx={{
-            width: "100%",
-            [`.${tableRowClasses.root}:not(:hover) & .${outlinedInputClasses.root}:not(:focus-within)`]:
-              {
-                boxShadow: "none",
-                [`.${outlinedInputClasses.notchedOutline}`]: {
-                  borderColor: "transparent",
-                },
-                [`.${outlinedInputClasses.input}::placeholder`]: {
-                  color: "transparent",
-                },
-              },
-          }}
-          inputProps={{ sx: { textOverflow: "ellipsis" } }}
-        />
-      </CenteredTableCell>
-
       <TableCell
         sx={{
           [`.${iconButtonClasses.root}`]: {
@@ -230,9 +208,6 @@ export const PropertyListCard = () => {
                 Allow multiple values <QuestionIcon />
               </CenteredTableCell>
               <CenteredTableCell width={100}>Required</CenteredTableCell>
-              <CenteredTableCell width={150}>
-                Default value <QuestionIcon />
-              </CenteredTableCell>
               <TableCell width={70} />
             </Typography>
           </TableHead>
