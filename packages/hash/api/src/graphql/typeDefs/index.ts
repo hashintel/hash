@@ -9,12 +9,12 @@ import { dataTypeTypedef } from "./ontology/data-type.typedef";
 import { propertyTypeTypedef } from "./ontology/property-type.typedef";
 import { entityTypeTypedef } from "./ontology/entity-type.typedef";
 import { entityTypedef } from "./knowledge/entity.typedef";
-import { persistedPageTypedef } from "./knowledge/page.typedef";
-import { persistedCommentTypedef } from "./knowledge/comment.typedef";
-import { persistedBlockTypedef } from "./knowledge/block.typedef";
+import { pageTypedef } from "./knowledge/page.typedef";
+import { commentTypedef } from "./knowledge/comment.typedef";
+import { blockTypedef } from "./knowledge/block.typedef";
 import { subgraphTypedef } from "./subgraph.typedef";
 import { blockprotocolTypedef } from "./blockprotocol.typedef";
-import { persistedOrgTypedef } from "./knowledge/org.typedef";
+import { orgTypedef } from "./knowledge/org.typedef";
 
 const baseSchema = gql`
   scalar Date
@@ -40,11 +40,11 @@ const ontology = [dataTypeTypedef, propertyTypeTypedef, entityTypeTypedef];
 
 const knowledge = [
   entityTypedef,
-  persistedBlockTypedef,
-  persistedPageTypedef,
-  persistedCommentTypedef,
+  blockTypedef,
+  pageTypedef,
+  commentTypedef,
   userTypedef,
-  persistedOrgTypedef,
+  orgTypedef,
 ];
 
 // This needs to be called 'schema' to be picked up by codegen -

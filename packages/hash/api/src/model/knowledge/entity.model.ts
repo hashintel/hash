@@ -24,7 +24,7 @@ import {
   LinkModelCreateParams,
 } from "..";
 import {
-  PersistedLinkedEntityDefinition,
+  LinkedEntityDefinition,
   EntityDefinition,
 } from "../../graphql/apiTypes.gen";
 import { linkedTreeFlatten } from "../../util";
@@ -156,7 +156,7 @@ export default class {
       ownedById: string;
       entityTypeId: VersionedUri;
       properties: PropertyObject;
-      linkedEntities?: PersistedLinkedEntityDefinition[];
+      linkedEntities?: LinkedEntityDefinition[];
       actorId: string;
     },
   ): Promise<EntityModel> {
@@ -165,7 +165,7 @@ export default class {
 
     const entitiesInTree = linkedTreeFlatten<
       EntityDefinition,
-      PersistedLinkedEntityDefinition,
+      LinkedEntityDefinition,
       "linkedEntities",
       "entity"
     >(
@@ -335,7 +335,7 @@ export default class {
     },
   ): Promise<EntityModel> {
     const { entityId } = params;
-    const { data: persistedEntity } = await graphApi.getEntity(entityId);
+    const { data: entity } = await graphApi.getEntity(entityId);
 
     const [ownedById, entityUuid] = splitEntityId(entityId);
 
@@ -367,10 +367,7 @@ export default class {
       );
     }
 
-    return await EntityModel.fromEntity(
-      graphApi,
-      persistedEntity as EntityWithMetadata,
-    );
+    return await EntityModel.fromEntity(graphApi, entity as EntityWithMetadata);
   }
 
   /**

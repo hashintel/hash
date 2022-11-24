@@ -1,7 +1,7 @@
 import { gql } from "apollo-server-express";
 
-export const persistedBlockTypedef = gql`
-  type PersistedBlock {
+export const blockTypedef = gql`
+  type Block {
     """
     The block's linked child entity.
     """
@@ -27,6 +27,6 @@ export const persistedBlockTypedef = gql`
     """
     Get a specified list of blocks by their entity id
     """
-    persistedBlocks(blocks: [EntityId!]!): [PersistedBlock!]!
+    blocks(blocks: [EntityId!]!): [Block!]!
   }
 `;

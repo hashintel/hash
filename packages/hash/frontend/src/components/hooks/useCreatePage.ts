@@ -6,19 +6,19 @@ import {
   splitEntityId,
 } from "@hashintel/hash-subgraph";
 import {
-  CreatePersistedPageMutation,
-  CreatePersistedPageMutationVariables,
+  CreatePageMutation,
+  CreatePageMutationVariables,
 } from "../../graphql/apiTypes.gen";
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
-import { createPersistedPage } from "../../graphql/queries/page.queries";
+import { createPage } from "../../graphql/queries/page.queries";
 
 export const useCreatePage = (ownedById: string) => {
   const router = useRouter();
 
   const [createPageFn, { loading: createPageLoading }] = useMutation<
-    CreatePersistedPageMutation,
-    CreatePersistedPageMutationVariables
-  >(createPersistedPage, {
+    CreatePageMutation,
+    CreatePageMutationVariables
+  >(createPage, {
     awaitRefetchQueries: true,
     refetchQueries: ({ data }) =>
       data
@@ -27,7 +27,7 @@ export const useCreatePage = (ownedById: string) => {
               query: getAccountPagesTree,
               variables: {
                 ownedById: extractOwnedByIdFromEntityId(
-                  data.createPersistedPage.metadata.editionId.baseId,
+                  data.createPage.metadata.editionId.baseId,
                 ),
               },
             },
@@ -41,8 +41,7 @@ export const useCreatePage = (ownedById: string) => {
         variables: { ownedById, properties: { title: "", prevIndex } },
       });
 
-      const pageEntityId =
-        response.data?.createPersistedPage?.metadata.editionId.baseId;
+      const pageEntityId = response.data?.createPage?.metadata.editionId.baseId;
 
       if (pageEntityId) {
         const [pageOwnedById, pageEntityUuid] = splitEntityId(pageEntityId);

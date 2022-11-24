@@ -1,7 +1,7 @@
 import { gql } from "apollo-server-express";
 
-export const persistedCommentTypedef = gql`
-  type PersistedComment {
+export const commentTypedef = gql`
+  type Comment {
     """
     Stringified timestamp of when the entity was resolved.
     """
@@ -35,7 +35,7 @@ export const persistedCommentTypedef = gql`
     """
     Array of comments created in response to this comment
     """
-    replies: [PersistedComment!]!
+    replies: [Comment!]!
 
     # ENTITY INTERFACE FIELDS BEGIN #
     """
@@ -53,7 +53,7 @@ export const persistedCommentTypedef = gql`
     """
     Create a new comment
     """
-    createPersistedComment(
+    createComment(
       """
       Id of the block or comment the comment belongs to
       """
@@ -62,32 +62,32 @@ export const persistedCommentTypedef = gql`
       Text contents of the comment
       """
       tokens: [TextToken!]!
-    ): PersistedComment!
+    ): Comment!
 
     """
     Resolve an existing comment
     """
-    resolvePersistedComment(
+    resolveComment(
       """
       Id of the comment to resolve
       """
       entityId: EntityId!
-    ): PersistedComment!
+    ): Comment!
 
     """
     Delete an existing comment
     """
-    deletePersistedComment(
+    deleteComment(
       """
       Id of the comment to delete
       """
       entityId: EntityId!
-    ): PersistedComment!
+    ): Comment!
 
     """
     Edit an existing comment's text contents
     """
-    updatePersistedCommentText(
+    updateCommentText(
       """
       Id of the comment being edited
       """
@@ -96,6 +96,6 @@ export const persistedCommentTypedef = gql`
       New Text contents of the comment
       """
       tokens: [TextToken!]!
-    ): PersistedComment!
+    ): Comment!
   }
 `;

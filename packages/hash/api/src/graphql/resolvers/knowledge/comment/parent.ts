@@ -2,14 +2,11 @@ import { EntityWithMetadata } from "@hashintel/hash-subgraph";
 import { CommentModel } from "../../../../model";
 import { ResolverFn } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import {
-  UnresolvedPersistedCommentGQL,
-  mapEntityModelToGQL,
-} from "../model-mapping";
+import { UnresolvedCommentGQL, mapEntityModelToGQL } from "../model-mapping";
 
-export const persistedCommentParent: ResolverFn<
+export const commentParent: ResolverFn<
   Promise<EntityWithMetadata>,
-  UnresolvedPersistedCommentGQL,
+  UnresolvedCommentGQL,
   LoggedInGraphQLContext,
   {}
 > = async ({ metadata }, _, { dataSources: { graphApi } }) => {

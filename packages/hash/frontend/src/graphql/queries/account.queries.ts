@@ -2,7 +2,7 @@ import { gql } from "@apollo/client";
 
 export const getAccountPagesTree = gql`
   query getAccountPagesTree($ownedById: ID) {
-    persistedPages(ownedById: $ownedById) {
+    pages(ownedById: $ownedById) {
       title
       index
       parentPage {

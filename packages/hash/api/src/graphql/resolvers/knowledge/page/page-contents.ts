@@ -3,14 +3,11 @@ import { EntityWithMetadata } from "@hashintel/hash-subgraph";
 import { PageModel } from "../../../../model";
 import { ResolverFn } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import {
-  mapBlockModelToGQL,
-  UnresolvedPersistedPageGQL,
-} from "../model-mapping";
+import { mapBlockModelToGQL, UnresolvedPageGQL } from "../model-mapping";
 
-export const persistedPageContents: ResolverFn<
+export const pageContents: ResolverFn<
   Promise<EntityWithMetadata[]>,
-  UnresolvedPersistedPageGQL,
+  UnresolvedPageGQL,
   LoggedInGraphQLContext,
   {}
 > = async ({ metadata }, _, { dataSources }) => {

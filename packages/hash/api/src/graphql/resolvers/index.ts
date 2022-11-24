@@ -34,19 +34,16 @@ import {
   getEntityType,
   updateEntityType,
 } from "./ontology/entity-type";
+import { updatePageContents, pageContents } from "./knowledge/page";
 import {
-  updatePersistedPageContents,
-  persistedPageContents,
-} from "./knowledge/page";
-import {
-  createPersistedPage,
-  persistedPage,
-  persistedPages,
-  parentPersistedPage,
-  persistedPageComments,
+  createPage,
+  page,
+  pages,
+  parentPage,
+  pageComments,
 } from "./knowledge/page/page";
-import { createPersistedComment } from "./knowledge/comment/comment";
-import { persistedBlocks } from "./knowledge/block/block";
+import { createComment } from "./knowledge/comment/comment";
+import { blocks } from "./knowledge/block/block";
 import { getBlockProtocolBlocks } from "./blockprotocol/getBlock";
 import {
   createEntity,
@@ -54,16 +51,16 @@ import {
   getAllLatestEntities,
   updateEntity,
 } from "./knowledge/entity/entity";
-import { setParentPersistedPage } from "./knowledge/page/set-parent-page";
-import { updatePersistedPage } from "./knowledge/page/update-page";
-import { persistedCommentHasText } from "./knowledge/comment/has-text";
-import { persistedCommentTextUpdatedAt } from "./knowledge/comment/text-updated-at";
-import { persistedCommentReplies } from "./knowledge/comment/replies";
-import { persistedCommentParent } from "./knowledge/comment/parent";
-import { persistedCommentAuthor } from "./knowledge/comment/author";
-import { resolvePersistedComment } from "./knowledge/comment/resolve";
-import { deletePersistedComment } from "./knowledge/comment/delete";
-import { updatePersistedCommentText } from "./knowledge/comment/update-text";
+import { setParentPage } from "./knowledge/page/set-parent-page";
+import { updatePage } from "./knowledge/page/update-page";
+import { commentHasText } from "./knowledge/comment/has-text";
+import { commentTextUpdatedAt } from "./knowledge/comment/text-updated-at";
+import { commentReplies } from "./knowledge/comment/replies";
+import { commentParent } from "./knowledge/comment/parent";
+import { commentAuthor } from "./knowledge/comment/author";
+import { resolveComment } from "./knowledge/comment/resolve";
+import { deleteComment } from "./knowledge/comment/delete";
+import { updateCommentText } from "./knowledge/comment/update-text";
 import { blockChildEntity } from "./knowledge/block/data-entity";
 import { loggedInAndSignedUpHashInstanceAdmin } from "./middlewares/loggedInAndSignedUpHashInstanceAdmin";
 import { createUser } from "./knowledge/user/create-user";
@@ -88,10 +85,10 @@ export const resolvers = {
     getAllLatestEntityTypes: loggedInAndSignedUp(getAllLatestEntityTypes),
     getEntityType: loggedInAndSignedUp(getEntityType),
     // Knowledge
-    persistedPage,
-    persistedPages: loggedInAndSignedUp(persistedPages),
-    persistedPageComments: loggedInAndSignedUp(persistedPageComments),
-    persistedBlocks: loggedInAndSignedUp(persistedBlocks),
+    page,
+    pages: loggedInAndSignedUp(pages),
+    pageComments: loggedInAndSignedUp(pageComments),
+    blocks: loggedInAndSignedUp(blocks),
     getEntity: loggedInAndSignedUp(getEntity),
     getAllLatestEntities: loggedInAndSignedUp(getAllLatestEntities),
   },
@@ -103,9 +100,7 @@ export const resolvers = {
       updateLinkedAggregationOperation,
     ),
     deleteLinkedAggregation: loggedInAndSignedUp(deleteLinkedAggregation),
-    updatePersistedPageContents: loggedInAndSignedUp(
-      updatePersistedPageContents,
-    ),
+    updatePageContents: loggedInAndSignedUp(updatePageContents),
     requestFileUpload: loggedInAndSignedUp(requestFileUpload),
     // Task execution
     executeDemoTask,
@@ -121,13 +116,13 @@ export const resolvers = {
     // Knowledge
     createEntity: loggedInAndSignedUp(createEntity),
     updateEntity: loggedIn(updateEntity),
-    createPersistedPage: loggedInAndSignedUp(createPersistedPage),
-    setParentPersistedPage: loggedInAndSignedUp(setParentPersistedPage),
-    updatePersistedPage: loggedInAndSignedUp(updatePersistedPage),
-    createPersistedComment: loggedInAndSignedUp(createPersistedComment),
-    resolvePersistedComment: loggedInAndSignedUp(resolvePersistedComment),
-    deletePersistedComment: loggedInAndSignedUp(deletePersistedComment),
-    updatePersistedCommentText: loggedInAndSignedUp(updatePersistedCommentText),
+    createPage: loggedInAndSignedUp(createPage),
+    setParentPage: loggedInAndSignedUp(setParentPage),
+    updatePage: loggedInAndSignedUp(updatePage),
+    createComment: loggedInAndSignedUp(createComment),
+    resolveComment: loggedInAndSignedUp(resolveComment),
+    deleteComment: loggedInAndSignedUp(deleteComment),
+    updateCommentText: loggedInAndSignedUp(updateCommentText),
     // HASH instance admin mutations
     createUser: loggedInAndSignedUpHashInstanceAdmin(createUser),
     createOrg: loggedInAndSignedUpHashInstanceAdmin(createOrg),
@@ -144,20 +139,20 @@ export const resolvers = {
   },
 
   // New knowledge field resolvers
-  PersistedPage: {
-    contents: persistedPageContents,
-    parentPage: parentPersistedPage,
+  Page: {
+    contents: pageContents,
+    parentPage,
   },
 
-  PersistedComment: {
-    hasText: persistedCommentHasText,
-    textUpdatedAt: persistedCommentTextUpdatedAt,
-    parent: persistedCommentParent,
-    author: persistedCommentAuthor,
-    replies: persistedCommentReplies,
+  Comment: {
+    hasText: commentHasText,
+    textUpdatedAt: commentTextUpdatedAt,
+    parent: commentParent,
+    author: commentAuthor,
+    replies: commentReplies,
   },
 
-  PersistedBlock: {
+  Block: {
     blockChildEntity,
   },
 };

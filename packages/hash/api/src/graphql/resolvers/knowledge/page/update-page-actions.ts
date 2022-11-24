@@ -6,12 +6,12 @@ import { EntityId } from "@hashintel/hash-subgraph";
 import { VersionedUri } from "@blockprotocol/type-system-web";
 import { BlockModel, EntityModel, UserModel } from "../../../../model";
 import {
-  CreatePersistedEntityAction,
+  CreateEntityAction,
   EntityDefinition,
-  InsertPersistedBlockAction,
-  SwapPersistedBlockDataAction,
-  UpdatePersistedEntityAction,
-  UpdatePersistedPageAction,
+  InsertBlockAction,
+  SwapBlockDataAction,
+  UpdateEntityAction,
+  UpdatePageAction,
 } from "../../../apiTypes.gen";
 
 export const createEntityWithPlaceholdersFn =
@@ -48,7 +48,7 @@ export const createEntityWithPlaceholdersFn =
     }
   };
 
-type UpdatePageActionKey = keyof UpdatePersistedPageAction;
+type UpdatePageActionKey = keyof UpdatePageAction;
 
 /**
  * @optimization instead of iterating the actions list on every call, we can
@@ -58,17 +58,18 @@ type UpdatePageActionKey = keyof UpdatePersistedPageAction;
  *   iteration is very cheap.
  */
 export const filterForAction = <T extends UpdatePageActionKey>(
-  actions: UpdatePersistedPageAction[],
+  actions: UpdatePageAction[],
   key: T,
-): { action: NonNullable<UpdatePersistedPageAction[T]>; index: number }[] =>
-  actions.reduce<
-    { action: NonNullable<UpdatePersistedPageAction[T]>; index: number }[]
-  >((acc, current, index) => {
-    if (current != null && key in current) {
-      acc.push({ action: current[key]!, index });
-    }
-    return acc;
-  }, []);
+): { action: NonNullable<UpdatePageAction[T]>; index: number }[] =>
+  actions.reduce<{ action: NonNullable<UpdatePageAction[T]>; index: number }[]>(
+    (acc, current, index) => {
+      if (current != null && key in current) {
+        acc.push({ action: current[key]!, index });
+      }
+      return acc;
+    },
+    [],
+  );
 
 const isPlaceholderId = (value: unknown): value is `placeholder-${string}` =>
   typeof value === "string" && value.startsWith("placeholder-");
@@ -111,10 +112,10 @@ export class PlaceholderResultsMap {
 
 /**
  * Create new entity.
- * Acts on {@link CreatePersistedEntityAction}
+ * Acts on {@link CreateEntityAction}
  */
 export const handleCreateNewEntity = async (params: {
-  createEntityAction: CreatePersistedEntityAction;
+  createEntityAction: CreateEntityAction;
   index: number;
   placeholderResults: PlaceholderResultsMap;
   createEntityWithPlaceholders: (
@@ -149,13 +150,13 @@ export const handleCreateNewEntity = async (params: {
 
 /**
  * Insert new block onto page.
- * Acts on {@link InsertPersistedBlockAction}
+ * Acts on {@link InsertBlockAction}
  */
 export const handleInsertNewBlock = async (
   graphApi: GraphApi,
   params: {
     userModel: UserModel;
-    insertBlockAction: InsertPersistedBlockAction;
+    insertBlockAction: InsertBlockAction;
     index: number;
     createEntityWithPlaceholders: (
       originalDefinition: EntityDefinition,
@@ -236,13 +237,13 @@ export const handleInsertNewBlock = async (
 
 /**
  * Swap a block's data entity to another entity.
- * Acts on {@link SwapPersistedBlockDataAction}
+ * Acts on {@link SwapBlockDataAction}
  */
 export const handleSwapBlockData = async (
   graphApi: GraphApi,
   params: {
     userModel: UserModel;
-    swapBlockDataAction: SwapPersistedBlockDataAction;
+    swapBlockDataAction: SwapBlockDataAction;
   },
 ): Promise<void> => {
   const {
@@ -272,13 +273,13 @@ export const handleSwapBlockData = async (
 
 /**
  * Update properties of an entity.
- * Acts on {@link UpdatePersistedEntityAction}
+ * Acts on {@link UpdateEntityAction}
  */
 export const handleUpdateEntity = async (
   graphApi: GraphApi,
   params: {
     userModel: UserModel;
-    action: UpdatePersistedEntityAction;
+    action: UpdateEntityAction;
     placeholderResults: PlaceholderResultsMap;
   },
 ): Promise<void> => {

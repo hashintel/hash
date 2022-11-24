@@ -8,17 +8,17 @@ import {
 } from "@hashintel/hash-subgraph";
 import {
   GetPageInfoQueryVariables,
-  UpdatePersistedPageMutation,
-  UpdatePersistedPageMutationVariables,
+  UpdatePageMutation,
+  UpdatePageMutationVariables,
 } from "../../graphql/apiTypes.gen";
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
-import { updatePersistedPage } from "../../graphql/queries/page.queries";
+import { updatePage } from "../../graphql/queries/page.queries";
 
 export const useUpdatePageIcon = () => {
   const [updatePageFn, { loading: updatePageIconLoading }] = useMutation<
-    UpdatePersistedPageMutation,
-    UpdatePersistedPageMutationVariables
-  >(updatePersistedPage, { awaitRefetchQueries: true });
+    UpdatePageMutation,
+    UpdatePageMutationVariables
+  >(updatePage, { awaitRefetchQueries: true });
 
   const getRefetchQueries = useCallback(
     (pageEntityId: EntityId) => [

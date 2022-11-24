@@ -21,7 +21,7 @@ type UpdateAuthenticatedUserParams = {
 export const useUpdateAuthenticatedUser = () => {
   const { authenticatedUser, refetch } = useAuthenticatedUser();
 
-  const [updatePersistedEntity] = useMutation<
+  const [updateEntity] = useMutation<
     UpdateEntityMutation,
     UpdateEntityMutationVariables
   >(updateEntityMutation, { errorPolicy: "all" });
@@ -55,7 +55,7 @@ export const useUpdateAuthenticatedUser = () => {
          */
         const { properties: currentProperties } = userEntity;
 
-        const { errors } = await updatePersistedEntity({
+        const { errors } = await updateEntity({
           variables: {
             entityId: userEntity.metadata.editionId.baseId,
             updatedProperties: {
@@ -112,7 +112,7 @@ export const useUpdateAuthenticatedUser = () => {
         setLoading(false);
       }
     },
-    [authenticatedUser, refetch, updatePersistedEntity],
+    [authenticatedUser, refetch, updateEntity],
   );
 
   return [updateAuthenticatedUser, { loading }] as const;

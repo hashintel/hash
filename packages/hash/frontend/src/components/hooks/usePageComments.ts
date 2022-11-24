@@ -6,10 +6,10 @@ import {
   EntityWithMetadata,
 } from "@hashintel/hash-subgraph";
 import {
-  GetPersistedPageCommentsQuery,
-  GetPersistedPageCommentsQueryVariables,
+  GetPageCommentsQuery,
+  GetPageCommentsQueryVariables,
 } from "../../graphql/apiTypes.gen";
-import { getPersistedPageComments } from "../../graphql/queries/page.queries";
+import { getPageComments } from "../../graphql/queries/page.queries";
 
 export type PageThread = PageComment & {
   replies: PageComment[];
@@ -32,11 +32,11 @@ const emptyComments: PageThread[] = [];
 
 export const usePageComments = (pageEntityId: EntityId): PageCommentsInfo => {
   const { data, loading } = useQuery<
-    GetPersistedPageCommentsQuery,
-    GetPersistedPageCommentsQueryVariables
-  >(getPersistedPageComments, {
+    GetPageCommentsQuery,
+    GetPageCommentsQueryVariables
+  >(getPageComments, {
     variables: { entityId: pageEntityId },
   });
 
-  return { data: data?.persistedPageComments ?? emptyComments, loading };
+  return { data: data?.pageComments ?? emptyComments, loading };
 };

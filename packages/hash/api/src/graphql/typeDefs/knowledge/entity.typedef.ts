@@ -17,7 +17,7 @@ export const entityTypedef = gql`
   scalar PropertyObject
   scalar EntityMetadata
 
-  input PersistedLinkedEntityDefinition {
+  input LinkedEntityDefinition {
     destinationAccountId: ID!
     linkEntityTypeId: VersionedUri!
     """
@@ -44,7 +44,7 @@ export const entityTypedef = gql`
     """
     Associated Entities to either create/get and link to this entity.
     """
-    linkedEntities: [PersistedLinkedEntityDefinition!]
+    linkedEntities: [LinkedEntityDefinition!]
   }
 
   # TODO: rename these and remove "withMetadata" - https://app.asana.com/0/0/1203157172269854/f
@@ -98,7 +98,7 @@ export const entityTypedef = gql`
       """
       Associated Entities to either create/get and link to this entity.
       """
-      linkedEntities: [PersistedLinkedEntityDefinition!]
+      linkedEntities: [LinkedEntityDefinition!]
     ): Entity!
 
     """

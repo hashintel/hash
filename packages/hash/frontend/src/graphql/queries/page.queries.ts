@@ -8,7 +8,7 @@ export const setParentPage = gql`
     $prevIndex: String
     $nextIndex: String
   ) {
-    setParentPersistedPage(
+    setParentPage(
       pageEntityId: $pageEntityId
       parentPageEntityId: $parentPageEntityId
       prevIndex: $prevIndex
@@ -22,34 +22,28 @@ export const setParentPage = gql`
   }
 `;
 
-export const createPersistedPage = gql`
-  mutation createPersistedPage(
-    $ownedById: ID!
-    $properties: PersistedPageCreationData!
-  ) {
-    createPersistedPage(ownedById: $ownedById, properties: $properties) {
+export const createPage = gql`
+  mutation createPage($ownedById: ID!, $properties: PageCreationData!) {
+    createPage(ownedById: $ownedById, properties: $properties) {
       metadata
     }
   }
 `;
 
-export const updatePersistedPage = gql`
-  mutation updatePersistedPage(
+export const updatePage = gql`
+  mutation updatePage(
     $entityId: EntityId!
-    $updatedProperties: PersistedPageUpdateData!
+    $updatedProperties: PageUpdateData!
   ) {
-    updatePersistedPage(
-      entityId: $entityId
-      updatedProperties: $updatedProperties
-    ) {
+    updatePage(entityId: $entityId, updatedProperties: $updatedProperties) {
       metadata
     }
   }
 `;
 
-export const getPersistedPageComments = gql`
-  query getPersistedPageComments($entityId: EntityId!) {
-    persistedPageComments(entityId: $entityId) {
+export const getPageComments = gql`
+  query getPageComments($entityId: EntityId!) {
+    pageComments(entityId: $entityId) {
       ...CommentFields
       replies {
         ...CommentFields

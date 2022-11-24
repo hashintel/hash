@@ -1,21 +1,15 @@
 import { ApolloError } from "apollo-server-express";
 
 import { LoggedInGraphQLContext } from "../../../context";
-import {
-  MutationSetParentPersistedPageArgs,
-  ResolverFn,
-} from "../../../apiTypes.gen";
-import {
-  mapPageModelToGQL,
-  UnresolvedPersistedPageGQL,
-} from "../model-mapping";
+import { MutationSetParentPageArgs, ResolverFn } from "../../../apiTypes.gen";
+import { mapPageModelToGQL, UnresolvedPageGQL } from "../model-mapping";
 import { PageModel } from "../../../../model";
 
-export const setParentPersistedPage: ResolverFn<
-  Promise<UnresolvedPersistedPageGQL>,
+export const setParentPage: ResolverFn<
+  Promise<UnresolvedPageGQL>,
   {},
   LoggedInGraphQLContext,
-  MutationSetParentPersistedPageArgs
+  MutationSetParentPageArgs
 > = async (
   _,
   { pageEntityId, parentPageEntityId, prevIndex = null, nextIndex = null },

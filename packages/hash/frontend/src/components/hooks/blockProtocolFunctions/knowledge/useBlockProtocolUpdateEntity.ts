@@ -21,7 +21,7 @@ export const useBlockProtocolUpdateEntity = (
     fetchPolicy: "no-cache",
   });
 
-  const updatePersistedEntity: UpdateEntityMessageCallback = useCallback(
+  const updateEntity: UpdateEntityMessageCallback = useCallback(
     async ({ data }) => {
       if (readonly) {
         return {
@@ -39,7 +39,7 @@ export const useBlockProtocolUpdateEntity = (
           errors: [
             {
               code: "INVALID_INPUT",
-              message: "'data' must be provided for updatePersistedEntity",
+              message: "'data' must be provided for updateEntity",
             },
           ],
         };
@@ -75,6 +75,6 @@ export const useBlockProtocolUpdateEntity = (
   );
 
   return {
-    updateEntity: updatePersistedEntity,
+    updateEntity,
   };
 };
