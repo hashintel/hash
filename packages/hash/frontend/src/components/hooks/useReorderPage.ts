@@ -1,6 +1,10 @@
 import { useMutation } from "@apollo/client";
 import { useCallback } from "react";
 import {
+  EntityId,
+  extractOwnedByIdFromEntityId,
+} from "@hashintel/hash-subgraph";
+import {
   SetParentPageMutation,
   SetParentPageMutationVariables,
 } from "../../graphql/apiTypes.gen";
@@ -16,15 +20,19 @@ export const useReorderPage = () => {
     refetchQueries: ({ data }) => [
       {
         query: getAccountPagesTree,
-        variables: { ownedById: data!.setParentPersistedPage.ownedById },
+        variables: {
+          ownedById: extractOwnedByIdFromEntityId(
+            data!.setParentPersistedPage.metadata.editionId.baseId,
+          ),
+        },
       },
     ],
   });
 
   const reorderPage = useCallback(
     async (
-      pageEntityId: string,
-      parentPageEntityId: string | null,
+      pageEntityId: EntityId,
+      parentPageEntityId: EntityId | null,
       prevIndex: string | null,
       nextIndex: string | null,
     ) => {
