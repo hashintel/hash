@@ -11,7 +11,7 @@ pub mod edges;
 pub mod query;
 pub mod vertices;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Subgraph {
     pub roots: HashSet<GraphElementEditionId>,
     pub vertices: Vertices,
@@ -27,16 +27,6 @@ impl Subgraph {
             vertices: Vertices::default(),
             edges: Edges::default(),
             depths,
-        }
-    }
-}
-
-impl Extend<Self> for Subgraph {
-    fn extend<T: IntoIterator<Item = Self>>(&mut self, iter: T) {
-        for subgraph in iter {
-            self.roots.extend(subgraph.roots.into_iter());
-            self.vertices.extend(subgraph.vertices);
-            self.edges.extend(subgraph.edges);
         }
     }
 }
