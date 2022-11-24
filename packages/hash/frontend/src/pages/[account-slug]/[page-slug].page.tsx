@@ -18,7 +18,7 @@ import { alpha, Box, Collapse } from "@mui/material";
 import { keyBy } from "lodash";
 import { GetStaticPaths, GetStaticProps } from "next";
 import Head from "next/head";
-import { Router, useRouter } from "next/router";
+import { Router } from "next/router";
 
 import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
 // import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
