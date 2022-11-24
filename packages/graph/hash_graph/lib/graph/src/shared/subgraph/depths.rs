@@ -58,23 +58,81 @@ pub type SubgraphQueryDepth = u8;
 #[serde(rename_all = "camelCase")]
 pub struct GraphResolveDepths {
     #[schema(value_type = i64)]
-    pub data_type_resolve_depth: SubgraphQueryDepth,
+    pub value_constrain_resolve_depth: SubgraphQueryDepth,
     #[schema(value_type = i64)]
-    pub property_type_resolve_depth: SubgraphQueryDepth,
+    pub property_constrain_resolve_depth: SubgraphQueryDepth,
     #[schema(value_type = i64)]
-    pub entity_type_resolve_depth: SubgraphQueryDepth,
+    pub link_constrain_resolve_depth: SubgraphQueryDepth,
     #[schema(value_type = i64)]
-    pub entity_resolve_depth: SubgraphQueryDepth,
+    pub link_destination_resolve_depth: SubgraphQueryDepth,
+    #[schema(value_type = i64)]
+    pub inheritance_resolve_depth: SubgraphQueryDepth,
+    #[schema(value_type = i64)]
+    pub type_resolve_depth: SubgraphQueryDepth,
+    pub entity_resolve_depth: EntityResolveDepth,
+    pub link_resolve_depth: LinkResolveDepth,
+}
+
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+pub struct EntityResolveDepth {
+    #[schema(value_type = i64)]
+    pub left: SubgraphQueryDepth,
+    #[schema(value_type = i64)]
+    pub right: SubgraphQueryDepth,
+}
+
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+pub struct LinkResolveDepth {
+    #[schema(value_type = i64)]
+    pub outgoing: SubgraphQueryDepth,
+    #[schema(value_type = i64)]
+    pub incoming: SubgraphQueryDepth,
 }
 
 impl GraphResolveDepths {
-    #[must_use]
-    pub const fn zeroed() -> Self {
-        Self {
-            data_type_resolve_depth: 0,
-            property_type_resolve_depth: 0,
-            entity_type_resolve_depth: 0,
-            entity_resolve_depth: 0,
+    #[expect(clippy::useless_let_if_seq, reason = "This would be unreadable")]
+    pub fn update(&mut self, other: Self) -> bool {
+        let mut updated = false;
+        if self.value_constrain_resolve_depth < other.value_constrain_resolve_depth {
+            self.value_constrain_resolve_depth = other.value_constrain_resolve_depth;
+            updated = true;
         }
+        if self.property_constrain_resolve_depth < other.property_constrain_resolve_depth {
+            self.property_constrain_resolve_depth = other.property_constrain_resolve_depth;
+            updated = true;
+        }
+        if self.link_constrain_resolve_depth < other.link_constrain_resolve_depth {
+            self.link_constrain_resolve_depth = other.link_constrain_resolve_depth;
+            updated = true;
+        }
+        if self.link_destination_resolve_depth < other.link_destination_resolve_depth {
+            self.link_destination_resolve_depth = other.link_destination_resolve_depth;
+            updated = true;
+        }
+        if self.inheritance_resolve_depth < other.inheritance_resolve_depth {
+            self.inheritance_resolve_depth = other.inheritance_resolve_depth;
+            updated = true;
+        }
+        if self.type_resolve_depth < other.type_resolve_depth {
+            self.type_resolve_depth = other.type_resolve_depth;
+            updated = true;
+        }
+        if self.entity_resolve_depth.left < other.entity_resolve_depth.left {
+            self.entity_resolve_depth.left = other.entity_resolve_depth.left;
+            updated = true;
+        }
+        if self.entity_resolve_depth.right < other.entity_resolve_depth.right {
+            self.entity_resolve_depth.right = other.entity_resolve_depth.right;
+            updated = true;
+        }
+        if self.link_resolve_depth.outgoing < other.link_resolve_depth.outgoing {
+            self.link_resolve_depth.outgoing = other.link_resolve_depth.outgoing;
+            updated = true;
+        }
+        if self.link_resolve_depth.incoming < other.link_resolve_depth.incoming {
+            self.link_resolve_depth.incoming = other.link_resolve_depth.incoming;
+            updated = true;
+        }
+        updated
     }
 }

@@ -29,12 +29,7 @@ pub fn bench_get_entity_by_id(
             let subgraph = store
                 .get_entity(&StructuralQuery {
                     filter: Filter::for_latest_entity_by_entity_uuid(entity_uuid),
-                    graph_resolve_depths: GraphResolveDepths {
-                        data_type_resolve_depth: 0,
-                        property_type_resolve_depth: 0,
-                        entity_type_resolve_depth: 0,
-                        entity_resolve_depth: 0,
-                    },
+                    graph_resolve_depths: GraphResolveDepths::default(),
                 })
                 .await
                 .expect("failed to read entity from store");

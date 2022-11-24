@@ -13,6 +13,7 @@ use uuid::Uuid;
 use crate::{
     identifier::{
         knowledge::{EntityEditionId, EntityId},
+        ontology::OntologyTypeEditionId,
         Timestamp,
     },
     knowledge::{Entity, EntityQueryPath, EntityUuid},
@@ -69,6 +70,28 @@ where
                 Some(FilterExpression::Path(<T::Path<'q>>::version())),
                 Some(FilterExpression::Parameter(Parameter::SignedInteger(
                     versioned_uri.version().into(),
+                ))),
+            ),
+        ])
+    }
+
+    /// Creates a `Filter` to search for a specific ontology type of kind `T`, identified by its
+    /// [`OntologyTypeEditionId`].
+    #[must_use]
+    pub fn for_ontology_type_edition_id(
+        ontology_type_edition_id: &'q OntologyTypeEditionId,
+    ) -> Self {
+        Self::All(vec![
+            Self::Equal(
+                Some(FilterExpression::Path(<T::Path<'q>>::base_uri())),
+                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
+                    ontology_type_edition_id.base_id().as_str(),
+                )))),
+            ),
+            Self::Equal(
+                Some(FilterExpression::Path(<T::Path<'q>>::version())),
+                Some(FilterExpression::Parameter(Parameter::SignedInteger(
+                    ontology_type_edition_id.version().inner().into(),
                 ))),
             ),
         ])

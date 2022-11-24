@@ -28,12 +28,7 @@ pub fn bench_get_entity_type_by_id(
             store
                 .get_entity_type(&StructuralQuery {
                     filter: Filter::for_versioned_uri(&entity_type_id),
-                    graph_resolve_depths: GraphResolveDepths {
-                        data_type_resolve_depth: 0,
-                        property_type_resolve_depth: 0,
-                        entity_type_resolve_depth: 0,
-                        entity_resolve_depth: 0,
-                    },
+                    graph_resolve_depths: GraphResolveDepths::default(),
                 })
                 .await
                 .expect("failed to read entity type from store");

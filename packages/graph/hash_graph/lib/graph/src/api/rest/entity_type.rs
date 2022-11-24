@@ -34,7 +34,7 @@ use crate::{
         EntityTypeStore, StorePool,
     },
     subgraph::{
-        depths::GraphResolveDepths,
+        depths::{EntityResolveDepth, GraphResolveDepths, LinkResolveDepth},
         edges::{OntologyEdgeKind, OntologyOutwardEdges, SharedEdgeKind},
         query::{EntityTypeStructuralQuery, StructuralQuery},
         vertices::Vertex,
@@ -74,6 +74,8 @@ use crate::{
             OntologyRootedEdges,
             Edges,
             GraphResolveDepths,
+            EntityResolveDepth,
+            LinkResolveDepth,
             Subgraph,
         )
     ),

@@ -495,6 +495,25 @@ export type EntityQueryToken =
   typeof EntityQueryToken[keyof typeof EntityQueryToken];
 
 /**
+ *
+ * @export
+ * @interface EntityResolveDepth
+ */
+export interface EntityResolveDepth {
+  /**
+   *
+   * @type {number}
+   * @memberof EntityResolveDepth
+   */
+  left: number;
+  /**
+   *
+   * @type {number}
+   * @memberof EntityResolveDepth
+   */
+  right: number;
+}
+/**
  * Structural queries are the main entry point to read data from the Graph.
  * @export
  * @interface EntityStructuralQuery
@@ -755,28 +774,52 @@ export type GraphElementId = string;
 export interface GraphResolveDepths {
   /**
    *
-   * @type {number}
+   * @type {EntityResolveDepth}
    * @memberof GraphResolveDepths
    */
-  dataTypeResolveDepth: number;
+  entityResolveDepth: EntityResolveDepth;
   /**
    *
    * @type {number}
    * @memberof GraphResolveDepths
    */
-  entityResolveDepth: number;
+  inheritanceResolveDepth: number;
   /**
    *
    * @type {number}
    * @memberof GraphResolveDepths
    */
-  entityTypeResolveDepth: number;
+  linkConstrainResolveDepth: number;
   /**
    *
    * @type {number}
    * @memberof GraphResolveDepths
    */
-  propertyTypeResolveDepth: number;
+  linkDestinationResolveDepth: number;
+  /**
+   *
+   * @type {LinkResolveDepth}
+   * @memberof GraphResolveDepths
+   */
+  linkResolveDepth: LinkResolveDepth;
+  /**
+   *
+   * @type {number}
+   * @memberof GraphResolveDepths
+   */
+  propertyConstrainResolveDepth: number;
+  /**
+   *
+   * @type {number}
+   * @memberof GraphResolveDepths
+   */
+  typeResolveDepth: number;
+  /**
+   *
+   * @type {number}
+   * @memberof GraphResolveDepths
+   */
+  valueConstrainResolveDepth: number;
 }
 /**
  *
@@ -1003,6 +1046,25 @@ export interface LinkEntityMetadataAllOf {
    * @memberof LinkEntityMetadataAllOf
    */
   rightEntityId: string;
+}
+/**
+ *
+ * @export
+ * @interface LinkResolveDepth
+ */
+export interface LinkResolveDepth {
+  /**
+   *
+   * @type {number}
+   * @memberof LinkResolveDepth
+   */
+  incoming: number;
+  /**
+   *
+   * @type {number}
+   * @memberof LinkResolveDepth
+   */
+  outgoing: number;
 }
 /**
  *

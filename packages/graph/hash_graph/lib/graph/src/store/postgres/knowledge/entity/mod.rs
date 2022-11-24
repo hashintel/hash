@@ -1,6 +1,6 @@
 mod read;
 
-use std::{collections::HashSet, future::Future, pin::Pin};
+use std::{future::Future, pin::Pin};
 
 use async_trait::async_trait;
 use error_stack::{bail, IntoReport, Report, Result, ResultExt};
@@ -12,6 +12,7 @@ use uuid::Uuid;
 use crate::{
     identifier::{
         knowledge::{EntityEditionId, EntityId, EntityIdAndTimestamp},
+        ontology::OntologyTypeEditionId,
         GraphElementEditionId,
     },
     knowledge::{
@@ -21,16 +22,17 @@ use crate::{
     store::{
         crud::Read,
         error::ArchivalError,
-        postgres::{DependencyContext, DependencyContextRef, HistoricMove},
+        postgres::{DependencyContext, DependencyStatus, HistoricMove},
         query::Filter,
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
     subgraph::{
-        depths::GraphResolveDepths,
+        depths::{EntityResolveDepth, GraphResolveDepths, LinkResolveDepth},
         edges::{
             Edge, KnowledgeGraphEdgeKind, KnowledgeGraphOutwardEdges, OutwardEdge, SharedEdgeKind,
         },
         query::StructuralQuery,
+        vertices::KnowledgeGraphVertex,
         Subgraph,
     },
 };
@@ -40,54 +42,62 @@ impl<C: AsClient> PostgresStore<C> {
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
     #[expect(clippy::too_many_lines)]
-    pub(crate) fn get_entity_as_dependency<'a: 'b, 'b>(
+    pub(crate) fn get_entity_as_dependency<'a>(
         &'a self,
         entity_edition_id: EntityEditionId,
-        mut dependency_context: DependencyContextRef<'b>,
-    ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'b>> {
+        dependency_context: &'a mut DependencyContext,
+        subgraph: &'a mut Subgraph,
+        current_resolve_depth: GraphResolveDepths,
+    ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'a>> {
         async move {
-            let unresolved_entity = dependency_context
-                .linked_entities
-                .insert_with(
-                    &entity_edition_id,
-                    Some(dependency_context.graph_resolve_depths.entity_resolve_depth),
-                    || async {
-                        self.read_one(&Filter::for_entities_by_edition_id(entity_edition_id))
-                            .await
-                    },
-                )
-                .await?;
+            let dependency_status = dependency_context
+                .knowledge_dependency_map
+                .insert(&entity_edition_id, Some(current_resolve_depth));
+            let entity: Option<&KnowledgeGraphVertex> = match dependency_status {
+                DependencyStatus::Unknown => {
+                    let entity = Read::<Entity>::read_one(
+                        self,
+                        &Filter::for_entities_by_edition_id(entity_edition_id),
+                    )
+                    .await?;
+                    Some(
+                        subgraph
+                            .vertices
+                            .knowledge_graph
+                            .entry(entity_edition_id)
+                            .or_insert(KnowledgeGraphVertex::Entity(entity)),
+                    )
+                }
+                DependencyStatus::DependenciesUnresolved => {
+                    subgraph.vertices.knowledge_graph.get(&entity_edition_id)
+                }
+                DependencyStatus::Resolved => None,
+            };
 
-            if let Some(entity) = unresolved_entity {
-                // Cloning the entity type ID avoids multiple borrow errors which would otherwise
-                // require us to clone the entity
-                let entity_type_id = entity.metadata().entity_type_id().clone();
+            if let Some(KnowledgeGraphVertex::Entity(entity)) = entity {
+                let entity_type_id =
+                    OntologyTypeEditionId::from(entity.metadata().entity_type_id());
                 let entity_edition_id = entity.metadata().edition_id();
 
-                if dependency_context
-                    .graph_resolve_depths
-                    .entity_type_resolve_depth
-                    > 0
-                {
+                if current_resolve_depth.type_resolve_depth > 0 {
                     self.get_entity_type_as_dependency(
-                        &entity_type_id.clone().into(),
-                        dependency_context.change_depth(GraphResolveDepths {
-                            entity_type_resolve_depth: dependency_context
-                                .graph_resolve_depths
-                                .entity_type_resolve_depth
-                                - 1,
-                            ..dependency_context.graph_resolve_depths
-                        }),
+                        &entity_type_id,
+                        dependency_context,
+                        subgraph,
+                        GraphResolveDepths {
+                            type_resolve_depth: current_resolve_depth.type_resolve_depth - 1,
+                            ..current_resolve_depth
+                        },
                     )
                     .await?;
                 }
 
-                dependency_context.edges.insert(Edge::KnowledgeGraph {
+                subgraph.edges.insert(Edge::KnowledgeGraph {
                     edition_id: entity_edition_id,
                     outward_edge: KnowledgeGraphOutwardEdges::ToOntology(OutwardEdge {
                         kind: SharedEdgeKind::IsOfType,
                         reversed: false,
-                        right_endpoint: entity_type_id.into(),
+                        right_endpoint: entity_type_id.clone(),
                     }),
                 });
 
@@ -124,11 +134,9 @@ impl<C: AsClient> PostgresStore<C> {
                         )
                         .version();
 
-                    self.resolve_entity_dependency_with_edge_kind(
-                        &mut dependency_context,
-                        entity_edition_id,
-                        outgoing_link_entity.metadata().edition_id(),
-                        OutwardEdge {
+                    subgraph.edges.insert(Edge::KnowledgeGraph {
+                        edition_id: entity_edition_id,
+                        outward_edge: KnowledgeGraphOutwardEdges::ToKnowledgeGraph(OutwardEdge {
                             // (HasLeftEntity, reversed=true) is equivalent to an
                             // outgoing link `Entity`
                             kind: KnowledgeGraphEdgeKind::HasLeftEntity,
@@ -137,9 +145,24 @@ impl<C: AsClient> PostgresStore<C> {
                                 outgoing_link_entity.metadata().edition_id().base_id(),
                                 earliest_version.inner(),
                             ),
-                        },
-                    )
-                    .await?;
+                        }),
+                    });
+
+                    if current_resolve_depth.link_resolve_depth.outgoing > 0 {
+                        self.get_entity_as_dependency(
+                            outgoing_link_entity.metadata().edition_id(),
+                            dependency_context,
+                            subgraph,
+                            GraphResolveDepths {
+                                link_resolve_depth: LinkResolveDepth {
+                                    outgoing: current_resolve_depth.link_resolve_depth.outgoing - 1,
+                                    incoming: current_resolve_depth.link_resolve_depth.incoming,
+                                },
+                                ..current_resolve_depth
+                            },
+                        )
+                        .await?;
+                    }
                 }
 
                 for incoming_link_entity in <Self as Read<Entity>>::read(
@@ -175,11 +198,9 @@ impl<C: AsClient> PostgresStore<C> {
                         )
                         .version();
 
-                    self.resolve_entity_dependency_with_edge_kind(
-                        &mut dependency_context,
-                        entity_edition_id,
-                        incoming_link_entity.metadata().edition_id(),
-                        OutwardEdge {
+                    subgraph.edges.insert(Edge::KnowledgeGraph {
+                        edition_id: entity_edition_id,
+                        outward_edge: KnowledgeGraphOutwardEdges::ToKnowledgeGraph(OutwardEdge {
                             // (HasRightEntity, reversed=true) is equivalent to an
                             // incoming link `Entity`
                             kind: KnowledgeGraphEdgeKind::HasRightEntity,
@@ -188,9 +209,24 @@ impl<C: AsClient> PostgresStore<C> {
                                 incoming_link_entity.metadata().edition_id().base_id(),
                                 earliest_version.inner(),
                             ),
-                        },
-                    )
-                    .await?;
+                        }),
+                    });
+
+                    if current_resolve_depth.link_resolve_depth.incoming > 0 {
+                        self.get_entity_as_dependency(
+                            incoming_link_entity.metadata().edition_id(),
+                            dependency_context,
+                            subgraph,
+                            GraphResolveDepths {
+                                link_resolve_depth: LinkResolveDepth {
+                                    outgoing: current_resolve_depth.link_resolve_depth.outgoing,
+                                    incoming: current_resolve_depth.link_resolve_depth.incoming - 1,
+                                },
+                                ..current_resolve_depth
+                            },
+                        )
+                        .await?;
+                    }
                 }
 
                 for left_entity in <Self as Read<Entity>>::read(
@@ -223,20 +259,35 @@ impl<C: AsClient> PostgresStore<C> {
                         )
                         .version();
 
-                    self.resolve_entity_dependency_with_edge_kind(
-                        &mut dependency_context,
-                        entity_edition_id,
-                        left_entity.metadata().edition_id(),
-                        OutwardEdge {
+                    subgraph.edges.insert(Edge::KnowledgeGraph {
+                        edition_id: entity_edition_id,
+                        outward_edge: KnowledgeGraphOutwardEdges::ToKnowledgeGraph(OutwardEdge {
+                            // (HasLeftEndpoint, reversed=true) is equivalent to an
+                            // outgoing `Link` `Entity`
                             kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                             reversed: false,
                             right_endpoint: EntityIdAndTimestamp::new(
                                 left_entity.metadata().edition_id().base_id(),
                                 earliest_version.inner(),
                             ),
-                        },
-                    )
-                    .await?;
+                        }),
+                    });
+
+                    if current_resolve_depth.entity_resolve_depth.left > 0 {
+                        self.get_entity_as_dependency(
+                            left_entity.metadata().edition_id(),
+                            dependency_context,
+                            subgraph,
+                            GraphResolveDepths {
+                                entity_resolve_depth: EntityResolveDepth {
+                                    left: current_resolve_depth.entity_resolve_depth.left - 1,
+                                    right: current_resolve_depth.entity_resolve_depth.right,
+                                },
+                                ..current_resolve_depth
+                            },
+                        )
+                        .await?;
+                    }
                 }
 
                 for right_entity in <Self as Read<Entity>>::read(
@@ -269,54 +320,41 @@ impl<C: AsClient> PostgresStore<C> {
                         )
                         .version();
 
-                    self.resolve_entity_dependency_with_edge_kind(
-                        &mut dependency_context,
-                        entity_edition_id,
-                        right_entity.metadata().edition_id(),
-                        OutwardEdge {
+                    subgraph.edges.insert(Edge::KnowledgeGraph {
+                        edition_id: entity_edition_id,
+                        outward_edge: KnowledgeGraphOutwardEdges::ToKnowledgeGraph(OutwardEdge {
+                            // (HasLeftEndpoint, reversed=true) is equivalent to an
+                            // outgoing `Link` `Entity`
                             kind: KnowledgeGraphEdgeKind::HasRightEntity,
                             reversed: false,
                             right_endpoint: EntityIdAndTimestamp::new(
                                 right_entity.metadata().edition_id().base_id(),
                                 earliest_version.inner(),
                             ),
-                        },
-                    )
-                    .await?;
+                        }),
+                    });
+
+                    if current_resolve_depth.entity_resolve_depth.right > 0 {
+                        self.get_entity_as_dependency(
+                            right_entity.metadata().edition_id(),
+                            dependency_context,
+                            subgraph,
+                            GraphResolveDepths {
+                                entity_resolve_depth: EntityResolveDepth {
+                                    left: current_resolve_depth.entity_resolve_depth.left,
+                                    right: current_resolve_depth.entity_resolve_depth.right - 1,
+                                },
+                                ..current_resolve_depth
+                            },
+                        )
+                        .await?;
+                    }
                 }
             }
 
             Ok(())
         }
         .boxed()
-    }
-
-    async fn resolve_entity_dependency_with_edge_kind<'a: 'b, 'b: 'c, 'c>(
-        &'a self,
-        dependency_context: &'c mut DependencyContextRef<'b>,
-        source_entity_edition_id: EntityEditionId,
-        dependent_entity_edition_id: EntityEditionId,
-        edge: OutwardEdge<KnowledgeGraphEdgeKind, EntityIdAndTimestamp>,
-    ) -> Result<(), QueryError> {
-        dependency_context.edges.insert(Edge::KnowledgeGraph {
-            edition_id: source_entity_edition_id,
-            outward_edge: KnowledgeGraphOutwardEdges::ToKnowledgeGraph(edge),
-        });
-
-        if dependency_context.graph_resolve_depths.entity_resolve_depth > 0 {
-            self.get_entity_as_dependency(
-                dependent_entity_edition_id,
-                dependency_context.change_depth(GraphResolveDepths {
-                    entity_resolve_depth: dependency_context
-                        .graph_resolve_depths
-                        .entity_resolve_depth
-                        - 1,
-                    ..dependency_context.graph_resolve_depths
-                }),
-            )
-            .await?;
-        }
-        Ok(())
     }
 }
 
@@ -446,22 +484,31 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         let mut subgraph = stream::iter(Read::<Entity>::read(self, filter).await?)
             .then(|entity| async move {
-                let mut dependency_context = DependencyContext::new(graph_resolve_depths);
+                let mut subgraph = Subgraph::new(graph_resolve_depths);
+                let mut dependency_context = DependencyContext::default();
 
                 let entity_edition_id = entity.metadata().edition_id();
                 dependency_context
-                    .linked_entities
-                    .insert(&entity_edition_id, None, entity);
+                    .knowledge_dependency_map
+                    .insert(&entity_edition_id, None);
+                subgraph
+                    .vertices
+                    .knowledge_graph
+                    .insert(entity_edition_id, KnowledgeGraphVertex::Entity(entity));
 
                 self.get_entity_as_dependency(
                     entity_edition_id,
-                    dependency_context.as_ref_object(),
+                    &mut dependency_context,
+                    &mut subgraph,
+                    graph_resolve_depths,
                 )
                 .await?;
 
-                let root = GraphElementEditionId::KnowledgeGraph(entity_edition_id);
+                subgraph
+                    .roots
+                    .insert(GraphElementEditionId::KnowledgeGraph(entity_edition_id));
 
-                Ok::<_, Report<QueryError>>(dependency_context.into_subgraph(HashSet::from([root])))
+                Ok::<_, Report<QueryError>>(subgraph)
             })
             .try_collect::<Subgraph>()
             .await?;

@@ -192,10 +192,20 @@ Content-Type: application/json
     ]
   },
   "graphResolveDepths": {
-    "dataTypeResolveDepth": 0,
-    "propertyTypeResolveDepth": 0,
-    "entityTypeResolveDepth": 0,
-    "entityResolveDepth": 10
+    "inheritanceResolveDepth": 0,
+    "valueConstrainResolveDepth": 0,
+    "propertyConstrainResolveDepth": 0,
+    "linkConstrainResolveDepth": 0,
+    "linkDestinationResolveDepth": 0,
+    "typeResolveDepth": 0,
+    "entityResolveDepth": {
+      "left": 2,
+      "right": 2
+    },
+    "linkResolveDepth": {
+      "outgoing": 2,
+      "incoming": 2
+    }
   }
 }
 
@@ -313,10 +323,20 @@ Content-Type: application/json
     ]
   },
   "graphResolveDepths": {
-    "dataTypeResolveDepth": 0,
-    "propertyTypeResolveDepth": 0,
-    "entityTypeResolveDepth": 0,
-    "entityResolveDepth": 10
+    "inheritanceResolveDepth": 0,
+    "valueConstrainResolveDepth": 0,
+    "propertyConstrainResolveDepth": 0,
+    "linkConstrainResolveDepth": 0,
+    "linkDestinationResolveDepth": 0,
+    "typeResolveDepth": 0,
+    "entityResolveDepth": {
+      "left": 2,
+      "right": 2
+    },
+    "linkResolveDepth": {
+      "outgoing": 2,
+      "incoming": 2
+    }
   }
 }
 
@@ -351,10 +371,20 @@ Content-Type: application/json
     ]
   },
   "graphResolveDepths": {
-    "dataTypeResolveDepth": 0,
-    "propertyTypeResolveDepth": 0,
-    "entityTypeResolveDepth": 0,
-    "entityResolveDepth": 0
+    "inheritanceResolveDepth": 0,
+    "valueConstrainResolveDepth": 0,
+    "propertyConstrainResolveDepth": 0,
+    "linkConstrainResolveDepth": 0,
+    "linkDestinationResolveDepth": 0,
+    "typeResolveDepth": 0,
+    "entityResolveDepth": {
+      "left": 2,
+      "right": 2
+    },
+    "linkResolveDepth": {
+      "outgoing": 2,
+      "incoming": 2
+    }
   }
 }
 
@@ -469,10 +499,20 @@ Content-Type: application/json
     ]
   },
   "graphResolveDepths": {
-    "dataTypeResolveDepth": 0,
-    "propertyTypeResolveDepth": 0,
-    "entityTypeResolveDepth": 0,
-    "entityResolveDepth": 0
+    "inheritanceResolveDepth": 0,
+    "valueConstrainResolveDepth": 0,
+    "propertyConstrainResolveDepth": 0,
+    "linkConstrainResolveDepth": 0,
+    "linkDestinationResolveDepth": 0,
+    "typeResolveDepth": 0,
+    "entityResolveDepth": {
+      "left": 2,
+      "right": 2
+    },
+    "linkResolveDepth": {
+      "outgoing": 2,
+      "incoming": 2
+    }
   }
 }
 
@@ -546,10 +586,20 @@ Content-Type: application/json
     ]
   },
   "graphResolveDepths": {
-    "dataTypeResolveDepth": 0,
-    "propertyTypeResolveDepth": 0,
-    "entityTypeResolveDepth": 0,
-    "entityResolveDepth": 0
+    "inheritanceResolveDepth": 0,
+    "valueConstrainResolveDepth": 0,
+    "propertyConstrainResolveDepth": 0,
+    "linkConstrainResolveDepth": 0,
+    "linkDestinationResolveDepth": 0,
+    "typeResolveDepth": 0,
+    "entityResolveDepth": {
+      "left": 2,
+      "right": 2
+    },
+    "linkResolveDepth": {
+      "outgoing": 2,
+      "incoming": 2
+    }
   }
 }
 
@@ -596,10 +646,20 @@ Content-Type: application/json
     ]
   },
   "graphResolveDepths": {
-    "dataTypeResolveDepth": 10,
-    "propertyTypeResolveDepth": 10,
-    "entityTypeResolveDepth": 10,
-    "entityResolveDepth": 10
+    "inheritanceResolveDepth": 0,
+    "valueConstrainResolveDepth": 0,
+    "propertyConstrainResolveDepth": 0,
+    "linkConstrainResolveDepth": 0,
+    "linkDestinationResolveDepth": 0,
+    "typeResolveDepth": 0,
+    "entityResolveDepth": {
+      "left": 2,
+      "right": 2
+    },
+    "linkResolveDepth": {
+      "outgoing": 2,
+      "incoming": 2
+    }
   }
 }
 
@@ -629,10 +689,20 @@ Content-Type: application/json
     ]
   },
   "graphResolveDepths": {
-    "dataTypeResolveDepth": 0,
-    "propertyTypeResolveDepth": 0,
-    "entityTypeResolveDepth": 0,
-    "entityResolveDepth": 0
+    "inheritanceResolveDepth": 0,
+    "valueConstrainResolveDepth": 0,
+    "propertyConstrainResolveDepth": 0,
+    "linkConstrainResolveDepth": 0,
+    "linkDestinationResolveDepth": 0,
+    "typeResolveDepth": 0,
+    "entityResolveDepth": {
+      "left": 2,
+      "right": 2
+    },
+    "linkResolveDepth": {
+      "outgoing": 2,
+      "incoming": 2
+    }
   }
 }
 
