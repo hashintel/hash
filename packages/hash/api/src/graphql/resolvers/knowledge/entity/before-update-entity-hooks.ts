@@ -79,7 +79,7 @@ const userEntityHookCallback: BeforeUpdateEntityHookCallback = async ({
 
   const currentEmails = userModel.getEmails();
 
-  const updatedEmails: string[] = updatedProperties[
+  const updatedEmails = updatedProperties[
     SYSTEM_TYPES.propertyType.email.getBaseUri()
   ] as string[];
 
