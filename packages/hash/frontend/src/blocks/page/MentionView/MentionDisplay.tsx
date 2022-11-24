@@ -1,13 +1,14 @@
 import { useMemo, FunctionComponent } from "react";
 import ArticleIcon from "@mui/icons-material/Article";
 
+import { EntityId } from "@hashintel/hash-subgraph";
 import { useUsers } from "../../../components/hooks/useUsers";
 import { useAccountPages } from "../../../components/hooks/useAccountPages";
 import { Link } from "../../../shared/ui";
 
 interface MentionDisplayProps {
-  entityId: string;
-  mentionType: string;
+  entityId: EntityId;
+  mentionType: "page" | "user";
   accountId: string;
 }
 
@@ -30,8 +31,8 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
         } else {
           // Once the query loads, either display the found name, or display "Unknown User" if the user doesn't exist in the users array
           userName =
-            users.find((item) => item.entityId === entityId)?.preferredName ??
-            "Unknown User";
+            users.find((user) => user.entityEditionId.baseId === entityId)
+              ?.preferredName ?? "Unknown User";
         }
 
         return {
