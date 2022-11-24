@@ -40,7 +40,7 @@ import {
   usePropertyTypesContextValue,
 } from "./use-property-types";
 import { useRouteNamespace } from "./use-route-namespace";
-import { getEntityTypeBaseUri, mustBeVersionedUri } from "./util";
+import { getEntityTypeBaseUri } from "./util";
 
 const getSchemaFromEditorForm = (
   properties: EntityTypeEditorPropertyData[],
@@ -135,7 +135,7 @@ const Page: NextPageWithLayout = () => {
             const isArray = "type" in ref;
 
             return {
-              $id: mustBeVersionedUri(isArray ? ref.items.$ref : ref.$ref),
+              $id: isArray ? ref.items.$ref : ref.$ref,
               required: !!fetchedEntityType.required?.includes(propertyId),
               array: isArray,
               maxValue: isArray ? ref.maxItems ?? 1 : 1,
@@ -214,9 +214,7 @@ const Page: NextPageWithLayout = () => {
     return null;
   }
 
-  const currentVersion = draftEntityType
-    ? 0
-    : extractVersion(mustBeVersionedUri(entityType.$id));
+  const currentVersion = draftEntityType ? 0 : extractVersion(entityType.$id);
 
   return (
     <>

@@ -94,7 +94,7 @@ export const useEntitiesTable = (
         return {
           entity: entityLabel,
           entityTypeVersion: entityType
-            ? `v${extractVersion(mustBeVersionedUri(entityType.$id))} ${
+            ? `v${extractVersion(entityType.$id)} ${
                 entityType.title
               }`
             : "",
