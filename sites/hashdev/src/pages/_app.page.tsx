@@ -19,7 +19,7 @@ const defaultSeoProps: DefaultSeoProps = {
   description: SITE_DESCRIPTION,
   twitter: {
     cardType: "summary_large_image",
-    site: "@hashintel",
+    site: "@hashdevs",
   },
   openGraph: {
     images: [{ url: `${FRONTEND_URL}/social-cover.png` }],
