@@ -719,7 +719,6 @@ fn into_boxed_hook<T: Send + Sync + 'static>(
 /// [`SpanTrace`]: tracing_error::SpanTrace
 /// [`Display`]: core::fmt::Display
 /// [`Debug`]: core::fmt::Debug
-/// [`Frame`]: crate::Frame
 /// [`.insert()`]: Hooks::insert
 #[cfg(feature = "std")]
 pub(crate) struct Hooks {
