@@ -63,7 +63,7 @@ function computeChecksumMd5(file: File): Promise<string> {
 }
 
 export const useBlockProtocolFileUpload = (
-  accountId: string,
+  accountId?: string,
   readonly?: boolean,
 ) => {
   const client = useApolloClient();

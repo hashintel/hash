@@ -18,6 +18,8 @@ import { uniqBy } from "lodash";
 
 import { useLocalstorageState } from "rooks";
 import { JsonSchema } from "@hashintel/hash-shared/json-utils";
+import { EntityId } from "@hashintel/hash-subgraph";
+
 import {
   convertApiEntityToBpEntity,
   convertApiEntityTypesToBpEntityTypes,
@@ -38,16 +40,16 @@ import { useReadonlyMode } from "../../shared/readonly-mode";
 import { DataMapEditor } from "./data-map-editor";
 import { mapData, SchemaMap } from "./shared";
 import { useBlockContext } from "../../blocks/page/BlockContext";
+import { useAuthenticatedUser } from "../hooks/useAuthenticatedUser";
 
 // @todo consolidate these properties, e.g. take all entityX, linkX into a single childEntity prop
 // @see https://app.asana.com/0/1200211978612931/1202807842439190/f
 type BlockLoaderProps = {
-  accountId: string;
   blockEntityId: string;
   blockMetadata: HashBlockMeta;
   blockSchema: JsonSchema;
   editableRef: (node: HTMLElement | null) => void;
-  entityId: string;
+  entityId: EntityId;
   entityType?: Pick<ApiEntityType, "entityId" | "properties">;
   entityTypeId: string;
   entityProperties: {};
@@ -65,7 +67,6 @@ type BlockLoaderProps = {
  * and passes the correctly formatted data to RemoteBlock, along with message callbacks
  */
 export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
-  accountId,
   blockEntityId,
   blockMetadata,
   blockSchema,
@@ -80,6 +81,9 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   onBlockLoaded,
   // shouldSandbox,
 }) => {
+  const { authenticatedUser } = useAuthenticatedUser();
+  const accountId = authenticatedUser?.userAccountId;
+
   const { readonlyMode } = useReadonlyMode();
   const { aggregateEntities } = useBlockProtocolAggregateEntities();
   const { createLinkedAggregation } =
@@ -142,7 +146,6 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     };
 
     const blockEntity = convertApiEntityToBpEntity({
-      accountId,
       entityId: entityId ?? "entityId-not-yet-set", // @todo ensure blocks always get sent an entityId
       entityTypeId,
       properties: entityProperties,
@@ -170,7 +173,6 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
       readonly: readonlyMode,
     };
   }, [
-    accountId,
     entityType,
     entityId,
     entityProperties,

@@ -40,7 +40,7 @@ export const updatePersistedPageContents: ResolverFn<
   MutationUpdatePersistedPageContentsArgs
 > = async (
   _,
-  { ownedById, entityId: pageEntityId, actions },
+  { entityId: pageEntityId, actions },
   { dataSources, userModel },
 ) => {
   for (const [i, action] of actions.entries()) {
@@ -129,7 +129,7 @@ export const updatePersistedPageContents: ResolverFn<
   });
 
   if (!pageModel) {
-    const msg = `Page with fixed ID ${pageEntityId} not found in account ${ownedById}`;
+    const msg = `Page with Entity ID ${pageEntityId}`;
     throw new ApolloError(msg, "NOT_FOUND");
   }
 

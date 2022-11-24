@@ -7,7 +7,6 @@ import {
   PageModel,
   EntityModelCreateParams,
   BlockModel,
-  LinkEntityModel,
   UserModel,
   OrgModel,
   CommentModel,
@@ -51,20 +50,15 @@ export default class extends EntityModel {
    */
   static async getPageById(
     graphApi: GraphApi,
-    params: { entityId: EntityId; entityVersion?: string },
+    params: { entityId: EntityId },
   ): Promise<PageModel> {
-    const { entityId, entityVersion } = params;
+    const { entityId } = params;
 
-    const entity = entityVersion
-      ? await EntityModel.getVersion(graphApi, {
-          entityId,
-          entityVersion,
-        })
-      : await EntityModel.getLatest(graphApi, {
-          entityId,
-        });
+    const entityModel = await EntityModel.getLatest(graphApi, {
+      entityId,
+    });
 
-    return PageModel.fromEntityModel(entity);
+    return PageModel.fromEntityModel(entityModel);
   }
 
   /**
@@ -380,40 +374,21 @@ export default class extends EntityModel {
    * Get the blocks in this page.
    */
   async getBlocks(graphApi: GraphApi): Promise<BlockModel[]> {
-    const outgoingBlockDataLinks = await LinkEntityModel.getByQuery(graphApi, {
-      all: [
-        {
-          equal: [
-            { path: ["leftEntity", "uuid"] },
-            { parameter: this.getEntityUuid() },
-          ],
-        },
-        {
-          equal: [
-            { path: ["leftEntity", "ownedById"] },
-            { parameter: this.getOwnedById() },
-          ],
-        },
-        {
-          equal: [
-            { path: ["type", "versionedUri"] },
-            {
-              parameter: SYSTEM_TYPES.linkEntityType.contains.getSchema().$id,
-            },
-          ],
-        },
-        {
-          equal: [{ path: ["version"] }, { parameter: "latest" }],
-        },
-        {
-          equal: [{ path: ["archived"] }, { parameter: false }],
-        },
-      ],
+    const outgoingBlockDataLinks = await this.getOutgoingLinks(graphApi, {
+      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.contains,
     });
 
-    return outgoingBlockDataLinks.map(({ rightEntityModel }) =>
-      BlockModel.fromEntityModel(rightEntityModel),
-    );
+    return outgoingBlockDataLinks
+      .sort(
+        (a, b) =>
+          (a.getLinkMetadata().leftOrder ?? 0) -
+            (b.getLinkMetadata().leftOrder ?? 0) ||
+          a.getBaseId().localeCompare(b.getBaseId()) ||
+          a.getVersion().localeCompare(b.getVersion()),
+      )
+      .map(({ rightEntityModel }) =>
+        BlockModel.fromEntityModel(rightEntityModel),
+      );
   }
 
   /**

@@ -26,7 +26,6 @@ export const mapPageModelToGQL = (
 ): UnresolvedPersistedPageGQL => ({
   ...mapEntityModelToGQL(pageModel),
   title: pageModel.getTitle(),
-  properties: pageModel.getProperties(),
   archived: pageModel.getArchived(),
   summary: pageModel.getSummary(),
   index: pageModel.getIndex(),

@@ -13,6 +13,7 @@ import {
   getPersistedPageQuery,
 } from "@hashintel/hash-shared/queries/page.queries";
 import { isSafariBrowser } from "@hashintel/hash-shared/util";
+import { EntityId, splitEntityId } from "@hashintel/hash-subgraph";
 import { alpha, Box, Collapse } from "@mui/material";
 import { keyBy } from "lodash";
 import { GetStaticPaths, GetStaticProps } from "next";
@@ -80,11 +81,7 @@ export const getStaticProps: GetStaticProps<PageProps> = async () => {
 };
 
 export const PageNotificationBanner: FunctionComponent = () => {
-  const router = useRouter();
-
-  const { accountId } = useRouteAccountInfo();
   const { pageEntityId } = useRoutePageInfo();
-  const versionId = router.query.version as string | undefined;
 
   const [archivePage] = useArchivePage();
 
@@ -92,9 +89,7 @@ export const PageNotificationBanner: FunctionComponent = () => {
     getPageInfoQuery,
     {
       variables: {
-        ownedById: accountId,
         entityId: pageEntityId,
-        entityVersion: versionId,
       },
     },
   );
@@ -131,11 +126,7 @@ export const PageNotificationBanner: FunctionComponent = () => {
               background: alpha(palette.gray[90], 0.08),
             },
           })}
-          onClick={() =>
-            accountId &&
-            pageEntityId &&
-            archivePage(false, accountId, pageEntityId)
-          }
+          onClick={() => pageEntityId && archivePage(false, pageEntityId)}
         >
           Restore
         </Button>
@@ -146,26 +137,25 @@ export const PageNotificationBanner: FunctionComponent = () => {
 
 const generateCrumbsFromPages = ({
   pages = [],
-  pageId,
-  accountId,
+  pageEntityId,
 }: {
-  pageId: string;
-  accountId: string;
+  pageEntityId: EntityId;
   pages: AccountPagesInfo["data"];
 }) => {
   const pageMap = new Map(pages.map((page) => [page.entityId, page]));
 
-  let currentPage = pageMap.get(pageId);
+  let currentPage = pageMap.get(pageEntityId);
   let arr = [];
 
   while (currentPage) {
+    const [ownedById, entityUuid] = splitEntityId(currentPage.entityId);
     arr.push({
       title: currentPage.title,
-      href: `/${accountId}/${currentPage.entityId}`,
+      href: `/${ownedById}/${entityUuid}`,
       id: currentPage.entityId,
       icon: (
         <PageIcon
-          ownedById={accountId}
+          ownedById={ownedById}
           entityId={currentPage.entityId}
           size="small"
         />
@@ -208,9 +198,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
     GetPersistedPageQueryVariables
   >(getPersistedPageQuery, {
     variables: {
-      ownedById: accountId,
       entityId: pageEntityId,
-      entityVersion: versionId,
     },
   });
   const pageHeaderRef = useRef<HTMLElement>();
@@ -313,8 +301,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
           <TopContextBar
             crumbs={generateCrumbsFromPages({
               pages: accountPages,
-              pageId: data.persistedPage.entityId,
-              accountId,
+              pageEntityId: data.persistedPage.metadata.editionId.baseId,
             })}
             scrollToTop={scrollToTop}
           />
