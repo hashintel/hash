@@ -19,7 +19,11 @@ type DataTypeModelConstructorArgs = {
 export default class {
   dataType: DataTypeWithMetadata;
 
-  get schema(): DataType {
+  constructor({ dataType }: DataTypeModelConstructorArgs) {
+    this.dataType = dataType;
+  }
+
+  getSchema(): DataType {
     /**
      * @todo and a warning, these type casts are here to compensate for
      *   the differences between the Graph API package and the
@@ -31,15 +35,11 @@ export default class {
      *   its own types.
      *   https://app.asana.com/0/1202805690238892/1202892835843657/f
      */
-    return this.dataType.schema as DataType;
+    return this.dataType.schema;
   }
 
-  get metadata(): OntologyElementMetadata {
+  getMetadata(): OntologyElementMetadata {
     return this.dataType.metadata;
-  }
-
-  constructor({ dataType }: DataTypeModelConstructorArgs) {
-    this.dataType = dataType;
   }
 
   static fromDataTypeWithMetadata(
@@ -151,7 +151,7 @@ export default class {
 
     const updateArguments: UpdateDataTypeRequest = {
       actorId,
-      typeToUpdate: this.schema.$id,
+      typeToUpdate: this.getSchema().$id,
       schema,
     };
 
@@ -160,7 +160,10 @@ export default class {
     const { editionId } = metadata;
 
     return DataTypeModel.fromDataTypeWithMetadata({
-      schema: { ...schema, $id: `${editionId.baseId}/v/${editionId.version}` },
+      schema: {
+        ...schema,
+        $id: `${editionId.baseId}/v/${editionId.version}`,
+      },
       metadata,
     });
   }

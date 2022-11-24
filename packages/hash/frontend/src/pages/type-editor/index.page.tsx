@@ -46,7 +46,6 @@ const ExampleUsage = ({ accountId }: { accountId: string }) => {
             propertyType: {
               kind: "propertyType",
               title: "Name",
-              pluralTitle: "Names",
               oneOf: [{ $ref: types.dataType.text.dataTypeId }],
             },
           },
@@ -113,7 +112,7 @@ const Page: NextPageWithLayout = () => {
   ) : (
     <Container sx={{ pt: 10 }}>
       Hello!
-      <ExampleUsage accountId={authenticatedUser.entityId} />
+      <ExampleUsage accountId={authenticatedUser.userAccountId} />
     </Container>
   );
 };

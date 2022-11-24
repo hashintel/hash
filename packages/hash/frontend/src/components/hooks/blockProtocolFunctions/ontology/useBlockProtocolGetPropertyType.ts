@@ -1,13 +1,13 @@
 import { useLazyQuery } from "@apollo/client";
 
 import { useCallback } from "react";
+import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import {
   GetPropertyTypeQuery,
   GetPropertyTypeQueryVariables,
 } from "../../../../graphql/apiTypes.gen";
 import { getPropertyTypeQuery } from "../../../../graphql/queries/ontology/property-type.queries";
 import { GetPropertyTypeMessageCallback } from "./ontology-types-shim";
-import { Subgraph } from "../../../../lib/subgraph";
 
 export const useBlockProtocolGetPropertyType = (): {
   getPropertyType: GetPropertyTypeMessageCallback;
@@ -27,8 +27,8 @@ export const useBlockProtocolGetPropertyType = (): {
   });
 
   const getPropertyType = useCallback<GetPropertyTypeMessageCallback>(
-    async ({ data }) => {
-      if (!data) {
+    async ({ data: propertyTypeId }) => {
+      if (!propertyTypeId) {
         return {
           errors: [
             {
@@ -38,8 +38,6 @@ export const useBlockProtocolGetPropertyType = (): {
           ],
         };
       }
-
-      const { propertyTypeId } = data;
 
       const response = await getFn({
         variables: {
@@ -61,11 +59,10 @@ export const useBlockProtocolGetPropertyType = (): {
       }
 
       return {
-        /**
-         * @todo: remove this when we start returning links in the subgraph
-         *   https://app.asana.com/0/0/1203214689883095/f
-         */
-        data: response.data.getPropertyType as Subgraph,
+        /** @todo - Is there a way we can ergonomically encode this in the GraphQL type? */
+        data: response.data.getPropertyType as Subgraph<
+          SubgraphRootTypes["propertyType"]
+        >,
       };
     },
     [getFn],

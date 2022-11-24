@@ -6,14 +6,12 @@ export const getEntityTypeQuery = gql`
     $entityTypeId: VersionedUri!
     $dataTypeResolveDepth: Int!
     $propertyTypeResolveDepth: Int!
-    $linkTypeResolveDepth: Int!
     $entityTypeResolveDepth: Int!
   ) {
     getEntityType(
       entityTypeId: $entityTypeId
       dataTypeResolveDepth: $dataTypeResolveDepth
       propertyTypeResolveDepth: $propertyTypeResolveDepth
-      linkTypeResolveDepth: $linkTypeResolveDepth
       entityTypeResolveDepth: $entityTypeResolveDepth
     ) {
       ...SubgraphFields
@@ -26,13 +24,11 @@ export const getAllLatestEntityTypesQuery = gql`
   query getAllLatestEntityTypes(
     $dataTypeResolveDepth: Int!
     $propertyTypeResolveDepth: Int!
-    $linkTypeResolveDepth: Int!
     $entityTypeResolveDepth: Int!
   ) {
     getAllLatestEntityTypes(
       dataTypeResolveDepth: $dataTypeResolveDepth
       propertyTypeResolveDepth: $propertyTypeResolveDepth
-      linkTypeResolveDepth: $linkTypeResolveDepth
       entityTypeResolveDepth: $entityTypeResolveDepth
     ) {
       ...SubgraphFields
@@ -46,14 +42,12 @@ export const getEntityTypeRootedSubgraphQuery = gql`
     $entityTypeId: VersionedUri!
     $dataTypeResolveDepth: Int!
     $propertyTypeResolveDepth: Int!
-    $linkTypeResolveDepth: Int!
     $entityTypeResolveDepth: Int!
   ) {
     getEntityType(
       entityTypeId: $entityTypeId
       dataTypeResolveDepth: $dataTypeResolveDepth
       propertyTypeResolveDepth: $propertyTypeResolveDepth
-      linkTypeResolveDepth: $linkTypeResolveDepth
       entityTypeResolveDepth: $entityTypeResolveDepth
     ) {
       ...SubgraphFields
@@ -67,9 +61,8 @@ export const createEntityTypeMutation = gql`
     $ownedById: ID!
     $entityType: EntityTypeWithoutId!
   ) {
-    createEntityType(ownedById: $ownedById, entityType: $entityType) {
-      # This is a scalar, which has no selection.
-    }
+    # This is a scalar, which has no selection.
+    createEntityType(ownedById: $ownedById, entityType: $entityType)
   }
 `;
 
@@ -81,8 +74,6 @@ export const updateEntityTypeMutation = gql`
     updateEntityType(
       entityTypeId: $entityTypeId
       updatedEntityType: $updatedEntityType
-    ) {
-      # This is a scalar, which has no selection.
-    }
+    )
   }
 `;

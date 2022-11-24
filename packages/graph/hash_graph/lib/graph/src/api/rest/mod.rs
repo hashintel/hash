@@ -10,6 +10,7 @@ mod data_type;
 mod entity;
 mod entity_type;
 mod property_type;
+mod utoipa_typedef;
 
 use std::sync::Arc;
 

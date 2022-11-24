@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::{openapi::Schema, ToSchema};
 use uuid::Uuid;
 
-use crate::shared::identifier::account::AccountId;
+use crate::identifier::account::AccountId;
 
 macro_rules! define_provenance_id {
     ($name:tt) => {

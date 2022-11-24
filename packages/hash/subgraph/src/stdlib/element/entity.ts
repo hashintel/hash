@@ -91,7 +91,7 @@ export const getEntityAtTimestamp = (
     entityEditions,
   )) {
     if (
-      timestampString <= potentialEntityVersion
+      potentialEntityVersion <= timestampString
       /**
        *  @todo - we need to know the endTime of the entity
        *    https://app.asana.com/0/1201095311341924/1203331904553375/f

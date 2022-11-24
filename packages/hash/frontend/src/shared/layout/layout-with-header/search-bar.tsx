@@ -249,7 +249,8 @@ const SearchBarWhenSearchIsEnabled: FunctionComponent = () => {
                 <Link noLinkStyle href={toBlockUrl(searchPage)}>
                   <a>
                     {splitByMatches(searchPage.content, submittedQuery).map(
-                      (str, i) => (i % 2 === 1 ? <b>{str}</b> : str),
+                      // eslint-disable-next-line react/no-array-index-key
+                      (str, i) => (i % 2 === 1 ? <b key={i}>{str}</b> : str),
                     )}
                   </a>
                 </Link>

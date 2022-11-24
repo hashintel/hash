@@ -1,9 +1,8 @@
 import { BaseUri, VersionedUri } from "@blockprotocol/type-system-web";
 import slugify from "slugify";
 import { EntityId } from "@hashintel/hash-subgraph";
+import { SYSTEM_ACCOUNT_SHORTNAME } from "@hashintel/hash-shared/environment";
 import { frontendUrl } from "./environment";
-
-const systemNamespaceName = "example";
 
 type SchemaKind = "data-type" | "property-type" | "entity-type";
 
@@ -78,7 +77,7 @@ export const generateTypeId = ({
 export const generateSystemTypeId = (args: {
   kind: SchemaKind;
   title: string;
-}) => generateTypeId({ namespace: systemNamespaceName, ...args });
+}) => generateTypeId({ namespace: SYSTEM_ACCOUNT_SHORTNAME, ...args });
 
 /**
  * Generate the identifier of a block protocol type (its versioned URI).
@@ -125,10 +124,6 @@ const systemEntityTypes = {
   },
   org: {
     title: "Org",
-    description: undefined,
-  },
-  orgMembership: {
-    title: "Org Membership",
     description: undefined,
   },
   comment: {
@@ -233,13 +228,9 @@ export type SystemPropertyTypeTitle =
  * The system link entity type titles.
  */
 const systemLinkEntityTypes = {
-  hasMembership: {
-    title: "Has Membership",
-    description: "Having a membership.",
-  },
-  ofOrg: {
-    title: "Of Org",
-    description: "Belonging to an organization",
+  orgMembership: {
+    title: "Org Membership",
+    description: undefined,
   },
   blockData: {
     title: "Block Data",
@@ -320,7 +311,6 @@ type DataTypeDefinition = TypeDefinition & { dataTypeId: VersionedUri };
 
 type LinkEntityTypeDefinition = TypeDefinition & {
   linkEntityTypeId: VersionedUri;
-  description: string;
 };
 
 type TypeDefinitions = {

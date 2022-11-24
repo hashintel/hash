@@ -65,20 +65,20 @@ describe("User model class", () => {
   });
 
   it("can get the account id", () => {
-    expect(createdUser.entityUuid).toBeDefined();
+    expect(createdUser.getEntityUuid()).toBeDefined();
   });
 
   it("can update the shortname of a user", async () => {
     createdUser = await createdUser.updateShortname(graphApi, {
       updatedShortname: shortname,
-      actorId: createdUser.entityUuid,
+      actorId: createdUser.getEntityUuid(),
     });
   });
 
   it("can update the preferred name of a user", async () => {
     createdUser = await createdUser.updatePreferredName(graphApi, {
       updatedPreferredName: "Alice",
-      actorId: createdUser.entityUuid,
+      actorId: createdUser.getEntityUuid(),
     });
   });
 
@@ -105,7 +105,7 @@ describe("User model class", () => {
   it("can join an org", async () => {
     const testOrg = await createTestOrg(graphApi, "userModelTest", logger);
 
-    const orgEntityUuid = testOrg.entityUuid;
+    const orgEntityUuid = testOrg.getEntityUuid();
 
     expect(await createdUser.isMemberOfOrg(graphApi, { orgEntityUuid })).toBe(
       false,

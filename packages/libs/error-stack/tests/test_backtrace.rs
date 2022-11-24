@@ -37,19 +37,6 @@ fn captured() {
 
 #[test]
 #[cfg(nightly)]
-fn captured_deprecated() {
-    std::env::set_var("RUST_LIB_BACKTRACE", "1");
-
-    let report = create_report();
-    #[cfg(nightly)]
-    assert_eq!(report.request_ref::<Backtrace>().count(), 1);
-    #[allow(deprecated)]
-    let backtrace = report.backtrace().expect("No backtrace captured");
-    assert!(!backtrace.frames().is_empty());
-}
-
-#[test]
-#[cfg(nightly)]
 fn provided() {
     let error = ErrorB::new(10);
     let error_backtrace = error.backtrace().expect("No backtrace captured");

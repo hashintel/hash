@@ -230,12 +230,12 @@ export const propertyTypeInitializer = (
 export type EntityTypeCreatorParams = {
   entityTypeId: VersionedUri;
   title: string;
-  properties: {
+  properties?: {
     propertyTypeModel: PropertyTypeModel;
     required?: boolean;
     array?: { minItems?: number; maxItems?: number } | boolean;
   }[];
-  outgoingLinks: {
+  outgoingLinks?: {
     linkEntityTypeModel: EntityTypeModel;
     destinationEntityTypeModels: (
       | EntityTypeModel
@@ -257,62 +257,61 @@ export const generateSystemEntityTypeSchema = (
   params: EntityTypeCreatorParams,
 ): EntityType => {
   /** @todo - clean this up to be more readable: https://app.asana.com/0/1202805690238892/1202931031833226/f */
-  const properties = params.properties.reduce(
-    (prev, { propertyTypeModel, array }) => ({
-      ...prev,
-      [propertyTypeModel.baseUri]: array
-        ? {
-            type: "array",
-            items: { $ref: propertyTypeModel.schema.$id },
-            ...(array === true ? {} : array),
-          }
-        : { $ref: propertyTypeModel.schema.$id },
-    }),
-    {},
-  );
+  const properties =
+    params.properties?.reduce(
+      (prev, { propertyTypeModel, array }) => ({
+        ...prev,
+        [propertyTypeModel.getBaseUri()]: array
+          ? {
+              type: "array",
+              items: { $ref: propertyTypeModel.getSchema().$id },
+              ...(array === true ? {} : array),
+            }
+          : { $ref: propertyTypeModel.getSchema().$id },
+      }),
+      {},
+    ) ?? {};
 
   const requiredProperties = params.properties
-    .filter(({ required }) => !!required)
-    .map(({ propertyTypeModel }) => propertyTypeModel.baseUri);
+    ?.filter(({ required }) => !!required)
+    .map(({ propertyTypeModel }) => propertyTypeModel.getBaseUri());
 
   const links =
-    params.outgoingLinks.length > 0
-      ? params.outgoingLinks.reduce<EntityType["links"]>(
-          (
-            prev,
-            {
-              linkEntityTypeModel,
-              destinationEntityTypeModels,
-              ordered = false,
-              minItems,
-              maxItems,
-            },
-          ): EntityType["links"] => ({
-            ...prev,
-            [linkEntityTypeModel.schema.$id]: {
-              type: "array",
-              ordered,
-              items: {
-                oneOf: destinationEntityTypeModels.map(
-                  (entityTypeModelOrReference) => ({
-                    $ref:
-                      entityTypeModelOrReference === "SELF_REFERENCE"
-                        ? params.entityTypeId
-                        : entityTypeModelOrReference.schema.$id,
-                  }),
-                ),
-              },
-              minItems,
-              maxItems,
-            },
-          }),
-          {},
-        )
-      : undefined;
+    params.outgoingLinks?.reduce<EntityType["links"]>(
+      (
+        prev,
+        {
+          linkEntityTypeModel,
+          destinationEntityTypeModels,
+          ordered = false,
+          minItems,
+          maxItems,
+        },
+      ): EntityType["links"] => ({
+        ...prev,
+        [linkEntityTypeModel.getSchema().$id]: {
+          type: "array",
+          ordered,
+          items: {
+            oneOf: destinationEntityTypeModels.map(
+              (entityTypeModelOrReference) => ({
+                $ref:
+                  entityTypeModelOrReference === "SELF_REFERENCE"
+                    ? params.entityTypeId
+                    : entityTypeModelOrReference.getSchema().$id,
+              }),
+            ),
+          },
+          minItems,
+          maxItems,
+        },
+      }),
+      {},
+    ) ?? undefined;
 
   const requiredLinks = params.outgoingLinks
-    .filter(({ required }) => !!required)
-    .map(({ linkEntityTypeModel }) => linkEntityTypeModel.schema.$id);
+    ?.filter(({ required }) => !!required)
+    .map(({ linkEntityTypeModel }) => linkEntityTypeModel.getSchema().$id);
 
   return {
     $id: params.entityTypeId,
@@ -320,17 +319,17 @@ export const generateSystemEntityTypeSchema = (
     type: "object",
     kind: "entityType",
     properties,
-    required: requiredProperties.length > 0 ? requiredProperties : undefined,
+    required: requiredProperties,
     links,
-    requiredLinks: requiredLinks.length > 0 ? requiredLinks : undefined,
+    requiredLinks,
   };
 };
 
-export type LinkEntityTypeCreatorParams = {
+export type LinkEntityTypeCreatorParams = Omit<
+  EntityTypeCreatorParams,
+  "entityTypeId"
+> & {
   linkEntityTypeId: VersionedUri;
-  title: string;
-  description: string;
-  actorId: string;
 };
 
 export const linkEntityTypeUri: VersionedUri =
@@ -340,17 +339,14 @@ export const linkEntityTypeUri: VersionedUri =
  * Helper method for generating a link entity type schema for the Graph API.
  */
 export const generateSystemLinkEntityTypeSchema = (
-  params: Omit<LinkEntityTypeCreatorParams, "actorId">,
-): EntityType => {
-  return {
-    kind: "entityType",
-    $id: params.linkEntityTypeId,
-    type: "object",
-    title: params.title,
-    allOf: [{ $ref: linkEntityTypeUri }],
-    properties: {},
-  };
-};
+  params: LinkEntityTypeCreatorParams,
+): EntityType => ({
+  ...generateSystemEntityTypeSchema({
+    ...params,
+    entityTypeId: params.linkEntityTypeId,
+  }),
+  allOf: [{ $ref: linkEntityTypeUri }],
+});
 
 /**
  * Returns a function which can be used to initialize a given entity type. This asynchronous design allows us to express

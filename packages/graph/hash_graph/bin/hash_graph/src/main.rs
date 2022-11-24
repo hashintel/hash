@@ -7,10 +7,10 @@ use std::{collections::HashMap, fmt, net::SocketAddr, sync::Arc};
 use error_stack::{Context, IntoReport, Result, ResultExt};
 use graph::{
     api::rest::rest_api_router,
+    identifier::account::AccountId,
     logging::init_logger,
     ontology::domain_validator::DomainValidator,
     provenance::{CreatedById, OwnedById},
-    shared::identifier::account::AccountId,
     store::{
         AccountStore, BaseUriAlreadyExists, DataTypeStore, EntityTypeStore, PostgresStorePool,
         StorePool,

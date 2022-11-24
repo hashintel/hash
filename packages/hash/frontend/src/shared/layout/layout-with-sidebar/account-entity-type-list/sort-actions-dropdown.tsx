@@ -4,6 +4,7 @@ import {
   Box,
   ListItemIcon,
   ListItemText,
+  Menu,
   Tooltip,
   Typography,
 } from "@mui/material";
@@ -13,7 +14,7 @@ import {
   faQuestionCircle,
   IconDefinition,
 } from "@fortawesome/free-solid-svg-icons";
-import { Menu, FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { MenuItem } from "../../../ui";
 
 export type SortType = "asc" | "desc" | "recent" | "most_used" | "least_used";

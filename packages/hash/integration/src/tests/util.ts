@@ -50,7 +50,7 @@ export const createTestUser = async (
   return await createdUser
     .updateShortname(graphApi, {
       updatedShortname: shortname,
-      actorId: createdUser.entityUuid,
+      actorId: createdUser.getEntityUuid(),
     })
     .catch((err) => {
       logger.error(`Error updating shortname for UserModel to ${shortname}`);

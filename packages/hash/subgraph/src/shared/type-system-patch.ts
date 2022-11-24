@@ -3,7 +3,7 @@ import {
   VersionedUri,
   validateBaseUri as validateBaseUriGraphApi,
   validateVersionedUri as validateVersionedUriGraphApi,
-} from "@blockprotocol/type-system-node";
+} from "@blockprotocol/type-system-web";
 
 /**
  * @todo - we are patching these so this package can be used in node and web environments. When we unify the packages

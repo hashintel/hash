@@ -25,7 +25,7 @@ export const updatePersistedCommentText: ResolverFn<
   });
 
   const updatedCommentModel = await commentModel.updateText(graphApi, {
-    actorId: userModel.entityUuid,
+    actorId: userModel.getEntityUuid(),
     tokens,
   });
 

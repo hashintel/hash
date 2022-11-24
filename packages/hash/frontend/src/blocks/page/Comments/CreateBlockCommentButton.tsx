@@ -1,20 +1,20 @@
 import { FunctionComponent, useCallback, useState } from "react";
 import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { faComment } from "@fortawesome/free-regular-svg-icons";
-import Box from "@mui/material/Box";
-import Popper from "@mui/material/Popper";
+import { Box, Popper } from "@mui/material";
+import { EntityId } from "@hashintel/hash-subgraph";
 import styles from "../style.module.css";
 import { CreateBlockComment } from "./CreateBlockComment";
 import { useReadonlyMode } from "../../../shared/readonly-mode";
 
 type CreateBlockCommentButtonProps = {
-  blockId: string | null;
+  blockEntityId: EntityId | null;
   rootNode: HTMLElement;
 };
 
 export const CreateBlockCommentButton: FunctionComponent<
   CreateBlockCommentButtonProps
-> = ({ blockId, rootNode }) => {
+> = ({ blockEntityId, rootNode }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const { readonlyMode } = useReadonlyMode();
@@ -71,7 +71,10 @@ export const CreateBlockCommentButton: FunctionComponent<
         anchorEl={anchorEl}
         style={{ zIndex: 1 }}
       >
-        <CreateBlockComment blockId={blockId} onClose={closeInput} />
+        <CreateBlockComment
+          blockEntityId={blockEntityId}
+          onClose={closeInput}
+        />
       </Popper>
     </Box>
   );

@@ -49,17 +49,9 @@ export const persistedPageTypedef = gql`
     """
     persistedPage(
       """
-      The account ID that owns the Page.
-      """
-      ownedById: ID!
-      """
       The id of the page entity.
       """
       entityId: EntityId!
-      """
-      The version of the page entity. Defaults to the latest version.
-      """
-      entityVersion: String
     ): PersistedPage!
 
     """
@@ -144,10 +136,6 @@ export const persistedPageTypedef = gql`
   """
   input UpdatePersistedEntityAction {
     """
-    The account the entity resides in.
-    """
-    ownedById: ID!
-    """
     The entity's fixed ID.
     """
     entityId: EntityId!
@@ -162,20 +150,9 @@ export const persistedPageTypedef = gql`
   """
   input SwapPersistedBlockDataAction {
     """
-    The account the block resides in
-    """
-    ownedById: ID!
-
-    """
     The Block entity's fixed ID
     """
     entityId: EntityId!
-
-    """
-    The account the new entity resides in
-    """
-    newEntityOwnedById: ID!
-
     """
     The new entity's fixed ID
     """
@@ -300,10 +277,6 @@ export const persistedPageTypedef = gql`
     Update the contents of a page.
     """
     updatePersistedPageContents(
-      """
-      The page's account ID.
-      """
-      ownedById: ID!
       """
       The pages's fixed entity ID.
       """

@@ -196,7 +196,8 @@ services:
       args:
         FRONTEND_URL: "${FRONTEND_URL}"
         API_ORIGIN: "${API_ORIGIN}"
-
+        SYSTEM_ACCOUNT_NAME: "${SYSTEM_ACCOUNT_NAME}"
+        SYSTEM_ACCOUNT_SHORTNAME: "${SYSTEM_ACCOUNT_SHORTNAME}"
     depends_on:
       hash-api:
         condition: service_healthy
@@ -207,6 +208,8 @@ services:
       FRONTEND_URL: "${FRONTEND_URL}"
       API_ORIGIN: "${API_ORIGIN}"
       ORY_KRATOS_PUBLIC_URL: "http://kratos:4433"
+      SYSTEM_ACCOUNT_NAME: "${SYSTEM_ACCOUNT_NAME}"
+      SYSTEM_ACCOUNT_SHORTNAME: "${SYSTEM_ACCOUNT_SHORTNAME}"
 
     ports:
       - "3000:3000"

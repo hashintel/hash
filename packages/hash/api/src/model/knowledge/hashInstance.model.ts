@@ -19,22 +19,19 @@ export type HashInstanceModelCreateParams = Omit<
  * @class {@link HashInstanceModel}
  */
 export default class extends EntityModel {
-  static fromEntityModel(entity: EntityModel): HashInstanceModel {
+  static fromEntityModel(entityModel: EntityModel): HashInstanceModel {
     if (
-      entity.entityTypeModel.schema.$id !==
-      SYSTEM_TYPES.entityType.hashInstance.schema.$id
+      entityModel.entityTypeModel.getSchema().$id !==
+      SYSTEM_TYPES.entityType.hashInstance.getSchema().$id
     ) {
       throw new EntityTypeMismatchError(
-        entity.baseId,
-        SYSTEM_TYPES.entityType.hashInstance.schema.$id,
-        entity.entityTypeModel.schema.$id,
+        entityModel.getBaseId(),
+        SYSTEM_TYPES.entityType.hashInstance.getSchema().$id,
+        entityModel.entityTypeModel.getSchema().$id,
       );
     }
 
-    return new HashInstanceModel({
-      entity: entity.entity,
-      entityTypeModel: entity.entityTypeModel,
-    });
+    return new HashInstanceModel(entityModel);
   }
 
   /**
@@ -87,7 +84,7 @@ export default class extends EntityModel {
           equal: [
             { path: ["type", "versionedUri"] },
             {
-              parameter: SYSTEM_TYPES.entityType.hashInstance.schema.$id,
+              parameter: SYSTEM_TYPES.entityType.hashInstance.getSchema().$id,
             },
           ],
         },
@@ -152,7 +149,7 @@ export default class extends EntityModel {
 
     if (isAlreadyHashInstanceAdmin) {
       throw new Error(
-        `User with entityId "${userModel.baseId}" is already a hash instance admin.`,
+        `User with entityId "${userModel.getBaseId()}" is already a hash instance admin.`,
       );
     }
 
@@ -182,33 +179,33 @@ export default class extends EntityModel {
           {
             equal: [
               { path: ["leftEntity", "uuid"] },
-              { parameter: this.entityUuid },
+              { parameter: this.getEntityUuid() },
             ],
           },
           {
             equal: [
               { path: ["leftEntity", "ownedById"] },
-              { parameter: this.ownedById },
+              { parameter: this.getOwnedById() },
             ],
           },
           {
             equal: [
               { path: ["type", "versionedUri"] },
               {
-                parameter: SYSTEM_TYPES.linkEntityType.admin.schema.$id,
+                parameter: SYSTEM_TYPES.linkEntityType.admin.getSchema().$id,
               },
             ],
           },
           {
             equal: [
               { path: ["rightEntity", "uuid"] },
-              { parameter: userModel.entityUuid },
+              { parameter: userModel.getEntityUuid() },
             ],
           },
           {
             equal: [
               { path: ["rightEntity", "ownedById"] },
-              { parameter: userModel.ownedById },
+              { parameter: userModel.getOwnedById() },
             ],
           },
           {
@@ -231,7 +228,7 @@ export default class extends EntityModel {
 
     if (!outgoingAdminLinkEntityModel) {
       throw new Error(
-        `The user with entity ID ${userModel.baseId} is not a HASH instance admin.`,
+        `The user with entity ID ${userModel.getBaseId()} is not a HASH instance admin.`,
       );
     }
 

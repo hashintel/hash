@@ -8,7 +8,11 @@ use std::{borrow::Cow, str::FromStr};
 
 use error_stack::Result;
 use graph::{
-    identifier::knowledge::{EntityEditionId, EntityId},
+    identifier::{
+        account::AccountId,
+        knowledge::{EntityEditionId, EntityId},
+        GraphElementEditionId,
+    },
     knowledge::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryPath, EntityUuid,
         LinkEntityMetadata,
@@ -18,10 +22,6 @@ use graph::{
         PropertyTypeWithMetadata,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
-    shared::{
-        identifier::{account::AccountId, GraphElementEditionId},
-        subgraph::{depths::GraphResolveDepths, query::StructuralQuery, vertices::Vertex},
-    },
     store::{
         error::ArchivalError,
         query::{Filter, FilterExpression, Parameter},
@@ -29,7 +29,11 @@ use graph::{
         EntityTypeStore, InsertionError, PostgresStore, PostgresStorePool, PropertyTypeStore,
         QueryError, StorePool, UpdateError,
     },
-    subgraph::vertices::{KnowledgeGraphVertex, OntologyVertex},
+    subgraph::{
+        depths::GraphResolveDepths,
+        query::StructuralQuery,
+        vertices::{KnowledgeGraphVertex, OntologyVertex, Vertex},
+    },
 };
 use tokio_postgres::{NoTls, Transaction};
 use type_system::{uri::VersionedUri, DataType, EntityType, PropertyType};

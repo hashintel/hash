@@ -22,10 +22,9 @@ export const persistedPage: ResolverFn<
   {},
   GraphQLContext,
   QueryPersistedPageArgs
-> = async (_, { entityId, entityVersion }, { dataSources: { graphApi } }) => {
+> = async (_, { entityId }, { dataSources: { graphApi } }) => {
   const pageModel = await PageModel.getPageById(graphApi, {
     entityId,
-    entityVersion: entityVersion ?? undefined,
   });
 
   return mapPageModelToGQL(pageModel);
@@ -45,7 +44,7 @@ export const createPersistedPage: ResolverFn<
     ownedById,
     title,
     prevIndex: prevIndex ?? undefined,
-    actorId: userModel.entityUuid,
+    actorId: userModel.getEntityUuid(),
   });
 
   return mapPageModelToGQL(pageModel);

@@ -1,33 +1,37 @@
 import { useRouter } from "next/router";
 import { useMemo } from "react";
-import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
+import { useGetAccountIdForShortname } from "../../../../components/hooks/useGetAccountIdForShortname";
 
-export const useRouteNamespace = () => {
-  const { authenticatedUser } = useAuthenticatedUser();
+export const useRouteNamespace = (): {
+  loading: boolean;
+  namespace?: {
+    accountId: string;
+    shortname?: string;
+  };
+} => {
   const router = useRouter();
-
   const shortname = router.query["account-slug"];
 
-  const namespace = useMemo(() => {
-    let entity;
+  if (Array.isArray(shortname)) {
+    throw new Error("shortname can't be an array");
+  }
 
-    if (authenticatedUser) {
-      if (shortname === `@${authenticatedUser.shortname}`) {
-        entity = authenticatedUser;
-      } else {
-        entity = authenticatedUser.memberOf?.find(
-          (org) => `@${org.shortname}` === shortname,
-        );
-      }
+  const shortnameWithoutPrefix = shortname ? shortname.substring(1) : undefined;
+  const { loading, accountId } = useGetAccountIdForShortname(
+    shortnameWithoutPrefix,
+  );
 
-      if (entity) {
-        return {
-          id: entity.entityId,
-          shortname: entity.shortname,
-        };
-      }
+  return useMemo(() => {
+    if (!loading && accountId) {
+      return {
+        loading,
+        namespace: {
+          accountId,
+          shortname: shortnameWithoutPrefix,
+        },
+      };
+    } else {
+      return { loading };
     }
-  }, [authenticatedUser, shortname]);
-
-  return namespace;
+  }, [loading, accountId, shortnameWithoutPrefix]);
 };

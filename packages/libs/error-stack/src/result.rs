@@ -185,13 +185,6 @@ pub trait IntoReport: Sized {
     /// Type of the resulting [`Err`] variant wrapped inside a [`Report<E>`].
     type Err;
 
-    #[deprecated(since = "0.2.0", note = "Use `IntoReport::into_report` instead")]
-    #[inline]
-    #[allow(missing_docs)]
-    fn report(self) -> Result<Self::Ok, Self::Err> {
-        self.into_report()
-    }
-
     /// Converts the [`Err`] variant of the [`Result`] to a [`Report`]
     fn into_report(self) -> Result<Self::Ok, Self::Err>;
 }

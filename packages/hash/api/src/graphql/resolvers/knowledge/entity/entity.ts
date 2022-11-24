@@ -3,8 +3,7 @@ import { AxiosError } from "axios";
 import { ApolloError, ForbiddenError } from "apollo-server-express";
 import {
   EntityWithMetadata,
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
+  splitEntityId,
   Subgraph,
 } from "@hashintel/hash-subgraph";
 import { EntityModel } from "../../../../model";
@@ -39,11 +38,11 @@ export const createEntityWithMetadata: ResolverFn<
    */
 
   const entity = await EntityModel.createEntityWithLinks(graphApi, {
-    ownedById: ownedById ?? userModel.entityUuid,
+    ownedById: ownedById ?? userModel.getEntityUuid(),
     entityTypeId,
     properties,
     linkedEntities: linkedEntities ?? undefined,
-    actorId: userModel.entityUuid,
+    actorId: userModel.getEntityUuid(),
   });
 
   return mapEntityModelToGQL(entity);
@@ -108,6 +107,7 @@ export const getEntityWithMetadata: ResolverFn<
   __,
 ) => {
   const { graphApi } = dataSources;
+  const [ownedById, entityUuid] = splitEntityId(entityId);
 
   const filter: Filter = {
     all: [
@@ -118,16 +118,10 @@ export const getEntityWithMetadata: ResolverFn<
         ],
       },
       {
-        equal: [
-          { path: ["uuid"] },
-          { parameter: extractEntityUuidFromEntityId(entityId) },
-        ],
+        equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
       },
       {
-        equal: [
-          { path: ["ownedById"] },
-          { parameter: extractOwnedByIdFromEntityId(entityId) },
-        ],
+        equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
       },
     ],
   };
@@ -164,7 +158,7 @@ export const updateEntityWithMetadata: ResolverFn<
 ) => {
   // The user needs to be signed up if they aren't updating their own user entity
   if (
-    entityId !== userModel.entityUuid &&
+    entityId !== userModel.getEntityUuid() &&
     !userModel.isAccountSignupComplete()
   ) {
     throw new ForbiddenError(
@@ -176,7 +170,8 @@ export const updateEntityWithMetadata: ResolverFn<
 
   for (const beforeUpdateHook of beforeUpdateEntityHooks) {
     if (
-      beforeUpdateHook.entityTypeId === entityModel.entityTypeModel.schema.$id
+      beforeUpdateHook.entityTypeId ===
+      entityModel.entityTypeModel.getSchema().$id
     ) {
       await beforeUpdateHook.callback({
         graphApi,
@@ -188,7 +183,7 @@ export const updateEntityWithMetadata: ResolverFn<
 
   const updatedEntityModel = await entityModel.update(graphApi, {
     properties: updatedProperties,
-    actorId: userModel.entityUuid,
+    actorId: userModel.getEntityUuid(),
   });
 
   return mapEntityModelToGQL(updatedEntityModel);

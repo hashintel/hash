@@ -1,34 +1,33 @@
-import {
-  EntityType,
-  extractBaseUri,
-  VersionedUri,
-} from "@blockprotocol/type-system-web";
+import { EntityType, extractBaseUri } from "@blockprotocol/type-system-web";
 import { useRouter } from "next/router";
 import {
+  createContext,
   useCallback,
+  useContext,
   useEffect,
   useLayoutEffect,
   useRef,
   useState,
 } from "react";
+import { getEntityTypesByBaseUri } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import { useBlockProtocolAggregateEntityTypes } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregateEntityTypes";
 import { useBlockProtocolCreateEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreateEntityType";
 import { useBlockProtocolUpdateEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdateEntityType";
 import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
-import { getEntityTypesByBaseUri } from "../../../../lib/subgraph";
 import { useAdvancedInitTypeSystem } from "../../../../lib/use-init-type-system";
-import { mustBeVersionedUri } from "./util";
 
-export const useEntityType = (
+export const useEntityTypeValue = (
   entityTypeBaseUri: string | null,
   namespace?: string,
   onCompleted?: (entityType: EntityType) => void,
 ) => {
   const router = useRouter();
   const { authenticatedUser } = useAuthenticatedUser();
+  const [loading, setLoading] = useState(true);
 
   const { createEntityType } = useBlockProtocolCreateEntityType(
-    namespace ?? authenticatedUser?.entityId ?? "",
+    namespace ??
+      (authenticatedUser !== undefined ? authenticatedUser.userAccountId : ""),
   );
   const [typeSystemLoading, loadTypeSystem] = useAdvancedInitTypeSystem();
 
@@ -48,10 +47,9 @@ export const useEntityType = (
 
     if (
       entityTypeBaseUri &&
-      (!entityType ||
-        extractBaseUri(mustBeVersionedUri(entityType.$id)) !==
-          entityTypeBaseUri)
+      (!entityType || extractBaseUri(entityType.$id) !== entityTypeBaseUri)
     ) {
+      setLoading(true);
       setEntityType(null);
       entityTypeRef.current = null;
       void aggregateEntityTypes({ data: {} }).then(async (res) => {
@@ -61,13 +59,15 @@ export const useEntityType = (
           : [];
 
         /** @todo - pick the latest version? */
-        const relevantEntityType = relevantEntityTypes
-          ? relevantEntityTypes[0]!.inner
-          : null;
+        const relevantEntityType =
+          relevantEntityTypes.length > 0
+            ? relevantEntityTypes[0]!.schema
+            : null;
 
         await loadTypeSystem();
 
         if (!cancelled) {
+          setLoading(false);
           setEntityType(relevantEntityType);
           entityTypeRef.current = relevantEntityType;
           if (relevantEntityType) {
@@ -77,6 +77,7 @@ export const useEntityType = (
       });
       return () => {
         cancelled = true;
+        setLoading(false);
       };
     }
   }, [
@@ -107,8 +108,8 @@ export const useEntityType = (
       });
 
       if (entityTypeRef.current === currentEntity && res.data) {
-        setEntityType(res.data.entityType);
-        entityTypeRef.current = res.data.entityType;
+        setEntityType(res.data.schema);
+        entityTypeRef.current = res.data.schema;
       }
 
       return res;
@@ -128,12 +129,11 @@ export const useEntityType = (
         throw new Error("Could not publish changes");
       }
 
-      // @todo remove casting
-      const newUrl = extractBaseUri(res.data.entityTypeId as VersionedUri);
+      const newUrl = extractBaseUri(res.data.schema.$id);
 
       if (newUrl) {
-        setEntityType(res.data.entityType);
-        entityTypeRef.current = res.data.entityType;
+        setEntityType(res.data.schema);
+        entityTypeRef.current = res.data.schema;
         await router.replace(newUrl, newUrl, { shallow: true });
       }
     },
@@ -144,5 +144,18 @@ export const useEntityType = (
     typeSystemLoading || !authenticatedUser ? null : entityType,
     updateCallback,
     publishDraft,
+    { loading },
   ] as const;
+};
+
+export const EntityTypeContext = createContext<null | EntityType>(null);
+
+export const useEntityType = () => {
+  const entityTypeContext = useContext(EntityTypeContext);
+
+  if (!entityTypeContext) {
+    throw new Error("no EntityTypeEntitiesContext value has been provided");
+  }
+
+  return entityTypeContext;
 };

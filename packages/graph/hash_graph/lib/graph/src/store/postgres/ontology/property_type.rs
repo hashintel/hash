@@ -7,20 +7,18 @@ use tokio_postgres::GenericClient;
 use type_system::PropertyType;
 
 use crate::{
-    identifier::ontology::OntologyTypeEditionId,
+    identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId},
     ontology::{OntologyElementMetadata, PropertyTypeWithMetadata},
     provenance::{CreatedById, OwnedById, UpdatedById},
-    shared::{
-        identifier::GraphElementEditionId,
-        subgraph::{depths::GraphResolveDepths, edges::OutwardEdge, query::StructuralQuery},
-    },
     store::{
         crud::Read,
         postgres::{context::PostgresContext, DependencyContext, DependencyContextRef},
         AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, UpdateError,
     },
     subgraph::{
-        edges::{GenericOutwardEdge, OntologyEdgeKind, OntologyOutwardEdges},
+        depths::GraphResolveDepths,
+        edges::{Edge, OntologyEdgeKind, OntologyOutwardEdges, OutwardEdge},
+        query::StructuralQuery,
         Subgraph,
     },
 };
@@ -74,16 +72,14 @@ impl<C: AsClient> PostgresStore<C> {
                         )
                         .await?;
                     }
-                    dependency_context.edges.insert(
-                        GraphElementEditionId::Ontology(property_type_id.clone()),
-                        OutwardEdge::Ontology(OntologyOutwardEdges::ToOntology(
-                            GenericOutwardEdge {
-                                kind: OntologyEdgeKind::ConstrainsValuesOn,
-                                reversed: false,
-                                right_endpoint: data_type_ref.uri().clone().into(),
-                            },
-                        )),
-                    );
+                    dependency_context.edges.insert(Edge::Ontology {
+                        edition_id: property_type_id.clone(),
+                        outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
+                            kind: OntologyEdgeKind::ConstrainsValuesOn,
+                            reversed: false,
+                            right_endpoint: data_type_ref.uri().clone().into(),
+                        }),
+                    });
                 }
 
                 // TODO: Use relation tables
@@ -108,16 +104,14 @@ impl<C: AsClient> PostgresStore<C> {
                         .await?;
                     }
 
-                    dependency_context.edges.insert(
-                        GraphElementEditionId::Ontology(property_type_id.clone()),
-                        OutwardEdge::Ontology(OntologyOutwardEdges::ToOntology(
-                            GenericOutwardEdge {
-                                kind: OntologyEdgeKind::ConstrainsPropertiesOn,
-                                reversed: false,
-                                right_endpoint: property_type_ref.uri().clone().into(),
-                            },
-                        )),
-                    );
+                    dependency_context.edges.insert(Edge::Ontology {
+                        edition_id: property_type_id.clone(),
+                        outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
+                            kind: OntologyEdgeKind::ConstrainsValuesOn,
+                            reversed: false,
+                            right_endpoint: property_type_ref.uri().clone().into(),
+                        }),
+                    });
                 }
             }
 

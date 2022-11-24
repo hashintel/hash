@@ -26,7 +26,7 @@ export const createFileFromLink: ResolverFn<
   LoggedInGraphQLContext,
   MutationCreateFileFromLinkArgs
 > = async (_, { name, url, accountId }, { userModel, dataSources }) => {
-  const createdByAccountId = userModel.entityUuid;
+  const createdByAccountId = userModel.getEntityUuid();
   const fileName = name || guessFileNameFromURL(url);
   const file = await File.createFileEntityFromLink(dataSources.db, {
     accountId,

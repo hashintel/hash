@@ -41,10 +41,6 @@ export default class extends EntityModel {
 
   rightEntityModel: EntityModel;
 
-  get linkMetadata(): LinkEntityMetadata {
-    return this.entity.metadata.linkMetadata!;
-  }
-
   constructor({
     linkEntity,
     linkEntityTypeModel,
@@ -54,6 +50,10 @@ export default class extends EntityModel {
     super({ entity: linkEntity, entityTypeModel: linkEntityTypeModel });
     this.leftEntityModel = leftEntityModel;
     this.rightEntityModel = rightEntityModel;
+  }
+
+  getLinkMetadata(): LinkEntityMetadata {
+    return this.getMetadata().linkMetadata!;
   }
 
   static async fromEntity(
@@ -143,20 +143,22 @@ export default class extends EntityModel {
 
     if (!linkEntityTypeModel.isLinkEntityType()) {
       throw new Error(
-        `Entity type with ID "${linkEntityTypeModel.schema.$id}" is not a link entity type.`,
+        `Entity type with ID "${
+          linkEntityTypeModel.getSchema().$id
+        }" is not a link entity type.`,
       );
     }
 
     const { data: linkEntityMetadata } = await graphApi.createEntity({
       ownedById,
       linkMetadata: {
-        leftEntityId: leftEntityModel.baseId,
+        leftEntityId: leftEntityModel.getBaseId(),
         leftOrder,
-        rightEntityId: rightEntityModel.baseId,
+        rightEntityId: rightEntityModel.getBaseId(),
         rightOrder,
       },
       actorId,
-      entityTypeId: linkEntityTypeModel.schema.$id,
+      entityTypeId: linkEntityTypeModel.getSchema().$id,
       properties,
     });
 
@@ -170,7 +172,6 @@ export default class extends EntityModel {
    * Update an entity.
    *
    * @param params.properties - the properties object of the entity
-   * @param params.linkOrder {EntityLinkOrder} - the new orders to update for the link
    * @param params.actorId - the id of the account that is updating the entity
    */
   async update(
@@ -182,12 +183,11 @@ export default class extends EntityModel {
     },
   ): Promise<EntityModel> {
     const { properties, actorId, linkOrder } = params;
-    const { baseId, entityTypeModel } = this;
 
     const { data: metadata } = await graphApi.updateEntity({
       actorId,
-      entityId: baseId,
-      entityTypeId: entityTypeModel.schema.$id,
+      entityId: this.getBaseId(),
+      entityTypeId: this.entityTypeModel.getSchema().$id,
       properties,
       leftOrder: linkOrder.leftOrder,
       rightOrder: linkOrder.rightOrder,
@@ -213,12 +213,12 @@ export default class extends EntityModel {
     params: { linkOrder: EntityLinkOrder; actorId: string },
   ) {
     const { actorId, linkOrder } = params;
-    const { baseId, entityTypeModel, properties } = this;
+    const properties = this.getProperties();
 
     const { data: metadata } = await graphApi.updateEntity({
       actorId,
-      entityId: baseId,
-      entityTypeId: entityTypeModel.schema.$id,
+      entityId: this.getBaseId(),
+      entityTypeId: this.entityTypeModel.getSchema().$id,
       properties,
       leftOrder: linkOrder.leftOrder,
       rightOrder: linkOrder.rightOrder,

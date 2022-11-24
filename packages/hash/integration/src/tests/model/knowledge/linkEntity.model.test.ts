@@ -52,13 +52,13 @@ describe("Link entity model class", () => {
       title: params.title,
     });
     return EntityTypeModel.create(graphApi, {
-      ownedById: testUserModel.entityUuid,
+      ownedById: testUserModel.getEntityUuid(),
       schema: generateSystemEntityTypeSchema({
         entityTypeId,
-        actorId: testUserModel.entityUuid,
+        actorId: testUserModel.getEntityUuid(),
         ...params,
       }),
-      actorId: testUserModel.entityUuid,
+      actorId: testUserModel.getEntityUuid(),
     });
   };
 
@@ -69,7 +69,7 @@ describe("Link entity model class", () => {
 
     await Promise.all([
       EntityTypeModel.create(graphApi, {
-        ownedById: testUserModel.entityUuid,
+        ownedById: testUserModel.getEntityUuid(),
         schema: {
           title: "Friends",
           description: "Friend of",
@@ -78,12 +78,12 @@ describe("Link entity model class", () => {
           allOf: [{ $ref: linkEntityTypeUri }],
           properties: {},
         },
-        actorId: testUserModel.entityUuid,
+        actorId: testUserModel.getEntityUuid(),
       }).then((linkEntityType) => {
         friendLinkEntityTypeModel = linkEntityType;
       }),
       EntityTypeModel.create(graphApi, {
-        ownedById: testUserModel.entityUuid,
+        ownedById: testUserModel.getEntityUuid(),
         schema: {
           title: "Acquaintance",
           description: "Acquainted with",
@@ -92,7 +92,7 @@ describe("Link entity model class", () => {
           allOf: [{ $ref: linkEntityTypeUri }],
           properties: {},
         },
-        actorId: testUserModel.entityUuid,
+        actorId: testUserModel.getEntityUuid(),
       }).then((linkEntityType) => {
         acquaintanceLinkEntityTypeModel = linkEntityType;
       }),
@@ -117,26 +117,26 @@ describe("Link entity model class", () => {
 
     await Promise.all([
       EntityModel.create(graphApi, {
-        ownedById: testUserModel.entityUuid,
+        ownedById: testUserModel.getEntityUuid(),
         entityTypeModel: testEntityTypeModel,
         properties: {},
-        actorId: testUserModel.entityUuid,
+        actorId: testUserModel.getEntityUuid(),
       }).then((entity) => {
         leftEntityModel = entity;
       }),
       EntityModel.create(graphApi, {
-        ownedById: testUserModel.entityUuid,
+        ownedById: testUserModel.getEntityUuid(),
         entityTypeModel: testEntityTypeModel,
         properties: {},
-        actorId: testUserModel.entityUuid,
+        actorId: testUserModel.getEntityUuid(),
       }).then((entity) => {
         friendRightEntityModel = entity;
       }),
       EntityModel.create(graphApi, {
-        ownedById: testUserModel.entityUuid,
+        ownedById: testUserModel.getEntityUuid(),
         entityTypeModel: testEntityTypeModel,
         properties: {},
-        actorId: testUserModel.entityUuid,
+        actorId: testUserModel.getEntityUuid(),
       }).then((entity) => {
         acquaintanceRightEntityModel = entity;
       }),
@@ -148,21 +148,21 @@ describe("Link entity model class", () => {
 
   it("can link entities", async () => {
     linkEntityFriendModel = await LinkEntityModel.createLinkEntity(graphApi, {
-      ownedById: testUserModel.entityUuid,
+      ownedById: testUserModel.getEntityUuid(),
       leftEntityModel,
       linkEntityTypeModel: friendLinkEntityTypeModel,
       rightEntityModel: friendRightEntityModel,
-      actorId: testUserModel.entityUuid,
+      actorId: testUserModel.getEntityUuid(),
     });
 
     linkEntityAcquaintanceModel = await LinkEntityModel.createLinkEntity(
       graphApi,
       {
-        ownedById: testUserModel.entityUuid,
+        ownedById: testUserModel.getEntityUuid(),
         leftEntityModel,
         linkEntityTypeModel: acquaintanceLinkEntityTypeModel,
         rightEntityModel: acquaintanceRightEntityModel,
-        actorId: testUserModel.entityUuid,
+        actorId: testUserModel.getEntityUuid(),
       },
     );
   });
@@ -189,7 +189,7 @@ describe("Link entity model class", () => {
 
   it("can archive a link", async () => {
     await linkEntityAcquaintanceModel.archive(graphApi, {
-      actorId: testUserModel.entityUuid,
+      actorId: testUserModel.getEntityUuid(),
     });
 
     const links = await leftEntityModel.getOutgoingLinks(graphApi, {

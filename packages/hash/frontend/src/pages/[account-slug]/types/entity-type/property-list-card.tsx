@@ -1,14 +1,9 @@
-import { PropertyType } from "@blockprotocol/type-system-web";
-import { faClose } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system/fontawesome-icon";
-import { IconButton } from "@hashintel/hash-design-system/icon-button";
-import { TextField } from "@hashintel/hash-design-system/text-field";
 import {
   Box,
   ButtonBase,
   Checkbox,
   checkboxClasses,
-  outlinedInputClasses,
+  iconButtonClasses,
   svgIconClasses,
   Table,
   TableBody,
@@ -20,36 +15,27 @@ import {
   TableRow,
   tableRowClasses,
   Typography,
-  useForkRef,
 } from "@mui/material";
 import { experimental_sx, styled } from "@mui/system";
-import {
-  bindPopover,
-  bindToggle,
-  bindTrigger,
-  usePopupState,
-} from "material-ui-popup-state/hooks";
-import { Ref, useId, useRef, useState } from "react";
+import { usePopupState } from "material-ui-popup-state/hooks";
+import { useId, useRef } from "react";
 import {
   Controller,
   useFieldArray,
   useFormContext,
   useWatch,
 } from "react-hook-form";
-import { Modal } from "../../../../components/Modals/Modal";
+import { WhiteCard } from "../../shared/white-card";
 import { EmptyPropertyListCard } from "./empty-property-list-card";
 import { EntityTypeEditorForm } from "./form-types";
+import { InsertPropertyRow } from "./insert-property-row";
 import { MultipleValuesCell } from "./multiple-values-cell";
 import { PropertyExpectedValues } from "./property-expected-values";
-import { PropertyListSelectorDropdownContext } from "./property-list-selector-dropdown";
 import { PropertyMenu } from "./property-menu";
-import { PropertySelector } from "./property-selector";
-import { PropertyTypeForm } from "./property-type-form";
 import { QuestionIcon } from "./question-icon";
 import { StyledPlusCircleIcon } from "./styled-plus-circle-icon";
 import { usePropertyTypes } from "./use-property-types";
-import { mustBeVersionedUri, useStateCallback, withHandler } from "./util";
-import { WhiteCard } from "../../shared/white-card";
+import { mustBeVersionedUri, useStateCallback } from "./util";
 
 const CenteredTableCell = styled(TableCell)(
   experimental_sx({
@@ -57,124 +43,6 @@ const CenteredTableCell = styled(TableCell)(
     textAlign: "center",
   }),
 );
-
-const InsertPropertyRow = ({
-  inputRef,
-  onCancel,
-  onAdd,
-}: {
-  inputRef: Ref<HTMLInputElement | null>;
-  onCancel: () => void;
-  onAdd: (option: PropertyType) => void;
-}) => {
-  const modalTooltipId = useId();
-  const modalPopupState = usePopupState({
-    variant: "popover",
-    popupId: `createProperty-${modalTooltipId}`,
-  });
-
-  const [searchText, setSearchText] = useState("");
-
-  const ourInputRef = useRef<HTMLInputElement>(null);
-  const sharedRef = useForkRef(inputRef, ourInputRef);
-
-  const { control } = useFormContext<EntityTypeEditorForm>();
-  const properties = useWatch({ control, name: "properties" });
-
-  return (
-    <TableRow
-      sx={{
-        [`.${tableCellClasses.root}`]: {
-          py: 1,
-        },
-      }}
-    >
-      <TableCell colSpan={2}>
-        <PropertyListSelectorDropdownContext.Provider
-          value={
-            // eslint-disable-next-line react/jsx-no-constructed-context-values
-            {
-              query: searchText,
-              createButtonProps: {
-                ...withHandler(bindTrigger(modalPopupState), () => {
-                  ourInputRef.current?.focus();
-                }),
-                onMouseDown: (evt) => {
-                  evt.preventDefault();
-                  evt.stopPropagation();
-                },
-              },
-            }
-          }
-        >
-          <PropertySelector
-            searchText={searchText}
-            onSearchTextChange={setSearchText}
-            ref={sharedRef}
-            modalPopupState={modalPopupState}
-            onAdd={onAdd}
-            onCancel={onCancel}
-            filterProperty={(property) =>
-              !properties.some(
-                (includedProperty) => includedProperty.$id === property.$id,
-              )
-            }
-          />
-        </PropertyListSelectorDropdownContext.Provider>
-        <Modal
-          {...bindPopover(modalPopupState)}
-          disableEscapeKeyDown
-          contentStyle={(theme) => ({
-            p: "0px !important",
-            border: 1,
-            borderColor: theme.palette.gray[20],
-          })}
-        >
-          <>
-            <Box
-              sx={(theme) => ({
-                px: 2.5,
-                pr: 1.5,
-                pb: 1.5,
-                pt: 2,
-                borderBottom: 1,
-                borderColor: theme.palette.gray[20],
-                alignItems: "center",
-                display: "flex",
-              })}
-            >
-              <Typography variant="regularTextLabels" sx={{ fontWeight: 500 }}>
-                Create new property type
-              </Typography>
-              <QuestionIcon
-                sx={{
-                  ml: 1.25,
-                }}
-              />
-              <IconButton
-                {...bindToggle(modalPopupState)}
-                sx={(theme) => ({
-                  ml: "auto",
-                  svg: {
-                    color: theme.palette.gray[50],
-                    fontSize: 20,
-                  },
-                })}
-              >
-                <FontAwesomeIcon icon={faClose} />
-              </IconButton>
-            </Box>
-            <PropertyTypeForm
-              discardButtonProps={bindToggle(modalPopupState)}
-              initialTitle={searchText}
-              onCreatePropertyType={onAdd}
-            />
-          </>
-        </Modal>
-      </TableCell>
-    </TableRow>
-  );
-};
 
 export const PropertyTypeRow = ({
   propertyIndex,
@@ -185,21 +53,50 @@ export const PropertyTypeRow = ({
 }) => {
   const { control } = useFormContext<EntityTypeEditorForm>();
 
-  const propertyTypes = usePropertyTypes();
-
   const [$id] = useWatch({
     name: [`properties.${propertyIndex}.$id`],
   });
 
-  const propertyId = mustBeVersionedUri($id);
-  const property = propertyTypes ? propertyTypes[propertyId] : null;
+  const popupId = useId();
+  const menuPopupState = usePopupState({
+    variant: "popover",
+    popupId: `property-menu-${popupId}`,
+  });
 
-  if (propertyTypes && !property) {
-    throw new Error("Missing property type");
+  const propertyTypes = usePropertyTypes();
+  const propertyId = mustBeVersionedUri($id);
+  const property = propertyTypes?.[propertyId];
+
+  if (!property) {
+    if (propertyTypes) {
+      throw new Error("Missing property type");
+    }
+
+    return null;
   }
 
-  return property ? (
-    <TableRow>
+  return (
+    <TableRow
+      sx={[
+        (theme) => ({
+          [`.${tableCellClasses.root}`]: {
+            "&:first-of-type": {
+              borderTopLeftRadius: theme.borderRadii.md,
+              borderBottomLeftRadius: theme.borderRadii.md,
+            },
+            "&:last-of-type": {
+              borderTopRightRadius: theme.borderRadii.md,
+              borderBottomRightRadius: theme.borderRadii.md,
+            },
+          },
+        }),
+        (theme) => ({
+          [`&:hover .${tableCellClasses.root}`]: {
+            background: theme.palette.gray[10],
+          },
+        }),
+      ]}
+    >
       <TableCell>
         <Typography variant="smallTextLabels" fontWeight={500}>
           {property.title}
@@ -221,31 +118,24 @@ export const PropertyTypeRow = ({
         />
       </CenteredTableCell>
 
-      <CenteredTableCell sx={{ px: "0px !important" }}>
-        <TextField
-          placeholder="Add default value"
-          sx={{
-            width: "100%",
-            [`.${tableRowClasses.root}:not(:hover) & .${outlinedInputClasses.root}:not(:focus-within)`]:
-              {
-                boxShadow: "none",
-                [`.${outlinedInputClasses.notchedOutline}`]: {
-                  borderColor: "transparent",
-                },
-                [`.${outlinedInputClasses.input}::placeholder`]: {
-                  color: "transparent",
-                },
-              },
-          }}
-          inputProps={{ sx: { textOverflow: "ellipsis" } }}
+      <TableCell
+        sx={{
+          [`.${iconButtonClasses.root}`]: {
+            opacity: 0,
+            [`.${tableRowClasses.root}:hover &`]: {
+              opacity: 1,
+            },
+          },
+        }}
+      >
+        <PropertyMenu
+          onRemove={onRemove}
+          property={property}
+          popupState={menuPopupState}
         />
-      </CenteredTableCell>
-
-      <TableCell>
-        <PropertyMenu onRemove={onRemove} property={property} />
       </TableCell>
     </TableRow>
-  ) : null;
+  );
 };
 
 export const PropertyListCard = () => {
@@ -302,21 +192,6 @@ export const PropertyListCard = () => {
             [`.${tableCellClasses.body} .${checkboxClasses.root}`]: {
               textAlign: "center",
             },
-            [`.${tableBodyClasses.root} .${tableRowClasses.root}`]: {
-              [`.${tableCellClasses.root}`]: {
-                "&:first-of-type": {
-                  borderTopLeftRadius: theme.borderRadii.md,
-                  borderBottomLeftRadius: theme.borderRadii.md,
-                },
-                "&:last-of-type": {
-                  borderTopRightRadius: theme.borderRadii.md,
-                  borderBottomRightRadius: theme.borderRadii.md,
-                },
-              },
-              [`&:hover .${tableCellClasses.root}`]: {
-                background: theme.palette.gray[10],
-              },
-            },
           })}
         >
           <TableHead>
@@ -333,9 +208,6 @@ export const PropertyListCard = () => {
                 Allow multiple values <QuestionIcon />
               </CenteredTableCell>
               <CenteredTableCell width={100}>Required</CenteredTableCell>
-              <CenteredTableCell width={150}>
-                Default value <QuestionIcon />
-              </CenteredTableCell>
               <TableCell width={70} />
             </Typography>
           </TableHead>
@@ -357,17 +229,20 @@ export const PropertyListCard = () => {
                 onCancel={() => {
                   setAddingNewProperty(false);
                 }}
-                onAdd={(type) => {
+                onAdd={(propertyType) => {
                   setAddingNewProperty(false);
                   if (
-                    !getValues("properties").some(({ $id }) => $id === type.$id)
+                    !getValues("properties").some(
+                      ({ $id }) => $id === propertyType.$id,
+                    )
                   ) {
                     append({
-                      $id: mustBeVersionedUri(type.$id),
+                      $id: propertyType.$id,
                       required: false,
                       array: false,
                       minValue: 0,
-                      maxValue: 0,
+                      maxValue: 1,
+                      infinity: true,
                     });
                   }
                 }}

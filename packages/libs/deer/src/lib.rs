@@ -1,30 +1,34 @@
 #![cfg_attr(nightly, feature(provide_any, error_in_core))]
 #![cfg_attr(not(feature = "std"), no_std)]
-#![warn(unreachable_pub, clippy::pedantic, clippy::nursery)]
+#![warn(
+    unreachable_pub,
+    clippy::pedantic,
+    clippy::nursery,
+    clippy::alloc_instead_of_core,
+    clippy::std_instead_of_alloc,
+    clippy::std_instead_of_core,
+    clippy::if_then_some_else_none,
+    clippy::print_stdout,
+    clippy::print_stderr
+)]
 // TODO: once more stable introduce: warning missing_docs, clippy::missing_errors_doc
 #![allow(clippy::module_name_repetitions)]
 #![allow(clippy::redundant_pub_crate)]
 #![allow(clippy::missing_errors_doc)]
 #![forbid(unsafe_code)]
 
-use alloc::{
-    collections::BTreeMap,
-    string::{String, ToString},
-    vec::Vec,
-};
+use alloc::{string::String, vec::Vec};
 
-use error_stack::{IntoReport, Result, ResultExt};
+use error_stack::{Report, Result, ResultExt};
 use num_traits::ToPrimitive;
 
 use crate::error::{
-    ArrayAccessError, DeserializeError, DeserializerError, ObjectAccessError, VisitorError,
+    ArrayAccessError, DeserializeError, DeserializerError, ExpectedType, MissingError,
+    ObjectAccessError, ReceivedType, ReceivedValue, Schema, TypeError, ValueError, VisitorError,
 };
-pub use crate::{
-    error::{Error, ErrorProperty, Id, Namespace},
-    number::Number,
-};
+pub use crate::number::Number;
 
-mod error;
+pub mod error;
 mod number;
 
 extern crate alloc;
@@ -49,217 +53,221 @@ pub trait ArrayAccess<'de> {
     fn finish(self) -> Result<(), ArrayAccessError>;
 }
 
-// TODO: Error PR: attach the expected and received type
-// Reason: this definition is used by all other visitors, we provide fallbacks, which **currently**
-//  do not take into account the value provided. This will change with the error PR.
+// Reason: We error out on every `visit_*`, which means we do not use the value, but(!) IDEs like to
+// use the name to make autocomplete, therefore names for unused parameters are required.
 #[allow(unused_variables)]
 pub trait Visitor<'de>: Sized {
     type Value;
 
-    fn expecting_display(&self) -> String;
-
-    // TODO: this is currently completely untyped, we might want to adhere to a standard, like
-    //  JSON-Schema or OpenAPI
-    //  The problem here mainly is: which crate to use, one can use utoipa (but that has significant
-    //  overhead)  there's no real library out there that properly just provides the types
-    //  necessary.
-    fn expecting_schema(&self) -> BTreeMap<String, String> {
-        BTreeMap::new()
-    }
+    fn expecting(&self) -> Schema;
 
     fn visit_none(self) -> Result<Self::Value, VisitorError> {
-        // Err(Report::new(Self::Error::message(
-        //     "unexpected missing value",
-        // )))
-        todo!()
+        Err(Report::new(MissingError)
+            .attach(ExpectedType::new(self.expecting()))
+            .change_context(VisitorError))
     }
 
     fn visit_null(self) -> Result<Self::Value, VisitorError> {
-        // Err(Report::new(Self::Error::message(
-        //     "unexpected value of type null",
-        // )))
-        todo!()
+        Err(Report::new(TypeError)
+            .attach(ReceivedType::new(Schema::new("null")))
+            .attach(ExpectedType::new(self.expecting()))
+            .change_context(VisitorError))
     }
 
     fn visit_bool(self, v: bool) -> Result<Self::Value, VisitorError> {
-        // Err(Report::new(Self::Error::message(
-        //     "unexpected value of type bool",
-        // )))
-        todo!()
+        Err(Report::new(TypeError)
+            .attach(ReceivedType::new(Schema::new("boolean")))
+            .attach(ExpectedType::new(self.expecting()))
+            .change_context(VisitorError))
     }
 
-    // TODO: should this auto-delegate to one of the other visit functions?!
-    //  ~> experimentation is needed
     fn visit_number(self, v: Number) -> Result<Self::Value, VisitorError> {
-        // Err(Report::new(Self::Error::message(
-        //     "unexpected value of type number",
-        // )))
-        todo!()
+        Err(Report::new(TypeError)
+            .attach(ReceivedType::new(Schema::new("number")))
+            .attach(ExpectedType::new(self.expecting()))
+            .change_context(VisitorError))
     }
 
-    fn visit_char(self, v: String) -> Result<Self::Value, VisitorError> {
-        // Err(Report::new(Self::Error::message(
-        //     "unexpected value of type char",
-        // )))
-        todo!()
+    fn visit_char(self, v: char) -> Result<Self::Value, VisitorError> {
+        let mut buffer = [0; 4];
+        let v = v.encode_utf8(&mut buffer);
+
+        self.visit_str(v).attach(ReceivedType::new(
+            Schema::new("string")
+                .with("minLength", 1)
+                .with("maxLength", 1),
+        ))
+    }
+
+    fn visit_str(self, v: &str) -> Result<Self::Value, VisitorError> {
+        Err(Report::new(TypeError)
+            .attach(ReceivedType::new(Schema::new("string")))
+            .attach(ExpectedType::new(self.expecting()))
+            .change_context(VisitorError))
+    }
+
+    fn visit_borrowed_str(self, v: &'de str) -> Result<Self::Value, VisitorError> {
+        self.visit_str(v)
     }
 
     fn visit_string(self, v: String) -> Result<Self::Value, VisitorError> {
-        // Err(Report::new(Self::Error::message(
-        //     "unexpected value of type string",
-        // )))
-        todo!()
-    }
-    fn visit_str(self, v: &str) -> Result<Self::Value, VisitorError> {
-        // Err(Report::new(Self::Error::message(
-        //     "unexpected value of type string",
-        // )))
-        todo!()
-    }
-    fn visit_borrowed_str(self, v: &'de str) -> Result<Self::Value, VisitorError> {
-        // Err(Report::new(Self::Error::message(
-        //     "unexpected value of type string",
-        // )))
-        todo!()
-    }
-
-    fn visit_bytes_buffer(self, v: Vec<u8>) -> Result<Self::Value, VisitorError> {
-        // Err(Report::new(Self::Error::message(
-        //     "unexpected value of type string",
-        // )))
-        todo!()
+        self.visit_str(&v)
     }
 
     fn visit_bytes(self, v: &[u8]) -> Result<Self::Value, VisitorError> {
-        // Err(Report::new(Self::Error::message(
-        //     "unexpected value of type string",
-        // )))
-        todo!()
+        Err(Report::new(TypeError)
+            .attach(ReceivedType::new(
+                // TODO: binary is not a valid json-schema type
+                Schema::new("binary"),
+            ))
+            .attach(ExpectedType::new(self.expecting()))
+            .change_context(VisitorError))
     }
 
     fn visit_borrowed_bytes(self, v: &'de [u8]) -> Result<Self::Value, VisitorError> {
-        // Err(Report::new(Self::Error::message(
-        //     "unexpected value of type string",
-        // )))
-        todo!()
+        self.visit_bytes(v)
+    }
+
+    fn visit_bytes_buffer(self, v: Vec<u8>) -> Result<Self::Value, VisitorError> {
+        self.visit_bytes(&v)
     }
 
     fn visit_array<T>(self, v: T) -> Result<Self::Value, VisitorError>
     where
         T: ArrayAccess<'de>,
     {
-        // Err(Report::new(Self::Error::message(
-        //     "unexpected value of type array",
-        // )))
-        todo!()
+        Err(Report::new(TypeError)
+            .attach(ReceivedType::new(Schema::new("array")))
+            .attach(ExpectedType::new(self.expecting()))
+            .change_context(VisitorError))
     }
 
     fn visit_object<T>(self, v: T) -> Result<Self::Value, VisitorError>
     where
         T: ObjectAccess<'de>,
     {
-        // Err(Report::new(Self::Error::message(
-        //     "unexpected value of type object",
-        // )))
-        todo!()
+        Err(Report::new(TypeError)
+            .attach(ReceivedType::new(Schema::new("object")))
+            .attach(ExpectedType::new(self.expecting()))
+            .change_context(VisitorError))
     }
 
     fn visit_i8(self, v: i8) -> Result<Self::Value, VisitorError> {
-        // Err(Report::new(Self::Error::message(
-        //     "unexpected value of type i8",
-        // )))
-        todo!()
+        self.visit_number(Number::from(v)).attach(ReceivedType::new(
+            Schema::new("integer")
+                .with("minimum", i8::MIN)
+                .with("maximum", i8::MAX),
+        ))
     }
 
     fn visit_i16(self, v: i16) -> Result<Self::Value, VisitorError> {
-        // Err(Report::new(Self::Error::message(
-        //     "unexpected value of type i16",
-        // )))
-        todo!()
+        self.visit_number(Number::from(v)).attach(ReceivedType::new(
+            Schema::new("integer")
+                .with("minimum", i16::MIN)
+                .with("maximum", i16::MAX),
+        ))
     }
 
     fn visit_i32(self, v: i32) -> Result<Self::Value, VisitorError> {
-        // Err(Report::new(Self::Error::message(
-        //     "unexpected value of type i32",
-        // )))
-        todo!()
+        self.visit_number(Number::from(v)).attach(ReceivedType::new(
+            Schema::new("integer")
+                .with("minimum", i32::MIN)
+                .with("maximum", i32::MAX),
+        ))
     }
 
     fn visit_i64(self, v: i64) -> Result<Self::Value, VisitorError> {
-        // Err(Report::new(Self::Error::message(
-        //     "unexpected value of type i64",
-        // )))
-        todo!()
+        self.visit_number(Number::from(v)).attach(ReceivedType::new(
+            Schema::new("integer")
+                .with("minimum", i64::MIN)
+                .with("maximum", i64::MAX),
+        ))
     }
 
     fn visit_i128(self, v: i128) -> Result<Self::Value, VisitorError> {
-        // Err(Report::new(Self::Error::message(
-        //     "unexpected value of type i128",
-        // )))
-        todo!()
+        Err(Report::new(TypeError)
+            .attach(ReceivedType::new(
+                Schema::new("integer")
+                    .with("minimum", i128::MIN)
+                    .with("maximum", i128::MAX),
+            ))
+            .attach(ExpectedType::new(self.expecting()))
+            .change_context(VisitorError))
     }
 
     fn visit_isize(self, v: isize) -> Result<Self::Value, VisitorError> {
-        // Err(Report::new(Self::Error::message(
-        //     "unexpected value of type isize",
-        // )))
-        todo!()
+        Err(Report::new(TypeError)
+            .attach(ReceivedType::new(
+                Schema::new("integer")
+                    .with("minimum", isize::MIN)
+                    .with("maximum", isize::MAX),
+            ))
+            .attach(ExpectedType::new(self.expecting()))
+            .change_context(VisitorError))
     }
 
     fn visit_u8(self, v: u8) -> Result<Self::Value, VisitorError> {
-        // Err(Report::new(Self::Error::message(
-        //     "unexpected value of type u8",
-        // )))
-        todo!()
+        self.visit_number(Number::from(v)).attach(ReceivedType::new(
+            Schema::new("integer")
+                .with("minimum", u8::MIN)
+                .with("maximum", u8::MAX),
+        ))
     }
 
     fn visit_u16(self, v: u16) -> Result<Self::Value, VisitorError> {
-        // Err(Report::new(Self::Error::message(
-        //     "unexpected value of type u16",
-        // )))
-        todo!()
+        self.visit_number(Number::from(v)).attach(ReceivedType::new(
+            Schema::new("integer")
+                .with("minimum", u16::MIN)
+                .with("maximum", u16::MAX),
+        ))
     }
 
     fn visit_u32(self, v: u32) -> Result<Self::Value, VisitorError> {
-        // Err(Report::new(Self::Error::message(
-        //     "unexpected value of type u32",
-        // )))
-        todo!()
+        self.visit_number(Number::from(v)).attach(ReceivedType::new(
+            Schema::new("integer")
+                .with("minimum", u32::MIN)
+                .with("maximum", u32::MAX),
+        ))
     }
 
     fn visit_u64(self, v: u64) -> Result<Self::Value, VisitorError> {
-        // Err(Report::new(Self::Error::message(
-        //     "unexpected value of type u64",
-        // )))
-        todo!()
+        self.visit_number(Number::from(v)).attach(ReceivedType::new(
+            Schema::new("integer")
+                .with("minimum", u64::MIN)
+                .with("maximum", u64::MAX),
+        ))
     }
 
     fn visit_u128(self, v: u128) -> Result<Self::Value, VisitorError> {
-        // Err(Report::new(Self::Error::message(
-        //     "unexpected value of type u128",
-        // )))
-        todo!()
+        Err(Report::new(TypeError)
+            .attach(ReceivedType::new(
+                Schema::new("integer")
+                    .with("minimum", u128::MIN)
+                    .with("maximum", u128::MAX),
+            ))
+            .attach(ExpectedType::new(self.expecting()))
+            .change_context(VisitorError))
     }
 
     fn visit_usize(self, v: usize) -> Result<Self::Value, VisitorError> {
-        // Err(Report::new(Self::Error::message(
-        //     "unexpected value of type usize",
-        // )))
-        todo!()
+        Err(Report::new(TypeError)
+            .attach(ReceivedType::new(
+                Schema::new("integer")
+                    .with("minimum", usize::MIN)
+                    .with("maximum", usize::MAX),
+            ))
+            .attach(ExpectedType::new(self.expecting()))
+            .change_context(VisitorError))
     }
 
     fn visit_f32(self, v: f32) -> Result<Self::Value, VisitorError> {
-        // Err(Report::new(Self::Error::message(
-        //     "unexpected value of type f32",
-        // )))
-        todo!()
+        self.visit_number(Number::from(v))
+            .attach(ReceivedType::new(Schema::new("number")))
     }
 
     fn visit_f64(self, v: f64) -> Result<Self::Value, VisitorError> {
-        // Err(Report::new(Self::Error::message(
-        //     "unexpected value of type f64",
-        // )))
-        todo!()
+        self.visit_number(Number::from(v))
+            .attach(ReceivedType::new(Schema::new("number")))
     }
 }
 
@@ -270,8 +278,8 @@ struct NumberVisitor;
 impl Visitor<'_> for NumberVisitor {
     type Value = Number;
 
-    fn expecting_display(&self) -> String {
-        "number".to_string()
+    fn expecting(&self) -> Schema {
+        Schema::new("number")
     }
 
     fn visit_number(self, v: Number) -> Result<Self::Value, VisitorError> {
@@ -280,11 +288,11 @@ impl Visitor<'_> for NumberVisitor {
 }
 
 macro_rules! derive_from_number {
-    [$($method:ident ($to:ident) -> $visit:ident,)*] => {
-        $(derive_from_number!(#internal, $method; $to, $visit);)*
+    [$($method:ident ($primitive:ident via $to:ident) -> $visit:ident,)*] => {
+        $(derive_from_number!(#internal, $method; $primitive, $to, $visit);)*
     };
 
-    (#internal, $method:ident; $to:ident, $visit:ident) => {
+    (#internal, $method:ident; $primitive:ident, $to:ident, $visit:ident) => {
         /// Automatically implemented convenience method, which uses [`Self::deserialize_number`]
         /// to extract a value of the primitive type, will otherwise error out.
         ///
@@ -298,10 +306,16 @@ macro_rules! derive_from_number {
             let n = self.deserialize_number(NumberVisitor)?;
             let v = n
                 .$to()
-                // TODO: change with the actual error type
-                .ok_or_else(|| DeserializerError)
-                // .ok_or_else(|| Self::Error::message("provided value too large or too small"))
-                .into_report()?;
+                .ok_or_else(||
+                    Report::new(ValueError)
+                        .attach(ExpectedType::new(
+                            Schema::new("integer")
+                                .with("minimum", $primitive::MIN)
+                                .with("maximum", $primitive::MAX)
+                        ))
+                        .attach(ReceivedValue::new(n))
+                )
+                .change_context(DeserializerError)?;
 
             visitor.$visit(v).change_context(DeserializerError)
         }
@@ -460,22 +474,22 @@ pub trait Deserializer<'de>: Sized {
         V: Visitor<'de>;
 
     derive_from_number![
-        deserialize_i8(to_i8) -> visit_i8,
-        deserialize_i16(to_i16) -> visit_i16,
-        deserialize_i32(to_i32) -> visit_i32,
-        deserialize_i64(to_i64) -> visit_i64,
-        deserialize_i128(to_i128) -> visit_i128,
-        deserialize_isize(to_isize) -> visit_isize,
+        deserialize_i8(i8 via to_i8) -> visit_i8,
+        deserialize_i16(i16 via to_i16) -> visit_i16,
+        deserialize_i32(i32 via to_i32) -> visit_i32,
+        deserialize_i64(i64 via to_i64) -> visit_i64,
+        deserialize_i128(i128 via to_i128) -> visit_i128,
+        deserialize_isize(isize via to_isize) -> visit_isize,
 
-        deserialize_u8(to_u8) -> visit_u8,
-        deserialize_u16(to_u16) -> visit_u16,
-        deserialize_u32(to_u32) -> visit_u32,
-        deserialize_u64(to_u64) -> visit_u64,
-        deserialize_u128(to_u128) -> visit_u128,
-        deserialize_usize(to_usize) -> visit_usize,
+        deserialize_u8(u8 via to_u8) -> visit_u8,
+        deserialize_u16(u16 via to_u16) -> visit_u16,
+        deserialize_u32(u32 via to_u32) -> visit_u32,
+        deserialize_u64(u64 via to_u64) -> visit_u64,
+        deserialize_u128(u128 via to_u128) -> visit_u128,
+        deserialize_usize(usize via to_usize) -> visit_usize,
 
-        deserialize_f32(to_f32) -> visit_f32,
-        deserialize_f64(to_f64) -> visit_f64,
+        deserialize_f32(f32 via to_f32) -> visit_f32,
+        deserialize_f64(f64 via to_f64) -> visit_f64,
     ];
 }
 
@@ -498,4 +512,77 @@ pub trait Deserialize<'de>: Sized {
     ///
     /// Deserialization was unsuccessful
     fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError>;
+}
+
+#[cfg(test)]
+pub(crate) mod test {
+    use alloc::{format, string::String, vec::Vec};
+    use core::{
+        fmt::{Display, Formatter},
+        marker::PhantomData,
+    };
+
+    use error_stack::{Frame, Report};
+    use serde::{
+        ser::{Error as _, SerializeMap},
+        Serialize, Serializer,
+    };
+
+    use crate::error::{Error, ErrorProperties};
+
+    struct SerializeFrame<'a, 'b, E: Error> {
+        frames: &'b [&'a Frame],
+        _marker: PhantomData<fn() -> *const E>,
+    }
+
+    impl<'a, 'b, E: Error> Serialize for SerializeFrame<'a, 'b, E> {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            let mut map = serializer.serialize_map(None)?;
+
+            E::Properties::output(E::Properties::value(self.frames), &mut map)
+                .map_err(|error| S::Error::custom(format!("{error:?}")))?;
+
+            map.end()
+        }
+    }
+
+    pub(crate) fn to_json<E: Error>(report: &Report<E>) -> serde_json::Value {
+        // we do not need to worry about the tree structure
+        let frames: Vec<_> = report.frames().collect();
+
+        let s: SerializeFrame<E> = SerializeFrame {
+            frames: &frames,
+            _marker: PhantomData::default(),
+        };
+
+        serde_json::to_value(s).unwrap()
+    }
+
+    struct ErrorMessage<'a, 'b, E: Error> {
+        error: &'a E,
+        properties: &'b <E::Properties as ErrorProperties>::Value<'a>,
+    }
+
+    impl<E: Error> Display for ErrorMessage<'_, '_, E> {
+        fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+            self.error.message(f, self.properties)
+        }
+    }
+
+    pub(crate) fn to_message<E: Error>(report: &Report<E>) -> String {
+        let frames: Vec<_> = report.frames().collect();
+        let properties = E::Properties::value(&frames);
+
+        let error = report.current_context();
+
+        let message = ErrorMessage {
+            error,
+            properties: &properties,
+        };
+
+        format!("{message}")
+    }
 }

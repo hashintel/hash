@@ -24,7 +24,11 @@ type PropertyTypeModelConstructorParams = {
 export default class {
   propertyType: PropertyTypeWithMetadata;
 
-  get schema(): PropertyType {
+  constructor({ propertyType }: PropertyTypeModelConstructorParams) {
+    this.propertyType = propertyType;
+  }
+
+  getSchema(): PropertyType {
     /**
      * @todo and a warning, these type casts are here to compensate for
      *   the differences between the Graph API package and the
@@ -36,15 +40,11 @@ export default class {
      *   its own types.
      *   https://app.asana.com/0/1202805690238892/1202892835843657/f
      */
-    return this.propertyType.schema as PropertyType;
+    return this.propertyType.schema;
   }
 
-  get metadata(): OntologyElementMetadata {
+  getMetadata(): OntologyElementMetadata {
     return this.propertyType.metadata;
-  }
-
-  constructor({ propertyType }: PropertyTypeModelConstructorParams) {
-    this.propertyType = propertyType;
   }
 
   static fromPropertyTypeWithMetadata(
@@ -138,7 +138,7 @@ export default class {
   ): Promise<PropertyTypeModel> {
     const { schema, actorId } = params;
     const updateArguments: UpdatePropertyTypeRequest = {
-      typeToUpdate: this.schema.$id,
+      typeToUpdate: this.getSchema().$id,
       schema,
       actorId,
     };
@@ -156,7 +156,7 @@ export default class {
     });
   }
 
-  get baseUri() {
-    return extractBaseUri(this.schema.$id);
+  getBaseUri() {
+    return extractBaseUri(this.getSchema().$id);
   }
 }

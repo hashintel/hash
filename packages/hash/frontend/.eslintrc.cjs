@@ -4,15 +4,15 @@ module.exports = {
   plugins: ["@typescript-eslint", "canonical", "unicorn"],
   rules: {
     ...require("@local/eslint-config/temporarily-disable-rules.cjs")([
-      /* 2022-11-11: 105 */ "@typescript-eslint/no-unsafe-argument",
-      /* 2022-11-11: 303 */ "@typescript-eslint/no-unsafe-assignment",
-      /* 2022-11-11: 103 */ "@typescript-eslint/no-unsafe-call",
-      /* 2022-11-11: 326 */ "@typescript-eslint/no-unsafe-member-access",
-      /* 2022-11-11:  74 */ "@typescript-eslint/no-unsafe-return",
-      /* 2022-11-11:   5 */ "@typescript-eslint/require-await",
-      /* 2022-11-11:   1 */ "@typescript-eslint/restrict-plus-operands",
-      /* 2022-11-11:  53 */ "@typescript-eslint/restrict-template-expressions",
-      /* 2022-11-11:   5 */ "@typescript-eslint/unbound-method",
+      /* 2022-11-15:  53 */ "@typescript-eslint/no-unsafe-argument",
+      /* 2022-11-15: 165 */ "@typescript-eslint/no-unsafe-assignment",
+      /* 2022-11-15:  79 */ "@typescript-eslint/no-unsafe-call",
+      /* 2022-11-15: 215 */ "@typescript-eslint/no-unsafe-member-access",
+      /* 2022-11-15:  24 */ "@typescript-eslint/no-unsafe-return",
+      /* 2022-11-15:   5 */ "@typescript-eslint/require-await",
+      /* 2022-11-15:  10 */ "@typescript-eslint/restrict-plus-operands",
+      /* 2022-11-15:  30 */ "@typescript-eslint/restrict-template-expressions",
+      /* 2022-11-15:   2 */ "@typescript-eslint/unbound-method",
     ]),
     "jsx-a11y/label-has-associated-control": "off",
     "import/no-default-export": "error",
@@ -32,20 +32,13 @@ module.exports = {
               "Please use the custom wrapper component in src/shared/ui component instead to ensure Next.js and MUI compatibility.",
           },
           {
-            name: "@mui/material/*",
-            message: "Please import from @mui/material instead",
-          },
-          {
             name: "@mui/material",
             importNames: [
               "Avatar",
               "IconButton",
               "Chip",
-              "Popover",
               "TextField",
               "Select",
-              "Dialog",
-              "Menu",
               "Link",
               "Button",
               "MenuItem",
@@ -58,6 +51,12 @@ module.exports = {
             importNames: ["useSnackbar"],
             message:
               "Please use the custom src/components/hooks/useSnackbar hook instead.",
+          },
+        ],
+        patterns: [
+          {
+            group: ["@mui/material/*"],
+            message: "Please import from @mui/material instead",
           },
         ],
       },

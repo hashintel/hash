@@ -11,7 +11,7 @@ use crate::{
 
 #[derive(Debug, Hash, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct GenericOutwardEdge<K, E> {
+pub struct OutwardEdge<K, E> {
     pub kind: K,
     /// If true, interpret this as a reversed mapping and the endpoint as the source, that is,
     /// instead of Source-Edge-Target, interpret it as Target-Edge-Source
@@ -21,7 +21,7 @@ pub struct GenericOutwardEdge<K, E> {
 
 // Utoipa doesn't seem to be able to generate sensible interfaces for this, it gets confused by
 // the generic
-impl<K, E> GenericOutwardEdge<K, E>
+impl<K, E> ToSchema for OutwardEdge<K, E>
 where
     K: ToSchema,
     E: ToSchema,
@@ -44,8 +44,8 @@ where
 #[derive(Debug, Hash, PartialEq, Eq, Serialize)]
 #[serde(untagged)]
 pub enum OntologyOutwardEdges {
-    ToOntology(GenericOutwardEdge<OntologyEdgeKind, OntologyTypeEditionId>),
-    ToKnowledgeGraph(GenericOutwardEdge<SharedEdgeKind, EntityEditionId>),
+    ToOntology(OutwardEdge<OntologyEdgeKind, OntologyTypeEditionId>),
+    ToKnowledgeGraph(OutwardEdge<SharedEdgeKind, EntityEditionId>),
 }
 
 // WARNING: This MUST be kept up to date with the enum variants.
@@ -54,8 +54,8 @@ pub enum OntologyOutwardEdges {
 impl ToSchema for OntologyOutwardEdges {
     fn schema() -> openapi::Schema {
         openapi::OneOfBuilder::new()
-            .item(<GenericOutwardEdge<OntologyEdgeKind, OntologyTypeEditionId>>::schema())
-            .item(<GenericOutwardEdge<SharedEdgeKind, EntityEditionId>>::schema())
+            .item(<OutwardEdge<OntologyEdgeKind, OntologyTypeEditionId>>::schema())
+            .item(<OutwardEdge<SharedEdgeKind, EntityEditionId>>::schema())
             .into()
     }
 }
@@ -63,8 +63,8 @@ impl ToSchema for OntologyOutwardEdges {
 #[derive(Debug, Hash, PartialEq, Eq, Serialize)]
 #[serde(untagged)]
 pub enum KnowledgeGraphOutwardEdges {
-    ToKnowledgeGraph(GenericOutwardEdge<KnowledgeGraphEdgeKind, EntityIdAndTimestamp>),
-    ToOntology(GenericOutwardEdge<SharedEdgeKind, OntologyTypeEditionId>),
+    ToKnowledgeGraph(OutwardEdge<KnowledgeGraphEdgeKind, EntityIdAndTimestamp>),
+    ToOntology(OutwardEdge<SharedEdgeKind, OntologyTypeEditionId>),
 }
 
 // WARNING: This MUST be kept up to date with the enum variants.
@@ -73,30 +73,8 @@ pub enum KnowledgeGraphOutwardEdges {
 impl ToSchema for KnowledgeGraphOutwardEdges {
     fn schema() -> openapi::Schema {
         openapi::OneOfBuilder::new()
-            .item(<GenericOutwardEdge<
-                KnowledgeGraphEdgeKind,
-                EntityIdAndTimestamp,
-            >>::schema())
-            .item(<GenericOutwardEdge<SharedEdgeKind, OntologyTypeEditionId>>::schema())
-            .into()
-    }
-}
-
-#[derive(Debug, Hash, PartialEq, Eq, Serialize)]
-#[serde(untagged)]
-pub enum OutwardEdge {
-    Ontology(OntologyOutwardEdges),
-    KnowledgeGraph(KnowledgeGraphOutwardEdges),
-}
-
-// WARNING: This MUST be kept up to date with the enum variants.
-//   We have to do this because utoipa doesn't understand serde untagged:
-//   https://github.com/juhaku/utoipa/issues/320
-impl ToSchema for OutwardEdge {
-    fn schema() -> openapi::Schema {
-        openapi::OneOfBuilder::new()
-            .item(openapi::Ref::from_schema_name("OntologyOutwardEdges"))
-            .item(openapi::Ref::from_schema_name("KnowledgeGraphOutwardEdges"))
+            .item(<OutwardEdge<KnowledgeGraphEdgeKind, EntityIdAndTimestamp>>::schema())
+            .item(<OutwardEdge<SharedEdgeKind, OntologyTypeEditionId>>::schema())
             .into()
     }
 }

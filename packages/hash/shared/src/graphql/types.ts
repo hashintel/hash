@@ -15,7 +15,7 @@ export type TextToken =
       link?: string;
     }
   | { tokenType: "hardBreak" }
-  | { tokenType: "mention"; mentionType: "user"; entityId: EntityId };
+  | { tokenType: "mention"; mentionType: "user" | "page"; entityId: EntityId };
 
 export type UnknownEntityProperties = {};
 

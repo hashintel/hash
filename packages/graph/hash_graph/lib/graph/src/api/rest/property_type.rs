@@ -16,26 +16,26 @@ use utoipa::{OpenApi, ToSchema};
 
 use super::api_resource::RoutedResource;
 use crate::{
-    api::rest::{read_from_store, report_to_status_code},
+    api::rest::{
+        read_from_store, report_to_status_code,
+        utoipa_typedef::subgraph::{Edges, Subgraph, Vertices},
+    },
+    identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId, GraphElementId},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
         patch_id_and_parse, OntologyElementMetadata, PropertyTypeQueryToken,
         PropertyTypeWithMetadata,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
-    shared::{
-        identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId, GraphElementId},
-        subgraph::{
-            depths::GraphResolveDepths,
-            edges::{Edges, OntologyEdgeKind, OutwardEdge, SharedEdgeKind},
-            query::StructuralQuery,
-            vertices::{Vertex, Vertices},
-        },
-    },
     store::{
         query::Filter, BaseUriAlreadyExists, BaseUriDoesNotExist, PropertyTypeStore, StorePool,
     },
-    subgraph::{query::PropertyTypeStructuralQuery, Subgraph},
+    subgraph::{
+        depths::GraphResolveDepths,
+        edges::{OntologyEdgeKind, SharedEdgeKind},
+        query::{PropertyTypeStructuralQuery, StructuralQuery},
+        vertices::Vertex,
+    },
 };
 
 #[derive(OpenApi)]
@@ -65,7 +65,6 @@ use crate::{
             Vertex,
             OntologyEdgeKind,
             SharedEdgeKind,
-            OutwardEdge,
             GraphResolveDepths,
             Edges,
             Subgraph,
@@ -204,7 +203,7 @@ async fn get_property_types_by_query<P: StorePool + Send>(
                 })
         })
         .await
-        .map(Json)
+        .map(|subgraph| Json(subgraph.into()))
 }
 
 #[utoipa::path(

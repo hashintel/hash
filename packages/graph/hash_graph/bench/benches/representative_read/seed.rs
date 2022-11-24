@@ -5,10 +5,9 @@ use std::{
 };
 
 use graph::{
-    identifier::knowledge::EntityId,
+    identifier::{account::AccountId, knowledge::EntityId},
     knowledge::{EntityProperties, EntityUuid, LinkEntityMetadata},
     provenance::{CreatedById, OwnedById},
-    shared::identifier::account::AccountId,
     store::{AccountStore, AsClient, EntityStore, PostgresStore},
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};

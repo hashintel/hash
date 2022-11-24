@@ -18,7 +18,7 @@ pub use self::{
     postgres::{AsClient, PostgresStore, PostgresStorePool},
 };
 use crate::{
-    identifier::knowledge::EntityId,
+    identifier::{account::AccountId, knowledge::EntityId},
     knowledge::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkEntityMetadata,
     },
@@ -27,9 +27,8 @@ use crate::{
         PropertyTypeWithMetadata,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
-    shared::{identifier::account::AccountId, subgraph::query::StructuralQuery},
     store::query::Filter,
-    subgraph::Subgraph,
+    subgraph::{query::StructuralQuery, Subgraph},
 };
 
 #[derive(Debug)]

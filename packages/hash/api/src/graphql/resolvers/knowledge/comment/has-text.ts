@@ -19,8 +19,8 @@ export const persistedCommentHasText: ResolverFn<
 
   // @todo implement `TextModel` class so that a `TextModel.getTokens()` method can be used here
   return (
-    (textEntityModel.properties as any)[
-      SYSTEM_TYPES.propertyType.tokens.baseUri
+    (textEntityModel.getProperties() as any)[
+      SYSTEM_TYPES.propertyType.tokens.getBaseUri()
     ] ?? []
   );
 };
