@@ -5,12 +5,12 @@ import { types } from "@hashintel/hash-shared/types";
 import { extractBaseUri } from "@blockprotocol/type-system-web";
 import { GraphQLError } from "graphql";
 import {
-  UpdatePersistedEntityMutation,
-  UpdatePersistedEntityMutationVariables,
+  UpdateEntityWithMetadataMutation,
+  UpdateEntityWithMetadataMutationVariables,
 } from "../../graphql/apiTypes.gen";
 import { extractEntityRoot, mustGetEntity, Subgraph } from "../../lib/subgraph";
 import { AuthenticatedUser, constructAuthenticatedUser } from "../../lib/user";
-import { updatePersistedEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
+import { updateEntityWithMetadataMutation } from "../../graphql/queries/knowledge/entity.queries";
 import { useAuthenticatedUser } from "./useAuthenticatedUser";
 
 type UpdateAuthenticatedUserParams = {
@@ -22,9 +22,9 @@ export const useUpdateAuthenticatedUser = () => {
   const { authenticatedUser, refetch } = useAuthenticatedUser();
 
   const [updatePersistedEntity] = useMutation<
-    UpdatePersistedEntityMutation,
-    UpdatePersistedEntityMutationVariables
-  >(updatePersistedEntityMutation, { errorPolicy: "all" });
+    UpdateEntityWithMetadataMutation,
+    UpdateEntityWithMetadataMutationVariables
+  >(updateEntityWithMetadataMutation, { errorPolicy: "all" });
 
   const [loading, setLoading] = useState<boolean>(false);
 
