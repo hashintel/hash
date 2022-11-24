@@ -22,19 +22,20 @@ import {
   PopupState,
 } from "material-ui-popup-state/hooks";
 import { Fragment } from "react";
+import { MenuItemProps } from "../../../../shared/ui/menu-item";
 import {
   OntologyChip,
   parseUriForOntologyChip,
 } from "../../shared/ontology-chip";
-import { mustBeVersionedUri } from "./util";
+import { mustBeVersionedUri, withHandler } from "./util";
 
 export const PropertyMenu = ({
-  onEdit,
+  editButtonProps,
   onRemove,
   property,
   popupState,
 }: {
-  onEdit?: () => void;
+  editButtonProps: MenuItemProps;
   onRemove?: () => void;
   property: PropertyType;
   popupState: PopupState;
@@ -90,9 +91,14 @@ export const PropertyMenu = ({
         </Typography>
 
         <MenuItem
-          onClick={() => {
+          {...editButtonProps}
+          onClick={(evt) => {
             popupState.close();
-            onEdit?.();
+            editButtonProps.onClick?.(evt);
+          }}
+          onTouchStart={(evt) => {
+            popupState.close();
+            editButtonProps.onTouchStart?.(evt);
           }}
         >
           <ListItemText primary="Edit property" />
