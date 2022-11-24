@@ -18,7 +18,7 @@ export const useUpdatePageIcon = () => {
   >(updatePersistedPage, { awaitRefetchQueries: true });
 
   const getRefetchQueries = useCallback(
-    (ownedById: string, pageEntityId: string) => [
+    (ownedById: string, pageEntityId: EntityId) => [
       {
         query: getAccountPagesTree,
         variables: { ownedById },
