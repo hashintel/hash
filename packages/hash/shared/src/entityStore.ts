@@ -193,6 +193,9 @@ export const createEntityStore = (
         if (isDraftBlockEntity(draftEntity)) {
           const restoredDraftId = restoreDraftId(
             {
+              // This type is very deep now, so traversal causes TS to complain.
+              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+              // @ts-ignore
               entityId: draftEntity.metadata.editionId.baseId,
               draftId: draftEntity.draftId,
             },

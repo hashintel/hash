@@ -7,22 +7,11 @@ import {
   isEntity,
   TEXT_TOKEN_PROPERTY_TYPE_BASE_URI,
 } from "./entityStore";
-import { PersistedPageFieldsFragment, Text } from "./graphql/apiTypes.gen";
+import { PersistedBlock } from "./graphql/apiTypes.gen";
 import { TextToken } from "./graphql/types";
-import { DistributiveOmit, DistributivePick, flatMapTree } from "./util";
+import { flatMapTree } from "./util";
 
-export type ContentsEntity = DistributiveOmit<
-  PersistedPageFieldsFragment["contents"][number],
-  "__typename"
->;
-
-export type BlockEntity = ContentsEntity & {
-  blockChildEntity: DistributivePick<
-    ContentsEntity["blockChildEntity"] | Text,
-    keyof ContentsEntity["blockChildEntity"] &
-      keyof (ContentsEntity["blockChildEntity"] | Text)
-  >;
-};
+export type BlockEntity = PersistedBlock;
 
 export type TextProperties = {
   // As TEXT_TOKEN_PROPERTY_TYPE_BASE_URI (and TEXT_TOKEN_PROPERTY_TYPE_ID) are

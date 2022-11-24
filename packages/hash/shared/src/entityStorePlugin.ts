@@ -156,6 +156,9 @@ const updateEntitiesByDraftId = (
 
   for (const entity of Object.values(draftEntityStore)) {
     if (isDraftBlockEntity(entity)) {
+      // This type is very deep now, so traversal causes TS to complain.
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
       const blockChildEntity = entity.blockChildEntity!;
       if (blockChildEntity.draftId && blockChildEntity.draftId === draftId) {
         entities.push(blockChildEntity as DraftEntity);
