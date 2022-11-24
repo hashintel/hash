@@ -94,9 +94,7 @@ export const useEntitiesTable = (
         return {
           entity: entityLabel,
           entityTypeVersion: entityType
-            ? `v${extractVersion(entityType.$id)} ${
-                entityType.title
-              }`
+            ? `v${extractVersion(entityType.$id)} ${entityType.title}`
             : "",
           namespace: entityNamespace ? `@${entityNamespace}` : "",
           /** @todo: uncomment this when we have additional types for entities */

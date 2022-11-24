@@ -257,7 +257,9 @@ export const PropertyListCard = () => {
                 onAdd={(propertyType) => {
                   setAddingNewProperty(false);
                   if (
-                    !getValues("properties").some(({ $id }) => $id === propertyType.$id)
+                    !getValues("properties").some(
+                      ({ $id }) => $id === propertyType.$id,
+                    )
                   ) {
                     append({
                       $id: propertyType.$id,
