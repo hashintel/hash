@@ -4,8 +4,9 @@ export type EntityTypeEditorPropertyData = {
   $id: VersionedUri;
   required: boolean;
   array: boolean;
-  minValue: number;
-  maxValue: number;
+  minValue: number | string;
+  maxValue: number | string;
+  infinity: boolean;
 };
 
 export type EntityTypeEditorForm = {

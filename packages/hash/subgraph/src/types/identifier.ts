@@ -18,12 +18,18 @@ export const entityIdFromOwnedByIdAndEntityUuid = (
   return `${ownedById}%${entityUuid}`;
 };
 
+/** @todo - consider Type Branding this */
+export const splitEntityId = (entityId: EntityId): [string, string] => {
+  const [ownedById, entityUuid] = entityId.split("%");
+  return [ownedById!, entityUuid!];
+};
+
 export const extractOwnedByIdFromEntityId = (entityId: EntityId): string => {
-  return entityId.split("%")[0]!;
+  return splitEntityId(entityId)[0]!;
 };
 
 export const extractEntityUuidFromEntityId = (entityId: EntityId): string => {
-  return entityId.split("%")[1]!;
+  return splitEntityId(entityId)[1]!;
 };
 
 /** @todo - consider Type Branding this */
@@ -50,7 +56,7 @@ export type EntityIdAndTimestamp = {
   timestamp: Timestamp;
 };
 
-export { OntologyTypeEditionId };
+export type { OntologyTypeEditionId };
 
 export type GraphElementEditionId = EntityEditionId | OntologyTypeEditionId;
 

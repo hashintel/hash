@@ -21,6 +21,6 @@ export const createOrg: ResolverFn<
   });
 
   return await orgModel.getRootedSubgraph(graphApi, {
-    entityResolveDepth
+    entityResolveDepth,
   });
 };

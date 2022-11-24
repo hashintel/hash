@@ -1,6 +1,11 @@
 import { useQuery } from "@apollo/client";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
 import {
+  EntityId,
+  EntityMetadata,
+  EntityWithMetadata,
+} from "@hashintel/hash-subgraph";
+import {
   GetPersistedPageCommentsQuery,
   GetPersistedPageCommentsQueryVariables,
 } from "../../graphql/apiTypes.gen";
@@ -11,12 +16,11 @@ export type PageThread = PageComment & {
 };
 
 export type PageComment = {
-  ownedById: string;
-  entityId: string;
   hasText: Array<TextToken>;
   textUpdatedAt: string;
-  author: { entityId: string; properties: any };
-  parent: { entityId: string };
+  author: EntityWithMetadata;
+  parent: EntityWithMetadata;
+  metadata: EntityMetadata;
 };
 
 export type PageCommentsInfo = {
@@ -26,12 +30,12 @@ export type PageCommentsInfo = {
 
 const emptyComments: PageThread[] = [];
 
-export const usePageComments = (pageId: string): PageCommentsInfo => {
+export const usePageComments = (pageEntityId: EntityId): PageCommentsInfo => {
   const { data, loading } = useQuery<
     GetPersistedPageCommentsQuery,
     GetPersistedPageCommentsQueryVariables
   >(getPersistedPageComments, {
-    variables: { entityId: pageId },
+    variables: { entityId: pageEntityId },
   });
 
   return { data: data?.persistedPageComments ?? emptyComments, loading };

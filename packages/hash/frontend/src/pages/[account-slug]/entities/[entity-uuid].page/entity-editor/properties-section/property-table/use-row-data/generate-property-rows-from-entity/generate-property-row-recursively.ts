@@ -56,7 +56,10 @@ export const generatePropertyRowRecursively = (
 
   const propertyType = propertyTypeVersions[0]!.schema;
 
-  const { isArray, expectedTypes } = getExpectedTypesOfPropertyType(propertyType, entitySubgraph);
+  const { isArray, expectedTypes } = getExpectedTypesOfPropertyType(
+    propertyType,
+    entitySubgraph,
+  );
 
   const required = !!requiredPropertyTypes?.includes(propertyTypeBaseUri);
 

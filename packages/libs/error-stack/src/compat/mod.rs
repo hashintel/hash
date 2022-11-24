@@ -4,6 +4,8 @@
 //!
 //! [`Report`]: crate::Report
 
+use crate::Report;
+
 #[cfg(feature = "anyhow")]
 mod anyhow;
 #[cfg(feature = "eyre")]
@@ -32,5 +34,5 @@ pub trait IntoReportCompat: Sized {
     /// Converts the [`Err`] variant of the [`Result`] to a [`Report`]
     ///
     /// [`Report`]: crate::Report
-    fn into_report(self) -> crate::Result<Self::Ok, Self::Err>;
+    fn into_report(self) -> Result<Self::Ok, Report<Self::Err>>;
 }

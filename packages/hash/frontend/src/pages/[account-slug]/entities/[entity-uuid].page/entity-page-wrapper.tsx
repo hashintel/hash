@@ -3,11 +3,10 @@ import { Container } from "@mui/system";
 import { PropsWithChildren } from "react";
 import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import { EntityPageHeader } from "./entity-page-wrapper/entity-page-header";
-import { RootEntityAndSubgraph } from "../../../../lib/subgraph";
 import { generateEntityLabel } from "../../../../lib/entities";
 
 /**
- * We'll change `[entity-id].page.tsx` to a tabbed page,
+ * We'll change `[entity-uuid].page.tsx` to a tabbed page,
  * When that happens, this component will provide the tabs to each page
  */
 export const EntityPageWrapper = ({

@@ -25,6 +25,8 @@ import {
   DragEndEvent,
   DragStartEvent,
 } from "@dnd-kit/core";
+import { EntityId, isEntityId, splitEntityId } from "@hashintel/hash-subgraph";
+
 import { Box, Collapse } from "@mui/material";
 import { useAccountPages } from "../../../../components/hooks/useAccountPages";
 import { useCreatePage } from "../../../../components/hooks/useCreatePage";
@@ -45,7 +47,7 @@ import { PagesLoadingState } from "./pages-loading-state";
 
 type AccountPageListProps = {
   accountId: string;
-  currentPageEntityId?: string;
+  currentPageEntityId?: EntityId;
 };
 
 const measuringConfig = {
@@ -221,9 +223,13 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
         const beforeIndex = parentSortedItems[newIndex - 1]?.page.index ?? null;
         const afterIndex = parentSortedItems[newIndex + 1]?.page.index ?? null;
 
+        if (typeof active.id !== "string" || !isEntityId(active.id)) {
+          throw new Error("Expected draggable element ID to be an `EntityId`");
+        }
+
         setTreeItems(sortedItems);
         reorderPage(
-          active.id.toString(),
+          active.id,
           parentPageEntityId,
           beforeIndex,
           afterIndex,
@@ -244,19 +250,21 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   ) => {
     return treeItemList
       .filter(({ page }) => page.parentPageEntityId === parentId)
-      .map(({ page: { entityId: entityId, title }, depth }) => {
+      .map(({ page: { entityId, title }, depth }) => {
         const expanded =
           expandedPageIds.includes(entityId) && activeId !== entityId;
         const children = renderPageTree(treeItemList, entityId);
         const expandable = !!children.length;
         const collapsed = collapsedPageIds.includes(entityId);
 
+        const [ownedById, entityUuid] = splitEntityId(entityId);
+
         const item = (
           <AccountPageListItem
             key={entityId}
             title={title}
-            id={entityId}
-            url={`/${accountId}/${entityId}`}
+            pageEntityId={entityId}
+            url={`/${ownedById}/${entityUuid}`}
             depth={entityId === activeId && projected ? projected.depth : depth}
             onCollapse={expandable ? () => handleToggle(entityId) : undefined}
             selected={currentPageEntityId === entityId}

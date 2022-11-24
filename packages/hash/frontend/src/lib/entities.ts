@@ -58,21 +58,17 @@ export const rewriteEntityIdentifier = ({
  * 2. Re-write 'entityId' so that it is a stringified object of the identifiers we need (i.e. to include accountId)
  */
 export const convertApiEntityToBpEntity = ({
-  accountId,
   entityId,
   entityTypeId,
   properties,
-}: Pick<
-  ApiEntity,
-  "accountId" | "entityId" | "entityTypeId" | "properties"
->): BpEntity => {
+}: Pick<ApiEntity, "entityId" | "entityTypeId" | "properties">): BpEntity => {
   if (entityId.includes("{")) {
     throw new Error(
       `entityId has already been re-written as a stringified object: ${entityId}`,
     );
   }
   return {
-    entityId: rewriteEntityIdentifier({ accountId, entityId }),
+    entityId,
     entityTypeId,
     properties,
   };

@@ -7,6 +7,7 @@ import { SystemStyleObject } from "@mui/system";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { MouseEventHandler } from "react";
 
+import { EntityId } from "@hashintel/hash-subgraph";
 import {
   EmojiPicker,
   EmojiPickerPopoverProps,
@@ -15,9 +16,7 @@ import { useUpdatePageIcon } from "./hooks/useUpdatePageIcon";
 import { PageIcon, SizeVariant } from "./PageIcon";
 
 interface PageIconButtonProps {
-  ownedById: string;
-  entityId: string;
-  versionId?: string;
+  entityId: EntityId;
   readonly?: boolean;
   size?: SizeVariant;
   hasDarkBg?: boolean;
@@ -27,9 +26,7 @@ interface PageIconButtonProps {
 }
 
 export const PageIconButton = ({
-  ownedById,
   entityId,
-  versionId,
   readonly = false,
   size = "medium",
   hasDarkBg,
@@ -80,19 +77,14 @@ export const PageIconButton = ({
           ]}
           disabled={readonly || updatePageIconLoading}
         >
-          <PageIcon
-            ownedById={ownedById}
-            entityId={entityId}
-            versionId={versionId}
-            size={size}
-          />
+          <PageIcon entityId={entityId} size={size} />
         </IconButton>
       </Tooltip>
       <EmojiPicker
         popoverProps={popoverProps}
         popupState={popupState}
         onEmojiSelect={(emoji) => {
-          void updatePageIcon(emoji.native, ownedById, entityId);
+          void updatePageIcon(emoji.native, entityId);
         }}
       />
     </>

@@ -15,7 +15,6 @@ import { useBlockProtocolCreateEntityType } from "../../../../components/hooks/b
 import { useBlockProtocolUpdateEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdateEntityType";
 import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
 import { useAdvancedInitTypeSystem } from "../../../../lib/use-init-type-system";
-import { mustBeVersionedUri } from "./util";
 
 export const useEntityTypeValue = (
   entityTypeBaseUri: string | null,
@@ -48,9 +47,7 @@ export const useEntityTypeValue = (
 
     if (
       entityTypeBaseUri &&
-      (!entityType ||
-        extractBaseUri(mustBeVersionedUri(entityType.$id)) !==
-          entityTypeBaseUri)
+      (!entityType || extractBaseUri(entityType.$id) !== entityTypeBaseUri)
     ) {
       setLoading(true);
       setEntityType(null);

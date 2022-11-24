@@ -38,12 +38,7 @@ export const EntityEditorContextProvider = ({
       propertyExpandStatus,
       togglePropertyExpand,
     }),
-    [
-      entitySubgraph,
-      setEntity,
-      propertyExpandStatus,
-      togglePropertyExpand,
-    ],
+    [entitySubgraph, setEntity, propertyExpandStatus, togglePropertyExpand],
   );
 
   return (

@@ -188,10 +188,10 @@ describe.skip("Aggregation model class ", () => {
 
     const refetchedAggregation = refetchedSourceAggregations[0];
 
-    expect(refetchedAggregation!.appliedToSourceByAccountId).toEqual(
+    expect(refetchedAggregation.appliedToSourceByAccountId).toEqual(
       aggregation.appliedToSourceByAccountId,
     );
-    expect(refetchedAggregation!.operation).toEqual(updatedOperation);
+    expect(refetchedAggregation.operation).toEqual(updatedOperation);
   });
 
   it("delete method deletes an aggregation with a versioned source entity", async () => {

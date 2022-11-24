@@ -13,6 +13,7 @@ import {
   EntityVersion,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
+  splitEntityId,
 } from "@hashintel/hash-subgraph";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import { VersionedUri } from "@blockprotocol/type-system-web";
@@ -335,6 +336,36 @@ export default class {
   ): Promise<EntityModel> {
     const { entityId } = params;
     const { data: persistedEntity } = await graphApi.getEntity(entityId);
+
+    const [ownedById, entityUuid] = splitEntityId(entityId);
+
+    const [entityModel, ...unexpectedEntities] = await EntityModel.getByQuery(
+      graphApi,
+      {
+        all: [
+          { equal: [{ path: ["version"] }, { parameter: "latest" }] },
+          {
+            equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
+          },
+          {
+            equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+          },
+          { equal: [{ path: ["archived"] }, { parameter: false }] },
+        ],
+      },
+    );
+
+    if (unexpectedEntities.length > 0) {
+      throw new Error(
+        `Critical: Latest entity with entityId ${entityId} returned more than one result.`,
+      );
+    }
+
+    if (!entityModel) {
+      throw new Error(
+        `Critical: Entity with entityId ${entityId} doesn't exist.`,
+      );
+    }
 
     return await EntityModel.fromEntity(
       graphApi,
