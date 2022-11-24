@@ -36,6 +36,7 @@ export const createEntityWithPlaceholdersFn =
     if (entityDefinition.existingEntityId) {
       return await EntityModel.getOrCreate(graphApi, {
         ownedById: entityActorId,
+        // We've looked up the placeholder ID, and have an actual entity ID at this point.
         entityDefinition,
         actorId: entityActorId,
       });
@@ -76,7 +77,7 @@ const isPlaceholderId = (value: unknown): value is `placeholder-${string}` =>
   typeof value === "string" && value.startsWith("placeholder-");
 
 export class PlaceholderResultsMap {
-  private map = new Map<string, EntityId>();
+  private map = new Map<string, string>();
 
   get(placeholderId: string) {
     if (isPlaceholderId(placeholderId)) {
@@ -105,7 +106,8 @@ export class PlaceholderResultsMap {
   getResults() {
     return Array.from(this.map.entries()).map(([placeholderId, entityId]) => ({
       placeholderId,
-      entityId,
+      // All resulting values should be entityIds at this point.
+      entityId: entityId as EntityId,
     }));
   }
 }

@@ -325,7 +325,9 @@ const calculateSaveActions = async (
           ownedById,
           position,
           entity: {
-            existingEntityId: blockChildEntityId,
+            // This cast is technically incorrect as the blockChildEntityId could be a placholder.
+            // In that case, we rely on the EntityId to be swapped out in the GQL resolver.
+            existingEntityId: blockChildEntityId as EntityId,
           },
           ...(draftEntity.metadata.editionId.baseId
             ? {
