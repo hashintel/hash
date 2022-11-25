@@ -6,6 +6,7 @@ export const entityTypedef = gql`
   scalar Entity
   scalar PropertyObject
   scalar EntityMetadata
+  scalar LinkEntityMetadata
 
   input LinkedEntityDefinition {
     destinationAccountId: ID!
@@ -15,13 +16,6 @@ export const entityTypedef = gql`
     """
     index: Int
     entity: EntityDefinition!
-  }
-
-  input LinkEntityMetadata {
-    leftEntityId: EntityId!
-    leftOrder: Int
-    rightEntityId: EntityId!
-    rightOrder: Int
   }
 
   input EntityDefinition {
