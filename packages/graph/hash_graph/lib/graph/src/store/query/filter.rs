@@ -557,7 +557,7 @@ mod tests {
 
     use super::*;
     use crate::{
-        identifier::{account::AccountId, knowledge::EntityVersion},
+        identifier::{account::AccountId, knowledge::EntityVersion, ontology::OntologyTypeVersion},
         ontology::DataTypeQueryPath,
         provenance::OwnedById,
     };
@@ -608,6 +608,35 @@ mod tests {
         }};
 
         test_filter_representation(&Filter::<DataType>::for_versioned_uri(&uri), &expected);
+    }
+
+    #[test]
+    fn for_ontology_type_edition_id() {
+        let uri = OntologyTypeEditionId::new(
+            BaseUri::new(
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
+            )
+            .expect("invalid base uri"),
+            OntologyTypeVersion::new(1),
+        );
+
+        let expected = json! {{
+          "all": [
+            { "equal": [
+              { "path": ["baseUri"] },
+              { "parameter": uri.base_id() }
+            ]},
+            { "equal": [
+              { "path": ["version"] },
+              { "parameter": uri.version() }
+            ]}
+          ]
+        }};
+
+        test_filter_representation(
+            &Filter::<DataType>::for_ontology_type_edition_id(&uri),
+            &expected,
+        );
     }
 
     #[test]

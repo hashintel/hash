@@ -671,6 +671,7 @@ mod tests {
             identifier::{
                 account::AccountId,
                 knowledge::{EntityEditionId, EntityId, EntityVersion},
+                ontology::{OntologyTypeEditionId, OntologyTypeVersion},
                 Timestamp,
             },
             knowledge::EntityUuid,
@@ -723,6 +724,34 @@ mod tests {
                 WHERE ("type_ids_0_1_0"."base_uri" = $1) AND ("type_ids_0_1_0"."version" = $2)
                 "#,
                 &[&uri.base_uri().as_str(), &i64::from(uri.version())],
+            );
+        }
+
+        #[test]
+        fn for_ontology_type_edition_id() {
+            let uri = OntologyTypeEditionId::new(
+                BaseUri::new(
+                    "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
+                )
+                .expect("invalid base uri"),
+                OntologyTypeVersion::new(1),
+            );
+
+            let mut compiler = SelectCompiler::<DataType>::with_asterisk();
+
+            let filter = Filter::for_ontology_type_edition_id(&uri);
+            compiler.add_filter(&filter);
+
+            test_compilation(
+                &compiler,
+                r#"
+                SELECT *
+                FROM "data_types" AS "data_types_0_0_0"
+                INNER JOIN "type_ids" AS "type_ids_0_1_0"
+                  ON "type_ids_0_1_0"."version_id" = "data_types_0_0_0"."version_id"
+                WHERE ("type_ids_0_1_0"."base_uri" = $1) AND ("type_ids_0_1_0"."version" = $2)
+                "#,
+                &[&uri.base_id().as_str(), &i64::from(uri.version().inner())],
             );
         }
 
