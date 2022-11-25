@@ -5,7 +5,7 @@ import {
 import {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
-  EntityWithMetadata,
+  Entity,
   PropertyTypeWithMetadata,
 } from "./element";
 import { Vertices } from "./vertex";
@@ -27,7 +27,7 @@ export type SubgraphRootTypes = {
   };
   entity: {
     editionId: EntityEditionId;
-    element: EntityWithMetadata;
+    element: Entity;
   };
 };
 

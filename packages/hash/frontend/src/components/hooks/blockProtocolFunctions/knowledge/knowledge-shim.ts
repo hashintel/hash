@@ -12,7 +12,7 @@ import {
   ReadOrModifyResourceError,
 } from "@blockprotocol/graph";
 import {
-  EntityWithMetadata,
+  Entity,
   EntityId,
   PropertyObject,
   Subgraph,
@@ -50,7 +50,7 @@ export type CreateEntityRequest = {
 export type CreateEntityMessageCallback = MessageCallback<
   CreateEntityRequest,
   null,
-  EntityWithMetadata,
+  Entity,
   CreateResourceError
 >;
 
@@ -62,6 +62,6 @@ export type UpdateEntityRequest = {
 export type UpdateEntityMessageCallback = MessageCallback<
   UpdateEntityRequest,
   null,
-  EntityWithMetadata,
+  Entity,
   ReadOrModifyResourceError
 >;
