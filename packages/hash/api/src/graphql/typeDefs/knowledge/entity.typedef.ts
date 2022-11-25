@@ -3,17 +3,7 @@ import { gql } from "apollo-server-express";
 export const entityTypedef = gql`
   scalar EntityId
   scalar EntityEditionId
-  """
-  @todo rename to 'Entity' once we get rid of deprecated GQL types.
-    See https://app.asana.com/0/1201095311341924/1203411297593704/f
-  """
   scalar Entity
-  """
-  @todo we intend to use only a single scalar instead of the following ones.
-    To support existing pieces of the application, these scalars are useful for 'Knowledge' types
-    that wrap entities with custom resolvers.
-    Changing this this can be considered part of https://app.asana.com/0/1202805690238892/1203157172269854/f
-  """
   scalar PropertyObject
   scalar EntityMetadata
 
