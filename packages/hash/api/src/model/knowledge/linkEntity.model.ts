@@ -97,8 +97,8 @@ export default class extends EntityModel {
     const { data: subgraph } = await graphApi.getEntitiesByQuery({
       filter,
       graphResolveDepths: {
-        dataTypeResolveDepth:
-          options?.graphResolveDepths?.dataTypeResolveDepth ?? 0,
+        constrainsValuesOn:
+          options?.graphResolveDepths?.constrainsValuesOn ?? 0,
         propertyTypeResolveDepth:
           options?.graphResolveDepths?.propertyTypeResolveDepth ?? 0,
         entityTypeResolveDepth:

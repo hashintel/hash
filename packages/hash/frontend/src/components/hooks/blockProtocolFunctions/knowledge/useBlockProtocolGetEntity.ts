@@ -37,7 +37,7 @@ export const useBlockProtocolGetEntity = (): {
         variables: {
           entityId,
           // Get the full entity type _tree_
-          dataTypeResolveDepth: 255,
+          constrainsValuesOn: 255,
           propertyTypeResolveDepth: 255,
           // Don't explore entityType references beyond the absolute neighbors
           entityTypeResolveDepth: 2,

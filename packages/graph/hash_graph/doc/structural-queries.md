@@ -93,7 +93,7 @@ if a query on `Entity1` is made with the following depths:
     // ...
   },
   graphResolveDepths: {
-    dataTypeResolveDepth: 1,
+    constrainsValuesOn: 1,
     propertyTypeResolveDepth: 3,
     entityTypeResolveDepth: 1,
     entityResolveDepth: 2,

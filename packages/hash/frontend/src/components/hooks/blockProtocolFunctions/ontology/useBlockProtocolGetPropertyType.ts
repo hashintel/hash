@@ -42,7 +42,7 @@ export const useBlockProtocolGetPropertyType = (): {
       const response = await getFn({
         variables: {
           propertyTypeId,
-          dataTypeResolveDepth: 255,
+          constrainsValuesOn: 255,
           propertyTypeResolveDepth: 255,
         },
       });

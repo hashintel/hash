@@ -14,7 +14,7 @@ export const getAllLatestDataTypes: ResolverFn<
   {},
   LoggedInGraphQLContext,
   QueryGetAllLatestDataTypesArgs
-> = async (_, { dataTypeResolveDepth }, { dataSources }) => {
+> = async (_, { constrainsValuesOn }, { dataSources }) => {
   const { graphApi } = dataSources;
 
   const { data: dataTypeSubgraph } = await graphApi
@@ -23,7 +23,7 @@ export const getAllLatestDataTypes: ResolverFn<
         equal: [{ path: ["version"] }, { parameter: "latest" }],
       },
       graphResolveDepths: {
-        dataTypeResolveDepth,
+        constrainsValuesOn,
         propertyTypeResolveDepth: 0,
         entityTypeResolveDepth: 0,
         entityResolveDepth: 0,
@@ -44,7 +44,7 @@ export const getDataType: ResolverFn<
   {},
   GraphQLContext,
   QueryGetDataTypeArgs
-> = async (_, { dataTypeId, dataTypeResolveDepth }, { dataSources }) => {
+> = async (_, { dataTypeId, constrainsValuesOn }, { dataSources }) => {
   const { graphApi } = dataSources;
 
   const { data: dataTypeSubgraph } = await graphApi
@@ -54,7 +54,7 @@ export const getDataType: ResolverFn<
       },
       /** @todo - make these configurable once non-primitive data types are a thing https://app.asana.com/0/1200211978612931/1202464168422955/f */
       graphResolveDepths: {
-        dataTypeResolveDepth,
+        constrainsValuesOn,
         propertyTypeResolveDepth: 0,
         entityTypeResolveDepth: 0,
         entityResolveDepth: 0,

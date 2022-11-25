@@ -40,7 +40,7 @@ export const useBlockProtocolAggregateDataTypes = (): {
        */
       const response = await aggregateFn({
         variables: {
-          dataTypeResolveDepth: 255,
+          constrainsValuesOn: 255,
         },
       });
 

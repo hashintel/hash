@@ -52,7 +52,7 @@ export const getAllLatestEntities: ResolverFn<
 > = async (
   _,
   {
-    dataTypeResolveDepth,
+    constrainsValuesOn,
     propertyTypeResolveDepth,
     entityTypeResolveDepth,
     entityResolveDepth,
@@ -68,7 +68,7 @@ export const getAllLatestEntities: ResolverFn<
         equal: [{ path: ["version"] }, { parameter: "latest" }],
       },
       graphResolveDepths: {
-        dataTypeResolveDepth,
+        constrainsValuesOn,
         propertyTypeResolveDepth,
         entityTypeResolveDepth,
         entityResolveDepth,
@@ -94,7 +94,7 @@ export const getEntity: ResolverFn<
   {
     entityId,
     entityVersion,
-    dataTypeResolveDepth,
+    constrainsValuesOn,
     propertyTypeResolveDepth,
     entityTypeResolveDepth,
     entityResolveDepth,
@@ -126,7 +126,7 @@ export const getEntity: ResolverFn<
     .getEntitiesByQuery({
       filter,
       graphResolveDepths: {
-        dataTypeResolveDepth,
+        constrainsValuesOn,
         propertyTypeResolveDepth,
         entityTypeResolveDepth,
         entityResolveDepth,

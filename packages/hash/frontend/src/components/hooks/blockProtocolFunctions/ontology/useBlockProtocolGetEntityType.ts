@@ -43,7 +43,7 @@ export const useBlockProtocolGetEntityType = (): {
         query: getEntityTypeQuery,
         variables: {
           entityTypeId,
-          dataTypeResolveDepth: 255,
+          constrainsValuesOn: 255,
           propertyTypeResolveDepth: 255,
           entityTypeResolveDepth: 1,
         },

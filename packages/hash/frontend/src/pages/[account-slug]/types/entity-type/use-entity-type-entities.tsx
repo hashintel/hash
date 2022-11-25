@@ -27,7 +27,7 @@ export const useEntityTypeEntitiesContextValue = (
   useEffect(() => {
     void aggregateEntities({
       data: {
-        dataTypeResolveDepth: 0,
+        constrainsValuesOn: 0,
         propertyTypeResolveDepth: 1,
         linkTypeResolveDepth: 0,
         entityTypeResolveDepth: 1,

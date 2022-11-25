@@ -67,7 +67,7 @@ use crate::{
 ///     ]
 ///   },
 ///   "graphResolveDepths": {
-///     "dataTypeResolveDepth": 0,
+///     "constrainsValuesOn": 0,
 ///     "propertyTypeResolveDepth": 0,
 ///     "entityTypeResolveDepth": 0,
 ///     "linkTargetEntityResolveDepth": 0,
@@ -98,7 +98,7 @@ use crate::{
 ///     ]
 ///   },
 ///   "graphResolveDepths": {
-///     "dataTypeResolveDepth": 0,
+///     "constrainsValuesOn": 0,
 ///     "propertyTypeResolveDepth": 0,
 ///     "entityTypeResolveDepth": 0,
 ///     "linkTargetEntityResolveDepth": 0,

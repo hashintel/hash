@@ -43,7 +43,7 @@ export const entityTypedef = gql`
     Get a subgraph rooted at all entities at their latest version.
     """
     getAllLatestEntities(
-      dataTypeResolveDepth: Int!
+      constrainsValuesOn: Int!
       propertyTypeResolveDepth: Int!
       entityTypeResolveDepth: Int!
       entityResolveDepth: Int!
@@ -61,7 +61,7 @@ export const entityTypedef = gql`
       The version of the entity. Defaults to the latest version.
       """
       entityVersion: String
-      dataTypeResolveDepth: Int!
+      constrainsValuesOn: Int!
       propertyTypeResolveDepth: Int!
       entityTypeResolveDepth: Int!
       entityResolveDepth: Int!

@@ -39,7 +39,7 @@ export const getAllLatestPropertyTypes: ResolverFn<
   QueryGetAllLatestPropertyTypesArgs
 > = async (
   _,
-  { dataTypeResolveDepth, propertyTypeResolveDepth },
+  { constrainsValuesOn, propertyTypeResolveDepth },
   { dataSources },
   __,
 ) => {
@@ -57,7 +57,7 @@ export const getAllLatestPropertyTypes: ResolverFn<
         equal: [{ path: ["version"] }, { parameter: "latest" }],
       },
       graphResolveDepths: {
-        dataTypeResolveDepth,
+        constrainsValuesOn,
         propertyTypeResolveDepth,
         entityTypeResolveDepth: 0,
         entityResolveDepth: 0,
@@ -80,7 +80,7 @@ export const getPropertyType: ResolverFn<
   QueryGetPropertyTypeArgs
 > = async (
   _,
-  { propertyTypeId, dataTypeResolveDepth, propertyTypeResolveDepth },
+  { propertyTypeId, constrainsValuesOn, propertyTypeResolveDepth },
   { dataSources },
   __,
 ) => {
@@ -92,7 +92,7 @@ export const getPropertyType: ResolverFn<
         equal: [{ path: ["versionedUri"] }, { parameter: propertyTypeId }],
       },
       graphResolveDepths: {
-        dataTypeResolveDepth,
+        constrainsValuesOn,
         propertyTypeResolveDepth,
         entityTypeResolveDepth: 0,
         entityResolveDepth: 0,
