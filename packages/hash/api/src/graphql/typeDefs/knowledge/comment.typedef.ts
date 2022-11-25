@@ -1,7 +1,7 @@
 import { gql } from "apollo-server-express";
 
-export const persistedCommentTypedef = gql`
-  type PersistedComment implements PersistedEntity {
+export const commentTypedef = gql`
+  type Comment {
     """
     Stringified timestamp of when the entity was resolved.
     """
@@ -25,52 +25,27 @@ export const persistedCommentTypedef = gql`
     """
     User that created the comment
     """
-    author: UnknownPersistedEntity!
+    author: Entity!
 
     """
     Parent entity the comment belongs to
     """
-    parent: PersistedEntity!
+    parent: Entity!
 
     """
     Array of comments created in response to this comment
     """
-    replies: [PersistedComment!]!
+    replies: [Comment!]!
 
     # ENTITY INTERFACE FIELDS BEGIN #
     """
-    The id of the entity
+    Metadata for the entity.
     """
-    entityId: ID!
+    metadata: EntityMetadata!
     """
-    The specific version of the entity
+    Properties of entity.
     """
-    entityVersion: String!
-    """
-    The id of the account that owns this entity.
-    """
-    ownedById: ID!
-    """
-    Alias of ownedById - the id of the account that owns this entity.
-    """
-    accountId: ID!
-      @deprecated(reason: "accountId is deprecated. Use ownedById instead.")
-    """
-    The versioned URI of this entity's type.
-    """
-    entityTypeId: String!
-    """
-    The full entity type definition.
-    """
-    entityType: PersistedEntityType!
-    """
-    The linked entities of the entity.
-    """
-    linkedEntities: [PersistedEntity!]!
-    """
-    The JSON object containing the entity's properties.
-    """
-    properties: JSONObject!
+    properties: PropertyObject!
     # ENTITY INTERFACE FIELDS END #
   }
 
@@ -78,49 +53,49 @@ export const persistedCommentTypedef = gql`
     """
     Create a new comment
     """
-    createPersistedComment(
+    createComment(
       """
       Id of the block or comment the comment belongs to
       """
-      parentEntityId: ID!
+      parentEntityId: EntityId!
       """
       Text contents of the comment
       """
       tokens: [TextToken!]!
-    ): PersistedComment!
+    ): Comment!
 
     """
     Resolve an existing comment
     """
-    resolvePersistedComment(
+    resolveComment(
       """
       Id of the comment to resolve
       """
-      entityId: ID!
-    ): PersistedComment!
+      entityId: EntityId!
+    ): Comment!
 
     """
     Delete an existing comment
     """
-    deletePersistedComment(
+    deleteComment(
       """
       Id of the comment to delete
       """
-      entityId: ID!
-    ): PersistedComment!
+      entityId: EntityId!
+    ): Comment!
 
     """
     Edit an existing comment's text contents
     """
-    updatePersistedCommentText(
+    updateCommentText(
       """
       Id of the comment being edited
       """
-      entityId: ID!
+      entityId: EntityId!
       """
       New Text contents of the comment
       """
       tokens: [TextToken!]!
-    ): PersistedComment!
+    ): Comment!
   }
 `;

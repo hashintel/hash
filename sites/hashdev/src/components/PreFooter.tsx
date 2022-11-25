@@ -271,7 +271,7 @@ const Community: FunctionComponent = () => {
                 href="https://github.com/hashintel/hash/stargazers"
                 startIcon={<FaIcon name="github" type="brands " />}
               >
-                Star us on Github
+                Star us on GitHub
               </Button>
               <Button
                 variant="primarySquare"

@@ -1,0 +1,13 @@
+{
+  "kind": "entityType",
+  "$id": "https://blockprotocol.org/@alice/types/entity-type/contains/v/1",
+  "type": "object",
+  "title": "Contains",
+  "description": "Have or hold within",
+  "allOf": [
+    {
+      "$ref": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1"
+    }
+  ],
+  "properties": {}
+}

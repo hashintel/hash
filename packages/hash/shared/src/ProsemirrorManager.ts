@@ -1,4 +1,5 @@
 import { BlockVariant, JsonObject } from "@blockprotocol/core";
+import { EntityId } from "@hashintel/hash-subgraph";
 import { Node, Schema } from "prosemirror-model";
 import { EditorState, Transaction } from "prosemirror-state";
 import { EditorProps, EditorView } from "prosemirror-view";
@@ -210,7 +211,7 @@ export class ProsemirrorManager {
       entities.map(async (blockEntity) => {
         const draftEntity = mustGetDraftEntityByEntityId(
           store.draft,
-          blockEntity.entityId,
+          blockEntity.metadata.editionId.baseId,
         );
 
         await this.defineBlockByComponentId(blockEntity.componentId);
@@ -407,7 +408,7 @@ export class ProsemirrorManager {
    * @todo this does not work within text blocks
    */
   replaceBlockChildEntity(
-    blockEntityId: string,
+    blockEntityId: EntityId,
     targetChildEntity: EntityStoreType,
   ) {
     if (!this.view) {
@@ -430,13 +431,18 @@ export class ProsemirrorManager {
 
     // If the target entity is the same as the block's child entity
     // we don't need to do anything
-    if (targetChildEntity.entityId === childEntity.entityId) {
+    if (
+      targetChildEntity.metadata.editionId.baseId ===
+        childEntity.metadata.editionId.baseId &&
+      targetChildEntity.metadata.editionId.version ===
+        childEntity.metadata.editionId.version
+    ) {
       return;
     }
 
     const blockEntityDraftId = mustGetDraftEntityByEntityId(
       entityStore.draft,
-      blockEntity.entityId,
+      blockEntity.metadata.editionId.baseId,
     ).draftId;
 
     addEntityStoreAction(this.view.state, tr, {
@@ -456,7 +462,7 @@ export class ProsemirrorManager {
    * @param entityId the id of the entity to update
    * @param propertiesToUpdate the properties to update
    */
-  updateEntityProperties(entityId: string, propertiesToUpdate: JsonObject) {
+  updateEntityProperties(entityId: EntityId, propertiesToUpdate: JsonObject) {
     if (!this.view) {
       throw new Error("Cannot trigger updateEntityProperties without view");
     }

@@ -1,7 +1,7 @@
 import { gql } from "apollo-server-express";
 
-export const persistedPageTypedef = gql`
-  type PersistedPage implements PersistedEntity {
+export const pageTypedef = gql`
+  type Page {
     """
     The title of the page.
     """
@@ -21,7 +21,7 @@ export const persistedPageTypedef = gql`
     """
     The contents of the page.
     """
-    contents: [PersistedBlock!]!
+    contents: [Block!]!
     """
     The fractional index of the page in the page tree.
     """
@@ -29,100 +29,53 @@ export const persistedPageTypedef = gql`
     """
     The page's parent page (may not be set).
     """
-    parentPage: PersistedPage
+    parentPage: Page
 
     # ENTITY INTERFACE FIELDS BEGIN #
     """
-    The id of the entity
+    Metadata for the entity.
     """
-    entityId: ID!
+    metadata: EntityMetadata!
     """
-    The specific version of the entity
+    Properties of entity.
     """
-    entityVersion: String!
-    """
-    The id of the account that owns this entity.
-    """
-    ownedById: ID!
-    """
-    Alias of ownedById - the id of the account that owns this entity.
-    """
-    accountId: ID!
-      @deprecated(reason: "accountId is deprecated. Use ownedById instead.")
-    """
-    The versioned URI of this entity's type.
-    """
-    entityTypeId: String!
-    """
-    The full entity type definition.
-    """
-    entityType: PersistedEntityType!
-    """
-    The linked entities of the entity.
-    """
-    linkedEntities: [PersistedEntity!]!
-    """
-    The JSON object containing the entity's properties.
-    """
-    properties: JSONObject!
+    properties: PropertyObject!
     # ENTITY INTERFACE FIELDS END #
-  }
-
-  type PersistedEntityRef {
-    """
-    The id of the account that owns this entity.
-    """
-    ownedById: ID!
-    """
-    Alias of ownedById - the id of the account that owns this entity.
-    """
-    accountId: ID!
-      @deprecated(reason: "accountId is deprecated. Use ownedById instead.")
-    entityId: ID!
-    entityVersion: String!
   }
 
   extend type Query {
     """
     Get a page by its entity id.
     """
-    persistedPage(
-      """
-      The account ID that owns the Page.
-      """
-      ownedById: ID!
+    page(
       """
       The id of the page entity.
       """
-      entityId: ID!
-      """
-      The version of the page entity. Defaults to the latest version.
-      """
-      entityVersion: String
-    ): PersistedPage!
+      entityId: EntityId!
+    ): Page!
 
     """
     Return a list of pages.
     """
-    persistedPages(
+    pages(
       """
       The account owning the pages. Defaults to the logged in user.
       """
       ownedById: ID
-    ): [PersistedPage!]!
+    ): [Page!]!
 
-    persistedPageComments(
+    pageComments(
       """
       The id of the page entity.
       """
-      entityId: ID!
-    ): [PersistedComment!]!
+      entityId: EntityId!
+    ): [Comment!]!
   }
 
   """
   Insert a block into a page with a corresponding entity.
   """
-  input InsertPersistedBlockAction {
+  input InsertBlockAction {
     """
     The account ID to create the block and associated entity in.
     """
@@ -139,11 +92,11 @@ export const persistedPageTypedef = gql`
     The block entity to insert into the page. You should not set a componentId
     if you provide this
     """
-    existingBlockEntity: PersistedExistingEntity
+    existingBlockEntityId: EntityId
     """
     The entity to associate with the new block
     """
-    entity: PersistedEntityDefinition!
+    entity: EntityDefinition!
     """
     Allows UpdatePageContentsActions to reference entities created in other actions. Also allows callers to updatePageContents to find the entity id created for this definition in the result. See UpdatePageContentsResult.
     """
@@ -157,7 +110,7 @@ export const persistedPageTypedef = gql`
   """
   Remove a block from a page.
   """
-  input RemovePersistedBlockAction {
+  input RemoveBlockAction {
     """
     The position of the block to remove from the page.
     """
@@ -167,7 +120,7 @@ export const persistedPageTypedef = gql`
   """
   Move a block within a page.
   """
-  input MovePersistedBlockAction {
+  input MoveBlockAction {
     """
     The current position of the block.
     """
@@ -181,15 +134,11 @@ export const persistedPageTypedef = gql`
   """
   Update an entity in a page.
   """
-  input UpdatePersistedEntityAction {
-    """
-    The account the entity resides in.
-    """
-    ownedById: ID!
+  input UpdateEntityAction {
     """
     The entity's fixed ID.
     """
-    entityId: ID!
+    entityId: EntityId!
     """
     The entity's new properties.
     """
@@ -199,33 +148,22 @@ export const persistedPageTypedef = gql`
   """
   Swap a blocks data
   """
-  input SwapPersistedBlockDataAction {
-    """
-    The account the block resides in
-    """
-    ownedById: ID!
-
+  input SwapBlockDataAction {
     """
     The Block entity's fixed ID
     """
-    entityId: ID!
-
-    """
-    The account the new entity resides in
-    """
-    newEntityOwnedById: ID!
-
+    entityId: EntityId!
     """
     The new entity's fixed ID
     """
-    newEntityEntityId: ID!
+    newEntityEntityId: EntityId!
   }
 
   """
   Create an entity, which you can then reference in other actions, such as a InsertBlockAction
   """
-  input CreatePersistedEntityAction {
-    entity: PersistedEntityDefinition!
+  input CreateEntityAction {
+    entity: EntityDefinition!
     entityPlaceholderId: ID
     ownedById: ID!
   }
@@ -233,7 +171,7 @@ export const persistedPageTypedef = gql`
   """
   Create an entity type, which you can then reference in future CreateEntityActions
   """
-  input CreatePersistedEntityTypeAction {
+  input CreateEntityTypeAction {
     ownedById: ID!
     """
     The name for the type. Must be unique in the given account.
@@ -260,30 +198,30 @@ export const persistedPageTypedef = gql`
   Note: a union type would be preferrable here, but currently, GraphQL does not
   permit unions as input to a mutation
   """
-  input UpdatePersistedPageAction {
-    insertBlock: InsertPersistedBlockAction
-    removeBlock: RemovePersistedBlockAction
-    moveBlock: MovePersistedBlockAction
-    updateEntity: UpdatePersistedEntityAction
-    swapBlockData: SwapPersistedBlockDataAction
-    createEntity: CreatePersistedEntityAction
-    createEntityType: CreatePersistedEntityTypeAction
+  input UpdatePageAction {
+    insertBlock: InsertBlockAction
+    removeBlock: RemoveBlockAction
+    moveBlock: MoveBlockAction
+    updateEntity: UpdateEntityAction
+    swapBlockData: SwapBlockDataAction
+    createEntity: CreateEntityAction
+    createEntityType: CreateEntityTypeAction
   }
 
   """
   Map of placeholder IDs used in the UpdatePageContentsActions to the entity IDs created for those placeholders
   """
-  type UpdatePersistedPageContentsResultPlaceholder {
+  type UpdatePageContentsResultPlaceholder {
     placeholderId: ID!
-    entityId: ID!
+    entityId: EntityId!
   }
 
-  type UpdatePersistedPageContentsResult {
-    page: PersistedPage!
-    placeholders: [UpdatePersistedPageContentsResultPlaceholder!]!
+  type UpdatePageContentsResult {
+    page: Page!
+    placeholders: [UpdatePageContentsResultPlaceholder!]!
   }
 
-  input PersistedPageCreationData {
+  input PageCreationData {
     """
     The page title.
     """
@@ -294,7 +232,7 @@ export const persistedPageTypedef = gql`
     prevIndex: String
   }
 
-  input PersistedPageUpdateData {
+  input PageUpdateData {
     title: String
     summary: String
     archived: Boolean
@@ -306,7 +244,7 @@ export const persistedPageTypedef = gql`
     """
     Create a new page
     """
-    createPersistedPage(
+    createPage(
       """
       The new page's account ID.
       """
@@ -314,43 +252,36 @@ export const persistedPageTypedef = gql`
       """
       Initial properties to set for the new page.
       """
-      properties: PersistedPageCreationData!
-    ): PersistedPage!
+      properties: PageCreationData!
+    ): Page!
     """
     Update an existing page.
     """
-    updatePersistedPage(
-      entityId: ID!
-      updatedProperties: PersistedPageUpdateData!
-    ): PersistedPage!
+    updatePage(entityId: EntityId!, updatedProperties: PageUpdateData!): Page!
     """
     Set the parent of a page
 
     If the parentPageEntityId is not set, any existing page link is removed.
     """
-    setParentPersistedPage(
-      pageEntityId: ID!
-      parentPageEntityId: ID
+    setParentPage(
+      pageEntityId: EntityId!
+      parentPageEntityId: EntityId
       prevIndex: String
       nextIndex: String
-    ): PersistedPage!
+    ): Page!
 
     """
     Update the contents of a page.
     """
-    updatePersistedPageContents(
-      """
-      The page's account ID.
-      """
-      ownedById: ID!
+    updatePageContents(
       """
       The pages's fixed entity ID.
       """
-      entityId: ID!
+      entityId: EntityId!
       """
       The list of actions to perform on the page.
       """
-      actions: [UpdatePersistedPageAction!]!
-    ): UpdatePersistedPageContentsResult!
+      actions: [UpdatePageAction!]!
+    ): UpdatePageContentsResult!
   }
 `;

@@ -2,26 +2,37 @@ import { useMutation } from "@apollo/client";
 import { useRouter } from "next/router";
 import { useCallback } from "react";
 import {
-  CreatePersistedPageMutation,
-  CreatePersistedPageMutationVariables,
+  extractOwnedByIdFromEntityId,
+  splitEntityId,
+} from "@hashintel/hash-subgraph";
+import {
+  CreatePageMutation,
+  CreatePageMutationVariables,
 } from "../../graphql/apiTypes.gen";
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
-import { createPersistedPage } from "../../graphql/queries/page.queries";
+import { createPage } from "../../graphql/queries/page.queries";
 
 export const useCreatePage = (ownedById: string) => {
   const router = useRouter();
 
   const [createPageFn, { loading: createPageLoading }] = useMutation<
-    CreatePersistedPageMutation,
-    CreatePersistedPageMutationVariables
-  >(createPersistedPage, {
+    CreatePageMutation,
+    CreatePageMutationVariables
+  >(createPage, {
     awaitRefetchQueries: true,
-    refetchQueries: ({ data }) => [
-      {
-        query: getAccountPagesTree,
-        variables: { ownedById: data?.createPersistedPage.ownedById },
-      },
-    ],
+    refetchQueries: ({ data }) =>
+      data
+        ? [
+            {
+              query: getAccountPagesTree,
+              variables: {
+                ownedById: extractOwnedByIdFromEntityId(
+                  data.createPage.metadata.editionId.baseId,
+                ),
+              },
+            },
+          ]
+        : [],
   });
 
   const createUntitledPage = useCallback(
@@ -30,11 +41,11 @@ export const useCreatePage = (ownedById: string) => {
         variables: { ownedById, properties: { title: "", prevIndex } },
       });
 
-      const { ownedById: pageOwnedById, entityId: pageEntityId } =
-        response.data?.createPersistedPage ?? {};
+      const pageEntityId = response.data?.createPage?.metadata.editionId.baseId;
 
-      if (pageOwnedById && pageEntityId) {
-        return router.push(`/${pageOwnedById}/${pageEntityId}`);
+      if (pageEntityId) {
+        const [pageOwnedById, pageEntityUuid] = splitEntityId(pageEntityId);
+        return router.push(`/${pageOwnedById}/${pageEntityUuid}`);
       }
     },
     [createPageFn, ownedById, router],

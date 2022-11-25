@@ -55,11 +55,6 @@
               usage"
 )]
 #![expect(
-    clippy::use_debug,
-    reason = "We need to revisit error handling and this is currently the easiest way to attach \
-              information to a `Report`"
-)]
-#![expect(
     clippy::cast_sign_loss,
     clippy::cast_possible_truncation,
     reason = "Postgres doesn't support unsigned values, so we cast from i64 to u32. We don't use \
@@ -74,7 +69,7 @@ pub mod api;
 
 pub mod knowledge;
 pub mod ontology;
-pub mod shared;
+mod shared;
 
 pub mod store;
 

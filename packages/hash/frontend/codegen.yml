@@ -10,20 +10,26 @@ generates:
       - "typescript-operations"
     config:
       skipTypename: true
+      # TODO: We should consider consolidating shared codegen config across our packages.
+      #   See https://app.asana.com/0/1201095311341924/1203393349856541/f
       scalars:
         Date: string
         UnknownEntityProperties: "@hashintel/hash-shared/graphql/types#UnknownEntityProperties"
         TextToken: "@hashintel/hash-shared/graphql/types#TextToken"
-        DataType: "@blockprotocol/type-system-web#DataType"
-        PropertyType: "@blockprotocol/type-system-web#PropertyType"
-        LinkType: "@blockprotocol/type-system-web#LinkType"
-        EntityType: "@blockprotocol/type-system-web#EntityType"
         DataTypeWithoutId: "@hashintel/hash-shared/graphql/types#DataTypeWithoutId"
-        PropertyTypeWithoutId: "@hashintel/hash-shared/graphql/types#PropertyTypeWithoutId"
         EntityTypeWithoutId: "@hashintel/hash-shared/graphql/types#EntityTypeWithoutId"
-        LinkTypeWithoutId: "@hashintel/hash-shared/graphql/types#LinkTypeWithoutId"
-        Edges: "@hashintel/hash-shared/graphql/types#Edges"
-        Vertices: "@hashintel/hash-shared/graphql/types#Vertices"
+        PropertyTypeWithoutId: "@hashintel/hash-shared/graphql/types#PropertyTypeWithoutId"
+        VersionedUri: "@hashintel/hash-subgraph#VersionedUri"
+        DataTypeWithMetadata: "@hashintel/hash-subgraph#DataTypeWithMetadata"
+        PropertyTypeWithMetadata: "@hashintel/hash-subgraph#PropertyTypeWithMetadata"
+        EntityTypeWithMetadata: "@hashintel/hash-subgraph#EntityTypeWithMetadata"
+        Entity: "@hashintel/hash-subgraph#Entity"
+        EntityId: "@hashintel/hash-subgraph#EntityId"
+        EntityEditionId: "@hashintel/hash-subgraph#EntityEditionId"
+        EntityMetadata: "@hashintel/hash-subgraph#EntityMetadata"
+        GraphElementEditionId: "@hashintel/hash-subgraph#GraphElementEditionId"
+        Edges: "@hashintel/hash-subgraph#Edges"
+        Vertices: "@hashintel/hash-subgraph#Vertices"
     documents:
       - ./src/graphql/queries/**/*.ts
       - ../shared/src/queries/**/*.ts

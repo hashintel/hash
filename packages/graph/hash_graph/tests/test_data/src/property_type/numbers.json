@@ -2,7 +2,6 @@
   "kind": "propertyType",
   "$id": "https://blockprotocol.org/@alice/types/property-type/numbers/v/1",
   "title": "Numbers",
-  "pluralTitle": "Numbers",
   "oneOf": [
     {
       "type": "array",

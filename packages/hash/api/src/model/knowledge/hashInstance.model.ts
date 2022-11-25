@@ -4,7 +4,7 @@ import {
   EntityModel,
   EntityModelCreateParams,
   UserModel,
-  LinkModel,
+  LinkEntityModel,
 } from "..";
 import { systemAccountId } from "../util";
 import { SYSTEM_TYPES } from "../../graph/system-types";
@@ -19,19 +19,19 @@ export type HashInstanceModelCreateParams = Omit<
  * @class {@link HashInstanceModel}
  */
 export default class extends EntityModel {
-  static fromEntityModel(entity: EntityModel): HashInstanceModel {
+  static fromEntityModel(entityModel: EntityModel): HashInstanceModel {
     if (
-      entity.entityTypeModel.schema.$id !==
-      SYSTEM_TYPES.entityType.hashInstance.schema.$id
+      entityModel.entityTypeModel.getSchema().$id !==
+      SYSTEM_TYPES.entityType.hashInstance.getSchema().$id
     ) {
       throw new EntityTypeMismatchError(
-        entity.entityId,
-        SYSTEM_TYPES.entityType.hashInstance.schema.$id,
-        entity.entityTypeModel.schema.$id,
+        entityModel.getBaseId(),
+        SYSTEM_TYPES.entityType.hashInstance.getSchema().$id,
+        entityModel.entityTypeModel.getSchema().$id,
       );
     }
 
-    return new HashInstanceModel(entity);
+    return new HashInstanceModel(entityModel);
   }
 
   /**
@@ -84,7 +84,7 @@ export default class extends EntityModel {
           equal: [
             { path: ["type", "versionedUri"] },
             {
-              parameter: SYSTEM_TYPES.entityType.hashInstance.schema.$id,
+              parameter: SYSTEM_TYPES.entityType.hashInstance.getSchema().$id,
             },
           ],
         },
@@ -115,18 +115,21 @@ export default class extends EntityModel {
   ): Promise<boolean> {
     const { userModel } = params;
 
-    return await LinkModel.get(graphApi, {
-      sourceEntityId: this.entityId,
-      linkTypeId: SYSTEM_TYPES.linkType.admin.schema.$id,
-      targetEntityId: userModel.entityId,
-    })
-      .then(() => true)
-      .catch((error: Error) => {
-        if (error instanceof NotFoundError) {
-          return false;
-        }
-        throw error;
-      });
+    const outgoingAdminLinkEntityModels = await this.getOutgoingLinks(
+      graphApi,
+      {
+        linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.admin,
+        rightEntityModel: userModel,
+      },
+    );
+
+    if (outgoingAdminLinkEntityModels.length > 1) {
+      throw new Error(
+        "Critical: more than one outgoing admin link from the HASH instance entity to the same user was found.",
+      );
+    }
+
+    return outgoingAdminLinkEntityModels.length === 1;
   }
 
   /**
@@ -146,14 +149,14 @@ export default class extends EntityModel {
 
     if (isAlreadyHashInstanceAdmin) {
       throw new Error(
-        `User with entityId "${userModel.entityId}" is already a hash instance admin.`,
+        `User with entityId "${userModel.getBaseId()}" is already a hash instance admin.`,
       );
     }
 
     await this.createOutgoingLink(graphApi, {
       ownedById: systemAccountId,
-      linkTypeModel: SYSTEM_TYPES.linkType.admin,
-      targetEntityModel: userModel,
+      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.admin,
+      rightEntityModel: userModel,
       actorId,
     });
   }
@@ -169,12 +172,66 @@ export default class extends EntityModel {
   ): Promise<void> {
     const { userModel, actorId } = params;
 
-    const adminLink = await LinkModel.get(graphApi, {
-      sourceEntityId: this.entityId,
-      linkTypeId: SYSTEM_TYPES.linkType.admin.schema.$id,
-      targetEntityId: userModel.entityId,
-    });
+    const outgoingAdminLinkEntityModels = await LinkEntityModel.getByQuery(
+      graphApi,
+      {
+        all: [
+          {
+            equal: [
+              { path: ["leftEntity", "uuid"] },
+              { parameter: this.getEntityUuid() },
+            ],
+          },
+          {
+            equal: [
+              { path: ["leftEntity", "ownedById"] },
+              { parameter: this.getOwnedById() },
+            ],
+          },
+          {
+            equal: [
+              { path: ["type", "versionedUri"] },
+              {
+                parameter: SYSTEM_TYPES.linkEntityType.admin.getSchema().$id,
+              },
+            ],
+          },
+          {
+            equal: [
+              { path: ["rightEntity", "uuid"] },
+              { parameter: userModel.getEntityUuid() },
+            ],
+          },
+          {
+            equal: [
+              { path: ["rightEntity", "ownedById"] },
+              { parameter: userModel.getOwnedById() },
+            ],
+          },
+          {
+            equal: [{ path: ["version"] }, { parameter: "latest" }],
+          },
+          {
+            equal: [{ path: ["archived"] }, { parameter: false }],
+          },
+        ],
+      },
+    );
 
-    await adminLink.remove(graphApi, { actorId });
+    if (outgoingAdminLinkEntityModels.length > 1) {
+      throw new Error(
+        "Critical: more than one outgoing admin link from the HASH instance entity to the same user was found.",
+      );
+    }
+
+    const [outgoingAdminLinkEntityModel] = outgoingAdminLinkEntityModels;
+
+    if (!outgoingAdminLinkEntityModel) {
+      throw new Error(
+        `The user with entity ID ${userModel.getBaseId()} is not a HASH instance admin.`,
+      );
+    }
+
+    await outgoingAdminLinkEntityModel.archive(graphApi, { actorId });
   }
 }

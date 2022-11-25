@@ -1,13 +1,7 @@
 use alloc::boxed::Box;
 #[cfg(nightly)]
 use core::any::Demand;
-#[cfg(any(feature = "anyhow", feature = "eyre"))]
-use core::fmt;
-use core::{
-    any::Any,
-    fmt::{Debug, Display},
-    panic::Location,
-};
+use core::{any::Any, fmt};
 
 use crate::{AttachmentKind, Context, Frame, FrameKind};
 
@@ -77,7 +71,9 @@ struct PrintableAttachmentFrame<A> {
     attachment: A,
 }
 
-impl<A: 'static + Debug + Display + Send + Sync> FrameImpl for PrintableAttachmentFrame<A> {
+impl<A: 'static + fmt::Debug + fmt::Display + Send + Sync> FrameImpl
+    for PrintableAttachmentFrame<A>
+{
     fn kind(&self) -> FrameKind<'_> {
         FrameKind::Attachment(AttachmentKind::Printable(&self.attachment))
     }
@@ -96,7 +92,6 @@ impl<A: 'static + Debug + Display + Send + Sync> FrameImpl for PrintableAttachme
     }
 }
 
-#[repr(transparent)]
 #[cfg(feature = "anyhow")]
 struct AnyhowContext(anyhow::Error);
 
@@ -145,7 +140,6 @@ impl FrameImpl for AnyhowContext {
     }
 }
 
-#[repr(transparent)]
 #[cfg(feature = "eyre")]
 struct EyreContext(eyre::Report);
 
@@ -195,61 +189,41 @@ impl FrameImpl for EyreContext {
 
 impl Frame {
     /// Creates a frame from a [`Context`].
-    pub(crate) fn from_context<C>(
-        context: C,
-        location: &'static Location<'static>,
-        sources: Box<[Self]>,
-    ) -> Self
+    pub(crate) fn from_context<C>(context: C, sources: Box<[Self]>) -> Self
     where
         C: Context,
     {
         Self {
             frame: Box::new(ContextFrame { context }),
-            location,
             sources,
         }
     }
 
     /// Creates a frame from an attachment.
-    pub(crate) fn from_attachment<A>(
-        attachment: A,
-        location: &'static Location<'static>,
-        sources: Box<[Self]>,
-    ) -> Self
+    pub(crate) fn from_attachment<A>(attachment: A, sources: Box<[Self]>) -> Self
     where
         A: Send + Sync + 'static,
     {
         Self {
             frame: Box::new(AttachmentFrame { attachment }),
-            location,
             sources,
         }
     }
 
     /// Creates a frame from an [`anyhow::Error`].
     #[cfg(feature = "anyhow")]
-    pub(crate) fn from_anyhow(
-        error: anyhow::Error,
-        location: &'static Location<'static>,
-        sources: Box<[Self]>,
-    ) -> Self {
+    pub(crate) fn from_anyhow(error: anyhow::Error, sources: Box<[Self]>) -> Self {
         Self {
             frame: Box::new(AnyhowContext(error)),
-            location,
             sources,
         }
     }
 
     /// Creates a frame from an [`eyre::Report`].
     #[cfg(feature = "eyre")]
-    pub(crate) fn from_eyre(
-        report: eyre::Report,
-        location: &'static Location<'static>,
-        sources: Box<[Self]>,
-    ) -> Self {
+    pub(crate) fn from_eyre(report: eyre::Report, sources: Box<[Self]>) -> Self {
         Self {
             frame: Box::new(EyreContext(report)),
-            location,
             sources,
         }
     }
@@ -258,17 +232,12 @@ impl Frame {
     ///
     /// [`Debug`]: core::fmt::Debug
     /// [`Display`]: core::fmt::Display
-    pub(crate) fn from_printable_attachment<A>(
-        attachment: A,
-        location: &'static Location<'static>,
-        sources: Box<[Self]>,
-    ) -> Self
+    pub(crate) fn from_printable_attachment<A>(attachment: A, sources: Box<[Self]>) -> Self
     where
-        A: Display + Debug + Send + Sync + 'static,
+        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
         Self {
             frame: Box::new(PrintableAttachmentFrame { attachment }),
-            location,
             sources,
         }
     }

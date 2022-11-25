@@ -1,50 +1,34 @@
 import { gql } from "@apollo/client";
 import { subgraphFieldsFragment } from "../subgraph";
 
-export const persistedEntityFieldsFragment = gql`
-  fragment PersistedEntityFields on UnknownPersistedEntity {
-    entityId
-    entityTypeId
-    entityVersion
-    ownedById
-    properties
+export const createEntityMutation = gql`
+  mutation createEntity(
+    $entityTypeId: VersionedUri!
+    $properties: JSONObject!
+  ) {
+    # This is a scalar, which has no selection.
+    createEntity(entityTypeId: $entityTypeId, properties: $properties)
   }
 `;
 
-export const createPersistedEntityMutation = gql`
-  mutation createPersistedEntity($entityTypeId: ID!, $properties: JSONObject!) {
-    createPersistedEntity(
-      entityTypeId: $entityTypeId
-      properties: $properties
-    ) {
-      ...PersistedEntityFields
-    }
-  }
-  ${persistedEntityFieldsFragment}
-`;
+/** @todo - rename these to omit the "WithMetadata" suffix - https://app.asana.com/0/1201095311341924/1203411297593704/f */
 
-/** @todo - rename these and remove "persisted" - https://app.asana.com/0/0/1203157172269854/f */
-
-export const getPersistedEntityQuery = gql`
-  query getPersistedEntity(
-    $entityId: ID!
+export const getEntityQuery = gql`
+  query getEntity(
+    $entityId: EntityId!
     $entityVersion: String
     $dataTypeResolveDepth: Int!
     $propertyTypeResolveDepth: Int!
-    $linkTypeResolveDepth: Int!
     $entityTypeResolveDepth: Int!
-    $linkResolveDepth: Int!
-    $linkTargetEntityResolveDepth: Int!
+    $entityResolveDepth: Int!
   ) {
-    getPersistedEntity(
+    getEntity(
       entityId: $entityId
       entityVersion: $entityVersion
       dataTypeResolveDepth: $dataTypeResolveDepth
       propertyTypeResolveDepth: $propertyTypeResolveDepth
-      linkTypeResolveDepth: $linkTypeResolveDepth
       entityTypeResolveDepth: $entityTypeResolveDepth
-      linkResolveDepth: $linkResolveDepth
-      linkTargetEntityResolveDepth: $linkTargetEntityResolveDepth
+      entityResolveDepth: $entityResolveDepth
     ) {
       ...SubgraphFields
     }
@@ -53,21 +37,17 @@ export const getPersistedEntityQuery = gql`
 `;
 
 export const getAllLatestEntitiesQuery = gql`
-  query getAllLatestPersistedEntities(
+  query getAllLatestEntities(
     $dataTypeResolveDepth: Int!
     $propertyTypeResolveDepth: Int!
-    $linkTypeResolveDepth: Int!
     $entityTypeResolveDepth: Int!
-    $linkResolveDepth: Int!
-    $linkTargetEntityResolveDepth: Int!
+    $entityResolveDepth: Int!
   ) {
-    getAllLatestPersistedEntities(
+    getAllLatestEntities(
       dataTypeResolveDepth: $dataTypeResolveDepth
       propertyTypeResolveDepth: $propertyTypeResolveDepth
-      linkTypeResolveDepth: $linkTypeResolveDepth
       entityTypeResolveDepth: $entityTypeResolveDepth
-      linkTargetEntityResolveDepth: $linkTargetEntityResolveDepth
-      linkResolveDepth: $linkResolveDepth
+      entityResolveDepth: $entityResolveDepth
     ) {
       ...SubgraphFields
     }
@@ -75,36 +55,9 @@ export const getAllLatestEntitiesQuery = gql`
   ${subgraphFieldsFragment}
 `;
 
-export const getOutgoingPersistedLinksQuery = gql`
-  query getOutgoingPersistedLinks($sourceEntityId: ID!, $linkTypeId: String) {
-    outgoingPersistedLinks(
-      sourceEntityId: $sourceEntityId
-      linkTypeId: $linkTypeId
-    ) {
-      ownedById
-      linkTypeId
-      index
-      sourceEntityId
-      targetEntityId
-      targetEntity {
-        ...PersistedEntityFields
-      }
-    }
+export const updateEntityMutation = gql`
+  mutation updateEntity($entityId: EntityId!, $updatedProperties: JSONObject!) {
+    # This is a scalar, which has no selection.
+    updateEntity(entityId: $entityId, updatedProperties: $updatedProperties)
   }
-  ${persistedEntityFieldsFragment}
-`;
-
-export const updatePersistedEntityMutation = gql`
-  mutation updatePersistedEntity(
-    $entityId: ID!
-    $updatedProperties: JSONObject!
-  ) {
-    updatePersistedEntity(
-      entityId: $entityId
-      updatedProperties: $updatedProperties
-    ) {
-      ...PersistedEntityFields
-    }
-  }
-  ${persistedEntityFieldsFragment}
 `;

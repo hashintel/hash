@@ -121,7 +121,7 @@ export const MuiCssBaselineThemeOptions: Components["MuiCssBaseline"] = {
           }
 
           body {
-            overflow: auto;
+            overflow-x: hidden !important;
           }          
 
           body, p {

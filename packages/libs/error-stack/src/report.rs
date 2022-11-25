@@ -1,5 +1,5 @@
 use alloc::{boxed::Box, vec, vec::Vec};
-use core::{fmt, fmt::Display, marker::PhantomData, mem, panic::Location};
+use core::{fmt, marker::PhantomData, mem, panic::Location};
 #[cfg(all(rust_1_65, feature = "std"))]
 use std::backtrace::{Backtrace, BacktraceStatus};
 #[cfg(feature = "std")]
@@ -191,7 +191,6 @@ use crate::{
 /// # }
 /// ```
 #[must_use]
-#[repr(transparent)]
 pub struct Report<C> {
     // The vector is boxed as this implies a memory footprint equal to a single pointer size
     // instead of three pointer sizes. Even for small `Result::Ok` variants, the `Result` would
@@ -217,11 +216,7 @@ impl<C> Report<C> {
     where
         C: Context,
     {
-        Self::from_frame(Frame::from_context(
-            context,
-            Location::caller(),
-            Box::new([]),
-        ))
+        Self::from_frame(Frame::from_context(context, Box::new([])))
     }
 
     #[track_caller]
@@ -275,45 +270,6 @@ impl<C> Report<C> {
         }
 
         report
-    }
-
-    #[allow(missing_docs)]
-    #[must_use]
-    #[cfg(all(nightly, feature = "std"))]
-    #[deprecated(
-        since = "0.2.0",
-        note = "a report might contain multiple backtraces, use `request_ref::<Backtrace>()` \
-                instead"
-    )]
-    pub fn backtrace(&self) -> Option<&Backtrace> {
-        self.request_ref::<Backtrace>().next()
-    }
-
-    #[allow(missing_docs)]
-    #[must_use]
-    #[cfg(feature = "spantrace")]
-    #[cfg_attr(
-        nightly,
-        deprecated(
-            since = "0.2.0",
-            note = "a report might contain multiple spantraces, use `request_ref::<SpanTrace>()` \
-                    instead"
-        )
-    )]
-    #[cfg_attr(
-        not(nightly),
-        deprecated(
-            since = "0.2.0",
-            note = "a report might contain multiple spantraces, use \
-                    `frames().filter(Frame::downcast_ref::<SpanTrace>)` instead"
-        )
-    )]
-    pub fn span_trace(&self) -> Option<&SpanTrace> {
-        #[cfg(nightly)]
-        return self.request_ref::<SpanTrace>().next();
-
-        #[cfg(not(nightly))]
-        return self.downcast_ref::<SpanTrace>();
     }
 
     /// Merge two [`Report`]s together
@@ -397,7 +353,6 @@ impl<C> Report<C> {
         let old_frames = mem::replace(self.frames.as_mut(), Vec::with_capacity(1));
         self.frames.push(Frame::from_attachment(
             attachment,
-            Location::caller(),
             old_frames.into_boxed_slice(),
         ));
         self
@@ -449,7 +404,6 @@ impl<C> Report<C> {
         let old_frames = mem::replace(self.frames.as_mut(), Vec::with_capacity(1));
         self.frames.push(Frame::from_printable_attachment(
             attachment,
-            Location::caller(),
             old_frames.into_boxed_slice(),
         ));
         self
@@ -465,14 +419,9 @@ impl<C> Report<C> {
         T: Context,
     {
         let old_frames = mem::replace(self.frames.as_mut(), Vec::with_capacity(1));
-        let context_frame = vec![Frame::from_context(
-            context,
-            Location::caller(),
-            old_frames.into_boxed_slice(),
-        )];
+        let context_frame = vec![Frame::from_context(context, old_frames.into_boxed_slice())];
         self.frames.push(Frame::from_attachment(
             *Location::caller(),
-            Location::caller(),
             context_frame.into_boxed_slice(),
         ));
         Report {
@@ -622,11 +571,10 @@ impl<C> Report<C> {
     /// assert_eq!(io_error.kind(), io::ErrorKind::NotFound);
     /// # }
     /// ```
-    // TODO: Remove `Display` bound when `set_debug_hook` and `set_display_hook` are removed
     #[must_use]
     pub fn current_context(&self) -> &C
     where
-        C: Display + Send + Sync + 'static,
+        C: Send + Sync + 'static,
     {
         self.downcast_ref().unwrap_or_else(|| {
             // Panics if there isn't an attached context which matches `T`. As it's not possible to

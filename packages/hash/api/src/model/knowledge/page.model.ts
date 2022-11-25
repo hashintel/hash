@@ -1,12 +1,12 @@
 import { ApolloError, UserInputError } from "apollo-server-express";
 import { GraphApi } from "@hashintel/hash-graph-client";
 import { generateKeyBetween } from "fractional-indexing";
+import { EntityId, PropertyObject } from "@hashintel/hash-subgraph";
 import {
   EntityModel,
   PageModel,
   EntityModelCreateParams,
   BlockModel,
-  LinkModel,
   UserModel,
   OrgModel,
   CommentModel,
@@ -28,19 +28,19 @@ type PageModelCreateParams = Omit<
  * @class {@link PageModel}
  */
 export default class extends EntityModel {
-  static fromEntityModel(entity: EntityModel): PageModel {
+  static fromEntityModel(entityModel: EntityModel): PageModel {
     if (
-      entity.entityTypeModel.schema.$id !==
-      SYSTEM_TYPES.entityType.page.schema.$id
+      entityModel.entityTypeModel.getSchema().$id !==
+      SYSTEM_TYPES.entityType.page.getSchema().$id
     ) {
       throw new EntityTypeMismatchError(
-        entity.entityId,
-        SYSTEM_TYPES.entityType.page.schema.$id,
-        entity.entityTypeModel.schema.$id,
+        entityModel.getBaseId(),
+        SYSTEM_TYPES.entityType.page.getSchema().$id,
+        entityModel.entityTypeModel.getSchema().$id,
       );
     }
 
-    return new PageModel(entity);
+    return new PageModel(entityModel);
   }
 
   /**
@@ -50,20 +50,15 @@ export default class extends EntityModel {
    */
   static async getPageById(
     graphApi: GraphApi,
-    params: { entityId: string; entityVersion?: string },
+    params: { entityId: EntityId },
   ): Promise<PageModel> {
-    const { entityId, entityVersion } = params;
+    const { entityId } = params;
 
-    const entity = entityVersion
-      ? await EntityModel.getVersion(graphApi, {
-          entityId,
-          entityVersion,
-        })
-      : await EntityModel.getLatest(graphApi, {
-          entityId,
-        });
+    const entityModel = await EntityModel.getLatest(graphApi, {
+      entityId,
+    });
 
-    return PageModel.fromEntityModel(entity);
+    return PageModel.fromEntityModel(entityModel);
   }
 
   /**
@@ -81,10 +76,14 @@ export default class extends EntityModel {
 
     const index = generateKeyBetween(prevIndex ?? null, null);
 
-    const properties: object = {
-      [SYSTEM_TYPES.propertyType.title.baseUri]: title,
-      [SYSTEM_TYPES.propertyType.summary.baseUri]: summary,
-      [SYSTEM_TYPES.propertyType.index.baseUri]: index,
+    const properties: PropertyObject = {
+      [SYSTEM_TYPES.propertyType.title.getBaseUri()]: title,
+      ...(summary
+        ? { [SYSTEM_TYPES.propertyType.summary.getBaseUri()]: summary }
+        : {}),
+      ...(index !== undefined
+        ? { [SYSTEM_TYPES.propertyType.index.getBaseUri()]: index }
+        : {}),
     };
 
     const entityTypeModel = SYSTEM_TYPES.entityType.page;
@@ -108,7 +107,7 @@ export default class extends EntityModel {
               blockData: await EntityModel.create(graphApi, {
                 ownedById,
                 properties: {
-                  [SYSTEM_TYPES.propertyType.tokens.baseUri]: [],
+                  [SYSTEM_TYPES.propertyType.tokens.getBaseUri()]: [],
                 },
                 entityTypeModel: SYSTEM_TYPES.entityType.text,
                 actorId,
@@ -141,7 +140,7 @@ export default class extends EntityModel {
         {
           equal: [
             { path: ["type", "versionedUri"] },
-            { parameter: SYSTEM_TYPES.entityType.page.schema.$id },
+            { parameter: SYSTEM_TYPES.entityType.page.getSchema().$id },
           ],
         },
       ],
@@ -152,7 +151,11 @@ export default class extends EntityModel {
        * @todo: filter the pages by their ownedById in the query instead once it's supported
        * @see https://app.asana.com/0/1202805690238892/1203015527055374/f
        */
-      .filter(({ ownedById }) => ownedById === params.accountModel.entityId)
+      .filter(
+        (pageEntityModel) =>
+          pageEntityModel.getOwnedById() ===
+          params.accountModel.getEntityUuid(),
+      )
       .map((entityModel) => PageModel.fromEntityModel(entityModel));
 
     return await Promise.all(
@@ -169,35 +172,45 @@ export default class extends EntityModel {
    * Get the value of the "Title" property of the page.
    */
   getTitle(): string {
-    return (this.properties as any)[SYSTEM_TYPES.propertyType.title.baseUri];
+    return (this.getProperties() as any)[
+      SYSTEM_TYPES.propertyType.title.getBaseUri()
+    ];
   }
 
   /**
    * Get the value of the "Summary" property of the page.
    */
   getSummary(): string | undefined {
-    return (this.properties as any)[SYSTEM_TYPES.propertyType.summary.baseUri];
+    return (this.getProperties() as any)[
+      SYSTEM_TYPES.propertyType.summary.getBaseUri()
+    ];
   }
 
   /**
    * Get the value of the "Index" property of the page.
    */
   getIndex(): string | undefined {
-    return (this.properties as any)[SYSTEM_TYPES.propertyType.index.baseUri];
+    return (this.getProperties() as any)[
+      SYSTEM_TYPES.propertyType.index.getBaseUri()
+    ];
   }
 
   /**
    * Get the value of the "Icon" property of the page.
    */
   getIcon(): string | undefined {
-    return (this.properties as any)[SYSTEM_TYPES.propertyType.icon.baseUri];
+    return (this.getProperties() as any)[
+      SYSTEM_TYPES.propertyType.icon.getBaseUri()
+    ];
   }
 
   /**
    * Get the value of the "Archived" property of the page.
    */
   getArchived(): boolean | undefined {
-    return (this.properties as any)[SYSTEM_TYPES.propertyType.archived.baseUri];
+    return (this.getProperties() as any)[
+      SYSTEM_TYPES.propertyType.archived.getBaseUri()
+    ];
   }
 
   /**
@@ -218,14 +231,14 @@ export default class extends EntityModel {
    */
   async getParentPage(graphApi: GraphApi): Promise<PageModel | null> {
     const parentPageLinks = await this.getOutgoingLinks(graphApi, {
-      linkTypeModel: SYSTEM_TYPES.linkType.parent,
+      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.parent,
     });
 
     const [parentPageLink, ...unexpectedParentPageLinks] = parentPageLinks;
 
     if (unexpectedParentPageLinks.length > 0) {
       throw new Error(
-        `Critical: Page with entityId ${this.entityId} in account ${this.ownedById} has more than one parent page`,
+        `Critical: Page with entity ID ${this.getBaseId()} has more than one parent page`,
       );
     }
 
@@ -233,7 +246,7 @@ export default class extends EntityModel {
       return null;
     }
 
-    return PageModel.fromEntityModel(parentPageLink.targetEntityModel);
+    return PageModel.fromEntityModel(parentPageLink.rightEntityModel);
   }
 
   /**
@@ -249,7 +262,7 @@ export default class extends EntityModel {
   ): Promise<boolean> {
     const { page } = params;
 
-    if (this.entityId === page.entityId) {
+    if (this.getBaseId() === page.getBaseId()) {
       throw new Error("A page cannot be the parent of itself");
     }
 
@@ -259,7 +272,7 @@ export default class extends EntityModel {
       return false;
     }
 
-    if (parentPage.entityId === page.entityId) {
+    if (parentPage.getBaseId() === page.getBaseId()) {
       return true;
     }
 
@@ -278,26 +291,26 @@ export default class extends EntityModel {
     },
   ): Promise<void> {
     const parentPageLinks = await this.getOutgoingLinks(graphApi, {
-      linkTypeModel: SYSTEM_TYPES.linkType.parent,
+      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.parent,
     });
 
     const [parentPageLink, ...unexpectedParentPageLinks] = parentPageLinks;
 
     if (unexpectedParentPageLinks.length > 0) {
       throw new Error(
-        `Critical: Page with entityId ${this.entityId} in account ${this.ownedById} has more than one parent page`,
+        `Critical: Page with entityId ${this.getBaseId()} has more than one parent page`,
       );
     }
 
     if (!parentPageLink) {
       throw new Error(
-        `Page with entityId ${this.entityId} in account ${this.ownedById} does not have a parent page`,
+        `Page with entityId ${this.getBaseId()} does not have a parent page`,
       );
     }
 
     const { actorId } = params;
 
-    await parentPageLink.remove(graphApi, { actorId });
+    await parentPageLink.archive(graphApi, { actorId });
   }
 
   /**
@@ -331,14 +344,14 @@ export default class extends EntityModel {
       // Check whether adding the parent page would create a cycle
       if (await parentPageModel.hasParentPage(graphApi, { page: this })) {
         throw new ApolloError(
-          `Could not set '${parentPageModel.entityId}' as parent of '${this.entityId}', this would create a cyclic dependency.`,
+          `Could not set '${parentPageModel.getBaseId()}' as parent of '${this.getBaseId()}', this would create a cyclic dependency.`,
           "CYCLIC_TREE",
         );
       }
 
       await this.createOutgoingLink(graphApi, {
-        linkTypeModel: SYSTEM_TYPES.linkType.parent,
-        targetEntityModel: parentPageModel,
+        linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.parent,
+        rightEntityModel: parentPageModel,
         ownedById: actorId,
         actorId,
       });
@@ -346,7 +359,7 @@ export default class extends EntityModel {
 
     if (this.getIndex() !== newIndex) {
       const updatedPageEntityModel = await this.updateProperty(graphApi, {
-        propertyTypeBaseUri: SYSTEM_TYPES.propertyType.index.baseUri,
+        propertyTypeBaseUri: SYSTEM_TYPES.propertyType.index.getBaseUri(),
         value: newIndex,
         actorId,
       });
@@ -361,25 +374,21 @@ export default class extends EntityModel {
    * Get the blocks in this page.
    */
   async getBlocks(graphApi: GraphApi): Promise<BlockModel[]> {
-    const outgoingBlockDataLinks = await LinkModel.getByQuery(graphApi, {
-      all: [
-        {
-          equal: [{ path: ["source", "id"] }, { parameter: this.entityId }],
-        },
-        {
-          equal: [
-            { path: ["type", "versionedUri"] },
-            {
-              parameter: SYSTEM_TYPES.linkType.contains.schema.$id,
-            },
-          ],
-        },
-      ],
+    const outgoingBlockDataLinks = await this.getOutgoingLinks(graphApi, {
+      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.contains,
     });
 
-    return outgoingBlockDataLinks.map(({ targetEntityModel }) =>
-      BlockModel.fromEntityModel(targetEntityModel),
-    );
+    return outgoingBlockDataLinks
+      .sort(
+        (a, b) =>
+          (a.getLinkMetadata().leftOrder ?? 0) -
+            (b.getLinkMetadata().leftOrder ?? 0) ||
+          a.getBaseId().localeCompare(b.getBaseId()) ||
+          a.getVersion().localeCompare(b.getVersion()),
+      )
+      .map(({ rightEntityModel }) =>
+        BlockModel.fromEntityModel(rightEntityModel),
+      );
   }
 
   /**
@@ -403,7 +412,6 @@ export default class extends EntityModel {
    * @param params.block - the block to insert in the page
    * @param params.position (optional) - the position of the block in the page
    * @param params.insertedById - the id of the account that is inserting the block into the page
-   * @param params.updateSiblings (optional) - whether or not to update the sibling link indexes when inserting the block, defaults to `true`
    */
   async insertBlock(
     graphApi: GraphApi,
@@ -411,32 +419,23 @@ export default class extends EntityModel {
       block: BlockModel;
       position?: number;
       actorId: string;
-      updateSiblings?: boolean;
     },
   ) {
-    const {
-      position: specifiedPosition,
-      updateSiblings = true,
-      actorId,
-    } = params;
+    const { position: specifiedPosition, actorId } = params;
 
     const { block } = params;
 
-    const linkParams = {
-      targetEntityModel: block,
-      linkTypeModel: SYSTEM_TYPES.linkType.contains,
-      index:
+    await this.createOutgoingLink(graphApi, {
+      rightEntityModel: block,
+      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.contains,
+      leftOrder:
         specifiedPosition ??
         // if position is not specified and there are no blocks currently in the page, specify the index of the link is `0`
         ((await this.getBlocks(graphApi)).length === 0 ? 0 : undefined),
       // assume that link to block is owned by the same account as the page
-      ownedById: this.ownedById,
+      ownedById: this.getOwnedById(),
       actorId,
-    };
-
-    await (updateSiblings
-      ? this.createOutgoingLink(graphApi, linkParams)
-      : this.createOutgoingLinkWithoutUpdatingSiblings(graphApi, linkParams));
+    });
   }
 
   /**
@@ -457,7 +456,7 @@ export default class extends EntityModel {
     const { currentPosition, newPosition, actorId } = params;
 
     const contentLinks = await this.getOutgoingLinks(graphApi, {
-      linkTypeModel: SYSTEM_TYPES.linkType.contains,
+      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.contains,
     });
 
     if (currentPosition < 0 || currentPosition >= contentLinks.length) {
@@ -469,16 +468,21 @@ export default class extends EntityModel {
       throw new UserInputError(`invalid newPosition: ${params.newPosition}`);
     }
 
-    const link = contentLinks.find(({ index }) => index === currentPosition);
+    const link = contentLinks.find(
+      (linkEntityModel) =>
+        linkEntityModel.getLinkMetadata().leftOrder === currentPosition,
+    );
 
     if (!link) {
       throw new Error(
-        `Critical: could not find contents link with index ${currentPosition} for page with entityId ${this.entityId} in account ${this.ownedById}`,
+        `Critical: could not find contents link with index ${currentPosition} for page with entityId ${this.getBaseId()}`,
       );
     }
 
-    await link.update(graphApi, {
-      updatedIndex: newPosition,
+    await link.updateOrder(graphApi, {
+      linkOrder: {
+        leftOrder: newPosition,
+      },
       actorId,
     });
   }
@@ -496,18 +500,12 @@ export default class extends EntityModel {
       position: number;
       actorId: string;
       allowRemovingFinal?: boolean;
-      updateSiblings?: boolean;
     },
   ) {
-    const {
-      allowRemovingFinal = false,
-      position,
-      updateSiblings,
-      actorId,
-    } = params;
+    const { allowRemovingFinal = false, position, actorId } = params;
 
-    const contentLinks = await this.getOutgoingLinks(graphApi, {
-      linkTypeModel: SYSTEM_TYPES.linkType.contains,
+    const contentLinkEntityModels = await this.getOutgoingLinks(graphApi, {
+      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.contains,
     });
 
     /**
@@ -517,23 +515,21 @@ export default class extends EntityModel {
      *   see: https://app.asana.com/0/1200211978612931/1203031430417465/f
      */
 
-    const link = contentLinks.find(({ index }) => index === position);
+    const linkEntityModel = contentLinkEntityModels.find(
+      (contentLinkEntityModel) =>
+        contentLinkEntityModel.getLinkMetadata().leftOrder === position,
+    );
 
-    if (!link) {
+    if (!linkEntityModel) {
       throw new Error(
-        `Critical: could not find contents link with index ${position} for page with entityId ${this.entityId} in account ${this.ownedById}`,
+        `Critical: could not find contents link with index ${position} for page with entity ID ${this.getBaseId()}`,
       );
     }
 
-    if (!allowRemovingFinal && contentLinks.length === 1) {
+    if (!allowRemovingFinal && contentLinkEntityModels.length === 1) {
       throw new Error("Cannot remove final block from page");
     }
 
-    const removeParams = { actorId };
-
-    // Don't always reorder siblings as it could break the expected indices on the frontend.
-    await (updateSiblings
-      ? link.remove(graphApi, removeParams)
-      : link.removeWithoutUpdatingSiblings(graphApi, removeParams));
+    await linkEntityModel.archive(graphApi, { actorId });
   }
 }

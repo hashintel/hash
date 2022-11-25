@@ -7,13 +7,17 @@ import {
 } from "@blockprotocol/type-system-web";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { Box, Container, Typography } from "@mui/material";
+import { Box, Container, Theme, Typography } from "@mui/material";
+import { GlobalStyles } from "@mui/system";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { FormProvider, useForm } from "react-hook-form";
-import { frontendUrl } from "@hashintel/hash-shared/environment";
-import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
+import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
+import {
+  getLayoutWithHeader,
+  NextPageWithLayout,
+} from "../../../../shared/layout";
 import { TopContextBar } from "../../../shared/top-context-bar";
 import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
 import { OntologyChip } from "../../shared/ontology-chip";
@@ -23,20 +27,20 @@ import {
   EntityTypeEditorForm,
   EntityTypeEditorPropertyData,
 } from "./form-types";
-import { PropertyListCard } from "./property-list-card";
-import { useEntityType } from "./use-entity-type";
+import { DefinitionTab } from "./tabs/definition-tab";
+import { EntitiesTab } from "./tabs/entities-tab";
+import { useCurrentTab } from "./use-current-tab";
+import { EntityTypeContext, useEntityTypeValue } from "./use-entity-type";
+import {
+  EntityTypeEntitiesContext,
+  useEntityTypeEntitiesContextValue,
+} from "./use-entity-type-entities";
 import {
   PropertyTypesContext,
   usePropertyTypesContextValue,
 } from "./use-property-types";
 import { useRouteNamespace } from "./use-route-namespace";
-import { mustBeVersionedUri } from "./util";
-
-const getBaseUri = (path: string) => {
-  const url = new URL(path, frontendUrl);
-
-  return `${frontendUrl}${url.pathname}/`;
-};
+import { getEntityTypeBaseUri } from "./util";
 
 const getSchemaFromEditorForm = (
   properties: EntityTypeEditorPropertyData[],
@@ -50,12 +54,19 @@ const getSchemaFromEditorForm = (
   for (const property of properties) {
     const propertyKey = extractBaseUri(property.$id);
 
+    if (
+      typeof property.minValue === "string" ||
+      typeof property.maxValue === "string"
+    ) {
+      throw new Error("Invalid property constraint");
+    }
+
     const prop: ValueOrArray<PropertyTypeReference> = property.array
       ? {
           type: "array",
           minItems: property.minValue,
-          maxItems: property.maxValue,
           items: { $ref: property.$id },
+          ...(property.infinity ? {} : { maxItems: property.maxValue }),
         }
       : { $ref: property.$id };
 
@@ -72,13 +83,23 @@ const getSchemaFromEditorForm = (
   };
 };
 
-// @todo loading state
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
+
   // @todo how to handle remote types
   const isDraft = !!router.query.draft;
-  const baseEntityTypeUri = isDraft ? null : getBaseUri(router.asPath);
-  const namespace = useRouteNamespace();
+  const { loading: loadingNamespace, namespace } = useRouteNamespace();
+  const { authenticatedUser } = useAuthenticatedUser();
+
+  const entityTypeId = router.query["entity-type-id"] as string;
+  const baseEntityTypeUri = !isDraft
+    ? getEntityTypeBaseUri(entityTypeId, router.query["account-slug"] as string)
+    : null;
+
+  const entityTypeEntitiesValue =
+    useEntityTypeEntitiesContextValue(baseEntityTypeUri);
+
+  const propertyTypes = usePropertyTypesContextValue();
 
   const draftEntityType = useMemo(() => {
     if (router.query.draft) {
@@ -97,12 +118,16 @@ const Page: NextPageWithLayout = () => {
   const formMethods = useForm<EntityTypeEditorForm>({
     defaultValues: { properties: [] },
   });
-
   const { handleSubmit: wrapHandleSubmit, reset } = formMethods;
 
-  const [remoteEntityType, updateEntityType, publishDraft] = useEntityType(
+  const [
+    remoteEntityType,
+    updateEntityType,
+    publishDraft,
+    { loading: loadingRemoteEntityType },
+  ] = useEntityTypeValue(
     baseEntityTypeUri,
-    namespace?.id,
+    namespace?.accountId,
     (fetchedEntityType) => {
       reset({
         properties: Object.entries(fetchedEntityType.properties).map(
@@ -110,11 +135,12 @@ const Page: NextPageWithLayout = () => {
             const isArray = "type" in ref;
 
             return {
-              $id: mustBeVersionedUri(isArray ? ref.items.$ref : ref.$ref),
+              $id: isArray ? ref.items.$ref : ref.$ref,
               required: !!fetchedEntityType.required?.includes(propertyId),
               array: isArray,
-              maxValue: isArray ? ref.maxItems : 0,
-              minValue: isArray ? ref.minItems : 0,
+              maxValue: isArray ? ref.maxItems ?? 1 : 1,
+              minValue: isArray ? ref.minItems ?? 0 : 0,
+              infinity: isArray && typeof ref.maxItems !== "number",
             };
           },
         ),
@@ -124,7 +150,33 @@ const Page: NextPageWithLayout = () => {
 
   const entityType = remoteEntityType ?? draftEntityType;
 
-  const propertyTypes = usePropertyTypesContextValue();
+  useEffect(() => {
+    if (authenticatedUser && !loadingNamespace && !namespace) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `Error: Couldn't find namespace with shortname '${router.query["account-slug"]}'.`,
+      );
+      void router.replace(
+        `/@${authenticatedUser.shortname}/types/new/entity-type`,
+      );
+      return;
+    }
+
+    if (!loadingRemoteEntityType && !entityType) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `Error: Couldn't find entity type with id '${router.query["entity-type-id"]}'.`,
+      );
+      void router.replace(`/@${namespace?.shortname}/types/new/entity-type`);
+    }
+  }, [
+    loadingNamespace,
+    router,
+    loadingRemoteEntityType,
+    authenticatedUser,
+    namespace,
+    entityType,
+  ]);
 
   const handleSubmit = wrapHandleSubmit(async (data) => {
     if (!entityType) {
@@ -156,129 +208,143 @@ const Page: NextPageWithLayout = () => {
     }
   });
 
-  if (!entityType) {
+  const currentTab = useCurrentTab();
+
+  if (!entityType || !namespace) {
     return null;
   }
 
-  const currentVersion = draftEntityType
-    ? 0
-    : extractVersion(mustBeVersionedUri(entityType.$id));
+  const currentVersion = draftEntityType ? 0 : extractVersion(entityType.$id);
 
   return (
-    <PropertyTypesContext.Provider value={propertyTypes}>
+    <>
       <FormProvider {...formMethods}>
-        <Box
-          sx={(theme) => ({
+        <PropertyTypesContext.Provider value={propertyTypes}>
+          <EntityTypeContext.Provider value={entityType}>
+            <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+                component="form"
+                onSubmit={handleSubmit}
+              >
+                <Box bgcolor="white" borderBottom={1} borderColor="gray.20">
+                  <TopContextBar
+                    defaultCrumbIcon={null}
+                    crumbs={[
+                      {
+                        title: "Types",
+                        href: "#",
+                        id: "types",
+                      },
+                      {
+                        title: "Entity types",
+                        href: "#",
+                        id: "entity-types",
+                      },
+                      {
+                        title: entityType.title,
+                        href: "#",
+                        id: entityType.$id,
+                        icon: <FontAwesomeIcon icon={faAsterisk} />,
+                      },
+                    ]}
+                    scrollToTop={() => {}}
+                  />
+                  <EditBar
+                    currentVersion={currentVersion}
+                    discardButtonProps={
+                      // @todo confirmation of discard when draft
+                      isDraft
+                        ? {
+                            href: `/${router.query["account-slug"]}/types/new/entity-type`,
+                          }
+                        : {
+                            onClick() {
+                              reset();
+                            },
+                          }
+                    }
+                  />
+
+                  <Box pt={3.75}>
+                    <Container>
+                      <OntologyChip
+                        icon={<HashOntologyIcon />}
+                        domain="hash.ai"
+                        path={
+                          <>
+                            <Typography
+                              component="span"
+                              fontWeight="bold"
+                              color={(theme) => theme.palette.blue[70]}
+                            >
+                              {router.query["account-slug"]}
+                            </Typography>
+                            <Typography
+                              component="span"
+                              color={(theme) => theme.palette.blue[70]}
+                            >
+                              /types/entity-types/
+                            </Typography>
+                            <Typography
+                              component="span"
+                              fontWeight="bold"
+                              color={(theme) => theme.palette.blue[70]}
+                            >
+                              {entityTypeId}
+                            </Typography>
+                          </>
+                        }
+                      />
+                      <Typography
+                        variant="h1"
+                        fontWeight="bold"
+                        mt={3}
+                        mb={5.25}
+                      >
+                        <FontAwesomeIcon
+                          icon={faAsterisk}
+                          sx={(theme) => ({
+                            fontSize: 40,
+                            mr: 3,
+                            color: theme.palette.gray[70],
+                            verticalAlign: "middle",
+                          })}
+                        />
+                        {entityType.title}
+                      </Typography>
+
+                      {isDraft ? null : <EntityTypeTabs />}
+                    </Container>
+                  </Box>
+                </Box>
+
+                <Box py={5}>
+                  <Container>
+                    {currentTab === "definition" ? <DefinitionTab /> : null}
+                    {currentTab === "entities" ? <EntitiesTab /> : null}
+                  </Container>
+                </Box>
+              </Box>
+            </EntityTypeEntitiesContext.Provider>
+          </EntityTypeContext.Provider>
+        </PropertyTypesContext.Provider>
+      </FormProvider>
+      <GlobalStyles<Theme>
+        styles={(theme) => ({
+          body: {
             minHeight: "100vh",
             background: theme.palette.gray[10],
-            display: "flex",
-            flexDirection: "column",
-          })}
-          component="form"
-          onSubmit={handleSubmit}
-        >
-          <Box bgcolor="white" borderBottom={1} borderColor="gray.20">
-            <TopContextBar
-              defaultCrumbIcon={null}
-              crumbs={[
-                {
-                  title: "Types",
-                  href: "#",
-                  id: "types",
-                },
-                {
-                  title: "Entity types",
-                  href: "#",
-                  id: "entity-types",
-                },
-                {
-                  title: entityType.title,
-                  href: "#",
-                  id: entityType.$id,
-                  icon: <FontAwesomeIcon icon={faAsterisk} />,
-                },
-              ]}
-              scrollToTop={() => {}}
-            />
-            <EditBar
-              currentVersion={currentVersion}
-              discardButtonProps={
-                // @todo confirmation of discard when draft
-                isDraft
-                  ? {
-                      href: `/${router.query["account-slug"]}/types/new/entity-type`,
-                    }
-                  : {
-                      onClick() {
-                        reset();
-                      },
-                    }
-              }
-            />
-
-            <Box pt={3.75}>
-              <Container>
-                <OntologyChip
-                  icon={<HashOntologyIcon />}
-                  domain="hash.ai"
-                  path={
-                    <>
-                      <Typography
-                        component="span"
-                        fontWeight="bold"
-                        color={(theme) => theme.palette.blue[70]}
-                      >
-                        {router.query["account-slug"]}
-                      </Typography>
-                      <Typography
-                        component="span"
-                        color={(theme) => theme.palette.blue[70]}
-                      >
-                        /types/entity-types/
-                      </Typography>
-                      <Typography
-                        component="span"
-                        fontWeight="bold"
-                        color={(theme) => theme.palette.blue[70]}
-                      >
-                        {router.query["entity-type-id"]}
-                      </Typography>
-                    </>
-                  }
-                />
-                <Typography variant="h1" fontWeight="bold" mt={3} mb={5.25}>
-                  <FontAwesomeIcon
-                    icon={faAsterisk}
-                    sx={(theme) => ({
-                      fontSize: 40,
-                      mr: 3,
-                      color: theme.palette.gray[70],
-                      verticalAlign: "middle",
-                    })}
-                  />
-                  {entityType.title}
-                </Typography>
-                <EntityTypeTabs entityType={entityType} />
-              </Container>
-            </Box>
-          </Box>
-          <Box py={5}>
-            <Container>
-              <Typography variant="h5" mb={1.25}>
-                Properties of{" "}
-                <Box component="span" sx={{ fontWeight: "bold" }}>
-                  {entityType.title}
-                </Box>
-              </Typography>
-              <PropertyListCard />
-            </Container>
-          </Box>
-        </Box>
-      </FormProvider>
-    </PropertyTypesContext.Provider>
+          },
+        })}
+      />
+    </>
   );
 };
 
-Page.getLayout = getPlainLayout;
+Page.getLayout = getLayoutWithHeader;
 
 export default Page;

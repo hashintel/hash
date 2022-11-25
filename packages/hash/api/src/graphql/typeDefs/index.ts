@@ -1,30 +1,19 @@
 import { gql } from "apollo-server-express";
 
-import { blockTypedef } from "./block.typedef";
-import { entityTypedef } from "./entity.typedef";
-import { linkTypedef } from "./link.typedef";
-import { deprecatedEntityTypeTypedef } from "./entityType.typedef";
-import { pageTypedef } from "./page.typedef";
-import { textTypedef } from "./text.typedef";
-import { persistedUserTypedef } from "./knowledge/user.typedef";
+import { deprecatedTypedef } from "./deprecated.typedef";
+import { userTypedef } from "./knowledge/user.typedef";
 import { embedTypeDef } from "./embed.typedef";
-import { fileTypedef } from "./file.typedef";
-import { impliedHistoryTypedef } from "./impliedHistory.typedef";
-import { aggregationTypedef } from "./aggregation.typedef";
-import { pagePaginationTypedef } from "./paginationConnections.typedef";
 import { executeTaskTypedef } from "./taskExecution.typedef";
 import { dataTypeTypedef } from "./ontology/data-type.typedef";
 import { propertyTypeTypedef } from "./ontology/property-type.typedef";
-import { linkTypeTypedef } from "./ontology/link-type.typedef";
 import { entityTypeTypedef } from "./ontology/entity-type.typedef";
-import { persistedEntityTypedef } from "./knowledge/entity.typedef";
-import { persistedPageTypedef } from "./knowledge/page.typedef";
-import { persistedCommentTypedef } from "./knowledge/comment.typedef";
-import { persistedBlockTypedef } from "./knowledge/block.typedef";
-import { persistedLinkTypedef } from "./knowledge/link.typedef";
+import { entityTypedef } from "./knowledge/entity.typedef";
+import { pageTypedef } from "./knowledge/page.typedef";
+import { commentTypedef } from "./knowledge/comment.typedef";
+import { blockTypedef } from "./knowledge/block.typedef";
 import { subgraphTypedef } from "./subgraph.typedef";
 import { blockprotocolTypedef } from "./blockprotocol.typedef";
-import { persistedOrgTypedef } from "./knowledge/org.typedef";
+import { orgTypedef } from "./knowledge/org.typedef";
 
 const baseSchema = gql`
   scalar Date
@@ -46,39 +35,24 @@ const baseSchema = gql`
   }
 `;
 
-const ontology = [
-  dataTypeTypedef,
-  propertyTypeTypedef,
-  linkTypeTypedef,
-  entityTypeTypedef,
-];
+const ontology = [dataTypeTypedef, propertyTypeTypedef, entityTypeTypedef];
 
 const knowledge = [
-  persistedEntityTypedef,
-  persistedBlockTypedef,
-  persistedPageTypedef,
-  persistedCommentTypedef,
-  persistedLinkTypedef,
-  persistedUserTypedef,
-  persistedOrgTypedef,
+  entityTypedef,
+  blockTypedef,
+  pageTypedef,
+  commentTypedef,
+  userTypedef,
+  orgTypedef,
 ];
 
 // This needs to be called 'schema' to be picked up by codegen -
 // It could alternatively be a default export.
 export const schema = [
   baseSchema,
-  blockTypedef,
   blockprotocolTypedef,
   embedTypeDef,
-  entityTypedef,
-  linkTypedef,
-  aggregationTypedef,
-  deprecatedEntityTypeTypedef,
-  impliedHistoryTypedef,
-  pageTypedef,
-  pagePaginationTypedef,
-  textTypedef,
-  fileTypedef,
+  deprecatedTypedef,
   executeTaskTypedef,
   ...ontology,
   ...knowledge,

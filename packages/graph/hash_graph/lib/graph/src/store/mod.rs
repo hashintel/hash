@@ -9,26 +9,26 @@ use std::fmt;
 
 use async_trait::async_trait;
 use error_stack::{Context, Result};
-use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};
+use type_system::{uri::VersionedUri, DataType, EntityType, PropertyType};
 
+use self::error::ArchivalError;
 pub use self::{
     error::{BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError, UpdateError},
     pool::StorePool,
     postgres::{AsClient, PostgresStore, PostgresStorePool},
 };
 use crate::{
-    identifier::AccountId,
+    identifier::{account::AccountId, knowledge::EntityId},
     knowledge::{
-        Entity, EntityId, Link, LinkRootedSubgraph, PersistedEntity, PersistedEntityMetadata,
-        PersistedLink,
+        Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkEntityMetadata,
     },
     ontology::{
-        PersistedDataType, PersistedEntityType, PersistedLinkType, PersistedOntologyMetadata,
-        PersistedPropertyType,
+        DataTypeWithMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
+        PropertyTypeWithMetadata,
     },
-    provenance::{CreatedById, OwnedById, RemovedById, UpdatedById},
-    store::{error::LinkRemovalError, query::Filter},
-    subgraph::{StructuralQuery, Subgraph},
+    provenance::{CreatedById, OwnedById, UpdatedById},
+    store::query::Filter,
+    subgraph::{query::StructuralQuery, Subgraph},
 };
 
 #[derive(Debug)]
@@ -182,13 +182,7 @@ impl fmt::Display for DatabaseConnectionInfo {
 ///
 /// In addition to the errors described in the methods of this trait, further errors might also be
 /// raised depending on the implementation, e.g. connection issues.
-pub trait Store = AccountStore
-    + DataTypeStore
-    + PropertyTypeStore
-    + LinkTypeStore
-    + EntityTypeStore
-    + EntityStore
-    + LinkStore;
+pub trait Store = AccountStore + DataTypeStore + PropertyTypeStore + EntityTypeStore + EntityStore;
 
 /// Describes the API of a store implementation for accounts.
 #[async_trait]
@@ -204,7 +198,7 @@ pub trait AccountStore {
 /// Describes the API of a store implementation for [`DataType`]s.
 #[async_trait]
 pub trait DataTypeStore:
-    for<'q> crud::Read<PersistedDataType, Query<'q> = Filter<'q, DataType>>
+    for<'q> crud::Read<DataTypeWithMetadata, Query<'q> = Filter<'q, DataType>>
 {
     /// Creates a new [`DataType`].
     ///
@@ -219,7 +213,7 @@ pub trait DataTypeStore:
         data_type: DataType,
         owned_by_id: OwnedById,
         actor_id: CreatedById,
-    ) -> Result<PersistedOntologyMetadata, InsertionError>;
+    ) -> Result<OntologyElementMetadata, InsertionError>;
 
     /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
     ///
@@ -240,13 +234,13 @@ pub trait DataTypeStore:
         &mut self,
         data_type: DataType,
         actor_id: UpdatedById,
-    ) -> Result<PersistedOntologyMetadata, UpdateError>;
+    ) -> Result<OntologyElementMetadata, UpdateError>;
 }
 
 /// Describes the API of a store implementation for [`PropertyType`]s.
 #[async_trait]
 pub trait PropertyTypeStore:
-    for<'q> crud::Read<PersistedPropertyType, Query<'q> = Filter<'q, PropertyType>>
+    for<'q> crud::Read<PropertyTypeWithMetadata, Query<'q> = Filter<'q, PropertyType>>
 {
     /// Creates a new [`PropertyType`].
     ///
@@ -261,7 +255,7 @@ pub trait PropertyTypeStore:
         property_type: PropertyType,
         owned_by_id: OwnedById,
         actor_id: CreatedById,
-    ) -> Result<PersistedOntologyMetadata, InsertionError>;
+    ) -> Result<OntologyElementMetadata, InsertionError>;
 
     /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
     ///
@@ -282,13 +276,13 @@ pub trait PropertyTypeStore:
         &mut self,
         property_type: PropertyType,
         actor_id: UpdatedById,
-    ) -> Result<PersistedOntologyMetadata, UpdateError>;
+    ) -> Result<OntologyElementMetadata, UpdateError>;
 }
 
 /// Describes the API of a store implementation for [`EntityType`]s.
 #[async_trait]
 pub trait EntityTypeStore:
-    for<'q> crud::Read<PersistedEntityType, Query<'q> = Filter<'q, EntityType>>
+    for<'q> crud::Read<EntityTypeWithMetadata, Query<'q> = Filter<'q, EntityType>>
 {
     /// Creates a new [`EntityType`].
     ///
@@ -303,7 +297,7 @@ pub trait EntityTypeStore:
         entity_type: EntityType,
         owned_by_id: OwnedById,
         actor_id: CreatedById,
-    ) -> Result<PersistedOntologyMetadata, InsertionError>;
+    ) -> Result<OntologyElementMetadata, InsertionError>;
 
     /// Get the [`Subgraph`]s specified by the [`StructuralQuery`].
     ///
@@ -324,72 +318,31 @@ pub trait EntityTypeStore:
         &mut self,
         entity_type: EntityType,
         actor_id: UpdatedById,
-    ) -> Result<PersistedOntologyMetadata, UpdateError>;
-}
-
-/// Describes the API of a store implementation for [`LinkType`]s.
-#[async_trait]
-pub trait LinkTypeStore:
-    for<'q> crud::Read<PersistedLinkType, Query<'q> = Filter<'q, LinkType>>
-{
-    /// Creates a new [`LinkType`].
-    ///
-    /// # Errors:
-    ///
-    /// - if the account referred to by `owned_by_id` does not exist.
-    /// - if the [`BaseUri`] of the `property_type` already exists.
-    ///
-    /// [`BaseUri`]: type_system::uri::BaseUri
-    async fn create_link_type(
-        &mut self,
-        link_type: LinkType,
-        owned_by_id: OwnedById,
-        actor_id: CreatedById,
-    ) -> Result<PersistedOntologyMetadata, InsertionError>;
-
-    /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
-    ///
-    /// # Errors
-    ///
-    /// - if the requested [`LinkType`] doesn't exist.
-    async fn get_link_type<'f: 'q, 'q>(
-        &self,
-        query: &'f StructuralQuery<'q, LinkType>,
-    ) -> Result<Subgraph, QueryError>;
-
-    /// Update the definition of an existing [`LinkType`].
-    ///
-    /// # Errors
-    ///
-    /// - if the [`LinkType`] doesn't exist.
-    async fn update_link_type(
-        &mut self,
-        property_type: LinkType,
-        actor_id: UpdatedById,
-    ) -> Result<PersistedOntologyMetadata, UpdateError>;
+    ) -> Result<OntologyElementMetadata, UpdateError>;
 }
 
 /// Describes the API of a store implementation for [Entities].
 ///
 /// [Entities]: crate::knowledge::Entity
 #[async_trait]
-pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Filter<'q, Entity>> {
+pub trait EntityStore: for<'q> crud::Read<Entity, Query<'q> = Filter<'q, Entity>> {
     /// Creates a new [`Entity`].
     ///
     /// # Errors:
     ///
     /// - if the [`EntityType`] doesn't exist
-    /// - if the [`Entity`] is not valid with respect to the specified [`EntityType`]
+    /// - if the [`EntityProperties`] is not valid with respect to the specified [`EntityType`]
     /// - if the account referred to by `owned_by_id` does not exist
-    /// - if an [`EntityId`] was supplied and already exists in the store
+    /// - if an [`EntityUuid`] was supplied and already exists in the store
     async fn create_entity(
         &mut self,
-        entity: Entity,
+        properties: EntityProperties,
         entity_type_id: VersionedUri,
         owned_by_id: OwnedById,
-        entity_id: Option<EntityId>,
+        entity_uuid: Option<EntityUuid>,
         actor_id: CreatedById,
-    ) -> Result<PersistedEntityMetadata, InsertionError>;
+        link_metadata: Option<LinkEntityMetadata>,
+    ) -> Result<EntityMetadata, InsertionError>;
 
     /// Inserts the entities with the specified [`EntityType`] into the `Store`.
     ///
@@ -405,18 +358,25 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Filter<'q
     /// - if the [`EntityType`] doesn't exist
     /// - if on of the [`Entity`] is not valid with respect to the specified [`EntityType`]
     /// - if the account referred to by `owned_by_id` does not exist
-    /// - if an [`EntityId`] was supplied and already exists in the store
+    /// - if an [`EntityUuid`] was supplied and already exists in the store
     ///
     /// # Notes
     #[doc(hidden)]
     #[cfg(feature = "__internal_bench")]
     async fn insert_entities_batched_by_type(
         &mut self,
-        entities: impl IntoIterator<Item = (Option<EntityId>, Entity), IntoIter: Send> + Send,
+        entities: impl IntoIterator<
+            Item = (
+                Option<EntityUuid>,
+                EntityProperties,
+                Option<LinkEntityMetadata>,
+            ),
+            IntoIter: Send,
+        > + Send,
         entity_type_id: VersionedUri,
         owned_by_id: OwnedById,
         actor_id: CreatedById,
-    ) -> Result<Vec<EntityId>, InsertionError>;
+    ) -> Result<Vec<EntityUuid>, InsertionError>;
 
     /// Get the [`Subgraph`]s specified by the [`StructuralQuery`].
     ///
@@ -435,53 +395,28 @@ pub trait EntityStore: for<'q> crud::Read<PersistedEntity, Query<'q> = Filter<'q
     /// - if the [`Entity`] doesn't exist
     /// - if the [`EntityType`] doesn't exist
     /// - if the [`Entity`] is not valid with respect to its [`EntityType`]
-    /// - if the account referred to by `updated_by` does not exist
+    /// - if the account referred to by `actor_id` does not exist
     async fn update_entity(
         &mut self,
         entity_id: EntityId,
-        entity: Entity,
+        properties: EntityProperties,
         entity_type_id: VersionedUri,
         actor_id: UpdatedById,
-    ) -> Result<PersistedEntityMetadata, UpdateError>;
-}
+        order: EntityLinkOrder,
+    ) -> Result<EntityMetadata, UpdateError>;
 
-/// Describes the API of a store implementation for [`Link`]s.
-#[async_trait]
-pub trait LinkStore: for<'q> crud::Read<PersistedLink, Query<'q> = Filter<'q, Link>> {
-    /// Creates a new [`Link`].
+    /// Archives an [`Entity`].
     ///
     /// # Errors:
     ///
-    /// - if the [`Link`] exists already
-    /// - if the [`Link`]s [`LinkType`] doesn't exist
-    /// - if the account referred to by `owned_by_id` does not exist
-    async fn create_link(
+    /// - if there isn't an [`Entity`] associated with the [`EntityId`] in the latest entities
+    /// table
+    ///   - this could be because the [`Entity`] doesn't exist, or
+    ///   - the [`Entity`] has already been archived
+    /// - if the account referred to by `actor_id` does not exist
+    async fn archive_entity(
         &mut self,
-        link: &Link,
-        owned_by_id: OwnedById,
-        actor_id: CreatedById,
-    ) -> Result<(), InsertionError>;
-
-    /// Get the [`LinkRootedSubgraph`]s specified by the [`StructuralQuery`].
-    ///
-    /// # Errors
-    ///
-    /// - if the requested [`Link`]s don't exist.
-    async fn get_links<'f: 'q, 'q>(
-        &self,
-        query: &'f StructuralQuery<'q, Link>,
-    ) -> Result<Vec<LinkRootedSubgraph>, QueryError>;
-
-    /// Removes a [`Link`] between a source and target [`Entity`].
-    ///
-    /// # Errors:
-    ///
-    /// - if the [`Link`] doesn't exist
-    /// - if the[`Link`]s [`LinkType`] doesn't exist
-    /// - if the account referred to by `owned_by_id` does not exist
-    async fn remove_link(
-        &mut self,
-        link: &Link,
-        actor_id: RemovedById,
-    ) -> Result<(), LinkRemovalError>;
+        entity_id: EntityId,
+        actor_id: UpdatedById,
+    ) -> Result<(), ArchivalError>;
 }

@@ -1,112 +1,55 @@
-use std::iter::once;
+use std::{borrow::Cow, iter::once};
 
-use postgres_types::ToSql;
 use type_system::PropertyType;
 
 use crate::{
     ontology::PropertyTypeQueryPath,
     store::postgres::query::{
-        expression::EdgeJoinDirection, ColumnAccess, Path, PostgresQueryRecord, Table, TableName,
+        table::{Column, JsonField, PropertyTypes, Relation, TypeIds},
+        Path, PostgresQueryRecord, Table,
     },
 };
 
-impl<'q> PostgresQueryRecord<'q> for PropertyType {
+impl PostgresQueryRecord for PropertyType {
     fn base_table() -> Table {
-        Table {
-            name: TableName::PropertyTypes,
-            alias: None,
-        }
-    }
-
-    fn default_selection_paths() -> &'q [Self::Path<'q>] {
-        &[
-            PropertyTypeQueryPath::VersionedUri,
-            PropertyTypeQueryPath::Schema,
-            PropertyTypeQueryPath::OwnedById,
-            PropertyTypeQueryPath::CreatedById,
-            PropertyTypeQueryPath::UpdatedById,
-            PropertyTypeQueryPath::RemovedById,
-        ]
+        Table::PropertyTypes
     }
 }
 
 impl Path for PropertyTypeQueryPath {
-    fn tables(&self) -> Vec<(TableName, EdgeJoinDirection)> {
+    fn relations(&self) -> Vec<Relation> {
         match self {
-            Self::DataTypes(path) => once((
-                TableName::PropertyTypeDataTypeReferences,
-                EdgeJoinDirection::SourceOnTarget,
-            ))
-            .chain(path.tables())
-            .collect(),
-            Self::PropertyTypes(path) => once((
-                TableName::PropertyTypePropertyTypeReferences,
-                EdgeJoinDirection::SourceOnTarget,
-            ))
-            .chain(path.tables())
-            .collect(),
-            _ => vec![(
-                self.terminating_table_name(),
-                EdgeJoinDirection::SourceOnTarget,
-            )],
+            Self::BaseUri | Self::Version => vec![Relation::PropertyTypeIds],
+            Self::DataTypes(path) => once(Relation::PropertyTypeDataTypeReferences)
+                .chain(path.relations())
+                .collect(),
+            Self::PropertyTypes(path) => once(Relation::PropertyTypePropertyTypeReferences)
+                .chain(path.relations())
+                .collect(),
+            _ => vec![],
         }
     }
 
-    fn terminating_table_name(&self) -> TableName {
+    fn terminating_column(&self) -> Column {
         match self {
-            Self::BaseUri | Self::Version => TableName::TypeIds,
-            Self::VersionId
-            | Self::OwnedById
-            | Self::CreatedById
-            | Self::UpdatedById
-            | Self::RemovedById
-            | Self::Schema
-            | Self::VersionedUri
-            | Self::Title
-            | Self::Description => TableName::PropertyTypes,
-            Self::DataTypes(path) => path.terminating_table_name(),
-            Self::PropertyTypes(path) => path.terminating_table_name(),
+            Self::BaseUri => Column::TypeIds(TypeIds::BaseUri),
+            Self::Version => Column::TypeIds(TypeIds::Version),
+            Self::VersionId => Column::PropertyTypes(PropertyTypes::VersionId),
+            Self::OwnedById => Column::PropertyTypes(PropertyTypes::OwnedById),
+            Self::CreatedById => Column::PropertyTypes(PropertyTypes::CreatedById),
+            Self::UpdatedById => Column::PropertyTypes(PropertyTypes::UpdatedById),
+            Self::Schema => Column::PropertyTypes(PropertyTypes::Schema(None)),
+            Self::VersionedUri => Column::PropertyTypes(PropertyTypes::Schema(Some(
+                JsonField::Text(&Cow::Borrowed("$id")),
+            ))),
+            Self::Title => Column::PropertyTypes(PropertyTypes::Schema(Some(JsonField::Text(
+                &Cow::Borrowed("title"),
+            )))),
+            Self::Description => Column::PropertyTypes(PropertyTypes::Schema(Some(
+                JsonField::Text(&Cow::Borrowed("description")),
+            ))),
+            Self::DataTypes(path) => path.terminating_column(),
+            Self::PropertyTypes(path) => path.terminating_column(),
         }
-    }
-
-    fn column_access(&self) -> ColumnAccess {
-        match self {
-            Self::BaseUri => ColumnAccess::Table { column: "base_uri" },
-            Self::Version => ColumnAccess::Table { column: "version" },
-            Self::VersionId => ColumnAccess::Table {
-                column: "version_id",
-            },
-            Self::OwnedById => ColumnAccess::Table {
-                column: "owned_by_id",
-            },
-            Self::CreatedById => ColumnAccess::Table {
-                column: "created_by_id",
-            },
-            Self::UpdatedById => ColumnAccess::Table {
-                column: "updated_by_id",
-            },
-            Self::RemovedById => ColumnAccess::Table {
-                column: "removed_by_id",
-            },
-            Self::Schema => ColumnAccess::Table { column: "schema" },
-            Self::VersionedUri => ColumnAccess::Json {
-                column: "schema",
-                field: "$id",
-            },
-            Self::Title => ColumnAccess::Json {
-                column: "schema",
-                field: "title",
-            },
-            Self::Description => ColumnAccess::Json {
-                column: "schema",
-                field: "description",
-            },
-            Self::DataTypes(path) => path.column_access(),
-            Self::PropertyTypes(path) => path.column_access(),
-        }
-    }
-
-    fn user_provided_path(&self) -> Option<&(dyn ToSql + Sync)> {
-        None
     }
 }

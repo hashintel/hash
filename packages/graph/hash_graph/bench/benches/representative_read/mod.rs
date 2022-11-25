@@ -17,8 +17,9 @@
 //!
 //! [`BenchmarkId`]: criterion::BenchmarkId
 
-use criterion::{BenchmarkId, Criterion};
+use criterion::{BenchmarkId, Criterion, SamplingMode};
 use criterion_macro::criterion;
+use graph::subgraph::depths::GraphResolveDepths;
 
 use crate::{representative_read::seed::setup_and_extract_samples, util::setup};
 
@@ -37,22 +38,117 @@ fn bench_representative_read_entity(c: &mut Criterion) {
     let samples = runtime.block_on(setup_and_extract_samples(&mut store_wrapper));
     let store = &store_wrapper.store;
 
-    for (account_id, type_ids_and_entity_ids) in samples.entities {
-        for (entity_type_id, entity_ids) in type_ids_and_entity_ids {
+    for (account_id, type_ids_and_entity_uuids) in samples.entities {
+        for (entity_type_id, entity_uuids) in type_ids_and_entity_uuids {
             group.bench_with_input(
                 BenchmarkId::new(
-                    "get_entity_by_id",
+                    "entity_by_id",
                     format!(
                         "Account ID: `{}`, Entity Type ID: `{}`",
                         account_id, entity_type_id
                     ),
                 ),
-                &(account_id, entity_type_id, entity_ids),
-                |b, (_account_id, _entity_type_id, entity_ids)| {
-                    knowledge::entity::bench_get_entity_by_id(b, &runtime, store, entity_ids);
+                &(account_id, entity_type_id, entity_uuids),
+                |b, (_account_id, _entity_type_id, entity_uuids)| {
+                    knowledge::entity::bench_get_entity_by_id(b, &runtime, store, entity_uuids);
                 },
             );
         }
+    }
+}
+
+#[criterion]
+fn bench_representative_read_multiple_entities(c: &mut Criterion) {
+    let mut group = c.benchmark_group("representative_read_multiple_entities");
+    let (runtime, store_wrapper) = setup(DB_NAME, false, false);
+    group.sample_size(10);
+    group.sampling_mode(SamplingMode::Flat);
+
+    let graph_resolve_depths = [
+        GraphResolveDepths {
+            data_type_resolve_depth: 0,
+            property_type_resolve_depth: 0,
+            entity_type_resolve_depth: 0,
+            entity_resolve_depth: 0,
+        },
+        GraphResolveDepths {
+            data_type_resolve_depth: 0,
+            property_type_resolve_depth: 0,
+            entity_type_resolve_depth: 0,
+            entity_resolve_depth: 2,
+        },
+        GraphResolveDepths {
+            data_type_resolve_depth: 0,
+            property_type_resolve_depth: 0,
+            entity_type_resolve_depth: 2,
+            entity_resolve_depth: 2,
+        },
+        GraphResolveDepths {
+            data_type_resolve_depth: 0,
+            property_type_resolve_depth: 2,
+            entity_type_resolve_depth: 2,
+            entity_resolve_depth: 2,
+        },
+        GraphResolveDepths {
+            data_type_resolve_depth: 2,
+            property_type_resolve_depth: 2,
+            entity_type_resolve_depth: 2,
+            entity_resolve_depth: 2,
+        },
+        GraphResolveDepths {
+            data_type_resolve_depth: 255,
+            property_type_resolve_depth: 255,
+            entity_type_resolve_depth: 255,
+            entity_resolve_depth: 255,
+        },
+    ];
+
+    for graph_resolve_depth in graph_resolve_depths {
+        group.bench_with_input(
+            BenchmarkId::new(
+                "entity_by_property",
+                format!(
+                    "depths: DT={}, PT={}, ET={}, E={}",
+                    graph_resolve_depth.data_type_resolve_depth,
+                    graph_resolve_depth.property_type_resolve_depth,
+                    graph_resolve_depth.entity_type_resolve_depth,
+                    graph_resolve_depth.entity_resolve_depth,
+                ),
+            ),
+            &graph_resolve_depth,
+            |b, graph_resolve_depth| {
+                knowledge::entity::bench_get_entities_by_property(
+                    b,
+                    &runtime,
+                    &store_wrapper.store,
+                    *graph_resolve_depth,
+                );
+            },
+        );
+    }
+
+    for graph_resolve_depth in graph_resolve_depths {
+        group.bench_with_input(
+            BenchmarkId::new(
+                "link_by_source_by_property",
+                format!(
+                    "depths: DT={}, PT={}, ET={}, E={}",
+                    graph_resolve_depth.data_type_resolve_depth,
+                    graph_resolve_depth.property_type_resolve_depth,
+                    graph_resolve_depth.entity_type_resolve_depth,
+                    graph_resolve_depth.entity_resolve_depth,
+                ),
+            ),
+            &graph_resolve_depth,
+            |b, graph_resolve_depth| {
+                knowledge::entity::bench_get_link_by_target_by_property(
+                    b,
+                    &runtime,
+                    &store_wrapper.store,
+                    *graph_resolve_depth,
+                );
+            },
+        );
     }
 }
 

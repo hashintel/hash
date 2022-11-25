@@ -4,10 +4,11 @@ on:
   # Scan changed files in PRs (diff-aware scanning):
   pull_request: {}
 
-  # Scan mainline and `dev/*` trunks to report all findings:
+  # Scan mainline, next and `dev/*` trunks to report all findings:
   push:
     branches:
       - main
+      - canary
       - dev/*
 
   schedule:

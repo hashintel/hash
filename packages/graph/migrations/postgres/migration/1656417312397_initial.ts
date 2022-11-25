@@ -103,14 +103,6 @@ export const up = (pgm: MigrationBuilder): void => {
         notNull: true,
         references: "accounts",
       },
-      /**
-       * @todo: remove this column if we introduce a delete table similar to links
-       * @see https://app.asana.com/0/1201095311341924/1202697596928142/f
-       */
-      removed_by_id: {
-        type: "UUID",
-        references: "accounts",
-      },
     },
     {
       ifNotExists: true,
@@ -142,13 +134,6 @@ export const up = (pgm: MigrationBuilder): void => {
       updated_by_id: {
         type: "UUID",
         notNull: true,
-        references: "accounts",
-      },
-      /**
-       * @todo: remove this column if we introduce a delete table similar to links
-       * @see https://app.asana.com/0/1201095311341924/1202697596928142/f
-       */ removed_by_id: {
-        type: "UUID",
         references: "accounts",
       },
     },
@@ -184,14 +169,6 @@ export const up = (pgm: MigrationBuilder): void => {
         notNull: true,
         references: "accounts",
       },
-      /**
-       * @todo: remove this column if we introduce a delete table similar to links
-       * @see https://app.asana.com/0/1201095311341924/1202697596928142/f
-       */
-      removed_by_id: {
-        type: "UUID",
-        references: "accounts",
-      },
     },
     {
       ifNotExists: true,
@@ -223,14 +200,6 @@ export const up = (pgm: MigrationBuilder): void => {
       updated_by_id: {
         type: "UUID",
         notNull: true,
-        references: "accounts",
-      },
-      /**
-       * @todo: remove this column if we introduce a delete table similar to links
-       * @see https://app.asana.com/0/1201095311341924/1202697596928142/f
-       */
-      removed_by_id: {
-        type: "UUID",
         references: "accounts",
       },
     },
@@ -297,26 +266,7 @@ export const up = (pgm: MigrationBuilder): void => {
   );
 
   pgm.createTable(
-    "entity_type_link_type_references",
-    {
-      source_entity_type_version_id: {
-        type: "UUID",
-        notNull: true,
-        references: "entity_types",
-      },
-      target_link_type_version_id: {
-        type: "UUID",
-        notNull: true,
-        references: "link_types",
-      },
-    },
-    {
-      ifNotExists: true,
-    },
-  );
-
-  pgm.createTable(
-    "entity_type_entity_type_links",
+    "entity_type_entity_type_references",
     {
       source_entity_type_version_id: {
         type: "UUID",
@@ -335,9 +285,9 @@ export const up = (pgm: MigrationBuilder): void => {
   );
 
   pgm.createTable(
-    "entity_ids",
+    "entity_uuids",
     {
-      entity_id: {
+      entity_uuid: {
         type: "UUID",
         primaryKey: true,
       },
@@ -348,11 +298,16 @@ export const up = (pgm: MigrationBuilder): void => {
   );
 
   pgm.createTable(
-    "entities",
+    "latest_entities",
     {
-      entity_id: {
+      owned_by_id: {
         type: "UUID",
-        references: "entity_ids",
+        notNull: true,
+        references: "accounts",
+      },
+      entity_uuid: {
+        type: "UUID",
+        references: "entity_uuids",
         notNull: true,
       },
       version: {
@@ -369,10 +324,37 @@ export const up = (pgm: MigrationBuilder): void => {
         type: "JSONB",
         notNull: true,
       },
-      owned_by_id: {
+      left_owned_by_id: {
         type: "UUID",
-        notNull: true,
+        notNull: false,
         references: "accounts",
+      },
+      left_entity_uuid: {
+        type: "UUID",
+        notNull: false,
+        references: "entity_uuids",
+      },
+      right_owned_by_id: {
+        type: "UUID",
+        notNull: false,
+        references: "accounts",
+      },
+      right_entity_uuid: {
+        type: "UUID",
+        notNull: false,
+        references: "entity_uuids",
+      },
+      left_order: {
+        // TODO: this is where we could do fractional indexing
+        //  https://app.asana.com/0/1200211978612931/1202085856561975/f
+        type: "integer",
+        notNull: false,
+      },
+      right_order: {
+        // TODO: this is where we could do fractional indexing
+        //  https://app.asana.com/0/1200211978612931/1202085856561975/f
+        type: "integer",
+        notNull: false,
       },
       created_by_id: {
         type: "UUID",
@@ -384,131 +366,174 @@ export const up = (pgm: MigrationBuilder): void => {
         notNull: true,
         references: "accounts",
       },
-      /**
-       * @todo: remove this column if we introduce a delete table similar to links
-       * @see https://app.asana.com/0/1201095311341924/1202697596928142/f
-       */
-      removed_by_id: {
-        type: "UUID",
-        references: "accounts",
-      },
     },
     {
       ifNotExists: true,
     },
   );
-  pgm.addConstraint("entities", "entities_primary_key", {
-    primaryKey: ["entity_id", "version"],
+  // Only allow a single version of an entity in this table.
+  pgm.addConstraint("latest_entities", "latest_entities_primary_key", {
+    primaryKey: ["entity_uuid"],
   });
 
-  pgm.createTable(
-    "links",
+  pgm.addConstraint("latest_entities", "latest_entities_relation_constraint", {
+    check: `(
+      left_entity_uuid IS NULL AND left_owned_by_id IS NULL
+        AND right_entity_uuid IS NULL AND right_owned_by_id IS NULL
+    ) 
+    OR (
+      left_entity_uuid IS NOT NULL AND left_owned_by_id IS NOT NULL
+       AND right_entity_uuid IS NOT NULL AND right_owned_by_id IS NOT NULL
+    )`,
+  });
+
+  pgm.addConstraint(
+    "latest_entities",
+    "latest_entities_relation_order_constraint",
     {
-      source_entity_id: {
+      // Because of the "entities_relation_constraint", we can check any one of the required link columns
+      check: `(left_entity_uuid IS NOT NULL)
+            OR (left_order IS NULL AND right_order IS NULL)`,
+    },
+  );
+
+  pgm.createTable(
+    "entity_histories",
+    {
+      owned_by_id: {
         type: "UUID",
         notNull: true,
-        references: "entity_ids",
+        references: "accounts",
       },
-      target_entity_id: {
+      entity_uuid: {
+        type: "UUID",
+        references: "entity_uuids",
+        notNull: true,
+      },
+      version: {
+        type: "TIMESTAMP WITH TIME ZONE",
+        notNull: true,
+        default: pgm.func("clock_timestamp()"),
+      },
+      entity_type_version_id: {
         type: "UUID",
         notNull: true,
-        references: "entity_ids",
+        references: "entity_types",
       },
-      link_type_version_id: {
-        type: "UUID",
+      properties: {
+        type: "JSONB",
         notNull: true,
-        references: "link_types",
       },
-      link_index: {
+      left_owned_by_id: {
+        type: "UUID",
+        notNull: false,
+        references: "accounts",
+      },
+      left_entity_uuid: {
+        type: "UUID",
+        notNull: false,
+        references: "entity_uuids",
+      },
+      right_owned_by_id: {
+        type: "UUID",
+        notNull: false,
+        references: "accounts",
+      },
+      right_entity_uuid: {
+        type: "UUID",
+        notNull: false,
+        references: "entity_uuids",
+      },
+      left_order: {
         // TODO: this is where we could do fractional indexing
         //  https://app.asana.com/0/1200211978612931/1202085856561975/f
         type: "integer",
         notNull: false,
       },
-      owned_by_id: {
-        type: "UUID",
+      right_order: {
+        // TODO: this is where we could do fractional indexing
+        //  https://app.asana.com/0/1200211978612931/1202085856561975/f
+        type: "integer",
+        notNull: false,
+      },
+      archived: {
+        // We may be able to reclaim some space here by using nullability.
+        type: "boolean",
         notNull: true,
-        references: "accounts",
+        default: "FALSE",
       },
       created_by_id: {
         type: "UUID",
         notNull: true,
         references: "accounts",
       },
-      created_at: {
-        type: "TIMESTAMP WITH TIME ZONE",
+      updated_by_id: {
+        type: "UUID",
         notNull: true,
+        references: "accounts",
       },
     },
     {
       ifNotExists: true,
     },
   );
-  // Currently links are between unversioned entities.
-  // Ideally we'd have links between versioned entities -> unversioned entities.
-  pgm.addConstraint("links", "links_pkey", {
-    primaryKey: [
-      "source_entity_id",
-      "target_entity_id",
-      "link_type_version_id",
-    ],
+  pgm.addConstraint("entity_histories", "entity_histories_primary_key", {
+    primaryKey: ["entity_uuid", "version"],
   });
 
-  pgm.createTable(
-    "link_histories",
+  pgm.addConstraint(
+    "entity_histories",
+    "entity_histories_relation_constraint",
     {
-      // We should consider whether these should reference entity_ids or not.
-      // If we allow GDPR removal of entities, this constraint has to fail/cascade depending on desired output.
-      source_entity_id: {
-        type: "UUID",
-        notNull: true,
-        references: "entity_ids",
-      },
-      target_entity_id: {
-        type: "UUID",
-        notNull: true,
-        references: "entity_ids",
-      },
-      link_type_version_id: {
-        type: "UUID",
-        notNull: true,
-        references: "link_types",
-      },
-      link_index: {
-        // TODO: this is where we could do fractional indexing
-        //  https://app.asana.com/0/1200211978612931/1202085856561975/f
-        type: "integer",
-        notNull: false,
-      },
-      owned_by_id: {
-        type: "UUID",
-        notNull: true,
-        references: "accounts",
-      },
-      created_by_id: {
-        type: "UUID",
-        notNull: true,
-        references: "accounts",
-      },
-      created_at: {
-        type: "TIMESTAMP WITH TIME ZONE",
-        notNull: true,
-      },
-      removed_by_id: {
-        type: "UUID",
-        notNull: true,
-        references: "accounts",
-      },
-      removed_at: {
-        type: "TIMESTAMP WITH TIME ZONE",
-        notNull: true,
-      },
-    },
-    {
-      ifNotExists: true,
+      check: `(
+      left_entity_uuid IS NULL AND left_owned_by_id IS NULL
+        AND right_entity_uuid IS NULL AND right_owned_by_id IS NULL
+    ) 
+    OR (
+      left_entity_uuid IS NOT NULL AND left_owned_by_id IS NOT NULL
+       AND right_entity_uuid IS NOT NULL AND right_owned_by_id IS NOT NULL
+    )`,
     },
   );
-  // link_histories has no unique index!
+
+  pgm.addConstraint(
+    "entity_histories",
+    "entities_histories_relation_order_constraint",
+    {
+      // Because of the "entities_histories_relation_constraint", we can check any one of the required link columns
+      check: `(left_entity_uuid IS NOT NULL)
+            OR (left_order IS NULL AND right_order IS NULL)`,
+    },
+  );
+
+  // This view contains the union of both latest and historic table.
+  // The latest entities come first when querying the view.
+  pgm.createView(
+    "entities",
+    {
+      columns: [
+        "owned_by_id",
+        "entity_uuid",
+        "version",
+        "latest_version",
+        "entity_type_version_id",
+        "properties",
+        "left_owned_by_id",
+        "left_entity_uuid",
+        "right_owned_by_id",
+        "right_entity_uuid",
+        "left_order",
+        "right_order",
+        "archived",
+        "created_by_id",
+        "updated_by_id",
+      ],
+    },
+    `
+    SELECT owned_by_id, entity_uuid, version, TRUE as latest_version, entity_type_version_id, properties, left_owned_by_id, left_entity_uuid, right_owned_by_id, right_entity_uuid, left_order, right_order, FALSE AS archived, created_by_id, updated_by_id FROM latest_entities
+    UNION ALL
+    SELECT owned_by_id, entity_uuid, version, FALSE as latest_version, entity_type_version_id, properties, left_owned_by_id, left_entity_uuid, right_owned_by_id, right_entity_uuid, left_order, right_order, archived, created_by_id, updated_by_id FROM entity_histories`,
+  );
 };
 
 // A down migration would cause data loss.
@@ -521,12 +546,10 @@ DROP TABLE IF EXISTS property_type_property_type_references CASCADE;
 DROP TABLE IF EXISTS property_type_data_type_references CASCADE;
 DROP TABLE IF EXISTS entity_types CASCADE;
 DROP TABLE IF EXISTS entity_type_property_type_references CASCADE;
-DROP TABLE IF EXISTS entity_type_link_type_references CASCADE;
-DROP TABLE IF EXISTS entity_type_entity_type_links CASCADE;
-DROP TABLE IF EXISTS link_types CASCADE;
-DROP TABLE IF EXISTS entity_ids CASCADE;
+DROP TABLE IF EXISTS entity_type_entity_type_references CASCADE;
+DROP TABLE IF EXISTS entity_uuids CASCADE;
 DROP TABLE IF EXISTS entities CASCADE;
-DROP TABLE IF EXISTS links CASCADE;
+DROP TABLE IF EXISTS entity_histories CASCADE;
 DROP TABLE IF EXISTS accounts CASCADE;
 DROP TABLE IF EXISTS ids CASCADE;
 */

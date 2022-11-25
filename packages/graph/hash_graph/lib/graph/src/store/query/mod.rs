@@ -7,7 +7,6 @@ pub use self::filter::{Filter, FilterExpression, Parameter, ParameterConversionE
 /// A record stored in the [`store`].
 ///
 /// [`store`]: crate::store
-// TODO: Implement for `DataType`, `PropertyType`, etc. when `Path` is implemented
 pub trait QueryRecord {
     type Path<'q>: RecordPath;
 }
@@ -46,19 +45,37 @@ impl fmt::Display for ParameterType {
     }
 }
 
-pub trait OntologyPath {
-    /// Returns the path identifying the base URI.
+pub trait OntologyPath: 'static {
+    /// Returns the path identifying the [`BaseUri`].
+    ///
+    /// [`BaseUri`]: type_system::uri::BaseUri
     fn base_uri() -> Self;
 
-    /// Returns the path identifying the versioned URI.
+    /// Returns the path identifying the [`VersionedUri`].
+    ///
+    /// [`VersionedUri`]: type_system::uri::VersionedUri
     fn versioned_uri() -> Self;
 
-    /// Returns the path identifying the version
+    /// Returns the path identifying the [`OntologyTypeVersion`].
+    ///
+    /// [`OntologyTypeVersion`]: crate::identifier::ontology::OntologyTypeVersion
     fn version() -> Self;
 
-    /// Returns the path identifying the title.
-    fn title() -> Self;
+    /// Returns the path identifying the [`OwnedById`].
+    ///
+    /// [`OwnedById`]: crate::provenance::OwnedById
+    fn owned_by_id() -> Self;
 
-    /// Returns the path identifying the description.
-    fn description() -> Self;
+    /// Returns the path identifying the [`CreatedById`].
+    ///
+    /// [`CreatedById`]: crate::provenance::CreatedById
+    fn created_by_id() -> Self;
+
+    /// Returns the path identifying the [`UpdatedById`].
+    ///
+    /// [`UpdatedById`]: crate::provenance::UpdatedById
+    fn updated_by_id() -> Self;
+
+    /// Returns the path identifying the schema.
+    fn schema() -> Self;
 }

@@ -2,8 +2,7 @@
  * @todo: re-implement integration tests on the GraphQL layer
  * @see https://app.asana.com/0/1202805690238892/1203084714149810/f
  */
-
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+/* eslint-disable */
 // @ts-nocheck
 
 import "./loadTestEnv";
@@ -326,17 +325,17 @@ describe("logged in user ", () => {
     expect(invitationLinkLinkGroup).toBeDefined();
     expect(invitationLinkLinkGroup.links).toHaveLength(1);
     expect(invitationLinkLinkGroup.links[0]!.destinationEntityId).toBe(
-      invitationLink!.entityId,
+      invitationLink.entityId,
     );
 
     const gqlInvitationLink = gqlOrg.linkedEntities.find(
-      ({ entityId }) => entityId === invitationLink!.entityId,
+      ({ entityId }) => entityId === invitationLink.entityId,
     )!;
 
     expect(gqlInvitationLink).toBeDefined();
     expect(
       (gqlInvitationLink.properties as OrgInvitationLinkProperties).accessToken,
-    ).toBe(invitationLink!.properties.accessToken);
+    ).toBe(invitationLink.properties.accessToken);
 
     // Test the user is now a member of the org
     const updatedExistingUser = (await User.getUserById(db, existingUser))!;
@@ -460,10 +459,10 @@ describe("logged in user ", () => {
 
     const gqlInvitation = await client.getOrgInvitationLink({
       orgEntityId: bobOrg.entityId,
-      invitationLinkToken: invitation!.properties.accessToken,
+      invitationLinkToken: invitation.properties.accessToken,
     });
 
-    expect(gqlInvitation.entityId).toEqual(invitation!.entityId);
+    expect(gqlInvitation.entityId).toEqual(invitation.entityId);
     const orgLinkGroup = gqlInvitation.linkGroups.find(
       ({ sourceEntityId, path }) =>
         sourceEntityId === gqlInvitation.entityId && path === "$.org",
@@ -524,7 +523,7 @@ describe("logged in user ", () => {
     const gqlUser = await client.joinOrg({
       orgEntityId: bobOrg.entityId,
       verification: {
-        invitationLinkToken: invitation!.properties.accessToken,
+        invitationLinkToken: invitation.properties.accessToken,
       },
       responsibility,
     });
@@ -1147,11 +1146,11 @@ describe("logged in user ", () => {
 
     const [textEntityAOutgoingLink] = textEntityAOutgoingLinks;
 
-    expect(textEntityAOutgoingLink!.stringifiedPath).toBe("$.textB");
+    expect(textEntityAOutgoingLink.stringifiedPath).toBe("$.textB");
 
     // Check text entity B was created with the correct properties & outgoing links
 
-    const textEntityB = await textEntityAOutgoingLink!.getDestination(db);
+    const textEntityB = await textEntityAOutgoingLink.getDestination(db);
 
     expect(textEntityB.properties).toMatchObject(textPropertiesB);
 
@@ -1161,11 +1160,11 @@ describe("logged in user ", () => {
 
     const [textEntityBOutgoingLink] = textEntityBOutgoingLinks;
 
-    expect(textEntityBOutgoingLink!.stringifiedPath).toBe("$.textC");
+    expect(textEntityBOutgoingLink.stringifiedPath).toBe("$.textC");
 
     // Check text entity C was created with the correct properties & outgoing links
 
-    const textEntityC = await textEntityBOutgoingLink!.getDestination(db);
+    const textEntityC = await textEntityBOutgoingLink.getDestination(db);
 
     expect(textEntityC.properties).toMatchObject(textPropertiesC);
 
