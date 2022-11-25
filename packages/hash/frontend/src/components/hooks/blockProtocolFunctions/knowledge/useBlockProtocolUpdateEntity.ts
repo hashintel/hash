@@ -2,10 +2,10 @@ import { useMutation } from "@apollo/client";
 import { useCallback } from "react";
 
 import {
-  UpdateEntityWithMetadataMutation,
-  UpdateEntityWithMetadataMutationVariables,
+  UpdateEntityMutation,
+  UpdateEntityMutationVariables,
 } from "../../../../graphql/apiTypes.gen";
-import { updateEntityWithMetadataMutation } from "../../../../graphql/queries/knowledge/entity.queries";
+import { updateEntityMutation } from "../../../../graphql/queries/knowledge/entity.queries";
 import { UpdateEntityMessageCallback } from "./knowledge-shim";
 
 export const useBlockProtocolUpdateEntity = (
@@ -14,14 +14,14 @@ export const useBlockProtocolUpdateEntity = (
   updateEntity: UpdateEntityMessageCallback;
 } => {
   const [updateFn] = useMutation<
-    UpdateEntityWithMetadataMutation,
-    UpdateEntityWithMetadataMutationVariables
-  >(updateEntityWithMetadataMutation, {
+    UpdateEntityMutation,
+    UpdateEntityMutationVariables
+  >(updateEntityMutation, {
     /** @todo reconsider caching. This is done for testing/demo purposes. */
     fetchPolicy: "no-cache",
   });
 
-  const updatePersistedEntity: UpdateEntityMessageCallback = useCallback(
+  const updateEntity: UpdateEntityMessageCallback = useCallback(
     async ({ data }) => {
       if (readonly) {
         return {
@@ -39,7 +39,7 @@ export const useBlockProtocolUpdateEntity = (
           errors: [
             {
               code: "INVALID_INPUT",
-              message: "'data' must be provided for updatePersistedEntity",
+              message: "'data' must be provided for updateEntity",
             },
           ],
         };
@@ -54,15 +54,14 @@ export const useBlockProtocolUpdateEntity = (
         },
       });
 
-      const { updateEntityWithMetadata: updatedEntity } =
-        updateEntityResponseData ?? {};
+      const { updateEntity: updatedEntity } = updateEntityResponseData ?? {};
 
       if (!updatedEntity) {
         return {
           errors: [
             {
               code: "INVALID_INPUT",
-              message: "Error calling updateEntityWithMetadata",
+              message: "Error calling updateEntity",
             },
           ],
         };
@@ -76,6 +75,6 @@ export const useBlockProtocolUpdateEntity = (
   );
 
   return {
-    updateEntity: updatePersistedEntity,
+    updateEntity,
   };
 };

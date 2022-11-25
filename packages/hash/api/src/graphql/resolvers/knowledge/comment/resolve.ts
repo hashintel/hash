@@ -1,19 +1,13 @@
 import { CommentModel } from "../../../../model";
-import {
-  MutationResolvePersistedCommentArgs,
-  ResolverFn,
-} from "../../../apiTypes.gen";
+import { MutationResolveCommentArgs, ResolverFn } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import {
-  UnresolvedPersistedCommentGQL,
-  mapCommentModelToGQL,
-} from "../model-mapping";
+import { UnresolvedCommentGQL, mapCommentModelToGQL } from "../model-mapping";
 
-export const resolvePersistedComment: ResolverFn<
-  Promise<UnresolvedPersistedCommentGQL>,
+export const resolveComment: ResolverFn<
+  Promise<UnresolvedCommentGQL>,
   {},
   LoggedInGraphQLContext,
-  MutationResolvePersistedCommentArgs
+  MutationResolveCommentArgs
 > = async (_, { entityId }, { dataSources: { graphApi }, userModel }) => {
   const commentModel = await CommentModel.getCommentById(graphApi, {
     entityId,

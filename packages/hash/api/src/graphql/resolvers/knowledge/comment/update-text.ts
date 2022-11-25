@@ -1,20 +1,17 @@
 import { CommentModel } from "../../../../model";
 
 import {
-  MutationUpdatePersistedCommentTextArgs,
+  MutationUpdateCommentTextArgs,
   ResolverFn,
 } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import {
-  UnresolvedPersistedCommentGQL,
-  mapCommentModelToGQL,
-} from "../model-mapping";
+import { UnresolvedCommentGQL, mapCommentModelToGQL } from "../model-mapping";
 
-export const updatePersistedCommentText: ResolverFn<
-  Promise<UnresolvedPersistedCommentGQL>,
+export const updateCommentText: ResolverFn<
+  Promise<UnresolvedCommentGQL>,
   {},
   LoggedInGraphQLContext,
-  MutationUpdatePersistedCommentTextArgs
+  MutationUpdateCommentTextArgs
 > = async (
   _,
   { entityId, tokens },

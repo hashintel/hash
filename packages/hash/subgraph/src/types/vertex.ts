@@ -1,7 +1,7 @@
 import { BaseUri } from "@blockprotocol/type-system-web";
 import {
   DataTypeWithMetadata,
-  EntityWithMetadata,
+  Entity,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "./element";
@@ -21,7 +21,7 @@ export type EntityTypeVertex = {
   inner: EntityTypeWithMetadata;
 };
 
-export type EntityVertex = { kind: "entity"; inner: EntityWithMetadata };
+export type EntityVertex = { kind: "entity"; inner: Entity };
 
 export type OntologyVertex =
   | DataTypeVertex
