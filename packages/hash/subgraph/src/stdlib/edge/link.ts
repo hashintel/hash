@@ -1,5 +1,5 @@
 import { Subgraph } from "../../types/subgraph";
-import { EntityId } from "../../types/identifier";
+import { entityEditionIdToString, EntityId } from "../../types/identifier";
 import { Entity } from "../../types/element";
 import { getEntityAtTimestamp } from "../element/entity";
 import {
@@ -9,6 +9,19 @@ import {
 } from "../../types/edge/outward-edge-alias";
 import { mustBeDefined } from "../../shared/invariant";
 import { OutwardEdge } from "../../types/edge";
+
+const getUniqueEntitiesFilter = () => {
+  const set = new Set();
+  return (entity: Entity) => {
+    const editionIdString = entityEditionIdToString(entity.metadata.editionId);
+    if (set.has(editionIdString)) {
+      return false;
+    } else {
+      set.add(editionIdString);
+      return true;
+    }
+  };
+};
 
 /**
  * For a given moment in time, get all outgoing link entities from a given entity.
@@ -32,6 +45,8 @@ export const getOutgoingLinksForEntityAtMoment = (
   if (!entityEdges) {
     return [];
   }
+
+  const uniqueEntitiesFilter = getUniqueEntitiesFilter();
 
   return (
     Object.entries(entityEdges)
@@ -62,6 +77,7 @@ export const getOutgoingLinksForEntityAtMoment = (
         return linkEntity;
       })
       .filter((x): x is Entity => x !== undefined)
+      .filter(uniqueEntitiesFilter)
   );
 };
 
@@ -81,6 +97,8 @@ export const getIncomingLinksForEntityAtMoment = (
 ): Entity[] => {
   const timestampString =
     typeof timestamp === "string" ? timestamp : timestamp.toISOString();
+
+  const uniqueEntitiesFilter = getUniqueEntitiesFilter();
 
   /**
    * @todo - replace this with the analogue of the code in `getOutgoingLinksForEntityAtMoment` when
@@ -116,7 +134,8 @@ export const getIncomingLinksForEntityAtMoment = (
 
       return linkEntity;
     })
-    .filter((x): x is Entity => x !== undefined);
+    .filter((x): x is Entity => x !== undefined)
+    .filter(uniqueEntitiesFilter);
 };
 
 /**
