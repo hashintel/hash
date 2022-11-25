@@ -36,7 +36,7 @@ export const useBlockProtocolGetDataType = (): {
       const response = await getFn({
         variables: {
           dataTypeId,
-          constrainsValuesOn: 255,
+          constrainsValuesOn: { outgoing: 255 },
         },
       });
 
