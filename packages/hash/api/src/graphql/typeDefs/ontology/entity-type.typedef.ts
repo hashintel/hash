@@ -11,7 +11,7 @@ export const entityTypeTypedef = gql`
     getAllLatestEntityTypes(
       constrainsValuesOn: OutgoingEdgeResolveDepthInput!
       constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
-      constrainsLinksOn: Int!
+      constrainsLinksOn: OutgoingEdgeResolveDepthInput!
       constrainsLinkDestinationsOn: Int!
     ): Subgraph!
 
@@ -22,7 +22,7 @@ export const entityTypeTypedef = gql`
       entityTypeId: VersionedUri!
       constrainsValuesOn: OutgoingEdgeResolveDepthInput!
       constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
-      constrainsLinksOn: Int!
+      constrainsLinksOn: OutgoingEdgeResolveDepthInput!
       constrainsLinkDestinationsOn: Int!
     ): Subgraph!
   }
