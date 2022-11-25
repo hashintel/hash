@@ -11,8 +11,6 @@ export const createEntityMutation = gql`
   }
 `;
 
-/** @todo - rename these to omit the "WithMetadata" suffix - https://app.asana.com/0/1201095311341924/1203411297593704/f */
-
 export const getEntityQuery = gql`
   query getEntity(
     $entityId: EntityId!
@@ -20,7 +18,10 @@ export const getEntityQuery = gql`
     $constrainsValuesOn: Int!
     $constrainsPropertiesOn: Int!
     $constrainsLinksOn: Int!
+    $constrainsLinkDestinationsOn: Int!
+    $isOfType: Int!
     $hasLeftEntity: Int!
+    $hasRightEntity: Int!
   ) {
     getEntity(
       entityId: $entityId
@@ -28,7 +29,10 @@ export const getEntityQuery = gql`
       constrainsValuesOn: $constrainsValuesOn
       constrainsPropertiesOn: $constrainsPropertiesOn
       constrainsLinksOn: $constrainsLinksOn
+      constrainsLinkDestinationsOn: $constrainsLinkDestinationsOn
+      isOfType: $isOfType
       hasLeftEntity: $hasLeftEntity
+      hasRightEntity: $hasRightEntity
     ) {
       ...SubgraphFields
     }
@@ -41,13 +45,19 @@ export const getAllLatestEntitiesQuery = gql`
     $constrainsValuesOn: Int!
     $constrainsPropertiesOn: Int!
     $constrainsLinksOn: Int!
+    $constrainsLinkDestinationsOn: Int!
+    $isOfType: Int!
     $hasLeftEntity: Int!
+    $hasRightEntity: Int!
   ) {
     getAllLatestEntities(
       constrainsValuesOn: $constrainsValuesOn
       constrainsPropertiesOn: $constrainsPropertiesOn
       constrainsLinksOn: $constrainsLinksOn
+      constrainsLinkDestinationsOn: $constrainsLinkDestinationsOn
+      isOfType: $isOfType
       hasLeftEntity: $hasLeftEntity
+      hasRightEntity: $hasRightEntity
     ) {
       ...SubgraphFields
     }
