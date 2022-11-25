@@ -11,7 +11,7 @@ export const hashInstanceEntity: ResolverFn<
   {},
   LoggedInGraphQLContext,
   QueryGetAllLatestEntitiesWithMetadataArgs
-> = async (_, __, { dataSources }, ___) => {
+> = async (_, __, { dataSources }) => {
   const { graphApi } = dataSources;
 
   const hashInstanceModel = await HashInstanceModel.getHashInstanceModel(
