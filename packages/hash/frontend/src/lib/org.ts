@@ -7,6 +7,11 @@ import {
 } from "@hashintel/hash-subgraph";
 import { getEntityByEditionId } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import {
+  getIncomingLinksForEntityAtMoment,
+  getLeftEntityForLinkEntityAtMoment,
+} from "@hashintel/hash-subgraph/src/stdlib/edge/link";
+import {
+  constructUser,
   // constructMinimalUser,
   MinimalUser,
 } from "./user";
@@ -60,16 +65,43 @@ export const constructOrg = (params: {
 }): Org => {
   const { subgraph, orgEntityEditionId } = params;
 
+  const orgMemberships = getIncomingLinksForEntityAtMoment(
+    subgraph,
+    orgEntityEditionId.baseId,
+    new Date(),
+  ).filter(
+    (linkEntity) =>
+      linkEntity.metadata.entityTypeId ===
+      types.linkEntityType.orgMembership.linkEntityTypeId,
+  );
+
   return {
     ...constructMinimalOrg({
       subgraph,
       orgEntityEditionId,
     }),
-    /**
-     * @todo implement members once we are able to fetch incoming links
-     *   see https://app.asana.com/0/1201095311341924/1203250435416416/f
-     */
-    members: [],
+    members: orgMemberships.map(({ metadata, properties }) => {
+      const responsibility: string = properties[
+        extractBaseUri(types.propertyType.responsibility.propertyTypeId)
+      ] as string;
+
+      if (!metadata.linkMetadata?.leftEntityId) {
+        throw new Error("Expected org membership to contain a left entity");
+      }
+      const user = getLeftEntityForLinkEntityAtMoment(
+        subgraph,
+        metadata.editionId.baseId,
+        new Date(),
+      );
+
+      return {
+        ...constructUser({
+          subgraph,
+          userEntityEditionId: user.metadata.editionId,
+        }),
+        responsibility,
+      };
+    }),
   };
 };
 
