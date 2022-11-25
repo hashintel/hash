@@ -25,6 +25,7 @@ import { EntityId } from "@hashintel/hash-subgraph";
 import { useBlockView } from "../BlockViewContext";
 import { MenuItem } from "../../../shared/ui";
 import { generateEntityLabel } from "../../../lib/entities";
+import { EntityStoreType } from "@hashintel/hash-shared/entityStore";
 
 type LoadEntityMenuContentProps = {
   blockEntityId: EntityId | null;
@@ -65,8 +66,11 @@ export const LoadEntityMenuContent: FunctionComponent<
       if (!blockEntityId) {
         return;
       }
-
-      blockView.manager.replaceBlockChildEntity(blockEntityId, targetEntity);
+      /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */
+      blockView.manager.replaceBlockChildEntity(
+        blockEntityId,
+        targetEntity as unknown as EntityStoreType,
+      );
     },
     [blockView, blockEntityId],
   );
