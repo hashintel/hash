@@ -55,7 +55,9 @@ export const getAllLatestEntities: ResolverFn<
     constrainsValuesOn,
     constrainsPropertiesOn,
     constrainsLinksOn,
+    constrainsLinkDestinationsOn,
     hasLeftEntity,
+    hasRightEntity,
   },
   { dataSources },
   __,
@@ -68,10 +70,14 @@ export const getAllLatestEntities: ResolverFn<
         equal: [{ path: ["version"] }, { parameter: "latest" }],
       },
       graphResolveDepths: {
+        inheritsFrom: { outgoing: 0 },
         constrainsValuesOn,
         constrainsPropertiesOn,
         constrainsLinksOn,
+        constrainsLinkDestinationsOn,
+        isOfType: { outgoing: 1 },
         hasLeftEntity,
+        hasRightEntity,
       },
     })
     .catch((err: AxiosError) => {
@@ -97,7 +103,9 @@ export const getEntity: ResolverFn<
     constrainsValuesOn,
     constrainsPropertiesOn,
     constrainsLinksOn,
+    constrainsLinkDestinationsOn,
     hasLeftEntity,
+    hasRightEntity,
   },
   { dataSources },
   __,
@@ -126,10 +134,14 @@ export const getEntity: ResolverFn<
     .getEntitiesByQuery({
       filter,
       graphResolveDepths: {
+        inheritsFrom: { outgoing: 0 },
         constrainsValuesOn,
         constrainsPropertiesOn,
         constrainsLinksOn,
+        constrainsLinkDestinationsOn,
+        isOfType: { outgoing: 1 },
         hasLeftEntity,
+        hasRightEntity,
       },
     })
     .catch((err: AxiosError) => {
