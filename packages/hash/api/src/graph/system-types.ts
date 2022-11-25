@@ -49,6 +49,7 @@ export let SYSTEM_TYPES: {
 
     // HASH Instance related
     userSelfRegistrationIsEnabled: PropertyTypeModel;
+    userRegistrationByInviteIsEnabled: PropertyTypeModel;
     orgSelfRegistrationIsEnabled: PropertyTypeModel;
   };
   entityType: {
@@ -103,6 +104,13 @@ const orgSelfRegistrationIsEnabledPropertyTypeInitializer =
     actorId: systemAccountId,
   });
 
+const userRegistrationByInviteIsEnabledPropertyTypeInitializer =
+  propertyTypeInitializer({
+    ...types.propertyType.userRegistrationByInviteIsEnabled,
+    possibleValues: [{ primitiveDataType: "boolean" }],
+    actorId: systemAccountId,
+  });
+
 export const adminLinkEntityTypeInitializer = entityTypeInitializer({
   ...types.linkEntityType.admin,
   actorId: systemAccountId,
@@ -118,6 +126,11 @@ export const hashInstanceEntityTypeInitializer = async (graphApi: GraphApi) => {
 
   const orgSelfRegistrationIsEnabledPropertyTypeModel =
     await SYSTEM_TYPES_INITIALIZERS.propertyType.orgSelfRegistrationIsEnabled(
+      graphApi,
+    );
+
+  const userRegistrationByInviteIsEnabledPropertyTypeModel =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.userRegistrationByInviteIsEnabled(
       graphApi,
     );
 
@@ -139,6 +152,10 @@ export const hashInstanceEntityTypeInitializer = async (graphApi: GraphApi) => {
       },
       {
         propertyTypeModel: orgSelfRegistrationIsEnabledPropertyTypeModel,
+        required: true,
+      },
+      {
+        propertyTypeModel: userRegistrationByInviteIsEnabledPropertyTypeModel,
         required: true,
       },
     ],
@@ -654,6 +671,8 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
       userSelfRegistrationIsEnabledPropertyTypeInitializer,
     orgSelfRegistrationIsEnabled:
       orgSelfRegistrationIsEnabledPropertyTypeInitializer,
+    userRegistrationByInviteIsEnabled:
+      userRegistrationByInviteIsEnabledPropertyTypeInitializer,
   },
   entityType: {
     hashInstance: hashInstanceEntityTypeInitializer,

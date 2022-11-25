@@ -160,6 +160,11 @@ const systemPropertyTypes = {
     title: "User Self Registration Is Enabled",
     description: "Whether or not user self registration (sign-up) is enabled.",
   },
+  userRegistrationByInviteIsEnabled: {
+    title: "User Registration By Invitation Is Enabled",
+    description:
+      "Whether or not a user is able to register another user by inviting them to an org.",
+  },
   orgSelfRegistrationIsEnabled: {
     title: "Org Self Registration Is Enabled",
     description:

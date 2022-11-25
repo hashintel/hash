@@ -15,6 +15,7 @@ export type HashInstanceModelCreateParams = Omit<
   "properties" | "entityTypeModel" | "ownedById"
 > & {
   userSelfRegistrationIsEnabled?: boolean;
+  userRegistrationByInviteIsEnabled?: boolean;
   orgSelfRegistrationIsEnabled?: boolean;
 };
 
@@ -69,6 +70,8 @@ export default class extends EntityModel {
       properties: {
         [SYSTEM_TYPES.propertyType.userSelfRegistrationIsEnabled.getBaseUri()]:
           params.userSelfRegistrationIsEnabled ?? true,
+        [SYSTEM_TYPES.propertyType.userRegistrationByInviteIsEnabled.getBaseUri()]:
+          params.userRegistrationByInviteIsEnabled ?? true,
         [SYSTEM_TYPES.propertyType.orgSelfRegistrationIsEnabled.getBaseUri()]:
           params.orgSelfRegistrationIsEnabled ?? true,
       },
@@ -246,6 +249,12 @@ export default class extends EntityModel {
   isUserSelfRegistrationEnabled(): boolean {
     return this.getProperties()[
       SYSTEM_TYPES.propertyType.userSelfRegistrationIsEnabled.getBaseUri()
+    ] as boolean;
+  }
+
+  isUserRegistrationByInviteEnabled(): boolean {
+    return this.getProperties()[
+      SYSTEM_TYPES.propertyType.userRegistrationByInviteIsEnabled.getBaseUri()
     ] as boolean;
   }
 
