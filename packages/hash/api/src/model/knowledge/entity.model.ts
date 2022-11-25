@@ -307,8 +307,8 @@ export default class {
       graphResolveDepths: {
         constrainsValuesOn:
           options?.graphResolveDepths?.constrainsValuesOn ?? 0,
-        propertyTypeResolveDepth:
-          options?.graphResolveDepths?.propertyTypeResolveDepth ?? 0,
+        constrainsPropertiesOn:
+          options?.graphResolveDepths?.constrainsPropertiesOn ?? 0,
         entityTypeResolveDepth:
           options?.graphResolveDepths?.entityTypeResolveDepth ?? 0,
         entityResolveDepth:
@@ -648,7 +648,7 @@ export default class {
       },
       graphResolveDepths: {
         constrainsValuesOn: 0,
-        propertyTypeResolveDepth: 0,
+        constrainsPropertiesOn: 0,
         entityTypeResolveDepth: 0,
         ...params,
       },

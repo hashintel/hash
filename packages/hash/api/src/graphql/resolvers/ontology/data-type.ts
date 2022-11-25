@@ -24,7 +24,7 @@ export const getAllLatestDataTypes: ResolverFn<
       },
       graphResolveDepths: {
         constrainsValuesOn,
-        propertyTypeResolveDepth: 0,
+        constrainsPropertiesOn: 0,
         entityTypeResolveDepth: 0,
         entityResolveDepth: 0,
       },
@@ -55,7 +55,7 @@ export const getDataType: ResolverFn<
       /** @todo - make these configurable once non-primitive data types are a thing https://app.asana.com/0/1200211978612931/1202464168422955/f */
       graphResolveDepths: {
         constrainsValuesOn,
-        propertyTypeResolveDepth: 0,
+        constrainsPropertiesOn: 0,
         entityTypeResolveDepth: 0,
         entityResolveDepth: 0,
       },

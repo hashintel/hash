@@ -5,13 +5,13 @@ export const getEntityTypeQuery = gql`
   query getEntityType(
     $entityTypeId: VersionedUri!
     $constrainsValuesOn: Int!
-    $propertyTypeResolveDepth: Int!
+    $constrainsPropertiesOn: Int!
     $entityTypeResolveDepth: Int!
   ) {
     getEntityType(
       entityTypeId: $entityTypeId
       constrainsValuesOn: $constrainsValuesOn
-      propertyTypeResolveDepth: $propertyTypeResolveDepth
+      constrainsPropertiesOn: $constrainsPropertiesOn
       entityTypeResolveDepth: $entityTypeResolveDepth
     ) {
       ...SubgraphFields
@@ -23,12 +23,12 @@ export const getEntityTypeQuery = gql`
 export const getAllLatestEntityTypesQuery = gql`
   query getAllLatestEntityTypes(
     $constrainsValuesOn: Int!
-    $propertyTypeResolveDepth: Int!
+    $constrainsPropertiesOn: Int!
     $entityTypeResolveDepth: Int!
   ) {
     getAllLatestEntityTypes(
       constrainsValuesOn: $constrainsValuesOn
-      propertyTypeResolveDepth: $propertyTypeResolveDepth
+      constrainsPropertiesOn: $constrainsPropertiesOn
       entityTypeResolveDepth: $entityTypeResolveDepth
     ) {
       ...SubgraphFields
@@ -41,13 +41,13 @@ export const getEntityTypeRootedSubgraphQuery = gql`
   query getEntityTypeRootedSubgraph(
     $entityTypeId: VersionedUri!
     $constrainsValuesOn: Int!
-    $propertyTypeResolveDepth: Int!
+    $constrainsPropertiesOn: Int!
     $entityTypeResolveDepth: Int!
   ) {
     getEntityType(
       entityTypeId: $entityTypeId
       constrainsValuesOn: $constrainsValuesOn
-      propertyTypeResolveDepth: $propertyTypeResolveDepth
+      constrainsPropertiesOn: $constrainsPropertiesOn
       entityTypeResolveDepth: $entityTypeResolveDepth
     ) {
       ...SubgraphFields

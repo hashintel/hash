@@ -39,7 +39,7 @@ export const getAllLatestPropertyTypes: ResolverFn<
   QueryGetAllLatestPropertyTypesArgs
 > = async (
   _,
-  { constrainsValuesOn, propertyTypeResolveDepth },
+  { constrainsValuesOn, constrainsPropertiesOn },
   { dataSources },
   __,
 ) => {
@@ -58,7 +58,7 @@ export const getAllLatestPropertyTypes: ResolverFn<
       },
       graphResolveDepths: {
         constrainsValuesOn,
-        propertyTypeResolveDepth,
+        constrainsPropertiesOn,
         entityTypeResolveDepth: 0,
         entityResolveDepth: 0,
       },
@@ -80,7 +80,7 @@ export const getPropertyType: ResolverFn<
   QueryGetPropertyTypeArgs
 > = async (
   _,
-  { propertyTypeId, constrainsValuesOn, propertyTypeResolveDepth },
+  { propertyTypeId, constrainsValuesOn, constrainsPropertiesOn },
   { dataSources },
   __,
 ) => {
@@ -93,7 +93,7 @@ export const getPropertyType: ResolverFn<
       },
       graphResolveDepths: {
         constrainsValuesOn,
-        propertyTypeResolveDepth,
+        constrainsPropertiesOn,
         entityTypeResolveDepth: 0,
         entityResolveDepth: 0,
       },

@@ -43,7 +43,7 @@ export const useBlockProtocolGetPropertyType = (): {
         variables: {
           propertyTypeId,
           constrainsValuesOn: 255,
-          propertyTypeResolveDepth: 255,
+          constrainsPropertiesOn: 255,
         },
       });
 

@@ -5,12 +5,12 @@ export const getPropertyTypeQuery = gql`
   query getPropertyType(
     $propertyTypeId: VersionedUri!
     $constrainsValuesOn: Int!
-    $propertyTypeResolveDepth: Int!
+    $constrainsPropertiesOn: Int!
   ) {
     getPropertyType(
       propertyTypeId: $propertyTypeId
       constrainsValuesOn: $constrainsValuesOn
-      propertyTypeResolveDepth: $propertyTypeResolveDepth
+      constrainsPropertiesOn: $constrainsPropertiesOn
     ) {
       ...SubgraphFields
     }
@@ -21,11 +21,11 @@ export const getPropertyTypeQuery = gql`
 export const getAllLatestPropertyTypesQuery = gql`
   query getAllLatestPropertyTypes(
     $constrainsValuesOn: Int!
-    $propertyTypeResolveDepth: Int!
+    $constrainsPropertiesOn: Int!
   ) {
     getAllLatestPropertyTypes(
       constrainsValuesOn: $constrainsValuesOn
-      propertyTypeResolveDepth: $propertyTypeResolveDepth
+      constrainsPropertiesOn: $constrainsPropertiesOn
     ) {
       ...SubgraphFields
     }

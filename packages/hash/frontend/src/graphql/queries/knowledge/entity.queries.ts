@@ -18,7 +18,7 @@ export const getEntityQuery = gql`
     $entityId: EntityId!
     $entityVersion: String
     $constrainsValuesOn: Int!
-    $propertyTypeResolveDepth: Int!
+    $constrainsPropertiesOn: Int!
     $entityTypeResolveDepth: Int!
     $entityResolveDepth: Int!
   ) {
@@ -26,7 +26,7 @@ export const getEntityQuery = gql`
       entityId: $entityId
       entityVersion: $entityVersion
       constrainsValuesOn: $constrainsValuesOn
-      propertyTypeResolveDepth: $propertyTypeResolveDepth
+      constrainsPropertiesOn: $constrainsPropertiesOn
       entityTypeResolveDepth: $entityTypeResolveDepth
       entityResolveDepth: $entityResolveDepth
     ) {
@@ -39,13 +39,13 @@ export const getEntityQuery = gql`
 export const getAllLatestEntitiesQuery = gql`
   query getAllLatestEntities(
     $constrainsValuesOn: Int!
-    $propertyTypeResolveDepth: Int!
+    $constrainsPropertiesOn: Int!
     $entityTypeResolveDepth: Int!
     $entityResolveDepth: Int!
   ) {
     getAllLatestEntities(
       constrainsValuesOn: $constrainsValuesOn
-      propertyTypeResolveDepth: $propertyTypeResolveDepth
+      constrainsPropertiesOn: $constrainsPropertiesOn
       entityTypeResolveDepth: $entityTypeResolveDepth
       entityResolveDepth: $entityResolveDepth
     ) {

@@ -42,7 +42,7 @@ export const useBlockProtocolAggregateEntityTypes = (): {
       const response = await aggregateFn({
         variables: {
           constrainsValuesOn: 255,
-          propertyTypeResolveDepth: 255,
+          constrainsPropertiesOn: 255,
           entityTypeResolveDepth: 0,
         },
       });

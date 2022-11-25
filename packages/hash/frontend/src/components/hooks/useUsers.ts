@@ -20,7 +20,7 @@ export const useUsers = (): {
   >(getAllLatestEntitiesQuery, {
     variables: {
       constrainsValuesOn: 0,
-      propertyTypeResolveDepth: 0,
+      constrainsPropertiesOn: 0,
       entityTypeResolveDepth: 1,
       entityResolveDepth: 2,
     },

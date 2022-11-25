@@ -24,7 +24,7 @@ export const useOrgs = (): {
   >(getAllLatestEntitiesQuery, {
     variables: {
       constrainsValuesOn: 0,
-      propertyTypeResolveDepth: 0,
+      constrainsPropertiesOn: 0,
       entityTypeResolveDepth: 0,
       entityResolveDepth: 1,
     },

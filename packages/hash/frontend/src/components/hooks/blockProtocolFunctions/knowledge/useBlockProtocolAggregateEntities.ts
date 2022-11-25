@@ -42,7 +42,7 @@ export const useBlockProtocolAggregateEntities = (): {
       const { data: response } = await aggregateFn({
         variables: {
           constrainsValuesOn: 255,
-          propertyTypeResolveDepth: 255,
+          constrainsPropertiesOn: 255,
           // Only get the direct and absolute neighbor entity types
           entityTypeResolveDepth: 2,
           // Only get absolute neighbor link entities and their endpoint entities

@@ -44,7 +44,7 @@ export const entityTypedef = gql`
     """
     getAllLatestEntities(
       constrainsValuesOn: Int!
-      propertyTypeResolveDepth: Int!
+      constrainsPropertiesOn: Int!
       entityTypeResolveDepth: Int!
       entityResolveDepth: Int!
     ): Subgraph!
@@ -62,7 +62,7 @@ export const entityTypedef = gql`
       """
       entityVersion: String
       constrainsValuesOn: Int!
-      propertyTypeResolveDepth: Int!
+      constrainsPropertiesOn: Int!
       entityTypeResolveDepth: Int!
       entityResolveDepth: Int!
     ): Subgraph!
