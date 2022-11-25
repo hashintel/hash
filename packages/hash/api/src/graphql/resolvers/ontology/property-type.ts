@@ -57,10 +57,14 @@ export const getAllLatestPropertyTypes: ResolverFn<
         equal: [{ path: ["version"] }, { parameter: "latest" }],
       },
       graphResolveDepths: {
+        inheritsFrom: { outgoing: 0 },
         constrainsValuesOn,
         constrainsPropertiesOn,
-        constrainsLinksOn: 0,
-        hasLeftEntity: 0,
+        constrainsLinksOn: { outgoing: 0 },
+        constrainsLinkDestinationsOn: { outgoing: 0 },
+        isOfType: { outgoing: 0 },
+        hasLeftEntity: { incoming: 0, outgoing: 0 },
+        hasRightEntity: { incoming: 0, outgoing: 0 },
       },
     })
     .catch((err: AxiosError) => {
@@ -92,10 +96,14 @@ export const getPropertyType: ResolverFn<
         equal: [{ path: ["versionedUri"] }, { parameter: propertyTypeId }],
       },
       graphResolveDepths: {
+        inheritsFrom: { outgoing: 0 },
         constrainsValuesOn,
         constrainsPropertiesOn,
-        constrainsLinksOn: 0,
-        hasLeftEntity: 0,
+        constrainsLinksOn: { outgoing: 0 },
+        constrainsLinkDestinationsOn: { outgoing: 0 },
+        isOfType: { outgoing: 0 },
+        hasLeftEntity: { incoming: 0, outgoing: 0 },
+        hasRightEntity: { incoming: 0, outgoing: 0 },
       },
     })
     .catch((err: AxiosError) => {
