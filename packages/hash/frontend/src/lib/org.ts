@@ -4,7 +4,8 @@ import {
   Subgraph,
   EntityEditionId,
   extractEntityUuidFromEntityId,
-  EntityId,
+  entityEditionIdToString,
+  EntityEditionIdString,
 } from "@hashintel/hash-subgraph";
 import { getEntityByEditionId } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import {
@@ -59,8 +60,8 @@ export type Org = MinimalOrg & {
 export const constructOrg = (params: {
   subgraph: Subgraph;
   orgEntityEditionId: EntityEditionId;
-  resolvedUsers?: Record<EntityId, User>;
-  resolvedOrgs?: Record<EntityId, Org>;
+  resolvedUsers?: Record<EntityEditionIdString, User>;
+  resolvedOrgs?: Record<EntityEditionIdString, Org>;
 }): Org => {
   const { subgraph, orgEntityEditionId } = params;
 
@@ -84,7 +85,7 @@ export const constructOrg = (params: {
 
   // We add it to resolved orgs *before* fully creating so that when we're traversing we know
   // we already encountered it and avoid infinite recursion
-  resolvedOrgs[org.entityEditionId.baseId] = org;
+  resolvedOrgs[entityEditionIdToString(org.entityEditionId)] = org;
 
   org.members = orgMemberships.map(({ metadata, properties }) => {
     const responsibility: string = properties[
@@ -100,14 +101,10 @@ export const constructOrg = (params: {
       new Date(),
     );
 
-    let user = resolvedUsers[userEntity.metadata.editionId.baseId];
+    let user =
+      resolvedUsers[entityEditionIdToString(userEntity.metadata.editionId)];
 
-    if (
-      !(
-        user &&
-        user.entityEditionId.version >= userEntity.metadata.editionId.version
-      )
-    ) {
+    if (!user) {
       user = constructUser({
         subgraph,
         userEntityEditionId: userEntity.metadata.editionId,
@@ -115,7 +112,7 @@ export const constructOrg = (params: {
         resolvedUsers,
       });
 
-      resolvedUsers[user.entityEditionId.baseId] = user;
+      resolvedUsers[entityEditionIdToString(user.entityEditionId)] = user;
     }
 
     return {

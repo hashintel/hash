@@ -47,6 +47,17 @@ export type EntityEditionId = {
 };
 
 /**
+ * A string representation of an `EntityEditionId`.
+ * Can be useful for storing in keys of objects and other similar string-focused situations.
+ */
+export type EntityEditionIdString = `${EntityId}/v/${EntityVersion}`;
+
+export const entityEditionIdToString = (
+  entityEditionId: EntityEditionId,
+): EntityEditionIdString =>
+  `${entityEditionId.baseId}/v/${entityEditionId.version}`;
+
+/**
  * A tuple struct of a given `EntityId` and timestamp, used to identify an `Entity` at a given moment of time, where
  * that time may be any time in an `Entity`'s lifespan (and thus the timestamp is *not* necessarily equal to an
  * `EntityVersion`)
