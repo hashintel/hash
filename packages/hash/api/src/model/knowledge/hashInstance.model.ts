@@ -14,7 +14,7 @@ export type HashInstanceModelCreateParams = Omit<
   EntityModelCreateParams,
   "properties" | "entityTypeModel" | "ownedById"
 > & {
-  userCreationIsEnabled?: boolean;
+  userSelfRegistrationIsEnabled?: boolean;
   orgCreationIsEnabled?: boolean;
 };
 
@@ -67,8 +67,8 @@ export default class extends EntityModel {
     const entityModel = await EntityModel.create(graphApi, {
       ownedById: systemAccountId,
       properties: {
-        [SYSTEM_TYPES.propertyType.userCreationIsEnabled.getBaseUri()]:
-          params.userCreationIsEnabled ?? true,
+        [SYSTEM_TYPES.propertyType.userSelfRegistrationIsEnabled.getBaseUri()]:
+          params.userSelfRegistrationIsEnabled ?? true,
         [SYSTEM_TYPES.propertyType.orgCreationIsEnabled.getBaseUri()]:
           params.orgCreationIsEnabled ?? true,
       },
@@ -243,9 +243,9 @@ export default class extends EntityModel {
     await outgoingAdminLinkEntityModel.archive(graphApi, { actorId });
   }
 
-  isUserRegistrationEnabled(): boolean {
+  isUserSelfRegistrationEnabled(): boolean {
     return (this.getProperties() as any)[
-      SYSTEM_TYPES.propertyType.userCreationIsEnabled.getBaseUri()
+      SYSTEM_TYPES.propertyType.userSelfRegistrationIsEnabled.getBaseUri()
     ];
   }
 

@@ -10,7 +10,7 @@ import { useInitTypeSystem } from "../../lib/use-init-type-system";
 import { getHashInstanceEntityQuery } from "../../graphql/queries/knowledge/hashInstance.queries";
 
 type HashInstance = {
-  userCreationIsEnabled: boolean;
+  userSelfRegistrationIsEnabled: boolean;
   orgCreationIsEnabled: boolean;
 };
 
@@ -44,8 +44,10 @@ export const useHashInstance = (): {
 
     const { properties } = hashInstanceEntity;
 
-    const userCreationIsEnabled = properties[
-      extractBaseUri(types.propertyType.userCreationIsEnabled.propertyTypeId)
+    const userSelfRegistrationIsEnabled = properties[
+      extractBaseUri(
+        types.propertyType.userSelfRegistrationIsEnabled.propertyTypeId,
+      )
     ] as boolean;
 
     const orgCreationIsEnabled = properties[
@@ -53,7 +55,7 @@ export const useHashInstance = (): {
     ] as boolean;
 
     return {
-      userCreationIsEnabled,
+      userSelfRegistrationIsEnabled,
       orgCreationIsEnabled,
     };
   }, [hashInstanceEntity, loadingTypeSystem]);

@@ -158,10 +158,6 @@ export default class extends EntityModel {
       graphApi,
     );
 
-    if (!hashInstanceModel.isUserRegistrationEnabled()) {
-      throw new Error("User registration is disabled.");
-    }
-
     const existingUserWithKratosIdentityId =
       await UserModel.getUserByKratosIdentityId(graphApi, {
         kratosIdentityId,
