@@ -102,7 +102,8 @@ export const getIncomingLinksForEntityAtMoment = (
         getEntityAtTimestamp(
           subgraph,
           linkEntityId as EntityId,
-          // Find the edition of the link at the given moment (not at `_firstEditionTimestamp`, the start of its history)
+          // Find the edition of the link at the given moment (not at the timestamp in the inner edges object, which
+          // corresponds to the start of the link's history)
           timestampString,
         ),
       );
