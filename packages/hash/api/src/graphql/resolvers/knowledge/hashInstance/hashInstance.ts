@@ -1,16 +1,13 @@
-import { EntityWithMetadata } from "@hashintel/hash-subgraph";
+import { Entity } from "@hashintel/hash-subgraph";
 import { HashInstanceModel } from "../../../../model";
-import {
-  ResolverFn,
-  QueryGetAllLatestEntitiesWithMetadataArgs,
-} from "../../../apiTypes.gen";
+import { ResolverFn } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 
 export const hashInstanceEntity: ResolverFn<
-  Promise<EntityWithMetadata>,
+  Promise<Entity>,
   {},
   LoggedInGraphQLContext,
-  QueryGetAllLatestEntitiesWithMetadataArgs
+  {}
 > = async (_, __, { dataSources }) => {
   const { graphApi } = dataSources;
 
