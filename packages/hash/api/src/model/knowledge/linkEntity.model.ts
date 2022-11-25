@@ -1,8 +1,8 @@
 import {
   GraphApi,
   Filter,
-  EntityStructuralQuery,
   EntityLinkOrder,
+  GraphResolveDepths,
 } from "@hashintel/hash-graph-client";
 import {
   Subgraph,
@@ -92,17 +92,20 @@ export default class extends EntityModel {
   static async getByQuery(
     graphApi: GraphApi,
     filter: Filter,
-    options?: Omit<Partial<EntityStructuralQuery>, "filter">,
+    graphResolveDepths?: Partial<GraphResolveDepths>,
   ): Promise<LinkEntityModel[]> {
     const { data: subgraph } = await graphApi.getEntitiesByQuery({
       filter,
       graphResolveDepths: {
-        constrainsValuesOn:
-          options?.graphResolveDepths?.constrainsValuesOn ?? 0,
-        constrainsPropertiesOn:
-          options?.graphResolveDepths?.constrainsPropertiesOn ?? 0,
-        constrainsLinksOn: options?.graphResolveDepths?.constrainsLinksOn ?? 0,
-        hasLeftEntity: options?.graphResolveDepths?.hasLeftEntity ?? 0,
+        inheritsFrom: { outgoing: 0 },
+        constrainsValuesOn: { outgoing: 0 },
+        constrainsPropertiesOn: { outgoing: 0 },
+        constrainsLinksOn: { outgoing: 0 },
+        constrainsLinkDestinationsOn: { outgoing: 0 },
+        isOfType: { outgoing: 0 },
+        hasLeftEntity: { incoming: 0, outgoing: 0 },
+        hasRightEntity: { incoming: 0, outgoing: 0 },
+        ...graphResolveDepths,
       },
     });
 
