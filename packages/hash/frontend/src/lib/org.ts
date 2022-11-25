@@ -4,18 +4,14 @@ import {
   Subgraph,
   EntityEditionId,
   extractEntityUuidFromEntityId,
+  EntityId,
 } from "@hashintel/hash-subgraph";
 import { getEntityByEditionId } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import {
   getIncomingLinksForEntityAtMoment,
   getLeftEntityForLinkEntityAtMoment,
 } from "@hashintel/hash-subgraph/src/stdlib/edge/link";
-import {
-  constructMinimalUser,
-  constructUser,
-  // constructMinimalUser,
-  MinimalUser,
-} from "./user";
+import { constructUser, User } from "./user";
 
 export type MinimalOrg = {
   kind: "org";
@@ -57,14 +53,19 @@ export const constructMinimalOrg = (params: {
 };
 
 export type Org = MinimalOrg & {
-  members: (MinimalUser & { responsibility: string })[];
+  members: (User & { responsibility: string })[];
 };
 
 export const constructOrg = (params: {
   subgraph: Subgraph;
   orgEntityEditionId: EntityEditionId;
+  resolvedUsers?: Record<EntityId, User>;
+  resolvedOrgs?: Record<EntityId, Org>;
 }): Org => {
   const { subgraph, orgEntityEditionId } = params;
+
+  const resolvedUsers = params.resolvedUsers ?? {};
+  const resolvedOrgs = params.resolvedOrgs ?? {};
 
   const orgMemberships = getIncomingLinksForEntityAtMoment(
     subgraph,
@@ -76,32 +77,52 @@ export const constructOrg = (params: {
       types.linkEntityType.orgMembership.linkEntityTypeId,
   );
 
-  return {
-    ...constructMinimalOrg({
+  const org = constructMinimalOrg({
+    subgraph,
+    orgEntityEditionId,
+  }) as Org;
+
+  // We add it to resolved orgs *before* fully creating so that when we're traversing we know
+  // we already encountered it and avoid infinite recursion
+  resolvedOrgs[org.entityEditionId.baseId] = org;
+
+  org.members = orgMemberships.map(({ metadata, properties }) => {
+    const responsibility: string = properties[
+      extractBaseUri(types.propertyType.responsibility.propertyTypeId)
+    ] as string;
+
+    if (!metadata.linkMetadata?.leftEntityId) {
+      throw new Error("Expected org membership to contain a left entity");
+    }
+    const userEntity = getLeftEntityForLinkEntityAtMoment(
       subgraph,
-      orgEntityEditionId,
-    }),
-    members: orgMemberships.map(({ metadata, properties }) => {
-      const responsibility: string = properties[
-        extractBaseUri(types.propertyType.responsibility.propertyTypeId)
-      ] as string;
+      metadata.editionId.baseId,
+      new Date(),
+    );
 
-      if (!metadata.linkMetadata?.leftEntityId) {
-        throw new Error("Expected org membership to contain a left entity");
-      }
-      const user = getLeftEntityForLinkEntityAtMoment(
+    let user = resolvedUsers[userEntity.metadata.editionId.baseId];
+
+    if (
+      !(
+        user &&
+        user.entityEditionId.version >= userEntity.metadata.editionId.version
+      )
+    ) {
+      user = constructUser({
         subgraph,
-        metadata.editionId.baseId,
-        new Date(),
-      );
+        userEntityEditionId: userEntity.metadata.editionId,
+        resolvedOrgs,
+        resolvedUsers,
+      });
 
-      return {
-        ...constructMinimalUser({
-          subgraph,
-          userEntityEditionId: user.metadata.editionId,
-        }),
-        responsibility,
-      };
-    }),
-  };
+      resolvedUsers[user.entityEditionId.baseId] = user;
+    }
+
+    return {
+      ...user,
+      responsibility,
+    };
+  });
+
+  return org;
 };

@@ -4,6 +4,7 @@ import {
   Subgraph,
   EntityEditionId,
   extractEntityUuidFromEntityId,
+  EntityId,
 } from "@hashintel/hash-subgraph";
 import { getEntityByEditionId } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import {
@@ -11,7 +12,7 @@ import {
   getRightEntityForLinkEntityAtMoment,
 } from "@hashintel/hash-subgraph/src/stdlib/edge/link";
 import { Session } from "@ory/client";
-import { constructMinimalOrg, MinimalOrg } from "./org";
+import { constructOrg, Org } from "./org";
 
 export type MinimalUser = {
   kind: "user";
@@ -57,14 +58,19 @@ export const constructMinimalUser = (params: {
 };
 
 export type User = MinimalUser & {
-  memberOf: (MinimalOrg & { responsibility: string })[];
+  memberOf: (Org & { responsibility: string })[];
 };
 
 export const constructUser = (params: {
   subgraph: Subgraph;
   userEntityEditionId: EntityEditionId;
+  resolvedUsers?: Record<EntityId, User>;
+  resolvedOrgs?: Record<EntityId, Org>;
 }): User => {
   const { userEntityEditionId, subgraph } = params;
+
+  const resolvedUsers = params.resolvedUsers ?? {};
+  const resolvedOrgs = params.resolvedOrgs ?? {};
 
   const orgMemberships = getOutgoingLinksForEntityAtMoment(
     subgraph,
@@ -76,31 +82,51 @@ export const constructUser = (params: {
       types.linkEntityType.orgMembership.linkEntityTypeId,
   );
 
-  return {
-    ...constructMinimalUser({ userEntityEditionId, subgraph }),
-    memberOf: orgMemberships.map(({ metadata, properties }) => {
-      const responsibility: string = properties[
-        extractBaseUri(types.propertyType.responsibility.propertyTypeId)
-      ] as string;
+  const user = constructMinimalUser({ userEntityEditionId, subgraph }) as User;
 
-      if (!metadata.linkMetadata?.rightEntityId) {
-        throw new Error("Expected org membership to contain a right entity");
-      }
-      const org = getRightEntityForLinkEntityAtMoment(
+  // We add it to resolved users *before* fully creating so that when we're traversing we know
+  // we already encountered it and avoid infinite recursion
+  resolvedUsers[user.entityEditionId.baseId] = user;
+
+  user.memberOf = orgMemberships.map(({ metadata, properties }) => {
+    const responsibility: string = properties[
+      extractBaseUri(types.propertyType.responsibility.propertyTypeId)
+    ] as string;
+
+    if (!metadata.linkMetadata?.rightEntityId) {
+      throw new Error("Expected org membership to contain a right entity");
+    }
+    const orgEntity = getRightEntityForLinkEntityAtMoment(
+      subgraph,
+      metadata.editionId.baseId,
+      new Date(),
+    );
+
+    let org = resolvedOrgs[orgEntity.metadata.editionId.baseId];
+
+    if (
+      !(
+        org &&
+        org.entityEditionId.version >= orgEntity.metadata.editionId.version
+      )
+    ) {
+      org = constructOrg({
         subgraph,
-        metadata.editionId.baseId,
-        new Date(),
-      );
+        orgEntityEditionId: orgEntity.metadata.editionId,
+        resolvedUsers,
+        resolvedOrgs,
+      });
 
-      return {
-        ...constructMinimalOrg({
-          subgraph,
-          orgEntityEditionId: org.metadata.editionId,
-        }),
-        responsibility,
-      };
-    }),
-  };
+      resolvedOrgs[org.entityEditionId.baseId] = org;
+    }
+
+    return {
+      ...org,
+      responsibility,
+    };
+  });
+
+  return user;
 };
 
 export type AuthenticatedUser = User & {
