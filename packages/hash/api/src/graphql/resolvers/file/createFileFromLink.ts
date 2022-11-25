@@ -3,7 +3,7 @@
 // @ts-nocheck
 import { genId } from "../../../util";
 import {
-  EntityWithMetadata,
+  Entity,
   MutationCreateFileFromLinkArgs,
   ResolverFn,
 } from "../../apiTypes.gen";
@@ -21,7 +21,7 @@ function guessFileNameFromURL(url: string): string {
 }
 
 export const createFileFromLink: ResolverFn<
-  Promise<EntityWithMetadata>,
+  Promise<Entity>,
   {},
   LoggedInGraphQLContext,
   MutationCreateFileFromLinkArgs

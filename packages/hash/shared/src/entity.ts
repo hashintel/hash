@@ -7,11 +7,11 @@ import {
   isEntity,
   TEXT_TOKEN_PROPERTY_TYPE_BASE_URI,
 } from "./entityStore";
-import { PersistedBlock } from "./graphql/apiTypes.gen";
+import { Block } from "./graphql/apiTypes.gen";
 import { TextToken } from "./graphql/types";
 import { flatMapTree } from "./util";
 
-export type BlockEntity = PersistedBlock;
+export type BlockEntity = Block;
 
 export type TextProperties = {
   // As TEXT_TOKEN_PROPERTY_TYPE_BASE_URI (and TEXT_TOKEN_PROPERTY_TYPE_ID) are
