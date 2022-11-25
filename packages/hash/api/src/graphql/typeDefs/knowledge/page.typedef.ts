@@ -30,8 +30,6 @@ export const pageTypedef = gql`
     The page's parent page (may not be set).
     """
     parentPage: Page
-
-    # ENTITY INTERFACE FIELDS BEGIN #
     """
     Metadata for the entity.
     """
@@ -40,7 +38,6 @@ export const pageTypedef = gql`
     Properties of entity.
     """
     properties: PropertyObject!
-    # ENTITY INTERFACE FIELDS END #
   }
 
   extend type Query {
