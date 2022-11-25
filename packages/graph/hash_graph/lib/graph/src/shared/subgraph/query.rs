@@ -67,13 +67,33 @@ use crate::{
 ///     ]
 ///   },
 ///   "graphResolveDepths": {
-///     "constrainsValuesOn": 0,
-///     "constrainsPropertiesOn": 0,
-///     "constrainsLinksOn": 0,
-///     "linkTargethasLeftEntity": 0,
-///     "linkResolveDepth": 0
+///     "inheritsFrom": {
+///       "outgoing": 0
+///     },
+///     "constrainsValuesOn": {
+///       "outgoing": 0
+///     },
+///     "constrainsPropertiesOn": {
+///       "outgoing": 0
+///     },
+///     "constrainsLinksOn": {
+///       "outgoing": 0
+///     },
+///     "constrainsLinkDestinationsOn": {
+///       "outgoing": 0
+///     },
+///     "isOfType": {
+///       "outgoing": 0
+///     },
+///     "hasLeftEntity": {
+///       "incoming": 2,
+///       "outgoing": 2
+///     },
+///     "hasRightEntity": {
+///       "incoming": 2,
+///       "outgoing": 2
+///     }
 ///   }
-/// }
 /// ```
 ///
 /// This query will return any entity, which was either created by or is owned by the account
@@ -98,11 +118,32 @@ use crate::{
 ///     ]
 ///   },
 ///   "graphResolveDepths": {
-///     "constrainsValuesOn": 0,
-///     "constrainsPropertiesOn": 0,
-///     "constrainsLinksOn": 0,
-///     "linkTargethasLeftEntity": 0,
-///     "linkResolveDepth": 0
+///     "inheritsFrom": {
+///       "outgoing": 0
+///     },
+///     "constrainsValuesOn": {
+///       "outgoing": 0
+///     },
+///     "constrainsPropertiesOn": {
+///       "outgoing": 0
+///     },
+///     "constrainsLinksOn": {
+///       "outgoing": 0
+///     },
+///     "constrainsLinkDestinationsOn": {
+///       "outgoing": 0
+///     },
+///     "isOfType": {
+///       "outgoing": 0
+///     },
+///     "hasLeftEntity": {
+///       "incoming": 2,
+///       "outgoing": 2
+///     },
+///     "hasRightEntity": {
+///       "incoming": 2,
+///       "outgoing": 2
+///     }
 ///   }
 /// }
 /// ```
