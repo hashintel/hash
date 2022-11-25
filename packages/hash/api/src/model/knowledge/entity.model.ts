@@ -310,8 +310,7 @@ export default class {
         constrainsPropertiesOn:
           options?.graphResolveDepths?.constrainsPropertiesOn ?? 0,
         constrainsLinksOn: options?.graphResolveDepths?.constrainsLinksOn ?? 0,
-        entityResolveDepth:
-          options?.graphResolveDepths?.entityResolveDepth ?? 0,
+        hasLeftEntity: options?.graphResolveDepths?.hasLeftEntity ?? 0,
       },
     });
 
@@ -628,7 +627,7 @@ export default class {
   async getRootedSubgraph(
     graphApi: GraphApi,
     params: {
-      entityResolveDepth: number;
+      hasLeftEntity: number;
     },
   ): Promise<Subgraph> {
     const { data: entitySubgraph } = await graphApi.getEntitiesByQuery({

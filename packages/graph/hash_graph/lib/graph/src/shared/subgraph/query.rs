@@ -70,7 +70,7 @@ use crate::{
 ///     "constrainsValuesOn": 0,
 ///     "constrainsPropertiesOn": 0,
 ///     "constrainsLinksOn": 0,
-///     "linkTargetEntityResolveDepth": 0,
+///     "linkTargethasLeftEntity": 0,
 ///     "linkResolveDepth": 0
 ///   }
 /// }
@@ -101,7 +101,7 @@ use crate::{
 ///     "constrainsValuesOn": 0,
 ///     "constrainsPropertiesOn": 0,
 ///     "constrainsLinksOn": 0,
-///     "linkTargetEntityResolveDepth": 0,
+///     "linkTargethasLeftEntity": 0,
 ///     "linkResolveDepth": 0
 ///   }
 /// }

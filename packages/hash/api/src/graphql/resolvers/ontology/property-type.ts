@@ -60,7 +60,7 @@ export const getAllLatestPropertyTypes: ResolverFn<
         constrainsValuesOn,
         constrainsPropertiesOn,
         constrainsLinksOn: 0,
-        entityResolveDepth: 0,
+        hasLeftEntity: 0,
       },
     })
     .catch((err: AxiosError) => {
@@ -95,7 +95,7 @@ export const getPropertyType: ResolverFn<
         constrainsValuesOn,
         constrainsPropertiesOn,
         constrainsLinksOn: 0,
-        entityResolveDepth: 0,
+        hasLeftEntity: 0,
       },
     })
     .catch((err: AxiosError) => {

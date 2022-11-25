@@ -32,7 +32,7 @@ export const useEntityTypeEntitiesContextValue = (
         linkTypeResolveDepth: 0,
         constrainsLinksOn: 1,
         linkResolveDepth: 0,
-        linkTargetEntityResolveDepth: 0,
+        linkTargethasLeftEntity: 0,
       },
     }).then((res) => {
       if (res.data) {

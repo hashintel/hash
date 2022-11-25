@@ -42,7 +42,7 @@ export const useBlockProtocolGetEntity = (): {
           // Don't explore entityType references beyond the absolute neighbors
           constrainsLinksOn: 2,
           // Only get absolute neighbor link entities and their endpoint entities
-          entityResolveDepth: 2,
+          hasLeftEntity: 2,
         },
       });
 

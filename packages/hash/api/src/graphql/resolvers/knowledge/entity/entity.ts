@@ -55,7 +55,7 @@ export const getAllLatestEntities: ResolverFn<
     constrainsValuesOn,
     constrainsPropertiesOn,
     constrainsLinksOn,
-    entityResolveDepth,
+    hasLeftEntity,
   },
   { dataSources },
   __,
@@ -71,7 +71,7 @@ export const getAllLatestEntities: ResolverFn<
         constrainsValuesOn,
         constrainsPropertiesOn,
         constrainsLinksOn,
-        entityResolveDepth,
+        hasLeftEntity,
       },
     })
     .catch((err: AxiosError) => {
@@ -97,7 +97,7 @@ export const getEntity: ResolverFn<
     constrainsValuesOn,
     constrainsPropertiesOn,
     constrainsLinksOn,
-    entityResolveDepth,
+    hasLeftEntity,
   },
   { dataSources },
   __,
@@ -129,7 +129,7 @@ export const getEntity: ResolverFn<
         constrainsValuesOn,
         constrainsPropertiesOn,
         constrainsLinksOn,
-        entityResolveDepth,
+        hasLeftEntity,
       },
     })
     .catch((err: AxiosError) => {

@@ -10,7 +10,7 @@ export const createOrg: ResolverFn<
   MutationCreateOrgArgs
 > = async (
   _,
-  { name, shortname, orgSize, entityResolveDepth },
+  { name, shortname, orgSize, hasLeftEntity },
   { dataSources: { graphApi }, userModel },
 ) => {
   const orgModel = await OrgModel.createOrg(graphApi, {
@@ -21,6 +21,6 @@ export const createOrg: ResolverFn<
   });
 
   return await orgModel.getRootedSubgraph(graphApi, {
-    entityResolveDepth,
+    hasLeftEntity,
   });
 };

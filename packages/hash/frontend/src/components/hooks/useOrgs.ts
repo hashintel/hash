@@ -26,7 +26,7 @@ export const useOrgs = (): {
       constrainsValuesOn: 0,
       constrainsPropertiesOn: 0,
       constrainsLinksOn: 0,
-      entityResolveDepth: 1,
+      hasLeftEntity: 1,
     },
     /** @todo reconsider caching. This is done for testing/demo purposes. */
     fetchPolicy: "no-cache",

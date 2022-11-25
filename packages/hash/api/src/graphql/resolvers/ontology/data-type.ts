@@ -26,7 +26,7 @@ export const getAllLatestDataTypes: ResolverFn<
         constrainsValuesOn,
         constrainsPropertiesOn: 0,
         constrainsLinksOn: 0,
-        entityResolveDepth: 0,
+        hasLeftEntity: 0,
       },
     })
     .catch((err: AxiosError) => {
@@ -57,7 +57,7 @@ export const getDataType: ResolverFn<
         constrainsValuesOn,
         constrainsPropertiesOn: 0,
         constrainsLinksOn: 0,
-        entityResolveDepth: 0,
+        hasLeftEntity: 0,
       },
     })
     .catch((err: AxiosError) => {

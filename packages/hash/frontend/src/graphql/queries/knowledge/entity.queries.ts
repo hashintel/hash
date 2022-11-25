@@ -20,7 +20,7 @@ export const getEntityQuery = gql`
     $constrainsValuesOn: Int!
     $constrainsPropertiesOn: Int!
     $constrainsLinksOn: Int!
-    $entityResolveDepth: Int!
+    $hasLeftEntity: Int!
   ) {
     getEntity(
       entityId: $entityId
@@ -28,7 +28,7 @@ export const getEntityQuery = gql`
       constrainsValuesOn: $constrainsValuesOn
       constrainsPropertiesOn: $constrainsPropertiesOn
       constrainsLinksOn: $constrainsLinksOn
-      entityResolveDepth: $entityResolveDepth
+      hasLeftEntity: $hasLeftEntity
     ) {
       ...SubgraphFields
     }
@@ -41,13 +41,13 @@ export const getAllLatestEntitiesQuery = gql`
     $constrainsValuesOn: Int!
     $constrainsPropertiesOn: Int!
     $constrainsLinksOn: Int!
-    $entityResolveDepth: Int!
+    $hasLeftEntity: Int!
   ) {
     getAllLatestEntities(
       constrainsValuesOn: $constrainsValuesOn
       constrainsPropertiesOn: $constrainsPropertiesOn
       constrainsLinksOn: $constrainsLinksOn
-      entityResolveDepth: $entityResolveDepth
+      hasLeftEntity: $hasLeftEntity
     ) {
       ...SubgraphFields
     }

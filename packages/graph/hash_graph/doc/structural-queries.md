@@ -96,7 +96,7 @@ if a query on `Entity1` is made with the following depths:
     constrainsValuesOn: 1,
     constrainsPropertiesOn: 3,
     constrainsLinksOn: 1,
-    entityResolveDepth: 2,
+    hasLeftEntity: 2,
   },
 }
 ```
@@ -108,7 +108,7 @@ then the returned subgraph will contain the following vertices in addition to th
 - \[`DataType1`, `DataType2`]
 - \[`Link1`, `Entity2`]
 
-`Link2` will not be included in the subgraph, because the depth for `entityResolveDepth` is `2` and `Link2` is `3` edges away from `Entity1`.
+`Link2` will not be included in the subgraph, because the depth for `hasLeftEntity` is `2` and `Link2` is `3` edges away from `Entity1`.
 
 Please note, that all depth parameters has to be passed each time a query is made to prevent unexpected results.
 

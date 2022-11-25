@@ -22,7 +22,7 @@ export const useUsers = (): {
       constrainsValuesOn: 0,
       constrainsPropertiesOn: 0,
       constrainsLinksOn: 1,
-      entityResolveDepth: 2,
+      hasLeftEntity: 2,
     },
     /** @todo reconsider caching. This is done for testing/demo purposes. */
     fetchPolicy: "no-cache",
