@@ -57,7 +57,7 @@ impl<C: AsClient> PostgresStore<C> {
                 DependencyStatus::Unknown => {
                     let entity = Read::<Entity>::read_one(
                         self,
-                        &Filter::for_entities_by_edition_id(entity_edition_id),
+                        &Filter::for_entity_by_edition_id(entity_edition_id),
                     )
                     .await?;
                     Some(
