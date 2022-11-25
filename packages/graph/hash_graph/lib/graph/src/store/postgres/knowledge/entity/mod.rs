@@ -52,7 +52,7 @@ impl<C: AsClient> PostgresStore<C> {
                     &entity_edition_id,
                     Some(dependency_context.graph_resolve_depths.entity_resolve_depth),
                     || async {
-                        self.read_one(&Filter::for_entities_by_edition_id(entity_edition_id))
+                        self.read_one(&Filter::for_entity_by_edition_id(entity_edition_id))
                             .await
                     },
                 )
