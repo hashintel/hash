@@ -44,7 +44,7 @@ export const entityTypedef = gql`
     """
     getAllLatestEntities(
       constrainsValuesOn: OutgoingEdgeResolveDepthInput!
-      constrainsPropertiesOn: Int!
+      constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
       constrainsLinksOn: Int!
       constrainsLinkDestinationsOn: Int!
       isOfType: Int!
@@ -65,7 +65,7 @@ export const entityTypedef = gql`
       """
       entityVersion: String
       constrainsValuesOn: OutgoingEdgeResolveDepthInput!
-      constrainsPropertiesOn: Int!
+      constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
       constrainsLinksOn: Int!
       constrainsLinkDestinationsOn: Int!
       isOfType: Int!

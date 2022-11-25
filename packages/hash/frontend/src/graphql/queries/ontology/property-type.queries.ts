@@ -5,7 +5,7 @@ export const getPropertyTypeQuery = gql`
   query getPropertyType(
     $propertyTypeId: VersionedUri!
     $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
-    $constrainsPropertiesOn: Int!
+    $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
   ) {
     getPropertyType(
       propertyTypeId: $propertyTypeId
@@ -21,7 +21,7 @@ export const getPropertyTypeQuery = gql`
 export const getAllLatestPropertyTypesQuery = gql`
   query getAllLatestPropertyTypes(
     $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
-    $constrainsPropertiesOn: Int!
+    $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
   ) {
     getAllLatestPropertyTypes(
       constrainsValuesOn: $constrainsValuesOn

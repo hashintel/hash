@@ -10,7 +10,7 @@ export const propertyTypeTypedef = gql`
     """
     getAllLatestPropertyTypes(
       constrainsValuesOn: OutgoingEdgeResolveDepthInput!
-      constrainsPropertiesOn: Int!
+      constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
     ): Subgraph!
 
     """
@@ -19,7 +19,7 @@ export const propertyTypeTypedef = gql`
     getPropertyType(
       propertyTypeId: VersionedUri!
       constrainsValuesOn: OutgoingEdgeResolveDepthInput!
-      constrainsPropertiesOn: Int!
+      constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
     ): Subgraph!
   }
 
