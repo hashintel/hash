@@ -244,14 +244,14 @@ export default class extends EntityModel {
   }
 
   isUserSelfRegistrationEnabled(): boolean {
-    return (this.getProperties() as any)[
+    return this.getProperties()[
       SYSTEM_TYPES.propertyType.userSelfRegistrationIsEnabled.getBaseUri()
-    ];
+    ] as boolean;
   }
 
   isOrgSelfRegistrationEnabled(): boolean {
-    return (this.getProperties() as any)[
+    return this.getProperties()[
       SYSTEM_TYPES.propertyType.orgSelfRegistrationIsEnabled.getBaseUri()
-    ];
+    ] as boolean;
   }
 }
