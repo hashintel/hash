@@ -17,6 +17,13 @@ export const entityTypedef = gql`
     entity: EntityDefinition!
   }
 
+  input LinkMetadata {
+    leftEntityId: EntityId!
+    leftOrder: Int
+    rightEntityId: EntityId!
+    rightOrder: Int
+  }
+
   input EntityDefinition {
     """
     The EntityId of the existing entity to use instead of creating a new entity.
@@ -89,6 +96,10 @@ export const entityTypedef = gql`
       Associated Entities to either create/get and link to this entity.
       """
       linkedEntities: [LinkedEntityDefinition!]
+      """
+      The link metadata of the entity (required when creating a link entity).
+      """
+      linkMetadata: LinkMetadata
     ): Entity!
 
     """
