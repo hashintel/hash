@@ -34,6 +34,11 @@ export const useUsers = (): {
     if (!subgraph) {
       return undefined;
     }
+
+    // Sharing the same resolved map makes the map below slightly more efficient
+    const resolvedUsers = {};
+    const resolvedOrgs = {};
+
     /** @todo - Is there a way we can ergonomically encode this in the GraphQL type? */
     return getRoots(subgraph as Subgraph<SubgraphRootTypes["entity"]>)
       .filter(
@@ -44,6 +49,8 @@ export const useUsers = (): {
         constructUser({
           subgraph,
           userEntityEditionId: editionId,
+          resolvedUsers,
+          resolvedOrgs,
         }),
       );
   }, [subgraph]);
