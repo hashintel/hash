@@ -192,19 +192,31 @@ Content-Type: application/json
     ]
   },
   "graphResolveDepths": {
-    "inheritanceResolveDepth": 0,
-    "valueConstrainResolveDepth": 0,
-    "propertyConstrainResolveDepth": 0,
-    "linkConstrainResolveDepth": 0,
-    "linkDestinationResolveDepth": 0,
-    "typeResolveDepth": 0,
-    "entityResolveDepth": {
-      "left": 2,
-      "right": 2
+    "inheritsFrom": {
+      "outgoing": 0
     },
-    "linkResolveDepth": {
-      "outgoing": 2,
-      "incoming": 2
+    "constrainsValueOn": {
+      "outgoing": 0
+    },
+    "constraintsPropertyOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    },
+    "hasRightEntity": {
+      "incoming": 2,
+      "outgoing": 2
     }
   }
 }
@@ -323,19 +335,31 @@ Content-Type: application/json
     ]
   },
   "graphResolveDepths": {
-    "inheritanceResolveDepth": 0,
-    "valueConstrainResolveDepth": 0,
-    "propertyConstrainResolveDepth": 0,
-    "linkConstrainResolveDepth": 0,
-    "linkDestinationResolveDepth": 0,
-    "typeResolveDepth": 0,
-    "entityResolveDepth": {
-      "left": 2,
-      "right": 2
+    "inheritsFrom": {
+      "outgoing": 0
     },
-    "linkResolveDepth": {
-      "outgoing": 2,
-      "incoming": 2
+    "constrainsValueOn": {
+      "outgoing": 0
+    },
+    "constraintsPropertyOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    },
+    "hasRightEntity": {
+      "incoming": 2,
+      "outgoing": 2
     }
   }
 }
@@ -371,19 +395,31 @@ Content-Type: application/json
     ]
   },
   "graphResolveDepths": {
-    "inheritanceResolveDepth": 0,
-    "valueConstrainResolveDepth": 0,
-    "propertyConstrainResolveDepth": 0,
-    "linkConstrainResolveDepth": 0,
-    "linkDestinationResolveDepth": 0,
-    "typeResolveDepth": 0,
-    "entityResolveDepth": {
-      "left": 2,
-      "right": 2
+    "inheritsFrom": {
+      "outgoing": 0
     },
-    "linkResolveDepth": {
-      "outgoing": 2,
-      "incoming": 2
+    "constrainsValueOn": {
+      "outgoing": 0
+    },
+    "constraintsPropertyOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    },
+    "hasRightEntity": {
+      "incoming": 2,
+      "outgoing": 2
     }
   }
 }
@@ -499,19 +535,31 @@ Content-Type: application/json
     ]
   },
   "graphResolveDepths": {
-    "inheritanceResolveDepth": 0,
-    "valueConstrainResolveDepth": 0,
-    "propertyConstrainResolveDepth": 0,
-    "linkConstrainResolveDepth": 0,
-    "linkDestinationResolveDepth": 0,
-    "typeResolveDepth": 0,
-    "entityResolveDepth": {
-      "left": 2,
-      "right": 2
+    "inheritsFrom": {
+      "outgoing": 0
     },
-    "linkResolveDepth": {
-      "outgoing": 2,
-      "incoming": 2
+    "constrainsValueOn": {
+      "outgoing": 0
+    },
+    "constraintsPropertyOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    },
+    "hasRightEntity": {
+      "incoming": 2,
+      "outgoing": 2
     }
   }
 }
@@ -586,19 +634,31 @@ Content-Type: application/json
     ]
   },
   "graphResolveDepths": {
-    "inheritanceResolveDepth": 0,
-    "valueConstrainResolveDepth": 0,
-    "propertyConstrainResolveDepth": 0,
-    "linkConstrainResolveDepth": 0,
-    "linkDestinationResolveDepth": 0,
-    "typeResolveDepth": 0,
-    "entityResolveDepth": {
-      "left": 2,
-      "right": 2
+    "inheritsFrom": {
+      "outgoing": 0
     },
-    "linkResolveDepth": {
-      "outgoing": 2,
-      "incoming": 2
+    "constrainsValueOn": {
+      "outgoing": 0
+    },
+    "constraintsPropertyOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    },
+    "hasRightEntity": {
+      "incoming": 2,
+      "outgoing": 2
     }
   }
 }
@@ -646,19 +706,31 @@ Content-Type: application/json
     ]
   },
   "graphResolveDepths": {
-    "inheritanceResolveDepth": 0,
-    "valueConstrainResolveDepth": 0,
-    "propertyConstrainResolveDepth": 0,
-    "linkConstrainResolveDepth": 0,
-    "linkDestinationResolveDepth": 0,
-    "typeResolveDepth": 0,
-    "entityResolveDepth": {
-      "left": 2,
-      "right": 2
+    "inheritsFrom": {
+      "outgoing": 0
     },
-    "linkResolveDepth": {
-      "outgoing": 2,
-      "incoming": 2
+    "constrainsValueOn": {
+      "outgoing": 0
+    },
+    "constraintsPropertyOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    },
+    "hasRightEntity": {
+      "incoming": 2,
+      "outgoing": 2
     }
   }
 }
@@ -689,19 +761,31 @@ Content-Type: application/json
     ]
   },
   "graphResolveDepths": {
-    "inheritanceResolveDepth": 0,
-    "valueConstrainResolveDepth": 0,
-    "propertyConstrainResolveDepth": 0,
-    "linkConstrainResolveDepth": 0,
-    "linkDestinationResolveDepth": 0,
-    "typeResolveDepth": 0,
-    "entityResolveDepth": {
-      "left": 2,
-      "right": 2
+    "inheritsFrom": {
+      "outgoing": 0
     },
-    "linkResolveDepth": {
-      "outgoing": 2,
-      "incoming": 2
+    "constrainsValueOn": {
+      "outgoing": 0
+    },
+    "constraintsPropertyOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    },
+    "hasRightEntity": {
+      "incoming": 2,
+      "outgoing": 2
     }
   }
 }
