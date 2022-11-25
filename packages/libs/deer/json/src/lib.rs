@@ -142,9 +142,6 @@ macro_rules! try_deserialize {
     };
 }
 
-// note:
-//  one could also do `Option<serde_json::Deserializer>` instead, while this would be more
-//  performant (less allocations) we miss a crucial
 struct Deserializer {
     value: Option<Value>,
 }
