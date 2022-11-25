@@ -19,6 +19,7 @@ import { useAuthenticatedUser } from "../../../components/hooks/useAuthenticated
 import { Button, MenuItem } from "../../ui";
 import { useRouteAccountInfo } from "../../routing";
 import { useLogoutFlow } from "../../../components/hooks/useLogoutFlow";
+import { useOrgs } from "../../../components/hooks/useOrgs";
 
 type WorkspaceSwitcherProps = {};
 
@@ -31,6 +32,7 @@ export const WorkspaceSwitcher: FunctionComponent<
     popupId: "workspace-switcher-menu",
   });
   const { authenticatedUser } = useAuthenticatedUser();
+  const { orgs } = useOrgs();
   const { logout } = useLogoutFlow();
   const { accountId } = useRouteAccountInfo();
 
@@ -55,7 +57,7 @@ export const WorkspaceSwitcher: FunctionComponent<
   }, [accountId, authenticatedUser]);
 
   const workspaceList = useMemo(() => {
-    if (!authenticatedUser) {
+    if (!authenticatedUser || !orgs) {
       return [];
     }
 
@@ -67,15 +69,18 @@ export const WorkspaceSwitcher: FunctionComponent<
         subText: `@${authenticatedUser.shortname ?? "user"}`,
         avatarTitle: authenticatedUser.preferredName ?? "U",
       },
-      ...authenticatedUser.memberOf.map(({ orgAccountId, name, members }) => ({
+      ...authenticatedUser.memberOf.map(({ orgAccountId, name }) => ({
         key: orgAccountId,
         url: `/${orgAccountId}`,
         title: name,
-        subText: `${members.length} members`,
+        subText: `${
+          orgs.find((org) => org.orgAccountId === orgAccountId)?.members
+            .length ?? "Unknown number of "
+        } members`,
         avatarTitle: name,
       })),
     ];
-  }, [authenticatedUser]);
+  }, [authenticatedUser, orgs]);
 
   return (
     <Box>
