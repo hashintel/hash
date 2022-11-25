@@ -40,7 +40,7 @@ import {
 const generateInitialPropertyTypeId = (baseUri: string) =>
   addVersionToBaseUri(baseUri, 1);
 
-const propertyTypeDataTypes = [
+export const propertyTypeDataTypes = [
   {
     title: types.dataType.text.title,
     icon: faText,
@@ -288,7 +288,9 @@ export const PropertyTypeForm = ({
                   onBlur();
                   setAutocompleteFocused(false);
                 }}
-                onChange={(_evt, data) => onChange(data)}
+                onChange={(_evt, data) => {
+                  onChange(data);
+                }}
                 {...props}
                 PaperComponent={PropertyTypeSelectorDropdown}
                 renderTags={(value, getTagProps) =>
