@@ -28,8 +28,10 @@ use crate::{
     provenance::{CreatedById, OwnedById, UpdatedById},
     store::{query::Filter, BaseUriAlreadyExists, BaseUriDoesNotExist, DataTypeStore, StorePool},
     subgraph::{
-        depths::{EntityResolveDepth, GraphResolveDepths, LinkResolveDepth},
-        edges::{OntologyEdgeKind, SharedEdgeKind},
+        edges::{
+            EdgeResolveDepths, GraphResolveDepths, OntologyEdgeKind, OutgoingEdgeResolveDepth,
+            SharedEdgeKind,
+        },
         query::{DataTypeStructuralQuery, StructuralQuery},
         vertices::Vertex,
     },
@@ -63,8 +65,8 @@ use crate::{
             OntologyEdgeKind,
             SharedEdgeKind,
             GraphResolveDepths,
-            EntityResolveDepth,
-            LinkResolveDepth,
+            EdgeResolveDepths,
+            OutgoingEdgeResolveDepth,
             Subgraph,
             Edges
         )

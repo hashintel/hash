@@ -7,7 +7,7 @@ use graph::{
         query::{Filter, FilterExpression, Parameter},
         EntityStore,
     },
-    subgraph::{depths::GraphResolveDepths, query::StructuralQuery},
+    subgraph::{edges::GraphResolveDepths, query::StructuralQuery},
 };
 use rand::{prelude::IteratorRandom, thread_rng};
 use tokio::runtime::Runtime;

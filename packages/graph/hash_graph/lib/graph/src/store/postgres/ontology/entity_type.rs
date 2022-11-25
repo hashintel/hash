@@ -17,8 +17,10 @@ use crate::{
         AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
     subgraph::{
-        depths::GraphResolveDepths,
-        edges::{Edge, OntologyEdgeKind, OntologyOutwardEdges, OutwardEdge},
+        edges::{
+            Edge, GraphResolveDepths, OntologyEdgeKind, OntologyOutwardEdges,
+            OutgoingEdgeResolveDepth, OutwardEdge,
+        },
         query::StructuralQuery,
         vertices::OntologyVertex,
         Subgraph,
@@ -68,15 +70,19 @@ impl<C: AsClient> PostgresStore<C> {
 
             if let Some(OntologyVertex::EntityType(entity_type)) = entity_type {
                 for property_type_ref in entity_type.inner().property_type_references() {
-                    if current_resolve_depth.property_constrain_resolve_depth > 0 {
+                    if current_resolve_depth.constraints_property_on.outgoing > 0 {
                         self.get_property_type_as_dependency(
                             &OntologyTypeEditionId::from(property_type_ref.uri()),
                             dependency_context,
                             subgraph,
                             GraphResolveDepths {
-                                property_constrain_resolve_depth: current_resolve_depth
-                                    .property_constrain_resolve_depth
-                                    - 1,
+                                constraints_property_on: OutgoingEdgeResolveDepth {
+                                    outgoing: current_resolve_depth
+                                        .constraints_property_on
+                                        .outgoing
+                                        - 1,
+                                    ..current_resolve_depth.constraints_property_on
+                                },
                                 ..current_resolve_depth
                             },
                         )
@@ -94,15 +100,16 @@ impl<C: AsClient> PostgresStore<C> {
                 }
 
                 for entity_type_ref in entity_type.inner().inherits_from().all_of() {
-                    if current_resolve_depth.inheritance_resolve_depth > 0 {
+                    if current_resolve_depth.inherits_from.outgoing > 0 {
                         self.get_entity_type_as_dependency(
                             &OntologyTypeEditionId::from(entity_type_ref.uri()),
                             dependency_context,
                             subgraph,
                             GraphResolveDepths {
-                                inheritance_resolve_depth: current_resolve_depth
-                                    .inheritance_resolve_depth
-                                    - 1,
+                                inherits_from: OutgoingEdgeResolveDepth {
+                                    outgoing: current_resolve_depth.inherits_from.outgoing - 1,
+                                    ..current_resolve_depth.inherits_from
+                                },
                                 ..current_resolve_depth
                             },
                         )
@@ -120,15 +127,16 @@ impl<C: AsClient> PostgresStore<C> {
                 }
 
                 for entity_type_ref in entity_type.inner().link_mappings().into_keys() {
-                    if current_resolve_depth.link_constrain_resolve_depth > 0 {
+                    if current_resolve_depth.constrains_link_on.outgoing > 0 {
                         self.get_entity_type_as_dependency(
                             &OntologyTypeEditionId::from(entity_type_ref.uri()),
                             dependency_context,
                             subgraph,
                             GraphResolveDepths {
-                                link_constrain_resolve_depth: current_resolve_depth
-                                    .link_constrain_resolve_depth
-                                    - 1,
+                                constrains_link_on: OutgoingEdgeResolveDepth {
+                                    outgoing: current_resolve_depth.constrains_link_on.outgoing - 1,
+                                    ..current_resolve_depth.constrains_link_on
+                                },
                                 ..current_resolve_depth
                             },
                         )
@@ -153,15 +161,23 @@ impl<C: AsClient> PostgresStore<C> {
                     .flatten()
                     .flatten()
                 {
-                    if current_resolve_depth.link_destination_resolve_depth > 0 {
+                    if current_resolve_depth
+                        .constrains_link_destination_on
+                        .outgoing
+                        > 0
+                    {
                         self.get_entity_type_as_dependency(
                             &OntologyTypeEditionId::from(entity_type_ref.uri()),
                             dependency_context,
                             subgraph,
                             GraphResolveDepths {
-                                link_destination_resolve_depth: current_resolve_depth
-                                    .link_destination_resolve_depth
-                                    - 1,
+                                constrains_link_destination_on: OutgoingEdgeResolveDepth {
+                                    outgoing: current_resolve_depth
+                                        .constrains_link_destination_on
+                                        .outgoing
+                                        - 1,
+                                    ..current_resolve_depth.constrains_link_destination_on
+                                },
                                 ..current_resolve_depth
                             },
                         )

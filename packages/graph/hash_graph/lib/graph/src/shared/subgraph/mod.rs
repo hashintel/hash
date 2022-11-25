@@ -1,11 +1,12 @@
 use std::{collections::HashSet, fmt::Debug};
 
-use depths::GraphResolveDepths;
 use edges::Edges;
 
-use crate::{shared::identifier::GraphElementEditionId, subgraph::vertices::Vertices};
+use crate::{
+    shared::identifier::GraphElementEditionId,
+    subgraph::{edges::GraphResolveDepths, vertices::Vertices},
+};
 
-pub mod depths;
 pub mod edges;
 pub mod query;
 pub mod vertices;

@@ -342,6 +342,25 @@ export interface DataTypeWithMetadata {
 /**
  *
  * @export
+ * @interface EdgeResolveDepths
+ */
+export interface EdgeResolveDepths {
+  /**
+   *
+   * @type {number}
+   * @memberof EdgeResolveDepths
+   */
+  incoming: number;
+  /**
+   *
+   * @type {number}
+   * @memberof EdgeResolveDepths
+   */
+  outgoing: number;
+}
+/**
+ *
+ * @export
  * @interface Edges
  */
 export interface Edges {
@@ -494,25 +513,6 @@ export const EntityQueryToken = {
 export type EntityQueryToken =
   typeof EntityQueryToken[keyof typeof EntityQueryToken];
 
-/**
- *
- * @export
- * @interface EntityResolveDepth
- */
-export interface EntityResolveDepth {
-  /**
-   *
-   * @type {number}
-   * @memberof EntityResolveDepth
-   */
-  left: number;
-  /**
-   *
-   * @type {number}
-   * @memberof EntityResolveDepth
-   */
-  right: number;
-}
 /**
  * Structural queries are the main entry point to read data from the Graph.
  * @export
@@ -767,59 +767,59 @@ export interface GraphElementEditionIdOneOf1 {
 export type GraphElementId = string;
 
 /**
- * The distance in the [`Subgraph`] to explore when searching from a root in a breadth-first search
+ * TODO: <https://app.asana.com/0/0/1203438518991188/f>
  * @export
  * @interface GraphResolveDepths
  */
 export interface GraphResolveDepths {
   /**
    *
-   * @type {EntityResolveDepth}
+   * @type {OutgoingEdgeResolveDepth}
    * @memberof GraphResolveDepths
    */
-  entityResolveDepth: EntityResolveDepth;
+  constrainsLinkDestinationOn: OutgoingEdgeResolveDepth;
   /**
    *
-   * @type {number}
+   * @type {OutgoingEdgeResolveDepth}
    * @memberof GraphResolveDepths
    */
-  inheritanceResolveDepth: number;
+  constrainsLinkOn: OutgoingEdgeResolveDepth;
   /**
    *
-   * @type {number}
+   * @type {OutgoingEdgeResolveDepth}
    * @memberof GraphResolveDepths
    */
-  linkConstrainResolveDepth: number;
+  constrainsValueOn: OutgoingEdgeResolveDepth;
   /**
    *
-   * @type {number}
+   * @type {OutgoingEdgeResolveDepth}
    * @memberof GraphResolveDepths
    */
-  linkDestinationResolveDepth: number;
+  constraintsPropertyOn: OutgoingEdgeResolveDepth;
   /**
    *
-   * @type {LinkResolveDepth}
+   * @type {EdgeResolveDepths}
    * @memberof GraphResolveDepths
    */
-  linkResolveDepth: LinkResolveDepth;
+  hasLeftEntity: EdgeResolveDepths;
   /**
    *
-   * @type {number}
+   * @type {EdgeResolveDepths}
    * @memberof GraphResolveDepths
    */
-  propertyConstrainResolveDepth: number;
+  hasRightEntity: EdgeResolveDepths;
   /**
    *
-   * @type {number}
+   * @type {OutgoingEdgeResolveDepth}
    * @memberof GraphResolveDepths
    */
-  typeResolveDepth: number;
+  inheritsFrom: OutgoingEdgeResolveDepth;
   /**
    *
-   * @type {number}
+   * @type {OutgoingEdgeResolveDepth}
    * @memberof GraphResolveDepths
    */
-  valueConstrainResolveDepth: number;
+  isOfType: OutgoingEdgeResolveDepth;
 }
 /**
  *
@@ -1046,25 +1046,6 @@ export interface LinkEntityMetadataAllOf {
    * @memberof LinkEntityMetadataAllOf
    */
   rightEntityId: string;
-}
-/**
- *
- * @export
- * @interface LinkResolveDepth
- */
-export interface LinkResolveDepth {
-  /**
-   *
-   * @type {number}
-   * @memberof LinkResolveDepth
-   */
-  incoming: number;
-  /**
-   *
-   * @type {number}
-   * @memberof LinkResolveDepth
-   */
-  outgoing: number;
 }
 /**
  *
@@ -1393,6 +1374,19 @@ export interface OntologyVertexOneOfInner {
  */
 export interface OntologyVertices {
   [key: string]: { [key: string]: OntologyVertex };
+}
+/**
+ *
+ * @export
+ * @interface OutgoingEdgeResolveDepth
+ */
+export interface OutgoingEdgeResolveDepth {
+  /**
+   *
+   * @type {number}
+   * @memberof OutgoingEdgeResolveDepth
+   */
+  outgoing: number;
 }
 /**
  *

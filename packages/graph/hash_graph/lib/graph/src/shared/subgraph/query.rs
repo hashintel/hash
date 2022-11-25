@@ -7,7 +7,7 @@ use utoipa::ToSchema;
 use crate::{
     knowledge::Entity,
     store::query::{Filter, QueryRecord},
-    subgraph::depths::GraphResolveDepths,
+    subgraph::edges::GraphResolveDepths,
 };
 
 /// Structural queries are the main entry point to read data from the Graph.

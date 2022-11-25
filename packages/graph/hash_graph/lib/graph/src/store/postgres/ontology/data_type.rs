@@ -15,7 +15,7 @@ use crate::{
         AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
     subgraph::{
-        depths::GraphResolveDepths, query::StructuralQuery, vertices::OntologyVertex, Subgraph,
+        edges::GraphResolveDepths, query::StructuralQuery, vertices::OntologyVertex, Subgraph,
     },
 };
 

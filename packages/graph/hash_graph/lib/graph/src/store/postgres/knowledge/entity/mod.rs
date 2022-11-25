@@ -27,9 +27,9 @@ use crate::{
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
     subgraph::{
-        depths::{EntityResolveDepth, GraphResolveDepths, LinkResolveDepth},
         edges::{
-            Edge, KnowledgeGraphEdgeKind, KnowledgeGraphOutwardEdges, OutwardEdge, SharedEdgeKind,
+            Edge, EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind,
+            KnowledgeGraphOutwardEdges, OutgoingEdgeResolveDepth, OutwardEdge, SharedEdgeKind,
         },
         query::StructuralQuery,
         vertices::KnowledgeGraphVertex,
@@ -79,14 +79,17 @@ impl<C: AsClient> PostgresStore<C> {
                     OntologyTypeEditionId::from(entity.metadata().entity_type_id());
                 let entity_edition_id = entity.metadata().edition_id();
 
-                if current_resolve_depth.type_resolve_depth > 0 {
+                if current_resolve_depth.is_of_type.outgoing > 0 {
                     self.get_entity_type_as_dependency(
                         &entity_type_id,
                         dependency_context,
                         subgraph,
                         GraphResolveDepths {
-                            type_resolve_depth: current_resolve_depth.type_resolve_depth - 1,
-                            ..current_resolve_depth
+                            is_of_type: OutgoingEdgeResolveDepth {
+                                outgoing: current_resolve_depth.is_of_type.outgoing - 1,
+                                ..current_resolve_depth.is_of_type
+                            },
+                            ..Default::default()
                         },
                     )
                     .await?;
@@ -148,15 +151,15 @@ impl<C: AsClient> PostgresStore<C> {
                         }),
                     });
 
-                    if current_resolve_depth.link_resolve_depth.outgoing > 0 {
+                    if current_resolve_depth.has_left_entity.incoming > 0 {
                         self.get_entity_as_dependency(
                             outgoing_link_entity.metadata().edition_id(),
                             dependency_context,
                             subgraph,
                             GraphResolveDepths {
-                                link_resolve_depth: LinkResolveDepth {
-                                    outgoing: current_resolve_depth.link_resolve_depth.outgoing - 1,
-                                    incoming: current_resolve_depth.link_resolve_depth.incoming,
+                                has_left_entity: EdgeResolveDepths {
+                                    incoming: current_resolve_depth.has_left_entity.incoming - 1,
+                                    ..current_resolve_depth.has_left_entity
                                 },
                                 ..current_resolve_depth
                             },
@@ -212,15 +215,15 @@ impl<C: AsClient> PostgresStore<C> {
                         }),
                     });
 
-                    if current_resolve_depth.link_resolve_depth.incoming > 0 {
+                    if current_resolve_depth.has_right_entity.incoming > 0 {
                         self.get_entity_as_dependency(
                             incoming_link_entity.metadata().edition_id(),
                             dependency_context,
                             subgraph,
                             GraphResolveDepths {
-                                link_resolve_depth: LinkResolveDepth {
-                                    outgoing: current_resolve_depth.link_resolve_depth.outgoing,
-                                    incoming: current_resolve_depth.link_resolve_depth.incoming - 1,
+                                has_right_entity: EdgeResolveDepths {
+                                    incoming: current_resolve_depth.has_right_entity.incoming - 1,
+                                    ..current_resolve_depth.has_right_entity
                                 },
                                 ..current_resolve_depth
                             },
@@ -273,15 +276,15 @@ impl<C: AsClient> PostgresStore<C> {
                         }),
                     });
 
-                    if current_resolve_depth.entity_resolve_depth.left > 0 {
+                    if current_resolve_depth.has_left_entity.outgoing > 0 {
                         self.get_entity_as_dependency(
                             left_entity.metadata().edition_id(),
                             dependency_context,
                             subgraph,
                             GraphResolveDepths {
-                                entity_resolve_depth: EntityResolveDepth {
-                                    left: current_resolve_depth.entity_resolve_depth.left - 1,
-                                    right: current_resolve_depth.entity_resolve_depth.right,
+                                has_left_entity: EdgeResolveDepths {
+                                    outgoing: current_resolve_depth.has_left_entity.outgoing - 1,
+                                    ..current_resolve_depth.has_left_entity
                                 },
                                 ..current_resolve_depth
                             },
@@ -334,15 +337,15 @@ impl<C: AsClient> PostgresStore<C> {
                         }),
                     });
 
-                    if current_resolve_depth.entity_resolve_depth.right > 0 {
+                    if current_resolve_depth.has_right_entity.outgoing > 0 {
                         self.get_entity_as_dependency(
                             right_entity.metadata().edition_id(),
                             dependency_context,
                             subgraph,
                             GraphResolveDepths {
-                                entity_resolve_depth: EntityResolveDepth {
-                                    left: current_resolve_depth.entity_resolve_depth.left,
-                                    right: current_resolve_depth.entity_resolve_depth.right - 1,
+                                has_right_entity: EdgeResolveDepths {
+                                    outgoing: current_resolve_depth.has_right_entity.outgoing - 1,
+                                    ..current_resolve_depth.has_right_entity
                                 },
                                 ..current_resolve_depth
                             },

@@ -31,7 +31,7 @@ use graph::{
         QueryError, StorePool, UpdateError,
     },
     subgraph::{
-        depths::GraphResolveDepths,
+        edges::GraphResolveDepths,
         query::StructuralQuery,
         vertices::{KnowledgeGraphVertex, OntologyVertex, Vertex},
     },

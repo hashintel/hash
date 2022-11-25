@@ -42,7 +42,7 @@ use crate::{
         AccountStore, BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError,
         UpdateError,
     },
-    subgraph::depths::GraphResolveDepths,
+    subgraph::edges::GraphResolveDepths,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

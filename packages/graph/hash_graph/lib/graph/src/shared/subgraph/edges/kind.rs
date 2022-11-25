@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, ToSchema)]
@@ -53,4 +53,112 @@ pub enum SharedEdgeKind {
     /// [`Entity`]: crate::knowledge::Entity
     /// [`EntityType`]: type_system::EntityType
     IsOfType,
+}
+
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[serde(deny_unknown_fields)]
+pub struct EdgeResolveDepths {
+    pub incoming: u8,
+    pub outgoing: u8,
+}
+
+impl EdgeResolveDepths {
+    #[expect(
+        clippy::useless_let_if_seq,
+        reason = "Using a mutable variable is more readable"
+    )]
+    pub fn update(&mut self, other: Self) -> bool {
+        let mut changed = false;
+        if other.incoming > self.incoming {
+            self.incoming = other.incoming;
+            changed = true;
+        }
+        if other.outgoing > self.outgoing {
+            self.outgoing = other.outgoing;
+            changed = true;
+        }
+        changed
+    }
+}
+
+// TODO: Replace with `EdgeResolveDepths`
+//   see https://app.asana.com/0/1201095311341924/1203399511264512/f
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[serde(deny_unknown_fields)]
+pub struct OutgoingEdgeResolveDepth {
+    pub outgoing: u8,
+    #[serde(default, skip)]
+    #[doc(hidden)]
+    /// This is not used yet, but will be used in the future to support incoming edges.
+    pub incoming: u8,
+}
+
+impl OutgoingEdgeResolveDepth {
+    #[expect(
+        clippy::useless_let_if_seq,
+        reason = "Be consistent with `EdgeResolveDepths`"
+    )]
+    pub fn update(&mut self, other: Self) -> bool {
+        let mut changed = false;
+        if other.outgoing > self.outgoing {
+            self.outgoing = other.outgoing;
+            changed = true;
+        }
+        changed
+    }
+}
+
+/// TODO: <https://app.asana.com/0/0/1203438518991188/f>
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct GraphResolveDepths {
+    pub inherits_from: OutgoingEdgeResolveDepth,
+    pub constrains_value_on: OutgoingEdgeResolveDepth,
+    pub constraints_property_on: OutgoingEdgeResolveDepth,
+    pub constrains_link_on: OutgoingEdgeResolveDepth,
+    pub constrains_link_destination_on: OutgoingEdgeResolveDepth,
+    pub is_of_type: OutgoingEdgeResolveDepth,
+    pub has_left_entity: EdgeResolveDepths,
+    pub has_right_entity: EdgeResolveDepths,
+}
+
+impl GraphResolveDepths {
+    #[expect(
+        clippy::useless_let_if_seq,
+        reason = "Using a mutable variable is more readable"
+    )]
+    pub fn update(&mut self, other: Self) -> bool {
+        let mut changed = false;
+        if self.inherits_from.update(other.inherits_from) {
+            changed = true;
+        }
+        if self.constrains_value_on.update(other.constrains_value_on) {
+            changed = true;
+        }
+        if self
+            .constraints_property_on
+            .update(other.constraints_property_on)
+        {
+            changed = true;
+        }
+        if self.constrains_link_on.update(other.constrains_link_on) {
+            changed = true;
+        }
+        if self
+            .constrains_link_destination_on
+            .update(other.constrains_link_destination_on)
+        {
+            changed = true;
+        }
+        if self.is_of_type.update(other.is_of_type) {
+            changed = true;
+        }
+        if self.has_left_entity.update(other.has_left_entity) {
+            changed = true;
+        }
+        if self.has_right_entity.update(other.has_right_entity) {
+            changed = true;
+        }
+        changed
+    }
 }

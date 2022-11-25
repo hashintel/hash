@@ -10,7 +10,7 @@ use graph::{
         query::{Filter, FilterExpression, Parameter},
         AccountStore, AsClient, EntityStore, PostgresStore,
     },
-    subgraph::{depths::GraphResolveDepths, query::StructuralQuery},
+    subgraph::{edges::GraphResolveDepths, query::StructuralQuery},
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use rand::{prelude::IteratorRandom, thread_rng};
