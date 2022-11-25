@@ -7,12 +7,14 @@ export const getEntityTypeQuery = gql`
     $constrainsValuesOn: Int!
     $constrainsPropertiesOn: Int!
     $constrainsLinksOn: Int!
+    $constrainsLinkDestinationsOn: Int!
   ) {
     getEntityType(
       entityTypeId: $entityTypeId
       constrainsValuesOn: $constrainsValuesOn
       constrainsPropertiesOn: $constrainsPropertiesOn
       constrainsLinksOn: $constrainsLinksOn
+      constrainsLinkDestinationsOn: $constrainsLinkDestinationsOn
     ) {
       ...SubgraphFields
     }
@@ -25,11 +27,13 @@ export const getAllLatestEntityTypesQuery = gql`
     $constrainsValuesOn: Int!
     $constrainsPropertiesOn: Int!
     $constrainsLinksOn: Int!
+    $constrainsLinkDestinationsOn: Int!
   ) {
     getAllLatestEntityTypes(
       constrainsValuesOn: $constrainsValuesOn
       constrainsPropertiesOn: $constrainsPropertiesOn
       constrainsLinksOn: $constrainsLinksOn
+      constrainsLinkDestinationsOn: $constrainsLinkDestinationsOn
     ) {
       ...SubgraphFields
     }
@@ -43,12 +47,14 @@ export const getEntityTypeRootedSubgraphQuery = gql`
     $constrainsValuesOn: Int!
     $constrainsPropertiesOn: Int!
     $constrainsLinksOn: Int!
+    $constrainsLinkDestinationsOn: Int!
   ) {
     getEntityType(
       entityTypeId: $entityTypeId
       constrainsValuesOn: $constrainsValuesOn
       constrainsPropertiesOn: $constrainsPropertiesOn
       constrainsLinksOn: $constrainsLinksOn
+      constrainsLinkDestinationsOn: $constrainsLinkDestinationsOn
     ) {
       ...SubgraphFields
     }

@@ -12,6 +12,7 @@ export const entityTypeTypedef = gql`
       constrainsValuesOn: Int!
       constrainsPropertiesOn: Int!
       constrainsLinksOn: Int!
+      constrainsLinkDestinationsOn: Int!
     ): Subgraph!
 
     """
@@ -22,6 +23,7 @@ export const entityTypeTypedef = gql`
       constrainsValuesOn: Int!
       constrainsPropertiesOn: Int!
       constrainsLinksOn: Int!
+      constrainsLinkDestinationsOn: Int!
     ): Subgraph!
   }
 
