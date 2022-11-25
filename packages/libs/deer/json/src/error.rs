@@ -4,10 +4,11 @@ use core::{
 };
 
 use deer::{
-    error::{Error, ErrorProperties, Id, Location, Namespace},
+    error::{Error, ErrorProperties, Id, Location, Namespace, ReceivedValue},
     id,
 };
-use error_stack::Context;
+
+use crate::macros::impl_error;
 
 const NAMESPACE: Namespace = Namespace::new("deer-json");
 
@@ -20,7 +21,7 @@ impl Display for BytesUnsupportedError {
     }
 }
 
-impl Context for BytesUnsupportedError {}
+impl_error!(BytesUnsupportedError);
 
 impl Error for BytesUnsupportedError {
     type Properties = (Location,);
@@ -39,7 +40,7 @@ impl Error for BytesUnsupportedError {
 
 static INIT: AtomicBool = AtomicBool::new(false);
 
-// TODO: once
+// TODO: once #1396 is merged call `register!()`
 pub(crate) fn init() {
     // Ordering does not matter here, because we it does not matter if we execute this once or
     // twice.
@@ -51,4 +52,37 @@ pub(crate) fn init() {
     }
 
     todo!()
+}
+
+#[derive(Debug)]
+pub(crate) struct OverflowError;
+
+impl Display for OverflowError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        f.write_str(
+            "received a number that was either too large or too small and could not be processed",
+        )
+    }
+}
+
+impl_error!(OverflowError);
+
+impl Error for OverflowError {
+    type Properties = (Location, ReceivedValue);
+
+    const ID: Id = id!["number", "overflow"];
+    const NAMESPACE: Namespace = NAMESPACE;
+
+    fn message<'a>(
+        &self,
+        fmt: &mut Formatter,
+        _: &<Self::Properties as ErrorProperties>::Value<'a>,
+    ) -> core::fmt::Result {
+        Display::fmt(&self, fmt)?;
+
+        #[cfg(debug_assertions)]
+        fmt.write_str(", try enabling the `arbitrary-precision` feature")?;
+
+        Ok(())
+    }
 }

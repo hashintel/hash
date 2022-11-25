@@ -15,7 +15,7 @@
 #![allow(clippy::module_name_repetitions)]
 #![allow(clippy::redundant_pub_crate)]
 #![allow(clippy::missing_errors_doc)]
-#![forbid(unsafe_code)]
+#![deny(unsafe_code)]
 
 use alloc::{string::String, vec::Vec};
 

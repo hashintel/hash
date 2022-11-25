@@ -12,4 +12,6 @@ serde_json = { version = "1.0.89", default_features = false, features = ['alloc'
 deer = { path = ".." }
 
 [features]
+default = ['std']
 std = ["serde_json/std"]
+arbitrary-precision = ['deer/arbitrary-precision', 'serde_json/arbitrary_precision']
