@@ -43,9 +43,10 @@ export const useBlockProtocolGetEntityType = (): {
         query: getEntityTypeQuery,
         variables: {
           entityTypeId,
-          constrainsValuesOn: 255,
-          constrainsPropertiesOn: 255,
-          constrainsLinksOn: 1,
+          constrainsValuesOn: { outgoing: 255 },
+          constrainsPropertiesOn: { outgoing: 255 },
+          constrainsLinksOn: { outgoing: 1 },
+          constrainsLinkDestinationsOn: { outgoing: 1 },
         },
       });
 
