@@ -14,6 +14,8 @@ import {
   linkEntityTypeUri,
 } from "@hashintel/hash-api/src/model/util";
 import { generateTypeId } from "@hashintel/hash-shared/types";
+import { ensureSystemEntitiesExists } from "@hashintel/hash-api/src/graph/system-entities";
+import { ensureSystemTypesExist } from "@hashintel/hash-api/src/graph/system-types";
 import { createTestUser } from "../../util";
 
 jest.setTimeout(60000);
@@ -63,6 +65,9 @@ describe("Link entity model class", () => {
   };
 
   beforeAll(async () => {
+    await ensureSystemTypesExist({ graphApi, logger });
+    await ensureSystemEntitiesExists({ graphApi, logger });
+
     testUserModel = await createTestUser(graphApi, "linktest", logger);
 
     namespace = testUserModel.getShortname()!;
