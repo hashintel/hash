@@ -4,7 +4,7 @@ import { subgraphFieldsFragment } from "../subgraph";
 export const getPropertyTypeQuery = gql`
   query getPropertyType(
     $propertyTypeId: VersionedUri!
-    $constrainsValuesOn: Int!
+    $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
     $constrainsPropertiesOn: Int!
   ) {
     getPropertyType(
@@ -20,7 +20,7 @@ export const getPropertyTypeQuery = gql`
 
 export const getAllLatestPropertyTypesQuery = gql`
   query getAllLatestPropertyTypes(
-    $constrainsValuesOn: Int!
+    $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
     $constrainsPropertiesOn: Int!
   ) {
     getAllLatestPropertyTypes(

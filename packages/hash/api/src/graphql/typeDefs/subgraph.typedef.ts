@@ -29,7 +29,7 @@ export const subgraphTypedef = gql`
   # TODO: Maybe we want an exploration strategy instead of this? So you have parameters for a depth first search vs parameters for a breadth first, etc.
   type ResolveDepths {
     inheritsFrom: Int!
-    constrainsValuesOn: Int!
+    constrainsValuesOn: OutgoingEdgeResolveDepth!
     constrainsPropertiesOn: Int!
     constrainsLinksOn: Int!
     constrainsLinkDestinationsOn: Int!

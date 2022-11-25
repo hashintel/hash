@@ -9,7 +9,7 @@ export const propertyTypeTypedef = gql`
     Get a subgraph rooted at all property types at their latest version.
     """
     getAllLatestPropertyTypes(
-      constrainsValuesOn: Int!
+      constrainsValuesOn: OutgoingEdgeResolveDepthInput!
       constrainsPropertiesOn: Int!
     ): Subgraph!
 
@@ -18,7 +18,7 @@ export const propertyTypeTypedef = gql`
     """
     getPropertyType(
       propertyTypeId: VersionedUri!
-      constrainsValuesOn: Int!
+      constrainsValuesOn: OutgoingEdgeResolveDepthInput!
       constrainsPropertiesOn: Int!
     ): Subgraph!
   }
