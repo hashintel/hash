@@ -93,10 +93,14 @@ if a query on `Entity1` is made with the following depths:
     // ...
   },
   graphResolveDepths: {
-    constrainsValuesOn: 1,
-    constrainsPropertiesOn: 3,
-    constrainsLinksOn: 1,
-    hasLeftEntity: 2,
+    inheritsFrom: { outgoing: 0 },
+    constrainsValuesOn: { outgoing: 1 },
+    constrainsPropertiesOn: { outgoing: 3 },
+    constrainsLinksOn: { outgoing: 1 },
+    constrainsLinkDestinationsOn: { outgoing: 0 },
+    isOfType: { outgoing: 0 },
+    hasLeftEntity: { incoming: 1, outgoing: 0 },
+    hasRightEntity: { incoming: 0, outgoing: 1 },
   },
 }
 ```
