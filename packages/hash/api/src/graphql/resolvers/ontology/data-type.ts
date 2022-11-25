@@ -23,10 +23,14 @@ export const getAllLatestDataTypes: ResolverFn<
         equal: [{ path: ["version"] }, { parameter: "latest" }],
       },
       graphResolveDepths: {
+        inheritsFrom: { outgoing: 0 },
         constrainsValuesOn,
-        constrainsPropertiesOn: 0,
-        constrainsLinksOn: 0,
-        hasLeftEntity: 0,
+        constrainsPropertiesOn: { outgoing: 0 },
+        constrainsLinksOn: { outgoing: 0 },
+        constrainsLinkDestinationsOn: { outgoing: 0 },
+        isOfType: { outgoing: 0 },
+        hasLeftEntity: { incoming: 0, outgoing: 0 },
+        hasRightEntity: { incoming: 0, outgoing: 0 },
       },
     })
     .catch((err: AxiosError) => {
@@ -54,10 +58,14 @@ export const getDataType: ResolverFn<
       },
       /** @todo - make these configurable once non-primitive data types are a thing https://app.asana.com/0/1200211978612931/1202464168422955/f */
       graphResolveDepths: {
+        inheritsFrom: { outgoing: 0 },
         constrainsValuesOn,
-        constrainsPropertiesOn: 0,
-        constrainsLinksOn: 0,
-        hasLeftEntity: 0,
+        constrainsPropertiesOn: { outgoing: 0 },
+        constrainsLinksOn: { outgoing: 0 },
+        constrainsLinkDestinationsOn: { outgoing: 0 },
+        isOfType: { outgoing: 0 },
+        hasLeftEntity: { incoming: 0, outgoing: 0 },
+        hasRightEntity: { incoming: 0, outgoing: 0 },
       },
     })
     .catch((err: AxiosError) => {
