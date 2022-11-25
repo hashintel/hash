@@ -53,6 +53,7 @@ export const useOrgs = (): {
       );
   }, [subgraph]);
 
+  console.log({ orgs });
   return {
     loading,
     orgs,

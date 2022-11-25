@@ -11,7 +11,7 @@ import {
   getRightEntityForLinkEntityAtMoment,
 } from "@hashintel/hash-subgraph/src/stdlib/edge/link";
 import { Session } from "@ory/client";
-import { constructOrg, Org } from "./org";
+import { constructMinimalOrg, MinimalOrg } from "./org";
 
 export type MinimalUser = {
   kind: "user";
@@ -57,7 +57,7 @@ export const constructMinimalUser = (params: {
 };
 
 export type User = MinimalUser & {
-  memberOf: (Org & { responsibility: string })[];
+  memberOf: (MinimalOrg & { responsibility: string })[];
 };
 
 export const constructUser = (params: {
@@ -93,7 +93,7 @@ export const constructUser = (params: {
       );
 
       return {
-        ...constructOrg({
+        ...constructMinimalOrg({
           subgraph,
           orgEntityEditionId: org.metadata.editionId,
         }),

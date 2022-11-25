@@ -11,6 +11,7 @@ import {
   getLeftEntityForLinkEntityAtMoment,
 } from "@hashintel/hash-subgraph/src/stdlib/edge/link";
 import {
+  constructMinimalUser,
   constructUser,
   // constructMinimalUser,
   MinimalUser,
@@ -95,7 +96,7 @@ export const constructOrg = (params: {
       );
 
       return {
-        ...constructUser({
+        ...constructMinimalUser({
           subgraph,
           userEntityEditionId: user.metadata.editionId,
         }),
@@ -104,5 +105,3 @@ export const constructOrg = (params: {
     }),
   };
 };
-
-export type OrgWithResponsibility = Org & { responsibility: string };
