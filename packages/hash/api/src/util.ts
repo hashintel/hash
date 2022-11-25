@@ -1,6 +1,4 @@
-import { ApolloError } from "apollo-server-express";
 import { Uuid4 } from "id128";
-import { EntityTypeChoice } from "./graphql/apiTypes.gen";
 
 export {
   DefaultMap,
@@ -170,28 +168,4 @@ export const linkedTreeFlatten = <
   }
 
   return result;
-};
-
-export const validateEntityTypeChoice = (choice: EntityTypeChoice) => {
-  if (
-    /** @todo check that these are uuids */
-    exactlyOne(
-      choice.componentId,
-      choice.entityTypeId,
-      choice.entityTypeVersionId,
-      choice.systemTypeName,
-    )
-  ) {
-    return {
-      componentId: choice.componentId ?? undefined,
-      entityTypeId: choice.entityTypeId ?? undefined,
-      entityTypeVersionId: choice.entityTypeVersionId ?? undefined,
-      systemTypeName: choice.systemTypeName ?? undefined,
-    };
-  } else {
-    throw new ApolloError(
-      `Given filter argument is invalid.`,
-      "INVALID_ENTITY_TYPE_FILTER",
-    );
-  }
 };

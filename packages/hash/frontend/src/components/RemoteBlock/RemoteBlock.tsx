@@ -29,6 +29,9 @@ type RemoteBlockProps = {
     | "updateEntityType"
     | "getEntityType"
     | "deleteEntityType"
+    | "createLinkedAggregation"
+    | "updateLinkedAggregation"
+    | "deleteLinkedAggregation"
   >;
   graphProperties: Required<BlockGraphProperties<UnknownRecord>["graph"]>;
   blockMetadata: BlockMetadata;

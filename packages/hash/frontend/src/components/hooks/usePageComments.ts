@@ -1,15 +1,11 @@
 import { useQuery } from "@apollo/client";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
+import { EntityId, EntityMetadata, Entity } from "@hashintel/hash-subgraph";
 import {
-  EntityId,
-  EntityMetadata,
-  EntityWithMetadata,
-} from "@hashintel/hash-subgraph";
-import {
-  GetPersistedPageCommentsQuery,
-  GetPersistedPageCommentsQueryVariables,
+  GetPageCommentsQuery,
+  GetPageCommentsQueryVariables,
 } from "../../graphql/apiTypes.gen";
-import { getPersistedPageComments } from "../../graphql/queries/page.queries";
+import { getPageComments } from "../../graphql/queries/page.queries";
 
 export type PageThread = PageComment & {
   replies: PageComment[];
@@ -18,8 +14,8 @@ export type PageThread = PageComment & {
 export type PageComment = {
   hasText: Array<TextToken>;
   textUpdatedAt: string;
-  author: EntityWithMetadata;
-  parent: EntityWithMetadata;
+  author: Entity;
+  parent: Entity;
   metadata: EntityMetadata;
 };
 
@@ -32,11 +28,11 @@ const emptyComments: PageThread[] = [];
 
 export const usePageComments = (pageEntityId: EntityId): PageCommentsInfo => {
   const { data, loading } = useQuery<
-    GetPersistedPageCommentsQuery,
-    GetPersistedPageCommentsQueryVariables
-  >(getPersistedPageComments, {
+    GetPageCommentsQuery,
+    GetPageCommentsQueryVariables
+  >(getPageComments, {
     variables: { entityId: pageEntityId },
   });
 
-  return { data: data?.persistedPageComments ?? emptyComments, loading };
+  return { data: data?.pageComments ?? emptyComments, loading };
 };

@@ -7,11 +7,7 @@ import {
 import { SizedGridColumn } from "@glideapps/glide-data-grid";
 import { types } from "@hashintel/hash-shared/types";
 import { useMemo } from "react";
-import {
-  EntityWithMetadata,
-  Subgraph,
-  SubgraphRootTypes,
-} from "@hashintel/hash-subgraph";
+import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import { getEntityByEditionId } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import { generateEntityLabel } from "../../../../lib/entities";
 import { mustBeVersionedUri } from "./util";
@@ -24,7 +20,7 @@ export interface TypeEntitiesRow {
 }
 
 export const useEntitiesTable = (
-  entities?: EntityWithMetadata[],
+  entities?: Entity[],
   entityTypes?: EntityType[],
   propertyTypes?: PropertyType[],
   subgraph?: Subgraph<SubgraphRootTypes["entity"]>,
