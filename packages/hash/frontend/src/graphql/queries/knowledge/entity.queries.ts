@@ -20,7 +20,7 @@ export const getEntityQuery = gql`
     $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
     $constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
     $isOfType: OutgoingEdgeResolveDepthInput!
-    $hasLeftEntity: Int!
+    $hasLeftEntity: EdgeResolveDepthsInput!
     $hasRightEntity: Int!
   ) {
     getEntity(
@@ -47,7 +47,7 @@ export const getAllLatestEntitiesQuery = gql`
     $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
     $constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
     $isOfType: OutgoingEdgeResolveDepthInput!
-    $hasLeftEntity: Int!
+    $hasLeftEntity: EdgeResolveDepthsInput!
     $hasRightEntity: Int!
   ) {
     getAllLatestEntities(

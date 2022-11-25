@@ -28,7 +28,7 @@ export const orgTypedef = gql`
       """
       The depth of entities that are returned in the response subgraph.
       """
-      hasLeftEntity: Int! = 0
+      hasLeftEntity: EdgeResolveDepthsInput! = 0
     ): Subgraph!
   }
 `;

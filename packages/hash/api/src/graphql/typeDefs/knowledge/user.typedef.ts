@@ -2,7 +2,7 @@ import { gql } from "apollo-server-express";
 
 export const userTypedef = gql`
   extend type Query {
-    me(hasLeftEntity: Int! = 0): Subgraph!
+    me(hasLeftEntity: EdgeResolveDepthsInput! = 0): Subgraph!
     """
     Determines whether a provided shortname is already taken
     """
@@ -37,7 +37,7 @@ export const userTypedef = gql`
       """
       The depth of entities that are returned in the response subgraph.
       """
-      hasLeftEntity: Int! = 0
+      hasLeftEntity: EdgeResolveDepthsInput! = 0
     ): Subgraph!
   }
 `;
