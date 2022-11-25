@@ -8,7 +8,6 @@ import {
   VersionedUri,
 } from "@hashintel/hash-subgraph";
 
-import { JsonObject } from "@blockprotocol/core";
 import { generateDraftIdForEntity } from "./entityStorePlugin";
 import { BlockEntity } from "./entity";
 import { types } from "./types";
