@@ -98,7 +98,7 @@ impl<C: AsClient> PostgresStore<C> {
                                 outgoing: current_resolve_depth.is_of_type.outgoing - 1,
                                 ..current_resolve_depth.is_of_type
                             },
-                            ..Default::default()
+                            ..current_resolve_depth
                         },
                     )
                     .await?;
