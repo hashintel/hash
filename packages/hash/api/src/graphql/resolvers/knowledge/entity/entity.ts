@@ -1,11 +1,7 @@
 import { Filter } from "@hashintel/hash-graph-client";
 import { AxiosError } from "axios";
 import { ApolloError, ForbiddenError } from "apollo-server-express";
-import {
-  EntityWithMetadata,
-  splitEntityId,
-  Subgraph,
-} from "@hashintel/hash-subgraph";
+import { Entity, splitEntityId, Subgraph } from "@hashintel/hash-subgraph";
 import { EntityModel } from "../../../../model";
 import {
   QueryGetEntityArgs,
@@ -21,7 +17,7 @@ import { beforeUpdateEntityHooks } from "./before-update-entity-hooks";
 /** @todo - rename these and remove "withMetadata" - https://app.asana.com/0/0/1203157172269854/f */
 
 export const createEntity: ResolverFn<
-  Promise<EntityWithMetadata>,
+  Promise<Entity>,
   {},
   LoggedInGraphQLContext,
   MutationCreateEntityArgs
@@ -147,7 +143,7 @@ export const getEntity: ResolverFn<
 };
 
 export const updateEntity: ResolverFn<
-  Promise<EntityWithMetadata>,
+  Promise<Entity>,
   {},
   LoggedInGraphQLContext,
   MutationUpdateEntityArgs

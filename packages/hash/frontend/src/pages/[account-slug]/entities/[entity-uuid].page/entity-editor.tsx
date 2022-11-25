@@ -1,8 +1,4 @@
-import {
-  EntityWithMetadata,
-  Subgraph,
-  SubgraphRootTypes,
-} from "@hashintel/hash-subgraph";
+import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import { EntityEditorContextProvider } from "./entity-editor/entity-editor-context";
 import { LinksSection } from "./entity-editor/links-section";
 import { PeersSection } from "./entity-editor/peers-section";
@@ -11,7 +7,7 @@ import { TypesSection } from "./entity-editor/types-section";
 
 export interface EntityEditorProps {
   entitySubgraph: Subgraph<SubgraphRootTypes["entity"]> | undefined;
-  setEntity: (entity: EntityWithMetadata | undefined) => void;
+  setEntity: (entity: Entity | undefined) => void;
 }
 
 export const EntityEditor = ({

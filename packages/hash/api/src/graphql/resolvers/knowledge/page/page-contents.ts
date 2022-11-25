@@ -1,12 +1,12 @@
 import { ApolloError } from "apollo-server-errors";
-import { EntityWithMetadata } from "@hashintel/hash-subgraph";
+import { Entity } from "@hashintel/hash-subgraph";
 import { PageModel } from "../../../../model";
 import { ResolverFn } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import { mapBlockModelToGQL, UnresolvedPageGQL } from "../model-mapping";
 
 export const pageContents: ResolverFn<
-  Promise<EntityWithMetadata[]>,
+  Promise<Entity[]>,
   UnresolvedPageGQL,
   LoggedInGraphQLContext,
   {}

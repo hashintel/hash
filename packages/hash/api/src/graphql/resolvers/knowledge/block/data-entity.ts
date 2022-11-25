@@ -1,4 +1,4 @@
-import { EntityWithMetadata } from "@hashintel/hash-subgraph";
+import { Entity } from "@hashintel/hash-subgraph";
 import { BlockModel } from "../../../../model";
 
 import { QueryBlocksArgs, ResolverFn } from "../../../apiTypes.gen";
@@ -6,7 +6,7 @@ import { GraphQLContext } from "../../../context";
 import { UnresolvedBlockGQL, mapEntityModelToGQL } from "../model-mapping";
 
 export const blockChildEntity: ResolverFn<
-  Promise<EntityWithMetadata>,
+  Promise<Entity>,
   UnresolvedBlockGQL,
   GraphQLContext,
   QueryBlocksArgs

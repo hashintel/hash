@@ -1,4 +1,4 @@
-import { EntityWithMetadata } from "@hashintel/hash-subgraph";
+import { Entity } from "@hashintel/hash-subgraph";
 import {
   BlockModel,
   CommentModel,
@@ -7,9 +7,8 @@ import {
 } from "../../../model";
 import { Block, Page, Comment } from "../../apiTypes.gen";
 
-export const mapEntityModelToGQL = (
-  entityModel: EntityModel,
-): EntityWithMetadata => entityModel.entity;
+export const mapEntityModelToGQL = (entityModel: EntityModel): Entity =>
+  entityModel.entity;
 
 export type ExternalPageResolversGQL = "contents";
 export type UnresolvedPageGQL = Omit<Page, ExternalPageResolversGQL>;

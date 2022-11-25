@@ -1,11 +1,11 @@
-import { EntityWithMetadata } from "@hashintel/hash-subgraph";
+import { Entity } from "@hashintel/hash-subgraph";
 import { CommentModel } from "../../../../model";
 import { ResolverFn } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import { UnresolvedCommentGQL, mapEntityModelToGQL } from "../model-mapping";
 
 export const commentAuthor: ResolverFn<
-  Promise<EntityWithMetadata>,
+  Promise<Entity>,
   UnresolvedCommentGQL,
   LoggedInGraphQLContext,
   {}

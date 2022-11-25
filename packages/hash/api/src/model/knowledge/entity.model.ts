@@ -5,7 +5,7 @@ import {
   Filter,
 } from "@hashintel/hash-graph-client";
 import {
-  EntityWithMetadata,
+  Entity,
   Subgraph,
   EntityMetadata,
   PropertyObject,
@@ -30,7 +30,7 @@ import {
 import { linkedTreeFlatten } from "../../util";
 
 export type EntityModelConstructorParams = {
-  entity: EntityWithMetadata;
+  entity: Entity;
   entityTypeModel: EntityTypeModel;
 };
 
@@ -46,7 +46,7 @@ export type EntityModelCreateParams = {
  * @class {@link EntityModel}
  */
 export default class {
-  entity: EntityWithMetadata;
+  entity: Entity;
 
   entityTypeModel: EntityTypeModel;
 
@@ -81,7 +81,7 @@ export default class {
 
   static async fromEntity(
     graphApi: GraphApi,
-    entity: EntityWithMetadata,
+    entity: Entity,
     cachedEntityTypeModels?: Map<string, EntityTypeModel>,
   ): Promise<EntityModel> {
     const {
@@ -133,7 +133,7 @@ export default class {
       actorId,
     });
 
-    const entity: EntityWithMetadata = {
+    const entity: Entity = {
       properties,
       metadata: metadata as EntityMetadata,
     };
@@ -367,7 +367,7 @@ export default class {
       );
     }
 
-    return await EntityModel.fromEntity(graphApi, entity as EntityWithMetadata);
+    return await EntityModel.fromEntity(graphApi, entity as Entity);
   }
 
   /**
