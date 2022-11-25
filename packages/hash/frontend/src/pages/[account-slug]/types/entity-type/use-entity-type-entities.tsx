@@ -4,18 +4,14 @@ import {
   extractBaseUri,
 } from "@blockprotocol/type-system-web";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import {
-  EntityWithMetadata,
-  Subgraph,
-  SubgraphRootTypes,
-} from "@hashintel/hash-subgraph";
+import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import { getPropertyTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
 import { useBlockProtocolAggregateEntities } from "../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolAggregateEntities";
 
 export type EntityTypeEntitiesContextValue = {
-  entities?: EntityWithMetadata[];
+  entities?: Entity[];
   entityTypes?: EntityType[];
   propertyTypes?: PropertyType[];
   subgraph?: Subgraph<SubgraphRootTypes["entity"]>;

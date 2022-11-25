@@ -5,7 +5,7 @@ import {
   isEntityEditionId,
 } from "../../types/identifier";
 import { isEntityVertex } from "../../types/vertex";
-import { EntityWithMetadata } from "../../types/element";
+import { Entity } from "../../types/element";
 import { mustBeDefined } from "../../shared/invariant";
 
 /**
@@ -13,7 +13,7 @@ import { mustBeDefined } from "../../shared/invariant";
  *
  * @param subgraph
  */
-export const getEntities = (subgraph: Subgraph): EntityWithMetadata[] => {
+export const getEntities = (subgraph: Subgraph): Entity[] => {
   return Object.values(
     Object.values(subgraph.vertices).flatMap((versionObject) =>
       Object.values(versionObject)
@@ -34,7 +34,7 @@ export const getEntities = (subgraph: Subgraph): EntityWithMetadata[] => {
 export const getEntityByEditionId = (
   subgraph: Subgraph,
   entityEditionId: EntityEditionId,
-): EntityWithMetadata | undefined => {
+): Entity | undefined => {
   const { baseId: entityId, version } = entityEditionId;
   const vertex = subgraph.vertices[entityId]?.[version];
 
@@ -54,7 +54,7 @@ export const getEntityByEditionId = (
 export const getEntityEditionsByEntityId = (
   subgraph: Subgraph,
   entityId: EntityId,
-): EntityWithMetadata[] => {
+): Entity[] => {
   const versionObject = subgraph.vertices[entityId];
 
   if (!versionObject) {
@@ -78,7 +78,7 @@ export const getEntityAtTimestamp = (
   subgraph: Subgraph,
   entityId: EntityId,
   timestamp: Date | string,
-): EntityWithMetadata | undefined => {
+): Entity | undefined => {
   const timestampString =
     typeof timestamp === "string" ? timestamp : timestamp.toISOString();
 
@@ -114,9 +114,7 @@ export const getEntityAtTimestamp = (
  * @throws if the roots aren't all `EntityEditionId`s
  * @throws if the subgraph is malformed and there isn't a vertex associated with the root ID
  */
-export const getRootsAsEntities = (
-  subgraph: Subgraph,
-): EntityWithMetadata[] => {
+export const getRootsAsEntities = (subgraph: Subgraph): Entity[] => {
   return subgraph.roots.map((rootEditionId) => {
     if (!isEntityEditionId(rootEditionId)) {
       throw new Error(

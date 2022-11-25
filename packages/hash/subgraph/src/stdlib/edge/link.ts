@@ -1,6 +1,6 @@
 import { Subgraph } from "../../types/subgraph";
 import { EntityId } from "../../types/identifier";
-import { EntityWithMetadata } from "../../types/element";
+import { Entity } from "../../types/element";
 import { getEntityAtTimestamp } from "../element/entity";
 import {
   isOutwardLinkEdge,
@@ -23,7 +23,7 @@ export const getOutgoingLinksForEntityAtMoment = (
   entityId: EntityId,
   timestamp: Date | string,
   includeArchived: boolean = false,
-): EntityWithMetadata[] => {
+): Entity[] => {
   const timestampString =
     typeof timestamp === "string" ? timestamp : timestamp.toISOString();
 
@@ -61,7 +61,7 @@ export const getOutgoingLinksForEntityAtMoment = (
 
         return linkEntity;
       })
-      .filter((x): x is EntityWithMetadata => x !== undefined)
+      .filter((x): x is Entity => x !== undefined)
   );
 };
 
@@ -158,7 +158,7 @@ export const getRightEntityForLinkEntityAtMoment = (
   subgraph: Subgraph,
   entityId: EntityId,
   timestamp: Date | string,
-): EntityWithMetadata => {
+): Entity => {
   const linkEntityEdges = mustBeDefined(
     subgraph.edges[entityId],
     "link entities must have right endpoints and therefore must have edges",
@@ -189,7 +189,7 @@ export const getOutgoingLinkAndTargetEntitiesAtMoment = (
   entityId: EntityId,
   timestamp: Date | string,
   includeArchived: boolean = false,
-): { linkEntity: EntityWithMetadata; rightEntity: EntityWithMetadata }[] => {
+): { linkEntity: Entity; rightEntity: Entity }[] => {
   return getOutgoingLinksForEntityAtMoment(
     subgraph,
     entityId,
