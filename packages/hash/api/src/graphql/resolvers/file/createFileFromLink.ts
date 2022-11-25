@@ -1,7 +1,14 @@
+/** @todo - Fix Files - https://app.asana.com/0/1202805690238892/1203418451117503/f */
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-nocheck
 import { genId } from "../../../util";
-import { MutationCreateFileFromLinkArgs, ResolverFn } from "../../apiTypes.gen";
+import {
+  EntityWithMetadata,
+  MutationCreateFileFromLinkArgs,
+  ResolverFn,
+} from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
-import { File, UnresolvedGQLUnknownEntity } from "../../../model";
+import { File } from "../../../model";
 
 function guessFileNameFromURL(url: string): string {
   const fileNameRegex = /[^/\\&?]+\w+(?=([?&].*$|$))/;
@@ -14,12 +21,12 @@ function guessFileNameFromURL(url: string): string {
 }
 
 export const createFileFromLink: ResolverFn<
-  Promise<UnresolvedGQLUnknownEntity>,
+  Promise<EntityWithMetadata>,
   {},
   LoggedInGraphQLContext,
   MutationCreateFileFromLinkArgs
 > = async (_, { name, url, accountId }, { userModel, dataSources }) => {
-  const createdByAccountId = userModel.entityId;
+  const createdByAccountId = userModel.getEntityUuid();
   const fileName = name || guessFileNameFromURL(url);
   const file = await File.createFileEntityFromLink(dataSources.db, {
     accountId,
@@ -27,5 +34,6 @@ export const createFileFromLink: ResolverFn<
     name: fileName,
     url,
   });
-  return file.toGQLUnknownEntity();
+  /** @todo - map to GraphQL */
+  return file;
 };

@@ -1,21 +1,21 @@
+import { EntityWithMetadata } from "@hashintel/hash-subgraph";
 import { BlockModel } from "../../../../model";
 
 import { QueryPersistedBlocksArgs, ResolverFn } from "../../../apiTypes.gen";
 import { GraphQLContext } from "../../../context";
 import {
   UnresolvedPersistedBlockGQL,
-  UnresolvedPersistedEntityGQL,
   mapEntityModelToGQL,
 } from "../model-mapping";
 
 export const blockChildEntity: ResolverFn<
-  Promise<UnresolvedPersistedEntityGQL>,
+  Promise<EntityWithMetadata>,
   UnresolvedPersistedBlockGQL,
   GraphQLContext,
   QueryPersistedBlocksArgs
-> = async ({ entityId }, _, { dataSources: { graphApi } }) => {
+> = async ({ metadata }, _, { dataSources: { graphApi } }) => {
   const blockModel = await BlockModel.getBlockById(graphApi, {
-    entityId,
+    entityId: metadata.editionId.baseId,
   });
 
   return mapEntityModelToGQL(await blockModel.getBlockData(graphApi));

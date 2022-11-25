@@ -1,7 +1,7 @@
 import { gql } from "apollo-server-express";
 
 export const persistedPageTypedef = gql`
-  type PersistedPage implements PersistedEntity {
+  type PersistedPage {
     """
     The title of the page.
     """
@@ -33,53 +33,14 @@ export const persistedPageTypedef = gql`
 
     # ENTITY INTERFACE FIELDS BEGIN #
     """
-    The id of the entity
+    Metadata for the entity.
     """
-    entityId: ID!
+    metadata: EntityMetadata!
     """
-    The specific version of the entity
+    Properties of entity.
     """
-    entityVersion: String!
-    """
-    The id of the account that owns this entity.
-    """
-    ownedById: ID!
-    """
-    Alias of ownedById - the id of the account that owns this entity.
-    """
-    accountId: ID!
-      @deprecated(reason: "accountId is deprecated. Use ownedById instead.")
-    """
-    The versioned URI of this entity's type.
-    """
-    entityTypeId: String!
-    """
-    The full entity type definition.
-    """
-    entityType: PersistedEntityType!
-    """
-    The linked entities of the entity.
-    """
-    linkedEntities: [PersistedEntity!]!
-    """
-    The JSON object containing the entity's properties.
-    """
-    properties: JSONObject!
+    properties: PropertyObject!
     # ENTITY INTERFACE FIELDS END #
-  }
-
-  type PersistedEntityRef {
-    """
-    The id of the account that owns this entity.
-    """
-    ownedById: ID!
-    """
-    Alias of ownedById - the id of the account that owns this entity.
-    """
-    accountId: ID!
-      @deprecated(reason: "accountId is deprecated. Use ownedById instead.")
-    entityId: ID!
-    entityVersion: String!
   }
 
   extend type Query {
@@ -88,17 +49,9 @@ export const persistedPageTypedef = gql`
     """
     persistedPage(
       """
-      The account ID that owns the Page.
-      """
-      ownedById: ID!
-      """
       The id of the page entity.
       """
-      entityId: ID!
-      """
-      The version of the page entity. Defaults to the latest version.
-      """
-      entityVersion: String
+      entityId: EntityId!
     ): PersistedPage!
 
     """
@@ -115,7 +68,7 @@ export const persistedPageTypedef = gql`
       """
       The id of the page entity.
       """
-      entityId: ID!
+      entityId: EntityId!
     ): [PersistedComment!]!
   }
 
@@ -139,11 +92,11 @@ export const persistedPageTypedef = gql`
     The block entity to insert into the page. You should not set a componentId
     if you provide this
     """
-    existingBlockEntity: PersistedExistingEntity
+    existingBlockEntityId: EntityId
     """
     The entity to associate with the new block
     """
-    entity: PersistedEntityDefinition!
+    entity: EntityWithMetadataDefinition!
     """
     Allows UpdatePageContentsActions to reference entities created in other actions. Also allows callers to updatePageContents to find the entity id created for this definition in the result. See UpdatePageContentsResult.
     """
@@ -183,13 +136,9 @@ export const persistedPageTypedef = gql`
   """
   input UpdatePersistedEntityAction {
     """
-    The account the entity resides in.
-    """
-    ownedById: ID!
-    """
     The entity's fixed ID.
     """
-    entityId: ID!
+    entityId: EntityId!
     """
     The entity's new properties.
     """
@@ -201,31 +150,20 @@ export const persistedPageTypedef = gql`
   """
   input SwapPersistedBlockDataAction {
     """
-    The account the block resides in
-    """
-    ownedById: ID!
-
-    """
     The Block entity's fixed ID
     """
-    entityId: ID!
-
-    """
-    The account the new entity resides in
-    """
-    newEntityOwnedById: ID!
-
+    entityId: EntityId!
     """
     The new entity's fixed ID
     """
-    newEntityEntityId: ID!
+    newEntityEntityId: EntityId!
   }
 
   """
   Create an entity, which you can then reference in other actions, such as a InsertBlockAction
   """
   input CreatePersistedEntityAction {
-    entity: PersistedEntityDefinition!
+    entity: EntityWithMetadataDefinition!
     entityPlaceholderId: ID
     ownedById: ID!
   }
@@ -275,7 +213,7 @@ export const persistedPageTypedef = gql`
   """
   type UpdatePersistedPageContentsResultPlaceholder {
     placeholderId: ID!
-    entityId: ID!
+    entityId: EntityId!
   }
 
   type UpdatePersistedPageContentsResult {
@@ -320,7 +258,7 @@ export const persistedPageTypedef = gql`
     Update an existing page.
     """
     updatePersistedPage(
-      entityId: ID!
+      entityId: EntityId!
       updatedProperties: PersistedPageUpdateData!
     ): PersistedPage!
     """
@@ -329,8 +267,8 @@ export const persistedPageTypedef = gql`
     If the parentPageEntityId is not set, any existing page link is removed.
     """
     setParentPersistedPage(
-      pageEntityId: ID!
-      parentPageEntityId: ID
+      pageEntityId: EntityId!
+      parentPageEntityId: EntityId
       prevIndex: String
       nextIndex: String
     ): PersistedPage!
@@ -340,13 +278,9 @@ export const persistedPageTypedef = gql`
     """
     updatePersistedPageContents(
       """
-      The page's account ID.
-      """
-      ownedById: ID!
-      """
       The pages's fixed entity ID.
       """
-      entityId: ID!
+      entityId: EntityId!
       """
       The list of actions to perform on the page.
       """

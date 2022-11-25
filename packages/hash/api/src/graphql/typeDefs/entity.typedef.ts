@@ -260,7 +260,7 @@ export const entityTypedef = gql`
     """
     Existing Entity to use instead of creating a new entity.
     """
-    existingEntity: ExistingEntity
+    existingEntityId: ExistingEntity
     """
     Whether the new entity should be versioned. Default is true.
     """

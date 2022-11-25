@@ -3,7 +3,7 @@ import { subgraphFieldsFragment } from "../subgraph";
 
 export const getPropertyTypeQuery = gql`
   query getPropertyType(
-    $propertyTypeId: String!
+    $propertyTypeId: VersionedUri!
     $dataTypeResolveDepth: Int!
     $propertyTypeResolveDepth: Int!
   ) {
@@ -38,26 +38,20 @@ export const createPropertyTypeMutation = gql`
     $ownedById: ID!
     $propertyType: PropertyTypeWithoutId!
   ) {
-    createPropertyType(ownedById: $ownedById, propertyType: $propertyType) {
-      propertyTypeId
-      ownedById
-      propertyType
-    }
+    # This is a scalar, which has no selection.
+    createPropertyType(ownedById: $ownedById, propertyType: $propertyType)
   }
 `;
 
 export const updatePropertyTypeMutation = gql`
   mutation updatePropertyType(
-    $propertyTypeId: String!
+    $propertyTypeId: VersionedUri!
     $updatedPropertyType: PropertyTypeWithoutId!
   ) {
+    # This is a scalar, which has no selection.
     updatePropertyType(
       propertyTypeId: $propertyTypeId
       updatedPropertyType: $updatedPropertyType
-    ) {
-      propertyTypeId
-      ownedById
-      propertyType
-    }
+    )
   }
 `;

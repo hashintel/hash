@@ -1,3 +1,4 @@
+import { EntityId, PropertyObject } from "@hashintel/hash-subgraph";
 import { GraphApi } from "../../graph";
 import {
   OrgModel,
@@ -65,14 +66,17 @@ export default class extends EntityModel {
 
     const { data: orgAccountId } = await graphApi.createAccountId();
 
-    const properties: object = {
-      [SYSTEM_TYPES.propertyType.shortName.baseUri]: shortname,
-      [SYSTEM_TYPES.propertyType.orgName.baseUri]: name,
-      [SYSTEM_TYPES.propertyType.orgProvidedInfo.baseUri]: providedInfo
+    const properties: PropertyObject = {
+      [SYSTEM_TYPES.propertyType.shortName.getBaseUri()]: shortname,
+      [SYSTEM_TYPES.propertyType.orgName.getBaseUri()]: name,
+      ...(providedInfo
         ? {
-            [SYSTEM_TYPES.propertyType.orgSize.baseUri]: providedInfo.orgSize,
+            [SYSTEM_TYPES.propertyType.orgProvidedInfo.getBaseUri()]: {
+              [SYSTEM_TYPES.propertyType.orgSize.getBaseUri()]:
+                providedInfo.orgSize,
+            },
           }
-        : undefined,
+        : {}),
     };
 
     const entityTypeModel = SYSTEM_TYPES.entityType.org;
@@ -88,19 +92,19 @@ export default class extends EntityModel {
     return OrgModel.fromEntityModel(entity);
   }
 
-  static fromEntityModel(entity: EntityModel): OrgModel {
+  static fromEntityModel(entityModel: EntityModel): OrgModel {
     if (
-      entity.entityTypeModel.schema.$id !==
-      SYSTEM_TYPES.entityType.org.schema.$id
+      entityModel.entityTypeModel.getSchema().$id !==
+      SYSTEM_TYPES.entityType.org.getSchema().$id
     ) {
       throw new EntityTypeMismatchError(
-        entity.entityId,
-        SYSTEM_TYPES.entityType.org.schema.$id,
-        entity.entityTypeModel.schema.$id,
+        entityModel.getBaseId(),
+        SYSTEM_TYPES.entityType.org.getSchema().$id,
+        entityModel.entityTypeModel.getSchema().$id,
       );
     }
 
-    return new OrgModel(entity);
+    return new OrgModel(entityModel);
   }
 
   /**
@@ -110,7 +114,7 @@ export default class extends EntityModel {
    */
   static async getOrgById(
     graphApi: GraphApi,
-    params: { entityId: string },
+    params: { entityId: EntityId },
   ): Promise<OrgModel> {
     const entity = await EntityModel.getLatest(graphApi, {
       entityId: params.entityId,
@@ -135,7 +139,7 @@ export default class extends EntityModel {
         {
           equal: [
             { path: ["type", "versionedUri"] },
-            { parameter: SYSTEM_TYPES.entityType.org.schema.$id },
+            { parameter: SYSTEM_TYPES.entityType.org.getSchema().$id },
           ],
         },
       ],
@@ -149,8 +153,8 @@ export default class extends EntityModel {
   }
 
   getShortname(): string {
-    return (this.properties as any)[
-      SYSTEM_TYPES.propertyType.shortName.baseUri
+    return (this.getProperties() as any)[
+      SYSTEM_TYPES.propertyType.shortName.getBaseUri()
     ];
   }
 
@@ -182,14 +186,16 @@ export default class extends EntityModel {
     }
 
     return await this.updateProperty(graphApi, {
-      propertyTypeBaseUri: SYSTEM_TYPES.propertyType.shortName.baseUri,
+      propertyTypeBaseUri: SYSTEM_TYPES.propertyType.shortName.getBaseUri(),
       value: updatedShortname,
       actorId,
-    }).then((updatedEntity) => new OrgModel(updatedEntity));
+    }).then((updatedEntity) => OrgModel.fromEntityModel(updatedEntity));
   }
 
   getOrgName(): string {
-    return (this.properties as any)[SYSTEM_TYPES.propertyType.orgName.baseUri];
+    return (this.getProperties() as any)[
+      SYSTEM_TYPES.propertyType.orgName.getBaseUri()
+    ];
   }
 
   static orgNameIsInvalid(preferredName: string) {
@@ -213,7 +219,7 @@ export default class extends EntityModel {
     }
 
     const updatedEntity = await this.updateProperty(graphApi, {
-      propertyTypeBaseUri: SYSTEM_TYPES.propertyType.orgName.baseUri,
+      propertyTypeBaseUri: SYSTEM_TYPES.propertyType.orgName.getBaseUri(),
       value: updatedOrgName,
       actorId,
     });

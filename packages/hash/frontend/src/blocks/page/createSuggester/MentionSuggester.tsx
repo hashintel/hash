@@ -29,7 +29,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   const { users, loading: usersLoading } = useUsers();
   const { data: pages, loading: pagesLoading } = useAccountPages(accountId);
 
-  const { accountId: systemAccountId } = useRouteAccountInfo();
+  const { accountId: routeAccountId } = useRouteAccountInfo();
 
   const loading = usersLoading && pagesLoading;
 
@@ -38,10 +38,10 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
       users?.map((user) => ({
         shortname: user.shortname,
         name: user.preferredName ?? user.shortname ?? "User",
-        entityId: user.entityId,
+        entityId: user.entityEditionId.baseId,
         type: "user",
         isActiveOrgMember: user.memberOf.some(
-          ({ entityId }) => entityId === systemAccountId,
+          ({ orgAccountId }) => orgAccountId === routeAccountId,
         ),
       })) ?? [];
 
@@ -70,7 +70,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
     );
 
     return [...peopleSearch, ...pagesSearch];
-  }, [search, users, systemAccountId, pages]);
+  }, [search, users, routeAccountId, pages]);
 
   return (
     <Suggester

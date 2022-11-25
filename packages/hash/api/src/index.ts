@@ -148,7 +148,7 @@ const main = async () => {
   // Parse request body as JSON - allow higher than the default 100kb limit
   app.use(json({ limit: "16mb" }));
 
-  // Set up authentication related middeware and routes
+  // Set up authentication related middleware and routes
   setupAuth({ app, graphApi, logger });
 
   // Create an email transporter

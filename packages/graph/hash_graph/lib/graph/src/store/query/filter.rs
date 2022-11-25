@@ -11,7 +11,11 @@ use type_system::uri::VersionedUri;
 use uuid::Uuid;
 
 use crate::{
-    knowledge::{Entity, EntityId, EntityQueryPath, Link, LinkQueryPath},
+    identifier::{
+        knowledge::{EntityEditionId, EntityId},
+        Timestamp,
+    },
+    knowledge::{Entity, EntityQueryPath, EntityUuid},
     store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath},
 };
 
@@ -37,8 +41,7 @@ pub enum Filter<'q, T: QueryRecord> {
 
 impl<'q, T> Filter<'q, T>
 where
-    T: QueryRecord,
-    T::Path<'q>: OntologyPath,
+    T: QueryRecord<Path<'q>: OntologyPath>,
 {
     /// Creates a `Filter` to search for all ontology types of kind `T` at their latest version.
     #[must_use]
@@ -84,34 +87,209 @@ impl<'q> Filter<'q, Entity> {
         )
     }
 
+    /// Creates a `Filter` to search for all versions of an entities its [`EntityId`].
+    #[must_use]
+    pub fn for_entity_by_entity_id(entity_id: EntityId) -> Self {
+        Self::All(vec![
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::OwnedById)),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    entity_id.owned_by_id().as_uuid(),
+                ))),
+            ),
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::Uuid)),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    entity_id.entity_uuid().as_uuid(),
+                ))),
+            ),
+        ])
+    }
+
     /// Creates a `Filter` to search for a specific entities at their latest version, identified by
     /// its [`EntityId`].
     #[must_use]
     pub fn for_latest_entity_by_entity_id(entity_id: EntityId) -> Self {
         Self::All(vec![
-            Self::for_all_latest_entities(),
             Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::Id)),
+                Some(FilterExpression::Path(EntityQueryPath::OwnedById)),
                 Some(FilterExpression::Parameter(Parameter::Uuid(
-                    entity_id.as_uuid(),
+                    entity_id.owned_by_id().as_uuid(),
+                ))),
+            ),
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::Uuid)),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    entity_id.entity_uuid().as_uuid(),
+                ))),
+            ),
+            Self::for_all_latest_entities(),
+        ])
+    }
+
+    /// Creates a `Filter` to search for a specific entities at their latest version, identified by
+    /// its [`EntityUuid`].
+    #[must_use]
+    pub fn for_latest_entity_by_entity_uuid(entity_uuid: EntityUuid) -> Self {
+        Self::All(vec![
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::Uuid)),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    entity_uuid.as_uuid(),
+                ))),
+            ),
+            Self::for_all_latest_entities(),
+        ])
+    }
+
+    /// Creates a `Filter` to search for a specific entity edition, identified by its
+    /// [`EntityEditionId`].
+    #[must_use]
+    pub fn for_entity_by_edition_id(edition_id: EntityEditionId) -> Self {
+        Self::All(vec![
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::OwnedById)),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    edition_id.base_id().owned_by_id().as_uuid(),
+                ))),
+            ),
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::Uuid)),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    edition_id.base_id().entity_uuid().as_uuid(),
+                ))),
+            ),
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::Version)),
+                Some(FilterExpression::Parameter(Parameter::Timestamp(
+                    edition_id.version().inner(),
                 ))),
             ),
         ])
     }
-}
 
-impl<'q> Filter<'q, Link> {
-    /// Creates a `Filter` to search for links based on their source entity.
+    /// TODO
     #[must_use]
-    pub const fn for_link_by_latest_source_entity(entity_id: EntityId) -> Self {
-        Self::Equal(
-            Some(FilterExpression::Path(LinkQueryPath::Source(Some(
-                EntityQueryPath::Id,
-            )))),
-            Some(FilterExpression::Parameter(Parameter::Uuid(
-                entity_id.as_uuid(),
-            ))),
-        )
+    pub fn for_outgoing_link_by_source_entity_edition_id(edition_id: EntityEditionId) -> Self {
+        Self::All(vec![
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
+                    Box::new(EntityQueryPath::OwnedById),
+                ))),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    edition_id.base_id().owned_by_id().as_uuid(),
+                ))),
+            ),
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
+                    Box::new(EntityQueryPath::Uuid),
+                ))),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    edition_id.base_id().entity_uuid().as_uuid(),
+                ))),
+            ),
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
+                    Box::new(EntityQueryPath::Version),
+                ))),
+                Some(FilterExpression::Parameter(Parameter::Timestamp(
+                    edition_id.version().inner(),
+                ))),
+            ),
+        ])
+    }
+
+    /// TODO
+    #[must_use]
+    pub fn for_incoming_link_by_source_entity_edition_id(edition_id: EntityEditionId) -> Self {
+        Self::All(vec![
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::RightEntity(
+                    Box::new(EntityQueryPath::OwnedById),
+                ))),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    edition_id.base_id().owned_by_id().as_uuid(),
+                ))),
+            ),
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::RightEntity(
+                    Box::new(EntityQueryPath::Uuid),
+                ))),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    edition_id.base_id().entity_uuid().as_uuid(),
+                ))),
+            ),
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::RightEntity(
+                    Box::new(EntityQueryPath::Version),
+                ))),
+                Some(FilterExpression::Parameter(Parameter::Timestamp(
+                    edition_id.version().inner(),
+                ))),
+            ),
+        ])
+    }
+
+    /// TODO
+    #[must_use]
+    pub fn for_left_entity_by_entity_edition_id(edition_id: EntityEditionId) -> Self {
+        Self::All(vec![
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::OutgoingLinks(
+                    Box::new(EntityQueryPath::OwnedById),
+                ))),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    edition_id.base_id().owned_by_id().as_uuid(),
+                ))),
+            ),
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::OutgoingLinks(
+                    Box::new(EntityQueryPath::Uuid),
+                ))),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    edition_id.base_id().entity_uuid().as_uuid(),
+                ))),
+            ),
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::OutgoingLinks(
+                    Box::new(EntityQueryPath::Version),
+                ))),
+                Some(FilterExpression::Parameter(Parameter::Timestamp(
+                    edition_id.version().inner(),
+                ))),
+            ),
+        ])
+    }
+
+    /// TODO
+    #[must_use]
+    pub fn for_right_entity_by_entity_edition_id(edition_id: EntityEditionId) -> Self {
+        Self::All(vec![
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::IncomingLinks(
+                    Box::new(EntityQueryPath::OwnedById),
+                ))),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    edition_id.base_id().owned_by_id().as_uuid(),
+                ))),
+            ),
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::IncomingLinks(
+                    Box::new(EntityQueryPath::Uuid),
+                ))),
+                Some(FilterExpression::Parameter(Parameter::Uuid(
+                    edition_id.base_id().entity_uuid().as_uuid(),
+                ))),
+            ),
+            Self::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::IncomingLinks(
+                    Box::new(EntityQueryPath::Version),
+                ))),
+                Some(FilterExpression::Parameter(Parameter::Timestamp(
+                    edition_id.version().inner(),
+                ))),
+            ),
+        ])
     }
 }
 
@@ -235,6 +413,8 @@ pub enum Parameter<'q> {
     Uuid(Uuid),
     #[serde(skip)]
     SignedInteger(i64),
+    #[serde(skip)]
+    Timestamp(Timestamp),
 }
 
 impl Parameter<'_> {
@@ -245,6 +425,7 @@ impl Parameter<'_> {
             Parameter::Text(text) => Parameter::Text(Cow::Owned(text.to_string())),
             Parameter::Uuid(uuid) => Parameter::Uuid(*uuid),
             Parameter::SignedInteger(integer) => Parameter::SignedInteger(*integer),
+            Parameter::Timestamp(timestamp) => Parameter::Timestamp(*timestamp),
         }
     }
 }
@@ -269,7 +450,6 @@ impl fmt::Display for ParameterConversionError {
 impl Context for ParameterConversionError {}
 
 impl Parameter<'_> {
-    #[expect(clippy::match_same_arms, reason = "multiple empty bodies due to TODOs")]
     fn convert_to_parameter_type(
         &mut self,
         expected: ParameterType,
@@ -289,9 +469,18 @@ impl Parameter<'_> {
                 // TODO: validate versioned uri
                 //   see https://app.asana.com/0/1202805690238892/1203225514907875/f
             }
-            (_, ParameterType::Timestamp) => {
-                // TODO: validate timestamps
-                //   see https://app.asana.com/0/1202805690238892/1203225514907875/f
+            (Parameter::Text(text), ParameterType::Timestamp) => {
+                if text != "latest" {
+                    *self = Parameter::Timestamp(
+                        Timestamp::from_str(&*text)
+                            .into_report()
+                            .change_context_lazy(|| ParameterConversionError {
+                                actual: self.to_owned(),
+                                expected: ParameterType::Timestamp,
+                            })?,
+                    );
+                    // Do nothing if "latest"
+                }
             }
             (Parameter::Text(text), ParameterType::Uuid) => {
                 *self = Parameter::Uuid(Uuid::from_str(&*text).into_report().change_context_lazy(
@@ -333,6 +522,7 @@ impl fmt::Display for Parameter<'_> {
             Parameter::Text(text) => fmt::Display::fmt(text, fmt),
             Parameter::Uuid(uuid) => fmt::Display::fmt(uuid, fmt),
             Parameter::SignedInteger(integer) => fmt::Display::fmt(integer, fmt),
+            Parameter::Timestamp(timestamp) => fmt::Display::fmt(timestamp, fmt),
         }
     }
 }
@@ -340,81 +530,300 @@ impl fmt::Display for Parameter<'_> {
 #[cfg(test)]
 mod tests {
     use serde_json::json;
-    use type_system::DataType;
+    use type_system::{uri::BaseUri, DataType};
 
     use super::*;
-    use crate::ontology::DataTypeQueryPath;
+    use crate::{
+        identifier::{account::AccountId, knowledge::EntityVersion},
+        ontology::DataTypeQueryPath,
+        provenance::OwnedById,
+    };
+
+    fn test_filter_representation<'de, T>(actual: &Filter<'de, T>, expected: &'de serde_json::Value)
+    where
+        T: QueryRecord<Path<'de>: Debug + Display + PartialEq + Deserialize<'de>>,
+    {
+        let mut expected =
+            Filter::<T>::deserialize(expected).expect("Could not deserialize filter");
+        expected.convert_parameters().expect("invalid filter");
+        assert_eq!(*actual, expected);
+    }
 
     #[test]
-    fn deserialize() {
-        let latest_version_filter = json! {{
+    fn for_latest_version() {
+        let expected = json! {{
           "equal": [
             { "path": ["version"] },
             { "parameter": "latest" }
           ]
         }};
-        assert_eq!(
-            Filter::deserialize(&latest_version_filter).expect("could not deserialize filter"),
-            Filter::Equal(
-                Some(FilterExpression::<DataType>::Path(
-                    DataTypeQueryPath::Version
-                )),
-                Some(FilterExpression::<DataType>::Parameter(Parameter::Text(
-                    Cow::Borrowed("latest")
-                ))),
+
+        test_filter_representation(&Filter::<DataType>::for_latest_version(), &expected);
+    }
+
+    #[test]
+    fn for_versioned_uri() {
+        let uri = VersionedUri::new(
+            BaseUri::new(
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
             )
+            .expect("invalid base uri"),
+            1,
         );
 
-        let specific_version_filter = json! {{
+        let expected = json! {{
           "all": [
             { "equal": [
               { "path": ["baseUri"] },
-              { "parameter": "https://blockprotocol.org/@blockprotocol/types/data-type/text/" }
+              { "parameter": uri.base_uri() }
             ]},
             { "equal": [
               { "path": ["version"] },
-              { "parameter": 1 }
+              { "parameter": uri.version() }
             ]}
           ]
         }};
-        assert_eq!(
-            Filter::deserialize(&specific_version_filter).expect("could not deserialize filter"),
-            Filter::All(vec![
-                Filter::Equal(
-                    Some(FilterExpression::<DataType>::Path(
-                        DataTypeQueryPath::BaseUri
-                    )),
-                    Some(FilterExpression::<DataType>::Parameter(Parameter::Text(
-                        Cow::Borrowed(
-                            "https://blockprotocol.org/@blockprotocol/types/data-type/text/"
-                        )
-                    ))),
-                ),
-                Filter::Equal(
-                    Some(FilterExpression::<DataType>::Path(
-                        DataTypeQueryPath::Version
-                    )),
-                    Some(FilterExpression::<DataType>::Parameter(Parameter::Number(
-                        1.0
-                    ))),
-                ),
-            ])
+
+        test_filter_representation(&Filter::<DataType>::for_versioned_uri(&uri), &expected);
+    }
+
+    #[test]
+    fn for_all_latest_entities() {
+        let expected = json! {{
+          "equal": [
+            { "path": ["version"] },
+            { "parameter": "latest" }
+          ]
+        }};
+
+        test_filter_representation(&Filter::for_all_latest_entities(), &expected);
+    }
+
+    #[test]
+    fn for_entity_by_entity_id() {
+        let entity_id = EntityId::new(
+            OwnedById::new(AccountId::new(Uuid::new_v4())),
+            EntityUuid::new(Uuid::new_v4()),
         );
 
-        let null_check = json! {{
+        let expected = json! {{
+          "all": [
+            { "equal": [
+              { "path": ["ownedById"] },
+              { "parameter": entity_id.owned_by_id() }
+            ]},
+            { "equal": [
+              { "path": ["uuid"] },
+              { "parameter": entity_id.entity_uuid() }
+            ]}
+          ]
+        }};
+
+        test_filter_representation(&Filter::for_entity_by_entity_id(entity_id), &expected);
+    }
+
+    #[test]
+    fn for_latest_entity_by_entity_id() {
+        let entity_id = EntityId::new(
+            OwnedById::new(AccountId::new(Uuid::new_v4())),
+            EntityUuid::new(Uuid::new_v4()),
+        );
+
+        let expected = json! {{
+          "all": [
+            { "equal": [
+              { "path": ["ownedById"] },
+              { "parameter": entity_id.owned_by_id() }
+            ]},
+            { "equal": [
+              { "path": ["uuid"] },
+              { "parameter": entity_id.entity_uuid() }
+            ]},
+            { "equal": [
+              { "path": ["version"] },
+              { "parameter": "latest" }
+            ]}
+          ]
+        }};
+
+        test_filter_representation(
+            &Filter::for_latest_entity_by_entity_id(entity_id),
+            &expected,
+        );
+    }
+
+    #[test]
+    fn for_latest_entity_by_entity_uuid() {
+        let entity_uuid = EntityUuid::new(Uuid::new_v4());
+
+        let expected = json! {{
+          "all": [
+            { "equal": [
+              { "path": ["uuid"] },
+              { "parameter": entity_uuid }
+            ]},
+            { "equal": [
+              { "path": ["version"] },
+              { "parameter": "latest" }
+            ]}
+          ]
+        }};
+
+        test_filter_representation(
+            &Filter::for_latest_entity_by_entity_uuid(entity_uuid),
+            &expected,
+        );
+    }
+
+    #[test]
+    fn for_entity_by_edition_id() {
+        let entity_edition_id = EntityEditionId::new(
+            EntityId::new(
+                OwnedById::new(AccountId::new(Uuid::new_v4())),
+                EntityUuid::new(Uuid::new_v4()),
+            ),
+            EntityVersion::new(Timestamp::default()),
+        );
+
+        let expected = json! {{
+          "all": [
+            { "equal": [
+              { "path": ["ownedById"] },
+              { "parameter": entity_edition_id.base_id().owned_by_id() }
+            ]},
+            { "equal": [
+              { "path": ["uuid"] },
+              { "parameter": entity_edition_id.base_id().entity_uuid() }
+            ]},
+            { "equal": [
+              { "path": ["version"] },
+              { "parameter": entity_edition_id.version() }
+            ]}
+          ]
+        }};
+
+        test_filter_representation(
+            &Filter::for_entity_by_edition_id(entity_edition_id),
+            &expected,
+        );
+    }
+
+    #[test]
+    fn for_outgoing_link_by_source_entity_edition_id() {
+        let entity_edition_id = EntityEditionId::new(
+            EntityId::new(
+                OwnedById::new(AccountId::new(Uuid::new_v4())),
+                EntityUuid::new(Uuid::new_v4()),
+            ),
+            EntityVersion::new(Timestamp::default()),
+        );
+
+        let expected = json! {{
+          "all": [
+            { "equal": [
+              { "path": ["leftEntity", "ownedById"] },
+              { "parameter": entity_edition_id.base_id().owned_by_id() }
+            ]},
+            { "equal": [
+              { "path": ["leftEntity", "uuid"] },
+              { "parameter": entity_edition_id.base_id().entity_uuid() }
+            ]},
+            { "equal": [
+              { "path": ["leftEntity", "version"] },
+              { "parameter": entity_edition_id.version() }
+            ]}
+          ]
+        }};
+
+        test_filter_representation(
+            &Filter::for_outgoing_link_by_source_entity_edition_id(entity_edition_id),
+            &expected,
+        );
+    }
+
+    #[test]
+    fn for_left_entity_by_entity_edition_id() {
+        let entity_edition_id = EntityEditionId::new(
+            EntityId::new(
+                OwnedById::new(AccountId::new(Uuid::new_v4())),
+                EntityUuid::new(Uuid::new_v4()),
+            ),
+            EntityVersion::new(Timestamp::default()),
+        );
+
+        let expected = json! {{
+          "all": [
+            { "equal": [
+              { "path": ["outgoingLinks", "ownedById"] },
+              { "parameter": entity_edition_id.base_id().owned_by_id() }
+            ]},
+            { "equal": [
+              { "path": ["outgoingLinks", "uuid"] },
+              { "parameter": entity_edition_id.base_id().entity_uuid() }
+            ]},
+            { "equal": [
+              { "path": ["outgoingLinks", "version"] },
+              { "parameter": entity_edition_id.version() }
+            ]}
+          ]
+        }};
+
+        test_filter_representation(
+            &Filter::for_left_entity_by_entity_edition_id(entity_edition_id),
+            &expected,
+        );
+    }
+
+    #[test]
+    fn for_right_entity_by_entity_edition_id() {
+        let entity_edition_id = EntityEditionId::new(
+            EntityId::new(
+                OwnedById::new(AccountId::new(Uuid::new_v4())),
+                EntityUuid::new(Uuid::new_v4()),
+            ),
+            EntityVersion::new(Timestamp::default()),
+        );
+
+        let expected = json! {{
+          "all": [
+            { "equal": [
+              { "path": ["incomingLinks", "ownedById"] },
+              { "parameter": entity_edition_id.base_id().owned_by_id() }
+            ]},
+            { "equal": [
+              { "path": ["incomingLinks", "uuid"] },
+              { "parameter": entity_edition_id.base_id().entity_uuid() }
+            ]},
+            { "equal": [
+              { "path": ["incomingLinks", "version"] },
+              { "parameter": entity_edition_id.version() }
+            ]}
+          ]
+        }};
+
+        test_filter_representation(
+            &Filter::for_right_entity_by_entity_edition_id(entity_edition_id),
+            &expected,
+        );
+    }
+
+    #[test]
+    fn null_check() {
+        let expected = json! {{
           "notEqual": [
             { "path": ["description"] },
             null
           ]
         }};
-        assert_eq!(
-            Filter::deserialize(&null_check).expect("could not deserialize filter"),
-            Filter::NotEqual(
+
+        test_filter_representation(
+            &Filter::NotEqual(
                 Some(FilterExpression::<DataType>::Path(
-                    DataTypeQueryPath::Description
+                    DataTypeQueryPath::Description,
                 )),
                 None,
-            )
+            ),
+            &expected,
         );
     }
 }

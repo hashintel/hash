@@ -9,18 +9,15 @@ import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
 import { faArchive, faLink } from "@fortawesome/free-solid-svg-icons";
 import { faFileAlt } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { EntityId } from "@hashintel/hash-subgraph";
 import { useRouteAccountInfo } from "../../../routing";
 import { MenuItem } from "../../../ui";
 
 type PageMenuProps = {
   popupState: PopupState;
-  entityId: string;
+  entityId: EntityId;
   createSubPage: () => Promise<void>;
-  archivePage: (
-    value: boolean,
-    accountId: string,
-    pageEntityId: string,
-  ) => Promise<void>;
+  archivePage: (value: boolean, pageEntityId: EntityId) => Promise<void>;
   onClose: () => void;
   anchorPosition?: PopoverPosition;
 };
@@ -80,7 +77,7 @@ export const PageMenu: FunctionComponent<PageMenuProps> = ({
         onClick: async () => {
           try {
             // @todo handle loading/error states properly
-            await archivePage(true, accountId, entityId);
+            await archivePage(true, entityId);
           } catch (err) {
             // eslint-disable-next-line no-console -- TODO: consider using logger
             console.log("Error archiving page: ", err);

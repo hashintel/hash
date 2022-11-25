@@ -69,7 +69,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
     );
   }, [currentComponentId, userBlocks]);
 
-  const entityId = blockEntity?.entityId ?? null;
+  const entityId = blockEntity?.metadata.editionId.baseId ?? null;
 
   const menuItems = useMemo(() => {
     const hasChildEntity =
@@ -97,7 +97,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
         icon: <FontAwesomeIcon icon={faLink} />,
         onClick: () => {
           const url = new URL(document.location.href);
-          url.hash = getBlockDomId(entityId!);
+          url.hash = getBlockDomId((entityId ?? undefined)!);
           void navigator.clipboard.writeText(url.toString());
         },
       },

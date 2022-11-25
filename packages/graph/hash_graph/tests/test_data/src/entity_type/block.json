@@ -2,7 +2,6 @@
   "kind": "entityType",
   "$id": "https://blockprotocol.org/@alice/types/entity-type/block/v/1",
   "title": "Block",
-  "pluralTitle": "Blocks",
   "type": "object",
   "properties": {
     "https://blockprotocol.org/@alice/types/property-type/name/": {

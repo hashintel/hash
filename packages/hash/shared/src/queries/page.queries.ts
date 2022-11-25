@@ -3,19 +3,10 @@ import { gql } from "@apollo/client";
 const persistedBlockFieldsFragment = gql`
   fragment PersistedBlockFields on PersistedBlock {
     __typename
-    entityId
-    entityVersion
-    accountId
-    entityTypeId
-    componentId
-    blockChildEntity {
-      entityId
-      entityTypeId
-      entityVersion
-      accountId
-      properties
-    }
+    metadata
     properties
+    blockChildEntity
+    componentId
   }
 `;
 
@@ -25,12 +16,11 @@ const persistedPageFieldsFragment = gql`
     title
     icon
     summary
-    ownedById
-    entityId
-    entityVersion
     contents {
       ...PersistedBlockFields
     }
+    metadata
+    properties
     __typename
   }
   ${persistedBlockFieldsFragment}
@@ -45,13 +35,9 @@ const persistedPagePropertiesFieldsFragment = gql`
 `;
 
 export const getPageInfoQuery = gql`
-  query getPageInfo($ownedById: ID!, $entityId: ID!, $entityVersion: String) {
-    persistedPage(
-      ownedById: $ownedById
-      entityId: $entityId
-      entityVersion: $entityVersion
-    ) {
-      entityId
+  query getPageInfo($entityId: EntityId!) {
+    persistedPage(entityId: $entityId) {
+      metadata
       ...PersistedPagePropertyFields
     }
   }
@@ -59,16 +45,8 @@ export const getPageInfoQuery = gql`
 `;
 
 export const getPersistedPageQuery = gql`
-  query getPersistedPage(
-    $ownedById: ID!
-    $entityId: ID!
-    $entityVersion: String
-  ) {
-    persistedPage(
-      ownedById: $ownedById
-      entityId: $entityId
-      entityVersion: $entityVersion
-    ) {
+  query getPersistedPage($entityId: EntityId!) {
+    persistedPage(entityId: $entityId) {
       ...PersistedPageFields
     }
   }
@@ -77,15 +55,10 @@ export const getPersistedPageQuery = gql`
 
 export const updatePersistedPageContents = gql`
   mutation updatePersistedPageContents(
-    $ownedById: ID!
-    $entityId: ID!
+    $entityId: EntityId!
     $actions: [UpdatePersistedPageAction!]!
   ) {
-    updatePersistedPageContents(
-      ownedById: $ownedById
-      entityId: $entityId
-      actions: $actions
-    ) {
+    updatePersistedPageContents(entityId: $entityId, actions: $actions) {
       page {
         ...PersistedPageFields
       }
@@ -97,33 +70,4 @@ export const updatePersistedPageContents = gql`
   }
 
   ${persistedPageFieldsFragment}
-`;
-
-const pagePropertiesFieldsFragment = gql`
-  fragment PagePropertyFields on PageProperties {
-    title
-    archived
-    icon
-  }
-`;
-
-export const updatePage = gql`
-  mutation updatePage(
-    $accountId: ID!
-    $entityId: ID!
-    $properties: PageUpdateData!
-  ) {
-    updatePage(
-      accountId: $accountId
-      entityId: $entityId
-      properties: $properties
-    ) {
-      accountId
-      entityId
-      properties {
-        ...PagePropertyFields
-      }
-    }
-  }
-  ${pagePropertiesFieldsFragment}
 `;

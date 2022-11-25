@@ -11,9 +11,9 @@ export const persistedCommentReplies: ResolverFn<
   UnresolvedPersistedCommentGQL,
   LoggedInGraphQLContext,
   {}
-> = async ({ entityId }, _, { dataSources: { graphApi } }) => {
+> = async ({ metadata }, _, { dataSources: { graphApi } }) => {
   const commentModel = await CommentModel.getCommentById(graphApi, {
-    entityId,
+    entityId: metadata.editionId.baseId,
   });
   const replyModels = await commentModel.getReplies(graphApi);
 

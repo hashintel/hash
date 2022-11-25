@@ -18,6 +18,8 @@ import { uniqBy } from "lodash";
 
 import { useLocalstorageState } from "rooks";
 import { JsonSchema } from "@hashintel/hash-shared/json-utils";
+import { EntityId } from "@hashintel/hash-subgraph";
+
 import {
   convertApiEntityToBpEntity,
   convertApiEntityTypesToBpEntityTypes,
@@ -29,33 +31,25 @@ import { fetchEmbedCode } from "./fetchEmbedCode";
 import { RemoteBlock } from "../RemoteBlock/RemoteBlock";
 import { useBlockLoadedContext } from "../../blocks/onBlockLoaded";
 import { useBlockProtocolAggregateEntities } from "../hooks/blockProtocolFunctions/knowledge/useBlockProtocolAggregateEntities";
-import { useBlockProtocolAggregateEntityTypes } from "../hooks/blockProtocolFunctions/useBlockProtocolAggregateEntityTypes";
-import { useBlockProtocolCreateEntity } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateEntity";
-import { useBlockProtocolCreateEntityType } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateEntityType";
-import { useBlockProtocolCreateLink } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateLink";
 import { useBlockProtocolCreateLinkedAggregation } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateLinkedAggregation";
-import { useBlockProtocolDeleteLink } from "../hooks/blockProtocolFunctions/useBlockProtocolDeleteLink";
 import { useBlockProtocolDeleteLinkedAggregation } from "../hooks/blockProtocolFunctions/useBlockProtocolDeleteLinkedAggregation";
 import { useBlockProtocolFileUpload } from "../hooks/blockProtocolFunctions/useBlockProtocolFileUpload";
-import { useBlockProtocolUpdateEntity } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateEntity";
-import { useBlockProtocolUpdateEntityType } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateEntityType";
-import { useBlockProtocolUpdateLink } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLink";
 import { useBlockProtocolUpdateLinkedAggregation } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLinkedAggregation";
 import { DeprecatedEntityType as ApiEntityType } from "../../graphql/apiTypes.gen";
 import { useReadonlyMode } from "../../shared/readonly-mode";
 import { DataMapEditor } from "./data-map-editor";
 import { mapData, SchemaMap } from "./shared";
 import { useBlockContext } from "../../blocks/page/BlockContext";
+import { useAuthenticatedUser } from "../hooks/useAuthenticatedUser";
 
 // @todo consolidate these properties, e.g. take all entityX, linkX into a single childEntity prop
 // @see https://app.asana.com/0/1200211978612931/1202807842439190/f
 type BlockLoaderProps = {
-  accountId: string;
   blockEntityId: string;
   blockMetadata: HashBlockMeta;
   blockSchema: JsonSchema;
   editableRef: (node: HTMLElement | null) => void;
-  entityId: string;
+  entityId: EntityId;
   entityType?: Pick<ApiEntityType, "entityId" | "properties">;
   entityTypeId: string;
   entityProperties: {};
@@ -73,7 +67,6 @@ type BlockLoaderProps = {
  * and passes the correctly formatted data to RemoteBlock, along with message callbacks
  */
 export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
-  accountId,
   blockEntityId,
   blockMetadata,
   blockSchema,
@@ -88,31 +81,18 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   onBlockLoaded,
   // shouldSandbox,
 }) => {
+  const { authenticatedUser } = useAuthenticatedUser();
+  const accountId = authenticatedUser?.userAccountId;
+
   const { readonlyMode } = useReadonlyMode();
-  const { aggregateEntityTypes } =
-    useBlockProtocolAggregateEntityTypes(accountId);
   const { aggregateEntities } = useBlockProtocolAggregateEntities();
   const { createLinkedAggregation } =
     useBlockProtocolCreateLinkedAggregation(readonlyMode);
-  const { createLink } = useBlockProtocolCreateLink(readonlyMode);
-  const { createEntity } = useBlockProtocolCreateEntity(
-    accountId,
-    readonlyMode,
-  );
-  const { createEntityType } = useBlockProtocolCreateEntityType(
-    accountId,
-    readonlyMode,
-  );
   const { deleteLinkedAggregation } =
     useBlockProtocolDeleteLinkedAggregation(readonlyMode);
-  const { deleteLink } = useBlockProtocolDeleteLink(readonlyMode);
-  const { updateEntity } = useBlockProtocolUpdateEntity(false, readonlyMode);
   const { uploadFile } = useBlockProtocolFileUpload(accountId, readonlyMode);
-  const { updateEntityType } = useBlockProtocolUpdateEntityType(readonlyMode);
   const { updateLinkedAggregation } =
     useBlockProtocolUpdateLinkedAggregation(readonlyMode);
-
-  const { updateLink } = useBlockProtocolUpdateLink();
 
   const { showDataMappingUi, setShowDataMappingUi } = useBlockContext();
 
@@ -166,7 +146,6 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     };
 
     const blockEntity = convertApiEntityToBpEntity({
-      accountId,
       entityId: entityId ?? "entityId-not-yet-set", // @todo ensure blocks always get sent an entityId
       entityTypeId,
       properties: entityProperties,
@@ -194,7 +173,6 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
       readonly: readonlyMode,
     };
   }, [
-    accountId,
     entityType,
     entityId,
     entityProperties,
@@ -207,23 +185,15 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   ]);
 
   const functions = {
-    aggregateEntityTypes,
     aggregateEntities,
-    createEntity,
-    createEntityType,
     createLinkedAggregation,
-    createLink,
     deleteLinkedAggregation,
-    deleteLink,
     /**
      * @todo remove this when embed block no longer relies on server-side oEmbed calls
      * @see https://app.asana.com/0/1200211978612931/1202509819279267/f
      */
     getEmbedBlock: fetchEmbedCode,
-    updateEntity,
-    updateEntityType,
     uploadFile,
-    updateLink,
     updateLinkedAggregation,
   };
 

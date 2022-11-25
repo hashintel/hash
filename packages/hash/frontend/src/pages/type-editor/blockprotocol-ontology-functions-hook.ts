@@ -10,12 +10,9 @@ import { EmbedderGraphMessageCallbacks } from "@blockprotocol/graph";
 import { OntologyCallbacks } from "../../components/hooks/blockProtocolFunctions/ontology/ontology-types-shim";
 import { KnowledgeCallbacks } from "../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
 
-import { useBlockProtocolCreateLink } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolCreateLink";
 import { useBlockProtocolCreateLinkedAggregation } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolCreateLinkedAggregation";
-import { useBlockProtocolDeleteLink } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolDeleteLink";
 import { useBlockProtocolDeleteLinkedAggregation } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolDeleteLinkedAggregation";
 import { useBlockProtocolFileUpload } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolFileUpload";
-import { useBlockProtocolUpdateLink } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateLink";
 import { useBlockProtocolUpdateLinkedAggregation } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateLinkedAggregation";
 
 import { useReadonlyMode } from "../../shared/readonly-mode";
@@ -34,11 +31,6 @@ import { useBlockProtocolAggregateEntityTypes } from "../../components/hooks/blo
 import { useBlockProtocolGetEntityType } from "../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
 import { useBlockProtocolUpdateEntityType } from "../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdateEntityType";
 
-import { useBlockProtocolCreateLinkType } from "../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreateLinkType";
-import { useBlockProtocolAggregateLinkTypes } from "../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregateLinkTypes";
-import { useBlockProtocolGetLinkType } from "../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetLinkType";
-import { useBlockProtocolUpdateLinkType } from "../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdateLinkType";
-
 // Knowledge Graph Operations
 import { useBlockProtocolGetEntity } from "../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolGetEntity";
 import { useBlockProtocolAggregateEntities } from "../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolAggregateEntities";
@@ -48,10 +40,14 @@ import { useBlockProtocolUpdateEntity } from "../../components/hooks/blockProtoc
 export type GraphMessageCallbacks = Omit<
   EmbedderGraphMessageCallbacks,
   | "getEntity"
+  | "createEntity"
   | "aggregateEntities"
   | "updateEntity"
   | "getEntityType"
+  | "createLink"
   | "getLink"
+  | "updateLink"
+  | "deleteLink"
   | "getLinkedAggregation"
   | "deleteEntity"
   | "deleteEntityType"
@@ -72,7 +68,6 @@ export const useBlockProtocolFunctionsWithOntology = (
   const { aggregateEntities } = useBlockProtocolAggregateEntities();
   const { createLinkedAggregation } =
     useBlockProtocolCreateLinkedAggregation(readonlyMode);
-  const { createLink } = useBlockProtocolCreateLink(readonlyMode);
   const { createEntity } = useBlockProtocolCreateEntity(readonlyMode);
 
   const { getEntity } = useBlockProtocolGetEntity();
@@ -80,7 +75,6 @@ export const useBlockProtocolFunctionsWithOntology = (
 
   const { deleteLinkedAggregation } =
     useBlockProtocolDeleteLinkedAggregation(readonlyMode);
-  const { deleteLink } = useBlockProtocolDeleteLink(readonlyMode);
   const { uploadFile } = useBlockProtocolFileUpload(ownedById, readonlyMode);
   const { updateLinkedAggregation } =
     useBlockProtocolUpdateLinkedAggregation(readonlyMode);
@@ -104,25 +98,13 @@ export const useBlockProtocolFunctionsWithOntology = (
   const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes();
   const { getEntityType } = useBlockProtocolGetEntityType();
   const { updateEntityType } = useBlockProtocolUpdateEntityType(readonlyMode);
-  const { createLinkType } = useBlockProtocolCreateLinkType(
-    ownedById,
-    readonlyMode,
-  );
-  const { aggregateLinkTypes } = useBlockProtocolAggregateLinkTypes();
-  const { getLinkType } = useBlockProtocolGetLinkType();
-  const { updateLinkType } = useBlockProtocolUpdateLinkType(readonlyMode);
-
-  const { updateLink } = useBlockProtocolUpdateLink();
 
   return {
     aggregateEntities,
     createEntity,
     createLinkedAggregation,
-    createLink,
     deleteLinkedAggregation,
-    deleteLink,
     uploadFile,
-    updateLink,
     updateLinkedAggregation,
     // Knowledge operations
     getEntity,
@@ -138,9 +120,5 @@ export const useBlockProtocolFunctionsWithOntology = (
     aggregateEntityTypes,
     getEntityType,
     updateEntityType,
-    createLinkType,
-    aggregateLinkTypes,
-    getLinkType,
-    updateLinkType,
   };
 };

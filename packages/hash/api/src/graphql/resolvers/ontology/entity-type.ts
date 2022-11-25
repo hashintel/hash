@@ -1,21 +1,19 @@
 import { ApolloError } from "apollo-server-express";
 import { AxiosError } from "axios";
+import { EntityTypeWithMetadata, Subgraph } from "@hashintel/hash-subgraph";
 
 import {
-  PersistedEntityType,
   MutationCreateEntityTypeArgs,
   MutationUpdateEntityTypeArgs,
   QueryGetEntityTypeArgs,
   QueryGetAllLatestEntityTypesArgs,
   ResolverFn,
-  Subgraph,
 } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import { EntityTypeModel } from "../../../model";
-import { mapEntityTypeModelToGQL, mapSubgraphToGql } from "./model-mapping";
 
 export const createEntityType: ResolverFn<
-  Promise<PersistedEntityType>,
+  Promise<EntityTypeWithMetadata>,
   {},
   LoggedInGraphQLContext,
   MutationCreateEntityTypeArgs
@@ -24,14 +22,14 @@ export const createEntityType: ResolverFn<
   const { ownedById, entityType } = params;
 
   const createdEntityTypeModel = await EntityTypeModel.create(graphApi, {
-    ownedById: ownedById ?? userModel.entityId,
+    ownedById: ownedById ?? userModel.getEntityUuid(),
     schema: entityType,
-    actorId: userModel.entityId,
+    actorId: userModel.getEntityUuid(),
   }).catch((err) => {
     throw new ApolloError(err, "CREATION_ERROR");
   });
 
-  return mapEntityTypeModelToGQL(createdEntityTypeModel);
+  return createdEntityTypeModel.entityType;
 };
 
 export const getAllLatestEntityTypes: ResolverFn<
@@ -41,12 +39,7 @@ export const getAllLatestEntityTypes: ResolverFn<
   QueryGetAllLatestEntityTypesArgs
 > = async (
   _,
-  {
-    dataTypeResolveDepth,
-    propertyTypeResolveDepth,
-    linkTypeResolveDepth,
-    entityTypeResolveDepth,
-  },
+  { dataTypeResolveDepth, propertyTypeResolveDepth, entityTypeResolveDepth },
   { dataSources },
   __,
 ) => {
@@ -60,10 +53,8 @@ export const getAllLatestEntityTypes: ResolverFn<
       graphResolveDepths: {
         dataTypeResolveDepth,
         propertyTypeResolveDepth,
-        linkTypeResolveDepth,
         entityTypeResolveDepth,
-        linkTargetEntityResolveDepth: 0,
-        linkResolveDepth: 0,
+        entityResolveDepth: 0,
       },
     })
     .catch((err: AxiosError) => {
@@ -73,7 +64,7 @@ export const getAllLatestEntityTypes: ResolverFn<
       );
     });
 
-  return mapSubgraphToGql(entityTypeSubgraph);
+  return entityTypeSubgraph as Subgraph;
 };
 
 export const getEntityType: ResolverFn<
@@ -87,7 +78,6 @@ export const getEntityType: ResolverFn<
     entityTypeId,
     dataTypeResolveDepth,
     propertyTypeResolveDepth,
-    linkTypeResolveDepth,
     entityTypeResolveDepth,
   },
   { dataSources },
@@ -103,10 +93,8 @@ export const getEntityType: ResolverFn<
       graphResolveDepths: {
         dataTypeResolveDepth,
         propertyTypeResolveDepth,
-        linkTypeResolveDepth,
         entityTypeResolveDepth,
-        linkTargetEntityResolveDepth: 0,
-        linkResolveDepth: 0,
+        entityResolveDepth: 0,
       },
     })
     .catch((err: AxiosError) => {
@@ -116,11 +104,11 @@ export const getEntityType: ResolverFn<
       );
     });
 
-  return mapSubgraphToGql(entityTypeSubgraph);
+  return entityTypeSubgraph as Subgraph;
 };
 
 export const updateEntityType: ResolverFn<
-  Promise<PersistedEntityType>,
+  Promise<EntityTypeWithMetadata>,
   {},
   LoggedInGraphQLContext,
   MutationUpdateEntityTypeArgs
@@ -140,7 +128,7 @@ export const updateEntityType: ResolverFn<
   const updatedEntityTypeModel = await entityTypeModel
     .update(graphApi, {
       schema: updatedEntityType,
-      actorId: userModel.entityId,
+      actorId: userModel.getEntityUuid(),
     })
     .catch((err: AxiosError) => {
       const msg =
@@ -151,5 +139,5 @@ export const updateEntityType: ResolverFn<
       throw new ApolloError(msg, "CREATION_ERROR");
     });
 
-  return mapEntityTypeModelToGQL(updatedEntityTypeModel);
+  return updatedEntityTypeModel.entityType;
 };

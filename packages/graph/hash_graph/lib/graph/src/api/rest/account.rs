@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 use super::api_resource::RoutedResource;
 use crate::{
-    identifier::AccountId,
+    identifier::account::AccountId,
     store::{AccountStore, StorePool},
 };
 

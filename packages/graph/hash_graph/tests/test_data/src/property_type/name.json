@@ -2,7 +2,6 @@
   "kind": "propertyType",
   "$id": "https://blockprotocol.org/@alice/types/property-type/name/v/1",
   "title": "Name",
-  "pluralTitle": "Names",
   "oneOf": [
     {
       "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"

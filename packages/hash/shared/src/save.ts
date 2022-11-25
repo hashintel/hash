@@ -1,4 +1,5 @@
 import { ApolloClient } from "@apollo/client";
+import { EntityId, VersionedUri } from "@hashintel/hash-subgraph";
 import { isEqual } from "lodash";
 import { Node } from "prosemirror-model";
 import { v4 as uuid } from "uuid";
@@ -18,7 +19,6 @@ import {
   UpdatePersistedPageContentsMutationVariables,
   UpdatePersistedPageAction,
   UpdatePersistedPageContentsResultPlaceholder,
-  PersistedEntityTypeChoice,
 } from "./graphql/apiTypes.gen";
 import { isEntityNode } from "./prosemirror";
 import {
@@ -31,7 +31,7 @@ const generatePlaceholderId = () => `placeholder-${uuid()}`;
 const flipMap = <K, V>(map: Map<K, V>): Map<V, K> =>
   new Map(Array.from(map, ([key, value]) => [value, key] as const));
 
-type EntityTypeForComponentResult = [string, UpdatePersistedPageAction[]];
+type EntityTypeForComponentResult = [VersionedUri, UpdatePersistedPageAction[]];
 
 /**
  * Given the entity 'store', the 'blocks' persisted to the database, and the PromiseMirror 'doc',
@@ -40,7 +40,7 @@ type EntityTypeForComponentResult = [string, UpdatePersistedPageAction[]];
 const calculateSaveActions = async (
   store: EntityStore,
   ownedById: string,
-  textEntityTypeId: string,
+  textEntityTypeId: VersionedUri,
   blocks: BlockEntity[],
   doc: Node,
   getEntityTypeForComponent: (
@@ -59,9 +59,9 @@ const calculateSaveActions = async (
       continue;
     }
 
-    if (draftEntity.entityId) {
+    if (draftEntity.metadata.editionId.baseId) {
       // This means the entity already exists, but may need updating
-      const savedEntity = store.saved[draftEntity.entityId];
+      const savedEntity = store.saved[draftEntity.metadata.editionId.baseId];
 
       /**
        * This can happen if the saved entity this draft entity belonged to has
@@ -91,8 +91,7 @@ const calculateSaveActions = async (
 
       actions.push({
         updateEntity: {
-          entityId: draftEntity.entityId,
-          ownedById: draftEntity.accountId,
+          entityId: draftEntity.metadata.editionId.baseId,
           properties: nextProperties,
         },
       });
@@ -118,16 +117,14 @@ const calculateSaveActions = async (
         draftIdToPlaceholderId.set(draftEntity.draftId, placeholderId);
       }
 
-      let entityType: PersistedEntityTypeChoice | null = null;
+      let entityTypeId: VersionedUri | null = null;
 
       if (isDraftTextEntity(draftEntity)) {
         /**
          * Text types are built in, so we know in this case we don't need to
          * create an entity type.
          */
-        entityType = {
-          entityTypeId: textEntityTypeId,
-        };
+        entityTypeId = textEntityTypeId;
       } else {
         /**
          * At this point, we may need to create an entity type for the entity
@@ -143,11 +140,10 @@ const calculateSaveActions = async (
           throw new Error("Cannot find parent entity");
         }
 
-        const [entityTypeId, newTypeActions] = await getEntityTypeForComponent(
-          blockEntity.componentId ?? "",
-        );
+        const [assumedEntityTypeId, newTypeActions] =
+          await getEntityTypeForComponent(blockEntity.componentId ?? "");
 
-        entityType = { entityTypeId };
+        entityTypeId = assumedEntityTypeId;
         // Placing at front to ensure latter actions can make use of this type
         actions.unshift(...newTypeActions);
       }
@@ -157,7 +153,7 @@ const calculateSaveActions = async (
           ownedById,
           entityPlaceholderId: placeholderId,
           entity: {
-            entityType,
+            entityTypeId,
             entityProperties: draftEntity.properties,
           },
         },
@@ -185,7 +181,10 @@ const calculateSaveActions = async (
   // Block entities are wrappers which point to (a) a component and (b) a child entity
   // First, gather the ids of the blocks as they appear in the db-persisted page
   const beforeBlockDraftIds = blocks.map((block) => {
-    const draftEntity = getDraftEntityByEntityId(store.draft, block.entityId);
+    const draftEntity = getDraftEntityByEntityId(
+      store.draft,
+      block.metadata.editionId.baseId,
+    );
     if (!draftEntity) {
       throw new Error("Draft entity missing");
     }
@@ -248,14 +247,14 @@ const calculateSaveActions = async (
         throw new Error("missing draft block entity");
       }
 
-      if (!draftEntity.entityId) {
+      if (!draftEntity.metadata.editionId.baseId) {
         // The block has not yet been saved to the database, and therefore there is no saved block to compare it with
         // It's probably been inserted as part of this loop and spliced into the before ids – no further action required
         position += 1;
         continue;
       }
 
-      const savedEntity = store.saved[draftEntity.entityId];
+      const savedEntity = store.saved[draftEntity.metadata.editionId.baseId];
       if (!savedEntity) {
         throw new Error("missing saved block entity");
       }
@@ -269,9 +268,10 @@ const calculateSaveActions = async (
       const oldChildEntityForBlock = savedEntity.blockChildEntity;
 
       if (
-        oldChildEntityForBlock?.entityId !== newChildEntityForBlock?.entityId
+        oldChildEntityForBlock?.metadata.editionId.baseId !==
+        newChildEntityForBlock?.metadata.editionId.baseId
       ) {
-        if (!newChildEntityForBlock?.entityId) {
+        if (!newChildEntityForBlock?.metadata.editionId.baseId) {
           // this should never happen because users select new child entities from API-provided entities.
           // if this errors in future, it's because users are choosing locally-created but not yet db-persisted entities
           throw new Error("New child entity for block has not yet been saved");
@@ -279,10 +279,8 @@ const calculateSaveActions = async (
 
         actions.push({
           swapBlockData: {
-            ownedById: draftEntity.accountId,
-            entityId: savedEntity.entityId,
-            newEntityEntityId: newChildEntityForBlock.entityId,
-            newEntityOwnedById: newChildEntityForBlock.accountId,
+            entityId: savedEntity.metadata.editionId.baseId,
+            newEntityEntityId: newChildEntityForBlock.metadata.editionId.baseId,
           },
         });
       }
@@ -309,7 +307,8 @@ const calculateSaveActions = async (
 
       const blockData = draftEntity.blockChildEntity;
       const blockChildEntityId =
-        blockData?.entityId ?? draftIdToPlaceholderId.get(blockData!.draftId!);
+        blockData?.metadata.editionId.baseId ??
+        draftIdToPlaceholderId.get(blockData!.draftId!);
 
       if (!blockChildEntityId) {
         throw new Error("Block data entity id missing");
@@ -317,26 +316,22 @@ const calculateSaveActions = async (
 
       const blockPlaceholderId = generatePlaceholderId();
 
-      if (!draftEntity.entityId) {
+      if (!draftEntity.metadata.editionId.baseId) {
         draftIdToPlaceholderId.set(draftEntity.draftId, blockPlaceholderId);
       }
 
       moveActions.push({
         insertBlock: {
-          ownedById: draftEntity.accountId,
+          ownedById,
           position,
           entity: {
-            existingEntity: {
-              ownedById: blockData!.accountId,
-              entityId: blockChildEntityId,
-            },
+            // This cast is technically incorrect as the blockChildEntityId could be a placeholder.
+            // In that case, we rely on the EntityId to be swapped out in the GQL resolver.
+            existingEntityId: blockChildEntityId as EntityId,
           },
-          ...(draftEntity.entityId
+          ...(draftEntity.metadata.editionId.baseId
             ? {
-                existingBlockEntity: {
-                  ownedById: draftEntity.accountId,
-                  entityId: draftEntity.entityId,
-                },
+                existingBlockEntityId: draftEntity.metadata.editionId.baseId,
               }
             : {
                 blockPlaceholderId,
@@ -379,14 +374,14 @@ const getDraftEntityIds = (
 export const save = async (
   apolloClient: ApolloClient<unknown>,
   ownedById: string,
-  pageEntityId: string,
+  pageEntityId: EntityId,
   doc: Node,
   store: EntityStore,
 ) => {
   const blocks = await apolloClient
     .query<GetPersistedPageQuery, GetPersistedPageQueryVariables>({
       query: getPersistedPageQuery,
-      variables: { ownedById, entityId: pageEntityId },
+      variables: { entityId: pageEntityId },
       fetchPolicy: "network-only",
     })
     .then((res) => res.data.persistedPage.contents);
@@ -408,27 +403,28 @@ export const save = async (
     },
   );
 
-  // Even if the actions list is empty, we hit the endpoint to get an updated
-  // page result.
-  const res = await apolloClient.mutate<
-    UpdatePersistedPageContentsMutation,
-    UpdatePersistedPageContentsMutationVariables
-  >({
-    variables: { ownedById, entityId: pageEntityId, actions },
-    mutation: updatePersistedPageContents,
-  });
+  let currentBlocks = blocks;
+  let placeholders: UpdatePersistedPageContentsResultPlaceholder[] = [];
 
-  if (!res.data) {
-    throw new Error("Failed");
+  if (actions.length > 0) {
+    // Even if the actions list is empty, we hit the endpoint to get an updated
+    // page result.
+    const res = await apolloClient.mutate<
+      UpdatePersistedPageContentsMutation,
+      UpdatePersistedPageContentsMutationVariables
+    >({
+      variables: { entityId: pageEntityId, actions },
+      mutation: updatePersistedPageContents,
+    });
+
+    if (!res.data) {
+      throw new Error("Failed");
+    }
+
+    currentBlocks = res.data.updatePersistedPageContents.page.contents;
+    placeholders = res.data.updatePersistedPageContents.placeholders;
   }
+  const draftToEntityId = getDraftEntityIds(placeholders, placeholderToDraft);
 
-  const draftToEntityId = getDraftEntityIds(
-    res.data.updatePersistedPageContents.placeholders,
-    placeholderToDraft,
-  );
-
-  return [
-    res.data.updatePersistedPageContents.page.contents,
-    draftToEntityId,
-  ] as const;
+  return [currentBlocks, draftToEntityId] as const;
 };

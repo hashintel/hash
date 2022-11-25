@@ -271,6 +271,7 @@ module.exports = {
     },
     {
       files: [
+        "**/tests/**",
         "**/__mocks__/**",
         "**/testUtils/**",
         "*.test.{j,t}s{x,}",
