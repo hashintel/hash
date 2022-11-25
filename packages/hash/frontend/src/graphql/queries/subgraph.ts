@@ -6,12 +6,24 @@ export const subgraphFieldsFragment = gql`
     vertices
     edges
     depths {
-      constrainsLinkDestinationsOn
-      constrainsLinksOn
-      constrainsValuesOn
-      constrainsPropertiesOn
-      inheritsFrom
-      isOfType
+      constrainsLinkDestinationsOn {
+        outgoing
+      }
+      constrainsLinksOn {
+        outgoing
+      }
+      constrainsValuesOn {
+        outgoing
+      }
+      constrainsPropertiesOn {
+        outgoing
+      }
+      inheritsFrom {
+        outgoing
+      }
+      isOfType {
+        outgoing
+      }
       hasLeftEntity {
         incoming
         outgoing
