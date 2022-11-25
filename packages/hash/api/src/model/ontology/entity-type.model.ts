@@ -133,12 +133,10 @@ export default class {
     },
   ): Promise<EntityTypeModel> {
     const { entityTypeId } = params;
-    const { data: persistedEntityType } = await graphApi.getEntityType(
-      entityTypeId,
-    );
+    const { data: entityType } = await graphApi.getEntityType(entityTypeId);
 
     return EntityTypeModel.fromEntityTypeWithMetadata(
-      persistedEntityType as EntityTypeWithMetadata,
+      entityType as EntityTypeWithMetadata,
     );
   }
 

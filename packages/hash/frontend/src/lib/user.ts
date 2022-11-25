@@ -4,6 +4,8 @@ import {
   Subgraph,
   EntityEditionId,
   extractEntityUuidFromEntityId,
+  EntityEditionIdString,
+  entityEditionIdToString,
 } from "@hashintel/hash-subgraph";
 import { getEntityByEditionId } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import {
@@ -63,8 +65,13 @@ export type User = MinimalUser & {
 export const constructUser = (params: {
   subgraph: Subgraph;
   userEntityEditionId: EntityEditionId;
+  resolvedUsers?: Record<EntityEditionIdString, User>;
+  resolvedOrgs?: Record<EntityEditionIdString, Org>;
 }): User => {
   const { userEntityEditionId, subgraph } = params;
+
+  const resolvedUsers = params.resolvedUsers ?? {};
+  const resolvedOrgs = params.resolvedOrgs ?? {};
 
   const orgMemberships = getOutgoingLinksForEntityAtMoment(
     subgraph,
@@ -76,31 +83,47 @@ export const constructUser = (params: {
       types.linkEntityType.orgMembership.linkEntityTypeId,
   );
 
-  return {
-    ...constructMinimalUser({ userEntityEditionId, subgraph }),
-    memberOf: orgMemberships.map(({ metadata, properties }) => {
-      const responsibility: string = properties[
-        extractBaseUri(types.propertyType.responsibility.propertyTypeId)
-      ] as string;
+  const user = constructMinimalUser({ userEntityEditionId, subgraph }) as User;
 
-      if (!metadata.linkMetadata?.rightEntityId) {
-        throw new Error("Expected org membership to contain a right entity");
-      }
-      const org = getRightEntityForLinkEntityAtMoment(
+  // We add it to resolved users *before* fully creating so that when we're traversing we know
+  // we already encountered it and avoid infinite recursion
+  resolvedUsers[entityEditionIdToString(user.entityEditionId)] = user;
+
+  user.memberOf = orgMemberships.map(({ metadata, properties }) => {
+    const responsibility: string = properties[
+      extractBaseUri(types.propertyType.responsibility.propertyTypeId)
+    ] as string;
+
+    if (!metadata.linkMetadata?.rightEntityId) {
+      throw new Error("Expected org membership to contain a right entity");
+    }
+    const orgEntity = getRightEntityForLinkEntityAtMoment(
+      subgraph,
+      metadata.editionId.baseId,
+      new Date(),
+    );
+
+    let org =
+      resolvedOrgs[entityEditionIdToString(orgEntity.metadata.editionId)];
+
+    if (!org) {
+      org = constructOrg({
         subgraph,
-        metadata.editionId.baseId,
-        new Date(),
-      );
+        orgEntityEditionId: orgEntity.metadata.editionId,
+        resolvedUsers,
+        resolvedOrgs,
+      });
 
-      return {
-        ...constructOrg({
-          subgraph,
-          orgEntityEditionId: org.metadata.editionId,
-        }),
-        responsibility,
-      };
-    }),
-  };
+      resolvedOrgs[entityEditionIdToString(org.entityEditionId)] = org;
+    }
+
+    return {
+      ...org,
+      responsibility,
+    };
+  });
+
+  return user;
 };
 
 export type AuthenticatedUser = User & {

@@ -8,17 +8,17 @@ import {
 import { useCallback } from "react";
 import {
   GetPageInfoQueryVariables,
-  UpdatePersistedPageMutation,
-  UpdatePersistedPageMutationVariables,
+  UpdatePageMutation,
+  UpdatePageMutationVariables,
 } from "../../graphql/apiTypes.gen";
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
-import { updatePersistedPage } from "../../graphql/queries/page.queries";
+import { updatePage } from "../../graphql/queries/page.queries";
 
 export const useArchivePage = () => {
   const [updatePageFn, { loading }] = useMutation<
-    UpdatePersistedPageMutation,
-    UpdatePersistedPageMutationVariables
-  >(updatePersistedPage, { awaitRefetchQueries: true });
+    UpdatePageMutation,
+    UpdatePageMutationVariables
+  >(updatePage, { awaitRefetchQueries: true });
 
   const getRefetchQueries = useCallback((pageEntityId: EntityId) => {
     const ownedById = extractOwnedByIdFromEntityId(pageEntityId);

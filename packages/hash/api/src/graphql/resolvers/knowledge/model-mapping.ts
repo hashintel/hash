@@ -1,29 +1,19 @@
-import { EntityWithMetadata } from "@hashintel/hash-subgraph";
+import { Entity } from "@hashintel/hash-subgraph";
 import {
   BlockModel,
   CommentModel,
   EntityModel,
   PageModel,
 } from "../../../model";
-import {
-  PersistedBlock,
-  PersistedPage,
-  PersistedComment,
-} from "../../apiTypes.gen";
+import { Block, Page, Comment } from "../../apiTypes.gen";
 
-export const mapEntityModelToGQL = (
-  entityModel: EntityModel,
-): EntityWithMetadata => entityModel.entity;
+export const mapEntityModelToGQL = (entityModel: EntityModel): Entity =>
+  entityModel.entity;
 
-export type ExternalPersistedPageResolversGQL = "contents";
-export type UnresolvedPersistedPageGQL = Omit<
-  PersistedPage,
-  ExternalPersistedPageResolversGQL
->;
+export type ExternalPageResolversGQL = "contents";
+export type UnresolvedPageGQL = Omit<Page, ExternalPageResolversGQL>;
 
-export const mapPageModelToGQL = (
-  pageModel: PageModel,
-): UnresolvedPersistedPageGQL => ({
+export const mapPageModelToGQL = (pageModel: PageModel): UnresolvedPageGQL => ({
   ...mapEntityModelToGQL(pageModel),
   title: pageModel.getTitle(),
   archived: pageModel.getArchived(),
@@ -32,33 +22,27 @@ export const mapPageModelToGQL = (
   icon: pageModel.getIcon(),
 });
 
-export type ExternalPersistedCommentResolversGQL =
+export type ExternalCommentResolversGQL =
   | "hasText"
   | "textUpdatedAt"
   | "parent"
   | "author"
   | "replies";
-export type UnresolvedPersistedCommentGQL = Omit<
-  PersistedComment,
-  ExternalPersistedCommentResolversGQL
->;
+export type UnresolvedCommentGQL = Omit<Comment, ExternalCommentResolversGQL>;
 
 export const mapCommentModelToGQL = (
   commentModel: CommentModel,
-): UnresolvedPersistedCommentGQL => ({
+): UnresolvedCommentGQL => ({
   ...mapEntityModelToGQL(commentModel),
   resolvedAt: commentModel.getResolvedAt(),
   deletedAt: commentModel.getDeletedAt(),
 });
 
-export type ExternalPersistedBlockResolversGQL = "blockChildEntity";
-export type UnresolvedPersistedBlockGQL = Omit<
-  PersistedBlock,
-  ExternalPersistedBlockResolversGQL
->;
+export type ExternalBlockResolversGQL = "blockChildEntity";
+export type UnresolvedBlockGQL = Omit<Block, ExternalBlockResolversGQL>;
 export const mapBlockModelToGQL = (
   blockModel: BlockModel,
-): UnresolvedPersistedBlockGQL => ({
+): UnresolvedBlockGQL => ({
   ...mapEntityModelToGQL(blockModel),
   componentId: blockModel.getComponentId(),
 });

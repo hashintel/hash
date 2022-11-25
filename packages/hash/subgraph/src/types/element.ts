@@ -63,11 +63,7 @@ export type EntityMetadata = {
   provenance: ProvenanceMetadataGraphApi;
 };
 
-/**
- * @todo - Rename this when we delete the old entity GraphQL types
- *   https://app.asana.com/0/1202805690238892/1203157172269854/f
- * */
-export type EntityWithMetadata = {
+export type Entity = {
   properties: PropertyObject;
   metadata: EntityMetadata;
 };
@@ -76,4 +72,4 @@ export type GraphElement =
   | DataTypeWithMetadata
   | PropertyTypeWithMetadata
   | EntityTypeWithMetadata
-  | EntityWithMetadata;
+  | Entity;

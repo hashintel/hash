@@ -10,10 +10,7 @@ import { EmbedderGraphMessageCallbacks } from "@blockprotocol/graph";
 import { OntologyCallbacks } from "../../components/hooks/blockProtocolFunctions/ontology/ontology-types-shim";
 import { KnowledgeCallbacks } from "../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
 
-import { useBlockProtocolCreateLinkedAggregation } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolCreateLinkedAggregation";
-import { useBlockProtocolDeleteLinkedAggregation } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolDeleteLinkedAggregation";
 import { useBlockProtocolFileUpload } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolFileUpload";
-import { useBlockProtocolUpdateLinkedAggregation } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateLinkedAggregation";
 
 import { useReadonlyMode } from "../../shared/readonly-mode";
 
@@ -51,6 +48,9 @@ export type GraphMessageCallbacks = Omit<
   | "getLinkedAggregation"
   | "deleteEntity"
   | "deleteEntityType"
+  | "createLinkedAggregation"
+  | "updateLinkedAggregation"
+  | "deleteLinkedAggregation"
   // Replaced by new ontology callbacks
   | "createEntityType"
   | "updateEntityType"
@@ -66,18 +66,12 @@ export const useBlockProtocolFunctionsWithOntology = (
   const { readonlyMode } = useReadonlyMode();
 
   const { aggregateEntities } = useBlockProtocolAggregateEntities();
-  const { createLinkedAggregation } =
-    useBlockProtocolCreateLinkedAggregation(readonlyMode);
   const { createEntity } = useBlockProtocolCreateEntity(readonlyMode);
 
   const { getEntity } = useBlockProtocolGetEntity();
   const { updateEntity } = useBlockProtocolUpdateEntity();
 
-  const { deleteLinkedAggregation } =
-    useBlockProtocolDeleteLinkedAggregation(readonlyMode);
-  const { uploadFile } = useBlockProtocolFileUpload(ownedById, readonlyMode);
-  const { updateLinkedAggregation } =
-    useBlockProtocolUpdateLinkedAggregation(readonlyMode);
+  const { uploadFile } = useBlockProtocolFileUpload(readonlyMode);
 
   // Ontology operations
 
@@ -102,10 +96,7 @@ export const useBlockProtocolFunctionsWithOntology = (
   return {
     aggregateEntities,
     createEntity,
-    createLinkedAggregation,
-    deleteLinkedAggregation,
     uploadFile,
-    updateLinkedAggregation,
     // Knowledge operations
     getEntity,
     updateEntity,

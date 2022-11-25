@@ -4,6 +4,7 @@ import {
   EntityMetadata,
   EntityVersion,
   LinkEntityMetadata,
+  PropertyObject,
   VersionedUri,
 } from "@hashintel/hash-subgraph";
 
@@ -30,7 +31,7 @@ export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   };
   /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */
   blockChildEntity?: Type & { draftId?: string };
-  properties: Record<string, unknown>;
+  properties: PropertyObject & { entity?: DraftEntity };
 
   componentId?: string;
 
@@ -41,20 +42,6 @@ export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
 
   /** @todo use updated at from the Graph API https://app.asana.com/0/0/1203099452204542/f */
   // updatedAt: string;
-
-  /** @todo fix the following links that were disabled https://app.asana.com/0/0/1203099452204542/f */
-  linkGroups?: undefined;
-  // Type extends { linkGroups: any }
-  //   ? Type["linkGroups"]
-  //   : undefined
-  linkedEntities?: undefined;
-  // Type extends { linkedEntities: any }
-  //   ? Type["linkedEntities"]
-  //   : undefined;
-  linkedAggregations?: undefined;
-  // Type extends { linkedAggregations: any }
-  //   ? Type["linkedAggregations"]
-  //   : undefined;
 };
 
 export type EntityStore = {
