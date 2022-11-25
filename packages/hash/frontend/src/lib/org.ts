@@ -4,12 +4,15 @@ import {
   Subgraph,
   EntityEditionId,
   extractEntityUuidFromEntityId,
+  entityEditionIdToString,
+  EntityEditionIdString,
 } from "@hashintel/hash-subgraph";
 import { getEntityByEditionId } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import {
-  // constructMinimalUser,
-  MinimalUser,
-} from "./user";
+  getIncomingLinksForEntityAtMoment,
+  getLeftEntityForLinkEntityAtMoment,
+} from "@hashintel/hash-subgraph/src/stdlib/edge/link";
+import { constructUser, User } from "./user";
 
 export type MinimalOrg = {
   kind: "org";
@@ -51,26 +54,72 @@ export const constructMinimalOrg = (params: {
 };
 
 export type Org = MinimalOrg & {
-  members: (MinimalUser & { responsibility: string })[];
+  members: (User & { responsibility: string })[];
 };
 
 export const constructOrg = (params: {
   subgraph: Subgraph;
   orgEntityEditionId: EntityEditionId;
+  resolvedUsers?: Record<EntityEditionIdString, User>;
+  resolvedOrgs?: Record<EntityEditionIdString, Org>;
 }): Org => {
   const { subgraph, orgEntityEditionId } = params;
 
-  return {
-    ...constructMinimalOrg({
-      subgraph,
-      orgEntityEditionId,
-    }),
-    /**
-     * @todo implement members once we are able to fetch incoming links
-     *   see https://app.asana.com/0/1201095311341924/1203250435416416/f
-     */
-    members: [],
-  };
-};
+  const resolvedUsers = params.resolvedUsers ?? {};
+  const resolvedOrgs = params.resolvedOrgs ?? {};
 
-export type OrgWithResponsibility = Org & { responsibility: string };
+  const orgMemberships = getIncomingLinksForEntityAtMoment(
+    subgraph,
+    orgEntityEditionId.baseId,
+    new Date(),
+  ).filter(
+    (linkEntity) =>
+      linkEntity.metadata.entityTypeId ===
+      types.linkEntityType.orgMembership.linkEntityTypeId,
+  );
+
+  const org = constructMinimalOrg({
+    subgraph,
+    orgEntityEditionId,
+  }) as Org;
+
+  // We add it to resolved orgs *before* fully creating so that when we're traversing we know
+  // we already encountered it and avoid infinite recursion
+  resolvedOrgs[entityEditionIdToString(org.entityEditionId)] = org;
+
+  org.members = orgMemberships.map(({ metadata, properties }) => {
+    const responsibility: string = properties[
+      extractBaseUri(types.propertyType.responsibility.propertyTypeId)
+    ] as string;
+
+    if (!metadata.linkMetadata?.leftEntityId) {
+      throw new Error("Expected org membership to contain a left entity");
+    }
+    const userEntity = getLeftEntityForLinkEntityAtMoment(
+      subgraph,
+      metadata.editionId.baseId,
+      new Date(),
+    );
+
+    let user =
+      resolvedUsers[entityEditionIdToString(userEntity.metadata.editionId)];
+
+    if (!user) {
+      user = constructUser({
+        subgraph,
+        userEntityEditionId: userEntity.metadata.editionId,
+        resolvedOrgs,
+        resolvedUsers,
+      });
+
+      resolvedUsers[entityEditionIdToString(user.entityEditionId)] = user;
+    }
+
+    return {
+      ...user,
+      responsibility,
+    };
+  });
+
+  return org;
+};

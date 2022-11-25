@@ -1,7 +1,7 @@
 /**
  * A collection of 'aliases' which describe various variants of outward edges in more accessible-forms
  */
-import { KnowledgeGraphOutwardEdge } from "../edge";
+import { OutwardEdge } from "../edge";
 import { EntityIdAndTimestamp } from "../identifier";
 
 /** @todo - is there a way to have TS force us to make this always satisfy `KnowledgeGraphOutwardEdge`? */
@@ -12,7 +12,7 @@ export type OutwardLinkEdge = {
 };
 
 export const isOutwardLinkEdge = (
-  outwardEdge: KnowledgeGraphOutwardEdge,
+  outwardEdge: OutwardEdge,
 ): outwardEdge is OutwardLinkEdge => {
   return outwardEdge.kind === "HAS_LEFT_ENTITY" && outwardEdge.reversed;
 };
@@ -25,7 +25,7 @@ export type HasLeftEntityEdge = {
 };
 
 export const isHasLeftEntityEdge = (
-  outwardEdge: KnowledgeGraphOutwardEdge,
+  outwardEdge: OutwardEdge,
 ): outwardEdge is HasLeftEntityEdge => {
   return outwardEdge.kind === "HAS_LEFT_ENTITY" && !outwardEdge.reversed;
 };
@@ -38,7 +38,7 @@ export type HasRightEntityEdge = {
 };
 
 export const isHasRightEntityEdge = (
-  outwardEdge: KnowledgeGraphOutwardEdge,
+  outwardEdge: OutwardEdge,
 ): outwardEdge is HasRightEntityEdge => {
   return outwardEdge.kind === "HAS_RIGHT_ENTITY" && !outwardEdge.reversed;
 };
@@ -51,7 +51,7 @@ export type IncomingLinkEdge = {
 };
 
 export const isIncomingLinkEdge = (
-  outwardEdge: KnowledgeGraphOutwardEdge,
+  outwardEdge: OutwardEdge,
 ): outwardEdge is IncomingLinkEdge => {
   return outwardEdge.kind === "HAS_RIGHT_ENTITY" && outwardEdge.reversed;
 };

@@ -36,8 +36,6 @@ export const commentTypedef = gql`
     Array of comments created in response to this comment
     """
     replies: [Comment!]!
-
-    # ENTITY INTERFACE FIELDS BEGIN #
     """
     Metadata for the entity.
     """
@@ -46,7 +44,6 @@ export const commentTypedef = gql`
     Properties of entity.
     """
     properties: PropertyObject!
-    # ENTITY INTERFACE FIELDS END #
   }
 
   extend type Mutation {

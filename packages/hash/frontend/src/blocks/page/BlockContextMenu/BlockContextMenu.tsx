@@ -26,6 +26,7 @@ import {
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { PropertyObject } from "@hashintel/hash-subgraph";
 import { useUserBlocks } from "../../userBlocks";
 import { getBlockDomId } from "../BlockView";
 
@@ -62,7 +63,9 @@ const BlockContextMenu: ForwardRefRenderFunction<
   const setEntityMenuItemRef = useRef<HTMLLIElement>(null);
   const swapBlocksMenuItemRef = useRef<HTMLLIElement>(null);
   const { value: userBlocks } = useUserBlocks();
-  const currentComponentId = blockEntity?.properties.componentId;
+  const currentComponentId = blockEntity?.properties.componentId as
+    | string
+    | null;
   const compatibleBlocks = useMemo(() => {
     return Object.values(userBlocks).filter((block) =>
       areComponentsCompatible(currentComponentId, block.meta.componentId),
@@ -72,8 +75,13 @@ const BlockContextMenu: ForwardRefRenderFunction<
   const entityId = blockEntity?.metadata.editionId.baseId ?? null;
 
   const menuItems = useMemo(() => {
+    /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */
     const hasChildEntity =
-      Object.keys(blockEntity?.properties.entity?.properties ?? {}).length > 0;
+      !!blockEntity?.properties.entity &&
+      Object.keys(
+        (blockEntity.properties.entity as { properties: PropertyObject })
+          .properties ?? {},
+      ).length > 0;
     const items = [
       ...(currentComponentId && !isHashTextBlock(currentComponentId)
         ? [
