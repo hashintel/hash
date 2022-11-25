@@ -4,7 +4,6 @@ import {
   EntityModel,
   EntityModelCreateParams,
   UserModel,
-  LinkEntityModel,
 } from "..";
 import { systemAccountId } from "../util";
 import { SYSTEM_TYPES } from "../../graph/system-types";
@@ -183,49 +182,11 @@ export default class extends EntityModel {
   ): Promise<void> {
     const { userModel, actorId } = params;
 
-    const outgoingAdminLinkEntityModels = await LinkEntityModel.getByQuery(
+    const outgoingAdminLinkEntityModels = await this.getOutgoingLinks(
       graphApi,
       {
-        all: [
-          {
-            equal: [
-              { path: ["leftEntity", "uuid"] },
-              { parameter: this.getEntityUuid() },
-            ],
-          },
-          {
-            equal: [
-              { path: ["leftEntity", "ownedById"] },
-              { parameter: this.getOwnedById() },
-            ],
-          },
-          {
-            equal: [
-              { path: ["type", "versionedUri"] },
-              {
-                parameter: SYSTEM_TYPES.linkEntityType.admin.getSchema().$id,
-              },
-            ],
-          },
-          {
-            equal: [
-              { path: ["rightEntity", "uuid"] },
-              { parameter: userModel.getEntityUuid() },
-            ],
-          },
-          {
-            equal: [
-              { path: ["rightEntity", "ownedById"] },
-              { parameter: userModel.getOwnedById() },
-            ],
-          },
-          {
-            equal: [{ path: ["version"] }, { parameter: "latest" }],
-          },
-          {
-            equal: [{ path: ["archived"] }, { parameter: false }],
-          },
-        ],
+        linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.admin,
+        rightEntityModel: userModel,
       },
     );
 
