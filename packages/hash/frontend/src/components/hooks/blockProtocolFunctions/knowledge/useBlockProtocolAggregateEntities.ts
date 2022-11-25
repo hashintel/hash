@@ -44,7 +44,7 @@ export const useBlockProtocolAggregateEntities = (): {
           constrainsValuesOn: 255,
           constrainsPropertiesOn: 255,
           // Only get the direct and absolute neighbor entity types
-          entityTypeResolveDepth: 2,
+          constrainsLinksOn: 2,
           // Only get absolute neighbor link entities and their endpoint entities
           entityResolveDepth: 2,
           ...data,

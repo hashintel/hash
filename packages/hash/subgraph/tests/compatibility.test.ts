@@ -23,7 +23,7 @@ test("Graph API subgraph type is compatible with library type", () => {
     depths: {
       constrainsValuesOn: 0,
       constrainsPropertiesOn: 0,
-      entityTypeResolveDepth: 0,
+      constrainsLinksOn: 0,
       entityResolveDepth: 0,
     },
   };

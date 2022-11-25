@@ -59,7 +59,7 @@ export const getAllLatestPropertyTypes: ResolverFn<
       graphResolveDepths: {
         constrainsValuesOn,
         constrainsPropertiesOn,
-        entityTypeResolveDepth: 0,
+        constrainsLinksOn: 0,
         entityResolveDepth: 0,
       },
     })
@@ -94,7 +94,7 @@ export const getPropertyType: ResolverFn<
       graphResolveDepths: {
         constrainsValuesOn,
         constrainsPropertiesOn,
-        entityTypeResolveDepth: 0,
+        constrainsLinksOn: 0,
         entityResolveDepth: 0,
       },
     })

@@ -30,7 +30,7 @@ export const useEntityTypeEntitiesContextValue = (
         constrainsValuesOn: 0,
         constrainsPropertiesOn: 1,
         linkTypeResolveDepth: 0,
-        entityTypeResolveDepth: 1,
+        constrainsLinksOn: 1,
         linkResolveDepth: 0,
         linkTargetEntityResolveDepth: 0,
       },

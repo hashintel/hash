@@ -21,7 +21,7 @@ export const useUsers = (): {
     variables: {
       constrainsValuesOn: 0,
       constrainsPropertiesOn: 0,
-      entityTypeResolveDepth: 1,
+      constrainsLinksOn: 1,
       entityResolveDepth: 2,
     },
     /** @todo reconsider caching. This is done for testing/demo purposes. */

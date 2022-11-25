@@ -25,7 +25,7 @@ export const useOrgs = (): {
     variables: {
       constrainsValuesOn: 0,
       constrainsPropertiesOn: 0,
-      entityTypeResolveDepth: 0,
+      constrainsLinksOn: 0,
       entityResolveDepth: 1,
     },
     /** @todo reconsider caching. This is done for testing/demo purposes. */

@@ -54,7 +54,7 @@ export const getAllLatestEntities: ResolverFn<
   {
     constrainsValuesOn,
     constrainsPropertiesOn,
-    entityTypeResolveDepth,
+    constrainsLinksOn,
     entityResolveDepth,
   },
   { dataSources },
@@ -70,7 +70,7 @@ export const getAllLatestEntities: ResolverFn<
       graphResolveDepths: {
         constrainsValuesOn,
         constrainsPropertiesOn,
-        entityTypeResolveDepth,
+        constrainsLinksOn,
         entityResolveDepth,
       },
     })
@@ -96,7 +96,7 @@ export const getEntity: ResolverFn<
     entityVersion,
     constrainsValuesOn,
     constrainsPropertiesOn,
-    entityTypeResolveDepth,
+    constrainsLinksOn,
     entityResolveDepth,
   },
   { dataSources },
@@ -128,7 +128,7 @@ export const getEntity: ResolverFn<
       graphResolveDepths: {
         constrainsValuesOn,
         constrainsPropertiesOn,
-        entityTypeResolveDepth,
+        constrainsLinksOn,
         entityResolveDepth,
       },
     })

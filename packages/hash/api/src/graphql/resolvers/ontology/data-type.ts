@@ -25,7 +25,7 @@ export const getAllLatestDataTypes: ResolverFn<
       graphResolveDepths: {
         constrainsValuesOn,
         constrainsPropertiesOn: 0,
-        entityTypeResolveDepth: 0,
+        constrainsLinksOn: 0,
         entityResolveDepth: 0,
       },
     })
@@ -56,7 +56,7 @@ export const getDataType: ResolverFn<
       graphResolveDepths: {
         constrainsValuesOn,
         constrainsPropertiesOn: 0,
-        entityTypeResolveDepth: 0,
+        constrainsLinksOn: 0,
         entityResolveDepth: 0,
       },
     })

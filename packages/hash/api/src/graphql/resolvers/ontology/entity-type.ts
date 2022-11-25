@@ -39,7 +39,7 @@ export const getAllLatestEntityTypes: ResolverFn<
   QueryGetAllLatestEntityTypesArgs
 > = async (
   _,
-  { constrainsValuesOn, constrainsPropertiesOn, entityTypeResolveDepth },
+  { constrainsValuesOn, constrainsPropertiesOn, constrainsLinksOn },
   { dataSources },
   __,
 ) => {
@@ -53,7 +53,7 @@ export const getAllLatestEntityTypes: ResolverFn<
       graphResolveDepths: {
         constrainsValuesOn,
         constrainsPropertiesOn,
-        entityTypeResolveDepth,
+        constrainsLinksOn,
         entityResolveDepth: 0,
       },
     })
@@ -78,7 +78,7 @@ export const getEntityType: ResolverFn<
     entityTypeId,
     constrainsValuesOn,
     constrainsPropertiesOn,
-    entityTypeResolveDepth,
+    constrainsLinksOn,
   },
   { dataSources },
   __,
@@ -93,7 +93,7 @@ export const getEntityType: ResolverFn<
       graphResolveDepths: {
         constrainsValuesOn,
         constrainsPropertiesOn,
-        entityTypeResolveDepth,
+        constrainsLinksOn,
         entityResolveDepth: 0,
       },
     })

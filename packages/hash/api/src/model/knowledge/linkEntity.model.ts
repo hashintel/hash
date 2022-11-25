@@ -101,8 +101,7 @@ export default class extends EntityModel {
           options?.graphResolveDepths?.constrainsValuesOn ?? 0,
         constrainsPropertiesOn:
           options?.graphResolveDepths?.constrainsPropertiesOn ?? 0,
-        entityTypeResolveDepth:
-          options?.graphResolveDepths?.entityTypeResolveDepth ?? 0,
+        constrainsLinksOn: options?.graphResolveDepths?.constrainsLinksOn ?? 0,
         entityResolveDepth:
           options?.graphResolveDepths?.entityResolveDepth ?? 0,
       },

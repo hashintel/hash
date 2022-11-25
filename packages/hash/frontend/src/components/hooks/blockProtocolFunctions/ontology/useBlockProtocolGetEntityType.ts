@@ -45,7 +45,7 @@ export const useBlockProtocolGetEntityType = (): {
           entityTypeId,
           constrainsValuesOn: 255,
           constrainsPropertiesOn: 255,
-          entityTypeResolveDepth: 1,
+          constrainsLinksOn: 1,
         },
       });
 

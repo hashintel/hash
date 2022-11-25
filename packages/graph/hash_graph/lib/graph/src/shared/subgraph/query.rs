@@ -69,7 +69,7 @@ use crate::{
 ///   "graphResolveDepths": {
 ///     "constrainsValuesOn": 0,
 ///     "constrainsPropertiesOn": 0,
-///     "entityTypeResolveDepth": 0,
+///     "constrainsLinksOn": 0,
 ///     "linkTargetEntityResolveDepth": 0,
 ///     "linkResolveDepth": 0
 ///   }
@@ -100,7 +100,7 @@ use crate::{
 ///   "graphResolveDepths": {
 ///     "constrainsValuesOn": 0,
 ///     "constrainsPropertiesOn": 0,
-///     "entityTypeResolveDepth": 0,
+///     "constrainsLinksOn": 0,
 ///     "linkTargetEntityResolveDepth": 0,
 ///     "linkResolveDepth": 0
 ///   }
