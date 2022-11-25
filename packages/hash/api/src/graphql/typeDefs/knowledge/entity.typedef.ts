@@ -17,7 +17,7 @@ export const entityTypedef = gql`
     entity: EntityDefinition!
   }
 
-  input LinkMetadata {
+  input LinkEntityMetadata {
     leftEntityId: EntityId!
     leftOrder: Int
     rightEntityId: EntityId!
@@ -99,7 +99,7 @@ export const entityTypedef = gql`
       """
       The link metadata of the entity (required when creating a link entity).
       """
-      linkMetadata: LinkMetadata
+      linkMetadata: LinkEntityMetadata
     ): Entity!
 
     """
