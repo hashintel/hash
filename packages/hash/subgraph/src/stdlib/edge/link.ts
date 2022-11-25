@@ -78,7 +78,7 @@ export const getIncomingLinksForEntityAtMoment = (
   entityId: EntityId,
   timestamp: Date | string,
   includeArchived: boolean = false,
-): EntityWithMetadata[] => {
+): Entity[] => {
   const timestampString =
     typeof timestamp === "string" ? timestamp : timestamp.toISOString();
 
@@ -115,7 +115,7 @@ export const getIncomingLinksForEntityAtMoment = (
 
       return linkEntity;
     })
-    .filter((x): x is EntityWithMetadata => x !== undefined);
+    .filter((x): x is Entity => x !== undefined);
 };
 
 /**
@@ -129,7 +129,7 @@ export const getLeftEntityForLinkEntityAtMoment = (
   subgraph: Subgraph,
   entityId: EntityId,
   timestamp: Date | string,
-): EntityWithMetadata => {
+): Entity => {
   const linkEntityEdges = mustBeDefined(
     subgraph.edges[entityId],
     "link entities must have left endpoints and therefore must have edges",
