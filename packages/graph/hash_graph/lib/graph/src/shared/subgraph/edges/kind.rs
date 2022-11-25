@@ -108,13 +108,13 @@ impl OutgoingEdgeResolveDepth {
     }
 }
 
-/// TODO: <https://app.asana.com/0/0/1203438518991188/f>
+/// TODO: DOC - <https://app.asana.com/0/0/1203438518991188/f>
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct GraphResolveDepths {
     pub inherits_from: OutgoingEdgeResolveDepth,
     pub constrains_value_on: OutgoingEdgeResolveDepth,
-    pub constraints_property_on: OutgoingEdgeResolveDepth,
+    pub constrains_property_on: OutgoingEdgeResolveDepth,
     pub constrains_link_on: OutgoingEdgeResolveDepth,
     pub constrains_link_destination_on: OutgoingEdgeResolveDepth,
     pub is_of_type: OutgoingEdgeResolveDepth,
@@ -136,8 +136,8 @@ impl GraphResolveDepths {
             changed = true;
         }
         if self
-            .constraints_property_on
-            .update(other.constraints_property_on)
+            .constrains_property_on
+            .update(other.constrains_property_on)
         {
             changed = true;
         }

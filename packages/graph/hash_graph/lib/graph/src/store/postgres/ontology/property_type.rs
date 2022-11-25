@@ -68,18 +68,16 @@ impl<C: AsClient> PostgresStore<C> {
                 // TODO: Use relation tables
                 //   see https://app.asana.com/0/0/1202884883200942/f
                 for property_type_ref in property_type.inner().property_type_references() {
-                    if current_resolve_depth.constraints_property_on.outgoing > 0 {
+                    if current_resolve_depth.constrains_property_on.outgoing > 0 {
                         self.get_property_type_as_dependency(
                             &OntologyTypeEditionId::from(property_type_ref.uri()),
                             dependency_context,
                             subgraph,
                             GraphResolveDepths {
-                                constraints_property_on: OutgoingEdgeResolveDepth {
-                                    outgoing: current_resolve_depth
-                                        .constraints_property_on
-                                        .outgoing
+                                constrains_property_on: OutgoingEdgeResolveDepth {
+                                    outgoing: current_resolve_depth.constrains_property_on.outgoing
                                         - 1,
-                                    ..current_resolve_depth.constraints_property_on
+                                    ..current_resolve_depth.constrains_property_on
                                 },
                                 ..current_resolve_depth
                             },

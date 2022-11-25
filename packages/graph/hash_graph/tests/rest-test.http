@@ -198,7 +198,7 @@ Content-Type: application/json
     "constrainsValueOn": {
       "outgoing": 0
     },
-    "constraintsPropertyOn": {
+    "constrainsPropertyOn": {
       "outgoing": 0
     },
     "constrainsLinkOn": {
@@ -341,7 +341,7 @@ Content-Type: application/json
     "constrainsValueOn": {
       "outgoing": 0
     },
-    "constraintsPropertyOn": {
+    "constrainsPropertyOn": {
       "outgoing": 0
     },
     "constrainsLinkOn": {
@@ -401,7 +401,7 @@ Content-Type: application/json
     "constrainsValueOn": {
       "outgoing": 0
     },
-    "constraintsPropertyOn": {
+    "constrainsPropertyOn": {
       "outgoing": 0
     },
     "constrainsLinkOn": {
@@ -541,7 +541,7 @@ Content-Type: application/json
     "constrainsValueOn": {
       "outgoing": 0
     },
-    "constraintsPropertyOn": {
+    "constrainsPropertyOn": {
       "outgoing": 0
     },
     "constrainsLinkOn": {
@@ -640,7 +640,7 @@ Content-Type: application/json
     "constrainsValueOn": {
       "outgoing": 0
     },
-    "constraintsPropertyOn": {
+    "constrainsPropertyOn": {
       "outgoing": 0
     },
     "constrainsLinkOn": {
@@ -712,7 +712,7 @@ Content-Type: application/json
     "constrainsValueOn": {
       "outgoing": 0
     },
-    "constraintsPropertyOn": {
+    "constrainsPropertyOn": {
       "outgoing": 0
     },
     "constrainsLinkOn": {
@@ -767,7 +767,7 @@ Content-Type: application/json
     "constrainsValueOn": {
       "outgoing": 0
     },
-    "constraintsPropertyOn": {
+    "constrainsPropertyOn": {
       "outgoing": 0
     },
     "constrainsLinkOn": {

@@ -75,7 +75,7 @@ fn bench_representative_read_multiple_entities(c: &mut Criterion) {
                 outgoing: 0,
                 incoming: 0,
             },
-            constraints_property_on: OutgoingEdgeResolveDepth {
+            constrains_property_on: OutgoingEdgeResolveDepth {
                 outgoing: 0,
                 incoming: 0,
             },
@@ -109,7 +109,7 @@ fn bench_representative_read_multiple_entities(c: &mut Criterion) {
                 outgoing: 0,
                 incoming: 0,
             },
-            constraints_property_on: OutgoingEdgeResolveDepth {
+            constrains_property_on: OutgoingEdgeResolveDepth {
                 outgoing: 0,
                 incoming: 0,
             },
@@ -143,7 +143,7 @@ fn bench_representative_read_multiple_entities(c: &mut Criterion) {
                 outgoing: 0,
                 incoming: 0,
             },
-            constraints_property_on: OutgoingEdgeResolveDepth {
+            constrains_property_on: OutgoingEdgeResolveDepth {
                 outgoing: 2,
                 incoming: 0,
             },
@@ -177,7 +177,7 @@ fn bench_representative_read_multiple_entities(c: &mut Criterion) {
                 outgoing: 2,
                 incoming: 0,
             },
-            constraints_property_on: OutgoingEdgeResolveDepth {
+            constrains_property_on: OutgoingEdgeResolveDepth {
                 outgoing: 2,
                 incoming: 0,
             },
@@ -211,7 +211,7 @@ fn bench_representative_read_multiple_entities(c: &mut Criterion) {
                 outgoing: 255,
                 incoming: 0,
             },
-            constraints_property_on: OutgoingEdgeResolveDepth {
+            constrains_property_on: OutgoingEdgeResolveDepth {
                 outgoing: 255,
                 incoming: 0,
             },
@@ -251,8 +251,8 @@ fn bench_representative_read_multiple_entities(c: &mut Criterion) {
                     .iter()
                     .sum::<u8>(),
                     [
-                        graph_resolve_depth.constraints_property_on.incoming,
-                        graph_resolve_depth.constraints_property_on.outgoing,
+                        graph_resolve_depth.constrains_property_on.incoming,
+                        graph_resolve_depth.constrains_property_on.outgoing,
                     ]
                     .iter()
                     .sum::<u8>(),
@@ -303,8 +303,8 @@ fn bench_representative_read_multiple_entities(c: &mut Criterion) {
                     .iter()
                     .sum::<u8>(),
                     [
-                        graph_resolve_depth.constraints_property_on.incoming,
-                        graph_resolve_depth.constraints_property_on.outgoing,
+                        graph_resolve_depth.constrains_property_on.incoming,
+                        graph_resolve_depth.constrains_property_on.outgoing,
                     ]
                     .iter()
                     .sum::<u8>(),

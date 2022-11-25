@@ -795,7 +795,7 @@ export interface GraphResolveDepths {
    * @type {OutgoingEdgeResolveDepth}
    * @memberof GraphResolveDepths
    */
-  constraintsPropertyOn: OutgoingEdgeResolveDepth;
+  constrainsPropertyOn: OutgoingEdgeResolveDepth;
   /**
    *
    * @type {EdgeResolveDepths}
