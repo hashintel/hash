@@ -145,7 +145,7 @@ impl<'q> Filter<'q, Entity> {
     /// Creates a `Filter` to search for a specific entity edition, identified by its
     /// [`EntityEditionId`].
     #[must_use]
-    pub fn for_entities_by_edition_id(edition_id: EntityEditionId) -> Self {
+    pub fn for_entity_by_edition_id(edition_id: EntityEditionId) -> Self {
         Self::All(vec![
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::OwnedById)),
@@ -676,7 +676,7 @@ mod tests {
     }
 
     #[test]
-    fn for_entities_by_edition_id() {
+    fn for_entity_by_edition_id() {
         let entity_edition_id = EntityEditionId::new(
             EntityId::new(
                 OwnedById::new(AccountId::new(Uuid::new_v4())),
@@ -703,7 +703,7 @@ mod tests {
         }};
 
         test_filter_representation(
-            &Filter::for_entities_by_edition_id(entity_edition_id),
+            &Filter::for_entity_by_edition_id(entity_edition_id),
             &expected,
         );
     }

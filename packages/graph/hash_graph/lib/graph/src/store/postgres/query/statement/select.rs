@@ -821,7 +821,7 @@ mod tests {
         }
 
         #[test]
-        fn for_entities_by_edition_id() {
+        fn for_entity_by_edition_id() {
             let entity_edition_id = EntityEditionId::new(
                 EntityId::new(
                     OwnedById::new(AccountId::new(Uuid::new_v4())),
@@ -832,7 +832,7 @@ mod tests {
 
             let mut compiler = SelectCompiler::<Entity>::with_asterisk();
 
-            let filter = Filter::for_entities_by_edition_id(entity_edition_id);
+            let filter = Filter::for_entity_by_edition_id(entity_edition_id);
             compiler.add_filter(&filter);
 
             test_compilation(
