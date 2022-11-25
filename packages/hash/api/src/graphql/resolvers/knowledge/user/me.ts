@@ -7,8 +7,13 @@ export const me: ResolverFn<
   {},
   LoggedInGraphQLContext,
   QueryMeArgs
-> = async (_, { hasLeftEntity }, { userModel, dataSources: { graphApi } }) => {
+> = async (
+  _,
+  { hasLeftEntity, hasRightEntity },
+  { userModel, dataSources: { graphApi } },
+) => {
   return await userModel.getRootedSubgraph(graphApi, {
     hasLeftEntity,
+    hasRightEntity,
   });
 };
