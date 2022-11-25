@@ -30,7 +30,7 @@ export const entityTypedef = gql`
     """
     The properties of new entity.
     """
-    entityProperties: JSONObject
+    entityProperties: PropertyObject
     """
     Associated Entities to either create/get and link to this entity.
     """
@@ -84,7 +84,7 @@ export const entityTypedef = gql`
       """
       The properties of new entity.
       """
-      properties: JSONObject!
+      properties: PropertyObject!
       """
       Associated Entities to either create/get and link to this entity.
       """
@@ -102,7 +102,7 @@ export const entityTypedef = gql`
       """
       The updated properties of the entity.
       """
-      updatedProperties: JSONObject!
+      updatedProperties: PropertyObject!
     ): Entity!
   }
 `;

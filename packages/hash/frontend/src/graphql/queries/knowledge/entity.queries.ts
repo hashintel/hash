@@ -4,7 +4,7 @@ import { subgraphFieldsFragment } from "../subgraph";
 export const createEntityMutation = gql`
   mutation createEntity(
     $entityTypeId: VersionedUri!
-    $properties: JSONObject!
+    $properties: PropertyObject!
   ) {
     # This is a scalar, which has no selection.
     createEntity(entityTypeId: $entityTypeId, properties: $properties)
@@ -56,7 +56,10 @@ export const getAllLatestEntitiesQuery = gql`
 `;
 
 export const updateEntityMutation = gql`
-  mutation updateEntity($entityId: EntityId!, $updatedProperties: JSONObject!) {
+  mutation updateEntity(
+    $entityId: EntityId!
+    $updatedProperties: PropertyObject!
+  ) {
     # This is a scalar, which has no selection.
     updateEntity(entityId: $entityId, updatedProperties: $updatedProperties)
   }
