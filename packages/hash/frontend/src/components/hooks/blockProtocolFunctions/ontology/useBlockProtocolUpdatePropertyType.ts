@@ -62,10 +62,7 @@ export const useBlockProtocolUpdatePropertyType = (
       }
 
       return {
-        data: {
-          propertyTypeId: responseData.updatePropertyType.propertyTypeId,
-          propertyType: responseData.updatePropertyType.propertyType,
-        },
+        data: responseData.updatePropertyType,
       };
     },
     [updateFn, readonly],

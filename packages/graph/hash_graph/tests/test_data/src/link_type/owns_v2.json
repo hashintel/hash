@@ -1,8 +1,0 @@
-{
-  "kind": "linkType",
-  "$id": "https://blockprotocol.org/@alice/types/link-type/owns/v/2",
-  "title": "Owns",
-  "pluralTitle": "Owns",
-  "description": "Have (something) as one's own; possess",
-  "relatedKeywords": ["has", "have", "possess", "own"]
-}

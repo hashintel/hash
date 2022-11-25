@@ -4,7 +4,7 @@ mod kind;
 use alloc::boxed::Box;
 #[cfg(nightly)]
 use core::any::{self, Demand, Provider};
-use core::{any::TypeId, fmt, panic::Location};
+use core::{any::TypeId, fmt};
 
 use self::frame_impl::FrameImpl;
 pub use self::kind::{AttachmentKind, FrameKind};
@@ -22,31 +22,10 @@ pub use self::kind::{AttachmentKind, FrameKind};
 /// [`Report::request_ref()`]: crate::Report::request_ref
 pub struct Frame {
     frame: Box<dyn FrameImpl>,
-    location: &'static Location<'static>,
     sources: Box<[Frame]>,
 }
 
 impl Frame {
-    /// Returns the location where this `Frame` was created.
-    #[must_use]
-    #[deprecated(
-        since = "0.2.4",
-        note = "`location()` has been replaced with an additional attachment containing \
-                `Location<'static>` for each `Context`, similar to how `Backtrace` and \
-                `SpanTrace` are handled. Note: This means that once `location()` is removed you \
-                won't be able to get location of attachments anymore."
-    )]
-    pub const fn location(&self) -> &'static Location<'static> {
-        self.location
-    }
-
-    #[allow(missing_docs)]
-    #[must_use]
-    #[deprecated(since = "0.2.0", note = "use `sources()` instead")]
-    pub const fn source(&self) -> Option<&Self> {
-        self.sources().first()
-    }
-
     /// Returns a shared reference to the source of this `Frame`.
     ///
     /// This corresponds to the `Frame` below this one in a [`Report`].
@@ -55,13 +34,6 @@ impl Frame {
     #[must_use]
     pub const fn sources(&self) -> &[Self] {
         &self.sources
-    }
-
-    #[allow(missing_docs)]
-    #[must_use]
-    #[deprecated(since = "0.2.0", note = "use `sources_mut()` instead")]
-    pub fn source_mut(&mut self) -> Option<&mut Self> {
-        self.sources_mut().first_mut()
     }
 
     /// Returns a mutable reference to the sources of this `Frame`.

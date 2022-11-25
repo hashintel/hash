@@ -1,4 +1,7 @@
-import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
+import {
+  faAsterisk,
+  faMagnifyingGlass,
+} from "@fortawesome/free-solid-svg-icons";
 import { GridCell, GridCellKind, Item } from "@glideapps/glide-data-grid";
 import {
   Chip,
@@ -8,23 +11,19 @@ import {
 import { Box, Paper, Stack } from "@mui/material";
 import { FunctionComponent, useCallback, useMemo, useState } from "react";
 import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
-import { GlideGrid } from "../../../../../components/GlideGlid/glide-grid";
-import {
-  createHandleHeaderClicked,
-  sortRowData,
-  TableSort,
-} from "../../../../../components/GlideGlid/utils/sorting";
-import { useDrawHeader } from "../../../../../components/GlideGlid/utils/use-draw-header";
+import { extractOwnedByIdFromEntityId } from "@hashintel/hash-subgraph";
 import { SectionWrapper } from "../../../shared/section-wrapper";
 import { WhiteChip } from "../../../shared/white-chip";
-import { blankCell } from "../../../../../components/GlideGlid/utils";
+import { blankCell } from "../../../../../components/grid/utils";
 import { HomeIcon } from "../../../../../shared/icons/home-icon";
 import { EarthIcon } from "../../../../../shared/icons/earth-icon";
 import { renderTextIconCell } from "../text-icon-cell";
 import { useRouteNamespace } from "../use-route-namespace";
-import { useEntitiesTable } from "../use-entities-table";
+import { TypeEntitiesRow, useEntitiesTable } from "../use-entities-table";
 import { useEntityTypeEntities } from "../use-entity-type-entities";
 import { useEntityType } from "../use-entity-type";
+import { Grid } from "../../../../../components/grid/grid";
+import { SectionEmptyState } from "../../../shared/section-empty-state";
 
 export const EntitiesTab: FunctionComponent = () => {
   const entityType = useEntityType();
@@ -32,19 +31,19 @@ export const EntitiesTab: FunctionComponent = () => {
     useEntityTypeEntities();
 
   const [showSearch, setShowSearch] = useState(false);
-  const [tableSort, setTableSort] = useState<TableSort<string>>({
-    key: "entity",
-    dir: "desc",
-  });
 
-  const namespace = useRouteNamespace();
+  const { namespace } = useRouteNamespace();
 
   const { columns, rows } =
     useEntitiesTable(entities, entityTypes, propertyTypes, subgraph) ?? {};
 
   const entitiesCount = useMemo(() => {
     const namespaceEntities =
-      entities?.filter((entity) => entity.ownedById === namespace?.id) ?? [];
+      entities?.filter(
+        (entity) =>
+          extractOwnedByIdFromEntityId(entity.metadata.editionId.baseId) ===
+          namespace?.accountId,
+      ) ?? [];
 
     return {
       namespace: namespaceEntities.length,
@@ -52,56 +51,49 @@ export const EntitiesTab: FunctionComponent = () => {
     };
   }, [entities, namespace]);
 
-  const drawHeader = useDrawHeader(tableSort, columns ?? []);
+  const createGetCellContent = useCallback(
+    (rowData: TypeEntitiesRow[]) =>
+      ([colIndex, rowIndex]: Item): GridCell => {
+        if (rowData && columns) {
+          const row = rowData[rowIndex];
+          const columnId = columns[colIndex]?.id;
+          const cellValue = columnId && row?.[columnId];
 
-  const sortedRows = sortRowData(rows ?? [], tableSort);
+          if (cellValue) {
+            if (columnId === "entity") {
+              return {
+                kind: GridCellKind.Custom,
+                allowOverlay: false,
+                readonly: true,
+                copyData: cellValue,
+                data: {
+                  kind: "text-icon-cell",
+                  icon: "bpAsterisk",
+                  value: cellValue,
+                },
+              };
+            }
 
-  const getCellContent = useCallback(
-    ([colIndex, rowIndex]: Item): GridCell => {
-      if (sortedRows && columns) {
-        const row = sortedRows[rowIndex];
-        const columnId = columns[colIndex]?.id;
-        const cellValue = columnId && row?.[columnId];
-
-        if (cellValue) {
-          if (columnId === "entity") {
             return {
-              kind: GridCellKind.Custom,
-              allowOverlay: false,
+              kind: GridCellKind.Text,
+              allowOverlay: true,
               readonly: true,
-              copyData: cellValue,
-              data: {
-                kind: "text-icon-cell",
-                icon: "bpAsterisk",
-                value: cellValue,
-              },
+              displayData: String(cellValue),
+              data: cellValue,
             };
           }
-
-          return {
-            kind: GridCellKind.Text,
-            allowOverlay: true,
-            readonly: true,
-            displayData: String(cellValue),
-            data: cellValue,
-          };
         }
-      }
 
-      return blankCell;
-    },
-    [sortedRows, columns],
+        return blankCell;
+      },
+    [columns],
   );
 
-  if (!columns || !sortedRows) {
+  if (!columns || !rows) {
     return null;
   }
 
-  const handleHeaderClicked = createHandleHeaderClicked(
-    columns,
-    tableSort,
-    setTableSort,
-  );
+  const isEmpty = entitiesCount.namespace + entitiesCount.public === 0;
 
   return (
     <Box>
@@ -145,16 +137,24 @@ export const EntitiesTab: FunctionComponent = () => {
         }
       >
         <Paper sx={{ overflow: "hidden" }}>
-          <GlideGrid
-            showSearch={showSearch}
-            onSearchClose={() => setShowSearch(false)}
-            onHeaderClicked={handleHeaderClicked}
-            drawHeader={drawHeader}
-            columns={columns}
-            rows={sortedRows.length}
-            getCellContent={getCellContent}
-            customRenderers={[renderTextIconCell]}
-          />
+          {isEmpty ? (
+            <SectionEmptyState
+              title="There are no entities of this type visible to you"
+              titleIcon={
+                <FontAwesomeIcon icon={faAsterisk} sx={{ fontSize: 18 }} />
+              }
+              description="Assigning this type to an entity will result in it being shown here"
+            />
+          ) : (
+            <Grid
+              showSearch={showSearch}
+              onSearchClose={() => setShowSearch(false)}
+              columns={columns}
+              rowData={rows}
+              createGetCellContent={createGetCellContent}
+              customRenderers={[renderTextIconCell]}
+            />
+          )}
         </Paper>
       </SectionWrapper>
     </Box>

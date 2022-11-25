@@ -1,8 +1,8 @@
-import { JsonObject } from "@blockprotocol/core";
 import { DataSource } from "apollo-datasource";
 import fetch from "node-fetch";
-import { DbAdapter } from "../db";
-import { EntityType, UserModel } from "../model";
+import { EntityType } from "@blockprotocol/type-system-web";
+import { EntityTypeModel, UserModel } from "../model";
+import { GraphApi } from "../graph";
 
 /** @todo: When task scheduling is more mature and we move away from the temporary `hash-task-executor` we should have a single source of */
 //  truth for available tasks, likely importable.
@@ -56,46 +56,41 @@ export const connectToTaskExecutor = (config: Config) => {
 /**
  * Provides ways to look up entityTypeIds by name, and to create new ones.
  *
- * @param db - The DB Adapter to use for queries
+ * @param graphApi - The Graph API client to use for queries
  * @param user - The User that's making the query
  * @returns an object with a getExisting, and a createNew, method
  *
  * @todo - This is temporary and should be removed when we extend the EntityType model class to support these actions properly
  */
-export const CachedEntityTypes = async (db: DbAdapter, user: UserModel) => {
-  const streamsWithEntityTypes: Map<string, string> = new Map();
-  const dbTypes = await db.getAccountEntityTypes({
-    accountId: user.entityId,
-  });
+export const CachedEntityTypes = async (
+  graphApi: GraphApi,
+  user: UserModel,
+) => {
+  const streamsWithEntityTypes: Map<string, EntityTypeModel> = new Map();
+  const entityTypes = await EntityTypeModel.getAllLatest(graphApi);
 
   return {
-    getExisting: (entityTypeName: string) => {
+    getExisting: (entityTypeTitle: string) => {
       // check the map to find the entityTypeId associated with the stream if we've already encountered it
-      let entityTypeId = streamsWithEntityTypes.get(entityTypeName);
+      let entityTypeModel = streamsWithEntityTypes.get(entityTypeTitle);
 
-      if (entityTypeId === undefined) {
+      if (entityTypeModel === undefined) {
         // check all entityTypes to see if there's one with the same name as the stream
-        entityTypeId = dbTypes.find(
-          (entityType) => entityType.metadata.name === entityTypeName,
-        )?.entityId; /** @todo - entityId does not make sense here, https://app.asana.com/0/1200211978612931/1200809642643269/f */
+        entityTypeModel = entityTypes.find(
+          (entityType) => entityType.getSchema().title === entityTypeTitle,
+        );
       }
-      return entityTypeId;
+      return entityTypeModel;
     },
 
-    createNew: async (entityTypeName: string, jsonSchema?: JsonObject) => {
-      const { entityId } = await EntityType.create(db, {
-        /** @todo should this be a param on the graphql endpoint */
-        accountId: user.entityId,
-        createdByAccountId: user.entityId,
-        description: undefined,
-        name: entityTypeName,
-        schema: jsonSchema,
+    createNew: async (entityTypeTitle: string, jsonSchema: EntityType) => {
+      const entityTypeModel = await EntityTypeModel.create(graphApi, {
+        ownedById: user.getEntityUuid(),
+        actorId: user.getEntityUuid(),
+        schema: { ...jsonSchema, title: entityTypeTitle },
       });
 
-      streamsWithEntityTypes.set(
-        entityTypeName,
-        entityId,
-      ); /** @todo - entityId is confusing */
+      streamsWithEntityTypes.set(entityTypeTitle, entityTypeModel);
     },
   };
 };

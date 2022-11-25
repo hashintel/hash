@@ -20,7 +20,7 @@ export const deletePersistedComment: ResolverFn<
   });
 
   const updatedCommentModel = await commentModel.delete(graphApi, {
-    actorId: userModel.entityId,
+    actorId: userModel.getEntityUuid(),
   });
 
   return mapCommentModelToGQL(updatedCommentModel);

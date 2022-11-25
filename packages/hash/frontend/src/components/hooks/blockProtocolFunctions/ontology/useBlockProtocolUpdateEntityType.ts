@@ -62,10 +62,7 @@ export const useBlockProtocolUpdateEntityType = (
       }
 
       return {
-        data: {
-          entityTypeId: responseData.updateEntityType.entityTypeId,
-          entityType: responseData.updateEntityType.entityType,
-        },
+        data: responseData.updateEntityType,
       };
     },
     [updateFn, readonly],

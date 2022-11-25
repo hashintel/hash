@@ -1,50 +1,37 @@
 import { gql } from "@apollo/client";
 import { subgraphFieldsFragment } from "../subgraph";
 
-export const persistedEntityFieldsFragment = gql`
-  fragment PersistedEntityFields on UnknownPersistedEntity {
-    entityId
-    entityTypeId
-    entityVersion
-    ownedById
-    properties
-  }
-`;
-
-export const createPersistedEntityMutation = gql`
-  mutation createPersistedEntity($entityTypeId: ID!, $properties: JSONObject!) {
-    createPersistedEntity(
+export const createEntityWithMetadataMutation = gql`
+  mutation createEntityWithMetadata(
+    $entityTypeId: VersionedUri!
+    $properties: JSONObject!
+  ) {
+    # This is a scalar, which has no selection.
+    createEntityWithMetadata(
       entityTypeId: $entityTypeId
       properties: $properties
-    ) {
-      ...PersistedEntityFields
-    }
+    )
   }
-  ${persistedEntityFieldsFragment}
 `;
 
-/** @todo - rename these and remove "persisted" - https://app.asana.com/0/0/1203157172269854/f */
+/** @todo - rename these to omit the "WithMetadata" suffix - https://app.asana.com/0/1201095311341924/1203411297593704/f */
 
-export const getPersistedEntityQuery = gql`
-  query getPersistedEntity(
-    $entityId: ID!
+export const getEntityWithMetadataQuery = gql`
+  query getEntityWithMetadata(
+    $entityId: EntityId!
     $entityVersion: String
     $dataTypeResolveDepth: Int!
     $propertyTypeResolveDepth: Int!
-    $linkTypeResolveDepth: Int!
     $entityTypeResolveDepth: Int!
-    $linkResolveDepth: Int!
-    $linkTargetEntityResolveDepth: Int!
+    $entityResolveDepth: Int!
   ) {
-    getPersistedEntity(
+    getEntityWithMetadata(
       entityId: $entityId
       entityVersion: $entityVersion
       dataTypeResolveDepth: $dataTypeResolveDepth
       propertyTypeResolveDepth: $propertyTypeResolveDepth
-      linkTypeResolveDepth: $linkTypeResolveDepth
       entityTypeResolveDepth: $entityTypeResolveDepth
-      linkResolveDepth: $linkResolveDepth
-      linkTargetEntityResolveDepth: $linkTargetEntityResolveDepth
+      entityResolveDepth: $entityResolveDepth
     ) {
       ...SubgraphFields
     }
@@ -52,22 +39,18 @@ export const getPersistedEntityQuery = gql`
   ${subgraphFieldsFragment}
 `;
 
-export const getAllLatestEntitiesQuery = gql`
-  query getAllLatestPersistedEntities(
+export const getAllLatestEntitiesWithMetadataQuery = gql`
+  query getAllLatestEntitiesWithMetadata(
     $dataTypeResolveDepth: Int!
     $propertyTypeResolveDepth: Int!
-    $linkTypeResolveDepth: Int!
     $entityTypeResolveDepth: Int!
-    $linkResolveDepth: Int!
-    $linkTargetEntityResolveDepth: Int!
+    $entityResolveDepth: Int!
   ) {
-    getAllLatestPersistedEntities(
+    getAllLatestEntitiesWithMetadata(
       dataTypeResolveDepth: $dataTypeResolveDepth
       propertyTypeResolveDepth: $propertyTypeResolveDepth
-      linkTypeResolveDepth: $linkTypeResolveDepth
       entityTypeResolveDepth: $entityTypeResolveDepth
-      linkTargetEntityResolveDepth: $linkTargetEntityResolveDepth
-      linkResolveDepth: $linkResolveDepth
+      entityResolveDepth: $entityResolveDepth
     ) {
       ...SubgraphFields
     }
@@ -75,36 +58,15 @@ export const getAllLatestEntitiesQuery = gql`
   ${subgraphFieldsFragment}
 `;
 
-export const getOutgoingPersistedLinksQuery = gql`
-  query getOutgoingPersistedLinks($sourceEntityId: ID!, $linkTypeId: String) {
-    outgoingPersistedLinks(
-      sourceEntityId: $sourceEntityId
-      linkTypeId: $linkTypeId
-    ) {
-      ownedById
-      linkTypeId
-      index
-      sourceEntityId
-      targetEntityId
-      targetEntity {
-        ...PersistedEntityFields
-      }
-    }
-  }
-  ${persistedEntityFieldsFragment}
-`;
-
-export const updatePersistedEntityMutation = gql`
-  mutation updatePersistedEntity(
-    $entityId: ID!
+export const updateEntityWithMetadataMutation = gql`
+  mutation updateEntityWithMetadata(
+    $entityId: EntityId!
     $updatedProperties: JSONObject!
   ) {
-    updatePersistedEntity(
+    # This is a scalar, which has no selection.
+    updateEntityWithMetadata(
       entityId: $entityId
       updatedProperties: $updatedProperties
-    ) {
-      ...PersistedEntityFields
-    }
+    )
   }
-  ${persistedEntityFieldsFragment}
 `;

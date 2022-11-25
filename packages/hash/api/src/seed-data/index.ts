@@ -2,7 +2,7 @@ import { Logger } from "@hashintel/hash-backend-utils/logger";
 import {
   SYSTEM_ACCOUNT_NAME,
   SYSTEM_ACCOUNT_SHORTNAME,
-} from "@hashintel/hash-backend-utils/system";
+} from "@hashintel/hash-shared/environment";
 import { GraphApi } from "@hashintel/hash-graph-client";
 import { OrgModel, OrgSize } from "../model";
 import { systemAccountId } from "../model/util";
@@ -49,7 +49,7 @@ const seedOrg = async (params: {
     },
   ];
 
-  await seedPages(pageTitles, sharedOrgModel.entityId, params);
+  await seedPages(pageTitles, sharedOrgModel.getEntityUuid(), params);
 
   logger.info(
     `Development Org with shortname = "${sharedOrgModel.getShortname()}" now has seeded pages.`,
@@ -101,7 +101,7 @@ export const seedOrgsAndUsers = async (params: {
         },
       ];
 
-      await seedPages(pageTitles, user.entityId, params);
+      await seedPages(pageTitles, user.getEntityUuid(), params);
       logger.info(
         `Seeded User with shortname = "${user.getShortname()}" now has seeded pages.`,
       );

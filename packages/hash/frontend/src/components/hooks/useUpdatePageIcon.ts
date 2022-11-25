@@ -3,6 +3,10 @@ import { getPageInfoQuery } from "@hashintel/hash-shared/queries/page.queries";
 
 import { useCallback } from "react";
 import {
+  EntityId,
+  extractOwnedByIdFromEntityId,
+} from "@hashintel/hash-subgraph";
+import {
   GetPageInfoQueryVariables,
   UpdatePersistedPageMutation,
   UpdatePersistedPageMutationVariables,
@@ -17,16 +21,15 @@ export const useUpdatePageIcon = () => {
   >(updatePersistedPage, { awaitRefetchQueries: true });
 
   const getRefetchQueries = useCallback(
-    (ownedById: string, pageEntityId: string) => [
+    (pageEntityId: EntityId) => [
       {
         query: getAccountPagesTree,
-        variables: { ownedById },
+        variables: { ownedById: extractOwnedByIdFromEntityId(pageEntityId) },
       },
       {
         query: getPageInfoQuery,
         variables: <GetPageInfoQueryVariables>{
           entityId: pageEntityId,
-          ownedById,
         },
       },
     ],
@@ -34,13 +37,13 @@ export const useUpdatePageIcon = () => {
   );
 
   const updatePageIcon = useCallback(
-    async (icon: string, ownedById: string, pageEntityId: string) => {
+    async (icon: string, pageEntityId: EntityId) => {
       await updatePageFn({
         variables: {
           entityId: pageEntityId,
           updatedProperties: { icon },
         },
-        refetchQueries: getRefetchQueries(ownedById, pageEntityId),
+        refetchQueries: getRefetchQueries(pageEntityId),
       });
     },
     [updatePageFn, getRefetchQueries],

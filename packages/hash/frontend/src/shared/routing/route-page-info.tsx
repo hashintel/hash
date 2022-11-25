@@ -1,3 +1,7 @@
+import {
+  EntityId,
+  entityIdFromOwnedByIdAndEntityUuid,
+} from "@hashintel/hash-subgraph";
 import { useRouter } from "next/router";
 import {
   createContext,
@@ -8,7 +12,7 @@ import {
 } from "react";
 
 type RoutePageInfo = {
-  pageEntityId: string;
+  pageEntityId: EntityId;
 };
 
 const RoutePageInfoContext = createContext<RoutePageInfo | undefined>(
@@ -25,17 +29,20 @@ export const RoutePageInfoProvider: FunctionComponent<{
 }> = ({ children }) => {
   const router = useRouter();
 
+  const accountSlug = router.query["account-slug"];
   const pageSlug = router.query["page-slug"];
 
-  const contextValue = useMemo<RoutePageInfo | undefined>(
-    () =>
-      typeof pageSlug === "string"
-        ? {
-            pageEntityId: pageSlug, // @todo parse and use suspense for lookup if needed
-          }
-        : undefined,
-    [pageSlug],
-  );
+  const contextValue = useMemo<RoutePageInfo | undefined>(() => {
+    return typeof accountSlug === "string" && typeof pageSlug === "string"
+      ? {
+          // @todo parse and use suspense for lookup if needed
+          pageEntityId: entityIdFromOwnedByIdAndEntityUuid(
+            accountSlug,
+            pageSlug,
+          ),
+        }
+      : undefined;
+  }, [accountSlug, pageSlug]);
 
   return (
     <RoutePageInfoContext.Provider value={contextValue}>

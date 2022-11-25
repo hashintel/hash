@@ -1,18 +1,19 @@
+import { EntityVersion } from "@hashintel/hash-subgraph";
 import { CommentModel } from "../../../../model";
 import { ResolverFn } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
 import { UnresolvedPersistedCommentGQL } from "../model-mapping";
 
 export const persistedCommentTextUpdatedAt: ResolverFn<
-  Promise<string>,
+  Promise<EntityVersion>,
   UnresolvedPersistedCommentGQL,
   LoggedInGraphQLContext,
   {}
-> = async ({ entityId }, _, { dataSources: { graphApi } }) => {
+> = async ({ metadata }, _, { dataSources: { graphApi } }) => {
   const commentModel = await CommentModel.getCommentById(graphApi, {
-    entityId,
+    entityId: metadata.editionId.baseId,
   });
   const textEntityModel = await commentModel.getHasText(graphApi);
 
-  return textEntityModel.version;
+  return textEntityModel.getVersion();
 };

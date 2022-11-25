@@ -2,12 +2,12 @@ use std::borrow::Cow;
 
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::{
-    knowledge::{EntityId, EntityQueryPath, LinkQueryPath},
+    knowledge::{EntityQueryPath, EntityUuid},
     store::{
         query::{Filter, FilterExpression, Parameter},
-        EntityStore, LinkStore,
+        EntityStore,
     },
-    subgraph::{GraphResolveDepths, StructuralQuery},
+    subgraph::{depths::GraphResolveDepths, query::StructuralQuery},
 };
 use rand::{prelude::IteratorRandom, thread_rng};
 use tokio::runtime::Runtime;
@@ -18,24 +18,22 @@ pub fn bench_get_entity_by_id(
     b: &mut Bencher,
     runtime: &Runtime,
     store: &Store,
-    entity_ids: &[EntityId],
+    entity_uuids: &[EntityUuid],
 ) {
     b.to_async(runtime).iter_batched(
         || {
             // Each iteration, *before timing*, pick a random entity from the sample to query
-            *entity_ids.iter().choose(&mut thread_rng()).unwrap()
+            *entity_uuids.iter().choose(&mut thread_rng()).unwrap()
         },
-        |entity_id| async move {
+        |entity_uuid| async move {
             let subgraph = store
                 .get_entity(&StructuralQuery {
-                    filter: Filter::for_latest_entity_by_entity_id(entity_id),
+                    filter: Filter::for_latest_entity_by_entity_uuid(entity_uuid),
                     graph_resolve_depths: GraphResolveDepths {
                         data_type_resolve_depth: 0,
                         property_type_resolve_depth: 0,
                         entity_type_resolve_depth: 0,
-                        link_type_resolve_depth: 0,
-                        link_resolve_depth: 0,
-                        link_target_entity_resolve_depth: 0,
+                        entity_resolve_depth: 0,
                     },
                 })
                 .await
@@ -79,13 +77,13 @@ pub fn bench_get_link_by_target_by_property(
 ) {
     b.to_async(runtime).iter(|| async move {
         let subgraph = store
-            .get_links(&StructuralQuery {
+            .get_entity(&StructuralQuery {
                 filter: Filter::Equal(
-                    Some(FilterExpression::Path(LinkQueryPath::Target(Some(
-                        EntityQueryPath::Properties(Some(Cow::Borrowed(
+                    Some(FilterExpression::Path(EntityQueryPath::RightEntity(
+                        Box::new(EntityQueryPath::Properties(Some(Cow::Borrowed(
                             "https://blockprotocol.org/@alice/types/property-type/name/",
-                        ))),
-                    )))),
+                        )))),
+                    ))),
                     Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                         "Alice",
                     )))),
@@ -94,6 +92,6 @@ pub fn bench_get_link_by_target_by_property(
             })
             .await
             .expect("failed to read entity from store");
-        assert_eq!(subgraph.len(), 100);
+        assert_eq!(subgraph.roots.len(), 100);
     });
 }

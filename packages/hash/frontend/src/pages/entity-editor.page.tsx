@@ -1,25 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { Container, Typography } from "@mui/material";
-import init, { ValueOrArray } from "@blockprotocol/type-system-web";
+import init, { ValueOrArray, Array } from "@blockprotocol/type-system-web";
 import { Button } from "@hashintel/hash-design-system";
 import { types } from "@hashintel/hash-shared/types";
+import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
+import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
+import { getPropertyTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
 import { useAuthenticatedUser } from "../components/hooks/useAuthenticatedUser";
 import { NextPageWithLayout } from "../shared/layout";
 import { useBlockProtocolFunctionsWithOntology } from "./type-editor/blockprotocol-ontology-functions-hook";
-import {
-  getPersistedEntityType,
-  getPersistedPropertyType,
-  getRootsAsEntities,
-  Subgraph,
-} from "../lib/subgraph";
 
 /**
  * Helper type-guard for determining if a `ValueOrArray` definition is an array or a value.
  */
-const isArrayDefinition = <T,>(
-  input: ValueOrArray<T>,
-): input is ValueOrArray.Array<T> => "type" in input && input.type === "array";
+const isArrayDefinition = <T,>(input: ValueOrArray<T>): input is Array<T> =>
+  "type" in input && input.type === "array";
 
 /**
  * This component is an example usage of the `getEntity` BP function.
@@ -27,9 +24,10 @@ const isArrayDefinition = <T,>(
  */
 const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
   const { authenticatedUser } = useAuthenticatedUser();
-  const [userSubgraph, setUserSubgraph] = useState<Subgraph>();
+  const [userSubgraph, setUserSubgraph] =
+    useState<Subgraph<SubgraphRootTypes["entity"]>>();
   const [aggregateEntitiesSubgraph, setAggregateEntitiesSubgraph] =
-    useState<Subgraph>();
+    useState<Subgraph<SubgraphRootTypes["entity"]>>();
 
   const { getEntity, createEntity, aggregateEntities } =
     useBlockProtocolFunctionsWithOntology(ownedById);
@@ -37,9 +35,9 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
   useEffect(() => {
     if (authenticatedUser) {
       // As an example entity, we are going to use the currently logged in user's entity ID
-      const entityId = authenticatedUser.entityId;
+      const entityId = authenticatedUser.entityEditionId.baseId;
 
-      void getEntity({ data: { entityId } }).then(({ data }) => {
+      void getEntity({ data: entityId }).then(({ data }) => {
         setUserSubgraph(data);
       });
     }
@@ -57,11 +55,11 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
     setAggregateEntitiesSubgraph,
   ]);
 
-  const entity = userSubgraph ? getRootsAsEntities(userSubgraph)[0] : undefined;
+  const entity = userSubgraph ? getRoots(userSubgraph)[0] : undefined;
 
   const entityType =
     userSubgraph && entity
-      ? getPersistedEntityType(userSubgraph, entity.entityTypeId)?.inner
+      ? getEntityTypeById(userSubgraph, entity.metadata.entityTypeId)?.schema
       : undefined;
 
   // The (top-level) property type IDs defined in the entity type
@@ -81,7 +79,7 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
       userSubgraph && propertyTypeIds
         ? propertyTypeIds.map(
             (propertyTypeId) =>
-              getPersistedPropertyType(userSubgraph, propertyTypeId)?.inner,
+              getPropertyTypeById(userSubgraph, propertyTypeId)?.schema,
           )
         : undefined,
     [userSubgraph, propertyTypeIds],
@@ -90,7 +88,7 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
   const allEntities = useMemo(
     () =>
       aggregateEntitiesSubgraph
-        ? getRootsAsEntities(aggregateEntitiesSubgraph)
+        ? getRoots(aggregateEntitiesSubgraph)
         : undefined,
     [aggregateEntitiesSubgraph],
   );
@@ -157,11 +155,11 @@ const ExampleEntityEditorPage: NextPageWithLayout = () => {
     }
   }, [loadingUser, router, kratosSession]);
 
-  return loadingUser || !authenticatedUser || loadingTypeSystem ? (
+  return !authenticatedUser || loadingTypeSystem ? (
     <Container sx={{ pt: 10 }}>Loading...</Container>
   ) : (
     <Container sx={{ pt: 10 }}>
-      <ExampleUsage ownedById={authenticatedUser.entityId} />
+      <ExampleUsage ownedById={authenticatedUser.userAccountId} />
     </Container>
   );
 };

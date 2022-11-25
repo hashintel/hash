@@ -64,7 +64,7 @@ export class BlockView implements NodeView {
 
     const draftEntity = this.store.draft[blockEntityNode.attrs.draftId];
 
-    return draftEntity?.entityId ?? null;
+    return draftEntity?.metadata.editionId.baseId ?? null;
   };
 
   private getBlockDraftId() {
@@ -273,7 +273,7 @@ export class BlockView implements NodeView {
                 }
               />
               <CreateBlockCommentButton
-                blockId={blockEntityId}
+                blockEntityId={blockEntityId}
                 rootNode={this.rootNode}
               />
             </BlockViewContext.Provider>

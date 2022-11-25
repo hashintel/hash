@@ -1,17 +1,22 @@
 import { extractBaseUri } from "@blockprotocol/type-system-web";
 import { types } from "@hashintel/hash-shared/types";
-import { Session } from "@ory/client";
 import {
-  EntityVertex,
-  mustGetEntity,
-  getOutgoingLinksOfEntity,
   Subgraph,
-} from "./subgraph";
+  EntityEditionId,
+  extractEntityUuidFromEntityId,
+} from "@hashintel/hash-subgraph";
+import { getEntityByEditionId } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
+import {
+  getOutgoingLinksForEntityAtMoment,
+  getRightEntityForLinkEntityAtMoment,
+} from "@hashintel/hash-subgraph/src/stdlib/edge/link";
+import { Session } from "@ory/client";
 import { constructOrg, Org } from "./org";
 
 export type MinimalUser = {
   kind: "user";
-  entityId: string;
+  entityEditionId: EntityEditionId;
+  userAccountId: string;
   accountSignupComplete: boolean;
   shortname?: string;
   preferredName?: string;
@@ -19,23 +24,32 @@ export type MinimalUser = {
 
 export const constructMinimalUser = (params: {
   subgraph: Subgraph;
-  userEntityId: string;
+  userEntityEditionId: EntityEditionId;
 }): MinimalUser => {
-  const { subgraph, userEntityId } = params;
+  const { subgraph, userEntityEditionId } = params;
 
-  const { properties } = mustGetEntity({ subgraph, entityId: userEntityId });
+  const { metadata, properties } =
+    getEntityByEditionId(subgraph, userEntityEditionId) ?? {};
+  if (!properties || !metadata) {
+    throw new Error(
+      `Could not find entity edition with ID ${userEntityEditionId} in subgraph`,
+    );
+  }
 
-  const shortname: string =
-    properties[extractBaseUri(types.propertyType.shortName.propertyTypeId)];
+  const shortname: string = properties[
+    extractBaseUri(types.propertyType.shortName.propertyTypeId)
+  ] as string;
 
-  const preferredName: string =
-    properties[extractBaseUri(types.propertyType.preferredName.propertyTypeId)];
+  const preferredName: string = properties[
+    extractBaseUri(types.propertyType.preferredName.propertyTypeId)
+  ] as string;
 
   const accountSignupComplete = !!shortname && !!preferredName;
 
   return {
     kind: "user",
-    entityId: userEntityId,
+    entityEditionId: userEntityEditionId,
+    userAccountId: extractEntityUuidFromEntityId(userEntityEditionId.baseId),
     shortname,
     preferredName,
     accountSignupComplete,
@@ -47,40 +61,42 @@ export type User = MinimalUser & {
 };
 
 export const constructUser = (params: {
-  userEntityId: string;
   subgraph: Subgraph;
+  userEntityEditionId: EntityEditionId;
 }): User => {
-  const { userEntityId, subgraph } = params;
+  const { userEntityEditionId, subgraph } = params;
 
-  const outgoingHasMembershipLinks = getOutgoingLinksOfEntity({
-    entityId: userEntityId,
+  const orgMemberships = getOutgoingLinksForEntityAtMoment(
     subgraph,
-    linkTypeId: types.linkType.hasMembership.linkTypeId,
-  });
-
-  const orgMemberships = outgoingHasMembershipLinks.map(
-    ({ inner }) =>
-      subgraph.vertices[inner.targetEntityId] as unknown as EntityVertex,
+    userEntityEditionId.baseId,
+    new Date(),
+  ).filter(
+    (linkEntity) =>
+      linkEntity.metadata.entityTypeId ===
+      types.linkEntityType.orgMembership.linkEntityTypeId,
   );
 
   return {
-    ...constructMinimalUser({ userEntityId, subgraph }),
-    memberOf: orgMemberships.map(({ inner: orgMembershipEntity }) => {
-      const responsibility: string =
-        orgMembershipEntity.properties[
-          extractBaseUri(types.propertyType.responsibility.propertyTypeId)
-        ];
+    ...constructMinimalUser({ userEntityEditionId, subgraph }),
+    memberOf: orgMemberships.map(({ metadata, properties }) => {
+      const responsibility: string = properties[
+        extractBaseUri(types.propertyType.responsibility.propertyTypeId)
+      ] as string;
 
-      const outgoingOfOrgLinks = getOutgoingLinksOfEntity({
-        entityId: orgMembershipEntity.entityId,
+      if (!metadata.linkMetadata?.rightEntityId) {
+        throw new Error("Expected org membership to contain a right entity");
+      }
+      const org = getRightEntityForLinkEntityAtMoment(
         subgraph,
-        linkTypeId: types.linkType.ofOrg.linkTypeId,
-      });
-
-      const orgEntityId = outgoingOfOrgLinks[0]!.inner.targetEntityId;
+        metadata.editionId.baseId,
+        new Date(),
+      );
 
       return {
-        ...constructOrg({ subgraph, orgEntityId }),
+        ...constructOrg({
+          subgraph,
+          orgEntityEditionId: org.metadata.editionId,
+        }),
         responsibility,
       };
     }),
@@ -93,16 +109,23 @@ export type AuthenticatedUser = User & {
 };
 
 export const constructAuthenticatedUser = (params: {
-  userEntityId: string;
+  userEntityEditionId: EntityEditionId;
   subgraph: Subgraph;
   kratosSession: Session;
 }): AuthenticatedUser => {
-  const { userEntityId, subgraph } = params;
+  const { userEntityEditionId, subgraph } = params;
 
-  const { properties } = mustGetEntity({ subgraph, entityId: userEntityId });
+  const { metadata, properties } =
+    getEntityByEditionId(subgraph, userEntityEditionId) ?? {};
+  if (!properties || !metadata) {
+    throw new Error(
+      `Could not find entity edition with ID ${userEntityEditionId} in subgraph`,
+    );
+  }
 
-  const primaryEmailAddress: string =
-    properties[extractBaseUri(types.propertyType.email.propertyTypeId)];
+  const primaryEmailAddress: string = properties[
+    extractBaseUri(types.propertyType.email.propertyTypeId)
+  ] as string;
 
   const isPrimaryEmailAddressVerified =
     params.kratosSession.identity.verifiable_addresses?.find(
@@ -117,7 +140,10 @@ export const constructAuthenticatedUser = (params: {
    */
   const isInstanceAdmin = false;
 
-  const user = constructUser({ userEntityId, subgraph });
+  const user = constructUser({
+    subgraph,
+    userEntityEditionId: metadata.editionId,
+  });
 
   return {
     ...user,
