@@ -70,16 +70,18 @@ impl<C: AsClient> PostgresStore<C> {
 
             if let Some(OntologyVertex::EntityType(entity_type)) = entity_type {
                 for property_type_ref in entity_type.inner().property_type_references() {
-                    if current_resolve_depth.constrains_property_on.outgoing > 0 {
+                    if current_resolve_depth.constrains_properties_on.outgoing > 0 {
                         self.get_property_type_as_dependency(
                             &OntologyTypeEditionId::from(property_type_ref.uri()),
                             dependency_context,
                             subgraph,
                             GraphResolveDepths {
-                                constrains_property_on: OutgoingEdgeResolveDepth {
-                                    outgoing: current_resolve_depth.constrains_property_on.outgoing
+                                constrains_properties_on: OutgoingEdgeResolveDepth {
+                                    outgoing: current_resolve_depth
+                                        .constrains_properties_on
+                                        .outgoing
                                         - 1,
-                                    ..current_resolve_depth.constrains_property_on
+                                    ..current_resolve_depth.constrains_properties_on
                                 },
                                 ..current_resolve_depth
                             },
@@ -125,15 +127,16 @@ impl<C: AsClient> PostgresStore<C> {
                 }
 
                 for entity_type_ref in entity_type.inner().link_mappings().into_keys() {
-                    if current_resolve_depth.constrains_link_on.outgoing > 0 {
+                    if current_resolve_depth.constrains_links_on.outgoing > 0 {
                         self.get_entity_type_as_dependency(
                             &OntologyTypeEditionId::from(entity_type_ref.uri()),
                             dependency_context,
                             subgraph,
                             GraphResolveDepths {
-                                constrains_link_on: OutgoingEdgeResolveDepth {
-                                    outgoing: current_resolve_depth.constrains_link_on.outgoing - 1,
-                                    ..current_resolve_depth.constrains_link_on
+                                constrains_links_on: OutgoingEdgeResolveDepth {
+                                    outgoing: current_resolve_depth.constrains_links_on.outgoing
+                                        - 1,
+                                    ..current_resolve_depth.constrains_links_on
                                 },
                                 ..current_resolve_depth
                             },
@@ -160,7 +163,7 @@ impl<C: AsClient> PostgresStore<C> {
                     .flatten()
                 {
                     if current_resolve_depth
-                        .constrains_link_destination_on
+                        .constrains_link_destinations_on
                         .outgoing
                         > 0
                     {
@@ -169,12 +172,12 @@ impl<C: AsClient> PostgresStore<C> {
                             dependency_context,
                             subgraph,
                             GraphResolveDepths {
-                                constrains_link_destination_on: OutgoingEdgeResolveDepth {
+                                constrains_link_destinations_on: OutgoingEdgeResolveDepth {
                                     outgoing: current_resolve_depth
-                                        .constrains_link_destination_on
+                                        .constrains_link_destinations_on
                                         .outgoing
                                         - 1,
-                                    ..current_resolve_depth.constrains_link_destination_on
+                                    ..current_resolve_depth.constrains_link_destinations_on
                                 },
                                 ..current_resolve_depth
                             },

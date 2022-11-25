@@ -71,19 +71,19 @@ fn bench_representative_read_multiple_entities(c: &mut Criterion) {
                 outgoing: 0,
                 incoming: 0,
             },
-            constrains_value_on: OutgoingEdgeResolveDepth {
+            constrains_values_on: OutgoingEdgeResolveDepth {
                 outgoing: 0,
                 incoming: 0,
             },
-            constrains_property_on: OutgoingEdgeResolveDepth {
+            constrains_properties_on: OutgoingEdgeResolveDepth {
                 outgoing: 0,
                 incoming: 0,
             },
-            constrains_link_on: OutgoingEdgeResolveDepth {
+            constrains_links_on: OutgoingEdgeResolveDepth {
                 outgoing: 0,
                 incoming: 0,
             },
-            constrains_link_destination_on: OutgoingEdgeResolveDepth {
+            constrains_link_destinations_on: OutgoingEdgeResolveDepth {
                 outgoing: 0,
                 incoming: 0,
             },
@@ -105,19 +105,19 @@ fn bench_representative_read_multiple_entities(c: &mut Criterion) {
                 outgoing: 0,
                 incoming: 0,
             },
-            constrains_value_on: OutgoingEdgeResolveDepth {
+            constrains_values_on: OutgoingEdgeResolveDepth {
                 outgoing: 0,
                 incoming: 0,
             },
-            constrains_property_on: OutgoingEdgeResolveDepth {
+            constrains_properties_on: OutgoingEdgeResolveDepth {
                 outgoing: 0,
                 incoming: 0,
             },
-            constrains_link_on: OutgoingEdgeResolveDepth {
+            constrains_links_on: OutgoingEdgeResolveDepth {
                 outgoing: 1,
                 incoming: 0,
             },
-            constrains_link_destination_on: OutgoingEdgeResolveDepth {
+            constrains_link_destinations_on: OutgoingEdgeResolveDepth {
                 outgoing: 0,
                 incoming: 0,
             },
@@ -139,19 +139,19 @@ fn bench_representative_read_multiple_entities(c: &mut Criterion) {
                 outgoing: 0,
                 incoming: 0,
             },
-            constrains_value_on: OutgoingEdgeResolveDepth {
+            constrains_values_on: OutgoingEdgeResolveDepth {
                 outgoing: 0,
                 incoming: 0,
             },
-            constrains_property_on: OutgoingEdgeResolveDepth {
+            constrains_properties_on: OutgoingEdgeResolveDepth {
                 outgoing: 2,
                 incoming: 0,
             },
-            constrains_link_on: OutgoingEdgeResolveDepth {
+            constrains_links_on: OutgoingEdgeResolveDepth {
                 outgoing: 1,
                 incoming: 0,
             },
-            constrains_link_destination_on: OutgoingEdgeResolveDepth {
+            constrains_link_destinations_on: OutgoingEdgeResolveDepth {
                 outgoing: 0,
                 incoming: 0,
             },
@@ -173,19 +173,19 @@ fn bench_representative_read_multiple_entities(c: &mut Criterion) {
                 outgoing: 0,
                 incoming: 0,
             },
-            constrains_value_on: OutgoingEdgeResolveDepth {
+            constrains_values_on: OutgoingEdgeResolveDepth {
                 outgoing: 2,
                 incoming: 0,
             },
-            constrains_property_on: OutgoingEdgeResolveDepth {
+            constrains_properties_on: OutgoingEdgeResolveDepth {
                 outgoing: 2,
                 incoming: 0,
             },
-            constrains_link_on: OutgoingEdgeResolveDepth {
+            constrains_links_on: OutgoingEdgeResolveDepth {
                 outgoing: 1,
                 incoming: 0,
             },
-            constrains_link_destination_on: OutgoingEdgeResolveDepth {
+            constrains_link_destinations_on: OutgoingEdgeResolveDepth {
                 outgoing: 0,
                 incoming: 0,
             },
@@ -207,19 +207,19 @@ fn bench_representative_read_multiple_entities(c: &mut Criterion) {
                 outgoing: 1,
                 incoming: 0,
             },
-            constrains_value_on: OutgoingEdgeResolveDepth {
+            constrains_values_on: OutgoingEdgeResolveDepth {
                 outgoing: 255,
                 incoming: 0,
             },
-            constrains_property_on: OutgoingEdgeResolveDepth {
+            constrains_properties_on: OutgoingEdgeResolveDepth {
                 outgoing: 255,
                 incoming: 0,
             },
-            constrains_link_on: OutgoingEdgeResolveDepth {
+            constrains_links_on: OutgoingEdgeResolveDepth {
                 outgoing: 127,
                 incoming: 0,
             },
-            constrains_link_destination_on: OutgoingEdgeResolveDepth {
+            constrains_link_destinations_on: OutgoingEdgeResolveDepth {
                 outgoing: 126,
                 incoming: 0,
             },
@@ -245,24 +245,24 @@ fn bench_representative_read_multiple_entities(c: &mut Criterion) {
                 format!(
                     "depths: DT={}, PT={}, ET={}, E={}",
                     [
-                        graph_resolve_depth.constrains_value_on.incoming,
-                        graph_resolve_depth.constrains_value_on.outgoing,
+                        graph_resolve_depth.constrains_values_on.incoming,
+                        graph_resolve_depth.constrains_values_on.outgoing,
                     ]
                     .iter()
                     .sum::<u8>(),
                     [
-                        graph_resolve_depth.constrains_property_on.incoming,
-                        graph_resolve_depth.constrains_property_on.outgoing,
+                        graph_resolve_depth.constrains_properties_on.incoming,
+                        graph_resolve_depth.constrains_properties_on.outgoing,
                     ]
                     .iter()
                     .sum::<u8>(),
                     [
                         graph_resolve_depth.inherits_from.incoming,
                         graph_resolve_depth.inherits_from.outgoing,
-                        graph_resolve_depth.constrains_link_on.incoming,
-                        graph_resolve_depth.constrains_link_on.outgoing,
-                        graph_resolve_depth.constrains_link_destination_on.incoming,
-                        graph_resolve_depth.constrains_link_destination_on.outgoing,
+                        graph_resolve_depth.constrains_links_on.incoming,
+                        graph_resolve_depth.constrains_links_on.outgoing,
+                        graph_resolve_depth.constrains_link_destinations_on.incoming,
+                        graph_resolve_depth.constrains_link_destinations_on.outgoing,
                         graph_resolve_depth.is_of_type.incoming,
                         graph_resolve_depth.is_of_type.outgoing,
                     ]
@@ -297,24 +297,24 @@ fn bench_representative_read_multiple_entities(c: &mut Criterion) {
                 format!(
                     "depths: DT={}, PT={}, ET={}, E={}",
                     [
-                        graph_resolve_depth.constrains_value_on.incoming,
-                        graph_resolve_depth.constrains_value_on.outgoing,
+                        graph_resolve_depth.constrains_values_on.incoming,
+                        graph_resolve_depth.constrains_values_on.outgoing,
                     ]
                     .iter()
                     .sum::<u8>(),
                     [
-                        graph_resolve_depth.constrains_property_on.incoming,
-                        graph_resolve_depth.constrains_property_on.outgoing,
+                        graph_resolve_depth.constrains_properties_on.incoming,
+                        graph_resolve_depth.constrains_properties_on.outgoing,
                     ]
                     .iter()
                     .sum::<u8>(),
                     [
                         graph_resolve_depth.inherits_from.incoming,
                         graph_resolve_depth.inherits_from.outgoing,
-                        graph_resolve_depth.constrains_link_on.incoming,
-                        graph_resolve_depth.constrains_link_on.outgoing,
-                        graph_resolve_depth.constrains_link_destination_on.incoming,
-                        graph_resolve_depth.constrains_link_destination_on.outgoing,
+                        graph_resolve_depth.constrains_links_on.incoming,
+                        graph_resolve_depth.constrains_links_on.outgoing,
+                        graph_resolve_depth.constrains_link_destinations_on.incoming,
+                        graph_resolve_depth.constrains_link_destinations_on.outgoing,
                         graph_resolve_depth.is_of_type.incoming,
                         graph_resolve_depth.is_of_type.outgoing,
                     ]

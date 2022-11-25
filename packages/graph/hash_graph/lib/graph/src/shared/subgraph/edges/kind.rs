@@ -113,10 +113,10 @@ impl OutgoingEdgeResolveDepth {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct GraphResolveDepths {
     pub inherits_from: OutgoingEdgeResolveDepth,
-    pub constrains_value_on: OutgoingEdgeResolveDepth,
-    pub constrains_property_on: OutgoingEdgeResolveDepth,
-    pub constrains_link_on: OutgoingEdgeResolveDepth,
-    pub constrains_link_destination_on: OutgoingEdgeResolveDepth,
+    pub constrains_values_on: OutgoingEdgeResolveDepth,
+    pub constrains_properties_on: OutgoingEdgeResolveDepth,
+    pub constrains_links_on: OutgoingEdgeResolveDepth,
+    pub constrains_link_destinations_on: OutgoingEdgeResolveDepth,
     pub is_of_type: OutgoingEdgeResolveDepth,
     pub has_left_entity: EdgeResolveDepths,
     pub has_right_entity: EdgeResolveDepths,
@@ -132,21 +132,21 @@ impl GraphResolveDepths {
         if self.inherits_from.update(other.inherits_from) {
             changed = true;
         }
-        if self.constrains_value_on.update(other.constrains_value_on) {
+        if self.constrains_values_on.update(other.constrains_values_on) {
             changed = true;
         }
         if self
-            .constrains_property_on
-            .update(other.constrains_property_on)
+            .constrains_properties_on
+            .update(other.constrains_properties_on)
         {
             changed = true;
         }
-        if self.constrains_link_on.update(other.constrains_link_on) {
+        if self.constrains_links_on.update(other.constrains_links_on) {
             changed = true;
         }
         if self
-            .constrains_link_destination_on
-            .update(other.constrains_link_destination_on)
+            .constrains_link_destinations_on
+            .update(other.constrains_link_destinations_on)
         {
             changed = true;
         }

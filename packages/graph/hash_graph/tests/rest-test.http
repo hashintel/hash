@@ -195,16 +195,16 @@ Content-Type: application/json
     "inheritsFrom": {
       "outgoing": 0
     },
-    "constrainsValueOn": {
+    "constrainsValuesOn": {
       "outgoing": 0
     },
-    "constrainsPropertyOn": {
+    "constrainsPropertiesOn": {
       "outgoing": 0
     },
-    "constrainsLinkOn": {
+    "constrainsLinksOn": {
       "outgoing": 0
     },
-    "constrainsLinkDestinationOn": {
+    "constrainsLinkDestinationsOn": {
       "outgoing": 0
     },
     "isOfType": {
@@ -338,16 +338,16 @@ Content-Type: application/json
     "inheritsFrom": {
       "outgoing": 0
     },
-    "constrainsValueOn": {
+    "constrainsValuesOn": {
       "outgoing": 0
     },
-    "constrainsPropertyOn": {
+    "constrainsPropertiesOn": {
       "outgoing": 0
     },
-    "constrainsLinkOn": {
+    "constrainsLinksOn": {
       "outgoing": 0
     },
-    "constrainsLinkDestinationOn": {
+    "constrainsLinkDestinationsOn": {
       "outgoing": 0
     },
     "isOfType": {
@@ -398,16 +398,16 @@ Content-Type: application/json
     "inheritsFrom": {
       "outgoing": 0
     },
-    "constrainsValueOn": {
+    "constrainsValuesOn": {
       "outgoing": 0
     },
-    "constrainsPropertyOn": {
+    "constrainsPropertiesOn": {
       "outgoing": 0
     },
-    "constrainsLinkOn": {
+    "constrainsLinksOn": {
       "outgoing": 0
     },
-    "constrainsLinkDestinationOn": {
+    "constrainsLinkDestinationsOn": {
       "outgoing": 0
     },
     "isOfType": {
@@ -538,16 +538,16 @@ Content-Type: application/json
     "inheritsFrom": {
       "outgoing": 0
     },
-    "constrainsValueOn": {
+    "constrainsValuesOn": {
       "outgoing": 0
     },
-    "constrainsPropertyOn": {
+    "constrainsPropertiesOn": {
       "outgoing": 0
     },
-    "constrainsLinkOn": {
+    "constrainsLinksOn": {
       "outgoing": 0
     },
-    "constrainsLinkDestinationOn": {
+    "constrainsLinkDestinationsOn": {
       "outgoing": 0
     },
     "isOfType": {
@@ -637,16 +637,16 @@ Content-Type: application/json
     "inheritsFrom": {
       "outgoing": 0
     },
-    "constrainsValueOn": {
+    "constrainsValuesOn": {
       "outgoing": 0
     },
-    "constrainsPropertyOn": {
+    "constrainsPropertiesOn": {
       "outgoing": 0
     },
-    "constrainsLinkOn": {
+    "constrainsLinksOn": {
       "outgoing": 0
     },
-    "constrainsLinkDestinationOn": {
+    "constrainsLinkDestinationsOn": {
       "outgoing": 0
     },
     "isOfType": {
@@ -709,16 +709,16 @@ Content-Type: application/json
     "inheritsFrom": {
       "outgoing": 0
     },
-    "constrainsValueOn": {
+    "constrainsValuesOn": {
       "outgoing": 0
     },
-    "constrainsPropertyOn": {
+    "constrainsPropertiesOn": {
       "outgoing": 0
     },
-    "constrainsLinkOn": {
+    "constrainsLinksOn": {
       "outgoing": 0
     },
-    "constrainsLinkDestinationOn": {
+    "constrainsLinkDestinationsOn": {
       "outgoing": 0
     },
     "isOfType": {
@@ -764,16 +764,16 @@ Content-Type: application/json
     "inheritsFrom": {
       "outgoing": 0
     },
-    "constrainsValueOn": {
+    "constrainsValuesOn": {
       "outgoing": 0
     },
-    "constrainsPropertyOn": {
+    "constrainsPropertiesOn": {
       "outgoing": 0
     },
-    "constrainsLinkOn": {
+    "constrainsLinksOn": {
       "outgoing": 0
     },
-    "constrainsLinkDestinationOn": {
+    "constrainsLinkDestinationsOn": {
       "outgoing": 0
     },
     "isOfType": {

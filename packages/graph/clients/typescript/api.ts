@@ -777,25 +777,25 @@ export interface GraphResolveDepths {
    * @type {OutgoingEdgeResolveDepth}
    * @memberof GraphResolveDepths
    */
-  constrainsLinkDestinationOn: OutgoingEdgeResolveDepth;
+  constrainsLinkDestinationsOn: OutgoingEdgeResolveDepth;
   /**
    *
    * @type {OutgoingEdgeResolveDepth}
    * @memberof GraphResolveDepths
    */
-  constrainsLinkOn: OutgoingEdgeResolveDepth;
+  constrainsLinksOn: OutgoingEdgeResolveDepth;
   /**
    *
    * @type {OutgoingEdgeResolveDepth}
    * @memberof GraphResolveDepths
    */
-  constrainsValueOn: OutgoingEdgeResolveDepth;
+  constrainsValuesOn: OutgoingEdgeResolveDepth;
   /**
    *
    * @type {OutgoingEdgeResolveDepth}
    * @memberof GraphResolveDepths
    */
-  constrainsPropertyOn: OutgoingEdgeResolveDepth;
+  constrainsPropertiesOn: OutgoingEdgeResolveDepth;
   /**
    *
    * @type {EdgeResolveDepths}

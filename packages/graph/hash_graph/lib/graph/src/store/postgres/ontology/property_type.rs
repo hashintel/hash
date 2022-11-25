@@ -68,16 +68,18 @@ impl<C: AsClient> PostgresStore<C> {
                 // TODO: Use relation tables
                 //   see https://app.asana.com/0/0/1202884883200942/f
                 for property_type_ref in property_type.inner().property_type_references() {
-                    if current_resolve_depth.constrains_property_on.outgoing > 0 {
+                    if current_resolve_depth.constrains_properties_on.outgoing > 0 {
                         self.get_property_type_as_dependency(
                             &OntologyTypeEditionId::from(property_type_ref.uri()),
                             dependency_context,
                             subgraph,
                             GraphResolveDepths {
-                                constrains_property_on: OutgoingEdgeResolveDepth {
-                                    outgoing: current_resolve_depth.constrains_property_on.outgoing
+                                constrains_properties_on: OutgoingEdgeResolveDepth {
+                                    outgoing: current_resolve_depth
+                                        .constrains_properties_on
+                                        .outgoing
                                         - 1,
-                                    ..current_resolve_depth.constrains_property_on
+                                    ..current_resolve_depth.constrains_properties_on
                                 },
                                 ..current_resolve_depth
                             },
@@ -98,16 +100,16 @@ impl<C: AsClient> PostgresStore<C> {
                 // TODO: Use relation tables
                 //   see https://app.asana.com/0/0/1202884883200942/f
                 for data_type_ref in property_type.inner().data_type_references() {
-                    if current_resolve_depth.constrains_value_on.outgoing > 0 {
+                    if current_resolve_depth.constrains_values_on.outgoing > 0 {
                         self.get_data_type_as_dependency(
                             &OntologyTypeEditionId::from(data_type_ref.uri()),
                             dependency_context,
                             subgraph,
                             GraphResolveDepths {
-                                constrains_value_on: OutgoingEdgeResolveDepth {
-                                    outgoing: current_resolve_depth.constrains_value_on.outgoing
+                                constrains_values_on: OutgoingEdgeResolveDepth {
+                                    outgoing: current_resolve_depth.constrains_values_on.outgoing
                                         - 1,
-                                    ..current_resolve_depth.constrains_value_on
+                                    ..current_resolve_depth.constrains_values_on
                                 },
                                 ..current_resolve_depth
                             },
