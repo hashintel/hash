@@ -4,9 +4,11 @@ import {
   EntityMetadata,
   EntityVersion,
   LinkEntityMetadata,
+  PropertyObject,
   VersionedUri,
 } from "@hashintel/hash-subgraph";
 
+import { JsonObject } from "@blockprotocol/core";
 import { generateDraftIdForEntity } from "./entityStorePlugin";
 import { BlockEntity } from "./entity";
 import { types } from "./types";
@@ -30,7 +32,7 @@ export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   };
   /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */
   blockChildEntity?: Type & { draftId?: string };
-  properties: Record<string, unknown>;
+  properties: PropertyObject & { entity?: DraftEntity };
 
   componentId?: string;
 
