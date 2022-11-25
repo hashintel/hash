@@ -7,7 +7,7 @@ export const getEntityTypeQuery = gql`
     $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
     $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
     $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
-    $constrainsLinkDestinationsOn: Int!
+    $constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
   ) {
     getEntityType(
       entityTypeId: $entityTypeId
@@ -27,7 +27,7 @@ export const getAllLatestEntityTypesQuery = gql`
     $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
     $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
     $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
-    $constrainsLinkDestinationsOn: Int!
+    $constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
   ) {
     getAllLatestEntityTypes(
       constrainsValuesOn: $constrainsValuesOn
@@ -47,7 +47,7 @@ export const getEntityTypeRootedSubgraphQuery = gql`
     $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
     $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
     $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
-    $constrainsLinkDestinationsOn: Int!
+    $constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
   ) {
     getEntityType(
       entityTypeId: $entityTypeId

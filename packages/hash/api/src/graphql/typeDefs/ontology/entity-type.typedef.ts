@@ -12,7 +12,7 @@ export const entityTypeTypedef = gql`
       constrainsValuesOn: OutgoingEdgeResolveDepthInput!
       constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
       constrainsLinksOn: OutgoingEdgeResolveDepthInput!
-      constrainsLinkDestinationsOn: Int!
+      constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
     ): Subgraph!
 
     """
@@ -23,7 +23,7 @@ export const entityTypeTypedef = gql`
       constrainsValuesOn: OutgoingEdgeResolveDepthInput!
       constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
       constrainsLinksOn: OutgoingEdgeResolveDepthInput!
-      constrainsLinkDestinationsOn: Int!
+      constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
     ): Subgraph!
   }
 
