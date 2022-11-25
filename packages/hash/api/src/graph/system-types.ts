@@ -49,7 +49,7 @@ export let SYSTEM_TYPES: {
 
     // HASH Instance related
     userSelfRegistrationIsEnabled: PropertyTypeModel;
-    orgCreationIsEnabled: PropertyTypeModel;
+    orgSelfRegistrationIsEnabled: PropertyTypeModel;
   };
   entityType: {
     hashInstance: EntityTypeModel;
@@ -96,11 +96,12 @@ const userSelfRegistrationIsEnabledPropertyTypeInitializer =
     actorId: systemAccountId,
   });
 
-const orgCreationIsEnabledPropertyTypeInitializer = propertyTypeInitializer({
-  ...types.propertyType.orgCreationIsEnabled,
-  possibleValues: [{ primitiveDataType: "boolean" }],
-  actorId: systemAccountId,
-});
+const orgSelfRegistrationIsEnabledPropertyTypeInitializer =
+  propertyTypeInitializer({
+    ...types.propertyType.orgSelfRegistrationIsEnabled,
+    possibleValues: [{ primitiveDataType: "boolean" }],
+    actorId: systemAccountId,
+  });
 
 export const adminLinkEntityTypeInitializer = entityTypeInitializer({
   ...types.linkEntityType.admin,
@@ -115,8 +116,10 @@ export const hashInstanceEntityTypeInitializer = async (graphApi: GraphApi) => {
       graphApi,
     );
 
-  const orgCreationIsEnabledPropertyTypeModel =
-    await SYSTEM_TYPES_INITIALIZERS.propertyType.orgCreationIsEnabled(graphApi);
+  const orgSelfRegistrationIsEnabledPropertyTypeModel =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.orgSelfRegistrationIsEnabled(
+      graphApi,
+    );
 
   const adminLinkEntityTypeModel =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.admin(graphApi);
@@ -135,7 +138,7 @@ export const hashInstanceEntityTypeInitializer = async (graphApi: GraphApi) => {
         required: true,
       },
       {
-        propertyTypeModel: orgCreationIsEnabledPropertyTypeModel,
+        propertyTypeModel: orgSelfRegistrationIsEnabledPropertyTypeModel,
         required: true,
       },
     ],
@@ -649,7 +652,8 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
 
     userSelfRegistrationIsEnabled:
       userSelfRegistrationIsEnabledPropertyTypeInitializer,
-    orgCreationIsEnabled: orgCreationIsEnabledPropertyTypeInitializer,
+    orgSelfRegistrationIsEnabled:
+      orgSelfRegistrationIsEnabledPropertyTypeInitializer,
   },
   entityType: {
     hashInstance: hashInstanceEntityTypeInitializer,

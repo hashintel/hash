@@ -160,9 +160,10 @@ const systemPropertyTypes = {
     title: "User Self Registration Is Enabled",
     description: "Whether or not user self registration (sign-up) is enabled.",
   },
-  orgCreationIsEnabled: {
-    title: "Org Creation Is Enabled",
-    description: "Whether or not org creation is enabled.",
+  orgSelfRegistrationIsEnabled: {
+    title: "Org Self Registration Is Enabled",
+    description:
+      "Whether or not a user can self-register an org (note this does not apply to instance admins).",
   },
   kratosIdentityId: {
     title: "Kratos Identity Id",

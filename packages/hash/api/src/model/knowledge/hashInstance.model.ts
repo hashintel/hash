@@ -15,7 +15,7 @@ export type HashInstanceModelCreateParams = Omit<
   "properties" | "entityTypeModel" | "ownedById"
 > & {
   userSelfRegistrationIsEnabled?: boolean;
-  orgCreationIsEnabled?: boolean;
+  orgSelfRegistrationIsEnabled?: boolean;
 };
 
 /**
@@ -69,8 +69,8 @@ export default class extends EntityModel {
       properties: {
         [SYSTEM_TYPES.propertyType.userSelfRegistrationIsEnabled.getBaseUri()]:
           params.userSelfRegistrationIsEnabled ?? true,
-        [SYSTEM_TYPES.propertyType.orgCreationIsEnabled.getBaseUri()]:
-          params.orgCreationIsEnabled ?? true,
+        [SYSTEM_TYPES.propertyType.orgSelfRegistrationIsEnabled.getBaseUri()]:
+          params.orgSelfRegistrationIsEnabled ?? true,
       },
       entityTypeModel,
       actorId,
@@ -249,9 +249,9 @@ export default class extends EntityModel {
     ];
   }
 
-  isOrgCreationEnabled(): boolean {
+  isOrgSelfRegistrationEnabled(): boolean {
     return (this.getProperties() as any)[
-      SYSTEM_TYPES.propertyType.orgCreationIsEnabled.getBaseUri()
+      SYSTEM_TYPES.propertyType.orgSelfRegistrationIsEnabled.getBaseUri()
     ];
   }
 }

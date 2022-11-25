@@ -11,7 +11,7 @@ import { getHashInstanceEntityQuery } from "../../graphql/queries/knowledge/hash
 
 type HashInstance = {
   userSelfRegistrationIsEnabled: boolean;
-  orgCreationIsEnabled: boolean;
+  orgSelfRegistrationIsEnabled: boolean;
 };
 
 /**
@@ -50,13 +50,15 @@ export const useHashInstance = (): {
       )
     ] as boolean;
 
-    const orgCreationIsEnabled = properties[
-      extractBaseUri(types.propertyType.orgCreationIsEnabled.propertyTypeId)
+    const orgSelfRegistrationIsEnabled = properties[
+      extractBaseUri(
+        types.propertyType.orgSelfRegistrationIsEnabled.propertyTypeId,
+      )
     ] as boolean;
 
     return {
       userSelfRegistrationIsEnabled,
-      orgCreationIsEnabled,
+      orgSelfRegistrationIsEnabled,
     };
   }, [hashInstanceEntity, loadingTypeSystem]);
 
