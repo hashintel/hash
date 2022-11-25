@@ -33,7 +33,7 @@ export const subgraphTypedef = gql`
     constrainsPropertiesOn: OutgoingEdgeResolveDepth!
     constrainsLinksOn: OutgoingEdgeResolveDepth!
     constrainsLinkDestinationsOn: OutgoingEdgeResolveDepth!
-    isOfType: Int!
+    isOfType: OutgoingEdgeResolveDepth!
     hasLeftEntity: EdgeResolveDepths
     hasRightEntity: EdgeResolveDepths
   }

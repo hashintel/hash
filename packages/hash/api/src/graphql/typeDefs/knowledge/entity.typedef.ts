@@ -47,7 +47,7 @@ export const entityTypedef = gql`
       constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
       constrainsLinksOn: OutgoingEdgeResolveDepthInput!
       constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
-      isOfType: Int!
+      isOfType: OutgoingEdgeResolveDepthInput!
       hasLeftEntity: Int!
       hasRightEntity: Int!
     ): Subgraph!
@@ -68,7 +68,7 @@ export const entityTypedef = gql`
       constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
       constrainsLinksOn: OutgoingEdgeResolveDepthInput!
       constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
-      isOfType: Int!
+      isOfType: OutgoingEdgeResolveDepthInput!
       hasLeftEntity: Int!
       hasRightEntity: Int!
     ): Subgraph!
