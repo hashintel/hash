@@ -1,4 +1,5 @@
 import { EntityType, VersionedUri } from "@blockprotocol/type-system-web";
+import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import {
   createContext,
   PropsWithChildren,
@@ -9,9 +10,7 @@ import {
   useState,
 } from "react";
 import { useBlockProtocolAggregateEntityTypes } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregateEntityTypes";
-import { getPersistedEntityType } from "../../../../lib/subgraph";
 import { useInitTypeSystem } from "../../../../lib/use-init-type-system";
-import { mustBeVersionedUri } from "./util";
 
 type EntityTypesContextValues = {
   types: Record<VersionedUri, EntityType> | null;
@@ -31,20 +30,11 @@ export const EntityTypesContextProvider = ({ children }: PropsWithChildren) => {
       return;
     }
     await aggregateEntityTypes({ data: {} }).then(({ data: subgraph }) => {
-      // @todo error handling
       if (subgraph) {
         setEntityTypes(
           Object.fromEntries(
-            subgraph.roots.map((entityTypeId) => {
-              const entityType = getPersistedEntityType(subgraph, entityTypeId);
-
-              if (!entityType) {
-                throw new Error(
-                  "entity type was missing from the subgraph vertices list",
-                );
-              }
-
-              return [mustBeVersionedUri(entityTypeId), entityType.inner];
+            getRoots(subgraph).map((entityType) => {
+              return [entityType.schema.$id, entityType.schema];
             }),
           ),
         );

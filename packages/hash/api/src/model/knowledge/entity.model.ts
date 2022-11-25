@@ -1,40 +1,42 @@
 import { ApolloError } from "apollo-server-errors";
 import {
-  PersistedEntity,
   GraphApi,
-  Vertex,
-  Subgraph,
   EntityStructuralQuery,
   Filter,
 } from "@hashintel/hash-graph-client";
-
+import {
+  EntityWithMetadata,
+  Subgraph,
+  EntityMetadata,
+  PropertyObject,
+  EntityId,
+  EntityVersion,
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+  splitEntityId,
+} from "@hashintel/hash-subgraph";
+import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
+import { VersionedUri } from "@blockprotocol/type-system-web";
 import {
   EntityModel,
   EntityTypeModel,
-  LinkModel,
+  LinkEntityModel,
   LinkModelCreateParams,
-  LinkTypeModel,
 } from "..";
 import {
-  PersistedEntityDefinition,
   PersistedLinkedEntityDefinition,
+  EntityWithMetadataDefinition,
 } from "../../graphql/apiTypes.gen";
-import { exactlyOne, linkedTreeFlatten } from "../../util";
+import { linkedTreeFlatten } from "../../util";
 
 export type EntityModelConstructorParams = {
-  ownedById: string;
-  entityId: string;
-  version: string;
+  entity: EntityWithMetadata;
   entityTypeModel: EntityTypeModel;
-  properties: object;
-  createdById: string;
-  updatedById: string;
-  removedById: string | undefined;
 };
 
 export type EntityModelCreateParams = {
   ownedById: string;
-  properties: object;
+  properties: PropertyObject;
   entityTypeModel: EntityTypeModel;
   entityId?: string;
   actorId: string;
@@ -44,47 +46,48 @@ export type EntityModelCreateParams = {
  * @class {@link EntityModel}
  */
 export default class {
-  ownedById: string;
+  entity: EntityWithMetadata;
 
-  entityId: string;
-  version: string;
   entityTypeModel: EntityTypeModel;
-  properties: object;
 
-  createdById: string;
-  updatedById: string;
-  removedById: string | undefined;
-
-  constructor({
-    ownedById,
-    entityId,
-    version,
-    entityTypeModel,
-    properties,
-    createdById,
-    updatedById,
-    removedById,
-  }: EntityModelConstructorParams) {
-    this.ownedById = ownedById;
-
-    this.entityId = entityId;
-    this.version = version;
+  constructor({ entity, entityTypeModel }: EntityModelConstructorParams) {
+    this.entity = entity;
     this.entityTypeModel = entityTypeModel;
-    this.properties = properties;
-
-    this.createdById = createdById;
-    this.updatedById = updatedById;
-    this.removedById = removedById;
   }
 
-  private static async fromPersistedEntity(
+  getVersion(): string {
+    return this.getMetadata().editionId.version;
+  }
+
+  getBaseId(): EntityId {
+    return this.getMetadata().editionId.baseId;
+  }
+
+  getMetadata(): EntityMetadata {
+    return this.entity.metadata;
+  }
+
+  getProperties(): PropertyObject {
+    return this.entity.properties;
+  }
+
+  getOwnedById(): string {
+    return extractOwnedByIdFromEntityId(this.getBaseId());
+  }
+
+  getEntityUuid(): string {
+    return extractEntityUuidFromEntityId(this.getBaseId());
+  }
+
+  static async fromEntity(
     graphApi: GraphApi,
-    { metadata, inner }: PersistedEntity,
+    entity: EntityWithMetadata,
     cachedEntityTypeModels?: Map<string, EntityTypeModel>,
   ): Promise<EntityModel> {
-    const { identifier, entityTypeId, createdById, updatedById, removedById } =
-      metadata;
-    const { ownedById, entityId, version } = identifier;
+    const {
+      metadata: { entityTypeId },
+    } = entity;
+
     const cachedEntityTypeModel = cachedEntityTypeModels?.get(entityTypeId);
 
     let entityTypeModel: EntityTypeModel;
@@ -98,16 +101,7 @@ export default class {
       }
     }
 
-    return new EntityModel({
-      ownedById,
-      entityId,
-      version,
-      entityTypeModel,
-      properties: inner,
-      createdById,
-      updatedById,
-      removedById,
-    });
+    return new EntityModel({ entity, entityTypeModel });
   }
 
   /**
@@ -133,18 +127,18 @@ export default class {
 
     const { data: metadata } = await graphApi.createEntity({
       ownedById,
-      entityTypeId: entityTypeModel.schema.$id,
-      entity: properties,
-      entityId: overrideEntityId,
+      entityTypeId: entityTypeModel.getSchema().$id,
+      properties,
+      entityUuid: overrideEntityId,
       actorId,
     });
 
-    const persistedEntity: PersistedEntity = {
-      inner: properties,
-      metadata,
+    const entity: EntityWithMetadata = {
+      properties,
+      metadata: metadata as EntityMetadata,
     };
 
-    return EntityModel.fromPersistedEntity(graphApi, persistedEntity);
+    return EntityModel.fromEntity(graphApi, entity);
   }
 
   /**
@@ -160,8 +154,8 @@ export default class {
     graphApi: GraphApi,
     params: {
       ownedById: string;
-      entityTypeId: string;
-      properties: any;
+      entityTypeId: VersionedUri;
+      properties: PropertyObject;
       linkedEntities?: PersistedLinkedEntityDefinition[];
       actorId: string;
     },
@@ -170,13 +164,13 @@ export default class {
       params;
 
     const entitiesInTree = linkedTreeFlatten<
-      PersistedEntityDefinition,
+      EntityWithMetadataDefinition,
       PersistedLinkedEntityDefinition,
       "linkedEntities",
       "entity"
     >(
       {
-        entityType: { entityTypeId },
+        entityTypeId,
         entityProperties: properties,
         linkedEntities,
       },
@@ -224,15 +218,15 @@ export default class {
           if (!parentEntity) {
             throw new ApolloError("Could not find parent entity");
           }
-          const linkTypeModel = await LinkTypeModel.get(graphApi, {
-            linkTypeId: link.meta.linkTypeId,
+          const linkEntityTypeModel = await EntityTypeModel.get(graphApi, {
+            entityTypeId: link.meta.linkEntityTypeId,
           });
 
           // links are created as an outgoing link from the parent entity to the children.
           await parentEntity.entity.createOutgoingLink(graphApi, {
-            linkTypeModel,
-            targetEntityModel: entity,
-            index: link.meta.index ?? undefined,
+            linkEntityTypeModel,
+            rightEntityModel: entity,
+            leftOrder: link.meta.index ?? undefined,
             ownedById,
             actorId,
           });
@@ -255,30 +249,29 @@ export default class {
     graphApi: GraphApi,
     params: {
       ownedById: string;
-      entityDefinition: Omit<PersistedEntityDefinition, "linkedEntities">;
+      entityDefinition: Omit<EntityWithMetadataDefinition, "linkedEntities">;
       actorId: string;
     },
   ): Promise<EntityModel> {
     const { entityDefinition, ownedById, actorId } = params;
-    const { entityProperties, existingEntity } = entityDefinition;
+    const { entityProperties, existingEntityId } = entityDefinition;
 
     let entity;
 
-    if (existingEntity) {
+    if (existingEntityId) {
       entity = await EntityModel.getLatest(graphApi, {
-        entityId: existingEntity.entityId,
+        entityId: existingEntityId,
       });
       if (!entity) {
         throw new ApolloError(
-          `Entity ${existingEntity.entityId} owned by ${existingEntity.ownedById} not found`,
+          `Entity ${existingEntityId} not found`,
           "NOT_FOUND",
         );
       }
     } else if (entityProperties) {
-      const { entityType } = entityDefinition;
-      const { entityTypeId } = entityType ?? {};
+      const { entityTypeId } = entityDefinition;
 
-      if (!exactlyOne(entityTypeId)) {
+      if (!entityTypeId) {
         throw new ApolloError(
           `Given no valid type identifier. Must be one of entityTypeId`,
           "NOT_FOUND",
@@ -286,7 +279,7 @@ export default class {
       }
 
       const entityTypeModel = await EntityTypeModel.get(graphApi, {
-        entityTypeId: entityTypeId!,
+        entityTypeId,
       });
 
       entity = await EntityModel.create(graphApi, {
@@ -316,24 +309,17 @@ export default class {
           options?.graphResolveDepths?.dataTypeResolveDepth ?? 0,
         propertyTypeResolveDepth:
           options?.graphResolveDepths?.propertyTypeResolveDepth ?? 0,
-        linkTypeResolveDepth:
-          options?.graphResolveDepths?.linkTypeResolveDepth ?? 0,
         entityTypeResolveDepth:
           options?.graphResolveDepths?.entityTypeResolveDepth ?? 0,
-        linkResolveDepth: options?.graphResolveDepths?.linkResolveDepth ?? 0,
-        linkTargetEntityResolveDepth:
-          options?.graphResolveDepths?.linkTargetEntityResolveDepth ?? 0,
+        entityResolveDepth:
+          options?.graphResolveDepths?.entityResolveDepth ?? 0,
       },
     });
 
     return await Promise.all(
-      subgraph.roots.map((entityId) => {
-        const entityVertex = subgraph.vertices[entityId] as Extract<
-          Vertex,
-          { kind: "entity" }
-        >;
-        return EntityModel.fromPersistedEntity(graphApi, entityVertex.inner);
-      }),
+      getRootsAsEntities(subgraph as Subgraph).map((entity) =>
+        EntityModel.fromEntity(graphApi, entity),
+      ),
     );
   }
 
@@ -345,13 +331,46 @@ export default class {
   static async getLatest(
     graphApi: GraphApi,
     params: {
-      entityId: string;
+      entityId: EntityId;
     },
   ): Promise<EntityModel> {
     const { entityId } = params;
     const { data: persistedEntity } = await graphApi.getEntity(entityId);
 
-    return await EntityModel.fromPersistedEntity(graphApi, persistedEntity);
+    const [ownedById, entityUuid] = splitEntityId(entityId);
+
+    const [entityModel, ...unexpectedEntities] = await EntityModel.getByQuery(
+      graphApi,
+      {
+        all: [
+          { equal: [{ path: ["version"] }, { parameter: "latest" }] },
+          {
+            equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
+          },
+          {
+            equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+          },
+          { equal: [{ path: ["archived"] }, { parameter: false }] },
+        ],
+      },
+    );
+
+    if (unexpectedEntities.length > 0) {
+      throw new Error(
+        `Critical: Latest entity with entityId ${entityId} returned more than one result.`,
+      );
+    }
+
+    if (!entityModel) {
+      throw new Error(
+        `Critical: Entity with entityId ${entityId} doesn't exist.`,
+      );
+    }
+
+    return await EntityModel.fromEntity(
+      graphApi,
+      persistedEntity as EntityWithMetadata,
+    );
   }
 
   /**
@@ -363,8 +382,8 @@ export default class {
   static async getVersion(
     _graphApi: GraphApi,
     _params: {
-      entityId: string;
-      entityVersion: string;
+      entityId: EntityId;
+      entityVersion: EntityVersion;
     },
   ): Promise<EntityModel> {
     throw new Error(
@@ -381,25 +400,30 @@ export default class {
   async update(
     graphApi: GraphApi,
     params: {
-      properties: object;
+      properties: PropertyObject;
       actorId: string;
     },
   ): Promise<EntityModel> {
     const { properties, actorId } = params;
-    const { entityId, entityTypeModel } = this;
+    const { entityTypeModel } = this;
 
     const { data: metadata } = await graphApi.updateEntity({
       actorId,
-      entityId,
+      entityId: this.getBaseId(),
       /** @todo: make this argument optional */
-      entityTypeId: entityTypeModel.schema.$id,
-      entity: properties,
+      entityTypeId: entityTypeModel.getSchema().$id,
+      properties,
     });
 
-    return EntityModel.fromPersistedEntity(graphApi, {
-      metadata,
-      inner: properties,
+    return EntityModel.fromEntity(graphApi, {
+      metadata: metadata as EntityMetadata,
+      properties,
     });
+  }
+
+  async archive(graphApi: GraphApi, params: { actorId: string }) {
+    const { actorId } = params;
+    await graphApi.archiveEntity({ entityId: this.getBaseId(), actorId });
   }
 
   /**
@@ -418,12 +442,12 @@ export default class {
     const { updatedProperties, actorId } = params;
 
     return await this.update(graphApi, {
-      properties: updatedProperties.reduce(
+      properties: updatedProperties.reduce<PropertyObject>(
         (prev, { propertyTypeBaseUri, value }) => ({
           ...prev,
           [propertyTypeBaseUri]: value,
         }),
-        this.properties,
+        this.getProperties(),
       ),
       actorId,
     });
@@ -456,29 +480,18 @@ export default class {
    * Get the latest version of this entity.
    */
   async getLatestVersion(graphApi: GraphApi) {
-    const { entityId } = this;
-
-    return await EntityModel.getLatest(graphApi, { entityId });
+    return await EntityModel.getLatest(graphApi, {
+      entityId: this.getBaseId(),
+    });
   }
 
   /** @see {@link LinkModel.create} */
   async createOutgoingLink(
     graphApi: GraphApi,
-    params: Omit<LinkModelCreateParams, "sourceEntityModel">,
-  ): Promise<LinkModel> {
-    return await LinkModel.create(graphApi, {
-      sourceEntityModel: this,
-      ...params,
-    });
-  }
-
-  /** @see {@link LinkModel.createLinkWithoutUpdatingSiblings} */
-  async createOutgoingLinkWithoutUpdatingSiblings(
-    graphApi: GraphApi,
-    params: Omit<LinkModelCreateParams, "sourceEntityModel">,
-  ): Promise<LinkModel> {
-    return await LinkModel.createLinkWithoutUpdatingSiblings(graphApi, {
-      sourceEntityModel: this,
+    params: Omit<LinkModelCreateParams, "leftEntityModel">,
+  ): Promise<LinkEntityModel> {
+    return await LinkEntityModel.createLinkEntity(graphApi, {
+      leftEntityModel: this,
       ...params,
     });
   }
@@ -486,67 +499,131 @@ export default class {
   /**
    * Get the incoming links of an entity.
    *
-   * @param params.linkTypeModel (optional) - the specific link type of the incoming links
+   * @param params.linkEntityTypeModel (optional) - the specific link entity type of the incoming links
    */
   async getIncomingLinks(
     graphApi: GraphApi,
-    params?: { linkTypeModel?: LinkTypeModel },
-  ): Promise<LinkModel[]> {
+    params?: { linkEntityTypeModel?: EntityTypeModel },
+  ): Promise<LinkEntityModel[]> {
     const filter: Filter = {
       all: [
         {
-          equal: [{ path: ["target", "id"] }, { parameter: this.entityId }],
+          equal: [
+            { path: ["rightEntity", "uuid"] },
+            { parameter: this.getEntityUuid() },
+          ],
+        },
+        {
+          equal: [
+            { path: ["rightEntity", "ownedById"] },
+            { parameter: this.getOwnedById() },
+          ],
+        },
+        {
+          equal: [{ path: ["version"] }, { parameter: "latest" }],
+        },
+        {
+          equal: [{ path: ["archived"] }, { parameter: false }],
         },
       ],
     };
 
-    if (params?.linkTypeModel) {
+    if (params?.linkEntityTypeModel) {
       filter.all.push({
         equal: [
           { path: ["type", "versionedUri"] },
           {
-            parameter: params.linkTypeModel.schema.$id,
+            parameter: params.linkEntityTypeModel.getSchema().$id,
           },
         ],
       });
     }
 
-    const incomingLinks = await LinkModel.getByQuery(graphApi, filter);
+    const incomingLinkEntityModels = await EntityModel.getByQuery(
+      graphApi,
+      filter,
+    );
 
-    return incomingLinks;
+    return await Promise.all(
+      incomingLinkEntityModels.map((entityModel) =>
+        LinkEntityModel.fromEntity(graphApi, entityModel.entity),
+      ),
+    );
   }
 
   /**
    * Get the outgoing links of an entity.
    *
-   * @param params.linkTypeModel (optional) - the specific link type of the outgoing links
+   * @param params.linkEntityTypeModel (optional) - the specific link type of the outgoing links
    */
   async getOutgoingLinks(
     graphApi: GraphApi,
-    params?: { linkTypeModel?: LinkTypeModel },
-  ): Promise<LinkModel[]> {
+    params?: {
+      linkEntityTypeModel?: EntityTypeModel;
+      rightEntityModel?: EntityModel;
+    },
+  ): Promise<LinkEntityModel[]> {
     const filter: Filter = {
       all: [
         {
-          equal: [{ path: ["source", "id"] }, { parameter: this.entityId }],
+          equal: [
+            { path: ["leftEntity", "uuid"] },
+            { parameter: this.getEntityUuid() },
+          ],
+        },
+        {
+          equal: [
+            { path: ["leftEntity", "ownedById"] },
+            { parameter: this.getOwnedById() },
+          ],
+        },
+        {
+          equal: [{ path: ["version"] }, { parameter: "latest" }],
+        },
+        {
+          equal: [{ path: ["archived"] }, { parameter: false }],
         },
       ],
     };
 
-    if (params?.linkTypeModel) {
+    if (params?.linkEntityTypeModel) {
       filter.all.push({
         equal: [
           { path: ["type", "versionedUri"] },
           {
-            parameter: params.linkTypeModel.schema.$id,
+            parameter: params.linkEntityTypeModel.getSchema().$id,
           },
         ],
       });
     }
 
-    const outgoingLinks = await LinkModel.getByQuery(graphApi, filter);
+    if (params?.rightEntityModel) {
+      filter.all.push(
+        {
+          equal: [
+            { path: ["rightEntity", "uuid"] },
+            { parameter: params.rightEntityModel.getEntityUuid() },
+          ],
+        },
+        {
+          equal: [
+            { path: ["rightEntity", "ownedById"] },
+            { parameter: params.rightEntityModel.getOwnedById() },
+          ],
+        },
+      );
+    }
 
-    return outgoingLinks;
+    const outgoingLinkEntityModels = await EntityModel.getByQuery(
+      graphApi,
+      filter,
+    );
+
+    return Promise.all(
+      outgoingLinkEntityModels.map((entityModel) =>
+        LinkEntityModel.fromEntity(graphApi, entityModel.entity),
+      ),
+    );
   }
 
   /**
@@ -555,26 +632,31 @@ export default class {
   async getRootedSubgraph(
     graphApi: GraphApi,
     params: {
-      linkResolveDepth: number;
-      linkTargetEntityResolveDepth: number;
+      entityResolveDepth: number;
     },
   ): Promise<Subgraph> {
     const { data: entitySubgraph } = await graphApi.getEntitiesByQuery({
       filter: {
         all: [
           { equal: [{ path: ["version"] }, { parameter: "latest" }] },
-          { equal: [{ path: ["id"] }, { parameter: this.entityId }] },
+          { equal: [{ path: ["uuid"] }, { parameter: this.getEntityUuid() }] },
+          {
+            equal: [
+              { path: ["ownedById"] },
+              { parameter: this.getOwnedById() },
+            ],
+          },
+          { equal: [{ path: ["archived"] }, { parameter: false }] },
         ],
       },
       graphResolveDepths: {
         dataTypeResolveDepth: 0,
         propertyTypeResolveDepth: 0,
-        linkTypeResolveDepth: 0,
         entityTypeResolveDepth: 0,
         ...params,
       },
     });
 
-    return entitySubgraph;
+    return entitySubgraph as Subgraph;
   }
 }

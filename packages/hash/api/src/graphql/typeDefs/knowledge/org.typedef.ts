@@ -26,13 +26,9 @@ export const persistedOrgTypedef = gql`
       """
       orgSize: OrgSize!
       """
-      The depth of links that are returned in the response subgraph.
+      The depth of entities that are returned in the response subgraph.
       """
-      linkResolveDepth: Int! = 0
-      """
-      The depth of link target entities that are returned in the response subgraph.
-      """
-      linkTargetEntityResolveDepth: Int! = 0
+      entityResolveDepth: Int! = 0
     ): Subgraph!
   }
 `;

@@ -2,34 +2,27 @@ import { gql } from "@apollo/client";
 
 export const commentFieldsFragment = gql`
   fragment CommentFields on PersistedComment {
-    ownedById
-    entityId
     hasText
     textUpdatedAt
-    author {
-      entityId
-      properties
-    }
-    parent {
-      entityId
-    }
+    author
+    parent
+    metadata
   }
 `;
 
 export const createPersistedComment = gql`
   mutation createPersistedComment(
-    $parentEntityId: ID!
+    $parentEntityId: EntityId!
     $tokens: [TextToken!]!
   ) {
     createPersistedComment(parentEntityId: $parentEntityId, tokens: $tokens) {
-      ownedById
-      entityId
+      metadata
     }
   }
 `;
 
 export const resolvePersistedComment = gql`
-  mutation resolvePersistedComment($entityId: ID!) {
+  mutation resolvePersistedComment($entityId: EntityId!) {
     resolvePersistedComment(entityId: $entityId) {
       ...CommentFields
     }
@@ -38,7 +31,7 @@ export const resolvePersistedComment = gql`
 `;
 
 export const deletePersistedComment = gql`
-  mutation deletePersistedComment($entityId: ID!) {
+  mutation deletePersistedComment($entityId: EntityId!) {
     deletePersistedComment(entityId: $entityId) {
       ...CommentFields
     }
@@ -47,7 +40,10 @@ export const deletePersistedComment = gql`
 `;
 
 export const updatePersistedCommentText = gql`
-  mutation updatePersistedCommentText($entityId: ID!, $tokens: [TextToken!]!) {
+  mutation updatePersistedCommentText(
+    $entityId: EntityId!
+    $tokens: [TextToken!]!
+  ) {
     updatePersistedCommentText(entityId: $entityId, tokens: $tokens) {
       ...CommentFields
     }

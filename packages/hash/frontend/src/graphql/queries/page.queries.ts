@@ -3,8 +3,8 @@ import { commentFieldsFragment } from "./comment.queries";
 
 export const setParentPage = gql`
   mutation setParentPage(
-    $pageEntityId: ID!
-    $parentPageEntityId: ID
+    $pageEntityId: EntityId!
+    $parentPageEntityId: EntityId
     $prevIndex: String
     $nextIndex: String
   ) {
@@ -14,7 +14,7 @@ export const setParentPage = gql`
       prevIndex: $prevIndex
       nextIndex: $nextIndex
     ) {
-      ownedById
+      metadata
       title
       summary
       __typename
@@ -28,29 +28,27 @@ export const createPersistedPage = gql`
     $properties: PersistedPageCreationData!
   ) {
     createPersistedPage(ownedById: $ownedById, properties: $properties) {
-      ownedById
-      entityId
+      metadata
     }
   }
 `;
 
 export const updatePersistedPage = gql`
   mutation updatePersistedPage(
-    $entityId: ID!
+    $entityId: EntityId!
     $updatedProperties: PersistedPageUpdateData!
   ) {
     updatePersistedPage(
       entityId: $entityId
       updatedProperties: $updatedProperties
     ) {
-      ownedById
-      entityId
+      metadata
     }
   }
 `;
 
 export const getPersistedPageComments = gql`
-  query getPersistedPageComments($entityId: ID!) {
+  query getPersistedPageComments($entityId: EntityId!) {
     persistedPageComments(entityId: $entityId) {
       ...CommentFields
       replies {

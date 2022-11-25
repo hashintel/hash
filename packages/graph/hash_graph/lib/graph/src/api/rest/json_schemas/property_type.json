@@ -13,9 +13,6 @@
     "title": {
       "type": "string"
     },
-    "pluralTitle": {
-      "type": "string"
-    },
     "description": {
       "type": "string"
     },
@@ -26,7 +23,7 @@
       }
     }
   },
-  "required": ["kind", "$id", "title", "pluralTitle", "oneOf"],
+  "required": ["kind", "$id", "title", "oneOf"],
   "additionalProperties": false,
   "$defs": {
     "propertyValues": {

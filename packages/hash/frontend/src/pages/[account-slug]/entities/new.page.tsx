@@ -3,9 +3,10 @@ import { useState } from "react";
 import { useEffectOnceWhen } from "rooks";
 import { useLoggedInUser } from "../../../components/hooks/useAuthenticatedUser";
 import { getPlainLayout, NextPageWithLayout } from "../../../shared/layout";
-import { EntityPageLoadingState } from "./[entity-id].page/entity-page-loading-state";
-import { NewEntityPage } from "./[entity-id].page/new-entity-page";
-import { useCreateNewEntityAndRedirect } from "./[entity-id].page/shared/use-create-new-entity-and-redirect";
+import { mustBeVersionedUri } from "../types/entity-type/util";
+import { EntityPageLoadingState } from "./[entity-uuid].page/entity-page-loading-state";
+import { NewEntityPage } from "./[entity-uuid].page/new-entity-page";
+import { useCreateNewEntityAndRedirect } from "./[entity-uuid].page/shared/use-create-new-entity-and-redirect";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
@@ -20,7 +21,7 @@ const Page: NextPageWithLayout = () => {
       if (entityTypeId) {
         try {
           setLoading(true);
-          await createNewEntityAndRedirect(entityTypeId);
+          await createNewEntityAndRedirect(mustBeVersionedUri(entityTypeId));
         } finally {
           setLoading(false);
         }
@@ -28,7 +29,7 @@ const Page: NextPageWithLayout = () => {
     };
 
     void init();
-  }, !!createNewEntityAndRedirect);
+  }, !!createNewEntityAndRedirect && !!authenticatedUser);
 
   if (!authenticatedUser) {
     return null;

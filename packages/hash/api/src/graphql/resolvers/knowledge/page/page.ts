@@ -1,3 +1,4 @@
+import { userAccountIdToEntityId } from "@hashintel/hash-shared/types";
 import { EntityTypeMismatchError } from "../../../../lib/error";
 import { OrgModel, PageModel, UserModel } from "../../../../model";
 
@@ -21,10 +22,9 @@ export const persistedPage: ResolverFn<
   {},
   GraphQLContext,
   QueryPersistedPageArgs
-> = async (_, { entityId, entityVersion }, { dataSources: { graphApi } }) => {
+> = async (_, { entityId }, { dataSources: { graphApi } }) => {
   const pageModel = await PageModel.getPageById(graphApi, {
     entityId,
-    entityVersion: entityVersion ?? undefined,
   });
 
   return mapPageModelToGQL(pageModel);
@@ -44,7 +44,7 @@ export const createPersistedPage: ResolverFn<
     ownedById,
     title,
     prevIndex: prevIndex ?? undefined,
-    actorId: userModel.entityId,
+    actorId: userModel.getEntityUuid(),
   });
 
   return mapPageModelToGQL(pageModel);
@@ -57,7 +57,7 @@ export const parentPersistedPage: ResolverFn<
   QueryPersistedPagesArgs
 > = async (page, _, { dataSources: { graphApi } }) => {
   const pageModel = await PageModel.getPageById(graphApi, {
-    entityId: page.entityId,
+    entityId: page.metadata.editionId.baseId,
   });
   const parentPageModel = await pageModel.getParentPage(graphApi);
 
@@ -71,14 +71,16 @@ export const persistedPages: ResolverFn<
   QueryPersistedPagesArgs
 > = async (_, { ownedById }, { dataSources: { graphApi }, userModel }) => {
   const accountModel = ownedById
-    ? await UserModel.getUserById(graphApi, { entityId: ownedById }).catch(
-        (error: Error) => {
-          if (error instanceof EntityTypeMismatchError) {
-            return OrgModel.getOrgById(graphApi, { entityId: ownedById });
-          }
-          throw error;
-        },
-      )
+    ? await UserModel.getUserById(graphApi, {
+        entityId: userAccountIdToEntityId(ownedById),
+      }).catch((error: Error) => {
+        if (error instanceof EntityTypeMismatchError) {
+          return OrgModel.getOrgById(graphApi, {
+            entityId: userAccountIdToEntityId(ownedById),
+          });
+        }
+        throw error;
+      })
     : userModel;
 
   const pageModels = await PageModel.getAllPagesInAccount(graphApi, {

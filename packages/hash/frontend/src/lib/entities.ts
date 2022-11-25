@@ -8,13 +8,19 @@ import {
 } from "@blockprotocol/graph";
 
 import {
+  extractEntityUuidFromEntityId,
+  Subgraph,
+  SubgraphRootTypes,
+} from "@hashintel/hash-subgraph";
+import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { getPropertyTypesByBaseUri } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
+import {
   UnknownEntity as ApiEntity,
   DeprecatedEntityType as ApiEntityType,
   Link as ApiLink,
   LinkGroup as ApiLinkGroup,
   LinkedAggregation as ApiLinkedAggregation,
 } from "../graphql/apiTypes.gen";
-import { getPropertyTypesByBaseUri, RootEntityAndSubgraph } from "./subgraph";
 
 const isObject = (thing: unknown): thing is {} =>
   typeof thing === "object" && thing !== null;
@@ -52,21 +58,17 @@ export const rewriteEntityIdentifier = ({
  * 2. Re-write 'entityId' so that it is a stringified object of the identifiers we need (i.e. to include accountId)
  */
 export const convertApiEntityToBpEntity = ({
-  accountId,
   entityId,
   entityTypeId,
   properties,
-}: Pick<
-  ApiEntity,
-  "accountId" | "entityId" | "entityTypeId" | "properties"
->): BpEntity => {
+}: Pick<ApiEntity, "entityId" | "entityTypeId" | "properties">): BpEntity => {
   if (entityId.includes("{")) {
     throw new Error(
       `entityId has already been re-written as a stringified object: ${entityId}`,
     );
   }
   return {
-    entityId: rewriteEntityIdentifier({ accountId, entityId }),
+    entityId,
     entityTypeId,
     properties,
   };
@@ -444,8 +446,8 @@ export const convertApiEntityTypesToBpEntityTypes = (
  * @see https://blockprotocol.org/docs/spec/graph-service-specification#json-schema-extensions
  */
 export const generateEntityLabel = (
-  rootEntityAndSubgraph:
-    | RootEntityAndSubgraph
+  entitySubgraph:
+    | Subgraph<SubgraphRootTypes["entity"]>
     | Partial<{ entityId: string; properties: any }>,
   schema?: { labelProperty?: unknown; title?: unknown },
 ): string => {
@@ -453,25 +455,22 @@ export const generateEntityLabel = (
    * @todo - this return type is only added to allow for incremental migration. It should be removed
    *   https://app.asana.com/0/0/1203157172269854/f
    */
-  if (!("subgraph" in rootEntityAndSubgraph)) {
+  if (!("roots" in entitySubgraph)) {
     throw new Error("expected Subgraph but got a deprecated response type");
   }
 
-  const entity = rootEntityAndSubgraph.root;
+  const entity = getRoots(entitySubgraph)[0]!;
 
   const getFallbackLabel = () => {
-    // fallback to the entity type and a few characters of the entityId
-    let entityId = entity.entityId;
-    try {
-      // in case this entityId is a stringified JSON object, extract the real entityId from it
-      ({ entityId } = parseEntityIdentifier(entityId));
-    } catch {
-      // entityId was not a stringified object, it was already the real entityId
-    }
+    // fallback to the entity type and a few characters of the entityUuid
+    const entityId = entity.metadata.editionId.baseId;
 
     const entityTypeName = schema?.title ?? "Entity";
 
-    return `${entityTypeName}-${entityId.slice(0, 5)}`;
+    return `${entityTypeName}-${extractEntityUuidFromEntityId(entityId).slice(
+      0,
+      5,
+    )}`;
   };
 
   const getFallbackIfNotString = (val: any) => {
@@ -505,13 +504,13 @@ export const generateEntityLabel = (
     Object.keys(entity.properties).map((propertyTypeBaseUri) => {
       /** @todo - pick the latest version rather than first element? */
       const [propertyType] = getPropertyTypesByBaseUri(
-        rootEntityAndSubgraph.subgraph,
+        entitySubgraph,
         propertyTypeBaseUri,
       );
 
       return propertyType
         ? {
-            title: propertyType.inner.title.toLowerCase(),
+            title: propertyType.schema.title.toLowerCase(),
             propertyTypeBaseUri,
           }
         : {

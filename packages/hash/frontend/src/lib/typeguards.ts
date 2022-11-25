@@ -1,4 +1,11 @@
-import { PropertyValues } from "@blockprotocol/type-system-web";
+import {
+  Array,
+  OneOf,
+  PropertyValues,
+  Object,
+  ValueOrArray,
+  PropertyTypeReference,
+} from "@blockprotocol/type-system-web";
 
 export function isNonNullable<T>(value: T): value is NonNullable<T> {
   return value !== null && value !== undefined;
@@ -6,12 +13,12 @@ export function isNonNullable<T>(value: T): value is NonNullable<T> {
 
 export const isPropertyValueArray = (
   propertyValue: PropertyValues,
-): propertyValue is PropertyValues.ArrayOfPropertyValues => {
+): propertyValue is Array<OneOf<PropertyValues>> => {
   return "type" in propertyValue && propertyValue.type === "array";
 };
 
 export const isPropertyValueNested = (
   propertyValue: PropertyValues,
-): propertyValue is PropertyValues.PropertyTypeObject => {
+): propertyValue is Object<ValueOrArray<PropertyTypeReference>> => {
   return "type" in propertyValue && propertyValue.type === "object";
 };

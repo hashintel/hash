@@ -19,7 +19,7 @@
 
 use criterion::{BenchmarkId, Criterion, SamplingMode};
 use criterion_macro::criterion;
-use graph::subgraph::GraphResolveDepths;
+use graph::subgraph::depths::GraphResolveDepths;
 
 use crate::{representative_read::seed::setup_and_extract_samples, util::setup};
 
@@ -31,15 +31,15 @@ mod seed;
 const DB_NAME: &str = "representative_read";
 
 #[criterion]
-fn bench_representative_read_single_entity(c: &mut Criterion) {
-    let mut group = c.benchmark_group("representative_read_single_entity");
+fn bench_representative_read_entity(c: &mut Criterion) {
+    let mut group = c.benchmark_group("representative_read_entity");
     let (runtime, mut store_wrapper) = setup(DB_NAME, false, false);
 
     let samples = runtime.block_on(setup_and_extract_samples(&mut store_wrapper));
     let store = &store_wrapper.store;
 
-    for (account_id, type_ids_and_entity_ids) in samples.entities {
-        for (entity_type_id, entity_ids) in type_ids_and_entity_ids {
+    for (account_id, type_ids_and_entity_uuids) in samples.entities {
+        for (entity_type_id, entity_uuids) in type_ids_and_entity_uuids {
             group.bench_with_input(
                 BenchmarkId::new(
                     "entity_by_id",
@@ -48,9 +48,9 @@ fn bench_representative_read_single_entity(c: &mut Criterion) {
                         account_id, entity_type_id
                     ),
                 ),
-                &(account_id, entity_type_id, entity_ids),
-                |b, (_account_id, _entity_type_id, entity_ids)| {
-                    knowledge::entity::bench_get_entity_by_id(b, &runtime, store, entity_ids);
+                &(account_id, entity_type_id, entity_uuids),
+                |b, (_account_id, _entity_type_id, entity_uuids)| {
+                    knowledge::entity::bench_get_entity_by_id(b, &runtime, store, entity_uuids);
                 },
             );
         }
@@ -69,55 +69,41 @@ fn bench_representative_read_multiple_entities(c: &mut Criterion) {
             data_type_resolve_depth: 0,
             property_type_resolve_depth: 0,
             entity_type_resolve_depth: 0,
-            link_type_resolve_depth: 0,
-            link_resolve_depth: 0,
-            link_target_entity_resolve_depth: 0,
+            entity_resolve_depth: 0,
         },
         GraphResolveDepths {
             data_type_resolve_depth: 0,
             property_type_resolve_depth: 0,
             entity_type_resolve_depth: 0,
-            link_type_resolve_depth: 0,
-            link_resolve_depth: 1,
-            link_target_entity_resolve_depth: 1,
+            entity_resolve_depth: 2,
         },
         GraphResolveDepths {
             data_type_resolve_depth: 0,
             property_type_resolve_depth: 0,
             entity_type_resolve_depth: 2,
-            link_type_resolve_depth: 2,
-            link_resolve_depth: 1,
-            link_target_entity_resolve_depth: 1,
+            entity_resolve_depth: 2,
         },
         GraphResolveDepths {
             data_type_resolve_depth: 0,
             property_type_resolve_depth: 2,
             entity_type_resolve_depth: 2,
-            link_type_resolve_depth: 2,
-            link_resolve_depth: 1,
-            link_target_entity_resolve_depth: 1,
+            entity_resolve_depth: 2,
         },
         GraphResolveDepths {
             data_type_resolve_depth: 2,
             property_type_resolve_depth: 2,
             entity_type_resolve_depth: 2,
-            link_type_resolve_depth: 2,
-            link_resolve_depth: 1,
-            link_target_entity_resolve_depth: 1,
+            entity_resolve_depth: 2,
         },
         GraphResolveDepths {
             data_type_resolve_depth: 255,
             property_type_resolve_depth: 255,
             entity_type_resolve_depth: 255,
-            link_type_resolve_depth: 255,
-            link_resolve_depth: 128,
-            link_target_entity_resolve_depth: 127,
+            entity_resolve_depth: 255,
         },
     ];
 
     for graph_resolve_depth in graph_resolve_depths {
-        // The name unifies entity types/link types and entities/links to be comparable to
-        // `dev/links`
         group.bench_with_input(
             BenchmarkId::new(
                 "entity_by_property",
@@ -125,11 +111,8 @@ fn bench_representative_read_multiple_entities(c: &mut Criterion) {
                     "depths: DT={}, PT={}, ET={}, E={}",
                     graph_resolve_depth.data_type_resolve_depth,
                     graph_resolve_depth.property_type_resolve_depth,
-                    graph_resolve_depth
-                        .entity_type_resolve_depth
-                        .max(graph_resolve_depth.link_type_resolve_depth),
-                    graph_resolve_depth.link_resolve_depth
-                        + graph_resolve_depth.link_target_entity_resolve_depth,
+                    graph_resolve_depth.entity_type_resolve_depth,
+                    graph_resolve_depth.entity_resolve_depth,
                 ),
             ),
             &graph_resolve_depth,
@@ -145,8 +128,6 @@ fn bench_representative_read_multiple_entities(c: &mut Criterion) {
     }
 
     for graph_resolve_depth in graph_resolve_depths {
-        // The name unifies entity types/link types and entities/links to be comparable to
-        // `dev/links`
         group.bench_with_input(
             BenchmarkId::new(
                 "link_by_source_by_property",
@@ -154,11 +135,8 @@ fn bench_representative_read_multiple_entities(c: &mut Criterion) {
                     "depths: DT={}, PT={}, ET={}, E={}",
                     graph_resolve_depth.data_type_resolve_depth,
                     graph_resolve_depth.property_type_resolve_depth,
-                    graph_resolve_depth
-                        .entity_type_resolve_depth
-                        .max(graph_resolve_depth.link_type_resolve_depth),
-                    graph_resolve_depth.link_resolve_depth
-                        + graph_resolve_depth.link_target_entity_resolve_depth,
+                    graph_resolve_depth.entity_type_resolve_depth,
+                    graph_resolve_depth.entity_resolve_depth,
                 ),
             ),
             &graph_resolve_depth,

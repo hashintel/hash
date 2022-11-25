@@ -3,13 +3,16 @@ use std::{iter::repeat, str::FromStr};
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion};
 use criterion_macro::criterion;
 use graph::{
-    identifier::AccountId,
-    knowledge::{Entity, EntityId},
+    identifier::account::AccountId,
+    knowledge::{EntityProperties, EntityQueryPath, EntityUuid},
     provenance::{CreatedById, OwnedById},
-    store::{query::Filter, AccountStore, AsClient, EntityStore, PostgresStore},
-    subgraph::{GraphResolveDepths, StructuralQuery},
+    store::{
+        query::{Filter, FilterExpression, Parameter},
+        AccountStore, AsClient, EntityStore, PostgresStore,
+    },
+    subgraph::{depths::GraphResolveDepths, query::StructuralQuery},
 };
-use graph_test_data::{data_type, entity, entity_type, link_type, property_type};
+use graph_test_data::{data_type, entity, entity_type, property_type};
 use rand::{prelude::IteratorRandom, thread_rng};
 use tokio::runtime::Runtime;
 use type_system::EntityType;
@@ -23,7 +26,7 @@ async fn seed_db(
     account_id: AccountId,
     store_wrapper: &mut StoreWrapper,
     total: usize,
-) -> Vec<EntityId> {
+) -> Vec<EntityUuid> {
     let transaction = store_wrapper
         .store
         .as_mut_client()
@@ -50,20 +53,26 @@ async fn seed_db(
             property_type::BLURB_V1,
             property_type::PUBLISHED_ON_V1,
         ],
-        [link_type::WRITTEN_BY_V1, link_type::FRIEND_OF_V1],
-        [entity_type::PERSON_V1, entity_type::BOOK_V1],
+        [
+            entity_type::LINK_V1,
+            entity_type::link::FRIEND_OF_V1,
+            entity_type::link::WRITTEN_BY_V1,
+            entity_type::PERSON_V1,
+            entity_type::BOOK_V1,
+        ],
     )
     .await;
 
-    let entity: Entity = serde_json::from_str(entity::BOOK_V1).expect("could not parse entity");
+    let properties: EntityProperties =
+        serde_json::from_str(entity::BOOK_V1).expect("could not parse entity");
     let entity_type_id = EntityType::from_str(entity_type::BOOK_V1)
         .expect("could not parse entity type")
         .id()
         .clone();
 
-    let entity_ids = store
+    let entity_uuids = store
         .insert_entities_batched_by_type(
-            repeat((None, entity)).take(total),
+            repeat((None, properties, None)).take(total),
             entity_type_id,
             OwnedById::new(account_id),
             CreatedById::new(account_id),
@@ -84,32 +93,35 @@ async fn seed_db(
         now.elapsed().unwrap()
     );
 
-    entity_ids
+    entity_uuids
 }
 
 pub fn bench_get_entity_by_id(
     b: &mut Bencher,
     runtime: &Runtime,
     store: &Store,
-    entity_ids: &[EntityId],
+    entity_uuids: &[EntityUuid],
 ) {
     b.to_async(runtime).iter_batched(
         || {
             // Each iteration, *before timing*, pick a random entity from the sample to
             // query
-            *entity_ids.iter().choose(&mut thread_rng()).unwrap()
+            *entity_uuids.iter().choose(&mut thread_rng()).unwrap()
         },
-        |entity_id| async move {
+        |entity_uuid| async move {
             store
                 .get_entity(&StructuralQuery {
-                    filter: Filter::for_latest_entity_by_entity_id(entity_id),
+                    filter: Filter::Equal(
+                        Some(FilterExpression::Path(EntityQueryPath::Uuid)),
+                        Some(FilterExpression::Parameter(Parameter::Uuid(
+                            entity_uuid.as_uuid(),
+                        ))),
+                    ),
                     graph_resolve_depths: GraphResolveDepths {
                         data_type_resolve_depth: 0,
                         property_type_resolve_depth: 0,
                         entity_type_resolve_depth: 0,
-                        link_type_resolve_depth: 0,
-                        link_resolve_depth: 0,
-                        link_target_entity_resolve_depth: 0,
+                        entity_resolve_depth: 0,
                     },
                 })
                 .await
@@ -130,7 +142,7 @@ fn bench_scaling_read_entity(c: &mut Criterion) {
     for size in [1, 10, 100, 1_000, 10_000] {
         let (runtime, mut store_wrapper) = setup(DB_NAME, true, true);
 
-        let entity_ids = runtime.block_on(seed_db(account_id, &mut store_wrapper, size));
+        let entity_uuids = runtime.block_on(seed_db(account_id, &mut store_wrapper, size));
         let store = &store_wrapper.store;
 
         group.bench_with_input(
@@ -141,8 +153,10 @@ fn bench_scaling_read_entity(c: &mut Criterion) {
                     account_id, size
                 ),
             ),
-            &(account_id, entity_ids),
-            |b, (_account_id, entity_ids)| bench_get_entity_by_id(b, &runtime, store, entity_ids),
+            &(account_id, entity_uuids),
+            |b, (_account_id, entity_uuids)| {
+                bench_get_entity_by_id(b, &runtime, store, entity_uuids)
+            },
         );
     }
 }

@@ -2,10 +2,12 @@ import { UserInputError } from "apollo-server-errors";
 import { GraphApi } from "@hashintel/hash-graph-client";
 import produce from "immer";
 
+import { EntityId } from "@hashintel/hash-subgraph";
+import { VersionedUri } from "@blockprotocol/type-system-web";
 import { BlockModel, EntityModel, UserModel } from "../../../../model";
 import {
   CreatePersistedEntityAction,
-  PersistedEntityDefinition,
+  EntityWithMetadataDefinition,
   InsertPersistedBlockAction,
   SwapPersistedBlockDataAction,
   UpdatePersistedEntityAction,
@@ -15,32 +17,33 @@ import {
 export const createEntityWithPlaceholdersFn =
   (graphApi: GraphApi, placeholderResults: PlaceholderResultsMap) =>
   async (
-    originalDefinition: PersistedEntityDefinition,
+    originalDefinition: EntityWithMetadataDefinition,
     entityActorId: string,
   ) => {
     const entityDefinition = produce(originalDefinition, (draft) => {
-      if (draft.existingEntity) {
-        draft.existingEntity.entityId = placeholderResults.get(
-          draft.existingEntity.entityId,
-        );
+      if (draft.existingEntityId) {
+        draft.existingEntityId = placeholderResults.get(
+          draft.existingEntityId,
+        ) as EntityId;
       }
-      if (draft.entityType?.entityTypeId) {
-        draft.entityType.entityTypeId = placeholderResults.get(
-          draft.entityType.entityTypeId,
-        );
+      if (draft.entityTypeId) {
+        draft.entityTypeId = placeholderResults.get(
+          draft.entityTypeId,
+        ) as VersionedUri;
       }
     });
 
-    if (entityDefinition.existingEntity) {
+    if (entityDefinition.existingEntityId) {
       return await EntityModel.getOrCreate(graphApi, {
         ownedById: entityActorId,
+        // We've looked up the placeholder ID, and have an actual entity ID at this point.
         entityDefinition,
         actorId: entityActorId,
       });
     } else {
       return await EntityModel.createEntityWithLinks(graphApi, {
         ownedById: entityActorId,
-        entityTypeId: entityDefinition.entityType?.entityTypeId!,
+        entityTypeId: entityDefinition.entityTypeId!,
         properties: entityDefinition.entityProperties,
         linkedEntities: entityDefinition.linkedEntities ?? undefined,
         actorId: entityActorId,
@@ -91,7 +94,10 @@ export class PlaceholderResultsMap {
     return this.map.has(placeholderId);
   }
 
-  set(placeholderId: string | null | undefined, entity: { entityId: string }) {
+  set(
+    placeholderId: string | null | undefined,
+    entity: { entityId: EntityId },
+  ) {
     if (isPlaceholderId(placeholderId)) {
       this.map.set(placeholderId, entity.entityId);
     }
@@ -100,7 +106,8 @@ export class PlaceholderResultsMap {
   getResults() {
     return Array.from(this.map.entries()).map(([placeholderId, entityId]) => ({
       placeholderId,
-      entityId,
+      // All resulting values should be entityIds at this point.
+      entityId: entityId as EntityId,
     }));
   }
 }
@@ -114,7 +121,7 @@ export const handleCreateNewEntity = async (params: {
   index: number;
   placeholderResults: PlaceholderResultsMap;
   createEntityWithPlaceholders: (
-    originalDefinition: PersistedEntityDefinition,
+    originalDefinition: EntityWithMetadataDefinition,
     entityActorId: string,
   ) => Promise<EntityModel>;
 }): Promise<void> => {
@@ -128,10 +135,11 @@ export const handleCreateNewEntity = async (params: {
       createEntityWithPlaceholders,
       placeholderResults,
     } = params;
-    placeholderResults.set(
-      entityPlaceholderId,
-      await createEntityWithPlaceholders(entityDefinition, entityOwnedById),
-    );
+    placeholderResults.set(entityPlaceholderId, {
+      entityId: (
+        await createEntityWithPlaceholders(entityDefinition, entityOwnedById)
+      ).getBaseId(),
+    });
   } catch (error) {
     if (error instanceof UserInputError) {
       throw new UserInputError(`action ${params.index}: ${error}`);
@@ -153,7 +161,7 @@ export const handleInsertNewBlock = async (
     insertBlockAction: InsertPersistedBlockAction;
     index: number;
     createEntityWithPlaceholders: (
-      originalDefinition: PersistedEntityDefinition,
+      originalDefinition: EntityWithMetadataDefinition,
       entityActorId: string,
     ) => Promise<EntityModel>;
     placeholderResults: PlaceholderResultsMap;
@@ -165,7 +173,7 @@ export const handleInsertNewBlock = async (
       insertBlockAction: {
         ownedById: blockOwnedById,
         componentId: blockComponentId,
-        existingBlockEntity,
+        existingBlockEntityId,
         blockPlaceholderId,
         entityPlaceholderId,
         entity,
@@ -180,20 +188,21 @@ export const handleInsertNewBlock = async (
       blockOwnedById,
     );
 
-    placeholderResults.set(entityPlaceholderId, blockData);
+    placeholderResults.set(entityPlaceholderId, {
+      entityId: blockData.getBaseId(),
+    });
 
     let block: BlockModel;
 
-    if (existingBlockEntity) {
+    if (existingBlockEntityId) {
       if (blockComponentId) {
         throw new Error(
           "InsertNewBlock: cannot set component id when using existing block entity",
         );
       }
-      const existingBlock = await BlockModel.getBlockById(
-        graphApi,
-        existingBlockEntity,
-      );
+      const existingBlock = await BlockModel.getBlockById(graphApi, {
+        entityId: existingBlockEntityId,
+      });
 
       if (!existingBlock) {
         throw new Error("InsertBlock: provided block id does not exist");
@@ -203,9 +212,9 @@ export const handleInsertNewBlock = async (
     } else if (blockComponentId) {
       block = await BlockModel.createBlock(graphApi, {
         blockData,
-        ownedById: userModel.entityId,
+        ownedById: userModel.getEntityUuid(),
         componentId: blockComponentId,
-        actorId: userModel.entityId,
+        actorId: userModel.getEntityUuid(),
       });
     } else {
       throw new Error(
@@ -213,7 +222,7 @@ export const handleInsertNewBlock = async (
       );
     }
 
-    placeholderResults.set(blockPlaceholderId, block);
+    placeholderResults.set(blockPlaceholderId, { entityId: block.getBaseId() });
 
     return block;
   } catch (error) {
@@ -260,7 +269,7 @@ export const handleSwapBlockData = async (
 
   await block.updateBlockDataEntity(graphApi, {
     newBlockDataEntity,
-    actorId: userModel.entityId,
+    actorId: userModel.getEntityUuid(),
   });
 };
 
@@ -281,7 +290,7 @@ export const handleUpdateEntity = async (
   // If this entity ID is a placeholder, use that instead.
   let entityId = action.entityId;
   if (placeholderResults.has(entityId)) {
-    entityId = placeholderResults.get(entityId);
+    entityId = placeholderResults.get(entityId) as EntityId;
   }
 
   const entityModel = await EntityModel.getLatest(graphApi, {
@@ -292,6 +301,6 @@ export const handleUpdateEntity = async (
     updatedProperties: Object.entries(action.properties).map(
       ([key, value]) => ({ propertyTypeBaseUri: key, value }),
     ),
-    actorId: userModel.entityId,
+    actorId: userModel.getEntityUuid(),
   });
 };

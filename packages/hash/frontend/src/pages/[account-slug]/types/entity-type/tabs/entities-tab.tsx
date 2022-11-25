@@ -11,6 +11,7 @@ import {
 import { Box, Paper, Stack } from "@mui/material";
 import { FunctionComponent, useCallback, useMemo, useState } from "react";
 import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
+import { extractOwnedByIdFromEntityId } from "@hashintel/hash-subgraph";
 import { SectionWrapper } from "../../../shared/section-wrapper";
 import { WhiteChip } from "../../../shared/white-chip";
 import { blankCell } from "../../../../../components/grid/utils";
@@ -31,14 +32,18 @@ export const EntitiesTab: FunctionComponent = () => {
 
   const [showSearch, setShowSearch] = useState(false);
 
-  const namespace = useRouteNamespace();
+  const { namespace } = useRouteNamespace();
 
   const { columns, rows } =
     useEntitiesTable(entities, entityTypes, propertyTypes, subgraph) ?? {};
 
   const entitiesCount = useMemo(() => {
     const namespaceEntities =
-      entities?.filter((entity) => entity.ownedById === namespace?.id) ?? [];
+      entities?.filter(
+        (entity) =>
+          extractOwnedByIdFromEntityId(entity.metadata.editionId.baseId) ===
+          namespace?.accountId,
+      ) ?? [];
 
     return {
       namespace: namespaceEntities.length,

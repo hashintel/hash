@@ -1,0 +1,13 @@
+{
+  "kind": "entityType",
+  "$id": "https://blockprotocol.org/@alice/types/entity-type/tenant/v/1",
+  "type": "object",
+  "title": "Tenant",
+  "description": "Someone who occupies land or property rented from a landlord",
+  "allOf": [
+    {
+      "$ref": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1"
+    }
+  ],
+  "properties": {}
+}

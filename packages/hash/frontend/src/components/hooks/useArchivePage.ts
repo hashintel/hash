@@ -1,5 +1,9 @@
 import { useMutation } from "@apollo/client";
 import { getPageInfoQuery } from "@hashintel/hash-shared/queries/page.queries";
+import {
+  EntityId,
+  extractOwnedByIdFromEntityId,
+} from "@hashintel/hash-subgraph";
 
 import { useCallback } from "react";
 import {
@@ -16,8 +20,9 @@ export const useArchivePage = () => {
     UpdatePersistedPageMutationVariables
   >(updatePersistedPage, { awaitRefetchQueries: true });
 
-  const getRefetchQueries = useCallback(
-    (ownedById: string, pageEntityId: string) => [
+  const getRefetchQueries = useCallback((pageEntityId: EntityId) => {
+    const ownedById = extractOwnedByIdFromEntityId(pageEntityId);
+    return [
       {
         query: getAccountPagesTree,
         variables: { ownedById },
@@ -26,21 +31,19 @@ export const useArchivePage = () => {
         query: getPageInfoQuery,
         variables: <GetPageInfoQueryVariables>{
           entityId: pageEntityId,
-          ownedById,
         },
       },
-    ],
-    [],
-  );
+    ];
+  }, []);
 
   const archivePage = useCallback(
-    async (value: boolean, ownedById: string, pageEntityId: string) => {
+    async (value: boolean, pageEntityId: EntityId) => {
       await updatePageFn({
         variables: {
           entityId: pageEntityId,
           updatedProperties: { archived: value },
         },
-        refetchQueries: getRefetchQueries(ownedById, pageEntityId),
+        refetchQueries: getRefetchQueries(pageEntityId),
       });
     },
     [updatePageFn, getRefetchQueries],

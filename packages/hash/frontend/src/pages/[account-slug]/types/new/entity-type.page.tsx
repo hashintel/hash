@@ -79,15 +79,15 @@ const Page: NextPageWithLayout = () => {
 
   const { authenticatedUser, loading } = useAuthenticatedUser();
   const { getEntityType } = useBlockProtocolGetEntityType();
-  const namespace = useRouteNamespace();
+  const { namespace, loading: loadingNamespace } = useRouteNamespace();
 
   useEffect(() => {
-    if (authenticatedUser && !namespace) {
+    if (authenticatedUser && !loadingNamespace && !namespace) {
       void router.replace(
         `/@${authenticatedUser.shortname}/types/new/entity-type`,
       );
     }
-  }, [authenticatedUser, namespace, router]);
+  }, [loadingNamespace, authenticatedUser, namespace, router]);
 
   if (typeSystemLoading || loading || !authenticatedUser || !namespace) {
     return null;
@@ -114,8 +114,6 @@ const Page: NextPageWithLayout = () => {
     const baseUri = generateEntityTypeBaseUriForUser(name);
     const entityType: EntityType = {
       title: name,
-      // @todo make this not necessary
-      pluralTitle: name,
       description,
       kind: "entityType",
       type: "object",
@@ -215,11 +213,9 @@ const Page: NextPageWithLayout = () => {
                   },
                   async validate(value) {
                     const res = await getEntityType({
-                      data: {
-                        entityTypeId: generateInitialEntityTypeId(
-                          generateEntityTypeBaseUriForUser(value),
-                        ),
-                      },
+                      data: generateInitialEntityTypeId(
+                        generateEntityTypeBaseUriForUser(value),
+                      ),
                     });
 
                     return res.data?.roots.length
