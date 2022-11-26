@@ -1,4 +1,4 @@
-import { PropertyType } from "@blockprotocol/type-system-web";
+import { PropertyType, VersionedUri } from "@blockprotocol/type-system-web";
 import {
   Button,
   ButtonProps,
@@ -21,8 +21,9 @@ import {
   Typography,
 } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, FormProvider, useForm } from "react-hook-form";
 import { frontendUrl } from "@hashintel/hash-shared/environment";
+import { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import { useBlockProtocolCreatePropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreatePropertyType";
 import { useBlockProtocolGetPropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetPropertyType";
 import { getPersistedPropertyType } from "../../../../lib/subgraph";
@@ -40,7 +41,20 @@ import {
 const generateInitialPropertyTypeId = (baseUri: string) =>
   addVersionToBaseUri(baseUri, 1);
 
-export const propertyTypeDataTypes = [
+export interface ArrayData {
+  minValue: number;
+  maxValue?: number;
+  expectedValues: DataType[];
+}
+
+export interface DataType {
+  title: string;
+  icon: IconDefinition["icon"];
+  dataTypeId: VersionedUri;
+  data?: ArrayData;
+}
+
+export const propertyTypeDataTypes: DataType[] = [
   {
     title: types.dataType.text.title,
     icon: faText,
@@ -58,7 +72,7 @@ export const propertyTypeDataTypes = [
   },
 ];
 
-type PropertyTypeFormValues = {
+export type PropertyTypeFormValues = {
   name: string;
   description: string;
   expectedValues: typeof propertyTypeDataTypes;
@@ -75,6 +89,13 @@ export const PropertyTypeForm = ({
 }) => {
   const refetchPropertyTypes = useRefetchPropertyTypes();
 
+  const formMethods = useForm<PropertyTypeFormValues>({
+    defaultValues: { name: initialTitle, description: "", expectedValues: [] },
+    shouldFocusError: true,
+    mode: "onBlur",
+    reValidateMode: "onBlur",
+  });
+
   const {
     register,
     handleSubmit: wrapHandleSubmit,
@@ -88,12 +109,7 @@ export const PropertyTypeForm = ({
     control,
     clearErrors,
     setFocus,
-  } = useForm<PropertyTypeFormValues>({
-    defaultValues: { name: initialTitle, description: "", expectedValues: [] },
-    shouldFocusError: true,
-    mode: "onBlur",
-    reValidateMode: "onBlur",
-  });
+  } = formMethods;
 
   const [autocompleteFocused, setAutocompleteFocused] = useState(false);
   const [creatingCustomPropertyType, setCreatingCustomPropertyType] =
@@ -123,13 +139,30 @@ export const PropertyTypeForm = ({
     });
   };
 
+  const getItems = (expectedValues: DataType[]) => {
+    return expectedValues.map(({ title, dataTypeId, data }) => {
+      if (title === "Array") {
+        return {
+          type: "array",
+          items: {
+            oneOf: data?.expectedValues ? getItems(data?.expectedValues) : [],
+          },
+          minValue: data?.minValue,
+          maxValue: data?.maxValue,
+        };
+      }
+
+      return {
+        $ref: dataTypeId,
+      };
+    });
+  };
+
   const handleSubmit = wrapHandleSubmit(async (data) => {
     const res = await createPropertyType({
       data: {
         propertyType: {
-          oneOf: data.expectedValues.map((value) => ({
-            $ref: value.dataTypeId,
-          })),
+          oneOf: data.expectedValues ? getItems(data.expectedValues) : [],
           description: data.description,
           title: data.name,
           kind: "propertyType",
@@ -267,98 +300,104 @@ export const PropertyTypeForm = ({
             },
           })}
         />
-        <Controller
-          render={({ field: { onChange, onBlur, ...props } }) => (
-            <PropertyTypeSelectorDropdownContext.Provider
-              value={propertyTypeSelectorDropdownContextValue}
-            >
-              <Autocomplete
-                multiple
-                popupIcon={null}
-                clearIcon={null}
-                forcePopupIcon={false}
-                selectOnFocus={false}
-                // openOnFocus
-                open={autocompleteFocused || creatingCustomPropertyType}
-                clearOnBlur={false}
-                onFocus={() => {
-                  setAutocompleteFocused(true);
-                }}
-                onBlur={() => {
-                  onBlur();
-                  setAutocompleteFocused(false);
-                }}
-                onChange={(_evt, data) => {
-                  onChange(data);
-                }}
-                {...props}
-                PaperComponent={PropertyTypeSelectorDropdown}
-                renderTags={(value, getTagProps) =>
-                  value.map((option, index) => (
-                    <Chip
-                      {...getTagProps({ index })}
-                      key={option.dataTypeId}
-                      label={
-                        <Typography
-                          variant="smallTextLabels"
-                          sx={{ display: "flex", alignItems: "center" }}
-                        >
-                          <FontAwesomeIcon
-                            icon={{ icon: option.icon }}
-                            sx={{ fontSize: "1em", mr: "1ch" }}
-                          />
-                          {option.title}
-                        </Typography>
-                      }
-                      color="blue"
+        <FormProvider {...formMethods}>
+          <Controller
+            render={({ field: { onChange, onBlur, ...props } }) => (
+              <PropertyTypeSelectorDropdownContext.Provider
+                value={propertyTypeSelectorDropdownContextValue}
+              >
+                <Autocomplete
+                  multiple
+                  popupIcon={null}
+                  clearIcon={null}
+                  forcePopupIcon={false}
+                  selectOnFocus={false}
+                  // openOnFocus
+                  open={autocompleteFocused || creatingCustomPropertyType}
+                  clearOnBlur={false}
+                  onFocus={() => {
+                    setAutocompleteFocused(true);
+                  }}
+                  onBlur={() => {
+                    onBlur();
+                    setAutocompleteFocused(false);
+                  }}
+                  onChange={(_evt, data) => {
+                    onChange(data);
+                  }}
+                  {...props}
+                  PaperComponent={PropertyTypeSelectorDropdown}
+                  renderTags={(value, getTagProps) =>
+                    value.map((option, index) => (
+                      <Chip
+                        {...getTagProps({ index })}
+                        key={option.dataTypeId}
+                        label={
+                          <Typography
+                            variant="smallTextLabels"
+                            sx={{ display: "flex", alignItems: "center" }}
+                          >
+                            <FontAwesomeIcon
+                              icon={{ icon: option.icon }}
+                              sx={{ fontSize: "1em", mr: "1ch" }}
+                            />
+                            {option.title}
+                          </Typography>
+                        }
+                        color="blue"
+                      />
+                    ))
+                  }
+                  renderInput={(inputProps) => (
+                    <TextField
+                      {...inputProps}
+                      label="Expected values"
+                      sx={{
+                        alignSelf: "flex-start",
+                        width: "70%",
+                      }}
+                      placeholder="Select acceptable values"
                     />
-                  ))
-                }
-                renderInput={(inputProps) => (
-                  <TextField
-                    {...inputProps}
-                    label="Expected values"
-                    sx={{
-                      alignSelf: "flex-start",
-                      width: "70%",
-                    }}
-                    placeholder="Select acceptable values"
-                  />
-                )}
-                options={propertyTypeDataTypes}
-                getOptionLabel={(obj) => obj.title}
-                disableCloseOnSelect
-                disablePortal
-                renderOption={(optProps, opt) => (
-                  <Box component="li" {...optProps} sx={{ py: 1.5, px: 2.25 }}>
-                    <FontAwesomeIcon
-                      icon={{ icon: opt.icon }}
-                      sx={(theme) => ({ color: theme.palette.gray[50] })}
-                    />
-                    <Typography
-                      variant="smallTextLabels"
-                      component="span"
-                      ml={1.5}
-                      color={(theme) => theme.palette.gray[80]}
+                  )}
+                  options={propertyTypeDataTypes}
+                  getOptionLabel={(obj) => obj.title}
+                  disableCloseOnSelect
+                  disablePortal
+                  renderOption={(optProps, opt) => (
+                    <Box
+                      component="li"
+                      {...optProps}
+                      sx={{ py: 1.5, px: 2.25 }}
                     >
-                      {opt.title}
-                    </Typography>
-                    <Chip color="blue" label="DATA TYPE" sx={{ ml: 1.5 }} />
-                  </Box>
-                )}
-                componentsProps={{
-                  popper: {
-                    sx: { width: "100% !important" },
-                    placement: "bottom-start",
-                  },
-                }}
-              />
-            </PropertyTypeSelectorDropdownContext.Provider>
-          )}
-          control={control}
-          rules={{ required: true }}
-          name="expectedValues"
-        />
+                      <FontAwesomeIcon
+                        icon={{ icon: opt.icon }}
+                        sx={(theme) => ({ color: theme.palette.gray[50] })}
+                      />
+                      <Typography
+                        variant="smallTextLabels"
+                        component="span"
+                        ml={1.5}
+                        color={(theme) => theme.palette.gray[80]}
+                      >
+                        {opt.title}
+                      </Typography>
+                      <Chip color="blue" label="DATA TYPE" sx={{ ml: 1.5 }} />
+                    </Box>
+                  )}
+                  componentsProps={{
+                    popper: {
+                      sx: { width: "100% !important" },
+                      placement: "bottom-start",
+                    },
+                  }}
+                />
+              </PropertyTypeSelectorDropdownContext.Provider>
+            )}
+            control={control}
+            rules={{ required: true }}
+            name="expectedValues"
+          />
+        </FormProvider>
       </Stack>
       <Divider sx={{ mt: 2, mb: 3 }} />
       <Stack direction="row" spacing={1.25}>

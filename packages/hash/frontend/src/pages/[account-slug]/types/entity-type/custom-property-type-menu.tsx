@@ -13,8 +13,13 @@ import {
   Typography,
 } from "@mui/material";
 import { FunctionComponent, useState } from "react";
+import { useFormContext, useWatch } from "react-hook-form";
 import { faCube } from "../../../../shared/icons/pro/fa-cube";
-import { ArrayPropertyTypeMenu } from "./array-property-type-menu";
+import {
+  arrayPropertyDataType,
+  ArrayPropertyTypeMenu,
+} from "./array-property-type-menu";
+import { PropertyTypeFormValues } from "./property-type-form";
 
 const CustomChip: FunctionComponent<ChipProps & { borderColor?: string }> = ({
   borderColor,
@@ -29,11 +34,6 @@ const CustomChip: FunctionComponent<ChipProps & { borderColor?: string }> = ({
   />
 );
 
-export type PropertyType = {
-  type: "array" | "object";
-  items: ["text" | "number" | "boolean" | PropertyType];
-};
-
 type PropertyTypeCustomMenuProps = {
   closeMenu: () => void;
 };
@@ -41,7 +41,12 @@ type PropertyTypeCustomMenuProps = {
 export const PropertyTypeCustomMenu: FunctionComponent<
   PropertyTypeCustomMenuProps
 > = ({ closeMenu }) => {
-  const [propertyType, setPropertyType] = useState<PropertyType | null>(null);
+  const { setValue } = useFormContext<PropertyTypeFormValues>();
+  const expectedValues = useWatch({ name: "expectedValues" });
+
+  const [selectedValueIndex, setSelectedValueIndex] = useState<number>();
+
+  const isCreatingCustomProperty = selectedValueIndex !== undefined;
 
   return (
     <Box>
@@ -100,7 +105,7 @@ export const PropertyTypeCustomMenu: FunctionComponent<
           paddingX: 1.5,
           background: palette.gray[20],
           border: `1px solid ${palette.gray[30]}`,
-          ...(!propertyType
+          ...(!isCreatingCustomProperty
             ? {
                 borderBottomRightRadius: 4,
                 borderBottomLeftRadius: 4,
@@ -108,15 +113,13 @@ export const PropertyTypeCustomMenu: FunctionComponent<
             : { borderBottomWidth: 0 }),
         })}
       >
-        {!propertyType ? (
+        {!isCreatingCustomProperty ? (
           <>
             <Stack direction="row" gap={1.75}>
               <Button
                 size="small"
                 variant="tertiary"
-                // endIcon={<CubeIcon />}
                 endIcon={<FontAwesomeIcon icon={{ icon: faCube }} />}
-                onClick={() => setPropertyType({ type: "object", items: [] })}
               >
                 Create a property object
               </Button>
@@ -144,7 +147,13 @@ export const PropertyTypeCustomMenu: FunctionComponent<
                 size="small"
                 variant="tertiary"
                 endIcon={<FontAwesomeIcon icon={faList} />}
-                onClick={() => setPropertyType({ type: "array", items: [] })}
+                onClick={() => {
+                  setValue("expectedValues", [
+                    ...expectedValues,
+                    arrayPropertyDataType,
+                  ]);
+                  setSelectedValueIndex(expectedValues.length);
+                }}
               >
                 Create an array
               </Button>
@@ -168,14 +177,11 @@ export const PropertyTypeCustomMenu: FunctionComponent<
             </Stack>
           </>
         ) : (
-          <ArrayPropertyTypeMenu
-            property={propertyType}
-            setProperty={(prop: PropertyType) => setPropertyType(prop)}
-          />
+          <ArrayPropertyTypeMenu index={[selectedValueIndex]} />
         )}
       </Stack>
 
-      {propertyType ? (
+      {isCreatingCustomProperty ? (
         <Box
           sx={({ palette }) => ({
             background: palette.gray[10],
