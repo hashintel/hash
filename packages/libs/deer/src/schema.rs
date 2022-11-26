@@ -59,6 +59,10 @@ impl Schema {
 
 #[derive(serde::Serialize)]
 pub struct Reference {
+    // we need another way of getting a stable reference, as we are unable to serialize a `TypeId`,
+    // we can use the path to a specific type or an auto-incrementing counter.
+    // the path to a specific type, as well as a self-chosen name bring more deterministic
+    // behaviour, but `schemars` has shown that they are unreliable.
     #[serde(rename = "$ref")]
     r: TypeId,
 }
