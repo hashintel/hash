@@ -1,4 +1,8 @@
-import { PropertyType, VersionedUri } from "@blockprotocol/type-system-web";
+import {
+  PropertyType,
+  PropertyValues,
+  VersionedUri,
+} from "@blockprotocol/type-system-web";
 import {
   Button,
   ButtonProps,
@@ -21,7 +25,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
-import { Controller, FormProvider, useForm } from "react-hook-form";
+import { Controller, FormProvider, useForm, useWatch } from "react-hook-form";
 import { frontendUrl } from "@hashintel/hash-shared/environment";
 import { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import { useBlockProtocolCreatePropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreatePropertyType";
@@ -41,17 +45,16 @@ import {
 const generateInitialPropertyTypeId = (baseUri: string) =>
   addVersionToBaseUri(baseUri, 1);
 
-export interface ArrayData {
-  minValue: number;
-  maxValue?: number;
-  expectedValues: DataType[];
-}
-
 export interface DataType {
   title: string;
   icon: IconDefinition["icon"];
   dataTypeId: VersionedUri;
-  data?: ArrayData;
+  data?: {
+    minItems: number;
+    maxItems?: number;
+    expectedValues: DataType[];
+    submitted: boolean;
+  };
 }
 
 export const propertyTypeDataTypes: DataType[] = [
@@ -76,6 +79,7 @@ export type PropertyTypeFormValues = {
   name: string;
   description: string;
   expectedValues: typeof propertyTypeDataTypes;
+  creatingProperty?: DataType;
 };
 
 export const PropertyTypeForm = ({
@@ -109,7 +113,11 @@ export const PropertyTypeForm = ({
     control,
     clearErrors,
     setFocus,
+    setValue,
+    watch,
   } = formMethods;
+
+  const creatingProperty = watch(`creatingProperty`);
 
   const [autocompleteFocused, setAutocompleteFocused] = useState(false);
   const [creatingCustomPropertyType, setCreatingCustomPropertyType] =
@@ -139,7 +147,7 @@ export const PropertyTypeForm = ({
     });
   };
 
-  const getItems = (expectedValues: DataType[]) => {
+  const getItems = (expectedValues: DataType[]): PropertyValues[] => {
     return expectedValues.map(({ title, dataTypeId, data }) => {
       if (title === "Array") {
         return {
@@ -147,8 +155,8 @@ export const PropertyTypeForm = ({
           items: {
             oneOf: data?.expectedValues ? getItems(data?.expectedValues) : [],
           },
-          minValue: data?.minValue,
-          maxValue: data?.maxValue,
+          minItems: data?.minItems,
+          maxItems: data?.maxItems,
         };
       }
 
@@ -192,9 +200,12 @@ export const PropertyTypeForm = ({
     () => ({
       customPropertyMenuOpen: creatingCustomPropertyType,
       openCustomPropertyMenu: () => setCreatingCustomPropertyType(true),
-      closeCustomPropertyMenu: () => setCreatingCustomPropertyType(false),
+      closeCustomPropertyMenu: () => {
+        setValue(`creatingProperty`, undefined);
+        setCreatingCustomPropertyType(false);
+      },
     }),
-    [creatingCustomPropertyType, setCreatingCustomPropertyType],
+    [creatingCustomPropertyType, setCreatingCustomPropertyType, setValue],
   );
 
   return (
@@ -307,6 +318,7 @@ export const PropertyTypeForm = ({
                 value={propertyTypeSelectorDropdownContextValue}
               >
                 <Autocomplete
+                  disabled={!!creatingProperty}
                   multiple
                   popupIcon={null}
                   clearIcon={null}

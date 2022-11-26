@@ -24,7 +24,7 @@ type PropertyTypeSelectorDropdownProps = {
 export const PropertyTypeSelectorDropdownContext =
   createContext<PropertyTypeSelectorDropdownProps | null>(null);
 
-const usePropertyTypeSelectorDropdownContext = () => {
+export const usePropertyTypeSelectorDropdownContext = () => {
   const value = useContext(PropertyTypeSelectorDropdownContext);
   if (value === null) {
     throw new Error(

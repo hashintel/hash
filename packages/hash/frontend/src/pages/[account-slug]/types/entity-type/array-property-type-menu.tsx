@@ -19,10 +19,10 @@ export const arrayPropertyDataType = {
   icon: faList.icon,
   dataTypeId: types.dataType.object.dataTypeId,
   data: {
+    type: "array",
+    expectedValues: [],
     minItems: 0,
     maxItems: 0,
-    expectedValues: [],
-    type: "array",
   },
 };
 
@@ -34,15 +34,17 @@ export const objectPropertyDataType = {
 };
 
 type ArrayPropertyTypeMenuProps = {
-  index: number[];
+  index?: number[];
 };
 
 export const ArrayPropertyTypeMenu: FunctionComponent<
   ArrayPropertyTypeMenuProps
-> = ({ index }) => {
+> = ({ index = [] }) => {
   const { setValue, control } = useFormContext<PropertyTypeFormValues>();
 
-  const path = `${index.map((pos) => `expectedValues.${pos}.data.`).join("")}`;
+  const path = `creatingProperty.data${index
+    .map((pos) => `.expectedValues.${pos}.data`)
+    .join("")}`;
   const property = useWatch({ control, name: path });
 
   const propertyTypeDataTypes = useMemo(
@@ -88,7 +90,7 @@ export const ArrayPropertyTypeMenu: FunctionComponent<
           position: "relative",
         }}
       >
-        {property.expectedValues.map((expectedValue, pos) =>
+        {property?.expectedValues?.map((expectedValue, pos) =>
           expectedValue.title === "Array" ? (
             <ArrayPropertyTypeMenu index={[...index, pos]} />
           ) : (
