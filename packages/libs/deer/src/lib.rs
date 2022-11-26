@@ -21,15 +21,17 @@ use alloc::{string::String, vec::Vec};
 
 use error_stack::{Report, Result, ResultExt};
 use num_traits::ToPrimitive;
+use schema::Schema;
 
 use crate::error::{
     ArrayAccessError, DeserializeError, DeserializerError, ExpectedType, MissingError,
-    ObjectAccessError, ReceivedType, ReceivedValue, Schema, TypeError, ValueError, VisitorError,
+    ObjectAccessError, ReceivedType, ReceivedValue, TypeError, ValueError, VisitorError,
 };
 pub use crate::number::Number;
 
 pub mod error;
 mod number;
+mod schema;
 
 extern crate alloc;
 

@@ -106,14 +106,12 @@ impl_error!(MissingError);
 
 #[cfg(test)]
 mod tests {
-    use alloc::vec;
-
     use error_stack::Report;
     use serde_json::json;
 
     use super::*;
     use crate::{
-        error::Schema,
+        schema::Schema,
         test::{to_json, to_message},
     };
 

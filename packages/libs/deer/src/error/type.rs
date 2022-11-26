@@ -3,8 +3,9 @@ use core::fmt::{Display, Formatter};
 
 use super::{Error, ErrorProperties, ErrorProperty, Id, Namespace, NAMESPACE};
 use crate::{
-    error::{macros::impl_error, Location, Schema},
+    error::{macros::impl_error, Location},
     id,
+    schema::Schema,
 };
 
 #[derive(serde::Serialize)]
@@ -103,8 +104,6 @@ impl_error!(TypeError);
 
 #[cfg(test)]
 mod tests {
-    use alloc::vec;
-
     use error_stack::Report;
     use serde_json::json;
 

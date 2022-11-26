@@ -55,7 +55,7 @@
 //!
 //! [`Location`]: core::panic::Location
 
-use alloc::{boxed::Box, collections::BTreeMap, format, string::String};
+use alloc::{format, string::String};
 use core::fmt::{self, Debug, Display, Formatter};
 
 use error_stack::{Context, Frame, IntoReport, Result};
@@ -101,55 +101,6 @@ impl Id {
     #[must_use]
     pub const fn new(path: &'static [&'static str]) -> Self {
         Self(path)
-    }
-}
-
-// TODO: most likely (in 0.2) we want to actually have a proper schema
-// TODO: this is currently completely untyped, we might want to adhere to a standard, like
-//  JSON-Schema or OpenAPI
-//  The problem here mainly is: which crate to use, one can use utoipa (but that has significant
-//  overhead)  there's no real library out there that properly just provides the types
-//  necessary.
-#[derive(serde::Serialize)]
-pub struct Schema {
-    #[serde(rename = "type")]
-    ty: String,
-    #[serde(flatten)]
-    other: BTreeMap<String, Box<dyn erased_serde::Serialize + Send + Sync>>,
-}
-
-impl Schema {
-    #[must_use]
-    pub fn new(ty: impl Into<String>) -> Self {
-        Self {
-            ty: ty.into(),
-            other: BTreeMap::new(),
-        }
-    }
-
-    pub(crate) fn ty(&self) -> &str {
-        &self.ty
-    }
-
-    #[must_use]
-    pub fn with(
-        mut self,
-        key: impl Into<String>,
-        value: impl erased_serde::Serialize + Send + Sync + 'static,
-    ) -> Self {
-        self.other.insert(key.into(), Box::new(value));
-
-        self
-    }
-
-    pub fn set(
-        &mut self,
-        key: impl Into<String>,
-        value: impl erased_serde::Serialize + Send + Sync + 'static,
-    ) -> &mut Self {
-        self.other.insert(key.into(), Box::new(value));
-
-        self
     }
 }
 
