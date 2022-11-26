@@ -33,7 +33,7 @@ export const useAccountPages = (ownedById: string): AccountPagesInfo => {
       return [];
     }
 
-    return data?.persistedPages.map(
+    return data?.pages.map(
       ({
         metadata: {
           editionId: { baseId: pageEntityId },

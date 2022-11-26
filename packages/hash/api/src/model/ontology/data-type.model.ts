@@ -117,10 +117,10 @@ export default class {
     },
   ): Promise<DataTypeModel> {
     const { dataTypeId } = params;
-    const { data: persistedDataType } = await graphApi.getDataType(dataTypeId);
+    const { data: dataType } = await graphApi.getDataType(dataTypeId);
 
     return DataTypeModel.fromDataTypeWithMetadata(
-      persistedDataType as DataTypeWithMetadata,
+      dataType as DataTypeWithMetadata,
     );
   }
 

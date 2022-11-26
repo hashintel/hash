@@ -89,10 +89,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
             <hr />
             <div className="person-links-container">
               {email && (
-                <div
-                  className="person-link"
-                  style={{ marginBottom: email && link ? "4px" : undefined }}
-                >
+                <div className="person-link" style={{ marginBottom: "4px" }}>
                   <MailIcon />
 
                   <a href={`mailto:${email}`}>{email}</a>

@@ -1,23 +1,20 @@
 import { gql } from "@apollo/client";
 import { subgraphFieldsFragment } from "../subgraph";
 
-export const createEntityWithMetadataMutation = gql`
-  mutation createEntityWithMetadata(
+export const createEntityMutation = gql`
+  mutation createEntity(
     $entityTypeId: VersionedUri!
-    $properties: JSONObject!
+    $properties: PropertyObject!
   ) {
     # This is a scalar, which has no selection.
-    createEntityWithMetadata(
-      entityTypeId: $entityTypeId
-      properties: $properties
-    )
+    createEntity(entityTypeId: $entityTypeId, properties: $properties)
   }
 `;
 
 /** @todo - rename these to omit the "WithMetadata" suffix - https://app.asana.com/0/1201095311341924/1203411297593704/f */
 
-export const getEntityWithMetadataQuery = gql`
-  query getEntityWithMetadata(
+export const getEntityQuery = gql`
+  query getEntity(
     $entityId: EntityId!
     $entityVersion: String
     $dataTypeResolveDepth: Int!
@@ -25,7 +22,7 @@ export const getEntityWithMetadataQuery = gql`
     $entityTypeResolveDepth: Int!
     $entityResolveDepth: Int!
   ) {
-    getEntityWithMetadata(
+    getEntity(
       entityId: $entityId
       entityVersion: $entityVersion
       dataTypeResolveDepth: $dataTypeResolveDepth
@@ -39,14 +36,14 @@ export const getEntityWithMetadataQuery = gql`
   ${subgraphFieldsFragment}
 `;
 
-export const getAllLatestEntitiesWithMetadataQuery = gql`
-  query getAllLatestEntitiesWithMetadata(
+export const getAllLatestEntitiesQuery = gql`
+  query getAllLatestEntities(
     $dataTypeResolveDepth: Int!
     $propertyTypeResolveDepth: Int!
     $entityTypeResolveDepth: Int!
     $entityResolveDepth: Int!
   ) {
-    getAllLatestEntitiesWithMetadata(
+    getAllLatestEntities(
       dataTypeResolveDepth: $dataTypeResolveDepth
       propertyTypeResolveDepth: $propertyTypeResolveDepth
       entityTypeResolveDepth: $entityTypeResolveDepth
@@ -58,15 +55,12 @@ export const getAllLatestEntitiesWithMetadataQuery = gql`
   ${subgraphFieldsFragment}
 `;
 
-export const updateEntityWithMetadataMutation = gql`
-  mutation updateEntityWithMetadata(
+export const updateEntityMutation = gql`
+  mutation updateEntity(
     $entityId: EntityId!
-    $updatedProperties: JSONObject!
+    $updatedProperties: PropertyObject!
   ) {
     # This is a scalar, which has no selection.
-    updateEntityWithMetadata(
-      entityId: $entityId
-      updatedProperties: $updatedProperties
-    )
+    updateEntity(entityId: $entityId, updatedProperties: $updatedProperties)
   }
 `;

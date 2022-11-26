@@ -1,16 +1,13 @@
 import { ApolloError } from "apollo-server-errors";
-import { EntityWithMetadata } from "@hashintel/hash-subgraph";
+import { Entity } from "@hashintel/hash-subgraph";
 import { PageModel } from "../../../../model";
 import { ResolverFn } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import {
-  mapBlockModelToGQL,
-  UnresolvedPersistedPageGQL,
-} from "../model-mapping";
+import { mapBlockModelToGQL, UnresolvedPageGQL } from "../model-mapping";
 
-export const persistedPageContents: ResolverFn<
-  Promise<EntityWithMetadata[]>,
-  UnresolvedPersistedPageGQL,
+export const pageContents: ResolverFn<
+  Promise<Entity[]>,
+  UnresolvedPageGQL,
   LoggedInGraphQLContext,
   {}
 > = async ({ metadata }, _, { dataSources }) => {

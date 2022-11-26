@@ -5,7 +5,7 @@ import {
   Filter,
 } from "@hashintel/hash-graph-client";
 import {
-  EntityWithMetadata,
+  Entity,
   Subgraph,
   EntityMetadata,
   PropertyObject,
@@ -24,13 +24,13 @@ import {
   LinkModelCreateParams,
 } from "..";
 import {
-  PersistedLinkedEntityDefinition,
-  EntityWithMetadataDefinition,
+  LinkedEntityDefinition,
+  EntityDefinition,
 } from "../../graphql/apiTypes.gen";
 import { linkedTreeFlatten } from "../../util";
 
 export type EntityModelConstructorParams = {
-  entity: EntityWithMetadata;
+  entity: Entity;
   entityTypeModel: EntityTypeModel;
 };
 
@@ -46,7 +46,7 @@ export type EntityModelCreateParams = {
  * @class {@link EntityModel}
  */
 export default class {
-  entity: EntityWithMetadata;
+  entity: Entity;
 
   entityTypeModel: EntityTypeModel;
 
@@ -81,7 +81,7 @@ export default class {
 
   static async fromEntity(
     graphApi: GraphApi,
-    entity: EntityWithMetadata,
+    entity: Entity,
     cachedEntityTypeModels?: Map<string, EntityTypeModel>,
   ): Promise<EntityModel> {
     const {
@@ -133,7 +133,7 @@ export default class {
       actorId,
     });
 
-    const entity: EntityWithMetadata = {
+    const entity: Entity = {
       properties,
       metadata: metadata as EntityMetadata,
     };
@@ -156,7 +156,7 @@ export default class {
       ownedById: string;
       entityTypeId: VersionedUri;
       properties: PropertyObject;
-      linkedEntities?: PersistedLinkedEntityDefinition[];
+      linkedEntities?: LinkedEntityDefinition[];
       actorId: string;
     },
   ): Promise<EntityModel> {
@@ -164,8 +164,8 @@ export default class {
       params;
 
     const entitiesInTree = linkedTreeFlatten<
-      EntityWithMetadataDefinition,
-      PersistedLinkedEntityDefinition,
+      EntityDefinition,
+      LinkedEntityDefinition,
       "linkedEntities",
       "entity"
     >(
@@ -249,7 +249,7 @@ export default class {
     graphApi: GraphApi,
     params: {
       ownedById: string;
-      entityDefinition: Omit<EntityWithMetadataDefinition, "linkedEntities">;
+      entityDefinition: Omit<EntityDefinition, "linkedEntities">;
       actorId: string;
     },
   ): Promise<EntityModel> {
@@ -335,7 +335,7 @@ export default class {
     },
   ): Promise<EntityModel> {
     const { entityId } = params;
-    const { data: persistedEntity } = await graphApi.getEntity(entityId);
+    const { data: entity } = await graphApi.getEntity(entityId);
 
     const [ownedById, entityUuid] = splitEntityId(entityId);
 
@@ -367,10 +367,7 @@ export default class {
       );
     }
 
-    return await EntityModel.fromEntity(
-      graphApi,
-      persistedEntity as EntityWithMetadata,
-    );
+    return await EntityModel.fromEntity(graphApi, entity as Entity);
   }
 
   /**

@@ -3,22 +3,22 @@ import { useCallback } from "react";
 
 import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import {
-  GetEntityWithMetadataQuery,
-  GetEntityWithMetadataQueryVariables,
+  GetEntityQuery,
+  GetEntityQueryVariables,
 } from "../../../../graphql/apiTypes.gen";
-import { getEntityWithMetadataQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { getEntityQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { GetEntityMessageCallback } from "./knowledge-shim";
 
 export const useBlockProtocolGetEntity = (): {
   getEntity: GetEntityMessageCallback;
 } => {
-  const [getEntityFn] = useLazyQuery<
-    GetEntityWithMetadataQuery,
-    GetEntityWithMetadataQueryVariables
-  >(getEntityWithMetadataQuery, {
-    /** @todo reconsider caching. This is done for testing/demo purposes. */
-    fetchPolicy: "no-cache",
-  });
+  const [getEntityFn] = useLazyQuery<GetEntityQuery, GetEntityQueryVariables>(
+    getEntityQuery,
+    {
+      /** @todo reconsider caching. This is done for testing/demo purposes. */
+      fetchPolicy: "no-cache",
+    },
+  );
 
   const getEntity = useCallback<GetEntityMessageCallback>(
     async ({ data: entityId }) => {
@@ -59,9 +59,7 @@ export const useBlockProtocolGetEntity = (): {
 
       return {
         /** @todo - Is there a way we can ergonomically encode this in the GraphQL type? */
-        data: response.getEntityWithMetadata as Subgraph<
-          SubgraphRootTypes["entity"]
-        >,
+        data: response.getEntity as Subgraph<SubgraphRootTypes["entity"]>,
       };
     },
     [getEntityFn],
