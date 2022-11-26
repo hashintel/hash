@@ -1,3 +1,6 @@
+// NOTE: this is still a prototype, and might be deleted at any stage, this minimally expands on the
+// existing schema things, but instead allows for deeply nested values.
+
 use alloc::{boxed::Box, collections::BTreeMap, string::String};
 use core::any::{Any, TypeId};
 
