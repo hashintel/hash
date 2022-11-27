@@ -21,10 +21,32 @@ test("Graph API subgraph type is compatible with library type", () => {
     vertices: {},
     edges: {},
     depths: {
-      constrainsValuesOn: 0,
-      constrainsPropertiesOn: 0,
-      constrainsLinksOn: 0,
-      hasLeftEntity: 0,
+      inheritsFrom: {
+        outgoing: 0,
+      },
+      constrainsValuesOn: {
+        outgoing: 0,
+      },
+      constrainsPropertiesOn: {
+        outgoing: 0,
+      },
+      constrainsLinksOn: {
+        outgoing: 0,
+      },
+      constrainsLinkDestinationsOn: {
+        outgoing: 0,
+      },
+      isOfType: {
+        outgoing: 0,
+      },
+      hasLeftEntity: {
+        incoming: 2,
+        outgoing: 2,
+      },
+      hasRightEntity: {
+        incoming: 2,
+        outgoing: 2,
+      },
     },
   };
 
