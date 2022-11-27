@@ -767,7 +767,7 @@ export interface GraphElementEditionIdOneOf1 {
 export type GraphElementId = string;
 
 /**
- * TODO: <https://app.asana.com/0/0/1203438518991188/f>
+ * TODO: DOC - <https://app.asana.com/0/0/1203438518991188/f>
  * @export
  * @interface GraphResolveDepths
  */
@@ -789,13 +789,13 @@ export interface GraphResolveDepths {
    * @type {OutgoingEdgeResolveDepth}
    * @memberof GraphResolveDepths
    */
-  constrainsValuesOn: OutgoingEdgeResolveDepth;
+  constrainsPropertiesOn: OutgoingEdgeResolveDepth;
   /**
    *
    * @type {OutgoingEdgeResolveDepth}
    * @memberof GraphResolveDepths
    */
-  constrainsPropertiesOn: OutgoingEdgeResolveDepth;
+  constrainsValuesOn: OutgoingEdgeResolveDepth;
   /**
    *
    * @type {EdgeResolveDepths}
