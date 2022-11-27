@@ -40,12 +40,12 @@ test("Graph API subgraph type is compatible with library type", () => {
         outgoing: 0,
       },
       hasLeftEntity: {
-        incoming: 2,
-        outgoing: 2,
+        incoming: 0,
+        outgoing: 0,
       },
       hasRightEntity: {
-        incoming: 2,
-        outgoing: 2,
+        incoming: 0,
+        outgoing: 0,
       },
     },
   };
