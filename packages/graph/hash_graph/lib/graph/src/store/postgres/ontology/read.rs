@@ -24,23 +24,17 @@ use crate::{
 #[async_trait]
 impl<C: AsClient, T> Read<T> for PostgresStore<C>
 where
-    T: for<'q> PersistedOntologyType<
-            Inner: PostgresQueryRecord<Path<'q>: Debug + Send + Sync + OntologyPath>
-                       + OntologyDatabaseType
-                       + TryFrom<serde_json::Value, Error: Context>
-                       + Send
-                       + 'static,
-        > + Send,
+    for<'q> T: PersistedOntologyType<
+            Inner: OntologyDatabaseType + TryFrom<serde_json::Value, Error: Context>,
+        > + PostgresQueryRecord<Path<'q>: Debug + Send + Sync + OntologyPath>
+        + Send
+        + 'static,
 {
-    type Query<'q> = Filter<'q, T::Inner>;
-
-    async fn read<'f: 'q, 'q>(&self, filter: &'f Self::Query<'q>) -> Result<Vec<T>, QueryError> {
-        let versioned_uri_path =
-            <<T::Inner as QueryRecord>::Path<'q> as OntologyPath>::versioned_uri();
-        let schema_path = <<T::Inner as QueryRecord>::Path<'q> as OntologyPath>::schema();
-        let owned_by_id_path = <<T::Inner as QueryRecord>::Path<'q> as OntologyPath>::owned_by_id();
-        let updated_by_id_path =
-            <<T::Inner as QueryRecord>::Path<'q> as OntologyPath>::updated_by_id();
+    async fn read<'f: 'q, 'q>(&self, filter: &'f Filter<'q, T>) -> Result<Vec<T>, QueryError> {
+        let versioned_uri_path = <<T as QueryRecord>::Path<'q> as OntologyPath>::versioned_uri();
+        let schema_path = <<T as QueryRecord>::Path<'q> as OntologyPath>::schema();
+        let owned_by_id_path = <<T as QueryRecord>::Path<'q> as OntologyPath>::owned_by_id();
+        let updated_by_id_path = <<T as QueryRecord>::Path<'q> as OntologyPath>::updated_by_id();
 
         let mut compiler = SelectCompiler::new();
 

@@ -43,11 +43,9 @@ impl Transpile for WhereExpression<'_> {
 mod tests {
     use std::borrow::Cow;
 
-    use type_system::DataType;
-
     use super::*;
     use crate::{
-        ontology::DataTypeQueryPath,
+        ontology::{DataTypeQueryPath, DataTypeWithMetadata},
         store::{
             postgres::query::{test_helper::trim_whitespace, SelectCompiler},
             query::{Filter, FilterExpression, Parameter},
@@ -56,11 +54,11 @@ mod tests {
 
     #[test]
     fn transpile_where_expression() {
-        let mut compiler = SelectCompiler::<DataType>::new();
+        let mut compiler = SelectCompiler::<DataTypeWithMetadata>::new();
         let mut where_clause = WhereExpression::default();
         assert_eq!(where_clause.transpile_to_string(), "");
 
-        let filter_a = Filter::<DataType>::Equal(
+        let filter_a = Filter::<DataTypeWithMetadata>::Equal(
             Some(FilterExpression::Path(DataTypeQueryPath::Version)),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                 "latest",
@@ -73,7 +71,7 @@ mod tests {
             r#"WHERE "type_ids_0_1_0"."version" = "type_ids_0_1_0"."latest_version""#
         );
 
-        let filter_b = Filter::<DataType>::All(vec![
+        let filter_b = Filter::<DataTypeWithMetadata>::All(vec![
             Filter::Equal(
                 Some(FilterExpression::Path(DataTypeQueryPath::BaseUri)),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
@@ -96,7 +94,7 @@ mod tests {
             )
         );
 
-        let filter_c = Filter::<DataType>::NotEqual(
+        let filter_c = Filter::<DataTypeWithMetadata>::NotEqual(
             Some(FilterExpression::Path(DataTypeQueryPath::Description)),
             None,
         );
@@ -112,7 +110,7 @@ mod tests {
             )
         );
 
-        let filter_d = Filter::<DataType>::Any(vec![
+        let filter_d = Filter::<DataTypeWithMetadata>::Any(vec![
             Filter::Equal(
                 Some(FilterExpression::Path(DataTypeQueryPath::Title)),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(

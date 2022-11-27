@@ -39,7 +39,7 @@ impl<C: AsClient> PostgresStore<C> {
                 } else {
                     let data_type = Read::<DataTypeWithMetadata>::read_one(
                         self,
-                        &Filter::<DataType>::for_ontology_type_edition_id(data_type_id),
+                        &Filter::<DataTypeWithMetadata>::for_ontology_type_edition_id(data_type_id),
                     )
                     .await?;
                     Some(
@@ -99,7 +99,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
 
     async fn get_data_type<'f: 'q, 'q>(
         &self,
-        query: &'f StructuralQuery<'q, DataType>,
+        query: &'f StructuralQuery<'q, DataTypeWithMetadata>,
     ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
             ref filter,

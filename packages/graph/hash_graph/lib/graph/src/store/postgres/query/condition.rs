@@ -85,10 +85,9 @@ mod tests {
     use std::borrow::Cow;
 
     use postgres_types::ToSql;
-    use type_system::DataType;
 
     use crate::{
-        ontology::DataTypeQueryPath,
+        ontology::{DataTypeQueryPath, DataTypeWithMetadata},
         store::{
             postgres::query::{SelectCompiler, Transpile},
             query::{Filter, FilterExpression, Parameter},
@@ -96,7 +95,7 @@ mod tests {
     };
 
     fn test_condition<'q, 'f: 'q>(
-        filter: &'f Filter<'q, DataType>,
+        filter: &'f Filter<'q, DataTypeWithMetadata>,
         rendered: &'static str,
         parameters: &[&'q dyn ToSql],
     ) {

@@ -215,9 +215,12 @@ async fn get_data_types_by_query<P: StorePool + Send>(
 async fn get_latest_data_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<DataTypeWithMetadata>>, StatusCode> {
-    read_from_store(pool.as_ref(), &Filter::<DataType>::for_latest_version())
-        .await
-        .map(Json)
+    read_from_store(
+        pool.as_ref(),
+        &Filter::<DataTypeWithMetadata>::for_latest_version(),
+    )
+    .await
+    .map(Json)
 }
 
 #[utoipa::path(
@@ -241,7 +244,7 @@ async fn get_data_type<P: StorePool + Send>(
 ) -> Result<Json<DataTypeWithMetadata>, StatusCode> {
     read_from_store(
         pool.as_ref(),
-        &Filter::<DataType>::for_versioned_uri(&uri.0),
+        &Filter::<DataTypeWithMetadata>::for_versioned_uri(&uri.0),
     )
     .await
     .and_then(|mut data_types| data_types.pop().ok_or(StatusCode::NOT_FOUND))

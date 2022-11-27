@@ -4,10 +4,12 @@ use serde::{
     de::{self, Deserializer, SeqAccess, Visitor},
     Deserialize,
 };
-use type_system::DataType;
 use utoipa::ToSchema;
 
-use crate::store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath};
+use crate::{
+    ontology::DataTypeWithMetadata,
+    store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath},
+};
 
 /// A path to a [`DataType`] field.
 ///
@@ -31,6 +33,7 @@ pub enum DataTypeQueryPath {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
+    /// [`DataType`]: type_system::DataType
     /// [`BaseUri`]: type_system::uri::BaseUri
     BaseUri,
     /// The version of the [`DataType`].
@@ -52,16 +55,18 @@ pub enum DataTypeQueryPath {
     /// # use std::borrow::Cow;
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use type_system::DataType;
-    /// # use graph::{store::query::{Filter, FilterExpression, Parameter}, ontology::DataTypeQueryPath};
+    /// # use graph::{store::query::{Filter, FilterExpression, Parameter}};
+    /// # use graph::{ontology::{DataTypeQueryPath, DataTypeWithMetadata}};
     /// let filter_value = json!({ "equal": [{ "path": ["version"] }, { "parameter": "latest" }] });
-    /// let path = Filter::<DataType>::deserialize(filter_value)?;
+    /// let path = Filter::<DataTypeWithMetadata>::deserialize(filter_value)?;
     /// assert_eq!(path, Filter::Equal(
     ///     Some(FilterExpression::Path(DataTypeQueryPath::Version)),
     ///     Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed("latest")))))
     /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
+    ///
+    /// [`DataType`]: type_system::DataType
     Version,
     /// The [`VersionedUri`] of the [`DataType`].
     ///
@@ -75,6 +80,7 @@ pub enum DataTypeQueryPath {
     /// ```
     ///
     /// [`VersionedUri`]: type_system::uri::VersionedUri
+    /// [`DataType`]: type_system::DataType
     VersionedUri,
     /// The [`OwnedById`] of the [`OntologyElementMetadata`] belonging to the [`DataType`].
     ///
@@ -87,6 +93,7 @@ pub enum DataTypeQueryPath {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
+    /// [`DataType`]: type_system::DataType
     /// [`OwnedById`]: crate::provenance::OwnedById
     /// [`OntologyElementMetadata`]: crate::ontology::OntologyElementMetadata
     OwnedById,
@@ -101,6 +108,7 @@ pub enum DataTypeQueryPath {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
+    /// [`DataType`]: type_system::DataType
     /// [`UpdatedById`]: crate::provenance::UpdatedById
     /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
     UpdatedById,
@@ -114,6 +122,8 @@ pub enum DataTypeQueryPath {
     /// assert_eq!(path, DataTypeQueryPath::Title);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
+    ///
+    /// [`DataType::title()`]: type_system::DataType::title
     Title,
     /// Corresponds to [`DataType::description()`]
     ///
@@ -125,6 +135,8 @@ pub enum DataTypeQueryPath {
     /// assert_eq!(path, DataTypeQueryPath::Description);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
+    ///
+    /// [`DataType::description()`]: type_system::DataType::description
     Description,
     /// Corresponds to [`DataType::json_type()`].
     ///
@@ -136,6 +148,8 @@ pub enum DataTypeQueryPath {
     /// assert_eq!(path, DataTypeQueryPath::Type);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
+    ///
+    /// [`DataType::json_type()`]: type_system::DataType::json_type
     Type,
     /// Only used internally and not available for deserialization.
     VersionId,
@@ -143,7 +157,7 @@ pub enum DataTypeQueryPath {
     Schema,
 }
 
-impl QueryRecord for DataType {
+impl QueryRecord for DataTypeWithMetadata {
     type Path<'q> = DataTypeQueryPath;
 }
 

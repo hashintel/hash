@@ -222,9 +222,12 @@ async fn get_property_types_by_query<P: StorePool + Send>(
 async fn get_latest_property_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<PropertyTypeWithMetadata>>, StatusCode> {
-    read_from_store(pool.as_ref(), &Filter::<PropertyType>::for_latest_version())
-        .await
-        .map(Json)
+    read_from_store(
+        pool.as_ref(),
+        &Filter::<PropertyTypeWithMetadata>::for_latest_version(),
+    )
+    .await
+    .map(Json)
 }
 
 #[utoipa::path(
@@ -248,7 +251,7 @@ async fn get_property_type<P: StorePool + Send>(
 ) -> Result<Json<PropertyTypeWithMetadata>, StatusCode> {
     read_from_store(
         pool.as_ref(),
-        &Filter::<PropertyType>::for_versioned_uri(&uri.0),
+        &Filter::<PropertyTypeWithMetadata>::for_versioned_uri(&uri.0),
     )
     .await
     .and_then(|mut property_types| property_types.pop().ok_or(StatusCode::NOT_FOUND))
