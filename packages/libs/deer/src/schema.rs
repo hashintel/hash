@@ -67,6 +67,8 @@ pub struct Reference {
     r: TypeId,
 }
 
+// TODO: serialization, names (also for trait)
+// TODO: do we want to seal the trait?
 pub struct Document {
     target: Schema,
     references: BTreeMap<TypeId, Option<Schema>>,
