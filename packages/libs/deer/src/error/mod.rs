@@ -62,7 +62,6 @@ use error_stack::{Context, Frame, IntoReport, Report, Result};
 pub use extra::{
     ArrayLengthError, ExpectedLength, ObjectItemsExtraError, ReceivedKey, ReceivedLength,
 };
-pub use hooks::{register, Hook};
 pub use location::Location;
 use serde::ser::SerializeMap;
 pub use r#type::{ExpectedType, ReceivedType, TypeError};
@@ -82,10 +81,6 @@ mod tuple;
 mod r#type;
 mod unknown;
 mod value;
-
-pub mod __private {
-    pub use crate::error::hooks::register_hooks as register;
-}
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Hash, Copy, Clone, serde::Serialize)]
 pub struct Namespace(&'static str);
