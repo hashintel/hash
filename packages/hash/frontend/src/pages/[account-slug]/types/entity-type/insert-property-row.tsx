@@ -57,7 +57,7 @@ export const InsertPropertyRow = ({
       data: {
         propertyType: {
           oneOf: data.expectedValues.map((value) => ({
-            $ref: value.dataTypeId,
+            $ref: value,
           })),
           description: data.description,
           title: data.name,

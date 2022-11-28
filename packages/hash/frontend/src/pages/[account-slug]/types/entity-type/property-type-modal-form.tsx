@@ -1,3 +1,4 @@
+import { VersionedUri } from "@blockprotocol/type-system-web";
 import { faClose } from "@fortawesome/free-solid-svg-icons";
 import {
   Button,
@@ -42,28 +43,31 @@ import { withHandler } from "./util";
 const generateInitialPropertyTypeId = (baseUri: string) =>
   addVersionToBaseUri(baseUri, 1);
 
-const propertyTypeDataTypes = [
-  {
+const propertyTypeDataTypesOptions = [
+  types.dataType.text.dataTypeId,
+  types.dataType.number.dataTypeId,
+  types.dataType.boolean.dataTypeId,
+];
+
+const propertyTypeDataTypeData = {
+  [types.dataType.text.dataTypeId]: {
     title: types.dataType.text.title,
     icon: faText,
-    dataTypeId: types.dataType.text.dataTypeId,
   },
-  {
+  [types.dataType.number.dataTypeId]: {
     title: types.dataType.number.title,
     icon: fa100,
-    dataTypeId: types.dataType.number.dataTypeId,
   },
-  {
+  [types.dataType.boolean.dataTypeId]: {
     title: types.dataType.boolean.title,
     icon: faSquareCheck,
-    dataTypeId: types.dataType.boolean.dataTypeId,
   },
-];
+};
 
 export type PropertyTypeModalFormValues = {
   name: string;
   description: string;
-  expectedValues: typeof propertyTypeDataTypes;
+  expectedValues: VersionedUri[];
 };
 
 type PropertyTypeModalFormSubmitProps = Omit<
@@ -304,20 +308,20 @@ const PropertyTypeForm = ({
                 onChange={(_evt, data) => onChange(data)}
                 {...props}
                 renderTags={(value, getTagProps) =>
-                  value.map((option, index) => (
+                  value.map((opt, index) => (
                     <Chip
                       {...getTagProps({ index })}
-                      key={option.dataTypeId}
+                      key={opt}
                       label={
                         <Typography
                           variant="smallTextLabels"
                           sx={{ display: "flex", alignItems: "center" }}
                         >
                           <FontAwesomeIcon
-                            icon={{ icon: option.icon }}
+                            icon={{ icon: propertyTypeDataTypeData[opt]!.icon }}
                             sx={{ fontSize: "1em", mr: "1ch" }}
                           />
-                          {option.title}
+                          {propertyTypeDataTypeData[opt]!.title}
                         </Typography>
                       }
                       color="blue"
@@ -332,13 +336,13 @@ const PropertyTypeForm = ({
                     placeholder="Select acceptable values"
                   />
                 )}
-                options={propertyTypeDataTypes}
-                getOptionLabel={(obj) => obj.title}
+                options={propertyTypeDataTypesOptions}
+                getOptionLabel={(opt) => propertyTypeDataTypeData[opt]!.title}
                 disableCloseOnSelect
                 renderOption={(optProps, opt) => (
                   <Box component="li" {...optProps} sx={{ py: 1.5, px: 2.25 }}>
                     <FontAwesomeIcon
-                      icon={{ icon: opt.icon }}
+                      icon={{ icon: propertyTypeDataTypeData[opt]!.icon }}
                       sx={(theme) => ({ color: theme.palette.gray[50] })}
                     />
                     <Typography
@@ -347,7 +351,7 @@ const PropertyTypeForm = ({
                       ml={1.5}
                       color={(theme) => theme.palette.gray[80]}
                     >
-                      {opt.title}
+                      {propertyTypeDataTypeData[opt]!.title}
                     </Typography>
                     <Chip color="blue" label="DATA TYPE" sx={{ ml: 1.5 }} />
                   </Box>
