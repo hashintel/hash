@@ -12,7 +12,7 @@ import { useBlockProtocolCreatePropertyType } from "../../../../components/hooks
 import { EntityTypeEditorForm } from "./form-types";
 import { PropertyTypeSelector } from "./property-type-selector";
 import {
-  PropertyTypeFormValues,
+  PropertyTypeModalFormValues,
   PropertyTypeModalForm,
 } from "./property-type-modal-form";
 import { QuestionIcon } from "./question-icon";
@@ -51,7 +51,7 @@ export const InsertPropertyRow = ({
     routeNamespace?.shortname ?? "",
   );
 
-  const handleSubmit = async (data: PropertyTypeFormValues) => {
+  const handleSubmit = async (data: PropertyTypeModalFormValues) => {
     const res = await createPropertyType({
       data: {
         propertyType: {
