@@ -42,6 +42,17 @@ export const EntityTypeTabs = () => {
     () => setAnimateTabs(true),
   );
 
+  const accountSlug = router.query["account-slug"] as string | undefined;
+  const shortname = accountSlug?.split("@")[1];
+
+  const ownerOrg = authenticatedUser?.memberOf.find(
+    (val) => shortname === val.shortname,
+  );
+
+  const ownerShortname = ownerOrg
+    ? ownerOrg.shortname
+    : authenticatedUser?.shortname;
+
   return (
     <Box display="flex">
       <Tabs
@@ -82,9 +93,9 @@ export const EntityTypeTabs = () => {
 
         <TabLink
           value="create"
-          href={`/@${
-            authenticatedUser?.shortname
-          }/entities/new?entity-type-id=${encodeURIComponent(entityType.$id)}`}
+          href={`/@${ownerShortname}/entities/new?entity-type-id=${encodeURIComponent(
+            entityType.$id,
+          )}`}
           label="Create new entity"
           sx={(theme) => ({
             ml: "auto",

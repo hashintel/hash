@@ -1,5 +1,8 @@
 import { VersionedUri } from "@blockprotocol/type-system-web";
-import { extractEntityUuidFromEntityId } from "@hashintel/hash-subgraph";
+import {
+  extractEntityUuidFromEntityId,
+  extractOwnedByIdFromEntityId,
+} from "@hashintel/hash-subgraph";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import { useRouter } from "next/router";
 import { useCallback } from "react";
@@ -20,19 +23,56 @@ export const useCreateNewEntityAndRedirect = () => {
         data: entityTypeId,
       });
 
+      const accountSlug = router.query["account-slug"];
+
+      if (typeof accountSlug !== "string") {
+        throw new Error("account slug not found");
+      }
+
       if (!subgraph) {
         throw new Error("subgraph not found");
       }
 
-      const entityType = getEntityTypeById(subgraph, entityTypeId)?.schema;
+      if (!authenticatedUser) {
+        throw new Error("user not found");
+      }
 
-      if (!entityType) {
+      const { schema: entityType, metadata } =
+        getEntityTypeById(subgraph, entityTypeId) ?? {};
+
+      if (!entityType || !metadata) {
         throw new Error("persisted entity type not found");
+      }
+
+      let ownedById: string | undefined;
+      const shortname = accountSlug?.split("@")[1];
+
+      const atUsersNamespace = shortname === authenticatedUser.shortname;
+
+      const foundOrg = authenticatedUser.memberOf.find(
+        (val) => val.shortname === shortname,
+      );
+      const atOrgsNamespace = !!foundOrg;
+
+      if (atUsersNamespace) {
+        ownedById = extractEntityUuidFromEntityId(
+          authenticatedUser.entityEditionId.baseId,
+        );
+      } else if (atOrgsNamespace) {
+        /**
+         * @todo  we should be using `extractEntityUuidFromEntityId` here instead,
+         * but it's not possible for now
+         * @see https://hashintel.slack.com/archives/C022217GAHF/p1669644710424819 (internal) for details
+         */
+        ownedById = extractOwnedByIdFromEntityId(
+          foundOrg.entityEditionId.baseId,
+        );
       }
 
       const entity = await createEntity({
         data: {
           entityTypeId: entityType.$id,
+          ownedById,
           /**
            * @todo after implementing this ticket: https://app.asana.com/0/1203312852763953/1203433085114587/f (internal)
            * we should just use `properties: {}` here, and delete `generateDefaultProperties` function,
@@ -49,9 +89,7 @@ export const useCreateNewEntityAndRedirect = () => {
         entity.data?.metadata.editionId.baseId!,
       );
 
-      await router.push(
-        `/@${authenticatedUser?.shortname}/entities/${entityId}`,
-      );
+      await router.push(`/${accountSlug}/entities/${entityId}`);
     },
     [router, createEntity, getEntityType, authenticatedUser],
   );

@@ -3,7 +3,6 @@ import { Button, Chip, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { Box, Divider, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useState } from "react";
-import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
 import { useSnackbar } from "../../../../components/hooks/useSnackbar";
 import { SectionWrapper } from "../../shared/section-wrapper";
 import { WhiteCard } from "../../shared/white-card";
@@ -20,7 +19,6 @@ export const NewEntityPage = () => {
   const snackbar = useSnackbar();
   const [isSelectingType, setIsSelectingType] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { authenticatedUser } = useAuthenticatedUser();
 
   const createNewEntityAndRedirect = useCreateNewEntityAndRedirect();
 
@@ -87,13 +85,12 @@ export const NewEntityPage = () => {
                   onCreateNew={(searchValue) => {
                     setLoading(true);
 
-                    void router.push(
-                      `/@${
-                        authenticatedUser?.shortname
-                      }/types/new/entity-type?name=${encodeURIComponent(
-                        searchValue,
-                      )}`,
-                    );
+                    let href = `/${router.query["account-slug"]}/types/new/entity-type`;
+                    if (searchValue) {
+                      href += `?name=${encodeURIComponent(searchValue)}`;
+                    }
+
+                    void router.push(href);
                   }}
                 />
               ) : (
