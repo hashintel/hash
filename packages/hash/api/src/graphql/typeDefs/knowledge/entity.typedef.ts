@@ -6,6 +6,7 @@ export const entityTypedef = gql`
   scalar Entity
   scalar PropertyObject
   scalar EntityMetadata
+  scalar LinkEntityMetadata
 
   input LinkedEntityDefinition {
     destinationAccountId: ID!
@@ -89,6 +90,10 @@ export const entityTypedef = gql`
       Associated Entities to either create/get and link to this entity.
       """
       linkedEntities: [LinkedEntityDefinition!]
+      """
+      The link metadata of the entity (required when creating a link entity).
+      """
+      linkMetadata: LinkEntityMetadata
     ): Entity!
 
     """

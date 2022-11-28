@@ -5,9 +5,14 @@ export const createEntityMutation = gql`
   mutation createEntity(
     $entityTypeId: VersionedUri!
     $properties: PropertyObject!
+    $linkMetadata: LinkEntityMetadata
   ) {
     # This is a scalar, which has no selection.
-    createEntity(entityTypeId: $entityTypeId, properties: $properties)
+    createEntity(
+      entityTypeId: $entityTypeId
+      properties: $properties
+      linkMetadata: $linkMetadata
+    )
   }
 `;
 
