@@ -28,8 +28,16 @@ import {
   bindToggle,
   PopupState,
 } from "material-ui-popup-state/hooks";
-import { ComponentProps, ReactNode, useEffect, useState } from "react";
+import {
+  ComponentProps,
+  ReactNode,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Controller, useForm } from "react-hook-form";
+import { UseFormTrigger } from "react-hook-form/dist/types/form";
 import { useBlockProtocolGetPropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetPropertyType";
 import { Modal } from "../../../../components/Modals/Modal";
 import { getPersistedPropertyType } from "../../../../lib/subgraph";
@@ -75,6 +83,30 @@ type PropertyTypeModalFormSubmitProps = Omit<
   "size" | "variant" | "disabled" | "type" | "loading"
 >;
 
+const useTriggerValidation = (
+  defaultValues: Partial<PropertyTypeModalFormValues>,
+  disabledFields: Set<keyof PropertyTypeModalFormValues>,
+  trigger: UseFormTrigger<PropertyTypeModalFormValues>,
+) => {
+  const keys = (
+    Object.keys(defaultValues) as any as (keyof typeof defaultValues)[]
+  ).filter(
+    (key) =>
+      typeof defaultValues[key] !== "undefined" && !disabledFields.has(key),
+  );
+  const stringifiedKeys = JSON.stringify(keys);
+  const defaultValuesKeys = useMemo(
+    () => JSON.parse(stringifiedKeys) as typeof keys,
+    [stringifiedKeys],
+  );
+
+  useEffect(() => {
+    for (const key of defaultValuesKeys) {
+      void trigger(key);
+    }
+  }, [trigger, defaultValuesKeys]);
+};
+
 const PropertyTypeForm = ({
   onClose,
   modalTitle,
@@ -112,24 +144,27 @@ const PropertyTypeForm = ({
     trigger,
   } = useForm<PropertyTypeModalFormValues>({
     defaultValues: {
-      name: "",
-      description: "",
-      expectedValues: [],
-      ...defaultValues,
+      name: defaultValues.name ?? "",
+      description: defaultValues.description ?? "",
+      expectedValues: defaultValues.expectedValues ?? [],
     },
     shouldFocusError: true,
     mode: "onBlur",
-    reValidateMode: "onBlur",
+    reValidateMode: "onChange",
   });
 
+  const defaultField = defaultValues.name ? "description" : "name";
+
   useEffect(() => {
-    if (defaultValues.name) {
-      void trigger("name");
-      setFocus("description");
-    } else {
-      setFocus("name");
-    }
-  }, [defaultValues.name, setFocus, trigger]);
+    setFocus(defaultField);
+  }, [setFocus, defaultField]);
+
+  const disabledFields = new Set(
+    (Object.keys(fieldProps) as any as (keyof typeof fieldProps)[]).filter(
+      (key) => fieldProps[key]?.disabled,
+    ),
+  );
+  useTriggerValidation(defaultValues, disabledFields, trigger);
 
   const routeNamespace = useRouteNamespace();
 
@@ -156,6 +191,15 @@ const PropertyTypeForm = ({
    */
   const [titleValid, setTitleValid] = useState(false);
   const [descriptionValid, setDescriptionValid] = useState(false);
+
+  /**
+   * Some default property types don't have descriptions. We don't want to have
+   * to enter one if you pass a preset value for description which is falsey
+   *
+   * @todo remove this when all property types have descriptions
+   */
+  const descriptionRequired =
+    !("description" in defaultValues) || !!defaultValues.description;
 
   return (
     <>
@@ -225,12 +269,6 @@ const PropertyTypeForm = ({
                 setTitleValid(false);
               },
               async validate(value) {
-                if (defaultValues.name && value === defaultValues.name) {
-                  setTitleValid(true);
-
-                  return true;
-                }
-
                 const propertyTypeId = generateInitialPropertyTypeId(
                   generatePropertyTypeBaseUriForUser(value),
                 );
@@ -245,6 +283,8 @@ const PropertyTypeForm = ({
 
                 if (getValues("name") === value && !exists) {
                   setTitleValid(true);
+                } else {
+                  setTitleValid(false);
                 }
 
                 return exists ? "Property type name must be unique" : true;
@@ -284,23 +324,25 @@ const PropertyTypeForm = ({
                 </Tooltip>
               </>
             }
-            required
+            required={descriptionRequired}
             placeholder="Describe this property type in one or two sentences"
             disabled={fieldProps.description?.disabled ?? isSubmitting}
-            {...(!fieldProps.description?.disabled && {
-              success: descriptionValid,
-              error: !!descriptionError && descriptionTouched,
-            })}
+            {...(!fieldProps.description?.disabled &&
+              descriptionTouched && {
+                success: descriptionValid,
+                error: !!descriptionError,
+              })}
             {...register("description", {
-              required: true,
+              required: descriptionRequired,
               onChange() {
                 clearErrors("description");
                 setDescriptionValid(false);
               },
               validate(value) {
-                setDescriptionValid(!!value);
+                const valid = !descriptionRequired || !!value;
 
-                return value ? true : "You must choose a description";
+                setDescriptionValid(valid);
+                return valid ? true : "You must choose a description";
               },
             })}
           />
