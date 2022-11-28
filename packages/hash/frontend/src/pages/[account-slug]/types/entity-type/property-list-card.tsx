@@ -158,8 +158,13 @@ export const PropertyTypeRow = ({
         defaultValues={{
           name: property.title,
           description: property.description,
-          // @todo set these
-          expectedValues: [],
+          // @todo handle exotic values
+          expectedValues: property.oneOf.map((dataType) => {
+            if (!("$ref" in dataType)) {
+              throw new Error("Handle exotic data types");
+            }
+            return mustBeVersionedUri(dataType.$ref);
+          }),
         }}
       />
     </>
