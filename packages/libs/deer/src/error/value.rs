@@ -150,9 +150,14 @@ mod tests {
                     {"type": "field", "value": "field1"}
                 ],
                 "expected": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 255,
+                    "$ref": "#/$defs/0000-deer::error::value::tests::DescribeU8",
+                    "$defs": {
+                        "0000-deer::error::value::tests::DescribeU8": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 255,
+                        }
+                    },
                 },
                 "received": 256
             })
@@ -192,10 +197,15 @@ mod tests {
                     {"type": "array", "value": 0},
                     {"type": "field", "value": "field2"}
                 ],
-                "expected": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 255,
+                "expected":  {
+                    "$ref": "#/$defs/0000-deer::error::value::tests::DescribeU8",
+                    "$defs": {
+                        "0000-deer::error::value::tests::DescribeU8": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 255,
+                        }
+                    },
                 }
             })
         );

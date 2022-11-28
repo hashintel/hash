@@ -418,14 +418,10 @@ pub(crate) mod visitor {
 mod tests {
     use alloc::{boxed::Box, collections::BTreeMap, vec::Vec};
 
-    use serde::{ser::SerializeMap, Serialize, Serializer};
-    use serde_json::{json, to_string, to_string_pretty, to_value};
+    use serde_json::{json, to_value};
 
     use crate::{
-        schema::{
-            visitor::{U16Schema, U32Schema, U8Schema},
-            Reference,
-        },
+        schema::visitor::{U16Schema, U32Schema, U8Schema},
         Describe, Document, Schema,
     };
 
