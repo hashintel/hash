@@ -10,8 +10,6 @@ export const blockTypedef = gql`
     The component id of the block.
     """
     componentId: String!
-
-    # ENTITY INTERFACE FIELDS BEGIN #
     """
     Metadata for the entity.
     """
@@ -20,7 +18,6 @@ export const blockTypedef = gql`
     Properties of entity.
     """
     properties: PropertyObject!
-    # ENTITY INTERFACE FIELDS END #
   }
 
   extend type Query {
