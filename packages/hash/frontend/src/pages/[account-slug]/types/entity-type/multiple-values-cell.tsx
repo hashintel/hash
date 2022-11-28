@@ -131,12 +131,10 @@ export const MultipleValuesCell = ({
           onClick={() => {
             if (multipleValuesMenuOpen) {
               setMultipleValuesMenuOpen(false);
-            } else {
-              if (!array) {
-                handleArrayChange(true);
-              }
-
+            } else if (array) {
               setMultipleValuesMenuOpen(true);
+            } else {
+              handleArrayChange(true);
             }
           }}
           sx={({ palette, transitions }) => ({
