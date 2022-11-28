@@ -390,8 +390,8 @@ impl Error {
     }
 }
 
+#[cfg(nightly)]
 impl core::error::Error for Error {
-    #[cfg(nightly)]
     fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
         (self.provide)(&self.variant, demand);
     }
