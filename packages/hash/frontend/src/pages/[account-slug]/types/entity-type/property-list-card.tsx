@@ -17,12 +17,7 @@ import {
   Typography,
 } from "@mui/material";
 import { experimental_sx, styled } from "@mui/system";
-import {
-  bindPopover,
-  bindToggle,
-  bindTrigger,
-  usePopupState,
-} from "material-ui-popup-state/hooks";
+import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useId, useRef } from "react";
 import {
   Controller,
@@ -37,12 +32,11 @@ import { InsertPropertyRow } from "./insert-property-row";
 import { MultipleValuesCell } from "./multiple-values-cell";
 import { PropertyExpectedValues } from "./property-expected-values";
 import { PropertyMenu } from "./property-menu";
-import { PropertyTypeForm } from "./property-type-form";
-import { PropertyTypeModal } from "./property-type-modal";
+import { PropertyTypeModalForm } from "./property-type-modal-form";
 import { QuestionIcon } from "./question-icon";
 import { StyledPlusCircleIcon } from "./styled-plus-circle-icon";
 import { usePropertyTypes } from "./use-property-types";
-import { mustBeVersionedUri, useStateCallback, withHandler } from "./util";
+import { mustBeVersionedUri, useStateCallback } from "./util";
 
 const CenteredTableCell = styled(TableCell)(
   experimental_sx({
@@ -150,24 +144,17 @@ export const PropertyTypeRow = ({
           />
         </TableCell>
       </TableRow>
-      <PropertyTypeModal
+      <PropertyTypeModalForm
         popupState={editModalPopupState}
         onClose={() => {
           menuPopupState.open();
         }}
-        title={<>Edit Property Type</>}
-      >
-        <PropertyTypeForm
-          popupState={editModalPopupState}
-          onClose={() => {
-            menuPopupState.open();
-          }}
-          onSubmit={async (data) => {
-            console.log(data);
-          }}
-          submitButtonProps={{ children: <>Edit property type</> }}
-        />
-      </PropertyTypeModal>
+        modalTitle={<>Edit Property Type</>}
+        onSubmit={async (data) => {
+          console.log(data);
+        }}
+        submitButtonProps={{ children: <>Edit property type</> }}
+      />
     </>
   );
 };
