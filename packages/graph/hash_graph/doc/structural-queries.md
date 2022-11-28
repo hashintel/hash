@@ -87,7 +87,7 @@ Elements in the subgraph are connected via edges. For example, ontology elements
 - `hasLeftEntity`
   - This link `Entity` has another `Entity` on its 'left' endpoint. The `reverse` of this would be the equivalent of saying an `Entity` has an outgoing `Link` `Entity`.
 - `hasRightEntity`
-  - This link `Entity` has another `Entity` on its 'right' endpoint.  The `reverse` of this would be the equivalent of saying an `Entity` has an incoming `Link` `Entity`.
+  - This link `Entity` has another `Entity` on its 'right' endpoint. The `reverse` of this would be the equivalent of saying an `Entity` has an incoming `Link` `Entity`.
 - `isOfType`
   - An `Entity` is of an `EntityType`.
 
