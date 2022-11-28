@@ -96,9 +96,14 @@ pub struct Reference {
 }
 
 impl Reference {
-    fn as_string(&self) -> String {
+    fn as_path(&self) -> String {
+        let bare = self.as_bare();
+        format!("#/$defs/{bare}")
+    }
+
+    fn as_bare(&self) -> String {
         let Self { id, name } = self;
-        format!("#/$defs/{id}-{name}")
+        format!("{id:04}-{name}")
     }
 }
 
@@ -108,7 +113,7 @@ impl serde::Serialize for Reference {
         S: Serializer,
     {
         let schema = SerializeReference {
-            ref_: self.as_string(),
+            ref_: self.as_path(),
         };
 
         serde::Serialize::serialize(&schema, serializer)
@@ -147,7 +152,7 @@ impl Serialize for SerializeDefinitions<'_> {
         let defs = references.iter().filter_map(|(key, reference)| {
             schemas
                 .get(key)
-                .map(|schema| (reference, SerializeSchema(schema)))
+                .map(|schema| (reference.as_bare(), SerializeSchema(schema)))
         });
 
         serializer.collect_map(defs)
@@ -227,7 +232,7 @@ impl Serialize for Document {
             .references
             .get(&self.id)
             .expect("`new()` should have created a schema for the main schema");
-        map.serialize_entry("$ref", &id.as_string())?;
+        map.serialize_entry("$ref", &id.as_path())?;
         map.serialize_entry("$defs", &SerializeDefinitions {
             schemas: &self.schemas,
             references: &self.references,
@@ -406,5 +411,235 @@ pub(crate) mod visitor {
                 .with("minimum", usize::MIN)
                 .with("maximum", usize::MAX)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use alloc::{boxed::Box, collections::BTreeMap, vec::Vec};
+
+    use serde::{ser::SerializeMap, Serialize, Serializer};
+    use serde_json::{json, to_string, to_string_pretty, to_value};
+
+    use crate::{
+        schema::{
+            visitor::{U16Schema, U32Schema, U8Schema},
+            Reference,
+        },
+        Describe, Document, Schema,
+    };
+
+    struct U8;
+
+    impl Describe for U8 {
+        fn schema(_: &mut Document) -> Schema {
+            Schema::new("integer")
+                .with("minimum", u8::MIN)
+                .with("maximum", u8::MAX)
+        }
+    }
+
+    #[test]
+    fn simple() {
+        let document = U8::document();
+        let document = to_value(document).expect("should be valid json");
+
+        assert_eq!(
+            document,
+            json!({
+              "$ref": "#/$defs/0000-deer::schema::tests::U8",
+              "$defs": {
+                "0000-deer::schema::tests::U8": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 255
+                }
+              }
+            })
+        );
+    }
+
+    // test for self referential
+    // Reason: we don't actually use them, but it is easier to visualize the schema that way
+    #[allow(unused)]
+    struct Node {
+        child: Box<Node>,
+    }
+
+    impl Describe for Node {
+        fn schema(doc: &mut Document) -> Schema {
+            // there's a way to do this without allocations, it's just a lot more boilerplate
+            let mut properties = BTreeMap::new();
+            properties.insert("child", doc.add::<Self>());
+
+            Schema::new("object")
+                .with("additionalProperties", false)
+                .with("properties", properties)
+        }
+    }
+
+    #[test]
+    fn self_referential() {
+        let document = Node::document();
+        let document = to_value(document).expect("should be valid json");
+
+        assert_eq!(
+            document,
+            json!({
+              "$ref": "#/$defs/0000-deer::schema::tests::Node",
+              "$defs": {
+                "0000-deer::schema::tests::Node": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "child": {
+                      "$ref": "#/$defs/0000-deer::schema::tests::Node"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            })
+        );
+    }
+
+    // test for multi self referential
+    // Reason: we don't actually use them, but it is easier to visualize the schema that way
+    #[allow(unused)]
+    struct Tree {
+        left: Box<Node>,
+        right: Box<Node>,
+    }
+
+    impl Describe for Tree {
+        fn schema(doc: &mut Document) -> Schema {
+            // there's a way to do this without allocations, it's just a lot more boilerplate
+            let mut properties = BTreeMap::new();
+            properties.insert("left", doc.add::<Self>());
+            properties.insert("right", doc.add::<Self>());
+
+            Schema::new("object")
+                .with("additionalProperties", false)
+                .with("properties", properties)
+        }
+    }
+
+    #[test]
+    fn multi_self_referential() {
+        let document = Tree::document();
+        let document = to_value(document).expect("should be valid json");
+
+        assert_eq!(
+            document,
+            json!({
+              "$ref": "#/$defs/0000-deer::schema::tests::Tree",
+              "$defs": {
+                "0000-deer::schema::tests::Tree": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "left": {
+                      "$ref": "#/$defs/0000-deer::schema::tests::Tree"
+                    },
+                    "right": {
+                      "$ref": "#/$defs/0000-deer::schema::tests::Tree"
+                    },
+                  },
+                  "type": "object"
+                }
+              }
+            })
+        );
+    }
+
+    // TODO: once `Describe` is implemented for `core` types replace this temporary type
+    struct VecVertex;
+
+    impl Describe for VecVertex {
+        fn schema(doc: &mut Document) -> Schema {
+            Schema::new("array").with("items", doc.add::<Vertex>())
+        }
+    }
+
+    // types are only here for illustration
+    #[allow(unused)]
+    struct Vertex {
+        a: u8,
+        b: u16,
+        c: u32,
+        d: u16,
+        next: Vec<Vertex>,
+    }
+
+    impl Describe for Vertex {
+        fn schema(doc: &mut Document) -> Schema {
+            let mut properties = BTreeMap::new();
+            // TODO: once `Describe` is implemented for `core` types replace this temporary type
+            properties.insert("a", doc.add::<U8Schema>());
+            properties.insert("b", doc.add::<U16Schema>());
+            properties.insert("c", doc.add::<U32Schema>());
+            properties.insert("d", doc.add::<U16Schema>());
+            properties.insert("next", doc.add::<VecVertex>());
+
+            Schema::new("object")
+                .with("additionalProperties", false)
+                .with("properties", properties)
+        }
+    }
+
+    #[test]
+    fn integration() {
+        // patented sanity integration test™
+        let document = Vertex::document();
+        let document = to_value(document).expect("should be valid json");
+
+        assert_eq!(
+            document,
+            json!({
+              "$ref": "#/$defs/0000-deer::schema::tests::Vertex",
+              "$defs": {
+                "0004-deer::schema::tests::VecVertex": {
+                  "items": {
+                    "$ref": "#/$defs/0000-deer::schema::tests::Vertex"
+                  },
+                  "type": "array"
+                },
+                "0003-deer::schema::visitor::U32Schema": {
+                  "maximum": u32::MAX,
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "0001-deer::schema::visitor::U8Schema": {
+                  "maximum": u8::MAX,
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "0000-deer::schema::tests::Vertex": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "a": {
+                      "$ref": "#/$defs/0001-deer::schema::visitor::U8Schema"
+                    },
+                    "b": {
+                      "$ref": "#/$defs/0002-deer::schema::visitor::U16Schema"
+                    },
+                    "c": {
+                      "$ref": "#/$defs/0003-deer::schema::visitor::U32Schema"
+                    },
+                    "d": {
+                      "$ref": "#/$defs/0002-deer::schema::visitor::U16Schema"
+                    },
+                    "next": {
+                      "$ref": "#/$defs/0004-deer::schema::tests::VecVertex"
+                    }
+                  },
+                  "type": "object"
+                },
+                "0002-deer::schema::visitor::U16Schema": {
+                  "maximum": u16::MAX,
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              }
+            })
+        );
     }
 }
