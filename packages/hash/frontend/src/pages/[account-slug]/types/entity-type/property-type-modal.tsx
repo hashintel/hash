@@ -8,15 +8,18 @@ import {
 } from "material-ui-popup-state/hooks";
 import { ReactNode } from "react";
 import { Modal } from "../../../../components/Modals/Modal";
+import { withHandler } from "./util";
 
 export const PropertyTypeModal = ({
   popupState,
   title,
   children,
+  onClose,
 }: {
   popupState: PopupState;
   title: ReactNode;
   children: ReactNode;
+  onClose: () => void;
 }) => (
   <Modal
     {...bindPopover(popupState)}
@@ -46,8 +49,9 @@ export const PropertyTypeModal = ({
         >
           {title}
         </Typography>
+        {/** @todo need to disable this while form is submitting */}
         <IconButton
-          {...bindToggle(popupState)}
+          {...withHandler(bindToggle(popupState), onClose)}
           sx={(theme) => ({
             ml: "auto",
             svg: {

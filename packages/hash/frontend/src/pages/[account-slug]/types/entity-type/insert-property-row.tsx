@@ -12,12 +12,15 @@ import {
 } from "material-ui-popup-state/hooks";
 import { Ref, useId, useRef, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
+import { useBlockProtocolCreatePropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreatePropertyType";
 import { EntityTypeEditorForm } from "./form-types";
 import { PropertyListSelectorDropdownContext } from "./property-list-selector-dropdown";
 import { PropertySelector } from "./property-selector";
-import { PropertyTypeForm } from "./property-type-form";
+import { PropertyTypeForm, PropertyTypeFormValues } from "./property-type-form";
 import { PropertyTypeModal } from "./property-type-modal";
 import { QuestionIcon } from "./question-icon";
+import { useRefetchPropertyTypes } from "./use-property-types";
+import { useRouteNamespace } from "./use-route-namespace";
 import { withHandler } from "./util";
 
 export const InsertPropertyRow = ({
@@ -42,6 +45,39 @@ export const InsertPropertyRow = ({
 
   const { control } = useFormContext<EntityTypeEditorForm>();
   const properties = useWatch({ control, name: "properties" });
+
+  const routeNamespace = useRouteNamespace();
+
+  const refetchPropertyTypes = useRefetchPropertyTypes();
+
+  const { createPropertyType } = useBlockProtocolCreatePropertyType(
+    routeNamespace?.id ?? "",
+  );
+
+  const handleSubmit = async (data: PropertyTypeFormValues) => {
+    const res = await createPropertyType({
+      data: {
+        propertyType: {
+          oneOf: data.expectedValues.map((value) => ({
+            $ref: value.dataTypeId,
+          })),
+          description: data.description,
+          title: data.name,
+          kind: "propertyType",
+          pluralTitle: data.name,
+        },
+      },
+    });
+
+    if (res.errors?.length || !res.data) {
+      // @todo handle this
+      throw new Error("Could not create");
+    }
+
+    await refetchPropertyTypes?.();
+
+    onAdd(res.data.propertyType);
+  };
 
   return (
     <TableRow
@@ -97,9 +133,13 @@ export const InsertPropertyRow = ({
           }
         >
           <PropertyTypeForm
-            discardButtonProps={bindToggle(modalPopupState)}
+            discardButtonProps={withHandler(
+              bindToggle(modalPopupState),
+              () => {},
+            )}
             initialTitle={searchText}
-            onCreatePropertyType={onAdd}
+            onSubmit={handleSubmit}
+            submitButtonProps={{ children: <>Create new property type</> }}
           />
         </PropertyTypeModal>
       </TableCell>
