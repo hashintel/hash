@@ -1,12 +1,27 @@
 import { Subgraph } from "../../types/subgraph";
-import { EntityId } from "../../types/identifier";
-import { EntityWithMetadata } from "../../types/element";
+import { entityEditionIdToString, EntityId } from "../../types/identifier";
+import { Entity } from "../../types/element";
 import { getEntityAtTimestamp } from "../element/entity";
 import {
   isOutwardLinkEdge,
   isHasRightEntityEdge,
+  isHasLeftEntityEdge,
 } from "../../types/edge/outward-edge-alias";
 import { mustBeDefined } from "../../shared/invariant";
+import { OutwardEdge } from "../../types/edge";
+
+const getUniqueEntitiesFilter = () => {
+  const set = new Set();
+  return (entity: Entity) => {
+    const editionIdString = entityEditionIdToString(entity.metadata.editionId);
+    if (set.has(editionIdString)) {
+      return false;
+    } else {
+      set.add(editionIdString);
+      return true;
+    }
+  };
+};
 
 /**
  * For a given moment in time, get all outgoing link entities from a given entity.
@@ -21,7 +36,7 @@ export const getOutgoingLinksForEntityAtMoment = (
   entityId: EntityId,
   timestamp: Date | string,
   includeArchived: boolean = false,
-): EntityWithMetadata[] => {
+): Entity[] => {
   const timestampString =
     typeof timestamp === "string" ? timestamp : timestamp.toISOString();
 
@@ -30,6 +45,8 @@ export const getOutgoingLinksForEntityAtMoment = (
   if (!entityEdges) {
     return [];
   }
+
+  const uniqueEntitiesFilter = getUniqueEntitiesFilter();
 
   return (
     Object.entries(entityEdges)
@@ -59,7 +76,94 @@ export const getOutgoingLinksForEntityAtMoment = (
 
         return linkEntity;
       })
-      .filter((x): x is EntityWithMetadata => x !== undefined)
+      .filter((x): x is Entity => x !== undefined)
+      .filter(uniqueEntitiesFilter)
+  );
+};
+
+/**
+ * For a given moment in time, get all incoming link entities from a given entity.
+ *
+ * @param subgraph
+ * @param {EntityId} entityId - The ID of the source entity to search for outgoing links from
+ * @param {Date | string} timestamp - A `Date` or an ISO-formatted datetime string of the moment to search for
+ * @param includeArchived - Whether or not to return currently-archived links, defaults to false
+ */
+export const getIncomingLinksForEntityAtMoment = (
+  subgraph: Subgraph,
+  entityId: EntityId,
+  timestamp: Date | string,
+  includeArchived: boolean = false,
+): Entity[] => {
+  const timestampString =
+    typeof timestamp === "string" ? timestamp : timestamp.toISOString();
+
+  const uniqueEntitiesFilter = getUniqueEntitiesFilter();
+
+  /**
+   * @todo - replace this with the analogue of the code in `getOutgoingLinksForEntityAtMoment` when
+   *   reverse mappings are stored in the graph
+   *   https://app.asana.com/0/1201095311341924/1203399511264512/f
+   */
+  return Object.entries(subgraph.edges)
+    .filter(([_, inner]) => {
+      return Object.values(inner)
+        .flat()
+        .find(
+          (outwardEdge: OutwardEdge) =>
+            isHasRightEntityEdge(outwardEdge) &&
+            outwardEdge.rightEndpoint.baseId === entityId,
+        );
+    })
+    .map(([linkEntityId, _]) => {
+      const linkEntity = mustBeDefined(
+        getEntityAtTimestamp(
+          subgraph,
+          linkEntityId as EntityId,
+          // Find the edition of the link at the given moment (not at the timestamp in the inner edges object, which
+          // corresponds to the start of the link's history)
+          timestampString,
+        ),
+      );
+
+      if (!includeArchived) {
+        if (linkEntity.metadata.archived) {
+          return undefined;
+        }
+      }
+
+      return linkEntity;
+    })
+    .filter((x): x is Entity => x !== undefined)
+    .filter(uniqueEntitiesFilter);
+};
+
+/**
+ * For a given moment in time, get the "left entity" (by default this is the "source") of a given link entity.
+ *
+ * @param subgraph
+ * @param {EntityId} entityId - The ID of the link entity
+ * @param {Date | string} timestamp - A `Date` or an ISO-formatted datetime string of the moment to search for
+ */
+export const getLeftEntityForLinkEntityAtMoment = (
+  subgraph: Subgraph,
+  entityId: EntityId,
+  timestamp: Date | string,
+): Entity => {
+  const linkEntityEdges = mustBeDefined(
+    subgraph.edges[entityId],
+    "link entities must have left endpoints and therefore must have edges",
+  );
+
+  const endpointEntityId = mustBeDefined(
+    Object.values(linkEntityEdges).flat().find(isHasLeftEntityEdge)
+      ?.rightEndpoint.baseId,
+    "link entities must have left endpoints",
+  );
+
+  return mustBeDefined(
+    getEntityAtTimestamp(subgraph, endpointEntityId, timestamp),
+    "all edge endpoints should have a corresponding vertex",
   );
 };
 
@@ -74,7 +178,7 @@ export const getRightEntityForLinkEntityAtMoment = (
   subgraph: Subgraph,
   entityId: EntityId,
   timestamp: Date | string,
-): EntityWithMetadata => {
+): Entity => {
   const linkEntityEdges = mustBeDefined(
     subgraph.edges[entityId],
     "link entities must have right endpoints and therefore must have edges",
@@ -105,7 +209,7 @@ export const getOutgoingLinkAndTargetEntitiesAtMoment = (
   entityId: EntityId,
   timestamp: Date | string,
   includeArchived: boolean = false,
-): { linkEntity: EntityWithMetadata; rightEntity: EntityWithMetadata }[] => {
+): { linkEntity: Entity; rightEntity: Entity }[] => {
   return getOutgoingLinksForEntityAtMoment(
     subgraph,
     entityId,

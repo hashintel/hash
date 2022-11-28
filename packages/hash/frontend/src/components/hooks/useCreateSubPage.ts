@@ -3,24 +3,21 @@ import { useRouter } from "next/router";
 import { useCallback } from "react";
 import { EntityId, splitEntityId } from "@hashintel/hash-subgraph";
 import {
-  CreatePersistedPageMutation,
-  CreatePersistedPageMutationVariables,
+  CreatePageMutation,
+  CreatePageMutationVariables,
   SetParentPageMutation,
   SetParentPageMutationVariables,
 } from "../../graphql/apiTypes.gen";
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
-import {
-  createPersistedPage,
-  setParentPage,
-} from "../../graphql/queries/page.queries";
+import { createPage, setParentPage } from "../../graphql/queries/page.queries";
 
 export const useCreateSubPage = (ownedById: string) => {
   const router = useRouter();
 
   const [createPageFn, { loading: createPageLoading }] = useMutation<
-    CreatePersistedPageMutation,
-    CreatePersistedPageMutationVariables
-  >(createPersistedPage);
+    CreatePageMutation,
+    CreatePageMutationVariables
+  >(createPage);
 
   const [setParentPageFn, { loading: setParentPageLoading }] = useMutation<
     SetParentPageMutation,
@@ -38,9 +35,9 @@ export const useCreateSubPage = (ownedById: string) => {
         variables: { ownedById, properties: { title: "Untitled" } },
       });
 
-      if (response.data?.createPersistedPage) {
+      if (response.data?.createPage) {
         const pageEntityId =
-          response.data?.createPersistedPage?.metadata.editionId.baseId;
+          response.data?.createPage?.metadata.editionId.baseId;
 
         await setParentPageFn({
           variables: {

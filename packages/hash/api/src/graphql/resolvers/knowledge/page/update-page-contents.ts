@@ -3,15 +3,12 @@ import { ApolloError, UserInputError } from "apollo-server-errors";
 import { exactlyOne } from "../../../../util";
 import { PageModel } from "../../../../model";
 import {
-  UpdatePersistedPageContentsResult,
-  MutationUpdatePersistedPageContentsArgs,
+  UpdatePageContentsResult,
+  MutationUpdatePageContentsArgs,
   ResolverFn,
 } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import {
-  mapPageModelToGQL,
-  UnresolvedPersistedPageGQL,
-} from "../model-mapping";
+import { mapPageModelToGQL, UnresolvedPageGQL } from "../model-mapping";
 import {
   PlaceholderResultsMap,
   filterForAction,
@@ -29,15 +26,15 @@ import {
  *   When we have a transaction primitive in the Graph API, we should use it here.
  *   See https://app.asana.com/0/1200211978612931/1202573572594586/f
  */
-export const updatePersistedPageContents: ResolverFn<
+export const updatePageContents: ResolverFn<
   Promise<
-    Omit<UpdatePersistedPageContentsResult, "page"> & {
-      page: UnresolvedPersistedPageGQL;
+    Omit<UpdatePageContentsResult, "page"> & {
+      page: UnresolvedPageGQL;
     }
   >,
   {},
   LoggedInGraphQLContext,
-  MutationUpdatePersistedPageContentsArgs
+  MutationUpdatePageContentsArgs
 > = async (
   _,
   { entityId: pageEntityId, actions },
@@ -56,7 +53,7 @@ export const updatePersistedPageContents: ResolverFn<
       )
     ) {
       throw new UserInputError(
-        `at action ${i}: exactly one of the fields on UpdatePersistedPageAction must be specified`,
+        `at action ${i}: exactly one of the fields on UpdatePageAction must be specified`,
       );
     }
   }

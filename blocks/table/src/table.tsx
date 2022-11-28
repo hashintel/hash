@@ -256,8 +256,7 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
       }
 
       if (operation === "changePageSize" && itemsPerPage) {
-        const { itemsPerPage: prevItemsPerPage } = newLinkedData.operation;
-        newLinkedData.operation.itemsPerPage = itemsPerPage || prevItemsPerPage;
+        newLinkedData.operation.itemsPerPage = itemsPerPage;
       }
 
       if (

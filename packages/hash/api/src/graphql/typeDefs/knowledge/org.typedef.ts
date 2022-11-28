@@ -1,6 +1,6 @@
 import { gql } from "apollo-server-express";
 
-export const persistedOrgTypedef = gql`
+export const orgTypedef = gql`
   enum OrgSize {
     ELEVEN_TO_FIFTY
     FIFTY_ONE_TO_TWO_HUNDRED_AND_FIFTY

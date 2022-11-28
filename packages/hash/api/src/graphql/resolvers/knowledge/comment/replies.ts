@@ -1,14 +1,11 @@
 import { CommentModel } from "../../../../model";
 import { ResolverFn } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import {
-  UnresolvedPersistedCommentGQL,
-  mapCommentModelToGQL,
-} from "../model-mapping";
+import { UnresolvedCommentGQL, mapCommentModelToGQL } from "../model-mapping";
 
-export const persistedCommentReplies: ResolverFn<
-  Promise<UnresolvedPersistedCommentGQL[]>,
-  UnresolvedPersistedCommentGQL,
+export const commentReplies: ResolverFn<
+  Promise<UnresolvedCommentGQL[]>,
+  UnresolvedCommentGQL,
   LoggedInGraphQLContext,
   {}
 > = async ({ metadata }, _, { dataSources: { graphApi } }) => {

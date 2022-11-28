@@ -1,20 +1,14 @@
 import { SYSTEM_TYPES } from "../../../../graph/system-types";
 import { PageModel } from "../../../../model";
-import {
-  MutationUpdatePersistedPageArgs,
-  ResolverFn,
-} from "../../../apiTypes.gen";
+import { MutationUpdatePageArgs, ResolverFn } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import {
-  UnresolvedPersistedPageGQL,
-  mapPageModelToGQL,
-} from "../model-mapping";
+import { UnresolvedPageGQL, mapPageModelToGQL } from "../model-mapping";
 
-export const updatePersistedPage: ResolverFn<
-  Promise<UnresolvedPersistedPageGQL>,
+export const updatePage: ResolverFn<
+  Promise<UnresolvedPageGQL>,
   {},
   LoggedInGraphQLContext,
-  MutationUpdatePersistedPageArgs
+  MutationUpdatePageArgs
 > = async (
   _,
   { entityId, updatedProperties },
@@ -27,7 +21,7 @@ export const updatePersistedPage: ResolverFn<
       ([propertyName, value]) => ({
         propertyTypeBaseUri:
           SYSTEM_TYPES.propertyType[
-            propertyName as keyof MutationUpdatePersistedPageArgs["updatedProperties"]
+            propertyName as keyof MutationUpdatePageArgs["updatedProperties"]
           ].getBaseUri(),
         value,
       }),

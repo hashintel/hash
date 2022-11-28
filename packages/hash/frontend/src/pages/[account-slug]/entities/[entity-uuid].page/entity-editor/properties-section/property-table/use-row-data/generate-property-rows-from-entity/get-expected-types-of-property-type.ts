@@ -12,9 +12,9 @@ const getDataTypeTitle = (
   subgraph: Subgraph,
 ) => {
   const dataTypeId = dataTypeReference.$ref;
-  const persistedDataType = getDataTypeById(subgraph, dataTypeId);
+  const dataType = getDataTypeById(subgraph, dataTypeId);
 
-  return persistedDataType?.schema.title ?? "undefined";
+  return dataType?.schema.title ?? "undefined";
 };
 
 const getReferencedTypeTitles = (

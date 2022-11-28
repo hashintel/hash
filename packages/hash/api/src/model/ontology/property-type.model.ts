@@ -114,12 +114,12 @@ export default class {
     },
   ): Promise<PropertyTypeModel> {
     const { propertyTypeId } = params;
-    const { data: persistedPropertyType } = await graphApi.getPropertyType(
+    const { data: propertyType } = await graphApi.getPropertyType(
       propertyTypeId,
     );
 
     return PropertyTypeModel.fromPropertyTypeWithMetadata(
-      persistedPropertyType as PropertyTypeWithMetadata,
+      propertyType as PropertyTypeWithMetadata,
     );
   }
 

@@ -2,7 +2,7 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import {
   entityIdFromOwnedByIdAndEntityUuid,
-  EntityWithMetadata,
+  Entity,
   Subgraph,
   SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
@@ -83,9 +83,7 @@ const Page: NextPageWithLayout = () => {
                *   For places where we mutate elements, we should probably store them separately from the subgraph to
                *   allow for optimistic updates without being incorrect.
                */
-              const newEntity = JSON.parse(
-                JSON.stringify(entity),
-              ) as EntityWithMetadata;
+              const newEntity = JSON.parse(JSON.stringify(entity)) as Entity;
               const newEntityVersion = new Date().toISOString();
               newEntity.metadata.editionId.version = newEntityVersion;
 
