@@ -168,9 +168,6 @@ export const PropertyTypeRow = ({
       </TableRow>
       <PropertyTypeModalForm
         popupState={editModalPopupState}
-        onClose={() => {
-          menuPopupState.open();
-        }}
         modalTitle={<>Edit Property Type</>}
         onSubmit={async (data) => {
           console.log(data);
