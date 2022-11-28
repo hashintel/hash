@@ -1,6 +1,10 @@
 import { Filter } from "@hashintel/hash-graph-client";
 import { AxiosError } from "axios";
-import { ApolloError, ForbiddenError } from "apollo-server-express";
+import {
+  ApolloError,
+  ForbiddenError,
+  UserInputError,
+} from "apollo-server-express";
 import { Entity, splitEntityId, Subgraph } from "@hashintel/hash-subgraph";
 import {
   EntityModel,
@@ -193,7 +197,7 @@ export const updateEntity: ResolverFn<
   MutationUpdateEntityArgs
 > = async (
   _,
-  { entityId, updatedProperties },
+  { entityId, updatedProperties, leftOrder, rightOrder },
   { dataSources: { graphApi }, userModel },
 ) => {
   // The user needs to be signed up if they aren't updating their own user entity
@@ -221,10 +225,27 @@ export const updateEntity: ResolverFn<
     }
   }
 
-  const updatedEntityModel = await entityModel.update(graphApi, {
-    properties: updatedProperties,
-    actorId: userModel.getEntityUuid(),
-  });
+  let updatedEntityModel: EntityModel;
+
+  if (entityModel instanceof LinkEntityModel) {
+    updatedEntityModel = await entityModel.update(graphApi, {
+      properties: updatedProperties,
+      actorId: userModel.getEntityUuid(),
+      leftOrder: leftOrder ?? undefined,
+      rightOrder: rightOrder ?? undefined,
+    });
+  } else {
+    if (leftOrder || rightOrder) {
+      throw new UserInputError(
+        `Cannot update the left order or right order of entity with ID ${entityModel.getBaseId()} because it isn't a link.`,
+      );
+    }
+
+    updatedEntityModel = await entityModel.update(graphApi, {
+      properties: updatedProperties,
+      actorId: userModel.getEntityUuid(),
+    });
+  }
 
   return mapEntityModelToGQL(updatedEntityModel);
 };

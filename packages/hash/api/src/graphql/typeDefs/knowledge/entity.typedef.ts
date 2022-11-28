@@ -114,6 +114,14 @@ export const entityTypedef = gql`
       The updated properties of the entity.
       """
       updatedProperties: PropertyObject!
+      """
+      The updated left order of the link entity (if updating a link entity).
+      """
+      leftOrder: Int
+      """
+      The updated right order of the link entity (if updating a link entity).
+      """
+      rightOrder: Int
     ): Entity!
   }
 `;
