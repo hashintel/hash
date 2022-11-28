@@ -460,7 +460,7 @@ pub trait Deserializer<'de>: Sized {
 /// (which can be displayed with tools like [cargo-expand](https://github.com/dtolnay/cargo-expand))
 /// as a template. The macro generates human readable code which can be used as template.
 // TODO: add example
-pub trait Deserialize<'de>: Sized {
+pub trait Deserialize<'de>: Describe + Sized {
     /// Deserialize this value from the given `deer` deserializer.
     ///
     /// # Errors
