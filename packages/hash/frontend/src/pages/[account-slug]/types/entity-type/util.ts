@@ -39,16 +39,16 @@ export const withHandler = <
   T extends ReturnType<typeof bindTrigger> | ReturnType<typeof bindToggle>,
 >(
   trigger: T,
-  handler: () => void,
+  handler: undefined | (() => void),
 ): T => {
   return {
     ...trigger,
     onClick: (...args) => {
-      handler();
+      handler?.();
       return trigger.onClick(...args);
     },
     onTouchStart: (...args) => {
-      handler();
+      handler?.();
       return trigger.onTouchStart(...args);
     },
   };
