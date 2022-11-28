@@ -165,7 +165,6 @@ export const PropertyTypeModalForm = ({
           >
             {modalTitle}
           </Typography>
-          {/** @todo need to disable this while form is submitting */}
           <IconButton
             {...withHandler(bindToggle(popupState), onClose)}
             sx={(theme) => ({
@@ -175,6 +174,7 @@ export const PropertyTypeModalForm = ({
                 fontSize: 20,
               },
             })}
+            disabled={isSubmitting}
           >
             <FontAwesomeIcon icon={faClose} />
           </IconButton>
