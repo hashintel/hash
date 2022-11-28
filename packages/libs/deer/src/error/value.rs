@@ -48,9 +48,11 @@ impl Error for ValueError {
     ) -> fmt::Result {
         let (_, expected, _) = properties;
 
-        let expected = expected.map(|expected| expected.schema().ty()).map(|ty| {
-            format!("received value is of correct type ({ty}), but does not fit constraints")
-        });
+        let expected = expected
+            .map(|expected| expected.document().schema().ty())
+            .map(|ty| {
+                format!("received value is of correct type ({ty}), but does not fit constraints")
+            });
 
         match expected {
             Some(expected) => fmt.write_str(&expected),
@@ -85,7 +87,7 @@ impl Error for MissingError {
 
         match expected {
             Some(expected) => {
-                let ty = expected.schema().ty();
+                let ty = expected.document().schema().ty();
 
                 fmt.write_fmt(format_args!(
                     "received no value, but expected value of type {ty}"
@@ -106,14 +108,27 @@ impl_error!(MissingError);
 
 #[cfg(test)]
 mod tests {
+    use alloc::vec;
+
     use error_stack::Report;
     use serde_json::json;
 
     use super::*;
     use crate::{
-        schema::Schema,
+        schema::{Describe, Schema},
         test::{to_json, to_message},
+        Document,
     };
+
+    struct DescribeU8;
+
+    impl Describe for DescribeU8 {
+        fn schema(_: &mut Document) -> Schema {
+            Schema::new("integer")
+                .with("minimum", u8::MIN)
+                .with("maximum", u8::MAX)
+        }
+    }
 
     #[test]
     fn value() {
@@ -124,11 +139,7 @@ mod tests {
         let error = Report::new(ValueError)
             .attach(Location::Array(0))
             .attach(Location::Field("field1"))
-            .attach(ExpectedType::new(
-                Schema::new("integer")
-                    .with("minimum", u8::MIN)
-                    .with("maximum", u8::MAX),
-            ))
+            .attach(ExpectedType::new(Document::new::<DescribeU8>()))
             .attach(ReceivedValue::new(u16::from(u8::MAX) + 1));
 
         assert_eq!(
@@ -157,11 +168,7 @@ mod tests {
 
         assert_eq!(
             to_message(
-                &Report::new(ValueError).attach(ExpectedType::new(
-                    Schema::new("integer")
-                        .with("minimum", u8::MIN)
-                        .with("maximum", u8::MAX),
-                ))
+                &Report::new(ValueError).attach(ExpectedType::new(Document::new::<DescribeU8>()))
             ),
             "received value is of correct type (integer), but does not fit constraints"
         );
@@ -176,11 +183,7 @@ mod tests {
         let error = Report::new(MissingError)
             .attach(Location::Array(0))
             .attach(Location::Field("field2"))
-            .attach(ExpectedType::new(
-                Schema::new("integer")
-                    .with("minimum", u8::MIN)
-                    .with("maximum", u8::MAX),
-            ));
+            .attach(ExpectedType::new(Document::new::<DescribeU8>()));
 
         assert_eq!(
             to_json(&error),
@@ -207,11 +210,7 @@ mod tests {
 
         assert_eq!(
             to_message(
-                &Report::new(MissingError).attach(ExpectedType::new(
-                    Schema::new("integer")
-                        .with("minimum", u8::MIN)
-                        .with("maximum", u8::MAX),
-                ))
+                &Report::new(MissingError).attach(ExpectedType::new(Document::new::<DescribeU8>()))
             ),
             "received no value, but expected value of type integer"
         );
