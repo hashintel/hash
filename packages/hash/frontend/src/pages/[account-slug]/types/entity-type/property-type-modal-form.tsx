@@ -81,7 +81,7 @@ const PropertyTypeForm = ({
   popupState,
   onSubmit,
   submitButtonProps,
-  defaultValues = {},
+  getDefaultValues,
   fieldProps = {},
 }: {
   onClose?: () => void;
@@ -89,11 +89,13 @@ const PropertyTypeForm = ({
   popupState: PopupState;
   onSubmit: (data: PropertyTypeModalFormValues) => Promise<void>;
   submitButtonProps: PropertyTypeModalFormSubmitProps;
-  defaultValues?: Partial<PropertyTypeModalFormValues>;
+  getDefaultValues?: () => Partial<PropertyTypeModalFormValues>;
   fieldProps?: Partial<
     Record<keyof PropertyTypeModalFormValues, { disabled?: boolean }>
   >;
 }) => {
+  const defaultValues = getDefaultValues?.() ?? {};
+
   const {
     register,
     handleSubmit: wrapHandleSubmit,

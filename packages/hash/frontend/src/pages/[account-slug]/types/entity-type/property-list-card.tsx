@@ -177,7 +177,7 @@ export const PropertyTypeRow = ({
         }}
         submitButtonProps={{ children: <>Edit property type</> }}
         fieldProps={{ name: { disabled: true } }}
-        defaultValues={{
+        getDefaultValues={() => ({
           name: property.title,
           description: property.description,
           // @todo handle exotic values
@@ -187,7 +187,7 @@ export const PropertyTypeRow = ({
             }
             return mustBeVersionedUri(dataType.$ref);
           }),
-        }}
+        })}
       />
     </>
   );
