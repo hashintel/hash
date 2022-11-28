@@ -1,8 +1,8 @@
 use std::{future::Future, pin::Pin};
 
 use async_trait::async_trait;
-use error_stack::{IntoReport, Report, Result, ResultExt};
-use futures::{stream, FutureExt, StreamExt, TryStreamExt};
+use error_stack::{IntoReport, Result, ResultExt};
+use futures::FutureExt;
 use tokio_postgres::GenericClient;
 use type_system::EntityType;
 
@@ -272,38 +272,31 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
             graph_resolve_depths,
         } = *query;
 
-        let mut subgraph = stream::iter(Read::<EntityTypeWithMetadata>::read(self, filter).await?)
-            .then(|entity_type| async move {
-                let mut subgraph = Subgraph::new(graph_resolve_depths);
-                let mut dependency_context = DependencyContext::default();
+        let mut subgraph = Subgraph::new(graph_resolve_depths);
+        let mut dependency_context = DependencyContext::default();
 
-                let entity_type_id = entity_type.metadata().edition_id().clone();
-                dependency_context
-                    .ontology_dependency_map
-                    .insert(&entity_type_id, None);
-                subgraph.vertices.ontology.insert(
-                    entity_type_id.clone(),
-                    OntologyVertex::EntityType(Box::new(entity_type)),
-                );
+        for entity_type in Read::<EntityTypeWithMetadata>::read(self, filter).await? {
+            let entity_type_id = entity_type.metadata().edition_id().clone();
+            dependency_context
+                .ontology_dependency_map
+                .insert(&entity_type_id, None);
+            subgraph.vertices.ontology.insert(
+                entity_type_id.clone(),
+                OntologyVertex::EntityType(Box::new(entity_type)),
+            );
 
-                self.get_entity_type_as_dependency(
-                    &entity_type_id,
-                    &mut dependency_context,
-                    &mut subgraph,
-                    graph_resolve_depths,
-                )
-                .await?;
-
-                subgraph
-                    .roots
-                    .insert(GraphElementEditionId::Ontology(entity_type_id));
-
-                Ok::<_, Report<QueryError>>(subgraph)
-            })
-            .try_collect::<Subgraph>()
+            self.get_entity_type_as_dependency(
+                &entity_type_id,
+                &mut dependency_context,
+                &mut subgraph,
+                graph_resolve_depths,
+            )
             .await?;
 
-        subgraph.depths = graph_resolve_depths;
+            subgraph
+                .roots
+                .insert(GraphElementEditionId::Ontology(entity_type_id));
+        }
 
         Ok(subgraph)
     }

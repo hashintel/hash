@@ -1,8 +1,8 @@
 use std::{future::Future, pin::Pin};
 
 use async_trait::async_trait;
-use error_stack::{IntoReport, Report, Result, ResultExt};
-use futures::{stream, FutureExt, StreamExt, TryStreamExt};
+use error_stack::{IntoReport, Result, ResultExt};
+use futures::FutureExt;
 use tokio_postgres::GenericClient;
 use type_system::PropertyType;
 
@@ -196,39 +196,32 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
             graph_resolve_depths,
         } = *query;
 
-        let mut subgraph =
-            stream::iter(Read::<PropertyTypeWithMetadata>::read(self, filter).await?)
-                .then(|property_type| async move {
-                    let mut subgraph = Subgraph::new(graph_resolve_depths);
-                    let mut dependency_context = DependencyContext::default();
+        let mut subgraph = Subgraph::new(graph_resolve_depths);
+        let mut dependency_context = DependencyContext::default();
 
-                    let property_type_id = property_type.metadata().edition_id().clone();
-                    dependency_context
-                        .ontology_dependency_map
-                        .insert(&property_type_id, None);
-                    subgraph.vertices.ontology.insert(
-                        property_type_id.clone(),
-                        OntologyVertex::PropertyType(Box::new(property_type)),
-                    );
+        for property_type in Read::<PropertyTypeWithMetadata>::read(self, filter).await? {
+            let property_type_id = property_type.metadata().edition_id().clone();
+            dependency_context
+                .ontology_dependency_map
+                .insert(&property_type_id, None);
+            subgraph.vertices.ontology.insert(
+                property_type_id.clone(),
+                OntologyVertex::PropertyType(Box::new(property_type)),
+            );
 
-                    self.get_property_type_as_dependency(
-                        &property_type_id,
-                        &mut dependency_context,
-                        &mut subgraph,
-                        graph_resolve_depths,
-                    )
-                    .await?;
+            self.get_property_type_as_dependency(
+                &property_type_id,
+                &mut dependency_context,
+                &mut subgraph,
+                graph_resolve_depths,
+            )
+            .await?;
 
-                    subgraph
-                        .roots
-                        .insert(GraphElementEditionId::Ontology(property_type_id));
+            subgraph
+                .roots
+                .insert(GraphElementEditionId::Ontology(property_type_id));
+        }
 
-                    Ok::<_, Report<QueryError>>(subgraph)
-                })
-                .try_collect::<Subgraph>()
-                .await?;
-
-        subgraph.depths = graph_resolve_depths;
         Ok(subgraph)
     }
 

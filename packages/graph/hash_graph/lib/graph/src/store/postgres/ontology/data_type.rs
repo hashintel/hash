@@ -1,6 +1,5 @@
 use async_trait::async_trait;
-use error_stack::{IntoReport, Report, Result, ResultExt};
-use futures::{stream, StreamExt, TryStreamExt};
+use error_stack::{IntoReport, Result, ResultExt};
 use tokio_postgres::GenericClient;
 use type_system::DataType;
 
@@ -103,38 +102,31 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             graph_resolve_depths,
         } = *query;
 
-        let mut subgraph = stream::iter(Read::<DataTypeWithMetadata>::read(self, filter).await?)
-            .then(|data_type| async move {
-                let mut subgraph = Subgraph::new(graph_resolve_depths);
-                let mut dependency_context = DependencyContext::default();
+        let mut subgraph = Subgraph::new(graph_resolve_depths);
+        let mut dependency_context = DependencyContext::default();
 
-                let data_type_id = data_type.metadata().edition_id().clone();
-                dependency_context
-                    .ontology_dependency_map
-                    .insert(&data_type_id, None);
-                subgraph.vertices.ontology.insert(
-                    data_type_id.clone(),
-                    OntologyVertex::DataType(Box::new(data_type)),
-                );
+        for data_type in Read::<DataTypeWithMetadata>::read(self, filter).await? {
+            let data_type_id = data_type.metadata().edition_id().clone();
+            dependency_context
+                .ontology_dependency_map
+                .insert(&data_type_id, None);
+            subgraph.vertices.ontology.insert(
+                data_type_id.clone(),
+                OntologyVertex::DataType(Box::new(data_type)),
+            );
 
-                self.get_data_type_as_dependency(
-                    &data_type_id,
-                    &mut dependency_context,
-                    &mut subgraph,
-                    graph_resolve_depths,
-                )
-                .await?;
-
-                subgraph
-                    .roots
-                    .insert(GraphElementEditionId::Ontology(data_type_id));
-
-                Ok::<_, Report<QueryError>>(subgraph)
-            })
-            .try_collect::<Subgraph>()
+            self.get_data_type_as_dependency(
+                &data_type_id,
+                &mut dependency_context,
+                &mut subgraph,
+                graph_resolve_depths,
+            )
             .await?;
 
-        subgraph.depths = graph_resolve_depths;
+            subgraph
+                .roots
+                .insert(GraphElementEditionId::Ontology(data_type_id));
+        }
 
         Ok(subgraph)
     }

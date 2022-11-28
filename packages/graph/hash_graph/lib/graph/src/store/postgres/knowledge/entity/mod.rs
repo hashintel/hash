@@ -4,7 +4,7 @@ use std::{future::Future, pin::Pin};
 
 use async_trait::async_trait;
 use error_stack::{bail, IntoReport, Report, Result, ResultExt};
-use futures::{stream, FutureExt, StreamExt, TryStreamExt};
+use futures::FutureExt;
 use tokio_postgres::GenericClient;
 use type_system::uri::VersionedUri;
 use uuid::Uuid;
@@ -505,38 +505,31 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             graph_resolve_depths,
         } = *query;
 
-        let mut subgraph = stream::iter(Read::<Entity>::read(self, filter).await?)
-            .then(|entity| async move {
-                let mut subgraph = Subgraph::new(graph_resolve_depths);
-                let mut dependency_context = DependencyContext::default();
+        let mut subgraph = Subgraph::new(graph_resolve_depths);
+        let mut dependency_context = DependencyContext::default();
 
-                let entity_edition_id = entity.metadata().edition_id();
-                dependency_context
-                    .knowledge_dependency_map
-                    .insert(&entity_edition_id, None);
-                subgraph
-                    .vertices
-                    .knowledge_graph
-                    .insert(entity_edition_id, KnowledgeGraphVertex::Entity(entity));
+        for entity in Read::<Entity>::read(self, filter).await? {
+            let entity_edition_id = entity.metadata().edition_id();
+            dependency_context
+                .knowledge_dependency_map
+                .insert(&entity_edition_id, None);
+            subgraph
+                .vertices
+                .knowledge_graph
+                .insert(entity_edition_id, KnowledgeGraphVertex::Entity(entity));
 
-                self.get_entity_as_dependency(
-                    entity_edition_id,
-                    &mut dependency_context,
-                    &mut subgraph,
-                    graph_resolve_depths,
-                )
-                .await?;
-
-                subgraph
-                    .roots
-                    .insert(GraphElementEditionId::KnowledgeGraph(entity_edition_id));
-
-                Ok::<_, Report<QueryError>>(subgraph)
-            })
-            .try_collect::<Subgraph>()
+            self.get_entity_as_dependency(
+                entity_edition_id,
+                &mut dependency_context,
+                &mut subgraph,
+                graph_resolve_depths,
+            )
             .await?;
 
-        subgraph.depths = graph_resolve_depths;
+            subgraph
+                .roots
+                .insert(GraphElementEditionId::KnowledgeGraph(entity_edition_id));
+        }
 
         Ok(subgraph)
     }
