@@ -18,6 +18,7 @@ import {
   Subgraph,
   VersionedUri,
   SubgraphRootTypes,
+  LinkEntityMetadata,
 } from "@hashintel/hash-subgraph";
 
 export type KnowledgeCallbacks = {
@@ -45,6 +46,7 @@ export type AggregateEntitiesMessageCallback = MessageCallback<
 export type CreateEntityRequest = {
   entityTypeId: VersionedUri;
   properties: PropertyObject;
+  linkMetadata?: LinkEntityMetadata;
 };
 
 export type CreateEntityMessageCallback = MessageCallback<

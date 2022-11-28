@@ -9,7 +9,7 @@ import {
   KratosUserIdentity,
   publicKratosSdk,
 } from "./ory-kratos";
-import { UserModel } from "../model";
+import { HashInstanceModel, UserModel } from "../model";
 import { systemAccountId } from "../model/util";
 
 declare global {
@@ -54,6 +54,14 @@ const kratosAfterRegistrationHookHandler =
     void (async () => {
       try {
         const { emails } = traits;
+
+        const hashInstanceModel = await HashInstanceModel.getHashInstanceModel(
+          graphApi,
+        );
+
+        if (!hashInstanceModel.isUserSelfRegistrationEnabled()) {
+          throw new Error("User registration is disabled.");
+        }
 
         await UserModel.createUser(graphApi, {
           emails,
