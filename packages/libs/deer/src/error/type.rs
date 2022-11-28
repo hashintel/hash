@@ -110,28 +110,12 @@ mod tests {
 
     use super::*;
     use crate::{
-        schema::Describe,
+        schema::{
+            visitor::{StringSchema, U8Schema},
+            Describe,
+        },
         test::{to_json, to_message},
-        Schema,
     };
-
-    struct DescribeU8;
-
-    impl Describe for DescribeU8 {
-        fn schema(_: &mut Document) -> Schema {
-            Schema::new("integer")
-                .with("minimum", u8::MIN)
-                .with("maximum", u8::MAX)
-        }
-    }
-
-    struct DescribeString;
-
-    impl Describe for DescribeString {
-        fn schema(_: &mut Document) -> Schema {
-            Schema::new("string")
-        }
-    }
 
     #[test]
     fn r#type() {
@@ -144,8 +128,8 @@ mod tests {
             .attach(Location::Entry("entry1".into()))
             .attach(Location::Array(1))
             .attach(Location::Field("field2"))
-            .attach(ExpectedType::new(Document::new::<DescribeU8>()))
-            .attach(ReceivedType::new(Document::new::<DescribeString>()));
+            .attach(ExpectedType::new(U8Schema::document()))
+            .attach(ReceivedType::new(StringSchema::document()));
 
         assert_eq!(
             to_json(&error),
@@ -186,25 +170,20 @@ mod tests {
         );
 
         assert_eq!(
-            to_message(
-                &Report::new(TypeError)
-                    .attach(ReceivedType::new(Document::new::<DescribeString>()))
-            ),
+            to_message(&Report::new(TypeError).attach(ReceivedType::new(StringSchema::document()))),
             r#"received value of unexpected type string"#
         );
 
         assert_eq!(
-            to_message(
-                &Report::new(TypeError).attach(ExpectedType::new(Document::new::<DescribeU8>()))
-            ),
+            to_message(&Report::new(TypeError).attach(ExpectedType::new(U8Schema::document()))),
             r#"expected value of type integer"#
         );
 
         assert_eq!(
             to_message(
                 &Report::new(TypeError)
-                    .attach(ReceivedType::new(Document::new::<DescribeString>()))
-                    .attach(ExpectedType::new(Document::new::<DescribeU8>()))
+                    .attach(ReceivedType::new(StringSchema::document()))
+                    .attach(ExpectedType::new(U8Schema::document()))
             ),
             "expected value of type integer, but received value of unexpected type string"
         );

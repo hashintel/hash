@@ -115,20 +115,10 @@ mod tests {
 
     use super::*;
     use crate::{
-        schema::{Describe, Schema},
+        schema::{visitor::U8Schema, Describe},
         test::{to_json, to_message},
         Document,
     };
-
-    struct DescribeU8;
-
-    impl Describe for DescribeU8 {
-        fn schema(_: &mut Document) -> Schema {
-            Schema::new("integer")
-                .with("minimum", u8::MIN)
-                .with("maximum", u8::MAX)
-        }
-    }
 
     #[test]
     fn value() {
@@ -139,7 +129,7 @@ mod tests {
         let error = Report::new(ValueError)
             .attach(Location::Array(0))
             .attach(Location::Field("field1"))
-            .attach(ExpectedType::new(Document::new::<DescribeU8>()))
+            .attach(ExpectedType::new(U8Schema::document()))
             .attach(ReceivedValue::new(u16::from(u8::MAX) + 1));
 
         assert_eq!(
