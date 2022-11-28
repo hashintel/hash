@@ -2,12 +2,12 @@ import { useMemo, FunctionComponent } from "react";
 import { tw } from "twind";
 import ArticleIcon from "@mui/icons-material/Article";
 
+import { EntityId } from "@hashintel/hash-subgraph";
 import { useUsers } from "../../../components/hooks/useUsers";
 import { useAccountPages } from "../../../components/hooks/useAccountPages";
 import { fuzzySearchBy } from "./fuzzySearchBy";
 import { Suggester } from "./Suggester";
 import { useRouteAccountInfo } from "../../../shared/routing";
-import { EntityId } from "@hashintel/hash-subgraph";
 
 export interface MentionSuggesterProps {
   search?: string;

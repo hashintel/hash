@@ -5,10 +5,10 @@ import {
   EntityId,
   extractEntityUuidFromEntityId,
 } from "@hashintel/hash-subgraph";
+import { SYSTEM_ACCOUNT_SHORTNAME } from "@hashintel/hash-shared/environment";
 import { useUsers } from "../../../components/hooks/useUsers";
 import { useAccountPages } from "../../../components/hooks/useAccountPages";
 import { Link } from "../../../shared/ui";
-import { SYSTEM_ACCOUNT_SHORTNAME } from "@hashintel/hash-shared/environment";
 
 interface MentionDisplayProps {
   entityId: EntityId;
@@ -28,7 +28,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
     switch (mentionType) {
       case "user": {
         // User entities are stored on the system account
-        const href = `/@${SYSTEM_ACCOUNT_SHORTNAME}/entities/${extractEntityUuidFromEntityId(
+        const userHref = `/@${SYSTEM_ACCOUNT_SHORTNAME}/entities/${extractEntityUuidFromEntityId(
           entityId,
         )}`;
 
@@ -37,7 +37,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
           /** @todo - What should the href be here? */
           return {
             title: "User",
-            href,
+            href: userHref,
             icon: "@",
           };
         } else {
@@ -49,7 +49,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
           if (matchingUser) {
             return {
               title: matchingUser.preferredName,
-              href,
+              href: userHref,
               icon: "@",
             };
           } else {
