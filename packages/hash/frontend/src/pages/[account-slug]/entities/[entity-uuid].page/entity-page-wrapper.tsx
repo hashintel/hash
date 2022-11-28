@@ -10,11 +10,14 @@ import { EntityPageHeader } from "./entity-page-wrapper/entity-page-header";
 export const EntityPageWrapper = ({
   children,
   label,
-  subtle,
-}: PropsWithChildren<{ label: string; subtle?: boolean }>) => {
+  makeTitleLighter,
+}: PropsWithChildren<{ label: string; makeTitleLighter?: boolean }>) => {
   return (
     <Stack minHeight="100vh">
-      <EntityPageHeader entityLabel={label} subtle={subtle} />
+      <EntityPageHeader
+        entityLabel={label}
+        makeTitleLighter={makeTitleLighter}
+      />
       <Box flex={1} bgcolor="gray.10" borderTop={1} borderColor="gray.20">
         <Container
           sx={{

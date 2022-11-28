@@ -24,7 +24,7 @@ import { useEntityTypes } from "./use-entity-types";
 export const EntityTypeSelector: FunctionComponent<{
   onSelect: (entityType: EntityType) => void;
   onCancel: () => void;
-  onCreateNew: (name: string) => void;
+  onCreateNew: (searchValue: string) => void;
 }> = ({ onCancel, onSelect, onCreateNew }) => {
   const [search, setSearch] = useState("");
   const entityTypesObject = useEntityTypes();
@@ -72,6 +72,10 @@ export const EntityTypeSelector: FunctionComponent<{
       }}
     >
       <Autocomplete
+        /**
+         * @todo make this Autocomplete reusable
+         * This is almost a duplicate of `PropertySelector`
+         */
         open={open}
         onOpen={() => setOpen(true)}
         onClose={(_, reason) => {

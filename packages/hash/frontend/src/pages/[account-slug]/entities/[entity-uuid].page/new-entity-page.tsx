@@ -25,7 +25,7 @@ export const NewEntityPage = () => {
   const createNewEntityAndRedirect = useCreateNewEntityAndRedirect();
 
   return (
-    <EntityPageWrapper label="New entity" subtle>
+    <EntityPageWrapper label="New entity" makeTitleLighter>
       <SectionWrapper
         title="Types"
         titleStartContent={<Chip label="No type" size="xs" />}
@@ -84,13 +84,15 @@ export const NewEntityPage = () => {
                       setLoading(false);
                     }
                   }}
-                  onCreateNew={(name) => {
+                  onCreateNew={(searchValue) => {
                     setLoading(true);
 
                     void router.push(
                       `/@${
                         authenticatedUser?.shortname
-                      }/types/new/entity-type?name=${encodeURIComponent(name)}`,
+                      }/types/new/entity-type?name=${encodeURIComponent(
+                        searchValue,
+                      )}`,
                     );
                   }}
                 />

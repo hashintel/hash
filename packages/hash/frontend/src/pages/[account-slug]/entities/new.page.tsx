@@ -16,7 +16,7 @@ const Page: NextPageWithLayout = () => {
 
   useEffectOnceWhen(() => {
     const init = async () => {
-      const entityTypeId = router.query["entity-type-id"] as string;
+      const entityTypeId = router.query["entity-type-id"] as string | undefined;
 
       if (entityTypeId) {
         try {
@@ -29,7 +29,7 @@ const Page: NextPageWithLayout = () => {
     };
 
     void init();
-  }, !!createNewEntityAndRedirect && !!authenticatedUser);
+  }, !!authenticatedUser);
 
   if (!authenticatedUser) {
     return null;

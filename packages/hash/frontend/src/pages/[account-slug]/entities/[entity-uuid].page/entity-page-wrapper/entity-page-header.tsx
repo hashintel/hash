@@ -10,10 +10,10 @@ import { OntologyChip } from "../../../shared/ontology-chip";
 
 export const EntityPageHeader = ({
   entityLabel,
-  subtle,
+  makeTitleLighter,
 }: {
   entityLabel: string;
-  subtle?: boolean;
+  makeTitleLighter?: boolean;
 }) => {
   const router = useRouter();
 
@@ -66,7 +66,7 @@ export const EntityPageHeader = ({
             direction="row"
             alignItems="center"
             spacing={2}
-            sx={{ color: subtle ? "gray.50" : "gray.90" }}
+            sx={{ color: makeTitleLighter ? "gray.50" : "gray.90" }}
           >
             <FontAwesomeIcon icon={faAsterisk} sx={{ fontSize: 40 }} />
             <Typography variant="h1" fontWeight="bold">

@@ -73,7 +73,7 @@ const Page: NextPageWithLayout = () => {
     mode: "onSubmit",
     reValidateMode: "onSubmit",
     defaultValues: {
-      name: router.query.name as string,
+      name: router.query.name === "string" ? router.query.name : "",
     },
   });
 
