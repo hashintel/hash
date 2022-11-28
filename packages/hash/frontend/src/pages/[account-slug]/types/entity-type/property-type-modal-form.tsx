@@ -118,10 +118,11 @@ const PropertyTypeForm = ({
   });
 
   useEffect(() => {
-    setFocus(defaultValues.name ? "description" : "name");
-
     if (defaultValues.name) {
       void trigger("name");
+      setFocus("description");
+    } else {
+      setFocus("name");
     }
   }, [defaultValues.name, setFocus, trigger]);
 
@@ -219,6 +220,12 @@ const PropertyTypeForm = ({
                 setTitleValid(false);
               },
               async validate(value) {
+                if (defaultValues.name && value === defaultValues.name) {
+                  setTitleValid(true);
+
+                  return true;
+                }
+
                 const propertyTypeId = generateInitialPropertyTypeId(
                   generatePropertyTypeBaseUriForUser(value),
                 );
