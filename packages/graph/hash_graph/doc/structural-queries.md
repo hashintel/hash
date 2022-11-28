@@ -66,11 +66,34 @@ Filters can be composed, so it's possible to match on more than one query. Curre
 
 An empty `all` filter will always match. An empty `any` filter will never match.
 
-## Depth
+## Graph Resolve Depths
 
-The depth determines how many edges away from the root vertices the subgraph will be resolved. For entities, this will resolve the outgoing links, for link entities, this will resolve the left entity and the right entity.
+The depth determines how many edges away _from (not including) the root vertices_ the subgraph will be resolved.
 
-Elements in the subgraph are connected via edges. For example, ontology elements may have references to other records, a property type may reference other property types or data types or entities may link to other entities. The depths provided alongside a filter specify how many steps to explore along a chain of references _of a certain edge kind_. Meaning, any chain of property type references will be resolved up to the depth given for property types, and _each_ data type referenced in those property types will in turn start a 'new chain' whose exploration depth is limited by the depth given for data types.
+### Edges and Edge Kinds
+
+Elements in the subgraph are connected via edges. For example, ontology elements may have references to other records, a property type may reference other property types or data types or entities may link to other entities. The following edge kinds are available:
+
+- `inheritsFrom`
+  - An ontology type can inherit from another ontology type
+- `constrainsValuesOn`
+  - A `PropertyType` or `DataType` can reference a `DataType` to constrain values.
+- `constrainsPropertiesOn`
+  - An `EntityType` or `PropertyType` can reference a `PropertyType` to constrain properties.
+- `constrainsLinksOn`
+  - An `EntityType` can reference a link `EntityType` to constrain the existence of certain kinds of links.
+- `constrainsLinkDestinationsOn`
+  - An `EntityType` can reference an `EntityType` to constrain the target entities of certain kinds of links.
+- `hasLeftEntity`
+  - This link `Entity` has another `Entity` on its 'left' endpoint. The `reverse` of this would be the equivalent of saying an `Entity` has an outgoing `Link` `Entity`.
+- `hasRightEntity`
+  - This link `Entity` has another `Entity` on its 'right' endpoint.  The `reverse` of this would be the equivalent of saying an `Entity` has an incoming `Link` `Entity`.
+- `isOfType`
+  - An `Entity` is of an `EntityType`.
+
+### Depths
+
+The depths provided alongside a filter specify how many steps to explore along a chain of references _of a certain edge kind_. Meaning, any chain of `constrainsPropertiesOn` will be resolved up to the depth given, and _each_ data type referenced in those property types will in turn start a 'new chain' whose exploration depth is limited by the depth given for `constrainsValuesOn`.
 
 A depth of `0` means that no edges are explored for that edge kind.
 
@@ -112,9 +135,9 @@ then the returned subgraph will contain the following vertices in addition to th
 - \[`DataType1`, `DataType2`]
 - \[`Link1`, `Entity2`]
 
-`Link2` will not be included in the subgraph, because the depth for `hasLeftEntity` is `2` and `Link2` is `3` edges away from `Entity1`.
+`Link2` will not be included in the subgraph, because the depth for `hasLeftEntity` is `1` and `hasRightEntity` is `1` and `Link2` is `3` link-related edges away from `Entity1`.
 
-Please note, that all depth parameters has to be passed each time a query is made to prevent unexpected results.
+Please note, that all depth parameters have to be passed each time a query is made to prevent unexpected results.
 
 # Commonly used queries
 
