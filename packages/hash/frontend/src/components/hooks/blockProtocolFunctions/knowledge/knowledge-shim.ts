@@ -76,6 +76,6 @@ export type ArchiveEntityRequest = {
 export type ArchiveEntityMessageCallback = MessageCallback<
   ArchiveEntityRequest,
   null,
-  void,
+  boolean,
   ReadOrModifyResourceError
 >;

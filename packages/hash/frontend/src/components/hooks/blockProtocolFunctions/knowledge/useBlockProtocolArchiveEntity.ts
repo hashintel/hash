@@ -49,7 +49,7 @@ export const useBlockProtocolArchiveEntity = (
 
       await archiveEntityFn({ variables: { entityId } });
 
-      return { data: undefined };
+      return { data: true };
     },
     [archiveEntityFn, readonly],
   );
