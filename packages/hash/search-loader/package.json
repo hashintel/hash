@@ -6,7 +6,7 @@
   "license": "AGPL-3.0",
   "scripts": {
     "clear-opensearch": "yarn ts-node ./src/scripts/clear-opensearch.ts",
-    "dev": "ts-node-dev --respawn --transpile-only ./src/index.ts",
+    "dev": "echo 'Opensearch currently disabled'",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint .",
     "lint:tsc": "tsc --noEmit",

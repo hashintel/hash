@@ -11,6 +11,7 @@ import {
   UserModel,
 } from "@hashintel/hash-api/src/model";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
+import { ensureSystemEntitiesExists } from "@hashintel/hash-api/src/graph/system-entities";
 import { createTestUser } from "../../util";
 
 jest.setTimeout(60000);
@@ -34,29 +35,31 @@ describe("Page model class", () => {
 
   beforeAll(async () => {
     await ensureSystemTypesExist({ graphApi, logger });
+    await ensureSystemEntitiesExists({ graphApi, logger });
+
     testUser = await createTestUser(graphApi, "pageModelTest", logger);
   });
 
   const createBlock = async () =>
     await BlockModel.createBlock(graphApi, {
-      ownedById: testUser.entityId,
+      ownedById: testUser.getEntityUuid(),
       componentId: "text",
       blockData: await EntityModel.create(graphApi, {
-        ownedById: testUser.entityId,
+        ownedById: testUser.getEntityUuid(),
         entityTypeModel: SYSTEM_TYPES.entityType.dummy,
         properties: {},
-        actorId: testUser.entityId,
+        actorId: testUser.getEntityUuid(),
       }),
-      actorId: testUser.entityId,
+      actorId: testUser.getEntityUuid(),
     });
 
   let testPage: PageModel;
 
   it("can create a page", async () => {
     testPage = await PageModel.createPage(graphApi, {
-      ownedById: testUser.entityId,
+      ownedById: testUser.getEntityUuid(),
       title: "Test Page",
-      actorId: testUser.entityId,
+      actorId: testUser.getEntityUuid(),
     });
 
     const initialBlocks = await testPage.getBlocks(graphApi);
@@ -73,21 +76,25 @@ describe("Page model class", () => {
     ]);
 
     testPage2 = await PageModel.createPage(graphApi, {
-      ownedById: testUser.entityId,
+      ownedById: testUser.getEntityUuid(),
       title: "Test Page 2",
       summary: "Test page 2 summary",
       initialBlocks: [initialBlock1, initialBlock2],
-      actorId: testUser.entityId,
+      actorId: testUser.getEntityUuid(),
     });
 
     const initialBlocks = await testPage2.getBlocks(graphApi);
+    const expectedInitialBlocks = [initialBlock1, initialBlock2];
 
-    expect(initialBlocks).toEqual([initialBlock1, initialBlock2]);
+    expect(initialBlocks).toHaveLength(expectedInitialBlocks.length);
+    expect(initialBlocks).toEqual(
+      expect.arrayContaining(expectedInitialBlocks),
+    );
   });
 
   it("can get a page by its entity id", async () => {
     const fetchedPage = await PageModel.getPageById(graphApi, {
-      entityId: testPage.entityId,
+      entityId: testPage.getBaseId(),
     });
 
     expect(fetchedPage).toEqual(testPage);
@@ -99,10 +106,12 @@ describe("Page model class", () => {
     });
 
     expect(
-      allPages.sort((a, b) => a.entityId.localeCompare(b.entityId)),
+      allPages.sort((a, b) =>
+        a.getEntityUuid().localeCompare(b.getEntityUuid()),
+      ),
     ).toEqual(
       [testPage, testPage2].sort((a, b) =>
-        a.entityId.localeCompare(b.entityId),
+        a.getEntityUuid().localeCompare(b.getEntityUuid()),
       ),
     );
   });
@@ -111,17 +120,17 @@ describe("Page model class", () => {
 
   it("can get/set a parent page", async () => {
     parentPageModel = await PageModel.createPage(graphApi, {
-      ownedById: testUser.entityId,
+      ownedById: testUser.getEntityUuid(),
       title: "Test Parent Page",
       summary: "Test page summary",
-      actorId: testUser.entityId,
+      actorId: testUser.getEntityUuid(),
     });
 
     expect(await testPage.getParentPage(graphApi)).toBeNull();
 
     await testPage.setParentPage(graphApi, {
       parentPageModel,
-      actorId: testUser.entityId,
+      actorId: testUser.getEntityUuid(),
       prevIndex: null,
       nextIndex: null,
     });
@@ -150,61 +159,62 @@ describe("Page model class", () => {
     // insert block at un-specified position
     await testPage.insertBlock(graphApi, {
       block: testBlock3,
-      actorId: testUser.entityId,
-      updateSiblings: true,
+      actorId: testUser.getEntityUuid(),
     });
 
     // insert block at specified position
     await testPage.insertBlock(graphApi, {
       block: testBlock2,
-      updateSiblings: true,
       position: 1,
-      actorId: testUser.entityId,
+      actorId: testUser.getEntityUuid(),
     });
 
-    expect(await testPage.getBlocks(graphApi)).toEqual([
-      testBlock1,
-      testBlock2,
-      testBlock3,
-    ]);
+    const blocks = await testPage.getBlocks(graphApi);
+    const expectedBlocks = [testBlock1, testBlock2, testBlock3];
+
+    expect(blocks).toHaveLength(expectedBlocks.length);
+    expect(blocks).toEqual(expect.arrayContaining(expectedBlocks));
   });
 
   it("can move a block", async () => {
     await testPage.moveBlock(graphApi, {
       currentPosition: 0,
       newPosition: 2,
-      actorId: testUser.entityId,
+      actorId: testUser.getEntityUuid(),
     });
 
-    expect(await testPage.getBlocks(graphApi)).toEqual([
-      testBlock2,
-      testBlock3,
-      testBlock1,
-    ]);
+    const initialBlocks = await testPage.getBlocks(graphApi);
+    const expectedInitialBlocks = [testBlock2, testBlock3, testBlock1];
+
+    expect(initialBlocks).toHaveLength(expectedInitialBlocks.length);
+    expect(initialBlocks).toEqual(
+      expect.arrayContaining(expectedInitialBlocks),
+    );
 
     await testPage.moveBlock(graphApi, {
       currentPosition: 2,
       newPosition: 0,
-      actorId: testUser.entityId,
+      actorId: testUser.getEntityUuid(),
     });
 
-    expect(await testPage.getBlocks(graphApi)).toEqual([
-      testBlock1,
-      testBlock2,
-      testBlock3,
-    ]);
+    const updatedBlocks = await testPage.getBlocks(graphApi);
+    const expectedUpdatedBlocks = [testBlock1, testBlock2, testBlock3];
+    expect(updatedBlocks).toHaveLength(expectedUpdatedBlocks.length);
+    expect(updatedBlocks).toEqual(
+      expect.arrayContaining(expectedUpdatedBlocks),
+    );
   });
 
   it("can remove blocks", async () => {
     await testPage.removeBlock(graphApi, {
       position: 0,
-      actorId: testUser.entityId,
-      updateSiblings: true,
+      actorId: testUser.getEntityUuid(),
     });
 
-    expect(await testPage.getBlocks(graphApi)).toEqual([
-      testBlock2,
-      testBlock3,
-    ]);
+    const blocks = await testPage.getBlocks(graphApi);
+    const expectedBlocks = [testBlock2, testBlock3];
+
+    expect(blocks).toHaveLength(expectedBlocks.length);
+    expect(blocks).toEqual(expect.arrayContaining(expectedBlocks));
   });
 });

@@ -8,6 +8,7 @@ import { SearchBar } from "./search-bar";
 import { ActionsDropdown } from "./actions-dropdown";
 import { Button, Link } from "../../ui";
 import { HashAlphaNavIcon } from "../../icons";
+import { useHashInstance } from "../../../components/hooks/useHashInstance";
 
 const Nav: FunctionComponent<{ children?: ReactNode }> = ({ children }) => (
   <Box
@@ -30,6 +31,7 @@ export const PageHeader: FunctionComponent = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   const { authenticatedUser } = useAuthenticatedUser();
+  const { hashInstance } = useHashInstance();
   const { logout } = useLogoutFlow();
 
   return (
@@ -64,7 +66,9 @@ export const PageHeader: FunctionComponent = () => {
           >
             <Link
               noLinkStyle
-              href={`/${authenticatedUser ? authenticatedUser.entityId : ""}`}
+              href={`/${
+                authenticatedUser ? authenticatedUser.userAccountId : ""
+              }`}
             >
               <HashAlphaNavIcon
                 sx={({ palette }) => ({
@@ -103,10 +107,11 @@ export const PageHeader: FunctionComponent = () => {
             >
               Sign In
             </Button>
-
-            <Button href="/signup" size={isMobile ? "xs" : "small"}>
-              Sign Up
-            </Button>
+            {hashInstance && hashInstance.userSelfRegistrationIsEnabled ? (
+              <Button href="/signup" size={isMobile ? "xs" : "small"}>
+                Sign Up
+              </Button>
+            ) : null}
           </Box>
         )}
       </Nav>

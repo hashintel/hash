@@ -25,7 +25,8 @@
     "@apollo/client": "3.6.9",
     "@blockprotocol/core": "0.0.12",
     "@hashintel/hash-graph-client": "0.0.0-private",
-    "@sentry/browser": "7.19.0",
+    "@hashintel/hash-subgraph": "0.0.0-private",
+    "@sentry/browser": "7.21.1",
     "graphql-tag": "2.12.5",
     "immer": "9.0.6",
     "jsonschema": "1.4.0",
@@ -46,7 +47,7 @@
     "uuid": "8.3.2"
   },
   "devDependencies": {
-    "@blockprotocol/type-system-web": "https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system-web?6526c0e",
+    "@blockprotocol/type-system-web": "https://gitpkg.vercel.app/blockprotocol/blockprotocol/packages/%40blockprotocol/type-system-web?244d25a",
     "@graphql-codegen/cli": "2.13.12",
     "@graphql-codegen/fragment-matcher": "3.3.1",
     "@graphql-codegen/typescript": "2.8.2",

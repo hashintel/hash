@@ -4,7 +4,6 @@ import { useCallback, useState } from "react";
 import {
   AggregateDataTypesMessageCallback,
   AggregateEntityTypesMessageCallback,
-  AggregateLinkTypesMessageCallback,
   AggregatePropertyTypesMessageCallback,
 } from "../../components/hooks/blockProtocolFunctions/ontology/ontology-types-shim";
 import { useLoggedInUser } from "../../components/hooks/useAuthenticatedUser";
@@ -28,8 +27,7 @@ const ExampleUsage = ({ accountId }: { accountId: string }) => {
         fn:
           | AggregateDataTypesMessageCallback
           | AggregatePropertyTypesMessageCallback
-          | AggregateEntityTypesMessageCallback
-          | AggregateLinkTypesMessageCallback,
+          | AggregateEntityTypesMessageCallback,
       ) =>
       (_: any) => {
         void (async () => {
@@ -48,7 +46,6 @@ const ExampleUsage = ({ accountId }: { accountId: string }) => {
             propertyType: {
               kind: "propertyType",
               title: "Name",
-              pluralTitle: "Names",
               oneOf: [{ $ref: types.dataType.text.dataTypeId }],
             },
           },
@@ -88,10 +85,6 @@ const ExampleUsage = ({ accountId }: { accountId: string }) => {
           Get entity types
         </Button>
 
-        <Button size="medium" onClick={getType(functions.aggregateLinkTypes)}>
-          Get link types
-        </Button>
-
         <div>
           <br />
 
@@ -119,7 +112,7 @@ const Page: NextPageWithLayout = () => {
   ) : (
     <Container sx={{ pt: 10 }}>
       Hello!
-      <ExampleUsage accountId={authenticatedUser.entityId} />
+      <ExampleUsage accountId={authenticatedUser.userAccountId} />
     </Container>
   );
 };

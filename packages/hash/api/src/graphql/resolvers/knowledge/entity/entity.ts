@@ -1,33 +1,33 @@
 import { Filter } from "@hashintel/hash-graph-client";
 import { AxiosError } from "axios";
 import { ApolloError, ForbiddenError } from "apollo-server-express";
-import { EntityModel } from "../../../../model";
+import { Entity, splitEntityId, Subgraph } from "@hashintel/hash-subgraph";
 import {
-  QueryGetPersistedEntityArgs,
-  MutationCreatePersistedEntityArgs,
-  MutationUpdatePersistedEntityArgs,
+  EntityModel,
+  EntityTypeModel,
+  LinkEntityModel,
+} from "../../../../model";
+import {
+  QueryGetEntityArgs,
+  MutationCreateEntityArgs,
+  MutationUpdateEntityArgs,
   ResolverFn,
-  Subgraph,
-  QueryGetAllLatestPersistedEntitiesArgs,
+  QueryGetAllLatestEntitiesArgs,
 } from "../../../apiTypes.gen";
-import {
-  mapEntityModelToGQL,
-  UnresolvedPersistedEntityGQL,
-} from "../model-mapping";
+import { mapEntityModelToGQL } from "../model-mapping";
 import { LoggedInGraphQLContext } from "../../../context";
-import { mapSubgraphToGql } from "../../ontology/model-mapping";
 import { beforeUpdateEntityHooks } from "./before-update-entity-hooks";
 
-/** @todo - rename these and remove "persisted" - https://app.asana.com/0/0/1203157172269854/f */
+/** @todo - rename these and remove "withMetadata" - https://app.asana.com/0/0/1203157172269854/f */
 
-export const createPersistedEntity: ResolverFn<
-  Promise<UnresolvedPersistedEntityGQL>,
+export const createEntity: ResolverFn<
+  Promise<Entity>,
   {},
   LoggedInGraphQLContext,
-  MutationCreatePersistedEntityArgs
+  MutationCreateEntityArgs
 > = async (
   _,
-  { ownedById, properties, entityTypeId, linkedEntities },
+  { ownedById, properties, entityTypeId, linkedEntities, linkMetadata },
   { dataSources: { graphApi }, userModel },
 ) => {
   /**
@@ -37,31 +37,57 @@ export const createPersistedEntity: ResolverFn<
    * @see https://app.asana.com/0/1202805690238892/1203084714149803/f
    */
 
-  const entity = await EntityModel.createEntityWithLinks(graphApi, {
-    ownedById: ownedById ?? userModel.entityId,
-    entityTypeId,
-    properties,
-    linkedEntities: linkedEntities ?? undefined,
-    actorId: userModel.entityId,
-  });
+  let entityModel: EntityModel | LinkEntityModel;
 
-  return mapEntityModelToGQL(entity);
+  if (linkMetadata) {
+    const { leftEntityId, leftOrder, rightEntityId, rightOrder } = linkMetadata;
+
+    const [leftEntityModel, rightEntityModel, linkEntityTypeModel] =
+      await Promise.all([
+        EntityModel.getLatest(graphApi, {
+          entityId: leftEntityId,
+        }),
+        EntityModel.getLatest(graphApi, {
+          entityId: rightEntityId,
+        }),
+        EntityTypeModel.get(graphApi, { entityTypeId }),
+      ]);
+
+    entityModel = await LinkEntityModel.createLinkEntity(graphApi, {
+      leftEntityModel,
+      leftOrder: leftOrder ?? undefined,
+      rightEntityModel,
+      rightOrder: rightOrder ?? undefined,
+      properties,
+      linkEntityTypeModel,
+      ownedById: ownedById ?? userModel.getEntityUuid(),
+      actorId: userModel.getEntityUuid(),
+    });
+  } else {
+    entityModel = await EntityModel.createEntityWithLinks(graphApi, {
+      ownedById: ownedById ?? userModel.getEntityUuid(),
+      entityTypeId,
+      properties,
+      linkedEntities: linkedEntities ?? undefined,
+      actorId: userModel.getEntityUuid(),
+    });
+  }
+
+  return mapEntityModelToGQL(entityModel);
 };
 
-export const getAllLatestPersistedEntities: ResolverFn<
+export const getAllLatestEntities: ResolverFn<
   Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
-  QueryGetAllLatestPersistedEntitiesArgs
+  QueryGetAllLatestEntitiesArgs
 > = async (
   _,
   {
     dataTypeResolveDepth,
     propertyTypeResolveDepth,
-    linkTypeResolveDepth,
     entityTypeResolveDepth,
-    linkResolveDepth,
-    linkTargetEntityResolveDepth,
+    entityResolveDepth,
   },
   { dataSources },
   __,
@@ -76,10 +102,8 @@ export const getAllLatestPersistedEntities: ResolverFn<
       graphResolveDepths: {
         dataTypeResolveDepth,
         propertyTypeResolveDepth,
-        linkTypeResolveDepth,
         entityTypeResolveDepth,
-        linkResolveDepth,
-        linkTargetEntityResolveDepth,
+        entityResolveDepth,
       },
     })
     .catch((err: AxiosError) => {
@@ -89,14 +113,14 @@ export const getAllLatestPersistedEntities: ResolverFn<
       );
     });
 
-  return mapSubgraphToGql(entitySubgraph);
+  return entitySubgraph as Subgraph;
 };
 
-export const getPersistedEntity: ResolverFn<
+export const getEntity: ResolverFn<
   Promise<Subgraph>,
   {},
   LoggedInGraphQLContext,
-  QueryGetPersistedEntityArgs
+  QueryGetEntityArgs
 > = async (
   _,
   {
@@ -104,15 +128,14 @@ export const getPersistedEntity: ResolverFn<
     entityVersion,
     dataTypeResolveDepth,
     propertyTypeResolveDepth,
-    linkTypeResolveDepth,
     entityTypeResolveDepth,
-    linkResolveDepth,
-    linkTargetEntityResolveDepth,
+    entityResolveDepth,
   },
   { dataSources },
   __,
 ) => {
   const { graphApi } = dataSources;
+  const [ownedById, entityUuid] = splitEntityId(entityId);
 
   const filter: Filter = {
     all: [
@@ -122,7 +145,12 @@ export const getPersistedEntity: ResolverFn<
           { parameter: entityVersion ?? "latest" },
         ],
       },
-      { equal: [{ path: ["id"] }, { parameter: entityId }] },
+      {
+        equal: [{ path: ["ownedById"] }, { parameter: ownedById }],
+      },
+      {
+        equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
+      },
     ],
   };
 
@@ -132,10 +160,8 @@ export const getPersistedEntity: ResolverFn<
       graphResolveDepths: {
         dataTypeResolveDepth,
         propertyTypeResolveDepth,
-        linkTypeResolveDepth,
         entityTypeResolveDepth,
-        linkResolveDepth,
-        linkTargetEntityResolveDepth,
+        entityResolveDepth,
       },
     })
     .catch((err: AxiosError) => {
@@ -145,21 +171,24 @@ export const getPersistedEntity: ResolverFn<
       );
     });
 
-  return mapSubgraphToGql(entitySubgraph);
+  return entitySubgraph as Subgraph;
 };
 
-export const updatePersistedEntity: ResolverFn<
-  Promise<UnresolvedPersistedEntityGQL>,
+export const updateEntity: ResolverFn<
+  Promise<Entity>,
   {},
   LoggedInGraphQLContext,
-  MutationUpdatePersistedEntityArgs
+  MutationUpdateEntityArgs
 > = async (
   _,
   { entityId, updatedProperties },
   { dataSources: { graphApi }, userModel },
 ) => {
   // The user needs to be signed up if they aren't updating their own user entity
-  if (entityId !== userModel.entityId && !userModel.isAccountSignupComplete()) {
+  if (
+    entityId !== userModel.getEntityUuid() &&
+    !userModel.isAccountSignupComplete()
+  ) {
     throw new ForbiddenError(
       "You must complete the sign-up process to perform this action.",
     );
@@ -169,7 +198,8 @@ export const updatePersistedEntity: ResolverFn<
 
   for (const beforeUpdateHook of beforeUpdateEntityHooks) {
     if (
-      beforeUpdateHook.entityTypeId === entityModel.entityTypeModel.schema.$id
+      beforeUpdateHook.entityTypeId ===
+      entityModel.entityTypeModel.getSchema().$id
     ) {
       await beforeUpdateHook.callback({
         graphApi,
@@ -181,7 +211,7 @@ export const updatePersistedEntity: ResolverFn<
 
   const updatedEntityModel = await entityModel.update(graphApi, {
     properties: updatedProperties,
-    actorId: userModel.entityId,
+    actorId: userModel.getEntityUuid(),
   });
 
   return mapEntityModelToGQL(updatedEntityModel);

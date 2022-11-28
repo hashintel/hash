@@ -10,6 +10,7 @@ import {
   Transaction,
 } from "prosemirror-state";
 import { ReactElement } from "react";
+import { EntityId } from "@hashintel/hash-subgraph";
 import { ensureMounted } from "../../../lib/dom";
 import { RenderPortal } from "../usePortals";
 import { BlockSuggester } from "./BlockSuggester";
@@ -285,7 +286,10 @@ export const createSuggester = (
               });
           };
 
-          const onMentionChange = (entityId: string, mentionType: string) => {
+          const onMentionChange = (
+            entityId: EntityId,
+            mentionType: "page" | "user",
+          ) => {
             const { tr } = view.state;
 
             const mentionNode = view.state.schema.nodes.mention!.create({

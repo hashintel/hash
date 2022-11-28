@@ -5,13 +5,13 @@ use std::{
 };
 
 use graph::{
-    identifier::AccountId,
-    knowledge::{Entity, EntityId},
+    identifier::{account::AccountId, knowledge::EntityId},
+    knowledge::{EntityProperties, EntityUuid, LinkEntityMetadata},
     provenance::{CreatedById, OwnedById},
-    store::{AccountStore, AsClient, EntityStore, LinkStore, PostgresStore},
+    store::{AccountStore, AsClient, EntityStore, PostgresStore},
 };
-use graph_test_data::{data_type, entity, entity_type, link_type, property_type};
-use type_system::{uri::VersionedUri, EntityType, LinkType};
+use graph_test_data::{data_type, entity, entity_type, property_type};
+use type_system::{uri::VersionedUri, EntityType};
 use uuid::Uuid;
 
 use crate::util::{seed, StoreWrapper};
@@ -53,19 +53,17 @@ const SEED_PROPERTY_TYPES: [&str; 20] = [
     property_type::CONTRIVED_PROPERTY_V1,
 ];
 
-const SEED_LINK_TYPES: [&str; 9] = [
-    link_type::ACQUAINTANCE_OF_V1,
-    link_type::CONTAINS_V1,
-    link_type::FRIEND_OF_V1,
-    link_type::LOCATED_AT_V1,
-    link_type::OWNS_V1,
-    link_type::OWNS_V2,
-    link_type::SUBMITTED_BY_V1,
-    link_type::TENANT_V1,
-    link_type::WRITTEN_BY_V1,
-];
-
-const SEED_ENTITY_TYPES: [&str; 10] = [
+const SEED_ENTITY_TYPES: [&str; 20] = [
+    entity_type::LINK_V1,
+    entity_type::link::ACQUAINTANCE_OF_V1,
+    entity_type::link::CONTAINS_V1,
+    entity_type::link::FRIEND_OF_V1,
+    entity_type::link::LOCATED_AT_V1,
+    entity_type::link::OWNS_V1,
+    entity_type::link::OWNS_V2,
+    entity_type::link::SUBMITTED_BY_V1,
+    entity_type::link::TENANT_V1,
+    entity_type::link::WRITTEN_BY_V1,
     entity_type::UK_ADDRESS_V1,
     entity_type::BLOCK_V1,
     entity_type::ORGANIZATION_V1,
@@ -101,12 +99,12 @@ const SEED_ENTITIES: [(&str, &str, usize); 12] = [
 /// The first entity is always the link entity, the second is the left entity index in
 /// `SEED_ENTITIES`, the third is the right entity index in `SEED_ENTITIES`.
 const SEED_LINKS: &[(&str, usize, usize)] = &[
-    (link_type::WRITTEN_BY_V1, 2, 7),
-    (link_type::WRITTEN_BY_V1, 2, 8),
-    (link_type::WRITTEN_BY_V1, 2, 9),
-    (link_type::CONTAINS_V1, 10, 11),
-    (link_type::WRITTEN_BY_V1, 5, 9),
-    (link_type::WRITTEN_BY_V1, 6, 8),
+    (entity_type::link::WRITTEN_BY_V1, 2, 7),
+    (entity_type::link::WRITTEN_BY_V1, 2, 8),
+    (entity_type::link::WRITTEN_BY_V1, 2, 9),
+    (entity_type::link::CONTAINS_V1, 10, 11),
+    (entity_type::link::WRITTEN_BY_V1, 5, 9),
+    (entity_type::link::WRITTEN_BY_V1, 6, 8),
 ];
 
 /// Sets up the sample "representative" environment in which operations are benchmarked.
@@ -137,17 +135,16 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
         account_id,
         SEED_DATA_TYPES,
         SEED_PROPERTY_TYPES,
-        SEED_LINK_TYPES,
         SEED_ENTITY_TYPES,
     )
     .await;
 
     let mut total_entities = 0;
-    let mut total_links = 0;
+    let mut total_link_entities = 0;
     let mut entity_uuids = Vec::new();
-
     for (entity_type_str, entity_str, quantity) in SEED_ENTITIES {
-        let entity: Entity = serde_json::from_str(entity_str).expect("could not parse entity");
+        let properties: EntityProperties =
+            serde_json::from_str(entity_str).expect("could not parse entity");
         let entity_type_id = EntityType::from_str(entity_type_str)
             .expect("could not parse entity type")
             .id()
@@ -155,37 +152,45 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
 
         let uuids = store
             .insert_entities_batched_by_type(
-                repeat((None, entity)).take(quantity),
+                repeat((None, properties, None)).take(quantity),
                 entity_type_id,
                 OwnedById::new(account_id),
                 CreatedById::new(account_id),
             )
             .await
             .expect("failed to create entities");
-
         entity_uuids.push(uuids);
 
         total_entities += quantity;
     }
 
     for (entity_type_str, left_entity_index, right_entity_index) in SEED_LINKS {
-        let link_type_id = LinkType::from_str(entity_type_str)
+        let entity_type_id = EntityType::from_str(entity_type_str)
             .expect("could not parse entity type")
             .id()
             .clone();
 
-        total_links += store
-            .insert_links_batched_by_type(
+        let uuids = store
+            .insert_entities_batched_by_type(
                 entity_uuids[*left_entity_index]
                     .iter()
                     .zip(&entity_uuids[*right_entity_index])
-                    .map(|(source, target)| (*source, *target)),
-                link_type_id,
+                    .map(|(left_uuid, right_uuid)| {
+                        LinkEntityMetadata::new(
+                            EntityId::new(OwnedById::new(account_id), *left_uuid),
+                            EntityId::new(OwnedById::new(account_id), *right_uuid),
+                            None,
+                            None,
+                        )
+                    })
+                    .map(|link_metadata| (None, EntityProperties::empty(), Some(link_metadata))),
+                entity_type_id,
                 OwnedById::new(account_id),
                 CreatedById::new(account_id),
             )
             .await
-            .expect("failed to create links");
+            .expect("failed to create entities");
+        total_link_entities += uuids.len();
     }
 
     store
@@ -195,17 +200,17 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
         .expect("failed to commit transaction");
 
     eprintln!(
-        "Finished seeding database {} with {} entities and {} links after {:#?}",
+        "Finished seeding database {} with {} entities and {} entity links after {:#?}",
         store_wrapper.bench_db_name,
         total_entities,
-        total_links,
+        total_link_entities,
         now.elapsed().unwrap()
     );
 }
 
 /// DOC - TODO
 pub struct Samples {
-    pub entities: HashMap<AccountId, HashMap<VersionedUri, Vec<EntityId>>>,
+    pub entities: HashMap<AccountId, HashMap<VersionedUri, Vec<EntityUuid>>>,
     pub entity_types: HashMap<AccountId, Vec<VersionedUri>>,
 }
 
@@ -238,13 +243,13 @@ async fn get_samples(account_id: AccountId, store_wrapper: &mut StoreWrapper) ->
             .clone()
     }) {
         // For now we'll just pick a sample of 50 entities.
-        let sample_entity_ids = store_wrapper
+        let sample_entity_uuids = store_wrapper
             .store
             .as_client()
             .query(
                 r#"
                 -- Very naive and slow sampling, we can replace when this becomes a bottleneck
-                SELECT entity_id FROM entities
+                SELECT entity_uuid FROM entities
                 INNER JOIN type_ids
                 ON type_ids.version_id = entities.entity_type_version_id
                 WHERE type_ids.base_uri = $1 AND type_ids.version = $2
@@ -261,12 +266,12 @@ async fn get_samples(account_id: AccountId, store_wrapper: &mut StoreWrapper) ->
                 panic!("failed to sample entities for entity type `{entity_type_id}`: {err}");
             })
             .into_iter()
-            .map(|row| row.get(0));
+            .map(|row| EntityUuid::new(row.get(0)));
 
         match sample_map.entry(entity_type_id) {
-            Entry::Occupied(mut entry_slot) => entry_slot.get_mut().extend(sample_entity_ids),
+            Entry::Occupied(mut entry_slot) => entry_slot.get_mut().extend(sample_entity_uuids),
             Entry::Vacant(entry_slot) => {
-                entry_slot.insert(sample_entity_ids.collect::<Vec<_>>());
+                entry_slot.insert(sample_entity_uuids.collect::<Vec<_>>());
             }
         }
     }

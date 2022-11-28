@@ -2,6 +2,7 @@ import { GraphApi } from "@hashintel/hash-graph-client";
 import { ApolloError, UserInputError } from "apollo-server-express";
 import { types } from "@hashintel/hash-shared/types";
 import { VersionedUri } from "@blockprotocol/type-system-web";
+import { PropertyObject } from "@hashintel/hash-subgraph";
 import { SYSTEM_TYPES } from "../../../../graph/system-types";
 import { AccountFields, EntityModel, UserModel } from "../../../../model";
 
@@ -40,11 +41,7 @@ const validateAccountShortname = async (
 type BeforeUpdateEntityHookCallback = (params: {
   graphApi: GraphApi;
   entityModel: EntityModel;
-  /**
-   * @todo: use improved typing of the properties object
-   * @see https://app.asana.com/0/1202805690238892/1203285029221334/f
-   */
-  updatedProperties: any;
+  updatedProperties: PropertyObject;
 }) => Promise<void>;
 
 const userEntityHookCallback: BeforeUpdateEntityHookCallback = async ({
@@ -56,8 +53,9 @@ const userEntityHookCallback: BeforeUpdateEntityHookCallback = async ({
 
   const currentShortname = userModel.getShortname();
 
-  const updatedShortname: string | undefined =
-    updatedProperties[SYSTEM_TYPES.propertyType.shortName.baseUri];
+  const updatedShortname = updatedProperties[
+    SYSTEM_TYPES.propertyType.shortName.getBaseUri()
+  ] as string | undefined;
 
   if (currentShortname !== updatedShortname) {
     if (!updatedShortname) {
@@ -69,8 +67,9 @@ const userEntityHookCallback: BeforeUpdateEntityHookCallback = async ({
 
   const currentPreferredName = userModel.getPreferredName();
 
-  const updatedPreferredName: string | undefined =
-    updatedProperties[SYSTEM_TYPES.propertyType.preferredName.baseUri];
+  const updatedPreferredName = updatedProperties[
+    SYSTEM_TYPES.propertyType.preferredName.getBaseUri()
+  ] as string | undefined;
 
   if (currentPreferredName !== updatedPreferredName) {
     if (!updatedPreferredName) {
@@ -80,8 +79,9 @@ const userEntityHookCallback: BeforeUpdateEntityHookCallback = async ({
 
   const currentEmails = userModel.getEmails();
 
-  const updatedEmails: string[] =
-    updatedProperties[SYSTEM_TYPES.propertyType.email.baseUri];
+  const updatedEmails = updatedProperties[
+    SYSTEM_TYPES.propertyType.email.getBaseUri()
+  ] as string[];
 
   if (
     [...currentEmails].sort().join().toLowerCase() !==
