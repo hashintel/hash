@@ -317,10 +317,11 @@ pub trait Variant: Sized + Debug + Display + Send + Sync + 'static {
     }
 }
 
+type SerializeReturnType<'a> = Option<Box<dyn erased_serde::Serialize + 'a>>;
+
 pub struct Error {
     variant: Box<dyn Any + Send + Sync>,
-    serialize:
-        for<'a> fn(error: &'a Self, &[&'a Frame]) -> Option<Box<dyn erased_serde::Serialize + 'a>>,
+    serialize: for<'a> fn(error: &'a Self, &[&'a Frame]) -> SerializeReturnType<'a>,
     display: fn(error: &Box<dyn Any + Send + Sync>, fmt: &mut Formatter) -> fmt::Result,
     debug: fn(error: &Box<dyn Any + Send + Sync>, fmt: &mut Formatter) -> fmt::Result,
     #[cfg(nightly)]
@@ -424,7 +425,7 @@ impl Error {
 
     #[must_use]
     pub fn downcast_ref<T: Variant>(&self) -> Option<&T> {
-        self.variant.downcast_ref()
+        self.variant().downcast_ref()
     }
 }
 
