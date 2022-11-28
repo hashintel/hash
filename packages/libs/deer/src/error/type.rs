@@ -112,6 +112,7 @@ mod tests {
     use crate::{
         schema::Describe,
         test::{to_json, to_message},
+        Schema,
     };
 
     struct DescribeU8;
