@@ -1,4 +1,3 @@
-import { PropertyType, PropertyValues } from "@blockprotocol/type-system-web";
 import {
   Button,
   ButtonProps,
@@ -6,6 +5,7 @@ import {
   FontAwesomeIcon,
   TextField,
 } from "@hashintel/hash-design-system";
+import { frontendUrl } from "@hashintel/hash-shared/environment";
 import { generateBaseTypeId, types } from "@hashintel/hash-shared/types";
 import {
   Autocomplete,
@@ -16,19 +16,18 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import { bindToggle, PopupState } from "material-ui-popup-state/hooks";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { frontendUrl } from "@hashintel/hash-shared/environment";
 import { getPropertyTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
 import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
-import { useBlockProtocolCreatePropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreatePropertyType";
 import { useBlockProtocolGetPropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetPropertyType";
 import { fa100 } from "../../../../shared/icons/pro/fa-100";
 import { faSquareCheck } from "../../../../shared/icons/pro/fa-square-check";
 import { faText } from "../../../../shared/icons/pro/fa-text";
 import { QuestionIcon } from "./question-icon";
-import { useRefetchPropertyTypes } from "./use-property-types";
 import { useRouteNamespace } from "./use-route-namespace";
+import { withHandler } from "./util";
 
 const generateInitialPropertyTypeId = (baseUri: string) =>
   versionedUriFromComponents(baseUri, 1);
@@ -51,23 +50,28 @@ const propertyTypeDataTypes = [
   },
 ];
 
-type PropertyTypeFormValues = {
+export type PropertyTypeFormValues = {
   name: string;
   description: string;
   expectedValues: typeof propertyTypeDataTypes;
 };
 
 export const PropertyTypeForm = ({
-  discardButtonProps,
+  popupState,
   initialTitle,
-  onCreatePropertyType,
+  onSubmit,
+  submitButtonProps,
+  onClose,
 }: {
-  discardButtonProps: Omit<ButtonProps, "size" | "variant" | "children">;
+  popupState: PopupState;
   initialTitle?: string;
-  onCreatePropertyType: (propertyType: PropertyType) => void;
+  onSubmit: (formData: PropertyTypeFormValues) => Promise<void>;
+  submitButtonProps: Omit<
+    ButtonProps,
+    "size" | "variant" | "disabled" | "type" | "loading"
+  >;
+  onClose: () => void;
 }) => {
-  const refetchPropertyTypes = useRefetchPropertyTypes();
-
   const {
     register,
     handleSubmit: wrapHandleSubmit,
@@ -94,9 +98,6 @@ export const PropertyTypeForm = ({
 
   const { namespace: routeNamespace } = useRouteNamespace();
 
-  const { createPropertyType } = useBlockProtocolCreatePropertyType(
-    routeNamespace?.accountId ?? "",
-  );
   const { getPropertyType } = useBlockProtocolGetPropertyType();
 
   const generatePropertyTypeBaseUriForUser = (value: string) => {
@@ -112,29 +113,7 @@ export const PropertyTypeForm = ({
     });
   };
 
-  const handleSubmit = wrapHandleSubmit(async (data) => {
-    const res = await createPropertyType({
-      data: {
-        propertyType: {
-          oneOf: data.expectedValues.map((value) => ({
-            $ref: value.dataTypeId,
-          })) as [PropertyValues, ...PropertyValues[]],
-          description: data.description,
-          title: data.name,
-          kind: "propertyType",
-        },
-      },
-    });
-
-    if (res.errors?.length || !res.data) {
-      // @todo handle this
-      throw new Error("Could not create");
-    }
-
-    await refetchPropertyTypes?.();
-
-    onCreatePropertyType(res.data.schema);
-  });
+  const handleSubmit = wrapHandleSubmit(onSubmit);
 
   /**
    * Frustratingly, we have to track this ourselves
@@ -323,15 +302,16 @@ export const PropertyTypeForm = ({
       <Divider sx={{ mt: 2, mb: 3 }} />
       <Stack direction="row" spacing={1.25}>
         <Button
+          {...submitButtonProps}
           loading={isSubmitting}
           disabled={isSubmitting || !isValid}
           type="submit"
           size="small"
         >
-          Create new property type
+          {submitButtonProps.children}
         </Button>
         <Button
-          {...discardButtonProps}
+          {...withHandler(bindToggle(popupState), onClose)}
           disabled={isSubmitting}
           size="small"
           variant="tertiary"
