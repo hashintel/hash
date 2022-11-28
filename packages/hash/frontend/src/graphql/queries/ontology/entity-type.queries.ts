@@ -4,15 +4,17 @@ import { subgraphFieldsFragment } from "../subgraph";
 export const getEntityTypeQuery = gql`
   query getEntityType(
     $entityTypeId: VersionedUri!
-    $dataTypeResolveDepth: Int!
-    $propertyTypeResolveDepth: Int!
-    $entityTypeResolveDepth: Int!
+    $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
+    $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
+    $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
+    $constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
   ) {
     getEntityType(
       entityTypeId: $entityTypeId
-      dataTypeResolveDepth: $dataTypeResolveDepth
-      propertyTypeResolveDepth: $propertyTypeResolveDepth
-      entityTypeResolveDepth: $entityTypeResolveDepth
+      constrainsValuesOn: $constrainsValuesOn
+      constrainsPropertiesOn: $constrainsPropertiesOn
+      constrainsLinksOn: $constrainsLinksOn
+      constrainsLinkDestinationsOn: $constrainsLinkDestinationsOn
     ) {
       ...SubgraphFields
     }
@@ -22,14 +24,16 @@ export const getEntityTypeQuery = gql`
 
 export const getAllLatestEntityTypesQuery = gql`
   query getAllLatestEntityTypes(
-    $dataTypeResolveDepth: Int!
-    $propertyTypeResolveDepth: Int!
-    $entityTypeResolveDepth: Int!
+    $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
+    $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
+    $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
+    $constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
   ) {
     getAllLatestEntityTypes(
-      dataTypeResolveDepth: $dataTypeResolveDepth
-      propertyTypeResolveDepth: $propertyTypeResolveDepth
-      entityTypeResolveDepth: $entityTypeResolveDepth
+      constrainsValuesOn: $constrainsValuesOn
+      constrainsPropertiesOn: $constrainsPropertiesOn
+      constrainsLinksOn: $constrainsLinksOn
+      constrainsLinkDestinationsOn: $constrainsLinkDestinationsOn
     ) {
       ...SubgraphFields
     }
@@ -40,15 +44,17 @@ export const getAllLatestEntityTypesQuery = gql`
 export const getEntityTypeRootedSubgraphQuery = gql`
   query getEntityTypeRootedSubgraph(
     $entityTypeId: VersionedUri!
-    $dataTypeResolveDepth: Int!
-    $propertyTypeResolveDepth: Int!
-    $entityTypeResolveDepth: Int!
+    $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
+    $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
+    $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
+    $constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
   ) {
     getEntityType(
       entityTypeId: $entityTypeId
-      dataTypeResolveDepth: $dataTypeResolveDepth
-      propertyTypeResolveDepth: $propertyTypeResolveDepth
-      entityTypeResolveDepth: $entityTypeResolveDepth
+      constrainsValuesOn: $constrainsValuesOn
+      constrainsPropertiesOn: $constrainsPropertiesOn
+      constrainsLinksOn: $constrainsLinksOn
+      constrainsLinkDestinationsOn: $constrainsLinkDestinationsOn
     ) {
       ...SubgraphFields
     }

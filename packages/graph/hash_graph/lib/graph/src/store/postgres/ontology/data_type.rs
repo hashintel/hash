@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use futures::{stream, StreamExt, TryStreamExt};
@@ -12,10 +10,13 @@ use crate::{
     provenance::{CreatedById, OwnedById, UpdatedById},
     store::{
         crud::Read,
-        postgres::{context::PostgresContext, DependencyContext, DependencyContextRef},
+        postgres::{DependencyContext, DependencyStatus},
+        query::Filter,
         AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
-    subgraph::{query::StructuralQuery, Subgraph},
+    subgraph::{
+        edges::GraphResolveDepths, query::StructuralQuery, vertices::OntologyVertex, Subgraph,
+    },
 };
 
 impl<C: AsClient> PostgresStore<C> {
@@ -25,25 +26,39 @@ impl<C: AsClient> PostgresStore<C> {
     pub(crate) async fn get_data_type_as_dependency(
         &self,
         data_type_id: &OntologyTypeEditionId,
-        context: DependencyContextRef<'_>,
+        dependency_context: &mut DependencyContext,
+        subgraph: &mut Subgraph,
+        current_resolve_depth: GraphResolveDepths,
     ) -> Result<(), QueryError> {
-        let DependencyContextRef {
-            referenced_data_types,
-            graph_resolve_depths,
-            ..
-        } = context;
+        let dependency_status = dependency_context
+            .ontology_dependency_map
+            .insert(data_type_id, Some(current_resolve_depth));
+        let data_type: Option<&OntologyVertex> = match dependency_status {
+            DependencyStatus::Unknown => {
+                let data_type = Read::<DataTypeWithMetadata>::read_one(
+                    self,
+                    &Filter::<DataType>::for_ontology_type_edition_id(data_type_id),
+                )
+                .await?;
+                Some(
+                    subgraph
+                        .vertices
+                        .ontology
+                        .entry(data_type_id.clone())
+                        .or_insert(OntologyVertex::DataType(Box::new(data_type))),
+                )
+            }
+            DependencyStatus::DependenciesUnresolved => {
+                subgraph.vertices.ontology.get(data_type_id)
+            }
+            DependencyStatus::Resolved => None,
+        };
 
-        let _unresolved_entity_type = referenced_data_types
-            .insert_with(
-                data_type_id,
-                Some(graph_resolve_depths.data_type_resolve_depth),
-                || async {
-                    Ok(DataTypeWithMetadata::from(
-                        self.read_versioned_ontology_type(data_type_id).await?,
-                    ))
-                },
-            )
-            .await?;
+        if let Some(OntologyVertex::DataType(_data_type)) = data_type {
+            // TODO: data types currently have no references to other types, so we don't need to do
+            //       anything here
+            //   see https://app.asana.com/0/1200211978612931/1202464168422955/f
+        }
 
         Ok(())
     }
@@ -88,27 +103,38 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             graph_resolve_depths,
         } = *query;
 
-        let subgraphs = stream::iter(Read::<DataTypeWithMetadata>::read(self, filter).await?)
+        let mut subgraph = stream::iter(Read::<DataTypeWithMetadata>::read(self, filter).await?)
             .then(|data_type| async move {
-                let mut dependency_context = DependencyContext::new(graph_resolve_depths);
+                let mut subgraph = Subgraph::new(graph_resolve_depths);
+                let mut dependency_context = DependencyContext::default();
 
                 let data_type_id = data_type.metadata().edition_id().clone();
                 dependency_context
-                    .referenced_data_types
-                    .insert(&data_type_id, None, data_type);
+                    .ontology_dependency_map
+                    .insert(&data_type_id, None);
+                subgraph.vertices.ontology.insert(
+                    data_type_id.clone(),
+                    OntologyVertex::DataType(Box::new(data_type)),
+                );
 
-                self.get_data_type_as_dependency(&data_type_id, dependency_context.as_ref_object())
-                    .await?;
+                self.get_data_type_as_dependency(
+                    &data_type_id,
+                    &mut dependency_context,
+                    &mut subgraph,
+                    graph_resolve_depths,
+                )
+                .await?;
 
-                let root = GraphElementEditionId::Ontology(data_type_id);
+                subgraph
+                    .roots
+                    .insert(GraphElementEditionId::Ontology(data_type_id));
 
-                Ok::<_, Report<QueryError>>(dependency_context.into_subgraph(HashSet::from([root])))
+                Ok::<_, Report<QueryError>>(subgraph)
             })
-            .try_collect::<Vec<_>>()
+            .try_collect::<Subgraph>()
             .await?;
 
-        let mut subgraph = Subgraph::new(graph_resolve_depths);
-        subgraph.extend(subgraphs);
+        subgraph.depths = graph_resolve_depths;
 
         Ok(subgraph)
     }

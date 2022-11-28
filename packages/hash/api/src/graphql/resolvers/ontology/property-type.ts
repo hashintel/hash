@@ -39,7 +39,7 @@ export const getAllLatestPropertyTypes: ResolverFn<
   QueryGetAllLatestPropertyTypesArgs
 > = async (
   _,
-  { dataTypeResolveDepth, propertyTypeResolveDepth },
+  { constrainsValuesOn, constrainsPropertiesOn },
   { dataSources },
   __,
 ) => {
@@ -57,10 +57,14 @@ export const getAllLatestPropertyTypes: ResolverFn<
         equal: [{ path: ["version"] }, { parameter: "latest" }],
       },
       graphResolveDepths: {
-        dataTypeResolveDepth,
-        propertyTypeResolveDepth,
-        entityTypeResolveDepth: 0,
-        entityResolveDepth: 0,
+        inheritsFrom: { outgoing: 0 },
+        constrainsValuesOn,
+        constrainsPropertiesOn,
+        constrainsLinksOn: { outgoing: 0 },
+        constrainsLinkDestinationsOn: { outgoing: 0 },
+        isOfType: { outgoing: 0 },
+        hasLeftEntity: { incoming: 0, outgoing: 0 },
+        hasRightEntity: { incoming: 0, outgoing: 0 },
       },
     })
     .catch((err: AxiosError) => {
@@ -80,7 +84,7 @@ export const getPropertyType: ResolverFn<
   QueryGetPropertyTypeArgs
 > = async (
   _,
-  { propertyTypeId, dataTypeResolveDepth, propertyTypeResolveDepth },
+  { propertyTypeId, constrainsValuesOn, constrainsPropertiesOn },
   { dataSources },
   __,
 ) => {
@@ -92,10 +96,14 @@ export const getPropertyType: ResolverFn<
         equal: [{ path: ["versionedUri"] }, { parameter: propertyTypeId }],
       },
       graphResolveDepths: {
-        dataTypeResolveDepth,
-        propertyTypeResolveDepth,
-        entityTypeResolveDepth: 0,
-        entityResolveDepth: 0,
+        inheritsFrom: { outgoing: 0 },
+        constrainsValuesOn,
+        constrainsPropertiesOn,
+        constrainsLinksOn: { outgoing: 0 },
+        constrainsLinkDestinationsOn: { outgoing: 0 },
+        isOfType: { outgoing: 0 },
+        hasLeftEntity: { incoming: 0, outgoing: 0 },
+        hasRightEntity: { incoming: 0, outgoing: 0 },
       },
     })
     .catch((err: AxiosError) => {
