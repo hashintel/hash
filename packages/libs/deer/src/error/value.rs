@@ -117,7 +117,6 @@ mod tests {
     use crate::{
         schema::{visitor::U8Schema, Describe},
         test::{to_json, to_message},
-        Document,
     };
 
     #[test]
@@ -140,9 +139,9 @@ mod tests {
                     {"type": "field", "value": "field1"}
                 ],
                 "expected": {
-                    "$ref": "#/$defs/0000-deer::error::value::tests::DescribeU8",
+                    "$ref": "#/$defs/0000-deer::schema::visitor::U8Schema",
                     "$defs": {
-                        "0000-deer::error::value::tests::DescribeU8": {
+                        "0000-deer::schema::visitor::U8Schema": {
                             "type": "integer",
                             "minimum": 0,
                             "maximum": 255,
@@ -162,9 +161,7 @@ mod tests {
         );
 
         assert_eq!(
-            to_message(
-                &Report::new(ValueError).attach(ExpectedType::new(Document::new::<DescribeU8>()))
-            ),
+            to_message(&Report::new(ValueError).attach(ExpectedType::new(U8Schema::document()))),
             "received value is of correct type (integer), but does not fit constraints"
         );
     }
@@ -178,7 +175,7 @@ mod tests {
         let error = Report::new(MissingError)
             .attach(Location::Array(0))
             .attach(Location::Field("field2"))
-            .attach(ExpectedType::new(Document::new::<DescribeU8>()));
+            .attach(ExpectedType::new(U8Schema::document()));
 
         assert_eq!(
             to_json(&error),
@@ -188,9 +185,9 @@ mod tests {
                     {"type": "field", "value": "field2"}
                 ],
                 "expected":  {
-                    "$ref": "#/$defs/0000-deer::error::value::tests::DescribeU8",
+                    "$ref": "#/$defs/0000-deer::schema::visitor::U8Schema",
                     "$defs": {
-                        "0000-deer::error::value::tests::DescribeU8": {
+                        "0000-deer::schema::visitor::U8Schema": {
                             "type": "integer",
                             "minimum": 0,
                             "maximum": 255,
@@ -209,9 +206,7 @@ mod tests {
         );
 
         assert_eq!(
-            to_message(
-                &Report::new(MissingError).attach(ExpectedType::new(Document::new::<DescribeU8>()))
-            ),
+            to_message(&Report::new(MissingError).attach(ExpectedType::new(U8Schema::document()))),
             "received no value, but expected value of type integer"
         );
     }

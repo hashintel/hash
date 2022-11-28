@@ -141,9 +141,9 @@ mod tests {
                     {"type": "field", "value": "field2"}
                 ],
                 "expected": {
-                    "$ref": "#/$defs/0000-deer::error::type::tests::DescribeU8",
+                    "$ref": "#/$defs/0000-deer::schema::visitor::U8Schema",
                     "$defs": {
-                        "0000-deer::error::type::tests::DescribeU8": {
+                        "0000-deer::schema::visitor::U8Schema": {
                             "type": "integer",
                             "minimum": 0,
                             "maximum": 255,
@@ -152,11 +152,11 @@ mod tests {
                 },
                 "received": {
                     "$defs": {
-                        "0000-deer::error::type::tests::DescribeString": {
+                        "0000-deer::schema::visitor::StringSchema": {
                             "type": "string"
                         }
                     },
-                    "$ref": "#/$defs/0000-deer::error::type::tests::DescribeString"
+                    "$ref": "#/$defs/0000-deer::schema::visitor::StringSchema"
                 }
             })
         );
