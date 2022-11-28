@@ -18,7 +18,12 @@ import {
 } from "@mui/material";
 import { useId, useState } from "react";
 import { createPortal } from "react-dom";
-import { Controller, useFormContext, useWatch } from "react-hook-form";
+import {
+  Controller,
+  useController,
+  useFormContext,
+  useWatch,
+} from "react-hook-form";
 import { EntityTypeEditorForm } from "./form-types";
 
 const useFrozenValue = <T extends any>(value: T, isFrozen: boolean): T => {
@@ -72,11 +77,46 @@ export const MultipleValuesCell = ({
 
   const isArrayFrozenMinValue = useFrozenValue(minValue, !array);
   const isArrayFrozenMaxValue = useFrozenValue(maxValue, !array);
+  const isArrayFrozenInfinity = useFrozenValue(infinity, !array);
 
   const maximumFieldId = useId();
 
   const [infinityCheckboxNode, setInfinityCheckboxNode] =
     useState<HTMLDivElement | null>(null);
+
+  const arrayController = useController({
+    control,
+    name: `properties.${propertyIndex}.array`,
+  });
+  const arrayField = arrayController.field;
+
+  const handleArrayChange = (nextArray: boolean) => {
+    setMultipleValuesMenuOpen(nextArray);
+
+    let nextMinValue = resetMinValue;
+    let nextMaxValue = resetMaxValue;
+    let nextInfinity = resetInfinity;
+
+    if (!nextArray) {
+      setResetMinValue(minValue);
+      setResetMaxValue(maxValue);
+      setResetInfinity(infinity);
+      nextMinValue = 0;
+      nextMaxValue = 1;
+      nextInfinity = true;
+    }
+
+    setValue(`properties.${propertyIndex}.minValue`, nextMinValue, {
+      shouldDirty: true,
+    });
+    setValue(`properties.${propertyIndex}.maxValue`, nextMaxValue, {
+      shouldDirty: true,
+    });
+    setValue(`properties.${propertyIndex}.infinity`, nextInfinity, {
+      shouldDirty: true,
+    });
+    arrayField.onChange(nextArray);
+  };
 
   return (
     <>
@@ -92,9 +132,10 @@ export const MultipleValuesCell = ({
             if (multipleValuesMenuOpen) {
               setMultipleValuesMenuOpen(false);
             } else {
-              setValue(`properties.${propertyIndex}.array`, true, {
-                shouldDirty: true,
-              });
+              if (!array) {
+                handleArrayChange(true);
+              }
+
               setMultipleValuesMenuOpen(true);
             }
           }}
@@ -126,50 +167,13 @@ export const MultipleValuesCell = ({
                 : {}),
             })}
           >
-            <Controller
-              render={({ field: { value, ...field } }) => (
-                <Checkbox
-                  {...field}
-                  checked={value}
-                  onChange={(evt) => {
-                    setMultipleValuesMenuOpen(evt.target.checked);
-
-                    let nextMinValue = resetMinValue;
-                    let nextMaxValue = resetMaxValue;
-                    let nextInfinity = resetInfinity;
-
-                    if (!evt.target.checked) {
-                      setResetMinValue(minValue);
-                      setResetMaxValue(maxValue);
-                      setResetInfinity(infinity);
-                      nextMinValue = 0;
-                      nextMaxValue = 1;
-                      nextInfinity = true;
-                    }
-
-                    setValue(
-                      `properties.${propertyIndex}.minValue`,
-                      nextMinValue,
-                      { shouldDirty: true },
-                    );
-                    setValue(
-                      `properties.${propertyIndex}.maxValue`,
-                      nextMaxValue,
-                      { shouldDirty: true },
-                    );
-                    setValue(
-                      `properties.${propertyIndex}.infinity`,
-                      nextInfinity,
-                      { shouldDirty: true },
-                    );
-                    field.onChange(evt);
-                  }}
-                />
-              )}
-              control={control}
-              name={`properties.${propertyIndex}.array`}
+            <Checkbox
+              {...arrayField}
+              checked={arrayField.value}
+              onChange={(evt) => {
+                handleArrayChange(evt.target.checked);
+              }}
             />
-
             <Collapse orientation="horizontal" in={array}>
               <Typography
                 variant="smallTextLabels"
@@ -182,12 +186,16 @@ export const MultipleValuesCell = ({
                   userSelect: "none",
                 }}
               >
-                {infinity ||
+                {isArrayFrozenInfinity ||
                 (isArrayFrozenMinValue !== isArrayFrozenMaxValue &&
                   typeof isArrayFrozenMaxValue === "number")
                   ? `${
                       isArrayFrozenMinValue === "" ? 0 : isArrayFrozenMinValue
-                    } ${infinity ? "or more" : `to ${isArrayFrozenMaxValue}`}`
+                    } ${
+                      isArrayFrozenInfinity
+                        ? "or more"
+                        : `to ${isArrayFrozenMaxValue}`
+                    }`
                   : isArrayFrozenMinValue}
               </Typography>
             </Collapse>
@@ -297,7 +305,7 @@ export const MultipleValuesCell = ({
                       </Box>
                     </InputLabel>
 
-                    <Collapse in={!infinity}>
+                    <Collapse in={!menuOpenFrozenInfinity}>
                       <Controller
                         render={({ field: { value: _, ...field } }) => (
                           <OutlinedInput
