@@ -176,6 +176,13 @@ export const PropertyTypeRow = ({
           console.log(data);
         }}
         submitButtonProps={{ children: <>Edit property type</> }}
+        fieldProps={{ name: { disabled: true } }}
+        defaultValues={{
+          name: property.title,
+          description: property.description,
+          // @todo set these
+          expectedValues: [],
+        }}
       />
     </>
   );

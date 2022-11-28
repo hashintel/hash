@@ -78,6 +78,7 @@ const PropertyTypeForm = ({
   onSubmit,
   submitButtonProps,
   defaultValues = {},
+  fieldProps = {},
 }: {
   onClose?: () => void;
   modalTitle: ReactNode;
@@ -85,6 +86,9 @@ const PropertyTypeForm = ({
   onSubmit: (data: PropertyTypeModalFormValues) => Promise<void>;
   submitButtonProps: PropertyTypeModalFormSubmitProps;
   defaultValues?: Partial<PropertyTypeModalFormValues>;
+  fieldProps?: Partial<
+    Record<keyof PropertyTypeModalFormValues, { disabled?: boolean }>
+  >;
 }) => {
   const {
     register,
@@ -201,10 +205,12 @@ const PropertyTypeForm = ({
             label="Singular name"
             required
             placeholder="e.g. Stock Price"
-            disabled={isSubmitting}
-            error={!!nameError}
-            helperText={nameError?.message}
-            success={titleValid}
+            disabled={fieldProps.name?.disabled ?? isSubmitting}
+            {...(!fieldProps.name?.disabled && {
+              error: !!nameError,
+              helperText: nameError?.message,
+              success: titleValid,
+            })}
             {...register("name", {
               required: true,
               onChange() {
@@ -267,9 +273,11 @@ const PropertyTypeForm = ({
             }
             required
             placeholder="Describe this property type in one or two sentences"
-            disabled={isSubmitting}
-            success={descriptionValid}
-            error={!!descriptionError && descriptionTouched}
+            disabled={fieldProps.description?.disabled ?? isSubmitting}
+            {...(!fieldProps.description?.disabled && {
+              success: descriptionValid,
+              error: !!descriptionError && descriptionTouched,
+            })}
             {...register("description", {
               required: true,
               onChange() {
