@@ -13,7 +13,7 @@ import { EntityTypeEditorForm } from "./form-types";
 import { PropertyListSelectorDropdownContext } from "./property-list-selector-dropdown";
 import { PropertySelector } from "./property-selector";
 import {
-  PropertyTypeFormValues,
+  PropertyTypeModalFormValues,
   PropertyTypeModalForm,
 } from "./property-type-modal-form";
 import { QuestionIcon } from "./question-icon";
@@ -52,7 +52,7 @@ export const InsertPropertyRow = ({
     routeNamespace?.id ?? "",
   );
 
-  const handleSubmit = async (data: PropertyTypeFormValues) => {
+  const handleSubmit = async (data: PropertyTypeModalFormValues) => {
     const res = await createPropertyType({
       data: {
         propertyType: {
