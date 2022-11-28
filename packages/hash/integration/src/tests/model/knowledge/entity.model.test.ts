@@ -14,6 +14,8 @@ import {
   linkEntityTypeUri,
 } from "@hashintel/hash-api/src/model/util";
 import { generateTypeId } from "@hashintel/hash-shared/types";
+import { ensureSystemEntitiesExists } from "@hashintel/hash-api/src/graph/system-entities";
+import { ensureSystemTypesExist } from "@hashintel/hash-api/src/graph/system-types";
 import { createTestUser } from "../../util";
 
 jest.setTimeout(60000);
@@ -42,6 +44,9 @@ describe("Entity CRU", () => {
   let linkEntityTypeFriendModel: EntityTypeModel;
 
   beforeAll(async () => {
+    await ensureSystemTypesExist({ graphApi, logger });
+    await ensureSystemEntitiesExists({ graphApi, logger });
+
     testUser = await createTestUser(graphApi, "entitytest", logger);
     testUser2 = await createTestUser(graphApi, "entitytest", logger);
 
