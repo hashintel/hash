@@ -84,7 +84,7 @@ export const ArrayPropertyTypeMenu: FunctionComponent<
           padding: 1.5,
           flex: 1,
           background: ({ palette }) =>
-            palette.gray[index.length % 2 === 0 ? 20 : 10],
+            palette.gray[index.length % 2 !== 0 ? 20 : 10],
           borderBottomRightRadius: 4,
           borderBottomLeftRadius: 4,
           position: "relative",
