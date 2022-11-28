@@ -5,8 +5,8 @@ use core::{
 };
 
 use super::{
-    macros::impl_error, r#type::ExpectedType, Error, ErrorProperties, ErrorProperty, Id, Location,
-    Namespace, NAMESPACE,
+    r#type::ExpectedType, ErrorProperties, ErrorProperty, Id, Location, Namespace, Variant,
+    NAMESPACE,
 };
 use crate::id;
 
@@ -35,7 +35,7 @@ impl ErrorProperty for ReceivedValue {
 #[derive(Debug)]
 pub struct ValueError;
 
-impl Error for ValueError {
+impl Variant for ValueError {
     type Properties = (Location, ExpectedType, ReceivedValue);
 
     const ID: Id = id!["value"];
@@ -65,12 +65,10 @@ impl Display for ValueError {
     }
 }
 
-impl_error!(ValueError);
-
 #[derive(Debug)]
 pub struct MissingError;
 
-impl Error for MissingError {
+impl Variant for MissingError {
     type Properties = (Location, ExpectedType);
 
     const ID: Id = id!["value", "missing"];
@@ -102,8 +100,6 @@ impl Display for MissingError {
     }
 }
 
-impl_error!(MissingError);
-
 #[cfg(test)]
 mod tests {
     use alloc::vec;
@@ -123,7 +119,7 @@ mod tests {
         // [{field1: _, here ->}, _, _]
         // We expect a value at field2, but that field does not exist
 
-        let error = Report::new(ValueError)
+        let error = Report::new(ValueError.into_error())
             .attach(Location::Field("field1"))
             .attach(Location::Array(0))
             .attach(ExpectedType::new(
@@ -134,7 +130,7 @@ mod tests {
             .attach(ReceivedValue::new(u16::from(u8::MAX) + 1));
 
         assert_eq!(
-            to_json(&error),
+            to_json::<ValueError>(&error),
             json!({
                 "location": [
                     {"type": "array", "value": 0},
@@ -153,13 +149,13 @@ mod tests {
     #[test]
     fn value_message() {
         assert_eq!(
-            to_message(&Report::new(ValueError)),
+            to_message::<ValueError>(&Report::new(ValueError.into_error())),
             "received value is of correct type, but does not fit constraints"
         );
 
         assert_eq!(
-            to_message(
-                &Report::new(ValueError).attach(ExpectedType::new(
+            to_message::<ValueError>(
+                &Report::new(ValueError.into_error()).attach(ExpectedType::new(
                     Schema::new("integer")
                         .with("minimum", u8::MIN)
                         .with("maximum", u8::MAX),
@@ -175,7 +171,7 @@ mod tests {
         // [{field1: _, here ->}, _, _]
         // We expect a value of type u8 at field2, but that field does not exist
 
-        let error = Report::new(MissingError)
+        let error = Report::new(MissingError.into_error())
             .attach(Location::Field("field2"))
             .attach(Location::Array(0))
             .attach(ExpectedType::new(
@@ -185,7 +181,7 @@ mod tests {
             ));
 
         assert_eq!(
-            to_json(&error),
+            to_json::<MissingError>(&error),
             json!({
                 "location": [
                     {"type": "array", "value": 0},
@@ -203,13 +199,13 @@ mod tests {
     #[test]
     fn missing_message() {
         assert_eq!(
-            to_message(&Report::new(MissingError)),
+            to_message::<MissingError>(&Report::new(MissingError.into_error())),
             "unexpected missing value"
         );
 
         assert_eq!(
-            to_message(
-                &Report::new(MissingError).attach(ExpectedType::new(
+            to_message::<MissingError>(
+                &Report::new(MissingError.into_error()).attach(ExpectedType::new(
                     Schema::new("integer")
                         .with("minimum", u8::MIN)
                         .with("maximum", u8::MAX),

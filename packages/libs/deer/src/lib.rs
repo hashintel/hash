@@ -1,4 +1,7 @@
-#![cfg_attr(nightly, feature(provide_any, error_in_core))]
+#![cfg_attr(
+    nightly,
+    feature(provide_any, error_in_core, error_generic_member_access)
+)]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(
     unreachable_pub,
@@ -355,7 +358,7 @@ macro_rules! derive_from_number {
             let v = n
                 .$to()
                 .ok_or_else(||
-                    Report::new(ValueError)
+                    Report::new(Error::new(ValueError))
                         .attach(ExpectedType::new(
                             Schema::new("integer")
                                 .with("minimum", $primitive::MIN)
@@ -570,20 +573,20 @@ pub(crate) mod test {
         marker::PhantomData,
     };
 
-    use error_stack::{Frame, Report};
+    use error_stack::{Context, Frame, Report};
     use serde::{
         ser::{Error as _, SerializeMap},
         Serialize, Serializer,
     };
 
-    use crate::error::{Error, ErrorProperties};
+    use crate::error::{Error, ErrorProperties, Variant};
 
-    struct SerializeFrame<'a, 'b, E: Error> {
+    struct SerializeFrame<'a, 'b, E: Variant> {
         frames: &'b [&'a Frame],
         _marker: PhantomData<fn() -> *const E>,
     }
 
-    impl<'a, 'b, E: Error> Serialize for SerializeFrame<'a, 'b, E> {
+    impl<'a, 'b, E: Variant> Serialize for SerializeFrame<'a, 'b, E> {
         fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where
             S: Serializer,
@@ -597,11 +600,11 @@ pub(crate) mod test {
         }
     }
 
-    pub(crate) fn to_json<E: Error>(report: &Report<E>) -> serde_json::Value {
+    pub(crate) fn to_json<T: Variant>(report: &Report<impl Context>) -> serde_json::Value {
         // we do not need to worry about the tree structure
         let frames: Vec<_> = report.frames().collect();
 
-        let s: SerializeFrame<E> = SerializeFrame {
+        let s: SerializeFrame<T> = SerializeFrame {
             frames: &frames,
             _marker: PhantomData::default(),
         };
@@ -609,22 +612,26 @@ pub(crate) mod test {
         serde_json::to_value(s).unwrap()
     }
 
-    struct ErrorMessage<'a, 'b, E: Error> {
+    struct ErrorMessage<'a, 'b, E: Variant> {
         error: &'a E,
         properties: &'b <E::Properties as ErrorProperties>::Value<'a>,
     }
 
-    impl<E: Error> Display for ErrorMessage<'_, '_, E> {
+    impl<E: Variant> Display for ErrorMessage<'_, '_, E> {
         fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
             self.error.message(f, self.properties)
         }
     }
 
-    pub(crate) fn to_message<E: Error>(report: &Report<E>) -> String {
+    pub(crate) fn to_message<T: Variant>(report: &Report<Error>) -> String {
         let frames: Vec<_> = report.frames().collect();
-        let properties = E::Properties::value(&frames);
+        let properties = T::Properties::value(&frames);
 
         let error = report.current_context();
+        let error = error
+            .variant()
+            .downcast_ref::<T>()
+            .expect("context is of correct type");
 
         let message = ErrorMessage {
             error,

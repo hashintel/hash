@@ -1,16 +1,8 @@
-use alloc::{
-    boxed::Box,
-    collections::{BTreeMap, BTreeSet},
-    format,
-    string::String,
-    vec,
-    vec::Vec,
-};
+use alloc::{boxed::Box, format, string::String, vec, vec::Vec};
 use core::{
-    any::{Any, Demand, TypeId},
     cell::Cell,
     fmt,
-    fmt::{Debug, Display, Formatter},
+    fmt::{Display, Formatter},
     iter::once,
 };
 
@@ -20,33 +12,39 @@ use serde::{
     Serialize, Serializer,
 };
 
-use crate::error::{
-    macros::impl_error, ArrayLengthError, Error, ErrorProperties, Id, MissingError, Namespace,
-    ObjectItemsExtraError, TypeError, UnknownFieldError, UnknownVariantError, ValueError,
-};
+use crate::error::{Error, ErrorProperties, Id, Namespace, Variant};
 
-struct ErrorMessage<'a, 'b, E: Error> {
+struct Message<'a, 'b, E: Variant> {
     context: &'a E,
     properties: &'b <E::Properties as ErrorProperties>::Value<'a>,
 }
 
-impl<'a, 'b, E: Error> Display for ErrorMessage<'a, 'b, E> {
+impl<'a, 'b, E: Variant> Display for Message<'a, 'b, E> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         self.context.message(f, self.properties)
     }
 }
 
-struct SerializeErrorProperties<'a, E: Error>(
+#[derive(serde::Serialize)]
+struct SerializeError<'a> {
+    namespace: &'static Namespace,
+    id: &'static Id,
+
+    properties: Box<dyn erased_serde::Serialize + 'a>,
+    message: String,
+}
+
+struct SerializeErrorProperties<'a, E: Variant>(
     Cell<Option<<E::Properties as ErrorProperties>::Value<'a>>>,
 );
 
-impl<'a, E: Error> SerializeErrorProperties<'a, E> {
+impl<'a, E: Variant> SerializeErrorProperties<'a, E> {
     const fn new(value: <E::Properties as ErrorProperties>::Value<'a>) -> Self {
         Self(Cell::new(Some(value)))
     }
 }
 
-impl<'a, E: Error> Serialize for SerializeErrorProperties<'a, E> {
+impl<'a, E: Variant> Serialize for SerializeErrorProperties<'a, E> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -62,15 +60,6 @@ impl<'a, E: Error> Serialize for SerializeErrorProperties<'a, E> {
 
         map.end()
     }
-}
-
-#[derive(serde::Serialize)]
-struct SerializeError<'a> {
-    namespace: &'static Namespace,
-    id: &'static Id,
-
-    properties: Box<dyn erased_serde::Serialize + 'a>,
-    message: String,
 }
 
 enum EitherIterator<V, I1: Iterator<Item = V>, I2: Iterator<Item = V>> {
@@ -199,7 +188,7 @@ fn divide_frames<'a>(
         for frame in path {
             walked.push(frame);
 
-            if frame.is::<DeerError>() {
+            if frame.is::<Error>() {
                 div.push(walked.clone());
             }
         }
@@ -217,21 +206,21 @@ fn serialize_report<S: Serializer>(
 
     serializer.collect_seq(frames.into_iter().filter_map(|stack| {
         let last = stack.last()?;
-        let error: &DeerError = last.downcast_ref()?;
+        let error: &Error = last.downcast_ref()?;
 
         (error.serialize)(error, stack.as_slice())
     }))
 }
 
-fn impl_serialize<'a, E: Error>(
-    error: &'a DeerError,
+pub(super) fn impl_serialize<'a, E: Variant>(
+    error: &'a Error,
     stack: &[&'a Frame],
 ) -> Option<Box<dyn erased_serde::Serialize + 'a>> {
-    let context: &E = error.error.downcast_ref()?;
+    let context: &E = error.variant.downcast_ref()?;
 
     let properties = E::Properties::value(stack);
 
-    let fmt = ErrorMessage {
+    let fmt = Message {
         context,
         properties: &properties,
     };
@@ -244,70 +233,6 @@ fn impl_serialize<'a, E: Error>(
         properties: Box::new(SerializeErrorProperties::<E>::new(properties)),
         message,
     }))
-}
-
-fn impl_display<E: Error>(error: &Box<dyn Any + Send + Sync>, fmt: &mut Formatter) -> fmt::Result {
-    let error: &E = error
-        .downcast_ref()
-        .expect("`impl_display` should only be called on corresponding `DeerError`");
-
-    Display::fmt(error, fmt)
-}
-
-fn impl_debug<E: Error>(error: &Box<dyn Any + Send + Sync>, fmt: &mut Formatter) -> fmt::Result {
-    let error: &E = error
-        .downcast_ref()
-        .expect("`impl_debug` should only be called on corresponding `DeerError`");
-
-    Debug::fmt(error, fmt)
-}
-
-#[cfg(nightly)]
-fn impl_request_ref<'a, E: Error>(error: &'a Box<dyn Any + Send + Sync>, demand: &mut Demand<'a>) {
-    let error: &E = error
-        .downcast_ref()
-        .expect("`impl_request_ref` should only be called on corresponding `DeerError`");
-
-    demand.provide_ref(error);
-    error.provide(demand);
-}
-
-pub struct DeerError {
-    error: Box<dyn Any + Send + Sync>,
-    serialize:
-        for<'a> fn(error: &'a Self, &[&'a Frame]) -> Option<Box<dyn erased_serde::Serialize + 'a>>,
-    display: fn(error: &Box<dyn Any + Send + Sync>, fmt: &mut Formatter) -> fmt::Result,
-    debug: fn(error: &Box<dyn Any + Send + Sync>, fmt: &mut Formatter) -> fmt::Result,
-    #[cfg(nightly)]
-    request_ref: for<'a> fn(error: &'a Box<dyn Any + Send + Sync>, demand: &mut Demand<'a>),
-}
-
-impl Debug for DeerError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        (self.debug)(&self.error, f)
-    }
-}
-
-impl Display for DeerError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        (self.display)(&self.error, f)
-    }
-}
-
-// TODO: should `Error` then even implement core::error::Error, if it will be wrapped by `DeerError`
-//  anyway?
-impl_error!(DeerError);
-
-impl DeerError {
-    pub fn new<E: Error>(error: E) -> Self {
-        Self {
-            error: Box::new(error),
-            serialize: impl_serialize::<E>,
-            display: impl_display::<E>,
-            debug: impl_debug::<E>,
-            request_ref: impl_request_ref::<E>,
-        }
-    }
 }
 
 pub struct Export<C: Context>(Report<C>);
@@ -337,9 +262,9 @@ mod tests {
 
     use crate::{
         error::{
-            hooks::{divide_frames, DeerError, FrameSplitIterator},
+            serialize::{divide_frames, FrameSplitIterator},
             Error, ErrorProperties, ExpectedType, Id, Location, MissingError, Namespace,
-            ReceivedValue, ReportExt, Schema, ValueError, VisitorError, NAMESPACE,
+            ReceivedValue, ReportExt, Schema, ValueError, Variant, VisitorError, NAMESPACE,
         },
         id,
     };
@@ -442,9 +367,7 @@ mod tests {
         }
     }
 
-    impl Context for Z {}
-
-    impl Error for Z {
+    impl Variant for Z {
         type Properties = ();
 
         const ID: Id = id!["custom"];
@@ -489,26 +412,26 @@ mod tests {
     #[test]
     #[allow(clippy::many_single_char_names)]
     fn divide_integration() {
-        let mut b = Report::new(DeerError::new(Z))
+        let mut b = Report::new(Error::new(Z))
             .attach_printable(Printable("D"))
-            .change_context(DeerError::new(Z))
+            .change_context(Error::new(Z))
             .change_context(Y);
 
         let e = Report::new(Y)
-            .change_context(DeerError::new(Z))
+            .change_context(Error::new(Z))
             .attach_printable(Printable("E"))
             .change_context(Y);
         b.extend_one(e);
 
         let mut b = b.attach_printable(Printable("B"));
 
-        let c = Report::new(DeerError::new(Z))
+        let c = Report::new(Error::new(Z))
             .attach_printable(Printable("F"))
             .change_context(Y)
             .attach_printable(Printable("C"));
 
-        let g = Report::new(DeerError::new(Z))
-            .change_context(DeerError::new(Z))
+        let g = Report::new(Error::new(Z))
+            .change_context(Error::new(Z))
             .change_context(Y)
             .attach_printable(Printable("G"));
 
@@ -552,10 +475,10 @@ mod tests {
 
     #[test]
     fn divide_division() {
-        let report = Report::new(DeerError::new(Z))
+        let report = Report::new(Error::new(Z))
             .attach_printable(Printable("A"))
             .attach_printable(Printable("B"))
-            .change_context(DeerError::new(Z))
+            .change_context(Error::new(Z))
             .attach_printable(Printable("C"))
             .attach_printable(Printable("D"));
 
@@ -571,7 +494,7 @@ mod tests {
     #[test]
     fn serialize_single() {
         // simulates that we expected to receive `id` (of type int) at `.0.a.b`, but did not
-        let report = Report::new(DeerError::new(MissingError))
+        let report = Report::new(Error::new(MissingError))
             .attach(Location::Field("b"))
             .attach(Location::Field("a"))
             .attach(Location::Array(0))
@@ -606,12 +529,12 @@ mod tests {
         // * ValueError: u8 @ `.0.a`, received 256
         // * MissingError: String @`.0.b`, received nothing
 
-        let mut missing = Report::new(DeerError::new(MissingError))
+        let mut missing = Report::new(Error::new(MissingError))
             .attach(ExpectedType::new(Schema::new("string")))
             .attach(Location::Field("b"))
             .change_context(VisitorError);
 
-        let value = Report::new(DeerError::new(ValueError))
+        let value = Report::new(Error::new(ValueError))
             .attach(ReceivedValue::new(256u16))
             .attach(ExpectedType::new(
                 Schema::new("integer")
@@ -674,7 +597,7 @@ mod tests {
 
     impl Context for X {}
 
-    impl Error for X {
+    impl Variant for X {
         type Properties = ();
 
         const ID: Id = id!["value"];
