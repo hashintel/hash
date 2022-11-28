@@ -74,10 +74,7 @@ pub use unknown::{
 };
 pub use value::{MissingError, ReceivedValue, ValueError};
 
-use crate::error::{
-    macros::impl_error,
-    serialize::{impl_serialize, Export},
-};
+use crate::error::serialize::{impl_serialize, Export};
 
 mod extra;
 mod location;
@@ -208,7 +205,14 @@ impl SerdeSerializeError {
     }
 }
 
-impl_error!(SerdeSerializeError);
+#[cfg(nightly)]
+impl core::error::Error for SerdeSerializeError {}
+
+#[cfg(all(not(nightly), not(feature = "std")))]
+impl error_stack::Context for SerdeSerializeError {}
+
+#[cfg(all(not(nightly), feature = "std"))]
+impl std::error::Error for SerdeSerializeError {}
 
 /// Value which is extracted/retrieved from a stack of [`error_stack::Frame`]s
 ///
@@ -378,13 +382,28 @@ impl Error {
         &self.variant
     }
 
-    pub fn downcast<T: Variant>(mut self) -> core::result::Result<T, Self> {
-        self.variant.downcast().map(|value| *value).map_err(|err| {
-            self.variant = err;
-            self
-        })
+    pub fn downcast<T: Variant>(self) -> core::result::Result<T, Self> {
+        let Self {
+            variant,
+            serialize,
+            display,
+            debug,
+            provide,
+        } = self;
+
+        variant
+            .downcast()
+            .map(|value| *value)
+            .map_err(|variant| Self {
+                variant,
+                serialize,
+                display,
+                debug,
+                provide,
+            })
     }
 
+    #[must_use]
     pub fn downcast_ref<T: Variant>(&self) -> Option<&T> {
         self.variant.downcast_ref()
     }
