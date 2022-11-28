@@ -121,7 +121,7 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
         <>
           <p>Created entity:</p>
           <pre style={{ overflowX: "scroll" }}>
-            {JSON.stringify(createdEntity ?? {}, null, 2)}
+            {JSON.stringify(createdEntity, null, 2)}
           </pre>
           <Button onClick={handleArchiveCreatedEntity}>
             Archive The Created Entity
