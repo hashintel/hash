@@ -23,6 +23,7 @@ export const useOrgs = (): {
     GetAllLatestEntitiesQueryVariables
   >(getAllLatestEntitiesQuery, {
     variables: {
+      entityTypeId: types.entityType.org.entityTypeId,
       constrainsValuesOn: { outgoing: 0 },
       constrainsPropertiesOn: { outgoing: 0 },
       constrainsLinksOn: { outgoing: 0 },
@@ -47,19 +48,15 @@ export const useOrgs = (): {
     const resolvedOrgs = {};
 
     /** @todo - Is there a way we can ergonomically encode this in the GraphQL type? */
-    return getRoots(subgraph as Subgraph<SubgraphRootTypes["entity"]>)
-      .filter(
-        ({ metadata: { entityTypeId } }) =>
-          entityTypeId === types.entityType.org.entityTypeId,
-      )
-      .map(({ metadata: { editionId } }) =>
+    return getRoots(subgraph as Subgraph<SubgraphRootTypes["entity"]>).map(
+      ({ metadata: { editionId } }) =>
         constructOrg({
           subgraph,
           orgEntityEditionId: editionId,
           resolvedUsers,
           resolvedOrgs,
         }),
-      );
+    );
   }, [subgraph]);
 
   return {

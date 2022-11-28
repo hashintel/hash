@@ -36,8 +36,12 @@ export type GetEntityMessageCallback = MessageCallback<
   ReadOrModifyResourceError
 >;
 
+export type AggregateEntitiesRequest = {
+  entityTypeId?: VersionedUri;
+};
+
 export type AggregateEntitiesMessageCallback = MessageCallback<
-  {},
+  AggregateEntitiesRequest,
   null,
   Subgraph<SubgraphRootTypes["entity"]>,
   ReadOrModifyResourceError

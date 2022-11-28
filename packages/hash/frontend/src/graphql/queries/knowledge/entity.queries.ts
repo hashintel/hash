@@ -47,6 +47,7 @@ export const getEntityQuery = gql`
 
 export const getAllLatestEntitiesQuery = gql`
   query getAllLatestEntities(
+    $entityTypeId: VersionedUri
     $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
     $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
     $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
@@ -56,6 +57,7 @@ export const getAllLatestEntitiesQuery = gql`
     $hasRightEntity: EdgeResolveDepthsInput!
   ) {
     getAllLatestEntities(
+      entityTypeId: $entityTypeId
       constrainsValuesOn: $constrainsValuesOn
       constrainsPropertiesOn: $constrainsPropertiesOn
       constrainsLinksOn: $constrainsLinksOn
