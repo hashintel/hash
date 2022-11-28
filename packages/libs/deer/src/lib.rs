@@ -27,7 +27,8 @@ use num_traits::ToPrimitive;
 
 use crate::error::{
     ArrayAccessError, DeserializeError, DeserializerError, ExpectedType, MissingError,
-    ObjectAccessError, ReceivedType, ReceivedValue, Schema, TypeError, ValueError, VisitorError,
+    ObjectAccessError, ReceivedType, ReceivedValue, Schema, TypeError, ValueError, Variant,
+    VisitorError,
 };
 pub use crate::number::Number;
 
@@ -65,27 +66,27 @@ pub trait Visitor<'de>: Sized {
     fn expecting(&self) -> Schema;
 
     fn visit_none(self) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(MissingError)
+        Err(Report::new(MissingError.into_error())
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
 
     fn visit_null(self) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError)
+        Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(Schema::new("null")))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
 
     fn visit_bool(self, v: bool) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError)
+        Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(Schema::new("boolean")))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
 
     fn visit_number(self, v: Number) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError)
+        Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(Schema::new("number")))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
@@ -103,7 +104,7 @@ pub trait Visitor<'de>: Sized {
     }
 
     fn visit_str(self, v: &str) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError)
+        Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(Schema::new("string")))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
@@ -118,7 +119,7 @@ pub trait Visitor<'de>: Sized {
     }
 
     fn visit_bytes(self, v: &[u8]) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError)
+        Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(
                 // TODO: binary is not a valid json-schema type
                 Schema::new("binary"),
@@ -139,7 +140,7 @@ pub trait Visitor<'de>: Sized {
     where
         T: ArrayAccess<'de>,
     {
-        Err(Report::new(TypeError)
+        Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(Schema::new("array")))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
@@ -149,7 +150,7 @@ pub trait Visitor<'de>: Sized {
     where
         T: ObjectAccess<'de>,
     {
-        Err(Report::new(TypeError)
+        Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(Schema::new("object")))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
@@ -188,7 +189,7 @@ pub trait Visitor<'de>: Sized {
     }
 
     fn visit_i128(self, v: i128) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError)
+        Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(
                 Schema::new("integer")
                     .with("minimum", i128::MIN)
@@ -199,7 +200,7 @@ pub trait Visitor<'de>: Sized {
     }
 
     fn visit_isize(self, v: isize) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError)
+        Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(
                 Schema::new("integer")
                     .with("minimum", isize::MIN)
@@ -242,7 +243,7 @@ pub trait Visitor<'de>: Sized {
     }
 
     fn visit_u128(self, v: u128) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError)
+        Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(
                 Schema::new("integer")
                     .with("minimum", u128::MIN)
@@ -253,7 +254,7 @@ pub trait Visitor<'de>: Sized {
     }
 
     fn visit_usize(self, v: usize) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError)
+        Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(
                 Schema::new("integer")
                     .with("minimum", usize::MIN)
@@ -310,7 +311,7 @@ macro_rules! derive_from_number {
             let v = n
                 .$to()
                 .ok_or_else(||
-                    Report::new(Error::new(ValueError))
+                    Report::new(ValueError.into_error())
                         .attach(ExpectedType::new(
                             Schema::new("integer")
                                 .with("minimum", $primitive::MIN)
