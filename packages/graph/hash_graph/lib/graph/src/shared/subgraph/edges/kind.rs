@@ -63,6 +63,7 @@ pub struct EdgeResolveDepths {
 }
 
 impl EdgeResolveDepths {
+    /// Update the depths to be at least as deep as the given depths provided by `other`.
     #[expect(
         clippy::useless_let_if_seq,
         reason = "Using a mutable variable is more readable"
@@ -94,6 +95,7 @@ pub struct OutgoingEdgeResolveDepth {
 }
 
 impl OutgoingEdgeResolveDepth {
+    /// Update the depths to be at least as deep as the given depths provided by `other`.
     #[expect(
         clippy::useless_let_if_seq,
         reason = "Be consistent with `EdgeResolveDepths`"
@@ -123,6 +125,7 @@ pub struct GraphResolveDepths {
 }
 
 impl GraphResolveDepths {
+    /// Update the depths to be at least as deep as the given depths provided by `other`.
     #[expect(
         clippy::useless_let_if_seq,
         reason = "Using a mutable variable is more readable"
