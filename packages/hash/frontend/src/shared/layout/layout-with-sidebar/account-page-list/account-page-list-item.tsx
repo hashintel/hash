@@ -22,7 +22,7 @@ const animateLayoutChanges: AnimateLayoutChanges = (args) => {
 };
 
 export const AccountPageListItem: FunctionComponent<PageTreeItemProps> = ({
-  id,
+  pageEntityId: id,
   ...props
 }) => {
   const {
@@ -45,7 +45,7 @@ export const AccountPageListItem: FunctionComponent<PageTreeItemProps> = ({
 
   return (
     <PageTreeItem
-      id={id}
+      pageEntityId={id}
       ref={setDraggableNodeRef}
       dragProps={{
         attributes,

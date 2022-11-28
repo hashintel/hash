@@ -14,7 +14,6 @@
       "enum": ["object"]
     },
     "title": { "type": "string" },
-    "pluralTitle": { "type": "string" },
     "description": { "type": "string" },
     "default": {
       "$comment": "Default Entity instance",
@@ -47,7 +46,7 @@
     },
     "links": { "$ref": "#/$defs/linkTypeObject" },
     "requiredLinks": {
-      "$comment": "A list of link-types which are required. This is a separate field to 'required' to avoid breaking standard JSON schema validation",
+      "$comment": "TODO: update this https://app.asana.com/0/1202805690238892/1203260690980368/f. A list of link-types which are required. This is a separate field to 'required' to avoid breaking standard JSON schema validation",
       "type": "array",
       "items": {
         "type": "string"
@@ -55,7 +54,7 @@
     }
   },
   "additionalProperties": false,
-  "required": ["kind", "$id", "type", "title", "pluralTitle", "properties"],
+  "required": ["kind", "$id", "type", "title", "properties"],
   "$defs": {
     "propertyTypeObject": {
       "type": "object",

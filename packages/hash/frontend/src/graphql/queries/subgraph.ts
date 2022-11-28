@@ -8,10 +8,8 @@ export const subgraphFieldsFragment = gql`
     depths {
       dataTypeResolveDepth
       propertyTypeResolveDepth
-      linkTypeResolveDepth
       entityTypeResolveDepth
-      linkTargetEntityResolveDepth
-      linkResolveDepth
+      entityResolveDepth
     }
   }
 `;

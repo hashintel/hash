@@ -1,21 +1,19 @@
 import { ApolloError } from "apollo-server-express";
 import { AxiosError } from "axios";
+import { PropertyTypeWithMetadata, Subgraph } from "@hashintel/hash-subgraph";
 
 import {
-  PersistedPropertyType,
   MutationCreatePropertyTypeArgs,
   MutationUpdatePropertyTypeArgs,
   QueryGetPropertyTypeArgs,
   QueryGetAllLatestPropertyTypesArgs,
   ResolverFn,
-  Subgraph,
 } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import { PropertyTypeModel } from "../../../model";
-import { mapPropertyTypeModelToGQL, mapSubgraphToGql } from "./model-mapping";
 
 export const createPropertyType: ResolverFn<
-  Promise<PersistedPropertyType>,
+  Promise<PropertyTypeWithMetadata>,
   {},
   LoggedInGraphQLContext,
   MutationCreatePropertyTypeArgs
@@ -24,14 +22,14 @@ export const createPropertyType: ResolverFn<
   const { ownedById, propertyType } = params;
 
   const createdPropertyTypeModel = await PropertyTypeModel.create(graphApi, {
-    ownedById: ownedById ?? userModel.entityId,
+    ownedById: ownedById ?? userModel.getEntityUuid(),
     schema: propertyType,
-    actorId: userModel.entityId,
+    actorId: userModel.getEntityUuid(),
   }).catch((err) => {
     throw new ApolloError(err, "CREATION_ERROR");
   });
 
-  return mapPropertyTypeModelToGQL(createdPropertyTypeModel);
+  return createdPropertyTypeModel.propertyType;
 };
 
 export const getAllLatestPropertyTypes: ResolverFn<
@@ -61,10 +59,8 @@ export const getAllLatestPropertyTypes: ResolverFn<
       graphResolveDepths: {
         dataTypeResolveDepth,
         propertyTypeResolveDepth,
-        linkTypeResolveDepth: 0,
         entityTypeResolveDepth: 0,
-        linkTargetEntityResolveDepth: 0,
-        linkResolveDepth: 0,
+        entityResolveDepth: 0,
       },
     })
     .catch((err: AxiosError) => {
@@ -74,7 +70,7 @@ export const getAllLatestPropertyTypes: ResolverFn<
       );
     });
 
-  return mapSubgraphToGql(propertyTypeSubgraph);
+  return propertyTypeSubgraph as Subgraph;
 };
 
 export const getPropertyType: ResolverFn<
@@ -98,10 +94,8 @@ export const getPropertyType: ResolverFn<
       graphResolveDepths: {
         dataTypeResolveDepth,
         propertyTypeResolveDepth,
-        linkTypeResolveDepth: 0,
         entityTypeResolveDepth: 0,
-        linkTargetEntityResolveDepth: 0,
-        linkResolveDepth: 0,
+        entityResolveDepth: 0,
       },
     })
     .catch((err: AxiosError) => {
@@ -111,11 +105,11 @@ export const getPropertyType: ResolverFn<
       );
     });
 
-  return mapSubgraphToGql(propertyTypeSubgraph);
+  return propertyTypeSubgraph as Subgraph;
 };
 
 export const updatePropertyType: ResolverFn<
-  Promise<PersistedPropertyType>,
+  Promise<PropertyTypeWithMetadata>,
   {},
   LoggedInGraphQLContext,
   MutationUpdatePropertyTypeArgs
@@ -135,7 +129,7 @@ export const updatePropertyType: ResolverFn<
   const updatedPropertyTypeModel = await propertyTypeModel
     .update(graphApi, {
       schema: updatedPropertyType,
-      actorId: userModel.entityId,
+      actorId: userModel.getEntityUuid(),
     })
     .catch((err: AxiosError) => {
       const msg =
@@ -146,5 +140,5 @@ export const updatePropertyType: ResolverFn<
       throw new ApolloError(msg, "CREATION_ERROR");
     });
 
-  return mapPropertyTypeModelToGQL(updatedPropertyTypeModel);
+  return updatedPropertyTypeModel.propertyType;
 };

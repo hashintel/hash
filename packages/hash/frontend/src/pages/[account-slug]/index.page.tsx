@@ -40,11 +40,11 @@ const Page: NextPageWithLayout = () => {
     );
   }
 
-  const ownWorkspace = accountId === authenticatedUser.entityId;
+  const ownWorkspace = accountId === authenticatedUser.userAccountId;
 
   const thisOrg = ownWorkspace
     ? undefined
-    : orgs?.find((org) => org.entityId === accountId);
+    : orgs?.find((org) => org.orgAccountId === accountId);
 
   if (!ownWorkspace && !thisOrg) {
     return (

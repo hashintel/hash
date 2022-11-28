@@ -1,20 +1,17 @@
+import { Entity } from "@hashintel/hash-subgraph";
 import { CommentModel } from "../../../../model";
 import { ResolverFn } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import {
-  UnresolvedPersistedCommentGQL,
-  UnresolvedPersistedEntityGQL,
-  mapEntityModelToGQL,
-} from "../model-mapping";
+import { UnresolvedCommentGQL, mapEntityModelToGQL } from "../model-mapping";
 
-export const persistedCommentAuthor: ResolverFn<
-  Promise<UnresolvedPersistedEntityGQL>,
-  UnresolvedPersistedCommentGQL,
+export const commentAuthor: ResolverFn<
+  Promise<Entity>,
+  UnresolvedCommentGQL,
   LoggedInGraphQLContext,
   {}
-> = async ({ entityId }, _, { dataSources: { graphApi } }) => {
+> = async ({ metadata }, _, { dataSources: { graphApi } }) => {
   const commentModel = await CommentModel.getCommentById(graphApi, {
-    entityId,
+    entityId: metadata.editionId.baseId,
   });
   const authorModel = await commentModel.getAuthor(graphApi);
 

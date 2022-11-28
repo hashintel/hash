@@ -6,6 +6,7 @@ import {
   ListItemText,
   ListItemAvatar,
   Tooltip,
+  Menu,
 } from "@mui/material";
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
 import {
@@ -13,7 +14,7 @@ import {
   bindTrigger,
   bindMenu,
 } from "material-ui-popup-state/hooks";
-import { Avatar, Menu, FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { Avatar, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { useAuthenticatedUser } from "../../../components/hooks/useAuthenticatedUser";
 import { Button, MenuItem } from "../../ui";
 import { useRouteAccountInfo } from "../../routing";
@@ -36,13 +37,13 @@ export const WorkspaceSwitcher: FunctionComponent<
   const activeWorkspace = useMemo(() => {
     let accountName = "";
 
-    if (authenticatedUser && accountId === authenticatedUser.entityId) {
+    if (authenticatedUser && accountId === authenticatedUser.userAccountId) {
       accountName =
         // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- @todo how to handle empty preferredName
         authenticatedUser.preferredName || authenticatedUser.shortname!;
     } else {
       const activeOrg = authenticatedUser?.memberOf.find(
-        ({ entityId }) => entityId === accountId,
+        ({ orgAccountId }) => orgAccountId === accountId,
       );
 
       if (activeOrg) {
@@ -60,15 +61,15 @@ export const WorkspaceSwitcher: FunctionComponent<
 
     return [
       {
-        key: authenticatedUser.entityId,
-        url: `/${authenticatedUser.entityId}`,
+        key: authenticatedUser.userAccountId,
+        url: `/${authenticatedUser.userAccountId}`,
         title: "My personal workspace",
         subText: `@${authenticatedUser.shortname ?? "user"}`,
         avatarTitle: authenticatedUser.preferredName ?? "U",
       },
-      ...authenticatedUser.memberOf.map(({ entityId, name, members }) => ({
-        key: entityId,
-        url: `/${entityId}`,
+      ...authenticatedUser.memberOf.map(({ orgAccountId, name, members }) => ({
+        key: orgAccountId,
+        url: `/${orgAccountId}`,
         title: name,
         subText: `${members.length} members`,
         avatarTitle: name,

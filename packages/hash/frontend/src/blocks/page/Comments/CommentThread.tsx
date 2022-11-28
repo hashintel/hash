@@ -6,6 +6,7 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { extractBaseUri } from "@blockprotocol/type-system-web";
 import { types } from "@hashintel/hash-shared/types";
+import { EntityId } from "@hashintel/hash-subgraph";
 import { PageThread } from "../../../components/hooks/usePageComments";
 import { CommentTextField } from "./CommentTextField";
 import { CommentBlock } from "./CommentBlock";
@@ -17,7 +18,7 @@ import { useAuthenticatedUser } from "../../../components/hooks/useAuthenticated
 const UNCOLLAPSIBLE_REPLIES_NUMBER = 2;
 
 type CommentThreadProps = {
-  pageId: string;
+  pageId: EntityId;
   comment: PageThread;
 };
 
@@ -46,13 +47,17 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
 
   const handleReplySubmit = async () => {
     if (!loading && inputValue?.length) {
-      await createReply(comment.entityId, inputValue);
+      await createReply(comment.metadata.editionId.baseId, inputValue);
       setInputValue([]);
     }
   };
 
   const [collapsedReplies, uncollapsibleReplies] = useMemo(() => {
-    const replies = [...comment.replies];
+    const replies = [...comment.replies].sort((replyA, replyB) =>
+      replyA.metadata.editionId.version.localeCompare(
+        replyB.metadata.editionId.version,
+      ),
+    );
     const lastItems = replies.splice(
       replies.length - UNCOLLAPSIBLE_REPLIES_NUMBER,
       UNCOLLAPSIBLE_REPLIES_NUMBER,
@@ -84,12 +89,15 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
       })}
     >
       <CommentBlock
-        key={comment.entityId}
+        key={comment.metadata.editionId.baseId}
         pageId={pageId}
         comment={comment}
-        // @todo: replace with createdById when queryable
-        // @todo: add check authenticatedUser?.entityId === comment.parent.createdById
-        resolvable={authenticatedUser?.entityId === comment.author.entityId}
+        resolvable={
+          authenticatedUser?.userAccountId ===
+            comment.metadata.provenance.createdById ||
+          authenticatedUser?.userAccountId ===
+            comment.parent.metadata.provenance.createdById
+        }
       />
 
       {collapsedReplies.length ? (
@@ -121,7 +129,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
           <Collapse in={expanded}>
             {collapsedReplies.map((reply) => (
               <CommentBlock
-                key={reply.entityId}
+                key={reply.metadata.editionId.baseId}
                 pageId={pageId}
                 comment={reply}
               />
@@ -131,7 +139,11 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
       ) : null}
 
       {uncollapsibleReplies.map((reply) => (
-        <CommentBlock key={reply.entityId} pageId={pageId} comment={reply} />
+        <CommentBlock
+          key={reply.metadata.editionId.baseId}
+          pageId={pageId}
+          comment={reply}
+        />
       ))}
 
       <Collapse in={showInput}>

@@ -5,6 +5,7 @@
     "version": "6.0.1",
     "generators": {
       "ts": {
+        "generateAliasAsModel": true,
         "generatorName": "typescript-axios",
         "output": "#{cwd}/typescript",
         "inputSpec": "http://localhost:4000/api-doc/openapi.json",

@@ -1,5 +1,3 @@
-use core::panic::Location;
-
 use anyhow::Error as AnyhowError;
 
 use crate::{Frame, IntoReportCompat, Report, Result};
@@ -21,11 +19,8 @@ impl<T> IntoReportCompat for core::result::Result<T, AnyhowError> {
                     .collect::<alloc::vec::Vec<_>>();
 
                 #[cfg_attr(not(feature = "std"), allow(unused_mut))]
-                let mut report = Report::from_frame(Frame::from_anyhow(
-                    anyhow,
-                    Location::caller(),
-                    alloc::boxed::Box::new([]),
-                ));
+                let mut report =
+                    Report::from_frame(Frame::from_anyhow(anyhow, alloc::boxed::Box::new([])));
 
                 #[cfg(feature = "std")]
                 for source in sources {

@@ -1,4 +1,5 @@
-use graph_test_data::{data_type, entity, entity_type, link_type, property_type};
+use graph::knowledge::EntityProperties;
+use graph_test_data::{data_type, entity, entity_type, property_type};
 use type_system::uri::{BaseUri, VersionedUri};
 
 use crate::postgres::DatabaseTestWrapper;
@@ -7,26 +8,20 @@ use crate::postgres::DatabaseTestWrapper;
 async fn insert() {
     let person_a = serde_json::from_str(entity::PERSON_A_V1).expect("could not parse entity");
     let person_b = serde_json::from_str(entity::PERSON_B_V1).expect("could not parse entity");
+    let friend_of = EntityProperties::empty();
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
-        .seed(
-            [data_type::TEXT_V1],
-            [property_type::NAME_V1],
-            [link_type::FRIEND_OF_V1],
-            [entity_type::PERSON_V1],
-        )
+        .seed([data_type::TEXT_V1], [property_type::NAME_V1], [
+            entity_type::LINK_V1,
+            entity_type::link::FRIEND_OF_V1,
+            entity_type::PERSON_V1,
+        ])
         .await
         .expect("could not seed database");
 
     let person_type_id = VersionedUri::new(
         BaseUri::new("https://blockprotocol.org/@alice/types/entity-type/person/".to_owned())
-            .expect("couldn't construct Base URI"),
-        1,
-    );
-
-    let link_type_id = VersionedUri::new(
-        BaseUri::new("https://blockprotocol.org/@alice/types/link-type/friend-of/".to_owned())
             .expect("couldn't construct Base URI"),
         1,
     );
@@ -41,25 +36,38 @@ async fn insert() {
         .await
         .expect("could not create entity");
 
-    api.create_link(
-        person_a_metadata.identifier().entity_id(),
-        person_b_metadata.identifier().entity_id(),
-        link_type_id.clone(),
+    let friend_of_type_id = VersionedUri::new(
+        BaseUri::new("https://blockprotocol.org/@alice/types/entity-type/friend-of/".to_owned())
+            .expect("couldn't construct Base URI"),
+        1,
+    );
+
+    api.create_link_entity(
+        friend_of,
+        friend_of_type_id.clone(),
+        None,
+        person_a_metadata.edition_id().base_id(),
+        person_b_metadata.edition_id().base_id(),
     )
     .await
     .expect("could not create link");
 
-    let link_target = api
-        .get_link_target(
-            person_a_metadata.identifier().entity_id(),
-            link_type_id.clone(),
-        )
+    let link_entity = api
+        .get_link_entity_target(person_a_metadata.edition_id().base_id(), friend_of_type_id)
         .await
-        .expect("could not fetch link");
+        .expect("could not fetch entity");
+    let link_metadata = link_entity
+        .metadata()
+        .link_metadata()
+        .expect("entity is not a link");
 
     assert_eq!(
-        link_target.inner().target_entity(),
-        person_b_metadata.identifier().entity_id()
+        link_metadata.left_entity_id(),
+        person_a_metadata.edition_id().base_id()
+    );
+    assert_eq!(
+        link_metadata.right_entity_id(),
+        person_b_metadata.edition_id().base_id()
     );
 }
 
@@ -71,12 +79,12 @@ async fn get_entity_links() {
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
-        .seed(
-            [data_type::TEXT_V1],
-            [property_type::NAME_V1],
-            [link_type::FRIEND_OF_V1, link_type::ACQUAINTANCE_OF_V1],
-            [entity_type::PERSON_V1],
-        )
+        .seed([data_type::TEXT_V1], [property_type::NAME_V1], [
+            entity_type::LINK_V1,
+            entity_type::link::FRIEND_OF_V1,
+            entity_type::link::ACQUAINTANCE_OF_V1,
+            entity_type::PERSON_V1,
+        ])
         .await
         .expect("could not seed database");
 
@@ -87,14 +95,14 @@ async fn get_entity_links() {
     );
 
     let friend_link_type_id = VersionedUri::new(
-        BaseUri::new("https://blockprotocol.org/@alice/types/link-type/friend-of/".to_owned())
+        BaseUri::new("https://blockprotocol.org/@alice/types/entity-type/friend-of/".to_owned())
             .expect("couldn't construct Base URI"),
         1,
     );
 
-    let acquaintance_link_type_id = VersionedUri::new(
+    let acquaintance_entity_link_type_id = VersionedUri::new(
         BaseUri::new(
-            "https://blockprotocol.org/@alice/types/link-type/acquaintance-of/".to_owned(),
+            "https://blockprotocol.org/@alice/types/entity-type/acquaintance-of/".to_owned(),
         )
         .expect("couldn't construct Base URI"),
         1,
@@ -115,39 +123,73 @@ async fn get_entity_links() {
         .await
         .expect("could not create entity");
 
-    let _a_b_link = api
-        .create_link(
-            person_a_metadata.identifier().entity_id(),
-            person_b_metadata.identifier().entity_id(),
-            friend_link_type_id.clone(),
-        )
-        .await
-        .expect("could not create link");
+    api.create_link_entity(
+        EntityProperties::empty(),
+        friend_link_type_id.clone(),
+        None,
+        person_a_metadata.edition_id().base_id(),
+        person_b_metadata.edition_id().base_id(),
+    )
+    .await
+    .expect("could not create link");
 
-    let _a_c_link = api
-        .create_link(
-            person_a_metadata.identifier().entity_id(),
-            person_c_metadata.identifier().entity_id(),
-            acquaintance_link_type_id.clone(),
-        )
-        .await
-        .expect("could not create link");
+    api.create_link_entity(
+        EntityProperties::empty(),
+        acquaintance_entity_link_type_id.clone(),
+        None,
+        person_a_metadata.edition_id().base_id(),
+        person_c_metadata.edition_id().base_id(),
+    )
+    .await
+    .expect("could not create link");
 
     let links_from_source = api
-        .get_entity_links(person_a_metadata.identifier().entity_id())
+        .get_latest_entity_links(person_a_metadata.edition_id().base_id())
         .await
         .expect("could not fetch link");
 
     assert!(
         links_from_source
             .iter()
-            .find(|link| link.inner().link_type_id() == &acquaintance_link_type_id)
+            .find(|link_entity| link_entity.metadata().entity_type_id() == &friend_link_type_id)
             .is_some()
     );
     assert!(
         links_from_source
             .iter()
-            .find(|link| link.inner().link_type_id() == &friend_link_type_id)
+            .find(|link_entity| link_entity.metadata().entity_type_id()
+                == &acquaintance_entity_link_type_id)
+            .is_some()
+    );
+
+    let link_metadatas = links_from_source
+        .iter()
+        .map(|entity| {
+            entity
+                .metadata()
+                .link_metadata()
+                .expect("entity is not a link")
+        })
+        .collect::<Vec<_>>();
+    assert!(
+        link_metadatas
+            .iter()
+            .find(|link_metadata| link_metadata.left_entity_id()
+                == person_a_metadata.edition_id().base_id())
+            .is_some()
+    );
+    assert!(
+        link_metadatas
+            .iter()
+            .find(|link_metadata| link_metadata.right_entity_id()
+                == person_b_metadata.edition_id().base_id())
+            .is_some()
+    );
+    assert!(
+        link_metadatas
+            .iter()
+            .find(|link_metadata| link_metadata.right_entity_id()
+                == person_c_metadata.edition_id().base_id())
             .is_some()
     );
 }
@@ -159,74 +201,11 @@ async fn remove_link() {
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
-        .seed(
-            [data_type::TEXT_V1],
-            [property_type::NAME_V1],
-            [link_type::FRIEND_OF_V1],
-            [entity_type::PERSON_V1],
-        )
-        .await
-        .expect("could not seed database");
-
-    let person_type_id = VersionedUri::new(
-        BaseUri::new("https://blockprotocol.org/@alice/types/entity-type/person/".to_owned())
-            .expect("couldn't construct Base URI"),
-        1,
-    );
-
-    let link_type_id = VersionedUri::new(
-        BaseUri::new("https://blockprotocol.org/@alice/types/link-type/friend-of/".to_owned())
-            .expect("couldn't construct Base URI"),
-        1,
-    );
-
-    let person_a_metadata = api
-        .create_entity(person_a, person_type_id.clone(), None)
-        .await
-        .expect("could not create entity");
-
-    let person_b_metadata = api
-        .create_entity(person_b, person_type_id.clone(), None)
-        .await
-        .expect("could not create entity");
-
-    let _a_b_link = api
-        .create_link(
-            person_a_metadata.identifier().entity_id(),
-            person_b_metadata.identifier().entity_id(),
-            link_type_id.clone(),
-        )
-        .await
-        .expect("could not create link");
-
-    api.remove_link(
-        person_a_metadata.identifier().entity_id(),
-        person_b_metadata.identifier().entity_id(),
-        link_type_id.clone(),
-    )
-    .await
-    .expect("could not remove link");
-
-    let _ = api
-        .get_link_target(person_a_metadata.identifier().entity_id(), link_type_id)
-        .await
-        .expect_err("found link that should have been deleted");
-}
-
-#[tokio::test]
-async fn ordered_links() {
-    let person_a = serde_json::from_str(entity::PERSON_A_V1).expect("could not parse entity");
-    let person_b = serde_json::from_str(entity::PERSON_B_V1).expect("could not parse entity");
-    let person_c = serde_json::from_str(entity::PERSON_C_V1).expect("could not parse entity");
-
-    let mut database = DatabaseTestWrapper::new().await;
-    let mut api = database
-        .seed(
-            [data_type::TEXT_V1],
-            [property_type::NAME_V1],
-            [link_type::FRIEND_OF_V1],
-            [entity_type::PERSON_V1],
-        )
+        .seed([data_type::TEXT_V1], [property_type::NAME_V1], [
+            entity_type::LINK_V1,
+            entity_type::link::FRIEND_OF_V1,
+            entity_type::PERSON_V1,
+        ])
         .await
         .expect("could not seed database");
 
@@ -237,7 +216,7 @@ async fn ordered_links() {
     );
 
     let friend_link_type_id = VersionedUri::new(
-        BaseUri::new("https://blockprotocol.org/@alice/types/link-type/friend-of/".to_owned())
+        BaseUri::new("https://blockprotocol.org/@alice/types/entity-type/friend-of/".to_owned())
             .expect("couldn't construct Base URI"),
         1,
     );
@@ -252,44 +231,32 @@ async fn ordered_links() {
         .await
         .expect("could not create entity");
 
-    let person_c_metadata = api
-        .create_entity(person_c, person_type_id.clone(), None)
-        .await
-        .expect("could not create entity");
-
-    let _a_b_link = api
-        .create_ordered_link(
-            person_a_metadata.identifier().entity_id(),
-            person_b_metadata.identifier().entity_id(),
-            friend_link_type_id.clone(),
-            2,
+    let link_entity_metadata = api
+        .create_link_entity(
+            EntityProperties::empty(),
+            friend_link_type_id,
+            None,
+            person_a_metadata.edition_id().base_id(),
+            person_b_metadata.edition_id().base_id(),
         )
         .await
         .expect("could not create link");
 
-    let _a_c_link = api
-        .create_ordered_link(
-            person_a_metadata.identifier().entity_id(),
-            person_c_metadata.identifier().entity_id(),
-            friend_link_type_id.clone(),
-            1,
-        )
-        .await
-        .expect("could not create link");
+    assert!(
+        !api.get_latest_entity_links(person_a_metadata.edition_id().base_id())
+            .await
+            .expect("could not fetch links")
+            .is_empty()
+    );
 
-    let links_from_source = api
-        .get_entity_links(person_a_metadata.identifier().entity_id())
+    api.archive_entity(link_entity_metadata.edition_id().base_id())
         .await
-        .expect("could not fetch link");
+        .expect("could not remove link");
 
-    assert_eq!(
-        [
-            person_c_metadata.identifier().entity_id(),
-            person_b_metadata.identifier().entity_id(),
-        ][..],
-        links_from_source
-            .iter()
-            .map(|link| link.inner().target_entity())
-            .collect::<Vec<_>>()[..]
-    )
+    assert!(
+        api.get_latest_entity_links(person_a_metadata.edition_id().base_id())
+            .await
+            .expect("could not fetch links")
+            .is_empty()
+    );
 }

@@ -944,11 +944,6 @@ fn debug_frame(
 impl<C> Debug for Report<C> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         #[cfg(feature = "std")]
-        if let Some(result) = Report::invoke_debug_hook(|hook| hook(self.generalized(), fmt)) {
-            return result;
-        }
-
-        #[cfg(feature = "std")]
         let mut context = HookContext::new(fmt.alternate());
 
         #[cfg_attr(not(feature = "std"), allow(unused_mut))]
@@ -1017,11 +1012,6 @@ impl<C> Debug for Report<C> {
 
 impl<Context> Display for Report<Context> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
-        #[cfg(feature = "std")]
-        if let Some(result) = Report::invoke_display_hook(|hook| hook(self.generalized(), fmt)) {
-            return result;
-        }
-
         for (index, frame) in self
             .frames()
             .filter_map(|frame| match frame.kind() {

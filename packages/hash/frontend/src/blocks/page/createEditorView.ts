@@ -11,6 +11,7 @@ import {
   addEntityStoreAction,
   entityStorePluginState,
 } from "@hashintel/hash-shared/entityStorePlugin";
+import { EntityId } from "@hashintel/hash-subgraph";
 
 // import applyDevTools from "prosemirror-dev-tools";
 import { Plugin } from "prosemirror-state";
@@ -32,7 +33,7 @@ export type BlocksMap = Record<string, HashBlock>;
 
 const createSavePlugin = (
   ownedById: string,
-  pageEntityId: string,
+  pageEntityId: EntityId,
   client: ApolloClient<unknown>,
 ) => {
   let saveQueue = Promise.resolve<unknown>(null);
@@ -140,7 +141,7 @@ export const createEditorView = (
   renderNode: HTMLElement,
   renderPortal: RenderPortal,
   accountId: string,
-  pageEntityId: string,
+  pageEntityId: EntityId,
   blocks: BlocksMap,
   readonly: boolean,
   pageTitleRef: RefObject<HTMLTextAreaElement>,

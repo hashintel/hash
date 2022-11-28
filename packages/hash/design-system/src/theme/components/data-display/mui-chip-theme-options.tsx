@@ -7,10 +7,10 @@ const getColors = (
   color: Exclude<ChipProps["color"], "default" | undefined> = "gray",
   variant: Exclude<ChipProps["variant"], undefined> = "filled",
 ) => {
-  let textColorShade = 80;
-  let bgColorShade = 20;
-  let textHoverColorShade = 90;
-  let bgHoverColorShade = 30;
+  let textColorShade;
+  let bgColorShade;
+  let textHoverColorShade;
+  let bgHoverColorShade;
   let outlineColorShade: number | undefined = undefined;
   let outlineHoverColorShade: number | undefined = undefined;
 

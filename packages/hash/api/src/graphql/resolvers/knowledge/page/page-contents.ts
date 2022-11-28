@@ -1,20 +1,18 @@
 import { ApolloError } from "apollo-server-errors";
+import { Entity } from "@hashintel/hash-subgraph";
 import { PageModel } from "../../../../model";
 import { ResolverFn } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import {
-  mapBlockModelToGQL,
-  UnresolvedPersistedEntityGQL,
-  UnresolvedPersistedPageGQL,
-} from "../model-mapping";
+import { mapBlockModelToGQL, UnresolvedPageGQL } from "../model-mapping";
 
-export const persistedPageContents: ResolverFn<
-  Promise<UnresolvedPersistedEntityGQL[]>,
-  UnresolvedPersistedPageGQL,
+export const pageContents: ResolverFn<
+  Promise<Entity[]>,
+  UnresolvedPageGQL,
   LoggedInGraphQLContext,
   {}
-> = async ({ entityId }, _, { dataSources }) => {
+> = async ({ metadata }, _, { dataSources }) => {
   const { graphApi } = dataSources;
+  const entityId = metadata.editionId.baseId;
   const page = await PageModel.getPageById(graphApi, { entityId });
 
   if (!page) {

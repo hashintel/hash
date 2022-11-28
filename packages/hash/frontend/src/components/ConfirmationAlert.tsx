@@ -1,11 +1,11 @@
 import { FunctionComponent, ReactNode } from "react";
 import {
+  Dialog,
   DialogActions,
   DialogContent,
   DialogContentText,
   DialogTitle,
 } from "@mui/material";
-import { Dialog } from "@hashintel/hash-design-system";
 import { Button } from "../shared/ui";
 
 type ConfirmationAlertProps = {
