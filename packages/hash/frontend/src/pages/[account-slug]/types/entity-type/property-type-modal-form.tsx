@@ -119,7 +119,7 @@ const PropertyTypeForm = ({
     if (defaultValues.name) {
       void trigger("name");
     }
-  }, [defaultValues.name, setFocus]);
+  }, [defaultValues.name, setFocus, trigger]);
 
   const { routeNamespace } = useRouteNamespace();
 
