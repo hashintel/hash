@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use graph_test_data::{data_type, entity_type, link_type, property_type};
+use graph_test_data::{data_type, entity_type, property_type};
 use type_system::EntityType;
 
 use crate::postgres::DatabaseTestWrapper;
@@ -12,12 +12,10 @@ async fn insert() {
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
-        .seed(
-            [data_type::TEXT_V1],
-            [property_type::NAME_V1],
-            [link_type::FRIEND_OF_V1],
-            [],
-        )
+        .seed([data_type::TEXT_V1], [property_type::NAME_V1], [
+            entity_type::LINK_V1,
+            entity_type::link::FRIEND_OF_V1,
+        ])
         .await
         .expect("could not seed database");
 
@@ -33,7 +31,7 @@ async fn query() {
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
-        .seed([data_type::TEXT_V1], [property_type::NAME_V1], [], [])
+        .seed([data_type::TEXT_V1], [property_type::NAME_V1], [])
         .await
         .expect("could not seed database");
 
@@ -62,11 +60,13 @@ async fn update() {
             [data_type::TEXT_V1],
             [property_type::TEXT_V1, property_type::NAME_V1],
             [
-                link_type::WRITTEN_BY_V1,
-                link_type::CONTAINS_V1,
-                link_type::FRIEND_OF_V1,
+                entity_type::LINK_V1,
+                entity_type::link::WRITTEN_BY_V1,
+                entity_type::link::CONTAINS_V1,
+                entity_type::link::FRIEND_OF_V1,
+                entity_type::PERSON_V1,
+                entity_type::BLOCK_V1,
             ],
-            [entity_type::PERSON_V1, entity_type::BLOCK_V1],
         )
         .await
         .expect("could not seed database:");

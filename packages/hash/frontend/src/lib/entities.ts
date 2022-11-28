@@ -1,20 +1,16 @@
-import {
-  Entity as BpEntity,
-  EntityType as BpEntityType,
-  Link as BpLink,
-  LinkGroup as BpLinkGroup,
-  LinkedAggregation as BpLinkedAggregation,
-  LinkedAggregationDefinition as BpLinkedAggregationDefinition,
-} from "@blockprotocol/graph";
+import { Entity as BpEntity, Link as BpLink } from "@blockprotocol/graph";
 
 import {
+  extractEntityUuidFromEntityId,
+  Subgraph,
+  SubgraphRootTypes,
+} from "@hashintel/hash-subgraph";
+import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { getPropertyTypesByBaseUri } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
+import {
   UnknownEntity as ApiEntity,
-  DeprecatedEntityType as ApiEntityType,
   Link as ApiLink,
-  LinkGroup as ApiLinkGroup,
-  LinkedAggregation as ApiLinkedAggregation,
 } from "../graphql/apiTypes.gen";
-import { getPropertyTypesByBaseUri, RootEntityAndSubgraph } from "./subgraph";
 
 const isObject = (thing: unknown): thing is {} =>
   typeof thing === "object" && thing !== null;
@@ -52,21 +48,17 @@ export const rewriteEntityIdentifier = ({
  * 2. Re-write 'entityId' so that it is a stringified object of the identifiers we need (i.e. to include accountId)
  */
 export const convertApiEntityToBpEntity = ({
-  accountId,
   entityId,
   entityTypeId,
   properties,
-}: Pick<
-  ApiEntity,
-  "accountId" | "entityId" | "entityTypeId" | "properties"
->): BpEntity => {
+}: Pick<ApiEntity, "entityId" | "entityTypeId" | "properties">): BpEntity => {
   if (entityId.includes("{")) {
     throw new Error(
       `entityId has already been re-written as a stringified object: ${entityId}`,
     );
   }
   return {
-    entityId: rewriteEntityIdentifier({ accountId, entityId }),
+    entityId,
     entityTypeId,
     properties,
   };
@@ -262,16 +254,6 @@ type ApiLinkedAggregationIdentifier = {
 };
 
 /**
- * Create a aggregationId that's a stringified object containing the fields we will need later.
- * The re-written aggregationId is what should be sent to the block with any Link
- */
-const rewriteLinkedAggregationIdentifier = ({
-  accountId,
-  aggregationId,
-}: ApiLinkedAggregationIdentifier) =>
-  JSON.stringify({ accountId, aggregationId });
-
-/**
  * We send blocks an 'aggregationId' that is a stringified object in {@link convertApiLinkedAggregationToBpLinkedAggregation}
  * – this reverses the process so we have the individual fields to use in calling the HASH API.
  *
@@ -320,132 +302,14 @@ export const parseLinkedAggregationIdentifier = (
   return identifierObject;
 };
 
-export const convertApiLinkGroupToBpLinkGroup = (
-  linkGroup: ApiLinkGroup,
-): BpLinkGroup => {
-  const { sourceAccountId, sourceEntityId, links, ...rest } = linkGroup;
-
-  if (sourceEntityId.includes("{")) {
-    throw new Error(
-      `sourceEntityId has already been re-written as a stringified object: ${sourceEntityId}`,
-    );
-  }
-
-  return {
-    sourceEntityId: rewriteEntityIdentifier({
-      accountId: sourceAccountId,
-      entityId: sourceEntityId,
-    }),
-    links: convertApiLinksToBpLinks(links),
-    ...rest,
-  };
-};
-
-export const convertApiLinkGroupsToBpLinkGroups = (
-  linkGroups: ApiLinkGroup[],
-): BpLinkGroup[] =>
-  linkGroups.map((record) => convertApiLinkGroupToBpLinkGroup(record));
-
-type MinimalApiLinkedAggregation = Pick<
-  ApiLinkedAggregation,
-  "aggregationId" | "sourceAccountId" | "sourceEntityId" | "operation" | "path"
->;
-
-export function convertApiLinkedAggregationToBpLinkedAggregation(
-  linkedAggregation: MinimalApiLinkedAggregation & {
-    results: Pick<
-      ApiEntity,
-      "accountId" | "entityId" | "entityTypeId" | "properties"
-    >[];
-  },
-): BpLinkedAggregation;
-
-export function convertApiLinkedAggregationToBpLinkedAggregation(
-  linkedAggregation: MinimalApiLinkedAggregation,
-): BpLinkedAggregationDefinition;
-
-/**
- * Converts a LinkedAggregation from its GraphQL API representation to its Block Protocol representation,
- * by re-writing all of aggregationId, sourceEntityId and sourceDestinationId so that they are
- * stringified objects containing the identifiers we need (i.e. to include accountId)
- */
-export function convertApiLinkedAggregationToBpLinkedAggregation(
-  linkedAggregation:
-    | (MinimalApiLinkedAggregation & {
-        results: Pick<
-          ApiEntity,
-          "accountId" | "entityId" | "entityTypeId" | "properties"
-        >[];
-      })
-    | MinimalApiLinkedAggregation,
-): BpLinkedAggregation | BpLinkedAggregationDefinition {
-  const { aggregationId, sourceAccountId, sourceEntityId, operation, path } =
-    linkedAggregation;
-  if (aggregationId.includes("{")) {
-    throw new Error(
-      `aggregationId has already been re-written as a stringified object: ${aggregationId}`,
-    );
-  }
-
-  if (sourceEntityId.includes("{")) {
-    throw new Error(
-      `sourceEntityId has already been re-written as a stringified object: ${sourceEntityId}`,
-    );
-  }
-
-  return {
-    aggregationId: rewriteLinkedAggregationIdentifier({
-      accountId: sourceAccountId,
-      aggregationId,
-    }),
-    sourceEntityId: rewriteEntityIdentifier({
-      accountId: sourceAccountId,
-      entityId: sourceEntityId,
-    }),
-    path,
-    operation: operation as BpLinkedAggregation["operation"],
-    results:
-      "results" in linkedAggregation && linkedAggregation.results
-        ? convertApiEntitiesToBpEntities(linkedAggregation.results)
-        : undefined,
-  };
-}
-
-/**
- * Converts an entity type from its GraphQL API representation to its Block Protocol representation:
- * 1. Only provide 'entityTypeId' at the top level
- * 2. Provide the schema under 'schema', not 'properties'
- *
- * N.B. this intentionally does not re-write 'entityTypeId' to include accountId, since types are not sharded,
- * and the 'entityTypeId' is sufficient to identify entity types when calling the HASH API.
- */
-export const convertApiEntityTypeToBpEntityType = ({
-  entityId,
-  properties,
-}: Pick<ApiEntityType, "entityId" | "properties">): BpEntityType => {
-  return {
-    entityTypeId: entityId,
-    schema: properties,
-  };
-};
-
-/**
- * Converts entity types from their GraphQL API representation to their Block Protocol representation
- * @see convertApiEntityTypeToBpEntityType
- */
-export const convertApiEntityTypesToBpEntityTypes = (
-  records: Pick<ApiEntityType, "entityId" | "properties">[],
-): BpEntityType[] =>
-  records.map((record) => convertApiEntityTypeToBpEntityType(record));
-
 /**
  * Generate a display label for an entity
  * Prefers the BP-specified labelProperty if it exists.
  * @see https://blockprotocol.org/docs/spec/graph-service-specification#json-schema-extensions
  */
 export const generateEntityLabel = (
-  rootEntityAndSubgraph:
-    | RootEntityAndSubgraph
+  entitySubgraph:
+    | Subgraph<SubgraphRootTypes["entity"]>
     | Partial<{ entityId: string; properties: any }>,
   schema?: { labelProperty?: unknown; title?: unknown },
 ): string => {
@@ -453,11 +317,11 @@ export const generateEntityLabel = (
    * @todo - this return type is only added to allow for incremental migration. It should be removed
    *   https://app.asana.com/0/0/1203157172269854/f
    */
-  if (!("subgraph" in rootEntityAndSubgraph)) {
+  if (!("roots" in entitySubgraph)) {
     throw new Error("expected Subgraph but got a deprecated response type");
   }
 
-  const entity = rootEntityAndSubgraph.root;
+  const entity = getRoots(entitySubgraph)[0]!;
 
   // if the schema has a labelProperty set, prefer that
   const labelProperty = schema?.labelProperty;
@@ -482,13 +346,13 @@ export const generateEntityLabel = (
     Object.keys(entity.properties).map((propertyTypeBaseUri) => {
       /** @todo - pick the latest version rather than first element? */
       const [propertyType] = getPropertyTypesByBaseUri(
-        rootEntityAndSubgraph.subgraph,
+        entitySubgraph,
         propertyTypeBaseUri,
       );
 
       return propertyType
         ? {
-            title: propertyType.inner.title.toLowerCase(),
+            title: propertyType.schema.title.toLowerCase(),
             propertyTypeBaseUri,
           }
         : {
@@ -501,20 +365,17 @@ export const generateEntityLabel = (
     const found = propertyTypes.find(({ title }) => title === option);
 
     if (found) {
-      return entity.properties[found.propertyTypeBaseUri];
+      return entity.properties[found.propertyTypeBaseUri] as string;
     }
   }
 
-  // fallback to the entity type and a few characters of the entityId
-  let entityId = entity.entityId;
-  try {
-    // in case this entityId is a stringified JSON object, extract the real entityId from it
-    ({ entityId } = parseEntityIdentifier(entityId));
-  } catch {
-    // entityId was not a stringified object, it was already the real entityId
-  }
+  // fallback to the entity type and a few characters of the entityUuid
+  const entityId = entity.metadata.editionId.baseId;
 
   const entityTypeName = schema?.title ?? "Entity";
 
-  return `${entityTypeName}-${entityId.slice(0, 5)}`;
+  return `${entityTypeName}-${extractEntityUuidFromEntityId(entityId).slice(
+    0,
+    5,
+  )}`;
 };

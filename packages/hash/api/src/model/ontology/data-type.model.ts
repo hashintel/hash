@@ -1,54 +1,29 @@
 import { AxiosError } from "axios";
-
-import {
-  GraphApi,
-  PersistedDataType,
-  UpdateDataTypeRequest,
-} from "@hashintel/hash-graph-client";
 import { DataType } from "@blockprotocol/type-system-web";
+import { GraphApi, UpdateDataTypeRequest } from "@hashintel/hash-graph-client";
+import {
+  DataTypeWithMetadata,
+  OntologyElementMetadata,
+} from "@hashintel/hash-subgraph";
 import { generateTypeId } from "@hashintel/hash-shared/types";
 import { DataTypeModel } from "../index";
 import { getNamespaceOfAccountOwner } from "./util";
 
 type DataTypeModelConstructorArgs = {
-  ownedById: string;
-  schema: DataType;
-  createdById: string;
-  updatedById: string;
-  removedById?: string;
+  dataType: DataTypeWithMetadata;
 };
 
 /**
  * @class {@link DataTypeModel}
  */
 export default class {
-  ownedById: string;
+  dataType: DataTypeWithMetadata;
 
-  schema: DataType;
-
-  createdById: string;
-  updatedById: string;
-  removedById?: string;
-
-  constructor({
-    schema,
-    ownedById,
-    createdById,
-    updatedById,
-    removedById,
-  }: DataTypeModelConstructorArgs) {
-    this.ownedById = ownedById;
-    this.schema = schema;
-
-    this.createdById = createdById;
-    this.updatedById = updatedById;
-    this.removedById = removedById;
+  constructor({ dataType }: DataTypeModelConstructorArgs) {
+    this.dataType = dataType;
   }
 
-  static fromPersistedDataType({
-    inner,
-    metadata: { identifier, createdById, updatedById, removedById },
-  }: PersistedDataType): DataTypeModel {
+  getSchema(): DataType {
     /**
      * @todo and a warning, these type casts are here to compensate for
      *   the differences between the Graph API package and the
@@ -60,13 +35,17 @@ export default class {
      *   its own types.
      *   https://app.asana.com/0/1202805690238892/1202892835843657/f
      */
-    return new DataTypeModel({
-      schema: inner as DataType,
-      ownedById: identifier.ownedById,
-      createdById,
-      updatedById,
-      removedById,
-    });
+    return this.dataType.schema;
+  }
+
+  getMetadata(): OntologyElementMetadata {
+    return this.dataType.metadata;
+  }
+
+  static fromDataTypeWithMetadata(
+    dataType: DataTypeWithMetadata,
+  ): DataTypeModel {
+    return new DataTypeModel({ dataType });
   }
 
   /**
@@ -104,24 +83,24 @@ export default class {
       kind: "data-type",
       title: params.schema.title,
     });
-    const fullDataType = { $id: dataTypeUri, ...params.schema };
+    const schema = { $id: dataTypeUri, ...params.schema };
 
     const { data: metadata } = await graphApi
       .createDataType({
-        schema: fullDataType,
+        schema,
         ownedById,
         actorId,
       })
       .catch((err: AxiosError) => {
         throw new Error(
           err.response?.status === 409
-            ? `data type with the same URI already exists. [URI=${fullDataType.$id}]`
+            ? `data type with the same URI already exists. [URI=${schema.$id}]`
             : `[${err.code}] couldn't create data type: ${err.response?.data}.`,
         );
       });
 
-    return DataTypeModel.fromPersistedDataType({
-      inner: fullDataType,
+    return DataTypeModel.fromDataTypeWithMetadata({
+      schema,
       metadata,
     });
   }
@@ -138,9 +117,11 @@ export default class {
     },
   ): Promise<DataTypeModel> {
     const { dataTypeId } = params;
-    const { data: persistedDataType } = await graphApi.getDataType(dataTypeId);
+    const { data: dataType } = await graphApi.getDataType(dataTypeId);
 
-    return DataTypeModel.fromPersistedDataType(persistedDataType);
+    return DataTypeModel.fromDataTypeWithMetadata(
+      dataType as DataTypeWithMetadata,
+    );
   }
 
   /**
@@ -170,16 +151,19 @@ export default class {
 
     const updateArguments: UpdateDataTypeRequest = {
       actorId,
-      typeToUpdate: this.schema.$id,
+      typeToUpdate: this.getSchema().$id,
       schema,
     };
 
     const { data: metadata } = await graphApi.updateDataType(updateArguments);
 
-    const { identifier } = metadata;
+    const { editionId } = metadata;
 
-    return DataTypeModel.fromPersistedDataType({
-      inner: { ...schema, $id: identifier.uri },
+    return DataTypeModel.fromDataTypeWithMetadata({
+      schema: {
+        ...schema,
+        $id: `${editionId.baseId}/v/${editionId.version}`,
+      },
       metadata,
     });
   }

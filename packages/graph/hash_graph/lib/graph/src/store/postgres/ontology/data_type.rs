@@ -1,28 +1,30 @@
+use std::collections::HashSet;
+
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use futures::{stream, StreamExt, TryStreamExt};
 use tokio_postgres::GenericClient;
-use type_system::{uri::VersionedUri, DataType};
+use type_system::DataType;
 
 use crate::{
-    ontology::{PersistedDataType, PersistedOntologyMetadata},
+    identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId},
+    ontology::{DataTypeWithMetadata, OntologyElementMetadata},
     provenance::{CreatedById, OwnedById, UpdatedById},
-    shared::identifier::GraphElementIdentifier,
     store::{
         crud::Read,
         postgres::{context::PostgresContext, DependencyContext, DependencyContextRef},
         AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
-    subgraph::{StructuralQuery, Subgraph},
+    subgraph::{query::StructuralQuery, Subgraph},
 };
 
 impl<C: AsClient> PostgresStore<C> {
-    /// Internal method to read a [`PersistedDataType`] into a [`DependencyContext`].
+    /// Internal method to read a [`DataTypeWithMetadata`] into a [`DependencyContext`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
     pub(crate) async fn get_data_type_as_dependency(
         &self,
-        data_type_id: &VersionedUri,
+        data_type_id: &OntologyTypeEditionId,
         context: DependencyContextRef<'_>,
     ) -> Result<(), QueryError> {
         let DependencyContextRef {
@@ -36,7 +38,7 @@ impl<C: AsClient> PostgresStore<C> {
                 data_type_id,
                 Some(graph_resolve_depths.data_type_resolve_depth),
                 || async {
-                    Ok(PersistedDataType::from(
+                    Ok(DataTypeWithMetadata::from(
                         self.read_versioned_ontology_type(data_type_id).await?,
                     ))
                 },
@@ -54,7 +56,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         data_type: DataType,
         owned_by_id: OwnedById,
         created_by_id: CreatedById,
-    ) -> Result<PersistedOntologyMetadata, InsertionError> {
+    ) -> Result<OntologyElementMetadata, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()
@@ -86,11 +88,11 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
             graph_resolve_depths,
         } = *query;
 
-        let subgraphs = stream::iter(Read::<PersistedDataType>::read(self, filter).await?)
+        let subgraphs = stream::iter(Read::<DataTypeWithMetadata>::read(self, filter).await?)
             .then(|data_type| async move {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 
-                let data_type_id = data_type.metadata().identifier().uri().clone();
+                let data_type_id = data_type.metadata().edition_id().clone();
                 dependency_context
                     .referenced_data_types
                     .insert(&data_type_id, None, data_type);
@@ -98,9 +100,9 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
                 self.get_data_type_as_dependency(&data_type_id, dependency_context.as_ref_object())
                     .await?;
 
-                let root = GraphElementIdentifier::OntologyElementId(data_type_id);
+                let root = GraphElementEditionId::Ontology(data_type_id);
 
-                Ok::<_, Report<QueryError>>(dependency_context.into_subgraph(vec![root]))
+                Ok::<_, Report<QueryError>>(dependency_context.into_subgraph(HashSet::from([root])))
             })
             .try_collect::<Vec<_>>()
             .await?;
@@ -115,7 +117,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         &mut self,
         data_type: DataType,
         updated_by_id: UpdatedById,
-    ) -> Result<PersistedOntologyMetadata, UpdateError> {
+    ) -> Result<OntologyElementMetadata, UpdateError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()

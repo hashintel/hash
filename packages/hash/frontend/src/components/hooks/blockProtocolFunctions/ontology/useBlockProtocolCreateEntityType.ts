@@ -63,10 +63,7 @@ export const useBlockProtocolCreateEntityType = (
       }
 
       return {
-        data: {
-          entityTypeId: responseData.createEntityType.entityTypeId,
-          entityType: responseData.createEntityType.entityType,
-        },
+        data: responseData.createEntityType,
       };
     },
     [ownedById, createFn, readonly],

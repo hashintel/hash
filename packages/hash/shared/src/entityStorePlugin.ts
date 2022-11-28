@@ -1,3 +1,4 @@
+import { EntityId, PropertyObject } from "@hashintel/hash-subgraph";
 import { Draft, produce } from "immer";
 import { isEqual } from "lodash";
 import { Node } from "prosemirror-model";
@@ -75,7 +76,7 @@ export type EntityStorePluginAction = { received?: boolean } & (
       payload: {
         accountId: string;
         draftId: string;
-        entityId: string | null;
+        entityId: EntityId | null;
       };
     }
   | {
@@ -134,7 +135,7 @@ export const entityStorePluginStateFromTransaction = (
  * Do NOT change the entity's draftId mid-session - leave it as fake.
  * If you need to recall the entity's draftId, use mustGetDraftEntityForEntityId
  */
-export const generateDraftIdForEntity = (entityId: string | null) =>
+export const generateDraftIdForEntity = (entityId: EntityId | null) =>
   entityId ? `draft-${entityId}-${uuid()}` : `fake-${uuid()}`;
 
 /**
@@ -155,6 +156,9 @@ const updateEntitiesByDraftId = (
 
   for (const entity of Object.values(draftEntityStore)) {
     if (isDraftBlockEntity(entity)) {
+      // This type is very deep now, so traversal causes TS to complain.
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
       const blockChildEntity = entity.blockChildEntity!;
       if (blockChildEntity.draftId && blockChildEntity.draftId === draftId) {
         entities.push(blockChildEntity as DraftEntity);
@@ -182,18 +186,23 @@ const setBlockChildEntity = (
 ) => {
   let targetDraftEntity = getDraftEntityByEntityId(
     draftEntityStore,
-    targetEntity.entityId,
+    targetEntity.metadata.editionId.baseId,
   );
 
   // Add target entity to draft store if it is not
   // present there
   // @todo consider moving this to ProseMirrorSchemaManager.updateBlockData
   if (!targetDraftEntity) {
-    const targetEntityDraftId = generateDraftIdForEntity(targetEntity.entityId);
+    const targetEntityDraftId = generateDraftIdForEntity(
+      targetEntity.metadata.editionId.baseId,
+    );
     targetDraftEntity = {
-      accountId: targetEntity.accountId,
+      metadata: {
+        editionId: {
+          baseId: targetEntity.metadata.editionId.baseId,
+        },
+      },
       draftId: targetEntityDraftId,
-      entityId: targetEntity.entityId,
       properties: targetEntity.properties,
       /** @todo use the actual updated date here https://app.asana.com/0/0/1203099452204542/f */
       // updatedAt: targetEntity.updatedAt,
@@ -275,7 +284,8 @@ const entityStoreReducer = (
                   action.payload.properties,
                 );
               } else {
-                draftEntity.properties = action.payload.properties;
+                draftEntity.properties = action.payload
+                  .properties as PropertyObject;
               }
             }
           },
@@ -318,8 +328,11 @@ const entityStoreReducer = (
         }
 
         draftState.store.draft[action.payload.draftId] = {
-          accountId: action.payload.accountId,
-          entityId: action.payload.entityId,
+          metadata: {
+            editionId: {
+              baseId: action.payload.entityId,
+            },
+          },
           draftId: action.payload.draftId,
           properties: {},
         };
@@ -405,7 +418,7 @@ export const subscribeToEntityStore = (
  */
 export const mustGetDraftEntityByEntityId = (
   draftStore: EntityStore["draft"],
-  entityId: string,
+  entityId: EntityId,
 ) => {
   const existingEntity = getDraftEntityByEntityId(draftStore, entityId);
 
@@ -583,7 +596,7 @@ class ProsemirrorStateChangeHandler {
     const draftEntityStore = this.getDraftEntityStoreFromTransaction();
 
     const entityId = node.attrs.draftId
-      ? draftEntityStore[node.attrs.draftId]?.entityId
+      ? draftEntityStore[node.attrs.draftId]?.metadata.editionId.baseId
       : null;
 
     const draftId = entityId

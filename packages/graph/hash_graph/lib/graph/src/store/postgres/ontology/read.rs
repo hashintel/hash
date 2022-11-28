@@ -4,91 +4,65 @@ use async_trait::async_trait;
 use error_stack::{Context, IntoReport, Result, ResultExt};
 use futures::{StreamExt, TryStreamExt};
 use tokio_postgres::GenericClient;
-use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};
+use type_system::{uri::VersionedUri, DataType, EntityType, PropertyType};
 
 use crate::{
     ontology::{
-        PersistedDataType, PersistedEntityType, PersistedLinkType, PersistedOntologyIdentifier,
-        PersistedOntologyMetadata, PersistedOntologyType, PersistedPropertyType,
+        DataTypeWithMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
+        PersistedOntologyType, PropertyTypeWithMetadata,
     },
+    provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         crud::Read,
         postgres::{
             context::OntologyRecord,
             ontology::OntologyDatabaseType,
-            query::{PostgresQueryRecord, SelectCompiler},
+            query::{Distinctness, PostgresQueryRecord, SelectCompiler},
         },
-        query::Filter,
+        query::{Filter, OntologyPath, QueryRecord},
         AsClient, PostgresStore, QueryError,
     },
 };
 
-impl From<OntologyRecord<DataType>> for PersistedDataType {
+impl From<OntologyRecord<DataType>> for DataTypeWithMetadata {
     fn from(data_type: OntologyRecord<DataType>) -> Self {
-        let identifier =
-            PersistedOntologyIdentifier::new(data_type.record.id().clone(), data_type.owned_by_id);
+        let identifier = data_type.record.id().clone().into();
 
         Self::new(
             data_type.record,
-            PersistedOntologyMetadata::new(
+            OntologyElementMetadata::new(
                 identifier,
-                data_type.created_by_id,
-                data_type.updated_by_id,
-                data_type.removed_by_id,
+                ProvenanceMetadata::new(data_type.created_by_id, data_type.updated_by_id),
+                data_type.owned_by_id,
             ),
         )
     }
 }
 
-impl From<OntologyRecord<PropertyType>> for PersistedPropertyType {
+impl From<OntologyRecord<PropertyType>> for PropertyTypeWithMetadata {
     fn from(property_type: OntologyRecord<PropertyType>) -> Self {
-        let identifier = PersistedOntologyIdentifier::new(
-            property_type.record.id().clone(),
-            property_type.owned_by_id,
-        );
+        let identifier = property_type.record.id().clone().into();
 
         Self::new(
             property_type.record,
-            PersistedOntologyMetadata::new(
+            OntologyElementMetadata::new(
                 identifier,
-                property_type.created_by_id,
-                property_type.updated_by_id,
-                property_type.removed_by_id,
+                ProvenanceMetadata::new(property_type.created_by_id, property_type.updated_by_id),
+                property_type.owned_by_id,
             ),
         )
     }
 }
 
-impl From<OntologyRecord<LinkType>> for PersistedLinkType {
-    fn from(link_type: OntologyRecord<LinkType>) -> Self {
-        let identifier =
-            PersistedOntologyIdentifier::new(link_type.record.id().clone(), link_type.owned_by_id);
-
-        Self::new(
-            link_type.record,
-            PersistedOntologyMetadata::new(
-                identifier,
-                link_type.created_by_id,
-                link_type.updated_by_id,
-                link_type.removed_by_id,
-            ),
-        )
-    }
-}
-
-impl From<OntologyRecord<EntityType>> for PersistedEntityType {
+impl From<OntologyRecord<EntityType>> for EntityTypeWithMetadata {
     fn from(entity_type: OntologyRecord<EntityType>) -> Self {
-        let identifier = PersistedOntologyIdentifier::new(
-            entity_type.record.id().clone(),
-            entity_type.owned_by_id,
-        );
+        let identifier = entity_type.record.id().clone().into();
         Self::new(
             entity_type.record,
-            PersistedOntologyMetadata::new(
+            OntologyElementMetadata::new(
                 identifier,
-                entity_type.created_by_id,
-                entity_type.updated_by_id,
-                entity_type.removed_by_id,
+                ProvenanceMetadata::new(entity_type.created_by_id, entity_type.updated_by_id),
+                entity_type.owned_by_id,
             ),
         )
     }
@@ -98,16 +72,37 @@ impl From<OntologyRecord<EntityType>> for PersistedEntityType {
 impl<C: AsClient, T> Read<T> for PostgresStore<C>
 where
     T: for<'q> PersistedOntologyType<
-            Inner: PostgresQueryRecord<'q, Path<'q>: Debug + Sync>
+            Inner: PostgresQueryRecord<Path<'q>: Debug + Send + Sync + OntologyPath>
                        + OntologyDatabaseType
                        + TryFrom<serde_json::Value, Error: Context>
-                       + Send,
+                       + Send
+                       + 'static,
         > + Send,
 {
     type Query<'q> = Filter<'q, T::Inner>;
 
     async fn read<'f: 'q, 'q>(&self, filter: &'f Self::Query<'q>) -> Result<Vec<T>, QueryError> {
-        let mut compiler = SelectCompiler::with_default_selection();
+        let versioned_uri_path =
+            <<T::Inner as QueryRecord>::Path<'q> as OntologyPath>::versioned_uri();
+        let schema_path = <<T::Inner as QueryRecord>::Path<'q> as OntologyPath>::schema();
+        let owned_by_id_path = <<T::Inner as QueryRecord>::Path<'q> as OntologyPath>::owned_by_id();
+        let created_by_id_path =
+            <<T::Inner as QueryRecord>::Path<'q> as OntologyPath>::created_by_id();
+        let updated_by_id_path =
+            <<T::Inner as QueryRecord>::Path<'q> as OntologyPath>::updated_by_id();
+
+        let mut compiler = SelectCompiler::new();
+
+        let versioned_uri_index = compiler.add_distinct_selection_with_ordering(
+            &versioned_uri_path,
+            Distinctness::Distinct,
+            None,
+        );
+        let schema_index = compiler.add_selection_path(&schema_path);
+        let owned_by_id_index = compiler.add_selection_path(&owned_by_id_path);
+        let created_by_id_index = compiler.add_selection_path(&created_by_id_path);
+        let updated_by_id_path_index = compiler.add_selection_path(&updated_by_id_path);
+
         compiler.add_filter(filter);
         let (statement, parameters) = compiler.compile();
 
@@ -118,25 +113,23 @@ where
             .change_context(QueryError)?
             .map(|row| row.into_report().change_context(QueryError))
             .and_then(|row| async move {
-                let versioned_uri = VersionedUri::from_str(row.get(0))
+                let versioned_uri = VersionedUri::from_str(row.get(versioned_uri_index))
                     .into_report()
                     .change_context(QueryError)?;
-                let record = <T::Inner>::try_from(row.get::<_, serde_json::Value>(1))
+                let record = <T::Inner>::try_from(row.get::<_, serde_json::Value>(schema_index))
                     .into_report()
                     .change_context(QueryError)?;
-                let owned_by_id = row.get(2);
-                let created_by_id = row.get(3);
-                let updated_by_id = row.get(4);
-                let removed_by_id = row.get(5);
+                let owned_by_id = OwnedById::new(row.get(owned_by_id_index));
+                let created_by_id = CreatedById::new(row.get(created_by_id_index));
+                let updated_by_id = UpdatedById::new(row.get(updated_by_id_path_index));
 
-                let identifier = PersistedOntologyIdentifier::new(versioned_uri, owned_by_id);
+                let edition_identifier = versioned_uri.into();
                 Ok(T::new(
                     record,
-                    PersistedOntologyMetadata::new(
-                        identifier,
-                        created_by_id,
-                        updated_by_id,
-                        removed_by_id,
+                    OntologyElementMetadata::new(
+                        edition_identifier,
+                        ProvenanceMetadata::new(created_by_id, updated_by_id),
+                        owned_by_id,
                     ),
                 ))
             })

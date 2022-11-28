@@ -6,12 +6,12 @@ use crate::store::postgres::query::{Expression, Transpile};
 ///
 /// [`Filter`]: crate::store::query::Filter
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub enum Condition<'q> {
+pub enum Condition<'p> {
     All(Vec<Self>),
     Any(Vec<Self>),
     Not(Box<Self>),
-    Equal(Option<Expression<'q>>, Option<Expression<'q>>),
-    NotEqual(Option<Expression<'q>>, Option<Expression<'q>>),
+    Equal(Option<Expression<'p>>, Option<Expression<'p>>),
+    NotEqual(Option<Expression<'p>>, Option<Expression<'p>>),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -27,12 +27,12 @@ impl Transpile for Condition<'_> {
             Condition::Any(conditions) if conditions.is_empty() => fmt.write_str("FALSE"),
             Condition::All(conditions) => {
                 for (idx, condition) in conditions.iter().enumerate() {
+                    if idx > 0 {
+                        fmt.write_str(" AND ")?;
+                    }
                     fmt.write_char('(')?;
                     condition.transpile(fmt)?;
                     fmt.write_char(')')?;
-                    if idx + 1 < conditions.len() {
-                        fmt.write_str(" AND ")?;
-                    }
                 }
                 Ok(())
             }
@@ -41,12 +41,12 @@ impl Transpile for Condition<'_> {
                     fmt.write_char('(')?;
                 }
                 for (idx, condition) in conditions.iter().enumerate() {
+                    if idx > 0 {
+                        fmt.write_str(" OR ")?;
+                    }
                     fmt.write_char('(')?;
                     condition.transpile(fmt)?;
                     fmt.write_char(')')?;
-                    if idx + 1 < conditions.len() {
-                        fmt.write_str(" OR ")?;
-                    }
                 }
                 if conditions.len() > 1 {
                     fmt.write_char(')')?;
@@ -132,7 +132,7 @@ mod tests {
                 Some(FilterExpression::Path(DataTypeQueryPath::Description)),
                 None,
             ),
-            r#""data_types"."schema"->>'description' IS NULL"#,
+            r#""data_types_0_0_0"."schema"->>'description' IS NULL"#,
             &[],
         );
 
@@ -141,7 +141,7 @@ mod tests {
                 None,
                 Some(FilterExpression::Path(DataTypeQueryPath::Description)),
             ),
-            r#""data_types"."schema"->>'description' IS NULL"#,
+            r#""data_types_0_0_0"."schema"->>'description' IS NULL"#,
             &[],
         );
 
@@ -152,7 +152,7 @@ mod tests {
                 Some(FilterExpression::Path(DataTypeQueryPath::Description)),
                 None,
             ),
-            r#""data_types"."schema"->>'description' IS NOT NULL"#,
+            r#""data_types_0_0_0"."schema"->>'description' IS NOT NULL"#,
             &[],
         );
 
@@ -161,7 +161,7 @@ mod tests {
                 None,
                 Some(FilterExpression::Path(DataTypeQueryPath::Description)),
             ),
-            r#""data_types"."schema"->>'description' IS NOT NULL"#,
+            r#""data_types_0_0_0"."schema"->>'description' IS NOT NULL"#,
             &[],
         );
 
@@ -177,7 +177,7 @@ mod tests {
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                 )))),
             )]),
-            r#"("data_types"."schema"->>'$id' = $1)"#,
+            r#"("data_types_0_0_0"."schema"->>'$id' = $1)"#,
             &[&"https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"],
         );
 
@@ -194,7 +194,7 @@ mod tests {
                     Some(FilterExpression::Parameter(Parameter::Number(1.0))),
                 ),
             ]),
-            r#"("type_ids_0_0"."base_uri" = $1) AND ("type_ids_0_0"."version" = $2)"#,
+            r#"("type_ids_0_1_0"."base_uri" = $1) AND ("type_ids_0_1_0"."version" = $2)"#,
             &[
                 &"https://blockprotocol.org/@blockprotocol/types/data-type/text/",
                 &1.0,
@@ -211,7 +211,7 @@ mod tests {
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                 )))),
             )]),
-            r#"("data_types"."schema"->>'$id' = $1)"#,
+            r#"("data_types_0_0_0"."schema"->>'$id' = $1)"#,
             &[&"https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"],
         );
 
@@ -228,7 +228,7 @@ mod tests {
                     Some(FilterExpression::Parameter(Parameter::Number(1.0))),
                 ),
             ]),
-            r#"(("type_ids_0_0"."base_uri" = $1) OR ("type_ids_0_0"."version" = $2))"#,
+            r#"(("type_ids_0_1_0"."base_uri" = $1) OR ("type_ids_0_1_0"."version" = $2))"#,
             &[
                 &"https://blockprotocol.org/@blockprotocol/types/data-type/text/",
                 &1.0,
@@ -245,7 +245,7 @@ mod tests {
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                 )))),
             ))),
-            r#"NOT("data_types"."schema"->>'$id' = $1)"#,
+            r#"NOT("data_types_0_0_0"."schema"->>'$id' = $1)"#,
             &[&"https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"],
         );
     }
@@ -257,7 +257,7 @@ mod tests {
                 Some(FilterExpression::Path(DataTypeQueryPath::Description)),
                 Some(FilterExpression::Path(DataTypeQueryPath::Title)),
             )]),
-            r#"("data_types"."schema"->>'description' = "data_types"."schema"->>'title')"#,
+            r#"("data_types_0_0_0"."schema"->>'description' = "data_types_0_0_0"."schema"->>'title')"#,
             &[],
         );
     }

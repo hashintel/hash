@@ -1,20 +1,17 @@
+import { Entity } from "@hashintel/hash-subgraph";
 import { CommentModel } from "../../../../model";
 import { ResolverFn } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import {
-  UnresolvedPersistedCommentGQL,
-  UnresolvedPersistedEntityGQL,
-  mapEntityModelToGQL,
-} from "../model-mapping";
+import { UnresolvedCommentGQL, mapEntityModelToGQL } from "../model-mapping";
 
-export const persistedCommentParent: ResolverFn<
-  Promise<UnresolvedPersistedEntityGQL>,
-  UnresolvedPersistedCommentGQL,
+export const commentParent: ResolverFn<
+  Promise<Entity>,
+  UnresolvedCommentGQL,
   LoggedInGraphQLContext,
   {}
-> = async ({ entityId }, _, { dataSources: { graphApi } }) => {
+> = async ({ metadata }, _, { dataSources: { graphApi } }) => {
   const commentModel = await CommentModel.getCommentById(graphApi, {
-    entityId,
+    entityId: metadata.editionId.baseId,
   });
   const parentModel = await commentModel.getParent(graphApi);
 

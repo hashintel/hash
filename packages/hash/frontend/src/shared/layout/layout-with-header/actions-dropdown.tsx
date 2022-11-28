@@ -4,6 +4,7 @@ import {
   Box,
   listItemSecondaryActionClasses,
   ListItemText,
+  Menu,
   useTheme,
 } from "@mui/material";
 
@@ -12,7 +13,7 @@ import {
   bindMenu,
   bindTrigger,
 } from "material-ui-popup-state/hooks";
-import { Menu, FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { MenuItem } from "../../ui";
 import { HeaderIconButton } from "./shared/header-icon-button";
 import { useAccountPages } from "../../../components/hooks/useAccountPages";

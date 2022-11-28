@@ -9,7 +9,7 @@ export const isShortnameTaken = gql`
 
 export const meQuery = gql`
   query me {
-    me(linkResolveDepth: 2, linkTargetEntityResolveDepth: 2) {
+    me(entityResolveDepth: 2) {
       ...SubgraphFields
     }
   }

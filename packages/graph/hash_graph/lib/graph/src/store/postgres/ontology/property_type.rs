@@ -1,30 +1,35 @@
-use std::{future::Future, pin::Pin};
+use std::{collections::HashSet, future::Future, pin::Pin};
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use futures::{stream, FutureExt, StreamExt, TryStreamExt};
 use tokio_postgres::GenericClient;
-use type_system::{uri::VersionedUri, PropertyType};
+use type_system::PropertyType;
 
 use crate::{
-    ontology::{PersistedOntologyMetadata, PersistedPropertyType},
+    identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId},
+    ontology::{OntologyElementMetadata, PropertyTypeWithMetadata},
     provenance::{CreatedById, OwnedById, UpdatedById},
-    shared::identifier::GraphElementIdentifier,
     store::{
         crud::Read,
         postgres::{context::PostgresContext, DependencyContext, DependencyContextRef},
         AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, UpdateError,
     },
-    subgraph::{EdgeKind, GraphResolveDepths, OutwardEdge, StructuralQuery, Subgraph},
+    subgraph::{
+        depths::GraphResolveDepths,
+        edges::{Edge, OntologyEdgeKind, OntologyOutwardEdges, OutwardEdge},
+        query::StructuralQuery,
+        Subgraph,
+    },
 };
 
 impl<C: AsClient> PostgresStore<C> {
-    /// Internal method to read a [`PersistedPropertyType`] into two [`DependencyContext`]s.
+    /// Internal method to read a [`PropertyTypeWithMetadata`] into two [`DependencyContext`]s.
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
     pub(crate) fn get_property_type_as_dependency<'a: 'b, 'b>(
         &'a self,
-        property_type_id: &'b VersionedUri,
+        property_type_id: &'b OntologyTypeEditionId,
         mut dependency_context: DependencyContextRef<'b>,
     ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'b>> {
         async move {
@@ -38,7 +43,7 @@ impl<C: AsClient> PostgresStore<C> {
                             .property_type_resolve_depth,
                     ),
                     || async {
-                        Ok(PersistedPropertyType::from(
+                        Ok(PropertyTypeWithMetadata::from(
                             self.read_versioned_ontology_type(property_type_id).await?,
                         ))
                     },
@@ -49,22 +54,14 @@ impl<C: AsClient> PostgresStore<C> {
                 // TODO: Use relation tables
                 //   see https://app.asana.com/0/0/1202884883200942/f
                 for data_type_ref in property_type.inner().data_type_references() {
-                    dependency_context.edges.insert(
-                        GraphElementIdentifier::OntologyElementId(property_type_id.clone()),
-                        OutwardEdge {
-                            edge_kind: EdgeKind::References,
-                            destination: GraphElementIdentifier::OntologyElementId(
-                                data_type_ref.uri().clone(),
-                            ),
-                        },
-                    );
                     if dependency_context
                         .graph_resolve_depths
                         .data_type_resolve_depth
                         > 0
                     {
                         self.get_data_type_as_dependency(
-                            data_type_ref.uri(),
+                            // We have to clone here because we can't call `Into` on the ref
+                            &data_type_ref.uri().clone().into(),
                             dependency_context.change_depth(GraphResolveDepths {
                                 data_type_resolve_depth: dependency_context
                                     .graph_resolve_depths
@@ -75,28 +72,27 @@ impl<C: AsClient> PostgresStore<C> {
                         )
                         .await?;
                     }
+                    dependency_context.edges.insert(Edge::Ontology {
+                        edition_id: property_type_id.clone(),
+                        outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
+                            kind: OntologyEdgeKind::ConstrainsValuesOn,
+                            reversed: false,
+                            right_endpoint: data_type_ref.uri().clone().into(),
+                        }),
+                    });
                 }
 
                 // TODO: Use relation tables
                 //   see https://app.asana.com/0/0/1202884883200942/f
                 for property_type_ref in property_type.inner().property_type_references() {
-                    dependency_context.edges.insert(
-                        GraphElementIdentifier::OntologyElementId(property_type_id.clone()),
-                        OutwardEdge {
-                            edge_kind: EdgeKind::References,
-                            destination: GraphElementIdentifier::OntologyElementId(
-                                property_type_ref.uri().clone(),
-                            ),
-                        },
-                    );
-
                     if dependency_context
                         .graph_resolve_depths
                         .property_type_resolve_depth
                         > 0
                     {
                         self.get_property_type_as_dependency(
-                            property_type_ref.uri(),
+                            // We have to clone here because we can't call `Into` on the ref
+                            &property_type_ref.uri().clone().into(),
                             dependency_context.change_depth(GraphResolveDepths {
                                 property_type_resolve_depth: dependency_context
                                     .graph_resolve_depths
@@ -107,6 +103,15 @@ impl<C: AsClient> PostgresStore<C> {
                         )
                         .await?;
                     }
+
+                    dependency_context.edges.insert(Edge::Ontology {
+                        edition_id: property_type_id.clone(),
+                        outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
+                            kind: OntologyEdgeKind::ConstrainsValuesOn,
+                            reversed: false,
+                            right_endpoint: property_type_ref.uri().clone().into(),
+                        }),
+                    });
                 }
             }
 
@@ -123,7 +128,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         property_type: PropertyType,
         owned_by_id: OwnedById,
         created_by_id: CreatedById,
-    ) -> Result<PersistedOntologyMetadata, InsertionError> {
+    ) -> Result<OntologyElementMetadata, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()
@@ -170,11 +175,11 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
             graph_resolve_depths,
         } = *query;
 
-        let subgraphs = stream::iter(Read::<PersistedPropertyType>::read(self, filter).await?)
+        let subgraphs = stream::iter(Read::<PropertyTypeWithMetadata>::read(self, filter).await?)
             .then(|property_type| async move {
                 let mut dependency_context = DependencyContext::new(graph_resolve_depths);
 
-                let property_type_id = property_type.metadata().identifier().uri().clone();
+                let property_type_id = property_type.metadata().edition_id().clone();
                 dependency_context.referenced_property_types.insert(
                     &property_type_id,
                     None,
@@ -187,9 +192,9 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
                 )
                 .await?;
 
-                let root = GraphElementIdentifier::OntologyElementId(property_type_id);
+                let root = GraphElementEditionId::Ontology(property_type_id);
 
-                Ok::<_, Report<QueryError>>(dependency_context.into_subgraph(vec![root]))
+                Ok::<_, Report<QueryError>>(dependency_context.into_subgraph(HashSet::from([root])))
             })
             .try_collect::<Vec<_>>()
             .await?;
@@ -204,7 +209,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         &mut self,
         property_type: PropertyType,
         updated_by: UpdatedById,
-    ) -> Result<PersistedOntologyMetadata, UpdateError> {
+    ) -> Result<OntologyElementMetadata, UpdateError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()

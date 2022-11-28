@@ -8,55 +8,39 @@ mod data_type;
 mod entity;
 mod entity_type;
 mod expression;
-mod link;
-mod link_type;
 mod property_type;
 mod statement;
 mod table;
 
 use std::fmt::{self, Display, Formatter};
 
-use postgres_types::ToSql;
-
 pub use self::{
     compile::SelectCompiler,
     condition::{Condition, EqualityOperator},
     expression::{
-        CommonTableExpression, EdgeJoinDirection, Expression, Function, JoinExpression,
-        OrderByExpression, Ordering, SelectExpression, WhereExpression, WithExpression,
+        CommonTableExpression, Expression, Function, JoinExpression, OrderByExpression, Ordering,
+        SelectExpression, WhereExpression, WithExpression,
     },
     statement::{Distinctness, SelectStatement, Statement, WindowStatement},
-    table::{Column, ColumnAccess, Table, TableAlias, TableName},
+    table::{Alias, AliasedColumn, AliasedTable, Table},
 };
-use crate::store::query::QueryRecord;
+use crate::store::{
+    postgres::query::table::{Column, Relation},
+    query::QueryRecord,
+};
 
-pub trait PostgresQueryRecord<'q>: QueryRecord<Path<'q>: Path> {
+pub trait PostgresQueryRecord: for<'q> QueryRecord<Path<'q>: Path> {
     /// The [`Table`] used for this `Query`.
     fn base_table() -> Table;
-
-    /// Default [`Path`]s returned when querying this record.
-    fn default_selection_paths() -> &'q [Self::Path<'q>];
 }
 
 /// An absolute path inside of a query pointing to an attribute.
 pub trait Path {
-    /// Returns a list of [`TableName`]s required to traverse this path.
-    fn tables(&self) -> Vec<(TableName, EdgeJoinDirection)>;
+    /// Returns a list of [`Relation`]s required to traverse this path.
+    fn relations(&self) -> Vec<Relation>;
 
-    /// The [`TableName`] that marks the end of the path.
-    fn terminating_table_name(&self) -> TableName;
-
-    /// How to access the column inside of [`terminating_table_name()`] where this path ends.
-    ///
-    /// [`terminating_table_name()`]: Self::terminating_table_name
-    fn column_access(&self) -> ColumnAccess;
-
-    /// Returns the paths if the path is provided by a user.
-    ///
-    /// One example of a user provided path are properties of an [`Entity`]
-    ///
-    /// [`Entity`]: crate::knowledge::Entity
-    fn user_provided_path(&self) -> Option<&(dyn ToSql + Sync)>;
+    /// The [`Column`] where this path ends.
+    fn terminating_column(&self) -> Column;
 }
 
 /// Renders the object into a Postgres compatible format.
@@ -80,7 +64,7 @@ pub trait Transpile {
 mod test_helper {
     use crate::{
         ontology::DataTypeQueryPath,
-        store::postgres::query::{Column, Expression, Function, Path, Table, WindowStatement},
+        store::postgres::query::{Alias, Expression, Function, Path, WindowStatement},
     };
 
     pub fn trim_whitespace(string: impl Into<String>) -> String {
@@ -94,21 +78,21 @@ mod test_helper {
     pub fn max_version_expression() -> Expression<'static> {
         Expression::Window(
             Box::new(Expression::Function(Box::new(Function::Max(
-                Expression::Column(Column {
-                    table: Table {
-                        name: DataTypeQueryPath::Version.terminating_table_name(),
-                        alias: None,
+                Expression::Column(DataTypeQueryPath::Version.terminating_column().aliased(
+                    Alias {
+                        condition_index: 0,
+                        chain_depth: 0,
+                        number: 0,
                     },
-                    access: DataTypeQueryPath::Version.column_access(),
-                }),
+                )),
             )))),
-            WindowStatement::partition_by(Column {
-                table: Table {
-                    name: DataTypeQueryPath::BaseUri.terminating_table_name(),
-                    alias: None,
+            WindowStatement::partition_by(DataTypeQueryPath::BaseUri.terminating_column().aliased(
+                Alias {
+                    condition_index: 0,
+                    chain_depth: 0,
+                    number: 0,
                 },
-                access: DataTypeQueryPath::BaseUri.column_access(),
-            }),
+            )),
         )
     }
 }

@@ -7,10 +7,9 @@ import {
   useMemo,
   useState,
 } from "react";
+import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { useBlockProtocolAggregatePropertyTypes } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregatePropertyTypes";
-import { getPersistedPropertyType } from "../../../../lib/subgraph";
 import { useInitTypeSystem } from "../../../../lib/use-init-type-system";
-import { mustBeVersionedUri } from "./util";
 
 type PropertyTypesContextValues = {
   types: Record<VersionedUri, PropertyType> | null;
@@ -29,23 +28,11 @@ export const usePropertyTypesContextValue = () => {
       return;
     }
     await aggregatePropertyTypes({ data: {} }).then(({ data: subgraph }) => {
-      // @todo error handling
       if (subgraph) {
         setPropertyTypes(
           Object.fromEntries(
-            subgraph.roots.map((propertyTypeId) => {
-              const propertyType = getPersistedPropertyType(
-                subgraph,
-                propertyTypeId,
-              );
-
-              if (!propertyType) {
-                throw new Error(
-                  "property type was missing from the subgraph vertices list",
-                );
-              }
-
-              return [mustBeVersionedUri(propertyTypeId), propertyType.inner];
+            getRoots(subgraph).map((propertyType) => {
+              return [propertyType.schema.$id, propertyType.schema];
             }),
           ),
         );

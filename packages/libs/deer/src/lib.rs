@@ -84,8 +84,6 @@ pub trait Visitor<'de>: Sized {
             .change_context(VisitorError))
     }
 
-    // TODO: should this auto-delegate to one of the other visit functions?!
-    //  ~> experimentation is needed
     fn visit_number(self, v: Number) -> Result<Self::Value, VisitorError> {
         Err(Report::new(TypeError)
             .attach(ReceivedType::new(Schema::new("number")))
@@ -94,21 +92,14 @@ pub trait Visitor<'de>: Sized {
     }
 
     fn visit_char(self, v: char) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError)
-            .attach(ReceivedType::new(
-                Schema::new("string")
-                    .with("minLength", 1)
-                    .with("maxLength", 1),
-            ))
-            .attach(ExpectedType::new(self.expecting()))
-            .change_context(VisitorError))
-    }
+        let mut buffer = [0; 4];
+        let v = v.encode_utf8(&mut buffer);
 
-    fn visit_string(self, v: String) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError)
-            .attach(ReceivedType::new(Schema::new("string")))
-            .attach(ExpectedType::new(self.expecting()))
-            .change_context(VisitorError))
+        self.visit_str(v).attach(ReceivedType::new(
+            Schema::new("string")
+                .with("minLength", 1)
+                .with("maxLength", 1),
+        ))
     }
 
     fn visit_str(self, v: &str) -> Result<Self::Value, VisitorError> {
@@ -119,20 +110,11 @@ pub trait Visitor<'de>: Sized {
     }
 
     fn visit_borrowed_str(self, v: &'de str) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError)
-            .attach(ReceivedType::new(Schema::new("string")))
-            .attach(ExpectedType::new(self.expecting()))
-            .change_context(VisitorError))
+        self.visit_str(v)
     }
 
-    fn visit_bytes_buffer(self, v: Vec<u8>) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError)
-            .attach(ReceivedType::new(
-                // TODO: binary is not a valid json-schema type
-                Schema::new("binary"),
-            ))
-            .attach(ExpectedType::new(self.expecting()))
-            .change_context(VisitorError))
+    fn visit_string(self, v: String) -> Result<Self::Value, VisitorError> {
+        self.visit_str(&v)
     }
 
     fn visit_bytes(self, v: &[u8]) -> Result<Self::Value, VisitorError> {
@@ -146,13 +128,11 @@ pub trait Visitor<'de>: Sized {
     }
 
     fn visit_borrowed_bytes(self, v: &'de [u8]) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError)
-            .attach(ReceivedType::new(
-                // TODO: binary is not a valid json-schema type
-                Schema::new("binary"),
-            ))
-            .attach(ExpectedType::new(self.expecting()))
-            .change_context(VisitorError))
+        self.visit_bytes(v)
+    }
+
+    fn visit_bytes_buffer(self, v: Vec<u8>) -> Result<Self::Value, VisitorError> {
+        self.visit_bytes(&v)
     }
 
     fn visit_array<T>(self, v: T) -> Result<Self::Value, VisitorError>
@@ -176,47 +156,35 @@ pub trait Visitor<'de>: Sized {
     }
 
     fn visit_i8(self, v: i8) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError)
-            .attach(ReceivedType::new(
-                Schema::new("integer")
-                    .with("minimum", i8::MIN)
-                    .with("maximum", i8::MAX),
-            ))
-            .attach(ExpectedType::new(self.expecting()))
-            .change_context(VisitorError))
+        self.visit_number(Number::from(v)).attach(ReceivedType::new(
+            Schema::new("integer")
+                .with("minimum", i8::MIN)
+                .with("maximum", i8::MAX),
+        ))
     }
 
     fn visit_i16(self, v: i16) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError)
-            .attach(ReceivedType::new(
-                Schema::new("integer")
-                    .with("minimum", i16::MIN)
-                    .with("maximum", i16::MAX),
-            ))
-            .attach(ExpectedType::new(self.expecting()))
-            .change_context(VisitorError))
+        self.visit_number(Number::from(v)).attach(ReceivedType::new(
+            Schema::new("integer")
+                .with("minimum", i16::MIN)
+                .with("maximum", i16::MAX),
+        ))
     }
 
     fn visit_i32(self, v: i32) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError)
-            .attach(ReceivedType::new(
-                Schema::new("integer")
-                    .with("minimum", i32::MIN)
-                    .with("maximum", i32::MAX),
-            ))
-            .attach(ExpectedType::new(self.expecting()))
-            .change_context(VisitorError))
+        self.visit_number(Number::from(v)).attach(ReceivedType::new(
+            Schema::new("integer")
+                .with("minimum", i32::MIN)
+                .with("maximum", i32::MAX),
+        ))
     }
 
     fn visit_i64(self, v: i64) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError)
-            .attach(ReceivedType::new(
-                Schema::new("integer")
-                    .with("minimum", i64::MIN)
-                    .with("maximum", i64::MAX),
-            ))
-            .attach(ExpectedType::new(self.expecting()))
-            .change_context(VisitorError))
+        self.visit_number(Number::from(v)).attach(ReceivedType::new(
+            Schema::new("integer")
+                .with("minimum", i64::MIN)
+                .with("maximum", i64::MAX),
+        ))
     }
 
     fn visit_i128(self, v: i128) -> Result<Self::Value, VisitorError> {
@@ -242,47 +210,35 @@ pub trait Visitor<'de>: Sized {
     }
 
     fn visit_u8(self, v: u8) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError)
-            .attach(ReceivedType::new(
-                Schema::new("integer")
-                    .with("minimum", u8::MIN)
-                    .with("maximum", u8::MAX),
-            ))
-            .attach(ExpectedType::new(self.expecting()))
-            .change_context(VisitorError))
+        self.visit_number(Number::from(v)).attach(ReceivedType::new(
+            Schema::new("integer")
+                .with("minimum", u8::MIN)
+                .with("maximum", u8::MAX),
+        ))
     }
 
     fn visit_u16(self, v: u16) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError)
-            .attach(ReceivedType::new(
-                Schema::new("integer")
-                    .with("minimum", u16::MIN)
-                    .with("maximum", u16::MAX),
-            ))
-            .attach(ExpectedType::new(self.expecting()))
-            .change_context(VisitorError))
+        self.visit_number(Number::from(v)).attach(ReceivedType::new(
+            Schema::new("integer")
+                .with("minimum", u16::MIN)
+                .with("maximum", u16::MAX),
+        ))
     }
 
     fn visit_u32(self, v: u32) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError)
-            .attach(ReceivedType::new(
-                Schema::new("integer")
-                    .with("minimum", u32::MIN)
-                    .with("maximum", u32::MAX),
-            ))
-            .attach(ExpectedType::new(self.expecting()))
-            .change_context(VisitorError))
+        self.visit_number(Number::from(v)).attach(ReceivedType::new(
+            Schema::new("integer")
+                .with("minimum", u32::MIN)
+                .with("maximum", u32::MAX),
+        ))
     }
 
     fn visit_u64(self, v: u64) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError)
-            .attach(ReceivedType::new(
-                Schema::new("integer")
-                    .with("minimum", u64::MIN)
-                    .with("maximum", u64::MAX),
-            ))
-            .attach(ExpectedType::new(self.expecting()))
-            .change_context(VisitorError))
+        self.visit_number(Number::from(v)).attach(ReceivedType::new(
+            Schema::new("integer")
+                .with("minimum", u64::MIN)
+                .with("maximum", u64::MAX),
+        ))
     }
 
     fn visit_u128(self, v: u128) -> Result<Self::Value, VisitorError> {
@@ -308,17 +264,13 @@ pub trait Visitor<'de>: Sized {
     }
 
     fn visit_f32(self, v: f32) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError)
+        self.visit_number(Number::from(v))
             .attach(ReceivedType::new(Schema::new("number")))
-            .attach(ExpectedType::new(self.expecting()))
-            .change_context(VisitorError))
     }
 
     fn visit_f64(self, v: f64) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError)
+        self.visit_number(Number::from(v))
             .attach(ReceivedType::new(Schema::new("number")))
-            .attach(ExpectedType::new(self.expecting()))
-            .change_context(VisitorError))
     }
 }
 

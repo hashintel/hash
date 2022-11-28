@@ -3,15 +3,12 @@ import { ApolloError, UserInputError } from "apollo-server-errors";
 import { exactlyOne } from "../../../../util";
 import { PageModel } from "../../../../model";
 import {
-  UpdatePersistedPageContentsResult,
-  MutationUpdatePersistedPageContentsArgs,
+  UpdatePageContentsResult,
+  MutationUpdatePageContentsArgs,
   ResolverFn,
 } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import {
-  mapPageModelToGQL,
-  UnresolvedPersistedPageGQL,
-} from "../model-mapping";
+import { mapPageModelToGQL, UnresolvedPageGQL } from "../model-mapping";
 import {
   PlaceholderResultsMap,
   filterForAction,
@@ -29,18 +26,18 @@ import {
  *   When we have a transaction primitive in the Graph API, we should use it here.
  *   See https://app.asana.com/0/1200211978612931/1202573572594586/f
  */
-export const updatePersistedPageContents: ResolverFn<
+export const updatePageContents: ResolverFn<
   Promise<
-    Omit<UpdatePersistedPageContentsResult, "page"> & {
-      page: UnresolvedPersistedPageGQL;
+    Omit<UpdatePageContentsResult, "page"> & {
+      page: UnresolvedPageGQL;
     }
   >,
   {},
   LoggedInGraphQLContext,
-  MutationUpdatePersistedPageContentsArgs
+  MutationUpdatePageContentsArgs
 > = async (
   _,
-  { ownedById, entityId: pageEntityId, actions },
+  { entityId: pageEntityId, actions },
   { dataSources, userModel },
 ) => {
   for (const [i, action] of actions.entries()) {
@@ -56,7 +53,7 @@ export const updatePersistedPageContents: ResolverFn<
       )
     ) {
       throw new UserInputError(
-        `at action ${i}: exactly one of the fields on UpdatePersistedPageAction must be specified`,
+        `at action ${i}: exactly one of the fields on UpdatePageAction must be specified`,
       );
     }
   }
@@ -129,7 +126,7 @@ export const updatePersistedPageContents: ResolverFn<
   });
 
   if (!pageModel) {
-    const msg = `Page with fixed ID ${pageEntityId} not found in account ${ownedById}`;
+    const msg = `Page with Entity ID ${pageEntityId}`;
     throw new ApolloError(msg, "NOT_FOUND");
   }
 
@@ -140,23 +137,21 @@ export const updatePersistedPageContents: ResolverFn<
         await pageModel.insertBlock(graphApi, {
           block: insertedBlocks[insertCount]!,
           position: action.insertBlock.position,
-          updateSiblings: false,
-          actorId: userModel.entityId,
+          actorId: userModel.getEntityUuid(),
         });
         insertCount += 1;
       } else if (action.moveBlock) {
         await pageModel.moveBlock(graphApi, {
           ...action.moveBlock,
-          actorId: userModel.entityId,
+          actorId: userModel.getEntityUuid(),
         });
       } else if (action.removeBlock) {
         await pageModel.removeBlock(graphApi, {
           position: action.removeBlock.position,
-          actorId: userModel.entityId,
+          actorId: userModel.getEntityUuid(),
           allowRemovingFinal: actions
             .slice(i + 1)
             .some((actionToFollow) => actionToFollow.insertBlock),
-          updateSiblings: false,
         });
       }
     } catch (error) {
