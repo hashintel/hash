@@ -21,7 +21,7 @@ use alloc::{string::String, vec::Vec};
 
 use error_stack::{Report, Result, ResultExt};
 use num_traits::ToPrimitive;
-use schema::Schema;
+pub use schema::{Document, Schema};
 
 use crate::error::{
     ArrayAccessError, DeserializeError, DeserializerError, ExpectedType, MissingError,
