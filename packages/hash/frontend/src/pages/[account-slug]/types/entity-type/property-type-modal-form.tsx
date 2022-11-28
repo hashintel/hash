@@ -74,14 +74,14 @@ export const PropertyTypeModalForm = ({
   popupState,
   onSubmit,
   submitButtonProps,
-  initialTitle,
+  defaultValues = {},
 }: {
   onClose?: () => void;
   modalTitle: ReactNode;
   popupState: PopupState;
   onSubmit: (data: PropertyTypeModalFormValues) => Promise<void>;
   submitButtonProps: PropertyTypeModalFormSubmitProps;
-  initialTitle?: string;
+  defaultValues?: Partial<PropertyTypeModalFormValues>;
 }) => {
   const {
     register,
@@ -97,15 +97,20 @@ export const PropertyTypeModalForm = ({
     clearErrors,
     setFocus,
   } = useForm<PropertyTypeModalFormValues>({
-    defaultValues: { name: initialTitle, description: "", expectedValues: [] },
+    defaultValues: {
+      name: "",
+      description: "",
+      expectedValues: [],
+      ...defaultValues,
+    },
     shouldFocusError: true,
     mode: "onBlur",
     reValidateMode: "onBlur",
   });
 
   useEffect(() => {
-    setFocus(initialTitle ? "description" : "name");
-  }, [initialTitle, setFocus]);
+    setFocus(defaultValues.name ? "description" : "name");
+  }, [defaultValues.name, setFocus]);
 
   const { namespace: routeNamespace } = useRouteNamespace();
 
