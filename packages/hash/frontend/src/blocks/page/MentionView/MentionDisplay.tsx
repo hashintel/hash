@@ -5,6 +5,7 @@ import {
   EntityId,
   extractEntityUuidFromEntityId,
 } from "@hashintel/hash-subgraph";
+import { SYSTEM_ACCOUNT_SHORTNAME } from "@hashintel/hash-shared/environment";
 import { useUsers } from "../../../components/hooks/useUsers";
 import { useAccountPages } from "../../../components/hooks/useAccountPages";
 import { Link } from "../../../shared/ui";
@@ -26,12 +27,17 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
   const { title, href, icon } = useMemo(() => {
     switch (mentionType) {
       case "user": {
-        // Only set the title to "Page" if the query hasn't returned yet
+        // User entities are stored on the system account
+        const userHref = `/@${SYSTEM_ACCOUNT_SHORTNAME}/entities/${extractEntityUuidFromEntityId(
+          entityId,
+        )}`;
+
+        // Only set the title to "User" if the query hasn't returned yet
         if (!users || (usersLoading && !users.length)) {
           /** @todo - What should the href be here? */
           return {
             title: "User",
-            href: `#`,
+            href: userHref,
             icon: "@",
           };
         } else {
@@ -43,9 +49,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
           if (matchingUser) {
             return {
               title: matchingUser.preferredName,
-              href: `@${
-                matchingUser.shortname
-              }/entities/${extractEntityUuidFromEntityId(entityId)}`,
+              href: userHref,
               icon: "@",
             };
           } else {
@@ -73,7 +77,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
 
         return {
           title: pageTitle,
-          href: `/${accountId}/${entityId}`,
+          href: `/${accountId}/${extractEntityUuidFromEntityId(entityId)}`,
           icon: <ArticleIcon style={{ fontSize: "1em" }} />,
         };
       }

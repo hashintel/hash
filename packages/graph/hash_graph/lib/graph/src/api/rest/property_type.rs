@@ -31,8 +31,10 @@ use crate::{
         query::Filter, BaseUriAlreadyExists, BaseUriDoesNotExist, PropertyTypeStore, StorePool,
     },
     subgraph::{
-        depths::GraphResolveDepths,
-        edges::{OntologyEdgeKind, SharedEdgeKind},
+        edges::{
+            EdgeResolveDepths, GraphResolveDepths, OntologyEdgeKind, OutgoingEdgeResolveDepth,
+            SharedEdgeKind,
+        },
         query::{PropertyTypeStructuralQuery, StructuralQuery},
         vertices::Vertex,
     },
@@ -66,6 +68,8 @@ use crate::{
             OntologyEdgeKind,
             SharedEdgeKind,
             GraphResolveDepths,
+            EdgeResolveDepths,
+            OutgoingEdgeResolveDepth,
             Edges,
             Subgraph,
         )

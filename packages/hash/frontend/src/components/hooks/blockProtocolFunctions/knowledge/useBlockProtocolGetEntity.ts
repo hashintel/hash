@@ -36,13 +36,13 @@ export const useBlockProtocolGetEntity = (): {
       const { data: response } = await getEntityFn({
         variables: {
           entityId,
-          // Get the full entity type _tree_
-          dataTypeResolveDepth: 255,
-          propertyTypeResolveDepth: 255,
-          // Don't explore entityType references beyond the absolute neighbors
-          entityTypeResolveDepth: 2,
-          // Only get absolute neighbor link entities and their endpoint entities
-          entityResolveDepth: 2,
+          constrainsValuesOn: { outgoing: 255 },
+          constrainsPropertiesOn: { outgoing: 255 },
+          constrainsLinksOn: { outgoing: 1 },
+          constrainsLinkDestinationsOn: { outgoing: 1 },
+          isOfType: { outgoing: 1 },
+          hasLeftEntity: { outgoing: 1, incoming: 1 },
+          hasRightEntity: { outgoing: 1, incoming: 1 },
         },
       });
 

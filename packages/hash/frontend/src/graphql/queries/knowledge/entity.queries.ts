@@ -6,33 +6,40 @@ export const createEntityMutation = gql`
     $entityTypeId: VersionedUri!
     $ownedById: ID
     $properties: PropertyObject!
+    $linkMetadata: LinkEntityMetadata
   ) {
+    # This is a scalar, which has no selection.
     createEntity(
       entityTypeId: $entityTypeId
       ownedById: $ownedById
       properties: $properties
+      linkMetadata: $linkMetadata
     )
   }
 `;
-
-/** @todo - rename these to omit the "WithMetadata" suffix - https://app.asana.com/0/1201095311341924/1203411297593704/f */
 
 export const getEntityQuery = gql`
   query getEntity(
     $entityId: EntityId!
     $entityVersion: String
-    $dataTypeResolveDepth: Int!
-    $propertyTypeResolveDepth: Int!
-    $entityTypeResolveDepth: Int!
-    $entityResolveDepth: Int!
+    $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
+    $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
+    $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
+    $constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
+    $isOfType: OutgoingEdgeResolveDepthInput!
+    $hasLeftEntity: EdgeResolveDepthsInput!
+    $hasRightEntity: EdgeResolveDepthsInput!
   ) {
     getEntity(
       entityId: $entityId
       entityVersion: $entityVersion
-      dataTypeResolveDepth: $dataTypeResolveDepth
-      propertyTypeResolveDepth: $propertyTypeResolveDepth
-      entityTypeResolveDepth: $entityTypeResolveDepth
-      entityResolveDepth: $entityResolveDepth
+      constrainsValuesOn: $constrainsValuesOn
+      constrainsPropertiesOn: $constrainsPropertiesOn
+      constrainsLinksOn: $constrainsLinksOn
+      constrainsLinkDestinationsOn: $constrainsLinkDestinationsOn
+      isOfType: $isOfType
+      hasLeftEntity: $hasLeftEntity
+      hasRightEntity: $hasRightEntity
     ) {
       ...SubgraphFields
     }
@@ -42,16 +49,22 @@ export const getEntityQuery = gql`
 
 export const getAllLatestEntitiesQuery = gql`
   query getAllLatestEntities(
-    $dataTypeResolveDepth: Int!
-    $propertyTypeResolveDepth: Int!
-    $entityTypeResolveDepth: Int!
-    $entityResolveDepth: Int!
+    $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
+    $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
+    $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
+    $constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
+    $isOfType: OutgoingEdgeResolveDepthInput!
+    $hasLeftEntity: EdgeResolveDepthsInput!
+    $hasRightEntity: EdgeResolveDepthsInput!
   ) {
     getAllLatestEntities(
-      dataTypeResolveDepth: $dataTypeResolveDepth
-      propertyTypeResolveDepth: $propertyTypeResolveDepth
-      entityTypeResolveDepth: $entityTypeResolveDepth
-      entityResolveDepth: $entityResolveDepth
+      constrainsValuesOn: $constrainsValuesOn
+      constrainsPropertiesOn: $constrainsPropertiesOn
+      constrainsLinksOn: $constrainsLinksOn
+      constrainsLinkDestinationsOn: $constrainsLinkDestinationsOn
+      isOfType: $isOfType
+      hasLeftEntity: $hasLeftEntity
+      hasRightEntity: $hasRightEntity
     ) {
       ...SubgraphFields
     }

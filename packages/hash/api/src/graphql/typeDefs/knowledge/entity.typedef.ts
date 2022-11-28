@@ -6,6 +6,7 @@ export const entityTypedef = gql`
   scalar Entity
   scalar PropertyObject
   scalar EntityMetadata
+  scalar LinkEntityMetadata
 
   input LinkedEntityDefinition {
     destinationAccountId: ID!
@@ -43,10 +44,13 @@ export const entityTypedef = gql`
     Get a subgraph rooted at all entities at their latest version.
     """
     getAllLatestEntities(
-      dataTypeResolveDepth: Int!
-      propertyTypeResolveDepth: Int!
-      entityTypeResolveDepth: Int!
-      entityResolveDepth: Int!
+      constrainsValuesOn: OutgoingEdgeResolveDepthInput!
+      constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
+      constrainsLinksOn: OutgoingEdgeResolveDepthInput!
+      constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
+      isOfType: OutgoingEdgeResolveDepthInput!
+      hasLeftEntity: EdgeResolveDepthsInput!
+      hasRightEntity: EdgeResolveDepthsInput!
     ): Subgraph!
 
     """
@@ -61,10 +65,13 @@ export const entityTypedef = gql`
       The version of the entity. Defaults to the latest version.
       """
       entityVersion: String
-      dataTypeResolveDepth: Int!
-      propertyTypeResolveDepth: Int!
-      entityTypeResolveDepth: Int!
-      entityResolveDepth: Int!
+      constrainsValuesOn: OutgoingEdgeResolveDepthInput!
+      constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
+      constrainsLinksOn: OutgoingEdgeResolveDepthInput!
+      constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
+      isOfType: OutgoingEdgeResolveDepthInput!
+      hasLeftEntity: EdgeResolveDepthsInput!
+      hasRightEntity: EdgeResolveDepthsInput!
     ): Subgraph!
   }
 
@@ -89,6 +96,10 @@ export const entityTypedef = gql`
       Associated Entities to either create/get and link to this entity.
       """
       linkedEntities: [LinkedEntityDefinition!]
+      """
+      The link metadata of the entity (required when creating a link entity).
+      """
+      linkMetadata: LinkEntityMetadata
     ): Entity!
 
     """

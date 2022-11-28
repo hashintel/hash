@@ -27,12 +27,12 @@ export const useEntityTypeEntitiesContextValue = (
   useEffect(() => {
     void aggregateEntities({
       data: {
-        dataTypeResolveDepth: 0,
-        propertyTypeResolveDepth: 1,
+        constrainsValuesOn: 0,
+        constrainsPropertiesOn: 1,
         linkTypeResolveDepth: 0,
-        entityTypeResolveDepth: 1,
+        constrainsLinksOn: 1,
         linkResolveDepth: 0,
-        linkTargetEntityResolveDepth: 0,
+        linkTargethasLeftEntity: 0,
       },
     }).then((res) => {
       if (res.data) {

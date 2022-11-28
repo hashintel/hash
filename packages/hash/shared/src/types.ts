@@ -156,6 +156,20 @@ const systemPropertyTypes = {
     title: "Email",
     description: undefined,
   },
+  userSelfRegistrationIsEnabled: {
+    title: "User Self Registration Is Enabled",
+    description: "Whether or not user self registration (sign-up) is enabled.",
+  },
+  userRegistrationByInviteIsEnabled: {
+    title: "User Registration By Invitation Is Enabled",
+    description:
+      "Whether or not a user is able to register another user by inviting them to an org.",
+  },
+  orgSelfRegistrationIsEnabled: {
+    title: "Org Self Registration Is Enabled",
+    description:
+      "Whether or not a user can self-register an org (note this does not apply to instance admins).",
+  },
   kratosIdentityId: {
     title: "Kratos Identity Id",
     description: undefined,
