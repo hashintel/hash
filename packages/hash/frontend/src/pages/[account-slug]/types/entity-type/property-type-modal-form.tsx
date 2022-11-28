@@ -96,6 +96,7 @@ const PropertyTypeForm = ({
     control,
     clearErrors,
     setFocus,
+    trigger,
   } = useForm<PropertyTypeModalFormValues>({
     defaultValues: {
       name: "",
@@ -110,6 +111,10 @@ const PropertyTypeForm = ({
 
   useEffect(() => {
     setFocus(defaultValues.name ? "description" : "name");
+
+    if (defaultValues.name) {
+      void trigger("name");
+    }
   }, [defaultValues.name, setFocus]);
 
   const { namespace: routeNamespace } = useRouteNamespace();
