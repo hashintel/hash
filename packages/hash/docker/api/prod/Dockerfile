@@ -12,6 +12,7 @@ COPY libs/javascript/@local/tsconfig/package.json libs/javascript/@local/tsconfi
 COPY libs/javascript/@local/eslint-config/package.json libs/javascript/@local/eslint-config/
 COPY packages/hash/api/package.json packages/hash/api/
 COPY packages/hash/shared/package.json packages/hash/shared/
+COPY packages/hash/subgraph/package.json packages/hash/subgraph/
 COPY packages/hash/backend-utils/package.json packages/hash/backend-utils/
 COPY packages/graph/clients/typescript/package.json packages/graph/clients/typescript/
 RUN yarn workspace @hashintel/hash-api install --frozen-lockfile --ignore-scripts --prefer-offline
@@ -33,6 +34,7 @@ COPY packages/graph/clients/typescript packages/graph/clients/typescript
 COPY packages/hash/backend-utils packages/hash/backend-utils
 COPY packages/hash/api packages/hash/api
 COPY packages/hash/shared packages/hash/shared
+COPY packages/hash/subgraph packages/hash/subgraph
 RUN mkdir -p /app/var/uploads
 
 

@@ -18,6 +18,7 @@ COPY libs/javascript/@local/eslint-config/package.json libs/javascript/@local/es
 COPY packages/hash/frontend/package.json packages/hash/frontend/
 COPY packages/hash/design-system/package.json packages/hash/design-system/
 COPY packages/hash/shared/package.json packages/hash/shared/
+COPY packages/hash/subgraph/package.json packages/hash/subgraph/
 COPY packages/graph/clients/typescript/package.json packages/graph/clients/typescript/
 RUN yarn workspace @hashintel/hash-frontend install --frozen-lockfile --prefer-offline
 
@@ -40,6 +41,7 @@ COPY packages/graph/clients/typescript packages/graph/clients/typescript
 COPY packages/hash/frontend packages/hash/frontend
 COPY packages/hash/design-system packages/hash/design-system
 COPY packages/hash/shared packages/hash/shared
+COPY packages/hash/subgraph packages/hash/subgraph
 
 WORKDIR /app/packages/hash/frontend
 ENV NODE_ENV production
@@ -62,6 +64,8 @@ FROM node:16.18.1-alpine
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 COPY --from=builder --chown=appgroup:appuser /app /app
 
+# Nextjs needs permissions to create caches
+RUN chown -R appuser:appgroup /app/packages/hash/frontend/.next
 WORKDIR /app
 
 USER appuser
