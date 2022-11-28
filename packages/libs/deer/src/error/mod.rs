@@ -50,14 +50,16 @@
 //!
 //! Another downside of the current approach is, that a [`Display`] message cannot use the values of
 //! the properties, which is not ideal when writing "personalized" error messages during
-//! serialization. This is fixed because [`Error`] implementations must provide
-//! [`Error::message`], which receives all properties and their value.
+//! serialization. This is fixed because [`Variant`] implementations must provide
+//! [`Variant::message`], which receives all properties and their value.
 //!
 //! [`Location`]: core::panic::Location
 
 use alloc::{boxed::Box, collections::BTreeMap, format, string::String};
+#[cfg(nightly)]
+use core::any::Demand;
 use core::{
-    any::{Any, Demand},
+    any::Any,
     fmt::{self, Debug, Display, Formatter},
 };
 
@@ -383,6 +385,7 @@ impl Error {
     }
 
     pub fn downcast<T: Variant>(self) -> core::result::Result<T, Self> {
+        #[cfg(nightly)]
         let Self {
             variant,
             serialize,
@@ -391,16 +394,32 @@ impl Error {
             provide,
         } = self;
 
-        variant
-            .downcast()
-            .map(|value| *value)
-            .map_err(|variant| Self {
+        #[cfg(not(nightly))]
+        let Self {
+            variant,
+            serialize,
+            display,
+            debug,
+        } = self;
+
+        variant.downcast().map(|value| *value).map_err(|variant| {
+            #[cfg(nightly)]
+            return Self {
                 variant,
                 serialize,
                 display,
                 debug,
                 provide,
-            })
+            };
+
+            #[cfg(not(nightly))]
+            return Self {
+                variant,
+                serialize,
+                display,
+                debug,
+            };
+        })
     }
 
     #[must_use]
