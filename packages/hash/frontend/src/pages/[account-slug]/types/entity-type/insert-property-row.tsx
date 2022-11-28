@@ -5,19 +5,17 @@ import {
   TableRow,
   useForkRef,
 } from "@mui/material";
-import {
-  bindToggle,
-  bindTrigger,
-  usePopupState,
-} from "material-ui-popup-state/hooks";
+import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { Ref, useId, useRef, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { useBlockProtocolCreatePropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreatePropertyType";
 import { EntityTypeEditorForm } from "./form-types";
 import { PropertyListSelectorDropdownContext } from "./property-list-selector-dropdown";
 import { PropertySelector } from "./property-selector";
-import { PropertyTypeForm, PropertyTypeFormValues } from "./property-type-form";
-import { PropertyTypeModal } from "./property-type-modal";
+import {
+  PropertyTypeFormValues,
+  PropertyTypeModalForm,
+} from "./property-type-modal-form";
 import { QuestionIcon } from "./question-icon";
 import { useRefetchPropertyTypes } from "./use-property-types";
 import { useRouteNamespace } from "./use-route-namespace";
@@ -119,9 +117,8 @@ export const InsertPropertyRow = ({
             }
           />
         </PropertyListSelectorDropdownContext.Provider>
-        <PropertyTypeModal
-          popupState={modalPopupState}
-          title={
+        <PropertyTypeModalForm
+          modalTitle={
             <>
               Create new property type
               <QuestionIcon
@@ -131,17 +128,11 @@ export const InsertPropertyRow = ({
               />
             </>
           }
-        >
-          <PropertyTypeForm
-            discardButtonProps={withHandler(
-              bindToggle(modalPopupState),
-              () => {},
-            )}
-            initialTitle={searchText}
-            onSubmit={handleSubmit}
-            submitButtonProps={{ children: <>Create new property type</> }}
-          />
-        </PropertyTypeModal>
+          popupState={modalPopupState}
+          onSubmit={handleSubmit}
+          submitButtonProps={{ children: <>Create new property type</> }}
+          initialTitle={searchText}
+        />
       </TableCell>
     </TableRow>
   );
