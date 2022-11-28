@@ -4,9 +4,7 @@ use core::fmt::{Display, Formatter};
 use super::{Error, ErrorProperties, ErrorProperty, Id, Namespace, NAMESPACE};
 use crate::{
     error::{macros::impl_error, Location},
-    id,
-    schema::Schema,
-    Document,
+    id, Document,
 };
 
 #[derive(serde::Serialize)]
