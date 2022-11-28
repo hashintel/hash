@@ -124,7 +124,9 @@ export const InsertPropertyRow = ({
           popupState={modalPopupState}
           onSubmit={handleSubmit}
           submitButtonProps={{ children: <>Create new property type</> }}
-          getDefaultValues={() => ({ name: searchText })}
+          getDefaultValues={() =>
+            searchText.length ? { name: searchText } : {}
+          }
         />
       </TableCell>
     </TableRow>
