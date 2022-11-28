@@ -10,7 +10,7 @@ test.beforeEach(async () => {
  * @todo: Re-enable this playwright test when required backend functionality is fixed
  * @see https://app.asana.com/0/1202805690238892/1203106234191599/f
  */
-test("user can create and update entity", async ({ page }) => {
+test.skip("user can create and update entity", async ({ page }) => {
   await loginUsingTempForm({
     page,
     userEmail: "alice@example.com",
