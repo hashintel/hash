@@ -1,6 +1,6 @@
 import { gql } from "apollo-server-express";
 
-export const persistedOrgTypedef = gql`
+export const orgTypedef = gql`
   enum OrgSize {
     ELEVEN_TO_FIFTY
     FIFTY_ONE_TO_TWO_HUNDRED_AND_FIFTY
@@ -26,9 +26,13 @@ export const persistedOrgTypedef = gql`
       """
       orgSize: OrgSize!
       """
-      The depth of entities that are returned in the response subgraph.
+      The depths that \`hasLeftEntity\` edges are resolved to.
       """
-      entityResolveDepth: Int! = 0
+      hasLeftEntity: EdgeResolveDepthsInput! = { outgoing: 0, incoming: 0 }
+      """
+      The depths that \`hasRightEntity\` edges are resolved to.
+      """
+      hasRightEntity: EdgeResolveDepthsInput! = { outgoing: 0, incoming: 0 }
     ): Subgraph!
   }
 `;

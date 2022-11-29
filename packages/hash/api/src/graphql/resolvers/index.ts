@@ -1,13 +1,11 @@
 import { JSONObjectResolver } from "graphql-scalars";
 
-import { Entity } from "../apiTypes.gen";
 import { embedCode } from "./embed";
 
 import { me } from "./knowledge/user/me";
 import { isShortnameTaken } from "./knowledge/user/is-shortname-taken";
 import { fileFields } from "./file";
 import { requestFileUpload } from "./file/requestFileUpload";
-import { createFileFromLink } from "./file/createFileFromLink";
 import { loggedIn } from "./middlewares/loggedIn";
 import { loggedInAndSignedUp } from "./middlewares/loggedInAndSignedUp";
 import { deleteLinkedAggregation } from "./linkedAggregation/deleteLinkedAggregation";
@@ -36,40 +34,38 @@ import {
   getEntityType,
   updateEntityType,
 } from "./ontology/entity-type";
+import { updatePageContents, pageContents } from "./knowledge/page";
 import {
-  updatePersistedPageContents,
-  persistedPageContents,
-} from "./knowledge/page";
-import {
-  createPersistedPage,
-  persistedPage,
-  persistedPages,
-  parentPersistedPage,
-  persistedPageComments,
+  createPage,
+  page,
+  pages,
+  parentPage,
+  pageComments,
 } from "./knowledge/page/page";
-import { createPersistedComment } from "./knowledge/comment/comment";
-import { persistedBlocks } from "./knowledge/block/block";
+import { createComment } from "./knowledge/comment/comment";
+import { blocks } from "./knowledge/block/block";
 import { getBlockProtocolBlocks } from "./blockprotocol/getBlock";
 import {
-  createEntityWithMetadata,
-  getEntityWithMetadata,
-  getAllLatestEntitiesWithMetadata,
-  updateEntityWithMetadata,
+  createEntity,
+  getEntity,
+  getAllLatestEntities,
+  updateEntity,
 } from "./knowledge/entity/entity";
-import { setParentPersistedPage } from "./knowledge/page/set-parent-page";
-import { updatePersistedPage } from "./knowledge/page/update-page";
-import { persistedCommentHasText } from "./knowledge/comment/has-text";
-import { persistedCommentTextUpdatedAt } from "./knowledge/comment/text-updated-at";
-import { persistedCommentReplies } from "./knowledge/comment/replies";
-import { persistedCommentParent } from "./knowledge/comment/parent";
-import { persistedCommentAuthor } from "./knowledge/comment/author";
-import { resolvePersistedComment } from "./knowledge/comment/resolve";
-import { deletePersistedComment } from "./knowledge/comment/delete";
-import { updatePersistedCommentText } from "./knowledge/comment/update-text";
+import { setParentPage } from "./knowledge/page/set-parent-page";
+import { updatePage } from "./knowledge/page/update-page";
+import { commentHasText } from "./knowledge/comment/has-text";
+import { commentTextUpdatedAt } from "./knowledge/comment/text-updated-at";
+import { commentReplies } from "./knowledge/comment/replies";
+import { commentParent } from "./knowledge/comment/parent";
+import { commentAuthor } from "./knowledge/comment/author";
+import { resolveComment } from "./knowledge/comment/resolve";
+import { deleteComment } from "./knowledge/comment/delete";
+import { updateCommentText } from "./knowledge/comment/update-text";
 import { blockChildEntity } from "./knowledge/block/data-entity";
 import { loggedInAndSignedUpHashInstanceAdmin } from "./middlewares/loggedInAndSignedUpHashInstanceAdmin";
 import { createUser } from "./knowledge/user/create-user";
 import { createOrg } from "./knowledge/org/create-org";
+import { hashInstanceEntity } from "./knowledge/hashInstance/hashInstance";
 
 /** @todo - Refactor the names of these https://app.asana.com/0/1200211978612931/1203234667392169/f */
 export const resolvers = {
@@ -90,14 +86,13 @@ export const resolvers = {
     getAllLatestEntityTypes: loggedInAndSignedUp(getAllLatestEntityTypes),
     getEntityType: loggedInAndSignedUp(getEntityType),
     // Knowledge
-    persistedPage,
-    persistedPages: loggedInAndSignedUp(persistedPages),
-    persistedPageComments: loggedInAndSignedUp(persistedPageComments),
-    persistedBlocks: loggedInAndSignedUp(persistedBlocks),
-    getEntityWithMetadata: loggedInAndSignedUp(getEntityWithMetadata),
-    getAllLatestEntitiesWithMetadata: loggedInAndSignedUp(
-      getAllLatestEntitiesWithMetadata,
-    ),
+    page,
+    pages: loggedInAndSignedUp(pages),
+    pageComments: loggedInAndSignedUp(pageComments),
+    blocks: loggedInAndSignedUp(blocks),
+    getEntity: loggedInAndSignedUp(getEntity),
+    getAllLatestEntities: loggedInAndSignedUp(getAllLatestEntities),
+    hashInstanceEntity,
   },
 
   Mutation: {
@@ -107,10 +102,7 @@ export const resolvers = {
       updateLinkedAggregationOperation,
     ),
     deleteLinkedAggregation: loggedInAndSignedUp(deleteLinkedAggregation),
-    createFileFromLink: loggedInAndSignedUp(createFileFromLink),
-    updatePersistedPageContents: loggedInAndSignedUp(
-      updatePersistedPageContents,
-    ),
+    updatePageContents: loggedInAndSignedUp(updatePageContents),
     requestFileUpload: loggedInAndSignedUp(requestFileUpload),
     // Task execution
     executeDemoTask,
@@ -124,15 +116,15 @@ export const resolvers = {
     createEntityType: loggedInAndSignedUp(createEntityType),
     updateEntityType: loggedInAndSignedUp(updateEntityType),
     // Knowledge
-    createEntityWithMetadata: loggedInAndSignedUp(createEntityWithMetadata),
-    updateEntityWithMetadata: loggedIn(updateEntityWithMetadata),
-    createPersistedPage: loggedInAndSignedUp(createPersistedPage),
-    setParentPersistedPage: loggedInAndSignedUp(setParentPersistedPage),
-    updatePersistedPage: loggedInAndSignedUp(updatePersistedPage),
-    createPersistedComment: loggedInAndSignedUp(createPersistedComment),
-    resolvePersistedComment: loggedInAndSignedUp(resolvePersistedComment),
-    deletePersistedComment: loggedInAndSignedUp(deletePersistedComment),
-    updatePersistedCommentText: loggedInAndSignedUp(updatePersistedCommentText),
+    createEntity: loggedInAndSignedUp(createEntity),
+    updateEntity: loggedIn(updateEntity),
+    createPage: loggedInAndSignedUp(createPage),
+    setParentPage: loggedInAndSignedUp(setParentPage),
+    updatePage: loggedInAndSignedUp(updatePage),
+    createComment: loggedInAndSignedUp(createComment),
+    resolveComment: loggedInAndSignedUp(resolveComment),
+    deleteComment: loggedInAndSignedUp(deleteComment),
+    updateCommentText: loggedInAndSignedUp(updateCommentText),
     // HASH instance admin mutations
     createUser: loggedInAndSignedUpHashInstanceAdmin(createUser),
     createOrg: loggedInAndSignedUpHashInstanceAdmin(createOrg),
@@ -148,27 +140,21 @@ export const resolvers = {
     results: linkedAggregationResults,
   },
 
-  Account: {
-    __resolveType({ entityTypeName }: Entity) {
-      return entityTypeName;
-    },
-  },
-
   // New knowledge field resolvers
-  PersistedPage: {
-    contents: persistedPageContents,
-    parentPage: parentPersistedPage,
+  Page: {
+    contents: pageContents,
+    parentPage,
   },
 
-  PersistedComment: {
-    hasText: persistedCommentHasText,
-    textUpdatedAt: persistedCommentTextUpdatedAt,
-    parent: persistedCommentParent,
-    author: persistedCommentAuthor,
-    replies: persistedCommentReplies,
+  Comment: {
+    hasText: commentHasText,
+    textUpdatedAt: commentTextUpdatedAt,
+    parent: commentParent,
+    author: commentAuthor,
+    replies: commentReplies,
   },
 
-  PersistedBlock: {
+  Block: {
     blockChildEntity,
   },
 };

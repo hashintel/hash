@@ -1,7 +1,7 @@
 import { gql } from "@apollo/client";
 
-const persistedBlockFieldsFragment = gql`
-  fragment PersistedBlockFields on PersistedBlock {
+const blockFieldsFragment = gql`
+  fragment BlockFields on Block {
     __typename
     metadata
     properties
@@ -10,24 +10,24 @@ const persistedBlockFieldsFragment = gql`
   }
 `;
 
-const persistedPageFieldsFragment = gql`
-  fragment PersistedPageFields on PersistedPage {
+const pageFieldsFragment = gql`
+  fragment PageFields on Page {
     archived
     title
     icon
     summary
     contents {
-      ...PersistedBlockFields
+      ...BlockFields
     }
     metadata
     properties
     __typename
   }
-  ${persistedBlockFieldsFragment}
+  ${blockFieldsFragment}
 `;
 
-const persistedPagePropertiesFieldsFragment = gql`
-  fragment PersistedPagePropertyFields on PersistedPage {
+const pagePropertiesFieldsFragment = gql`
+  fragment PagePropertyFields on Page {
     title
     archived
     icon
@@ -36,31 +36,31 @@ const persistedPagePropertiesFieldsFragment = gql`
 
 export const getPageInfoQuery = gql`
   query getPageInfo($entityId: EntityId!) {
-    persistedPage(entityId: $entityId) {
+    page(entityId: $entityId) {
       metadata
-      ...PersistedPagePropertyFields
+      ...PagePropertyFields
     }
   }
-  ${persistedPagePropertiesFieldsFragment}
+  ${pagePropertiesFieldsFragment}
 `;
 
-export const getPersistedPageQuery = gql`
-  query getPersistedPage($entityId: EntityId!) {
-    persistedPage(entityId: $entityId) {
-      ...PersistedPageFields
+export const getPageQuery = gql`
+  query getPage($entityId: EntityId!) {
+    page(entityId: $entityId) {
+      ...PageFields
     }
   }
-  ${persistedPageFieldsFragment}
+  ${pageFieldsFragment}
 `;
 
-export const updatePersistedPageContents = gql`
-  mutation updatePersistedPageContents(
+export const updatePageContents = gql`
+  mutation updatePageContents(
     $entityId: EntityId!
-    $actions: [UpdatePersistedPageAction!]!
+    $actions: [UpdatePageAction!]!
   ) {
-    updatePersistedPageContents(entityId: $entityId, actions: $actions) {
+    updatePageContents(entityId: $entityId, actions: $actions) {
       page {
-        ...PersistedPageFields
+        ...PageFields
       }
       placeholders {
         placeholderId
@@ -69,5 +69,5 @@ export const updatePersistedPageContents = gql`
     }
   }
 
-  ${persistedPageFieldsFragment}
+  ${pageFieldsFragment}
 `;

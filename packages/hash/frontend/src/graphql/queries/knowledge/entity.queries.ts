@@ -1,37 +1,43 @@
 import { gql } from "@apollo/client";
 import { subgraphFieldsFragment } from "../subgraph";
 
-export const createEntityWithMetadataMutation = gql`
-  mutation createEntityWithMetadata(
+export const createEntityMutation = gql`
+  mutation createEntity(
     $entityTypeId: VersionedUri!
-    $properties: JSONObject!
+    $properties: PropertyObject!
+    $linkMetadata: LinkEntityMetadata
   ) {
     # This is a scalar, which has no selection.
-    createEntityWithMetadata(
+    createEntity(
       entityTypeId: $entityTypeId
       properties: $properties
+      linkMetadata: $linkMetadata
     )
   }
 `;
 
-/** @todo - rename these to omit the "WithMetadata" suffix - https://app.asana.com/0/1201095311341924/1203411297593704/f */
-
-export const getEntityWithMetadataQuery = gql`
-  query getEntityWithMetadata(
+export const getEntityQuery = gql`
+  query getEntity(
     $entityId: EntityId!
     $entityVersion: String
-    $dataTypeResolveDepth: Int!
-    $propertyTypeResolveDepth: Int!
-    $entityTypeResolveDepth: Int!
-    $entityResolveDepth: Int!
+    $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
+    $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
+    $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
+    $constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
+    $isOfType: OutgoingEdgeResolveDepthInput!
+    $hasLeftEntity: EdgeResolveDepthsInput!
+    $hasRightEntity: EdgeResolveDepthsInput!
   ) {
-    getEntityWithMetadata(
+    getEntity(
       entityId: $entityId
       entityVersion: $entityVersion
-      dataTypeResolveDepth: $dataTypeResolveDepth
-      propertyTypeResolveDepth: $propertyTypeResolveDepth
-      entityTypeResolveDepth: $entityTypeResolveDepth
-      entityResolveDepth: $entityResolveDepth
+      constrainsValuesOn: $constrainsValuesOn
+      constrainsPropertiesOn: $constrainsPropertiesOn
+      constrainsLinksOn: $constrainsLinksOn
+      constrainsLinkDestinationsOn: $constrainsLinkDestinationsOn
+      isOfType: $isOfType
+      hasLeftEntity: $hasLeftEntity
+      hasRightEntity: $hasRightEntity
     ) {
       ...SubgraphFields
     }
@@ -39,18 +45,24 @@ export const getEntityWithMetadataQuery = gql`
   ${subgraphFieldsFragment}
 `;
 
-export const getAllLatestEntitiesWithMetadataQuery = gql`
-  query getAllLatestEntitiesWithMetadata(
-    $dataTypeResolveDepth: Int!
-    $propertyTypeResolveDepth: Int!
-    $entityTypeResolveDepth: Int!
-    $entityResolveDepth: Int!
+export const getAllLatestEntitiesQuery = gql`
+  query getAllLatestEntities(
+    $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
+    $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
+    $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
+    $constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
+    $isOfType: OutgoingEdgeResolveDepthInput!
+    $hasLeftEntity: EdgeResolveDepthsInput!
+    $hasRightEntity: EdgeResolveDepthsInput!
   ) {
-    getAllLatestEntitiesWithMetadata(
-      dataTypeResolveDepth: $dataTypeResolveDepth
-      propertyTypeResolveDepth: $propertyTypeResolveDepth
-      entityTypeResolveDepth: $entityTypeResolveDepth
-      entityResolveDepth: $entityResolveDepth
+    getAllLatestEntities(
+      constrainsValuesOn: $constrainsValuesOn
+      constrainsPropertiesOn: $constrainsPropertiesOn
+      constrainsLinksOn: $constrainsLinksOn
+      constrainsLinkDestinationsOn: $constrainsLinkDestinationsOn
+      isOfType: $isOfType
+      hasLeftEntity: $hasLeftEntity
+      hasRightEntity: $hasRightEntity
     ) {
       ...SubgraphFields
     }
@@ -58,15 +70,12 @@ export const getAllLatestEntitiesWithMetadataQuery = gql`
   ${subgraphFieldsFragment}
 `;
 
-export const updateEntityWithMetadataMutation = gql`
-  mutation updateEntityWithMetadata(
+export const updateEntityMutation = gql`
+  mutation updateEntity(
     $entityId: EntityId!
-    $updatedProperties: JSONObject!
+    $updatedProperties: PropertyObject!
   ) {
     # This is a scalar, which has no selection.
-    updateEntityWithMetadata(
-      entityId: $entityId
-      updatedProperties: $updatedProperties
-    )
+    updateEntity(entityId: $entityId, updatedProperties: $updatedProperties)
   }
 `;

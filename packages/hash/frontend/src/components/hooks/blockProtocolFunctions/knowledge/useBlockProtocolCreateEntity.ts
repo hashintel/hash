@@ -2,10 +2,10 @@ import { useMutation } from "@apollo/client";
 import { useCallback } from "react";
 
 import {
-  CreateEntityWithMetadataMutation,
-  CreateEntityWithMetadataMutationVariables,
+  CreateEntityMutation,
+  CreateEntityMutationVariables,
 } from "../../../../graphql/apiTypes.gen";
-import { createEntityWithMetadataMutation } from "../../../../graphql/queries/knowledge/entity.queries";
+import { createEntityMutation } from "../../../../graphql/queries/knowledge/entity.queries";
 import { CreateEntityMessageCallback } from "./knowledge-shim";
 
 export const useBlockProtocolCreateEntity = (
@@ -14,14 +14,14 @@ export const useBlockProtocolCreateEntity = (
   createEntity: CreateEntityMessageCallback;
 } => {
   const [createFn] = useMutation<
-    CreateEntityWithMetadataMutation,
-    CreateEntityWithMetadataMutationVariables
-  >(createEntityWithMetadataMutation, {
+    CreateEntityMutation,
+    CreateEntityMutationVariables
+  >(createEntityMutation, {
     /** @todo reconsider caching. This is done for testing/demo purposes. */
     fetchPolicy: "no-cache",
   });
 
-  const createEntityWithMetadata: CreateEntityMessageCallback = useCallback(
+  const createEntity: CreateEntityMessageCallback = useCallback(
     async ({ data }) => {
       if (readonly) {
         return {
@@ -39,30 +39,30 @@ export const useBlockProtocolCreateEntity = (
           errors: [
             {
               code: "INVALID_INPUT",
-              message: "'data' must be provided for createEntityWithMetadata",
+              message: "'data' must be provided for createEntity",
             },
           ],
         };
       }
 
-      const { entityTypeId, properties } = data;
+      const { entityTypeId, properties, linkMetadata } = data;
 
       const { data: createEntityResponseData } = await createFn({
         variables: {
           entityTypeId,
           properties,
+          linkMetadata,
         },
       });
 
-      const { createEntityWithMetadata: createdEntity } =
-        createEntityResponseData ?? {};
+      const { createEntity: createdEntity } = createEntityResponseData ?? {};
 
       if (!createdEntity) {
         return {
           errors: [
             {
               code: "INVALID_INPUT",
-              message: "Error calling createEntityWithMetadata",
+              message: "Error calling createEntity",
             },
           ],
         };
@@ -76,6 +76,6 @@ export const useBlockProtocolCreateEntity = (
   );
 
   return {
-    createEntity: createEntityWithMetadata,
+    createEntity,
   };
 };

@@ -1,22 +1,22 @@
 import {
   GraphApi,
   Filter,
-  EntityStructuralQuery,
   EntityLinkOrder,
+  GraphResolveDepths,
 } from "@hashintel/hash-graph-client";
 import {
   Subgraph,
   LinkEntityMetadata,
   EntityMetadata,
   PropertyObject,
-  EntityWithMetadata,
+  Entity,
 } from "@hashintel/hash-subgraph";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 
 import { EntityModel, EntityTypeModel, LinkEntityModel } from "../index";
 
 export type LinkModelConstructorParams = {
-  linkEntity: EntityWithMetadata;
+  linkEntity: Entity;
   linkEntityTypeModel: EntityTypeModel;
   leftEntityModel: EntityModel;
   rightEntityModel: EntityModel;
@@ -58,7 +58,7 @@ export default class extends EntityModel {
 
   static async fromEntity(
     graphApi: GraphApi,
-    linkEntity: EntityWithMetadata,
+    linkEntity: Entity,
   ): Promise<LinkEntityModel> {
     if (!linkEntity.metadata.linkMetadata) {
       throw new Error(
@@ -92,19 +92,20 @@ export default class extends EntityModel {
   static async getByQuery(
     graphApi: GraphApi,
     filter: Filter,
-    options?: Omit<Partial<EntityStructuralQuery>, "filter">,
+    graphResolveDepths?: Partial<GraphResolveDepths>,
   ): Promise<LinkEntityModel[]> {
     const { data: subgraph } = await graphApi.getEntitiesByQuery({
       filter,
       graphResolveDepths: {
-        dataTypeResolveDepth:
-          options?.graphResolveDepths?.dataTypeResolveDepth ?? 0,
-        propertyTypeResolveDepth:
-          options?.graphResolveDepths?.propertyTypeResolveDepth ?? 0,
-        entityTypeResolveDepth:
-          options?.graphResolveDepths?.entityTypeResolveDepth ?? 0,
-        entityResolveDepth:
-          options?.graphResolveDepths?.entityResolveDepth ?? 0,
+        inheritsFrom: { outgoing: 0 },
+        constrainsValuesOn: { outgoing: 0 },
+        constrainsPropertiesOn: { outgoing: 0 },
+        constrainsLinksOn: { outgoing: 0 },
+        constrainsLinkDestinationsOn: { outgoing: 0 },
+        isOfType: { outgoing: 0 },
+        hasLeftEntity: { incoming: 0, outgoing: 0 },
+        hasRightEntity: { incoming: 0, outgoing: 0 },
+        ...graphResolveDepths,
       },
     });
 

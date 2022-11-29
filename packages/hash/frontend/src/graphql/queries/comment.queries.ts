@@ -1,7 +1,7 @@
 import { gql } from "@apollo/client";
 
 export const commentFieldsFragment = gql`
-  fragment CommentFields on PersistedComment {
+  fragment CommentFields on Comment {
     hasText
     textUpdatedAt
     author
@@ -10,41 +10,35 @@ export const commentFieldsFragment = gql`
   }
 `;
 
-export const createPersistedComment = gql`
-  mutation createPersistedComment(
-    $parentEntityId: EntityId!
-    $tokens: [TextToken!]!
-  ) {
-    createPersistedComment(parentEntityId: $parentEntityId, tokens: $tokens) {
+export const createComment = gql`
+  mutation createComment($parentEntityId: EntityId!, $tokens: [TextToken!]!) {
+    createComment(parentEntityId: $parentEntityId, tokens: $tokens) {
       metadata
     }
   }
 `;
 
-export const resolvePersistedComment = gql`
-  mutation resolvePersistedComment($entityId: EntityId!) {
-    resolvePersistedComment(entityId: $entityId) {
+export const resolveComment = gql`
+  mutation resolveComment($entityId: EntityId!) {
+    resolveComment(entityId: $entityId) {
       ...CommentFields
     }
   }
   ${commentFieldsFragment}
 `;
 
-export const deletePersistedComment = gql`
-  mutation deletePersistedComment($entityId: EntityId!) {
-    deletePersistedComment(entityId: $entityId) {
+export const deleteComment = gql`
+  mutation deleteComment($entityId: EntityId!) {
+    deleteComment(entityId: $entityId) {
       ...CommentFields
     }
   }
   ${commentFieldsFragment}
 `;
 
-export const updatePersistedCommentText = gql`
-  mutation updatePersistedCommentText(
-    $entityId: EntityId!
-    $tokens: [TextToken!]!
-  ) {
-    updatePersistedCommentText(entityId: $entityId, tokens: $tokens) {
+export const updateCommentText = gql`
+  mutation updateCommentText($entityId: EntityId!, $tokens: [TextToken!]!) {
+    updateCommentText(entityId: $entityId, tokens: $tokens) {
       ...CommentFields
     }
   }

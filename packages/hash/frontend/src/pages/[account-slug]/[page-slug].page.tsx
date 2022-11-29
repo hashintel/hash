@@ -5,12 +5,12 @@ import {
   HashBlock,
 } from "@hashintel/hash-shared/blocks";
 import {
-  GetPersistedPageQuery,
-  GetPersistedPageQueryVariables,
+  GetPageQuery,
+  GetPageQueryVariables,
 } from "@hashintel/hash-shared/graphql/apiTypes.gen";
 import {
   getPageInfoQuery,
-  getPersistedPageQuery,
+  getPageQuery,
 } from "@hashintel/hash-shared/queries/page.queries";
 import { isSafariBrowser } from "@hashintel/hash-shared/util";
 import { EntityId, splitEntityId } from "@hashintel/hash-subgraph";
@@ -94,7 +94,7 @@ export const PageNotificationBanner: FunctionComponent = () => {
     },
   );
 
-  const archived = data?.persistedPage?.archived;
+  const archived = data?.page?.archived;
 
   return (
     <Collapse in={!!archived}>
@@ -184,9 +184,9 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
   );
 
   const { data, error, loading } = useQuery<
-    GetPersistedPageQuery,
-    GetPersistedPageQueryVariables
-  >(getPersistedPageQuery, {
+    GetPageQuery,
+    GetPageQueryVariables
+  >(getPageQuery, {
     variables: {
       entityId: pageEntityId,
     },
@@ -254,7 +254,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
     );
   }
 
-  const { title, icon, contents } = data.persistedPage;
+  const { title, icon, contents } = data.page;
 
   const isSafari = isSafariBrowser();
   const pageTitle = isSafari && icon ? `${icon} ${title}` : title;
@@ -291,7 +291,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
           <TopContextBar
             crumbs={generateCrumbsFromPages({
               pages: accountPages,
-              pageEntityId: data.persistedPage.metadata.editionId.baseId,
+              pageEntityId: data.page.metadata.editionId.baseId,
             })}
             scrollToTop={scrollToTop}
           />

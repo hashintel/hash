@@ -11,6 +11,7 @@ import {
   CommentModel,
 } from "@hashintel/hash-api/src/model";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
+import { ensureSystemEntitiesExists } from "@hashintel/hash-api/src/graph/system-entities";
 import { createTestUser } from "../../util";
 
 jest.setTimeout(60000);
@@ -37,6 +38,7 @@ describe("Comment model class", () => {
 
   beforeAll(async () => {
     await ensureSystemTypesExist({ graphApi, logger });
+    await ensureSystemEntitiesExists({ graphApi, logger });
 
     testUser = await createTestUser(graphApi, "commentModelTest", logger);
 

@@ -13,25 +13,22 @@ import {
   TEXT_ENTITY_TYPE_ID,
 } from "./entityStore";
 import {
-  GetPersistedPageQuery,
-  GetPersistedPageQueryVariables,
-  UpdatePersistedPageContentsMutation,
-  UpdatePersistedPageContentsMutationVariables,
-  UpdatePersistedPageAction,
-  UpdatePersistedPageContentsResultPlaceholder,
+  GetPageQuery,
+  GetPageQueryVariables,
+  UpdatePageContentsMutation,
+  UpdatePageContentsMutationVariables,
+  UpdatePageAction,
+  UpdatePageContentsResultPlaceholder,
 } from "./graphql/apiTypes.gen";
 import { isEntityNode } from "./prosemirror";
-import {
-  getPersistedPageQuery,
-  updatePersistedPageContents,
-} from "./queries/page.queries";
+import { getPageQuery, updatePageContents } from "./queries/page.queries";
 
 const generatePlaceholderId = () => `placeholder-${uuid()}`;
 
 const flipMap = <K, V>(map: Map<K, V>): Map<V, K> =>
   new Map(Array.from(map, ([key, value]) => [value, key] as const));
 
-type EntityTypeForComponentResult = [VersionedUri, UpdatePersistedPageAction[]];
+type EntityTypeForComponentResult = [VersionedUri, UpdatePageAction[]];
 
 /**
  * Given the entity 'store', the 'blocks' persisted to the database, and the PromiseMirror 'doc',
@@ -47,7 +44,7 @@ const calculateSaveActions = async (
     componentId: string,
   ) => Promise<EntityTypeForComponentResult>,
 ) => {
-  const actions: UpdatePersistedPageAction[] = [];
+  const actions: UpdatePageAction[] = [];
 
   const draftIdToPlaceholderId = new Map<string, string>();
   const draftIdToBlockEntities = new Map<string, DraftEntity<BlockEntity>>();
@@ -148,7 +145,7 @@ const calculateSaveActions = async (
         actions.unshift(...newTypeActions);
       }
 
-      const action: UpdatePersistedPageAction = {
+      const action: UpdatePageAction = {
         createEntity: {
           ownedById,
           entityPlaceholderId: placeholderId,
@@ -220,7 +217,7 @@ const calculateSaveActions = async (
   let position = 0;
   let itCount = 0;
   // Move actions are order-sensitive, so we're going to sort them separately.
-  const moveActions: UpdatePersistedPageAction[] = [];
+  const moveActions: UpdatePageAction[] = [];
 
   while (
     position < Math.max(beforeBlockDraftIds.length, afterBlockDraftIds.length)
@@ -356,7 +353,7 @@ const calculateSaveActions = async (
 };
 
 const getDraftEntityIds = (
-  placeholders: UpdatePersistedPageContentsResultPlaceholder[],
+  placeholders: UpdatePageContentsResultPlaceholder[],
   placeholderToDraft: Map<string, string>,
 ) => {
   const result: Record<string, string> = {};
@@ -379,12 +376,12 @@ export const save = async (
   store: EntityStore,
 ) => {
   const blocks = await apolloClient
-    .query<GetPersistedPageQuery, GetPersistedPageQueryVariables>({
-      query: getPersistedPageQuery,
+    .query<GetPageQuery, GetPageQueryVariables>({
+      query: getPageQuery,
       variables: { entityId: pageEntityId },
       fetchPolicy: "network-only",
     })
-    .then((res) => res.data.persistedPage.contents);
+    .then((res) => res.data.page.contents);
 
   // const entityTypeForComponentId = new Map<string, string>();
 
@@ -404,25 +401,25 @@ export const save = async (
   );
 
   let currentBlocks = blocks;
-  let placeholders: UpdatePersistedPageContentsResultPlaceholder[] = [];
+  let placeholders: UpdatePageContentsResultPlaceholder[] = [];
 
   if (actions.length > 0) {
     // Even if the actions list is empty, we hit the endpoint to get an updated
     // page result.
     const res = await apolloClient.mutate<
-      UpdatePersistedPageContentsMutation,
-      UpdatePersistedPageContentsMutationVariables
+      UpdatePageContentsMutation,
+      UpdatePageContentsMutationVariables
     >({
       variables: { entityId: pageEntityId, actions },
-      mutation: updatePersistedPageContents,
+      mutation: updatePageContents,
     });
 
     if (!res.data) {
       throw new Error("Failed");
     }
 
-    currentBlocks = res.data.updatePersistedPageContents.page.contents;
-    placeholders = res.data.updatePersistedPageContents.placeholders;
+    currentBlocks = res.data.updatePageContents.page.contents;
+    placeholders = res.data.updatePageContents.placeholders;
   }
   const draftToEntityId = getDraftEntityIds(placeholders, placeholderToDraft);
 

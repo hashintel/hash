@@ -2,21 +2,21 @@ import { useMutation } from "@apollo/client";
 import { useCallback } from "react";
 import { EntityId } from "@hashintel/hash-subgraph";
 import {
-  DeletePersistedCommentMutation,
-  DeletePersistedCommentMutationVariables,
+  DeleteCommentMutation,
+  DeleteCommentMutationVariables,
 } from "../../graphql/apiTypes.gen";
-import { deletePersistedComment } from "../../graphql/queries/comment.queries";
-import { getPersistedPageComments } from "../../graphql/queries/page.queries";
+import { deleteComment } from "../../graphql/queries/comment.queries";
+import { getPageComments } from "../../graphql/queries/page.queries";
 
 export const useDeleteComment = (pageId: EntityId) => {
   const [deleteCommentFn, { loading }] = useMutation<
-    DeletePersistedCommentMutation,
-    DeletePersistedCommentMutationVariables
-  >(deletePersistedComment, {
+    DeleteCommentMutation,
+    DeleteCommentMutationVariables
+  >(deleteComment, {
     awaitRefetchQueries: true,
     refetchQueries: () => [
       {
-        query: getPersistedPageComments,
+        query: getPageComments,
         variables: {
           entityId: pageId,
         },
@@ -24,7 +24,7 @@ export const useDeleteComment = (pageId: EntityId) => {
     ],
   });
 
-  const deleteComment = useCallback(
+  const deleteCommentCallback = useCallback(
     async (commentId: EntityId) => {
       await deleteCommentFn({
         variables: {
@@ -35,5 +35,5 @@ export const useDeleteComment = (pageId: EntityId) => {
     [deleteCommentFn],
   );
 
-  return [deleteComment, { loading }] as const;
+  return [deleteCommentCallback, { loading }] as const;
 };

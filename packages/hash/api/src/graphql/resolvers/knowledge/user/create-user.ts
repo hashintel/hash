@@ -17,7 +17,7 @@ export const createUser: ResolverFn<
     isInstanceAdmin,
     shortname,
     preferredName,
-    entityResolveDepth,
+    hasLeftEntity,
   },
   { dataSources: { graphApi }, userModel: actorUserModel },
 ) => {
@@ -47,6 +47,6 @@ export const createUser: ResolverFn<
   });
 
   return await userModel.getRootedSubgraph(graphApi, {
-    entityResolveDepth,
+    hasLeftEntity,
   });
 };
