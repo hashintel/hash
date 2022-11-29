@@ -42,7 +42,7 @@ impl<C: AsClient> PostgresStore<C> {
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
     #[expect(clippy::too_many_lines)]
-    pub(crate) fn get_entity_with_dependency<'a>(
+    pub(crate) fn get_entity_with_dependencies<'a>(
         &'a self,
         entity_edition_id: EntityEditionId,
         dependency_context: &'a mut DependencyContext,
@@ -91,7 +91,7 @@ impl<C: AsClient> PostgresStore<C> {
                         });
                     }
 
-                    self.get_entity_type_with_dependency(
+                    self.get_entity_type_with_dependencies(
                         &entity_type_id,
                         dependency_context,
                         subgraph,
@@ -159,7 +159,7 @@ impl<C: AsClient> PostgresStore<C> {
                             });
                         }
 
-                        self.get_entity_with_dependency(
+                        self.get_entity_with_dependencies(
                             outgoing_link_entity.metadata().edition_id(),
                             dependency_context,
                             subgraph,
@@ -228,7 +228,7 @@ impl<C: AsClient> PostgresStore<C> {
                             });
                         }
 
-                        self.get_entity_with_dependency(
+                        self.get_entity_with_dependencies(
                             incoming_link_entity.metadata().edition_id(),
                             dependency_context,
                             subgraph,
@@ -293,7 +293,7 @@ impl<C: AsClient> PostgresStore<C> {
                             });
                         }
 
-                        self.get_entity_with_dependency(
+                        self.get_entity_with_dependencies(
                             left_entity.metadata().edition_id(),
                             dependency_context,
                             subgraph,
@@ -358,7 +358,7 @@ impl<C: AsClient> PostgresStore<C> {
                             });
                         }
 
-                        self.get_entity_with_dependency(
+                        self.get_entity_with_dependencies(
                             right_entity.metadata().edition_id(),
                             dependency_context,
                             subgraph,
@@ -511,7 +511,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         for entity in Read::<Entity>::read(self, filter).await? {
             let entity_edition_id = entity.metadata().edition_id();
 
-            self.get_entity_with_dependency(
+            self.get_entity_with_dependencies(
                 entity_edition_id,
                 &mut dependency_context,
                 &mut subgraph,
