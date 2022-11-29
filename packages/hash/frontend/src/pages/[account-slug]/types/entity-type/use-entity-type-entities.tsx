@@ -2,6 +2,7 @@ import {
   EntityType,
   PropertyType,
   extractBaseUri,
+  BaseUri,
 } from "@blockprotocol/type-system-web";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
@@ -18,14 +19,25 @@ export type EntityTypeEntitiesContextValue = {
 };
 
 export const useEntityTypeEntitiesContextValue = (
-  typeBaseUri: string | null,
+  typeBaseUri: BaseUri | null,
 ): EntityTypeEntitiesContextValue => {
   const [subgraph, setSubgraph] =
     useState<Subgraph<SubgraphRootTypes["entity"]>>();
   const { aggregateEntities } = useBlockProtocolAggregateEntities();
 
   useEffect(() => {
-    void aggregateEntities({ data: {} }).then((res) => {
+    void aggregateEntities({
+      data: {
+        graphResolveDepths: {
+          constrainsValuesOn: { outgoing: 0 },
+          constrainsPropertiesOn: { outgoing: 1 },
+          constrainsLinksOn: { outgoing: 0 },
+          isOfType: { outgoing: 1 },
+          hasLeftEntity: { incoming: 0, outgoing: 0 },
+          hasRightEntity: { incoming: 0, outgoing: 0 },
+        },
+      },
+    }).then((res) => {
       if (res.data) {
         setSubgraph(res.data);
       }
