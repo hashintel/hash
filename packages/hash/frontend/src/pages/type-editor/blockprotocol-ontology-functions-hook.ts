@@ -33,6 +33,7 @@ import { useBlockProtocolGetEntity } from "../../components/hooks/blockProtocolF
 import { useBlockProtocolAggregateEntities } from "../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolAggregateEntities";
 import { useBlockProtocolCreateEntity } from "../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolCreateEntity";
 import { useBlockProtocolUpdateEntity } from "../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolUpdateEntity";
+import { useBlockProtocolArchiveEntity } from "../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolArchiveEntity";
 
 export type GraphMessageCallbacks = Omit<
   EmbedderGraphMessageCallbacks,
@@ -70,6 +71,7 @@ export const useBlockProtocolFunctionsWithOntology = (
 
   const { getEntity } = useBlockProtocolGetEntity();
   const { updateEntity } = useBlockProtocolUpdateEntity();
+  const { archiveEntity } = useBlockProtocolArchiveEntity();
 
   const { uploadFile } = useBlockProtocolFileUpload(readonlyMode);
 
@@ -100,6 +102,7 @@ export const useBlockProtocolFunctionsWithOntology = (
     // Knowledge operations
     getEntity,
     updateEntity,
+    archiveEntity,
     // Ontology operations
     aggregateDataTypes,
     getDataType,
