@@ -6,46 +6,63 @@ import {
 } from "@hashintel/hash-design-system";
 import { types } from "@hashintel/hash-shared/types";
 import { Autocomplete, Box, Stack, Typography } from "@mui/material";
+import { uniqueId } from "lodash";
 import { FunctionComponent, useMemo } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { faCube } from "../../../../shared/icons/pro/fa-cube";
+import { PropertyTypeFormValues } from "./property-type-form";
 import {
+  DataType,
   propertyTypeDataTypes as primitiveDataTypes,
-  PropertyTypeFormValues,
-} from "./property-type-form";
+} from "./property-type-utils";
 
-export const arrayPropertyDataType = {
+export const arrayPropertyDataType: DataType = {
   title: "Array",
   icon: faList.icon,
   dataTypeId: types.dataType.object.dataTypeId,
   data: {
-    type: "array",
     expectedValues: [],
     minItems: 0,
     maxItems: 0,
   },
 };
 
-export const objectPropertyDataType = {
+export const objectPropertyDataType: DataType = {
   title: "Property Object",
   icon: faCube,
-  dataTypeId: types.dataType.object.dataTypeId,
-  data: {},
+  data: {
+    typeId: types.dataType.object.dataTypeId,
+  },
 };
 
 type ArrayPropertyTypeMenuProps = {
+  id: string;
   index?: number[];
 };
 
 export const ArrayPropertyTypeMenu: FunctionComponent<
   ArrayPropertyTypeMenuProps
-> = ({ index = [] }) => {
+> = ({ id, index = [] }) => {
   const { setValue, control } = useFormContext<PropertyTypeFormValues>();
 
-  const path = `creatingProperty.data${index
-    .map((pos) => `.expectedValues.${pos}.data`)
-    .join("")}`;
-  const property = useWatch({ control, name: path });
+  const flattenedProperties = useWatch({
+    control,
+    name: `flattenedCreatingProperties`,
+  });
+
+  const expectedValues = useWatch({
+    control,
+    name: `flattenedCreatingProperties.${id}.data.expectedValues`,
+  });
+
+  const children = useMemo(
+    () =>
+      expectedValues?.map((childId) => ({
+        ...flattenedProperties[childId],
+        id: childId,
+      })),
+    [flattenedProperties, expectedValues],
+  );
 
   const propertyTypeDataTypes = useMemo(
     () => [
@@ -57,7 +74,7 @@ export const ArrayPropertyTypeMenu: FunctionComponent<
   );
 
   return (
-    <Stack>
+    <Stack sx={{ mb: 1 }}>
       <Stack
         direction="row"
         sx={{
@@ -90,9 +107,12 @@ export const ArrayPropertyTypeMenu: FunctionComponent<
           position: "relative",
         }}
       >
-        {property?.expectedValues?.map((expectedValue, pos) =>
-          expectedValue.title === "Array" ? (
-            <ArrayPropertyTypeMenu index={[...index, pos]} />
+        {children?.map((expectedValue, pos) =>
+          expectedValue?.title === "Array" ? (
+            <ArrayPropertyTypeMenu
+              id={expectedValue.id}
+              index={[...index, pos]}
+            />
           ) : (
             <Stack
               direction="row"
@@ -114,7 +134,7 @@ export const ArrayPropertyTypeMenu: FunctionComponent<
                 }}
               />
               <Typography sx={{ color: ({ palette }) => palette.white }}>
-                {expectedValue.title}
+                {expectedValue?.title}
               </Typography>
             </Stack>
           ),
@@ -128,8 +148,89 @@ export const ArrayPropertyTypeMenu: FunctionComponent<
           selectOnFocus={false}
           openOnFocus
           clearOnBlur={false}
-          onChange={(_evt, data) => {
-            setValue(`${path}.expectedValues`, data);
+          onChange={(_evt, data, reason, details) => {
+            console.log(_evt);
+            console.log(data);
+            console.log(reason);
+            console.log(details);
+
+            const newProperty = details?.option;
+            if (newProperty) {
+              if (reason === "selectOption") {
+                const childId = uniqueId();
+
+                setValue(`flattenedCreatingProperties`, {
+                  ...(flattenedProperties ?? {}),
+                  [childId]: { ...newProperty, parentId: id },
+                });
+                setValue(
+                  `flattenedCreatingProperties.${id}.data.expectedValues`,
+                  [...expectedValues, childId],
+                );
+              } else if (reason === "removeOption") {
+                // setValue(`flattenedCreatingProperties`, {
+                //   ...(flattenedProperties ?? {}),
+                //   [childId]: { ...newProperty, parentId: id },
+                // });
+                // // setValue(
+                //   `flattenedCreatingProperties.${id}.data.expectedValues`,
+                //   [...expectedValues, childId],
+                // );
+              }
+            }
+            // const childProperties: Record<string, DataType> =
+            //   flattenedProperties;
+            // const childPropertyIds = [];
+
+            // const deletePropertyAndChildren = (
+            //   deleteIds: string[],
+            //   properties: Record<string, DataType>,
+            // ) => {
+            //   let props = properties;
+            //   for (const deleteId of deleteIds) {
+            //     const childData = properties[deleteId]?.data;
+
+            //     delete props[deleteId];
+
+            //     if (childData && "expectedValues" in childData) {
+            //       props = deletePropertyAndChildren(
+            //         childData.expectedValues,
+            //         properties,
+            //       );
+            //     }
+            //   }
+
+            //   return props;
+            //   // for (const propertyId in childProperties) {
+            // };
+
+            // // for (const propertyId in childProperties) {
+            // //   if (expectedValues.includes(propertyId)) {
+            // //     delete childProperties[propertyId];
+            // //   }
+            // // }
+
+            // const filtered = deletePropertyAndChildren(
+            //   expectedValues,
+            //   childProperties,
+            // );
+
+            // for (const dataType of data) {
+            //   const childId = uniqueId();
+
+            //   childPropertyIds.push(childId);
+            //   // filtered[childId] = { ...dataType, parentId: id };
+            //   filtered[childId] = dataType;
+            // }
+
+            // setValue(`flattenedCreatingProperties`, {
+            //   ...(flattenedProperties ?? {}),
+            //   ...childProperties,
+            // });
+            // setValue(
+            //   `flattenedCreatingProperties.${id}.data.expectedValues`,
+            //   childPropertyIds,
+            // );
           }}
           renderTags={() => <Box />}
           renderInput={(inputProps) => (

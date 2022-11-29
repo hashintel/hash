@@ -1,8 +1,4 @@
-import {
-  PropertyType,
-  PropertyValues,
-  VersionedUri,
-} from "@blockprotocol/type-system-web";
+import { PropertyType, PropertyValues } from "@blockprotocol/type-system-web";
 import {
   Button,
   ButtonProps,
@@ -13,7 +9,6 @@ import {
 import {
   addVersionToBaseUri,
   generateBaseTypeId,
-  types,
 } from "@hashintel/hash-shared/types";
 import {
   Autocomplete,
@@ -25,15 +20,11 @@ import {
   Typography,
 } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
-import { Controller, FormProvider, useForm, useWatch } from "react-hook-form";
+import { Controller, FormProvider, useForm } from "react-hook-form";
 import { frontendUrl } from "@hashintel/hash-shared/environment";
-import { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import { useBlockProtocolCreatePropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreatePropertyType";
 import { useBlockProtocolGetPropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetPropertyType";
 import { getPersistedPropertyType } from "../../../../lib/subgraph";
-import { fa100 } from "../../../../shared/icons/pro/fa-100";
-import { faSquareCheck } from "../../../../shared/icons/pro/fa-square-check";
-import { faText } from "../../../../shared/icons/pro/fa-text";
 import { QuestionIcon } from "./question-icon";
 import { useRefetchPropertyTypes } from "./use-property-types";
 import { useRouteNamespace } from "./use-route-namespace";
@@ -41,45 +32,17 @@ import {
   PropertyTypeSelectorDropdown,
   PropertyTypeSelectorDropdownContext,
 } from "./property-type-selector-dropdown";
+import { DataType, propertyTypeDataTypes } from "./property-type-utils";
 
 const generateInitialPropertyTypeId = (baseUri: string) =>
   addVersionToBaseUri(baseUri, 1);
-
-export interface DataType {
-  title: string;
-  icon: IconDefinition["icon"];
-  dataTypeId: VersionedUri;
-  data?: {
-    minItems: number;
-    maxItems?: number;
-    expectedValues: DataType[];
-    submitted: boolean;
-  };
-}
-
-export const propertyTypeDataTypes: DataType[] = [
-  {
-    title: types.dataType.text.title,
-    icon: faText,
-    dataTypeId: types.dataType.text.dataTypeId,
-  },
-  {
-    title: types.dataType.number.title,
-    icon: fa100,
-    dataTypeId: types.dataType.number.dataTypeId,
-  },
-  {
-    title: types.dataType.boolean.title,
-    icon: faSquareCheck,
-    dataTypeId: types.dataType.boolean.dataTypeId,
-  },
-];
 
 export type PropertyTypeFormValues = {
   name: string;
   description: string;
   expectedValues: typeof propertyTypeDataTypes;
-  creatingProperty?: DataType;
+  creatingPropertyId?: string;
+  flattenedCreatingProperties: Record<string, DataType>;
 };
 
 export const PropertyTypeForm = ({
@@ -117,7 +80,10 @@ export const PropertyTypeForm = ({
     watch,
   } = formMethods;
 
-  const creatingProperty = watch(`creatingProperty`);
+  const creatingProperty = watch("creatingPropertyId");
+  const expectedValues = watch("expectedValues");
+
+  console.log(expectedValues);
 
   const [autocompleteFocused, setAutocompleteFocused] = useState(false);
   const [creatingCustomPropertyType, setCreatingCustomPropertyType] =
@@ -144,25 +110,6 @@ export const PropertyTypeForm = ({
       namespace: routeNamespace.shortname,
       kind: "property-type",
       title: value,
-    });
-  };
-
-  const getItems = (expectedValues: DataType[]): PropertyValues[] => {
-    return expectedValues.map(({ title, dataTypeId, data }) => {
-      if (title === "Array") {
-        return {
-          type: "array",
-          items: {
-            oneOf: data?.expectedValues ? getItems(data?.expectedValues) : [],
-          },
-          minItems: data?.minItems,
-          maxItems: data?.maxItems,
-        };
-      }
-
-      return {
-        $ref: dataTypeId,
-      };
     });
   };
 
@@ -201,7 +148,7 @@ export const PropertyTypeForm = ({
       customPropertyMenuOpen: creatingCustomPropertyType,
       openCustomPropertyMenu: () => setCreatingCustomPropertyType(true),
       closeCustomPropertyMenu: () => {
-        setValue(`creatingProperty`, undefined);
+        setValue("creatingPropertyId", undefined);
         setCreatingCustomPropertyType(false);
       },
     }),
@@ -220,7 +167,6 @@ export const PropertyTypeForm = ({
         alignItems="stretch"
         spacing={3}
         sx={{
-          // position: "relative",
           [`.${inputLabelClasses.root}`]: {
             display: "flex",
             alignItems: "center",
@@ -324,7 +270,6 @@ export const PropertyTypeForm = ({
                   clearIcon={null}
                   forcePopupIcon={false}
                   selectOnFocus={false}
-                  // openOnFocus
                   open={autocompleteFocused || creatingCustomPropertyType}
                   clearOnBlur={false}
                   onFocus={() => {

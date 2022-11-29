@@ -12,7 +12,8 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { FunctionComponent, useState } from "react";
+import { uniqueId } from "lodash";
+import { FunctionComponent } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { faCube } from "../../../../shared/icons/pro/fa-cube";
 import {
@@ -21,6 +22,7 @@ import {
 } from "./array-property-type-menu";
 import { PropertyTypeFormValues } from "./property-type-form";
 import { usePropertyTypeSelectorDropdownContext } from "./property-type-selector-dropdown";
+import { DataType, getPropertyTypeSchema } from "./property-type-utils";
 
 const CustomChip: FunctionComponent<ChipProps & { borderColor?: string }> = ({
   borderColor,
@@ -45,7 +47,11 @@ export const PropertyTypeCustomMenu: FunctionComponent<
   const { closeCustomPropertyMenu } = usePropertyTypeSelectorDropdownContext();
 
   const { setValue, control } = useFormContext<PropertyTypeFormValues>();
-  const creatingProperty = useWatch({ control, name: "creatingProperty" });
+  const creatingPropertyId = useWatch({ control, name: "creatingPropertyId" });
+  const flattenedProperties = useWatch({
+    control,
+    name: "flattenedCreatingProperties",
+  });
   const expectedValues = useWatch({ control, name: "expectedValues" });
 
   return (
@@ -105,7 +111,7 @@ export const PropertyTypeCustomMenu: FunctionComponent<
           paddingX: 1.5,
           background: palette.gray[20],
           border: `1px solid ${palette.gray[30]}`,
-          ...(!creatingProperty
+          ...(!creatingPropertyId
             ? {
                 borderBottomRightRadius: 4,
                 borderBottomLeftRadius: 4,
@@ -113,7 +119,7 @@ export const PropertyTypeCustomMenu: FunctionComponent<
             : { borderBottomWidth: 0 }),
         })}
       >
-        {!creatingProperty ? (
+        {!creatingPropertyId ? (
           <>
             <Stack direction="row" gap={1.75}>
               <Button
@@ -148,7 +154,11 @@ export const PropertyTypeCustomMenu: FunctionComponent<
                 variant="tertiary"
                 endIcon={<FontAwesomeIcon icon={faList} />}
                 onClick={() => {
-                  setValue("creatingProperty", arrayPropertyDataType);
+                  const id = uniqueId();
+                  setValue("creatingPropertyId", id);
+                  setValue("flattenedCreatingProperties", {
+                    [id]: arrayPropertyDataType,
+                  });
                 }}
               >
                 Create an array
@@ -173,11 +183,11 @@ export const PropertyTypeCustomMenu: FunctionComponent<
             </Stack>
           </>
         ) : (
-          <ArrayPropertyTypeMenu />
+          <ArrayPropertyTypeMenu id={creatingPropertyId} />
         )}
       </Stack>
 
-      {creatingProperty ? (
+      {creatingPropertyId ? (
         <Box
           sx={({ palette }) => ({
             background: palette.gray[10],
@@ -191,7 +201,45 @@ export const PropertyTypeCustomMenu: FunctionComponent<
           <Button
             size="small"
             onClick={() => {
-              setValue(`expectedValues`, [...expectedValues, creatingProperty]);
+              const getExpectedValues = (
+                expectedIds: string[],
+                flattenedPropertiesArray: Record<string, DataType>,
+              ): DataType[] => {
+                return expectedIds.map((id) => {
+                  const childProperty = flattenedPropertiesArray[id]!;
+
+                  return {
+                    ...childProperty,
+                    data: {
+                      ...childProperty.data,
+                      ...("expectedValues" in childProperty.data
+                        ? {
+                            expectedValues: getExpectedValues(
+                              childProperty.data.expectedValues,
+                              flattenedPropertiesArray,
+                            ),
+                          }
+                        : {}),
+                    },
+                  } as DataType;
+                });
+              };
+
+              const prop = {
+                ...flattenedProperties[creatingPropertyId],
+                schema: getPropertyTypeSchema(
+                  flattenedProperties[creatingPropertyId]!,
+                  flattenedProperties,
+                ),
+              };
+
+              console.log(prop);
+
+              setValue(`expectedValues`, [
+                ...expectedValues,
+                prop,
+                // ...getExpectedValues([creatingPropertyId], flattenedProperties),
+              ]);
               closeCustomPropertyMenu();
             }}
           >
