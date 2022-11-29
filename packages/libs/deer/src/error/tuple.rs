@@ -106,3 +106,16 @@ macro_rules! properties {
 }
 
 all_the_tuples!(properties);
+
+impl ErrorProperties for () {
+    type Value<'a> = ();
+
+    fn value<'a>(_: &[&'a Frame]) -> Self::Value<'a> {}
+
+    fn output<S>(_: Self::Value<'_>, _: &mut S) -> error_stack::Result<(), SerdeSerializeError>
+    where
+        S: SerializeMap,
+    {
+        Ok(())
+    }
+}
