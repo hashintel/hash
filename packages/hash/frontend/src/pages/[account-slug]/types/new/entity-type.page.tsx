@@ -23,7 +23,7 @@ import { useBlockProtocolGetEntityType } from "../../../../components/hooks/bloc
 import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
 import { useInitTypeSystem } from "../../../../lib/use-init-type-system";
 import {
-  getLayoutWithHeader,
+  getLayoutWithSidebar,
   NextPageWithLayout,
 } from "../../../../shared/layout";
 import { Link } from "../../../../shared/ui/link";
@@ -308,6 +308,9 @@ const Page: NextPageWithLayout = () => {
   );
 };
 
-Page.getLayout = getLayoutWithHeader;
+Page.getLayout = (page) =>
+  getLayoutWithSidebar(page, {
+    fullWidth: true,
+  });
 
 export default Page;
