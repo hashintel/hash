@@ -14,11 +14,11 @@ import {
 } from "@mui/material";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
-import { ReactNode, useEffect } from "react";
+import { ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
 import { useBlockProtocolGetEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
-import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
+import { PageErrorState } from "../../../../components/page-error-state";
 import { useInitTypeSystem } from "../../../../lib/use-init-type-system";
 import {
   getLayoutWithSidebar,
@@ -58,8 +58,10 @@ const HELPER_TEXT_WIDTH = 290;
 const generateInitialEntityTypeId = (baseUri: string) =>
   versionedUriFromComponents(baseUri, 1);
 
+/**
+ * @todo check user has permission to create entity type in this namespace
+ */
 const Page: NextPageWithLayout = () => {
-  const typeSystemLoading = useInitTypeSystem();
   const router = useRouter();
 
   const {
@@ -79,40 +81,37 @@ const Page: NextPageWithLayout = () => {
     },
   });
 
-  const { authenticatedUser, loading } = useAuthenticatedUser();
   const { getEntityType } = useBlockProtocolGetEntityType();
   const { namespace, loading: loadingNamespace } = useRouteNamespace();
 
-  useEffect(() => {
-    if (authenticatedUser && !loadingNamespace && !namespace) {
-      void router.replace(
-        `/@${authenticatedUser.shortname}/new/types/entity-type`,
-      );
-    }
-  }, [loadingNamespace, authenticatedUser, namespace, router]);
+  const typeSystemLoading = useInitTypeSystem();
 
-  if (typeSystemLoading || loading || !authenticatedUser || !namespace) {
+  if (typeSystemLoading) {
     return null;
   }
 
+  if (!namespace) {
+    if (loadingNamespace) {
+      return null;
+    } else {
+      return <PageErrorState />;
+    }
+  }
+
   const generateEntityTypeBaseUriForUser = (value: string) => {
-    if (!namespace) {
+    if (!namespace?.shortname) {
       throw new Error("User or Org shortname must exist");
     }
 
     return generateBaseTypeId({
       domain: frontendUrl,
-      namespace: namespace.shortname ?? "",
+      namespace: namespace.shortname,
       kind: "entity-type",
       title: value,
     });
   };
 
   const handleFormSubmit = handleSubmit(async ({ name, description }) => {
-    if (!namespace) {
-      throw new Error("Namespace for entity type creation missing");
-    }
-
     const baseUri = generateEntityTypeBaseUriForUser(name);
     const entityType: EntityType = {
       title: name,
