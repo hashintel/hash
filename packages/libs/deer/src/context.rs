@@ -55,3 +55,63 @@ impl Default for Context {
         Self::new()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn insert() {
+        let mut context = Context::new();
+        context.insert(0u8);
+
+        let has_u8 = context.inner.keys().any(|id| *id == TypeId::of::<u8>());
+        assert!(has_u8);
+    }
+
+    #[test]
+    fn remove() {
+        let mut context = Context::new();
+
+        context.insert::<u8>(0u8);
+        context.insert::<u16>(0u16);
+        assert_eq!(context.inner.len(), 2);
+
+        let value = context.remove::<u8>();
+        assert_eq!(value, Some(0));
+        assert_eq!(context.inner.len(), 1);
+    }
+
+    #[test]
+    fn clear() {
+        let mut context = Context::new();
+
+        context.insert::<u8>(0u8);
+        context.insert::<u16>(0u16);
+        assert_eq!(context.inner.len(), 2);
+
+        context.clear();
+        assert_eq!(context.inner.len(), 0);
+    }
+
+    #[test]
+    fn contains() {
+        let mut context = Context::new();
+
+        context.insert::<u8>(0u8);
+        context.insert::<u16>(0u16);
+
+        assert!(context.contains::<u8>());
+        assert!(context.contains::<u16>());
+        assert!(!context.contains::<u32>());
+    }
+
+    #[test]
+    fn request_ref() {
+        let mut context = Context::new();
+
+        context.insert::<u8>(3u8);
+
+        assert_eq!(context.request_ref::<u8>(), Some(&3u8));
+    }
+}
