@@ -9,7 +9,10 @@ export const isShortnameTaken = gql`
 
 export const meQuery = gql`
   query me {
-    me(entityResolveDepth: 2) {
+    me(
+      hasLeftEntity: { incoming: 1, outgoing: 1 }
+      hasRightEntity: { incoming: 1, outgoing: 1 }
+    ) {
       ...SubgraphFields
     }
   }

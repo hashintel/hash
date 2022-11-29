@@ -4,7 +4,6 @@ import {
   EntityModel,
   EntityModelCreateParams,
   UserModel,
-  LinkEntityModel,
 } from "..";
 import { systemAccountId } from "../util";
 import { SYSTEM_TYPES } from "../../graph/system-types";
@@ -13,7 +12,11 @@ import { EntityTypeMismatchError, NotFoundError } from "../../lib/error";
 export type HashInstanceModelCreateParams = Omit<
   EntityModelCreateParams,
   "properties" | "entityTypeModel" | "ownedById"
->;
+> & {
+  userSelfRegistrationIsEnabled?: boolean;
+  userRegistrationByInviteIsEnabled?: boolean;
+  orgSelfRegistrationIsEnabled?: boolean;
+};
 
 /**
  * @class {@link HashInstanceModel}
@@ -63,7 +66,14 @@ export default class extends EntityModel {
 
     const entityModel = await EntityModel.create(graphApi, {
       ownedById: systemAccountId,
-      properties: {},
+      properties: {
+        [SYSTEM_TYPES.propertyType.userSelfRegistrationIsEnabled.getBaseUri()]:
+          params.userSelfRegistrationIsEnabled ?? true,
+        [SYSTEM_TYPES.propertyType.userRegistrationByInviteIsEnabled.getBaseUri()]:
+          params.userRegistrationByInviteIsEnabled ?? true,
+        [SYSTEM_TYPES.propertyType.orgSelfRegistrationIsEnabled.getBaseUri()]:
+          params.orgSelfRegistrationIsEnabled ?? true,
+      },
       entityTypeModel,
       actorId,
     });
@@ -172,49 +182,11 @@ export default class extends EntityModel {
   ): Promise<void> {
     const { userModel, actorId } = params;
 
-    const outgoingAdminLinkEntityModels = await LinkEntityModel.getByQuery(
+    const outgoingAdminLinkEntityModels = await this.getOutgoingLinks(
       graphApi,
       {
-        all: [
-          {
-            equal: [
-              { path: ["leftEntity", "uuid"] },
-              { parameter: this.getEntityUuid() },
-            ],
-          },
-          {
-            equal: [
-              { path: ["leftEntity", "ownedById"] },
-              { parameter: this.getOwnedById() },
-            ],
-          },
-          {
-            equal: [
-              { path: ["type", "versionedUri"] },
-              {
-                parameter: SYSTEM_TYPES.linkEntityType.admin.getSchema().$id,
-              },
-            ],
-          },
-          {
-            equal: [
-              { path: ["rightEntity", "uuid"] },
-              { parameter: userModel.getEntityUuid() },
-            ],
-          },
-          {
-            equal: [
-              { path: ["rightEntity", "ownedById"] },
-              { parameter: userModel.getOwnedById() },
-            ],
-          },
-          {
-            equal: [{ path: ["version"] }, { parameter: "latest" }],
-          },
-          {
-            equal: [{ path: ["archived"] }, { parameter: false }],
-          },
-        ],
+        linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.admin,
+        rightEntityModel: userModel,
       },
     );
 
@@ -233,5 +205,23 @@ export default class extends EntityModel {
     }
 
     await outgoingAdminLinkEntityModel.archive(graphApi, { actorId });
+  }
+
+  isUserSelfRegistrationEnabled(): boolean {
+    return this.getProperties()[
+      SYSTEM_TYPES.propertyType.userSelfRegistrationIsEnabled.getBaseUri()
+    ] as boolean;
+  }
+
+  isUserRegistrationByInviteEnabled(): boolean {
+    return this.getProperties()[
+      SYSTEM_TYPES.propertyType.userRegistrationByInviteIsEnabled.getBaseUri()
+    ] as boolean;
+  }
+
+  isOrgSelfRegistrationEnabled(): boolean {
+    return this.getProperties()[
+      SYSTEM_TYPES.propertyType.orgSelfRegistrationIsEnabled.getBaseUri()
+    ] as boolean;
   }
 }

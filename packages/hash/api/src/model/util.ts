@@ -230,6 +230,7 @@ export const propertyTypeInitializer = (
 export type EntityTypeCreatorParams = {
   entityTypeId: VersionedUri;
   title: string;
+  description?: string;
   properties?: {
     propertyTypeModel: PropertyTypeModel;
     required?: boolean;
@@ -316,6 +317,7 @@ export const generateSystemEntityTypeSchema = (
   return {
     $id: params.entityTypeId,
     title: params.title,
+    description: params.description,
     type: "object",
     kind: "entityType",
     properties,

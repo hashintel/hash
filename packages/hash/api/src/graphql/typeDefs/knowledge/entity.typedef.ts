@@ -3,19 +3,10 @@ import { gql } from "apollo-server-express";
 export const entityTypedef = gql`
   scalar EntityId
   scalar EntityEditionId
-  """
-  @todo rename to 'Entity' once we get rid of deprecated GQL types.
-    See https://app.asana.com/0/1201095311341924/1203411297593704/f
-  """
   scalar Entity
-  """
-  @todo we intend to use only a single scalar instead of the following ones.
-    To support existing pieces of the application, these scalars are useful for 'Knowledge' types
-    that wrap entities with custom resolvers.
-    Changing this this can be considered part of https://app.asana.com/0/1202805690238892/1203157172269854/f
-  """
   scalar PropertyObject
   scalar EntityMetadata
+  scalar LinkEntityMetadata
 
   input LinkedEntityDefinition {
     destinationAccountId: ID!
@@ -40,7 +31,7 @@ export const entityTypedef = gql`
     """
     The properties of new entity.
     """
-    entityProperties: JSONObject
+    entityProperties: PropertyObject
     """
     Associated Entities to either create/get and link to this entity.
     """
@@ -53,10 +44,13 @@ export const entityTypedef = gql`
     Get a subgraph rooted at all entities at their latest version.
     """
     getAllLatestEntities(
-      dataTypeResolveDepth: Int!
-      propertyTypeResolveDepth: Int!
-      entityTypeResolveDepth: Int!
-      entityResolveDepth: Int!
+      constrainsValuesOn: OutgoingEdgeResolveDepthInput!
+      constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
+      constrainsLinksOn: OutgoingEdgeResolveDepthInput!
+      constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
+      isOfType: OutgoingEdgeResolveDepthInput!
+      hasLeftEntity: EdgeResolveDepthsInput!
+      hasRightEntity: EdgeResolveDepthsInput!
     ): Subgraph!
 
     """
@@ -71,10 +65,13 @@ export const entityTypedef = gql`
       The version of the entity. Defaults to the latest version.
       """
       entityVersion: String
-      dataTypeResolveDepth: Int!
-      propertyTypeResolveDepth: Int!
-      entityTypeResolveDepth: Int!
-      entityResolveDepth: Int!
+      constrainsValuesOn: OutgoingEdgeResolveDepthInput!
+      constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
+      constrainsLinksOn: OutgoingEdgeResolveDepthInput!
+      constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
+      isOfType: OutgoingEdgeResolveDepthInput!
+      hasLeftEntity: EdgeResolveDepthsInput!
+      hasRightEntity: EdgeResolveDepthsInput!
     ): Subgraph!
   }
 
@@ -94,11 +91,15 @@ export const entityTypedef = gql`
       """
       The properties of new entity.
       """
-      properties: JSONObject!
+      properties: PropertyObject!
       """
       Associated Entities to either create/get and link to this entity.
       """
       linkedEntities: [LinkedEntityDefinition!]
+      """
+      The link metadata of the entity (required when creating a link entity).
+      """
+      linkMetadata: LinkEntityMetadata
     ): Entity!
 
     """
@@ -112,7 +113,7 @@ export const entityTypedef = gql`
       """
       The updated properties of the entity.
       """
-      updatedProperties: JSONObject!
+      updatedProperties: PropertyObject!
     ): Entity!
   }
 `;

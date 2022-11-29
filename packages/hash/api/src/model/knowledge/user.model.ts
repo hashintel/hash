@@ -213,7 +213,6 @@ export default class extends EntityModel {
       const hashInstanceModel = await HashInstanceModel.getHashInstanceModel(
         graphApi,
       );
-
       await hashInstanceModel.addAdmin(graphApi, { userModel, actorId });
     }
 

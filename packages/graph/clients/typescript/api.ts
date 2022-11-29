@@ -342,6 +342,25 @@ export interface DataTypeWithMetadata {
 /**
  *
  * @export
+ * @interface EdgeResolveDepths
+ */
+export interface EdgeResolveDepths {
+  /**
+   *
+   * @type {number}
+   * @memberof EdgeResolveDepths
+   */
+  incoming: number;
+  /**
+   *
+   * @type {number}
+   * @memberof EdgeResolveDepths
+   */
+  outgoing: number;
+}
+/**
+ *
+ * @export
  * @interface Edges
  */
 export interface Edges {
@@ -748,35 +767,59 @@ export interface GraphElementEditionIdOneOf1 {
 export type GraphElementId = string;
 
 /**
- * The distance in the [`Subgraph`] to explore when searching from a root in a breadth-first search
+ * TODO: DOC - <https://app.asana.com/0/0/1203438518991188/f>
  * @export
  * @interface GraphResolveDepths
  */
 export interface GraphResolveDepths {
   /**
    *
-   * @type {number}
+   * @type {OutgoingEdgeResolveDepth}
    * @memberof GraphResolveDepths
    */
-  dataTypeResolveDepth: number;
+  constrainsLinkDestinationsOn: OutgoingEdgeResolveDepth;
   /**
    *
-   * @type {number}
+   * @type {OutgoingEdgeResolveDepth}
    * @memberof GraphResolveDepths
    */
-  entityResolveDepth: number;
+  constrainsLinksOn: OutgoingEdgeResolveDepth;
   /**
    *
-   * @type {number}
+   * @type {OutgoingEdgeResolveDepth}
    * @memberof GraphResolveDepths
    */
-  entityTypeResolveDepth: number;
+  constrainsPropertiesOn: OutgoingEdgeResolveDepth;
   /**
    *
-   * @type {number}
+   * @type {OutgoingEdgeResolveDepth}
    * @memberof GraphResolveDepths
    */
-  propertyTypeResolveDepth: number;
+  constrainsValuesOn: OutgoingEdgeResolveDepth;
+  /**
+   *
+   * @type {EdgeResolveDepths}
+   * @memberof GraphResolveDepths
+   */
+  hasLeftEntity: EdgeResolveDepths;
+  /**
+   *
+   * @type {EdgeResolveDepths}
+   * @memberof GraphResolveDepths
+   */
+  hasRightEntity: EdgeResolveDepths;
+  /**
+   *
+   * @type {OutgoingEdgeResolveDepth}
+   * @memberof GraphResolveDepths
+   */
+  inheritsFrom: OutgoingEdgeResolveDepth;
+  /**
+   *
+   * @type {OutgoingEdgeResolveDepth}
+   * @memberof GraphResolveDepths
+   */
+  isOfType: OutgoingEdgeResolveDepth;
 }
 /**
  *
@@ -1331,6 +1374,19 @@ export interface OntologyVertexOneOfInner {
  */
 export interface OntologyVertices {
   [key: string]: { [key: string]: OntologyVertex };
+}
+/**
+ *
+ * @export
+ * @interface OutgoingEdgeResolveDepth
+ */
+export interface OutgoingEdgeResolveDepth {
+  /**
+   *
+   * @type {number}
+   * @memberof OutgoingEdgeResolveDepth
+   */
+  outgoing: number;
 }
 /**
  *

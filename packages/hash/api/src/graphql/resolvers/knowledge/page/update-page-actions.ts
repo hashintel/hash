@@ -41,7 +41,7 @@ export const createEntityWithPlaceholdersFn =
       return await EntityModel.createEntityWithLinks(graphApi, {
         ownedById: entityActorId,
         entityTypeId: entityDefinition.entityTypeId!,
-        properties: entityDefinition.entityProperties,
+        properties: entityDefinition.entityProperties ?? {},
         linkedEntities: entityDefinition.linkedEntities ?? undefined,
         actorId: entityActorId,
       });

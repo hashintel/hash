@@ -76,6 +76,7 @@ const EditBarContents = ({
           loading={frozenSubmitting}
           loadingWithoutText
           disabled={frozenSubmitting}
+          data-testid="editbar-confirm"
           {...confirmButtonProps}
         >
           {confirmButtonProps.children}

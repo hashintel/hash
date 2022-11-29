@@ -7,7 +7,10 @@ mod kind;
 
 pub use self::{
     edge::{KnowledgeGraphOutwardEdges, OntologyOutwardEdges, OutwardEdge},
-    kind::{KnowledgeGraphEdgeKind, OntologyEdgeKind, SharedEdgeKind},
+    kind::{
+        EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
+        OutgoingEdgeResolveDepth, SharedEdgeKind,
+    },
 };
 
 #[derive(Default, Debug)]

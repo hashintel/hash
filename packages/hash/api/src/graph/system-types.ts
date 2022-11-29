@@ -46,6 +46,11 @@ export let SYSTEM_TYPES: {
     // Comment-related
     resolvedAt: PropertyTypeModel;
     deletedAt: PropertyTypeModel;
+
+    // HASH Instance related
+    userSelfRegistrationIsEnabled: PropertyTypeModel;
+    userRegistrationByInviteIsEnabled: PropertyTypeModel;
+    orgSelfRegistrationIsEnabled: PropertyTypeModel;
   };
   entityType: {
     hashInstance: EntityTypeModel;
@@ -85,6 +90,27 @@ export let SYSTEM_TYPES: {
   };
 };
 
+const userSelfRegistrationIsEnabledPropertyTypeInitializer =
+  propertyTypeInitializer({
+    ...types.propertyType.userSelfRegistrationIsEnabled,
+    possibleValues: [{ primitiveDataType: "boolean" }],
+    actorId: systemAccountId,
+  });
+
+const orgSelfRegistrationIsEnabledPropertyTypeInitializer =
+  propertyTypeInitializer({
+    ...types.propertyType.orgSelfRegistrationIsEnabled,
+    possibleValues: [{ primitiveDataType: "boolean" }],
+    actorId: systemAccountId,
+  });
+
+const userRegistrationByInviteIsEnabledPropertyTypeInitializer =
+  propertyTypeInitializer({
+    ...types.propertyType.userRegistrationByInviteIsEnabled,
+    possibleValues: [{ primitiveDataType: "boolean" }],
+    actorId: systemAccountId,
+  });
+
 export const adminLinkEntityTypeInitializer = entityTypeInitializer({
   ...types.linkEntityType.admin,
   actorId: systemAccountId,
@@ -92,6 +118,21 @@ export const adminLinkEntityTypeInitializer = entityTypeInitializer({
 
 export const hashInstanceEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
+
+  const userSelfRegistrationIsEnabledPropertyTypeModel =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.userSelfRegistrationIsEnabled(
+      graphApi,
+    );
+
+  const orgSelfRegistrationIsEnabledPropertyTypeModel =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.orgSelfRegistrationIsEnabled(
+      graphApi,
+    );
+
+  const userRegistrationByInviteIsEnabledPropertyTypeModel =
+    await SYSTEM_TYPES_INITIALIZERS.propertyType.userRegistrationByInviteIsEnabled(
+      graphApi,
+    );
 
   const adminLinkEntityTypeModel =
     await SYSTEM_TYPES_INITIALIZERS.linkEntityType.admin(graphApi);
@@ -104,7 +145,20 @@ export const hashInstanceEntityTypeInitializer = async (graphApi: GraphApi) => {
 
   return entityTypeInitializer({
     ...types.entityType.hashInstance,
-    properties: [],
+    properties: [
+      {
+        propertyTypeModel: userSelfRegistrationIsEnabledPropertyTypeModel,
+        required: true,
+      },
+      {
+        propertyTypeModel: orgSelfRegistrationIsEnabledPropertyTypeModel,
+        required: true,
+      },
+      {
+        propertyTypeModel: userRegistrationByInviteIsEnabledPropertyTypeModel,
+        required: true,
+      },
+    ],
     outgoingLinks: [
       {
         linkEntityTypeModel: adminLinkEntityTypeModel,
@@ -612,6 +666,13 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
 
     resolvedAt: resolvedAtPropertyTypeInitializer,
     deletedAt: deletedAtPropertyTypeInitializer,
+
+    userSelfRegistrationIsEnabled:
+      userSelfRegistrationIsEnabledPropertyTypeInitializer,
+    orgSelfRegistrationIsEnabled:
+      orgSelfRegistrationIsEnabledPropertyTypeInitializer,
+    userRegistrationByInviteIsEnabled:
+      userRegistrationByInviteIsEnabledPropertyTypeInitializer,
   },
   entityType: {
     hashInstance: hashInstanceEntityTypeInitializer,
