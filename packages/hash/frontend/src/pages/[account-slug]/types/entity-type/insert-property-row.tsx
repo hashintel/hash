@@ -11,10 +11,7 @@ import { useFormContext, useWatch } from "react-hook-form";
 import { useBlockProtocolCreatePropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreatePropertyType";
 import { EntityTypeEditorForm } from "./form-types";
 import { PropertyTypeSelector } from "./property-type-selector";
-import {
-  PropertyTypeModalFormValues,
-  PropertyTypeModalForm,
-} from "./property-type-modal-form";
+import { PropertyTypeFormValues, PropertyTypeForm } from "./property-type-form";
 import { QuestionIcon } from "./question-icon";
 import { useRefetchPropertyTypes } from "./use-property-types";
 import { useRouteNamespace } from "./use-route-namespace";
@@ -51,7 +48,7 @@ export const InsertPropertyRow = ({
     routeNamespace?.shortname ?? "",
   );
 
-  const handleSubmit = async (data: PropertyTypeModalFormValues) => {
+  const handleSubmit = async (data: PropertyTypeFormValues) => {
     const res = await createPropertyType({
       data: {
         propertyType: {
@@ -110,7 +107,7 @@ export const InsertPropertyRow = ({
             variant: "propertyType",
           }}
         />
-        <PropertyTypeModalForm
+        <PropertyTypeForm
           modalTitle={
             <>
               Create new property type

@@ -32,7 +32,7 @@ import { InsertPropertyRow } from "./insert-property-row";
 import { MultipleValuesCell } from "./multiple-values-cell";
 import { PropertyExpectedValues } from "./property-expected-values";
 import { PropertyMenu } from "./property-menu";
-import { PropertyTypeModalForm } from "./property-type-modal-form";
+import { PropertyTypeForm } from "./property-type-form";
 import { QuestionIcon } from "./question-icon";
 import { StyledPlusCircleIcon } from "./styled-plus-circle-icon";
 import { usePropertyTypes } from "./use-property-types";
@@ -144,7 +144,7 @@ export const PropertyTypeRow = ({
           />
         </TableCell>
       </TableRow>
-      <PropertyTypeModalForm
+      <PropertyTypeForm
         popupState={editModalPopupState}
         modalTitle={<>Edit Property Type</>}
         onSubmit={async (data) => {
