@@ -1,4 +1,3 @@
-import { validateVersionedUri } from "@blockprotocol/type-system-web";
 import { frontendUrl } from "@hashintel/hash-shared/environment";
 import { bindToggle, bindTrigger } from "material-ui-popup-state/hooks";
 import { SetStateAction, useLayoutEffect, useRef, useState } from "react";
