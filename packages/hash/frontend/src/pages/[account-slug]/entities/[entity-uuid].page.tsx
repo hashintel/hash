@@ -36,10 +36,12 @@ const Page: NextPageWithLayout = () => {
           const entityUuid = router.query["entity-uuid"] as string;
 
           const { data: subgraph } = await getEntity({
-            data: entityIdFromOwnedByIdAndEntityUuid(
-              namespace.accountId,
-              entityUuid,
-            ),
+            data: {
+              entityId: entityIdFromOwnedByIdAndEntityUuid(
+                namespace.accountId,
+                entityUuid,
+              ),
+            },
           });
 
           if (subgraph) {
