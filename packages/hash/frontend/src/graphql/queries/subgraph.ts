@@ -6,10 +6,32 @@ export const subgraphFieldsFragment = gql`
     vertices
     edges
     depths {
-      dataTypeResolveDepth
-      propertyTypeResolveDepth
-      entityTypeResolveDepth
-      entityResolveDepth
+      constrainsLinkDestinationsOn {
+        outgoing
+      }
+      constrainsLinksOn {
+        outgoing
+      }
+      constrainsValuesOn {
+        outgoing
+      }
+      constrainsPropertiesOn {
+        outgoing
+      }
+      inheritsFrom {
+        outgoing
+      }
+      isOfType {
+        outgoing
+      }
+      hasLeftEntity {
+        incoming
+        outgoing
+      }
+      hasRightEntity {
+        incoming
+        outgoing
+      }
     }
   }
 `;

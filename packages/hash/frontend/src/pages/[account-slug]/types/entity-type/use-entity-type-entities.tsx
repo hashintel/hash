@@ -25,16 +25,7 @@ export const useEntityTypeEntitiesContextValue = (
   const { aggregateEntities } = useBlockProtocolAggregateEntities();
 
   useEffect(() => {
-    void aggregateEntities({
-      data: {
-        dataTypeResolveDepth: 0,
-        propertyTypeResolveDepth: 1,
-        linkTypeResolveDepth: 0,
-        entityTypeResolveDepth: 1,
-        linkResolveDepth: 0,
-        linkTargetEntityResolveDepth: 0,
-      },
-    }).then((res) => {
+    void aggregateEntities({ data: {} }).then((res) => {
       if (res.data) {
         setSubgraph(res.data);
       }

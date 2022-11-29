@@ -50,6 +50,7 @@ import {
   getEntity,
   getAllLatestEntities,
   updateEntity,
+  archiveEntity,
 } from "./knowledge/entity/entity";
 import { setParentPage } from "./knowledge/page/set-parent-page";
 import { updatePage } from "./knowledge/page/update-page";
@@ -65,6 +66,7 @@ import { blockChildEntity } from "./knowledge/block/data-entity";
 import { loggedInAndSignedUpHashInstanceAdmin } from "./middlewares/loggedInAndSignedUpHashInstanceAdmin";
 import { createUser } from "./knowledge/user/create-user";
 import { createOrg } from "./knowledge/org/create-org";
+import { hashInstanceEntity } from "./knowledge/hashInstance/hashInstance";
 
 /** @todo - Refactor the names of these https://app.asana.com/0/1200211978612931/1203234667392169/f */
 export const resolvers = {
@@ -91,6 +93,7 @@ export const resolvers = {
     blocks: loggedInAndSignedUp(blocks),
     getEntity: loggedInAndSignedUp(getEntity),
     getAllLatestEntities: loggedInAndSignedUp(getAllLatestEntities),
+    hashInstanceEntity,
   },
 
   Mutation: {
@@ -116,6 +119,7 @@ export const resolvers = {
     // Knowledge
     createEntity: loggedInAndSignedUp(createEntity),
     updateEntity: loggedIn(updateEntity),
+    archiveEntity: loggedIn(archiveEntity),
     createPage: loggedInAndSignedUp(createPage),
     setParentPage: loggedInAndSignedUp(setParentPage),
     updatePage: loggedInAndSignedUp(updatePage),

@@ -65,8 +65,8 @@ impl Display for OntologyTypeEditionId {
 }
 
 // The Type System crate doesn't let us destructure so we need to clone base_uri
-impl From<VersionedUri> for OntologyTypeEditionId {
-    fn from(versioned_uri: VersionedUri) -> Self {
+impl From<&VersionedUri> for OntologyTypeEditionId {
+    fn from(versioned_uri: &VersionedUri) -> Self {
         Self {
             base_id: versioned_uri.base_uri().clone(),
             version: OntologyTypeVersion::new(versioned_uri.version()),
@@ -74,8 +74,8 @@ impl From<VersionedUri> for OntologyTypeEditionId {
     }
 }
 
-impl From<OntologyTypeEditionId> for VersionedUri {
-    fn from(edition_id: OntologyTypeEditionId) -> Self {
+impl From<&OntologyTypeEditionId> for VersionedUri {
+    fn from(edition_id: &OntologyTypeEditionId) -> Self {
         // We should make it possible to destructure to avoid the clone
         Self::new(edition_id.base_id().clone(), edition_id.version.inner())
     }
