@@ -8,7 +8,10 @@ import {
 } from "@hashintel/hash-subgraph";
 import { useBlockProtocolGetEntity } from "../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolGetEntity";
 import { useLoggedInUser } from "../../../components/hooks/useAuthenticatedUser";
-import { getPlainLayout, NextPageWithLayout } from "../../../shared/layout";
+import {
+  getLayoutWithSidebar,
+  NextPageWithLayout,
+} from "../../../shared/layout";
 import { EntityEditor } from "./[entity-uuid].page/entity-editor";
 import { EntityPageLoadingState } from "./[entity-uuid].page/entity-page-loading-state";
 import { EntityPageWrapper } from "./[entity-uuid].page/entity-page-wrapper";
@@ -115,6 +118,9 @@ const Page: NextPageWithLayout = () => {
   );
 };
 
-Page.getLayout = getPlainLayout;
+Page.getLayout = (page) =>
+  getLayoutWithSidebar(page, {
+    fullWidth: true,
+  });
 
 export default Page;
