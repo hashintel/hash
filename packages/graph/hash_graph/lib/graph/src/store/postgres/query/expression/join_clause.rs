@@ -1,121 +1,36 @@
 use std::fmt;
 
-use crate::store::postgres::query::{
-    Column, ColumnAccess, Condition, Expression, Table, TableName, Transpile,
-};
+use crate::store::postgres::query::{AliasedColumn, Transpile};
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct JoinExpression<'q> {
-    pub join: Table,
-    pub on: Condition<'q>,
-}
-/// The order in which to join the tables.
-///
-/// Typically, when dealing with paths we join from left to right as we encounter elements. In some
-/// circumstances, the direction we join upon is actually reversed, for example with incoming links,
-/// where we want to use the subject (left element) _as_ the target.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum EdgeJoinDirection {
-    SourceOnTarget,
-    TargetOnSource,
+    pub join: AliasedColumn<'q>,
+    pub on: AliasedColumn<'q>,
 }
 
 impl<'q> JoinExpression<'q> {
     #[must_use]
-    pub const fn from_tables(join: Table, on: Table, direction: EdgeJoinDirection) -> Self {
-        // Crossing the boundaries of ontology <-> Knowledge requires special casing
-        match (join.name, on.name) {
-            (TableName::Entities, TableName::EntityTypes | TableName::TypeIds) => {
-                return Self {
-                    join,
-                    on: Condition::Equal(
-                        Some(Expression::Column(Column {
-                            table: join,
-                            access: ColumnAccess::Table {
-                                column: "entity_type_version_id",
-                            },
-                        })),
-                        Some(Expression::Column(on.target_join_column())),
-                    ),
-                };
-            }
-            (TableName::EntityTypes | TableName::TypeIds, TableName::Entities) => {
-                return Self {
-                    join,
-                    on: Condition::Equal(
-                        Some(Expression::Column(join.source_join_column())),
-                        Some(Expression::Column(Column {
-                            table: on,
-                            access: ColumnAccess::Table {
-                                column: "entity_type_version_id",
-                            },
-                        })),
-                    ),
-                };
-            }
-            (TableName::Links, TableName::LinkTypes | TableName::TypeIds) => {
-                return Self {
-                    join,
-                    on: Condition::Equal(
-                        Some(Expression::Column(Column {
-                            table: join,
-                            access: ColumnAccess::Table {
-                                column: "link_type_version_id",
-                            },
-                        })),
-                        Some(Expression::Column(on.target_join_column())),
-                    ),
-                };
-            }
-            (TableName::LinkTypes | TableName::TypeIds, TableName::Links) => {
-                return Self {
-                    join,
-                    on: Condition::Equal(
-                        Some(Expression::Column(join.source_join_column())),
-                        Some(Expression::Column(Column {
-                            table: on,
-                            access: ColumnAccess::Table {
-                                column: "link_type_version_id",
-                            },
-                        })),
-                    ),
-                };
-            }
-            _ => {}
-        }
-
-        let condition = match direction {
-            EdgeJoinDirection::SourceOnTarget => Condition::Equal(
-                Some(Expression::Column(join.source_join_column())),
-                Some(Expression::Column(on.target_join_column())),
-            ),
-            EdgeJoinDirection::TargetOnSource => Condition::Equal(
-                Some(Expression::Column(join.target_join_column())),
-                Some(Expression::Column(on.source_join_column())),
-            ),
-        };
-
-        Self {
-            join,
-            on: condition,
-        }
+    pub const fn new(join: AliasedColumn<'q>, on: AliasedColumn<'q>) -> Self {
+        Self { join, on }
     }
 }
 
 impl Transpile for JoinExpression<'_> {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        fmt.write_str("INNER JOIN ")?;
-        if self.join.alias.is_some() {
-            let unaliased_table = Table {
-                name: self.join.name,
-                alias: None,
-            };
-            unaliased_table.transpile(fmt)?;
-            fmt.write_str(" AS ")?;
-        }
-        self.join.transpile(fmt)?;
+        match (self.join.column.nullable(), self.on.column.nullable()) {
+            (false, false) => write!(fmt, "INNER JOIN ")?,
+            (true, false) => write!(fmt, "LEFT OUTER JOIN ")?,
+            (false, true) => write!(fmt, "RIGHT OUTER JOIN ")?,
+            (true, true) => write!(fmt, "FULL OUTER JOIN ")?,
+        };
+        let table = self.join.table();
+        table.table.transpile(fmt)?;
+        fmt.write_str(" AS ")?;
+        table.transpile(fmt)?;
 
         fmt.write_str(" ON ")?;
+        self.join.transpile(fmt)?;
+        fmt.write_str(" = ")?;
         self.on.transpile(fmt)
     }
 }
@@ -123,84 +38,28 @@ impl Transpile for JoinExpression<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::store::postgres::query::{TableAlias, TableName};
+    use crate::store::postgres::query::{
+        table::{Column, DataTypes, TypeIds},
+        Alias,
+    };
 
     #[test]
     fn transpile_join_expression() {
         assert_eq!(
-            JoinExpression::from_tables(
-                Table {
-                    name: TableName::TypeIds,
-                    alias: None
-                },
-                Table {
-                    name: TableName::DataTypes,
-                    alias: None
-                },
-                EdgeJoinDirection::SourceOnTarget,
+            JoinExpression::new(
+                Column::TypeIds(TypeIds::VersionId).aliased(Alias {
+                    condition_index: 0,
+                    chain_depth: 1,
+                    number: 2,
+                }),
+                Column::DataTypes(DataTypes::VersionId).aliased(Alias {
+                    condition_index: 1,
+                    chain_depth: 2,
+                    number: 3,
+                }),
             )
             .transpile_to_string(),
-            r#"INNER JOIN "type_ids" ON "type_ids"."version_id" = "data_types"."version_id""#
-        );
-
-        assert_eq!(
-            JoinExpression::from_tables(
-                Table {
-                    name: TableName::TypeIds,
-                    alias: Some(TableAlias {
-                        condition_index: 0,
-                        chain_depth: 1
-                    })
-                },
-                Table {
-                    name: TableName::DataTypes,
-                    alias: None
-                },
-                EdgeJoinDirection::SourceOnTarget,
-            )
-            .transpile_to_string(),
-            r#"INNER JOIN "type_ids" AS "type_ids_0_1" ON "type_ids_0_1"."version_id" = "data_types"."version_id""#
-        );
-
-        assert_eq!(
-            JoinExpression::from_tables(
-                Table {
-                    name: TableName::TypeIds,
-                    alias: None
-                },
-                Table {
-                    name: TableName::DataTypes,
-                    alias: Some(TableAlias {
-                        condition_index: 0,
-                        chain_depth: 0
-                    })
-                },
-                EdgeJoinDirection::SourceOnTarget,
-            )
-            .transpile_to_string(),
-            r#"INNER JOIN "type_ids" ON "type_ids"."version_id" = "data_types_0_0"."version_id""#
-        );
-
-        assert_eq!(
-            JoinExpression::from_tables(
-                Table {
-                    name: TableName::TypeIds,
-                    alias: Some(TableAlias {
-                        condition_index: 0,
-                        chain_depth: 1
-                    })
-                },
-                Table {
-                    name: TableName::DataTypes,
-                    alias: Some(TableAlias {
-                        condition_index: 0,
-                        chain_depth: 0
-                    })
-                },
-                EdgeJoinDirection::SourceOnTarget,
-            )
-            .transpile_to_string(),
-            r#"INNER JOIN "type_ids" AS "type_ids_0_1" ON "type_ids_0_1"."version_id" = "data_types_0_0"."version_id""#
+            r#"INNER JOIN "type_ids" AS "type_ids_0_1_2" ON "type_ids_0_1_2"."version_id" = "data_types_1_2_3"."version_id""#
         );
     }
 }

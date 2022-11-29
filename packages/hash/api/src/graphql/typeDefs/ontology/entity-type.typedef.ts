@@ -1,49 +1,29 @@
 import { gql } from "apollo-server-express";
 
 export const entityTypeTypedef = gql`
-  scalar EntityType
   scalar EntityTypeWithoutId
-
-  type PersistedEntityType {
-    """
-    The specific versioned URI of the entity type
-    """
-    entityTypeId: String!
-    """
-    The id of the account that owns this entity type.
-    """
-    ownedById: ID!
-    """
-    Alias of ownedById - the id of the account that owns this entity type.
-    """
-    accountId: ID!
-      @deprecated(reason: "accountId is deprecated. Use ownedById instead.")
-    """
-    The entity type
-    """
-    entityType: EntityType!
-  }
+  scalar EntityTypeWithMetadata
 
   extend type Query {
     """
     Get a subgraph rooted at all entity types at their latest version.
     """
     getAllLatestEntityTypes(
-      dataTypeResolveDepth: Int!
-      propertyTypeResolveDepth: Int!
-      linkTypeResolveDepth: Int!
-      entityTypeResolveDepth: Int!
+      constrainsValuesOn: OutgoingEdgeResolveDepthInput!
+      constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
+      constrainsLinksOn: OutgoingEdgeResolveDepthInput!
+      constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
     ): Subgraph!
 
     """
     Get a subgraph rooted at an entity type resolved by its versioned URI.
     """
     getEntityType(
-      entityTypeId: String!
-      dataTypeResolveDepth: Int!
-      propertyTypeResolveDepth: Int!
-      linkTypeResolveDepth: Int!
-      entityTypeResolveDepth: Int!
+      entityTypeId: VersionedUri!
+      constrainsValuesOn: OutgoingEdgeResolveDepthInput!
+      constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
+      constrainsLinksOn: OutgoingEdgeResolveDepthInput!
+      constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
     ): Subgraph!
   }
 
@@ -57,7 +37,7 @@ export const entityTypeTypedef = gql`
       """
       ownedById: ID
       entityType: EntityTypeWithoutId!
-    ): PersistedEntityType!
+    ): EntityTypeWithMetadata!
 
     """
     Update a entity type.
@@ -66,11 +46,11 @@ export const entityTypeTypedef = gql`
       """
       The entity type versioned $id to update.
       """
-      entityTypeId: String!
+      entityTypeId: VersionedUri!
       """
       New entity type schema contents to be used.
       """
       updatedEntityType: EntityTypeWithoutId!
-    ): PersistedEntityType!
+    ): EntityTypeWithMetadata!
   }
 `;

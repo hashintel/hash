@@ -16,18 +16,24 @@ use utoipa::{OpenApi, ToSchema};
 
 use super::api_resource::RoutedResource;
 use crate::{
-    api::rest::{read_from_store, report_to_status_code},
+    api::rest::{
+        read_from_store, report_to_status_code,
+        utoipa_typedef::subgraph::{Edges, Subgraph, Vertices},
+    },
+    identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId, GraphElementId},
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, PersistedDataType, PersistedOntologyIdentifier,
-        PersistedOntologyMetadata,
+        patch_id_and_parse, DataTypeQueryToken, DataTypeWithMetadata, OntologyElementMetadata,
     },
     provenance::{CreatedById, OwnedById, UpdatedById},
-    shared::identifier::GraphElementIdentifier,
     store::{query::Filter, BaseUriAlreadyExists, BaseUriDoesNotExist, DataTypeStore, StorePool},
     subgraph::{
-        DataTypeStructuralQuery, EdgeKind, Edges, GraphResolveDepths, OutwardEdge, StructuralQuery,
-        Subgraph, Vertex,
+        edges::{
+            EdgeResolveDepths, GraphResolveDepths, OntologyEdgeKind, OutgoingEdgeResolveDepth,
+            SharedEdgeKind,
+        },
+        query::{DataTypeStructuralQuery, StructuralQuery},
+        vertices::Vertex,
     },
 };
 
@@ -47,15 +53,20 @@ use crate::{
             OwnedById,
             CreatedById,
             UpdatedById,
-            PersistedOntologyIdentifier,
-            PersistedOntologyMetadata,
-            PersistedDataType,
+            OntologyTypeEditionId,
+            OntologyElementMetadata,
+            DataTypeWithMetadata,
             DataTypeStructuralQuery,
-            GraphElementIdentifier,
+            DataTypeQueryToken,
+            GraphElementId,
+            GraphElementEditionId,
+            Vertices,
             Vertex,
-            EdgeKind,
-            OutwardEdge,
+            OntologyEdgeKind,
+            SharedEdgeKind,
             GraphResolveDepths,
+            EdgeResolveDepths,
+            OutgoingEdgeResolveDepth,
             Subgraph,
             Edges
         )
@@ -100,7 +111,7 @@ struct CreateDataTypeRequest {
     request_body = CreateDataTypeRequest,
     tag = "DataType",
     responses(
-        (status = 201, content_type = "application/json", description = "The metadata of the created data type", body = PersistedOntologyMetadata),
+        (status = 201, content_type = "application/json", description = "The metadata of the created data type", body = OntologyElementMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 409, description = "Unable to create data type in the store as the base data type URI already exists"),
@@ -112,7 +123,7 @@ async fn create_data_type<P: StorePool + Send>(
     body: Json<CreateDataTypeRequest>,
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
-) -> Result<Json<PersistedOntologyMetadata>, StatusCode> {
+) -> Result<Json<OntologyElementMetadata>, StatusCode> {
     let Json(CreateDataTypeRequest {
         schema,
         owned_by_id,
@@ -189,7 +200,7 @@ async fn get_data_types_by_query<P: StorePool + Send>(
             })
         })
         .await
-        .map(Json)
+        .map(|subgraph| Json(subgraph.into()))
 }
 
 #[utoipa::path(
@@ -197,14 +208,14 @@ async fn get_data_types_by_query<P: StorePool + Send>(
     path = "/data-types",
     tag = "DataType",
     responses(
-        (status = 200, content_type = "application/json", description = "List of all data types at their latest versions", body = [PersistedDataType]),
+        (status = 200, content_type = "application/json", description = "List of all data types at their latest versions", body = [DataTypeWithMetadata]),
 
         (status = 500, description = "Store error occurred"),
     )
 )]
 async fn get_latest_data_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
-) -> Result<Json<Vec<PersistedDataType>>, StatusCode> {
+) -> Result<Json<Vec<DataTypeWithMetadata>>, StatusCode> {
     read_from_store(pool.as_ref(), &Filter::<DataType>::for_latest_version())
         .await
         .map(Json)
@@ -215,7 +226,7 @@ async fn get_latest_data_types<P: StorePool + Send>(
     path = "/data-types/{uri}",
     tag = "DataType",
     responses(
-        (status = 200, content_type = "application/json", description = "The schema of the requested data type", body = PersistedDataType),
+        (status = 200, content_type = "application/json", description = "The schema of the requested data type", body = DataTypeWithMetadata),
         (status = 422, content_type = "text/plain", description = "Provided URI is invalid"),
 
         (status = 404, description = "Data type was not found"),
@@ -228,7 +239,7 @@ async fn get_latest_data_types<P: StorePool + Send>(
 async fn get_data_type<P: StorePool + Send>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<PersistedDataType>, StatusCode> {
+) -> Result<Json<DataTypeWithMetadata>, StatusCode> {
     read_from_store(
         pool.as_ref(),
         &Filter::<DataType>::for_versioned_uri(&uri.0),
@@ -253,7 +264,7 @@ struct UpdateDataTypeRequest {
     path = "/data-types",
     tag = "DataType",
     responses(
-        (status = 200, content_type = "application/json", description = "The metadata of the updated data type", body = PersistedOntologyMetadata),
+        (status = 200, content_type = "application/json", description = "The metadata of the updated data type", body = OntologyElementMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
         (status = 404, description = "Base data type ID was not found"),
@@ -264,7 +275,7 @@ struct UpdateDataTypeRequest {
 async fn update_data_type<P: StorePool + Send>(
     body: Json<UpdateDataTypeRequest>,
     pool: Extension<Arc<P>>,
-) -> Result<Json<PersistedOntologyMetadata>, StatusCode> {
+) -> Result<Json<OntologyElementMetadata>, StatusCode> {
     let Json(UpdateDataTypeRequest {
         schema,
         type_to_update,

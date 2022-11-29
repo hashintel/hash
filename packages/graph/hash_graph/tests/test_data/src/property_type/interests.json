@@ -2,7 +2,6 @@
   "kind": "propertyType",
   "$id": "https://blockprotocol.org/@alice/types/property-type/interests/v/1",
   "title": "Interests",
-  "pluralTitle": "Interests",
   "oneOf": [
     {
       "type": "object",

@@ -68,7 +68,7 @@ export const SelectInput = forwardRef<HTMLSelectElement, SelectInputProps>(
         >
           {placeholder && (
             <option value="" disabled className={tw`hidden`}>
-              {placeholder || "---"}
+              {placeholder}
             </option>
           )}
           {options.map(

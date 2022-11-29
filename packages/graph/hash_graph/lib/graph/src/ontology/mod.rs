@@ -3,94 +3,30 @@
 mod data_type;
 pub mod domain_validator;
 mod entity_type;
-mod link_type;
 mod property_type;
 
 use core::fmt;
-use std::result::Result as StdResult;
 
 use error_stack::{Context, IntoReport, Result, ResultExt};
-use serde::{
-    de,
-    de::{Unexpected, Visitor},
-    Deserialize, Deserializer, Serialize, Serializer,
-};
+use serde::{Deserialize, Serialize, Serializer};
 use serde_json;
-use type_system::{uri::VersionedUri, DataType, EntityType, LinkType, PropertyType};
+use type_system::{uri::VersionedUri, DataType, EntityType, PropertyType};
 use utoipa::ToSchema;
 
 pub use self::{
-    data_type::{DataTypeQueryPath, DataTypeQueryPathVisitor},
-    entity_type::{EntityTypeQueryPath, EntityTypeQueryPathVisitor},
-    link_type::{LinkTypeQueryPath, LinkTypeQueryPathVisitor},
-    property_type::{PropertyTypeQueryPath, PropertyTypeQueryPathVisitor},
+    data_type::{DataTypeQueryPath, DataTypeQueryPathVisitor, DataTypeQueryToken},
+    entity_type::{EntityTypeQueryPath, EntityTypeQueryPathVisitor, EntityTypeQueryToken},
+    property_type::{PropertyTypeQueryPath, PropertyTypeQueryPathVisitor, PropertyTypeQueryToken},
 };
-use crate::provenance::{CreatedById, OwnedById, RemovedById, UpdatedById};
+use crate::{
+    identifier::ontology::OntologyTypeEditionId,
+    provenance::{OwnedById, ProvenanceMetadata},
+};
 
+#[derive(Deserialize, ToSchema)]
 pub enum Selector {
+    #[serde(rename = "*")]
     Asterisk,
-}
-
-impl<'de> Deserialize<'de> for Selector {
-    fn deserialize<D>(deserializer: D) -> StdResult<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct SelectorVisitor;
-
-        impl<'de> Visitor<'de> for SelectorVisitor {
-            type Value = Selector;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("a wildcard (*)")
-            }
-
-            fn visit_str<E: de::Error>(self, v: &str) -> StdResult<Self::Value, E> {
-                match v {
-                    "*" => Ok(Selector::Asterisk),
-                    _ => Err(de::Error::invalid_value(Unexpected::Str(v), &self)),
-                }
-            }
-
-            fn visit_bytes<E: de::Error>(self, v: &[u8]) -> StdResult<Self::Value, E> {
-                match core::str::from_utf8(v) {
-                    Ok(s) => self.visit_str(s),
-                    Err(_) => Err(E::invalid_value(de::Unexpected::Bytes(v), &self)),
-                }
-            }
-        }
-
-        deserializer.deserialize_str(SelectorVisitor)
-    }
-}
-
-/// The metadata required to uniquely identify an ontology element that has been persisted in the
-/// datastore.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct PersistedOntologyIdentifier {
-    #[schema(value_type = String)]
-    uri: VersionedUri,
-    // TODO: owned_by_id is not required to identify an ontology element
-    //  https://app.asana.com/0/1202805690238892/1203214689883091/f
-    owned_by_id: OwnedById,
-}
-
-impl PersistedOntologyIdentifier {
-    #[must_use]
-    pub const fn new(uri: VersionedUri, owned_by_id: OwnedById) -> Self {
-        Self { uri, owned_by_id }
-    }
-
-    #[must_use]
-    pub const fn uri(&self) -> &VersionedUri {
-        &self.uri
-    }
-
-    #[must_use]
-    pub const fn owned_by_id(&self) -> OwnedById {
-        self.owned_by_id
-    }
 }
 
 #[derive(Debug)]
@@ -160,154 +96,101 @@ where
     serde_json::Value::from(ontology_type.clone()).serialize(serializer)
 }
 
-/// Distance to explore when querying a rooted subgraph in the ontology.
-///
-/// Ontology records may have references to other records, e.g. a [`PropertyType`] may reference
-/// other [`PropertyType`]s or [`DataType`]s. The depths provided alongside a query specify how many
-/// steps to explore along a chain of references _of a certain kind of type_. Meaning, any chain of
-/// property type references will be resolved up to the depth given for property types, and *each*
-/// data type referenced in those property types will in turn start a 'new chain' whose exploration
-/// depth is limited by the depth given for data types.
-///
-/// A depth of `0` means that no references are explored for that specific kind of type.
-///
-/// [`DataType`]: type_system::DataType
-/// [`PropertyType`]: type_system::PropertyType
-///
-/// # Example
-///
-/// - `EntityType1` references \[`EntityType2`, `PropertyType1`, `LinkType1`]
-/// - `EntityType2` references \[`PropertyType2`]
-/// - `PropertyType1` references \[`DataType2`]
-/// - `PropertyType2` references \[`PropertyType3`, `DataType1`]
-/// - `PropertyType3` references \[`PropertyType4`, `DataType3`]
-/// - `PropertyType4` references \[`DataType3`]
-///
-/// If a query on `EntityType1` is made with the following depths:
-/// - `entity_type_query_depth: 1`
-/// - `property_type_query_depth: 3`
-/// - `data_type_query_depth: 1`
-/// - `link_type_query_depth: 0`
-///
-/// Then the returned subgraph will be:
-/// - `referenced_entity_types`: \[`EntityType2`]
-/// - `referenced_property_types`: \[`PropertyType1`, `PropertyType2`, `PropertyType3`]
-/// - `referenced_data_types`: \[`DataType1`, `DataType2`]
-/// - `referenced_link_types`: \[]
-///
-/// ## The idea of "chains"
-///
-/// When `EntityType2` is explored its referenced property types get explored. The chain of
-/// _property type_ references is then resolved to a depth of `property_type_query_depth`.
-pub type OntologyQueryDepth = u8;
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
-pub struct PersistedDataType {
+pub struct DataTypeWithMetadata {
     #[schema(value_type = VAR_DATA_TYPE)]
-    #[serde(serialize_with = "serialize_ontology_type")]
+    #[serde(rename = "schema", serialize_with = "serialize_ontology_type")]
     inner: DataType,
-    metadata: PersistedOntologyMetadata,
+    metadata: OntologyElementMetadata,
 }
 
-impl PersistedDataType {
+impl DataTypeWithMetadata {
     #[must_use]
     pub const fn inner(&self) -> &DataType {
         &self.inner
     }
 
     #[must_use]
-    pub const fn metadata(&self) -> &PersistedOntologyMetadata {
+    pub const fn metadata(&self) -> &OntologyElementMetadata {
         &self.metadata
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
-pub struct PersistedPropertyType {
+pub struct PropertyTypeWithMetadata {
     #[schema(value_type = VAR_PROPERTY_TYPE)]
-    #[serde(serialize_with = "serialize_ontology_type")]
+    #[serde(rename = "schema", serialize_with = "serialize_ontology_type")]
     inner: PropertyType,
-    metadata: PersistedOntologyMetadata,
+    metadata: OntologyElementMetadata,
 }
 
-impl PersistedPropertyType {
+impl PropertyTypeWithMetadata {
     #[must_use]
     pub const fn inner(&self) -> &PropertyType {
         &self.inner
     }
 
     #[must_use]
-    pub const fn metadata(&self) -> &PersistedOntologyMetadata {
-        &self.metadata
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
-pub struct PersistedLinkType {
-    #[schema(value_type = VAR_LINK_TYPE)]
-    #[serde(serialize_with = "serialize_ontology_type")]
-    inner: LinkType,
-    metadata: PersistedOntologyMetadata,
-}
-
-impl PersistedLinkType {
-    #[must_use]
-    pub const fn inner(&self) -> &LinkType {
-        &self.inner
-    }
-
-    #[must_use]
-    pub const fn metadata(&self) -> &PersistedOntologyMetadata {
+    pub const fn metadata(&self) -> &OntologyElementMetadata {
         &self.metadata
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct PersistedOntologyMetadata {
-    identifier: PersistedOntologyIdentifier,
-    created_by_id: CreatedById,
-    updated_by_id: UpdatedById,
-    removed_by_id: Option<RemovedById>,
+pub struct OntologyElementMetadata {
+    edition_id: OntologyTypeEditionId,
+    #[serde(rename = "provenance")]
+    provenance_metadata: ProvenanceMetadata,
+    owned_by_id: OwnedById,
 }
 
-impl PersistedOntologyMetadata {
+impl OntologyElementMetadata {
     #[must_use]
     pub const fn new(
-        identifier: PersistedOntologyIdentifier,
-        created_by_id: CreatedById,
-        updated_by_id: UpdatedById,
-        removed_by_id: Option<RemovedById>,
+        edition_id: OntologyTypeEditionId,
+        provenance_metadata: ProvenanceMetadata,
+        owned_by_id: OwnedById,
     ) -> Self {
         Self {
-            identifier,
-            created_by_id,
-            updated_by_id,
-            removed_by_id,
+            edition_id,
+            provenance_metadata,
+            owned_by_id,
         }
     }
 
     #[must_use]
-    pub const fn identifier(&self) -> &PersistedOntologyIdentifier {
-        &self.identifier
+    pub const fn edition_id(&self) -> &OntologyTypeEditionId {
+        &self.edition_id
+    }
+
+    #[must_use]
+    pub const fn provenance_metadata(&self) -> ProvenanceMetadata {
+        self.provenance_metadata
+    }
+
+    #[must_use]
+    pub const fn owned_by_id(&self) -> OwnedById {
+        self.owned_by_id
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
-pub struct PersistedEntityType {
+pub struct EntityTypeWithMetadata {
     #[schema(value_type = VAR_ENTITY_TYPE)]
-    #[serde(serialize_with = "serialize_ontology_type")]
+    #[serde(rename = "schema", serialize_with = "serialize_ontology_type")]
     inner: EntityType,
-    metadata: PersistedOntologyMetadata,
+    metadata: OntologyElementMetadata,
 }
 
-impl PersistedEntityType {
+impl EntityTypeWithMetadata {
     #[must_use]
     pub const fn inner(&self) -> &EntityType {
         &self.inner
     }
 
     #[must_use]
-    pub const fn metadata(&self) -> &PersistedOntologyMetadata {
+    pub const fn metadata(&self) -> &OntologyElementMetadata {
         &self.metadata
     }
 }
@@ -315,13 +198,13 @@ impl PersistedEntityType {
 pub trait PersistedOntologyType {
     type Inner;
 
-    fn new(record: Self::Inner, metadata: PersistedOntologyMetadata) -> Self;
+    fn new(record: Self::Inner, metadata: OntologyElementMetadata) -> Self;
 }
 
-impl PersistedOntologyType for PersistedDataType {
+impl PersistedOntologyType for DataTypeWithMetadata {
     type Inner = DataType;
 
-    fn new(record: Self::Inner, metadata: PersistedOntologyMetadata) -> Self {
+    fn new(record: Self::Inner, metadata: OntologyElementMetadata) -> Self {
         Self {
             inner: record,
             metadata,
@@ -329,10 +212,10 @@ impl PersistedOntologyType for PersistedDataType {
     }
 }
 
-impl PersistedOntologyType for PersistedPropertyType {
+impl PersistedOntologyType for PropertyTypeWithMetadata {
     type Inner = PropertyType;
 
-    fn new(record: Self::Inner, metadata: PersistedOntologyMetadata) -> Self {
+    fn new(record: Self::Inner, metadata: OntologyElementMetadata) -> Self {
         Self {
             inner: record,
             metadata,
@@ -340,21 +223,10 @@ impl PersistedOntologyType for PersistedPropertyType {
     }
 }
 
-impl PersistedOntologyType for PersistedLinkType {
-    type Inner = LinkType;
-
-    fn new(record: Self::Inner, metadata: PersistedOntologyMetadata) -> Self {
-        Self {
-            inner: record,
-            metadata,
-        }
-    }
-}
-
-impl PersistedOntologyType for PersistedEntityType {
+impl PersistedOntologyType for EntityTypeWithMetadata {
     type Inner = EntityType;
 
-    fn new(record: Self::Inner, metadata: PersistedOntologyMetadata) -> Self {
+    fn new(record: Self::Inner, metadata: OntologyElementMetadata) -> Self {
         Self {
             inner: record,
             metadata,

@@ -1,45 +1,25 @@
 import { gql } from "apollo-server-express";
 
 export const propertyTypeTypedef = gql`
-  scalar PropertyType
   scalar PropertyTypeWithoutId
-
-  type PersistedPropertyType {
-    """
-    The specific versioned URI of the property type
-    """
-    propertyTypeId: String!
-    """
-    The id of the account that owns this property type.
-    """
-    ownedById: ID!
-    """
-    Alias of ownedById - the id of the account that owns this property type.
-    """
-    accountId: ID!
-      @deprecated(reason: "accountId is deprecated. Use ownedById instead.")
-    """
-    The property type
-    """
-    propertyType: PropertyType!
-  }
+  scalar PropertyTypeWithMetadata
 
   extend type Query {
     """
     Get a subgraph rooted at all property types at their latest version.
     """
     getAllLatestPropertyTypes(
-      dataTypeResolveDepth: Int!
-      propertyTypeResolveDepth: Int!
+      constrainsValuesOn: OutgoingEdgeResolveDepthInput!
+      constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
     ): Subgraph!
 
     """
     Get a subgraph rooted at an property type resolved by its versioned URI.
     """
     getPropertyType(
-      propertyTypeId: String!
-      dataTypeResolveDepth: Int!
-      propertyTypeResolveDepth: Int!
+      propertyTypeId: VersionedUri!
+      constrainsValuesOn: OutgoingEdgeResolveDepthInput!
+      constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
     ): Subgraph!
   }
 
@@ -53,7 +33,7 @@ export const propertyTypeTypedef = gql`
       """
       ownedById: ID
       propertyType: PropertyTypeWithoutId!
-    ): PersistedPropertyType!
+    ): PropertyTypeWithMetadata!
 
     """
     Update a property type.
@@ -62,11 +42,11 @@ export const propertyTypeTypedef = gql`
       """
       The property type versioned $id to update.
       """
-      propertyTypeId: String!
+      propertyTypeId: VersionedUri!
       """
       New property type schema contents to be used.
       """
       updatedPropertyType: PropertyTypeWithoutId!
-    ): PersistedPropertyType!
+    ): PropertyTypeWithMetadata!
   }
 `;

@@ -3,7 +3,6 @@
   "$id": "https://blockprotocol.org/@alice/types/entity-type/uk-address/v/1",
   "type": "object",
   "title": "UK Address",
-  "pluralTitle": "UK Addresses",
   "properties": {
     "https://blockprotocol.org/@alice/types/property-type/address-line-1/": {
       "$ref": "https://blockprotocol.org/@alice/types/property-type/address-line-1/v/1"

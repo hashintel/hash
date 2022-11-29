@@ -9,6 +9,7 @@ import {
   TextField,
 } from "@hashintel/hash-design-system";
 import { frontendUrl } from "@hashintel/hash-shared/environment";
+import { getPropertyTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
 import {
   addVersionToBaseUri,
   generateBaseTypeId,
@@ -32,7 +33,6 @@ import { ComponentProps, ReactNode, useEffect, useMemo, useState } from "react";
 import { Controller, useForm, UseFormTrigger } from "react-hook-form";
 import { useBlockProtocolGetPropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetPropertyType";
 import { Modal } from "../../../../components/Modals/Modal";
-import { getPersistedPropertyType } from "../../../../lib/subgraph";
 import { fa100 } from "../../../../shared/icons/pro/fa-100";
 import { faSquareCheck } from "../../../../shared/icons/pro/fa-square-check";
 import { faText } from "../../../../shared/icons/pro/fa-text";
@@ -158,7 +158,7 @@ const PropertyTypeForm = ({
   );
   useTriggerValidation(defaultValues, disabledFields, trigger);
 
-  const routeNamespace = useRouteNamespace();
+  const { namespace: routeNamespace } = useRouteNamespace();
 
   const { getPropertyType } = useBlockProtocolGetPropertyType();
 
@@ -266,12 +266,11 @@ const PropertyTypeForm = ({
                 );
 
                 const res = await getPropertyType({
-                  data: { propertyTypeId },
+                  data: propertyTypeId,
                 });
 
                 const exists =
-                  !res.data ||
-                  !!getPersistedPropertyType(res.data, propertyTypeId);
+                  !res.data || !!getPropertyTypeById(res.data, propertyTypeId);
 
                 if (getValues("name") === value && !exists) {
                   setTitleValid(true);

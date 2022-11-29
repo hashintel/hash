@@ -1,4 +1,4 @@
-import { PropertyType } from "@blockprotocol/type-system-web";
+import { PropertyType, PropertyValues } from "@blockprotocol/type-system-web";
 import {
   TableCell,
   tableCellClasses,
@@ -44,12 +44,12 @@ export const InsertPropertyRow = ({
   const { control } = useFormContext<EntityTypeEditorForm>();
   const properties = useWatch({ control, name: "properties" });
 
-  const routeNamespace = useRouteNamespace();
+  const { namespace: routeNamespace } = useRouteNamespace();
 
   const refetchPropertyTypes = useRefetchPropertyTypes();
 
   const { createPropertyType } = useBlockProtocolCreatePropertyType(
-    routeNamespace?.id ?? "",
+    routeNamespace?.accountId ?? "",
   );
 
   const handleSubmit = async (data: PropertyTypeModalFormValues) => {
@@ -58,11 +58,10 @@ export const InsertPropertyRow = ({
         propertyType: {
           oneOf: data.expectedValues.map((value) => ({
             $ref: value,
-          })),
+          })) as [PropertyValues, ...PropertyValues[]],
           description: data.description,
           title: data.name,
           kind: "propertyType",
-          pluralTitle: data.name,
         },
       },
     });
@@ -74,7 +73,7 @@ export const InsertPropertyRow = ({
 
     await refetchPropertyTypes?.();
 
-    onAdd(res.data.propertyType);
+    onAdd(res.data.schema);
   };
 
   return (

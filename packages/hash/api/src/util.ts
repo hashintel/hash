@@ -1,9 +1,4 @@
-import { JsonObject } from "@blockprotocol/core";
-import { ApolloError } from "apollo-server-express";
 import { Uuid4 } from "id128";
-import { EntityTypeChoice } from "./graphql/apiTypes.gen";
-import { CreateEntityArgs } from "./model";
-import { isSystemType } from "./types/entityTypes";
 
 export {
   DefaultMap,
@@ -43,63 +38,6 @@ export const isRecord = (thing: unknown): thing is Record<string, any> => {
     return false;
   }
   return true;
-};
-
-/**
- * Builds the argument object for the createEntity function. It checks that exactly
- * one of entityTypeId, entityTypeVersionId or systemTypeName is set, and returns
- * the correct variant of CreateEntityArgs.
- */
-export const createEntityArgsBuilder = (params: {
-  accountId: string;
-  createdByAccountId: string;
-  properties: JsonObject;
-  versioned: boolean;
-  entityTypeId?: string | null;
-  entityTypeVersionId?: string | null;
-  entityId?: string;
-  entityVersionId?: string;
-  systemTypeName?: string | null;
-}): CreateEntityArgs => {
-  if (
-    !exactlyOne(
-      params.entityTypeId,
-      params.entityTypeVersionId,
-      params.systemTypeName,
-    )
-  ) {
-    throw new Error(
-      "exactly one of entityTypeId, entityTypeVersionId or systemTypeName must be provided",
-    );
-  }
-
-  let args: CreateEntityArgs;
-  const _args = {
-    accountId: params.accountId,
-    createdByAccountId: params.createdByAccountId,
-    versioned: params.versioned,
-    properties: params.properties,
-  };
-  if (params.entityTypeId) {
-    args = { ..._args, entityTypeId: params.entityTypeId };
-  } else if (params.entityTypeVersionId) {
-    args = { ..._args, entityTypeVersionId: params.entityTypeVersionId };
-  } else if (params.systemTypeName) {
-    if (!isSystemType(params.systemTypeName)) {
-      throw new Error(`Invalid systemTypeName "${params.systemTypeName}"`);
-    }
-    args = { ..._args, systemTypeName: params.systemTypeName };
-  } else {
-    throw new Error("unreachable");
-  }
-  if (params.entityId) {
-    args.entityId = params.entityId;
-  }
-  if (params.entityVersionId) {
-    args.entityVersionId = params.entityVersionId;
-  }
-
-  return args;
 };
 
 /** Returns the set intersection of `left` and `right`. */
@@ -230,28 +168,4 @@ export const linkedTreeFlatten = <
   }
 
   return result;
-};
-
-export const validateEntityTypeChoice = (choice: EntityTypeChoice) => {
-  if (
-    /** @todo check that these are uuids */
-    exactlyOne(
-      choice.componentId,
-      choice.entityTypeId,
-      choice.entityTypeVersionId,
-      choice.systemTypeName,
-    )
-  ) {
-    return {
-      componentId: choice.componentId ?? undefined,
-      entityTypeId: choice.entityTypeId ?? undefined,
-      entityTypeVersionId: choice.entityTypeVersionId ?? undefined,
-      systemTypeName: choice.systemTypeName ?? undefined,
-    };
-  } else {
-    throw new ApolloError(
-      `Given filter argument is invalid.`,
-      "INVALID_ENTITY_TYPE_FILTER",
-    );
-  }
 };

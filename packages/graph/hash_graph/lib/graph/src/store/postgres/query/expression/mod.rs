@@ -6,8 +6,8 @@ mod where_clause;
 mod with_clause;
 
 pub use self::{
-    conditional::{Expression, Function},
-    join_clause::{EdgeJoinDirection, JoinExpression},
+    conditional::{Constant, Expression, Function},
+    join_clause::JoinExpression,
     order_clause::{OrderByExpression, Ordering},
     select_clause::SelectExpression,
     where_clause::WhereExpression,

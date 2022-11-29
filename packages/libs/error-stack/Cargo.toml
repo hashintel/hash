@@ -18,10 +18,10 @@ categories = ["rust-patterns", "no-std"]
 
 [dependencies]
 tracing-error = { version = "0.2", optional = true, default_features = false }
-anyhow = { version = "1", default-features = false, optional = true }
+anyhow = { version = "1.0.65", default-features = false, optional = true }
 eyre = { version = "0.6", default-features = false, optional = true }
 owo-colors = { version = "3", default-features = false, optional = true, features = ['supports-colors'] }
-serde = { version = "1.0.147", default-features = false, optional = true }
+serde = { version = "1", default-features = false, optional = true }
 
 [dev-dependencies]
 serde = { version = "1.0.137", features = ["derive"] }

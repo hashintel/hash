@@ -1,13 +1,13 @@
 import { useLazyQuery } from "@apollo/client";
 
 import { useCallback } from "react";
+import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import {
   GetDataTypeQuery,
   GetDataTypeQueryVariables,
 } from "../../../../graphql/apiTypes.gen";
 import { getDataTypeQuery } from "../../../../graphql/queries/ontology/data-type.queries";
 import { GetDataTypeMessageCallback } from "./ontology-types-shim";
-import { Subgraph } from "../../../../lib/subgraph";
 
 export const useBlockProtocolGetDataType = (): {
   getDataType: GetDataTypeMessageCallback;
@@ -21,8 +21,8 @@ export const useBlockProtocolGetDataType = (): {
   );
 
   const getDataType = useCallback<GetDataTypeMessageCallback>(
-    async ({ data }) => {
-      if (!data) {
+    async ({ data: dataTypeId }) => {
+      if (!dataTypeId) {
         return {
           errors: [
             {
@@ -33,12 +33,10 @@ export const useBlockProtocolGetDataType = (): {
         };
       }
 
-      const { dataTypeId } = data;
-
       const response = await getFn({
         variables: {
           dataTypeId,
-          dataTypeResolveDepth: 255,
+          constrainsValuesOn: { outgoing: 255 },
         },
       });
 
@@ -54,11 +52,10 @@ export const useBlockProtocolGetDataType = (): {
       }
 
       return {
-        /**
-         * @todo: remove this when we start returning links in the subgraph
-         *   https://app.asana.com/0/0/1203214689883095/f
-         */
-        data: response.data.getDataType as Subgraph,
+        /** @todo - Is there a way we can ergonomically encode this in the GraphQL type? */
+        data: response.data.getDataType as Subgraph<
+          SubgraphRootTypes["dataType"]
+        >,
       };
     },
     [getFn],

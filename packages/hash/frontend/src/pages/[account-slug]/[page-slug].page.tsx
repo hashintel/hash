@@ -5,19 +5,20 @@ import {
   HashBlock,
 } from "@hashintel/hash-shared/blocks";
 import {
-  GetPersistedPageQuery,
-  GetPersistedPageQueryVariables,
+  GetPageQuery,
+  GetPageQueryVariables,
 } from "@hashintel/hash-shared/graphql/apiTypes.gen";
 import {
   getPageInfoQuery,
-  getPersistedPageQuery,
+  getPageQuery,
 } from "@hashintel/hash-shared/queries/page.queries";
 import { isSafariBrowser } from "@hashintel/hash-shared/util";
+import { EntityId, splitEntityId } from "@hashintel/hash-subgraph";
 import { alpha, Box, Collapse } from "@mui/material";
 import { keyBy } from "lodash";
 import { GetStaticPaths, GetStaticProps } from "next";
 import Head from "next/head";
-import { Router, useRouter } from "next/router";
+import { Router } from "next/router";
 
 import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
 // import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
@@ -80,11 +81,7 @@ export const getStaticProps: GetStaticProps<PageProps> = async () => {
 };
 
 export const PageNotificationBanner: FunctionComponent = () => {
-  const router = useRouter();
-
-  const { accountId } = useRouteAccountInfo();
   const { pageEntityId } = useRoutePageInfo();
-  const versionId = router.query.version as string | undefined;
 
   const [archivePage] = useArchivePage();
 
@@ -92,14 +89,12 @@ export const PageNotificationBanner: FunctionComponent = () => {
     getPageInfoQuery,
     {
       variables: {
-        ownedById: accountId,
         entityId: pageEntityId,
-        entityVersion: versionId,
       },
     },
   );
 
-  const archived = data?.persistedPage?.archived;
+  const archived = data?.page?.archived;
 
   return (
     <Collapse in={!!archived}>
@@ -131,11 +126,7 @@ export const PageNotificationBanner: FunctionComponent = () => {
               background: alpha(palette.gray[90], 0.08),
             },
           })}
-          onClick={() =>
-            accountId &&
-            pageEntityId &&
-            archivePage(false, accountId, pageEntityId)
-          }
+          onClick={() => pageEntityId && archivePage(false, pageEntityId)}
         >
           Restore
         </Button>
@@ -146,30 +137,23 @@ export const PageNotificationBanner: FunctionComponent = () => {
 
 const generateCrumbsFromPages = ({
   pages = [],
-  pageId,
-  accountId,
+  pageEntityId,
 }: {
-  pageId: string;
-  accountId: string;
+  pageEntityId: EntityId;
   pages: AccountPagesInfo["data"];
 }) => {
   const pageMap = new Map(pages.map((page) => [page.entityId, page]));
 
-  let currentPage = pageMap.get(pageId);
+  let currentPage = pageMap.get(pageEntityId);
   let arr = [];
 
   while (currentPage) {
+    const [ownedById, entityUuid] = splitEntityId(currentPage.entityId);
     arr.push({
       title: currentPage.title,
-      href: `/${accountId}/${currentPage.entityId}`,
+      href: `/${ownedById}/${entityUuid}`,
       id: currentPage.entityId,
-      icon: (
-        <PageIcon
-          ownedById={accountId}
-          entityId={currentPage.entityId}
-          size="small"
-        />
-      ),
+      icon: <PageIcon entityId={currentPage.entityId} size="small" />,
     });
 
     if (currentPage.parentPageEntityId) {
@@ -185,13 +169,9 @@ const generateCrumbsFromPages = ({
 };
 
 const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
-  const router = useRouter();
-
   const { accountId } = useRouteAccountInfo();
   // pageEntityId is the consistent identifier for pages (across all versions)
   const { pageEntityId } = useRoutePageInfo();
-  // versionId is an optional param for requesting a specific page version
-  const versionId = router.query.version as string | undefined;
 
   const { data: accountPages } = useAccountPages(accountId);
 
@@ -204,13 +184,11 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
   );
 
   const { data, error, loading } = useQuery<
-    GetPersistedPageQuery,
-    GetPersistedPageQueryVariables
-  >(getPersistedPageQuery, {
+    GetPageQuery,
+    GetPageQueryVariables
+  >(getPageQuery, {
     variables: {
-      ownedById: accountId,
       entityId: pageEntityId,
-      entityVersion: versionId,
     },
   });
   const pageHeaderRef = useRef<HTMLElement>();
@@ -276,7 +254,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
     );
   }
 
-  const { title, icon, contents } = data.persistedPage;
+  const { title, icon, contents } = data.page;
 
   const isSafari = isSafariBrowser();
   const pageTitle = isSafari && icon ? `${icon} ${title}` : title;
@@ -313,8 +291,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
           <TopContextBar
             crumbs={generateCrumbsFromPages({
               pages: accountPages,
-              pageId: data.persistedPage.entityId,
-              accountId,
+              pageEntityId: data.page.metadata.editionId.baseId,
             })}
             scrollToTop={scrollToTop}
           />
@@ -324,9 +301,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
         <PageSectionContainer pageComments={pageComments}>
           <Box position="relative">
             <PageIconButton
-              ownedById={accountId}
               entityId={pageEntityId}
-              versionId={versionId}
               readonly={readonlyMode}
               sx={({ breakpoints }) => ({
                 mb: 2,
@@ -347,11 +322,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
                   pageIconVariantSizes.medium.container,
               }}
             >
-              <PageTitle
-                value={title}
-                ownedById={accountId}
-                pageEntityId={pageEntityId}
-              />
+              <PageTitle value={title} pageEntityId={pageEntityId} />
               {/*
             Commented out Version Dropdown and Transfer Page buttons.
             They will most likely be added back when new designs 

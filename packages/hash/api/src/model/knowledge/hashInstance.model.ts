@@ -4,7 +4,6 @@ import {
   EntityModel,
   EntityModelCreateParams,
   UserModel,
-  LinkModel,
 } from "..";
 import { systemAccountId } from "../util";
 import { SYSTEM_TYPES } from "../../graph/system-types";
@@ -13,25 +12,29 @@ import { EntityTypeMismatchError, NotFoundError } from "../../lib/error";
 export type HashInstanceModelCreateParams = Omit<
   EntityModelCreateParams,
   "properties" | "entityTypeModel" | "ownedById"
->;
+> & {
+  userSelfRegistrationIsEnabled?: boolean;
+  userRegistrationByInviteIsEnabled?: boolean;
+  orgSelfRegistrationIsEnabled?: boolean;
+};
 
 /**
  * @class {@link HashInstanceModel}
  */
 export default class extends EntityModel {
-  static fromEntityModel(entity: EntityModel): HashInstanceModel {
+  static fromEntityModel(entityModel: EntityModel): HashInstanceModel {
     if (
-      entity.entityTypeModel.schema.$id !==
-      SYSTEM_TYPES.entityType.hashInstance.schema.$id
+      entityModel.entityTypeModel.getSchema().$id !==
+      SYSTEM_TYPES.entityType.hashInstance.getSchema().$id
     ) {
       throw new EntityTypeMismatchError(
-        entity.entityId,
-        SYSTEM_TYPES.entityType.hashInstance.schema.$id,
-        entity.entityTypeModel.schema.$id,
+        entityModel.getBaseId(),
+        SYSTEM_TYPES.entityType.hashInstance.getSchema().$id,
+        entityModel.entityTypeModel.getSchema().$id,
       );
     }
 
-    return new HashInstanceModel(entity);
+    return new HashInstanceModel(entityModel);
   }
 
   /**
@@ -63,7 +66,14 @@ export default class extends EntityModel {
 
     const entityModel = await EntityModel.create(graphApi, {
       ownedById: systemAccountId,
-      properties: {},
+      properties: {
+        [SYSTEM_TYPES.propertyType.userSelfRegistrationIsEnabled.getBaseUri()]:
+          params.userSelfRegistrationIsEnabled ?? true,
+        [SYSTEM_TYPES.propertyType.userRegistrationByInviteIsEnabled.getBaseUri()]:
+          params.userRegistrationByInviteIsEnabled ?? true,
+        [SYSTEM_TYPES.propertyType.orgSelfRegistrationIsEnabled.getBaseUri()]:
+          params.orgSelfRegistrationIsEnabled ?? true,
+      },
       entityTypeModel,
       actorId,
     });
@@ -84,7 +94,7 @@ export default class extends EntityModel {
           equal: [
             { path: ["type", "versionedUri"] },
             {
-              parameter: SYSTEM_TYPES.entityType.hashInstance.schema.$id,
+              parameter: SYSTEM_TYPES.entityType.hashInstance.getSchema().$id,
             },
           ],
         },
@@ -115,18 +125,21 @@ export default class extends EntityModel {
   ): Promise<boolean> {
     const { userModel } = params;
 
-    return await LinkModel.get(graphApi, {
-      sourceEntityId: this.entityId,
-      linkTypeId: SYSTEM_TYPES.linkType.admin.schema.$id,
-      targetEntityId: userModel.entityId,
-    })
-      .then(() => true)
-      .catch((error: Error) => {
-        if (error instanceof NotFoundError) {
-          return false;
-        }
-        throw error;
-      });
+    const outgoingAdminLinkEntityModels = await this.getOutgoingLinks(
+      graphApi,
+      {
+        linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.admin,
+        rightEntityModel: userModel,
+      },
+    );
+
+    if (outgoingAdminLinkEntityModels.length > 1) {
+      throw new Error(
+        "Critical: more than one outgoing admin link from the HASH instance entity to the same user was found.",
+      );
+    }
+
+    return outgoingAdminLinkEntityModels.length === 1;
   }
 
   /**
@@ -146,14 +159,14 @@ export default class extends EntityModel {
 
     if (isAlreadyHashInstanceAdmin) {
       throw new Error(
-        `User with entityId "${userModel.entityId}" is already a hash instance admin.`,
+        `User with entityId "${userModel.getBaseId()}" is already a hash instance admin.`,
       );
     }
 
     await this.createOutgoingLink(graphApi, {
       ownedById: systemAccountId,
-      linkTypeModel: SYSTEM_TYPES.linkType.admin,
-      targetEntityModel: userModel,
+      linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.admin,
+      rightEntityModel: userModel,
       actorId,
     });
   }
@@ -169,12 +182,46 @@ export default class extends EntityModel {
   ): Promise<void> {
     const { userModel, actorId } = params;
 
-    const adminLink = await LinkModel.get(graphApi, {
-      sourceEntityId: this.entityId,
-      linkTypeId: SYSTEM_TYPES.linkType.admin.schema.$id,
-      targetEntityId: userModel.entityId,
-    });
+    const outgoingAdminLinkEntityModels = await this.getOutgoingLinks(
+      graphApi,
+      {
+        linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.admin,
+        rightEntityModel: userModel,
+      },
+    );
 
-    await adminLink.remove(graphApi, { actorId });
+    if (outgoingAdminLinkEntityModels.length > 1) {
+      throw new Error(
+        "Critical: more than one outgoing admin link from the HASH instance entity to the same user was found.",
+      );
+    }
+
+    const [outgoingAdminLinkEntityModel] = outgoingAdminLinkEntityModels;
+
+    if (!outgoingAdminLinkEntityModel) {
+      throw new Error(
+        `The user with entity ID ${userModel.getBaseId()} is not a HASH instance admin.`,
+      );
+    }
+
+    await outgoingAdminLinkEntityModel.archive(graphApi, { actorId });
+  }
+
+  isUserSelfRegistrationEnabled(): boolean {
+    return this.getProperties()[
+      SYSTEM_TYPES.propertyType.userSelfRegistrationIsEnabled.getBaseUri()
+    ] as boolean;
+  }
+
+  isUserRegistrationByInviteEnabled(): boolean {
+    return this.getProperties()[
+      SYSTEM_TYPES.propertyType.userRegistrationByInviteIsEnabled.getBaseUri()
+    ] as boolean;
+  }
+
+  isOrgSelfRegistrationEnabled(): boolean {
+    return this.getProperties()[
+      SYSTEM_TYPES.propertyType.orgSelfRegistrationIsEnabled.getBaseUri()
+    ] as boolean;
   }
 }

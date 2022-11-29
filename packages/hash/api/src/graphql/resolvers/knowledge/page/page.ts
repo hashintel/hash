@@ -1,40 +1,40 @@
+import { userAccountIdToEntityId } from "@hashintel/hash-shared/types";
 import { EntityTypeMismatchError } from "../../../../lib/error";
 import { OrgModel, PageModel, UserModel } from "../../../../model";
 
 import {
-  MutationCreatePersistedPageArgs,
-  QueryPersistedPageArgs,
-  QueryPersistedPageCommentsArgs,
-  QueryPersistedPagesArgs,
+  MutationCreatePageArgs,
+  QueryPageArgs,
+  QueryPageCommentsArgs,
+  QueryPagesArgs,
   ResolverFn,
 } from "../../../apiTypes.gen";
 import { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
 import {
-  UnresolvedPersistedPageGQL,
+  UnresolvedPageGQL,
   mapPageModelToGQL,
-  UnresolvedPersistedCommentGQL,
+  UnresolvedCommentGQL,
   mapCommentModelToGQL,
 } from "../model-mapping";
 
-export const persistedPage: ResolverFn<
-  Promise<UnresolvedPersistedPageGQL>,
+export const page: ResolverFn<
+  Promise<UnresolvedPageGQL>,
   {},
   GraphQLContext,
-  QueryPersistedPageArgs
-> = async (_, { entityId, entityVersion }, { dataSources: { graphApi } }) => {
+  QueryPageArgs
+> = async (_, { entityId }, { dataSources: { graphApi } }) => {
   const pageModel = await PageModel.getPageById(graphApi, {
     entityId,
-    entityVersion: entityVersion ?? undefined,
   });
 
   return mapPageModelToGQL(pageModel);
 };
 
-export const createPersistedPage: ResolverFn<
-  Promise<UnresolvedPersistedPageGQL>,
+export const createPage: ResolverFn<
+  Promise<UnresolvedPageGQL>,
   {},
   LoggedInGraphQLContext,
-  MutationCreatePersistedPageArgs
+  MutationCreatePageArgs
 > = async (
   _,
   { ownedById, properties: { title, prevIndex } },
@@ -44,41 +44,43 @@ export const createPersistedPage: ResolverFn<
     ownedById,
     title,
     prevIndex: prevIndex ?? undefined,
-    actorId: userModel.entityId,
+    actorId: userModel.getEntityUuid(),
   });
 
   return mapPageModelToGQL(pageModel);
 };
 
-export const parentPersistedPage: ResolverFn<
-  Promise<UnresolvedPersistedPageGQL | null>,
-  UnresolvedPersistedPageGQL,
+export const parentPage: ResolverFn<
+  Promise<UnresolvedPageGQL | null>,
+  UnresolvedPageGQL,
   GraphQLContext,
-  QueryPersistedPagesArgs
-> = async (page, _, { dataSources: { graphApi } }) => {
+  QueryPagesArgs
+> = async (pageGql, _, { dataSources: { graphApi } }) => {
   const pageModel = await PageModel.getPageById(graphApi, {
-    entityId: page.entityId,
+    entityId: pageGql.metadata.editionId.baseId,
   });
   const parentPageModel = await pageModel.getParentPage(graphApi);
 
   return parentPageModel ? mapPageModelToGQL(parentPageModel) : null;
 };
 
-export const persistedPages: ResolverFn<
-  Promise<UnresolvedPersistedPageGQL[]>,
+export const pages: ResolverFn<
+  Promise<UnresolvedPageGQL[]>,
   {},
   LoggedInGraphQLContext,
-  QueryPersistedPagesArgs
+  QueryPagesArgs
 > = async (_, { ownedById }, { dataSources: { graphApi }, userModel }) => {
   const accountModel = ownedById
-    ? await UserModel.getUserById(graphApi, { entityId: ownedById }).catch(
-        (error: Error) => {
-          if (error instanceof EntityTypeMismatchError) {
-            return OrgModel.getOrgById(graphApi, { entityId: ownedById });
-          }
-          throw error;
-        },
-      )
+    ? await UserModel.getUserById(graphApi, {
+        entityId: userAccountIdToEntityId(ownedById),
+      }).catch((error: Error) => {
+        if (error instanceof EntityTypeMismatchError) {
+          return OrgModel.getOrgById(graphApi, {
+            entityId: userAccountIdToEntityId(ownedById),
+          });
+        }
+        throw error;
+      })
     : userModel;
 
   const pageModels = await PageModel.getAllPagesInAccount(graphApi, {
@@ -88,11 +90,11 @@ export const persistedPages: ResolverFn<
   return pageModels.map(mapPageModelToGQL);
 };
 
-export const persistedPageComments: ResolverFn<
-  Promise<UnresolvedPersistedCommentGQL[]>,
+export const pageComments: ResolverFn<
+  Promise<UnresolvedCommentGQL[]>,
   {},
   LoggedInGraphQLContext,
-  QueryPersistedPageCommentsArgs
+  QueryPageCommentsArgs
 > = async (_, { entityId }, { dataSources: { graphApi } }) => {
   const pageModel = await PageModel.getPageById(graphApi, {
     entityId,
