@@ -23,6 +23,7 @@ import {
   TextField,
   FontAwesomeIcon,
 } from "@hashintel/hash-design-system";
+import { useAuthenticatedUser } from "../../../components/hooks/useAuthenticatedUser";
 import { NavLink } from "./nav-link";
 
 import { EntityTypeItem } from "./account-entity-type-list/entity-type-item";
@@ -130,6 +131,8 @@ export const AccountEntityTypeList: FunctionComponent<
   const data = null as any;
   const router = useRouter();
 
+  const { authenticatedUser } = useAuthenticatedUser();
+
   const [sortType, setSortType] = useState<SortType>("asc");
   const [searchVisible, setSearchVisible] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -171,9 +174,9 @@ export const AccountEntityTypeList: FunctionComponent<
       <NavLink
         title="Types"
         endAdornmentProps={{
-          tooltipTitle: "Create new type",
-          href: `/${accountId}/types/new`,
-          "data-testid": "create-entity-btn",
+          tooltipTitle: "Create new entity type",
+          href: `/@${authenticatedUser?.shortname}/types/new/entity-type`,
+          "data-testid": "create-entity-type-btn",
         }}
       >
         <Box component="ul">
