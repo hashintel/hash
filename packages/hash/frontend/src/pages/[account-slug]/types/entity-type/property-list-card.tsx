@@ -1,3 +1,4 @@
+import { VersionedUri } from "@blockprotocol/type-system-web";
 import {
   Box,
   ButtonBase,
@@ -25,6 +26,7 @@ import {
   useFormContext,
   useWatch,
 } from "react-hook-form";
+import { useBlockProtocolUpdatePropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdatePropertyType";
 import { WhiteCard } from "../../shared/white-card";
 import { EmptyPropertyListCard } from "./empty-property-list-card";
 import { EntityTypeEditorForm } from "./form-types";
@@ -32,10 +34,13 @@ import { InsertPropertyRow } from "./insert-property-row";
 import { MultipleValuesCell } from "./multiple-values-cell";
 import { PropertyExpectedValues } from "./property-expected-values";
 import { PropertyMenu } from "./property-menu";
-import { PropertyTypeForm } from "./property-type-form";
+import { formDataToPropertyType, PropertyTypeForm } from "./property-type-form";
 import { QuestionIcon } from "./question-icon";
 import { StyledPlusCircleIcon } from "./styled-plus-circle-icon";
-import { usePropertyTypes } from "./use-property-types";
+import {
+  usePropertyTypes,
+  useRefetchPropertyTypes,
+} from "./use-property-types";
 import { useStateCallback } from "./util";
 
 const CenteredTableCell = styled(TableCell)(
@@ -48,9 +53,11 @@ const CenteredTableCell = styled(TableCell)(
 export const PropertyTypeRow = ({
   propertyIndex,
   onRemove,
+  onUpdatePropertyTypeVersion,
 }: {
   propertyIndex: number;
   onRemove: () => void;
+  onUpdatePropertyTypeVersion: (nextId: VersionedUri) => void;
 }) => {
   const { control } = useFormContext<EntityTypeEditorForm>();
 
@@ -70,6 +77,9 @@ export const PropertyTypeRow = ({
     variant: "popover",
     popupId: `edit-property-type-modal-${editModalId}`,
   });
+
+  const { updatePropertyType } = useBlockProtocolUpdatePropertyType();
+  const refetchPropertyTypes = useRefetchPropertyTypes();
 
   const propertyTypes = usePropertyTypes();
   const property = propertyTypes?.[$id];
@@ -148,7 +158,17 @@ export const PropertyTypeRow = ({
         popupState={editModalPopupState}
         modalTitle={<>Edit Property Type</>}
         onSubmit={async (data) => {
-          console.log(data);
+          // @todo verify this works
+          await updatePropertyType({
+            data: {
+              propertyTypeId: $id,
+              propertyType: formDataToPropertyType(data),
+            },
+          });
+
+          await refetchPropertyTypes?.();
+
+          onUpdatePropertyTypeVersion($id);
         }}
         submitButtonProps={{ children: <>Edit property type</> }}
         fieldProps={{ name: { disabled: true } }}
@@ -169,7 +189,8 @@ export const PropertyTypeRow = ({
 };
 
 export const PropertyListCard = () => {
-  const { control, getValues } = useFormContext<EntityTypeEditorForm>();
+  const { control, getValues, setValue } =
+    useFormContext<EntityTypeEditorForm>();
   const { fields, append, remove } = useFieldArray({
     control,
     name: "properties",
@@ -248,6 +269,9 @@ export const PropertyListCard = () => {
                 propertyIndex={index}
                 onRemove={() => {
                   remove(index);
+                }}
+                onUpdatePropertyTypeVersion={(nextId) => {
+                  setValue(`properties.${index}.$id`, nextId);
                 }}
               />
             ))}

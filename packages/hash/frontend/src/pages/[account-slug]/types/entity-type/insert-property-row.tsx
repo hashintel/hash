@@ -1,4 +1,4 @@
-import { PropertyType, PropertyValues } from "@blockprotocol/type-system-web";
+import { PropertyType } from "@blockprotocol/type-system-web";
 import {
   TableCell,
   tableCellClasses,
@@ -12,7 +12,11 @@ import { useBlockProtocolCreatePropertyType } from "../../../../components/hooks
 import { EntityTypeEditorForm } from "./form-types";
 import { PropertyListSelectorDropdownContext } from "./property-list-selector-dropdown";
 import { PropertySelector } from "./property-selector";
-import { PropertyTypeFormValues, PropertyTypeForm } from "./property-type-form";
+import {
+  formDataToPropertyType,
+  PropertyTypeForm,
+  PropertyTypeFormValues,
+} from "./property-type-form";
 import { QuestionIcon } from "./question-icon";
 import { useRefetchPropertyTypes } from "./use-property-types";
 import { useRouteNamespace } from "./use-route-namespace";
@@ -52,14 +56,7 @@ export const InsertPropertyRow = ({
   const handleSubmit = async (data: PropertyTypeFormValues) => {
     const res = await createPropertyType({
       data: {
-        propertyType: {
-          oneOf: data.expectedValues.map((value) => ({
-            $ref: value,
-          })) as [PropertyValues, ...PropertyValues[]],
-          description: data.description,
-          title: data.name,
-          kind: "propertyType",
-        },
+        propertyType: formDataToPropertyType(data),
       },
     });
 
