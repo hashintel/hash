@@ -1,4 +1,4 @@
-import { VersionedUri } from "@blockprotocol/type-system-web";
+import { PropertyValues, VersionedUri } from "@blockprotocol/type-system-web";
 import { faClose } from "@fortawesome/free-solid-svg-icons";
 import {
   Button,
@@ -95,6 +95,16 @@ const useTriggerValidation = (
     }
   }, [trigger, defaultValuesKeys]);
 };
+
+// @todo consider calling for consumer
+export const formDataToPropertyType = (data: PropertyTypeFormValues) => ({
+  oneOf: data.expectedValues.map((value) => ({
+    $ref: value,
+  })) as [PropertyValues, ...PropertyValues[]],
+  description: data.description,
+  title: data.name,
+  kind: "propertyType" as const,
+});
 
 const PropertyTypeFormInner = ({
   onClose,
