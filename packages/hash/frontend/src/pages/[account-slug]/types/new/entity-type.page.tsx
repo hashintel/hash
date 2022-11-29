@@ -22,7 +22,10 @@ import { frontendUrl } from "@hashintel/hash-shared/environment";
 import { useBlockProtocolGetEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
 import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
 import { useInitTypeSystem } from "../../../../lib/use-init-type-system";
-import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
+import {
+  getLayoutWithSidebar,
+  NextPageWithLayout,
+} from "../../../../shared/layout";
 import { TopContextBar } from "../../../shared/top-context-bar";
 import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
 import { OntologyChip } from "../../shared/ontology-chip";
@@ -298,6 +301,9 @@ const Page: NextPageWithLayout = () => {
   );
 };
 
-Page.getLayout = getPlainLayout;
+Page.getLayout = (page) =>
+  getLayoutWithSidebar(page, {
+    fullWidth: true,
+  });
 
 export default Page;
