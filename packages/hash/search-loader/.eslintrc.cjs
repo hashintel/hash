@@ -6,8 +6,8 @@ module.exports = {
   },
   rules: {
     ...require("@local/eslint-config/temporarily-disable-rules.cjs")([
-      /* 2022-11-16:  11 */ "@typescript-eslint/no-unsafe-assignment",
-      /* 2022-11-16:  13 */ "@typescript-eslint/no-unsafe-member-access",
+      /* 2022-11-29:  25 */ "@typescript-eslint/no-unsafe-assignment",
+      /* 2022-11-29:  32 */ "@typescript-eslint/no-unsafe-member-access",
     ]),
   },
 };

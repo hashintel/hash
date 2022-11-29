@@ -4,11 +4,11 @@ module.exports = {
   plugins: ["@typescript-eslint", "canonical", "unicorn"],
   rules: {
     ...require("@local/eslint-config/temporarily-disable-rules.cjs")([
-      /* 2022-11-16:  28 */ "@typescript-eslint/no-unsafe-argument",
-      /* 2022-11-16:  91 */ "@typescript-eslint/no-unsafe-assignment",
-      /* 2022-11-16:  50 */ "@typescript-eslint/no-unsafe-member-access",
-      /* 2022-11-16:  16 */ "@typescript-eslint/no-unsafe-return",
-      /* 2022-11-16:  30 */ "@typescript-eslint/restrict-template-expressions",
+      /* 2022-11-29:  11 */ "@typescript-eslint/no-unsafe-argument",
+      /* 2022-11-29:  54 */ "@typescript-eslint/no-unsafe-assignment",
+      /* 2022-11-29:  30 */ "@typescript-eslint/no-unsafe-member-access",
+      /* 2022-11-29:  11 */ "@typescript-eslint/no-unsafe-return",
+      /* 2022-11-29:  34 */ "@typescript-eslint/restrict-template-expressions",
     ]),
     "jsx-a11y/label-has-associated-control": "off",
     "import/no-default-export": "error",
