@@ -4,7 +4,7 @@ import { Container, Typography } from "@mui/material";
 import init, { ValueOrArray, Array } from "@blockprotocol/type-system-web";
 import { Button } from "@hashintel/hash-design-system";
 import { types } from "@hashintel/hash-shared/types";
-import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
+import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import { getPropertyTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
@@ -29,7 +29,9 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
   const [aggregateEntitiesSubgraph, setAggregateEntitiesSubgraph] =
     useState<Subgraph<SubgraphRootTypes["entity"]>>();
 
-  const { getEntity, createEntity, aggregateEntities } =
+  const [createdEntity, setCreatedEntity] = useState<Entity>();
+
+  const { getEntity, createEntity, archiveEntity, aggregateEntities } =
     useBlockProtocolFunctionsWithOntology(ownedById);
 
   useEffect(() => {
@@ -94,21 +96,38 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
   );
 
   const handleCreateEntity = async () => {
-    const createdEntity = await createEntity({
+    await createEntity({
       data: {
         entityTypeId: types.entityType.dummy.entityTypeId,
         properties: {},
       },
-    });
+    }).then(({ data }) => setCreatedEntity(data));
+  };
 
-    // eslint-disable-next-line no-console
-    console.log({ createdEntity });
+  const handleArchiveCreatedEntity = async () => {
+    if (!createdEntity) {
+      return;
+    }
+    await archiveEntity({
+      data: { entityId: createdEntity.metadata.editionId.baseId },
+    }).then(() => setCreatedEntity(undefined));
   };
 
   return (
     <Container>
       <Typography>Entity</Typography>
       <Button onClick={handleCreateEntity}>Create Entity</Button>
+      {createdEntity ? (
+        <>
+          <p>Created entity:</p>
+          <pre style={{ overflowX: "scroll" }}>
+            {JSON.stringify(createdEntity, null, 2)}
+          </pre>
+          <Button onClick={handleArchiveCreatedEntity}>
+            Archive The Created Entity
+          </Button>
+        </>
+      ) : null}
       <pre style={{ overflowX: "scroll" }}>
         {JSON.stringify(entity ?? {}, null, 2)}
       </pre>

@@ -26,6 +26,7 @@ export type KnowledgeCallbacks = {
   createEntity: CreateEntityMessageCallback;
   aggregateEntities: AggregateEntitiesMessageCallback;
   updateEntity: UpdateEntityMessageCallback;
+  archiveEntity: ArchiveEntityMessageCallback;
 };
 
 /* Entity CRU */
@@ -36,8 +37,12 @@ export type GetEntityMessageCallback = MessageCallback<
   ReadOrModifyResourceError
 >;
 
+export type AggregateEntitiesRequest = {
+  rootEntityTypeIds?: VersionedUri[];
+};
+
 export type AggregateEntitiesMessageCallback = MessageCallback<
-  {},
+  AggregateEntitiesRequest,
   null,
   Subgraph<SubgraphRootTypes["entity"]>,
   ReadOrModifyResourceError
@@ -67,5 +72,16 @@ export type UpdateEntityMessageCallback = MessageCallback<
   UpdateEntityRequest,
   null,
   Entity,
+  ReadOrModifyResourceError
+>;
+
+export type ArchiveEntityRequest = {
+  entityId: EntityId;
+};
+
+export type ArchiveEntityMessageCallback = MessageCallback<
+  ArchiveEntityRequest,
+  null,
+  boolean,
   ReadOrModifyResourceError
 >;

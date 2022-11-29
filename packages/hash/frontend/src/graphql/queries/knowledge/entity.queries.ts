@@ -47,6 +47,7 @@ export const getEntityQuery = gql`
 
 export const getAllLatestEntitiesQuery = gql`
   query getAllLatestEntities(
+    $rootEntityTypeIds: [VersionedUri!]
     $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
     $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
     $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
@@ -56,6 +57,7 @@ export const getAllLatestEntitiesQuery = gql`
     $hasRightEntity: EdgeResolveDepthsInput!
   ) {
     getAllLatestEntities(
+      rootEntityTypeIds: $rootEntityTypeIds
       constrainsValuesOn: $constrainsValuesOn
       constrainsPropertiesOn: $constrainsPropertiesOn
       constrainsLinksOn: $constrainsLinksOn
@@ -84,5 +86,11 @@ export const updateEntityMutation = gql`
       leftOrder: $leftOrder
       rightOrder: $rightOrder
     )
+  }
+`;
+
+export const archiveEntityMutation = gql`
+  mutation archiveEntity($entityId: EntityId!) {
+    archiveEntity(entityId: $entityId)
   }
 `;

@@ -17,6 +17,7 @@ import {
   MutationUpdateEntityArgs,
   ResolverFn,
   QueryGetAllLatestEntitiesArgs,
+  MutationArchiveEntityArgs,
 } from "../../../apiTypes.gen";
 import { mapEntityModelToGQL } from "../model-mapping";
 import { LoggedInGraphQLContext } from "../../../context";
@@ -88,6 +89,7 @@ export const getAllLatestEntities: ResolverFn<
 > = async (
   _,
   {
+    rootEntityTypeIds,
     constrainsValuesOn,
     constrainsPropertiesOn,
     constrainsLinksOn,
@@ -100,11 +102,31 @@ export const getAllLatestEntities: ResolverFn<
 ) => {
   const { graphApi } = dataSources;
 
-  const { data: entitySubgraph } = await graphApi
-    .getEntitiesByQuery({
-      filter: {
+  const filter: Filter = {
+    all: [
+      {
         equal: [{ path: ["version"] }, { parameter: "latest" }],
       },
+      {
+        equal: [{ path: ["archived"] }, { parameter: false }],
+      },
+    ],
+  };
+
+  if (rootEntityTypeIds && rootEntityTypeIds.length > 0) {
+    filter.all.push({
+      any: rootEntityTypeIds.map((entityTypeId) => ({
+        equal: [
+          { path: ["type", "versionedUri"] },
+          { parameter: entityTypeId },
+        ],
+      })),
+    });
+  }
+
+  const { data: entitySubgraph } = await graphApi
+    .getEntitiesByQuery({
+      filter,
       graphResolveDepths: {
         inheritsFrom: { outgoing: 0 },
         constrainsValuesOn,
@@ -248,4 +270,17 @@ export const updateEntity: ResolverFn<
   }
 
   return mapEntityModelToGQL(updatedEntityModel);
+};
+
+export const archiveEntity: ResolverFn<
+  Promise<boolean>,
+  {},
+  LoggedInGraphQLContext,
+  MutationArchiveEntityArgs
+> = async (_, { entityId }, { dataSources: { graphApi }, userModel }) => {
+  const entityModel = await EntityModel.getLatest(graphApi, { entityId });
+
+  await entityModel.archive(graphApi, { actorId: userModel.getEntityUuid() });
+
+  return true;
 };

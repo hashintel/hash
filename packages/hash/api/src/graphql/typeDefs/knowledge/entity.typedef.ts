@@ -44,6 +44,10 @@ export const entityTypedef = gql`
     Get a subgraph rooted at all entities at their latest version.
     """
     getAllLatestEntities(
+      """
+      Filter root entities by their entity type ID (optional)
+      """
+      rootEntityTypeIds: [VersionedUri!]
       constrainsValuesOn: OutgoingEdgeResolveDepthInput!
       constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
       constrainsLinksOn: OutgoingEdgeResolveDepthInput!
@@ -123,5 +127,15 @@ export const entityTypedef = gql`
       """
       rightOrder: Int
     ): Entity!
+
+    """
+    Archive an entity.
+    """
+    archiveEntity(
+      """
+      The id of the entity that will be archived.
+      """
+      entityId: EntityId!
+    ): Boolean!
   }
 `;
