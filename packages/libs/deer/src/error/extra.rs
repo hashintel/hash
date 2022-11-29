@@ -5,8 +5,7 @@ use core::{
 };
 
 use super::{
-    fmt_fold_fields, macros::impl_error, Error, ErrorProperties, ErrorProperty, Id, Location,
-    Namespace, NAMESPACE,
+    fmt_fold_fields, ErrorProperties, ErrorProperty, Id, Location, Namespace, Variant, NAMESPACE,
 };
 use crate::id;
 
@@ -37,7 +36,7 @@ impl ErrorProperty for ReceivedKey {
 #[derive(Debug)]
 pub struct ObjectItemsExtraError;
 
-impl Error for ObjectItemsExtraError {
+impl Variant for ObjectItemsExtraError {
     type Properties = (Location, ReceivedKey);
 
     const ID: Id = id!["object", "items", "extra"];
@@ -78,8 +77,6 @@ impl Display for ObjectItemsExtraError {
         f.write_str("received unexpected keys")
     }
 }
-
-impl_error!(ObjectItemsExtraError);
 
 #[derive(serde::Serialize)]
 pub struct ExpectedLength(usize);
@@ -128,7 +125,7 @@ impl ErrorProperty for ReceivedLength {
 #[derive(Debug)]
 pub struct ArrayLengthError;
 
-impl Error for ArrayLengthError {
+impl Variant for ArrayLengthError {
     type Properties = (Location, ExpectedLength, ReceivedLength);
 
     const ID: Id = id!["array", "length"];
@@ -171,8 +168,6 @@ impl Display for ArrayLengthError {
     }
 }
 
-impl_error!(ArrayLengthError);
-
 #[cfg(test)]
 mod tests {
     use alloc::{borrow::ToOwned, vec};
@@ -181,19 +176,22 @@ mod tests {
     use serde_json::json;
 
     use super::*;
-    use crate::test::{to_json, to_message};
+    use crate::{
+        error::Error,
+        test::{to_json, to_message},
+    };
 
     #[test]
     fn array() {
         // we simulate that the error happens in:
         // [..., {field1: [_, _, _] <- here}]
-        let error = Report::new(ArrayLengthError)
-            .attach(Location::Array(1))
+        let error = Report::new(Error::new(ArrayLengthError))
             .attach(Location::Field("field1"))
+            .attach(Location::Array(1))
             .attach(ExpectedLength::new(2))
             .attach(ReceivedLength::new(3));
 
-        let value = to_json(&error);
+        let value = to_json::<ArrayLengthError>(&error);
 
         assert_eq!(
             value,
@@ -211,29 +209,29 @@ mod tests {
     #[test]
     fn array_message() {
         assert_eq!(
-            to_message(&Report::new(ArrayLengthError)),
+            to_message::<ArrayLengthError>(&Report::new(ArrayLengthError.into_error())),
             "received more items than expected"
         );
 
         assert_eq!(
-            to_message(
-                &Report::new(ArrayLengthError) //
+            to_message::<ArrayLengthError>(
+                &Report::new(ArrayLengthError.into_error()) //
                     .attach(ReceivedLength::new(3))
             ),
             "received array of length 3"
         );
 
         assert_eq!(
-            to_message(
-                &Report::new(ArrayLengthError) //
+            to_message::<ArrayLengthError>(
+                &Report::new(ArrayLengthError.into_error()) //
                     .attach(ExpectedLength::new(2))
             ),
             "expected array of length 2"
         );
 
         assert_eq!(
-            to_message(
-                &Report::new(ArrayLengthError)
+            to_message::<ArrayLengthError>(
+                &Report::new(ArrayLengthError.into_error())
                     .attach(ExpectedLength::new(2))
                     .attach(ReceivedLength::new(3))
             ),
@@ -245,11 +243,11 @@ mod tests {
     fn object() {
         // we simulate that the error happens in:
         // [..., {field1: [...], field2: [...]} <- here]
-        let error = Report::new(ObjectItemsExtraError)
+        let error = Report::new(ObjectItemsExtraError.into_error())
             .attach(Location::Array(1))
             .attach(ReceivedKey::new("field2"));
 
-        let value = to_json(&error);
+        let value = to_json::<ObjectItemsExtraError>(&error);
 
         assert_eq!(
             value,
@@ -265,21 +263,21 @@ mod tests {
     #[test]
     fn object_message() {
         assert_eq!(
-            to_message(&Report::new(ObjectItemsExtraError)),
+            to_message::<ObjectItemsExtraError>(&Report::new(ObjectItemsExtraError.into_error())),
             "received unexpected keys"
         );
 
         assert_eq!(
-            to_message(
-                &Report::new(ObjectItemsExtraError) //
+            to_message::<ObjectItemsExtraError>(
+                &Report::new(ObjectItemsExtraError.into_error()) //
                     .attach(ReceivedKey("field1".to_owned())),
             ),
             r#"received 1 unexpected key ("field1")"#
         );
 
         assert_eq!(
-            to_message(
-                &Report::new(ObjectItemsExtraError) //
+            to_message::<ObjectItemsExtraError>(
+                &Report::new(ObjectItemsExtraError.into_error()) //
                     .attach(ReceivedKey("field1".to_owned()))
                     .attach(ReceivedKey("field2".to_owned())),
             ),

@@ -19,17 +19,15 @@ pub enum Location {
 }
 
 impl ErrorProperty for Location {
-    type Value<'a> = Vec<&'a Self>
-        where Self: 'a;
+    type Value<'a> = Vec<&'a Self>;
 
     fn key() -> &'static str {
         "location"
     }
 
     fn value<'a>(stack: impl Iterator<Item = &'a Self>) -> Self::Value<'a> {
-        let mut stack: Vec<_> = stack.collect();
-        stack.reverse();
-
-        stack
+        // location is used a bit differently, this value "bubbles" up, meaning the location is
+        // attached from bottom to top
+        stack.collect()
     }
 }
