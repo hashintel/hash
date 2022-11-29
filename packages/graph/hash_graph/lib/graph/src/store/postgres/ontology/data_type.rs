@@ -31,7 +31,7 @@ impl<C: AsClient> PostgresStore<C> {
     ) -> Result<(), QueryError> {
         let dependency_status = dependency_context
             .ontology_dependency_map
-            .insert(data_type_id, Some(current_resolve_depth));
+            .insert(data_type_id, current_resolve_depth);
         let data_type: Option<&OntologyVertex> = match dependency_status {
             DependencyStatus::Unknown => {
                 let data_type = Read::<DataTypeWithMetadata>::read_one(

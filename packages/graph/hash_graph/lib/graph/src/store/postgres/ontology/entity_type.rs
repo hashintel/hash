@@ -45,7 +45,7 @@ impl<C: AsClient> PostgresStore<C> {
         async move {
             let dependency_status = dependency_context
                 .ontology_dependency_map
-                .insert(entity_type_id, Some(current_resolve_depth));
+                .insert(entity_type_id, current_resolve_depth);
             let entity_type = match dependency_status {
                 DependencyStatus::Unknown => {
                     let entity_type = Read::<EntityTypeWithMetadata>::read_one(

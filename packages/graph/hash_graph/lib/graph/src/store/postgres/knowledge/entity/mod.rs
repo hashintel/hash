@@ -52,7 +52,7 @@ impl<C: AsClient> PostgresStore<C> {
         async move {
             let dependency_status = dependency_context
                 .knowledge_dependency_map
-                .insert(&entity_edition_id, Some(current_resolve_depth));
+                .insert(&entity_edition_id, current_resolve_depth);
             let entity: Option<&KnowledgeGraphVertex> = match dependency_status {
                 DependencyStatus::Unknown => {
                     let entity = Read::<Entity>::read_one(
