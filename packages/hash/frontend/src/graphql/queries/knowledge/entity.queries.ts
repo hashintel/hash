@@ -47,6 +47,7 @@ export const getEntityQuery = gql`
 
 export const getAllLatestEntitiesQuery = gql`
   query getAllLatestEntities(
+    $rootEntityTypeIds: [VersionedUri!]
     $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
     $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
     $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
@@ -56,6 +57,7 @@ export const getAllLatestEntitiesQuery = gql`
     $hasRightEntity: EdgeResolveDepthsInput!
   ) {
     getAllLatestEntities(
+      rootEntityTypeIds: $rootEntityTypeIds
       constrainsValuesOn: $constrainsValuesOn
       constrainsPropertiesOn: $constrainsPropertiesOn
       constrainsLinksOn: $constrainsLinksOn
@@ -77,5 +79,11 @@ export const updateEntityMutation = gql`
   ) {
     # This is a scalar, which has no selection.
     updateEntity(entityId: $entityId, updatedProperties: $updatedProperties)
+  }
+`;
+
+export const archiveEntityMutation = gql`
+  mutation archiveEntity($entityId: EntityId!) {
+    archiveEntity(entityId: $entityId)
   }
 `;
