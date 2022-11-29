@@ -29,7 +29,6 @@ impl Context {
             .map(|value| *value)
     }
 
-    #[must_use]
     pub fn clear(&mut self) {
         self.inner.clear();
     }
