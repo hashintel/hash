@@ -133,7 +133,7 @@ export const HashSelectorAutocomplete = <T extends unknown>({
 
         // @todo extract component
         return (
-          <li {...props}>
+          <li {...props} data-testid="propery-selector-option">
             <Box width="100%">
               <Box
                 width="100%"
