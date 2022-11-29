@@ -11,15 +11,14 @@ import { Box, Container, Theme, Typography } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
-import { useContext, useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { FormProvider, useForm } from "react-hook-form";
-import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
+import { PageErrorState } from "../../../../components/page-error-state";
 import {
   getLayoutWithSidebar,
   NextPageWithLayout,
 } from "../../../../shared/layout";
 import { TopContextBar } from "../../../shared/top-context-bar";
-import { WorkspaceContext } from "../../../shared/workspace-context";
 import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
 import { OntologyChip } from "../../shared/ontology-chip";
 import { EditBar } from "./edit-bar";
@@ -86,12 +85,10 @@ const getSchemaFromEditorForm = (
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
-  const { activeWorkspace } = useContext(WorkspaceContext);
 
   // @todo how to handle remote types
   const isDraft = !!router.query.draft;
   const { loading: loadingNamespace, routeNamespace } = useRouteNamespace();
-  const { authenticatedUser } = useAuthenticatedUser();
 
   const entityTypeId = router.query["entity-type-id"] as string;
   const baseEntityTypeUri = !isDraft
@@ -129,7 +126,7 @@ const Page: NextPageWithLayout = () => {
     { loading: loadingRemoteEntityType },
   ] = useEntityTypeValue(
     baseEntityTypeUri,
-    routeNamespace?.accountId,
+    routeNamespace?.accountId ?? null,
     (fetchedEntityType) => {
       reset({
         properties: Object.entries(fetchedEntityType.properties).map(
@@ -152,42 +149,7 @@ const Page: NextPageWithLayout = () => {
 
   const entityType = remoteEntityType ?? draftEntityType;
 
-  useEffect(() => {
-    if (activeWorkspace && !loadingNamespace && !routeNamespace) {
-      // eslint-disable-next-line no-console
-      console.warn(
-        `Error: Couldn't find namespace with shortname '${router.query["account-slug"]}'.`,
-      );
-      void router.replace(
-        `/@${activeWorkspace.shortname}/new/types/entity-type`,
-      );
-      return;
-    }
-
-    if (activeWorkspace && !loadingRemoteEntityType && !entityType) {
-      // eslint-disable-next-line no-console
-      console.warn(
-        `Error: Couldn't find entity type with id '${router.query["entity-type-id"]}'.`,
-      );
-      void router.replace(
-        `/@${activeWorkspace.shortname}/new/types/entity-type`,
-      );
-    }
-  }, [
-    activeWorkspace,
-    routeNamespace,
-    loadingNamespace,
-    router,
-    loadingRemoteEntityType,
-    authenticatedUser,
-    entityType,
-  ]);
-
   const handleSubmit = wrapHandleSubmit(async (data) => {
-    if (!entityType) {
-      return;
-    }
-
     const entityTypeSchema = getSchemaFromEditorForm(data.properties);
 
     if (isDraft) {
@@ -215,8 +177,20 @@ const Page: NextPageWithLayout = () => {
 
   const currentTab = useCurrentTab();
 
-  if (!entityType || !activeWorkspace || !routeNamespace) {
-    return null;
+  if (!entityType) {
+    if (loadingRemoteEntityType) {
+      return null;
+    } else {
+      return <PageErrorState />;
+    }
+  }
+
+  if (!routeNamespace) {
+    if (loadingNamespace) {
+      return null;
+    } else {
+      throw new Error("Namespace for valid entity somehow missing");
+    }
   }
 
   const currentVersion = draftEntityType ? 0 : extractVersion(entityType.$id);
