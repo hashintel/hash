@@ -79,3 +79,9 @@ export const updateEntityMutation = gql`
     updateEntity(entityId: $entityId, updatedProperties: $updatedProperties)
   }
 `;
+
+export const archiveEntityMutation = gql`
+  mutation archiveEntity($entityId: EntityId!) {
+    archiveEntity(entityId: $entityId)
+  }
+`;
