@@ -22,7 +22,7 @@ impl<C: AsClient> PostgresStore<C> {
     /// Internal method to read a [`DataTypeWithMetadata`] into a [`DependencyContext`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    pub(crate) async fn get_data_type_with_dependencies(
+    pub(crate) async fn traverse_data_type(
         &self,
         data_type_id: &OntologyTypeEditionId,
         dependency_context: &mut DependencyContext,
@@ -108,7 +108,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         for data_type in Read::<DataTypeWithMetadata>::read(self, filter).await? {
             let data_type_id = data_type.metadata().edition_id().clone();
 
-            self.get_data_type_with_dependencies(
+            self.traverse_data_type(
                 &data_type_id,
                 &mut dependency_context,
                 &mut subgraph,
