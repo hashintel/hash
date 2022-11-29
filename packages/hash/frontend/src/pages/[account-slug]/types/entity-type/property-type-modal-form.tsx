@@ -28,14 +28,7 @@ import {
   bindToggle,
   PopupState,
 } from "material-ui-popup-state/hooks";
-import {
-  ComponentProps,
-  ReactNode,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { ComponentProps, ReactNode, useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { UseFormTrigger } from "react-hook-form/dist/types/form";
 import { useBlockProtocolGetPropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetPropertyType";
