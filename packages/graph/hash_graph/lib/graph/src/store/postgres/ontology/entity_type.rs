@@ -71,16 +71,18 @@ impl<C: AsClient> PostgresStore<C> {
             if let Some(OntologyVertex::EntityType(entity_type)) = entity_type {
                 for property_type_ref in entity_type.inner().property_type_references() {
                     if current_resolve_depth.constrains_properties_on.outgoing > 0 {
-                        subgraph.edges.insert(Edge::Ontology {
-                            edition_id: entity_type_id.clone(),
-                            outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
-                                kind: OntologyEdgeKind::ConstrainsPropertiesOn,
-                                reversed: false,
-                                right_endpoint: OntologyTypeEditionId::from(
-                                    property_type_ref.uri(),
-                                ),
-                            }),
-                        });
+                        if dependency_status == DependencyStatus::Unknown {
+                            subgraph.edges.insert(Edge::Ontology {
+                                edition_id: entity_type_id.clone(),
+                                outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
+                                    kind: OntologyEdgeKind::ConstrainsPropertiesOn,
+                                    reversed: false,
+                                    right_endpoint: OntologyTypeEditionId::from(
+                                        property_type_ref.uri(),
+                                    ),
+                                }),
+                            });
+                        }
 
                         self.get_property_type_as_dependency(
                             &OntologyTypeEditionId::from(property_type_ref.uri()),
@@ -103,14 +105,18 @@ impl<C: AsClient> PostgresStore<C> {
 
                 for entity_type_ref in entity_type.inner().inherits_from().all_of() {
                     if current_resolve_depth.inherits_from.outgoing > 0 {
-                        subgraph.edges.insert(Edge::Ontology {
-                            edition_id: entity_type_id.clone(),
-                            outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
-                                kind: OntologyEdgeKind::InheritsFrom,
-                                reversed: false,
-                                right_endpoint: OntologyTypeEditionId::from(entity_type_ref.uri()),
-                            }),
-                        });
+                        if dependency_status == DependencyStatus::Unknown {
+                            subgraph.edges.insert(Edge::Ontology {
+                                edition_id: entity_type_id.clone(),
+                                outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
+                                    kind: OntologyEdgeKind::InheritsFrom,
+                                    reversed: false,
+                                    right_endpoint: OntologyTypeEditionId::from(
+                                        entity_type_ref.uri(),
+                                    ),
+                                }),
+                            });
+                        }
 
                         self.get_entity_type_as_dependency(
                             &OntologyTypeEditionId::from(entity_type_ref.uri()),
@@ -130,14 +136,18 @@ impl<C: AsClient> PostgresStore<C> {
 
                 for entity_type_ref in entity_type.inner().link_mappings().into_keys() {
                     if current_resolve_depth.constrains_links_on.outgoing > 0 {
-                        subgraph.edges.insert(Edge::Ontology {
-                            edition_id: entity_type_id.clone(),
-                            outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
-                                kind: OntologyEdgeKind::ConstrainsLinksOn,
-                                reversed: false,
-                                right_endpoint: OntologyTypeEditionId::from(entity_type_ref.uri()),
-                            }),
-                        });
+                        if dependency_status == DependencyStatus::Unknown {
+                            subgraph.edges.insert(Edge::Ontology {
+                                edition_id: entity_type_id.clone(),
+                                outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
+                                    kind: OntologyEdgeKind::ConstrainsLinksOn,
+                                    reversed: false,
+                                    right_endpoint: OntologyTypeEditionId::from(
+                                        entity_type_ref.uri(),
+                                    ),
+                                }),
+                            });
+                        }
 
                         self.get_entity_type_as_dependency(
                             &OntologyTypeEditionId::from(entity_type_ref.uri()),
@@ -169,14 +179,18 @@ impl<C: AsClient> PostgresStore<C> {
                         .outgoing
                         > 0
                     {
-                        subgraph.edges.insert(Edge::Ontology {
-                            edition_id: entity_type_id.clone(),
-                            outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
-                                kind: OntologyEdgeKind::ConstrainsLinkDestinationsOn,
-                                reversed: false,
-                                right_endpoint: OntologyTypeEditionId::from(entity_type_ref.uri()),
-                            }),
-                        });
+                        if dependency_status == DependencyStatus::Unknown {
+                            subgraph.edges.insert(Edge::Ontology {
+                                edition_id: entity_type_id.clone(),
+                                outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
+                                    kind: OntologyEdgeKind::ConstrainsLinkDestinationsOn,
+                                    reversed: false,
+                                    right_endpoint: OntologyTypeEditionId::from(
+                                        entity_type_ref.uri(),
+                                    ),
+                                }),
+                            });
+                        }
 
                         self.get_entity_type_as_dependency(
                             &OntologyTypeEditionId::from(entity_type_ref.uri()),
