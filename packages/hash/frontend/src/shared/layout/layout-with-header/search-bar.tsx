@@ -242,6 +242,7 @@ const SearchBarWhenSearchIsEnabled: FunctionComponent = () => {
               No results found for&nbsp;<b>{submittedQuery}</b>.
             </ResultItem>
           ) : (
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
             data.searchPages.map((searchPage: any) => (
               <ResultItem
                 key={searchPage.block?.entityId ?? searchPage.page.entityId}

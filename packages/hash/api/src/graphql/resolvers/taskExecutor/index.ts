@@ -27,7 +27,7 @@ export const executeDemoTask: ResolverFn<
   } else {
     return await taskExecutor
       .runTask(Task.Demo)
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- consider replacing with `.then((res) => JSON.stringify(res))`
+
       .then((res) => res.toString())
       .catch((err) => {
         throw new ApolloError(`Task-execution failed: ${err}`);
