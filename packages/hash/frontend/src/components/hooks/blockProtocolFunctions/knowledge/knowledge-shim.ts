@@ -65,6 +65,8 @@ export type CreateEntityMessageCallback = MessageCallback<
 export type UpdateEntityRequest = {
   entityId: EntityId;
   updatedProperties: PropertyObject;
+  leftOrder?: number;
+  rightOrder?: number;
 };
 
 export type UpdateEntityMessageCallback = MessageCallback<
