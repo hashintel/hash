@@ -29,8 +29,7 @@ import {
   PopupState,
 } from "material-ui-popup-state/hooks";
 import { ComponentProps, ReactNode, useEffect, useMemo, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { UseFormTrigger } from "react-hook-form/dist/types/form";
+import { Controller, useForm, UseFormTrigger } from "react-hook-form";
 import { useBlockProtocolGetPropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetPropertyType";
 import { Modal } from "../../../../components/Modals/Modal";
 import { getPersistedPropertyType } from "../../../../lib/subgraph";
