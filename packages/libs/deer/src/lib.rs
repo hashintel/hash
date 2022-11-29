@@ -26,8 +26,9 @@ use crate::error::{
     ArrayAccessError, DeserializeError, DeserializerError, ExpectedType, MissingError,
     ObjectAccessError, ReceivedType, ReceivedValue, Schema, TypeError, ValueError, VisitorError,
 };
-pub use crate::number::Number;
+pub use crate::{context::Context, number::Number};
 
+mod context;
 pub mod error;
 mod number;
 
@@ -358,6 +359,8 @@ macro_rules! derive_from_number {
 ///
 /// [`serde`]: https://serde.rs/
 pub trait Deserializer<'de>: Sized {
+    fn context(&self) -> &Context;
+
     /// Require the [`Deserializer`] to figure out **how** to drive the visitor based on input data.
     ///
     /// You should not rely on this when implementing [`Deserialize`], as non self-describing
