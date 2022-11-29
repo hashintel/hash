@@ -84,10 +84,12 @@ export const getAllLatestEntities: ResolverFn<
 > = async (
   _,
   {
-    dataTypeResolveDepth,
-    propertyTypeResolveDepth,
-    entityTypeResolveDepth,
-    entityResolveDepth,
+    constrainsValuesOn,
+    constrainsPropertiesOn,
+    constrainsLinksOn,
+    constrainsLinkDestinationsOn,
+    hasLeftEntity,
+    hasRightEntity,
   },
   { dataSources },
   __,
@@ -100,10 +102,14 @@ export const getAllLatestEntities: ResolverFn<
         equal: [{ path: ["version"] }, { parameter: "latest" }],
       },
       graphResolveDepths: {
-        dataTypeResolveDepth,
-        propertyTypeResolveDepth,
-        entityTypeResolveDepth,
-        entityResolveDepth,
+        inheritsFrom: { outgoing: 0 },
+        constrainsValuesOn,
+        constrainsPropertiesOn,
+        constrainsLinksOn,
+        constrainsLinkDestinationsOn,
+        isOfType: { outgoing: 1 },
+        hasLeftEntity,
+        hasRightEntity,
       },
     })
     .catch((err: AxiosError) => {
@@ -126,10 +132,12 @@ export const getEntity: ResolverFn<
   {
     entityId,
     entityVersion,
-    dataTypeResolveDepth,
-    propertyTypeResolveDepth,
-    entityTypeResolveDepth,
-    entityResolveDepth,
+    constrainsValuesOn,
+    constrainsPropertiesOn,
+    constrainsLinksOn,
+    constrainsLinkDestinationsOn,
+    hasLeftEntity,
+    hasRightEntity,
   },
   { dataSources },
   __,
@@ -158,10 +166,14 @@ export const getEntity: ResolverFn<
     .getEntitiesByQuery({
       filter,
       graphResolveDepths: {
-        dataTypeResolveDepth,
-        propertyTypeResolveDepth,
-        entityTypeResolveDepth,
-        entityResolveDepth,
+        inheritsFrom: { outgoing: 0 },
+        constrainsValuesOn,
+        constrainsPropertiesOn,
+        constrainsLinksOn,
+        constrainsLinkDestinationsOn,
+        isOfType: { outgoing: 1 },
+        hasLeftEntity,
+        hasRightEntity,
       },
     })
     .catch((err: AxiosError) => {

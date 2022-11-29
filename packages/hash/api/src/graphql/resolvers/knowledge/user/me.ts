@@ -9,10 +9,11 @@ export const me: ResolverFn<
   QueryMeArgs
 > = async (
   _,
-  { entityResolveDepth },
+  { hasLeftEntity, hasRightEntity },
   { userModel, dataSources: { graphApi } },
 ) => {
   return await userModel.getRootedSubgraph(graphApi, {
-    entityResolveDepth,
+    hasLeftEntity,
+    hasRightEntity,
   });
 };

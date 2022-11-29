@@ -10,14 +10,16 @@ export const dataTypeTypedef = gql`
     """
     Get a subgraph rooted at all data types at their latest version.
     """
-    getAllLatestDataTypes(dataTypeResolveDepth: Int!): Subgraph!
+    getAllLatestDataTypes(
+      constrainsValuesOn: OutgoingEdgeResolveDepthInput!
+    ): Subgraph!
 
     """
     Get a subgraph rooted at an data type resolved by its versioned URI.
     """
     getDataType(
       dataTypeId: VersionedUri!
-      dataTypeResolveDepth: Int!
+      constrainsValuesOn: OutgoingEdgeResolveDepthInput!
     ): Subgraph!
   }
 

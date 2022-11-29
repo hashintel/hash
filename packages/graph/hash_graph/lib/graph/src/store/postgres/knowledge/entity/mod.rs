@@ -1,10 +1,10 @@
 mod read;
 
-use std::{collections::HashSet, future::Future, pin::Pin};
+use std::{future::Future, pin::Pin};
 
 use async_trait::async_trait;
 use error_stack::{bail, IntoReport, Report, Result, ResultExt};
-use futures::{stream, FutureExt, StreamExt, TryStreamExt};
+use futures::FutureExt;
 use tokio_postgres::GenericClient;
 use type_system::uri::VersionedUri;
 use uuid::Uuid;
@@ -12,6 +12,7 @@ use uuid::Uuid;
 use crate::{
     identifier::{
         knowledge::{EntityEditionId, EntityId, EntityIdAndTimestamp},
+        ontology::OntologyTypeEditionId,
         GraphElementEditionId,
     },
     knowledge::{
@@ -21,16 +22,17 @@ use crate::{
     store::{
         crud::Read,
         error::ArchivalError,
-        postgres::{DependencyContext, DependencyContextRef, HistoricMove},
+        postgres::{DependencyContext, DependencyStatus, HistoricMove},
         query::Filter,
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
     subgraph::{
-        depths::GraphResolveDepths,
         edges::{
-            Edge, KnowledgeGraphEdgeKind, KnowledgeGraphOutwardEdges, OutwardEdge, SharedEdgeKind,
+            Edge, EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind,
+            KnowledgeGraphOutwardEdges, OutgoingEdgeResolveDepth, OutwardEdge, SharedEdgeKind,
         },
         query::StructuralQuery,
+        vertices::KnowledgeGraphVertex,
         Subgraph,
     },
 };
@@ -40,56 +42,69 @@ impl<C: AsClient> PostgresStore<C> {
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
     #[expect(clippy::too_many_lines)]
-    pub(crate) fn get_entity_as_dependency<'a: 'b, 'b>(
+    pub(crate) fn get_entity_as_dependency<'a>(
         &'a self,
         entity_edition_id: EntityEditionId,
-        mut dependency_context: DependencyContextRef<'b>,
-    ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'b>> {
+        dependency_context: &'a mut DependencyContext,
+        subgraph: &'a mut Subgraph,
+        current_resolve_depth: GraphResolveDepths,
+    ) -> Pin<Box<dyn Future<Output = Result<(), QueryError>> + Send + 'a>> {
         async move {
-            let unresolved_entity = dependency_context
-                .linked_entities
-                .insert_with(
-                    &entity_edition_id,
-                    Some(dependency_context.graph_resolve_depths.entity_resolve_depth),
-                    || async {
-                        self.read_one(&Filter::for_entity_by_edition_id(entity_edition_id))
-                            .await
-                    },
-                )
-                .await?;
+            let dependency_status = dependency_context
+                .knowledge_dependency_map
+                .insert(&entity_edition_id, Some(current_resolve_depth));
+            let entity: Option<&KnowledgeGraphVertex> = match dependency_status {
+                DependencyStatus::Unknown => {
+                    let entity = Read::<Entity>::read_one(
+                        self,
+                        &Filter::for_entity_by_edition_id(entity_edition_id),
+                    )
+                    .await?;
+                    Some(
+                        subgraph
+                            .vertices
+                            .knowledge_graph
+                            .entry(entity_edition_id)
+                            .or_insert(KnowledgeGraphVertex::Entity(entity)),
+                    )
+                }
+                DependencyStatus::DependenciesUnresolved => {
+                    subgraph.vertices.knowledge_graph.get(&entity_edition_id)
+                }
+                DependencyStatus::Resolved => None,
+            };
 
-            if let Some(entity) = unresolved_entity {
-                // Cloning the entity type ID avoids multiple borrow errors which would otherwise
-                // require us to clone the entity
-                let entity_type_id = entity.metadata().entity_type_id().clone();
+            if let Some(KnowledgeGraphVertex::Entity(entity)) = entity {
+                let entity_type_id =
+                    OntologyTypeEditionId::from(entity.metadata().entity_type_id());
                 let entity_edition_id = entity.metadata().edition_id();
 
-                if dependency_context
-                    .graph_resolve_depths
-                    .entity_type_resolve_depth
-                    > 0
-                {
+                if current_resolve_depth.is_of_type.outgoing > 0 {
+                    if dependency_status == DependencyStatus::Unknown {
+                        subgraph.edges.insert(Edge::KnowledgeGraph {
+                            edition_id: entity_edition_id,
+                            outward_edge: KnowledgeGraphOutwardEdges::ToOntology(OutwardEdge {
+                                kind: SharedEdgeKind::IsOfType,
+                                reversed: false,
+                                right_endpoint: entity_type_id.clone(),
+                            }),
+                        });
+                    }
+
                     self.get_entity_type_as_dependency(
-                        &entity_type_id.clone().into(),
-                        dependency_context.change_depth(GraphResolveDepths {
-                            entity_type_resolve_depth: dependency_context
-                                .graph_resolve_depths
-                                .entity_type_resolve_depth
-                                - 1,
-                            ..dependency_context.graph_resolve_depths
-                        }),
+                        &entity_type_id,
+                        dependency_context,
+                        subgraph,
+                        GraphResolveDepths {
+                            is_of_type: OutgoingEdgeResolveDepth {
+                                outgoing: current_resolve_depth.is_of_type.outgoing - 1,
+                                ..current_resolve_depth.is_of_type
+                            },
+                            ..current_resolve_depth
+                        },
                     )
                     .await?;
                 }
-
-                dependency_context.edges.insert(Edge::KnowledgeGraph {
-                    edition_id: entity_edition_id,
-                    outward_edge: KnowledgeGraphOutwardEdges::ToOntology(OutwardEdge {
-                        kind: SharedEdgeKind::IsOfType,
-                        reversed: false,
-                        right_endpoint: entity_type_id.into(),
-                    }),
-                });
 
                 for outgoing_link_entity in <Self as Read<Entity>>::read(
                     self,
@@ -97,49 +112,67 @@ impl<C: AsClient> PostgresStore<C> {
                 )
                 .await?
                 {
-                    // We want to log the time the link entity was *first* added from this entity.
-                    // We therefore need to find the timestamp of the first link entity
-                    // TODO: this is very slow, we should update structural querying to be able to
-                    //  get the first timestamp of something efficiently
-                    let mut all_outgoing_link_entity_editions: Vec<_> =
-                        <Self as Read<Entity>>::read(
-                            self,
-                            &Filter::for_entity_by_entity_id(
-                                outgoing_link_entity.metadata().edition_id().base_id(),
-                            ),
+                    if current_resolve_depth.has_left_entity.incoming > 0 {
+                        if dependency_status == DependencyStatus::Unknown {
+                            // We want to log the time the link entity was *first* added from this
+                            // entity. We therefore need to find the timestamp of the first link
+                            // entity
+                            // TODO: this is very slow, we should update structural querying to be
+                            //       able to  get the first timestamp of something efficiently
+                            let mut all_outgoing_link_entity_editions: Vec<_> =
+                                <Self as Read<Entity>>::read(
+                                    self,
+                                    &Filter::for_entity_by_entity_id(
+                                        outgoing_link_entity.metadata().edition_id().base_id(),
+                                    ),
+                                )
+                                .await?
+                                .into_iter()
+                                .map(|entity| entity.metadata().edition_id())
+                                .collect();
+
+                            all_outgoing_link_entity_editions.sort();
+
+                            let earliest_version = all_outgoing_link_entity_editions
+                                .into_iter()
+                                .next()
+                                .expect(
+                                    "we got the edition id from the entity in the first place, \
+                                     there must be at least one version",
+                                )
+                                .version();
+
+                            subgraph.edges.insert(Edge::KnowledgeGraph {
+                                edition_id: entity_edition_id,
+                                outward_edge: KnowledgeGraphOutwardEdges::ToKnowledgeGraph(
+                                    OutwardEdge {
+                                        // (HasLeftEntity, reversed=true) is equivalent to an
+                                        // outgoing link `Entity`
+                                        kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                                        reversed: true,
+                                        right_endpoint: EntityIdAndTimestamp::new(
+                                            outgoing_link_entity.metadata().edition_id().base_id(),
+                                            earliest_version.inner(),
+                                        ),
+                                    },
+                                ),
+                            });
+                        }
+
+                        self.get_entity_as_dependency(
+                            outgoing_link_entity.metadata().edition_id(),
+                            dependency_context,
+                            subgraph,
+                            GraphResolveDepths {
+                                has_left_entity: EdgeResolveDepths {
+                                    incoming: current_resolve_depth.has_left_entity.incoming - 1,
+                                    ..current_resolve_depth.has_left_entity
+                                },
+                                ..current_resolve_depth
+                            },
                         )
-                        .await?
-                        .into_iter()
-                        .map(|entity| entity.metadata().edition_id())
-                        .collect();
-
-                    all_outgoing_link_entity_editions.sort();
-
-                    let earliest_version = all_outgoing_link_entity_editions
-                        .into_iter()
-                        .next()
-                        .expect(
-                            "we got the edition id from the entity in the first place, there must \
-                             be at least one version",
-                        )
-                        .version();
-
-                    self.resolve_entity_dependency_with_edge_kind(
-                        &mut dependency_context,
-                        entity_edition_id,
-                        outgoing_link_entity.metadata().edition_id(),
-                        OutwardEdge {
-                            // (HasLeftEntity, reversed=true) is equivalent to an
-                            // outgoing link `Entity`
-                            kind: KnowledgeGraphEdgeKind::HasLeftEntity,
-                            reversed: true,
-                            right_endpoint: EntityIdAndTimestamp::new(
-                                outgoing_link_entity.metadata().edition_id().base_id(),
-                                earliest_version.inner(),
-                            ),
-                        },
-                    )
-                    .await?;
+                        .await?;
+                    }
                 }
 
                 for incoming_link_entity in <Self as Read<Entity>>::read(
@@ -148,49 +181,67 @@ impl<C: AsClient> PostgresStore<C> {
                 )
                 .await?
                 {
-                    // We want to log the time the link entity was *first* added from this entity.
-                    // We therefore need to find the timestamp of the first link entity
-                    // TODO: this is very slow, we should update structural querying to be able to
-                    //  get the first timestamp of something efficiently
-                    let mut all_incoming_link_entity_editions: Vec<_> =
-                        <Self as Read<Entity>>::read(
-                            self,
-                            &Filter::for_entity_by_entity_id(
-                                incoming_link_entity.metadata().edition_id().base_id(),
-                            ),
+                    if current_resolve_depth.has_right_entity.incoming > 0 {
+                        if dependency_status == DependencyStatus::Unknown {
+                            // We want to log the time the link entity was *first* added from this
+                            // entity. We therefore need to find the timestamp of the first link
+                            // entity
+                            // TODO: this is very slow, we should update structural querying to be
+                            //       able to get the first timestamp of something efficiently
+                            let mut all_incoming_link_entity_editions: Vec<_> =
+                                <Self as Read<Entity>>::read(
+                                    self,
+                                    &Filter::for_entity_by_entity_id(
+                                        incoming_link_entity.metadata().edition_id().base_id(),
+                                    ),
+                                )
+                                .await?
+                                .into_iter()
+                                .map(|entity| entity.metadata().edition_id())
+                                .collect();
+
+                            all_incoming_link_entity_editions.sort();
+
+                            let earliest_version = all_incoming_link_entity_editions
+                                .into_iter()
+                                .next()
+                                .expect(
+                                    "we got the edition id from the entity in the first place, \
+                                     there must be at least one version",
+                                )
+                                .version();
+
+                            subgraph.edges.insert(Edge::KnowledgeGraph {
+                                edition_id: entity_edition_id,
+                                outward_edge: KnowledgeGraphOutwardEdges::ToKnowledgeGraph(
+                                    OutwardEdge {
+                                        // (HasRightEntity, reversed=true) is equivalent to an
+                                        // incoming link `Entity`
+                                        kind: KnowledgeGraphEdgeKind::HasRightEntity,
+                                        reversed: true,
+                                        right_endpoint: EntityIdAndTimestamp::new(
+                                            incoming_link_entity.metadata().edition_id().base_id(),
+                                            earliest_version.inner(),
+                                        ),
+                                    },
+                                ),
+                            });
+                        }
+
+                        self.get_entity_as_dependency(
+                            incoming_link_entity.metadata().edition_id(),
+                            dependency_context,
+                            subgraph,
+                            GraphResolveDepths {
+                                has_right_entity: EdgeResolveDepths {
+                                    incoming: current_resolve_depth.has_right_entity.incoming - 1,
+                                    ..current_resolve_depth.has_right_entity
+                                },
+                                ..current_resolve_depth
+                            },
                         )
-                        .await?
-                        .into_iter()
-                        .map(|entity| entity.metadata().edition_id())
-                        .collect();
-
-                    all_incoming_link_entity_editions.sort();
-
-                    let earliest_version = all_incoming_link_entity_editions
-                        .into_iter()
-                        .next()
-                        .expect(
-                            "we got the edition id from the entity in the first place, there must \
-                             be at least one version",
-                        )
-                        .version();
-
-                    self.resolve_entity_dependency_with_edge_kind(
-                        &mut dependency_context,
-                        entity_edition_id,
-                        incoming_link_entity.metadata().edition_id(),
-                        OutwardEdge {
-                            // (HasRightEntity, reversed=true) is equivalent to an
-                            // incoming link `Entity`
-                            kind: KnowledgeGraphEdgeKind::HasRightEntity,
-                            reversed: true,
-                            right_endpoint: EntityIdAndTimestamp::new(
-                                incoming_link_entity.metadata().edition_id().base_id(),
-                                earliest_version.inner(),
-                            ),
-                        },
-                    )
-                    .await?;
+                        .await?;
+                    }
                 }
 
                 for left_entity in <Self as Read<Entity>>::read(
@@ -199,44 +250,63 @@ impl<C: AsClient> PostgresStore<C> {
                 )
                 .await?
                 {
-                    // We want to log the time _this_ link entity was *first* added from the left
-                    // entity. We therefore need to find the timestamp of this entity
-                    // TODO: this is very slow, we should update structural querying to be able to
-                    //  get the first timestamp of something efficiently
-                    let mut all_self_editions: Vec<_> = <Self as Read<Entity>>::read(
-                        self,
-                        &Filter::for_entity_by_entity_id(entity_edition_id.base_id()),
-                    )
-                    .await?
-                    .into_iter()
-                    .map(|entity| entity.metadata().edition_id())
-                    .collect();
+                    if current_resolve_depth.has_left_entity.outgoing > 0 {
+                        if dependency_status == DependencyStatus::Unknown {
+                            // We want to log the time _this_ link entity was *first* added from the
+                            // left entity. We therefore need to find the timestamp of this entity
+                            // TODO: this is very slow, we should update structural querying to be
+                            //       able to get the first timestamp of something efficiently
+                            let mut all_self_editions: Vec<_> = <Self as Read<Entity>>::read(
+                                self,
+                                &Filter::for_entity_by_entity_id(entity_edition_id.base_id()),
+                            )
+                            .await?
+                            .into_iter()
+                            .map(|entity| entity.metadata().edition_id())
+                            .collect();
 
-                    all_self_editions.sort();
+                            all_self_editions.sort();
 
-                    let earliest_version = all_self_editions
-                        .into_iter()
-                        .next()
-                        .expect(
-                            "we got the edition id from the entity in the first place, there must \
-                             be at least one version",
+                            let earliest_version = all_self_editions
+                                .into_iter()
+                                .next()
+                                .expect(
+                                    "we got the edition id from the entity in the first place, \
+                                     there must be at least one version",
+                                )
+                                .version();
+
+                            subgraph.edges.insert(Edge::KnowledgeGraph {
+                                edition_id: entity_edition_id,
+                                outward_edge: KnowledgeGraphOutwardEdges::ToKnowledgeGraph(
+                                    OutwardEdge {
+                                        // (HasLeftEndpoint, reversed=true) is equivalent to an
+                                        // outgoing `Link` `Entity`
+                                        kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                                        reversed: false,
+                                        right_endpoint: EntityIdAndTimestamp::new(
+                                            left_entity.metadata().edition_id().base_id(),
+                                            earliest_version.inner(),
+                                        ),
+                                    },
+                                ),
+                            });
+                        }
+
+                        self.get_entity_as_dependency(
+                            left_entity.metadata().edition_id(),
+                            dependency_context,
+                            subgraph,
+                            GraphResolveDepths {
+                                has_left_entity: EdgeResolveDepths {
+                                    outgoing: current_resolve_depth.has_left_entity.outgoing - 1,
+                                    ..current_resolve_depth.has_left_entity
+                                },
+                                ..current_resolve_depth
+                            },
                         )
-                        .version();
-
-                    self.resolve_entity_dependency_with_edge_kind(
-                        &mut dependency_context,
-                        entity_edition_id,
-                        left_entity.metadata().edition_id(),
-                        OutwardEdge {
-                            kind: KnowledgeGraphEdgeKind::HasLeftEntity,
-                            reversed: false,
-                            right_endpoint: EntityIdAndTimestamp::new(
-                                left_entity.metadata().edition_id().base_id(),
-                                earliest_version.inner(),
-                            ),
-                        },
-                    )
-                    .await?;
+                        .await?;
+                    }
                 }
 
                 for right_entity in <Self as Read<Entity>>::read(
@@ -245,78 +315,69 @@ impl<C: AsClient> PostgresStore<C> {
                 )
                 .await?
                 {
-                    // We want to log the time _this_ link entity was *first* added to the right
-                    // entity. We therefore need to find the timestamp of this entity
-                    // TODO: this is very slow, we should update structural querying to be able to
-                    //  get the first timestamp of something efficiently
-                    let mut all_self_editions: Vec<_> = <Self as Read<Entity>>::read(
-                        self,
-                        &Filter::for_entity_by_entity_id(entity_edition_id.base_id()),
-                    )
-                    .await?
-                    .into_iter()
-                    .map(|entity| entity.metadata().edition_id())
-                    .collect();
+                    if current_resolve_depth.has_right_entity.outgoing > 0 {
+                        if dependency_status == DependencyStatus::Unknown {
+                            // We want to log the time _this_ link entity was *first* added to the
+                            // right entity. We therefore need to find the timestamp of this entity
+                            // TODO: this is very slow, we should update structural querying to be
+                            //       able to  get the first timestamp of something efficiently
+                            let mut all_self_editions: Vec<_> = <Self as Read<Entity>>::read(
+                                self,
+                                &Filter::for_entity_by_entity_id(entity_edition_id.base_id()),
+                            )
+                            .await?
+                            .into_iter()
+                            .map(|entity| entity.metadata().edition_id())
+                            .collect();
 
-                    all_self_editions.sort();
+                            all_self_editions.sort();
 
-                    let earliest_version = all_self_editions
-                        .into_iter()
-                        .next()
-                        .expect(
-                            "we got the edition id from the entity in the first place, there must \
-                             be at least one version",
+                            let earliest_version = all_self_editions
+                                .into_iter()
+                                .next()
+                                .expect(
+                                    "we got the edition id from the entity in the first place, \
+                                     there must be at least one version",
+                                )
+                                .version();
+
+                            subgraph.edges.insert(Edge::KnowledgeGraph {
+                                edition_id: entity_edition_id,
+                                outward_edge: KnowledgeGraphOutwardEdges::ToKnowledgeGraph(
+                                    OutwardEdge {
+                                        // (HasLeftEndpoint, reversed=true) is equivalent to an
+                                        // outgoing `Link` `Entity`
+                                        kind: KnowledgeGraphEdgeKind::HasRightEntity,
+                                        reversed: false,
+                                        right_endpoint: EntityIdAndTimestamp::new(
+                                            right_entity.metadata().edition_id().base_id(),
+                                            earliest_version.inner(),
+                                        ),
+                                    },
+                                ),
+                            });
+                        }
+
+                        self.get_entity_as_dependency(
+                            right_entity.metadata().edition_id(),
+                            dependency_context,
+                            subgraph,
+                            GraphResolveDepths {
+                                has_right_entity: EdgeResolveDepths {
+                                    outgoing: current_resolve_depth.has_right_entity.outgoing - 1,
+                                    ..current_resolve_depth.has_right_entity
+                                },
+                                ..current_resolve_depth
+                            },
                         )
-                        .version();
-
-                    self.resolve_entity_dependency_with_edge_kind(
-                        &mut dependency_context,
-                        entity_edition_id,
-                        right_entity.metadata().edition_id(),
-                        OutwardEdge {
-                            kind: KnowledgeGraphEdgeKind::HasRightEntity,
-                            reversed: false,
-                            right_endpoint: EntityIdAndTimestamp::new(
-                                right_entity.metadata().edition_id().base_id(),
-                                earliest_version.inner(),
-                            ),
-                        },
-                    )
-                    .await?;
+                        .await?;
+                    }
                 }
             }
 
             Ok(())
         }
         .boxed()
-    }
-
-    async fn resolve_entity_dependency_with_edge_kind<'a: 'b, 'b: 'c, 'c>(
-        &'a self,
-        dependency_context: &'c mut DependencyContextRef<'b>,
-        source_entity_edition_id: EntityEditionId,
-        dependent_entity_edition_id: EntityEditionId,
-        edge: OutwardEdge<KnowledgeGraphEdgeKind, EntityIdAndTimestamp>,
-    ) -> Result<(), QueryError> {
-        dependency_context.edges.insert(Edge::KnowledgeGraph {
-            edition_id: source_entity_edition_id,
-            outward_edge: KnowledgeGraphOutwardEdges::ToKnowledgeGraph(edge),
-        });
-
-        if dependency_context.graph_resolve_depths.entity_resolve_depth > 0 {
-            self.get_entity_as_dependency(
-                dependent_entity_edition_id,
-                dependency_context.change_depth(GraphResolveDepths {
-                    entity_resolve_depth: dependency_context
-                        .graph_resolve_depths
-                        .entity_resolve_depth
-                        - 1,
-                    ..dependency_context.graph_resolve_depths
-                }),
-            )
-            .await?;
-        }
-        Ok(())
     }
 }
 
@@ -444,29 +505,31 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             graph_resolve_depths,
         } = *query;
 
-        let mut subgraph = stream::iter(Read::<Entity>::read(self, filter).await?)
-            .then(|entity| async move {
-                let mut dependency_context = DependencyContext::new(graph_resolve_depths);
+        let mut subgraph = Subgraph::new(graph_resolve_depths);
+        let mut dependency_context = DependencyContext::default();
 
-                let entity_edition_id = entity.metadata().edition_id();
-                dependency_context
-                    .linked_entities
-                    .insert(&entity_edition_id, None, entity);
+        for entity in Read::<Entity>::read(self, filter).await? {
+            let entity_edition_id = entity.metadata().edition_id();
+            dependency_context
+                .knowledge_dependency_map
+                .insert(&entity_edition_id, None);
+            subgraph
+                .vertices
+                .knowledge_graph
+                .insert(entity_edition_id, KnowledgeGraphVertex::Entity(entity));
 
-                self.get_entity_as_dependency(
-                    entity_edition_id,
-                    dependency_context.as_ref_object(),
-                )
-                .await?;
-
-                let root = GraphElementEditionId::KnowledgeGraph(entity_edition_id);
-
-                Ok::<_, Report<QueryError>>(dependency_context.into_subgraph(HashSet::from([root])))
-            })
-            .try_collect::<Subgraph>()
+            self.get_entity_as_dependency(
+                entity_edition_id,
+                &mut dependency_context,
+                &mut subgraph,
+                graph_resolve_depths,
+            )
             .await?;
 
-        subgraph.depths = graph_resolve_depths;
+            subgraph
+                .roots
+                .insert(GraphElementEditionId::KnowledgeGraph(entity_edition_id));
+        }
 
         Ok(subgraph)
     }

@@ -2,10 +2,13 @@ import { gql } from "@apollo/client";
 import { subgraphFieldsFragment } from "../subgraph";
 
 export const getDataTypeQuery = gql`
-  query getDataType($dataTypeId: VersionedUri!, $dataTypeResolveDepth: Int!) {
+  query getDataType(
+    $dataTypeId: VersionedUri!
+    $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
+  ) {
     getDataType(
       dataTypeId: $dataTypeId
-      dataTypeResolveDepth: $dataTypeResolveDepth
+      constrainsValuesOn: $constrainsValuesOn
     ) {
       ...SubgraphFields
     }
@@ -14,8 +17,10 @@ export const getDataTypeQuery = gql`
 `;
 
 export const getAllLatestDataTypesQuery = gql`
-  query getAllLatestDataTypes($dataTypeResolveDepth: Int!) {
-    getAllLatestDataTypes(dataTypeResolveDepth: $dataTypeResolveDepth) {
+  query getAllLatestDataTypes(
+    $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
+  ) {
+    getAllLatestDataTypes(constrainsValuesOn: $constrainsValuesOn) {
       ...SubgraphFields
     }
   }

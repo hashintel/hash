@@ -192,10 +192,32 @@ Content-Type: application/json
     ]
   },
   "graphResolveDepths": {
-    "dataTypeResolveDepth": 0,
-    "propertyTypeResolveDepth": 0,
-    "entityTypeResolveDepth": 0,
-    "entityResolveDepth": 10
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    },
+    "hasRightEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    }
   }
 }
 
@@ -313,10 +335,32 @@ Content-Type: application/json
     ]
   },
   "graphResolveDepths": {
-    "dataTypeResolveDepth": 0,
-    "propertyTypeResolveDepth": 0,
-    "entityTypeResolveDepth": 0,
-    "entityResolveDepth": 10
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    },
+    "hasRightEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    }
   }
 }
 
@@ -351,10 +395,32 @@ Content-Type: application/json
     ]
   },
   "graphResolveDepths": {
-    "dataTypeResolveDepth": 0,
-    "propertyTypeResolveDepth": 0,
-    "entityTypeResolveDepth": 0,
-    "entityResolveDepth": 0
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    },
+    "hasRightEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    }
   }
 }
 
@@ -469,10 +535,32 @@ Content-Type: application/json
     ]
   },
   "graphResolveDepths": {
-    "dataTypeResolveDepth": 0,
-    "propertyTypeResolveDepth": 0,
-    "entityTypeResolveDepth": 0,
-    "entityResolveDepth": 0
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    },
+    "hasRightEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    }
   }
 }
 
@@ -546,10 +634,32 @@ Content-Type: application/json
     ]
   },
   "graphResolveDepths": {
-    "dataTypeResolveDepth": 0,
-    "propertyTypeResolveDepth": 0,
-    "entityTypeResolveDepth": 0,
-    "entityResolveDepth": 0
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    },
+    "hasRightEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    }
   }
 }
 
@@ -596,10 +706,32 @@ Content-Type: application/json
     ]
   },
   "graphResolveDepths": {
-    "dataTypeResolveDepth": 10,
-    "propertyTypeResolveDepth": 10,
-    "entityTypeResolveDepth": 10,
-    "entityResolveDepth": 10
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    },
+    "hasRightEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    }
   }
 }
 
@@ -629,10 +761,32 @@ Content-Type: application/json
     ]
   },
   "graphResolveDepths": {
-    "dataTypeResolveDepth": 0,
-    "propertyTypeResolveDepth": 0,
-    "entityTypeResolveDepth": 0,
-    "entityResolveDepth": 0
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    },
+    "hasRightEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    }
   }
 }
 
