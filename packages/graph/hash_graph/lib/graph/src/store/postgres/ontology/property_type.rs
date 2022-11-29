@@ -31,7 +31,7 @@ impl<C: AsClient> PostgresStore<C> {
     /// Internal method to read a [`PropertyTypeWithMetadata`] into two [`DependencyContext`]s.
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    pub(crate) fn get_property_type_as_dependency<'a>(
+    pub(crate) fn get_property_type_with_dependency<'a>(
         &'a self,
         property_type_id: &'a OntologyTypeEditionId,
         dependency_context: &'a mut DependencyContext,
@@ -82,7 +82,7 @@ impl<C: AsClient> PostgresStore<C> {
                             });
                         }
 
-                        self.get_property_type_as_dependency(
+                        self.get_property_type_with_dependency(
                             &OntologyTypeEditionId::from(property_type_ref.uri()),
                             dependency_context,
                             subgraph,
@@ -118,7 +118,7 @@ impl<C: AsClient> PostgresStore<C> {
                             });
                         }
 
-                        self.get_data_type_as_dependency(
+                        self.get_data_type_with_dependency(
                             &OntologyTypeEditionId::from(data_type_ref.uri()),
                             dependency_context,
                             subgraph,
@@ -201,15 +201,8 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
 
         for property_type in Read::<PropertyTypeWithMetadata>::read(self, filter).await? {
             let property_type_id = property_type.metadata().edition_id().clone();
-            dependency_context
-                .ontology_dependency_map
-                .insert(&property_type_id, None);
-            subgraph.vertices.ontology.insert(
-                property_type_id.clone(),
-                OntologyVertex::PropertyType(Box::new(property_type)),
-            );
 
-            self.get_property_type_as_dependency(
+            self.get_property_type_with_dependency(
                 &property_type_id,
                 &mut dependency_context,
                 &mut subgraph,
