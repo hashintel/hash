@@ -1,15 +1,88 @@
-import { VersionedUri } from "@blockprotocol/type-system-web";
+import {
+  EntityType,
+  PropertyType,
+  VersionedUri,
+} from "@blockprotocol/type-system-web";
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
+  PropertyObject,
+  Subgraph,
 } from "@hashintel/hash-subgraph";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
+import { getPropertyTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
 import { useRouter } from "next/router";
 import { useCallback } from "react";
 import { useBlockProtocolCreateEntity } from "../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolCreateEntity";
 import { useBlockProtocolGetEntityType } from "../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
 import { useAuthenticatedUser } from "../../../../../components/hooks/useAuthenticatedUser";
-import { generateDefaultProperties } from "./use-create-new-entity-and-redirect/generate-default-properties";
+import {
+  isPropertyValueArray,
+  isPropertyValueNested,
+} from "../../../../../lib/typeguards";
+
+/**
+ * @todo this will be deleted when https://app.asana.com/0/1203312852763953/1203433085114587/f (internal) is implemented
+ */
+const getDefaultValueOfPropertyType = (
+  propertyType: PropertyType | undefined,
+  subgraph: Subgraph,
+) => {
+  /**
+   * if there are multiple expected types, those are not expected to be arrays or nested properties.
+   * So it's safe to return empty string on this case
+   */
+  if (!propertyType || propertyType.oneOf.length > 1) {
+    return "";
+  }
+
+  const propertyValue = propertyType.oneOf[0];
+
+  // return empty array for arrays
+  if (isPropertyValueArray(propertyValue)) {
+    return [];
+  }
+
+  // recursively get default properties for nested properties
+  if (isPropertyValueNested(propertyValue)) {
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+    return generateDefaultProperties(propertyValue.properties, subgraph);
+  }
+
+  // empty string works for number, text & boolean
+  return "";
+};
+
+/**
+ * @todo this will be deleted when https://app.asana.com/0/1203312852763953/1203433085114587/f (internal) is implemented
+ */
+export const generateDefaultProperties = (
+  properties: EntityType["properties"],
+  subgraph: Subgraph,
+) => {
+  const result: PropertyObject = {};
+
+  for (const propertyKey of Object.keys(properties)) {
+    const property = properties[propertyKey];
+
+    if (property) {
+      const propertyTypeId =
+        "$ref" in property ? property.$ref : property.items.$ref;
+
+      const propertyType = getPropertyTypeById(
+        subgraph,
+        propertyTypeId,
+      )?.schema;
+
+      result[propertyKey] = getDefaultValueOfPropertyType(
+        propertyType,
+        subgraph,
+      );
+    }
+  }
+
+  return result;
+};
 
 export const useCreateNewEntityAndRedirect = () => {
   const router = useRouter();
@@ -37,15 +110,15 @@ export const useCreateNewEntityAndRedirect = () => {
         throw new Error("user not found");
       }
 
-      const { schema: entityType, metadata } =
+      const { schema: entityType } =
         getEntityTypeById(subgraph, entityTypeId) ?? {};
 
-      if (!entityType || !metadata) {
+      if (!entityType) {
         throw new Error("persisted entity type not found");
       }
 
       let ownedById: string | undefined;
-      const shortname = accountSlug?.split("@")[1];
+      const shortname = accountSlug?.slice(1);
 
       const atUsersNamespace = shortname === authenticatedUser.shortname;
 
@@ -69,7 +142,7 @@ export const useCreateNewEntityAndRedirect = () => {
         );
       }
 
-      const entity = await createEntity({
+      const { data: entity } = await createEntity({
         data: {
           entityTypeId: entityType.$id,
           ownedById,
@@ -85,8 +158,12 @@ export const useCreateNewEntityAndRedirect = () => {
         },
       });
 
+      if (!entity) {
+        throw new Error("Failed to create entity");
+      }
+
       const entityId = extractEntityUuidFromEntityId(
-        entity.data?.metadata.editionId.baseId!,
+        entity.metadata.editionId.baseId,
       );
 
       await router.push(`/${accountSlug}/entities/${entityId}`);

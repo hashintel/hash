@@ -115,7 +115,7 @@ export const EntityTypeSelector: FunctionComponent<{
         renderInput={(props) => (
           <TextField
             {...props}
-            placeholder="Search for a entity type"
+            placeholder="Search for an entity type"
             sx={{
               width: "100%",
             }}

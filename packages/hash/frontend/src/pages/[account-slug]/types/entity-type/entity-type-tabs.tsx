@@ -43,7 +43,7 @@ export const EntityTypeTabs = () => {
   );
 
   const accountSlug = router.query["account-slug"] as string | undefined;
-  const shortname = accountSlug?.split("@")[1];
+  const shortname = accountSlug?.slice(1);
 
   const ownerOrg = authenticatedUser?.memberOf.find(
     (val) => shortname === val.shortname,

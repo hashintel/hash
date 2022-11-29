@@ -19,7 +19,7 @@ import { Ref, useId, useRef, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { Modal } from "../../../../components/Modals/Modal";
 import { EntityTypeEditorForm } from "./form-types";
-import { PropertySelector } from "./property-selector";
+import { PropertyTypeSelector } from "./property-type-selector";
 import { PropertyTypeForm } from "./property-type-form";
 import { QuestionIcon } from "./question-icon";
 import { TypeListSelectorDropdownContext } from "./type-list-selector-dropdown";
@@ -75,7 +75,7 @@ export const InsertPropertyRow = ({
             }
           }
         >
-          <PropertySelector
+          <PropertyTypeSelector
             searchText={searchText}
             onSearchTextChange={setSearchText}
             ref={sharedRef}

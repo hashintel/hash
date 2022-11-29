@@ -3,7 +3,6 @@ import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import {
   createContext,
   PropsWithChildren,
-  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -25,26 +24,26 @@ export const EntityTypesContextProvider = ({ children }: PropsWithChildren) => {
   >(null);
   const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes();
 
-  const fetch = useCallback(async () => {
-    if (typeSystemLoading) {
-      return;
-    }
-    await aggregateEntityTypes({ data: {} }).then(({ data: subgraph }) => {
-      if (subgraph) {
-        setEntityTypes(
-          Object.fromEntries(
-            getRoots(subgraph).map((entityType) => {
-              return [entityType.schema.$id, entityType.schema];
-            }),
-          ),
-        );
-      }
-    });
-  }, [aggregateEntityTypes, typeSystemLoading]);
-
   useEffect(() => {
+    const fetch = async () => {
+      if (typeSystemLoading) {
+        return;
+      }
+      await aggregateEntityTypes({ data: {} }).then(({ data: subgraph }) => {
+        if (subgraph) {
+          setEntityTypes(
+            Object.fromEntries(
+              getRoots(subgraph).map((entityType) => {
+                return [entityType.schema.$id, entityType.schema];
+              }),
+            ),
+          );
+        }
+      });
+    };
+
     void fetch();
-  }, [fetch]);
+  }, [aggregateEntityTypes, typeSystemLoading]);
 
   const state = useMemo(() => ({ types: entityTypes }), [entityTypes]);
 

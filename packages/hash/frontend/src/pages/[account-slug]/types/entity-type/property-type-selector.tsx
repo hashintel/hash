@@ -28,7 +28,7 @@ import {
 } from "./type-list-selector-dropdown";
 import { usePropertyTypes } from "./use-property-types";
 
-const PropertySelector: ForwardRefRenderFunction<
+const PropertyTypeSelector: ForwardRefRenderFunction<
   HTMLInputElement,
   {
     searchText: string;
@@ -246,6 +246,6 @@ const PropertySelector: ForwardRefRenderFunction<
   );
 };
 
-const PropertySelectorForwardedRef = forwardRef(PropertySelector);
+const PropertyTypeSelectorForwardedRef = forwardRef(PropertyTypeSelector);
 
-export { PropertySelectorForwardedRef as PropertySelector };
+export { PropertyTypeSelectorForwardedRef as PropertyTypeSelector };

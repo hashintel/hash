@@ -23,7 +23,7 @@ export const NewEntityPage = () => {
   const createNewEntityAndRedirect = useCreateNewEntityAndRedirect();
 
   return (
-    <EntityPageWrapper label="New entity" makeTitleLighter>
+    <EntityPageWrapper label="New entity" lightTitle>
       <SectionWrapper
         title="Types"
         titleStartContent={<Chip label="No type" size="xs" />}
@@ -83,8 +83,6 @@ export const NewEntityPage = () => {
                     }
                   }}
                   onCreateNew={(searchValue) => {
-                    setLoading(true);
-
                     let href = `/${router.query["account-slug"]}/types/new/entity-type`;
                     if (searchValue) {
                       href += `?name=${encodeURIComponent(searchValue)}`;
