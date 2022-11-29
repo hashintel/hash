@@ -13,6 +13,7 @@ import {
   MutationUpdateEntityArgs,
   ResolverFn,
   QueryGetAllLatestEntitiesArgs,
+  MutationArchiveEntityArgs,
 } from "../../../apiTypes.gen";
 import { mapEntityModelToGQL } from "../model-mapping";
 import { LoggedInGraphQLContext } from "../../../context";
@@ -248,4 +249,17 @@ export const updateEntity: ResolverFn<
   });
 
   return mapEntityModelToGQL(updatedEntityModel);
+};
+
+export const archiveEntity: ResolverFn<
+  Promise<boolean>,
+  {},
+  LoggedInGraphQLContext,
+  MutationArchiveEntityArgs
+> = async (_, { entityId }, { dataSources: { graphApi }, userModel }) => {
+  const entityModel = await EntityModel.getLatest(graphApi, { entityId });
+
+  await entityModel.archive(graphApi, { actorId: userModel.getEntityUuid() });
+
+  return true;
 };

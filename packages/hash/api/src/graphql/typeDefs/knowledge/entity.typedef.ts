@@ -119,5 +119,15 @@ export const entityTypedef = gql`
       """
       updatedProperties: PropertyObject!
     ): Entity!
+
+    """
+    Archive an entity.
+    """
+    archiveEntity(
+      """
+      The id of the entity that will be archived.
+      """
+      entityId: EntityId!
+    ): Boolean!
   }
 `;
