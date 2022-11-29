@@ -45,7 +45,10 @@ const App: FunctionComponent<AppProps> = ({
   const [ssr, setSsr] = useState(true);
   const router = useRouter();
 
-  const { authenticatedUser } = useAuthenticatedUser({ client: apolloClient });
+  const { authenticatedUser, loading, kratosSession, refetch } =
+    useAuthenticatedUser({
+      client: apolloClient,
+    });
 
   useEffect(() => {
     configureScope((scope) =>
@@ -62,8 +65,18 @@ const App: FunctionComponent<AppProps> = ({
       !router.pathname.startsWith("/signup")
     ) {
       void router.push("/signup");
+    } else if (!loading && !authenticatedUser) {
+      if (kratosSession) {
+        /**
+         * If we have a kratos session, but could not get the authenticated user,
+         * the kratos session may be invalid so needs to be re-fetched before redirecting.
+         */
+        void refetch().then(() => router.push("/login"));
+      } else {
+        void router.push("/login");
+      }
     }
-  }, [authenticatedUser, router]);
+  }, [authenticatedUser, kratosSession, loading, refetch, router]);
 
   // App UI often depends on [account-slug] and other query params. However,
   // router.query is empty during server-side rendering for pages that don’t use
