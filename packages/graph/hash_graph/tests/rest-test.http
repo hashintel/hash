@@ -40,7 +40,7 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("text_data_type_id", encodeURIComponent(response.body.identifier.uri));
+    client.global.set("text_data_type_id", encodeURIComponent(`${response.body.editionId.baseId}v/${response.body.editionId.version}`));
 %}
 
 ### Get Text data type
@@ -86,7 +86,6 @@ Accept: application/json
     "kind": "propertyType",
     "$id": "http://localhost:3000/@alice/types/property-type/name/v/1",
     "title": "Name",
-    "pluralTitle": "Names",
     "oneOf": [
       {
         "$ref": "http://localhost:3000/@alice/types/data-type/text/v/1"
@@ -99,7 +98,7 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_property_type_id", encodeURIComponent(response.body.identifier.uri));
+    client.global.set("person_property_type_id", encodeURIComponent(`${response.body.editionId.baseId}v/${response.body.editionId.version}`));
 %}
 
 ### Get Name property type
@@ -122,7 +121,6 @@ Accept: application/json
   "schema": {
     "kind": "propertyType",
     "title": "Name",
-    "pluralTitle": "Names",
     "oneOf": [
       {
         "$ref": "http://localhost:3000/@alice/types/data-type/text/v/2"
@@ -147,8 +145,8 @@ GET http://127.0.0.1:4000/property-types
     });
 %}
 
-### Insert FriendOf link type
-POST http://127.0.0.1:4000/link-types
+### Insert Friendship entity link type
+POST http://127.0.0.1:4000/entity-types
 Content-Type: application/json
 Accept: application/json
 
@@ -156,12 +154,16 @@ Accept: application/json
   "ownedById": "{{account_id}}",
   "actorId": "{{account_id}}",
   "schema": {
-    "kind": "linkType",
-    "$id": "http://localhost:3000/@alice/types/link-type/friend-of/v/1",
-    "title": "Friend Of",
-    "pluralTitle": "Friends Of",
-    "description": "Someone who has a shared bond of mutual affection",
-    "relatedKeywords": []
+    "kind": "entityType",
+    "$id": "http://localhost:3000/@alice/types/entity-type/friendship/v/1",
+    "type": "object",
+    "title": "Friendship",
+    "allOf": [
+      {
+        "$ref": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1"
+      }
+    ],
+    "properties": {}
   }
 }
 
@@ -169,53 +171,62 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("friend_of_link_type_id", encodeURIComponent(response.body.identifier.uri));
-    client.global.set("friend_of_link_type_id_raw", response.body.identifier.uri);
+    client.global.set("friendship_link_entity_type_id", `${response.body.editionId.baseId}v/${response.body.editionId.version}`);
 %}
 
-### Get FriendOf link type
-GET http://127.0.0.1:4000/link-types/{{friend_of_link_type_id}}
-
-> {%
-    client.test("status", function() {
-        client.assert(response.status === 200, "Response status is not 200");
-    });
-%}
-
-### Update FriendOf link type
-PUT http://127.0.0.1:4000/link-types
+### Get Friendship entity type
+POST http://127.0.0.1:4000/entity-types/query
 Content-Type: application/json
-Accept: application/json
 
 {
-  "actorId": "{{account_id}}",
-  "typeToUpdate": "http://localhost:3000/@alice/types/link-type/friend-of/v/1",
-  "schema": {
-    "kind": "linkType",
-    "title": "Friend Of",
-    "pluralTitle": "Friends Of",
-    "description": "Someone who has a shared bond of mutual affection",
-    "relatedKeywords": ["social"]
+  "filter": {
+    "equal": [
+      {
+        "path": [
+          "versionedUri"
+        ]
+      },
+      {
+        "parameter": "{{friendship_link_entity_type_id}}"
+      }
+    ]
+  },
+  "graphResolveDepths": {
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    },
+    "hasRightEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    }
   }
-
 }
 
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.roots.length === 1, "Unexpected number of entities");
     });
 %}
-
-### Get all link types
-GET http://127.0.0.1:4000/link-types
-
-> {%
-    client.test("status", function() {
-        client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.length === 1, "Unexpected number of link types");
-    });
-%}
-
 
 ### Insert Person entity type
 POST http://127.0.0.1:4000/entity-types
@@ -230,7 +241,6 @@ Accept: application/json
     "$id": "http://localhost:3000/@alice/types/entity-type/person/v/1",
     "type": "object",
     "title": "Person",
-    "pluralTitle": "People",
     "properties": {
       "http://localhost:3000/@alice/types/property-type/name/": {
         "$ref": "http://localhost:3000/@alice/types/property-type/name/v/1"
@@ -243,11 +253,12 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_entity_type_id", encodeURIComponent(response.body.identifier.uri));
+    client.global.set("person_entity_type_id", encodeURIComponent(`${response.body.editionId.baseId}v/${response.body.editionId.version}`));
+    client.global.set("encoded_person_entity_type_id", encodeURIComponent(`${response.body.editionId.baseId}v/${response.body.editionId.version}`));
 %}
 
 ### Get Person entity type
-GET http://127.0.0.1:4000/entity-types/{{person_entity_type_id}}
+GET http://127.0.0.1:4000/entity-types/{{encoded_person_entity_type_id}}
 
 > {%
     client.test("status", function() {
@@ -267,21 +278,20 @@ Accept: application/json
     "kind": "entityType",
     "type": "object",
     "title": "Person",
-    "pluralTitle": "People",
     "properties": {
       "http://localhost:3000/@alice/types/property-type/name/": {
         "$ref": "http://localhost:3000/@alice/types/property-type/name/v/2"
       }
     },
     "links": {
-      "http://localhost:3000/@alice/types/link-type/friend-of/v/2": {
+      "{{friendship_link_entity_type_id}}": {
         "type": "array",
         "items": {
-        "oneOf": [
-          {
-            "$ref": "http://localhost:3000/@alice/types/entity-type/person/v/2"
-          }
-        ]
+          "oneOf": [
+            {
+              "$ref": "http://localhost:3000/@alice/types/entity-type/person/v/2"
+            }
+          ]
         },
         "ordered": false
       }
@@ -301,9 +311,126 @@ GET http://127.0.0.1:4000/entity-types
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.length === 1, "Unexpected number of entity types");
+        client.assert(response.body.length === 3, "Unexpected number of entity types");
     });
 %}
+
+### Get all link entity type
+POST http://127.0.0.1:4000/entity-types/query
+Content-Type: application/json
+
+{
+  "filter": {
+    "equal": [
+      {
+        "path": [
+          "inheritsFrom",
+          "*",
+          "versionedUri"
+        ]
+      },
+      {
+        "parameter": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1"
+      }
+    ]
+  },
+  "graphResolveDepths": {
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    },
+    "hasRightEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    }
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.roots.length === 1, "Unexpected number of entities");
+    });
+%}
+
+### Get all entity types which links to a link (should be none)
+POST http://127.0.0.1:4000/entity-types/query
+Content-Type: application/json
+
+{
+  "filter": {
+    "all": [
+      {
+        "equal": [
+          {
+            "path": [
+              "links",
+              "*",
+              "baseUri"
+            ]
+          },
+          {
+            "parameter": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/"
+          }
+        ]
+      }
+    ]
+  },
+  "graphResolveDepths": {
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    },
+    "hasRightEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    }
+  }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.roots.length === 0, "Unexpected number of entities");
+    });
+%}
+
 
 
 ### Insert Person entity
@@ -314,7 +441,7 @@ Accept: application/json
 {
   "ownedById": "{{account_id}}",
   "actorId": "{{account_id}}",
-  "entity": {
+  "properties": {
     "http://localhost:3000/@alice/types/property-type/name/": "Alice"
   },
   "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/1"
@@ -324,11 +451,13 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_a_entity_id", encodeURIComponent(response.body.identifier.entityId));
+    client.global.set("person_a_entity_id", response.body.editionId.baseId);
+    client.global.set("person_a_entity_uuid", response.body.editionId.baseId.split("%")[1])
+    client.global.set("encoded_person_a_entity_id", encodeURIComponent(response.body.editionId.baseId));
 %}
 
 ### Get Person entity
-GET http://127.0.0.1:4000/entities/{{person_a_entity_id}}
+GET http://127.0.0.1:4000/entities/{{encoded_person_a_entity_id}}
 
 > {%
     client.test("status", function() {
@@ -336,24 +465,24 @@ GET http://127.0.0.1:4000/entities/{{person_a_entity_id}}
     });
 %}
 
-### Update Person entity
+#### Update Person entity
 PUT http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
 
 {
-  "actorId": "{{account_id}}",
-  "entityId": "{{person_a_entity_id}}",
-  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2",
-  "entity": {
-    "http://localhost:3000/@alice/types/property-type/name/": "Alice Allison"
-  }
+ "actorId": "{{account_id}}",
+ "entityId": "{{person_a_entity_id}}",
+ "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2",
+ "properties": {
+   "http://localhost:3000/@alice/types/property-type/name/": "Alice Allison"
+ }
 }
 
 > {%
-    client.test("status", function() {
-        client.assert(response.status === 200, "Response status is not 200");
-    });
+   client.test("status", function() {
+       client.assert(response.status === 200, "Response status is not 200");
+   });
 %}
 
 ### Insert second Person entity
@@ -364,7 +493,7 @@ Accept: application/json
 {
   "ownedById": "{{account_id}}",
   "actorId": "{{account_id}}",
-  "entity": {
+  "properties": {
     "http://localhost:3000/@alice/types/property-type/name/": "Bob"
   },
   "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/1"
@@ -374,7 +503,8 @@ Accept: application/json
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("person_b_entity_id", encodeURIComponent(response.body.identifier.entityId));
+    client.global.set("person_b_entity_id", response.body.editionId.baseId);
+    client.global.set("person_b_entity_uuid", response.body.editionId.baseId.split("%")[1])
 %}
 
 ### Get all latest entities
@@ -387,7 +517,7 @@ GET http://127.0.0.1:4000/entities
     });
 %}
 
-### Get all latest entities by using a query
+#### Get all latest entities by using a query
 POST http://127.0.0.1:4000/entities/query
 Content-Type: application/json
 
@@ -405,12 +535,32 @@ Content-Type: application/json
     ]
   },
   "graphResolveDepths": {
-    "dataTypeResolveDepth": 0,
-    "propertyTypeResolveDepth": 0,
-    "linkTypeResolveDepth": 1,
-    "entityTypeResolveDepth": 0,
-    "linkTargetEntityResolveDepth": 10,
-    "linkResolveDepth": 10
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    },
+    "hasRightEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    }
   }
 }
 
@@ -422,15 +572,23 @@ Content-Type: application/json
 %}
 
 ### Insert link between entities
-POST http://127.0.0.1:4000/entities/{{person_a_entity_id}}/links
+POST http://127.0.0.1:4000/entities
+// TODO Use a structural query to check the link was created
+// TODO remove this link
+// TODO check the link was removed
+// TODO insert ordered link
 Content-Type: application/json
 Accept: application/json
 
 {
-  "actorId": "{{account_id}}",
   "ownedById": "{{account_id}}",
-  "targetEntityId": "{{person_b_entity_id}}",
-  "linkTypeId": "{{friend_of_link_type_id_raw}}"
+  "actorId": "{{account_id}}",
+  "properties": {},
+  "entityTypeId": "{{friendship_link_entity_type_id}}",
+  "linkMetadata": {
+    "leftEntityId": "{{person_a_entity_id}}",
+    "rightEntityId": "{{person_b_entity_id}}"
+  }
 }
 
 > {%
@@ -439,123 +597,202 @@ Accept: application/json
     });
 %}
 
-### Get person "a" links
-GET http://127.0.0.1:4000/entities/{{person_a_entity_id}}/links
+
+### Get link by source and target
+POST http://127.0.0.1:4000/entities/query
 Content-Type: application/json
-Accept: application/json
+
+{
+  "filter": {
+    "all": [
+      {
+        "equal": [
+          {
+            "path": [
+              "leftEntity",
+              "uuid"
+            ]
+          },
+          {
+            "parameter": "{{person_a_entity_uuid}}"
+          }
+        ]
+      },
+      {
+        "equal": [
+          {
+            "path": [
+              "rightEntity",
+              "uuid"
+            ]
+          },
+          {
+            "parameter": "{{person_b_entity_uuid}}"
+          }
+        ]
+      }
+    ]
+  },
+  "graphResolveDepths": {
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    },
+    "hasRightEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    }
+  }
+}
 
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.roots.length === 1, "Unexpected number of entities");
     });
-    const expected = client.global.get("person_b_entity_id")
-    const actual = response.body[0]["inner"]["targetEntityId"];
-    client.assert(expected == actual, "Link has wrong target entity ID, expected " + expected + " but received " + actual)
 %}
 
-### Remove person "a" to person "b" link
-DELETE http://127.0.0.1:4000/entities/{{person_a_entity_id}}/links
+### Archive an entity
+POST http://127.0.0.1:4000/entities/archive
 Content-Type: application/json
 Accept: application/json
 
 {
-  "targetEntityId": "{{person_b_entity_id}}",
-  "linkTypeId": "{{friend_of_link_type_id_raw}}",
+  "entityId": "{{person_b_entity_id}}",
+  "ownedById": "{{account_id}}",
   "actorId": "{{account_id}}"
 }
 
 > {%
     client.test("status", function() {
-        client.assert(response.status === 204, "Response status is not 204");
+        client.assert(response.status === 200, "Response status is not 200");
     });
 %}
 
-### Insert third Person entity for linking
-POST http://127.0.0.1:4000/entities
+#### Get all latest entities by using a query
+// Only person_a and the link remains as entities
+POST http://127.0.0.1:4000/entities/query
 Content-Type: application/json
-Accept: application/json
 
 {
-  "ownedById": "{{account_id}}",
-  "actorId": "{{account_id}}",
-  "entity": {
-    "http://localhost:3000/@alice/types/property-type/name/": "Charles"
+  "filter": {
+    "equal": [
+      {
+        "path": [
+          "version"
+        ]
+      },
+      {
+        "parameter": "latest"
+      }
+    ]
   },
-  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/1"
+  "graphResolveDepths": {
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    },
+    "hasRightEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    }
+  }
 }
 
 > {%
-    client.test("status", function() {
-        client.assert(response.status === 200, "Response status is not 200");
-    });
-    client.global.set("person_c_entity_id", encodeURIComponent(response.body.identifier.entityId));
+   client.test("status", function() {
+       client.assert(response.status === 200, "Response status is not 200");
+       client.assert(response.body.roots.length === 2, "Unexpected number of entities");
+   });
 %}
 
-### Check that person "a" to person "b" link is removed
-GET http://127.0.0.1:4000/entities/{{person_a_entity_id}}/links
-Content-Type: application/json
-Accept: application/json
 
-> {%
-    client.test("status", function() {
-        client.assert(response.status === 200, "Response status is not 200");
-    });
-    client.assert(Object.keys(response.body).length === 0, "Link has wrong target entity ID")
-%}
-
-### Insert ordered link between person "a" and "b"
-POST http://127.0.0.1:4000/entities/{{person_a_entity_id}}/links
+#### Get all archived entities
+POST http://127.0.0.1:4000/entities/query
 Content-Type: application/json
-Accept: application/json
 
 {
-  "actorId": "{{account_id}}",
-  "ownedById": "{{account_id}}",
-  "targetEntityId": "{{person_b_entity_id}}",
-  "linkTypeId": "{{friend_of_link_type_id_raw}}",
-  "index": 1
+  "filter": {
+    "equal": [
+      {
+        "path": [
+          "archived"
+        ]
+      },
+      {
+        "parameter": true
+      }
+    ]
+  },
+  "graphResolveDepths": {
+    "inheritsFrom": {
+      "outgoing": 0
+    },
+    "constrainsValuesOn": {
+      "outgoing": 0
+    },
+    "constrainsPropertiesOn": {
+      "outgoing": 0
+    },
+    "constrainsLinksOn": {
+      "outgoing": 0
+    },
+    "constrainsLinkDestinationsOn": {
+      "outgoing": 0
+    },
+    "isOfType": {
+      "outgoing": 0
+    },
+    "hasLeftEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    },
+    "hasRightEntity": {
+      "incoming": 2,
+      "outgoing": 2
+    }
+  }
 }
 
 > {%
-    client.test("status", function() {
-        client.assert(response.status === 200, "Response status is not 200");
-    });
-%}
-
-### Insert ordered link between person "a" and "c"
-POST http://127.0.0.1:4000/entities/{{person_a_entity_id}}/links
-Content-Type: application/json
-Accept: application/json
-
-{
-  "actorId": "{{account_id}}",
-  "ownedById": "{{account_id}}",
-  "targetEntityId": "{{person_c_entity_id}}",
-  "linkTypeId": "{{friend_of_link_type_id_raw}}",
-  "index": 0
-}
-
-> {%
-    client.test("status", function() {
-        client.assert(response.status === 200, "Response status is not 200");
-    });
-%}
-### Get person "a" links which should be ordered
-GET http://127.0.0.1:4000/entities/{{person_a_entity_id}}/links
-Content-Type: application/json
-Accept: application/json
-
-> {%
-    client.test("status", function() {
-        client.assert(response.status === 200, "Response status is not 200");
-    });
-    // Person C is at index 0
-    const c_expected = client.global.get("person_c_entity_id")
-    const c_actual = response.body[0]["inner"]["targetEntityId"];
-    client.assert(c_expected == c_actual, "Ordered link has wrong target entity ID, expected " + c_expected + " but received " + c_actual)
-
-    // Person B is at index 1
-    const b_expected = client.global.get("person_b_entity_id")
-    const b_actual = response.body[1]["inner"]["targetEntityId"];
-    client.assert(b_expected == b_actual, "Ordered link has wrong target entity ID, expected " + b_expected + " but received " + b_actual)
+   client.test("status", function() {
+       client.assert(response.status === 200, "Response status is not 200");
+       client.assert(response.body.roots.length === 1, "Unexpected number of entities");
+   });
 %}

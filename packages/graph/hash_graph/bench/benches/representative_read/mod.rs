@@ -19,7 +19,7 @@
 
 use criterion::{BenchmarkId, Criterion, SamplingMode};
 use criterion_macro::criterion;
-use graph::subgraph::GraphResolveDepths;
+use graph::subgraph::edges::{EdgeResolveDepths, GraphResolveDepths, OutgoingEdgeResolveDepth};
 
 use crate::{representative_read::seed::setup_and_extract_samples, util::setup};
 
@@ -31,15 +31,15 @@ mod seed;
 const DB_NAME: &str = "representative_read";
 
 #[criterion]
-fn bench_representative_read_single_entity(c: &mut Criterion) {
-    let mut group = c.benchmark_group("representative_read_single_entity");
+fn bench_representative_read_entity(c: &mut Criterion) {
+    let mut group = c.benchmark_group("representative_read_entity");
     let (runtime, mut store_wrapper) = setup(DB_NAME, false, false);
 
     let samples = runtime.block_on(setup_and_extract_samples(&mut store_wrapper));
     let store = &store_wrapper.store;
 
-    for (account_id, type_ids_and_entity_ids) in samples.entities {
-        for (entity_type_id, entity_ids) in type_ids_and_entity_ids {
+    for (account_id, type_ids_and_entity_uuids) in samples.entities {
+        for (entity_type_id, entity_uuids) in type_ids_and_entity_uuids {
             group.bench_with_input(
                 BenchmarkId::new(
                     "entity_by_id",
@@ -48,9 +48,9 @@ fn bench_representative_read_single_entity(c: &mut Criterion) {
                         account_id, entity_type_id
                     ),
                 ),
-                &(account_id, entity_type_id, entity_ids),
-                |b, (_account_id, _entity_type_id, entity_ids)| {
-                    knowledge::entity::bench_get_entity_by_id(b, &runtime, store, entity_ids);
+                &(account_id, entity_type_id, entity_uuids),
+                |b, (_account_id, _entity_type_id, entity_uuids)| {
+                    knowledge::entity::bench_get_entity_by_id(b, &runtime, store, entity_uuids);
                 },
             );
         }
@@ -65,71 +65,217 @@ fn bench_representative_read_multiple_entities(c: &mut Criterion) {
     group.sampling_mode(SamplingMode::Flat);
 
     let graph_resolve_depths = [
+        GraphResolveDepths::default(),
         GraphResolveDepths {
-            data_type_resolve_depth: 0,
-            property_type_resolve_depth: 0,
-            entity_type_resolve_depth: 0,
-            link_type_resolve_depth: 0,
-            link_resolve_depth: 0,
-            link_target_entity_resolve_depth: 0,
+            inherits_from: OutgoingEdgeResolveDepth {
+                outgoing: 0,
+                incoming: 0,
+            },
+            constrains_values_on: OutgoingEdgeResolveDepth {
+                outgoing: 0,
+                incoming: 0,
+            },
+            constrains_properties_on: OutgoingEdgeResolveDepth {
+                outgoing: 0,
+                incoming: 0,
+            },
+            constrains_links_on: OutgoingEdgeResolveDepth {
+                outgoing: 0,
+                incoming: 0,
+            },
+            constrains_link_destinations_on: OutgoingEdgeResolveDepth {
+                outgoing: 0,
+                incoming: 0,
+            },
+            is_of_type: OutgoingEdgeResolveDepth {
+                outgoing: 0,
+                incoming: 0,
+            },
+            has_right_entity: EdgeResolveDepths {
+                incoming: 0,
+                outgoing: 1,
+            },
+            has_left_entity: EdgeResolveDepths {
+                incoming: 1,
+                outgoing: 0,
+            },
         },
         GraphResolveDepths {
-            data_type_resolve_depth: 0,
-            property_type_resolve_depth: 0,
-            entity_type_resolve_depth: 0,
-            link_type_resolve_depth: 0,
-            link_resolve_depth: 1,
-            link_target_entity_resolve_depth: 1,
+            inherits_from: OutgoingEdgeResolveDepth {
+                outgoing: 0,
+                incoming: 0,
+            },
+            constrains_values_on: OutgoingEdgeResolveDepth {
+                outgoing: 0,
+                incoming: 0,
+            },
+            constrains_properties_on: OutgoingEdgeResolveDepth {
+                outgoing: 0,
+                incoming: 0,
+            },
+            constrains_links_on: OutgoingEdgeResolveDepth {
+                outgoing: 1,
+                incoming: 0,
+            },
+            constrains_link_destinations_on: OutgoingEdgeResolveDepth {
+                outgoing: 0,
+                incoming: 0,
+            },
+            is_of_type: OutgoingEdgeResolveDepth {
+                outgoing: 1,
+                incoming: 0,
+            },
+            has_right_entity: EdgeResolveDepths {
+                incoming: 0,
+                outgoing: 1,
+            },
+            has_left_entity: EdgeResolveDepths {
+                incoming: 1,
+                outgoing: 0,
+            },
         },
         GraphResolveDepths {
-            data_type_resolve_depth: 0,
-            property_type_resolve_depth: 0,
-            entity_type_resolve_depth: 2,
-            link_type_resolve_depth: 2,
-            link_resolve_depth: 1,
-            link_target_entity_resolve_depth: 1,
+            inherits_from: OutgoingEdgeResolveDepth {
+                outgoing: 0,
+                incoming: 0,
+            },
+            constrains_values_on: OutgoingEdgeResolveDepth {
+                outgoing: 0,
+                incoming: 0,
+            },
+            constrains_properties_on: OutgoingEdgeResolveDepth {
+                outgoing: 2,
+                incoming: 0,
+            },
+            constrains_links_on: OutgoingEdgeResolveDepth {
+                outgoing: 1,
+                incoming: 0,
+            },
+            constrains_link_destinations_on: OutgoingEdgeResolveDepth {
+                outgoing: 0,
+                incoming: 0,
+            },
+            is_of_type: OutgoingEdgeResolveDepth {
+                outgoing: 1,
+                incoming: 0,
+            },
+            has_right_entity: EdgeResolveDepths {
+                incoming: 0,
+                outgoing: 1,
+            },
+            has_left_entity: EdgeResolveDepths {
+                incoming: 1,
+                outgoing: 0,
+            },
         },
         GraphResolveDepths {
-            data_type_resolve_depth: 0,
-            property_type_resolve_depth: 2,
-            entity_type_resolve_depth: 2,
-            link_type_resolve_depth: 2,
-            link_resolve_depth: 1,
-            link_target_entity_resolve_depth: 1,
+            inherits_from: OutgoingEdgeResolveDepth {
+                outgoing: 0,
+                incoming: 0,
+            },
+            constrains_values_on: OutgoingEdgeResolveDepth {
+                outgoing: 2,
+                incoming: 0,
+            },
+            constrains_properties_on: OutgoingEdgeResolveDepth {
+                outgoing: 2,
+                incoming: 0,
+            },
+            constrains_links_on: OutgoingEdgeResolveDepth {
+                outgoing: 1,
+                incoming: 0,
+            },
+            constrains_link_destinations_on: OutgoingEdgeResolveDepth {
+                outgoing: 0,
+                incoming: 0,
+            },
+            is_of_type: OutgoingEdgeResolveDepth {
+                outgoing: 1,
+                incoming: 0,
+            },
+            has_right_entity: EdgeResolveDepths {
+                incoming: 0,
+                outgoing: 1,
+            },
+            has_left_entity: EdgeResolveDepths {
+                incoming: 1,
+                outgoing: 0,
+            },
         },
         GraphResolveDepths {
-            data_type_resolve_depth: 2,
-            property_type_resolve_depth: 2,
-            entity_type_resolve_depth: 2,
-            link_type_resolve_depth: 2,
-            link_resolve_depth: 1,
-            link_target_entity_resolve_depth: 1,
-        },
-        GraphResolveDepths {
-            data_type_resolve_depth: 255,
-            property_type_resolve_depth: 255,
-            entity_type_resolve_depth: 255,
-            link_type_resolve_depth: 255,
-            link_resolve_depth: 128,
-            link_target_entity_resolve_depth: 127,
+            inherits_from: OutgoingEdgeResolveDepth {
+                outgoing: 1,
+                incoming: 0,
+            },
+            constrains_values_on: OutgoingEdgeResolveDepth {
+                outgoing: 255,
+                incoming: 0,
+            },
+            constrains_properties_on: OutgoingEdgeResolveDepth {
+                outgoing: 255,
+                incoming: 0,
+            },
+            constrains_links_on: OutgoingEdgeResolveDepth {
+                outgoing: 127,
+                incoming: 0,
+            },
+            constrains_link_destinations_on: OutgoingEdgeResolveDepth {
+                outgoing: 126,
+                incoming: 0,
+            },
+            is_of_type: OutgoingEdgeResolveDepth {
+                outgoing: 1,
+                incoming: 0,
+            },
+            has_right_entity: EdgeResolveDepths {
+                incoming: 0,
+                outgoing: 128,
+            },
+            has_left_entity: EdgeResolveDepths {
+                incoming: 127,
+                outgoing: 0,
+            },
         },
     ];
 
     for graph_resolve_depth in graph_resolve_depths {
-        // The name unifies entity types/link types and entities/links to be comparable to
-        // `dev/links`
         group.bench_with_input(
             BenchmarkId::new(
                 "entity_by_property",
                 format!(
                     "depths: DT={}, PT={}, ET={}, E={}",
-                    graph_resolve_depth.data_type_resolve_depth,
-                    graph_resolve_depth.property_type_resolve_depth,
-                    graph_resolve_depth
-                        .entity_type_resolve_depth
-                        .max(graph_resolve_depth.link_type_resolve_depth),
-                    graph_resolve_depth.link_resolve_depth
-                        + graph_resolve_depth.link_target_entity_resolve_depth,
+                    [
+                        graph_resolve_depth.constrains_values_on.incoming,
+                        graph_resolve_depth.constrains_values_on.outgoing,
+                    ]
+                    .iter()
+                    .sum::<u8>(),
+                    [
+                        graph_resolve_depth.constrains_properties_on.incoming,
+                        graph_resolve_depth.constrains_properties_on.outgoing,
+                    ]
+                    .iter()
+                    .sum::<u8>(),
+                    [
+                        graph_resolve_depth.inherits_from.incoming,
+                        graph_resolve_depth.inherits_from.outgoing,
+                        graph_resolve_depth.constrains_links_on.incoming,
+                        graph_resolve_depth.constrains_links_on.outgoing,
+                        graph_resolve_depth.constrains_link_destinations_on.incoming,
+                        graph_resolve_depth.constrains_link_destinations_on.outgoing,
+                        graph_resolve_depth.is_of_type.incoming,
+                        graph_resolve_depth.is_of_type.outgoing,
+                    ]
+                    .iter()
+                    .sum::<u8>(),
+                    [
+                        graph_resolve_depth.has_right_entity.incoming,
+                        graph_resolve_depth.has_right_entity.outgoing,
+                        graph_resolve_depth.has_left_entity.incoming,
+                        graph_resolve_depth.has_left_entity.outgoing,
+                    ]
+                    .iter()
+                    .sum::<u8>(),
                 ),
             ),
             &graph_resolve_depth,
@@ -145,20 +291,43 @@ fn bench_representative_read_multiple_entities(c: &mut Criterion) {
     }
 
     for graph_resolve_depth in graph_resolve_depths {
-        // The name unifies entity types/link types and entities/links to be comparable to
-        // `dev/links`
         group.bench_with_input(
             BenchmarkId::new(
                 "link_by_source_by_property",
                 format!(
                     "depths: DT={}, PT={}, ET={}, E={}",
-                    graph_resolve_depth.data_type_resolve_depth,
-                    graph_resolve_depth.property_type_resolve_depth,
-                    graph_resolve_depth
-                        .entity_type_resolve_depth
-                        .max(graph_resolve_depth.link_type_resolve_depth),
-                    graph_resolve_depth.link_resolve_depth
-                        + graph_resolve_depth.link_target_entity_resolve_depth,
+                    [
+                        graph_resolve_depth.constrains_values_on.incoming,
+                        graph_resolve_depth.constrains_values_on.outgoing,
+                    ]
+                    .iter()
+                    .sum::<u8>(),
+                    [
+                        graph_resolve_depth.constrains_properties_on.incoming,
+                        graph_resolve_depth.constrains_properties_on.outgoing,
+                    ]
+                    .iter()
+                    .sum::<u8>(),
+                    [
+                        graph_resolve_depth.inherits_from.incoming,
+                        graph_resolve_depth.inherits_from.outgoing,
+                        graph_resolve_depth.constrains_links_on.incoming,
+                        graph_resolve_depth.constrains_links_on.outgoing,
+                        graph_resolve_depth.constrains_link_destinations_on.incoming,
+                        graph_resolve_depth.constrains_link_destinations_on.outgoing,
+                        graph_resolve_depth.is_of_type.incoming,
+                        graph_resolve_depth.is_of_type.outgoing,
+                    ]
+                    .iter()
+                    .sum::<u8>(),
+                    [
+                        graph_resolve_depth.has_right_entity.incoming,
+                        graph_resolve_depth.has_right_entity.outgoing,
+                        graph_resolve_depth.has_left_entity.incoming,
+                        graph_resolve_depth.has_left_entity.outgoing,
+                    ]
+                    .iter()
+                    .sum::<u8>(),
                 ),
             ),
             &graph_resolve_depth,

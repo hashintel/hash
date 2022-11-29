@@ -1,6 +1,4 @@
 import { faAsterisk, faSearch } from "@fortawesome/free-solid-svg-icons";
-import { isBlockEntity } from "@hashintel/hash-shared/entityStore";
-import { entityStorePluginState } from "@hashintel/hash-shared/entityStorePlugin";
 import {
   Box,
   InputAdornment,
@@ -17,20 +15,20 @@ import {
   useRef,
   FunctionComponent,
 } from "react";
-import { BlockEntity, isTextEntity } from "@hashintel/hash-shared/entity";
+import { BlockEntity } from "@hashintel/hash-shared/entity";
 import {
   LoadingSpinner,
   TextField,
   FontAwesomeIcon,
 } from "@hashintel/hash-design-system";
+import { EntityId } from "@hashintel/hash-subgraph";
+import { EntityStoreType } from "@hashintel/hash-shared/entityStore";
 import { useBlockView } from "../BlockViewContext";
-import { useRouteAccountInfo } from "../../../shared/routing";
 import { MenuItem } from "../../../shared/ui";
-import { useAccountEntities } from "../../../components/hooks/useAccountEntities";
 import { generateEntityLabel } from "../../../lib/entities";
 
 type LoadEntityMenuContentProps = {
-  blockEntityId: string | null;
+  blockEntityId: EntityId | null;
   closeParentContextMenu: () => void;
   popupState?: PopupState;
 };
@@ -38,26 +36,21 @@ type LoadEntityMenuContentProps = {
 export const LoadEntityMenuContent: FunctionComponent<
   LoadEntityMenuContentProps
 > = ({ blockEntityId, closeParentContextMenu, popupState }) => {
-  const { accountId } = useRouteAccountInfo();
   const blockView = useBlockView();
+  const loading = true;
 
   // This depends on state external to react without subscribing to it
   // and this can cause some bugs.
   // @todo make this a subscription
-  const entityStore = entityStorePluginState(blockView.editorView.state).store;
+  // const entityStore = entityStorePluginState(blockView.editorView.state).store;
 
   // savedEntity and blockEntity are the same. savedEntity variable
   // is needed to get proper typing on blockEntity
-  const savedEntity = blockEntityId ? entityStore.saved[blockEntityId] : null;
-  const blockEntity = isBlockEntity(savedEntity) ? savedEntity : null;
+  // const savedEntity = blockEntityId ? entityStore.saved[blockEntityId] : null;
+  // const blockEntity = isBlockEntity(savedEntity) ? savedEntity : null;
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const popupWasOpen = useRef<boolean>(false);
-
-  const { data: entities, loading } = useAccountEntities({
-    accountId,
-    skip: !(!!blockEntity && !!accountId),
-  });
 
   useEffect(() => {
     if (popupState?.isOpen && !popupWasOpen.current) {
@@ -73,55 +66,17 @@ export const LoadEntityMenuContent: FunctionComponent<
       if (!blockEntityId) {
         return;
       }
-
-      blockView.manager.replaceBlockChildEntity(blockEntityId, targetEntity);
+      /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */
+      blockView.manager.replaceBlockChildEntity(
+        blockEntityId,
+        targetEntity as unknown as EntityStoreType,
+      );
     },
     [blockView, blockEntityId],
   );
 
-  const filteredEntities = useMemo(() => {
-    const uniqueEntityIds = new Set();
-    return entities.filter((entity) => {
-      // we are interested in loading different child entities into blocks, not the block entities
-      // – block entities are simply a reference to (a) a component and (b) a child entity
-      if (isBlockEntity(entity)) {
-        return false;
-      }
-
-      /**
-       * loading text entities does not work, possibly due to use of legacy __linkedData
-       * @todo see if this works when __linkedData is removed
-       */
-      if (
-        /** @todo this any type coercion is incorrect, we need to adjust typings https://app.asana.com/0/0/1203099452204542/f */
-        isTextEntity(entity as any) ||
-        entity.entityType.properties.title === "Page"
-      ) {
-        return false;
-      }
-
-      // don't include entities that have empty data
-      if (Object.keys(entity.properties).length === 0) {
-        return false;
-      }
-
-      const targetEntityId = entity.entityId;
-
-      // don't include the current entity the block is tied to
-      if (targetEntityId === blockEntity?.properties.entity.entityId) {
-        return false;
-      }
-
-      // don't include duplicates
-      if (uniqueEntityIds.has(targetEntityId)) {
-        return false;
-      }
-
-      uniqueEntityIds.add(targetEntityId);
-
-      return true;
-    });
-  }, [entities, blockEntity]);
+  // TODO: get actual entities.
+  const filteredEntities = useMemo(() => [], []);
 
   return (
     <MenuList>
@@ -141,10 +96,7 @@ export const LoadEntityMenuContent: FunctionComponent<
               </InputAdornment>
             ),
             endAdornment: loading ? (
-              <InputAdornment
-                position="start"
-                sx={{ visibility: loading ? "visible" : "hidden" }}
-              >
+              <InputAdornment position="start">
                 <LoadingSpinner size={12} thickness={4} />
               </InputAdornment>
             ) : null,
@@ -159,7 +111,7 @@ export const LoadEntityMenuContent: FunctionComponent<
       {filteredEntities.map((entity) => {
         return (
           <MenuItem
-            key={entity.entityId}
+            key={(entity as any).entityId}
             onClick={() => {
               swapEntity(entity);
               closeParentContextMenu();
@@ -168,12 +120,11 @@ export const LoadEntityMenuContent: FunctionComponent<
             <ListItemIcon>
               <FontAwesomeIcon icon={faAsterisk} />
             </ListItemIcon>
-            <Tooltip title={JSON.stringify(entity.properties, undefined, 2)}>
+            <Tooltip
+              title={JSON.stringify((entity as any).properties, undefined, 2)}
+            >
               <ListItemText
-                primary={generateEntityLabel(
-                  entity,
-                  entity.entityType.properties,
-                )}
+                primary={generateEntityLabel(entity, {})}
                 primaryTypographyProps={{
                   noWrap: true,
                 }}

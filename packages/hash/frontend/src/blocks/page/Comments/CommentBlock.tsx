@@ -31,6 +31,7 @@ import { extractBaseUri } from "@blockprotocol/type-system-web";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
 import { isEqual } from "lodash";
 import { faCheckCircle } from "@fortawesome/free-regular-svg-icons";
+import { EntityId } from "@hashintel/hash-subgraph";
 import { PageComment } from "../../../components/hooks/usePageComments";
 import { CommentTextField } from "./CommentTextField";
 import { CommentBlockMenu } from "./CommentBlockMenu";
@@ -73,7 +74,7 @@ export const ToggleTextExpandedButton: FunctionComponent<
 );
 
 type CommentProps = {
-  pageId: string;
+  pageId: EntityId;
   comment: PageComment;
   resolvable?: boolean;
 };
@@ -83,7 +84,15 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
   comment,
   resolvable,
 }) => {
-  const { entityId, hasText, author, textUpdatedAt } = comment;
+  const {
+    metadata: {
+      editionId: { baseId: commentEntityId },
+      provenance: { createdById: commentCreatedById },
+    },
+    hasText,
+    author,
+    textUpdatedAt,
+  } = comment;
 
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const [collapsed, setCollapsed] = useState(true);
@@ -123,7 +132,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
     () =>
       author.properties[
         extractBaseUri(types.propertyType.preferredName.propertyTypeId)
-      ],
+      ] as string,
     [author.properties],
   );
 
@@ -139,7 +148,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
 
   const handleEditComment = async () => {
     if (!submitUpdateDisabled) {
-      await updateCommentText(entityId, inputValue);
+      await updateCommentText(commentEntityId, inputValue);
       resetCommentText();
     }
   };
@@ -211,7 +220,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
             ) : (
               <Tooltip title="Resolve Comment Thread" placement="bottom">
                 <IconButton
-                  onClick={() => resolveComment(entityId)}
+                  onClick={() => resolveComment(commentEntityId)}
                   size="medium"
                   sx={({ palette, transitions }) => ({
                     p: 0,
@@ -329,7 +338,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
       ) : null}
 
       <CommentBlockMenu popupState={commentMenuPopupState}>
-        {authenticatedUser?.entityId === author.entityId ? (
+        {authenticatedUser?.userAccountId === commentCreatedById ? (
           <CommentBlockMenuItem
             title={editable ? "Cancel Edit" : "Edit"}
             icon={
@@ -355,7 +364,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
             commentMenuPopupState.close();
           }}
         />
-        {authenticatedUser?.entityId === author.entityId ? (
+        {authenticatedUser?.userAccountId === commentCreatedById ? (
           <CommentBlockMenuItem
             title="Delete Comment"
             icon={<FontAwesomeIcon icon={faTrash} />}
@@ -371,7 +380,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
         container={container}
         open={deleteConfirmationDialogOpen}
         loading={deleteCommentLoading}
-        onDelete={async () => await deleteComment(entityId)}
+        onDelete={async () => await deleteComment(commentEntityId)}
         onCancel={() => setDeleteConfirmationDialogOpen(false)}
       />
     </Box>

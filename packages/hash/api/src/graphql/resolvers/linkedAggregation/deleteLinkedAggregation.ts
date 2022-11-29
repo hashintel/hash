@@ -1,3 +1,6 @@
+/** @todo - Fix/reimplement linkedAggregations - https://app.asana.com/0/1201095311341924/1202938872166821 */
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-nocheck
 import { ApolloError } from "apollo-server-errors";
 import {
   MutationDeleteLinkedAggregationArgs,
@@ -24,7 +27,7 @@ export const deleteLinkedAggregation: ResolverFn<
     }
 
     await aggregation.delete(client, {
-      deletedByAccountId: userModel.entityId,
+      deletedByAccountId: userModel.getEntityUuid(),
     });
 
     return true;

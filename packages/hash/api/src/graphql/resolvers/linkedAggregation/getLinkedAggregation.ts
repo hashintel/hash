@@ -1,3 +1,6 @@
+/** @todo - Fix/reimplement linkedAggregations - https://app.asana.com/0/1201095311341924/1202938872166821 */
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-nocheck
 import { ApolloError } from "apollo-server-express";
 
 import { QueryGetLinkedAggregationArgs, ResolverFn } from "../../apiTypes.gen";

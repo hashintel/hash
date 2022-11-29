@@ -1,12 +1,10 @@
 use std::fmt::{self, Write};
 
-use serde::Serialize;
-
-use crate::store::postgres::query::{Statement, TableName, Transpile};
+use crate::store::postgres::query::{Statement, Table, Transpile};
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct CommonTableExpression<'q> {
-    table_name: TableName,
+    table: Table,
     statement: Statement<'q>,
 }
 
@@ -16,9 +14,9 @@ pub struct WithExpression<'q> {
 }
 
 impl<'q> WithExpression<'q> {
-    pub fn add_statement(&mut self, table_name: TableName, statement: impl Into<Statement<'q>>) {
+    pub fn add_statement(&mut self, table: Table, statement: impl Into<Statement<'q>>) {
         self.common_table_expressions.push(CommonTableExpression {
-            table_name,
+            table,
             statement: statement.into(),
         });
     }
@@ -40,14 +38,13 @@ impl Transpile for WithExpression<'_> {
 
         fmt.write_str("WITH ")?;
         for (idx, expression) in self.common_table_expressions.iter().enumerate() {
-            fmt.write_char('"')?;
-            expression.table_name.serialize(&mut *fmt)?;
-            fmt.write_str("\" AS (")?;
+            if idx > 0 {
+                fmt.write_str(", ")?;
+            }
+            expression.table.transpile(fmt)?;
+            fmt.write_str(" AS (")?;
             expression.statement.transpile(fmt)?;
             fmt.write_char(')')?;
-            if idx + 1 < self.common_table_expressions.len() {
-                fmt.write_str(",  ")?;
-            }
         }
 
         Ok(())
@@ -59,13 +56,10 @@ mod tests {
     use std::borrow::Cow;
 
     use super::*;
-    use crate::{
-        ontology::DataTypeQueryPath,
-        store::postgres::query::{
-            expression::OrderByExpression,
-            test_helper::{max_version_expression, trim_whitespace},
-            Expression, Path, SelectExpression, SelectStatement, Table, TableName, WhereExpression,
-        },
+    use crate::store::postgres::query::{
+        expression::OrderByExpression,
+        test_helper::{max_version_expression, trim_whitespace},
+        Alias, Expression, SelectExpression, SelectStatement, Table, WhereExpression,
     };
 
     #[test]
@@ -73,7 +67,7 @@ mod tests {
         let mut with_clause = WithExpression::default();
         assert_eq!(with_clause.transpile_to_string(), "");
 
-        with_clause.add_statement(TableName::TypeIds, SelectStatement {
+        with_clause.add_statement(Table::TypeIds, SelectStatement {
             with: WithExpression::default(),
             distinct: Vec::new(),
             selects: vec![
@@ -83,10 +77,11 @@ mod tests {
                     Some(Cow::Borrowed("latest_version")),
                 ),
             ],
-            from: Table {
-                name: DataTypeQueryPath::Version.terminating_table_name(),
-                alias: None,
-            },
+            from: Table::TypeIds.aliased(Alias {
+                condition_index: 0,
+                chain_depth: 0,
+                number: 0,
+            }),
             joins: vec![],
             where_expression: WhereExpression::default(),
             order_by_expression: OrderByExpression::default(),
@@ -96,18 +91,19 @@ mod tests {
             trim_whitespace(with_clause.transpile_to_string()),
             trim_whitespace(
                 r#"
-                WITH "type_ids" AS (SELECT *, MAX("type_ids"."version") OVER (PARTITION BY "type_ids"."base_uri") AS "latest_version" FROM "type_ids")"#
+                WITH "type_ids" AS (SELECT *, MAX("type_ids_0_0_0"."version") OVER (PARTITION BY "type_ids_0_0_0"."base_uri") AS "latest_version" FROM "type_ids" AS "type_ids_0_0_0")"#
             )
         );
 
-        with_clause.add_statement(TableName::DataTypes, SelectStatement {
+        with_clause.add_statement(Table::DataTypes, SelectStatement {
             with: WithExpression::default(),
             distinct: Vec::new(),
             selects: vec![SelectExpression::new(Expression::Asterisk, None)],
-            from: Table {
-                name: TableName::DataTypes,
-                alias: None,
-            },
+            from: Table::DataTypes.aliased(Alias {
+                condition_index: 3,
+                chain_depth: 4,
+                number: 5,
+            }),
             joins: vec![],
             where_expression: WhereExpression::default(),
             order_by_expression: OrderByExpression::default(),
@@ -117,8 +113,8 @@ mod tests {
             trim_whitespace(with_clause.transpile_to_string()),
             trim_whitespace(
                 r#"
-                WITH "type_ids" AS (SELECT *, MAX("type_ids"."version") OVER (PARTITION BY "type_ids"."base_uri") AS "latest_version" FROM "type_ids"),
-                     "data_types" AS (SELECT * FROM "data_types")"#
+                WITH "type_ids" AS (SELECT *, MAX("type_ids_0_0_0"."version") OVER (PARTITION BY "type_ids_0_0_0"."base_uri") AS "latest_version" FROM "type_ids" AS "type_ids_0_0_0"),
+                     "data_types" AS (SELECT * FROM "data_types" AS "data_types_3_4_5")"#
             )
         );
     }

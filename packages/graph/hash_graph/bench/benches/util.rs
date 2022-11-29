@@ -1,17 +1,16 @@
 use std::{mem::ManuallyDrop, str::FromStr};
 
 use graph::{
-    identifier::AccountId,
+    identifier::account::AccountId,
     provenance::{CreatedById, OwnedById, UpdatedById},
     store::{
         AsClient, BaseUriAlreadyExists, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
-        EntityTypeStore, LinkTypeStore, PostgresStore, PostgresStorePool, PropertyTypeStore,
-        StorePool,
+        EntityTypeStore, PostgresStore, PostgresStorePool, PropertyTypeStore, StorePool,
     },
 };
 use tokio::runtime::Runtime;
 use tokio_postgres::NoTls;
-use type_system::{DataType, EntityType, LinkType, PropertyType};
+use type_system::{DataType, EntityType, PropertyType};
 
 type Pool = PostgresStorePool<NoTls>;
 pub type Store = <Pool as StorePool>::Store<'static>;
@@ -165,17 +164,15 @@ impl Drop for StoreWrapper {
     }
 }
 
-pub async fn seed<D, P, L, E, C>(
+pub async fn seed<D, P, E, C>(
     store: &mut PostgresStore<C>,
     account_id: AccountId,
     data_types: D,
     property_types: P,
-    link_types: L,
     entity_types: E,
 ) where
     D: IntoIterator<Item = &'static str>,
     P: IntoIterator<Item = &'static str>,
-    L: IntoIterator<Item = &'static str>,
     E: IntoIterator<Item = &'static str>,
     C: AsClient,
 {
@@ -225,32 +222,6 @@ pub async fn seed<D, P, L, E, C>(
                         .expect("failed to update property type");
                 } else {
                     Err(report).expect("failed to create property type")
-                }
-            }
-        }
-    }
-
-    // Insert link types before entity types so entity types can refer to them
-    for link_type_str in link_types {
-        let link_type = LinkType::from_str(link_type_str).expect("could not parse link type");
-
-        match store
-            .create_link_type(
-                link_type.clone(),
-                OwnedById::new(account_id),
-                CreatedById::new(account_id),
-            )
-            .await
-        {
-            Ok(_) => {}
-            Err(report) => {
-                if report.contains::<BaseUriAlreadyExists>() {
-                    store
-                        .update_link_type(link_type, UpdatedById::new(account_id))
-                        .await
-                        .expect("failed to update link type");
-                } else {
-                    Err(report).expect("failed to create link type")
                 }
             }
         }

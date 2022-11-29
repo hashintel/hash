@@ -11,6 +11,7 @@ import {
   CommentModel,
 } from "@hashintel/hash-api/src/model";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
+import { ensureSystemEntitiesExists } from "@hashintel/hash-api/src/graph/system-entities";
 import { createTestUser } from "../../util";
 
 jest.setTimeout(60000);
@@ -37,44 +38,47 @@ describe("Comment model class", () => {
 
   beforeAll(async () => {
     await ensureSystemTypesExist({ graphApi, logger });
+    await ensureSystemEntitiesExists({ graphApi, logger });
 
     testUser = await createTestUser(graphApi, "commentModelTest", logger);
 
     const textEntity = await EntityModel.create(graphApi, {
-      ownedById: testUser.ownedById,
+      ownedById: testUser.getOwnedById(),
       properties: {
-        [SYSTEM_TYPES.propertyType.tokens.baseUri]: [],
+        [SYSTEM_TYPES.propertyType.tokens.getBaseUri()]: [],
       },
       entityTypeModel: SYSTEM_TYPES.entityType.text,
-      actorId: testUser.ownedById,
+      actorId: testUser.getOwnedById(),
     });
 
     testBlock = await BlockModel.createBlock(graphApi, {
-      ownedById: testUser.ownedById,
+      ownedById: testUser.getOwnedById(),
       componentId: testBlockComponentId,
       blockData: textEntity,
-      actorId: testUser.ownedById,
+      actorId: testUser.getOwnedById(),
     });
   });
 
   it("createComment method can create a comment", async () => {
     const comment = await CommentModel.createComment(graphApi, {
-      ownedById: testUser.ownedById,
+      ownedById: testUser.getOwnedById(),
       parent: testBlock,
       tokens: [],
       author: testUser,
-      actorId: testUser.ownedById,
+      actorId: testUser.getOwnedById(),
     });
 
     const hasText = await comment.getHasText(graphApi);
     expect(
-      (hasText.properties as any)[SYSTEM_TYPES.propertyType.tokens.baseUri],
+      (hasText.getProperties() as any)[
+        SYSTEM_TYPES.propertyType.tokens.getBaseUri()
+      ],
     ).toEqual([]);
 
     const commentAuthor = await comment.getAuthor(graphApi);
-    expect(commentAuthor).toEqual(testUser);
+    expect(commentAuthor.entity).toEqual(testUser.entity);
 
     const parentBlock = await comment.getParent(graphApi);
-    expect(parentBlock).toEqual(testBlock);
+    expect(parentBlock.entity).toEqual(testBlock.entity);
   });
 });

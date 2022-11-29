@@ -1,13 +1,13 @@
 import { useLazyQuery } from "@apollo/client";
 
 import { useCallback } from "react";
+import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import {
   GetEntityTypeQuery,
   GetEntityTypeQueryVariables,
 } from "../../../../graphql/apiTypes.gen";
 import { getEntityTypeQuery } from "../../../../graphql/queries/ontology/entity-type.queries";
 import { GetEntityTypeMessageCallback } from "./ontology-types-shim";
-import { Subgraph } from "../../../../lib/subgraph";
 
 export const useBlockProtocolGetEntityType = (): {
   getEntityType: GetEntityTypeMessageCallback;
@@ -27,8 +27,8 @@ export const useBlockProtocolGetEntityType = (): {
   );
 
   const getEntityType = useCallback<GetEntityTypeMessageCallback>(
-    async ({ data }) => {
-      if (!data) {
+    async ({ data: entityTypeId }) => {
+      if (!entityTypeId) {
         return {
           errors: [
             {
@@ -39,16 +39,14 @@ export const useBlockProtocolGetEntityType = (): {
         };
       }
 
-      const { entityTypeId } = data;
-
       const response = await getFn({
         query: getEntityTypeQuery,
         variables: {
           entityTypeId,
-          dataTypeResolveDepth: 255,
-          propertyTypeResolveDepth: 255,
-          linkTypeResolveDepth: 255,
-          entityTypeResolveDepth: 1,
+          constrainsValuesOn: { outgoing: 255 },
+          constrainsPropertiesOn: { outgoing: 255 },
+          constrainsLinksOn: { outgoing: 1 },
+          constrainsLinkDestinationsOn: { outgoing: 1 },
         },
       });
 
@@ -64,11 +62,10 @@ export const useBlockProtocolGetEntityType = (): {
       }
 
       return {
-        /**
-         * @todo: remove this when we start returning links in the subgraph
-         *   https://app.asana.com/0/0/1203214689883095/f
-         */
-        data: response.data.getEntityType as Subgraph,
+        /** @todo - Is there a way we can ergonomically encode this in the GraphQL type? */
+        data: response.data.getEntityType as Subgraph<
+          SubgraphRootTypes["entityType"]
+        >,
       };
     },
     [getFn],

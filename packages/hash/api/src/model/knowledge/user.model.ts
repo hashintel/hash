@@ -1,4 +1,5 @@
 import { GraphApi } from "@hashintel/hash-graph-client";
+import { EntityId, PropertyObject } from "@hashintel/hash-subgraph";
 import {
   EntityModel,
   UserModel,
@@ -34,19 +35,19 @@ type UserModelCreateParams = Omit<
  * @class {@link UserModel}
  */
 export default class extends EntityModel {
-  static fromEntityModel(entity: EntityModel): UserModel {
+  static fromEntityModel(entityModel: EntityModel): UserModel {
     if (
-      entity.entityTypeModel.schema.$id !==
-      SYSTEM_TYPES.entityType.user.schema.$id
+      entityModel.entityTypeModel.getSchema().$id !==
+      SYSTEM_TYPES.entityType.user.getSchema().$id
     ) {
       throw new EntityTypeMismatchError(
-        entity.entityId,
-        SYSTEM_TYPES.entityType.user.schema.$id,
-        entity.entityTypeModel.schema.$id,
+        entityModel.getBaseId(),
+        SYSTEM_TYPES.entityType.user.getSchema().$id,
+        entityModel.entityTypeModel.getSchema().$id,
       );
     }
 
-    return new UserModel(entity);
+    return new UserModel(entityModel);
   }
 
   /**
@@ -56,7 +57,7 @@ export default class extends EntityModel {
    */
   static async getUserById(
     graphApi: GraphApi,
-    params: { entityId: string },
+    params: { entityId: EntityId },
   ): Promise<UserModel> {
     const entity = await EntityModel.getLatest(graphApi, {
       entityId: params.entityId,
@@ -84,7 +85,7 @@ export default class extends EntityModel {
         {
           equal: [
             { path: ["type", "versionedUri"] },
-            { parameter: SYSTEM_TYPES.entityType.user.schema.$id },
+            { parameter: SYSTEM_TYPES.entityType.user.getSchema().$id },
           ],
         },
       ],
@@ -116,7 +117,7 @@ export default class extends EntityModel {
         {
           equal: [
             { path: ["type", "versionedUri"] },
-            { parameter: SYSTEM_TYPES.entityType.user.schema.$id },
+            { parameter: SYSTEM_TYPES.entityType.user.getSchema().$id },
           ],
         },
       ],
@@ -181,11 +182,19 @@ export default class extends EntityModel {
 
     const { data: userAccountId } = await graphApi.createAccountId();
 
-    const properties: object = {
-      [SYSTEM_TYPES.propertyType.email.baseUri]: emails,
-      [SYSTEM_TYPES.propertyType.kratosIdentityId.baseUri]: kratosIdentityId,
-      [SYSTEM_TYPES.propertyType.shortName.baseUri]: shortname,
-      [SYSTEM_TYPES.propertyType.preferredName.baseUri]: preferredName,
+    const properties: PropertyObject = {
+      [SYSTEM_TYPES.propertyType.email.getBaseUri()]: emails,
+      [SYSTEM_TYPES.propertyType.kratosIdentityId.getBaseUri()]:
+        kratosIdentityId,
+      ...(shortname
+        ? { [SYSTEM_TYPES.propertyType.shortName.getBaseUri()]: shortname }
+        : {}),
+      ...(preferredName
+        ? {
+            [SYSTEM_TYPES.propertyType.preferredName.getBaseUri()]:
+              preferredName,
+          }
+        : {}),
     };
 
     const entityTypeModel = SYSTEM_TYPES.entityType.user;
@@ -204,7 +213,6 @@ export default class extends EntityModel {
       const hashInstanceModel = await HashInstanceModel.getHashInstanceModel(
         graphApi,
       );
-
       await hashInstanceModel.addAdmin(graphApi, { userModel, actorId });
     }
 
@@ -249,8 +257,8 @@ export default class extends EntityModel {
   }
 
   async getQualifiedEmails(): Promise<QualifiedEmail[]> {
-    const emails: string[] = (this.properties as any)[
-      SYSTEM_TYPES.propertyType.email.baseUri
+    const emails: string[] = (this.getProperties() as any)[
+      SYSTEM_TYPES.propertyType.email.getBaseUri()
     ];
 
     const kratosIdentity = await this.getKratosIdentity();
@@ -278,7 +286,9 @@ export default class extends EntityModel {
   }
 
   getEmails(): string[] {
-    return (this.properties as any)[SYSTEM_TYPES.propertyType.email.baseUri];
+    return (this.getProperties() as any)[
+      SYSTEM_TYPES.propertyType.email.getBaseUri()
+    ];
   }
 
   /**
@@ -289,8 +299,8 @@ export default class extends EntityModel {
    * https://app.asana.com/0/1202805690238892/1202944961125764/f
    */
   getShortname(): string | undefined {
-    return (this.properties as any)[
-      SYSTEM_TYPES.propertyType.shortName.baseUri
+    return (this.getProperties() as any)[
+      SYSTEM_TYPES.propertyType.shortName.getBaseUri()
     ];
   }
 
@@ -324,17 +334,17 @@ export default class extends EntityModel {
     const previousShortname = this.getShortname();
 
     const updatedUser = await this.updateProperty(graphApi, {
-      propertyTypeBaseUri: SYSTEM_TYPES.propertyType.shortName.baseUri,
+      propertyTypeBaseUri: SYSTEM_TYPES.propertyType.shortName.getBaseUri(),
       value: updatedShortname,
       actorId,
-    }).then((updatedEntity) => new UserModel(updatedEntity));
+    }).then((updatedEntity) => UserModel.fromEntityModel(updatedEntity));
 
     await this.updateKratosIdentityTraits({
       shortname: updatedShortname,
     }).catch(async (error) => {
       // If an error occurred updating the entity, set the property to have the previous shortname
       await this.updateProperty(graphApi, {
-        propertyTypeBaseUri: SYSTEM_TYPES.propertyType.shortName.baseUri,
+        propertyTypeBaseUri: SYSTEM_TYPES.propertyType.shortName.getBaseUri(),
         value: previousShortname,
         actorId,
       });
@@ -346,8 +356,8 @@ export default class extends EntityModel {
   }
 
   getPreferredName(): string | undefined {
-    return (this.properties as any)[
-      SYSTEM_TYPES.propertyType.preferredName.baseUri
+    return (this.getProperties() as any)[
+      SYSTEM_TYPES.propertyType.preferredName.getBaseUri()
     ];
   }
 
@@ -369,17 +379,17 @@ export default class extends EntityModel {
       );
     }
     const updatedEntity = await this.updateProperty(graphApi, {
-      propertyTypeBaseUri: SYSTEM_TYPES.propertyType.preferredName.baseUri,
+      propertyTypeBaseUri: SYSTEM_TYPES.propertyType.preferredName.getBaseUri(),
       value: updatedPreferredName,
       actorId,
     });
 
-    return new UserModel(updatedEntity);
+    return UserModel.fromEntityModel(updatedEntity);
   }
 
   getKratosIdentityId(): string {
-    return (this.properties as any)[
-      SYSTEM_TYPES.propertyType.kratosIdentityId.baseUri
+    return (this.getProperties() as any)[
+      SYSTEM_TYPES.propertyType.kratosIdentityId.getBaseUri()
     ];
   }
 
@@ -414,76 +424,38 @@ export default class extends EntityModel {
   ) {
     const { org, responsibility, actorId } = params;
 
-    const orgMembership = await OrgMembershipModel.createOrgMembership(
-      graphApi,
-      { responsibility, org, actorId },
-    );
-
-    await this.createOutgoingLink(graphApi, {
-      linkTypeModel: SYSTEM_TYPES.linkType.hasMembership,
-      targetEntityModel: orgMembership,
-      ownedById: systemAccountId,
+    await OrgMembershipModel.createOrgMembership(graphApi, {
+      responsibility,
+      org,
+      user: this,
       actorId,
     });
   }
 
   async getOrgMemberships(graphApi: GraphApi): Promise<OrgMembershipModel[]> {
-    const { data: outgoingOrgMembershipLinkRootedSubgraphs } =
-      await graphApi.getLinksByQuery({
-        filter: {
-          all: [
-            {
-              equal: [{ path: ["source", "id"] }, { parameter: this.entityId }],
-            },
-            {
-              equal: [
-                { path: ["type", "versionedUri"] },
-                {
-                  parameter: SYSTEM_TYPES.linkType.hasMembership.schema.$id,
-                },
-              ],
-            },
-          ],
-        },
-        graphResolveDepths: {
-          dataTypeResolveDepth: 0,
-          propertyTypeResolveDepth: 0,
-          linkTypeResolveDepth: 0,
-          entityTypeResolveDepth: 0,
-          linkResolveDepth: 0,
-          linkTargetEntityResolveDepth: 0,
-        },
-      });
+    const outgoingOrgMembershipLinkEntityModels = await this.getOutgoingLinks(
+      graphApi,
+      { linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.orgMembership },
+    );
 
-    return await Promise.all(
-      outgoingOrgMembershipLinkRootedSubgraphs.map(async ({ link }) => {
-        const orgMembership = await OrgMembershipModel.getOrgMembershipById(
-          graphApi,
-          {
-            entityId: link.inner.targetEntityId,
-          },
-        );
-
-        if (!orgMembership) {
-          throw new Error("Critical: could not find target of link");
-        }
-
-        return orgMembership;
-      }),
+    return outgoingOrgMembershipLinkEntityModels.map((orgLinkEntityModel) =>
+      OrgMembershipModel.fromLinkEntityModel(orgLinkEntityModel),
     );
   }
 
   async isMemberOfOrg(
     graphApi: GraphApi,
-    params: { orgEntityId: string },
+    params: { orgEntityUuid: string },
   ): Promise<boolean> {
     const orgMemberships = await this.getOrgMemberships(graphApi);
 
-    const orgs = await Promise.all(
-      orgMemberships.map((orgMembership) => orgMembership.getOrg(graphApi)),
+    const orgModels = orgMemberships.map((orgMembership) =>
+      orgMembership.getOrg(),
     );
 
-    return !!orgs.find(({ entityId }) => entityId === params.orgEntityId);
+    return !!orgModels.find(
+      (orgModel) => orgModel.getEntityUuid() === params.orgEntityUuid,
+    );
   }
 
   isAccountSignupComplete(): boolean {

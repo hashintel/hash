@@ -66,15 +66,19 @@ const BlockHandle: ForwardRefRenderFunction<
   const blockView = useBlockView();
 
   const updateChildEntity = (properties: JsonObject) => {
+    /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */
     const childEntity = blockEntity?.properties.entity;
     if (!childEntity) {
       throw new Error(`No child entity on block to update`);
     }
-    blockView.manager.updateEntityProperties(childEntity.entityId, properties);
+    blockView.manager.updateEntityProperties(
+      childEntity.metadata.editionId.baseId!,
+      properties,
+    );
   };
 
   const blockSchema = blockEntity
-    ? blocksMap[blockEntity.properties.componentId]?.schema
+    ? blocksMap[blockEntity.properties.componentId as string]?.schema
     : null;
 
   const blockContext = useBlockContext();

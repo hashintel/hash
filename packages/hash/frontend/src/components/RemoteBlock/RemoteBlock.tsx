@@ -14,13 +14,24 @@ import { useRemoteBlock } from "./useRemoteBlock";
 type RemoteBlockProps = {
   graphCallbacks: Omit<
     EmbedderGraphMessageCallbacks,
+    | "createEntity"
     | "getEntity"
+    | "updateEntity"
     | "aggregateEntities"
-    | "getEntityType"
-    | "getLink"
-    | "getLinkedAggregation"
     | "deleteEntity"
+    | "createLink"
+    | "getLink"
+    | "updateLink"
+    | "deleteLink"
+    | "getLinkedAggregation"
+    | "createEntityType"
+    | "aggregateEntityTypes"
+    | "updateEntityType"
+    | "getEntityType"
     | "deleteEntityType"
+    | "createLinkedAggregation"
+    | "updateLinkedAggregation"
+    | "deleteLinkedAggregation"
   >;
   graphProperties: Required<BlockGraphProperties<UnknownRecord>["graph"]>;
   blockMetadata: BlockMetadata;

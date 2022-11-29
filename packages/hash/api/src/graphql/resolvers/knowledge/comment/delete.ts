@@ -1,26 +1,20 @@
 import { CommentModel } from "../../../../model";
-import {
-  MutationDeletePersistedCommentArgs,
-  ResolverFn,
-} from "../../../apiTypes.gen";
+import { MutationDeleteCommentArgs, ResolverFn } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import {
-  UnresolvedPersistedCommentGQL,
-  mapCommentModelToGQL,
-} from "../model-mapping";
+import { UnresolvedCommentGQL, mapCommentModelToGQL } from "../model-mapping";
 
-export const deletePersistedComment: ResolverFn<
-  Promise<UnresolvedPersistedCommentGQL>,
+export const deleteComment: ResolverFn<
+  Promise<UnresolvedCommentGQL>,
   {},
   LoggedInGraphQLContext,
-  MutationDeletePersistedCommentArgs
+  MutationDeleteCommentArgs
 > = async (_, { entityId }, { dataSources: { graphApi }, userModel }) => {
   const commentModel = await CommentModel.getCommentById(graphApi, {
     entityId,
   });
 
   const updatedCommentModel = await commentModel.delete(graphApi, {
-    actorId: userModel.entityId,
+    actorId: userModel.getEntityUuid(),
   });
 
   return mapCommentModelToGQL(updatedCommentModel);

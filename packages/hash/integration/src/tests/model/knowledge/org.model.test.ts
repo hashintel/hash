@@ -4,6 +4,7 @@ import { ensureSystemTypesExist } from "@hashintel/hash-api/src/graph/system-typ
 import { OrgModel } from "@hashintel/hash-api/src/model";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { systemAccountId } from "@hashintel/hash-api/src/model/util";
+import { ensureSystemEntitiesExists } from "@hashintel/hash-api/src/graph/system-entities";
 import { createTestOrg, generateRandomShortname } from "../../util";
 
 jest.setTimeout(60000);
@@ -25,6 +26,7 @@ const graphApi = createGraphClient(logger, {
 describe("Org model class", () => {
   beforeAll(async () => {
     await ensureSystemTypesExist({ graphApi, logger });
+    await ensureSystemEntitiesExists({ graphApi, logger });
   });
 
   let createdOrg: OrgModel;
@@ -36,7 +38,7 @@ describe("Org model class", () => {
   });
 
   it("can get the account id", () => {
-    expect(createdOrg.entityId).toBeDefined();
+    expect(createdOrg.getEntityUuid()).toBeDefined();
   });
 
   it("can update the shortname of an org", async () => {

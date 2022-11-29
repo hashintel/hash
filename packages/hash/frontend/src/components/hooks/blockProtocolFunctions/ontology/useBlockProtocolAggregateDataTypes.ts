@@ -1,13 +1,13 @@
 import { useLazyQuery } from "@apollo/client";
 
 import { useCallback } from "react";
+import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import {
   GetAllLatestDataTypesQuery,
   GetAllLatestDataTypesQueryVariables,
 } from "../../../../graphql/apiTypes.gen";
 import { getAllLatestDataTypesQuery } from "../../../../graphql/queries/ontology/data-type.queries";
 import { AggregateDataTypesMessageCallback } from "./ontology-types-shim";
-import { Subgraph } from "../../../../lib/subgraph";
 
 export const useBlockProtocolAggregateDataTypes = (): {
   aggregateDataTypes: AggregateDataTypesMessageCallback;
@@ -40,7 +40,7 @@ export const useBlockProtocolAggregateDataTypes = (): {
        */
       const response = await aggregateFn({
         variables: {
-          dataTypeResolveDepth: 255,
+          constrainsValuesOn: { outgoing: 255 },
         },
       });
 
@@ -56,11 +56,10 @@ export const useBlockProtocolAggregateDataTypes = (): {
       }
 
       return {
-        /**
-         * @todo: remove this when we start returning links in the subgraph
-         *   https://app.asana.com/0/0/1203214689883095/f
-         */
-        data: response.data.getAllLatestDataTypes as Subgraph,
+        /** @todo - Is there a way we can ergonomically encode this in the GraphQL type? */
+        data: response.data.getAllLatestDataTypes as Subgraph<
+          SubgraphRootTypes["dataType"]
+        >,
       };
     },
     [aggregateFn],

@@ -1,43 +1,33 @@
 import { gql } from "@apollo/client";
 
-const persistedBlockFieldsFragment = gql`
-  fragment PersistedBlockFields on PersistedBlock {
+const blockFieldsFragment = gql`
+  fragment BlockFields on Block {
     __typename
-    entityId
-    entityVersion
-    accountId
-    entityTypeId
-    componentId
-    blockChildEntity {
-      entityId
-      entityTypeId
-      entityVersion
-      accountId
-      properties
-    }
+    metadata
     properties
+    blockChildEntity
+    componentId
   }
 `;
 
-const persistedPageFieldsFragment = gql`
-  fragment PersistedPageFields on PersistedPage {
+const pageFieldsFragment = gql`
+  fragment PageFields on Page {
     archived
     title
     icon
     summary
-    ownedById
-    entityId
-    entityVersion
     contents {
-      ...PersistedBlockFields
+      ...BlockFields
     }
+    metadata
+    properties
     __typename
   }
-  ${persistedBlockFieldsFragment}
+  ${blockFieldsFragment}
 `;
 
-const persistedPagePropertiesFieldsFragment = gql`
-  fragment PersistedPagePropertyFields on PersistedPage {
+const pagePropertiesFieldsFragment = gql`
+  fragment PagePropertyFields on Page {
     title
     archived
     icon
@@ -45,49 +35,32 @@ const persistedPagePropertiesFieldsFragment = gql`
 `;
 
 export const getPageInfoQuery = gql`
-  query getPageInfo($ownedById: ID!, $entityId: ID!, $entityVersion: String) {
-    persistedPage(
-      ownedById: $ownedById
-      entityId: $entityId
-      entityVersion: $entityVersion
-    ) {
-      entityId
-      ...PersistedPagePropertyFields
+  query getPageInfo($entityId: EntityId!) {
+    page(entityId: $entityId) {
+      metadata
+      ...PagePropertyFields
     }
   }
-  ${persistedPagePropertiesFieldsFragment}
+  ${pagePropertiesFieldsFragment}
 `;
 
-export const getPersistedPageQuery = gql`
-  query getPersistedPage(
-    $ownedById: ID!
-    $entityId: ID!
-    $entityVersion: String
-  ) {
-    persistedPage(
-      ownedById: $ownedById
-      entityId: $entityId
-      entityVersion: $entityVersion
-    ) {
-      ...PersistedPageFields
+export const getPageQuery = gql`
+  query getPage($entityId: EntityId!) {
+    page(entityId: $entityId) {
+      ...PageFields
     }
   }
-  ${persistedPageFieldsFragment}
+  ${pageFieldsFragment}
 `;
 
-export const updatePersistedPageContents = gql`
-  mutation updatePersistedPageContents(
-    $ownedById: ID!
-    $entityId: ID!
-    $actions: [UpdatePersistedPageAction!]!
+export const updatePageContents = gql`
+  mutation updatePageContents(
+    $entityId: EntityId!
+    $actions: [UpdatePageAction!]!
   ) {
-    updatePersistedPageContents(
-      ownedById: $ownedById
-      entityId: $entityId
-      actions: $actions
-    ) {
+    updatePageContents(entityId: $entityId, actions: $actions) {
       page {
-        ...PersistedPageFields
+        ...PageFields
       }
       placeholders {
         placeholderId
@@ -96,34 +69,5 @@ export const updatePersistedPageContents = gql`
     }
   }
 
-  ${persistedPageFieldsFragment}
-`;
-
-const pagePropertiesFieldsFragment = gql`
-  fragment PagePropertyFields on PageProperties {
-    title
-    archived
-    icon
-  }
-`;
-
-export const updatePage = gql`
-  mutation updatePage(
-    $accountId: ID!
-    $entityId: ID!
-    $properties: PageUpdateData!
-  ) {
-    updatePage(
-      accountId: $accountId
-      entityId: $entityId
-      properties: $properties
-    ) {
-      accountId
-      entityId
-      properties {
-        ...PagePropertyFields
-      }
-    }
-  }
-  ${pagePropertiesFieldsFragment}
+  ${pageFieldsFragment}
 `;

@@ -3,18 +3,18 @@ import { commentFieldsFragment } from "./comment.queries";
 
 export const setParentPage = gql`
   mutation setParentPage(
-    $pageEntityId: ID!
-    $parentPageEntityId: ID
+    $pageEntityId: EntityId!
+    $parentPageEntityId: EntityId
     $prevIndex: String
     $nextIndex: String
   ) {
-    setParentPersistedPage(
+    setParentPage(
       pageEntityId: $pageEntityId
       parentPageEntityId: $parentPageEntityId
       prevIndex: $prevIndex
       nextIndex: $nextIndex
     ) {
-      ownedById
+      metadata
       title
       summary
       __typename
@@ -22,36 +22,28 @@ export const setParentPage = gql`
   }
 `;
 
-export const createPersistedPage = gql`
-  mutation createPersistedPage(
-    $ownedById: ID!
-    $properties: PersistedPageCreationData!
-  ) {
-    createPersistedPage(ownedById: $ownedById, properties: $properties) {
-      ownedById
-      entityId
+export const createPage = gql`
+  mutation createPage($ownedById: ID!, $properties: PageCreationData!) {
+    createPage(ownedById: $ownedById, properties: $properties) {
+      metadata
     }
   }
 `;
 
-export const updatePersistedPage = gql`
-  mutation updatePersistedPage(
-    $entityId: ID!
-    $updatedProperties: PersistedPageUpdateData!
+export const updatePage = gql`
+  mutation updatePage(
+    $entityId: EntityId!
+    $updatedProperties: PageUpdateData!
   ) {
-    updatePersistedPage(
-      entityId: $entityId
-      updatedProperties: $updatedProperties
-    ) {
-      ownedById
-      entityId
+    updatePage(entityId: $entityId, updatedProperties: $updatedProperties) {
+      metadata
     }
   }
 `;
 
-export const getPersistedPageComments = gql`
-  query getPersistedPageComments($entityId: ID!) {
-    persistedPageComments(entityId: $entityId) {
+export const getPageComments = gql`
+  query getPageComments($entityId: EntityId!) {
+    pageComments(entityId: $entityId) {
       ...CommentFields
       replies {
         ...CommentFields

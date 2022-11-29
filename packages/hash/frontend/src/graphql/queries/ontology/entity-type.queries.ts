@@ -3,18 +3,18 @@ import { subgraphFieldsFragment } from "../subgraph";
 
 export const getEntityTypeQuery = gql`
   query getEntityType(
-    $entityTypeId: String!
-    $dataTypeResolveDepth: Int!
-    $propertyTypeResolveDepth: Int!
-    $linkTypeResolveDepth: Int!
-    $entityTypeResolveDepth: Int!
+    $entityTypeId: VersionedUri!
+    $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
+    $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
+    $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
+    $constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
   ) {
     getEntityType(
       entityTypeId: $entityTypeId
-      dataTypeResolveDepth: $dataTypeResolveDepth
-      propertyTypeResolveDepth: $propertyTypeResolveDepth
-      linkTypeResolveDepth: $linkTypeResolveDepth
-      entityTypeResolveDepth: $entityTypeResolveDepth
+      constrainsValuesOn: $constrainsValuesOn
+      constrainsPropertiesOn: $constrainsPropertiesOn
+      constrainsLinksOn: $constrainsLinksOn
+      constrainsLinkDestinationsOn: $constrainsLinkDestinationsOn
     ) {
       ...SubgraphFields
     }
@@ -24,16 +24,16 @@ export const getEntityTypeQuery = gql`
 
 export const getAllLatestEntityTypesQuery = gql`
   query getAllLatestEntityTypes(
-    $dataTypeResolveDepth: Int!
-    $propertyTypeResolveDepth: Int!
-    $linkTypeResolveDepth: Int!
-    $entityTypeResolveDepth: Int!
+    $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
+    $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
+    $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
+    $constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
   ) {
     getAllLatestEntityTypes(
-      dataTypeResolveDepth: $dataTypeResolveDepth
-      propertyTypeResolveDepth: $propertyTypeResolveDepth
-      linkTypeResolveDepth: $linkTypeResolveDepth
-      entityTypeResolveDepth: $entityTypeResolveDepth
+      constrainsValuesOn: $constrainsValuesOn
+      constrainsPropertiesOn: $constrainsPropertiesOn
+      constrainsLinksOn: $constrainsLinksOn
+      constrainsLinkDestinationsOn: $constrainsLinkDestinationsOn
     ) {
       ...SubgraphFields
     }
@@ -43,18 +43,18 @@ export const getAllLatestEntityTypesQuery = gql`
 
 export const getEntityTypeRootedSubgraphQuery = gql`
   query getEntityTypeRootedSubgraph(
-    $entityTypeId: String!
-    $dataTypeResolveDepth: Int!
-    $propertyTypeResolveDepth: Int!
-    $linkTypeResolveDepth: Int!
-    $entityTypeResolveDepth: Int!
+    $entityTypeId: VersionedUri!
+    $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
+    $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
+    $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
+    $constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
   ) {
     getEntityType(
       entityTypeId: $entityTypeId
-      dataTypeResolveDepth: $dataTypeResolveDepth
-      propertyTypeResolveDepth: $propertyTypeResolveDepth
-      linkTypeResolveDepth: $linkTypeResolveDepth
-      entityTypeResolveDepth: $entityTypeResolveDepth
+      constrainsValuesOn: $constrainsValuesOn
+      constrainsPropertiesOn: $constrainsPropertiesOn
+      constrainsLinksOn: $constrainsLinksOn
+      constrainsLinkDestinationsOn: $constrainsLinkDestinationsOn
     ) {
       ...SubgraphFields
     }
@@ -67,26 +67,19 @@ export const createEntityTypeMutation = gql`
     $ownedById: ID!
     $entityType: EntityTypeWithoutId!
   ) {
-    createEntityType(ownedById: $ownedById, entityType: $entityType) {
-      entityTypeId
-      ownedById
-      entityType
-    }
+    # This is a scalar, which has no selection.
+    createEntityType(ownedById: $ownedById, entityType: $entityType)
   }
 `;
 
 export const updateEntityTypeMutation = gql`
   mutation updateEntityType(
-    $entityTypeId: String!
+    $entityTypeId: VersionedUri!
     $updatedEntityType: EntityTypeWithoutId!
   ) {
     updateEntityType(
       entityTypeId: $entityTypeId
       updatedEntityType: $updatedEntityType
-    ) {
-      entityTypeId
-      ownedById
-      entityType
-    }
+    )
   }
 `;

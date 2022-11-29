@@ -1,13 +1,13 @@
 import { useMemo } from "react";
 import { useQuery } from "@apollo/client";
 import { types } from "@hashintel/hash-shared/types";
+import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import {
-  GetAllLatestPersistedEntitiesQuery,
-  GetAllLatestPersistedEntitiesQueryVariables,
+  GetAllLatestEntitiesQuery,
+  GetAllLatestEntitiesQueryVariables,
 } from "../../graphql/apiTypes.gen";
 import { getAllLatestEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
-import { getPersistedEntities, Subgraph } from "../../lib/subgraph";
-import { useInitTypeSystem } from "../../lib/use-init-type-system";
 import { constructOrg, Org } from "../../lib/org";
 /**
  * Retrieves a list of organizations.
@@ -19,50 +19,48 @@ export const useOrgs = (): {
   orgs?: Org[];
 } => {
   const { data, loading } = useQuery<
-    GetAllLatestPersistedEntitiesQuery,
-    GetAllLatestPersistedEntitiesQueryVariables
+    GetAllLatestEntitiesQuery,
+    GetAllLatestEntitiesQueryVariables
   >(getAllLatestEntitiesQuery, {
     variables: {
-      dataTypeResolveDepth: 0,
-      propertyTypeResolveDepth: 0,
-      linkTypeResolveDepth: 0,
-      entityTypeResolveDepth: 1,
-      linkResolveDepth: 1,
-      linkTargetEntityResolveDepth: 1,
+      constrainsValuesOn: { outgoing: 0 },
+      constrainsPropertiesOn: { outgoing: 0 },
+      constrainsLinksOn: { outgoing: 0 },
+      constrainsLinkDestinationsOn: { outgoing: 0 },
+      isOfType: { outgoing: 1 },
+      hasLeftEntity: { incoming: 1, outgoing: 1 },
+      hasRightEntity: { incoming: 1, outgoing: 1 },
     },
     /** @todo reconsider caching. This is done for testing/demo purposes. */
     fetchPolicy: "no-cache",
   });
 
-  const loadingTypeSystem = useInitTypeSystem();
-
-  const { getAllLatestPersistedEntities: subgraph } = data ?? {};
+  const { getAllLatestEntities: subgraph } = data ?? {};
 
   const orgs = useMemo(() => {
-    if (!subgraph || loadingTypeSystem) {
+    if (!subgraph) {
       return undefined;
     }
 
-    /**
-     * @todo: remove casting when we start returning links in the subgraph
-     *   https://app.asana.com/0/0/1203214689883095/f
-     */
-    return getPersistedEntities(subgraph as unknown as Subgraph)
+    // Sharing the same resolved map makes the map below slightly more efficient
+    const resolvedUsers = {};
+    const resolvedOrgs = {};
+
+    /** @todo - Is there a way we can ergonomically encode this in the GraphQL type? */
+    return getRoots(subgraph as Subgraph<SubgraphRootTypes["entity"]>)
       .filter(
-        ({ entityTypeId }) =>
+        ({ metadata: { entityTypeId } }) =>
           entityTypeId === types.entityType.org.entityTypeId,
       )
-      .map(({ entityId: orgEntityId }) =>
+      .map(({ metadata: { editionId } }) =>
         constructOrg({
-          /**
-           * @todo: remove this when we start returning links in the subgraph
-           *   https://app.asana.com/0/0/1203214689883095/f
-           */
-          subgraph: subgraph as unknown as Subgraph,
-          orgEntityId,
+          subgraph,
+          orgEntityEditionId: editionId,
+          resolvedUsers,
+          resolvedOrgs,
         }),
       );
-  }, [subgraph, loadingTypeSystem]);
+  }, [subgraph]);
 
   return {
     loading,
