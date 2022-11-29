@@ -16,13 +16,10 @@ import { uniqueId } from "lodash";
 import { FunctionComponent } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { faCube } from "../../../../shared/icons/pro/fa-cube";
-import {
-  arrayPropertyDataType,
-  ArrayPropertyTypeMenu,
-} from "./array-property-type-menu";
+import { ArrayPropertyTypeMenu } from "./array-property-type-menu";
 import { PropertyTypeFormValues } from "./property-type-form";
 import { usePropertyTypeSelectorDropdownContext } from "./property-type-selector-dropdown";
-import { DataType, getPropertyTypeSchema } from "./property-type-utils";
+import { getDefaultData } from "./property-type-utils";
 
 const CustomChip: FunctionComponent<ChipProps & { borderColor?: string }> = ({
   borderColor,
@@ -50,7 +47,7 @@ export const PropertyTypeCustomMenu: FunctionComponent<
   const creatingPropertyId = useWatch({ control, name: "creatingPropertyId" });
   const flattenedProperties = useWatch({
     control,
-    name: "flattenedCreatingProperties",
+    name: "flattenedPropertyList",
   });
   const expectedValues = useWatch({ control, name: "expectedValues" });
 
@@ -155,9 +152,13 @@ export const PropertyTypeCustomMenu: FunctionComponent<
                 endIcon={<FontAwesomeIcon icon={faList} />}
                 onClick={() => {
                   const id = uniqueId();
+
                   setValue("creatingPropertyId", id);
-                  setValue("flattenedCreatingProperties", {
-                    [id]: arrayPropertyDataType,
+                  setValue("flattenedPropertyList", {
+                    [id]: {
+                      id,
+                      data: getDefaultData("array"),
+                    },
                   });
                 }}
               >
@@ -201,45 +202,15 @@ export const PropertyTypeCustomMenu: FunctionComponent<
           <Button
             size="small"
             onClick={() => {
-              const getExpectedValues = (
-                expectedIds: string[],
-                flattenedPropertiesArray: Record<string, DataType>,
-              ): DataType[] => {
-                return expectedIds.map((id) => {
-                  const childProperty = flattenedPropertiesArray[id]!;
-
-                  return {
-                    ...childProperty,
-                    data: {
-                      ...childProperty.data,
-                      ...("expectedValues" in childProperty.data
-                        ? {
-                            expectedValues: getExpectedValues(
-                              childProperty.data.expectedValues,
-                              flattenedPropertiesArray,
-                            ),
-                          }
-                        : {}),
-                    },
-                  } as DataType;
-                });
-              };
-
-              const prop = {
-                ...flattenedProperties[creatingPropertyId],
-                schema: getPropertyTypeSchema(
-                  flattenedProperties[creatingPropertyId]!,
-                  flattenedProperties,
-                ),
-              };
-
-              console.log(prop);
-
               setValue(`expectedValues`, [
                 ...expectedValues,
-                prop,
-                // ...getExpectedValues([creatingPropertyId], flattenedProperties),
+                {
+                  typeId: "array",
+                  id: creatingPropertyId,
+                  flattenedProperties,
+                },
               ]);
+
               closeCustomPropertyMenu();
             }}
           >

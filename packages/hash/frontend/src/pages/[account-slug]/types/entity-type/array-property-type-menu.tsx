@@ -4,35 +4,37 @@ import {
   FontAwesomeIcon,
   TextField,
 } from "@hashintel/hash-design-system";
-import { types } from "@hashintel/hash-shared/types";
 import { Autocomplete, Box, Stack, Typography } from "@mui/material";
 import { uniqueId } from "lodash";
 import { FunctionComponent, useMemo } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
-import { faCube } from "../../../../shared/icons/pro/fa-cube";
 import { PropertyTypeFormValues } from "./property-type-form";
 import {
+  dataTypeOptions as primitiveDataTypeOptions,
+  customDataTypeOptions,
+  dataTypeData,
+  getDefaultData,
   DataType,
-  propertyTypeDataTypes as primitiveDataTypes,
 } from "./property-type-utils";
 
-export const arrayPropertyDataType: DataType = {
-  title: "Array",
-  icon: faList.icon,
-  dataTypeId: types.dataType.object.dataTypeId,
-  data: {
-    expectedValues: [],
-    minItems: 0,
-    maxItems: 0,
-  },
-};
+const deletePropertyAndChildren = (
+  id: string,
+  properties: Record<string, DataType>,
+) => {
+  let newProperties = { ...properties };
+  const removedProperty = properties[id];
 
-export const objectPropertyDataType: DataType = {
-  title: "Property Object",
-  icon: faCube,
-  data: {
-    typeId: types.dataType.object.dataTypeId,
-  },
+  if (removedProperty) {
+    if (removedProperty.data && "expectedValues" in removedProperty.data) {
+      for (const childId of removedProperty.data.expectedValues) {
+        newProperties = deletePropertyAndChildren(childId, newProperties);
+      }
+    }
+
+    delete newProperties[removedProperty.id];
+  }
+
+  return newProperties;
 };
 
 type ArrayPropertyTypeMenuProps = {
@@ -47,29 +49,16 @@ export const ArrayPropertyTypeMenu: FunctionComponent<
 
   const flattenedProperties = useWatch({
     control,
-    name: `flattenedCreatingProperties`,
+    name: `flattenedPropertyList`,
   });
 
   const expectedValues = useWatch({
     control,
-    name: `flattenedCreatingProperties.${id}.data.expectedValues`,
+    name: `flattenedPropertyList.${id}.data.expectedValues`,
   });
 
-  const children = useMemo(
-    () =>
-      expectedValues?.map((childId) => ({
-        ...flattenedProperties[childId],
-        id: childId,
-      })),
-    [flattenedProperties, expectedValues],
-  );
-
-  const propertyTypeDataTypes = useMemo(
-    () => [
-      ...primitiveDataTypes,
-      arrayPropertyDataType,
-      objectPropertyDataType,
-    ],
+  const dataTypeOptions = useMemo(
+    () => [...primitiveDataTypeOptions, ...customDataTypeOptions],
     [],
   );
 
@@ -107,12 +96,15 @@ export const ArrayPropertyTypeMenu: FunctionComponent<
           position: "relative",
         }}
       >
-        {children?.map((expectedValue, pos) =>
-          expectedValue?.title === "Array" ? (
-            <ArrayPropertyTypeMenu
-              id={expectedValue.id}
-              index={[...index, pos]}
-            />
+        {expectedValues?.map((childId, pos) => {
+          const property = flattenedProperties[childId];
+
+          if (!property?.data) {
+            return null;
+          }
+
+          return property.data.typeId === "array" ? (
+            <ArrayPropertyTypeMenu id={childId} index={[...index, pos]} />
           ) : (
             <Stack
               direction="row"
@@ -134,11 +126,11 @@ export const ArrayPropertyTypeMenu: FunctionComponent<
                 }}
               />
               <Typography sx={{ color: ({ palette }) => palette.white }}>
-                {expectedValue?.title}
+                {dataTypeData[property.data.typeId]?.title}
               </Typography>
             </Stack>
-          ),
-        )}
+          );
+        })}
 
         <Autocomplete
           multiple
@@ -148,89 +140,53 @@ export const ArrayPropertyTypeMenu: FunctionComponent<
           selectOnFocus={false}
           openOnFocus
           clearOnBlur={false}
-          onChange={(_evt, data, reason, details) => {
-            console.log(_evt);
-            console.log(data);
-            console.log(reason);
-            console.log(details);
+          onChange={(_evt, _data, reason, details) => {
+            const typeId = details?.option;
+            if (typeId) {
+              const propertyData = getDefaultData(typeId);
 
-            const newProperty = details?.option;
-            if (newProperty) {
               if (reason === "selectOption") {
                 const childId = uniqueId();
 
-                setValue(`flattenedCreatingProperties`, {
+                setValue(`flattenedPropertyList`, {
                   ...(flattenedProperties ?? {}),
-                  [childId]: { ...newProperty, parentId: id },
+                  [childId]: {
+                    id: childId,
+                    parentId: id,
+                    data: propertyData,
+                  },
                 });
-                setValue(
-                  `flattenedCreatingProperties.${id}.data.expectedValues`,
-                  [...expectedValues, childId],
-                );
+                setValue(`flattenedPropertyList.${id}.data.expectedValues`, [
+                  ...expectedValues,
+                  childId,
+                ]);
               } else if (reason === "removeOption") {
-                // setValue(`flattenedCreatingProperties`, {
-                //   ...(flattenedProperties ?? {}),
-                //   [childId]: { ...newProperty, parentId: id },
-                // });
-                // // setValue(
-                //   `flattenedCreatingProperties.${id}.data.expectedValues`,
-                //   [...expectedValues, childId],
-                // );
+                const removedPropertyId = Object.values(
+                  flattenedProperties,
+                ).find(
+                  (property) =>
+                    property.parentId === id &&
+                    property.data?.typeId === typeId,
+                )?.id;
+
+                if (removedPropertyId) {
+                  setValue(
+                    `flattenedPropertyList`,
+                    deletePropertyAndChildren(
+                      removedPropertyId,
+                      flattenedProperties,
+                    ),
+                  );
+
+                  setValue(
+                    `flattenedPropertyList.${id}.data.expectedValues`,
+                    expectedValues.filter(
+                      (childId) => childId !== removedPropertyId,
+                    ),
+                  );
+                }
               }
             }
-            // const childProperties: Record<string, DataType> =
-            //   flattenedProperties;
-            // const childPropertyIds = [];
-
-            // const deletePropertyAndChildren = (
-            //   deleteIds: string[],
-            //   properties: Record<string, DataType>,
-            // ) => {
-            //   let props = properties;
-            //   for (const deleteId of deleteIds) {
-            //     const childData = properties[deleteId]?.data;
-
-            //     delete props[deleteId];
-
-            //     if (childData && "expectedValues" in childData) {
-            //       props = deletePropertyAndChildren(
-            //         childData.expectedValues,
-            //         properties,
-            //       );
-            //     }
-            //   }
-
-            //   return props;
-            //   // for (const propertyId in childProperties) {
-            // };
-
-            // // for (const propertyId in childProperties) {
-            // //   if (expectedValues.includes(propertyId)) {
-            // //     delete childProperties[propertyId];
-            // //   }
-            // // }
-
-            // const filtered = deletePropertyAndChildren(
-            //   expectedValues,
-            //   childProperties,
-            // );
-
-            // for (const dataType of data) {
-            //   const childId = uniqueId();
-
-            //   childPropertyIds.push(childId);
-            //   // filtered[childId] = { ...dataType, parentId: id };
-            //   filtered[childId] = dataType;
-            // }
-
-            // setValue(`flattenedCreatingProperties`, {
-            //   ...(flattenedProperties ?? {}),
-            //   ...childProperties,
-            // });
-            // setValue(
-            //   `flattenedCreatingProperties.${id}.data.expectedValues`,
-            //   childPropertyIds,
-            // );
           }}
           renderTags={() => <Box />}
           renderInput={(inputProps) => (
@@ -243,13 +199,13 @@ export const ArrayPropertyTypeMenu: FunctionComponent<
               placeholder="Select acceptable values"
             />
           )}
-          options={propertyTypeDataTypes}
-          getOptionLabel={(obj) => obj.title}
+          options={dataTypeOptions}
+          getOptionLabel={(opt) => dataTypeData[opt]!.title}
           renderOption={(optProps, opt) => {
             return (
               <Box component="li" {...optProps} sx={{ py: 1.5, px: 2.25 }}>
                 <FontAwesomeIcon
-                  icon={{ icon: opt.icon }}
+                  icon={{ icon: dataTypeData[opt]!.icon }}
                   sx={(theme) => ({ color: theme.palette.gray[50] })}
                 />
                 <Typography
@@ -258,7 +214,7 @@ export const ArrayPropertyTypeMenu: FunctionComponent<
                   ml={1.5}
                   color={(theme) => theme.palette.gray[80]}
                 >
-                  {opt.title}
+                  {dataTypeData[opt]!.title}
                 </Typography>
                 <Chip color="blue" label="DATA TYPE" sx={{ ml: 1.5 }} />
               </Box>

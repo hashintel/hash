@@ -1,4 +1,3 @@
-import { PropertyValues, VersionedUri } from "@blockprotocol/type-system-web";
 import { faClose } from "@fortawesome/free-solid-svg-icons";
 import {
   Button,
@@ -12,7 +11,6 @@ import { frontendUrl } from "@hashintel/hash-shared/environment";
 import {
   addVersionToBaseUri,
   generateBaseTypeId,
-  types,
 } from "@hashintel/hash-shared/types";
 import { getPropertyTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
 import {
@@ -38,14 +36,17 @@ import {
 } from "react-hook-form";
 import { useBlockProtocolGetPropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetPropertyType";
 import { Modal } from "../../../../components/Modals/Modal";
-import { fa100 } from "../../../../shared/icons/pro/fa-100";
-import { faSquareCheck } from "../../../../shared/icons/pro/fa-square-check";
-import { faText } from "../../../../shared/icons/pro/fa-text";
 import {
   PropertyTypeSelectorDropdown,
   PropertyTypeSelectorDropdownContext,
 } from "./property-type-selector-dropdown";
-import { DataType } from "./property-type-utils";
+import {
+  DataType,
+  dataTypeData,
+  dataTypeOptions,
+  ExpectedValue,
+  getPropertyTypeSchema,
+} from "./property-type-utils";
 import { QuestionIcon } from "./question-icon";
 import { useRouteNamespace } from "./use-route-namespace";
 import { withHandler } from "./util";
@@ -53,33 +54,12 @@ import { withHandler } from "./util";
 const generateInitialPropertyTypeId = (baseUri: string) =>
   addVersionToBaseUri(baseUri, 1);
 
-const propertyTypeDataTypesOptions = [
-  types.dataType.text.dataTypeId,
-  types.dataType.number.dataTypeId,
-  types.dataType.boolean.dataTypeId,
-];
-
-const propertyTypeDataTypeData = {
-  [types.dataType.text.dataTypeId]: {
-    title: types.dataType.text.title,
-    icon: faText,
-  },
-  [types.dataType.number.dataTypeId]: {
-    title: types.dataType.number.title,
-    icon: fa100,
-  },
-  [types.dataType.boolean.dataTypeId]: {
-    title: types.dataType.boolean.title,
-    icon: faSquareCheck,
-  },
-};
-
 export type PropertyTypeFormValues = {
   name: string;
   description: string;
-  expectedValues: VersionedUri[];
+  expectedValues: ExpectedValue[];
   creatingPropertyId?: string;
-  flattenedCreatingProperties: Record<string, DataType>;
+  flattenedPropertyList: Record<string, DataType>;
 };
 
 type PropertyTypeFormSubmitProps = Omit<
@@ -113,9 +93,7 @@ const useTriggerValidation = (
 
 // @todo consider calling for consumer
 export const formDataToPropertyType = (data: PropertyTypeFormValues) => ({
-  oneOf: data.expectedValues.map((value) => ({
-    $ref: value,
-  })) as [PropertyValues, ...PropertyValues[]],
+  oneOf: data.expectedValues.map((value) => getPropertyTypeSchema(value)),
   description: data.description,
   title: data.name,
   kind: "propertyType" as const,
@@ -172,7 +150,6 @@ const PropertyTypeFormInner = ({
   } = formMethods;
 
   const creatingProperty = watch("creatingPropertyId");
-  const expectedValues = watch("expectedValues");
 
   const [autocompleteFocused, setAutocompleteFocused] = useState(false);
   const [creatingCustomPropertyType, setCreatingCustomPropertyType] =
@@ -184,6 +161,7 @@ const PropertyTypeFormInner = ({
       openCustomPropertyMenu: () => setCreatingCustomPropertyType(true),
       closeCustomPropertyMenu: () => {
         setValue("creatingPropertyId", undefined);
+        setValue("flattenedPropertyList", {});
         setCreatingCustomPropertyType(false);
       },
     }),
@@ -411,27 +389,32 @@ const PropertyTypeFormInner = ({
                     disablePortal
                     {...props}
                     renderTags={(value, getTagProps) =>
-                      value.map((opt, index) => (
-                        <Chip
-                          {...getTagProps({ index })}
-                          key={opt}
-                          label={
-                            <Typography
-                              variant="smallTextLabels"
-                              sx={{ display: "flex", alignItems: "center" }}
-                            >
-                              <FontAwesomeIcon
-                                icon={{
-                                  icon: propertyTypeDataTypeData[opt]!.icon,
-                                }}
-                                sx={{ fontSize: "1em", mr: "1ch" }}
-                              />
-                              {propertyTypeDataTypeData[opt]!.title}
-                            </Typography>
-                          }
-                          color="blue"
-                        />
-                      ))
+                      value.map((opt, index) => {
+                        const typeId =
+                          typeof opt === "object" ? opt.typeId : opt;
+
+                        return (
+                          <Chip
+                            {...getTagProps({ index })}
+                            key={typeId}
+                            label={
+                              <Typography
+                                variant="smallTextLabels"
+                                sx={{ display: "flex", alignItems: "center" }}
+                              >
+                                <FontAwesomeIcon
+                                  icon={{
+                                    icon: dataTypeData[typeId]!.icon,
+                                  }}
+                                  sx={{ fontSize: "1em", mr: "1ch" }}
+                                />
+                                {dataTypeData[typeId]!.title}
+                              </Typography>
+                            }
+                            color="blue"
+                          />
+                        );
+                      })
                     }
                     renderInput={(inputProps) => (
                       <TextField
@@ -441,32 +424,41 @@ const PropertyTypeFormInner = ({
                         placeholder="Select acceptable values"
                       />
                     )}
-                    options={propertyTypeDataTypesOptions}
+                    options={dataTypeOptions}
                     getOptionLabel={(opt) =>
-                      propertyTypeDataTypeData[opt]!.title
+                      dataTypeData[typeof opt === "object" ? opt.typeId : opt]!
+                        .title
                     }
                     disableCloseOnSelect
-                    renderOption={(optProps, opt) => (
-                      <Box
-                        component="li"
-                        {...optProps}
-                        sx={{ py: 1.5, px: 2.25 }}
-                      >
-                        <FontAwesomeIcon
-                          icon={{ icon: propertyTypeDataTypeData[opt]!.icon }}
-                          sx={(theme) => ({ color: theme.palette.gray[50] })}
-                        />
-                        <Typography
-                          variant="smallTextLabels"
-                          component="span"
-                          ml={1.5}
-                          color={(theme) => theme.palette.gray[80]}
+                    renderOption={(optProps, opt) => {
+                      const typeId = typeof opt === "object" ? opt.typeId : opt;
+
+                      return (
+                        <Box
+                          component="li"
+                          {...optProps}
+                          sx={{ py: 1.5, px: 2.25 }}
                         >
-                          {propertyTypeDataTypeData[opt]!.title}
-                        </Typography>
-                        <Chip color="blue" label="DATA TYPE" sx={{ ml: 1.5 }} />
-                      </Box>
-                    )}
+                          <FontAwesomeIcon
+                            icon={{ icon: dataTypeData[typeId]!.icon }}
+                            sx={(theme) => ({ color: theme.palette.gray[50] })}
+                          />
+                          <Typography
+                            variant="smallTextLabels"
+                            component="span"
+                            ml={1.5}
+                            color={(theme) => theme.palette.gray[80]}
+                          >
+                            {dataTypeData[typeId]!.title}
+                          </Typography>
+                          <Chip
+                            color="blue"
+                            label="DATA TYPE"
+                            sx={{ ml: 1.5 }}
+                          />
+                        </Box>
+                      );
+                    }}
                     componentsProps={{
                       popper: {
                         sx: { width: "100% !important" },
