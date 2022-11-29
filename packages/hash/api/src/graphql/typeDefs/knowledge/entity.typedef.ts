@@ -45,9 +45,9 @@ export const entityTypedef = gql`
     """
     getAllLatestEntities(
       """
-      Filter entities by their entity type ID (optional)
+      Filter root entities by their entity type ID (optional)
       """
-      entityTypeId: VersionedUri
+      rootEntityTypeIds: [VersionedUri!]
       constrainsValuesOn: OutgoingEdgeResolveDepthInput!
       constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
       constrainsLinksOn: OutgoingEdgeResolveDepthInput!

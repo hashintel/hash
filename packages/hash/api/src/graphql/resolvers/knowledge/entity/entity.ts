@@ -84,7 +84,7 @@ export const getAllLatestEntities: ResolverFn<
 > = async (
   _,
   {
-    entityTypeId,
+    rootEntityTypeIds,
     constrainsValuesOn,
     constrainsPropertiesOn,
     constrainsLinksOn,
@@ -108,9 +108,14 @@ export const getAllLatestEntities: ResolverFn<
     ],
   };
 
-  if (entityTypeId) {
+  if (rootEntityTypeIds && rootEntityTypeIds.length > 0) {
     filter.all.push({
-      equal: [{ path: ["type", "versionedUri"] }, { parameter: entityTypeId }],
+      any: rootEntityTypeIds.map((entityTypeId) => ({
+        equal: [
+          { path: ["type", "versionedUri"] },
+          { parameter: entityTypeId },
+        ],
+      })),
     });
   }
 

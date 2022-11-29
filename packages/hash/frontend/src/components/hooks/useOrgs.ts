@@ -23,7 +23,7 @@ export const useOrgs = (): {
     GetAllLatestEntitiesQueryVariables
   >(getAllLatestEntitiesQuery, {
     variables: {
-      entityTypeId: types.entityType.org.entityTypeId,
+      rootEntityTypeIds: [types.entityType.org.entityTypeId],
       constrainsValuesOn: { outgoing: 0 },
       constrainsPropertiesOn: { outgoing: 0 },
       constrainsLinksOn: { outgoing: 0 },

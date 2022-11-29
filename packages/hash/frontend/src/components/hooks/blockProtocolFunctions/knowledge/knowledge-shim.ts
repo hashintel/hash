@@ -37,7 +37,7 @@ export type GetEntityMessageCallback = MessageCallback<
 >;
 
 export type AggregateEntitiesRequest = {
-  entityTypeId?: VersionedUri;
+  rootEntityTypeIds?: VersionedUri[];
 };
 
 export type AggregateEntitiesMessageCallback = MessageCallback<

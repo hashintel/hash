@@ -19,7 +19,7 @@ export const useUsers = (): {
     GetAllLatestEntitiesQueryVariables
   >(getAllLatestEntitiesQuery, {
     variables: {
-      entityTypeId: types.entityType.user.entityTypeId,
+      rootEntityTypeIds: [types.entityType.user.entityTypeId],
       constrainsValuesOn: { outgoing: 0 },
       constrainsPropertiesOn: { outgoing: 0 },
       constrainsLinksOn: { outgoing: 0 },
