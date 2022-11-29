@@ -53,7 +53,7 @@ pub enum DependencyStatus {
 }
 
 pub struct DependencyMap<K> {
-    resolved: HashMap<K, Option<GraphResolveDepths>>,
+    resolved: HashMap<K, GraphResolveDepths>,
 }
 
 impl<K> Default for DependencyMap<K> {
@@ -82,24 +82,20 @@ where
     pub fn insert(
         &mut self,
         identifier: &K,
-        resolved_depth: Option<GraphResolveDepths>,
+        resolved_depth: GraphResolveDepths,
     ) -> DependencyStatus {
         match self.resolved.raw_entry_mut().from_key(identifier) {
             RawEntryMut::Vacant(entry) => {
                 entry.insert(identifier.clone(), resolved_depth);
                 DependencyStatus::Unknown
             }
-            RawEntryMut::Occupied(entry) => match (entry.into_mut(), resolved_depth) {
-                (None, Some(_)) => DependencyStatus::DependenciesUnresolved,
-                (Some(used_depth), Some(resolved_depth)) => {
-                    if used_depth.update(resolved_depth) {
-                        DependencyStatus::DependenciesUnresolved
-                    } else {
-                        DependencyStatus::Resolved
-                    }
+            RawEntryMut::Occupied(entry) => {
+                if entry.into_mut().update(resolved_depth) {
+                    DependencyStatus::DependenciesUnresolved
+                } else {
+                    DependencyStatus::Resolved
                 }
-                _ => DependencyStatus::Resolved,
-            },
+            }
         }
     }
 }
