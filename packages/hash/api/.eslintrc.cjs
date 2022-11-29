@@ -8,7 +8,7 @@ module.exports = {
     ...require("@local/eslint-config/temporarily-disable-rules.cjs")([
       /* 2022-11-16:  25 */ "@typescript-eslint/no-unsafe-argument",
       /* 2022-11-16:  72 */ "@typescript-eslint/no-unsafe-assignment",
-      /* 2022-11-16:  ?? */ "@typescript-eslint/no-unsafe-call",
+      /* 2022-11-16:  37 */ "@typescript-eslint/no-unsafe-call",
       /* 2022-11-16:  58 */ "@typescript-eslint/no-unsafe-member-access",
       /* 2022-11-16:  33 */ "@typescript-eslint/no-unsafe-return",
       /* 2022-11-16:  11 */ "@typescript-eslint/require-await",

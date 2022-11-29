@@ -149,9 +149,7 @@ export const Subscribe: FunctionComponent<BoxProps> = (props) => {
 
                   const { data } = await axios.post<SubscribeResponseBody>(
                     "/api/subscribe",
-                    {
-                      email,
-                    },
+                    { email },
                   );
 
                   unstable_batchedUpdates(() => {

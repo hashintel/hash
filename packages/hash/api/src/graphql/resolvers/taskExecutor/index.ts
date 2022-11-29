@@ -27,7 +27,6 @@ export const executeDemoTask: ResolverFn<
   } else {
     return await taskExecutor
       .runTask(Task.Demo)
-
       .then((res) => res.toString())
       .catch((err) => {
         throw new ApolloError(`Task-execution failed: ${err}`);
