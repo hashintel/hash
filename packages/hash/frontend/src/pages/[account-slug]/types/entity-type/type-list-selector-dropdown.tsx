@@ -11,10 +11,9 @@ import {
   PaperProps,
   Typography,
 } from "@mui/material";
-import { createContext, useContext } from "react";
 import { StyledPlusCircleIcon } from "./styled-plus-circle-icon";
 
-type TypeListSelectorDropdownProps = {
+export type TypeListSelectorDropdownProps = {
   query: string;
   createButtonProps: Omit<ButtonProps, "children" | "variant" | "size">;
   variant: "entityType" | "propertyType";
@@ -22,23 +21,13 @@ type TypeListSelectorDropdownProps = {
 
 export const TYPE_SELECTOR_HEIGHT = 57;
 
-export const TypeListSelectorDropdownContext =
-  createContext<TypeListSelectorDropdownProps | null>(null);
-
-const useTypeListSelectorDropdownContext = () => {
-  const value = useContext(TypeListSelectorDropdownContext);
-  if (value === null) {
-    throw new Error("Must wrap with TypeListSelectorDropdownContext.Provider");
-  }
-  return value;
-};
-
 export const TypeListSelectorDropdown = ({
   children,
+  dropdownProps,
   ...props
-}: PaperProps) => {
-  const { query, createButtonProps, variant } =
-    useTypeListSelectorDropdownContext();
+}: PaperProps & { dropdownProps: TypeListSelectorDropdownProps }) => {
+  const { query, createButtonProps, variant } = dropdownProps;
+
   return (
     <>
       <Box
