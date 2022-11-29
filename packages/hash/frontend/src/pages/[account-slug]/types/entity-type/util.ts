@@ -54,16 +54,5 @@ export const withHandler = <
   };
 };
 
-/**
- * Necessary as type system isn't fully correctly typed yet
- */
-export const mustBeVersionedUri = (uri: string) => {
-  const validatedId = validateVersionedUri(uri);
-  if (validatedId.type === "Err") {
-    throw new Error("uri not versioned");
-  }
-  return validatedId.inner;
-};
-
 export const getEntityTypeBaseUri = (entityTypeId: string, namespace: string) =>
   `${frontendUrl}/${namespace}/types/entity-type/${entityTypeId}/`;

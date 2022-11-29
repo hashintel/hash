@@ -36,7 +36,7 @@ import { PropertyTypeForm } from "./property-type-form";
 import { QuestionIcon } from "./question-icon";
 import { StyledPlusCircleIcon } from "./styled-plus-circle-icon";
 import { usePropertyTypes } from "./use-property-types";
-import { mustBeVersionedUri, useStateCallback } from "./util";
+import { useStateCallback } from "./util";
 
 const CenteredTableCell = styled(TableCell)(
   experimental_sx({
@@ -55,6 +55,7 @@ export const PropertyTypeRow = ({
   const { control } = useFormContext<EntityTypeEditorForm>();
 
   const [$id] = useWatch({
+    control,
     name: [`properties.${propertyIndex}.$id`],
   });
 
@@ -71,8 +72,7 @@ export const PropertyTypeRow = ({
   });
 
   const propertyTypes = usePropertyTypes();
-  const propertyId = mustBeVersionedUri($id);
-  const property = propertyTypes?.[propertyId];
+  const property = propertyTypes?.[$id];
 
   if (!property) {
     if (propertyTypes) {
@@ -160,7 +160,7 @@ export const PropertyTypeRow = ({
             if (!("$ref" in dataType)) {
               throw new Error("Handle exotic data types");
             }
-            return mustBeVersionedUri(dataType.$ref);
+            return dataType.$ref;
           }),
         })}
       />

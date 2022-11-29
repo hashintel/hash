@@ -1,16 +1,15 @@
 import {
   EntityType,
-  PropertyType,
   extractBaseUri,
   extractVersion,
+  PropertyType,
 } from "@blockprotocol/type-system-web";
 import { SizedGridColumn } from "@glideapps/glide-data-grid";
 import { types } from "@hashintel/hash-shared/types";
-import { useMemo } from "react";
 import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import { getEntityByEditionId } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
+import { useMemo } from "react";
 import { generateEntityLabel } from "../../../../lib/entities";
-import { mustBeVersionedUri } from "./util";
 
 export interface TypeEntitiesRow {
   entity: string;
@@ -33,9 +32,7 @@ export const useEntitiesTable = (
     const propertyColumnsMap = new Map<string, SizedGridColumn>();
     if (propertyTypes) {
       for (const propertyType of propertyTypes) {
-        const propertyTypeBaseUri = extractBaseUri(
-          mustBeVersionedUri(propertyType.$id),
-        );
+        const propertyTypeBaseUri = extractBaseUri(propertyType.$id);
 
         if (!propertyColumnsMap.has(propertyTypeBaseUri)) {
           propertyColumnsMap.set(propertyTypeBaseUri, {
