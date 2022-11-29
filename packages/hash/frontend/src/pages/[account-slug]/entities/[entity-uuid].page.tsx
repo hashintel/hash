@@ -115,6 +115,9 @@ const Page: NextPageWithLayout = () => {
   );
 };
 
-Page.getLayout = getLayoutWithSidebar;
+Page.getLayout = (page) =>
+  getLayoutWithSidebar(page, {
+    fullWidth: true,
+  });
 
 export default Page;
