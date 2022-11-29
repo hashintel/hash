@@ -8,8 +8,8 @@ import { useOrgs } from "./useOrgs";
 export const useGetAccountIdForShortname = (
   shortname: string | undefined,
 ): { loading: boolean; accountId: string | undefined } => {
-  const { loading: usersLoading, users } = useUsers();
-  const { loading: orgsLoading, orgs } = useOrgs();
+  const { loading: usersLoading, users } = useUsers(true);
+  const { loading: orgsLoading, orgs } = useOrgs(true);
 
   const accountId = useMemo(() => {
     /**
