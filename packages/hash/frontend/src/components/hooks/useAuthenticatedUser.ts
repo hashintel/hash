@@ -1,7 +1,14 @@
 import { ApolloQueryResult, QueryHookOptions, useQuery } from "@apollo/client";
 import * as Sentry from "@sentry/nextjs";
 import { useRouter } from "next/router";
-import { useContext, useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import {
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import { meQuery } from "../../graphql/queries/user.queries";
@@ -23,7 +30,12 @@ import { SessionContext } from "../../pages/shared/session-context";
 export const useAuthenticatedUser = (
   options?: Omit<QueryHookOptions<MeQuery, MeQueryVariables>, "errorPolicy">,
   forceLogin = false,
+  onAuthenticate?: (
+    authenticatedUser: AuthenticatedUser,
+  ) => Promise<void> | void,
 ) => {
+  const [prevAuthenticatedUser, setPrevAuthenticatedUser] =
+    useState<AuthenticatedUser>();
   const loadingTypeSystem = useInitTypeSystem();
   const router = useRouter();
 
@@ -119,6 +131,11 @@ export const useAuthenticatedUser = (
   // const updateCache = () => {
   //   client.writeQuery();
   // };
+
+  if (!prevAuthenticatedUser && authenticatedUser) {
+    setPrevAuthenticatedUser(authenticatedUser);
+    void onAuthenticate?.(authenticatedUser);
+  }
 
   return {
     authenticatedUser,

@@ -1,8 +1,7 @@
 import { validateVersionedUri } from "@blockprotocol/type-system-web";
 import { useRouter } from "next/router";
 import { useState } from "react";
-import { useEffectOnceWhen } from "rooks";
-import { useLoggedInUser } from "../../../components/hooks/useAuthenticatedUser";
+import { useAuthenticatedUser } from "../../../components/hooks/useAuthenticatedUser";
 import { PageErrorState } from "../../../components/page-error-state";
 import { getPlainLayout, NextPageWithLayout } from "../../../shared/layout";
 import { EntityPageLoadingState } from "./[entity-uuid].page/entity-page-loading-state";
@@ -11,15 +10,13 @@ import { useCreateNewEntityAndRedirect } from "./[entity-uuid].page/shared/use-c
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
-  const { authenticatedUser } = useLoggedInUser();
   const createNewEntityAndRedirect = useCreateNewEntityAndRedirect();
   const [loading, setLoading] = useState(true);
 
-  const accountSlug = router.query["account-slug"] as string | undefined;
-  const shortname = accountSlug?.slice(1);
-
-  useEffectOnceWhen(() => {
-    const init = async () => {
+  const { authenticatedUser } = useAuthenticatedUser(
+    undefined,
+    true,
+    async () => {
       const entityTypeId = String(router.query["entity-type-id"]);
       const idResult = validateVersionedUri(entityTypeId);
 
@@ -32,10 +29,11 @@ const Page: NextPageWithLayout = () => {
       } else {
         setLoading(false);
       }
-    };
+    },
+  );
 
-    void init();
-  }, !!authenticatedUser);
+  const accountSlug = router.query["account-slug"] as string | undefined;
+  const shortname = accountSlug?.slice(1);
 
   if (!authenticatedUser) {
     return null;
