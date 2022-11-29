@@ -33,6 +33,8 @@ export const useBlockProtocolAggregateEntities = (): {
         };
       }
 
+      const { rootEntityTypeIds } = data;
+
       /**
        * @todo Add filtering to this aggregate query using structural querying.
        *   This may mean having the backend use structural querying and relaying
@@ -41,6 +43,7 @@ export const useBlockProtocolAggregateEntities = (): {
        */
       const { data: response } = await aggregateFn({
         variables: {
+          rootEntityTypeIds,
           constrainsValuesOn: { outgoing: 255 },
           constrainsPropertiesOn: { outgoing: 255 },
           constrainsLinksOn: { outgoing: 1 },
