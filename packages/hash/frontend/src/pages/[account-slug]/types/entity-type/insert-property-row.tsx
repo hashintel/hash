@@ -12,10 +12,7 @@ import { useBlockProtocolCreatePropertyType } from "../../../../components/hooks
 import { EntityTypeEditorForm } from "./form-types";
 import { PropertyListSelectorDropdownContext } from "./property-list-selector-dropdown";
 import { PropertySelector } from "./property-selector";
-import {
-  PropertyTypeModalFormValues,
-  PropertyTypeModalForm,
-} from "./property-type-modal-form";
+import { PropertyTypeFormValues, PropertyTypeForm } from "./property-type-form";
 import { QuestionIcon } from "./question-icon";
 import { useRefetchPropertyTypes } from "./use-property-types";
 import { useRouteNamespace } from "./use-route-namespace";
@@ -52,7 +49,7 @@ export const InsertPropertyRow = ({
     routeNamespace?.accountId ?? "",
   );
 
-  const handleSubmit = async (data: PropertyTypeModalFormValues) => {
+  const handleSubmit = async (data: PropertyTypeFormValues) => {
     const res = await createPropertyType({
       data: {
         propertyType: {
@@ -116,7 +113,7 @@ export const InsertPropertyRow = ({
             }
           />
         </PropertyListSelectorDropdownContext.Provider>
-        <PropertyTypeModalForm
+        <PropertyTypeForm
           modalTitle={
             <>
               Create new property type

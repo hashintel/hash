@@ -64,21 +64,21 @@ const propertyTypeDataTypeData = {
   },
 };
 
-export type PropertyTypeModalFormValues = {
+export type PropertyTypeFormValues = {
   name: string;
   description: string;
   expectedValues: VersionedUri[];
 };
 
-type PropertyTypeModalFormSubmitProps = Omit<
+type PropertyTypeFormSubmitProps = Omit<
   ButtonProps,
   "size" | "variant" | "disabled" | "type" | "loading"
 >;
 
 const useTriggerValidation = (
-  defaultValues: Partial<PropertyTypeModalFormValues>,
-  disabledFields: Set<keyof PropertyTypeModalFormValues>,
-  trigger: UseFormTrigger<PropertyTypeModalFormValues>,
+  defaultValues: Partial<PropertyTypeFormValues>,
+  disabledFields: Set<keyof PropertyTypeFormValues>,
+  trigger: UseFormTrigger<PropertyTypeFormValues>,
 ) => {
   const keys = (
     Object.keys(defaultValues) as any as (keyof typeof defaultValues)[]
@@ -99,7 +99,7 @@ const useTriggerValidation = (
   }, [trigger, defaultValuesKeys]);
 };
 
-const PropertyTypeForm = ({
+const PropertyTypeFormInner = ({
   onClose,
   modalTitle,
   popupState,
@@ -111,11 +111,11 @@ const PropertyTypeForm = ({
   onClose?: () => void;
   modalTitle: ReactNode;
   popupState: PopupState;
-  onSubmit: (data: PropertyTypeModalFormValues) => Promise<void>;
-  submitButtonProps: PropertyTypeModalFormSubmitProps;
-  getDefaultValues?: () => Partial<PropertyTypeModalFormValues>;
+  onSubmit: (data: PropertyTypeFormValues) => Promise<void>;
+  submitButtonProps: PropertyTypeFormSubmitProps;
+  getDefaultValues?: () => Partial<PropertyTypeFormValues>;
   fieldProps?: Partial<
-    Record<keyof PropertyTypeModalFormValues, { disabled?: boolean }>
+    Record<keyof PropertyTypeFormValues, { disabled?: boolean }>
   >;
 }) => {
   const defaultValues = getDefaultValues?.() ?? {};
@@ -134,7 +134,7 @@ const PropertyTypeForm = ({
     clearErrors,
     setFocus,
     trigger,
-  } = useForm<PropertyTypeModalFormValues>({
+  } = useForm<PropertyTypeFormValues>({
     defaultValues: {
       name: defaultValues.name ?? "",
       description: defaultValues.description ?? "",
@@ -430,10 +430,10 @@ const PropertyTypeForm = ({
   );
 };
 
-export const PropertyTypeModalForm = ({
+export const PropertyTypeForm = ({
   popupState,
   ...props
-}: ComponentProps<typeof PropertyTypeForm>) => (
+}: ComponentProps<typeof PropertyTypeFormInner>) => (
   <Modal
     {...bindDialog(popupState)}
     disableEscapeKeyDown
@@ -443,6 +443,6 @@ export const PropertyTypeModalForm = ({
       borderColor: theme.palette.gray[20],
     })}
   >
-    <PropertyTypeForm {...props} popupState={popupState} />
+    <PropertyTypeFormInner {...props} popupState={popupState} />
   </Modal>
 );
