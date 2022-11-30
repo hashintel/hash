@@ -6,6 +6,7 @@ import {
   OntologyElementMetadata,
 } from "@hashintel/hash-subgraph";
 import { generateTypeId } from "@hashintel/hash-shared/types";
+import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
 import { DataTypeModel } from "../index";
 import { getNamespaceOfAccountOwner } from "./util";
 
@@ -162,7 +163,7 @@ export default class {
     return DataTypeModel.fromDataTypeWithMetadata({
       schema: {
         ...schema,
-        $id: `${editionId.baseId}/v/${editionId.version}`,
+        $id: versionedUriFromComponents(editionId.baseId, editionId.version),
       },
       metadata,
     });

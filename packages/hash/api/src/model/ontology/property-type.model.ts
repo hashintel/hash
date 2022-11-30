@@ -10,6 +10,7 @@ import {
 } from "@hashintel/hash-subgraph";
 import { generateTypeId } from "@hashintel/hash-shared/types";
 import { PropertyType } from "@blockprotocol/type-system-web";
+import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
 import { PropertyTypeModel } from "../index";
 import { extractBaseUri } from "../util";
 import { getNamespaceOfAccountOwner } from "./util";
@@ -150,7 +151,10 @@ export default class {
     return PropertyTypeModel.fromPropertyTypeWithMetadata({
       schema: {
         ...schema,
-        $id: `${metadata.editionId.baseId}/v/${metadata.editionId.version}`,
+        $id: versionedUriFromComponents(
+          metadata.editionId.baseId,
+          metadata.editionId.version,
+        ),
       },
       metadata,
     });
