@@ -720,14 +720,14 @@ fn into_boxed_hook<T: Send + Sync + 'static>(
 /// [`Display`]: core::fmt::Display
 /// [`Debug`]: core::fmt::Debug
 /// [`.insert()`]: Hooks::insert
-#[cfg(feature = "std")]
+#[cfg(any(feature = "std", feature = "hooks"))]
 pub(crate) struct Hooks {
     // We use `Vec`, instead of `HashMap` or `BTreeMap`, so that ordering is consistent with the
     // insertion order of types.
     pub(crate) inner: Vec<(TypeId, BoxedHook)>,
 }
 
-#[cfg(feature = "std")]
+#[cfg(any(feature = "std", feature = "hooks"))]
 impl Hooks {
     pub(crate) fn insert<T: Send + Sync + 'static>(
         &mut self,
@@ -763,12 +763,15 @@ mod default {
         panic::Location,
         sync::atomic::{AtomicBool, Ordering},
     };
-    #[cfg(rust_1_65)]
+    #[cfg(all(rust_1_65, feature = "std"))]
     use std::backtrace::Backtrace;
+    #[cfg(feature = "std")]
     use std::sync::Once;
 
     #[cfg(feature = "pretty-print")]
     use owo_colors::{OwoColorize, Stream};
+    #[cfg(all(not(feature = "std"), feature = "hooks"))]
+    use spin::once::Once;
     #[cfg(feature = "spantrace")]
     use tracing_error::SpanTrace;
 
@@ -787,6 +790,9 @@ mod default {
         //
         // > If the given closure recursively invokes call_once on the same Once instance the exact
         // > behavior is not specified, allowed outcomes are a panic or a deadlock.
+        //
+        // This limitation is not present for the implementation from the spin crate, but for
+        // simplicity and readability the extra guard is kept.
         static INSTALL_BUILTIN_RUNNING: AtomicBool = AtomicBool::new(false);
 
         // This has minimal overhead, as `Once::call_once` calls `.is_completed` as the short path
@@ -800,7 +806,7 @@ mod default {
 
             Report::install_debug_hook::<Location>(location);
 
-            #[cfg(rust_1_65)]
+            #[cfg(all(feature = "std", rust_1_65))]
             Report::install_debug_hook::<Backtrace>(backtrace);
 
             #[cfg(feature = "spantrace")]
@@ -819,7 +825,7 @@ mod default {
         context.push_body(format!("at {location}"));
     }
 
-    #[cfg(rust_1_65)]
+    #[cfg(all(feature = "std", rust_1_65))]
     fn backtrace(backtrace: &Backtrace, context: &mut HookContext<Backtrace>) {
         let idx = context.increment_counter();
 
