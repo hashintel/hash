@@ -9,11 +9,11 @@ error-stack = "0.2.4"
 
 num-traits = "0.2.15"
 
-serde = { version = "1.0.147", default_features = false, features = ['alloc', 'derive'] }
+serde = { version = "1.0.148", default_features = false, features = ['alloc', 'derive'] }
 erased-serde = { version = "0.3.23", default_features = false, features = ['alloc'] }
 
 [dev-dependencies]
-serde_json = "1.0.87"
+serde_json = "1.0.89"
 
 [build-dependencies]
 rustc_version = "0.4.0"
