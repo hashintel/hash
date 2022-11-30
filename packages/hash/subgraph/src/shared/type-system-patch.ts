@@ -17,7 +17,7 @@ const versionedUriGroupsPattern = /(.+\/)v\/(\d+)(.*)/;
 
 export const splitVersionedUri = (id: VersionedUri): [BaseUri, number] => {
   const [baseUri, version] = id.match(versionedUriGroupsPattern)!;
-  return [baseUri!, Number(version!)];
+  return [baseUri, Number(version)];
 };
 
 export const versionedUriFromComponents = (
