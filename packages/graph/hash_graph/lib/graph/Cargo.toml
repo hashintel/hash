@@ -6,11 +6,11 @@ publish = false
 description = "HASH Graph API"
 
 [dependencies]
-async-trait = "0.1.57"
+async-trait = "0.1.59"
 axum = "0.5.16"
 bb8-postgres = "0.8.1"
 clap = { version = "4.0.13", features = ["derive", "env"], optional = true }
-chrono = { version = "0.4.22", features = ["serde"] }
+chrono = { version = "0.4.23", features = ["serde"] }
 error-stack = { version = "0.2.3", features = ["spantrace"] }
 futures = "0.3.24"
 hyper = "0.14.22"
@@ -26,7 +26,7 @@ tracing-appender = "0.2.2"
 tracing-error = "0.2.0"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter", "json"] }
 type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "244d25a" }
-uuid = { version = "1.2.1", features = ["v4", "serde"] }
+uuid = { version = "1.2.2", features = ["v4", "serde"] }
 utoipa = { version = " 2.3.0", features = ["uuid"] }
 include_dir = "0.7.2"
 
