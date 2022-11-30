@@ -66,11 +66,6 @@ pub trait OntologyPath: 'static {
     /// [`OwnedById`]: crate::provenance::OwnedById
     fn owned_by_id() -> Self;
 
-    /// Returns the path identifying the [`CreatedById`].
-    ///
-    /// [`CreatedById`]: crate::provenance::CreatedById
-    fn created_by_id() -> Self;
-
     /// Returns the path identifying the [`UpdatedById`].
     ///
     /// [`UpdatedById`]: crate::provenance::UpdatedById

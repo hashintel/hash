@@ -66,9 +66,6 @@ describe("Data type CRU", () => {
 
   const updatedTitle = "New text!";
   it("can update a data type", async () => {
-    expect(createdDataTypeModel.getMetadata().provenance.createdById).toBe(
-      testUser.getEntityUuid(),
-    );
     expect(createdDataTypeModel.getMetadata().provenance.updatedById).toBe(
       testUser.getEntityUuid(),
     );
@@ -80,9 +77,6 @@ describe("Data type CRU", () => {
       })
       .catch((err) => Promise.reject(err.data));
 
-    expect(createdDataTypeModel.getMetadata().provenance.createdById).toBe(
-      testUser.getEntityUuid(),
-    );
     expect(createdDataTypeModel.getMetadata().provenance.updatedById).toBe(
       testUser2.getEntityUuid(),
     );

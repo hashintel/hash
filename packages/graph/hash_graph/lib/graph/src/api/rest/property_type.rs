@@ -26,7 +26,7 @@ use crate::{
         patch_id_and_parse, OntologyElementMetadata, PropertyTypeQueryToken,
         PropertyTypeWithMetadata,
     },
-    provenance::{CreatedById, OwnedById, UpdatedById},
+    provenance::{OwnedById, UpdatedById},
     store::{
         query::Filter, BaseUriAlreadyExists, BaseUriDoesNotExist, PropertyTypeStore, StorePool,
     },
@@ -54,7 +54,6 @@ use crate::{
             CreatePropertyTypeRequest,
             UpdatePropertyTypeRequest,
             OwnedById,
-            CreatedById,
             UpdatedById,
             OntologyTypeEditionId,
             OntologyElementMetadata,
@@ -105,7 +104,7 @@ struct CreatePropertyTypeRequest {
     #[schema(value_type = VAR_PROPERTY_TYPE)]
     schema: serde_json::Value,
     owned_by_id: OwnedById,
-    actor_id: CreatedById,
+    actor_id: UpdatedById,
 }
 
 #[utoipa::path(

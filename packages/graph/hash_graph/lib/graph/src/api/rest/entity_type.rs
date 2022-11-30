@@ -27,7 +27,7 @@ use crate::{
         domain_validator::{DomainValidator, ValidateOntologyType},
         patch_id_and_parse, EntityTypeQueryToken, EntityTypeWithMetadata, OntologyElementMetadata,
     },
-    provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
+    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         error::{BaseUriAlreadyExists, BaseUriDoesNotExist},
         query::Filter,
@@ -57,7 +57,6 @@ use crate::{
             CreateEntityTypeRequest,
             UpdateEntityTypeRequest,
             OwnedById,
-            CreatedById,
             UpdatedById,
             OntologyTypeEditionId,
             OntologyElementMetadata,
@@ -112,7 +111,7 @@ struct CreateEntityTypeRequest {
     #[schema(value_type = VAR_ENTITY_TYPE)]
     schema: serde_json::Value,
     owned_by_id: OwnedById,
-    actor_id: CreatedById,
+    actor_id: UpdatedById,
 }
 
 #[utoipa::path(
