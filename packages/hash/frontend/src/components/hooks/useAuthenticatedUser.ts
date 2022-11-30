@@ -128,8 +128,8 @@ export const useAuthenticatedUser = (
   return {
     authenticatedUser,
     kratosSession,
-    refetch: () => {
-      return Promise.all([
+    refetch: () =>
+      Promise.all([
         // Until we change the GraphQL query scalars to return constrained Subgraphs, we need to (safely) cast
         // ourselves
         (
@@ -138,8 +138,7 @@ export const useAuthenticatedUser = (
           >
         )(),
         fetchKratosIdentity(forceLogin, true),
-      ]);
-    },
+      ]),
     loading: loadingUser || loadingKratosSession,
   };
 };
