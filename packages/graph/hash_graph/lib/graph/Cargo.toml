@@ -6,7 +6,7 @@ publish = false
 description = "HASH Graph API"
 
 [dependencies]
-async-trait = "0.1.57"
+async-trait = "0.1.59"
 axum = "0.5.16"
 bb8-postgres = "0.8.1"
 clap = { version = "4.0.13", features = ["derive", "env"], optional = true }
