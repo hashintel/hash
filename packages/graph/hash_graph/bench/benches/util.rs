@@ -2,7 +2,7 @@ use std::{mem::ManuallyDrop, str::FromStr};
 
 use graph::{
     identifier::account::AccountId,
-    provenance::{CreatedById, OwnedById, UpdatedById},
+    provenance::{OwnedById, UpdatedById},
     store::{
         AsClient, BaseUriAlreadyExists, DataTypeStore, DatabaseConnectionInfo, DatabaseType,
         EntityTypeStore, PostgresStore, PostgresStorePool, PropertyTypeStore, StorePool,
@@ -183,7 +183,7 @@ pub async fn seed<D, P, E, C>(
             .create_data_type(
                 data_type.clone(),
                 OwnedById::new(account_id),
-                CreatedById::new(account_id),
+                UpdatedById::new(account_id),
             )
             .await
         {
@@ -209,7 +209,7 @@ pub async fn seed<D, P, E, C>(
             .create_property_type(
                 property_type.clone(),
                 OwnedById::new(account_id),
-                CreatedById::new(account_id),
+                UpdatedById::new(account_id),
             )
             .await
         {
@@ -235,7 +235,7 @@ pub async fn seed<D, P, E, C>(
             .create_entity_type(
                 entity_type.clone(),
                 OwnedById::new(account_id),
-                CreatedById::new(account_id),
+                UpdatedById::new(account_id),
             )
             .await
         {
