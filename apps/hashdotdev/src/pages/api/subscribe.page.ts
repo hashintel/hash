@@ -41,7 +41,7 @@ export default (
   const email: string = req.body.email;
 
   const merge_fields = {
-    hashdotdev: "Yes",
+    HASHDEV: "Yes",
   };
 
   axios
