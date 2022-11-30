@@ -1,9 +1,17 @@
-use std::sync::RwLock;
+use alloc::vec::Vec;
 
 use crate::{
     fmt::{install_builtin_hooks, HookContext, Hooks},
     Report,
 };
+
+#[cfg(feature = "std")]
+type RwLock<T> = std::sync::RwLock<T>;
+
+// Generally the std mutex is faster than spin, so if both `std` and `hooks` is enabled we use the
+// std variant.
+#[cfg(all(not(feature = "std"), feature = "hooks"))]
+type RwLock<T> = spin::rwlock::RwLock<T>;
 
 static FMT_HOOK: RwLock<Hooks> = RwLock::new(Hooks { inner: Vec::new() });
 
@@ -139,24 +147,36 @@ impl Report<()> {
     /// </pre>
     ///
     /// [`Error::provide`]: std::error::Error::provide
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "hooks"))]
     pub fn install_debug_hook<T: Send + Sync + 'static>(
         hook: impl Fn(&T, &mut HookContext<T>) + Send + Sync + 'static,
     ) {
         install_builtin_hooks();
 
+        #[cfg(feature = "std")]
         let mut lock = FMT_HOOK.write().expect("should not be poisoned");
+
+        // The spin RwLock cannot panic
+        #[cfg(all(not(feature = "std"), feature = "hooks"))]
+        let mut lock = FMT_HOOK.write();
+
         lock.insert(hook);
     }
 
     /// Returns the hook that was previously set by [`install_debug_hook`]
     ///
     /// [`install_debug_hook`]: Self::install_debug_hook
-    #[cfg(feature = "std")]
+    #[cfg(any(feature = "std", feature = "hooks"))]
     pub(crate) fn invoke_debug_format_hook<T>(closure: impl FnOnce(&Hooks) -> T) -> T {
         install_builtin_hooks();
 
+        #[cfg(feature = "std")]
         let hook = FMT_HOOK.read().expect("should not be poisoned");
+
+        // The spin RwLock cannot panic
+        #[cfg(all(not(feature = "std"), feature = "hooks"))]
+        let hook = FMT_HOOK.read();
+
         closure(&hook)
     }
 }
