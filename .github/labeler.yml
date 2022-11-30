@@ -28,10 +28,10 @@ A-engine:
   - "packages/engine/**/.*"
 
 A-learn:
-  - "sites/hashai/resources/*"
-  - "sites/hashai/resources/.*"
-  - "sites/hashai/resources/**/*"
-  - "sites/hashai/resources/**/.*"
+  - "apps/hashai/resources/*"
+  - "apps/hashai/resources/.*"
+  - "apps/hashai/resources/**/*"
+  - "apps/hashai/resources/**/.*"
 
 A-error-stack:
   - "packages/libs/error-stack/*"
