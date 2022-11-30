@@ -26,7 +26,7 @@ use crate::{
         DataTypeWithMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
         PropertyTypeWithMetadata,
     },
-    provenance::{CreatedById, OwnedById, UpdatedById},
+    provenance::{OwnedById, UpdatedById},
     store::query::Filter,
     subgraph::{query::StructuralQuery, Subgraph},
 };
@@ -212,7 +212,7 @@ pub trait DataTypeStore:
         &mut self,
         data_type: DataType,
         owned_by_id: OwnedById,
-        actor_id: CreatedById,
+        actor_id: UpdatedById,
     ) -> Result<OntologyElementMetadata, InsertionError>;
 
     /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
@@ -254,7 +254,7 @@ pub trait PropertyTypeStore:
         &mut self,
         property_type: PropertyType,
         owned_by_id: OwnedById,
-        actor_id: CreatedById,
+        actor_id: UpdatedById,
     ) -> Result<OntologyElementMetadata, InsertionError>;
 
     /// Get the [`Subgraph`] specified by the [`StructuralQuery`].
@@ -296,7 +296,7 @@ pub trait EntityTypeStore:
         &mut self,
         entity_type: EntityType,
         owned_by_id: OwnedById,
-        actor_id: CreatedById,
+        actor_id: UpdatedById,
     ) -> Result<OntologyElementMetadata, InsertionError>;
 
     /// Get the [`Subgraph`]s specified by the [`StructuralQuery`].
@@ -340,7 +340,7 @@ pub trait EntityStore: for<'q> crud::Read<Entity, Query<'q> = Filter<'q, Entity>
         entity_type_id: VersionedUri,
         owned_by_id: OwnedById,
         entity_uuid: Option<EntityUuid>,
-        actor_id: CreatedById,
+        actor_id: UpdatedById,
         link_metadata: Option<LinkEntityMetadata>,
     ) -> Result<EntityMetadata, InsertionError>;
 
@@ -375,7 +375,7 @@ pub trait EntityStore: for<'q> crud::Read<Entity, Query<'q> = Filter<'q, Entity>
         > + Send,
         entity_type_id: VersionedUri,
         owned_by_id: OwnedById,
-        actor_id: CreatedById,
+        actor_id: UpdatedById,
     ) -> Result<Vec<EntityUuid>, InsertionError>;
 
     /// Get the [`Subgraph`]s specified by the [`StructuralQuery`].
