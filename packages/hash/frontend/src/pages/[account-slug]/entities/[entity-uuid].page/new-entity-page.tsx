@@ -92,7 +92,7 @@ export const NewEntityPage = () => {
                     }
                   }}
                   onCreateNew={(searchValue) => {
-                    let href = `/${router.query["account-slug"]}/types/new/entity-type`;
+                    let href = `/${router.query["account-slug"]}/new/types/entity-type`;
                     if (searchValue) {
                       href += `?name=${encodeURIComponent(searchValue)}`;
                     }
