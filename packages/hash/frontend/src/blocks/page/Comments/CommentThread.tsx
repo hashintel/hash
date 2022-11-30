@@ -6,7 +6,10 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { extractBaseUri } from "@blockprotocol/type-system-web";
 import { types } from "@hashintel/hash-shared/types";
-import { EntityId } from "@hashintel/hash-subgraph";
+import {
+  EntityId,
+  extractOwnedByIdFromEntityId,
+} from "@hashintel/hash-subgraph";
 import { PageThread } from "../../../components/hooks/usePageComments";
 import { CommentTextField } from "./CommentTextField";
 import { CommentBlock } from "./CommentBlock";
@@ -94,9 +97,11 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
         comment={comment}
         resolvable={
           authenticatedUser?.userAccountId ===
-            comment.metadata.provenance.createdById ||
+            extractOwnedByIdFromEntityId(comment.metadata.editionId.baseId) ||
           authenticatedUser?.userAccountId ===
-            comment.parent.metadata.provenance.createdById
+            extractOwnedByIdFromEntityId(
+              comment.parent.metadata.editionId.baseId,
+            )
         }
       />
 
