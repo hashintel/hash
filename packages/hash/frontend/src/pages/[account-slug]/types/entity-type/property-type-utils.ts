@@ -84,7 +84,7 @@ export const getDefaultData = (
 export const getArraySchema = (
   expectedValues: string[],
   flattenedProperties: Record<string, DataType>,
-): PropertyValues[] =>
+): [PropertyValues, ...PropertyValues[]] =>
   expectedValues.map((value) => {
     const property = flattenedProperties[value];
 
@@ -98,34 +98,36 @@ export const getArraySchema = (
         },
         minItems: data?.minItems,
         maxItems: data?.maxItems,
-      } as PropertyValues;
-    }
-    return {
-      $ref: property!.data!.typeId as VersionedUri,
-    };
-  });
-
-export const getPropertyTypeSchema = (value: ExpectedValue): PropertyValues => {
-  if (typeof value === "object") {
-    const { id, flattenedProperties } = value;
-    const property = flattenedProperties[id];
-
-    if (property?.data && "expectedValues" in property.data) {
-      return {
-        type: "array",
-        items: {
-          oneOf: getArraySchema(
-            property.data.expectedValues,
-            flattenedProperties,
-          ) as [PropertyValues, ...PropertyValues[]],
-        },
-        minItems: property.data.minItems,
-        maxItems: property.data.maxItems,
       };
     }
-  }
 
-  return {
-    $ref: value as VersionedUri,
-  };
-};
+    return {
+      $ref: property!.data!.typeId,
+    };
+  }) as [PropertyValues, ...PropertyValues[]];
+
+export const getPropertyTypeSchema = (values: ExpectedValue[]) =>
+  values.map((value) => {
+    if (typeof value === "object") {
+      const { id, flattenedProperties } = value;
+      const property = flattenedProperties[id];
+
+      if (property?.data && "expectedValues" in property.data) {
+        return {
+          type: "array",
+          items: {
+            oneOf: getArraySchema(
+              property.data.expectedValues as [string, ...string[]],
+              flattenedProperties,
+            ),
+          },
+          minItems: property.data.minItems,
+          maxItems: property.data.maxItems,
+        };
+      }
+    }
+
+    return {
+      $ref: value as VersionedUri,
+    };
+  }) as [PropertyValues, ...PropertyValues[]];

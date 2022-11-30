@@ -82,7 +82,7 @@ const useTriggerValidation = (
 
 // @todo consider calling for consumer
 export const formDataToPropertyType = (data: PropertyTypeFormValues) => ({
-  oneOf: data.expectedValues.map((value) => getPropertyTypeSchema(value)),
+  oneOf: getPropertyTypeSchema(data.expectedValues),
   description: data.description,
   title: data.name,
   kind: "propertyType" as const,
