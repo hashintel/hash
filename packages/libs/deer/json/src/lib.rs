@@ -52,6 +52,8 @@ fn serde_to_deer_number(number: &serde_json::Number) -> Option<deer::Number> {
 // guaranteed.
 // This would happen if one enabled `arbitrary_precision` on `serde_json`, without enabling
 // `arbitrary-precision` on `deer-json`.
+// This is because the relationship between both features is: `deer-json::arbitrary-precision` =>
+// `serde_json::arbitrary_precision`.
 #[allow(clippy::unnecessary_wraps)]
 #[cfg(feature = "arbitrary-precision")]
 fn serde_to_deer_number(number: &serde_json::Number) -> Option<deer::Number> {
