@@ -92,20 +92,10 @@ export const isEntityEditionId = (
 ): editionId is EntityEditionId => {
   return (
     "baseId" in editionId &&
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore-expect -- This is fixed in TS 4.9
     typeof editionId.baseId === "string" &&
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore-expect -- This is fixed in TS 4.9
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     isEntityId(editionId.baseId) &&
     "version" in editionId &&
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore-expect -- This is fixed in TS 4.9
     typeof editionId.version === "string" &&
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore-expect -- This is fixed in TS 4.9
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     !Number.isNaN(Date.parse(editionId.version))
   );
 };
@@ -115,19 +105,10 @@ export const isOntologyTypeEditionId = (
 ): editionId is OntologyTypeEditionId => {
   return (
     "baseId" in editionId &&
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore-expect -- This is fixed in TS 4.9
     typeof editionId.baseId === "string" &&
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore-expect -- This is fixed in TS 4.9
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     isEntityId(editionId.baseId) &&
     "version" in editionId &&
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore-expect -- This is fixed in TS 4.9
     typeof editionId.version === "number" &&
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore-expect -- This is fixed in TS 4.9
     Number.isInteger(editionId.version)
   );
 };
@@ -137,20 +118,10 @@ export const isEntityAndTimestamp = (
 ): editionId is EntityIdAndTimestamp => {
   return (
     "baseId" in editionId &&
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore-expect -- This is fixed in TS 4.9
     typeof editionId.baseId === "string" &&
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore-expect -- This is fixed in TS 4.9
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     isEntityId(editionId.baseId) &&
     "timestamp" in editionId &&
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore-expect -- This is fixed in TS 4.9
     typeof editionId.timestamp === "string" &&
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore-expect -- This is fixed in TS 4.9
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     !Number.isNaN(Date.parse(editionId.timestamp))
   );
 };
