@@ -27,8 +27,8 @@ export const useBlockProtocolGetPropertyType = (): {
   });
 
   const getPropertyType = useCallback<GetPropertyTypeMessageCallback>(
-    async ({ data: propertyTypeId }) => {
-      if (!propertyTypeId) {
+    async ({ data }) => {
+      if (!data) {
         return {
           errors: [
             {
@@ -39,11 +39,14 @@ export const useBlockProtocolGetPropertyType = (): {
         };
       }
 
+      const { propertyTypeId, graphResolveDepths } = data;
+
       const response = await getFn({
         variables: {
           propertyTypeId,
-          dataTypeResolveDepth: 255,
-          propertyTypeResolveDepth: 255,
+          constrainsValuesOn: { outgoing: 255 },
+          constrainsPropertiesOn: { outgoing: 255 },
+          ...graphResolveDepths,
         },
       });
 

@@ -4,18 +4,15 @@ use async_trait::async_trait;
 use error_stack::{Context, IntoReport, Result, ResultExt};
 use futures::{StreamExt, TryStreamExt};
 use tokio_postgres::GenericClient;
-use type_system::{uri::VersionedUri, DataType, EntityType, PropertyType};
+use type_system::uri::VersionedUri;
 
 use crate::{
-    ontology::{
-        DataTypeWithMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
-        PersistedOntologyType, PropertyTypeWithMetadata,
-    },
+    identifier::ontology::OntologyTypeEditionId,
+    ontology::{OntologyElementMetadata, PersistedOntologyType},
     provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         crud::Read,
         postgres::{
-            context::OntologyRecord,
             ontology::OntologyDatabaseType,
             query::{Distinctness, PostgresQueryRecord, SelectCompiler},
         },
@@ -23,50 +20,6 @@ use crate::{
         AsClient, PostgresStore, QueryError,
     },
 };
-
-impl From<OntologyRecord<DataType>> for DataTypeWithMetadata {
-    fn from(data_type: OntologyRecord<DataType>) -> Self {
-        let identifier = data_type.record.id().clone().into();
-
-        Self::new(
-            data_type.record,
-            OntologyElementMetadata::new(
-                identifier,
-                ProvenanceMetadata::new(data_type.created_by_id, data_type.updated_by_id),
-                data_type.owned_by_id,
-            ),
-        )
-    }
-}
-
-impl From<OntologyRecord<PropertyType>> for PropertyTypeWithMetadata {
-    fn from(property_type: OntologyRecord<PropertyType>) -> Self {
-        let identifier = property_type.record.id().clone().into();
-
-        Self::new(
-            property_type.record,
-            OntologyElementMetadata::new(
-                identifier,
-                ProvenanceMetadata::new(property_type.created_by_id, property_type.updated_by_id),
-                property_type.owned_by_id,
-            ),
-        )
-    }
-}
-
-impl From<OntologyRecord<EntityType>> for EntityTypeWithMetadata {
-    fn from(entity_type: OntologyRecord<EntityType>) -> Self {
-        let identifier = entity_type.record.id().clone().into();
-        Self::new(
-            entity_type.record,
-            OntologyElementMetadata::new(
-                identifier,
-                ProvenanceMetadata::new(entity_type.created_by_id, entity_type.updated_by_id),
-                entity_type.owned_by_id,
-            ),
-        )
-    }
-}
 
 #[async_trait]
 impl<C: AsClient, T> Read<T> for PostgresStore<C>
@@ -123,11 +76,10 @@ where
                 let created_by_id = CreatedById::new(row.get(created_by_id_index));
                 let updated_by_id = UpdatedById::new(row.get(updated_by_id_path_index));
 
-                let edition_identifier = versioned_uri.into();
                 Ok(T::new(
                     record,
                     OntologyElementMetadata::new(
-                        edition_identifier,
+                        OntologyTypeEditionId::from(&versioned_uri),
                         ProvenanceMetadata::new(created_by_id, updated_by_id),
                         owned_by_id,
                     ),

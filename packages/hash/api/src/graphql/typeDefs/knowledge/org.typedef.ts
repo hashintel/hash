@@ -26,9 +26,13 @@ export const orgTypedef = gql`
       """
       orgSize: OrgSize!
       """
-      The depth of entities that are returned in the response subgraph.
+      The depths that \`hasLeftEntity\` edges are resolved to.
       """
-      entityResolveDepth: Int! = 0
+      hasLeftEntity: EdgeResolveDepthsInput! = { outgoing: 0, incoming: 0 }
+      """
+      The depths that \`hasRightEntity\` edges are resolved to.
+      """
+      hasRightEntity: EdgeResolveDepthsInput! = { outgoing: 0, incoming: 0 }
     ): Subgraph!
   }
 `;

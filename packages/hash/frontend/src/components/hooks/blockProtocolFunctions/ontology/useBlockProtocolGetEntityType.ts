@@ -27,8 +27,8 @@ export const useBlockProtocolGetEntityType = (): {
   );
 
   const getEntityType = useCallback<GetEntityTypeMessageCallback>(
-    async ({ data: entityTypeId }) => {
-      if (!entityTypeId) {
+    async ({ data }) => {
+      if (!data) {
         return {
           errors: [
             {
@@ -39,13 +39,17 @@ export const useBlockProtocolGetEntityType = (): {
         };
       }
 
+      const { entityTypeId, graphResolveDepths } = data;
+
       const response = await getFn({
         query: getEntityTypeQuery,
         variables: {
           entityTypeId,
-          dataTypeResolveDepth: 255,
-          propertyTypeResolveDepth: 255,
-          entityTypeResolveDepth: 1,
+          constrainsValuesOn: { outgoing: 255 },
+          constrainsPropertiesOn: { outgoing: 255 },
+          constrainsLinksOn: { outgoing: 1 },
+          constrainsLinkDestinationsOn: { outgoing: 1 },
+          ...graphResolveDepths,
         },
       });
 

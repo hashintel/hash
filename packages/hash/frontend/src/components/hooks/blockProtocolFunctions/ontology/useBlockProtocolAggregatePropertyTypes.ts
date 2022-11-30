@@ -34,6 +34,7 @@ export const useBlockProtocolAggregatePropertyTypes = (): {
           };
         }
 
+        const { graphResolveDepths } = data;
         /**
          * @todo Add filtering to this aggregate query using structural querying.
          *   This may mean having the backend use structural querying and relaying
@@ -42,8 +43,9 @@ export const useBlockProtocolAggregatePropertyTypes = (): {
          */
         const response = await aggregateFn({
           variables: {
-            dataTypeResolveDepth: 255,
-            propertyTypeResolveDepth: 255,
+            constrainsValuesOn: { outgoing: 255 },
+            constrainsPropertiesOn: { outgoing: 255 },
+            ...graphResolveDepths,
           },
         });
 

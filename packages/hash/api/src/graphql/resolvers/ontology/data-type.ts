@@ -14,7 +14,7 @@ export const getAllLatestDataTypes: ResolverFn<
   {},
   LoggedInGraphQLContext,
   QueryGetAllLatestDataTypesArgs
-> = async (_, { dataTypeResolveDepth }, { dataSources }) => {
+> = async (_, { constrainsValuesOn }, { dataSources }) => {
   const { graphApi } = dataSources;
 
   const { data: dataTypeSubgraph } = await graphApi
@@ -23,10 +23,14 @@ export const getAllLatestDataTypes: ResolverFn<
         equal: [{ path: ["version"] }, { parameter: "latest" }],
       },
       graphResolveDepths: {
-        dataTypeResolveDepth,
-        propertyTypeResolveDepth: 0,
-        entityTypeResolveDepth: 0,
-        entityResolveDepth: 0,
+        inheritsFrom: { outgoing: 0 },
+        constrainsValuesOn,
+        constrainsPropertiesOn: { outgoing: 0 },
+        constrainsLinksOn: { outgoing: 0 },
+        constrainsLinkDestinationsOn: { outgoing: 0 },
+        isOfType: { outgoing: 0 },
+        hasLeftEntity: { incoming: 0, outgoing: 0 },
+        hasRightEntity: { incoming: 0, outgoing: 0 },
       },
     })
     .catch((err: AxiosError) => {
@@ -44,7 +48,7 @@ export const getDataType: ResolverFn<
   {},
   GraphQLContext,
   QueryGetDataTypeArgs
-> = async (_, { dataTypeId, dataTypeResolveDepth }, { dataSources }) => {
+> = async (_, { dataTypeId, constrainsValuesOn }, { dataSources }) => {
   const { graphApi } = dataSources;
 
   const { data: dataTypeSubgraph } = await graphApi
@@ -54,10 +58,14 @@ export const getDataType: ResolverFn<
       },
       /** @todo - make these configurable once non-primitive data types are a thing https://app.asana.com/0/1200211978612931/1202464168422955/f */
       graphResolveDepths: {
-        dataTypeResolveDepth,
-        propertyTypeResolveDepth: 0,
-        entityTypeResolveDepth: 0,
-        entityResolveDepth: 0,
+        inheritsFrom: { outgoing: 0 },
+        constrainsValuesOn,
+        constrainsPropertiesOn: { outgoing: 0 },
+        constrainsLinksOn: { outgoing: 0 },
+        constrainsLinkDestinationsOn: { outgoing: 0 },
+        isOfType: { outgoing: 0 },
+        hasLeftEntity: { incoming: 0, outgoing: 0 },
+        hasRightEntity: { incoming: 0, outgoing: 0 },
       },
     })
     .catch((err: AxiosError) => {

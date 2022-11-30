@@ -18,6 +18,7 @@ import {
   Subgraph,
   VersionedUri,
   SubgraphRootTypes,
+  LinkEntityMetadata,
 } from "@hashintel/hash-subgraph";
 
 export type KnowledgeCallbacks = {
@@ -25,18 +26,29 @@ export type KnowledgeCallbacks = {
   createEntity: CreateEntityMessageCallback;
   aggregateEntities: AggregateEntitiesMessageCallback;
   updateEntity: UpdateEntityMessageCallback;
+  archiveEntity: ArchiveEntityMessageCallback;
+};
+
+export type GetEntityRequest = {
+  entityId: EntityId;
+  graphResolveDepths?: Partial<Subgraph["depths"]>;
 };
 
 /* Entity CRU */
 export type GetEntityMessageCallback = MessageCallback<
-  EntityId,
+  GetEntityRequest,
   null,
   Subgraph<SubgraphRootTypes["entity"]>,
   ReadOrModifyResourceError
 >;
 
+export type AggregateEntitiesRequest = {
+  rootEntityTypeIds?: VersionedUri[];
+  graphResolveDepths?: Partial<Subgraph["depths"]>;
+};
+
 export type AggregateEntitiesMessageCallback = MessageCallback<
-  {},
+  AggregateEntitiesRequest,
   null,
   Subgraph<SubgraphRootTypes["entity"]>,
   ReadOrModifyResourceError
@@ -44,7 +56,9 @@ export type AggregateEntitiesMessageCallback = MessageCallback<
 
 export type CreateEntityRequest = {
   entityTypeId: VersionedUri;
+  ownedById?: string;
   properties: PropertyObject;
+  linkMetadata?: LinkEntityMetadata;
 };
 
 export type CreateEntityMessageCallback = MessageCallback<
@@ -57,11 +71,24 @@ export type CreateEntityMessageCallback = MessageCallback<
 export type UpdateEntityRequest = {
   entityId: EntityId;
   updatedProperties: PropertyObject;
+  leftOrder?: number;
+  rightOrder?: number;
 };
 
 export type UpdateEntityMessageCallback = MessageCallback<
   UpdateEntityRequest,
   null,
   Entity,
+  ReadOrModifyResourceError
+>;
+
+export type ArchiveEntityRequest = {
+  entityId: EntityId;
+};
+
+export type ArchiveEntityMessageCallback = MessageCallback<
+  ArchiveEntityRequest,
+  null,
+  boolean,
   ReadOrModifyResourceError
 >;

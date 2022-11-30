@@ -20,7 +20,7 @@ const cardActionHoverBlue: SxProps<Theme> = (theme) => ({
 export const EmptyPropertyListCard = ({
   onClick,
 }: Pick<CardActionAreaProps, "onClick">) => (
-  <WhiteCard onClick={onClick}>
+  <WhiteCard onClick={onClick} data-testid="empty-property-card">
     <Stack
       direction="row"
       alignItems="center"

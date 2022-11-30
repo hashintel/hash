@@ -1,10 +1,15 @@
 use alloc::format;
 use core::fmt::{Display, Formatter};
 
-use super::{Error, ErrorProperties, ErrorProperty, Id, Namespace, NAMESPACE};
+use super::{ErrorProperties, ErrorProperty, Id, Namespace, Variant, NAMESPACE};
 use crate::{
+<<<<<<< HEAD
     error::{macros::impl_error, Location},
     id, Document,
+=======
+    error::{Location, Schema},
+    id,
+>>>>>>> origin/main
 };
 
 #[derive(serde::Serialize)]
@@ -62,7 +67,7 @@ impl ErrorProperty for ReceivedType {
 #[derive(Debug)]
 pub struct TypeError;
 
-impl Error for TypeError {
+impl Variant for TypeError {
     type Properties = (Location, ExpectedType, ReceivedType);
 
     const ID: Id = id!["type"];
@@ -99,8 +104,6 @@ impl Display for TypeError {
     }
 }
 
-impl_error!(TypeError);
-
 #[cfg(test)]
 mod tests {
     use alloc::vec;
@@ -110,10 +113,14 @@ mod tests {
 
     use super::*;
     use crate::{
+<<<<<<< HEAD
         schema::{
             visitor::{StringSchema, U8Schema},
             Reflection,
         },
+=======
+        error::Error,
+>>>>>>> origin/main
         test::{to_json, to_message},
     };
 
@@ -123,16 +130,25 @@ mod tests {
         // [{entry1: [_, {field2: _ <- here}]}]
         // we expected a u8 integer, but received a float
 
-        let error = Report::new(TypeError)
-            .attach(Location::Array(0))
-            .attach(Location::Entry("entry1".into()))
-            .attach(Location::Array(1))
+        let error = Report::new(Error::new(TypeError))
             .attach(Location::Field("field2"))
+<<<<<<< HEAD
             .attach(ExpectedType::new(U8Schema::document()))
             .attach(ReceivedType::new(StringSchema::document()));
+=======
+            .attach(Location::Array(1))
+            .attach(Location::Entry("entry1".into()))
+            .attach(Location::Array(0))
+            .attach(ExpectedType::new(
+                Schema::new("integer")
+                    .with("minimum", u8::MIN)
+                    .with("maximum", u8::MAX),
+            ))
+            .attach(ReceivedType::new(Schema::new("string")));
+>>>>>>> origin/main
 
         assert_eq!(
-            to_json(&error),
+            to_json::<TypeError>(&error),
             json!({
                 "location": [
                     {"type": "array", "value": 0},
@@ -165,25 +181,46 @@ mod tests {
     #[test]
     fn type_message() {
         assert_eq!(
-            to_message(&Report::new(TypeError)),
+            to_message::<TypeError>(&Report::new(Error::new(TypeError))),
             "received value of unexpected type"
         );
 
         assert_eq!(
+<<<<<<< HEAD
             to_message(&Report::new(TypeError).attach(ReceivedType::new(StringSchema::document()))),
+=======
+            to_message::<TypeError>(
+                &Report::new(TypeError.into_error())
+                    .attach(ReceivedType::new(Schema::new("string")))
+            ),
+>>>>>>> origin/main
             r#"received value of unexpected type string"#
         );
 
         assert_eq!(
+<<<<<<< HEAD
             to_message(&Report::new(TypeError).attach(ExpectedType::new(U8Schema::document()))),
+=======
+            to_message::<TypeError>(
+                &Report::new(TypeError.into_error())
+                    .attach(ExpectedType::new(Schema::new("integer")))
+            ),
+>>>>>>> origin/main
             r#"expected value of type integer"#
         );
 
         assert_eq!(
+<<<<<<< HEAD
             to_message(
                 &Report::new(TypeError)
                     .attach(ReceivedType::new(StringSchema::document()))
                     .attach(ExpectedType::new(U8Schema::document()))
+=======
+            to_message::<TypeError>(
+                &Report::new(TypeError.into_error())
+                    .attach(ReceivedType::new(Schema::new("string")))
+                    .attach(ExpectedType::new(Schema::new("integer")))
+>>>>>>> origin/main
             ),
             "expected value of type integer, but received value of unexpected type string"
         );

@@ -8,7 +8,7 @@ pub use self::{
     edges::{Edges, KnowledgeGraphRootedEdges, OntologyRootedEdges},
     vertices::{KnowledgeGraphVertices, OntologyVertices, Vertices},
 };
-use crate::{identifier::GraphElementEditionId, subgraph::depths::GraphResolveDepths};
+use crate::{identifier::GraphElementEditionId, subgraph::edges::GraphResolveDepths};
 
 #[derive(Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
