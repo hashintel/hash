@@ -92,7 +92,7 @@ fn into_schema(value: &Value) -> Schema {
 /// 
 /// This means that
 /// 
-/// ```no_run
+/// ```ignore
 /// try_deserialize!(
 ///     match self {
 ///         Value::Bool(bool) => visitor.visit_bool(bool),
@@ -103,19 +103,19 @@ fn into_schema(value: &Value) -> Schema {
 /// 
 /// roughly expands to:
 /// 
-/// ```no_run
+/// ```ignore
 /// # use error_stack::Report;
-/// # use serde_json::Value;
-/// # use deer::error::{DeserializerError, ExpectedType, MissingError, ReceivedType, Schema, TypeError};
+/// # use serde_json::{Deserializer, Value};
+/// # use deer::error::{DeserializerError, Error, ExpectedType, MissingError, ReceivedType, Schema, TypeError};
 /// #
 /// # let _ =
 /// match self.value {
 ///     Some(Value::Bool(bool)) => visitor.visit_bool(bool).change_context(DeserializerError),
-///     Some(value) => Err(Report::new(TypeError)
+///     Some(value) => Err(Report::new(Error::new(TypeError))
 ///         .attach(ExpectedType::new(Schema::new("boolean")))
 ///         .attach(ReceivedType(into_schema(&value)))
 ///         .change_context(DeserializerError)),
-///     None => Err(Report::new(MissingError)
+///     None => Err(Report::new(Error::new(MissingError))
 ///         .attach(ExpectedType::new(Schema::new("boolean")))
 ///         .change_context(DeserializerError))
 /// };
@@ -130,11 +130,11 @@ macro_rules! try_deserialize {
     ) => {
         match $self.value {
             Some(Value::$variant($value)) => $visitor.$visit($transform).change_context(DeserializerError),
-            Some(value) => Err(Report::new(TypeError)
+            Some(value) => Err(Report::new(TypeError.into_error())
                 .attach(ExpectedType::new($schema))
                 .attach(ReceivedType::new(into_schema(&value))))
                 .change_context(DeserializerError),
-            None => Err(Report::new(MissingError)
+            None => Err(Report::new(MissingError.into_error())
                 .attach(ExpectedType::new($schema))
                 .change_context(DeserializerError)),
         }
@@ -197,11 +197,11 @@ impl<'de> deer::Deserializer<'de> for Deserializer {
     {
         match self.value {
             Some(Value::Null) => visitor.visit_null().change_context(DeserializerError),
-            Some(value) => Err(Report::new(TypeError)
+            Some(value) => Err(Report::new(TypeError.into_error())
                 .attach(ExpectedType::new(Schema::new("null")))
                 .attach(ReceivedType::new(into_schema(&value)))
                 .change_context(DeserializerError)),
-            None => Err(Report::new(MissingError)
+            None => Err(Report::new(MissingError.into_error())
                 .attach(ExpectedType::new(Schema::new("null")))
                 .change_context(DeserializerError)),
         }
@@ -249,7 +249,7 @@ impl<'de> deer::Deserializer<'de> for Deserializer {
                 match (a, b) {
                     (Some(a), None) => a,
                     (Some(_), Some(_)) | (None, None) => {
-                        return Err(Report::new(ValueError)
+                        return Err(Report::new(ValueError.into_error())
                             .attach(ExpectedType::new(Schema::new("string").with("minLength", 1).with("maxLength", 1)))
                             .attach(ReceivedValue::new(string))
                             .change_context(DeserializerError));
@@ -285,14 +285,14 @@ impl<'de> deer::Deserializer<'de> for Deserializer {
     where
         V: Visitor<'de>,
     {
-        Err(Report::new(BytesUnsupportedError).change_context(DeserializerError))
+        Err(Report::new(BytesUnsupportedError.into_error()).change_context(DeserializerError))
     }
 
     fn deserialize_bytes_buffer<V>(self, _: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>,
     {
-        Err(Report::new(BytesUnsupportedError).change_context(DeserializerError))
+        Err(Report::new(BytesUnsupportedError.into_error()).change_context(DeserializerError))
     }
 
     fn deserialize_array<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
@@ -357,7 +357,7 @@ impl<'de> deer::ArrayAccess<'de> for ArrayAccess {
         if count == 0 {
             Ok(())
         } else {
-            Err(Report::new(ArrayLengthError)
+            Err(Report::new(ArrayLengthError.into_error())
                 .attach(ExpectedLength::new(self.length))
                 .attach(ReceivedLength::new(self.length + count))
                 .change_context(ArrayAccessError))
@@ -422,7 +422,7 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess {
         if self.inner.is_empty() {
             Ok(())
         } else {
-            let mut report = Report::new(ObjectItemsExtraError);
+            let mut report = Report::new(ObjectItemsExtraError.into_error());
 
             for key in self.inner.into_iter().map(|(key, _)| key) {
                 report = report.attach(ReceivedKey::new(key));
