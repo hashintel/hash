@@ -13,6 +13,8 @@ const Page: NextPageWithLayout = () => {
      * @todo: this check could occur in a server-side render, so that a
      * redirect to the workspace or login page is done before rendering
      * this empty homepage.
+     *
+     * @see https://app.asana.com/0/1203179076056209/1203451531168818/f
      */
     if (authenticatedUser) {
       void router.push(`/${authenticatedUser.userAccountId}`);
