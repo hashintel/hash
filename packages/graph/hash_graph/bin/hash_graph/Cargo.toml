@@ -19,4 +19,4 @@ tokio = { version = "1.21.2", features = ["rt-multi-thread", "macros"] }
 tokio-postgres = { version = "0.7.7", default-features = false }
 tracing = "0.1.37"
 type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "244d25a" }
-uuid = "1.2.1"
+uuid = "1.2.2"
