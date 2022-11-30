@@ -16,7 +16,6 @@
 #![allow(clippy::missing_errors_doc)]
 #![deny(unsafe_code)]
 mod error;
-mod macros;
 
 extern crate alloc;
 
@@ -31,11 +30,11 @@ use deer::{
     error::{
         ArrayAccessError, ArrayLengthError, DeserializerError, ExpectedLength, ExpectedType,
         MissingError, ObjectAccessError, ObjectItemsExtraError, ReceivedKey, ReceivedLength,
-        ReceivedType, ReceivedValue, Schema, TypeError, ValueError,
+        ReceivedType, ReceivedValue, Schema, TypeError, ValueError, Variant,
     },
     Deserialize, Visitor,
 };
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{IntoReport, Report, Result, ResultExt};
 use serde_json::{Map, Value};
 
 use crate::error::{BytesUnsupportedError, OverflowError};
@@ -184,7 +183,7 @@ impl<'de> deer::Deserializer<'de> for Deserializer {
         self.value.map_or_else(
             || visitor.visit_none().change_context(DeserializerError),
             |value| {
-                Err(Report::new(TypeError)
+                Err(Report::new(TypeError.into_error())
                     .attach(ExpectedType::new(Schema::new("none")))
                     .attach(ReceivedType::new(into_schema(&value)))
                     .change_context(DeserializerError))
@@ -228,7 +227,7 @@ impl<'de> deer::Deserializer<'de> for Deserializer {
             match self {
                 Value::Number(number) => visitor.visit_number({
                     serde_to_deer_number(&number)
-                        .ok_or_else(|| Report::new(OverflowError)
+                        .ok_or_else(|| Report::new(OverflowError.into_error())
                             .attach(ReceivedValue::new(number)).change_context(DeserializerError)
                         )?
                 }),

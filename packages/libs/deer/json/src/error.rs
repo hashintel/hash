@@ -1,14 +1,9 @@
-use core::{
-    fmt::{Display, Formatter},
-    sync::atomic::{AtomicBool, Ordering},
-};
+use core::fmt::{Display, Formatter};
 
 use deer::{
-    error::{Error, ErrorProperties, Id, Location, Namespace, ReceivedValue},
+    error::{ErrorProperties, Id, Location, Namespace, ReceivedValue, Variant},
     id,
 };
-
-use crate::macros::impl_error;
 
 const NAMESPACE: Namespace = Namespace::new("deer-json");
 
@@ -21,9 +16,7 @@ impl Display for BytesUnsupportedError {
     }
 }
 
-impl_error!(BytesUnsupportedError);
-
-impl Error for BytesUnsupportedError {
+impl Variant for BytesUnsupportedError {
     type Properties = (Location,);
 
     const ID: Id = id!["bytes"];
@@ -38,22 +31,6 @@ impl Error for BytesUnsupportedError {
     }
 }
 
-static INIT: AtomicBool = AtomicBool::new(false);
-
-// TODO: once #1396 is merged call `register!()`
-pub(crate) fn init() {
-    // Ordering does not matter here, because we it does not matter if we execute this once or
-    // twice.
-    if INIT
-        .compare_exchange(false, true, Ordering::Relaxed, Ordering::Relaxed)
-        .is_err()
-    {
-        return;
-    }
-
-    todo!()
-}
-
 #[derive(Debug)]
 pub(crate) struct OverflowError;
 
@@ -65,9 +42,7 @@ impl Display for OverflowError {
     }
 }
 
-impl_error!(OverflowError);
-
-impl Error for OverflowError {
+impl Variant for OverflowError {
     type Properties = (Location, ReceivedValue);
 
     const ID: Id = id!["number", "overflow"];
