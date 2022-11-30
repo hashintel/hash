@@ -2,7 +2,6 @@ import { faClose } from "@fortawesome/free-solid-svg-icons";
 import {
   Button,
   ButtonProps,
-  Chip,
   FontAwesomeIcon,
   IconButton,
   TextField,
@@ -14,7 +13,6 @@ import {
 } from "@hashintel/hash-shared/types";
 import { getPropertyTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
 import {
-  Autocomplete,
   Box,
   Divider,
   inputLabelClasses,
@@ -28,22 +26,13 @@ import {
   PopupState,
 } from "material-ui-popup-state/hooks";
 import { ComponentProps, ReactNode, useEffect, useMemo, useState } from "react";
-import {
-  Controller,
-  FormProvider,
-  useForm,
-  UseFormTrigger,
-} from "react-hook-form";
+import { FormProvider, useForm, UseFormTrigger } from "react-hook-form";
 import { useBlockProtocolGetPropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetPropertyType";
 import { Modal } from "../../../../components/Modals/Modal";
-import {
-  PropertyTypeSelectorDropdown,
-  PropertyTypeSelectorDropdownContext,
-} from "./property-type-selector-dropdown";
+import { DataTypeSelector } from "./data-type-selector";
+import { PropertyTypeSelectorDropdownContext } from "./property-type-selector-dropdown";
 import {
   DataType,
-  dataTypeData,
-  dataTypeOptions,
   ExpectedValue,
   getPropertyTypeSchema,
 } from "./property-type-utils";
@@ -141,17 +130,12 @@ const PropertyTypeFormInner = ({
       isValid,
     },
     getValues,
-    control,
     clearErrors,
     setFocus,
     trigger,
     setValue,
-    watch,
   } = formMethods;
 
-  const creatingProperty = watch("creatingPropertyId");
-
-  const [autocompleteFocused, setAutocompleteFocused] = useState(false);
   const [creatingCustomPropertyType, setCreatingCustomPropertyType] =
     useState(false);
 
@@ -360,118 +344,13 @@ const PropertyTypeFormInner = ({
               },
             })}
           />
+
           <FormProvider {...formMethods}>
-            <Controller
-              render={({ field: { onChange, onBlur, ...props } }) => (
-                <PropertyTypeSelectorDropdownContext.Provider
-                  value={propertyTypeSelectorDropdownContextValue}
-                >
-                  <Autocomplete
-                    disabled={!!creatingProperty}
-                    open={autocompleteFocused || creatingCustomPropertyType}
-                    PaperComponent={PropertyTypeSelectorDropdown}
-                    multiple
-                    popupIcon={null}
-                    clearIcon={null}
-                    forcePopupIcon={false}
-                    selectOnFocus={false}
-                    clearOnBlur={false}
-                    onFocus={() => {
-                      setAutocompleteFocused(true);
-                    }}
-                    onBlur={() => {
-                      onBlur();
-                      setAutocompleteFocused(false);
-                    }}
-                    onChange={(_evt, data) => {
-                      onChange(data);
-                    }}
-                    disablePortal
-                    {...props}
-                    renderTags={(value, getTagProps) =>
-                      value.map((opt, index) => {
-                        const typeId =
-                          typeof opt === "object" ? opt.typeId : opt;
-
-                        return (
-                          <Chip
-                            {...getTagProps({ index })}
-                            key={typeId}
-                            label={
-                              <Typography
-                                variant="smallTextLabels"
-                                sx={{ display: "flex", alignItems: "center" }}
-                              >
-                                <FontAwesomeIcon
-                                  icon={{
-                                    icon: dataTypeData[typeId]!.icon,
-                                  }}
-                                  sx={{ fontSize: "1em", mr: "1ch" }}
-                                />
-                                {dataTypeData[typeId]!.title}
-                              </Typography>
-                            }
-                            color="blue"
-                          />
-                        );
-                      })
-                    }
-                    renderInput={(inputProps) => (
-                      <TextField
-                        {...inputProps}
-                        label="Expected values"
-                        sx={{ alignSelf: "flex-start", width: "70%" }}
-                        placeholder="Select acceptable values"
-                      />
-                    )}
-                    options={dataTypeOptions}
-                    getOptionLabel={(opt) =>
-                      dataTypeData[typeof opt === "object" ? opt.typeId : opt]!
-                        .title
-                    }
-                    disableCloseOnSelect
-                    renderOption={(optProps, opt) => {
-                      const typeId = typeof opt === "object" ? opt.typeId : opt;
-
-                      return (
-                        <Box
-                          component="li"
-                          {...optProps}
-                          sx={{ py: 1.5, px: 2.25 }}
-                        >
-                          <FontAwesomeIcon
-                            icon={{ icon: dataTypeData[typeId]!.icon }}
-                            sx={(theme) => ({ color: theme.palette.gray[50] })}
-                          />
-                          <Typography
-                            variant="smallTextLabels"
-                            component="span"
-                            ml={1.5}
-                            color={(theme) => theme.palette.gray[80]}
-                          >
-                            {dataTypeData[typeId]!.title}
-                          </Typography>
-                          <Chip
-                            color="blue"
-                            label="DATA TYPE"
-                            sx={{ ml: 1.5 }}
-                          />
-                        </Box>
-                      );
-                    }}
-                    componentsProps={{
-                      popper: {
-                        sx: { width: "100% !important" },
-                        placement: "bottom-start",
-                      },
-                    }}
-                  />
-                </PropertyTypeSelectorDropdownContext.Provider>
-              )}
-              control={control}
-              rules={{ required: true }}
-              name="expectedValues"
-            />
+            <PropertyTypeSelectorDropdownContext.Provider
+              value={propertyTypeSelectorDropdownContextValue}
+            >
+              <DataTypeSelector />
+            </PropertyTypeSelectorDropdownContext.Provider>
           </FormProvider>
         </Stack>
         <Divider sx={{ mt: 2, mb: 3 }} />
