@@ -415,9 +415,10 @@
 //!
 //!  Feature       | Description                                                        | default
 //! ---------------|--------------------------------------------------------------------|----------
-//! `std`          | Enables support for [`Error`] and, on nightly, [`Backtrace`]       | enabled
+//! `std`          | Enables support for [`Error`], and, on Rust 1.65+, [`Backtrace`]   | enabled
 //! `pretty-print` | Provide color[^color] and use of unicode in [`Debug`] output       | enabled
 //! `spantrace`    | Enables automatic capturing of [`SpanTrace`]s                      | disabled
+//! `hooks`        | Enables hooks on `no-std` platforms using spin locks               | disabled
 //! `anyhow`       | Provides `into_report` to convert [`anyhow::Error`] to [`Report`]  | disabled
 //! `eyre`         | Provides `into_report` to convert [`eyre::Report`] to [`Report`]   | disabled
 //!
