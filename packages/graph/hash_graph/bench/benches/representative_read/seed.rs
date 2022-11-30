@@ -7,7 +7,7 @@ use std::{
 use graph::{
     identifier::{account::AccountId, knowledge::EntityId},
     knowledge::{EntityProperties, EntityUuid, LinkEntityMetadata},
-    provenance::{CreatedById, OwnedById},
+    provenance::{OwnedById, UpdatedById},
     store::{AccountStore, AsClient, EntityStore, PostgresStore},
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
@@ -155,7 +155,7 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
                 repeat((None, properties, None)).take(quantity),
                 entity_type_id,
                 OwnedById::new(account_id),
-                CreatedById::new(account_id),
+                UpdatedById::new(account_id),
             )
             .await
             .expect("failed to create entities");
@@ -186,7 +186,7 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
                     .map(|link_metadata| (None, EntityProperties::empty(), Some(link_metadata))),
                 entity_type_id,
                 OwnedById::new(account_id),
-                CreatedById::new(account_id),
+                UpdatedById::new(account_id),
             )
             .await
             .expect("failed to create entities");
