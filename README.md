@@ -15,8 +15,8 @@ This is HASH's _public monorepo_ which contains our open-source, fair-source and
 
 ### Site code and content
 
-- [`apps/hashai`](apps/hashai): contains the [HASH user guide](https://hash.ai/docs) and [glossary of terms](https://hash.ai/glossary) content
-- [`apps/hashdev`](apps/hashdev): contains the [hash.dev](https://hash.dev/) developer-education website content and code
+- [`apps/hashdotai`](apps/hashdotai): contains the [HASH user guide](https://hash.ai/docs) and [glossary of terms](https://hash.ai/glossary) content
+- [`apps/hashdotdev`](apps/hashdotdev): contains the [hash.dev](https://hash.dev/) developer-education website content and code
 
 ## Contributing
 
