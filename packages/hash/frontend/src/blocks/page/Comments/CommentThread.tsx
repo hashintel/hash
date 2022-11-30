@@ -6,10 +6,7 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { extractBaseUri } from "@blockprotocol/type-system-web";
 import { types } from "@hashintel/hash-shared/types";
-import {
-  EntityId,
-  extractOwnedByIdFromEntityId,
-} from "@hashintel/hash-subgraph";
+import { EntityId } from "@hashintel/hash-subgraph";
 import { PageThread } from "../../../components/hooks/usePageComments";
 import { CommentTextField } from "./CommentTextField";
 import { CommentBlock } from "./CommentBlock";
@@ -96,12 +93,11 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
         pageId={pageId}
         comment={comment}
         resolvable={
+          // TODO: The provenance fields shouldn't be used for this
           authenticatedUser?.userAccountId ===
-            extractOwnedByIdFromEntityId(comment.metadata.editionId.baseId) ||
+            comment.metadata.provenance.updatedById ||
           authenticatedUser?.userAccountId ===
-            extractOwnedByIdFromEntityId(
-              comment.parent.metadata.editionId.baseId,
-            )
+            comment.parent.metadata.provenance.updatedById
         }
       />
 

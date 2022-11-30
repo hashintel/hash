@@ -31,10 +31,7 @@ import { extractBaseUri } from "@blockprotocol/type-system-web";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
 import { isEqual } from "lodash";
 import { faCheckCircle } from "@fortawesome/free-regular-svg-icons";
-import {
-  EntityId,
-  extractOwnedByIdFromEntityId,
-} from "@hashintel/hash-subgraph";
+import { EntityId } from "@hashintel/hash-subgraph";
 import { PageComment } from "../../../components/hooks/usePageComments";
 import { CommentTextField } from "./CommentTextField";
 import { CommentBlockMenu } from "./CommentBlockMenu";
@@ -90,14 +87,13 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
   const {
     metadata: {
       editionId: { baseId: commentEntityId },
+      // TODO: The provenance fields shouldn't be used for this
+      provenance: { updatedById: commentCreatedById },
     },
     hasText,
     author,
     textUpdatedAt,
   } = comment;
-
-  const commentOwnedById: string =
-    extractOwnedByIdFromEntityId(commentEntityId);
 
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const [collapsed, setCollapsed] = useState(true);
@@ -343,7 +339,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
       ) : null}
 
       <CommentBlockMenu popupState={commentMenuPopupState}>
-        {authenticatedUser?.userAccountId === commentOwnedById ? (
+        {authenticatedUser?.userAccountId === commentCreatedById ? (
           <CommentBlockMenuItem
             title={editable ? "Cancel Edit" : "Edit"}
             icon={
@@ -369,7 +365,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
             commentMenuPopupState.close();
           }}
         />
-        {authenticatedUser?.userAccountId === commentOwnedById ? (
+        {authenticatedUser?.userAccountId === commentCreatedById ? (
           <CommentBlockMenuItem
             title="Delete Comment"
             icon={<FontAwesomeIcon icon={faTrash} />}
