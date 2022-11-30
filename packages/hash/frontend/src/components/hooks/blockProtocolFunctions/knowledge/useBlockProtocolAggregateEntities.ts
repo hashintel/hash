@@ -33,7 +33,7 @@ export const useBlockProtocolAggregateEntities = (): {
         };
       }
 
-      const { rootEntityTypeIds } = data;
+      const { rootEntityTypeIds, graphResolveDepths } = data;
 
       /**
        * @todo Add filtering to this aggregate query using structural querying.
@@ -51,6 +51,7 @@ export const useBlockProtocolAggregateEntities = (): {
           isOfType: { outgoing: 1 },
           hasLeftEntity: { outgoing: 1, incoming: 1 },
           hasRightEntity: { outgoing: 1, incoming: 1 },
+          ...graphResolveDepths,
         },
       });
 
