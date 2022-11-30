@@ -1,6 +1,10 @@
 // @todo this should be defined elsewhere
-
 import { uniq } from "lodash";
+
+/**
+ * This behaves differently from the type `{}`, and will error if you set more properties on it.
+ */
+export type EmptyObject = Record<any, never>;
 
 export type DistributiveOmit<T, K extends keyof any> = T extends any
   ? Omit<T, K>

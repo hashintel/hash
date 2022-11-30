@@ -29,9 +29,14 @@ export type KnowledgeCallbacks = {
   archiveEntity: ArchiveEntityMessageCallback;
 };
 
+export type GetEntityRequest = {
+  entityId: EntityId;
+  graphResolveDepths?: Partial<Subgraph["depths"]>;
+};
+
 /* Entity CRU */
 export type GetEntityMessageCallback = MessageCallback<
-  EntityId,
+  GetEntityRequest,
   null,
   Subgraph<SubgraphRootTypes["entity"]>,
   ReadOrModifyResourceError
@@ -39,6 +44,7 @@ export type GetEntityMessageCallback = MessageCallback<
 
 export type AggregateEntitiesRequest = {
   rootEntityTypeIds?: VersionedUri[];
+  graphResolveDepths?: Partial<Subgraph["depths"]>;
 };
 
 export type AggregateEntitiesMessageCallback = MessageCallback<

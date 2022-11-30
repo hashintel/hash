@@ -222,9 +222,17 @@ const Page: NextPageWithLayout = () => {
                   },
                   async validate(value) {
                     const res = await getEntityType({
-                      data: generateInitialEntityTypeId(
-                        generateEntityTypeBaseUriForUser(value),
-                      ),
+                      data: {
+                        entityTypeId: generateInitialEntityTypeId(
+                          generateEntityTypeBaseUriForUser(value),
+                        ),
+                        graphResolveDepths: {
+                          constrainsValuesOn: { outgoing: 0 },
+                          constrainsPropertiesOn: { outgoing: 0 },
+                          constrainsLinksOn: { outgoing: 0 },
+                          constrainsLinkDestinationsOn: { outgoing: 0 },
+                        },
+                      },
                     });
 
                     return res.data?.roots.length
