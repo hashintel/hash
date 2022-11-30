@@ -8,5 +8,42 @@
   "ignorePaths": ["packages/engine/**"],
   "postUpdateOptions": ["yarnDedupeFewer"],
   "rangeStrategy": "bump",
-  "rebaseWhen": "conflicted"
+  "rebaseWhen": "conflicted",
+  "packageRules": [
+    {
+      "enabled": true,
+      "groupName": "ESLint",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": [
+        "^@types/eslint",
+        "^@typescript-eslint/",
+        "^eslint-",
+        "^eslint$"
+      ]
+    },
+    {
+      "enabled": true,
+      "groupName": "Jest",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^@types/jest$", "^jest", "^ts-jest$", "^jest-"]
+    },
+    {
+      "enabled": true,
+      "groupName": "Playwright",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^@playwright/", "^playwright$", "^playwright-"]
+    },
+    {
+      "enabled": true,
+      "groupName": "ProseMirror",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^prosemirror-"]
+    },
+    {
+      "enabled": true,
+      "groupName": "Sentry",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^@sentry/"]
+    }
+  ]
 }
