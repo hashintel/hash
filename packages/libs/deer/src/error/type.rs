@@ -113,14 +113,11 @@ mod tests {
 
     use super::*;
     use crate::{
-<<<<<<< HEAD
         schema::{
             visitor::{StringSchema, U8Schema},
             Reflection,
         },
-=======
         error::Error,
->>>>>>> origin/main
         test::{to_json, to_message},
     };
 
@@ -132,20 +129,11 @@ mod tests {
 
         let error = Report::new(Error::new(TypeError))
             .attach(Location::Field("field2"))
-<<<<<<< HEAD
-            .attach(ExpectedType::new(U8Schema::document()))
-            .attach(ReceivedType::new(StringSchema::document()));
-=======
             .attach(Location::Array(1))
             .attach(Location::Entry("entry1".into()))
             .attach(Location::Array(0))
-            .attach(ExpectedType::new(
-                Schema::new("integer")
-                    .with("minimum", u8::MIN)
-                    .with("maximum", u8::MAX),
-            ))
-            .attach(ReceivedType::new(Schema::new("string")));
->>>>>>> origin/main
+            .attach(ExpectedType::new(U8Schema::document()))
+            .attach(ReceivedType::new(StringSchema::document()));
 
         assert_eq!(
             to_json::<TypeError>(&error),
@@ -186,41 +174,20 @@ mod tests {
         );
 
         assert_eq!(
-<<<<<<< HEAD
-            to_message(&Report::new(TypeError).attach(ReceivedType::new(StringSchema::document()))),
-=======
-            to_message::<TypeError>(
-                &Report::new(TypeError.into_error())
-                    .attach(ReceivedType::new(Schema::new("string")))
-            ),
->>>>>>> origin/main
+            to_message::<TypeError>(&Report::new(TypeError.into_error()).attach(ReceivedType::new(StringSchema::document()))),
             r#"received value of unexpected type string"#
         );
 
         assert_eq!(
-<<<<<<< HEAD
-            to_message(&Report::new(TypeError).attach(ExpectedType::new(U8Schema::document()))),
-=======
-            to_message::<TypeError>(
-                &Report::new(TypeError.into_error())
-                    .attach(ExpectedType::new(Schema::new("integer")))
-            ),
->>>>>>> origin/main
+            to_message::<TypeError>(&Report::new(TypeError.into_error()).attach(ExpectedType::new(U8Schema::document()))),
             r#"expected value of type integer"#
         );
 
         assert_eq!(
-<<<<<<< HEAD
-            to_message(
-                &Report::new(TypeError)
-                    .attach(ReceivedType::new(StringSchema::document()))
-                    .attach(ExpectedType::new(U8Schema::document()))
-=======
             to_message::<TypeError>(
                 &Report::new(TypeError.into_error())
-                    .attach(ReceivedType::new(Schema::new("string")))
-                    .attach(ExpectedType::new(Schema::new("integer")))
->>>>>>> origin/main
+                    .attach(ReceivedType::new(StringSchema::document()))
+                    .attach(ExpectedType::new(U8Schema::document()))
             ),
             "expected value of type integer, but received value of unexpected type string"
         );
