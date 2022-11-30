@@ -4,12 +4,14 @@ import { subgraphFieldsFragment } from "../subgraph";
 export const createEntityMutation = gql`
   mutation createEntity(
     $entityTypeId: VersionedUri!
+    $ownedById: ID
     $properties: PropertyObject!
     $linkMetadata: LinkEntityMetadata
   ) {
     # This is a scalar, which has no selection.
     createEntity(
       entityTypeId: $entityTypeId
+      ownedById: $ownedById
       properties: $properties
       linkMetadata: $linkMetadata
     )
