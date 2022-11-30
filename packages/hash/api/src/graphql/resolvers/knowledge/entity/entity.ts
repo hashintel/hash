@@ -36,7 +36,7 @@ import { beforeUpdateEntityHooks } from "./before-update-entity-hooks";
  *   https://app.asana.com/0/1201095311341924/1203331904553375/f
  *
  */
-const removeNonlatestEntities = (subgraph: Subgraph) => {
+const removeNonLatestEntities = (subgraph: Subgraph) => {
   for (const entityId of Object.keys(subgraph.vertices)) {
     if (isEntityId(entityId)) {
       for (const oldVersion of Object.keys(subgraph.vertices[entityId]!)
@@ -169,7 +169,7 @@ export const getAllLatestEntities: ResolverFn<
       );
     });
 
-  removeNonlatestEntities(entitySubgraph as Subgraph);
+  removeNonLatestEntities(entitySubgraph as Subgraph);
   return entitySubgraph as Subgraph;
 };
 
@@ -234,7 +234,7 @@ export const getEntity: ResolverFn<
       );
     });
 
-  removeNonlatestEntities(entitySubgraph as Subgraph);
+  removeNonLatestEntities(entitySubgraph as Subgraph);
   return entitySubgraph as Subgraph;
 };
 
