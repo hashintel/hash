@@ -6,9 +6,9 @@ import {
   isOutwardLinkEdge,
   isHasRightEntityEdge,
   isHasLeftEntityEdge,
+  isIncomingLinkEdge,
 } from "../../types/edge/outward-edge-alias";
 import { mustBeDefined } from "../../shared/invariant";
-import { OutwardEdge } from "../../types/edge";
 
 const getUniqueEntitiesFilter = () => {
   const set = new Set();
@@ -98,44 +98,45 @@ export const getIncomingLinksForEntityAtMoment = (
   const timestampString =
     typeof timestamp === "string" ? timestamp : timestamp.toISOString();
 
+  const entityEdges = subgraph.edges[entityId];
+
+  if (!entityEdges) {
+    return [];
+  }
+
   const uniqueEntitiesFilter = getUniqueEntitiesFilter();
 
-  /**
-   * @todo - replace this with the analogue of the code in `getOutgoingLinksForEntityAtMoment` when
-   *   reverse mappings are stored in the graph
-   *   https://app.asana.com/0/1201095311341924/1203399511264512/f
-   */
-  return Object.entries(subgraph.edges)
-    .filter(([_, inner]) => {
-      return Object.values(inner)
-        .flat()
-        .find(
-          (outwardEdge: OutwardEdge) =>
-            isHasRightEntityEdge(outwardEdge) &&
-            outwardEdge.rightEndpoint.baseId === entityId,
+  return (
+    Object.entries(entityEdges)
+      // Only look at edges that were created before or at the timestamp
+      .filter(([edgeTimestamp, _]) => edgeTimestamp <= timestampString)
+      // Extract the link `EntityEditionId`s from the endpoints of the link edges
+      .flatMap(([_, outwardEdges]) => {
+        return outwardEdges.filter(isIncomingLinkEdge).map((edge) => {
+          return edge.rightEndpoint;
+        });
+      })
+      .map(({ baseId: linkEntityId, timestamp: _firstEditionTimestamp }) => {
+        const linkEntity = mustBeDefined(
+          getEntityAtTimestamp(
+            subgraph,
+            linkEntityId,
+            // Find the edition of the link at the given moment (not at `_firstEditionTimestamp`, the start of its history)
+            timestampString,
+          ),
         );
-    })
-    .map(([linkEntityId, _]) => {
-      const linkEntity = mustBeDefined(
-        getEntityAtTimestamp(
-          subgraph,
-          linkEntityId as EntityId,
-          // Find the edition of the link at the given moment (not at the timestamp in the inner edges object, which
-          // corresponds to the start of the link's history)
-          timestampString,
-        ),
-      );
 
-      if (!includeArchived) {
-        if (linkEntity.metadata.archived) {
-          return undefined;
+        if (!includeArchived) {
+          if (linkEntity.metadata.archived) {
+            return undefined;
+          }
         }
-      }
 
-      return linkEntity;
-    })
-    .filter((x): x is Entity => x !== undefined)
-    .filter(uniqueEntitiesFilter);
+        return linkEntity;
+      })
+      .filter((x): x is Entity => x !== undefined)
+      .filter(uniqueEntitiesFilter)
+  );
 };
 
 /**
