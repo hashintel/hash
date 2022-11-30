@@ -10,7 +10,7 @@ use graph::{
     identifier::account::AccountId,
     logging::init_logger,
     ontology::domain_validator::DomainValidator,
-    provenance::{CreatedById, OwnedById},
+    provenance::{OwnedById, UpdatedById},
     store::{
         AccountStore, BaseUriAlreadyExists, DataTypeStore, EntityTypeStore, PostgresStorePool,
         StorePool,
@@ -175,7 +175,7 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
             .create_data_type(
                 data_type,
                 OwnedById::new(root_account_id),
-                CreatedById::new(root_account_id),
+                UpdatedById::new(root_account_id),
             )
             .await
             .change_context(GraphError)
@@ -196,7 +196,7 @@ async fn stop_gap_setup(pool: &PostgresStorePool<NoTls>) -> Result<(), GraphErro
         .create_entity_type(
             link_entity_type,
             OwnedById::new(root_account_id),
-            CreatedById::new(root_account_id),
+            UpdatedById::new(root_account_id),
         )
         .await
     {
