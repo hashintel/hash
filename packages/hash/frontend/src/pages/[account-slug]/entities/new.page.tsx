@@ -1,12 +1,11 @@
 import { validateVersionedUri } from "@blockprotocol/type-system-web";
 import { useRouter } from "next/router";
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuthenticatedUser } from "../../../components/hooks/useAuthenticatedUser";
 import { PageErrorState } from "../../../components/page-error-state";
 import { useInitTypeSystem } from "../../../lib/use-init-type-system";
 import {
   getLayoutWithSidebar,
-  getPlainLayout,
   NextPageWithLayout,
 } from "../../../shared/layout";
 import { EntityPageLoadingState } from "./[entity-uuid].page/entity-page-loading-state";
