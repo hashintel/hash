@@ -179,19 +179,20 @@ export default class extends EntityModel {
     graphApi: GraphApi,
     params: {
       properties: PropertyObject;
-      linkOrder: EntityLinkOrder;
+      leftOrder?: number;
+      rightOrder?: number;
       actorId: string;
     },
   ): Promise<EntityModel> {
-    const { properties, actorId, linkOrder } = params;
+    const { properties, actorId, leftOrder, rightOrder } = params;
 
     const { data: metadata } = await graphApi.updateEntity({
       actorId,
       entityId: this.getBaseId(),
       entityTypeId: this.entityTypeModel.getSchema().$id,
       properties,
-      leftOrder: linkOrder.leftOrder,
-      rightOrder: linkOrder.rightOrder,
+      leftOrder,
+      rightOrder,
     });
 
     return LinkEntityModel.fromEntity(graphApi, {

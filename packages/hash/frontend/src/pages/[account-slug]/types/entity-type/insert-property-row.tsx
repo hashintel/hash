@@ -19,8 +19,7 @@ import { Ref, useId, useRef, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { Modal } from "../../../../components/Modals/Modal";
 import { EntityTypeEditorForm } from "./form-types";
-import { PropertyListSelectorDropdownContext } from "./property-list-selector-dropdown";
-import { PropertySelector } from "./property-selector";
+import { PropertyTypeSelector } from "./property-type-selector";
 import { PropertyTypeForm } from "./property-type-form";
 import { QuestionIcon } from "./question-icon";
 import { withHandler } from "./util";
@@ -57,37 +56,33 @@ export const InsertPropertyRow = ({
       }}
     >
       <TableCell colSpan={2}>
-        <PropertyListSelectorDropdownContext.Provider
-          value={
-            // eslint-disable-next-line react/jsx-no-constructed-context-values
-            {
-              query: searchText,
-              createButtonProps: {
-                ...withHandler(bindTrigger(modalPopupState), () => {
-                  ourInputRef.current?.focus();
-                }),
-                onMouseDown: (evt) => {
-                  evt.preventDefault();
-                  evt.stopPropagation();
-                },
-              },
-            }
+        <PropertyTypeSelector
+          searchText={searchText}
+          onSearchTextChange={setSearchText}
+          ref={sharedRef}
+          modalPopupState={modalPopupState}
+          onAdd={onAdd}
+          onCancel={onCancel}
+          filterProperty={(property) =>
+            !properties.some(
+              (includedProperty) => includedProperty.$id === property.$id,
+            )
           }
-        >
-          <PropertySelector
-            searchText={searchText}
-            onSearchTextChange={setSearchText}
-            ref={sharedRef}
-            modalPopupState={modalPopupState}
-            onAdd={onAdd}
-            onCancel={onCancel}
-            filterProperty={(property) =>
-              !properties.some(
-                (includedProperty) => includedProperty.$id === property.$id,
-              )
-            }
-          />
-        </PropertyListSelectorDropdownContext.Provider>
+          dropdownProps={{
+            query: searchText,
+            createButtonProps: {
+              ...withHandler(bindTrigger(modalPopupState), () => {
+                ourInputRef.current?.focus();
+              }),
+              onMouseDown: (evt) => {
+                evt.preventDefault();
+                evt.stopPropagation();
+              },
+            },
+            variant: "propertyType",
+          }}
+        />
+
         <Modal
           {...bindPopover(modalPopupState)}
           disableEscapeKeyDown

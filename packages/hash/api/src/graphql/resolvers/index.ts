@@ -50,6 +50,7 @@ import {
   getEntity,
   getAllLatestEntities,
   updateEntity,
+  archiveEntity,
 } from "./knowledge/entity/entity";
 import { setParentPage } from "./knowledge/page/set-parent-page";
 import { updatePage } from "./knowledge/page/update-page";
@@ -118,6 +119,7 @@ export const resolvers = {
     // Knowledge
     createEntity: loggedInAndSignedUp(createEntity),
     updateEntity: loggedIn(updateEntity),
+    archiveEntity: loggedIn(archiveEntity),
     createPage: loggedInAndSignedUp(createPage),
     setParentPage: loggedInAndSignedUp(setParentPage),
     updatePage: loggedInAndSignedUp(updatePage),

@@ -334,7 +334,7 @@ export default class {
     params: {
       entityId: EntityId;
     },
-  ): Promise<EntityModel> {
+  ): Promise<EntityModel | LinkEntityModel> {
     const { entityId } = params;
     const { data: entity } = await graphApi.getEntity(entityId);
 
@@ -368,7 +368,9 @@ export default class {
       );
     }
 
-    return await EntityModel.fromEntity(graphApi, entity as Entity);
+    return entityModel.entityTypeModel.isLinkEntityType()
+      ? await LinkEntityModel.fromEntity(graphApi, entity as Entity)
+      : entityModel;
   }
 
   /**
