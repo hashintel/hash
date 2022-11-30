@@ -38,7 +38,7 @@ export const generateBaseTypeId = ({
 }): BaseUri =>
   `${domain ?? frontendUrl}/@${namespace}/types/${kind}/${slugifyTypeTitle(
     title,
-  )}` as const;
+  )}/` as const;
 
 /**
  * Generate the identifier of a type (its versioned URI).
