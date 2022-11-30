@@ -1,12 +1,11 @@
 import {
-  Array,
   DataTypeReference,
-  OneOf,
   PropertyType,
   PropertyValues,
 } from "@blockprotocol/type-system-web";
 import { Subgraph } from "@hashintel/hash-subgraph";
 import { getDataTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/data-type";
+import { isPropertyValueArray } from "../../../../../../../../../lib/typeguards";
 
 const getDataTypeTitle = (
   dataTypeReference: DataTypeReference,
@@ -33,12 +32,6 @@ const getReferencedTypeTitles = (
   return types;
 };
 
-const isArrayOfPropertyValues = (
-  propertyValue: PropertyValues,
-): propertyValue is Array<OneOf<PropertyValues>> => {
-  return "type" in propertyValue && propertyValue.type === "array";
-};
-
 export const getExpectedTypesOfPropertyType = (
   propertyType: PropertyType,
   subgraph: Subgraph,
@@ -52,7 +45,7 @@ export const getExpectedTypesOfPropertyType = (
     throw new Error("There is no type in this property");
   }
 
-  if (isArrayOfPropertyValues(firstType)) {
+  if (isPropertyValueArray(firstType)) {
     isArray = true;
     expectedTypes = getReferencedTypeTitles(firstType.items.oneOf, subgraph);
   } else {

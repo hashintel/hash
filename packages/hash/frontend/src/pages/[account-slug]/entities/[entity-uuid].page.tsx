@@ -18,6 +18,7 @@ import { EntityPageWrapper } from "./[entity-uuid].page/entity-page-wrapper";
 import { PageErrorState } from "../../../components/page-error-state";
 /** @todo - This should be moved somewhere shared */
 import { useRouteNamespace } from "../types/entity-type/use-route-namespace";
+import { generateEntityLabel } from "../../../lib/entities";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
@@ -70,8 +71,10 @@ const Page: NextPageWithLayout = () => {
     return <PageErrorState />;
   }
 
+  const entityLabel = generateEntityLabel(entitySubgraph);
+
   return (
-    <EntityPageWrapper entitySubgraph={entitySubgraph}>
+    <EntityPageWrapper label={entityLabel}>
       <EntityEditor
         entitySubgraph={entitySubgraph}
         setEntity={(entity) =>
