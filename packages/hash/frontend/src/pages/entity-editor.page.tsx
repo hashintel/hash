@@ -16,7 +16,10 @@ import { useBlockProtocolFunctionsWithOntology } from "./type-editor/blockprotoc
  * Helper type-guard for determining if a `ValueOrArray` definition is an array or a value.
  */
 const isArrayDefinition = <T,>(input: ValueOrArray<T>): input is Array<T> =>
-  "type" in input && input.type === "array";
+  input &&
+  typeof input === "object" &&
+  "type" in input &&
+  input.type === "array";
 
 /**
  * This component is an example usage of the `getEntity` BP function.
@@ -39,7 +42,7 @@ const ExampleUsage = ({ ownedById }: { ownedById: string }) => {
       // As an example entity, we are going to use the currently logged in user's entity ID
       const entityId = authenticatedUser.entityEditionId.baseId;
 
-      void getEntity({ data: entityId }).then(({ data }) => {
+      void getEntity({ data: { entityId } }).then(({ data }) => {
         setUserSubgraph(data);
       });
     }

@@ -50,15 +50,20 @@
 //!
 //! Another downside of the current approach is, that a [`Display`] message cannot use the values of
 //! the properties, which is not ideal when writing "personalized" error messages during
-//! serialization. This is fixed because [`Error`] implementations must provide
-//! [`Error::message`], which receives all properties and their value.
+//! serialization. This is fixed because [`Variant`] implementations must provide
+//! [`Variant::message`], which receives all properties and their value.
 //!
 //! [`Location`]: core::panic::Location
 
 use alloc::{boxed::Box, collections::BTreeMap, format, string::String};
-use core::fmt::{self, Debug, Display, Formatter};
+#[cfg(nightly)]
+use core::any::Demand;
+use core::{
+    any::Any,
+    fmt::{self, Debug, Display, Formatter},
+};
 
-use error_stack::{Context, Frame, IntoReport, Result};
+use error_stack::{Context, Frame, IntoReport, Report, Result};
 pub use extra::{
     ArrayLengthError, ExpectedLength, ObjectItemsExtraError, ReceivedKey, ReceivedLength,
 };
@@ -71,11 +76,12 @@ pub use unknown::{
 };
 pub use value::{MissingError, ReceivedValue, ValueError};
 
-use crate::error::macros::impl_error;
+use crate::error::serialize::{impl_serialize, Export};
 
 mod extra;
 mod location;
 mod macros;
+mod serialize;
 mod tuple;
 mod r#type;
 mod unknown;
@@ -201,7 +207,14 @@ impl SerdeSerializeError {
     }
 }
 
-impl_error!(SerdeSerializeError);
+#[cfg(nightly)]
+impl core::error::Error for SerdeSerializeError {}
+
+#[cfg(all(not(nightly), not(feature = "std")))]
+impl error_stack::Context for SerdeSerializeError {}
+
+#[cfg(all(not(nightly), feature = "std"))]
+impl std::error::Error for SerdeSerializeError {}
 
 /// Value which is extracted/retrieved from a stack of [`error_stack::Frame`]s
 ///
@@ -276,7 +289,7 @@ impl<T: ErrorProperty + 'static> ErrorProperties for T {
 /// properties, which are then used in the output and can be used while personalising the message.
 ///
 /// The combination of `NAMESPACE` and `ID` needs to be unique.
-pub trait Error: Context + Debug + Display {
+pub trait Variant: Sized + Debug + Display + Send + Sync + 'static {
     type Properties: ErrorProperties;
 
     const ID: Id;
@@ -294,7 +307,140 @@ pub trait Error: Context + Debug + Display {
         fmt: &mut Formatter,
         properties: &<Self::Properties as ErrorProperties>::Value<'a>,
     ) -> fmt::Result;
+
+    #[cfg(nightly)]
+    #[allow(unused_variables)]
+    fn provide<'a>(&'a self, demand: &mut Demand<'a>) {}
+
+    fn into_error(self) -> Error {
+        Error::new(self)
+    }
 }
+
+type SerializeReturnType<'a> = Option<Box<dyn erased_serde::Serialize + 'a>>;
+
+pub struct Error {
+    variant: Box<dyn Any + Send + Sync>,
+    serialize: for<'a> fn(error: &'a Self, &[&'a Frame]) -> SerializeReturnType<'a>,
+    display: fn(error: &Box<dyn Any + Send + Sync>, fmt: &mut Formatter) -> fmt::Result,
+    debug: fn(error: &Box<dyn Any + Send + Sync>, fmt: &mut Formatter) -> fmt::Result,
+    #[cfg(nightly)]
+    provide: for<'a> fn(error: &'a Box<dyn Any + Send + Sync>, demand: &mut Demand<'a>),
+}
+
+impl Debug for Error {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        (self.debug)(&self.variant, f)
+    }
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        (self.display)(&self.variant, f)
+    }
+}
+
+fn impl_display<E: Variant>(
+    error: &Box<dyn Any + Send + Sync>,
+    fmt: &mut Formatter,
+) -> fmt::Result {
+    let error: &E = error
+        .downcast_ref()
+        .expect("`impl_display` should only be called on corresponding `Error`");
+
+    Display::fmt(error, fmt)
+}
+
+fn impl_debug<E: Variant>(error: &Box<dyn Any + Send + Sync>, fmt: &mut Formatter) -> fmt::Result {
+    let error: &E = error
+        .downcast_ref()
+        .expect("`impl_debug` should only be called on corresponding `Error`");
+
+    Debug::fmt(error, fmt)
+}
+
+#[cfg(nightly)]
+fn impl_provide<'a, E: Variant>(error: &'a Box<dyn Any + Send + Sync>, demand: &mut Demand<'a>) {
+    let error: &E = error
+        .downcast_ref()
+        .expect("`impl_provide` should only be called on corresponding `Error`");
+
+    demand.provide_ref(error);
+    error.provide(demand);
+}
+
+impl Error {
+    pub fn new<T: Variant>(variant: T) -> Self {
+        Self {
+            variant: Box::new(variant),
+            serialize: impl_serialize::<T>,
+            display: impl_display::<T>,
+            debug: impl_debug::<T>,
+            #[cfg(nightly)]
+            provide: impl_provide::<T>,
+        }
+    }
+
+    pub(crate) fn variant(&self) -> &Box<dyn Any + Send + Sync> {
+        &self.variant
+    }
+
+    pub fn downcast<T: Variant>(self) -> core::result::Result<T, Self> {
+        #[cfg(nightly)]
+        let Self {
+            variant,
+            serialize,
+            display,
+            debug,
+            provide,
+        } = self;
+
+        #[cfg(not(nightly))]
+        let Self {
+            variant,
+            serialize,
+            display,
+            debug,
+        } = self;
+
+        variant.downcast().map(|value| *value).map_err(|variant| {
+            #[cfg(nightly)]
+            return Self {
+                variant,
+                serialize,
+                display,
+                debug,
+                provide,
+            };
+
+            #[cfg(not(nightly))]
+            return Self {
+                variant,
+                serialize,
+                display,
+                debug,
+            };
+        })
+    }
+
+    #[must_use]
+    pub fn downcast_ref<T: Variant>(&self) -> Option<&T> {
+        self.variant().downcast_ref()
+    }
+}
+
+#[cfg(nightly)]
+impl core::error::Error for Error {
+    fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
+        (self.provide)(&self.variant, demand);
+    }
+}
+
+#[cfg(all(not(nightly), not(feature = "std")))]
+impl error_stack::Context for Error {}
+
+#[cfg(all(not(nightly), feature = "std"))]
+impl std::error::Error for Error {}
 
 /// This macro makes implementation of error structs easier, by implementing all necessary
 /// traits automatically and removing significant boilerplate.
@@ -359,3 +505,13 @@ error!(
     /// [`ArrayAccess`]: crate::ArrayAccess
     ArrayAccessError: "array access encountered one or more errors during access"
 );
+
+pub trait ReportExt<C: Context> {
+    fn export(self) -> Export<C>;
+}
+
+impl<C: Context> ReportExt<C> for Report<C> {
+    fn export(self) -> Export<C> {
+        Export::new(self)
+    }
+}

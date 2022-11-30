@@ -22,7 +22,7 @@ impl<C: AsClient> PostgresStore<C> {
     /// Internal method to read a [`DataTypeWithMetadata`] into a [`DependencyContext`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    pub(crate) async fn get_data_type_as_dependency(
+    pub(crate) async fn traverse_data_type(
         &self,
         data_type_id: &OntologyTypeEditionId,
         dependency_context: &mut DependencyContext,
@@ -31,7 +31,7 @@ impl<C: AsClient> PostgresStore<C> {
     ) -> Result<(), QueryError> {
         let dependency_status = dependency_context
             .ontology_dependency_map
-            .insert(data_type_id, Some(current_resolve_depth));
+            .insert(data_type_id, current_resolve_depth);
         let data_type: Option<&OntologyVertex> = match dependency_status {
             DependencyStatus::Unknown => {
                 let data_type = Read::<DataTypeWithMetadata>::read_one(
@@ -107,15 +107,8 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
 
         for data_type in Read::<DataTypeWithMetadata>::read(self, filter).await? {
             let data_type_id = data_type.metadata().edition_id().clone();
-            dependency_context
-                .ontology_dependency_map
-                .insert(&data_type_id, None);
-            subgraph.vertices.ontology.insert(
-                data_type_id.clone(),
-                OntologyVertex::DataType(Box::new(data_type)),
-            );
 
-            self.get_data_type_as_dependency(
+            self.traverse_data_type(
                 &data_type_id,
                 &mut dependency_context,
                 &mut subgraph,

@@ -323,6 +323,26 @@ export const generateEntityLabel = (
 
   const entity = getRoots(entitySubgraph)[0]!;
 
+  const getFallbackLabel = () => {
+    // fallback to the entity type and a few characters of the entityUuid
+    const entityId = entity.metadata.editionId.baseId;
+
+    const entityTypeName = schema?.title ?? "Entity";
+
+    return `${entityTypeName}-${extractEntityUuidFromEntityId(entityId).slice(
+      0,
+      5,
+    )}`;
+  };
+
+  const getFallbackIfNotString = (val: any) => {
+    if (!val || typeof val !== "string") {
+      return getFallbackLabel();
+    }
+
+    return val;
+  };
+
   // if the schema has a labelProperty set, prefer that
   const labelProperty = schema?.labelProperty;
   if (
@@ -330,7 +350,7 @@ export const generateEntityLabel = (
     typeof entity.properties[labelProperty] === "string" &&
     entity.properties[labelProperty]
   ) {
-    return entity.properties[labelProperty] as string;
+    return getFallbackIfNotString(entity.properties[labelProperty]);
   }
 
   // fallback to some likely display name properties
@@ -365,17 +385,11 @@ export const generateEntityLabel = (
     const found = propertyTypes.find(({ title }) => title === option);
 
     if (found) {
-      return entity.properties[found.propertyTypeBaseUri] as string;
+      return getFallbackIfNotString(
+        entity.properties[found.propertyTypeBaseUri],
+      );
     }
   }
 
-  // fallback to the entity type and a few characters of the entityUuid
-  const entityId = entity.metadata.editionId.baseId;
-
-  const entityTypeName = schema?.title ?? "Entity";
-
-  return `${entityTypeName}-${extractEntityUuidFromEntityId(entityId).slice(
-    0,
-    5,
-  )}`;
+  return getFallbackLabel();
 };

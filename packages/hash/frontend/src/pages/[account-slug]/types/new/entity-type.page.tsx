@@ -1,10 +1,7 @@
 import { EntityType } from "@blockprotocol/type-system-web";
 import { Button, TextField } from "@hashintel/hash-design-system";
 import { frontendUrl } from "@hashintel/hash-shared/environment";
-import {
-  addVersionToBaseUri,
-  generateBaseTypeId,
-} from "@hashintel/hash-shared/types";
+import { generateBaseTypeId } from "@hashintel/hash-shared/types";
 import {
   Box,
   Container,
@@ -19,11 +16,12 @@ import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
 import { ReactNode, useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
 import { useBlockProtocolGetEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
 import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
 import { useInitTypeSystem } from "../../../../lib/use-init-type-system";
 import {
-  getLayoutWithHeader,
+  getLayoutWithSidebar,
   NextPageWithLayout,
 } from "../../../../shared/layout";
 import { Link } from "../../../../shared/ui/link";
@@ -58,10 +56,11 @@ type CreateEntityTypeFormData = {
 const HELPER_TEXT_WIDTH = 290;
 
 const generateInitialEntityTypeId = (baseUri: string) =>
-  addVersionToBaseUri(baseUri, 1);
+  versionedUriFromComponents(baseUri, 1);
 
 const Page: NextPageWithLayout = () => {
   const typeSystemLoading = useInitTypeSystem();
+  const router = useRouter();
 
   const {
     handleSubmit,
@@ -75,9 +74,11 @@ const Page: NextPageWithLayout = () => {
     shouldFocusError: true,
     mode: "onSubmit",
     reValidateMode: "onSubmit",
+    defaultValues: {
+      name: typeof router.query.name === "string" ? router.query.name : "",
+    },
   });
 
-  const router = useRouter();
   const { authenticatedUser, loading } = useAuthenticatedUser();
   const { getEntityType } = useBlockProtocolGetEntityType();
   const { namespace, loading: loadingNamespace } = useRouteNamespace();
@@ -219,9 +220,17 @@ const Page: NextPageWithLayout = () => {
                   },
                   async validate(value) {
                     const res = await getEntityType({
-                      data: generateInitialEntityTypeId(
-                        generateEntityTypeBaseUriForUser(value),
-                      ),
+                      data: {
+                        entityTypeId: generateInitialEntityTypeId(
+                          generateEntityTypeBaseUriForUser(value),
+                        ),
+                        graphResolveDepths: {
+                          constrainsValuesOn: { outgoing: 0 },
+                          constrainsPropertiesOn: { outgoing: 0 },
+                          constrainsLinksOn: { outgoing: 0 },
+                          constrainsLinkDestinationsOn: { outgoing: 0 },
+                        },
+                      },
                     });
 
                     return res.data?.roots.length
@@ -308,6 +317,9 @@ const Page: NextPageWithLayout = () => {
   );
 };
 
-Page.getLayout = getLayoutWithHeader;
+Page.getLayout = (page) =>
+  getLayoutWithSidebar(page, {
+    fullWidth: true,
+  });
 
 export default Page;

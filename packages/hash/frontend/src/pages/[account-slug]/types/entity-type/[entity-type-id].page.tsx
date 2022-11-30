@@ -15,7 +15,7 @@ import { useEffect, useMemo } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
 import {
-  getLayoutWithHeader,
+  getLayoutWithSidebar,
   NextPageWithLayout,
 } from "../../../../shared/layout";
 import { TopContextBar } from "../../../shared/top-context-bar";
@@ -345,6 +345,9 @@ const Page: NextPageWithLayout = () => {
   );
 };
 
-Page.getLayout = getLayoutWithHeader;
+Page.getLayout = (page) =>
+  getLayoutWithSidebar(page, {
+    fullWidth: true,
+  });
 
 export default Page;
