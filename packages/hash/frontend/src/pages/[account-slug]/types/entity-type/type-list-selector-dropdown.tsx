@@ -11,33 +11,23 @@ import {
   PaperProps,
   Typography,
 } from "@mui/material";
-import { createContext, useContext } from "react";
-import { PROPERTY_SELECTOR_HEIGHT } from "./property-selector";
 import { StyledPlusCircleIcon } from "./styled-plus-circle-icon";
 
-type PropertyListSelectorDropdownProps = {
+export type TypeListSelectorDropdownProps = {
   query: string;
   createButtonProps: Omit<ButtonProps, "children" | "variant" | "size">;
+  variant: "entityType" | "propertyType";
 };
 
-export const PropertyListSelectorDropdownContext =
-  createContext<PropertyListSelectorDropdownProps | null>(null);
+export const TYPE_SELECTOR_HEIGHT = 57;
 
-const usePropertyListSelectorDropdownContext = () => {
-  const value = useContext(PropertyListSelectorDropdownContext);
-  if (value === null) {
-    throw new Error(
-      "Must wrap with PropertyListSelectorDropdownContext.Provider",
-    );
-  }
-  return value;
-};
-
-export const PropertyListSelectorDropdown = ({
+export const TypeListSelectorDropdown = ({
   children,
+  dropdownProps,
   ...props
-}: PaperProps) => {
-  const { query, createButtonProps } = usePropertyListSelectorDropdownContext();
+}: PaperProps & { dropdownProps: TypeListSelectorDropdownProps }) => {
+  const { query, createButtonProps, variant } = dropdownProps;
+
   return (
     <>
       <Box
@@ -46,15 +36,15 @@ export const PropertyListSelectorDropdown = ({
           left: 0,
           right: 0,
           width: "100%",
-          height: `calc(100% + ${PROPERTY_SELECTOR_HEIGHT}px)`,
+          height: `calc(100% + ${TYPE_SELECTOR_HEIGHT}px)`,
           boxShadow: theme.boxShadows.md,
           pointerEvents: "none",
           borderRadius: `${textFieldBorderRadius}px`,
           [`[data-popper-placement="top"] &`]: {
-            bottom: -PROPERTY_SELECTOR_HEIGHT,
+            bottom: -TYPE_SELECTOR_HEIGHT,
           },
           [`[data-popper-placement="bottom"] &`]: {
-            top: -PROPERTY_SELECTOR_HEIGHT,
+            top: -TYPE_SELECTOR_HEIGHT,
           },
         })}
         aria-hidden
@@ -123,7 +113,11 @@ export const PropertyListSelectorDropdown = ({
               </Typography>
             </>
           ) : null}
-          <Chip color="purple" label="PROPERTY TYPE" sx={{ ml: 1.5 }} />
+          {variant === "entityType" ? (
+            <Chip color="teal" label="ENTITY TYPE" sx={{ ml: 1.5 }} />
+          ) : (
+            <Chip color="purple" label="PROPERTY TYPE" sx={{ ml: 1.5 }} />
+          )}
         </Button>
       </Paper>
     </>
