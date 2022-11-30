@@ -2,6 +2,7 @@ import { BaseUri, VersionedUri } from "@blockprotocol/type-system-web";
 import slugify from "slugify";
 import { EntityId } from "@hashintel/hash-subgraph";
 import { SYSTEM_ACCOUNT_SHORTNAME } from "@hashintel/hash-shared/environment";
+import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
 import { frontendUrl } from "./environment";
 
 type SchemaKind = "data-type" | "property-type" | "entity-type";
@@ -39,11 +40,6 @@ export const generateBaseTypeId = ({
     title,
   )}` as const;
 
-export const addVersionToBaseUri = (
-  uri: BaseUri,
-  version: number,
-): VersionedUri => `${uri}/v/${version}`;
-
 /**
  * Generate the identifier of a type (its versioned URI).
  *
@@ -63,7 +59,7 @@ export const generateTypeId = ({
   kind: SchemaKind;
   title: string;
 }): VersionedUri =>
-  addVersionToBaseUri(
+  versionedUriFromComponents(
     generateBaseTypeId({ domain, namespace, kind, title }),
     1,
   );
@@ -71,8 +67,8 @@ export const generateTypeId = ({
 /**
  * Generate the identifier of a system type (its versioned URI).
  *
- * @param kind - the "kind" of the type ("entity-type", "property-type", "link-type" or "data-type").
- * @param title - the title of the type.
+ * @param args.kind - the "kind" of the type ("entity-type", "property-type", "link-type" or "data-type").
+ * @param args.title - the title of the type.
  */
 export const generateSystemTypeId = (args: {
   kind: SchemaKind;

@@ -15,12 +15,24 @@ import {
 
 const versionedUriGroupsPattern = /(.+\/)v\/(\d+)(.*)/;
 
+export const splitVersionedUri = (id: VersionedUri): [BaseUri, number] => {
+  const [baseUri, version] = id.match(versionedUriGroupsPattern)!;
+  return [baseUri!, Number(version!)];
+};
+
+export const versionedUriFromComponents = (
+  baseUri: BaseUri,
+  version: number,
+): VersionedUri => {
+  return `${baseUri}v/${version}` as VersionedUri;
+};
+
 export const extractBaseUri = (id: VersionedUri): BaseUri => {
-  return id.match(versionedUriGroupsPattern)![1]!;
+  return splitVersionedUri(id)[0];
 };
 
 export const extractVersion = (id: VersionedUri): number => {
-  return Number(id.match(versionedUriGroupsPattern)![2]!);
+  return splitVersionedUri(id)[1];
 };
 
 export const validateBaseUri = (
