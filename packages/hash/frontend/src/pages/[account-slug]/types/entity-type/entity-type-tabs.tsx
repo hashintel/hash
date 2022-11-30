@@ -93,7 +93,7 @@ export const EntityTypeTabs = () => {
 
         <TabLink
           value="create"
-          href={`/@${ownerShortname}/entities/new?entity-type-id=${encodeURIComponent(
+          href={`/@${ownerShortname}/new/entity?entity-type-id=${encodeURIComponent(
             entityType.$id,
           )}`}
           label="Create new entity"

@@ -157,7 +157,7 @@ const Page: NextPageWithLayout = () => {
         `Error: Couldn't find namespace with shortname '${router.query["account-slug"]}'.`,
       );
       void router.replace(
-        `/@${authenticatedUser.shortname}/types/new/entity-type`,
+        `/@${authenticatedUser.shortname}/new/types/entity-type`,
       );
       return;
     }
@@ -167,7 +167,7 @@ const Page: NextPageWithLayout = () => {
       console.warn(
         `Error: Couldn't find entity type with id '${router.query["entity-type-id"]}'.`,
       );
-      void router.replace(`/@${namespace?.shortname}/types/new/entity-type`);
+      void router.replace(`/@${namespace?.shortname}/new/types/entity-type`);
     }
   }, [
     loadingNamespace,
@@ -259,7 +259,7 @@ const Page: NextPageWithLayout = () => {
                       // @todo confirmation of discard when draft
                       isDraft
                         ? {
-                            href: `/${router.query["account-slug"]}/types/new/entity-type`,
+                            href: `/${router.query["account-slug"]}/new/types/entity-type`,
                           }
                         : {
                             onClick() {

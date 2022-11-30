@@ -28,7 +28,7 @@ import { Link } from "../../../../shared/ui/link";
 import { TopContextBar } from "../../../shared/top-context-bar";
 import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
 import { OntologyChip } from "../../shared/ontology-chip";
-import { useRouteNamespace } from "../entity-type/use-route-namespace";
+import { useRouteNamespace } from "../../types/entity-type/use-route-namespace";
 
 const FormHelperLabel = ({
   children,
@@ -86,7 +86,7 @@ const Page: NextPageWithLayout = () => {
   useEffect(() => {
     if (authenticatedUser && !loadingNamespace && !namespace) {
       void router.replace(
-        `/@${authenticatedUser.shortname}/types/new/entity-type`,
+        `/@${authenticatedUser.shortname}/new/types/entity-type`,
       );
     }
   }, [loadingNamespace, authenticatedUser, namespace, router]);
@@ -163,7 +163,7 @@ const Page: NextPageWithLayout = () => {
                   >
                     {`@${namespace.shortname}`}
                   </Typography>
-                  /types/new/entity-type
+                  /new/types/entity-type
                 </Typography>
               }
               sx={[{ marginBottom: 2 }]}

@@ -8,9 +8,9 @@ import {
   getLayoutWithSidebar,
   NextPageWithLayout,
 } from "../../../shared/layout";
-import { EntityPageLoadingState } from "./[entity-uuid].page/entity-page-loading-state";
-import { NewEntityPage } from "./[entity-uuid].page/new-entity-page";
-import { useCreateNewEntityAndRedirect } from "./[entity-uuid].page/shared/use-create-new-entity-and-redirect";
+import { EntityPageLoadingState } from "../entities/[entity-uuid].page/entity-page-loading-state";
+import { NewEntityPage } from "../entities/[entity-uuid].page/new-entity-page";
+import { useCreateNewEntityAndRedirect } from "../entities/[entity-uuid].page/shared/use-create-new-entity-and-redirect";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();

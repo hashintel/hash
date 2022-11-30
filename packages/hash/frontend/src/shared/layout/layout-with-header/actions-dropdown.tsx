@@ -118,7 +118,7 @@ export const ActionsDropdownInner: FunctionComponent<{
         </MenuItem> */}
         {authenticatedUser ? (
           <MenuItem
-            href={`/@${authenticatedUser.shortname}/types/new/entity-type`}
+            href={`/@${authenticatedUser.shortname}/new/types/entity-type`}
             onClick={popupState.close}
           >
             <ListItemText primary="Create Entity Type" />
