@@ -55,7 +55,7 @@ fn serde_to_deer_number(number: &serde_json::Number) -> Option<deer::Number> {
     // variant.
     #[allow(unsafe_code)]
     unsafe {
-        deer::Number::from_string_unchecked(format!("{number}"))
+        Some(deer::Number::from_string_unchecked(format!("{number}")))
     }
 }
 
