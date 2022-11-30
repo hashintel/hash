@@ -59,7 +59,7 @@ describe("Entity CRU", () => {
       },
       actorId: testUser.getEntityUuid(),
     }).catch((err) => {
-      logger.error(`Something went wrong making Text: ${err}`);
+      logger.error("Something went wrong making Text", err);
       throw err;
     });
 
@@ -80,7 +80,7 @@ describe("Entity CRU", () => {
           linkEntityTypeFriendModel = val;
         })
         .catch((err) => {
-          logger.error(`Something went wrong making link type Friends: ${err}`);
+          logger.error("Something went wrong making link type Friends", err);
           throw err;
         }),
 
@@ -97,7 +97,7 @@ describe("Entity CRU", () => {
           favoriteBookPropertyTypeModel = val;
         })
         .catch((err) => {
-          logger.error(`Something went wrong making Favorite Book: ${err}`);
+          logger.error("Something went wrong making Favorite Book", err);
           throw err;
         }),
       PropertyTypeModel.create(graphApi, {
@@ -113,7 +113,7 @@ describe("Entity CRU", () => {
           namePropertyTypeModel = val;
         })
         .catch((err) => {
-          logger.error(`Something went wrong making Names: ${err}`);
+          logger.error("Something went wrong making Names", err);
           throw err;
         }),
     ]);
