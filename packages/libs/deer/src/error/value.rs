@@ -157,19 +157,12 @@ mod tests {
         );
 
         assert_eq!(
-        <<<<<<< HEAD
-                    to_message(&Report::new(ValueError).attach(ExpectedType::new(U8Schema::document()))),
-        =======
-                    to_message::<ValueError>(
-                        &Report::new(ValueError.into_error()).attach(ExpectedType::new(
-                            Schema::new("integer")
-                                .with("minimum", u8::MIN)
-                                .with("maximum", u8::MAX),
-                        ))
-                    ),
-        >>>>>>> origin/main
-                    "received value is of correct type (integer), but does not fit constraints"
-                );
+            to_message::<ValueError>(
+                &Report::new(ValueError.into_error())
+                    .attach(ExpectedType::new(U8Schema::document()))
+            ),
+            "received value is of correct type (integer), but does not fit constraints"
+        );
     }
 
     #[test]

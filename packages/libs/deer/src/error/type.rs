@@ -2,15 +2,7 @@ use alloc::format;
 use core::fmt::{Display, Formatter};
 
 use super::{ErrorProperties, ErrorProperty, Id, Namespace, Variant, NAMESPACE};
-use crate::{
-<<<<<<< HEAD
-    error::{macros::impl_error, Location},
-    id, Document,
-=======
-    error::{Location, Schema},
-    id,
->>>>>>> origin/main
-};
+use crate::{error::Location, id, schema::Document};
 
 #[derive(serde::Serialize)]
 pub struct ExpectedType(Document);
@@ -113,11 +105,11 @@ mod tests {
 
     use super::*;
     use crate::{
+        error::Error,
         schema::{
             visitor::{StringSchema, U8Schema},
             Reflection,
         },
-        error::Error,
         test::{to_json, to_message},
     };
 
@@ -174,12 +166,18 @@ mod tests {
         );
 
         assert_eq!(
-            to_message::<TypeError>(&Report::new(TypeError.into_error()).attach(ReceivedType::new(StringSchema::document()))),
+            to_message::<TypeError>(
+                &Report::new(TypeError.into_error())
+                    .attach(ReceivedType::new(StringSchema::document()))
+            ),
             r#"received value of unexpected type string"#
         );
 
         assert_eq!(
-            to_message::<TypeError>(&Report::new(TypeError.into_error()).attach(ExpectedType::new(U8Schema::document()))),
+            to_message::<TypeError>(
+                &Report::new(TypeError.into_error())
+                    .attach(ExpectedType::new(U8Schema::document()))
+            ),
             r#"expected value of type integer"#
         );
 
