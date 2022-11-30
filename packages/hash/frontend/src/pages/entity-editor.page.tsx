@@ -19,7 +19,7 @@ const isArrayDefinition = <T,>(input: ValueOrArray<T>): input is Array<T> =>
   input &&
   typeof input === "object" &&
   "type" in input &&
-  input?.type === "array";
+  input.type === "array";
 
 /**
  * This component is an example usage of the `getEntity` BP function.
