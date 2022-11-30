@@ -9,7 +9,7 @@ description = "The entity-graph query-layer for the HASH datastore"
 
 [dependencies]
 axum = "0.5.16"
-clap = { version = "4.0.13", features = ["cargo", "derive", "env", "wrap_help"] }
+clap = { version = "4.0.29", features = ["cargo", "derive", "env", "wrap_help"] }
 clap_complete = "4.0.2"
 error-stack = { version = "0.2.3", features = ["spantrace"] }
 graph = { path = "../../lib/graph", features = ["clap"] }
