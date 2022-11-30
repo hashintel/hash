@@ -5,8 +5,7 @@ use core::{
 };
 
 use super::{
-    fmt_fold_fields, macros::impl_error, Error, ErrorProperties, ErrorProperty, Id, Location,
-    Namespace, NAMESPACE,
+    fmt_fold_fields, ErrorProperties, ErrorProperty, Id, Location, Namespace, Variant, NAMESPACE,
 };
 use crate::id;
 
@@ -61,7 +60,7 @@ impl ErrorProperty for ReceivedField {
 #[derive(Debug)]
 pub struct UnknownFieldError;
 
-impl Error for UnknownFieldError {
+impl Variant for UnknownFieldError {
     type Properties = (Location, ExpectedField, ReceivedField);
 
     const ID: Id = id!["unknown", "field"];
@@ -108,8 +107,6 @@ impl Display for UnknownFieldError {
         f.write_str("received unknown fields")
     }
 }
-
-impl_error!(UnknownFieldError);
 
 #[derive(serde::Serialize)]
 pub struct ExpectedVariant(&'static str);
@@ -160,7 +157,7 @@ impl ErrorProperty for ReceivedVariant {
 #[derive(Debug)]
 pub struct UnknownVariantError;
 
-impl Error for UnknownVariantError {
+impl Variant for UnknownVariantError {
     type Properties = (Location, ExpectedVariant, ReceivedVariant);
 
     const ID: Id = id!["unknown", "value"];
@@ -206,8 +203,6 @@ impl Display for UnknownVariantError {
     }
 }
 
-impl_error!(UnknownVariantError);
-
 #[cfg(test)]
 mod tests {
     use alloc::vec;
@@ -224,7 +219,7 @@ mod tests {
         // [_, _, {field1: _, field2: _ <- here, field3: _, field4: _ <- here}] into:
         // struct Example { field1: _, field3: _ }
 
-        let report = Report::new(UnknownFieldError)
+        let report = Report::new(UnknownFieldError.into_error())
             .attach(Location::Array(2))
             .attach(ExpectedField::new("field1"))
             .attach(ExpectedField::new("field3"))
@@ -234,7 +229,7 @@ mod tests {
             .attach(ReceivedField::new("field4"));
 
         assert_eq!(
-            to_json(&report),
+            to_json::<UnknownFieldError>(&report),
             json!({
                 "location": [
                     {"type": "array", "value": 2}
@@ -248,13 +243,13 @@ mod tests {
     #[test]
     fn field_message() {
         assert_eq!(
-            to_message(&Report::new(UnknownFieldError)),
+            to_message::<UnknownFieldError>(&Report::new(UnknownFieldError.into_error())),
             "received unknown fields"
         );
 
         assert_eq!(
-            to_message(
-                &Report::new(UnknownFieldError)
+            to_message::<UnknownFieldError>(
+                &Report::new(UnknownFieldError.into_error())
                     .attach(ExpectedField::new("field1"))
                     .attach(ExpectedField::new("field2"))
                     .attach(ExpectedField::new("field3"))
@@ -263,8 +258,8 @@ mod tests {
         );
 
         assert_eq!(
-            to_message(
-                &Report::new(UnknownFieldError)
+            to_message::<UnknownFieldError>(
+                &Report::new(UnknownFieldError.into_error())
                     .attach(ReceivedField::new("field1"))
                     .attach(ReceivedField::new("field2"))
                     .attach(ReceivedField::new("field3"))
@@ -273,8 +268,8 @@ mod tests {
         );
 
         assert_eq!(
-            to_message(
-                &Report::new(UnknownFieldError)
+            to_message::<UnknownFieldError>(
+                &Report::new(UnknownFieldError.into_error())
                     .attach(ExpectedField::new("field1"))
                     .attach(ExpectedField::new("field2"))
                     .attach(ExpectedField::new("field3"))
@@ -293,14 +288,14 @@ mod tests {
         // [{"C": {...}}, ...]
         // into enum { A: {}, B: {} }
 
-        let error = Report::new(UnknownVariantError)
+        let error = Report::new(UnknownVariantError.into_error())
             .attach(Location::Array(0))
             .attach(ExpectedVariant::new("A"))
             .attach(ExpectedVariant::new("B"))
             .attach(ReceivedVariant::new("C"));
 
         assert_eq!(
-            to_json(&error),
+            to_json::<UnknownVariantError>(&error),
             json!({
                 "location": [
                     {"type": "array", "value": 0}
@@ -314,13 +309,13 @@ mod tests {
     #[test]
     fn variant_message() {
         assert_eq!(
-            to_message(&Report::new(UnknownVariantError)),
+            to_message::<UnknownVariantError>(&Report::new(UnknownVariantError.into_error())),
             "received unknown enum variant"
         );
 
         assert_eq!(
-            to_message(
-                &Report::new(UnknownVariantError)
+            to_message::<UnknownVariantError>(
+                &Report::new(UnknownVariantError.into_error())
                     .attach(ExpectedVariant::new("A"))
                     .attach(ExpectedVariant::new("B"))
             ),
@@ -328,13 +323,15 @@ mod tests {
         );
 
         assert_eq!(
-            to_message(&Report::new(UnknownVariantError).attach(ReceivedVariant::new("C"))),
+            to_message::<UnknownVariantError>(
+                &Report::new(UnknownVariantError.into_error()).attach(ReceivedVariant::new("C"))
+            ),
             r#"received unknown enum variant "C""#
         );
 
         assert_eq!(
-            to_message(
-                &Report::new(UnknownVariantError)
+            to_message::<UnknownVariantError>(
+                &Report::new(UnknownVariantError.into_error())
                     .attach(ExpectedVariant::new("A"))
                     .attach(ExpectedVariant::new("B"))
                     .attach(ReceivedVariant::new("C"))
