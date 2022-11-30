@@ -37,10 +37,6 @@ const TypeCard = ({ url, title }: TypeCardProps) => {
 export const TypesSection = () => {
   const { entitySubgraph } = useEntityEditor();
 
-  if (!entitySubgraph) {
-    return null;
-  }
-
   const entity = getRoots(entitySubgraph)[0]!;
 
   const entityTypeTitle = getEntityTypeById(

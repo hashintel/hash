@@ -10,10 +10,6 @@ export const useRowData = () => {
   const { entitySubgraph } = useEntityEditor();
 
   const rowData = useMemo<LinkRow[]>(() => {
-    if (!entitySubgraph) {
-      return [];
-    }
-
     const entity = getRoots(entitySubgraph)[0]!;
 
     return getOutgoingLinkAndTargetEntitiesAtMoment(
