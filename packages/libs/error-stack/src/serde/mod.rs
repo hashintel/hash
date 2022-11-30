@@ -13,6 +13,8 @@
 //! }
 //! ```
 
+mod hook;
+
 use alloc::{format, vec, vec::Vec};
 
 use serde::{ser::SerializeMap, Serialize, Serializer};
