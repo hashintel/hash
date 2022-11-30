@@ -5,7 +5,7 @@ use criterion_macro::criterion;
 use graph::{
     identifier::account::AccountId,
     knowledge::{EntityProperties, EntityQueryPath, EntityUuid},
-    provenance::{CreatedById, OwnedById},
+    provenance::OwnedById,
     store::{
         query::{Filter, FilterExpression, Parameter},
         AccountStore, AsClient, EntityStore, PostgresStore,
@@ -17,6 +17,7 @@ use rand::{prelude::IteratorRandom, thread_rng};
 use tokio::runtime::Runtime;
 use type_system::EntityType;
 use uuid::Uuid;
+use graph::provenance::UpdatedById;
 
 use crate::util::{seed, setup, Store, StoreWrapper};
 
@@ -75,7 +76,7 @@ async fn seed_db(
             repeat((None, properties, None)).take(total),
             entity_type_id,
             OwnedById::new(account_id),
-            CreatedById::new(account_id),
+            UpdatedById::new(account_id),
         )
         .await
         .expect("failed to create entities");

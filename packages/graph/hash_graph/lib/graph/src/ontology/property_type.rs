@@ -70,20 +70,6 @@ pub enum PropertyTypeQueryPath {
     /// [`OwnedById`]: crate::provenance::OwnedById
     /// [`OntologyElementMetadata`]: crate::ontology::OntologyElementMetadata
     OwnedById,
-    /// The [`CreatedById`] of the [`ProvenanceMetadata`] belonging to the [`PropertyType`].
-    ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::ontology::PropertyTypeQueryPath;
-    /// let path = PropertyTypeQueryPath::deserialize(json!(["createdById"]))?;
-    /// assert_eq!(path, PropertyTypeQueryPath::CreatedById);
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
-    ///
-    /// [`CreatedById`]: crate::provenance::CreatedById
-    /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
-    CreatedById,
     /// The [`UpdatedById`] of the [`ProvenanceMetadata`] belonging to the [`PropertyType`].
     ///
     /// ```rust
@@ -187,10 +173,6 @@ impl OntologyPath for PropertyTypeQueryPath {
         Self::OwnedById
     }
 
-    fn created_by_id() -> Self {
-        Self::CreatedById
-    }
-
     fn updated_by_id() -> Self {
         Self::UpdatedById
     }
@@ -203,7 +185,7 @@ impl OntologyPath for PropertyTypeQueryPath {
 impl RecordPath for PropertyTypeQueryPath {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::VersionId | Self::OwnedById | Self::CreatedById | Self::UpdatedById => {
+            Self::VersionId | Self::OwnedById | Self::UpdatedById => {
                 ParameterType::Uuid
             }
             Self::Schema => ParameterType::Any,
@@ -225,7 +207,6 @@ impl fmt::Display for PropertyTypeQueryPath {
             Self::Version => fmt.write_str("version"),
             Self::VersionedUri => fmt.write_str("versionedUri"),
             Self::OwnedById => fmt.write_str("ownedById"),
-            Self::CreatedById => fmt.write_str("createdById"),
             Self::UpdatedById => fmt.write_str("updatedById"),
             Self::Schema => fmt.write_str("schema"),
             Self::Title => fmt.write_str("title"),
@@ -244,7 +225,6 @@ pub enum PropertyTypeQueryToken {
     Version,
     VersionedUri,
     OwnedById,
-    CreatedById,
     UpdatedById,
     Title,
     Description,
@@ -260,7 +240,7 @@ pub struct PropertyTypeQueryPathVisitor {
 
 impl PropertyTypeQueryPathVisitor {
     pub const EXPECTING: &'static str = "one of `baseUri`, `version`, `versionedUri`, \
-                                         `ownedById`, `createdById`, `updatedById`, `title`, \
+                                         `ownedById`, `updatedById`, `title`, \
                                          `description`, `dataTypes`, `propertyTypes`";
 
     #[must_use]
@@ -287,7 +267,6 @@ impl<'de> Visitor<'de> for PropertyTypeQueryPathVisitor {
 
         Ok(match token {
             PropertyTypeQueryToken::OwnedById => PropertyTypeQueryPath::OwnedById,
-            PropertyTypeQueryToken::CreatedById => PropertyTypeQueryPath::CreatedById,
             PropertyTypeQueryToken::UpdatedById => PropertyTypeQueryPath::UpdatedById,
             PropertyTypeQueryToken::BaseUri => PropertyTypeQueryPath::BaseUri,
             PropertyTypeQueryToken::VersionedUri => PropertyTypeQueryPath::VersionedUri,

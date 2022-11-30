@@ -107,21 +107,6 @@ pub enum EntityQueryPath<'q> {
     ///
     /// [`Entity`]: crate::knowledge::Entity
     Archived,
-    /// The [`CreatedById`] of the [`ProvenanceMetadata`] belonging to the [`Entity`].
-    ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::knowledge::EntityQueryPath;
-    /// let path = EntityQueryPath::deserialize(json!(["createdById"]))?;
-    /// assert_eq!(path, EntityQueryPath::CreatedById);
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
-    ///
-    /// [`CreatedById`]: crate::provenance::CreatedById
-    /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
-    /// [`Entity`]: crate::knowledge::Entity
-    CreatedById,
     /// The [`UpdatedById`] of the [`ProvenanceMetadata`] belonging to the [`Entity`].
     ///
     /// ```rust
@@ -293,7 +278,6 @@ impl fmt::Display for EntityQueryPath<'_> {
         match self {
             Self::Uuid => fmt.write_str("uuid"),
             Self::OwnedById => fmt.write_str("ownedById"),
-            Self::CreatedById => fmt.write_str("createdById"),
             Self::UpdatedById => fmt.write_str("updatedById"),
             Self::Version => fmt.write_str("version"),
             Self::Archived => fmt.write_str("archived"),
@@ -313,7 +297,7 @@ impl fmt::Display for EntityQueryPath<'_> {
 impl RecordPath for EntityQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::Uuid | Self::OwnedById | Self::CreatedById | Self::UpdatedById => {
+            Self::Uuid | Self::OwnedById | Self::UpdatedById => {
                 ParameterType::Uuid
             }
             Self::LeftEntity(path)
@@ -338,7 +322,6 @@ pub enum EntityQueryToken {
     Version,
     Archived,
     OwnedById,
-    CreatedById,
     UpdatedById,
     Type,
     Properties,
@@ -358,7 +341,7 @@ pub struct EntityQueryPathVisitor {
 
 impl EntityQueryPathVisitor {
     pub const EXPECTING: &'static str = "one of `uuid`, `version`, `archived`, `ownedById`, \
-                                         `createdById`, `updatedById`, `type`, `properties`, \
+                                         `updatedById`, `type`, `properties`, \
                                          `incomingLinks`, `outgoingLinks`, `leftEntity`, \
                                          `rightEntity`, `leftOrder`, `rightOrder`";
 
@@ -387,7 +370,6 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
         Ok(match token {
             EntityQueryToken::Uuid => EntityQueryPath::Uuid,
             EntityQueryToken::OwnedById => EntityQueryPath::OwnedById,
-            EntityQueryToken::CreatedById => EntityQueryPath::CreatedById,
             EntityQueryToken::UpdatedById => EntityQueryPath::UpdatedById,
             EntityQueryToken::Version => EntityQueryPath::Version,
             EntityQueryToken::Archived => EntityQueryPath::Archived,
