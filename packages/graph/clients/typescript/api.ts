@@ -265,7 +265,6 @@ export const DataTypeQueryToken = {
   Version: "version",
   VersionedUri: "versionedUri",
   OwnedById: "ownedById",
-  CreatedById: "createdById",
   UpdatedById: "updatedById",
   Title: "title",
   Description: "description",
@@ -498,7 +497,6 @@ export const EntityQueryToken = {
   Version: "version",
   Archived: "archived",
   OwnedById: "ownedById",
-  CreatedById: "createdById",
   UpdatedById: "updatedById",
   Type: "type",
   Properties: "properties",
@@ -630,7 +628,6 @@ export const EntityTypeQueryToken = {
   Version: "version",
   VersionedUri: "versionedUri",
   OwnedById: "ownedById",
-  CreatedById: "createdById",
   UpdatedById: "updatedById",
   Title: "title",
   Description: "description",
@@ -1607,7 +1604,6 @@ export const PropertyTypeQueryToken = {
   Version: "version",
   VersionedUri: "versionedUri",
   OwnedById: "ownedById",
-  CreatedById: "createdById",
   UpdatedById: "updatedById",
   Title: "title",
   Description: "description",
@@ -1680,12 +1676,6 @@ export type PropertyValuesUpdate =
  * @interface ProvenanceMetadata
  */
 export interface ProvenanceMetadata {
-  /**
-   *
-   * @type {string}
-   * @memberof ProvenanceMetadata
-   */
-  createdById: string;
   /**
    *
    * @type {string}

@@ -9,7 +9,7 @@ use type_system::PropertyType;
 use crate::{
     identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId},
     ontology::{OntologyElementMetadata, PropertyTypeWithMetadata},
-    provenance::{CreatedById, OwnedById, UpdatedById},
+    provenance::{OwnedById, UpdatedById},
     store::{
         crud::Read,
         postgres::{DependencyContext, DependencyStatus},
@@ -148,7 +148,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         &mut self,
         property_type: PropertyType,
         owned_by_id: OwnedById,
-        created_by_id: CreatedById,
+        updated_by_id: UpdatedById,
     ) -> Result<OntologyElementMetadata, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
@@ -162,7 +162,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         // We can only insert them after the type has been created, and so we currently extract them
         // after as well. See `insert_property_type_references` taking `&property_type`
         let (version_id, metadata) = transaction
-            .create(property_type.clone(), owned_by_id, created_by_id)
+            .create(property_type.clone(), owned_by_id, updated_by_id)
             .await?;
 
         transaction

@@ -40,7 +40,7 @@ export const userTypedef = gql`
       """
       The depth of entities that are returned in the response subgraph.
       """
-      hasLeftEntity: EdgeResolveDepthsInput! = 0
+      hasLeftEntity: EdgeResolveDepthsInput! = { incoming: 0, outgoing: 0 }
     ): Subgraph!
   }
 `;

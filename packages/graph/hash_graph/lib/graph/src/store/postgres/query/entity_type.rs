@@ -40,7 +40,6 @@ impl Path for EntityTypeQueryPath {
             Self::Version => Column::TypeIds(TypeIds::Version),
             Self::VersionId => Column::EntityTypes(EntityTypes::VersionId),
             Self::OwnedById => Column::EntityTypes(EntityTypes::OwnedById),
-            Self::CreatedById => Column::EntityTypes(EntityTypes::CreatedById),
             Self::UpdatedById => Column::EntityTypes(EntityTypes::UpdatedById),
             Self::Schema => Column::EntityTypes(EntityTypes::Schema(None)),
             Self::VersionedUri => Column::EntityTypes(EntityTypes::Schema(Some(JsonField::Text(
