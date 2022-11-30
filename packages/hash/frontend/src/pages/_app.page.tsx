@@ -59,13 +59,20 @@ const App: FunctionComponent<AppProps> = ({
   }, []);
 
   useEffect(() => {
+    // If the user is logged in but hasn't completed signup and isn't on the signup page...
     if (
       authenticatedUser &&
       !authenticatedUser.accountSignupComplete &&
       !router.pathname.startsWith("/signup")
     ) {
+      // ...then redirect them to the signup page.
       void router.push("/signup");
-    } else if (!loading && !authenticatedUser) {
+      // If the user is logged out redirect them to the login page
+    } else if (
+      !loading &&
+      !authenticatedUser &&
+      !router.pathname.startsWith("/login")
+    ) {
       if (kratosSession) {
         /**
          * If we have a kratos session, but could not get the authenticated user,
