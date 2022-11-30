@@ -50,6 +50,7 @@ export type AggregateEntitiesMessageCallback = MessageCallback<
 
 export type CreateEntityRequest = {
   entityTypeId: VersionedUri;
+  ownedById?: string;
   properties: PropertyObject;
   linkMetadata?: LinkEntityMetadata;
 };
@@ -64,6 +65,8 @@ export type CreateEntityMessageCallback = MessageCallback<
 export type UpdateEntityRequest = {
   entityId: EntityId;
   updatedProperties: PropertyObject;
+  leftOrder?: number;
+  rightOrder?: number;
 };
 
 export type UpdateEntityMessageCallback = MessageCallback<

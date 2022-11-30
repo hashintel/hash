@@ -71,7 +71,7 @@
   },
   "devDependencies": {
     "check-dependency-version-consistency": "3.0.3",
-    "concurrently": "7.5.0",
+    "concurrently": "7.6.0",
     "cross-env": "7.0.3",
     "dotenv-flow": "3.2.0",
     "husky": "8.0.2",

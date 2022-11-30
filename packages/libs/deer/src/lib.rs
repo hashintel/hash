@@ -1,4 +1,7 @@
-#![cfg_attr(nightly, feature(provide_any, error_in_core))]
+#![cfg_attr(
+    nightly,
+    feature(provide_any, error_in_core, error_generic_member_access)
+)]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(
     unreachable_pub,
@@ -24,7 +27,8 @@ use num_traits::ToPrimitive;
 
 use crate::error::{
     ArrayAccessError, DeserializeError, DeserializerError, ExpectedType, MissingError,
-    ObjectAccessError, ReceivedType, ReceivedValue, Schema, TypeError, ValueError, VisitorError,
+    ObjectAccessError, ReceivedType, ReceivedValue, Schema, TypeError, ValueError, Variant,
+    VisitorError,
 };
 pub use crate::number::Number;
 
@@ -62,27 +66,27 @@ pub trait Visitor<'de>: Sized {
     fn expecting(&self) -> Schema;
 
     fn visit_none(self) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(MissingError)
+        Err(Report::new(MissingError.into_error())
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
 
     fn visit_null(self) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError)
+        Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(Schema::new("null")))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
 
     fn visit_bool(self, v: bool) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError)
+        Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(Schema::new("boolean")))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
 
     fn visit_number(self, v: Number) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError)
+        Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(Schema::new("number")))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
@@ -100,7 +104,7 @@ pub trait Visitor<'de>: Sized {
     }
 
     fn visit_str(self, v: &str) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError)
+        Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(Schema::new("string")))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
@@ -115,7 +119,7 @@ pub trait Visitor<'de>: Sized {
     }
 
     fn visit_bytes(self, v: &[u8]) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError)
+        Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(
                 // TODO: binary is not a valid json-schema type
                 Schema::new("binary"),
@@ -136,7 +140,7 @@ pub trait Visitor<'de>: Sized {
     where
         T: ArrayAccess<'de>,
     {
-        Err(Report::new(TypeError)
+        Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(Schema::new("array")))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
@@ -146,7 +150,7 @@ pub trait Visitor<'de>: Sized {
     where
         T: ObjectAccess<'de>,
     {
-        Err(Report::new(TypeError)
+        Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(Schema::new("object")))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
@@ -185,7 +189,7 @@ pub trait Visitor<'de>: Sized {
     }
 
     fn visit_i128(self, v: i128) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError)
+        Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(
                 Schema::new("integer")
                     .with("minimum", i128::MIN)
@@ -196,7 +200,7 @@ pub trait Visitor<'de>: Sized {
     }
 
     fn visit_isize(self, v: isize) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError)
+        Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(
                 Schema::new("integer")
                     .with("minimum", isize::MIN)
@@ -239,7 +243,7 @@ pub trait Visitor<'de>: Sized {
     }
 
     fn visit_u128(self, v: u128) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError)
+        Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(
                 Schema::new("integer")
                     .with("minimum", u128::MIN)
@@ -250,7 +254,7 @@ pub trait Visitor<'de>: Sized {
     }
 
     fn visit_usize(self, v: usize) -> Result<Self::Value, VisitorError> {
-        Err(Report::new(TypeError)
+        Err(Report::new(TypeError.into_error())
             .attach(ReceivedType::new(
                 Schema::new("integer")
                     .with("minimum", usize::MIN)
@@ -307,7 +311,7 @@ macro_rules! derive_from_number {
             let v = n
                 .$to()
                 .ok_or_else(||
-                    Report::new(ValueError)
+                    Report::new(ValueError.into_error())
                         .attach(ExpectedType::new(
                             Schema::new("integer")
                                 .with("minimum", $primitive::MIN)
@@ -522,20 +526,20 @@ pub(crate) mod test {
         marker::PhantomData,
     };
 
-    use error_stack::{Frame, Report};
+    use error_stack::{Context, Frame, Report};
     use serde::{
         ser::{Error as _, SerializeMap},
         Serialize, Serializer,
     };
 
-    use crate::error::{Error, ErrorProperties};
+    use crate::error::{Error, ErrorProperties, Variant};
 
-    struct SerializeFrame<'a, 'b, E: Error> {
+    struct SerializeFrame<'a, 'b, E: Variant> {
         frames: &'b [&'a Frame],
         _marker: PhantomData<fn() -> *const E>,
     }
 
-    impl<'a, 'b, E: Error> Serialize for SerializeFrame<'a, 'b, E> {
+    impl<'a, 'b, E: Variant> Serialize for SerializeFrame<'a, 'b, E> {
         fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where
             S: Serializer,
@@ -549,11 +553,11 @@ pub(crate) mod test {
         }
     }
 
-    pub(crate) fn to_json<E: Error>(report: &Report<E>) -> serde_json::Value {
+    pub(crate) fn to_json<T: Variant>(report: &Report<impl Context>) -> serde_json::Value {
         // we do not need to worry about the tree structure
         let frames: Vec<_> = report.frames().collect();
 
-        let s: SerializeFrame<E> = SerializeFrame {
+        let s: SerializeFrame<T> = SerializeFrame {
             frames: &frames,
             _marker: PhantomData::default(),
         };
@@ -561,22 +565,26 @@ pub(crate) mod test {
         serde_json::to_value(s).unwrap()
     }
 
-    struct ErrorMessage<'a, 'b, E: Error> {
+    struct ErrorMessage<'a, 'b, E: Variant> {
         error: &'a E,
         properties: &'b <E::Properties as ErrorProperties>::Value<'a>,
     }
 
-    impl<E: Error> Display for ErrorMessage<'_, '_, E> {
+    impl<E: Variant> Display for ErrorMessage<'_, '_, E> {
         fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
             self.error.message(f, self.properties)
         }
     }
 
-    pub(crate) fn to_message<E: Error>(report: &Report<E>) -> String {
+    pub(crate) fn to_message<T: Variant>(report: &Report<Error>) -> String {
         let frames: Vec<_> = report.frames().collect();
-        let properties = E::Properties::value(&frames);
+        let properties = T::Properties::value(&frames);
 
         let error = report.current_context();
+        let error = error
+            .variant()
+            .downcast_ref::<T>()
+            .expect("context is of correct type");
 
         let message = ErrorMessage {
             error,
