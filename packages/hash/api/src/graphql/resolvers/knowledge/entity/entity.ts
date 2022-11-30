@@ -56,7 +56,7 @@ export const createEntity: ResolverFn<
   MutationCreateEntityArgs
 > = async (
   _,
-  { ownedById, properties, entityTypeId, linkedEntities, linkMetadata },
+  { ownedById, properties, entityTypeId, linkedEntities, linkData },
   { dataSources: { graphApi }, userModel },
 ) => {
   /**
@@ -68,8 +68,8 @@ export const createEntity: ResolverFn<
 
   let entityModel: EntityModel | LinkEntityModel;
 
-  if (linkMetadata) {
-    const { leftEntityId, leftOrder, rightEntityId, rightOrder } = linkMetadata;
+  if (linkData) {
+    const { leftEntityId, leftOrder, rightEntityId, rightOrder } = linkData;
 
     const [leftEntityModel, rightEntityModel, linkEntityTypeModel] =
       await Promise.all([

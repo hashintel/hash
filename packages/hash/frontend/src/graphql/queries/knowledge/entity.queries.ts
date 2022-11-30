@@ -6,14 +6,14 @@ export const createEntityMutation = gql`
     $entityTypeId: VersionedUri!
     $ownedById: ID
     $properties: PropertyObject!
-    $linkMetadata: LinkEntityMetadata
+    $linkData: LinkData
   ) {
     # This is a scalar, which has no selection.
     createEntity(
       entityTypeId: $entityTypeId
       ownedById: $ownedById
       properties: $properties
-      linkMetadata: $linkMetadata
+      linkData: $linkData
     )
   }
 `;
