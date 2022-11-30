@@ -16,7 +16,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { frontendUrl } from "@hashintel/hash-shared/environment";
 import { getPropertyTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
@@ -28,7 +28,7 @@ import { faSquareCheck } from "../../../../shared/icons/pro/fa-square-check";
 import { faText } from "../../../../shared/icons/pro/fa-text";
 import { QuestionIcon } from "./question-icon";
 import { useRefetchPropertyTypes } from "./use-property-types";
-import { useRouteNamespace } from "./use-route-namespace";
+import { WorkspaceContext } from "../../../shared/workspace-context";
 
 const generateInitialPropertyTypeId = (baseUri: string) =>
   versionedUriFromComponents(baseUri, 1);
@@ -92,21 +92,22 @@ export const PropertyTypeForm = ({
     setFocus(initialTitle ? "description" : "name");
   }, [initialTitle, setFocus]);
 
-  const { namespace: routeNamespace } = useRouteNamespace();
+  const { activeWorkspaceAccountId, activeWorkspace } =
+    useContext(WorkspaceContext);
 
   const { createPropertyType } = useBlockProtocolCreatePropertyType(
-    routeNamespace?.accountId ?? "",
+    activeWorkspaceAccountId ?? "",
   );
   const { getPropertyType } = useBlockProtocolGetPropertyType();
 
   const generatePropertyTypeBaseUriForUser = (value: string) => {
-    if (!routeNamespace?.shortname) {
+    if (!activeWorkspace || !activeWorkspace.shortname) {
       throw new Error("User shortname must exist");
     }
 
     return generateBaseTypeId({
       domain: frontendUrl,
-      namespace: routeNamespace.shortname,
+      namespace: activeWorkspace.shortname,
       kind: "property-type",
       title: value,
     });

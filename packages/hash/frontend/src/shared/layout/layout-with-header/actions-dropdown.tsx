@@ -130,12 +130,17 @@ export const ActionsDropdownInner: FunctionComponent<{
 };
 
 export const ActionsDropdown: FunctionComponent = () => {
-  const { accountId } = useRouteAccountInfo({ allowUndefined: true }) ?? {};
+  /**
+   * @todo: this will need to be reworked once pages can't rely on the `accountId` being
+   * in the URL.
+   */
+  const { routeAccountSlug } =
+    useRouteAccountInfo({ allowUndefined: true }) ?? {};
 
   // Don’t render actions if account cannot be derived from URL
-  if (!accountId) {
+  if (!routeAccountSlug) {
     return null;
   }
 
-  return <ActionsDropdownInner accountId={accountId} />;
+  return <ActionsDropdownInner accountId={routeAccountSlug} />;
 };

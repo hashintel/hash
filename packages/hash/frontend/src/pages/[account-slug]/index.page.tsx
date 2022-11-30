@@ -10,7 +10,12 @@ import { useRouteAccountInfo } from "../../shared/routing";
 const Page: NextPageWithLayout = () => {
   const { loading, authenticatedUser } = useAuthenticatedUser();
   const { orgs } = useOrgs();
-  const { accountId } = useRouteAccountInfo();
+
+  /**
+   * @todo: this will need to be reworked once pages can't rely on the `accountId` being
+   * in the URL.
+   */
+  const { routeAccountSlug } = useRouteAccountInfo();
 
   if (loading) {
     return null;
@@ -40,11 +45,11 @@ const Page: NextPageWithLayout = () => {
     );
   }
 
-  const ownWorkspace = accountId === authenticatedUser.userAccountId;
+  const ownWorkspace = routeAccountSlug === authenticatedUser.userAccountId;
 
   const thisOrg = ownWorkspace
     ? undefined
-    : orgs?.find((org) => org.orgAccountId === accountId);
+    : orgs?.find((org) => org.orgAccountId === routeAccountSlug);
 
   if (!ownWorkspace && !thisOrg) {
     return (

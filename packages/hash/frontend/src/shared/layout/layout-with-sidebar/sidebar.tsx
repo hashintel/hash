@@ -1,4 +1,4 @@
-import { FunctionComponent } from "react";
+import { FunctionComponent, useContext } from "react";
 
 import { useRouter } from "next/router";
 import { Box, Drawer, Tooltip } from "@mui/material";
@@ -12,14 +12,15 @@ import { TopNavLink } from "./top-nav-link";
 import { WorkspaceSwitcher } from "./workspace-switcher";
 import { useSidebarContext } from "./sidebar-context";
 import { HEADER_HEIGHT } from "../layout-with-header/page-header";
-import { useRouteAccountInfo, useRoutePageInfo } from "../../routing";
+import { useRoutePageInfo } from "../../routing";
+import { WorkspaceContext } from "../../../pages/shared/workspace-context";
 
 export const SIDEBAR_WIDTH = 260;
 
 export const PageSidebar: FunctionComponent = () => {
   const router = useRouter();
   const { sidebarOpen, closeSidebar } = useSidebarContext();
-  const { accountId } = useRouteAccountInfo();
+  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
   const { pageEntityId } = useRoutePageInfo({ allowUndefined: true }) ?? {};
 
   return (
@@ -89,13 +90,17 @@ export const PageSidebar: FunctionComponent = () => {
           overflowY: "auto",
         }}
       >
-        {/* PAGES */}
-        <AccountPageList
-          currentPageEntityId={pageEntityId}
-          accountId={accountId}
-        />
-        {/* TYPES */}
-        <AccountEntityTypeList accountId={accountId} />
+        {activeWorkspaceAccountId ? (
+          <>
+            {/* PAGES */}
+            <AccountPageList
+              currentPageEntityId={pageEntityId}
+              accountId={activeWorkspaceAccountId}
+            />
+            {/* TYPES */}
+            <AccountEntityTypeList accountId={activeWorkspaceAccountId} />
+          </>
+        ) : null}
       </Box>
 
       {/* 

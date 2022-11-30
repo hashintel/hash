@@ -14,7 +14,7 @@ import {
 } from "@mui/material";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useContext, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
 import { useBlockProtocolGetEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
@@ -26,6 +26,7 @@ import {
 } from "../../../../shared/layout";
 import { Link } from "../../../../shared/ui/link";
 import { TopContextBar } from "../../../shared/top-context-bar";
+import { WorkspaceContext } from "../../../shared/workspace-context";
 import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
 import { OntologyChip } from "../../shared/ontology-chip";
 import { useRouteNamespace } from "../entity-type/use-route-namespace";
@@ -81,36 +82,38 @@ const Page: NextPageWithLayout = () => {
 
   const { authenticatedUser, loading } = useAuthenticatedUser();
   const { getEntityType } = useBlockProtocolGetEntityType();
-  const { namespace, loading: loadingNamespace } = useRouteNamespace();
+  const { activeWorkspace, activeWorkspaceAccountId } =
+    useContext(WorkspaceContext);
+  const { routeNamespace, loading: loadingNamespace } = useRouteNamespace();
 
   useEffect(() => {
-    if (authenticatedUser && !loadingNamespace && !namespace) {
+    if (activeWorkspace && !loadingNamespace && !routeNamespace) {
       void router.replace(
-        `/@${authenticatedUser.shortname}/types/new/entity-type`,
+        `/@${activeWorkspace.shortname}/types/new/entity-type`,
       );
     }
-  }, [loadingNamespace, authenticatedUser, namespace, router]);
+  }, [loadingNamespace, activeWorkspace, routeNamespace, router]);
 
-  if (typeSystemLoading || loading || !authenticatedUser || !namespace) {
+  if (typeSystemLoading || loading || !authenticatedUser || !activeWorkspace) {
     return null;
   }
 
   const generateEntityTypeBaseUriForUser = (value: string) => {
-    if (!namespace) {
+    if (!activeWorkspace) {
       throw new Error("User or Org shortname must exist");
     }
 
     return generateBaseTypeId({
       domain: frontendUrl,
-      namespace: namespace.shortname ?? "",
+      namespace: activeWorkspace.shortname ?? "",
       kind: "entity-type",
       title: value,
     });
   };
 
   const handleFormSubmit = handleSubmit(async ({ name, description }) => {
-    if (!namespace) {
-      throw new Error("Namespace for entity type creation missing");
+    if (!activeWorkspace) {
+      throw new Error("Active workspace for entity type creation missing");
     }
 
     const baseUri = generateEntityTypeBaseUriForUser(name);
@@ -161,7 +164,7 @@ const Page: NextPageWithLayout = () => {
                     fontWeight="bold"
                     color="inherit"
                   >
-                    {`@${namespace.shortname}`}
+                    {`@${activeWorkspace.shortname}`}
                   </Typography>
                   /types/new/entity-type
                 </Typography>
@@ -299,7 +302,7 @@ const Page: NextPageWithLayout = () => {
                   Create new entity type
                 </Button>
                 <Button
-                  href={`/${namespace.accountId}`}
+                  href={`/${activeWorkspaceAccountId}`}
                   variant="tertiary"
                   size="small"
                   disabled={isSubmitting}

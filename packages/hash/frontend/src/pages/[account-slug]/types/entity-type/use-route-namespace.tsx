@@ -4,7 +4,7 @@ import { useGetAccountIdForShortname } from "../../../../components/hooks/useGet
 
 export const useRouteNamespace = (): {
   loading: boolean;
-  namespace?: {
+  routeNamespace?: {
     accountId: string;
     shortname?: string;
   };
@@ -25,7 +25,7 @@ export const useRouteNamespace = (): {
     if (!loading && accountId) {
       return {
         loading,
-        namespace: {
+        routeNamespace: {
           accountId,
           shortname: shortnameWithoutPrefix,
         },
