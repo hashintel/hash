@@ -42,7 +42,7 @@ const calculateSaveActions = async (
   doc: Node,
   getEntityTypeForComponent: (
     componentId: string,
-  ) => Promise<EntityTypeForComponentResult>,
+  ) => EntityTypeForComponentResult | Promise<EntityTypeForComponentResult>,
 ) => {
   const actions: UpdatePageAction[] = [];
 
@@ -395,7 +395,7 @@ export const save = async (
     /**
      * @todo currently we use the text entity type for *every block* we don't know about.
      */
-    async (_componentId: string) => {
+    (_componentId: string) => {
       return [TEXT_ENTITY_TYPE_ID, []];
     },
   );

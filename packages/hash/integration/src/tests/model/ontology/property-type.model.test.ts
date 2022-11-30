@@ -80,9 +80,6 @@ describe("Property type CRU", () => {
   const updatedTitle = "New test!";
 
   it("can update a property type", async () => {
-    expect(createdPropertyTypeModel.getMetadata().provenance.createdById).toBe(
-      testUser.getEntityUuid(),
-    );
     expect(createdPropertyTypeModel.getMetadata().provenance.updatedById).toBe(
       testUser.getEntityUuid(),
     );
@@ -97,9 +94,6 @@ describe("Property type CRU", () => {
       })
       .catch((err) => Promise.reject(err.data));
 
-    expect(createdPropertyTypeModel.getMetadata().provenance.createdById).toBe(
-      testUser.getEntityUuid(),
-    );
     expect(createdPropertyTypeModel.getMetadata().provenance.updatedById).toBe(
       testUser2.getEntityUuid(),
     );

@@ -80,7 +80,6 @@ macro_rules! impl_ontology_column {
             pub enum $name {
                 VersionId,
                 OwnedById,
-                CreatedById,
                 UpdatedById,
                 Schema(Option<JsonField<'static>>),
             }
@@ -90,7 +89,6 @@ macro_rules! impl_ontology_column {
                     match self {
                         Self::VersionId
                         | Self::OwnedById
-                        | Self::CreatedById
                         | Self::UpdatedById => false,
                         Self::Schema(_) => true,
                     }
@@ -102,7 +100,6 @@ macro_rules! impl_ontology_column {
                     let column = match self {
                         Self::VersionId => "version_id",
                         Self::OwnedById => "owned_by_id",
-                        Self::CreatedById => "created_by_id",
                         Self::UpdatedById => "updated_by_id",
                         Self::Schema(None) => "schema",
                         Self::Schema(Some(path)) => match path {
@@ -135,7 +132,6 @@ pub enum Entities<'p> {
     LatestVersion,
     Archived,
     OwnedById,
-    CreatedById,
     UpdatedById,
     EntityTypeVersionId,
     Properties(Option<JsonField<'p>>),
@@ -155,7 +151,6 @@ impl Entities<'_> {
             | Self::LatestVersion
             | Self::Archived
             | Self::OwnedById
-            | Self::CreatedById
             | Self::UpdatedById
             | Self::EntityTypeVersionId => false,
             Self::Properties(_)
@@ -177,7 +172,6 @@ impl Transpile for Entities<'_> {
             Self::LatestVersion => "latest_version",
             Self::Archived => "archived",
             Self::OwnedById => "owned_by_id",
-            Self::CreatedById => "created_by_id",
             Self::UpdatedById => "updated_by_id",
             Self::EntityTypeVersionId => "entity_type_version_id",
             Self::Properties(None) => "properties",

@@ -54,6 +54,7 @@ if (STATSD_ENABLED) {
       globalTags: ["search-loader"],
     });
   } catch (err) {
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions -- error stringification may need improvement
     logger.error(`Could not start StatsD client: ${err}`);
   }
 }
@@ -98,6 +99,7 @@ const main = async () => {
   httpServer.listen({ host: "::", port: PORT });
   logger.info(`HTTP server listening on port ${PORT}`);
   shutdown.addCleanup("HTTP server", async () => {
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- the method is unbound and then bound
     await promisify(httpServer.close).bind(httpServer)();
   });
 
@@ -110,17 +112,23 @@ const main = async () => {
     port: PG_PORT,
     maxPoolSize: 10, // @todo: needs tuning
   };
+
+  /* eslint-disable @typescript-eslint/no-unsafe-call */
+
   const db = new PostgresAdapter(pgConfig, logger, statsd);
-  shutdown.addCleanup("Postgres", async () => db.close());
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  shutdown.addCleanup("Postgres", () => db.close());
 
   // Connect to Redis
   const redis = new AsyncRedisClient(logger, {
     host: REDIS_HOST,
     port: REDIS_PORT,
   });
-  shutdown.addCleanup("Redis", async () => redis.close());
+  shutdown.addCleanup("Redis", () => redis.close());
 
   const systemAccountId = await db.getSystemAccountId();
+
+  /* eslint-enable @typescript-eslint/no-unsafe-call */
 
   // Connect to Opensearch
   const searchAuth =
@@ -173,7 +181,7 @@ const main = async () => {
     const size = await queueConsumer.length(SEARCH_QUEUE_NAME);
     statsd?.gauge("queue_size", size);
   }, 5_000);
-  shutdown.addCleanup("statsd reporting", async () => clearInterval(int1));
+  shutdown.addCleanup("statsd reporting", () => clearInterval(int1));
 
   // Initialize the SearchLoader
   const loader = new SearchLoader({

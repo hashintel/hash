@@ -87,7 +87,9 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
   const {
     metadata: {
       editionId: { baseId: commentEntityId },
-      provenance: { createdById: commentCreatedById },
+      // TODO: The provenance fields shouldn't be used for this
+      //   see https://app.asana.com/0/1201095311341924/1203466351235289/f
+      provenance: { updatedById: commentCreatedById },
     },
     hasText,
     author,
