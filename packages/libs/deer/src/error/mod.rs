@@ -55,18 +55,13 @@
 //!
 //! [`Location`]: core::panic::Location
 
-<<<<<<< HEAD
-use alloc::{format, string::String};
-use core::fmt::{self, Debug, Display, Formatter};
-=======
-use alloc::{boxed::Box, collections::BTreeMap, format, string::String};
+use alloc::{boxed::Box, format, string::String};
 #[cfg(nightly)]
 use core::any::Demand;
 use core::{
     any::Any,
     fmt::{self, Debug, Display, Formatter},
 };
->>>>>>> origin/main
 
 use error_stack::{Context, Frame, IntoReport, Report, Result};
 pub use extra::{
