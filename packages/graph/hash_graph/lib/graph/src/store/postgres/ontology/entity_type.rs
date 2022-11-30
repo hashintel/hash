@@ -9,7 +9,7 @@ use type_system::EntityType;
 use crate::{
     identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId},
     ontology::{EntityTypeWithMetadata, OntologyElementMetadata},
-    provenance::{CreatedById, OwnedById, UpdatedById},
+    provenance::{OwnedById, UpdatedById},
     store::{
         crud::Read,
         postgres::{DependencyContext, DependencyStatus},
@@ -224,7 +224,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         &mut self,
         entity_type: EntityType,
         owned_by_id: OwnedById,
-        created_by_id: CreatedById,
+        updated_by_id: UpdatedById,
     ) -> Result<OntologyElementMetadata, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
@@ -238,7 +238,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         // We can only insert them after the type has been created, and so we currently extract them
         // after as well. See `insert_entity_type_references` taking `&entity_type`
         let (version_id, metadata) = transaction
-            .create(entity_type.clone(), owned_by_id, created_by_id)
+            .create(entity_type.clone(), owned_by_id, updated_by_id)
             .await?;
 
         transaction

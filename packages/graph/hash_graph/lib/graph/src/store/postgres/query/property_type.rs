@@ -36,7 +36,6 @@ impl Path for PropertyTypeQueryPath {
             Self::Version => Column::TypeIds(TypeIds::Version),
             Self::VersionId => Column::PropertyTypes(PropertyTypes::VersionId),
             Self::OwnedById => Column::PropertyTypes(PropertyTypes::OwnedById),
-            Self::CreatedById => Column::PropertyTypes(PropertyTypes::CreatedById),
             Self::UpdatedById => Column::PropertyTypes(PropertyTypes::UpdatedById),
             Self::Schema => Column::PropertyTypes(PropertyTypes::Schema(None)),
             Self::VersionedUri => Column::PropertyTypes(PropertyTypes::Schema(Some(
