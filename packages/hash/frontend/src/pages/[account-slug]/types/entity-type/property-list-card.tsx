@@ -19,7 +19,7 @@ import {
 } from "@mui/material";
 import { experimental_sx, styled } from "@mui/system";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
-import { useId, useRef } from "react";
+import { useId, useLayoutEffect, useRef } from "react";
 import {
   Controller,
   useFieldArray,
@@ -83,6 +83,11 @@ export const PropertyTypeRow = ({
 
   const propertyTypes = usePropertyTypes();
   const property = propertyTypes?.[$id];
+
+  const onUpdatePropertyTypeVersionRef = useRef(onUpdatePropertyTypeVersion);
+  useLayoutEffect(() => {
+    onUpdatePropertyTypeVersionRef.current = onUpdatePropertyTypeVersion;
+  });
 
   if (!property) {
     if (propertyTypes) {
@@ -159,16 +164,23 @@ export const PropertyTypeRow = ({
         modalTitle={<>Edit Property Type</>}
         onSubmit={async (data) => {
           // @todo verify this works
-          await updatePropertyType({
+          const res = await updatePropertyType({
             data: {
               propertyTypeId: $id,
               propertyType: formDataToPropertyType(data),
             },
           });
 
+          if (!res.data) {
+            throw new Error("Failed to update property type");
+          }
+
           await refetchPropertyTypes?.();
 
-          onUpdatePropertyTypeVersion($id);
+          onUpdatePropertyTypeVersionRef.current(
+            // @todo temporary bug fix
+            res.data.schema.$id.replace("//v", "/v") as VersionedUri,
+          );
         }}
         submitButtonProps={{ children: <>Edit property type</> }}
         fieldProps={{ name: { disabled: true } }}
@@ -271,7 +283,9 @@ export const PropertyListCard = () => {
                   remove(index);
                 }}
                 onUpdatePropertyTypeVersion={(nextId) => {
-                  setValue(`properties.${index}.$id`, nextId);
+                  setValue(`properties.${index}.$id`, nextId, {
+                    shouldDirty: true,
+                  });
                 }}
               />
             ))}
