@@ -93,7 +93,15 @@ export const useCreateNewEntityAndRedirect = () => {
   const createNewEntityAndRedirect = useCallback(
     async (entityTypeId: VersionedUri) => {
       const { data: subgraph } = await getEntityType({
-        data: entityTypeId,
+        data: {
+          entityTypeId,
+          graphResolveDepths: {
+            constrainsValuesOn: { outgoing: 0 },
+            constrainsLinksOn: { outgoing: 0 },
+            constrainsLinkDestinationsOn: { outgoing: 0 },
+            constrainsPropertiesOn: { outgoing: 1 },
+          },
+        },
       });
 
       const accountSlug = router.query["account-slug"];

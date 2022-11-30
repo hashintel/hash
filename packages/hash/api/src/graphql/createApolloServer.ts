@@ -1,9 +1,6 @@
 import { performance } from "perf_hooks";
 
-import {
-  ApolloServerPluginLandingPageGraphQLPlayground,
-  ApolloServerPluginLandingPageDisabled,
-} from "apollo-server-core";
+import { ApolloServerPluginLandingPageGraphQLPlayground } from "apollo-server-core";
 import { ApolloServer } from "apollo-server-express";
 import { makeExecutableSchema } from "@graphql-tools/schema";
 
@@ -128,11 +125,9 @@ export const createApolloServer = ({
           };
         },
       },
-      process.env.NODE_ENV === "production"
-        ? ApolloServerPluginLandingPageDisabled()
-        : ApolloServerPluginLandingPageGraphQLPlayground({
-            settings: { "request.credentials": "include" },
-          }),
+      ApolloServerPluginLandingPageGraphQLPlayground({
+        settings: { "request.credentials": "include" },
+      }),
     ],
   });
 };

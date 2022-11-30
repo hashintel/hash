@@ -180,7 +180,15 @@ export const PropertyTypeForm = ({
                 generatePropertyTypeBaseUriForUser(value),
               );
 
-              const res = await getPropertyType({ data: propertyTypeId });
+              const res = await getPropertyType({
+                data: {
+                  propertyTypeId,
+                  graphResolveDepths: {
+                    constrainsValuesOn: { outgoing: 0 },
+                    constrainsPropertiesOn: { outgoing: 0 },
+                  },
+                },
+              });
 
               const exists =
                 !res.data || !!getPropertyTypeById(res.data, propertyTypeId);
