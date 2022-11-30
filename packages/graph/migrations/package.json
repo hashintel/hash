@@ -29,6 +29,6 @@
     "@types/node-pg-migrate": "2.3.1",
     "@types/prompts": "2.4.1",
     "eslint": "8.28.0",
-    "httpyac": "5.8.0"
+    "httpyac": "5.8.2"
   }
 }
