@@ -112,7 +112,7 @@ mod tests {
     use crate::{
         schema::{
             visitor::{StringSchema, U8Schema},
-            Describe,
+            Reflection,
         },
         test::{to_json, to_message},
     };

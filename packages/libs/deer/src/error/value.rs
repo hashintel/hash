@@ -115,7 +115,7 @@ mod tests {
 
     use super::*;
     use crate::{
-        schema::{visitor::U8Schema, Describe},
+        schema::{visitor::U8Schema, Reflection},
         test::{to_json, to_message},
     };
 

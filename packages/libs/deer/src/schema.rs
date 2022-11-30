@@ -6,7 +6,7 @@ use core::any::{type_name, TypeId};
 
 use serde::{ser::SerializeMap, Serialize, Serializer};
 
-pub trait Describe: Sized + 'static {
+pub trait Reflection: Sized + 'static {
     fn schema(doc: &mut Document) -> Schema;
 
     #[must_use]
@@ -169,7 +169,7 @@ pub struct Document {
 
 impl Document {
     #[must_use]
-    pub fn new<T: Describe>() -> Self {
+    pub fn new<T: Reflection>() -> Self {
         let mut this = Self {
             id: TypeId::of::<T>(),
             schemas: BTreeMap::default(),
@@ -190,14 +190,14 @@ impl Document {
     }
 
     #[must_use]
-    pub fn reference<T: Describe>(id: usize) -> Reference {
+    pub fn reference<T: Reflection>(id: usize) -> Reference {
         Reference {
             id,
             name: type_name::<T>(),
         }
     }
 
-    fn add_by_reference<T: Describe>(&mut self, reference: Reference) {
+    fn add_by_reference<T: Reflection>(&mut self, reference: Reference) {
         let type_id = TypeId::of::<T>();
 
         self.references.insert(type_id, reference);
@@ -205,7 +205,7 @@ impl Document {
         self.schemas.insert(type_id, schema);
     }
 
-    pub fn add<T: Describe>(&mut self) -> Reference {
+    pub fn add<T: Reflection>(&mut self) -> Reference {
         let type_id = TypeId::of::<T>();
 
         // we already have the value inserted, therefore we do not need to add it again
@@ -243,10 +243,10 @@ impl Serialize for Document {
 }
 
 pub(crate) mod visitor {
-    use crate::{schema::Describe, Document, Schema};
+    use crate::{schema::Reflection, Document, Schema};
 
     pub(crate) struct NullSchema;
-    impl Describe for NullSchema {
+    impl Reflection for NullSchema {
         fn schema(_: &mut Document) -> Schema {
             Schema::new("null")
         }
@@ -254,21 +254,21 @@ pub(crate) mod visitor {
 
     // TODO: below here these are temporary until stdlib is implemented
     pub(crate) struct BoolSchema;
-    impl Describe for BoolSchema {
+    impl Reflection for BoolSchema {
         fn schema(_: &mut Document) -> Schema {
             Schema::new("boolean")
         }
     }
 
     pub(crate) struct NumberSchema;
-    impl Describe for NumberSchema {
+    impl Reflection for NumberSchema {
         fn schema(_: &mut Document) -> Schema {
             Schema::new("number")
         }
     }
 
     pub(crate) struct CharSchema;
-    impl Describe for CharSchema {
+    impl Reflection for CharSchema {
         fn schema(_: &mut Document) -> Schema {
             Schema::new("string")
                 .with("minLength", 1)
@@ -277,7 +277,7 @@ pub(crate) mod visitor {
     }
 
     pub(crate) struct StringSchema;
-    impl Describe for StringSchema {
+    impl Reflection for StringSchema {
         fn schema(_: &mut Document) -> Schema {
             Schema::new("string")
         }
@@ -285,28 +285,28 @@ pub(crate) mod visitor {
 
     // TODO: binary is not a valid json-schema type
     pub(crate) struct BinarySchema;
-    impl Describe for BinarySchema {
+    impl Reflection for BinarySchema {
         fn schema(_: &mut Document) -> Schema {
             Schema::new("binary")
         }
     }
 
     pub(crate) struct ArraySchema;
-    impl Describe for ArraySchema {
+    impl Reflection for ArraySchema {
         fn schema(_: &mut Document) -> Schema {
             Schema::new("array")
         }
     }
 
     pub(crate) struct ObjectSchema;
-    impl Describe for ObjectSchema {
+    impl Reflection for ObjectSchema {
         fn schema(_: &mut Document) -> Schema {
             Schema::new("object")
         }
     }
 
     pub(crate) struct I8Schema;
-    impl Describe for I8Schema {
+    impl Reflection for I8Schema {
         fn schema(_: &mut Document) -> Schema {
             Schema::new("integer")
                 .with("minimum", i8::MIN)
@@ -315,7 +315,7 @@ pub(crate) mod visitor {
     }
 
     pub(crate) struct I16Schema;
-    impl Describe for I16Schema {
+    impl Reflection for I16Schema {
         fn schema(_: &mut Document) -> Schema {
             Schema::new("integer")
                 .with("minimum", i16::MIN)
@@ -324,7 +324,7 @@ pub(crate) mod visitor {
     }
 
     pub(crate) struct I32Schema;
-    impl Describe for I32Schema {
+    impl Reflection for I32Schema {
         fn schema(_: &mut Document) -> Schema {
             Schema::new("integer")
                 .with("minimum", i32::MIN)
@@ -333,7 +333,7 @@ pub(crate) mod visitor {
     }
 
     pub(crate) struct I64Schema;
-    impl Describe for I64Schema {
+    impl Reflection for I64Schema {
         fn schema(_: &mut Document) -> Schema {
             Schema::new("integer")
                 .with("minimum", i64::MIN)
@@ -342,7 +342,7 @@ pub(crate) mod visitor {
     }
 
     pub(crate) struct I128Schema;
-    impl Describe for I128Schema {
+    impl Reflection for I128Schema {
         fn schema(_: &mut Document) -> Schema {
             Schema::new("integer")
                 .with("minimum", i128::MIN)
@@ -351,7 +351,7 @@ pub(crate) mod visitor {
     }
 
     pub(crate) struct ISizeSchema;
-    impl Describe for ISizeSchema {
+    impl Reflection for ISizeSchema {
         fn schema(_: &mut Document) -> Schema {
             Schema::new("integer")
                 .with("minimum", isize::MIN)
@@ -360,7 +360,7 @@ pub(crate) mod visitor {
     }
 
     pub(crate) struct U8Schema;
-    impl Describe for U8Schema {
+    impl Reflection for U8Schema {
         fn schema(_: &mut Document) -> Schema {
             Schema::new("integer")
                 .with("minimum", u8::MIN)
@@ -369,7 +369,7 @@ pub(crate) mod visitor {
     }
 
     pub(crate) struct U16Schema;
-    impl Describe for U16Schema {
+    impl Reflection for U16Schema {
         fn schema(_: &mut Document) -> Schema {
             Schema::new("integer")
                 .with("minimum", u16::MIN)
@@ -378,7 +378,7 @@ pub(crate) mod visitor {
     }
 
     pub(crate) struct U32Schema;
-    impl Describe for U32Schema {
+    impl Reflection for U32Schema {
         fn schema(_: &mut Document) -> Schema {
             Schema::new("integer")
                 .with("minimum", u32::MIN)
@@ -387,7 +387,7 @@ pub(crate) mod visitor {
     }
 
     pub(crate) struct U64Schema;
-    impl Describe for U64Schema {
+    impl Reflection for U64Schema {
         fn schema(_: &mut Document) -> Schema {
             Schema::new("integer")
                 .with("minimum", u64::MIN)
@@ -396,7 +396,7 @@ pub(crate) mod visitor {
     }
 
     pub(crate) struct U128Schema;
-    impl Describe for U128Schema {
+    impl Reflection for U128Schema {
         fn schema(_: &mut Document) -> Schema {
             Schema::new("integer")
                 .with("minimum", u128::MIN)
@@ -405,7 +405,7 @@ pub(crate) mod visitor {
     }
 
     pub(crate) struct USizeSchema;
-    impl Describe for USizeSchema {
+    impl Reflection for USizeSchema {
         fn schema(_: &mut Document) -> Schema {
             Schema::new("integer")
                 .with("minimum", usize::MIN)
@@ -422,12 +422,12 @@ mod tests {
 
     use crate::{
         schema::visitor::{U16Schema, U32Schema, U8Schema},
-        Describe, Document, Schema,
+        Document, Reflection, Schema,
     };
 
     struct U8;
 
-    impl Describe for U8 {
+    impl Reflection for U8 {
         fn schema(_: &mut Document) -> Schema {
             Schema::new("integer")
                 .with("minimum", u8::MIN)
@@ -462,7 +462,7 @@ mod tests {
         child: Box<Node>,
     }
 
-    impl Describe for Node {
+    impl Reflection for Node {
         fn schema(doc: &mut Document) -> Schema {
             // there's a way to do this without allocations, it's just a lot more boilerplate
             let mut properties = BTreeMap::new();
@@ -506,7 +506,7 @@ mod tests {
         right: Box<Node>,
     }
 
-    impl Describe for Tree {
+    impl Reflection for Tree {
         fn schema(doc: &mut Document) -> Schema {
             // there's a way to do this without allocations, it's just a lot more boilerplate
             let mut properties = BTreeMap::new();
@@ -549,7 +549,7 @@ mod tests {
     // TODO: once `Describe` is implemented for `core` types replace this temporary type
     struct VecVertex;
 
-    impl Describe for VecVertex {
+    impl Reflection for VecVertex {
         fn schema(doc: &mut Document) -> Schema {
             Schema::new("array").with("items", doc.add::<Vertex>())
         }
@@ -565,7 +565,7 @@ mod tests {
         next: Vec<Vertex>,
     }
 
-    impl Describe for Vertex {
+    impl Reflection for Vertex {
         fn schema(doc: &mut Document) -> Schema {
             let mut properties = BTreeMap::new();
             // TODO: once `Describe` is implemented for `core` types replace this temporary type
