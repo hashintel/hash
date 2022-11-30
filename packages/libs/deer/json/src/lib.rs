@@ -20,7 +20,7 @@ mod error;
 extern crate alloc;
 
 #[cfg(feature = "arbitrary-precision")]
-use alloc::{format, string::ToString};
+use alloc::format;
 use alloc::{
     string::String,
     vec::{IntoIter, Vec},
@@ -48,6 +48,11 @@ fn serde_to_deer_number(number: &serde_json::Number) -> Option<deer::Number> {
         .or_else(|| number.as_f64().map(deer::Number::from))
 }
 
+// Reason: the non arbitrary-precision version needs `Option<T>` as a full conversion is not
+// guaranteed.
+// This would happen if one enabled `arbitrary_precision` on `serde_json`, without enabling
+// `arbitrary-precision` on `deer-json`.
+#[allow(clippy::unnecessary_wraps)]
 #[cfg(feature = "arbitrary-precision")]
 fn serde_to_deer_number(number: &serde_json::Number) -> Option<deer::Number> {
     // SAFETY: we know that `number` is already valid, therefore we can safely construct the deer
