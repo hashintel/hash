@@ -2,41 +2,56 @@ import { useMemo } from "react";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { getOutgoingLinkAndTargetEntitiesAtMoment } from "@hashintel/hash-subgraph/src/stdlib/edge/link";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
-import { generateEntityLabel } from "../../../../../../../lib/entities";
+import { VersionedUri } from "@hashintel/hash-subgraph";
 import { useEntityEditor } from "../../entity-editor-context";
 import { LinkRow } from "./types";
 
 export const useRowData = () => {
-  const { entitySubgraph } = useEntityEditor();
+  const { entitySubgraph, entityTypeSubgraph } = useEntityEditor();
 
   const rowData = useMemo<LinkRow[]>(() => {
     const entity = getRoots(entitySubgraph)[0]!;
+    const entityType = getRoots(entityTypeSubgraph)[0]!;
 
-    return getOutgoingLinkAndTargetEntitiesAtMoment(
-      entitySubgraph,
-      entity.metadata.editionId.baseId,
-      /** @todo - We probably want to use entity endTime - https://app.asana.com/0/1201095311341924/1203331904553375/f */
-      new Date(),
-    ).map(({ linkEntity, rightEntity }) => {
+    const outgoingLinkAndTargetEntitiesAtMoment =
+      getOutgoingLinkAndTargetEntitiesAtMoment(
+        entitySubgraph,
+        entity.metadata.editionId.baseId,
+        /** @todo - We probably want to use entity endTime - https://app.asana.com/0/1201095311341924/1203331904553375/f */
+        new Date(),
+      );
+
+    const linkSchemas = entityType.schema.links;
+
+    if (!linkSchemas) {
+      return [];
+    }
+
+    return Object.keys(linkSchemas).map((key) => {
+      const linkEntityTypeId = key as VersionedUri;
+      const linkSchema = linkSchemas[linkEntityTypeId]!;
+
       const linkEntityType = getEntityTypeById(
-        entitySubgraph,
-        linkEntity.metadata.entityTypeId,
+        entityTypeSubgraph,
+        linkEntityTypeId,
       );
 
-      const referencedEntityType = getEntityTypeById(
-        entitySubgraph,
-        rightEntity.metadata.entityTypeId,
-      );
+      if (!("oneOf" in linkSchema.items)) {
+        throw new Error("oneOf not found inside linkSchema.items");
+      }
+
+      const expectedEntityTypes = linkSchema.items.oneOf.map(({ $ref }) => {
+        return getEntityTypeById(entityTypeSubgraph, $ref)?.schema.title;
+      });
 
       return {
-        expectedEntityType: referencedEntityType?.schema.title ?? "",
-        linkedWith: generateEntityLabel(entitySubgraph),
-        linkEntityTypeId: linkEntity.metadata.entityTypeId,
-        relationship: "Outbound",
-        linkEntityTypeTitle: linkEntityType?.schema.title ?? "",
-      };
+        rowId: linkEntityTypeId,
+        linkTitle: linkEntityType?.schema.title,
+        linkedWith: outgoingLinkAndTargetEntitiesAtMoment.length.toString(),
+        expectedEntityTypes,
+      } as LinkRow;
     });
-  }, [entitySubgraph]);
+  }, [entitySubgraph, entityTypeSubgraph]);
 
   return rowData;
 };

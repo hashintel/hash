@@ -14,10 +14,12 @@ import { SectionWrapper } from "../../../shared/section-wrapper";
 import { LinksSectionEmptyState } from "../shared/links-section-empty-state";
 
 export const LinksSection = () => {
-  const { entitySubgraph } = useEntityEditor();
+  const { entitySubgraph, entityTypeSubgraph } = useEntityEditor();
   const [showSearch, setShowSearch] = useState(false);
 
   const entity = getRoots(entitySubgraph)[0]!;
+  const entityType = getRoots(entityTypeSubgraph)[0]!;
+
   const outgoingLinks = getOutgoingLinksForEntityAtMoment(
     entitySubgraph,
     entity.metadata.editionId.baseId,
@@ -25,7 +27,7 @@ export const LinksSection = () => {
     new Date(),
   );
 
-  const isEmpty = outgoingLinks.length === 0;
+  const isEmpty = Object.keys(entityType.schema.links ?? {}).length === 0;
 
   if (isEmpty) {
     return <LinksSectionEmptyState />;
