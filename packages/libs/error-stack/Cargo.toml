@@ -22,7 +22,7 @@ anyhow = { version = "1.0.65", default-features = false, optional = true }
 eyre = { version = "0.6", default-features = false, optional = true }
 owo-colors = { version = "3", default-features = false, optional = true, features = ['supports-colors'] }
 serde = { version = "1", default-features = false, optional = true }
-spin = { version = "0.9.4", default-features = false, optional = true, features = ['rwlock', 'once'] }
+spin = { version = "0.9", default-features = false, optional = true, features = ['rwlock', 'once'] }
 
 [dev-dependencies]
 serde = { version = "1.0.148", features = ["derive"] }
