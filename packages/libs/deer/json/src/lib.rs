@@ -34,7 +34,7 @@ use deer::{
     },
     Deserialize, Visitor,
 };
-use error_stack::{IntoReport, Report, Result, ResultExt};
+use error_stack::{Report, Result, ResultExt};
 use serde_json::{Map, Value};
 
 use crate::error::{BytesUnsupportedError, OverflowError};
