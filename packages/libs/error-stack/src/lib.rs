@@ -475,11 +475,11 @@ mod report;
 mod result;
 
 mod context;
-#[cfg(feature = "std")]
+#[cfg(any(feature = "std", feature = "hooks"))]
 pub mod fmt;
-#[cfg(not(feature = "std"))]
+#[cfg(not(any(feature = "std", feature = "hooks")))]
 mod fmt;
-#[cfg(feature = "std")]
+#[cfg(any(feature = "std", feature = "hooks"))]
 mod hook;
 #[cfg(feature = "serde")]
 mod serde;
