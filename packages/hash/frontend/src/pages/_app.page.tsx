@@ -71,7 +71,10 @@ const App: FunctionComponent<AppProps> = ({
     } else if (
       !loading &&
       !authenticatedUser &&
-      !router.pathname.startsWith("/login")
+      !(
+        router.pathname.startsWith("/login") ||
+        router.pathname.startsWith("/signup")
+      )
     ) {
       if (kratosSession) {
         /**
