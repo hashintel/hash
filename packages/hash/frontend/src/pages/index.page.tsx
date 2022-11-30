@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { useRouter } from "next/router";
 
-import { Container, Typography } from "@mui/material";
 import { useLoggedInUser } from "../components/hooks/useAuthenticatedUser";
 import { NextPageWithLayout } from "../shared/layout";
 
@@ -10,16 +9,17 @@ const Page: NextPageWithLayout = () => {
   const { authenticatedUser, loading, kratosSession } = useLoggedInUser();
 
   useEffect(() => {
+    /**
+     * @todo: this check could occur in a server-side render, so that a
+     * redirect to the workspace or login page is done before rendering
+     * this empty homepage.
+     */
     if (authenticatedUser) {
       void router.push(`/${authenticatedUser.userAccountId}`);
     }
   }, [router, authenticatedUser, kratosSession, loading]);
 
-  return (
-    <Container sx={{ pt: 10 }}>
-      <Typography variant="h1">Homepage</Typography>
-    </Container>
-  );
+  return null;
 };
 
 export default Page;
