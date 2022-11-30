@@ -96,13 +96,11 @@ const App: FunctionComponent<AppProps> = ({
           <ModalProvider>
             <RouteAccountInfoProvider>
               <RoutePageInfoProvider>
-                <SessionProvider>
-                  <ReadonlyModeProvider>
-                    <SnackbarProvider maxSnack={3}>
-                      {getLayout(<Component {...pageProps} />)}
-                    </SnackbarProvider>
-                  </ReadonlyModeProvider>
-                </SessionProvider>
+                <ReadonlyModeProvider>
+                  <SnackbarProvider maxSnack={3}>
+                    {getLayout(<Component {...pageProps} />)}
+                  </SnackbarProvider>
+                </ReadonlyModeProvider>
               </RoutePageInfoProvider>
             </RouteAccountInfoProvider>
           </ModalProvider>
@@ -116,7 +114,9 @@ const AppWithTypeSystemContextProvider: FunctionComponent<AppProps> = (
   props,
 ) => (
   <TypeSystemContextProvider>
-    <App {...props} />
+    <SessionProvider>
+      <App {...props} />
+    </SessionProvider>
   </TypeSystemContextProvider>
 );
 
