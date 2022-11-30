@@ -16,7 +16,10 @@ import { useBlockProtocolFunctionsWithOntology } from "./type-editor/blockprotoc
  * Helper type-guard for determining if a `ValueOrArray` definition is an array or a value.
  */
 const isArrayDefinition = <T,>(input: ValueOrArray<T>): input is Array<T> =>
-  "type" in input && input.type === "array";
+  input &&
+  typeof input === "object" &&
+  "type" in input &&
+  input.type === "array";
 
 /**
  * This component is an example usage of the `getEntity` BP function.
