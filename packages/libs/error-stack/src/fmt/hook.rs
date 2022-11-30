@@ -755,9 +755,7 @@ impl Hooks {
 mod default {
     #![allow(unused_imports)]
 
-    #[cfg(any(rust_1_65, feature = "spantrace"))]
-    use alloc::format;
-    use alloc::{vec, vec::Vec};
+    use alloc::{format, vec, vec::Vec};
     use core::{
         any::TypeId,
         panic::Location,
