@@ -1,35 +1,15 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "enabledManagers": ["github-actions", "npm"],
+  "extends": ["config:base"],
+
+  "automerge": true,
+  "dependencyDashboard": true,
+  "dependencyDashboardApproval": true,
   "ignorePaths": ["packages/engine/**"],
   "postUpdateOptions": ["yarnDedupeFewer"],
-  "prConcurrentLimit": 5,
+  "rangeStrategy": "bump",
   "rebaseWhen": "conflicted",
-  "schedule": ["before 5am on Monday", "before 5am on Thursday"],
   "packageRules": [
-    {
-      "automerge": true,
-      "enabled": false,
-      "matchManagers": ["npm"],
-      "rangeStrategy": "bump",
-      "stabilityDays": 3
-    },
-    {
-      "enabled": true,
-      "matchManagers": ["npm"],
-      "matchFiles": ["package.json"]
-    },
-    {
-      "enabled": true,
-      "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^cross-env$", "^dotenv-flow$", "^wait-on$"]
-    },
-    {
-      "enabled": true,
-      "groupName": "GraphQL Codegen",
-      "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@graphql-codegen/"]
-    },
     {
       "enabled": true,
       "groupName": "ESLint",
@@ -52,12 +32,6 @@
       "groupName": "Playwright",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^@playwright/", "^playwright$", "^playwright-"]
-    },
-    {
-      "enabled": true,
-      "groupName": "Prettier",
-      "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^prettier$", "^prettier-"]
     },
     {
       "enabled": true,

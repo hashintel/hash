@@ -9,7 +9,6 @@ import express from "express";
 import helmet from "helmet";
 import { StatsD } from "hot-shots";
 import { customAlphabet } from "nanoid";
-import { Tracker } from "@snowplow/node-tracker";
 import { createHttpTerminator } from "http-terminator";
 import { OpenSearch } from "@hashintel/hash-backend-utils/search/opensearch";
 import { GracefulShutdown } from "@hashintel/hash-backend-utils/shutdown";
@@ -51,13 +50,10 @@ import { ensureSystemEntitiesExists } from "./graph/system-entities";
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
 const main = async () => {
-  let tracker: Tracker | undefined;
   if (process.env.HASH_TELEMETRY_ENABLED === "true") {
     logger.info("Starting [Snowplow] telemetry");
 
-    const [spEmitter, spTracker] = setupTelemetry();
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    tracker = spTracker;
+    const [spEmitter] = setupTelemetry();
 
     shutdown.addCleanup("Snowplow Telemetry", async () => {
       logger.info("Flushing [Snowplow] telemetry");
@@ -148,7 +144,7 @@ const main = async () => {
   // Parse request body as JSON - allow higher than the default 100kb limit
   app.use(json({ limit: "16mb" }));
 
-  // Set up authentication related middeware and routes
+  // Set up authentication related middleware and routes
   setupAuth({ app, graphApi, logger });
 
   // Create an email transporter

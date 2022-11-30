@@ -40,6 +40,18 @@ impl Context for UpdateError {}
 
 #[derive(Debug)]
 #[must_use]
+pub struct ArchivalError;
+
+impl fmt::Display for ArchivalError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("Could not archive entry in store")
+    }
+}
+
+impl Context for ArchivalError {}
+
+#[derive(Debug)]
+#[must_use]
 pub struct BaseUriAlreadyExists;
 
 impl fmt::Display for BaseUriAlreadyExists {
@@ -85,15 +97,3 @@ impl fmt::Display for VersionedUriAlreadyExists {
 }
 
 impl Context for VersionedUriAlreadyExists {}
-
-#[derive(Debug)]
-#[must_use]
-pub struct LinkRemovalError;
-
-impl fmt::Display for LinkRemovalError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Could not remove link")
-    }
-}
-
-impl Context for LinkRemovalError {}

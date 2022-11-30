@@ -27,11 +27,11 @@
     "@local/tsconfig": "0.0.0-private",
     "@types/prismjs": "1.26.0",
     "block-scripts": "0.0.14",
-    "eslint": "8.27.0",
+    "eslint": "8.28.0",
     "mock-block-dock": "0.0.38",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "typescript": "4.8.4"
+    "typescript": "4.9.3"
   },
   "peerDependencies": {
     "react": "^18.2.0",

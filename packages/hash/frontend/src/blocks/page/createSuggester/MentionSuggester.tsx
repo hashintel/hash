@@ -2,6 +2,7 @@ import { useMemo, FunctionComponent } from "react";
 import { tw } from "twind";
 import ArticleIcon from "@mui/icons-material/Article";
 
+import { EntityId } from "@hashintel/hash-subgraph";
 import { useUsers } from "../../../components/hooks/useUsers";
 import { useAccountPages } from "../../../components/hooks/useAccountPages";
 import { fuzzySearchBy } from "./fuzzySearchBy";
@@ -10,15 +11,15 @@ import { useRouteAccountInfo } from "../../../shared/routing";
 
 export interface MentionSuggesterProps {
   search?: string;
-  onChange(entityId: string, title: string): void;
+  onChange(entityId: EntityId, mentionType: "user" | "page"): void;
   accountId: string;
 }
 
 type SearchableItem = {
   shortname?: string;
   name: string;
-  entityId: string;
-  type: "user" | "page";
+  entityId: EntityId;
+  mentionType: "user" | "page";
   isActiveOrgMember?: boolean;
 };
 
@@ -30,7 +31,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   const { users, loading: usersLoading } = useUsers();
   const { data: pages, loading: pagesLoading } = useAccountPages(accountId);
 
-  const { accountId: systemAccountId } = useRouteAccountInfo();
+  const { accountId: routeAccountId } = useRouteAccountInfo();
 
   const loading = usersLoading && pagesLoading;
 
@@ -39,17 +40,17 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
       users?.map((user) => ({
         shortname: user.shortname,
         name: user.preferredName ?? user.shortname ?? "User",
-        entityId: user.entityId,
-        type: "user",
+        entityId: user.entityEditionId.baseId,
+        mentionType: "user",
         isActiveOrgMember: user.memberOf.some(
-          ({ entityId }) => entityId === systemAccountId,
+          ({ orgAccountId }) => orgAccountId === routeAccountId,
         ),
       })) ?? [];
 
     const iterablePages: Array<SearchableItem> = pages.map((page) => ({
       name: page.title,
       entityId: page.entityId,
-      type: "page",
+      mentionType: "page",
     }));
 
     const peopleSearch = fuzzySearchBy(iterableAccounts, search, (option) =>
@@ -71,14 +72,14 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
     );
 
     return [...peopleSearch, ...pagesSearch];
-  }, [search, users, systemAccountId, pages]);
+  }, [search, users, routeAccountId, pages]);
 
   return (
     <Suggester
       options={options}
       renderItem={(option) => (
         <div className={tw`flex items-center py-1 px-2`}>
-          {option.type === "user" ? (
+          {option.mentionType === "user" ? (
             <div
               className={tw`w-6 h-6 flex items-center justify-center text-sm rounded-full bg-gray-200 mr-2`}
             >
@@ -94,7 +95,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
         </div>
       )}
       itemKey={(option) => option.entityId}
-      onChange={(option) => onChange(option.entityId, option.type)}
+      onChange={(option) => onChange(option.entityId, option.mentionType)}
       loading={loading}
     />
   );

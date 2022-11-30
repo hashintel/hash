@@ -6,6 +6,7 @@ import {
   useState,
   FunctionComponent,
 } from "react";
+import { EntityId } from "@hashintel/hash-subgraph";
 import { useUpdatePageTitle } from "../../../components/hooks/useUpdatePageTitle";
 import { useReadonlyMode } from "../../../shared/readonly-mode";
 import { usePageContext } from "../PageContext";
@@ -39,15 +40,13 @@ const StyledTextarea = styled(TextareaAutosize)(({ theme }) =>
 );
 
 type PageTitleProps = {
-  ownedById: string;
-  pageEntityId: string;
+  pageEntityId: EntityId;
   value: string;
 };
 
 export const PAGE_TITLE_PLACEHOLDER = "Untitled";
 
 export const PageTitle: FunctionComponent<PageTitleProps> = ({
-  ownedById,
   pageEntityId,
   value,
 }) => {
@@ -92,7 +91,7 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
       return;
     }
 
-    void updatePageTitle(valueToSave, ownedById, pageEntityId);
+    void updatePageTitle(valueToSave, pageEntityId);
   };
 
   if (value !== prevValue) {

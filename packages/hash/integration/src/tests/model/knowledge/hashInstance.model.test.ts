@@ -58,7 +58,7 @@ describe("HashInstance model class", () => {
     const hashOutgoingAdminLinks = await hashInstanceModel.getOutgoingLinks(
       graphApi,
       {
-        linkTypeModel: SYSTEM_TYPES.linkType.admin,
+        linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.admin,
       },
     );
 
@@ -66,8 +66,8 @@ describe("HashInstance model class", () => {
 
     const [hashOutgoingAdminLink] = hashOutgoingAdminLinks;
 
-    expect(hashOutgoingAdminLink?.targetEntityModel).toEqual(
-      testHashInstanceAdmin,
+    expect(hashOutgoingAdminLink?.rightEntityModel.entity).toEqual(
+      testHashInstanceAdmin.entity,
     );
   });
 
@@ -87,7 +87,7 @@ describe("HashInstance model class", () => {
 
     const hashInstanceOutgoingAdminLinks =
       await hashInstanceModel.getOutgoingLinks(graphApi, {
-        linkTypeModel: SYSTEM_TYPES.linkType.admin,
+        linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.admin,
       });
 
     expect(hashInstanceOutgoingAdminLinks).toHaveLength(0);

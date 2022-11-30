@@ -7,9 +7,9 @@ import {
 import { SizedGridColumn } from "@glideapps/glide-data-grid";
 import { types } from "@hashintel/hash-shared/types";
 import { useMemo } from "react";
-import { Entity } from "../../../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
+import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
+import { getEntityByEditionId } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import { generateEntityLabel } from "../../../../lib/entities";
-import { getEntity, Subgraph } from "../../../../lib/subgraph";
 import { mustBeVersionedUri } from "./util";
 
 export interface TypeEntitiesRow {
@@ -23,7 +23,7 @@ export const useEntitiesTable = (
   entities?: Entity[],
   entityTypes?: EntityType[],
   propertyTypes?: PropertyType[],
-  subgraph?: Subgraph,
+  subgraph?: Subgraph<SubgraphRootTypes["entity"]>,
 ) => {
   return useMemo(() => {
     if (!entities || !entityTypes || !propertyTypes || !subgraph) {
@@ -76,24 +76,21 @@ export const useEntitiesTable = (
 
     const rows: TypeEntitiesRow[] =
       entities?.map((entity) => {
-        const entityLabel = generateEntityLabel({
-          root: entity,
+        const entityLabel = generateEntityLabel(subgraph);
+        const entityNamespace = getEntityByEditionId(
           subgraph,
-        });
-        const entityNamespace = getEntity(subgraph, entity.ownedById)
-          ?.properties[
+          entity.metadata.editionId,
+        )?.properties[
           extractBaseUri(types.propertyType.shortName.propertyTypeId)
         ];
         const entityType = entityTypes?.find(
-          (type) => type.$id === entity.entityTypeId,
+          (type) => type.$id === entity.metadata.entityTypeId,
         );
 
         return {
           entity: entityLabel,
           entityTypeVersion: entityType
-            ? `v${extractVersion(mustBeVersionedUri(entityType.$id))} ${
-                entityType.title
-              }`
+            ? `v${extractVersion(entityType.$id)} ${entityType.title}`
             : "",
           namespace: entityNamespace ? `@${entityNamespace}` : "",
           /** @todo: uncomment this when we have additional types for entities */

@@ -3,6 +3,7 @@ import { faFile } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { getPageInfoQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { Box } from "@mui/material";
+import { EntityId } from "@hashintel/hash-subgraph";
 import {
   GetPageInfoQuery,
   GetPageInfoQueryVariables,
@@ -19,22 +20,15 @@ export const pageIconVariantSizes: Record<
 };
 
 interface PageIconProps {
-  ownedById: string;
-  entityId: string;
-  versionId?: string;
+  entityId: EntityId;
   size?: SizeVariant;
 }
 
-export const PageIcon = ({
-  ownedById,
-  entityId,
-  versionId,
-  size = "medium",
-}: PageIconProps) => {
+export const PageIcon = ({ entityId, size = "medium" }: PageIconProps) => {
   const { data } = useQuery<GetPageInfoQuery, GetPageInfoQueryVariables>(
     getPageInfoQuery,
     {
-      variables: { ownedById, entityId, entityVersion: versionId },
+      variables: { entityId },
     },
   );
 
@@ -51,7 +45,7 @@ export const PageIcon = ({
         alignItems: "center",
       }}
     >
-      {data?.persistedPage?.icon ?? (
+      {data?.page?.icon ?? (
         <FontAwesomeIcon
           icon={faFile}
           sx={(theme) => ({

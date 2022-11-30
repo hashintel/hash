@@ -263,7 +263,7 @@ impl HookContextInner {
 // TODO: ideally we would want to make `HookContextInner` private, as it is an implementation
 //  detail, but "attribute privacy" as outlined in https://github.com/rust-lang/rust/pull/61969
 //  is currently not implemented for repr(transparent).
-#[repr(transparent)]
+#[cfg_attr(not(doc), repr(transparent))]
 pub struct HookContext<T> {
     inner: HookContextInner,
     _marker: PhantomData<fn(&T)>,
@@ -719,7 +719,6 @@ fn into_boxed_hook<T: Send + Sync + 'static>(
 /// [`SpanTrace`]: tracing_error::SpanTrace
 /// [`Display`]: core::fmt::Display
 /// [`Debug`]: core::fmt::Debug
-/// [`Frame`]: crate::Frame
 /// [`.insert()`]: Hooks::insert
 #[cfg(feature = "std")]
 pub(crate) struct Hooks {

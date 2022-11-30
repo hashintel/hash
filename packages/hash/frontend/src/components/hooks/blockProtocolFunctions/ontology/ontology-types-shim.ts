@@ -15,10 +15,15 @@ import {
 import {
   PropertyType,
   EntityType,
-  LinkType,
   VersionedUri,
 } from "@blockprotocol/type-system-web";
-import { Subgraph } from "../../../../lib/subgraph";
+import {
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+  Subgraph,
+  SubgraphRootTypes,
+} from "@hashintel/hash-subgraph";
+import { EmptyObject } from "@hashintel/hash-shared/util";
 
 export type OntologyCallbacks = {
   aggregateDataTypes: AggregateDataTypesMessageCallback;
@@ -31,50 +36,24 @@ export type OntologyCallbacks = {
   aggregateEntityTypes: AggregateEntityTypesMessageCallback;
   getEntityType: GetEntityTypeMessageCallback;
   updateEntityType: UpdateEntityTypeMessageCallback;
-  createLinkType: CreateLinkTypeMessageCallback;
-  aggregateLinkTypes: AggregateLinkTypesMessageCallback;
-  getLinkType: GetLinkTypeMessageCallback;
-  updateLinkType: UpdateLinkTypeMessageCallback;
-};
-
-/* Shared types */
-
-/**
- * Create Response object from the name and type of an ontology type kind.
- * This exists to reduce repetition in the types.
- *
- * For example turning
- *   Response<"dataType", DataType>
- * into
- *   { dataTypeId: string; dataType: DataType }
- */
-type Response<N extends string, T> = {
-  [_ in `${N}Id`]: string;
-} & { [_ in N]: T };
-
-export type AggregateResult<T> = {
-  results: T[];
 };
 
 /* Data type CRU */
-export type AggregateDataTypesRequest = {};
 export type AggregateDataTypesMessageCallback = MessageCallback<
-  AggregateDataTypesRequest,
+  EmptyObject,
   null,
-  Subgraph,
+  Subgraph<SubgraphRootTypes["dataType"]>,
   ReadOrModifyResourceError
 >;
 
 export type GetDataTypeMessageCallback = MessageCallback<
-  { dataTypeId: VersionedUri },
+  VersionedUri,
   null,
-  Subgraph,
+  Subgraph<SubgraphRootTypes["dataType"]>,
   ReadOrModifyResourceError
 >;
 
 /* Property type CRU */
-
-export type PropertyTypeResponse = Response<"propertyType", PropertyType>;
 
 export type CreatePropertyTypeRequest = {
   propertyType: Omit<PropertyType, "$id">;
@@ -82,39 +61,49 @@ export type CreatePropertyTypeRequest = {
 export type CreatePropertyTypeMessageCallback = MessageCallback<
   CreatePropertyTypeRequest,
   null,
-  PropertyTypeResponse,
+  PropertyTypeWithMetadata,
   CreateResourceError
 >;
 
-export type AggregatePropertyTypesRequest = {};
+export type AggregatePropertyTypesRequest = {
+  graphResolveDepths?: Partial<
+    Pick<Subgraph["depths"], "constrainsValuesOn" | "constrainsPropertiesOn">
+  >;
+};
+
 export type AggregatePropertyTypesMessageCallback = MessageCallback<
   AggregatePropertyTypesRequest,
   null,
-  Subgraph,
+  Subgraph<SubgraphRootTypes["propertyType"]>,
   ReadOrModifyResourceError
 >;
 
+export type GetPropertyTypeRequest = {
+  propertyTypeId: VersionedUri;
+  graphResolveDepths?: Partial<
+    Pick<Subgraph["depths"], "constrainsValuesOn" | "constrainsPropertiesOn">
+  >;
+};
+
 export type GetPropertyTypeMessageCallback = MessageCallback<
-  { propertyTypeId: VersionedUri },
+  GetPropertyTypeRequest,
   null,
-  Subgraph,
+  Subgraph<SubgraphRootTypes["propertyType"]>,
   ReadOrModifyResourceError
 >;
 
 export type UpdatePropertyTypeRequest = {
-  propertyTypeId: string;
+  propertyTypeId: VersionedUri;
   propertyType: Omit<PropertyType, "$id">;
 };
 export type UpdatePropertyTypeMessageCallback = MessageCallback<
   UpdatePropertyTypeRequest,
   null,
-  PropertyTypeResponse,
+  PropertyTypeWithMetadata,
   ReadOrModifyResourceError
 >;
 
 /* Entity type CRU */
-
-export type EntityTypeResponse = Response<"entityType", EntityType>;
 
 export type EntityTypeRequest = {
   entityType: Omit<EntityType, "$id">;
@@ -122,74 +111,56 @@ export type EntityTypeRequest = {
 export type CreateEntityTypeMessageCallback = MessageCallback<
   EntityTypeRequest,
   null,
-  EntityTypeResponse,
+  EntityTypeWithMetadata,
   CreateResourceError
 >;
 
-export type AggregateEntityTypesRequest = {};
+export type AggregateEntityTypesRequest = {
+  graphResolveDepths?: Partial<
+    Pick<
+      Subgraph["depths"],
+      | "constrainsValuesOn"
+      | "constrainsPropertiesOn"
+      | "constrainsLinksOn"
+      | "constrainsLinkDestinationsOn"
+    >
+  >;
+};
+
 export type AggregateEntityTypesMessageCallback = MessageCallback<
   AggregateEntityTypesRequest,
   null,
-  Subgraph,
+  Subgraph<SubgraphRootTypes["entityType"]>,
   ReadOrModifyResourceError
 >;
 
-export type GetEntityTypeRequest = Pick<EntityTypeResponse, "entityTypeId">;
+export type GetEntityTypeRequest = {
+  entityTypeId: VersionedUri;
+  graphResolveDepths?: Partial<
+    Pick<
+      Subgraph["depths"],
+      | "constrainsValuesOn"
+      | "constrainsPropertiesOn"
+      | "constrainsLinksOn"
+      | "constrainsLinkDestinationsOn"
+    >
+  >;
+};
+
 export type GetEntityTypeMessageCallback = MessageCallback<
   GetEntityTypeRequest,
   null,
-  Subgraph,
+  Subgraph<SubgraphRootTypes["entityType"]>,
   ReadOrModifyResourceError
 >;
 
 export type UpdateEntityTypeRequest = {
-  entityTypeId: string;
+  entityTypeId: VersionedUri;
   entityType: Omit<EntityType, "$id">;
 };
 export type UpdateEntityTypeMessageCallback = MessageCallback<
   UpdateEntityTypeRequest,
   null,
-  EntityTypeResponse,
-  ReadOrModifyResourceError
->;
-
-/* Link type CRU */
-
-export type LinkTypeResponse = Response<"linkType", LinkType>;
-
-export type CreateLinkTypeRequest = {
-  linkType: Omit<LinkType, "$id">;
-};
-export type CreateLinkTypeMessageCallback = MessageCallback<
-  CreateLinkTypeRequest,
-  null,
-  LinkTypeResponse,
-  CreateResourceError
->;
-
-export type AggregateLinkTypesRequest = {};
-export type AggregateLinkTypesMessageCallback = MessageCallback<
-  AggregateLinkTypesRequest,
-  null,
-  Subgraph,
-  ReadOrModifyResourceError
->;
-
-export type GetLinkTypeRequest = Pick<LinkTypeResponse, "linkTypeId">;
-export type GetLinkTypeMessageCallback = MessageCallback<
-  GetLinkTypeRequest,
-  null,
-  Subgraph,
-  ReadOrModifyResourceError
->;
-
-export type UpdateLinkTypeRequest = {
-  linkTypeId: string;
-  linkType: Omit<LinkType, "$id">;
-};
-export type UpdateLinkTypeMessageCallback = MessageCallback<
-  UpdateLinkTypeRequest,
-  null,
-  LinkTypeResponse,
+  EntityTypeWithMetadata,
   ReadOrModifyResourceError
 >;

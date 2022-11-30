@@ -1,6 +1,6 @@
-import { ResolverFn, Subgraph, QueryMeArgs } from "../../../apiTypes.gen";
+import { Subgraph } from "@hashintel/hash-subgraph";
+import { ResolverFn, QueryMeArgs } from "../../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../../context";
-import { mapSubgraphToGql } from "../../ontology/model-mapping";
 
 export const me: ResolverFn<
   Subgraph,
@@ -9,13 +9,11 @@ export const me: ResolverFn<
   QueryMeArgs
 > = async (
   _,
-  { linkResolveDepth, linkTargetEntityResolveDepth },
+  { hasLeftEntity, hasRightEntity },
   { userModel, dataSources: { graphApi } },
 ) => {
-  const subgraph = await userModel.getRootedSubgraph(graphApi, {
-    linkResolveDepth,
-    linkTargetEntityResolveDepth,
+  return await userModel.getRootedSubgraph(graphApi, {
+    hasLeftEntity,
+    hasRightEntity,
   });
-
-  return mapSubgraphToGql(subgraph);
 };

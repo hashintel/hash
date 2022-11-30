@@ -1,4 +1,4 @@
-import { PropertyType } from "@blockprotocol/type-system-web";
+import { PropertyType, PropertyValues } from "@blockprotocol/type-system-web";
 import {
   Button,
   ButtonProps,
@@ -6,11 +6,7 @@ import {
   FontAwesomeIcon,
   TextField,
 } from "@hashintel/hash-design-system";
-import {
-  addVersionToBaseUri,
-  generateBaseTypeId,
-  types,
-} from "@hashintel/hash-shared/types";
+import { generateBaseTypeId, types } from "@hashintel/hash-shared/types";
 import {
   Autocomplete,
   Box,
@@ -23,9 +19,10 @@ import {
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { frontendUrl } from "@hashintel/hash-shared/environment";
+import { getPropertyTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
+import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
 import { useBlockProtocolCreatePropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreatePropertyType";
 import { useBlockProtocolGetPropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetPropertyType";
-import { getPersistedPropertyType } from "../../../../lib/subgraph";
 import { fa100 } from "../../../../shared/icons/pro/fa-100";
 import { faSquareCheck } from "../../../../shared/icons/pro/fa-square-check";
 import { faText } from "../../../../shared/icons/pro/fa-text";
@@ -34,7 +31,7 @@ import { useRefetchPropertyTypes } from "./use-property-types";
 import { useRouteNamespace } from "./use-route-namespace";
 
 const generateInitialPropertyTypeId = (baseUri: string) =>
-  addVersionToBaseUri(baseUri, 1);
+  versionedUriFromComponents(baseUri, 1);
 
 const propertyTypeDataTypes = [
   {
@@ -95,10 +92,10 @@ export const PropertyTypeForm = ({
     setFocus(initialTitle ? "description" : "name");
   }, [initialTitle, setFocus]);
 
-  const routeNamespace = useRouteNamespace();
+  const { namespace: routeNamespace } = useRouteNamespace();
 
   const { createPropertyType } = useBlockProtocolCreatePropertyType(
-    routeNamespace?.id ?? "",
+    routeNamespace?.accountId ?? "",
   );
   const { getPropertyType } = useBlockProtocolGetPropertyType();
 
@@ -121,11 +118,10 @@ export const PropertyTypeForm = ({
         propertyType: {
           oneOf: data.expectedValues.map((value) => ({
             $ref: value.dataTypeId,
-          })),
+          })) as [PropertyValues, ...PropertyValues[]],
           description: data.description,
           title: data.name,
           kind: "propertyType",
-          pluralTitle: data.name,
         },
       },
     });
@@ -137,7 +133,7 @@ export const PropertyTypeForm = ({
 
     await refetchPropertyTypes?.();
 
-    onCreatePropertyType(res.data.propertyType);
+    onCreatePropertyType(res.data.schema);
   });
 
   /**
@@ -184,11 +180,18 @@ export const PropertyTypeForm = ({
                 generatePropertyTypeBaseUriForUser(value),
               );
 
-              const res = await getPropertyType({ data: { propertyTypeId } });
+              const res = await getPropertyType({
+                data: {
+                  propertyTypeId,
+                  graphResolveDepths: {
+                    constrainsValuesOn: { outgoing: 0 },
+                    constrainsPropertiesOn: { outgoing: 0 },
+                  },
+                },
+              });
 
               const exists =
-                !res.data ||
-                !!getPersistedPropertyType(res.data, propertyTypeId);
+                !res.data || !!getPropertyTypeById(res.data, propertyTypeId);
 
               if (getValues("name") === value && !exists) {
                 setTitleValid(true);

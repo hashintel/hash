@@ -1,12 +1,19 @@
-import { QueryHookOptions, useQuery } from "@apollo/client";
+import { ApolloQueryResult, QueryHookOptions, useQuery } from "@apollo/client";
 import * as Sentry from "@sentry/nextjs";
 import { useRouter } from "next/router";
-import { useContext, useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import {
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
+import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import { meQuery } from "../../graphql/queries/user.queries";
 import { MeQuery, MeQueryVariables } from "../../graphql/apiTypes.gen";
 import { oryKratosClient } from "../../pages/shared/ory-kratos";
-import { Subgraph } from "../../lib/subgraph";
 import { AuthenticatedUser, constructAuthenticatedUser } from "../../lib/user";
 import { useInitTypeSystem } from "../../lib/use-init-type-system";
 import { SessionContext } from "../../pages/shared/session-context";
@@ -23,7 +30,12 @@ import { SessionContext } from "../../pages/shared/session-context";
 export const useAuthenticatedUser = (
   options?: Omit<QueryHookOptions<MeQuery, MeQueryVariables>, "errorPolicy">,
   forceLogin = false,
+  onAuthenticate?: (
+    authenticatedUser: AuthenticatedUser,
+  ) => Promise<void> | void,
 ) => {
+  const [prevAuthenticatedUser, setPrevAuthenticatedUser] =
+    useState<AuthenticatedUser>();
   const loadingTypeSystem = useInitTypeSystem();
   const router = useRouter();
 
@@ -49,18 +61,16 @@ export const useAuthenticatedUser = (
     () =>
       !loadingTypeSystem && subgraph && kratosSession
         ? constructAuthenticatedUser({
-            userEntityId: subgraph.roots[0]!,
+            userEntityEditionId: (
+              subgraph as Subgraph<SubgraphRootTypes["entity"]>
+            ).roots[0]!,
             /**
              * @todo: ensure this subgraph contains the incoming links of orgs
              * at depth 2 to support constructing the `members` of an `Org`.
              *
              * @see https://app.asana.com/0/1202805690238892/1203250435416412/f
              */
-            /**
-             * @todo: remove casting when we start returning links in the subgraph
-             *   https://app.asana.com/0/0/1203214689883095/f
-             */
-            subgraph: subgraph as unknown as Subgraph,
+            subgraph,
             kratosSession,
           })
         : undefined,
@@ -74,13 +84,13 @@ export const useAuthenticatedUser = (
         scope.setUser(null);
       } else if (
         authenticatedUser &&
-        sentryUser?.id !== authenticatedUser.entityId
+        sentryUser?.id !== authenticatedUser.entityEditionId.baseId
       ) {
         const primaryEmail = authenticatedUser.emails.find(
           (email) => email.primary,
         );
         Sentry.setUser({
-          id: authenticatedUser.entityId,
+          id: authenticatedUser.entityEditionId.baseId,
           email: primaryEmail?.address,
         });
       }
@@ -122,11 +132,25 @@ export const useAuthenticatedUser = (
   //   client.writeQuery();
   // };
 
+  if (!prevAuthenticatedUser && authenticatedUser) {
+    setPrevAuthenticatedUser(authenticatedUser);
+    void onAuthenticate?.(authenticatedUser);
+  }
+
   return {
     authenticatedUser,
     kratosSession,
     refetch: () =>
-      Promise.all([refetchUser(), fetchKratosIdentity(forceLogin)]),
+      Promise.all([
+        // Until we change the GraphQL query scalars to return constrained Subgraphs, we need to (safely) cast
+        // ourselves
+        (
+          refetchUser as () => Promise<
+            ApolloQueryResult<{ me: Subgraph<SubgraphRootTypes["entity"]> }>
+          >
+        )(),
+        fetchKratosIdentity(forceLogin),
+      ]),
     loading: loadingUser || loadingKratosSession,
   };
 };

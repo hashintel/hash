@@ -1,10 +1,17 @@
 import { BaseUri, VersionedUri } from "@blockprotocol/type-system-web";
 import slugify from "slugify";
+import { EntityId } from "@hashintel/hash-subgraph";
+import { SYSTEM_ACCOUNT_SHORTNAME } from "@hashintel/hash-shared/environment";
+import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
 import { frontendUrl } from "./environment";
 
-const systemNamespaceName = "example";
+type SchemaKind = "data-type" | "property-type" | "entity-type";
 
-type SchemaKind = "data-type" | "property-type" | "entity-type" | "link-type";
+export const nilUuid = "00000000-0000-0000-0000-000000000000" as const;
+
+export const userAccountIdToEntityId = (userAccountId: string): EntityId => {
+  return `${nilUuid}%${userAccountId}`;
+};
 
 /** Slugify the title of a type */
 export const slugifyTypeTitle = (title: string): string =>
@@ -31,12 +38,7 @@ export const generateBaseTypeId = ({
 }): BaseUri =>
   `${domain ?? frontendUrl}/@${namespace}/types/${kind}/${slugifyTypeTitle(
     title,
-  )}` as const;
-
-export const addVersionToBaseUri = (
-  uri: BaseUri,
-  version: number,
-): VersionedUri => `${uri}/v/${version}`;
+  )}/` as const;
 
 /**
  * Generate the identifier of a type (its versioned URI).
@@ -57,7 +59,7 @@ export const generateTypeId = ({
   kind: SchemaKind;
   title: string;
 }): VersionedUri =>
-  addVersionToBaseUri(
+  versionedUriFromComponents(
     generateBaseTypeId({ domain, namespace, kind, title }),
     1,
   );
@@ -65,13 +67,13 @@ export const generateTypeId = ({
 /**
  * Generate the identifier of a system type (its versioned URI).
  *
- * @param kind - the "kind" of the type ("entity-type", "property-type", "link-type" or "data-type").
- * @param title - the title of the type.
+ * @param args.kind - the "kind" of the type ("entity-type", "property-type", "link-type" or "data-type").
+ * @param args.title - the title of the type.
  */
 export const generateSystemTypeId = (args: {
   kind: SchemaKind;
   title: string;
-}) => generateTypeId({ namespace: systemNamespaceName, ...args });
+}) => generateTypeId({ namespace: SYSTEM_ACCOUNT_SHORTNAME, ...args });
 
 /**
  * Generate the identifier of a block protocol type (its versioned URI).
@@ -120,10 +122,6 @@ const systemEntityTypes = {
     title: "Org",
     description: undefined,
   },
-  orgMembership: {
-    title: "Org Membership",
-    description: undefined,
-  },
   comment: {
     title: "Comment",
     description: undefined,
@@ -153,6 +151,20 @@ const systemPropertyTypes = {
   email: {
     title: "Email",
     description: undefined,
+  },
+  userSelfRegistrationIsEnabled: {
+    title: "User Self Registration Is Enabled",
+    description: "Whether or not user self registration (sign-up) is enabled.",
+  },
+  userRegistrationByInviteIsEnabled: {
+    title: "User Registration By Invitation Is Enabled",
+    description:
+      "Whether or not a user is able to register another user by inviting them to an org.",
+  },
+  orgSelfRegistrationIsEnabled: {
+    title: "Org Self Registration Is Enabled",
+    description:
+      "Whether or not a user can self-register an org (note this does not apply to instance admins).",
   },
   kratosIdentityId: {
     title: "Kratos Identity Id",
@@ -223,16 +235,12 @@ export type SystemPropertyTypeTitle =
   typeof systemPropertyTypes[SystemPropertyTypeKey]["title"];
 
 /**
- * The system link type titles.
+ * The system link entity type titles.
  */
-const systemLinkTypes = {
-  hasMembership: {
-    title: "Has Membership",
-    description: "Having a membership.",
-  },
-  ofOrg: {
-    title: "Of Org",
-    description: "Belonging to an organization",
+const systemLinkEntityTypes = {
+  orgMembership: {
+    title: "Org Membership",
+    description: undefined,
   },
   blockData: {
     title: "Block Data",
@@ -260,9 +268,10 @@ const systemLinkTypes = {
   },
 } as const;
 
-type SystemLinkTypeKey = keyof typeof systemLinkTypes;
+type SystemLinkEntityTypeKey = keyof typeof systemLinkEntityTypes;
 
-export type SystemLinkTypeTitle = typeof systemLinkTypes[SystemLinkTypeKey];
+export type SystemLinkEntityTypeTitle =
+  typeof systemLinkEntityTypes[SystemLinkEntityTypeKey];
 
 /**
  * The primitive data types ("Text", "Number", etc.)
@@ -310,15 +319,14 @@ type PropertyTypeDefinition = TypeDefinition & { propertyTypeId: VersionedUri };
 
 type DataTypeDefinition = TypeDefinition & { dataTypeId: VersionedUri };
 
-type LinkTypeDefinition = TypeDefinition & {
-  linkTypeId: VersionedUri;
-  description: string;
+type LinkEntityTypeDefinition = TypeDefinition & {
+  linkEntityTypeId: VersionedUri;
 };
 
 type TypeDefinitions = {
   entityType: Record<SystemEntityTypeKey, EntityTypeDefinition>;
+  linkEntityType: Record<SystemLinkEntityTypeKey, LinkEntityTypeDefinition>;
   propertyType: Record<SystemPropertyTypeKey, PropertyTypeDefinition>;
-  linkType: Record<SystemLinkTypeKey, LinkTypeDefinition>;
   dataType: Record<PrimitiveDataTypeKey, DataTypeDefinition>;
 };
 
@@ -368,19 +376,19 @@ export const types: TypeDefinitions = {
     },
     {} as Record<PrimitiveDataTypeKey, DataTypeDefinition>,
   ),
-  linkType: Object.entries(systemLinkTypes).reduce(
+  linkEntityType: Object.entries(systemLinkEntityTypes).reduce(
     (prev, [key, { title, description }]) => {
-      const definition: LinkTypeDefinition = {
+      const definition: LinkEntityTypeDefinition = {
         title,
         description,
-        linkTypeId: generateSystemTypeId({
-          kind: "link-type",
+        linkEntityTypeId: generateSystemTypeId({
+          kind: "entity-type",
           title,
         }),
       };
 
       return { ...prev, [key]: definition };
     },
-    {} as Record<SystemLinkTypeKey, LinkTypeDefinition>,
+    {} as Record<SystemLinkEntityTypeKey, LinkEntityTypeDefinition>,
   ),
 };

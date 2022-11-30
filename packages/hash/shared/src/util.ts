@@ -1,7 +1,10 @@
 // @todo this should be defined elsewhere
-
 import { uniq } from "lodash";
-import { FileProperties } from "./graphql/apiTypes.gen";
+
+/**
+ * This behaves differently from the type `{}`, and will error if you set more properties on it.
+ */
+export type EmptyObject = Record<any, never>;
 
 export type DistributiveOmit<T, K extends keyof any> = T extends any
   ? Omit<T, K>
@@ -42,15 +45,6 @@ export const collect = <P extends Array<any>>(
       handler(thisCalls);
     });
   };
-};
-
-export const isFileProperties = (props: {}): props is FileProperties => {
-  return (
-    "key" in props &&
-    "size" in props &&
-    "url" in props &&
-    "storageType" in props
-  );
 };
 
 /** A `Map` which creates a default value if the value for a key is not set. */

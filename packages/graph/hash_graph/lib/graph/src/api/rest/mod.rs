@@ -2,14 +2,15 @@
 //!
 //! Handler methods are grouped by routes that make up the REST API.
 
-mod account;
 mod api_resource;
+mod middleware;
+
+mod account;
 mod data_type;
 mod entity;
 mod entity_type;
-mod link;
-mod link_type;
 mod property_type;
+mod utoipa_typedef;
 
 use std::sync::Arc;
 
@@ -23,17 +24,20 @@ use axum::{
 use error_stack::Report;
 use futures::TryFutureExt;
 use include_dir::{include_dir, Dir};
+use tower::ServiceBuilder;
+use tower_http::trace::TraceLayer;
 use utoipa::{
     openapi::{
-        self, schema, schema::RefOr, ArrayBuilder, ObjectBuilder, OneOfBuilder, Ref, SchemaFormat,
-        SchemaType,
+        self, schema, schema::RefOr, ArrayBuilder, KnownFormat, ObjectBuilder, OneOfBuilder, Ref,
+        SchemaFormat, SchemaType,
     },
     Modify, OpenApi,
 };
 
 use self::api_resource::RoutedResource;
 use crate::{
-    ontology::domain_validator::DomainValidator,
+    api::rest::middleware::log_request_and_response,
+    ontology::{domain_validator::DomainValidator, Selector},
     store::{crud::Read, QueryError, StorePool},
 };
 
@@ -44,10 +48,8 @@ fn api_resources<P: StorePool + Send + 'static>() -> Vec<Router> {
         account::AccountResource::routes::<P>(),
         data_type::DataTypeResource::routes::<P>(),
         property_type::PropertyTypeResource::routes::<P>(),
-        link_type::LinkTypeResource::routes::<P>(),
         entity_type::EntityTypeResource::routes::<P>(),
         entity::EntityResource::routes::<P>(),
-        link::LinkResource::routes::<P>(),
     ]
 }
 
@@ -56,10 +58,8 @@ fn api_documentation() -> Vec<openapi::OpenApi> {
         account::AccountResource::documentation(),
         data_type::DataTypeResource::documentation(),
         property_type::PropertyTypeResource::documentation(),
-        link_type::LinkTypeResource::documentation(),
         entity_type::EntityTypeResource::documentation(),
         entity::EntityResource::documentation(),
-        link::LinkResource::documentation(),
     ]
 }
 
@@ -116,9 +116,12 @@ pub fn rest_api_router<P: StorePool + Send + 'static>(
 
     // super-router can then be used as any other router.
     // Make sure extensions are added at the end so they are made available to merged routers.
+    // The `/api-doc` endpoints are nested as we don't want any layers or handlers for the api-doc
     merged_routes
         .layer(Extension(store))
         .layer(Extension(domain_regex))
+        .layer(axum::middleware::from_fn(log_request_and_response))
+        .layer(ServiceBuilder::new().layer(TraceLayer::new_for_http()))
         .nest(
             "/api-doc",
             Router::new()
@@ -156,11 +159,16 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
 
 #[derive(OpenApi)]
 #[openapi(
-        tags(
-            (name = "Graph", description = "HASH Graph API")
-        ),
-        modifiers(&MergeAddon, &ExternalRefAddon, &OperationGraphTagAddon, &FilterSchemaAddon)
-    )]
+    tags(
+        (name = "Graph", description = "HASH Graph API")
+    ),
+    modifiers(&MergeAddon, &ExternalRefAddon, &OperationGraphTagAddon, &FilterSchemaAddon),
+    components(
+        schemas(
+            Selector,
+        )
+    ),
+)]
 struct OpenApiDocumentation;
 
 /// Addon to merge multiple [`OpenApi`] documents together.
@@ -222,7 +230,10 @@ impl Modify for ExternalRefAddon {
                 }
 
                 for response in &mut operation.responses.responses.values_mut() {
-                    modify_component(response.content.values_mut());
+                    match response {
+                        RefOr::Ref(reference) => modify_reference(reference),
+                        RefOr::T(response) => modify_component(response.content.values_mut()),
+                    }
                 }
             }
         }
@@ -297,7 +308,6 @@ impl Modify for OperationGraphTagAddon {
 struct FilterSchemaAddon;
 
 impl Modify for FilterSchemaAddon {
-    #[expect(clippy::too_many_lines)]
     fn modify(&self, openapi: &mut openapi::OpenApi) {
         if let Some(ref mut components) = openapi.components {
             components.schemas.insert(
@@ -365,35 +375,14 @@ impl Modify for FilterSchemaAddon {
                                 .title(Some("PathExpression"))
                                 .property(
                                     "path",
-                                    ArrayBuilder::new().items(ObjectBuilder::new().enum_values(
-                                        Some([
-                                            "*",
-                                            "ownedById",
-                                            "createdById",
-                                            "updatedById",
-                                            "removedById",
-                                            "baseUri",
-                                            "versionedUri",
-                                            "version",
-                                            "title",
-                                            "description",
-                                            "type",
-                                            "id",
-                                            "properties",
-                                            "incomingLinks",
-                                            "outgoingLinks",
-                                            "default",
-                                            "examples",
-                                            "required",
-                                            "links",
-                                            "requiredLinks",
-                                            "source",
-                                            "target",
-                                            "relatedKeywords",
-                                            "dataTypes",
-                                            "propertyTypes",
-                                        ]),
-                                    )),
+                                    ArrayBuilder::new().items(
+                                        OneOfBuilder::new()
+                                            .item(Ref::from_schema_name("DataTypeQueryToken"))
+                                            .item(Ref::from_schema_name("PropertyTypeQueryToken"))
+                                            .item(Ref::from_schema_name("EntityTypeQueryToken"))
+                                            .item(Ref::from_schema_name("EntityQueryToken"))
+                                            .item(Ref::from_schema_name("Selector")),
+                                    ),
                                 )
                                 .required("path"),
                         )
@@ -407,7 +396,9 @@ impl Modify for FilterSchemaAddon {
                                         .item(
                                             ObjectBuilder::new()
                                                 .schema_type(SchemaType::Number)
-                                                .format(Some(SchemaFormat::Float)),
+                                                .format(Some(SchemaFormat::KnownFormat(
+                                                    KnownFormat::Float,
+                                                ))),
                                         )
                                         .item(ObjectBuilder::new().schema_type(SchemaType::String)),
                                 )

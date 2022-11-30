@@ -1,50 +1,45 @@
 import { gql } from "@apollo/client";
 import { subgraphFieldsFragment } from "../subgraph";
 
-export const persistedEntityFieldsFragment = gql`
-  fragment PersistedEntityFields on UnknownPersistedEntity {
-    entityId
-    entityTypeId
-    entityVersion
-    ownedById
-    properties
-  }
-`;
-
-export const createPersistedEntityMutation = gql`
-  mutation createPersistedEntity($entityTypeId: ID!, $properties: JSONObject!) {
-    createPersistedEntity(
-      entityTypeId: $entityTypeId
-      properties: $properties
-    ) {
-      ...PersistedEntityFields
-    }
-  }
-  ${persistedEntityFieldsFragment}
-`;
-
-/** @todo - rename these and remove "persisted" - https://app.asana.com/0/0/1203157172269854/f */
-
-export const getPersistedEntityQuery = gql`
-  query getPersistedEntity(
-    $entityId: ID!
-    $entityVersion: String
-    $dataTypeResolveDepth: Int!
-    $propertyTypeResolveDepth: Int!
-    $linkTypeResolveDepth: Int!
-    $entityTypeResolveDepth: Int!
-    $linkResolveDepth: Int!
-    $linkTargetEntityResolveDepth: Int!
+export const createEntityMutation = gql`
+  mutation createEntity(
+    $entityTypeId: VersionedUri!
+    $ownedById: ID
+    $properties: PropertyObject!
+    $linkMetadata: LinkEntityMetadata
   ) {
-    getPersistedEntity(
+    # This is a scalar, which has no selection.
+    createEntity(
+      entityTypeId: $entityTypeId
+      ownedById: $ownedById
+      properties: $properties
+      linkMetadata: $linkMetadata
+    )
+  }
+`;
+
+export const getEntityQuery = gql`
+  query getEntity(
+    $entityId: EntityId!
+    $entityVersion: String
+    $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
+    $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
+    $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
+    $constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
+    $isOfType: OutgoingEdgeResolveDepthInput!
+    $hasLeftEntity: EdgeResolveDepthsInput!
+    $hasRightEntity: EdgeResolveDepthsInput!
+  ) {
+    getEntity(
       entityId: $entityId
       entityVersion: $entityVersion
-      dataTypeResolveDepth: $dataTypeResolveDepth
-      propertyTypeResolveDepth: $propertyTypeResolveDepth
-      linkTypeResolveDepth: $linkTypeResolveDepth
-      entityTypeResolveDepth: $entityTypeResolveDepth
-      linkResolveDepth: $linkResolveDepth
-      linkTargetEntityResolveDepth: $linkTargetEntityResolveDepth
+      constrainsValuesOn: $constrainsValuesOn
+      constrainsPropertiesOn: $constrainsPropertiesOn
+      constrainsLinksOn: $constrainsLinksOn
+      constrainsLinkDestinationsOn: $constrainsLinkDestinationsOn
+      isOfType: $isOfType
+      hasLeftEntity: $hasLeftEntity
+      hasRightEntity: $hasRightEntity
     ) {
       ...SubgraphFields
     }
@@ -53,21 +48,25 @@ export const getPersistedEntityQuery = gql`
 `;
 
 export const getAllLatestEntitiesQuery = gql`
-  query getAllLatestPersistedEntities(
-    $dataTypeResolveDepth: Int!
-    $propertyTypeResolveDepth: Int!
-    $linkTypeResolveDepth: Int!
-    $entityTypeResolveDepth: Int!
-    $linkResolveDepth: Int!
-    $linkTargetEntityResolveDepth: Int!
+  query getAllLatestEntities(
+    $rootEntityTypeIds: [VersionedUri!]
+    $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
+    $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
+    $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
+    $constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
+    $isOfType: OutgoingEdgeResolveDepthInput!
+    $hasLeftEntity: EdgeResolveDepthsInput!
+    $hasRightEntity: EdgeResolveDepthsInput!
   ) {
-    getAllLatestPersistedEntities(
-      dataTypeResolveDepth: $dataTypeResolveDepth
-      propertyTypeResolveDepth: $propertyTypeResolveDepth
-      linkTypeResolveDepth: $linkTypeResolveDepth
-      entityTypeResolveDepth: $entityTypeResolveDepth
-      linkTargetEntityResolveDepth: $linkTargetEntityResolveDepth
-      linkResolveDepth: $linkResolveDepth
+    getAllLatestEntities(
+      rootEntityTypeIds: $rootEntityTypeIds
+      constrainsValuesOn: $constrainsValuesOn
+      constrainsPropertiesOn: $constrainsPropertiesOn
+      constrainsLinksOn: $constrainsLinksOn
+      constrainsLinkDestinationsOn: $constrainsLinkDestinationsOn
+      isOfType: $isOfType
+      hasLeftEntity: $hasLeftEntity
+      hasRightEntity: $hasRightEntity
     ) {
       ...SubgraphFields
     }
@@ -75,36 +74,25 @@ export const getAllLatestEntitiesQuery = gql`
   ${subgraphFieldsFragment}
 `;
 
-export const getOutgoingPersistedLinksQuery = gql`
-  query getOutgoingPersistedLinks($sourceEntityId: ID!, $linkTypeId: String) {
-    outgoingPersistedLinks(
-      sourceEntityId: $sourceEntityId
-      linkTypeId: $linkTypeId
-    ) {
-      ownedById
-      linkTypeId
-      index
-      sourceEntityId
-      targetEntityId
-      targetEntity {
-        ...PersistedEntityFields
-      }
-    }
-  }
-  ${persistedEntityFieldsFragment}
-`;
-
-export const updatePersistedEntityMutation = gql`
-  mutation updatePersistedEntity(
-    $entityId: ID!
-    $updatedProperties: JSONObject!
+export const updateEntityMutation = gql`
+  mutation updateEntity(
+    $entityId: EntityId!
+    $updatedProperties: PropertyObject!
+    $leftOrder: Int
+    $rightOrder: Int
   ) {
-    updatePersistedEntity(
+    # This is a scalar, which has no selection.
+    updateEntity(
       entityId: $entityId
       updatedProperties: $updatedProperties
-    ) {
-      ...PersistedEntityFields
-    }
+      leftOrder: $leftOrder
+      rightOrder: $rightOrder
+    )
   }
-  ${persistedEntityFieldsFragment}
+`;
+
+export const archiveEntityMutation = gql`
+  mutation archiveEntity($entityId: EntityId!) {
+    archiveEntity(entityId: $entityId)
+  }
 `;

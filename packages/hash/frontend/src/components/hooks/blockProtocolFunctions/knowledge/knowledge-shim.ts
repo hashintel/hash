@@ -12,64 +12,53 @@ import {
   ReadOrModifyResourceError,
 } from "@blockprotocol/graph";
 import {
-  PersistedLink,
-  UnknownPersistedEntity,
-} from "../../../../graphql/apiTypes.gen";
-import { Subgraph } from "../../../../lib/subgraph";
+  Entity,
+  EntityId,
+  PropertyObject,
+  Subgraph,
+  VersionedUri,
+  SubgraphRootTypes,
+  LinkEntityMetadata,
+} from "@hashintel/hash-subgraph";
 
 export type KnowledgeCallbacks = {
   getEntity: GetEntityMessageCallback;
+  createEntity: CreateEntityMessageCallback;
   aggregateEntities: AggregateEntitiesMessageCallback;
   updateEntity: UpdateEntityMessageCallback;
+  archiveEntity: ArchiveEntityMessageCallback;
+};
+
+export type GetEntityRequest = {
+  entityId: EntityId;
+  graphResolveDepths?: Partial<Subgraph["depths"]>;
 };
 
 /* Entity CRU */
-
-/**
- * @todo: remove this when we support the corresponding fields in the GQL API, or have implemented alternative fields.
- * @see https://app.asana.com/0/0/1203106234191589/f
- */
-type UnsupportedPersistedEntityFields = "linkedEntities";
-
-type DeprecatedPersistedEntityFields = "accountId";
-
-type BaseEntity = Omit<
-  UnknownPersistedEntity,
-  | UnsupportedPersistedEntityFields
-  | DeprecatedPersistedEntityFields
-  | "entityType"
->;
-
-/** @todo: remove this when we start returning links in the subgraph - https://app.asana.com/0/0/1203214689883095/f */
-export type Entity = BaseEntity & {
-  links: Link[];
-};
-
-type Link = Omit<PersistedLink, "sourceEntity" | "targetEntity"> & {
-  targetEntity: BaseEntity;
-};
-
-export type EntityResponse = Entity;
-
-export type GetEntityRequest = Pick<EntityResponse, "entityId">;
 export type GetEntityMessageCallback = MessageCallback<
   GetEntityRequest,
   null,
-  Subgraph,
+  Subgraph<SubgraphRootTypes["entity"]>,
   ReadOrModifyResourceError
 >;
 
-export type AggregateEntitiesRequest = {};
+export type AggregateEntitiesRequest = {
+  rootEntityTypeIds?: VersionedUri[];
+  graphResolveDepths?: Partial<Subgraph["depths"]>;
+};
+
 export type AggregateEntitiesMessageCallback = MessageCallback<
   AggregateEntitiesRequest,
   null,
-  Subgraph,
+  Subgraph<SubgraphRootTypes["entity"]>,
   ReadOrModifyResourceError
 >;
 
 export type CreateEntityRequest = {
-  entityTypeId: string;
-  properties: Entity["properties"];
+  entityTypeId: VersionedUri;
+  ownedById?: string;
+  properties: PropertyObject;
+  linkMetadata?: LinkEntityMetadata;
 };
 
 export type CreateEntityMessageCallback = MessageCallback<
@@ -80,13 +69,26 @@ export type CreateEntityMessageCallback = MessageCallback<
 >;
 
 export type UpdateEntityRequest = {
-  entityId: string;
-  updatedProperties: Entity["properties"];
+  entityId: EntityId;
+  updatedProperties: PropertyObject;
+  leftOrder?: number;
+  rightOrder?: number;
 };
 
 export type UpdateEntityMessageCallback = MessageCallback<
   UpdateEntityRequest,
   null,
   Entity,
+  ReadOrModifyResourceError
+>;
+
+export type ArchiveEntityRequest = {
+  entityId: EntityId;
+};
+
+export type ArchiveEntityMessageCallback = MessageCallback<
+  ArchiveEntityRequest,
+  null,
+  boolean,
   ReadOrModifyResourceError
 >;

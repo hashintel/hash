@@ -158,7 +158,6 @@ export class EditorConnection {
           }
         } else {
           currentState = this.state.edit;
-          nextVersion = action.version;
         }
 
         if (action.transaction) {

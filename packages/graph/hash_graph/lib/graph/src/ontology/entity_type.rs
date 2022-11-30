@@ -5,34 +5,248 @@ use serde::{
     Deserialize,
 };
 use type_system::EntityType;
+use utoipa::ToSchema;
 
 use crate::{
-    ontology::{
-        link_type::LinkTypeQueryPathVisitor, property_type::PropertyTypeQueryPathVisitor,
-        LinkTypeQueryPath, PropertyTypeQueryPath, Selector,
-    },
+    ontology::{property_type::PropertyTypeQueryPathVisitor, PropertyTypeQueryPath, Selector},
     store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath},
 };
 
+/// A path to a [`EntityType`] field.
 #[derive(Debug, PartialEq, Eq)]
 pub enum EntityTypeQueryPath {
-    VersionId,
-    OwnedById,
-    CreatedById,
-    UpdatedById,
-    RemovedById,
-    Schema,
+    /// The [`BaseUri`] of the [`EntityType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["baseUri"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::BaseUri);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`BaseUri`]: type_system::uri::BaseUri
     BaseUri,
-    VersionedUri,
+    /// The version of the [`EntityType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["version"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::Version);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// In addition to specifying the version directly, it's also possible to compare the version
+    /// with a `"latest"` parameter, which will only match the latest version of the
+    /// [`EntityType`].
+    ///
+    /// ```rust
+    /// # use std::borrow::Cow;
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use type_system::EntityType;
+    /// # use graph::{store::query::{Filter, FilterExpression, Parameter}, ontology::EntityTypeQueryPath};
+    /// let filter_value = json!({ "equal": [{ "path": ["version"] }, { "parameter": "latest" }] });
+    /// let path = Filter::<EntityType>::deserialize(filter_value)?;
+    /// assert_eq!(path, Filter::Equal(
+    ///     Some(FilterExpression::Path(EntityTypeQueryPath::Version)),
+    ///     Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed("latest")))))
+    /// );
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
     Version,
+    /// The [`VersionedUri`] of the [`EntityType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["versionedUri"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::VersionedUri);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`VersionedUri`]: type_system::uri::VersionedUri
+    VersionedUri,
+    /// The [`OwnedById`] of the [`OntologyElementMetadata`] belonging to the [`EntityType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["ownedById"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::OwnedById);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`OwnedById`]: crate::provenance::OwnedById
+    /// [`OntologyElementMetadata`]: crate::ontology::OntologyElementMetadata
+    OwnedById,
+    /// The [`CreatedById`] of the [`ProvenanceMetadata`] belonging to the [`EntityType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["createdById"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::CreatedById);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`CreatedById`]: crate::provenance::CreatedById
+    /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
+    CreatedById,
+    /// The [`UpdatedById`] of the [`ProvenanceMetadata`] belonging to the [`EntityType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["updatedById"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::UpdatedById);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`UpdatedById`]: crate::provenance::UpdatedById
+    /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
+    UpdatedById,
+    /// Corresponds to [`EntityType::title()`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["title"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::Title);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
     Title,
+    /// Corresponds to [`EntityType::description()`]
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["description"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::Description);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
     Description,
+    /// Corresponds to [`EntityType::default()`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["default"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::Default);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
     Default,
+    /// Corresponds to [`EntityType::examples()`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["examples"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::Examples);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
     Examples,
+    /// Corresponds to [`EntityType::property_type_references()`].
+    ///
+    /// As an [`EntityType`] can have multiple [`PropertyType`]s, the deserialized path requires an
+    /// additional selector to identify the [`PropertyType`] to query. Currently, only the `*`
+    /// selector is available, so the path will be deserialized as `["properties", "*", ...]`
+    /// where `...` is the path to the desired field of the [`PropertyType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::{EntityTypeQueryPath, PropertyTypeQueryPath};
+    /// let path = EntityTypeQueryPath::deserialize(json!(["properties", "*", "baseUri"]))?;
+    /// assert_eq!(
+    ///     path,
+    ///     EntityTypeQueryPath::Properties(PropertyTypeQueryPath::BaseUri)
+    /// );
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`PropertyType`]: type_system::PropertyType
     Properties(PropertyTypeQueryPath),
+    /// Corresponds to [`EntityType::required()`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["required"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::Required);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
     Required,
-    Links(LinkTypeQueryPath),
+    /// Corresponds to the keys of [`EntityType::link_mappings()`].
+    ///
+    /// As an [`EntityType`] can link to multiple [`EntityType`]s, the deserialized path
+    /// requires an additional selector to identify the [`EntityType`] to query. Currently,
+    /// only the `*` selector is available, so the path will be deserialized as
+    /// `["links", "*", ...]` where `...` is the path to the desired field of the
+    /// [`EntityType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["links", "*", "baseUri"]))?;
+    /// assert_eq!(
+    ///     path,
+    ///     EntityTypeQueryPath::Links(Box::new(EntityTypeQueryPath::BaseUri))
+    /// );
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    Links(Box<Self>),
+    /// Corresponds to [`EntityType::required_links()`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["requiredLinks"]))?;
+    /// assert_eq!(path, EntityTypeQueryPath::RequiredLinks);
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
     RequiredLinks,
+    /// Currently, does not correspond to any field of [`EntityType`].
+    ///
+    /// In the future, this will most likely correspond to something like
+    /// [`EntityType::inherits_from()`].
+    ///
+    /// As an [`EntityType`] can inherit from multiple [`EntityType`]s, the deserialized path
+    /// requires an additional selector to identify the [`EntityType`] to query. Currently,
+    /// only the `*` selector is available, so the path will be deserialized as
+    /// `["inheritsFrom", "*", ...]` where `...` is the path to the desired field of the
+    /// [`EntityType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::EntityTypeQueryPath;
+    /// let path = EntityTypeQueryPath::deserialize(json!(["inheritsFrom", "*", "baseUri"]))?;
+    /// assert_eq!(
+    ///     path,
+    ///     EntityTypeQueryPath::InheritsFrom(Box::new(EntityTypeQueryPath::BaseUri))
+    /// );
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    InheritsFrom(Box<Self>),
+    /// Only used internally and not available for deserialization.
+    VersionId,
+    /// Only used internally and not available for deserialization.
+    Schema,
 }
 
 impl QueryRecord for EntityType {
@@ -52,12 +266,20 @@ impl OntologyPath for EntityTypeQueryPath {
         Self::Version
     }
 
-    fn title() -> Self {
-        Self::Title
+    fn owned_by_id() -> Self {
+        Self::OwnedById
     }
 
-    fn description() -> Self {
-        Self::Description
+    fn created_by_id() -> Self {
+        Self::CreatedById
+    }
+
+    fn updated_by_id() -> Self {
+        Self::UpdatedById
+    }
+
+    fn schema() -> Self {
+        Self::Schema
     }
 }
 
@@ -67,7 +289,6 @@ impl RecordPath for EntityTypeQueryPath {
             Self::VersionId | Self::OwnedById | Self::CreatedById | Self::UpdatedById => {
                 ParameterType::Uuid
             }
-            Self::RemovedById => ParameterType::Uuid,
             Self::Schema => ParameterType::Any,
             Self::BaseUri => ParameterType::BaseUri,
             Self::VersionedUri => ParameterType::VersionedUri,
@@ -77,7 +298,7 @@ impl RecordPath for EntityTypeQueryPath {
                 ParameterType::Any
             }
             Self::Properties(path) => path.expected_type(),
-            Self::Links(path) => path.expected_type(),
+            Self::Links(path) | Self::InheritsFrom(path) => path.expected_type(),
         }
     }
 }
@@ -86,14 +307,13 @@ impl fmt::Display for EntityTypeQueryPath {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::VersionId => fmt.write_str("versionId"),
+            Self::BaseUri => fmt.write_str("baseUri"),
+            Self::Version => fmt.write_str("version"),
+            Self::VersionedUri => fmt.write_str("versionedUri"),
             Self::OwnedById => fmt.write_str("ownedById"),
             Self::CreatedById => fmt.write_str("createdById"),
             Self::UpdatedById => fmt.write_str("updatedById"),
-            Self::RemovedById => fmt.write_str("removedById"),
             Self::Schema => fmt.write_str("schema"),
-            Self::BaseUri => fmt.write_str("baseUri"),
-            Self::VersionedUri => fmt.write_str("versionedUri"),
-            Self::Version => fmt.write_str("version"),
             Self::Title => fmt.write_str("title"),
             Self::Description => fmt.write_str("description"),
             Self::Default => fmt.write_str("default"),
@@ -102,21 +322,21 @@ impl fmt::Display for EntityTypeQueryPath {
             Self::Required => fmt.write_str("required"),
             Self::Links(path) => write!(fmt, "links.{path}"),
             Self::RequiredLinks => fmt.write_str("requiredLinks"),
+            Self::InheritsFrom(path) => write!(fmt, "inheritsFrom.{path}"),
         }
     }
 }
 
 /// A single token in a [`EntityTypeQueryPath`].
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub enum EntityTypeQueryToken {
+    BaseUri,
+    Version,
+    VersionedUri,
     OwnedById,
     CreatedById,
     UpdatedById,
-    RemovedById,
-    BaseUri,
-    VersionedUri,
-    Version,
     Title,
     Description,
     Default,
@@ -125,6 +345,7 @@ pub enum EntityTypeQueryToken {
     Required,
     Links,
     RequiredLinks,
+    InheritsFrom,
 }
 
 /// Deserializes an [`EntityTypeQueryPath`] from a string sequence.
@@ -134,10 +355,10 @@ pub struct EntityTypeQueryPathVisitor {
 }
 
 impl EntityTypeQueryPathVisitor {
-    pub const EXPECTING: &'static str = "one of `ownedById`, `createdById`, `updatedById`, \
-                                         `removedById`, `baseUri`, `versionedUri`, `version`, \
-                                         `title`, `description`, `default`, `examples`, \
-                                         `properties`, `required`, `links`, `requiredLinks`";
+    pub const EXPECTING: &'static str = "one of `baseUri`, `version`, `versionedUri`, \
+                                         `ownedById`, `createdById`, `updatedById`, `title`, \
+                                         `description`, `default`, `examples`, `properties`, \
+                                         `required`, `links`, `requiredLinks`, `inheritsFrom`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -165,7 +386,6 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
             EntityTypeQueryToken::OwnedById => EntityTypeQueryPath::OwnedById,
             EntityTypeQueryToken::CreatedById => EntityTypeQueryPath::CreatedById,
             EntityTypeQueryToken::UpdatedById => EntityTypeQueryPath::UpdatedById,
-            EntityTypeQueryToken::RemovedById => EntityTypeQueryPath::RemovedById,
             EntityTypeQueryToken::BaseUri => EntityTypeQueryPath::BaseUri,
             EntityTypeQueryToken::VersionedUri => EntityTypeQueryPath::VersionedUri,
             EntityTypeQueryToken::Version => EntityTypeQueryPath::Version,
@@ -178,10 +398,9 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
                     .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
                 self.position += 1;
 
-                let property_type_query_path =
-                    PropertyTypeQueryPathVisitor::new(self.position).visit_seq(seq)?;
-
-                EntityTypeQueryPath::Properties(property_type_query_path)
+                EntityTypeQueryPath::Properties(
+                    PropertyTypeQueryPathVisitor::new(self.position).visit_seq(seq)?,
+                )
             }
             EntityTypeQueryToken::Required => EntityTypeQueryPath::Required,
             EntityTypeQueryToken::Links => {
@@ -189,12 +408,18 @@ impl<'de> Visitor<'de> for EntityTypeQueryPathVisitor {
                     .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
                 self.position += 1;
 
-                let link_type_query_path =
-                    LinkTypeQueryPathVisitor::new(self.position).visit_seq(seq)?;
-
-                EntityTypeQueryPath::Links(link_type_query_path)
+                EntityTypeQueryPath::Links(Box::new(Self::new(self.position).visit_seq(seq)?))
             }
             EntityTypeQueryToken::RequiredLinks => EntityTypeQueryPath::RequiredLinks,
+            EntityTypeQueryToken::InheritsFrom => {
+                seq.next_element::<Selector>()?
+                    .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
+                self.position += 1;
+
+                EntityTypeQueryPath::InheritsFrom(Box::new(
+                    Self::new(self.position).visit_seq(seq)?,
+                ))
+            }
         })
     }
 }
@@ -244,7 +469,7 @@ mod tests {
         assert_eq!(deserialize(["required"]), EntityTypeQueryPath::Required);
         assert_eq!(
             deserialize(["links", "*", "version"]),
-            EntityTypeQueryPath::Links(LinkTypeQueryPath::Version)
+            EntityTypeQueryPath::Links(Box::new(EntityTypeQueryPath::Version))
         );
         assert_eq!(
             deserialize(["requiredLinks"]),

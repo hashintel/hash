@@ -1,13 +1,13 @@
 import { useLazyQuery } from "@apollo/client";
 
 import { useCallback } from "react";
+import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import {
   GetAllLatestPropertyTypesQuery,
   GetAllLatestPropertyTypesQueryVariables,
 } from "../../../../graphql/apiTypes.gen";
 import { getAllLatestPropertyTypesQuery } from "../../../../graphql/queries/ontology/property-type.queries";
 import { AggregatePropertyTypesMessageCallback } from "./ontology-types-shim";
-import { Subgraph } from "../../../../lib/subgraph";
 
 export const useBlockProtocolAggregatePropertyTypes = (): {
   aggregatePropertyTypes: AggregatePropertyTypesMessageCallback;
@@ -34,6 +34,7 @@ export const useBlockProtocolAggregatePropertyTypes = (): {
           };
         }
 
+        const { graphResolveDepths } = data;
         /**
          * @todo Add filtering to this aggregate query using structural querying.
          *   This may mean having the backend use structural querying and relaying
@@ -42,8 +43,9 @@ export const useBlockProtocolAggregatePropertyTypes = (): {
          */
         const response = await aggregateFn({
           variables: {
-            dataTypeResolveDepth: 255,
-            propertyTypeResolveDepth: 255,
+            constrainsValuesOn: { outgoing: 255 },
+            constrainsPropertiesOn: { outgoing: 255 },
+            ...graphResolveDepths,
           },
         });
 
@@ -59,11 +61,10 @@ export const useBlockProtocolAggregatePropertyTypes = (): {
         }
 
         return {
-          /**
-           * @todo: remove this when we start returning links in the subgraph
-           *   https://app.asana.com/0/0/1203214689883095/f
-           */
-          data: response.data.getAllLatestPropertyTypes as Subgraph,
+          /** @todo - Is there a way we can ergonomically encode this in the GraphQL type? */
+          data: response.data.getAllLatestPropertyTypes as Subgraph<
+            SubgraphRootTypes["propertyType"]
+          >,
         };
       },
       [aggregateFn],

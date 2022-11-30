@@ -2,40 +2,40 @@ import {
   EntityType,
   PropertyType,
   extractBaseUri,
+  BaseUri,
 } from "@blockprotocol/type-system-web";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { Entity } from "../../../../components/hooks/blockProtocolFunctions/knowledge/knowledge-shim";
+import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
+import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
+import { getPropertyTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
 import { useBlockProtocolAggregateEntities } from "../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolAggregateEntities";
-import {
-  getPersistedEntities,
-  getPersistedEntityType,
-  getPersistedPropertyType,
-  Subgraph,
-} from "../../../../lib/subgraph";
-import { mustBeVersionedUri } from "./util";
 
-export type EntityTypeEntititiesContextValue = {
+export type EntityTypeEntitiesContextValue = {
   entities?: Entity[];
   entityTypes?: EntityType[];
   propertyTypes?: PropertyType[];
-  subgraph?: Subgraph;
+  subgraph?: Subgraph<SubgraphRootTypes["entity"]>;
 };
 
 export const useEntityTypeEntitiesContextValue = (
-  typeId: string | null,
-): EntityTypeEntititiesContextValue => {
-  const [subgraph, setSubgraph] = useState<Subgraph>();
+  typeBaseUri: BaseUri | null,
+): EntityTypeEntitiesContextValue => {
+  const [subgraph, setSubgraph] =
+    useState<Subgraph<SubgraphRootTypes["entity"]>>();
   const { aggregateEntities } = useBlockProtocolAggregateEntities();
 
   useEffect(() => {
     void aggregateEntities({
       data: {
-        dataTypeResolveDepth: 0,
-        propertyTypeResolveDepth: 1,
-        linkTypeResolveDepth: 0,
-        entityTypeResolveDepth: 1,
-        linkResolveDepth: 0,
-        linkTargetEntityResolveDepth: 0,
+        graphResolveDepths: {
+          constrainsValuesOn: { outgoing: 0 },
+          constrainsPropertiesOn: { outgoing: 1 },
+          constrainsLinksOn: { outgoing: 0 },
+          isOfType: { outgoing: 1 },
+          hasLeftEntity: { incoming: 0, outgoing: 0 },
+          hasRightEntity: { incoming: 0, outgoing: 0 },
+        },
       },
     }).then((res) => {
       if (res.data) {
@@ -50,15 +50,17 @@ export const useEntityTypeEntitiesContextValue = (
         return undefined;
       }
 
-      const relevantEntities = getPersistedEntities(subgraph).filter(
-        ({ entityTypeId }) =>
-          extractBaseUri(mustBeVersionedUri(entityTypeId)) === typeId,
+      const relevantEntities = getRoots(subgraph).filter(
+        ({ metadata: { entityTypeId } }) =>
+          extractBaseUri(entityTypeId) === typeBaseUri,
       );
 
       const relevantTypesMap = new Map<string, EntityType>();
-      for (const { entityTypeId } of relevantEntities) {
+      for (const {
+        metadata: { entityTypeId },
+      } of relevantEntities) {
         if (!relevantTypesMap.has(entityTypeId)) {
-          const type = getPersistedEntityType(subgraph, entityTypeId)?.inner;
+          const type = getEntityTypeById(subgraph, entityTypeId)?.schema;
           if (type) {
             relevantTypesMap.set(entityTypeId, type);
           }
@@ -71,10 +73,10 @@ export const useEntityTypeEntitiesContextValue = (
         for (const prop of Object.values(properties)) {
           const propertyUri = "items" in prop ? prop.items.$ref : prop.$ref;
           if (!relevantPropertiesMap.has(propertyUri)) {
-            const propertyType = getPersistedPropertyType(
+            const propertyType = getPropertyTypeById(
               subgraph,
               propertyUri,
-            )?.inner;
+            )?.schema;
             if (propertyType) {
               relevantPropertiesMap.set(propertyUri, propertyType);
             }
@@ -84,7 +86,7 @@ export const useEntityTypeEntitiesContextValue = (
       const relevantProperties = Array.from(relevantPropertiesMap.values());
 
       return [relevantEntities, relevantTypes, relevantProperties];
-    }, [subgraph, typeId]) ?? [];
+    }, [subgraph, typeBaseUri]) ?? [];
 
   return {
     entities,
@@ -95,7 +97,7 @@ export const useEntityTypeEntitiesContextValue = (
 };
 
 export const EntityTypeEntitiesContext =
-  createContext<null | EntityTypeEntititiesContextValue>(null);
+  createContext<null | EntityTypeEntitiesContextValue>(null);
 
 export const useEntityTypeEntities = () => {
   const entityTypeEntitiesContext = useContext(EntityTypeEntitiesContext);
