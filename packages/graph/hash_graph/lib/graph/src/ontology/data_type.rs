@@ -176,9 +176,7 @@ impl OntologyPath for DataTypeQueryPath {
 impl RecordPath for DataTypeQueryPath {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::VersionId | Self::OwnedById | Self::UpdatedById => {
-                ParameterType::Uuid
-            }
+            Self::VersionId | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
             Self::Schema => ParameterType::Any,
             Self::BaseUri => ParameterType::BaseUri,
             Self::VersionedUri => ParameterType::VersionedUri,
@@ -227,8 +225,8 @@ pub struct DataTypeQueryPathVisitor {
 
 impl DataTypeQueryPathVisitor {
     pub const EXPECTING: &'static str = "one of `baseUri`, `version`, `versionedUri`, \
-                                         `ownedById`, `updatedById`, `title`, \
-                                         `description`, `type`";
+                                         `ownedById`, `updatedById`, `title`, `description`, \
+                                         `type`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {

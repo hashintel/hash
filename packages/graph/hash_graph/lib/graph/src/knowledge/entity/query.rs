@@ -297,9 +297,7 @@ impl fmt::Display for EntityQueryPath<'_> {
 impl RecordPath for EntityQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::Uuid | Self::OwnedById | Self::UpdatedById => {
-                ParameterType::Uuid
-            }
+            Self::Uuid | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
             Self::LeftEntity(path)
             | Self::RightEntity(path)
             | Self::IncomingLinks(path)
@@ -340,10 +338,9 @@ pub struct EntityQueryPathVisitor {
 }
 
 impl EntityQueryPathVisitor {
-    pub const EXPECTING: &'static str = "one of `uuid`, `version`, `archived`, `ownedById`, \
-                                         `updatedById`, `type`, `properties`, \
-                                         `incomingLinks`, `outgoingLinks`, `leftEntity`, \
-                                         `rightEntity`, `leftOrder`, `rightOrder`";
+    pub const EXPECTING: &'static str =
+        "one of `uuid`, `version`, `archived`, `ownedById`, `updatedById`, `type`, `properties`, \
+         `incomingLinks`, `outgoingLinks`, `leftEntity`, `rightEntity`, `leftOrder`, `rightOrder`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
