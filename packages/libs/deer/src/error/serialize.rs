@@ -235,6 +235,25 @@ pub(super) fn impl_serialize<'a, E: Variant>(
     }))
 }
 
+/// This type facilitates the serialization of [`Report<C>`] into a flat representation which
+/// consists of:
+///
+/// ```json
+/// {
+///     "namespace": "...",
+///     "id": [/* items */],
+///     "message": "human readable message",
+///     "properties": {
+///         /* machine readable additional information */
+///     }
+/// }
+/// ```
+///
+/// This is done by looking through the [`Report`] and looking at the contexts which are [`Error`],
+/// earlier frames are then inspected to generate a tuple of predefined property types.
+///
+/// These types can then be used to generate a personalized message and will be attached to
+/// `properties` with the predefined key.
 pub struct Export<C: Context>(Report<C>);
 
 impl<C: Context> Export<C> {
