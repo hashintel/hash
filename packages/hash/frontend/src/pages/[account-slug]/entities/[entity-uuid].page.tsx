@@ -6,6 +6,7 @@ import {
   Subgraph,
   SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
+import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { useBlockProtocolGetEntity } from "../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolGetEntity";
 import { useLoggedInUser } from "../../../components/hooks/useAuthenticatedUser";
 import {
@@ -19,16 +20,21 @@ import { PageErrorState } from "../../../components/page-error-state";
 /** @todo - This should be moved somewhere shared */
 import { useRouteNamespace } from "../types/entity-type/use-route-namespace";
 import { generateEntityLabel } from "../../../lib/entities";
+import { useBlockProtocolGetEntityType } from "../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
   const { namespace } = useRouteNamespace();
   const { authenticatedUser } = useLoggedInUser();
   const { getEntity } = useBlockProtocolGetEntity();
+  const { getEntityType } = useBlockProtocolGetEntityType();
 
   const [entitySubgraph, setEntitySubgraph] =
     useState<Subgraph<SubgraphRootTypes["entity"]>>();
   const [loading, setLoading] = useState(true);
+
+  const [entityTypeSubgraph, setEntityTypeSubgraph] =
+    useState<Subgraph<SubgraphRootTypes["entityType"]>>();
 
   useEffect(() => {
     if (namespace) {
@@ -51,6 +57,16 @@ const Page: NextPageWithLayout = () => {
             } catch {
               setEntitySubgraph(undefined);
             }
+
+            const entityTypeId = getRoots(subgraph)[0]?.metadata.entityTypeId;
+
+            if (entityTypeId) {
+              const { data: typeSubgraph } = await getEntityType({
+                data: { entityTypeId },
+              });
+
+              setEntityTypeSubgraph(typeSubgraph);
+            }
           }
         } finally {
           setLoading(false);
@@ -59,7 +75,7 @@ const Page: NextPageWithLayout = () => {
 
       void init();
     }
-  }, [namespace, router.query, getEntity]);
+  }, [namespace, router.query, getEntity, getEntityType]);
 
   if (!authenticatedUser) {
     return null;
@@ -69,7 +85,7 @@ const Page: NextPageWithLayout = () => {
     return <EntityPageLoadingState />;
   }
 
-  if (!entitySubgraph) {
+  if (!entitySubgraph || !entityTypeSubgraph) {
     return <PageErrorState />;
   }
 
@@ -79,6 +95,7 @@ const Page: NextPageWithLayout = () => {
     <EntityPageWrapper label={entityLabel}>
       <EntityEditor
         entitySubgraph={entitySubgraph}
+        entityTypeSubgraph={entityTypeSubgraph}
         setEntity={(entity) =>
           setEntitySubgraph((entityAndSubgraph) => {
             if (entity) {
