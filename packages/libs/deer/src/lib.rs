@@ -26,19 +26,12 @@ use error_stack::{Report, Result, ResultExt};
 use num_traits::ToPrimitive;
 pub use schema::{Document, Reflection, Schema};
 
-<<<<<<< HEAD
-=======
-use crate::error::{
-    ArrayAccessError, DeserializeError, DeserializerError, ExpectedType, MissingError,
-    ObjectAccessError, ReceivedType, ReceivedValue, Schema, TypeError, ValueError, Variant,
-    VisitorError,
-};
->>>>>>> origin/main
 pub use crate::number::Number;
 use crate::{
     error::{
         ArrayAccessError, DeserializeError, DeserializerError, ExpectedType, MissingError,
-        ObjectAccessError, ReceivedType, ReceivedValue, TypeError, ValueError, VisitorError,
+        ObjectAccessError, ReceivedType, ReceivedValue, TypeError, ValueError, Variant,
+        VisitorError,
     },
     schema::visitor,
 };
@@ -84,37 +77,22 @@ pub trait Visitor<'de>: Sized {
     }
 
     fn visit_null(self) -> Result<Self::Value, VisitorError> {
-<<<<<<< HEAD
-        Err(Report::new(TypeError)
-            .attach(ReceivedType::new(visitor::NullSchema::document()))
-=======
         Err(Report::new(TypeError.into_error())
-            .attach(ReceivedType::new(Schema::new("null")))
->>>>>>> origin/main
+            .attach(ReceivedType::new(visitor::NullSchema::document()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
 
     fn visit_bool(self, v: bool) -> Result<Self::Value, VisitorError> {
-<<<<<<< HEAD
-        Err(Report::new(TypeError)
-            .attach(ReceivedType::new(visitor::BoolSchema::document()))
-=======
         Err(Report::new(TypeError.into_error())
-            .attach(ReceivedType::new(Schema::new("boolean")))
->>>>>>> origin/main
+            .attach(ReceivedType::new(visitor::BoolSchema::document()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
 
     fn visit_number(self, v: Number) -> Result<Self::Value, VisitorError> {
-<<<<<<< HEAD
-        Err(Report::new(TypeError)
-            .attach(ReceivedType::new(visitor::NumberSchema::document()))
-=======
         Err(Report::new(TypeError.into_error())
-            .attach(ReceivedType::new(Schema::new("number")))
->>>>>>> origin/main
+            .attach(ReceivedType::new(visitor::NumberSchema::document()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
@@ -128,13 +106,8 @@ pub trait Visitor<'de>: Sized {
     }
 
     fn visit_str(self, v: &str) -> Result<Self::Value, VisitorError> {
-<<<<<<< HEAD
-        Err(Report::new(TypeError)
-            .attach(ReceivedType::new(visitor::StringSchema::document()))
-=======
         Err(Report::new(TypeError.into_error())
-            .attach(ReceivedType::new(Schema::new("string")))
->>>>>>> origin/main
+            .attach(ReceivedType::new(visitor::StringSchema::document()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
@@ -148,16 +121,8 @@ pub trait Visitor<'de>: Sized {
     }
 
     fn visit_bytes(self, v: &[u8]) -> Result<Self::Value, VisitorError> {
-<<<<<<< HEAD
-        Err(Report::new(TypeError)
-            .attach(ReceivedType::new(visitor::BinarySchema::document()))
-=======
         Err(Report::new(TypeError.into_error())
-            .attach(ReceivedType::new(
-                // TODO: binary is not a valid json-schema type
-                Schema::new("binary"),
-            ))
->>>>>>> origin/main
+            .attach(ReceivedType::new(visitor::BinarySchema::document()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
@@ -174,13 +139,8 @@ pub trait Visitor<'de>: Sized {
     where
         T: ArrayAccess<'de>,
     {
-<<<<<<< HEAD
-        Err(Report::new(TypeError)
-            .attach(ReceivedType::new(visitor::ArraySchema::document()))
-=======
         Err(Report::new(TypeError.into_error())
-            .attach(ReceivedType::new(Schema::new("array")))
->>>>>>> origin/main
+            .attach(ReceivedType::new(visitor::ArraySchema::document()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
@@ -189,13 +149,8 @@ pub trait Visitor<'de>: Sized {
     where
         T: ObjectAccess<'de>,
     {
-<<<<<<< HEAD
-        Err(Report::new(TypeError)
-            .attach(ReceivedType::new(visitor::ObjectSchema::document()))
-=======
         Err(Report::new(TypeError.into_error())
-            .attach(ReceivedType::new(Schema::new("object")))
->>>>>>> origin/main
+            .attach(ReceivedType::new(visitor::ObjectSchema::document()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
@@ -221,33 +176,15 @@ pub trait Visitor<'de>: Sized {
     }
 
     fn visit_i128(self, v: i128) -> Result<Self::Value, VisitorError> {
-<<<<<<< HEAD
-        Err(Report::new(TypeError)
-            .attach(ReceivedType::new(visitor::I128Schema::document()))
-=======
         Err(Report::new(TypeError.into_error())
-            .attach(ReceivedType::new(
-                Schema::new("integer")
-                    .with("minimum", i128::MIN)
-                    .with("maximum", i128::MAX),
-            ))
->>>>>>> origin/main
+            .attach(ReceivedType::new(visitor::I128Schema::document()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
 
     fn visit_isize(self, v: isize) -> Result<Self::Value, VisitorError> {
-<<<<<<< HEAD
-        Err(Report::new(TypeError)
-            .attach(ReceivedType::new(visitor::ISizeSchema::document()))
-=======
         Err(Report::new(TypeError.into_error())
-            .attach(ReceivedType::new(
-                Schema::new("integer")
-                    .with("minimum", isize::MIN)
-                    .with("maximum", isize::MAX),
-            ))
->>>>>>> origin/main
+            .attach(ReceivedType::new(visitor::ISizeSchema::document()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
@@ -273,33 +210,15 @@ pub trait Visitor<'de>: Sized {
     }
 
     fn visit_u128(self, v: u128) -> Result<Self::Value, VisitorError> {
-<<<<<<< HEAD
-        Err(Report::new(TypeError)
-            .attach(ReceivedType::new(visitor::U128Schema::document()))
-=======
         Err(Report::new(TypeError.into_error())
-            .attach(ReceivedType::new(
-                Schema::new("integer")
-                    .with("minimum", u128::MIN)
-                    .with("maximum", u128::MAX),
-            ))
->>>>>>> origin/main
+            .attach(ReceivedType::new(visitor::U128Schema::document()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
 
     fn visit_usize(self, v: usize) -> Result<Self::Value, VisitorError> {
-<<<<<<< HEAD
-        Err(Report::new(TypeError)
-            .attach(ReceivedType::new(visitor::USizeSchema::document()))
-=======
         Err(Report::new(TypeError.into_error())
-            .attach(ReceivedType::new(
-                Schema::new("integer")
-                    .with("minimum", usize::MIN)
-                    .with("maximum", usize::MAX),
-            ))
->>>>>>> origin/main
+            .attach(ReceivedType::new(visitor::USizeSchema::document()))
             .attach(ExpectedType::new(self.expecting()))
             .change_context(VisitorError))
     }
@@ -351,17 +270,8 @@ macro_rules! derive_from_number {
             let v = n
                 .$to()
                 .ok_or_else(||
-<<<<<<< HEAD
-                    Report::new(ValueError)
-                        .attach(ExpectedType::new(visitor::$schema::document()))
-=======
                     Report::new(ValueError.into_error())
-                        .attach(ExpectedType::new(
-                            Schema::new("integer")
-                                .with("minimum", $primitive::MIN)
-                                .with("maximum", $primitive::MAX)
-                        ))
->>>>>>> origin/main
+                        .attach(ExpectedType::new(visitor::$schema::document()))
                         .attach(ReceivedValue::new(n))
                 )
                 .change_context(DeserializerError)?;
