@@ -3,15 +3,21 @@ import {
   FontAwesomeIcon,
   TextField,
 } from "@hashintel/hash-design-system";
+import { types } from "@hashintel/hash-shared/types";
 import { Autocomplete, Box, chipClasses, Typography } from "@mui/material";
 import { forwardRef, ForwardRefRenderFunction, useState } from "react";
 import { useController, useWatch, useFormContext } from "react-hook-form";
+import { ExpectedValueChip } from "./expected-value-chip";
 import { PropertyTypeFormValues } from "./property-type-form";
 import {
   PropertyTypeSelectorDropdown,
   usePropertyTypeSelectorDropdownContext,
 } from "./property-type-selector-dropdown";
-import { dataTypeData, dataTypeOptions } from "./property-type-utils";
+import {
+  ArrayType,
+  dataTypeData,
+  dataTypeOptions,
+} from "./property-type-utils";
 
 export const PROPERTY_SELECTOR_HEIGHT = 57;
 
@@ -55,39 +61,32 @@ const DataTypeSelector: ForwardRefRenderFunction<HTMLInputElement, {}> = () => {
       }}
       disablePortal
       {...props}
-      renderTags={(value, getTagProps) =>
-        value.map((opt, index) => {
-          const typeId = typeof opt === "object" ? opt.arrayType : opt;
-          const { icon, title, colors } = dataTypeData[typeId]!;
+      renderTags={(expectedValues, getTagProps) =>
+        expectedValues.map((expectedValue, index) => {
+          const typeId =
+            typeof expectedValue === "object"
+              ? expectedValue.arrayType
+              : expectedValue;
+
+          const editable =
+            typeId in ArrayType || typeId === types.dataType.object.dataTypeId;
+          // const editable =
+          //   typeof expectedValue === "object" &&
+          //   (expectedValue.typeId === "array" ||
+          //   expectedValue.typeId === types.dataType.object.dataTypeId);
+
+          // const type = typeId === "array" ? expectedValue.arrayType! : typeId;
+          const type =
+            expectedValue.typeId === "array"
+              ? expectedValue.arrayType!
+              : typeId;
 
           return (
-            <Chip
+            <ExpectedValueChip
               {...getTagProps({ index })}
               key={typeId}
-              label={
-                <Typography
-                  variant="smallTextLabels"
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    color: colors.textColor,
-                  }}
-                >
-                  <FontAwesomeIcon
-                    icon={{
-                      icon,
-                    }}
-                    sx={{ fontSize: "1em", mr: "1ch" }}
-                  />
-                  {title}
-                </Typography>
-              }
-              sx={{
-                backgroundColor: colors.backgroundColor,
-                [`.${chipClasses.deleteIcon}`]: {
-                  color: colors.textColor,
-                },
-              }}
+              expectedValueType={type}
+              editable={editable}
             />
           );
         })
