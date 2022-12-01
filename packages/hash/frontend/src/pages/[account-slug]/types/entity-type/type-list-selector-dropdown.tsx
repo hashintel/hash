@@ -16,7 +16,7 @@ import { StyledPlusCircleIcon } from "./styled-plus-circle-icon";
 export type TypeListSelectorDropdownProps = {
   query: string;
   createButtonProps: Omit<ButtonProps, "children" | "variant" | "size">;
-  variant: "entityType" | "propertyType";
+  variant: "entityType" | "propertyType" | "entity";
 };
 
 export const TYPE_SELECTOR_HEIGHT = 57;
@@ -115,6 +115,8 @@ export const TypeListSelectorDropdown = ({
           ) : null}
           {variant === "entityType" ? (
             <Chip color="teal" label="ENTITY TYPE" sx={{ ml: 1.5 }} />
+          ) : variant === "entity" ? (
+            <Chip color="teal" label="ENTITY" sx={{ ml: 1.5 }} />
           ) : (
             <Chip color="purple" label="PROPERTY TYPE" sx={{ ml: 1.5 }} />
           )}

@@ -1,16 +1,18 @@
+import { VersionedUri } from "@blockprotocol/type-system-web";
 import { SizedGridColumn } from "@glideapps/glide-data-grid";
+import { Entity, EntityTypeWithMetadata } from "@hashintel/hash-subgraph";
 
 export type LinkRow = {
   rowId: string;
+  linkEntityTypeId: VersionedUri;
   linkTitle: string;
-  linkedWith: string;
-  expectedEntityTypes: string[];
+  maxItems: number;
+  expectedEntityTypes: EntityTypeWithMetadata[];
+  expectedEntityTypeTitles: string[];
+  linkAndTargetEntities: { rightEntity: Entity; linkEntity: Entity }[];
 };
 
-export type LinkColumnKey = Extract<
-  keyof LinkRow,
-  "linkTitle" | "linkedWith" | "expectedEntityTypes"
->;
+export type LinkColumnKey = "linkTitle" | "linkedWith" | "expectedEntityTypes";
 
 export interface LinkColumn extends SizedGridColumn {
   id: LinkColumnKey;

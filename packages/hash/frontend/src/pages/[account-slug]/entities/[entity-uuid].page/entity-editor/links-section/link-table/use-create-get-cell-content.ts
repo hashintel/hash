@@ -2,8 +2,10 @@ import { GridCell, GridCellKind, Item } from "@glideapps/glide-data-grid";
 import { useCallback } from "react";
 import { ChipCellProps } from "../../properties-section/property-table/cells/chip-cell";
 import { LinkCellProps } from "./cells/link-cell";
+import { LinkedWithCellProps } from "./cells/linked-with-cell";
 import { linkGridIndexes } from "./constants";
 import { LinkRow } from "./types";
+import { SummaryChipCellProps } from "../../properties-section/property-table/cells/summary-chip-cell";
 
 export const useCreateGetCellContent = () => {
   const createGetCellContent = useCallback(
@@ -27,20 +29,43 @@ export const useCreateGetCellContent = () => {
               kind: GridCellKind.Custom,
               readonly: true,
               allowOverlay: false,
-              copyData: String(linkRow.expectedEntityTypes),
+              copyData: String(linkRow.linkTitle),
               data: {
                 kind: "link-cell",
                 linkRow,
               } as LinkCellProps,
             };
           case "linkedWith":
-            return {
-              kind: GridCellKind.Text,
-              data: linkRow.linkedWith,
-              displayData: linkRow.linkedWith,
-              allowOverlay: false,
-            };
+            if (linkRow.maxItems > 1) {
+              let secondaryText = "No entities";
+              const count = linkRow.linkAndTargetEntities.length;
 
+              if (count) {
+                secondaryText = `${count} ${count > 1 ? "entities" : "entity"}`;
+              }
+
+              return {
+                kind: GridCellKind.Custom,
+                allowOverlay: false,
+                copyData: "",
+                data: {
+                  kind: "summary-chip-cell",
+                  secondaryText,
+                } as SummaryChipCellProps,
+              };
+            }
+
+            return {
+              kind: GridCellKind.Custom,
+              readonly: true,
+              allowOverlay: true,
+              /** @todo add copy data */
+              copyData: "",
+              data: {
+                kind: "linked-with-cell",
+                linkRow,
+              } as LinkedWithCellProps,
+            };
           case "expectedEntityTypes":
             return {
               kind: GridCellKind.Custom,
@@ -49,7 +74,7 @@ export const useCreateGetCellContent = () => {
               copyData: String(linkRow.expectedEntityTypes),
               data: {
                 kind: "chip-cell",
-                chips: linkRow.expectedEntityTypes,
+                chips: linkRow.expectedEntityTypeTitles,
               } as ChipCellProps,
             };
         }

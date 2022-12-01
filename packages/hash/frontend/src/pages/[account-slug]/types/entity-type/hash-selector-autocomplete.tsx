@@ -133,7 +133,12 @@ export const HashSelectorAutocomplete = <T extends unknown>({
 
         // @todo extract component
         return (
-          <li {...props} data-testid="propery-selector-option">
+          <li
+            {...props}
+            data-testid="property-selector-option"
+            /** added "click-outside-ignore" to be able to use this selector with Grid component */
+            className={`${props.className} click-outside-ignore`}
+          >
             <Box width="100%">
               <Box
                 width="100%"

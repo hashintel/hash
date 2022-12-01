@@ -40,15 +40,28 @@ export const useRowData = () => {
         throw new Error("oneOf not found inside linkSchema.items");
       }
 
+      const linkAndTargetEntities =
+        outgoingLinkAndTargetEntitiesAtMoment.filter(
+          ({ linkEntity }) =>
+            linkEntity.metadata.entityTypeId === linkEntityTypeId,
+        );
+
       const expectedEntityTypes = linkSchema.items.oneOf.map(({ $ref }) => {
-        return getEntityTypeById(entityTypeSubgraph, $ref)?.schema.title;
+        return getEntityTypeById(entityTypeSubgraph, $ref);
+      });
+
+      const expectedEntityTypeTitles = expectedEntityTypes.map((val) => {
+        return val?.schema.title;
       });
 
       return {
         rowId: linkEntityTypeId,
+        linkEntityTypeId,
         linkTitle: linkEntityType?.schema.title,
-        linkedWith: outgoingLinkAndTargetEntitiesAtMoment.length.toString(),
+        linkAndTargetEntities,
+        maxItems: linkSchema.maxItems ?? 1,
         expectedEntityTypes,
+        expectedEntityTypeTitles,
       } as LinkRow;
     });
   }, [entitySubgraph, entityTypeSubgraph]);

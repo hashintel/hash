@@ -25,6 +25,9 @@ export const renderLinkCell: CustomRenderer<LinkCell> = {
     const { rect, ctx, theme, spriteManager } = args;
     const { linkRow } = cell.data;
 
+    ctx.fillStyle = theme.textHeader;
+    ctx.font = theme.baseFontStyle;
+
     const yCenter = getYCenter(args);
     const iconLeft = rect.x + getCellHorizontalPadding(true);
 
