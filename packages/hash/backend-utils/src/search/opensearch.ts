@@ -40,11 +40,20 @@ type OpenSearchCursorExtension = {
   openSearchCursor: string;
 };
 
+type RawHit = {
+  _index: string;
+  _id: string;
+  _score: number;
+  _source: JsonObject;
+};
+
 const opaqueCursorToString = (params: OpenSearchCursorExtension): string =>
   Buffer.from(JSON.stringify(params)).toString("base64");
 
 const opaqueCursorParse = (cursor: string): OpenSearchCursorExtension =>
-  JSON.parse(Buffer.from(cursor, "base64").toString());
+  JSON.parse(
+    Buffer.from(cursor, "base64").toString(),
+  ) as OpenSearchCursorExtension;
 
 const generateSearchBody = (params: SearchParameters) => {
   const fields = Object.entries(params.fields);
@@ -143,6 +152,7 @@ export class OpenSearch extends DataSource implements SearchAdapter {
         await sleep(retryIntervalMillis);
       }
     }
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions -- error stringification may need improvement
     throw new Error(`connecting to OpenSearch: ${connErr}`);
   }
 
@@ -213,7 +223,7 @@ export class OpenSearch extends DataSource implements SearchAdapter {
       throw new Error(JSON.stringify(resp));
     }
 
-    const hits = body.hits.hits.map(
+    const hits = (body.hits.hits as RawHit[]).map(
       (hit: any): SearchHit => ({
         index: hit._index as string,
         id: hit._id as string,
@@ -321,12 +331,12 @@ export class OpenSearch extends DataSource implements SearchAdapter {
       throw new Error(JSON.stringify(resp));
     }
 
-    const hits = body.hits.hits.map(
-      (hit: any): SearchHit => ({
-        index: hit._index as string,
-        id: hit._id as string,
-        score: hit._score as number,
-        document: hit._source as JsonObject,
+    const hits = (body.hits.hits as RawHit[]).map(
+      (hit): SearchHit => ({
+        index: hit._index,
+        id: hit._id,
+        score: hit._score,
+        document: hit._source,
       }),
     );
 
@@ -335,10 +345,12 @@ export class OpenSearch extends DataSource implements SearchAdapter {
     // Only return a new search cursor if this is not the final page
     const newCursor = await this.incrementOrClearOpenSearchCursor({
       pageSize: params.pageSize,
-      hitCount: hits.length as number,
+      hitCount: hits.length,
       seenCount: 0,
       total,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       openSearchCursor: body._scroll_id,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       nextOpenSearchCursor: body._scroll_id,
     });
 
@@ -384,7 +396,7 @@ export class OpenSearch extends DataSource implements SearchAdapter {
       throw new Error(JSON.stringify(resp));
     }
 
-    const hits = body.hits.hits.map(
+    const hits = (body.hits.hits as RawHit[]).map(
       (hit: any): SearchHit => ({
         index: hit._index as string,
         id: hit._id as string,
@@ -397,10 +409,11 @@ export class OpenSearch extends DataSource implements SearchAdapter {
 
     const newCursor = await this.incrementOrClearOpenSearchCursor({
       pageSize,
-      hitCount: hits.length as number,
+      hitCount: hits.length,
       seenCount,
       total,
       openSearchCursor,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       nextOpenSearchCursor: body._scroll_id,
     });
 

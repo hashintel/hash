@@ -43,9 +43,11 @@ export type SearchLoaderConfig = {
  * Returns:
  *  "Hello World! Welcome to HASH!"
  */
-const textEntityPropertiesToFTS = (properties: any): string => {
+const textEntityPropertiesToFTS = (properties: {
+  tokens: TextToken[];
+}): string => {
   return properties.tokens
-    .map((token: TextToken) => {
+    .map((token) => {
       switch (token.tokenType) {
         case "text":
           return token.text;
@@ -92,8 +94,10 @@ export class SearchLoader {
   private _pageEntitySystemType: DbEntityType | null = null;
   async pageEntitySystemType() {
     if (!this._pageEntitySystemType) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       this._pageEntitySystemType = await Page.getEntityType(this.db);
     }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this._pageEntitySystemType;
   }
 
@@ -132,14 +136,17 @@ export class SearchLoader {
   private async loadMsgIntoSearchIndex(wal2jsonMsg: Wal2JsonMsg) {
     const table = wal2jsonMsg.table;
     if (table === "entity_versions") {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- this code is broken, EntityVersion is not exported from @hashintel/hash-backend-utils/pgTables
       const entity = EntityVersion.parseWal2JsonMsg(wal2jsonMsg);
 
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- this code is broken, EntityType is not exported from @hashintel/hash-backend-utils/pgTables
       const entityType = await EntityType.getEntityType(this.db, {
         entityTypeVersionId: entity.entityTypeVersionId,
       });
 
       if (!entityType) {
         logger.error(
+          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
           `Could not find entity type with entityTypeVersionId "${entity.entityTypeVersionId}"`,
         );
         return;
@@ -152,6 +159,7 @@ export class SearchLoader {
         entityTypeId: entityType.entityId,
         entityTypeVersionId: entity.entityTypeVersionId,
         entityTypeName: entityType.metadata.name,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- @todo investigate
         updatedAt: entity.updatedAt.toISOString(),
         updatedByAccountId: entity.updatedByAccountId,
       };
@@ -162,9 +170,10 @@ export class SearchLoader {
         entityType.metadata.name === "Text"
       ) {
         indexedEntity[ENTITIES_SEARCH_FIELD] = textEntityPropertiesToFTS(
-          entity.properties,
+          entity.properties as { tokens: TextToken[] },
         );
         // @todo this should be done through a model class instead of explicitly through the DB adapter.
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
         const grandparents = await this.db.getAncestorReferences({
           accountId: entity.accountId,
           entityId: entity.entityId,
@@ -172,6 +181,7 @@ export class SearchLoader {
         });
         // @todo: Do we handle text blocks that have multiple grandparent pages?
         if (grandparents.length === 1) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- this code is broken, Entity is not exported from @hashintel/hash-backend-utils/pgTables
           const grandparentLatestEntity = await Entity.getEntityLatestVersion(
             this.db,
             {

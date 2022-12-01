@@ -155,6 +155,7 @@ export const AccountEntityTypeList: FunctionComponent<
 
     if (searchQuery) {
       entityTypes = entityTypes.filter(({ properties }) =>
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- @todo re-enable after refactoring
         properties.title.toLowerCase().includes(searchQuery.toLowerCase()),
       );
     }

@@ -14,7 +14,7 @@ describe("Signup page", () => {
     expect(getByText("Sign up with email")).toBeVisible();
   });
 
-  it("should accept a user's email and request verification code", async () => {
+  it("should accept a user's email and request verification code", () => {
     mockUseRouter({
       route: "/login",
     });
