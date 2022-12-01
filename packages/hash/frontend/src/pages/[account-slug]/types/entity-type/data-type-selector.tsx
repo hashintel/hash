@@ -51,7 +51,6 @@ const DataTypeSelector: ForwardRefRenderFunction<HTMLInputElement, {}> = () => {
       onChange={(_evt, data) => {
         onChange(data);
       }}
-      disablePortal
       {...props}
       renderTags={(value, getTagProps) =>
         value.map((opt, index) => {
@@ -84,7 +83,10 @@ const DataTypeSelector: ForwardRefRenderFunction<HTMLInputElement, {}> = () => {
         <TextField
           {...inputProps}
           label="Expected values"
-          sx={{ alignSelf: "flex-start", width: "70%" }}
+          sx={{
+            alignSelf: "flex-start",
+            width: "70%",
+          }}
           placeholder="Select acceptable values"
         />
       )}
@@ -116,7 +118,7 @@ const DataTypeSelector: ForwardRefRenderFunction<HTMLInputElement, {}> = () => {
       }}
       componentsProps={{
         popper: {
-          sx: { width: "100% !important" },
+          sx: { minWidth: 520 },
           placement: "auto-start",
         },
       }}

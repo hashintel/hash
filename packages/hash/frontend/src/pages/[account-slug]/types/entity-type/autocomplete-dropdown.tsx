@@ -18,11 +18,23 @@ export const AutocompleteDropdown = ({
           boxShadow: theme.boxShadows.md,
           pointerEvents: "none",
           borderRadius: `${textFieldBorderRadius}px`,
-          [`[data-popper-placement*="top"] &`]: {
+          [`[data-popper-placement="top"] &`]: {
             bottom: -buttonHeight,
+            borderBottomLeftRadius: 0,
+            borderBottomRightRadius: 0,
           },
-          [`[data-popper-placement*="bottom"] &`]: {
+          [`[data-popper-placement="top-start"] &`]: {
+            bottom: -buttonHeight,
+            borderBottomLeftRadius: 0,
+          },
+          [`[data-popper-placement="bottom"] &`]: {
             top: -buttonHeight,
+            borderTopLeftRadius: 0,
+            borderTopRightRadius: 0,
+          },
+          [`[data-popper-placement="bottom-start"] &`]: {
+            top: -buttonHeight,
+            borderTopRightRadius: 0,
           },
         })}
         aria-hidden
@@ -35,15 +47,23 @@ export const AutocompleteDropdown = ({
           boxSizing: "border-box",
           borderColor: theme.palette.gray[30],
           boxShadow: "none",
-          [`[data-popper-placement*="top"] &`]: {
+          [`[data-popper-placement="top"] &`]: {
             borderBottom: 0,
             borderBottomLeftRadius: 0,
             borderBottomRightRadius: 0,
           },
-          [`[data-popper-placement*="bottom"] &`]: {
+          [`[data-popper-placement="top-start"] &`]: {
+            borderBottom: 0,
+            borderBottomLeftRadius: 0,
+          },
+          [`[data-popper-placement="bottom"] &`]: {
             borderTop: 0,
             borderTopLeftRadius: 0,
             borderTopRightRadius: 0,
+          },
+          [`[data-popper-placement="bottom-start"] &`]: {
+            borderTop: 0,
+            borderTopLeftRadius: 0,
           },
 
           [`.${autocompleteClasses.listbox}`]: { p: 0 },

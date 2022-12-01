@@ -220,7 +220,6 @@ export const ArrayPropertyTypeMenu: FunctionComponent<
               </Box>
             );
           }}
-          disablePortal
         />
       </Box>
     </Stack>
