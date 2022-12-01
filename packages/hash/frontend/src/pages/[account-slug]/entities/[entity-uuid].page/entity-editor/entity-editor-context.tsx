@@ -22,6 +22,7 @@ export const EntityEditorContextProvider = ({
   setEntity,
   children,
   entityTypeSubgraph,
+  refetch,
 }: PropsWithChildren<EntityEditorProps>) => {
   const [propertyExpandStatus, setPropertyExpandStatus] =
     useState<TableExpandStatus>({});
@@ -39,6 +40,7 @@ export const EntityEditorContextProvider = ({
       propertyExpandStatus,
       togglePropertyExpand,
       entityTypeSubgraph,
+      refetch,
     }),
     [
       entitySubgraph,
@@ -46,6 +48,7 @@ export const EntityEditorContextProvider = ({
       propertyExpandStatus,
       togglePropertyExpand,
       entityTypeSubgraph,
+      refetch,
     ],
   );
 

@@ -9,18 +9,21 @@ export interface EntityEditorProps {
   entitySubgraph: Subgraph<SubgraphRootTypes["entity"]>;
   setEntity: (entity: Entity | undefined) => void;
   entityTypeSubgraph: Subgraph<SubgraphRootTypes["entityType"]>;
+  refetch: () => Promise<void>;
 }
 
 export const EntityEditor = ({
   entitySubgraph,
   setEntity,
   entityTypeSubgraph,
+  refetch,
 }: EntityEditorProps) => {
   return (
     <EntityEditorContextProvider
       entitySubgraph={entitySubgraph}
       setEntity={setEntity}
       entityTypeSubgraph={entityTypeSubgraph}
+      refetch={refetch}
     >
       <TypesSection />
 

@@ -24,6 +24,8 @@ import { useBlockProtocolGetEntityType } from "../../../components/hooks/blockPr
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
+  const entityUuid = router.query["entity-uuid"] as string;
+
   const { namespace } = useRouteNamespace();
   const { authenticatedUser } = useLoggedInUser();
   const { getEntity } = useBlockProtocolGetEntity();
@@ -40,8 +42,6 @@ const Page: NextPageWithLayout = () => {
     if (namespace) {
       const init = async () => {
         try {
-          const entityUuid = router.query["entity-uuid"] as string;
-
           const { data: subgraph } = await getEntity({
             data: {
               entityId: entityIdFromOwnedByIdAndEntityUuid(
@@ -75,7 +75,20 @@ const Page: NextPageWithLayout = () => {
 
       void init();
     }
-  }, [namespace, router.query, getEntity, getEntityType]);
+  }, [namespace, entityUuid, getEntity, getEntityType]);
+
+  const refetch = async () => {
+    const { data: subgraph } = await getEntity({
+      data: {
+        entityId: entityIdFromOwnedByIdAndEntityUuid(
+          namespace?.accountId!,
+          entityUuid,
+        ),
+      },
+    });
+
+    setEntitySubgraph(subgraph);
+  };
 
   if (!authenticatedUser) {
     return null;
@@ -132,6 +145,7 @@ const Page: NextPageWithLayout = () => {
             }
           })
         }
+        refetch={refetch}
       />
     </EntityPageWrapper>
   );

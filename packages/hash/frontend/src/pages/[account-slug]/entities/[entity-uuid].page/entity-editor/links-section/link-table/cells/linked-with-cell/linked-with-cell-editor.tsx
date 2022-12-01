@@ -1,14 +1,12 @@
 import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
-import {
-  Entity,
-  extractEntityUuidFromEntityId,
-} from "@hashintel/hash-subgraph";
+import { Entity } from "@hashintel/hash-subgraph";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 import { useBlockProtocolAggregateEntities } from "../../../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolAggregateEntities";
 import { useBlockProtocolArchiveEntity } from "../../../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolArchiveEntity";
 import { useBlockProtocolCreateEntity } from "../../../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolCreateEntity";
+import { generateEntityLabel } from "../../../../../../../../../lib/entities";
 import { HashSelectorAutocomplete } from "../../../../../../../types/entity-type/hash-selector-autocomplete";
 import { useEntityEditor } from "../../../../entity-editor-context";
 import { LinkedWithCell } from "../linked-with-cell";
@@ -16,7 +14,7 @@ import { LinkedWithCell } from "../linked-with-cell";
 export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
   props,
 ) => {
-  const { entitySubgraph } = useEntityEditor();
+  const { entitySubgraph, refetch } = useEntityEditor();
   const { createEntity } = useBlockProtocolCreateEntity();
   const { archiveEntity } = useBlockProtocolArchiveEntity();
   const { aggregateEntities } = useBlockProtocolAggregateEntities();
@@ -103,6 +101,7 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
       },
     });
 
+    await refetch();
     onFinishedEditing(undefined);
   };
 
@@ -123,18 +122,18 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
             onCreateNew();
           },
         },
-        variant: "entityType",
+        variant: "entity",
       }}
       loading={loading}
-      options={entities}
-      optionToRenderData={({ metadata }) => ({
+      options={entities.sort((a, b) =>
+        a.metadata.editionId.baseId.localeCompare(b.metadata.editionId.baseId),
+      )}
+      optionToRenderData={(entity) => ({
         /** @todo $id is wrong */
-        $id: metadata.entityTypeId,
-        title: `Entity-${extractEntityUuidFromEntityId(
-          metadata.editionId.baseId,
-        ).slice(0, 5)}`,
+        $id: entity.metadata.entityTypeId,
+        title: generateEntityLabel(entitySubgraph, entity),
       })}
-      inputPlaceholder="Search for an entity type"
+      inputPlaceholder="Search for an entity"
       open={open}
       onOpen={() => setOpen(true)}
       onClose={(_, reason) => {

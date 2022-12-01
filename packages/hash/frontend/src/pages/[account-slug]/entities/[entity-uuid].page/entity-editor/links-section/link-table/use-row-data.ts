@@ -62,6 +62,7 @@ export const useRowData = () => {
         maxItems: linkSchema.maxItems ?? 1,
         expectedEntityTypes,
         expectedEntityTypeTitles,
+        entitySubgraph,
       } as LinkRow;
     });
   }, [entitySubgraph, entityTypeSubgraph]);
