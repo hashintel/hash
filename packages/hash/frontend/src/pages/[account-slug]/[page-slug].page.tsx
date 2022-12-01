@@ -173,11 +173,11 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
    * @todo: this will need to be reworked once pages can't rely on the `accountId` being
    * in the URL.
    */
-  const { routeAccountSlug } = useRouteAccountInfo();
+  const { routeAccountSlug: routeAccountId } = useRouteAccountInfo();
   // pageEntityId is the consistent identifier for pages (across all versions)
   const { pageEntityId } = useRoutePageInfo();
 
-  const { data: accountPages } = useAccountPages(routeAccountSlug);
+  const { data: accountPages } = useAccountPages(routeAccountId);
 
   const blocksMap = useMemo(() => {
     return keyBy(blocks, (block) => block.meta.componentId);
@@ -362,7 +362,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
 
         <CollabPositionProvider value={[]}>
           <PageBlock
-            accountId={routeAccountSlug}
+            accountId={routeAccountId}
             contents={contents}
             blocks={blocksMap}
             pageComments={pageComments}
