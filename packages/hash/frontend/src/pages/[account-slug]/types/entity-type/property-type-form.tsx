@@ -163,7 +163,7 @@ const PropertyTypeFormInner = ({
   );
   useTriggerValidation(defaultValues, disabledFields, trigger);
 
-  const { namespace: routeNamespace } = useRouteNamespace();
+  const { routeNamespace } = useRouteNamespace();
 
   const { getPropertyType } = useBlockProtocolGetPropertyType();
 

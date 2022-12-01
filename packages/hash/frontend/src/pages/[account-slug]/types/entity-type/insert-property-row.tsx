@@ -44,7 +44,7 @@ export const InsertPropertyRow = ({
   const { control } = useFormContext<EntityTypeEditorForm>();
   const properties = useWatch({ control, name: "properties" });
 
-  const { namespace: routeNamespace } = useRouteNamespace();
+  const { routeNamespace } = useRouteNamespace();
 
   const refetchPropertyTypes = useRefetchPropertyTypes();
 

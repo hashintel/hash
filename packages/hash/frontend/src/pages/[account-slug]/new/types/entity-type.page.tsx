@@ -14,11 +14,10 @@ import {
 } from "@mui/material";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
-import { ReactNode } from "react";
+import { ReactNode, useContext } from "react";
 import { useForm } from "react-hook-form";
 import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
 import { useBlockProtocolGetEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
-import { PageErrorState } from "../../../../components/page-error-state";
 import { useInitTypeSystem } from "../../../../lib/use-init-type-system";
 import {
   getLayoutWithSidebar,
@@ -26,9 +25,9 @@ import {
 } from "../../../../shared/layout";
 import { Link } from "../../../../shared/ui/link";
 import { TopContextBar } from "../../../shared/top-context-bar";
+import { WorkspaceContext } from "../../../shared/workspace-context";
 import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
 import { OntologyChip } from "../../shared/ontology-chip";
-import { useRouteNamespace } from "../../types/entity-type/use-route-namespace";
 
 const FormHelperLabel = ({
   children,
@@ -82,30 +81,23 @@ const Page: NextPageWithLayout = () => {
   });
 
   const { getEntityType } = useBlockProtocolGetEntityType();
-  const { namespace, loading: loadingNamespace } = useRouteNamespace();
+  const { activeWorkspace, activeWorkspaceAccountId } =
+    useContext(WorkspaceContext);
 
   const typeSystemLoading = useInitTypeSystem();
 
-  if (typeSystemLoading) {
+  if (typeSystemLoading || !activeWorkspace) {
     return null;
   }
 
-  if (!namespace) {
-    if (loadingNamespace) {
-      return null;
-    } else {
-      return <PageErrorState />;
-    }
-  }
-
   const generateEntityTypeBaseUriForUser = (value: string) => {
-    if (!namespace?.shortname) {
+    if (!activeWorkspace.shortname) {
       throw new Error("User or Org shortname must exist");
     }
 
     return generateBaseTypeId({
       domain: frontendUrl,
-      namespace: namespace.shortname,
+      namespace: activeWorkspace.shortname,
       kind: "entity-type",
       title: value,
     });
@@ -160,7 +152,7 @@ const Page: NextPageWithLayout = () => {
                     fontWeight="bold"
                     color="inherit"
                   >
-                    {`@${namespace.shortname}`}
+                    {`@${activeWorkspace.shortname}`}
                   </Typography>
                   /new/types/entity-type
                 </Typography>
@@ -298,7 +290,7 @@ const Page: NextPageWithLayout = () => {
                   Create new entity type
                 </Button>
                 <Button
-                  href={`/${namespace.accountId}`}
+                  href={`/${activeWorkspaceAccountId}`}
                   variant="tertiary"
                   size="small"
                   disabled={isSubmitting}

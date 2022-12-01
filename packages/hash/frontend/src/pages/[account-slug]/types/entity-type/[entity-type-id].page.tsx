@@ -88,7 +88,7 @@ const Page: NextPageWithLayout = () => {
 
   // @todo how to handle remote types
   const isDraft = !!router.query.draft;
-  const { loading: loadingNamespace, namespace } = useRouteNamespace();
+  const { loading: loadingNamespace, routeNamespace } = useRouteNamespace();
 
   const entityTypeId = router.query["entity-type-id"] as string;
   const baseEntityTypeUri = !isDraft
@@ -126,7 +126,7 @@ const Page: NextPageWithLayout = () => {
     { loading: loadingRemoteEntityType },
   ] = useEntityTypeValue(
     baseEntityTypeUri,
-    namespace?.accountId ?? null,
+    routeNamespace?.accountId ?? null,
     (fetchedEntityType) => {
       reset({
         properties: Object.entries(fetchedEntityType.properties).map(
@@ -185,7 +185,7 @@ const Page: NextPageWithLayout = () => {
     }
   }
 
-  if (!namespace) {
+  if (!routeNamespace) {
     if (loadingNamespace) {
       return null;
     } else {

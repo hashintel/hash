@@ -9,7 +9,10 @@ import { bindMenu, PopupState } from "material-ui-popup-state/hooks";
 import { faArchive, faLink } from "@fortawesome/free-solid-svg-icons";
 import { faFileAlt } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { EntityId } from "@hashintel/hash-subgraph";
+import {
+  EntityId,
+  extractEntityUuidFromEntityId,
+} from "@hashintel/hash-subgraph";
 import { useRouteAccountInfo } from "../../../routing";
 import { MenuItem } from "../../../ui";
 
@@ -31,7 +34,7 @@ export const PageMenu: FunctionComponent<PageMenuProps> = ({
   onClose,
 }) => {
   const [copied, setCopied] = useState(false);
-  const { accountId } = useRouteAccountInfo();
+  const { routeAccountSlug } = useRouteAccountInfo();
 
   // Commented out menu items whose functionality have not been
   // implemented yet
@@ -62,7 +65,9 @@ export const PageMenu: FunctionComponent<PageMenuProps> = ({
         icon: faLink,
         onClick: () => {
           void navigator.clipboard.writeText(
-            `${window.location.origin}/${accountId}/${entityId}`,
+            `${
+              window.location.origin
+            }/${routeAccountSlug}/${extractEntityUuidFromEntityId(entityId)}`,
           );
           setCopied(true);
           setTimeout(() => {
@@ -111,7 +116,14 @@ export const PageMenu: FunctionComponent<PageMenuProps> = ({
       //   faded: true
       // },
     ],
-    [copied, popupState, createSubPage, accountId, entityId, archivePage],
+    [
+      copied,
+      popupState,
+      createSubPage,
+      routeAccountSlug,
+      entityId,
+      archivePage,
+    ],
   );
 
   const bindMenuProps = bindMenu(popupState);
