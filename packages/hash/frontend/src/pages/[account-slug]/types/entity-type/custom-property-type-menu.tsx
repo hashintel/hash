@@ -5,6 +5,7 @@ import {
   ChipProps,
   FontAwesomeIcon,
 } from "@hashintel/hash-design-system";
+import { types } from "@hashintel/hash-shared/types";
 import {
   Box,
   buttonClasses,
@@ -19,7 +20,11 @@ import { faCube } from "../../../../shared/icons/pro/fa-cube";
 import { ArrayPropertyTypeMenu } from "./array-property-type-menu";
 import { PropertyTypeFormValues } from "./property-type-form";
 import { usePropertyTypeSelectorDropdownContext } from "./property-type-selector-dropdown";
-import { getDefaultData } from "./property-type-utils";
+import {
+  ArrayType,
+  dataTypeOptions,
+  getDefaultData,
+} from "./property-type-utils";
 
 const CustomChip: FunctionComponent<ChipProps & { borderColor?: string }> = ({
   borderColor,
@@ -202,14 +207,44 @@ export const PropertyTypeCustomMenu: FunctionComponent<
           <Button
             size="small"
             onClick={() => {
-              setValue(`expectedValues`, [
-                ...expectedValues,
-                {
-                  typeId: "array",
-                  id: creatingPropertyId,
-                  flattenedProperties,
-                },
-              ]);
+              const property = flattenedProperties[creatingPropertyId];
+              if (property?.data && "expectedValues" in property.data) {
+                const containsObject = property.data.expectedValues.some(
+                  (childId) =>
+                    flattenedProperties[childId]?.data?.typeId ===
+                    types.dataType.object.dataTypeId,
+                );
+
+                const containsDataType = property.data.expectedValues.some(
+                  (childId) => {
+                    const typeId = flattenedProperties[childId]?.data?.typeId!;
+                    return (
+                      typeId !== "array" && dataTypeOptions.includes(typeId)
+                    );
+                  },
+                );
+
+                let arrayType: ArrayType;
+                if (containsObject && containsDataType) {
+                  arrayType = ArrayType.MIXED_ARRAY;
+                } else if (containsObject) {
+                  arrayType = ArrayType.PROPERTY_OBJECT_ARRAY;
+                } else if (containsDataType) {
+                  arrayType = ArrayType.DATA_TYPE_ARRAY;
+                } else {
+                  return;
+                }
+
+                setValue(`expectedValues`, [
+                  ...expectedValues,
+                  {
+                    typeId: "array",
+                    arrayType,
+                    id: creatingPropertyId,
+                    flattenedProperties,
+                  },
+                ]);
+              }
 
               closeCustomPropertyMenu();
             }}

@@ -1,18 +1,29 @@
 import { PropertyValues, VersionedUri } from "@blockprotocol/type-system-web";
-import { faList } from "@fortawesome/free-solid-svg-icons";
+import { faList, faListCheck } from "@fortawesome/free-solid-svg-icons";
+import { theme } from "@hashintel/hash-design-system";
 import { types } from "@hashintel/hash-shared/types";
 import { fa100 } from "../../../../shared/icons/pro/fa-100";
 import { faCube } from "../../../../shared/icons/pro/fa-cube";
+import { faCubes } from "../../../../shared/icons/pro/fa-cubes";
 import { faSquareCheck } from "../../../../shared/icons/pro/fa-square-check";
 import { faText } from "../../../../shared/icons/pro/fa-text";
 
-export type ExpectedValue =
-  | VersionedUri
-  | {
-      typeId: "array";
-      id: string;
-      flattenedProperties: Record<string, DataType>;
-    };
+export enum ArrayType {
+  DATA_TYPE_ARRAY = "dataTypeArray",
+  PROPERTY_OBJECT_ARRAY = "propertyObjectArray",
+  MIXED_ARRAY = "mixedArray",
+}
+
+export type PrimitiveExpectedValue = VersionedUri;
+
+export type ArrayExpectedValue = {
+  typeId: "array";
+  arrayType: ArrayType;
+  id: string;
+  flattenedProperties: Record<string, DataType>;
+};
+
+export type ExpectedValue = PrimitiveExpectedValue | ArrayExpectedValue;
 export interface PrimitiveTypeData {
   typeId: VersionedUri;
 }
@@ -41,26 +52,61 @@ export const customDataTypeOptions = [
   types.dataType.object.dataTypeId,
 ];
 
+const chipColors = {
+  blue: {
+    textColor: theme.palette.blue[80],
+    backgroundColor: theme.palette.blue[20],
+  },
+  purple: {
+    textColor: theme.palette.purple[70],
+    backgroundColor: theme.palette.purple[20],
+  },
+  turquoise: {
+    textColor: theme.palette.turquoise[70],
+    backgroundColor: theme.palette.turquoise[20],
+  },
+};
+
 export const dataTypeData = {
   [types.dataType.text.dataTypeId]: {
     title: types.dataType.text.title,
     icon: faText,
+    colors: chipColors.blue,
   },
   [types.dataType.number.dataTypeId]: {
     title: types.dataType.number.title,
     icon: fa100,
+    colors: chipColors.blue,
   },
   [types.dataType.boolean.dataTypeId]: {
     title: types.dataType.boolean.title,
     icon: faSquareCheck,
-  },
-  array: {
-    title: "Array",
-    icon: faList.icon,
+    colors: chipColors.blue,
   },
   [types.dataType.object.dataTypeId]: {
     title: "Property Object",
     icon: faCube,
+    colors: chipColors.purple,
+  },
+  array: {
+    title: "Array",
+    icon: faList.icon,
+    colors: chipColors.blue,
+  },
+  dataTypeArray: {
+    title: "Data Type Array",
+    icon: faListCheck.icon,
+    colors: chipColors.blue,
+  },
+  propertyObjectArray: {
+    title: "Property Object Array",
+    icon: faCubes,
+    colors: chipColors.purple,
+  },
+  mixedArray: {
+    title: "Mixed Array",
+    icon: faList.icon,
+    colors: chipColors.turquoise,
   },
 };
 

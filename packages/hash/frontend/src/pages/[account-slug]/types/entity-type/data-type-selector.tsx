@@ -3,7 +3,7 @@ import {
   FontAwesomeIcon,
   TextField,
 } from "@hashintel/hash-design-system";
-import { Autocomplete, Box, Typography } from "@mui/material";
+import { Autocomplete, Box, chipClasses, Typography } from "@mui/material";
 import { forwardRef, ForwardRefRenderFunction, useState } from "react";
 import { useController, useWatch, useFormContext } from "react-hook-form";
 import { PropertyTypeFormValues } from "./property-type-form";
@@ -57,7 +57,8 @@ const DataTypeSelector: ForwardRefRenderFunction<HTMLInputElement, {}> = () => {
       {...props}
       renderTags={(value, getTagProps) =>
         value.map((opt, index) => {
-          const typeId = typeof opt === "object" ? opt.typeId : opt;
+          const typeId = typeof opt === "object" ? opt.arrayType : opt;
+          const { icon, title, colors } = dataTypeData[typeId]!;
 
           return (
             <Chip
@@ -66,18 +67,27 @@ const DataTypeSelector: ForwardRefRenderFunction<HTMLInputElement, {}> = () => {
               label={
                 <Typography
                   variant="smallTextLabels"
-                  sx={{ display: "flex", alignItems: "center" }}
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    color: colors.textColor,
+                  }}
                 >
                   <FontAwesomeIcon
                     icon={{
-                      icon: dataTypeData[typeId]!.icon,
+                      icon,
                     }}
                     sx={{ fontSize: "1em", mr: "1ch" }}
                   />
-                  {dataTypeData[typeId]!.title}
+                  {title}
                 </Typography>
               }
-              color="blue"
+              sx={{
+                backgroundColor: colors.backgroundColor,
+                [`.${chipClasses.deleteIcon}`]: {
+                  color: colors.textColor,
+                },
+              }}
             />
           );
         })
