@@ -3,7 +3,6 @@ import {
   CustomRenderer,
   GridCellKind,
 } from "@glideapps/glide-data-grid";
-import { extractEntityUuidFromEntityId } from "@hashintel/hash-subgraph";
 import {
   getCellHorizontalPadding,
   getYCenter,
@@ -12,6 +11,7 @@ import { drawTextWithIcon } from "../../../../../../../../components/grid/utils/
 import { drawCellFadeOutGradient } from "../../../../../../../../components/grid/utils/draw-cell-fade-out-gradient";
 import { LinkRow } from "../types";
 import { LinkedWithCellEditor } from "./linked-with-cell/linked-with-cell-editor";
+import { generateEntityLabel } from "../../../../../../../../lib/entities";
 
 export interface LinkedWithCellProps {
   readonly kind: "linked-with-cell";
@@ -45,10 +45,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
       drawTextWithIcon({
         args,
         icon: "bpAsterisk",
-        /** @todo how to use generateEntityLabel here? We don't have entity subgraph for linked entities */
-        text: `Entity-${extractEntityUuidFromEntityId(
-          linkedEntity.metadata.editionId.baseId,
-        ).slice(0, 5)}`,
+        text: generateEntityLabel(linkRow.entitySubgraph, linkedEntity),
         left,
         iconSize: 12,
         gap: 5,
