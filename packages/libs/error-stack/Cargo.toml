@@ -22,14 +22,15 @@ anyhow = { version = "1.0.65", default-features = false, optional = true }
 eyre = { version = "0.6", default-features = false, optional = true }
 owo-colors = { version = "3", default-features = false, optional = true, features = ['supports-colors'] }
 serde = { version = "1", default-features = false, optional = true }
+spin = { version = "0.9", default-features = false, optional = true, features = ['rwlock', 'once'] }
 
 [dev-dependencies]
 serde = { version = "1.0.148", features = ["derive"] }
 serde_json = "1.0.89"
 futures = { version = "0.3.21", default-features = false, features = ["executor"] }
 trybuild = "1.0.72"
-tracing = "0.1.35"
-tracing-subscriber = "0.3.14"
+tracing = "0.1.37"
+tracing-subscriber = "0.3.16"
 insta = { version = "1.18.0", features = ['filters', 'ron'] }
 regex = "1.6.0"
 expect-test = "1.4.0"
@@ -47,6 +48,7 @@ spantrace = ["dep:tracing-error", "std"]
 std = ["anyhow?/std"]
 eyre = ["dep:eyre", "std"]
 serde = ["dep:serde"]
+hooks = ['dep:spin']
 
 [package.metadata.docs.rs]
 all-features = true

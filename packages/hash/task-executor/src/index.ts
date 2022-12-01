@@ -11,31 +11,34 @@ const port = 5010;
 const app = express();
 app.use(json());
 
+// eslint-disable-next-line @typescript-eslint/restrict-template-expressions -- @todo potentially improve logic and move the function to a shared package
+const stringifyError = (error: unknown) => `${error}`;
+
 app.post("/python", (_, res) => {
   executeTask("python", ["-m", "src.tasks.demo"])
     .then((result) => res.status(200).json(result))
-    .catch((err) => res.status(500).json(err));
+    .catch((error) => res.status(500).json(error));
 });
 
 app.post("/github/spec", (_, res) => {
   new GithubIngestor()
     .runSpec()
     .then((result) => res.status(200).json(result))
-    .catch((err) => res.status(500).json({ error: err.toString() }));
+    .catch((error) => res.status(500).json({ error: stringifyError(error) }));
 });
 
 app.post("/github/check", (req, res) => {
-  const config = req.body;
+  const config = req.body as unknown;
   new GithubIngestor()
     .runCheck(config)
     .then((result) => res.status(200).json(result))
-    .catch((err) => {
-      res.status(500).json({ error: err.toString() });
+    .catch((error) => {
+      res.status(500).json({ error: stringifyError(error) });
     });
 });
 
 app.post("/github/discover", (req, res) => {
-  const config = req.body;
+  const config = req.body as unknown;
   new GithubIngestor()
     .runDiscover(config)
     .then((result) => {
@@ -58,20 +61,22 @@ app.post("/github/discover", (req, res) => {
       );
       res.status(200).json(result);
     })
-    .catch((err) => res.status(500).json({ error: err.toString() }));
+    .catch((error) => res.status(500).json({ error: stringifyError(error) }));
 });
 
 app.post("/github/read", (req, res) => {
-  const config = req.body;
+  const config = req.body as unknown;
+  // Can be replaced with readJsonSync from fs-extra
   const configuredCatalog = JSON.parse(
     readFileSync(
       `${process.cwd()}/src/tasks/source-github/secrets/catalog.json`,
-    ).toString(),
-  );
+      "utf8",
+    ),
+  ) as ConfiguredAirbyteCatalog;
   new GithubIngestor()
     .runRead(config, configuredCatalog)
     .then((result) => res.status(200).json(result))
-    .catch((err) => res.status(500).json({ error: err.toString() }));
+    .catch((error) => res.status(500).json({ error: stringifyError(error) }));
 });
 
 app.listen(port, () => console.log(`Listening on port ${port}...`));

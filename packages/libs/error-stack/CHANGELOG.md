@@ -15,6 +15,7 @@ All notable changes to `error-stack` will be documented in this file.
 ### Features
 
 - Add serializing support using [`serde`](https://serde.rs) ([#1290](https://github.com/hashintel/hash/pull/1290))
+- Support `Debug` hooks on `no-std` platforms via the `hooks` feature ([#1556](https://github.com/hashintel/hash/pull/1556))
 
 ## [0.2.4](https://github.com/hashintel/hash/tree/error-stack%400.2.4/packages/libs/error-stack) - 2022-11-04
 

@@ -245,7 +245,7 @@ describe("Entity type CRU", () => {
     );
   });
 
-  it("can check whether an outgoing link is ordered", async () => {
+  it("can check whether an outgoing link is ordered", () => {
     expect(
       createdEntityType.isOutgoingLinkOrdered({
         outgoingLinkEntityType: knowsLinkEntityTypeModel,

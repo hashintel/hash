@@ -1,3 +1,5 @@
+import { CSSProperties } from "react";
+
 declare module "@mui/material/styles" {
   interface Palette {
     white: string;
