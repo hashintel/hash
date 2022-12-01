@@ -15,11 +15,11 @@ import { useRouter } from "next/router";
 import { useCallback } from "react";
 import { useBlockProtocolCreateEntity } from "../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolCreateEntity";
 import { useBlockProtocolGetEntityType } from "../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
-import { useAuthenticatedUser } from "../../../../../components/hooks/useAuthenticatedUser";
 import {
   isPropertyValueArray,
   isPropertyValueNested,
 } from "../../../../../lib/typeguards";
+import { AuthenticatedUser } from "../../../../../lib/user";
 
 /**
  * @todo this will be deleted when https://app.asana.com/0/1203312852763953/1203433085114587/f (internal) is implemented
@@ -88,10 +88,14 @@ export const useCreateNewEntityAndRedirect = () => {
   const router = useRouter();
   const { createEntity } = useBlockProtocolCreateEntity();
   const { getEntityType } = useBlockProtocolGetEntityType();
-  const { authenticatedUser } = useAuthenticatedUser();
 
   const createNewEntityAndRedirect = useCallback(
-    async (entityTypeId: VersionedUri) => {
+    async (
+      authenticatedUser: AuthenticatedUser,
+      entityTypeId: VersionedUri,
+      replace = false,
+      abortSignal?: AbortSignal,
+    ) => {
       const { data: subgraph } = await getEntityType({
         data: {
           entityTypeId,
@@ -104,6 +108,10 @@ export const useCreateNewEntityAndRedirect = () => {
         },
       });
 
+      if (abortSignal?.aborted) {
+        return;
+      }
+
       const accountSlug = router.query["account-slug"];
 
       if (typeof accountSlug !== "string") {
@@ -112,10 +120,6 @@ export const useCreateNewEntityAndRedirect = () => {
 
       if (!subgraph) {
         throw new Error("subgraph not found");
-      }
-
-      if (!authenticatedUser) {
-        throw new Error("user not found");
       }
 
       const { schema: entityType } =
@@ -174,9 +178,16 @@ export const useCreateNewEntityAndRedirect = () => {
         entity.metadata.editionId.baseId,
       );
 
-      await router.push(`/${accountSlug}/entities/${entityId}`);
+      if (!abortSignal?.aborted) {
+        const url = `/${accountSlug}/entities/${entityId}`;
+        if (replace) {
+          await router.replace(url);
+        } else {
+          await router.push(url);
+        }
+      }
     },
-    [router, createEntity, getEntityType, authenticatedUser],
+    [router, createEntity, getEntityType],
   );
 
   return createNewEntityAndRedirect;

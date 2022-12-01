@@ -85,7 +85,7 @@ export const EntityTypeTabs = () => {
           value="create"
           href={`/@${
             activeWorkspace?.shortname
-          }/entities/new?entity-type-id=${encodeURIComponent(entityType.$id)}`}
+          }/new/entity?entity-type-id=${encodeURIComponent(entityType.$id)}`}
           label="Create new entity"
           sx={(theme) => ({
             ml: "auto",
