@@ -9,9 +9,9 @@ import { faSquareCheck } from "../../../../shared/icons/pro/fa-square-check";
 import { faText } from "../../../../shared/icons/pro/fa-text";
 
 export enum ArrayType {
-  DATA_TYPE_ARRAY = "dataTypeArray",
-  PROPERTY_OBJECT_ARRAY = "propertyObjectArray",
-  MIXED_ARRAY = "mixedArray",
+  dataTypeArray = "dataTypeArray",
+  propertyObjectArray = "propertyObjectArray",
+  mixedArray = "mixedArray",
 }
 
 export type PrimitiveExpectedValue = VersionedUri;
@@ -56,14 +56,17 @@ const chipColors = {
   blue: {
     textColor: theme.palette.blue[80],
     backgroundColor: theme.palette.blue[20],
+    hoveredButtonColor: theme.palette.blue[60],
   },
   purple: {
     textColor: theme.palette.purple[70],
     backgroundColor: theme.palette.purple[20],
+    hoveredButtonColor: theme.palette.purple[50],
   },
   turquoise: {
     textColor: theme.palette.turquoise[70],
     backgroundColor: theme.palette.turquoise[20],
+    hoveredButtonColor: theme.palette.turquoise[50],
   },
 };
 

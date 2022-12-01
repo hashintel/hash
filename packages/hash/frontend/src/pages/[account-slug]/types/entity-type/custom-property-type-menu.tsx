@@ -226,11 +226,11 @@ export const PropertyTypeCustomMenu: FunctionComponent<
 
                 let arrayType: ArrayType;
                 if (containsObject && containsDataType) {
-                  arrayType = ArrayType.MIXED_ARRAY;
+                  arrayType = ArrayType.mixedArray;
                 } else if (containsObject) {
-                  arrayType = ArrayType.PROPERTY_OBJECT_ARRAY;
+                  arrayType = ArrayType.propertyObjectArray;
                 } else if (containsDataType) {
-                  arrayType = ArrayType.DATA_TYPE_ARRAY;
+                  arrayType = ArrayType.dataTypeArray;
                 } else {
                   return;
                 }

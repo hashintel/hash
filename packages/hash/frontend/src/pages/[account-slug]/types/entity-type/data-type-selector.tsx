@@ -70,22 +70,12 @@ const DataTypeSelector: ForwardRefRenderFunction<HTMLInputElement, {}> = () => {
 
           const editable =
             typeId in ArrayType || typeId === types.dataType.object.dataTypeId;
-          // const editable =
-          //   typeof expectedValue === "object" &&
-          //   (expectedValue.typeId === "array" ||
-          //   expectedValue.typeId === types.dataType.object.dataTypeId);
-
-          // const type = typeId === "array" ? expectedValue.arrayType! : typeId;
-          const type =
-            expectedValue.typeId === "array"
-              ? expectedValue.arrayType!
-              : typeId;
 
           return (
             <ExpectedValueChip
               {...getTagProps({ index })}
               key={typeId}
-              expectedValueType={type}
+              expectedValueType={typeId}
               editable={editable}
             />
           );

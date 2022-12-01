@@ -1,73 +1,128 @@
 import { VersionedUri } from "@blockprotocol/type-system-web";
+import { faEdit } from "@fortawesome/free-regular-svg-icons";
+import { faClose } from "@fortawesome/free-solid-svg-icons";
 import {
   Chip,
   ChipProps,
   FontAwesomeIcon,
+  IconButton,
 } from "@hashintel/hash-design-system";
-import { Box, chipClasses, Collapse, Typography } from "@mui/material";
+import { Box, chipClasses, Collapse, Stack, Typography } from "@mui/material";
 import { useState } from "react";
 import { ArrayType, dataTypeData } from "./property-type-utils";
 
 export interface ExpectedValueChipProps {
-  expectedValueTypeType: VersionedUri | ArrayType;
+  expectedValueType: VersionedUri | ArrayType;
   editable?: boolean;
 }
 
 export const ExpectedValueChip = ({
-  expectedValueTypeType,
+  expectedValueType,
   editable,
   ...props
 }: ChipProps & ExpectedValueChipProps) => {
   const [hovered, setHovered] = useState(false);
 
-  const { icon, title, colors } = dataTypeData[expectedValueTypeType]!;
+  const { icon, title, colors } = dataTypeData[expectedValueType]!;
 
   return (
-    <Box
+    <Stack
+      direction="row"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
       <Chip
         {...props}
         label={
-          <Typography
-            variant="smallTextLabels"
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              color: colors.textColor,
-            }}
-          >
-            <FontAwesomeIcon
-              icon={{
-                icon,
+          <Stack direction="row">
+            <Typography
+              variant="smallTextLabels"
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                color: colors.textColor,
+                py: 0.25,
+                pr: hovered ? 0.75 : 1.5,
+                transition: ({ transitions }) =>
+                  transitions.create("padding-right"),
               }}
-              sx={{ fontSize: "1em", mr: "1ch" }}
-            />
-            {title}
+            >
+              <FontAwesomeIcon
+                icon={{
+                  icon,
+                }}
+                sx={{ fontSize: "1em", mr: "1ch" }}
+              />
+              {title}
+            </Typography>
 
-            {editable ? (
-              <Collapse orientation="horizontal" in={hovered}>
-                hey
-              </Collapse>
-            ) : null}
-          </Typography>
+            <Collapse orientation="horizontal" in={hovered}>
+              <Stack direction="row" height={1}>
+                {editable ? (
+                  <IconButton
+                    sx={{
+                      p: 0,
+                      mr: 1,
+                      color: colors.textColor,
+                      ":hover": {
+                        backgroundColor: "transparent",
+                        color: colors.hoveredButtonColor,
+                      },
+                    }}
+                  >
+                    <FontAwesomeIcon
+                      icon={faEdit}
+                      sx={{
+                        fontSize: "13px !important",
+                      }}
+                    />
+                  </IconButton>
+                ) : null}
+
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    height: "100%",
+                    pl: 0.75,
+                    pr: 1,
+                    backgroundColor: ({ palette }) => palette.gray[10],
+                  }}
+                >
+                  <IconButton
+                    sx={{
+                      p: 0,
+                      ":hover": {
+                        backgroundColor: "transparent",
+                      },
+                    }}
+                  >
+                    <FontAwesomeIcon
+                      icon={faClose}
+                      sx={{
+                        fontSize: "13px !important",
+                      }}
+                    />
+                  </IconButton>
+                </Box>
+              </Stack>
+            </Collapse>
+          </Stack>
         }
         onDelete={undefined}
-        sx={({ transitions }) => ({
+        sx={{
+          position: "relative",
           backgroundColor: colors.backgroundColor,
+          overflow: "hidden",
           [`.${chipClasses.deleteIcon}`]: {
             color: colors.textColor,
           },
-          ...(hovered
-            ? { borderTopRightRadius: 0, borderBottomRightRadius: 0 }
-            : {}),
-          transition: transitions.create([
-            "border-top-right-radius",
-            "border-bottom-right-radius",
-          ]),
-        })}
+          [`.${chipClasses.label}`]: {
+            p: 0,
+            pl: 1.5,
+          },
+        }}
       />
-    </Box>
+    </Stack>
   );
 };
