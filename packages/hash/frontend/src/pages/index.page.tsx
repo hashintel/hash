@@ -17,7 +17,7 @@ const Page: NextPageWithLayout = () => {
      * @see https://app.asana.com/0/1203179076056209/1203451531168818/f
      */
     if (authenticatedUser) {
-      void router.push(`/${authenticatedUser.userAccountId}`);
+      void router.replace(`/${authenticatedUser.userAccountId}`);
     }
   }, [router, authenticatedUser]);
 

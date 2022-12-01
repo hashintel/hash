@@ -10,7 +10,9 @@ import {
 } from "../../graphql/apiTypes.gen";
 import { getAllLatestEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 
-export const useUsers = (): {
+export const useUsers = (
+  cache = false,
+): {
   loading: boolean;
   users?: User[];
 } => {
@@ -29,7 +31,7 @@ export const useUsers = (): {
       hasRightEntity: { incoming: 1, outgoing: 1 },
     },
     /** @todo reconsider caching. This is done for testing/demo purposes. */
-    fetchPolicy: "no-cache",
+    fetchPolicy: cache ? "cache-first" : "no-cache",
   });
 
   const { getAllLatestEntities: subgraph } = data ?? {};
