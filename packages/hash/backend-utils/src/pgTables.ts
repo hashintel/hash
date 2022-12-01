@@ -22,6 +22,7 @@ export class Entity {
       entityId: row.entity_id as string,
       version: row.version as string,
       entityTypeVersionId: row.entity_type_version_id as string,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       properties:
         typeof row.properties === "string"
           ? JSON.parse(row.properties)

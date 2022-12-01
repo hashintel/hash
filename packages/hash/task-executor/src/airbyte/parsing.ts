@@ -10,5 +10,5 @@ export const parseMessageStream = (
   jsonLines: string,
 ): Array<AirbyteMessage> => {
   /** @todo: avoid splitting the whole thing in memory */
-  return jsonLines.split("\n").map((msg) => JSON.parse(msg));
+  return jsonLines.split("\n").map((msg) => JSON.parse(msg) as AirbyteMessage);
 };
