@@ -47,7 +47,8 @@ export type PropertyTypeFormValues = {
   name: string;
   description: string;
   expectedValues: ExpectedValue[];
-  creatingPropertyId?: string;
+  customPropertyId?: string;
+  editingPropertyIndex?: number;
   flattenedPropertyList: Record<string, DataType>;
 };
 
@@ -144,7 +145,8 @@ const PropertyTypeFormInner = ({
       customPropertyMenuOpen: creatingCustomPropertyType,
       openCustomPropertyMenu: () => setCreatingCustomPropertyType(true),
       closeCustomPropertyMenu: () => {
-        setValue("creatingPropertyId", undefined);
+        setValue("editingPropertyIndex", undefined);
+        setValue("customPropertyId", undefined);
         setValue("flattenedPropertyList", {});
         setCreatingCustomPropertyType(false);
       },

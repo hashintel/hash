@@ -14,11 +14,14 @@ import { ArrayType, dataTypeData } from "./property-type-utils";
 export interface ExpectedValueChipProps {
   expectedValueType: VersionedUri | ArrayType;
   editable?: boolean;
+  onEdit?: () => void;
 }
 
 export const ExpectedValueChip = ({
   expectedValueType,
   editable,
+  onEdit,
+  onDelete,
   ...props
 }: ChipProps & ExpectedValueChipProps) => {
   const [hovered, setHovered] = useState(false);
@@ -60,6 +63,7 @@ export const ExpectedValueChip = ({
               <Stack direction="row" height={1}>
                 {editable ? (
                   <IconButton
+                    onClick={onEdit}
                     sx={{
                       p: 0,
                       mr: 1,
@@ -90,6 +94,7 @@ export const ExpectedValueChip = ({
                   }}
                 >
                   <IconButton
+                    onClick={onDelete}
                     sx={{
                       p: 0,
                       ":hover": {

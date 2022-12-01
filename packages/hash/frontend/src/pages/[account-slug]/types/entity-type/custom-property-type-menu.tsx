@@ -23,6 +23,7 @@ import { usePropertyTypeSelectorDropdownContext } from "./property-type-selector
 import {
   ArrayType,
   dataTypeOptions,
+  ExpectedValue,
   getDefaultData,
 } from "./property-type-utils";
 
@@ -49,10 +50,14 @@ export const PropertyTypeCustomMenu: FunctionComponent<
   const { closeCustomPropertyMenu } = usePropertyTypeSelectorDropdownContext();
 
   const { setValue, control } = useFormContext<PropertyTypeFormValues>();
-  const creatingPropertyId = useWatch({ control, name: "creatingPropertyId" });
+  const customPropertyId = useWatch({ control, name: "customPropertyId" });
   const flattenedProperties = useWatch({
     control,
     name: "flattenedPropertyList",
+  });
+  const editingPropertyIndex = useWatch({
+    control,
+    name: "editingPropertyIndex",
   });
   const expectedValues = useWatch({ control, name: "expectedValues" });
 
@@ -113,7 +118,7 @@ export const PropertyTypeCustomMenu: FunctionComponent<
           paddingX: 1.5,
           background: palette.gray[20],
           border: `1px solid ${palette.gray[30]}`,
-          ...(!creatingPropertyId
+          ...(!customPropertyId
             ? {
                 borderBottomRightRadius: 4,
                 borderBottomLeftRadius: 4,
@@ -121,7 +126,7 @@ export const PropertyTypeCustomMenu: FunctionComponent<
             : { borderBottomWidth: 0 }),
         })}
       >
-        {!creatingPropertyId ? (
+        {!customPropertyId ? (
           <>
             <Stack direction="row" gap={1.75}>
               <Button
@@ -158,7 +163,7 @@ export const PropertyTypeCustomMenu: FunctionComponent<
                 onClick={() => {
                   const id = uniqueId();
 
-                  setValue("creatingPropertyId", id);
+                  setValue("customPropertyId", id);
                   setValue("flattenedPropertyList", {
                     [id]: {
                       id,
@@ -189,11 +194,11 @@ export const PropertyTypeCustomMenu: FunctionComponent<
             </Stack>
           </>
         ) : (
-          <ArrayPropertyTypeMenu id={creatingPropertyId} />
+          <ArrayPropertyTypeMenu id={customPropertyId} />
         )}
       </Stack>
 
-      {creatingPropertyId ? (
+      {customPropertyId ? (
         <Box
           sx={({ palette }) => ({
             background: palette.gray[10],
@@ -207,7 +212,7 @@ export const PropertyTypeCustomMenu: FunctionComponent<
           <Button
             size="small"
             onClick={() => {
-              const property = flattenedProperties[creatingPropertyId];
+              const property = flattenedProperties[customPropertyId];
               if (property?.data && "expectedValues" in property.data) {
                 const containsObject = property.data.expectedValues.some(
                   (childId) =>
@@ -235,15 +240,20 @@ export const PropertyTypeCustomMenu: FunctionComponent<
                   return;
                 }
 
-                setValue(`expectedValues`, [
-                  ...expectedValues,
-                  {
-                    typeId: "array",
-                    arrayType,
-                    id: creatingPropertyId,
-                    flattenedProperties,
-                  },
-                ]);
+                const expectedValue: ExpectedValue = {
+                  typeId: "array",
+                  arrayType,
+                  id: customPropertyId,
+                  flattenedProperties,
+                };
+
+                const newExpectedValues = [...expectedValues];
+                if (editingPropertyIndex !== undefined) {
+                  newExpectedValues[editingPropertyIndex] = expectedValue;
+                } else {
+                  newExpectedValues.push(expectedValue);
+                }
+                setValue(`expectedValues`, newExpectedValues);
               }
 
               closeCustomPropertyMenu();

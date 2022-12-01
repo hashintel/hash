@@ -22,7 +22,7 @@ import {
 export const PROPERTY_SELECTOR_HEIGHT = 57;
 
 const DataTypeSelector: ForwardRefRenderFunction<HTMLInputElement, {}> = () => {
-  const { control } = useFormContext<PropertyTypeFormValues>();
+  const { control, setValue } = useFormContext<PropertyTypeFormValues>();
 
   const {
     field: { onChange, onBlur, ...props },
@@ -32,9 +32,10 @@ const DataTypeSelector: ForwardRefRenderFunction<HTMLInputElement, {}> = () => {
     name: "expectedValues",
   });
 
-  const { customPropertyMenuOpen } = usePropertyTypeSelectorDropdownContext();
+  const { customPropertyMenuOpen, openCustomPropertyMenu } =
+    usePropertyTypeSelectorDropdownContext();
 
-  const creatingProperty = useWatch({ control, name: "creatingPropertyId" });
+  const creatingProperty = useWatch({ control, name: "customPropertyId" });
 
   const [autocompleteFocused, setAutocompleteFocused] = useState(false);
 
@@ -77,6 +78,17 @@ const DataTypeSelector: ForwardRefRenderFunction<HTMLInputElement, {}> = () => {
               key={typeId}
               expectedValueType={typeId}
               editable={editable}
+              onEdit={() => {
+                if (typeof expectedValue === "object") {
+                  setValue("editingPropertyIndex", index);
+                  setValue("customPropertyId", expectedValue.id);
+                  setValue(
+                    "flattenedPropertyList",
+                    expectedValue.flattenedProperties,
+                  );
+                  openCustomPropertyMenu();
+                }
+              }}
             />
           );
         })
