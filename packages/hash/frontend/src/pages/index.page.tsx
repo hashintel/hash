@@ -6,7 +6,7 @@ import { NextPageWithLayout } from "../shared/layout";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
-  const { authenticatedUser, loading, kratosSession } = useLoggedInUser();
+  const { authenticatedUser } = useLoggedInUser();
 
   useEffect(() => {
     /**
@@ -19,7 +19,7 @@ const Page: NextPageWithLayout = () => {
     if (authenticatedUser) {
       void router.push(`/${authenticatedUser.userAccountId}`);
     }
-  }, [router, authenticatedUser, kratosSession, loading]);
+  }, [router, authenticatedUser]);
 
   return null;
 };
