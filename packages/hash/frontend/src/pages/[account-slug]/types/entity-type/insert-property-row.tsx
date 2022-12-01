@@ -49,7 +49,7 @@ export const InsertPropertyRow = ({
   const refetchPropertyTypes = useRefetchPropertyTypes();
 
   const { createPropertyType } = useBlockProtocolCreatePropertyType(
-    routeNamespace?.shortname ?? "",
+    routeNamespace?.accountId ?? "",
   );
 
   const handleSubmit = async (data: PropertyTypeFormValues) => {
