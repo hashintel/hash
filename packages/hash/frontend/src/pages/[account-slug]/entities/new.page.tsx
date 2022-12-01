@@ -13,13 +13,13 @@ const Page: NextPageWithLayout = () => {
   const createNewEntityAndRedirect = useCreateNewEntityAndRedirect();
   const [loading, setLoading] = useState(true);
 
-  const entityTypeId = String(router.query["entity-type-id"]);
-  const idResult = validateVersionedUri(entityTypeId);
-
   const { authenticatedUser } = useAuthenticatedUser(
     undefined,
     true,
     async () => {
+      const entityTypeId = String(router.query["entity-type-id"]);
+      const idResult = validateVersionedUri(entityTypeId);
+
       if (idResult.type === "Ok") {
         try {
           await createNewEntityAndRedirect(idResult.inner);
@@ -49,7 +49,7 @@ const Page: NextPageWithLayout = () => {
     (val) => val.shortname === shortname,
   );
 
-  if ((!atOrgsNamespace && !atUsersNamespace) || idResult.type === "Err") {
+  if (!atOrgsNamespace && !atUsersNamespace) {
     return <PageErrorState />;
   }
 
