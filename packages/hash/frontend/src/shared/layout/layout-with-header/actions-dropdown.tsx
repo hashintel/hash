@@ -13,11 +13,16 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import { FunctionComponent, useCallback, useMemo, useState } from "react";
+import {
+  FunctionComponent,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+} from "react";
 import { useAccountPages } from "../../../components/hooks/useAccountPages";
-import { useAuthenticatedUser } from "../../../components/hooks/useAuthenticatedUser";
 import { useCreatePage } from "../../../components/hooks/useCreatePage";
-import { useRouteAccountInfo } from "../../routing";
+import { WorkspaceContext } from "../../../pages/shared/workspace-context";
 import { MenuItem } from "../../ui";
 import { HeaderIconButton } from "./shared/header-icon-button";
 
@@ -25,7 +30,7 @@ export const ActionsDropdownInner: FunctionComponent<{
   accountId: string;
 }> = ({ accountId }) => {
   const theme = useTheme();
-  const { authenticatedUser } = useAuthenticatedUser();
+  const { activeWorkspace } = useContext(WorkspaceContext);
   const [loading, setLoading] = useState(false);
   const { data } = useAccountPages(accountId);
   const [createUntitledPage] = useCreatePage(accountId);
@@ -116,9 +121,9 @@ export const ActionsDropdownInner: FunctionComponent<{
         {/* <MenuItem onClick={popupState.close}>
           <ListItemText primary="Create entity" />
         </MenuItem> */}
-        {authenticatedUser ? (
+        {activeWorkspace ? (
           <MenuItem
-            href={`/@${authenticatedUser.shortname}/types/new/entity-type`}
+            href={`/@${activeWorkspace.shortname}/types/new/entity-type`}
             onClick={popupState.close}
           >
             <ListItemText primary="Create Entity Type" />
@@ -130,12 +135,9 @@ export const ActionsDropdownInner: FunctionComponent<{
 };
 
 export const ActionsDropdown: FunctionComponent = () => {
-  const { accountId } = useRouteAccountInfo({ allowUndefined: true }) ?? {};
+  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
 
-  // Don’t render actions if account cannot be derived from URL
-  if (!accountId) {
-    return null;
-  }
-
-  return <ActionsDropdownInner accountId={accountId} />;
+  return activeWorkspaceAccountId ? (
+    <ActionsDropdownInner accountId={activeWorkspaceAccountId} />
+  ) : null;
 };
