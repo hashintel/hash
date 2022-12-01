@@ -1,6 +1,7 @@
 import { textFieldBorderRadius } from "@hashintel/hash-design-system";
 import { autocompleteClasses, Box, Paper, PaperProps } from "@mui/material";
-import { PROPERTY_SELECTOR_HEIGHT } from "./property-selector";
+
+export const PROPERTY_SELECTOR_HEIGHT = 57;
 
 export const AutocompleteDropdown = ({ children, ...props }: PaperProps) => {
   return (

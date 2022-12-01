@@ -13,8 +13,6 @@ import {
 } from "./property-type-selector-dropdown";
 import { dataTypeData, dataTypeOptions } from "./property-type-utils";
 
-export const PROPERTY_SELECTOR_HEIGHT = 57;
-
 const DataTypeSelector: ForwardRefRenderFunction<HTMLInputElement, {}> = () => {
   const { control } = useFormContext<PropertyTypeFormValues>();
 
