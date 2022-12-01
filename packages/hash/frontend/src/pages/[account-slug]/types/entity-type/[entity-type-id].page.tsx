@@ -11,7 +11,7 @@ import { Box, Container, Theme, Typography } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
-import { useEffect, useMemo } from "react";
+import { useContext, useEffect, useMemo } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
 import {
@@ -19,6 +19,7 @@ import {
   NextPageWithLayout,
 } from "../../../../shared/layout";
 import { TopContextBar } from "../../../shared/top-context-bar";
+import { WorkspaceContext } from "../../../shared/workspace-context";
 import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
 import { OntologyChip } from "../../shared/ontology-chip";
 import { EditBar } from "./edit-bar";
@@ -85,10 +86,11 @@ const getSchemaFromEditorForm = (
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
+  const { activeWorkspace } = useContext(WorkspaceContext);
 
   // @todo how to handle remote types
   const isDraft = !!router.query.draft;
-  const { loading: loadingNamespace, namespace } = useRouteNamespace();
+  const { loading: loadingNamespace, routeNamespace } = useRouteNamespace();
   const { authenticatedUser } = useAuthenticatedUser();
 
   const entityTypeId = router.query["entity-type-id"] as string;
@@ -127,7 +129,7 @@ const Page: NextPageWithLayout = () => {
     { loading: loadingRemoteEntityType },
   ] = useEntityTypeValue(
     baseEntityTypeUri,
-    namespace?.accountId,
+    routeNamespace?.accountId,
     (fetchedEntityType) => {
       reset({
         properties: Object.entries(fetchedEntityType.properties).map(
@@ -151,30 +153,33 @@ const Page: NextPageWithLayout = () => {
   const entityType = remoteEntityType ?? draftEntityType;
 
   useEffect(() => {
-    if (authenticatedUser && !loadingNamespace && !namespace) {
+    if (activeWorkspace && !loadingNamespace && !routeNamespace) {
       // eslint-disable-next-line no-console
       console.warn(
         `Error: Couldn't find namespace with shortname '${router.query["account-slug"]}'.`,
       );
       void router.replace(
-        `/@${authenticatedUser.shortname}/types/new/entity-type`,
+        `/@${activeWorkspace.shortname}/types/new/entity-type`,
       );
       return;
     }
 
-    if (!loadingRemoteEntityType && !entityType) {
+    if (activeWorkspace && !loadingRemoteEntityType && !entityType) {
       // eslint-disable-next-line no-console
       console.warn(
         `Error: Couldn't find entity type with id '${router.query["entity-type-id"]}'.`,
       );
-      void router.replace(`/@${namespace?.shortname}/types/new/entity-type`);
+      void router.replace(
+        `/@${activeWorkspace.shortname}/types/new/entity-type`,
+      );
     }
   }, [
+    activeWorkspace,
+    routeNamespace,
     loadingNamespace,
     router,
     loadingRemoteEntityType,
     authenticatedUser,
-    namespace,
     entityType,
   ]);
 
@@ -210,7 +215,7 @@ const Page: NextPageWithLayout = () => {
 
   const currentTab = useCurrentTab();
 
-  if (!entityType || !namespace) {
+  if (!entityType || !activeWorkspace || !routeNamespace) {
     return null;
   }
 

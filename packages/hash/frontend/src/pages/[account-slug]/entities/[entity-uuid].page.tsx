@@ -17,16 +17,14 @@ import { EntityEditor } from "./[entity-uuid].page/entity-editor";
 import { EntityPageLoadingState } from "./[entity-uuid].page/entity-page-loading-state";
 import { EntityPageWrapper } from "./[entity-uuid].page/entity-page-wrapper";
 import { PageErrorState } from "../../../components/page-error-state";
-/** @todo - This should be moved somewhere shared */
-import { useRouteNamespace } from "../types/entity-type/use-route-namespace";
 import { generateEntityLabel } from "../../../lib/entities";
+import { useRouteNamespace } from "../types/entity-type/use-route-namespace";
 import { useBlockProtocolGetEntityType } from "../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
   const entityUuid = router.query["entity-uuid"] as string;
-
-  const { namespace } = useRouteNamespace();
+  const { routeNamespace } = useRouteNamespace();
   const { authenticatedUser } = useLoggedInUser();
   const { getEntity } = useBlockProtocolGetEntity();
   const { getEntityType } = useBlockProtocolGetEntityType();
@@ -39,13 +37,13 @@ const Page: NextPageWithLayout = () => {
     useState<Subgraph<SubgraphRootTypes["entityType"]>>();
 
   useEffect(() => {
-    if (namespace) {
+    if (routeNamespace) {
       const init = async () => {
         try {
           const { data: subgraph } = await getEntity({
             data: {
               entityId: entityIdFromOwnedByIdAndEntityUuid(
-                namespace.accountId,
+                routeNamespace.accountId,
                 entityUuid,
               ),
             },
@@ -75,13 +73,17 @@ const Page: NextPageWithLayout = () => {
 
       void init();
     }
-  }, [namespace, entityUuid, getEntity, getEntityType]);
+  }, [entityUuid, getEntity, getEntityType, routeNamespace]);
 
   const refetch = async () => {
+    if (!routeNamespace) {
+      return;
+    }
+
     const { data: subgraph } = await getEntity({
       data: {
         entityId: entityIdFromOwnedByIdAndEntityUuid(
-          namespace?.accountId!,
+          routeNamespace.accountId,
           entityUuid,
         ),
       },

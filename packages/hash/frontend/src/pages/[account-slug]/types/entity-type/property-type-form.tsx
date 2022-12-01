@@ -92,10 +92,10 @@ export const PropertyTypeForm = ({
     setFocus(initialTitle ? "description" : "name");
   }, [initialTitle, setFocus]);
 
-  const { namespace: routeNamespace } = useRouteNamespace();
+  const { routeNamespace } = useRouteNamespace();
 
   const { createPropertyType } = useBlockProtocolCreatePropertyType(
-    routeNamespace?.accountId ?? "",
+    routeNamespace?.shortname ?? "",
   );
   const { getPropertyType } = useBlockProtocolGetPropertyType();
 
