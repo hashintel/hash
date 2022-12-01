@@ -52,7 +52,7 @@ Document.getInitialProps = async (ctx) => {
   // You can consider sharing the same emotion cache between all the SSR requests to speed up performance.
   // However, be aware that it can have global side effects.
   const cache = createEmotionCache();
-  const { extractCriticalToChunks } = createEmotionServer(cache);
+  const emotionServer = createEmotionServer(cache);
 
   ctx.renderPage = () =>
     originalRenderPage({
@@ -65,7 +65,9 @@ Document.getInitialProps = async (ctx) => {
   const initialProps = await NextDocument.getInitialProps(ctx);
   // This is important. It prevents emotion to render invalid HTML.
   // See https://github.com/mui-org/material-ui/issues/26561#issuecomment-855286153
-  const emotionStyles = extractCriticalToChunks(initialProps.html);
+  const emotionStyles = emotionServer.extractCriticalToChunks(
+    initialProps.html,
+  );
   const emotionStyleTags = emotionStyles.styles.map((style) => (
     <style
       data-emotion={`${style.key} ${style.ids.join(" ")}`}

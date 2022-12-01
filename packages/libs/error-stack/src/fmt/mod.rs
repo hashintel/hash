@@ -142,7 +142,7 @@
 //! [`atomic`]: std::sync::atomic
 //! [`Error::provide`]: core::error::Error::provide
 
-#[cfg(feature = "std")]
+#[cfg(any(feature = "std", feature = "hooks"))]
 mod hook;
 
 use alloc::{
@@ -159,9 +159,9 @@ use core::{
     mem,
 };
 
-#[cfg(feature = "std")]
+#[cfg(any(feature = "std", feature = "hooks"))]
 pub use hook::HookContext;
-#[cfg(feature = "std")]
+#[cfg(any(feature = "std", feature = "hooks"))]
 pub(crate) use hook::{install_builtin_hooks, Hooks};
 #[cfg(feature = "pretty-print")]
 use owo_colors::{OwoColorize, Stream, Style as OwOStyle};
@@ -670,37 +670,37 @@ impl Opaque {
 
 fn debug_attachments_invoke<'a>(
     frames: impl IntoIterator<Item = &'a Frame>,
-    #[cfg(feature = "std")] context: &mut HookContext<Frame>,
+    #[cfg(any(feature = "std", feature = "hooks"))] context: &mut HookContext<Frame>,
 ) -> (Opaque, Vec<String>) {
     let mut opaque = Opaque::new();
 
     let body = frames
         .into_iter()
         .map(|frame| match frame.kind() {
-            #[cfg(feature = "std")]
+            #[cfg(any(feature = "std", feature = "hooks"))]
             FrameKind::Context(_) => Some(
                 Report::invoke_debug_format_hook(|hooks| hooks.call(frame, context))
                     .then(|| context.take_body())
                     .unwrap_or_default(),
             ),
-            #[cfg(feature = "std")]
+            #[cfg(any(feature = "std", feature = "hooks"))]
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => Some(
                 Report::invoke_debug_format_hook(|hooks| hooks.call(frame, context))
                     .then(|| context.take_body())
                     .unwrap_or_else(|| vec![attachment.to_string()]),
             ),
-            #[cfg(feature = "std")]
+            #[cfg(any(feature = "std", feature = "hooks"))]
             FrameKind::Attachment(AttachmentKind::Opaque(_)) => {
                 Report::invoke_debug_format_hook(|hooks| hooks.call(frame, context))
                     .then(|| context.take_body())
             }
-            #[cfg(not(feature = "std"))]
+            #[cfg(not(any(feature = "std", feature = "hooks")))]
             FrameKind::Context(_) => Some(vec![]),
-            #[cfg(not(feature = "std"))]
+            #[cfg(not(any(feature = "std", feature = "hooks")))]
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => {
                 Some(vec![attachment.to_string()])
             }
-            #[cfg(all(not(feature = "std"), feature = "pretty-print"))]
+            #[cfg(all(not(any(feature = "std", feature = "hooks")), feature = "pretty-print"))]
             FrameKind::Attachment(AttachmentKind::Opaque(_)) => frame
                 .downcast_ref::<core::panic::Location<'static>>()
                 .map(|location| {
@@ -710,7 +710,10 @@ fn debug_attachments_invoke<'a>(
                             .to_string(),
                     ]
                 }),
-            #[cfg(all(not(feature = "std"), not(feature = "pretty-print")))]
+            #[cfg(all(
+                not(any(feature = "std", feature = "hooks")),
+                not(feature = "pretty-print")
+            ))]
             FrameKind::Attachment(AttachmentKind::Opaque(_)) => frame
                 .downcast_ref::<core::panic::Location>()
                 .map(|location| vec![format!("at {location}")]),
@@ -731,13 +734,13 @@ fn debug_attachments_invoke<'a>(
 fn debug_attachments<'a>(
     position: Position,
     frames: impl IntoIterator<Item = &'a Frame>,
-    #[cfg(feature = "std")] context: &mut HookContext<Frame>,
+    #[cfg(any(feature = "std", feature = "hooks"))] context: &mut HookContext<Frame>,
 ) -> Lines {
     let last = matches!(position, Position::Final);
 
     let (opaque, entries) = debug_attachments_invoke(
         frames,
-        #[cfg(feature = "std")]
+        #[cfg(any(feature = "std", feature = "hooks"))]
         context,
     );
     let opaque = opaque.render();
@@ -863,7 +866,7 @@ fn debug_render(head: Lines, contexts: VecDeque<Lines>, sources: Vec<Lines>) -> 
 fn debug_frame(
     root: &Frame,
     prefix: &[&Frame],
-    #[cfg(feature = "std")] context: &mut HookContext<Frame>,
+    #[cfg(any(feature = "std", feature = "hooks"))] context: &mut HookContext<Frame>,
 ) -> Vec<Lines> {
     let (stack, sources) = collect(root, prefix);
     let (stack, prefix) = partition(&stack);
@@ -904,7 +907,7 @@ fn debug_frame(
                     Position::Inner
                 },
                 once(head).chain(body),
-                #[cfg(feature = "std")]
+                #[cfg(any(feature = "std", feature = "hooks"))]
                 context,
             );
             head_context.then(body)
@@ -920,7 +923,7 @@ fn debug_frame(
                 debug_frame(
                     source,
                     &prefix,
-                    #[cfg(feature = "std")]
+                    #[cfg(any(feature = "std", feature = "hooks"))]
                     context,
                 )
             },
@@ -943,10 +946,10 @@ fn debug_frame(
 
 impl<C> Debug for Report<C> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
-        #[cfg(feature = "std")]
+        #[cfg(any(feature = "std", feature = "hooks"))]
         let mut context = HookContext::new(fmt.alternate());
 
-        #[cfg_attr(not(feature = "std"), allow(unused_mut))]
+        #[cfg_attr(not(any(feature = "std", feature = "hooks")), allow(unused_mut))]
         let mut lines = self
             .current_frames()
             .iter()
@@ -954,7 +957,7 @@ impl<C> Debug for Report<C> {
                 debug_frame(
                     frame,
                     &[],
-                    #[cfg(feature = "std")]
+                    #[cfg(any(feature = "std", feature = "hooks"))]
                     &mut context,
                 )
             })
@@ -975,7 +978,7 @@ impl<C> Debug for Report<C> {
             .collect::<Vec<_>>()
             .join("\n");
 
-        #[cfg(feature = "std")]
+        #[cfg(any(feature = "std", feature = "hooks"))]
         {
             let appendix = context
                 .appendix()

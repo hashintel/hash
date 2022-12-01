@@ -24,7 +24,7 @@ export const executeTask = async (file: string, args: string[]) => {
   try {
     const { stdout } = await execa(file, args);
     return stdout;
-  } catch (error: any) {
-    throw new ExecutionError(error.toString());
+  } catch (error) {
+    throw new ExecutionError(`${error as string}`);
   }
 };
