@@ -164,7 +164,7 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
       onBlur={() => {
         onCancel();
       }}
-      sx={{ maxWidth: 440 }}
+      sx={{ minWidth: 375 }}
     />
   );
 };

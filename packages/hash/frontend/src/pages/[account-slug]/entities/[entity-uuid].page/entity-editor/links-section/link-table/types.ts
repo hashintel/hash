@@ -2,6 +2,7 @@ import { VersionedUri } from "@blockprotocol/type-system-web";
 import { SizedGridColumn } from "@glideapps/glide-data-grid";
 import {
   Entity,
+  EntityId,
   EntityTypeWithMetadata,
   Subgraph,
   SubgraphRootTypes,
@@ -16,6 +17,7 @@ export type LinkRow = {
   expectedEntityTypeTitles: string[];
   linkAndTargetEntities: { rightEntity: Entity; linkEntity: Entity }[];
   entitySubgraph: Subgraph<SubgraphRootTypes["entity"]>;
+  deleteLink: (linkEntityId: EntityId) => Promise<void>;
 };
 
 export type LinkColumnKey = "linkTitle" | "linkedWith" | "expectedEntityTypes";

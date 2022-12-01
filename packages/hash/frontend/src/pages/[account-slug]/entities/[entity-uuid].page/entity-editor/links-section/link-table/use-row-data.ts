@@ -5,9 +5,13 @@ import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/e
 import { VersionedUri } from "@hashintel/hash-subgraph";
 import { useEntityEditor } from "../../entity-editor-context";
 import { LinkRow } from "./types";
+import { useBlockProtocolArchiveEntity } from "../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolArchiveEntity";
+import { useSnackbar } from "../../../../../../../components/hooks/useSnackbar";
 
 export const useRowData = () => {
-  const { entitySubgraph, entityTypeSubgraph } = useEntityEditor();
+  const { entitySubgraph, entityTypeSubgraph, refetch } = useEntityEditor();
+  const { archiveEntity } = useBlockProtocolArchiveEntity();
+  const snackbar = useSnackbar();
 
   const rowData = useMemo<LinkRow[]>(() => {
     const entity = getRoots(entitySubgraph)[0]!;
@@ -63,9 +67,17 @@ export const useRowData = () => {
         expectedEntityTypes,
         expectedEntityTypeTitles,
         entitySubgraph,
+        deleteLink: async (linkEntityId) => {
+          try {
+            await archiveEntity({ data: { entityId: linkEntityId } });
+            await refetch();
+          } catch {
+            snackbar.error("Failed to remove link");
+          }
+        },
       } as LinkRow;
     });
-  }, [entitySubgraph, entityTypeSubgraph]);
+  }, [entitySubgraph, entityTypeSubgraph, archiveEntity, refetch, snackbar]);
 
   return rowData;
 };
