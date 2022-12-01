@@ -9,7 +9,7 @@ use type_system::uri::VersionedUri;
 use crate::{
     identifier::ontology::OntologyTypeEditionId,
     ontology::{OntologyElementMetadata, PersistedOntologyType},
-    provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
+    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         crud::Read,
         postgres::{
@@ -39,8 +39,6 @@ where
             <<T::Inner as QueryRecord>::Path<'q> as OntologyPath>::versioned_uri();
         let schema_path = <<T::Inner as QueryRecord>::Path<'q> as OntologyPath>::schema();
         let owned_by_id_path = <<T::Inner as QueryRecord>::Path<'q> as OntologyPath>::owned_by_id();
-        let created_by_id_path =
-            <<T::Inner as QueryRecord>::Path<'q> as OntologyPath>::created_by_id();
         let updated_by_id_path =
             <<T::Inner as QueryRecord>::Path<'q> as OntologyPath>::updated_by_id();
 
@@ -53,7 +51,6 @@ where
         );
         let schema_index = compiler.add_selection_path(&schema_path);
         let owned_by_id_index = compiler.add_selection_path(&owned_by_id_path);
-        let created_by_id_index = compiler.add_selection_path(&created_by_id_path);
         let updated_by_id_path_index = compiler.add_selection_path(&updated_by_id_path);
 
         compiler.add_filter(filter);
@@ -73,14 +70,13 @@ where
                     .into_report()
                     .change_context(QueryError)?;
                 let owned_by_id = OwnedById::new(row.get(owned_by_id_index));
-                let created_by_id = CreatedById::new(row.get(created_by_id_index));
                 let updated_by_id = UpdatedById::new(row.get(updated_by_id_path_index));
 
                 Ok(T::new(
                     record,
                     OntologyElementMetadata::new(
                         OntologyTypeEditionId::from(&versioned_uri),
-                        ProvenanceMetadata::new(created_by_id, updated_by_id),
+                        ProvenanceMetadata::new(updated_by_id),
                         owned_by_id,
                     ),
                 ))

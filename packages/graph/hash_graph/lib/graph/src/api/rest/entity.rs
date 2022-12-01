@@ -30,7 +30,7 @@ use crate::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryToken, EntityUuid,
         LinkEntityMetadata, LinkOrder,
     },
-    provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
+    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         error::{EntityDoesNotExist, QueryError},
         query::Filter,
@@ -60,7 +60,6 @@ use crate::{
     components(
         schemas(
             OwnedById,
-            CreatedById,
             UpdatedById,
             CreateEntityRequest,
             UpdateEntityRequest,
@@ -135,7 +134,7 @@ struct CreateEntityRequest {
     entity_type_id: VersionedUri,
     owned_by_id: OwnedById,
     entity_uuid: Option<EntityUuid>,
-    actor_id: CreatedById,
+    actor_id: UpdatedById,
     // TODO: this could break invariants if we don't move to fractional indexing
     //  https://app.asana.com/0/1201095311341924/1202085856561975/f
     #[serde(default, skip_serializing_if = "Option::is_none")]

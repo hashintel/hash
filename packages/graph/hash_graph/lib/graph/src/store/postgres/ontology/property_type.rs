@@ -9,7 +9,7 @@ use type_system::PropertyType;
 use crate::{
     identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId},
     ontology::{OntologyElementMetadata, PropertyTypeWithMetadata},
-    provenance::{CreatedById, OwnedById, UpdatedById},
+    provenance::{OwnedById, UpdatedById},
     store::{
         crud::Read,
         postgres::{DependencyContext, DependencyStatus},
@@ -31,7 +31,7 @@ impl<C: AsClient> PostgresStore<C> {
     /// Internal method to read a [`PropertyTypeWithMetadata`] into two [`DependencyContext`]s.
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    pub(crate) fn get_property_type_as_dependency<'a>(
+    pub(crate) fn traverse_property_type<'a>(
         &'a self,
         property_type_id: &'a OntologyTypeEditionId,
         dependency_context: &'a mut DependencyContext,
@@ -41,7 +41,7 @@ impl<C: AsClient> PostgresStore<C> {
         async move {
             let dependency_status = dependency_context
                 .ontology_dependency_map
-                .insert(property_type_id, Some(current_resolve_depth));
+                .insert(property_type_id, current_resolve_depth);
             let property_type = match dependency_status {
                 DependencyStatus::Unknown => {
                     let property_type = Read::<PropertyTypeWithMetadata>::read_one(
@@ -82,7 +82,7 @@ impl<C: AsClient> PostgresStore<C> {
                             });
                         }
 
-                        self.get_property_type_as_dependency(
+                        self.traverse_property_type(
                             &OntologyTypeEditionId::from(property_type_ref.uri()),
                             dependency_context,
                             subgraph,
@@ -118,7 +118,7 @@ impl<C: AsClient> PostgresStore<C> {
                             });
                         }
 
-                        self.get_data_type_as_dependency(
+                        self.traverse_data_type(
                             &OntologyTypeEditionId::from(data_type_ref.uri()),
                             dependency_context,
                             subgraph,
@@ -148,7 +148,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         &mut self,
         property_type: PropertyType,
         owned_by_id: OwnedById,
-        created_by_id: CreatedById,
+        updated_by_id: UpdatedById,
     ) -> Result<OntologyElementMetadata, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
@@ -162,7 +162,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
         // We can only insert them after the type has been created, and so we currently extract them
         // after as well. See `insert_property_type_references` taking `&property_type`
         let (version_id, metadata) = transaction
-            .create(property_type.clone(), owned_by_id, created_by_id)
+            .create(property_type.clone(), owned_by_id, updated_by_id)
             .await?;
 
         transaction
@@ -201,15 +201,8 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
 
         for property_type in Read::<PropertyTypeWithMetadata>::read(self, filter).await? {
             let property_type_id = property_type.metadata().edition_id().clone();
-            dependency_context
-                .ontology_dependency_map
-                .insert(&property_type_id, None);
-            subgraph.vertices.ontology.insert(
-                property_type_id.clone(),
-                OntologyVertex::PropertyType(Box::new(property_type)),
-            );
 
-            self.get_property_type_as_dependency(
+            self.traverse_property_type(
                 &property_type_id,
                 &mut dependency_context,
                 &mut subgraph,

@@ -16,6 +16,12 @@
     "jsx": "preserve",
     "incremental": true
   },
-  "include": ["next-env.d.ts", "theme-override.d.ts", "**/*.ts", "**/*.tsx"],
+  "include": [
+    "@types/gtag.js",
+    "next-env.d.ts",
+    "theme-override.d.ts",
+    "**/*.ts",
+    "**/*.tsx"
+  ],
   "exclude": ["node_modules"]
 }

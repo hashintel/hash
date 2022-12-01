@@ -243,7 +243,7 @@ export default class {
    *
    * @param params.ownedById the id of owner of the entity
    * @param params.entityDefinition the definition of how to get or create the entity (excluding any linked entities)
-   * @param params.createdById - the id of the account that is creating the entity
+   * @param params.actorId - the id of the account that is creating the entity
    */
   static async getOrCreate(
     graphApi: GraphApi,
@@ -334,7 +334,7 @@ export default class {
     params: {
       entityId: EntityId;
     },
-  ): Promise<EntityModel> {
+  ): Promise<EntityModel | LinkEntityModel> {
     const { entityId } = params;
     const { data: entity } = await graphApi.getEntity(entityId);
 
@@ -368,7 +368,9 @@ export default class {
       );
     }
 
-    return await EntityModel.fromEntity(graphApi, entity as Entity);
+    return entityModel.entityTypeModel.isLinkEntityType()
+      ? await LinkEntityModel.fromEntity(graphApi, entity as Entity)
+      : entityModel;
   }
 
   /**

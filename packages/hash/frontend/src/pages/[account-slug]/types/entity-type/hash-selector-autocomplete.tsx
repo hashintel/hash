@@ -1,56 +1,54 @@
-import { PropertyType } from "@blockprotocol/type-system-web";
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, TextField } from "@hashintel/hash-design-system";
 import {
   Autocomplete,
+  AutocompleteProps,
   Box,
   outlinedInputClasses,
   PopperProps,
   Typography,
 } from "@mui/material";
-import { PopupState } from "material-ui-popup-state/hooks";
-import {
-  forwardRef,
-  ForwardRefRenderFunction,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { Ref, useMemo } from "react";
 import { ArrowUpRightIcon } from "../../../../shared/icons/svg";
 import {
   OntologyChip,
   parseUriForOntologyChip,
 } from "../../shared/ontology-chip";
-import { PropertyExpectedValues } from "./property-expected-values";
-import { PropertyListSelectorDropdown } from "./property-list-selector-dropdown";
-import { usePropertyTypes } from "./use-property-types";
+import {
+  TypeListSelectorDropdown,
+  TypeListSelectorDropdownProps,
+  TYPE_SELECTOR_HEIGHT,
+} from "./type-list-selector-dropdown";
 
-export const PROPERTY_SELECTOR_HEIGHT = 57;
+type OptionRenderData = {
+  $id: string;
+  title: string;
+  description?: string;
+};
 
-const PropertySelector: ForwardRefRenderFunction<
-  HTMLInputElement,
-  {
-    searchText: string;
-    onSearchTextChange: (searchText: string) => void;
-    modalPopupState: PopupState;
-    onAdd: (option: PropertyType) => void;
-    onCancel: () => void;
-    filterProperty: (property: PropertyType) => boolean;
-  }
-> = (
-  {
-    searchText,
-    onSearchTextChange,
-    modalPopupState,
-    onAdd,
-    onCancel,
-    filterProperty,
-  },
-  ref,
-) => {
-  const propertyTypesObj = usePropertyTypes();
-  const propertyTypes = Object.values(propertyTypesObj ?? {});
+type HashSelectorAutocompleteProps<T extends unknown> = Omit<
+  AutocompleteProps<T, false, false, false>,
+  | "renderInput"
+  | "renderOption"
+  | "getOptionLabel"
+  | "PaperComponent"
+  | "componentsProps"
+> & {
+  inputRef?: Ref<any>;
+  inputPlaceholder?: string;
+  optionToRenderData: (option: T) => OptionRenderData;
+  dropdownProps: TypeListSelectorDropdownProps;
+};
 
+export const HashSelectorAutocomplete = <T extends unknown>({
+  open,
+  optionToRenderData,
+  sx,
+  inputRef,
+  inputPlaceholder,
+  dropdownProps,
+  ...rest
+}: HashSelectorAutocompleteProps<T>) => {
   const modifiers = useMemo(
     (): PopperProps["modifiers"] => [
       {
@@ -74,58 +72,19 @@ const PropertySelector: ForwardRefRenderFunction<
     [],
   );
 
-  const [open, setOpen] = useState(false);
-  const highlightedRef = useRef<null | PropertyType>(null);
-
   return (
     <Autocomplete
       open={open}
-      onOpen={() => setOpen(true)}
-      onClose={(_, reason) => {
-        if (reason !== "toggleInput") {
-          setOpen(false);
-        }
-      }}
-      popupIcon={null}
-      clearIcon={null}
-      forcePopupIcon={false}
-      selectOnFocus={false}
-      openOnFocus
-      inputValue={searchText}
-      clearOnBlur={false}
-      onInputChange={(_, value) => onSearchTextChange(value)}
-      onHighlightChange={(_, value) => {
-        highlightedRef.current = value;
-      }}
-      onChange={(_, option) => {
-        if (option) {
-          onAdd(option);
-        }
-      }}
-      // Using onKeyUp to prevent a new line character being inputted into inputs in the modal
-      onKeyUp={(evt) => {
-        if (evt.key === "Enter" && !highlightedRef.current) {
-          modalPopupState.open();
-        }
-      }}
-      onKeyDown={(evt) => {
-        if (evt.key === "Escape") {
-          onCancel();
-        }
-      }}
-      onBlur={() => {
-        if (!modalPopupState.isOpen) {
-          onCancel();
-        }
-      }}
+      sx={[{ width: "100%" }, ...(Array.isArray(sx) ? sx : [sx])]}
       renderInput={(props) => (
         <TextField
           {...props}
-          placeholder="Search for a property type"
+          autoFocus
+          inputRef={inputRef}
+          placeholder={inputPlaceholder}
           sx={{
             width: "100%",
           }}
-          inputRef={ref}
           InputProps={{
             ...props.InputProps,
             endAdornment: (
@@ -141,7 +100,7 @@ const PropertySelector: ForwardRefRenderFunction<
             sx: (theme) => ({
               // The popover needs to know how tall this is to draw
               // a shadow around it
-              height: PROPERTY_SELECTOR_HEIGHT,
+              height: TYPE_SELECTOR_HEIGHT,
 
               // Focus is handled by the options popover
               "&.Mui-focused": {
@@ -168,17 +127,13 @@ const PropertySelector: ForwardRefRenderFunction<
           }}
         />
       )}
-      options={
-        // @todo make this more efficient
-        propertyTypes.filter((type) => filterProperty(type))
-      }
-      getOptionLabel={(obj) => obj.title}
-      renderOption={(props, property: PropertyType) => {
-        const ontology = parseUriForOntologyChip(property.$id);
+      renderOption={(props, option) => {
+        const { $id, description, title } = optionToRenderData(option);
+        const ontology = parseUriForOntologyChip($id);
 
         // @todo extract component
         return (
-          <li {...props}>
+          <li {...props} data-testid="propery-selector-option">
             <Box width="100%">
               <Box
                 width="100%"
@@ -199,7 +154,7 @@ const PropertySelector: ForwardRefRenderFunction<
                     mr={0.5}
                     color="black"
                   >
-                    {property.title}
+                    {title}
                   </Typography>
                   <ArrowUpRightIcon />
                 </Box>
@@ -216,9 +171,6 @@ const PropertySelector: ForwardRefRenderFunction<
                   }
                   sx={{ flexShrink: 1, ml: 1.25, mr: 2 }}
                 />
-                <Box ml="auto">
-                  <PropertyExpectedValues property={property} />
-                </Box>
               </Box>
               <Typography
                 component={Box}
@@ -231,20 +183,27 @@ const PropertySelector: ForwardRefRenderFunction<
                   width: "100%",
                 })}
               >
-                {property.description}
+                {description}
               </Typography>
             </Box>
           </li>
         );
       }}
-      PaperComponent={PropertyListSelectorDropdown}
+      popupIcon={null}
+      clearIcon={null}
+      forcePopupIcon={false}
+      selectOnFocus={false}
+      openOnFocus
+      clearOnBlur={false}
+      getOptionLabel={(opt) => optionToRenderData(opt).title}
+      // eslint-disable-next-line react/no-unstable-nested-components
+      PaperComponent={(props) => (
+        <TypeListSelectorDropdown {...props} dropdownProps={dropdownProps} />
+      )}
       componentsProps={{
         popper: { modifiers },
       }}
+      {...rest}
     />
   );
 };
-
-const PropertySelectorForwardedRef = forwardRef(PropertySelector);
-
-export { PropertySelectorForwardedRef as PropertySelector };

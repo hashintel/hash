@@ -1,9 +1,7 @@
 import { EntityType } from "@blockprotocol/type-system-web";
 import { Button, TextField } from "@hashintel/hash-design-system";
-import {
-  addVersionToBaseUri,
-  generateBaseTypeId,
-} from "@hashintel/hash-shared/types";
+import { frontendUrl } from "@hashintel/hash-shared/environment";
+import { generateBaseTypeId } from "@hashintel/hash-shared/types";
 import {
   Box,
   Container,
@@ -16,17 +14,21 @@ import {
 } from "@mui/material";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
-import { ReactNode, useEffect } from "react";
+import { ReactNode } from "react";
 import { useForm } from "react-hook-form";
-import { frontendUrl } from "@hashintel/hash-shared/environment";
+import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
 import { useBlockProtocolGetEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
-import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
+import { PageErrorState } from "../../../../components/page-error-state";
 import { useInitTypeSystem } from "../../../../lib/use-init-type-system";
-import { getPlainLayout, NextPageWithLayout } from "../../../../shared/layout";
+import {
+  getLayoutWithSidebar,
+  NextPageWithLayout,
+} from "../../../../shared/layout";
+import { Link } from "../../../../shared/ui/link";
 import { TopContextBar } from "../../../shared/top-context-bar";
 import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
 import { OntologyChip } from "../../shared/ontology-chip";
-import { useRouteNamespace } from "../entity-type/use-route-namespace";
+import { useRouteNamespace } from "../../types/entity-type/use-route-namespace";
 
 const FormHelperLabel = ({
   children,
@@ -54,10 +56,13 @@ type CreateEntityTypeFormData = {
 const HELPER_TEXT_WIDTH = 290;
 
 const generateInitialEntityTypeId = (baseUri: string) =>
-  addVersionToBaseUri(baseUri, 1);
+  versionedUriFromComponents(baseUri, 1);
 
+/**
+ * @todo check user has permission to create entity type in this namespace
+ */
 const Page: NextPageWithLayout = () => {
-  const typeSystemLoading = useInitTypeSystem();
+  const router = useRouter();
 
   const {
     handleSubmit,
@@ -71,43 +76,42 @@ const Page: NextPageWithLayout = () => {
     shouldFocusError: true,
     mode: "onSubmit",
     reValidateMode: "onSubmit",
+    defaultValues: {
+      name: typeof router.query.name === "string" ? router.query.name : "",
+    },
   });
 
-  const router = useRouter();
-  const { authenticatedUser, loading } = useAuthenticatedUser();
   const { getEntityType } = useBlockProtocolGetEntityType();
   const { namespace, loading: loadingNamespace } = useRouteNamespace();
 
-  useEffect(() => {
-    if (authenticatedUser && !loadingNamespace && !namespace) {
-      void router.replace(
-        `/@${authenticatedUser.shortname}/types/new/entity-type`,
-      );
-    }
-  }, [loadingNamespace, authenticatedUser, namespace, router]);
+  const typeSystemLoading = useInitTypeSystem();
 
-  if (typeSystemLoading || loading || !authenticatedUser || !namespace) {
+  if (typeSystemLoading) {
     return null;
   }
 
+  if (!namespace) {
+    if (loadingNamespace) {
+      return null;
+    } else {
+      return <PageErrorState />;
+    }
+  }
+
   const generateEntityTypeBaseUriForUser = (value: string) => {
-    if (!namespace) {
+    if (!namespace?.shortname) {
       throw new Error("User or Org shortname must exist");
     }
 
     return generateBaseTypeId({
       domain: frontendUrl,
-      namespace: namespace.shortname ?? "",
+      namespace: namespace.shortname,
       kind: "entity-type",
       title: value,
     });
   };
 
   const handleFormSubmit = handleSubmit(async ({ name, description }) => {
-    if (!namespace) {
-      throw new Error("Namespace for entity type creation missing");
-    }
-
     const baseUri = generateEntityTypeBaseUriForUser(name);
     const entityType: EntityType = {
       title: name,
@@ -158,7 +162,7 @@ const Page: NextPageWithLayout = () => {
                   >
                     {`@${namespace.shortname}`}
                   </Typography>
-                  /types/new/entity-type
+                  /new/types/entity-type
                 </Typography>
               }
               sx={[{ marginBottom: 2 }]}
@@ -171,7 +175,12 @@ const Page: NextPageWithLayout = () => {
       </Box>
       <Box flex={1} bgcolor="gray.10" borderTop={1} borderColor="gray.20">
         <Container>
-          <Box py={8} component="form" onSubmit={handleFormSubmit}>
+          <Box
+            py={8}
+            component="form"
+            onSubmit={handleFormSubmit}
+            data-testid="entity-type-creation-form"
+          >
             <Stack
               alignItems="stretch"
               sx={(theme) => ({
@@ -210,9 +219,17 @@ const Page: NextPageWithLayout = () => {
                   },
                   async validate(value) {
                     const res = await getEntityType({
-                      data: generateInitialEntityTypeId(
-                        generateEntityTypeBaseUriForUser(value),
-                      ),
+                      data: {
+                        entityTypeId: generateInitialEntityTypeId(
+                          generateEntityTypeBaseUriForUser(value),
+                        ),
+                        graphResolveDepths: {
+                          constrainsValuesOn: { outgoing: 0 },
+                          constrainsPropertiesOn: { outgoing: 0 },
+                          constrainsLinksOn: { outgoing: 0 },
+                          constrainsLinkDestinationsOn: { outgoing: 0 },
+                        },
+                      },
                     });
 
                     return res.data?.roots.length
@@ -280,12 +297,13 @@ const Page: NextPageWithLayout = () => {
                 >
                   Create new entity type
                 </Button>
-                {/** @todo set correct URL */}
                 <Button
-                  href="/"
+                  href={`/${namespace.accountId}`}
                   variant="tertiary"
                   size="small"
                   disabled={isSubmitting}
+                  // For some reason, Button doesn't know it can take component
+                  {...({ component: Link } as any)}
                 >
                   Discard draft
                 </Button>
@@ -298,6 +316,9 @@ const Page: NextPageWithLayout = () => {
   );
 };
 
-Page.getLayout = getPlainLayout;
+Page.getLayout = (page) =>
+  getLayoutWithSidebar(page, {
+    fullWidth: true,
+  });
 
 export default Page;

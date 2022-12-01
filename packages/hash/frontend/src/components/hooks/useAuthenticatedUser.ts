@@ -1,14 +1,14 @@
 import { ApolloQueryResult, QueryHookOptions, useQuery } from "@apollo/client";
+
+import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import * as Sentry from "@sentry/nextjs";
 import { useRouter } from "next/router";
 import { useContext, useEffect, useLayoutEffect, useMemo, useRef } from "react";
-
-import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
-import { meQuery } from "../../graphql/queries/user.queries";
 import { MeQuery, MeQueryVariables } from "../../graphql/apiTypes.gen";
-import { oryKratosClient } from "../../pages/shared/ory-kratos";
-import { AuthenticatedUser, constructAuthenticatedUser } from "../../lib/user";
+import { meQuery } from "../../graphql/queries/user.queries";
 import { useInitTypeSystem } from "../../lib/use-init-type-system";
+import { AuthenticatedUser, constructAuthenticatedUser } from "../../lib/user";
+import { oryKratosClient } from "../../pages/shared/ory-kratos";
 import { SessionContext } from "../../pages/shared/session-context";
 
 /**
@@ -85,7 +85,11 @@ export const useAuthenticatedUser = (
     });
   }, [authenticatedUser]);
 
-  const fetchKratosIdentity = async (login: boolean) => {
+  const fetchKratosIdentity = async (login: boolean, refetch = false) => {
+    if (!refetch && kratosSession) {
+      return;
+    }
+
     setLoadingKratosSession(true);
 
     const session = await oryKratosClient
@@ -93,11 +97,12 @@ export const useAuthenticatedUser = (
       .then(({ data }) => data)
       .catch(() => undefined);
 
+    setLoadingKratosSession(false);
+
     if (!session && login) {
       await router.push("/login");
     } else {
       setKratosSession(session);
-      setLoadingKratosSession(false);
       return session;
     }
   };
@@ -132,7 +137,7 @@ export const useAuthenticatedUser = (
             ApolloQueryResult<{ me: Subgraph<SubgraphRootTypes["entity"]> }>
           >
         )(),
-        fetchKratosIdentity(forceLogin),
+        fetchKratosIdentity(forceLogin, true),
       ]),
     loading: loadingUser || loadingKratosSession,
   };

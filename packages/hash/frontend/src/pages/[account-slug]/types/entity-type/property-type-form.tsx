@@ -7,11 +7,8 @@ import {
   TextField,
 } from "@hashintel/hash-design-system";
 import { frontendUrl } from "@hashintel/hash-shared/environment";
-import {
-  addVersionToBaseUri,
-  generateBaseTypeId,
-} from "@hashintel/hash-shared/types";
 import { getPropertyTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
+import { generateBaseTypeId } from "@hashintel/hash-shared/types";
 import {
   Box,
   Divider,
@@ -27,6 +24,7 @@ import {
 } from "material-ui-popup-state/hooks";
 import { ComponentProps, ReactNode, useEffect, useMemo, useState } from "react";
 import { FormProvider, useForm, UseFormTrigger } from "react-hook-form";
+import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
 import { useBlockProtocolGetPropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetPropertyType";
 import { Modal } from "../../../../components/Modals/Modal";
 import { DataTypeSelector } from "./data-type-selector";
@@ -41,7 +39,7 @@ import { useRouteNamespace } from "./use-route-namespace";
 import { withHandler } from "./util";
 
 const generateInitialPropertyTypeId = (baseUri: string) =>
-  addVersionToBaseUri(baseUri, 1);
+  versionedUriFromComponents(baseUri, 1);
 
 export type PropertyTypeFormValues = {
   name: string;
@@ -273,7 +271,13 @@ const PropertyTypeFormInner = ({
                 );
 
                 const res = await getPropertyType({
-                  data: propertyTypeId,
+                  data: {
+                    propertyTypeId,
+                    graphResolveDepths: {
+                      constrainsValuesOn: { outgoing: 0 },
+                      constrainsPropertiesOn: { outgoing: 0 },
+                    },
+                  },
                 });
 
                 const exists =

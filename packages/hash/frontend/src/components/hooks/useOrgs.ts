@@ -14,7 +14,9 @@ import { constructOrg, Org } from "../../lib/org";
  * @todo the API should provide this, and it should only be available to admins.
  *    users should only see a list of orgs they are a member of.
  */
-export const useOrgs = (): {
+export const useOrgs = (
+  cache = false,
+): {
   loading: boolean;
   orgs?: Org[];
 } => {
@@ -23,6 +25,7 @@ export const useOrgs = (): {
     GetAllLatestEntitiesQueryVariables
   >(getAllLatestEntitiesQuery, {
     variables: {
+      rootEntityTypeIds: [types.entityType.org.entityTypeId],
       constrainsValuesOn: { outgoing: 0 },
       constrainsPropertiesOn: { outgoing: 0 },
       constrainsLinksOn: { outgoing: 0 },
@@ -32,7 +35,7 @@ export const useOrgs = (): {
       hasRightEntity: { incoming: 1, outgoing: 1 },
     },
     /** @todo reconsider caching. This is done for testing/demo purposes. */
-    fetchPolicy: "no-cache",
+    fetchPolicy: cache ? "cache-first" : "no-cache",
   });
 
   const { getAllLatestEntities: subgraph } = data ?? {};
@@ -47,19 +50,15 @@ export const useOrgs = (): {
     const resolvedOrgs = {};
 
     /** @todo - Is there a way we can ergonomically encode this in the GraphQL type? */
-    return getRoots(subgraph as Subgraph<SubgraphRootTypes["entity"]>)
-      .filter(
-        ({ metadata: { entityTypeId } }) =>
-          entityTypeId === types.entityType.org.entityTypeId,
-      )
-      .map(({ metadata: { editionId } }) =>
+    return getRoots(subgraph as Subgraph<SubgraphRootTypes["entity"]>).map(
+      ({ metadata: { editionId } }) =>
         constructOrg({
           subgraph,
           orgEntityEditionId: editionId,
           resolvedUsers,
           resolvedOrgs,
         }),
-      );
+    );
   }, [subgraph]);
 
   return {

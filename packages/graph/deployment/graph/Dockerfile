@@ -1,4 +1,4 @@
-FROM alpine:3.16 as rust
+FROM alpine:3.17 as rust
 
 ENV RUSTUP_HOME=/usr/local/rustup \
     CARGO_HOME=/usr/local/cargo \
@@ -19,7 +19,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     cargo install --path bin/hash_graph --profile $PROFILE --all-features --locked
 
 # Replace with `FROM scratch` when a health check command was added to hash-graph
-FROM alpine:3.16 AS runtime
+FROM alpine:3.17 AS runtime
 COPY --from=builder /usr/local/cargo/bin/hash-graph /
 
 HEALTHCHECK --interval=2s --timeout=1s --retries=5 \

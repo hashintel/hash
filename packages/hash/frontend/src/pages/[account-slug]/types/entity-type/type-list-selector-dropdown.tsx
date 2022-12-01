@@ -1,32 +1,22 @@
 import { Button, ButtonProps, Chip } from "@hashintel/hash-design-system";
 import { PaperProps, Typography } from "@mui/material";
-import { createContext, useContext } from "react";
 import { AutocompleteDropdown } from "./autocomplete-dropdown";
 import { StyledPlusCircleIcon } from "./styled-plus-circle-icon";
 
-type PropertyListSelectorDropdownProps = {
+export type TypeListSelectorDropdownProps = {
   query: string;
   createButtonProps: Omit<ButtonProps, "children" | "variant" | "size">;
+  variant: "entityType" | "propertyType";
 };
 
-export const PropertyListSelectorDropdownContext =
-  createContext<PropertyListSelectorDropdownProps | null>(null);
+export const TYPE_SELECTOR_HEIGHT = 57;
 
-const usePropertyListSelectorDropdownContext = () => {
-  const value = useContext(PropertyListSelectorDropdownContext);
-  if (value === null) {
-    throw new Error(
-      "Must wrap with PropertyListSelectorDropdownContext.Provider",
-    );
-  }
-  return value;
-};
-
-export const PropertyListSelectorDropdown = ({
+export const TypeListSelectorDropdown = ({
   children,
+  dropdownProps,
   ...props
-}: PaperProps) => {
-  const { query, createButtonProps } = usePropertyListSelectorDropdownContext();
+}: PaperProps & { dropdownProps: TypeListSelectorDropdownProps }) => {
+  const { query, createButtonProps, variant } = dropdownProps;
 
   return (
     <AutocompleteDropdown {...props}>
@@ -65,7 +55,11 @@ export const PropertyListSelectorDropdown = ({
             </Typography>
           </>
         ) : null}
-        <Chip color="purple" label="PROPERTY TYPE" sx={{ ml: 1.5 }} />
+        {variant === "entityType" ? (
+          <Chip color="teal" label="ENTITY TYPE" sx={{ ml: 1.5 }} />
+        ) : (
+          <Chip color="purple" label="PROPERTY TYPE" sx={{ ml: 1.5 }} />
+        )}
       </Button>
     </AutocompleteDropdown>
   );

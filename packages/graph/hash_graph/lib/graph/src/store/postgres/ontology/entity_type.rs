@@ -9,7 +9,7 @@ use type_system::EntityType;
 use crate::{
     identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId},
     ontology::{EntityTypeWithMetadata, OntologyElementMetadata},
-    provenance::{CreatedById, OwnedById, UpdatedById},
+    provenance::{OwnedById, UpdatedById},
     store::{
         crud::Read,
         postgres::{DependencyContext, DependencyStatus},
@@ -35,7 +35,7 @@ impl<C: AsClient> PostgresStore<C> {
         clippy::too_many_lines,
         reason = "There is quite a few code duplication, which has to be resolved"
     )]
-    pub(crate) fn get_entity_type_as_dependency<'a>(
+    pub(crate) fn traverse_entity_type<'a>(
         &'a self,
         entity_type_id: &'a OntologyTypeEditionId,
         dependency_context: &'a mut DependencyContext,
@@ -45,7 +45,7 @@ impl<C: AsClient> PostgresStore<C> {
         async move {
             let dependency_status = dependency_context
                 .ontology_dependency_map
-                .insert(entity_type_id, Some(current_resolve_depth));
+                .insert(entity_type_id, current_resolve_depth);
             let entity_type = match dependency_status {
                 DependencyStatus::Unknown => {
                     let entity_type = Read::<EntityTypeWithMetadata>::read_one(
@@ -84,7 +84,7 @@ impl<C: AsClient> PostgresStore<C> {
                             });
                         }
 
-                        self.get_property_type_as_dependency(
+                        self.traverse_property_type(
                             &OntologyTypeEditionId::from(property_type_ref.uri()),
                             dependency_context,
                             subgraph,
@@ -118,7 +118,7 @@ impl<C: AsClient> PostgresStore<C> {
                             });
                         }
 
-                        self.get_entity_type_as_dependency(
+                        self.traverse_entity_type(
                             &OntologyTypeEditionId::from(entity_type_ref.uri()),
                             dependency_context,
                             subgraph,
@@ -149,7 +149,7 @@ impl<C: AsClient> PostgresStore<C> {
                             });
                         }
 
-                        self.get_entity_type_as_dependency(
+                        self.traverse_entity_type(
                             &OntologyTypeEditionId::from(entity_type_ref.uri()),
                             dependency_context,
                             subgraph,
@@ -192,7 +192,7 @@ impl<C: AsClient> PostgresStore<C> {
                             });
                         }
 
-                        self.get_entity_type_as_dependency(
+                        self.traverse_entity_type(
                             &OntologyTypeEditionId::from(entity_type_ref.uri()),
                             dependency_context,
                             subgraph,
@@ -224,7 +224,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         &mut self,
         entity_type: EntityType,
         owned_by_id: OwnedById,
-        created_by_id: CreatedById,
+        updated_by_id: UpdatedById,
     ) -> Result<OntologyElementMetadata, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
@@ -238,7 +238,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
         // We can only insert them after the type has been created, and so we currently extract them
         // after as well. See `insert_entity_type_references` taking `&entity_type`
         let (version_id, metadata) = transaction
-            .create(entity_type.clone(), owned_by_id, created_by_id)
+            .create(entity_type.clone(), owned_by_id, updated_by_id)
             .await?;
 
         transaction
@@ -277,15 +277,8 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
 
         for entity_type in Read::<EntityTypeWithMetadata>::read(self, filter).await? {
             let entity_type_id = entity_type.metadata().edition_id().clone();
-            dependency_context
-                .ontology_dependency_map
-                .insert(&entity_type_id, None);
-            subgraph.vertices.ontology.insert(
-                entity_type_id.clone(),
-                OntologyVertex::EntityType(Box::new(entity_type)),
-            );
 
-            self.get_entity_type_as_dependency(
+            self.traverse_entity_type(
                 &entity_type_id,
                 &mut dependency_context,
                 &mut subgraph,

@@ -15,7 +15,7 @@ const Page: NextPageWithLayout = () => {
 
   useEffect(() => {
     if (authenticatedUser) {
-      void router.push(`/${authenticatedUser.userAccountId}`);
+      void router.replace(`/${authenticatedUser.userAccountId}`);
     }
   }, [router, authenticatedUser]);
 

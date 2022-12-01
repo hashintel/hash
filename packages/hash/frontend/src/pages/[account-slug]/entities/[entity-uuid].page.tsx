@@ -8,13 +8,17 @@ import {
 } from "@hashintel/hash-subgraph";
 import { useBlockProtocolGetEntity } from "../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolGetEntity";
 import { useLoggedInUser } from "../../../components/hooks/useAuthenticatedUser";
-import { getPlainLayout, NextPageWithLayout } from "../../../shared/layout";
+import {
+  getLayoutWithSidebar,
+  NextPageWithLayout,
+} from "../../../shared/layout";
 import { EntityEditor } from "./[entity-uuid].page/entity-editor";
 import { EntityPageLoadingState } from "./[entity-uuid].page/entity-page-loading-state";
 import { EntityPageWrapper } from "./[entity-uuid].page/entity-page-wrapper";
 import { PageErrorState } from "../../../components/page-error-state";
 /** @todo - This should be moved somewhere shared */
 import { useRouteNamespace } from "../types/entity-type/use-route-namespace";
+import { generateEntityLabel } from "../../../lib/entities";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
@@ -33,10 +37,12 @@ const Page: NextPageWithLayout = () => {
           const entityUuid = router.query["entity-uuid"] as string;
 
           const { data: subgraph } = await getEntity({
-            data: entityIdFromOwnedByIdAndEntityUuid(
-              namespace.accountId,
-              entityUuid,
-            ),
+            data: {
+              entityId: entityIdFromOwnedByIdAndEntityUuid(
+                namespace.accountId,
+                entityUuid,
+              ),
+            },
           });
 
           if (subgraph) {
@@ -67,8 +73,10 @@ const Page: NextPageWithLayout = () => {
     return <PageErrorState />;
   }
 
+  const entityLabel = generateEntityLabel(entitySubgraph);
+
   return (
-    <EntityPageWrapper entitySubgraph={entitySubgraph}>
+    <EntityPageWrapper label={entityLabel}>
       <EntityEditor
         entitySubgraph={entitySubgraph}
         setEntity={(entity) =>
@@ -112,6 +120,9 @@ const Page: NextPageWithLayout = () => {
   );
 };
 
-Page.getLayout = getPlainLayout;
+Page.getLayout = (page) =>
+  getLayoutWithSidebar(page, {
+    fullWidth: true,
+  });
 
 export default Page;

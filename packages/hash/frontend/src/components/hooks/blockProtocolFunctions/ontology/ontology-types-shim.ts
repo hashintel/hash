@@ -23,6 +23,7 @@ import {
   Subgraph,
   SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
+import { EmptyObject } from "@hashintel/hash-shared/util";
 
 export type OntologyCallbacks = {
   aggregateDataTypes: AggregateDataTypesMessageCallback;
@@ -39,7 +40,7 @@ export type OntologyCallbacks = {
 
 /* Data type CRU */
 export type AggregateDataTypesMessageCallback = MessageCallback<
-  {},
+  EmptyObject,
   null,
   Subgraph<SubgraphRootTypes["dataType"]>,
   ReadOrModifyResourceError
@@ -64,15 +65,28 @@ export type CreatePropertyTypeMessageCallback = MessageCallback<
   CreateResourceError
 >;
 
+export type AggregatePropertyTypesRequest = {
+  graphResolveDepths?: Partial<
+    Pick<Subgraph["depths"], "constrainsValuesOn" | "constrainsPropertiesOn">
+  >;
+};
+
 export type AggregatePropertyTypesMessageCallback = MessageCallback<
-  {},
+  AggregatePropertyTypesRequest,
   null,
   Subgraph<SubgraphRootTypes["propertyType"]>,
   ReadOrModifyResourceError
 >;
 
+export type GetPropertyTypeRequest = {
+  propertyTypeId: VersionedUri;
+  graphResolveDepths?: Partial<
+    Pick<Subgraph["depths"], "constrainsValuesOn" | "constrainsPropertiesOn">
+  >;
+};
+
 export type GetPropertyTypeMessageCallback = MessageCallback<
-  VersionedUri,
+  GetPropertyTypeRequest,
   null,
   Subgraph<SubgraphRootTypes["propertyType"]>,
   ReadOrModifyResourceError
@@ -101,15 +115,40 @@ export type CreateEntityTypeMessageCallback = MessageCallback<
   CreateResourceError
 >;
 
+export type AggregateEntityTypesRequest = {
+  graphResolveDepths?: Partial<
+    Pick<
+      Subgraph["depths"],
+      | "constrainsValuesOn"
+      | "constrainsPropertiesOn"
+      | "constrainsLinksOn"
+      | "constrainsLinkDestinationsOn"
+    >
+  >;
+};
+
 export type AggregateEntityTypesMessageCallback = MessageCallback<
-  {},
+  AggregateEntityTypesRequest,
   null,
   Subgraph<SubgraphRootTypes["entityType"]>,
   ReadOrModifyResourceError
 >;
 
+export type GetEntityTypeRequest = {
+  entityTypeId: VersionedUri;
+  graphResolveDepths?: Partial<
+    Pick<
+      Subgraph["depths"],
+      | "constrainsValuesOn"
+      | "constrainsPropertiesOn"
+      | "constrainsLinksOn"
+      | "constrainsLinkDestinationsOn"
+    >
+  >;
+};
+
 export type GetEntityTypeMessageCallback = MessageCallback<
-  VersionedUri,
+  GetEntityTypeRequest,
   null,
   Subgraph<SubgraphRootTypes["entityType"]>,
   ReadOrModifyResourceError
