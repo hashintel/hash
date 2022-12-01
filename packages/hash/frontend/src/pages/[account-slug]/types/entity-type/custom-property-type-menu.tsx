@@ -104,6 +104,8 @@ export const PropertyTypeCustomMenu: FunctionComponent<
       <Stack
         gap={3}
         sx={({ palette }) => ({
+          maxHeight: "40vh",
+          overflow: "auto",
           paddingY: 2.25,
           paddingX: 1.5,
           background: palette.gray[20],

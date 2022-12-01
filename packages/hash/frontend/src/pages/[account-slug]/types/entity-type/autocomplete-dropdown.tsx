@@ -1,9 +1,11 @@
 import { textFieldBorderRadius } from "@hashintel/hash-design-system";
 import { autocompleteClasses, Box, Paper, PaperProps } from "@mui/material";
 
-export const PROPERTY_SELECTOR_HEIGHT = 57;
-
-export const AutocompleteDropdown = ({ children, ...props }: PaperProps) => {
+export const AutocompleteDropdown = ({
+  buttonHeight = 0,
+  children,
+  ...props
+}: PaperProps & { buttonHeight?: number }) => {
   return (
     <>
       <Box
@@ -12,15 +14,15 @@ export const AutocompleteDropdown = ({ children, ...props }: PaperProps) => {
           left: 0,
           right: 0,
           width: "100%",
-          height: `calc(100% + ${PROPERTY_SELECTOR_HEIGHT}px)`,
+          height: `calc(100% + ${buttonHeight}px)`,
           boxShadow: theme.boxShadows.md,
           pointerEvents: "none",
           borderRadius: `${textFieldBorderRadius}px`,
-          [`[data-popper-placement="top"] &`]: {
-            bottom: -PROPERTY_SELECTOR_HEIGHT,
+          [`[data-popper-placement*="top"] &`]: {
+            bottom: -buttonHeight,
           },
-          [`[data-popper-placement="bottom"] &`]: {
-            top: -PROPERTY_SELECTOR_HEIGHT,
+          [`[data-popper-placement*="bottom"] &`]: {
+            top: -buttonHeight,
           },
         })}
         aria-hidden
@@ -33,12 +35,12 @@ export const AutocompleteDropdown = ({ children, ...props }: PaperProps) => {
           boxSizing: "border-box",
           borderColor: theme.palette.gray[30],
           boxShadow: "none",
-          [`[data-popper-placement="top"] &`]: {
+          [`[data-popper-placement*="top"] &`]: {
             borderBottom: 0,
             borderBottomLeftRadius: 0,
             borderBottomRightRadius: 0,
           },
-          [`[data-popper-placement="bottom"] &`]: {
+          [`[data-popper-placement*="bottom"] &`]: {
             borderTop: 0,
             borderTopLeftRadius: 0,
             borderTopRightRadius: 0,

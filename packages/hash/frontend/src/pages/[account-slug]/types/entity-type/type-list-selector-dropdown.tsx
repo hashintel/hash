@@ -19,7 +19,7 @@ export const TypeListSelectorDropdown = ({
   const { query, createButtonProps, variant } = dropdownProps;
 
   return (
-    <AutocompleteDropdown {...props}>
+    <AutocompleteDropdown buttonHeight={TYPE_SELECTOR_HEIGHT} {...props}>
       {children}
       <Button
         variant="tertiary"
