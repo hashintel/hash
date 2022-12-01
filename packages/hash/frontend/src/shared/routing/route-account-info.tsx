@@ -8,7 +8,7 @@ import {
 } from "react";
 
 type RouteAccountInfo = {
-  accountId: string;
+  routeAccountSlug: string;
 };
 
 const RouteAccountInfoContext = createContext<RouteAccountInfo | undefined>(
@@ -31,7 +31,7 @@ export const RouteAccountInfoProvider: FunctionComponent<{
     () =>
       typeof accountSlug === "string"
         ? {
-            accountId: accountSlug, // @todo parse and use suspense for lookup if needed
+            routeAccountSlug: accountSlug, // @todo parse and use suspense for lookup if needed
           }
         : undefined,
     [accountSlug],

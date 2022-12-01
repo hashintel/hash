@@ -44,7 +44,7 @@ export const EntityTypeMenu: FunctionComponent<EntityTypeMenuProps> = ({
       {
         title: `Create new ${pluralize.singular(entityTitle)}`,
         icon: faAdd,
-        href: `/${accountId}/entities/new?entityTypeId=${entityId}`,
+        href: `/${accountId}/new/entity?entity-type-id=${entityId}`,
         faded: false,
       },
       {
