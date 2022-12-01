@@ -6,6 +6,7 @@ import {
   CardContent,
   CardContentProps,
 } from "@mui/material";
+import { Link } from "../../../shared/ui/link";
 
 export const WhiteCard = ({
   onClick,
@@ -53,6 +54,7 @@ export const WhiteCard = ({
       {onClick || href ? (
         <CardActionArea
           {...(onClick ? { onClick } : { href })}
+          LinkComponent={Link}
           disableRipple
           disableTouchRipple
           sx={{
