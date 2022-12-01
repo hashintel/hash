@@ -75,6 +75,7 @@ export const useCreateGetCellContent = () => {
               data: {
                 kind: "chip-cell",
                 chips: linkRow.expectedEntityTypeTitles,
+                color: "blue",
               } as ChipCellProps,
             };
         }
