@@ -1,4 +1,5 @@
 import "../testUtils/mockTypeSystem";
+import "../testUtils/mockUseAuthenticatedUser";
 import { mockUseRouter } from "../testUtils/mockUseRouter";
 import { render } from "../testUtils/testUtils";
 import Login from "./login.page";
