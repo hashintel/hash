@@ -42,9 +42,7 @@ type BlogPostPageQueryParams = {
   blogSlug?: string[];
 };
 
-export const getStaticPaths: GetStaticPaths<
-  BlogPostPageQueryParams
-> = async () => {
+export const getStaticPaths: GetStaticPaths<BlogPostPageQueryParams> = () => {
   const paths = getAllPageHrefs({ folderName: "blog" }).map((href) => ({
     params: {
       blogSlug: href
@@ -81,8 +79,11 @@ export const getStaticProps: GetStaticProps<
       fileNameWithoutIndex,
     });
 
-    const postPhotoSrc: string | null = data?.postPhoto.split(",") ?? null;
-
+    const postPhotoSrc: string | null =
+      (typeof data?.postPhoto === "string" &&
+        data.postPhoto &&
+        data.postPhoto.split(",")[0]) ||
+      null;
     const [postPhoto, bodyImages] = await Promise.all([
       getPhoto(postPhotoSrc),
 
