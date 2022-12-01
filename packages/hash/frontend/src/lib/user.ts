@@ -7,10 +7,7 @@ import {
   EntityEditionIdString,
   entityEditionIdToString,
 } from "@hashintel/hash-subgraph";
-import {
-  getEntityAtTimestamp,
-  getEntityByEditionId,
-} from "@hashintel/hash-subgraph/src/stdlib/element/entity";
+import { getEntityByEditionId } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import {
   getOutgoingLinksForEntityAtMoment,
   getRightEntityForLinkEntityAtMoment,
@@ -141,19 +138,14 @@ export const constructAuthenticatedUser = (params: {
 }): AuthenticatedUser => {
   const { userEntityEditionId, subgraph } = params;
 
-  const latestUserEntity = getEntityAtTimestamp(
-    subgraph,
-    userEntityEditionId.baseId,
-    new Date(),
-  );
+  const { metadata, properties } =
+    getEntityByEditionId(subgraph, userEntityEditionId) ?? {};
 
-  if (!latestUserEntity) {
+  if (!properties || !metadata) {
     throw new Error(
       `Could not find entity edition with ID ${userEntityEditionId} in subgraph`,
     );
   }
-
-  const { metadata, properties } = latestUserEntity;
 
   const primaryEmailAddress: string = properties[
     extractBaseUri(types.propertyType.email.propertyTypeId)
