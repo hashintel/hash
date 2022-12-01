@@ -49,7 +49,7 @@ const MyApp: FunctionComponent<MyAppProps> = ({
 
   useEffect(() => {
     const handleRouteChange = (url: string) => {
-      (window as any).gtag?.("config", "[Tracking ID]", {
+      window.gtag?.("config", "[Tracking ID]", {
         page_path: url,
       });
     };

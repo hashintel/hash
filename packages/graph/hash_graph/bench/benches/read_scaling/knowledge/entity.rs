@@ -5,7 +5,7 @@ use criterion_macro::criterion;
 use graph::{
     identifier::account::AccountId,
     knowledge::{EntityProperties, EntityQueryPath, EntityUuid},
-    provenance::{CreatedById, OwnedById},
+    provenance::{OwnedById, UpdatedById},
     store::{
         query::{Filter, FilterExpression, Parameter},
         AccountStore, AsClient, EntityStore, PostgresStore,
@@ -75,7 +75,7 @@ async fn seed_db(
             repeat((None, properties, None)).take(total),
             entity_type_id,
             OwnedById::new(account_id),
-            CreatedById::new(account_id),
+            UpdatedById::new(account_id),
         )
         .await
         .expect("failed to create entities");

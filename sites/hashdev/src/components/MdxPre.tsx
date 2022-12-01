@@ -28,7 +28,11 @@ export const MdxPre = ({ children: codeEl }: { children: ReactElement }) => {
     >
       <Snippet
         source={`${children}`}
-        language={className?.replace("language-", "") ?? ""}
+        language={
+          typeof className === "string"
+            ? className.replace("language-", "")
+            : ""
+        }
       />
     </Box>
   );

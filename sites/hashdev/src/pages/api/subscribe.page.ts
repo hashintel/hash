@@ -26,7 +26,18 @@ const getIpAddress = (req: NextApiRequest): string | undefined => {
   }
 };
 
-export default (req: NextApiRequest, res: NextApiResponse) => {
+export type SubscribeResponseBody = {
+  message: string;
+  response: {
+    status?: string;
+    title?: string;
+  };
+};
+
+export default (
+  req: NextApiRequest,
+  res: NextApiResponse<SubscribeResponseBody>,
+) => {
   const email: string = req.body.email;
 
   const merge_fields = {
@@ -51,6 +62,7 @@ export default (req: NextApiRequest, res: NextApiResponse) => {
     .catch((error) => {
       if (
         typeof error === "object" &&
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- consider adding typings to mailchimp response
         error?.response?.data?.title?.includes?.("Exists")
       ) {
         return { data: { status: "subscribed", title: "Already subscribed" } };
@@ -85,7 +97,7 @@ export default (req: NextApiRequest, res: NextApiResponse) => {
         throw data;
       }
     })
-    .catch(async (error) => {
+    .catch((error) => {
       // eslint-disable-next-line no-console
       console.log(error);
       res.status(400).json({

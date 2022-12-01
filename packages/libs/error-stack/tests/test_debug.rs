@@ -238,7 +238,7 @@ fn sources_nested_alternate() {
 
 #[cfg(all(
     rust_1_65,
-    feature = "std",
+    any(feature = "std", feature = "hooks"),
     feature = "spantrace",
     feature = "pretty-print"
 ))]

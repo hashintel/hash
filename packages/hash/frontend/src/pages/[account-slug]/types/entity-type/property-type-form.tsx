@@ -6,11 +6,7 @@ import {
   FontAwesomeIcon,
   TextField,
 } from "@hashintel/hash-design-system";
-import {
-  addVersionToBaseUri,
-  generateBaseTypeId,
-  types,
-} from "@hashintel/hash-shared/types";
+import { generateBaseTypeId, types } from "@hashintel/hash-shared/types";
 import {
   Autocomplete,
   Box,
@@ -24,6 +20,7 @@ import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { frontendUrl } from "@hashintel/hash-shared/environment";
 import { getPropertyTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
+import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
 import { useBlockProtocolCreatePropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreatePropertyType";
 import { useBlockProtocolGetPropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetPropertyType";
 import { fa100 } from "../../../../shared/icons/pro/fa-100";
@@ -34,7 +31,7 @@ import { useRefetchPropertyTypes } from "./use-property-types";
 import { useRouteNamespace } from "./use-route-namespace";
 
 const generateInitialPropertyTypeId = (baseUri: string) =>
-  addVersionToBaseUri(baseUri, 1);
+  versionedUriFromComponents(baseUri, 1);
 
 const propertyTypeDataTypes = [
   {
@@ -95,10 +92,10 @@ export const PropertyTypeForm = ({
     setFocus(initialTitle ? "description" : "name");
   }, [initialTitle, setFocus]);
 
-  const { namespace: routeNamespace } = useRouteNamespace();
+  const { routeNamespace } = useRouteNamespace();
 
   const { createPropertyType } = useBlockProtocolCreatePropertyType(
-    routeNamespace?.accountId ?? "",
+    routeNamespace?.shortname ?? "",
   );
   const { getPropertyType } = useBlockProtocolGetPropertyType();
 
@@ -183,7 +180,15 @@ export const PropertyTypeForm = ({
                 generatePropertyTypeBaseUriForUser(value),
               );
 
-              const res = await getPropertyType({ data: propertyTypeId });
+              const res = await getPropertyType({
+                data: {
+                  propertyTypeId,
+                  graphResolveDepths: {
+                    constrainsValuesOn: { outgoing: 0 },
+                    constrainsPropertiesOn: { outgoing: 0 },
+                  },
+                },
+              });
 
               const exists =
                 !res.data || !!getPropertyTypeById(res.data, propertyTypeId);

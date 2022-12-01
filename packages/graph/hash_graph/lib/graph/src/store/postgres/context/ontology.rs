@@ -3,7 +3,7 @@ use tokio_postgres::GenericClient;
 use type_system::uri::BaseUri;
 
 use crate::{
-    provenance::{CreatedById, OwnedById, UpdatedById},
+    provenance::{OwnedById, UpdatedById},
     store::{postgres::ontology::OntologyDatabaseType, AsClient, QueryError},
 };
 
@@ -15,7 +15,6 @@ use crate::{
 pub struct OntologyRecord<T> {
     pub record: T,
     pub owned_by_id: OwnedById,
-    pub created_by_id: CreatedById,
     pub updated_by_id: UpdatedById,
     pub is_latest: bool,
 }
@@ -32,7 +31,7 @@ where
         .query_one(
             &format!(
                 r#"
-                SELECT schema, owned_by_id, created_by_id, updated_by_id
+                SELECT schema, owned_by_id, updated_by_id
                 FROM {} type_table
                 INNER JOIN type_ids
                 ON type_table.version_id = type_ids.version_id
@@ -54,14 +53,12 @@ where
         .into_report()
         .change_context(QueryError)?;
     let owned_by_id = OwnedById::new(row.get(1));
-    let created_by_id = CreatedById::new(row.get(2));
-    let updated_by_id = UpdatedById::new(row.get(3));
+    let updated_by_id = UpdatedById::new(row.get(2));
 
     Ok(OntologyRecord {
         record,
         owned_by_id,
         is_latest: true,
-        created_by_id,
         updated_by_id,
     })
 }

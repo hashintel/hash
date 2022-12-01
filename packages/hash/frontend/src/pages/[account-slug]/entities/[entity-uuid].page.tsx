@@ -16,13 +16,12 @@ import { EntityEditor } from "./[entity-uuid].page/entity-editor";
 import { EntityPageLoadingState } from "./[entity-uuid].page/entity-page-loading-state";
 import { EntityPageWrapper } from "./[entity-uuid].page/entity-page-wrapper";
 import { PageErrorState } from "../../../components/page-error-state";
-/** @todo - This should be moved somewhere shared */
-import { useRouteNamespace } from "../types/entity-type/use-route-namespace";
 import { generateEntityLabel } from "../../../lib/entities";
+import { useRouteNamespace } from "../types/entity-type/use-route-namespace";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
-  const { namespace } = useRouteNamespace();
+  const { routeNamespace } = useRouteNamespace();
   const { authenticatedUser } = useLoggedInUser();
   const { getEntity } = useBlockProtocolGetEntity();
 
@@ -31,16 +30,18 @@ const Page: NextPageWithLayout = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (namespace) {
+    if (routeNamespace) {
       const init = async () => {
         try {
           const entityUuid = router.query["entity-uuid"] as string;
 
           const { data: subgraph } = await getEntity({
-            data: entityIdFromOwnedByIdAndEntityUuid(
-              namespace.accountId,
-              entityUuid,
-            ),
+            data: {
+              entityId: entityIdFromOwnedByIdAndEntityUuid(
+                routeNamespace.accountId,
+                entityUuid,
+              ),
+            },
           });
 
           if (subgraph) {
@@ -57,7 +58,7 @@ const Page: NextPageWithLayout = () => {
 
       void init();
     }
-  }, [namespace, router.query, getEntity]);
+  }, [routeNamespace, router.query, getEntity]);
 
   if (!authenticatedUser) {
     return null;

@@ -26,6 +26,7 @@ import {
   RoutePageInfoProvider,
 } from "../shared/routing";
 import { ReadonlyModeProvider } from "../shared/readonly-mode";
+import { WorkspaceContextProvider } from "./shared/workspace-context";
 
 export const apolloClient = createApolloClient();
 
@@ -106,11 +107,13 @@ const App: FunctionComponent<AppProps> = ({
           <ModalProvider>
             <RouteAccountInfoProvider>
               <RoutePageInfoProvider>
-                <ReadonlyModeProvider>
-                  <SnackbarProvider maxSnack={3}>
-                    {getLayout(<Component {...pageProps} />)}
-                  </SnackbarProvider>
-                </ReadonlyModeProvider>
+                <WorkspaceContextProvider>
+                  <ReadonlyModeProvider>
+                    <SnackbarProvider maxSnack={3}>
+                      {getLayout(<Component {...pageProps} />)}
+                    </SnackbarProvider>
+                  </ReadonlyModeProvider>
+                </WorkspaceContextProvider>
               </RoutePageInfoProvider>
             </RouteAccountInfoProvider>
           </ModalProvider>

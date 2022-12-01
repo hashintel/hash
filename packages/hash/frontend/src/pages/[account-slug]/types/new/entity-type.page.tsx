@@ -1,10 +1,7 @@
 import { EntityType } from "@blockprotocol/type-system-web";
 import { Button, TextField } from "@hashintel/hash-design-system";
 import { frontendUrl } from "@hashintel/hash-shared/environment";
-import {
-  addVersionToBaseUri,
-  generateBaseTypeId,
-} from "@hashintel/hash-shared/types";
+import { generateBaseTypeId } from "@hashintel/hash-shared/types";
 import {
   Box,
   Container,
@@ -17,8 +14,9 @@ import {
 } from "@mui/material";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useContext, useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
 import { useBlockProtocolGetEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
 import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
 import { useInitTypeSystem } from "../../../../lib/use-init-type-system";
@@ -28,6 +26,7 @@ import {
 } from "../../../../shared/layout";
 import { Link } from "../../../../shared/ui/link";
 import { TopContextBar } from "../../../shared/top-context-bar";
+import { WorkspaceContext } from "../../../shared/workspace-context";
 import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
 import { OntologyChip } from "../../shared/ontology-chip";
 import { useRouteNamespace } from "../entity-type/use-route-namespace";
@@ -58,7 +57,7 @@ type CreateEntityTypeFormData = {
 const HELPER_TEXT_WIDTH = 290;
 
 const generateInitialEntityTypeId = (baseUri: string) =>
-  addVersionToBaseUri(baseUri, 1);
+  versionedUriFromComponents(baseUri, 1);
 
 const Page: NextPageWithLayout = () => {
   const typeSystemLoading = useInitTypeSystem();
@@ -83,36 +82,38 @@ const Page: NextPageWithLayout = () => {
 
   const { authenticatedUser, loading } = useAuthenticatedUser();
   const { getEntityType } = useBlockProtocolGetEntityType();
-  const { namespace, loading: loadingNamespace } = useRouteNamespace();
+  const { activeWorkspace, activeWorkspaceAccountId } =
+    useContext(WorkspaceContext);
+  const { routeNamespace, loading: loadingNamespace } = useRouteNamespace();
 
   useEffect(() => {
-    if (authenticatedUser && !loadingNamespace && !namespace) {
+    if (activeWorkspace && !loadingNamespace && !routeNamespace) {
       void router.replace(
-        `/@${authenticatedUser.shortname}/types/new/entity-type`,
+        `/@${activeWorkspace.shortname}/types/new/entity-type`,
       );
     }
-  }, [loadingNamespace, authenticatedUser, namespace, router]);
+  }, [loadingNamespace, activeWorkspace, routeNamespace, router]);
 
-  if (typeSystemLoading || loading || !authenticatedUser || !namespace) {
+  if (typeSystemLoading || loading || !authenticatedUser || !activeWorkspace) {
     return null;
   }
 
   const generateEntityTypeBaseUriForUser = (value: string) => {
-    if (!namespace) {
+    if (!activeWorkspace) {
       throw new Error("User or Org shortname must exist");
     }
 
     return generateBaseTypeId({
       domain: frontendUrl,
-      namespace: namespace.shortname ?? "",
+      namespace: activeWorkspace.shortname ?? "",
       kind: "entity-type",
       title: value,
     });
   };
 
   const handleFormSubmit = handleSubmit(async ({ name, description }) => {
-    if (!namespace) {
-      throw new Error("Namespace for entity type creation missing");
+    if (!activeWorkspace) {
+      throw new Error("Active workspace for entity type creation missing");
     }
 
     const baseUri = generateEntityTypeBaseUriForUser(name);
@@ -163,7 +164,7 @@ const Page: NextPageWithLayout = () => {
                     fontWeight="bold"
                     color="inherit"
                   >
-                    {`@${namespace.shortname}`}
+                    {`@${activeWorkspace.shortname}`}
                   </Typography>
                   /types/new/entity-type
                 </Typography>
@@ -222,9 +223,17 @@ const Page: NextPageWithLayout = () => {
                   },
                   async validate(value) {
                     const res = await getEntityType({
-                      data: generateInitialEntityTypeId(
-                        generateEntityTypeBaseUriForUser(value),
-                      ),
+                      data: {
+                        entityTypeId: generateInitialEntityTypeId(
+                          generateEntityTypeBaseUriForUser(value),
+                        ),
+                        graphResolveDepths: {
+                          constrainsValuesOn: { outgoing: 0 },
+                          constrainsPropertiesOn: { outgoing: 0 },
+                          constrainsLinksOn: { outgoing: 0 },
+                          constrainsLinkDestinationsOn: { outgoing: 0 },
+                        },
+                      },
                     });
 
                     return res.data?.roots.length
@@ -293,7 +302,7 @@ const Page: NextPageWithLayout = () => {
                   Create new entity type
                 </Button>
                 <Button
-                  href={`/${namespace.accountId}`}
+                  href={`/${activeWorkspaceAccountId}`}
                   variant="tertiary"
                   size="small"
                   disabled={isSubmitting}
