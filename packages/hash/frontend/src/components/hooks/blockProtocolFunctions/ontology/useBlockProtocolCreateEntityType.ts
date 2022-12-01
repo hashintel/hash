@@ -9,7 +9,7 @@ import { createEntityTypeMutation } from "../../../../graphql/queries/ontology/e
 import { CreateEntityTypeMessageCallback } from "./ontology-types-shim";
 
 export const useBlockProtocolCreateEntityType = (
-  ownedById: string,
+  ownedById: string | null,
   readonly?: boolean,
 ): {
   createEntityType: CreateEntityTypeMessageCallback;
@@ -41,6 +41,10 @@ export const useBlockProtocolCreateEntityType = (
             },
           ],
         };
+      }
+
+      if (!ownedById) {
+        throw new Error("Host application must specified an ownedById");
       }
 
       const { entityType } = data;

@@ -13,7 +13,7 @@ import { getEntityTypeBaseUri } from "./util";
 import { useEntityType } from "./use-entity-type";
 import { WorkspaceContext } from "../../../shared/workspace-context";
 
-export const EntityTypeTabs = () => {
+export const EntityTypeTabs = ({ isDraft }: { isDraft: boolean }) => {
   const router = useRouter();
   const { activeWorkspace } = useContext(WorkspaceContext);
 
@@ -68,45 +68,58 @@ export const EntityTypeTabs = () => {
       >
         <TabLink
           value={getTabValue("definition")}
-          href={getTabUri(baseUri, "definition")}
+          href={isDraft ? router.asPath : getTabUri(baseUri, "definition")}
           label="Definition"
           count={propertiesCount ?? 0}
           active={currentTab === "definition"}
         />
-        <TabLink
-          value={getTabValue("entities")}
-          href={getTabUri(baseUri, "entities")}
-          label="Entities"
-          count={entities?.length ?? 0}
-          active={currentTab === "entities"}
-        />
-
-        <TabLink
-          value="create"
-          href={`/@${
-            activeWorkspace?.shortname
-          }/entities/new?entity-type-id=${encodeURIComponent(entityType.$id)}`}
-          label="Create new entity"
-          sx={(theme) => ({
-            ml: "auto",
-            color: "inherit",
-            fill: theme.palette.blue[70],
-            "&:hover": {
-              color: theme.palette.primary.main,
-              fill: theme.palette.blue[60],
-            },
-          })}
-          icon={
-            <FontAwesomeIcon
-              icon={faPlus}
-              sx={(theme) => ({
-                ...theme.typography.smallTextLabels,
-                fill: "inherit",
-                ml: 1,
-              })}
-            />
-          }
-        />
+        {isDraft
+          ? null
+          : /**
+             * MUI requires that a component with the value prop is a direct descendant of
+             * Tabs, so we need to use an array and not a fragment.
+             *
+             * @see https://github.com/mui/material-ui/issues/30153
+             */
+            [
+              <TabLink
+                key="entities"
+                value={getTabValue("entities")}
+                href={getTabUri(baseUri, "entities")}
+                label="Entities"
+                count={entities?.length ?? 0}
+                active={currentTab === "entities"}
+              />,
+              <TabLink
+                key="create"
+                value="create"
+                href={`/@${
+                  activeWorkspace?.shortname
+                }/new/entity?entity-type-id=${encodeURIComponent(
+                  entityType.$id,
+                )}`}
+                label="Create new entity"
+                sx={(theme) => ({
+                  ml: "auto",
+                  color: "inherit",
+                  fill: theme.palette.blue[70],
+                  "&:hover": {
+                    color: theme.palette.primary.main,
+                    fill: theme.palette.blue[60],
+                  },
+                })}
+                icon={
+                  <FontAwesomeIcon
+                    icon={faPlus}
+                    sx={(theme) => ({
+                      ...theme.typography.smallTextLabels,
+                      fill: "inherit",
+                      ml: 1,
+                    })}
+                  />
+                }
+              />,
+            ]}
       </Tabs>
     </Box>
   );
