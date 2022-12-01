@@ -143,7 +143,7 @@ export const constructAuthenticatedUser = (params: {
 
   if (!properties || !metadata) {
     throw new Error(
-      `Could not find entity edition with ID ${userEntityEditionId} in subgraph`,
+      `Could not find entity with ID ${userEntityEditionId.baseId} in subgraph`,
     );
   }
 
