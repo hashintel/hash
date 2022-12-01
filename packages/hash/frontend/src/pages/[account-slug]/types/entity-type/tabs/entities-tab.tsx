@@ -9,7 +9,13 @@ import {
   IconButton,
 } from "@hashintel/hash-design-system";
 import { Box, Paper, Stack } from "@mui/material";
-import { FunctionComponent, useCallback, useMemo, useState } from "react";
+import {
+  FunctionComponent,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+} from "react";
 import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
 import { extractOwnedByIdFromEntityId } from "@hashintel/hash-subgraph";
 import { SectionWrapper } from "../../../shared/section-wrapper";
@@ -18,12 +24,12 @@ import { blankCell } from "../../../../../components/grid/utils";
 import { HomeIcon } from "../../../../../shared/icons/home-icon";
 import { EarthIcon } from "../../../../../shared/icons/earth-icon";
 import { renderTextIconCell } from "../text-icon-cell";
-import { useRouteNamespace } from "../use-route-namespace";
 import { TypeEntitiesRow, useEntitiesTable } from "../use-entities-table";
 import { useEntityTypeEntities } from "../use-entity-type-entities";
 import { useEntityType } from "../use-entity-type";
 import { Grid } from "../../../../../components/grid/grid";
 import { SectionEmptyState } from "../../../shared/section-empty-state";
+import { WorkspaceContext } from "../../../../shared/workspace-context";
 
 export const EntitiesTab: FunctionComponent = () => {
   const entityType = useEntityType();
@@ -32,7 +38,8 @@ export const EntitiesTab: FunctionComponent = () => {
 
   const [showSearch, setShowSearch] = useState(false);
 
-  const { namespace } = useRouteNamespace();
+  const { activeWorkspaceAccountId, activeWorkspace } =
+    useContext(WorkspaceContext);
 
   const { columns, rows } =
     useEntitiesTable(entities, entityTypes, propertyTypes, subgraph) ?? {};
@@ -42,14 +49,14 @@ export const EntitiesTab: FunctionComponent = () => {
       entities?.filter(
         (entity) =>
           extractOwnedByIdFromEntityId(entity.metadata.editionId.baseId) ===
-          namespace?.accountId,
+          activeWorkspaceAccountId,
       ) ?? [];
 
     return {
       namespace: namespaceEntities.length,
       public: (entities?.length ?? 0) - namespaceEntities.length,
     };
-  }, [entities, namespace]);
+  }, [entities, activeWorkspaceAccountId]);
 
   const createGetCellContent = useCallback(
     (rowData: TypeEntitiesRow[]) =>
@@ -107,7 +114,7 @@ export const EntitiesTab: FunctionComponent = () => {
                 {entitiesCount.namespace ? (
                   <Chip
                     size="xs"
-                    label={`${entitiesCount.namespace} in @${namespace?.shortname}`}
+                    label={`${entitiesCount.namespace} in @${activeWorkspace?.shortname}`}
                     icon={<HomeIcon />}
                     sx={({ palette }) => ({ color: palette.gray[70] })}
                   />
