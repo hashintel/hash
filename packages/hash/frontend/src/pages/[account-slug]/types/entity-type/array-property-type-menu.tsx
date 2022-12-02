@@ -63,7 +63,7 @@ export const ArrayPropertyTypeMenu: FunctionComponent<
     name: `flattenedPropertyList.${id}.data.expectedValues`,
   });
 
-  const deleteDataType = (typeId: string) => {
+  const deleteDataTypeByTypeId = (typeId: string) => {
     const removedDataTypeId = Object.values(flattenedProperties).find(
       (property) =>
         property.parentId === id && property.data?.typeId === typeId,
@@ -115,7 +115,7 @@ export const ArrayPropertyTypeMenu: FunctionComponent<
             key={childId}
             id={childId}
             index={[...index, pos]}
-            onDelete={(typeId: string) => deleteDataType(typeId)}
+            onDelete={(typeId: string) => deleteDataTypeByTypeId(typeId)}
             onlyChild={expectedValues.length === 1}
             firstChild={pos === 0}
           />
@@ -151,7 +151,7 @@ export const ArrayPropertyTypeMenu: FunctionComponent<
                   childId,
                 ]);
               } else if (reason === "removeOption") {
-                deleteDataType(typeId);
+                deleteDataTypeByTypeId(typeId);
               }
             }
           }}
