@@ -7,3 +7,9 @@ export const isProduction = process.env.NEXT_PUBLIC_VERCEL_ENV === "production";
 export const localStorageKeys = {
   workspaceAccountId: "workspaceAccountId",
 } as const;
+
+export const resetLocalStorage = () => {
+  for (const localStorageKey of Object.values(localStorageKeys)) {
+    localStorage.removeItem(localStorageKey);
+  }
+};
