@@ -162,7 +162,6 @@ export const HashSelectorAutocomplete = <T extends unknown>({
                   >
                     {title}
                   </Typography>
-                  <ArrowUpRightIcon />
                 </Box>
                 <OntologyChip
                   {...ontology}
