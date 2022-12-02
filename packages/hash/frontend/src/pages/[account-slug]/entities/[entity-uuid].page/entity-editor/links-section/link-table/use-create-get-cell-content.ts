@@ -1,16 +1,20 @@
-import { GridCell, GridCellKind, Item } from "@glideapps/glide-data-grid";
+import { GridCellKind, Item } from "@glideapps/glide-data-grid";
 import { useCallback } from "react";
-import { ChipCellProps } from "../../properties-section/property-table/cells/chip-cell";
-import { LinkCellProps } from "./cells/link-cell";
-import { LinkedWithCellProps } from "./cells/linked-with-cell";
+import { ChipCell } from "../../properties-section/property-table/cells/chip-cell";
+import { LinkCell } from "./cells/link-cell";
+import { LinkedWithCell } from "./cells/linked-with-cell";
 import { linkGridIndexes } from "./constants";
 import { LinkRow } from "./types";
-import { SummaryChipCellProps } from "../../properties-section/property-table/cells/summary-chip-cell";
+import { SummaryChipCell } from "../../properties-section/property-table/cells/summary-chip-cell";
 
 export const useCreateGetCellContent = () => {
   const createGetCellContent = useCallback(
     (rows: LinkRow[]) =>
-      ([col, row]: Item): GridCell => {
+      ([col, row]: Item):
+        | LinkCell
+        | SummaryChipCell
+        | LinkedWithCell
+        | ChipCell => {
         const linkRow = rows[row];
 
         if (!linkRow) {
@@ -33,7 +37,7 @@ export const useCreateGetCellContent = () => {
               data: {
                 kind: "link-cell",
                 linkRow,
-              } satisfies LinkCellProps,
+              },
             };
           case "linkedWith":
             if (linkRow.maxItems > 1) {
@@ -51,7 +55,7 @@ export const useCreateGetCellContent = () => {
                 data: {
                   kind: "summary-chip-cell",
                   secondaryText,
-                } satisfies SummaryChipCellProps,
+                },
               };
             }
 
@@ -64,7 +68,7 @@ export const useCreateGetCellContent = () => {
               data: {
                 kind: "linked-with-cell",
                 linkRow,
-              } satisfies LinkedWithCellProps,
+              },
             };
           case "expectedEntityTypes":
             return {
@@ -76,7 +80,7 @@ export const useCreateGetCellContent = () => {
                 kind: "chip-cell",
                 chips: linkRow.expectedEntityTypeTitles,
                 color: "blue",
-              } satisfies ChipCellProps,
+              },
             };
         }
       },
