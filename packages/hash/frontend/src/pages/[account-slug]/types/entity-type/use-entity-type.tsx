@@ -54,6 +54,7 @@ export const useEntityTypeValue = (
           : [];
 
         /** @todo - pick the latest version? */
+        // @todo handle adding any linked properties to known property types
         const relevantEntityType =
           relevantEntityTypes.length > 0
             ? relevantEntityTypes[0]!.schema
