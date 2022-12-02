@@ -41,13 +41,14 @@ const deleteDataTypeAndChildren = (
 type ArrayPropertyTypeMenuProps = {
   id: string;
   prefix?: string;
+  deleteTooltip?: string;
   onDelete?: () => void;
   index?: number[];
 };
 
 export const ArrayPropertyTypeMenu: FunctionComponent<
   ArrayPropertyTypeMenuProps
-> = ({ id, prefix, onDelete, index = [] }) => {
+> = ({ id, prefix, deleteTooltip, onDelete, index = [] }) => {
   const { setValue, control } = useFormContext<PropertyTypeFormValues>();
 
   const flattenedProperties = useWatch({
@@ -94,7 +95,12 @@ export const ArrayPropertyTypeMenu: FunctionComponent<
 
   return (
     <Stack sx={{ mb: 1 }}>
-      <DataTypeBadge typeId="array" prefix={prefix} onDelete={onDelete} />
+      <DataTypeBadge
+        typeId="array"
+        prefix={prefix}
+        deleteTooltip={deleteTooltip}
+        onDelete={onDelete}
+      />
 
       <Box
         sx={{
@@ -114,6 +120,9 @@ export const ArrayPropertyTypeMenu: FunctionComponent<
             return null;
           }
 
+          const isObject =
+            property.data.typeId === types.dataType.object.dataTypeId;
+
           return (
             <Box key={property.data.typeId} mb={1}>
               {property.data.typeId === "array" ? (
@@ -124,6 +133,11 @@ export const ArrayPropertyTypeMenu: FunctionComponent<
                       ? "CONTAINING AN"
                       : "OR AN"
                   }
+                  deleteTooltip={`Delete array${
+                    property.data.expectedValues.length
+                      ? " and its contents"
+                      : ""
+                  }`}
                   index={[...index, pos]}
                   onDelete={() =>
                     property.data?.typeId &&
@@ -139,11 +153,8 @@ export const ArrayPropertyTypeMenu: FunctionComponent<
                       : pos === 0
                       ? "CONTAINING EITHER"
                       : "OR"
-                  }${
-                    property.data.typeId === types.dataType.object.dataTypeId
-                      ? " A"
-                      : ""
-                  }`}
+                  }${isObject ? " A" : ""}`}
+                  deleteTooltip="Remove data type"
                   onDelete={() =>
                     property.data?.typeId &&
                     deleteDataType(property.data.typeId)

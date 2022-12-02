@@ -1,19 +1,29 @@
 import { VersionedUri } from "@blockprotocol/type-system-web";
 import { faClose } from "@fortawesome/free-solid-svg-icons";
 import { Chip, FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { Box, chipClasses, Collapse, Stack, Typography } from "@mui/material";
+import {
+  Box,
+  chipClasses,
+  Collapse,
+  Stack,
+  Tooltip,
+  tooltipClasses,
+  Typography,
+} from "@mui/material";
 import { useState } from "react";
 import { dataTypeData } from "./property-type-utils";
 
 export interface DataTypeBadgeProps {
   typeId: VersionedUri | "array";
   prefix?: string;
+  deleteTooltip?: string;
   onDelete?: () => void;
 }
 
 export const DataTypeBadge = ({
   typeId,
   prefix,
+  deleteTooltip,
   onDelete,
 }: DataTypeBadgeProps) => {
   const [hovered, setHovered] = useState(false);
@@ -121,29 +131,39 @@ export const DataTypeBadge = ({
 
         {onDelete ? (
           <Collapse orientation="horizontal" in={hovered} sx={{ height: 1 }}>
-            <Box
-              onClick={onDelete}
-              sx={({ palette }) => ({
-                display: "flex",
-                alignItems: "center",
-                height: "100%",
-                px: 1.5,
-                backgroundColor: palette.gray[60],
-                color: palette.gray[90],
-                cursor: "pointer",
-                ":hover": {
-                  backgroundColor: palette.gray[90],
-                  color: palette.red[50],
+            <Tooltip
+              title={deleteTooltip ?? ""}
+              placement="top"
+              PopperProps={{
+                sx: {
+                  [`.${tooltipClasses.tooltip}`]: { mb: "0px !important" },
                 },
-              })}
+              }}
             >
-              <FontAwesomeIcon
-                icon={faClose}
-                sx={{
-                  fontSize: "13px !important",
-                }}
-              />
-            </Box>
+              <Box
+                onClick={onDelete}
+                sx={({ palette }) => ({
+                  display: "flex",
+                  alignItems: "center",
+                  height: "100%",
+                  px: 1.5,
+                  backgroundColor: palette.gray[60],
+                  color: palette.gray[90],
+                  cursor: "pointer",
+                  ":hover": {
+                    backgroundColor: palette.gray[90],
+                    color: palette.red[50],
+                  },
+                })}
+              >
+                <FontAwesomeIcon
+                  icon={faClose}
+                  sx={{
+                    fontSize: "13px !important",
+                  }}
+                />
+              </Box>
+            </Tooltip>
           </Collapse>
         ) : null}
       </Box>
