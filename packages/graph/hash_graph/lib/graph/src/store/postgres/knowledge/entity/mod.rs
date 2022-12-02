@@ -55,18 +55,23 @@ impl<C: AsClient> PostgresStore<C> {
                 .insert(&entity_edition_id, current_resolve_depth);
             let entity: Option<&KnowledgeGraphVertex> = match dependency_status {
                 DependencyStatus::Unknown => {
-                    let entity = Read::<Entity>::read_one(
-                        self,
-                        &Filter::for_entity_by_edition_id(entity_edition_id),
-                    )
-                    .await?;
-                    Some(
-                        subgraph
-                            .vertices
-                            .knowledge_graph
-                            .entry(entity_edition_id)
-                            .or_insert(KnowledgeGraphVertex::Entity(entity)),
-                    )
+                    if let Some(entity) = subgraph.vertices.knowledge_graph.get(&entity_edition_id)
+                    {
+                        Some(entity)
+                    } else {
+                        let entity = Read::<Entity>::read_one(
+                            self,
+                            &Filter::for_entity_by_edition_id(entity_edition_id),
+                        )
+                        .await?;
+                        Some(
+                            subgraph
+                                .vertices
+                                .knowledge_graph
+                                .entry(entity_edition_id)
+                                .or_insert(KnowledgeGraphVertex::Entity(entity)),
+                        )
+                    }
                 }
                 DependencyStatus::DependenciesUnresolved => {
                     subgraph.vertices.knowledge_graph.get(&entity_edition_id)
@@ -106,13 +111,13 @@ impl<C: AsClient> PostgresStore<C> {
                     .await?;
                 }
 
-                for outgoing_link_entity in <Self as Read<Entity>>::read(
-                    self,
-                    &Filter::for_outgoing_link_by_source_entity_edition_id(entity_edition_id),
-                )
-                .await?
-                {
-                    if current_resolve_depth.has_left_entity.incoming > 0 {
+                if current_resolve_depth.has_left_entity.incoming > 0 {
+                    for outgoing_link_entity in <Self as Read<Entity>>::read(
+                        self,
+                        &Filter::for_outgoing_link_by_source_entity_edition_id(entity_edition_id),
+                    )
+                    .await?
+                    {
                         if dependency_status == DependencyStatus::Unknown {
                             // We want to log the time the link entity was *first* added from this
                             // entity. We therefore need to find the timestamp of the first link
@@ -175,13 +180,13 @@ impl<C: AsClient> PostgresStore<C> {
                     }
                 }
 
-                for incoming_link_entity in <Self as Read<Entity>>::read(
-                    self,
-                    &Filter::for_incoming_link_by_source_entity_edition_id(entity_edition_id),
-                )
-                .await?
-                {
-                    if current_resolve_depth.has_right_entity.incoming > 0 {
+                if current_resolve_depth.has_right_entity.incoming > 0 {
+                    for incoming_link_entity in <Self as Read<Entity>>::read(
+                        self,
+                        &Filter::for_incoming_link_by_source_entity_edition_id(entity_edition_id),
+                    )
+                    .await?
+                    {
                         if dependency_status == DependencyStatus::Unknown {
                             // We want to log the time the link entity was *first* added from this
                             // entity. We therefore need to find the timestamp of the first link
@@ -244,13 +249,13 @@ impl<C: AsClient> PostgresStore<C> {
                     }
                 }
 
-                for left_entity in <Self as Read<Entity>>::read(
-                    self,
-                    &Filter::for_left_entity_by_entity_edition_id(entity_edition_id),
-                )
-                .await?
-                {
-                    if current_resolve_depth.has_left_entity.outgoing > 0 {
+                if current_resolve_depth.has_left_entity.outgoing > 0 {
+                    for left_entity in <Self as Read<Entity>>::read(
+                        self,
+                        &Filter::for_left_entity_by_entity_edition_id(entity_edition_id),
+                    )
+                    .await?
+                    {
                         if dependency_status == DependencyStatus::Unknown {
                             // We want to log the time _this_ link entity was *first* added from the
                             // left entity. We therefore need to find the timestamp of this entity
@@ -309,13 +314,13 @@ impl<C: AsClient> PostgresStore<C> {
                     }
                 }
 
-                for right_entity in <Self as Read<Entity>>::read(
-                    self,
-                    &Filter::for_right_entity_by_entity_edition_id(entity_edition_id),
-                )
-                .await?
-                {
-                    if current_resolve_depth.has_right_entity.outgoing > 0 {
+                if current_resolve_depth.has_right_entity.outgoing > 0 {
+                    for right_entity in <Self as Read<Entity>>::read(
+                        self,
+                        &Filter::for_right_entity_by_entity_edition_id(entity_edition_id),
+                    )
+                    .await?
+                    {
                         if dependency_status == DependencyStatus::Unknown {
                             // We want to log the time _this_ link entity was *first* added to the
                             // right entity. We therefore need to find the timestamp of this entity
@@ -508,6 +513,12 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         for entity in Read::<Entity>::read(self, filter).await? {
             let entity_edition_id = entity.metadata().edition_id();
+
+            // Insert the vertex into the subgraph to avoid another lookup when traversing it
+            subgraph
+                .vertices
+                .knowledge_graph
+                .insert(entity_edition_id, KnowledgeGraphVertex::Entity(entity));
 
             self.traverse_entity(
                 entity_edition_id,
