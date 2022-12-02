@@ -48,7 +48,7 @@ export const ArrayDataTypeChild: FunctionComponent<ArrayDataTypeChildProps> = ({
       {dataType.data.typeId === "array" ? (
         <ArrayDataTypeMenu
           dataTypeId={id}
-          prefix={onlyChild || firstChild ? "CONTAINING AN" : "OR AN"}
+          prefix={firstChild ? "CONTAINING AN" : "OR AN"}
           deleteTooltip={`Delete array${
             hasContents ? " and its contents" : ""
           }`}
