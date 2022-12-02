@@ -266,6 +266,11 @@ const PropertyTypeFormInner = ({
                 setTitleValid(false);
               },
               async validate(value) {
+                if (fieldProps.name?.disabled) {
+                  setTitleValid(true);
+                  return true;
+                }
+
                 const propertyTypeId = generateInitialPropertyTypeId(
                   generatePropertyTypeBaseUriForUser(value),
                 );
@@ -283,11 +288,7 @@ const PropertyTypeFormInner = ({
                 const exists =
                   !res.data || !!getPropertyTypeById(res.data, propertyTypeId);
 
-                if (getValues("name") === value && !exists) {
-                  setTitleValid(true);
-                } else {
-                  setTitleValid(false);
-                }
+                setTitleValid(getValues("name") === value && !exists);
 
                 return exists ? "Property type name must be unique" : true;
               },

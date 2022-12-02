@@ -252,7 +252,7 @@ export const updateEntity: ResolverFn<
 ) => {
   // The user needs to be signed up if they aren't updating their own user entity
   if (
-    entityId !== userModel.getEntityUuid() &&
+    entityId !== userModel.getBaseId() &&
     !userModel.isAccountSignupComplete()
   ) {
     throw new ForbiddenError(
