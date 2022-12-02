@@ -1,5 +1,4 @@
-import { Typography, Container, Grid, Skeleton } from "@mui/material";
-import { Box } from "@mui/system";
+import { Typography, Container, Grid, Skeleton, Box } from "@mui/material";
 import { Avatar } from "@hashintel/hash-design-system";
 import { FunctionComponent, useMemo } from "react";
 import { useOrgs } from "../../components/hooks/useOrgs";
@@ -14,9 +13,10 @@ export const ProfilePage: FunctionComponent<ProfilePageProps> = ({
 }) => {
   /**
    * @todo: getting an org or user by their shortname should not be happening
-   * client side.
+   * client side. This could be addressed by exposing structural querying
+   * to the frontend.
    *
-   * @see ...
+   * @see https://app.asana.com/0/1201095311341924/1202863271046362/f
    */
   const { users, loading: loadingUsers } = useUsers();
   const { orgs, loading: loadingOrgs } = useOrgs();
