@@ -9,22 +9,6 @@ const iconSize = 20;
 const iconGap = 10;
 const cellMargin = getCellHorizontalPadding();
 
-const drawBackground = (args: DrawArgs<TooltipCell>) => {
-  const { ctx, cell, rect, theme } = args;
-  const { tooltips } = cell.data;
-
-  // paint the whole bg first
-  const iconsWidth = (iconSize + iconGap) * tooltips.length;
-  const totalWidth = iconsWidth + cellMargin;
-  const rectRight = rect.x + rect.width;
-  const rectLeft = rectRight - totalWidth;
-
-  ctx.fillStyle = theme.bgCell;
-  ctx.fillRect(rectLeft, rect.y, totalWidth, rect.height);
-
-  drawCellFadeOutGradient(args, totalWidth);
-};
-
 export const drawInteractableTooltipIcons = (
   args: DrawArgs<TooltipCell>,
 ): Interactable[] => {
@@ -36,7 +20,9 @@ export const drawInteractableTooltipIcons = (
     return [];
   }
 
-  drawBackground(args);
+  const iconsWidth = (iconSize + iconGap) * tooltips.length;
+  const bgWidth = iconsWidth + cellMargin;
+  drawCellFadeOutGradient(args, bgWidth);
 
   if (!hideTooltip || !showTooltip) {
     throw new Error(

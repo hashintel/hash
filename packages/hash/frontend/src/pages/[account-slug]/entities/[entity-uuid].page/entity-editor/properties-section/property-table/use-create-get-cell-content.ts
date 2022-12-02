@@ -1,12 +1,15 @@
-import { GridCell, GridCellKind, Item } from "@glideapps/glide-data-grid";
+import { GridCellKind, Item } from "@glideapps/glide-data-grid";
 import { useCallback } from "react";
-import { blankCell } from "../../../../../../../components/grid/utils";
+import {
+  BlankCell,
+  blankCell,
+} from "../../../../../../../components/grid/utils";
 import { getPropertyCountSummary } from "../get-property-count-summary";
-import { SummaryChipCellProps } from "./cells/summary-chip-cell";
+import { SummaryChipCell } from "./cells/summary-chip-cell";
 import { UseGridTooltipResponse } from "../../../../../../../components/grid/utils/use-grid-tooltip/types";
-import { ChipCellProps } from "./cells/chip-cell";
-import { PropertyNameCellProps } from "./cells/property-name-cell";
-import { ValueCellProps } from "./cells/value-cell/types";
+import { ChipCell } from "./cells/chip-cell";
+import { PropertyNameCell } from "./cells/property-name-cell";
+import { ValueCell } from "./cells/value-cell/types";
 import { propertyGridIndexes } from "./constants";
 import { getTooltipsOfPropertyRow } from "./get-tooltips-of-property-row";
 import { PropertyRow } from "./types";
@@ -17,7 +20,12 @@ export const useCreateGetCellContent = (
 ) => {
   const createGetCellContent = useCallback(
     (rowData: PropertyRow[]) =>
-      ([col, row]: Item): GridCell => {
+      ([col, row]: Item):
+        | PropertyNameCell
+        | SummaryChipCell
+        | ValueCell
+        | ChipCell
+        | BlankCell => {
         const property = rowData[row];
 
         const hasChild = !!property?.children.length;
@@ -42,7 +50,7 @@ export const useCreateGetCellContent = (
               data: {
                 kind: "property-name-cell",
                 property,
-              } as PropertyNameCellProps,
+              },
             };
 
           case "value":
@@ -62,7 +70,7 @@ export const useCreateGetCellContent = (
                   kind: "summary-chip-cell",
                   primaryText: `${emptyCount + notEmptyCount} properties`,
                   secondaryText: `(${valuesCount} with ${valueWord})`,
-                } as SummaryChipCellProps,
+                },
               };
             }
 
@@ -77,7 +85,7 @@ export const useCreateGetCellContent = (
                 showTooltip,
                 hideTooltip,
                 property,
-              } as ValueCellProps,
+              },
             };
 
           case "expectedTypes":
@@ -93,7 +101,7 @@ export const useCreateGetCellContent = (
               data: {
                 kind: "chip-cell",
                 chips: property.expectedTypes,
-              } as ChipCellProps,
+              },
             };
         }
       },

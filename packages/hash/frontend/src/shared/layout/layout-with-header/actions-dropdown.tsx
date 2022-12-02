@@ -122,12 +122,20 @@ export const ActionsDropdownInner: FunctionComponent<{
           <ListItemText primary="Create entity" />
         </MenuItem> */}
         {activeWorkspace ? (
-          <MenuItem
-            href={`/@${activeWorkspace.shortname}/new/types/entity-type`}
-            onClick={popupState.close}
-          >
-            <ListItemText primary="Create Entity Type" />
-          </MenuItem>
+          <>
+            <MenuItem
+              href={`/@${activeWorkspace.shortname}/new/entity`}
+              onClick={popupState.close}
+            >
+              <ListItemText primary="Create Entity" />
+            </MenuItem>
+            <MenuItem
+              href={`/@${activeWorkspace.shortname}/new/types/entity-type`}
+              onClick={popupState.close}
+            >
+              <ListItemText primary="Create Entity Type" />
+            </MenuItem>
+          </>
         ) : null}
       </Menu>
     </Box>

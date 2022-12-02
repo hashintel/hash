@@ -124,7 +124,7 @@ export const LoadEntityMenuContent: FunctionComponent<
               title={JSON.stringify((entity as any).properties, undefined, 2)}
             >
               <ListItemText
-                primary={generateEntityLabel(entity, {})}
+                primary={generateEntityLabel(entity)}
                 primaryTypographyProps={{
                   noWrap: true,
                 }}
