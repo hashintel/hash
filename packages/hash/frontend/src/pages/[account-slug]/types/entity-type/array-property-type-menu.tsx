@@ -64,20 +64,20 @@ export const ArrayPropertyTypeMenu: FunctionComponent<
   });
 
   const deleteDataType = (typeId: string) => {
-    const removedPropertyId = Object.values(flattenedProperties).find(
+    const removedDataTypeId = Object.values(flattenedProperties).find(
       (property) =>
         property.parentId === id && property.data?.typeId === typeId,
     )?.id;
 
-    if (removedPropertyId) {
+    if (removedDataTypeId) {
       setValue(
         `flattenedPropertyList`,
-        deleteDataTypeAndChildren(removedPropertyId, flattenedProperties),
+        deleteDataTypeAndChildren(removedDataTypeId, flattenedProperties),
       );
 
       setValue(
         `flattenedPropertyList.${id}.data.expectedValues`,
-        expectedValues.filter((childId) => childId !== removedPropertyId),
+        expectedValues.filter((childId) => childId !== removedDataTypeId),
       );
     }
   };
