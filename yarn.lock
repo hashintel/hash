@@ -5968,6 +5968,11 @@
   dependencies:
     "@types/node" "*"
 
+"@types/gtag.js@0.0.12":
+  version "0.0.12"
+  resolved "https://registry.yarnpkg.com/@types/gtag.js/-/gtag.js-0.0.12.tgz#095122edca896689bdfcdd73b057e23064d23572"
+  integrity sha512-YQV9bUsemkzG81Ea295/nF/5GijnD2Af7QhEofh7xu+kvCN6RdodgNwwGWXB5GMI3NoyvQo0odNctoH/qLMIpg==
+
 "@types/hast@^2.0.0", "@types/hast@^2.3.4":
   version "2.3.4"
   resolved "https://registry.yarnpkg.com/@types/hast/-/hast-2.3.4.tgz#8aa5ef92c117d20d974a82bdfb6a648b08c0bafc"
@@ -8401,12 +8406,7 @@ clone@^1.0.2:
   resolved "https://registry.yarnpkg.com/clone/-/clone-1.0.4.tgz#da309cc263df15994c688ca902179ca3c7cd7c7e"
   integrity sha512-JQHZ2QMW6l3aH/j6xCqQThY/9OH4D/9ls34cgkUBiEeocRTU04tHfKPBsUK1PqZCUQM7GiA0IIXJSuXHI64Kbg==
 
-clsx@1.1.1:
-  version "1.1.1"
-  resolved "https://registry.yarnpkg.com/clsx/-/clsx-1.1.1.tgz#98b3134f9abbdf23b2663491ace13c5c03a73188"
-  integrity sha512-6/bPho624p3S2pMyvP5kKBPXnI3ufHLObBFCfgx+LkeR5lg2XYy2hqZqUf45ypD8COn2bhgGJSUE+l5dhNBieA==
-
-clsx@^1.1.0, clsx@^1.1.1, clsx@^1.2.1:
+clsx@1.2.1, clsx@^1.1.0, clsx@^1.1.1, clsx@^1.2.1:
   version "1.2.1"
   resolved "https://registry.yarnpkg.com/clsx/-/clsx-1.2.1.tgz#0ddc4a20a549b59c93a4116bb26f5294ca17dc12"
   integrity sha512-EcR6r5a8bj6pu3ycsa/E/cKVGuTgZJZdsyUYHOksG/UHIiKfjxzRxYJpyVBwYaQeOvghal9fcc4PidlgzugAQg==
@@ -9009,7 +9009,7 @@ dayjs-plugin-utc@^0.1.2:
   resolved "https://registry.yarnpkg.com/dayjs-plugin-utc/-/dayjs-plugin-utc-0.1.2.tgz#48e552407024143922d6499a40f6c765f8c93d03"
   integrity sha512-ExERH5o3oo6jFOdkvMP3gytTCQ9Ksi5PtylclJWghr7k7m3o2U5QrwtdiJkOxLOH4ghr0EKhpqGefzGz1VvVJg==
 
-dayjs@^1.11.5:
+dayjs@^1.11.6:
   version "1.11.6"
   resolved "https://registry.yarnpkg.com/dayjs/-/dayjs-1.11.6.tgz#2e79a226314ec3ec904e3ee1dd5a4f5e5b1c7afb"
   integrity sha512-zZbY5giJAinCG+7AGaw0wIhNZ6J8AhWuSXKvuc1KAyMiRsvGQWqh4L+MomvhdAYjN+lqvVCMq1I41e3YHvXkyQ==
@@ -11338,10 +11338,10 @@ https-proxy-agent@^5.0.0, https-proxy-agent@^5.0.1:
     agent-base "6"
     debug "4"
 
-httpyac@5.8.0:
-  version "5.8.0"
-  resolved "https://registry.yarnpkg.com/httpyac/-/httpyac-5.8.0.tgz#8adcb360ad3cfae04a78ec14103ae0fce531acf7"
-  integrity sha512-G3YE7++yEvSsc34OuKFqJ1GTNKhOiBa8Fm8sS/5svC3YtjvA84zZkQ7gWvJcBGk+YTH8sjC53G7/MxBWBxYVSg==
+httpyac@5.8.2:
+  version "5.8.2"
+  resolved "https://registry.yarnpkg.com/httpyac/-/httpyac-5.8.2.tgz#f4ed4113bd5843b48c1d4e1bd905a1353a9007fc"
+  integrity sha512-8l0ynyJZaoGshyErjRnJ4ucdPCuGHy78OADOuOHrn4sAzuOCAWudhp0SWht1nN3Zr1rB4amFVUz/jAxYd5ue4A==
   dependencies:
     "@cloudamqp/amqp-client" "^2.1.0"
     "@grpc/grpc-js" "^1.7.3"
@@ -11350,7 +11350,7 @@ httpyac@5.8.0:
     chalk "^4.1.2"
     clipboardy "^3.0.0"
     commander "^9.4.1"
-    dayjs "^1.11.5"
+    dayjs "^1.11.6"
     dayjs-plugin-utc "^0.1.2"
     dotenv "^16.0.3"
     encodeurl "^1.0.2"
@@ -11368,7 +11368,7 @@ httpyac@5.8.0:
     socks-proxy-agent "^7.0.0"
     tough-cookie "^4.1.2"
     uuid "^9.0.0"
-    ws "^8.10.0"
+    ws "^8.11.0"
     xml-formatter "^2.6.1"
 
 human-signals@^2.1.0:
@@ -19135,7 +19135,7 @@ ws@^7.3.1, ws@^7.5.5:
   resolved "https://registry.yarnpkg.com/ws/-/ws-7.5.9.tgz#54fa7db29f4c7cec68b1ddd3a89de099942bb591"
   integrity sha512-F+P9Jil7UiSKSkppIiD94dN07AwvFixvLIj1Og1Rl9GGMuNipJnV9JzjD6XuqmAeiswGvUmNLjr5cFuXwNS77Q==
 
-ws@^8.10.0, ws@^8.3.0, ws@^8.4.2, ws@^8.9.0:
+ws@^8.11.0, ws@^8.3.0, ws@^8.4.2, ws@^8.9.0:
   version "8.11.0"
   resolved "https://registry.yarnpkg.com/ws/-/ws-8.11.0.tgz#6a0d36b8edfd9f96d8b25683db2f8d7de6e8e143"
   integrity sha512-HPG3wQd9sNQoT9xHyNCXoDUa+Xw/VevmY9FoHyQ+g+rrMn4j6FB4np7Z0OhdTgjx6MgQLK7jwSy1YecU1+4Asg==

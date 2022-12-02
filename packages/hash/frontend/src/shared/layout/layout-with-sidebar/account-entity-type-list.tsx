@@ -155,6 +155,7 @@ export const AccountEntityTypeList: FunctionComponent<
 
     if (searchQuery) {
       entityTypes = entityTypes.filter(({ properties }) =>
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call -- @todo re-enable after refactoring
         properties.title.toLowerCase().includes(searchQuery.toLowerCase()),
       );
     }
@@ -175,7 +176,7 @@ export const AccountEntityTypeList: FunctionComponent<
         title="Types"
         endAdornmentProps={{
           tooltipTitle: "Create new entity type",
-          href: `/@${authenticatedUser?.shortname}/types/new/entity-type`,
+          href: `/@${authenticatedUser?.shortname}/new/types/entity-type`,
           "data-testid": "create-entity-type-btn",
         }}
       >
