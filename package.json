@@ -3,6 +3,7 @@
   "description": "HASH monorepo",
   "workspaces": {
     "packages": [
+      "apps/*",
       "blocks/*",
       "libs/javascript/@local/*",
       "packages/engine/apache-arrow-js-bundle",
@@ -19,9 +20,7 @@
       "packages/hash/search-loader",
       "packages/hash/shared",
       "packages/hash/task-executor",
-      "packages/hash/subgraph",
-      "sites/hashai",
-      "sites/hashdev"
+      "packages/hash/subgraph"
     ]
   },
   "scripts": {

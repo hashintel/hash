@@ -5,6 +5,7 @@ import { Typography, Container, Box } from "@mui/material";
 import { TextField } from "@hashintel/hash-design-system";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { AxiosError } from "axios";
+import { extractEntityUuidFromEntityId } from "@hashintel/hash-subgraph";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 import {
   createFlowErrorHandler,
@@ -14,10 +15,12 @@ import {
 import { Button } from "../shared/ui";
 import { useLogoutFlow } from "../components/hooks/useLogoutFlow";
 import { useHashInstance } from "../components/hooks/useHashInstance";
+import { useAuthenticatedUser } from "../components/hooks/useAuthenticatedUser";
 
 const LoginPage: NextPageWithLayout = () => {
   // Get ?flow=... from the URL
   const router = useRouter();
+  const { refetch } = useAuthenticatedUser();
   const { hashInstance } = useHashInstance();
 
   const {
@@ -108,13 +111,28 @@ const LoginPage: NextPageWithLayout = () => {
             identifier: email,
             password,
           })
-          // We logged in successfully! Let's bring the user home.
-          .then(() => {
+          // We logged in successfully! Let's redirect the user.
+          .then(async () => {
+            // If the flow specifies a redirect, use it.
             if (flow?.return_to) {
               window.location.href = flow?.return_to;
               return;
             }
-            void router.push("/");
+
+            // Otherwise, redirect the user to their workspace.
+            const [
+              {
+                data: { me: meSubgraph },
+              },
+            ] = await refetch();
+
+            const userEntityId = meSubgraph.roots[0]?.baseId;
+
+            const userAccountId = userEntityId
+              ? extractEntityUuidFromEntityId(userEntityId)
+              : undefined;
+
+            void router.push(userAccountId ? `/${userAccountId}` : "/");
           })
           .catch(handleFlowError)
           .catch((err: AxiosError<SelfServiceLoginFlow>) => {
