@@ -176,7 +176,7 @@ export const CustomPropertyTypeMenu: FunctionComponent<
                 <Stack direction="row" gap={1}>
                   <CustomChip color="purple" label="PROPERTY OBJECTS" />
                   <CustomChip color="blue" label="DATA TYPES" />
-                  <CustomChip color="navy" label="ARRAY" />
+                  <CustomChip color="navy" label="ARRAYS" />
                 </Stack>
               </Stack>
             </Stack>
