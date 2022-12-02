@@ -18,10 +18,6 @@ export const PropertiesSection = () => {
   const { entitySubgraph } = useEntityEditor();
   const [showSearch, setShowSearch] = useState(false);
 
-  if (!entitySubgraph) {
-    return null;
-  }
-
   const entity = getRoots(entitySubgraph)[0]!;
 
   const { emptyCount, notEmptyCount } = getPropertyCountSummary(
