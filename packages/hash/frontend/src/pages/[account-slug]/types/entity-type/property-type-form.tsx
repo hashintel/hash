@@ -1,17 +1,15 @@
-import { PropertyValues, VersionedUri } from "@blockprotocol/type-system-web";
 import { faClose } from "@fortawesome/free-solid-svg-icons";
 import {
   Button,
   ButtonProps,
-  Chip,
   FontAwesomeIcon,
   IconButton,
   TextField,
 } from "@hashintel/hash-design-system";
 import { frontendUrl } from "@hashintel/hash-shared/environment";
-import { generateBaseTypeId, types } from "@hashintel/hash-shared/types";
+import { getPropertyTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
+import { generateBaseTypeId } from "@hashintel/hash-shared/types";
 import {
-  Autocomplete,
   Box,
   Divider,
   inputLabelClasses,
@@ -25,14 +23,17 @@ import {
   PopupState,
 } from "material-ui-popup-state/hooks";
 import { ComponentProps, ReactNode, useEffect, useMemo, useState } from "react";
-import { Controller, useForm, UseFormTrigger } from "react-hook-form";
-import { getPropertyTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
+import { FormProvider, useForm, UseFormTrigger } from "react-hook-form";
 import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
 import { useBlockProtocolGetPropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetPropertyType";
 import { Modal } from "../../../../components/Modals/Modal";
-import { fa100 } from "../../../../shared/icons/pro/fa-100";
-import { faSquareCheck } from "../../../../shared/icons/pro/fa-square-check";
-import { faText } from "../../../../shared/icons/pro/fa-text";
+import { DataTypeSelector } from "./data-type-selector";
+import { PropertyTypeSelectorDropdownContext } from "./property-type-selector-dropdown";
+import {
+  DataType,
+  ExpectedValue,
+  getPropertyTypeSchema,
+} from "./property-type-utils";
 import { QuestionIcon } from "./question-icon";
 import { useRouteNamespace } from "./use-route-namespace";
 import { withHandler } from "./util";
@@ -40,31 +41,12 @@ import { withHandler } from "./util";
 const generateInitialPropertyTypeId = (baseUri: string) =>
   versionedUriFromComponents(baseUri, 1);
 
-const propertyTypeDataTypesOptions = [
-  types.dataType.text.dataTypeId,
-  types.dataType.number.dataTypeId,
-  types.dataType.boolean.dataTypeId,
-];
-
-const propertyTypeDataTypeData = {
-  [types.dataType.text.dataTypeId]: {
-    title: types.dataType.text.title,
-    icon: faText,
-  },
-  [types.dataType.number.dataTypeId]: {
-    title: types.dataType.number.title,
-    icon: fa100,
-  },
-  [types.dataType.boolean.dataTypeId]: {
-    title: types.dataType.boolean.title,
-    icon: faSquareCheck,
-  },
-};
-
 export type PropertyTypeFormValues = {
   name: string;
   description: string;
-  expectedValues: VersionedUri[];
+  expectedValues: ExpectedValue[];
+  creatingPropertyId?: string;
+  flattenedPropertyList: Record<string, DataType>;
 };
 
 type PropertyTypeFormSubmitProps = Omit<
@@ -98,9 +80,7 @@ const useTriggerValidation = (
 
 // @todo consider calling for consumer
 export const formDataToPropertyType = (data: PropertyTypeFormValues) => ({
-  oneOf: data.expectedValues.map((value) => ({
-    $ref: value,
-  })) as [PropertyValues, ...PropertyValues[]],
+  oneOf: getPropertyTypeSchema(data.expectedValues),
   description: data.description,
   title: data.name,
   kind: "propertyType" as const,
@@ -127,6 +107,17 @@ const PropertyTypeFormInner = ({
 }) => {
   const defaultValues = getDefaultValues?.() ?? {};
 
+  const formMethods = useForm<PropertyTypeFormValues>({
+    defaultValues: {
+      name: defaultValues.name ?? "",
+      description: defaultValues.description ?? "",
+      expectedValues: defaultValues.expectedValues ?? [],
+    },
+    shouldFocusError: true,
+    mode: "onBlur",
+    reValidateMode: "onChange",
+  });
+
   const {
     register,
     handleSubmit: wrapHandleSubmit,
@@ -137,20 +128,27 @@ const PropertyTypeFormInner = ({
       isValid,
     },
     getValues,
-    control,
     clearErrors,
     setFocus,
     trigger,
-  } = useForm<PropertyTypeFormValues>({
-    defaultValues: {
-      name: defaultValues.name ?? "",
-      description: defaultValues.description ?? "",
-      expectedValues: defaultValues.expectedValues ?? [],
-    },
-    shouldFocusError: true,
-    mode: "onBlur",
-    reValidateMode: "onChange",
-  });
+    setValue,
+  } = formMethods;
+
+  const [creatingCustomPropertyType, setCreatingCustomPropertyType] =
+    useState(false);
+
+  const propertyTypeSelectorDropdownContextValue = useMemo(
+    () => ({
+      customPropertyMenuOpen: creatingCustomPropertyType,
+      openCustomPropertyMenu: () => setCreatingCustomPropertyType(true),
+      closeCustomPropertyMenu: () => {
+        setValue("creatingPropertyId", undefined);
+        setValue("flattenedPropertyList", {});
+        setCreatingCustomPropertyType(false);
+      },
+    }),
+    [creatingCustomPropertyType, setCreatingCustomPropertyType, setValue],
+  );
 
   const defaultField = defaultValues.name ? "description" : "name";
 
@@ -351,73 +349,14 @@ const PropertyTypeFormInner = ({
               },
             })}
           />
-          <Controller
-            render={({ field: { onChange, ...props } }) => (
-              <Autocomplete
-                multiple
-                popupIcon={null}
-                clearIcon={null}
-                forcePopupIcon={false}
-                selectOnFocus={false}
-                openOnFocus
-                clearOnBlur={false}
-                onChange={(_evt, data) => onChange(data)}
-                {...props}
-                renderTags={(value, getTagProps) =>
-                  value.map((opt, index) => (
-                    <Chip
-                      {...getTagProps({ index })}
-                      key={opt}
-                      label={
-                        <Typography
-                          variant="smallTextLabels"
-                          sx={{ display: "flex", alignItems: "center" }}
-                        >
-                          <FontAwesomeIcon
-                            icon={{ icon: propertyTypeDataTypeData[opt]!.icon }}
-                            sx={{ fontSize: "1em", mr: "1ch" }}
-                          />
-                          {propertyTypeDataTypeData[opt]!.title}
-                        </Typography>
-                      }
-                      color="blue"
-                    />
-                  ))
-                }
-                renderInput={(inputProps) => (
-                  <TextField
-                    {...inputProps}
-                    label="Expected values"
-                    sx={{ alignSelf: "flex-start", width: "70%" }}
-                    placeholder="Select acceptable values"
-                  />
-                )}
-                options={propertyTypeDataTypesOptions}
-                getOptionLabel={(opt) => propertyTypeDataTypeData[opt]!.title}
-                disableCloseOnSelect
-                renderOption={(optProps, opt) => (
-                  <Box component="li" {...optProps} sx={{ py: 1.5, px: 2.25 }}>
-                    <FontAwesomeIcon
-                      icon={{ icon: propertyTypeDataTypeData[opt]!.icon }}
-                      sx={(theme) => ({ color: theme.palette.gray[50] })}
-                    />
-                    <Typography
-                      variant="smallTextLabels"
-                      component="span"
-                      ml={1.5}
-                      color={(theme) => theme.palette.gray[80]}
-                    >
-                      {propertyTypeDataTypeData[opt]!.title}
-                    </Typography>
-                    <Chip color="blue" label="DATA TYPE" sx={{ ml: 1.5 }} />
-                  </Box>
-                )}
-              />
-            )}
-            control={control}
-            rules={{ required: true }}
-            name="expectedValues"
-          />
+
+          <FormProvider {...formMethods}>
+            <PropertyTypeSelectorDropdownContext.Provider
+              value={propertyTypeSelectorDropdownContextValue}
+            >
+              <DataTypeSelector />
+            </PropertyTypeSelectorDropdownContext.Provider>
+          </FormProvider>
         </Stack>
         <Divider sx={{ mt: 2, mb: 3 }} />
         <Stack direction="row" spacing={1.25}>
