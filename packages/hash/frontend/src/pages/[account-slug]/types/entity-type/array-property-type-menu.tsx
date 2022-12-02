@@ -3,11 +3,11 @@ import {
   FontAwesomeIcon,
   TextField,
 } from "@hashintel/hash-design-system";
-import { types } from "@hashintel/hash-shared/types";
 import { Autocomplete, Box, Stack, Typography } from "@mui/material";
 import { uniqueId } from "lodash";
 import { FunctionComponent, useMemo } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
+import { ArrayPropertyTypeChild } from "./array-property-type-child";
 import { DataTypeBadge } from "./data-type-badge";
 import { PropertyTypeFormValues } from "./property-type-form";
 import {
@@ -110,57 +110,16 @@ export const ArrayPropertyTypeMenu: FunctionComponent<
           position: "relative",
         }}
       >
-        {expectedValues?.map((childId, pos) => {
-          const property = flattenedProperties[childId];
-
-          if (!property?.data) {
-            return null;
-          }
-
-          const isObject =
-            property.data.typeId === types.dataType.object.dataTypeId;
-
-          return (
-            <Box key={property.data.typeId} mb={1}>
-              {property.data.typeId === "array" ? (
-                <ArrayPropertyTypeMenu
-                  id={childId}
-                  prefix={
-                    expectedValues.length === 1 || pos === 0
-                      ? "CONTAINING AN"
-                      : "OR AN"
-                  }
-                  deleteTooltip={`Delete array${
-                    property.data.expectedValues.length
-                      ? " and its contents"
-                      : ""
-                  }`}
-                  index={[...index, pos]}
-                  onDelete={() =>
-                    property.data?.typeId &&
-                    deleteDataType(property.data.typeId)
-                  }
-                />
-              ) : (
-                <DataTypeBadge
-                  typeId={property.data.typeId}
-                  prefix={`${
-                    expectedValues.length === 1
-                      ? "CONTAINING"
-                      : pos === 0
-                      ? "CONTAINING EITHER"
-                      : "OR"
-                  }${isObject ? " A" : ""}`}
-                  deleteTooltip="Remove data type"
-                  onDelete={() =>
-                    property.data?.typeId &&
-                    deleteDataType(property.data.typeId)
-                  }
-                />
-              )}
-            </Box>
-          );
-        })}
+        {expectedValues?.map((childId, pos) => (
+          <ArrayPropertyTypeChild
+            key={childId}
+            id={childId}
+            index={[...index, pos]}
+            onDelete={(typeId: string) => deleteDataType(typeId)}
+            onlyChild={expectedValues.length === 1}
+            firstChild={pos === 0}
+          />
+        ))}
 
         <Autocomplete
           value={value}
