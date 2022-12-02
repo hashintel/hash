@@ -6,6 +6,7 @@ import {
   Subgraph,
   SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
+import Head from "next/head";
 import { useBlockProtocolGetEntity } from "../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolGetEntity";
 import { useLoggedInUser } from "../../../components/hooks/useAuthenticatedUser";
 import {
@@ -93,48 +94,53 @@ const Page: NextPageWithLayout = () => {
   const entityLabel = generateEntityLabel(entitySubgraph);
 
   return (
-    <EntityPageWrapper label={entityLabel}>
-      <EntityEditor
-        entitySubgraph={entitySubgraph}
-        setEntity={(entity) =>
-          setEntitySubgraph((entityAndSubgraph) => {
-            if (entity) {
-              /**
-               * @todo - This is a problem, subgraphs should probably be immutable, there will be a new identifier
-               *   for the updated entity. This version will not match the one returned by the data store.
-               *   For places where we mutate elements, we should probably store them separately from the subgraph to
-               *   allow for optimistic updates without being incorrect.
-               */
-              const newEntity = JSON.parse(JSON.stringify(entity)) as Entity;
-              const newEntityVersion = new Date().toISOString();
-              newEntity.metadata.editionId.version = newEntityVersion;
+    <>
+      <Head>
+        <title>{entityLabel} | Entity | HASH</title>
+      </Head>
+      <EntityPageWrapper label={entityLabel}>
+        <EntityEditor
+          entitySubgraph={entitySubgraph}
+          setEntity={(entity) =>
+            setEntitySubgraph((entityAndSubgraph) => {
+              if (entity) {
+                /**
+                 * @todo - This is a problem, subgraphs should probably be immutable, there will be a new identifier
+                 *   for the updated entity. This version will not match the one returned by the data store.
+                 *   For places where we mutate elements, we should probably store them separately from the subgraph to
+                 *   allow for optimistic updates without being incorrect.
+                 */
+                const newEntity = JSON.parse(JSON.stringify(entity)) as Entity;
+                const newEntityVersion = new Date().toISOString();
+                newEntity.metadata.editionId.version = newEntityVersion;
 
-              return entityAndSubgraph
-                ? ({
-                    ...entityAndSubgraph,
-                    roots: [newEntity.metadata.editionId],
-                    vertices: {
-                      ...entityAndSubgraph.vertices,
-                      [newEntity.metadata.editionId.baseId]: {
-                        ...entityAndSubgraph.vertices[
-                          newEntity.metadata.editionId.baseId
-                        ],
-                        [newEntityVersion]: {
-                          kind: "entity",
-                          inner: newEntity,
+                return entityAndSubgraph
+                  ? ({
+                      ...entityAndSubgraph,
+                      roots: [newEntity.metadata.editionId],
+                      vertices: {
+                        ...entityAndSubgraph.vertices,
+                        [newEntity.metadata.editionId.baseId]: {
+                          ...entityAndSubgraph.vertices[
+                            newEntity.metadata.editionId.baseId
+                          ],
+                          [newEntityVersion]: {
+                            kind: "entity",
+                            inner: newEntity,
+                          },
                         },
                       },
-                    },
-                  } as Subgraph<SubgraphRootTypes["entity"]>)
-                : undefined;
-            } else {
-              return undefined;
-            }
-          })
-        }
-        refetch={refetch}
-      />
-    </EntityPageWrapper>
+                    } as Subgraph<SubgraphRootTypes["entity"]>)
+                  : undefined;
+              } else {
+                return undefined;
+              }
+            })
+          }
+          refetch={refetch}
+        />
+      </EntityPageWrapper>
+    </>
   );
 };
 

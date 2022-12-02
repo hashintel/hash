@@ -13,6 +13,7 @@ import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
 import { FormProvider, useForm } from "react-hook-form";
+import Head from "next/head";
 import { PageErrorState } from "../../../../components/page-error-state";
 import {
   getLayoutWithSidebar,
@@ -197,6 +198,9 @@ const Page: NextPageWithLayout = () => {
 
   return (
     <>
+      <Head>
+        <title>{entityType.title} | Entity Type | HASH</title>
+      </Head>
       <FormProvider {...formMethods}>
         <PropertyTypesContext.Provider value={propertyTypes}>
           <EntityTypeContext.Provider value={entityType}>
