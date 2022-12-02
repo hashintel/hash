@@ -181,6 +181,8 @@ export const PropertyTypeRow = ({
             // @todo temporary bug fix
             res.data.schema.$id.replace("//v", "/v") as VersionedUri,
           );
+
+          editModalPopupState.close();
         }}
         submitButtonProps={{ children: <>Edit property type</> }}
         fieldProps={{ name: { disabled: true } }}
