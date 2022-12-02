@@ -128,7 +128,18 @@ const DataTypeSelector: ForwardRefRenderFunction<HTMLInputElement, {}> = () => {
       componentsProps={{
         popper: {
           sx: { minWidth: 520 },
-          placement: "auto-start",
+          placement: "bottom-start",
+          modifiers: [
+            {
+              name: "preventOverflow",
+              enabled: true,
+              options: {
+                altAxis: true,
+                rootBoundary: "viewport",
+                padding: 8,
+              },
+            },
+          ],
         },
       }}
     />

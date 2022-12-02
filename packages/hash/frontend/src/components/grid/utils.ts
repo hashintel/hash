@@ -1,6 +1,5 @@
 import {
   CustomCell,
-  GridCell,
   GridCellKind,
   getMiddleCenterBias,
 } from "@glideapps/glide-data-grid";
@@ -25,9 +24,11 @@ export const getYCenter = (
 export const getCellHorizontalPadding = (atFirstColumn?: boolean) =>
   atFirstColumn ? 36 : 22;
 
-export const blankCell: GridCell = {
+export type BlankCell = CustomCell<{ kind: "blank-cell" }>;
+
+export const blankCell: BlankCell = {
   kind: GridCellKind.Custom,
   allowOverlay: false,
   copyData: "",
-  data: {},
+  data: { kind: "blank-cell" },
 };

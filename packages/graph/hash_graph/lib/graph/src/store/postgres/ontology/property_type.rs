@@ -44,19 +44,23 @@ impl<C: AsClient> PostgresStore<C> {
                 .insert(property_type_id, current_resolve_depth);
             let property_type = match dependency_status {
                 DependencyStatus::Unknown => {
-                    let property_type = Read::<PropertyTypeWithMetadata>::read_one(
-                        self,
-                        &Filter::for_ontology_type_edition_id(property_type_id),
-                    )
-                    .await?;
-                    Some(
-                        subgraph
-                            .vertices
-                            .ontology
-                            .entry(property_type_id.clone())
-                            .or_insert(OntologyVertex::PropertyType(Box::new(property_type)))
-                            .clone(),
-                    )
+                    if let Some(property_type) = subgraph.vertices.ontology.get(property_type_id) {
+                        Some(property_type.clone())
+                    } else {
+                        let property_type = Read::<PropertyTypeWithMetadata>::read_one(
+                            self,
+                            &Filter::for_ontology_type_edition_id(property_type_id),
+                        )
+                        .await?;
+                        Some(
+                            subgraph
+                                .vertices
+                                .ontology
+                                .entry(property_type_id.clone())
+                                .or_insert(OntologyVertex::PropertyType(Box::new(property_type)))
+                                .clone(),
+                        )
+                    }
                 }
                 DependencyStatus::DependenciesUnresolved => {
                     subgraph.vertices.ontology.get(property_type_id).cloned()
@@ -69,18 +73,16 @@ impl<C: AsClient> PostgresStore<C> {
                 //   see https://app.asana.com/0/0/1202884883200942/f
                 for property_type_ref in property_type.inner().property_type_references() {
                     if current_resolve_depth.constrains_properties_on.outgoing > 0 {
-                        if dependency_status == DependencyStatus::Unknown {
-                            subgraph.edges.insert(Edge::Ontology {
-                                edition_id: property_type_id.clone(),
-                                outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
-                                    kind: OntologyEdgeKind::ConstrainsPropertiesOn,
-                                    reversed: false,
-                                    right_endpoint: OntologyTypeEditionId::from(
-                                        property_type_ref.uri(),
-                                    ),
-                                }),
-                            });
-                        }
+                        subgraph.edges.insert(Edge::Ontology {
+                            edition_id: property_type_id.clone(),
+                            outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
+                                kind: OntologyEdgeKind::ConstrainsPropertiesOn,
+                                reversed: false,
+                                right_endpoint: OntologyTypeEditionId::from(
+                                    property_type_ref.uri(),
+                                ),
+                            }),
+                        });
 
                         self.traverse_property_type(
                             &OntologyTypeEditionId::from(property_type_ref.uri()),
@@ -105,18 +107,14 @@ impl<C: AsClient> PostgresStore<C> {
                 //   see https://app.asana.com/0/0/1202884883200942/f
                 for data_type_ref in property_type.inner().data_type_references() {
                     if current_resolve_depth.constrains_values_on.outgoing > 0 {
-                        if dependency_status == DependencyStatus::Unknown {
-                            subgraph.edges.insert(Edge::Ontology {
-                                edition_id: property_type_id.clone(),
-                                outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
-                                    kind: OntologyEdgeKind::ConstrainsValuesOn,
-                                    reversed: false,
-                                    right_endpoint: OntologyTypeEditionId::from(
-                                        data_type_ref.uri(),
-                                    ),
-                                }),
-                            });
-                        }
+                        subgraph.edges.insert(Edge::Ontology {
+                            edition_id: property_type_id.clone(),
+                            outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
+                                kind: OntologyEdgeKind::ConstrainsValuesOn,
+                                reversed: false,
+                                right_endpoint: OntologyTypeEditionId::from(data_type_ref.uri()),
+                            }),
+                        });
 
                         self.traverse_data_type(
                             &OntologyTypeEditionId::from(data_type_ref.uri()),
@@ -201,6 +199,12 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
 
         for property_type in Read::<PropertyTypeWithMetadata>::read(self, filter).await? {
             let property_type_id = property_type.metadata().edition_id().clone();
+
+            // Insert the vertex into the subgraph to avoid another lookup when traversing it
+            subgraph.vertices.ontology.insert(
+                property_type_id.clone(),
+                OntologyVertex::PropertyType(Box::new(property_type)),
+            );
 
             self.traverse_property_type(
                 &property_type_id,

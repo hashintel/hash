@@ -73,7 +73,7 @@ export const useEntitiesTable = (
 
     const rows: TypeEntitiesRow[] =
       entities?.map((entity) => {
-        const entityLabel = generateEntityLabel(subgraph);
+        const entityLabel = generateEntityLabel(subgraph, entity);
         const entityNamespace = getEntityByEditionId(
           subgraph,
           entity.metadata.editionId,
