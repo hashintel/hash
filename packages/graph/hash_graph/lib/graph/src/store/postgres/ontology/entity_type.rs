@@ -48,19 +48,23 @@ impl<C: AsClient> PostgresStore<C> {
                 .insert(entity_type_id, current_resolve_depth);
             let entity_type = match dependency_status {
                 DependencyStatus::Unknown => {
-                    let entity_type = Read::<EntityTypeWithMetadata>::read_one(
-                        self,
-                        &Filter::for_ontology_type_edition_id(entity_type_id),
-                    )
-                    .await?;
-                    Some(
-                        subgraph
-                            .vertices
-                            .ontology
-                            .entry(entity_type_id.clone())
-                            .or_insert(OntologyVertex::EntityType(Box::new(entity_type)))
-                            .clone(),
-                    )
+                    if let Some(entity_type) = subgraph.vertices.ontology.get(entity_type_id) {
+                        Some(entity_type.clone())
+                    } else {
+                        let entity_type = Read::<EntityTypeWithMetadata>::read_one(
+                            self,
+                            &Filter::for_ontology_type_edition_id(entity_type_id),
+                        )
+                        .await?;
+                        Some(
+                            subgraph
+                                .vertices
+                                .ontology
+                                .entry(entity_type_id.clone())
+                                .or_insert(OntologyVertex::EntityType(Box::new(entity_type)))
+                                .clone(),
+                        )
+                    }
                 }
                 DependencyStatus::DependenciesUnresolved => {
                     subgraph.vertices.ontology.get(entity_type_id).cloned()
@@ -277,6 +281,12 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
 
         for entity_type in Read::<EntityTypeWithMetadata>::read(self, filter).await? {
             let entity_type_id = entity_type.metadata().edition_id().clone();
+
+            // Insert the vertex into the subgraph to avoid another lookup when traversing it
+            subgraph.vertices.ontology.insert(
+                entity_type_id.clone(),
+                OntologyVertex::EntityType(Box::new(entity_type)),
+            );
 
             self.traverse_entity_type(
                 &entity_type_id,
