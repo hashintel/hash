@@ -33,7 +33,7 @@ export const useCreateGetCellContent = () => {
               data: {
                 kind: "link-cell",
                 linkRow,
-              } as LinkCellProps,
+              } satisfies LinkCellProps,
             };
           case "linkedWith":
             if (linkRow.maxItems > 1) {
@@ -51,7 +51,7 @@ export const useCreateGetCellContent = () => {
                 data: {
                   kind: "summary-chip-cell",
                   secondaryText,
-                } as SummaryChipCellProps,
+                } satisfies SummaryChipCellProps,
               };
             }
 
@@ -64,7 +64,7 @@ export const useCreateGetCellContent = () => {
               data: {
                 kind: "linked-with-cell",
                 linkRow,
-              } as LinkedWithCellProps,
+              } satisfies LinkedWithCellProps,
             };
           case "expectedEntityTypes":
             return {
@@ -76,7 +76,7 @@ export const useCreateGetCellContent = () => {
                 kind: "chip-cell",
                 chips: linkRow.expectedEntityTypeTitles,
                 color: "blue",
-              } as ChipCellProps,
+              } satisfies ChipCellProps,
             };
         }
       },
