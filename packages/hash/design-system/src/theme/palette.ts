@@ -34,6 +34,7 @@ export const customColors = {
     70: "#64778C",
     80: "#4D5C6C",
     90: "#37434F",
+    100: "#0E1114",
   },
   blue: {
     10: "#F7FDFF",

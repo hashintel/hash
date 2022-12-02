@@ -208,12 +208,12 @@ export const ArrayPropertyTypeMenu: FunctionComponent<
             />
           )}
           options={dataTypeOptions}
-          getOptionLabel={(opt) => dataTypeData[opt]!.title}
+          getOptionLabel={(opt) => dataTypeData[opt!]!.title}
           renderOption={(optProps, opt) => {
             return (
               <Box component="li" {...optProps} sx={{ py: 1.5, px: 2.25 }}>
                 <FontAwesomeIcon
-                  icon={{ icon: dataTypeData[opt]!.icon }}
+                  icon={{ icon: dataTypeData[opt!]!.icon }}
                   sx={(theme) => ({ color: theme.palette.gray[50] })}
                 />
                 <Typography
@@ -222,7 +222,7 @@ export const ArrayPropertyTypeMenu: FunctionComponent<
                   ml={1.5}
                   color={(theme) => theme.palette.gray[80]}
                 >
-                  {dataTypeData[opt]!.title}
+                  {dataTypeData[opt!]!.title}
                 </Typography>
                 <Chip color="blue" label="DATA TYPE" sx={{ ml: 1.5 }} />
               </Box>
