@@ -10,12 +10,12 @@ import { Ref, useId, useRef, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { useBlockProtocolCreatePropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreatePropertyType";
 import { EntityTypeEditorForm } from "./form-types";
+import { PropertyTypeSelector } from "./property-type-selector";
 import {
   formDataToPropertyType,
   PropertyTypeForm,
   PropertyTypeFormValues,
 } from "./property-type-form";
-import { PropertyTypeSelector } from "./property-type-selector";
 import { QuestionIcon } from "./question-icon";
 import { useRefetchPropertyTypes } from "./use-property-types";
 import { useRouteNamespace } from "./use-route-namespace";
