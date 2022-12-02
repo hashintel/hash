@@ -29,7 +29,7 @@ export const useCreateGetCellContent = () => {
               kind: GridCellKind.Custom,
               readonly: true,
               allowOverlay: false,
-              copyData: String(linkRow.linkTitle),
+              copyData: linkRow.linkTitle,
               data: {
                 kind: "link-cell",
                 linkRow,
@@ -71,7 +71,7 @@ export const useCreateGetCellContent = () => {
               kind: GridCellKind.Custom,
               readonly: true,
               allowOverlay: true,
-              copyData: String(linkRow.expectedEntityTypes),
+              copyData: String(linkRow.expectedEntityTypeTitles),
               data: {
                 kind: "chip-cell",
                 chips: linkRow.expectedEntityTypeTitles,

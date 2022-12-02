@@ -9,13 +9,16 @@ import { useBlockProtocolArchiveEntity } from "../../../../../../../components/h
 import { useSnackbar } from "../../../../../../../components/hooks/useSnackbar";
 
 export const useRowData = () => {
-  const { entitySubgraph, entityTypeSubgraph, refetch } = useEntityEditor();
+  const { entitySubgraph, refetch } = useEntityEditor();
   const { archiveEntity } = useBlockProtocolArchiveEntity();
   const snackbar = useSnackbar();
 
   const rowData = useMemo<LinkRow[]>(() => {
     const entity = getRoots(entitySubgraph)[0]!;
-    const entityType = getRoots(entityTypeSubgraph)[0]!;
+    const entityType = getEntityTypeById(
+      entitySubgraph,
+      entity.metadata.entityTypeId,
+    );
 
     const outgoingLinkAndTargetEntitiesAtMoment =
       getOutgoingLinkAndTargetEntitiesAtMoment(
@@ -25,18 +28,17 @@ export const useRowData = () => {
         new Date(),
       );
 
-    const linkSchemas = entityType.schema.links;
+    const linkSchemas = entityType?.schema.links;
 
     if (!linkSchemas) {
       return [];
     }
 
-    return Object.keys(linkSchemas).map((key) => {
+    return Object.entries(linkSchemas).map<LinkRow>(([key, linkSchema]) => {
       const linkEntityTypeId = key as VersionedUri;
-      const linkSchema = linkSchemas[linkEntityTypeId]!;
 
       const linkEntityType = getEntityTypeById(
-        entityTypeSubgraph,
+        entitySubgraph,
         linkEntityTypeId,
       );
 
@@ -51,7 +53,13 @@ export const useRowData = () => {
         );
 
       const expectedEntityTypes = linkSchema.items.oneOf.map(({ $ref }) => {
-        return getEntityTypeById(entityTypeSubgraph, $ref);
+        const expectedEntityType = getEntityTypeById(entitySubgraph, $ref);
+
+        if (!expectedEntityType) {
+          throw new Error("entity type not found");
+        }
+
+        return expectedEntityType;
       });
 
       const expectedEntityTypeTitles = expectedEntityTypes.map((val) => {
@@ -61,7 +69,7 @@ export const useRowData = () => {
       return {
         rowId: linkEntityTypeId,
         linkEntityTypeId,
-        linkTitle: linkEntityType?.schema.title,
+        linkTitle: linkEntityType?.schema.title ?? "",
         linkAndTargetEntities,
         maxItems: linkSchema.maxItems ?? 1,
         expectedEntityTypes,
@@ -75,9 +83,9 @@ export const useRowData = () => {
             snackbar.error("Failed to remove link");
           }
         },
-      } as LinkRow;
+      };
     });
-  }, [entitySubgraph, entityTypeSubgraph, archiveEntity, refetch, snackbar]);
+  }, [entitySubgraph, archiveEntity, refetch, snackbar]);
 
   return rowData;
 };

@@ -8,6 +8,7 @@ import {
   PopperProps,
   Typography,
 } from "@mui/material";
+import clsx from "clsx";
 import { Ref, useMemo } from "react";
 import { ArrowUpRightIcon } from "../../../../shared/icons/svg";
 import {
@@ -137,7 +138,7 @@ export const HashSelectorAutocomplete = <T extends unknown>({
             {...props}
             data-testid="property-selector-option"
             /** added "click-outside-ignore" to be able to use this selector with Grid component */
-            className={`${props.className} click-outside-ignore`}
+            className={clsx(props.className, "click-outside-ignore")}
           >
             <Box width="100%">
               <Box

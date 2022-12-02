@@ -8,17 +8,21 @@ import { Paper, Stack } from "@mui/material";
 import { useState } from "react";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { getOutgoingLinksForEntityAtMoment } from "@hashintel/hash-subgraph/src/stdlib/edge/link";
+import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import { useEntityEditor } from "./entity-editor-context";
 import { LinkTable } from "./links-section/link-table";
 import { SectionWrapper } from "../../../shared/section-wrapper";
 import { LinksSectionEmptyState } from "../shared/links-section-empty-state";
 
 export const LinksSection = () => {
-  const { entitySubgraph, entityTypeSubgraph } = useEntityEditor();
+  const { entitySubgraph } = useEntityEditor();
   const [showSearch, setShowSearch] = useState(false);
 
   const entity = getRoots(entitySubgraph)[0]!;
-  const entityType = getRoots(entityTypeSubgraph)[0]!;
+  const entityType = getEntityTypeById(
+    entitySubgraph,
+    entity.metadata.entityTypeId,
+  );
 
   const outgoingLinks = getOutgoingLinksForEntityAtMoment(
     entitySubgraph,
@@ -27,7 +31,7 @@ export const LinksSection = () => {
     new Date(),
   );
 
-  const isEmpty = Object.keys(entityType.schema.links ?? {}).length === 0;
+  const isEmpty = Object.keys(entityType?.schema.links ?? {}).length === 0;
 
   if (isEmpty) {
     return <LinksSectionEmptyState />;

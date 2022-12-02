@@ -60,9 +60,9 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
     }
 
     const accountSlug = router.query["account-slug"];
-    /** @todo ask about this behavior */
+    /** @todo this should be replaced with a "new entity modal" or something else */
     void window.open(
-      `/${accountSlug}/entities/new?entity-type-id=${encodeURIComponent(
+      `/${accountSlug}/new/entity?entity-type-id=${encodeURIComponent(
         expectedEntityTypes[0].schema.$id,
       )}`,
       "_blank",
@@ -125,11 +125,14 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
         variant: "entity",
       }}
       loading={loading}
-      options={entities.sort((a, b) =>
+      options={[...entities].sort((a, b) =>
         a.metadata.editionId.baseId.localeCompare(b.metadata.editionId.baseId),
       )}
       optionToRenderData={(entity) => ({
-        /** @todo $id is wrong */
+        /**
+         * @todo we should show namespace the entity belongs on the OntologyChip here.
+         * Using entity type for now
+         * */
         $id: entity.metadata.entityTypeId,
         title: generateEntityLabel(entitySubgraph, entity),
       })}

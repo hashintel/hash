@@ -6,7 +6,6 @@ import {
   Subgraph,
   SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
-import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { useBlockProtocolGetEntity } from "../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolGetEntity";
 import { useLoggedInUser } from "../../../components/hooks/useAuthenticatedUser";
 import {
@@ -33,9 +32,6 @@ const Page: NextPageWithLayout = () => {
     useState<Subgraph<SubgraphRootTypes["entity"]>>();
   const [loading, setLoading] = useState(true);
 
-  const [entityTypeSubgraph, setEntityTypeSubgraph] =
-    useState<Subgraph<SubgraphRootTypes["entityType"]>>();
-
   useEffect(() => {
     if (routeNamespace) {
       const init = async () => {
@@ -54,16 +50,6 @@ const Page: NextPageWithLayout = () => {
               setEntitySubgraph(subgraph);
             } catch {
               setEntitySubgraph(undefined);
-            }
-
-            const entityTypeId = getRoots(subgraph)[0]?.metadata.entityTypeId;
-
-            if (entityTypeId) {
-              const { data: typeSubgraph } = await getEntityType({
-                data: { entityTypeId },
-              });
-
-              setEntityTypeSubgraph(typeSubgraph);
             }
           }
         } finally {
@@ -100,7 +86,7 @@ const Page: NextPageWithLayout = () => {
     return <EntityPageLoadingState />;
   }
 
-  if (!entitySubgraph || !entityTypeSubgraph) {
+  if (!entitySubgraph) {
     return <PageErrorState />;
   }
 
@@ -110,7 +96,6 @@ const Page: NextPageWithLayout = () => {
     <EntityPageWrapper label={entityLabel}>
       <EntityEditor
         entitySubgraph={entitySubgraph}
-        entityTypeSubgraph={entityTypeSubgraph}
         setEntity={(entity) =>
           setEntitySubgraph((entityAndSubgraph) => {
             if (entity) {
