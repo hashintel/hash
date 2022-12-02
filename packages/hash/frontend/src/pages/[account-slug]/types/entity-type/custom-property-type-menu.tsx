@@ -34,12 +34,12 @@ const CustomChip: FunctionComponent<ChipProps & { borderColor?: string }> = ({
   />
 );
 
-type PropertyTypeCustomMenuProps = {
+type CustomPropertyTypeMenuProps = {
   closeMenu: () => void;
 };
 
-export const PropertyTypeCustomMenu: FunctionComponent<
-  PropertyTypeCustomMenuProps
+export const CustomPropertyTypeMenu: FunctionComponent<
+  CustomPropertyTypeMenuProps
 > = ({ closeMenu }) => {
   const { closeCustomPropertyMenu } = usePropertyTypeSelectorDropdownContext();
 
