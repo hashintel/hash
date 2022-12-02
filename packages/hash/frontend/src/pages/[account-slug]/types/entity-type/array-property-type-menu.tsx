@@ -101,9 +101,14 @@ export const ArrayPropertyTypeMenu: FunctionComponent<
           }
 
           return property.data.typeId === "array" ? (
-            <ArrayPropertyTypeMenu id={childId} index={[...index, pos]} />
+            <ArrayPropertyTypeMenu
+              key={childId}
+              id={childId}
+              index={[...index, pos]}
+            />
           ) : (
             <Stack
+              key={childId}
               direction="row"
               sx={{
                 flex: 1,
