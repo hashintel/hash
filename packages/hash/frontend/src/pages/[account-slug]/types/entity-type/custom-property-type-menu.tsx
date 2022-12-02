@@ -70,18 +70,22 @@ export const CustomPropertyTypeMenu: FunctionComponent<
 
           <Button
             onClick={closeMenu}
-            size="small"
-            sx={{
+            sx={({ palette, transitions }) => ({
               padding: 0,
+              minWidth: 0,
               minHeight: 0,
               background: "none !important",
               fontWeight: 600,
               fontSize: 12,
-              color: ({ palette }) => palette.gray[50],
+              letterSpacing: "0.04em",
+              color: palette.gray[50],
               [`.${buttonClasses.endIcon}`]: {
-                ml: 0,
+                color: palette.gray[40],
+                ml: 0.5,
+                fontSize: 16,
+                transition: transitions.create("color"),
               },
-            }}
+            })}
             endIcon={<FontAwesomeIcon icon={faClose} />}
             variant="tertiary_quiet"
           >
