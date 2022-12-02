@@ -13,10 +13,6 @@ export const useRowData = () => {
   const { entitySubgraph, propertyExpandStatus } = useEntityEditor();
 
   const rows = useMemo<PropertyRow[]>(() => {
-    if (!entitySubgraph) {
-      return [];
-    }
-
     return generatePropertyRowsFromEntity(entitySubgraph);
   }, [entitySubgraph]);
 

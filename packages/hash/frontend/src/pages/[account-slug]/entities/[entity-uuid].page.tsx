@@ -18,12 +18,15 @@ import { EntityPageWrapper } from "./[entity-uuid].page/entity-page-wrapper";
 import { PageErrorState } from "../../../components/page-error-state";
 import { generateEntityLabel } from "../../../lib/entities";
 import { useRouteNamespace } from "../types/entity-type/use-route-namespace";
+import { useBlockProtocolGetEntityType } from "../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
+  const entityUuid = router.query["entity-uuid"] as string;
   const { routeNamespace } = useRouteNamespace();
   const { authenticatedUser } = useLoggedInUser();
   const { getEntity } = useBlockProtocolGetEntity();
+  const { getEntityType } = useBlockProtocolGetEntityType();
 
   const [entitySubgraph, setEntitySubgraph] =
     useState<Subgraph<SubgraphRootTypes["entity"]>>();
@@ -33,8 +36,6 @@ const Page: NextPageWithLayout = () => {
     if (routeNamespace) {
       const init = async () => {
         try {
-          const entityUuid = router.query["entity-uuid"] as string;
-
           const { data: subgraph } = await getEntity({
             data: {
               entityId: entityIdFromOwnedByIdAndEntityUuid(
@@ -58,7 +59,24 @@ const Page: NextPageWithLayout = () => {
 
       void init();
     }
-  }, [routeNamespace, router.query, getEntity]);
+  }, [entityUuid, getEntity, getEntityType, routeNamespace]);
+
+  const refetch = async () => {
+    if (!routeNamespace) {
+      return;
+    }
+
+    const { data: subgraph } = await getEntity({
+      data: {
+        entityId: entityIdFromOwnedByIdAndEntityUuid(
+          routeNamespace.accountId,
+          entityUuid,
+        ),
+      },
+    });
+
+    setEntitySubgraph(subgraph);
+  };
 
   if (!authenticatedUser) {
     return null;
@@ -114,6 +132,7 @@ const Page: NextPageWithLayout = () => {
             }
           })
         }
+        refetch={refetch}
       />
     </EntityPageWrapper>
   );
