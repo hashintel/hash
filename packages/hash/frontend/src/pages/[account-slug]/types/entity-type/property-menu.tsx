@@ -27,7 +27,6 @@ import {
   OntologyChip,
   parseUriForOntologyChip,
 } from "../../shared/ontology-chip";
-import { withHandler } from "./util";
 
 export const PropertyMenu = ({
   editButtonProps,
