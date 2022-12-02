@@ -74,24 +74,34 @@ export const WorkspaceContextProvider: FunctionComponent<{
     authenticatedUser,
   ]);
 
-  const workspaceContextValue = useMemo<WorkspaceContextValue>(
-    () => ({
-      activeWorkspace:
-        authenticatedUser &&
-        authenticatedUser.userAccountId === activeWorkspaceAccountId
-          ? authenticatedUser
-          : authenticatedUser?.memberOf?.find(
-              ({ orgAccountId }) => orgAccountId === activeWorkspaceAccountId,
-            ),
+  const workspaceContextValue = useMemo<WorkspaceContextValue>(() => {
+    const activeWorkspace =
+      authenticatedUser &&
+      authenticatedUser.userAccountId === activeWorkspaceAccountId
+        ? authenticatedUser
+        : authenticatedUser?.memberOf?.find(
+            ({ orgAccountId }) => orgAccountId === activeWorkspaceAccountId,
+          );
+
+    /**
+     * If there is an `activeWorkspaceAccountId` and an `authenticatedUser`, but
+     * `activeWorkspace` is not defined, reset `activeWorkspaceAccountId` to the
+     * authenticated user's account ID
+     */
+    if (activeWorkspaceAccountId && authenticatedUser && !activeWorkspace) {
+      updateActiveWorkspaceAccountId(authenticatedUser.userAccountId);
+    }
+
+    return {
+      activeWorkspace,
       activeWorkspaceAccountId,
       updateActiveWorkspaceAccountId,
-    }),
-    [
-      authenticatedUser,
-      activeWorkspaceAccountId,
-      updateActiveWorkspaceAccountId,
-    ],
-  );
+    };
+  }, [
+    authenticatedUser,
+    activeWorkspaceAccountId,
+    updateActiveWorkspaceAccountId,
+  ]);
 
   return (
     <WorkspaceContext.Provider value={workspaceContextValue}>
