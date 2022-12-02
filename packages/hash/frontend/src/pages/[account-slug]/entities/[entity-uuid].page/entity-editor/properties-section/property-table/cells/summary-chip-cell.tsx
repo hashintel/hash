@@ -3,6 +3,7 @@ import {
   CustomRenderer,
   GridCellKind,
 } from "@glideapps/glide-data-grid";
+import { customColors } from "@hashintel/hash-design-system/src/theme/palette";
 import { getYCenter } from "../../../../../../../../components/grid/utils";
 import { drawCellFadeOutGradient } from "../../../../../../../../components/grid/utils/draw-cell-fade-out-gradient";
 import { drawRoundRect } from "../../../../../../../../components/grid/utils/draw-round-rect";
@@ -45,15 +46,15 @@ export const renderSummaryChipCell: CustomRenderer<SummaryChipCell> = {
 
     const chipWidth = primaryTextWidth + secondaryTextWidth + 2 * paddingX;
 
-    ctx.strokeStyle = "#C1CFDE";
+    ctx.strokeStyle = customColors.gray[40];
     ctx.beginPath();
     drawRoundRect(ctx, left, chipTop, chipWidth, height, height / 2);
     ctx.stroke();
 
-    ctx.fillStyle = "#37434F";
+    ctx.fillStyle = customColors.gray[90];
     ctx.fillText(primaryText, primaryTextLeft, yCenter);
 
-    ctx.fillStyle = "#758AA1";
+    ctx.fillStyle = customColors.gray[60];
     ctx.fillText(secondaryText, secondaryTextLeft, yCenter);
 
     drawCellFadeOutGradient(args);
