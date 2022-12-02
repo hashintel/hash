@@ -75,7 +75,9 @@ impl<C: AsClient> PostgresStore<C> {
             if let Some(OntologyVertex::EntityType(entity_type)) = entity_type {
                 for property_type_ref in entity_type.inner().property_type_references() {
                     if current_resolve_depth.constrains_properties_on.outgoing > 0 {
-                        if dependency_status == DependencyStatus::Unknown {
+                        if dependency_status == DependencyStatus::Unknown
+                            || dependency_status == DependencyStatus::DependenciesUnresolved
+                        {
                             subgraph.edges.insert(Edge::Ontology {
                                 edition_id: entity_type_id.clone(),
                                 outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
@@ -109,7 +111,9 @@ impl<C: AsClient> PostgresStore<C> {
 
                 for entity_type_ref in entity_type.inner().inherits_from().all_of() {
                     if current_resolve_depth.inherits_from.outgoing > 0 {
-                        if dependency_status == DependencyStatus::Unknown {
+                        if dependency_status == DependencyStatus::Unknown
+                            || dependency_status == DependencyStatus::DependenciesUnresolved
+                        {
                             subgraph.edges.insert(Edge::Ontology {
                                 edition_id: entity_type_id.clone(),
                                 outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
@@ -140,7 +144,9 @@ impl<C: AsClient> PostgresStore<C> {
 
                 for entity_type_ref in entity_type.inner().link_mappings().into_keys() {
                     if current_resolve_depth.constrains_links_on.outgoing > 0 {
-                        if dependency_status == DependencyStatus::Unknown {
+                        if dependency_status == DependencyStatus::Unknown
+                            || dependency_status == DependencyStatus::DependenciesUnresolved
+                        {
                             subgraph.edges.insert(Edge::Ontology {
                                 edition_id: entity_type_id.clone(),
                                 outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
@@ -183,7 +189,9 @@ impl<C: AsClient> PostgresStore<C> {
                         .outgoing
                         > 0
                     {
-                        if dependency_status == DependencyStatus::Unknown {
+                        if dependency_status == DependencyStatus::Unknown
+                            || dependency_status == DependencyStatus::DependenciesUnresolved
+                        {
                             subgraph.edges.insert(Edge::Ontology {
                                 edition_id: entity_type_id.clone(),
                                 outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {

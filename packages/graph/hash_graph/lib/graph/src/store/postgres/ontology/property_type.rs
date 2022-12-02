@@ -73,7 +73,9 @@ impl<C: AsClient> PostgresStore<C> {
                 //   see https://app.asana.com/0/0/1202884883200942/f
                 for property_type_ref in property_type.inner().property_type_references() {
                     if current_resolve_depth.constrains_properties_on.outgoing > 0 {
-                        if dependency_status == DependencyStatus::Unknown {
+                        if dependency_status == DependencyStatus::Unknown
+                            || dependency_status == DependencyStatus::DependenciesUnresolved
+                        {
                             subgraph.edges.insert(Edge::Ontology {
                                 edition_id: property_type_id.clone(),
                                 outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
@@ -109,7 +111,9 @@ impl<C: AsClient> PostgresStore<C> {
                 //   see https://app.asana.com/0/0/1202884883200942/f
                 for data_type_ref in property_type.inner().data_type_references() {
                     if current_resolve_depth.constrains_values_on.outgoing > 0 {
-                        if dependency_status == DependencyStatus::Unknown {
+                        if dependency_status == DependencyStatus::Unknown
+                            || dependency_status == DependencyStatus::DependenciesUnresolved
+                        {
                             subgraph.edges.insert(Edge::Ontology {
                                 edition_id: property_type_id.clone(),
                                 outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {

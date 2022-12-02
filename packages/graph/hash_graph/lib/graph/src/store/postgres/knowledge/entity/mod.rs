@@ -85,7 +85,9 @@ impl<C: AsClient> PostgresStore<C> {
                 let entity_edition_id = entity.metadata().edition_id();
 
                 if current_resolve_depth.is_of_type.outgoing > 0 {
-                    if dependency_status == DependencyStatus::Unknown {
+                    if dependency_status == DependencyStatus::Unknown
+                        || dependency_status == DependencyStatus::DependenciesUnresolved
+                    {
                         subgraph.edges.insert(Edge::KnowledgeGraph {
                             edition_id: entity_edition_id,
                             outward_edge: KnowledgeGraphOutwardEdges::ToOntology(OutwardEdge {
@@ -118,7 +120,9 @@ impl<C: AsClient> PostgresStore<C> {
                     )
                     .await?
                     {
-                        if dependency_status == DependencyStatus::Unknown {
+                        if dependency_status == DependencyStatus::Unknown
+                            || dependency_status == DependencyStatus::DependenciesUnresolved
+                        {
                             // We want to log the time the link entity was *first* added from this
                             // entity. We therefore need to find the timestamp of the first link
                             // entity
@@ -187,7 +191,9 @@ impl<C: AsClient> PostgresStore<C> {
                     )
                     .await?
                     {
-                        if dependency_status == DependencyStatus::Unknown {
+                        if dependency_status == DependencyStatus::Unknown
+                            || dependency_status == DependencyStatus::DependenciesUnresolved
+                        {
                             // We want to log the time the link entity was *first* added from this
                             // entity. We therefore need to find the timestamp of the first link
                             // entity
@@ -256,7 +262,9 @@ impl<C: AsClient> PostgresStore<C> {
                     )
                     .await?
                     {
-                        if dependency_status == DependencyStatus::Unknown {
+                        if dependency_status == DependencyStatus::Unknown
+                            || dependency_status == DependencyStatus::DependenciesUnresolved
+                        {
                             // We want to log the time _this_ link entity was *first* added from the
                             // left entity. We therefore need to find the timestamp of this entity
                             // TODO: this is very slow, we should update structural querying to be
@@ -321,7 +329,9 @@ impl<C: AsClient> PostgresStore<C> {
                     )
                     .await?
                     {
-                        if dependency_status == DependencyStatus::Unknown {
+                        if dependency_status == DependencyStatus::Unknown
+                            || dependency_status == DependencyStatus::DependenciesUnresolved
+                        {
                             // We want to log the time _this_ link entity was *first* added to the
                             // right entity. We therefore need to find the timestamp of this entity
                             // TODO: this is very slow, we should update structural querying to be
