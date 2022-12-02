@@ -9,6 +9,7 @@ import {
   ChipProps,
   FontAwesomeIcon,
 } from "@hashintel/hash-design-system";
+import { customColors } from "@hashintel/hash-design-system/src/theme/palette";
 import { Box } from "@mui/material";
 
 import { drawCellFadeOutGradient } from "../../../../../../../../components/grid/utils/draw-cell-fade-out-gradient";
@@ -25,8 +26,10 @@ export type ChipCell = CustomCell<ChipCellProps>;
 const getChipColors = (color: ChipProps["color"]) => {
   switch (color) {
     case "blue":
-      /** @todo we should use colors from MUI theme */
-      return { textColor: "#0775E3", bgColor: "#E0F4FF" };
+      return {
+        textColor: customColors.blue[70],
+        bgColor: customColors.blue[20],
+      };
 
     default:
       return { textColor: undefined, bgColor: undefined };

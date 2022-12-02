@@ -4,6 +4,7 @@ import {
   GridCellKind,
 } from "@glideapps/glide-data-grid";
 
+import { customColors } from "@hashintel/hash-design-system/src/theme/palette";
 import {
   getCellHorizontalPadding,
   getYCenter,
@@ -43,7 +44,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
 
     if (!linkAndTargetEntity) {
       // draw empty value
-      ctx.fillStyle = "#91A5BA";
+      ctx.fillStyle = customColors.gray[50];
       ctx.font = "italic 14px Inter";
       ctx.fillText("No entity", left, yCenter);
 
@@ -92,7 +93,9 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
       iconSize,
       {
         ...theme,
-        fgIconHeader: deleteButton.hovered ? "#DF3449" : theme.fgIconHeader,
+        fgIconHeader: deleteButton.hovered
+          ? customColors.red[70]
+          : theme.fgIconHeader,
       },
       hoverAmount > 0 ? hoverAmount : highlighted ? 1 : 0,
     );
