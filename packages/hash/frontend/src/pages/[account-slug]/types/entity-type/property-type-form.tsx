@@ -238,10 +238,14 @@ const PropertyTypeFormInner = ({
         p={3}
         component="form"
         display="block"
-        onSubmit={handleSubmit}
+        onSubmit={(event) => {
+          event.stopPropagation(); // stop the entity type's submit being triggered
+
+          void handleSubmit(event);
+        }}
       >
         <Stack
-          alignItems="stretch"
+          alignItems="flex-start"
           spacing={3}
           sx={{
             [`.${inputLabelClasses.root}`]: {
@@ -251,6 +255,7 @@ const PropertyTypeFormInner = ({
           }}
         >
           <TextField
+            fullWidth
             label="Singular name"
             required
             placeholder="e.g. Stock Price"
@@ -297,6 +302,7 @@ const PropertyTypeFormInner = ({
           />
           <TextField
             multiline
+            fullWidth
             inputProps={{ minRows: 1 }}
             label={
               <>

@@ -42,7 +42,7 @@ export const useCreateGetCellContent = (
               data: {
                 kind: "property-name-cell",
                 property,
-              } as PropertyNameCellProps,
+              } satisfies PropertyNameCellProps,
             };
 
           case "value":
@@ -62,7 +62,7 @@ export const useCreateGetCellContent = (
                   kind: "summary-chip-cell",
                   primaryText: `${emptyCount + notEmptyCount} properties`,
                   secondaryText: `(${valuesCount} with ${valueWord})`,
-                } as SummaryChipCellProps,
+                } satisfies SummaryChipCellProps,
               };
             }
 
@@ -77,7 +77,7 @@ export const useCreateGetCellContent = (
                 showTooltip,
                 hideTooltip,
                 property,
-              } as ValueCellProps,
+              } satisfies ValueCellProps,
             };
 
           case "expectedTypes":
@@ -93,7 +93,7 @@ export const useCreateGetCellContent = (
               data: {
                 kind: "chip-cell",
                 chips: property.expectedTypes,
-              } as ChipCellProps,
+              } satisfies ChipCellProps,
             };
         }
       },

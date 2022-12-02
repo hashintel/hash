@@ -95,13 +95,10 @@ const DataTypeSelector: ForwardRefRenderFunction<HTMLInputElement, {}> = () => {
         <TextField
           {...inputProps}
           label="Expected values"
-          sx={{
-            alignSelf: "flex-start",
-            width: "70%",
-          }}
           placeholder="Select acceptable values"
         />
       )}
+      sx={{ width: "70%" }}
       options={dataTypeOptions}
       getOptionLabel={(opt) =>
         dataTypeData[typeof opt === "object" ? opt.typeId : opt]!.title
