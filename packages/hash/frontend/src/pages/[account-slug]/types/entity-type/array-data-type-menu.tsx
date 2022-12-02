@@ -68,22 +68,33 @@ export const ArrayDataTypeMenu: FunctionComponent<ArrayDataTypeMenuProps> = ({
   });
 
   const deleteDataTypeByTypeId = (typeId: string) => {
-    const removedDataTypeId = Object.values(flattenedDataTypes).find(
+    const removedDataType = Object.values(flattenedDataTypes).find(
       (dataType) =>
         dataType.parentId === dataTypeId && dataType.data?.typeId === typeId,
-    )?.id;
+    );
 
-    if (removedDataTypeId) {
-      setValue(
-        `flattenedDataTypeList`,
-        deleteDataTypeAndChildren(removedDataTypeId, flattenedDataTypes),
-      );
+    if (removedDataType) {
+      const removedDataTypeId = removedDataType.id;
+      setValue(`flattenedDataTypeList.${removedDataTypeId}`, {
+        ...removedDataType,
+        animatingOut: true,
+      });
 
-      setValue(
-        `flattenedDataTypeList.${dataTypeId}.data.expectedValues`,
-        expectedValues.filter((childId) => childId !== removedDataTypeId),
-      );
+      setTimeout(() => {
+        setValue(
+          `flattenedDataTypeList`,
+          deleteDataTypeAndChildren(removedDataTypeId, flattenedDataTypes),
+        );
+
+        setValue(
+          `flattenedDataTypeList.${dataTypeId}.data.expectedValues`,
+          expectedValues.filter((childId) => childId !== removedDataTypeId),
+        );
+      }, 300);
     }
+
+    // trigger popper reposition calculation
+    window.dispatchEvent(new Event("resize"));
   };
 
   const value = useMemo(
@@ -154,6 +165,9 @@ export const ArrayDataTypeMenu: FunctionComponent<ArrayDataTypeMenuProps> = ({
                   `flattenedDataTypeList.${dataTypeId}.data.expectedValues`,
                   [...expectedValues, childId],
                 );
+
+                // trigger popper reposition calculation
+                window.dispatchEvent(new Event("resize"));
               } else if (reason === "removeOption") {
                 deleteDataTypeByTypeId(typeId);
               }
