@@ -43,13 +43,9 @@ export const CustomPropertyTypeMenu: FunctionComponent<
 > = ({ closeMenu }) => {
   const { closeCustomPropertyMenu } = usePropertyTypeSelectorDropdownContext();
 
-  const { setValue, control } = useFormContext<PropertyTypeFormValues>();
+  const { getValues, setValue, control } =
+    useFormContext<PropertyTypeFormValues>();
   const creatingPropertyId = useWatch({ control, name: "creatingPropertyId" });
-  const flattenedProperties = useWatch({
-    control,
-    name: "flattenedPropertyList",
-  });
-  const expectedValues = useWatch({ control, name: "expectedValues" });
 
   return (
     <Box>
@@ -204,12 +200,12 @@ export const CustomPropertyTypeMenu: FunctionComponent<
           <Button
             size="small"
             onClick={() => {
-              setValue(`expectedValues`, [
-                ...expectedValues,
+              setValue("expectedValues", [
+                ...getValues("expectedValues"),
                 {
                   typeId: "array",
                   id: creatingPropertyId,
-                  flattenedProperties,
+                  flattenedProperties: getValues("flattenedPropertyList"),
                 },
               ]);
 
