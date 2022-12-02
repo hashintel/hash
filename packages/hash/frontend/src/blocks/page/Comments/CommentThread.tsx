@@ -8,7 +8,7 @@ import { extractBaseUri } from "@blockprotocol/type-system-web";
 import { types } from "@hashintel/hash-shared/types";
 import {
   EntityId,
-  extractOwnedByIdFromEntityId,
+  extractEntityUuidFromEntityId,
 } from "@hashintel/hash-subgraph";
 import { PageThread } from "../../../components/hooks/usePageComments";
 import { CommentTextField } from "./CommentTextField";
@@ -78,7 +78,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
 
   const authorId = useMemo(
     () =>
-      extractOwnedByIdFromEntityId(comment.author.metadata.editionId.baseId),
+      extractEntityUuidFromEntityId(comment.author.metadata.editionId.baseId),
     [comment.author],
   );
 
