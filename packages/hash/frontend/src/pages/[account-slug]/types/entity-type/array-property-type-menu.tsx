@@ -6,7 +6,7 @@ import {
 } from "@hashintel/hash-design-system";
 import { Autocomplete, Box, Stack, Typography } from "@mui/material";
 import { uniqueId } from "lodash";
-import { FunctionComponent, useMemo } from "react";
+import { FunctionComponent } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { PropertyTypeFormValues } from "./property-type-form";
 import {
@@ -16,6 +16,8 @@ import {
   getDefaultData,
   DataType,
 } from "./property-type-utils";
+
+const dataTypeOptions = [...primitiveDataTypeOptions, ...customDataTypeOptions];
 
 const deletePropertyAndChildren = (
   id: string,
@@ -56,11 +58,6 @@ export const ArrayPropertyTypeMenu: FunctionComponent<
     control,
     name: `flattenedPropertyList.${id}.data.expectedValues`,
   });
-
-  const dataTypeOptions = useMemo(
-    () => [...primitiveDataTypeOptions, ...customDataTypeOptions],
-    [],
-  );
 
   return (
     <Stack sx={{ mb: 1 }}>
