@@ -38,6 +38,7 @@ export interface ArrayTypeData {
 export interface DataType {
   id: string;
   parentId?: string;
+  animatingOut?: boolean;
   data?: PrimitiveTypeData | ArrayTypeData;
 }
 

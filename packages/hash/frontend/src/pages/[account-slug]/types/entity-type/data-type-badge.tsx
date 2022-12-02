@@ -10,7 +10,7 @@ import {
   tooltipClasses,
   Typography,
 } from "@mui/material";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { dataTypeData } from "./property-type-utils";
 
 export interface DataTypeBadgeProps {
@@ -31,6 +31,14 @@ export const DataTypeBadge = ({
   const { icon, title } = dataTypeData[typeId]!;
   const isArray = typeId === "array";
 
+  const prefixTextRef = useRef<HTMLSpanElement>(null);
+  const [prefixContainerWidth, setPreficContainerWidth] = useState(0);
+
+  useEffect(() => {
+    const textWidth = prefixTextRef.current?.getBoundingClientRect().width;
+    setPreficContainerWidth(textWidth ? textWidth + 24 : 0);
+  }, [prefix]);
+
   return (
     <Stack
       direction="row"
@@ -47,9 +55,12 @@ export const DataTypeBadge = ({
             padding: 1.25,
             alignItems: "center",
             ...(isArray ? { borderBottomLeftRadius: 0 } : {}),
+            width: prefixContainerWidth,
+            transition: ({ transitions }) => transitions.create("width"),
           }}
         >
           <Typography
+            ref={prefixTextRef}
             variant="smallCaps"
             sx={{
               fontSize: 11,

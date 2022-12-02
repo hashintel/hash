@@ -1,6 +1,6 @@
 import { types } from "@hashintel/hash-shared/types";
-import { Box } from "@mui/material";
-import { FunctionComponent } from "react";
+import { Box, Collapse } from "@mui/material";
+import { FunctionComponent, useEffect, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { ArrayDataTypeMenu } from "./array-data-type-menu";
 import { DataTypeBadge } from "./data-type-badge";
@@ -21,12 +21,18 @@ export const ArrayDataTypeChild: FunctionComponent<ArrayDataTypeChildProps> = ({
   firstChild,
   onDelete,
 }) => {
+  const [show, setShow] = useState(false);
+
   const { control } = useFormContext<PropertyTypeFormValues>();
 
   const dataType = useWatch({
     control,
     name: `flattenedDataTypeList.${id}`,
   });
+
+  useEffect(() => {
+    setShow(true);
+  }, []);
 
   if (!dataType?.data) {
     return null;
@@ -44,27 +50,29 @@ export const ArrayDataTypeChild: FunctionComponent<ArrayDataTypeChildProps> = ({
   };
 
   return (
-    <Box mb={1}>
-      {dataType.data.typeId === "array" ? (
-        <ArrayDataTypeMenu
-          dataTypeId={id}
-          prefix={firstChild ? "CONTAINING AN" : "OR AN"}
-          deleteTooltip={`Delete array${
-            hasContents ? " and its contents" : ""
-          }`}
-          index={index}
-          onDelete={deleteChild}
-        />
-      ) : (
-        <DataTypeBadge
-          typeId={dataType.data.typeId}
-          prefix={`${
-            onlyChild ? "CONTAINING" : firstChild ? "CONTAINING EITHER" : "OR"
-          }${isObject ? " A" : ""}`}
-          deleteTooltip="Remove data type"
-          onDelete={deleteChild}
-        />
-      )}
-    </Box>
+    <Collapse in={show && !dataType.animatingOut} timeout={300}>
+      <Box mb={1}>
+        {dataType.data.typeId === "array" ? (
+          <ArrayDataTypeMenu
+            dataTypeId={id}
+            prefix={firstChild ? "CONTAINING AN" : "OR AN"}
+            deleteTooltip={`Delete array${
+              hasContents ? " and its contents" : ""
+            }`}
+            index={index}
+            onDelete={deleteChild}
+          />
+        ) : (
+          <DataTypeBadge
+            typeId={dataType.data.typeId}
+            prefix={`${
+              onlyChild ? "CONTAINING" : firstChild ? "CONTAINING EITHER" : "OR"
+            }${isObject ? " A" : ""}`}
+            deleteTooltip="Remove data type"
+            onDelete={deleteChild}
+          />
+        )}
+      </Box>
+    </Collapse>
   );
 };
