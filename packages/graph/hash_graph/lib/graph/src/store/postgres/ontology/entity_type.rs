@@ -49,7 +49,7 @@ impl<C: AsClient> PostgresStore<C> {
             let entity_type = match dependency_status {
                 DependencyStatus::Unknown => {
                     if let Some(entity_type) = subgraph.vertices.ontology.get(entity_type_id) {
-                        Some(entity_type)
+                        Some(entity_type.clone())
                     } else {
                         let entity_type = Read::<EntityTypeWithMetadata>::read_one(
                             self,
