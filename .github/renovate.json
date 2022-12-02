@@ -1,35 +1,15 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:base"],
+
   "automerge": true,
   "dependencyDashboard": true,
   "dependencyDashboardApproval": true,
-  "enabledManagers": ["github-actions", "npm"],
   "ignorePaths": ["packages/engine/**"],
   "postUpdateOptions": ["yarnDedupeFewer"],
+  "rangeStrategy": "bump",
   "rebaseWhen": "conflicted",
-  "schedule": ["before 5am on Monday", "before 5am on Thursday"],
   "packageRules": [
-    {
-      "enabled": false,
-      "matchManagers": ["npm"],
-      "rangeStrategy": "bump"
-    },
-    {
-      "enabled": true,
-      "matchManagers": ["npm"],
-      "matchFiles": ["package.json"]
-    },
-    {
-      "enabled": true,
-      "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^cross-env$", "^dotenv-flow$", "^wait-on$"]
-    },
-    {
-      "enabled": true,
-      "groupName": "GraphQL Codegen",
-      "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@graphql-codegen/"]
-    },
     {
       "enabled": true,
       "groupName": "ESLint",
@@ -52,12 +32,6 @@
       "groupName": "Playwright",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^@playwright/", "^playwright$", "^playwright-"]
-    },
-    {
-      "enabled": true,
-      "groupName": "Prettier",
-      "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^prettier$", "^prettier-"]
     },
     {
       "enabled": true,

@@ -18,7 +18,7 @@ use crate::{
     knowledge::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkEntityMetadata,
     },
-    provenance::{CreatedById, OwnedById, UpdatedById},
+    provenance::{OwnedById, UpdatedById},
     store::{
         crud::Read,
         error::ArchivalError,
@@ -42,7 +42,7 @@ impl<C: AsClient> PostgresStore<C> {
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
     #[expect(clippy::too_many_lines)]
-    pub(crate) fn get_entity_as_dependency<'a>(
+    pub(crate) fn traverse_entity<'a>(
         &'a self,
         entity_edition_id: EntityEditionId,
         dependency_context: &'a mut DependencyContext,
@@ -52,7 +52,7 @@ impl<C: AsClient> PostgresStore<C> {
         async move {
             let dependency_status = dependency_context
                 .knowledge_dependency_map
-                .insert(&entity_edition_id, Some(current_resolve_depth));
+                .insert(&entity_edition_id, current_resolve_depth);
             let entity: Option<&KnowledgeGraphVertex> = match dependency_status {
                 DependencyStatus::Unknown => {
                     let entity = Read::<Entity>::read_one(
@@ -91,7 +91,7 @@ impl<C: AsClient> PostgresStore<C> {
                         });
                     }
 
-                    self.get_entity_type_as_dependency(
+                    self.traverse_entity_type(
                         &entity_type_id,
                         dependency_context,
                         subgraph,
@@ -159,7 +159,7 @@ impl<C: AsClient> PostgresStore<C> {
                             });
                         }
 
-                        self.get_entity_as_dependency(
+                        self.traverse_entity(
                             outgoing_link_entity.metadata().edition_id(),
                             dependency_context,
                             subgraph,
@@ -228,7 +228,7 @@ impl<C: AsClient> PostgresStore<C> {
                             });
                         }
 
-                        self.get_entity_as_dependency(
+                        self.traverse_entity(
                             incoming_link_entity.metadata().edition_id(),
                             dependency_context,
                             subgraph,
@@ -293,7 +293,7 @@ impl<C: AsClient> PostgresStore<C> {
                             });
                         }
 
-                        self.get_entity_as_dependency(
+                        self.traverse_entity(
                             left_entity.metadata().edition_id(),
                             dependency_context,
                             subgraph,
@@ -358,7 +358,7 @@ impl<C: AsClient> PostgresStore<C> {
                             });
                         }
 
-                        self.get_entity_as_dependency(
+                        self.traverse_entity(
                             right_entity.metadata().edition_id(),
                             dependency_context,
                             subgraph,
@@ -389,7 +389,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         entity_type_id: VersionedUri,
         owned_by_id: OwnedById,
         entity_uuid: Option<EntityUuid>,
-        created_by_id: CreatedById,
+        updated_by_id: UpdatedById,
         link_metadata: Option<LinkEntityMetadata>,
     ) -> Result<EntityMetadata, InsertionError> {
         let transaction = PostgresStore::new(
@@ -411,8 +411,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 entity_id,
                 properties,
                 entity_type_id,
-                created_by_id,
-                UpdatedById::new(created_by_id.as_account_id()),
+                updated_by_id,
                 link_metadata,
             )
             .await?;
@@ -441,7 +440,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         > + Send,
         entity_type_id: VersionedUri,
         owned_by_id: OwnedById,
-        actor_id: CreatedById,
+        actor_id: UpdatedById,
     ) -> Result<Vec<EntityUuid>, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
@@ -482,7 +481,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 entity_type_version_id,
                 owned_by_id,
                 actor_id,
-                UpdatedById::new(actor_id.as_account_id()),
             )
             .await?;
 
@@ -510,15 +508,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
 
         for entity in Read::<Entity>::read(self, filter).await? {
             let entity_edition_id = entity.metadata().edition_id();
-            dependency_context
-                .knowledge_dependency_map
-                .insert(&entity_edition_id, None);
-            subgraph
-                .vertices
-                .knowledge_graph
-                .insert(entity_edition_id, KnowledgeGraphVertex::Entity(entity));
 
-            self.get_entity_as_dependency(
+            self.traverse_entity(
                 entity_edition_id,
                 &mut dependency_context,
                 &mut subgraph,
@@ -605,7 +596,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 entity_id,
                 properties,
                 entity_type_id,
-                old_entity_metadata.provenance_metadata().created_by_id(),
                 updated_by_id,
                 link_metadata,
             )
@@ -658,7 +648,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 entity_id,
                 old_entity.properties().clone(),
                 old_entity.metadata().entity_type_id().clone(),
-                old_entity.metadata().provenance_metadata().created_by_id(),
                 actor_id,
                 old_entity.metadata().link_metadata(),
             )

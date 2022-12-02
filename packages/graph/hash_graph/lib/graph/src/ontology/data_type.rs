@@ -90,20 +90,6 @@ pub enum DataTypeQueryPath {
     /// [`OwnedById`]: crate::provenance::OwnedById
     /// [`OntologyElementMetadata`]: crate::ontology::OntologyElementMetadata
     OwnedById,
-    /// The [`CreatedById`] of the [`ProvenanceMetadata`] belonging to the [`DataType`].
-    ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::ontology::DataTypeQueryPath;
-    /// let path = DataTypeQueryPath::deserialize(json!(["createdById"]))?;
-    /// assert_eq!(path, DataTypeQueryPath::CreatedById);
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
-    ///
-    /// [`CreatedById`]: crate::provenance::CreatedById
-    /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
-    CreatedById,
     /// The [`UpdatedById`] of the [`ProvenanceMetadata`] belonging to the [`DataType`].
     ///
     /// ```rust
@@ -178,10 +164,6 @@ impl OntologyPath for DataTypeQueryPath {
         Self::OwnedById
     }
 
-    fn created_by_id() -> Self {
-        Self::CreatedById
-    }
-
     fn updated_by_id() -> Self {
         Self::UpdatedById
     }
@@ -194,9 +176,7 @@ impl OntologyPath for DataTypeQueryPath {
 impl RecordPath for DataTypeQueryPath {
     fn expected_type(&self) -> ParameterType {
         match self {
-            Self::VersionId | Self::OwnedById | Self::CreatedById | Self::UpdatedById => {
-                ParameterType::Uuid
-            }
+            Self::VersionId | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
             Self::Schema => ParameterType::Any,
             Self::BaseUri => ParameterType::BaseUri,
             Self::VersionedUri => ParameterType::VersionedUri,
@@ -214,7 +194,6 @@ impl fmt::Display for DataTypeQueryPath {
             Self::Version => fmt.write_str("version"),
             Self::VersionedUri => fmt.write_str("versionedUri"),
             Self::OwnedById => fmt.write_str("ownedById"),
-            Self::CreatedById => fmt.write_str("createdById"),
             Self::UpdatedById => fmt.write_str("updatedById"),
             Self::Schema => fmt.write_str("schema"),
             Self::Title => fmt.write_str("title"),
@@ -232,7 +211,6 @@ pub enum DataTypeQueryToken {
     Version,
     VersionedUri,
     OwnedById,
-    CreatedById,
     UpdatedById,
     Title,
     Description,
@@ -247,8 +225,8 @@ pub struct DataTypeQueryPathVisitor {
 
 impl DataTypeQueryPathVisitor {
     pub const EXPECTING: &'static str = "one of `baseUri`, `version`, `versionedUri`, \
-                                         `ownedById`, `createdById`, `updatedById`, `title`, \
-                                         `description`, `type`";
+                                         `ownedById`, `updatedById`, `title`, `description`, \
+                                         `type`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -274,7 +252,6 @@ impl<'de> Visitor<'de> for DataTypeQueryPathVisitor {
 
         Ok(match token {
             DataTypeQueryToken::OwnedById => DataTypeQueryPath::OwnedById,
-            DataTypeQueryToken::CreatedById => DataTypeQueryPath::CreatedById,
             DataTypeQueryToken::UpdatedById => DataTypeQueryPath::UpdatedById,
             DataTypeQueryToken::BaseUri => DataTypeQueryPath::BaseUri,
             DataTypeQueryToken::VersionedUri => DataTypeQueryPath::VersionedUri,

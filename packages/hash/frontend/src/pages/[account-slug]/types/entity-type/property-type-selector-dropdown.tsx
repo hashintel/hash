@@ -2,7 +2,7 @@ import { Button, Chip } from "@hashintel/hash-design-system";
 import { PaperProps, Typography } from "@mui/material";
 import { createContext, useContext } from "react";
 import { AutocompleteDropdown } from "./autocomplete-dropdown";
-import { PropertyTypeCustomMenu } from "./custom-property-type-menu";
+import { CustomPropertyTypeMenu } from "./custom-property-type-menu";
 import { StyledPlusCircleIcon } from "./styled-plus-circle-icon";
 
 type PropertyTypeSelectorDropdownProps = {
@@ -37,7 +37,7 @@ export const PropertyTypeSelectorDropdown = ({
   return (
     <AutocompleteDropdown {...props}>
       {customPropertyMenuOpen ? (
-        <PropertyTypeCustomMenu closeMenu={closeCustomPropertyMenu} />
+        <CustomPropertyTypeMenu closeMenu={closeCustomPropertyMenu} />
       ) : (
         <>
           {children}

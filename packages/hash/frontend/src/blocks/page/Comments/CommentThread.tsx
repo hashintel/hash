@@ -93,10 +93,12 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
         pageId={pageId}
         comment={comment}
         resolvable={
+          // TODO: The provenance fields shouldn't be used for this
+          //   see https://app.asana.com/0/1201095311341924/1203466351235289/f
           authenticatedUser?.userAccountId ===
-            comment.metadata.provenance.createdById ||
+            comment.metadata.provenance.updatedById ||
           authenticatedUser?.userAccountId ===
-            comment.parent.metadata.provenance.createdById
+            comment.parent.metadata.provenance.updatedById
         }
       />
 

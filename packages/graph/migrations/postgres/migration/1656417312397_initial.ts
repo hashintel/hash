@@ -93,11 +93,6 @@ export const up = (pgm: MigrationBuilder): void => {
         notNull: true,
         references: "accounts",
       },
-      created_by_id: {
-        type: "UUID",
-        notNull: true,
-        references: "accounts",
-      },
       updated_by_id: {
         type: "UUID",
         notNull: true,
@@ -122,11 +117,6 @@ export const up = (pgm: MigrationBuilder): void => {
         notNull: true,
       },
       owned_by_id: {
-        type: "UUID",
-        notNull: true,
-        references: "accounts",
-      },
-      created_by_id: {
         type: "UUID",
         notNull: true,
         references: "accounts",
@@ -159,11 +149,6 @@ export const up = (pgm: MigrationBuilder): void => {
         notNull: true,
         references: "accounts",
       },
-      created_by_id: {
-        type: "UUID",
-        notNull: true,
-        references: "accounts",
-      },
       updated_by_id: {
         type: "UUID",
         notNull: true,
@@ -188,11 +173,6 @@ export const up = (pgm: MigrationBuilder): void => {
         notNull: true,
       },
       owned_by_id: {
-        type: "UUID",
-        notNull: true,
-        references: "accounts",
-      },
-      created_by_id: {
         type: "UUID",
         notNull: true,
         references: "accounts",
@@ -356,11 +336,6 @@ export const up = (pgm: MigrationBuilder): void => {
         type: "integer",
         notNull: false,
       },
-      created_by_id: {
-        type: "UUID",
-        notNull: true,
-        references: "accounts",
-      },
       updated_by_id: {
         type: "UUID",
         notNull: true,
@@ -462,11 +437,6 @@ export const up = (pgm: MigrationBuilder): void => {
         notNull: true,
         default: "FALSE",
       },
-      created_by_id: {
-        type: "UUID",
-        notNull: true,
-        references: "accounts",
-      },
       updated_by_id: {
         type: "UUID",
         notNull: true,
@@ -525,14 +495,13 @@ export const up = (pgm: MigrationBuilder): void => {
         "left_order",
         "right_order",
         "archived",
-        "created_by_id",
         "updated_by_id",
       ],
     },
     `
-    SELECT owned_by_id, entity_uuid, version, TRUE as latest_version, entity_type_version_id, properties, left_owned_by_id, left_entity_uuid, right_owned_by_id, right_entity_uuid, left_order, right_order, FALSE AS archived, created_by_id, updated_by_id FROM latest_entities
+    SELECT owned_by_id, entity_uuid, version, TRUE as latest_version, entity_type_version_id, properties, left_owned_by_id, left_entity_uuid, right_owned_by_id, right_entity_uuid, left_order, right_order, FALSE AS archived, updated_by_id FROM latest_entities
     UNION ALL
-    SELECT owned_by_id, entity_uuid, version, FALSE as latest_version, entity_type_version_id, properties, left_owned_by_id, left_entity_uuid, right_owned_by_id, right_entity_uuid, left_order, right_order, archived, created_by_id, updated_by_id FROM entity_histories`,
+    SELECT owned_by_id, entity_uuid, version, FALSE as latest_version, entity_type_version_id, properties, left_owned_by_id, left_entity_uuid, right_owned_by_id, right_entity_uuid, left_order, right_order, archived, updated_by_id FROM entity_histories`,
   );
 };
 

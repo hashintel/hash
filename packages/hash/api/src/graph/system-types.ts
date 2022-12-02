@@ -722,7 +722,12 @@ export const ensureSystemTypesExist = async (params: {
       SYSTEM_TYPES_INITIALIZERS[
         typeKind as keyof typeof SYSTEM_TYPES_INITIALIZERS
       ];
-    for (const [key, typeInitializer] of Object.entries(inner)) {
+    for (const [key, typeInitializer] of Object.entries(inner) as [
+      string,
+      (
+        graphApi: GraphApi,
+      ) => Promise<PropertyTypeModel | EntityTypeModel | EntityTypeModel>,
+    ][]) {
       logger.debug(`Checking system type: [${key}] exists`);
       const model = await typeInitializer(graphApi);
       initializedSystemTypes[typeKind][key] = model;

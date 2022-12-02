@@ -21,8 +21,8 @@ export const useBlockProtocolGetEntity = (): {
   );
 
   const getEntity = useCallback<GetEntityMessageCallback>(
-    async ({ data: entityId }) => {
-      if (!entityId) {
+    async ({ data }) => {
+      if (!data) {
         return {
           errors: [
             {
@@ -32,6 +32,8 @@ export const useBlockProtocolGetEntity = (): {
           ],
         };
       }
+
+      const { entityId, graphResolveDepths } = data;
 
       const { data: response } = await getEntityFn({
         variables: {
@@ -43,6 +45,7 @@ export const useBlockProtocolGetEntity = (): {
           isOfType: { outgoing: 1 },
           hasLeftEntity: { outgoing: 1, incoming: 1 },
           hasRightEntity: { outgoing: 1, incoming: 1 },
+          ...graphResolveDepths,
         },
       });
 

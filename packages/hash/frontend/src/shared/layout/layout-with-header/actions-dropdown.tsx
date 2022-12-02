@@ -1,5 +1,5 @@
-import { useState, useCallback, FunctionComponent, useMemo } from "react";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import {
   Box,
   listItemSecondaryActionClasses,
@@ -9,21 +9,28 @@ import {
 } from "@mui/material";
 
 import {
-  usePopupState,
   bindMenu,
   bindTrigger,
+  usePopupState,
 } from "material-ui-popup-state/hooks";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system";
-import { MenuItem } from "../../ui";
-import { HeaderIconButton } from "./shared/header-icon-button";
+import {
+  FunctionComponent,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+} from "react";
 import { useAccountPages } from "../../../components/hooks/useAccountPages";
 import { useCreatePage } from "../../../components/hooks/useCreatePage";
-import { useRouteAccountInfo } from "../../routing";
+import { WorkspaceContext } from "../../../pages/shared/workspace-context";
+import { MenuItem } from "../../ui";
+import { HeaderIconButton } from "./shared/header-icon-button";
 
 export const ActionsDropdownInner: FunctionComponent<{
   accountId: string;
 }> = ({ accountId }) => {
   const theme = useTheme();
+  const { activeWorkspace } = useContext(WorkspaceContext);
   const [loading, setLoading] = useState(false);
   const { data } = useAccountPages(accountId);
   const [createUntitledPage] = useCreatePage(accountId);
@@ -58,8 +65,6 @@ export const ActionsDropdownInner: FunctionComponent<{
       setLoading(false);
     }
   }, [createUntitledPage, loading, popupState, lastRootPageIndex]);
-
-  const newEntityTypeRoute = `/${accountId}/types/new`;
 
   return (
     <Box>
@@ -107,7 +112,7 @@ export const ActionsDropdownInner: FunctionComponent<{
             popupState.close();
           }}
         >
-          <ListItemText primary="Create page" />
+          <ListItemText primary="Create Page" />
         </MenuItem>
         {/*  
           Commented out menu items whose functionality have not been implemented yet
@@ -116,21 +121,31 @@ export const ActionsDropdownInner: FunctionComponent<{
         {/* <MenuItem onClick={popupState.close}>
           <ListItemText primary="Create entity" />
         </MenuItem> */}
-        <MenuItem href={newEntityTypeRoute} onClick={popupState.close}>
-          <ListItemText primary="Create Type" />
-        </MenuItem>
+        {activeWorkspace ? (
+          <>
+            <MenuItem
+              href={`/@${activeWorkspace.shortname}/new/entity`}
+              onClick={popupState.close}
+            >
+              <ListItemText primary="Create Entity" />
+            </MenuItem>
+            <MenuItem
+              href={`/@${activeWorkspace.shortname}/new/types/entity-type`}
+              onClick={popupState.close}
+            >
+              <ListItemText primary="Create Entity Type" />
+            </MenuItem>
+          </>
+        ) : null}
       </Menu>
     </Box>
   );
 };
 
 export const ActionsDropdown: FunctionComponent = () => {
-  const { accountId } = useRouteAccountInfo({ allowUndefined: true }) ?? {};
+  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
 
-  // Don’t render actions if account cannot be derived from URL
-  if (!accountId) {
-    return null;
-  }
-
-  return <ActionsDropdownInner accountId={accountId} />;
+  return activeWorkspaceAccountId ? (
+    <ActionsDropdownInner accountId={activeWorkspaceAccountId} />
+  ) : null;
 };

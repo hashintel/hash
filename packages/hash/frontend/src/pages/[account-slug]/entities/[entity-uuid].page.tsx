@@ -8,17 +8,20 @@ import {
 } from "@hashintel/hash-subgraph";
 import { useBlockProtocolGetEntity } from "../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolGetEntity";
 import { useLoggedInUser } from "../../../components/hooks/useAuthenticatedUser";
-import { getPlainLayout, NextPageWithLayout } from "../../../shared/layout";
+import {
+  getLayoutWithSidebar,
+  NextPageWithLayout,
+} from "../../../shared/layout";
 import { EntityEditor } from "./[entity-uuid].page/entity-editor";
 import { EntityPageLoadingState } from "./[entity-uuid].page/entity-page-loading-state";
 import { EntityPageWrapper } from "./[entity-uuid].page/entity-page-wrapper";
 import { PageErrorState } from "../../../components/page-error-state";
-/** @todo - This should be moved somewhere shared */
+import { generateEntityLabel } from "../../../lib/entities";
 import { useRouteNamespace } from "../types/entity-type/use-route-namespace";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
-  const { namespace } = useRouteNamespace();
+  const { routeNamespace } = useRouteNamespace();
   const { authenticatedUser } = useLoggedInUser();
   const { getEntity } = useBlockProtocolGetEntity();
 
@@ -27,16 +30,18 @@ const Page: NextPageWithLayout = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (namespace) {
+    if (routeNamespace) {
       const init = async () => {
         try {
           const entityUuid = router.query["entity-uuid"] as string;
 
           const { data: subgraph } = await getEntity({
-            data: entityIdFromOwnedByIdAndEntityUuid(
-              namespace.accountId,
-              entityUuid,
-            ),
+            data: {
+              entityId: entityIdFromOwnedByIdAndEntityUuid(
+                routeNamespace.accountId,
+                entityUuid,
+              ),
+            },
           });
 
           if (subgraph) {
@@ -53,7 +58,7 @@ const Page: NextPageWithLayout = () => {
 
       void init();
     }
-  }, [namespace, router.query, getEntity]);
+  }, [routeNamespace, router.query, getEntity]);
 
   if (!authenticatedUser) {
     return null;
@@ -67,8 +72,10 @@ const Page: NextPageWithLayout = () => {
     return <PageErrorState />;
   }
 
+  const entityLabel = generateEntityLabel(entitySubgraph);
+
   return (
-    <EntityPageWrapper entitySubgraph={entitySubgraph}>
+    <EntityPageWrapper label={entityLabel}>
       <EntityEditor
         entitySubgraph={entitySubgraph}
         setEntity={(entity) =>
@@ -112,6 +119,9 @@ const Page: NextPageWithLayout = () => {
   );
 };
 
-Page.getLayout = getPlainLayout;
+Page.getLayout = (page) =>
+  getLayoutWithSidebar(page, {
+    fullWidth: true,
+  });
 
 export default Page;

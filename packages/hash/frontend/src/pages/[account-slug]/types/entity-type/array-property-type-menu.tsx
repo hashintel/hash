@@ -18,6 +18,8 @@ import {
   DataType,
 } from "./property-type-utils";
 
+const dataTypeOptions = [...primitiveDataTypeOptions, ...customDataTypeOptions];
+
 const deleteDataTypeAndChildren = (
   id: string,
   properties: Record<string, DataType>,
@@ -60,11 +62,6 @@ export const ArrayPropertyTypeMenu: FunctionComponent<
     control,
     name: `flattenedPropertyList.${id}.data.expectedValues`,
   });
-
-  const dataTypeOptions = useMemo(
-    () => [...primitiveDataTypeOptions, ...customDataTypeOptions],
-    [],
-  );
 
   const deleteDataType = (typeId: string) => {
     const removedPropertyId = Object.values(flattenedProperties).find(

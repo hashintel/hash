@@ -40,26 +40,24 @@ const CustomChip: FunctionComponent<ChipProps & { borderColor?: string }> = ({
   />
 );
 
-type PropertyTypeCustomMenuProps = {
+type CustomPropertyTypeMenuProps = {
   closeMenu: () => void;
 };
 
-export const PropertyTypeCustomMenu: FunctionComponent<
-  PropertyTypeCustomMenuProps
+export const CustomPropertyTypeMenu: FunctionComponent<
+  CustomPropertyTypeMenuProps
 > = ({ closeMenu }) => {
   const { closeCustomPropertyMenu } = usePropertyTypeSelectorDropdownContext();
 
-  const { setValue, control } = useFormContext<PropertyTypeFormValues>();
+  const { getValues, setValue, control } =
+    useFormContext<PropertyTypeFormValues>();
+
   const customPropertyId = useWatch({ control, name: "customPropertyId" });
-  const flattenedProperties = useWatch({
-    control,
-    name: "flattenedPropertyList",
-  });
+
   const editingPropertyIndex = useWatch({
     control,
     name: "editingPropertyIndex",
   });
-  const expectedValues = useWatch({ control, name: "expectedValues" });
 
   return (
     <Box>
@@ -114,6 +112,8 @@ export const PropertyTypeCustomMenu: FunctionComponent<
       <Stack
         gap={3}
         sx={({ palette }) => ({
+          maxHeight: "40vh",
+          overflow: "auto",
           paddingY: 2.25,
           paddingX: 1.5,
           background: palette.gray[20],
@@ -212,7 +212,9 @@ export const PropertyTypeCustomMenu: FunctionComponent<
           <Button
             size="small"
             onClick={() => {
+              const flattenedProperties = getValues("flattenedPropertyList");
               const property = flattenedProperties[customPropertyId];
+
               if (property?.data && "expectedValues" in property.data) {
                 const containsObject = property.data.expectedValues.some(
                   (childId) =>
@@ -247,7 +249,7 @@ export const PropertyTypeCustomMenu: FunctionComponent<
                   flattenedProperties,
                 };
 
-                const newExpectedValues = [...expectedValues];
+                const newExpectedValues = [...getValues("expectedValues")];
                 if (editingPropertyIndex !== undefined) {
                   newExpectedValues[editingPropertyIndex] = expectedValue;
                 } else {

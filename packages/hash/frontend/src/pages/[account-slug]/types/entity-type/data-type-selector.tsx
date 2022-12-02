@@ -19,8 +19,6 @@ import {
   dataTypeOptions,
 } from "./property-type-utils";
 
-export const PROPERTY_SELECTOR_HEIGHT = 57;
-
 const DataTypeSelector: ForwardRefRenderFunction<HTMLInputElement, {}> = () => {
   const { control, setValue } = useFormContext<PropertyTypeFormValues>();
 
@@ -60,7 +58,6 @@ const DataTypeSelector: ForwardRefRenderFunction<HTMLInputElement, {}> = () => {
       onChange={(_evt, data) => {
         onChange(data);
       }}
-      disablePortal
       {...props}
       renderTags={(expectedValues, getTagProps) =>
         expectedValues.map((expectedValue, index) => {
@@ -97,7 +94,10 @@ const DataTypeSelector: ForwardRefRenderFunction<HTMLInputElement, {}> = () => {
         <TextField
           {...inputProps}
           label="Expected values"
-          sx={{ alignSelf: "flex-start", width: "70%" }}
+          sx={{
+            alignSelf: "flex-start",
+            width: "70%",
+          }}
           placeholder="Select acceptable values"
         />
       )}
@@ -129,8 +129,8 @@ const DataTypeSelector: ForwardRefRenderFunction<HTMLInputElement, {}> = () => {
       }}
       componentsProps={{
         popper: {
-          sx: { width: "100% !important" },
-          placement: "bottom-start",
+          sx: { minWidth: 520 },
+          placement: "auto-start",
         },
       }}
     />

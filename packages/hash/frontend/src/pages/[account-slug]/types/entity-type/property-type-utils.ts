@@ -166,7 +166,7 @@ export const getPropertyTypeSchema = (values: ExpectedValue[]) =>
           type: "array",
           items: {
             oneOf: getArraySchema(
-              property.data.expectedValues as [string, ...string[]],
+              property.data.expectedValues,
               flattenedProperties,
             ),
           },
