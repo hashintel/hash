@@ -246,7 +246,7 @@ const PropertyTypeFormInner = ({
         }}
       >
         <Stack
-          alignItems="stretch"
+          alignItems="flex-start"
           spacing={3}
           sx={{
             [`.${inputLabelClasses.root}`]: {
@@ -256,6 +256,7 @@ const PropertyTypeFormInner = ({
           }}
         >
           <TextField
+            fullWidth
             label="Singular name"
             required
             placeholder="e.g. Stock Price"
@@ -302,6 +303,7 @@ const PropertyTypeFormInner = ({
           />
           <TextField
             multiline
+            fullWidth
             inputProps={{ minRows: 1 }}
             label={
               <>
@@ -392,10 +394,10 @@ const PropertyTypeFormInner = ({
                   <TextField
                     {...inputProps}
                     label="Expected values"
-                    sx={{ alignSelf: "flex-start", width: "70%" }}
                     placeholder="Select acceptable values"
                   />
                 )}
+                sx={{ width: "70%" }}
                 options={propertyTypeDataTypesOptions}
                 getOptionLabel={(opt) => propertyTypeDataTypeData[opt]!.title}
                 disableCloseOnSelect
