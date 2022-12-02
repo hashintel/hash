@@ -1,4 +1,5 @@
 import { EntityType, extractBaseUri } from "@blockprotocol/type-system-web";
+import { getEntityTypesByBaseUri } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import { useRouter } from "next/router";
 import {
   createContext,
@@ -9,27 +10,21 @@ import {
   useRef,
   useState,
 } from "react";
-import { getEntityTypesByBaseUri } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import { useBlockProtocolAggregateEntityTypes } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregateEntityTypes";
 import { useBlockProtocolCreateEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolCreateEntityType";
 import { useBlockProtocolUpdateEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdateEntityType";
-import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
 import { useAdvancedInitTypeSystem } from "../../../../lib/use-init-type-system";
 
 export const useEntityTypeValue = (
   entityTypeBaseUri: string | null,
-  namespace?: string,
+  accountId: string | null,
   onCompleted?: (entityType: EntityType) => void,
 ) => {
   const router = useRouter();
-  const { authenticatedUser } = useAuthenticatedUser();
   const [loading, setLoading] = useState(true);
 
-  const { createEntityType } = useBlockProtocolCreateEntityType(
-    namespace ??
-      (authenticatedUser !== undefined ? authenticatedUser.userAccountId : ""),
-  );
-  const [typeSystemLoading, loadTypeSystem] = useAdvancedInitTypeSystem();
+  const { createEntityType } = useBlockProtocolCreateEntityType(accountId);
+  const [, loadTypeSystem] = useAdvancedInitTypeSystem();
 
   const [entityType, setEntityType] = useState<EntityType | null>(null);
   const entityTypeRef = useRef(entityType);
@@ -59,6 +54,7 @@ export const useEntityTypeValue = (
           : [];
 
         /** @todo - pick the latest version? */
+        // @todo handle adding any linked properties to known property types
         const relevantEntityType =
           relevantEntityTypes.length > 0
             ? relevantEntityTypes[0]!.schema
@@ -80,13 +76,7 @@ export const useEntityTypeValue = (
         setLoading(false);
       };
     }
-  }, [
-    aggregateEntityTypes,
-    entityType,
-    entityTypeBaseUri,
-    loadTypeSystem,
-    setEntityType,
-  ]);
+  }, [aggregateEntityTypes, entityType, entityTypeBaseUri, loadTypeSystem]);
 
   const updateCallback = useCallback(
     async (partialEntityType: Partial<Omit<EntityType, "$id">>) => {
@@ -109,6 +99,7 @@ export const useEntityTypeValue = (
 
       if (entityTypeRef.current === currentEntity && res.data) {
         setEntityType(res.data.schema);
+        setLoading(false);
         entityTypeRef.current = res.data.schema;
       }
 
@@ -133,6 +124,7 @@ export const useEntityTypeValue = (
 
       if (newUrl) {
         setEntityType(res.data.schema);
+        setLoading(false);
         entityTypeRef.current = res.data.schema;
         await router.replace(newUrl, newUrl, { shallow: true });
       }
@@ -141,7 +133,7 @@ export const useEntityTypeValue = (
   );
 
   return [
-    typeSystemLoading || !authenticatedUser ? null : entityType,
+    loading ? null : entityType,
     updateCallback,
     publishDraft,
     { loading },

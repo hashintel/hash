@@ -176,7 +176,7 @@ export const AccountEntityTypeList: FunctionComponent<
         title="Types"
         endAdornmentProps={{
           tooltipTitle: "Create new entity type",
-          href: `/@${authenticatedUser?.shortname}/types/new/entity-type`,
+          href: `/@${authenticatedUser?.shortname}/new/types/entity-type`,
           "data-testid": "create-entity-type-btn",
         }}
       >
