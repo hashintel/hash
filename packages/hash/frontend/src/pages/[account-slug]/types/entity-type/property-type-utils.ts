@@ -20,7 +20,7 @@ export type ArrayExpectedValue = {
   typeId: "array";
   arrayType: ArrayType;
   id: string;
-  flattenedProperties: Record<string, DataType>;
+  flattenedDataTypes: Record<string, DataType>;
 };
 
 export type ExpectedValue = PrimitiveExpectedValue | ArrayExpectedValue;
@@ -132,10 +132,10 @@ export const getDefaultData = (
 
 export const getArraySchema = (
   expectedValues: string[],
-  flattenedProperties: Record<string, DataType>,
+  flattenedDataTypes: Record<string, DataType>,
 ): [PropertyValues, ...PropertyValues[]] =>
   expectedValues.map((value) => {
-    const property = flattenedProperties[value];
+    const property = flattenedDataTypes[value];
 
     if (property?.data && "expectedValues" in property.data) {
       const { data } = property;
@@ -143,7 +143,7 @@ export const getArraySchema = (
       return {
         type: "array",
         items: {
-          oneOf: getArraySchema(data.expectedValues, flattenedProperties),
+          oneOf: getArraySchema(data.expectedValues, flattenedDataTypes),
         },
         minItems: data?.minItems,
         maxItems: data?.maxItems,
@@ -158,8 +158,8 @@ export const getArraySchema = (
 export const getPropertyTypeSchema = (values: ExpectedValue[]) =>
   values.map((value) => {
     if (typeof value === "object") {
-      const { id, flattenedProperties } = value;
-      const property = flattenedProperties[id];
+      const { id, flattenedDataTypes } = value;
+      const property = flattenedDataTypes[id];
 
       if (property?.data && "expectedValues" in property.data) {
         return {
@@ -167,7 +167,7 @@ export const getPropertyTypeSchema = (values: ExpectedValue[]) =>
           items: {
             oneOf: getArraySchema(
               property.data.expectedValues,
-              flattenedProperties,
+              flattenedDataTypes,
             ),
           },
           minItems: property.data.minItems,

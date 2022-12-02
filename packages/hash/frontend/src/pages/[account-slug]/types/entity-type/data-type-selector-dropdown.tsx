@@ -2,42 +2,40 @@ import { Button, Chip } from "@hashintel/hash-design-system";
 import { PaperProps, Typography } from "@mui/material";
 import { createContext, useContext } from "react";
 import { AutocompleteDropdown } from "./autocomplete-dropdown";
-import { CustomPropertyTypeMenu } from "./custom-property-type-menu";
+import { CustomDataTypeMenu } from "./custom-data-type-menu";
 import { StyledPlusCircleIcon } from "./styled-plus-circle-icon";
 
-type PropertyTypeSelectorDropdownProps = {
-  customPropertyMenuOpen: boolean;
-  openCustomPropertyMenu: () => void;
-  closeCustomPropertyMenu: () => void;
+type DataTypeSelectorDropdownProps = {
+  customDataTypeMenuOpen: boolean;
+  openCustomDataTypeMenu: () => void;
+  closeCustomDataTypeMenu: () => void;
 };
 
-export const PropertyTypeSelectorDropdownContext =
-  createContext<PropertyTypeSelectorDropdownProps | null>(null);
+export const DataTypeSelectorDropdownContext =
+  createContext<DataTypeSelectorDropdownProps | null>(null);
 
-export const usePropertyTypeSelectorDropdownContext = () => {
-  const value = useContext(PropertyTypeSelectorDropdownContext);
+export const useDataTypeSelectorDropdownContext = () => {
+  const value = useContext(DataTypeSelectorDropdownContext);
   if (value === null) {
-    throw new Error(
-      "Must wrap with PropertyTypeSelectorDropdownContext.Provider",
-    );
+    throw new Error("Must wrap with DataTypeSelectorDropdownContext.Provider");
   }
   return value;
 };
 
-export const PropertyTypeSelectorDropdown = ({
+export const DataTypeSelectorDropdown = ({
   children,
   ...props
 }: PaperProps) => {
   const {
-    customPropertyMenuOpen,
-    openCustomPropertyMenu,
-    closeCustomPropertyMenu,
-  } = usePropertyTypeSelectorDropdownContext();
+    customDataTypeMenuOpen,
+    openCustomDataTypeMenu,
+    closeCustomDataTypeMenu,
+  } = useDataTypeSelectorDropdownContext();
 
   return (
     <AutocompleteDropdown {...props}>
-      {customPropertyMenuOpen ? (
-        <CustomPropertyTypeMenu closeMenu={closeCustomPropertyMenu} />
+      {customDataTypeMenuOpen ? (
+        <CustomDataTypeMenu closeMenu={closeCustomDataTypeMenu} />
       ) : (
         <>
           {children}
@@ -55,7 +53,7 @@ export const PropertyTypeSelectorDropdown = ({
               // prevent dropdown from closing
               event.preventDefault();
             }}
-            onClick={openCustomPropertyMenu}
+            onClick={openCustomDataTypeMenu}
           >
             <Typography
               variant="smallTextLabels"

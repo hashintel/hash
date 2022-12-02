@@ -2,11 +2,11 @@ import { types } from "@hashintel/hash-shared/types";
 import { Box } from "@mui/material";
 import { FunctionComponent } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
-import { ArrayPropertyTypeMenu } from "./array-property-type-menu";
+import { ArrayDataTypeMenu } from "./array-data-type-menu";
 import { DataTypeBadge } from "./data-type-badge";
 import { PropertyTypeFormValues } from "./property-type-form";
 
-type ArrayPropertyTypeChildProps = {
+type ArrayDataTypeChildProps = {
   id: string;
   index?: number[];
   onlyChild?: boolean;
@@ -14,36 +14,40 @@ type ArrayPropertyTypeChildProps = {
   onDelete: (typeId: string) => void;
 };
 
-export const ArrayPropertyTypeChild: FunctionComponent<
-  ArrayPropertyTypeChildProps
-> = ({ id, index, onlyChild, firstChild, onDelete }) => {
+export const ArrayDataTypeChild: FunctionComponent<ArrayDataTypeChildProps> = ({
+  id,
+  index,
+  onlyChild,
+  firstChild,
+  onDelete,
+}) => {
   const { control } = useFormContext<PropertyTypeFormValues>();
 
-  const property = useWatch({
+  const dataType = useWatch({
     control,
-    name: `flattenedPropertyList.${id}`,
+    name: `flattenedDataTypeList.${id}`,
   });
 
-  if (!property?.data) {
+  if (!dataType?.data) {
     return null;
   }
 
-  const isObject = property.data.typeId === types.dataType.object.dataTypeId;
+  const isObject = dataType.data.typeId === types.dataType.object.dataTypeId;
 
   const hasContents =
-    "expectedValues" in property.data && property.data.expectedValues.length;
+    "expectedValues" in dataType.data && dataType.data.expectedValues.length;
 
   const deleteChild = () => {
-    if (property.data?.typeId) {
-      onDelete(property.data.typeId);
+    if (dataType.data?.typeId) {
+      onDelete(dataType.data.typeId);
     }
   };
 
   return (
     <Box mb={1}>
-      {property.data.typeId === "array" ? (
-        <ArrayPropertyTypeMenu
-          id={id}
+      {dataType.data.typeId === "array" ? (
+        <ArrayDataTypeMenu
+          dataTypeId={id}
           prefix={onlyChild || firstChild ? "CONTAINING AN" : "OR AN"}
           deleteTooltip={`Delete array${
             hasContents ? " and its contents" : ""
@@ -53,7 +57,7 @@ export const ArrayPropertyTypeChild: FunctionComponent<
         />
       ) : (
         <DataTypeBadge
-          typeId={property.data.typeId}
+          typeId={dataType.data.typeId}
           prefix={`${
             onlyChild ? "CONTAINING" : firstChild ? "CONTAINING EITHER" : "OR"
           }${isObject ? " A" : ""}`}

@@ -7,7 +7,7 @@ import { Autocomplete, Box, Stack, Typography } from "@mui/material";
 import { uniqueId } from "lodash";
 import { FunctionComponent, useMemo } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
-import { ArrayPropertyTypeChild } from "./array-property-type-child";
+import { ArrayDataTypeChild } from "./array-data-type-child";
 import { DataTypeBadge } from "./data-type-badge";
 import { PropertyTypeFormValues } from "./property-type-form";
 import {
@@ -22,61 +22,65 @@ const dataTypeOptions = [...primitiveDataTypeOptions, ...customDataTypeOptions];
 
 const deleteDataTypeAndChildren = (
   id: string,
-  properties: Record<string, DataType>,
+  dataTypes: Record<string, DataType>,
 ) => {
-  let newProperties = { ...properties };
-  const removedProperty = properties[id];
+  let newDataTypes = { ...dataTypes };
+  const removedDataType = dataTypes[id];
 
-  if (removedProperty) {
-    if (removedProperty.data && "expectedValues" in removedProperty.data) {
-      for (const childId of removedProperty.data.expectedValues) {
-        newProperties = deleteDataTypeAndChildren(childId, newProperties);
+  if (removedDataType) {
+    if (removedDataType.data && "expectedValues" in removedDataType.data) {
+      for (const childId of removedDataType.data.expectedValues) {
+        newDataTypes = deleteDataTypeAndChildren(childId, newDataTypes);
       }
     }
 
-    delete newProperties[removedProperty.id];
+    delete newDataTypes[removedDataType.id];
   }
 
-  return newProperties;
+  return newDataTypes;
 };
 
-type ArrayPropertyTypeMenuProps = {
-  id: string;
+type ArrayDataTypeMenuProps = {
+  dataTypeId: string;
   prefix?: string;
   deleteTooltip?: string;
   onDelete?: () => void;
   index?: number[];
 };
 
-export const ArrayPropertyTypeMenu: FunctionComponent<
-  ArrayPropertyTypeMenuProps
-> = ({ id, prefix, deleteTooltip, onDelete, index = [] }) => {
+export const ArrayDataTypeMenu: FunctionComponent<ArrayDataTypeMenuProps> = ({
+  dataTypeId,
+  prefix,
+  deleteTooltip,
+  onDelete,
+  index = [],
+}) => {
   const { setValue, control } = useFormContext<PropertyTypeFormValues>();
 
-  const flattenedProperties = useWatch({
+  const flattenedDataTypes = useWatch({
     control,
-    name: `flattenedPropertyList`,
+    name: `flattenedDataTypeList`,
   });
 
   const expectedValues = useWatch({
     control,
-    name: `flattenedPropertyList.${id}.data.expectedValues`,
+    name: `flattenedDataTypeList.${dataTypeId}.data.expectedValues`,
   });
 
   const deleteDataTypeByTypeId = (typeId: string) => {
-    const removedDataTypeId = Object.values(flattenedProperties).find(
-      (property) =>
-        property.parentId === id && property.data?.typeId === typeId,
+    const removedDataTypeId = Object.values(flattenedDataTypes).find(
+      (dataType) =>
+        dataType.parentId === dataTypeId && dataType.data?.typeId === typeId,
     )?.id;
 
     if (removedDataTypeId) {
       setValue(
-        `flattenedPropertyList`,
-        deleteDataTypeAndChildren(removedDataTypeId, flattenedProperties),
+        `flattenedDataTypeList`,
+        deleteDataTypeAndChildren(removedDataTypeId, flattenedDataTypes),
       );
 
       setValue(
-        `flattenedPropertyList.${id}.data.expectedValues`,
+        `flattenedDataTypeList.${dataTypeId}.data.expectedValues`,
         expectedValues.filter((childId) => childId !== removedDataTypeId),
       );
     }
@@ -85,9 +89,9 @@ export const ArrayPropertyTypeMenu: FunctionComponent<
   const value = useMemo(
     () =>
       expectedValues.map(
-        (expectedValue) => flattenedProperties[expectedValue]?.data?.typeId,
+        (expectedValue) => flattenedDataTypes[expectedValue]?.data?.typeId,
       ),
-    [expectedValues, flattenedProperties],
+    [expectedValues, flattenedDataTypes],
   );
 
   return (
@@ -111,7 +115,7 @@ export const ArrayPropertyTypeMenu: FunctionComponent<
         }}
       >
         {expectedValues?.map((childId, pos) => (
-          <ArrayPropertyTypeChild
+          <ArrayDataTypeChild
             key={childId}
             id={childId}
             index={[...index, pos]}
@@ -133,23 +137,23 @@ export const ArrayPropertyTypeMenu: FunctionComponent<
           onChange={(_evt, _data, reason, details) => {
             const typeId = details?.option;
             if (typeId) {
-              const propertyData = getDefaultData(typeId);
+              const defaultData = getDefaultData(typeId);
 
               if (reason === "selectOption") {
                 const childId = uniqueId();
 
-                setValue(`flattenedPropertyList`, {
-                  ...(flattenedProperties ?? {}),
+                setValue(`flattenedDataTypeList`, {
+                  ...(flattenedDataTypes ?? {}),
                   [childId]: {
                     id: childId,
-                    parentId: id,
-                    data: propertyData,
+                    parentId: dataTypeId,
+                    data: defaultData,
                   },
                 });
-                setValue(`flattenedPropertyList.${id}.data.expectedValues`, [
-                  ...expectedValues,
-                  childId,
-                ]);
+                setValue(
+                  `flattenedDataTypeList.${dataTypeId}.data.expectedValues`,
+                  [...expectedValues, childId],
+                );
               } else if (reason === "removeOption") {
                 deleteDataTypeByTypeId(typeId);
               }

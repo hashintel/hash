@@ -7,12 +7,13 @@ import { types } from "@hashintel/hash-shared/types";
 import { Autocomplete, Box, Typography } from "@mui/material";
 import { forwardRef, ForwardRefRenderFunction, useState } from "react";
 import { useController, useWatch, useFormContext } from "react-hook-form";
+import {
+  DataTypeSelectorDropdown,
+  useDataTypeSelectorDropdownContext,
+} from "./data-type-selector-dropdown";
 import { ExpectedValueChip } from "./expected-value-chip";
 import { PropertyTypeFormValues } from "./property-type-form";
-import {
-  PropertyTypeSelectorDropdown,
-  usePropertyTypeSelectorDropdownContext,
-} from "./property-type-selector-dropdown";
+
 import {
   ArrayType,
   dataTypeData,
@@ -30,18 +31,18 @@ const DataTypeSelector: ForwardRefRenderFunction<HTMLInputElement, {}> = () => {
     name: "expectedValues",
   });
 
-  const { customPropertyMenuOpen, openCustomPropertyMenu } =
-    usePropertyTypeSelectorDropdownContext();
+  const { customDataTypeMenuOpen, openCustomDataTypeMenu } =
+    useDataTypeSelectorDropdownContext();
 
-  const creatingProperty = useWatch({ control, name: "customPropertyId" });
+  const creatingProperty = useWatch({ control, name: "customDataTypeId" });
 
   const [autocompleteFocused, setAutocompleteFocused] = useState(false);
 
   return (
     <Autocomplete
       disabled={!!creatingProperty}
-      open={autocompleteFocused || customPropertyMenuOpen}
-      PaperComponent={PropertyTypeSelectorDropdown}
+      open={autocompleteFocused || customDataTypeMenuOpen}
+      PaperComponent={DataTypeSelectorDropdown}
       multiple
       popupIcon={null}
       clearIcon={null}
@@ -77,13 +78,13 @@ const DataTypeSelector: ForwardRefRenderFunction<HTMLInputElement, {}> = () => {
               editable={editable}
               onEdit={() => {
                 if (typeof expectedValue === "object") {
-                  setValue("editingPropertyIndex", index);
-                  setValue("customPropertyId", expectedValue.id);
+                  setValue("editingDataTypeIndex", index);
+                  setValue("customDataTypeId", expectedValue.id);
                   setValue(
-                    "flattenedPropertyList",
-                    expectedValue.flattenedProperties,
+                    "flattenedDataTypeList",
+                    expectedValue.flattenedDataTypes,
                   );
-                  openCustomPropertyMenu();
+                  openCustomDataTypeMenu();
                 }
               }}
             />

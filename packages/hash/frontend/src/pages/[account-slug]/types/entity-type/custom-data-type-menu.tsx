@@ -17,9 +17,9 @@ import { uniqueId } from "lodash";
 import { FunctionComponent } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { faCube } from "../../../../shared/icons/pro/fa-cube";
-import { ArrayPropertyTypeMenu } from "./array-property-type-menu";
+import { ArrayDataTypeMenu } from "./array-data-type-menu";
 import { PropertyTypeFormValues } from "./property-type-form";
-import { usePropertyTypeSelectorDropdownContext } from "./property-type-selector-dropdown";
+import { useDataTypeSelectorDropdownContext } from "./data-type-selector-dropdown";
 import {
   ArrayType,
   dataTypeOptions,
@@ -40,23 +40,23 @@ const CustomChip: FunctionComponent<ChipProps & { borderColor?: string }> = ({
   />
 );
 
-type CustomPropertyTypeMenuProps = {
+type CustomDataTypeMenuProps = {
   closeMenu: () => void;
 };
 
-export const CustomPropertyTypeMenu: FunctionComponent<
-  CustomPropertyTypeMenuProps
-> = ({ closeMenu }) => {
-  const { closeCustomPropertyMenu } = usePropertyTypeSelectorDropdownContext();
+export const CustomDataTypeMenu: FunctionComponent<CustomDataTypeMenuProps> = ({
+  closeMenu,
+}) => {
+  const { closeCustomDataTypeMenu } = useDataTypeSelectorDropdownContext();
 
   const { getValues, setValue, control } =
     useFormContext<PropertyTypeFormValues>();
 
-  const customPropertyId = useWatch({ control, name: "customPropertyId" });
+  const customDataTypeId = useWatch({ control, name: "customDataTypeId" });
 
-  const editingPropertyIndex = useWatch({
+  const editingDataTypeIndex = useWatch({
     control,
-    name: "editingPropertyIndex",
+    name: "editingDataTypeIndex",
   });
 
   return (
@@ -122,7 +122,7 @@ export const CustomPropertyTypeMenu: FunctionComponent<
           paddingX: 1.5,
           background: palette.gray[20],
           border: `1px solid ${palette.gray[30]}`,
-          ...(!customPropertyId
+          ...(!customDataTypeId
             ? {
                 borderBottomRightRadius: 4,
                 borderBottomLeftRadius: 4,
@@ -130,7 +130,7 @@ export const CustomPropertyTypeMenu: FunctionComponent<
             : { borderBottomWidth: 0 }),
         })}
       >
-        {!customPropertyId ? (
+        {!customDataTypeId ? (
           <>
             <Stack direction="row" gap={1.75}>
               <Button
@@ -167,8 +167,8 @@ export const CustomPropertyTypeMenu: FunctionComponent<
                 onClick={() => {
                   const id = uniqueId();
 
-                  setValue("customPropertyId", id);
-                  setValue("flattenedPropertyList", {
+                  setValue("customDataTypeId", id);
+                  setValue("flattenedDataTypeList", {
                     [id]: {
                       id,
                       data: getDefaultData("array"),
@@ -198,11 +198,11 @@ export const CustomPropertyTypeMenu: FunctionComponent<
             </Stack>
           </>
         ) : (
-          <ArrayPropertyTypeMenu id={customPropertyId} />
+          <ArrayDataTypeMenu dataTypeId={customDataTypeId} />
         )}
       </Stack>
 
-      {customPropertyId ? (
+      {customDataTypeId ? (
         <Box
           sx={({ palette }) => ({
             background: palette.gray[10],
@@ -216,19 +216,19 @@ export const CustomPropertyTypeMenu: FunctionComponent<
           <Button
             size="small"
             onClick={() => {
-              const flattenedProperties = getValues("flattenedPropertyList");
-              const property = flattenedProperties[customPropertyId];
+              const flattenedDataTypes = getValues("flattenedDataTypeList");
+              const dataType = flattenedDataTypes[customDataTypeId];
 
-              if (property?.data && "expectedValues" in property.data) {
-                const containsObject = property.data.expectedValues.some(
+              if (dataType?.data && "expectedValues" in dataType.data) {
+                const containsObject = dataType.data.expectedValues.some(
                   (childId) =>
-                    flattenedProperties[childId]?.data?.typeId ===
+                    flattenedDataTypes[childId]?.data?.typeId ===
                     types.dataType.object.dataTypeId,
                 );
 
-                const containsDataType = property.data.expectedValues.some(
+                const containsDataType = dataType.data.expectedValues.some(
                   (childId) => {
-                    const typeId = flattenedProperties[childId]?.data?.typeId!;
+                    const typeId = flattenedDataTypes[childId]?.data?.typeId!;
                     return (
                       typeId !== "array" && dataTypeOptions.includes(typeId)
                     );
@@ -249,20 +249,20 @@ export const CustomPropertyTypeMenu: FunctionComponent<
                 const expectedValue: ExpectedValue = {
                   typeId: "array",
                   arrayType,
-                  id: customPropertyId,
-                  flattenedProperties,
+                  id: customDataTypeId,
+                  flattenedDataTypes,
                 };
 
                 const newExpectedValues = [...getValues("expectedValues")];
-                if (editingPropertyIndex !== undefined) {
-                  newExpectedValues[editingPropertyIndex] = expectedValue;
+                if (editingDataTypeIndex !== undefined) {
+                  newExpectedValues[editingDataTypeIndex] = expectedValue;
                 } else {
                   newExpectedValues.push(expectedValue);
                 }
                 setValue(`expectedValues`, newExpectedValues);
               }
 
-              closeCustomPropertyMenu();
+              closeCustomDataTypeMenu();
             }}
           >
             Save expected value
