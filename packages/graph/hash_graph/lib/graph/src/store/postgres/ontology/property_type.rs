@@ -44,19 +44,23 @@ impl<C: AsClient> PostgresStore<C> {
                 .insert(property_type_id, current_resolve_depth);
             let property_type = match dependency_status {
                 DependencyStatus::Unknown => {
-                    let property_type = Read::<PropertyTypeWithMetadata>::read_one(
-                        self,
-                        &Filter::for_ontology_type_edition_id(property_type_id),
-                    )
-                    .await?;
-                    Some(
-                        subgraph
-                            .vertices
-                            .ontology
-                            .entry(property_type_id.clone())
-                            .or_insert(OntologyVertex::PropertyType(Box::new(property_type)))
-                            .clone(),
-                    )
+                    if let Some(property_type) = subgraph.vertices.ontology.get(property_type_id) {
+                        Some(property_type)
+                    } else {
+                        let property_type = Read::<PropertyTypeWithMetadata>::read_one(
+                            self,
+                            &Filter::for_ontology_type_edition_id(property_type_id),
+                        )
+                        .await?;
+                        Some(
+                            subgraph
+                                .vertices
+                                .ontology
+                                .entry(property_type_id.clone())
+                                .or_insert(OntologyVertex::PropertyType(Box::new(property_type)))
+                                .clone(),
+                        )
+                    }
                 }
                 DependencyStatus::DependenciesUnresolved => {
                     subgraph.vertices.ontology.get(property_type_id).cloned()
@@ -201,6 +205,12 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
 
         for property_type in Read::<PropertyTypeWithMetadata>::read(self, filter).await? {
             let property_type_id = property_type.metadata().edition_id().clone();
+
+            // Insert the vertex into the subgraph to avoid another lookup when traversing it
+            subgraph.vertices.ontology.insert(
+                property_type_id.clone(),
+                OntologyVertex::PropertyType(Box::new(property_type)),
+            );
 
             self.traverse_property_type(
                 &property_type_id,
