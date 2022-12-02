@@ -28,7 +28,7 @@ import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/
 import { useBlockProtocolGetPropertyType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetPropertyType";
 import { Modal } from "../../../../components/Modals/Modal";
 import { DataTypeSelector } from "./data-type-selector";
-import { PropertyTypeSelectorDropdownContext } from "./property-type-selector-dropdown";
+import { DataTypeSelectorDropdownContext } from "./data-type-selector-dropdown";
 import {
   DataType,
   ExpectedValue,
@@ -45,8 +45,9 @@ export type PropertyTypeFormValues = {
   name: string;
   description: string;
   expectedValues: ExpectedValue[];
-  creatingPropertyId?: string;
-  flattenedPropertyList: Record<string, DataType>;
+  customDataTypeId?: string;
+  editingDataTypeIndex?: number;
+  flattenedDataTypeList: Record<string, DataType>;
 };
 
 type PropertyTypeFormSubmitProps = Omit<
@@ -134,20 +135,20 @@ const PropertyTypeFormInner = ({
     setValue,
   } = formMethods;
 
-  const [creatingCustomPropertyType, setCreatingCustomPropertyType] =
-    useState(false);
+  const [creatingCustomDataType, setCreatingCustomDataType] = useState(false);
 
-  const propertyTypeSelectorDropdownContextValue = useMemo(
+  const dataTypeSelectorDropdownContextValue = useMemo(
     () => ({
-      customPropertyMenuOpen: creatingCustomPropertyType,
-      openCustomPropertyMenu: () => setCreatingCustomPropertyType(true),
-      closeCustomPropertyMenu: () => {
-        setValue("creatingPropertyId", undefined);
-        setValue("flattenedPropertyList", {});
-        setCreatingCustomPropertyType(false);
+      customDataTypeMenuOpen: creatingCustomDataType,
+      openCustomDataTypeMenu: () => setCreatingCustomDataType(true),
+      closeCustomDataTypeMenu: () => {
+        setValue("editingDataTypeIndex", undefined);
+        setValue("customDataTypeId", undefined);
+        setValue("flattenedDataTypeList", {});
+        setCreatingCustomDataType(false);
       },
     }),
-    [creatingCustomPropertyType, setCreatingCustomPropertyType, setValue],
+    [creatingCustomDataType, setCreatingCustomDataType, setValue],
   );
 
   const defaultField = defaultValues.name ? "description" : "name";
@@ -357,11 +358,11 @@ const PropertyTypeFormInner = ({
           />
 
           <FormProvider {...formMethods}>
-            <PropertyTypeSelectorDropdownContext.Provider
-              value={propertyTypeSelectorDropdownContextValue}
+            <DataTypeSelectorDropdownContext.Provider
+              value={dataTypeSelectorDropdownContextValue}
             >
               <DataTypeSelector />
-            </PropertyTypeSelectorDropdownContext.Provider>
+            </DataTypeSelectorDropdownContext.Provider>
           </FormProvider>
         </Stack>
         <Divider sx={{ mt: 2, mb: 3 }} />

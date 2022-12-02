@@ -3,18 +3,25 @@ import {
   FontAwesomeIcon,
   TextField,
 } from "@hashintel/hash-design-system";
+import { types } from "@hashintel/hash-shared/types";
 import { Autocomplete, Box, Typography } from "@mui/material";
 import { forwardRef, ForwardRefRenderFunction, useState } from "react";
 import { useController, useWatch, useFormContext } from "react-hook-form";
-import { PropertyTypeFormValues } from "./property-type-form";
 import {
-  PropertyTypeSelectorDropdown,
-  usePropertyTypeSelectorDropdownContext,
-} from "./property-type-selector-dropdown";
-import { dataTypeData, dataTypeOptions } from "./property-type-utils";
+  DataTypeSelectorDropdown,
+  useDataTypeSelectorDropdownContext,
+} from "./data-type-selector-dropdown";
+import { ExpectedValueChip } from "./expected-value-chip";
+import { PropertyTypeFormValues } from "./property-type-form";
+
+import {
+  ArrayType,
+  dataTypeData,
+  dataTypeOptions,
+} from "./property-type-utils";
 
 const DataTypeSelector: ForwardRefRenderFunction<HTMLInputElement, {}> = () => {
-  const { control } = useFormContext<PropertyTypeFormValues>();
+  const { control, setValue } = useFormContext<PropertyTypeFormValues>();
 
   const {
     field: { onChange, onBlur, ...props },
@@ -24,17 +31,18 @@ const DataTypeSelector: ForwardRefRenderFunction<HTMLInputElement, {}> = () => {
     name: "expectedValues",
   });
 
-  const { customPropertyMenuOpen } = usePropertyTypeSelectorDropdownContext();
+  const { customDataTypeMenuOpen, openCustomDataTypeMenu } =
+    useDataTypeSelectorDropdownContext();
 
-  const creatingProperty = useWatch({ control, name: "creatingPropertyId" });
+  const creatingProperty = useWatch({ control, name: "customDataTypeId" });
 
   const [autocompleteFocused, setAutocompleteFocused] = useState(false);
 
   return (
     <Autocomplete
       disabled={!!creatingProperty}
-      open={autocompleteFocused || customPropertyMenuOpen}
-      PaperComponent={PropertyTypeSelectorDropdown}
+      open={autocompleteFocused || customDataTypeMenuOpen}
+      PaperComponent={DataTypeSelectorDropdown}
       multiple
       popupIcon={null}
       clearIcon={null}
@@ -52,29 +60,33 @@ const DataTypeSelector: ForwardRefRenderFunction<HTMLInputElement, {}> = () => {
         onChange(data);
       }}
       {...props}
-      renderTags={(value, getTagProps) =>
-        value.map((opt, index) => {
-          const typeId = typeof opt === "object" ? opt.typeId : opt;
+      renderTags={(expectedValues, getTagProps) =>
+        expectedValues.map((expectedValue, index) => {
+          const typeId =
+            typeof expectedValue === "object"
+              ? expectedValue.arrayType
+              : expectedValue;
+
+          const editable =
+            typeId in ArrayType || typeId === types.dataType.object.dataTypeId;
 
           return (
-            <Chip
+            <ExpectedValueChip
               {...getTagProps({ index })}
               key={typeId}
-              label={
-                <Typography
-                  variant="smallTextLabels"
-                  sx={{ display: "flex", alignItems: "center" }}
-                >
-                  <FontAwesomeIcon
-                    icon={{
-                      icon: dataTypeData[typeId]!.icon,
-                    }}
-                    sx={{ fontSize: "1em", mr: "1ch" }}
-                  />
-                  {dataTypeData[typeId]!.title}
-                </Typography>
-              }
-              color="blue"
+              expectedValueType={typeId}
+              editable={editable}
+              onEdit={() => {
+                if (typeof expectedValue === "object") {
+                  setValue("editingDataTypeIndex", index);
+                  setValue("customDataTypeId", expectedValue.id);
+                  setValue(
+                    "flattenedDataTypeList",
+                    expectedValue.flattenedDataTypes,
+                  );
+                  openCustomDataTypeMenu();
+                }
+              }}
             />
           );
         })
