@@ -30,6 +30,7 @@ export const ExpectedValueChip = ({
 
   return (
     <Stack
+      width={1}
       direction="row"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
