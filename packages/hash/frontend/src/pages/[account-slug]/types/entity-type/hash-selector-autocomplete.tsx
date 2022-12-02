@@ -10,7 +10,6 @@ import {
 } from "@mui/material";
 import clsx from "clsx";
 import { Ref, useMemo } from "react";
-import { ArrowUpRightIcon } from "../../../../shared/icons/svg";
 import {
   OntologyChip,
   parseUriForOntologyChip,
