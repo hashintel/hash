@@ -21,7 +21,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
   mentionType,
   accountId,
 }) => {
-  const { users, loading: usersLoading } = useUsers();
+  const { users, loading: usersLoading } = useUsers(true);
   const { data: pages, loading: pagesLoading } = useAccountPages(accountId);
 
   const { title, href, icon } = useMemo(() => {
