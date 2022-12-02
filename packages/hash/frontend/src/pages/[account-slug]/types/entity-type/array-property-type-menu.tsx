@@ -1,13 +1,14 @@
-import { faList } from "@fortawesome/free-solid-svg-icons";
 import {
   Chip,
   FontAwesomeIcon,
   TextField,
 } from "@hashintel/hash-design-system";
+import { types } from "@hashintel/hash-shared/types";
 import { Autocomplete, Box, Stack, Typography } from "@mui/material";
 import { uniqueId } from "lodash";
 import { FunctionComponent, useMemo } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
+import { DataTypeBadge } from "./data-type-badge";
 import { PropertyTypeFormValues } from "./property-type-form";
 import {
   dataTypeOptions as primitiveDataTypeOptions,
@@ -17,7 +18,7 @@ import {
   DataType,
 } from "./property-type-utils";
 
-const deletePropertyAndChildren = (
+const deleteDataTypeAndChildren = (
   id: string,
   properties: Record<string, DataType>,
 ) => {
@@ -27,7 +28,7 @@ const deletePropertyAndChildren = (
   if (removedProperty) {
     if (removedProperty.data && "expectedValues" in removedProperty.data) {
       for (const childId of removedProperty.data.expectedValues) {
-        newProperties = deletePropertyAndChildren(childId, newProperties);
+        newProperties = deleteDataTypeAndChildren(childId, newProperties);
       }
     }
 
@@ -39,12 +40,14 @@ const deletePropertyAndChildren = (
 
 type ArrayPropertyTypeMenuProps = {
   id: string;
+  prefix?: string;
+  onDelete?: () => void;
   index?: number[];
 };
 
 export const ArrayPropertyTypeMenu: FunctionComponent<
   ArrayPropertyTypeMenuProps
-> = ({ id, index = [] }) => {
+> = ({ id, prefix, onDelete, index = [] }) => {
   const { setValue, control } = useFormContext<PropertyTypeFormValues>();
 
   const flattenedProperties = useWatch({
@@ -62,28 +65,36 @@ export const ArrayPropertyTypeMenu: FunctionComponent<
     [],
   );
 
+  const deleteDataType = (typeId: string) => {
+    const removedPropertyId = Object.values(flattenedProperties).find(
+      (property) =>
+        property.parentId === id && property.data?.typeId === typeId,
+    )?.id;
+
+    if (removedPropertyId) {
+      setValue(
+        `flattenedPropertyList`,
+        deleteDataTypeAndChildren(removedPropertyId, flattenedProperties),
+      );
+
+      setValue(
+        `flattenedPropertyList.${id}.data.expectedValues`,
+        expectedValues.filter((childId) => childId !== removedPropertyId),
+      );
+    }
+  };
+
+  const value = useMemo(
+    () =>
+      expectedValues.map(
+        (expectedValue) => flattenedProperties[expectedValue]?.data?.typeId,
+      ),
+    [expectedValues, flattenedProperties],
+  );
+
   return (
     <Stack sx={{ mb: 1 }}>
-      <Stack
-        direction="row"
-        sx={{
-          flex: 1,
-          background: ({ palette }) => palette.gray[70],
-          borderTopRightRadius: 4,
-          borderTopLeftRadius: 4,
-          paddingY: 1,
-          paddingX: 1.5,
-          alignItems: "center",
-        }}
-      >
-        <FontAwesomeIcon
-          icon={faList}
-          sx={{ color: ({ palette }) => palette.gray[40], marginRight: 1.5 }}
-        />
-        <Typography sx={{ color: ({ palette }) => palette.white }}>
-          Array
-        </Typography>
-      </Stack>
+      <DataTypeBadge typeId="array" prefix={prefix} onDelete={onDelete} />
 
       <Box
         sx={{
@@ -103,36 +114,48 @@ export const ArrayPropertyTypeMenu: FunctionComponent<
             return null;
           }
 
-          return property.data.typeId === "array" ? (
-            <ArrayPropertyTypeMenu id={childId} index={[...index, pos]} />
-          ) : (
-            <Stack
-              direction="row"
-              sx={{
-                flex: 1,
-                background: ({ palette }) => palette.gray[70],
-                borderRadius: 4,
-                paddingY: 1,
-                paddingX: 1.5,
-                alignItems: "center",
-                mb: 1,
-              }}
-            >
-              <FontAwesomeIcon
-                icon={faList}
-                sx={{
-                  color: ({ palette }) => palette.gray[40],
-                  marginRight: 1.5,
-                }}
-              />
-              <Typography sx={{ color: ({ palette }) => palette.white }}>
-                {dataTypeData[property.data.typeId]?.title}
-              </Typography>
-            </Stack>
+          return (
+            <Box key={property.data.typeId} mb={1}>
+              {property.data.typeId === "array" ? (
+                <ArrayPropertyTypeMenu
+                  id={childId}
+                  prefix={
+                    expectedValues.length === 1 || pos === 0
+                      ? "CONTAINING AN"
+                      : "OR AN"
+                  }
+                  index={[...index, pos]}
+                  onDelete={() =>
+                    property.data?.typeId &&
+                    deleteDataType(property.data.typeId)
+                  }
+                />
+              ) : (
+                <DataTypeBadge
+                  typeId={property.data.typeId}
+                  prefix={`${
+                    expectedValues.length === 1
+                      ? "CONTAINING"
+                      : pos === 0
+                      ? "CONTAINING EITHER"
+                      : "OR"
+                  }${
+                    property.data.typeId === types.dataType.object.dataTypeId
+                      ? " A"
+                      : ""
+                  }`}
+                  onDelete={() =>
+                    property.data?.typeId &&
+                    deleteDataType(property.data.typeId)
+                  }
+                />
+              )}
+            </Box>
           );
         })}
 
         <Autocomplete
+          value={value}
           multiple
           popupIcon={null}
           clearIcon={null}
@@ -161,30 +184,7 @@ export const ArrayPropertyTypeMenu: FunctionComponent<
                   childId,
                 ]);
               } else if (reason === "removeOption") {
-                const removedPropertyId = Object.values(
-                  flattenedProperties,
-                ).find(
-                  (property) =>
-                    property.parentId === id &&
-                    property.data?.typeId === typeId,
-                )?.id;
-
-                if (removedPropertyId) {
-                  setValue(
-                    `flattenedPropertyList`,
-                    deletePropertyAndChildren(
-                      removedPropertyId,
-                      flattenedProperties,
-                    ),
-                  );
-
-                  setValue(
-                    `flattenedPropertyList.${id}.data.expectedValues`,
-                    expectedValues.filter(
-                      (childId) => childId !== removedPropertyId,
-                    ),
-                  );
-                }
+                deleteDataType(typeId);
               }
             }
           }}

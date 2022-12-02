@@ -4,7 +4,7 @@ import {
   TextField,
 } from "@hashintel/hash-design-system";
 import { types } from "@hashintel/hash-shared/types";
-import { Autocomplete, Box, chipClasses, Typography } from "@mui/material";
+import { Autocomplete, Box, Typography } from "@mui/material";
 import { forwardRef, ForwardRefRenderFunction, useState } from "react";
 import { useController, useWatch, useFormContext } from "react-hook-form";
 import { ExpectedValueChip } from "./expected-value-chip";
