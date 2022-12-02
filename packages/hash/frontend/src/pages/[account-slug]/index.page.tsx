@@ -6,6 +6,7 @@ import { useAuthenticatedUser } from "../../components/hooks/useAuthenticatedUse
 import { useOrgs } from "../../components/hooks/useOrgs";
 import { Link } from "../../shared/ui";
 import { useRouteAccountInfo } from "../../shared/routing";
+import { ProfilePage } from "./profile-page";
 
 const Page: NextPageWithLayout = () => {
   const { loading, authenticatedUser } = useAuthenticatedUser();
@@ -15,7 +16,16 @@ const Page: NextPageWithLayout = () => {
    * @todo: this will need to be reworked once pages can't rely on the `accountId` being
    * in the URL.
    */
-  const { routeAccountSlug: routeAccountId } = useRouteAccountInfo();
+  const { routeAccountSlug: routeAccountIdOrShortname } = useRouteAccountInfo();
+
+  const isRouteAccountSlugShortname = routeAccountIdOrShortname.startsWith("@");
+
+  if (isRouteAccountSlugShortname) {
+    const shortname = routeAccountIdOrShortname.slice(1);
+    return <ProfilePage shortname={shortname} />;
+  }
+
+  const routeAccountId = routeAccountIdOrShortname;
 
   if (loading) {
     return null;
@@ -99,6 +109,9 @@ const Page: NextPageWithLayout = () => {
   );
 };
 
-Page.getLayout = getLayoutWithSidebar;
+Page.getLayout = (page) =>
+  getLayoutWithSidebar(page, {
+    fullWidth: true,
+  });
 
 export default Page;
