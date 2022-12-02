@@ -75,7 +75,7 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
     handleSubmit(text);
   };
 
-  const handleResendCode = async () => {
+  const handleResendCode = () => {
     updateState({ syntheticLoading: true });
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
     setTimeout(async () => {

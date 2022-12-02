@@ -6,7 +6,7 @@ use type_system::DataType;
 use crate::{
     identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId},
     ontology::{DataTypeWithMetadata, OntologyElementMetadata},
-    provenance::{CreatedById, OwnedById, UpdatedById},
+    provenance::{OwnedById, UpdatedById},
     store::{
         crud::Read,
         postgres::{DependencyContext, DependencyStatus},
@@ -69,7 +69,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         &mut self,
         data_type: DataType,
         owned_by_id: OwnedById,
-        created_by_id: CreatedById,
+        updated_by_id: UpdatedById,
     ) -> Result<OntologyElementMetadata, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
@@ -80,7 +80,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         );
 
         let (_, metadata) = transaction
-            .create(data_type, owned_by_id, created_by_id)
+            .create(data_type, owned_by_id, updated_by_id)
             .await?;
 
         transaction

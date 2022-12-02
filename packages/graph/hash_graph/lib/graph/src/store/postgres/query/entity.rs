@@ -46,7 +46,6 @@ impl Path for EntityQueryPath<'_> {
             Self::Archived => Column::Entities(Entities::Archived),
             Self::Type(path) => path.terminating_column(),
             Self::OwnedById => Column::Entities(Entities::OwnedById),
-            Self::CreatedById => Column::Entities(Entities::CreatedById),
             Self::UpdatedById => Column::Entities(Entities::UpdatedById),
             Self::LeftEntity(path) if **path == EntityQueryPath::Uuid => {
                 Column::Entities(Entities::LeftEntityUuid)

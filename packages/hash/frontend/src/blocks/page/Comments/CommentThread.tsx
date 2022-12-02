@@ -6,7 +6,10 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { extractBaseUri } from "@blockprotocol/type-system-web";
 import { types } from "@hashintel/hash-shared/types";
-import { EntityId } from "@hashintel/hash-subgraph";
+import {
+  EntityId,
+  extractEntityUuidFromEntityId,
+} from "@hashintel/hash-subgraph";
 import { PageThread } from "../../../components/hooks/usePageComments";
 import { CommentTextField } from "./CommentTextField";
 import { CommentBlock } from "./CommentBlock";
@@ -73,6 +76,12 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
     [comment.author.properties],
   );
 
+  const authorId = useMemo(
+    () =>
+      extractEntityUuidFromEntityId(comment.author.metadata.editionId.baseId),
+    [comment.author],
+  );
+
   return (
     <Box
       ref={threadRef}
@@ -93,10 +102,11 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
         pageId={pageId}
         comment={comment}
         resolvable={
+          // TODO: The provenance fields shouldn't be used for this
+          //   see https://app.asana.com/0/1201095311341924/1203466351235289/f
+          authenticatedUser?.userAccountId === authorId ||
           authenticatedUser?.userAccountId ===
-            comment.metadata.provenance.createdById ||
-          authenticatedUser?.userAccountId ===
-            comment.parent.metadata.provenance.createdById
+            comment.parent.metadata.provenance.updatedById
         }
       />
 

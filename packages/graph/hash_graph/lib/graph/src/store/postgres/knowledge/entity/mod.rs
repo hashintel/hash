@@ -18,7 +18,7 @@ use crate::{
     knowledge::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkEntityMetadata,
     },
-    provenance::{CreatedById, OwnedById, UpdatedById},
+    provenance::{OwnedById, UpdatedById},
     store::{
         crud::Read,
         error::ArchivalError,
@@ -389,7 +389,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         entity_type_id: VersionedUri,
         owned_by_id: OwnedById,
         entity_uuid: Option<EntityUuid>,
-        created_by_id: CreatedById,
+        updated_by_id: UpdatedById,
         link_metadata: Option<LinkEntityMetadata>,
     ) -> Result<EntityMetadata, InsertionError> {
         let transaction = PostgresStore::new(
@@ -411,8 +411,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 entity_id,
                 properties,
                 entity_type_id,
-                created_by_id,
-                UpdatedById::new(created_by_id.as_account_id()),
+                updated_by_id,
                 link_metadata,
             )
             .await?;
@@ -441,7 +440,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         > + Send,
         entity_type_id: VersionedUri,
         owned_by_id: OwnedById,
-        actor_id: CreatedById,
+        actor_id: UpdatedById,
     ) -> Result<Vec<EntityUuid>, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
@@ -482,7 +481,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 entity_type_version_id,
                 owned_by_id,
                 actor_id,
-                UpdatedById::new(actor_id.as_account_id()),
             )
             .await?;
 
@@ -598,7 +596,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 entity_id,
                 properties,
                 entity_type_id,
-                old_entity_metadata.provenance_metadata().created_by_id(),
                 updated_by_id,
                 link_metadata,
             )
@@ -651,7 +648,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 entity_id,
                 old_entity.properties().clone(),
                 old_entity.metadata().entity_type_id().clone(),
-                old_entity.metadata().provenance_metadata().created_by_id(),
                 actor_id,
                 old_entity.metadata().link_metadata(),
             )

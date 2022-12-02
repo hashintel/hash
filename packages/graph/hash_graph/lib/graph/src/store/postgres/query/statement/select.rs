@@ -488,7 +488,7 @@ mod tests {
         compiler.add_selection_path(&EntityQueryPath::Properties(None));
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path(EntityQueryPath::CreatedById)),
+            Some(FilterExpression::Path(EntityQueryPath::UpdatedById)),
             Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
         );
         compiler.add_filter(&filter);
@@ -502,7 +502,7 @@ mod tests {
                 "entities_0_0_0"."version",
                 "entities_0_0_0"."properties"
             FROM "entities" AS "entities_0_0_0"
-            WHERE "entities_0_0_0"."created_by_id" = $1
+            WHERE "entities_0_0_0"."updated_by_id" = $1
             ORDER BY "entities_0_0_0"."entity_uuid" ASC,
                      "entities_0_0_0"."version" DESC
             "#,

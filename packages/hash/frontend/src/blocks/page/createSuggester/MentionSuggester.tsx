@@ -1,4 +1,4 @@
-import { useMemo, FunctionComponent } from "react";
+import { useMemo, FunctionComponent, useContext } from "react";
 import ArticleIcon from "@mui/icons-material/Article";
 
 import { EntityId } from "@hashintel/hash-subgraph";
@@ -6,7 +6,7 @@ import { useUsers } from "../../../components/hooks/useUsers";
 import { useAccountPages } from "../../../components/hooks/useAccountPages";
 import { fuzzySearchBy } from "./fuzzySearchBy";
 import { Suggester } from "./Suggester";
-import { useRouteAccountInfo } from "../../../shared/routing";
+import { WorkspaceContext } from "../../../pages/shared/workspace-context";
 
 export interface MentionSuggesterProps {
   search?: string;
@@ -30,7 +30,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   const { users, loading: usersLoading } = useUsers();
   const { data: pages, loading: pagesLoading } = useAccountPages(accountId);
 
-  const { accountId: routeAccountId } = useRouteAccountInfo();
+  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
 
   const loading = usersLoading && pagesLoading;
 
@@ -42,7 +42,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
         entityId: user.entityEditionId.baseId,
         mentionType: "user",
         isActiveOrgMember: user.memberOf.some(
-          ({ orgAccountId }) => orgAccountId === routeAccountId,
+          ({ orgAccountId }) => orgAccountId === activeWorkspaceAccountId,
         ),
       })) ?? [];
 
@@ -71,7 +71,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
     );
 
     return [...peopleSearch, ...pagesSearch];
-  }, [search, users, routeAccountId, pages]);
+  }, [search, users, activeWorkspaceAccountId, pages]);
 
   return (
     <Suggester

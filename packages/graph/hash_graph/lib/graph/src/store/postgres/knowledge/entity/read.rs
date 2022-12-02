@@ -14,7 +14,7 @@ use crate::{
     },
     knowledge::{Entity, EntityProperties, EntityQueryPath, EntityUuid, LinkEntityMetadata},
     ontology::EntityTypeQueryPath,
-    provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
+    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         crud,
         postgres::query::{Distinctness, SelectCompiler},
@@ -68,7 +68,6 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
         let left_order_index = compiler.add_selection_path(&EntityQueryPath::LeftOrder);
         let right_order_index = compiler.add_selection_path(&EntityQueryPath::RightOrder);
 
-        let created_by_id_index = compiler.add_selection_path(&EntityQueryPath::CreatedById);
         let updated_by_id_index = compiler.add_selection_path(&EntityQueryPath::UpdatedById);
 
         let archived_index = compiler.add_selection_path(&EntityQueryPath::Archived);
@@ -131,7 +130,6 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
 
                 let owned_by_id = OwnedById::new(row.get(owned_by_id_index));
                 let entity_uuid = EntityUuid::new(row.get(entity_uuid_index));
-                let created_by_id = CreatedById::new(row.get(created_by_id_index));
                 let updated_by_id = UpdatedById::new(row.get(updated_by_id_index));
 
                 Ok(Entity::new(
@@ -141,7 +139,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                         row.get(version_index),
                     ),
                     entity_type_uri,
-                    ProvenanceMetadata::new(created_by_id, updated_by_id),
+                    ProvenanceMetadata::new(updated_by_id),
                     link_metadata,
                     // TODO: only the historic table would have an `archived` field.
                     //   Consider what we should do about that.

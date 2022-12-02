@@ -243,7 +243,7 @@ export default class {
    *
    * @param params.ownedById the id of owner of the entity
    * @param params.entityDefinition the definition of how to get or create the entity (excluding any linked entities)
-   * @param params.createdById - the id of the account that is creating the entity
+   * @param params.actorId - the id of the account that is creating the entity
    */
   static async getOrCreate(
     graphApi: GraphApi,

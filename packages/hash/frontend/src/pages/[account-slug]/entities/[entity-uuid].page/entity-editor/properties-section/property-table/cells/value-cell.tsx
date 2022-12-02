@@ -4,6 +4,7 @@ import {
   GridCellKind,
 } from "@glideapps/glide-data-grid";
 import { types } from "@hashintel/hash-shared/types";
+import { customColors } from "@hashintel/hash-design-system/src/theme/palette";
 import { InteractableManager } from "../../../../../../../../components/grid/utils/interactable-manager";
 import { drawInteractableTooltipIcons } from "../../../../../../../../components/grid/utils/use-grid-tooltip/draw-interactable-tooltip-icons";
 import {
@@ -34,7 +35,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
 
     if (isValueEmpty(value)) {
       // draw empty value
-      ctx.fillStyle = "#91A5BA";
+      ctx.fillStyle = customColors.gray[50];
       ctx.font = "italic 14px Inter";
       ctx.fillText("No value", left, yCenter);
     } else if (isBoolean) {
@@ -44,7 +45,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
         text: value ? "True" : "False",
         icon: value ? "bpCheck" : "bpCross",
         left,
-        iconColor: "#91A5BA",
+        iconColor: customColors.gray[50],
         iconSize: 16,
       });
     } else {

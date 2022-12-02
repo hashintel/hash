@@ -6,6 +6,7 @@ import {
   CardContent,
   CardContentProps,
 } from "@mui/material";
+import { Link } from "../../../shared/ui/link";
 
 export const WhiteCard = ({
   onClick,
@@ -43,9 +44,17 @@ export const WhiteCard = ({
           : {},
       ]}
     >
+      {/**
+       * @todo: refactor this to use `next/link` when a relative URL is passed
+       * into as the `href`, to avoid a flashing white screen when the user
+       * clicks on the entity's type.
+       *
+       * @see https://app.asana.com/0/1203179076056209/1203468350364504/f
+       */}
       {onClick || href ? (
         <CardActionArea
           {...(onClick ? { onClick } : { href })}
+          LinkComponent={Link}
           disableRipple
           disableTouchRipple
           sx={{
