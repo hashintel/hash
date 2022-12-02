@@ -5,6 +5,7 @@ import {
   ChipProps,
   FontAwesomeIcon,
 } from "@hashintel/hash-design-system";
+import { types } from "@hashintel/hash-shared/types";
 import {
   Box,
   buttonClasses,
@@ -16,10 +17,15 @@ import { uniqueId } from "lodash";
 import { FunctionComponent } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { faCube } from "../../../../shared/icons/pro/fa-cube";
-import { ArrayPropertyTypeMenu } from "./array-property-type-menu";
+import { ArrayDataTypeMenu } from "./array-data-type-menu";
 import { PropertyTypeFormValues } from "./property-type-form";
-import { usePropertyTypeSelectorDropdownContext } from "./property-type-selector-dropdown";
-import { getDefaultData } from "./property-type-utils";
+import { useDataTypeSelectorDropdownContext } from "./data-type-selector-dropdown";
+import {
+  ArrayType,
+  dataTypeOptions,
+  ExpectedValue,
+  getDefaultData,
+} from "./property-type-utils";
 
 const CustomChip: FunctionComponent<ChipProps & { borderColor?: string }> = ({
   borderColor,
@@ -34,18 +40,24 @@ const CustomChip: FunctionComponent<ChipProps & { borderColor?: string }> = ({
   />
 );
 
-type CustomPropertyTypeMenuProps = {
+type CustomDataTypeMenuProps = {
   closeMenu: () => void;
 };
 
-export const CustomPropertyTypeMenu: FunctionComponent<
-  CustomPropertyTypeMenuProps
-> = ({ closeMenu }) => {
-  const { closeCustomPropertyMenu } = usePropertyTypeSelectorDropdownContext();
+export const CustomDataTypeMenu: FunctionComponent<CustomDataTypeMenuProps> = ({
+  closeMenu,
+}) => {
+  const { closeCustomDataTypeMenu } = useDataTypeSelectorDropdownContext();
 
   const { getValues, setValue, control } =
     useFormContext<PropertyTypeFormValues>();
-  const creatingPropertyId = useWatch({ control, name: "creatingPropertyId" });
+
+  const customDataTypeId = useWatch({ control, name: "customDataTypeId" });
+
+  const editingDataTypeIndex = useWatch({
+    control,
+    name: "editingDataTypeIndex",
+  });
 
   return (
     <Box>
@@ -110,7 +122,7 @@ export const CustomPropertyTypeMenu: FunctionComponent<
           paddingX: 1.5,
           background: palette.gray[20],
           border: `1px solid ${palette.gray[30]}`,
-          ...(!creatingPropertyId
+          ...(!customDataTypeId
             ? {
                 borderBottomRightRadius: 4,
                 borderBottomLeftRadius: 4,
@@ -118,7 +130,7 @@ export const CustomPropertyTypeMenu: FunctionComponent<
             : { borderBottomWidth: 0 }),
         })}
       >
-        {!creatingPropertyId ? (
+        {!customDataTypeId ? (
           <>
             <Stack direction="row" gap={1.75}>
               <Button
@@ -155,8 +167,8 @@ export const CustomPropertyTypeMenu: FunctionComponent<
                 onClick={() => {
                   const id = uniqueId();
 
-                  setValue("creatingPropertyId", id);
-                  setValue("flattenedPropertyList", {
+                  setValue("customDataTypeId", id);
+                  setValue("flattenedDataTypeList", {
                     [id]: {
                       id,
                       data: getDefaultData("array"),
@@ -186,11 +198,11 @@ export const CustomPropertyTypeMenu: FunctionComponent<
             </Stack>
           </>
         ) : (
-          <ArrayPropertyTypeMenu id={creatingPropertyId} />
+          <ArrayDataTypeMenu dataTypeId={customDataTypeId} />
         )}
       </Stack>
 
-      {creatingPropertyId ? (
+      {customDataTypeId ? (
         <Box
           sx={({ palette }) => ({
             background: palette.gray[10],
@@ -204,16 +216,53 @@ export const CustomPropertyTypeMenu: FunctionComponent<
           <Button
             size="small"
             onClick={() => {
-              setValue("expectedValues", [
-                ...getValues("expectedValues"),
-                {
-                  typeId: "array",
-                  id: creatingPropertyId,
-                  flattenedProperties: getValues("flattenedPropertyList"),
-                },
-              ]);
+              const flattenedDataTypes = getValues("flattenedDataTypeList");
+              const dataType = flattenedDataTypes[customDataTypeId];
 
-              closeCustomPropertyMenu();
+              if (dataType?.data && "expectedValues" in dataType.data) {
+                const containsObject = dataType.data.expectedValues.some(
+                  (childId) =>
+                    flattenedDataTypes[childId]?.data?.typeId ===
+                    types.dataType.object.dataTypeId,
+                );
+
+                const containsDataType = dataType.data.expectedValues.some(
+                  (childId) => {
+                    const typeId = flattenedDataTypes[childId]?.data?.typeId!;
+                    return (
+                      typeId !== "array" && dataTypeOptions.includes(typeId)
+                    );
+                  },
+                );
+
+                let arrayType: ArrayType;
+                if (containsObject && containsDataType) {
+                  arrayType = ArrayType.mixedArray;
+                } else if (containsObject) {
+                  arrayType = ArrayType.propertyObjectArray;
+                } else if (containsDataType) {
+                  arrayType = ArrayType.dataTypeArray;
+                } else {
+                  return;
+                }
+
+                const expectedValue: ExpectedValue = {
+                  typeId: "array",
+                  arrayType,
+                  id: customDataTypeId,
+                  flattenedDataTypes,
+                };
+
+                const newExpectedValues = [...getValues("expectedValues")];
+                if (editingDataTypeIndex !== undefined) {
+                  newExpectedValues[editingDataTypeIndex] = expectedValue;
+                } else {
+                  newExpectedValues.push(expectedValue);
+                }
+                setValue(`expectedValues`, newExpectedValues);
+              }
+
+              closeCustomDataTypeMenu();
             }}
           >
             Save expected value
