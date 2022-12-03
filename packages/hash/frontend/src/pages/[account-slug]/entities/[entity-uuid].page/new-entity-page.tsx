@@ -106,6 +106,7 @@ export const NewEntityPage = () => {
                     loading={loading}
                     onClick={() => setIsSelectingType(true)}
                     startIcon={!loading && <FontAwesomeIcon icon={faPlus} />}
+                    sx={{ fontSize: 14, paddingX: 2 }}
                   >
                     Add a type
                   </Button>

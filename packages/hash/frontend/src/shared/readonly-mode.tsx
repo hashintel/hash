@@ -22,9 +22,12 @@ export const ReadonlyModeProvider = ({
   children?: ReactNode;
 }) => {
   const router = useRouter();
-  const { authenticatedUser } = useAuthenticatedUser();
+  const { authenticatedUser, loading: loadingAuthenticatedUser } =
+    useAuthenticatedUser();
 
-  const readonlyMode = "readonly" in router.query || !authenticatedUser;
+  const readonlyMode =
+    "readonly" in router.query ||
+    (!loadingAuthenticatedUser && !authenticatedUser);
 
   const contextValue = useMemo(
     () => ({
