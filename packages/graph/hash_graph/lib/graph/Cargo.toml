@@ -20,7 +20,7 @@ serde = { version = "1.0.148", features = ["derive"] }
 serde_json = "1.0.89"
 tokio-postgres = { version = "0.7.7", default-features = false }
 tower = "0.4.13"
-tower-http = { version = "0.3.4", features = ["trace"] }
+tower-http = { version = "0.3.5", features = ["trace"] }
 tracing = "0.1.37"
 tracing-appender = "0.2.2"
 tracing-error = "0.2.0"
