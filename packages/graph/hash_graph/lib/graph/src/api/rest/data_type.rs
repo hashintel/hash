@@ -119,9 +119,9 @@ struct CreateDataTypeRequest {
     request_body = CreateDataTypeRequest,
 )]
 async fn create_data_type<P: StorePool + Send>(
-    body: Json<CreateDataTypeRequest>,
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
+    body: Json<CreateDataTypeRequest>,
 ) -> Result<Json<OntologyElementMetadata>, StatusCode> {
     let Json(CreateDataTypeRequest {
         schema,
@@ -272,8 +272,8 @@ struct UpdateDataTypeRequest {
     request_body = UpdateDataTypeRequest,
 )]
 async fn update_data_type<P: StorePool + Send>(
-    body: Json<UpdateDataTypeRequest>,
     pool: Extension<Arc<P>>,
+    body: Json<UpdateDataTypeRequest>,
 ) -> Result<Json<OntologyElementMetadata>, StatusCode> {
     let Json(UpdateDataTypeRequest {
         schema,
