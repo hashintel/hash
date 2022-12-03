@@ -1,4 +1,4 @@
-use std::{future::Future, pin::Pin};
+use std::{collections::hash_map::RawEntryMut, future::Future, pin::Pin};
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
@@ -43,36 +43,39 @@ impl<C: AsClient> PostgresStore<C> {
                 .ontology_dependency_map
                 .insert(property_type_id, current_resolve_depth);
             let property_type = match dependency_status {
-                DependencyStatus::Unknown => {
-                    if let Some(property_type) = subgraph.vertices.ontology.get(property_type_id) {
-                        Some(property_type.clone())
-                    } else {
-                        let property_type = Read::<PropertyTypeWithMetadata>::read_one(
-                            self,
-                            &Filter::for_ontology_type_edition_id(property_type_id),
-                        )
-                        .await?;
-                        Some(
-                            subgraph
-                                .vertices
-                                .ontology
-                                .entry(property_type_id.clone())
-                                .or_insert(OntologyVertex::PropertyType(Box::new(property_type)))
-                                .clone(),
-                        )
+                DependencyStatus::Unresolved => {
+                    match subgraph
+                        .vertices
+                        .ontology
+                        .raw_entry_mut()
+                        .from_key(property_type_id)
+                    {
+                        RawEntryMut::Occupied(entry) => Some(entry.into_mut()),
+                        RawEntryMut::Vacant(entry) => {
+                            let property_type = Read::<PropertyTypeWithMetadata>::read_one(
+                                self,
+                                &Filter::<PropertyType>::for_ontology_type_edition_id(
+                                    property_type_id,
+                                ),
+                            )
+                            .await?;
+                            Some(
+                                entry
+                                    .insert(
+                                        property_type_id.clone(),
+                                        OntologyVertex::PropertyType(Box::new(property_type)),
+                                    )
+                                    .1,
+                            )
+                        }
                     }
-                }
-                DependencyStatus::DependenciesUnresolved => {
-                    subgraph.vertices.ontology.get(property_type_id).cloned()
                 }
                 DependencyStatus::Resolved => None,
             };
 
-            if let Some(OntologyVertex::PropertyType(property_type)) = property_type {
-                // TODO: Use relation tables
-                //   see https://app.asana.com/0/0/1202884883200942/f
-                for property_type_ref in property_type.inner().property_type_references() {
-                    if current_resolve_depth.constrains_properties_on.outgoing > 0 {
+            if let Some(OntologyVertex::PropertyType(property_type)) = property_type.cloned() {
+                if current_resolve_depth.constrains_properties_on.outgoing > 0 {
+                    for property_type_ref in property_type.inner().property_type_references() {
                         subgraph.edges.insert(Edge::Ontology {
                             edition_id: property_type_id.clone(),
                             outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
@@ -103,10 +106,8 @@ impl<C: AsClient> PostgresStore<C> {
                     }
                 }
 
-                // TODO: Use relation tables
-                //   see https://app.asana.com/0/0/1202884883200942/f
-                for data_type_ref in property_type.inner().data_type_references() {
-                    if current_resolve_depth.constrains_values_on.outgoing > 0 {
+                if current_resolve_depth.constrains_values_on.outgoing > 0 {
+                    for data_type_ref in property_type.inner().data_type_references() {
                         subgraph.edges.insert(Edge::Ontology {
                             edition_id: property_type_id.clone(),
                             outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {

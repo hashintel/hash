@@ -1,6 +1,6 @@
 mod read;
 
-use std::{future::Future, pin::Pin};
+use std::{collections::hash_map::Entry, future::Future, pin::Pin};
 
 use async_trait::async_trait;
 use error_stack::{bail, IntoReport, Report, Result, ResultExt};
@@ -53,28 +53,19 @@ impl<C: AsClient> PostgresStore<C> {
             let dependency_status = dependency_context
                 .knowledge_dependency_map
                 .insert(&entity_edition_id, current_resolve_depth);
-            let entity: Option<&KnowledgeGraphVertex> = match dependency_status {
-                DependencyStatus::Unknown => {
-                    if let Some(entity) = subgraph.vertices.knowledge_graph.get(&entity_edition_id)
-                    {
-                        Some(entity)
-                    } else {
-                        let entity = Read::<Entity>::read_one(
-                            self,
-                            &Filter::for_entity_by_edition_id(entity_edition_id),
-                        )
-                        .await?;
-                        Some(
-                            subgraph
-                                .vertices
-                                .knowledge_graph
-                                .entry(entity_edition_id)
-                                .or_insert(KnowledgeGraphVertex::Entity(entity)),
-                        )
+            let entity = match dependency_status {
+                DependencyStatus::Unresolved => {
+                    match subgraph.vertices.knowledge_graph.entry(entity_edition_id) {
+                        Entry::Occupied(entry) => Some(entry.into_mut()),
+                        Entry::Vacant(entry) => {
+                            let entity = Read::<Entity>::read_one(
+                                self,
+                                &Filter::<Entity>::for_entity_by_edition_id(entity_edition_id),
+                            )
+                            .await?;
+                            Some(entry.insert(KnowledgeGraphVertex::Entity(entity)))
+                        }
                     }
-                }
-                DependencyStatus::DependenciesUnresolved => {
-                    subgraph.vertices.knowledge_graph.get(&entity_edition_id)
                 }
                 DependencyStatus::Resolved => None,
             };

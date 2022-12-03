@@ -1,4 +1,4 @@
-use std::{future::Future, pin::Pin};
+use std::{collections::hash_map::RawEntryMut, future::Future, pin::Pin};
 
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
@@ -47,34 +47,37 @@ impl<C: AsClient> PostgresStore<C> {
                 .ontology_dependency_map
                 .insert(entity_type_id, current_resolve_depth);
             let entity_type = match dependency_status {
-                DependencyStatus::Unknown => {
-                    if let Some(entity_type) = subgraph.vertices.ontology.get(entity_type_id) {
-                        Some(entity_type.clone())
-                    } else {
-                        let entity_type = Read::<EntityTypeWithMetadata>::read_one(
-                            self,
-                            &Filter::for_ontology_type_edition_id(entity_type_id),
-                        )
-                        .await?;
-                        Some(
-                            subgraph
-                                .vertices
-                                .ontology
-                                .entry(entity_type_id.clone())
-                                .or_insert(OntologyVertex::EntityType(Box::new(entity_type)))
-                                .clone(),
-                        )
+                DependencyStatus::Unresolved => {
+                    match subgraph
+                        .vertices
+                        .ontology
+                        .raw_entry_mut()
+                        .from_key(entity_type_id)
+                    {
+                        RawEntryMut::Occupied(entry) => Some(entry.into_mut()),
+                        RawEntryMut::Vacant(entry) => {
+                            let entity_type = Read::<EntityTypeWithMetadata>::read_one(
+                                self,
+                                &Filter::<EntityType>::for_ontology_type_edition_id(entity_type_id),
+                            )
+                            .await?;
+                            Some(
+                                entry
+                                    .insert(
+                                        entity_type_id.clone(),
+                                        OntologyVertex::EntityType(Box::new(entity_type)),
+                                    )
+                                    .1,
+                            )
+                        }
                     }
-                }
-                DependencyStatus::DependenciesUnresolved => {
-                    subgraph.vertices.ontology.get(entity_type_id).cloned()
                 }
                 DependencyStatus::Resolved => None,
             };
 
-            if let Some(OntologyVertex::EntityType(entity_type)) = entity_type {
-                for property_type_ref in entity_type.inner().property_type_references() {
-                    if current_resolve_depth.constrains_properties_on.outgoing > 0 {
+            if let Some(OntologyVertex::EntityType(entity_type)) = entity_type.cloned() {
+                if current_resolve_depth.constrains_properties_on.outgoing > 0 {
+                    for property_type_ref in entity_type.inner().property_type_references() {
                         subgraph.edges.insert(Edge::Ontology {
                             edition_id: entity_type_id.clone(),
                             outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
@@ -105,8 +108,8 @@ impl<C: AsClient> PostgresStore<C> {
                     }
                 }
 
-                for entity_type_ref in entity_type.inner().inherits_from().all_of() {
-                    if current_resolve_depth.inherits_from.outgoing > 0 {
+                if current_resolve_depth.inherits_from.outgoing > 0 {
+                    for entity_type_ref in entity_type.inner().inherits_from().all_of() {
                         subgraph.edges.insert(Edge::Ontology {
                             edition_id: entity_type_id.clone(),
                             outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
@@ -132,19 +135,19 @@ impl<C: AsClient> PostgresStore<C> {
                     }
                 }
 
-                for entity_type_ref in entity_type.inner().link_mappings().into_keys() {
+                for (link_type_ref, destination_type_refs) in entity_type.inner().link_mappings() {
                     if current_resolve_depth.constrains_links_on.outgoing > 0 {
                         subgraph.edges.insert(Edge::Ontology {
                             edition_id: entity_type_id.clone(),
                             outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
                                 kind: OntologyEdgeKind::ConstrainsLinksOn,
                                 reversed: false,
-                                right_endpoint: OntologyTypeEditionId::from(entity_type_ref.uri()),
+                                right_endpoint: OntologyTypeEditionId::from(link_type_ref.uri()),
                             }),
                         });
 
                         self.traverse_entity_type(
-                            &OntologyTypeEditionId::from(entity_type_ref.uri()),
+                            &OntologyTypeEditionId::from(link_type_ref.uri()),
                             dependency_context,
                             subgraph,
                             GraphResolveDepths {
@@ -157,51 +160,52 @@ impl<C: AsClient> PostgresStore<C> {
                             },
                         )
                         .await?;
-                    }
-                }
 
-                // `flatten`s are used to flatten `Option<[EntityTypeReference]>`
-                for entity_type_ref in entity_type
-                    .inner()
-                    .link_mappings()
-                    .into_values()
-                    .flatten()
-                    .flatten()
-                {
-                    if current_resolve_depth
-                        .constrains_link_destinations_on
-                        .outgoing
-                        > 0
-                    {
-                        subgraph.edges.insert(Edge::Ontology {
-                            edition_id: entity_type_id.clone(),
-                            outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
-                                kind: OntologyEdgeKind::ConstrainsLinkDestinationsOn,
-                                reversed: false,
-                                right_endpoint: OntologyTypeEditionId::from(entity_type_ref.uri()),
-                            }),
-                        });
+                        if current_resolve_depth
+                            .constrains_link_destinations_on
+                            .outgoing
+                            > 0
+                        {
+                            if let Some(destination_type_refs) = destination_type_refs {
+                                for destination_type_ref in destination_type_refs {
+                                    subgraph.edges.insert(Edge::Ontology {
+                                        edition_id: entity_type_id.clone(),
+                                        outward_edge: OntologyOutwardEdges::ToOntology(
+                                            OutwardEdge {
+                                                kind:
+                                                    OntologyEdgeKind::ConstrainsLinkDestinationsOn,
+                                                reversed: false,
+                                                right_endpoint: OntologyTypeEditionId::from(
+                                                    destination_type_ref.uri(),
+                                                ),
+                                            },
+                                        ),
+                                    });
 
-                        self.traverse_entity_type(
-                            &OntologyTypeEditionId::from(entity_type_ref.uri()),
-                            dependency_context,
-                            subgraph,
-                            GraphResolveDepths {
-                                constrains_link_destinations_on: OutgoingEdgeResolveDepth {
-                                    outgoing: current_resolve_depth
-                                        .constrains_link_destinations_on
-                                        .outgoing
-                                        - 1,
-                                    ..current_resolve_depth.constrains_link_destinations_on
-                                },
-                                ..current_resolve_depth
-                            },
-                        )
-                        .await?;
+                                    self.traverse_entity_type(
+                                        &OntologyTypeEditionId::from(destination_type_ref.uri()),
+                                        dependency_context,
+                                        subgraph,
+                                        GraphResolveDepths {
+                                            constrains_link_destinations_on:
+                                                OutgoingEdgeResolveDepth {
+                                                    outgoing: current_resolve_depth
+                                                        .constrains_link_destinations_on
+                                                        .outgoing
+                                                        - 1,
+                                                    ..current_resolve_depth
+                                                        .constrains_link_destinations_on
+                                                },
+                                            ..current_resolve_depth
+                                        },
+                                    )
+                                    .await?;
+                                }
+                            }
+                        }
                     }
                 }
             }
-
             Ok(())
         }
         .boxed()
