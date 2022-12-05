@@ -121,7 +121,7 @@ export const entityTypedef = gql`
       """
       The updated left order of the link entity (if updating a link entity).
       """
-      leftOrder: Int
+      leftToRightOrder: Int
       """
       The updated right order of the link entity (if updating a link entity).
       """

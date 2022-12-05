@@ -69,7 +69,7 @@ export const createEntity: ResolverFn<
   let entityModel: EntityModel | LinkEntityModel;
 
   if (linkData) {
-    const { leftEntityId, leftOrder, rightEntityId, rightToLeftOrder } =
+    const { leftEntityId, leftToRightOrder, rightEntityId, rightToLeftOrder } =
       linkData;
 
     const [leftEntityModel, rightEntityModel, linkEntityTypeModel] =
@@ -85,7 +85,7 @@ export const createEntity: ResolverFn<
 
     entityModel = await LinkEntityModel.createLinkEntity(graphApi, {
       leftEntityModel,
-      leftOrder: leftOrder ?? undefined,
+      leftToRightOrder: leftToRightOrder ?? undefined,
       rightEntityModel,
       rightToLeftOrder: rightToLeftOrder ?? undefined,
       properties,
@@ -248,7 +248,7 @@ export const updateEntity: ResolverFn<
   MutationUpdateEntityArgs
 > = async (
   _,
-  { entityId, updatedProperties, leftOrder, rightToLeftOrder },
+  { entityId, updatedProperties, leftToRightOrder, rightToLeftOrder },
   { dataSources: { graphApi }, userModel },
 ) => {
   // The user needs to be signed up if they aren't updating their own user entity
@@ -282,11 +282,11 @@ export const updateEntity: ResolverFn<
     updatedEntityModel = await entityModel.update(graphApi, {
       properties: updatedProperties,
       actorId: userModel.getEntityUuid(),
-      leftOrder: leftOrder ?? undefined,
+      leftToRightOrder: leftToRightOrder ?? undefined,
       rightToLeftOrder: rightToLeftOrder ?? undefined,
     });
   } else {
-    if (leftOrder || rightToLeftOrder) {
+    if (leftToRightOrder || rightToLeftOrder) {
       throw new UserInputError(
         `Cannot update the left order or right order of entity with ID ${entityModel.getBaseId()} because it isn't a link.`,
       );

@@ -553,7 +553,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     .attach_printable("cannot update link order of an entity that is not a link")
             ),
             (Some(link_data), left, right) => {
-                let new_left_order = match (link_data.left_order(), left) {
+                let new_left_order = match (link_data.left_to_right_order(), left) {
                     (None, None) => None,
                     (Some(_), None) => bail!(Report::new(UpdateError).attach_printable(
                         "left order was set on entity but new order was not provided"

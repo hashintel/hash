@@ -45,13 +45,18 @@ export const useBlockProtocolUpdateEntity = (
         };
       }
 
-      const { entityId, updatedProperties, leftOrder, rightToLeftOrder } = data;
+      const {
+        entityId,
+        updatedProperties,
+        leftToRightOrder,
+        rightToLeftOrder,
+      } = data;
 
       const { data: updateEntityResponseData } = await updateFn({
         variables: {
           entityId,
           updatedProperties,
-          leftOrder,
+          leftToRightOrder,
           rightToLeftOrder,
         },
       });

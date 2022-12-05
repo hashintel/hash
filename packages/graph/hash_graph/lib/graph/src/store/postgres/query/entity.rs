@@ -63,7 +63,7 @@ impl Path for EntityQueryPath<'_> {
             | Self::RightEntity(path)
             | Self::IncomingLinks(path)
             | Self::OutgoingLinks(path) => path.terminating_column(),
-            Self::LeftOrder => Column::Entities(Entities::LeftOrder),
+            Self::LeftToRightOrder => Column::Entities(Entities::LeftToRightOrder),
             Self::RightToLeftOrder => Column::Entities(Entities::RightToLeftOrder),
             Self::Properties(path) => path
                 .as_ref()

@@ -447,7 +447,7 @@ export interface EntityLinkOrder {
    * @type {number}
    * @memberof EntityLinkOrder
    */
-  leftOrder?: number;
+  leftToRightOrder?: number;
   /**
    *
    * @type {number}
@@ -504,7 +504,7 @@ export const EntityQueryToken = {
   OutgoingLinks: "outgoingLinks",
   LeftEntity: "leftEntity",
   RightEntity: "rightEntity",
-  LeftOrder: "leftOrder",
+  LeftToRightOrder: "leftToRightOrder",
   RightToLeftOrder: "rightToLeftOrder",
 } as const;
 
@@ -1011,7 +1011,7 @@ export interface LinkData {
    * @type {number}
    * @memberof LinkData
    */
-  leftOrder?: number;
+  leftToRightOrder?: number;
   /**
    *
    * @type {number}
@@ -1821,7 +1821,7 @@ export interface UpdateEntityRequest {
    * @type {number}
    * @memberof UpdateEntityRequest
    */
-  leftOrder?: number;
+  leftToRightOrder?: number;
   /**
    *
    * @type {number}
