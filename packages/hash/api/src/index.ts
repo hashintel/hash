@@ -19,6 +19,7 @@ import {
   waitOnResource,
 } from "@hashintel/hash-backend-utils/environment";
 
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import setupAuth from "./auth";
 import { RedisCache } from "./cache";
 import { ensureSystemTypesExist } from "./graph/system-types";
@@ -50,6 +51,9 @@ import { ensureSystemEntitiesExists } from "./graph/system-entities";
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
 const main = async () => {
+  await TypeSystemInitializer.initialize();
+  logger.info("Type System initialized");
+
   if (process.env.HASH_TELEMETRY_ENABLED === "true") {
     logger.info("Starting [Snowplow] telemetry");
 

@@ -9,7 +9,7 @@ import {
   OneOf,
   Array,
   VersionedUri,
-} from "@blockprotocol/type-system-web";
+} from "@blockprotocol/type-system";
 import {
   nilUuid,
   PrimitiveDataTypeKey,
@@ -78,40 +78,6 @@ export const RESTRICTED_SHORTNAMES = [
  * the HASH instance. For now we're just chucking them in the root account.
  */
 export const systemAccountId = nilUuid;
-
-/**
- * @todo use `extractBaseUri` from the type system package when they're unified,
- *  and we're able to use functional code in node and web environments:
- *  https://app.asana.com/0/1200211978612931/1202923896339225/f
- */
-export const splitVersionedUri = (
-  versionedUri: string,
-): { baseUri: string; version: number } => {
-  const split = versionedUri.split("v/");
-  if (split == null) {
-    throw new Error(
-      `couldn't extract base URI, malformed Versioned URI: ${versionedUri}`,
-    );
-  }
-
-  const version = Number(split.pop());
-  if (Number.isNaN(version)) {
-    throw new Error("version is not a valid number");
-  }
-
-  const baseUri = split.join("v/");
-
-  return { baseUri, version };
-};
-
-/**
- * @todo use `extractBaseUri from the type system package when they're unified,
- *  and we're able to use functional code in node and web environments:
- *  https://app.asana.com/0/1200211978612931/1202923896339225/f
- */
-export const extractBaseUri = (versionedUri: string): string => {
-  return splitVersionedUri(versionedUri).baseUri;
-};
 
 export type PropertyTypeCreatorParams = {
   propertyTypeId: VersionedUri;

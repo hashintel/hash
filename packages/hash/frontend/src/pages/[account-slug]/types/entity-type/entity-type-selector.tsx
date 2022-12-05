@@ -1,4 +1,4 @@
-import { EntityType } from "@blockprotocol/type-system-web";
+import { EntityType } from "@blockprotocol/type-system";
 import { FunctionComponent, useRef, useState } from "react";
 import { HashSelectorAutocomplete } from "./hash-selector-autocomplete";
 import { useEntityTypes } from "./use-entity-types";

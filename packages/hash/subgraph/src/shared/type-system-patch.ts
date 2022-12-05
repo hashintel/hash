@@ -1,77 +1,44 @@
 import {
   BaseUri,
   VersionedUri,
-  validateBaseUri as validateBaseUriGraphApi,
-  validateVersionedUri as validateVersionedUriGraphApi,
-} from "@blockprotocol/type-system-web";
+  validateVersionedUri,
+  ParseVersionedUriError,
+} from "@blockprotocol/type-system";
 
-/**
- * @todo - we are patching these so this package can be used in node and web environments. When we unify the packages
- *   this will no longer be necessary return types / functionality may differ a bit in the meantime, these are just
- *   hotfixes.
- *   https://app.asana.com/0/1201095311341924/1202923896339225/f
- *
- * */
+export class InvalidVersionedUriComponentsError extends Error {
+  components: { baseUri: BaseUri; version: number };
+  error: ParseVersionedUriError;
 
-const versionedUriGroupsPattern = /(.+\/)v\/(\d+)(.*)/;
+  constructor(
+    components: { baseUri: BaseUri; version: number },
+    error: ParseVersionedUriError,
+  ) {
+    super(
+      `Failed to create versioned URI from components: ${JSON.stringify(
+        error,
+      )}`,
+    );
+    this.name = "InvalidVersionedUriComponentsError";
+    this.components = components;
+    this.error = error;
+  }
+}
 
-export const splitVersionedUri = (id: VersionedUri): [BaseUri, number] => {
-  const [_, baseUri, version] = id.match(versionedUriGroupsPattern)!;
-  return [baseUri!, Number(version)];
-};
-
+/** @todo - Expose this through the Type System package */
 export const versionedUriFromComponents = (
   baseUri: BaseUri,
   version: number,
 ): VersionedUri => {
-  return `${baseUri}v/${version}` as VersionedUri;
-};
+  const versionedUri = `${baseUri}v/${version}`;
 
-export const extractBaseUri = (id: VersionedUri): BaseUri => {
-  return splitVersionedUri(id)[0];
-};
+  const validationResult = validateVersionedUri(versionedUri);
 
-export const extractVersion = (id: VersionedUri): number => {
-  return splitVersionedUri(id)[1];
-};
-
-export const validateBaseUri = (
-  uri: string,
-): ReturnType<typeof validateBaseUriGraphApi> => {
-  try {
-    const _ = new URL(uri);
-    return {
-      type: "Ok",
-      inner: uri,
-    };
-  } catch {
-    return {
-      type: "Err",
-      inner: { reason: "UrlParseError", inner: "" },
-    };
+  if (validationResult.type === "Err") {
+    throw new InvalidVersionedUriComponentsError(
+      { baseUri, version },
+      validationResult.inner,
+    );
+  } else {
+    return validationResult.inner;
   }
-};
-
-export const validateVersionedUri = (
-  uri: string,
-): ReturnType<typeof validateVersionedUriGraphApi> => {
-  try {
-    const _ = new URL(uri);
-
-    if (versionedUriGroupsPattern.test(uri)) {
-      return {
-        type: "Ok",
-        inner: uri as VersionedUri,
-      };
-    }
-  } catch {
-    /* return error below */
-  }
-  return {
-    type: "Err",
-    inner: {
-      reason: "InvalidBaseUri",
-      inner: { reason: "UrlParseError", inner: "" },
-    },
-  };
 };

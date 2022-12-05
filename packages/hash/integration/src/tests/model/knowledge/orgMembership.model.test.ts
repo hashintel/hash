@@ -8,6 +8,7 @@ import {
 } from "@hashintel/hash-api/src/model";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { ensureSystemEntitiesExists } from "@hashintel/hash-api/src/graph/system-entities";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { createTestOrg, createTestUser } from "../../util";
 
 jest.setTimeout(60000);
@@ -32,6 +33,7 @@ describe("OrgMembership model class", () => {
   let testOrg: OrgModel;
 
   beforeAll(async () => {
+    await TypeSystemInitializer.initialize();
     await ensureSystemTypesExist({ graphApi, logger });
     await ensureSystemEntitiesExists({ graphApi, logger });
 

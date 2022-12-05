@@ -3,7 +3,7 @@ import {
   extractBaseUri,
   extractVersion,
   PropertyType,
-} from "@blockprotocol/type-system-web";
+} from "@blockprotocol/type-system";
 import { SizedGridColumn } from "@glideapps/glide-data-grid";
 import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import { useMemo } from "react";

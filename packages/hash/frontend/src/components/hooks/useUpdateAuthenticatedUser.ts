@@ -2,7 +2,7 @@ import { useMutation } from "@apollo/client";
 import { useCallback, useState } from "react";
 
 import { types } from "@hashintel/hash-shared/types";
-import { extractBaseUri } from "@blockprotocol/type-system-web";
+import { extractBaseUri } from "@blockprotocol/type-system";
 import { GraphQLError } from "graphql";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import {

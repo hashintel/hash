@@ -4,7 +4,7 @@
  */
 
 jest.mock(
-  "@blockprotocol/type-system-web",
+  "@blockprotocol/type-system",
   () => {
     return {
       __esModule: true,

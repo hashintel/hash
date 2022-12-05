@@ -2,7 +2,7 @@ import {
   DataTypeReference,
   PropertyType,
   PropertyValues,
-} from "@blockprotocol/type-system-web";
+} from "@blockprotocol/type-system";
 import { Subgraph } from "@hashintel/hash-subgraph";
 import { getDataTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/data-type";
 import { isPropertyValueArray } from "../../../../../../../../../lib/typeguards";

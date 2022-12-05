@@ -1,4 +1,4 @@
-import { EntityType, extractBaseUri } from "@blockprotocol/type-system-web";
+import { EntityType, extractBaseUri } from "@blockprotocol/type-system";
 import { getEntityTypesByBaseUri } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import { useRouter } from "next/router";
 import {
