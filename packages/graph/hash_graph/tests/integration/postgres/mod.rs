@@ -410,10 +410,9 @@ impl DatabaseApi<'_> {
             })
             .collect::<Vec<_>>();
 
-        match roots.as_slice() {
-            [] => panic!("no entity found"),
-            [entity] => Ok(entity.clone()),
-            [..] => panic!("more than one entity was found"),
+        match roots.len() {
+            1 => Ok(roots.into_iter().next().unwrap()),
+            len => panic!("unexpected number of entities found, expected 1 but received {len}"),
         }
     }
 
