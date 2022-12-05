@@ -447,13 +447,13 @@ export interface EntityLinkOrder {
    * @type {number}
    * @memberof EntityLinkOrder
    */
-  leftOrder?: number;
+  leftToRightOrder?: number;
   /**
    *
    * @type {number}
    * @memberof EntityLinkOrder
    */
-  rightOrder?: number;
+  rightToLeftOrder?: number;
 }
 /**
  * The metadata of an [`Entity`] record.
@@ -504,8 +504,8 @@ export const EntityQueryToken = {
   OutgoingLinks: "outgoingLinks",
   LeftEntity: "leftEntity",
   RightEntity: "rightEntity",
-  LeftOrder: "leftOrder",
-  RightOrder: "rightOrder",
+  LeftToRightOrder: "leftToRightOrder",
+  RightToLeftOrder: "rightToLeftOrder",
 } as const;
 
 export type EntityQueryToken =
@@ -1011,13 +1011,13 @@ export interface LinkData {
    * @type {number}
    * @memberof LinkData
    */
-  leftOrder?: number;
+  leftToRightOrder?: number;
   /**
    *
    * @type {number}
    * @memberof LinkData
    */
-  rightOrder?: number;
+  rightToLeftOrder?: number;
   /**
    *
    * @type {string}
@@ -1821,13 +1821,13 @@ export interface UpdateEntityRequest {
    * @type {number}
    * @memberof UpdateEntityRequest
    */
-  leftOrder?: number;
+  leftToRightOrder?: number;
   /**
    *
    * @type {number}
    * @memberof UpdateEntityRequest
    */
-  rightOrder?: number;
+  rightToLeftOrder?: number;
   /**
    *
    * @type {string}

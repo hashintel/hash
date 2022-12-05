@@ -226,7 +226,7 @@ export default class {
           await parentEntity.entity.createOutgoingLink(graphApi, {
             linkEntityTypeModel,
             rightEntityModel: entity,
-            leftOrder: link.meta.index ?? undefined,
+            leftToRightOrder: link.meta.index ?? undefined,
             ownedById,
             actorId,
           });

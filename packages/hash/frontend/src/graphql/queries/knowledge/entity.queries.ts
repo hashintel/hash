@@ -78,15 +78,15 @@ export const updateEntityMutation = gql`
   mutation updateEntity(
     $entityId: EntityId!
     $updatedProperties: PropertyObject!
-    $leftOrder: Int
-    $rightOrder: Int
+    $leftToRightOrder: Int
+    $rightToLeftOrder: Int
   ) {
     # This is a scalar, which has no selection.
     updateEntity(
       entityId: $entityId
       updatedProperties: $updatedProperties
-      leftOrder: $leftOrder
-      rightOrder: $rightOrder
+      leftToRightOrder: $leftToRightOrder
+      rightToLeftOrder: $rightToLeftOrder
     )
   }
 `;

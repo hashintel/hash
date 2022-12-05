@@ -77,28 +77,31 @@ impl EntityProperties {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EntityLinkOrder {
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    left_order: Option<LinkOrder>,
+    left_to_right_order: Option<LinkOrder>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    right_order: Option<LinkOrder>,
+    right_to_left_order: Option<LinkOrder>,
 }
 
 impl EntityLinkOrder {
     #[must_use]
-    pub const fn new(left_order: Option<LinkOrder>, right_order: Option<LinkOrder>) -> Self {
+    pub const fn new(
+        left_to_right_order: Option<LinkOrder>,
+        right_to_left_order: Option<LinkOrder>,
+    ) -> Self {
         Self {
-            left_order,
-            right_order,
+            left_to_right_order,
+            right_to_left_order,
         }
     }
 
     #[must_use]
     pub const fn left(&self) -> Option<LinkOrder> {
-        self.left_order
+        self.left_to_right_order
     }
 
     #[must_use]
     pub const fn right(&self) -> Option<LinkOrder> {
-        self.right_order
+        self.right_to_left_order
     }
 }
 
@@ -117,13 +120,13 @@ impl LinkData {
     pub const fn new(
         left_entity_id: EntityId,
         right_entity_id: EntityId,
-        left_order: Option<LinkOrder>,
-        right_order: Option<LinkOrder>,
+        left_to_right_order: Option<LinkOrder>,
+        right_to_left_order: Option<LinkOrder>,
     ) -> Self {
         Self {
             left_entity_id,
             right_entity_id,
-            order: EntityLinkOrder::new(left_order, right_order),
+            order: EntityLinkOrder::new(left_to_right_order, right_to_left_order),
         }
     }
 
@@ -138,13 +141,13 @@ impl LinkData {
     }
 
     #[must_use]
-    pub const fn left_order(&self) -> Option<LinkOrder> {
-        self.order.left_order
+    pub const fn left_to_right_order(&self) -> Option<LinkOrder> {
+        self.order.left_to_right_order
     }
 
     #[must_use]
-    pub const fn right_order(&self) -> Option<LinkOrder> {
-        self.order.right_order
+    pub const fn right_to_left_order(&self) -> Option<LinkOrder> {
+        self.order.right_to_left_order
     }
 }
 
