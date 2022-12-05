@@ -1,16 +1,13 @@
-import { isPlainObject } from "lodash";
-import { isUnknownObject } from "@hashintel/hash-shared/util";
-import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
+import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import { getPropertyTypesByBaseUri } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
+import { get } from "lodash";
 import { PropertyRow } from "../../types";
 import { getExpectedTypesOfPropertyType } from "./get-expected-types-of-property-type";
+import { isPropertyValueNested } from "../../../../../../../../../lib/typeguards";
 
 /**
  * This function generates property row data,
  * and calls itself again for each nested property. Then puts results of these recursive calls into `children` array
- *
- * @param properties
- * Properties object for current depth. On entity level, it starts from `entity.properties`
  *
  * @param propertyTypeBaseUri
  * Name of the specific property inside `properties` object
@@ -22,6 +19,9 @@ import { getExpectedTypesOfPropertyType } from "./get-expected-types-of-property
  * properties = { a: { b: { c: "John" } } };
  * propertyKeyChain = ["a", "b", "c"]
  * ```
+ *
+ * @param entity
+ * The entity object
  *
  * @param entitySubgraph
  * An object storing root entity & subgraph of that entity
@@ -35,14 +35,21 @@ import { getExpectedTypesOfPropertyType } from "./get-expected-types-of-property
  *
  * @returns property row (and nested rows as `children` if it's a nested property)
  */
-export const generatePropertyRowRecursively = (
-  properties: unknown,
-  propertyTypeBaseUri: string,
-  propertyKeyChain: string[],
-  entitySubgraph: Subgraph<SubgraphRootTypes["entity"]>,
-  requiredPropertyTypes: string[],
+export const generatePropertyRowRecursively = ({
+  propertyTypeBaseUri,
+  propertyKeyChain,
+  entity,
+  entitySubgraph,
+  requiredPropertyTypes,
   depth = 0,
-): PropertyRow => {
+}: {
+  propertyTypeBaseUri: string;
+  propertyKeyChain: string[];
+  entity: Entity;
+  entitySubgraph: Subgraph<SubgraphRootTypes["entity"]>;
+  requiredPropertyTypes: string[];
+  depth?: number;
+}): PropertyRow => {
   const propertyTypeVersions = getPropertyTypesByBaseUri(
     entitySubgraph,
     propertyTypeBaseUri,
@@ -63,26 +70,27 @@ export const generatePropertyRowRecursively = (
 
   const required = !!requiredPropertyTypes?.includes(propertyTypeBaseUri);
 
-  let value;
+  const value =
+    get(entity.properties, propertyKeyChain) ?? (isArray ? [] : undefined);
+
   const children: PropertyRow[] = [];
 
-  if (isUnknownObject(properties)) {
-    value = properties[propertyTypeBaseUri];
+  const firstOneOf = propertyType.oneOf[0];
+  const isNested = isPropertyValueNested(firstOneOf);
 
-    // generate rows for nested properties and push them to children array
-    if (isPlainObject(value) && isUnknownObject(value)) {
-      for (const subPropertyTypeBaseUri of Object.keys(value)) {
-        children.push(
-          generatePropertyRowRecursively(
-            properties[propertyTypeBaseUri],
-            subPropertyTypeBaseUri,
-            [...propertyKeyChain, subPropertyTypeBaseUri],
-            entitySubgraph,
-            requiredPropertyTypes,
-            depth + 1,
-          ),
-        );
-      }
+  // if first `oneOf` of property type is nested property, it means it should have children
+  if (isNested) {
+    for (const subPropertyTypeBaseUri of Object.keys(firstOneOf.properties)) {
+      children.push(
+        generatePropertyRowRecursively({
+          propertyTypeBaseUri: subPropertyTypeBaseUri,
+          propertyKeyChain: [...propertyKeyChain, subPropertyTypeBaseUri],
+          entity,
+          entitySubgraph,
+          requiredPropertyTypes,
+          depth: depth + 1,
+        }),
+      );
     }
   }
 
