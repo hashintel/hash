@@ -8,7 +8,7 @@ import {
   PropertyTypeModel,
   UserModel,
 } from "@hashintel/hash-api/src/model";
-import { EntityType } from "@blockprotocol/type-system";
+import { EntityType, TypeSystemInitializer } from "@blockprotocol/type-system";
 import { linkEntityTypeUri } from "@hashintel/hash-api/src/model/util";
 import { createTestUser } from "../../util";
 
@@ -40,6 +40,7 @@ let previousAddressLinkEntityTypeModel: EntityTypeModel;
 let addressEntityTypeModel: EntityTypeModel;
 
 beforeAll(async () => {
+  await TypeSystemInitializer.initialize();
   testUser = await createTestUser(graphApi, "entity-type-test-1", logger);
   testUser2 = await createTestUser(graphApi, "entity-type-test-2", logger);
 

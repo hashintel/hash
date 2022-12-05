@@ -10,6 +10,7 @@ import {
 } from "@hashintel/hash-api/src/auth/ory-kratos";
 import { systemAccountId } from "@hashintel/hash-api/src/model/util";
 import { ensureSystemEntitiesExists } from "@hashintel/hash-api/src/graph/system-entities";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { createTestOrg, generateRandomShortname } from "../../util";
 
 jest.setTimeout(60000);
@@ -32,6 +33,7 @@ const shortname = generateRandomShortname("userTest");
 
 describe("User model class", () => {
   beforeAll(async () => {
+    await TypeSystemInitializer.initialize();
     await ensureSystemTypesExist({ graphApi, logger });
     await ensureSystemEntitiesExists({ graphApi, logger });
   });

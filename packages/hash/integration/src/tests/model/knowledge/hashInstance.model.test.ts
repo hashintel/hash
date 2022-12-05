@@ -8,6 +8,7 @@ import { ensureSystemEntitiesExists } from "@hashintel/hash-api/src/graph/system
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { UserModel, HashInstanceModel } from "@hashintel/hash-api/src/model";
 import { systemAccountId } from "@hashintel/hash-api/src/model/util";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { createTestUser } from "../../util";
 
 jest.setTimeout(60000);
@@ -28,6 +29,7 @@ const graphApi = createGraphClient(logger, {
 
 describe("HashInstance model class", () => {
   beforeAll(async () => {
+    await TypeSystemInitializer.initialize();
     await ensureSystemTypesExist({ graphApi, logger });
 
     await ensureSystemEntitiesExists({ graphApi, logger });

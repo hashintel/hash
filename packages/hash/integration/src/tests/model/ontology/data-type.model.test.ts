@@ -2,7 +2,7 @@ import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { createGraphClient } from "@hashintel/hash-api/src/graph";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
-import { DataType } from "@blockprotocol/type-system";
+import { DataType, TypeSystemInitializer } from "@blockprotocol/type-system";
 import { DataTypeModel, UserModel } from "@hashintel/hash-api/src/model";
 import { createTestUser } from "../../util";
 
@@ -39,6 +39,7 @@ const dataTypeSchema: Pick<
 };
 
 beforeAll(async () => {
+  await TypeSystemInitializer.initialize();
   testUser = await createTestUser(graphApi, "data-type-test-1", logger);
   testUser2 = await createTestUser(graphApi, "data-type-test-2", logger);
 });
