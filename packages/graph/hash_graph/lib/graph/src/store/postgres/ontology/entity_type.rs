@@ -46,7 +46,7 @@ impl<C: AsClient> PostgresStore<C> {
             let dependency_status = dependency_context
                 .ontology_dependency_map
                 .insert(entity_type_id, current_resolve_depth);
-            let entity_type = match dependency_status {
+            let entity_type: Option<&OntologyVertex> = match dependency_status {
                 DependencyStatus::Unresolved => {
                     match subgraph
                         .vertices

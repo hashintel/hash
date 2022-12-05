@@ -51,7 +51,7 @@ impl<C: AsClient> PostgresStore<C> {
             let dependency_status = dependency_context
                 .knowledge_dependency_map
                 .insert(&entity_edition_id, current_resolve_depth);
-            let entity = match dependency_status {
+            let entity: Option<&KnowledgeGraphVertex> = match dependency_status {
                 DependencyStatus::Unresolved => {
                     match subgraph.vertices.knowledge_graph.entry(entity_edition_id) {
                         Entry::Occupied(entry) => Some(entry.into_mut()),
