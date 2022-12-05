@@ -1,3 +1,5 @@
+use std::collections::hash_map::RawEntryMut;
+
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
 use tokio_postgres::GenericClient;
@@ -32,27 +34,34 @@ impl<C: AsClient> PostgresStore<C> {
         let dependency_status = dependency_context
             .ontology_dependency_map
             .insert(data_type_id, current_resolve_depth);
+
+        // Explicitly converting the unique reference to a shared reference to the vertex to
+        // avoid mutating it by accident
         let data_type: Option<&OntologyVertex> = match dependency_status {
-            DependencyStatus::Unknown => {
-                if let Some(data_type) = subgraph.vertices.ontology.get(data_type_id) {
-                    Some(data_type)
-                } else {
-                    let data_type = Read::<DataTypeWithMetadata>::read_one(
-                        self,
-                        &Filter::for_ontology_type_edition_id(data_type_id),
-                    )
-                    .await?;
-                    Some(
-                        subgraph
-                            .vertices
-                            .ontology
-                            .entry(data_type_id.clone())
-                            .or_insert(OntologyVertex::DataType(Box::new(data_type))),
-                    )
+            DependencyStatus::Unresolved => {
+                match subgraph
+                    .vertices
+                    .ontology
+                    .raw_entry_mut()
+                    .from_key(data_type_id)
+                {
+                    RawEntryMut::Occupied(entry) => Some(entry.into_mut()),
+                    RawEntryMut::Vacant(entry) => {
+                        let data_type = Read::<DataTypeWithMetadata>::read_one(
+                            self,
+                            &Filter::for_ontology_type_edition_id(data_type_id),
+                        )
+                        .await?;
+                        Some(
+                            entry
+                                .insert(
+                                    data_type_id.clone(),
+                                    OntologyVertex::DataType(Box::new(data_type)),
+                                )
+                                .1,
+                        )
+                    }
                 }
-            }
-            DependencyStatus::DependenciesUnresolved => {
-                subgraph.vertices.ontology.get(data_type_id)
             }
             DependencyStatus::Resolved => None,
         };

@@ -47,8 +47,7 @@ use crate::{
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum DependencyStatus {
-    Unknown,
-    DependenciesUnresolved,
+    Unresolved,
     Resolved,
 }
 
@@ -87,11 +86,11 @@ where
         match self.resolved.raw_entry_mut().from_key(identifier) {
             RawEntryMut::Vacant(entry) => {
                 entry.insert(identifier.clone(), resolved_depth);
-                DependencyStatus::Unknown
+                DependencyStatus::Unresolved
             }
             RawEntryMut::Occupied(entry) => {
                 if entry.into_mut().update(resolved_depth) {
-                    DependencyStatus::DependenciesUnresolved
+                    DependencyStatus::Unresolved
                 } else {
                     DependencyStatus::Resolved
                 }
