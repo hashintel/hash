@@ -46,6 +46,9 @@ impl<C: AsClient> PostgresStore<C> {
             let dependency_status = dependency_context
                 .ontology_dependency_map
                 .insert(property_type_id, current_resolve_depth);
+
+            // Explicitly converting the unique reference to a shared reference to the vertex to
+            // avoid mutating it by accident
             let property_type: Option<&OntologyVertex> = match dependency_status {
                 DependencyStatus::Unresolved => {
                     match subgraph

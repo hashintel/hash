@@ -51,6 +51,9 @@ impl<C: AsClient> PostgresStore<C> {
             let dependency_status = dependency_context
                 .knowledge_dependency_map
                 .insert(&entity_edition_id, current_resolve_depth);
+
+            // Explicitly converting the unique reference to a shared reference to the vertex to
+            // avoid mutating it by accident
             let entity: Option<&KnowledgeGraphVertex> = match dependency_status {
                 DependencyStatus::Unresolved => {
                     match subgraph.vertices.knowledge_graph.entry(entity_edition_id) {
