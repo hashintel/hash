@@ -381,8 +381,7 @@ export default class extends EntityModel {
     return outgoingBlockDataLinks
       .sort(
         (a, b) =>
-          (a.getLinkMetadata().leftOrder ?? 0) -
-            (b.getLinkMetadata().leftOrder ?? 0) ||
+          (a.getLinkData().leftOrder ?? 0) - (b.getLinkData().leftOrder ?? 0) ||
           a.getBaseId().localeCompare(b.getBaseId()) ||
           a.getVersion().localeCompare(b.getVersion()),
       )
@@ -470,7 +469,7 @@ export default class extends EntityModel {
 
     const link = contentLinks.find(
       (linkEntityModel) =>
-        linkEntityModel.getLinkMetadata().leftOrder === currentPosition,
+        linkEntityModel.getLinkData().leftOrder === currentPosition,
     );
 
     if (!link) {
@@ -517,7 +516,7 @@ export default class extends EntityModel {
 
     const linkEntityModel = contentLinkEntityModels.find(
       (contentLinkEntityModel) =>
-        contentLinkEntityModel.getLinkMetadata().leftOrder === position,
+        contentLinkEntityModel.getLinkData().leftOrder === position,
     );
 
     if (!linkEntityModel) {

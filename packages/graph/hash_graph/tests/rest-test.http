@@ -585,7 +585,7 @@ Accept: application/json
   "actorId": "{{account_id}}",
   "properties": {},
   "entityTypeId": "{{friendship_link_entity_type_id}}",
-  "linkMetadata": {
+  "linkData": {
     "leftEntityId": "{{person_a_entity_id}}",
     "rightEntityId": "{{person_b_entity_id}}"
   }

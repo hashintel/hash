@@ -12,7 +12,7 @@ use crate::{
         account::AccountId,
         knowledge::{EntityEditionId, EntityId},
     },
-    knowledge::{Entity, EntityProperties, EntityQueryPath, EntityUuid, LinkEntityMetadata},
+    knowledge::{Entity, EntityProperties, EntityQueryPath, EntityUuid, LinkData},
     ontology::EntityTypeQueryPath,
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
@@ -90,7 +90,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                     .into_report()
                     .change_context(QueryError)?;
 
-                let link_metadata = {
+                let link_data = {
                     let left_owned_by_id: Option<AccountId> =
                         row.get(left_entity_owned_by_id_index);
                     let left_entity_uuid: Option<Uuid> = row.get(left_entity_uuid_index);
@@ -108,7 +108,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                             Some(left_entity_uuid),
                             Some(right_owned_by_id),
                             Some(right_entity_uuid),
-                        ) => Some(LinkEntityMetadata::new(
+                        ) => Some(LinkData::new(
                             EntityId::new(
                                 OwnedById::new(left_owned_by_id),
                                 EntityUuid::new(left_entity_uuid),
@@ -134,13 +134,13 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
 
                 Ok(Entity::new(
                     properties,
+                    link_data,
                     EntityEditionId::new(
                         EntityId::new(owned_by_id, entity_uuid),
                         row.get(version_index),
                     ),
                     entity_type_uri,
                     ProvenanceMetadata::new(updated_by_id),
-                    link_metadata,
                     // TODO: only the historic table would have an `archived` field.
                     //   Consider what we should do about that.
                     row.get(archived_index),
