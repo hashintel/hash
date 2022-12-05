@@ -1,16 +1,14 @@
 use std::{borrow::Cow, iter::once};
 
-use type_system::EntityType;
-
 use crate::{
-    ontology::EntityTypeQueryPath,
+    ontology::{EntityTypeQueryPath, EntityTypeWithMetadata},
     store::postgres::query::{
         table::{Column, EntityTypes, JsonField, Relation, TypeIds},
         Path, PostgresQueryRecord, Table,
     },
 };
 
-impl PostgresQueryRecord for EntityType {
+impl PostgresQueryRecord for EntityTypeWithMetadata {
     fn base_table() -> Table {
         Table::EntityTypes
     }

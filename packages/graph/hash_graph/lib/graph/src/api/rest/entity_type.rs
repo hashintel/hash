@@ -228,7 +228,7 @@ async fn get_entity_types_by_query<P: StorePool + Send>(
 async fn get_latest_entity_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<EntityTypeWithMetadata>>, StatusCode> {
-    read_from_store(pool.as_ref(), &Filter::<EntityType>::for_latest_version())
+    read_from_store(pool.as_ref(), &Filter::for_latest_version())
         .await
         .map(Json)
 }
@@ -252,13 +252,10 @@ async fn get_entity_type<P: StorePool + Send>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<EntityTypeWithMetadata>, StatusCode> {
-    read_from_store(
-        pool.as_ref(),
-        &Filter::<EntityType>::for_versioned_uri(&uri.0),
-    )
-    .await
-    .and_then(|mut entity_types| entity_types.pop().ok_or(StatusCode::NOT_FOUND))
-    .map(Json)
+    read_from_store(pool.as_ref(), &Filter::for_versioned_uri(&uri.0))
+        .await
+        .and_then(|mut entity_types| entity_types.pop().ok_or(StatusCode::NOT_FOUND))
+        .map(Json)
 }
 
 #[derive(ToSchema, Serialize, Deserialize)]
