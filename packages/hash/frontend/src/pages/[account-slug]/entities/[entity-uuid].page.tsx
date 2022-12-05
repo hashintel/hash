@@ -1,3 +1,4 @@
+import { Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import {
@@ -7,12 +8,15 @@ import {
   SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
 import Head from "next/head";
+import slugify from "slugify";
 import { useBlockProtocolGetEntity } from "../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolGetEntity";
 import { useLoggedInUser } from "../../../components/hooks/useAuthenticatedUser";
 import {
   getLayoutWithSidebar,
   NextPageWithLayout,
 } from "../../../shared/layout";
+import { HashOntologyIcon } from "../shared/hash-ontology-icon";
+import { OntologyChip } from "../shared/ontology-chip";
 import { EntityEditor } from "./[entity-uuid].page/entity-editor";
 import { EntityPageLoadingState } from "./[entity-uuid].page/entity-page-loading-state";
 import { EntityPageWrapper } from "./[entity-uuid].page/entity-page-wrapper";
@@ -20,6 +24,7 @@ import { PageErrorState } from "../../../components/page-error-state";
 import { generateEntityLabel } from "../../../lib/entities";
 import { useRouteNamespace } from "../types/entity-type/use-route-namespace";
 import { useBlockProtocolGetEntityType } from "../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
+import { EntityPageHeader } from "./[entity-uuid].page/entity-page-wrapper/entity-page-header";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
@@ -98,7 +103,43 @@ const Page: NextPageWithLayout = () => {
       <Head>
         <title>{entityLabel} | Entity | HASH</title>
       </Head>
-      <EntityPageWrapper label={entityLabel}>
+      <EntityPageWrapper
+        header={
+          <EntityPageHeader
+            entityLabel={entityLabel}
+            chip={
+              <OntologyChip
+                icon={<HashOntologyIcon />}
+                domain="hash.ai"
+                path={
+                  <Typography>
+                    <Typography
+                      color={(theme) => theme.palette.blue[70]}
+                      component="span"
+                      fontWeight="bold"
+                    >
+                      {router.query["account-slug"]}
+                    </Typography>
+                    <Typography
+                      color={(theme) => theme.palette.blue[70]}
+                      component="span"
+                    >
+                      /entities/
+                    </Typography>
+                    <Typography
+                      color={(theme) => theme.palette.blue[70]}
+                      component="span"
+                      fontWeight="bold"
+                    >
+                      {entityUuid}
+                    </Typography>
+                  </Typography>
+                }
+              />
+            }
+          />
+        }
+      >
         <EntityEditor
           entitySubgraph={entitySubgraph}
           setEntity={(entity) =>

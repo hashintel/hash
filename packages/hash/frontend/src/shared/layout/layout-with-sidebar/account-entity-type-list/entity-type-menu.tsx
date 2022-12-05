@@ -44,7 +44,7 @@ export const EntityTypeMenu: FunctionComponent<EntityTypeMenuProps> = ({
       {
         title: `Create new ${pluralize.singular(entityTitle)}`,
         icon: faAdd,
-        href: `/${accountId}/new/entity?entity-type-id=${entityId}`,
+        href: `/new/entity?entity-type-id=${entityId}`,
         faded: false,
       },
       {
@@ -52,7 +52,7 @@ export const EntityTypeMenu: FunctionComponent<EntityTypeMenuProps> = ({
         icon: faLink,
         onClick: () => {
           void navigator.clipboard.writeText(
-            `${window.location.origin}/${accountId}/types/${entityId}`,
+            `${window.location.origin}/types/${entityId}`,
           );
           setCopied(true);
           setTimeout(() => {

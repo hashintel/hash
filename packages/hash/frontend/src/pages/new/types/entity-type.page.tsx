@@ -17,17 +17,17 @@ import { useRouter } from "next/router";
 import { ReactNode, useContext } from "react";
 import { useForm } from "react-hook-form";
 import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
-import { useBlockProtocolGetEntityType } from "../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
-import { useInitTypeSystem } from "../../../../lib/use-init-type-system";
+import { useBlockProtocolGetEntityType } from "../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
+import { useInitTypeSystem } from "../../../lib/use-init-type-system";
 import {
   getLayoutWithSidebar,
   NextPageWithLayout,
-} from "../../../../shared/layout";
-import { Link } from "../../../../shared/ui/link";
-import { TopContextBar } from "../../../shared/top-context-bar";
-import { WorkspaceContext } from "../../../shared/workspace-context";
-import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
-import { OntologyChip } from "../../shared/ontology-chip";
+} from "../../../shared/layout";
+import { Link } from "../../../shared/ui/link";
+import { TopContextBar } from "../../shared/top-context-bar";
+import { WorkspaceContext } from "../../shared/workspace-context";
+import { HashOntologyIcon } from "../../[account-slug]/shared/hash-ontology-icon";
+import { OntologyChip } from "../../[account-slug]/shared/ontology-chip";
 
 const FormHelperLabel = ({
   children,
@@ -154,7 +154,7 @@ const Page: NextPageWithLayout = () => {
                   >
                     {`@${activeWorkspace.shortname}`}
                   </Typography>
-                  /new/types/entity-type
+                  /types/entity-type
                 </Typography>
               }
               sx={[{ marginBottom: 2 }]}

@@ -3,21 +3,29 @@ import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { Box, Stack, Typography } from "@mui/material";
 import { Container } from "@mui/system";
 import { useRouter } from "next/router";
-import slugify from "slugify";
+import { ReactNode, useContext } from "react";
 import { TopContextBar } from "../../../../shared/top-context-bar";
-import { HashOntologyIcon } from "../../../shared/hash-ontology-icon";
-import { OntologyChip } from "../../../shared/ontology-chip";
+import { WorkspaceContext } from "../../../../shared/workspace-context";
 
 export const EntityPageHeader = ({
   entityLabel,
   lightTitle,
+  chip,
 }: {
   entityLabel: string;
   lightTitle?: boolean;
+  chip: ReactNode;
 }) => {
   const router = useRouter();
 
   const accountSlug = router.query["account-slug"];
+  const { activeWorkspace } = useContext(WorkspaceContext);
+
+  const shortname = accountSlug?.slice(1) ?? activeWorkspace?.shortname;
+
+  if (!shortname) {
+    throw new Error("Cannot render before workspace is available");
+  }
 
   return (
     <Box bgcolor="white">
@@ -26,7 +34,7 @@ export const EntityPageHeader = ({
         crumbs={[
           {
             title: "Entities",
-            href: `/${accountSlug}/entities`,
+            href: `/@${shortname}/entities`,
             id: "entities",
           },
           {
@@ -40,33 +48,12 @@ export const EntityPageHeader = ({
       />
       <Box py={3.75}>
         <Container>
-          <OntologyChip
-            icon={<HashOntologyIcon />}
-            domain="hash.ai"
-            path={
-              <>
-                <Typography color="inherit" fontWeight="bold">
-                  {accountSlug}
-                </Typography>
-                /entities
-                <Typography color="inherit" fontWeight="bold">
-                  /{slugify(entityLabel, { lower: true })}
-                </Typography>
-              </>
-            }
-            sx={[
-              {
-                marginBottom: 2,
-                "> *": { color: (theme) => theme.palette.blue[70] },
-              },
-            ]}
-          />
-
+          {chip}
           <Stack
             direction="row"
             alignItems="center"
             spacing={2}
-            sx={{ color: lightTitle ? "gray.50" : "gray.90" }}
+            sx={{ color: lightTitle ? "gray.50" : "gray.90", marginTop: 2 }}
           >
             <FontAwesomeIcon icon={faAsterisk} sx={{ fontSize: 40 }} />
             <Typography variant="h1" fontWeight="bold">

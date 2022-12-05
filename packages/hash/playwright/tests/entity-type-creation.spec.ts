@@ -23,7 +23,7 @@ test.skip("user can create and update entity", async ({ page }) => {
   // Go to Create Entity Type
   await page.locator('[data-testid="create-entity-type-btn"]').click();
   await page.waitForURL(
-    (url) => !!url.pathname.match(/^\/@alice\/types\/entity-type\/new/),
+    (url) => !!url.pathname.match(/^\/types\/new\/entity-type/),
   );
 
   // Create a random entity name for each test
