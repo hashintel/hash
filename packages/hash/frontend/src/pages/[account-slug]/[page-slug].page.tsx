@@ -266,7 +266,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
   return (
     <>
       <Head>
-        <title>{pageTitle}</title>
+        <title>{pageTitle} | Page | HASH</title>
 
         {/* 
           Rendering favicon.png again even if it's already defined on _document.page.tsx,

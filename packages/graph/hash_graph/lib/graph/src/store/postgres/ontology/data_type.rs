@@ -34,18 +34,22 @@ impl<C: AsClient> PostgresStore<C> {
             .insert(data_type_id, current_resolve_depth);
         let data_type: Option<&OntologyVertex> = match dependency_status {
             DependencyStatus::Unknown => {
-                let data_type = Read::<DataTypeWithMetadata>::read_one(
-                    self,
-                    &Filter::<DataType>::for_ontology_type_edition_id(data_type_id),
-                )
-                .await?;
-                Some(
-                    subgraph
-                        .vertices
-                        .ontology
-                        .entry(data_type_id.clone())
-                        .or_insert(OntologyVertex::DataType(Box::new(data_type))),
-                )
+                if let Some(data_type) = subgraph.vertices.ontology.get(data_type_id) {
+                    Some(data_type)
+                } else {
+                    let data_type = Read::<DataTypeWithMetadata>::read_one(
+                        self,
+                        &Filter::<DataType>::for_ontology_type_edition_id(data_type_id),
+                    )
+                    .await?;
+                    Some(
+                        subgraph
+                            .vertices
+                            .ontology
+                            .entry(data_type_id.clone())
+                            .or_insert(OntologyVertex::DataType(Box::new(data_type))),
+                    )
+                }
             }
             DependencyStatus::DependenciesUnresolved => {
                 subgraph.vertices.ontology.get(data_type_id)
@@ -107,6 +111,12 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
 
         for data_type in Read::<DataTypeWithMetadata>::read(self, filter).await? {
             let data_type_id = data_type.metadata().edition_id().clone();
+
+            // Insert the vertex into the subgraph to avoid another lookup when traversing it
+            subgraph.vertices.ontology.insert(
+                data_type_id.clone(),
+                OntologyVertex::DataType(Box::new(data_type)),
+            );
 
             self.traverse_data_type(
                 &data_type_id,

@@ -87,7 +87,6 @@ export const MarksTooltip: FunctionComponent<MarksTooltipProps> = ({
           <button
             style={{
               alignItems: "center",
-              backgroundColor: "transparent",
               borderColor: "#D1D5DB",
               borderWidth: "0",
               cursor: "pointer",

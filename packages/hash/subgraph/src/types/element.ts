@@ -48,7 +48,7 @@ export type PropertyObject = {
   [_: BaseUri]: PropertyValue;
 };
 
-export type LinkEntityMetadata = {
+export type LinkData = {
   leftOrder?: number;
   rightOrder?: number;
   leftEntityId: EntityId;
@@ -59,12 +59,12 @@ export type EntityMetadata = {
   archived: boolean;
   editionId: EntityEditionId;
   entityTypeId: VersionedUri;
-  linkMetadata?: LinkEntityMetadata;
   provenance: ProvenanceMetadataGraphApi;
 };
 
 export type Entity = {
   properties: PropertyObject;
+  linkData?: LinkData;
   metadata: EntityMetadata;
 };
 
