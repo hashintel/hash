@@ -122,9 +122,9 @@ export default class extends EntityModel {
    * @param params.ownedById - the id of the account who owns the new link entity
    * @param params.linkEntityTypeModel - the link entity type of the link entity
    * @param params.leftEntityModel - the left entity of the link
-   * @param params.leftToRightOrder (optional) - the left order of the link entity
+   * @param params.leftToRightOrder (optional) - the left to right order of the link entity
    * @param params.rightEntityModel - the right entity of the link
-   * @param params.rightToLeftOrder (optional) - the right order of the link entity
+   * @param params.rightToLeftOrder (optional) - the right to left order of the link entity
    * @param params.actorId - the id of the account that is creating the link
    */
   static async createLinkEntity(

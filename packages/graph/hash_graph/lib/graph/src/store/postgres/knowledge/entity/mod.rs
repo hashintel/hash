@@ -553,30 +553,32 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     .attach_printable("cannot update link order of an entity that is not a link")
             ),
             (Some(link_data), left, right) => {
-                let new_left_order = match (link_data.left_to_right_order(), left) {
+                let new_left_to_right_order = match (link_data.left_to_right_order(), left) {
                     (None, None) => None,
                     (Some(_), None) => bail!(Report::new(UpdateError).attach_printable(
-                        "left order was set on entity but new order was not provided"
+                        "left to right order was set on entity but new order was not provided"
                     )),
                     (None, Some(_)) => bail!(Report::new(UpdateError).attach_printable(
-                        "cannot set left order of a link that does not have a left order"
+                        "cannot set left to right order of a link that does not have a left to \
+                         right order"
                     )),
                     (Some(_), Some(new_left)) => Some(new_left),
                 };
                 let new_right_to_left_order = match (link_data.right_to_left_order(), right) {
                     (None, None) => None,
                     (Some(_), None) => bail!(Report::new(UpdateError).attach_printable(
-                        "right order was set on entity but new order was not provided"
+                        "right to left order was set on entity but new order was not provided"
                     )),
                     (None, Some(_)) => bail!(Report::new(UpdateError).attach_printable(
-                        "cannot set right order of a link that does not have a right order"
+                        "cannot set right to left order of a link that does not have a right to \
+                         left order"
                     )),
                     (Some(_), Some(new_right)) => Some(new_right),
                 };
                 Some(LinkData::new(
                     link_data.left_entity_id(),
                     link_data.right_entity_id(),
-                    new_left_order,
+                    new_left_to_right_order,
                     new_right_to_left_order,
                 ))
             }

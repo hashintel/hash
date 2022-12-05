@@ -288,7 +288,7 @@ export const updateEntity: ResolverFn<
   } else {
     if (leftToRightOrder || rightToLeftOrder) {
       throw new UserInputError(
-        `Cannot update the left order or right order of entity with ID ${entityModel.getBaseId()} because it isn't a link.`,
+        `Cannot update the left to right order or right to left order of entity with ID ${entityModel.getBaseId()} because it isn't a link.`,
       );
     }
 
