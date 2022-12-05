@@ -8,7 +8,6 @@ import {
   SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
 import Head from "next/head";
-import slugify from "slugify";
 import { useBlockProtocolGetEntity } from "../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolGetEntity";
 import { useLoggedInUser } from "../../../components/hooks/useAuthenticatedUser";
 import {
