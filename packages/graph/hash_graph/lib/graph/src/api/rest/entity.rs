@@ -291,7 +291,7 @@ async fn get_entities_by_query<P: StorePool + Send>(
 async fn get_latest_entities<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<Entity>>, StatusCode> {
-    read_from_store(pool.as_ref(), &Filter::<Entity>::for_all_latest_entities())
+    read_from_store(pool.as_ref(), &Filter::for_all_latest_entities())
         .await
         .map(Json)
 }
@@ -317,7 +317,7 @@ async fn get_entity<P: StorePool + Send>(
 ) -> Result<Json<Entity>, StatusCode> {
     read_from_store(
         pool.as_ref(),
-        &Filter::<Entity>::for_latest_entity_by_entity_id(entity_id),
+        &Filter::for_latest_entity_by_entity_id(entity_id),
     )
     .await
     .and_then(|mut entities| entities.pop().ok_or(StatusCode::NOT_FOUND))

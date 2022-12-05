@@ -61,9 +61,7 @@ impl<C: AsClient> PostgresStore<C> {
                         RawEntryMut::Vacant(entry) => {
                             let property_type = Read::<PropertyTypeWithMetadata>::read_one(
                                 self,
-                                &Filter::<PropertyType>::for_ontology_type_edition_id(
-                                    property_type_id,
-                                ),
+                                &Filter::for_ontology_type_edition_id(property_type_id),
                             )
                             .await?;
                             Some(
@@ -217,7 +215,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
 
     async fn get_property_type<'f: 'q, 'q>(
         &self,
-        query: &'f StructuralQuery<'q, PropertyType>,
+        query: &'f StructuralQuery<'q, PropertyTypeWithMetadata>,
     ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
             ref filter,

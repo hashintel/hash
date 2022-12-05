@@ -196,15 +196,15 @@ impl EntityTypeWithMetadata {
 }
 
 pub trait PersistedOntologyType {
-    type Inner;
+    type OntologyType;
 
-    fn new(record: Self::Inner, metadata: OntologyElementMetadata) -> Self;
+    fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self;
 }
 
 impl PersistedOntologyType for DataTypeWithMetadata {
-    type Inner = DataType;
+    type OntologyType = DataType;
 
-    fn new(record: Self::Inner, metadata: OntologyElementMetadata) -> Self {
+    fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self {
         Self {
             inner: record,
             metadata,
@@ -213,9 +213,9 @@ impl PersistedOntologyType for DataTypeWithMetadata {
 }
 
 impl PersistedOntologyType for PropertyTypeWithMetadata {
-    type Inner = PropertyType;
+    type OntologyType = PropertyType;
 
-    fn new(record: Self::Inner, metadata: OntologyElementMetadata) -> Self {
+    fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self {
         Self {
             inner: record,
             metadata,
@@ -224,9 +224,9 @@ impl PersistedOntologyType for PropertyTypeWithMetadata {
 }
 
 impl PersistedOntologyType for EntityTypeWithMetadata {
-    type Inner = EntityType;
+    type OntologyType = EntityType;
 
-    fn new(record: Self::Inner, metadata: OntologyElementMetadata) -> Self {
+    fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self {
         Self {
             inner: record,
             metadata,

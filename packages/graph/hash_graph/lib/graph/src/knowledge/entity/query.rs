@@ -77,12 +77,12 @@ pub enum EntityQueryPath<'q> {
     /// # use std::borrow::Cow;
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use type_system::DataType;
-    /// # use graph::{store::query::{Filter, FilterExpression, Parameter}, ontology::DataTypeQueryPath};
+    /// # use graph::{store::query::{Filter, FilterExpression, Parameter}};
+    /// # use graph::knowledge::{Entity, EntityQueryPath};
     /// let filter_value = json!({ "equal": [{ "path": ["version"] }, { "parameter": "latest" }] });
-    /// let path = Filter::<DataType>::deserialize(filter_value)?;
+    /// let path = Filter::<Entity>::deserialize(filter_value)?;
     /// assert_eq!(path, Filter::Equal(
-    ///     Some(FilterExpression::Path(DataTypeQueryPath::Version)),
+    ///     Some(FilterExpression::Path(EntityQueryPath::Version)),
     ///     Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed("latest")))))
     /// );
     /// # Ok::<(), serde_json::Error>(())

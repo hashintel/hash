@@ -1,16 +1,14 @@
 use std::{borrow::Cow, iter::once};
 
-use type_system::PropertyType;
-
 use crate::{
-    ontology::PropertyTypeQueryPath,
+    ontology::{PropertyTypeQueryPath, PropertyTypeWithMetadata},
     store::postgres::query::{
         table::{Column, JsonField, PropertyTypes, Relation, TypeIds},
         Path, PostgresQueryRecord, Table,
     },
 };
 
-impl PostgresQueryRecord for PropertyType {
+impl PostgresQueryRecord for PropertyTypeWithMetadata {
     fn base_table() -> Table {
         Table::PropertyTypes
     }

@@ -24,23 +24,17 @@ use crate::{
 #[async_trait]
 impl<C: AsClient, T> Read<T> for PostgresStore<C>
 where
-    T: for<'q> PersistedOntologyType<
-            Inner: PostgresQueryRecord<Path<'q>: Debug + Send + Sync + OntologyPath>
-                       + OntologyDatabaseType
-                       + TryFrom<serde_json::Value, Error: Context>
-                       + Send
-                       + 'static,
-        > + Send,
+    T: PersistedOntologyType
+        + for<'q> PostgresQueryRecord<Path<'q>: Debug + Send + Sync + OntologyPath>
+        + Send
+        + 'static,
+    T::OntologyType: OntologyDatabaseType + TryFrom<serde_json::Value, Error: Context>,
 {
-    type Query<'q> = Filter<'q, T::Inner>;
-
-    async fn read<'f: 'q, 'q>(&self, filter: &'f Self::Query<'q>) -> Result<Vec<T>, QueryError> {
-        let versioned_uri_path =
-            <<T::Inner as QueryRecord>::Path<'q> as OntologyPath>::versioned_uri();
-        let schema_path = <<T::Inner as QueryRecord>::Path<'q> as OntologyPath>::schema();
-        let owned_by_id_path = <<T::Inner as QueryRecord>::Path<'q> as OntologyPath>::owned_by_id();
-        let updated_by_id_path =
-            <<T::Inner as QueryRecord>::Path<'q> as OntologyPath>::updated_by_id();
+    async fn read<'f: 'q, 'q>(&self, filter: &'f Filter<'q, T>) -> Result<Vec<T>, QueryError> {
+        let versioned_uri_path = <<T as QueryRecord>::Path<'q> as OntologyPath>::versioned_uri();
+        let schema_path = <<T as QueryRecord>::Path<'q> as OntologyPath>::schema();
+        let owned_by_id_path = <<T as QueryRecord>::Path<'q> as OntologyPath>::owned_by_id();
+        let updated_by_id_path = <<T as QueryRecord>::Path<'q> as OntologyPath>::updated_by_id();
 
         let mut compiler = SelectCompiler::new();
 
@@ -66,9 +60,10 @@ where
                 let versioned_uri = VersionedUri::from_str(row.get(versioned_uri_index))
                     .into_report()
                     .change_context(QueryError)?;
-                let record = <T::Inner>::try_from(row.get::<_, serde_json::Value>(schema_index))
-                    .into_report()
-                    .change_context(QueryError)?;
+                let record =
+                    <T::OntologyType>::try_from(row.get::<_, serde_json::Value>(schema_index))
+                        .into_report()
+                        .change_context(QueryError)?;
                 let owned_by_id = OwnedById::new(row.get(owned_by_id_index));
                 let updated_by_id = UpdatedById::new(row.get(updated_by_id_path_index));
 

@@ -553,12 +553,12 @@ impl fmt::Display for Parameter<'_> {
 #[cfg(test)]
 mod tests {
     use serde_json::json;
-    use type_system::{uri::BaseUri, DataType};
+    use type_system::uri::BaseUri;
 
     use super::*;
     use crate::{
         identifier::{account::AccountId, knowledge::EntityVersion, ontology::OntologyTypeVersion},
-        ontology::DataTypeQueryPath,
+        ontology::{DataTypeQueryPath, DataTypeWithMetadata},
         provenance::OwnedById,
     };
 
@@ -581,7 +581,10 @@ mod tests {
           ]
         }};
 
-        test_filter_representation(&Filter::<DataType>::for_latest_version(), &expected);
+        test_filter_representation(
+            &Filter::<DataTypeWithMetadata>::for_latest_version(),
+            &expected,
+        );
     }
 
     #[test]
@@ -607,7 +610,10 @@ mod tests {
           ]
         }};
 
-        test_filter_representation(&Filter::<DataType>::for_versioned_uri(&uri), &expected);
+        test_filter_representation(
+            &Filter::<DataTypeWithMetadata>::for_versioned_uri(&uri),
+            &expected,
+        );
     }
 
     #[test]
@@ -634,7 +640,7 @@ mod tests {
         }};
 
         test_filter_representation(
-            &Filter::<DataType>::for_ontology_type_edition_id(&uri),
+            &Filter::<DataTypeWithMetadata>::for_ontology_type_edition_id(&uri),
             &expected,
         );
     }
@@ -870,7 +876,7 @@ mod tests {
 
         test_filter_representation(
             &Filter::NotEqual(
-                Some(FilterExpression::<DataType>::Path(
+                Some(FilterExpression::<DataTypeWithMetadata>::Path(
                     DataTypeQueryPath::Description,
                 )),
                 None,

@@ -61,7 +61,7 @@ impl<C: AsClient> PostgresStore<C> {
                         RawEntryMut::Vacant(entry) => {
                             let entity_type = Read::<EntityTypeWithMetadata>::read_one(
                                 self,
-                                &Filter::<EntityType>::for_ontology_type_edition_id(entity_type_id),
+                                &Filter::for_ontology_type_edition_id(entity_type_id),
                             )
                             .await?;
                             Some(
@@ -313,7 +313,7 @@ impl<C: AsClient> EntityTypeStore for PostgresStore<C> {
 
     async fn get_entity_type<'f: 'q, 'q>(
         &self,
-        query: &'f StructuralQuery<'q, EntityType>,
+        query: &'f StructuralQuery<'q, EntityTypeWithMetadata>,
     ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
             ref filter,

@@ -1,11 +1,11 @@
 use std::fmt::{Debug, Formatter};
 
 use serde::Deserialize;
-use type_system::{DataType, EntityType, PropertyType};
 use utoipa::ToSchema;
 
 use crate::{
     knowledge::Entity,
+    ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
     store::query::{Filter, QueryRecord},
     subgraph::edges::GraphResolveDepths,
 };
@@ -153,9 +153,9 @@ use crate::{
 #[derive(Deserialize, ToSchema)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 #[aliases(
-    DataTypeStructuralQuery = StructuralQuery<'static, DataType>,
-    PropertyTypeStructuralQuery = StructuralQuery<'static, PropertyType>,
-    EntityTypeStructuralQuery = StructuralQuery<'static, EntityType>,
+    DataTypeStructuralQuery = StructuralQuery<'static, DataTypeWithMetadata>,
+    PropertyTypeStructuralQuery = StructuralQuery<'static, PropertyTypeWithMetadata>,
+    EntityTypeStructuralQuery = StructuralQuery<'static, EntityTypeWithMetadata>,
     EntityStructuralQuery = StructuralQuery<'static, Entity>,
 )]
 pub struct StructuralQuery<'q, T: QueryRecord> {

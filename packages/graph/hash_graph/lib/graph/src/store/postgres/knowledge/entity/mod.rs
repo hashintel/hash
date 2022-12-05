@@ -61,7 +61,7 @@ impl<C: AsClient> PostgresStore<C> {
                         Entry::Vacant(entry) => {
                             let entity = Read::<Entity>::read_one(
                                 self,
-                                &Filter::<Entity>::for_entity_by_edition_id(entity_edition_id),
+                                &Filter::for_entity_by_edition_id(entity_edition_id),
                             )
                             .await?;
                             Some(entry.insert(KnowledgeGraphVertex::Entity(entity)))

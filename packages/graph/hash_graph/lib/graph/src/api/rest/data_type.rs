@@ -215,7 +215,7 @@ async fn get_data_types_by_query<P: StorePool + Send>(
 async fn get_latest_data_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<DataTypeWithMetadata>>, StatusCode> {
-    read_from_store(pool.as_ref(), &Filter::<DataType>::for_latest_version())
+    read_from_store(pool.as_ref(), &Filter::for_latest_version())
         .await
         .map(Json)
 }
@@ -239,13 +239,10 @@ async fn get_data_type<P: StorePool + Send>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<DataTypeWithMetadata>, StatusCode> {
-    read_from_store(
-        pool.as_ref(),
-        &Filter::<DataType>::for_versioned_uri(&uri.0),
-    )
-    .await
-    .and_then(|mut data_types| data_types.pop().ok_or(StatusCode::NOT_FOUND))
-    .map(Json)
+    read_from_store(pool.as_ref(), &Filter::for_versioned_uri(&uri.0))
+        .await
+        .and_then(|mut data_types| data_types.pop().ok_or(StatusCode::NOT_FOUND))
+        .map(Json)
 }
 
 #[derive(ToSchema, Serialize, Deserialize)]
