@@ -563,7 +563,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     )),
                     (Some(_), Some(new_left)) => Some(new_left),
                 };
-                let new_right_order = match (link_data.right_order(), right) {
+                let new_right_to_left_order = match (link_data.right_to_left_order(), right) {
                     (None, None) => None,
                     (Some(_), None) => bail!(Report::new(UpdateError).attach_printable(
                         "right order was set on entity but new order was not provided"
@@ -577,7 +577,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     link_data.left_entity_id(),
                     link_data.right_entity_id(),
                     new_left_order,
-                    new_right_order,
+                    new_right_to_left_order,
                 ))
             }
         };

@@ -69,7 +69,8 @@ export const createEntity: ResolverFn<
   let entityModel: EntityModel | LinkEntityModel;
 
   if (linkData) {
-    const { leftEntityId, leftOrder, rightEntityId, rightOrder } = linkData;
+    const { leftEntityId, leftOrder, rightEntityId, rightToLeftOrder } =
+      linkData;
 
     const [leftEntityModel, rightEntityModel, linkEntityTypeModel] =
       await Promise.all([
@@ -86,7 +87,7 @@ export const createEntity: ResolverFn<
       leftEntityModel,
       leftOrder: leftOrder ?? undefined,
       rightEntityModel,
-      rightOrder: rightOrder ?? undefined,
+      rightToLeftOrder: rightToLeftOrder ?? undefined,
       properties,
       linkEntityTypeModel,
       ownedById: ownedById ?? userModel.getEntityUuid(),
@@ -247,7 +248,7 @@ export const updateEntity: ResolverFn<
   MutationUpdateEntityArgs
 > = async (
   _,
-  { entityId, updatedProperties, leftOrder, rightOrder },
+  { entityId, updatedProperties, leftOrder, rightToLeftOrder },
   { dataSources: { graphApi }, userModel },
 ) => {
   // The user needs to be signed up if they aren't updating their own user entity
@@ -282,10 +283,10 @@ export const updateEntity: ResolverFn<
       properties: updatedProperties,
       actorId: userModel.getEntityUuid(),
       leftOrder: leftOrder ?? undefined,
-      rightOrder: rightOrder ?? undefined,
+      rightToLeftOrder: rightToLeftOrder ?? undefined,
     });
   } else {
-    if (leftOrder || rightOrder) {
+    if (leftOrder || rightToLeftOrder) {
       throw new UserInputError(
         `Cannot update the left order or right order of entity with ID ${entityModel.getBaseId()} because it isn't a link.`,
       );

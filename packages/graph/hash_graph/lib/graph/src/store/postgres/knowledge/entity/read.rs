@@ -64,7 +64,8 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
         let right_entity_owned_by_id_index =
             compiler.add_selection_path(&right_owned_by_id_query_path);
         let left_order_index = compiler.add_selection_path(&EntityQueryPath::LeftOrder);
-        let right_order_index = compiler.add_selection_path(&EntityQueryPath::RightOrder);
+        let right_to_left_order_index =
+            compiler.add_selection_path(&EntityQueryPath::RightToLeftOrder);
 
         let updated_by_id_index = compiler.add_selection_path(&EntityQueryPath::UpdatedById);
 
@@ -116,7 +117,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                                 EntityUuid::new(right_entity_uuid),
                             ),
                             row.get(left_order_index),
-                            row.get(right_order_index),
+                            row.get(right_to_left_order_index),
                         )),
                         (None, None, None, None) => None,
                         _ => unreachable!(

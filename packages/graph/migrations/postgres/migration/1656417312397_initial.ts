@@ -330,7 +330,7 @@ export const up = (pgm: MigrationBuilder): void => {
         type: "integer",
         notNull: false,
       },
-      right_order: {
+      right_to_left_order: {
         // TODO: this is where we could do fractional indexing
         //  https://app.asana.com/0/1200211978612931/1202085856561975/f
         type: "integer",
@@ -368,7 +368,7 @@ export const up = (pgm: MigrationBuilder): void => {
     {
       // Because of the "entities_relation_constraint", we can check any one of the required link columns
       check: `(left_entity_uuid IS NOT NULL)
-            OR (left_order IS NULL AND right_order IS NULL)`,
+            OR (left_order IS NULL AND right_to_left_order IS NULL)`,
     },
   );
 
@@ -425,7 +425,7 @@ export const up = (pgm: MigrationBuilder): void => {
         type: "integer",
         notNull: false,
       },
-      right_order: {
+      right_to_left_order: {
         // TODO: this is where we could do fractional indexing
         //  https://app.asana.com/0/1200211978612931/1202085856561975/f
         type: "integer",
@@ -472,7 +472,7 @@ export const up = (pgm: MigrationBuilder): void => {
     {
       // Because of the "entities_histories_relation_constraint", we can check any one of the required link columns
       check: `(left_entity_uuid IS NOT NULL)
-            OR (left_order IS NULL AND right_order IS NULL)`,
+            OR (left_order IS NULL AND right_to_left_order IS NULL)`,
     },
   );
 
@@ -493,15 +493,15 @@ export const up = (pgm: MigrationBuilder): void => {
         "right_owned_by_id",
         "right_entity_uuid",
         "left_order",
-        "right_order",
+        "right_to_left_order",
         "archived",
         "updated_by_id",
       ],
     },
     `
-    SELECT owned_by_id, entity_uuid, version, TRUE as latest_version, entity_type_version_id, properties, left_owned_by_id, left_entity_uuid, right_owned_by_id, right_entity_uuid, left_order, right_order, FALSE AS archived, updated_by_id FROM latest_entities
+    SELECT owned_by_id, entity_uuid, version, TRUE as latest_version, entity_type_version_id, properties, left_owned_by_id, left_entity_uuid, right_owned_by_id, right_entity_uuid, left_order, right_to_left_order, FALSE AS archived, updated_by_id FROM latest_entities
     UNION ALL
-    SELECT owned_by_id, entity_uuid, version, FALSE as latest_version, entity_type_version_id, properties, left_owned_by_id, left_entity_uuid, right_owned_by_id, right_entity_uuid, left_order, right_order, archived, updated_by_id FROM entity_histories`,
+    SELECT owned_by_id, entity_uuid, version, FALSE as latest_version, entity_type_version_id, properties, left_owned_by_id, left_entity_uuid, right_owned_by_id, right_entity_uuid, left_order, right_to_left_order, archived, updated_by_id FROM entity_histories`,
   );
 };
 

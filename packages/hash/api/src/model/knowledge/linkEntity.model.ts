@@ -29,7 +29,7 @@ export type LinkModelCreateParams = {
   leftEntityModel: EntityModel;
   leftOrder?: number;
   rightEntityModel: EntityModel;
-  rightOrder?: number;
+  rightToLeftOrder?: number;
   actorId: string;
 };
 
@@ -124,7 +124,7 @@ export default class extends EntityModel {
    * @param params.leftEntityModel - the left entity of the link
    * @param params.leftOrder (optional) - the left order of the link entity
    * @param params.rightEntityModel - the right entity of the link
-   * @param params.rightOrder (optional) - the right order of the link entity
+   * @param params.rightToLeftOrder (optional) - the right order of the link entity
    * @param params.actorId - the id of the account that is creating the link
    */
   static async createLinkEntity(
@@ -138,7 +138,7 @@ export default class extends EntityModel {
       leftEntityModel,
       leftOrder,
       rightEntityModel,
-      rightOrder,
+      rightToLeftOrder,
       properties = {},
     } = params;
 
@@ -154,7 +154,7 @@ export default class extends EntityModel {
       leftEntityId: leftEntityModel.getBaseId(),
       leftOrder,
       rightEntityId: rightEntityModel.getBaseId(),
-      rightOrder,
+      rightToLeftOrder,
     };
     const { data: linkEntityMetadata } = await graphApi.createEntity({
       ownedById,
@@ -182,11 +182,11 @@ export default class extends EntityModel {
     params: {
       properties: PropertyObject;
       leftOrder?: number;
-      rightOrder?: number;
+      rightToLeftOrder?: number;
       actorId: string;
     },
   ): Promise<EntityModel> {
-    const { properties, actorId, leftOrder, rightOrder } = params;
+    const { properties, actorId, leftOrder, rightToLeftOrder } = params;
 
     const { data: metadata } = await graphApi.updateEntity({
       actorId,
@@ -194,7 +194,7 @@ export default class extends EntityModel {
       entityTypeId: this.entityTypeModel.getSchema().$id,
       properties,
       leftOrder,
-      rightOrder,
+      rightToLeftOrder,
     });
 
     return LinkEntityModel.fromEntity(graphApi, {
@@ -204,7 +204,7 @@ export default class extends EntityModel {
         leftEntityId: this.entity.linkData!.leftEntityId,
         leftOrder,
         rightEntityId: this.entity.linkData!.rightEntityId,
-        rightOrder,
+        rightToLeftOrder,
       },
     });
   }
@@ -231,7 +231,7 @@ export default class extends EntityModel {
       entityTypeId: this.entityTypeModel.getSchema().$id,
       properties,
       leftOrder: linkOrder.leftOrder,
-      rightOrder: linkOrder.rightOrder,
+      rightToLeftOrder: linkOrder.rightToLeftOrder,
     });
 
     return LinkEntityModel.fromEntity(graphApi, {
@@ -241,7 +241,7 @@ export default class extends EntityModel {
         leftEntityId: this.entity.linkData!.leftEntityId,
         leftOrder: linkOrder.leftOrder,
         rightEntityId: this.entity.linkData!.rightEntityId,
-        rightOrder: linkOrder.rightOrder,
+        rightToLeftOrder: linkOrder.rightToLeftOrder,
       },
     });
   }

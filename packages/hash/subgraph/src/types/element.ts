@@ -50,7 +50,7 @@ export type PropertyObject = {
 
 export type LinkData = {
   leftOrder?: number;
-  rightOrder?: number;
+  rightToLeftOrder?: number;
   leftEntityId: EntityId;
   rightEntityId: EntityId;
 };

@@ -136,7 +136,7 @@ pub enum Entities<'p> {
     EntityTypeVersionId,
     Properties(Option<JsonField<'p>>),
     LeftOrder,
-    RightOrder,
+    RightToLeftOrder,
     LeftEntityUuid,
     RightEntityUuid,
     LeftEntityOwnedById,
@@ -159,7 +159,7 @@ impl Entities<'_> {
             | Self::LeftEntityOwnedById
             | Self::RightEntityOwnedById
             | Self::LeftOrder
-            | Self::RightOrder => true,
+            | Self::RightToLeftOrder => true,
         }
     }
 }
@@ -189,7 +189,7 @@ impl Transpile for Entities<'_> {
                 };
             }
             Self::LeftOrder => "left_order",
-            Self::RightOrder => "right_order",
+            Self::RightToLeftOrder => "right_to_left_order",
             Self::LeftEntityUuid => "left_entity_uuid",
             Self::RightEntityUuid => "right_entity_uuid",
             Self::LeftEntityOwnedById => "left_owned_by_id",
