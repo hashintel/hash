@@ -24,11 +24,11 @@ use crate::{
 #[async_trait]
 impl<C: AsClient, T> Read<T> for PostgresStore<C>
 where
-    for<'q> T: PersistedOntologyType<
-            Inner: OntologyDatabaseType + TryFrom<serde_json::Value, Error: Context>,
-        > + PostgresQueryRecord<Path<'q>: Debug + Send + Sync + OntologyPath>
+    T: PersistedOntologyType
+        + for<'q> PostgresQueryRecord<Path<'q>: Debug + Send + Sync + OntologyPath>
         + Send
         + 'static,
+    T::Inner: OntologyDatabaseType + TryFrom<serde_json::Value, Error: Context>,
 {
     async fn read<'f: 'q, 'q>(&self, filter: &'f Filter<'q, T>) -> Result<Vec<T>, QueryError> {
         let versioned_uri_path = <<T as QueryRecord>::Path<'q> as OntologyPath>::versioned_uri();
