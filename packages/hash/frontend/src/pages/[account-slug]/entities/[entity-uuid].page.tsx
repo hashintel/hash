@@ -6,6 +6,7 @@ import {
   Subgraph,
   SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
+import Head from "next/head";
 import { useBlockProtocolGetEntity } from "../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolGetEntity";
 import { useLoggedInUser } from "../../../components/hooks/useAuthenticatedUser";
 import {
@@ -16,30 +17,30 @@ import { EntityEditor } from "./[entity-uuid].page/entity-editor";
 import { EntityPageLoadingState } from "./[entity-uuid].page/entity-page-loading-state";
 import { EntityPageWrapper } from "./[entity-uuid].page/entity-page-wrapper";
 import { PageErrorState } from "../../../components/page-error-state";
-/** @todo - This should be moved somewhere shared */
-import { useRouteNamespace } from "../types/entity-type/use-route-namespace";
 import { generateEntityLabel } from "../../../lib/entities";
+import { useRouteNamespace } from "../types/entity-type/use-route-namespace";
+import { useBlockProtocolGetEntityType } from "../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
-  const { namespace } = useRouteNamespace();
+  const entityUuid = router.query["entity-uuid"] as string;
+  const { routeNamespace } = useRouteNamespace();
   const { authenticatedUser } = useLoggedInUser();
   const { getEntity } = useBlockProtocolGetEntity();
+  const { getEntityType } = useBlockProtocolGetEntityType();
 
   const [entitySubgraph, setEntitySubgraph] =
     useState<Subgraph<SubgraphRootTypes["entity"]>>();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (namespace) {
+    if (routeNamespace) {
       const init = async () => {
         try {
-          const entityUuid = router.query["entity-uuid"] as string;
-
           const { data: subgraph } = await getEntity({
             data: {
               entityId: entityIdFromOwnedByIdAndEntityUuid(
-                namespace.accountId,
+                routeNamespace.accountId,
                 entityUuid,
               ),
             },
@@ -59,7 +60,24 @@ const Page: NextPageWithLayout = () => {
 
       void init();
     }
-  }, [namespace, router.query, getEntity]);
+  }, [entityUuid, getEntity, getEntityType, routeNamespace]);
+
+  const refetch = async () => {
+    if (!routeNamespace) {
+      return;
+    }
+
+    const { data: subgraph } = await getEntity({
+      data: {
+        entityId: entityIdFromOwnedByIdAndEntityUuid(
+          routeNamespace.accountId,
+          entityUuid,
+        ),
+      },
+    });
+
+    setEntitySubgraph(subgraph);
+  };
 
   if (!authenticatedUser) {
     return null;
@@ -76,47 +94,53 @@ const Page: NextPageWithLayout = () => {
   const entityLabel = generateEntityLabel(entitySubgraph);
 
   return (
-    <EntityPageWrapper label={entityLabel}>
-      <EntityEditor
-        entitySubgraph={entitySubgraph}
-        setEntity={(entity) =>
-          setEntitySubgraph((entityAndSubgraph) => {
-            if (entity) {
-              /**
-               * @todo - This is a problem, subgraphs should probably be immutable, there will be a new identifier
-               *   for the updated entity. This version will not match the one returned by the data store.
-               *   For places where we mutate elements, we should probably store them separately from the subgraph to
-               *   allow for optimistic updates without being incorrect.
-               */
-              const newEntity = JSON.parse(JSON.stringify(entity)) as Entity;
-              const newEntityVersion = new Date().toISOString();
-              newEntity.metadata.editionId.version = newEntityVersion;
+    <>
+      <Head>
+        <title>{entityLabel} | Entity | HASH</title>
+      </Head>
+      <EntityPageWrapper label={entityLabel}>
+        <EntityEditor
+          entitySubgraph={entitySubgraph}
+          setEntity={(entity) =>
+            setEntitySubgraph((entityAndSubgraph) => {
+              if (entity) {
+                /**
+                 * @todo - This is a problem, subgraphs should probably be immutable, there will be a new identifier
+                 *   for the updated entity. This version will not match the one returned by the data store.
+                 *   For places where we mutate elements, we should probably store them separately from the subgraph to
+                 *   allow for optimistic updates without being incorrect.
+                 */
+                const newEntity = JSON.parse(JSON.stringify(entity)) as Entity;
+                const newEntityVersion = new Date().toISOString();
+                newEntity.metadata.editionId.version = newEntityVersion;
 
-              return entityAndSubgraph
-                ? ({
-                    ...entityAndSubgraph,
-                    roots: [newEntity.metadata.editionId],
-                    vertices: {
-                      ...entityAndSubgraph.vertices,
-                      [newEntity.metadata.editionId.baseId]: {
-                        ...entityAndSubgraph.vertices[
-                          newEntity.metadata.editionId.baseId
-                        ],
-                        [newEntityVersion]: {
-                          kind: "entity",
-                          inner: newEntity,
+                return entityAndSubgraph
+                  ? ({
+                      ...entityAndSubgraph,
+                      roots: [newEntity.metadata.editionId],
+                      vertices: {
+                        ...entityAndSubgraph.vertices,
+                        [newEntity.metadata.editionId.baseId]: {
+                          ...entityAndSubgraph.vertices[
+                            newEntity.metadata.editionId.baseId
+                          ],
+                          [newEntityVersion]: {
+                            kind: "entity",
+                            inner: newEntity,
+                          },
                         },
                       },
-                    },
-                  } as Subgraph<SubgraphRootTypes["entity"]>)
-                : undefined;
-            } else {
-              return undefined;
-            }
-          })
-        }
-      />
-    </EntityPageWrapper>
+                    } as Subgraph<SubgraphRootTypes["entity"]>)
+                  : undefined;
+              } else {
+                return undefined;
+              }
+            })
+          }
+          refetch={refetch}
+        />
+      </EntityPageWrapper>
+    </>
   );
 };
 

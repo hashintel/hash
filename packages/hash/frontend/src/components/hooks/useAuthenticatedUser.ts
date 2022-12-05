@@ -1,21 +1,14 @@
 import { ApolloQueryResult, QueryHookOptions, useQuery } from "@apollo/client";
-import * as Sentry from "@sentry/nextjs";
-import { useRouter } from "next/router";
-import {
-  useContext,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
 
 import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
-import { meQuery } from "../../graphql/queries/user.queries";
+import * as Sentry from "@sentry/nextjs";
+import { useRouter } from "next/router";
+import { useContext, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { MeQuery, MeQueryVariables } from "../../graphql/apiTypes.gen";
-import { oryKratosClient } from "../../pages/shared/ory-kratos";
-import { AuthenticatedUser, constructAuthenticatedUser } from "../../lib/user";
+import { meQuery } from "../../graphql/queries/user.queries";
 import { useInitTypeSystem } from "../../lib/use-init-type-system";
+import { AuthenticatedUser, constructAuthenticatedUser } from "../../lib/user";
+import { oryKratosClient } from "../../pages/shared/ory-kratos";
 import { SessionContext } from "../../pages/shared/session-context";
 
 /**
@@ -30,12 +23,7 @@ import { SessionContext } from "../../pages/shared/session-context";
 export const useAuthenticatedUser = (
   options?: Omit<QueryHookOptions<MeQuery, MeQueryVariables>, "errorPolicy">,
   forceLogin = false,
-  onAuthenticate?: (
-    authenticatedUser: AuthenticatedUser,
-  ) => Promise<void> | void,
 ) => {
-  const [prevAuthenticatedUser, setPrevAuthenticatedUser] =
-    useState<AuthenticatedUser>();
   const loadingTypeSystem = useInitTypeSystem();
   const router = useRouter();
 
@@ -97,7 +85,11 @@ export const useAuthenticatedUser = (
     });
   }, [authenticatedUser]);
 
-  const fetchKratosIdentity = async (login: boolean) => {
+  const fetchKratosIdentity = async (login: boolean, refetch = false) => {
+    if (!refetch && kratosSession) {
+      return;
+    }
+
     setLoadingKratosSession(true);
 
     const session = await oryKratosClient
@@ -105,11 +97,12 @@ export const useAuthenticatedUser = (
       .then(({ data }) => data)
       .catch(() => undefined);
 
+    setLoadingKratosSession(false);
+
     if (!session && login) {
       await router.push("/login");
     } else {
       setKratosSession(session);
-      setLoadingKratosSession(false);
       return session;
     }
   };
@@ -132,11 +125,6 @@ export const useAuthenticatedUser = (
   //   client.writeQuery();
   // };
 
-  if (!prevAuthenticatedUser && authenticatedUser) {
-    setPrevAuthenticatedUser(authenticatedUser);
-    void onAuthenticate?.(authenticatedUser);
-  }
-
   return {
     authenticatedUser,
     kratosSession,
@@ -149,7 +137,7 @@ export const useAuthenticatedUser = (
             ApolloQueryResult<{ me: Subgraph<SubgraphRootTypes["entity"]> }>
           >
         )(),
-        fetchKratosIdentity(forceLogin),
+        fetchKratosIdentity(forceLogin, true),
       ]),
     loading: loadingUser || loadingKratosSession,
   };

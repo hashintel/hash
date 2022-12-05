@@ -154,11 +154,12 @@ export default class extends EntityModel {
     const { actorId } = params;
 
     const parentModel = await this.getParent(graphApi);
+    const authorModel = await this.getAuthor(graphApi);
 
     // Throw error if the user trying to resolve the comment is not the comment's author
     // or the author of the block the comment is attached to
     if (
-      actorId !== this.getOwnedById() &&
+      actorId !== authorModel.getEntityUuid() &&
       parentModel.entityTypeModel.getSchema().$id ===
         SYSTEM_TYPES.entityType.block.getSchema().$id &&
       actorId !== parentModel.getOwnedById()

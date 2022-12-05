@@ -29,13 +29,14 @@ export const usePropertyTypesContextValue = () => {
     }
     await aggregatePropertyTypes({ data: {} }).then(({ data: subgraph }) => {
       if (subgraph) {
-        setPropertyTypes(
-          Object.fromEntries(
+        setPropertyTypes((existingPropertyTypes) => ({
+          ...existingPropertyTypes,
+          ...Object.fromEntries(
             getRoots(subgraph).map((propertyType) => {
               return [propertyType.schema.$id, propertyType.schema];
             }),
           ),
-        );
+        }));
       }
     });
   }, [aggregatePropertyTypes, typeSystemLoading]);

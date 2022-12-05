@@ -156,7 +156,7 @@ export default class extends EntityModel {
           pageEntityModel.getOwnedById() ===
           params.accountModel.getEntityUuid(),
       )
-      .map(PageModel.fromEntityModel);
+      .map((entityModel) => PageModel.fromEntityModel(entityModel));
 
     return await Promise.all(
       pageModels.map(async (pageModel) => {

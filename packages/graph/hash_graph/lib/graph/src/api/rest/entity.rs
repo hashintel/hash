@@ -155,8 +155,8 @@ struct CreateEntityRequest {
     ),
 )]
 async fn create_entity<P: StorePool + Send>(
-    body: Json<CreateEntityRequest>,
     pool: Extension<Arc<P>>,
+    body: Json<CreateEntityRequest>,
 ) -> Result<Json<EntityMetadata>, StatusCode> {
     let Json(CreateEntityRequest {
         properties,
@@ -212,8 +212,8 @@ struct ArchiveEntityRequest {
     ),
 )]
 async fn archive_entity<P: StorePool + Send>(
-    body: Json<ArchiveEntityRequest>,
     pool: Extension<Arc<P>>,
+    body: Json<ArchiveEntityRequest>,
 ) -> Result<(), StatusCode> {
     let Json(ArchiveEntityRequest {
         entity_id,
@@ -350,8 +350,8 @@ struct UpdateEntityRequest {
     request_body = UpdateEntityRequest,
 )]
 async fn update_entity<P: StorePool + Send>(
-    body: Json<UpdateEntityRequest>,
     pool: Extension<Arc<P>>,
+    body: Json<UpdateEntityRequest>,
 ) -> Result<Json<EntityMetadata>, StatusCode> {
     let Json(UpdateEntityRequest {
         properties,

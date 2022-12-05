@@ -223,6 +223,8 @@ export const EditBar = ({
 
   const collapseIn = currentVersion === 0 || isDirty;
 
+  const frozenDiscardButtonProps = useFrozenValue(discardButtonProps);
+
   return (
     <Collapse in={collapseIn} ref={ref}>
       <Box
@@ -241,7 +243,7 @@ export const EditBar = ({
             label="- this type has not yet been created"
             discardButtonProps={{
               children: "Discard this type",
-              ...discardButtonProps,
+              ...frozenDiscardButtonProps,
             }}
             confirmButtonProps={{
               children: "Create",
@@ -254,7 +256,7 @@ export const EditBar = ({
             label={`Version ${frozenVersion} -> ${frozenVersion + 1}`}
             discardButtonProps={{
               children: "Discard changes",
-              ...discardButtonProps,
+              ...frozenDiscardButtonProps,
             }}
             confirmButtonProps={{
               children: "Publish update",

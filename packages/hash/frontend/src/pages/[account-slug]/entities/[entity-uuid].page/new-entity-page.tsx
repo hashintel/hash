@@ -3,6 +3,7 @@ import { Button, Chip, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { Box, Divider, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useState } from "react";
+import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
 import { useSnackbar } from "../../../../components/hooks/useSnackbar";
 import { SectionWrapper } from "../../shared/section-wrapper";
 import { WhiteCard } from "../../shared/white-card";
@@ -20,6 +21,7 @@ export const NewEntityPage = () => {
   const [isSelectingType, setIsSelectingType] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const { authenticatedUser } = useAuthenticatedUser();
   const createNewEntityAndRedirect = useCreateNewEntityAndRedirect();
 
   return (
@@ -72,10 +74,17 @@ export const NewEntityPage = () => {
                   onCancel={() => setIsSelectingType(false)}
                   onSelect={async (entityType) => {
                     try {
+                      if (!authenticatedUser) {
+                        throw new Error("user not found");
+                      }
+
                       setIsSelectingType(false);
                       setLoading(true);
 
-                      await createNewEntityAndRedirect(entityType.$id);
+                      await createNewEntityAndRedirect(
+                        authenticatedUser,
+                        entityType.$id,
+                      );
                     } catch (error: any) {
                       snackbar.error(error.message);
                     } finally {
@@ -83,7 +92,7 @@ export const NewEntityPage = () => {
                     }
                   }}
                   onCreateNew={(searchValue) => {
-                    let href = `/${router.query["account-slug"]}/types/new/entity-type`;
+                    let href = `/${router.query["account-slug"]}/new/types/entity-type`;
                     if (searchValue) {
                       href += `?name=${encodeURIComponent(searchValue)}`;
                     }
@@ -97,6 +106,7 @@ export const NewEntityPage = () => {
                     loading={loading}
                     onClick={() => setIsSelectingType(true)}
                     startIcon={!loading && <FontAwesomeIcon icon={faPlus} />}
+                    sx={{ fontSize: 14, paddingX: 2 }}
                   >
                     Add a type
                   </Button>

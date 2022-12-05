@@ -122,9 +122,9 @@ struct CreatePropertyTypeRequest {
     request_body = CreatePropertyTypeRequest,
 )]
 async fn create_property_type<P: StorePool + Send>(
-    body: Json<CreatePropertyTypeRequest>,
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
+    body: Json<CreatePropertyTypeRequest>,
 ) -> Result<Json<OntologyElementMetadata>, StatusCode> {
     let Json(CreatePropertyTypeRequest {
         schema,
@@ -279,8 +279,8 @@ struct UpdatePropertyTypeRequest {
     request_body = UpdatePropertyTypeRequest,
 )]
 async fn update_property_type<P: StorePool + Send>(
-    body: Json<UpdatePropertyTypeRequest>,
     pool: Extension<Arc<P>>,
+    body: Json<UpdatePropertyTypeRequest>,
 ) -> Result<Json<OntologyElementMetadata>, StatusCode> {
     let Json(UpdatePropertyTypeRequest {
         schema,
