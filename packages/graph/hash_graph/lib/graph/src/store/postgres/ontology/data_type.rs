@@ -39,7 +39,7 @@ impl<C: AsClient> PostgresStore<C> {
                 } else {
                     let data_type = Read::<DataTypeWithMetadata>::read_one(
                         self,
-                        &Filter::<DataTypeWithMetadata>::for_ontology_type_edition_id(data_type_id),
+                        &Filter::for_ontology_type_edition_id(data_type_id),
                     )
                     .await?;
                     Some(

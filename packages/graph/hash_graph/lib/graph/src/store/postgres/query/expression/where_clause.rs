@@ -58,7 +58,7 @@ mod tests {
         let mut where_clause = WhereExpression::default();
         assert_eq!(where_clause.transpile_to_string(), "");
 
-        let filter_a = Filter::<DataTypeWithMetadata>::Equal(
+        let filter_a = Filter::Equal(
             Some(FilterExpression::Path(DataTypeQueryPath::Version)),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                 "latest",
@@ -71,7 +71,7 @@ mod tests {
             r#"WHERE "type_ids_0_1_0"."version" = "type_ids_0_1_0"."latest_version""#
         );
 
-        let filter_b = Filter::<DataTypeWithMetadata>::All(vec![
+        let filter_b = Filter::All(vec![
             Filter::Equal(
                 Some(FilterExpression::Path(DataTypeQueryPath::BaseUri)),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
@@ -94,7 +94,7 @@ mod tests {
             )
         );
 
-        let filter_c = Filter::<DataTypeWithMetadata>::NotEqual(
+        let filter_c = Filter::NotEqual(
             Some(FilterExpression::Path(DataTypeQueryPath::Description)),
             None,
         );
@@ -110,7 +110,7 @@ mod tests {
             )
         );
 
-        let filter_d = Filter::<DataTypeWithMetadata>::Any(vec![
+        let filter_d = Filter::Any(vec![
             Filter::Equal(
                 Some(FilterExpression::Path(DataTypeQueryPath::Title)),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
