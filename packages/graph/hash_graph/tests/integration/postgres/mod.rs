@@ -411,9 +411,8 @@ impl DatabaseApi<'_> {
             .collect::<Vec<_>>();
 
         match roots.len() {
-            0 => panic!("no entity found"),
             1 => Ok(roots.into_iter().next().unwrap()),
-            _ => panic!("more than one entity was found"),
+            len => panic!("unexpected number of entities found, expected 1 but received {len}"),
         }
     }
 
