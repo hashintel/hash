@@ -317,7 +317,7 @@ async fn get_entity<P: StorePool + Send>(
 ) -> Result<Json<Entity>, StatusCode> {
     read_from_store(
         pool.as_ref(),
-        &Filter::<Entity>::for_latest_entity_by_entity_id(entity_id),
+        &Filter::for_latest_entity_by_entity_id(entity_id),
     )
     .await
     .and_then(|mut entities| entities.pop().ok_or(StatusCode::NOT_FOUND))

@@ -12,7 +12,7 @@ mod entity_type;
 mod property_type;
 mod utoipa_typedef;
 
-use std::sync::Arc;
+use std::{fmt::Debug, sync::Arc};
 
 use axum::{
     extract::Path,
@@ -38,7 +38,11 @@ use self::api_resource::RoutedResource;
 use crate::{
     api::rest::middleware::log_request_and_response,
     ontology::{domain_validator::DomainValidator, Selector},
-    store::{crud::Read, QueryError, StorePool},
+    store::{
+        crud::Read,
+        query::{Filter, QueryRecord},
+        QueryError, StorePool,
+    },
 };
 
 static STATIC_SCHEMAS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/src/api/rest/json_schemas");
@@ -75,11 +79,11 @@ fn report_to_status_code<C>(report: &Report<C>) -> StatusCode {
 
 async fn read_from_store<'pool, 'q, P, T>(
     pool: &'pool P,
-    query: &'q <P::Store<'pool> as Read<T>>::Query<'q>,
+    query: &'q Filter<'q, T>,
 ) -> Result<Vec<T>, StatusCode>
 where
     P: StorePool<Store<'pool>: Read<T>>,
-    T: Send,
+    T: QueryRecord<Path<'q>: Sync + Debug> + Send,
 {
     pool.acquire()
         .map_err(|report| {

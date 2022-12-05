@@ -78,12 +78,14 @@ mod tests {
     use std::borrow::Cow;
 
     use postgres_types::ToSql;
-    use type_system::{DataType, EntityType, PropertyType};
     use uuid::Uuid;
 
     use crate::{
         knowledge::{Entity, EntityQueryPath},
-        ontology::{DataTypeQueryPath, EntityTypeQueryPath, PropertyTypeQueryPath},
+        ontology::{
+            DataTypeQueryPath, DataTypeWithMetadata, EntityTypeQueryPath, EntityTypeWithMetadata,
+            PropertyTypeQueryPath, PropertyTypeWithMetadata,
+        },
         store::{
             postgres::query::{
                 test_helper::trim_whitespace, Distinctness, Ordering, PostgresQueryRecord,
@@ -120,7 +122,7 @@ mod tests {
     #[test]
     fn asterisk() {
         test_compilation(
-            &SelectCompiler::<DataType>::with_asterisk(),
+            &SelectCompiler::<DataTypeWithMetadata>::with_asterisk(),
             r#"SELECT * FROM "data_types" AS "data_types_0_0_0""#,
             &[],
         );
@@ -128,7 +130,7 @@ mod tests {
 
     #[test]
     fn simple_expression() {
-        let mut compiler = SelectCompiler::<DataType>::with_asterisk();
+        let mut compiler = SelectCompiler::<DataTypeWithMetadata>::with_asterisk();
         compiler.add_filter(&Filter::Equal(
             Some(FilterExpression::Path(DataTypeQueryPath::VersionedUri)),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
@@ -148,7 +150,7 @@ mod tests {
 
     #[test]
     fn specific_version() {
-        let mut compiler = SelectCompiler::<DataType>::with_asterisk();
+        let mut compiler = SelectCompiler::<DataTypeWithMetadata>::with_asterisk();
 
         let filter = Filter::All(vec![
             Filter::Equal(
@@ -182,7 +184,7 @@ mod tests {
 
     #[test]
     fn latest_version() {
-        let mut compiler = SelectCompiler::<DataType>::with_asterisk();
+        let mut compiler = SelectCompiler::<DataTypeWithMetadata>::with_asterisk();
 
         compiler.add_filter(&Filter::Equal(
             Some(FilterExpression::Path(DataTypeQueryPath::Version)),
@@ -207,7 +209,7 @@ mod tests {
 
     #[test]
     fn not_latest_version() {
-        let mut compiler = SelectCompiler::<DataType>::with_asterisk();
+        let mut compiler = SelectCompiler::<DataTypeWithMetadata>::with_asterisk();
 
         compiler.add_filter(&Filter::NotEqual(
             Some(FilterExpression::Path(DataTypeQueryPath::Version)),
@@ -232,7 +234,7 @@ mod tests {
 
     #[test]
     fn property_type_by_referenced_data_types() {
-        let mut compiler = SelectCompiler::<PropertyType>::with_asterisk();
+        let mut compiler = SelectCompiler::<PropertyTypeWithMetadata>::with_asterisk();
 
         compiler.add_filter(&Filter::Equal(
             Some(FilterExpression::Path(PropertyTypeQueryPath::DataTypes(
@@ -301,7 +303,7 @@ mod tests {
 
     #[test]
     fn property_type_by_referenced_property_types() {
-        let mut compiler = SelectCompiler::<PropertyType>::with_asterisk();
+        let mut compiler = SelectCompiler::<PropertyTypeWithMetadata>::with_asterisk();
 
         let filter = Filter::Equal(
             Some(FilterExpression::Path(
@@ -330,7 +332,7 @@ mod tests {
 
     #[test]
     fn entity_type_by_referenced_property_types() {
-        let mut compiler = SelectCompiler::<EntityType>::with_asterisk();
+        let mut compiler = SelectCompiler::<EntityTypeWithMetadata>::with_asterisk();
 
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityTypeQueryPath::Properties(
@@ -359,7 +361,7 @@ mod tests {
 
     #[test]
     fn entity_type_by_referenced_link_types() {
-        let mut compiler = SelectCompiler::<EntityType>::with_asterisk();
+        let mut compiler = SelectCompiler::<EntityTypeWithMetadata>::with_asterisk();
 
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityTypeQueryPath::Links(
@@ -396,7 +398,7 @@ mod tests {
 
     #[test]
     fn entity_type_by_inheritance() {
-        let mut compiler = SelectCompiler::<EntityType>::with_asterisk();
+        let mut compiler = SelectCompiler::<EntityTypeWithMetadata>::with_asterisk();
 
         let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityTypeQueryPath::InheritsFrom(
@@ -680,7 +682,7 @@ mod tests {
 
         #[test]
         fn for_latest_version() {
-            let mut compiler = SelectCompiler::<DataType>::with_asterisk();
+            let mut compiler = SelectCompiler::<DataTypeWithMetadata>::with_asterisk();
 
             let filter = Filter::for_latest_version();
             compiler.add_filter(&filter);
@@ -709,7 +711,7 @@ mod tests {
                 1,
             );
 
-            let mut compiler = SelectCompiler::<DataType>::with_asterisk();
+            let mut compiler = SelectCompiler::<DataTypeWithMetadata>::with_asterisk();
 
             let filter = Filter::for_versioned_uri(&uri);
             compiler.add_filter(&filter);
@@ -737,7 +739,7 @@ mod tests {
                 OntologyTypeVersion::new(1),
             );
 
-            let mut compiler = SelectCompiler::<DataType>::with_asterisk();
+            let mut compiler = SelectCompiler::<DataTypeWithMetadata>::with_asterisk();
 
             let filter = Filter::for_ontology_type_edition_id(&uri);
             compiler.add_filter(&filter);

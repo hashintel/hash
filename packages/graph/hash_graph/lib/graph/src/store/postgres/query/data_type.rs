@@ -1,16 +1,14 @@
 use std::borrow::Cow;
 
-use type_system::DataType;
-
 use crate::{
-    ontology::DataTypeQueryPath,
+    ontology::{DataTypeQueryPath, DataTypeWithMetadata},
     store::postgres::query::{
         table::{Column, DataTypes, JsonField, Relation, TypeIds},
         Path, PostgresQueryRecord, Table,
     },
 };
 
-impl PostgresQueryRecord for DataType {
+impl PostgresQueryRecord for DataTypeWithMetadata {
     fn base_table() -> Table {
         Table::DataTypes
     }

@@ -4,15 +4,19 @@ use serde::{
     de::{self, Deserializer, SeqAccess, Visitor},
     Deserialize,
 };
-use type_system::EntityType;
 use utoipa::ToSchema;
 
 use crate::{
-    ontology::{property_type::PropertyTypeQueryPathVisitor, PropertyTypeQueryPath, Selector},
+    ontology::{
+        property_type::PropertyTypeQueryPathVisitor, EntityTypeWithMetadata, PropertyTypeQueryPath,
+        Selector,
+    },
     store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath},
 };
 
 /// A path to a [`EntityType`] field.
+///
+/// [`EntityType`]: type_system::EntityType
 #[derive(Debug, PartialEq, Eq)]
 pub enum EntityTypeQueryPath {
     /// The [`BaseUri`] of the [`EntityType`].
@@ -26,6 +30,7 @@ pub enum EntityTypeQueryPath {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
+    /// [`EntityType`]: type_system::EntityType
     /// [`BaseUri`]: type_system::uri::BaseUri
     BaseUri,
     /// The version of the [`EntityType`].
@@ -47,16 +52,18 @@ pub enum EntityTypeQueryPath {
     /// # use std::borrow::Cow;
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use type_system::EntityType;
-    /// # use graph::{store::query::{Filter, FilterExpression, Parameter}, ontology::EntityTypeQueryPath};
+    /// # use graph::{store::query::{Filter, FilterExpression, Parameter}};
+    /// # use graph::{ontology::{EntityTypeQueryPath, EntityTypeWithMetadata}};
     /// let filter_value = json!({ "equal": [{ "path": ["version"] }, { "parameter": "latest" }] });
-    /// let path = Filter::<EntityType>::deserialize(filter_value)?;
+    /// let path = Filter::<EntityTypeWithMetadata>::deserialize(filter_value)?;
     /// assert_eq!(path, Filter::Equal(
     ///     Some(FilterExpression::Path(EntityTypeQueryPath::Version)),
     ///     Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed("latest")))))
     /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
+    ///
+    /// [`EntityType`]: type_system::EntityType
     Version,
     /// The [`VersionedUri`] of the [`EntityType`].
     ///
@@ -69,6 +76,7 @@ pub enum EntityTypeQueryPath {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
+    /// [`EntityType`]: type_system::EntityType
     /// [`VersionedUri`]: type_system::uri::VersionedUri
     VersionedUri,
     /// The [`OwnedById`] of the [`OntologyElementMetadata`] belonging to the [`EntityType`].
@@ -82,6 +90,7 @@ pub enum EntityTypeQueryPath {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
+    /// [`EntityType`]: type_system::EntityType
     /// [`OwnedById`]: crate::provenance::OwnedById
     /// [`OntologyElementMetadata`]: crate::ontology::OntologyElementMetadata
     OwnedById,
@@ -96,6 +105,7 @@ pub enum EntityTypeQueryPath {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
+    /// [`EntityType`]: type_system::EntityType
     /// [`UpdatedById`]: crate::provenance::UpdatedById
     /// [`ProvenanceMetadata`]: crate::provenance::ProvenanceMetadata
     UpdatedById,
@@ -109,6 +119,8 @@ pub enum EntityTypeQueryPath {
     /// assert_eq!(path, EntityTypeQueryPath::Title);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
+    ///
+    /// [`EntityType::title()`]: type_system::EntityType::title
     Title,
     /// Corresponds to [`EntityType::description()`]
     ///
@@ -120,6 +132,8 @@ pub enum EntityTypeQueryPath {
     /// assert_eq!(path, EntityTypeQueryPath::Description);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
+    ///
+    /// [`EntityType::description()`]: type_system::EntityType::description
     Description,
     /// Corresponds to [`EntityType::default()`].
     ///
@@ -131,6 +145,8 @@ pub enum EntityTypeQueryPath {
     /// assert_eq!(path, EntityTypeQueryPath::Default);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
+    ///
+    /// [`EntityType::default()`]: type_system::EntityType::default
     Default,
     /// Corresponds to [`EntityType::examples()`].
     ///
@@ -142,6 +158,8 @@ pub enum EntityTypeQueryPath {
     /// assert_eq!(path, EntityTypeQueryPath::Examples);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
+    ///
+    /// [`EntityType::examples()`]: type_system::EntityType::examples
     Examples,
     /// Corresponds to [`EntityType::property_type_references()`].
     ///
@@ -162,6 +180,8 @@ pub enum EntityTypeQueryPath {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
+    /// [`EntityType`]: type_system::EntityType
+    /// [`EntityType::property_type_references()`]: type_system::EntityType::property_type_references
     /// [`PropertyType`]: type_system::PropertyType
     Properties(PropertyTypeQueryPath),
     /// Corresponds to [`EntityType::required()`].
@@ -174,6 +194,8 @@ pub enum EntityTypeQueryPath {
     /// assert_eq!(path, EntityTypeQueryPath::Required);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
+    ///
+    /// [`EntityType::required()`]: type_system::EntityType::required
     Required,
     /// Corresponds to the keys of [`EntityType::link_mappings()`].
     ///
@@ -194,6 +216,9 @@ pub enum EntityTypeQueryPath {
     /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
+    ///
+    /// [`EntityType`]: type_system::EntityType
+    /// [`EntityType::link_mappings()`]: type_system::EntityType::link_mappings
     Links(Box<Self>),
     /// Corresponds to [`EntityType::required_links()`].
     ///
@@ -205,6 +230,8 @@ pub enum EntityTypeQueryPath {
     /// assert_eq!(path, EntityTypeQueryPath::RequiredLinks);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
+    ///
+    /// [`EntityType::required_links()`]: type_system::EntityType::required_links
     RequiredLinks,
     /// Currently, does not correspond to any field of [`EntityType`].
     ///
@@ -228,6 +255,9 @@ pub enum EntityTypeQueryPath {
     /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
+    ///
+    /// [`EntityType`]: type_system::EntityType
+    /// [`EntityType::inherits_from()`]: type_system::EntityType::inherits_from
     InheritsFrom(Box<Self>),
     /// Only used internally and not available for deserialization.
     VersionId,
@@ -235,7 +265,7 @@ pub enum EntityTypeQueryPath {
     Schema,
 }
 
-impl QueryRecord for EntityType {
+impl QueryRecord for EntityTypeWithMetadata {
     type Path<'q> = EntityTypeQueryPath;
 }
 

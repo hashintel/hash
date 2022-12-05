@@ -187,7 +187,7 @@ impl<C: AsClient> PropertyTypeStore for PostgresStore<C> {
 
     async fn get_property_type<'f: 'q, 'q>(
         &self,
-        query: &'f StructuralQuery<'q, PropertyType>,
+        query: &'f StructuralQuery<'q, PropertyTypeWithMetadata>,
     ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
             ref filter,

@@ -6,12 +6,13 @@
 //!
 //! [`Store`]: crate::store::Store
 
-use std::fmt::Debug;
-
 use async_trait::async_trait;
 use error_stack::{ensure, Report, Result};
 
-use crate::store::QueryError;
+use crate::store::{
+    query::{Filter, QueryRecord},
+    QueryError,
+};
 
 /// Read access to a [`Store`].
 ///
@@ -19,19 +20,18 @@ use crate::store::QueryError;
 // TODO: Use queries, which are passed to the query-endpoint
 //   see https://app.asana.com/0/1202805690238892/1202979057056097/f
 #[async_trait]
-pub trait Read<T: Send>: Sync {
-    // TODO: Implement `Valuable` for queries and use them directly
-    //   see https://docs.rs/valuable/latest/valuable/trait.Valuable.html
-    type Query<'q>: Debug + Sync;
-
+pub trait Read<T: QueryRecord + Send>: Sync {
     // TODO: Return a stream of `T` instead
     //   see https://app.asana.com/0/1202805690238892/1202923536131158/f
     /// Returns a value from the [`Store`] specified by the passed `query`.
     ///
     /// [`Store`]: crate::store::Store
-    async fn read<'f: 'q, 'q>(&self, query: &'f Self::Query<'q>) -> Result<Vec<T>, QueryError>;
+    async fn read<'f: 'q, 'q>(&self, query: &'f Filter<'q, T>) -> Result<Vec<T>, QueryError>;
 
-    async fn read_one<'f: 'q, 'q>(&self, query: &'f Self::Query<'q>) -> Result<T, QueryError> {
+    async fn read_one<'f: 'q, 'q>(&self, query: &'f Filter<'q, T>) -> Result<T, QueryError>
+    where
+        for<'a> Filter<'a, T>: Sync,
+    {
         let mut records = self.read(query).await?;
         ensure!(
             records.len() <= 1,
@@ -47,8 +47,6 @@ pub trait Read<T: Send>: Sync {
         })?;
         Ok(record)
     }
-
-    // TODO: Consider adding additional methods, which defaults to `read` e.g. reading exactly one
 }
 
 // TODO: Add remaining CRUD traits (but probably don't implement the `D`-part)

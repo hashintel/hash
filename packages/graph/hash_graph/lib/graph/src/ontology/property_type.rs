@@ -4,15 +4,18 @@ use serde::{
     de::{self, Deserializer, SeqAccess, Visitor},
     Deserialize,
 };
-use type_system::PropertyType;
 use utoipa::ToSchema;
 
 use crate::{
-    ontology::{data_type::DataTypeQueryPathVisitor, DataTypeQueryPath, Selector},
+    ontology::{
+        data_type::DataTypeQueryPathVisitor, DataTypeQueryPath, PropertyTypeWithMetadata, Selector,
+    },
     store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath},
 };
 
 /// A path to a [`PropertyType`] field.
+///
+/// [`PropertyType`]: type_system::PropertyType
 #[derive(Debug, PartialEq, Eq)]
 pub enum PropertyTypeQueryPath {
     /// The [`BaseUri`] of the [`PropertyType`].
@@ -26,6 +29,7 @@ pub enum PropertyTypeQueryPath {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
+    /// [`PropertyType`]: type_system::PropertyType
     /// [`BaseUri`]: type_system::uri::BaseUri
     BaseUri,
     /// The version of the [`PropertyType`].
@@ -42,6 +46,8 @@ pub enum PropertyTypeQueryPath {
     /// In addition to specifying the version directly, it's also possible to compare the version
     /// with a `"latest"` parameter, which will only match the latest version of the
     /// [`PropertyType`].
+    ///
+    /// [`PropertyType`]: type_system::PropertyType
     Version,
     /// The [`VersionedUri`] of the [`PropertyType`].
     ///
@@ -54,6 +60,7 @@ pub enum PropertyTypeQueryPath {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
+    /// [`PropertyType`]: type_system::PropertyType
     /// [`VersionedUri`]: type_system::uri::VersionedUri
     VersionedUri,
     /// The [`OwnedById`] of the [`OntologyElementMetadata`] belonging to the [`PropertyType`].
@@ -67,10 +74,13 @@ pub enum PropertyTypeQueryPath {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
+    /// [`PropertyType`]: type_system::PropertyType
     /// [`OwnedById`]: crate::provenance::OwnedById
     /// [`OntologyElementMetadata`]: crate::ontology::OntologyElementMetadata
     OwnedById,
     /// The [`UpdatedById`] of the [`ProvenanceMetadata`] belonging to the [`PropertyType`].
+    ///
+    /// [`PropertyType`]: type_system::PropertyType
     ///
     /// ```rust
     /// # use serde::Deserialize;
@@ -86,6 +96,8 @@ pub enum PropertyTypeQueryPath {
     UpdatedById,
     /// Corresponds to [`PropertyType::title()`].
     ///
+    /// [`PropertyType::title()`]: type_system::PropertyType::title
+    ///
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
@@ -96,6 +108,8 @@ pub enum PropertyTypeQueryPath {
     /// ```
     Title,
     /// Corresponds to [`PropertyType::description()`]
+    ///
+    /// [`PropertyType::description()`]: type_system::PropertyType::description
     ///
     /// ```rust
     /// # use serde::Deserialize;
@@ -112,6 +126,9 @@ pub enum PropertyTypeQueryPath {
     /// additional selector to identify the [`DataType`] to query. Currently, only the `*` selector
     /// is available, so the path will be deserialized as `["dataTypes", "*", ...]` where `...` is
     /// the path to the desired field of the [`DataType`].
+    ///
+    /// [`PropertyType::data_type_references()`]: type_system::PropertyType::data_type_references
+    /// [`PropertyType`]: type_system::PropertyType
     ///
     /// ```rust
     /// # use serde::Deserialize;
@@ -145,6 +162,9 @@ pub enum PropertyTypeQueryPath {
     /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
+    ///
+    /// [`PropertyType`]: type_system::PropertyType
+    /// [`PropertyType::property_type_references()`]: type_system::PropertyType::property_type_references
     PropertyTypes(Box<Self>),
     /// Only used internally and not available for deserialization.
     VersionId,
@@ -152,7 +172,7 @@ pub enum PropertyTypeQueryPath {
     Schema,
 }
 
-impl QueryRecord for PropertyType {
+impl QueryRecord for PropertyTypeWithMetadata {
     type Path<'q> = PropertyTypeQueryPath;
 }
 
@@ -293,6 +313,7 @@ impl<'de> Visitor<'de> for PropertyTypeQueryPathVisitor {
         })
     }
 }
+
 impl<'de> Deserialize<'de> for PropertyTypeQueryPath {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
