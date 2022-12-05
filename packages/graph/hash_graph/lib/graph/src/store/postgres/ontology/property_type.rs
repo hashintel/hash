@@ -81,6 +81,8 @@ impl<C: AsClient> PostgresStore<C> {
             };
 
             if let Some(OntologyVertex::PropertyType(property_type)) = property_type {
+                // Collecting references before traversing further to avoid having a shared
+                // reference to the subgraph when borrowing it mutably
                 let data_type_ref_uris = (current_resolve_depth.constrains_values_on.outgoing > 0)
                     .then(|| {
                         property_type
