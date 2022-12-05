@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
 use futures::FutureExt;
 use tokio_postgres::GenericClient;
-use type_system::PropertyType;
+use type_system::{DataTypeReference, PropertyType, PropertyTypeReference};
 
 use crate::{
     identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId},
@@ -31,6 +31,10 @@ impl<C: AsClient> PostgresStore<C> {
     /// Internal method to read a [`PropertyTypeWithMetadata`] into two [`DependencyContext`]s.
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
+    #[expect(
+        clippy::too_many_lines,
+        reason = "https://app.asana.com/0/1203363157432081/1203444301722127/f"
+    )]
     pub(crate) fn traverse_property_type<'a>(
         &'a self,
         property_type_id: &'a OntologyTypeEditionId,
@@ -73,22 +77,70 @@ impl<C: AsClient> PostgresStore<C> {
                 DependencyStatus::Resolved => None,
             };
 
-            if let Some(OntologyVertex::PropertyType(property_type)) = property_type.cloned() {
-                if current_resolve_depth.constrains_properties_on.outgoing > 0 {
-                    for property_type_ref in property_type.inner().property_type_references() {
+            if let Some(OntologyVertex::PropertyType(property_type)) = property_type {
+                let data_type_ref_uris = (current_resolve_depth.constrains_values_on.outgoing > 0)
+                    .then(|| {
+                        property_type
+                            .inner()
+                            .data_type_references()
+                            .into_iter()
+                            .map(DataTypeReference::uri)
+                            .cloned()
+                            .collect::<Vec<_>>()
+                    });
+
+                let property_type_ref_uris =
+                    (current_resolve_depth.constrains_properties_on.outgoing > 0).then(|| {
+                        property_type
+                            .inner()
+                            .property_type_references()
+                            .into_iter()
+                            .map(PropertyTypeReference::uri)
+                            .cloned()
+                            .collect::<Vec<_>>()
+                    });
+
+                if let Some(data_type_ref_uris) = data_type_ref_uris {
+                    for data_type_ref in data_type_ref_uris {
+                        subgraph.edges.insert(Edge::Ontology {
+                            edition_id: property_type_id.clone(),
+                            outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
+                                kind: OntologyEdgeKind::ConstrainsValuesOn,
+                                reversed: false,
+                                right_endpoint: OntologyTypeEditionId::from(&data_type_ref),
+                            }),
+                        });
+
+                        self.traverse_data_type(
+                            &OntologyTypeEditionId::from(&data_type_ref),
+                            dependency_context,
+                            subgraph,
+                            GraphResolveDepths {
+                                constrains_values_on: OutgoingEdgeResolveDepth {
+                                    outgoing: current_resolve_depth.constrains_values_on.outgoing
+                                        - 1,
+                                    ..current_resolve_depth.constrains_values_on
+                                },
+                                ..current_resolve_depth
+                            },
+                        )
+                        .await?;
+                    }
+                }
+
+                if let Some(property_type_ref_uris) = property_type_ref_uris {
+                    for property_type_ref_uri in property_type_ref_uris {
                         subgraph.edges.insert(Edge::Ontology {
                             edition_id: property_type_id.clone(),
                             outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
                                 kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                                 reversed: false,
-                                right_endpoint: OntologyTypeEditionId::from(
-                                    property_type_ref.uri(),
-                                ),
+                                right_endpoint: OntologyTypeEditionId::from(&property_type_ref_uri),
                             }),
                         });
 
                         self.traverse_property_type(
-                            &OntologyTypeEditionId::from(property_type_ref.uri()),
+                            &OntologyTypeEditionId::from(&property_type_ref_uri),
                             dependency_context,
                             subgraph,
                             GraphResolveDepths {
@@ -98,34 +150,6 @@ impl<C: AsClient> PostgresStore<C> {
                                         .outgoing
                                         - 1,
                                     ..current_resolve_depth.constrains_properties_on
-                                },
-                                ..current_resolve_depth
-                            },
-                        )
-                        .await?;
-                    }
-                }
-
-                if current_resolve_depth.constrains_values_on.outgoing > 0 {
-                    for data_type_ref in property_type.inner().data_type_references() {
-                        subgraph.edges.insert(Edge::Ontology {
-                            edition_id: property_type_id.clone(),
-                            outward_edge: OntologyOutwardEdges::ToOntology(OutwardEdge {
-                                kind: OntologyEdgeKind::ConstrainsValuesOn,
-                                reversed: false,
-                                right_endpoint: OntologyTypeEditionId::from(data_type_ref.uri()),
-                            }),
-                        });
-
-                        self.traverse_data_type(
-                            &OntologyTypeEditionId::from(data_type_ref.uri()),
-                            dependency_context,
-                            subgraph,
-                            GraphResolveDepths {
-                                constrains_values_on: OutgoingEdgeResolveDepth {
-                                    outgoing: current_resolve_depth.constrains_values_on.outgoing
-                                        - 1,
-                                    ..current_resolve_depth.constrains_values_on
                                 },
                                 ..current_resolve_depth
                             },
