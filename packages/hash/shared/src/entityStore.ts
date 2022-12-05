@@ -3,7 +3,7 @@ import {
   EntityId,
   EntityMetadata,
   EntityVersion,
-  LinkEntityMetadata,
+  LinkData,
   PropertyObject,
   VersionedUri,
 } from "@hashintel/hash-subgraph";
@@ -26,12 +26,12 @@ export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
       version?: EntityVersion;
     };
     entityTypeId?: VersionedUri | null;
-    linkMetadata?: LinkEntityMetadata;
     provenance?: EntityMetadata["provenance"];
   };
   /** @todo properly type this part of the DraftEntity type https://app.asana.com/0/0/1203099452204542/f */
   blockChildEntity?: Type & { draftId?: string };
   properties: PropertyObject & { entity?: DraftEntity };
+  linkData?: LinkData;
 
   componentId?: string;
 

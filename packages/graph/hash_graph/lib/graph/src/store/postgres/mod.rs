@@ -31,7 +31,7 @@ use crate::{
         knowledge::{EntityEditionId, EntityId},
         ontology::OntologyTypeEditionId,
     },
-    knowledge::{EntityMetadata, EntityProperties, EntityUuid, LinkEntityMetadata},
+    knowledge::{EntityMetadata, EntityProperties, EntityUuid, LinkData},
     ontology::OntologyElementMetadata,
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
@@ -625,7 +625,7 @@ where
         properties: EntityProperties,
         entity_type_id: VersionedUri,
         updated_by_id: UpdatedById,
-        link_metadata: Option<LinkEntityMetadata>,
+        link_data: Option<LinkData>,
     ) -> Result<EntityMetadata, InsertionError> {
         let entity_type_version_id = self
             .version_id_by_uri(&entity_type_id)
@@ -659,20 +659,20 @@ where
                     &entity_id.entity_uuid().as_uuid(),
                     &entity_type_version_id,
                     &value,
-                    &link_metadata
+                    &link_data
                         .as_ref()
                         .map(|metadata| metadata.left_entity_id().owned_by_id().as_account_id()),
-                    &link_metadata
+                    &link_data
                         .as_ref()
                         .map(|metadata| metadata.left_entity_id().entity_uuid().as_uuid()),
-                    &link_metadata
+                    &link_data
                         .as_ref()
                         .map(|metadata| metadata.right_entity_id().owned_by_id().as_account_id()),
-                    &link_metadata
+                    &link_data
                         .as_ref()
                         .map(|metadata| metadata.right_entity_id().entity_uuid().as_uuid()),
-                    &link_metadata.as_ref().map(LinkEntityMetadata::left_order),
-                    &link_metadata.as_ref().map(LinkEntityMetadata::right_order),
+                    &link_data.as_ref().map(LinkData::left_order),
+                    &link_data.as_ref().map(LinkData::right_order),
                     &updated_by_id.as_account_id(),
                 ],
             )
@@ -685,7 +685,6 @@ where
             EntityEditionId::new(entity_id, version),
             entity_type_id,
             ProvenanceMetadata::new(updated_by_id),
-            link_metadata,
             // TODO: only the historic table would have an `archived` field.
             //   Consider what we should do about that.
             false,
@@ -730,7 +729,7 @@ where
         &self,
         entity_id: EntityId,
         historic_move: HistoricMove,
-    ) -> Result<EntityMetadata, InsertionError> {
+    ) -> Result<Option<LinkData>, InsertionError> {
         let historic_entity = self
             .as_client()
             .query_one(
@@ -801,7 +800,7 @@ where
             .into_report()
             .change_context(InsertionError)?;
 
-        let link_metadata = match (
+        let link_data = match (
             historic_entity.get(5),
             historic_entity.get(6),
             historic_entity.get(7),
@@ -816,7 +815,7 @@ where
                 Some(right_entity_uuid),
                 left_order,
                 right_order,
-            ) => Some(LinkEntityMetadata::new(
+            ) => Some(LinkData::new(
                 EntityId::new(
                     OwnedById::new(left_owned_by_id),
                     EntityUuid::new(left_entity_uuid),
@@ -834,26 +833,7 @@ where
             }
         };
 
-        let base_uri = BaseUri::new(historic_entity.get(3))
-            .into_report()
-            .change_context(InsertionError)?;
-        let entity_type_id = VersionedUri::new(base_uri, historic_entity.get::<_, i64>(4) as u32);
-
-        Ok(EntityMetadata::new(
-            EntityEditionId::new(
-                EntityId::new(
-                    OwnedById::new(historic_entity.get(0)),
-                    EntityUuid::new(historic_entity.get(1)),
-                ),
-                historic_entity.get(2),
-            ),
-            entity_type_id,
-            ProvenanceMetadata::new(UpdatedById::new(historic_entity.get(11))),
-            link_metadata,
-            // TODO: only the historic table would have an `archived` field.
-            //   Consider what we should do about that.
-            false,
-        ))
+        Ok(link_data)
     }
 
     /// Fetches the [`VersionId`] of the specified [`VersionedUri`].
@@ -927,7 +907,7 @@ impl PostgresStore<Transaction<'_>> {
         &self,
         entity_uuids: impl IntoIterator<Item = EntityUuid, IntoIter: Send> + Send,
         entities: impl IntoIterator<Item = EntityProperties, IntoIter: Send> + Send,
-        link_metadatas: impl IntoIterator<Item = Option<LinkEntityMetadata>, IntoIter: Send> + Send,
+        link_datas: impl IntoIterator<Item = Option<LinkData>, IntoIter: Send> + Send,
         entity_type_version_id: VersionId,
         owned_by_id: OwnedById,
         updated_by_id: UpdatedById,
@@ -956,8 +936,8 @@ impl PostgresStore<Transaction<'_>> {
             Type::INT4,
         ]);
         futures::pin_mut!(writer);
-        for ((entity_uuid, entity), link_metadata) in
-            entity_uuids.into_iter().zip(entities).zip(link_metadatas)
+        for ((entity_uuid, entity), link_data) in
+            entity_uuids.into_iter().zip(entities).zip(link_datas)
         {
             let value = serde_json::to_value(entity)
                 .into_report()
@@ -970,24 +950,20 @@ impl PostgresStore<Transaction<'_>> {
                     &value,
                     &owned_by_id.as_account_id(),
                     &updated_by_id.as_account_id(),
-                    &link_metadata
+                    &link_data
                         .as_ref()
                         .map(|metadata| metadata.left_entity_id().owned_by_id().as_account_id()),
-                    &link_metadata
+                    &link_data
                         .as_ref()
                         .map(|metadata| metadata.left_entity_id().entity_uuid().as_uuid()),
-                    &link_metadata
+                    &link_data
                         .as_ref()
                         .map(|metadata| metadata.right_entity_id().owned_by_id().as_account_id()),
-                    &link_metadata
+                    &link_data
                         .as_ref()
                         .map(|metadata| metadata.right_entity_id().entity_uuid().as_uuid()),
-                    &link_metadata
-                        .as_ref()
-                        .and_then(LinkEntityMetadata::left_order),
-                    &link_metadata
-                        .as_ref()
-                        .and_then(LinkEntityMetadata::right_order),
+                    &link_data.as_ref().and_then(LinkData::left_order),
+                    &link_data.as_ref().and_then(LinkData::right_order),
                 ])
                 .await
                 .into_report()

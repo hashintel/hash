@@ -15,9 +15,7 @@ use crate::{
         ontology::OntologyTypeEditionId,
         GraphElementEditionId,
     },
-    knowledge::{
-        Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkEntityMetadata,
-    },
+    knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
     provenance::{OwnedById, UpdatedById},
     store::{
         crud::Read,
@@ -376,7 +374,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         owned_by_id: OwnedById,
         entity_uuid: Option<EntityUuid>,
         updated_by_id: UpdatedById,
-        link_metadata: Option<LinkEntityMetadata>,
+        link_data: Option<LinkData>,
     ) -> Result<EntityMetadata, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
@@ -398,7 +396,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 properties,
                 entity_type_id,
                 updated_by_id,
-                link_metadata,
+                link_data,
             )
             .await?;
 
@@ -417,11 +415,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     async fn insert_entities_batched_by_type(
         &mut self,
         entities: impl IntoIterator<
-            Item = (
-                Option<EntityUuid>,
-                EntityProperties,
-                Option<LinkEntityMetadata>,
-            ),
+            Item = (Option<EntityUuid>, EntityProperties, Option<LinkData>),
             IntoIter: Send,
         > + Send,
         entity_type_id: VersionedUri,
@@ -439,11 +433,11 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         let entities = entities.into_iter();
         let mut entity_uuids = Vec::with_capacity(entities.size_hint().0);
         let mut entity_properties = Vec::with_capacity(entities.size_hint().0);
-        let mut entity_link_metadatas = Vec::with_capacity(entities.size_hint().0);
-        for (entity_uuid, properties, link_metadata) in entities {
+        let mut entity_link_datas = Vec::with_capacity(entities.size_hint().0);
+        for (entity_uuid, properties, link_data) in entities {
             entity_uuids.push(entity_uuid.unwrap_or_else(|| EntityUuid::new(Uuid::new_v4())));
             entity_properties.push(properties);
-            entity_link_metadatas.push(link_metadata);
+            entity_link_datas.push(link_data);
         }
 
         // TODO: match on and return the relevant error
@@ -463,7 +457,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .insert_entity_batch_by_type(
                 entity_uuids.iter().copied(),
                 entity_properties,
-                entity_link_metadatas,
+                entity_link_datas,
                 entity_type_version_id,
                 owned_by_id,
                 actor_id,
@@ -538,23 +532,19 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .await
             .change_context(UpdateError)?;
 
-        let old_entity_metadata = transaction
+        let link_data = transaction
             .move_latest_entity_to_histories(entity_id, HistoricMove::ForNewVersion)
             .await
             .change_context(UpdateError)?;
 
-        let link_metadata = match (
-            old_entity_metadata.link_metadata(),
-            order.left(),
-            order.right(),
-        ) {
+        let link_data = match (link_data, order.left(), order.right()) {
             (None, None, None) => None,
             (None, ..) => bail!(
                 Report::new(UpdateError)
                     .attach_printable("cannot update link order of an entity that is not a link")
             ),
-            (Some(link_metadata), left, right) => {
-                let new_left_order = match (link_metadata.left_order(), left) {
+            (Some(link_data), left, right) => {
+                let new_left_order = match (link_data.left_order(), left) {
                     (None, None) => None,
                     (Some(_), None) => bail!(Report::new(UpdateError).attach_printable(
                         "left order was set on entity but new order was not provided"
@@ -564,7 +554,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     )),
                     (Some(_), Some(new_left)) => Some(new_left),
                 };
-                let new_right_order = match (link_metadata.right_order(), right) {
+                let new_right_order = match (link_data.right_order(), right) {
                     (None, None) => None,
                     (Some(_), None) => bail!(Report::new(UpdateError).attach_printable(
                         "right order was set on entity but new order was not provided"
@@ -574,9 +564,9 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     )),
                     (Some(_), Some(new_right)) => Some(new_right),
                 };
-                Some(LinkEntityMetadata::new(
-                    link_metadata.left_entity_id(),
-                    link_metadata.right_entity_id(),
+                Some(LinkData::new(
+                    link_data.left_entity_id(),
+                    link_data.right_entity_id(),
                     new_left_order,
                     new_right_order,
                 ))
@@ -589,7 +579,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 properties,
                 entity_type_id,
                 updated_by_id,
-                link_metadata,
+                link_data,
             )
             .await
             .change_context(UpdateError)?;
@@ -641,7 +631,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 old_entity.properties().clone(),
                 old_entity.metadata().entity_type_id().clone(),
                 actor_id,
-                old_entity.metadata().link_metadata(),
+                old_entity.link_data(),
             )
             .await
             .change_context(ArchivalError)?;

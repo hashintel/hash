@@ -28,7 +28,7 @@ use crate::{
     },
     knowledge::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryToken, EntityUuid,
-        LinkEntityMetadata, LinkOrder,
+        LinkData, LinkOrder,
     },
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
@@ -75,7 +75,7 @@ use crate::{
             EntityVersion,
             EntityStructuralQuery,
             EntityQueryToken,
-            LinkEntityMetadata,
+            LinkData,
             LinkOrder,
             ProvenanceMetadata,
             GraphElementId,
@@ -138,7 +138,7 @@ struct CreateEntityRequest {
     // TODO: this could break invariants if we don't move to fractional indexing
     //  https://app.asana.com/0/1201095311341924/1202085856561975/f
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    link_metadata: Option<LinkEntityMetadata>,
+    link_data: Option<LinkData>,
 }
 
 #[utoipa::path(
@@ -155,8 +155,8 @@ struct CreateEntityRequest {
     ),
 )]
 async fn create_entity<P: StorePool + Send>(
-    body: Json<CreateEntityRequest>,
     pool: Extension<Arc<P>>,
+    body: Json<CreateEntityRequest>,
 ) -> Result<Json<EntityMetadata>, StatusCode> {
     let Json(CreateEntityRequest {
         properties,
@@ -164,7 +164,7 @@ async fn create_entity<P: StorePool + Send>(
         owned_by_id,
         entity_uuid,
         actor_id,
-        link_metadata,
+        link_data,
     }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -179,7 +179,7 @@ async fn create_entity<P: StorePool + Send>(
             owned_by_id,
             entity_uuid,
             actor_id,
-            link_metadata,
+            link_data,
         )
         .await
         .map_err(|report| {
@@ -212,8 +212,8 @@ struct ArchiveEntityRequest {
     ),
 )]
 async fn archive_entity<P: StorePool + Send>(
-    body: Json<ArchiveEntityRequest>,
     pool: Extension<Arc<P>>,
+    body: Json<ArchiveEntityRequest>,
 ) -> Result<(), StatusCode> {
     let Json(ArchiveEntityRequest {
         entity_id,
@@ -350,8 +350,8 @@ struct UpdateEntityRequest {
     request_body = UpdateEntityRequest,
 )]
 async fn update_entity<P: StorePool + Send>(
-    body: Json<UpdateEntityRequest>,
     pool: Extension<Arc<P>>,
+    body: Json<UpdateEntityRequest>,
 ) -> Result<Json<EntityMetadata>, StatusCode> {
     let Json(UpdateEntityRequest {
         properties,
