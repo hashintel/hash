@@ -126,15 +126,20 @@ export const useCreateNewEntityAndRedirect = () => {
 
       const { baseId } = activeWorkspace.entityEditionId;
 
-      const workspaceOwnedById =
+      const ownedById =
         activeWorkspace.kind === "user"
           ? extractEntityUuidFromEntityId(baseId)
-          : extractOwnedByIdFromEntityId(baseId);
+          : /**
+             * @todo  we should be using `extractEntityUuidFromEntityId` here instead,
+             * but it's not possible for now
+             * @see https://hashintel.slack.com/archives/C022217GAHF/p1669644710424819 (internal) for details
+             */
+            extractOwnedByIdFromEntityId(baseId);
 
       const { data: entity } = await createEntity({
         data: {
           entityTypeId: entityType.$id,
-          ownedById: workspaceOwnedById,
+          ownedById,
           /**
            * @todo after implementing this ticket: https://app.asana.com/0/1203312852763953/1203433085114587/f (internal)
            * we should just use `properties: {}` here, and delete `generateDefaultProperties` function,
