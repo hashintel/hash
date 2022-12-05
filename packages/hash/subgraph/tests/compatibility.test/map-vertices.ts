@@ -12,6 +12,8 @@ import {
   OneOf,
   PropertyType,
   PropertyValues,
+  validateBaseUri,
+  validateVersionedUri,
   VersionedUri,
 } from "@blockprotocol/type-system";
 import {
@@ -22,10 +24,6 @@ import {
   PropertyObject,
   EntityId,
 } from "../../src";
-import {
-  validateBaseUri,
-  validateVersionedUri,
-} from "../../src/shared/type-system-patch";
 
 const mapDataType = (dataType: DataTypeGraphApi): DataType => {
   const idResult = validateVersionedUri(dataType.$id);

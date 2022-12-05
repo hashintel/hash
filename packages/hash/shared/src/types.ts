@@ -2,7 +2,6 @@ import { BaseUri, VersionedUri } from "@blockprotocol/type-system";
 import slugify from "slugify";
 import { EntityId } from "@hashintel/hash-subgraph";
 import { SYSTEM_ACCOUNT_SHORTNAME } from "@hashintel/hash-shared/environment";
-import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
 import { frontendUrl } from "./environment";
 
 type SchemaKind = "data-type" | "property-type" | "entity-type";

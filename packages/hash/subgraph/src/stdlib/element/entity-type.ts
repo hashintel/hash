@@ -1,9 +1,13 @@
-import { BaseUri, VersionedUri } from "@blockprotocol/type-system";
+import {
+  BaseUri,
+  extractBaseUri,
+  extractVersion,
+  VersionedUri,
+} from "@blockprotocol/type-system";
 import { isEntityTypeVertex } from "../../types/vertex";
 import { Subgraph } from "../../types/subgraph";
 import { EntityTypeWithMetadata } from "../../types/element";
 import { OntologyTypeEditionId } from "../../types/identifier";
-import { extractBaseUri, extractVersion } from "../../shared/type-system-patch";
 
 /**
  * Returns all `EntityTypeWithMetadata`s within the vertices of the subgraph
