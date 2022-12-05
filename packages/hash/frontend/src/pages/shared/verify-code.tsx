@@ -119,6 +119,7 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
           alignItems: "center",
           backgroundColor: "#ffffff",
           borderRadius: "1rem",
+          // @todo use shadows from MUI theme https://app.asana.com/0/1203179076056209/1203480105875518/f
           boxShadow:
             "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
           display: "flex",
