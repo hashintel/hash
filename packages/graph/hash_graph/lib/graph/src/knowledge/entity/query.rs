@@ -177,7 +177,7 @@ pub enum EntityQueryPath<'q> {
     ///
     /// [`Entity`]: crate::knowledge::Entity
     OutgoingLinks(Box<Self>),
-    /// Corresponds to the entity specified by [`LinkEntityMetadata::left_entity_id()`].
+    /// Corresponds to the entity specified by [`LinkData::left_entity_id()`].
     ///
     /// Deserializes from `["leftEntity", ...]` where `...` is the path of the left [`Entity`].
     ///
@@ -194,9 +194,9 @@ pub enum EntityQueryPath<'q> {
     /// ```
     ///
     /// [`Entity`]: crate::knowledge::Entity
-    /// [`LinkEntityMetadata::left_entity_id()`]: crate::knowledge::LinkEntityMetadata::left_entity_id
+    /// [`LinkData::left_entity_id()`]: crate::knowledge::LinkData::left_entity_id
     LeftEntity(Box<Self>),
-    /// Corresponds to the entity specified by [`LinkEntityMetadata::right_entity_id()`].
+    /// Corresponds to the entity specified by [`LinkData::right_entity_id()`].
     ///
     /// Deserializes from `["leftEntity", ...]` where `...` is the path of the right [`Entity`].
     ///
@@ -213,9 +213,9 @@ pub enum EntityQueryPath<'q> {
     /// ```
     ///
     /// [`Entity`]: crate::knowledge::Entity
-    /// [`LinkEntityMetadata::right_entity_id()`]: crate::knowledge::LinkEntityMetadata::right_entity_id
+    /// [`LinkData::right_entity_id()`]: crate::knowledge::LinkData::right_entity_id
     RightEntity(Box<Self>),
-    /// Corresponds to [`LinkEntityMetadata::left_order()`].
+    /// Corresponds to [`LinkData::left_order()`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
@@ -226,9 +226,9 @@ pub enum EntityQueryPath<'q> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`LinkEntityMetadata::left_order()`]: crate::knowledge::LinkEntityMetadata::left_order
+    /// [`LinkData::left_order()`]: crate::knowledge::LinkData::left_order
     LeftOrder,
-    /// Corresponds to [`LinkEntityMetadata::right_order()`].
+    /// Corresponds to [`LinkData::right_order()`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
@@ -239,7 +239,7 @@ pub enum EntityQueryPath<'q> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`LinkEntityMetadata::right_order()`]: crate::knowledge::LinkEntityMetadata::right_order
+    /// [`LinkData::right_order()`]: crate::knowledge::LinkData::right_order
     RightOrder,
     /// Corresponds to [`Entity::properties()`].
     ///

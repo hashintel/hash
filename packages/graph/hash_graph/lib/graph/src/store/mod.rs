@@ -19,9 +19,7 @@ pub use self::{
 };
 use crate::{
     identifier::{account::AccountId, knowledge::EntityId},
-    knowledge::{
-        Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkEntityMetadata,
-    },
+    knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
     ontology::{
         DataTypeWithMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
         PropertyTypeWithMetadata,
@@ -334,7 +332,7 @@ pub trait EntityStore: crud::Read<Entity> {
         owned_by_id: OwnedById,
         entity_uuid: Option<EntityUuid>,
         actor_id: UpdatedById,
-        link_metadata: Option<LinkEntityMetadata>,
+        link_data: Option<LinkData>,
     ) -> Result<EntityMetadata, InsertionError>;
 
     /// Inserts the entities with the specified [`EntityType`] into the `Store`.
@@ -359,11 +357,7 @@ pub trait EntityStore: crud::Read<Entity> {
     async fn insert_entities_batched_by_type(
         &mut self,
         entities: impl IntoIterator<
-            Item = (
-                Option<EntityUuid>,
-                EntityProperties,
-                Option<LinkEntityMetadata>,
-            ),
+            Item = (Option<EntityUuid>, EntityProperties, Option<LinkData>),
             IntoIter: Send,
         > + Send,
         entity_type_id: VersionedUri,

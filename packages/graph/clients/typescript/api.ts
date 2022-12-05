@@ -140,10 +140,10 @@ export interface CreateEntityRequest {
   entityUuid?: string;
   /**
    *
-   * @type {LinkEntityMetadata}
+   * @type {LinkData}
    * @memberof CreateEntityRequest
    */
-  linkMetadata?: LinkEntityMetadata;
+  linkData?: LinkData;
   /**
    *
    * @type {string}
@@ -381,6 +381,12 @@ export type EdgesValueValueInner =
 export interface Entity {
   /**
    *
+   * @type {LinkData}
+   * @memberof Entity
+   */
+  linkData?: LinkData;
+  /**
+   *
    * @type {EntityMetadata}
    * @memberof Entity
    */
@@ -473,12 +479,6 @@ export interface EntityMetadata {
    * @memberof EntityMetadata
    */
   entityTypeId: string;
-  /**
-   *
-   * @type {LinkEntityMetadata}
-   * @memberof EntityMetadata
-   */
-  linkMetadata?: LinkEntityMetadata;
   /**
    *
    * @type {ProvenanceMetadata}
@@ -975,6 +975,12 @@ export type KnowledgeGraphVertexOneOfKindEnum =
 export interface KnowledgeGraphVertexOneOfInner {
   /**
    *
+   * @type {LinkData}
+   * @memberof KnowledgeGraphVertexOneOfInner
+   */
+  linkData?: LinkData;
+  /**
+   *
    * @type {EntityMetadata}
    * @memberof KnowledgeGraphVertexOneOfInner
    */
@@ -997,50 +1003,50 @@ export interface KnowledgeGraphVertices {
 /**
  * The associated information for \'Link\' entities
  * @export
- * @interface LinkEntityMetadata
+ * @interface LinkData
  */
-export interface LinkEntityMetadata {
+export interface LinkData {
   /**
    *
    * @type {number}
-   * @memberof LinkEntityMetadata
+   * @memberof LinkData
    */
   leftOrder?: number;
   /**
    *
    * @type {number}
-   * @memberof LinkEntityMetadata
+   * @memberof LinkData
    */
   rightOrder?: number;
   /**
    *
    * @type {string}
-   * @memberof LinkEntityMetadata
+   * @memberof LinkData
    */
   leftEntityId: string;
   /**
    *
    * @type {string}
-   * @memberof LinkEntityMetadata
+   * @memberof LinkData
    */
   rightEntityId: string;
 }
 /**
  *
  * @export
- * @interface LinkEntityMetadataAllOf
+ * @interface LinkDataAllOf
  */
-export interface LinkEntityMetadataAllOf {
+export interface LinkDataAllOf {
   /**
    *
    * @type {string}
-   * @memberof LinkEntityMetadataAllOf
+   * @memberof LinkDataAllOf
    */
   leftEntityId: string;
   /**
    *
    * @type {string}
-   * @memberof LinkEntityMetadataAllOf
+   * @memberof LinkDataAllOf
    */
   rightEntityId: string;
 }

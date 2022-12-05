@@ -16,7 +16,7 @@ use graph::{
     },
     knowledge::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryPath, EntityUuid,
-        LinkEntityMetadata,
+        LinkData,
     },
     ontology::{
         DataTypeWithMetadata, EntityTypeQueryPath, EntityTypeWithMetadata, OntologyElementMetadata,
@@ -346,12 +346,7 @@ impl DatabaseApi<'_> {
                 OwnedById::new(self.account_id),
                 entity_uuid,
                 UpdatedById::new(self.account_id),
-                Some(LinkEntityMetadata::new(
-                    left_entity_id,
-                    right_entity_id,
-                    None,
-                    None,
-                )),
+                Some(LinkData::new(left_entity_id, right_entity_id, None, None)),
             )
             .await
     }

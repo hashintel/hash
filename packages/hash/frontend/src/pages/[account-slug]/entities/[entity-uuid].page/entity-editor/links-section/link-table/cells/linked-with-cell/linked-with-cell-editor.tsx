@@ -94,7 +94,7 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
       data: {
         entityTypeId: linkEntityTypeId,
         properties: {},
-        linkMetadata: {
+        linkData: {
           leftEntityId: getRoots(entitySubgraph)[0]?.metadata.editionId.baseId!,
           rightEntityId: val.metadata.editionId.baseId,
         },

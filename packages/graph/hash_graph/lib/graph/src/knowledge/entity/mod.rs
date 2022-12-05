@@ -105,14 +105,14 @@ impl EntityLinkOrder {
 /// The associated information for 'Link' entities
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct LinkEntityMetadata {
+pub struct LinkData {
     left_entity_id: EntityId,
     right_entity_id: EntityId,
     #[serde(flatten)]
     order: EntityLinkOrder,
 }
 
-impl LinkEntityMetadata {
+impl LinkData {
     #[must_use]
     pub const fn new(
         left_entity_id: EntityId,
@@ -158,8 +158,6 @@ pub struct EntityMetadata {
     entity_type_id: VersionedUri,
     #[serde(rename = "provenance")]
     provenance_metadata: ProvenanceMetadata,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    link_metadata: Option<LinkEntityMetadata>,
     archived: bool,
 }
 
@@ -169,14 +167,12 @@ impl EntityMetadata {
         edition_id: EntityEditionId,
         entity_type_id: VersionedUri,
         provenance_metadata: ProvenanceMetadata,
-        link_metadata: Option<LinkEntityMetadata>,
         archived: bool,
     ) -> Self {
         Self {
             edition_id,
             entity_type_id,
             provenance_metadata,
-            link_metadata,
             archived,
         }
     }
@@ -197,11 +193,6 @@ impl EntityMetadata {
     }
 
     #[must_use]
-    pub const fn link_metadata(&self) -> Option<LinkEntityMetadata> {
-        self.link_metadata
-    }
-
-    #[must_use]
     pub const fn archived(&self) -> bool {
         self.archived
     }
@@ -213,6 +204,8 @@ impl EntityMetadata {
 #[serde(rename_all = "camelCase")]
 pub struct Entity {
     properties: EntityProperties,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    link_data: Option<LinkData>,
     metadata: EntityMetadata,
 }
 
@@ -220,19 +213,19 @@ impl Entity {
     #[must_use]
     pub const fn new(
         properties: EntityProperties,
+        link_data: Option<LinkData>,
         identifier: EntityEditionId,
         entity_type_id: VersionedUri,
         provenance_metadata: ProvenanceMetadata,
-        link_metadata: Option<LinkEntityMetadata>,
         archived: bool,
     ) -> Self {
         Self {
             properties,
+            link_data,
             metadata: EntityMetadata::new(
                 identifier,
                 entity_type_id,
                 provenance_metadata,
-                link_metadata,
                 archived,
             ),
         }
@@ -241,6 +234,11 @@ impl Entity {
     #[must_use]
     pub const fn properties(&self) -> &EntityProperties {
         &self.properties
+    }
+
+    #[must_use]
+    pub const fn link_data(&self) -> Option<LinkData> {
+        self.link_data
     }
 
     #[must_use]
