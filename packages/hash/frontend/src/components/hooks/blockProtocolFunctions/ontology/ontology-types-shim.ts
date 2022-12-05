@@ -16,7 +16,7 @@ import {
   PropertyType,
   EntityType,
   VersionedUri,
-} from "@blockprotocol/type-system-web";
+} from "@blockprotocol/type-system";
 import {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,

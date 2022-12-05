@@ -3,7 +3,7 @@ import {
   PropertyType,
   extractBaseUri,
   BaseUri,
-} from "@blockprotocol/type-system-web";
+} from "@blockprotocol/type-system";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";

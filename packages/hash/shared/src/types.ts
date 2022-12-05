@@ -1,4 +1,4 @@
-import { BaseUri, VersionedUri } from "@blockprotocol/type-system-web";
+import { BaseUri, VersionedUri } from "@blockprotocol/type-system";
 import slugify from "slugify";
 import { EntityId } from "@hashintel/hash-subgraph";
 import { SYSTEM_ACCOUNT_SHORTNAME } from "@hashintel/hash-shared/environment";

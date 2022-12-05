@@ -1,4 +1,4 @@
-import { EntityType } from "@blockprotocol/type-system-web";
+import { EntityType } from "@blockprotocol/type-system";
 import { Button, TextField } from "@hashintel/hash-design-system";
 import { frontendUrl } from "@hashintel/hash-shared/environment";
 import { generateBaseTypeId } from "@hashintel/hash-shared/types";

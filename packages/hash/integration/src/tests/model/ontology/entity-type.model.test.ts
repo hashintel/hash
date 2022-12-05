@@ -8,7 +8,7 @@ import {
   PropertyTypeModel,
   UserModel,
 } from "@hashintel/hash-api/src/model";
-import { EntityType } from "@blockprotocol/type-system-web";
+import { EntityType } from "@blockprotocol/type-system";
 import { linkEntityTypeUri } from "@hashintel/hash-api/src/model/util";
 import { createTestUser } from "../../util";
 

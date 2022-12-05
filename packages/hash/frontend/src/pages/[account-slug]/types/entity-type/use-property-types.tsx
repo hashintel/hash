@@ -1,4 +1,4 @@
-import { PropertyType, VersionedUri } from "@blockprotocol/type-system-web";
+import { PropertyType, VersionedUri } from "@blockprotocol/type-system";
 import {
   createContext,
   useCallback,

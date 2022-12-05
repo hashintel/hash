@@ -9,7 +9,7 @@ import {
   OneOf,
   Array,
   VersionedUri,
-} from "@blockprotocol/type-system-web";
+} from "@blockprotocol/type-system";
 import {
   nilUuid,
   PrimitiveDataTypeKey,

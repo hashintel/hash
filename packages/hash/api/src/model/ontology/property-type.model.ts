@@ -9,7 +9,7 @@ import {
   OntologyElementMetadata,
 } from "@hashintel/hash-subgraph";
 import { generateTypeId } from "@hashintel/hash-shared/types";
-import { PropertyType } from "@blockprotocol/type-system-web";
+import { PropertyType } from "@blockprotocol/type-system";
 import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
 import { PropertyTypeModel } from "../index";
 import { extractBaseUri } from "../util";

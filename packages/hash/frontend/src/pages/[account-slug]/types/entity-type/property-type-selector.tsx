@@ -1,4 +1,4 @@
-import { PropertyType } from "@blockprotocol/type-system-web";
+import { PropertyType } from "@blockprotocol/type-system";
 import { PopupState } from "material-ui-popup-state/hooks";
 import { forwardRef, ForwardRefRenderFunction, useRef, useState } from "react";
 import { HashSelectorAutocomplete } from "./hash-selector-autocomplete";

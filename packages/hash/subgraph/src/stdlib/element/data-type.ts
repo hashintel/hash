@@ -1,4 +1,4 @@
-import { BaseUri, VersionedUri } from "@blockprotocol/type-system-web";
+import { BaseUri, VersionedUri } from "@blockprotocol/type-system";
 import { OntologyTypeEditionId } from "../../types/identifier";
 import { Subgraph } from "../../types/subgraph";
 import { DataTypeWithMetadata } from "../../types/element";

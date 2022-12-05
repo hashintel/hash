@@ -13,7 +13,7 @@ import {
   PropertyType,
   PropertyValues,
   VersionedUri,
-} from "@blockprotocol/type-system-web";
+} from "@blockprotocol/type-system";
 import {
   isEntityId,
   OntologyVertex,
