@@ -57,11 +57,18 @@ export const generateTypeId = ({
   namespace: string;
   kind: SchemaKind;
   title: string;
-}): VersionedUri =>
-  versionedUriFromComponents(
-    generateBaseTypeId({ domain, namespace, kind, title }),
-    1,
-  );
+}): VersionedUri => {
+  // We purposefully don't use `versionedUriFromComponents` here as we want to limit the amount of functional code
+  // we're calling when this package is imported (this happens every time on import, not as the result of a call).
+  // We should be able to trust ourselves to create valid types here "statically", without needing to call the type
+  // system to validate them.
+  return `${generateBaseTypeId({
+    domain,
+    namespace,
+    kind,
+    title,
+  })}v/1` as VersionedUri;
+};
 
 /**
  * Generate the identifier of a system type (its versioned URI).
