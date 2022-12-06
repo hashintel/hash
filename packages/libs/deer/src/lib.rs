@@ -1,6 +1,11 @@
 #![cfg_attr(
     nightly,
-    feature(provide_any, error_in_core, error_generic_member_access)
+    feature(
+        provide_any,
+        error_in_core,
+        error_generic_member_access,
+        integer_atomics
+    )
 )]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(
