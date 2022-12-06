@@ -1,4 +1,4 @@
-import { PropertyType } from "@blockprotocol/type-system-web";
+import { PropertyType } from "@blockprotocol/type-system";
 import { Chip } from "@hashintel/hash-design-system";
 import { types } from "@hashintel/hash-shared/types";
 

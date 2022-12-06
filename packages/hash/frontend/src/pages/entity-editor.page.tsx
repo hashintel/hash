@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { Container, Typography } from "@mui/material";
-import init, { ValueOrArray, Array } from "@blockprotocol/type-system-web";
+import { ValueOrArray, Array } from "@blockprotocol/type-system";
 import { Button } from "@hashintel/hash-design-system";
 import { types } from "@hashintel/hash-shared/types";
 import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
@@ -11,6 +11,7 @@ import { getPropertyTypeById } from "@hashintel/hash-subgraph/src/stdlib/element
 import { useAuthenticatedUser } from "../components/hooks/useAuthenticatedUser";
 import { NextPageWithLayout } from "../shared/layout";
 import { useBlockProtocolFunctionsWithOntology } from "./type-editor/blockprotocol-ontology-functions-hook";
+import { useAdvancedInitTypeSystem } from "../lib/use-init-type-system";
 
 /**
  * Helper type-guard for determining if a `ValueOrArray` definition is an array or a value.
@@ -159,17 +160,8 @@ const ExampleEntityEditorPage: NextPageWithLayout = () => {
     loading: loadingUser,
     kratosSession,
   } = useAuthenticatedUser();
-  const [loadingTypeSystem, setLoadingTypeSystem] = useState(true);
-
-  useEffect(() => {
-    if (loadingTypeSystem) {
-      void (async () => {
-        await init().then(() => {
-          setLoadingTypeSystem(false);
-        });
-      })();
-    }
-  }, [loadingTypeSystem, setLoadingTypeSystem]);
+  const [loadingTypeSystem, _setLoadingTypeSystem] =
+    useAdvancedInitTypeSystem();
 
   useEffect(() => {
     if (!loadingUser && !kratosSession) {

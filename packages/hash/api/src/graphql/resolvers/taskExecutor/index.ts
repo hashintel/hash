@@ -2,7 +2,7 @@ import { JsonObject } from "@blockprotocol/core";
 import { ApolloError } from "apollo-server-express";
 import { upperFirst, camelCase } from "lodash";
 import { singular } from "pluralize";
-import { EntityType } from "@blockprotocol/type-system-web";
+import { EntityType } from "@blockprotocol/type-system";
 import { PropertyObject } from "@hashintel/hash-subgraph";
 import { CachedEntityTypes, Task } from "../../../task-execution";
 import {

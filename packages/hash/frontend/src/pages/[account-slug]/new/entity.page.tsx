@@ -1,4 +1,4 @@
-import { validateVersionedUri } from "@blockprotocol/type-system-web";
+import { validateVersionedUri } from "@blockprotocol/type-system";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { useAuthenticatedUser } from "../../../components/hooks/useAuthenticatedUser";

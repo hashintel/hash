@@ -1,4 +1,4 @@
-import { VersionedUri } from "@blockprotocol/type-system-web";
+import { VersionedUri } from "@blockprotocol/type-system";
 import {
   Box,
   ButtonBase,

@@ -2,7 +2,7 @@ import {
   EntityType,
   PropertyType,
   VersionedUri,
-} from "@blockprotocol/type-system-web";
+} from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,

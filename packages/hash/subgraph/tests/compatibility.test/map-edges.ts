@@ -3,6 +3,7 @@ import {
   KnowledgeGraphOutwardEdges,
   OntologyOutwardEdges,
 } from "@hashintel/hash-graph-client";
+import { validateBaseUri } from "@blockprotocol/type-system";
 import {
   Edges,
   isEntityAndTimestamp,
@@ -12,7 +13,6 @@ import {
   isOntologyTypeEditionId,
   OutwardEdge,
 } from "../../src";
-import { validateBaseUri } from "../../src/shared/type-system-patch";
 
 export const mapOutwardEdge = (
   outwardEdge: OntologyOutwardEdges | KnowledgeGraphOutwardEdges,

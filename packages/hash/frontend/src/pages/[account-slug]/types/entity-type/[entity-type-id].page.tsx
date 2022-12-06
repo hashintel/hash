@@ -4,7 +4,7 @@ import {
   extractVersion,
   PropertyTypeReference,
   ValueOrArray,
-} from "@blockprotocol/type-system-web";
+} from "@blockprotocol/type-system";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { Box, Container, Theme, Typography } from "@mui/material";

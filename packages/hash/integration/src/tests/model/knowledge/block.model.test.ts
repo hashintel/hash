@@ -11,6 +11,7 @@ import { generateSystemEntityTypeSchema } from "@hashintel/hash-api/src/model/ut
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { generateTypeId } from "@hashintel/hash-shared/types";
 import { ensureSystemEntitiesExists } from "@hashintel/hash-api/src/graph/system-entities";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { createTestUser } from "../../util";
 
 jest.setTimeout(60000);
@@ -41,6 +42,7 @@ describe("Block model class", () => {
   let dummyEntityType: EntityTypeModel;
 
   beforeAll(async () => {
+    await TypeSystemInitializer.initialize();
     await ensureSystemTypesExist({ graphApi, logger });
     await ensureSystemEntitiesExists({ graphApi, logger });
 
