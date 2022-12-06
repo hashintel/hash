@@ -1,5 +1,6 @@
 mod floating;
 mod integral;
+mod string;
 
 use core::{marker::PhantomData, mem, mem::MaybeUninit, ptr};
 
@@ -160,8 +161,9 @@ impl<'de> Deserialize<'de> for bool {
     }
 }
 
+// DONE: f32, f64, i*, u*
 // core:
-// char, f32, f64, i*, u*, slice, str, tuple, unit, LazyCell, OnceCell, SyncUnsafeCell, Cel, Ref,
+// char, slice, array, str, tuple, unit, LazyCell, OnceCell, SyncUnsafeCell, Cel, Ref,
 // RefCell, RefMut, UnsafeCell, PhantomData, ManuallyDrop, Option, Result, Atomic*
 
 // alloc:

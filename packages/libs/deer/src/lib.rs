@@ -419,6 +419,7 @@ pub trait Deserializer<'de>: Sized {
     where
         V: Visitor<'de>;
 
+    // TODO: in theory - can't we defer this?!
     fn deserialize_char<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>;
