@@ -32,6 +32,19 @@ export const useBlockProtocolCreateEntityType = (
         };
       }
 
+      /** @todo - Can we refactor so we don't even need this? It shouldn't be reachable if not in readonly mode */
+      if (!ownedById) {
+        return {
+          errors: [
+            {
+              code: "FORBIDDEN",
+              message:
+                "Operation can't be carried out without providing an `ownedById`",
+            },
+          ],
+        };
+      }
+
       if (!data) {
         return {
           errors: [
@@ -41,10 +54,6 @@ export const useBlockProtocolCreateEntityType = (
             },
           ],
         };
-      }
-
-      if (!ownedById) {
-        throw new Error("Host application must specified an ownedById");
       }
 
       const { entityType } = data;

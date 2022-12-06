@@ -9,6 +9,7 @@ import { createEntityMutation } from "../../../../graphql/queries/knowledge/enti
 import { CreateEntityMessageCallback } from "./knowledge-shim";
 
 export const useBlockProtocolCreateEntity = (
+  ownedById: string | null,
   readonly?: boolean,
 ): {
   createEntity: CreateEntityMessageCallback;
@@ -34,6 +35,12 @@ export const useBlockProtocolCreateEntity = (
         };
       }
 
+      if (!ownedById) {
+        throw new Error(
+          "Hook that mutates data was constructed, and called, without providing an `ownedById`",
+        );
+      }
+
       if (!data) {
         return {
           errors: [
@@ -45,7 +52,7 @@ export const useBlockProtocolCreateEntity = (
         };
       }
 
-      const { entityTypeId, ownedById, properties, linkData } = data;
+      const { entityTypeId, properties, linkData } = data;
 
       const { data: createEntityResponseData } = await createFn({
         variables: {
@@ -73,7 +80,7 @@ export const useBlockProtocolCreateEntity = (
         data: createdEntity,
       };
     },
-    [createFn, readonly],
+    [createFn, ownedById, readonly],
   );
 
   return {
