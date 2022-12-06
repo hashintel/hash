@@ -5,6 +5,7 @@ import { GraphApi } from "../graph";
 import { UserModel } from "../model";
 import { createKratosIdentity } from "../auth/ory-kratos";
 import { isDevEnv } from "../lib/env-config";
+import { systemUserAccountId } from "../graph/system-user";
 
 type SeededUser = {
   email: string;
@@ -37,11 +38,9 @@ const devUsers: readonly SeededUser[] = [
 export const ensureUsersAreSeeded = async ({
   graphApi,
   logger,
-  systemUserAccountId,
 }: {
   graphApi: GraphApi;
   logger: Logger;
-  systemUserAccountId: string;
 }): Promise<UserModel[]> => {
   const createdUsers = [];
 

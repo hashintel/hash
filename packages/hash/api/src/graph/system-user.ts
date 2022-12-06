@@ -10,7 +10,6 @@ import {
 } from "@hashintel/hash-subgraph";
 import { extractBaseUri } from "@blockprotocol/type-system";
 import { UserModel } from "../model";
-import { PageDefinition, seedPages } from "../seed-data/seed-pages";
 import { createKratosIdentity } from "../auth/ory-kratos";
 import { getRequiredEnv } from "../util";
 
@@ -120,18 +119,6 @@ export const ensureSystemUserExists = async (params: {
 
     logger.info(
       `System user available with shortname = "${systemUserModel.getShortname()}"`,
-    );
-
-    const pageTitles: PageDefinition[] = [
-      { title: "First" },
-      { title: "Second" },
-      { title: "Third" },
-    ];
-
-    await seedPages(pageTitles, systemUserModel.getEntityUuid(), params);
-
-    logger.info(
-      `System user with shortname = "${systemUserModel.getShortname()}" now has seeded pages.`,
     );
   }
 };
