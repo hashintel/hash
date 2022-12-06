@@ -1,7 +1,7 @@
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import {
   createGraphClient,
-  ensureHashAppIsInitialized,
+  ensureSystemGraphIsInitialized,
 } from "@hashintel/hash-api/src/graph";
 import { SYSTEM_TYPES } from "@hashintel/hash-api/src/graph/system-types";
 import {
@@ -38,7 +38,7 @@ describe("Comment model class", () => {
 
   beforeAll(async () => {
     await TypeSystemInitializer.initialize();
-    await ensureHashAppIsInitialized({ graphApi, logger });
+    await ensureSystemGraphIsInitialized({ graphApi, logger });
 
     testUser = await createTestUser(graphApi, "commentModelTest", logger);
 

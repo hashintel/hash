@@ -41,7 +41,7 @@ export const createGraphClient = (
   return new GraphApiClient(config, basePath, axiosInstance);
 };
 
-export const ensureHashAppIsInitialized = async (params: {
+export const ensureSystemGraphIsInitialized = async (params: {
   graphApi: GraphApi;
   logger: Logger;
 }) => {

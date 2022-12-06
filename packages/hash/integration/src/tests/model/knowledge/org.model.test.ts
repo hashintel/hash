@@ -1,7 +1,7 @@
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import {
   createGraphClient,
-  ensureHashAppIsInitialized,
+  ensureSystemGraphIsInitialized,
 } from "@hashintel/hash-api/src/graph";
 import { OrgModel } from "@hashintel/hash-api/src/model";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
@@ -28,7 +28,7 @@ const graphApi = createGraphClient(logger, {
 describe("Org model class", () => {
   beforeAll(async () => {
     await TypeSystemInitializer.initialize();
-    await ensureHashAppIsInitialized({ graphApi, logger });
+    await ensureSystemGraphIsInitialized({ graphApi, logger });
   });
 
   let createdOrg: OrgModel;

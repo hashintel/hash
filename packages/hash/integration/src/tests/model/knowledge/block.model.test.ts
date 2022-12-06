@@ -1,7 +1,7 @@
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import {
   createGraphClient,
-  ensureHashAppIsInitialized,
+  ensureSystemGraphIsInitialized,
 } from "@hashintel/hash-api/src/graph";
 import {
   BlockModel,
@@ -44,7 +44,7 @@ describe("Block model class", () => {
 
   beforeAll(async () => {
     await TypeSystemInitializer.initialize();
-    await ensureHashAppIsInitialized({ graphApi, logger });
+    await ensureSystemGraphIsInitialized({ graphApi, logger });
 
     testUser = await createTestUser(graphApi, "blockModelTest", logger);
 

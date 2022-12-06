@@ -1,7 +1,7 @@
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import {
   createGraphClient,
-  ensureHashAppIsInitialized,
+  ensureSystemGraphIsInitialized,
 } from "@hashintel/hash-api/src/graph";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
@@ -47,7 +47,7 @@ describe("Entity CRU", () => {
 
   beforeAll(async () => {
     await TypeSystemInitializer.initialize();
-    await ensureHashAppIsInitialized({ graphApi, logger });
+    await ensureSystemGraphIsInitialized({ graphApi, logger });
 
     testUser = await createTestUser(graphApi, "entitytest", logger);
     testUser2 = await createTestUser(graphApi, "entitytest", logger);

@@ -43,7 +43,7 @@ import { setupStorageProviders } from "./storage/storage-provider-lookup";
 import { getAwsRegion } from "./lib/aws-config";
 import { setupTelemetry } from "./telemetry/snowplow-setup";
 import { connectToTaskExecutor } from "./task-execution";
-import { createGraphClient, ensureHashAppIsInitialized } from "./graph";
+import { createGraphClient, ensureSystemGraphIsInitialized } from "./graph";
 import { seedOrgsAndUsers } from "./seed-data";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
@@ -130,7 +130,7 @@ const main = async () => {
     port: graphApiPort,
   });
 
-  await ensureHashAppIsInitialized({ graphApi, logger });
+  await ensureSystemGraphIsInitialized({ graphApi, logger });
 
   // This will seed users, an org and pages.
   // Configurable through environment variables.

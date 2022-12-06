@@ -1,6 +1,6 @@
 import { createKratosIdentity } from "@hashintel/hash-api/src/auth/ory-kratos";
 import {
-  ensureHashAppIsInitialized,
+  ensureSystemGraphIsInitialized,
   GraphApi,
 } from "@hashintel/hash-api/src/graph";
 import { OrgModel, UserModel } from "@hashintel/hash-api/src/model";
@@ -25,7 +25,7 @@ export const createTestUser = async (
   shortNamePrefix: string,
   logger: Logger,
 ) => {
-  await ensureHashAppIsInitialized({ graphApi, logger });
+  await ensureSystemGraphIsInitialized({ graphApi, logger });
 
   const shortname = generateRandomShortname(shortNamePrefix);
 
