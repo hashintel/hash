@@ -165,6 +165,7 @@ use crate::{
 ///     # assert!(report.contains::<ConfigError>());
 ///     # assert_eq!(report.downcast_ref::<RuntimeError>(), Some(&RuntimeError::InvalidConfig(PathBuf::from("./path/to/config.file"))));
 ///     # owo_colors::set_override(true);
+///     # #[cfg(rust_1_65)]
 ///     # fn render(value: String) -> String {
 ///     #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
 ///     #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
