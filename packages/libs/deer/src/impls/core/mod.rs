@@ -6,11 +6,11 @@ mod non_zero;
 mod string;
 mod unit;
 
-// DONE: f32, f64, i*, u*, char, str, array, slice, array, str, Atomic*
+// DONE: f32, f64, i*, u*, char, str, array, slice, array, str, Atomic*, NonZero, Unit
 // core:
-// tuple, unit, LazyCell, OnceCell, SyncUnsafeCell, Cel, Ref,
+// tuple, LazyCell, OnceCell, SyncUnsafeCell, Cel, Ref,
 // RefCell, RefMut, UnsafeCell, PhantomData, ManuallyDrop, Option, Result, Wrapping, Bound, Range,
-// Ip*, Reverse, PhantomData, NonZero
+// Ip*, Reverse, PhantomData
 
 // alloc:
 // Cow, Box, ThinBox, BinaryHeap, BTreeMap, BTreeSet, LinkedList, VecDequeue, Vec, CString, Rc,
