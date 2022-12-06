@@ -6,8 +6,28 @@ import {
 } from "@hashintel/hash-design-system";
 import { Box, Stack, Typography } from "@mui/material";
 import { bindDialog, PopupState } from "material-ui-popup-state/hooks";
-import { ReactNode } from "react";
+import { Fragment } from "react";
 import { Modal } from "../../../../components/Modals/Modal";
+
+type CountItemProps = { label: string; count: number };
+
+const CountItem = ({ label, count }: CountItemProps) => (
+  <strong>
+    {count} {label}
+    {count > 1 ? <>s</> : null}
+  </strong>
+);
+
+const CountGroup = ({ items }: { items: CountItemProps[] }) => (
+  <>
+    {items.map((item, index) => (
+      <Fragment key={item.label}>
+        <CountItem {...item} />
+        {items[index + 2] ? <>, </> : items[index + 1] ? <> and </> : <>.</>}
+      </Fragment>
+    ))}
+  </>
+);
 
 export interface DeleteDataTypeModalProps {
   popupState: PopupState;
@@ -73,26 +93,7 @@ export const DeleteDataTypeModal = ({
               variant="smallTextLabels"
               sx={{ color: ({ palette }) => palette.gray[80] }}
             >
-              This array contains
-              {countArray.reduce(
-                (nodeArray: ReactNode[], { label, count }, index) => {
-                  return [
-                    ...nodeArray,
-                    <b key="dataType">{` ${count} ${label}${
-                      count > 1 ? "s" : ""
-                    }`}</b>,
-                    ...[
-                      countArray.length >= index + 3
-                        ? ","
-                        : countArray.length >= index + 2
-                        ? " and"
-                        : "",
-                    ],
-                  ];
-                },
-                [],
-              )}
-              .
+              This array contains <CountGroup items={countArray} />
               {dataTypeCount + propertyObjectCount + arrayCount > 1
                 ? " These "
                 : " This "}
