@@ -1,6 +1,7 @@
 import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import { getPropertyTypesByBaseUri } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
 import { get } from "lodash";
+import { BaseUri } from "@blockprotocol/type-system";
 import { PropertyRow } from "../../types";
 import { getExpectedTypesOfPropertyType } from "./get-expected-types-of-property-type";
 import { isPropertyValueNested } from "../../../../../../../../../lib/typeguards";
@@ -43,11 +44,11 @@ export const generatePropertyRowRecursively = ({
   requiredPropertyTypes,
   depth = 0,
 }: {
-  propertyTypeBaseUri: string;
-  propertyKeyChain: string[];
+  propertyTypeBaseUri: BaseUri;
+  propertyKeyChain: BaseUri[];
   entity: Entity;
   entitySubgraph: Subgraph<SubgraphRootTypes["entity"]>;
-  requiredPropertyTypes: string[];
+  requiredPropertyTypes: BaseUri[];
   depth?: number;
 }): PropertyRow => {
   const propertyTypeVersions = getPropertyTypesByBaseUri(
