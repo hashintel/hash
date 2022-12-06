@@ -11,11 +11,11 @@ import { Modal } from "../../../../components/Modals/Modal";
 
 export interface DeleteDataTypeModalProps {
   popupState: PopupState;
-  onClose?: () => void;
+  onClose: () => void;
   onDelete?: () => void;
-  dataTypeCount?: number;
-  arrayCount?: number;
-  propertyObjectCount?: number;
+  dataTypeCount: number;
+  arrayCount: number;
+  propertyObjectCount: number;
 }
 
 export const DeleteDataTypeModal = ({
