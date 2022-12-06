@@ -126,7 +126,8 @@ use crate::{
 ///     # const _: &str = stringify! {
 ///     ...
 ///     # };
-///     # fmt.write_str("runtime error")
+///     # let Self::InvalidConfig(path) = self;
+///     # write!(fmt, "could not parse {path:?}")
 ///     # }
 /// }
 /// impl fmt::Display for ConfigError {
@@ -134,7 +135,7 @@ use crate::{
 ///     # const _: &str = stringify! {
 ///     ...
 ///     # };
-///     # fmt.write_str("config error")
+///     # fmt.write_str("config file is invalid")
 ///     # }
 /// }
 ///
