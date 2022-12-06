@@ -1,3 +1,4 @@
+mod floating;
 mod integral;
 
 use core::{marker::PhantomData, mem, mem::MaybeUninit, ptr};
