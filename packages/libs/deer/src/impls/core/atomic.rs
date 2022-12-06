@@ -1,15 +1,9 @@
-#[rustfmt::skip] #[cfg(all(target_has_atomic = "128", nightly))]
+#[cfg(nightly)]
 use core::sync::atomic::{AtomicI128, AtomicU128};
-#[rustfmt::skip] #[cfg(target_has_atomic = "ptr")]
-use core::sync::atomic::{AtomicIsize, AtomicUsize};
-#[rustfmt::skip] #[cfg(target_has_atomic = "64")]
-use core::sync::atomic::{AtomicI64, AtomicU64};
-#[rustfmt::skip] #[cfg(target_has_atomic = "32")]
-use core::sync::atomic::{AtomicI32, AtomicU32};
-#[rustfmt::skip] #[cfg(target_has_atomic = "16")]
-use core::sync::atomic::{AtomicI16, AtomicU16};
-#[rustfmt::skip] #[cfg(target_has_atomic = "8")]
-use core::sync::atomic::{AtomicI8, AtomicU8};
+use core::sync::atomic::{
+    AtomicI16, AtomicI32, AtomicI64, AtomicI8, AtomicIsize, AtomicU16, AtomicU32, AtomicU64,
+    AtomicU8, AtomicUsize,
+};
 
 use crate::{error::DeserializeError, Deserialize, Deserializer, Document, Reflection, Schema};
 
@@ -39,25 +33,20 @@ macro_rules! impl_atomic {
     };
 }
 
-// target_has_atomic has been stabilized since 1.60
-// https://github.com/rust-lang/rust/pull/93824
-// but is not properly documented
 impl_atomic![
-    #[cfg(target_has_atomic = "8")] AtomicU8 <- u8,
-    #[cfg(target_has_atomic = "16")] AtomicU16 <- u16,
-    #[cfg(target_has_atomic = "32")] AtomicU32 <- u32,
-    #[cfg(target_has_atomic = "64")] AtomicU64 <- u64,
-    #[cfg(all(target_has_atomic = "128", nightly))] AtomicU128 <- u128,
-    // `ptr` is how `usize` is enabled in the `core` crate
-    #[cfg(target_has_atomic = "ptr")] AtomicUsize <- usize,
+    AtomicU8 <- u8,
+    AtomicU16 <- u16,
+    AtomicU32 <- u32,
+    AtomicU64 <- u64,
+    #[cfg(nightly)] AtomicU128 <- u128,
+    AtomicUsize <- usize,
 ];
 
 impl_atomic![
-    #[cfg(target_has_atomic = "8")] AtomicI8 <- i8,
-    #[cfg(target_has_atomic = "16")] AtomicI16 <- i16,
-    #[cfg(target_has_atomic = "32")] AtomicI32 <- i32,
-    #[cfg(target_has_atomic = "64")] AtomicI64 <- i64,
-    #[cfg(all(target_has_atomic = "128", nightly))] AtomicI128 <- i128,
-    // `ptr` is how `usize` is enabled in the `core` crate
-    #[cfg(target_has_atomic = "ptr")] AtomicIsize <- isize,
+    AtomicI8 <- i8,
+    AtomicI16 <- i16,
+    AtomicI32 <- i32,
+    AtomicI64 <- i64,
+    #[cfg(nightly)] AtomicI128 <- i128,
+    AtomicIsize <- isize,
 ];
