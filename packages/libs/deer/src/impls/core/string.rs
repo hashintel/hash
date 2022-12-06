@@ -1,10 +1,10 @@
-use alloc::string::String;
 use core::marker::PhantomData;
 
 use error_stack::ResultExt;
 
 use crate::{
     error::{DeserializeError, VisitorError},
+    schema::BorrowReflection,
     Deserialize, Deserializer, Document, Reflection, Schema, Visitor,
 };
 
@@ -14,7 +14,7 @@ impl<'de: 'a, 'a> Visitor<'de> for StrVisitor<'a> {
     type Value = &'a str;
 
     fn expecting(&self) -> Document {
-        Document::new::<str>()
+        Document::new::<&str>()
     }
 
     fn visit_borrowed_str(self, v: &'de str) -> error_stack::Result<Self::Value, VisitorError> {
@@ -22,10 +22,16 @@ impl<'de: 'a, 'a> Visitor<'de> for StrVisitor<'a> {
     }
 }
 
-impl<'a> Reflection for &'a str {
+struct StringReflection;
+
+impl Reflection for StringReflection {
     fn schema(_: &mut Document) -> Schema {
         Schema::new("string")
     }
+}
+
+impl BorrowReflection for &str {
+    type Reflection = StringReflection;
 }
 
 impl<'de: 'a, 'a> Deserialize<'de> for &'a str {
