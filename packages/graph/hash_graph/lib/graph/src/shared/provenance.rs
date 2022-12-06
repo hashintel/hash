@@ -1,6 +1,7 @@
 use core::fmt;
 
 use serde::{Deserialize, Serialize};
+use tokio_postgres::types::{FromSql, ToSql};
 use utoipa::{openapi::Schema, ToSchema};
 use uuid::Uuid;
 
@@ -9,8 +10,20 @@ use crate::identifier::account::AccountId;
 macro_rules! define_provenance_id {
     ($name:tt) => {
         #[derive(
-            Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize,
+            Debug,
+            Copy,
+            Clone,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            Serialize,
+            Deserialize,
+            FromSql,
+            ToSql,
         )]
+        #[postgres(transparent)]
         #[repr(transparent)]
         pub struct $name(AccountId);
 

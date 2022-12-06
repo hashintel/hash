@@ -15,8 +15,21 @@ use crate::{
 };
 
 #[derive(
-    Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize, ToSchema,
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    Serialize,
+    Deserialize,
+    ToSchema,
+    FromSql,
+    ToSql,
 )]
+#[postgres(transparent)]
 #[repr(transparent)]
 pub struct EntityUuid(Uuid);
 
@@ -203,7 +216,7 @@ impl EntityMetadata {
 
 /// A record of an [`Entity`] that has been persisted in the datastore, with its associated
 /// metadata.
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Entity {
     properties: EntityProperties,

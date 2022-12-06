@@ -169,6 +169,8 @@ impl<'q> Filter<'q, Entity> {
     /// [`EntityEditionId`].
     #[must_use]
     pub fn for_entity_by_edition_id(edition_id: EntityEditionId) -> Self {
+        // TODO: Adjust structural queries for temporal versioning
+        //   see https://app.asana.com/0/0/1203491211535116/f
         Self::All(vec![
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::OwnedById)),
@@ -185,7 +187,7 @@ impl<'q> Filter<'q, Entity> {
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::Version)),
                 Some(FilterExpression::Parameter(Parameter::Timestamp(
-                    edition_id.version().inner(),
+                    edition_id.version().decision_time().from,
                 ))),
             ),
         ])
@@ -194,6 +196,8 @@ impl<'q> Filter<'q, Entity> {
     /// TODO
     #[must_use]
     pub fn for_outgoing_link_by_source_entity_edition_id(edition_id: EntityEditionId) -> Self {
+        // TODO: Adjust structural queries for temporal versioning
+        //   see https://app.asana.com/0/0/1203491211535116/f
         Self::All(vec![
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
@@ -216,7 +220,7 @@ impl<'q> Filter<'q, Entity> {
                     Box::new(EntityQueryPath::Version),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Timestamp(
-                    edition_id.version().inner(),
+                    edition_id.version().decision_time().from,
                 ))),
             ),
         ])
@@ -225,6 +229,8 @@ impl<'q> Filter<'q, Entity> {
     /// TODO
     #[must_use]
     pub fn for_incoming_link_by_source_entity_edition_id(edition_id: EntityEditionId) -> Self {
+        // TODO: Adjust structural queries for temporal versioning
+        //   see https://app.asana.com/0/0/1203491211535116/f
         Self::All(vec![
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::RightEntity(
@@ -247,7 +253,7 @@ impl<'q> Filter<'q, Entity> {
                     Box::new(EntityQueryPath::Version),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Timestamp(
-                    edition_id.version().inner(),
+                    edition_id.version().decision_time().from,
                 ))),
             ),
         ])
@@ -256,6 +262,8 @@ impl<'q> Filter<'q, Entity> {
     /// TODO
     #[must_use]
     pub fn for_left_entity_by_entity_edition_id(edition_id: EntityEditionId) -> Self {
+        // TODO: Adjust structural queries for temporal versioning
+        //   see https://app.asana.com/0/0/1203491211535116/f
         Self::All(vec![
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::OutgoingLinks(
@@ -278,7 +286,7 @@ impl<'q> Filter<'q, Entity> {
                     Box::new(EntityQueryPath::Version),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Timestamp(
-                    edition_id.version().inner(),
+                    edition_id.version().decision_time().from,
                 ))),
             ),
         ])
@@ -287,6 +295,8 @@ impl<'q> Filter<'q, Entity> {
     /// TODO
     #[must_use]
     pub fn for_right_entity_by_entity_edition_id(edition_id: EntityEditionId) -> Self {
+        // TODO: Adjust structural queries for temporal versioning
+        //   see https://app.asana.com/0/0/1203491211535116/f
         Self::All(vec![
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::IncomingLinks(
@@ -309,7 +319,7 @@ impl<'q> Filter<'q, Entity> {
                     Box::new(EntityQueryPath::Version),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Timestamp(
-                    edition_id.version().inner(),
+                    edition_id.version().decision_time().from,
                 ))),
             ),
         ])

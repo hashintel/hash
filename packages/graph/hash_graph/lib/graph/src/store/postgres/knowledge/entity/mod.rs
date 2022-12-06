@@ -11,16 +11,15 @@ use uuid::Uuid;
 
 use crate::{
     identifier::{
-        knowledge::{EntityEditionId, EntityId, EntityIdAndTimestamp},
+        knowledge::{EntityEditionId, EntityId, EntityIdAndTimestamp, EntityVersion},
         ontology::OntologyTypeEditionId,
-        GraphElementEditionId,
+        GraphElementEditionId, TimeSpan, Timestamp,
     },
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
-    provenance::{OwnedById, UpdatedById},
+    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         crud::Read,
-        error::ArchivalError,
-        postgres::{DependencyContext, DependencyStatus, HistoricMove},
+        postgres::{DependencyContext, DependencyStatus},
         query::Filter,
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
@@ -122,19 +121,23 @@ impl<C: AsClient> PostgresStore<C> {
                             )
                             .await?
                             .into_iter()
-                            .map(|entity| entity.metadata().edition_id())
+                            .map(|entity| {
+                                entity
+                                    .metadata()
+                                    .edition_id()
+                                    .version()
+                                    .decision_time()
+                                    .from
+                            })
                             .collect();
 
                         all_outgoing_link_entity_editions.sort();
 
-                        let earliest_version = all_outgoing_link_entity_editions
-                            .into_iter()
-                            .next()
-                            .expect(
+                        let earliest_version =
+                            all_outgoing_link_entity_editions.into_iter().next().expect(
                                 "we got the edition id from the entity in the first place, there \
                                  must be at least one version",
-                            )
-                            .version();
+                            );
 
                         subgraph.edges.insert(Edge::KnowledgeGraph {
                             edition_id: entity_edition_id,
@@ -146,7 +149,7 @@ impl<C: AsClient> PostgresStore<C> {
                                     reversed: true,
                                     right_endpoint: EntityIdAndTimestamp::new(
                                         outgoing_link_entity.metadata().edition_id().base_id(),
-                                        earliest_version.inner(),
+                                        earliest_version,
                                     ),
                                 },
                             ),
@@ -189,19 +192,23 @@ impl<C: AsClient> PostgresStore<C> {
                             )
                             .await?
                             .into_iter()
-                            .map(|entity| entity.metadata().edition_id())
+                            .map(|entity| {
+                                entity
+                                    .metadata()
+                                    .edition_id()
+                                    .version()
+                                    .decision_time()
+                                    .from
+                            })
                             .collect();
 
                         all_incoming_link_entity_editions.sort();
 
-                        let earliest_version = all_incoming_link_entity_editions
-                            .into_iter()
-                            .next()
-                            .expect(
+                        let earliest_version =
+                            all_incoming_link_entity_editions.into_iter().next().expect(
                                 "we got the edition id from the entity in the first place, there \
                                  must be at least one version",
-                            )
-                            .version();
+                            );
 
                         subgraph.edges.insert(Edge::KnowledgeGraph {
                             edition_id: entity_edition_id,
@@ -213,7 +220,7 @@ impl<C: AsClient> PostgresStore<C> {
                                     reversed: true,
                                     right_endpoint: EntityIdAndTimestamp::new(
                                         incoming_link_entity.metadata().edition_id().base_id(),
-                                        earliest_version.inner(),
+                                        earliest_version,
                                     ),
                                 },
                             ),
@@ -252,19 +259,22 @@ impl<C: AsClient> PostgresStore<C> {
                         )
                         .await?
                         .into_iter()
-                        .map(|entity| entity.metadata().edition_id())
+                        .map(|entity| {
+                            entity
+                                .metadata()
+                                .edition_id()
+                                .version()
+                                .decision_time()
+                                .from
+                        })
                         .collect();
 
                         all_self_editions.sort();
 
-                        let earliest_version = all_self_editions
-                            .into_iter()
-                            .next()
-                            .expect(
-                                "we got the edition id from the entity in the first place, there \
-                                 must be at least one version",
-                            )
-                            .version();
+                        let earliest_version = all_self_editions.into_iter().next().expect(
+                            "we got the edition id from the entity in the first place, there must \
+                             be at least one version",
+                        );
 
                         subgraph.edges.insert(Edge::KnowledgeGraph {
                             edition_id: entity_edition_id,
@@ -276,7 +286,7 @@ impl<C: AsClient> PostgresStore<C> {
                                     reversed: false,
                                     right_endpoint: EntityIdAndTimestamp::new(
                                         left_entity.metadata().edition_id().base_id(),
-                                        earliest_version.inner(),
+                                        earliest_version,
                                     ),
                                 },
                             ),
@@ -315,19 +325,22 @@ impl<C: AsClient> PostgresStore<C> {
                         )
                         .await?
                         .into_iter()
-                        .map(|entity| entity.metadata().edition_id())
+                        .map(|entity| {
+                            entity
+                                .metadata()
+                                .edition_id()
+                                .version()
+                                .decision_time()
+                                .from
+                        })
                         .collect();
 
                         all_self_editions.sort();
 
-                        let earliest_version = all_self_editions
-                            .into_iter()
-                            .next()
-                            .expect(
-                                "we got the edition id from the entity in the first place, there \
-                                 must be at least one version",
-                            )
-                            .version();
+                        let earliest_version = all_self_editions.into_iter().next().expect(
+                            "we got the edition id from the entity in the first place, there must \
+                             be at least one version",
+                        );
 
                         subgraph.edges.insert(Edge::KnowledgeGraph {
                             edition_id: entity_edition_id,
@@ -339,7 +352,7 @@ impl<C: AsClient> PostgresStore<C> {
                                     reversed: false,
                                     right_endpoint: EntityIdAndTimestamp::new(
                                         right_entity.metadata().edition_id().base_id(),
-                                        earliest_version.inner(),
+                                        earliest_version,
                                     ),
                                 },
                             ),
@@ -372,45 +385,82 @@ impl<C: AsClient> PostgresStore<C> {
 impl<C: AsClient> EntityStore for PostgresStore<C> {
     async fn create_entity(
         &mut self,
-        properties: EntityProperties,
-        entity_type_id: VersionedUri,
-        owned_by_id: OwnedById,
-        entity_uuid: Option<EntityUuid>,
+        entity_id: EntityId,
+        decision_time: Option<Timestamp>,
         updated_by_id: UpdatedById,
+        archived: bool,
+        entity_type_id: VersionedUri,
+        properties: EntityProperties,
         link_data: Option<LinkData>,
     ) -> Result<EntityMetadata, InsertionError> {
-        let transaction = PostgresStore::new(
-            self.as_mut_client()
-                .transaction()
-                .await
-                .into_report()
-                .change_context(InsertionError)?,
-        );
+        let entity_type_version_id = self
+            .version_id_by_uri(&entity_type_id)
+            .await
+            .change_context(InsertionError)?;
 
-        let entity_uuid = entity_uuid.unwrap_or_else(|| EntityUuid::new(Uuid::new_v4()));
-        let entity_id = EntityId::new(owned_by_id, entity_uuid);
+        let properties = serde_json::to_value(properties)
+            .into_report()
+            .change_context(InsertionError)?;
 
-        // TODO: match on and return the relevant error
-        //   https://app.asana.com/0/1200211978612931/1202574350052904/f
-        transaction.insert_entity_uuid(entity_uuid).await?;
-        let metadata = transaction
-            .insert_entity(
-                entity_id,
-                properties,
-                entity_type_id,
-                updated_by_id,
-                link_data,
+        let row = self
+            .as_client()
+            .query_one(
+                r#"
+                SELECT
+                    entity_edition_id,
+                    lower(decision_time),
+                    NULLIF(upper(decision_time), 'infinity'),
+                    lower(system_time),
+                    NULLIF(upper(system_time), 'infinity')
+                FROM
+                    create_entity($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13);
+                "#,
+                &[
+                    &entity_id.owned_by_id(),
+                    &entity_id.entity_uuid(),
+                    &decision_time,
+                    &updated_by_id,
+                    &archived,
+                    &entity_type_version_id,
+                    &properties,
+                    &link_data
+                        .as_ref()
+                        .map(|metadata| metadata.left_entity_id().owned_by_id()),
+                    &link_data
+                        .as_ref()
+                        .map(|metadata| metadata.left_entity_id().entity_uuid()),
+                    &link_data
+                        .as_ref()
+                        .map(|metadata| metadata.right_entity_id().owned_by_id()),
+                    &link_data
+                        .as_ref()
+                        .map(|metadata| metadata.right_entity_id().entity_uuid()),
+                    &link_data.as_ref().map(LinkData::left_to_right_order),
+                    &link_data.as_ref().map(LinkData::right_to_left_order),
+                ],
             )
-            .await?;
-
-        transaction
-            .client
-            .commit()
             .await
             .into_report()
             .change_context(InsertionError)?;
 
-        Ok(metadata)
+        // TODO: Expose temporal versions to backend
+        //   see https://app.asana.com/0/0/1203444301722133/f
+        let _version_id: i64 = row.get(0);
+        let decision_time = TimeSpan {
+            from: row.get(1),
+            to: row.get(2),
+        };
+        let system_time = TimeSpan {
+            from: row.get(3),
+            to: row.get(4),
+        };
+
+        Ok(EntityMetadata::new(
+            EntityEditionId::new(entity_id, EntityVersion::new(decision_time, system_time)),
+            entity_type_id,
+            ProvenanceMetadata::new(updated_by_id),
+            archived,
+        ))
     }
 
     #[doc(hidden)]
@@ -522,138 +572,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         updated_by_id: UpdatedById,
         order: EntityLinkOrder,
     ) -> Result<EntityMetadata, UpdateError> {
-        let transaction = PostgresStore::new(
-            self.as_mut_client()
-                .transaction()
-                .await
-                .into_report()
-                .change_context(UpdateError)?,
-        );
-
-        transaction
-            .lock_latest_entity_for_update(entity_id)
-            .await
-            .change_context(UpdateError)?;
-
-        let link_data = transaction
-            .move_latest_entity_to_histories(entity_id, HistoricMove::ForNewVersion)
-            .await
-            .change_context(UpdateError)?;
-
-        let link_data = match (link_data, order.left(), order.right()) {
-            (None, None, None) => None,
-            (None, ..) => bail!(
-                Report::new(UpdateError)
-                    .attach_printable("cannot update link order of an entity that is not a link")
-            ),
-            (Some(link_data), left, right) => {
-                let new_left_to_right_order = match (link_data.left_to_right_order(), left) {
-                    (None, None) => None,
-                    (Some(_), None) => bail!(Report::new(UpdateError).attach_printable(
-                        "left to right order was set on entity but new order was not provided"
-                    )),
-                    (None, Some(_)) => bail!(Report::new(UpdateError).attach_printable(
-                        "cannot set left to right order of a link that does not have a left to \
-                         right order"
-                    )),
-                    (Some(_), Some(new_left)) => Some(new_left),
-                };
-                let new_right_to_left_order = match (link_data.right_to_left_order(), right) {
-                    (None, None) => None,
-                    (Some(_), None) => bail!(Report::new(UpdateError).attach_printable(
-                        "right to left order was set on entity but new order was not provided"
-                    )),
-                    (None, Some(_)) => bail!(Report::new(UpdateError).attach_printable(
-                        "cannot set right to left order of a link that does not have a right to \
-                         left order"
-                    )),
-                    (Some(_), Some(new_right)) => Some(new_right),
-                };
-                Some(LinkData::new(
-                    link_data.left_entity_id(),
-                    link_data.right_entity_id(),
-                    new_left_to_right_order,
-                    new_right_to_left_order,
-                ))
-            }
-        };
-
-        let entity_metadata = transaction
-            .insert_entity(
-                entity_id,
-                properties,
-                entity_type_id,
-                updated_by_id,
-                link_data,
-            )
-            .await
-            .change_context(UpdateError)?;
-
-        transaction
-            .client
-            .commit()
-            .await
-            .into_report()
-            .change_context(UpdateError)?;
-
-        Ok(entity_metadata)
-    }
-
-    async fn archive_entity(
-        &mut self,
-        entity_id: EntityId,
-        actor_id: UpdatedById,
-    ) -> Result<(), ArchivalError> {
-        let transaction = PostgresStore::new(
-            self.as_mut_client()
-                .transaction()
-                .await
-                .into_report()
-                .change_context(ArchivalError)?,
-        );
-
-        transaction
-            .lock_latest_entity_for_update(entity_id)
-            .await
-            .change_context(ArchivalError)?;
-
-        // Prepare to create a new history entry to mark archival
-        let old_entity: Entity = transaction
-            .read_one(&Filter::for_latest_entity_by_entity_id(entity_id))
-            .await
-            .change_context(ArchivalError)?;
-
-        // Move current latest edition to the historic table
-        transaction
-            .move_latest_entity_to_histories(entity_id, HistoricMove::ForNewVersion)
-            .await
-            .change_context(ArchivalError)?;
-
-        // Insert latest edition to be the historic archival marker
-        transaction
-            .insert_entity(
-                entity_id,
-                old_entity.properties().clone(),
-                old_entity.metadata().entity_type_id().clone(),
-                actor_id,
-                old_entity.link_data(),
-            )
-            .await
-            .change_context(ArchivalError)?;
-
-        // Archive latest edition, leaving nothing from the entity behind.
-        transaction
-            .move_latest_entity_to_histories(entity_id, HistoricMove::ForArchival)
-            .await
-            .change_context(ArchivalError)?;
-
-        transaction
-            .client
-            .commit()
-            .await
-            .into_report()
-            .change_context(ArchivalError)?;
-
-        Ok(())
+        todo!("Support updating of entities: https://app.asana.com/0/0/1203464975244303/f")
     }
 }

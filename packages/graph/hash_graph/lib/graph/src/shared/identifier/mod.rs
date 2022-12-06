@@ -15,6 +15,12 @@ pub mod ontology;
 
 pub type Timestamp = DateTime<Utc>;
 
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+pub struct TimeSpan {
+    pub from: Timestamp,
+    pub to: Option<Timestamp>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum GraphElementId {

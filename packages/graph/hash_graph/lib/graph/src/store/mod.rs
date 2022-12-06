@@ -11,14 +11,13 @@ use async_trait::async_trait;
 use error_stack::{Context, Result};
 use type_system::{uri::VersionedUri, DataType, EntityType, PropertyType};
 
-use self::error::ArchivalError;
 pub use self::{
     error::{BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError, UpdateError},
     pool::StorePool,
     postgres::{AsClient, PostgresStore, PostgresStorePool},
 };
 use crate::{
-    identifier::{account::AccountId, knowledge::EntityId},
+    identifier::{account::AccountId, knowledge::EntityId, Timestamp},
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
     ontology::{
         DataTypeWithMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
@@ -327,11 +326,12 @@ pub trait EntityStore: crud::Read<Entity> {
     /// - if an [`EntityUuid`] was supplied and already exists in the store
     async fn create_entity(
         &mut self,
-        properties: EntityProperties,
+        entity_id: EntityId,
+        decision_time: Option<Timestamp>,
+        updated_by_id: UpdatedById,
+        archived: bool,
         entity_type_id: VersionedUri,
-        owned_by_id: OwnedById,
-        entity_uuid: Option<EntityUuid>,
-        actor_id: UpdatedById,
+        properties: EntityProperties,
         link_data: Option<LinkData>,
     ) -> Result<EntityMetadata, InsertionError>;
 
@@ -391,19 +391,4 @@ pub trait EntityStore: crud::Read<Entity> {
         actor_id: UpdatedById,
         order: EntityLinkOrder,
     ) -> Result<EntityMetadata, UpdateError>;
-
-    /// Archives an [`Entity`].
-    ///
-    /// # Errors:
-    ///
-    /// - if there isn't an [`Entity`] associated with the [`EntityId`] in the latest entities
-    /// table
-    ///   - this could be because the [`Entity`] doesn't exist, or
-    ///   - the [`Entity`] has already been archived
-    /// - if the account referred to by `actor_id` does not exist
-    async fn archive_entity(
-        &mut self,
-        entity_id: EntityId,
-        actor_id: UpdatedById,
-    ) -> Result<(), ArchivalError>;
 }
