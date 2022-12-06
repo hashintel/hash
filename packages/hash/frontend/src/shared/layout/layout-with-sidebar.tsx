@@ -1,4 +1,4 @@
-import { ReactNode, FunctionComponent } from "react";
+import { ReactNode, FunctionComponent, useState } from "react";
 import { Box, Fade, styled, Tooltip } from "@mui/material";
 import { IconButton } from "@hashintel/hash-design-system";
 import { EditBarScroller } from "../../pages/[account-slug]/types/entity-type/edit-bar-scroller";
@@ -36,6 +36,7 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
 }) => {
   const { openSidebar, sidebarOpen } = useSidebarContext();
   const { readonlyMode } = useReadonlyMode();
+  const [main, setMain] = useState<HTMLElement | null>(null);
 
   return (
     <LayoutWithHeader>
@@ -90,9 +91,10 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
                 padding: spacing(7, 10),
               }),
             })}
+            ref={setMain}
           >
             {/* Enables EditBar to make the page scroll as it animates in */}
-            <EditBarScroller>{children}</EditBarScroller>
+            <EditBarScroller scrollingNode={main}>{children}</EditBarScroller>
           </Main>
         </Box>
       </Box>

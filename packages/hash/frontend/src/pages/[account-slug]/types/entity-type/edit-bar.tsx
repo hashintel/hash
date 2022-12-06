@@ -97,15 +97,16 @@ const EditBarContents = ({
 const useFreezeScrollWhileTransitioning = () => {
   const observerRef = useRef<ResizeObserver | null>(null);
   const ref = useRef<HTMLDivElement>(null);
-  const page = useContext(EditBarContext);
+  const editBarContext = useContext(EditBarContext);
 
   useEffect(() => {
-    const scroller = page?.parentNode as HTMLElement | null | undefined;
     const editBar = ref.current;
 
-    if (!editBar || !page || !scroller) {
+    if (!editBar || !editBarContext) {
       return;
     }
+
+    const { page, scrollingNode: scroller } = editBarContext;
 
     let beginningHeight = 0;
     let appliedOffset = 0;
@@ -207,7 +208,7 @@ const useFreezeScrollWhileTransitioning = () => {
       editBar.removeEventListener("transitionstart", start);
       page.style.removeProperty("min-height");
     };
-  }, [page]);
+  }, [editBarContext]);
 
   return ref;
 };
