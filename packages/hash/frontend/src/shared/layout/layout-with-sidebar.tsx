@@ -1,6 +1,7 @@
 import { ReactNode, FunctionComponent } from "react";
 import { Box, Fade, styled, Tooltip } from "@mui/material";
 import { IconButton } from "@hashintel/hash-design-system";
+import { EditBarScroller } from "../../pages/[account-slug]/types/entity-type/edit-bar-scroller";
 import { HEADER_HEIGHT } from "./layout-with-header/page-header";
 import {
   PageSidebar,
@@ -90,7 +91,8 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
               }),
             })}
           >
-            {children}
+            {/* Enables EditBar to make the page scroll as it animates in */}
+            <EditBarScroller>{children}</EditBarScroller>
           </Main>
         </Box>
       </Box>
