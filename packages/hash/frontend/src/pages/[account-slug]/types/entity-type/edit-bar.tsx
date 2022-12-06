@@ -1,11 +1,11 @@
 import { faSmile } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { Box, Collapse, Container, Stack, Typography } from "@mui/material";
-import { ReactNode, useContext, useEffect, useRef, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { useFormState } from "react-hook-form";
 import { PencilSimpleLine } from "../../../../shared/icons/svg";
+import { useEditBarContext } from "../../../../shared/edit-bar-scroller";
 import { Button, ButtonProps } from "../../../../shared/ui/button";
-import { EditBarContext } from "../../../../shared/layout/layout-with-sidebar/edit-bar-scroller";
 import { EntityTypeEditorForm } from "./form-types";
 
 const useFrozenValue = <T extends any>(value: T): T => {
@@ -97,7 +97,7 @@ const EditBarContents = ({
 const useFreezeScrollWhileTransitioning = () => {
   const observerRef = useRef<ResizeObserver | null>(null);
   const ref = useRef<HTMLDivElement>(null);
-  const editBarContext = useContext(EditBarContext);
+  const editBarContext = useEditBarContext();
 
   useEffect(() => {
     const editBar = ref.current;
