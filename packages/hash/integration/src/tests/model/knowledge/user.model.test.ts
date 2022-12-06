@@ -1,6 +1,5 @@
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { createGraphClient } from "@hashintel/hash-api/src/graph";
-import { ensureSystemTypesExist } from "@hashintel/hash-api/src/graph/system-types";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
 import { UserModel } from "@hashintel/hash-api/src/model";
@@ -8,10 +7,13 @@ import {
   adminKratosSdk,
   createKratosIdentity,
 } from "@hashintel/hash-api/src/auth/ory-kratos";
-import { systemAccountId } from "@hashintel/hash-api/src/model/util";
-import { ensureSystemEntitiesExists } from "@hashintel/hash-api/src/graph/system-entities";
+import { systemOrgAccountId } from "@hashintel/hash-api/src/graph/system-org";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
-import { createTestOrg, generateRandomShortname } from "../../util";
+import {
+  createTestOrg,
+  ensureHashAppIsInitialized,
+  generateRandomShortname,
+} from "../../util";
 
 jest.setTimeout(60000);
 
@@ -34,8 +36,7 @@ const shortname = generateRandomShortname("userTest");
 describe("User model class", () => {
   beforeAll(async () => {
     await TypeSystemInitializer.initialize();
-    await ensureSystemTypesExist({ graphApi, logger });
-    await ensureSystemEntitiesExists({ graphApi, logger });
+    await ensureHashAppIsInitialized({ graphApi, logger });
   });
 
   let createdUser: UserModel;
@@ -54,7 +55,7 @@ describe("User model class", () => {
     createdUser = await UserModel.createUser(graphApi, {
       emails: ["alice@example.com"],
       kratosIdentityId,
-      actorId: systemAccountId,
+      actorId: systemOrgAccountId,
     });
   });
 
@@ -63,7 +64,7 @@ describe("User model class", () => {
       UserModel.createUser(graphApi, {
         emails: ["bob@example.com"],
         kratosIdentityId,
-        actorId: systemAccountId,
+        actorId: systemOrgAccountId,
       }),
     ).rejects.toThrowError(`"${kratosIdentityId}" already exists.`);
   });
@@ -118,7 +119,7 @@ describe("User model class", () => {
     await createdUser.joinOrg(graphApi, {
       org: testOrg,
       responsibility: "developer",
-      actorId: systemAccountId,
+      actorId: systemOrgAccountId,
     });
 
     expect(await createdUser.isMemberOfOrg(graphApi, { orgEntityUuid })).toBe(

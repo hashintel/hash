@@ -3,8 +3,23 @@ import { GraphApi } from "@hashintel/hash-api/src/graph";
 import { OrgModel, UserModel } from "@hashintel/hash-api/src/model";
 import { ensureSystemTypesExist } from "@hashintel/hash-api/src/graph/system-types";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { systemAccountId } from "@hashintel/hash-api/src/model/util";
+import {
+  ensureSystemOrgAccountIdExists,
+  ensureSystemOrgExists,
+  systemOrgAccountId,
+} from "@hashintel/hash-api/src/graph/system-org";
+import { ensureSystemEntitiesExists } from "@hashintel/hash-api/src/graph/system-entities";
 import { OrgSize } from "../graphql/apiTypes.gen";
+
+export const ensureHashAppIsInitialized = async (params: {
+  graphApi: GraphApi;
+  logger: Logger;
+}) => {
+  await ensureSystemOrgAccountIdExists(params);
+  await ensureSystemTypesExist(params);
+  await ensureSystemOrgExists(params);
+  await ensureSystemEntitiesExists(params);
+};
 
 const randomStringSuffix = () => {
   const alphabet = "abcdefghijklmnopqrstuvwxyz";
@@ -22,7 +37,7 @@ export const createTestUser = async (
   shortNamePrefix: string,
   logger: Logger,
 ) => {
-  await ensureSystemTypesExist({ graphApi, logger });
+  await ensureHashAppIsInitialized({ graphApi, logger });
 
   const shortname = generateRandomShortname(shortNamePrefix);
 
@@ -42,7 +57,7 @@ export const createTestUser = async (
   const createdUser = await UserModel.createUser(graphApi, {
     emails: [`${shortname}@example.com`],
     kratosIdentityId,
-    actorId: systemAccountId,
+    actorId: systemOrgAccountId,
   }).catch((err) => {
     logger.error(`Error making UserModel for ${shortname}`);
     throw err;
@@ -74,6 +89,6 @@ export const createTestOrg = async (
     providedInfo: {
       orgSize: OrgSize.ElevenToFifty,
     },
-    actorId: systemAccountId,
+    actorId: systemOrgAccountId,
   });
 };

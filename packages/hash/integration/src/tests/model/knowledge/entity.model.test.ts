@@ -14,10 +14,8 @@ import {
   linkEntityTypeUri,
 } from "@hashintel/hash-api/src/model/util";
 import { generateTypeId } from "@hashintel/hash-shared/types";
-import { ensureSystemEntitiesExists } from "@hashintel/hash-api/src/graph/system-entities";
-import { ensureSystemTypesExist } from "@hashintel/hash-api/src/graph/system-types";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
-import { createTestUser } from "../../util";
+import { createTestUser, ensureHashAppIsInitialized } from "../../util";
 
 jest.setTimeout(60000);
 
@@ -46,8 +44,7 @@ describe("Entity CRU", () => {
 
   beforeAll(async () => {
     await TypeSystemInitializer.initialize();
-    await ensureSystemTypesExist({ graphApi, logger });
-    await ensureSystemEntitiesExists({ graphApi, logger });
+    await ensureHashAppIsInitialized({ graphApi, logger });
 
     testUser = await createTestUser(graphApi, "entitytest", logger);
     testUser2 = await createTestUser(graphApi, "entitytest", logger);
@@ -139,7 +136,6 @@ describe("Entity CRU", () => {
             destinationEntityTypeModels: ["SELF_REFERENCE"],
           },
         ],
-        actorId: testUser.getEntityUuid(),
       }),
       actorId: testUser.getEntityUuid(),
     });
