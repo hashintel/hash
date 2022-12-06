@@ -26,6 +26,17 @@ use crate::{
 /// Attachments, and objects [`provide`]d by a [`Context`], are directly retrievable by calling
 /// [`request_ref()`] or [`request_value()`].
 ///
+/// ## Formatting
+///
+/// `Report` implements [`Display`] and [`Debug`]. When utilizing the [`Display`] implementation,
+/// the current context of the `Report` is printed, e.g. `println!("{report}")`. For the alternate
+/// [`Display`] output (`"{:#}"`), all [`Context`]s are printed. To print the full stack of
+/// [`Context`]s and attachments, use the [`Debug`] implementation (`"{:?}"`). To customize the
+/// output of the attachments in the [`Debug`] output, please see the [`error_stack::fmt`] module.
+///
+/// [`Display`]: fmt::Display
+/// [`error_stack::fmt`]: crate::fmt
+///
 /// ## Multiple Errors
 ///
 /// `Report` is able to represent multiple errors that have occurred. Errors can be combined using
