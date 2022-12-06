@@ -6,7 +6,7 @@ import {
 import { OrgModel, UserModel } from "@hashintel/hash-api/src/model";
 import { ensureSystemTypesExist } from "@hashintel/hash-api/src/graph/system-types";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { systemOrgAccountId } from "@hashintel/hash-api/src/graph/system-org";
+import { systemUserAccountId } from "@hashintel/hash-api/src/graph/system-user";
 import { OrgSize } from "../graphql/apiTypes.gen";
 
 const randomStringSuffix = () => {
@@ -45,7 +45,7 @@ export const createTestUser = async (
   const createdUser = await UserModel.createUser(graphApi, {
     emails: [`${shortname}@example.com`],
     kratosIdentityId,
-    actorId: systemOrgAccountId,
+    actorId: systemUserAccountId,
   }).catch((err) => {
     logger.error(`Error making UserModel for ${shortname}`);
     throw err;
@@ -77,6 +77,6 @@ export const createTestOrg = async (
     providedInfo: {
       orgSize: OrgSize.ElevenToFifty,
     },
-    actorId: systemOrgAccountId,
+    actorId: systemUserAccountId,
   });
 };

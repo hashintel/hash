@@ -1,5 +1,5 @@
 import { entityIdFromOwnedByIdAndEntityUuid } from "@hashintel/hash-subgraph";
-import { systemOrgAccountId } from "../../../../graph/system-org";
+import { systemUserAccountId } from "../../../../graph/system-user";
 import { EntityTypeMismatchError } from "../../../../lib/error";
 import { OrgModel, PageModel, UserModel } from "../../../../model";
 
@@ -72,7 +72,7 @@ export const pages: ResolverFn<
   QueryPagesArgs
 > = async (_, { ownedById }, { dataSources: { graphApi }, userModel }) => {
   const accountEntityId = ownedById
-    ? entityIdFromOwnedByIdAndEntityUuid(systemOrgAccountId, ownedById)
+    ? entityIdFromOwnedByIdAndEntityUuid(systemUserAccountId, ownedById)
     : undefined;
 
   const accountModel = accountEntityId

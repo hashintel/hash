@@ -37,11 +37,11 @@ const devUsers: readonly SeededUser[] = [
 export const ensureUsersAreSeeded = async ({
   graphApi,
   logger,
-  systemOrgAccountId,
+  systemUserAccountId,
 }: {
   graphApi: GraphApi;
   logger: Logger;
-  systemOrgAccountId: string;
+  systemUserAccountId: string;
 }): Promise<UserModel[]> => {
   const createdUsers = [];
 
@@ -103,18 +103,18 @@ export const ensureUsersAreSeeded = async ({
       let user = await UserModel.createUser(graphApi, {
         emails,
         kratosIdentityId,
-        actorId: systemOrgAccountId,
+        actorId: systemUserAccountId,
         isInstanceAdmin,
       });
 
       user = await user.updateShortname(graphApi, {
         updatedShortname: shortname,
-        actorId: systemOrgAccountId,
+        actorId: systemUserAccountId,
       });
 
       user = await user.updatePreferredName(graphApi, {
         updatedPreferredName: preferredName,
-        actorId: systemOrgAccountId,
+        actorId: systemUserAccountId,
       });
 
       createdUsers.push(user);

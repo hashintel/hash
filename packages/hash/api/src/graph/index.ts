@@ -7,9 +7,9 @@ import HttpAgent, { HttpsAgent } from "agentkeepalive";
 import axios from "axios";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import {
-  ensureSystemOrgAccountIdExists,
-  ensureSystemOrgExists,
-} from "./system-org";
+  ensureSystemUserExists,
+  ensureSystemUserAccountIdExists,
+} from "./system-user";
 import { ensureSystemTypesExist } from "./system-types";
 import { ensureSystemEntitiesExists } from "./system-entities";
 
@@ -45,11 +45,11 @@ export const ensureHashAppIsInitialized = async (params: {
   graphApi: GraphApi;
   logger: Logger;
 }) => {
-  await ensureSystemOrgAccountIdExists(params);
+  await ensureSystemUserAccountIdExists(params);
 
   await ensureSystemTypesExist(params);
 
-  await ensureSystemOrgExists(params);
+  await ensureSystemUserExists(params);
 
   await ensureSystemEntitiesExists(params);
 };

@@ -14,7 +14,7 @@ import {
   KratosUserIdentity,
   KratosUserIdentityTraits,
 } from "../../auth/ory-kratos";
-import { systemOrgAccountId } from "../../graph/system-org";
+import { systemUserAccountId } from "../../graph/system-user";
 import { SYSTEM_TYPES } from "../../graph/system-types";
 import { EntityTypeMismatchError } from "../../lib/error";
 
@@ -29,6 +29,7 @@ type UserModelCreateParams = Omit<
   shortname?: string;
   preferredName?: string;
   isInstanceAdmin?: boolean;
+  userAccountId?: string;
 };
 
 /**
@@ -180,7 +181,8 @@ export default class extends EntityModel {
       }
     }
 
-    const { data: userAccountId } = await graphApi.createAccountId();
+    const userAccountId =
+      params.userAccountId ?? (await graphApi.createAccountId()).data;
 
     const properties: PropertyObject = {
       [SYSTEM_TYPES.propertyType.email.getBaseUri()]: emails,
@@ -200,7 +202,7 @@ export default class extends EntityModel {
     const entityTypeModel = SYSTEM_TYPES.entityType.user;
 
     const entity = await EntityModel.create(graphApi, {
-      ownedById: systemOrgAccountId,
+      ownedById: systemUserAccountId,
       properties,
       entityTypeModel,
       entityId: userAccountId,

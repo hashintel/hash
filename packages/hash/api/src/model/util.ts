@@ -14,7 +14,7 @@ import { PrimitiveDataTypeKey, types } from "@hashintel/hash-shared/types";
 import { AxiosError } from "axios";
 import { EntityTypeModel, PropertyTypeModel } from ".";
 import { GraphApi } from "../graph";
-import { systemOrgAccountId } from "../graph/system-org";
+import { systemUserAccountId } from "../graph/system-user";
 import { logger } from "../logger";
 
 /** @todo: enable admins to expand upon restricted shortnames block list */
@@ -163,9 +163,9 @@ export const propertyTypeInitializer = (
         if (error.response?.status === 404) {
           // The type was missing, try and create it
           return await PropertyTypeModel.create(graphApi, {
-            ownedById: systemOrgAccountId,
+            ownedById: systemUserAccountId,
             schema: propertyType,
-            actorId: systemOrgAccountId,
+            actorId: systemUserAccountId,
           }).catch((createError: AxiosError) => {
             logger.warn(`Failed to create property type: ${params.title}`);
             throw createError;
@@ -338,9 +338,9 @@ export const entityTypeInitializer = (
         if (error.response?.status === 404) {
           // The type was missing, try and create it
           return await EntityTypeModel.create(graphApi, {
-            ownedById: systemOrgAccountId,
+            ownedById: systemUserAccountId,
             schema: entityType,
-            actorId: systemOrgAccountId,
+            actorId: systemUserAccountId,
           }).catch((createError: AxiosError) => {
             logger.warn(`Failed to create entity type: ${params.title}`);
             throw createError;

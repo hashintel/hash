@@ -13,7 +13,7 @@ export const seedUsers = async (params: {
 
   const createdUsers = await ensureUsersAreSeeded({
     ...params,
-    systemOrgAccountId: orgModel.getEntityUuid(),
+    systemUserAccountId: orgModel.getEntityUuid(),
   });
 
   if (createdUsers.length > 0) {

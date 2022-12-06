@@ -6,7 +6,7 @@ import {
 import { SYSTEM_TYPES } from "@hashintel/hash-api/src/graph/system-types";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { UserModel, HashInstanceModel } from "@hashintel/hash-api/src/model";
-import { systemOrgAccountId } from "@hashintel/hash-api/src/graph/system-org";
+import { systemUserAccountId } from "@hashintel/hash-api/src/graph/system-user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { createTestUser } from "../../util";
 
@@ -51,7 +51,7 @@ describe("HashInstance model class", () => {
 
     await hashInstanceModel.addAdmin(graphApi, {
       userModel: testHashInstanceAdmin,
-      actorId: systemOrgAccountId,
+      actorId: systemUserAccountId,
     });
 
     const hashOutgoingAdminLinks = await hashInstanceModel.getOutgoingLinks(
@@ -81,7 +81,7 @@ describe("HashInstance model class", () => {
   it("can remove a hash instance admin", async () => {
     await hashInstanceModel.removeAdmin(graphApi, {
       userModel: testHashInstanceAdmin,
-      actorId: systemOrgAccountId,
+      actorId: systemUserAccountId,
     });
 
     const hashInstanceOutgoingAdminLinks =

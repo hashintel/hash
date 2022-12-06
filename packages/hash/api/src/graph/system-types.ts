@@ -654,8 +654,8 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
 
 /**
  * Ensures the required system types have been created in the graph by fetching
- * them or creating them using the `systemOrgAccountId`. Note this method must
- * be run after the `systemOrgAccountId` has been initialized.
+ * them or creating them using the `systemUserAccountId`. Note this method must
+ * be run after the `systemUserAccountId` has been initialized.
  */
 export const ensureSystemTypesExist = async (params: {
   graphApi: GraphApi;

@@ -6,7 +6,7 @@ import {
 import { OrgModel } from "@hashintel/hash-api/src/model";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
-import { systemOrgAccountId } from "@hashintel/hash-api/src/graph/system-org";
+import { systemUserAccountId } from "@hashintel/hash-api/src/graph/system-user";
 import { createTestOrg, generateRandomShortname } from "../../util";
 
 jest.setTimeout(60000);
@@ -48,14 +48,14 @@ describe("Org model class", () => {
 
     createdOrg = await createdOrg.updateShortname(graphApi, {
       updatedShortname: shortname,
-      actorId: systemOrgAccountId,
+      actorId: systemUserAccountId,
     });
   });
 
   it("can update the preferred name of an org", async () => {
     createdOrg = await createdOrg.updateOrgName(graphApi, {
       updatedOrgName: "The testing org",
-      actorId: systemOrgAccountId,
+      actorId: systemUserAccountId,
     });
   });
 

@@ -1,6 +1,6 @@
 import { BaseUri, VersionedUri } from "@blockprotocol/type-system";
 import slugify from "slugify";
-import { SYSTEM_ACCOUNT_SHORTNAME } from "@hashintel/hash-shared/environment";
+import { systemUserShortname } from "@hashintel/hash-shared/environment";
 import { frontendUrl } from "./environment";
 
 type SchemaKind = "data-type" | "property-type" | "entity-type";
@@ -72,7 +72,7 @@ export const generateTypeId = ({
 export const generateSystemTypeId = (args: {
   kind: SchemaKind;
   title: string;
-}) => generateTypeId({ namespace: SYSTEM_ACCOUNT_SHORTNAME, ...args });
+}) => generateTypeId({ namespace: systemUserShortname, ...args });
 
 /**
  * Generate the identifier of a block protocol type (its versioned URI).
