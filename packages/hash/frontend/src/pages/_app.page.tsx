@@ -10,7 +10,7 @@ import { configureScope } from "@sentry/nextjs";
 import { AppProps as NextAppProps } from "next/app";
 import { useRouter } from "next/router";
 import { CacheProvider, EmotionCache } from "@emotion/react";
-import { CssBaseline, ThemeProvider } from "@mui/material";
+import { CssBaseline, GlobalStyles, ThemeProvider } from "@mui/material";
 import { theme, createEmotionCache } from "@hashintel/hash-design-system";
 import { SnackbarProvider } from "notistack";
 import { TypeSystemContextProvider } from "../lib/use-init-type-system";
@@ -117,19 +117,20 @@ const App: FunctionComponent<AppProps> = ({
           </ModalProvider>
         </ThemeProvider>
       </CacheProvider>
-      {/* eslint-disable-next-line react/no-unknown-property -- leftover from tailwind; can be removed when `animation: spin` is removed from JSX CSS */}
-      <style jsx global>
-        {`
-          @keyframes spin {
-            from {
-              transform: rotate(0deg);
-            }
-            to {
-              transform: rotate(360deg);
-            }
-          } ;
-        `}
-      </style>
+      {/* "spin" is used in some inline styles which have been temporarily introduced in https://github.com/hashintel/hash/pull/1471 */}
+      {/* @todo remove when inline styles are replaced with MUI styles */}
+      <GlobalStyles
+        styles={`
+        @keyframes spin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        };
+      `}
+      />
     </ApolloProvider>
   );
 };
