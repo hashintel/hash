@@ -138,7 +138,7 @@ export const ArrayDataTypeMenu: FunctionComponent<ArrayDataTypeMenuProps> = ({
         prefix={prefix}
         deleteTooltip={deleteTooltip}
         onDelete={() => {
-          if (dataTypeCount + arrayCount + propertyObjectCount) {
+          if (dataTypeCount + arrayCount + propertyObjectCount > 0) {
             deleteModalPopupState.open();
           } else {
             onDelete?.();
