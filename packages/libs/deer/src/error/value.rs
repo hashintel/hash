@@ -48,9 +48,11 @@ impl Variant for ValueError {
     ) -> fmt::Result {
         let (_, expected, _) = properties;
 
-        let expected = expected.map(|expected| expected.schema().ty()).map(|ty| {
-            format!("received value is of correct type ({ty}), but does not fit constraints")
-        });
+        let expected = expected
+            .map(|expected| expected.document().schema().ty())
+            .map(|ty| {
+                format!("received value is of correct type ({ty}), but does not fit constraints")
+            });
 
         match expected {
             Some(expected) => fmt.write_str(&expected),
@@ -83,7 +85,7 @@ impl Variant for MissingError {
 
         match expected {
             Some(expected) => {
-                let ty = expected.schema().ty();
+                let ty = expected.document().schema().ty();
 
                 fmt.write_fmt(format_args!(
                     "received no value, but expected value of type {ty}"
@@ -109,7 +111,7 @@ mod tests {
 
     use super::*;
     use crate::{
-        error::Schema,
+        schema::{visitor::U8Schema, Reflection},
         test::{to_json, to_message},
     };
 
@@ -122,11 +124,7 @@ mod tests {
         let error = Report::new(ValueError.into_error())
             .attach(Location::Field("field1"))
             .attach(Location::Array(0))
-            .attach(ExpectedType::new(
-                Schema::new("integer")
-                    .with("minimum", u8::MIN)
-                    .with("maximum", u8::MAX),
-            ))
+            .attach(ExpectedType::new(U8Schema::document()))
             .attach(ReceivedValue::new(u16::from(u8::MAX) + 1));
 
         assert_eq!(
@@ -137,9 +135,14 @@ mod tests {
                     {"type": "field", "value": "field1"}
                 ],
                 "expected": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 255,
+                    "$ref": "#/$defs/0000-deer::schema::visitor::U8Schema",
+                    "$defs": {
+                        "0000-deer::schema::visitor::U8Schema": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 255,
+                        }
+                    },
                 },
                 "received": 256
             })
@@ -155,11 +158,8 @@ mod tests {
 
         assert_eq!(
             to_message::<ValueError>(
-                &Report::new(ValueError.into_error()).attach(ExpectedType::new(
-                    Schema::new("integer")
-                        .with("minimum", u8::MIN)
-                        .with("maximum", u8::MAX),
-                ))
+                &Report::new(ValueError.into_error())
+                    .attach(ExpectedType::new(U8Schema::document()))
             ),
             "received value is of correct type (integer), but does not fit constraints"
         );
@@ -174,11 +174,7 @@ mod tests {
         let error = Report::new(MissingError.into_error())
             .attach(Location::Field("field2"))
             .attach(Location::Array(0))
-            .attach(ExpectedType::new(
-                Schema::new("integer")
-                    .with("minimum", u8::MIN)
-                    .with("maximum", u8::MAX),
-            ));
+            .attach(ExpectedType::new(U8Schema::document()));
 
         assert_eq!(
             to_json::<MissingError>(&error),
@@ -187,10 +183,15 @@ mod tests {
                     {"type": "array", "value": 0},
                     {"type": "field", "value": "field2"}
                 ],
-                "expected": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 255,
+                "expected":  {
+                    "$ref": "#/$defs/0000-deer::schema::visitor::U8Schema",
+                    "$defs": {
+                        "0000-deer::schema::visitor::U8Schema": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 255,
+                        }
+                    },
                 }
             })
         );
@@ -205,11 +206,8 @@ mod tests {
 
         assert_eq!(
             to_message::<MissingError>(
-                &Report::new(MissingError.into_error()).attach(ExpectedType::new(
-                    Schema::new("integer")
-                        .with("minimum", u8::MIN)
-                        .with("maximum", u8::MAX),
-                ))
+                &Report::new(MissingError.into_error())
+                    .attach(ExpectedType::new(U8Schema::document()))
             ),
             "received no value, but expected value of type integer"
         );

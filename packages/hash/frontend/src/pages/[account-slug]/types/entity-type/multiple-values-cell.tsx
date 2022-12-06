@@ -24,17 +24,8 @@ import {
   useFormContext,
   useWatch,
 } from "react-hook-form";
+import { useFrozenValue } from "../../../../shared/use-frozen-value";
 import { EntityTypeEditorForm } from "./form-types";
-
-const useFrozenValue = <T extends any>(value: T, isFrozen: boolean): T => {
-  const [frozen, setFrozen] = useState(value);
-
-  if (!isFrozen && frozen !== value) {
-    setFrozen(value);
-  }
-
-  return frozen;
-};
 
 export const MultipleValuesCell = ({
   propertyIndex,
