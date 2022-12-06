@@ -22,9 +22,9 @@ export const DeleteDataTypeModal = ({
   popupState,
   onClose,
   onDelete,
-  dataTypeCount = 0,
-  arrayCount = 0,
-  propertyObjectCount = 0,
+  dataTypeCount,
+  arrayCount,
+  propertyObjectCount,
 }: DeleteDataTypeModalProps) => {
   const countArray = [
     { label: "data type", count: dataTypeCount },
