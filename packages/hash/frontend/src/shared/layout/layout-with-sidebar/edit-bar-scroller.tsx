@@ -11,7 +11,7 @@ export const EditBarScroller = ({
   scrollingNode,
 }: {
   children: ReactNode;
-  scrollingNode: ReactNode | null;
+  scrollingNode: HTMLElement | null;
 }) => {
   const [page, setPage] = useState<HTMLDivElement | null>(null);
   const value = useMemo(

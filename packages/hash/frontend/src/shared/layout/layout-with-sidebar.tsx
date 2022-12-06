@@ -1,7 +1,7 @@
 import { ReactNode, FunctionComponent, useState } from "react";
 import { Box, Fade, styled, Tooltip } from "@mui/material";
 import { IconButton } from "@hashintel/hash-design-system";
-import { EditBarScroller } from "../../pages/[account-slug]/types/entity-type/edit-bar-scroller";
+import { EditBarScroller } from "./layout-with-sidebar/edit-bar-scroller";
 import { HEADER_HEIGHT } from "./layout-with-header/page-header";
 import {
   PageSidebar,

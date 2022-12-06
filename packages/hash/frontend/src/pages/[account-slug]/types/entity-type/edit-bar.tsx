@@ -5,7 +5,7 @@ import { ReactNode, useContext, useEffect, useRef, useState } from "react";
 import { useFormState } from "react-hook-form";
 import { PencilSimpleLine } from "../../../../shared/icons/svg";
 import { Button, ButtonProps } from "../../../../shared/ui/button";
-import { EditBarContext } from "./edit-bar-scroller";
+import { EditBarContext } from "../../../../shared/layout/layout-with-sidebar/edit-bar-scroller";
 import { EntityTypeEditorForm } from "./form-types";
 
 const useFrozenValue = <T extends any>(value: T): T => {
