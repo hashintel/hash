@@ -1,26 +1,27 @@
-import { FunctionComponent, useContext } from "react";
-
-import { useRouter } from "next/router";
-import { Box, Drawer, Tooltip } from "@mui/material";
 import { faHome } from "@fortawesome/free-solid-svg-icons";
 import { IconButton } from "@hashintel/hash-design-system";
-import { AccountPageList } from "./account-page-list/account-page-list";
+import { Box, Drawer, Tooltip } from "@mui/material";
+
+import { useRouter } from "next/router";
+import { FunctionComponent, useContext } from "react";
+import { WorkspaceContext } from "../../../pages/shared/workspace-context";
+import { SidebarToggleIcon } from "../../icons";
+import { useRoutePageInfo } from "../../routing";
+import { HEADER_HEIGHT } from "../layout-with-header/page-header";
 
 import { AccountEntityTypeList } from "./account-entity-type-list";
-import { SidebarToggleIcon } from "../../icons";
+import { AccountPageList } from "./account-page-list/account-page-list";
+import { useSidebarContext } from "./sidebar-context";
 import { TopNavLink } from "./top-nav-link";
 import { WorkspaceSwitcher } from "./workspace-switcher";
-import { useSidebarContext } from "./sidebar-context";
-import { HEADER_HEIGHT } from "../layout-with-header/page-header";
-import { useRoutePageInfo } from "../../routing";
-import { WorkspaceContext } from "../../../pages/shared/workspace-context";
 
 export const SIDEBAR_WIDTH = 260;
 
 export const PageSidebar: FunctionComponent = () => {
   const router = useRouter();
   const { sidebarOpen, closeSidebar } = useSidebarContext();
-  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
+  const { activeWorkspaceAccountId, activeWorkspace } =
+    useContext(WorkspaceContext);
   const { pageEntityId } = useRoutePageInfo({ allowUndefined: true }) ?? {};
 
   return (
@@ -98,7 +99,9 @@ export const PageSidebar: FunctionComponent = () => {
               accountId={activeWorkspaceAccountId}
             />
             {/* TYPES */}
-            <AccountEntityTypeList accountId={activeWorkspaceAccountId} />
+            {activeWorkspace ? (
+              <AccountEntityTypeList activeWorkspace={activeWorkspace} />
+            ) : null}
           </>
         ) : null}
       </Box>

@@ -114,25 +114,12 @@ export const ActionsDropdownInner: FunctionComponent<{
         >
           <ListItemText primary="Create Page" />
         </MenuItem>
-        {/*  
-          Commented out menu items whose functionality have not been implemented yet
-          @todo uncomment when functionality has been implemented 
-        */}
-        {/* <MenuItem onClick={popupState.close}>
-          <ListItemText primary="Create entity" />
-        </MenuItem> */}
         {activeWorkspace ? (
           <>
-            <MenuItem
-              href={`/@${activeWorkspace.shortname}/new/entity`}
-              onClick={popupState.close}
-            >
+            <MenuItem href="/new/entity" onClick={popupState.close}>
               <ListItemText primary="Create Entity" />
             </MenuItem>
-            <MenuItem
-              href={`/@${activeWorkspace.shortname}/new/types/entity-type`}
-              onClick={popupState.close}
-            >
+            <MenuItem href="/new/types/entity-type" onClick={popupState.close}>
               <ListItemText primary="Create Entity Type" />
             </MenuItem>
           </>

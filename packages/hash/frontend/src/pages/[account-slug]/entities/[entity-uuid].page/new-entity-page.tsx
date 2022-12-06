@@ -2,14 +2,17 @@ import { faPlus, faWarning } from "@fortawesome/free-solid-svg-icons";
 import { Button, Chip, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { Box, Divider, Typography } from "@mui/material";
 import { useRouter } from "next/router";
-import { useState } from "react";
-import { useAuthenticatedUser } from "../../../../components/hooks/useAuthenticatedUser";
+import { useContext, useState } from "react";
 import { useSnackbar } from "../../../../components/hooks/useSnackbar";
+import { WorkspaceContext } from "../../../shared/workspace-context";
+import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
+import { OntologyChip } from "../../shared/ontology-chip";
 import { SectionWrapper } from "../../shared/section-wrapper";
 import { WhiteCard } from "../../shared/white-card";
 import { EntityTypeSelector } from "../../types/entity-type/entity-type-selector";
 import { EntityTypesContextProvider } from "../../types/entity-type/use-entity-types";
 import { EntityPageWrapper } from "./entity-page-wrapper";
+import { EntityPageHeader } from "./entity-page-wrapper/entity-page-header";
 import { LinksSectionEmptyState } from "./shared/links-section-empty-state";
 import { PeersSectionEmptyState } from "./shared/peers-section-empty-state";
 import { PropertiesSectionEmptyState } from "./shared/properties-section-empty-state";
@@ -21,11 +24,45 @@ export const NewEntityPage = () => {
   const [isSelectingType, setIsSelectingType] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const { authenticatedUser } = useAuthenticatedUser();
+  const { activeWorkspace } = useContext(WorkspaceContext);
   const createNewEntityAndRedirect = useCreateNewEntityAndRedirect();
 
+  if (!activeWorkspace) {
+    throw new Error("Workspace must be set");
+  }
+
   return (
-    <EntityPageWrapper label="New entity" lightTitle>
+    <EntityPageWrapper
+      header={
+        <EntityPageHeader
+          entityLabel="New entity"
+          lightTitle
+          chip={
+            <OntologyChip
+              icon={<HashOntologyIcon />}
+              domain="hash.ai"
+              path={
+                <>
+                  <Typography
+                    color={(theme) => theme.palette.blue[70]}
+                    fontWeight="bold"
+                    component="span"
+                  >
+                    @{activeWorkspace.shortname}
+                  </Typography>
+                  <Typography
+                    color={(theme) => theme.palette.blue[70]}
+                    component="span"
+                  >
+                    /entities
+                  </Typography>
+                </>
+              }
+            />
+          }
+        />
+      }
+    >
       <SectionWrapper
         title="Types"
         titleStartContent={<Chip label="No type" size="xs" />}
@@ -74,15 +111,15 @@ export const NewEntityPage = () => {
                   onCancel={() => setIsSelectingType(false)}
                   onSelect={async (entityType) => {
                     try {
-                      if (!authenticatedUser) {
-                        throw new Error("user not found");
+                      if (!activeWorkspace) {
+                        throw new Error("workspace not ready");
                       }
 
                       setIsSelectingType(false);
                       setLoading(true);
 
                       await createNewEntityAndRedirect(
-                        authenticatedUser,
+                        activeWorkspace,
                         entityType.$id,
                       );
                     } catch (error: any) {
@@ -92,7 +129,7 @@ export const NewEntityPage = () => {
                     }
                   }}
                   onCreateNew={(searchValue) => {
-                    let href = `/${router.query["account-slug"]}/new/types/entity-type`;
+                    let href = `/new/types/entity-type`;
                     if (searchValue) {
                       href += `?name=${encodeURIComponent(searchValue)}`;
                     }
