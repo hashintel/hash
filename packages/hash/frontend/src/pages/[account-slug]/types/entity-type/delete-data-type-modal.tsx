@@ -86,8 +86,8 @@ export const DeleteDataTypeModal = ({
               ) : null}
               .
               {dataTypeCount + propertyObjectCount + arrayCount > 1
-                ? " These"
-                : " This"}{" "}
+                ? " These "
+                : " This "}
               will be removed from your expected value definition if you
               continue and will need to be individually re-added manually.
               Proceed with caution.
