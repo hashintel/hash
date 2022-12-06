@@ -313,13 +313,13 @@ export const up = (pgm: MigrationBuilder): void => {
         type: "JSONB",
         notNull: true,
       },
-      left_order: {
+      left_to_right_order: {
         // TODO: this is where we could do fractional indexing
         //  https://app.asana.com/0/1200211978612931/1202085856561975/f
         type: "integer",
         notNull: false,
       },
-      right_order: {
+      right_to_left_order: {
         // TODO: this is where we could do fractional indexing
         //  https://app.asana.com/0/1200211978612931/1202085856561975/f
         type: "integer",
@@ -403,10 +403,10 @@ export const up = (pgm: MigrationBuilder): void => {
       entity_editions.archived,
       entity_ids.left_owned_by_id,
       entity_ids.left_entity_uuid,
-      entity_editions.left_order,
+      entity_editions.left_to_right_order,
       entity_ids.right_owned_by_id,
       entity_ids.right_entity_uuid,
-      entity_editions.right_order
+      entity_editions.right_to_left_order
     FROM entity_versions
     JOIN entity_editions ON entity_versions.entity_edition_id = entity_editions.entity_edition_id
     JOIN entity_ids ON entity_versions.owned_by_id = entity_ids.owned_by_id AND entity_versions.entity_uuid = entity_ids.entity_uuid
@@ -461,11 +461,11 @@ export const up = (pgm: MigrationBuilder): void => {
         type: "UUID",
       },
       {
-        name: "_left_order",
+        name: "_left_to_right_order",
         type: "INTEGER",
       },
       {
-        name: "_right_order",
+        name: "_right_to_left_order",
         type: "INTEGER",
       },
     ],
@@ -504,15 +504,15 @@ export const up = (pgm: MigrationBuilder): void => {
         archived,
         entity_type_version_id,
         properties,
-        left_order,
-        right_order
+        left_to_right_order,
+        right_to_left_order
       ) VALUES (
         _updated_by_id,
         _archived,
         _entity_type_version_id,
         _properties,
-        _left_order,
-        _right_order
+        _left_to_right_order,
+        _right_to_left_order
       ) RETURNING entity_editions.entity_edition_id INTO _entity_edition_id;
 
       RETURN QUERY
@@ -565,11 +565,11 @@ export const up = (pgm: MigrationBuilder): void => {
         type: "JSONB",
       },
       {
-        name: "_left_order",
+        name: "_left_to_right_order",
         type: "INTEGER",
       },
       {
-        name: "_right_order",
+        name: "_right_to_left_order",
         type: "INTEGER",
       },
     ],
@@ -600,15 +600,15 @@ export const up = (pgm: MigrationBuilder): void => {
         archived,
         entity_type_version_id,
         properties,
-        left_order,
-        right_order
+        left_to_right_order,
+        right_to_left_order
       ) VALUES (
         _updated_by_id,
         _archived,
         _entity_type_version_id,
         _properties,
-        _left_order,
-        _right_order
+        _left_to_right_order,
+        _right_to_left_order
       )
       RETURNING entity_editions.entity_edition_id INTO _new_entity_edition_id;
   
