@@ -8,6 +8,7 @@ import {
 } from "..";
 import { SYSTEM_TYPES } from "../../graph/system-types";
 import { EntityTypeMismatchError } from "../../lib/error";
+import { systemUserAccountId } from "../../graph/system-user";
 
 /**
  * @todo revisit organization size provided info. These constant strings could
@@ -83,7 +84,7 @@ export default class extends EntityModel {
     const entityTypeModel = SYSTEM_TYPES.entityType.org;
 
     const entity = await EntityModel.create(graphApi, {
-      ownedById: orgAccountId,
+      ownedById: systemUserAccountId,
       properties,
       entityTypeModel,
       entityId: orgAccountId,
