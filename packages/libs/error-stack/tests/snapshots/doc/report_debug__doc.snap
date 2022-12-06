@@ -1,0 +1,14 @@
+<b>runtime error</b>
+<span style='color:#a00'>├</span><span style='color:#a00'>╴</span><span style='color:#a00'> </span><span style='color:#555'>src/report.rs:60:14</span>
+<span style='color:#a00'>│</span>
+<span style='color:#a00'>├</span><span style='color:#a00'>─</span><span style='color:#a00'>▶</span><span style='color:#a00'> </span><b>config error</b>
+<span style='color:#a00'>│</span><span style='color:#a00'> </span><span style='color:#a00'> </span><span style='color:#a00'> </span><span style='color:#a00'>╰</span><span style='color:#a00'>╴</span><span style='color:#a00'> </span><span style='color:#555'>src/report.rs:52:58</span>
+<span style='color:#a00'>│</span>
+<span style='color:#a00'>╰</span><span style='color:#a00'>─</span><span style='color:#a00'>▶</span><span style='color:#a00'> </span><b>No such file or directory (os error 2)</b>
+<span style='color:#a00'> </span><span style='color:#a00'> </span><span style='color:#a00'> </span><span style='color:#a00'> </span><span style='color:#a00'>├</span><span style='color:#a00'>╴</span><span style='color:#a00'> </span><span style='color:#555'>src/report.rs:52:44</span>
+<span style='color:#a00'> </span><span style='color:#a00'> </span><span style='color:#a00'> </span><span style='color:#a00'> </span><span style='color:#a00'>╰</span><span style='color:#a00'>╴</span><span style='color:#a00'> </span>backtrace (1)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+backtrace no. 1
+  [redacted]

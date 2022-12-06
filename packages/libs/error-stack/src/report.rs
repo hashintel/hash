@@ -34,6 +34,8 @@ use crate::{
 /// [`Context`]s and attachments, use the [`Debug`] implementation (`"{:?}"`). To customize the
 /// output of the attachments in the [`Debug`] output, please see the [`error_stack::fmt`] module.
 ///
+/// Please see the examples below for more information.
+///
 /// [`Display`]: fmt::Display
 /// [`error_stack::fmt`]: crate::fmt
 ///
@@ -73,8 +75,7 @@ use crate::{
 ///
 /// # Examples
 ///
-/// Provide a context for an error:
-///
+/// ## Provide a context for an error
 ///
 /// ```
 /// # #[cfg(all(not(miri), feature = "std"))] {
@@ -93,7 +94,7 @@ use crate::{
 /// # }
 /// ```
 ///
-/// Enforce a context for an error:
+/// ## Enforce a context for an error
 ///
 /// ```
 /// use std::{fmt, path::{Path, PathBuf}};
@@ -121,19 +122,19 @@ use crate::{
 /// # ;
 ///
 /// impl fmt::Display for RuntimeError {
-///     # fn fmt(&self, _fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+///     # fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
 ///     # const _: &str = stringify! {
 ///     ...
 ///     # };
-///     # Ok(())
+///     # fmt.write_str("runtime error")
 ///     # }
 /// }
 /// impl fmt::Display for ConfigError {
-///     # fn fmt(&self, _fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+///     # fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
 ///     # const _: &str = stringify! {
 ///     ...
 ///     # };
-///     # Ok(())
+///     # fmt.write_str("config error")
 ///     # }
 /// }
 ///
@@ -159,14 +160,51 @@ use crate::{
 ///     ...
 ///     # };
 ///     # Ok(()) }
-///     # let err = fake_main().unwrap_err();
-///     # assert!(err.contains::<ConfigError>());
-///     # assert_eq!(err.downcast_ref::<RuntimeError>(), Some(&RuntimeError::InvalidConfig(PathBuf::from("./path/to/config.file"))));
+///     # let report = fake_main().unwrap_err();
+///     # assert!(report.contains::<ConfigError>());
+///     # assert_eq!(report.downcast_ref::<RuntimeError>(), Some(&RuntimeError::InvalidConfig(PathBuf::from("./path/to/config.file"))));
+///     # owo_colors::set_override(true);
+///     # fn render(value: String) -> String {
+///     #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();
+///     #     let backtrace_info = regex::Regex::new(r"backtrace( with (\d+) frames)? \((\d+)\)").unwrap();
+///     #
+///     #     let value = backtrace.replace_all(&value, "backtrace no. $1\n  [redacted]");
+///     #     let value = backtrace_info.replace_all(value.as_ref(), "backtrace ($3)");
+///     #
+///     #     ansi_to_html::convert_escaped(value.as_ref()).unwrap()
+///     # }
+///     # #[cfg(rust_1_65)]
+///     # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/report_display__doc.snap")].assert_eq(&render(format!("{report}")));
+///     # #[cfg(rust_1_65)]
+///     # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/report_display_alt__doc.snap")].assert_eq(&render(format!("{report:#}")));
+///     # #[cfg(rust_1_65)]
+///     # expect_test::expect_file![concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/report_debug__doc.snap")].assert_eq(&render(format!("{report:?}")));
 ///     # Ok(())
 /// }
 /// ```
 ///
-/// Get the attached [`Backtrace`] and [`SpanTrace`]:
+/// ## Formatting
+///
+/// For the example from above, the report could be formatted as follows:
+///
+/// If the [`Display`] implementation of `Report` will be invoked, this will print something like:
+/// <pre>
+#[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/report_display__doc.snap"))]
+/// </pre>
+///
+/// If the alternate [`Display`] implementation of `Report` is invoked (`{report:#}`), this will
+/// print something like:
+/// <pre>
+#[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/report_display_alt__doc.snap"))]
+/// </pre>
+///
+/// The [`Debug`] implementation of `Report` will print something like:
+/// <pre>
+#[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/report_debug__doc.snap"))]
+/// </pre>
+///
+///
+/// ## Get the attached [`Backtrace`] and [`SpanTrace`]:
 ///
 /// ```should_panic
 /// use error_stack::{IntoReport, ResultExt, Result};
