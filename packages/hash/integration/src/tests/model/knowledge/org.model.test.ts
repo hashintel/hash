@@ -1,14 +1,13 @@
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
-import { createGraphClient } from "@hashintel/hash-api/src/graph";
+import {
+  createGraphClient,
+  ensureHashAppIsInitialized,
+} from "@hashintel/hash-api/src/graph";
 import { OrgModel } from "@hashintel/hash-api/src/model";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { systemOrgAccountId } from "@hashintel/hash-api/src/graph/system-org";
-import {
-  createTestOrg,
-  ensureHashAppIsInitialized,
-  generateRandomShortname,
-} from "../../util";
+import { createTestOrg, generateRandomShortname } from "../../util";
 
 jest.setTimeout(60000);
 

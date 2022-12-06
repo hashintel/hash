@@ -22,7 +22,6 @@ import {
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import setupAuth from "./auth";
 import { RedisCache } from "./cache";
-import { ensureSystemTypesExist } from "./graph/system-types";
 // import { createCollabApp } from "./collab/collabApp";
 import {
   AwsSesEmailTransporter,
@@ -44,14 +43,9 @@ import { setupStorageProviders } from "./storage/storage-provider-lookup";
 import { getAwsRegion } from "./lib/aws-config";
 import { setupTelemetry } from "./telemetry/snowplow-setup";
 import { connectToTaskExecutor } from "./task-execution";
-import { createGraphClient } from "./graph";
+import { createGraphClient, ensureHashAppIsInitialized } from "./graph";
 import { seedUsers } from "./seed-data";
-import { ensureSystemEntitiesExists } from "./graph/system-entities";
-import {
-  ensureSystemOrgAccountIdExists,
-  ensureSystemOrgExists,
-  systemOrgModel,
-} from "./graph/system-org";
+import { systemOrgModel } from "./graph/system-org";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
@@ -137,16 +131,7 @@ const main = async () => {
     port: graphApiPort,
   });
 
-  await ensureSystemOrgAccountIdExists({ graphApi, logger });
-
-  await ensureSystemTypesExist({ graphApi, logger });
-
-  await ensureSystemOrgExists({
-    graphApi,
-    logger,
-  });
-
-  await ensureSystemEntitiesExists({ graphApi, logger });
+  await ensureHashAppIsInitialized({ graphApi, logger });
 
   // This will seed users, an org and pages.
   // Configurable through environment variables.

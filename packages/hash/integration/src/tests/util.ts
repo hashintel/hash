@@ -1,25 +1,13 @@
 import { createKratosIdentity } from "@hashintel/hash-api/src/auth/ory-kratos";
-import { GraphApi } from "@hashintel/hash-api/src/graph";
+import {
+  ensureHashAppIsInitialized,
+  GraphApi,
+} from "@hashintel/hash-api/src/graph";
 import { OrgModel, UserModel } from "@hashintel/hash-api/src/model";
 import { ensureSystemTypesExist } from "@hashintel/hash-api/src/graph/system-types";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
-import {
-  ensureSystemOrgAccountIdExists,
-  ensureSystemOrgExists,
-  systemOrgAccountId,
-} from "@hashintel/hash-api/src/graph/system-org";
-import { ensureSystemEntitiesExists } from "@hashintel/hash-api/src/graph/system-entities";
+import { systemOrgAccountId } from "@hashintel/hash-api/src/graph/system-org";
 import { OrgSize } from "../graphql/apiTypes.gen";
-
-export const ensureHashAppIsInitialized = async (params: {
-  graphApi: GraphApi;
-  logger: Logger;
-}) => {
-  await ensureSystemOrgAccountIdExists(params);
-  await ensureSystemTypesExist(params);
-  await ensureSystemOrgExists(params);
-  await ensureSystemEntitiesExists(params);
-};
 
 const randomStringSuffix = () => {
   const alphabet = "abcdefghijklmnopqrstuvwxyz";

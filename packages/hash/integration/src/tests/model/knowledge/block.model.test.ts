@@ -1,5 +1,8 @@
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
-import { createGraphClient } from "@hashintel/hash-api/src/graph";
+import {
+  createGraphClient,
+  ensureHashAppIsInitialized,
+} from "@hashintel/hash-api/src/graph";
 import {
   BlockModel,
   EntityModel,
@@ -10,7 +13,7 @@ import { generateSystemEntityTypeSchema } from "@hashintel/hash-api/src/model/ut
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { generateTypeId } from "@hashintel/hash-shared/types";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
-import { createTestUser, ensureHashAppIsInitialized } from "../../util";
+import { createTestUser } from "../../util";
 
 jest.setTimeout(60000);
 

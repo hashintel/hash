@@ -6,6 +6,12 @@ import {
 import HttpAgent, { HttpsAgent } from "agentkeepalive";
 import axios from "axios";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
+import {
+  ensureSystemOrgAccountIdExists,
+  ensureSystemOrgExists,
+} from "./system-org";
+import { ensureSystemTypesExist } from "./system-types";
+import { ensureSystemEntitiesExists } from "./system-entities";
 
 const agentConfig = {
   maxSockets: 128,
@@ -33,4 +39,17 @@ export const createGraphClient = (
   const config = new Configuration({ basePath });
 
   return new GraphApiClient(config, basePath, axiosInstance);
+};
+
+export const ensureHashAppIsInitialized = async (params: {
+  graphApi: GraphApi;
+  logger: Logger;
+}) => {
+  await ensureSystemOrgAccountIdExists(params);
+
+  await ensureSystemTypesExist(params);
+
+  await ensureSystemOrgExists(params);
+
+  await ensureSystemEntitiesExists(params);
 };
