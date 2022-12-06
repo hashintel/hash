@@ -6,6 +6,7 @@ import {
 } from "@hashintel/hash-design-system";
 import { Box, Stack, Typography } from "@mui/material";
 import { bindDialog, PopupState } from "material-ui-popup-state/hooks";
+import { ReactNode } from "react";
 import { Modal } from "../../../../components/Modals/Modal";
 
 export interface DeleteDataTypeModalProps {
@@ -25,6 +26,12 @@ export const DeleteDataTypeModal = ({
   arrayCount = 0,
   propertyObjectCount = 0,
 }: DeleteDataTypeModalProps) => {
+  const countArray = [
+    { label: "data type", count: dataTypeCount },
+    { label: "array", count: arrayCount },
+    { label: "property object", count: propertyObjectCount },
+  ].filter(({ count }) => count);
+
   return (
     <Modal
       {...bindDialog(popupState)}
@@ -67,23 +74,24 @@ export const DeleteDataTypeModal = ({
               sx={{ color: ({ palette }) => palette.gray[80] }}
             >
               This array contains
-              {dataTypeCount ? (
-                <b>{` ${dataTypeCount} data type${
-                  dataTypeCount > 1 ? "s" : ""
-                }`}</b>
-              ) : null}
-              {dataTypeCount && (arrayCount || propertyObjectCount)
-                ? " and"
-                : ""}
-              {arrayCount ? (
-                <b>{` ${arrayCount} array${arrayCount > 1 ? "s" : ""}`}</b>
-              ) : null}
-              {arrayCount && propertyObjectCount ? " and" : ""}
-              {propertyObjectCount ? (
-                <b>{` ${propertyObjectCount} property object${
-                  propertyObjectCount > 1 ? "s" : ""
-                }`}</b>
-              ) : null}
+              {countArray.reduce(
+                (nodeArray: ReactNode[], { label, count }, index) => {
+                  return [
+                    ...nodeArray,
+                    <b key="dataType">{` ${count} ${label}${
+                      count > 1 ? "s" : ""
+                    }`}</b>,
+                    ...[
+                      countArray.length >= index + 3
+                        ? ","
+                        : countArray.length >= index + 2
+                        ? " and"
+                        : "",
+                    ],
+                  ];
+                },
+                [],
+              )}
               .
               {dataTypeCount + propertyObjectCount + arrayCount > 1
                 ? " These "
