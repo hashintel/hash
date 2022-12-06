@@ -332,7 +332,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
             They will most likely be added back when new designs 
             for them have been added
           */}
-              {/* <div style={"marginRight":"1rem"}>
+              {/* <div style={{"marginRight":"1rem"}}>
             <label>Version</label>
             <div>
               <VersionDropdown
