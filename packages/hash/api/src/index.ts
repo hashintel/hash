@@ -45,8 +45,13 @@ import { getAwsRegion } from "./lib/aws-config";
 import { setupTelemetry } from "./telemetry/snowplow-setup";
 import { connectToTaskExecutor } from "./task-execution";
 import { createGraphClient } from "./graph";
-import { seedOrgsAndUsers } from "./seed-data";
+import { seedUsers } from "./seed-data";
 import { ensureSystemEntitiesExists } from "./graph/system-entities";
+import {
+  ensureSystemOrgAccountIdExists,
+  ensureSystemOrgExists,
+  systemOrgModel,
+} from "./graph/system-org";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
@@ -132,13 +137,20 @@ const main = async () => {
     port: graphApiPort,
   });
 
+  await ensureSystemOrgAccountIdExists({ graphApi, logger });
+
   await ensureSystemTypesExist({ graphApi, logger });
+
+  await ensureSystemOrgExists({
+    graphApi,
+    logger,
+  });
 
   await ensureSystemEntitiesExists({ graphApi, logger });
 
   // This will seed users, an org and pages.
   // Configurable through environment variables.
-  await seedOrgsAndUsers({ graphApi, logger });
+  await seedUsers({ graphApi, logger, orgModel: systemOrgModel });
 
   // Set sensible default security headers: https://www.npmjs.com/package/helmet
   // Temporarily disable contentSecurityPolicy for the GraphQL playground

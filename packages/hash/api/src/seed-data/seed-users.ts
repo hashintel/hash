@@ -3,7 +3,6 @@ import { AxiosError } from "axios";
 
 import { GraphApi } from "../graph";
 import { UserModel } from "../model";
-import { systemAccountId } from "../model/util";
 import { createKratosIdentity } from "../auth/ory-kratos";
 import { isDevEnv } from "../lib/env-config";
 
@@ -38,9 +37,11 @@ const devUsers: readonly SeededUser[] = [
 export const ensureUsersAreSeeded = async ({
   graphApi,
   logger,
+  systemOrgAccountId,
 }: {
   graphApi: GraphApi;
   logger: Logger;
+  systemOrgAccountId: string;
 }): Promise<UserModel[]> => {
   const createdUsers = [];
 
@@ -102,18 +103,18 @@ export const ensureUsersAreSeeded = async ({
       let user = await UserModel.createUser(graphApi, {
         emails,
         kratosIdentityId,
-        actorId: systemAccountId,
+        actorId: systemOrgAccountId,
         isInstanceAdmin,
       });
 
       user = await user.updateShortname(graphApi, {
         updatedShortname: shortname,
-        actorId: systemAccountId,
+        actorId: systemOrgAccountId,
       });
 
       user = await user.updatePreferredName(graphApi, {
         updatedPreferredName: preferredName,
-        actorId: systemAccountId,
+        actorId: systemOrgAccountId,
       });
 
       createdUsers.push(user);

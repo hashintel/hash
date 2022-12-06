@@ -1,4 +1,4 @@
-import { userAccountIdToEntityId } from "@hashintel/hash-shared/types";
+import { systemOrgAccountId } from "../../../../graph/system-org";
 import { EntityTypeMismatchError } from "../../../../lib/error";
 import { OrgModel, PageModel, UserModel } from "../../../../model";
 
@@ -72,11 +72,11 @@ export const pages: ResolverFn<
 > = async (_, { ownedById }, { dataSources: { graphApi }, userModel }) => {
   const accountModel = ownedById
     ? await UserModel.getUserById(graphApi, {
-        entityId: userAccountIdToEntityId(ownedById),
+        entityId: `${systemOrgAccountId}%${ownedById}`,
       }).catch((error: Error) => {
         if (error instanceof EntityTypeMismatchError) {
           return OrgModel.getOrgById(graphApi, {
-            entityId: userAccountIdToEntityId(ownedById),
+            entityId: `${systemOrgAccountId}%${ownedById}`,
           });
         }
         throw error;

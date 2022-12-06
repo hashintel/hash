@@ -14,9 +14,9 @@ import {
   KratosUserIdentity,
   KratosUserIdentityTraits,
 } from "../../auth/ory-kratos";
+import { systemOrgAccountId } from "../../graph/system-org";
 import { SYSTEM_TYPES } from "../../graph/system-types";
 import { EntityTypeMismatchError } from "../../lib/error";
-import { systemAccountId } from "../util";
 
 type QualifiedEmail = { address: string; verified: boolean; primary: boolean };
 
@@ -200,7 +200,7 @@ export default class extends EntityModel {
     const entityTypeModel = SYSTEM_TYPES.entityType.user;
 
     const entity = await EntityModel.create(graphApi, {
-      ownedById: systemAccountId,
+      ownedById: systemOrgAccountId,
       properties,
       entityTypeModel,
       entityId: userAccountId,

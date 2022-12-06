@@ -6,7 +6,6 @@ import {
   EntityModelCreateParams,
   AccountFields,
 } from "..";
-import { systemAccountId } from "../util";
 import { SYSTEM_TYPES } from "../../graph/system-types";
 import { EntityTypeMismatchError } from "../../lib/error";
 
@@ -33,6 +32,7 @@ export type OrgModelCreateParams = Omit<
   shortname: string;
   name: string;
   providedInfo?: OrgProvidedInfo;
+  orgAccountId?: string;
 };
 
 /**
@@ -64,7 +64,8 @@ export default class extends EntityModel {
       );
     }
 
-    const { data: orgAccountId } = await graphApi.createAccountId();
+    const orgAccountId =
+      params.orgAccountId ?? (await graphApi.createAccountId()).data;
 
     const properties: PropertyObject = {
       [SYSTEM_TYPES.propertyType.shortName.getBaseUri()]: shortname,
@@ -82,7 +83,7 @@ export default class extends EntityModel {
     const entityTypeModel = SYSTEM_TYPES.entityType.org;
 
     const entity = await EntityModel.create(graphApi, {
-      ownedById: systemAccountId,
+      ownedById: orgAccountId,
       properties,
       entityTypeModel,
       entityId: orgAccountId,
