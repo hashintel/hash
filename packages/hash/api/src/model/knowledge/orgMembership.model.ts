@@ -10,7 +10,6 @@ import {
 } from "..";
 import { SYSTEM_TYPES } from "../../graph/system-types";
 import { EntityTypeMismatchError } from "../../lib/error";
-import { systemUserAccountId } from "../../graph/system-user";
 
 export type OrgMembershipModelCreateParams = Omit<
   EntityModelCreateParams,
@@ -84,7 +83,7 @@ export default class extends LinkEntityModel {
     };
 
     const entity = await user.createOutgoingLink(graphApi, {
-      ownedById: systemUserAccountId,
+      ownedById: org.getEntityUuid(),
       linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.orgMembership,
       rightEntityModel: org,
       properties,
