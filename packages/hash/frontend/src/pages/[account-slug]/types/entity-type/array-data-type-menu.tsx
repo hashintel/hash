@@ -7,6 +7,8 @@ import { Autocomplete, Box, Stack, Typography } from "@mui/material";
 import { uniqueId } from "lodash";
 import { FunctionComponent, useMemo } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
+import { usePopupState } from "material-ui-popup-state/hooks";
+import { types } from "@hashintel/hash-shared/types";
 import { ArrayDataTypeChild } from "./array-data-type-child";
 import { DataTypeBadge } from "./data-type-badge";
 import { PropertyTypeFormValues } from "./property-type-form";
@@ -17,6 +19,7 @@ import {
   getDefaultData,
   DataType,
 } from "./property-type-utils";
+import { DeleteDataTypeModal } from "./delete-data-type-modal";
 
 const dataTypeOptions = [...primitiveDataTypeOptions, ...customDataTypeOptions];
 
@@ -67,6 +70,29 @@ export const ArrayDataTypeMenu: FunctionComponent<ArrayDataTypeMenuProps> = ({
     name: `flattenedDataTypeList.${dataTypeId}.data.expectedValues`,
   });
 
+  const [dataTypeCount, propertyObjectCount, arrayCount] = useMemo(() => {
+    const arrays = expectedValues.filter(
+      (childId) => flattenedDataTypes[childId]?.data?.typeId === "array",
+    ).length;
+
+    // TODO: change this to flattenedDataTypes[childId]?.data?.typeId === === "object"
+    // when object creation is implemented
+    const objects = expectedValues.filter(
+      (childId) =>
+        flattenedDataTypes[childId]?.data?.typeId ===
+        types.dataType.object.dataTypeId,
+    ).length;
+
+    const dataTypes = expectedValues.length - arrays - objects;
+
+    return [dataTypes, objects, arrays];
+  }, [expectedValues, flattenedDataTypes]);
+
+  const deleteModalPopupState = usePopupState({
+    variant: "popover",
+    popupId: `deleteArray-${dataTypeId}`,
+  });
+
   const deleteDataTypeByTypeId = (typeId: string) => {
     const removedDataType = Object.values(flattenedDataTypes).find(
       (dataType) =>
@@ -111,7 +137,13 @@ export const ArrayDataTypeMenu: FunctionComponent<ArrayDataTypeMenuProps> = ({
         typeId="array"
         prefix={prefix}
         deleteTooltip={deleteTooltip}
-        onDelete={onDelete}
+        onDelete={() => {
+          if (dataTypeCount + arrayCount + propertyObjectCount) {
+            deleteModalPopupState.open();
+          } else {
+            onDelete?.();
+          }
+        }}
       />
 
       <Box
@@ -205,6 +237,15 @@ export const ArrayDataTypeMenu: FunctionComponent<ArrayDataTypeMenuProps> = ({
               </Box>
             );
           }}
+        />
+
+        <DeleteDataTypeModal
+          popupState={deleteModalPopupState}
+          onDelete={onDelete}
+          onClose={() => deleteModalPopupState.close()}
+          dataTypeCount={dataTypeCount}
+          arrayCount={arrayCount}
+          propertyObjectCount={propertyObjectCount}
         />
       </Box>
     </Stack>
