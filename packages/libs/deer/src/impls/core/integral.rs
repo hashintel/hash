@@ -30,6 +30,8 @@ macro_rules! impl_integral {
         }
 
         impl<'de> Deserialize<'de> for $typ {
+            type Reflection = Self;
+
             fn deserialize<D: Deserializer<'de>>(
                 de: D,
             ) -> error_stack::Result<Self, DeserializeError> {

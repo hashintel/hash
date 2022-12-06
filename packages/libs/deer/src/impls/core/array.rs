@@ -4,10 +4,9 @@ use error_stack::{Report, Result, ResultExt};
 
 use crate::{
     error::{
-        ArrayAccessError, ArrayLengthError, DeserializeError, ExpectedLength, Location,
+        ArrayAccessError, ArrayLengthError, DeserializeError, Error, ExpectedLength, Location,
         ReceivedLength, VisitorError,
     },
-    schema::BorrowReflection,
     ArrayAccess, Deserialize, Deserializer, Document, Reflection, Schema, Visitor,
 };
 
@@ -17,7 +16,7 @@ impl<'de, T: Deserialize<'de>, const N: usize> Visitor<'de> for ArrayVisitor<'de
     type Value = [T; N];
 
     fn expecting(&self) -> Document {
-        Document::new::<[T; N]>()
+        <[T; N]>::reflection()
     }
 
     fn visit_array<A>(self, mut v: A) -> Result<Self::Value, VisitorError>
@@ -44,7 +43,7 @@ impl<'de, T: Deserialize<'de>, const N: usize> Visitor<'de> for ArrayVisitor<'de
                 Some(Ok(value)) => {
                     if index >= N {
                         // TODO: we need to potentially change the wording to at least / gt
-                        let error = Report::new(ArrayLengthError)
+                        let error = Report::new(Error::new(ArrayLengthError))
                             .attach(ReceivedLength::new(v.size_hint().unwrap_or(N + 1)))
                             .attach(ExpectedLength::new(N))
                             .attach(Location::Array(index))
@@ -78,7 +77,7 @@ impl<'de, T: Deserialize<'de>, const N: usize> Visitor<'de> for ArrayVisitor<'de
         // ensure that we have enough items, `items` is always incremented, therefore we do not
         // signal a wrong warning, even if we had errors.
         if items != N {
-            let error = Report::new(ArrayLengthError)
+            let error = Report::new(Error::new(ArrayLengthError))
                 .attach(ReceivedLength::new(items))
                 .attach(ExpectedLength::new(N))
                 .change_context(ArrayAccessError);
@@ -117,29 +116,20 @@ impl<'de, T: Deserialize<'de>, const N: usize> Visitor<'de> for ArrayVisitor<'de
     }
 }
 
-struct ArrayReflection<'de, T: Deserialize<'de>, const N: usize>(
-    PhantomData<fn(&'de ()) -> [T; N]>,
-);
+struct ArrayReflection<T: Reflection + ?Sized, const N: usize>(PhantomData<fn() -> ([(); N], T)>);
 
-impl Reflection for ArrayReflection {
+impl<T: Reflection + ?Sized, const N: usize> Reflection for ArrayReflection<T, N> {
     fn schema(doc: &mut Document) -> Schema {
         Schema::new("array")
-            .with("items", doc.add::<T::Reflection>())
-            .with("minItems", N)
-            .with("maxItems", N)
-    }
-}
-
-impl<T: BorrowReflection, const N: usize> Reflection for [T; N] {
-    fn schema(doc: &mut Document) -> Schema {
-        Schema::new("array")
-            .with("items", doc.add::<T::Reflection>())
+            .with("items", doc.add::<T>())
             .with("minItems", N)
             .with("maxItems", N)
     }
 }
 
 impl<'de, T: Deserialize<'de>, const N: usize> Deserialize<'de> for [T; N] {
+    type Reflection = ArrayReflection<T::Reflection, N>;
+
     fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError> {
         de.deserialize_array(ArrayVisitor(PhantomData::default()))
             .change_context(DeserializeError)

@@ -4,7 +4,6 @@ use error_stack::ResultExt;
 
 use crate::{
     error::{DeserializeError, VisitorError},
-    schema::BorrowReflection,
     Deserialize, Deserializer, Document, Reflection, Schema, Visitor,
 };
 
@@ -22,19 +21,15 @@ impl<'de: 'a, 'a> Visitor<'de> for StrVisitor<'a> {
     }
 }
 
-struct StringReflection;
-
-impl Reflection for StringReflection {
+impl Reflection for str {
     fn schema(_: &mut Document) -> Schema {
         Schema::new("string")
     }
 }
 
-impl BorrowReflection for &str {
-    type Reflection = StringReflection;
-}
-
 impl<'de: 'a, 'a> Deserialize<'de> for &'a str {
+    type Reflection = str;
+
     fn deserialize<D: Deserializer<'de>>(de: D) -> error_stack::Result<Self, DeserializeError> {
         de.deserialize_str(StrVisitor(Default::default()))
             .change_context(DeserializeError)
