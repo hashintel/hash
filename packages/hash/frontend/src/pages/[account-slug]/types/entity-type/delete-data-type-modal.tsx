@@ -98,8 +98,8 @@ export const DeleteDataTypeModal = ({
                 ? " These "
                 : " This "}
               will be removed from your expected value definition if you
-              continue and will need to be individually re-added manually.
-              Proceed with caution.
+              continue and will need to be individually re-added should you wish
+              to restore them. Proceed with caution.
             </Typography>
           </Box>
 
