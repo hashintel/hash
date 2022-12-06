@@ -100,9 +100,9 @@ const userRegistrationByInviteIsEnabledPropertyTypeInitializer =
     possibleValues: [{ primitiveDataType: "boolean" }],
   });
 
-export const adminLinkEntityTypeInitializer = entityTypeInitializer({
-  ...types.linkEntityType.admin,
-});
+export const adminLinkEntityTypeInitializer = entityTypeInitializer(
+  types.linkEntityType.admin,
+);
 
 export const hashInstanceEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
@@ -322,9 +322,9 @@ const componentIdPropertyTypeInitializer = propertyTypeInitializer({
   possibleValues: [{ primitiveDataType: "text" }],
 });
 
-const blockDataLinkEntityTypeInitializer = entityTypeInitializer({
-  ...types.linkEntityType.blockData,
-});
+const blockDataLinkEntityTypeInitializer = entityTypeInitializer(
+  types.linkEntityType.blockData,
+);
 
 const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
@@ -428,9 +428,9 @@ const iconPropertyTypeInitializer = propertyTypeInitializer({
   possibleValues: [{ primitiveDataType: "text" }],
 });
 
-const containsLinkEntityTypeInitializer = entityTypeInitializer({
-  ...types.linkEntityType.contains,
-});
+const containsLinkEntityTypeInitializer = entityTypeInitializer(
+  types.linkEntityType.contains,
+);
 
 const parentLinkEntityTypeInitializer = entityTypeInitializer(
   types.linkEntityType.parent,
@@ -513,13 +513,13 @@ const deletedAtPropertyTypeInitializer = propertyTypeInitializer({
   possibleValues: [{ primitiveDataType: "text" }],
 });
 
-const hasTextLinkEntityTypeInitializer = entityTypeInitializer({
-  ...types.linkEntityType.hasText,
-});
+const hasTextLinkEntityTypeInitializer = entityTypeInitializer(
+  types.linkEntityType.hasText,
+);
 
-const authorLinkEntityTypeInitializer = entityTypeInitializer({
-  ...types.linkEntityType.author,
-});
+const authorLinkEntityTypeInitializer = entityTypeInitializer(
+  types.linkEntityType.author,
+);
 
 const commentEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
