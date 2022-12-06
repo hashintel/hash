@@ -86,6 +86,7 @@ export const CustomDataTypeMenu: FunctionComponent<CustomDataTypeMenuProps> = ({
               padding: 0,
               minWidth: 0,
               minHeight: 0,
+              height: 18,
               background: "none !important",
               fontWeight: 600,
               fontSize: 12,
