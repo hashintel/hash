@@ -1,3 +1,5 @@
+mod integral;
+
 use core::{marker::PhantomData, mem, mem::MaybeUninit, ptr};
 
 use error_stack::{Report, Result, ResultExt};
