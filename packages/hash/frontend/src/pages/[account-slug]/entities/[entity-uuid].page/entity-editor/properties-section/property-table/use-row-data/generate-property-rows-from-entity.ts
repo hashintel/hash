@@ -14,15 +14,19 @@ export const generatePropertyRowsFromEntity = (
     entity.metadata.entityTypeId,
   );
 
-  const requiredPropertyTypes = entityType?.schema.required ?? [];
+  if (!entityType) {
+    return [];
+  }
 
-  return Object.keys(entity.properties).map((propertyTypeBaseUri) =>
-    generatePropertyRowRecursively(
-      entity.properties,
+  const requiredPropertyTypes = entityType.schema.required ?? [];
+
+  return Object.keys(entityType.schema.properties).map((propertyTypeBaseUri) =>
+    generatePropertyRowRecursively({
       propertyTypeBaseUri,
-      [propertyTypeBaseUri],
+      propertyKeyChain: [propertyTypeBaseUri],
+      entity,
       entitySubgraph,
       requiredPropertyTypes,
-    ),
+    }),
   );
 };

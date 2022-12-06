@@ -1,88 +1,13 @@
-import {
-  EntityType,
-  PropertyType,
-  VersionedUri,
-} from "@blockprotocol/type-system";
-import {
-  extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
-  PropertyObject,
-  Subgraph,
-} from "@hashintel/hash-subgraph";
+import { VersionedUri } from "@blockprotocol/type-system";
+import { extractEntityUuidFromEntityId } from "@hashintel/hash-subgraph";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
-import { getPropertyTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
 import { useRouter } from "next/router";
 import { useCallback } from "react";
 import { useBlockProtocolCreateEntity } from "../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolCreateEntity";
 import { useBlockProtocolGetEntityType } from "../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
-import {
-  isPropertyValueArray,
-  isPropertyValueNested,
-} from "../../../../../lib/typeguards";
-import { AuthenticatedUser } from "../../../../../lib/user";
-
-/**
- * @todo this will be deleted when https://app.asana.com/0/1203312852763953/1203433085114587/f (internal) is implemented
- */
-const getDefaultValueOfPropertyType = (
-  propertyType: PropertyType | undefined,
-  subgraph: Subgraph,
-) => {
-  /**
-   * if there are multiple expected types, those are not expected to be arrays or nested properties.
-   * So it's safe to return empty string on this case
-   */
-  if (!propertyType || propertyType.oneOf.length > 1) {
-    return "";
-  }
-
-  const propertyValue = propertyType.oneOf[0];
-
-  // return empty array for arrays
-  if (isPropertyValueArray(propertyValue)) {
-    return [];
-  }
-
-  // recursively get default properties for nested properties
-  if (isPropertyValueNested(propertyValue)) {
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    return generateDefaultProperties(propertyValue.properties, subgraph);
-  }
-
-  // empty string works for number, text & boolean
-  return "";
-};
-
-/**
- * @todo this will be deleted when https://app.asana.com/0/1203312852763953/1203433085114587/f (internal) is implemented
- */
-export const generateDefaultProperties = (
-  properties: EntityType["properties"],
-  subgraph: Subgraph,
-) => {
-  const result: PropertyObject = {};
-
-  for (const propertyKey of Object.keys(properties)) {
-    const property = properties[propertyKey];
-
-    if (property) {
-      const propertyTypeId =
-        "$ref" in property ? property.$ref : property.items.$ref;
-
-      const propertyType = getPropertyTypeById(
-        subgraph,
-        propertyTypeId,
-      )?.schema;
-
-      result[propertyKey] = getDefaultValueOfPropertyType(
-        propertyType,
-        subgraph,
-      );
-    }
-  }
-
-  return result;
-};
+import { User } from "../../../../../lib/user";
+import { getOwnedById } from "../../../../../lib/get-owned-by-id";
+import { MinimalOrg } from "../../../../../lib/org";
 
 export const useCreateNewEntityAndRedirect = () => {
   const router = useRouter();
@@ -91,7 +16,7 @@ export const useCreateNewEntityAndRedirect = () => {
 
   const createNewEntityAndRedirect = useCallback(
     async (
-      authenticatedUser: AuthenticatedUser,
+      activeWorkspace: User | MinimalOrg,
       entityTypeId: VersionedUri,
       replace = false,
       abortSignal?: AbortSignal,
@@ -112,12 +37,6 @@ export const useCreateNewEntityAndRedirect = () => {
         return;
       }
 
-      const accountSlug = router.query["account-slug"];
-
-      if (typeof accountSlug !== "string") {
-        throw new Error("account slug not found");
-      }
-
       if (!subgraph) {
         throw new Error("subgraph not found");
       }
@@ -128,45 +47,13 @@ export const useCreateNewEntityAndRedirect = () => {
       if (!entityType) {
         throw new Error("persisted entity type not found");
       }
-
-      let ownedById: string | undefined;
-      const shortname = accountSlug?.slice(1);
-
-      const atUsersNamespace = shortname === authenticatedUser.shortname;
-
-      const foundOrg = authenticatedUser.memberOf.find(
-        (val) => val.shortname === shortname,
-      );
-      const atOrgsNamespace = !!foundOrg;
-
-      if (atUsersNamespace) {
-        ownedById = extractEntityUuidFromEntityId(
-          authenticatedUser.entityEditionId.baseId,
-        );
-      } else if (atOrgsNamespace) {
-        /**
-         * @todo  we should be using `extractEntityUuidFromEntityId` here instead,
-         * but it's not possible for now
-         * @see https://hashintel.slack.com/archives/C022217GAHF/p1669644710424819 (internal) for details
-         */
-        ownedById = extractOwnedByIdFromEntityId(
-          foundOrg.entityEditionId.baseId,
-        );
-      }
+      const ownedById = getOwnedById(activeWorkspace);
 
       const { data: entity } = await createEntity({
         data: {
           entityTypeId: entityType.$id,
           ownedById,
-          /**
-           * @todo after implementing this ticket: https://app.asana.com/0/1203312852763953/1203433085114587/f (internal)
-           * we should just use `properties: {}` here, and delete `generateDefaultProperties` function,
-           * this is a temporary workaround for entity table to show the rows with empty values
-           */
-          properties: generateDefaultProperties(
-            entityType.properties,
-            subgraph,
-          ),
+          properties: {},
         },
       });
 
@@ -179,7 +66,7 @@ export const useCreateNewEntityAndRedirect = () => {
       );
 
       if (!abortSignal?.aborted) {
-        const url = `/${accountSlug}/entities/${entityId}`;
+        const url = `/@${activeWorkspace.shortname}/entities/${entityId}`;
         if (replace) {
           await router.replace(url);
         } else {
