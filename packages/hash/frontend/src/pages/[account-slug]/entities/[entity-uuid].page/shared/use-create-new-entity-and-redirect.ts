@@ -5,7 +5,6 @@ import {
 } from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
   PropertyObject,
   Subgraph,
 } from "@hashintel/hash-subgraph";
@@ -15,6 +14,7 @@ import { useRouter } from "next/router";
 import { useCallback } from "react";
 import { useBlockProtocolCreateEntity } from "../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolCreateEntity";
 import { useBlockProtocolGetEntityType } from "../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
+import { getOwnedById } from "../../../../../lib/get-owned-by-id";
 import { MinimalOrg } from "../../../../../lib/org";
 import {
   isPropertyValueArray,
@@ -123,18 +123,7 @@ export const useCreateNewEntityAndRedirect = () => {
       if (!entityType) {
         throw new Error("persisted entity type not found");
       }
-
-      const { baseId } = activeWorkspace.entityEditionId;
-
-      const ownedById =
-        activeWorkspace.kind === "user"
-          ? extractEntityUuidFromEntityId(baseId)
-          : /**
-             * @todo  we should be using `extractEntityUuidFromEntityId` here instead,
-             * but it's not possible for now
-             * @see https://hashintel.slack.com/archives/C022217GAHF/p1669644710424819 (internal) for details
-             */
-            extractOwnedByIdFromEntityId(baseId);
+      const ownedById = getOwnedById(activeWorkspace);
 
       const { data: entity } = await createEntity({
         data: {
