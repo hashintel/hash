@@ -13,7 +13,7 @@ impl<'de: 'a, 'a> Visitor<'de> for StrVisitor<'a> {
     type Value = &'a str;
 
     fn expecting(&self) -> Document {
-        Document::new::<&str>()
+        <&str>::reflection()
     }
 
     fn visit_borrowed_str(self, v: &'de str) -> error_stack::Result<Self::Value, VisitorError> {
@@ -59,6 +59,8 @@ impl Reflection for char {
 }
 
 impl<'de> Deserialize<'de> for char {
+    type Reflection = char;
+
     fn deserialize<D: Deserializer<'de>>(de: D) -> error_stack::Result<Self, DeserializeError> {
         de.deserialize_char(CharVisitor)
             .change_context(DeserializeError)
