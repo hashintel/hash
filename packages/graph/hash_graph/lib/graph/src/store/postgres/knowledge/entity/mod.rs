@@ -1,6 +1,6 @@
 mod read;
 
-use std::{future::Future, pin::Pin};
+use std::{collections::hash_map::Entry, future::Future, pin::Pin};
 
 use async_trait::async_trait;
 use error_stack::{bail, IntoReport, Report, Result, ResultExt};
@@ -51,28 +51,22 @@ impl<C: AsClient> PostgresStore<C> {
             let dependency_status = dependency_context
                 .knowledge_dependency_map
                 .insert(&entity_edition_id, current_resolve_depth);
+
+            // Explicitly converting the unique reference to a shared reference to the vertex to
+            // avoid mutating it by accident
             let entity: Option<&KnowledgeGraphVertex> = match dependency_status {
-                DependencyStatus::Unknown => {
-                    if let Some(entity) = subgraph.vertices.knowledge_graph.get(&entity_edition_id)
-                    {
-                        Some(entity)
-                    } else {
-                        let entity = Read::<Entity>::read_one(
-                            self,
-                            &Filter::for_entity_by_edition_id(entity_edition_id),
-                        )
-                        .await?;
-                        Some(
-                            subgraph
-                                .vertices
-                                .knowledge_graph
-                                .entry(entity_edition_id)
-                                .or_insert(KnowledgeGraphVertex::Entity(entity)),
-                        )
+                DependencyStatus::Unresolved => {
+                    match subgraph.vertices.knowledge_graph.entry(entity_edition_id) {
+                        Entry::Occupied(entry) => Some(entry.into_mut()),
+                        Entry::Vacant(entry) => {
+                            let entity = Read::<Entity>::read_one(
+                                self,
+                                &Filter::for_entity_by_edition_id(entity_edition_id),
+                            )
+                            .await?;
+                            Some(entry.insert(KnowledgeGraphVertex::Entity(entity)))
+                        }
                     }
-                }
-                DependencyStatus::DependenciesUnresolved => {
-                    subgraph.vertices.knowledge_graph.get(&entity_edition_id)
                 }
                 DependencyStatus::Resolved => None,
             };
@@ -553,31 +547,33 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     .attach_printable("cannot update link order of an entity that is not a link")
             ),
             (Some(link_data), left, right) => {
-                let new_left_order = match (link_data.left_order(), left) {
+                let new_left_to_right_order = match (link_data.left_to_right_order(), left) {
                     (None, None) => None,
                     (Some(_), None) => bail!(Report::new(UpdateError).attach_printable(
-                        "left order was set on entity but new order was not provided"
+                        "left to right order was set on entity but new order was not provided"
                     )),
                     (None, Some(_)) => bail!(Report::new(UpdateError).attach_printable(
-                        "cannot set left order of a link that does not have a left order"
+                        "cannot set left to right order of a link that does not have a left to \
+                         right order"
                     )),
                     (Some(_), Some(new_left)) => Some(new_left),
                 };
-                let new_right_order = match (link_data.right_order(), right) {
+                let new_right_to_left_order = match (link_data.right_to_left_order(), right) {
                     (None, None) => None,
                     (Some(_), None) => bail!(Report::new(UpdateError).attach_printable(
-                        "right order was set on entity but new order was not provided"
+                        "right to left order was set on entity but new order was not provided"
                     )),
                     (None, Some(_)) => bail!(Report::new(UpdateError).attach_printable(
-                        "cannot set right order of a link that does not have a right order"
+                        "cannot set right to left order of a link that does not have a right to \
+                         left order"
                     )),
                     (Some(_), Some(new_right)) => Some(new_right),
                 };
                 Some(LinkData::new(
                     link_data.left_entity_id(),
                     link_data.right_entity_id(),
-                    new_left_order,
-                    new_right_order,
+                    new_left_to_right_order,
+                    new_right_to_left_order,
                 ))
             }
         };

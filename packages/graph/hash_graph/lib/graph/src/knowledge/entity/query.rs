@@ -215,32 +215,32 @@ pub enum EntityQueryPath<'q> {
     /// [`Entity`]: crate::knowledge::Entity
     /// [`LinkData::right_entity_id()`]: crate::knowledge::LinkData::right_entity_id
     RightEntity(Box<Self>),
-    /// Corresponds to [`LinkData::left_order()`].
+    /// Corresponds to [`LinkData::left_to_right_order()`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::knowledge::EntityQueryPath;
-    /// let path = EntityQueryPath::deserialize(json!(["leftOrder"]))?;
-    /// assert_eq!(path, EntityQueryPath::LeftOrder);
+    /// let path = EntityQueryPath::deserialize(json!(["leftToRightOrder"]))?;
+    /// assert_eq!(path, EntityQueryPath::LeftToRightOrder);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`LinkData::left_order()`]: crate::knowledge::LinkData::left_order
-    LeftOrder,
-    /// Corresponds to [`LinkData::right_order()`].
+    /// [`LinkData::left_to_right_order()`]: crate::knowledge::LinkData::left_to_right_order
+    LeftToRightOrder,
+    /// Corresponds to [`LinkData::right_to_left_order()`].
     ///
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
     /// # use graph::knowledge::EntityQueryPath;
-    /// let path = EntityQueryPath::deserialize(json!(["rightOrder"]))?;
-    /// assert_eq!(path, EntityQueryPath::RightOrder);
+    /// let path = EntityQueryPath::deserialize(json!(["rightToLeftOrder"]))?;
+    /// assert_eq!(path, EntityQueryPath::RightToLeftOrder);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`LinkData::right_order()`]: crate::knowledge::LinkData::right_order
-    RightOrder,
+    /// [`LinkData::right_to_left_order()`]: crate::knowledge::LinkData::right_to_left_order
+    RightToLeftOrder,
     /// Corresponds to [`Entity::properties()`].
     ///
     /// Deserializes from `["properties", ...]` where `...` is a path to a property URI of an
@@ -288,8 +288,8 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::OutgoingLinks(link) => write!(fmt, "outgoingLinks.{link}"),
             Self::LeftEntity(path) => write!(fmt, "leftEntityUuid.{path}"),
             Self::RightEntity(path) => write!(fmt, "rightEntityUuid.{path}"),
-            Self::LeftOrder => fmt.write_str("leftOrder"),
-            Self::RightOrder => fmt.write_str("rightOrder"),
+            Self::LeftToRightOrder => fmt.write_str("leftToRightOrder"),
+            Self::RightToLeftOrder => fmt.write_str("rightToLeftOrder"),
         }
     }
 }
@@ -305,7 +305,7 @@ impl RecordPath for EntityQueryPath<'_> {
             Self::Version => ParameterType::Timestamp,
             Self::Type(path) => path.expected_type(),
             Self::Properties(_) => ParameterType::Any,
-            Self::LeftOrder | Self::RightOrder => ParameterType::Number,
+            Self::LeftToRightOrder | Self::RightToLeftOrder => ParameterType::Number,
             Self::Archived => ParameterType::Boolean,
         }
     }
@@ -327,8 +327,8 @@ pub enum EntityQueryToken {
     OutgoingLinks,
     LeftEntity,
     RightEntity,
-    LeftOrder,
-    RightOrder,
+    LeftToRightOrder,
+    RightToLeftOrder,
 }
 
 /// Deserializes an [`EntityQueryPath`] from a string sequence.
@@ -338,9 +338,10 @@ pub struct EntityQueryPathVisitor {
 }
 
 impl EntityQueryPathVisitor {
-    pub const EXPECTING: &'static str =
-        "one of `uuid`, `version`, `archived`, `ownedById`, `updatedById`, `type`, `properties`, \
-         `incomingLinks`, `outgoingLinks`, `leftEntity`, `rightEntity`, `leftOrder`, `rightOrder`";
+    pub const EXPECTING: &'static str = "one of `uuid`, `version`, `archived`, `ownedById`, \
+                                         `updatedById`, `type`, `properties`, `incomingLinks`, \
+                                         `outgoingLinks`, `leftEntity`, `rightEntity`, \
+                                         `leftToRightOrder`, `rightToLeftOrder`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -391,8 +392,8 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
             EntityQueryToken::RightEntity => {
                 EntityQueryPath::RightEntity(Box::new(Self::new(self.position).visit_seq(seq)?))
             }
-            EntityQueryToken::LeftOrder => EntityQueryPath::LeftOrder,
-            EntityQueryToken::RightOrder => EntityQueryPath::RightOrder,
+            EntityQueryToken::LeftToRightOrder => EntityQueryPath::LeftToRightOrder,
+            EntityQueryToken::RightToLeftOrder => EntityQueryPath::RightToLeftOrder,
         })
     }
 }

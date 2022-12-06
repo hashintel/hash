@@ -1,4 +1,4 @@
-import { EntityType, VersionedUri } from "@blockprotocol/type-system-web";
+import { EntityType, VersionedUri } from "@blockprotocol/type-system";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import {
   createContext,

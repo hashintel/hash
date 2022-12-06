@@ -2,7 +2,10 @@ import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { createGraphClient } from "@hashintel/hash-api/src/graph";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
-import { PropertyType } from "@blockprotocol/type-system-web";
+import {
+  PropertyType,
+  TypeSystemInitializer,
+} from "@blockprotocol/type-system";
 import {
   DataTypeModel,
   PropertyTypeModel,
@@ -32,6 +35,7 @@ let textDataTypeModel: DataTypeModel;
 let propertyTypeSchema: Omit<PropertyType, "$id">;
 
 beforeAll(async () => {
+  await TypeSystemInitializer.initialize();
   testUser = await createTestUser(graphApi, "pt-test-1", logger);
   testUser2 = await createTestUser(graphApi, "pt-test-2", logger);
 

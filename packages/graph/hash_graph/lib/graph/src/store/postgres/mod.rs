@@ -47,8 +47,7 @@ use crate::{
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum DependencyStatus {
-    Unknown,
-    DependenciesUnresolved,
+    Unresolved,
     Resolved,
 }
 
@@ -87,11 +86,11 @@ where
         match self.resolved.raw_entry_mut().from_key(identifier) {
             RawEntryMut::Vacant(entry) => {
                 entry.insert(identifier.clone(), resolved_depth);
-                DependencyStatus::Unknown
+                DependencyStatus::Unresolved
             }
             RawEntryMut::Occupied(entry) => {
                 if entry.into_mut().update(resolved_depth) {
-                    DependencyStatus::DependenciesUnresolved
+                    DependencyStatus::Unresolved
                 } else {
                     DependencyStatus::Resolved
                 }
@@ -649,7 +648,7 @@ where
                     properties,
                     left_owned_by_id, left_entity_uuid,
                     right_owned_by_id, right_entity_uuid,
-                    left_order, right_order,
+                    left_to_right_order, right_to_left_order,
                     updated_by_id
                 )
                 VALUES ($1, $2, clock_timestamp(), $3, $4, $5, $6, $7, $8, $9, $10, $11)
@@ -672,8 +671,8 @@ where
                     &link_data
                         .as_ref()
                         .map(|metadata| metadata.right_entity_id().entity_uuid().as_uuid()),
-                    &link_data.as_ref().map(LinkData::left_order),
-                    &link_data.as_ref().map(LinkData::right_order),
+                    &link_data.as_ref().map(LinkData::left_to_right_order),
+                    &link_data.as_ref().map(LinkData::right_to_left_order),
                     &updated_by_id.as_account_id(),
                 ],
             )
@@ -745,7 +744,7 @@ where
                         properties,
                         left_owned_by_id, left_entity_uuid,
                         right_owned_by_id, right_entity_uuid,
-                        left_order, right_order,
+                        left_to_right_order, right_to_left_order,
                         updated_by_id
                 ),
                 inserted_in_historic AS (
@@ -758,7 +757,7 @@ where
                         properties,
                         left_owned_by_id, left_entity_uuid,
                         right_owned_by_id, right_entity_uuid,
-                        left_order, right_order,
+                        left_to_right_order, right_to_left_order,
                         updated_by_id,
                         archived
                     )
@@ -768,7 +767,7 @@ where
                         properties,
                         left_owned_by_id, left_entity_uuid,
                         right_owned_by_id, right_entity_uuid,
-                        left_order, right_order,
+                        left_to_right_order, right_to_left_order,
                         updated_by_id,
                         $3::boolean
                     FROM to_move_to_historic
@@ -778,7 +777,7 @@ where
                         entity_type_version_id,
                         left_owned_by_id, left_entity_uuid,
                         right_owned_by_id, right_entity_uuid,
-                        left_order, right_order,
+                        left_to_right_order, right_to_left_order,
                         updated_by_id
                 )
                 SELECT
@@ -786,7 +785,7 @@ where
                     base_uri, type_ids.version,
                     left_owned_by_id, left_entity_uuid,
                     right_owned_by_id, right_entity_uuid,
-                    left_order, right_order,
+                    left_to_right_order, right_to_left_order,
                     updated_by_id
                 FROM inserted_in_historic
                 INNER JOIN type_ids ON inserted_in_historic.entity_type_version_id = type_ids.version_id;
@@ -814,8 +813,8 @@ where
                 Some(left_entity_uuid),
                 Some(right_owned_by_id),
                 Some(right_entity_uuid),
-                left_order,
-                right_order,
+                left_to_right_order,
+                right_to_left_order,
             ) => Some(LinkData::new(
                 EntityId::new(
                     OwnedById::new(left_owned_by_id),
@@ -825,8 +824,8 @@ where
                     OwnedById::new(right_owned_by_id),
                     EntityUuid::new(right_entity_uuid),
                 ),
-                left_order,
-                right_order,
+                left_to_right_order,
+                right_to_left_order,
             )),
             (None, None, None, None, None, None) => None,
             _ => {
@@ -918,7 +917,8 @@ impl PostgresStore<Transaction<'_>> {
             .copy_in(
                 "COPY latest_entities (entity_uuid, entity_type_version_id, properties, \
                  owned_by_id, updated_by_id, left_owned_by_id, left_entity_uuid, \
-                 right_owned_by_id, right_entity_uuid, left_order, right_order) FROM STDIN BINARY",
+                 right_owned_by_id, right_entity_uuid, left_to_right_order, right_to_left_order) \
+                 FROM STDIN BINARY",
             )
             .await
             .into_report()
@@ -963,8 +963,8 @@ impl PostgresStore<Transaction<'_>> {
                     &link_data
                         .as_ref()
                         .map(|metadata| metadata.right_entity_id().entity_uuid().as_uuid()),
-                    &link_data.as_ref().and_then(LinkData::left_order),
-                    &link_data.as_ref().and_then(LinkData::right_order),
+                    &link_data.as_ref().and_then(LinkData::left_to_right_order),
+                    &link_data.as_ref().and_then(LinkData::right_to_left_order),
                 ])
                 .await
                 .into_report()

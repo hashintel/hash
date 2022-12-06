@@ -6,7 +6,7 @@ use crate::{
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
 #[serde(tag = "kind", content = "inner")]
 #[serde(rename_all = "camelCase")]
 pub enum OntologyVertex {
@@ -48,7 +48,7 @@ impl ToSchema for OntologyVertex {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
 #[serde(tag = "kind", content = "inner")]
 #[serde(rename_all = "camelCase")]
 pub enum KnowledgeGraphVertex {
@@ -81,7 +81,7 @@ impl ToSchema for KnowledgeGraphVertex {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 #[serde(untagged)]
 pub enum Vertex {

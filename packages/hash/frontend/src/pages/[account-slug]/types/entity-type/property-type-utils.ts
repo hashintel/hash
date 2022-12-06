@@ -1,4 +1,4 @@
-import { PropertyValues, VersionedUri } from "@blockprotocol/type-system-web";
+import { PropertyValues, VersionedUri } from "@blockprotocol/type-system";
 import { faList, faListCheck } from "@fortawesome/free-solid-svg-icons";
 import { theme } from "@hashintel/hash-design-system";
 import { types } from "@hashintel/hash-shared/types";

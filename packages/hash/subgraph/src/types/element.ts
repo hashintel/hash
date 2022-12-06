@@ -10,7 +10,7 @@ import {
   EntityType,
   PropertyType,
   VersionedUri,
-} from "@blockprotocol/type-system-web";
+} from "@blockprotocol/type-system";
 import { EntityEditionId, EntityId } from "./identifier";
 
 // Due to restrictions with how much OpenAPI can express, we patch the schemas with the better-typed ones from the
@@ -49,8 +49,8 @@ export type PropertyObject = {
 };
 
 export type LinkData = {
-  leftOrder?: number;
-  rightOrder?: number;
+  leftToRightOrder?: number;
+  rightToLeftOrder?: number;
   leftEntityId: EntityId;
   rightEntityId: EntityId;
 };

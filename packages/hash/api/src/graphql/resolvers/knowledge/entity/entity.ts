@@ -69,7 +69,8 @@ export const createEntity: ResolverFn<
   let entityModel: EntityModel | LinkEntityModel;
 
   if (linkData) {
-    const { leftEntityId, leftOrder, rightEntityId, rightOrder } = linkData;
+    const { leftEntityId, leftToRightOrder, rightEntityId, rightToLeftOrder } =
+      linkData;
 
     const [leftEntityModel, rightEntityModel, linkEntityTypeModel] =
       await Promise.all([
@@ -84,9 +85,9 @@ export const createEntity: ResolverFn<
 
     entityModel = await LinkEntityModel.createLinkEntity(graphApi, {
       leftEntityModel,
-      leftOrder: leftOrder ?? undefined,
+      leftToRightOrder: leftToRightOrder ?? undefined,
       rightEntityModel,
-      rightOrder: rightOrder ?? undefined,
+      rightToLeftOrder: rightToLeftOrder ?? undefined,
       properties,
       linkEntityTypeModel,
       ownedById: ownedById ?? userModel.getEntityUuid(),
@@ -247,7 +248,7 @@ export const updateEntity: ResolverFn<
   MutationUpdateEntityArgs
 > = async (
   _,
-  { entityId, updatedProperties, leftOrder, rightOrder },
+  { entityId, updatedProperties, leftToRightOrder, rightToLeftOrder },
   { dataSources: { graphApi }, userModel },
 ) => {
   // The user needs to be signed up if they aren't updating their own user entity
@@ -281,13 +282,13 @@ export const updateEntity: ResolverFn<
     updatedEntityModel = await entityModel.update(graphApi, {
       properties: updatedProperties,
       actorId: userModel.getEntityUuid(),
-      leftOrder: leftOrder ?? undefined,
-      rightOrder: rightOrder ?? undefined,
+      leftToRightOrder: leftToRightOrder ?? undefined,
+      rightToLeftOrder: rightToLeftOrder ?? undefined,
     });
   } else {
-    if (leftOrder || rightOrder) {
+    if (leftToRightOrder || rightToLeftOrder) {
       throw new UserInputError(
-        `Cannot update the left order or right order of entity with ID ${entityModel.getBaseId()} because it isn't a link.`,
+        `Cannot update the left to right order or right to left order of entity with ID ${entityModel.getBaseId()} because it isn't a link.`,
       );
     }
 

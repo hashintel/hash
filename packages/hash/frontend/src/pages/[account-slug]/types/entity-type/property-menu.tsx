@@ -1,4 +1,4 @@
-import { extractVersion, PropertyType } from "@blockprotocol/type-system-web";
+import { extractVersion, PropertyType } from "@blockprotocol/type-system";
 import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import {
   FontAwesomeIcon,

@@ -1,4 +1,4 @@
-import { extractBaseUri } from "@blockprotocol/type-system-web";
+import { extractBaseUri } from "@blockprotocol/type-system";
 import { types } from "@hashintel/hash-shared/types";
 import {
   Subgraph,

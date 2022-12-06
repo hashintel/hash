@@ -1,4 +1,4 @@
-import { PropertyType } from "@blockprotocol/type-system-web";
+import { PropertyType } from "@blockprotocol/type-system";
 import {
   TableCell,
   tableCellClasses,

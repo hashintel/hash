@@ -381,7 +381,8 @@ export default class extends EntityModel {
     return outgoingBlockDataLinks
       .sort(
         (a, b) =>
-          (a.getLinkData().leftOrder ?? 0) - (b.getLinkData().leftOrder ?? 0) ||
+          (a.getLinkData().leftToRightOrder ?? 0) -
+            (b.getLinkData().leftToRightOrder ?? 0) ||
           a.getBaseId().localeCompare(b.getBaseId()) ||
           a.getVersion().localeCompare(b.getVersion()),
       )
@@ -427,7 +428,7 @@ export default class extends EntityModel {
     await this.createOutgoingLink(graphApi, {
       rightEntityModel: block,
       linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.contains,
-      leftOrder:
+      leftToRightOrder:
         specifiedPosition ??
         // if position is not specified and there are no blocks currently in the page, specify the index of the link is `0`
         ((await this.getBlocks(graphApi)).length === 0 ? 0 : undefined),
@@ -469,7 +470,7 @@ export default class extends EntityModel {
 
     const link = contentLinks.find(
       (linkEntityModel) =>
-        linkEntityModel.getLinkData().leftOrder === currentPosition,
+        linkEntityModel.getLinkData().leftToRightOrder === currentPosition,
     );
 
     if (!link) {
@@ -480,7 +481,7 @@ export default class extends EntityModel {
 
     await link.updateOrder(graphApi, {
       linkOrder: {
-        leftOrder: newPosition,
+        leftToRightOrder: newPosition,
       },
       actorId,
     });
@@ -516,7 +517,7 @@ export default class extends EntityModel {
 
     const linkEntityModel = contentLinkEntityModels.find(
       (contentLinkEntityModel) =>
-        contentLinkEntityModel.getLinkData().leftOrder === position,
+        contentLinkEntityModel.getLinkData().leftToRightOrder === position,
     );
 
     if (!linkEntityModel) {

@@ -18,5 +18,5 @@ serde_json = "1.0.89"
 tokio = { version = "1.22.0", features = ["rt-multi-thread", "macros"] }
 tokio-postgres = { version = "0.7.7", default-features = false }
 tracing = "0.1.37"
-type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "244d25a" }
+type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "494d445" }
 uuid = "1.2.2"
