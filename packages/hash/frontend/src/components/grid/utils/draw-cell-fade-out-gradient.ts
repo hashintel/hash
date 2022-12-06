@@ -3,12 +3,16 @@ import type { DrawArgs } from "@glideapps/glide-data-grid/dist/ts/data-grid/cell
 
 export const drawCellFadeOutGradient = (
   args: DrawArgs<CustomCell>,
-  marginRight: number = 0,
+  extraWidth: number = 0,
 ) => {
   const { ctx, rect, theme } = args;
 
-  const rectRight = rect.x + rect.width - marginRight;
-  const rectLeft = rectRight;
+  const rectLeft = rect.x + rect.width - extraWidth;
+
+  if (extraWidth) {
+    ctx.fillStyle = theme.bgCell;
+    ctx.fillRect(rectLeft, rect.y, extraWidth, rect.height);
+  }
 
   const grdWidth = 50;
   const grdLeft = rectLeft - grdWidth;

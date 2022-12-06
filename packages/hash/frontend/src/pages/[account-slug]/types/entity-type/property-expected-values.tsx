@@ -1,4 +1,4 @@
-import { PropertyType } from "@blockprotocol/type-system-web";
+import { PropertyType } from "@blockprotocol/type-system";
 import { Chip } from "@hashintel/hash-design-system";
 import { types } from "@hashintel/hash-shared/types";
 
@@ -17,14 +17,19 @@ export const PropertyExpectedValues = ({
   property: PropertyType;
 }) => (
   <>
-    {property.oneOf.map((type) => {
-      if ("$ref" in type) {
-        const label = dataTypeIdToTitle[type.$ref];
+    {property.oneOf.map((dataType) => {
+      let label;
 
-        if (label) {
-          return <Chip key={label} label={label} color="gray" />;
-        }
+      if ("$ref" in dataType) {
+        label = dataTypeIdToTitle[dataType.$ref];
+      } else if (dataType.type === "array") {
+        label = "Array";
       }
+
+      if (label) {
+        return <Chip key={label} label={label} color="gray" />;
+      }
+
       return null;
     })}
   </>

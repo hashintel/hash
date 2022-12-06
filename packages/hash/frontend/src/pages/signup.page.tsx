@@ -215,6 +215,12 @@ const SignupPage: NextPageWithLayout = () => {
   const [updateAuthenticatedUser, { loading: updateUserLoading }] =
     useUpdateAuthenticatedUser();
 
+  useEffect(() => {
+    if (authenticatedUser && authenticatedUser.accountSignupComplete) {
+      void router.push(`/${authenticatedUser.userAccountId}`);
+    }
+  }, [authenticatedUser, router]);
+
   const [invitationInfo] = useState<null>(null);
   const [errorMessage, setErrorMessage] = useState<string>();
 

@@ -13,11 +13,12 @@ export const Avatar: FunctionComponent<AvatarProps> = ({
   src,
   ...props
 }) => {
-  const { sx = [], ...otherProps } = props;
+  const { sx = [], bgcolor, ...otherProps } = props;
   return (
     <Box
+      bgcolor={bgcolor ?? (({ palette }) => palette.blue[70])}
       sx={[
-        ({ palette }) => ({
+        {
           width: size,
           height: size,
           display: "flex",
@@ -26,8 +27,7 @@ export const Avatar: FunctionComponent<AvatarProps> = ({
             justifyContent: "center",
           }),
           borderRadius: "50%",
-          backgroundColor: palette.blue[70],
-        }),
+        },
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
       {...otherProps}
@@ -53,8 +53,7 @@ export const Avatar: FunctionComponent<AvatarProps> = ({
             lineHeight: 1,
           }}
         >
-          {/* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- @todo what to do about empty title */}
-          {(title || "User").charAt(0).toUpperCase()}
+          {title ? title.charAt(0).toUpperCase() : undefined}
         </Box>
       )}
     </Box>

@@ -45,14 +45,14 @@ export const useBlockProtocolCreateEntity = (
         };
       }
 
-      const { entityTypeId, ownedById, properties, linkMetadata } = data;
+      const { entityTypeId, ownedById, properties, linkData } = data;
 
       const { data: createEntityResponseData } = await createFn({
         variables: {
           entityTypeId,
           ownedById,
           properties,
-          linkMetadata,
+          linkData,
         },
       });
 

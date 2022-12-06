@@ -147,7 +147,7 @@ export default class extends EntityModel {
 
     return (
       orgEntities
-        .map(OrgModel.fromEntityModel)
+        .map((orgEntity) => OrgModel.fromEntityModel(orgEntity))
         .find((org) => org.getShortname() === params.shortname) ?? null
     );
   }

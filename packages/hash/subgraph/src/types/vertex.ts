@@ -1,4 +1,4 @@
-import { BaseUri } from "@blockprotocol/type-system-web";
+import { BaseUri } from "@blockprotocol/type-system";
 import {
   DataTypeWithMetadata,
   Entity,

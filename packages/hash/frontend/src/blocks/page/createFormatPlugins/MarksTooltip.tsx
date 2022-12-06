@@ -67,7 +67,7 @@ export const MarksTooltip: FunctionComponent<MarksTooltipProps> = ({
           <button
             className={tw`flex items-center ${getMarkBtnClass(
               name,
-            )} bg-transparent border-0 cursor-pointer py-1 px-4 border-r-1 last:border-r-0 border-gray-300`}
+            )} border-0 cursor-pointer py-1 px-4 border-r-1 last:border-r-0 border-gray-300`}
             key={name}
             onClick={() => handleToggleMark(name)}
             type="button"

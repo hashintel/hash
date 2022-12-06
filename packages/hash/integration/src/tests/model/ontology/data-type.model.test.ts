@@ -2,7 +2,7 @@ import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { createGraphClient } from "@hashintel/hash-api/src/graph";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
-import { DataType } from "@blockprotocol/type-system-web";
+import { DataType, TypeSystemInitializer } from "@blockprotocol/type-system";
 import { DataTypeModel, UserModel } from "@hashintel/hash-api/src/model";
 import { createTestUser } from "../../util";
 
@@ -39,6 +39,7 @@ const dataTypeSchema: Pick<
 };
 
 beforeAll(async () => {
+  await TypeSystemInitializer.initialize();
   testUser = await createTestUser(graphApi, "data-type-test-1", logger);
   testUser2 = await createTestUser(graphApi, "data-type-test-2", logger);
 });
@@ -66,9 +67,6 @@ describe("Data type CRU", () => {
 
   const updatedTitle = "New text!";
   it("can update a data type", async () => {
-    expect(createdDataTypeModel.getMetadata().provenance.createdById).toBe(
-      testUser.getEntityUuid(),
-    );
     expect(createdDataTypeModel.getMetadata().provenance.updatedById).toBe(
       testUser.getEntityUuid(),
     );
@@ -80,9 +78,6 @@ describe("Data type CRU", () => {
       })
       .catch((err) => Promise.reject(err.data));
 
-    expect(createdDataTypeModel.getMetadata().provenance.createdById).toBe(
-      testUser.getEntityUuid(),
-    );
     expect(createdDataTypeModel.getMetadata().provenance.updatedById).toBe(
       testUser2.getEntityUuid(),
     );

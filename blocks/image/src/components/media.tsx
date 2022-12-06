@@ -23,6 +23,7 @@ import {
   useRef,
   useState,
   FunctionComponent,
+  RefObject,
 } from "react";
 import { unstable_batchedUpdates } from "react-dom";
 import { ErrorAlert } from "./error-alert";
@@ -126,10 +127,12 @@ const isSingleTargetLink = (link: Link): link is Link => "linkId" in link;
  */
 export const Media: FunctionComponent<
   BlockGraphProperties<MediaEntityProperties> & {
+    blockRef: RefObject<HTMLDivElement>;
     mediaType: "image" | "video";
   }
 > = (props) => {
   const {
+    blockRef,
     graph: {
       blockEntity: {
         entityId,
@@ -141,7 +144,6 @@ export const Media: FunctionComponent<
     mediaType,
   } = props;
 
-  const blockRef = useRef<HTMLDivElement>(null);
   const { graphService } = useGraphBlockService(blockRef);
 
   const matchingLinkedEntities = useMemo(() => {

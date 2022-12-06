@@ -8,15 +8,15 @@ description = "The entity-graph query-layer for the HASH datastore"
 
 
 [dependencies]
-axum = "0.5.16"
-clap = { version = "4.0.13", features = ["cargo", "derive", "env", "wrap_help"] }
-clap_complete = "4.0.2"
-error-stack = { version = "0.2.3", features = ["spantrace"] }
+axum = "0.6.1"
+clap = { version = "4.0.29", features = ["cargo", "derive", "env", "wrap_help"] }
+clap_complete = "4.0.6"
+error-stack = { version = "0.2.4", features = ["spantrace"] }
 graph = { path = "../../lib/graph", features = ["clap"] }
-regex = "1.6.0"
+regex = "1.7.0"
 serde_json = "1.0.89"
-tokio = { version = "1.21.2", features = ["rt-multi-thread", "macros"] }
+tokio = { version = "1.22.0", features = ["rt-multi-thread", "macros"] }
 tokio-postgres = { version = "0.7.7", default-features = false }
 tracing = "0.1.37"
-type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "244d25a" }
+type-system = { git = "https://github.com/blockprotocol/blockprotocol", rev = "494d445" }
 uuid = "1.2.2"

@@ -8,7 +8,7 @@ import {
   PropertyTypeModel,
   UserModel,
 } from "@hashintel/hash-api/src/model";
-import { EntityType } from "@blockprotocol/type-system-web";
+import { EntityType, TypeSystemInitializer } from "@blockprotocol/type-system";
 import { linkEntityTypeUri } from "@hashintel/hash-api/src/model/util";
 import { createTestUser } from "../../util";
 
@@ -40,6 +40,7 @@ let previousAddressLinkEntityTypeModel: EntityTypeModel;
 let addressEntityTypeModel: EntityTypeModel;
 
 beforeAll(async () => {
+  await TypeSystemInitializer.initialize();
   testUser = await createTestUser(graphApi, "entity-type-test-1", logger);
   testUser2 = await createTestUser(graphApi, "entity-type-test-2", logger);
 
@@ -185,9 +186,6 @@ describe("Entity type CRU", () => {
   const updatedTitle = "New text!";
   let updatedId: string | undefined;
   it("can update an entity type", async () => {
-    expect(createdEntityType.getMetadata().provenance.createdById).toBe(
-      testUser.getEntityUuid(),
-    );
     expect(createdEntityType.getMetadata().provenance.updatedById).toBe(
       testUser.getEntityUuid(),
     );
@@ -199,9 +197,6 @@ describe("Entity type CRU", () => {
       })
       .catch((err) => Promise.reject(err.data));
 
-    expect(updatedEntityTypeModel.getMetadata().provenance.createdById).toBe(
-      testUser.getEntityUuid(),
-    );
     expect(updatedEntityTypeModel.getMetadata().provenance.updatedById).toBe(
       testUser2.getEntityUuid(),
     );
@@ -251,7 +246,7 @@ describe("Entity type CRU", () => {
     );
   });
 
-  it("can check whether an outgoing link is ordered", async () => {
+  it("can check whether an outgoing link is ordered", () => {
     expect(
       createdEntityType.isOutgoingLinkOrdered({
         outgoingLinkEntityType: knowsLinkEntityTypeModel,

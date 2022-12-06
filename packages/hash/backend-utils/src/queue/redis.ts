@@ -140,6 +140,7 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
     return await this._acquire(name, timeoutMs);
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await -- using async to match QueueExclusiveConsumer interface
   async release(): Promise<void> {
     if (this.queueOwned) {
       clearInterval(this.queueOwned.interval);
