@@ -1,16 +1,9 @@
 import { BaseUri, VersionedUri } from "@blockprotocol/type-system";
 import slugify from "slugify";
-import { EntityId } from "@hashintel/hash-subgraph";
 import { SYSTEM_ACCOUNT_SHORTNAME } from "@hashintel/hash-shared/environment";
 import { frontendUrl } from "./environment";
 
 type SchemaKind = "data-type" | "property-type" | "entity-type";
-
-export const nilUuid = "00000000-0000-0000-0000-000000000000" as const;
-
-export const userAccountIdToEntityId = (userAccountId: string): EntityId => {
-  return `${nilUuid}%${userAccountId}`;
-};
 
 /** Slugify the title of a type */
 export const slugifyTypeTitle = (title: string): string =>
