@@ -1,13 +1,9 @@
 import { Logger } from "@hashintel/hash-backend-utils/logger";
-import {
-  SYSTEM_ACCOUNT_NAME,
-  SYSTEM_ACCOUNT_SHORTNAME,
-} from "@hashintel/hash-shared/environment";
 import { GraphApi } from "@hashintel/hash-graph-client";
 import { OrgModel, OrgSize } from "../model";
-import { systemAccountId } from "../model/util";
 import { ensureUsersAreSeeded } from "./seed-users";
 import { PageDefinition, seedPages } from "./seed-pages";
+import { systemUserAccountId } from "../graph/system-user";
 
 // Seed Org with some pages.
 const seedOrg = async (params: {
@@ -16,8 +12,11 @@ const seedOrg = async (params: {
 }): Promise<OrgModel> => {
   const { graphApi, logger } = params;
 
+  const exampleOrgShortname = "example-org";
+  const exampleOrgName = "Example";
+
   const existingOrgModel = await OrgModel.getOrgByShortname(graphApi, {
-    shortname: SYSTEM_ACCOUNT_SHORTNAME,
+    shortname: exampleOrgShortname,
   });
 
   if (existingOrgModel) {
@@ -25,12 +24,12 @@ const seedOrg = async (params: {
   }
 
   const sharedOrgModel = await OrgModel.createOrg(graphApi, {
-    name: SYSTEM_ACCOUNT_NAME,
-    shortname: SYSTEM_ACCOUNT_SHORTNAME,
+    name: exampleOrgName,
+    shortname: exampleOrgShortname,
     providedInfo: {
       orgSize: OrgSize.ElevenToFifty,
     },
-    actorId: systemAccountId,
+    actorId: systemUserAccountId,
   });
 
   logger.info(
@@ -65,6 +64,7 @@ export const seedOrgsAndUsers = async (params: {
   const { graphApi, logger } = params;
 
   const createdUsers = await ensureUsersAreSeeded(params);
+
   if (createdUsers.length > 0) {
     const sharedOrgModel = await seedOrg(params);
 
@@ -72,7 +72,7 @@ export const seedOrgsAndUsers = async (params: {
       await user.joinOrg(graphApi, {
         org: sharedOrgModel,
         responsibility: "Member",
-        actorId: systemAccountId,
+        actorId: systemUserAccountId,
       });
 
       logger.info(

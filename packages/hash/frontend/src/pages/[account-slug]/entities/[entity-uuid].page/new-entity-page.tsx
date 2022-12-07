@@ -28,7 +28,7 @@ export const NewEntityPage = () => {
   const createNewEntityAndRedirect = useCreateNewEntityAndRedirect();
 
   if (!activeWorkspace) {
-    throw new Error("Workspace must be set");
+    throw new Error("Active workspace must be set");
   }
 
   return (
@@ -111,17 +111,10 @@ export const NewEntityPage = () => {
                   onCancel={() => setIsSelectingType(false)}
                   onSelect={async (entityType) => {
                     try {
-                      if (!activeWorkspace) {
-                        throw new Error("workspace not ready");
-                      }
-
                       setIsSelectingType(false);
                       setLoading(true);
 
-                      await createNewEntityAndRedirect(
-                        activeWorkspace,
-                        entityType.$id,
-                      );
+                      await createNewEntityAndRedirect(entityType.$id);
                     } catch (error: any) {
                       snackbar.error(error.message);
                     } finally {
