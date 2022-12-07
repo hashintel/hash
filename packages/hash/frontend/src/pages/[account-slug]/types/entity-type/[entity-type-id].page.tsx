@@ -38,6 +38,7 @@ import { PropertyTypesContext } from "./[entity-type-id].page/shared/property-ty
 import { useCurrentTab } from "./[entity-type-id].page/shared/tabs";
 import { useEntityTypeEntitiesContextValue } from "./[entity-type-id].page/use-entity-type-entities-context-value";
 import { useEntityTypeValue } from "./[entity-type-id].page/use-entity-type-value";
+import { useLinkEntityTypesContextValue } from "./[entity-type-id].page/use-link-entity-types-context-value";
 import { usePropertyTypesContextValue } from "./[entity-type-id].page/use-property-types-context-value";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
 
@@ -102,6 +103,9 @@ const Page: NextPageWithLayout = () => {
     useEntityTypeEntitiesContextValue(baseEntityTypeUri);
 
   const propertyTypes = usePropertyTypesContextValue();
+  const linkEntityTypes = useLinkEntityTypesContextValue();
+
+  console.log(linkEntityTypes);
 
   const draftEntityType = useMemo(() => {
     if (router.query.draft) {
