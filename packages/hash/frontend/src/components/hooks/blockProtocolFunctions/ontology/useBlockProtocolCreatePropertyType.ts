@@ -34,7 +34,7 @@ export const useBlockProtocolCreatePropertyType = (
 
       if (!ownedById) {
         throw new Error(
-          "Hook was constructed without `ownedById` while not in readonly mode. Actions that mutate the datastore must be associated with an actor.",
+          "Hook was constructed without `ownedById` while not in readonly mode. Data must be created under an account.",
         );
       }
 
