@@ -104,7 +104,14 @@ export const DeleteDataTypeModal = ({
           </Box>
 
           <Stack direction="row" gap={1.25}>
-            <Button variant="danger" size="small" onClick={onDelete}>
+            <Button
+              variant="danger"
+              size="small"
+              onClick={() => {
+                onDelete?.();
+                onClose();
+              }}
+            >
               Confirm deletion
             </Button>
             <Button variant="tertiary" size="small" onClick={onClose}>

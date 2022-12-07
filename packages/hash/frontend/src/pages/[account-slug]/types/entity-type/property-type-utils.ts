@@ -96,6 +96,7 @@ export const dataTypeData = {
     title: "Array",
     icon: faList.icon,
     colors: chipColors.blue,
+    allowMultiple: true,
   },
   dataTypeArray: {
     title: "Data Type Array",

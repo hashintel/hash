@@ -180,9 +180,13 @@ export const ArrayDataTypeMenu: FunctionComponent<ArrayDataTypeMenuProps> = ({
           onChange={(_evt, _data, reason, details) => {
             const typeId = details?.option;
             if (typeId) {
+              const allowMultiple = dataTypeData[typeId]?.allowMultiple;
               const defaultData = getDefaultData(typeId);
 
-              if (reason === "selectOption") {
+              if (
+                reason === "selectOption" ||
+                (reason === "removeOption" && allowMultiple)
+              ) {
                 const childId = uniqueId();
 
                 setValue(`flattenedDataTypeList`, {
