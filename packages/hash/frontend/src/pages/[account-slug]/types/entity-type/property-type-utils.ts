@@ -12,6 +12,7 @@ export enum ArrayType {
   dataTypeArray = "dataTypeArray",
   propertyObjectArray = "propertyObjectArray",
   mixedArray = "mixedArray",
+  arrayArray = "arrayArray",
 }
 
 export type PrimitiveExpectedValue = VersionedUri;
@@ -110,6 +111,11 @@ export const dataTypeData = {
   },
   mixedArray: {
     title: "Mixed Array",
+    icon: faList.icon,
+    colors: chipColors.turquoise,
+  },
+  arrayArray: {
+    title: "Array of Arrays",
     icon: faList.icon,
     colors: chipColors.turquoise,
   },
