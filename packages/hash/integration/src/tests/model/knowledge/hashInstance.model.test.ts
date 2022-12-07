@@ -1,13 +1,12 @@
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
-import { createGraphClient } from "@hashintel/hash-api/src/graph";
 import {
-  ensureSystemTypesExist,
-  SYSTEM_TYPES,
-} from "@hashintel/hash-api/src/graph/system-types";
-import { ensureSystemEntitiesExists } from "@hashintel/hash-api/src/graph/system-entities";
+  createGraphClient,
+  ensureSystemGraphIsInitialized,
+} from "@hashintel/hash-api/src/graph";
+import { SYSTEM_TYPES } from "@hashintel/hash-api/src/graph/system-types";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { UserModel, HashInstanceModel } from "@hashintel/hash-api/src/model";
-import { systemAccountId } from "@hashintel/hash-api/src/model/util";
+import { systemUserAccountId } from "@hashintel/hash-api/src/graph/system-user";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { createTestUser } from "../../util";
 
@@ -30,9 +29,7 @@ const graphApi = createGraphClient(logger, {
 describe("HashInstance model class", () => {
   beforeAll(async () => {
     await TypeSystemInitializer.initialize();
-    await ensureSystemTypesExist({ graphApi, logger });
-
-    await ensureSystemEntitiesExists({ graphApi, logger });
+    await ensureSystemGraphIsInitialized({ graphApi, logger });
   });
 
   let hashInstanceModel: HashInstanceModel;
@@ -54,7 +51,7 @@ describe("HashInstance model class", () => {
 
     await hashInstanceModel.addAdmin(graphApi, {
       userModel: testHashInstanceAdmin,
-      actorId: systemAccountId,
+      actorId: systemUserAccountId,
     });
 
     const hashOutgoingAdminLinks = await hashInstanceModel.getOutgoingLinks(
@@ -84,7 +81,7 @@ describe("HashInstance model class", () => {
   it("can remove a hash instance admin", async () => {
     await hashInstanceModel.removeAdmin(graphApi, {
       userModel: testHashInstanceAdmin,
-      actorId: systemAccountId,
+      actorId: systemUserAccountId,
     });
 
     const hashInstanceOutgoingAdminLinks =

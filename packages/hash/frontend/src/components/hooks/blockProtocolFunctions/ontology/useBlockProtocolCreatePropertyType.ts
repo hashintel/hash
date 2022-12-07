@@ -9,7 +9,7 @@ import { createPropertyTypeMutation } from "../../../../graphql/queries/ontology
 import { CreatePropertyTypeMessageCallback } from "./ontology-types-shim";
 
 export const useBlockProtocolCreatePropertyType = (
-  ownedById: string,
+  ownedById: string | null,
   readonly?: boolean,
 ): {
   createPropertyType: CreatePropertyTypeMessageCallback;
@@ -30,6 +30,12 @@ export const useBlockProtocolCreatePropertyType = (
             },
           ],
         };
+      }
+
+      if (!ownedById) {
+        throw new Error(
+          "Hook was constructed without `ownedById` while not in readonly mode. Data must be created under an account.",
+        );
       }
 
       if (!data) {
