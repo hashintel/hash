@@ -112,7 +112,7 @@ impl<C: AsClient> PostgresStore<C> {
                         // entity
                         // TODO: this is very slow, we should update structural querying to be
                         //       able to  get the first timestamp of something efficiently
-                        let mut all_outgoing_link_entity_editions: Vec<_> =
+                        let mut all_outgoing_link_lower_decision_timestamps: Vec<_> =
                             <Self as Read<Entity>>::read(
                                 self,
                                 &Filter::for_entity_by_entity_id(
@@ -131,10 +131,12 @@ impl<C: AsClient> PostgresStore<C> {
                             })
                             .collect();
 
-                        all_outgoing_link_entity_editions.sort();
+                        all_outgoing_link_lower_decision_timestamps.sort();
 
-                        let earliest_version =
-                            all_outgoing_link_entity_editions.into_iter().next().expect(
+                        let earliest_version = all_outgoing_link_lower_decision_timestamps
+                            .into_iter()
+                            .next()
+                            .expect(
                                 "we got the edition id from the entity in the first place, there \
                                  must be at least one version",
                             );
@@ -183,7 +185,7 @@ impl<C: AsClient> PostgresStore<C> {
                         // entity
                         // TODO: this is very slow, we should update structural querying to be
                         //       able to get the first timestamp of something efficiently
-                        let mut all_incoming_link_entity_editions: Vec<_> =
+                        let mut all_incoming_link_lower_decision_timestamps: Vec<_> =
                             <Self as Read<Entity>>::read(
                                 self,
                                 &Filter::for_entity_by_entity_id(
@@ -202,10 +204,12 @@ impl<C: AsClient> PostgresStore<C> {
                             })
                             .collect();
 
-                        all_incoming_link_entity_editions.sort();
+                        all_incoming_link_lower_decision_timestamps.sort();
 
-                        let earliest_version =
-                            all_incoming_link_entity_editions.into_iter().next().expect(
+                        let earliest_version = all_incoming_link_lower_decision_timestamps
+                            .into_iter()
+                            .next()
+                            .expect(
                                 "we got the edition id from the entity in the first place, there \
                                  must be at least one version",
                             );
@@ -253,28 +257,32 @@ impl<C: AsClient> PostgresStore<C> {
                         // left entity. We therefore need to find the timestamp of this entity
                         // TODO: this is very slow, we should update structural querying to be
                         //       able to get the first timestamp of something efficiently
-                        let mut all_self_editions: Vec<_> = <Self as Read<Entity>>::read(
-                            self,
-                            &Filter::for_entity_by_entity_id(entity_edition_id.base_id()),
-                        )
-                        .await?
-                        .into_iter()
-                        .map(|entity| {
-                            entity
-                                .metadata()
-                                .edition_id()
-                                .version()
-                                .decision_time()
-                                .from
-                        })
-                        .collect();
+                        let mut all_self_lower_decision_timestamps: Vec<_> =
+                            <Self as Read<Entity>>::read(
+                                self,
+                                &Filter::for_entity_by_entity_id(entity_edition_id.base_id()),
+                            )
+                            .await?
+                            .into_iter()
+                            .map(|entity| {
+                                entity
+                                    .metadata()
+                                    .edition_id()
+                                    .version()
+                                    .decision_time()
+                                    .from
+                            })
+                            .collect();
 
-                        all_self_editions.sort();
+                        all_self_lower_decision_timestamps.sort();
 
-                        let earliest_version = all_self_editions.into_iter().next().expect(
-                            "we got the edition id from the entity in the first place, there must \
-                             be at least one version",
-                        );
+                        let earliest_version = all_self_lower_decision_timestamps
+                            .into_iter()
+                            .next()
+                            .expect(
+                                "we got the edition id from the entity in the first place, there \
+                                 must be at least one version",
+                            );
 
                         subgraph.edges.insert(Edge::KnowledgeGraph {
                             edition_id: entity_edition_id,
@@ -319,28 +327,32 @@ impl<C: AsClient> PostgresStore<C> {
                         // right entity. We therefore need to find the timestamp of this entity
                         // TODO: this is very slow, we should update structural querying to be
                         //       able to  get the first timestamp of something efficiently
-                        let mut all_self_editions: Vec<_> = <Self as Read<Entity>>::read(
-                            self,
-                            &Filter::for_entity_by_entity_id(entity_edition_id.base_id()),
-                        )
-                        .await?
-                        .into_iter()
-                        .map(|entity| {
-                            entity
-                                .metadata()
-                                .edition_id()
-                                .version()
-                                .decision_time()
-                                .from
-                        })
-                        .collect();
+                        let mut all_self_lower_decision_timestamps: Vec<_> =
+                            <Self as Read<Entity>>::read(
+                                self,
+                                &Filter::for_entity_by_entity_id(entity_edition_id.base_id()),
+                            )
+                            .await?
+                            .into_iter()
+                            .map(|entity| {
+                                entity
+                                    .metadata()
+                                    .edition_id()
+                                    .version()
+                                    .decision_time()
+                                    .from
+                            })
+                            .collect();
 
-                        all_self_editions.sort();
+                        all_self_lower_decision_timestamps.sort();
 
-                        let earliest_version = all_self_editions.into_iter().next().expect(
-                            "we got the edition id from the entity in the first place, there must \
-                             be at least one version",
-                        );
+                        let earliest_version = all_self_lower_decision_timestamps
+                            .into_iter()
+                            .next()
+                            .expect(
+                                "we got the edition id from the entity in the first place, there \
+                                 must be at least one version",
+                            );
 
                         subgraph.edges.insert(Edge::KnowledgeGraph {
                             edition_id: entity_edition_id,
