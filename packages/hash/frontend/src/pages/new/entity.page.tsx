@@ -45,11 +45,10 @@ const Page: NextPageWithLayout = () => {
    * @todo remove this effect when possible
    */
   useEffect(() => {
-    if (entityTypeId?.type === "Ok" && activeWorkspace) {
+    if (entityTypeId?.type === "Ok") {
       const controller = new AbortController();
 
       void createNewEntityAndRedirect(
-        activeWorkspace,
         entityTypeId.inner,
         true,
         controller.signal,
@@ -59,12 +58,7 @@ const Page: NextPageWithLayout = () => {
         controller.abort();
       };
     }
-  }, [
-    activeWorkspace,
-    createNewEntityAndRedirect,
-    entityTypeId?.inner,
-    entityTypeId?.type,
-  ]);
+  }, [createNewEntityAndRedirect, entityTypeId?.inner, entityTypeId?.type]);
 
   if (creatingEntity || !activeWorkspace || loadingTypeSystem) {
     return <EntityPageLoadingState />;

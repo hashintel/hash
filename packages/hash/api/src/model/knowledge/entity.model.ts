@@ -38,7 +38,7 @@ export type EntityModelCreateParams = {
   ownedById: string;
   properties: PropertyObject;
   entityTypeModel: EntityTypeModel;
-  entityId?: string;
+  entityUuid?: string;
   actorId: string;
 };
 
@@ -111,7 +111,7 @@ export default class {
    * @param params.entityTypeModel - the type of the entity
    * @param params.properties - the properties object of the entity
    * @param params.actorId - the id of the account that is creating the entity
-   * @param params.entityId (optional) - the id of the entity, is generated if left undefined
+   * @param params.entityUuid (optional) - the uuid of the entity, automatically generated if left undefined
    */
   static async create(
     graphApi: GraphApi,
@@ -122,14 +122,14 @@ export default class {
       entityTypeModel,
       properties,
       actorId,
-      entityId: overrideEntityId,
+      entityUuid: overrideEntityUuid,
     } = params;
 
     const { data: metadata } = await graphApi.createEntity({
       ownedById,
       entityTypeId: entityTypeModel.getSchema().$id,
       properties,
-      entityUuid: overrideEntityId,
+      entityUuid: overrideEntityUuid,
       actorId,
     });
 

@@ -36,9 +36,8 @@ process.env.NEXT_PUBLIC_FRONTEND_URL = process.env.FRONTEND_URL;
 
 // This allows the frontend to have the system account shortname, used to generate system types in shared/src/types.ts
 // the frontend imports 'types' from that file in various places
-process.env.NEXT_PUBLIC_SYSTEM_ACCOUNT_SHORTNAME =
-  process.env.SYSTEM_ACCOUNT_SHORTNAME;
-process.env.NEXT_PUBLIC_SYSTEM_ACCOUNT_NAME = process.env.SYSTEM_ACCOUNT_NAME;
+process.env.NEXT_PUBLIC_SYSTEM_USER_SHORTNAME =
+  process.env.SYSTEM_USER_SHORTNAME;
 
 // The API origin
 process.env.NEXT_PUBLIC_API_ORIGIN = process.env.API_ORIGIN;
