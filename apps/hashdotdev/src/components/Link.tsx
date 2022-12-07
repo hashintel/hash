@@ -91,6 +91,7 @@ export const NextLinkComposed = forwardRef<
       shallow={shallow}
       passHref
       locale={locale}
+      legacyBehavior
     >
       <Anchor ref={ref} {...other} />
     </NextLink>

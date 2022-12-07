@@ -1,14 +1,14 @@
 import { Box, Typography } from "@mui/material";
-import Image from "next/image";
+import Image, { ImageProps } from "next/legacy/image";
 import { FunctionComponent, ReactNode } from "react";
 
-export const MdxTalkSlide: FunctionComponent<{
-  children?: ReactNode;
-  src: string;
-  width: string;
-  height: string;
-  video?: boolean;
-}> = ({ children, src, video = false, width, height }) => {
+export const MdxTalkSlide: FunctionComponent<
+  Pick<ImageProps, "width" | "height"> & {
+    children?: ReactNode;
+    src: string;
+    video?: boolean;
+  }
+> = ({ children, src, video = false, width, height }) => {
   return (
     <Box
       sx={{

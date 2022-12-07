@@ -1,6 +1,6 @@
 import { Container, Stack, Typography } from "@mui/material";
 import { Box, TypographyProps } from "@mui/system";
-import Image from "next/image";
+import Image from "next/legacy/image";
 import { NextSeo } from "next-seo";
 import { createContext, ReactNode, useContext, FunctionComponent } from "react";
 import { format } from "date-fns";
