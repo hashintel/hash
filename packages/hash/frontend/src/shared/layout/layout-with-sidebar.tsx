@@ -1,15 +1,16 @@
-import { ReactNode, FunctionComponent } from "react";
-import { Box, Fade, styled, Tooltip } from "@mui/material";
 import { IconButton } from "@hashintel/hash-design-system";
+import { Box, Fade, styled, Tooltip } from "@mui/material";
+import { FunctionComponent, ReactNode, useState } from "react";
+import { EditBarScroller } from "../edit-bar-scroller";
+import { SidebarToggleIcon } from "../icons";
+import { useReadonlyMode } from "../readonly-mode";
+import { LayoutWithHeader } from "./layout-with-header";
 import { HEADER_HEIGHT } from "./layout-with-header/page-header";
 import {
   PageSidebar,
   SIDEBAR_WIDTH,
   useSidebarContext,
 } from "./layout-with-sidebar/page-sidebar";
-import { SidebarToggleIcon } from "../icons";
-import { LayoutWithHeader } from "./layout-with-header";
-import { useReadonlyMode } from "../readonly-mode";
 
 const Main = styled("main")(({ theme }) => ({
   height: `calc(100vh - ${HEADER_HEIGHT}px)`,
@@ -35,6 +36,7 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
 }) => {
   const { openSidebar, sidebarOpen } = useSidebarContext();
   const { readonlyMode } = useReadonlyMode();
+  const [main, setMain] = useState<HTMLElement | null>(null);
 
   return (
     <LayoutWithHeader>
@@ -89,8 +91,10 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
                 padding: spacing(7, 10),
               }),
             })}
+            ref={setMain}
           >
-            {children}
+            {/* Enables EditBar to make the page scroll as it animates in */}
+            <EditBarScroller scrollingNode={main}>{children}</EditBarScroller>
           </Main>
         </Box>
       </Box>
