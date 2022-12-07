@@ -133,7 +133,7 @@ impl<C: AsClient> PostgresStore<C> {
 
                         all_outgoing_link_lower_decision_timestamps.sort();
 
-                        let earliest_version = all_outgoing_link_lower_decision_timestamps
+                        let earliest_timestamp = all_outgoing_link_lower_decision_timestamps
                             .into_iter()
                             .next()
                             .expect(
@@ -151,7 +151,7 @@ impl<C: AsClient> PostgresStore<C> {
                                     reversed: true,
                                     right_endpoint: EntityIdAndTimestamp::new(
                                         outgoing_link_entity.metadata().edition_id().base_id(),
-                                        earliest_version,
+                                        earliest_timestamp,
                                     ),
                                 },
                             ),
@@ -206,7 +206,7 @@ impl<C: AsClient> PostgresStore<C> {
 
                         all_incoming_link_lower_decision_timestamps.sort();
 
-                        let earliest_version = all_incoming_link_lower_decision_timestamps
+                        let earliest_timestamp = all_incoming_link_lower_decision_timestamps
                             .into_iter()
                             .next()
                             .expect(
@@ -224,7 +224,7 @@ impl<C: AsClient> PostgresStore<C> {
                                     reversed: true,
                                     right_endpoint: EntityIdAndTimestamp::new(
                                         incoming_link_entity.metadata().edition_id().base_id(),
-                                        earliest_version,
+                                        earliest_timestamp,
                                     ),
                                 },
                             ),
@@ -276,7 +276,7 @@ impl<C: AsClient> PostgresStore<C> {
 
                         all_self_lower_decision_timestamps.sort();
 
-                        let earliest_version = all_self_lower_decision_timestamps
+                        let earliest_timestamp = all_self_lower_decision_timestamps
                             .into_iter()
                             .next()
                             .expect(
@@ -294,7 +294,7 @@ impl<C: AsClient> PostgresStore<C> {
                                     reversed: false,
                                     right_endpoint: EntityIdAndTimestamp::new(
                                         left_entity.metadata().edition_id().base_id(),
-                                        earliest_version,
+                                        earliest_timestamp,
                                     ),
                                 },
                             ),
@@ -346,7 +346,7 @@ impl<C: AsClient> PostgresStore<C> {
 
                         all_self_lower_decision_timestamps.sort();
 
-                        let earliest_version = all_self_lower_decision_timestamps
+                        let earliest_timestamp = all_self_lower_decision_timestamps
                             .into_iter()
                             .next()
                             .expect(
@@ -364,7 +364,7 @@ impl<C: AsClient> PostgresStore<C> {
                                     reversed: false,
                                     right_endpoint: EntityIdAndTimestamp::new(
                                         right_entity.metadata().edition_id().base_id(),
-                                        earliest_version,
+                                        earliest_timestamp,
                                     ),
                                 },
                             ),
