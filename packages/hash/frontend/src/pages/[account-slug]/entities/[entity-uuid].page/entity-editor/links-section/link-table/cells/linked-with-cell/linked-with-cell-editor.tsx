@@ -7,7 +7,7 @@ import { useBlockProtocolCreateEntity } from "../../../../../../../../../compone
 import { useEntityEditor } from "../../../../entity-editor-context";
 import { LinkedWithCell } from "../linked-with-cell";
 import { EntitySelector } from "./entity-selector";
-import { LinkArrayEditor } from "./link-array-editor";
+import { LinkedEntityListEditor } from "./linked-entity-list-editor";
 import { WorkspaceContext } from "../../../../../../../../shared/workspace-context";
 
 export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
@@ -68,6 +68,7 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
     onFinishedEditing();
   };
 
+  // if there could be one linked entity, just render the entity selector
   if (maxItems === 1) {
     const linkedEntityId =
       linkAndTargetEntities[0]?.rightEntity.metadata.editionId.baseId;
@@ -82,5 +83,5 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
     );
   }
 
-  return <LinkArrayEditor {...props} />;
+  return <LinkedEntityListEditor {...props} />;
 };

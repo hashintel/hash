@@ -4,11 +4,9 @@ import { Button, FontAwesomeIcon } from "@hashintel/hash-design-system";
 export const AddAnotherButton = ({
   onClick,
   title,
-  disabled,
 }: {
   onClick: () => void;
   title: string;
-  disabled?: boolean;
 }) => {
   return (
     <Button
@@ -18,7 +16,6 @@ export const AddAnotherButton = ({
       fullWidth
       startIcon={<FontAwesomeIcon icon={faPlus} />}
       sx={{ justifyContent: "flex-start", borderRadius: 0 }}
-      disabled={disabled}
     >
       {title}
     </Button>

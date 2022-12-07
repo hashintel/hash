@@ -40,9 +40,8 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
     const cellPadding = getCellHorizontalPadding();
     const left = rect.x + cellPadding;
 
-    // if no linked entity, draw empty state
+    // if there is no linked entity, draw empty state
     if (!linkAndTargetEntities.length) {
-      // draw empty value
       ctx.fillStyle = customColors.gray[50];
       ctx.font = "italic 14px Inter";
 
@@ -65,12 +64,13 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
         generateEntityLabel(entitySubgraph, rightEntity),
       );
 
+    // draw linked entity chips
     for (const label of sortedLinkedEntityLabels) {
       const chipWidth = drawChipWithIcon(args, label, accumulatedLeft);
       accumulatedLeft += chipWidth + chipGap;
     }
 
-    // return early if multiple links are allowed, also check `firstLinkEntity` to satisfy typescript
+    // do not draw delete button if multiple links are allowed
     if (maxItems > 1) {
       const overflowed = accumulatedLeft > rect.x + rect.width;
 
@@ -90,7 +90,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
       return;
     }
 
-    // draw delete button if maxItems === 1
+    // draw delete button
     const iconSize = 16;
     const buttonRight = rect.x + rect.width - cellPadding;
 

@@ -5,7 +5,8 @@ const addAlpha = (color: string, opacity: number) => {
   if (opacity < 0 || opacity > 1) {
     throw new Error("opacity should be between 0 - 1");
   }
-  // coerce values so ti is between 0 and 1.
+
+  // scale up opacity to 0-255 range
   const _opacity = Math.round(Math.min(Math.max(opacity || 1, 0), 1) * 255);
   return color + _opacity.toString(16).toUpperCase();
 };
@@ -17,7 +18,7 @@ export const drawCellFadeOutGradient = (
 ) => {
   const { ctx, rect, theme } = args;
 
-  const bgColor = addAlpha(theme.bgCell, bgOpacity ?? 1);
+  const bgColor = addAlpha(theme.bgCell, bgOpacity);
 
   const rectLeft = rect.x + rect.width - extraWidth;
 

@@ -1,6 +1,4 @@
-import { faTrash } from "@fortawesome/free-solid-svg-icons";
 import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
-import { Button } from "@hashintel/hash-design-system";
 import { Entity } from "@hashintel/hash-subgraph";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { Box } from "@mui/material";
@@ -12,81 +10,12 @@ import { generateEntityLabel } from "../../../../../../../../../lib/entities";
 import { WorkspaceContext } from "../../../../../../../../shared/workspace-context";
 import { useEntityEditor } from "../../../../entity-editor-context";
 import { AddAnotherButton } from "../../../../properties-section/property-table/cells/value-cell/value-cell-editor/array-editor/add-another-button";
-import { RowAction } from "../../../../properties-section/property-table/cells/value-cell/value-cell-editor/array-editor/row-action";
-import { ValueChip } from "../../../../properties-section/property-table/cells/value-cell/value-cell-editor/array-editor/value-chip";
 import { LinkedWithCell } from "../linked-with-cell";
 import { EntitySelector } from "./entity-selector";
+import { LinkedEntityListRow } from "./linked-entity-list-editor/linked-entity-list-row";
+import { MaxItemsReached } from "./linked-entity-list-editor/max-items-reached";
 
-const LinkArrayRow = ({
-  title,
-  onDelete,
-  selected,
-  onSelect,
-}: {
-  title: string;
-  selected: boolean;
-  onDelete: () => void;
-  onSelect: () => void;
-}) => {
-  const [hovered, setHovered] = useState(false);
-
-  const shouldShowActions = hovered || selected;
-  return (
-    <Box
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      sx={{
-        height: 48,
-        display: "flex",
-        alignItems: "center",
-        borderBottom: "1px solid",
-        borderColor: "gray.20",
-        position: "relative",
-        outline: "none",
-        px: 1.5,
-      }}
-      onClick={onSelect}
-    >
-      <ValueChip selected={selected} value={title} />
-
-      {shouldShowActions && (
-        <Box
-          display="flex"
-          sx={{
-            position: "absolute",
-            inset: 0,
-            left: "unset",
-            "::before": {
-              content: `""`,
-              width: 50,
-              background: `linear-gradient(90deg, transparent 0%, white 100%)`,
-            },
-          }}
-        >
-          <Box sx={{ display: "flex", background: "white" }}>
-            <RowAction tooltip="Delete" icon={faTrash} onClick={onDelete} />
-          </Box>
-        </Box>
-      )}
-    </Box>
-  );
-};
-
-const MaxItemsReached = ({ limit }: { limit: number }) => {
-  return (
-    <Button
-      disabled
-      size="small"
-      variant="tertiary_quiet"
-      fullWidth
-      sx={{ justifyContent: "flex-start", borderRadius: 0 }}
-    >
-      Max Items ({limit}) Reached
-    </Button>
-  );
-};
-
-export const LinkArrayEditor: ProvideEditorComponent<LinkedWithCell> = (
+export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
   props,
 ) => {
   const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
@@ -181,7 +110,7 @@ export const LinkArrayEditor: ProvideEditorComponent<LinkedWithCell> = (
           const linkEntityId = linkEntity.metadata.editionId.baseId;
           const selected = selectedLinkEntityId === linkEntityId;
           return (
-            <LinkArrayRow
+            <LinkedEntityListRow
               key={linkEntityId}
               title={generateEntityLabel(entitySubgraph, rightEntity)}
               onDelete={async () => {
