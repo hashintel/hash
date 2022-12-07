@@ -1,3 +1,4 @@
+import { Box } from "@mui/material";
 import { FunctionComponent, KeyboardEvent, useRef } from "react";
 
 type TagsInputProps = {
@@ -66,8 +67,8 @@ export const TagsInput: FunctionComponent<TagsInputProps> = ({
   };
 
   return (
-    <div
-      style={{
+    <Box
+      sx={{
         alignItems: "flex-start",
         backgroundColor: "#ffffff",
         border: "1px solid #D1D5DB",
@@ -76,8 +77,14 @@ export const TagsInput: FunctionComponent<TagsInputProps> = ({
         flexWrap: "wrap",
         minHeight: minHeight ?? 48,
         padding: "0.5rem",
-        // (hover): borderColor: "#9CA3AF";
-        // (focus-within): borderColor: "#6B7280";
+
+        "&:hover": {
+          borderColor: "#9CA3AF",
+        },
+
+        "&:focus-within": {
+          borderColor: "#6B7280",
+        },
       }}
       onClick={() => inputRef.current?.focus()}
       onKeyDown={(evt) => {
@@ -115,10 +122,11 @@ export const TagsInput: FunctionComponent<TagsInputProps> = ({
             }}
           >
             {tag}{" "}
-            <button
+            <Box
+              component="button"
               type="button"
               onClick={() => handleRemove(tag)}
-              style={{
+              sx={{
                 backgroundColor: "transparent",
                 borderStyle: "none",
                 bottom: "0",
@@ -128,18 +136,22 @@ export const TagsInput: FunctionComponent<TagsInputProps> = ({
                 position: "absolute",
                 right: "0",
                 top: "0",
-                // focus:outline-none
+
+                "&:focus": {
+                  outline: "none",
+                },
               }}
             >
               &times;
-            </button>
+            </Box>
           </li>
         ))}
       </ul>
-      <input
+      <Box
+        component="input"
         type="text"
         ref={inputRef}
-        style={{
+        sx={{
           backgroundColor: "transparent",
           borderStyle: "none",
           flex: "1 1 0%",
@@ -149,12 +161,15 @@ export const TagsInput: FunctionComponent<TagsInputProps> = ({
           paddingLeft: "0.25rem",
           paddingRight: "0.25rem",
           paddingTop: "0.25rem",
-          // focus:outline-none
+
+          "&:focus": {
+            outline: "none",
+          },
         }}
         placeholder={placeholder}
         onKeyDown={handleKeyDown}
         onBlur={handleBlur}
       />
-    </div>
+    </Box>
   );
 };

@@ -1,3 +1,4 @@
+import { Box } from "@mui/material";
 import { uniqueId } from "lodash";
 import {
   forwardRef,
@@ -64,9 +65,10 @@ export const SelectInput = forwardRef<HTMLSelectElement, SelectInputProps>(
             {label}
           </label>
         )}
-        <select
+        <Box
+          component="select"
           id={inputId}
-          style={{
+          sx={{
             backgroundColor: "#ffffff",
             border: "1 px solid #D1D5DB",
             borderRadius: "0.5rem",
@@ -76,11 +78,18 @@ export const SelectInput = forwardRef<HTMLSelectElement, SelectInputProps>(
             paddingLeft: "1.25rem",
             paddingRight: "1.25rem",
             width: "100%",
-            // (hover) border-color: #9CA3AF;
-            // (focus) border-color: #6B7280;
-            // (focus) outline: none;
+
+            "&:hover": {
+              borderColor: "#9CA3AF",
+            },
+
+            "&:focus": {
+              borderColor: "#6B7280",
+              outline: "none",
+            },
           }}
           onChange={_onChange}
+          // @ts-expect-error -- @type investigate ref type mismatch
           ref={ref}
           {...(value && { value })}
           {...(placeholder && { defaultValue: "" })}
@@ -98,7 +107,7 @@ export const SelectInput = forwardRef<HTMLSelectElement, SelectInputProps>(
               </option>
             ),
           )}
-        </select>
+        </Box>
       </div>
     );
   },

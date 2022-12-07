@@ -7,6 +7,7 @@ import {
 } from "react";
 import { useRouter } from "next/router";
 
+import { Box } from "@mui/material";
 import { LogoIcon, SpinnerIcon } from "../../shared/icons";
 import { TextInput } from "../../components/forms/TextInput";
 import { useAuthenticatedUser } from "../../components/hooks/useAuthenticatedUser";
@@ -116,9 +117,10 @@ export const SignupIntro: FunctionComponent<SignupIntroProps> = ({
             {errorMessage}
           </span>
         )}
-        <button
+        <Box
+          component="button"
           type="submit"
-          style={{
+          sx={{
             alignItems: "center",
             backgroundColor: "#ffffff",
             borderColor: "#D1D5DB",
@@ -132,8 +134,15 @@ export const SignupIntro: FunctionComponent<SignupIntroProps> = ({
             justifyContent: "center",
             lineHeight: "1.25rem",
             width: "16rem",
-            // (hover, focus): border-color: #6B7280
-            // (focus) outline: none
+
+            "&:hover": {
+              borderColor: "#6B7280",
+            },
+
+            "&:focus": {
+              borderColor: "#6B7280",
+              outline: "none",
+            },
           }}
         >
           {loading ? (
@@ -147,7 +156,7 @@ export const SignupIntro: FunctionComponent<SignupIntroProps> = ({
           ) : (
             <span>Continue with email</span>
           )}
-        </button>
+        </Box>
       </form>
       <p
         style={{

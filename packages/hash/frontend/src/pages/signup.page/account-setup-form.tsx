@@ -1,3 +1,4 @@
+import { Box } from "@mui/material";
 import { useMemo, FunctionComponent } from "react";
 import { Controller, useForm } from "react-hook-form";
 
@@ -147,7 +148,8 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
                   name="shortname"
                   rules={{ validate: validateShortname }}
                   render={({ field }) => (
-                    <input
+                    <Box
+                      component="input"
                       id="shortname"
                       onChange={(evt) => {
                         const newEvt = { ...evt };
@@ -158,10 +160,8 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
                       }}
                       onBlur={field.onBlur}
                       autoFocus
-                      style={{
-                        borderColor: shortnameError
-                          ? "#FCA5A5" // focus:border-red-500
-                          : "#D1D5DB", // focus:border-blue-500"
+                      sx={{
+                        borderColor: shortnameError ? "#FCA5A5" : "#D1D5DB",
                         borderRadius: "0.5rem",
                         borderStyle: "solid",
                         borderWidth: 1,
@@ -172,7 +172,11 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
                         paddingRight: "1.25rem",
                         paddingTop: "1.5rem",
                         width: "16rem",
-                        // focus:outline-none
+
+                        "&:focus": {
+                          borderColor: shortnameError ? "#EF4444" : "#2563EB",
+                          outline: "none",
+                        },
                       }}
                       placeholder="example"
                       autoComplete="off"
@@ -275,9 +279,10 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
               </strong>
               ”
             </p>
-            <input
+            <Box
+              component="input"
               id="name"
-              style={{
+              sx={{
                 paddingLeft: "1.25rem",
                 paddingRight: "1.25rem",
                 paddingTop: "1.5rem",
@@ -287,7 +292,11 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
                 borderRadius: "0.5rem",
                 borderColor: "#D1D5DB",
                 borderStyle: "solid",
-                // focus:outline-none focus:border-blue-500
+
+                "&:focus": {
+                  borderColor: "#2563EB",
+                  outline: "none",
+                },
               }}
               placeholder="Bobby"
               {...register("preferredName", { required: true })}
@@ -328,30 +337,32 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
             </div>
           )}
 
-          <button
+          <Box
+            component="button"
             type="submit"
-            style={
-              {
-                alignItems: "center",
-                backgroundColor: "#EC4899",
-                backgroundImage:
-                  "background-image: linear-gradient(to right, var(--tw-gradient-stops))",
-                borderRadius: "0.5rem",
-                borderStyle: "none",
-                color: "#ffffff",
-                cursor: "pointer",
-                display: "flex",
-                fontSize: "0.875rem",
-                fontWeight: "700",
-                height: "2.75rem",
-                justifyContent: "center",
-                lineHeight: "1.25rem",
-                marginTop: "3.5rem",
-                transitionProperty: "all",
-                width: "16rem",
-              }
-              // disabled:opacity-50
-            }
+            sx={{
+              alignItems: "center",
+              backgroundColor: "#EC4899",
+              backgroundImage:
+                "background-image: linear-gradient(to right, var(--tw-gradient-stops))",
+              borderRadius: "0.5rem",
+              borderStyle: "none",
+              color: "#ffffff",
+              cursor: "pointer",
+              display: "flex",
+              fontSize: "0.875rem",
+              fontWeight: "700",
+              height: "2.75rem",
+              justifyContent: "center",
+              lineHeight: "1.25rem",
+              marginTop: "3.5rem",
+              transitionProperty: "all",
+              width: "16rem",
+
+              ":disabled": {
+                opacity: 0.5,
+              },
+            }}
             disabled={
               !isValid ||
               loading ||
@@ -370,18 +381,22 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
             ) : (
               <>
                 <span>Continue</span>
-                <span
-                  style={{
+                <Box
+                  component="span"
+                  sx={{
                     marginLeft: "0.5rem",
                     transitionProperty: "all",
-                    // group-hover:translate-x-1
+
+                    "button:hover &": {
+                      transform: "translateX(0.25rem)",
+                    },
                   }}
                 >
                   &rarr;
-                </span>
+                </Box>
               </>
             )}
-          </button>
+          </Box>
         </form>
       </div>
     </div>

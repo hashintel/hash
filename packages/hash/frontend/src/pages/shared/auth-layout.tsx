@@ -1,3 +1,4 @@
+import { Box } from "@mui/material";
 import { FunctionComponent, ReactNode } from "react";
 
 import bgPattern from "../../assets/images/auth-bg-pattern.png";
@@ -86,9 +87,10 @@ export const AuthLayout: FunctionComponent<AuthLayoutProps> = ({
         <img alt="" src={bgPattern.src} style={{ height: "100vh" }} />
       </div>
       {onClose && (
-        <button
+        <Box
+          component="button"
           type="button"
-          style={{
+          sx={{
             alignItems: "center",
             borderRadius: "9999px",
             display: "flex",
@@ -101,12 +103,17 @@ export const AuthLayout: FunctionComponent<AuthLayoutProps> = ({
             top: "2rem",
             width: "3rem",
             zIndex: "10",
-            //  bg(hover:black focus:black hover:opacity-10 focus:opacity-10) focus:outline-none
+
+            "&:hover, &:focus": {
+              backgroundColor: "black",
+              opacity: 0.1,
+              outline: "none",
+            },
           }}
           onClick={onClose}
         >
           &times;
-        </button>
+        </Box>
       )}
     </div>
   );

@@ -8,6 +8,7 @@ import {
   FormEvent,
 } from "react";
 
+import { Box } from "@mui/material";
 import { LogoIcon, HashIcon, KeyboardReturnIcon } from "../../shared/icons";
 import { InviteHeader } from "./invite-header";
 import { InvitationInfo, SYNTHETIC_LOADING_TIME_MS } from "./auth-utils";
@@ -144,8 +145,9 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
             to continue
           </p>
           <form style={{ position: "relative" }} onSubmit={onSubmit}>
-            <input
-              style={{
+            <Box
+              component="input"
+              sx={{
                 borderColor: "#D1D5DB",
                 borderStyle: "solid",
                 borderWidth: "0",
@@ -159,7 +161,11 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
                 paddingTop: "0.75rem",
                 textAlign: "center",
                 width: "91.666667%",
-                // focus:outline-none focus:border-blue-500
+
+                "&:focus": {
+                  outline: "none",
+                  borderColor: "#3B82F6",
+                },
               }}
               onChange={({ target }) =>
                 updateState({ text: parseVerificationCodeInput(target.value) })
@@ -169,9 +175,10 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
               ref={inputRef}
               data-testid="verify-code-input"
             />
-            <button
+            <Box
+              component="button"
               type="submit"
-              style={{
+              sx={{
                 alignItems: "center",
                 backgroundColor: "transparent",
                 borderStyle: "none",
@@ -189,7 +196,20 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
                 top: "50%",
                 transitionProperty: "all",
                 transform: "traslateY(-50%)",
-                // disabled:opacity-40 disabled:pointer-events-none focus:outline-none hover:text-blue-700 focus:text-blue-600
+
+                "&:disabled": {
+                  opacity: 0.4,
+                  pointerEvents: "none",
+                },
+
+                "&:hover": {
+                  color: "#1D4ED8",
+                },
+
+                "&:focus": {
+                  outline: "none",
+                  color: "#2563EB",
+                },
               }}
               disabled={!isInputValid() || loading}
             >
@@ -210,7 +230,7 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
                   <KeyboardReturnIcon />
                 </>
               )}
-            </button>
+            </Box>
           </form>
           {errorMessage && (
             <span
@@ -226,14 +246,19 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
         </div>
       </div>
       <div style={{ display: "flex", justifyContent: "space-between" }}>
-        <button
+        <Box
+          component="button"
           type="button"
-          style={{
+          sx={{
             backgroundColor: "transparent",
             borderColor: "transparent",
             borderStyle: "none",
             cursor: "pointer",
-            // focus:outline-none hover:border-current focus:border-current
+
+            "&:hover, &:focus": {
+              outline: "none",
+              borderColor: "currentcolor",
+            },
           }}
           onClick={goBack}
         >
@@ -241,7 +266,7 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
           <span style={{ marginLeft: "0.25rem" }}>
             Try logging in another way
           </span>
-        </button>
+        </Box>
         {emailResent ? (
           <div style={{ display: "flex", alignItems: "center" }}>
             <span style={{ marginRight: "0.25rem" }}>No email yet?</span>
@@ -252,9 +277,10 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
         ) : (
           <div style={{ display: "flex", alignItems: "center" }}>
             <span style={{ marginRight: "0.25rem" }}>No email yet?</span>
-            <button
+            <Box
+              component="button"
               type="button"
-              style={{
+              sx={{
                 alignItems: "center",
                 backgroundColor: "transparent",
                 borderStyle: "none",
@@ -262,7 +288,15 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
                 cursor: "pointer",
                 display: "flex",
                 fontWeight: "700",
-                // focus:text-blue-700 hover:text-blue-700 disabled:opacity-50 focus:outline-none
+
+                "&:hover, &:focus": {
+                  outline: "none",
+                  color: "#1D4ED8",
+                },
+
+                "&:disabled": {
+                  opacity: 0.5,
+                },
               }}
               onClick={handleResendCode}
               disabled={requestCodeLoading || syntheticLoading}
@@ -278,7 +312,7 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
                   }}
                 />
               )}
-            </button>
+            </Box>
           </div>
         )}
       </div>
