@@ -21,7 +21,10 @@ import type {
 } from "../graphql/apiTypes.gen";
 import { generateQueryArgs } from "./return-types-as-json/generate-query-args";
 
-const generateErrorResponse = (status: 400 | 401 | 500, message: string) =>
+const generateErrorResponse = (
+  status: 400 | 401 | 404 | 500,
+  message: string,
+) =>
   new NextResponse(
     JSON.stringify({
       error: message,
@@ -110,8 +113,8 @@ export const returnTypeAsJson = async (request: NextRequest) => {
   const root = roots[0];
   if (!root) {
     return generateErrorResponse(
-      500,
-      "Internal error: no root found in subgraph return",
+      404,
+      `Could not find requested ${ontologyType} type at URI ${validationResult}`,
     );
   }
 
