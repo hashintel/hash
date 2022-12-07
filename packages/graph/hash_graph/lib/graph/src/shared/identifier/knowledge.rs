@@ -8,7 +8,7 @@ use utoipa::{
 };
 
 use crate::{
-    identifier::{account::AccountId, TimeSpan, Timestamp},
+    identifier::{account::AccountId, Timespan, Timestamp},
     knowledge::EntityUuid,
     provenance::OwnedById,
 };
@@ -85,8 +85,8 @@ impl ToSchema for EntityId {
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntityVersion {
-    decision_time: TimeSpan,
-    system_time: TimeSpan,
+    decision_time: Timespan,
+    system_time: Timespan,
 }
 
 impl Serialize for EntityVersion {
@@ -111,7 +111,7 @@ impl ToSchema for EntityVersion {
 
 impl EntityVersion {
     #[must_use]
-    pub const fn new(decision_time: TimeSpan, system_time: TimeSpan) -> Self {
+    pub const fn new(decision_time: Timespan, system_time: Timespan) -> Self {
         Self {
             decision_time,
             system_time,
@@ -119,12 +119,12 @@ impl EntityVersion {
     }
 
     #[must_use]
-    pub const fn decision_time(&self) -> TimeSpan {
+    pub const fn decision_time(&self) -> Timespan {
         self.decision_time
     }
 
     #[must_use]
-    pub const fn system_time(&self) -> TimeSpan {
+    pub const fn system_time(&self) -> Timespan {
         self.system_time
     }
 }

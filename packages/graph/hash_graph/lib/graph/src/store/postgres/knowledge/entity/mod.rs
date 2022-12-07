@@ -13,7 +13,7 @@ use crate::{
     identifier::{
         knowledge::{EntityEditionId, EntityId, EntityIdAndTimestamp, EntityVersion},
         ontology::OntologyTypeEditionId,
-        GraphElementEditionId, TimeSpan, Timestamp,
+        GraphElementEditionId, Timespan, Timestamp,
     },
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
@@ -458,11 +458,11 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         // TODO: Expose temporal versions to backend
         //   see https://app.asana.com/0/0/1203444301722133/f
         let _version_id: i64 = row.get(0);
-        let decision_time = TimeSpan {
+        let decision_time = Timespan {
             from: row.get(1),
             to: row.get(2),
         };
-        let system_time = TimeSpan {
+        let system_time = Timespan {
             from: row.get(3),
             to: row.get(4),
         };
