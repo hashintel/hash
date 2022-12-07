@@ -203,7 +203,7 @@ export default class extends EntityModel {
       ownedById: systemAccountId,
       properties,
       entityTypeModel,
-      entityId: userAccountId,
+      entityUuid: userAccountId,
       actorId,
     });
 
