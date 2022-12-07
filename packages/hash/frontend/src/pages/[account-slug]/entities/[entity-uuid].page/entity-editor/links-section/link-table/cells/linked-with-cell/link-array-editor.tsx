@@ -5,10 +5,11 @@ import { Entity } from "@hashintel/hash-subgraph";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { Box } from "@mui/material";
 import produce from "immer";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { useBlockProtocolArchiveEntity } from "../../../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolArchiveEntity";
 import { useBlockProtocolCreateEntity } from "../../../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolCreateEntity";
 import { generateEntityLabel } from "../../../../../../../../../lib/entities";
+import { WorkspaceContext } from "../../../../../../../../shared/workspace-context";
 import { useEntityEditor } from "../../../../entity-editor-context";
 import { AddAnotherButton } from "../../../../properties-section/property-table/cells/value-cell/value-cell-editor/array-editor/add-another-button";
 import { RowAction } from "../../../../properties-section/property-table/cells/value-cell/value-cell-editor/array-editor/row-action";
@@ -88,8 +89,12 @@ const MaxItemsReached = ({ limit }: { limit: number }) => {
 export const LinkArrayEditor: ProvideEditorComponent<LinkedWithCell> = (
   props,
 ) => {
+  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
+
   const { entitySubgraph, refetch } = useEntityEditor();
-  const { createEntity } = useBlockProtocolCreateEntity();
+  const { createEntity } = useBlockProtocolCreateEntity(
+    activeWorkspaceAccountId ?? null,
+  );
   const { archiveEntity } = useBlockProtocolArchiveEntity();
 
   const { value: cell, onFinishedEditing, onChange } = props;
@@ -134,7 +139,9 @@ export const LinkArrayEditor: ProvideEditorComponent<LinkedWithCell> = (
     setAddingLink(false);
 
     const newCell = produce(cell, (draftCell) => {
-      /** @todo check what is this error. */
+      /** @see https://github.com/immerjs/immer/issues/839 for ts-ignore reason */
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
       draftCell.data.linkRow.linkAndTargetEntities.push({
         linkEntity,
         rightEntity: selectedEntity,
