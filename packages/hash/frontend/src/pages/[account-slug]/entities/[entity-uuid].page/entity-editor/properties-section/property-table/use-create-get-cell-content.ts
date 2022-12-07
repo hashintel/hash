@@ -55,8 +55,8 @@ export const useCreateGetCellContent = (
 
           case "value":
             if (hasChild) {
-              const { emptyCount, notEmptyCount } = getPropertyCountSummary(
-                property.value,
+              const { totalCount, notEmptyCount } = getPropertyCountSummary(
+                property.children,
               );
 
               const valuesCount = notEmptyCount || "none";
@@ -68,7 +68,7 @@ export const useCreateGetCellContent = (
                 copyData: "",
                 data: {
                   kind: "summary-chip-cell",
-                  primaryText: `${emptyCount + notEmptyCount} properties`,
+                  primaryText: `${totalCount} properties`,
                   secondaryText: `(${valuesCount} with ${valueWord})`,
                 },
               };

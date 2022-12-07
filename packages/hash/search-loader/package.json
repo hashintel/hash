@@ -8,7 +8,7 @@
     "clear-opensearch": "yarn ts-node ./src/scripts/clear-opensearch.ts",
     "dev": "echo 'Opensearch currently disabled'",
     "fix:eslint": "eslint --fix .",
-    "lint:eslint": "eslint .",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "start": "cross-env NODE_ENV=production node --max-old-space-size=2048 ./node_modules/.bin/ts-node --transpile-only ./src/index.ts"
   },

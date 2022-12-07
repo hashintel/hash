@@ -1,28 +1,30 @@
-import { isPlainObject } from "lodash";
 import { isValueEmpty } from "./is-value-empty";
+import { flattenAllItemsOfTree } from "./property-table/flatten";
+import { PropertyRow } from "./property-table/types";
 
-export const getPropertyCountSummary = (properties: unknown) => {
-  let emptyCount = 0;
+/**
+ * flatten given property rows, and returns the value counts
+ * @param rows not-flattened property rows
+ */
+export const getPropertyCountSummary = (rows: PropertyRow[]) => {
   let notEmptyCount = 0;
+  let emptyCount = 0;
 
-  if (!properties) {
-    throw new Error(`'properties' should be an object`);
-  }
+  const flattened = flattenAllItemsOfTree(rows);
 
-  for (const value of Object.values(properties)) {
-    if (isPlainObject(value)) {
-      const inner = getPropertyCountSummary(value);
-      emptyCount += inner.emptyCount;
-      notEmptyCount += inner.notEmptyCount;
-    } else if (isValueEmpty(value)) {
-      emptyCount++;
-    } else {
-      notEmptyCount++;
+  for (const row of flattened) {
+    if (!row.children.length) {
+      if (isValueEmpty(row.value)) {
+        emptyCount++;
+      } else {
+        notEmptyCount++;
+      }
     }
   }
 
   return {
     emptyCount,
     notEmptyCount,
+    totalCount: emptyCount + notEmptyCount,
   };
 };

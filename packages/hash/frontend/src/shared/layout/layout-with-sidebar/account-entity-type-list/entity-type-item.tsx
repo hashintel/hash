@@ -1,17 +1,18 @@
-import { Box, BoxProps, styled, Tooltip, Typography } from "@mui/material";
-import { useRef, FunctionComponent } from "react";
+import { extractBaseUri, VersionedUri } from "@blockprotocol/type-system";
 import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
-import { usePopupState, bindTrigger } from "material-ui-popup-state/hooks";
 
-import { IconButton, FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { FontAwesomeIcon, IconButton } from "@hashintel/hash-design-system";
+import { Box, BoxProps, styled, Tooltip, Typography } from "@mui/material";
+import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
+import { useRouter } from "next/router";
+import { FunctionComponent, useRef } from "react";
+import { useInitTypeSystem } from "../../../../lib/use-init-type-system";
 import { Link } from "../../../ui";
 import { EntityTypeMenu } from "./entity-type-menu";
 
 type EntityTypeItemProps = {
+  entityTypeId: VersionedUri;
   title: string;
-  entityId: string;
-  accountId: string;
-  selected: boolean;
 };
 
 const Container = styled((props: BoxProps & { selected: boolean }) => (
@@ -51,10 +52,8 @@ const Container = styled((props: BoxProps & { selected: boolean }) => (
 }));
 
 export const EntityTypeItem: FunctionComponent<EntityTypeItemProps> = ({
-  accountId,
-  entityId,
+  entityTypeId,
   title,
-  selected,
 }) => {
   const entityMenuTriggerRef = useRef(null);
   const popupState = usePopupState({
@@ -62,15 +61,23 @@ export const EntityTypeItem: FunctionComponent<EntityTypeItemProps> = ({
     popupId: "entity-menu",
   });
 
+  const router = useRouter();
+  const typeSystemLoading = useInitTypeSystem();
+  if (typeSystemLoading) {
+    return null;
+  }
+
+  // @todo once data fetching is moved to server, use that to identify if selected
+  const baseUri = extractBaseUri(entityTypeId);
+  const url = new URL(`${window.location.origin}${router.asPath}/`);
+  const urlBase = `${url.origin}${url.pathname.replace(/\/$/, "")}/`;
+  const selected =
+    router.route === "/[account-slug]/types/entity-type/[entity-type-id]" &&
+    urlBase === baseUri;
+
   return (
     <Container component="li" tabIndex={0} selected={selected}>
-      <Link
-        tabIndex={-1}
-        sx={{ flex: 1 }}
-        noLinkStyle
-        href={`/${accountId}/types/${entityId}`}
-        flex={1}
-      >
+      <Link tabIndex={-1} sx={{ flex: 1 }} noLinkStyle href={baseUri} flex={1}>
         <Typography
           variant="smallTextLabels"
           sx={{
@@ -82,7 +89,7 @@ export const EntityTypeItem: FunctionComponent<EntityTypeItemProps> = ({
         </Typography>
       </Link>
       <Tooltip
-        title="Create entity, copy link, delete and more."
+        title="Create entity and copy link."
         componentsProps={{
           tooltip: {
             sx: {
@@ -109,10 +116,10 @@ export const EntityTypeItem: FunctionComponent<EntityTypeItemProps> = ({
         </IconButton>
       </Tooltip>
       <EntityTypeMenu
+        entityTypeId={entityTypeId}
         popupState={popupState}
-        accountId={accountId}
-        entityId={entityId}
-        entityTitle={title}
+        title={title}
+        uri={baseUri}
       />
     </Container>
   );

@@ -1,6 +1,5 @@
 import { motion } from "framer-motion";
 import { FunctionComponent, ReactNode } from "react";
-import { tw } from "twind";
 
 interface CollabPositionIndicatorProps {
   backgroundColor: string;
@@ -24,11 +23,15 @@ export const CollabPositionIndicator: FunctionComponent<
       opacity: 0,
     }}
     style={{
-      height: "1.5em",
-      width: "1.5em",
       backgroundColor,
+      borderRadius: 9999,
+      display: "flex",
+      fontWeight: 500,
+      height: "1.5em",
+      justifyContent: "center",
+      marginRight: "0.5rem",
+      width: "1.5em",
     }}
-    className={tw`rounded-full flex justify-center mr-2 font-medium`}
     title={title}
   >
     {children}

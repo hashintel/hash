@@ -264,7 +264,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
             key={entityId}
             title={title}
             pageEntityId={entityId}
-            url={`/${ownedById}/${entityUuid}`}
+            pagePath={`/${ownedById}/${entityUuid}`}
             depth={entityId === activeId && projected ? projected.depth : depth}
             onCollapse={expandable ? () => handleToggle(entityId) : undefined}
             selected={currentPageEntityId === entityId}
