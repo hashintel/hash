@@ -12,6 +12,7 @@ use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
 use type_system::uri::VersionedUri;
 use utoipa::{OpenApi, ToSchema};
+use uuid::Uuid;
 
 use crate::{
     api::rest::{
@@ -174,11 +175,13 @@ async fn create_entity<P: StorePool + Send>(
 
     store
         .create_entity(
-            properties,
-            entity_type_id,
             owned_by_id,
             entity_uuid,
+            None,
             actor_id,
+            false,
+            entity_type_id,
+            properties,
             link_data,
         )
         .await
@@ -215,29 +218,13 @@ async fn archive_entity<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     body: Json<ArchiveEntityRequest>,
 ) -> Result<(), StatusCode> {
-    let Json(ArchiveEntityRequest {
-        entity_id,
-        actor_id,
-    }) = body;
-
-    let mut store = pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
-    store
-        .archive_entity(entity_id, actor_id)
-        .await
-        .map_err(|report| {
-            if report.contains::<QueryError>() {
-                return StatusCode::NOT_FOUND;
-            }
-
-            tracing::error!(error=?report, "Could not archive entity");
-
-            // Insertion/update errors are considered internal server errors.
-            StatusCode::INTERNAL_SERVER_ERROR
-        })
+    tracing::warn!(
+        "Use of deprecated endpoint `/entities/archive`, use `/entities/update` instead"
+    );
+    // TODO: Expose temporal versions to backend
+    //   see https://app.asana.com/0/0/1203444301722133/f
+    let entity = get_entity(Path(body.entity_id), pool).await?;
+    todo!("Support updating of entities: https://app.asana.com/0/0/1203464975244303/f")
 }
 
 #[utoipa::path(
@@ -353,31 +340,5 @@ async fn update_entity<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     body: Json<UpdateEntityRequest>,
 ) -> Result<Json<EntityMetadata>, StatusCode> {
-    let Json(UpdateEntityRequest {
-        properties,
-        entity_id,
-        entity_type_id,
-        actor_id,
-        order,
-    }) = body;
-
-    let mut store = pool.acquire().await.map_err(|report| {
-        tracing::error!(error=?report, "Could not acquire store");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
-    store
-        .update_entity(entity_id, properties, entity_type_id, actor_id, order)
-        .await
-        .map_err(|report| {
-            tracing::error!(error=?report, "Could not update entity");
-
-            if report.contains::<QueryError>() || report.contains::<EntityDoesNotExist>() {
-                return StatusCode::NOT_FOUND;
-            }
-
-            // Insertion/update errors are considered internal server errors.
-            StatusCode::INTERNAL_SERVER_ERROR
-        })
-        .map(Json)
+    todo!("Support updating of entities: https://app.asana.com/0/0/1203464975244303/f")
 }

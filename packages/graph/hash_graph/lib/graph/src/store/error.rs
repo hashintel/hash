@@ -40,18 +40,6 @@ impl Context for UpdateError {}
 
 #[derive(Debug)]
 #[must_use]
-pub struct ArchivalError;
-
-impl fmt::Display for ArchivalError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("Could not archive entry in store")
-    }
-}
-
-impl Context for ArchivalError {}
-
-#[derive(Debug)]
-#[must_use]
 pub struct BaseUriAlreadyExists;
 
 impl fmt::Display for BaseUriAlreadyExists {

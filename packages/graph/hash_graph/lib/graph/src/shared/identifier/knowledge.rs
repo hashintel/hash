@@ -1,6 +1,5 @@
 use std::str::FromStr;
 
-use postgres_types::{FromSql, ToSql};
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use utoipa::{
     openapi,
@@ -9,7 +8,7 @@ use utoipa::{
 };
 
 use crate::{
-    identifier::{account::AccountId, Timestamp},
+    identifier::{account::AccountId, Timespan, Timestamp},
     knowledge::EntityUuid,
     provenance::OwnedById,
 };
@@ -83,22 +82,21 @@ impl ToSchema for EntityId {
     }
 }
 
-#[derive(
-    Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, FromSql, ToSql,
-)]
-#[repr(transparent)]
-#[postgres(transparent)]
-pub struct EntityVersion(Timestamp);
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct EntityVersion {
+    decision_time: Timespan,
+    system_time: Timespan,
+}
 
-impl EntityVersion {
-    #[must_use]
-    pub const fn new(inner: Timestamp) -> Self {
-        Self(inner)
-    }
-
-    #[must_use]
-    pub const fn inner(&self) -> Timestamp {
-        self.0
+impl Serialize for EntityVersion {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        // TODO: Expose temporal versions to backend
+        //   see https://app.asana.com/0/0/1203444301722133/f
+        self.system_time().from.serialize(serializer)
     }
 }
 
@@ -111,9 +109,27 @@ impl ToSchema for EntityVersion {
     }
 }
 
-#[derive(
-    Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, ToSchema,
-)]
+impl EntityVersion {
+    #[must_use]
+    pub const fn new(decision_time: Timespan, system_time: Timespan) -> Self {
+        Self {
+            decision_time,
+            system_time,
+        }
+    }
+
+    #[must_use]
+    pub const fn decision_time(&self) -> Timespan {
+        self.decision_time
+    }
+
+    #[must_use]
+    pub const fn system_time(&self) -> Timespan {
+        self.system_time
+    }
+}
+
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityEditionId {
     base_id: EntityId,

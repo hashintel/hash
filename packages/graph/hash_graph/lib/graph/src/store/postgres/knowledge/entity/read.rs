@@ -10,7 +10,8 @@ use uuid::Uuid;
 use crate::{
     identifier::{
         account::AccountId,
-        knowledge::{EntityEditionId, EntityId},
+        knowledge::{EntityEditionId, EntityId, EntityVersion},
+        Timespan,
     },
     knowledge::{Entity, EntityProperties, EntityQueryPath, EntityUuid, LinkData},
     ontology::EntityTypeQueryPath,
@@ -132,12 +133,23 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                 let entity_uuid = EntityUuid::new(row.get(entity_uuid_index));
                 let updated_by_id = UpdatedById::new(row.get(updated_by_id_index));
 
+                // TODO: Adjust structural queries for temporal versioning
+                //   see https://app.asana.com/0/0/1203491211535116/f
                 Ok(Entity::new(
                     properties,
                     link_data,
                     EntityEditionId::new(
                         EntityId::new(owned_by_id, entity_uuid),
-                        row.get(version_index),
+                        EntityVersion::new(
+                            Timespan {
+                                from: todo!(),
+                                to: todo!(),
+                            },
+                            Timespan {
+                                from: todo!(),
+                                to: todo!(),
+                            },
+                        ),
                     ),
                     entity_type_uri,
                     ProvenanceMetadata::new(updated_by_id),
