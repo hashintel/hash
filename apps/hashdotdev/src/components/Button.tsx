@@ -107,7 +107,7 @@ export const Button: FunctionComponent<ButtonProps & { openInNew?: boolean }> =
 
       if (href && !isHrefExternal(href)) {
         return (
-          <Link href={href} passHref>
+          <Link href={href} passHref legacyBehavior>
             {Component}
           </Link>
         );

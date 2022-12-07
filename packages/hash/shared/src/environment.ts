@@ -19,13 +19,8 @@ export const frontendDomain = new URL(frontendUrl).hostname;
  * @todo - This shouldn't be set via an env-var. We should be resolving this as necessary through the model classes
  * @todo stop the frontend importing the system type definitions. it should just know their URIs and get them from the API
  * */
-export const SYSTEM_ACCOUNT_SHORTNAME =
-  process.env.SYSTEM_ACCOUNT_SHORTNAME ??
+export const systemUserShortname =
+  process.env.SYSTEM_USER_SHORTNAME ??
   // you cannot access process.env in NextJS by variable, thus the repetition of keys in this section
-  process.env.NEXT_PUBLIC_SYSTEM_ACCOUNT_SHORTNAME ??
+  process.env.NEXT_PUBLIC_SYSTEM_USER_SHORTNAME ??
   "example-org";
-
-export const SYSTEM_ACCOUNT_NAME =
-  process.env.SYSTEM_ACCOUNT_NAME ??
-  process.env.NEXT_PUBLIC_SYSTEM_ACCOUNT_NAME ??
-  "Example Org"; // you cannot access process.env by variable

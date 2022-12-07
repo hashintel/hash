@@ -1,7 +1,6 @@
 import { Box, Stack } from "@mui/material";
 import { Container } from "@mui/system";
-import { PropsWithChildren } from "react";
-import { EntityPageHeader } from "./entity-page-wrapper/entity-page-header";
+import { PropsWithChildren, ReactNode } from "react";
 
 /**
  * We'll change `[entity-uuid].page.tsx` to a tabbed page,
@@ -9,12 +8,11 @@ import { EntityPageHeader } from "./entity-page-wrapper/entity-page-header";
  */
 export const EntityPageWrapper = ({
   children,
-  label,
-  lightTitle,
-}: PropsWithChildren<{ label: string; lightTitle?: boolean }>) => {
+  header,
+}: PropsWithChildren<{ header: ReactNode }>) => {
   return (
     <Stack minHeight="100vh">
-      <EntityPageHeader entityLabel={label} lightTitle={lightTitle} />
+      {header}
       <Box flex={1} bgcolor="gray.10" borderTop={1} borderColor="gray.20">
         <Container
           sx={{

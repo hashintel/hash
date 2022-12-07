@@ -242,7 +242,7 @@ const Page: NextPageWithLayout = () => {
                       // @todo confirmation of discard when draft
                       isDraft
                         ? {
-                            href: `/${router.query["account-slug"]}/new/types/entity-type`,
+                            href: `/new/types/entity-type`,
                           }
                         : {
                             onClick() {

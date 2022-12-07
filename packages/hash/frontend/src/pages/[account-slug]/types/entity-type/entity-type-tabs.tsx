@@ -2,20 +2,18 @@ import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { Box, Tabs, tabsClasses } from "@mui/material";
 import { useRouter } from "next/router";
-import { useContext, useState } from "react";
+import { useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { useFontLoadedCallback } from "../../../../components/hooks/useFontLoadedCallback";
 import { EntityTypeEditorForm } from "./form-types";
 import { TabLink } from "./tab-link";
 import { getTabUri, getTabValue, useCurrentTab } from "./use-current-tab";
+import { useEntityType } from "./use-entity-type";
 import { useEntityTypeEntities } from "./use-entity-type-entities";
 import { getEntityTypeBaseUri } from "./util";
-import { useEntityType } from "./use-entity-type";
-import { WorkspaceContext } from "../../../shared/workspace-context";
 
 export const EntityTypeTabs = ({ isDraft }: { isDraft: boolean }) => {
   const router = useRouter();
-  const { activeWorkspace } = useContext(WorkspaceContext);
 
   const entityType = useEntityType();
 
@@ -93,9 +91,7 @@ export const EntityTypeTabs = ({ isDraft }: { isDraft: boolean }) => {
               <TabLink
                 key="create"
                 value="create"
-                href={`/@${
-                  activeWorkspace?.shortname
-                }/new/entity?entity-type-id=${encodeURIComponent(
+                href={`/new/entity?entity-type-id=${encodeURIComponent(
                   entityType.$id,
                 )}`}
                 label="Create new entity"

@@ -1,7 +1,6 @@
 import { CollabPosition } from "@hashintel/hash-shared/collab";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMemo, FunctionComponent } from "react";
-import { tw } from "twind";
 import { useCollabPositionContext } from "../../contexts/CollabPositionContext";
 import { CollabPositionIndicator } from "./CollabPositionIndicator";
 
@@ -40,7 +39,10 @@ export const CollabPositionIndicators: FunctionComponent<
         left: `-${relevantPresenceIndicators.slice(0, 3).length * 33.5}px`,
       }}
       id="presence-indicators"
-      className={tw`flex absolute`}
+      style={{
+        display: "flex",
+        position: "absolute",
+      }}
     >
       <AnimatePresence>
         {relevantPresenceIndicators

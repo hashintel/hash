@@ -1,7 +1,5 @@
 import { Entity, extractOwnedByIdFromEntityId } from "@hashintel/hash-subgraph";
 import { useCallback } from "react";
-import { nilUuid } from "@hashintel/hash-shared/types";
-import { SYSTEM_ACCOUNT_SHORTNAME } from "@hashintel/hash-shared/environment";
 import { useUsers } from "./useUsers";
 import { useOrgs } from "./useOrgs";
 
@@ -21,14 +19,8 @@ export const useGetOwnerForEntity = () => {
       );
 
       const owner =
-        // @todo remove this hack when User and Orgs are owned by a real Org
-        ownerUuid === nilUuid
-          ? {
-              orgAccountId: nilUuid,
-              shortname: SYSTEM_ACCOUNT_SHORTNAME || "example",
-            }
-          : users.find((user) => ownerUuid === user.userAccountId) ??
-            orgs.find((org) => ownerUuid === org.orgAccountId);
+        users.find((user) => ownerUuid === user.userAccountId) ??
+        orgs.find((org) => ownerUuid === org.orgAccountId);
 
       if (!owner) {
         throw new Error(

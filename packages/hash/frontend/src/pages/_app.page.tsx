@@ -5,20 +5,18 @@ require("setimmediate");
 import { ApolloProvider } from "@apollo/client/react";
 import { FunctionComponent, useEffect, useState } from "react";
 import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloClient";
-import withTwindApp from "@twind/next/app";
 import { ModalProvider } from "react-modal-hook";
 import { configureScope } from "@sentry/nextjs";
 import { AppProps as NextAppProps } from "next/app";
 import { useRouter } from "next/router";
 import { CacheProvider, EmotionCache } from "@emotion/react";
-import { CssBaseline, ThemeProvider } from "@mui/material";
+import { CssBaseline, GlobalStyles, ThemeProvider } from "@mui/material";
 import { theme, createEmotionCache } from "@hashintel/hash-design-system";
 import { SnackbarProvider } from "notistack";
 import { TypeSystemContextProvider } from "../lib/use-init-type-system";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 
 import { SessionProvider } from "./_app.page/session-provider";
-import twindConfig from "../../twind.config";
 import "./globals.scss";
 import { useAuthenticatedUser } from "../components/hooks/useAuthenticatedUser";
 import {
@@ -119,6 +117,20 @@ const App: FunctionComponent<AppProps> = ({
           </ModalProvider>
         </ThemeProvider>
       </CacheProvider>
+      {/* "spin" is used in some inline styles which have been temporarily introduced in https://github.com/hashintel/hash/pull/1471 */}
+      {/* @todo remove when inline styles are replaced with MUI styles */}
+      <GlobalStyles
+        styles={`
+        @keyframes spin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        };
+      `}
+      />
     </ApolloProvider>
   );
 };
@@ -133,4 +145,4 @@ const AppWithTypeSystemContextProvider: FunctionComponent<AppProps> = (
   </TypeSystemContextProvider>
 );
 
-export default withTwindApp(twindConfig, AppWithTypeSystemContextProvider);
+export default AppWithTypeSystemContextProvider;

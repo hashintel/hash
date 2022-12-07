@@ -5,9 +5,9 @@ import {
   FunctionComponent,
   FormEvent,
 } from "react";
-import { tw } from "twind";
 import { useRouter } from "next/router";
 
+import { Box } from "@mui/material";
 import { LogoIcon, SpinnerIcon } from "../../shared/icons";
 import { TextInput } from "../../components/forms/TextInput";
 import { useAuthenticatedUser } from "../../components/hooks/useAuthenticatedUser";
@@ -49,59 +49,127 @@ export const SignupIntro: FunctionComponent<SignupIntroProps> = ({
   };
 
   return (
-    <div className={tw`flex flex-col items-center pt-24`}>
+    <div
+      style={{
+        alignItems: "center",
+        display: "flex",
+        flexDirection: "column",
+        paddingTop: "6rem",
+      }}
+    >
       {!!invitationInfo && <InviteHeader invitationInfo={invitationInfo} />}
-      <div className={tw`mb-12 flex items-center`}>
-        <LogoIcon className={tw`mr-5`} />
-        <h1 className={tw`text-2xl font-bold`}>Sign up</h1>
+      <div
+        style={{ alignItems: "center", display: "flex", marginBottom: "3rem" }}
+      >
+        <LogoIcon style={{ marginRight: "1.25rem" }} />
+        <h1
+          style={{ fontSize: "1.5rem", lineHeight: "2rem", fontWeight: "700" }}
+        >
+          Sign up
+        </h1>
       </div>
       {/* Don't display until sign-up with Google and Github are supported
       <button
-        className={tw`mb-2 w-64 bg-white border-1 border-gray-300 rounded-lg h-11 flex items-center justify-center text-sm font-bold`}
+        style={{"display":"flex","marginBottom":"0.5rem","backgroundColor":"#ffffff","fontSize":"0.875rem","lineHeight":"1.25rem","fontWeight":"700","justifyContent":"center","alignItems":"center","width":"16rem","height":"2.75rem","borderRadius":"0.5rem","borderColor":"#D1D5DB"}}
       >
-        <GoogleIcon className={tw`mr-2`} />
+        <GoogleIcon style={{"marginRight":"0.5rem"}} />
         Continue with Google
       </button>
       <button
-        className={tw`w-64 bg-white border-1 border-gray-300 rounded-lg h-11 flex items-center justify-center text-sm font-bold`}
+        style={{"display":"flex","backgroundColor":"#ffffff","fontSize":"0.875rem","lineHeight":"1.25rem","fontWeight":"700","justifyContent":"center","alignItems":"center","width":"16rem","height":"2.75rem","borderRadius":"0.5rem","borderColor":"#D1D5DB"}}
       >
-        <GithubIcon className={tw`mr-2`} />
+        <GithubIcon style={{"marginRight":"0.5rem"}} />
         Continue with Github
       </button>
-      <div className={tw`flex items-center w-full my-4`}>
-        <div className={tw`flex-1 h-px bg-gray-200`} />
-        <em className={tw`mx-2 text-gray-400`}>or</em>
-        <div className={tw`flex-1 h-px bg-gray-200`} />
+      <div style={{"display":"flex","marginTop":"1rem","marginBottom":"1rem","alignItems":"center","width":"100%"}}>
+        <div style={{"backgroundColor":"#E5E7EB","flex":"1 1 0%","height":"1px"}} />
+        <em style={{"marginLeft":"0.5rem","marginRight":"0.5rem","color":"#9CA3AF"}}>or</em>
+        <div style={{"backgroundColor":"#E5E7EB","flex":"1 1 0%","height":"1px"}} />
       </div>
       */}
       <form
-        className={tw`flex flex-col mb-14 w-64 items-center`}
+        style={{
+          alignItems: "center",
+          display: "flex",
+          flexDirection: "column",
+          marginBottom: "3.5rem",
+          width: "16rem",
+        }}
         onSubmit={onSubmit}
       >
         <TextInput
-          className={tw`w-64 mb-2`}
+          style={{ marginBottom: "0.5rem", width: "16rem" }}
           placeholder="Enter your email address.."
           type="email"
           ref={inputRef}
           onChangeText={setEmail}
         />
         {errorMessage && (
-          <span className={tw`text-red-500 text-sm mb-4 text-center`}>
+          <span
+            style={{
+              color: "#EF4444",
+              fontSize: "0.875rem",
+              lineHeight: "1.25rem",
+              marginBottom: "1rem",
+              textAlign: "center",
+            }}
+          >
             {errorMessage}
           </span>
         )}
-        <button
+        <Box
+          component="button"
           type="submit"
-          className={tw`w-64 cursor-pointer bg-white border-1 border(solid gray-300 hover:gray-500 focus:gray-500) focus:outline-none rounded-lg h-11 flex items-center justify-center text-sm font-bold`}
+          sx={{
+            alignItems: "center",
+            backgroundColor: "#ffffff",
+            borderColor: "#D1D5DB",
+            borderRadius: "0.5rem",
+            borderStyle: "solid",
+            cursor: "pointer",
+            display: "flex",
+            fontSize: "0.875rem",
+            fontWeight: "700",
+            height: "2.75rem",
+            justifyContent: "center",
+            lineHeight: "1.25rem",
+            width: "16rem",
+
+            "&:hover": {
+              borderColor: "#6B7280",
+            },
+
+            "&:focus": {
+              borderColor: "#6B7280",
+              outline: "none",
+            },
+          }}
         >
           {loading ? (
-            <SpinnerIcon className={tw`h-4 w-4 animate-spin`} />
+            <SpinnerIcon
+              style={{
+                animation: "spin 1s linear infinite",
+                height: "1rem",
+                width: "1rem",
+              }}
+            />
           ) : (
             <span>Continue with email</span>
           )}
-        </button>
+        </Box>
       </form>
-      <p className={tw`text-sm  md:whitespace-nowrap text-center`}>
+      <Box
+        component="p"
+        sx={{
+          fontSize: "0.875rem",
+          lineHeight: "1.25rem",
+          textAlign: "center",
+
+          "@media (min-width: 768px)": {
+            whiteSpace: "nowrap",
+          },
+        }}
+      >
         Alternatively if you already have a HASH account,{" "}
         {/* @todo convert this to LinkButton on page refactor */}
         <Link
@@ -111,14 +179,24 @@ export const SignupIntro: FunctionComponent<SignupIntroProps> = ({
           }}
           noLinkStyle
         >
-          <button
+          <Box
+            component="button"
             type="button"
-            className={tw`bg-transparent border-none cursor-pointer font-bold focus:outline-none`}
+            sx={{
+              backgroundColor: "transparent",
+              borderStyle: "none",
+              cursor: "pointer",
+              fontWeight: "700",
+
+              "&:focus": {
+                outline: "none",
+              },
+            }}
           >
             Click here to log in
-          </button>
+          </Box>
         </Link>
-      </p>
+      </Box>
     </div>
   );
 };

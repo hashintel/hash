@@ -1,8 +1,7 @@
 import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
 import { Entity } from "@hashintel/hash-subgraph";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
-import { useRouter } from "next/router";
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { useBlockProtocolAggregateEntities } from "../../../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolAggregateEntities";
 import { useBlockProtocolArchiveEntity } from "../../../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolArchiveEntity";
 import { useBlockProtocolCreateEntity } from "../../../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolCreateEntity";
@@ -10,12 +9,16 @@ import { generateEntityLabel } from "../../../../../../../../../lib/entities";
 import { HashSelectorAutocomplete } from "../../../../../../../types/entity-type/hash-selector-autocomplete";
 import { useEntityEditor } from "../../../../entity-editor-context";
 import { LinkedWithCell } from "../linked-with-cell";
+import { WorkspaceContext } from "../../../../../../../../shared/workspace-context";
 
 export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
   props,
 ) => {
+  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
   const { entitySubgraph, refetch } = useEntityEditor();
-  const { createEntity } = useBlockProtocolCreateEntity();
+  const { createEntity } = useBlockProtocolCreateEntity(
+    activeWorkspaceAccountId ?? null,
+  );
   const { archiveEntity } = useBlockProtocolArchiveEntity();
   const { aggregateEntities } = useBlockProtocolAggregateEntities();
 
@@ -29,7 +32,6 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const highlightedRef = useRef<null | Entity>(null);
-  const router = useRouter();
 
   useEffect(() => {
     const init = async () => {
@@ -59,10 +61,9 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
       return;
     }
 
-    const accountSlug = router.query["account-slug"];
     /** @todo this should be replaced with a "new entity modal" or something else */
     void window.open(
-      `/${accountSlug}/new/entity?entity-type-id=${encodeURIComponent(
+      `/new/entity?entity-type-id=${encodeURIComponent(
         expectedEntityTypes[0].schema.$id,
       )}`,
       "_blank",

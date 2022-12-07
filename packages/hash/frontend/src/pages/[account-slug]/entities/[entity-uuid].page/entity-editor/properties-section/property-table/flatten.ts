@@ -37,3 +37,15 @@ export const flattenExpandedItemsOfTree = <
 
   return flattened;
 };
+
+/**
+ * Does the same as `flattenExpandedItemsOfTree`, but assumes all items are expanded
+ */
+export const flattenAllItemsOfTree = <T extends { children: T[] }>(
+  tree: T[],
+): T[] => {
+  return tree.flatMap((item) => [
+    item,
+    ...flattenAllItemsOfTree(item.children),
+  ]);
+};
