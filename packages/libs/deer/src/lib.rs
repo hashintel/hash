@@ -26,7 +26,7 @@ use error_stack::{Report, Result, ResultExt};
 use num_traits::ToPrimitive;
 pub use schema::{Document, Reflection, Schema};
 
-pub use crate::number::Number;
+pub use crate::{context::Context, number::Number};
 use crate::{
     error::{
         ArrayAccessError, DeserializeError, DeserializerError, ExpectedType, MissingError,
@@ -35,7 +35,6 @@ use crate::{
     },
     schema::visitor,
 };
-pub use crate::{context::Context, number::Number};
 
 mod context;
 pub mod error;
