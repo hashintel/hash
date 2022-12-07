@@ -208,10 +208,7 @@ export const ArrayDataTypeMenu: FunctionComponent<ArrayDataTypeMenuProps> = ({
                   inputRef: textFieldRef,
                   sx: ({ palette, transitions }) => ({
                     height: 42,
-                    transition: transitions.create([
-                      "width",
-                      "background-color",
-                    ]),
+                    transition: transitions.create(["background-color"]),
                     padding: "0 16px !important",
                     fill: palette.gray[50],
 
@@ -223,7 +220,6 @@ export const ArrayDataTypeMenu: FunctionComponent<ArrayDataTypeMenuProps> = ({
 
                     ...(!expanded
                       ? {
-                          width: 145,
                           cursor: "pointer !important",
                           "&:hover": {
                             background: palette.gray[20],
@@ -255,6 +251,14 @@ export const ArrayDataTypeMenu: FunctionComponent<ArrayDataTypeMenuProps> = ({
                       }}
                     />
                   ),
+                }}
+                sx={{
+                  transition: ({ transitions }) => transitions.create("width"),
+                  ...(!expanded
+                    ? {
+                        width: 145,
+                      }
+                    : {}),
                 }}
                 placeholder={
                   !expanded ? "Add to array" : "Select acceptable values"
