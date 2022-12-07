@@ -30,9 +30,9 @@ use deer::{
     error::{
         ArrayAccessError, ArrayLengthError, DeserializerError, ExpectedLength, ExpectedType,
         MissingError, ObjectAccessError, ObjectItemsExtraError, ReceivedKey, ReceivedLength,
-        ReceivedType, ReceivedValue, Schema, TypeError, ValueError, Variant,
+        ReceivedType, ReceivedValue, TypeError, ValueError, Variant,
     },
-    Deserialize, Visitor,
+    Deserialize, Document, Reflection, Schema, Visitor,
 };
 use error_stack::{Report, Result, ResultExt};
 use serde_json::{Map, Value};
@@ -65,20 +65,78 @@ fn serde_to_deer_number(number: &serde_json::Number) -> Option<deer::Number> {
     }
 }
 
-fn into_schema(value: &Value) -> Schema {
+struct NullReflection;
+impl Reflection for NullReflection {
+    fn schema(_: &mut Document) -> Schema {
+        Schema::new("null")
+    }
+}
+
+struct BoolReflection;
+impl Reflection for BoolReflection {
+    fn schema(_: &mut Document) -> Schema {
+        Schema::new("boolean")
+    }
+}
+
+struct NumberReflection;
+impl Reflection for NumberReflection {
+    fn schema(_: &mut Document) -> Schema {
+        Schema::new("number")
+    }
+}
+
+struct StringReflection;
+impl Reflection for StringReflection {
+    fn schema(_: &mut Document) -> Schema {
+        Schema::new("string")
+    }
+}
+
+struct ArrayReflection;
+impl Reflection for ArrayReflection {
+    fn schema(_: &mut Document) -> Schema {
+        Schema::new("array")
+    }
+}
+
+struct ObjectReflection;
+impl Reflection for ObjectReflection {
+    fn schema(_: &mut Document) -> Schema {
+        Schema::new("object")
+    }
+}
+
+struct CharReflection;
+impl Reflection for CharReflection {
+    fn schema(_: &mut Document) -> Schema {
+        Schema::new("string")
+            .with("minLength", 1)
+            .with("maxLength", 1)
+    }
+}
+
+struct NoneReflection;
+impl Reflection for NoneReflection {
+    fn schema(_: &mut Document) -> Schema {
+        Schema::new("none")
+    }
+}
+
+fn into_document(value: &Value) -> Document {
     match value {
-        Value::Null => Schema::new("null"),
-        Value::Bool(_) => Schema::new("boolean"),
-        Value::Number(_) => Schema::new("number"),
-        Value::String(_) => Schema::new("string"),
-        Value::Array(_) => Schema::new("array"),
-        Value::Object(_) => Schema::new("object"),
+        Value::Null => NullReflection::document(),
+        Value::Bool(_) => BoolReflection::document(),
+        Value::Number(_) => NumberReflection::document(),
+        Value::String(_) => StringReflection::document(),
+        Value::Array(_) => ArrayReflection::document(),
+        Value::Object(_) => ObjectReflection::document(),
     }
 }
 
 /// General helper macro to properly implement deserialization functions with proper error
 /// handling without most of the boilerplate and trying to stay as close as possible to rust syntax.
-/// 
+///
 /// Syntax:
 /// ```text
 /// match <self> {
@@ -86,19 +144,19 @@ fn into_schema(value: &Value) -> Schema {
 ///     else => Error(schema: <schema>)
 /// }
 /// ```
-/// 
-/// where: 
+///
+/// where:
 /// * `self` is always just `self`
 /// * `Variant` is a valid variant of `serde_json::Value`
 /// * `binding` is the variable name for the inner value
-/// * `transform` is an expression that can mention the variable name chosen in `binding` 
+/// * `transform` is an expression that can mention the variable name chosen in `binding`
 ///    and will be used to call the visitor
 /// * `visitor` the variable that holds the visitor that implements the [`Visitor`] trait
 /// * `visit` the function to be called, e.g. `Value::Bool` should call `visit_bool`
 /// * `schema` should be an expression that returns a [`Schema`]
-/// 
+///
 /// This means that
-/// 
+///
 /// ```ignore
 /// try_deserialize!(
 ///     match self {
@@ -107,9 +165,9 @@ fn into_schema(value: &Value) -> Schema {
 ///     }
 /// );
 /// ```
-/// 
+///
 /// roughly expands to:
-/// 
+///
 /// ```ignore
 /// # use error_stack::Report;
 /// # use serde_json::{Deserializer, Value};
@@ -132,17 +190,17 @@ macro_rules! try_deserialize {
     (
         match $self:ident {
             Value::$variant:ident($value:ident) => $visitor:ident.$visit:ident($transform:expr),
-            else => Error(schema: $schema:expr)
+            else => Error(schema: $reflection:ty)
         }
     ) => {
         match $self.value {
             Some(Value::$variant($value)) => $visitor.$visit($transform).change_context(DeserializerError),
             Some(value) => Err(Report::new(TypeError.into_error())
-                .attach(ExpectedType::new($schema))
-                .attach(ReceivedType::new(into_schema(&value))))
+                .attach(ExpectedType::new(<$reflection as Reflection>::document()))
+                .attach(ReceivedType::new(into_document(&value))))
                 .change_context(DeserializerError),
             None => Err(Report::new(MissingError.into_error())
-                .attach(ExpectedType::new($schema))
+                .attach(ExpectedType::new(<$reflection as Reflection>::document()))
                 .change_context(DeserializerError)),
         }
     };
@@ -191,8 +249,8 @@ impl<'de> deer::Deserializer<'de> for Deserializer {
             || visitor.visit_none().change_context(DeserializerError),
             |value| {
                 Err(Report::new(TypeError.into_error())
-                    .attach(ExpectedType::new(Schema::new("none")))
-                    .attach(ReceivedType::new(into_schema(&value)))
+                    .attach(ExpectedType::new(NoneReflection::document()))
+                    .attach(ReceivedType::new(into_document(&value)))
                     .change_context(DeserializerError))
             },
         )
@@ -205,11 +263,11 @@ impl<'de> deer::Deserializer<'de> for Deserializer {
         match self.value {
             Some(Value::Null) => visitor.visit_null().change_context(DeserializerError),
             Some(value) => Err(Report::new(TypeError.into_error())
-                .attach(ExpectedType::new(Schema::new("null")))
-                .attach(ReceivedType::new(into_schema(&value)))
+                .attach(ExpectedType::new(NullReflection::document()))
+                .attach(ReceivedType::new(into_document(&value)))
                 .change_context(DeserializerError)),
             None => Err(Report::new(MissingError.into_error())
-                .attach(ExpectedType::new(Schema::new("null")))
+                .attach(ExpectedType::new(NullReflection::document()))
                 .change_context(DeserializerError)),
         }
     }
@@ -221,7 +279,7 @@ impl<'de> deer::Deserializer<'de> for Deserializer {
         try_deserialize!(
             match self {
                 Value::Bool(bool) => visitor.visit_bool(bool),
-                else => Error(schema: Schema::new("boolean"))
+                else => Error(schema: BoolReflection)
             }
         )
     }
@@ -238,7 +296,7 @@ impl<'de> deer::Deserializer<'de> for Deserializer {
                             .attach(ReceivedValue::new(number)).change_context(DeserializerError)
                         )?
                 }),
-                else => Error(schema: Schema::new("number"))
+                else => Error(schema: NumberReflection)
             }
         )
     }
@@ -257,14 +315,14 @@ impl<'de> deer::Deserializer<'de> for Deserializer {
                     (Some(a), None) => a,
                     (Some(_), Some(_)) | (None, None) => {
                         return Err(Report::new(ValueError.into_error())
-                            .attach(ExpectedType::new(Schema::new("string").with("minLength", 1).with("maxLength", 1)))
+                            .attach(ExpectedType::new(CharReflection::document()))
                             .attach(ReceivedValue::new(string))
                             .change_context(DeserializerError));
                     },
                     (None, Some(_)) => unreachable!(),
                 }
             }),
-            else => Error(schema: Schema::new("char").with("minLength", 1).with("maxLength", 1))
+            else => Error(schema: CharReflection)
         })
     }
 
@@ -274,7 +332,7 @@ impl<'de> deer::Deserializer<'de> for Deserializer {
     {
         try_deserialize!(match self {
             Value::String(string) => visitor.visit_string(string),
-            else => Error(schema: Schema::new("string"))
+            else => Error(schema: StringReflection)
         })
     }
 
@@ -284,7 +342,7 @@ impl<'de> deer::Deserializer<'de> for Deserializer {
     {
         try_deserialize!(match self {
             Value::String(string) => visitor.visit_str(&string),
-            else => Error(schema: Schema::new("string"))
+            else => Error(schema: StringReflection)
         })
     }
 
@@ -308,7 +366,7 @@ impl<'de> deer::Deserializer<'de> for Deserializer {
     {
         try_deserialize!(match self {
             Value::Array(array) => visitor.visit_array(ArrayAccess::new(array)),
-            else => Error(schema: Schema::new("array"))
+            else => Error(schema: ArrayReflection)
         })
     }
 
@@ -318,7 +376,7 @@ impl<'de> deer::Deserializer<'de> for Deserializer {
     {
         try_deserialize!(match self {
             Value::Object(map) => visitor.visit_object(ObjectAccess::new(map)),
-            else => Error(schema: Schema::new("array"))
+            else => Error(schema: ObjectReflection)
         })
     }
 }
