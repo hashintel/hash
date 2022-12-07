@@ -143,6 +143,7 @@ export const LinkModal: FunctionComponent<LinkModalProps> = ({
                   width: "100%",
                   borderStyle: "none",
                   cursor: "pointer",
+
                   "&:hover": {
                     backgroundColor: "#E5E7EB",
                   },
@@ -215,6 +216,7 @@ export const LinkModal: FunctionComponent<LinkModalProps> = ({
                       paddingRight: "1rem",
                       paddingTop: "0.25rem",
                       width: "100%",
+
                       "&:hover": {
                         backgroundColor: "#E5E7EB",
                       },
@@ -246,6 +248,7 @@ export const LinkModal: FunctionComponent<LinkModalProps> = ({
                     paddingRight: "1rem",
                     paddingTop: "0.25rem",
                     width: "100%",
+
                     "&:hover": {
                       backgroundColor: "#E5E7EB",
                     },
