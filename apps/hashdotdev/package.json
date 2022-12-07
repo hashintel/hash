@@ -6,7 +6,7 @@
     "build": "next build",
     "dev": "next dev",
     "fix:eslint": "eslint --fix .",
-    "lint:eslint": "eslint .",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "start": "next start"
   },

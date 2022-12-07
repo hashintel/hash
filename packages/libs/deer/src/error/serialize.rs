@@ -259,14 +259,17 @@ mod tests {
 
     use error_stack::{AttachmentKind, Context, Frame, FrameKind, Report};
     use serde_json::{json, to_value};
+    use similar_asserts::assert_serde_eq;
 
     use crate::{
         error::{
             serialize::{divide_frames, FrameSplitIterator},
             Error, ErrorProperties, ExpectedType, Id, Location, MissingError, Namespace,
-            ReceivedValue, ReportExt, Schema, ValueError, Variant, VisitorError, NAMESPACE,
+            ReceivedValue, ReportExt, ValueError, Variant, VisitorError, NAMESPACE,
         },
         id,
+        schema::visitor::{NumberSchema, StringSchema, U8Schema},
+        Reflection,
     };
 
     #[derive(Debug)]
@@ -498,17 +501,17 @@ mod tests {
             .attach(Location::Field("b"))
             .attach(Location::Field("a"))
             .attach(Location::Array(0))
-            .attach(ExpectedType::new(Schema::new("integer")));
+            .attach(ExpectedType::new(NumberSchema::document()));
 
         let export = report.export();
         let export = to_value(export).expect("should be ok");
 
-        assert_eq!(
+        assert_serde_eq!(
             export,
             json!([{
                 "namespace": "deer",
                 "id": ["value", "missing"],
-                "message": "received no value, but expected value of type integer",
+                "message": "received no value, but expected value of type number",
                 "properties": {
                     "location": [
                         {"type": "array", "value": 0},
@@ -516,7 +519,12 @@ mod tests {
                         {"type": "field", "value": "b"}
                     ],
                     "expected": {
-                        "type": "integer"
+                      "$defs": {
+                          "0000-deer::schema::visitor::NumberSchema": {
+                              "type": "number",
+                          },
+                      },
+                      "$ref": "#/$defs/0000-deer::schema::visitor::NumberSchema",
                     }
                 }
             }])
@@ -530,17 +538,13 @@ mod tests {
         // * MissingError: String @`.0.b`, received nothing
 
         let mut missing = Report::new(Error::new(MissingError))
-            .attach(ExpectedType::new(Schema::new("string")))
+            .attach(ExpectedType::new(StringSchema::document()))
             .attach(Location::Field("b"))
             .change_context(VisitorError);
 
         let value = Report::new(Error::new(ValueError))
             .attach(ReceivedValue::new(256u16))
-            .attach(ExpectedType::new(
-                Schema::new("integer")
-                    .with("minimum", u8::MIN)
-                    .with("maximum", u8::MAX),
-            ))
+            .attach(ExpectedType::new(U8Schema::document()))
             .attach(Location::Field("a"))
             .change_context(VisitorError);
 
@@ -551,7 +555,7 @@ mod tests {
         let export = report.export();
         let export = to_value(export).expect("should be ok");
 
-        assert_eq!(
+        assert_serde_eq!(
             export,
             json!([{
                 "namespace": "deer",
@@ -563,7 +567,12 @@ mod tests {
                         {"type": "field", "value": "b"}
                     ],
                     "expected": {
-                        "type": "string"
+                        "$defs": {
+                            "0000-deer::schema::visitor::StringSchema": {
+                                "type": "string",
+                            },
+                        },
+                        "$ref": "#/$defs/0000-deer::schema::visitor::StringSchema",
                     }
                 }
             }, {
@@ -577,9 +586,14 @@ mod tests {
                     ],
                     "received": 256,
                     "expected": {
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 255,
+                        "$defs": {
+                            "0000-deer::schema::visitor::U8Schema": {
+                                "maximum": 255,
+                                "minimum": 0,
+                                "type": "integer",
+                            },
+                        },
+                        "$ref": "#/$defs/0000-deer::schema::visitor::U8Schema",
                     }
                 }
             }])

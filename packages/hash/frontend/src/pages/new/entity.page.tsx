@@ -1,16 +1,14 @@
 import { validateVersionedUri } from "@blockprotocol/type-system";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
-import { useAuthenticatedUser } from "../../../components/hooks/useAuthenticatedUser";
-import { PageErrorState } from "../../../components/page-error-state";
-import { useInitTypeSystem } from "../../../lib/use-init-type-system";
-import {
-  getLayoutWithSidebar,
-  NextPageWithLayout,
-} from "../../../shared/layout";
-import { EntityPageLoadingState } from "../entities/[entity-uuid].page/entity-page-loading-state";
-import { NewEntityPage } from "../entities/[entity-uuid].page/new-entity-page";
-import { useCreateNewEntityAndRedirect } from "../entities/[entity-uuid].page/shared/use-create-new-entity-and-redirect";
+import { useContext, useEffect, useState } from "react";
+import { useLoggedInUser } from "../../components/hooks/useAuthenticatedUser";
+import { PageErrorState } from "../../components/page-error-state";
+import { useInitTypeSystem } from "../../lib/use-init-type-system";
+import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
+import { EntityPageLoadingState } from "../[account-slug]/entities/[entity-uuid].page/entity-page-loading-state";
+import { NewEntityPage } from "../[account-slug]/entities/[entity-uuid].page/new-entity-page";
+import { useCreateNewEntityAndRedirect } from "../[account-slug]/entities/[entity-uuid].page/shared/use-create-new-entity-and-redirect";
+import { WorkspaceContext } from "../shared/workspace-context";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
@@ -21,18 +19,20 @@ const Page: NextPageWithLayout = () => {
     loadingTypeSystem || !queryEntityId
       ? null
       : validateVersionedUri(queryEntityId);
-  const { authenticatedUser, loading: authenticatedUserLoading } =
-    useAuthenticatedUser(undefined, true);
+  const { activeWorkspace } = useContext(WorkspaceContext);
   const shouldBeCreatingEntity = entityTypeId?.type === "Ok";
   const [creatingEntity, setCreatingEntity] = useState(shouldBeCreatingEntity);
 
-  const entityIdInvalid = !!queryEntityId && entityTypeId?.type === "Err";
+  const entityTypeInvalid = !!queryEntityId && entityTypeId?.type === "Err";
 
   if (shouldBeCreatingEntity && !creatingEntity) {
     setCreatingEntity(true);
-  } else if (entityIdInvalid && creatingEntity) {
+  } else if (entityTypeInvalid && creatingEntity) {
     setCreatingEntity(false);
   }
+
+  // @todo better way to force login when using active workspace?
+  useLoggedInUser();
 
   /**
    * This shouldn't be an effect, because we're relying on React re-renders after
@@ -45,11 +45,11 @@ const Page: NextPageWithLayout = () => {
    * @todo remove this effect when possible
    */
   useEffect(() => {
-    if (entityTypeId?.type === "Ok" && authenticatedUser) {
+    if (entityTypeId?.type === "Ok" && activeWorkspace) {
       const controller = new AbortController();
 
       void createNewEntityAndRedirect(
-        authenticatedUser,
+        activeWorkspace,
         entityTypeId.inner,
         true,
         controller.signal,
@@ -60,30 +60,17 @@ const Page: NextPageWithLayout = () => {
       };
     }
   }, [
-    authenticatedUser,
+    activeWorkspace,
     createNewEntityAndRedirect,
     entityTypeId?.inner,
     entityTypeId?.type,
   ]);
 
-  const accountSlug = router.query["account-slug"] as string | undefined;
-  const shortname = accountSlug?.slice(1);
-
-  if (creatingEntity || authenticatedUserLoading || loadingTypeSystem) {
+  if (creatingEntity || !activeWorkspace || loadingTypeSystem) {
     return <EntityPageLoadingState />;
   }
 
-  if (!authenticatedUser) {
-    return null;
-  }
-
-  // show error if url slug it's not users shortname, or shortname of one of users orgs
-  const atUsersNamespace = shortname === authenticatedUser.shortname;
-  const atOrgsNamespace = authenticatedUser.memberOf.some(
-    (val) => val.shortname === shortname,
-  );
-
-  if ((!atOrgsNamespace && !atUsersNamespace) || entityIdInvalid) {
+  if (entityTypeInvalid) {
     return <PageErrorState />;
   }
 
