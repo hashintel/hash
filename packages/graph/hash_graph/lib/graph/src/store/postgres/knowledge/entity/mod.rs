@@ -425,7 +425,21 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     lower(system_time),
                     NULLIF(upper(system_time), 'infinity')
                 FROM
-                    create_entity($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13);
+                    create_entity(
+                        _owned_by_id := $1,
+                        _entity_uuid := $2,
+                        _decision_time := $3,
+                        _updated_by_id := $4,
+                        _archived := $5,
+                        _entity_type_version_id := $6,
+                        _properties := $7,
+                        _left_owned_by_id := $8,
+                        _left_entity_uuid := $9,
+                        _right_owned_by_id := $10,
+                        _right_entity_uuid := $11,
+                        _left_to_right_order := $12,
+                        _right_to_left_order := $13
+                    );
                 "#,
                 &[
                     &entity_id.owned_by_id(),
