@@ -32,6 +32,12 @@ export const useBlockProtocolCreateEntityType = (
         };
       }
 
+      if (!ownedById) {
+        throw new Error(
+          "Hook was constructed without `ownedById` while not in readonly mode. Data must be created under an account.",
+        );
+      }
+
       if (!data) {
         return {
           errors: [
@@ -41,10 +47,6 @@ export const useBlockProtocolCreateEntityType = (
             },
           ],
         };
-      }
-
-      if (!ownedById) {
-        throw new Error("Host application must specified an ownedById");
       }
 
       const { entityType } = data;

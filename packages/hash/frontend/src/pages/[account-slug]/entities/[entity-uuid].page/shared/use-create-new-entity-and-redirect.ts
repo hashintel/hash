@@ -2,24 +2,30 @@ import { VersionedUri } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@hashintel/hash-subgraph";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import { useRouter } from "next/router";
-import { useCallback } from "react";
+import { useCallback, useContext } from "react";
 import { useBlockProtocolCreateEntity } from "../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolCreateEntity";
 import { useBlockProtocolGetEntityType } from "../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
-import { User } from "../../../../../lib/user";
-import { MinimalOrg } from "../../../../../lib/org";
+import { WorkspaceContext } from "../../../../shared/workspace-context";
 
 export const useCreateNewEntityAndRedirect = () => {
   const router = useRouter();
-  const { createEntity } = useBlockProtocolCreateEntity();
+  const { activeWorkspace, activeWorkspaceAccountId } =
+    useContext(WorkspaceContext);
+  const { createEntity } = useBlockProtocolCreateEntity(
+    activeWorkspaceAccountId ?? null,
+  );
   const { getEntityType } = useBlockProtocolGetEntityType();
 
   const createNewEntityAndRedirect = useCallback(
     async (
-      activeWorkspace: User | MinimalOrg,
       entityTypeId: VersionedUri,
       replace = false,
       abortSignal?: AbortSignal,
     ) => {
+      if (!activeWorkspace) {
+        throw new Error("Active workspace must be set");
+      }
+
       const { data: subgraph } = await getEntityType({
         data: {
           entityTypeId,
@@ -47,15 +53,9 @@ export const useCreateNewEntityAndRedirect = () => {
         throw new Error("persisted entity type not found");
       }
 
-      const ownedById =
-        activeWorkspace.kind === "user"
-          ? activeWorkspace.userAccountId
-          : activeWorkspace.orgAccountId;
-
       const { data: entity } = await createEntity({
         data: {
           entityTypeId: entityType.$id,
-          ownedById,
           properties: {},
         },
       });
@@ -77,7 +77,7 @@ export const useCreateNewEntityAndRedirect = () => {
         }
       }
     },
-    [router, createEntity, getEntityType],
+    [router, activeWorkspace, createEntity, getEntityType],
   );
 
   return createNewEntityAndRedirect;

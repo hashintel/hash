@@ -56,7 +56,6 @@ export type AggregateEntitiesMessageCallback = MessageCallback<
 
 export type CreateEntityRequest = {
   entityTypeId: VersionedUri;
-  ownedById?: string;
   properties: PropertyObject;
   linkData?: LinkData;
 };

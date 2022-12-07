@@ -62,12 +62,15 @@ export type GraphMessageCallbacks = Omit<
 
 /** @todo Consider if we should move this out of the page and into the hooks directory. */
 export const useBlockProtocolFunctionsWithOntology = (
-  ownedById: string,
+  ownedById: string | null,
 ): GraphMessageCallbacks => {
   const { readonlyMode } = useReadonlyMode();
 
   const { aggregateEntities } = useBlockProtocolAggregateEntities();
-  const { createEntity } = useBlockProtocolCreateEntity(readonlyMode);
+  const { createEntity } = useBlockProtocolCreateEntity(
+    ownedById,
+    readonlyMode,
+  );
 
   const { getEntity } = useBlockProtocolGetEntity();
   const { updateEntity } = useBlockProtocolUpdateEntity();
