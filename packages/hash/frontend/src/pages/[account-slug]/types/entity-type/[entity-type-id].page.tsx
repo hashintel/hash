@@ -228,7 +228,7 @@ const Page: NextPageWithLayout = () => {
                   await updateEntityType({
                     ...getSchemaFromEditorForm(getValues("properties")),
                     links: {
-                      "http://localhost:3000/@example-org/types/entity-type/admin/v/1":
+                      "http://localhost:3000/@system-user/types/entity-type/block-data/v/1":
                         {
                           type: "array",
                           minItems: 1,
@@ -237,7 +237,7 @@ const Page: NextPageWithLayout = () => {
                           items: {
                             oneOf: [
                               {
-                                $ref: "http://localhost:3000/@alice/types/entity-type/uhqewr0iughrweiughriuygh/v/1",
+                                $ref: "http://localhost:3000/@alice/types/entity-type/second-test-type/v/1",
                               },
                             ],
                           },

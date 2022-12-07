@@ -17,7 +17,7 @@ import {
   PropertyTypeForm,
 } from "./shared/property-type-form";
 import { PropertyTypeFormValues } from "./shared/property-type-form-values";
-import { QuestionIcon } from "./shared/question-icon";
+import { QuestionIcon } from "../shared/question-icon";
 import { useRouteNamespace } from "../../../../../shared/use-route-namespace";
 import { withHandler } from "./shared/with-handler";
 

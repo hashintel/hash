@@ -24,7 +24,7 @@ import {
   EntityTypeTableHeaderRow,
   EntityTypeTableRow,
   EntityTypeTableTitleCellText,
-} from "./property-list-card/entity-type-table";
+} from "./shared/entity-type-table";
 import {
   usePropertyTypes,
   useRefetchPropertyTypes,
@@ -39,7 +39,7 @@ import {
   formDataToPropertyType,
   PropertyTypeForm,
 } from "./property-list-card/shared/property-type-form";
-import { QuestionIcon } from "./property-list-card/shared/question-icon";
+import { QuestionIcon } from "./shared/question-icon";
 import { StyledPlusCircleIcon } from "../../../../shared/styled-plus-circle-icon";
 import { useStateCallback } from "./property-list-card/use-state-callback";
 
