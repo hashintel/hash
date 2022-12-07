@@ -98,9 +98,7 @@ export const PageSidebar: FunctionComponent = () => {
               accountId={activeWorkspaceAccountId}
             />
             {/* TYPES */}
-            <AccountEntityTypeList
-              activeWorkspaceAccountId={activeWorkspaceAccountId}
-            />
+            <AccountEntityTypeList ownedById={activeWorkspaceAccountId} />
           </>
         ) : null}
       </Box>

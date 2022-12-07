@@ -121,12 +121,12 @@ const SearchInput: FunctionComponent<SearchInputProps> = ({
 );
 
 type AccountEntityTypeListProps = {
-  activeWorkspaceAccountId: string;
+  ownedById: string;
 };
 
 export const AccountEntityTypeList: FunctionComponent<
   AccountEntityTypeListProps
-> = ({ activeWorkspaceAccountId }) => {
+> = ({ ownedById }) => {
   const [sortType, setSortType] = useState<SortType>("asc");
   const [searchVisible, setSearchVisible] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -161,12 +161,12 @@ export const AccountEntityTypeList: FunctionComponent<
   const accountEntityTypes = useMemo(() => {
     if (allEntityTypes) {
       return allEntityTypes.filter(
-        (root) => root.metadata.ownedById === activeWorkspaceAccountId,
+        (root) => root.metadata.ownedById === ownedById,
       );
     }
 
     return null;
-  }, [allEntityTypes, activeWorkspaceAccountId]);
+  }, [allEntityTypes, ownedById]);
 
   // todo: handle search server side
   const filteredEntityTypes = useMemo(() => {
