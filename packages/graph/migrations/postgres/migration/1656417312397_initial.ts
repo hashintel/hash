@@ -385,8 +385,6 @@ export const up = (pgm: MigrationBuilder): void => {
     },
   );
 
-  // This view contains the union of both latest and historic table.
-  // The latest entities come first when querying the view.
   pgm.createView(
     "entities",
     {},
@@ -418,7 +416,7 @@ export const up = (pgm: MigrationBuilder): void => {
     [
       {
         name: "_owned_by_id",
-        type: "UUID",
+        type: "UUID NOT NULL",
       },
       {
         name: "_entity_uuid",
