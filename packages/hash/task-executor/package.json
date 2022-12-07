@@ -6,7 +6,7 @@
   "main": "index.js",
   "scripts": {
     "fix:eslint": "eslint --fix .",
-    "lint:eslint": "eslint .",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "start": "nodemon ./src/index.ts --transpile-only"
   },
