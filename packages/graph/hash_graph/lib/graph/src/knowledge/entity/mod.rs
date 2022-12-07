@@ -26,7 +26,6 @@ use crate::{
     Serialize,
     Deserialize,
     ToSchema,
-    FromSql,
     ToSql,
 )]
 #[postgres(transparent)]

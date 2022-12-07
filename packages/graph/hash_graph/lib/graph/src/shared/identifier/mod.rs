@@ -15,7 +15,7 @@ pub mod ontology;
 
 pub type Timestamp = DateTime<Utc>;
 
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TimeSpan {
     pub from: Timestamp,
     pub to: Option<Timestamp>,
