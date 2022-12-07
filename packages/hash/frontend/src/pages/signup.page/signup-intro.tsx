@@ -164,10 +164,10 @@ export const SignupIntro: FunctionComponent<SignupIntroProps> = ({
           fontSize: "0.875rem",
           lineHeight: "1.25rem",
           textAlign: "center",
-          
+
           "@media (min-width: 768px)": {
             whiteSpace: "nowrap",
-          }
+          },
         }}
       >
         Alternatively if you already have a HASH account,{" "}
@@ -196,7 +196,7 @@ export const SignupIntro: FunctionComponent<SignupIntroProps> = ({
             Click here to log in
           </Box>
         </Link>
-      </p>
+      </Box>
     </div>
   );
 };
