@@ -13,7 +13,7 @@ import {
   Typography,
 } from "@mui/material";
 import { uniqueId } from "lodash";
-import { FunctionComponent, useMemo, useRef } from "react";
+import { FunctionComponent, useMemo, useRef, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { ArrayDataTypeChild } from "./array-data-type-child";
 import { DataTypeBadge } from "./data-type-badge";
@@ -75,7 +75,8 @@ export const ArrayDataTypeMenu: FunctionComponent<ArrayDataTypeMenuProps> = ({
     name: `flattenedDataTypeList.${dataTypeId}.data.expectedValues`,
   });
 
-  const autocompleteRef = useRef<HTMLDivElement>(null);
+  const [autocompleteElem, setAutocompleteElem] =
+    useState<HTMLDivElement | null>(null);
   const textFieldRef = useRef<HTMLInputElement>(null);
 
   const deleteDataTypeByTypeId = (typeId: string) => {
@@ -148,7 +149,7 @@ export const ArrayDataTypeMenu: FunctionComponent<ArrayDataTypeMenuProps> = ({
         ))}
 
         <Autocomplete
-          ref={autocompleteRef}
+          ref={(ref: HTMLDivElement) => setAutocompleteElem(ref)}
           value={value}
           multiple
           popupIcon={null}
@@ -160,7 +161,7 @@ export const ArrayDataTypeMenu: FunctionComponent<ArrayDataTypeMenuProps> = ({
             popper: {
               sx: {
                 [`.${autocompleteClasses.paper}`]: {
-                  width: autocompleteRef.current?.getBoundingClientRect().width,
+                  width: autocompleteElem?.getBoundingClientRect().width,
                 },
               },
             },
@@ -208,7 +209,10 @@ export const ArrayDataTypeMenu: FunctionComponent<ArrayDataTypeMenuProps> = ({
                   inputRef: textFieldRef,
                   sx: ({ palette, transitions }) => ({
                     height: 42,
-                    transition: transitions.create(["background-color"]),
+                    transition: transitions.create([
+                      "width",
+                      "background-color",
+                    ]),
                     padding: "0 16px !important",
                     fill: palette.gray[50],
 
@@ -220,6 +224,7 @@ export const ArrayDataTypeMenu: FunctionComponent<ArrayDataTypeMenuProps> = ({
 
                     ...(!expanded
                       ? {
+                          width: 145,
                           cursor: "pointer !important",
                           "&:hover": {
                             background: palette.gray[20],
@@ -251,14 +256,6 @@ export const ArrayDataTypeMenu: FunctionComponent<ArrayDataTypeMenuProps> = ({
                       }}
                     />
                   ),
-                }}
-                sx={{
-                  transition: ({ transitions }) => transitions.create("width"),
-                  ...(!expanded
-                    ? {
-                        width: 145,
-                      }
-                    : {}),
                 }}
                 placeholder={
                   !expanded ? "Add to array" : "Select acceptable values"
