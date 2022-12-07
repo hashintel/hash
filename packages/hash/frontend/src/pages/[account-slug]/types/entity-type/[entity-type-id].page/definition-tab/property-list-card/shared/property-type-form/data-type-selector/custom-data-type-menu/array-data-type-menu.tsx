@@ -11,6 +11,7 @@ import { FunctionComponent, useEffect, useMemo, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import {
   DataType,
+  DefaultDataTypeId,
   getDefaultData,
   PropertyTypeFormValues,
 } from "../../../property-type-form-values";
@@ -19,7 +20,7 @@ import { expectedValuesOptions } from "../shared/expected-values-options";
 import { DataTypeBadge } from "./array-data-type-menu/data-type-badge";
 import { DeleteDataTypeModal } from "./array-data-type-menu/delete-data-type-modal";
 
-const dataTypeOptions = [
+const dataTypeOptions: DefaultDataTypeId[] = [
   ...primitiveDataTypeOptions,
   "array",
   types.dataType.object.dataTypeId,

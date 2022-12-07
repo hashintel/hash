@@ -42,8 +42,9 @@ export type PropertyTypeFormValues = {
   flattenedDataTypeList: Record<string, DataType>;
 };
 
+export type DefaultDataTypeId = VersionedUri | "array";
 export const getDefaultData = (
-  typeId: VersionedUri | "array",
+  typeId: DefaultDataTypeId,
 ): PrimitiveTypeData | ArrayTypeData => {
   if (typeId === "array") {
     return {
