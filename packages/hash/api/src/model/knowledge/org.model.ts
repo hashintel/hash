@@ -87,7 +87,7 @@ export default class extends EntityModel {
       ownedById: systemUserAccountId,
       properties,
       entityTypeModel,
-      entityId: orgAccountId,
+      entityUuid: orgAccountId,
       actorId,
     });
 
