@@ -16,7 +16,7 @@ import {
   BlockComponent,
   useGraphBlockService,
 } from "@blockprotocol/graph/react";
-import { tw } from "twind";
+import { setup, tw } from "twind";
 import { orderBy } from "lodash";
 
 import { EditableCell } from "./components/editable-cell";
@@ -28,6 +28,8 @@ import { Pagination } from "./components/pagination";
 import { AggregateArgs, Header } from "./components/header";
 import { EntityTypeDropdown } from "./components/entity-type-dropdown";
 import { omitTypenameDeep } from "./lib/omit-typename-deep";
+
+setup({ preflight: false });
 
 type TableData = {
   data?: LinkedAggregation["results"];

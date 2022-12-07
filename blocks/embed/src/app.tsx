@@ -7,7 +7,7 @@ import {
   Reducer,
 } from "react";
 
-import { tw } from "twind";
+import { tw, setup } from "twind";
 
 import { BlockComponent } from "blockprotocol/react";
 
@@ -79,6 +79,8 @@ const reducer = (state: AppState, action: Actions): AppState => {
       return state;
   }
 };
+
+setup({ preflight: false });
 
 export const App: BlockComponent<BlockEntityProperties> = ({
   accountId,
@@ -347,7 +349,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   };
 
   return (
-    <div className={tw`w-full`} ref={containerRef}>
+    <div className={tw`w-full font-sans`} ref={containerRef}>
       {renderContent()}
     </div>
   );
