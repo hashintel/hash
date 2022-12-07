@@ -1,7 +1,8 @@
-import { SYSTEM_ACCOUNT_SHORTNAME } from "@hashintel/hash-shared/environment";
+import { systemUserShortname } from "@hashintel/hash-shared/environment";
+import { entityIdFromOwnedByIdAndEntityUuid } from "@hashintel/hash-subgraph";
 import { OrgModel, UserModel } from "..";
 import { GraphApi } from "../../graph";
-import { systemAccountId } from "../util";
+import { systemUserAccountId } from "../../graph/system-user";
 
 /**
  * Get the namespace of an account owner by its id
@@ -13,14 +14,20 @@ export const getNamespaceOfAccountOwner = async (
   params: { ownerId: string },
 ) => {
   const namespace =
-    params.ownerId === systemAccountId
-      ? SYSTEM_ACCOUNT_SHORTNAME
+    params.ownerId === systemUserAccountId
+      ? systemUserShortname
       : (
           (await UserModel.getUserById(graphApi, {
-            entityId: `${systemAccountId}%${params.ownerId}`,
+            entityId: entityIdFromOwnedByIdAndEntityUuid(
+              systemUserAccountId,
+              params.ownerId,
+            ),
           }).catch(() => undefined)) ??
           (await OrgModel.getOrgById(graphApi, {
-            entityId: `${systemAccountId}%${params.ownerId}`,
+            entityId: entityIdFromOwnedByIdAndEntityUuid(
+              systemUserAccountId,
+              params.ownerId,
+            ),
           }).catch(() => undefined))
         )?.getShortname();
 

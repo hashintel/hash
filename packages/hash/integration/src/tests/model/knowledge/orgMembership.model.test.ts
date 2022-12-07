@@ -1,13 +1,14 @@
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
-import { createGraphClient } from "@hashintel/hash-api/src/graph";
-import { ensureSystemTypesExist } from "@hashintel/hash-api/src/graph/system-types";
+import {
+  createGraphClient,
+  ensureSystemGraphIsInitialized,
+} from "@hashintel/hash-api/src/graph";
 import {
   OrgMembershipModel,
   OrgModel,
   UserModel,
 } from "@hashintel/hash-api/src/model";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { ensureSystemEntitiesExists } from "@hashintel/hash-api/src/graph/system-entities";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { createTestOrg, createTestUser } from "../../util";
 
@@ -34,8 +35,7 @@ describe("OrgMembership model class", () => {
 
   beforeAll(async () => {
     await TypeSystemInitializer.initialize();
-    await ensureSystemTypesExist({ graphApi, logger });
-    await ensureSystemEntitiesExists({ graphApi, logger });
+    await ensureSystemGraphIsInitialized({ graphApi, logger });
 
     testUser = await createTestUser(graphApi, "orgMembershipTest", logger);
 
