@@ -28,9 +28,9 @@ use crate::{
     },
     knowledge::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryToken, EntityUuid,
-        LinkEntityMetadata, LinkOrder,
+        LinkData, LinkOrder,
     },
-    provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
+    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         error::{EntityDoesNotExist, QueryError},
         query::Filter,
@@ -60,7 +60,6 @@ use crate::{
     components(
         schemas(
             OwnedById,
-            CreatedById,
             UpdatedById,
             CreateEntityRequest,
             UpdateEntityRequest,
@@ -76,7 +75,7 @@ use crate::{
             EntityVersion,
             EntityStructuralQuery,
             EntityQueryToken,
-            LinkEntityMetadata,
+            LinkData,
             LinkOrder,
             ProvenanceMetadata,
             GraphElementId,
@@ -135,11 +134,11 @@ struct CreateEntityRequest {
     entity_type_id: VersionedUri,
     owned_by_id: OwnedById,
     entity_uuid: Option<EntityUuid>,
-    actor_id: CreatedById,
+    actor_id: UpdatedById,
     // TODO: this could break invariants if we don't move to fractional indexing
     //  https://app.asana.com/0/1201095311341924/1202085856561975/f
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    link_metadata: Option<LinkEntityMetadata>,
+    link_data: Option<LinkData>,
 }
 
 #[utoipa::path(
@@ -156,8 +155,8 @@ struct CreateEntityRequest {
     ),
 )]
 async fn create_entity<P: StorePool + Send>(
-    body: Json<CreateEntityRequest>,
     pool: Extension<Arc<P>>,
+    body: Json<CreateEntityRequest>,
 ) -> Result<Json<EntityMetadata>, StatusCode> {
     let Json(CreateEntityRequest {
         properties,
@@ -165,7 +164,7 @@ async fn create_entity<P: StorePool + Send>(
         owned_by_id,
         entity_uuid,
         actor_id,
-        link_metadata,
+        link_data,
     }) = body;
 
     let mut store = pool.acquire().await.map_err(|report| {
@@ -180,7 +179,7 @@ async fn create_entity<P: StorePool + Send>(
             owned_by_id,
             entity_uuid,
             actor_id,
-            link_metadata,
+            link_data,
         )
         .await
         .map_err(|report| {
@@ -213,8 +212,8 @@ struct ArchiveEntityRequest {
     ),
 )]
 async fn archive_entity<P: StorePool + Send>(
-    body: Json<ArchiveEntityRequest>,
     pool: Extension<Arc<P>>,
+    body: Json<ArchiveEntityRequest>,
 ) -> Result<(), StatusCode> {
     let Json(ArchiveEntityRequest {
         entity_id,
@@ -292,7 +291,7 @@ async fn get_entities_by_query<P: StorePool + Send>(
 async fn get_latest_entities<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<Entity>>, StatusCode> {
-    read_from_store(pool.as_ref(), &Filter::<Entity>::for_all_latest_entities())
+    read_from_store(pool.as_ref(), &Filter::for_all_latest_entities())
         .await
         .map(Json)
 }
@@ -318,7 +317,7 @@ async fn get_entity<P: StorePool + Send>(
 ) -> Result<Json<Entity>, StatusCode> {
     read_from_store(
         pool.as_ref(),
-        &Filter::<Entity>::for_latest_entity_by_entity_id(entity_id),
+        &Filter::for_latest_entity_by_entity_id(entity_id),
     )
     .await
     .and_then(|mut entities| entities.pop().ok_or(StatusCode::NOT_FOUND))
@@ -351,8 +350,8 @@ struct UpdateEntityRequest {
     request_body = UpdateEntityRequest,
 )]
 async fn update_entity<P: StorePool + Send>(
-    body: Json<UpdateEntityRequest>,
     pool: Extension<Arc<P>>,
+    body: Json<UpdateEntityRequest>,
 ) -> Result<Json<EntityMetadata>, StatusCode> {
     let Json(UpdateEntityRequest {
         properties,

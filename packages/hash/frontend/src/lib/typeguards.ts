@@ -5,7 +5,7 @@ import {
   Object,
   ValueOrArray,
   PropertyTypeReference,
-} from "@blockprotocol/type-system-web";
+} from "@blockprotocol/type-system";
 
 export function isNonNullable<T>(value: T): value is NonNullable<T> {
   return value !== null && value !== undefined;

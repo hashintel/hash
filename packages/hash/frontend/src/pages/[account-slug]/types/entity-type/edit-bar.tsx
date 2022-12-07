@@ -4,6 +4,7 @@ import { Box, Collapse, Container, Stack, Typography } from "@mui/material";
 import { ReactNode, useEffect, useRef, useState } from "react";
 import { useFormState } from "react-hook-form";
 import { PencilSimpleLine } from "../../../../shared/icons/svg";
+import { useEditBarContext } from "../../../../shared/edit-bar-scroller";
 import { Button, ButtonProps } from "../../../../shared/ui/button";
 import { EntityTypeEditorForm } from "./form-types";
 
@@ -96,32 +97,34 @@ const EditBarContents = ({
 const useFreezeScrollWhileTransitioning = () => {
   const observerRef = useRef<ResizeObserver | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  const editBarContext = useEditBarContext();
 
   useEffect(() => {
-    const docNode = document.documentElement;
-    const node = ref.current;
+    const editBar = ref.current;
 
-    if (!node) {
+    if (!editBar || !editBarContext) {
       return;
     }
+
+    const { page, scrollingNode: scroller } = editBarContext;
 
     let beginningHeight = 0;
     let appliedOffset = 0;
 
     // Transition events bubble – needs to be the right event
     const isRelevant = (evt: TransitionEvent) =>
-      evt.target === node && evt.propertyName === "height";
+      evt.target === editBar && evt.propertyName === "height";
 
     const applyOffset = (currentHeight: number) => {
       const offset = currentHeight - beginningHeight;
       // We can't adjust further that the scroll position, or you'll see a blank
       // space at the top. In this event, we'll compensate for the difference
       // so far as we can
-      appliedOffset = Math.min(0 - offset, docNode.scrollTop);
+      appliedOffset = Math.min(0 - offset, scroller.scrollTop);
 
       // Adjust the whole page to compensate for the current offset caused by the
       // edit bar height
-      docNode.style.setProperty("top", `${appliedOffset}px`);
+      page.style.setProperty("top", `${appliedOffset}px`);
     };
 
     const observer = new ResizeObserver(([size]) => {
@@ -139,43 +142,43 @@ const useFreezeScrollWhileTransitioning = () => {
      */
     const end = (evt?: TransitionEvent) => {
       if (!evt || isRelevant(evt)) {
-        applyOffset(parseInt(window.getComputedStyle(node).height, 10));
-        node.removeEventListener("transitionend", end);
-        node.removeEventListener("transitioncancel", end);
-        observer.unobserve(node);
+        applyOffset(parseInt(window.getComputedStyle(editBar).height, 10));
+        editBar.removeEventListener("transitionend", end);
+        editBar.removeEventListener("transitioncancel", end);
+        observer.unobserve(editBar);
 
         // Before we start our calculations, remove the applied offset
-        docNode.style.removeProperty("top");
-        docNode.style.removeProperty("position");
+        page.style.removeProperty("top");
+        page.style.removeProperty("position");
 
         // If the page isn't long enough to scroll to compensate for the removed
         // offset, we want to apply some extra padding using min height
-        const { scrollTop, clientHeight, scrollHeight } = docNode;
+        const { scrollTop, clientHeight, scrollHeight } = scroller;
         const bottomPadding =
           (scrollHeight - scrollTop - clientHeight + appliedOffset) * -1;
 
         if (bottomPadding > 0) {
-          docNode.style.setProperty(
+          page.style.setProperty(
             "min-height",
             `${Math.ceil(clientHeight - appliedOffset)}px`,
           );
         } else {
-          docNode.style.removeProperty("min-height");
+          page.style.removeProperty("min-height");
         }
 
         // Now that the transition has finished, we want to adjust the scroll to
         // compensate for the offset we've just removed
-        docNode.style.setProperty("scroll-behavior", "auto");
-        docNode.scrollTo({
+        scroller.style.setProperty("scroll-behavior", "auto");
+        scroller.scrollTo({
           top: scrollTop - appliedOffset,
         });
-        docNode.style.removeProperty("scroll-behavior");
+        scroller.style.removeProperty("scroll-behavior");
       }
     };
 
     const start = (evt: TransitionEvent) => {
       if (isRelevant(evt)) {
-        const rect = node.getBoundingClientRect();
+        const rect = editBar.getBoundingClientRect();
 
         // If the user has scrolled far enough the edit bar is off-screen, the
         // browser will compensate for us. We only need to compensate if
@@ -187,25 +190,25 @@ const useFreezeScrollWhileTransitioning = () => {
           // The resize observer will shift the page to compensate for any offset,
           // but we need to allow it to do that by updating the position of the
           // document
-          docNode.style.setProperty("position", "relative");
+          page.style.setProperty("position", "relative");
 
-          node.addEventListener("transitionend", end);
-          node.addEventListener("transitioncancel", end);
-          observer.observe(node);
+          editBar.addEventListener("transitionend", end);
+          editBar.addEventListener("transitioncancel", end);
+          observer.observe(editBar);
         }
       }
     };
 
-    node.addEventListener("transitionstart", start);
+    editBar.addEventListener("transitionstart", start);
 
     return () => {
       end();
 
       // These two properties aren't necessarily reset by end
-      node.removeEventListener("transitionstart", start);
-      docNode.style.removeProperty("min-height");
+      editBar.removeEventListener("transitionstart", start);
+      page.style.removeProperty("min-height");
     };
-  }, []);
+  }, [editBarContext]);
 
   return ref;
 };
@@ -222,6 +225,8 @@ export const EditBar = ({
   const ref = useFreezeScrollWhileTransitioning();
 
   const collapseIn = currentVersion === 0 || isDirty;
+
+  const frozenDiscardButtonProps = useFrozenValue(discardButtonProps);
 
   return (
     <Collapse in={collapseIn} ref={ref}>
@@ -241,7 +246,7 @@ export const EditBar = ({
             label="- this type has not yet been created"
             discardButtonProps={{
               children: "Discard this type",
-              ...discardButtonProps,
+              ...frozenDiscardButtonProps,
             }}
             confirmButtonProps={{
               children: "Create",
@@ -254,7 +259,7 @@ export const EditBar = ({
             label={`Version ${frozenVersion} -> ${frozenVersion + 1}`}
             discardButtonProps={{
               children: "Discard changes",
-              ...discardButtonProps,
+              ...frozenDiscardButtonProps,
             }}
             confirmButtonProps={{
               children: "Publish update",

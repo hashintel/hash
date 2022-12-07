@@ -16,13 +16,13 @@ use graph::{
     },
     knowledge::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryPath, EntityUuid,
-        LinkEntityMetadata,
+        LinkData,
     },
     ontology::{
         DataTypeWithMetadata, EntityTypeQueryPath, EntityTypeWithMetadata, OntologyElementMetadata,
         PropertyTypeWithMetadata,
     },
-    provenance::{CreatedById, OwnedById, UpdatedById},
+    provenance::{OwnedById, UpdatedById},
     store::{
         error::ArchivalError,
         query::{Filter, FilterExpression, Parameter},
@@ -112,7 +112,7 @@ impl DatabaseTestWrapper {
                 .create_data_type(
                     DataType::from_str(data_type).expect("could not parse data type"),
                     OwnedById::new(account_id),
-                    CreatedById::new(account_id),
+                    UpdatedById::new(account_id),
                 )
                 .await?;
         }
@@ -122,7 +122,7 @@ impl DatabaseTestWrapper {
                 .create_property_type(
                     PropertyType::from_str(property_type).expect("could not parse property type"),
                     OwnedById::new(account_id),
-                    CreatedById::new(account_id),
+                    UpdatedById::new(account_id),
                 )
                 .await?;
         }
@@ -132,7 +132,7 @@ impl DatabaseTestWrapper {
                 .create_entity_type(
                     EntityType::from_str(entity_type).expect("could not parse entity type"),
                     OwnedById::new(account_id),
-                    CreatedById::new(account_id),
+                    UpdatedById::new(account_id),
                 )
                 .await?;
         }
@@ -151,7 +151,7 @@ impl DatabaseApi<'_> {
             .create_data_type(
                 data_type,
                 OwnedById::new(self.account_id),
-                CreatedById::new(self.account_id),
+                UpdatedById::new(self.account_id),
             )
             .await
     }
@@ -195,7 +195,7 @@ impl DatabaseApi<'_> {
             .create_property_type(
                 property_type,
                 OwnedById::new(self.account_id),
-                CreatedById::new(self.account_id),
+                UpdatedById::new(self.account_id),
             )
             .await
     }
@@ -239,7 +239,7 @@ impl DatabaseApi<'_> {
             .create_entity_type(
                 entity_type,
                 OwnedById::new(self.account_id),
-                CreatedById::new(self.account_id),
+                UpdatedById::new(self.account_id),
             )
             .await
     }
@@ -287,7 +287,7 @@ impl DatabaseApi<'_> {
                 entity_type_id,
                 OwnedById::new(self.account_id),
                 entity_uuid,
-                CreatedById::new(self.account_id),
+                UpdatedById::new(self.account_id),
                 None,
             )
             .await
@@ -345,13 +345,8 @@ impl DatabaseApi<'_> {
                 entity_type_id,
                 OwnedById::new(self.account_id),
                 entity_uuid,
-                CreatedById::new(self.account_id),
-                Some(LinkEntityMetadata::new(
-                    left_entity_id,
-                    right_entity_id,
-                    None,
-                    None,
-                )),
+                UpdatedById::new(self.account_id),
+                Some(LinkData::new(left_entity_id, right_entity_id, None, None)),
             )
             .await
     }
@@ -415,10 +410,9 @@ impl DatabaseApi<'_> {
             })
             .collect::<Vec<_>>();
 
-        match roots.as_slice() {
-            [] => panic!("no entity found"),
-            [entity] => Ok(entity.clone()),
-            [..] => panic!("more than one entity was found"),
+        match roots.len() {
+            1 => Ok(roots.into_iter().next().unwrap()),
+            len => panic!("unexpected number of entities found, expected 1 but received {len}"),
         }
     }
 

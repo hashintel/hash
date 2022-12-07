@@ -16,6 +16,7 @@ import {
 import { generateTypeId } from "@hashintel/hash-shared/types";
 import { ensureSystemEntitiesExists } from "@hashintel/hash-api/src/graph/system-entities";
 import { ensureSystemTypesExist } from "@hashintel/hash-api/src/graph/system-types";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { createTestUser } from "../../util";
 
 jest.setTimeout(60000);
@@ -65,6 +66,7 @@ describe("Link entity model class", () => {
   };
 
   beforeAll(async () => {
+    await TypeSystemInitializer.initialize();
     await ensureSystemTypesExist({ graphApi, logger });
     await ensureSystemEntitiesExists({ graphApi, logger });
 

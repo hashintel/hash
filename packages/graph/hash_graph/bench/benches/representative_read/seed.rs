@@ -6,8 +6,8 @@ use std::{
 
 use graph::{
     identifier::{account::AccountId, knowledge::EntityId},
-    knowledge::{EntityProperties, EntityUuid, LinkEntityMetadata},
-    provenance::{CreatedById, OwnedById},
+    knowledge::{EntityProperties, EntityUuid, LinkData},
+    provenance::{OwnedById, UpdatedById},
     store::{AccountStore, AsClient, EntityStore, PostgresStore},
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
@@ -155,7 +155,7 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
                 repeat((None, properties, None)).take(quantity),
                 entity_type_id,
                 OwnedById::new(account_id),
-                CreatedById::new(account_id),
+                UpdatedById::new(account_id),
             )
             .await
             .expect("failed to create entities");
@@ -176,17 +176,17 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
                     .iter()
                     .zip(&entity_uuids[*right_entity_index])
                     .map(|(left_uuid, right_uuid)| {
-                        LinkEntityMetadata::new(
+                        LinkData::new(
                             EntityId::new(OwnedById::new(account_id), *left_uuid),
                             EntityId::new(OwnedById::new(account_id), *right_uuid),
                             None,
                             None,
                         )
                     })
-                    .map(|link_metadata| (None, EntityProperties::empty(), Some(link_metadata))),
+                    .map(|link_data| (None, EntityProperties::empty(), Some(link_data))),
                 entity_type_id,
                 OwnedById::new(account_id),
-                CreatedById::new(account_id),
+                UpdatedById::new(account_id),
             )
             .await
             .expect("failed to create entities");

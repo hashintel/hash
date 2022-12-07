@@ -16,6 +16,7 @@ import {
 import { generateTypeId } from "@hashintel/hash-shared/types";
 import { ensureSystemEntitiesExists } from "@hashintel/hash-api/src/graph/system-entities";
 import { ensureSystemTypesExist } from "@hashintel/hash-api/src/graph/system-types";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { createTestUser } from "../../util";
 
 jest.setTimeout(60000);
@@ -44,6 +45,7 @@ describe("Entity CRU", () => {
   let linkEntityTypeFriendModel: EntityTypeModel;
 
   beforeAll(async () => {
+    await TypeSystemInitializer.initialize();
     await ensureSystemTypesExist({ graphApi, logger });
     await ensureSystemEntitiesExists({ graphApi, logger });
 
@@ -59,7 +61,7 @@ describe("Entity CRU", () => {
       },
       actorId: testUser.getEntityUuid(),
     }).catch((err) => {
-      logger.error(`Something went wrong making Text: ${err}`);
+      logger.error("Something went wrong making Text", err);
       throw err;
     });
 
@@ -80,7 +82,7 @@ describe("Entity CRU", () => {
           linkEntityTypeFriendModel = val;
         })
         .catch((err) => {
-          logger.error(`Something went wrong making link type Friends: ${err}`);
+          logger.error("Something went wrong making link type Friends", err);
           throw err;
         }),
 
@@ -97,7 +99,7 @@ describe("Entity CRU", () => {
           favoriteBookPropertyTypeModel = val;
         })
         .catch((err) => {
-          logger.error(`Something went wrong making Favorite Book: ${err}`);
+          logger.error("Something went wrong making Favorite Book", err);
           throw err;
         }),
       PropertyTypeModel.create(graphApi, {
@@ -113,7 +115,7 @@ describe("Entity CRU", () => {
           namePropertyTypeModel = val;
         })
         .catch((err) => {
-          logger.error(`Something went wrong making Names: ${err}`);
+          logger.error("Something went wrong making Names", err);
           throw err;
         }),
     ]);
@@ -171,9 +173,6 @@ describe("Entity CRU", () => {
 
   let updatedEntityModel: EntityModel;
   it("can update an entity", async () => {
-    expect(createdEntityModel.getMetadata().provenance.createdById).toBe(
-      testUser.getEntityUuid(),
-    );
     expect(createdEntityModel.getMetadata().provenance.updatedById).toBe(
       testUser.getEntityUuid(),
     );
@@ -189,9 +188,6 @@ describe("Entity CRU", () => {
       })
       .catch((err) => Promise.reject(err.data));
 
-    expect(updatedEntityModel.getMetadata().provenance.createdById).toBe(
-      testUser.getEntityUuid(),
-    );
     expect(updatedEntityModel.getMetadata().provenance.updatedById).toBe(
       testUser2.getEntityUuid(),
     );

@@ -1,5 +1,4 @@
-import { useMemo, FunctionComponent } from "react";
-import { tw } from "twind";
+import { useMemo, FunctionComponent, useContext } from "react";
 import ArticleIcon from "@mui/icons-material/Article";
 
 import { EntityId } from "@hashintel/hash-subgraph";
@@ -7,7 +6,7 @@ import { useUsers } from "../../../components/hooks/useUsers";
 import { useAccountPages } from "../../../components/hooks/useAccountPages";
 import { fuzzySearchBy } from "./fuzzySearchBy";
 import { Suggester } from "./Suggester";
-import { useRouteAccountInfo } from "../../../shared/routing";
+import { WorkspaceContext } from "../../../pages/shared/workspace-context";
 
 export interface MentionSuggesterProps {
   search?: string;
@@ -31,7 +30,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   const { users, loading: usersLoading } = useUsers();
   const { data: pages, loading: pagesLoading } = useAccountPages(accountId);
 
-  const { accountId: routeAccountId } = useRouteAccountInfo();
+  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
 
   const loading = usersLoading && pagesLoading;
 
@@ -43,7 +42,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
         entityId: user.entityEditionId.baseId,
         mentionType: "user",
         isActiveOrgMember: user.memberOf.some(
-          ({ orgAccountId }) => orgAccountId === routeAccountId,
+          ({ orgAccountId }) => orgAccountId === activeWorkspaceAccountId,
         ),
       })) ?? [];
 
@@ -72,26 +71,62 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
     );
 
     return [...peopleSearch, ...pagesSearch];
-  }, [search, users, routeAccountId, pages]);
+  }, [search, users, activeWorkspaceAccountId, pages]);
 
   return (
     <Suggester
       options={options}
       renderItem={(option) => (
-        <div className={tw`flex items-center py-1 px-2`}>
+        <div
+          style={{
+            alignItems: "center",
+            display: "flex",
+            paddingBottom: "0.25rem",
+            paddingLeft: "0.5rem",
+            paddingRight: "0.5rem",
+            paddingTop: "0.25rem",
+          }}
+        >
           {option.mentionType === "user" ? (
             <div
-              className={tw`w-6 h-6 flex items-center justify-center text-sm rounded-full bg-gray-200 mr-2`}
+              style={{
+                alignItems: "center",
+                backgroundColor: "#E5E7EB",
+                borderRadius: "9999px",
+                display: "flex",
+                fontSize: "0.875rem",
+                height: "1.5rem",
+                justifyContent: "center",
+                lineHeight: "1.25rem",
+                marginRight: "0.5rem",
+                width: "1.5rem",
+              }}
             >
               {option.name?.[0]?.toUpperCase()}
             </div>
           ) : (
-            <div className={tw`w-6 h-6 flex items-center justify-center mr-2`}>
+            <div
+              style={{
+                alignItems: "center",
+                display: "flex",
+                height: "1.5rem",
+                justifyContent: "center",
+                marginRight: "0.5rem",
+                width: "1.5rem",
+              }}
+            >
               {/* @todo display page emoji/icon when available */}
               <ArticleIcon style={{ fontSize: "1em" }} />
             </div>
           )}
-          <p className={tw`text-sm`}>{option.name}</p>
+          <p
+            style={{
+              fontSize: "0.875rem",
+              lineHeight: "1.25rem",
+            }}
+          >
+            {option.name}
+          </p>
         </div>
       )}
       itemKey={(option) => option.entityId}

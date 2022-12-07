@@ -5,20 +5,18 @@ require("setimmediate");
 import { ApolloProvider } from "@apollo/client/react";
 import { FunctionComponent, useEffect, useState } from "react";
 import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloClient";
-import withTwindApp from "@twind/next/app";
 import { ModalProvider } from "react-modal-hook";
 import { configureScope } from "@sentry/nextjs";
 import { AppProps as NextAppProps } from "next/app";
 import { useRouter } from "next/router";
 import { CacheProvider, EmotionCache } from "@emotion/react";
-import { CssBaseline, ThemeProvider } from "@mui/material";
+import { CssBaseline, GlobalStyles, ThemeProvider } from "@mui/material";
 import { theme, createEmotionCache } from "@hashintel/hash-design-system";
 import { SnackbarProvider } from "notistack";
 import { TypeSystemContextProvider } from "../lib/use-init-type-system";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 
 import { SessionProvider } from "./_app.page/session-provider";
-import twindConfig from "../../twind.config";
 import "./globals.scss";
 import { useAuthenticatedUser } from "../components/hooks/useAuthenticatedUser";
 import {
@@ -26,6 +24,7 @@ import {
   RoutePageInfoProvider,
 } from "../shared/routing";
 import { ReadonlyModeProvider } from "../shared/readonly-mode";
+import { WorkspaceContextProvider } from "./shared/workspace-context";
 
 export const apolloClient = createApolloClient();
 
@@ -45,7 +44,10 @@ const App: FunctionComponent<AppProps> = ({
   const [ssr, setSsr] = useState(true);
   const router = useRouter();
 
-  const { authenticatedUser } = useAuthenticatedUser({ client: apolloClient });
+  const { authenticatedUser, loading, kratosSession, refetch } =
+    useAuthenticatedUser({
+      client: apolloClient,
+    });
 
   useEffect(() => {
     configureScope((scope) =>
@@ -56,14 +58,34 @@ const App: FunctionComponent<AppProps> = ({
   }, []);
 
   useEffect(() => {
+    // If the user is logged in but hasn't completed signup and isn't on the signup page...
     if (
       authenticatedUser &&
       !authenticatedUser.accountSignupComplete &&
       !router.pathname.startsWith("/signup")
     ) {
+      // ...then redirect them to the signup page.
       void router.push("/signup");
+      // If the user is logged out redirect them to the login page
+    } else if (
+      !loading &&
+      !authenticatedUser &&
+      !(
+        router.pathname.startsWith("/login") ||
+        router.pathname.startsWith("/signup")
+      )
+    ) {
+      if (kratosSession) {
+        /**
+         * If we have a kratos session, but could not get the authenticated user,
+         * the kratos session may be invalid so needs to be re-fetched before redirecting.
+         */
+        void refetch().then(() => router.push("/login"));
+      } else {
+        void router.push("/login");
+      }
     }
-  }, [authenticatedUser, router]);
+  }, [authenticatedUser, kratosSession, loading, refetch, router]);
 
   // App UI often depends on [account-slug] and other query params. However,
   // router.query is empty during server-side rendering for pages that don’t use
@@ -83,18 +105,32 @@ const App: FunctionComponent<AppProps> = ({
           <ModalProvider>
             <RouteAccountInfoProvider>
               <RoutePageInfoProvider>
-                <SessionProvider>
+                <WorkspaceContextProvider>
                   <ReadonlyModeProvider>
                     <SnackbarProvider maxSnack={3}>
                       {getLayout(<Component {...pageProps} />)}
                     </SnackbarProvider>
                   </ReadonlyModeProvider>
-                </SessionProvider>
+                </WorkspaceContextProvider>
               </RoutePageInfoProvider>
             </RouteAccountInfoProvider>
           </ModalProvider>
         </ThemeProvider>
       </CacheProvider>
+      {/* "spin" is used in some inline styles which have been temporarily introduced in https://github.com/hashintel/hash/pull/1471 */}
+      {/* @todo remove when inline styles are replaced with MUI styles */}
+      <GlobalStyles
+        styles={`
+        @keyframes spin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        };
+      `}
+      />
     </ApolloProvider>
   );
 };
@@ -103,8 +139,10 @@ const AppWithTypeSystemContextProvider: FunctionComponent<AppProps> = (
   props,
 ) => (
   <TypeSystemContextProvider>
-    <App {...props} />
+    <SessionProvider>
+      <App {...props} />
+    </SessionProvider>
   </TypeSystemContextProvider>
 );
 
-export default withTwindApp(twindConfig, AppWithTypeSystemContextProvider);
+export default AppWithTypeSystemContextProvider;

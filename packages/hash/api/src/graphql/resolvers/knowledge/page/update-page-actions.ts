@@ -3,7 +3,7 @@ import { GraphApi } from "@hashintel/hash-graph-client";
 import produce from "immer";
 
 import { EntityId } from "@hashintel/hash-subgraph";
-import { VersionedUri } from "@blockprotocol/type-system-web";
+import { VersionedUri } from "@blockprotocol/type-system";
 import { BlockModel, EntityModel, UserModel } from "../../../../model";
 import {
   CreateEntityAction,

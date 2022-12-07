@@ -53,6 +53,7 @@ const configureAppReloadWhenBlockChanges = (
             window.location.reload();
           }
         } catch {
+          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions -- error stringification may need improvement
           reportProblem(`Could not parse socket message: ${data}`);
         }
       });
@@ -193,9 +194,9 @@ export const fetchBlock = async (
     } catch (err) {
       blockCache.delete(baseUrl);
       throw new Error(
-        `Could not fetch and parse block schema at url ${schemaUrl}: ${
-          (err as Error).message
-        }`,
+        `Could not fetch and parse block schema at url ${
+          schemaUrl ?? "undefined"
+        }: ${(err as Error).message}`,
       );
     }
 

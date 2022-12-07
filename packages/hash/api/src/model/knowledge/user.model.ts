@@ -93,7 +93,7 @@ export default class extends EntityModel {
 
     return (
       userEntities
-        .map(UserModel.fromEntityModel)
+        .map((userEntity) => UserModel.fromEntityModel(userEntity))
         .find((user) => user.getShortname() === params.shortname) ?? null
     );
   }
@@ -125,7 +125,7 @@ export default class extends EntityModel {
 
     return (
       userEntities
-        .map(UserModel.fromEntityModel)
+        .map((userEntity) => UserModel.fromEntityModel(userEntity))
         .find(
           (user) => user.getKratosIdentityId() === params.kratosIdentityId,
         ) ?? null

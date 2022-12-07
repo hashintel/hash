@@ -16,12 +16,12 @@ interface DragProps {
   attributes?: DraggableAttributes;
   listeners?: Record<string, Function>;
   style?: CSSProperties;
-  wrapperRef?(node: HTMLLIElement): void;
+  wrapperRef?(this: void, node: HTMLLIElement): void;
 }
 export interface PageTreeItemProps {
   pageEntityId: EntityId;
   title: string;
-  url: string;
+  pagePath: string;
   depth: number;
   selected: boolean;
   expanded: boolean;
@@ -46,7 +46,7 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
       pageEntityId,
       title,
       expandable,
-      url,
+      pagePath,
       depth,
       selected,
       createSubPage,
@@ -96,7 +96,7 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
       >
         <Link
           noLinkStyle
-          href={url}
+          href={pagePath}
           tabIndex={0}
           sx={({ palette, transitions }) => ({
             ...style,
@@ -225,6 +225,7 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
              */
             onClose={() => setAnchorPosition(undefined)}
             anchorPosition={anchorPosition}
+            pagePath={pagePath}
           />
         </Link>
       </Box>

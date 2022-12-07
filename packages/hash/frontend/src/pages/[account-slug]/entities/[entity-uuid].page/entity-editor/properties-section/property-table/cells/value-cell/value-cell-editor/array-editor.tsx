@@ -31,7 +31,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
 
   const items = useMemo(() => {
     const propertyVal = cell.data.property.value;
-    const values = Array.isArray(propertyVal) ? propertyVal : [propertyVal];
+    const values = Array.isArray(propertyVal) ? propertyVal : [];
 
     const itemsArray: SortableItem[] = values.map((value, index) => ({
       index,

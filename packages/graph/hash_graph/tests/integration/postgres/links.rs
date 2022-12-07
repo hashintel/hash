@@ -56,17 +56,14 @@ async fn insert() {
         .get_link_entity_target(person_a_metadata.edition_id().base_id(), friend_of_type_id)
         .await
         .expect("could not fetch entity");
-    let link_metadata = link_entity
-        .metadata()
-        .link_metadata()
-        .expect("entity is not a link");
+    let link_data = link_entity.link_data().expect("entity is not a link");
 
     assert_eq!(
-        link_metadata.left_entity_id(),
+        link_data.left_entity_id(),
         person_a_metadata.edition_id().base_id()
     );
     assert_eq!(
-        link_metadata.right_entity_id(),
+        link_data.right_entity_id(),
         person_b_metadata.edition_id().base_id()
     );
 }
@@ -162,34 +159,31 @@ async fn get_entity_links() {
             .is_some()
     );
 
-    let link_metadatas = links_from_source
+    let link_datas = links_from_source
         .iter()
-        .map(|entity| {
-            entity
-                .metadata()
-                .link_metadata()
-                .expect("entity is not a link")
-        })
+        .map(|entity| entity.link_data().expect("entity is not a link"))
         .collect::<Vec<_>>();
     assert!(
-        link_metadatas
+        link_datas
             .iter()
-            .find(|link_metadata| link_metadata.left_entity_id()
+            .find(|link_data| link_data.left_entity_id()
                 == person_a_metadata.edition_id().base_id())
             .is_some()
     );
     assert!(
-        link_metadatas
+        link_datas
             .iter()
-            .find(|link_metadata| link_metadata.right_entity_id()
-                == person_b_metadata.edition_id().base_id())
+            .find(
+                |link_data| link_data.right_entity_id() == person_b_metadata.edition_id().base_id()
+            )
             .is_some()
     );
     assert!(
-        link_metadatas
+        link_datas
             .iter()
-            .find(|link_metadata| link_metadata.right_entity_id()
-                == person_c_metadata.edition_id().base_id())
+            .find(
+                |link_data| link_data.right_entity_id() == person_c_metadata.edition_id().base_id()
+            )
             .is_some()
     );
 }

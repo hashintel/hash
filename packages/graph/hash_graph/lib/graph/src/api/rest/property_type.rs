@@ -26,7 +26,7 @@ use crate::{
         patch_id_and_parse, OntologyElementMetadata, PropertyTypeQueryToken,
         PropertyTypeWithMetadata,
     },
-    provenance::{CreatedById, OwnedById, UpdatedById},
+    provenance::{OwnedById, UpdatedById},
     store::{
         query::Filter, BaseUriAlreadyExists, BaseUriDoesNotExist, PropertyTypeStore, StorePool,
     },
@@ -54,7 +54,6 @@ use crate::{
             CreatePropertyTypeRequest,
             UpdatePropertyTypeRequest,
             OwnedById,
-            CreatedById,
             UpdatedById,
             OntologyTypeEditionId,
             OntologyElementMetadata,
@@ -105,7 +104,7 @@ struct CreatePropertyTypeRequest {
     #[schema(value_type = VAR_PROPERTY_TYPE)]
     schema: serde_json::Value,
     owned_by_id: OwnedById,
-    actor_id: CreatedById,
+    actor_id: UpdatedById,
 }
 
 #[utoipa::path(
@@ -123,9 +122,9 @@ struct CreatePropertyTypeRequest {
     request_body = CreatePropertyTypeRequest,
 )]
 async fn create_property_type<P: StorePool + Send>(
-    body: Json<CreatePropertyTypeRequest>,
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
+    body: Json<CreatePropertyTypeRequest>,
 ) -> Result<Json<OntologyElementMetadata>, StatusCode> {
     let Json(CreatePropertyTypeRequest {
         schema,
@@ -223,7 +222,7 @@ async fn get_property_types_by_query<P: StorePool + Send>(
 async fn get_latest_property_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<PropertyTypeWithMetadata>>, StatusCode> {
-    read_from_store(pool.as_ref(), &Filter::<PropertyType>::for_latest_version())
+    read_from_store(pool.as_ref(), &Filter::for_latest_version())
         .await
         .map(Json)
 }
@@ -247,13 +246,10 @@ async fn get_property_type<P: StorePool + Send>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<PropertyTypeWithMetadata>, StatusCode> {
-    read_from_store(
-        pool.as_ref(),
-        &Filter::<PropertyType>::for_versioned_uri(&uri.0),
-    )
-    .await
-    .and_then(|mut property_types| property_types.pop().ok_or(StatusCode::NOT_FOUND))
-    .map(Json)
+    read_from_store(pool.as_ref(), &Filter::for_versioned_uri(&uri.0))
+        .await
+        .and_then(|mut property_types| property_types.pop().ok_or(StatusCode::NOT_FOUND))
+        .map(Json)
 }
 
 #[derive(ToSchema, Serialize, Deserialize)]
@@ -280,8 +276,8 @@ struct UpdatePropertyTypeRequest {
     request_body = UpdatePropertyTypeRequest,
 )]
 async fn update_property_type<P: StorePool + Send>(
-    body: Json<UpdatePropertyTypeRequest>,
     pool: Extension<Arc<P>>,
+    body: Json<UpdatePropertyTypeRequest>,
 ) -> Result<Json<OntologyElementMetadata>, StatusCode> {
     let Json(UpdatePropertyTypeRequest {
         schema,

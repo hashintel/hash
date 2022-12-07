@@ -56,10 +56,6 @@ export let SYSTEM_TYPES: {
     hashInstance: EntityTypeModel;
     user: EntityTypeModel;
     org: EntityTypeModel;
-    /**
-     * @todo: make org membership entity type a link entity type
-     * @see https://app.asana.com/0/0/1203371754468058/f
-     */
     block: EntityTypeModel;
     comment: EntityTypeModel;
     page: EntityTypeModel;
@@ -722,7 +718,12 @@ export const ensureSystemTypesExist = async (params: {
       SYSTEM_TYPES_INITIALIZERS[
         typeKind as keyof typeof SYSTEM_TYPES_INITIALIZERS
       ];
-    for (const [key, typeInitializer] of Object.entries(inner)) {
+    for (const [key, typeInitializer] of Object.entries(inner) as [
+      string,
+      (
+        graphApi: GraphApi,
+      ) => Promise<PropertyTypeModel | EntityTypeModel | EntityTypeModel>,
+    ][]) {
       logger.debug(`Checking system type: [${key}] exists`);
       const model = await typeInitializer(graphApi);
       initializedSystemTypes[typeKind][key] = model;

@@ -80,7 +80,6 @@ macro_rules! impl_ontology_column {
             pub enum $name {
                 VersionId,
                 OwnedById,
-                CreatedById,
                 UpdatedById,
                 Schema(Option<JsonField<'static>>),
             }
@@ -90,7 +89,6 @@ macro_rules! impl_ontology_column {
                     match self {
                         Self::VersionId
                         | Self::OwnedById
-                        | Self::CreatedById
                         | Self::UpdatedById => false,
                         Self::Schema(_) => true,
                     }
@@ -102,7 +100,6 @@ macro_rules! impl_ontology_column {
                     let column = match self {
                         Self::VersionId => "version_id",
                         Self::OwnedById => "owned_by_id",
-                        Self::CreatedById => "created_by_id",
                         Self::UpdatedById => "updated_by_id",
                         Self::Schema(None) => "schema",
                         Self::Schema(Some(path)) => match path {
@@ -135,12 +132,11 @@ pub enum Entities<'p> {
     LatestVersion,
     Archived,
     OwnedById,
-    CreatedById,
     UpdatedById,
     EntityTypeVersionId,
     Properties(Option<JsonField<'p>>),
-    LeftOrder,
-    RightOrder,
+    LeftToRightOrder,
+    RightToLeftOrder,
     LeftEntityUuid,
     RightEntityUuid,
     LeftEntityOwnedById,
@@ -155,7 +151,6 @@ impl Entities<'_> {
             | Self::LatestVersion
             | Self::Archived
             | Self::OwnedById
-            | Self::CreatedById
             | Self::UpdatedById
             | Self::EntityTypeVersionId => false,
             Self::Properties(_)
@@ -163,8 +158,8 @@ impl Entities<'_> {
             | Self::RightEntityUuid
             | Self::LeftEntityOwnedById
             | Self::RightEntityOwnedById
-            | Self::LeftOrder
-            | Self::RightOrder => true,
+            | Self::LeftToRightOrder
+            | Self::RightToLeftOrder => true,
         }
     }
 }
@@ -177,7 +172,6 @@ impl Transpile for Entities<'_> {
             Self::LatestVersion => "latest_version",
             Self::Archived => "archived",
             Self::OwnedById => "owned_by_id",
-            Self::CreatedById => "created_by_id",
             Self::UpdatedById => "updated_by_id",
             Self::EntityTypeVersionId => "entity_type_version_id",
             Self::Properties(None) => "properties",
@@ -194,8 +188,8 @@ impl Transpile for Entities<'_> {
                     }
                 };
             }
-            Self::LeftOrder => "left_order",
-            Self::RightOrder => "right_order",
+            Self::LeftToRightOrder => "left_to_right_order",
+            Self::RightToLeftOrder => "right_to_left_order",
             Self::LeftEntityUuid => "left_entity_uuid",
             Self::RightEntityUuid => "right_entity_uuid",
             Self::LeftEntityOwnedById => "left_owned_by_id",

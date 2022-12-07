@@ -2,7 +2,7 @@ import { useMutation } from "@apollo/client";
 import { useCallback, useState } from "react";
 
 import { types } from "@hashintel/hash-shared/types";
-import { extractBaseUri } from "@blockprotocol/type-system-web";
+import { extractBaseUri } from "@blockprotocol/type-system";
 import { GraphQLError } from "graphql";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import {
@@ -96,7 +96,7 @@ export const useUpdateAuthenticatedUser = () => {
         }
 
         const updatedAuthenticatedUser = constructAuthenticatedUser({
-          userEntityEditionId: userEntity.metadata.editionId,
+          userEntityEditionId: updatedSubgraph.roots[0]!,
           /**
            * @todo: ensure this subgraph contains the incoming links of orgs
            * at depth 2 to support constructing the `members` of an `Org`.

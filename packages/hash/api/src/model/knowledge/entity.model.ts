@@ -16,7 +16,7 @@ import {
   splitEntityId,
 } from "@hashintel/hash-subgraph";
 import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
-import { VersionedUri } from "@blockprotocol/type-system-web";
+import { VersionedUri } from "@blockprotocol/type-system";
 import {
   EntityModel,
   EntityTypeModel,
@@ -226,7 +226,7 @@ export default class {
           await parentEntity.entity.createOutgoingLink(graphApi, {
             linkEntityTypeModel,
             rightEntityModel: entity,
-            leftOrder: link.meta.index ?? undefined,
+            leftToRightOrder: link.meta.index ?? undefined,
             ownedById,
             actorId,
           });
@@ -243,7 +243,7 @@ export default class {
    *
    * @param params.ownedById the id of owner of the entity
    * @param params.entityDefinition the definition of how to get or create the entity (excluding any linked entities)
-   * @param params.createdById - the id of the account that is creating the entity
+   * @param params.actorId - the id of the account that is creating the entity
    */
   static async getOrCreate(
     graphApi: GraphApi,

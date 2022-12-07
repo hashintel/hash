@@ -14,6 +14,7 @@ erased-serde = { version = "0.3.23", default_features = false, features = ['allo
 
 [dev-dependencies]
 serde_json = "1.0.89"
+similar-asserts = { version = "1.4.2", features = ['serde'] }
 
 [build-dependencies]
 rustc_version = "0.4.0"

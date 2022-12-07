@@ -27,7 +27,7 @@ use crate::{
         domain_validator::{DomainValidator, ValidateOntologyType},
         patch_id_and_parse, EntityTypeQueryToken, EntityTypeWithMetadata, OntologyElementMetadata,
     },
-    provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
+    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         error::{BaseUriAlreadyExists, BaseUriDoesNotExist},
         query::Filter,
@@ -57,7 +57,6 @@ use crate::{
             CreateEntityTypeRequest,
             UpdateEntityTypeRequest,
             OwnedById,
-            CreatedById,
             UpdatedById,
             OntologyTypeEditionId,
             OntologyElementMetadata,
@@ -112,7 +111,7 @@ struct CreateEntityTypeRequest {
     #[schema(value_type = VAR_ENTITY_TYPE)]
     schema: serde_json::Value,
     owned_by_id: OwnedById,
-    actor_id: CreatedById,
+    actor_id: UpdatedById,
 }
 
 #[utoipa::path(
@@ -130,9 +129,9 @@ struct CreateEntityTypeRequest {
     request_body = CreateEntityTypeRequest,
 )]
 async fn create_entity_type<P: StorePool + Send>(
-    body: Json<CreateEntityTypeRequest>,
     pool: Extension<Arc<P>>,
     domain_validator: Extension<DomainValidator>,
+    body: Json<CreateEntityTypeRequest>,
 ) -> Result<Json<OntologyElementMetadata>, StatusCode> {
     let Json(CreateEntityTypeRequest {
         schema,
@@ -229,7 +228,7 @@ async fn get_entity_types_by_query<P: StorePool + Send>(
 async fn get_latest_entity_types<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
 ) -> Result<Json<Vec<EntityTypeWithMetadata>>, StatusCode> {
-    read_from_store(pool.as_ref(), &Filter::<EntityType>::for_latest_version())
+    read_from_store(pool.as_ref(), &Filter::for_latest_version())
         .await
         .map(Json)
 }
@@ -253,13 +252,10 @@ async fn get_entity_type<P: StorePool + Send>(
     uri: Path<VersionedUri>,
     pool: Extension<Arc<P>>,
 ) -> Result<Json<EntityTypeWithMetadata>, StatusCode> {
-    read_from_store(
-        pool.as_ref(),
-        &Filter::<EntityType>::for_versioned_uri(&uri.0),
-    )
-    .await
-    .and_then(|mut entity_types| entity_types.pop().ok_or(StatusCode::NOT_FOUND))
-    .map(Json)
+    read_from_store(pool.as_ref(), &Filter::for_versioned_uri(&uri.0))
+        .await
+        .and_then(|mut entity_types| entity_types.pop().ok_or(StatusCode::NOT_FOUND))
+        .map(Json)
 }
 
 #[derive(ToSchema, Serialize, Deserialize)]
@@ -286,8 +282,8 @@ struct UpdateEntityTypeRequest {
     request_body = UpdateEntityTypeRequest,
 )]
 async fn update_entity_type<P: StorePool + Send>(
-    body: Json<UpdateEntityTypeRequest>,
     pool: Extension<Arc<P>>,
+    body: Json<UpdateEntityTypeRequest>,
 ) -> Result<Json<OntologyElementMetadata>, StatusCode> {
     let Json(UpdateEntityTypeRequest {
         schema,

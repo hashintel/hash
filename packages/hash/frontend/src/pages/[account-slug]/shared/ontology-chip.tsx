@@ -1,7 +1,7 @@
 import {
   extractBaseUri,
   validateVersionedUri,
-} from "@blockprotocol/type-system-web";
+} from "@blockprotocol/type-system";
 import {
   Box,
   Stack,

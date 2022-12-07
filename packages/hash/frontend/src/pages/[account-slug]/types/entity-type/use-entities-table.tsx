@@ -1,16 +1,14 @@
 import {
   EntityType,
-  PropertyType,
   extractBaseUri,
   extractVersion,
-} from "@blockprotocol/type-system-web";
+  PropertyType,
+} from "@blockprotocol/type-system";
 import { SizedGridColumn } from "@glideapps/glide-data-grid";
-import { types } from "@hashintel/hash-shared/types";
-import { useMemo } from "react";
 import { Entity, Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
-import { getEntityByEditionId } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
+import { useMemo } from "react";
 import { generateEntityLabel } from "../../../../lib/entities";
-import { mustBeVersionedUri } from "./util";
+import { useGetOwnerForEntity } from "../../../../components/hooks/useGetOwnerForEntity";
 
 export interface TypeEntitiesRow {
   entity: string;
@@ -25,6 +23,8 @@ export const useEntitiesTable = (
   propertyTypes?: PropertyType[],
   subgraph?: Subgraph<SubgraphRootTypes["entity"]>,
 ) => {
+  const getOwnerForEntity = useGetOwnerForEntity();
+
   return useMemo(() => {
     if (!entities || !entityTypes || !propertyTypes || !subgraph) {
       return;
@@ -33,9 +33,7 @@ export const useEntitiesTable = (
     const propertyColumnsMap = new Map<string, SizedGridColumn>();
     if (propertyTypes) {
       for (const propertyType of propertyTypes) {
-        const propertyTypeBaseUri = extractBaseUri(
-          mustBeVersionedUri(propertyType.$id),
-        );
+        const propertyTypeBaseUri = extractBaseUri(propertyType.$id);
 
         if (!propertyColumnsMap.has(propertyTypeBaseUri)) {
           propertyColumnsMap.set(propertyTypeBaseUri, {
@@ -76,23 +74,20 @@ export const useEntitiesTable = (
 
     const rows: TypeEntitiesRow[] =
       entities?.map((entity) => {
-        const entityLabel = generateEntityLabel(subgraph);
-        const entityNamespace = getEntityByEditionId(
-          subgraph,
-          entity.metadata.editionId,
-        )?.properties[
-          extractBaseUri(types.propertyType.shortName.propertyTypeId)
-        ];
+        const entityLabel = generateEntityLabel(subgraph, entity);
+
         const entityType = entityTypes?.find(
           (type) => type.$id === entity.metadata.entityTypeId,
         );
+
+        const { shortname: entityNamespace } = getOwnerForEntity(entity);
 
         return {
           entity: entityLabel,
           entityTypeVersion: entityType
             ? `v${extractVersion(entityType.$id)} ${entityType.title}`
             : "",
-          namespace: entityNamespace ? `@${entityNamespace}` : "",
+          namespace: `@${entityNamespace}`,
           /** @todo: uncomment this when we have additional types for entities */
           // additionalTypes: "",
           ...propertyColumns.reduce((fields, column) => {
@@ -111,5 +106,5 @@ export const useEntitiesTable = (
       }) ?? {};
 
     return { columns, rows };
-  }, [entities, entityTypes, propertyTypes, subgraph]);
+  }, [entities, entityTypes, getOwnerForEntity, propertyTypes, subgraph]);
 };

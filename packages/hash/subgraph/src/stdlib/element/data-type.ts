@@ -1,9 +1,13 @@
-import { BaseUri, VersionedUri } from "@blockprotocol/type-system-web";
+import {
+  BaseUri,
+  extractBaseUri,
+  extractVersion,
+  VersionedUri,
+} from "@blockprotocol/type-system";
 import { OntologyTypeEditionId } from "../../types/identifier";
 import { Subgraph } from "../../types/subgraph";
 import { DataTypeWithMetadata } from "../../types/element";
 import { isDataTypeVertex } from "../../types/vertex";
-import { extractBaseUri, extractVersion } from "../../shared/type-system-patch";
 
 /**
  * Returns all `DataTypeWithMetadata`s within the vertices of the subgraph

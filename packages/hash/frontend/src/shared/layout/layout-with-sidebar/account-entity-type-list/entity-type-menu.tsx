@@ -1,111 +1,85 @@
-import { useMemo, useState, FunctionComponent } from "react";
+import { BaseUri, VersionedUri } from "@blockprotocol/type-system";
 import {
-  faLink,
   faAdd,
+  faLink,
   IconDefinition,
 } from "@fortawesome/free-solid-svg-icons";
-import pluralize from "pluralize";
+import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { ListItemIcon, ListItemText, Menu } from "@mui/material";
 import { bindMenu, PopupState } from "material-ui-popup-state/core";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system";
+import pluralize from "pluralize";
+import { FunctionComponent, useState } from "react";
 import { MenuItem } from "../../../ui";
+import { useFrozenValue } from "../../../use-frozen-value";
 
 type EntityTypeMenuProps = {
+  entityTypeId: VersionedUri;
   popupState: PopupState;
-  accountId: string;
-  entityId: string;
-  entityTitle: string;
+  title: string;
+  uri: BaseUri;
 };
 
-type MenuItemType = {
+const EntityTypeMenuItem = ({
+  title,
+  icon,
+  href,
+  faded,
+  onClick,
+  popupState,
+}: {
   title: string;
   icon: IconDefinition;
   faded?: boolean;
-} & ({ href: string; onClick?: null } | { href?: string; onClick: () => void });
+  popupState: PopupState;
+} & (
+  | { href: string; onClick?: null }
+  | { href?: null; onClick: () => void }
+)) => {
+  return (
+    <MenuItem
+      {...(href ? { href } : {})}
+      faded={faded}
+      onClick={onClick ?? popupState.close}
+    >
+      <ListItemIcon>
+        <FontAwesomeIcon icon={icon} />
+      </ListItemIcon>
+      <ListItemText primary={title} />
+    </MenuItem>
+  );
+};
 
 // @todo-mui get free icons that matches the design closely
 export const EntityTypeMenu: FunctionComponent<EntityTypeMenuProps> = ({
+  entityTypeId,
   popupState,
-  accountId,
-  entityId,
-  entityTitle,
+  title,
+  uri,
 }) => {
   const [copied, setCopied] = useState(false);
+  const copiedFrozen = useFrozenValue(copied, !popupState.isOpen);
 
-  // Commented out menu items whose functionality have not been
-  // implemented yet
-  // @todo uncomment when functionality has been implemented
-  const menuItems: MenuItemType[] = useMemo(() => {
-    return [
-      // {
-      //   title: "Add to Bookmarks",
-      //   icon: faBookmark,
-      // },
-      {
-        title: `Create new ${pluralize.singular(entityTitle)}`,
-        icon: faAdd,
-        href: `/${accountId}/entities/new?entityTypeId=${entityId}`,
-        faded: false,
-      },
-      {
-        title: copied ? "Copied!" : `Copy Link to ${entityTitle}`,
-        icon: faLink,
-        onClick: () => {
-          void navigator.clipboard.writeText(
-            `${window.location.origin}/${accountId}/types/${entityId}`,
-          );
+  return (
+    <Menu {...bindMenu(popupState)}>
+      <EntityTypeMenuItem
+        title={`Create new ${pluralize.singular(title)}`}
+        icon={faAdd}
+        href={`/new/entity?entity-type-id=${entityTypeId}`}
+        popupState={popupState}
+      />
+      <EntityTypeMenuItem
+        title={copiedFrozen ? "Copied!" : `Copy link to ${title}`}
+        icon={faLink}
+        popupState={popupState}
+        onClick={() => {
+          void navigator.clipboard.writeText(uri);
           setCopied(true);
           setTimeout(() => {
             setCopied(false);
             popupState.close();
           }, 2000);
-        },
-      },
-      // {
-      //   title: "Create filtered page",
-      //   icon: faFilter,
-      // },
-      // {
-      //   title: "Delete type",
-      //   icon: faTrash,
-      //   faded: true,
-      // },
-    ];
-  }, [accountId, entityId, entityTitle, copied, popupState]);
-
-  return (
-    <Menu {...bindMenu(popupState)}>
-      {menuItems.map(({ title, icon, onClick, href, faded }, index) => {
-        if (href) {
-          return (
-            <MenuItem
-              href={href}
-              // eslint-disable-next-line react/no-array-index-key
-              key={index}
-              onClick={() => popupState.close()}
-            >
-              <ListItemIcon>
-                <FontAwesomeIcon icon={icon} />
-              </ListItemIcon>
-              <ListItemText primary={title} />
-            </MenuItem>
-          );
-        }
-
-        return (
-          <MenuItem
-            // eslint-disable-next-line react/no-array-index-key
-            key={index}
-            faded={faded}
-            onClick={onClick ?? popupState.close}
-          >
-            <ListItemIcon>
-              <FontAwesomeIcon icon={icon} />
-            </ListItemIcon>
-            <ListItemText primary={title} />
-          </MenuItem>
-        );
-      })}
+        }}
+      />
     </Menu>
   );
 };

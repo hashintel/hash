@@ -1,3 +1,5 @@
+use std::collections::hash_map::RawEntryMut;
+
 use async_trait::async_trait;
 use error_stack::{IntoReport, Result, ResultExt};
 use tokio_postgres::GenericClient;
@@ -6,7 +8,7 @@ use type_system::DataType;
 use crate::{
     identifier::{ontology::OntologyTypeEditionId, GraphElementEditionId},
     ontology::{DataTypeWithMetadata, OntologyElementMetadata},
-    provenance::{CreatedById, OwnedById, UpdatedById},
+    provenance::{OwnedById, UpdatedById},
     store::{
         crud::Read,
         postgres::{DependencyContext, DependencyStatus},
@@ -32,23 +34,34 @@ impl<C: AsClient> PostgresStore<C> {
         let dependency_status = dependency_context
             .ontology_dependency_map
             .insert(data_type_id, current_resolve_depth);
+
+        // Explicitly converting the unique reference to a shared reference to the vertex to
+        // avoid mutating it by accident
         let data_type: Option<&OntologyVertex> = match dependency_status {
-            DependencyStatus::Unknown => {
-                let data_type = Read::<DataTypeWithMetadata>::read_one(
-                    self,
-                    &Filter::<DataType>::for_ontology_type_edition_id(data_type_id),
-                )
-                .await?;
-                Some(
-                    subgraph
-                        .vertices
-                        .ontology
-                        .entry(data_type_id.clone())
-                        .or_insert(OntologyVertex::DataType(Box::new(data_type))),
-                )
-            }
-            DependencyStatus::DependenciesUnresolved => {
-                subgraph.vertices.ontology.get(data_type_id)
+            DependencyStatus::Unresolved => {
+                match subgraph
+                    .vertices
+                    .ontology
+                    .raw_entry_mut()
+                    .from_key(data_type_id)
+                {
+                    RawEntryMut::Occupied(entry) => Some(entry.into_mut()),
+                    RawEntryMut::Vacant(entry) => {
+                        let data_type = Read::<DataTypeWithMetadata>::read_one(
+                            self,
+                            &Filter::for_ontology_type_edition_id(data_type_id),
+                        )
+                        .await?;
+                        Some(
+                            entry
+                                .insert(
+                                    data_type_id.clone(),
+                                    OntologyVertex::DataType(Box::new(data_type)),
+                                )
+                                .1,
+                        )
+                    }
+                }
             }
             DependencyStatus::Resolved => None,
         };
@@ -69,7 +82,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         &mut self,
         data_type: DataType,
         owned_by_id: OwnedById,
-        created_by_id: CreatedById,
+        updated_by_id: UpdatedById,
     ) -> Result<OntologyElementMetadata, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
@@ -80,7 +93,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
         );
 
         let (_, metadata) = transaction
-            .create(data_type, owned_by_id, created_by_id)
+            .create(data_type, owned_by_id, updated_by_id)
             .await?;
 
         transaction
@@ -95,7 +108,7 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
 
     async fn get_data_type<'f: 'q, 'q>(
         &self,
-        query: &'f StructuralQuery<'q, DataType>,
+        query: &'f StructuralQuery<'q, DataTypeWithMetadata>,
     ) -> Result<Subgraph, QueryError> {
         let StructuralQuery {
             ref filter,
@@ -107,6 +120,12 @@ impl<C: AsClient> DataTypeStore for PostgresStore<C> {
 
         for data_type in Read::<DataTypeWithMetadata>::read(self, filter).await? {
             let data_type_id = data_type.metadata().edition_id().clone();
+
+            // Insert the vertex into the subgraph to avoid another lookup when traversing it
+            subgraph.vertices.ontology.insert(
+                data_type_id.clone(),
+                OntologyVertex::DataType(Box::new(data_type)),
+            );
 
             self.traverse_data_type(
                 &data_type_id,

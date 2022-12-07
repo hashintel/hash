@@ -27,7 +27,7 @@ export const useCreateOnCellEdited = () => {
         [col, row]: Item,
         newValue: EditableGridCell,
       ) => {
-        if (!entitySubgraph || newValue.kind !== GridCellKind.Custom) {
+        if (newValue.kind !== GridCellKind.Custom) {
           return;
         }
 
