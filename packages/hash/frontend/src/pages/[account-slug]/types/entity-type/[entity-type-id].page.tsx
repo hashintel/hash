@@ -19,6 +19,7 @@ import {
   getLayoutWithSidebar,
   NextPageWithLayout,
 } from "../../../../shared/layout";
+import { Button } from "../../../../shared/ui/button";
 import { TopContextBar } from "../../../shared/top-context-bar";
 import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
 import { OntologyChip } from "../../shared/ontology-chip";
@@ -81,6 +82,10 @@ const getSchemaFromEditorForm = (
   };
 };
 
+type Entries<T> = {
+  [K in keyof T]: [K, T[K]];
+}[keyof T][];
+
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
 
@@ -113,9 +118,9 @@ const Page: NextPageWithLayout = () => {
   }, [router.query.draft]);
 
   const formMethods = useForm<EntityTypeEditorForm>({
-    defaultValues: { properties: [] },
+    defaultValues: { properties: [], links: [] },
   });
-  const { handleSubmit: wrapHandleSubmit, reset } = formMethods;
+  const { handleSubmit: wrapHandleSubmit, reset, getValues } = formMethods;
 
   const [
     remoteEntityType,
@@ -141,12 +146,28 @@ const Page: NextPageWithLayout = () => {
             };
           },
         ),
+        links: fetchedEntityType.links
+          ? (
+              Object.entries(fetchedEntityType.links) as Entries<
+                typeof fetchedEntityType.links
+              >
+            ).map(([linkEntityTypeId, link]) => ({
+              $id: linkEntityTypeId,
+              minValue: link.minItems,
+              maxValue: link.maxItems,
+              entityTypes:
+                "oneOf" in link.items
+                  ? link.items.oneOf.map((ref) => ref.$ref)
+                  : [],
+            }))
+          : [],
       });
     },
   );
 
   const entityType = remoteEntityType ?? draftEntityType;
 
+  // @todo handle links
   const handleSubmit = wrapHandleSubmit(async (data) => {
     const entityTypeSchema = getSchemaFromEditorForm(data.properties);
 
@@ -202,6 +223,31 @@ const Page: NextPageWithLayout = () => {
         <PropertyTypesContext.Provider value={propertyTypes}>
           <EntityTypeContext.Provider value={entityType}>
             <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
+              <Button
+                onClick={async () => {
+                  await updateEntityType({
+                    ...getSchemaFromEditorForm(getValues("properties")),
+                    links: {
+                      "http://localhost:3000/@example-org/types/entity-type/admin/v/1":
+                        {
+                          type: "array",
+                          minItems: 1,
+                          maxItems: 1,
+                          ordered: false,
+                          items: {
+                            oneOf: [
+                              {
+                                $ref: "http://localhost:3000/@alice/types/entity-type/uhqewr0iughrweiughriuygh/v/1",
+                              },
+                            ],
+                          },
+                        },
+                    },
+                  });
+                }}
+              >
+                ADD LINK
+              </Button>
               <Box
                 sx={{
                   display: "flex",
