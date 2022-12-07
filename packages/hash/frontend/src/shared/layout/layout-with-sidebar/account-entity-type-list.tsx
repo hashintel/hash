@@ -25,7 +25,6 @@ import {
 } from "react";
 import { TransitionGroup } from "react-transition-group";
 import { useBlockProtocolAggregateEntityTypes } from "../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregateEntityTypes";
-import { getOwnedById } from "../../../lib/get-owned-by-id";
 import { MinimalOrg } from "../../../lib/org";
 import { User } from "../../../lib/user";
 import { EntityTypeItem } from "./account-entity-type-list/entity-type-item";
@@ -163,7 +162,10 @@ export const AccountEntityTypeList: FunctionComponent<
 
   const accountEntityTypes = useMemo(() => {
     if (allEntityTypes) {
-      const ownedById = getOwnedById(activeWorkspace);
+      const ownedById =
+        activeWorkspace.kind === "user"
+          ? activeWorkspace.userAccountId
+          : activeWorkspace.orgAccountId;
 
       return allEntityTypes.filter(
         (root) => root.metadata.ownedById === ownedById,

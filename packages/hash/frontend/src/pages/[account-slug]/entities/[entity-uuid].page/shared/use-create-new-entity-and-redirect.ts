@@ -6,7 +6,6 @@ import { useCallback } from "react";
 import { useBlockProtocolCreateEntity } from "../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolCreateEntity";
 import { useBlockProtocolGetEntityType } from "../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
 import { User } from "../../../../../lib/user";
-import { getOwnedById } from "../../../../../lib/get-owned-by-id";
 import { MinimalOrg } from "../../../../../lib/org";
 
 export const useCreateNewEntityAndRedirect = () => {
@@ -47,7 +46,11 @@ export const useCreateNewEntityAndRedirect = () => {
       if (!entityType) {
         throw new Error("persisted entity type not found");
       }
-      const ownedById = getOwnedById(activeWorkspace);
+
+      const ownedById =
+        activeWorkspace.kind === "user"
+          ? activeWorkspace.userAccountId
+          : activeWorkspace.orgAccountId;
 
       const { data: entity } = await createEntity({
         data: {
