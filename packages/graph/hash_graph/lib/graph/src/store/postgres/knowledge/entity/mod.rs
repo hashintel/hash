@@ -3,7 +3,7 @@ mod read;
 use std::{collections::hash_map::Entry, future::Future, pin::Pin};
 
 use async_trait::async_trait;
-use error_stack::{bail, IntoReport, Report, Result, ResultExt};
+use error_stack::{IntoReport, Report, Result, ResultExt};
 use futures::FutureExt;
 use tokio_postgres::GenericClient;
 use type_system::uri::VersionedUri;
@@ -19,6 +19,7 @@ use crate::{
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         crud::Read,
+        error::{EntityDoesNotExist, RaceConditionOnUpdate},
         postgres::{DependencyContext, DependencyStatus},
         query::Filter,
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, UpdateError,
@@ -410,7 +411,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             owned_by_id,
             entity_uuid.unwrap_or_else(|| EntityUuid::new(Uuid::new_v4())),
         );
-        
+
         let entity_type_version_id = self
             .version_id_by_uri(&entity_type_id)
             .await
@@ -599,11 +600,118 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     async fn update_entity(
         &mut self,
         entity_id: EntityId,
-        properties: EntityProperties,
-        entity_type_id: VersionedUri,
+        decision_time: Option<Timestamp>,
         updated_by_id: UpdatedById,
-        order: EntityLinkOrder,
+        archived: bool,
+        entity_type_id: VersionedUri,
+        properties: EntityProperties,
+        link_order: EntityLinkOrder,
     ) -> Result<EntityMetadata, UpdateError> {
-        todo!("Support updating of entities: https://app.asana.com/0/0/1203464975244303/f")
+        let entity_type_version_id = self
+            .version_id_by_uri(&entity_type_id)
+            .await
+            .change_context(UpdateError)?;
+
+        let properties = serde_json::to_value(properties)
+            .into_report()
+            .change_context(UpdateError)?;
+
+        // The transaction is required to check if the update happened. If there were no returned
+        // row, it either means, that there was no entity with that parameters or a race condition
+        // happened.
+        let transaction = PostgresStore::new(
+            self.as_mut_client()
+                .transaction()
+                .await
+                .into_report()
+                .change_context(UpdateError)?,
+        );
+
+        if transaction
+            .as_client()
+            .query_opt(
+                "SELECT 1 FROM entity_ids WHERE owned_by_id = $1 AND entity_uuid = $2;",
+                &[&entity_id.owned_by_id(), &entity_id.entity_uuid()],
+            )
+            .await
+            .into_report()
+            .change_context(UpdateError)?
+            .is_none()
+        {
+            return Err(Report::new(EntityDoesNotExist)
+                .attach(entity_id)
+                .change_context(UpdateError));
+        }
+
+        let row = transaction
+            .as_client()
+            .query_opt(
+                r#"
+                SELECT
+                    entity_edition_id,
+                    lower(decision_time),
+                    NULLIF(upper(decision_time), 'infinity'),
+                    lower(system_time),
+                    NULLIF(upper(system_time), 'infinity')
+                FROM
+                    update_entity(
+                        _owned_by_id := $1,
+                        _entity_uuid := $2,
+                        _decision_time := $3,
+                        _updated_by_id := $4,
+                        _archived := $5,
+                        _entity_type_version_id := $6,
+                        _properties := $7,
+                        _left_to_right_order := $8,
+                        _right_to_left_order := $9
+                    );
+                "#,
+                &[
+                    &entity_id.owned_by_id(),
+                    &entity_id.entity_uuid(),
+                    &decision_time,
+                    &updated_by_id,
+                    &archived,
+                    &entity_type_version_id,
+                    &properties,
+                    &link_order.left_to_right(),
+                    &link_order.right_to_left(),
+                ],
+            )
+            .await
+            .into_report()
+            .change_context(UpdateError)?;
+
+        let Some(row) = row else {
+            return Err(Report::new(RaceConditionOnUpdate)
+                .attach(entity_id)
+                .change_context(UpdateError));
+        };
+
+        // TODO: Expose temporal versions to backend
+        //   see https://app.asana.com/0/0/1203444301722133/f
+        let _version_id: i64 = row.get(0);
+        let decision_time = Timespan {
+            from: row.get(1),
+            to: row.get(2),
+        };
+        let system_time = Timespan {
+            from: row.get(3),
+            to: row.get(4),
+        };
+
+        transaction
+            .client
+            .commit()
+            .await
+            .into_report()
+            .change_context(UpdateError)?;
+
+        Ok(EntityMetadata::new(
+            EntityEditionId::new(entity_id, EntityVersion::new(decision_time, system_time)),
+            entity_type_id,
+            ProvenanceMetadata::new(updated_by_id),
+            archived,
+        ))
     }
 }

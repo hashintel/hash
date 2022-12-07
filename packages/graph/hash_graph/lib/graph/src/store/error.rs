@@ -76,6 +76,18 @@ impl Context for EntityDoesNotExist {}
 
 #[derive(Debug)]
 #[must_use]
+pub struct RaceConditionOnUpdate;
+
+impl fmt::Display for RaceConditionOnUpdate {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("A race condition happened when updating the entity")
+    }
+}
+
+impl Context for RaceConditionOnUpdate {}
+
+#[derive(Debug)]
+#[must_use]
 pub struct VersionedUriAlreadyExists;
 
 impl fmt::Display for VersionedUriAlreadyExists {

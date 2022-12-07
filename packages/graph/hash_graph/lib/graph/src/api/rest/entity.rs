@@ -12,7 +12,6 @@ use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
 use type_system::uri::VersionedUri;
 use utoipa::{OpenApi, ToSchema};
-use uuid::Uuid;
 
 use crate::{
     api::rest::{
@@ -33,7 +32,7 @@ use crate::{
     },
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
-        error::{EntityDoesNotExist, QueryError},
+        error::{EntityDoesNotExist, RaceConditionOnUpdate},
         query::Filter,
         EntityStore, StorePool,
     },
@@ -120,7 +119,11 @@ impl RoutedResource for EntityResource {
                         .get(get_latest_entities::<P>)
                         .put(update_entity::<P>),
                 )
-                .route("/archive", post(archive_entity::<P>))
+                .route(
+                    "/archive",
+                    #[expect(deprecated)]
+                    post(archive_entity::<P>),
+                )
                 .route("/query", post(get_entities_by_query::<P>))
                 .route("/:entity_uuid", get(get_entity::<P>)),
         )
@@ -214,17 +217,57 @@ struct ArchiveEntityRequest {
         (status = 500, description = "Store error occurred"),
     ),
 )]
+#[deprecated = "use `/entities/update` instead"]
 async fn archive_entity<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     body: Json<ArchiveEntityRequest>,
 ) -> Result<(), StatusCode> {
-    tracing::warn!(
-        "Use of deprecated endpoint `/entities/archive`, use `/entities/update` instead"
-    );
+    let Json(ArchiveEntityRequest {
+        entity_id,
+        actor_id,
+    }) = body;
+
     // TODO: Expose temporal versions to backend
     //   see https://app.asana.com/0/0/1203444301722133/f
-    let entity = get_entity(Path(body.entity_id), pool).await?;
-    todo!("Support updating of entities: https://app.asana.com/0/0/1203464975244303/f")
+    let entity: Entity = read_from_store(
+        pool.as_ref(),
+        &Filter::for_latest_entity_by_entity_id(entity_id),
+    )
+    .await
+    .and_then(|mut entities| entities.pop().ok_or(StatusCode::NOT_FOUND))?;
+
+    let mut store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    store
+        .update_entity(
+            entity_id,
+            None,
+            actor_id,
+            true,
+            entity.metadata().entity_type_id().clone(),
+            entity.properties().clone(),
+            EntityLinkOrder::new(
+                entity
+                    .link_data()
+                    .as_ref()
+                    .and_then(LinkData::left_to_right_order),
+                entity
+                    .link_data()
+                    .as_ref()
+                    .and_then(LinkData::right_to_left_order),
+            ),
+        )
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not update entity");
+
+            // Insertion/update errors are considered internal server errors.
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+    Ok(())
 }
 
 #[utoipa::path(
@@ -321,6 +364,10 @@ struct UpdateEntityRequest {
     actor_id: UpdatedById,
     #[serde(flatten)]
     order: EntityLinkOrder,
+    // TODO: Remove default value when exposing temporal versions to backend
+    //   see https://app.asana.com/0/0/1203444301722133/f
+    #[serde(default)]
+    archived: bool,
 }
 
 #[utoipa::path(
@@ -340,5 +387,42 @@ async fn update_entity<P: StorePool + Send>(
     pool: Extension<Arc<P>>,
     body: Json<UpdateEntityRequest>,
 ) -> Result<Json<EntityMetadata>, StatusCode> {
-    todo!("Support updating of entities: https://app.asana.com/0/0/1203464975244303/f")
+    let Json(UpdateEntityRequest {
+        properties,
+        entity_id,
+        entity_type_id,
+        actor_id,
+        order,
+        archived,
+    }) = body;
+
+    let mut store = pool.acquire().await.map_err(|report| {
+        tracing::error!(error=?report, "Could not acquire store");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    store
+        .update_entity(
+            entity_id,
+            None,
+            actor_id,
+            archived,
+            entity_type_id,
+            properties,
+            order,
+        )
+        .await
+        .map_err(|report| {
+            tracing::error!(error=?report, "Could not update entity");
+
+            if report.contains::<EntityDoesNotExist>() {
+                StatusCode::NOT_FOUND
+            } else if report.contains::<RaceConditionOnUpdate>() {
+                StatusCode::LOCKED
+            } else {
+                // Insertion/update errors are considered internal server errors.
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
+        })
+        .map(Json)
 }

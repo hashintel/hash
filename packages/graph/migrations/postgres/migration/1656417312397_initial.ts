@@ -591,15 +591,6 @@ export const up = (pgm: MigrationBuilder): void => {
     BEGIN
       -- If the decision time is not specified, use the current time.
       IF _decision_time IS NULL THEN _decision_time := now(); END IF;
-  
-      -- ensure, that the row, we are going to update, is locked
-      -- this is required as \`UPDATE\` will not reevaluate the \`WHERE\` clause
-      PERFORM FROM entity_versions
-      WHERE entity_versions.owned_by_id = _owned_by_id
-        AND entity_versions.entity_uuid = _entity_uuid
-        AND entity_versions.decision_time @> _decision_time
-        AND entity_versions.system_time @> now()
-      FOR UPDATE;
 
       INSERT INTO entity_editions (
         updated_by_id,
@@ -643,6 +634,8 @@ export const up = (pgm: MigrationBuilder): void => {
     },
     `
     BEGIN
+      SET CONSTRAINTS entity_versions_overlapping DEFERRED;
+
       -- Insert a new version with the old decision time and the system time up until now
       INSERT INTO entity_versions (
         owned_by_id,

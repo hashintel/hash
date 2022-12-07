@@ -324,6 +324,7 @@ pub trait EntityStore: crud::Read<Entity> {
     /// - if the [`EntityProperties`] is not valid with respect to the specified [`EntityType`]
     /// - if the account referred to by `owned_by_id` does not exist
     /// - if an [`EntityUuid`] was supplied and already exists in the store
+    #[expect(clippy::too_many_arguments)]
     async fn create_entity(
         &mut self,
         owned_by_id: OwnedById,
@@ -384,12 +385,15 @@ pub trait EntityStore: crud::Read<Entity> {
     /// - if the [`EntityType`] doesn't exist
     /// - if the [`Entity`] is not valid with respect to its [`EntityType`]
     /// - if the account referred to by `actor_id` does not exist
+    #[expect(clippy::too_many_arguments)]
     async fn update_entity(
         &mut self,
         entity_id: EntityId,
-        properties: EntityProperties,
+        decision_time: Option<Timestamp>,
+        updated_by_id: UpdatedById,
+        archived: bool,
         entity_type_id: VersionedUri,
-        actor_id: UpdatedById,
-        order: EntityLinkOrder,
+        properties: EntityProperties,
+        link_order: EntityLinkOrder,
     ) -> Result<EntityMetadata, UpdateError>;
 }

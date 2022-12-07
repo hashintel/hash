@@ -472,7 +472,7 @@ Accept: application/json
 
 {
  "actorId": "{{account_id}}",
- "entityId": "{{person_a_entity_id}}",
+ "entityId": "f2d1062c-b774-42e5-bfb9-be6344bc9977%df572e43-3b3b-4d8e-b661-a572f034688d",
  "entityTypeId": "http://localhost:3000/@alice/types/entity-type/person/v/2",
  "properties": {
    "http://localhost:3000/@alice/types/property-type/name/": "Alice Allison"

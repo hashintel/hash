@@ -1836,6 +1836,12 @@ export interface UpdateEntityRequest {
   actorId: string;
   /**
    *
+   * @type {boolean}
+   * @memberof UpdateEntityRequest
+   */
+  archived?: boolean;
+  /**
+   *
    * @type {string}
    * @memberof UpdateEntityRequest
    */
@@ -1865,6 +1871,12 @@ export interface UpdateEntityRequestAllOf {
    * @memberof UpdateEntityRequestAllOf
    */
   actorId: string;
+  /**
+   *
+   * @type {boolean}
+   * @memberof UpdateEntityRequestAllOf
+   */
+  archived?: boolean;
   /**
    *
    * @type {string}
@@ -2839,6 +2851,7 @@ export const EntityApiAxiosParamCreator = function (
      *
      * @param {ArchiveEntityRequest} archiveEntityRequest
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     archiveEntity: async (
@@ -3144,6 +3157,7 @@ export const EntityApiFp = function (configuration?: Configuration) {
      *
      * @param {ArchiveEntityRequest} archiveEntityRequest
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     async archiveEntity(
@@ -3293,6 +3307,7 @@ export const EntityApiFactory = function (
      *
      * @param {ArchiveEntityRequest} archiveEntityRequest
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     archiveEntity(
@@ -3379,6 +3394,7 @@ export interface EntityApiInterface {
    *
    * @param {ArchiveEntityRequest} archiveEntityRequest
    * @param {*} [options] Override http request option.
+   * @deprecated
    * @throws {RequiredError}
    * @memberof EntityApiInterface
    */
@@ -3455,6 +3471,7 @@ export class EntityApi extends BaseAPI implements EntityApiInterface {
    *
    * @param {ArchiveEntityRequest} archiveEntityRequest
    * @param {*} [options] Override http request option.
+   * @deprecated
    * @throws {RequiredError}
    * @memberof EntityApi
    */
@@ -4171,6 +4188,7 @@ export const GraphApiAxiosParamCreator = function (
      *
      * @param {ArchiveEntityRequest} archiveEntityRequest
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     archiveEntity: async (
@@ -5240,6 +5258,7 @@ export const GraphApiFp = function (configuration?: Configuration) {
      *
      * @param {ArchiveEntityRequest} archiveEntityRequest
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     async archiveEntity(
@@ -5785,6 +5804,7 @@ export const GraphApiFactory = function (
      *
      * @param {ArchiveEntityRequest} archiveEntityRequest
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     archiveEntity(
@@ -6085,6 +6105,7 @@ export interface GraphApiInterface {
    *
    * @param {ArchiveEntityRequest} archiveEntityRequest
    * @param {*} [options] Override http request option.
+   * @deprecated
    * @throws {RequiredError}
    * @memberof GraphApiInterface
    */
@@ -6343,6 +6364,7 @@ export class GraphApi extends BaseAPI implements GraphApiInterface {
    *
    * @param {ArchiveEntityRequest} archiveEntityRequest
    * @param {*} [options] Override http request option.
+   * @deprecated
    * @throws {RequiredError}
    * @memberof GraphApi
    */
