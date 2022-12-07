@@ -37,7 +37,7 @@ export const useBlockProtocolCreateEntity = (
 
       if (!ownedById) {
         throw new Error(
-          "Hook that mutates data was constructed, and called, without providing an `ownedById`",
+          "Hook was constructed without `ownedById` while not in readonly mode. Actions that mutate the datastore must be associated with an actor.",
         );
       }
 
