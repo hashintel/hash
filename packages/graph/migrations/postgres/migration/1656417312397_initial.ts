@@ -416,7 +416,7 @@ export const up = (pgm: MigrationBuilder): void => {
     [
       {
         name: "_owned_by_id",
-        type: "UUID NOT NULL",
+        type: "UUID",
       },
       {
         name: "_entity_uuid",
