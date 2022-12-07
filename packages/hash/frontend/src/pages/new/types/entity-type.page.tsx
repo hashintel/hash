@@ -290,7 +290,7 @@ const Page: NextPageWithLayout = () => {
                   Create new entity type
                 </Button>
                 <Button
-                  href={`/${activeWorkspaceAccountId}`}
+                  href="/"
                   variant="tertiary"
                   size="small"
                   disabled={isSubmitting}
