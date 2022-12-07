@@ -1,6 +1,8 @@
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
-import { createGraphClient } from "@hashintel/hash-api/src/graph";
-import { ensureSystemTypesExist } from "@hashintel/hash-api/src/graph/system-types";
+import {
+  createGraphClient,
+  ensureSystemGraphIsInitialized,
+} from "@hashintel/hash-api/src/graph";
 import {
   BlockModel,
   EntityModel,
@@ -10,7 +12,7 @@ import {
 import { generateSystemEntityTypeSchema } from "@hashintel/hash-api/src/model/util";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { generateTypeId } from "@hashintel/hash-shared/types";
-import { ensureSystemEntitiesExists } from "@hashintel/hash-api/src/graph/system-entities";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { createTestUser } from "../../util";
 
 jest.setTimeout(60000);
@@ -41,8 +43,8 @@ describe("Block model class", () => {
   let dummyEntityType: EntityTypeModel;
 
   beforeAll(async () => {
-    await ensureSystemTypesExist({ graphApi, logger });
-    await ensureSystemEntitiesExists({ graphApi, logger });
+    await TypeSystemInitializer.initialize();
+    await ensureSystemGraphIsInitialized({ graphApi, logger });
 
     testUser = await createTestUser(graphApi, "blockModelTest", logger);
 
@@ -61,7 +63,6 @@ describe("Block model class", () => {
         title: "Dummy",
         properties: [],
         outgoingLinks: [],
-        actorId: testUser.getEntityUuid(),
       }),
       actorId: testUser.getEntityUuid(),
     });

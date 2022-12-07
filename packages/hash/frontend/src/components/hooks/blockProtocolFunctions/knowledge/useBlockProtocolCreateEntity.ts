@@ -9,6 +9,7 @@ import { createEntityMutation } from "../../../../graphql/queries/knowledge/enti
 import { CreateEntityMessageCallback } from "./knowledge-shim";
 
 export const useBlockProtocolCreateEntity = (
+  ownedById: string | null,
   readonly?: boolean,
 ): {
   createEntity: CreateEntityMessageCallback;
@@ -34,6 +35,12 @@ export const useBlockProtocolCreateEntity = (
         };
       }
 
+      if (!ownedById) {
+        throw new Error(
+          "Hook was constructed without `ownedById` while not in readonly mode. Data must be created under an account.",
+        );
+      }
+
       if (!data) {
         return {
           errors: [
@@ -45,14 +52,14 @@ export const useBlockProtocolCreateEntity = (
         };
       }
 
-      const { entityTypeId, ownedById, properties, linkMetadata } = data;
+      const { entityTypeId, properties, linkData } = data;
 
       const { data: createEntityResponseData } = await createFn({
         variables: {
           entityTypeId,
           ownedById,
           properties,
-          linkMetadata,
+          linkData,
         },
       });
 
@@ -73,7 +80,7 @@ export const useBlockProtocolCreateEntity = (
         data: createdEntity,
       };
     },
-    [createFn, readonly],
+    [createFn, ownedById, readonly],
   );
 
   return {

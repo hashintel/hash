@@ -1,12 +1,14 @@
 import { Entity as BpEntity, Link as BpLink } from "@blockprotocol/graph";
 
 import {
+  Entity,
   extractEntityUuidFromEntityId,
   Subgraph,
   SubgraphRootTypes,
 } from "@hashintel/hash-subgraph";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { getPropertyTypesByBaseUri } from "@hashintel/hash-subgraph/src/stdlib/element/property-type";
+import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
 import {
   UnknownEntity as ApiEntity,
   Link as ApiLink,
@@ -311,7 +313,7 @@ export const generateEntityLabel = (
   entitySubgraph:
     | Subgraph<SubgraphRootTypes["entity"]>
     | Partial<{ entityId: string; properties: any }>,
-  schema?: { labelProperty?: unknown; title?: unknown },
+  entity?: Entity,
 ): string => {
   /**
    * @todo - this return type is only added to allow for incremental migration. It should be removed
@@ -321,13 +323,17 @@ export const generateEntityLabel = (
     throw new Error("expected Subgraph but got a deprecated response type");
   }
 
-  const entity = getRoots(entitySubgraph)[0]!;
+  const entityToLabel = entity ?? getRoots(entitySubgraph)[0]!;
 
   const getFallbackLabel = () => {
     // fallback to the entity type and a few characters of the entityUuid
-    const entityId = entity.metadata.editionId.baseId;
+    const entityId = entityToLabel.metadata.editionId.baseId;
 
-    const entityTypeName = schema?.title ?? "Entity";
+    const entityType = getEntityTypeById(
+      entitySubgraph,
+      entityToLabel.metadata.entityTypeId,
+    );
+    const entityTypeName = entityType?.schema.title ?? "Entity";
 
     return `${entityTypeName}-${extractEntityUuidFromEntityId(entityId).slice(
       0,
@@ -343,16 +349,6 @@ export const generateEntityLabel = (
     return val;
   };
 
-  // if the schema has a labelProperty set, prefer that
-  const labelProperty = schema?.labelProperty;
-  if (
-    typeof labelProperty === "string" &&
-    typeof entity.properties[labelProperty] === "string" &&
-    entity.properties[labelProperty]
-  ) {
-    return getFallbackIfNotString(entity.properties[labelProperty]);
-  }
-
   // fallback to some likely display name properties
   const options = [
     "name",
@@ -363,7 +359,7 @@ export const generateEntityLabel = (
   ];
 
   const propertyTypes: { title?: string; propertyTypeBaseUri: string }[] =
-    Object.keys(entity.properties).map((propertyTypeBaseUri) => {
+    Object.keys(entityToLabel.properties).map((propertyTypeBaseUri) => {
       /** @todo - pick the latest version rather than first element? */
       const [propertyType] = getPropertyTypesByBaseUri(
         entitySubgraph,
@@ -386,7 +382,7 @@ export const generateEntityLabel = (
 
     if (found) {
       return getFallbackIfNotString(
-        entity.properties[found.propertyTypeBaseUri],
+        entityToLabel.properties[found.propertyTypeBaseUri],
       );
     }
   }

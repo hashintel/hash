@@ -1,6 +1,6 @@
 import { AxiosError } from "axios";
 
-import { EntityType } from "@blockprotocol/type-system-web";
+import { EntityType } from "@blockprotocol/type-system";
 import {
   GraphApi,
   UpdateEntityTypeRequest,
@@ -116,8 +116,8 @@ export default class {
      */
     const { data: entityTypes } = await graphApi.getLatestEntityTypes();
 
-    return (entityTypes as EntityTypeWithMetadata[]).map(
-      EntityTypeModel.fromEntityTypeWithMetadata,
+    return (entityTypes as EntityTypeWithMetadata[]).map((entityType) =>
+      EntityTypeModel.fromEntityTypeWithMetadata(entityType),
     );
   }
 

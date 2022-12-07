@@ -1,5 +1,8 @@
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
-import { createGraphClient } from "@hashintel/hash-api/src/graph";
+import {
+  createGraphClient,
+  ensureSystemGraphIsInitialized,
+} from "@hashintel/hash-api/src/graph";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
 import {
@@ -14,8 +17,7 @@ import {
   linkEntityTypeUri,
 } from "@hashintel/hash-api/src/model/util";
 import { generateTypeId } from "@hashintel/hash-shared/types";
-import { ensureSystemEntitiesExists } from "@hashintel/hash-api/src/graph/system-entities";
-import { ensureSystemTypesExist } from "@hashintel/hash-api/src/graph/system-types";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { createTestUser } from "../../util";
 
 jest.setTimeout(60000);
@@ -57,7 +59,6 @@ describe("Link entity model class", () => {
       ownedById: testUserModel.getEntityUuid(),
       schema: generateSystemEntityTypeSchema({
         entityTypeId,
-        actorId: testUserModel.getEntityUuid(),
         ...params,
       }),
       actorId: testUserModel.getEntityUuid(),
@@ -65,8 +66,8 @@ describe("Link entity model class", () => {
   };
 
   beforeAll(async () => {
-    await ensureSystemTypesExist({ graphApi, logger });
-    await ensureSystemEntitiesExists({ graphApi, logger });
+    await TypeSystemInitializer.initialize();
+    await ensureSystemGraphIsInitialized({ graphApi, logger });
 
     testUserModel = await createTestUser(graphApi, "linktest", logger);
 

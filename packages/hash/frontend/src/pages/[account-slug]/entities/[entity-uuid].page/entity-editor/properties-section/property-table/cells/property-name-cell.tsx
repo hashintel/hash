@@ -3,6 +3,7 @@ import {
   CustomRenderer,
   GridCellKind,
 } from "@glideapps/glide-data-grid";
+import { customColors } from "@hashintel/hash-design-system/src/theme/palette";
 import {
   getCellHorizontalPadding,
   getYCenter,
@@ -49,7 +50,9 @@ export const createRenderPropertyNameCell = (
 
       // prepare to fill text
       const shouldBeLightColor = depth && !children.length;
-      ctx.fillStyle = shouldBeLightColor ? "#91A5BA" : theme.textHeader;
+      ctx.fillStyle = shouldBeLightColor
+        ? customColors.gray[50]
+        : theme.textHeader;
       ctx.font = theme.baseFontStyle;
 
       // fill text
@@ -71,7 +74,7 @@ export const createRenderPropertyNameCell = (
       }
 
       // prepare to draw indentation lines
-      ctx.strokeStyle = "#DDE7F0";
+      ctx.strokeStyle = customColors.gray[30];
 
       // draw horizontal indentation line
       if (depth) {
@@ -125,7 +128,7 @@ export const createRenderPropertyNameCell = (
           iconLeft,
           iconTop,
           iconSize,
-          { ...theme, fgIconHeader: "#91A5BA" },
+          { ...theme, fgIconHeader: customColors.gray[50] },
         );
       }
 

@@ -3,7 +3,7 @@ import { PropertyRow } from "./types";
 import { generatePropertyRowsFromEntity } from "./use-row-data/generate-property-rows-from-entity";
 import { useEntityEditor } from "../../entity-editor-context";
 import { fillRowDataIndentCalculations } from "./fill-row-data-indent-calculations";
-import { flattenExpandedItemsOfTree } from "./flatten-expanded-items-of-tree";
+import { flattenExpandedItemsOfTree } from "./flatten";
 import {
   sortRowData,
   TableSort,
@@ -13,10 +13,6 @@ export const useRowData = () => {
   const { entitySubgraph, propertyExpandStatus } = useEntityEditor();
 
   const rows = useMemo<PropertyRow[]>(() => {
-    if (!entitySubgraph) {
-      return [];
-    }
-
     return generatePropertyRowsFromEntity(entitySubgraph);
   }, [entitySubgraph]);
 

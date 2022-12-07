@@ -96,7 +96,7 @@ where
     serde_json::Value::from(ontology_type.clone()).serialize(serializer)
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
 pub struct DataTypeWithMetadata {
     #[schema(value_type = VAR_DATA_TYPE)]
     #[serde(rename = "schema", serialize_with = "serialize_ontology_type")]
@@ -116,7 +116,7 @@ impl DataTypeWithMetadata {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
 pub struct PropertyTypeWithMetadata {
     #[schema(value_type = VAR_PROPERTY_TYPE)]
     #[serde(rename = "schema", serialize_with = "serialize_ontology_type")]
@@ -175,7 +175,7 @@ impl OntologyElementMetadata {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
 pub struct EntityTypeWithMetadata {
     #[schema(value_type = VAR_ENTITY_TYPE)]
     #[serde(rename = "schema", serialize_with = "serialize_ontology_type")]
@@ -196,15 +196,15 @@ impl EntityTypeWithMetadata {
 }
 
 pub trait PersistedOntologyType {
-    type Inner;
+    type OntologyType;
 
-    fn new(record: Self::Inner, metadata: OntologyElementMetadata) -> Self;
+    fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self;
 }
 
 impl PersistedOntologyType for DataTypeWithMetadata {
-    type Inner = DataType;
+    type OntologyType = DataType;
 
-    fn new(record: Self::Inner, metadata: OntologyElementMetadata) -> Self {
+    fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self {
         Self {
             inner: record,
             metadata,
@@ -213,9 +213,9 @@ impl PersistedOntologyType for DataTypeWithMetadata {
 }
 
 impl PersistedOntologyType for PropertyTypeWithMetadata {
-    type Inner = PropertyType;
+    type OntologyType = PropertyType;
 
-    fn new(record: Self::Inner, metadata: OntologyElementMetadata) -> Self {
+    fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self {
         Self {
             inner: record,
             metadata,
@@ -224,9 +224,9 @@ impl PersistedOntologyType for PropertyTypeWithMetadata {
 }
 
 impl PersistedOntologyType for EntityTypeWithMetadata {
-    type Inner = EntityType;
+    type OntologyType = EntityType;
 
-    fn new(record: Self::Inner, metadata: OntologyElementMetadata) -> Self {
+    fn new(record: Self::OntologyType, metadata: OntologyElementMetadata) -> Self {
         Self {
             inner: record,
             metadata,

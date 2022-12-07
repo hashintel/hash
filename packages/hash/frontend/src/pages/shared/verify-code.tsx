@@ -7,8 +7,8 @@ import {
   ClipboardEventHandler,
   FormEvent,
 } from "react";
-import { tw } from "twind";
 
+import { Box } from "@mui/material";
 import { LogoIcon, HashIcon, KeyboardReturnIcon } from "../../shared/icons";
 import { InviteHeader } from "./invite-header";
 import { InvitationInfo, SYNTHETIC_LOADING_TIME_MS } from "./auth-utils";
@@ -76,7 +76,7 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
     handleSubmit(text);
   };
 
-  const handleResendCode = async () => {
+  const handleResendCode = () => {
     updateState({ syntheticLoading: true });
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
     setTimeout(async () => {
@@ -113,14 +113,26 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
   };
 
   return (
-    <div className={tw`w-8/12 max-w-4xl`}>
-      <LogoIcon className={tw`mb-6`} />
+    <div style={{ width: "66.666667%", maxWidth: "56rem" }}>
+      <LogoIcon style={{ marginBottom: "1.5rem" }} />
       <div
-        className={tw`h-96 mb-9 rounded-2xl bg-white shadow-xl flex justify-center items-center text-center`}
+        style={{
+          alignItems: "center",
+          backgroundColor: "#ffffff",
+          borderRadius: "1rem",
+          // @todo use shadows from MUI theme https://app.asana.com/0/1203179076056209/1203480105875518/f
+          boxShadow:
+            "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+          display: "flex",
+          height: "24rem",
+          justifyContent: "center",
+          marginBottom: "2.25rem",
+          textAlign: "center",
+        }}
       >
-        <div className={tw`w-8/12`}>
+        <div style={{ width: "66.666667%" }}>
           {!!invitationInfo && <InviteHeader invitationInfo={invitationInfo} />}
-          <p className={tw`font-bold`}>
+          <p style={{ fontWeight: "700" }}>
             A verification code has been sent to{" "}
             <span>
               {isShortname(loginIdentifier)
@@ -128,13 +140,33 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
                 : loginIdentifier}
             </span>
           </p>
-          <p className={tw`mb-10`}>
+          <p style={{ marginBottom: "2.5rem" }}>
             Click the link in this email or enter the verification phrase below
             to continue
           </p>
-          <form className={tw`relative`} onSubmit={onSubmit}>
-            <input
-              className={tw`block border-0 border-solid border-b-1 border-gray-300 w-11/12 mx-auto mb-2 py-3 pl-3 pr-20 text-2xl text-center focus:outline-none focus:border-blue-500`}
+          <form style={{ position: "relative" }} onSubmit={onSubmit}>
+            <Box
+              component="input"
+              sx={{
+                borderColor: "#D1D5DB",
+                borderStyle: "solid",
+                borderWidth: "0",
+                display: "block",
+                fontSize: "1.5rem",
+                lineHeight: "2rem",
+                marginBottom: "0.5rem",
+                paddingBottom: "0.75rem",
+                paddingLeft: "0.75rem",
+                paddingRight: "5rem",
+                paddingTop: "0.75rem",
+                textAlign: "center",
+                width: "91.666667%",
+
+                "&:focus": {
+                  outline: "none",
+                  borderColor: "#3B82F6",
+                },
+              }}
               onChange={({ target }) =>
                 updateState({ text: parseVerificationCodeInput(target.value) })
               }
@@ -143,56 +175,144 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
               ref={inputRef}
               data-testid="verify-code-input"
             />
-            <button
+            <Box
+              component="button"
               type="submit"
-              className={tw`absolute bg-transparent border-none cursor-pointer right-0 top-1/2 mr-3 transition-all -translate-y-1/2 flex items-center disabled:opacity-40 disabled:pointer-events-none focus:outline-none text(blue-500 hover:blue-700 focus:blue-600) font-bold py-2 px-2`}
+              sx={{
+                alignItems: "center",
+                backgroundColor: "transparent",
+                borderStyle: "none",
+                color: "#3B82F6",
+                cursor: "pointer",
+                display: "flex",
+                fontWeight: "700",
+                marginRight: "0.75rem",
+                paddingBottom: "0.5rem",
+                paddingLeft: "0.5rem",
+                paddingRight: "0.5rem",
+                paddingTop: "0.5rem",
+                position: "absolute",
+                right: "0",
+                top: "50%",
+                transitionProperty: "all",
+                transform: "traslateY(-50%)",
+
+                "&:disabled": {
+                  opacity: 0.4,
+                  pointerEvents: "none",
+                },
+
+                "&:hover": {
+                  color: "#1D4ED8",
+                },
+
+                "&:focus": {
+                  outline: "none",
+                  color: "#2563EB",
+                },
+              }}
               disabled={!isInputValid() || loading}
             >
               {loading ? (
                 <>
-                  <span className={tw`mr-1`}>Loading</span>
-                  <HashIcon className={tw`h-4 w-4 animate-spin`} />
+                  <span style={{ marginRight: "0.25rem" }}>Loading</span>
+                  <HashIcon
+                    style={{
+                      animation: "spin 1s linear infinite",
+                      height: "1rem",
+                      width: "1rem",
+                    }}
+                  />
                 </>
               ) : (
                 <>
-                  <span className={tw`mr-1`}>Submit</span>
+                  <span style={{ marginRight: "0.25rem" }}>Submit</span>
                   <KeyboardReturnIcon />
                 </>
               )}
-            </button>
+            </Box>
           </form>
           {errorMessage && (
-            <span className={tw`text-red-500 text-sm`}>{errorMessage}</span>
+            <span
+              style={{
+                color: "#EF4444",
+                fontSize: "0.875rem",
+                lineHeight: "1.25rem",
+              }}
+            >
+              {errorMessage}
+            </span>
           )}
         </div>
       </div>
-      <div className={tw`flex justify-between`}>
-        <button
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <Box
+          component="button"
           type="button"
-          className={tw`bg-transparent border-none cursor-pointer focus:outline-none border(b-1 transparent hover:current focus:current)`}
+          sx={{
+            backgroundColor: "transparent",
+            borderColor: "transparent",
+            borderStyle: "none",
+            cursor: "pointer",
+
+            "&:hover, &:focus": {
+              outline: "none",
+              borderColor: "currentcolor",
+            },
+          }}
           onClick={goBack}
         >
-          &larr; <span className={tw`ml-1`}>Try logging in another way</span>
-        </button>
+          &larr;{" "}
+          <span style={{ marginLeft: "0.25rem" }}>
+            Try logging in another way
+          </span>
+        </Box>
         {emailResent ? (
-          <div className={tw`flex items-center`}>
-            <span className={tw`mr-1`}>No email yet?</span>
-            <span className={tw`font-bold text-green-500`}>Email Resent</span>
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <span style={{ marginRight: "0.25rem" }}>No email yet?</span>
+            <span style={{ color: "#10B981", fontWeight: "700" }}>
+              Email Resent
+            </span>
           </div>
         ) : (
-          <div className={tw`flex items-center`}>
-            <span className={tw`mr-1`}>No email yet?</span>
-            <button
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <span style={{ marginRight: "0.25rem" }}>No email yet?</span>
+            <Box
+              component="button"
               type="button"
-              className={tw`bg-transparent border-none cursor-pointer text-blue-500 focus:text-blue-700 hover:text-blue-700 disabled:opacity-50 font-bold focus:outline-none flex items-center`}
+              sx={{
+                alignItems: "center",
+                backgroundColor: "transparent",
+                borderStyle: "none",
+                color: "#3B82F6",
+                cursor: "pointer",
+                display: "flex",
+                fontWeight: "700",
+
+                "&:hover, &:focus": {
+                  outline: "none",
+                  color: "#1D4ED8",
+                },
+
+                "&:disabled": {
+                  opacity: 0.5,
+                },
+              }}
               onClick={handleResendCode}
               disabled={requestCodeLoading || syntheticLoading}
             >
               <span>Resend email</span>
               {(requestCodeLoading || syntheticLoading) && (
-                <HashIcon className={tw`h-3 w-3 ml-1 animate-spin`} />
+                <HashIcon
+                  style={{
+                    animation: "spin 1s linear infinite",
+                    height: "0.75rem",
+                    marginLeft: "0.25rem",
+                    width: "0.75rem",
+                  }}
+                />
               )}
-            </button>
+            </Box>
           </div>
         )}
       </div>

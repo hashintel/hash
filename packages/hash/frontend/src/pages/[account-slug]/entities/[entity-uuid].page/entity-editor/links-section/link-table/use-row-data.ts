@@ -2,45 +2,90 @@ import { useMemo } from "react";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { getOutgoingLinkAndTargetEntitiesAtMoment } from "@hashintel/hash-subgraph/src/stdlib/edge/link";
 import { getEntityTypeById } from "@hashintel/hash-subgraph/src/stdlib/element/entity-type";
-import { generateEntityLabel } from "../../../../../../../lib/entities";
+import { VersionedUri } from "@hashintel/hash-subgraph";
 import { useEntityEditor } from "../../entity-editor-context";
 import { LinkRow } from "./types";
+import { useBlockProtocolArchiveEntity } from "../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolArchiveEntity";
+import { useSnackbar } from "../../../../../../../components/hooks/useSnackbar";
 
 export const useRowData = () => {
-  const { entitySubgraph } = useEntityEditor();
+  const { entitySubgraph, refetch } = useEntityEditor();
+  const { archiveEntity } = useBlockProtocolArchiveEntity();
+  const snackbar = useSnackbar();
 
   const rowData = useMemo<LinkRow[]>(() => {
-    if (!entitySubgraph) {
+    const entity = getRoots(entitySubgraph)[0]!;
+    const entityType = getEntityTypeById(
+      entitySubgraph,
+      entity.metadata.entityTypeId,
+    );
+
+    const outgoingLinkAndTargetEntitiesAtMoment =
+      getOutgoingLinkAndTargetEntitiesAtMoment(
+        entitySubgraph,
+        entity.metadata.editionId.baseId,
+        /** @todo - We probably want to use entity endTime - https://app.asana.com/0/1201095311341924/1203331904553375/f */
+        new Date(),
+      );
+
+    const linkSchemas = entityType?.schema.links;
+
+    if (!linkSchemas) {
       return [];
     }
 
-    const entity = getRoots(entitySubgraph)[0]!;
+    return Object.entries(linkSchemas).map<LinkRow>(([key, linkSchema]) => {
+      const linkEntityTypeId = key as VersionedUri;
 
-    return getOutgoingLinkAndTargetEntitiesAtMoment(
-      entitySubgraph,
-      entity.metadata.editionId.baseId,
-      /** @todo - We probably want to use entity endTime - https://app.asana.com/0/1201095311341924/1203331904553375/f */
-      new Date(),
-    ).map(({ linkEntity, rightEntity }) => {
       const linkEntityType = getEntityTypeById(
         entitySubgraph,
-        linkEntity.metadata.entityTypeId,
+        linkEntityTypeId,
       );
 
-      const referencedEntityType = getEntityTypeById(
-        entitySubgraph,
-        rightEntity.metadata.entityTypeId,
-      );
+      if (!("oneOf" in linkSchema.items)) {
+        throw new Error("oneOf not found inside linkSchema.items");
+      }
+
+      const linkAndTargetEntities =
+        outgoingLinkAndTargetEntitiesAtMoment.filter(
+          ({ linkEntity }) =>
+            linkEntity.metadata.entityTypeId === linkEntityTypeId,
+        );
+
+      const expectedEntityTypes = linkSchema.items.oneOf.map(({ $ref }) => {
+        const expectedEntityType = getEntityTypeById(entitySubgraph, $ref);
+
+        if (!expectedEntityType) {
+          throw new Error("entity type not found");
+        }
+
+        return expectedEntityType;
+      });
+
+      const expectedEntityTypeTitles = expectedEntityTypes.map((val) => {
+        return val?.schema.title;
+      });
 
       return {
-        expectedEntityType: referencedEntityType?.schema.title ?? "",
-        linkedWith: generateEntityLabel(entitySubgraph),
-        linkEntityTypeId: linkEntity.metadata.entityTypeId,
-        relationship: "Outbound",
-        linkEntityTypeTitle: linkEntityType?.schema.title ?? "",
+        rowId: linkEntityTypeId,
+        linkEntityTypeId,
+        linkTitle: linkEntityType?.schema.title ?? "",
+        linkAndTargetEntities,
+        maxItems: linkSchema.maxItems ?? 1,
+        expectedEntityTypes,
+        expectedEntityTypeTitles,
+        entitySubgraph,
+        deleteLink: async (linkEntityId) => {
+          try {
+            await archiveEntity({ data: { entityId: linkEntityId } });
+            await refetch();
+          } catch {
+            snackbar.error("Failed to remove link");
+          }
+        },
       };
     });
-  }, [entitySubgraph]);
+  }, [entitySubgraph, archiveEntity, refetch, snackbar]);
 
   return rowData;
 };

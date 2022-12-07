@@ -4,7 +4,7 @@ export type Signal = "SIGINT" | "SIGTERM" | "SIGKILL";
 
 type CleanupProcedure = {
   name: string;
-  cleanup: () => Promise<void>;
+  cleanup: () => Promise<void> | void;
 };
 
 export class GracefulShutdown {
@@ -27,7 +27,7 @@ export class GracefulShutdown {
   }
 
   /** Add a cleanup procedure to this instance. */
-  addCleanup(name: string, cleanup: () => Promise<void>) {
+  addCleanup(name: string, cleanup: () => void | Promise<void>) {
     this.cleanupProcedures.push({ name, cleanup });
   }
 
@@ -46,6 +46,7 @@ export class GracefulShutdown {
         this.logger.debug(`${name} cleaned up`);
       } catch (err) {
         wasError = true;
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions -- error stringification may need improvement
         this.logger.error(`cleaning up ${name}: ${err}`);
       }
     }

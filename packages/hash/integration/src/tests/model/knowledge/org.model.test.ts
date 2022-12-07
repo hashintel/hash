@@ -1,10 +1,12 @@
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
-import { createGraphClient } from "@hashintel/hash-api/src/graph";
-import { ensureSystemTypesExist } from "@hashintel/hash-api/src/graph/system-types";
+import {
+  createGraphClient,
+  ensureSystemGraphIsInitialized,
+} from "@hashintel/hash-api/src/graph";
 import { OrgModel } from "@hashintel/hash-api/src/model";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { systemAccountId } from "@hashintel/hash-api/src/model/util";
-import { ensureSystemEntitiesExists } from "@hashintel/hash-api/src/graph/system-entities";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
+import { systemUserAccountId } from "@hashintel/hash-api/src/graph/system-user";
 import { createTestOrg, generateRandomShortname } from "../../util";
 
 jest.setTimeout(60000);
@@ -25,8 +27,8 @@ const graphApi = createGraphClient(logger, {
 
 describe("Org model class", () => {
   beforeAll(async () => {
-    await ensureSystemTypesExist({ graphApi, logger });
-    await ensureSystemEntitiesExists({ graphApi, logger });
+    await TypeSystemInitializer.initialize();
+    await ensureSystemGraphIsInitialized({ graphApi, logger });
   });
 
   let createdOrg: OrgModel;
@@ -46,14 +48,14 @@ describe("Org model class", () => {
 
     createdOrg = await createdOrg.updateShortname(graphApi, {
       updatedShortname: shortname,
-      actorId: systemAccountId,
+      actorId: systemUserAccountId,
     });
   });
 
   it("can update the preferred name of an org", async () => {
     createdOrg = await createdOrg.updateOrgName(graphApi, {
       updatedOrgName: "The testing org",
-      actorId: systemAccountId,
+      actorId: systemUserAccountId,
     });
   });
 

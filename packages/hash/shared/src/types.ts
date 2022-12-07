@@ -1,17 +1,9 @@
-import { BaseUri, VersionedUri } from "@blockprotocol/type-system-web";
+import { BaseUri, VersionedUri } from "@blockprotocol/type-system";
 import slugify from "slugify";
-import { EntityId } from "@hashintel/hash-subgraph";
-import { SYSTEM_ACCOUNT_SHORTNAME } from "@hashintel/hash-shared/environment";
-import { versionedUriFromComponents } from "@hashintel/hash-subgraph/src/shared/type-system-patch";
+import { systemUserShortname } from "@hashintel/hash-shared/environment";
 import { frontendUrl } from "./environment";
 
 type SchemaKind = "data-type" | "property-type" | "entity-type";
-
-export const nilUuid = "00000000-0000-0000-0000-000000000000" as const;
-
-export const userAccountIdToEntityId = (userAccountId: string): EntityId => {
-  return `${nilUuid}%${userAccountId}`;
-};
 
 /** Slugify the title of a type */
 export const slugifyTypeTitle = (title: string): string =>
@@ -58,11 +50,18 @@ export const generateTypeId = ({
   namespace: string;
   kind: SchemaKind;
   title: string;
-}): VersionedUri =>
-  versionedUriFromComponents(
-    generateBaseTypeId({ domain, namespace, kind, title }),
-    1,
-  );
+}): VersionedUri => {
+  // We purposefully don't use `versionedUriFromComponents` here as we want to limit the amount of functional code
+  // we're calling when this package is imported (this happens every time on import, not as the result of a call).
+  // We should be able to trust ourselves to create valid types here "statically", without needing to call the type
+  // system to validate them.
+  return `${generateBaseTypeId({
+    domain,
+    namespace,
+    kind,
+    title,
+  })}v/1` as VersionedUri;
+};
 
 /**
  * Generate the identifier of a system type (its versioned URI).
@@ -73,7 +72,7 @@ export const generateTypeId = ({
 export const generateSystemTypeId = (args: {
   kind: SchemaKind;
   title: string;
-}) => generateTypeId({ namespace: SYSTEM_ACCOUNT_SHORTNAME, ...args });
+}) => generateTypeId({ namespace: systemUserShortname, ...args });
 
 /**
  * Generate the identifier of a block protocol type (its versioned URI).

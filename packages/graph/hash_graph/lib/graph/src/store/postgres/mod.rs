@@ -31,9 +31,9 @@ use crate::{
         knowledge::{EntityEditionId, EntityId},
         ontology::OntologyTypeEditionId,
     },
-    knowledge::{EntityMetadata, EntityProperties, EntityUuid, LinkEntityMetadata},
+    knowledge::{EntityMetadata, EntityProperties, EntityUuid, LinkData},
     ontology::OntologyElementMetadata,
-    provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
+    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         error::VersionedUriAlreadyExists,
         postgres::{
@@ -47,8 +47,7 @@ use crate::{
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum DependencyStatus {
-    Unknown,
-    DependenciesUnresolved,
+    Unresolved,
     Resolved,
 }
 
@@ -87,11 +86,11 @@ where
         match self.resolved.raw_entry_mut().from_key(identifier) {
             RawEntryMut::Vacant(entry) => {
                 entry.insert(identifier.clone(), resolved_depth);
-                DependencyStatus::Unknown
+                DependencyStatus::Unresolved
             }
             RawEntryMut::Occupied(entry) => {
                 if entry.into_mut().update(resolved_depth) {
-                    DependencyStatus::DependenciesUnresolved
+                    DependencyStatus::Unresolved
                 } else {
                     DependencyStatus::Resolved
                 }
@@ -297,7 +296,7 @@ where
         &self,
         database_type: T,
         owned_by_id: OwnedById,
-        created_by_id: CreatedById,
+        updated_by_id: UpdatedById,
     ) -> Result<(VersionId, OntologyElementMetadata), InsertionError>
     where
         T: OntologyDatabaseType + Send + Sync + Into<serde_json::Value>,
@@ -330,23 +329,14 @@ where
         self.insert_version_id(version_id).await?;
         self.insert_uri(&uri, version_id).await?;
 
-        self.insert_with_id(
-            version_id,
-            database_type,
-            owned_by_id,
-            created_by_id,
-            UpdatedById::new(created_by_id.as_account_id()),
-        )
-        .await?;
+        self.insert_with_id(version_id, database_type, owned_by_id, updated_by_id)
+            .await?;
 
         Ok((
             version_id,
             OntologyElementMetadata::new(
                 OntologyTypeEditionId::from(&uri),
-                ProvenanceMetadata::new(
-                    created_by_id,
-                    UpdatedById::new(created_by_id.as_account_id()),
-                ),
+                ProvenanceMetadata::new(updated_by_id),
                 owned_by_id,
             ),
         ))
@@ -396,11 +386,7 @@ where
             .await
             .change_context(UpdateError)?;
 
-        let OntologyRecord {
-            owned_by_id,
-            created_by_id,
-            ..
-        } = previous_ontology_type;
+        let OntologyRecord { owned_by_id, .. } = previous_ontology_type;
 
         let version_id = VersionId::new(Uuid::new_v4());
         self.insert_version_id(version_id)
@@ -409,28 +395,22 @@ where
         self.insert_uri(&uri, version_id)
             .await
             .change_context(UpdateError)?;
-        self.insert_with_id(
-            version_id,
-            database_type,
-            owned_by_id,
-            created_by_id,
-            updated_by_id,
-        )
-        .await
-        .change_context(UpdateError)?;
+        self.insert_with_id(version_id, database_type, owned_by_id, updated_by_id)
+            .await
+            .change_context(UpdateError)?;
 
         Ok((
             version_id,
             OntologyElementMetadata::new(
                 OntologyTypeEditionId::from(&uri),
-                ProvenanceMetadata::new(created_by_id, updated_by_id),
+                ProvenanceMetadata::new(updated_by_id),
                 owned_by_id,
             ),
         ))
     }
 
     /// Inserts an [`OntologyDatabaseType`] identified by [`VersionId`], and associated with an
-    /// [`OwnedById`], [`CreatedById`], and [`UpdatedById`], into the database.
+    /// [`OwnedById`] and [`UpdatedById`], into the database.
     ///
     /// # Errors
     ///
@@ -440,7 +420,6 @@ where
         version_id: VersionId,
         database_type: T,
         owned_by_id: OwnedById,
-        created_by_id: CreatedById,
         updated_by_id: UpdatedById,
     ) -> Result<(), InsertionError>
     where
@@ -454,13 +433,18 @@ where
             .query_one(
                 &format!(
                     r#"
-                        INSERT INTO {} (version_id, schema, owned_by_id, created_by_id, updated_by_id)
-                        VALUES ($1, $2, $3, $4, $5)
+                        INSERT INTO {} (version_id, schema, owned_by_id, updated_by_id)
+                        VALUES ($1, $2, $3, $4)
                         RETURNING version_id;
                     "#,
                     T::table()
                 ),
-                &[&version_id, &value, &owned_by_id.as_account_id(), &created_by_id.as_account_id(), &updated_by_id.as_account_id()],
+                &[
+                    &version_id,
+                    &value,
+                    &owned_by_id.as_account_id(),
+                    &updated_by_id.as_account_id(),
+                ],
             )
             .await
             .into_report()
@@ -640,9 +624,8 @@ where
         entity_id: EntityId,
         properties: EntityProperties,
         entity_type_id: VersionedUri,
-        created_by_id: CreatedById,
         updated_by_id: UpdatedById,
-        link_metadata: Option<LinkEntityMetadata>,
+        link_data: Option<LinkData>,
     ) -> Result<EntityMetadata, InsertionError> {
         let entity_type_version_id = self
             .version_id_by_uri(&entity_type_id)
@@ -665,10 +648,10 @@ where
                     properties,
                     left_owned_by_id, left_entity_uuid,
                     right_owned_by_id, right_entity_uuid,
-                    left_order, right_order,
-                    created_by_id, updated_by_id
+                    left_to_right_order, right_to_left_order,
+                    updated_by_id
                 )
-                VALUES ($1, $2, clock_timestamp(), $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                VALUES ($1, $2, clock_timestamp(), $3, $4, $5, $6, $7, $8, $9, $10, $11)
                 RETURNING version;
                 "#,
                 &[
@@ -676,21 +659,20 @@ where
                     &entity_id.entity_uuid().as_uuid(),
                     &entity_type_version_id,
                     &value,
-                    &link_metadata
+                    &link_data
                         .as_ref()
                         .map(|metadata| metadata.left_entity_id().owned_by_id().as_account_id()),
-                    &link_metadata
+                    &link_data
                         .as_ref()
                         .map(|metadata| metadata.left_entity_id().entity_uuid().as_uuid()),
-                    &link_metadata
+                    &link_data
                         .as_ref()
                         .map(|metadata| metadata.right_entity_id().owned_by_id().as_account_id()),
-                    &link_metadata
+                    &link_data
                         .as_ref()
                         .map(|metadata| metadata.right_entity_id().entity_uuid().as_uuid()),
-                    &link_metadata.as_ref().map(LinkEntityMetadata::left_order),
-                    &link_metadata.as_ref().map(LinkEntityMetadata::right_order),
-                    &created_by_id.as_account_id(),
+                    &link_data.as_ref().map(LinkData::left_to_right_order),
+                    &link_data.as_ref().map(LinkData::right_to_left_order),
                     &updated_by_id.as_account_id(),
                 ],
             )
@@ -702,8 +684,7 @@ where
         Ok(EntityMetadata::new(
             EntityEditionId::new(entity_id, version),
             entity_type_id,
-            ProvenanceMetadata::new(created_by_id, updated_by_id),
-            link_metadata,
+            ProvenanceMetadata::new(updated_by_id),
             // TODO: only the historic table would have an `archived` field.
             //   Consider what we should do about that.
             false,
@@ -748,7 +729,7 @@ where
         &self,
         entity_id: EntityId,
         historic_move: HistoricMove,
-    ) -> Result<EntityMetadata, InsertionError> {
+    ) -> Result<Option<LinkData>, InsertionError> {
         let historic_entity = self
             .as_client()
             .query_one(
@@ -763,8 +744,8 @@ where
                         properties,
                         left_owned_by_id, left_entity_uuid,
                         right_owned_by_id, right_entity_uuid,
-                        left_order, right_order,
-                        created_by_id, updated_by_id
+                        left_to_right_order, right_to_left_order,
+                        updated_by_id
                 ),
                 inserted_in_historic AS (
                     -- We immediately put this deleted entity into the historic table.
@@ -776,8 +757,8 @@ where
                         properties,
                         left_owned_by_id, left_entity_uuid,
                         right_owned_by_id, right_entity_uuid,
-                        left_order, right_order,
-                        created_by_id, updated_by_id,
+                        left_to_right_order, right_to_left_order,
+                        updated_by_id,
                         archived
                     )
                     SELECT
@@ -786,8 +767,8 @@ where
                         properties,
                         left_owned_by_id, left_entity_uuid,
                         right_owned_by_id, right_entity_uuid,
-                        left_order, right_order,
-                        created_by_id, updated_by_id,
+                        left_to_right_order, right_to_left_order,
+                        updated_by_id,
                         $3::boolean
                     FROM to_move_to_historic
                     -- We only return metadata
@@ -796,16 +777,16 @@ where
                         entity_type_version_id,
                         left_owned_by_id, left_entity_uuid,
                         right_owned_by_id, right_entity_uuid,
-                        left_order, right_order,
-                        created_by_id, updated_by_id
+                        left_to_right_order, right_to_left_order,
+                        updated_by_id
                 )
                 SELECT
                     owned_by_id, entity_uuid, inserted_in_historic.version,
                     base_uri, type_ids.version,
                     left_owned_by_id, left_entity_uuid,
                     right_owned_by_id, right_entity_uuid,
-                    left_order, right_order,
-                    created_by_id, updated_by_id
+                    left_to_right_order, right_to_left_order,
+                    updated_by_id
                 FROM inserted_in_historic
                 INNER JOIN type_ids ON inserted_in_historic.entity_type_version_id = type_ids.version_id;
                 "#,
@@ -819,7 +800,7 @@ where
             .into_report()
             .change_context(InsertionError)?;
 
-        let link_metadata = match (
+        let link_data = match (
             historic_entity.get(5),
             historic_entity.get(6),
             historic_entity.get(7),
@@ -832,9 +813,9 @@ where
                 Some(left_entity_uuid),
                 Some(right_owned_by_id),
                 Some(right_entity_uuid),
-                left_order,
-                right_order,
-            ) => Some(LinkEntityMetadata::new(
+                left_to_right_order,
+                right_to_left_order,
+            ) => Some(LinkData::new(
                 EntityId::new(
                     OwnedById::new(left_owned_by_id),
                     EntityUuid::new(left_entity_uuid),
@@ -843,8 +824,8 @@ where
                     OwnedById::new(right_owned_by_id),
                     EntityUuid::new(right_entity_uuid),
                 ),
-                left_order,
-                right_order,
+                left_to_right_order,
+                right_to_left_order,
             )),
             (None, None, None, None, None, None) => None,
             _ => {
@@ -852,29 +833,7 @@ where
             }
         };
 
-        let base_uri = BaseUri::new(historic_entity.get(3))
-            .into_report()
-            .change_context(InsertionError)?;
-        let entity_type_id = VersionedUri::new(base_uri, historic_entity.get::<_, i64>(4) as u32);
-
-        Ok(EntityMetadata::new(
-            EntityEditionId::new(
-                EntityId::new(
-                    OwnedById::new(historic_entity.get(0)),
-                    EntityUuid::new(historic_entity.get(1)),
-                ),
-                historic_entity.get(2),
-            ),
-            entity_type_id,
-            ProvenanceMetadata::new(
-                CreatedById::new(historic_entity.get(11)),
-                UpdatedById::new(historic_entity.get(12)),
-            ),
-            link_metadata,
-            // TODO: only the historic table would have an `archived` field.
-            //   Consider what we should do about that.
-            false,
-        ))
+        Ok(link_data)
     }
 
     /// Fetches the [`VersionId`] of the specified [`VersionedUri`].
@@ -944,23 +903,22 @@ impl PostgresStore<Transaction<'_>> {
 
     #[doc(hidden)]
     #[cfg(feature = "__internal_bench")]
-    #[expect(clippy::too_many_arguments)]
     async fn insert_entity_batch_by_type(
         &self,
         entity_uuids: impl IntoIterator<Item = EntityUuid, IntoIter: Send> + Send,
         entities: impl IntoIterator<Item = EntityProperties, IntoIter: Send> + Send,
-        link_metadatas: impl IntoIterator<Item = Option<LinkEntityMetadata>, IntoIter: Send> + Send,
+        link_datas: impl IntoIterator<Item = Option<LinkData>, IntoIter: Send> + Send,
         entity_type_version_id: VersionId,
         owned_by_id: OwnedById,
-        created_by: CreatedById,
         updated_by_id: UpdatedById,
     ) -> Result<u64, InsertionError> {
         let sink = self
             .client
             .copy_in(
                 "COPY latest_entities (entity_uuid, entity_type_version_id, properties, \
-                 owned_by_id, updated_by_id, created_by_id, left_owned_by_id, left_entity_uuid, \
-                 right_owned_by_id, right_entity_uuid, left_order, right_order) FROM STDIN BINARY",
+                 owned_by_id, updated_by_id, left_owned_by_id, left_entity_uuid, \
+                 right_owned_by_id, right_entity_uuid, left_to_right_order, right_to_left_order) \
+                 FROM STDIN BINARY",
             )
             .await
             .into_report()
@@ -975,13 +933,12 @@ impl PostgresStore<Transaction<'_>> {
             Type::UUID,
             Type::UUID,
             Type::UUID,
-            Type::UUID,
             Type::INT4,
             Type::INT4,
         ]);
         futures::pin_mut!(writer);
-        for ((entity_uuid, entity), link_metadata) in
-            entity_uuids.into_iter().zip(entities).zip(link_metadatas)
+        for ((entity_uuid, entity), link_data) in
+            entity_uuids.into_iter().zip(entities).zip(link_datas)
         {
             let value = serde_json::to_value(entity)
                 .into_report()
@@ -993,26 +950,21 @@ impl PostgresStore<Transaction<'_>> {
                     &entity_type_version_id,
                     &value,
                     &owned_by_id.as_account_id(),
-                    &created_by.as_account_id(),
                     &updated_by_id.as_account_id(),
-                    &link_metadata
+                    &link_data
                         .as_ref()
                         .map(|metadata| metadata.left_entity_id().owned_by_id().as_account_id()),
-                    &link_metadata
+                    &link_data
                         .as_ref()
                         .map(|metadata| metadata.left_entity_id().entity_uuid().as_uuid()),
-                    &link_metadata
+                    &link_data
                         .as_ref()
                         .map(|metadata| metadata.right_entity_id().owned_by_id().as_account_id()),
-                    &link_metadata
+                    &link_data
                         .as_ref()
                         .map(|metadata| metadata.right_entity_id().entity_uuid().as_uuid()),
-                    &link_metadata
-                        .as_ref()
-                        .and_then(LinkEntityMetadata::left_order),
-                    &link_metadata
-                        .as_ref()
-                        .and_then(LinkEntityMetadata::right_order),
+                    &link_data.as_ref().and_then(LinkData::left_to_right_order),
+                    &link_data.as_ref().and_then(LinkData::right_to_left_order),
                 ])
                 .await
                 .into_report()

@@ -1,9 +1,12 @@
 import { createKratosIdentity } from "@hashintel/hash-api/src/auth/ory-kratos";
-import { GraphApi } from "@hashintel/hash-api/src/graph";
+import {
+  ensureSystemGraphIsInitialized,
+  GraphApi,
+} from "@hashintel/hash-api/src/graph";
 import { OrgModel, UserModel } from "@hashintel/hash-api/src/model";
 import { ensureSystemTypesExist } from "@hashintel/hash-api/src/graph/system-types";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { systemAccountId } from "@hashintel/hash-api/src/model/util";
+import { systemUserAccountId } from "@hashintel/hash-api/src/graph/system-user";
 import { OrgSize } from "../graphql/apiTypes.gen";
 
 const randomStringSuffix = () => {
@@ -22,7 +25,7 @@ export const createTestUser = async (
   shortNamePrefix: string,
   logger: Logger,
 ) => {
-  await ensureSystemTypesExist({ graphApi, logger });
+  await ensureSystemGraphIsInitialized({ graphApi, logger });
 
   const shortname = generateRandomShortname(shortNamePrefix);
 
@@ -32,6 +35,7 @@ export const createTestUser = async (
       emails: [`${shortname}@example.com`],
     },
   }).catch((err) => {
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions -- error stringification may need improvement
     logger.error(`Error when creating Kratos Identity, ${shortname}: ${err}`);
     throw err;
   });
@@ -41,7 +45,7 @@ export const createTestUser = async (
   const createdUser = await UserModel.createUser(graphApi, {
     emails: [`${shortname}@example.com`],
     kratosIdentityId,
-    actorId: systemAccountId,
+    actorId: systemUserAccountId,
   }).catch((err) => {
     logger.error(`Error making UserModel for ${shortname}`);
     throw err;
@@ -73,6 +77,6 @@ export const createTestOrg = async (
     providedInfo: {
       orgSize: OrgSize.ElevenToFifty,
     },
-    actorId: systemAccountId,
+    actorId: systemUserAccountId,
   });
 };

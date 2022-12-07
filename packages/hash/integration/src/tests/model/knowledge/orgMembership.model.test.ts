@@ -1,13 +1,15 @@
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
-import { createGraphClient } from "@hashintel/hash-api/src/graph";
-import { ensureSystemTypesExist } from "@hashintel/hash-api/src/graph/system-types";
+import {
+  createGraphClient,
+  ensureSystemGraphIsInitialized,
+} from "@hashintel/hash-api/src/graph";
 import {
   OrgMembershipModel,
   OrgModel,
   UserModel,
 } from "@hashintel/hash-api/src/model";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { ensureSystemEntitiesExists } from "@hashintel/hash-api/src/graph/system-entities";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { createTestOrg, createTestUser } from "../../util";
 
 jest.setTimeout(60000);
@@ -32,8 +34,8 @@ describe("OrgMembership model class", () => {
   let testOrg: OrgModel;
 
   beforeAll(async () => {
-    await ensureSystemTypesExist({ graphApi, logger });
-    await ensureSystemEntitiesExists({ graphApi, logger });
+    await TypeSystemInitializer.initialize();
+    await ensureSystemGraphIsInitialized({ graphApi, logger });
 
     testUser = await createTestUser(graphApi, "orgMembershipTest", logger);
 
@@ -51,13 +53,13 @@ describe("OrgMembership model class", () => {
     });
   });
 
-  it("can get the org of an org membership", async () => {
+  it("can get the org of an org membership", () => {
     const fetchedOrg = testOrgMembership.getOrg();
 
     expect(fetchedOrg).toEqual(testOrg);
   });
 
-  it("can get the user of an org membership", async () => {
+  it("can get the user of an org membership", () => {
     const fetchedUser = testOrgMembership.getUser();
 
     expect(fetchedUser?.entity).toEqual(testUser.entity);

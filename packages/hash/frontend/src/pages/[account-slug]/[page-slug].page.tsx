@@ -169,11 +169,15 @@ const generateCrumbsFromPages = ({
 };
 
 const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
-  const { accountId } = useRouteAccountInfo();
+  /**
+   * @todo: this will need to be reworked once pages can't rely on the `accountId` being
+   * in the URL.
+   */
+  const { routeAccountSlug: routeAccountId } = useRouteAccountInfo();
   // pageEntityId is the consistent identifier for pages (across all versions)
   const { pageEntityId } = useRoutePageInfo();
 
-  const { data: accountPages } = useAccountPages(accountId);
+  const { data: accountPages } = useAccountPages(routeAccountId);
 
   const blocksMap = useMemo(() => {
     return keyBy(blocks, (block) => block.meta.componentId);
@@ -262,7 +266,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
   return (
     <>
       <Head>
-        <title>{pageTitle}</title>
+        <title>{pageTitle} | Page | HASH</title>
 
         {/* 
           Rendering favicon.png again even if it's already defined on _document.page.tsx,
@@ -328,7 +332,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
             They will most likely be added back when new designs 
             for them have been added
           */}
-              {/* <div className={tw`mr-4`}>
+              {/* <div style={{"marginRight":"1rem"}}>
             <label>Version</label>
             <div>
               <VersionDropdown
@@ -358,7 +362,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
 
         <CollabPositionProvider value={[]}>
           <PageBlock
-            accountId={accountId}
+            accountId={routeAccountId}
             contents={contents}
             blocks={blocksMap}
             pageComments={pageComments}

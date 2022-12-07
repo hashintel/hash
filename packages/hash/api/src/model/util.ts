@@ -9,15 +9,12 @@ import {
   OneOf,
   Array,
   VersionedUri,
-} from "@blockprotocol/type-system-web";
-import {
-  nilUuid,
-  PrimitiveDataTypeKey,
-  types,
-} from "@hashintel/hash-shared/types";
+} from "@blockprotocol/type-system";
+import { PrimitiveDataTypeKey, types } from "@hashintel/hash-shared/types";
 import { AxiosError } from "axios";
 import { EntityTypeModel, PropertyTypeModel } from ".";
 import { GraphApi } from "../graph";
+import { systemUserAccountId } from "../graph/system-user";
 import { logger } from "../logger";
 
 /** @todo: enable admins to expand upon restricted shortnames block list */
@@ -73,46 +70,6 @@ export const RESTRICTED_SHORTNAMES = [
   "v2",
 ];
 
-/**
- * @todo: create system types in an account that's dedicated to
- * the HASH instance. For now we're just chucking them in the root account.
- */
-export const systemAccountId = nilUuid;
-
-/**
- * @todo use `extractBaseUri` from the type system package when they're unified,
- *  and we're able to use functional code in node and web environments:
- *  https://app.asana.com/0/1200211978612931/1202923896339225/f
- */
-export const splitVersionedUri = (
-  versionedUri: string,
-): { baseUri: string; version: number } => {
-  const split = versionedUri.split("v/");
-  if (split == null) {
-    throw new Error(
-      `couldn't extract base URI, malformed Versioned URI: ${versionedUri}`,
-    );
-  }
-
-  const version = Number(split.pop());
-  if (Number.isNaN(version)) {
-    throw new Error("version is not a valid number");
-  }
-
-  const baseUri = split.join("v/");
-
-  return { baseUri, version };
-};
-
-/**
- * @todo use `extractBaseUri from the type system package when they're unified,
- *  and we're able to use functional code in node and web environments:
- *  https://app.asana.com/0/1200211978612931/1202923896339225/f
- */
-export const extractBaseUri = (versionedUri: string): string => {
-  return splitVersionedUri(versionedUri).baseUri;
-};
-
 export type PropertyTypeCreatorParams = {
   propertyTypeId: VersionedUri;
   title: string;
@@ -122,7 +79,6 @@ export type PropertyTypeCreatorParams = {
     propertyTypeObjectProperties?: { [_ in string]: { $ref: VersionedUri } };
     array?: boolean;
   }[];
-  actorId: string;
 };
 
 /**
@@ -193,7 +149,7 @@ export const propertyTypeInitializer = (
   return async (graphApi?: GraphApi) => {
     if (propertyTypeModel) {
       return propertyTypeModel;
-    } else if (graphApi == null) {
+    } else if (!graphApi) {
       throw new Error(
         `property type ${params.title} was uninitialized, and function was called without passing a graphApi object`,
       );
@@ -207,9 +163,9 @@ export const propertyTypeInitializer = (
         if (error.response?.status === 404) {
           // The type was missing, try and create it
           return await PropertyTypeModel.create(graphApi, {
-            ownedById: systemAccountId,
+            ownedById: systemUserAccountId,
             schema: propertyType,
-            actorId: params.actorId,
+            actorId: systemUserAccountId,
           }).catch((createError: AxiosError) => {
             logger.warn(`Failed to create property type: ${params.title}`);
             throw createError;
@@ -248,7 +204,6 @@ export type EntityTypeCreatorParams = {
     maxItems?: number;
     ordered?: boolean;
   }[];
-  actorId: string;
 };
 
 /**
@@ -366,7 +321,7 @@ export const entityTypeInitializer = (
   return async (graphApi?: GraphApi) => {
     if (entityTypeModel) {
       return entityTypeModel;
-    } else if (graphApi == null) {
+    } else if (!graphApi) {
       throw new Error(
         `entity type ${params.title} was uninitialized, and function was called without passing a graphApi object`,
       );
@@ -383,9 +338,9 @@ export const entityTypeInitializer = (
         if (error.response?.status === 404) {
           // The type was missing, try and create it
           return await EntityTypeModel.create(graphApi, {
-            ownedById: systemAccountId,
+            ownedById: systemUserAccountId,
             schema: entityType,
-            actorId: params.actorId,
+            actorId: systemUserAccountId,
           }).catch((createError: AxiosError) => {
             logger.warn(`Failed to create entity type: ${params.title}`);
             throw createError;

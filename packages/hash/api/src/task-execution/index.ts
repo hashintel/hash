@@ -1,6 +1,6 @@
 import { DataSource } from "apollo-datasource";
 import fetch from "node-fetch";
-import { EntityType } from "@blockprotocol/type-system-web";
+import { EntityType } from "@blockprotocol/type-system";
 import { EntityTypeModel, UserModel } from "../model";
 import { GraphApi } from "../graph";
 

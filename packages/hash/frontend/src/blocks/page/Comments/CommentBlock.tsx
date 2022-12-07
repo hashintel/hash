@@ -27,7 +27,7 @@ import {
 import { usePopupState } from "material-ui-popup-state/hooks";
 import { bindTrigger } from "material-ui-popup-state";
 import { types } from "@hashintel/hash-shared/types";
-import { extractBaseUri } from "@blockprotocol/type-system-web";
+import { extractBaseUri } from "@blockprotocol/type-system";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
 import { isEqual } from "lodash";
 import { faCheckCircle } from "@fortawesome/free-regular-svg-icons";
@@ -87,7 +87,9 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
   const {
     metadata: {
       editionId: { baseId: commentEntityId },
-      provenance: { createdById: commentCreatedById },
+      // TODO: The provenance fields shouldn't be used for this
+      //   see https://app.asana.com/0/1201095311341924/1203466351235289/f
+      provenance: { updatedById: commentCreatedById },
     },
     hasText,
     author,

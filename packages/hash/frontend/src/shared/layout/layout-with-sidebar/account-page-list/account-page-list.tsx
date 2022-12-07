@@ -182,7 +182,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     setOverId(over?.id ?? null);
   };
 
-  const handleDragEnd = async ({ active, over }: DragEndEvent) => {
+  const handleDragEnd = ({ active, over }: DragEndEvent) => {
     resetState();
 
     if (projected && over) {
@@ -264,7 +264,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
             key={entityId}
             title={title}
             pageEntityId={entityId}
-            url={`/${ownedById}/${entityUuid}`}
+            pagePath={`/${ownedById}/${entityUuid}`}
             depth={entityId === activeId && projected ? projected.depth : depth}
             onCollapse={expandable ? () => handleToggle(entityId) : undefined}
             selected={currentPageEntityId === entityId}

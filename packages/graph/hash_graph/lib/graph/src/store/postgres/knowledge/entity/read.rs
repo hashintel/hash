@@ -12,9 +12,9 @@ use crate::{
         account::AccountId,
         knowledge::{EntityEditionId, EntityId},
     },
-    knowledge::{Entity, EntityProperties, EntityQueryPath, EntityUuid, LinkEntityMetadata},
+    knowledge::{Entity, EntityProperties, EntityQueryPath, EntityUuid, LinkData},
     ontology::EntityTypeQueryPath,
-    provenance::{CreatedById, OwnedById, ProvenanceMetadata, UpdatedById},
+    provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
         crud,
         postgres::query::{Distinctness, SelectCompiler},
@@ -25,12 +25,10 @@ use crate::{
 
 #[async_trait]
 impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
-    type Query<'q> = Filter<'q, Entity>;
-
     #[expect(clippy::too_many_lines)]
     async fn read<'f: 'q, 'q>(
         &self,
-        filter: &'f Self::Query<'q>,
+        filter: &'f Filter<'q, Entity>,
     ) -> Result<Vec<Entity>, QueryError> {
         // We can't define these inline otherwise we'll drop while borrowed
         let left_entity_uuid_path = EntityQueryPath::LeftEntity(Box::new(EntityQueryPath::Uuid));
@@ -65,10 +63,11 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
         let right_entity_uuid_index = compiler.add_selection_path(&right_entity_uuid_path);
         let right_entity_owned_by_id_index =
             compiler.add_selection_path(&right_owned_by_id_query_path);
-        let left_order_index = compiler.add_selection_path(&EntityQueryPath::LeftOrder);
-        let right_order_index = compiler.add_selection_path(&EntityQueryPath::RightOrder);
+        let left_to_right_order_index =
+            compiler.add_selection_path(&EntityQueryPath::LeftToRightOrder);
+        let right_to_left_order_index =
+            compiler.add_selection_path(&EntityQueryPath::RightToLeftOrder);
 
-        let created_by_id_index = compiler.add_selection_path(&EntityQueryPath::CreatedById);
         let updated_by_id_index = compiler.add_selection_path(&EntityQueryPath::UpdatedById);
 
         let archived_index = compiler.add_selection_path(&EntityQueryPath::Archived);
@@ -91,7 +90,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                     .into_report()
                     .change_context(QueryError)?;
 
-                let link_metadata = {
+                let link_data = {
                     let left_owned_by_id: Option<AccountId> =
                         row.get(left_entity_owned_by_id_index);
                     let left_entity_uuid: Option<Uuid> = row.get(left_entity_uuid_index);
@@ -109,7 +108,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                             Some(left_entity_uuid),
                             Some(right_owned_by_id),
                             Some(right_entity_uuid),
-                        ) => Some(LinkEntityMetadata::new(
+                        ) => Some(LinkData::new(
                             EntityId::new(
                                 OwnedById::new(left_owned_by_id),
                                 EntityUuid::new(left_entity_uuid),
@@ -118,8 +117,8 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                                 OwnedById::new(right_owned_by_id),
                                 EntityUuid::new(right_entity_uuid),
                             ),
-                            row.get(left_order_index),
-                            row.get(right_order_index),
+                            row.get(left_to_right_order_index),
+                            row.get(right_to_left_order_index),
                         )),
                         (None, None, None, None) => None,
                         _ => unreachable!(
@@ -131,18 +130,17 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
 
                 let owned_by_id = OwnedById::new(row.get(owned_by_id_index));
                 let entity_uuid = EntityUuid::new(row.get(entity_uuid_index));
-                let created_by_id = CreatedById::new(row.get(created_by_id_index));
                 let updated_by_id = UpdatedById::new(row.get(updated_by_id_index));
 
                 Ok(Entity::new(
                     properties,
+                    link_data,
                     EntityEditionId::new(
                         EntityId::new(owned_by_id, entity_uuid),
                         row.get(version_index),
                     ),
                     entity_type_uri,
-                    ProvenanceMetadata::new(created_by_id, updated_by_id),
-                    link_metadata,
+                    ProvenanceMetadata::new(updated_by_id),
                     // TODO: only the historic table would have an `archived` field.
                     //   Consider what we should do about that.
                     row.get(archived_index),

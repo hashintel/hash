@@ -6,7 +6,7 @@ export const entityTypedef = gql`
   scalar Entity
   scalar PropertyObject
   scalar EntityMetadata
-  scalar LinkEntityMetadata
+  scalar LinkData
 
   input LinkedEntityDefinition {
     destinationAccountId: ID!
@@ -103,7 +103,7 @@ export const entityTypedef = gql`
       """
       The link metadata of the entity (required when creating a link entity).
       """
-      linkMetadata: LinkEntityMetadata
+      linkData: LinkData
     ): Entity!
 
     """
@@ -119,13 +119,13 @@ export const entityTypedef = gql`
       """
       updatedProperties: PropertyObject!
       """
-      The updated left order of the link entity (if updating a link entity).
+      The updated left to right order of the link entity (if updating a link entity).
       """
-      leftOrder: Int
+      leftToRightOrder: Int
       """
-      The updated right order of the link entity (if updating a link entity).
+      The updated right to left order of the link entity (if updating a link entity).
       """
-      rightOrder: Int
+      rightToLeftOrder: Int
     ): Entity!
 
     """

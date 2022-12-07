@@ -1,4 +1,4 @@
-import { extractBaseUri } from "@blockprotocol/type-system-web";
+import { extractBaseUri } from "@blockprotocol/type-system";
 import { types } from "@hashintel/hash-shared/types";
 import {
   Subgraph,
@@ -87,12 +87,12 @@ export const constructOrg = (params: {
   // we already encountered it and avoid infinite recursion
   resolvedOrgs[entityEditionIdToString(org.entityEditionId)] = org;
 
-  org.members = orgMemberships.map(({ metadata, properties }) => {
+  org.members = orgMemberships.map(({ properties, linkData, metadata }) => {
     const responsibility: string = properties[
       extractBaseUri(types.propertyType.responsibility.propertyTypeId)
     ] as string;
 
-    if (!metadata.linkMetadata?.leftEntityId) {
+    if (!linkData?.leftEntityId) {
       throw new Error("Expected org membership to contain a left entity");
     }
     const userEntity = getLeftEntityForLinkEntityAtMoment(

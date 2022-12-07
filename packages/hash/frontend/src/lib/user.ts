@@ -1,4 +1,4 @@
-import { extractBaseUri } from "@blockprotocol/type-system-web";
+import { extractBaseUri } from "@blockprotocol/type-system";
 import { types } from "@hashintel/hash-shared/types";
 import {
   Subgraph,
@@ -89,12 +89,12 @@ export const constructUser = (params: {
   // we already encountered it and avoid infinite recursion
   resolvedUsers[entityEditionIdToString(user.entityEditionId)] = user;
 
-  user.memberOf = orgMemberships.map(({ metadata, properties }) => {
+  user.memberOf = orgMemberships.map(({ properties, linkData, metadata }) => {
     const responsibility: string = properties[
       extractBaseUri(types.propertyType.responsibility.propertyTypeId)
     ] as string;
 
-    if (!metadata.linkMetadata?.rightEntityId) {
+    if (!linkData?.rightEntityId) {
       throw new Error("Expected org membership to contain a right entity");
     }
     const orgEntity = getRightEntityForLinkEntityAtMoment(
@@ -140,9 +140,10 @@ export const constructAuthenticatedUser = (params: {
 
   const { metadata, properties } =
     getEntityByEditionId(subgraph, userEntityEditionId) ?? {};
+
   if (!properties || !metadata) {
     throw new Error(
-      `Could not find entity edition with ID ${userEntityEditionId} in subgraph`,
+      `Could not find entity with ID ${userEntityEditionId.baseId} in subgraph`,
     );
   }
 

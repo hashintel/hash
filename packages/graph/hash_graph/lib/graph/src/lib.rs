@@ -55,7 +55,6 @@
               usage"
 )]
 #![expect(
-    clippy::cast_sign_loss,
     clippy::cast_possible_truncation,
     reason = "Postgres doesn't support unsigned values, so we cast from i64 to u32. We don't use \
               the negative part, though"

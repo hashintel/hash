@@ -19,9 +19,9 @@ import {
   waitOnResource,
 } from "@hashintel/hash-backend-utils/environment";
 
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import setupAuth from "./auth";
 import { RedisCache } from "./cache";
-import { ensureSystemTypesExist } from "./graph/system-types";
 // import { createCollabApp } from "./collab/collabApp";
 import {
   AwsSesEmailTransporter,
@@ -43,13 +43,15 @@ import { setupStorageProviders } from "./storage/storage-provider-lookup";
 import { getAwsRegion } from "./lib/aws-config";
 import { setupTelemetry } from "./telemetry/snowplow-setup";
 import { connectToTaskExecutor } from "./task-execution";
-import { createGraphClient } from "./graph";
+import { createGraphClient, ensureSystemGraphIsInitialized } from "./graph";
 import { seedOrgsAndUsers } from "./seed-data";
-import { ensureSystemEntitiesExists } from "./graph/system-entities";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
 const main = async () => {
+  await TypeSystemInitializer.initialize();
+  logger.info("Type System initialized");
+
   if (process.env.HASH_TELEMETRY_ENABLED === "true") {
     logger.info("Starting [Snowplow] telemetry");
 
@@ -80,6 +82,7 @@ const main = async () => {
         port: statsdPort,
       });
       shutdown.addCleanup("StatsD", async () => {
+        // eslint-disable-next-line @typescript-eslint/unbound-method
         await promisify((statsd as StatsD).close).bind(statsd)();
       });
     }
@@ -127,9 +130,7 @@ const main = async () => {
     port: graphApiPort,
   });
 
-  await ensureSystemTypesExist({ graphApi, logger });
-
-  await ensureSystemEntitiesExists({ graphApi, logger });
+  await ensureSystemGraphIsInitialized({ graphApi, logger });
 
   // This will seed users, an org and pages.
   // Configurable through environment variables.
