@@ -2,6 +2,7 @@ import { FormEvent, FunctionComponent, useRef, useState } from "react";
 import LanguageIcon from "@mui/icons-material/Language";
 import DeleteIcon from "@mui/icons-material/Delete";
 import LinkIcon from "@mui/icons-material/LinkOutlined";
+import { Box } from "@mui/material";
 import { isValidLink } from "./util";
 
 type LinkModalProps = {
@@ -80,8 +81,11 @@ export const LinkModal: FunctionComponent<LinkModalProps> = ({
 
       <div style={{ color: "#374151" }}>
         {!savedLinkMarkHref && isValidLink(newLinkHref) && (
-          <button
-            style={{
+          <Box
+            component="button"
+            onClick={() => updateLink(newLinkHref)}
+            type="button"
+            sx={{
               alignItems: "center",
               backgroundColor: "#E5E7EB",
               color: "#374151",
@@ -96,14 +100,15 @@ export const LinkModal: FunctionComponent<LinkModalProps> = ({
               paddingRight: "1rem",
               paddingTop: "0.25rem",
               width: "100%",
-              // :hover { background-color: #E5E7EB; }
+
+              "&:hover": {
+                backgroundColor: "#E5E7EB",
+              },
             }}
-            onClick={() => updateLink(newLinkHref)}
-            type="button"
           >
             <LinkIcon style={{ marginRight: "0.25rem" }} />
             <span>Add Link</span>
-          </button>
+          </Box>
         )}
         {savedLinkMarkHref && (
           <>
@@ -125,8 +130,9 @@ export const LinkModal: FunctionComponent<LinkModalProps> = ({
               </p>
               {/* @todo discuss if this is better off as a link tag since that allows user to do extra
               stuff like "open in new window", "copy link" */}
-              <button
-                style={{
+              <Box
+                component="button"
+                sx={{
                   display: "flex",
                   paddingTop: "0.375rem",
                   paddingBottom: "0.375rem",
@@ -137,7 +143,9 @@ export const LinkModal: FunctionComponent<LinkModalProps> = ({
                   width: "100%",
                   borderStyle: "none",
                   cursor: "pointer",
-                  // :hover { background-color: #E5E7EB; }
+                  "&:hover": {
+                    backgroundColor: "#E5E7EB",
+                  },
                 }}
                 onClick={openUrl}
                 type="button"
@@ -171,7 +179,7 @@ export const LinkModal: FunctionComponent<LinkModalProps> = ({
                     Web page
                   </span>
                 </div>
-              </button>
+              </Box>
             </div>
             <div
               style={{
@@ -189,8 +197,9 @@ export const LinkModal: FunctionComponent<LinkModalProps> = ({
             >
               {isValidLink(newLinkHref) && (
                 <li style={{ listStyle: "none" }}>
-                  <button
-                    style={{
+                  <Box
+                    component="button"
+                    sx={{
                       alignItems: "center",
                       backgroundColor: "transparent",
                       borderStyle: "none",
@@ -206,7 +215,9 @@ export const LinkModal: FunctionComponent<LinkModalProps> = ({
                       paddingRight: "1rem",
                       paddingTop: "0.25rem",
                       width: "100%",
-                      // :hover { background-color: #E5E7EB; }
+                      "&:hover": {
+                        backgroundColor: "#E5E7EB",
+                      },
                     }}
                     onClick={() => updateLink(newLinkHref)}
                     type="button"
@@ -217,12 +228,13 @@ export const LinkModal: FunctionComponent<LinkModalProps> = ({
                       }}
                     />
                     <span>Update Link</span>
-                  </button>
+                  </Box>
                 </li>
               )}
               <li style={{ listStyle: "none" }}>
-                <button
-                  style={{
+                <Box
+                  component="button"
+                  sx={{
                     alignItems: "center",
                     backgroundColor: "transparent",
                     borderStyle: "none",
@@ -234,7 +246,9 @@ export const LinkModal: FunctionComponent<LinkModalProps> = ({
                     paddingRight: "1rem",
                     paddingTop: "0.25rem",
                     width: "100%",
-                    // :hover { background-color: #E5E7EB; }
+                    "&:hover": {
+                      backgroundColor: "#E5E7EB",
+                    },
                   }}
                   onClick={removeLink}
                   type="button"
@@ -246,7 +260,7 @@ export const LinkModal: FunctionComponent<LinkModalProps> = ({
                     }}
                   />
                   <span>Remove link</span>
-                </button>
+                </Box>
               </li>
             </ul>
           </>
