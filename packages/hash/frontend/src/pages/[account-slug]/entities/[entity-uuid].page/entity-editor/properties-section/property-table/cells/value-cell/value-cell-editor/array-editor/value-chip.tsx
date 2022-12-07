@@ -1,13 +1,17 @@
+import { faAsterisk, IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import { Chip, FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { Tooltip } from "@mui/material";
-import { faText } from "../../../../../../../../../../../shared/icons/pro/fa-text";
 
 export const ValueChip = ({
   value,
   selected,
+  icon = faAsterisk,
+  tooltip = "",
 }: {
   value: unknown;
   selected: boolean;
+  icon?: Pick<IconDefinition, "icon">;
+  tooltip?: string;
 }) => {
   return (
     <Chip
@@ -22,9 +26,9 @@ export const ValueChip = ({
         },
       ]}
       icon={
-        <Tooltip title="Text" placement="top">
+        <Tooltip title={tooltip} placement="top">
           <FontAwesomeIcon
-            icon={{ icon: faText }}
+            icon={icon}
             sx={{
               /**
                * used zIndex:1, otherwise label of the chip is rendered over icon with transparent background,

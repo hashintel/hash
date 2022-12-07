@@ -152,6 +152,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
 
       {editingRow !== NEW_ROW_KEY ? (
         <AddAnotherButton
+          title="Add Another Value"
           onClick={() => {
             setEditingRow(NEW_ROW_KEY);
             setSelectedRow("");

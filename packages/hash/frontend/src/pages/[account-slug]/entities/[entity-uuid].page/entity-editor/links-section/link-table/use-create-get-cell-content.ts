@@ -40,31 +40,13 @@ export const useCreateGetCellContent = () => {
               },
             };
           case "linkedWith":
-            if (linkRow.maxItems > 1) {
-              let secondaryText = "No entities";
-              const count = linkRow.linkAndTargetEntities.length;
-
-              if (count) {
-                secondaryText = `${count} ${count > 1 ? "entities" : "entity"}`;
-              }
-
-              return {
-                kind: GridCellKind.Custom,
-                allowOverlay: false,
-                copyData: "",
-                data: {
-                  kind: "summary-chip-cell",
-                  secondaryText,
-                },
-              };
-            }
-
             return {
               kind: GridCellKind.Custom,
               readonly: true,
               allowOverlay: true,
               /** @todo add copy data */
               copyData: "",
+              cursor: "pointer",
               data: {
                 kind: "linked-with-cell",
                 linkRow,

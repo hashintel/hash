@@ -9,12 +9,12 @@ import {
   getCellHorizontalPadding,
   getYCenter,
 } from "../../../../../../../../components/grid/utils";
-import { drawTextWithIcon } from "../../../../../../../../components/grid/utils/draw-text-with-icon";
 import { drawCellFadeOutGradient } from "../../../../../../../../components/grid/utils/draw-cell-fade-out-gradient";
 import { LinkRow } from "../types";
 import { LinkedWithCellEditor } from "./linked-with-cell/linked-with-cell-editor";
 import { generateEntityLabel } from "../../../../../../../../lib/entities";
 import { InteractableManager } from "../../../../../../../../components/grid/utils/interactable-manager";
+import { drawChipWithIcon } from "../../../../../../../../components/grid/utils/draw-chip-with-icon";
 
 export interface LinkedWithCellProps {
   readonly kind: "linked-with-cell";
@@ -30,7 +30,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
     (cell.data as any).kind === "linked-with-cell",
   draw: (args, cell) => {
     const { rect, ctx, theme, spriteManager, hoverAmount, highlighted } = args;
-    const { linkAndTargetEntities, entitySubgraph, deleteLink } =
+    const { linkAndTargetEntities, entitySubgraph, deleteLink, maxItems } =
       cell.data.linkRow;
 
     ctx.fillStyle = theme.textHeader;
@@ -40,30 +40,57 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
     const cellPadding = getCellHorizontalPadding();
     const left = rect.x + cellPadding;
 
-    const linkAndTargetEntity = linkAndTargetEntities[0];
-
-    if (!linkAndTargetEntity) {
+    // if no linked entity, draw empty state
+    if (!linkAndTargetEntities.length) {
       // draw empty value
       ctx.fillStyle = customColors.gray[50];
       ctx.font = "italic 14px Inter";
-      ctx.fillText("No entity", left, yCenter);
+
+      const emptyText = maxItems === 1 ? "No entity" : "No entities";
+      ctx.fillText(emptyText, left, yCenter);
 
       return drawCellFadeOutGradient(args);
     }
 
-    drawTextWithIcon({
-      args,
-      icon: "bpAsterisk",
-      text: generateEntityLabel(
-        entitySubgraph,
-        linkAndTargetEntity.rightEntity,
-      ),
-      left,
-      iconSize: 12,
-      gap: 5,
-    });
+    let accumulatedLeft = rect.x + cellPadding;
+    const chipGap = 8;
 
-    // draw delete button
+    const sortedLinkedEntityLabels = [...linkAndTargetEntities]
+      .sort((a, b) =>
+        a.linkEntity.metadata.editionId.version.localeCompare(
+          b.linkEntity.metadata.editionId.version,
+        ),
+      )
+      .map(({ rightEntity }) =>
+        generateEntityLabel(entitySubgraph, rightEntity),
+      );
+
+    for (const label of sortedLinkedEntityLabels) {
+      const chipWidth = drawChipWithIcon(args, label, accumulatedLeft);
+      accumulatedLeft += chipWidth + chipGap;
+    }
+
+    // return early if multiple links are allowed, also check `firstLinkEntity` to satisfy typescript
+    if (maxItems > 1) {
+      const overflowed = accumulatedLeft > rect.x + rect.width;
+
+      if (!overflowed) {
+        return drawCellFadeOutGradient(args);
+      }
+
+      const text = `SEE ALL (${sortedLinkedEntityLabels.length})`;
+      ctx.font = "700 14px Inter";
+      const textWidth = ctx.measureText(text).width;
+
+      drawCellFadeOutGradient(args, textWidth + 10, 0.8);
+
+      ctx.fillStyle = customColors.blue[70];
+      ctx.fillText(text, rect.x + rect.width - textWidth - 10, yCenter);
+
+      return;
+    }
+
+    // draw delete button if maxItems === 1
     const iconSize = 16;
     const buttonRight = rect.x + rect.width - cellPadding;
 
@@ -79,7 +106,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
       },
       onClick: () => {
         void deleteLink(
-          linkAndTargetEntity.linkEntity.metadata.editionId.baseId,
+          linkAndTargetEntities[0]?.linkEntity.metadata.editionId.baseId!,
         );
       },
     });
