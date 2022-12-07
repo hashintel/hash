@@ -1,5 +1,8 @@
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
-import { createGraphClient } from "@hashintel/hash-api/src/graph";
+import {
+  createGraphClient,
+  ensureSystemGraphIsInitialized,
+} from "@hashintel/hash-api/src/graph";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
 import {
@@ -14,8 +17,6 @@ import {
   linkEntityTypeUri,
 } from "@hashintel/hash-api/src/model/util";
 import { generateTypeId } from "@hashintel/hash-shared/types";
-import { ensureSystemEntitiesExists } from "@hashintel/hash-api/src/graph/system-entities";
-import { ensureSystemTypesExist } from "@hashintel/hash-api/src/graph/system-types";
 import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { createTestUser } from "../../util";
 
@@ -46,8 +47,7 @@ describe("Entity CRU", () => {
 
   beforeAll(async () => {
     await TypeSystemInitializer.initialize();
-    await ensureSystemTypesExist({ graphApi, logger });
-    await ensureSystemEntitiesExists({ graphApi, logger });
+    await ensureSystemGraphIsInitialized({ graphApi, logger });
 
     testUser = await createTestUser(graphApi, "entitytest", logger);
     testUser2 = await createTestUser(graphApi, "entitytest", logger);
@@ -139,7 +139,6 @@ describe("Entity CRU", () => {
             destinationEntityTypeModels: ["SELF_REFERENCE"],
           },
         ],
-        actorId: testUser.getEntityUuid(),
       }),
       actorId: testUser.getEntityUuid(),
     });

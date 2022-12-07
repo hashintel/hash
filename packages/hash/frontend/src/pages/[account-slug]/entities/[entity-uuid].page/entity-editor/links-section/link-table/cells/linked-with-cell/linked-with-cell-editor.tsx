@@ -1,18 +1,23 @@
 import { ProvideEditorComponent } from "@glideapps/glide-data-grid";
 import { Entity } from "@hashintel/hash-subgraph";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { useContext } from "react";
 import { useBlockProtocolArchiveEntity } from "../../../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolArchiveEntity";
 import { useBlockProtocolCreateEntity } from "../../../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolCreateEntity";
 import { useEntityEditor } from "../../../../entity-editor-context";
 import { LinkedWithCell } from "../linked-with-cell";
 import { EntitySelector } from "./entity-selector";
 import { LinkArrayEditor } from "./link-array-editor";
+import { WorkspaceContext } from "../../../../../../../../shared/workspace-context";
 
 export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
   props,
 ) => {
+  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
   const { entitySubgraph, refetch } = useEntityEditor();
-  const { createEntity } = useBlockProtocolCreateEntity();
+  const { createEntity } = useBlockProtocolCreateEntity(
+    activeWorkspaceAccountId ?? null,
+  );
   const { archiveEntity } = useBlockProtocolArchiveEntity();
 
   const { value: cell, onFinishedEditing } = props;
