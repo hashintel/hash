@@ -158,12 +158,16 @@ export const SignupIntro: FunctionComponent<SignupIntroProps> = ({
           )}
         </Box>
       </form>
-      <p
-        style={{
+      <Box
+        component="p"
+        sx={{
           fontSize: "0.875rem",
           lineHeight: "1.25rem",
           textAlign: "center",
-          whiteSpace: "nowrap", // @media (min-width: 768px)
+          
+          "@media (min-width: 768px)": {
+            whiteSpace: "nowrap",
+          }
         }}
       >
         Alternatively if you already have a HASH account,{" "}
@@ -175,18 +179,22 @@ export const SignupIntro: FunctionComponent<SignupIntroProps> = ({
           }}
           noLinkStyle
         >
-          <button
+          <Box
+            component="button"
             type="button"
-            style={{
+            sx={{
               backgroundColor: "transparent",
               borderStyle: "none",
               cursor: "pointer",
               fontWeight: "700",
-              // (focus) outline: none
+
+              "&:focus": {
+                outline: "none",
+              },
             }}
           >
             Click here to log in
-          </button>
+          </Box>
         </Link>
       </p>
     </div>
