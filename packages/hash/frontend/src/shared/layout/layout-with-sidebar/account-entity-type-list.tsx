@@ -25,8 +25,6 @@ import {
 } from "react";
 import { TransitionGroup } from "react-transition-group";
 import { useBlockProtocolAggregateEntityTypes } from "../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolAggregateEntityTypes";
-import { MinimalOrg } from "../../../lib/org";
-import { User } from "../../../lib/user";
 import { EntityTypeItem } from "./account-entity-type-list/entity-type-item";
 import {
   SortActionsDropdown,
@@ -123,12 +121,12 @@ const SearchInput: FunctionComponent<SearchInputProps> = ({
 );
 
 type AccountEntityTypeListProps = {
-  activeWorkspace: User | MinimalOrg;
+  activeWorkspaceAccountId: string;
 };
 
 export const AccountEntityTypeList: FunctionComponent<
   AccountEntityTypeListProps
-> = ({ activeWorkspace }) => {
+> = ({ activeWorkspaceAccountId }) => {
   const [sortType, setSortType] = useState<SortType>("asc");
   const [searchVisible, setSearchVisible] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -162,18 +160,13 @@ export const AccountEntityTypeList: FunctionComponent<
 
   const accountEntityTypes = useMemo(() => {
     if (allEntityTypes) {
-      const ownedById =
-        activeWorkspace.kind === "user"
-          ? activeWorkspace.userAccountId
-          : activeWorkspace.orgAccountId;
-
       return allEntityTypes.filter(
-        (root) => root.metadata.ownedById === ownedById,
+        (root) => root.metadata.ownedById === activeWorkspaceAccountId,
       );
     }
 
     return null;
-  }, [allEntityTypes, activeWorkspace]);
+  }, [allEntityTypes, activeWorkspaceAccountId]);
 
   // todo: handle search server side
   const filteredEntityTypes = useMemo(() => {

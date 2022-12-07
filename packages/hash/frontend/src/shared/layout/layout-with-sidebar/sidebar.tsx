@@ -20,8 +20,7 @@ export const SIDEBAR_WIDTH = 260;
 export const PageSidebar: FunctionComponent = () => {
   const router = useRouter();
   const { sidebarOpen, closeSidebar } = useSidebarContext();
-  const { activeWorkspaceAccountId, activeWorkspace } =
-    useContext(WorkspaceContext);
+  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
   const { pageEntityId } = useRoutePageInfo({ allowUndefined: true }) ?? {};
 
   return (
@@ -99,9 +98,9 @@ export const PageSidebar: FunctionComponent = () => {
               accountId={activeWorkspaceAccountId}
             />
             {/* TYPES */}
-            {activeWorkspace ? (
-              <AccountEntityTypeList activeWorkspace={activeWorkspace} />
-            ) : null}
+            <AccountEntityTypeList
+              activeWorkspaceAccountId={activeWorkspaceAccountId}
+            />
           </>
         ) : null}
       </Box>
