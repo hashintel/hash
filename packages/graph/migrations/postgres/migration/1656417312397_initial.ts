@@ -4,6 +4,8 @@ import { stripNewLines } from "../util";
 export const shorthands: ColumnDefinitions | undefined = undefined;
 
 export const up = (pgm: MigrationBuilder): void => {
+  pgm.createExtension("btree_gist", { ifNotExists: true });
+
   pgm.createTable(
     "accounts",
     {
@@ -375,6 +377,12 @@ export const up = (pgm: MigrationBuilder): void => {
       references: "entity_ids",
       columns: ["owned_by_id", "entity_uuid"],
     },
+  });
+
+  pgm.addConstraint("entity_versions", "entity_versions_overlapping", {
+    exclude:
+      "USING gist (entity_uuid WITH =, decision_time WITH &&, system_time WITH &&)",
+    deferrable: true,
   });
 
   pgm.addConstraint(
