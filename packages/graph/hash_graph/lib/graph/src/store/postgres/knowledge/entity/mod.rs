@@ -397,7 +397,8 @@ impl<C: AsClient> PostgresStore<C> {
 impl<C: AsClient> EntityStore for PostgresStore<C> {
     async fn create_entity(
         &mut self,
-        entity_id: EntityId,
+        owned_by_id: OwnedById,
+        entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp>,
         updated_by_id: UpdatedById,
         archived: bool,
@@ -405,6 +406,11 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         properties: EntityProperties,
         link_data: Option<LinkData>,
     ) -> Result<EntityMetadata, InsertionError> {
+        let entity_id = EntityId::new(
+            owned_by_id,
+            entity_uuid.unwrap_or_else(|| EntityUuid::new(Uuid::new_v4())),
+        );
+        
         let entity_type_version_id = self
             .version_id_by_uri(&entity_type_id)
             .await

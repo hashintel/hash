@@ -175,10 +175,8 @@ async fn create_entity<P: StorePool + Send>(
 
     store
         .create_entity(
-            EntityId::new(
-                owned_by_id,
-                entity_uuid.unwrap_or_else(|| EntityUuid::new(Uuid::new_v4())),
-            ),
+            owned_by_id,
+            entity_uuid,
             None,
             actor_id,
             false,

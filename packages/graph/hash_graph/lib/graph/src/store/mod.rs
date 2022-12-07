@@ -326,7 +326,8 @@ pub trait EntityStore: crud::Read<Entity> {
     /// - if an [`EntityUuid`] was supplied and already exists in the store
     async fn create_entity(
         &mut self,
-        entity_id: EntityId,
+        owned_by_id: OwnedById,
+        entity_uuid: Option<EntityUuid>,
         decision_time: Option<Timestamp>,
         updated_by_id: UpdatedById,
         archived: bool,
