@@ -1,5 +1,4 @@
 import { ReactElement } from "react";
-import { tw } from "twind";
 
 export type MenuState = {
   currentView: "normal" | "search";
@@ -14,5 +13,3 @@ export type MenuItemType = {
   title: string;
   icon: ReactElement;
 };
-
-export const iconStyles = tw`!text-base mr-1`;

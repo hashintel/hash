@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "fix:eslint": "eslint --fix .",
-    "lint:eslint": "eslint ."
+    "lint:eslint": "eslint --report-unused-disable-directives ."
   },
   "dependencies": {
     "@babel/eslint-parser": "7.19.1",

@@ -1,5 +1,4 @@
-import { FunctionComponent } from "react";
-import { tw } from "twind";
+import { CSSProperties, FunctionComponent } from "react";
 import { DropdownIcon } from "../../../shared/icons";
 
 interface MarksTooltipProps {
@@ -34,17 +33,25 @@ export const MarksTooltip: FunctionComponent<MarksTooltipProps> = ({
   focusEditorView,
   openLinkModal,
 }) => {
-  const getMarkBtnClass = (name: string) => {
+  const getMarkBtnStyle = (name: string): CSSProperties => {
     const isActive = activeMarks.find((mark) => mark.name === name);
 
     if (isActive) {
       if (name === "link") {
-        return "text-blue-500";
+        return {
+          color: "#3B82F6",
+        };
       }
 
-      return "bg-blue-500 text-white";
+      return {
+        backgroundColor: "#3B82F6",
+        color: "#ffffff",
+      };
     } else {
-      return "bg-white text-black";
+      return {
+        backgroundColor: "#ffffff",
+        color: "#000000",
+      };
     }
   };
 
@@ -60,20 +67,49 @@ export const MarksTooltip: FunctionComponent<MarksTooltipProps> = ({
 
   return (
     <div
-      className={tw`absolute z-10 -translate-y-full -mt-1 left-1/2 -translate-x-1/2 shadow-lg`}
+      style={{
+        // @todo use shadows from MUI theme https://app.asana.com/0/1203179076056209/1203480105875518/f
+        boxShadow:
+          "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+        left: "50%",
+        marginTop: "-0.25rem",
+        position: "absolute",
+        transform: "translate(-50%, -100%)",
+        zIndex: "10",
+      }}
     >
-      <div className={tw`flex bg-white`}>
+      <div
+        style={{
+          display: "flex",
+          backgroundColor: "#ffffff",
+        }}
+      >
         {marks.map(({ name, text }) => (
           <button
-            className={tw`flex items-center ${getMarkBtnClass(
-              name,
-            )} border-0 cursor-pointer py-1 px-4 border-r-1 last:border-r-0 border-gray-300`}
+            style={{
+              alignItems: "center",
+              borderColor: "#D1D5DB",
+              borderWidth: "0",
+              cursor: "pointer",
+              display: "flex",
+              paddingBottom: "0.25rem",
+              paddingLeft: "1rem",
+              paddingRight: "1rem",
+              paddingTop: "0.25rem",
+              ...getMarkBtnStyle(name),
+            }}
             key={name}
             onClick={() => handleToggleMark(name)}
             type="button"
           >
             {text}
-            {name === "link" && <DropdownIcon className={tw`ml-2`} />}
+            {name === "link" && (
+              <DropdownIcon
+                style={{
+                  marginLeft: "0.5rem",
+                }}
+              />
+            )}
           </button>
         ))}
       </div>

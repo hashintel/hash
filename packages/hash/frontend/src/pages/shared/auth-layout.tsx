@@ -1,5 +1,5 @@
+import { Box } from "@mui/material";
 import { FunctionComponent, ReactNode } from "react";
-import { tw } from "twind";
 
 import bgPattern from "../../assets/images/auth-bg-pattern.png";
 import { HashIcon, LogoIcon } from "../../shared/icons";
@@ -20,38 +20,100 @@ export const AuthLayout: FunctionComponent<AuthLayoutProps> = ({
   if (loading) {
     return (
       <div
-        className={tw`fixed z-10 top-0 left-0 right-0 bottom-0 flex items-center justify-center`}
+        style={{
+          alignItems: "center",
+          bottom: "0",
+          display: "flex",
+          justifyContent: "center",
+          left: "0",
+          position: "fixed",
+          right: "0",
+          top: "0",
+          zIndex: "10",
+        }}
       >
-        <HashIcon className={tw`h-48 w-48 ml-1 animate-spin-slow`} />
+        <HashIcon
+          style={{ marginLeft: "0.25rem", width: "12rem", height: "12rem" }}
+        />
       </div>
     );
   }
 
   return (
-    <div className={tw`fixed inset-0 bg-white`}>
-      <div className={tw`relative z-10 h-screen overflow-y-scroll border-4`}>
+    <div
+      style={{
+        backgroundColor: "#ffffff",
+        bottom: "0",
+        left: "0",
+        position: "fixed",
+        right: "0",
+        top: "0",
+      }}
+    >
+      <div
+        style={{
+          borderWidth: "4px",
+          height: "100vh",
+          overflowY: "scroll",
+          position: "relative",
+          zIndex: "10",
+        }}
+      >
         <div
-          className={tw`py-10 flex justify-center ${
-            showTopLogo ? "" : "invisible"
-          }`}
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            paddingBottom: "2.5rem",
+            paddingTop: "2.5rem",
+            visibility: showTopLogo ? undefined : "hidden",
+          }}
         >
           <LogoIcon />
         </div>
 
-        <div className={tw`pt-24 pb-10 flex justify-center`}>{children}</div>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            paddingBottom: "2.5rem",
+            paddingTop: "6rem",
+          }}
+        >
+          {children}
+        </div>
       </div>
 
-      <div className={tw`absolute right-0 top-0 bottom-0`}>
-        <img alt="" src={bgPattern.src} className={tw`h-screen`} />
+      <div style={{ position: "absolute", top: 0, right: 0, bottom: 0 }}>
+        <img alt="" src={bgPattern.src} style={{ height: "100vh" }} />
       </div>
       {onClose && (
-        <button
+        <Box
+          component="button"
           type="button"
-          className={tw`absolute z-10 top-8 right-8 text-3xl bg(hover:black focus:black hover:opacity-10 focus:opacity-10) focus:outline-none leading-none h-12 w-12 flex items-center justify-center rounded-full`}
+          sx={{
+            alignItems: "center",
+            borderRadius: "9999px",
+            display: "flex",
+            fontSize: "1.875rem",
+            height: "3rem",
+            justifyContent: "center",
+            lineHeight: 1,
+            position: "absolute",
+            right: "2rem",
+            top: "2rem",
+            width: "3rem",
+            zIndex: "10",
+
+            "&:hover, &:focus": {
+              backgroundColor: "black",
+              opacity: 0.1,
+              outline: "none",
+            },
+          }}
           onClick={onClose}
         >
           &times;
-        </button>
+        </Box>
       )}
     </div>
   );
