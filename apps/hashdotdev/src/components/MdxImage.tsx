@@ -1,6 +1,6 @@
 import { Box } from "@mui/system";
-import { ImageProps } from "next/dist/client/image";
-import Image from "next/image";
+import { ImageProps } from "next/dist/client/legacy/image";
+import Image from "next/legacy/image";
 import { HTMLProps, FunctionComponent } from "react";
 import { useBlogPostPhotos } from "./BlogPost";
 
