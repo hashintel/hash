@@ -81,11 +81,11 @@ export const resolvers = {
     embedCode,
     // Ontology
     getAllLatestDataTypes: loggedInAndSignedUp(getAllLatestDataTypes),
-    getDataType: loggedInAndSignedUp(getDataType),
+    getDataType,
     getAllLatestPropertyTypes: loggedInAndSignedUp(getAllLatestPropertyTypes),
-    getPropertyType: loggedInAndSignedUp(getPropertyType),
+    getPropertyType,
     getAllLatestEntityTypes: loggedInAndSignedUp(getAllLatestEntityTypes),
-    getEntityType: loggedInAndSignedUp(getEntityType),
+    getEntityType,
     // Knowledge
     page,
     pages: loggedInAndSignedUp(pages),
