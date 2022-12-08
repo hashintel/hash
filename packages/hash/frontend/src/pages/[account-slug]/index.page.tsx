@@ -1,112 +1,103 @@
-import { Box, Typography, Container } from "@mui/material";
-import { faWarning } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/hash-design-system";
+import { useMemo } from "react";
+import { Typography, Container, Grid, Skeleton, Box } from "@mui/material";
+import { Avatar } from "@hashintel/hash-design-system";
 import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
-import { useAuthenticatedUser } from "../../components/hooks/useAuthenticatedUser";
 import { useOrgs } from "../../components/hooks/useOrgs";
-import { Link } from "../../shared/ui";
+import { useUsers } from "../../components/hooks/useUsers";
 import { useRouteAccountInfo } from "../../shared/routing";
-import { ProfilePage } from "./profile-page";
+
+const menuBarHeight = 60;
 
 const Page: NextPageWithLayout = () => {
-  const { loading, authenticatedUser } = useAuthenticatedUser();
-  const { orgs } = useOrgs();
-
   /**
    * @todo: this will need to be reworked once pages can't rely on the `accountId` being
    * in the URL.
    */
   const { routeAccountSlug: routeAccountIdOrShortname } = useRouteAccountInfo();
 
-  const isRouteAccountSlugShortname = routeAccountIdOrShortname.startsWith("@");
+  const shortname = routeAccountIdOrShortname.slice(1);
 
-  if (isRouteAccountSlugShortname) {
-    const shortname = routeAccountIdOrShortname.slice(1);
-    return <ProfilePage shortname={shortname} />;
-  }
+  /**
+   * @todo: getting an org or user by their shortname should not be happening
+   * client side. This could be addressed by exposing structural querying
+   * to the frontend.
+   *
+   * @see https://app.asana.com/0/1201095311341924/1202863271046362/f
+   */
+  const { users, loading: loadingUsers } = useUsers();
+  const { orgs, loading: loadingOrgs } = useOrgs();
 
-  const routeAccountId = routeAccountIdOrShortname;
-
-  if (loading) {
-    return null;
-  }
-
-  if (!authenticatedUser) {
-    return (
-      <h2>
-        You must be{" "}
-        <Link href="/login" noLinkStyle>
-          <Box
-            component="strong"
-            sx={{
-              paddingBottom: "3px",
-              borderBottom: `3px solid transparent`,
-
-              "&:hover": {
-                borderBottom: ({ palette }) => `3px solid ${palette.blue[70]}`,
-              },
-            }}
-          >
-            logged in
-          </Box>
-        </Link>{" "}
-        to access this workspace.
-      </h2>
+  const profile = useMemo(() => {
+    return [...(users ?? []), ...(orgs ?? [])].find(
+      (userOrOrg) => userOrOrg.shortname === shortname,
     );
-  }
+  }, [shortname, users, orgs]);
 
-  const ownWorkspace = routeAccountId === authenticatedUser.userAccountId;
+  const profileNotFound = !profile && !loadingOrgs && !loadingUsers;
 
-  const thisOrg = ownWorkspace
-    ? undefined
-    : orgs?.find((org) => org.orgAccountId === routeAccountId);
-
-  return (
-    <Container sx={{ pt: 7 }}>
-      {!ownWorkspace && !thisOrg ? (
-        <h2>This workspace does not exist or you do not have access to it.</h2>
-      ) : (
-        <>
-          <Typography mb={3} variant="h2">
-            Welcome to HASH
-          </Typography>
-          <Box maxWidth="75ch">
-            <Typography mb={3}>
-              HASH is an open-source, data-centric, all-in-one workspace built
-              atop the open{" "}
-              <Link href="https://blockprotocol.org">Block Protocol</Link>.
-            </Typography>
-            <Typography mb={3}>
-              <strong>
-                <FontAwesomeIcon
-                  icon={faWarning}
-                  sx={({ palette }) => ({
-                    color: palette.orange[50],
-                    mr: 0.5,
-                  })}
-                />{" "}
-                HASH is not ready for production use.
-              </strong>{" "}
-              It is not secure or optimized and is missing key features. Please
-              visit the{" "}
-              <Link href="https://github.com/hashintel/hash/tree/main/packages/hash">
-                GitHub repository
-              </Link>{" "}
-              for the latest updates, or learn about the long-term{" "}
-              <Link href="https://hash.ai">here</Link>.
-            </Typography>
-            <Typography>
-              This version of HASH is intended to be used as a test-harness for
-              developers building Block Protocol-compliant blocks. Please{" "}
-              <Link href="https://github.com/hashintel/hash/tree/main/packages/hash#integration-with-the-block-protocol">
-                read the documentation to get started
-              </Link>
-              .
-            </Typography>
-          </Box>
-        </>
-      )}
+  return profileNotFound ? (
+    <Container sx={{ paddingTop: 5 }}>
+      <Typography variant="h2">Profile not found</Typography>
     </Container>
+  ) : (
+    <>
+      <Box height={menuBarHeight}>{/* @todo: implement the menu-bar */}</Box>
+      <Box
+        bgcolor={({ palette }) => palette.gray[10]}
+        height={`calc(100% - ${menuBarHeight}px)`}
+      >
+        <Container>
+          <Grid container columnSpacing={5} sx={{ marginTop: 0 }}>
+            <Grid item md={3}>
+              <Box sx={{ position: "relative", top: -15 }}>
+                <Avatar
+                  bgcolor={
+                    profile ? undefined : ({ palette }) => palette.gray[20]
+                  }
+                  title={
+                    profile
+                      ? profile.kind === "user"
+                        ? profile.preferredName
+                        : profile.name
+                      : undefined
+                  }
+                  size={225}
+                />
+              </Box>
+              <Box marginBottom={1}>
+                {profile ? (
+                  <Typography
+                    variant="h1"
+                    sx={{ fontSize: 30, fontWeight: 800 }}
+                  >
+                    {profile.kind === "user"
+                      ? profile.preferredName
+                      : profile.name}
+                  </Typography>
+                ) : (
+                  <Skeleton height={50} width={200} />
+                )}
+              </Box>
+              {profile ? (
+                <Typography
+                  sx={{
+                    /** @todo: add this color to the MUI theme system */
+                    color: "#0775E3",
+                    fontSize: 20,
+                    fontWeight: 600,
+                  }}
+                >
+                  @{profile.shortname}
+                </Typography>
+              ) : (
+                <Skeleton height={30} width={150} />
+              )}
+            </Grid>
+            <Grid item>{/* @todo: implement the profile page bio */}</Grid>
+          </Grid>
+        </Container>
+      </Box>
+    </>
   );
 };
 

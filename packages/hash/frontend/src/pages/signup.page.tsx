@@ -217,7 +217,7 @@ const SignupPage: NextPageWithLayout = () => {
 
   useEffect(() => {
     if (authenticatedUser && authenticatedUser.accountSignupComplete) {
-      void router.push(`/${authenticatedUser.userAccountId}`);
+      void router.push("/");
     }
   }, [authenticatedUser, router]);
 
