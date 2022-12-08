@@ -27,12 +27,22 @@ export const oryKratosClient = new V0alpha2Api(
      * Therefore requests to the ory kratos public endpoint are made on the server in a
      * Next.js API handler.
      */
-    basePath: "/api/ory",
+    basePath:
+      typeof window === "undefined" ? "http://127.0.0.1:4433" : "/api/ory",
     baseOptions: {
       withCredentials: true,
     },
   }),
 );
+
+export const fetchKratosSession = async (cookieString?: string) => {
+  const kratosSession = await oryKratosClient
+    .toSession(undefined, cookieString)
+    .then(({ data }) => data)
+    .catch(() => undefined);
+
+  return kratosSession;
+};
 
 /**
  * A helper type representing the traits defined by the kratos identity schema at `packages/hash/external-services/kratos/identity.schema.json`
