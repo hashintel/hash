@@ -25,7 +25,6 @@
     "@types/node": "18.11.9",
     "@types/set-interval-async": "1.0.0",
     "eslint": "8.28.0",
-    "rimraf": "^3.0.2",
     "ts-node-dev": "2.0.0"
   }
 }
