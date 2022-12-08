@@ -24,7 +24,7 @@ const queryStringFromNode = (node: DocumentNode) => {
 
 const zeroDepth = { outgoing: 0 };
 
-type OntologyType = "data" | "entity" | "property";
+type OntologyType = "data-type" | "entity-type" | "property-type";
 
 export const generateQueryArgs = (
   versionedUri: VersionedUri,
@@ -37,7 +37,7 @@ export const generateQueryArgs = (
     | GetPropertyTypeQueryVariables;
 } => {
   switch (ontologyType) {
-    case "data":
+    case "data-type":
       return {
         query: queryStringFromNode(getDataTypeQuery),
         variables: {
@@ -45,7 +45,7 @@ export const generateQueryArgs = (
           constrainsValuesOn: zeroDepth,
         },
       };
-    case "entity":
+    case "entity-type":
       return {
         query: queryStringFromNode(getEntityTypeQuery),
         variables: {
@@ -56,7 +56,7 @@ export const generateQueryArgs = (
           constrainsValuesOn: zeroDepth,
         },
       };
-    case "property":
+    case "property-type":
       return {
         query: queryStringFromNode(getPropertyTypeQuery),
         variables: {
