@@ -3,7 +3,7 @@ import { Entity } from "@hashintel/hash-subgraph";
 import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { Box } from "@mui/material";
 import produce from "immer";
-import { useContext, useState } from "react";
+import { useContext, useMemo, useState } from "react";
 import { useBlockProtocolArchiveEntity } from "../../../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolArchiveEntity";
 import { useBlockProtocolCreateEntity } from "../../../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolCreateEntity";
 import { generateEntityLabel } from "../../../../../../../../../lib/entities";
@@ -11,6 +11,7 @@ import { WorkspaceContext } from "../../../../../../../../shared/workspace-conte
 import { useEntityEditor } from "../../../../entity-editor-context";
 import { AddAnotherButton } from "../../../../properties-section/property-table/cells/value-cell/value-cell-editor/array-editor/add-another-button";
 import { LinkedWithCell } from "../linked-with-cell";
+import { sortLinkAndTargetEntities } from "../sort-link-and-target-entities";
 import { EntitySelector } from "./entity-selector";
 import { LinkedEntityListRow } from "./linked-entity-list-editor/linked-entity-list-row";
 import { MaxItemsReached } from "./linked-entity-list-editor/max-items-reached";
@@ -35,7 +36,9 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
   } = cell.data.linkRow;
 
   const [addingLink, setAddingLink] = useState(!linkAndTargetEntities.length);
-  const [selectedLinkEntityId, setSelectedLinkEntityId] = useState("");
+  const [selectedLinkEntityId, setSelectedLinkEntityId] = useState<
+    string | null
+  >(null);
 
   const onSelect = async (selectedEntity: Entity) => {
     const alreadyLinked = linkAndTargetEntities.find(
@@ -87,13 +90,19 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
     onFinishedEditing();
   };
 
-  const sortedLinkAndTargetEntities = [...linkAndTargetEntities].sort((a, b) =>
-    a.linkEntity.metadata.editionId.version.localeCompare(
-      b.linkEntity.metadata.editionId.version,
-    ),
+  const sortedLinkAndTargetEntities = sortLinkAndTargetEntities(
+    linkAndTargetEntities,
   );
 
   const canAddMore = linkAndTargetEntities.length < maxItems;
+
+  const linkedEntityIds = useMemo(
+    () =>
+      linkAndTargetEntities.map(
+        ({ rightEntity }) => rightEntity.metadata.editionId.baseId,
+      ),
+    [linkAndTargetEntities],
+  );
 
   return (
     <Box
@@ -105,7 +114,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
         overflow: "hidden",
       })}
     >
-      <Box sx={{ maxHeight: 300, overflowY: "scroll" }}>
+      <Box sx={{ maxHeight: 300, overflowY: "auto" }}>
         {sortedLinkAndTargetEntities.map(({ rightEntity, linkEntity }) => {
           const linkEntityId = linkEntity.metadata.editionId.baseId;
           const selected = selectedLinkEntityId === linkEntityId;
@@ -133,7 +142,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
               }}
               selected={selected}
               onSelect={() =>
-                setSelectedLinkEntityId(selected ? "" : linkEntityId)
+                setSelectedLinkEntityId(selected ? null : linkEntityId)
               }
             />
           );
@@ -146,9 +155,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
             onSelect={onSelect}
             onCancel={onCancel}
             expectedEntityTypes={expectedEntityTypes}
-            entityIdsToFilterOut={linkAndTargetEntities.map(
-              ({ rightEntity }) => rightEntity.metadata.editionId.baseId,
-            )}
+            entityIdsToFilterOut={linkedEntityIds}
           />
         ) : (
           <AddAnotherButton

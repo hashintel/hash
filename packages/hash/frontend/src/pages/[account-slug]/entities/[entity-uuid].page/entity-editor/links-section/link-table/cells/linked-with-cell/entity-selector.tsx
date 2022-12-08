@@ -21,7 +21,7 @@ export const EntitySelector = ({
   onSelect,
   onCancel,
   expectedEntityTypes,
-  entityIdsToFilterOut = [],
+  entityIdsToFilterOut,
 }: EntitySelectorProps) => {
   const { entitySubgraph } = useEntityEditor();
   const { aggregateEntities } = useBlockProtocolAggregateEntities();
@@ -58,10 +58,12 @@ export const EntitySelector = ({
     return [...entities]
       .filter(
         (entity) =>
-          !entityIdsToFilterOut.includes(entity.metadata.editionId.baseId),
+          !entityIdsToFilterOut?.includes(entity.metadata.editionId.baseId),
       )
       .sort((a, b) =>
-        a.metadata.editionId.baseId.localeCompare(b.metadata.editionId.baseId),
+        a.metadata.editionId.version.localeCompare(
+          b.metadata.editionId.version,
+        ),
       );
   }, [entities, entityIdsToFilterOut]);
 

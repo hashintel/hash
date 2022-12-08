@@ -112,7 +112,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
         ref={scrollableContainer}
         sx={{
           maxHeight: 300,
-          overflowY: "scroll",
+          overflowY: "auto",
           overflowX: "hidden",
           borderBottom: "1px solid",
           borderColor: "gray.20",

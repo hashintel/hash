@@ -15,6 +15,7 @@ import { LinkedWithCellEditor } from "./linked-with-cell/linked-with-cell-editor
 import { generateEntityLabel } from "../../../../../../../../lib/entities";
 import { InteractableManager } from "../../../../../../../../components/grid/utils/interactable-manager";
 import { drawChipWithIcon } from "../../../../../../../../components/grid/utils/draw-chip-with-icon";
+import { sortLinkAndTargetEntities } from "./sort-link-and-target-entities";
 
 export interface LinkedWithCellProps {
   readonly kind: "linked-with-cell";
@@ -54,18 +55,13 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
     let accumulatedLeft = rect.x + cellPadding;
     const chipGap = 8;
 
-    const sortedLinkedEntityLabels = [...linkAndTargetEntities]
-      .sort((a, b) =>
-        a.linkEntity.metadata.editionId.version.localeCompare(
-          b.linkEntity.metadata.editionId.version,
-        ),
-      )
-      .map(({ rightEntity }) =>
-        generateEntityLabel(entitySubgraph, rightEntity),
-      );
+    const sortedLinkedEntities = sortLinkAndTargetEntities(
+      linkAndTargetEntities,
+    );
 
     // draw linked entity chips
-    for (const label of sortedLinkedEntityLabels) {
+    for (const { rightEntity } of sortedLinkedEntities) {
+      const label = generateEntityLabel(entitySubgraph, rightEntity);
       const chipWidth = drawChipWithIcon(args, label, accumulatedLeft);
       accumulatedLeft += chipWidth + chipGap;
     }
@@ -78,7 +74,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
         return drawCellFadeOutGradient(args);
       }
 
-      const text = `SEE ALL (${sortedLinkedEntityLabels.length})`;
+      const text = `SEE ALL (${sortedLinkedEntities.length})`;
       ctx.font = "700 14px Inter";
       const textWidth = ctx.measureText(text).width;
 
