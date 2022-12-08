@@ -11,7 +11,6 @@ use crate::{
     identifier::{
         account::AccountId,
         knowledge::{EntityEditionId, EntityId, EntityVersion},
-        Timespan,
     },
     knowledge::{Entity, EntityProperties, EntityQueryPath, EntityUuid, LinkData},
     ontology::EntityTypeQueryPath,
@@ -140,16 +139,7 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                     link_data,
                     EntityEditionId::new(
                         EntityId::new(owned_by_id, entity_uuid),
-                        EntityVersion::new(
-                            Timespan {
-                                from: todo!(),
-                                to: todo!(),
-                            },
-                            Timespan {
-                                from: todo!(),
-                                to: todo!(),
-                            },
-                        ),
+                        EntityVersion::new(todo!(), todo!()),
                     ),
                     entity_type_uri,
                     ProvenanceMetadata::new(updated_by_id),

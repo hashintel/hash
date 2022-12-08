@@ -2,6 +2,7 @@ use std::{
     borrow::Cow,
     fmt,
     fmt::{Debug, Display, Formatter},
+    ops::{Bound, RangeBounds},
     str::FromStr,
 };
 
@@ -14,7 +15,7 @@ use crate::{
     identifier::{
         knowledge::{EntityEditionId, EntityId},
         ontology::OntologyTypeEditionId,
-        Timestamp,
+        TransactionTimestamp,
     },
     knowledge::{Entity, EntityQueryPath, EntityUuid},
     store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath},
@@ -187,7 +188,11 @@ impl<'q> Filter<'q, Entity> {
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::Version)),
                 Some(FilterExpression::Parameter(Parameter::Timestamp(
-                    edition_id.version().decision_time().from,
+                    edition_id
+                        .version()
+                        .transaction_time()
+                        .start_bound()
+                        .cloned(),
                 ))),
             ),
         ])
@@ -220,7 +225,11 @@ impl<'q> Filter<'q, Entity> {
                     Box::new(EntityQueryPath::Version),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Timestamp(
-                    edition_id.version().decision_time().from,
+                    edition_id
+                        .version()
+                        .transaction_time()
+                        .start_bound()
+                        .cloned(),
                 ))),
             ),
         ])
@@ -253,7 +262,11 @@ impl<'q> Filter<'q, Entity> {
                     Box::new(EntityQueryPath::Version),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Timestamp(
-                    edition_id.version().decision_time().from,
+                    edition_id
+                        .version()
+                        .transaction_time()
+                        .start_bound()
+                        .cloned(),
                 ))),
             ),
         ])
@@ -286,7 +299,11 @@ impl<'q> Filter<'q, Entity> {
                     Box::new(EntityQueryPath::Version),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Timestamp(
-                    edition_id.version().decision_time().from,
+                    edition_id
+                        .version()
+                        .transaction_time()
+                        .start_bound()
+                        .cloned(),
                 ))),
             ),
         ])
@@ -319,7 +336,11 @@ impl<'q> Filter<'q, Entity> {
                     Box::new(EntityQueryPath::Version),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Timestamp(
-                    edition_id.version().decision_time().from,
+                    edition_id
+                        .version()
+                        .transaction_time()
+                        .start_bound()
+                        .cloned(),
                 ))),
             ),
         ])
@@ -447,7 +468,7 @@ pub enum Parameter<'q> {
     #[serde(skip)]
     SignedInteger(i64),
     #[serde(skip)]
-    Timestamp(Timestamp),
+    Timestamp(Bound<TransactionTimestamp>),
 }
 
 impl Parameter<'_> {
@@ -458,7 +479,7 @@ impl Parameter<'_> {
             Parameter::Text(text) => Parameter::Text(Cow::Owned(text.to_string())),
             Parameter::Uuid(uuid) => Parameter::Uuid(*uuid),
             Parameter::SignedInteger(integer) => Parameter::SignedInteger(*integer),
-            Parameter::Timestamp(timestamp) => Parameter::Timestamp(*timestamp),
+            Parameter::Timestamp(timestamp) => Parameter::Timestamp(timestamp.as_ref().cloned()),
         }
     }
 }
@@ -472,11 +493,20 @@ pub struct ParameterConversionError {
 
 impl fmt::Display for ParameterConversionError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            fmt,
-            "could not convert `{}` to {}",
-            self.actual, self.expected
-        )
+        let actual = match &self.actual {
+            Parameter::Boolean(boolean) => boolean.to_string(),
+            Parameter::Number(number) => number.to_string(),
+            Parameter::Text(text) => text.to_string(),
+            Parameter::Uuid(uuid) => uuid.to_string(),
+            Parameter::SignedInteger(integer) => integer.to_string(),
+            Parameter::Timestamp(timestamp) => match timestamp {
+                Bound::Included(timestamp) => format!("including bound of {timestamp}"),
+                Bound::Excluded(timestamp) => format!("excluding bound of {timestamp}"),
+                Bound::Unbounded => "unbounded timestamp".to_owned(),
+            },
+        };
+
+        write!(fmt, "could not convert {actual} to {}", self.expected)
     }
 }
 
@@ -504,14 +534,14 @@ impl Parameter<'_> {
             }
             (Parameter::Text(text), ParameterType::Timestamp) => {
                 if text != "latest" {
-                    *self = Parameter::Timestamp(
-                        Timestamp::from_str(&*text)
+                    *self = Parameter::Timestamp(Bound::Included(
+                        TransactionTimestamp::from_str(&*text)
                             .into_report()
                             .change_context_lazy(|| ParameterConversionError {
                                 actual: self.to_owned(),
                                 expected: ParameterType::Timestamp,
                             })?,
-                    );
+                    ));
                     // Do nothing if "latest"
                 }
             }
@@ -544,19 +574,6 @@ impl Parameter<'_> {
         }
 
         Ok(())
-    }
-}
-
-impl fmt::Display for Parameter<'_> {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Parameter::Boolean(boolean) => fmt::Display::fmt(boolean, fmt),
-            Parameter::Number(number) => fmt::Display::fmt(number, fmt),
-            Parameter::Text(text) => fmt::Display::fmt(text, fmt),
-            Parameter::Uuid(uuid) => fmt::Display::fmt(uuid, fmt),
-            Parameter::SignedInteger(integer) => fmt::Display::fmt(integer, fmt),
-            Parameter::Timestamp(timestamp) => fmt::Display::fmt(timestamp, fmt),
-        }
     }
 }
 

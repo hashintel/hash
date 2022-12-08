@@ -17,7 +17,7 @@ pub use self::{
     postgres::{AsClient, PostgresStore, PostgresStorePool},
 };
 use crate::{
-    identifier::{account::AccountId, knowledge::EntityId, Timestamp},
+    identifier::{account::AccountId, knowledge::EntityId, DecisionTimestamp},
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
     ontology::{
         DataTypeWithMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
@@ -329,7 +329,7 @@ pub trait EntityStore: crud::Read<Entity> {
         &mut self,
         owned_by_id: OwnedById,
         entity_uuid: Option<EntityUuid>,
-        decision_time: Option<Timestamp>,
+        decision_time: Option<DecisionTimestamp>,
         updated_by_id: UpdatedById,
         archived: bool,
         entity_type_id: VersionedUri,
@@ -389,7 +389,7 @@ pub trait EntityStore: crud::Read<Entity> {
     async fn update_entity(
         &mut self,
         entity_id: EntityId,
-        decision_time: Option<Timestamp>,
+        decision_time: Option<DecisionTimestamp>,
         updated_by_id: UpdatedById,
         archived: bool,
         entity_type_id: VersionedUri,
