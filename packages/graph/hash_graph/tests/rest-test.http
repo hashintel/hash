@@ -4,7 +4,7 @@
 POST http://127.0.0.1:4000/accounts
 
 > {%
-    client.test("status", function () {
+    client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
         client.global.set("account_id", response.body.toString());
     });
@@ -14,7 +14,7 @@ POST http://127.0.0.1:4000/accounts
 GET http://127.0.0.1:4000/data-types
 
 > {%
-    client.test("status", function () {
+    client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
         client.assert(response.body.length === 6, "Unexpected number of data types"); // The number of primitive data types
     });
@@ -37,7 +37,7 @@ Accept: application/json
 }
 
 > {%
-    client.test("status", function () {
+    client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
     client.global.set("text_data_type_id", encodeURIComponent(`${response.body.editionId.baseId}v/${response.body.editionId.version}`));
@@ -47,7 +47,7 @@ Accept: application/json
 GET http://127.0.0.1:4000/data-types/{{text_data_type_id}}
 
 > {%
-    client.test("status", function () {
+    client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
 %}
@@ -69,7 +69,7 @@ Accept: application/json
 }
 
 > {%
-    client.test("status", function () {
+    client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
 %}
@@ -95,7 +95,7 @@ Accept: application/json
 }
 
 > {%
-    client.test("status", function () {
+    client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
     client.global.set("person_property_type_id", encodeURIComponent(`${response.body.editionId.baseId}v/${response.body.editionId.version}`));
@@ -105,7 +105,7 @@ Accept: application/json
 GET http://127.0.0.1:4000/property-types/{{person_property_type_id}}
 
 > {%
-    client.test("status", function () {
+    client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
 %}
@@ -130,7 +130,7 @@ Accept: application/json
 }
 
 > {%
-    client.test("status", function () {
+    client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
 %}
@@ -139,7 +139,7 @@ Accept: application/json
 GET http://127.0.0.1:4000/property-types
 
 > {%
-    client.test("status", function () {
+    client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
         client.assert(response.body.length === 1, "Unexpected number of property types");
     });
@@ -168,7 +168,7 @@ Accept: application/json
 }
 
 > {%
-    client.test("status", function () {
+    client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
     client.global.set("friendship_link_entity_type_id", `${response.body.editionId.baseId}v/${response.body.editionId.version}`);
@@ -222,7 +222,7 @@ Content-Type: application/json
 }
 
 > {%
-    client.test("status", function () {
+    client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
         client.assert(response.body.roots.length === 1, "Unexpected number of entities");
     });
@@ -250,7 +250,7 @@ Accept: application/json
 }
 
 > {%
-    client.test("status", function () {
+    client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
     client.global.set("person_entity_type_id", encodeURIComponent(`${response.body.editionId.baseId}v/${response.body.editionId.version}`));
@@ -261,7 +261,7 @@ Accept: application/json
 GET http://127.0.0.1:4000/entity-types/{{encoded_person_entity_type_id}}
 
 > {%
-    client.test("status", function () {
+    client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
 %}
@@ -300,7 +300,7 @@ Accept: application/json
 }
 
 > {%
-    client.test("status", function () {
+    client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
 %}
@@ -309,7 +309,7 @@ Accept: application/json
 GET http://127.0.0.1:4000/entity-types
 
 > {%
-    client.test("status", function () {
+    client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
         client.assert(response.body.length === 3, "Unexpected number of entity types");
     });
@@ -365,7 +365,7 @@ Content-Type: application/json
 }
 
 > {%
-    client.test("status", function () {
+    client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
         client.assert(response.body.roots.length === 1, "Unexpected number of entities");
     });
@@ -425,7 +425,7 @@ Content-Type: application/json
 }
 
 > {%
-    client.test("status", function () {
+    client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
         client.assert(response.body.roots.length === 0, "Unexpected number of entities");
     });
@@ -448,7 +448,7 @@ Accept: application/json
 }
 
 > {%
-    client.test("status", function () {
+    client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
     client.global.set("person_a_entity_id", response.body.editionId.baseId);
@@ -460,12 +460,12 @@ Accept: application/json
 GET http://127.0.0.1:4000/entities/{{encoded_person_a_entity_id}}
 
 > {%
-    client.test("status", function () {
+    client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
 %}
 
-#### Update Person entity
+### Update Person entity
 PUT http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
@@ -480,7 +480,7 @@ Accept: application/json
 }
 
 > {%
-    client.test("status", function () {
+    client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
 %}
@@ -500,7 +500,7 @@ Accept: application/json
 }
 
 > {%
-    client.test("status", function () {
+    client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
     client.global.set("person_b_entity_id", response.body.editionId.baseId);
@@ -511,13 +511,13 @@ Accept: application/json
 GET http://127.0.0.1:4000/entities
 
 > {%
-    client.test("status", function () {
+    client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
         client.assert(response.body.length === 2, "Unexpected number of entities");
     });
 %}
 
-#### Get all latest entities by using a query
+### Get all latest entities by using a query
 POST http://127.0.0.1:4000/entities/query
 Content-Type: application/json
 
@@ -565,7 +565,7 @@ Content-Type: application/json
 }
 
 > {%
-    client.test("status", function () {
+    client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
         client.assert(response.body.roots.length === 2, "Unexpected number of entities");
     });
@@ -592,7 +592,7 @@ Accept: application/json
 }
 
 > {%
-    client.test("status", function () {
+    client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
 %}
@@ -664,7 +664,7 @@ Content-Type: application/json
 }
 
 > {%
-    client.test("status", function () {
+    client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
         client.assert(response.body.roots.length === 1, "Unexpected number of entities");
     });
@@ -682,12 +682,12 @@ Accept: application/json
 }
 
 > {%
-    client.test("status", function () {
+    client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
 %}
 
-#### Get all latest unarchived entities by using a query
+### Get all latest unarchived entities by using a query
 // Only person_a and the link remains as entities
 POST http://127.0.0.1:4000/entities/query
 Content-Type: application/json
@@ -752,14 +752,14 @@ Content-Type: application/json
 }
 
 > {%
-    client.test("status", function () {
+    client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
         client.assert(response.body.roots.length === 2, "Unexpected number of entities");
     });
 %}
 
 
-#### Get all archived entities
+### Get all archived entities
 POST http://127.0.0.1:4000/entities/query
 Content-Type: application/json
 
@@ -807,7 +807,7 @@ Content-Type: application/json
 }
 
 > {%
-    client.test("status", function () {
+    client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
         client.assert(response.body.roots.length === 1, "Unexpected number of entities");
     });
