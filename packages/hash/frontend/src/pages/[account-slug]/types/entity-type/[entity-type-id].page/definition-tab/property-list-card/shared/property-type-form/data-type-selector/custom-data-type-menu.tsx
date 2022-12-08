@@ -11,11 +11,13 @@ import {
   buttonClasses,
   chipClasses,
   Stack,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import { uniqueId } from "lodash";
 import { FunctionComponent } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
+import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
 import { faCube } from "../../../../../../../../../../shared/icons/pro/fa-cube";
 import {
   ArrayType,
@@ -73,12 +75,23 @@ export const CustomDataTypeMenu: FunctionComponent<CustomDataTypeMenuProps> = ({
         })}
       >
         <Stack direction="row" justifyContent="space-between">
-          <Typography
-            variant="smallCaps"
-            sx={{ color: ({ palette }) => palette.gray[70] }}
-          >
-            Specify a custom expected value
-          </Typography>
+          <Stack direction="row" gap={1} alignItems="center">
+            <Typography
+              variant="smallCaps"
+              sx={{ color: ({ palette }) => palette.gray[70] }}
+            >
+              Specify a custom expected value
+            </Typography>
+            <Tooltip
+              title="Custom expected values can be useful when working with data ingested from external sources."
+              placement="top"
+            >
+              <FontAwesomeIcon
+                icon={faCircleQuestion}
+                sx={{ fontSize: 12, color: ({ palette }) => palette.gray[40] }}
+              />
+            </Tooltip>
+          </Stack>
 
           <Button
             onClick={closeMenu}
@@ -86,6 +99,7 @@ export const CustomDataTypeMenu: FunctionComponent<CustomDataTypeMenuProps> = ({
               padding: 0,
               minWidth: 0,
               minHeight: 0,
+              height: 18,
               background: "none !important",
               fontWeight: 600,
               fontSize: 12,

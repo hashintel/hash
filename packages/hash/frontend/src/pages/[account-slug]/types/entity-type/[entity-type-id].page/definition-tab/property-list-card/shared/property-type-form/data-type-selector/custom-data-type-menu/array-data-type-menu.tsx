@@ -1,13 +1,22 @@
+import { faPlus, faSearch } from "@fortawesome/free-solid-svg-icons";
 import {
   Chip,
   FontAwesomeIcon,
   TextField,
 } from "@hashintel/hash-design-system";
 import { types } from "@hashintel/hash-shared/types";
-import { Autocomplete, Box, Collapse, Stack, Typography } from "@mui/material";
+import {
+  Autocomplete,
+  autocompleteClasses,
+  Box,
+  Collapse,
+  inputBaseClasses,
+  Stack,
+  Typography,
+} from "@mui/material";
 import { uniqueId } from "lodash";
 import { usePopupState } from "material-ui-popup-state/hooks";
-import { FunctionComponent, useEffect, useMemo, useState } from "react";
+import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import {
   DataType,
@@ -145,6 +154,10 @@ export const ArrayDataTypeMenu: FunctionComponent<ArrayDataTypeMenuProps> = ({
     name: `flattenedDataTypeList.${dataTypeId}.data.expectedValues`,
   });
 
+  const [autocompleteElem, setAutocompleteElem] =
+    useState<HTMLDivElement | null>(null);
+  const textFieldRef = useRef<HTMLInputElement>(null);
+
   const [dataTypeCount, propertyObjectCount, arrayCount] = useMemo(() => {
     const arrays = expectedValues.filter(
       (childId) => flattenedDataTypes[childId]?.data?.typeId === "array",
@@ -244,6 +257,7 @@ export const ArrayDataTypeMenu: FunctionComponent<ArrayDataTypeMenuProps> = ({
         ))}
 
         <Autocomplete
+          ref={(ref: HTMLDivElement) => setAutocompleteElem(ref)}
           value={value}
           multiple
           popupIcon={null}
@@ -251,6 +265,15 @@ export const ArrayDataTypeMenu: FunctionComponent<ArrayDataTypeMenuProps> = ({
           forcePopupIcon={false}
           selectOnFocus={false}
           openOnFocus
+          componentsProps={{
+            popper: {
+              sx: {
+                [`.${autocompleteClasses.paper}`]: {
+                  width: autocompleteElem?.getBoundingClientRect().width,
+                },
+              },
+            },
+          }}
           clearOnBlur={false}
           onChange={(_evt, _data, reason, details) => {
             const typeId = details?.option;
@@ -286,16 +309,73 @@ export const ArrayDataTypeMenu: FunctionComponent<ArrayDataTypeMenuProps> = ({
             }
           }}
           renderTags={() => <Box />}
-          renderInput={(inputProps) => (
-            <TextField
-              {...inputProps}
-              sx={{
-                alignSelf: "flex-start",
-                width: "70%",
-              }}
-              placeholder="Select acceptable values"
-            />
-          )}
+          renderInput={({ InputProps, ...otherProps }) => {
+            const expanded =
+              textFieldRef.current === document.activeElement ||
+              textFieldRef.current?.value;
+
+            return (
+              <TextField
+                {...otherProps}
+                InputProps={{
+                  ...InputProps,
+                  inputRef: textFieldRef,
+                  sx: ({ palette, transitions }) => ({
+                    height: 42,
+                    transition: transitions.create([
+                      "width",
+                      "background-color",
+                    ]),
+                    padding: "0 16px !important",
+                    fill: palette.gray[50],
+
+                    [`.${inputBaseClasses.input}`]: {
+                      fontSize: "14px !important",
+                      p: "0 !important",
+                      ...(!expanded ? { cursor: "pointer !important" } : {}),
+                    },
+
+                    ...(!expanded
+                      ? {
+                          width: 145,
+                          cursor: "pointer !important",
+                          "&:hover": {
+                            background: palette.gray[20],
+                            fill: palette.gray[80],
+                          },
+                        }
+                      : {}),
+
+                    "& ::placeholder": {
+                      paddingLeft: 0,
+                      transition: transitions.create(["padding-left", "color"]),
+                      ...(!expanded
+                        ? {
+                            paddingLeft: 0.5,
+                            color: `${palette.gray[80]} !important`,
+                            fontWeight: 500,
+                          }
+                        : {}),
+                    },
+                  }),
+                  endAdornment: (
+                    <FontAwesomeIcon
+                      icon={expanded ? faSearch : faPlus}
+                      sx={{
+                        fontSize: 14,
+                        marginLeft: 1,
+                        marginRight: 0.5,
+                        fill: "inherit",
+                      }}
+                    />
+                  ),
+                }}
+                placeholder={
+                  !expanded ? "Add to array" : "Select acceptable values"
+                }
+              />
+            );
+          }}
           options={dataTypeOptions}
           getOptionLabel={(opt) => expectedValuesOptions[opt!]!.title}
           renderOption={(optProps, opt) => {
