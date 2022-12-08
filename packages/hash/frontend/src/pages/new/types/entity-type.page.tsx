@@ -81,8 +81,7 @@ const Page: NextPageWithLayout = () => {
   });
 
   const { getEntityType } = useBlockProtocolGetEntityType();
-  const { activeWorkspace, activeWorkspaceAccountId } =
-    useContext(WorkspaceContext);
+  const { activeWorkspace } = useContext(WorkspaceContext);
 
   const typeSystemLoading = useInitTypeSystem();
 
