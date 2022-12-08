@@ -6,7 +6,7 @@ import { useBlockProtocolAggregateEntities } from "../../../../../../../../../co
 import { useBlockProtocolArchiveEntity } from "../../../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolArchiveEntity";
 import { useBlockProtocolCreateEntity } from "../../../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolCreateEntity";
 import { generateEntityLabel } from "../../../../../../../../../lib/entities";
-import { HashSelectorAutocomplete } from "../../../../../../../types/entity-type/hash-selector-autocomplete";
+import { HashSelectorAutocomplete } from "../../../../../../../shared/hash-selector-autocomplete";
 import { useEntityEditor } from "../../../../entity-editor-context";
 import { LinkedWithCell } from "../linked-with-cell";
 import { WorkspaceContext } from "../../../../../../../../shared/workspace-context";

@@ -1,27 +1,56 @@
-import { useEffect } from "react";
-import { useRouter } from "next/router";
+import { Box, Typography, Container } from "@mui/material";
+import { faWarning } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 
-import { useLoggedInUser } from "../components/hooks/useAuthenticatedUser";
-import { NextPageWithLayout } from "../shared/layout";
+import { getLayoutWithSidebar, NextPageWithLayout } from "../shared/layout";
+import { Link } from "../shared/ui";
 
 const Page: NextPageWithLayout = () => {
-  const router = useRouter();
-  const { authenticatedUser } = useLoggedInUser();
-
-  useEffect(() => {
-    /**
-     * @todo: this check could occur in a server-side render, so that a
-     * redirect to the workspace or login page is done before rendering
-     * this empty homepage.
-     *
-     * @see https://app.asana.com/0/1203179076056209/1203451531168818/f
-     */
-    if (authenticatedUser) {
-      void router.replace(`/${authenticatedUser.userAccountId}`);
-    }
-  }, [router, authenticatedUser]);
-
-  return null;
+  return (
+    <Container sx={{ pt: 7 }}>
+      <Typography mb={3} variant="h2">
+        Welcome to HASH
+      </Typography>
+      <Box maxWidth="75ch">
+        <Typography mb={3}>
+          HASH is an open-source, data-centric, all-in-one workspace built atop
+          the open <Link href="https://blockprotocol.org">Block Protocol</Link>.
+        </Typography>
+        <Typography mb={3}>
+          <strong>
+            <FontAwesomeIcon
+              icon={faWarning}
+              sx={({ palette }) => ({
+                color: palette.orange[50],
+                mr: 0.5,
+              })}
+            />{" "}
+            HASH is not ready for production use.
+          </strong>{" "}
+          It is not secure or optimized and is missing key features. Please
+          visit the{" "}
+          <Link href="https://github.com/hashintel/hash/tree/main/packages/hash">
+            GitHub repository
+          </Link>{" "}
+          for the latest updates, or learn about the long-term{" "}
+          <Link href="https://hash.ai">here</Link>.
+        </Typography>
+        <Typography>
+          This version of HASH is intended to be used as a test-harness for
+          developers building Block Protocol-compliant blocks. Please{" "}
+          <Link href="https://github.com/hashintel/hash/tree/main/packages/hash#integration-with-the-block-protocol">
+            read the documentation to get started
+          </Link>
+          .
+        </Typography>
+      </Box>
+    </Container>
+  );
 };
+
+Page.getLayout = (page) =>
+  getLayoutWithSidebar(page, {
+    fullWidth: true,
+  });
 
 export default Page;
