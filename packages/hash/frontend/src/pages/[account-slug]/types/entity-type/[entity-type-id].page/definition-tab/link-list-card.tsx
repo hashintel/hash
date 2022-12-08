@@ -84,22 +84,24 @@ export const LinkListCard = () => {
     return null;
   }
 
+  const addFirstLink = () => {
+    const link = Object.values(val!.linkTypes).find(
+      (linkType) => !fields.some((field) => field.$id === linkType.schema.$id),
+    )!;
+
+    append({
+      $id: link.schema.$id,
+      entityTypes: [Object.values(val!.entityTypes)[0]!.schema.$id],
+      minValue: 1,
+      maxValue: 1,
+    });
+  };
+
   if (!addingNewLink && fields.length === 0) {
     return (
       <EmptyListCard
         onClick={() => {
-          const link = Object.values(val!.linkTypes)[0]!;
-
-          append({
-            $id: link.schema.$id,
-            entityTypes: [Object.values(val!.entityTypes)[0]!.schema.$id],
-            minValue: 1,
-            maxValue: 1,
-          });
-
-          // setAddingNewLink(true, () => {
-          //   addingNewLinkRef.current?.focus();
-          // });
+          addFirstLink();
         }}
         icon={<LinkIcon />}
         headline={<>Add a link</>}
@@ -142,9 +144,7 @@ export const LinkListCard = () => {
         <EntityTypeTableButtonRow
           icon={<StyledPlusCircleIcon />}
           onClick={() => {
-            setAddingNewLink(true, () => {
-              addingNewLinkRef.current?.focus();
-            });
+            addFirstLink();
           }}
         >
           Add a link
