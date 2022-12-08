@@ -123,7 +123,7 @@
     "@types/spark-md5": "3.0.2",
     "@types/url-regex-safe": "1.0.0",
     "@types/uuid": "8.3.0",
-    "eslint": "8.28.0",
+    "eslint": "8.29.0",
     "identity-obj-proxy": "3.0.0",
     "jest": "29.3.1",
     "jest-environment-jsdom": "29.3.1",
