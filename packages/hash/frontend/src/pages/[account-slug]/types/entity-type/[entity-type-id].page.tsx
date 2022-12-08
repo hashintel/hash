@@ -10,10 +10,10 @@ import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import { Box, Container, Theme, Typography } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
 import { Buffer } from "buffer/";
+import Head from "next/head";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
 import { FormProvider, useForm } from "react-hook-form";
-import Head from "next/head";
 import { PageErrorState } from "../../../../components/page-error-state";
 import {
   getLayoutWithSidebar,
@@ -22,26 +22,23 @@ import {
 import { TopContextBar } from "../../../shared/top-context-bar";
 import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
 import { OntologyChip } from "../../shared/ontology-chip";
-import { EditBar } from "./edit-bar";
-import { EntityTypeTabs } from "./entity-type-tabs";
+import { DefinitionTab } from "./[entity-type-id].page/definition-tab";
+import { EditBar } from "./[entity-type-id].page/edit-bar";
+import { EntitiesTab } from "./[entity-type-id].page/entities-tab";
+import { EntityTypeTabs } from "./[entity-type-id].page/entity-type-tabs";
+import { EntityTypeContext } from "./[entity-type-id].page/shared/entity-type-context";
+import { EntityTypeEntitiesContext } from "./[entity-type-id].page/shared/entity-type-entities-context";
 import {
   EntityTypeEditorForm,
   EntityTypeEditorPropertyData,
-} from "./form-types";
-import { DefinitionTab } from "./tabs/definition-tab";
-import { EntitiesTab } from "./tabs/entities-tab";
-import { useCurrentTab } from "./use-current-tab";
-import { EntityTypeContext, useEntityTypeValue } from "./use-entity-type";
-import {
-  EntityTypeEntitiesContext,
-  useEntityTypeEntitiesContextValue,
-} from "./use-entity-type-entities";
-import {
-  PropertyTypesContext,
-  usePropertyTypesContextValue,
-} from "./use-property-types";
-import { useRouteNamespace } from "./use-route-namespace";
-import { getEntityTypeBaseUri } from "./util";
+} from "./[entity-type-id].page/shared/form-types";
+import { getEntityTypeBaseUri } from "./[entity-type-id].page/shared/get-entity-type-base-uri";
+import { PropertyTypesContext } from "./[entity-type-id].page/shared/property-types-context";
+import { useCurrentTab } from "./[entity-type-id].page/shared/tabs";
+import { useEntityTypeEntitiesContextValue } from "./[entity-type-id].page/use-entity-type-entities-context-value";
+import { useEntityTypeValue } from "./[entity-type-id].page/use-entity-type-value";
+import { usePropertyTypesContextValue } from "./[entity-type-id].page/use-property-types-context-value";
+import { useRouteNamespace } from "../../shared/use-route-namespace";
 
 const getSchemaFromEditorForm = (
   properties: EntityTypeEditorPropertyData[],
