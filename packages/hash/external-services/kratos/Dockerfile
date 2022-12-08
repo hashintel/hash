@@ -21,10 +21,12 @@ COPY kratos.$ENV.yml /etc/config/kratos/kratos.$ENV.yml
 # Change the API key secret for the webhook 
 RUN yq -i '.selfservice.flows.registration.after.password.hooks[0].config.auth.config.value |= strenv(API_SECRET)' /etc/config/kratos/kratos.$ENV.yml
 
+RUN ln /etc/config/kratos/kratos.$ENV.yml /etc/config/kratos/kratos.yml
+
 ADD https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem /home/ory/.postgresql/root.crt
 RUN chown -R ory:ory /home/ory && \
     chmod a+r /home/ory/.postgresql
 USER ory
 
-ENTRYPOINT ["kratos"]
-CMD ["serve", "-c", "/etc/config/kratos/kratos.$ENV.yml", "--watch-courier"]
+ENTRYPOINT ["kratos", "-c", "/etc/config/kratos/kratos.yml"]
+CMD ["serve", "--watch-courier"]
