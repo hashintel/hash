@@ -630,7 +630,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         if transaction
             .as_client()
             .query_opt(
-                "SELECT 1 FROM entity_ids WHERE owned_by_id = $1 AND entity_uuid = $2;",
+                r#"
+                 SELECT EXISTS (
+                    SELECT 1 FROM entity_ids WHERE owned_by_id = $1 AND entity_uuid = $2
+                 );"#,
                 &[&entity_id.owned_by_id(), &entity_id.entity_uuid()],
             )
             .await
