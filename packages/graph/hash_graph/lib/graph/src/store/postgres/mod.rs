@@ -25,16 +25,8 @@ use uuid::Uuid;
 
 use self::context::OntologyRecord;
 pub use self::pool::{AsClient, PostgresStorePool};
-#[cfg(feature = "__internal_bench")]
-use crate::knowledge::EntityProperties;
 use crate::{
-    identifier::{
-        account::AccountId,
-        knowledge::{EntityEditionId, EntityId, EntityVersion},
-        ontology::OntologyTypeEditionId,
-        DecisionTimespan, DecisionTimestamp, TransactionTimespan,
-    },
-    knowledge::LinkOrder,
+    identifier::{account::AccountId, knowledge::EntityEditionId, ontology::OntologyTypeEditionId},
     ontology::OntologyElementMetadata,
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
@@ -46,6 +38,14 @@ use crate::{
         UpdateError,
     },
     subgraph::edges::GraphResolveDepths,
+};
+#[cfg(feature = "__internal_bench")]
+use crate::{
+    identifier::{
+        knowledge::{EntityId, EntityVersion},
+        DecisionTimespan, DecisionTimestamp, TransactionTimespan,
+    },
+    knowledge::{EntityProperties, LinkOrder},
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
