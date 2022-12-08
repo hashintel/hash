@@ -485,7 +485,6 @@ export const up = (pgm: MigrationBuilder): void => {
     DECLARE
       _entity_edition_id BIGINT;
     BEGIN
-      -- If the decision time is not specified, use the current time.
       IF _decision_time IS NULL THEN _decision_time := now(); END IF;
   
       INSERT INTO entity_ids (
@@ -589,7 +588,6 @@ export const up = (pgm: MigrationBuilder): void => {
     DECLARE
       _new_entity_edition_id BIGINT;
     BEGIN
-      -- If the decision time is not specified, use the current time.
       IF _decision_time IS NULL THEN _decision_time := now(); END IF;
 
       INSERT INTO entity_editions (
