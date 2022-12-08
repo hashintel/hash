@@ -1,4 +1,4 @@
-# Terraform Deployments
+# Terraform infrastructure
 
 This folder contains Terraform modules to deploy a HASH instance on AWS. The entry-point module is located in [`./hash/`](./hash/).
 
