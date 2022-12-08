@@ -34,10 +34,11 @@ export const overrideCustomRenderers = (
           draw({ ...args, tableId: tableIdRef.current }, cell),
         onClick: (args) => {
           /** @todo investigate why `args` don't have `location` in it's type  */
-          const [col, row] = (args as unknown as { location: Item }).location;
+          const [colIndex, rowIndex] = (args as unknown as { location: Item })
+            .location;
 
           const wasClickHandledByManager = InteractableManager.handleClick(
-            `${tableIdRef.current}-${col}-${row}`,
+            `${tableIdRef.current}-${colIndex}-${rowIndex}`,
             args,
           );
 

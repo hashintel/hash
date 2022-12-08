@@ -62,10 +62,10 @@ export const EntitiesTab: FunctionComponent = () => {
   }, [entities, activeWorkspaceAccountId]);
 
   const createGetCellContent = useCallback(
-    (rowData: TypeEntitiesRow[]) =>
+    (_rows: TypeEntitiesRow[]) =>
       ([colIndex, rowIndex]: Item): GridCell => {
-        if (rowData && columns) {
-          const row = rowData[rowIndex];
+        if (_rows && columns) {
+          const row = _rows[rowIndex];
           const columnId = columns[colIndex]?.id;
           const cellValue = columnId && row?.[columnId];
 
@@ -160,7 +160,7 @@ export const EntitiesTab: FunctionComponent = () => {
               showSearch={showSearch}
               onSearchClose={() => setShowSearch(false)}
               columns={columns}
-              rowData={rows}
+              rows={rows}
               createGetCellContent={createGetCellContent}
               customRenderers={[renderTextIconCell]}
             />
