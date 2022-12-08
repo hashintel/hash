@@ -1,4 +1,4 @@
-use graph::knowledge::EntityProperties;
+use graph::knowledge::{EntityLinkOrder, EntityProperties};
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use type_system::uri::{BaseUri, VersionedUri};
 
@@ -228,7 +228,7 @@ async fn remove_link() {
     let link_entity_metadata = api
         .create_link_entity(
             EntityProperties::empty(),
-            friend_link_type_id,
+            friend_link_type_id.clone(),
             None,
             person_a_metadata.edition_id().base_id(),
             person_b_metadata.edition_id().base_id(),
@@ -243,9 +243,14 @@ async fn remove_link() {
             .is_empty()
     );
 
-    api.archive_entity(link_entity_metadata.edition_id().base_id())
-        .await
-        .expect("could not remove link");
+    api.archive_entity(
+        link_entity_metadata.edition_id().base_id(),
+        EntityProperties::empty(),
+        friend_link_type_id,
+        EntityLinkOrder::new(None, None),
+    )
+    .await
+    .expect("could not remove link");
 
     assert!(
         api.get_latest_entity_links(person_a_metadata.edition_id().base_id())
