@@ -42,7 +42,6 @@ export const LinkedEntityListRow = ({
         className="actions"
         display="flex"
         sx={{
-          // display: "none",
           visibility: "hidden",
           position: "absolute",
           inset: 0,
