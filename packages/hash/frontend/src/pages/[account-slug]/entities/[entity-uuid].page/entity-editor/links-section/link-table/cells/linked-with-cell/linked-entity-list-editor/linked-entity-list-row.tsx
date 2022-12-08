@@ -30,7 +30,7 @@ export const LinkedEntityListRow = ({
 
         "&.selected, :hover": {
           "> .actions": {
-            display: "flex",
+            visibility: "visible",
           },
         },
       }}
@@ -42,7 +42,8 @@ export const LinkedEntityListRow = ({
         className="actions"
         display="flex"
         sx={{
-          display: "none",
+          // display: "none",
+          visibility: "hidden",
           position: "absolute",
           inset: 0,
           left: "unset",
