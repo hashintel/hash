@@ -117,7 +117,7 @@ const Page: NextPageWithLayout = () => {
       Buffer.from(JSON.stringify(entityType)).toString("base64"),
     )}`;
 
-    await router.push(nextUrl, nextUrl, { shallow: true });
+    await router.push(nextUrl);
   });
 
   return (
