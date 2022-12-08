@@ -609,8 +609,6 @@ export const up = (pgm: MigrationBuilder): void => {
       )
       RETURNING entity_editions.entity_edition_id INTO _new_entity_edition_id;
   
-      -- It's not possible to re-use the query from the \`PERFORM\` statement above, as the \`WHERE\` clause may select
-      -- a different row.
       RETURN QUERY
       UPDATE entity_versions
       SET decision_time = tstzrange(_decision_time, upper(entity_versions.decision_time)),
