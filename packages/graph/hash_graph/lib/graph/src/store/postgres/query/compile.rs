@@ -222,23 +222,20 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
         operator: EqualityOperator,
     ) -> Condition<'c> {
         let alias = self.add_join_statements(path);
-        let decision_time_condition = Condition::RangeContains(
-            Expression::Column(Column::Entities(Entities::DecisionTime).aliased(alias)),
-            Expression::Function(Function::Now),
-        );
+        self.statement
+            .where_expression
+            .add_condition(Condition::RangeContains(
+                Expression::Column(Column::Entities(Entities::DecisionTime).aliased(alias)),
+                Expression::Function(Function::Now),
+            ));
         let transaction_time_condition = Condition::RangeContains(
             Expression::Column(Column::Entities(Entities::TransactionTime).aliased(alias)),
             Expression::Function(Function::Now),
         );
 
         match operator {
-            EqualityOperator::Equal => {
-                Condition::All(vec![decision_time_condition, transaction_time_condition])
-            }
-            EqualityOperator::NotEqual => Condition::All(vec![
-                Condition::Not(Box::new(decision_time_condition)),
-                transaction_time_condition,
-            ]),
+            EqualityOperator::Equal => transaction_time_condition,
+            EqualityOperator::NotEqual => Condition::Not(Box::new(transaction_time_condition)),
         }
     }
 

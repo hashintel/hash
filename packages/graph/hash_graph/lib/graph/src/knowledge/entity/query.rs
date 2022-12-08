@@ -386,7 +386,10 @@ mod tests {
 
     #[test]
     fn deserialization() {
-        assert_eq!(deserialize(["version"]), EntityQueryPath::DecisionTimeFrom);
+        assert_eq!(
+            deserialize(["version"]),
+            EntityQueryPath::LowerTransactionTime
+        );
         assert_eq!(deserialize(["ownedById"]), EntityQueryPath::OwnedById);
         assert_eq!(
             deserialize(["type", "version"]),
