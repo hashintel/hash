@@ -1,5 +1,5 @@
 import { Chip } from "@hashintel/hash-design-system";
-import { TableCell } from "@mui/material";
+import { TableBody, TableCell } from "@mui/material";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import {
   useEntityTypes,
