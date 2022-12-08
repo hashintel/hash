@@ -55,6 +55,11 @@ variable "hash_seed_users" {
   description = "List of users to seed"
 }
 
+variable "hash_system_user_password" {
+  type        = string
+  description = "Password to give the system user in HASH"
+}
+
 variable "pg_superuser_password" {
   type        = string
   sensitive   = true

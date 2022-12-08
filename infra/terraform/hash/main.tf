@@ -154,14 +154,15 @@ module "application" {
   ])
   kratos_image = module.kratos_ecr
   kratos_env_vars = concat(var.kratos_env_vars, [
-    { name = "SECRETS_COOKIE", secret = true, value = var.kratos_secrets_cookie },
-    { name = "SECRETS_CIPHER", secret = true, value = var.kratos_secrets_cipher },
+    { name = "SECRETS_COOKIE", secret = true, value = sensitive(var.kratos_secrets_cookie) },
+    { name = "SECRETS_CIPHER", secret = true, value = sensitive(var.kratos_secrets_cipher) },
     { name = "DSN", secret = true, value = "postgres://kratos:${sensitive(var.pg_kratos_user_password.raw)}@${module.postgres.pg_host}:${module.postgres.pg_port}/kratos" },
   ])
   api_image = module.api_ecr
   api_env_vars = concat(var.hash_api_env_vars, [
-    { name = "KRATOS_API_KEY", secret = true, value = var.kratos_api_key },
-    { name = "HASH_SEED_USERS", secret = true, value = jsonencode(var.hash_seed_users) },
+    { name = "SYSTEM_USER_PASSWORD", secret = true, value = sensitive(var.hash_system_user_password) },
+    { name = "KRATOS_API_KEY", secret = true, value = sensitive(var.kratos_api_key) },
+    { name = "HASH_SEED_USERS", secret = true, value = sensitive(jsonencode(var.hash_seed_users)) },
     { name = "HASH_REDIS_HOST", secret = false, value = module.redis.node.address },
     { name = "HASH_REDIS_PORT", secret = false, value = module.redis.node.port },
   ])

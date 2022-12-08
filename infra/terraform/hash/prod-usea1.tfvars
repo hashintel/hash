@@ -29,10 +29,10 @@ hash_graph_env_vars = [
 hash_api_env_vars = [
   { name = "FRONTEND_URL", secret = false, value = "https://alpha.hash.ai" },
   { name = "API_ORIGIN", secret = false, value = "https://alpha-api.hash.ai" },
-  { name = "SYSTEM_ACCOUNT_NAME", secret = false, value = "HASH" },
-  { name = "SYSTEM_ACCOUNT_SHORTNAME", secret = false, value = "hash" },
-  { name = "SYSTEM_EMAIL_ADDRESS", secret = false, value = "noreply@hash.ai" },
-  { name = "SYSTEM_EMAIL_SENDER_NAME", secret = false, value = "HASH Support" },
+
+  { name = "SYSTEM_USER_SHORTNAME", secret = false, value = "hash" },
+  { name = "SYSTEM_USER_PREFERRED_NAME", secret = false, value = "HASH" },
+  { name = "SYSTEM_USER_EMAIL_ADDRESS", secret = false, value = "noreply@hash.ai" },
 
   { name = "HASH_GRAPH_API_HOST", secret = false, value = "localhost" },
   { name = "HASH_GRAPH_API_PORT", secret = false, value = "4000" },
@@ -45,4 +45,10 @@ hash_api_env_vars = [
 
   { name = "ORY_KRATOS_PUBLIC_URL", secret = false, value = "http://localhost:4433" },
   { name = "ORY_KRATOS_ADMIN_URL", secret = false, value = "http://localhost:4434" },
+
+  # TODO: remove these deprecated system org variables
+  { name = "SYSTEM_ACCOUNT_NAME", secret = false, value = "HASH" },
+  { name = "SYSTEM_ACCOUNT_SHORTNAME", secret = false, value = "hash" },
+  { name = "SYSTEM_EMAIL_ADDRESS", secret = false, value = "noreply@hash.ai" },
+  { name = "SYSTEM_EMAIL_SENDER_NAME", secret = false, value = "HASH Support" },
 ]

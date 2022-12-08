@@ -37,6 +37,8 @@ hash_seed_users = [
   { "email" = "admin@hash.ai", "shortname" = "instance-admin", "preferredName" = "Instance Admin", "password" = "changeme", "isInstanceAdmin" = true }
 ]
 
+hash_system_user_password = "changeme"
+
 secrets_cookie = "VERY-INSECURE-AND-SHOULD-ONLY-BE-USED-IN-DEV"
 secrets_cipher = "32-LONG-SECRET-NOT-SECURE-AT-ALL"
 
