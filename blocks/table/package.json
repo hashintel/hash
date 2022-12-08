@@ -21,7 +21,6 @@
   "dependencies": {
     "@blockprotocol/graph": "0.0.18",
     "@headlessui/react": "1.4.1",
-    "immer": "9.0.6",
     "lodash": "4.17.21",
     "react-table": "7.7.0",
     "twind": "0.16.17",

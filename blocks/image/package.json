@@ -23,6 +23,7 @@
     "twind": "0.16.17"
   },
   "devDependencies": {
+    "@blockprotocol/hook": "0.0.8",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "block-scripts": "0.0.14",
