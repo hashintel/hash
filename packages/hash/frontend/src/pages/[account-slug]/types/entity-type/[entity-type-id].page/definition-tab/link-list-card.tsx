@@ -1,5 +1,5 @@
 import { Chip } from "@hashintel/hash-design-system";
-import { TableBody, TableCell } from "@mui/material";
+import { TableBody, TableCell, TableFooter, TableHead } from "@mui/material";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import {
   useEntityTypes,
@@ -9,6 +9,7 @@ import {
 import { EntityTypeEditorForm } from "../shared/form-types";
 import {
   EntityTypeTable,
+  EntityTypeTableButtonRow,
   EntityTypeTableHeaderRow,
   EntityTypeTableRow,
   EntityTypeTableTitleCellText,
@@ -73,20 +74,25 @@ export const LinkListCard = () => {
 
   return (
     <EntityTypeTable>
-      <EntityTypeTableHeaderRow>
-        <TableCell>Link name</TableCell>
-        <TableCell>
-          Expected entity types <QuestionIcon />
-        </TableCell>
-        <TableCell>
-          Allowed number of links <QuestionIcon />
-        </TableCell>
-      </EntityTypeTableHeaderRow>
+      <TableHead>
+        <EntityTypeTableHeaderRow>
+          <TableCell>Link name</TableCell>
+          <TableCell>
+            Expected entity types <QuestionIcon />
+          </TableCell>
+          <TableCell>
+            Allowed number of links <QuestionIcon />
+          </TableCell>
+        </EntityTypeTableHeaderRow>
+      </TableHead>
       <TableBody>
         {fields.map((type, index) => (
           <LinkTypeRow key={type.id} linkIndex={index} />
         ))}
       </TableBody>
+      <TableFooter>
+        <EntityTypeTableButtonRow>Add a link</EntityTypeTableButtonRow>
+      </TableFooter>
     </EntityTypeTable>
   );
 };
