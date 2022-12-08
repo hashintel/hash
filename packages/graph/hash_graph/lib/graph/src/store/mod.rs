@@ -359,13 +359,18 @@ pub trait EntityStore: crud::Read<Entity> {
     async fn insert_entities_batched_by_type(
         &mut self,
         entities: impl IntoIterator<
-            Item = (Option<EntityUuid>, EntityProperties, Option<LinkData>),
+            Item = (
+                OwnedById,
+                Option<EntityUuid>,
+                EntityProperties,
+                Option<LinkData>,
+                Option<DecisionTimestamp>,
+            ),
             IntoIter: Send,
         > + Send,
-        entity_type_id: VersionedUri,
-        owned_by_id: OwnedById,
         actor_id: UpdatedById,
-    ) -> Result<Vec<EntityUuid>, InsertionError>;
+        entity_type_id: &VersionedUri,
+    ) -> Result<Vec<(EntityMetadata, i64)>, InsertionError>;
 
     /// Get the [`Subgraph`]s specified by the [`StructuralQuery`].
     ///

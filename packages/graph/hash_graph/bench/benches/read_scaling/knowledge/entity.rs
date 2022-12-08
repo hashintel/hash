@@ -4,12 +4,9 @@ use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion};
 use criterion_macro::criterion;
 use graph::{
     identifier::account::AccountId,
-    knowledge::{EntityProperties, EntityQueryPath, EntityUuid},
+    knowledge::{EntityMetadata, EntityProperties},
     provenance::{OwnedById, UpdatedById},
-    store::{
-        query::{Filter, FilterExpression, Parameter},
-        AccountStore, AsClient, EntityStore, PostgresStore,
-    },
+    store::{query::Filter, AccountStore, AsClient, EntityStore, PostgresStore},
     subgraph::{edges::GraphResolveDepths, query::StructuralQuery},
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
@@ -26,7 +23,7 @@ async fn seed_db(
     account_id: AccountId,
     store_wrapper: &mut StoreWrapper,
     total: usize,
-) -> Vec<EntityUuid> {
+) -> Vec<EntityMetadata> {
     let transaction = store_wrapper
         .store
         .as_mut_client()
@@ -72,10 +69,9 @@ async fn seed_db(
 
     let entity_uuids = store
         .insert_entities_batched_by_type(
-            repeat((None, properties, None)).take(total),
-            entity_type_id,
-            OwnedById::new(account_id),
+            repeat((OwnedById::new(account_id), None, properties, None, None)).take(total),
             UpdatedById::new(account_id),
+            &entity_type_id,
         )
         .await
         .expect("failed to create entities");
@@ -94,29 +90,31 @@ async fn seed_db(
     );
 
     entity_uuids
+        .into_iter()
+        .map(|(entity_metadata, _)| entity_metadata)
+        .collect()
 }
 
 pub fn bench_get_entity_by_id(
     b: &mut Bencher,
     runtime: &Runtime,
     store: &Store,
-    entity_uuids: &[EntityUuid],
+    entity_metadatas: &[EntityMetadata],
 ) {
     b.to_async(runtime).iter_batched(
         || {
             // Each iteration, *before timing*, pick a random entity from the sample to
             // query
-            *entity_uuids.iter().choose(&mut thread_rng()).unwrap()
+            entity_metadatas
+                .iter()
+                .map(EntityMetadata::edition_id)
+                .choose(&mut thread_rng())
+                .unwrap()
         },
-        |entity_uuid| async move {
+        |entity_edition_id| async move {
             store
                 .get_entity(&StructuralQuery {
-                    filter: Filter::Equal(
-                        Some(FilterExpression::Path(EntityQueryPath::Uuid)),
-                        Some(FilterExpression::Parameter(Parameter::Uuid(
-                            entity_uuid.as_uuid(),
-                        ))),
-                    ),
+                    filter: Filter::for_entity_by_entity_id(entity_edition_id.base_id()),
                     graph_resolve_depths: GraphResolveDepths::default(),
                 })
                 .await
@@ -149,8 +147,8 @@ fn bench_scaling_read_entity(c: &mut Criterion) {
                 ),
             ),
             &(account_id, entity_uuids),
-            |b, (_account_id, entity_uuids)| {
-                bench_get_entity_by_id(b, &runtime, store, entity_uuids)
+            |b, (_account_id, entity_metadatas)| {
+                bench_get_entity_by_id(b, &runtime, store, entity_metadatas)
             },
         );
     }

@@ -496,13 +496,18 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     async fn insert_entities_batched_by_type(
         &mut self,
         entities: impl IntoIterator<
-            Item = (Option<EntityUuid>, EntityProperties, Option<LinkData>),
+            Item = (
+                OwnedById,
+                Option<EntityUuid>,
+                EntityProperties,
+                Option<LinkData>,
+                Option<DecisionTimestamp>,
+            ),
             IntoIter: Send,
         > + Send,
-        entity_type_id: VersionedUri,
-        owned_by_id: OwnedById,
         actor_id: UpdatedById,
-    ) -> Result<Vec<EntityUuid>, InsertionError> {
+        entity_type_id: &VersionedUri,
+    ) -> Result<Vec<(EntityMetadata, i64)>, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()
@@ -512,36 +517,54 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         );
 
         let entities = entities.into_iter();
-        let mut entity_uuids = Vec::with_capacity(entities.size_hint().0);
-        let mut entity_properties = Vec::with_capacity(entities.size_hint().0);
-        let mut entity_link_datas = Vec::with_capacity(entities.size_hint().0);
-        for (entity_uuid, properties, link_data) in entities {
-            entity_uuids.push(entity_uuid.unwrap_or_else(|| EntityUuid::new(Uuid::new_v4())));
-            entity_properties.push(properties);
-            entity_link_datas.push(link_data);
+        let mut entity_ids = Vec::with_capacity(entities.size_hint().0);
+        let mut entity_editions = Vec::with_capacity(entities.size_hint().0);
+        let mut entity_versions = Vec::with_capacity(entities.size_hint().0);
+        for (owned_by_id, entity_uuid, properties, link_data, decision_time) in entities {
+            entity_ids.push((
+                EntityId::new(
+                    owned_by_id,
+                    entity_uuid.unwrap_or_else(|| EntityUuid::new(Uuid::new_v4())),
+                ),
+                link_data.as_ref().map(LinkData::left_entity_id),
+                link_data.as_ref().map(LinkData::right_entity_id),
+            ));
+            entity_editions.push((
+                properties,
+                link_data.as_ref().and_then(LinkData::left_to_right_order),
+                link_data.as_ref().and_then(LinkData::right_to_left_order),
+            ));
+            entity_versions.push(decision_time);
         }
 
         // TODO: match on and return the relevant error
         //   https://app.asana.com/0/1200211978612931/1202574350052904/f
         transaction
-            .insert_entity_uuids(entity_uuids.iter().copied())
+            .insert_entity_ids(entity_ids.iter().copied())
             .await?;
 
         // Using one entity type per entity would result in more lookups, which results in a more
         // complex logic and/or be inefficient.
         // Please see the documentation for this function on the trait for more information.
         let entity_type_version_id = transaction
-            .version_id_by_uri(&entity_type_id)
+            .version_id_by_uri(entity_type_id)
             .await
             .change_context(InsertionError)?;
-        transaction
-            .insert_entity_batch_by_type(
-                entity_uuids.iter().copied(),
-                entity_properties,
-                entity_link_datas,
-                entity_type_version_id,
-                owned_by_id,
-                actor_id,
+
+        let entity_edition_ids = transaction
+            .insert_entity_editions(entity_editions, entity_type_version_id, actor_id)
+            .await?;
+
+        let entity_versions = transaction
+            .insert_entity_versions(
+                entity_ids
+                    .iter()
+                    .copied()
+                    .zip(entity_edition_ids.iter().copied())
+                    .zip(entity_versions)
+                    .map(|(((entity_id, ..), entity_edition_id), decision_time)| {
+                        (entity_id, entity_edition_id, decision_time)
+                    }),
             )
             .await?;
 
@@ -552,7 +575,19 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .into_report()
             .change_context(InsertionError)?;
 
-        Ok(entity_uuids)
+        Ok(entity_ids
+            .into_iter()
+            .zip(entity_versions)
+            .map(|((entity_id, ..), entity_version)| {
+                EntityMetadata::new(
+                    EntityEditionId::new(entity_id, entity_version),
+                    entity_type_id.clone(),
+                    ProvenanceMetadata::new(actor_id),
+                    false,
+                )
+            })
+            .zip(entity_edition_ids)
+            .collect())
     }
 
     async fn get_entity<'f: 'q, 'q>(
