@@ -81,8 +81,7 @@ const Page: NextPageWithLayout = () => {
   });
 
   const { getEntityType } = useBlockProtocolGetEntityType();
-  const { activeWorkspace, activeWorkspaceAccountId } =
-    useContext(WorkspaceContext);
+  const { activeWorkspace } = useContext(WorkspaceContext);
 
   const typeSystemLoading = useInitTypeSystem();
 
@@ -290,7 +289,7 @@ const Page: NextPageWithLayout = () => {
                   Create new entity type
                 </Button>
                 <Button
-                  href={`/${activeWorkspaceAccountId}`}
+                  href="/"
                   variant="tertiary"
                   size="small"
                   disabled={isSubmitting}
