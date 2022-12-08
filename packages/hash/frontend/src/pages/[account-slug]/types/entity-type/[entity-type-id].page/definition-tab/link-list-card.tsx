@@ -82,9 +82,11 @@ export const LinkListCard = () => {
           Allowed number of links <QuestionIcon />
         </TableCell>
       </EntityTypeTableHeaderRow>
-      {fields.map((type, index) => (
-        <LinkTypeRow key={type.id} linkIndex={index} />
-      ))}
+      <TableBody>
+        {fields.map((type, index) => (
+          <LinkTypeRow key={type.id} linkIndex={index} />
+        ))}
+      </TableBody>
     </EntityTypeTable>
   );
 };
