@@ -63,10 +63,7 @@ export const returnTypeAsJson = async (request: NextRequest) => {
   if (validationResultType === "Err") {
     return generateErrorResponse(
       400,
-      `Requests for JSON representations of types must be made to a versioned URI, e.g. ${url.replace(
-        /\/$/,
-        "",
-      )}/v/1`,
+      `${validationResult.reason}: requests for JSON representations of types must be made to a versioned URI, e.g. https://hash.ai/@example-org/types/entity-types/user/v/1`,
     );
   }
 
