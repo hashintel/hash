@@ -15,8 +15,8 @@ export const createHandleHeaderClicked = <T extends string>(
   sort: ColumnSort<T>,
   setColumnSort: SetColumnSort<T>,
 ) => {
-  return (col: number) => {
-    const key = columns[col]?.id as T;
+  return (colIndex: number) => {
+    const key = columns[colIndex]?.id as T;
 
     if (!key) {
       return;

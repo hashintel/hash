@@ -39,7 +39,10 @@ export const useGridTooltip = (
         setGridTooltip(newTooltip);
       }
 
-      const bounds = gridRef.current?.getBounds(newTooltip.col, newTooltip.row);
+      const bounds = gridRef.current?.getBounds(
+        newTooltip.colIndex,
+        newTooltip.rowIndex,
+      );
 
       if (!bounds) {
         return;
@@ -62,8 +65,11 @@ export const useGridTooltip = (
   );
 
   const hideTooltip = useCallback<TooltipCellProps["hideTooltip"]>(
-    (col, row) => {
-      if (gridTooltip?.col === col && gridTooltip?.row === row) {
+    (colIndex, rowIndex) => {
+      if (
+        gridTooltip?.colIndex === colIndex &&
+        gridTooltip?.rowIndex === rowIndex
+      ) {
         popupState.close();
       }
     },
