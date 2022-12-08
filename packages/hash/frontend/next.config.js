@@ -66,6 +66,10 @@ module.exports = withSentryConfig(
         hideSourceMaps: false,
       },
 
+      experimental: {
+        allowMiddlewareResponseBody: true,
+      },
+
       webpack: (webpackConfig) => {
         webpackConfig.module.rules.push({
           test: /\.svg$/,
