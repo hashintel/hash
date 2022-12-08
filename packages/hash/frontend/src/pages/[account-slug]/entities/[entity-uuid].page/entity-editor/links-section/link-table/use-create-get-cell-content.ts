@@ -10,18 +10,18 @@ import { SummaryChipCell } from "../../properties-section/property-table/cells/s
 export const useCreateGetCellContent = () => {
   const createGetCellContent = useCallback(
     (rows: LinkRow[]) =>
-      ([col, row]: Item):
+      ([colIndex, rowIndex]: Item):
         | LinkCell
         | SummaryChipCell
         | LinkedWithCell
         | ChipCell => {
-        const linkRow = rows[row];
+        const row = rows[rowIndex];
 
-        if (!linkRow) {
+        if (!row) {
           throw new Error("link not found");
         }
 
-        const columnKey = linkGridIndexes[col];
+        const columnKey = linkGridIndexes[colIndex];
 
         if (!columnKey) {
           throw new Error("columnKey not found");
@@ -33,10 +33,10 @@ export const useCreateGetCellContent = () => {
               kind: GridCellKind.Custom,
               readonly: true,
               allowOverlay: false,
-              copyData: linkRow.linkTitle,
+              copyData: row.linkTitle,
               data: {
                 kind: "link-cell",
-                linkRow,
+                linkRow: row,
               },
             };
           case "linkedWith":
@@ -49,7 +49,7 @@ export const useCreateGetCellContent = () => {
               cursor: "pointer",
               data: {
                 kind: "linked-with-cell",
-                linkRow,
+                linkRow: row,
               },
             };
           case "expectedEntityTypes":
@@ -57,10 +57,10 @@ export const useCreateGetCellContent = () => {
               kind: GridCellKind.Custom,
               readonly: true,
               allowOverlay: true,
-              copyData: String(linkRow.expectedEntityTypeTitles),
+              copyData: String(row.expectedEntityTypeTitles),
               data: {
                 kind: "chip-cell",
-                chips: linkRow.expectedEntityTypeTitles,
+                chips: row.expectedEntityTypeTitles,
                 color: "blue",
               },
             };

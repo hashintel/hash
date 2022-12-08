@@ -8,12 +8,12 @@ import { LinkRow } from "./types";
 import { useBlockProtocolArchiveEntity } from "../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolArchiveEntity";
 import { useSnackbar } from "../../../../../../../components/hooks/useSnackbar";
 
-export const useRowData = () => {
+export const useRows = () => {
   const { entitySubgraph, refetch } = useEntityEditor();
   const { archiveEntity } = useBlockProtocolArchiveEntity();
   const snackbar = useSnackbar();
 
-  const rowData = useMemo<LinkRow[]>(() => {
+  const rows = useMemo<LinkRow[]>(() => {
     const entity = getRoots(entitySubgraph)[0]!;
     const entityType = getEntityTypeById(
       entitySubgraph,
@@ -87,5 +87,5 @@ export const useRowData = () => {
     });
   }, [entitySubgraph, archiveEntity, refetch, snackbar]);
 
-  return rowData;
+  return rows;
 };
