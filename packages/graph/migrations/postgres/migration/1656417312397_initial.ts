@@ -362,7 +362,7 @@ export const up = (pgm: MigrationBuilder): void => {
         type: "tstzrange",
         notNull: true,
       },
-      system_time: {
+      transaction_time: {
         type: "tstzrange",
         notNull: true,
       },
@@ -381,7 +381,7 @@ export const up = (pgm: MigrationBuilder): void => {
 
   pgm.addConstraint("entity_versions", "entity_versions_overlapping", {
     exclude:
-      "USING gist (owned_by_id WITH =, entity_uuid WITH =, decision_time WITH &&, system_time WITH &&)",
+      "USING gist (owned_by_id WITH =, entity_uuid WITH =, decision_time WITH &&, transaction_time WITH &&)",
     deferrable: true,
   });
 
@@ -389,7 +389,7 @@ export const up = (pgm: MigrationBuilder): void => {
     "entity_versions",
     "entity_versions_decision_time_validation",
     {
-      check: `lower(decision_time) <= lower(system_time)`,
+      check: `lower(decision_time) <= lower(transaction_time)`,
     },
   );
 
@@ -402,7 +402,7 @@ export const up = (pgm: MigrationBuilder): void => {
       entity_versions.owned_by_id,
       entity_versions.entity_uuid,
       entity_versions.decision_time,
-      entity_versions.system_time,
+      entity_versions.transaction_time,
       entity_editions.entity_type_version_id,
       entity_editions.updated_by_id,
       entity_editions.properties,
@@ -477,7 +477,7 @@ export const up = (pgm: MigrationBuilder): void => {
     ],
     {
       returns:
-        "TABLE (entity_edition_id BIGINT, decision_time tstzrange, system_time tstzrange)",
+        "TABLE (entity_edition_id BIGINT, decision_time tstzrange, transaction_time tstzrange)",
       language: "plpgsql",
       replace: true,
     },
@@ -526,14 +526,14 @@ export const up = (pgm: MigrationBuilder): void => {
         entity_uuid,
         entity_edition_id,
         decision_time,
-        system_time
+        transaction_time
       ) VALUES (
         _owned_by_id,
         _entity_uuid,
         _entity_edition_id,
         tstzrange(_decision_time, 'infinity'),
         tstzrange(now(), 'infinity')
-      ) RETURNING entity_versions.entity_edition_id, entity_versions.decision_time, entity_versions.system_time;
+      ) RETURNING entity_versions.entity_edition_id, entity_versions.decision_time, entity_versions.transaction_time;
     END
     `,
   );
@@ -580,7 +580,7 @@ export const up = (pgm: MigrationBuilder): void => {
     ],
     {
       returns:
-        "TABLE (entity_edition_id BIGINT, decision_time tstzrange, system_time tstzrange)",
+        "TABLE (entity_edition_id BIGINT, decision_time tstzrange, transaction_time tstzrange)",
       language: "plpgsql",
       replace: true,
     },
@@ -610,13 +610,13 @@ export const up = (pgm: MigrationBuilder): void => {
       RETURN QUERY
       UPDATE entity_versions
       SET decision_time = tstzrange(_decision_time, upper(entity_versions.decision_time)),
-          system_time = tstzrange(now(), 'infinity'),
+          transaction_time = tstzrange(now(), 'infinity'),
           entity_edition_id = _new_entity_edition_id
       WHERE entity_versions.owned_by_id = _owned_by_id
         AND entity_versions.entity_uuid = _entity_uuid
         AND entity_versions.decision_time @> _decision_time
-        AND entity_versions.system_time @> now()
-      RETURNING entity_versions.entity_edition_id, entity_versions.decision_time, entity_versions.system_time;
+        AND entity_versions.transaction_time @> now()
+      RETURNING entity_versions.entity_edition_id, entity_versions.decision_time, entity_versions.transaction_time;
     END
     `,
   );
@@ -638,13 +638,13 @@ export const up = (pgm: MigrationBuilder): void => {
         entity_uuid,
         entity_edition_id,
         decision_time,
-        system_time
+        transaction_time
       ) VALUES (
         OLD.owned_by_id,
         OLD.entity_uuid,
         OLD.entity_edition_id,
         OLD.decision_time,
-        tstzrange(lower(OLD.system_time),lower(NEW.system_time))
+        tstzrange(lower(OLD.transaction_time),lower(NEW.transaction_time))
       );
 
       -- Insert a new version with the previous decision time until the new decision time
@@ -653,13 +653,13 @@ export const up = (pgm: MigrationBuilder): void => {
         entity_uuid,
         entity_edition_id,
         decision_time,
-        system_time
+        transaction_time
       ) VALUES (
         OLD.owned_by_id,
         OLD.entity_uuid,
         OLD.entity_edition_id,
         tstzrange(lower(OLD.decision_time), lower(NEW.decision_time)),
-        NEW.system_time
+        NEW.transaction_time
       );
 
       RETURN NEW;
