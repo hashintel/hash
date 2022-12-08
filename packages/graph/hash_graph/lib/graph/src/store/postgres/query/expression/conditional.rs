@@ -4,12 +4,15 @@ use crate::store::postgres::query::{AliasedColumn, Transpile, WindowStatement};
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Function<'q> {
-    Min(Expression<'q>),
-    Max(Expression<'q>),
+    Min(Box<Expression<'q>>),
+    Max(Box<Expression<'q>>),
     JsonExtractPath(Vec<Expression<'q>>),
-    JsonContains(Expression<'q>, Expression<'q>),
+    JsonContains(Box<Expression<'q>>, Box<Expression<'q>>),
     JsonBuildArray(Vec<Expression<'q>>),
     JsonBuildObject(Vec<(Expression<'q>, Expression<'q>)>),
+    Lower(Box<Expression<'q>>),
+    Upper(Box<Expression<'q>>),
+    Now,
 }
 
 impl Transpile for Function<'_> {
@@ -64,6 +67,17 @@ impl Transpile for Function<'_> {
                 }
                 fmt.write_char(')')
             }
+            Self::Now => fmt.write_str("now()"),
+            Self::Lower(expression) => {
+                fmt.write_str("lower(")?;
+                expression.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::Upper(expression) => {
+                fmt.write_str("upper(")?;
+                expression.transpile(fmt)?;
+                fmt.write_char(')')
+            }
         }
     }
 }
@@ -93,7 +107,7 @@ pub enum Expression<'q> {
     /// [`Constant`]s are directly transpiled into the SQL query. Caution has to be taken to
     /// prevent SQL injection and no user input should ever be used as a [`Constant`].
     Constant(Constant),
-    Function(Box<Function<'q>>),
+    Function(Function<'q>),
     Window(Box<Self>, WindowStatement<'q>),
 }
 

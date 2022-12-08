@@ -50,6 +50,13 @@ impl FromStr for DecisionTimestamp {
 #[postgres(transparent)]
 pub struct TransactionTimestamp(DateTime<Utc>);
 
+impl TransactionTimestamp {
+    #[must_use]
+    pub const fn as_date_time(&self) -> DateTime<Utc> {
+        self.0
+    }
+}
+
 impl fmt::Display for TransactionTimestamp {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> std::fmt::Result {
         fmt::Display::fmt(&self.0, fmt)

@@ -6,6 +6,7 @@ use std::{
     str::FromStr,
 };
 
+use chrono::{DateTime, Utc};
 use error_stack::{bail, ensure, Context, IntoReport, Report, ResultExt};
 use serde::Deserialize;
 use type_system::uri::VersionedUri;
@@ -104,7 +105,9 @@ impl<'q> Filter<'q, Entity> {
     #[must_use]
     pub const fn for_all_latest_entities() -> Self {
         Self::Equal(
-            Some(FilterExpression::Path(EntityQueryPath::Version)),
+            Some(FilterExpression::Path(
+                EntityQueryPath::LowerTransactionTime,
+            )),
             Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                 "latest",
             )))),
@@ -186,13 +189,15 @@ impl<'q> Filter<'q, Entity> {
                 ))),
             ),
             Self::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::Version)),
+                Some(FilterExpression::Path(
+                    EntityQueryPath::LowerTransactionTime,
+                )),
                 Some(FilterExpression::Parameter(Parameter::Timestamp(
                     edition_id
                         .version()
                         .transaction_time()
                         .start_bound()
-                        .cloned(),
+                        .map(TransactionTimestamp::as_date_time),
                 ))),
             ),
         ])
@@ -222,14 +227,14 @@ impl<'q> Filter<'q, Entity> {
             ),
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
-                    Box::new(EntityQueryPath::Version),
+                    Box::new(EntityQueryPath::LowerTransactionTime),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Timestamp(
                     edition_id
                         .version()
                         .transaction_time()
                         .start_bound()
-                        .cloned(),
+                        .map(TransactionTimestamp::as_date_time),
                 ))),
             ),
         ])
@@ -259,14 +264,14 @@ impl<'q> Filter<'q, Entity> {
             ),
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::RightEntity(
-                    Box::new(EntityQueryPath::Version),
+                    Box::new(EntityQueryPath::LowerTransactionTime),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Timestamp(
                     edition_id
                         .version()
                         .transaction_time()
                         .start_bound()
-                        .cloned(),
+                        .map(TransactionTimestamp::as_date_time),
                 ))),
             ),
         ])
@@ -296,14 +301,14 @@ impl<'q> Filter<'q, Entity> {
             ),
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::OutgoingLinks(
-                    Box::new(EntityQueryPath::Version),
+                    Box::new(EntityQueryPath::LowerTransactionTime),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Timestamp(
                     edition_id
                         .version()
                         .transaction_time()
                         .start_bound()
-                        .cloned(),
+                        .map(TransactionTimestamp::as_date_time),
                 ))),
             ),
         ])
@@ -333,14 +338,14 @@ impl<'q> Filter<'q, Entity> {
             ),
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::IncomingLinks(
-                    Box::new(EntityQueryPath::Version),
+                    Box::new(EntityQueryPath::LowerTransactionTime),
                 ))),
                 Some(FilterExpression::Parameter(Parameter::Timestamp(
                     edition_id
                         .version()
                         .transaction_time()
                         .start_bound()
-                        .cloned(),
+                        .map(TransactionTimestamp::as_date_time),
                 ))),
             ),
         ])
@@ -468,7 +473,7 @@ pub enum Parameter<'q> {
     #[serde(skip)]
     SignedInteger(i64),
     #[serde(skip)]
-    Timestamp(Bound<TransactionTimestamp>),
+    Timestamp(Bound<DateTime<Utc>>),
 }
 
 impl Parameter<'_> {
@@ -535,7 +540,7 @@ impl Parameter<'_> {
             (Parameter::Text(text), ParameterType::Timestamp) => {
                 if text != "latest" {
                     *self = Parameter::Timestamp(Bound::Included(
-                        TransactionTimestamp::from_str(&*text)
+                        DateTime::from_str(&*text)
                             .into_report()
                             .change_context_lazy(|| ParameterConversionError {
                                 actual: self.to_owned(),

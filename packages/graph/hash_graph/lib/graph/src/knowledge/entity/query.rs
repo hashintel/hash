@@ -44,56 +44,15 @@ pub enum EntityQueryPath<'q> {
     /// [`EntityId`]: crate::identifier::knowledge::EntityId
     /// [`Entity`]: crate::knowledge::Entity
     OwnedById,
-    /// The [`EntityVersion`] of the [`EntityEditionId`] belonging to the [`Entity`].
-    ///
-    /// ```rust
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::knowledge::EntityQueryPath;
-    /// let path = EntityQueryPath::deserialize(json!(["version"]))?;
-    /// assert_eq!(path, EntityQueryPath::Version);
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
-    ///
-    /// In addition to specifying the version directly, it's also possible to compare the version
-    /// with a `"latest"` parameter, which will only match the latest version of the [`Entity`].
-    ///
-    /// ```rust
-    /// # use std::borrow::Cow;
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::knowledge::{Entity, EntityQueryPath};
-    /// # use graph::store::query::{Filter, FilterExpression, Parameter};
-    /// let filter_value = json!({ "equal": [{ "path": ["version"] }, { "parameter": "latest" }] });
-    /// let path = Filter::<Entity>::deserialize(filter_value)?;
-    /// assert_eq!(path, Filter::Equal(
-    ///     Some(FilterExpression::Path(EntityQueryPath::Version)),
-    ///     Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed("latest")))))
-    /// );
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
-    ///
-    /// ```rust
-    /// # use std::borrow::Cow;
-    /// # use serde::Deserialize;
-    /// # use serde_json::json;
-    /// # use graph::{store::query::{Filter, FilterExpression, Parameter}};
-    /// # use graph::knowledge::{Entity, EntityQueryPath};
-    /// let filter_value = json!({ "equal": [{ "path": ["version"] }, { "parameter": "latest" }] });
-    /// let path = Filter::<Entity>::deserialize(filter_value)?;
-    /// assert_eq!(path, Filter::Equal(
-    ///     Some(FilterExpression::Path(EntityQueryPath::Version)),
-    ///     Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed("latest")))))
-    /// );
-    /// # Ok::<(), serde_json::Error>(())
-    /// ```
-    ///
-    /// Typically, this is a timestamp, but also `"latest"` can be specified as a parameter.
-    ///
-    /// [`EntityVersion`]: crate::identifier::knowledge::EntityVersion
-    /// [`EntityEditionId`]: crate::identifier::knowledge::EntityEditionId
-    /// [`Entity`]: crate::knowledge::Entity
-    Version,
+    // TODO: DOC: https://app.asana.com/0/0/1203505325130325/f
+    EditionId,
+    // TODO: DOC: https://app.asana.com/0/0/1203505325130325/f
+    DecisionTime,
+    // TODO: DOC: https://app.asana.com/0/0/1203505325130325/f
+    TransactionTime,
+    // TODO: Remove when adjusting structural queries
+    //   see https://app.asana.com/0/0/1203491211535116/f
+    LowerTransactionTime,
     /// Whether or not the [`Entity`] is archived.
     ///
     /// ```rust
@@ -279,7 +238,10 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::Uuid => fmt.write_str("uuid"),
             Self::OwnedById => fmt.write_str("ownedById"),
             Self::UpdatedById => fmt.write_str("updatedById"),
-            Self::Version => fmt.write_str("version"),
+            Self::EditionId => fmt.write_str("editionId"),
+            Self::DecisionTime => fmt.write_str("decisionTime"),
+            Self::TransactionTime => fmt.write_str("transactionTime"),
+            Self::LowerTransactionTime => fmt.write_str("transactionTimeFrom"),
             Self::Archived => fmt.write_str("archived"),
             Self::Type(path) => write!(fmt, "type.{path}"),
             Self::Properties(Some(property)) => write!(fmt, "properties.{property}"),
@@ -298,11 +260,14 @@ impl RecordPath for EntityQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
             Self::Uuid | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
+            Self::EditionId => ParameterType::UnsignedInteger,
             Self::LeftEntity(path)
             | Self::RightEntity(path)
             | Self::IncomingLinks(path)
             | Self::OutgoingLinks(path) => path.expected_type(),
-            Self::Version => ParameterType::Timestamp,
+            Self::DecisionTime | Self::TransactionTime | Self::LowerTransactionTime => {
+                ParameterType::Timestamp
+            }
             Self::Type(path) => path.expected_type(),
             Self::Properties(_) => ParameterType::Any,
             Self::LeftToRightOrder | Self::RightToLeftOrder => ParameterType::Number,
@@ -369,7 +334,7 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
             EntityQueryToken::Uuid => EntityQueryPath::Uuid,
             EntityQueryToken::OwnedById => EntityQueryPath::OwnedById,
             EntityQueryToken::UpdatedById => EntityQueryPath::UpdatedById,
-            EntityQueryToken::Version => EntityQueryPath::Version,
+            EntityQueryToken::Version => EntityQueryPath::LowerTransactionTime,
             EntityQueryToken::Archived => EntityQueryPath::Archived,
             EntityQueryToken::Type => EntityQueryPath::Type(
                 EntityTypeQueryPathVisitor::new(self.position).visit_seq(seq)?,
@@ -422,7 +387,7 @@ mod tests {
 
     #[test]
     fn deserialization() {
-        assert_eq!(deserialize(["version"]), EntityQueryPath::Version);
+        assert_eq!(deserialize(["version"]), EntityQueryPath::DecisionTimeFrom);
         assert_eq!(deserialize(["ownedById"]), EntityQueryPath::OwnedById);
         assert_eq!(
             deserialize(["type", "version"]),
