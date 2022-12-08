@@ -226,9 +226,9 @@ export default class extends EntityModel {
    */
   async getKratosIdentity(): Promise<KratosUserIdentity> {
     const kratosIdentityId = this.getKratosIdentityId();
-    const { data: kratosIdentity } = await adminKratosSdk.adminGetIdentity(
-      kratosIdentityId,
-    );
+    const { data: kratosIdentity } = await adminKratosSdk.getIdentity({
+      id: kratosIdentityId,
+    });
 
     return kratosIdentity;
   }
@@ -248,12 +248,15 @@ export default class extends EntityModel {
       throw new Error("Previous user identity state is undefined");
     }
 
-    await adminKratosSdk.adminUpdateIdentity(kratosIdentityId, {
-      schema_id,
-      state,
-      traits: {
-        ...currentKratosTraits,
-        ...updatedTraits,
+    await adminKratosSdk.updateIdentity({
+      id: kratosIdentityId,
+      updateIdentityBody: {
+        schema_id,
+        state,
+        traits: {
+          ...currentKratosTraits,
+          ...updatedTraits,
+        },
       },
     });
   }

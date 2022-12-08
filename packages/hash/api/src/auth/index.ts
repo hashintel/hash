@@ -71,14 +71,20 @@ const kratosAfterRegistrationHookHandler =
 
         res.status(200).end();
       } catch (error) {
-        /**
-         * @todo: instead of manually cleaning up after the registration flow,
-         * use a "pre-persist" after registration kratos hook when the following
-         * PR is merged: https://github.com/ory/kratos/pull/2343
-         */
-        await adminKratosSdk.adminDeleteIdentity(kratosIdentityId);
+        // The kratos hook can interrup creation on 4xx and 5xx responses.
+        // We pass context as an error to not leak any kratos implementation details.
 
-        next(error);
+        res.status(400).send(
+          JSON.stringify({
+            messages: [
+              {
+                type: "error",
+                error: "Error creating user",
+                context: error,
+              },
+            ],
+          }),
+        );
       }
     })();
   };
@@ -99,7 +105,7 @@ const setupAuth = (params: {
   // eslint-disable-next-line @typescript-eslint/no-misused-promises -- https://github.com/DefinitelyTyped/DefinitelyTyped/issues/50871
   app.use(async (req, _res, next) => {
     const kratosSession = await publicKratosSdk
-      .toSession(undefined, req.header("cookie"))
+      .toSession({ cookie: req.header("cookie") })
       .then(({ data }) => data)
       .catch((err: AxiosError) => {
         // 403 on toSession means that we need to request 2FA

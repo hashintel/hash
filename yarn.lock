@@ -4731,40 +4731,40 @@
     ms "^2.1.3"
     secure-json-parse "^2.4.0"
 
-"@ory/client@0.2.0-alpha.4":
-  version "0.2.0-alpha.4"
-  resolved "https://registry.yarnpkg.com/@ory/client/-/client-0.2.0-alpha.4.tgz#26be882c5bd687a749785c287a977580c88f47d6"
-  integrity sha512-EwrIoJ3hX85yrrYXxRtIfIMe1SG2leE0u9ZQvozW2cYgCOdxL2bDAKqTgFUmkV6HYntODURu7mOf4GWYzAvIaw==
+"@ory/client@1.0.2":
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/@ory/client/-/client-1.0.2.tgz#1f026cb998251d34df19e1913d51c5f5f95cf82c"
+  integrity sha512-Hf+KIUFlKsvtez1byxolqrf0qg5jtgihkgTUzzgvTNh3ZjgvsLfyOptQcPpNz5cpHkCJeKjv1j4xky4eLg/t4A==
   dependencies:
     axios "^0.21.4"
 
-"@ory/client@>=0.0.1-alpha.49":
-  version "0.0.1-alpha.189"
-  resolved "https://registry.yarnpkg.com/@ory/client/-/client-0.0.1-alpha.189.tgz#6f045aac60a9750dc437c3ea543106f19f60a126"
-  integrity sha512-Z6J7HF25kw6PJ55pA7Ex5VgUY2jQ1m26XiWQpicqNu2DHyQT5ZmZOfftcxftB2945ebfL9mBWP6j1qOzPUdf1g==
+"@ory/client@^0.2.0-alpha.16":
+  version "0.2.0-alpha.60"
+  resolved "https://registry.yarnpkg.com/@ory/client/-/client-0.2.0-alpha.60.tgz#891589f64912d865febadae5acf587dfb421e171"
+  integrity sha512-fGovJ/xIl7dvJJP9/IL4Xu1yiOCy9pvmkfj2xnHZbPrIbL9c9tqVcC3CSlzBq6zJQZMC3XI7VmZ8uEQ+cF4suw==
   dependencies:
     axios "^0.21.4"
 
-"@ory/integrations@0.2.6":
-  version "0.2.6"
-  resolved "https://registry.yarnpkg.com/@ory/integrations/-/integrations-0.2.6.tgz#1d672aa36634fe99dff2da40fd4784c52ffcfc4f"
-  integrity sha512-P47K3PbL4i+NPFs8Wys+UnH4EKhNK0Ct2vMYGje+mmtkwsBDzvQaGThd8h6Z3Cbvi7NnkaB+O/o2gb35BNHm1Q==
+"@ory/integrations@0.2.8":
+  version "0.2.8"
+  resolved "https://registry.yarnpkg.com/@ory/integrations/-/integrations-0.2.8.tgz#8931c295a87c841a336783cf69ae711584916aa4"
+  integrity sha512-khK2lVUQm+TZ+Mtq+aArrJCw1IldILp1CnmrdC/R9XMgEEVuA4hjkIqKx/z72KSfXtaQvdVgMKmcLgYs+8V0bQ==
   dependencies:
-    "@ory/client" ">=0.0.1-alpha.49"
+    "@ory/client" "^0.2.0-alpha.16"
     "@types/tldjs" "^2.3.1"
     cookie "^0.4.1"
     istextorbinary "^6.0.0"
     next ">=12.0.10"
-    ory-prettier-styles "^1.1.2"
+    ory-prettier-styles "^1.3.0"
     prettier "^2.3.2"
     request "^2.88.2"
     set-cookie-parser "^2.4.8"
     tldjs "^2.3.1"
 
-"@ory/kratos-client@0.10.1":
-  version "0.10.1"
-  resolved "https://registry.yarnpkg.com/@ory/kratos-client/-/kratos-client-0.10.1.tgz#4957233e4ef6e1845e28765d32244ef89e69b93b"
-  integrity sha512-WfoEW1HKeKUkG+57oShb6D3xENM3DpRbUxvVxbPZkJUKzFlXpBzbX71k2oQ6ajv6cy0ULVEKFLNcHpAoGjraNA==
+"@ory/kratos-client@0.11.0":
+  version "0.11.0"
+  resolved "https://registry.yarnpkg.com/@ory/kratos-client/-/kratos-client-0.11.0.tgz#87b60cb5bd649d3e01b6d518be1a69e10f6af9e4"
+  integrity sha512-A+BVVE+mokwuDxXUr8XTHIVgP0jdIT4vZJIc38+3Q8JS3KkTYZat6zxzI5lDPN6nEl42CNgfBZvjvpL/rSC0IQ==
   dependencies:
     axios "^0.21.4"
 
@@ -14689,7 +14689,7 @@ orderedmap@^2.0.0:
   resolved "https://registry.yarnpkg.com/orderedmap/-/orderedmap-2.1.0.tgz#819457082fa3a06abd316d83a281a1ca467437cd"
   integrity sha512-/pIFexOm6S70EPdznemIz3BQZoJ4VTFrhqzu0ACBqBgeLsLxq8e6Jim63ImIfwW/zAD1AlXpRMlOv3aghmo4dA==
 
-ory-prettier-styles@^1.1.2:
+ory-prettier-styles@^1.3.0:
   version "1.3.0"
   resolved "https://registry.yarnpkg.com/ory-prettier-styles/-/ory-prettier-styles-1.3.0.tgz#4dc4389f47e80297b82fd5b43cd2128536ce7440"
   integrity sha512-Vfn0G6CyLaadwcCamwe1SQCf37ZQfBDgMrhRI70dE/2fbE3Q43/xu7K5c32I5FGt/EliroWty5yBjmdkj0eWug==

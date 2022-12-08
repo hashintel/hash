@@ -12,7 +12,7 @@ export const useLogoutFlow = (deps?: DependencyList) => {
 
   useEffect(() => {
     oryKratosClient
-      .createSelfServiceLogoutFlowUrlForBrowsers()
+      .createBrowserLogoutFlow()
       .then(({ data }) => setLogoutToken(data.logout_token))
       .catch((err: AxiosError) => {
         switch (err.response?.status) {
@@ -30,7 +30,7 @@ export const useLogoutFlow = (deps?: DependencyList) => {
   return {
     logout: async () => {
       if (logoutToken) {
-        await oryKratosClient.submitSelfServiceLogoutFlow(logoutToken);
+        await oryKratosClient.updateLogoutFlow({ token: logoutToken });
 
         resetLocalStorage();
 
