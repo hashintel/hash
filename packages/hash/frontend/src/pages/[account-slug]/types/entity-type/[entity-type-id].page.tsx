@@ -19,21 +19,18 @@ import {
   getLayoutWithSidebar,
   NextPageWithLayout,
 } from "../../../../shared/layout";
-import { Button } from "../../../../shared/ui/button";
 import { TopContextBar } from "../../../shared/top-context-bar";
-import { EntityTypesContext } from "./[entity-type-id].page/shared/entity-types-context";
 import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
 import { OntologyChip } from "../../shared/ontology-chip";
+import { useRouteNamespace } from "../../shared/use-route-namespace";
 import { DefinitionTab } from "./[entity-type-id].page/definition-tab";
 import { EditBar } from "./[entity-type-id].page/edit-bar";
 import { EntitiesTab } from "./[entity-type-id].page/entities-tab";
 import { EntityTypeTabs } from "./[entity-type-id].page/entity-type-tabs";
 import { EntityTypeContext } from "./[entity-type-id].page/shared/entity-type-context";
 import { EntityTypeEntitiesContext } from "./[entity-type-id].page/shared/entity-type-entities-context";
-import {
-  EntityTypeEditorForm,
-  EntityTypeEditorPropertyData,
-} from "./[entity-type-id].page/shared/form-types";
+import { EntityTypesContext } from "./[entity-type-id].page/shared/entity-types-context";
+import { EntityTypeEditorForm } from "./[entity-type-id].page/shared/form-types";
 import { getEntityTypeBaseUri } from "./[entity-type-id].page/shared/get-entity-type-base-uri";
 import { PropertyTypesContext } from "./[entity-type-id].page/shared/property-types-context";
 import { useCurrentTab } from "./[entity-type-id].page/shared/tabs";
@@ -41,11 +38,12 @@ import { useEntityTypeEntitiesContextValue } from "./[entity-type-id].page/use-e
 import { useEntityTypeValue } from "./[entity-type-id].page/use-entity-type-value";
 import { useEntityTypesContextValue } from "./[entity-type-id].page/use-entity-types-context-value";
 import { usePropertyTypesContextValue } from "./[entity-type-id].page/use-property-types-context-value";
-import { useRouteNamespace } from "../../shared/use-route-namespace";
 
 const getSchemaFromEditorForm = (
-  properties: EntityTypeEditorPropertyData[],
+  data: EntityTypeEditorForm,
 ): Partial<EntityType> => {
+  const properties = data.properties;
+
   const schemaProperties: Record<
     string,
     ValueOrArray<PropertyTypeReference>
@@ -78,8 +76,40 @@ const getSchemaFromEditorForm = (
     }
   }
 
+  const links: NonNullable<EntityType["links"]> = {};
+
+  for (const link of data.links) {
+    links[link.$id] = {
+      type: "array",
+      minItems: link.minValue,
+      maxItems: link.maxValue,
+      ordered: false,
+      items: { oneOf: link.entityTypes.map((id) => ({ $ref: id })) },
+    };
+  }
+
+  // await updateEntityType({
+  //   ...getSchemaFromEditorForm(getValues("properties")),
+  //   links: {
+  //     "http://localhost:3000/@system-user/types/entity-type/block-data/v/1": {
+  //       type: "array",
+  //       minItems: 1,
+  //       maxItems: 1,
+  //       ordered: false,
+  //       items: {
+  //         oneOf: [
+  //           {
+  //             $ref: "http://localhost:3000/@alice/types/entity-type/second-test-type/v/1",
+  //           },
+  //         ],
+  //       },
+  //     },
+  //   },
+  // });
+
   return {
     properties: schemaProperties,
+    links,
     required,
   };
 };
@@ -123,7 +153,7 @@ const Page: NextPageWithLayout = () => {
   const formMethods = useForm<EntityTypeEditorForm>({
     defaultValues: { properties: [], links: [] },
   });
-  const { handleSubmit: wrapHandleSubmit, reset, getValues } = formMethods;
+  const { handleSubmit: wrapHandleSubmit, reset } = formMethods;
 
   const [
     remoteEntityType,
@@ -172,7 +202,7 @@ const Page: NextPageWithLayout = () => {
 
   // @todo handle links
   const handleSubmit = wrapHandleSubmit(async (data) => {
-    const entityTypeSchema = getSchemaFromEditorForm(data.properties);
+    const entityTypeSchema = getSchemaFromEditorForm(data);
 
     if (isDraft) {
       if (!draftEntityType) {
@@ -227,31 +257,6 @@ const Page: NextPageWithLayout = () => {
           <EntityTypeContext.Provider value={entityType}>
             <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
               <EntityTypesContext.Provider value={entityTypesContextValue.data}>
-                <Button
-                  onClick={async () => {
-                    await updateEntityType({
-                      ...getSchemaFromEditorForm(getValues("properties")),
-                      links: {
-                        "http://localhost:3000/@system-user/types/entity-type/block-data/v/1":
-                          {
-                            type: "array",
-                            minItems: 1,
-                            maxItems: 1,
-                            ordered: false,
-                            items: {
-                              oneOf: [
-                                {
-                                  $ref: "http://localhost:3000/@alice/types/entity-type/second-test-type/v/1",
-                                },
-                              ],
-                            },
-                          },
-                      },
-                    });
-                  }}
-                >
-                  ADD LINK
-                </Button>
                 <Box
                   sx={{
                     display: "flex",

@@ -1,4 +1,6 @@
 import { VersionedUri } from "@blockprotocol/type-system";
+import { faList } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@hashintel/hash-design-system";
 import {
   Checkbox,
   iconButtonClasses,
@@ -17,20 +19,12 @@ import {
   useWatch,
 } from "react-hook-form";
 import { useBlockProtocolUpdatePropertyType } from "../../../../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolUpdatePropertyType";
-import {
-  EntityTypeTable,
-  EntityTypeTableButtonRow,
-  EntityTypeTableCenteredCell,
-  EntityTypeTableHeaderRow,
-  EntityTypeTableRow,
-  EntityTypeTableTitleCellText,
-} from "./shared/entity-type-table";
+import { StyledPlusCircleIcon } from "../../../../shared/styled-plus-circle-icon";
+import { EntityTypeEditorForm } from "../shared/form-types";
 import {
   usePropertyTypes,
   useRefetchPropertyTypes,
 } from "../shared/property-types-context";
-import { EmptyPropertyListCard } from "./property-list-card/empty-property-list-card";
-import { EntityTypeEditorForm } from "../shared/form-types";
 import { InsertPropertyRow } from "./property-list-card/insert-property-row";
 import { MultipleValuesCell } from "./property-list-card/multiple-values-cell";
 import { PropertyExpectedValues } from "./property-list-card/property-expected-values";
@@ -39,9 +33,17 @@ import {
   formDataToPropertyType,
   PropertyTypeForm,
 } from "./property-list-card/shared/property-type-form";
+import { EmptyListCard } from "./shared/empty-list-card";
+import {
+  EntityTypeTable,
+  EntityTypeTableButtonRow,
+  EntityTypeTableCenteredCell,
+  EntityTypeTableHeaderRow,
+  EntityTypeTableRow,
+  EntityTypeTableTitleCellText,
+} from "./shared/entity-type-table";
 import { QuestionIcon } from "./shared/question-icon";
-import { StyledPlusCircleIcon } from "../../../../shared/styled-plus-circle-icon";
-import { useStateCallback } from "./property-list-card/use-state-callback";
+import { useStateCallback } from "./shared/use-state-callback";
 
 export const PropertyTypeRow = ({
   propertyIndex,
@@ -188,12 +190,27 @@ export const PropertyListCard = () => {
 
   if (!addingNewProperty && fields.length === 0) {
     return (
-      <EmptyPropertyListCard
+      <EmptyListCard
         onClick={() => {
           setAddingNewProperty(true, () => {
             addingNewPropertyRef.current?.focus();
           });
         }}
+        icon={<FontAwesomeIcon icon={faList} />}
+        headline={<>Add a property</>}
+        description={
+          <>
+            Properties store individual pieces of information about some aspect
+            of an entity
+          </>
+        }
+        subDescription={
+          <>
+            e.g. a <strong>person</strong> entity might have a{" "}
+            <strong>date of birth</strong> property which expects a{" "}
+            <strong>date</strong>
+          </>
+        }
       />
     );
   }
