@@ -1,6 +1,8 @@
+import { Chip } from "@hashintel/hash-design-system";
 import { TableCell } from "@mui/material";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import {
+  useEntityTypes,
   useEntityTypesLoading,
   useLinkEntityTypes,
 } from "../shared/entity-types-context";
@@ -16,24 +18,44 @@ import { QuestionIcon } from "./shared/question-icon";
 const LinkTypeRow = ({ linkIndex }: { linkIndex: number }) => {
   const { control } = useFormContext<EntityTypeEditorForm>();
   const linkTypes = useLinkEntityTypes();
+  const entityTypes = useEntityTypes();
 
-  const linkId = useWatch({
+  // @todo watch more specific
+  const linkData = useWatch({
     control,
-    name: `links.${linkIndex}.$id`,
+    name: `links.${linkIndex}`,
   });
 
-  const link = linkTypes[linkId];
+  const link = linkTypes[linkData.$id];
 
   if (!link) {
     throw new Error("Missing link");
   }
 
+  const linkedEntityTypes = linkData.entityTypes.map((id) => {
+    const entityType = entityTypes[id];
+
+    if (!entityType) {
+      throw new Error("Missing entity type");
+    }
+
+    return entityType;
+  });
+
   return (
     <EntityTypeTableRow>
-      <TableCell colspan={100}>
+      <TableCell>
         <EntityTypeTableTitleCellText>
           {link.schema.title}
         </EntityTypeTableTitleCellText>
+      </TableCell>
+      <TableCell>
+        {linkedEntityTypes.map((entityType) => (
+          <Chip key={entityType.schema.$id} label={entityType.schema.title} />
+        ))}
+      </TableCell>
+      <TableCell>
+        <input type="checkbox" checked={linkData.maxValue > 1} />
       </TableCell>
     </EntityTypeTableRow>
   );
