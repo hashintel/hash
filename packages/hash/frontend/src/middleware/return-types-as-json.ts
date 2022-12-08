@@ -2,8 +2,7 @@ import {
   DataType,
   EntityType,
   PropertyType,
-  TypeSystemInitializer,
-  validateVersionedUri,
+  VersionedUri,
 } from "@blockprotocol/type-system";
 import { apiGraphQLEndpoint } from "@hashintel/hash-shared/environment";
 import { NextResponse } from "next/server";
@@ -51,34 +50,28 @@ const makeGraphQlRequest = async <Data, Variables>(
   return { data, errors };
 };
 
-export const returnTypeAsJson = async (request: NextRequest) => {
-  // @todo this blows up the middleware function's compiled size – is that a problem? is it worth it?
-  await TypeSystemInitializer.initialize();
+const versionedUriRegExp =
+  /types\/(entity-type|data-type|property-type)\/.+\/v\/\d+$/;
 
+const validateVersionedUri = (uri: string): uri is VersionedUri =>
+  !!uri.match(versionedUriRegExp);
+
+export const returnTypeAsJson = async (request: NextRequest) => {
   const { url } = request;
 
-  const { inner: validationResult, type: validationResultType } =
-    validateVersionedUri(url);
+  const ontologyType = url.match(versionedUriRegExp)?.[1];
+  const isUriValid = validateVersionedUri(url);
 
-  if (validationResultType === "Err") {
+  if (!isUriValid) {
     return generateErrorResponse(
       400,
-      `${validationResult.reason}: requests for JSON representations of types must be made to a versioned URI, e.g. https://hash.ai/@example-org/types/entity-type/user/v/1`,
-    );
-  }
-
-  const ontologyType = url.match(/types\/(entity|data|property)-type/)?.[1];
-
-  if (!ontologyType || !["data", "entity", "property"].includes(ontologyType)) {
-    return generateErrorResponse(
-      400,
-      "Malformed URL - expected to contain /types/(entity|data|property)-type/",
+      "Malformed URL - expected to be in format @[workspace]/types/(entity-type|data-type|property-type)/[slug]/v/[version]",
     );
   }
 
   const { query, variables } = generateQueryArgs(
-    validationResult,
-    ontologyType as "data" | "entity" | "property",
+    url,
+    ontologyType as "data-type" | "entity-type" | "property-type",
   );
 
   const cookie = request.headers.get("cookie");
@@ -111,7 +104,7 @@ export const returnTypeAsJson = async (request: NextRequest) => {
   if (!root) {
     return generateErrorResponse(
       404,
-      `Could not find requested ${ontologyType} type at URI ${validationResult}`,
+      `Could not find requested ${ontologyType} type at URI ${url}`,
     );
   }
 
