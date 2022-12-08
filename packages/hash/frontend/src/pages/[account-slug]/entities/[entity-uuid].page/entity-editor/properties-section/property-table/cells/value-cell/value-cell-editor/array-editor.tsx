@@ -112,7 +112,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
         ref={scrollableContainer}
         sx={{
           maxHeight: 300,
-          overflowY: "scroll",
+          overflowY: "auto",
           overflowX: "hidden",
           borderBottom: "1px solid",
           borderColor: "gray.20",
@@ -152,6 +152,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
 
       {editingRow !== NEW_ROW_KEY ? (
         <AddAnotherButton
+          title="Add Another Value"
           onClick={() => {
             setEditingRow(NEW_ROW_KEY);
             setSelectedRow("");
