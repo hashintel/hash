@@ -184,10 +184,9 @@ Under the [`./modules/`](./modules/) folder we define the HASH application throu
 
 ```mermaid
 graph TD;
-    subgraph hash
-        networking
-        variables
-    end
+    networking
+    variables
+    hash
 
     hash-->container_cluster
     hash-->hash_application
