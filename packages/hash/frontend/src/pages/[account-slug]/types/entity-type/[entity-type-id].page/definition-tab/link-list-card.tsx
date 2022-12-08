@@ -1,26 +1,39 @@
 import { TableCell } from "@mui/material";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
+import {
+  useEntityTypesLoading,
+  useLinkEntityTypes,
+} from "../shared/entity-types-context";
 import { EntityTypeEditorForm } from "../shared/form-types";
-import { QuestionIcon } from "./shared/question-icon";
 import {
   EntityTypeTable,
   EntityTypeTableHeaderRow,
   EntityTypeTableRow,
   EntityTypeTableTitleCellText,
 } from "./shared/entity-type-table";
+import { QuestionIcon } from "./shared/question-icon";
 
 const LinkTypeRow = ({ linkIndex }: { linkIndex: number }) => {
   const { control } = useFormContext<EntityTypeEditorForm>();
+  const linkTypes = useLinkEntityTypes();
 
-  const link = useWatch({
+  const linkId = useWatch({
     control,
-    name: `links.${linkIndex}`,
+    name: `links.${linkIndex}.$id`,
   });
+
+  const link = linkTypes[linkId];
+
+  if (!link) {
+    throw new Error("Missing link");
+  }
 
   return (
     <EntityTypeTableRow>
       <TableCell colspan={100}>
-        <EntityTypeTableTitleCellText>{link.$id}</EntityTypeTableTitleCellText>
+        <EntityTypeTableTitleCellText>
+          {link.schema.title}
+        </EntityTypeTableTitleCellText>
       </TableCell>
     </EntityTypeTableRow>
   );
@@ -29,6 +42,12 @@ const LinkTypeRow = ({ linkIndex }: { linkIndex: number }) => {
 export const LinkListCard = () => {
   const { control } = useFormContext<EntityTypeEditorForm>();
   const { fields } = useFieldArray({ control, name: "links" });
+  const loading = useEntityTypesLoading();
+
+  // @todo loading state
+  if (loading) {
+    return null;
+  }
 
   return (
     <EntityTypeTable>

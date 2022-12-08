@@ -21,6 +21,7 @@ import {
 } from "../../../../shared/layout";
 import { Button } from "../../../../shared/ui/button";
 import { TopContextBar } from "../../../shared/top-context-bar";
+import { EntityTypesContext } from "./[entity-type-id].page/shared/entity-types-context";
 import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
 import { OntologyChip } from "../../shared/ontology-chip";
 import { DefinitionTab } from "./[entity-type-id].page/definition-tab";
@@ -38,7 +39,7 @@ import { PropertyTypesContext } from "./[entity-type-id].page/shared/property-ty
 import { useCurrentTab } from "./[entity-type-id].page/shared/tabs";
 import { useEntityTypeEntitiesContextValue } from "./[entity-type-id].page/use-entity-type-entities-context-value";
 import { useEntityTypeValue } from "./[entity-type-id].page/use-entity-type-value";
-import { useLinkEntityTypesContextValue } from "./[entity-type-id].page/use-link-entity-types-context-value";
+import { useEntityTypesContextValue } from "./[entity-type-id].page/use-entity-types-context-value";
 import { usePropertyTypesContextValue } from "./[entity-type-id].page/use-property-types-context-value";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
 
@@ -103,9 +104,7 @@ const Page: NextPageWithLayout = () => {
     useEntityTypeEntitiesContextValue(baseEntityTypeUri);
 
   const propertyTypes = usePropertyTypesContextValue();
-  const linkEntityTypes = useLinkEntityTypesContextValue();
-
-  console.log(linkEntityTypes);
+  const entityTypesContextValue = useEntityTypesContextValue();
 
   const draftEntityType = useMemo(() => {
     if (router.query.draft) {
@@ -227,138 +226,140 @@ const Page: NextPageWithLayout = () => {
         <PropertyTypesContext.Provider value={propertyTypes}>
           <EntityTypeContext.Provider value={entityType}>
             <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
-              <Button
-                onClick={async () => {
-                  await updateEntityType({
-                    ...getSchemaFromEditorForm(getValues("properties")),
-                    links: {
-                      "http://localhost:3000/@system-user/types/entity-type/block-data/v/1":
-                        {
-                          type: "array",
-                          minItems: 1,
-                          maxItems: 1,
-                          ordered: false,
-                          items: {
-                            oneOf: [
-                              {
-                                $ref: "http://localhost:3000/@alice/types/entity-type/second-test-type/v/1",
-                              },
-                            ],
-                          },
-                        },
-                    },
-                  });
-                }}
-              >
-                ADD LINK
-              </Button>
-              <Box
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-                component="form"
-                onSubmit={handleSubmit}
-              >
-                <Box bgcolor="white" borderBottom={1} borderColor="gray.20">
-                  <TopContextBar
-                    defaultCrumbIcon={null}
-                    crumbs={[
-                      {
-                        title: "Types",
-                        href: "#",
-                        id: "types",
-                      },
-                      {
-                        title: "Entity types",
-                        href: "#",
-                        id: "entity-types",
-                      },
-                      {
-                        title: entityType.title,
-                        href: "#",
-                        id: entityType.$id,
-                        icon: <FontAwesomeIcon icon={faAsterisk} />,
-                      },
-                    ]}
-                    scrollToTop={() => {}}
-                  />
-                  <EditBar
-                    currentVersion={currentVersion}
-                    discardButtonProps={
-                      // @todo confirmation of discard when draft
-                      isDraft
-                        ? {
-                            href: `/new/types/entity-type`,
-                          }
-                        : {
-                            onClick() {
-                              reset();
+              <EntityTypesContext.Provider value={entityTypesContextValue.data}>
+                <Button
+                  onClick={async () => {
+                    await updateEntityType({
+                      ...getSchemaFromEditorForm(getValues("properties")),
+                      links: {
+                        "http://localhost:3000/@system-user/types/entity-type/block-data/v/1":
+                          {
+                            type: "array",
+                            minItems: 1,
+                            maxItems: 1,
+                            ordered: false,
+                            items: {
+                              oneOf: [
+                                {
+                                  $ref: "http://localhost:3000/@alice/types/entity-type/second-test-type/v/1",
+                                },
+                              ],
                             },
+                          },
+                      },
+                    });
+                  }}
+                >
+                  ADD LINK
+                </Button>
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                  }}
+                  component="form"
+                  onSubmit={handleSubmit}
+                >
+                  <Box bgcolor="white" borderBottom={1} borderColor="gray.20">
+                    <TopContextBar
+                      defaultCrumbIcon={null}
+                      crumbs={[
+                        {
+                          title: "Types",
+                          href: "#",
+                          id: "types",
+                        },
+                        {
+                          title: "Entity types",
+                          href: "#",
+                          id: "entity-types",
+                        },
+                        {
+                          title: entityType.title,
+                          href: "#",
+                          id: entityType.$id,
+                          icon: <FontAwesomeIcon icon={faAsterisk} />,
+                        },
+                      ]}
+                      scrollToTop={() => {}}
+                    />
+                    <EditBar
+                      currentVersion={currentVersion}
+                      discardButtonProps={
+                        // @todo confirmation of discard when draft
+                        isDraft
+                          ? {
+                              href: `/new/types/entity-type`,
+                            }
+                          : {
+                              onClick() {
+                                reset();
+                              },
+                            }
+                      }
+                    />
+
+                    <Box pt={3.75}>
+                      <Container>
+                        <OntologyChip
+                          icon={<HashOntologyIcon />}
+                          domain="hash.ai"
+                          path={
+                            <>
+                              <Typography
+                                component="span"
+                                fontWeight="bold"
+                                color={(theme) => theme.palette.blue[70]}
+                              >
+                                {router.query["account-slug"]}
+                              </Typography>
+                              <Typography
+                                component="span"
+                                color={(theme) => theme.palette.blue[70]}
+                              >
+                                /types/entity-types/
+                              </Typography>
+                              <Typography
+                                component="span"
+                                fontWeight="bold"
+                                color={(theme) => theme.palette.blue[70]}
+                              >
+                                {entityTypeId}
+                              </Typography>
+                            </>
                           }
-                    }
-                  />
-
-                  <Box pt={3.75}>
-                    <Container>
-                      <OntologyChip
-                        icon={<HashOntologyIcon />}
-                        domain="hash.ai"
-                        path={
-                          <>
-                            <Typography
-                              component="span"
-                              fontWeight="bold"
-                              color={(theme) => theme.palette.blue[70]}
-                            >
-                              {router.query["account-slug"]}
-                            </Typography>
-                            <Typography
-                              component="span"
-                              color={(theme) => theme.palette.blue[70]}
-                            >
-                              /types/entity-types/
-                            </Typography>
-                            <Typography
-                              component="span"
-                              fontWeight="bold"
-                              color={(theme) => theme.palette.blue[70]}
-                            >
-                              {entityTypeId}
-                            </Typography>
-                          </>
-                        }
-                      />
-                      <Typography
-                        variant="h1"
-                        fontWeight="bold"
-                        mt={3}
-                        mb={5.25}
-                      >
-                        <FontAwesomeIcon
-                          icon={faAsterisk}
-                          sx={(theme) => ({
-                            fontSize: 40,
-                            mr: 3,
-                            color: theme.palette.gray[70],
-                            verticalAlign: "middle",
-                          })}
                         />
-                        {entityType.title}
-                      </Typography>
+                        <Typography
+                          variant="h1"
+                          fontWeight="bold"
+                          mt={3}
+                          mb={5.25}
+                        >
+                          <FontAwesomeIcon
+                            icon={faAsterisk}
+                            sx={(theme) => ({
+                              fontSize: 40,
+                              mr: 3,
+                              color: theme.palette.gray[70],
+                              verticalAlign: "middle",
+                            })}
+                          />
+                          {entityType.title}
+                        </Typography>
 
-                      <EntityTypeTabs isDraft={isDraft} />
+                        <EntityTypeTabs isDraft={isDraft} />
+                      </Container>
+                    </Box>
+                  </Box>
+
+                  <Box py={5}>
+                    <Container>
+                      {currentTab === "definition" ? <DefinitionTab /> : null}
+                      {currentTab === "entities" ? <EntitiesTab /> : null}
                     </Container>
                   </Box>
                 </Box>
-
-                <Box py={5}>
-                  <Container>
-                    {currentTab === "definition" ? <DefinitionTab /> : null}
-                    {currentTab === "entities" ? <EntitiesTab /> : null}
-                  </Container>
-                </Box>
-              </Box>
+              </EntityTypesContext.Provider>
             </EntityTypeEntitiesContext.Provider>
           </EntityTypeContext.Provider>
         </PropertyTypesContext.Provider>
