@@ -7,7 +7,7 @@ import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useBlockProtocolAggregateEntities } from "../../../../../../../../../components/hooks/blockProtocolFunctions/knowledge/useBlockProtocolAggregateEntities";
 import { generateEntityLabel } from "../../../../../../../../../lib/entities";
-import { HashSelectorAutocomplete } from "../../../../../../../types/entity-type/hash-selector-autocomplete";
+import { HashSelectorAutocomplete } from "../../../../../../../shared/hash-selector-autocomplete";
 import { useEntityEditor } from "../../../../entity-editor-context";
 
 interface EntitySelectorProps {
