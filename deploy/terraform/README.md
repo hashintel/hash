@@ -6,7 +6,7 @@ This folder contains Terraform modules to deploy a HASH instance on AWS. The ent
 
 1.  Install the [terraform CLI](https://learn.hashicorp.com/tutorials/terraform/install-cli)
 1.  Install Docker
-1.  Install [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) and configured to use [your credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html)
+1.  Install [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) and configure it to use [your credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html)
 1.  Initialize the terraform modules by executing the following command in [`./hash/`](./hash/): `terraform init`
 
 After initializing, you'll be put into the `default` workspace which isn't allowed for the plan.
@@ -22,7 +22,7 @@ By default, the selected region is `us-east-1` and can be configured by editing 
 
 # Deploying
 
-Deployment currently relies on a couple manual steps, but is to be automated in the future. The container registries need to have images pushed in the correct place for the applications to start and the database has to be migrated manually. The order of executions for deployment:
+Deployment currently relies on a couple of manual steps - but is to be automated in the future. The container registries need to have images pushed in the correct place for the applications to start and the database has to be migrated manually. The order of executions for deployment:
 
 1.  Deploy infrastructure with terraform
 2.  Migrate databases
@@ -30,7 +30,7 @@ Deployment currently relies on a couple manual steps, but is to be automated in 
 
 ## Deploy infrastructure with terraform
 
-You must prepare a `tfvars` file containing secrets in order to spin up the environment. This can be done by creating a file in `./hash/prod.secrets.tfvars` containing the following definitions (change the values):
+You must prepare a `tfvars` file containing secrets to spin up the environment. This can be done by creating a file in `./hash/prod.secrets.tfvars` containing the following definitions (change the values):
 
 ```tfvars
 hash_seed_users = [
@@ -52,7 +52,7 @@ pg_graph_user_password   = { raw = "changeme", hash = "See guide below to genera
 
 **PG Users**
 
-The database is configured to use scram-sha-256 for password auth.
+The database is configured to use `scram-sha-256` for password auth.
 To generate a hashed password in this form:
 
 1.  Start a local DB:
@@ -80,9 +80,9 @@ $ terraform apply --var-file prod-usea1.tfvars --var-file prod.secrets.tfvars
 
 ## 2. Migrate databases
 
-Once the terraform infrastructure is deployed, you should have a RDS Postgres database accessible from the bastion host with `graph` and `kratos` users/dbs. These need to be migrated locally in preparation of starting the services.
+Once the terraform infrastructure is deployed, you should have an RDS Postgres database accessible from the bastion host with `graph` and `kratos` users/dbs. These need to be migrated locally in preparation for starting the services.
 
-Before migrating, you must start a SSH tunnel through the bastion host to access the database. This can be done by executing the following command from the [`./hash/`](./hash/) folder:
+Before migrating, you must start an SSH tunnel through the bastion host to access the database. This can be done by executing the following command from the [`./hash/`](./hash/) folder:
 
 ```sh
 $ terraform output -raw rds_hostname
@@ -110,12 +110,12 @@ DOCKER_BUILDKIT=1 docker build ./packages/hash/external-services/kratos --build-
 docker run --rm -e "DSN=postgres://kratos:changeme@localhost:5554/kratos" kratos:latest migrate sql -e --yes
 ```
 
-The Kratos migrations may take a couple minutes, but while the migrations are running, you can build/push the service container images in the next step.
+The Kratos migrations may take a couple of minutes, but while the migrations are running, you can build/push the service container images in the next step.
 
 ## 3. Build/push docker images
 
-You must built images for `hash-graph`, `hash-api` and `kratos` to push to ECR (`buildkit` env variable may be optional)
-Depending on your AWS account ID (`$AWS_ID`), your selected terraform workspace (`$WORKSPACE`) and AWS region (`$REGION`) and region shortname (`$REGION_SHORT`) your ECR URL will be different. The general structure is as follows:
+You must build images for `hash-graph`, `hash-api` and `kratos` to push to ECR (`buildkit` env variable may be optional)
+Depending on your AWS account ID (`$AWS_ID`), your selected terraform workspace (`$WORKSPACE`) and AWS region (`$REGION`) and region short name (`$REGION_SHORT`) your ECR URL will be different. The general structure is as follows:
 
 ```
 $AWS_ID.dkr.ecr.$REGION.amazonaws.com/h-hash-$WORKSPACE-$REGION_SHORT-graphecr:latest
@@ -126,7 +126,7 @@ $AWS_ID.dkr.ecr.$REGION.amazonaws.com/h-hash-$WORKSPACE-$REGION_SHORT-apiecr:lat
 > If you receive a message about needing to log in, you can run the following AWS CLI command to authorize local push:
 > `aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 000000000000.dkr.ecr.$REGION.amazonaws.com`
 
-The build and push commands ran from the root of this ([`hashinte/hash`](../../)) repo:
+The build and push commands ran from the root of this ([`hashintel/hash`](../../)) repo:
 
 **Building `hash-graph`**:
 
@@ -144,7 +144,7 @@ docker push 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-apiec
 
 **Building `kratos`** (same as the migration container, with a secret passed in):
 
-For Kratos, it's required to provide some build-time args to ensure a secure instance running in production mode (and configuring an API secret `$SECRET` which sould match the `kratos_api_key` tfvar).
+For Kratos, it's required to provide some build-time args to ensure a secure instance running in production mode (and configuring an API secret `$SECRET` which should match the `kratos_api_key` tfvar).
 
 ```sh
 DOCKER_BUILDKIT=1 docker build ./packages/hash/external-services/kratos --build-arg ENV=prod --build-arg API_SECRET=$SECRET -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-kratosecr:latest
@@ -155,9 +155,9 @@ docker push 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-krato
 
 You've already seen the SSH command located in [`./hash/ssh_bastion.sh`](./hash/ssh_bastion.sh) which is used to SSH into the AWS VPC. This SSH connection is general-purpose and can be used without the tunnel part just as `./ssh_bastion.sh` without any args.
 
-Alternatively you should be able to start a AWS Systems Manager session to the bastion host from the AWS Console, https://us-east-1.console.aws.amazon.com/systems-manager/session-manager/sessions?region=us-east-1 (change region to your desired region).
+Alternatively, you should be able to start an AWS Systems Manager session to the bastion host from the AWS Console, https://us-east-1.console.aws.amazon.com/systems-manager/session-manager/sessions?region=us-east-1 (change region to your desired region).
 
-The ECS Fargate containers are also accessible thorugh the AWS CLI using Fargate Exec. And example command would look like this:
+The ECS Fargate containers are also accessible through the AWS CLI using Fargate Exec. An example command would look like this:
 
 ```sh
 $ aws ecs list-tasks --cluster h-hash-prod-usea1-ecs --service h-hash-prod-usea1-appsvc
@@ -169,11 +169,11 @@ where the `TASKID` is the ID of the Fargate service task. Note that this would s
 
 # Structure of the modules
 
-Under the [`./modules/`](./modules/) folder we define the HASH application through a ECS Fargate service and various external services.
+Under the [`./modules/`](./modules/) folder we define the HASH application through an ECS Fargate service and various external services.
 
 - [`variables`](./modules/variables/) - contains global variable validation/definitions used for the rest of the modules through the [`./hash/`](./hash/) entrypoint.
 - [`networking`](./modules/networking/) - contains the VPC (Virtual Private Cloud) definitions and networking setup defining private and public subnets.
-- [`bastion`](./modules/bastion/) - a [Bastion host](https://en.wikipedia.org/wiki/Bastion_host) that resides in the public subnet with access to the private subnet. Accessible thorugh SSH.
+- [`bastion`](./modules/bastion/) - a [Bastion host](https://en.wikipedia.org/wiki/Bastion_host) that resides in the public subnet with access to the private subnet. Accessible through SSH.
 - [`tunnel`](./modules/tunnel/) - a custom SSH tunnel using an external data source to allow terraform to connect to services on the private subnet of the VPC.
 - [`container_registry`](./modules/container_registry/) - is a thin wrapper around the `aws_ecr_repository` resource with container evicition policies
 - [`container_cluster`](./modules/container_cluster/) - is a thin wrapper around the `aws_ecs_cluster` resource.
