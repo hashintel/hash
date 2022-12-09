@@ -531,8 +531,8 @@ export const up = (pgm: MigrationBuilder): void => {
         _owned_by_id,
         _entity_uuid,
         _entity_edition_id,
-        tstzrange(_decision_time, 'infinity'),
-        tstzrange(now(), 'infinity')
+        tstzrange(_decision_time, 'infinity', '[)'),
+        tstzrange(now(), 'infinity', '[)')
       ) RETURNING entity_versions.entity_edition_id, entity_versions.decision_time, entity_versions.transaction_time;
     END
     `,
@@ -609,8 +609,8 @@ export const up = (pgm: MigrationBuilder): void => {
   
       RETURN QUERY
       UPDATE entity_versions
-      SET decision_time = tstzrange(_decision_time, upper(entity_versions.decision_time)),
-          transaction_time = tstzrange(now(), 'infinity'),
+      SET decision_time = tstzrange(_decision_time, upper(entity_versions.decision_time), '[)'),
+          transaction_time = tstzrange(now(), 'infinity', '[)'),
           entity_edition_id = _new_entity_edition_id
       WHERE entity_versions.owned_by_id = _owned_by_id
         AND entity_versions.entity_uuid = _entity_uuid
@@ -644,7 +644,7 @@ export const up = (pgm: MigrationBuilder): void => {
         OLD.entity_uuid,
         OLD.entity_edition_id,
         OLD.decision_time,
-        tstzrange(lower(OLD.transaction_time),lower(NEW.transaction_time))
+        tstzrange(lower(OLD.transaction_time),lower(NEW.transaction_time), '[)')
       );
 
       -- Insert a new version with the previous decision time until the new decision time
@@ -658,7 +658,7 @@ export const up = (pgm: MigrationBuilder): void => {
         OLD.owned_by_id,
         OLD.entity_uuid,
         OLD.entity_edition_id,
-        tstzrange(lower(OLD.decision_time), lower(NEW.decision_time)),
+        tstzrange(lower(OLD.decision_time), lower(NEW.decision_time), '[)'),
         NEW.transaction_time
       );
 
