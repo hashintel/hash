@@ -12,7 +12,7 @@ use graph::{
         account::AccountId,
         knowledge::{EntityEditionId, EntityId},
         ontology::OntologyTypeEditionId,
-        GraphElementEditionId,
+        DecisionTimestamp, GraphElementEditionId,
     },
     knowledge::{
         Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityQueryPath, EntityUuid,
@@ -24,7 +24,6 @@ use graph::{
     },
     provenance::{OwnedById, UpdatedById},
     store::{
-        error::ArchivalError,
         query::{Filter, FilterExpression, Parameter},
         AccountStore, AsClient, DataTypeStore, DatabaseConnectionInfo, DatabaseType, EntityStore,
         EntityTypeStore, InsertionError, PostgresStore, PostgresStorePool, PropertyTypeStore,
@@ -283,11 +282,13 @@ impl DatabaseApi<'_> {
     ) -> Result<EntityMetadata, InsertionError> {
         self.store
             .create_entity(
-                properties,
-                entity_type_id,
                 OwnedById::new(self.account_id),
                 entity_uuid,
+                Some(DecisionTimestamp::from_str("2000-01-01T00:00:00Z").unwrap()),
                 UpdatedById::new(self.account_id),
+                false,
+                entity_type_id,
+                properties,
                 None,
             )
             .await
@@ -318,15 +319,17 @@ impl DatabaseApi<'_> {
         entity_id: EntityId,
         properties: EntityProperties,
         entity_type_id: VersionedUri,
-        order: EntityLinkOrder,
+        link_order: EntityLinkOrder,
     ) -> Result<EntityMetadata, UpdateError> {
         self.store
             .update_entity(
                 entity_id,
-                properties,
-                entity_type_id,
+                Some(DecisionTimestamp::from_str("2000-01-03T00:00:00Z").unwrap()),
                 UpdatedById::new(self.account_id),
-                order,
+                false,
+                entity_type_id,
+                properties,
+                link_order,
             )
             .await
     }
@@ -341,11 +344,13 @@ impl DatabaseApi<'_> {
     ) -> Result<EntityMetadata, InsertionError> {
         self.store
             .create_entity(
-                properties,
-                entity_type_id,
                 OwnedById::new(self.account_id),
                 entity_uuid,
+                Some(DecisionTimestamp::from_str("2000-01-02T00:00:00Z").unwrap()),
                 UpdatedById::new(self.account_id),
+                false,
+                entity_type_id,
+                properties,
                 Some(LinkData::new(left_entity_id, right_entity_id, None, None)),
             )
             .await
@@ -438,10 +443,16 @@ impl DatabaseApi<'_> {
                 ))),
             ),
             Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::Version)),
+                Some(FilterExpression::Path(
+                    EntityQueryPath::LowerTransactionTime,
+                )),
                 Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
                     "latest",
                 )))),
+            ),
+            Filter::Equal(
+                Some(FilterExpression::Path(EntityQueryPath::Archived)),
+                Some(FilterExpression::Parameter(Parameter::Boolean(false))),
             ),
         ]);
 
@@ -465,9 +476,23 @@ impl DatabaseApi<'_> {
             .collect())
     }
 
-    async fn archive_entity(&mut self, link_entity_id: EntityId) -> Result<(), ArchivalError> {
+    async fn archive_entity(
+        &mut self,
+        entity_id: EntityId,
+        properties: EntityProperties,
+        entity_type_id: VersionedUri,
+        link_order: EntityLinkOrder,
+    ) -> Result<EntityMetadata, UpdateError> {
         self.store
-            .archive_entity(link_entity_id, UpdatedById::new(self.account_id))
+            .update_entity(
+                entity_id,
+                Some(DecisionTimestamp::from_str("2000-01-04T00:00:00Z").unwrap()),
+                UpdatedById::new(self.account_id),
+                true,
+                entity_type_id,
+                properties,
+                link_order,
+            )
             .await
     }
 }
