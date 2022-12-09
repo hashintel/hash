@@ -127,6 +127,6 @@ describe("User model class", () => {
   });
 
   afterAll(async () => {
-    await adminKratosSdk.adminDeleteIdentity(kratosIdentityId);
+    await adminKratosSdk.deleteIdentity({ id: kratosIdentityId });
   });
 });
