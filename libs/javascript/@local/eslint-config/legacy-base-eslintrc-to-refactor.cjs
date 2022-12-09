@@ -319,7 +319,7 @@ module.exports = {
           "error", // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/docs/rules/no-misused-promises.md#checksvoidreturn
           { checksVoidReturn: { attributes: false, properties: false } },
         ],
-        // replaced by @typescript-eslint/no-unused-vars
+        "@typescript-eslint/no-unnecessary-condition": "error",
         "@typescript-eslint/no-unused-vars": [
           "error",
           {
