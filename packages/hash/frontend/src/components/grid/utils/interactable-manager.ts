@@ -137,11 +137,11 @@ class InteractableManagerClass {
             return true;
           }
 
-          const { row } = splitPath(path);
+          const { rowIndex } = splitPath(path);
 
           if (
-            row < boundaries.deleteBeforeRow ||
-            row > boundaries.deleteAfterRow
+            rowIndex < boundaries.deleteBeforeRow ||
+            rowIndex > boundaries.deleteAfterRow
           ) {
             return true;
           }

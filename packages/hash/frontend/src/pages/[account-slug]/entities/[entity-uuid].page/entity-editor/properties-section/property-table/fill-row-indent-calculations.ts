@@ -1,15 +1,15 @@
 import { VerticalIndentationLineDir } from "../../../../../../../components/grid/utils/draw-vertical-indentation-line";
 import { PropertyRow } from "./types";
 
-const markUpperHalvesOfIndentationLines = (rowData: PropertyRow[]) => {
+const markUpperHalvesOfIndentationLines = (rows: PropertyRow[]) => {
   // for each row, starting from the first row
-  for (let row = 0; row < rowData.length; row++) {
-    const property = rowData[row] as PropertyRow;
+  for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+    const row = rows[rowIndex] as PropertyRow;
     const arr: VerticalIndentationLineDir[] = [];
 
-    const { children, indent } = property;
+    const { children, indent } = row;
 
-    const prevRow = rowData[row - 1];
+    const prevRow = rows[rowIndex - 1];
     const iHaveChild = children.length > 0;
 
     // for each indentation level
@@ -42,7 +42,7 @@ const markUpperHalvesOfIndentationLines = (rowData: PropertyRow[]) => {
       }
     }
 
-    property.verticalLinesForEachIndent = arr;
+    row.verticalLinesForEachIndent = arr;
   }
 };
 
@@ -51,7 +51,7 @@ const markUpperHalvesOfIndentationLines = (rowData: PropertyRow[]) => {
  * because it uses the previously calculated/marked "up" halves of indentation lines
  * to calculate the down halves
  */
-const markBottomHalvesOfIndentationLines = (rowData: PropertyRow[]) => {
+const markBottomHalvesOfIndentationLines = (rows: PropertyRow[]) => {
   /**
    * For each row, starting from the last row and going backwards.
    * Previous function called `markUpperHalvesOfIndentationLines` already calculated & marked all "up" parts of the lines.
@@ -60,15 +60,15 @@ const markBottomHalvesOfIndentationLines = (rowData: PropertyRow[]) => {
    * Reason for going backwars is, each row needs to check if the row below has a line which should continue upwards.
    * So we start from bottom, and keep drawing each line until they end
    */
-  for (let row = rowData.length - 1; row >= 0; row--) {
-    const property = rowData[row] as PropertyRow;
+  for (let rowIndex = rows.length - 1; rowIndex >= 0; rowIndex--) {
+    const row = rows[rowIndex] as PropertyRow;
 
-    const { verticalLinesForEachIndent } = property;
+    const { verticalLinesForEachIndent } = row;
 
-    const { indent } = property;
+    const { indent } = row;
 
-    const nextRow = rowData[row + 1];
-    const prevRow = rowData[row - 1];
+    const nextRow = rows[rowIndex + 1];
+    const prevRow = rows[rowIndex - 1];
 
     /**
      * If there is no nextRow (means this is the last row),
@@ -108,11 +108,11 @@ const markBottomHalvesOfIndentationLines = (rowData: PropertyRow[]) => {
 /**
  * Calculates & fills `verticalLinesForEachIndent` for each property row
  * It uses `indent` and `children` of each property row for these calculations
- * @param rowData is the flattened tree of property rows
+ * @param rows is the flattened tree of property rows
  */
-export const fillRowDataIndentCalculations = (rowData: PropertyRow[]) => {
-  markUpperHalvesOfIndentationLines(rowData);
-  markBottomHalvesOfIndentationLines(rowData);
+export const fillRowIndentCalculations = (rows: PropertyRow[]) => {
+  markUpperHalvesOfIndentationLines(rows);
+  markBottomHalvesOfIndentationLines(rows);
 };
 
 /**

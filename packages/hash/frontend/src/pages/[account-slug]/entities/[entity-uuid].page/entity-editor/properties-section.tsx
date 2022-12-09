@@ -10,13 +10,13 @@ import { PropertyTable } from "./properties-section/property-table";
 import { SectionWrapper } from "../../../shared/section-wrapper";
 import { WhiteChip } from "../../../shared/white-chip";
 import { PropertiesSectionEmptyState } from "../shared/properties-section-empty-state";
-import { useRowData } from "./properties-section/property-table/use-row-data";
+import { useRows } from "./properties-section/property-table/use-rows";
 import { getPropertyCountSummary } from "./properties-section/get-property-count-summary";
 
 export const PropertiesSection = () => {
   const [showSearch, setShowSearch] = useState(false);
 
-  const [rows] = useRowData();
+  const [rows] = useRows();
 
   const { emptyCount, notEmptyCount, totalCount } =
     getPropertyCountSummary(rows);
