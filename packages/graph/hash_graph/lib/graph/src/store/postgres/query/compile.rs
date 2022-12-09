@@ -1,4 +1,4 @@
-use std::{borrow::Cow, collections::HashSet, fmt::Display, marker::PhantomData};
+use std::{borrow::Cow, collections::HashSet, fmt::Display, marker::PhantomData, ops::Bound};
 
 use postgres_types::ToSql;
 use tokio_postgres::row::RowIndex;
@@ -304,7 +304,12 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
                     Parameter::Boolean(bool) => self.artifacts.parameters.push(bool),
                     Parameter::Uuid(uuid) => self.artifacts.parameters.push(uuid),
                     Parameter::SignedInteger(integer) => self.artifacts.parameters.push(integer),
-                    Parameter::Timestamp(timestamp) => self.artifacts.parameters.push(timestamp),
+                    Parameter::Timestamp(timestamp) => match timestamp {
+                        Bound::Unbounded => self.artifacts.parameters.push(&"infinity"),
+                        Bound::Included(timestamp) | Bound::Excluded(timestamp) => {
+                            self.artifacts.parameters.push(timestamp);
+                        }
+                    },
                 }
                 Expression::Parameter(self.artifacts.parameters.len())
             }

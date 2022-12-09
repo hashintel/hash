@@ -13,7 +13,7 @@ use crate::{
     identifier::{
         knowledge::{EntityEditionId, EntityId, EntityIdAndTimestamp, EntityVersion},
         ontology::OntologyTypeEditionId,
-        GraphElementEditionId, Timespan, Timestamp,
+        DecisionTimespan, DecisionTimestamp, GraphElementEditionId, TransactionTimespan,
     },
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
@@ -127,8 +127,8 @@ impl<C: AsClient> PostgresStore<C> {
                                     .metadata()
                                     .edition_id()
                                     .version()
-                                    .decision_time()
-                                    .from
+                                    .transaction_time()
+                                    .as_start_bound_timestamp()
                             })
                             .collect();
 
@@ -200,8 +200,8 @@ impl<C: AsClient> PostgresStore<C> {
                                     .metadata()
                                     .edition_id()
                                     .version()
-                                    .decision_time()
-                                    .from
+                                    .transaction_time()
+                                    .as_start_bound_timestamp()
                             })
                             .collect();
 
@@ -270,8 +270,8 @@ impl<C: AsClient> PostgresStore<C> {
                                     .metadata()
                                     .edition_id()
                                     .version()
-                                    .decision_time()
-                                    .from
+                                    .transaction_time()
+                                    .as_start_bound_timestamp()
                             })
                             .collect();
 
@@ -340,8 +340,8 @@ impl<C: AsClient> PostgresStore<C> {
                                     .metadata()
                                     .edition_id()
                                     .version()
-                                    .decision_time()
-                                    .from
+                                    .transaction_time()
+                                    .as_start_bound_timestamp()
                             })
                             .collect();
 
@@ -400,7 +400,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         &mut self,
         owned_by_id: OwnedById,
         entity_uuid: Option<EntityUuid>,
-        decision_time: Option<Timestamp>,
+        decision_time: Option<DecisionTimestamp>,
         updated_by_id: UpdatedById,
         archived: bool,
         entity_type_id: VersionedUri,
@@ -427,10 +427,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 r#"
                 SELECT
                     entity_edition_id,
-                    lower(decision_time),
-                    NULLIF(upper(decision_time), 'infinity'),
-                    lower(transaction_time),
-                    NULLIF(upper(transaction_time), 'infinity')
+                    decision_time,
+                    transaction_time
                 FROM
                     create_entity(
                         _owned_by_id := $1,
@@ -479,19 +477,14 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         // TODO: Expose temporal versions to backend
         //   see https://app.asana.com/0/0/1203444301722133/f
         let _version_id: i64 = row.get(0);
-        let decision_time = Timespan {
-            from: row.get(1),
-            to: row.get(2),
-        };
-        let transaction_time = Timespan {
-            from: row.get(3),
-            to: row.get(4),
-        };
 
         Ok(EntityMetadata::new(
             EntityEditionId::new(
                 entity_id,
-                EntityVersion::new(decision_time, transaction_time),
+                EntityVersion::new(
+                    DecisionTimespan::new(row.get(1)),
+                    TransactionTimespan::new(row.get(2)),
+                ),
             ),
             entity_type_id,
             ProvenanceMetadata::new(updated_by_id),
@@ -603,7 +596,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
     async fn update_entity(
         &mut self,
         entity_id: EntityId,
-        decision_time: Option<Timestamp>,
+        decision_time: Option<DecisionTimestamp>,
         updated_by_id: UpdatedById,
         archived: bool,
         entity_type_id: VersionedUri,
@@ -655,10 +648,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 r#"
                 SELECT
                     entity_edition_id,
-                    lower(decision_time),
-                    NULLIF(upper(decision_time), 'infinity'),
-                    lower(transaction_time),
-                    NULLIF(upper(transaction_time), 'infinity')
+                    decision_time,
+                    transaction_time
                 FROM
                     update_entity(
                         _owned_by_id := $1,
@@ -697,14 +688,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         // TODO: Expose temporal versions to backend
         //   see https://app.asana.com/0/0/1203444301722133/f
         let _version_id: i64 = row.get(0);
-        let decision_time = Timespan {
-            from: row.get(1),
-            to: row.get(2),
-        };
-        let transaction_time = Timespan {
-            from: row.get(3),
-            to: row.get(4),
-        };
 
         transaction
             .client
@@ -716,7 +699,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         Ok(EntityMetadata::new(
             EntityEditionId::new(
                 entity_id,
-                EntityVersion::new(decision_time, transaction_time),
+                EntityVersion::new(
+                    DecisionTimespan::new(row.get(1)),
+                    TransactionTimespan::new(row.get(2)),
+                ),
             ),
             entity_type_id,
             ProvenanceMetadata::new(updated_by_id),

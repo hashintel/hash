@@ -8,7 +8,7 @@ use utoipa::{
 };
 
 use crate::{
-    identifier::{account::AccountId, Timespan, Timestamp},
+    identifier::{account::AccountId, DecisionTimespan, TransactionTimespan, TransactionTimestamp},
     knowledge::EntityUuid,
     provenance::OwnedById,
 };
@@ -85,8 +85,8 @@ impl ToSchema for EntityId {
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntityVersion {
-    decision_time: Timespan,
-    transaction_time: Timespan,
+    decision_time: DecisionTimespan,
+    transaction_time: TransactionTimespan,
 }
 
 impl Serialize for EntityVersion {
@@ -96,7 +96,9 @@ impl Serialize for EntityVersion {
     {
         // TODO: Expose temporal versions to backend
         //   see https://app.asana.com/0/0/1203444301722133/f
-        self.transaction_time().from.serialize(serializer)
+        self.transaction_time()
+            .as_start_bound_timestamp()
+            .serialize(serializer)
     }
 }
 
@@ -111,7 +113,10 @@ impl ToSchema for EntityVersion {
 
 impl EntityVersion {
     #[must_use]
-    pub const fn new(decision_time: Timespan, transaction_time: Timespan) -> Self {
+    pub const fn new(
+        decision_time: DecisionTimespan,
+        transaction_time: TransactionTimespan,
+    ) -> Self {
         Self {
             decision_time,
             transaction_time,
@@ -119,12 +124,12 @@ impl EntityVersion {
     }
 
     #[must_use]
-    pub const fn decision_time(&self) -> Timespan {
+    pub const fn decision_time(&self) -> DecisionTimespan {
         self.decision_time
     }
 
     #[must_use]
-    pub const fn transaction_time(&self) -> Timespan {
+    pub const fn transaction_time(&self) -> TransactionTimespan {
         self.transaction_time
     }
 }
@@ -160,12 +165,12 @@ impl EntityEditionId {
 #[serde(rename_all = "camelCase")]
 pub struct EntityIdAndTimestamp {
     base_id: EntityId,
-    timestamp: Timestamp,
+    timestamp: TransactionTimestamp,
 }
 
 impl EntityIdAndTimestamp {
     #[must_use]
-    pub const fn new(entity_id: EntityId, timestamp: Timestamp) -> Self {
+    pub const fn new(entity_id: EntityId, timestamp: TransactionTimestamp) -> Self {
         Self {
             base_id: entity_id,
             timestamp,
@@ -178,7 +183,7 @@ impl EntityIdAndTimestamp {
     }
 
     #[must_use]
-    pub const fn timestamp(&self) -> Timestamp {
+    pub const fn timestamp(&self) -> TransactionTimestamp {
         self.timestamp
     }
 }
