@@ -15,10 +15,24 @@ import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { AxiosError } from "axios";
 import { NextRouter } from "next/router";
 import { Dispatch, SetStateAction } from "react";
-import { edgeConfig } from "@ory/integrations/next";
 
-export const oryKratosClient: FrontendApi = new FrontendApi(
-  new Configuration(edgeConfig),
+export const oryKratosClient = new FrontendApi(
+  new Configuration({
+    /**
+     * Directly connecting to kratos (using "http://127.0.0.1:4433") would prevent the
+     * CRSF token from being set as an HTTP-Cookie, because the browser cannot send or
+     * receive cookies via the browser `fetch` method unless:
+     *  1. `credentials: "include"` is set in the HTTP request header
+     *  2. the correct CORS origin is configured in the kratos server
+     *
+     * Therefore requests to the ory kratos public endpoint are made on the server in a
+     * Next.js API handler.
+     */
+    basePath: "/api/ory",
+    baseOptions: {
+      withCredentials: true,
+    },
+  }),
 );
 
 /**

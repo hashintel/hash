@@ -4,11 +4,7 @@ import { Session } from "@ory/client";
 import { GraphApi } from "@hashintel/hash-graph-client";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
-import {
-  adminKratosSdk,
-  KratosUserIdentity,
-  publicKratosSdk,
-} from "./ory-kratos";
+import { KratosUserIdentity, publicKratosSdk } from "./ory-kratos";
 import { HashInstanceModel, UserModel } from "../model";
 import { systemUserAccountId } from "../graph/system-user";
 
@@ -30,7 +26,7 @@ const kratosAfterRegistrationHookHandler =
   (params: {
     graphApi: GraphApi;
   }): RequestHandler<{}, {}, { identity: KratosUserIdentity }> =>
-  (req, res, next) => {
+  (req, res) => {
     const { graphApi } = params;
 
     const {
