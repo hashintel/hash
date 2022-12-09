@@ -21,7 +21,7 @@ import { EntityPageLoadingState } from "./[entity-uuid].page/entity-page-loading
 import { EntityPageWrapper } from "./[entity-uuid].page/entity-page-wrapper";
 import { PageErrorState } from "../../../components/page-error-state";
 import { generateEntityLabel } from "../../../lib/entities";
-import { useRouteNamespace } from "../types/entity-type/use-route-namespace";
+import { useRouteNamespace } from "../shared/use-route-namespace";
 import { useBlockProtocolGetEntityType } from "../../../components/hooks/blockProtocolFunctions/ontology/useBlockProtocolGetEntityType";
 import { EntityPageHeader } from "./[entity-uuid].page/entity-page-wrapper/entity-page-header";
 

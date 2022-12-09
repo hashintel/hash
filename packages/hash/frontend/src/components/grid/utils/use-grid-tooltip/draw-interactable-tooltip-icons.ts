@@ -78,8 +78,8 @@ export const drawInteractableTooltipIcons = (
         showTooltip({
           text: tooltip.text,
           iconX: actualTooltipX + iconSize / 2,
-          col,
-          row,
+          colIndex: col,
+          rowIndex: row,
         }),
       onMouseLeave: () => hideTooltip(col, row),
     });

@@ -6,7 +6,7 @@ import { renderLinkCell } from "./link-table/cells/link-cell";
 import { renderLinkedWithCell } from "./link-table/cells/linked-with-cell";
 import { linkGridColumns } from "./link-table/constants";
 import { useCreateGetCellContent } from "./link-table/use-create-get-cell-content";
-import { useRowData } from "./link-table/use-row-data";
+import { useRows } from "./link-table/use-rows";
 
 interface LinkTableProps {
   showSearch: boolean;
@@ -14,20 +14,20 @@ interface LinkTableProps {
 }
 
 export const LinkTable = ({ showSearch, onSearchClose }: LinkTableProps) => {
-  const rowData = useRowData();
+  const rows = useRows();
   const drawCell = useDrawCell();
   const createGetCellContent = useCreateGetCellContent();
 
   return (
     <Grid
       columns={linkGridColumns}
-      rowData={rowData}
+      rows={rows}
       createGetCellContent={createGetCellContent}
       drawCell={drawCell}
       showSearch={showSearch}
       onSearchClose={onSearchClose}
       // define max height if there are lots of rows
-      height={rowData.length > 10 ? 500 : undefined}
+      height={rows.length > 10 ? 500 : undefined}
       customRenderers={[
         renderLinkCell,
         renderLinkedWithCell,

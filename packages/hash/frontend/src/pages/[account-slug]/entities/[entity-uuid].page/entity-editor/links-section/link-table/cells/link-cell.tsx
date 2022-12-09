@@ -3,6 +3,7 @@ import {
   CustomRenderer,
   GridCellKind,
 } from "@glideapps/glide-data-grid";
+import { customColors } from "@hashintel/hash-design-system/src/theme/palette";
 import {
   getCellHorizontalPadding,
   getYCenter,
@@ -23,7 +24,7 @@ export const renderLinkCell: CustomRenderer<LinkCell> = {
     (cell.data as any).kind === "link-cell",
   draw: (args, cell) => {
     const { rect, ctx, theme, spriteManager } = args;
-    const { linkRow } = cell.data;
+    const { linkTitle, maxItems } = cell.data.linkRow;
 
     ctx.fillStyle = theme.textHeader;
     ctx.font = theme.baseFontStyle;
@@ -33,18 +34,18 @@ export const renderLinkCell: CustomRenderer<LinkCell> = {
 
     const iconSize = 16;
     spriteManager.drawSprite(
-      "bpLink",
+      maxItems > 1 ? "bpList" : "bpLink",
       "normal",
       ctx,
       iconLeft,
       yCenter - iconSize / 2,
       iconSize,
-      theme,
+      maxItems > 1 ? theme : { ...theme, fgIconHeader: customColors.blue[70] },
     );
 
     const textLeft = iconLeft + iconSize + 5;
     ctx.fillStyle = theme.textHeader;
-    ctx.fillText(linkRow.linkTitle, textLeft, yCenter);
+    ctx.fillText(linkTitle, textLeft, yCenter);
 
     drawCellFadeOutGradient(args);
   },
