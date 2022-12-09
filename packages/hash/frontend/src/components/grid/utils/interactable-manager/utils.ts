@@ -8,16 +8,18 @@ export const drawArgsToPath = (args: DrawArgs<CustomCell>): CellPath => {
 };
 
 export const splitPath = (path: CellPath) => {
-  const [tableId, col, row] = path.split("-");
+  const [tableId, colIndex, rowIndex] = path.split("-");
 
-  if (!tableId || !col || !row) {
-    throw new Error(`CellPath should have '{tableId}-{col}-{row}' format`);
+  if (!tableId || !colIndex || !rowIndex) {
+    throw new Error(
+      `CellPath should have '{tableId}-{colIndex}-{rowIndex}' format`,
+    );
   }
 
   return {
     tableId,
-    col: Number(col),
-    row: Number(row),
+    colIndex: Number(colIndex),
+    rowIndex: Number(rowIndex),
   };
 };
 

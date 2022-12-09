@@ -26,7 +26,7 @@ use error_stack::{Report, Result, ResultExt};
 use num_traits::ToPrimitive;
 pub use schema::{Document, Reflection, Schema};
 
-pub use crate::number::Number;
+pub use crate::{context::Context, number::Number};
 use crate::{
     error::{
         ArrayAccessError, DeserializeError, DeserializerError, ExpectedType, MissingError,
@@ -36,6 +36,7 @@ use crate::{
     schema::visitor,
 };
 
+mod context;
 pub mod error;
 mod number;
 mod schema;
@@ -317,6 +318,8 @@ macro_rules! derive_from_number {
 ///
 /// [`serde`]: https://serde.rs/
 pub trait Deserializer<'de>: Sized {
+    fn context(&self) -> &Context;
+
     /// Require the [`Deserializer`] to figure out **how** to drive the visitor based on input data.
     ///
     /// You should not rely on this when implementing [`Deserialize`], as non self-describing

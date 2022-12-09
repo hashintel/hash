@@ -7,7 +7,7 @@ export const NumberOrStringEditor: ValueCellEditorComponent = ({
   value: cell,
   onChange,
 }) => {
-  const { value, expectedTypes } = cell.data.property;
+  const { value, expectedTypes } = cell.data.propertyRow;
   /** @todo remove expectedTypes[0] when multiple data types are supported */
   const isNumber = types.dataType.number.title === expectedTypes[0];
 
@@ -25,7 +25,7 @@ export const NumberOrStringEditor: ValueCellEditorComponent = ({
           const newValue =
             isNumber && !isEmptyString ? Number(target.value) : target.value;
 
-          draftCell.data.property.value = newValue;
+          draftCell.data.propertyRow.value = newValue;
         });
 
         onChange(newCell);

@@ -110,7 +110,7 @@ export const generatePropertyRowRecursively = ({
     children,
     indent,
     /**
-     * this will be filled by `fillRowDataIndentCalculations`
+     * this will be filled by `fillRowIndentCalculations`
      * this is not filled here, because we'll use the whole flattened tree,
      * and check some values of prev-next items on the flattened tree while calculating this
      */

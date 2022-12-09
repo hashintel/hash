@@ -15,7 +15,7 @@ import { PropertyRow } from "../types";
 
 export interface PropertyNameCellProps {
   readonly kind: "property-name-cell";
-  property: PropertyRow;
+  propertyRow: PropertyRow;
 }
 
 export type PropertyNameCell = CustomCell<PropertyNameCellProps>;
@@ -38,7 +38,7 @@ export const createRenderPropertyNameCell = (
         verticalLinesForEachIndent,
         rowId,
         isArray,
-      } = cell.data.property;
+      } = cell.data.propertyRow;
 
       const yCenter = getYCenter(args);
       const columnPadding = getCellHorizontalPadding(true);
@@ -135,7 +135,7 @@ export const createRenderPropertyNameCell = (
       drawCellFadeOutGradient(args);
     },
     onClick: (args) => {
-      const { children, rowId } = args.cell.data.property;
+      const { children, rowId } = args.cell.data.propertyRow;
 
       if (children.length) {
         togglePropertyExpand(rowId);
