@@ -429,8 +429,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     entity_edition_id,
                     lower(decision_time),
                     NULLIF(upper(decision_time), 'infinity'),
-                    lower(system_time),
-                    NULLIF(upper(system_time), 'infinity')
+                    lower(transaction_time),
+                    NULLIF(upper(transaction_time), 'infinity')
                 FROM
                     create_entity(
                         _owned_by_id := $1,
@@ -483,13 +483,16 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             from: row.get(1),
             to: row.get(2),
         };
-        let system_time = Timespan {
+        let transaction_time = Timespan {
             from: row.get(3),
             to: row.get(4),
         };
 
         Ok(EntityMetadata::new(
-            EntityEditionId::new(entity_id, EntityVersion::new(decision_time, system_time)),
+            EntityEditionId::new(
+                entity_id,
+                EntityVersion::new(decision_time, transaction_time),
+            ),
             entity_type_id,
             ProvenanceMetadata::new(updated_by_id),
             archived,
@@ -654,8 +657,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                     entity_edition_id,
                     lower(decision_time),
                     NULLIF(upper(decision_time), 'infinity'),
-                    lower(system_time),
-                    NULLIF(upper(system_time), 'infinity')
+                    lower(transaction_time),
+                    NULLIF(upper(transaction_time), 'infinity')
                 FROM
                     update_entity(
                         _owned_by_id := $1,
@@ -698,7 +701,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             from: row.get(1),
             to: row.get(2),
         };
-        let system_time = Timespan {
+        let transaction_time = Timespan {
             from: row.get(3),
             to: row.get(4),
         };
@@ -711,7 +714,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .change_context(UpdateError)?;
 
         Ok(EntityMetadata::new(
-            EntityEditionId::new(entity_id, EntityVersion::new(decision_time, system_time)),
+            EntityEditionId::new(
+                entity_id,
+                EntityVersion::new(decision_time, transaction_time),
+            ),
             entity_type_id,
             ProvenanceMetadata::new(updated_by_id),
             archived,

@@ -86,7 +86,7 @@ impl ToSchema for EntityId {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntityVersion {
     decision_time: Timespan,
-    system_time: Timespan,
+    transaction_time: Timespan,
 }
 
 impl Serialize for EntityVersion {
@@ -96,7 +96,7 @@ impl Serialize for EntityVersion {
     {
         // TODO: Expose temporal versions to backend
         //   see https://app.asana.com/0/0/1203444301722133/f
-        self.system_time().from.serialize(serializer)
+        self.transaction_time().from.serialize(serializer)
     }
 }
 
@@ -111,10 +111,10 @@ impl ToSchema for EntityVersion {
 
 impl EntityVersion {
     #[must_use]
-    pub const fn new(decision_time: Timespan, system_time: Timespan) -> Self {
+    pub const fn new(decision_time: Timespan, transaction_time: Timespan) -> Self {
         Self {
             decision_time,
-            system_time,
+            transaction_time,
         }
     }
 
@@ -124,8 +124,8 @@ impl EntityVersion {
     }
 
     #[must_use]
-    pub const fn system_time(&self) -> Timespan {
-        self.system_time
+    pub const fn transaction_time(&self) -> Timespan {
+        self.transaction_time
     }
 }
 
