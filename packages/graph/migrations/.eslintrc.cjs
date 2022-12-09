@@ -4,4 +4,12 @@ module.exports = {
   env: {
     node: true,
   },
+  overrides: [
+    {
+      files: ["**/migration/*.ts"],
+      rules: {
+        "unicorn/filename-case": "off",
+      },
+    },
+  ],
 };

@@ -1,3 +1,5 @@
+/* eslint-disable canonical/filename-no-index -- @todo rename file */
+
 import { toggleMark } from "prosemirror-commands";
 import { inputRules } from "prosemirror-inputrules";
 import { Mark } from "prosemirror-model";

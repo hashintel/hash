@@ -19,13 +19,4 @@ module.exports = {
       },
     ],
   },
-  overrides: [
-    {
-      files: ["./src/**/*"],
-      rules: {
-        "canonical/filename-no-index": "error",
-        "unicorn/filename-case": "error",
-      },
-    },
-  ],
 };
