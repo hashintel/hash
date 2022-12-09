@@ -100,8 +100,19 @@ const setupAuth = (params: {
 
   // eslint-disable-next-line @typescript-eslint/no-misused-promises -- https://github.com/DefinitelyTyped/DefinitelyTyped/issues/50871
   app.use(async (req, _res, next) => {
+    const authHeader = req.header("authorization");
+    const hasAuthHeader = authHeader?.startsWith("Bearer ") ?? false;
+    const sessionToken =
+      hasAuthHeader && typeof authHeader === "string"
+        ? authHeader.slice(7, authHeader.length)
+        : undefined;
+
     const kratosSession = await publicKratosSdk
-      .toSession({ cookie: req.header("cookie") })
+      // .toSession({ cookie: req.header("cookie") }
+      .toSession({
+        cookie: req.header("cookie"),
+        xSessionToken: sessionToken,
+      })
       .then(({ data }) => data)
       .catch((err: AxiosError) => {
         // 403 on toSession means that we need to request 2FA
