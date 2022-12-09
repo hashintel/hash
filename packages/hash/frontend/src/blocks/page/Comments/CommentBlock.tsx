@@ -39,11 +39,11 @@ import styles from "./style.module.css";
 import { useUpdateCommentText } from "../../../components/hooks/useUpdateCommentText";
 import { CommentBlockMenuItem } from "./CommentBlockMenuItem";
 import { PencilSlashIcon } from "../../../shared/icons/pencil-slash-icon";
-import { useAuthenticatedUser } from "../../../components/hooks/useAuthenticatedUser";
 import { useResolveComment } from "../../../components/hooks/useResolveComment";
 import { useDeleteComment } from "../../../components/hooks/useDeleteComment";
 import { CommentBlockDeleteConfirmationDialog } from "./CommentBlockDeleteConfirmationDialog";
 import { CommentActionButtons } from "./CommentActionButtons";
+import { useAuthenticatedUser } from "../../../pages/shared/auth-info-context";
 
 type ToggleTextExpandedButtonProps = {
   label: ReactNode;

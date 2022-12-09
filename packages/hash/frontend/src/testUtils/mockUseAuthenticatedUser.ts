@@ -1,25 +1,33 @@
-import { useAuthenticatedUser } from "../components/hooks/useAuthenticatedUser";
+import { AuthenticatedUser } from "../lib/user";
+import {
+  useAuthenticatedUser,
+  useAuthInfo,
+} from "../pages/shared/auth-info-context";
 
-jest.mock("../components/hooks/useAuthenticatedUser.ts", () => ({
+const mockedAuthenticatedUser: AuthenticatedUser = {
+  kind: "user",
+  entityEditionId: {
+    baseId: "%",
+    version: "",
+  },
+  userAccountId: "",
+  accountSignupComplete: true,
+  shortname: "test",
+  preferredName: "Test",
+  isInstanceAdmin: false,
+  emails: [],
+  memberOf: [],
+};
+
+jest.mock("../pages/shared/auth-info-context.ts", () => ({
   useAuthenticatedUser: jest.fn<ReturnType<typeof useAuthenticatedUser>, []>(
     () => ({
-      authenticatedUser: {
-        kind: "user",
-        entityEditionId: {
-          baseId: "%",
-          version: "",
-        },
-        userAccountId: "",
-        accountSignupComplete: true,
-        shortname: "test",
-        preferredName: "Test",
-        isInstanceAdmin: false,
-        emails: [],
-        memberOf: [],
-      },
-      kratosSession: {} as any,
+      authenticatedUser: mockedAuthenticatedUser,
       refetch: jest.fn(),
-      loading: false,
     }),
   ),
+  useAuthInfo: jest.fn<ReturnType<typeof useAuthInfo>, []>(() => ({
+    authenticatedUser: mockedAuthenticatedUser,
+    refetch: jest.fn(),
+  })),
 }));

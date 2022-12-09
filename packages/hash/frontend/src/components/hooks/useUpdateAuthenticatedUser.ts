@@ -9,9 +9,10 @@ import {
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../graphql/apiTypes.gen";
-import { AuthenticatedUser, constructAuthenticatedUser } from "../../lib/user";
+import { AuthenticatedUser } from "../../lib/user";
 import { updateEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
-import { useAuthenticatedUser } from "./useAuthenticatedUser";
+import { useAuthenticatedUser } from "../../pages/shared/auth-info-context";
+import { useBlockProtocolGetEntity } from "./blockProtocolFunctions/knowledge/useBlockProtocolGetEntity";
 
 type UpdateAuthenticatedUserParams = {
   shortname?: string;
@@ -20,6 +21,8 @@ type UpdateAuthenticatedUserParams = {
 
 export const useUpdateAuthenticatedUser = () => {
   const { authenticatedUser, refetch } = useAuthenticatedUser();
+
+  const { getEntity } = useBlockProtocolGetEntity();
 
   const [updateEntity] = useMutation<
     UpdateEntityMutation,
@@ -41,23 +44,27 @@ export const useUpdateAuthenticatedUser = () => {
           return { updatedAuthenticatedUser: authenticatedUser };
         }
 
-        const [
-          {
-            data: { me: latestMeSubgraph },
-          },
-        ] = await refetch();
+        const { data: latestUserEntitySubgraph } = await getEntity({
+          data: { entityId: authenticatedUser.entityEditionId.baseId },
+        });
 
-        const userEntity = getRoots(latestMeSubgraph)[0]!;
+        if (!latestUserEntitySubgraph) {
+          throw new Error(
+            "Could not get latest user entity when updating the authenticated user.",
+          );
+        }
+
+        const latestUserEntity = getRoots(latestUserEntitySubgraph)[0]!;
 
         /**
          * @todo: use a partial update mutation instead
          * @see https://app.asana.com/0/1202805690238892/1203285029221330/f
          */
-        const { properties: currentProperties } = userEntity;
+        const { properties: currentProperties } = latestUserEntity;
 
         const { errors } = await updateEntity({
           variables: {
-            entityId: userEntity.metadata.editionId.baseId,
+            entityId: latestUserEntity.metadata.editionId.baseId,
             updatedProperties: {
               ...currentProperties,
               ...(params.shortname
@@ -82,37 +89,14 @@ export const useUpdateAuthenticatedUser = () => {
           return { errors };
         }
 
-        const [
-          {
-            data: { me: updatedSubgraph },
-          },
-          kratosSession,
-        ] = await refetch();
-
-        if (!kratosSession) {
-          throw new Error(
-            "The kratos session could not be re-fetched whilst updating the authenticated user",
-          );
-        }
-
-        const updatedAuthenticatedUser = constructAuthenticatedUser({
-          userEntityEditionId: updatedSubgraph.roots[0]!,
-          /**
-           * @todo: ensure this subgraph contains the incoming links of orgs
-           * at depth 2 to support constructing the `members` of an `Org`.
-           *
-           * @see https://app.asana.com/0/1202805690238892/1203250435416412/f
-           */
-          subgraph: updatedSubgraph,
-          kratosSession,
-        });
+        const { authenticatedUser: updatedAuthenticatedUser } = await refetch();
 
         return { updatedAuthenticatedUser };
       } finally {
         setLoading(false);
       }
     },
-    [authenticatedUser, refetch, updateEntity],
+    [authenticatedUser, refetch, updateEntity, getEntity],
   );
 
   return [updateAuthenticatedUser, { loading }] as const;
