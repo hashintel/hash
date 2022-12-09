@@ -298,6 +298,8 @@ export const up = (pgm: MigrationBuilder): void => {
   pgm.createTable(
     "entity_editions",
     {
+      // TODO: Consider changing this to XIDs
+      //   see https://app.asana.com/0/1202805690238892/1203505325130365/f
       entity_record_id: {
         type: "BIGINT",
         primaryKey: true,
