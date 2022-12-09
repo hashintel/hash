@@ -340,7 +340,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
         <button
           onClick={resetData}
           type="button"
-          className={tw`bg-gray-100 w-10 h-10 flex items-center justify-center ml-1 border-1 border-gray-300 rounded-sm self-start`}
+          className={tw`border-solid bg-gray-100 w-10 h-10 flex items-center justify-center ml-1 border-1 border-gray-300 rounded-sm self-start`}
         >
           <Pencil />
         </button>
