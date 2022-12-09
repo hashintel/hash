@@ -28,7 +28,7 @@ export const Image: BlockComponent<BlockEntityProperties> = (props) => {
   );
 
   return (
-    <div ref={blockRef} className={tw`box-border`}>
+    <div ref={blockRef} className={tw`font-sans box-border`}>
       {showFallback && (
         <Media {...props} blockRef={blockRef} mediaType="image" />
       )}
