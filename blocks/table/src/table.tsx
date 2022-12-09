@@ -512,7 +512,7 @@ export const Table: BlockComponent<BlockEntityProperties> = ({
 
   /** @todo Fix keys in iterators below to not use the index */
   return (
-    <div ref={blockRef} className={tw`overflow-x-auto`}>
+    <div ref={blockRef} className={tw`font-sans overflow-x-auto`}>
       {/* If there's no linked data operation, only render the entity type selector */}
       {!tableData.linkedAggregation?.operation?.entityTypeId ? (
         <div>{entityTypeDropdown}</div>
