@@ -1,3 +1,4 @@
+import { oryKratosPublicUrl } from "@hashintel/hash-shared/environment";
 import {
   Configuration,
   V0alpha2Api,
@@ -12,6 +13,7 @@ import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { AxiosError } from "axios";
 import { NextRouter } from "next/router";
 import { Dispatch, SetStateAction } from "react";
+import { isBrowser } from "../../lib/config";
 
 type SelfServiceFlow = SelfServiceLoginFlow | SelfServiceRegistrationFlow;
 
@@ -27,8 +29,7 @@ export const oryKratosClient = new V0alpha2Api(
      * Therefore requests to the ory kratos public endpoint are made on the server in a
      * Next.js API handler.
      */
-    basePath:
-      typeof window === "undefined" ? "http://127.0.0.1:4433" : "/api/ory",
+    basePath: isBrowser ? "/api/ory" : oryKratosPublicUrl,
     baseOptions: {
       withCredentials: true,
     },
