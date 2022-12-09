@@ -12,10 +12,11 @@ This folder contains Terraform modules to deploy a HASH instance on AWS. The ent
 After initializing, you'll be put into the `default` workspace which isn't allowed for the plan.
 You can create new workspace names by creating/selecting new workspaces:
 
-```shell
-$ terraform workspace new prod
-# Or to select another workspace
+```console
+$ terraform workspace new prod # Or to select another workspace
+prod
 $ terraform workspace select prod
+prod
 ```
 
 By default, the selected region is `us-east-1` and can be configured by editing the TF variables used for applying the TF plan, e.g. the one in [`./hash/prod-usea1.tfvars`](./hash/prod-usea1.tfvars).
@@ -25,8 +26,8 @@ By default, the selected region is `us-east-1` and can be configured by editing 
 Deployment currently relies on a couple of manual steps - but is to be automated in the future. The container registries need to have images pushed in the correct place for the applications to start and the database has to be migrated manually. The order of executions for deployment:
 
 1.  Deploy infrastructure with terraform
-2.  Migrate databases
-3.  Build/push docker images
+1.  Migrate databases
+1.  Build/push docker images
 
 ## Deploy infrastructure with terraform
 
@@ -74,10 +75,11 @@ To generate a hashed password in this form:
 
 Deployment can then be done by issuing the following command after initializing a terraform workspace with a functioning AWS connection from the [`./hash/`](./hash/) folder:
 
-```sh
+```console
 $ terraform workspace show
 prod
 $ terraform apply --var-file prod-usea1.tfvars --var-file prod.secrets.tfvars
+..
 ```
 
 ## 2. Migrate databases
@@ -86,11 +88,12 @@ Once the terraform infrastructure is deployed, you should have an RDS Postgres d
 
 Before migrating, you must start an SSH tunnel through the bastion host to access the database. This can be done by executing the following command from the [`./hash/`](./hash/) folder:
 
-```sh
+```console
 $ terraform output -raw rds_hostname
-h-hash-prod-usea1-pg.*.us-east-1.rds.amazonaws.co
-# * = some unique ID for your RDS instance
+h-hash-prod-usea1-pg.*.us-east-1.rds.amazonaws.com # * = some unique ID for your RDS instance
+..
 $ ./ssh_bastion.sh -N -L 5554:h-hash-dev-usea1-pg.*.us-east-1.rds.amazonaws.com:5432
+..
 ```
 
 > There should be no output from the command after the RSA art. The tunnel should be running, though.
@@ -100,16 +103,20 @@ This will start an SSH tunnel making `localhost:5554` point to the remote RDS in
 
 To migrate the graph, you must first build the docker container that contains the migrations and run it with the graph credentials you put into the [`./hash/prod.secrets.tfvars`](./hash/prod.secrets.tfvars) file:
 
-```sh
-DOCKER_BUILDKIT=1 docker build ./packages/graph -f ./packages/graph/deployment/migrations/Dockerfile -t hash-graph-migrate:latest
-docker run --rm -e 'HASH_GRAPH_PG_MIGRATION_URL=postgres://graph:changeme@localhost:5554/graph' hash-graph-migrate:latest
+```console
+$ DOCKER_BUILDKIT=1 docker build ./packages/graph -f ./packages/graph/deployment/migrations/Dockerfile -t hash-graph-migrate:latest
+..
+$ docker run --rm -e 'HASH_GRAPH_PG_MIGRATION_URL=postgres://graph:changeme@localhost:5554/graph' hash-graph-migrate:latest
+..
 ```
 
 You can simultaneously run the migrations for Kratos:
 
-```sh
-DOCKER_BUILDKIT=1 docker build ./packages/hash/external-services/kratos --build-arg ENV=prod -t kratos:latest
-docker run --rm -e "DSN=postgres://kratos:changeme@localhost:5554/kratos" kratos:latest migrate sql -e --yes
+```console
+$ DOCKER_BUILDKIT=1 docker build ./packages/hash/external-services/kratos --build-arg ENV=prod -t kratos:latest
+..
+$ docker run --rm -e "DSN=postgres://kratos:changeme@localhost:5554/kratos" kratos:latest migrate sql -e --yes
+..
 ```
 
 The Kratos migrations may take a couple of minutes, but while the migrations are running, you can build/push the service container images in the next step.
@@ -119,7 +126,7 @@ The Kratos migrations may take a couple of minutes, but while the migrations are
 You must build images for `hash-graph`, `hash-api` and `kratos` to push to ECR (`buildkit` env variable may be optional)
 Depending on your AWS account ID (`$AWS_ID`), your selected terraform workspace (`$WORKSPACE`) and AWS region (`$REGION`) and region short name (`$REGION_SHORT`) your ECR URL will be different. The general structure is as follows:
 
-```
+```text
 $AWS_ID.dkr.ecr.$REGION.amazonaws.com/h-hash-$WORKSPACE-$REGION_SHORT-graphecr:latest
 $AWS_ID.dkr.ecr.$REGION.amazonaws.com/h-hash-$WORKSPACE-$REGION_SHORT-kratosecr:latest
 $AWS_ID.dkr.ecr.$REGION.amazonaws.com/h-hash-$WORKSPACE-$REGION_SHORT-apiecr:latest
@@ -132,25 +139,31 @@ The build and push commands ran from the root of this ([`hashintel/hash`](../../
 
 **Building `hash-graph`**:
 
-```sh
-DOCKER_BUILDKIT=1 docker build ./packages/graph -f ./packages/graph/deployment/graph/Dockerfile -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-graphecr:latest
-docker push 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-graphecr:latest
+```console
+$ DOCKER_BUILDKIT=1 docker build ./packages/graph -f ./packages/graph/deployment/graph/Dockerfile -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-graphecr:latest
+..
+$ docker push 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-graphecr:latest
+..
 ```
 
 **Building `hash-api`**:
 
-```sh
-DOCKER_BUILDKIT=1 docker build . -f ./packages/hash/docker/api/prod/Dockerfile -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-apiecr:latest
-docker push 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-apiecr:latest
+```console
+$ DOCKER_BUILDKIT=1 docker build . -f ./packages/hash/docker/api/prod/Dockerfile -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-apiecr:latest
+..
+$ docker push 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-apiecr:latest
+..
 ```
 
 **Building `kratos`** (same as the migration container, with a secret passed in):
 
 For Kratos, it's required to provide some build-time args to ensure a secure instance running in production mode (and configuring an API secret `$SECRET` which should match the `kratos_api_key` tfvar).
 
-```sh
-DOCKER_BUILDKIT=1 docker build ./packages/hash/external-services/kratos --build-arg ENV=prod --build-arg API_SECRET=$SECRET -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-kratosecr:latest
-docker push 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-kratosecr:latest
+```console
+$ DOCKER_BUILDKIT=1 docker build ./packages/hash/external-services/kratos --build-arg ENV=prod --build-arg API_SECRET=$SECRET -t 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-kratosecr:latest
+..
+$ docker push 000000000000.dkr.ecr.us-east-1.amazonaws.com/h-hash-prod-usea1-kratosecr:latest
+..
 ```
 
 # Management
@@ -161,10 +174,11 @@ Alternatively, you should be able to start an AWS Systems Manager session to the
 
 The ECS Fargate containers are also accessible through the AWS CLI using Fargate Exec. An example command would look like this:
 
-```sh
+```console
 $ aws ecs list-tasks --cluster h-hash-prod-usea1-ecs --service h-hash-prod-usea1-appsvc
-# .. "arn:aws:ecs:us-east-1:$AWS_ID:task/h-hash-prod-usea1-ecs/TASKID"
+.. "arn:aws:ecs:us-east-1:$AWS_ID:task/h-hash-prod-usea1-ecs/TASKID"
 $ aws ecs execute-command --cluster h-hash-prod-usea1-ecs --task TASKID --container h-hash-prod-usea1-apicontainer --interactive --command "/bin/sh"
+..
 ```
 
 where the `TASKID` is the ID of the Fargate service task. Note that this would start an `sh` session directly into your production container, and should be done with caution (if it ever should be done). It's recommended not to run commands against the production environment like this, and we may at some point restrict access to Fargate Exec.
