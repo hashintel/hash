@@ -238,7 +238,7 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::Uuid => fmt.write_str("uuid"),
             Self::OwnedById => fmt.write_str("ownedById"),
             Self::UpdatedById => fmt.write_str("updatedById"),
-            Self::RecordId => fmt.write_str("editionId"),
+            Self::RecordId => fmt.write_str("recordId"),
             Self::DecisionTime => fmt.write_str("decisionTime"),
             Self::TransactionTime => fmt.write_str("transactionTime"),
             Self::LowerTransactionTime => fmt.write_str("transactionTimeFrom"),
