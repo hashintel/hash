@@ -377,6 +377,7 @@ struct UpdateEntityRequest {
     responses(
         (status = 200, content_type = "application/json", description = "The metadata of the updated entity", body = EntityMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+        (status = 423, content_type = "text/plain", description = "The entity that should be updated was unexpectedly updated at the same time"),
 
         (status = 404, description = "Entity ID or Entity Type URI was not found"),
         (status = 500, description = "Store error occurred"),
