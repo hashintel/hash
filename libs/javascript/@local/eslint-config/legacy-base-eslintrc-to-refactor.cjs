@@ -3,7 +3,13 @@ module.exports = {
   root: true,
   // this is the highest config lower ones will automatically extend
   parser: "@typescript-eslint/parser",
-  plugins: ["@typescript-eslint", "react-hooks", "jest", "unicorn"],
+  plugins: [
+    "@typescript-eslint",
+    "canonical",
+    "react-hooks",
+    "jest",
+    "unicorn",
+  ],
   extends: [
     "airbnb",
     "prettier",

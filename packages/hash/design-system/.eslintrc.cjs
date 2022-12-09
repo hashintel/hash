@@ -1,7 +1,6 @@
 /** @type {import("eslint").Linter.Config} */
 module.exports = {
   ...require("@local/eslint-config/generate-workspace-config.cjs")(__dirname),
-  plugins: ["@typescript-eslint", "canonical", "unicorn"],
   rules: {
     ...require("@local/eslint-config/temporarily-disable-rules.cjs")([
       /* 2022-11-29:  14 */ "@typescript-eslint/no-unsafe-assignment",
