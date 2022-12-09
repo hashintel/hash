@@ -223,7 +223,7 @@ impl ToSchema for GraphElementId {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
 #[serde(untagged)]
 pub enum GraphElementEditionId {
     Ontology(OntologyTypeEditionId),

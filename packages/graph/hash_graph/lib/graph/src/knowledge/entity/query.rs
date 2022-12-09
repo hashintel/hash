@@ -45,7 +45,7 @@ pub enum EntityQueryPath<'q> {
     /// [`Entity`]: crate::knowledge::Entity
     OwnedById,
     // TODO: DOC: https://app.asana.com/0/0/1203505325130325/f
-    EditionId,
+    RecordId,
     // TODO: DOC: https://app.asana.com/0/0/1203505325130325/f
     DecisionTime,
     // TODO: DOC: https://app.asana.com/0/0/1203505325130325/f
@@ -238,7 +238,7 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::Uuid => fmt.write_str("uuid"),
             Self::OwnedById => fmt.write_str("ownedById"),
             Self::UpdatedById => fmt.write_str("updatedById"),
-            Self::EditionId => fmt.write_str("editionId"),
+            Self::RecordId => fmt.write_str("editionId"),
             Self::DecisionTime => fmt.write_str("decisionTime"),
             Self::TransactionTime => fmt.write_str("transactionTime"),
             Self::LowerTransactionTime => fmt.write_str("transactionTimeFrom"),
@@ -260,14 +260,13 @@ impl RecordPath for EntityQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
             Self::Uuid | Self::OwnedById | Self::UpdatedById => ParameterType::Uuid,
-            Self::EditionId => ParameterType::UnsignedInteger,
+            Self::RecordId => ParameterType::UnsignedInteger,
             Self::LeftEntity(path)
             | Self::RightEntity(path)
             | Self::IncomingLinks(path)
             | Self::OutgoingLinks(path) => path.expected_type(),
-            Self::DecisionTime | Self::TransactionTime | Self::LowerTransactionTime => {
-                ParameterType::Timestamp
-            }
+            Self::DecisionTime | Self::TransactionTime => ParameterType::Timespan,
+            Self::LowerTransactionTime => ParameterType::Timestamp,
             Self::Type(path) => path.expected_type(),
             Self::Properties(_) => ParameterType::Any,
             Self::LeftToRightOrder | Self::RightToLeftOrder => ParameterType::Number,

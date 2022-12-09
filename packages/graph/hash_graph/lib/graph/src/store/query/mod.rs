@@ -26,6 +26,7 @@ pub enum ParameterType {
     BaseUri,
     VersionedUri,
     Timestamp,
+    Timespan,
     Any,
 }
 
@@ -40,6 +41,7 @@ impl fmt::Display for ParameterType {
             Self::BaseUri => fmt.write_str("base URI"),
             Self::VersionedUri => fmt.write_str("versioned URI"),
             Self::Timestamp => fmt.write_str("timestamp"),
+            Self::Timespan => fmt.write_str("timespan"),
             Self::Any => fmt.write_str("any"),
         }
     }

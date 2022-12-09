@@ -1,6 +1,7 @@
 use std::str::FromStr;
 
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
+use tokio_postgres::types::ToSql;
 use utoipa::{
     openapi,
     openapi::{KnownFormat, SchemaFormat},
@@ -134,18 +135,42 @@ impl EntityVersion {
     }
 }
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, ToSql)]
+#[postgres(transparent)]
+#[repr(transparent)]
+pub struct EntityRecordId(i64);
+
+impl EntityRecordId {
+    #[must_use]
+    pub const fn new(id: i64) -> Self {
+        Self(id)
+    }
+
+    #[must_use]
+    pub const fn as_i64(&self) -> i64 {
+        self.0
+    }
+}
+
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityEditionId {
     base_id: EntityId,
+    #[serde(skip)]
+    record_id: EntityRecordId,
     version: EntityVersion,
 }
 
 impl EntityEditionId {
     #[must_use]
-    pub const fn new(entity_id: EntityId, version: EntityVersion) -> Self {
+    pub const fn new(
+        entity_id: EntityId,
+        record_id: EntityRecordId,
+        version: EntityVersion,
+    ) -> Self {
         Self {
             base_id: entity_id,
+            record_id,
             version,
         }
     }
@@ -153,6 +178,11 @@ impl EntityEditionId {
     #[must_use]
     pub const fn base_id(&self) -> EntityId {
         self.base_id
+    }
+
+    #[must_use]
+    pub const fn record_id(&self) -> EntityRecordId {
+        self.record_id
     }
 
     #[must_use]

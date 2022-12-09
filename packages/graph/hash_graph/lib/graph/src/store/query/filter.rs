@@ -2,7 +2,6 @@ use std::{
     borrow::Cow,
     fmt,
     fmt::{Debug, Display, Formatter},
-    ops::{Bound, RangeBounds},
     str::FromStr,
 };
 
@@ -16,7 +15,6 @@ use crate::{
     identifier::{
         knowledge::{EntityEditionId, EntityId},
         ontology::OntologyTypeEditionId,
-        TransactionTimestamp,
     },
     knowledge::{Entity, EntityQueryPath, EntityUuid},
     store::query::{OntologyPath, ParameterType, QueryRecord, RecordPath},
@@ -189,15 +187,9 @@ impl<'q> Filter<'q, Entity> {
                 ))),
             ),
             Self::Equal(
-                Some(FilterExpression::Path(
-                    EntityQueryPath::LowerTransactionTime,
-                )),
-                Some(FilterExpression::Parameter(Parameter::Timestamp(
-                    edition_id
-                        .version()
-                        .transaction_time()
-                        .start_bound()
-                        .map(TransactionTimestamp::as_date_time),
+                Some(FilterExpression::Path(EntityQueryPath::RecordId)),
+                Some(FilterExpression::Parameter(Parameter::SignedInteger(
+                    edition_id.record_id().as_i64(),
                 ))),
             ),
         ])
@@ -227,14 +219,10 @@ impl<'q> Filter<'q, Entity> {
             ),
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::LeftEntity(
-                    Box::new(EntityQueryPath::LowerTransactionTime),
+                    Box::new(EntityQueryPath::RecordId),
                 ))),
-                Some(FilterExpression::Parameter(Parameter::Timestamp(
-                    edition_id
-                        .version()
-                        .transaction_time()
-                        .start_bound()
-                        .map(TransactionTimestamp::as_date_time),
+                Some(FilterExpression::Parameter(Parameter::SignedInteger(
+                    edition_id.record_id().as_i64(),
                 ))),
             ),
         ])
@@ -264,14 +252,10 @@ impl<'q> Filter<'q, Entity> {
             ),
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::RightEntity(
-                    Box::new(EntityQueryPath::LowerTransactionTime),
+                    Box::new(EntityQueryPath::RecordId),
                 ))),
-                Some(FilterExpression::Parameter(Parameter::Timestamp(
-                    edition_id
-                        .version()
-                        .transaction_time()
-                        .start_bound()
-                        .map(TransactionTimestamp::as_date_time),
+                Some(FilterExpression::Parameter(Parameter::SignedInteger(
+                    edition_id.record_id().as_i64(),
                 ))),
             ),
         ])
@@ -301,14 +285,10 @@ impl<'q> Filter<'q, Entity> {
             ),
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::OutgoingLinks(
-                    Box::new(EntityQueryPath::LowerTransactionTime),
+                    Box::new(EntityQueryPath::RecordId),
                 ))),
-                Some(FilterExpression::Parameter(Parameter::Timestamp(
-                    edition_id
-                        .version()
-                        .transaction_time()
-                        .start_bound()
-                        .map(TransactionTimestamp::as_date_time),
+                Some(FilterExpression::Parameter(Parameter::SignedInteger(
+                    edition_id.record_id().as_i64(),
                 ))),
             ),
         ])
@@ -338,14 +318,10 @@ impl<'q> Filter<'q, Entity> {
             ),
             Self::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::IncomingLinks(
-                    Box::new(EntityQueryPath::LowerTransactionTime),
+                    Box::new(EntityQueryPath::RecordId),
                 ))),
-                Some(FilterExpression::Parameter(Parameter::Timestamp(
-                    edition_id
-                        .version()
-                        .transaction_time()
-                        .start_bound()
-                        .map(TransactionTimestamp::as_date_time),
+                Some(FilterExpression::Parameter(Parameter::SignedInteger(
+                    edition_id.record_id().as_i64(),
                 ))),
             ),
         ])
@@ -473,7 +449,7 @@ pub enum Parameter<'q> {
     #[serde(skip)]
     SignedInteger(i64),
     #[serde(skip)]
-    Timestamp(Bound<DateTime<Utc>>),
+    Timestamp(DateTime<Utc>),
 }
 
 impl Parameter<'_> {
@@ -484,7 +460,7 @@ impl Parameter<'_> {
             Parameter::Text(text) => Parameter::Text(Cow::Owned(text.to_string())),
             Parameter::Uuid(uuid) => Parameter::Uuid(*uuid),
             Parameter::SignedInteger(integer) => Parameter::SignedInteger(*integer),
-            Parameter::Timestamp(timestamp) => Parameter::Timestamp(timestamp.as_ref().cloned()),
+            Parameter::Timestamp(timestamp) => Parameter::Timestamp(*timestamp),
         }
     }
 }
@@ -504,11 +480,7 @@ impl fmt::Display for ParameterConversionError {
             Parameter::Text(text) => text.to_string(),
             Parameter::Uuid(uuid) => uuid.to_string(),
             Parameter::SignedInteger(integer) => integer.to_string(),
-            Parameter::Timestamp(timestamp) => match timestamp {
-                Bound::Included(timestamp) => format!("including bound of {timestamp}"),
-                Bound::Excluded(timestamp) => format!("excluding bound of {timestamp}"),
-                Bound::Unbounded => "unbounded timestamp".to_owned(),
-            },
+            Parameter::Timestamp(timestamp) => timestamp.to_string(),
         };
 
         write!(fmt, "could not convert {actual} to {}", self.expected)
@@ -539,14 +511,14 @@ impl Parameter<'_> {
             }
             (Parameter::Text(text), ParameterType::Timestamp) => {
                 if text != "latest" {
-                    *self = Parameter::Timestamp(Bound::Included(
+                    *self = Parameter::Timestamp(
                         DateTime::from_str(&*text)
                             .into_report()
                             .change_context_lazy(|| ParameterConversionError {
                                 actual: self.to_owned(),
                                 expected: ParameterType::Timestamp,
                             })?,
-                    ));
+                    );
                     // Do nothing if "latest"
                 }
             }

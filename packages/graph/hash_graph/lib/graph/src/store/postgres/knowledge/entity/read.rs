@@ -10,7 +10,7 @@ use uuid::Uuid;
 use crate::{
     identifier::{
         account::AccountId,
-        knowledge::{EntityEditionId, EntityId, EntityVersion},
+        knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityVersion},
         DecisionTimespan, TransactionTimespan,
     },
     knowledge::{Entity, EntityProperties, EntityQueryPath, EntityUuid, LinkData},
@@ -43,8 +43,8 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
 
         let owned_by_id_index = compiler.add_selection_path(&EntityQueryPath::OwnedById);
         let entity_uuid_index = compiler.add_selection_path(&EntityQueryPath::Uuid);
-        let edition_id_index = compiler.add_distinct_selection_with_ordering(
-            &EntityQueryPath::EditionId,
+        let record_id_index = compiler.add_distinct_selection_with_ordering(
+            &EntityQueryPath::RecordId,
             Distinctness::Distinct,
             None,
         );
@@ -131,14 +131,12 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                 let entity_uuid = EntityUuid::new(row.get(entity_uuid_index));
                 let updated_by_id = UpdatedById::new(row.get(updated_by_id_index));
 
-                // TODO: Adjust structural queries for temporal versioning
-                //   see https://app.asana.com/0/0/1203491211535116/f
-                let _edition_id: i64 = row.get(edition_id_index);
                 Ok(Entity::new(
                     properties,
                     link_data,
                     EntityEditionId::new(
                         EntityId::new(owned_by_id, entity_uuid),
+                        EntityRecordId::new(row.get(record_id_index)),
                         EntityVersion::new(
                             DecisionTimespan::new(row.get(decision_time_index)),
                             TransactionTimespan::new(row.get(transaction_time_index)),

@@ -128,7 +128,7 @@ impl_ontology_column!(EntityTypes);
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Entities<'p> {
     EntityUuid,
-    EditionId,
+    RecordId,
     DecisionTime,
     TransactionTime,
     // TODO: Remove when adjusting structural queries
@@ -151,7 +151,7 @@ impl Entities<'_> {
     pub const fn nullable(self) -> bool {
         match self {
             Self::EntityUuid
-            | Self::EditionId
+            | Self::RecordId
             | Self::DecisionTime
             | Self::TransactionTime
             | Self::LowerTransactionTime
@@ -174,7 +174,7 @@ impl Transpile for Entities<'_> {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         let column = match self {
             Self::EntityUuid => "entity_uuid",
-            Self::EditionId => "entity_edition_id",
+            Self::RecordId => "entity_record_id",
             Self::DecisionTime => "decision_time",
             Self::TransactionTime | Self::LowerTransactionTime => "transaction_time",
             Self::Archived => "archived",
