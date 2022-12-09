@@ -143,10 +143,7 @@ fn bench_scaling_read_entity(c: &mut Criterion) {
         group.bench_with_input(
             BenchmarkId::new(
                 "get_entity_by_id",
-                format!(
-                    "Account ID: `{}`, Number Of Entities: `{}`",
-                    account_id, size
-                ),
+                format!("Account ID: `{account_id}`, Number Of Entities: `{size}`"),
             ),
             &(account_id, entity_uuids),
             |b, (_account_id, entity_uuids)| {

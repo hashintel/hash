@@ -43,10 +43,7 @@ fn bench_representative_read_entity(c: &mut Criterion) {
             group.bench_with_input(
                 BenchmarkId::new(
                     "entity_by_id",
-                    format!(
-                        "Account ID: `{}`, Entity Type ID: `{}`",
-                        account_id, entity_type_id
-                    ),
+                    format!("Account ID: `{account_id}`, Entity Type ID: `{entity_type_id}`"),
                 ),
                 &(account_id, entity_type_id, entity_uuids),
                 |b, (_account_id, _entity_type_id, entity_uuids)| {
@@ -355,7 +352,7 @@ fn bench_representative_read_entity_type(c: &mut Criterion) {
         group.bench_with_input(
             BenchmarkId::new(
                 "get_entity_type_by_id",
-                format!("Account ID: `{}`", account_id),
+                format!("Account ID: `{account_id}`"),
             ),
             &(account_id, entity_type_ids),
             |b, (_account_id, entity_type_ids)| {
