@@ -4,7 +4,7 @@ import { PropertyRow } from "../../types";
 
 export interface ValueCellProps extends TooltipCellProps {
   readonly kind: "value-cell";
-  property: PropertyRow;
+  propertyRow: PropertyRow;
 }
 
 export type ValueCell = CustomCell<ValueCellProps>;

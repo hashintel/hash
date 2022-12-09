@@ -1,3 +1,5 @@
+/* eslint-disable canonical/filename-no-index -- @todo rename file */
+
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
 import * as http from "http";
@@ -12,7 +14,7 @@ import { OpenSearch } from "@hashintel/hash-backend-utils/search/opensearch";
 import { ENTITIES_SEARCH_INDEX } from "@hashintel/hash-backend-utils/search/doc-types";
 
 import { logger, INSTANCE_ID } from "./config";
-import { SearchLoader } from "./searchLoader";
+import { SearchLoader } from "./search-loader";
 
 const OPENSEARCH_ENABLED = process.env.HASH_OPENSEARCH_ENABLED === "true";
 if (!OPENSEARCH_ENABLED) {

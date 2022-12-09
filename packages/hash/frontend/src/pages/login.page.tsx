@@ -148,7 +148,7 @@ const LoginPage: NextPageWithLayout = () => {
 
             updateActiveWorkspaceAccountId(userAccountId);
 
-            void router.push(`/${userAccountId}`);
+            void router.push("/");
           })
           .catch(handleFlowError)
           .catch((err: AxiosError<SelfServiceLoginFlow>) => {

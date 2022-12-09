@@ -7,7 +7,7 @@ import {
   ConfiguredAirbyteCatalog,
   ConnectorSpecification,
 } from "./protocol";
-import { writeToTempFile } from "./temp_io";
+import { writeToTempFile } from "./temp-io";
 
 type RecordMessage = AirbyteMessage["record"];
 

@@ -1,6 +1,6 @@
 import { useMemo, useRef } from "react";
 import { DataEditorRef } from "@glideapps/glide-data-grid";
-import { useRowData } from "./property-table/use-row-data";
+import { useRows } from "./property-table/use-rows";
 import { useCreateGetCellContent } from "./property-table/use-create-get-cell-content";
 import { propertyGridColumns } from "./property-table/constants";
 import { useCreateOnCellEdited } from "./property-table/use-create-on-cell-edited";
@@ -23,7 +23,7 @@ export const PropertyTable = ({
 }: PropertyTableProps) => {
   const tableRef = useRef<DataEditorRef>(null);
   const { togglePropertyExpand, propertyExpandStatus } = useEntityEditor();
-  const [rowData, sortAndFlattenRowData] = useRowData();
+  const [rows, sortAndFlattenRows] = useRows();
   const { tooltipElement, showTooltip, hideTooltip } = useGridTooltip(tableRef);
   const createGetCellContent = useCreateGetCellContent(
     showTooltip,
@@ -48,13 +48,13 @@ export const PropertyTable = ({
         columns={propertyGridColumns}
         createGetCellContent={createGetCellContent}
         createOnCellEdited={createOnCellEdited}
-        rowData={rowData}
+        rows={rows}
         showSearch={showSearch}
         onSearchClose={onSearchClose}
         customRenderers={customRenderers}
-        sortRowData={sortAndFlattenRowData}
+        sortRows={sortAndFlattenRows}
         // define max height if there are lots of rows
-        height={rowData.length > 10 ? 500 : undefined}
+        height={rows.length > 10 ? 500 : undefined}
       />
       {tooltipElement}
     </>

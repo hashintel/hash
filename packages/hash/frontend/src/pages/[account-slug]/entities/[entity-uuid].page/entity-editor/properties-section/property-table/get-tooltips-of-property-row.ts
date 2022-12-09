@@ -2,9 +2,9 @@ import { CellTooltipData } from "../../../../../../../components/grid/utils/use-
 import { PropertyRow } from "./types";
 
 export const getTooltipsOfPropertyRow = (
-  data: PropertyRow,
+  row: PropertyRow,
 ): CellTooltipData[] => {
-  if (!data.required) {
+  if (!row.required) {
     return [];
   }
 

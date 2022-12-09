@@ -60,7 +60,7 @@ export const PageSidebar: FunctionComponent = () => {
       <TopNavLink
         icon={faHome}
         title="Home"
-        href={`/${activeWorkspaceAccountId}`}
+        href="/"
         tooltipTitle="View your inbox and latest activity"
         active={router.pathname === "/[account-slug]"}
       />

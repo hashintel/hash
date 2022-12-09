@@ -11,7 +11,7 @@ export const BooleanEditor: ValueCellEditorComponent = ({
   value: cell,
   onFinishedEditing,
 }) => {
-  const { value } = cell.data.property;
+  const { value } = cell.data.propertyRow;
   const numberValue = value ? 1 : 0;
 
   return (
@@ -22,7 +22,7 @@ export const BooleanEditor: ValueCellEditorComponent = ({
       value={numberValue}
       onChange={({ target }) => {
         const newCell = produce(cell, (draftCell) => {
-          draftCell.data.property.value = !!target.value;
+          draftCell.data.propertyRow.value = !!target.value;
         });
 
         onFinishedEditing(newCell);

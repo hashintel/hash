@@ -27,19 +27,14 @@
     "@hashintel/hash-graph-client": "0.0.0-private",
     "@hashintel/hash-subgraph": "0.0.0-private",
     "@sentry/browser": "7.21.1",
-    "graphql-tag": "2.12.5",
     "immer": "9.0.6",
     "jsonschema": "1.4.0",
     "lodash": "4.17.21",
     "node-fetch": "^2.6.7",
     "prosemirror-commands": "1.3.1",
-    "prosemirror-dev-tools": "3.1.0",
     "prosemirror-dropcursor": "1.6.1",
-    "prosemirror-inputrules": "1.2.0",
     "prosemirror-keymap": "1.2.0",
     "prosemirror-model": "1.18.2",
-    "prosemirror-schema-basic": "1.2.0",
-    "prosemirror-schema-list": "1.2.2",
     "prosemirror-state": "1.4.2",
     "prosemirror-transform": "1.7.0",
     "prosemirror-view": "1.29.1",
@@ -57,11 +52,9 @@
     "@types/lodash": "4.14.188",
     "@types/node": "18.11.9",
     "@types/node-fetch": "^2.6.2",
-    "@typescript-eslint/eslint-plugin": "5.45.0",
-    "@typescript-eslint/parser": "5.45.0",
-    "eslint": "8.28.0",
+    "eslint": "8.29.0",
     "react": "^18.2.0",
     "rimraf": "^3.0.2",
-    "typescript": "4.9.3"
+    "typescript": "4.9.4"
   }
 }
