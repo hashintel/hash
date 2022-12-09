@@ -174,6 +174,13 @@ const redirectInGetInitialProps = (params: {
   }
 };
 
+// The list of page pathnames that should be accessible whether or not the user is authenticated
+const publiclyAccessiblePagePathnames = [
+  "/[account-slug]/[page-slug]",
+  "/login",
+  "/signup",
+];
+
 AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
   const {
     ctx: { req, pathname },
@@ -194,8 +201,8 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
 
   /** @todo: make additional pages publicly accessible */
   if (!subgraph || !kratosSession) {
-    // If the user is logged out and not on the login or signup page...
-    if (!(pathname.startsWith("/login") || pathname.startsWith("/signup"))) {
+    // If the user is logged out and not on a page that should be publicly accessible...
+    if (!publiclyAccessiblePagePathnames.includes(pathname)) {
       // ...redirect them to the login page
       redirectInGetInitialProps({ appContext, location: "/login" });
     }
