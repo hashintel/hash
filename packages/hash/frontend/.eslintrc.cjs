@@ -1,7 +1,6 @@
 /** @type {import("eslint").Linter.Config} */
 module.exports = {
   ...require("@local/eslint-config/generate-workspace-config.cjs")(__dirname),
-  plugins: ["@typescript-eslint", "canonical", "unicorn"],
   rules: {
     ...require("@local/eslint-config/temporarily-disable-rules.cjs")([
       /* 2022-11-29:  11 */ "@typescript-eslint/no-unsafe-argument",
@@ -9,6 +8,7 @@ module.exports = {
       /* 2022-11-29:  30 */ "@typescript-eslint/no-unsafe-member-access",
       /* 2022-11-29:  11 */ "@typescript-eslint/no-unsafe-return",
       /* 2022-11-29:  34 */ "@typescript-eslint/restrict-template-expressions",
+      "unicorn/filename-case",
     ]),
     "jsx-a11y/label-has-associated-control": "off",
     "import/no-default-export": "error",
@@ -68,13 +68,6 @@ module.exports = {
       ],
       rules: {
         "import/no-default-export": "off",
-      },
-    },
-    {
-      files: ["**/shared/**/*", "./src/pages/**/*"],
-      rules: {
-        "canonical/filename-no-index": "error",
-        "unicorn/filename-case": "error",
       },
     },
   ],

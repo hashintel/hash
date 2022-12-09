@@ -81,8 +81,7 @@ const Page: NextPageWithLayout = () => {
   });
 
   const { getEntityType } = useBlockProtocolGetEntityType();
-  const { activeWorkspace, activeWorkspaceAccountId } =
-    useContext(WorkspaceContext);
+  const { activeWorkspace } = useContext(WorkspaceContext);
 
   const typeSystemLoading = useInitTypeSystem();
 
@@ -118,7 +117,7 @@ const Page: NextPageWithLayout = () => {
       Buffer.from(JSON.stringify(entityType)).toString("base64"),
     )}`;
 
-    await router.push(nextUrl, nextUrl, { shallow: true });
+    await router.push(nextUrl);
   });
 
   return (
@@ -290,7 +289,7 @@ const Page: NextPageWithLayout = () => {
                   Create new entity type
                 </Button>
                 <Button
-                  href={`/${activeWorkspaceAccountId}`}
+                  href="/"
                   variant="tertiary"
                   size="small"
                   disabled={isSubmitting}

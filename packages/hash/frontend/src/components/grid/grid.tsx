@@ -22,14 +22,14 @@ import { InteractableManager } from "./utils/interactable-manager";
 import { useDrawHeader } from "./utils/use-draw-header";
 import {
   createHandleHeaderClicked,
-  sortRowData as sortRows,
-  TableSort,
+  defaultSortRows,
+  ColumnSort,
 } from "./utils/sorting";
 import { useRenderGridPortal } from "./utils/use-render-grid-portal";
 import { overrideCustomRenderers } from "./utils/override-custom-renderers";
 
 export type Row = Record<string, unknown>;
-export type RowData = Row[];
+export type Rows = Row[];
 
 export type GridProps<T> = Omit<
   DataEditorProps,
@@ -42,27 +42,27 @@ export type GridProps<T> = Omit<
   | "onCellEdited"
 > & {
   columns: SizedGridColumn[];
-  rowData: T;
+  rows: T;
   resizable?: boolean;
   sortable?: boolean;
-  initialPropertySort?: TableSort<string>;
+  initialColumnSort?: ColumnSort<string>;
   tableRef?: Ref<DataEditorRef>;
-  createGetCellContent: (rowData: T) => (cell: Item) => GridCell;
-  createOnCellEdited?: (rowData: T) => DataEditorProps["onCellEdited"];
-  sortRowData?: (rowData: T, sort: TableSort<string>) => T;
+  createGetCellContent: (rows: T) => (cell: Item) => GridCell;
+  createOnCellEdited?: (rows: T) => DataEditorProps["onCellEdited"];
+  sortRows?: (rows: T, sort: ColumnSort<string>) => T;
 };
 
-export const Grid = <T extends RowData>({
+export const Grid = <T extends Rows>({
   customRenderers,
   onVisibleRegionChanged,
   drawHeader,
   columns,
-  rowData,
+  rows,
   resizable = true,
   sortable = true,
-  initialPropertySort,
+  initialColumnSort,
   createGetCellContent,
-  sortRowData,
+  sortRows,
   tableRef,
   createOnCellEdited,
   ...rest
@@ -86,31 +86,31 @@ export const Grid = <T extends RowData>({
     return () => InteractableManager.deleteInteractables(tableId);
   }, []);
 
-  const [propertySort, setPropertySort] = useState<TableSort<string>>(
-    initialPropertySort ?? {
+  const [columnSort, setColumnSort] = useState<ColumnSort<string>>(
+    initialColumnSort ?? {
       key: columns[0]?.id ?? "",
       dir: "asc",
     },
   );
 
   const defaultDrawHeader = useDrawHeader(
-    sortable ? propertySort : undefined,
+    sortable ? columnSort : undefined,
     columns,
   );
 
   const handleHeaderClicked = sortable
-    ? createHandleHeaderClicked(columns, propertySort, setPropertySort)
+    ? createHandleHeaderClicked(columns, columnSort, setColumnSort)
     : undefined;
 
-  const rows = useMemo(() => {
+  const sortedRows = useMemo(() => {
     if (!sortable) {
-      return rowData;
+      return rows;
     }
 
-    const sortRowFn = sortRowData ?? sortRows;
+    const sortRowFn = sortRows ?? defaultSortRows;
 
-    return sortRowFn(rowData, propertySort);
-  }, [sortable, rowData, propertySort, sortRowData]);
+    return sortRowFn(rows, columnSort);
+  }, [sortable, rows, columnSort, sortRows]);
 
   const gridTheme: Partial<Theme> = useMemo(
     () => ({
@@ -146,17 +146,20 @@ export const Grid = <T extends RowData>({
     [hoveredRow, palette],
   );
 
-  const onCellSelect = ({ location: [col, row], kind }: GridMouseEventArgs) => {
-    setHoveredRow(kind === "cell" ? row : undefined);
+  const onCellSelect = ({
+    location: [colIndex, rowIndex],
+    kind,
+  }: GridMouseEventArgs) => {
+    setHoveredRow(kind === "cell" ? rowIndex : undefined);
     setSelection({
       ...selection,
       current:
         kind === "cell"
           ? {
-              cell: [col, row],
+              cell: [colIndex, rowIndex],
               range: {
-                x: col,
-                y: row,
+                x: colIndex,
+                y: rowIndex,
                 width: 1,
                 height: 1,
               },
@@ -230,9 +233,9 @@ export const Grid = <T extends RowData>({
       columns={resizedColumns}
       drawHeader={drawHeader ?? defaultDrawHeader}
       onHeaderClicked={handleHeaderClicked}
-      getCellContent={createGetCellContent(rows)}
-      onCellEdited={createOnCellEdited?.(rows)}
-      rows={rows.length}
+      getCellContent={createGetCellContent(sortedRows)}
+      onCellEdited={createOnCellEdited?.(sortedRows)}
+      rows={sortedRows.length}
       {...rest}
       /**
        * icons defined via `headerIcons` are available to be drawn using

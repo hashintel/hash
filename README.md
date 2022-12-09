@@ -18,6 +18,10 @@ This is HASH's _public monorepo_ which contains our open-source, fair-source and
 - [`apps/hashdotai`](apps/hashdotai): contains the [HASH user guide](https://hash.ai/docs) and [glossary of terms](https://hash.ai/glossary) content
 - [`apps/hashdotdev`](apps/hashdotdev): contains the [hash.dev](https://hash.dev/) developer-education website content and code
 
+### Infrastructure
+
+- [`/infra/terraform`](infra/terraform): contains Terraform modules for deploying HASH on AWS
+
 ## Contributing
 
 Please see [CONTRIBUTING.md](CONTRIBUTING.md) if you're interested in getting involved in the design or development of HASH.

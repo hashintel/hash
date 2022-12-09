@@ -30,7 +30,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
   const scrollableContainer = useRef<HTMLDivElement>(null);
 
   const items = useMemo(() => {
-    const propertyVal = cell.data.property.value;
+    const propertyVal = cell.data.propertyRow.value;
     const values = Array.isArray(propertyVal) ? propertyVal : [];
 
     const itemsArray: SortableItem[] = values.map((value, index) => ({
@@ -48,7 +48,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
 
   const addItem = (text: string) => {
     const newCell = produce(cell, (draftCell) => {
-      draftCell.data.property.value = [
+      draftCell.data.propertyRow.value = [
         ...items.map(({ value }) => value),
         text,
       ];
@@ -58,7 +58,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
 
   const removeItem = (indexToRemove: number) => {
     const newCell = produce(cell, (draftCell) => {
-      draftCell.data.property.value = items
+      draftCell.data.propertyRow.value = items
         .filter((_, index) => indexToRemove !== index)
         .map(({ value }) => value);
     });
@@ -73,7 +73,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
     }
 
     const newCell = produce(cell, (draftCell) => {
-      draftCell.data.property.value = items.map((item, index) =>
+      draftCell.data.propertyRow.value = items.map((item, index) =>
         indexToUpdate === index ? value : item.value,
       );
     });
@@ -86,7 +86,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
     const newCell = produce(cell, (draftCell) => {
       const newItems = arrayMove(items, oldIndex, newIndex);
 
-      draftCell.data.property.value = newItems.map(({ value }) => value);
+      draftCell.data.propertyRow.value = newItems.map(({ value }) => value);
     });
     onChange(newCell);
   };
@@ -112,7 +112,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
         ref={scrollableContainer}
         sx={{
           maxHeight: 300,
-          overflowY: "scroll",
+          overflowY: "auto",
           overflowX: "hidden",
           borderBottom: "1px solid",
           borderColor: "gray.20",
@@ -152,6 +152,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
 
       {editingRow !== NEW_ROW_KEY ? (
         <AddAnotherButton
+          title="Add Another Value"
           onClick={() => {
             setEditingRow(NEW_ROW_KEY);
             setSelectedRow("");

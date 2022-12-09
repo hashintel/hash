@@ -112,3 +112,11 @@ __pycache__
 # Application data
 /var
 seed-users.json
+
+# Terraform
+**/.terraform
+*.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.secrets.tfvars
+*.pem

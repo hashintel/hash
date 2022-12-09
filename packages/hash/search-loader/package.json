@@ -16,18 +16,14 @@
     "@hashintel/hash-api": "0.0.0-private",
     "@hashintel/hash-backend-utils": "0.0.0-private",
     "@hashintel/hash-shared": "0.0.0-private",
-    "@opensearch-project/opensearch": "1.1.0",
     "hot-shots": "8.5.0",
-    "slonik": "24.1.2",
     "ts-node": "10.9.1",
-    "typescript": "4.9.3"
+    "typescript": "4.9.4"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/node": "18.11.9",
-    "eslint": "8.28.0",
-    "rimraf": "^3.0.2",
-    "ts-node-dev": "2.0.0"
+    "eslint": "8.29.0"
   }
 }

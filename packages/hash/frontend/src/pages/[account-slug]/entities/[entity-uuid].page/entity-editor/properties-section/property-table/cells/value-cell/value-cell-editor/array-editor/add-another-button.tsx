@@ -1,7 +1,13 @@
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { Button, FontAwesomeIcon } from "@hashintel/hash-design-system";
 
-export const AddAnotherButton = ({ onClick }: { onClick: () => void }) => {
+export const AddAnotherButton = ({
+  onClick,
+  title,
+}: {
+  onClick: () => void;
+  title: string;
+}) => {
   return (
     <Button
       onClick={onClick}
@@ -9,9 +15,9 @@ export const AddAnotherButton = ({ onClick }: { onClick: () => void }) => {
       variant="tertiary_quiet"
       fullWidth
       startIcon={<FontAwesomeIcon icon={faPlus} />}
-      sx={{ justifyContent: "flex-start" }}
+      sx={{ justifyContent: "flex-start", borderRadius: 0 }}
     >
-      Add Another Value
+      {title}
     </Button>
   );
 };

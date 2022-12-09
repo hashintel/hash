@@ -1,12 +1,12 @@
 import { DrawHeaderCallback, GridColumn } from "@glideapps/glide-data-grid";
 import { useCallback } from "react";
 import { getCellHorizontalPadding, getYCenter } from "../utils";
-import { TableSort, TableSortType } from "./sorting";
+import { ColumnSort, ColumnSortType } from "./sorting";
 
 const drawHeaderSortIndicator = (
   x: number,
   y: number,
-  dir: TableSortType,
+  dir: ColumnSortType,
   ctx: CanvasRenderingContext2D,
 ) => {
   const width = 6;
@@ -28,7 +28,7 @@ const drawHeaderSortIndicator = (
 };
 
 export const useDrawHeader = <T extends string>(
-  sort: TableSort<T> | undefined,
+  sort: ColumnSort<T> | undefined,
   columns: GridColumn[],
 ) => {
   const drawHeader: DrawHeaderCallback = useCallback(
