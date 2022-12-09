@@ -55,7 +55,7 @@ export const UploadMediaForm: FunctionComponent<UploadMediaFormProps> = ({
         <div>
           {/** @todo need to make this controlled */}
           <input
-            className={tw`text-base border-solid px-1.5 py-1 rounded-sm border-2 border-gray-200 bg-gray-50 focus:outline-none focus:ring focus:border-blue-300 w-full`}
+            className={tw`box-border text-base border-solid px-1.5 py-1 rounded-sm border-2 border-gray-200 bg-gray-50 focus:outline-none focus:ring focus:border-blue-300 w-full`}
             onChange={(event) => onUrlChange(event.target.value)}
             type="url"
             placeholder={`Enter ${capitalisedType} URL`}
