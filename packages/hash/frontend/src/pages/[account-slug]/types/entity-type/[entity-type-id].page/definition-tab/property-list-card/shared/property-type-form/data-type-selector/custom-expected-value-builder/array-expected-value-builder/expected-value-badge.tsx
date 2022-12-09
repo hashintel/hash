@@ -13,19 +13,19 @@ import {
 import { useState, useRef, useEffect } from "react";
 import { expectedValuesOptions } from "../../shared/expected-values-options";
 
-interface DataTypeBadgeProps {
+interface ExpectedValueBadgeProps {
   typeId: VersionedUri | "array";
   prefix?: string;
   deleteTooltip?: string;
   onDelete?: () => void;
 }
 
-export const DataTypeBadge = ({
+export const ExpectedValueBadge = ({
   typeId,
   prefix,
   deleteTooltip,
   onDelete,
-}: DataTypeBadgeProps) => {
+}: ExpectedValueBadgeProps) => {
   const [hovered, setHovered] = useState(false);
 
   const { icon, title } = expectedValuesOptions[typeId]!;

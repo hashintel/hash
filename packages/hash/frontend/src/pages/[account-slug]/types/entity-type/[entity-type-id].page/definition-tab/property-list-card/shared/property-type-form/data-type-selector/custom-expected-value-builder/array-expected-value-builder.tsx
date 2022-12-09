@@ -19,43 +19,46 @@ import { usePopupState } from "material-ui-popup-state/hooks";
 import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import {
-  DataType,
-  DefaultDataTypeId,
-  getDefaultData,
+  CustomExpectedValue,
+  DefaultExpectedValueTypeId,
+  getDefaultExpectedValue,
   PropertyTypeFormValues,
 } from "../../../property-type-form-values";
 import { dataTypeOptions as primitiveDataTypeOptions } from "../../shared/data-type-options";
 import { expectedValuesOptions } from "../shared/expected-values-options";
-import { DataTypeBadge } from "./array-data-type-menu/data-type-badge";
-import { DeleteDataTypeModal } from "./array-data-type-menu/delete-data-type-modal";
+import { ExpectedValueBadge } from "./array-expected-value-builder/expected-value-badge";
+import { DeleteExpectedValueModal } from "./array-expected-value-builder/delete-expected-value-modal";
 
-const dataTypeOptions: DefaultDataTypeId[] = [
+const dataTypeOptions: DefaultExpectedValueTypeId[] = [
   ...primitiveDataTypeOptions,
   "array",
   types.dataType.object.dataTypeId,
 ];
 
-const deleteDataTypeAndChildren = (
+const deleteExpectedValueAndChildren = (
   id: string,
-  dataTypes: Record<string, DataType>,
+  expectedValues: Record<string, CustomExpectedValue>,
 ) => {
-  let newDataTypes = { ...dataTypes };
-  const removedDataType = dataTypes[id];
+  let newExpectedValues = { ...expectedValues };
+  const removedExpectedValue = expectedValues[id];
 
-  if (removedDataType) {
-    if (removedDataType.data && "expectedValues" in removedDataType.data) {
-      for (const childId of removedDataType.data.expectedValues) {
-        newDataTypes = deleteDataTypeAndChildren(childId, newDataTypes);
+  if (removedExpectedValue) {
+    if (removedExpectedValue.data && "itemIds" in removedExpectedValue.data) {
+      for (const childId of removedExpectedValue.data.itemIds) {
+        newExpectedValues = deleteExpectedValueAndChildren(
+          childId,
+          newExpectedValues,
+        );
       }
     }
 
-    delete newDataTypes[removedDataType.id];
+    delete newExpectedValues[removedExpectedValue.id];
   }
 
-  return newDataTypes;
+  return newExpectedValues;
 };
 
-type ArrayDataTypeChildProps = {
+type ArrayExpectedValueChildProps = {
   id: string;
   index?: number[];
   onlyChild?: boolean;
@@ -63,48 +66,43 @@ type ArrayDataTypeChildProps = {
   onDelete: (typeId: string) => void;
 };
 
-const ArrayDataTypeChild: FunctionComponent<ArrayDataTypeChildProps> = ({
-  id,
-  index,
-  onlyChild,
-  firstChild,
-  onDelete,
-}) => {
+const ArrayExpectedValueChild: FunctionComponent<
+  ArrayExpectedValueChildProps
+> = ({ id, index, onlyChild, firstChild, onDelete }) => {
   const [show, setShow] = useState(false);
 
   const { control } = useFormContext<PropertyTypeFormValues>();
 
-  const dataType = useWatch({
+  const array = useWatch({
     control,
-    name: `flattenedDataTypeList.${id}`,
+    name: `flattenedCustomExpectedValueList.${id}`,
   });
 
   useEffect(() => {
     setShow(true);
   }, []);
 
-  if (!dataType?.data) {
+  if (!array?.data) {
     return null;
   }
 
-  const isObject = dataType.data.typeId === types.dataType.object.dataTypeId;
+  const isObject = array.data.typeId === types.dataType.object.dataTypeId;
 
-  const hasContents =
-    "expectedValues" in dataType.data && dataType.data.expectedValues.length;
+  const hasContents = "itemIds" in array.data && array.data.itemIds.length;
 
   const deleteChild = () => {
-    if (dataType.data?.typeId) {
-      onDelete(dataType.data.typeId);
+    if (array.data?.typeId) {
+      onDelete(array.data.typeId);
     }
   };
 
   return (
-    <Collapse in={show && !dataType.animatingOut} timeout={300}>
+    <Collapse in={show && !array.animatingOut} timeout={300}>
       <Box mb={1}>
-        {dataType.data.typeId === "array" ? (
+        {array.data.typeId === "array" ? (
           // eslint-disable-next-line @typescript-eslint/no-use-before-define
-          <ArrayDataTypeMenu
-            dataTypeId={id}
+          <ArrayExpectedValueBuilder
+            expectedValueId={id}
             prefix={firstChild ? "CONTAINING AN" : "OR AN"}
             deleteTooltip={`Delete array${
               hasContents ? " and its contents" : ""
@@ -113,8 +111,8 @@ const ArrayDataTypeChild: FunctionComponent<ArrayDataTypeChildProps> = ({
             onDelete={deleteChild}
           />
         ) : (
-          <DataTypeBadge
-            typeId={dataType.data.typeId}
+          <ExpectedValueBadge
+            typeId={array.data.typeId}
             prefix={`${
               onlyChild ? "CONTAINING" : firstChild ? "CONTAINING EITHER" : "OR"
             }${isObject ? " A" : ""}`}
@@ -127,31 +125,27 @@ const ArrayDataTypeChild: FunctionComponent<ArrayDataTypeChildProps> = ({
   );
 };
 
-type ArrayDataTypeMenuProps = {
-  dataTypeId: string;
+type ArrayExpectedValueBuilderProps = {
+  expectedValueId: string;
   prefix?: string;
   deleteTooltip?: string;
   onDelete?: () => void;
   index?: number[];
 };
 
-export const ArrayDataTypeMenu: FunctionComponent<ArrayDataTypeMenuProps> = ({
-  dataTypeId,
-  prefix,
-  deleteTooltip,
-  onDelete,
-  index = [],
-}) => {
+export const ArrayExpectedValueBuilder: FunctionComponent<
+  ArrayExpectedValueBuilderProps
+> = ({ expectedValueId, prefix, deleteTooltip, onDelete, index = [] }) => {
   const { setValue, control } = useFormContext<PropertyTypeFormValues>();
 
-  const flattenedDataTypes = useWatch({
+  const flattenedExpectedValues = useWatch({
     control,
-    name: `flattenedDataTypeList`,
+    name: `flattenedCustomExpectedValueList`,
   });
 
-  const expectedValues = useWatch({
+  const itemIds = useWatch({
     control,
-    name: `flattenedDataTypeList.${dataTypeId}.data.expectedValues`,
+    name: `flattenedCustomExpectedValueList.${expectedValueId}.data.itemIds`,
   });
 
   const [autocompleteElem, setAutocompleteElem] =
@@ -159,50 +153,54 @@ export const ArrayDataTypeMenu: FunctionComponent<ArrayDataTypeMenuProps> = ({
   const textFieldRef = useRef<HTMLInputElement>(null);
 
   const [dataTypeCount, propertyObjectCount, arrayCount] = useMemo(() => {
-    const arrays = expectedValues.filter(
-      (childId) => flattenedDataTypes[childId]?.data?.typeId === "array",
+    const arrays = itemIds.filter(
+      (childId) => flattenedExpectedValues[childId]?.data?.typeId === "array",
     ).length;
 
     // TODO: change this to flattenedDataTypes[childId]?.data?.typeId === === "object"
     // when object creation is implemented
-    const objects = expectedValues.filter(
+    const objects = itemIds.filter(
       (childId) =>
-        flattenedDataTypes[childId]?.data?.typeId ===
+        flattenedExpectedValues[childId]?.data?.typeId ===
         types.dataType.object.dataTypeId,
     ).length;
 
-    const dataTypes = expectedValues.length - arrays - objects;
+    const dataTypes = itemIds.length - arrays - objects;
 
     return [dataTypes, objects, arrays];
-  }, [expectedValues, flattenedDataTypes]);
+  }, [itemIds, flattenedExpectedValues]);
 
   const deleteModalPopupState = usePopupState({
     variant: "popover",
-    popupId: `deleteArray-${dataTypeId}`,
+    popupId: `deleteArray-${expectedValueId}`,
   });
 
-  const deleteDataTypeByTypeId = (typeId: string) => {
-    const removedDataType = Object.values(flattenedDataTypes).find(
-      (dataType) =>
-        dataType.parentId === dataTypeId && dataType.data?.typeId === typeId,
+  const deleteExpectedValueById = (typeId: string) => {
+    const removedExpectedValue = Object.values(flattenedExpectedValues).find(
+      (expectedValue) =>
+        expectedValue.parentId === expectedValueId &&
+        expectedValue.data?.typeId === typeId,
     );
 
-    if (removedDataType) {
-      const removedDataTypeId = removedDataType.id;
-      setValue(`flattenedDataTypeList.${removedDataTypeId}`, {
-        ...removedDataType,
+    if (removedExpectedValue) {
+      const removedExpectedValueId = removedExpectedValue.id;
+      setValue(`flattenedCustomExpectedValueList.${removedExpectedValueId}`, {
+        ...removedExpectedValue,
         animatingOut: true,
       });
 
       setTimeout(() => {
         setValue(
-          `flattenedDataTypeList`,
-          deleteDataTypeAndChildren(removedDataTypeId, flattenedDataTypes),
+          `flattenedCustomExpectedValueList`,
+          deleteExpectedValueAndChildren(
+            removedExpectedValueId,
+            flattenedExpectedValues,
+          ),
         );
 
         setValue(
-          `flattenedDataTypeList.${dataTypeId}.data.expectedValues`,
-          expectedValues.filter((childId) => childId !== removedDataTypeId),
+          `flattenedCustomExpectedValueList.${expectedValueId}.data.itemIds`,
+          itemIds.filter((childId) => childId !== removedExpectedValueId),
         );
       }, 300);
     }
@@ -213,15 +211,13 @@ export const ArrayDataTypeMenu: FunctionComponent<ArrayDataTypeMenuProps> = ({
 
   const value = useMemo(
     () =>
-      expectedValues.map(
-        (expectedValue) => flattenedDataTypes[expectedValue]?.data?.typeId,
-      ),
-    [expectedValues, flattenedDataTypes],
+      itemIds.map((itemId) => flattenedExpectedValues[itemId]?.data?.typeId),
+    [itemIds, flattenedExpectedValues],
   );
 
   return (
     <Stack sx={{ mb: 1 }}>
-      <DataTypeBadge
+      <ExpectedValueBadge
         typeId="array"
         prefix={prefix}
         deleteTooltip={deleteTooltip}
@@ -245,13 +241,13 @@ export const ArrayDataTypeMenu: FunctionComponent<ArrayDataTypeMenuProps> = ({
           position: "relative",
         }}
       >
-        {expectedValues?.map((childId, pos) => (
-          <ArrayDataTypeChild
-            key={childId}
-            id={childId}
+        {itemIds?.map((itemId, pos) => (
+          <ArrayExpectedValueChild
+            key={itemId}
+            id={itemId}
             index={[...index, pos]}
-            onDelete={(typeId: string) => deleteDataTypeByTypeId(typeId)}
-            onlyChild={expectedValues.length === 1}
+            onDelete={(typeId: string) => deleteExpectedValueById(typeId)}
+            onlyChild={itemIds.length === 1}
             firstChild={pos === 0}
           />
         ))}
@@ -278,28 +274,28 @@ export const ArrayDataTypeMenu: FunctionComponent<ArrayDataTypeMenuProps> = ({
           onChange={(_evt, _data, reason, details) => {
             const typeId = details?.option;
             if (typeId) {
-              const defaultData = getDefaultData(typeId);
+              const defaultData = getDefaultExpectedValue(typeId);
 
               if (reason === "selectOption") {
                 const childId = uniqueId();
 
-                setValue(`flattenedDataTypeList`, {
-                  ...(flattenedDataTypes ?? {}),
+                setValue(`flattenedCustomExpectedValueList`, {
+                  ...(flattenedExpectedValues ?? {}),
                   [childId]: {
                     id: childId,
-                    parentId: dataTypeId,
+                    parentId: expectedValueId,
                     data: defaultData,
                   },
                 });
                 setValue(
-                  `flattenedDataTypeList.${dataTypeId}.data.expectedValues`,
-                  [...expectedValues, childId],
+                  `flattenedCustomExpectedValueList.${expectedValueId}.data.itemIds`,
+                  [...itemIds, childId],
                 );
 
                 // trigger popper reposition calculation
                 window.dispatchEvent(new Event("resize"));
               } else if (reason === "removeOption") {
-                deleteDataTypeByTypeId(typeId);
+                deleteExpectedValueById(typeId);
               }
             }
           }}
@@ -394,7 +390,7 @@ export const ArrayDataTypeMenu: FunctionComponent<ArrayDataTypeMenuProps> = ({
           }}
         />
 
-        <DeleteDataTypeModal
+        <DeleteExpectedValueModal
           popupState={deleteModalPopupState}
           onDelete={onDelete}
           onClose={() => deleteModalPopupState.close()}
