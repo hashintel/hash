@@ -80,7 +80,7 @@ pub struct RaceConditionOnUpdate;
 
 impl fmt::Display for RaceConditionOnUpdate {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("A race condition happened when updating the entity")
+        fmt.write_str("The entity that should be updated was unexpectedly updated at the same time")
     }
 }
 
