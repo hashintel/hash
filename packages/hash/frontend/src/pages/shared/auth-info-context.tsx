@@ -103,13 +103,21 @@ export const useAuthInfo = (): AuthInfoState => {
   return authInfo;
 };
 
+/**
+ * Use the currently authenticated user.
+ *
+ * @throws if there is no user authenticated in the application.
+ * @returns `AuthInfo` where the `authenticatedUser` is always defined.
+ */
 export const useAuthenticatedUser = (): AuthInfoState & {
   authenticatedUser: AuthenticatedUser;
 } => {
   const { authenticatedUser, ...remainingAuthInfo } = useAuthInfo();
 
   if (!authenticatedUser) {
-    throw new Error("No authenticated user.");
+    throw new Error(
+      "There is no authenticated user. Consider using the `useAuthInfo` hook instead if this is expected.",
+    );
   }
 
   return { authenticatedUser, ...remainingAuthInfo };

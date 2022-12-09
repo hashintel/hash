@@ -192,6 +192,7 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
     fetchKratosSession(cookieString),
   ]);
 
+  /** @todo: make additional pages publicly accessible */
   if (!subgraph || !kratosSession) {
     // If the user is logged out and not on the login or signup page...
     if (!(pathname.startsWith("/login") || pathname.startsWith("/signup"))) {
