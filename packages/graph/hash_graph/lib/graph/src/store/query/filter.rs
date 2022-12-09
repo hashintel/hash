@@ -748,7 +748,7 @@ mod tests {
 
     #[test]
     fn for_entity_by_edition_id() {
-        let _entity_edition_id = EntityEditionId::new(
+        let entity_edition_id = EntityEditionId::new(
             EntityId::new(
                 OwnedById::new(AccountId::new(Uuid::new_v4())),
                 EntityUuid::new(Uuid::new_v4()),
@@ -760,35 +760,32 @@ mod tests {
             ),
         );
 
-        // TODO: `EntityRecordId` is not exposed in the public API, so we can't
-        //       use it in the expected filter.
-        //   see https://app.asana.com/0/0/1203491211535116/f
-        // let expected = json! {{
-        //   "all": [
-        //     { "equal": [
-        //       { "path": ["ownedById"] },
-        //       { "parameter": entity_edition_id.base_id().owned_by_id() }
-        //     ]},
-        //     { "equal": [
-        //       { "path": ["uuid"] },
-        //       { "parameter": entity_edition_id.base_id().entity_uuid() }
-        //     ]},
-        //     { "equal": [
-        //       { "path": ["recordId"] },
-        //       { "parameter": entity_edition_id.record_id() }
-        //     ]}
-        //   ]
-        // }};
-        //
-        // test_filter_representation(
-        //     &Filter::for_entity_by_edition_id(entity_edition_id),
-        //     &expected,
-        // );
+        let expected = json! {{
+          "all": [
+            { "equal": [
+              { "path": ["ownedById"] },
+              { "parameter": entity_edition_id.base_id().owned_by_id() }
+            ]},
+            { "equal": [
+              { "path": ["uuid"] },
+              { "parameter": entity_edition_id.base_id().entity_uuid() }
+            ]},
+            { "equal": [
+              { "path": ["recordId"] },
+              { "parameter": entity_edition_id.record_id() }
+            ]}
+          ]
+        }};
+
+        test_filter_representation(
+            &Filter::for_entity_by_edition_id(entity_edition_id),
+            &expected,
+        );
     }
 
     #[test]
     fn for_outgoing_link_by_source_entity_edition_id() {
-        let _entity_edition_id = EntityEditionId::new(
+        let entity_edition_id = EntityEditionId::new(
             EntityId::new(
                 OwnedById::new(AccountId::new(Uuid::new_v4())),
                 EntityUuid::new(Uuid::new_v4()),
@@ -800,35 +797,32 @@ mod tests {
             ),
         );
 
-        // TODO: `EntityRecordId` is not exposed in the public API, so we can't
-        //       use it in the expected filter.
-        //   see https://app.asana.com/0/0/1203491211535116/f
-        // let expected = json! {{
-        //   "all": [
-        //     { "equal": [
-        //       { "path": ["leftEntity", "ownedById"] },
-        //       { "parameter": entity_edition_id.base_id().owned_by_id() }
-        //     ]},
-        //     { "equal": [
-        //       { "path": ["leftEntity", "uuid"] },
-        //       { "parameter": entity_edition_id.base_id().entity_uuid() }
-        //     ]},
-        //     { "equal": [
-        //       { "path": ["leftEntity", "recordId"] },
-        //       { "parameter": entity_edition_id.record_id() }
-        //     ]}
-        //   ]
-        // }};
-        //
-        // test_filter_representation(
-        //     &Filter::for_outgoing_link_by_source_entity_edition_id(entity_edition_id),
-        //     &expected,
-        // );
+        let expected = json! {{
+          "all": [
+            { "equal": [
+              { "path": ["leftEntity", "ownedById"] },
+              { "parameter": entity_edition_id.base_id().owned_by_id() }
+            ]},
+            { "equal": [
+              { "path": ["leftEntity", "uuid"] },
+              { "parameter": entity_edition_id.base_id().entity_uuid() }
+            ]},
+            { "equal": [
+              { "path": ["leftEntity", "recordId"] },
+              { "parameter": entity_edition_id.record_id() }
+            ]}
+          ]
+        }};
+
+        test_filter_representation(
+            &Filter::for_outgoing_link_by_source_entity_edition_id(entity_edition_id),
+            &expected,
+        );
     }
 
     #[test]
     fn for_left_entity_by_entity_edition_id() {
-        let _entity_edition_id = EntityEditionId::new(
+        let entity_edition_id = EntityEditionId::new(
             EntityId::new(
                 OwnedById::new(AccountId::new(Uuid::new_v4())),
                 EntityUuid::new(Uuid::new_v4()),
@@ -840,35 +834,32 @@ mod tests {
             ),
         );
 
-        // TODO: `EntityRecordId` is not exposed in the public API, so we can't
-        //       use it in the expected filter.
-        //   see https://app.asana.com/0/0/1203491211535116/f
-        // let expected = json! {{
-        //   "all": [
-        //     { "equal": [
-        //       { "path": ["outgoingLinks", "ownedById"] },
-        //       { "parameter": entity_edition_id.base_id().owned_by_id() }
-        //     ]},
-        //     { "equal": [
-        //       { "path": ["outgoingLinks", "uuid"] },
-        //       { "parameter": entity_edition_id.base_id().entity_uuid() }
-        //     ]},
-        //     { "equal": [
-        //       { "path": ["outgoingLinks", "recordId"] },
-        //       { "parameter": entity_edition_id.record_id() }
-        //     ]}
-        //   ]
-        // }};
-        //
-        // test_filter_representation(
-        //     &Filter::for_left_entity_by_entity_edition_id(entity_edition_id),
-        //     &expected,
-        // );
+        let expected = json! {{
+          "all": [
+            { "equal": [
+              { "path": ["outgoingLinks", "ownedById"] },
+              { "parameter": entity_edition_id.base_id().owned_by_id() }
+            ]},
+            { "equal": [
+              { "path": ["outgoingLinks", "uuid"] },
+              { "parameter": entity_edition_id.base_id().entity_uuid() }
+            ]},
+            { "equal": [
+              { "path": ["outgoingLinks", "recordId"] },
+              { "parameter": entity_edition_id.record_id() }
+            ]}
+          ]
+        }};
+
+        test_filter_representation(
+            &Filter::for_left_entity_by_entity_edition_id(entity_edition_id),
+            &expected,
+        );
     }
 
     #[test]
     fn for_right_entity_by_entity_edition_id() {
-        let _entity_edition_id = EntityEditionId::new(
+        let entity_edition_id = EntityEditionId::new(
             EntityId::new(
                 OwnedById::new(AccountId::new(Uuid::new_v4())),
                 EntityUuid::new(Uuid::new_v4()),
@@ -880,30 +871,27 @@ mod tests {
             ),
         );
 
-        // TODO: `EntityRecordId` is not exposed in the public API, so we can't
-        //       use it in the expected filter.
-        //   see https://app.asana.com/0/0/1203491211535116/f
-        // let expected = json! {{
-        //   "all": [
-        //     { "equal": [
-        //       { "path": ["incomingLinks", "ownedById"] },
-        //       { "parameter": entity_edition_id.base_id().owned_by_id() }
-        //     ]},
-        //     { "equal": [
-        //       { "path": ["incomingLinks", "uuid"] },
-        //       { "parameter": entity_edition_id.base_id().entity_uuid() }
-        //     ]},
-        //     { "equal": [
-        //       { "path": ["incomingLinks", "recordId"] },
-        //       { "parameter": entity_edition_id.record_id() }
-        //     ]}
-        //   ]
-        // }};
-        //
-        // test_filter_representation(
-        //     &Filter::for_right_entity_by_entity_edition_id(entity_edition_id),
-        //     &expected,
-        // );
+        let expected = json! {{
+          "all": [
+            { "equal": [
+              { "path": ["incomingLinks", "ownedById"] },
+              { "parameter": entity_edition_id.base_id().owned_by_id() }
+            ]},
+            { "equal": [
+              { "path": ["incomingLinks", "uuid"] },
+              { "parameter": entity_edition_id.base_id().entity_uuid() }
+            ]},
+            { "equal": [
+              { "path": ["incomingLinks", "recordId"] },
+              { "parameter": entity_edition_id.record_id() }
+            ]}
+          ]
+        }};
+
+        test_filter_representation(
+            &Filter::for_right_entity_by_entity_edition_id(entity_edition_id),
+            &expected,
+        );
     }
 
     #[test]

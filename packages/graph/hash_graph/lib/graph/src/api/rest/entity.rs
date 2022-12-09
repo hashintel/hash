@@ -23,7 +23,9 @@ use crate::{
         },
     },
     identifier::{
-        knowledge::{EntityEditionId, EntityId, EntityIdAndTimestamp, EntityVersion},
+        knowledge::{
+            EntityEditionId, EntityId, EntityIdAndTimestamp, EntityRecordId, EntityVersion,
+        },
         GraphElementEditionId, GraphElementId,
     },
     knowledge::{
@@ -72,6 +74,7 @@ use crate::{
             Entity,
             EntityLinkOrder,
             EntityProperties,
+            EntityRecordId,
             EntityVersion,
             EntityStructuralQuery,
             EntityQueryToken,

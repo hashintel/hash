@@ -412,6 +412,12 @@ export interface EntityEditionId {
   baseId: string;
   /**
    *
+   * @type {number}
+   * @memberof EntityEditionId
+   */
+  recordId: number;
+  /**
+   *
    * @type {string}
    * @memberof EntityEditionId
    */
@@ -495,6 +501,7 @@ export interface EntityMetadata {
 export const EntityQueryToken = {
   Uuid: "uuid",
   Version: "version",
+  RecordId: "recordId",
   Archived: "archived",
   OwnedById: "ownedById",
   UpdatedById: "updatedById",
@@ -750,6 +757,12 @@ export interface GraphElementEditionIdOneOf1 {
    * @memberof GraphElementEditionIdOneOf1
    */
   baseId: string;
+  /**
+   *
+   * @type {number}
+   * @memberof GraphElementEditionIdOneOf1
+   */
+  recordId: number;
   /**
    *
    * @type {string}

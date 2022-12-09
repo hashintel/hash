@@ -135,7 +135,7 @@ impl EntityVersion {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, ToSql)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, ToSql, ToSchema)]
 #[postgres(transparent)]
 #[repr(transparent)]
 pub struct EntityRecordId(i64);
@@ -156,7 +156,6 @@ impl EntityRecordId {
 #[serde(rename_all = "camelCase")]
 pub struct EntityEditionId {
     base_id: EntityId,
-    #[serde(skip)]
     record_id: EntityRecordId,
     version: EntityVersion,
 }
