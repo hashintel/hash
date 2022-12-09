@@ -668,7 +668,6 @@ dependencies = [
  "async-trait",
  "axum",
  "bb8-postgres",
- "byteorder",
  "chrono",
  "clap 4.0.29",
  "criterion",
