@@ -381,7 +381,7 @@ export const up = (pgm: MigrationBuilder): void => {
 
   pgm.addConstraint("entity_versions", "entity_versions_overlapping", {
     exclude:
-      "USING gist (entity_uuid WITH =, decision_time WITH &&, system_time WITH &&)",
+      "USING gist (owned_by_id WITH =, entity_uuid WITH =, decision_time WITH &&, system_time WITH &&)",
     deferrable: true,
   });
 
