@@ -9,7 +9,6 @@ description = "HASH Graph API"
 async-trait = "0.1.59"
 axum = "0.6.1"
 bb8-postgres = "0.8.1"
-byteorder = "1.4.3"
 clap = { version = "4.0.29", features = ["derive", "env"], optional = true }
 chrono = { version = "0.4.23", features = ["serde"] }
 error-stack = { version = "0.2.4", features = ["spantrace"] }

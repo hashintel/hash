@@ -1,12 +1,11 @@
 use std::{
-    fmt, io,
+    fmt,
     ops::{Bound, RangeBounds},
     str::FromStr,
 };
 
-use byteorder::{BigEndian, ReadBytesExt};
 use chrono::{DateTime, Utc};
-use postgres_protocol::types::{Range, RangeBound};
+use postgres_protocol::types::{time_from_sql, Range, RangeBound};
 use postgres_types::{FromSql, Type};
 use serde::{Deserialize, Serialize};
 use serde_json;
@@ -92,19 +91,23 @@ impl FromSql<'_> for Timespan {
             })
         }
 
-        fn is_negative_infinity(bound: &RangeBound<Option<&[u8]>>) -> io::Result<bool> {
+        fn is_negative_infinity(
+            bound: &RangeBound<Option<&[u8]>>,
+        ) -> Result<bool, Box<dyn std::error::Error + Sync + Send>> {
             Ok(match bound {
-                RangeBound::Inclusive(Some(mut bytes)) | RangeBound::Exclusive(Some(mut bytes)) => {
-                    bytes.read_i64::<BigEndian>()? == i64::MIN
+                RangeBound::Inclusive(Some(bytes)) | RangeBound::Exclusive(Some(bytes)) => {
+                    time_from_sql(bytes)? == i64::MIN
                 }
                 _ => false,
             })
         }
 
-        fn is_positive_infinity(bound: &RangeBound<Option<&[u8]>>) -> io::Result<bool> {
+        fn is_positive_infinity(
+            bound: &RangeBound<Option<&[u8]>>,
+        ) -> Result<bool, Box<dyn std::error::Error + Sync + Send>> {
             Ok(match bound {
-                RangeBound::Inclusive(Some(mut bytes)) | RangeBound::Exclusive(Some(mut bytes)) => {
-                    bytes.read_i64::<BigEndian>()? == i64::MAX
+                RangeBound::Inclusive(Some(bytes)) | RangeBound::Exclusive(Some(bytes)) => {
+                    time_from_sql(bytes)? == i64::MAX
                 }
                 _ => false,
             })
@@ -191,8 +194,6 @@ impl RangeBounds<TransactionTimestamp> for TransactionTimespan {
         self.end_bound.as_ref()
     }
 }
-
-impl TransactionTimespan {}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
