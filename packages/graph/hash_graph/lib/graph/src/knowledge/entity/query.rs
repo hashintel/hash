@@ -282,6 +282,7 @@ pub enum EntityQueryToken {
     // TODO: we want to expose `EntityId` here instead
     Uuid,
     Version,
+    RecordId,
     Archived,
     OwnedById,
     UpdatedById,
@@ -302,10 +303,10 @@ pub struct EntityQueryPathVisitor {
 }
 
 impl EntityQueryPathVisitor {
-    pub const EXPECTING: &'static str = "one of `uuid`, `version`, `archived`, `ownedById`, \
-                                         `updatedById`, `type`, `properties`, `incomingLinks`, \
-                                         `outgoingLinks`, `leftEntity`, `rightEntity`, \
-                                         `leftToRightOrder`, `rightToLeftOrder`";
+    pub const EXPECTING: &'static str = "one of `uuid`, `version`, `recordId`, `archived`, \
+                                         `ownedById`, `updatedById`, `type`, `properties`, \
+                                         `incomingLinks`, `outgoingLinks`, `leftEntity`, \
+                                         `rightEntity`, `leftToRightOrder`, `rightToLeftOrder`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -331,6 +332,7 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
 
         Ok(match token {
             EntityQueryToken::Uuid => EntityQueryPath::Uuid,
+            EntityQueryToken::RecordId => EntityQueryPath::RecordId,
             EntityQueryToken::OwnedById => EntityQueryPath::OwnedById,
             EntityQueryToken::UpdatedById => EntityQueryPath::UpdatedById,
             EntityQueryToken::Version => EntityQueryPath::LowerTransactionTime,
