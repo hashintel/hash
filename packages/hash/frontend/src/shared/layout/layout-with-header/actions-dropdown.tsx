@@ -114,16 +114,24 @@ export const ActionsDropdownInner: FunctionComponent<{
         >
           <ListItemText primary="Create Page" />
         </MenuItem>
-        {activeWorkspace ? (
-          <>
-            <MenuItem href="/new/entity" onClick={popupState.close}>
-              <ListItemText primary="Create Entity" />
-            </MenuItem>
-            <MenuItem href="/new/types/entity-type" onClick={popupState.close}>
-              <ListItemText primary="Create Entity Type" />
-            </MenuItem>
-          </>
-        ) : null}
+        {activeWorkspace
+          ? [
+              <MenuItem
+                key="entity"
+                href="/new/entity"
+                onClick={popupState.close}
+              >
+                <ListItemText primary="Create Entity" />
+              </MenuItem>,
+              <MenuItem
+                key="entity-type"
+                href="/new/types/entity-type"
+                onClick={popupState.close}
+              >
+                <ListItemText primary="Create Entity Type" />
+              </MenuItem>,
+            ]
+          : null}
       </Menu>
     </Box>
   );
