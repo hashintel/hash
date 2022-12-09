@@ -19,12 +19,12 @@ import {
   oryKratosClient,
 } from "./shared/ory-kratos";
 import { Button } from "../shared/ui";
-import { useAuthenticatedUser } from "../components/hooks/useAuthenticatedUser";
 import { AccountSetupForm } from "./signup.page/account-setup-form";
 
 import { parseGraphQLError } from "./shared/auth-utils";
 import { useUpdateAuthenticatedUser } from "../components/hooks/useUpdateAuthenticatedUser";
 import { useHashInstance } from "../components/hooks/useHashInstance";
+import { useAuthenticatedUser } from "./shared/auth-info-context";
 
 const KratosRegistrationFlowForm: FunctionComponent = () => {
   const router = useRouter();
