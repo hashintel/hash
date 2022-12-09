@@ -55,6 +55,12 @@ selfservice:
                     in: header
             - hook: session
 
+    verification:
+      use: link
+      lifespan: 24h
+      ui_url: http://localhost:3000/verification
+      enabled: true
+
 log:
   level: info
   format: json
@@ -74,3 +80,8 @@ identity:
   schemas:
     - id: default
       url: file:///etc/config/kratos/identity.schema.json
+
+courier:
+  template_override_path: /etc/config/kratos/templates
+  smtp:
+    connection_uri: set-through-env-arg-COURIER_SMTP_CONNECTION_URI

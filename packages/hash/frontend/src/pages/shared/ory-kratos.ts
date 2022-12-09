@@ -10,6 +10,11 @@ import {
   SettingsFlow,
   VerificationFlow,
   UiNodeInputAttributes,
+  UpdateLoginFlowBody,
+  UpdateRegistrationFlowBody,
+  UpdateRecoveryFlowBody,
+  UpdateSettingsFlowBody,
+  UpdateVerificationFlowBody,
 } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { AxiosError } from "axios";
@@ -43,15 +48,15 @@ export type IdentityTraits = {
 };
 
 type Flows = {
-  login: LoginFlow;
-  recovery: RecoveryFlow;
-  registration: RegistrationFlow;
-  settings: SettingsFlow;
-  verification: VerificationFlow;
+  login: [LoginFlow, UpdateLoginFlowBody];
+  recovery: [RecoveryFlow, UpdateRecoveryFlowBody];
+  registration: [RegistrationFlow, UpdateRegistrationFlowBody];
+  settings: [SettingsFlow, UpdateSettingsFlowBody];
+  verification: [VerificationFlow, UpdateVerificationFlowBody];
 };
 
 type FlowNames = keyof Flows;
-type FlowValues = Flows[FlowNames];
+type FlowValues = Flows[FlowNames][0];
 
 /**
  * A helper function that creates an error handling function for some common errors
@@ -159,6 +164,19 @@ export const createFlowErrorHandler =
     // We are not able to handle the error? Return it.
     return Promise.reject(err);
   };
+
+export const gatherUiNodeValuesFromFlow = <T extends FlowNames>(
+  flow: FlowValues,
+): Flows[T][1] =>
+  flow.ui.nodes
+    .map(({ attributes }) => attributes)
+    .filter((attrs): attrs is UiNodeInputAttributes =>
+      isUiNodeInputAttributes(attrs),
+    )
+    .reduce((acc, attributes) => {
+      const { name, value } = attributes;
+      return { ...acc, [name]: value };
+    }, {} as Flows[T][1]);
 
 const maybeGetCsrfTokenFromFlow = (flow: FlowValues) =>
   flow.ui.nodes

@@ -19,6 +19,12 @@ selfservice:
     password:
       enabled: true
 
+    link:
+      config:
+        enabled: true
+        # Set through SELFSERVICE_METHODS_LINK_CONFIG_BASE_URL
+        base_url: http://localhost:4433/
+
   flows:
     error:
       ui_url: http://localhost:3000/error
@@ -55,6 +61,12 @@ selfservice:
                     in: header
             - hook: session
 
+    verification:
+      use: link
+      lifespan: 24h
+      ui_url: http://localhost:3000/verification
+      enabled: true
+
 log:
   level: debug
   format: text
@@ -74,3 +86,8 @@ identity:
   schemas:
     - id: default
       url: file:///etc/config/kratos/identity.schema.json
+
+courier:
+  template_override_path: /etc/config/kratos/templates
+  smtp:
+    connection_uri: set-through-env-arg-COURIER_SMTP_CONNECTION_URI
