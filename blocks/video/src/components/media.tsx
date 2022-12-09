@@ -14,6 +14,7 @@ import {
   UpdateEntityData,
 } from "@blockprotocol/graph";
 import { useGraphBlockService } from "@blockprotocol/graph/react";
+import { tw } from "twind";
 import {
   Dispatch,
   SetStateAction,
@@ -335,7 +336,7 @@ export const Media: FunctionComponent<
   };
 
   return (
-    <div ref={blockRef}>
+    <div ref={blockRef} className={tw`font-sans box-border`}>
       {draftSrc ? (
         <MediaWithCaption
           src={draftSrc}
