@@ -1,6 +1,6 @@
 # Based on the quick-start example https://github.com/ory/kratos/blob/master/contrib/quickstart/kratos/email-password/kratos.yml
 
-version: v0.10.1
+version: v0.11.0
 
 serve:
   public:
