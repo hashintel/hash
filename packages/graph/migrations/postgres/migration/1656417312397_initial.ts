@@ -298,7 +298,9 @@ export const up = (pgm: MigrationBuilder): void => {
   pgm.createTable(
     "entity_editions",
     {
-      entity_edition_id: {
+      // TODO: Consider changing this to XIDs
+      //   see https://app.asana.com/0/1202805690238892/1203505325130365/f
+      entity_record_id: {
         type: "BIGINT",
         primaryKey: true,
         notNull: true,
@@ -353,7 +355,7 @@ export const up = (pgm: MigrationBuilder): void => {
         type: "UUID",
         notNull: true,
       },
-      entity_edition_id: {
+      entity_record_id: {
         type: "BIGINT",
         notNull: true,
         references: "entity_editions",
@@ -398,7 +400,7 @@ export const up = (pgm: MigrationBuilder): void => {
     {},
     `
     SELECT
-      entity_versions.entity_edition_id,
+      entity_versions.entity_record_id,
       entity_versions.owned_by_id,
       entity_versions.entity_uuid,
       entity_versions.decision_time,
@@ -414,7 +416,7 @@ export const up = (pgm: MigrationBuilder): void => {
       entity_ids.right_entity_uuid,
       entity_editions.right_to_left_order
     FROM entity_versions
-    JOIN entity_editions ON entity_versions.entity_edition_id = entity_editions.entity_edition_id
+    JOIN entity_editions ON entity_versions.entity_record_id = entity_editions.entity_record_id
     JOIN entity_ids ON entity_versions.owned_by_id = entity_ids.owned_by_id AND entity_versions.entity_uuid = entity_ids.entity_uuid
     `,
   );
@@ -477,13 +479,13 @@ export const up = (pgm: MigrationBuilder): void => {
     ],
     {
       returns:
-        "TABLE (entity_edition_id BIGINT, decision_time tstzrange, transaction_time tstzrange)",
+        "TABLE (entity_record_id BIGINT, decision_time tstzrange, transaction_time tstzrange)",
       language: "plpgsql",
       replace: true,
     },
     `
     DECLARE
-      _entity_edition_id BIGINT;
+      _entity_record_id BIGINT;
     BEGIN
       IF _decision_time IS NULL THEN _decision_time := now(); END IF;
   
@@ -518,22 +520,22 @@ export const up = (pgm: MigrationBuilder): void => {
         _properties,
         _left_to_right_order,
         _right_to_left_order
-      ) RETURNING entity_editions.entity_edition_id INTO _entity_edition_id;
+      ) RETURNING entity_editions.entity_record_id INTO _entity_record_id;
 
       RETURN QUERY
       INSERT INTO entity_versions (
         owned_by_id,
         entity_uuid,
-        entity_edition_id,
+        entity_record_id,
         decision_time,
         transaction_time
       ) VALUES (
         _owned_by_id,
         _entity_uuid,
-        _entity_edition_id,
+        _entity_record_id,
         tstzrange(_decision_time, 'infinity', '[)'),
         tstzrange(now(), 'infinity', '[)')
-      ) RETURNING entity_versions.entity_edition_id, entity_versions.decision_time, entity_versions.transaction_time;
+      ) RETURNING entity_versions.entity_record_id, entity_versions.decision_time, entity_versions.transaction_time;
     END
     `,
   );
@@ -580,13 +582,13 @@ export const up = (pgm: MigrationBuilder): void => {
     ],
     {
       returns:
-        "TABLE (entity_edition_id BIGINT, decision_time tstzrange, transaction_time tstzrange)",
+        "TABLE (entity_record_id BIGINT, decision_time tstzrange, transaction_time tstzrange)",
       language: "plpgsql",
       replace: true,
     },
     `
     DECLARE
-      _new_entity_edition_id BIGINT;
+      _new_entity_record_id BIGINT;
     BEGIN
       IF _decision_time IS NULL THEN _decision_time := now(); END IF;
 
@@ -605,18 +607,18 @@ export const up = (pgm: MigrationBuilder): void => {
         _left_to_right_order,
         _right_to_left_order
       )
-      RETURNING entity_editions.entity_edition_id INTO _new_entity_edition_id;
+      RETURNING entity_editions.entity_record_id INTO _new_entity_record_id;
   
       RETURN QUERY
       UPDATE entity_versions
       SET decision_time = tstzrange(_decision_time, upper(entity_versions.decision_time), '[)'),
           transaction_time = tstzrange(now(), 'infinity', '[)'),
-          entity_edition_id = _new_entity_edition_id
+          entity_record_id = _new_entity_record_id
       WHERE entity_versions.owned_by_id = _owned_by_id
         AND entity_versions.entity_uuid = _entity_uuid
         AND entity_versions.decision_time @> _decision_time
         AND entity_versions.transaction_time @> now()
-      RETURNING entity_versions.entity_edition_id, entity_versions.decision_time, entity_versions.transaction_time;
+      RETURNING entity_versions.entity_record_id, entity_versions.decision_time, entity_versions.transaction_time;
     END
     `,
   );
@@ -636,13 +638,13 @@ export const up = (pgm: MigrationBuilder): void => {
       INSERT INTO entity_versions (
         owned_by_id,
         entity_uuid,
-        entity_edition_id,
+        entity_record_id,
         decision_time,
         transaction_time
       ) VALUES (
         OLD.owned_by_id,
         OLD.entity_uuid,
-        OLD.entity_edition_id,
+        OLD.entity_record_id,
         OLD.decision_time,
         tstzrange(lower(OLD.transaction_time),lower(NEW.transaction_time), '[)')
       );
@@ -651,13 +653,13 @@ export const up = (pgm: MigrationBuilder): void => {
       INSERT INTO entity_versions (
         owned_by_id,
         entity_uuid,
-        entity_edition_id,
+        entity_record_id,
         decision_time,
         transaction_time
       ) VALUES (
         OLD.owned_by_id,
         OLD.entity_uuid,
-        OLD.entity_edition_id,
+        OLD.entity_record_id,
         tstzrange(lower(OLD.decision_time), lower(NEW.decision_time), '[)'),
         NEW.transaction_time
       );

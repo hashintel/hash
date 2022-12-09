@@ -25,6 +25,8 @@ use uuid::Uuid;
 
 use self::context::OntologyRecord;
 pub use self::pool::{AsClient, PostgresStorePool};
+#[cfg(feature = "__internal_bench")]
+use crate::knowledge::{EntityProperties, EntityUuid, LinkData};
 use crate::{
     identifier::{account::AccountId, knowledge::EntityEditionId, ontology::OntologyTypeEditionId},
     ontology::OntologyElementMetadata,

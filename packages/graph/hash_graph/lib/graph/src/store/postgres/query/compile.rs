@@ -1,4 +1,4 @@
-use std::{borrow::Cow, collections::HashSet, fmt::Display, marker::PhantomData, ops::Bound};
+use std::{borrow::Cow, collections::HashSet, fmt::Display, marker::PhantomData};
 
 use postgres_types::ToSql;
 use tokio_postgres::row::RowIndex;
@@ -183,7 +183,7 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
                     SelectExpression::new(Expression::Asterisk, None),
                     SelectExpression::new(
                         Expression::Window(
-                            Box::new(Expression::Function(Box::new(Function::Max(
+                            Box::new(Expression::Function(Function::Max(Box::new(
                                 Expression::Column(version_column),
                             )))),
                             WindowStatement::partition_by(
@@ -221,19 +221,24 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
         path: &T::Path<'p>,
         operator: EqualityOperator,
     ) -> Condition<'c> {
-        let latest_version_expression = Some(Expression::Column(
-            Column::Entities(Entities::LatestVersion).aliased(self.add_join_statements(path)),
-        ));
+        let alias = self.add_join_statements(path);
+        let decision_time_condition = Condition::RangeContains(
+            Expression::Column(Column::Entities(Entities::DecisionTime).aliased(alias)),
+            Expression::Function(Function::Now),
+        );
+        let transaction_time_condition = Condition::RangeContains(
+            Expression::Column(Column::Entities(Entities::TransactionTime).aliased(alias)),
+            Expression::Function(Function::Now),
+        );
 
         match operator {
-            EqualityOperator::Equal => Condition::Equal(
-                latest_version_expression,
-                Some(Expression::Constant(Constant::Boolean(true))),
-            ),
-            EqualityOperator::NotEqual => Condition::Equal(
-                latest_version_expression,
-                Some(Expression::Constant(Constant::Boolean(false))),
-            ),
+            EqualityOperator::Equal => {
+                Condition::All(vec![decision_time_condition, transaction_time_condition])
+            }
+            EqualityOperator::NotEqual => Condition::All(vec![
+                Condition::Not(Box::new(decision_time_condition)),
+                transaction_time_condition,
+            ]),
         }
     }
 
@@ -262,10 +267,18 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
                             EqualityOperator::NotEqual,
                         ))
                     }
-                    (Column::Entities(Entities::Version), Filter::Equal(..), "latest") => Some(
+                    (
+                        Column::Entities(Entities::LowerTransactionTime),
+                        Filter::Equal(..),
+                        "latest",
+                    ) => Some(
                         self.compile_latest_entity_version_filter(path, EqualityOperator::Equal),
                     ),
-                    (Column::Entities(Entities::Version), Filter::NotEqual(..), "latest") => Some(
+                    (
+                        Column::Entities(Entities::LowerTransactionTime),
+                        Filter::NotEqual(..),
+                        "latest",
+                    ) => Some(
                         self.compile_latest_entity_version_filter(path, EqualityOperator::NotEqual),
                     ),
                     _ => None,
@@ -288,7 +301,20 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
                 column
             };
 
-        column.aliased(self.add_join_statements(path))
+        let alias = self.add_join_statements(path);
+
+        // TODO: Remove special casing when adjusting structural queries
+        //   see https://app.asana.com/0/0/1203491211535116/f
+        if matches!(column, Column::Entities(_)) {
+            self.statement
+                .where_expression
+                .add_condition(Condition::RangeContains(
+                    Expression::Column(Column::Entities(Entities::DecisionTime).aliased(alias)),
+                    Expression::Function(Function::Now),
+                ));
+        }
+
+        column.aliased(alias)
     }
 
     pub fn compile_filter_expression<'f: 'p>(
@@ -296,7 +322,16 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
         expression: &'f FilterExpression<'p, T>,
     ) -> Expression<'c> {
         match expression {
-            FilterExpression::Path(path) => Expression::Column(self.compile_path_column(path)),
+            FilterExpression::Path(path) => {
+                // TODO: Remove special casing when adjusting structural queries
+                //   see https://app.asana.com/0/0/1203491211535116/f
+                let column = self.compile_path_column(path);
+                if column.column == Column::Entities(Entities::LowerTransactionTime) {
+                    Expression::Function(Function::Lower(Box::new(Expression::Column(column))))
+                } else {
+                    Expression::Column(column)
+                }
+            }
             FilterExpression::Parameter(parameter) => {
                 match parameter {
                     Parameter::Number(number) => self.artifacts.parameters.push(number),
@@ -304,12 +339,7 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
                     Parameter::Boolean(bool) => self.artifacts.parameters.push(bool),
                     Parameter::Uuid(uuid) => self.artifacts.parameters.push(uuid),
                     Parameter::SignedInteger(integer) => self.artifacts.parameters.push(integer),
-                    Parameter::Timestamp(timestamp) => match timestamp {
-                        Bound::Unbounded => self.artifacts.parameters.push(&"infinity"),
-                        Bound::Included(timestamp) | Bound::Excluded(timestamp) => {
-                            self.artifacts.parameters.push(timestamp);
-                        }
-                    },
+                    Parameter::Timestamp(timestamp) => self.artifacts.parameters.push(timestamp),
                 }
                 Expression::Parameter(self.artifacts.parameters.len())
             }
@@ -328,21 +358,18 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
                 self.statement
                     .where_expression
                     .add_condition(Condition::NotEqual(
-                        Some(Expression::Function(Box::new(Function::JsonExtractPath(
-                            vec![
-                                Expression::Column(
-                                    Column::EntityTypes(EntityTypes::Schema(None))
-                                        .aliased(base_alias),
-                                ),
-                                Expression::Constant(Constant::String("links")),
-                                Expression::Column(
-                                    Column::EntityTypes(EntityTypes::Schema(Some(
-                                        JsonField::Text(&Cow::Borrowed("$id")),
-                                    )))
-                                    .aliased(joined_table.alias),
-                                ),
-                            ],
-                        )))),
+                        Some(Expression::Function(Function::JsonExtractPath(vec![
+                            Expression::Column(
+                                Column::EntityTypes(EntityTypes::Schema(None)).aliased(base_alias),
+                            ),
+                            Expression::Constant(Constant::String("links")),
+                            Expression::Column(
+                                Column::EntityTypes(EntityTypes::Schema(Some(JsonField::Text(
+                                    &Cow::Borrowed("$id"),
+                                ))))
+                                .aliased(joined_table.alias),
+                            ),
+                        ]))),
                         None,
                     ));
             }
@@ -351,15 +378,15 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
                 self.statement
                     .where_expression
                     .add_condition(Condition::NotEqual(
-                        Some(Expression::Function(Box::new(Function::JsonContains(
-                            Expression::Column(
+                        Some(Expression::Function(Function::JsonContains(
+                            Box::new(Expression::Column(
                                 Column::EntityTypes(EntityTypes::Schema(Some(JsonField::Json(
                                     &Cow::Borrowed("allOf"),
                                 ))))
                                 .aliased(base_alias),
-                            ),
-                            Expression::Function(Box::new(Function::JsonBuildArray(vec![
-                                Expression::Function(Box::new(Function::JsonBuildObject(vec![(
+                            )),
+                            Box::new(Expression::Function(Function::JsonBuildArray(vec![
+                                Expression::Function(Function::JsonBuildObject(vec![(
                                     Expression::Constant(Constant::String("$ref")),
                                     Expression::Column(
                                         Column::EntityTypes(EntityTypes::Schema(Some(
@@ -367,9 +394,9 @@ impl<'c, 'p: 'c, T: PostgresQueryRecord + 'static> SelectCompiler<'c, 'p, T> {
                                         )))
                                         .aliased(joined_table.alias),
                                     ),
-                                )]))),
+                                )])),
                             ]))),
-                        )))),
+                        ))),
                         None,
                     ));
             }

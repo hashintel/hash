@@ -11,7 +11,9 @@ use uuid::Uuid;
 
 use crate::{
     identifier::{
-        knowledge::{EntityEditionId, EntityId, EntityIdAndTimestamp, EntityVersion},
+        knowledge::{
+            EntityEditionId, EntityId, EntityIdAndTimestamp, EntityRecordId, EntityVersion,
+        },
         ontology::OntologyTypeEditionId,
         DecisionTimespan, DecisionTimestamp, GraphElementEditionId, TransactionTimespan,
     },
@@ -426,7 +428,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .query_one(
                 r#"
                 SELECT
-                    entity_edition_id,
+                    entity_record_id,
                     decision_time,
                     transaction_time
                 FROM
@@ -474,13 +476,10 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .into_report()
             .change_context(InsertionError)?;
 
-        // TODO: Expose temporal versions to backend
-        //   see https://app.asana.com/0/0/1203444301722133/f
-        let _version_id: i64 = row.get(0);
-
         Ok(EntityMetadata::new(
             EntityEditionId::new(
                 entity_id,
+                EntityRecordId::new(row.get(0)),
                 EntityVersion::new(
                     DecisionTimespan::new(row.get(1)),
                     TransactionTimespan::new(row.get(2)),
@@ -647,7 +646,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .query_opt(
                 r#"
                 SELECT
-                    entity_edition_id,
+                    entity_record_id,
                     decision_time,
                     transaction_time
                 FROM
@@ -685,10 +684,6 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 .change_context(UpdateError));
         };
 
-        // TODO: Expose temporal versions to backend
-        //   see https://app.asana.com/0/0/1203444301722133/f
-        let _version_id: i64 = row.get(0);
-
         transaction
             .client
             .commit()
@@ -699,6 +694,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         Ok(EntityMetadata::new(
             EntityEditionId::new(
                 entity_id,
+                EntityRecordId::new(row.get(0)),
                 EntityVersion::new(
                     DecisionTimespan::new(row.get(1)),
                     TransactionTimespan::new(row.get(2)),
