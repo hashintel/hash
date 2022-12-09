@@ -45,7 +45,7 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
     setAuthenticatedUser(initialAuthenticatedUser);
   }, [initialAuthenticatedUser]);
 
-  const [getMe] = useLazyQuery<MeQuery>(meQuery);
+  const [getMe] = useLazyQuery<MeQuery>(meQuery, { fetchPolicy: "no-cache" });
 
   const refetch = useCallback<RefetchAuthInfoFunction>(async () => {
     const [subgraph, kratosSession] = await Promise.all([

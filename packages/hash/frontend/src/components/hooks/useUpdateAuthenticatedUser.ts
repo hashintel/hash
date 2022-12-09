@@ -1,18 +1,19 @@
-import { useMutation } from "@apollo/client";
+import { useLazyQuery, useMutation } from "@apollo/client";
 import { useCallback, useState } from "react";
 
 import { types } from "@hashintel/hash-shared/types";
 import { extractBaseUri } from "@blockprotocol/type-system";
 import { GraphQLError } from "graphql";
-import { getRoots } from "@hashintel/hash-subgraph/src/stdlib/roots";
+import { getRootsAsEntities } from "@hashintel/hash-subgraph/src/stdlib/element/entity";
 import {
+  MeQuery,
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../graphql/apiTypes.gen";
 import { AuthenticatedUser } from "../../lib/user";
 import { updateEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
-import { useAuthenticatedUser } from "../../pages/shared/auth-info-context";
-import { useBlockProtocolGetEntity } from "./blockProtocolFunctions/knowledge/useBlockProtocolGetEntity";
+import { useAuthInfo } from "../../pages/shared/auth-info-context";
+import { meQuery } from "../../graphql/queries/user.queries";
 
 type UpdateAuthenticatedUserParams = {
   shortname?: string;
@@ -20,9 +21,9 @@ type UpdateAuthenticatedUserParams = {
 };
 
 export const useUpdateAuthenticatedUser = () => {
-  const { authenticatedUser, refetch } = useAuthenticatedUser();
+  const { authenticatedUser, refetch } = useAuthInfo();
 
-  const { getEntity } = useBlockProtocolGetEntity();
+  const [getMe] = useLazyQuery<MeQuery>(meQuery, { fetchPolicy: "no-cache" });
 
   const [updateEntity] = useMutation<
     UpdateEntityMutation,
@@ -38,15 +39,19 @@ export const useUpdateAuthenticatedUser = () => {
       updatedAuthenticatedUser?: AuthenticatedUser;
       errors?: readonly GraphQLError[] | undefined;
     }> => {
+      if (!authenticatedUser) {
+        throw new Error("There is no authenticated user to update.");
+      }
+
       try {
         setLoading(true);
         if (!params.shortname && !params.preferredName) {
           return { updatedAuthenticatedUser: authenticatedUser };
         }
 
-        const { data: latestUserEntitySubgraph } = await getEntity({
-          data: { entityId: authenticatedUser.entityEditionId.baseId },
-        });
+        const latestUserEntitySubgraph = await getMe()
+          .then(({ data }) => data?.me)
+          .catch(() => undefined);
 
         if (!latestUserEntitySubgraph) {
           throw new Error(
@@ -54,7 +59,9 @@ export const useUpdateAuthenticatedUser = () => {
           );
         }
 
-        const latestUserEntity = getRoots(latestUserEntitySubgraph)[0]!;
+        const latestUserEntity = getRootsAsEntities(
+          latestUserEntitySubgraph,
+        )[0]!;
 
         /**
          * @todo: use a partial update mutation instead
@@ -96,7 +103,7 @@ export const useUpdateAuthenticatedUser = () => {
         setLoading(false);
       }
     },
-    [authenticatedUser, refetch, updateEntity, getEntity],
+    [authenticatedUser, refetch, updateEntity, getMe],
   );
 
   return [updateAuthenticatedUser, { loading }] as const;
