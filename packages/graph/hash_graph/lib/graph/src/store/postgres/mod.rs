@@ -26,7 +26,11 @@ use uuid::Uuid;
 use self::context::OntologyRecord;
 pub use self::pool::{AsClient, PostgresStorePool};
 use crate::{
-    identifier::{account::AccountId, knowledge::EntityEditionId, ontology::OntologyTypeEditionId},
+    identifier::{
+        account::AccountId,
+        knowledge::{EntityEditionId, EntityRecordId},
+        ontology::OntologyTypeEditionId,
+    },
     ontology::OntologyElementMetadata,
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
@@ -685,7 +689,7 @@ impl PostgresStore<Transaction<'_>> {
 
     #[doc(hidden)]
     #[cfg(feature = "__internal_bench")]
-    async fn insert_entity_editions(
+    async fn insert_entity_records(
         &self,
         entities: impl IntoIterator<
             Item = (EntityProperties, Option<LinkOrder>, Option<LinkOrder>),
@@ -693,7 +697,7 @@ impl PostgresStore<Transaction<'_>> {
         > + Send,
         entity_type_version_id: VersionId,
         actor_id: UpdatedById,
-    ) -> Result<Vec<i64>, InsertionError> {
+    ) -> Result<Vec<EntityRecordId>, InsertionError> {
         self.client
             .simple_query(
                 "CREATE TEMPORARY TABLE entity_editions_temp (
@@ -759,7 +763,7 @@ impl PostgresStore<Transaction<'_>> {
             .into_report()
             .change_context(InsertionError)?;
 
-        let entity_edition_ids = self
+        let entity_record_ids = self
             .client
             .query(
                 "INSERT INTO entity_editions (
@@ -778,14 +782,14 @@ impl PostgresStore<Transaction<'_>> {
                     left_to_right_order,
                     right_to_left_order
                 FROM entity_editions_temp
-                RETURNING entity_edition_id;",
+                RETURNING entity_record_id;",
                 &[],
             )
             .await
             .into_report()
             .change_context(InsertionError)?
             .into_iter()
-            .map(|row| row.get::<_, i64>(0))
+            .map(|row| EntityRecordId::new(row.get::<_, i64>(0)))
             .collect();
 
         self.client
@@ -794,22 +798,24 @@ impl PostgresStore<Transaction<'_>> {
             .into_report()
             .change_context(InsertionError)?;
 
-        Ok(entity_edition_ids)
+        Ok(entity_record_ids)
     }
 
     #[doc(hidden)]
     #[cfg(feature = "__internal_bench")]
     async fn insert_entity_versions(
         &self,
-        entities: impl IntoIterator<Item = (EntityId, i64, Option<DecisionTimestamp>), IntoIter: Send>
-        + Send,
+        entities: impl IntoIterator<
+            Item = (EntityId, EntityRecordId, Option<DecisionTimestamp>),
+            IntoIter: Send,
+        > + Send,
     ) -> Result<Vec<EntityVersion>, InsertionError> {
         self.client
             .simple_query(
                 "CREATE TEMPORARY TABLE entity_versions_temp (
                     owned_by_id UUID NOT NULL,
                     entity_uuid UUID NOT NULL,
-                    entity_edition_id BIGINT NOT NULL,
+                    entity_record_id BIGINT NOT NULL,
                     decision_time TIMESTAMP WITH TIME ZONE
                 );",
             )
@@ -823,7 +829,7 @@ impl PostgresStore<Transaction<'_>> {
                 "COPY entity_versions_temp (
                     owned_by_id,
                     entity_uuid,
-                    entity_edition_id,
+                    entity_record_id,
                     decision_time
                 ) FROM STDIN BINARY",
             )
@@ -837,13 +843,13 @@ impl PostgresStore<Transaction<'_>> {
             Type::TIMESTAMPTZ,
         ]);
         futures::pin_mut!(writer);
-        for (entity_id, entity_edition_id, decision_time) in entities {
+        for (entity_id, entity_record_id, decision_time) in entities {
             writer
                 .as_mut()
                 .write(&[
                     &entity_id.owned_by_id(),
                     &entity_id.entity_uuid(),
-                    &entity_edition_id,
+                    &entity_record_id,
                     &decision_time,
                 ])
                 .await
@@ -863,18 +869,19 @@ impl PostgresStore<Transaction<'_>> {
                 "INSERT INTO entity_versions (
                     owned_by_id,
                     entity_uuid,
-                    entity_edition_id,
+                    entity_record_id,
                     decision_time,
                     transaction_time
                 ) SELECT
                     owned_by_id,
                     entity_uuid,
-                    entity_edition_id,
+                    entity_record_id,
                     tstzrange(
                         CASE WHEN decision_time IS NULL THEN now() ELSE decision_time END,
-                        'infinity'
+                        'infinity',
+                        '[)'
                     ),
-                    tstzrange(now(), 'infinity')
+                    tstzrange(now(), 'infinity', '[)')
                 FROM entity_versions_temp
                 RETURNING decision_time, transaction_time;",
                 &[],

@@ -370,7 +370,7 @@ pub trait EntityStore: crud::Read<Entity> {
         > + Send,
         actor_id: UpdatedById,
         entity_type_id: &VersionedUri,
-    ) -> Result<Vec<(EntityMetadata, i64)>, InsertionError>;
+    ) -> Result<Vec<EntityMetadata>, InsertionError>;
 
     /// Get the [`Subgraph`]s specified by the [`StructuralQuery`].
     ///

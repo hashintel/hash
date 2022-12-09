@@ -507,7 +507,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         > + Send,
         actor_id: UpdatedById,
         entity_type_id: &VersionedUri,
-    ) -> Result<Vec<(EntityMetadata, i64)>, InsertionError> {
+    ) -> Result<Vec<EntityMetadata>, InsertionError> {
         let transaction = PostgresStore::new(
             self.as_mut_client()
                 .transaction()
@@ -551,8 +551,8 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
             .await
             .change_context(InsertionError)?;
 
-        let entity_edition_ids = transaction
-            .insert_entity_editions(entity_editions, entity_type_version_id, actor_id)
+        let entity_record_ids = transaction
+            .insert_entity_records(entity_editions, entity_type_version_id, actor_id)
             .await?;
 
         let entity_versions = transaction
@@ -560,7 +560,7 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
                 entity_ids
                     .iter()
                     .copied()
-                    .zip(entity_edition_ids.iter().copied())
+                    .zip(entity_record_ids.iter().copied())
                     .zip(entity_versions)
                     .map(|(((entity_id, ..), entity_edition_id), decision_time)| {
                         (entity_id, entity_edition_id, decision_time)
@@ -578,15 +578,15 @@ impl<C: AsClient> EntityStore for PostgresStore<C> {
         Ok(entity_ids
             .into_iter()
             .zip(entity_versions)
-            .map(|((entity_id, ..), entity_version)| {
+            .zip(entity_record_ids)
+            .map(|(((entity_id, ..), entity_version), entity_record_id)| {
                 EntityMetadata::new(
-                    EntityEditionId::new(entity_id, entity_version),
+                    EntityEditionId::new(entity_id, entity_record_id, entity_version),
                     entity_type_id.clone(),
                     ProvenanceMetadata::new(actor_id),
                     false,
                 )
             })
-            .zip(entity_edition_ids)
             .collect())
     }
 

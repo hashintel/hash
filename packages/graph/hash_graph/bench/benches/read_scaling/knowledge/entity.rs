@@ -67,7 +67,7 @@ async fn seed_db(
         .id()
         .clone();
 
-    let entity_uuids = store
+    let entity_metadata_list = store
         .insert_entities_batched_by_type(
             repeat((OwnedById::new(account_id), None, properties, None, None)).take(total),
             UpdatedById::new(account_id),
@@ -89,23 +89,20 @@ async fn seed_db(
         now.elapsed().unwrap()
     );
 
-    entity_uuids
-        .into_iter()
-        .map(|(entity_metadata, _)| entity_metadata)
-        .collect()
+    entity_metadata_list
 }
 
 pub fn bench_get_entity_by_id(
     b: &mut Bencher,
     runtime: &Runtime,
     store: &Store,
-    entity_metadatas: &[EntityMetadata],
+    entity_metadata_list: &[EntityMetadata],
 ) {
     b.to_async(runtime).iter_batched(
         || {
             // Each iteration, *before timing*, pick a random entity from the sample to
             // query
-            entity_metadatas
+            entity_metadata_list
                 .iter()
                 .map(EntityMetadata::edition_id)
                 .choose(&mut thread_rng())
@@ -147,8 +144,8 @@ fn bench_scaling_read_entity(c: &mut Criterion) {
                 ),
             ),
             &(account_id, entity_uuids),
-            |b, (_account_id, entity_metadatas)| {
-                bench_get_entity_by_id(b, &runtime, store, entity_metadatas)
+            |b, (_account_id, entity_metadata_list)| {
+                bench_get_entity_by_id(b, &runtime, store, entity_metadata_list)
             },
         );
     }

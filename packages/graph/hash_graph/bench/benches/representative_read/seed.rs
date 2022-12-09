@@ -174,25 +174,17 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
                 entity_uuids[*left_entity_index]
                     .iter()
                     .zip(&entity_uuids[*right_entity_index])
-                    .map(
-                        |(
-                            (left_entity_metadata, _left_entity_edition_id),
-                            (right_entity_metadata, _right_entity_edition_id),
-                        )| {
-                            LinkData::new(
-                                left_entity_metadata.edition_id().base_id(),
-                                right_entity_metadata.edition_id().base_id(),
-                                None,
-                                None,
-                            )
-                        },
-                    )
-                    .map(|link_data| {
+                    .map(|(left_entity_metadata, right_entity_metadata)| {
                         (
                             OwnedById::new(account_id),
                             None,
                             EntityProperties::empty(),
-                            Some(link_data),
+                            Some(LinkData::new(
+                                left_entity_metadata.edition_id().base_id(),
+                                right_entity_metadata.edition_id().base_id(),
+                                None,
+                                None,
+                            )),
                             None,
                         )
                     }),
