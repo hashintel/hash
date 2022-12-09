@@ -107,12 +107,12 @@ impl EntityLinkOrder {
     }
 
     #[must_use]
-    pub const fn left(&self) -> Option<LinkOrder> {
+    pub const fn left_to_right(&self) -> Option<LinkOrder> {
         self.left_to_right_order
     }
 
     #[must_use]
-    pub const fn right(&self) -> Option<LinkOrder> {
+    pub const fn right_to_left(&self) -> Option<LinkOrder> {
         self.right_to_left_order
     }
 }

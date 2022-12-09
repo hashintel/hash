@@ -26,12 +26,7 @@ use uuid::Uuid;
 use self::context::OntologyRecord;
 pub use self::pool::{AsClient, PostgresStorePool};
 use crate::{
-    identifier::{
-        account::AccountId,
-        knowledge::{EntityEditionId, EntityId},
-        ontology::OntologyTypeEditionId,
-    },
-    knowledge::{EntityMetadata, EntityProperties, EntityUuid, LinkData},
+    identifier::{account::AccountId, knowledge::EntityEditionId, ontology::OntologyTypeEditionId},
     ontology::OntologyElementMetadata,
     provenance::{OwnedById, ProvenanceMetadata, UpdatedById},
     store::{
@@ -173,29 +168,6 @@ where
             .change_context(QueryError)
             .attach_printable_lazy(|| uri.clone())?
             .get(0))
-    }
-
-    /// Inserts the specified [`EntityUuid`] into the database.
-    ///
-    /// # Errors
-    ///
-    /// - if inserting the [`EntityUuid`] failed.
-    async fn insert_entity_uuid(&self, entity_uuid: EntityUuid) -> Result<(), InsertionError> {
-        self.as_client()
-            .query_one(
-                r#"
-                    INSERT INTO entity_uuids (entity_uuid)
-                    VALUES ($1)
-                    RETURNING entity_uuid;
-                "#,
-                &[&entity_uuid.as_uuid()],
-            )
-            .await
-            .into_report()
-            .change_context(InsertionError)
-            .attach_printable(entity_uuid)?;
-
-        Ok(())
     }
 
     /// Inserts the specified [`VersionedUri`] into the database.
