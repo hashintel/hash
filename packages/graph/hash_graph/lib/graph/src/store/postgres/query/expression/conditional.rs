@@ -157,7 +157,7 @@ mod tests {
     #[test]
     fn transpile_function_expression() {
         assert_eq!(
-            Expression::Function(Box::new(Function::Min(Expression::Column(
+            Expression::Function(Function::Min(Box::new(Expression::Column(
                 DataTypeQueryPath::Version
                     .terminating_column()
                     .aliased(Alias {

@@ -168,6 +168,15 @@ impl RangeBounds<DecisionTimestamp> for DecisionTimespan {
     }
 }
 
+impl<R: RangeBounds<DateTime<Utc>>> From<R> for DecisionTimespan {
+    fn from(range: R) -> Self {
+        Self {
+            start_bound: range.start_bound().cloned().map(DecisionTimestamp),
+            end_bound: range.end_bound().cloned().map(DecisionTimestamp),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TransactionTimespan {
     start_bound: Bound<TransactionTimestamp>,
@@ -199,6 +208,15 @@ impl RangeBounds<TransactionTimestamp> for TransactionTimespan {
 
     fn end_bound(&self) -> Bound<&TransactionTimestamp> {
         self.end_bound.as_ref()
+    }
+}
+
+impl<R: RangeBounds<DateTime<Utc>>> From<R> for TransactionTimespan {
+    fn from(range: R) -> Self {
+        Self {
+            start_bound: range.start_bound().cloned().map(TransactionTimestamp),
+            end_bound: range.end_bound().cloned().map(TransactionTimestamp),
+        }
     }
 }
 
