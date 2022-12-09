@@ -316,7 +316,7 @@ export const Media: FunctionComponent<
     if (draftUrl?.trim()) {
       handleImageUpload({ url: draftUrl });
     } else {
-      setErrorString("Please enter a valid image URL or select a file below");
+      setErrorString("Please enter a valid video URL or select a file below");
     }
   };
 

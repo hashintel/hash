@@ -1,7 +1,7 @@
 import { BlockComponent } from "@blockprotocol/graph/react";
 import { useRef, useState } from "react";
 import { useHook, useHookBlockService } from "@blockprotocol/hook/react";
-import { setup } from "twind";
+import { tw, setup } from "twind";
 import { Media, MediaEntityProperties } from "./components/media";
 
 export type BlockEntityProperties = MediaEntityProperties;
@@ -28,7 +28,7 @@ export const Image: BlockComponent<BlockEntityProperties> = (props) => {
   );
 
   return (
-    <div ref={blockRef}>
+    <div ref={blockRef} className={tw`box-border`}>
       {showFallback && (
         <Media {...props} blockRef={blockRef} mediaType="image" />
       )}

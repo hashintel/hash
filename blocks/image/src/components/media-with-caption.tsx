@@ -34,7 +34,7 @@ export const MediaWithCaption: FunctionComponent<MediaWithCaptionProps> = ({
   const captionNode = (
     <input
       placeholder="Add a caption"
-      className={tw`focus:outline-none text-center mt-3`}
+      className={tw`border-none bg-transparent focus:outline-none text-center mt-3`}
       type="text"
       value={caption}
       disabled={readonly}
