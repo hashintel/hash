@@ -509,6 +509,8 @@ impl Parameter<'_> {
                 // TODO: validate versioned uri
                 //   see https://app.asana.com/0/1202805690238892/1203225514907875/f
             }
+            // TODO: Reevaluate if we need this after https://app.asana.com/0/0/1203491211535116/f
+            //       Most probably, we won't need this anymore
             (Parameter::Text(text), ParameterType::Timestamp) => {
                 if text != "latest" {
                     *self = Parameter::Timestamp(
