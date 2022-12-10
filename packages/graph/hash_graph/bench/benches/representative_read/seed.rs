@@ -5,7 +5,7 @@ use std::{
 };
 
 use graph::{
-    identifier::{account::AccountId, knowledge::EntityId},
+    identifier::account::AccountId,
     knowledge::{EntityProperties, EntityUuid, LinkData},
     provenance::{OwnedById, UpdatedById},
     store::{AccountStore, AsClient, EntityStore, PostgresStore},
@@ -152,10 +152,9 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
 
         let uuids = store
             .insert_entities_batched_by_type(
-                repeat((None, properties, None)).take(quantity),
-                entity_type_id,
-                OwnedById::new(account_id),
+                repeat((OwnedById::new(account_id), None, properties, None, None)).take(quantity),
                 UpdatedById::new(account_id),
+                &entity_type_id,
             )
             .await
             .expect("failed to create entities");
@@ -175,18 +174,22 @@ async fn seed_db(account_id: AccountId, store_wrapper: &mut StoreWrapper) {
                 entity_uuids[*left_entity_index]
                     .iter()
                     .zip(&entity_uuids[*right_entity_index])
-                    .map(|(left_uuid, right_uuid)| {
-                        LinkData::new(
-                            EntityId::new(OwnedById::new(account_id), *left_uuid),
-                            EntityId::new(OwnedById::new(account_id), *right_uuid),
+                    .map(|(left_entity_metadata, right_entity_metadata)| {
+                        (
+                            OwnedById::new(account_id),
                             None,
+                            EntityProperties::empty(),
+                            Some(LinkData::new(
+                                left_entity_metadata.edition_id().base_id(),
+                                right_entity_metadata.edition_id().base_id(),
+                                None,
+                                None,
+                            )),
                             None,
                         )
-                    })
-                    .map(|link_data| (None, EntityProperties::empty(), Some(link_data))),
-                entity_type_id,
-                OwnedById::new(account_id),
+                    }),
                 UpdatedById::new(account_id),
+                &entity_type_id,
             )
             .await
             .expect("failed to create entities");

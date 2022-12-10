@@ -77,7 +77,7 @@ mod test_helper {
 
     pub fn max_version_expression() -> Expression<'static> {
         Expression::Window(
-            Box::new(Expression::Function(Box::new(Function::Max(
+            Box::new(Expression::Function(Function::Max(Box::new(
                 Expression::Column(DataTypeQueryPath::Version.terminating_column().aliased(
                     Alias {
                         condition_index: 0,

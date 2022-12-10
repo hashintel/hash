@@ -15,8 +15,20 @@ use crate::{
 };
 
 #[derive(
-    Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize, ToSchema,
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    Serialize,
+    Deserialize,
+    ToSchema,
+    ToSql,
 )]
+#[postgres(transparent)]
 #[repr(transparent)]
 pub struct EntityUuid(Uuid);
 
@@ -95,12 +107,12 @@ impl EntityLinkOrder {
     }
 
     #[must_use]
-    pub const fn left(&self) -> Option<LinkOrder> {
+    pub const fn left_to_right(&self) -> Option<LinkOrder> {
         self.left_to_right_order
     }
 
     #[must_use]
-    pub const fn right(&self) -> Option<LinkOrder> {
+    pub const fn right_to_left(&self) -> Option<LinkOrder> {
         self.right_to_left_order
     }
 }
@@ -152,7 +164,7 @@ impl LinkData {
 }
 
 /// The metadata of an [`Entity`] record.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
 // TODO: deny_unknown_fields on other structs
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EntityMetadata {
@@ -203,7 +215,7 @@ impl EntityMetadata {
 
 /// A record of an [`Entity`] that has been persisted in the datastore, with its associated
 /// metadata.
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Entity {
     properties: EntityProperties,
