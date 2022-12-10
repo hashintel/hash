@@ -366,10 +366,6 @@ pub trait Deserializer<'de>: Sized {
     where
         V: Visitor<'de>;
 
-    fn deserialize_none<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
-    where
-        V: Visitor<'de>;
-
     /// Deserialize a `null` (or equivalent type) value
     ///
     /// This type should signal the explicit absence of a value, not to be confused with the
@@ -514,6 +510,11 @@ pub trait Deserialize<'de>: Sized {
     ///
     /// Deserialization was unsuccessful
     fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError>;
+
+    #[must_use]
+    fn reflection() -> Document {
+        <Self::Reflection as Reflection>::document()
+    }
 }
 
 #[cfg(test)]
