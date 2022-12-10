@@ -6,10 +6,6 @@ CARGO_TEST_HACK_FLAGS = "--workspace --feature-powerset --exclude-features defau
 CARGO_RUSTDOC_HACK_FLAGS = ""
 CARGO_DOC_HACK_FLAGS = ""
 
-# unsafe code is prohibited (by lint) in deer, therefore we do not need to test for miri
-[tasks.miri]
-disabled = true
-
 [tasks.test]
 dependencies = ['install-rust-src']
 
