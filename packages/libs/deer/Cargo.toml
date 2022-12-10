@@ -5,9 +5,9 @@ edition = "2021"
 publish = false
 
 [dependencies]
-error-stack = "0.2.4"
+error-stack = { version = "0.2.4", default_features = false }
 
-num-traits = "0.2.15"
+num-traits = { version = "0.2.15", default_features = false }
 
 serde = { version = "1.0.148", default_features = false, features = ['alloc', 'derive'] }
 erased-serde = { version = "0.3.23", default_features = false, features = ['alloc'] }
