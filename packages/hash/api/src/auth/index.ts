@@ -67,7 +67,7 @@ const kratosAfterRegistrationHookHandler =
 
         res.status(200).end();
       } catch (error) {
-        // The kratos hook can interrup creation on 4xx and 5xx responses.
+        // The kratos hook can interrupt creation on 4xx and 5xx responses.
         // We pass context as an error to not leak any kratos implementation details.
 
         res.status(400).send(
