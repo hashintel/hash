@@ -44,6 +44,25 @@ mod schema;
 extern crate alloc;
 
 pub trait ObjectAccess<'de> {
+    /// This enables bound-checking for [`ObjectAccess`]. After calling this [`ObjectAccess`] will
+    /// ensure that there are never more than `length` values returned by [`Self::next`], if there
+    /// are not enough items present [`ArrayAccess`] will call [`Visitor::visit_none`], for
+    /// [`Self::value`] calls [`Visitor::visit_none`] will be called on the tuple of `(K, V)`, while
+    /// [`Self::value`] will call [`Visitor::visit_none`] of `V`.
+    ///
+    /// [`Self::value`] also counts toward the length, behaviour of multiple calls to
+    /// [`Self::value`] with the same key are left to the implementation, valid behaviour is always
+    /// decrementing the counter or only decrementing on non-unique keys.
+    ///
+    /// This is best suited for types where the length/amount of keys is already predetermined, like
+    /// structs or enum variants.
+    ///
+    /// # Errors
+    ///
+    /// This should error if a call to [`Self::next`] or [`Self::value`] has been made before
+    /// calling this function or this function has been called repeatably.
+    fn set_bounded(&mut self, length: usize) -> Result<(), ObjectAccessError>;
+
     fn value<T>(&mut self, key: &str) -> Result<T, ObjectAccessError>
     where
         T: Deserialize<'de>;
@@ -53,15 +72,34 @@ pub trait ObjectAccess<'de> {
         K: Deserialize<'de>,
         V: Deserialize<'de>;
 
-    fn finish(self) -> Result<(), ObjectAccessError>;
+    fn size_hint(&self) -> Option<usize>;
+
+    fn end(self) -> Result<(), ObjectAccessError>;
 }
 
 pub trait ArrayAccess<'de> {
+    /// This enables bound-checking for [`ArrayAccess`], after calling this [`ArrayAccess`] will
+    /// ensure that there are never more than `length` values returned by [`Self::next`], if there
+    /// are not enough items present [`ArrayAccess`] will call [`Visitor::visit_none`].
+    ///
+    /// One should still invoke [`Self::end`] to ensure that not too many items are supplied!
+    ///
+    /// This is best suited for types where the length is already predetermined, like arrays or
+    /// tuples, and should not be set on types like [`Vec`]!
+    ///
+    /// # Errors
+    ///
+    /// This should error if a call to [`Self::next`] has been made before setting
+    /// [`Self::set_bounded`] or [`Self::set_bounded`] was called repeatedly.
+    fn set_bounded(&mut self, length: usize) -> Result<(), ArrayAccessError>;
+
     fn next<T>(&mut self) -> Option<Result<T, ArrayAccessError>>
     where
         T: Deserialize<'de>;
 
-    fn finish(self) -> Result<(), ArrayAccessError>;
+    fn size_hint(&self) -> Option<usize>;
+
+    fn end(self) -> Result<(), ArrayAccessError>;
 }
 
 // Reason: We error out on every `visit_*`, which means we do not use the value, but(!) IDEs like to
