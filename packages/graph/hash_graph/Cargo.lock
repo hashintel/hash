@@ -676,6 +676,7 @@ dependencies = [
  "graph-test-data",
  "hyper",
  "include_dir",
+ "postgres-protocol",
  "postgres-types",
  "regex",
  "serde",

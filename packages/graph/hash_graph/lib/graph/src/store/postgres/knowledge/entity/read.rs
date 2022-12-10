@@ -10,7 +10,8 @@ use uuid::Uuid;
 use crate::{
     identifier::{
         account::AccountId,
-        knowledge::{EntityEditionId, EntityId},
+        knowledge::{EntityEditionId, EntityId, EntityRecordId, EntityVersion},
+        DecisionTimespan, TransactionTimespan,
     },
     knowledge::{Entity, EntityProperties, EntityQueryPath, EntityUuid, LinkData},
     ontology::EntityTypeQueryPath,
@@ -41,16 +42,14 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
         let mut compiler = SelectCompiler::new();
 
         let owned_by_id_index = compiler.add_selection_path(&EntityQueryPath::OwnedById);
-        let entity_uuid_index = compiler.add_distinct_selection_with_ordering(
-            &EntityQueryPath::Uuid,
+        let entity_uuid_index = compiler.add_selection_path(&EntityQueryPath::Uuid);
+        let record_id_index = compiler.add_distinct_selection_with_ordering(
+            &EntityQueryPath::RecordId,
             Distinctness::Distinct,
             None,
         );
-        let version_index = compiler.add_distinct_selection_with_ordering(
-            &EntityQueryPath::Version,
-            Distinctness::Distinct,
-            None,
-        );
+        let decision_time_index = compiler.add_selection_path(&EntityQueryPath::DecisionTime);
+        let transaction_time_index = compiler.add_selection_path(&EntityQueryPath::TransactionTime);
 
         let type_id_index =
             compiler.add_selection_path(&EntityQueryPath::Type(EntityTypeQueryPath::VersionedUri));
@@ -137,7 +136,11 @@ impl<C: AsClient> crud::Read<Entity> for PostgresStore<C> {
                     link_data,
                     EntityEditionId::new(
                         EntityId::new(owned_by_id, entity_uuid),
-                        row.get(version_index),
+                        EntityRecordId::new(row.get(record_id_index)),
+                        EntityVersion::new(
+                            DecisionTimespan::new(row.get(decision_time_index)),
+                            TransactionTimespan::new(row.get(transaction_time_index)),
+                        ),
                     ),
                     entity_type_uri,
                     ProvenanceMetadata::new(updated_by_id),
