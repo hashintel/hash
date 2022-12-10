@@ -51,8 +51,7 @@ pub trait ObjectAccess<'de> {
     /// [`Self::value`] will call [`Visitor::visit_none`] of `V`.
     ///
     /// [`Self::value`] also counts toward the length, behaviour of multiple calls to
-    /// [`Self::value`] with the same key are left to the implementation, valid behaviour is always
-    /// decrementing the counter or only decrementing on non-unique keys.
+    /// [`Self::value`] will always decrement the counter.
     ///
     /// This is best suited for types where the length/amount of keys is already predetermined, like
     /// structs or enum variants.
