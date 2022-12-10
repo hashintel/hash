@@ -1,4 +1,5 @@
 #![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(nightly, feature(provide_any))]
 #![warn(
     unreachable_pub,
     clippy::pedantic,
@@ -25,16 +26,19 @@ use alloc::{
     string::String,
     vec::{IntoIter, Vec},
 };
+use core::fmt::{Display, Formatter};
+#[cfg(nightly)]
+use std::any::Demand;
 
 use deer::{
     error::{
-        ArrayAccessError, ArrayLengthError, DeserializerError, ExpectedLength, ExpectedType,
-        MissingError, ObjectAccessError, ObjectItemsExtraError, ReceivedKey, ReceivedLength,
-        ReceivedType, ReceivedValue, TypeError, ValueError, Variant,
+        ArrayAccessError, ArrayLengthError, DeserializeError, DeserializerError, ExpectedLength,
+        ExpectedType, MissingError, ObjectAccessError, ObjectItemsExtraError, ReceivedKey,
+        ReceivedLength, ReceivedType, ReceivedValue, TypeError, ValueError, Variant,
     },
-    Deserialize, Document, Reflection, Schema, Visitor,
+    Context, Deserialize, DeserializeOwned, Document, Reflection, Schema, Visitor,
 };
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{IntoReport, Report, Result, ResultExt};
 use serde_json::{Map, Value};
 
 use crate::error::{BytesUnsupportedError, OverflowError};
@@ -206,23 +210,32 @@ macro_rules! try_deserialize {
     };
 }
 
-struct Deserializer {
+struct Deserializer<'a> {
     value: Option<Value>,
+    context: &'a Context,
 }
 
-impl From<Value> for Deserializer {
-    fn from(value: Value) -> Self {
-        Self { value: Some(value) }
+impl<'a> Deserializer<'a> {
+    const fn new(value: Value, context: &'a Context) -> Self {
+        Self {
+            value: Some(value),
+            context,
+        }
+    }
+
+    const fn empty(context: &'a Context) -> Self {
+        Self {
+            value: None,
+            context,
+        }
     }
 }
 
-impl Deserializer {
-    const fn empty() -> Self {
-        Self { value: None }
+impl<'a, 'de> deer::Deserializer<'de> for Deserializer<'a> {
+    fn context(&self) -> &Context {
+        self.context
     }
-}
 
-impl<'de> deer::Deserializer<'de> for Deserializer {
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>,
@@ -235,8 +248,10 @@ impl<'de> deer::Deserializer<'de> for Deserializer {
             Some(Value::Number(number)) => serde_to_deer_number(&number)
                 .ok_or_else(|| todo!())
                 .and_then(|number| visitor.visit_number(number)),
-            Some(Value::Array(array)) => visitor.visit_array(ArrayAccess::new(array)),
-            Some(Value::Object(object)) => visitor.visit_object(ObjectAccess::new(object)),
+            Some(Value::Array(array)) => visitor.visit_array(ArrayAccess::new(array, self.context)),
+            Some(Value::Object(object)) => {
+                visitor.visit_object(ObjectAccess::new(object, self.context))
+            }
         }
         .change_context(DeserializerError)
     }
@@ -361,7 +376,7 @@ impl<'de> deer::Deserializer<'de> for Deserializer {
         V: Visitor<'de>,
     {
         try_deserialize!(match self {
-            Value::Array(array) => visitor.visit_array(ArrayAccess::new(array)),
+            Value::Array(array) => visitor.visit_array(ArrayAccess::new(array, self.context)),
             else => Error(schema: ArrayReflection)
         })
     }
@@ -371,28 +386,30 @@ impl<'de> deer::Deserializer<'de> for Deserializer {
         V: Visitor<'de>,
     {
         try_deserialize!(match self {
-            Value::Object(map) => visitor.visit_object(ObjectAccess::new(map)),
+            Value::Object(map) => visitor.visit_object(ObjectAccess::new(map, self.context)),
             else => Error(schema: ObjectReflection)
         })
     }
 }
 
 #[must_use]
-struct ArrayAccess {
+struct ArrayAccess<'a> {
     length: usize,
     inner: IntoIter<Value>,
+    context: &'a Context,
 }
 
-impl ArrayAccess {
-    fn new(array: Vec<Value>) -> Self {
+impl<'a> ArrayAccess<'a> {
+    fn new(array: Vec<Value>, context: &'a Context) -> Self {
         Self {
             length: array.len(),
             inner: array.into_iter(),
+            context,
         }
     }
 }
 
-impl<'de> deer::ArrayAccess<'de> for ArrayAccess {
+impl<'a, 'de> deer::ArrayAccess<'de> for ArrayAccess<'a> {
     fn next<T>(&mut self) -> Result<Option<T>, ArrayAccessError>
     where
         T: Deserialize<'de>,
@@ -406,7 +423,7 @@ impl<'de> deer::ArrayAccess<'de> for ArrayAccess {
         value.map_or_else(
             || Ok(None),
             |value| {
-                T::deserialize(Deserializer::from(value))
+                T::deserialize(Deserializer::new(value, self.context))
                     .map(Some)
                     .change_context(ArrayAccessError)
             },
@@ -427,17 +444,21 @@ impl<'de> deer::ArrayAccess<'de> for ArrayAccess {
 }
 
 #[must_use]
-struct ObjectAccess {
+struct ObjectAccess<'a> {
     inner: Map<String, Value>,
+    context: &'a Context,
 }
 
-impl ObjectAccess {
-    const fn new(map: Map<String, Value>) -> Self {
-        Self { inner: map }
+impl<'a> ObjectAccess<'a> {
+    const fn new(map: Map<String, Value>, context: &'a Context) -> Self {
+        Self {
+            inner: map,
+            context,
+        }
     }
 }
 
-impl<'de> deer::ObjectAccess<'de> for ObjectAccess {
+impl<'a, 'de> deer::ObjectAccess<'de> for ObjectAccess<'a> {
     fn value<T>(&mut self, key: &str) -> Result<T, ObjectAccessError>
     where
         T: Deserialize<'de>,
@@ -445,8 +466,11 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess {
         let entry = self.inner.remove(key);
 
         entry.map_or_else(
-            || T::deserialize(Deserializer::empty()).change_context(ObjectAccessError),
-            |value| T::deserialize(Deserializer::from(value)).change_context(ObjectAccessError),
+            || T::deserialize(Deserializer::empty(self.context)).change_context(ObjectAccessError),
+            |value| {
+                T::deserialize(Deserializer::new(value, self.context))
+                    .change_context(ObjectAccessError)
+            },
         )
     }
 
@@ -474,7 +498,7 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess {
 
         // note: we do not set `Location` here, as different implementations might want to
         // provide their own variant (difference between e.g. HashMap vs Struct)
-        T::deserialize(Deserializer::from(value))
+        T::deserialize(Deserializer::new(value, self.context))
             .map(|value| Some((key, value)))
             .change_context(ObjectAccessError)
     }
@@ -492,4 +516,101 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess {
             Err(report.change_context(ObjectAccessError))
         }
     }
+}
+
+#[derive(Debug)]
+struct ParseError(serde_json::Error);
+
+impl Display for ParseError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        Display::fmt(&self.0, f)
+    }
+}
+
+#[cfg(nightly)]
+impl core::error::Error for ParseError {
+    fn provide<'a>(&'a self, demand: &mut Demand<'a>) {
+        demand.provide_ref(&self.0)
+    }
+}
+
+#[cfg(all(feature = "std", not(nightly)))]
+impl std::error::Error for ParseError {}
+
+#[cfg(all(not(feature = "std"), not(nightly)))]
+impl error_stack::Context for ParseError {}
+
+// all these functions are currently DeserializeOwned, as we're unable to provide *any* borrowed
+// data with the current Deserializer, this is because we run everything through `Value`, which is
+// `DeserializeOwned`.
+#[cfg(feature = "std")]
+pub fn from_reader<R: std::io::Read, T: DeserializeOwned>(
+    input: R,
+    context: Option<Context>,
+) -> Result<T, DeserializeError> {
+    let context = context.unwrap_or_default();
+
+    let value = serde_json::from_reader::<R, Value>(input)
+        .map_err(ParseError)
+        .into_report()
+        .change_context(DeserializeError)?;
+
+    let deserializer = Deserializer {
+        value: Some(value),
+        context: &context,
+    };
+
+    T::deserialize(deserializer)
+}
+
+pub fn from_slice<T: DeserializeOwned>(
+    input: &[u8],
+    context: Option<Context>,
+) -> Result<T, DeserializeError> {
+    let context = context.unwrap_or_default();
+
+    let value = serde_json::from_slice::<Value>(input)
+        .map_err(ParseError)
+        .into_report()
+        .change_context(DeserializeError)?;
+
+    let deserializer = Deserializer {
+        value: Some(value),
+        context: &context,
+    };
+
+    T::deserialize(deserializer)
+}
+
+pub fn from_str<T: DeserializeOwned>(
+    input: &str,
+    context: Option<Context>,
+) -> Result<T, DeserializeError> {
+    let context = context.unwrap_or_default();
+
+    let value = serde_json::from_str::<Value>(input)
+        .map_err(ParseError)
+        .into_report()
+        .change_context(DeserializeError)?;
+
+    let deserializer = Deserializer {
+        value: Some(value),
+        context: &context,
+    };
+
+    T::deserialize(deserializer)
+}
+
+pub fn from_value<T: DeserializeOwned>(
+    value: Value,
+    context: Option<Context>,
+) -> Result<T, DeserializeError> {
+    let context = context.unwrap_or_default();
+
+    let deserializer = Deserializer {
+        value: Some(value),
+        context: &context,
+    };
+
+    T::deserialize(deserializer)
 }

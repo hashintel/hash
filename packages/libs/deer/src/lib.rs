@@ -476,6 +476,9 @@ pub trait Deserialize<'de>: Reflection + Sized {
     fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError>;
 }
 
+pub trait DeserializeOwned: for<'de> Deserialize<'de> {}
+impl<T> DeserializeOwned for T where T: for<'de> Deserialize<'de> {}
+
 #[cfg(test)]
 pub(crate) mod test {
     use alloc::{format, string::String, vec::Vec};
