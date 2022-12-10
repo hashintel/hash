@@ -189,12 +189,12 @@ fn into_document(value: &Value) -> Document {
 macro_rules! try_deserialize {
     (
         match $self:ident {
-            Value::$variant:ident($value:ident) => $visitor:ident.$visit:ident($transform:expr),
+            Value::$variant:ident$(($value:ident))? => $visitor:ident.$visit:ident($($transform:expr)?),
             else => Error(schema: $reflection:ty)
         }
     ) => {
         match $self.value {
-            Some(Value::$variant($value)) => $visitor.$visit($transform).change_context(DeserializerError),
+            Some(Value::$variant$(($value))?) => $visitor.$visit($($transform)?).change_context(DeserializerError),
             Some(value) => Err(Report::new(TypeError.into_error())
                 .attach(ExpectedType::new(<$reflection as Reflection>::document()))
                 .attach(ReceivedType::new(into_document(&value))))
@@ -260,16 +260,12 @@ impl<'de> deer::Deserializer<'de> for Deserializer {
     where
         V: Visitor<'de>,
     {
-        match self.value {
-            Some(Value::Null) => visitor.visit_null().change_context(DeserializerError),
-            Some(value) => Err(Report::new(TypeError.into_error())
-                .attach(ExpectedType::new(NullReflection::document()))
-                .attach(ReceivedType::new(into_document(&value)))
-                .change_context(DeserializerError)),
-            None => Err(Report::new(MissingError.into_error())
-                .attach(ExpectedType::new(NullReflection::document()))
-                .change_context(DeserializerError)),
-        }
+        try_deserialize!(
+            match self {
+                Value::Null => visitor.visit_null(),
+                else => Error(schema: NullReflection)
+            }
+        )
     }
 
     fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
