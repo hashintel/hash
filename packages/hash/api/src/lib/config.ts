@@ -3,7 +3,7 @@ import corsMiddleware from "cors";
 import { StorageType } from "../graphql/apiTypes.gen";
 
 function getEnvStorageType() {
-  const envUploadProvider = process.env.FILE_UPLOAD_PROVIDER as StorageType;
+  const envUploadProvider = process.env.FILE_UPLOAD_PROVIDER as string;
   if (
     envUploadProvider &&
     !Object.values<string>(StorageType).includes(envUploadProvider)

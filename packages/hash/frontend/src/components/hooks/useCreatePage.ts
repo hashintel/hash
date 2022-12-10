@@ -41,7 +41,7 @@ export const useCreatePage = (ownedById: string) => {
         variables: { ownedById, properties: { title: "", prevIndex } },
       });
 
-      const pageEntityId = response.data?.createPage?.metadata.editionId.baseId;
+      const pageEntityId = response.data?.createPage.metadata.editionId.baseId;
 
       if (pageEntityId) {
         const [pageOwnedById, pageEntityUuid] = splitEntityId(pageEntityId);

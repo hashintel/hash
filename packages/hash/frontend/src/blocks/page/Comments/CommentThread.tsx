@@ -49,7 +49,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
   };
 
   const handleReplySubmit = async () => {
-    if (!loading && inputValue?.length) {
+    if (!loading && inputValue.length) {
       await createReply(comment.metadata.editionId.baseId, inputValue);
       setInputValue([]);
     }

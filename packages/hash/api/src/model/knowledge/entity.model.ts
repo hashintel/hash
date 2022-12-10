@@ -262,6 +262,7 @@ export default class {
       entity = await EntityModel.getLatest(graphApi, {
         entityId: existingEntityId,
       });
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
       if (!entity) {
         throw new ApolloError(
           `Entity ${existingEntityId} not found`,

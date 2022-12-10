@@ -15,6 +15,7 @@ export const pageContents: ResolverFn<
   const entityId = metadata.editionId.baseId;
   const page = await PageModel.getPageById(graphApi, { entityId });
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
   if (!page) {
     throw new ApolloError(
       `Page with entityId ${entityId} not found`,

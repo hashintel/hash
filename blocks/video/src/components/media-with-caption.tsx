@@ -62,6 +62,7 @@ export const MediaWithCaption: FunctionComponent<MediaWithCaptionProps> = ({
             style={{
               maxWidth: "100%",
             }}
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
             src={src ?? ""}
           />
           {captionNode}

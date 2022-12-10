@@ -81,7 +81,8 @@ export default class extends EntityModel {
       ...(summary
         ? { [SYSTEM_TYPES.propertyType.summary.getBaseUri()]: summary }
         : {}),
-      ...(index !== undefined
+      ...// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
+      (index !== undefined
         ? { [SYSTEM_TYPES.propertyType.index.getBaseUri()]: index }
         : {}),
     };
@@ -160,7 +161,10 @@ export default class extends EntityModel {
 
     return await Promise.all(
       pageModels.map(async (pageModel) => {
-        if (await pageModel.isArchived(graphApi)) {
+        if (
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
+          await pageModel.isArchived(graphApi)
+        ) {
           return [];
         }
         return pageModel;

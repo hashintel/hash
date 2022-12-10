@@ -63,6 +63,7 @@ export const filterForAction = <T extends UpdatePageActionKey>(
 ): { action: NonNullable<UpdatePageAction[T]>; index: number }[] =>
   actions.reduce<{ action: NonNullable<UpdatePageAction[T]>; index: number }[]>(
     (acc, current, index) => {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
       if (current != null && key in current) {
         acc.push({ action: current[key]!, index });
       }
@@ -202,6 +203,7 @@ export const handleInsertNewBlock = async (
         entityId: existingBlockEntityId,
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
       if (!existingBlock) {
         throw new Error("InsertBlock: provided block id does not exist");
       }
@@ -255,6 +257,7 @@ export const handleSwapBlockData = async (
     entityId,
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
   if (!block) {
     throw new Error(`Block with entityId ${entityId} not found`);
   }

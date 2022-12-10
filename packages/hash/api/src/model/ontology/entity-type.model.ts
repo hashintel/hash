@@ -218,8 +218,10 @@ export default class {
     if (
       typeof outgoingLinkDefinition === "object" &&
       "type" in outgoingLinkDefinition &&
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
       outgoingLinkDefinition.type === "array"
     ) {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
       return outgoingLinkDefinition.ordered ?? false;
     }
 

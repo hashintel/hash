@@ -147,6 +147,7 @@ export const propertyTypeInitializer = (
   let propertyTypeModel: PropertyTypeModel;
 
   return async (graphApi?: GraphApi) => {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
     if (propertyTypeModel) {
       return propertyTypeModel;
     } else if (!graphApi) {
@@ -319,6 +320,7 @@ export const entityTypeInitializer = (
   let entityTypeModel: EntityTypeModel;
 
   return async (graphApi?: GraphApi) => {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
     if (entityTypeModel) {
       return entityTypeModel;
     } else if (!graphApi) {

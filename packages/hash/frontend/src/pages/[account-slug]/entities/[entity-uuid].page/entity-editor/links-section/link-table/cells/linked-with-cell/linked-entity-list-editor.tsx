@@ -64,6 +64,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
       },
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
     if (!linkEntity || linkEntity === undefined) {
       throw new Error("failed to create link");
     }

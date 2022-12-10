@@ -45,7 +45,7 @@ export const PageIcon = ({ entityId, size = "medium" }: PageIconProps) => {
         alignItems: "center",
       }}
     >
-      {data?.page?.icon ?? (
+      {data?.page.icon ?? (
         <FontAwesomeIcon
           icon={faFile}
           sx={(theme) => ({

@@ -51,6 +51,7 @@ export const createPlaceholderPlugin = (renderPortal: RenderPortal) => {
     props: {
       decorations(state) {
         const firstNode = state.selection.$anchor.node(1);
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
         const componentNode = firstNode && findComponentNodes(firstNode)[0];
 
         if (!componentNode) {

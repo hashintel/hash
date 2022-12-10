@@ -102,7 +102,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                 width: "1.5rem",
               }}
             >
-              {option.name?.[0]?.toUpperCase()}
+              {option.name[0]?.toUpperCase()}
             </div>
           ) : (
             <div

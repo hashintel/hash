@@ -125,6 +125,7 @@ export const updatePageContents: ResolverFn<
     entityId: pageEntityId,
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
   if (!pageModel) {
     const msg = `Page with Entity ID ${pageEntityId}`;
     throw new ApolloError(msg, "NOT_FOUND");

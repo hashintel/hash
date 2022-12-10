@@ -62,6 +62,6 @@ describe("OrgMembership model class", () => {
   it("can get the user of an org membership", () => {
     const fetchedUser = testOrgMembership.getUser();
 
-    expect(fetchedUser?.entity).toEqual(testUser.entity);
+    expect(fetchedUser.entity).toEqual(testUser.entity);
   });
 });

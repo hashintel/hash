@@ -83,7 +83,7 @@ const ArrayDataTypeChild: FunctionComponent<ArrayDataTypeChildProps> = ({
     setShow(true);
   }, []);
 
-  if (!dataType?.data) {
+  if (!dataType.data) {
     return null;
   }
 
@@ -245,7 +245,7 @@ export const ArrayDataTypeMenu: FunctionComponent<ArrayDataTypeMenuProps> = ({
           position: "relative",
         }}
       >
-        {expectedValues?.map((childId, pos) => (
+        {expectedValues.map((childId, pos) => (
           <ArrayDataTypeChild
             key={childId}
             id={childId}
@@ -284,6 +284,7 @@ export const ArrayDataTypeMenu: FunctionComponent<ArrayDataTypeMenuProps> = ({
                 const childId = uniqueId();
 
                 setValue(`flattenedDataTypeList`, {
+                  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
                   ...(flattenedDataTypes ?? {}),
                   [childId]: {
                     id: childId,

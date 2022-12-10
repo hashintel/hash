@@ -36,8 +36,7 @@ export const useCreateSubPage = (ownedById: string) => {
       });
 
       if (response.data?.createPage) {
-        const pageEntityId =
-          response.data?.createPage?.metadata.editionId.baseId;
+        const pageEntityId = response.data.createPage.metadata.editionId.baseId;
 
         await setParentPageFn({
           variables: {
@@ -47,6 +46,7 @@ export const useCreateSubPage = (ownedById: string) => {
           },
         });
 
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
         if (pageEntityId) {
           const [pageOwnedById, pageEntityUuid] = splitEntityId(pageEntityId);
           return router.push(`/${pageOwnedById}/${pageEntityUuid}`);

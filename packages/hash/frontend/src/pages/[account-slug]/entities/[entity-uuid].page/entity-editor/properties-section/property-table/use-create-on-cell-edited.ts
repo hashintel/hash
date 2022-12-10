@@ -43,7 +43,9 @@ export const useCreateOnCellEdited = () => {
           return;
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
         if (!key || !row) {
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
           throw new Error(`${key ? "property" : "key"} not found`);
         }
 

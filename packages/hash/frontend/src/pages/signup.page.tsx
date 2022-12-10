@@ -104,7 +104,7 @@ const KratosRegistrationFlowForm: FunctionComponent = () => {
       .push(`/signup?flow=${flow.id}`, undefined, { shallow: true })
       .then(() =>
         oryKratosClient
-          .submitSelfServiceRegistrationFlow(String(flow?.id), {
+          .submitSelfServiceRegistrationFlow(String(flow.id), {
             csrf_token,
             traits,
             password,
@@ -117,7 +117,7 @@ const KratosRegistrationFlowForm: FunctionComponent = () => {
             const { identity: _kratosIdentity } = data;
 
             // For now however we just want to redirect home!
-            return router.push(flow?.return_to ?? "/");
+            return router.push(flow.return_to ?? "/");
           })
           .catch(handleFlowError)
           .catch((err: AxiosError<SelfServiceRegistrationFlow>) => {
@@ -258,6 +258,7 @@ const SignupPage: NextPageWithLayout = () => {
   return (
     <Container sx={{ pt: 10 }}>
       {authenticatedUser ? (
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
         userHasVerifiedEmail ? (
           <AccountSetupForm
             onSubmit={handleAccountSetupSubmit}

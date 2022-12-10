@@ -94,7 +94,7 @@ export const PageNotificationBanner: FunctionComponent = () => {
     },
   );
 
-  const archived = data?.page?.archived;
+  const archived = data?.page.archived;
 
   return (
     <Collapse in={!!archived}>
@@ -126,6 +126,7 @@ export const PageNotificationBanner: FunctionComponent = () => {
               background: alpha(palette.gray[90], 0.08),
             },
           })}
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
           onClick={() => pageEntityId && archivePage(false, pageEntityId)}
         >
           Restore
@@ -309,7 +310,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocks }) => {
               readonly={readonlyMode}
               sx={({ breakpoints }) => ({
                 mb: 2,
-                [breakpoints.up(pageComments?.length ? "xl" : "lg")]: {
+                [breakpoints.up(pageComments.length ? "xl" : "lg")]: {
                   position: "absolute",
                   top: 0,
                   right: "calc(100% + 24px)",
