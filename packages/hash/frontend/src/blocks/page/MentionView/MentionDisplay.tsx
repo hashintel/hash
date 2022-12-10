@@ -5,7 +5,7 @@ import {
   EntityId,
   extractEntityUuidFromEntityId,
 } from "@hashintel/hash-subgraph";
-import { SYSTEM_ACCOUNT_SHORTNAME } from "@hashintel/hash-shared/environment";
+import { systemUserShortname } from "@hashintel/hash-shared/environment";
 import { useUsers } from "../../../components/hooks/useUsers";
 import { useAccountPages } from "../../../components/hooks/useAccountPages";
 import { Link } from "../../../shared/ui";
@@ -28,7 +28,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
     switch (mentionType) {
       case "user": {
         // User entities are stored on the system account
-        const userHref = `/@${SYSTEM_ACCOUNT_SHORTNAME}/entities/${extractEntityUuidFromEntityId(
+        const userHref = `/@${systemUserShortname}/entities/${extractEntityUuidFromEntityId(
           entityId,
         )}`;
 

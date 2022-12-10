@@ -1,3 +1,5 @@
+/* eslint-disable canonical/filename-no-index -- @todo rename file */
+
 import { createTheme } from "@mui/material";
 
 import { palette } from "./palette";

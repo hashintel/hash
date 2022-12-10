@@ -5,9 +5,9 @@ import {
   EntityModelCreateParams,
   UserModel,
 } from "..";
-import { systemAccountId } from "../util";
 import { SYSTEM_TYPES } from "../../graph/system-types";
 import { EntityTypeMismatchError, NotFoundError } from "../../lib/error";
+import { systemUserAccountId } from "../../graph/system-user";
 
 export type HashInstanceModelCreateParams = Omit<
   EntityModelCreateParams,
@@ -65,7 +65,7 @@ export default class extends EntityModel {
     const entityTypeModel = SYSTEM_TYPES.entityType.hashInstance;
 
     const entityModel = await EntityModel.create(graphApi, {
-      ownedById: systemAccountId,
+      ownedById: systemUserAccountId,
       properties: {
         [SYSTEM_TYPES.propertyType.userSelfRegistrationIsEnabled.getBaseUri()]:
           params.userSelfRegistrationIsEnabled ?? true,
@@ -164,7 +164,7 @@ export default class extends EntityModel {
     }
 
     await this.createOutgoingLink(graphApi, {
-      ownedById: systemAccountId,
+      ownedById: systemUserAccountId,
       linkEntityTypeModel: SYSTEM_TYPES.linkEntityType.admin,
       rightEntityModel: userModel,
       actorId,

@@ -1,12 +1,10 @@
 const { config } = require("dotenv-flow");
-const path = require("path");
 const withTM = require("next-transpile-modules")([
   "@hashintel/hash-shared",
   "@hashintel/hash-subgraph",
   "@hashintel/hash-graph-client",
   "@hashintel/hash-design-system",
 ]); // pass the modules you would like to see transpiled
-const HtmlWebpackPlugin = require("html-webpack-plugin");
 const withBundleAnalyzer = require("@next/bundle-analyzer")({
   enabled: process.env.ANALYZE === "true",
 });
@@ -38,9 +36,8 @@ process.env.NEXT_PUBLIC_FRONTEND_URL = process.env.FRONTEND_URL;
 
 // This allows the frontend to have the system account shortname, used to generate system types in shared/src/types.ts
 // the frontend imports 'types' from that file in various places
-process.env.NEXT_PUBLIC_SYSTEM_ACCOUNT_SHORTNAME =
-  process.env.SYSTEM_ACCOUNT_SHORTNAME;
-process.env.NEXT_PUBLIC_SYSTEM_ACCOUNT_NAME = process.env.SYSTEM_ACCOUNT_NAME;
+process.env.NEXT_PUBLIC_SYSTEM_USER_SHORTNAME =
+  process.env.SYSTEM_USER_SHORTNAME;
 
 // The API origin
 process.env.NEXT_PUBLIC_API_ORIGIN = process.env.API_ORIGIN;
@@ -50,8 +47,8 @@ process.env.NEXT_PUBLIC_SENTRY_REPLAY_SESSION_SAMPLE_RATE =
   process.env.SENTRY_REPLAY_SESSION_SAMPLE_RATE;
 
 /**
- * @todo try using next-compose-plugins when upgrading next to 11 and/or to webpack 5
- *    was not building with compose-plugins on next 10 w/ webpack 4.
+ * @todo make plugin definition cleaner - some ideas in https://github.com/cyrilwanner/next-compose-plugins/issues/59
+ *    next-compose plugins itself is unmaintained and leads to 'invalid config property' warnings if used
  */
 module.exports = withSentryConfig(
   withBundleAnalyzer(
@@ -69,48 +66,17 @@ module.exports = withSentryConfig(
         hideSourceMaps: false,
       },
 
+      experimental: {
+        allowMiddlewareResponseBody: true,
+      },
+
       webpack: (webpackConfig) => {
         webpackConfig.module.rules.push({
           test: /\.svg$/,
           use: [require.resolve("@svgr/webpack")],
         });
 
-        // https://github.com/rjsf-team/react-jsonschema-form/issues/2762#issuecomment-1082107872
-        // @todo Remove once if we no longer depend on @rjsf/material-ui or if the problem is fixed upstream
-        // eslint-disable-next-line no-param-reassign -- updating webpack config in this context is legit
-        webpackConfig.resolve.fallback = {
-          "@material-ui/core": false,
-          "@material-ui/icons": false,
-        };
-
-        //  Build the sandbox HTML, which will have the sandbox script injected
-        const framedBlockFolder = "/src/components/sandbox/FramedBlock";
-        webpackConfig.plugins.push(
-          new HtmlWebpackPlugin({
-            filename: "static/sandbox.html",
-            template: path.join(__dirname, framedBlockFolder, "index.html"),
-            chunks: ["sandbox"],
-          }),
-        );
-        return {
-          ...webpackConfig,
-          entry: () =>
-            webpackConfig.entry().then((entry) => ({
-              ...entry,
-              sandbox: path.join(__dirname, framedBlockFolder, "index.tsx"),
-            })),
-        };
-      },
-      sassOptions: {
-        prependData: `
-          $grey-bg: rgba(241, 243, 246, 0.3);
-          $grey-border: #e5e6e7;
-          $black-almost: #1b1d24;
-
-          $bright-purple: rgb(95, 71, 255);
-          $bright-pink: #ff008b;
-          $bright-blue: #2482ff;
-      `,
+        return webpackConfig;
       },
     }),
   ),

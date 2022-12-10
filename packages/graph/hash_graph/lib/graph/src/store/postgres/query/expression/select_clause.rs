@@ -74,7 +74,7 @@ mod tests {
         assert_eq!(
             SelectExpression::new(
                 Expression::Window(
-                    Box::new(Expression::Function(Box::new(Function::Max(
+                    Box::new(Expression::Function(Function::Max(Box::new(
                         Expression::Column(
                             DataTypeQueryPath::Version
                                 .terminating_column()

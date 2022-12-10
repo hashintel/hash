@@ -3,9 +3,9 @@ import { AxiosError } from "axios";
 
 import { GraphApi } from "../graph";
 import { UserModel } from "../model";
-import { systemAccountId } from "../model/util";
 import { createKratosIdentity } from "../auth/ory-kratos";
 import { isDevEnv } from "../lib/env-config";
+import { systemUserAccountId } from "../graph/system-user";
 
 type SeededUser = {
   email: string;
@@ -102,18 +102,18 @@ export const ensureUsersAreSeeded = async ({
       let user = await UserModel.createUser(graphApi, {
         emails,
         kratosIdentityId,
-        actorId: systemAccountId,
+        actorId: systemUserAccountId,
         isInstanceAdmin,
       });
 
       user = await user.updateShortname(graphApi, {
         updatedShortname: shortname,
-        actorId: systemAccountId,
+        actorId: systemUserAccountId,
       });
 
       user = await user.updatePreferredName(graphApi, {
         updatedPreferredName: preferredName,
-        actorId: systemAccountId,
+        actorId: systemUserAccountId,
       });
 
       createdUsers.push(user);

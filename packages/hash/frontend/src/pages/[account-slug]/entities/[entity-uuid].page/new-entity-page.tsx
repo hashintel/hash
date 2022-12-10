@@ -9,8 +9,8 @@ import { HashOntologyIcon } from "../../shared/hash-ontology-icon";
 import { OntologyChip } from "../../shared/ontology-chip";
 import { SectionWrapper } from "../../shared/section-wrapper";
 import { WhiteCard } from "../../shared/white-card";
-import { EntityTypeSelector } from "../../types/entity-type/entity-type-selector";
-import { EntityTypesContextProvider } from "../../types/entity-type/use-entity-types";
+import { EntityTypeSelector } from "./new-entity-page/entity-type-selector";
+import { EntityTypesContextProvider } from "./new-entity-page/entity-types-context-provider";
 import { EntityPageWrapper } from "./entity-page-wrapper";
 import { EntityPageHeader } from "./entity-page-wrapper/entity-page-header";
 import { LinksSectionEmptyState } from "./shared/links-section-empty-state";
@@ -28,7 +28,7 @@ export const NewEntityPage = () => {
   const createNewEntityAndRedirect = useCreateNewEntityAndRedirect();
 
   if (!activeWorkspace) {
-    throw new Error("Workspace must be set");
+    throw new Error("Active workspace must be set");
   }
 
   return (
@@ -111,17 +111,10 @@ export const NewEntityPage = () => {
                   onCancel={() => setIsSelectingType(false)}
                   onSelect={async (entityType) => {
                     try {
-                      if (!activeWorkspace) {
-                        throw new Error("workspace not ready");
-                      }
-
                       setIsSelectingType(false);
                       setLoading(true);
 
-                      await createNewEntityAndRedirect(
-                        activeWorkspace,
-                        entityType.$id,
-                      );
+                      await createNewEntityAndRedirect(entityType.$id);
                     } catch (error: any) {
                       snackbar.error(error.message);
                     } finally {

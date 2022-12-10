@@ -20,8 +20,7 @@ export const SIDEBAR_WIDTH = 260;
 export const PageSidebar: FunctionComponent = () => {
   const router = useRouter();
   const { sidebarOpen, closeSidebar } = useSidebarContext();
-  const { activeWorkspaceAccountId, activeWorkspace } =
-    useContext(WorkspaceContext);
+  const { activeWorkspaceAccountId } = useContext(WorkspaceContext);
   const { pageEntityId } = useRoutePageInfo({ allowUndefined: true }) ?? {};
 
   return (
@@ -61,7 +60,7 @@ export const PageSidebar: FunctionComponent = () => {
       <TopNavLink
         icon={faHome}
         title="Home"
-        href={`/${activeWorkspaceAccountId}`}
+        href="/"
         tooltipTitle="View your inbox and latest activity"
         active={router.pathname === "/[account-slug]"}
       />
@@ -99,9 +98,7 @@ export const PageSidebar: FunctionComponent = () => {
               accountId={activeWorkspaceAccountId}
             />
             {/* TYPES */}
-            {activeWorkspace ? (
-              <AccountEntityTypeList activeWorkspace={activeWorkspace} />
-            ) : null}
+            <AccountEntityTypeList ownedById={activeWorkspaceAccountId} />
           </>
         ) : null}
       </Box>

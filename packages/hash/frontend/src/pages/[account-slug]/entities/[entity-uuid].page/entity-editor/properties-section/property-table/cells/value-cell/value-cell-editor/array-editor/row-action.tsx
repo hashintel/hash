@@ -17,6 +17,7 @@ export const RowAction = ({ icon, onClick, tooltip }: RowActionProps) => {
         // this className prevents editor overlay from closing
         className: "click-outside-ignore",
       }}
+      disableInteractive
     >
       <IconButton
         onClick={onClick}
