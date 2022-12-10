@@ -48,15 +48,16 @@ pub trait ObjectAccess<'de> {
     where
         T: Deserialize<'de>;
 
-    fn next<T>(&mut self) -> Result<Option<(String, T)>, ObjectAccessError>
+    fn next<K, V>(&mut self) -> Option<Result<(K, V), ObjectAccessError>>
     where
-        T: Deserialize<'de>;
+        K: Deserialize<'de>,
+        V: Deserialize<'de>;
 
     fn finish(self) -> Result<(), ObjectAccessError>;
 }
 
 pub trait ArrayAccess<'de> {
-    fn next<T>(&mut self) -> Result<Option<T>, ArrayAccessError>
+    fn next<T>(&mut self) -> Option<Result<T, ArrayAccessError>>
     where
         T: Deserialize<'de>;
 
