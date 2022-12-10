@@ -8,7 +8,7 @@
   "types": "./src/ui.ts",
   "scripts": {
     "fix:eslint": "eslint --fix .",
-    "lint:eslint": "eslint .",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "test": "jest"
   },
@@ -26,10 +26,8 @@
     "@local/tsconfig": "0.0.0-private",
     "@types/react": "18.0.25",
     "@types/react-dom": "18.0.8",
-    "@typescript-eslint/eslint-plugin": "5.45.0",
-    "@typescript-eslint/parser": "5.45.0",
-    "eslint": "8.28.0",
-    "typescript": "4.9.3"
+    "eslint": "8.29.0",
+    "typescript": "4.9.4"
   },
   "peerDependencies": {
     "@mui/material": "^5.8.1"

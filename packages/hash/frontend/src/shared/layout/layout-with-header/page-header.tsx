@@ -64,12 +64,7 @@ export const PageHeader: FunctionComponent = () => {
               justifyContent: "center",
             }}
           >
-            <Link
-              noLinkStyle
-              href={`/${
-                authenticatedUser ? authenticatedUser.userAccountId : ""
-              }`}
-            >
+            <Link noLinkStyle href="/">
               <HashAlphaNavIcon
                 sx={({ palette }) => ({
                   height: "1.1rem",

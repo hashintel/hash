@@ -19,22 +19,22 @@ export const useCreateGetCellContent = (
   hideTooltip: UseGridTooltipResponse["hideTooltip"],
 ) => {
   const createGetCellContent = useCallback(
-    (rowData: PropertyRow[]) =>
-      ([col, row]: Item):
+    (rows: PropertyRow[]) =>
+      ([colIndex, rowIndex]: Item):
         | PropertyNameCell
         | SummaryChipCell
         | ValueCell
         | ChipCell
         | BlankCell => {
-        const property = rowData[row];
+        const row = rows[rowIndex];
 
-        const hasChild = !!property?.children.length;
+        const hasChild = !!row?.children.length;
 
-        if (!property) {
+        if (!row) {
           throw new Error("property not found");
         }
 
-        const columnKey = propertyGridIndexes[col];
+        const columnKey = propertyGridIndexes[colIndex];
 
         if (!columnKey) {
           throw new Error("columnKey not found");
@@ -46,17 +46,17 @@ export const useCreateGetCellContent = (
               kind: GridCellKind.Custom,
               allowOverlay: false,
               readonly: true,
-              copyData: property.title,
+              copyData: row.title,
               data: {
                 kind: "property-name-cell",
-                property,
+                propertyRow: row,
               },
             };
 
           case "value":
             if (hasChild) {
-              const { emptyCount, notEmptyCount } = getPropertyCountSummary(
-                property.value,
+              const { totalCount, notEmptyCount } = getPropertyCountSummary(
+                row.children,
               );
 
               const valuesCount = notEmptyCount || "none";
@@ -68,7 +68,7 @@ export const useCreateGetCellContent = (
                 copyData: "",
                 data: {
                   kind: "summary-chip-cell",
-                  primaryText: `${emptyCount + notEmptyCount} properties`,
+                  primaryText: `${totalCount} properties`,
                   secondaryText: `(${valuesCount} with ${valueWord})`,
                 },
               };
@@ -77,14 +77,14 @@ export const useCreateGetCellContent = (
             return {
               kind: GridCellKind.Custom,
               allowOverlay: true,
-              copyData: String(property.value),
+              copyData: String(row.value),
               cursor: "pointer",
               data: {
                 kind: "value-cell",
-                tooltips: getTooltipsOfPropertyRow(property),
+                tooltips: getTooltipsOfPropertyRow(row),
                 showTooltip,
                 hideTooltip,
-                property,
+                propertyRow: row,
               },
             };
 
@@ -97,10 +97,10 @@ export const useCreateGetCellContent = (
               kind: GridCellKind.Custom,
               allowOverlay: true,
               readonly: true,
-              copyData: String(property.expectedTypes),
+              copyData: String(row.expectedTypes),
               data: {
                 kind: "chip-cell",
-                chips: property.expectedTypes,
+                chips: row.expectedTypes,
               },
             };
         }

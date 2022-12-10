@@ -33,7 +33,7 @@ export const Button: FunctionComponent<ButtonProps> = forwardRef(
 
     if (href && !isHrefExternal(href)) {
       return (
-        <Link href={href} passHref>
+        <Link href={href} passHref legacyBehavior>
           {Component}
         </Link>
       );

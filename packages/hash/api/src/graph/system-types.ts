@@ -4,11 +4,7 @@ import { types } from "@hashintel/hash-shared/types";
 import { logger } from "../logger";
 
 import { EntityTypeModel, PropertyTypeModel } from "../model";
-import {
-  propertyTypeInitializer,
-  entityTypeInitializer,
-  systemAccountId,
-} from "../model/util";
+import { propertyTypeInitializer, entityTypeInitializer } from "../model/util";
 
 // eslint-disable-next-line import/no-mutable-exports
 export let SYSTEM_TYPES: {
@@ -90,27 +86,23 @@ const userSelfRegistrationIsEnabledPropertyTypeInitializer =
   propertyTypeInitializer({
     ...types.propertyType.userSelfRegistrationIsEnabled,
     possibleValues: [{ primitiveDataType: "boolean" }],
-    actorId: systemAccountId,
   });
 
 const orgSelfRegistrationIsEnabledPropertyTypeInitializer =
   propertyTypeInitializer({
     ...types.propertyType.orgSelfRegistrationIsEnabled,
     possibleValues: [{ primitiveDataType: "boolean" }],
-    actorId: systemAccountId,
   });
 
 const userRegistrationByInviteIsEnabledPropertyTypeInitializer =
   propertyTypeInitializer({
     ...types.propertyType.userRegistrationByInviteIsEnabled,
     possibleValues: [{ primitiveDataType: "boolean" }],
-    actorId: systemAccountId,
   });
 
-export const adminLinkEntityTypeInitializer = entityTypeInitializer({
-  ...types.linkEntityType.admin,
-  actorId: systemAccountId,
-});
+export const adminLinkEntityTypeInitializer = entityTypeInitializer(
+  types.linkEntityType.admin,
+);
 
 export const hashInstanceEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
@@ -161,7 +153,6 @@ export const hashInstanceEntityTypeInitializer = async (graphApi: GraphApi) => {
         destinationEntityTypeModels: [userEntityTypeModel],
       },
     ],
-    actorId: systemAccountId,
   })(graphApi);
 };
 
@@ -186,7 +177,6 @@ export const orgProvidedInfoPropertyTypeInitializer = async (
         },
       },
     ],
-    actorId: systemAccountId,
   })(graphApi);
 };
 
@@ -219,50 +209,42 @@ export const orgEntityTypeInitializer = async (graphApi: GraphApi) => {
         required: false,
       },
     ],
-    actorId: systemAccountId,
   })(graphApi);
 };
 
 const shortnamePropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.shortName,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: systemAccountId,
 });
 
 const orgNamePropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.orgName,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: systemAccountId,
 });
 
 const orgSizePropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.orgSize,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: systemAccountId,
 });
 
 const emailPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.email,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: systemAccountId,
 });
 
 const kratosIdentityIdPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.kratosIdentityId,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: systemAccountId,
 });
 
 const preferredNamePropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.preferredName,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: systemAccountId,
 });
 
 const responsibilityPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.responsibility,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: systemAccountId,
 });
 
 const orgMembershipLinkEntityTypeInitializer = async (graphApi: GraphApi) => {
@@ -279,7 +261,6 @@ const orgMembershipLinkEntityTypeInitializer = async (graphApi: GraphApi) => {
         required: true,
       },
     ],
-    actorId: systemAccountId,
   })(graphApi);
 };
 
@@ -333,20 +314,17 @@ const userEntityTypeInitializer = async (graphApi: GraphApi) => {
         maxItems: 1,
       },
     ],
-    actorId: systemAccountId,
   })(graphApi);
 };
 
 const componentIdPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.componentId,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: systemAccountId,
 });
 
-const blockDataLinkEntityTypeInitializer = entityTypeInitializer({
-  ...types.linkEntityType.blockData,
-  actorId: systemAccountId,
-});
+const blockDataLinkEntityTypeInitializer = entityTypeInitializer(
+  types.linkEntityType.blockData,
+);
 
 const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
@@ -383,7 +361,6 @@ const blockEntityTypeInitializer = async (graphApi: GraphApi) => {
         maxItems: 1,
       },
     ],
-    actorId: systemAccountId,
   })(graphApi);
 };
 
@@ -394,7 +371,6 @@ const tokensPropertyTypeInitializer = propertyTypeInitializer({
    * @see https://app.asana.com/0/1202805690238892/1203045933021778/f
    */
   possibleValues: [{ primitiveDataType: "object" }],
-  actorId: systemAccountId,
 });
 
 const textEntityTypeInitializer = async (graphApi: GraphApi) => {
@@ -413,7 +389,6 @@ const textEntityTypeInitializer = async (graphApi: GraphApi) => {
         array: true,
       },
     ],
-    actorId: systemAccountId,
   })(graphApi);
 };
 
@@ -425,49 +400,41 @@ const dummyEntityTypeInitializer = async (graphApi: GraphApi) => {
   return entityTypeInitializer({
     ...types.entityType.dummy,
     properties: [],
-    actorId: systemAccountId,
   })(graphApi);
 };
 
 const archivedPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.archived,
   possibleValues: [{ primitiveDataType: "boolean" }],
-  actorId: systemAccountId,
 });
 
 const summaryPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.summary,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: systemAccountId,
 });
 
 const titlePropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.title,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: systemAccountId,
 });
 
 const indexPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.index,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: systemAccountId,
 });
 
 const iconPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.icon,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: systemAccountId,
 });
 
-const containsLinkEntityTypeInitializer = entityTypeInitializer({
-  ...types.linkEntityType.contains,
-  actorId: systemAccountId,
-});
+const containsLinkEntityTypeInitializer = entityTypeInitializer(
+  types.linkEntityType.contains,
+);
 
-const parentLinkEntityTypeInitializer = entityTypeInitializer({
-  ...types.linkEntityType.parent,
-  actorId: systemAccountId,
-});
+const parentLinkEntityTypeInitializer = entityTypeInitializer(
+  types.linkEntityType.parent,
+);
 
 const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
@@ -533,31 +500,26 @@ const pageEntityTypeInitializer = async (graphApi: GraphApi) => {
         maxItems: 1,
       },
     ],
-    actorId: systemAccountId,
   })(graphApi);
 };
 
 const resolvedAtPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.resolvedAt,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: systemAccountId,
 });
 
 const deletedAtPropertyTypeInitializer = propertyTypeInitializer({
   ...types.propertyType.deletedAt,
   possibleValues: [{ primitiveDataType: "text" }],
-  actorId: systemAccountId,
 });
 
-const hasTextLinkEntityTypeInitializer = entityTypeInitializer({
-  ...types.linkEntityType.hasText,
-  actorId: systemAccountId,
-});
+const hasTextLinkEntityTypeInitializer = entityTypeInitializer(
+  types.linkEntityType.hasText,
+);
 
-const authorLinkEntityTypeInitializer = entityTypeInitializer({
-  ...types.linkEntityType.author,
-  actorId: systemAccountId,
-});
+const authorLinkEntityTypeInitializer = entityTypeInitializer(
+  types.linkEntityType.author,
+);
 
 const commentEntityTypeInitializer = async (graphApi: GraphApi) => {
   /* eslint-disable @typescript-eslint/no-use-before-define */
@@ -621,7 +583,6 @@ const commentEntityTypeInitializer = async (graphApi: GraphApi) => {
         maxItems: 1,
       },
     ],
-    actorId: systemAccountId,
   })(graphApi);
 };
 
@@ -692,7 +653,9 @@ export const SYSTEM_TYPES_INITIALIZERS: FlattenAndPromisify<
 };
 
 /**
- * Ensures the required system types have been created in the graph.
+ * Ensures the required system types have been created in the graph by fetching
+ * them or creating them using the `systemUserAccountId`. Note this method must
+ * be run after the `systemUserAccountId` has been initialized.
  */
 export const ensureSystemTypesExist = async (params: {
   graphApi: GraphApi;

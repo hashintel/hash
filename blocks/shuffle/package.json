@@ -17,14 +17,13 @@
     "build": "node_modules/.bin/block-scripts build",
     "dev": "node_modules/.bin/block-scripts dev",
     "fix:eslint": "eslint --fix .",
-    "lint:eslint": "eslint .",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "serve": "node_modules/.bin/block-scripts serve"
   },
   "dependencies": {
     "@blockprotocol/graph": "0.0.18",
     "@dnd-kit/core": "6.0.5",
-    "@dnd-kit/modifiers": "6.0.0",
     "@dnd-kit/sortable": "7.0.1",
     "@dnd-kit/utilities": "3.2.0",
     "@hashintel/hash-design-system": "0.0.0-private",
@@ -32,16 +31,15 @@
     "@mui/material": "5.10.6",
     "immer": "9.0.6",
     "lodash.isequal": "4.5.0",
-    "typescript": "4.9.3",
+    "typescript": "4.9.4",
     "uuid": "8.3.2"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/lodash.isequal": "4.5.6",
-    "@types/react-beautiful-dnd": "13.1.2",
     "block-scripts": "0.0.14",
-    "eslint": "8.28.0",
+    "eslint": "8.29.0",
     "mock-block-dock": "0.0.38",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"

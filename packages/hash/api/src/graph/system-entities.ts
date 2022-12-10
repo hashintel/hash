@@ -3,7 +3,7 @@ import { GraphApi } from "@hashintel/hash-graph-client";
 import { NotFoundError } from "../lib/error";
 import { logger } from "../logger";
 import { HashInstanceModel } from "../model";
-import { systemAccountId } from "../model/util";
+import { systemUserAccountId } from "./system-user";
 
 /**
  * Ensures the required system entities has been created in the graph.
@@ -22,7 +22,7 @@ export const ensureSystemEntitiesExists = async (params: {
       // Create the system instance entity, if it doesn't already exist.
       if (error instanceof NotFoundError) {
         return await HashInstanceModel.createHashInstance(graphApi, {
-          actorId: systemAccountId,
+          actorId: systemUserAccountId,
         });
       }
       throw error;

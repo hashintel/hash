@@ -4,13 +4,13 @@
   "private": true,
   "scripts": {
     "fix:eslint": "eslint --fix .",
-    "lint:eslint": "eslint ."
+    "lint:eslint": "eslint --report-unused-disable-directives ."
   },
   "dependencies": {
     "@babel/eslint-parser": "7.19.1",
-    "@typescript-eslint/eslint-plugin": "5.45.0",
-    "@typescript-eslint/parser": "5.45.0",
-    "eslint": "8.28.0",
+    "@typescript-eslint/eslint-plugin": "5.46.0",
+    "@typescript-eslint/parser": "5.46.0",
+    "eslint": "8.29.0",
     "eslint-config-airbnb": "19.0.4",
     "eslint-config-prettier": "8.5.0",
     "eslint-plugin-canonical": "3.1.0",

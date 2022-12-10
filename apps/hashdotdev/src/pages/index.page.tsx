@@ -8,7 +8,7 @@ import {
 } from "@mui/material";
 import { useTheme } from "@mui/system";
 import type { NextPage } from "next";
-import Image from "next/image";
+import Image from "next/legacy/image";
 import { ComponentProps, FunctionComponent, ReactNode } from "react";
 import { Button } from "../components/Button";
 import { GradientContainer } from "../components/GradientContainer";

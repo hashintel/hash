@@ -5,7 +5,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import "./loadTestEnv";
+import "./load-test-env";
 import {
   Aggregation,
   Entity,
