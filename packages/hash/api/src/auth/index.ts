@@ -108,7 +108,6 @@ const setupAuth = (params: {
         : undefined;
 
     const kratosSession = await publicKratosSdk
-      // .toSession({ cookie: req.header("cookie") }
       .toSession({
         cookie: req.header("cookie"),
         xSessionToken: sessionToken,
