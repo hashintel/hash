@@ -108,22 +108,26 @@ services:
       - 6379:6379
 
   kratos-migrate:
+    build:
+      context: ./kratos
+      args:
+        ENV: dev
+        SECRET: "${KRATOS_API_KEY}"
     depends_on:
       postgres:
         condition: service_healthy
-    image: oryd/kratos:v0.10.1
-    volumes:
-      - type: bind
-        source: ./kratos
-        target: /etc/config/kratos
     environment:
       - DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_KRATOS_PG_DEV_DATABASE}
-    command: -c /etc/config/kratos/kratos.dev.yml migrate sql -e --yes
+    command: migrate sql -e --yes
 
   kratos:
+    build:
+      context: ./kratos
+      args:
+        ENV: dev
+        SECRET: "${KRATOS_API_KEY}"
     depends_on:
       - kratos-migrate
-    image: oryd/kratos:v0.10.1
     ports:
       - "4433:4433" # public
       - "4434:4434" # admin
@@ -133,15 +137,10 @@ services:
       SECRETS_CIPHER: "${KRATOS_SECRETS_CIPHER}"
       COURIER_SMTP_CONNECTION_URI: "smtps://test:test@mailslurper:1025/?skip_ssl_verify=true"
       DSN: "postgres://${HASH_KRATOS_PG_USER}:${HASH_KRATOS_PG_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_KRATOS_PG_DEV_DATABASE}"
-      # KRATOS_API_KEY: "${KRATOS_API_KEY}" Currently this cannot be set as an env variable :(
       LOG_LEVEL: trace
-    command: serve -c /etc/config/kratos/kratos.dev.yml --dev --watch-courier
+    command: serve --dev --watch-courier
     extra_hosts:
       - host.docker.internal:host-gateway
-    volumes:
-      - type: bind
-        source: ./kratos
-        target: /etc/config/kratos
 
   mailslurper:
     image: oryd/mailslurper:latest-smtps

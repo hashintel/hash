@@ -18,7 +18,7 @@
 #![allow(clippy::module_name_repetitions)]
 #![allow(clippy::redundant_pub_crate)]
 #![allow(clippy::missing_errors_doc)]
-#![forbid(unsafe_code)]
+#![deny(unsafe_code)]
 
 use alloc::{string::String, vec::Vec};
 
@@ -26,7 +26,7 @@ use error_stack::{Report, Result, ResultExt};
 use num_traits::ToPrimitive;
 pub use schema::{Document, Reflection, Schema};
 
-pub use crate::number::Number;
+pub use crate::{context::Context, number::Number};
 use crate::{
     error::{
         ArrayAccessError, DeserializeError, DeserializerError, ExpectedType, MissingError,
@@ -36,6 +36,7 @@ use crate::{
     schema::visitor,
 };
 
+mod context;
 pub mod error;
 mod number;
 mod schema;
@@ -59,7 +60,7 @@ pub trait ArrayAccess<'de> {
     where
         T: Deserialize<'de>;
 
-    fn finish(self) -> Result<(), ArrayAccessError>;
+    fn end(self) -> Result<(), ArrayAccessError>;
 }
 
 // Reason: We error out on every `visit_*`, which means we do not use the value, but(!) IDEs like to
@@ -317,6 +318,8 @@ macro_rules! derive_from_number {
 ///
 /// [`serde`]: https://serde.rs/
 pub trait Deserializer<'de>: Sized {
+    fn context(&self) -> &Context;
+
     /// Require the [`Deserializer`] to figure out **how** to drive the visitor based on input data.
     ///
     /// You should not rely on this when implementing [`Deserialize`], as non self-describing
@@ -336,7 +339,7 @@ pub trait Deserializer<'de>: Sized {
     /// # Errors
     ///
     /// Current value is not of type null
-    fn deserialize_null<V>(self, visitor: V) -> Result<V, DeserializerError>
+    fn deserialize_null<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>;
 
@@ -472,6 +475,9 @@ pub trait Deserialize<'de>: Reflection + Sized {
     /// Deserialization was unsuccessful
     fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, DeserializeError>;
 }
+
+pub trait DeserializeOwned: for<'de> Deserialize<'de> {}
+impl<T> DeserializeOwned for T where T: for<'de> Deserialize<'de> {}
 
 #[cfg(test)]
 pub(crate) mod test {
