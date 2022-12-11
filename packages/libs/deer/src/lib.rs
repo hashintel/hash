@@ -44,7 +44,9 @@ mod schema;
 extern crate alloc;
 
 pub trait ObjectAccess<'de> {
-    /// This enables bound-checking for [`ObjectAccess`]. After calling this [`ObjectAccess`] will
+    /// This enables bound-checking for [`ObjectAccess`].
+    ///
+    /// After calling this [`ObjectAccess`] will
     /// ensure that there are never more than `length` values returned by [`Self::next`], if there
     /// are not enough items present [`ArrayAccess`] will call [`Visitor::visit_none`], for
     /// [`Self::value`] calls [`Visitor::visit_none`] will be called on the tuple of `(K, V)`, while
@@ -77,7 +79,9 @@ pub trait ObjectAccess<'de> {
 }
 
 pub trait ArrayAccess<'de> {
-    /// This enables bound-checking for [`ArrayAccess`], after calling this [`ArrayAccess`] will
+    /// Enables bound-checking for [`ArrayAccess`].
+    ///
+    /// After calling this [`ArrayAccess`] will
     /// ensure that there are never more than `length` values returned by [`Self::next`], if there
     /// are not enough items present [`ArrayAccess`] will call [`Visitor::visit_none`].
     ///
