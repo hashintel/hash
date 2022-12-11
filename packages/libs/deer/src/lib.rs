@@ -58,7 +58,7 @@ pub trait ObjectAccess<'de> {
     ///
     /// # Errors
     ///
-    /// This should error if a call to [`Self::next`] or [`Self::value`] has been made before
+    /// This will error if a call to [`Self::next`] or [`Self::value`] has been made before
     /// calling this function or this function has been called repeatably.
     fn set_bounded(&mut self, length: usize) -> Result<(), ObjectAccessError>;
 
@@ -88,7 +88,7 @@ pub trait ArrayAccess<'de> {
     ///
     /// # Errors
     ///
-    /// This should error if a call to [`Self::next`] has been made before setting
+    /// This will error if a call to [`Self::next`] has been made before setting
     /// [`Self::set_bounded`] or [`Self::set_bounded`] was called repeatedly.
     fn set_bounded(&mut self, length: usize) -> Result<(), ArrayAccessError>;
 
