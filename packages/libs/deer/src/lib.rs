@@ -20,6 +20,10 @@
 #![allow(clippy::missing_errors_doc)]
 #![deny(unsafe_code)]
 
+// TODO: note to implementors of `Deserialize` to allow for `visit_none` and to defer to
+//  `visit_none` on every `deserialize_*` call if appropriate. missing value (`visit_none`) will
+//  only be generated through `*Access` implementations.
+
 use alloc::{string::String, vec::Vec};
 
 use error_stack::{Report, Result, ResultExt};
