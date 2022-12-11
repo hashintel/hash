@@ -121,13 +121,6 @@ impl Reflection for CharReflection {
     }
 }
 
-struct NoneReflection;
-impl Reflection for NoneReflection {
-    fn schema(_: &mut Document) -> Schema {
-        Schema::new("none")
-    }
-}
-
 fn into_document(value: &Value) -> Document {
     match value {
         Value::Null => NullReflection::document(),
@@ -195,18 +188,20 @@ macro_rules! try_deserialize {
     (
         match $self:ident {
             Value::$variant:ident$(($value:ident))? => $visitor:ident.$visit:ident($($transform:expr)?),
-            else => Error(schema: $reflection:ty)
+            else => Error
         }
     ) => {
         match $self.value {
             Some(Value::$variant$(($value))?) => $visitor.$visit($($transform)?).change_context(DeserializerError),
+            // instead of relying on the document of the type itself, we can use the reflection of the visitor
+            // for better hints
             Some(value) => Err(Report::new(TypeError.into_error())
-                .attach(ExpectedType::new(<$reflection as Reflection>::document()))
+                .attach(ExpectedType::new($visitor.expecting()))
                 .attach(ReceivedType::new(into_document(&value))))
                 .change_context(DeserializerError),
-            None => Err(Report::new(MissingError.into_error())
-                .attach(ExpectedType::new(<$reflection as Reflection>::document()))
-                .change_context(DeserializerError)),
+            // the default for `Visitor::visit_none` is `MissingError`, there is no value here, so
+            // to be able to enable recovery we always just defer to that call
+            None => $visitor.visit_none().change_context(DeserializerError),
         }
     };
 }
@@ -264,7 +259,7 @@ impl<'a, 'de> deer::Deserializer<'de> for Deserializer<'a> {
         try_deserialize!(
             match self {
                 Value::Null => visitor.visit_null(),
-                else => Error(schema: NullReflection)
+                else => Error
             }
         )
     }
@@ -276,7 +271,7 @@ impl<'a, 'de> deer::Deserializer<'de> for Deserializer<'a> {
         try_deserialize!(
             match self {
                 Value::Bool(bool) => visitor.visit_bool(bool),
-                else => Error(schema: BoolReflection)
+                else => Error
             }
         )
     }
@@ -293,7 +288,7 @@ impl<'a, 'de> deer::Deserializer<'de> for Deserializer<'a> {
                             .attach(ReceivedValue::new(number)).change_context(DeserializerError)
                         )?
                 }),
-                else => Error(schema: NumberReflection)
+                else => Error
             }
         )
     }
@@ -319,7 +314,7 @@ impl<'a, 'de> deer::Deserializer<'de> for Deserializer<'a> {
                     (None, Some(_)) => unreachable!(),
                 }
             }),
-            else => Error(schema: CharReflection)
+            else => Error
         })
     }
 
@@ -329,7 +324,7 @@ impl<'a, 'de> deer::Deserializer<'de> for Deserializer<'a> {
     {
         try_deserialize!(match self {
             Value::String(string) => visitor.visit_string(string),
-            else => Error(schema: StringReflection)
+            else => Error
         })
     }
 
@@ -339,7 +334,7 @@ impl<'a, 'de> deer::Deserializer<'de> for Deserializer<'a> {
     {
         try_deserialize!(match self {
             Value::String(string) => visitor.visit_str(&string),
-            else => Error(schema: StringReflection)
+            else => Error
         })
     }
 
@@ -363,7 +358,7 @@ impl<'a, 'de> deer::Deserializer<'de> for Deserializer<'a> {
     {
         try_deserialize!(match self {
             Value::Array(array) => visitor.visit_array(ArrayAccess::new(array, self.context)),
-            else => Error(schema: ArrayReflection)
+            else => Error
         })
     }
 
@@ -373,7 +368,7 @@ impl<'a, 'de> deer::Deserializer<'de> for Deserializer<'a> {
     {
         try_deserialize!(match self {
             Value::Object(map) => visitor.visit_object(ObjectAccess::new(map, self.context)),
-            else => Error(schema: ObjectReflection)
+            else => Error
         })
     }
 }
