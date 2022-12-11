@@ -159,7 +159,7 @@ fn into_document(value: &Value) -> Document {
 /// try_deserialize!(
 ///     match self {
 ///         Value::Bool(bool) => visitor.visit_bool(bool),
-///         else => Error(schema: Schema::new("boolean"))
+///         else => Error
 ///     }
 /// );
 /// ```
@@ -175,12 +175,10 @@ fn into_document(value: &Value) -> Document {
 /// match self.value {
 ///     Some(Value::Bool(bool)) => visitor.visit_bool(bool).change_context(DeserializerError),
 ///     Some(value) => Err(Report::new(Error::new(TypeError))
-///         .attach(ExpectedType::new(Schema::new("boolean")))
+///         .attach(ExpectedType::new(visitor.expecting()))
 ///         .attach(ReceivedType(into_schema(&value)))
 ///         .change_context(DeserializerError)),
-///     None => Err(Report::new(Error::new(MissingError))
-///         .attach(ExpectedType::new(Schema::new("boolean")))
-///         .change_context(DeserializerError))
+///     None => visitor.visit_none().change_context(DeserializerError)
 /// };
 /// ```
 #[rustfmt::skip]
