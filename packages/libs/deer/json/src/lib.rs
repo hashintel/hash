@@ -1,5 +1,5 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-#![cfg_attr(nightly, feature(provide_any))]
+#![cfg_attr(nightly, feature(provide_any, error_in_core))]
 #![warn(
     unreachable_pub,
     clippy::pedantic,
@@ -19,6 +19,7 @@
 mod error;
 
 extern crate alloc;
+extern crate core;
 
 #[cfg(feature = "arbitrary-precision")]
 use alloc::format;
@@ -41,7 +42,7 @@ use deer::{
 use error_stack::{IntoReport, Report, Result, ResultExt};
 use serde_json::{Map, Value};
 
-use crate::error::{BytesUnsupportedError, OverflowError};
+use crate::error::{BytesUnsupportedError, OverflowError, SetBoundedError};
 
 #[cfg(not(feature = "arbitrary-precision"))]
 fn serde_to_deer_number(number: &serde_json::Number) -> Option<deer::Number> {
@@ -256,21 +257,6 @@ impl<'a, 'de> deer::Deserializer<'de> for Deserializer<'a> {
         .change_context(DeserializerError)
     }
 
-    fn deserialize_none<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
-    where
-        V: Visitor<'de>,
-    {
-        self.value.map_or_else(
-            || visitor.visit_none().change_context(DeserializerError),
-            |value| {
-                Err(Report::new(TypeError.into_error())
-                    .attach(ExpectedType::new(NoneReflection::document()))
-                    .attach(ReceivedType::new(into_document(&value)))
-                    .change_context(DeserializerError))
-            },
-        )
-    }
-
     fn deserialize_null<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>,
@@ -394,40 +380,84 @@ impl<'a, 'de> deer::Deserializer<'de> for Deserializer<'a> {
 
 #[must_use]
 struct ArrayAccess<'a> {
+    dirty: bool,
     length: usize,
+
     inner: IntoIter<Value>,
     context: &'a Context,
+
+    remaining: Option<usize>,
 }
 
 impl<'a> ArrayAccess<'a> {
     fn new(array: Vec<Value>, context: &'a Context) -> Self {
         Self {
+            dirty: false,
             length: array.len(),
+
             inner: array.into_iter(),
             context,
+
+            remaining: None,
         }
     }
 }
 
 impl<'a, 'de> deer::ArrayAccess<'de> for ArrayAccess<'a> {
-    fn next<T>(&mut self) -> Result<Option<T>, ArrayAccessError>
+    fn set_bounded(&mut self, length: usize) -> Result<(), ArrayAccessError> {
+        if self.dirty {
+            return Err(
+                Report::new(SetBoundedError::Dirty.into_error()).change_context(ArrayAccessError)
+            );
+        }
+
+        if self.remaining.is_some() {
+            return Err(
+                Report::new(SetBoundedError::CalledMultipleTimes.into_error())
+                    .change_context(ArrayAccessError),
+            );
+        }
+
+        self.remaining = Some(length);
+
+        Ok(())
+    }
+
+    fn next<T>(&mut self) -> Option<Result<T, ArrayAccessError>>
     where
         T: Deserialize<'de>,
     {
+        self.dirty = true;
+
+        // early return because we have exhausted all entries
+        if self.remaining == Some(0) {
+            return None;
+        }
+
         let value = self.inner.next();
 
-        // only `ObjectAccess::value` uses `deserialize_none`, otherwise this would easily lead to
-        // an endless loop!
-        // note: we do not set `Location` here, as different implementations might want to
+        // we do not set `Location` here, as different implementations might want to
         // provide their own variant (difference between e.g. tuple vs vec)
-        value.map_or_else(
-            || Ok(None),
-            |value| {
+        match (value, &mut self.remaining) {
+            (None, Some(remaining)) => {
+                *remaining -= 1;
+
+                // delegate calls to `Visitor::visit_none`
+                Some(
+                    T::deserialize(Deserializer::empty(self.context))
+                        .change_context(ArrayAccessError),
+                )
+            }
+            (None, None) => None,
+            (Some(value), _) => Some(
                 T::deserialize(Deserializer::new(value, self.context))
-                    .map(Some)
-                    .change_context(ArrayAccessError)
-            },
-        )
+                    .change_context(ArrayAccessError),
+            ),
+        }
+    }
+
+    fn size_hint(&self) -> Option<usize> {
+        Some(self.length)
     }
 
     fn end(self) -> Result<(), ArrayAccessError> {
@@ -445,43 +475,110 @@ impl<'a, 'de> deer::ArrayAccess<'de> for ArrayAccess<'a> {
 
 #[must_use]
 struct ObjectAccess<'a> {
+    dirty: bool,
+    length: usize,
+
     inner: Map<String, Value>,
     context: &'a Context,
+
+    remaining: Option<usize>,
 }
 
 impl<'a> ObjectAccess<'a> {
-    const fn new(map: Map<String, Value>, context: &'a Context) -> Self {
+    fn new(map: Map<String, Value>, context: &'a Context) -> Self {
         Self {
+            dirty: false,
+            length: map.len(),
             inner: map,
             context,
+            remaining: None,
         }
     }
 }
 
 impl<'a, 'de> deer::ObjectAccess<'de> for ObjectAccess<'a> {
+    fn set_bounded(&mut self, length: usize) -> Result<(), ObjectAccessError> {
+        if self.dirty {
+            return Err(
+                Report::new(SetBoundedError::Dirty.into_error()).change_context(ObjectAccessError)
+            );
+        }
+
+        if self.remaining.is_some() {
+            return Err(
+                Report::new(SetBoundedError::CalledMultipleTimes.into_error())
+                    .change_context(ObjectAccessError),
+            );
+        }
+
+        self.remaining = Some(length);
+
+        Ok(())
+    }
+
     fn value<T>(&mut self, key: &str) -> Result<T, ObjectAccessError>
     where
         T: Deserialize<'de>,
     {
+        self.dirty = true;
+
+        // early return because we have exhausted all entries
+        if self.remaining == Some(0) {
+            return Err(Report::new(MissingError.into_error())
+                .attach(ExpectedType::new(T::reflection()))
+                .change_context(ObjectAccessError));
+        }
+
         let entry = self.inner.remove(key);
 
-        entry.map_or_else(
-            || T::deserialize(Deserializer::empty(self.context)).change_context(ObjectAccessError),
-            |value| {
-                T::deserialize(Deserializer::new(value, self.context))
-                    .change_context(ObjectAccessError)
-            },
-        )
+        match (entry, &mut self.remaining) {
+            (None, None) => Err(Report::new(MissingError.into_error())
+                .attach(ExpectedType::new(T::reflection()))
+                .change_context(ObjectAccessError)),
+            (None, Some(remaining)) => {
+                *remaining -= 1;
+
+                T::deserialize(Deserializer::empty(self.context)).change_context(ObjectAccessError)
+            }
+            (Some(value), _) => T::deserialize(Deserializer::new(value, self.context))
+                .change_context(ObjectAccessError),
+        }
     }
 
-    fn next<T>(&mut self) -> Result<Option<(String, T)>, ObjectAccessError>
+    fn next<K, V>(&mut self) -> Option<Result<(K, V), ObjectAccessError>>
     where
-        T: Deserialize<'de>,
+        K: Deserialize<'de>,
+        V: Deserialize<'de>,
     {
-        // only `ObjectAccess::value` uses `deserialize_none`, otherwise this would easily lead to
-        // an endless loop!
+        self.dirty = true;
+
+        // early return because we have exhausted all entries
+        if self.remaining == Some(0) {
+            return None;
+        }
+
         if self.inner.is_empty() {
-            return Ok(None);
+            return match &mut self.remaining {
+                None => None,
+                Some(remaining) => {
+                    *remaining -= 1;
+
+                    // defer to `Visitor::visit_none`
+                    let key = K::deserialize(Deserializer::empty(self.context));
+                    let value = V::deserialize(Deserializer::empty(self.context));
+
+                    match (key, value) {
+                        (Err(mut key), Err(value)) => {
+                            key.extend_one(value);
+                            Some(Err(key.change_context(ObjectAccessError)))
+                        }
+                        (Err(error), Ok(_)) | (Ok(_), Err(error)) => {
+                            Some(Err(error.change_context(ObjectAccessError)))
+                        }
+                        (Ok(key), Ok(value)) => Some(Ok((key, value))),
+                    }
+                }
+            };
         }
 
         // self.inner.is_empty() ensures that there is at least a single key
@@ -496,14 +593,28 @@ impl<'a, 'de> deer::ObjectAccess<'de> for ObjectAccess<'a> {
         // `self.inner`
         let (key, value) = self.inner.remove_entry(&next).expect("key should exist");
 
+        let key = K::deserialize(Deserializer::new(Value::String(key), self.context));
+        let value = V::deserialize(Deserializer::new(value, self.context));
+
         // note: we do not set `Location` here, as different implementations might want to
         // provide their own variant (difference between e.g. HashMap vs Struct)
-        T::deserialize(Deserializer::new(value, self.context))
-            .map(|value| Some((key, value)))
-            .change_context(ObjectAccessError)
+        match (key, value) {
+            (Err(mut key), Err(value)) => {
+                key.extend_one(value);
+                Some(Err(key.change_context(ObjectAccessError)))
+            }
+            (Err(error), Ok(_)) | (Ok(_), Err(error)) => {
+                Some(Err(error.change_context(ObjectAccessError)))
+            }
+            (Ok(key), Ok(value)) => Some(Ok((key, value))),
+        }
     }
 
-    fn finish(self) -> Result<(), ObjectAccessError> {
+    fn size_hint(&self) -> Option<usize> {
+        Some(self.length)
+    }
+
+    fn end(self) -> Result<(), ObjectAccessError> {
         if self.inner.is_empty() {
             Ok(())
         } else {
