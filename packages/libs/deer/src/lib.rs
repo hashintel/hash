@@ -18,7 +18,7 @@
 #![allow(clippy::module_name_repetitions)]
 #![allow(clippy::redundant_pub_crate)]
 #![allow(clippy::missing_errors_doc)]
-#![forbid(unsafe_code)]
+#![deny(unsafe_code)]
 
 use alloc::{string::String, vec::Vec};
 
@@ -377,7 +377,7 @@ pub trait Deserializer<'de>: Sized {
     /// # Errors
     ///
     /// Current value is not of type null
-    fn deserialize_null<V>(self, visitor: V) -> Result<V, DeserializerError>
+    fn deserialize_null<V>(self, visitor: V) -> Result<V::Value, DeserializerError>
     where
         V: Visitor<'de>;
 
@@ -520,6 +520,9 @@ pub trait Deserialize<'de>: Sized {
         <Self::Reflection as Reflection>::document()
     }
 }
+
+pub trait DeserializeOwned: for<'de> Deserialize<'de> {}
+impl<T> DeserializeOwned for T where T: for<'de> Deserialize<'de> {}
 
 #[cfg(test)]
 pub(crate) mod test {

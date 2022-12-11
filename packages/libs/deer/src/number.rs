@@ -57,6 +57,17 @@ impl Number {
     const fn float(n: f64) -> Self {
         Self(OpaqueNumber::Float(n))
     }
+
+    /// # Safety
+    ///
+    /// The caller must verify that the value is a string of a valid integer or floating point
+    /// number, otherwise the [`Number`] returned from this function will lead to undefined
+    /// behaviour.
+    #[cfg(feature = "arbitrary-precision")]
+    #[allow(unsafe_code)]
+    pub unsafe fn from_string_unchecked(value: impl Into<String>) -> Self {
+        Self(value.into())
+    }
 }
 
 impl FromPrimitive for Number {
