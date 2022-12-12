@@ -1,13 +1,19 @@
 import { EntityType } from "@blockprotocol/type-system";
 import { Chip } from "@hashintel/hash-design-system";
+import { types } from "@hashintel/hash-shared/types";
 import { TableBody, TableCell, TableFooter, TableHead } from "@mui/material";
 import { usePopupState } from "material-ui-popup-state/hooks";
-import { useContext, useId, useRef, useState } from "react";
-import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
+import { useId, useRef, useState } from "react";
+import {
+  Controller,
+  useFieldArray,
+  useFormContext,
+  useWatch,
+} from "react-hook-form";
 import { LinkIcon } from "../../../../../../shared/icons/link";
+import { HashSelectorAutocomplete } from "../../../../shared/hash-selector-autocomplete";
 import { StyledPlusCircleIcon } from "../../../../shared/styled-plus-circle-icon";
 import {
-  EntityTypesContext,
   useEntityTypes,
   useEntityTypesLoading,
   useLinkEntityTypes,
@@ -17,6 +23,8 @@ import {
   PROPERTY_MENU_CELL_WIDTH,
   PropertyMenuCell,
 } from "./property-list-card/property-menu-cell";
+import { ArrayType } from "./property-list-card/shared/property-type-form-values";
+import { ExpectedValueChip } from "./property-list-card/shared/property-type-form/data-type-selector/expected-value-chip";
 import { EmptyListCard } from "./shared/empty-list-card";
 import {
   EntityTypeTable,
@@ -36,7 +44,7 @@ const LinkTypeRow = ({
   linkIndex: number;
   onRemove: () => void;
 }) => {
-  const { control } = useFormContext<EntityTypeEditorForm>();
+  const { control, setValue } = useFormContext<EntityTypeEditorForm>();
   const linkTypes = useLinkEntityTypes();
   const entityTypes = useEntityTypes();
 
@@ -53,6 +61,8 @@ const LinkTypeRow = ({
     variant: "popover",
     popupId: `property-menu-${popupId}`,
   });
+
+  const [search, setSearch] = useState("");
 
   if (!link) {
     throw new Error("Missing link");
@@ -76,9 +86,48 @@ const LinkTypeRow = ({
         </EntityTypeTableTitleCellText>
       </TableCell>
       <TableCell>
-        {linkedEntityTypes.map((entityType) => (
-          <Chip key={entityType.schema.$id} label={entityType.schema.title} />
-        ))}
+        <Controller
+          name={`links.${linkIndex}.entityTypes`}
+          control={control}
+          render={({ field: { ref, onChange, value } }) => (
+            <HashSelectorAutocomplete
+              onChange={(_, data) => {
+                setValue(
+                  `links.${linkIndex}.entityTypes`,
+                  data.map((d) => d.$id),
+                  { shouldDirty: true },
+                );
+              }}
+              value={
+                // @todo tidy
+                value.map(($id) => entityTypes[$id]!.schema)
+              }
+              options={Object.values(entityTypes).map((type) => type.schema)}
+              optionToRenderData={({ $id, title, description }) => ({
+                $id,
+                title,
+                description,
+              })}
+              dropdownProps={{
+                query: search,
+                createButtonProps: null,
+                variant: "entityType",
+              }}
+              multiple
+              disableCloseOnSelect
+              renderTags={(tags, getTagProps) => {
+                return tags.map((tag, index) => (
+                  <Chip
+                    color="blue"
+                    label={tag.title}
+                    {...getTagProps({ index })}
+                  />
+                ));
+              }}
+              inputRef={ref}
+            />
+          )}
+        />
       </TableCell>
       <TableCell>
         <input type="checkbox" checked={linkData.maxValue > 1} />
@@ -125,8 +174,6 @@ export const LinkListCard = () => {
   const [addingNewLink, setAddingNewLink] = useStateCallback(false);
   const addingNewLinkRef = useRef<HTMLInputElement>(null);
   const [searchText, setSearchText] = useState("");
-
-  const ctx = useContext(EntityTypesContext);
 
   const cancelAddingNewLink = () => {
     setAddingNewLink(false);
@@ -199,9 +246,7 @@ export const LinkListCard = () => {
               cancelAddingNewLink();
               append({
                 $id: link.$id,
-                entityTypes: [
-                  Object.values(ctx?.entityTypes ?? {})[0]!.schema.$id,
-                ],
+                entityTypes: [],
                 minValue: 0,
                 maxValue: 1,
               });

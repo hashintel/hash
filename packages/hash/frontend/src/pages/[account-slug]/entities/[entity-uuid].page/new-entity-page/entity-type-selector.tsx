@@ -7,6 +7,7 @@ const useEntityTypes = () => {
   return useContext(EntityTypesContext)?.types;
 };
 
+// @todo reduce duplication
 export const EntityTypeSelector: FunctionComponent<{
   onSelect: (entityType: EntityType) => void;
   onCancel: () => void;
