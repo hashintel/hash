@@ -114,7 +114,7 @@ const LoginPage: NextPageWithLayout = () => {
       .then(() =>
         oryKratosClient
           .updateLoginFlow({
-            flow: String(flow?.id),
+            flow: String(flow.id),
             updateLoginFlowBody: {
               csrf_token,
               method: "password",
