@@ -34,12 +34,9 @@ export type ExpectedValue =
       flattenedExpectedValues: Record<string, CustomExpectedValue>;
     };
 
-export type BaseTypeFormValues = {
+export type PropertyTypeFormValues = {
   name: string;
   description: string;
-};
-
-export type PropertyTypeFormValues = BaseTypeFormValues & {
   expectedValues: ExpectedValue[];
   customExpectedValueId?: string;
   editingExpectedValueIndex?: number;
