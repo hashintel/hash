@@ -60,7 +60,7 @@ export const EditView: FunctionComponent<EditViewProps> = ({
           <div>
             <input
               required
-              className={tw`px-1.5 py-1 rounded-sm border-2 border-gray-200 bg-gray-50 focus:outline-none focus:ring focus:border-blue-300 w-full`}
+              className={tw`border-solid text-base px-1.5 py-1 rounded-sm border-2 border-gray-200 bg-gray-50 focus:outline-none focus:ring focus:border-blue-300 w-full`}
               onChange={(event) => onChangeEmbedUrl(event.target.value)}
               value={embedUrl}
               type="url"
@@ -69,7 +69,7 @@ export const EditView: FunctionComponent<EditViewProps> = ({
           </div>
           <div className={tw`mt-4`}>
             <button
-              className={tw`bg-blue-400 rounded-sm hover:bg-blue-500 focus:bg-blue-600 py-1 text-white w-full flex items-center justify-center`}
+              className={tw`border-none text-base bg-blue-400 rounded-sm hover:bg-blue-500 focus:bg-blue-600 py-1 text-white w-full flex items-center justify-center`}
               type="submit"
             >
               {loading && <Loader />}
