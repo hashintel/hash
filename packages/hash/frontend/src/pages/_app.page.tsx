@@ -32,7 +32,6 @@ import { meQuery } from "../graphql/queries/user.queries";
 import { AuthenticatedUser, constructAuthenticatedUser } from "../lib/user";
 import { fetchKratosSession } from "./shared/ory-kratos";
 import { AuthInfoProvider, useAuthInfo } from "./shared/auth-info-context";
-import { SessionProvider } from "./_app.page/session-provider";
 
 const clientSideEmotionCache = createEmotionCache();
 
@@ -145,9 +144,7 @@ const AppWithTypeSystemContextProvider: AppPage<AppProps, AppInitialProps> = (
     <TypeSystemContextProvider>
       <ApolloProvider client={apolloClient}>
         <AuthInfoProvider initialAuthenticatedUser={initialAuthenticatedUser}>
-          <SessionProvider>
-            <App {...props} />
-          </SessionProvider>
+          <App {...props} />
         </AuthInfoProvider>
       </ApolloProvider>
     </TypeSystemContextProvider>
