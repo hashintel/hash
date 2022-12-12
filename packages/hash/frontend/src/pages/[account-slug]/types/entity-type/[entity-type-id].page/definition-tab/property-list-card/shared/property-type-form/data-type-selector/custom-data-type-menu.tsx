@@ -234,6 +234,13 @@ export const CustomDataTypeMenu: FunctionComponent<CustomDataTypeMenuProps> = ({
               const dataType = flattenedDataTypes[customDataTypeId];
 
               if (dataType?.data && "expectedValues" in dataType.data) {
+                const containsArray = dataType.data.expectedValues.some(
+                  (childId) => {
+                    const typeId = flattenedDataTypes[childId]?.data?.typeId!;
+                    return typeId === "array";
+                  },
+                );
+
                 const containsObject = dataType.data.expectedValues.some(
                   (childId) =>
                     flattenedDataTypes[childId]?.data?.typeId ===
@@ -250,14 +257,22 @@ export const CustomDataTypeMenu: FunctionComponent<CustomDataTypeMenuProps> = ({
                 );
 
                 let arrayType: ArrayType;
-                if (containsObject && containsDataType) {
-                  arrayType = ArrayType.mixedArray;
-                } else if (containsObject) {
+                if (containsArray && !containsObject && !containsDataType) {
+                  arrayType = ArrayType.arrayArray;
+                } else if (
+                  containsObject &&
+                  !containsArray &&
+                  !containsDataType
+                ) {
                   arrayType = ArrayType.propertyObjectArray;
-                } else if (containsDataType) {
+                } else if (
+                  containsDataType &&
+                  !containsArray &&
+                  !containsObject
+                ) {
                   arrayType = ArrayType.dataTypeArray;
                 } else {
-                  return;
+                  arrayType = ArrayType.mixedArray;
                 }
 
                 const expectedValue: ExpectedValue = {

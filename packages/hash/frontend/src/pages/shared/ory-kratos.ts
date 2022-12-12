@@ -1,13 +1,16 @@
 import { oryKratosPublicUrl } from "@hashintel/hash-shared/environment";
 import {
   Configuration,
-  V0alpha2Api,
-  SelfServiceError,
-  SelfServiceLoginFlow,
-  SelfServiceRegistrationFlow,
-  SelfServiceBrowserLocationChangeRequiredError,
   ErrorAuthenticatorAssuranceLevelNotSatisfied,
+  ErrorBrowserLocationChangeRequired,
+  FrontendApi,
   NeedsPrivilegedSessionError,
+  LoginFlow,
+  RecoveryFlow,
+  RegistrationFlow,
+  SettingsFlow,
+  VerificationFlow,
+  UiNodeInputAttributes,
 } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { AxiosError } from "axios";
@@ -15,9 +18,7 @@ import { NextRouter } from "next/router";
 import { Dispatch, SetStateAction } from "react";
 import { isBrowser } from "../../lib/config";
 
-type SelfServiceFlow = SelfServiceLoginFlow | SelfServiceRegistrationFlow;
-
-export const oryKratosClient = new V0alpha2Api(
+export const oryKratosClient = new FrontendApi(
   new Configuration({
     /**
      * Directly connecting to kratos (using "http://127.0.0.1:4433") would prevent the
@@ -52,6 +53,17 @@ export type IdentityTraits = {
   emails: string[];
 };
 
+type Flows = {
+  login: LoginFlow;
+  recovery: RecoveryFlow;
+  registration: RegistrationFlow;
+  settings: SettingsFlow;
+  verification: VerificationFlow;
+};
+
+type FlowNames = keyof Flows;
+type FlowValues = Flows[FlowNames];
+
 /**
  * A helper function that creates an error handling function for some common errors
  * that may occur when fetching a flow.
@@ -59,22 +71,17 @@ export type IdentityTraits = {
 export const createFlowErrorHandler =
   <S>(params: {
     router: NextRouter;
-    flowType:
-      | "login"
-      | "registration"
-      | "settings"
-      | "recovery"
-      | "verification";
+    flowType: keyof Flows;
     setFlow: Dispatch<SetStateAction<S | undefined>>;
     setErrorMessage: Dispatch<SetStateAction<string | undefined>>;
   }) =>
-  async (err: AxiosError<SelfServiceError>) => {
+  async (err: AxiosError<any>) => {
     const { setErrorMessage, setFlow, router, flowType } = params;
 
     const kratosError = err.response?.data;
 
     if (kratosError) {
-      switch ((kratosError.error as any | undefined)?.id) {
+      switch (kratosError.error?.id) {
         case "session_aal2_required": {
           // 2FA is enabled and enforced, but user did not perform 2FA yet!
           const { redirect_browser_to } =
@@ -131,7 +138,7 @@ export const createFlowErrorHandler =
         case "browser_location_change_required": {
           // Ory Kratos asked us to point the user to this URL.
           const { redirect_browser_to } =
-            kratosError as SelfServiceBrowserLocationChangeRequiredError;
+            kratosError as ErrorBrowserLocationChangeRequired;
 
           if (redirect_browser_to) {
             await router.replace(redirect_browser_to);
@@ -164,13 +171,15 @@ export const createFlowErrorHandler =
     return Promise.reject(err);
   };
 
-const maybeGetCsrfTokenFromFlow = (flow: SelfServiceFlow) =>
+const maybeGetCsrfTokenFromFlow = (flow: FlowValues) =>
   flow.ui.nodes
     .map(({ attributes }) => attributes)
-    .filter(isUiNodeInputAttributes)
+    .filter((attrs): attrs is UiNodeInputAttributes =>
+      isUiNodeInputAttributes(attrs),
+    )
     .find(({ name }) => name === "csrf_token")?.value;
 
-export const mustGetCsrfTokenFromFlow = (flow: SelfServiceFlow): string => {
+export const mustGetCsrfTokenFromFlow = (flow: FlowValues): string => {
   const csrf_token = maybeGetCsrfTokenFromFlow(flow);
 
   if (!csrf_token) {
