@@ -11,14 +11,13 @@ use async_trait::async_trait;
 use error_stack::{Context, Result};
 use type_system::{uri::VersionedUri, DataType, EntityType, PropertyType};
 
-use self::error::ArchivalError;
 pub use self::{
     error::{BaseUriAlreadyExists, BaseUriDoesNotExist, InsertionError, QueryError, UpdateError},
     pool::StorePool,
     postgres::{AsClient, PostgresStore, PostgresStorePool},
 };
 use crate::{
-    identifier::{account::AccountId, knowledge::EntityId},
+    identifier::{account::AccountId, knowledge::EntityId, DecisionTimestamp},
     knowledge::{Entity, EntityLinkOrder, EntityMetadata, EntityProperties, EntityUuid, LinkData},
     ontology::{
         DataTypeWithMetadata, EntityTypeWithMetadata, OntologyElementMetadata,
@@ -325,13 +324,16 @@ pub trait EntityStore: crud::Read<Entity> {
     /// - if the [`EntityProperties`] is not valid with respect to the specified [`EntityType`]
     /// - if the account referred to by `owned_by_id` does not exist
     /// - if an [`EntityUuid`] was supplied and already exists in the store
+    #[expect(clippy::too_many_arguments)]
     async fn create_entity(
         &mut self,
-        properties: EntityProperties,
-        entity_type_id: VersionedUri,
         owned_by_id: OwnedById,
         entity_uuid: Option<EntityUuid>,
-        actor_id: UpdatedById,
+        decision_time: Option<DecisionTimestamp>,
+        updated_by_id: UpdatedById,
+        archived: bool,
+        entity_type_id: VersionedUri,
+        properties: EntityProperties,
         link_data: Option<LinkData>,
     ) -> Result<EntityMetadata, InsertionError>;
 
@@ -357,13 +359,18 @@ pub trait EntityStore: crud::Read<Entity> {
     async fn insert_entities_batched_by_type(
         &mut self,
         entities: impl IntoIterator<
-            Item = (Option<EntityUuid>, EntityProperties, Option<LinkData>),
+            Item = (
+                OwnedById,
+                Option<EntityUuid>,
+                EntityProperties,
+                Option<LinkData>,
+                Option<DecisionTimestamp>,
+            ),
             IntoIter: Send,
         > + Send,
-        entity_type_id: VersionedUri,
-        owned_by_id: OwnedById,
         actor_id: UpdatedById,
-    ) -> Result<Vec<EntityUuid>, InsertionError>;
+        entity_type_id: &VersionedUri,
+    ) -> Result<Vec<EntityMetadata>, InsertionError>;
 
     /// Get the [`Subgraph`]s specified by the [`StructuralQuery`].
     ///
@@ -383,27 +390,15 @@ pub trait EntityStore: crud::Read<Entity> {
     /// - if the [`EntityType`] doesn't exist
     /// - if the [`Entity`] is not valid with respect to its [`EntityType`]
     /// - if the account referred to by `actor_id` does not exist
+    #[expect(clippy::too_many_arguments)]
     async fn update_entity(
         &mut self,
         entity_id: EntityId,
-        properties: EntityProperties,
+        decision_time: Option<DecisionTimestamp>,
+        updated_by_id: UpdatedById,
+        archived: bool,
         entity_type_id: VersionedUri,
-        actor_id: UpdatedById,
-        order: EntityLinkOrder,
+        properties: EntityProperties,
+        link_order: EntityLinkOrder,
     ) -> Result<EntityMetadata, UpdateError>;
-
-    /// Archives an [`Entity`].
-    ///
-    /// # Errors:
-    ///
-    /// - if there isn't an [`Entity`] associated with the [`EntityId`] in the latest entities
-    /// table
-    ///   - this could be because the [`Entity`] doesn't exist, or
-    ///   - the [`Entity`] has already been archived
-    /// - if the account referred to by `actor_id` does not exist
-    async fn archive_entity(
-        &mut self,
-        entity_id: EntityId,
-        actor_id: UpdatedById,
-    ) -> Result<(), ArchivalError>;
 }
