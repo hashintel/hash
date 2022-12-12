@@ -19,7 +19,7 @@ export const Menu: FunctionComponent<MenuProps> = ({ children, label }) => {
   return (
     <Popover className={tw`relative z-10`}>
       <Popover.Button
-        className={tw`text-sm text-blue-500 hover:text-blue-700 focus:outline-none`}
+        className={tw`bg-transparent border-none text-sm text-blue-500 hover:text-blue-700 focus:outline-none`}
       >
         {label}
       </Popover.Button>

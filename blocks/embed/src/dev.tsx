@@ -68,6 +68,7 @@ const AppComponent: FunctionComponent = () => {
   return (
     <div className={tw`mt-4 w-1/2 mx-auto`}>
       <select
+        className={tw`text-base border-1 border-gray-300 rounded-md p-1`}
         value={selectedVariantIndex}
         onChange={(event) =>
           setSelectedVariantIndex(parseInt(event.target.value, 10))

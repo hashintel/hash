@@ -7,7 +7,7 @@ import {
   Reducer,
 } from "react";
 
-import { tw } from "twind";
+import { tw, setup } from "twind";
 
 import { BlockComponent } from "blockprotocol/react";
 
@@ -79,6 +79,8 @@ const reducer = (state: AppState, action: Actions): AppState => {
       return state;
   }
 };
+
+setup({ preflight: false });
 
 export const App: BlockComponent<BlockEntityProperties> = ({
   accountId,
@@ -338,7 +340,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
         <button
           onClick={resetData}
           type="button"
-          className={tw`bg-gray-100 w-10 h-10 flex items-center justify-center ml-1 border-1 border-gray-300 rounded-sm self-start`}
+          className={tw`border-solid bg-gray-100 w-10 h-10 flex items-center justify-center ml-1 border-1 border-gray-300 rounded-sm self-start`}
         >
           <Pencil />
         </button>
@@ -347,7 +349,7 @@ export const App: BlockComponent<BlockEntityProperties> = ({
   };
 
   return (
-    <div className={tw`w-full`} ref={containerRef}>
+    <div className={tw`w-full font-sans`} ref={containerRef}>
       {renderContent()}
     </div>
   );

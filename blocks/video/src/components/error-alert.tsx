@@ -9,7 +9,7 @@ export const ErrorAlert: FunctionComponent<ImageErrorAlertProps> = ({
   onClearError,
 }) => (
   <div
-    className={tw`w-96 mx-auto mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative`}
+    className={tw`w-96 mx-auto mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative border-solid`}
     role="alert"
   >
     <div className={tw`mr-5`}>
@@ -20,7 +20,7 @@ export const ErrorAlert: FunctionComponent<ImageErrorAlertProps> = ({
     <button
       type="button"
       onClick={onClearError}
-      className={tw`absolute top-0 bottom-0 right-0 px-4 py-3`}
+      className={tw`absolute top-0 bottom-0 right-0 px-4 py-3 border-0 focus:outline-none bg-transparent box-border cursor-pointer`}
     >
       <Cross />
     </button>
