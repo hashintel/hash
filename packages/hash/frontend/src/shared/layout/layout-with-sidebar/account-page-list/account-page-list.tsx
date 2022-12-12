@@ -25,7 +25,11 @@ import {
   DragEndEvent,
   DragStartEvent,
 } from "@dnd-kit/core";
-import { EntityId, isEntityId, splitEntityId } from "@hashintel/hash-subgraph";
+import {
+  EntityId,
+  extractEntityUuidFromEntityId,
+  isEntityId,
+} from "@hashintel/hash-subgraph";
 
 import { Box, Collapse } from "@mui/material";
 import { useAccountPages } from "../../../../components/hooks/useAccountPages";
@@ -250,21 +254,21 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   ) => {
     return treeItemList
       .filter(({ page }) => page.parentPageEntityId === parentId)
-      .map(({ page: { entityId, title }, depth }) => {
+      .map(({ page: { entityId, title, ownerShortname }, depth }) => {
         const expanded =
           expandedPageIds.includes(entityId) && activeId !== entityId;
         const children = renderPageTree(treeItemList, entityId);
         const expandable = !!children.length;
         const collapsed = collapsedPageIds.includes(entityId);
 
-        const [ownedById, entityUuid] = splitEntityId(entityId);
+        const entityUuid = extractEntityUuidFromEntityId(entityId);
 
         const item = (
           <AccountPageListItem
             key={entityId}
             title={title}
             pageEntityId={entityId}
-            pagePath={`/${ownedById}/${entityUuid}`}
+            pagePath={`/@${ownerShortname}/${entityUuid}`}
             depth={entityId === activeId && projected ? projected.depth : depth}
             onCollapse={expandable ? () => handleToggle(entityId) : undefined}
             selected={currentPageEntityId === entityId}

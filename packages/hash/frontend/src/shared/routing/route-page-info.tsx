@@ -10,9 +10,15 @@ import {
   useMemo,
   ReactNode,
 } from "react";
+import {
+  parsePageUrlQueryParams,
+  tbdIsPageParsedUrlQuery,
+} from "../../pages/[account-slug]/[page-slug].page";
+import { useRouteWorkspaceInfo } from "./route-workspace-info";
 
 type RoutePageInfo = {
-  pageEntityId: EntityId;
+  routePageEntityUuid: string;
+  routePageEntityId?: EntityId;
 };
 
 const RoutePageInfoContext = createContext<RoutePageInfo | undefined>(
@@ -29,20 +35,35 @@ export const RoutePageInfoProvider: FunctionComponent<{
 }> = ({ children }) => {
   const router = useRouter();
 
-  const accountSlug = router.query["account-slug"];
-  const pageSlug = router.query["page-slug"];
+  const routeWorkspaceInfo = useRouteWorkspaceInfo({ allowUndefined: true });
+  const { routeWorkspace } = routeWorkspaceInfo ?? {};
 
-  const contextValue = useMemo<RoutePageInfo | undefined>(() => {
-    return typeof accountSlug === "string" && typeof pageSlug === "string"
-      ? {
-          // @todo parse and use suspense for lookup if needed
-          pageEntityId: entityIdFromOwnedByIdAndEntityUuid(
-            accountSlug,
-            pageSlug,
-          ),
-        }
+  const routePageEntityUuid = useMemo(() => {
+    if (tbdIsPageParsedUrlQuery(router.query)) {
+      return parsePageUrlQueryParams(router.query).pageEntityUuid;
+    }
+    return undefined;
+  }, [router]);
+
+  const routePageEntityId = useMemo(() => {
+    const routeOwnedById = routeWorkspace
+      ? routeWorkspace.kind === "user"
+        ? routeWorkspace.userAccountId
+        : routeWorkspace.orgAccountId
       : undefined;
-  }, [accountSlug, pageSlug]);
+
+    return routeOwnedById && routePageEntityUuid
+      ? entityIdFromOwnedByIdAndEntityUuid(routeOwnedById, routePageEntityUuid)
+      : undefined;
+  }, [routeWorkspace, routePageEntityUuid]);
+
+  const contextValue = useMemo<RoutePageInfo | undefined>(
+    () =>
+      routePageEntityUuid
+        ? { routePageEntityUuid, routePageEntityId }
+        : undefined,
+    [routePageEntityUuid, routePageEntityId],
+  );
 
   return (
     <RoutePageInfoContext.Provider value={contextValue}>

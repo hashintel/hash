@@ -19,8 +19,8 @@ import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 
 import "./globals.scss";
 import {
-  RouteAccountInfoProvider,
   RoutePageInfoProvider,
+  RouteWorkspaceInfoProvider,
 } from "../shared/routing";
 import { ReadonlyModeProvider } from "../shared/readonly-mode";
 import { WorkspaceContextProvider } from "./shared/workspace-context";
@@ -84,7 +84,7 @@ const App: FunctionComponent<AppProps> = ({
         <ThemeProvider theme={theme}>
           <CssBaseline />
           <ModalProvider>
-            <RouteAccountInfoProvider>
+            <RouteWorkspaceInfoProvider>
               <RoutePageInfoProvider>
                 <WorkspaceContextProvider>
                   <ReadonlyModeProvider>
@@ -94,7 +94,7 @@ const App: FunctionComponent<AppProps> = ({
                   </ReadonlyModeProvider>
                 </WorkspaceContextProvider>
               </RoutePageInfoProvider>
-            </RouteAccountInfoProvider>
+            </RouteWorkspaceInfoProvider>
           </ModalProvider>
         </ThemeProvider>
       </CacheProvider>

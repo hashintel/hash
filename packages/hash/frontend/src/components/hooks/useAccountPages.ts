@@ -7,10 +7,13 @@ import {
   GetAccountPagesTreeQueryVariables,
 } from "../../graphql/apiTypes.gen";
 import { getAccountPagesTree } from "../../graphql/queries/account.queries";
+import { useOrgs } from "./useOrgs";
+import { useUsers } from "./useUsers";
 
 export type AccountPage = {
   title: string;
   entityId: EntityId;
+  ownerShortname: string;
   parentPageEntityId?: EntityId | null;
   index: string;
 };
@@ -28,8 +31,20 @@ export const useAccountPages = (ownedById: string): AccountPagesInfo => {
     variables: { ownedById },
   });
 
+  const { users } = useUsers();
+  const { orgs } = useOrgs();
+
+  const ownerShortname = useMemo(
+    () =>
+      (
+        orgs?.find(({ orgAccountId }) => orgAccountId === ownedById) ??
+        users?.find(({ userAccountId }) => userAccountId === ownedById)
+      )?.shortname,
+    [users, orgs, ownedById],
+  );
+
   const accountPages = useMemo(() => {
-    if (!data) {
+    if (!data || !ownerShortname) {
       return [];
     }
 
@@ -49,11 +64,12 @@ export const useAccountPages = (ownedById: string): AccountPagesInfo => {
           entityId: pageEntityId,
           parentPageEntityId,
           title,
+          ownerShortname,
           index: index ?? "",
         };
       },
     );
-  }, [data]);
+  }, [data, ownerShortname]);
 
   return { data: accountPages, loading };
 };
