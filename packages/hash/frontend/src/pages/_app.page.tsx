@@ -3,8 +3,9 @@
 require("setimmediate");
 
 import { ApolloProvider } from "@apollo/client/react";
+import { TypeSystemInitializer } from "@blockprotocol/type-system";
+import { Subgraph, SubgraphRootTypes } from "@hashintel/hash-subgraph";
 import { FunctionComponent, useEffect, useState } from "react";
-import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloClient";
 import { ModalProvider } from "react-modal-hook";
 import { configureScope } from "@sentry/nextjs";
 import { AppProps as NextAppProps } from "next/app";
@@ -16,24 +17,33 @@ import { SnackbarProvider } from "notistack";
 import { TypeSystemContextProvider } from "../lib/use-init-type-system";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 
-import { SessionProvider } from "./_app.page/session-provider";
 import "./globals.scss";
-import { useAuthenticatedUser } from "../components/hooks/useAuthenticatedUser";
 import {
   RouteAccountInfoProvider,
   RoutePageInfoProvider,
 } from "../shared/routing";
 import { ReadonlyModeProvider } from "../shared/readonly-mode";
 import { WorkspaceContextProvider } from "./shared/workspace-context";
-
-export const apolloClient = createApolloClient();
+import { apolloClient } from "../lib/apollo-client";
+import { MeQuery } from "../graphql/apiTypes.gen";
+import { meQuery } from "../graphql/queries/user.queries";
+import { AuthenticatedUser, constructAuthenticatedUser } from "../lib/user";
+import { fetchKratosSession } from "./shared/ory-kratos";
+import { AuthInfoProvider, useAuthInfo } from "./shared/auth-info-context";
+import { setSentryUser } from "./shared/sentry";
+import { AppPage, redirectInGetInitialProps } from "./shared/_app.util";
 
 const clientSideEmotionCache = createEmotionCache();
+
+type AppInitialProps = {
+  initialAuthenticatedUser?: AuthenticatedUser;
+};
 
 type AppProps = {
   emotionCache?: EmotionCache;
   Component: NextPageWithLayout;
-} & NextAppProps;
+} & AppInitialProps &
+  NextAppProps;
 
 const App: FunctionComponent<AppProps> = ({
   Component,
@@ -44,11 +54,6 @@ const App: FunctionComponent<AppProps> = ({
   const [ssr, setSsr] = useState(true);
   const router = useRouter();
 
-  const { authenticatedUser, loading, kratosSession, refetch } =
-    useAuthenticatedUser({
-      client: apolloClient,
-    });
-
   useEffect(() => {
     configureScope((scope) =>
       // eslint-disable-next-line no-console -- TODO: consider using logger
@@ -57,35 +62,11 @@ const App: FunctionComponent<AppProps> = ({
     setSsr(false);
   }, []);
 
+  const { authenticatedUser } = useAuthInfo();
+
   useEffect(() => {
-    // If the user is logged in but hasn't completed signup and isn't on the signup page...
-    if (
-      authenticatedUser &&
-      !authenticatedUser.accountSignupComplete &&
-      !router.pathname.startsWith("/signup")
-    ) {
-      // ...then redirect them to the signup page.
-      void router.push("/signup");
-      // If the user is logged out redirect them to the login page
-    } else if (
-      !loading &&
-      !authenticatedUser &&
-      !(
-        router.pathname.startsWith("/login") ||
-        router.pathname.startsWith("/signup")
-      )
-    ) {
-      if (kratosSession) {
-        /**
-         * If we have a kratos session, but could not get the authenticated user,
-         * the kratos session may be invalid so needs to be re-fetched before redirecting.
-         */
-        void refetch().then(() => router.push("/login"));
-      } else {
-        void router.push("/login");
-      }
-    }
-  }, [authenticatedUser, kratosSession, loading, refetch, router]);
+    setSentryUser({ authenticatedUser });
+  }, [authenticatedUser]);
 
   // App UI often depends on [account-slug] and other query params. However,
   // router.query is empty during server-side rendering for pages that don’t use
@@ -98,7 +79,7 @@ const App: FunctionComponent<AppProps> = ({
   const getLayout = Component.getLayout ?? getPlainLayout;
 
   return (
-    <ApolloProvider client={apolloClient}>
+    <>
       <CacheProvider value={emotionCache}>
         <ThemeProvider theme={theme}>
           <CssBaseline />
@@ -131,18 +112,85 @@ const App: FunctionComponent<AppProps> = ({
         };
       `}
       />
-    </ApolloProvider>
+    </>
   );
 };
 
-const AppWithTypeSystemContextProvider: FunctionComponent<AppProps> = (
+const AppWithTypeSystemContextProvider: AppPage<AppProps, AppInitialProps> = (
   props,
-) => (
-  <TypeSystemContextProvider>
-    <SessionProvider>
-      <App {...props} />
-    </SessionProvider>
-  </TypeSystemContextProvider>
-);
+) => {
+  const { initialAuthenticatedUser } = props;
+
+  return (
+    <TypeSystemContextProvider>
+      <ApolloProvider client={apolloClient}>
+        <AuthInfoProvider initialAuthenticatedUser={initialAuthenticatedUser}>
+          <App {...props} />
+        </AuthInfoProvider>
+      </ApolloProvider>
+    </TypeSystemContextProvider>
+  );
+};
+
+// The list of page pathnames that should be accessible whether or not the user is authenticated
+const publiclyAccessiblePagePathnames = [
+  "/[account-slug]/[page-slug]",
+  "/login",
+  "/signup",
+];
+
+AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
+  const {
+    ctx: { req, pathname },
+  } = appContext;
+
+  const cookieString = req?.headers.cookie;
+
+  const [subgraph, kratosSession] = await Promise.all([
+    apolloClient
+      .query<MeQuery>({
+        query: meQuery,
+        context: { headers: { cookie: cookieString } },
+      })
+      .then(({ data }) => data.me)
+      .catch(() => undefined),
+    fetchKratosSession(cookieString),
+  ]);
+
+  /** @todo: make additional pages publicly accessible */
+  if (!subgraph || !kratosSession) {
+    // If the user is logged out and not on a page that should be publicly accessible...
+    if (!publiclyAccessiblePagePathnames.includes(pathname)) {
+      // ...redirect them to the login page
+      redirectInGetInitialProps({ appContext, location: "/login" });
+    }
+
+    return {};
+  }
+
+  const userEntityEditionId = (
+    subgraph as Subgraph<SubgraphRootTypes["entity"]>
+  ).roots[0]!;
+
+  // The type system package needs to be initialized before calling `constructAuthenticatedUser`
+  await TypeSystemInitializer.initialize();
+
+  const initialAuthenticatedUser = constructAuthenticatedUser({
+    userEntityEditionId,
+    subgraph,
+    kratosSession,
+  });
+
+  // If the user is logged in but hasn't completed signup and isn't on the signup page...
+  if (
+    !initialAuthenticatedUser.accountSignupComplete &&
+    !pathname.startsWith("/signup")
+  ) {
+    // ...then redirect them to the signup page.
+    redirectInGetInitialProps({ appContext, location: "/signup" });
+  }
+
+  return { initialAuthenticatedUser };
+};
 
 export default AppWithTypeSystemContextProvider;
